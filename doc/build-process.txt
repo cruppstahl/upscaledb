@@ -1,0 +1,25 @@
+    Build Process
+
+------------------
+
+    This document describes the software configuration management, build 
+targets etc.
+
+------------------
+
+    hamster-db uses "scons" as a "make" replacement.
+
+    The library is built as a static library and a shared library.
+
+    Build files (.o/.obj) are stored in a separate directory ("./build")
+
+    Specialized builds for debugging, profiling and a release build are
+supported
+
+    Documentation generation is also generated as part of the build process.
+The generated documentation files are compiled into the "./doc"-directory.
+
+    Scons is also used as an autoconf-replacement. No further tools should
+be required for the build process. 
+
+

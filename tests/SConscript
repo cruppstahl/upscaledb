@@ -1,0 +1,33 @@
+#
+# Copyright (C) Christoph Rupp, 2005, 2006 (chris@crupp.de)
+# see file LICENSE for license and copyright information
+#
+# Scons file for unit tests
+#
+#
+
+files=[
+        "db.c",
+        #"btree_berk.c",
+        "btree_extkeys.c",
+        "btree_find.c",
+        "btree_payload.c",
+        "btree_row.c",
+        "blob.c",
+        "cache.c",
+        "errhand.c",
+        "freelist.c",
+        "main.c",
+        "page.c",
+        "getopts.c"
+    ]
+
+
+cflags    = '-g -pg -Wall -DHAM_DEBUG -DHAM_OS_LIN32'
+include   = ['../include']
+libraries = ['hamsterdb', 'cunit', 'db']
+libpaths  = ['../build']
+
+# set up the environment
+env=Environment(CCFLAGS = cflags, CPPPATH = include)
+env.Program('test', files, LIBS = libraries, LIBPATH = libpaths)

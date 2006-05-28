@@ -1,0 +1,21 @@
+#
+# Copyright (C) Christoph Rupp, 2005, 2006 (chris@crupp.de)
+# see file LICENSE for license and copyright information
+#
+# Scons file for ham_dump
+#
+#
+
+files=[
+        "main.c"
+    ]
+
+
+cflags    = '-g -Wall -ansi'
+include   = ['../../include', '../../src']
+libraries = ['hamsterdb', 'cunit', 'db']
+libpaths  = ['../../build']
+
+# set up the environment
+env=Environment(CCFLAGS = cflags, CPPPATH = include)
+env.Program('ham_dump', files, LIBS = libraries, LIBPATH = libpaths)

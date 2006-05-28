@@ -1,0 +1,36 @@
+    Cache Management
+
+------------------
+
+    This document describes the caching of database pages.
+
+------------------
+
+    hamster-db uses a simple cache manager for caching database 
+pages. Entry points for cache manager operations are ham_page_fetch(),
+ham_page_alloc(), ham_page_flush() and ham_flush_all(), all defined 
+in db.c. These calls are forwarded to the cache manager, which is 
+implemented in cachemgr.c.
+
+    The cache manager is organized mainly as a static hash table; the
+buckets are linked lists, which are part of the ham_page_t-structure. 
+Therefore, no <prev/next>-tuples have to be allocated separately.
+The hashing algorithm uses the page address as an input.
+
+    Pages have a reference counter - as soon as a page is fetched, the 
+reference counter is incremented. As soon as a page is flushed, the
+reference counter is decremented. Pages, which are marked dirty, are
+handled specially - they are replaced with shadow pages. If a database
+operation fails, all shadow pages are discarded. If it was successful, 
+the original page will be replaced by the shadow page. (Note that this 
+will no longer work as soon as concurrency is implemented).
+
+    From time to time the cache manager checks if his memory constrains
+are still followed. All memory pages, who are not referenced (i.e. have a 
+reference counter of zero), are added to a list of "unreferenced pages".
+This linked list is actually a circle - the last element's "next" pointer
+points to the first element, and vice versa. If pages have to be freed, 
+the cache manager picks the last element in the list of unreferenced
+pages and discards that page. Therefore, the cache replacement algorithm 
+uses LRU (least recently used) with an O(1) implementation (because of 
+the circular links).

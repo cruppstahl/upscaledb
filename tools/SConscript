@@ -1,0 +1,7 @@
+#
+# Copyright (C) Christoph Rupp, 2005, 2006 (chris@crupp.de)
+# see file LICENSE for license and copyright information
+#
+#
+
+SConscript('ham_dump/SConscript')
