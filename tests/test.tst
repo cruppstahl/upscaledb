@@ -1,0 +1,26 @@
+CREATE (NUMERIC_KEY)
+INSERT (0, "1", 0)
+INSERT (0, "2", 0)
+INSERT (0, "3", 0)
+INSERT (0, "4", 0)
+FULLCHECK
+INSERT (0, "5", 0)
+INSERT (0, "6", 0)
+INSERT (0, "7", 0)
+INSERT (0, "8", 0)
+INSERT (0, "9", 0)
+INSERT (0, "10", 0)
+FULLCHECK
+ERASE (0, "10")
+ERASE (0, "9")
+ERASE (0, "8")
+ERASE (0, "7")
+ERASE (0, "6")
+FULLCHECK
+ERASE (0, "5")
+ERASE (0, "4")
+ERASE (0, "3")
+ERASE (0, "2")
+ERASE (0, "1")
+FULLCHECK
+CLOSE

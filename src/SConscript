@@ -1,0 +1,49 @@
+#
+# Copyright (C) Christoph Rupp, 2005, 2006 (chris@crupp.de)
+# see file LICENSE for license and copyright information
+#
+# Scons file for hamster-db
+#
+#
+
+import os
+
+files=[
+        "db", 
+        "error", 
+        "mem", 
+        "os",
+        "page",
+        "freelist",
+        "txn",
+        "util",
+        "blob",
+        "cache",
+        "keys",
+        "hamsterdb",
+        "btree",
+        "btree_insert",
+        "btree_erase",
+        "btree_find",
+        "btree_check",
+        "btree_dump"
+    ]
+
+include     = ['.', '../include']
+
+# set up the environment(s)
+if not os.environ.has_key('RELEASE'):
+    sfx='dbg'
+    cflags  = '-g -Wall -ansi -DHAM_DEBUG -DHAM_OS_POSIX'
+else:
+    sfx='rel'
+    cflags  = '-O3 -Wall -ansi -DHAM_RELEASE -DHAM_OS_POSIX'
+
+env=Environment(CCFLAGS = cflags, CPPPATH = include)
+
+olist=[]
+for f in files:
+    olist.append(env.Object(f+"_"+sfx, f+".c"))
+
+env.StaticLibrary('hamsterdb', olist)
+#env.SharedLibrary('hamsterdb', olist)
