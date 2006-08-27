@@ -4,19 +4,19 @@
  *
  */
 
-#include <CUnit/Basic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <errno.h>
 #include <ctype.h>
 #include <unistd.h>
 #include <ham/hamsterdb.h>
+#include <ham/hamsterdb_int.h>
 #include <db.h>
 #include <sys/time.h>
-#include "../src/error.h"
 #include "getopts.h"
-#include "main.h"
+#include "../src/error.h"
 
 static ham_u64_t g_tv1, g_tv2;
 
@@ -39,14 +39,12 @@ static ham_u64_t g_tv1, g_tv2;
                                 break;                                      \
                             }
 
-#define ARG_HELP        1
 #define ARG_VERBOSE     2
 #define ARG_PROFILE     3
 #define ARG_QUIET       4
 #define ARG_CHECK       5
 #define ARG_BACKEND1    6
 #define ARG_BACKEND2    7
-#define ARG_INPUT       8
 #define ARG_DUMP        9
 
 #define BACKEND_NONE    0
@@ -109,12 +107,6 @@ static struct {
  */
 static option_t opts[]={
     {
-        ARG_HELP,
-        "h",
-        "help",
-        "this help screen",
-        0 },
-    {
         ARG_VERBOSE,
         "v",
         "verbose",
@@ -149,12 +141,6 @@ static option_t opts[]={
         "b2",
         "backend2",
         "<hamster|berk|none> - the second backend",
-        GETOPTS_NEED_ARGUMENT },
-    {
-        ARG_INPUT,
-        "in",
-        "input",
-        "<filename> - input filename",
         GETOPTS_NEED_ARGUMENT },
     {
         ARG_DUMP,
@@ -218,9 +204,8 @@ my_compare_return(void)
     /* 
      * only one backend? don't compare
      */
-    if (config.backend[1]==BACKEND_NONE) {
+    if (config.backend[1]==BACKEND_NONE) 
         return (HAM_TRUE);
-    }
 
     /*
      * otherwise check the return values
@@ -246,6 +231,9 @@ my_compare_return(void)
             ham_assert(ret==DB_KEYEXIST, "hamster return: %d, berk: %d", 
                     st, ret);
             break;
+        case HAM_CACHE_FULL:
+            ham_assert(1!=0, "hamster return: %d, berk: %d", st, ret);
+            return (HAM_FALSE);
         default:
             ham_assert(1!=0, "hamster return: %d, berk: %d", st, ret);
             return (HAM_FALSE);
@@ -327,11 +315,10 @@ my_compare_databases(void)
         hkey.size=key.size;
         hkey.data=key.data;
         /*PROFILE_START(ham);*/
-        st=ham_find(config.hamdb, &hkey, &hrec, 0);
+        st=ham_find(config.hamdb, 0, &hkey, &hrec, 0);
         /*PROFILE_STOP(ham);*/
         if (st==0) {
             ham_assert(hrec.size==rec.size, 0, 0);
-            ham_assert(hrec.data!=0, 0, 0);
             if (hrec.data)
                 ham_assert(!memcmp(hrec.data, rec.data, rec.size), 0, 0);
         }
@@ -390,10 +377,102 @@ my_execute_create(char *line)
                 (void)unlink(FILENAME_HAM);
                 st=ham_new(&config.hamdb);
                 ham_assert(st==0, 0, 0);
+#if 0
+                st=ham_create_ex(config.hamdb, FILENAME_HAM, 0, 
+                        0664, HAM_DEFAULT_PAGESIZE, 0, 1024*8);
+#endif
                 st=ham_create(config.hamdb, FILENAME_HAM, 0, 0664);
                 ham_assert(st==0, 0, 0);
                 if (config.flags & NUMERIC_KEY)
                     ham_set_compare_func(config.hamdb, my_compare_keys);
+                PROFILE_STOP(i);
+                break;
+        }
+    }
+
+    return 1;
+}
+
+static ham_bool_t
+my_execute_open(char *line)
+{
+    int i, ret;
+    ham_status_t st;
+    char *flags;
+
+    flags=line;
+
+    /*
+     * check flag NUMERIC_KEY
+     */
+    if (flags && strstr(flags, "NUMERIC_KEY")) {
+        config.flags |= NUMERIC_KEY;
+        VERBOSE2("using numeric keys", 0);
+    }
+
+    for (i=0; i<2; i++) {
+        switch (config.backend[i]) {
+            case BACKEND_NONE: 
+                break;
+            case BACKEND_BERK: 
+                VERBOSE2("opening backend %d (berkeley)", i);
+                if (config.dbp) {
+                    FAIL("berkeley handle already exists", 0);
+                    return 0;
+                }
+                PROFILE_START(i);
+                ret=db_create(&config.dbp, 0, 0);
+                ham_assert(ret==0, 0, 0);
+                ret=config.dbp->open(config.dbp, 0, FILENAME_BERK, 0, 
+                        DB_BTREE, 0, 0);
+                ham_assert(ret==0, 0, 0);
+                PROFILE_STOP(i);
+                break;
+            case BACKEND_HAMSTER: 
+                VERBOSE2("opening backend %d (hamster)", i);
+                if (config.hamdb) {
+                    FAIL("hamster handle already exists", 0);
+                    return 0;
+                }
+                PROFILE_START(i);
+                st=ham_new(&config.hamdb);
+                ham_assert(st==0, 0, 0);
+                st=ham_open(config.hamdb, FILENAME_HAM, 0);
+                ham_assert(st==0, 0, 0);
+                if (config.flags & NUMERIC_KEY)
+                    ham_set_compare_func(config.hamdb, my_compare_keys);
+                PROFILE_STOP(i);
+                break;
+        }
+    }
+
+    return 1;
+}
+
+static ham_bool_t
+my_execute_flush(void)
+{
+    int i;
+    ham_status_t st;
+
+    for (i=0; i<2; i++) {
+        switch (config.backend[i]) {
+            case BACKEND_NONE: 
+                break;
+            case BACKEND_BERK: 
+                PROFILE_START(i);
+                /* nothing to do here TODO */
+                PROFILE_STOP(i);
+                break;
+            case BACKEND_HAMSTER: 
+                VERBOSE2("flushing backend %d (hamster)", i);
+                if (!config.hamdb) {
+                    FAIL("hamster handle is invalid", 0);
+                    return 0;
+                }
+                PROFILE_START(i);
+                st=ham_flush(config.hamdb);
+                ham_assert(st==0, 0, 0);
                 PROFILE_STOP(i);
                 break;
         }
@@ -415,7 +494,7 @@ my_execute_close(void)
         ham_status_t st=0;
         if (config.backend[0]==BACKEND_HAMSTER ||
             config.backend[1]==BACKEND_HAMSTER)
-            ham_assert((st=ham_dump(config.hamdb, my_dump_func))==0, 0, 0);
+            ham_assert((st=ham_dump(config.hamdb, 0, my_dump_func))==0, 0, 0);
         if (st)
             ham_trace("hamster dump failed with status %d", st);
     }
@@ -487,17 +566,21 @@ my_execute_insert(char *line)
      * allocate and initialize data 
      */
     data_size=strtoul(data, 0, 0);
+    /*
     if (!data_size) {
         FAIL("line %d: data size is invalid", config.cur_line);
         return 0;
     }
-    data=(char *)malloc(data_size);
-    if (!data) {
-        FAIL("line %d: out of memory", config.cur_line);
-        return 0;
+    */
+    if (data_size) {
+        data=(char *)malloc(data_size);
+        if (!data) {
+            FAIL("line %d: out of memory", config.cur_line);
+            return 0;
+        }
+        for (i=0; i<data_size; i++)
+            data[i]=i&0xff;
     }
-    for (i=0; i<data_size; i++)
-        data[i]=i&0xff;
 
     /*
      * now insert the value
@@ -510,7 +593,8 @@ my_execute_insert(char *line)
                 DBT key, record;
                 if (!config.dbp) {
                     FAIL("berkeley handle is invalid", 0);
-                    free(data);
+                    if (data_size)
+                        free(data);
                     return 0;
                 }
                 PROFILE_START(i);
@@ -527,7 +611,7 @@ my_execute_insert(char *line)
                     key.data=keytok;
                 }
                 record.size=data_size;
-                record.data=data;
+                record.data=data_size ? data : 0;
 
                 config.retval[i]=config.dbp->put(config.dbp, 0, &key, &record, 
                         DB_NOOVERWRITE);
@@ -541,7 +625,8 @@ my_execute_insert(char *line)
                 ham_record_t record;
                 if (!config.hamdb) {
                     FAIL("hamster handle is invalid", 0);
-                    free(data);
+                    if (data_size)
+                        free(data);
                     return 0;
                 }
                 PROFILE_START(i);
@@ -558,9 +643,9 @@ my_execute_insert(char *line)
                     key.data=keytok;
                 }
                 record.size=data_size;
-                record.data=data;
+                record.data=data_size ? data : 0;
 
-                config.retval[i]=ham_insert(config.hamdb, &key, &record, 0);
+                config.retval[i]=ham_insert(config.hamdb, 0, &key, &record, 0);
                 PROFILE_STOP(i);
                 VERBOSE2("inserting into backend %d (hamster): status %d", 
                         i, (ham_status_t)config.retval[i]);
@@ -568,8 +653,9 @@ my_execute_insert(char *line)
             }
         }
     }
-
-    free(data);
+    
+    if (data_size)
+        free(data);
 
     /*
      * compare the two return values
@@ -656,7 +742,7 @@ my_execute_erase(char *line)
                     key.data=keytok;
                 }
 
-                config.retval[i]=ham_erase(config.hamdb, &key, 0);
+                config.retval[i]=ham_erase(config.hamdb, 0, &key, 0);
                 PROFILE_STOP(i);
                 VERBOSE2("erasing from backend %d (hamster): status %d", 
                         i, (ham_status_t)config.retval[i]);
@@ -681,9 +767,9 @@ my_execute_fullcheck(char *line)
         if (config.backend[0]==BACKEND_HAMSTER ||
             config.backend[1]==BACKEND_HAMSTER) {
             ham_status_t st=0;
-            st=ham_check_integrity(config.hamdb);
+            st=ham_check_integrity(config.hamdb, 0);
             if (config.dump>=1) 
-                (void)ham_dump(config.hamdb, my_dump_func);
+                (void)ham_dump(config.hamdb, 0, my_dump_func);
             ham_assert(st==0, "check integrity failed", 0);
         }
     }
@@ -709,6 +795,8 @@ my_execute(char *line)
         return 1;
     if (!strcasecmp(tok, "CREATE"))
         return my_execute_create(&line[pos]);
+    if (!strcasecmp(tok, "OPEN"))
+        return my_execute_open(&line[pos]);
     if (!strcasecmp(tok, "INSERT"))
         return my_execute_insert(&line[pos]);
     if (!strcasecmp(tok, "ERASE"))
@@ -717,12 +805,14 @@ my_execute(char *line)
         return my_execute_fullcheck(&line[pos]);
     if (!strcasecmp(tok, "CLOSE"))
         return my_execute_close();
+    if (!strcasecmp(tok, "FLUSH"))
+        return my_execute_flush();
     ham_trace("line %d: invalid token '%s'", config.cur_line, tok);
     return HAM_FALSE;
 }
 
-void 
-test_db(void)
+int 
+test_db(const char *filename)
 {
     FILE *f;
     unsigned opt;
@@ -737,18 +827,13 @@ test_db(void)
     config.check=1;
     config.backend[0]=BACKEND_HAMSTER;
     config.backend[1]=BACKEND_BERK;
+    config.filename=filename;
 
     /*
      * parse command line parameters
      */
-    getopts_init(argc-1, argv+1, "test db");
-
     while ((opt=getopts(&opts[0], &param))) {
-        if (opt==ARG_HELP) {
-            getopts_usage(&opts[0]);
-            return;
-        }
-        else if (opt==ARG_PROFILE) {
+        if (opt==ARG_PROFILE) {
             config.profile++;
         }
         else if (opt==ARG_CHECK) {
@@ -780,19 +865,15 @@ test_db(void)
             else 
                 ham_trace("backend 2: unknown backend %s", param);
         }
-        else if (opt==ARG_INPUT) 
-            config.filename=param;
         else if (opt==ARG_DUMP) 
             config.dump++;
         else if (opt==GETOPTS_UNKNOWN) {
             ham_trace("unknown parameter %s", param);
-            return;
+            return (-1);
         }
-        else if (opt==GETOPTS_PARAMETER) 
-            config.filename=param;
         else {
             ham_trace("unknown parameter %d", opt);
-            return;
+            return (-1);
         }
     }
 
@@ -806,7 +887,7 @@ test_db(void)
         if (!f) {
             ham_trace("cannot open %s: %s", config.filename, 
                     strerror(errno));
-            return;
+            return (-1);
         }
     }
 
@@ -827,7 +908,7 @@ test_db(void)
         if (config.check>=2) {
             if ((config.backend[0]==BACKEND_HAMSTER ||
                 config.backend[1]==BACKEND_HAMSTER) && config.hamdb)
-                ham_assert(ham_check_integrity(config.hamdb)==0, 0, 0);
+                ham_assert(ham_check_integrity(config.hamdb, 0)==0, 0, 0);
         }
 
         VERBOSE2("---- line %04d ----", config.cur_line);
@@ -840,11 +921,13 @@ test_db(void)
         float f;
         f=config.prof[0];
         f/=1000.f;
-        printf("\nprofile of backend %s:\t%f sec\n", 
+        printf("profile of backend %s:\t%f sec\n", 
                 my_get_profile_name(0), f);
         f=config.prof[1];
         f/=1000.f;
-        printf("\nprofile of backend %s:\t%f sec\n", 
+        printf("profile of backend %s:\t%f sec\n", 
                 my_get_profile_name(1), f);
     }
+
+    return (0);
 }

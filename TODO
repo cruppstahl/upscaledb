@@ -1,103 +1,131 @@
 
-o benchmark 
-    100mb-file mit memmapped access, random
-    dann die selben zugriffssequenzen mit read/write
-    random access, aber eine gewisse lokalität sollte vorhanden sein (wie es
-    auch beim btree der fall ist)
 
-o refactoring
-    o sauber getrenntes device-subsystem: create, open, read, write, close,
-        alloc, free; nimmt mmap, wenn möglich, sonst read/write; ausserdem
-        prefetch mit async io
-    o interface von device-subsystem sauber definieren, darauf aufbauend
-        den page manager (ersetzt den cache), der die txn als 
-        parameter bekommt (kann 0 sein). die txn ist keine schicht oberhalb
-        des pm!
-    o ham_page_t braucht persistent header, mit flags, page-typ und anzahl
-        der elemente; die leaf-seiten werden anders gehandhabt, können 
-        einen grösseren datenteil haben als internal pages (haben dadurch
-        weniger elemente).
-    o freelist rausziehen aus der header-page in eigenes modul; freelist-
-        operationen bekommen weiterhin den txn-parameter (kann 0 sein)
+o branch in trunk kopieren, branch löschen
 
----------------------------
+-----------------------------------------------------
+-----------------------------------------------------
 
-x was ist die default pagesize?  -> 4kb
+o memory mapped file-io
 
-o profilen
-    x tests nur mit inserts - verhältnis zu bsddb?
-        -> test insert.tst
-            hamster:  0.343sec
-            berkeley: 0.270sec
-    x tests nur mit erase - verhältnis zu bsddb?
-        -> test 45.tst
-            hamster:  0.318sec
-            berkeley: 0.229sec
-    o testen mit time
-        berkeley (45.tst)
-            real    0m0.099s
-            user    0m0.035s
-            sys     0m0.026s
-        hamster (45.tst)
-            real    0m1.082s
-            user    0m0.944s
-            sys     0m0.100s
-    x tests mit create/close - verhältnis zu bsddb?
-    o statistiken in hamster einbauen
-        o cache hits
-        o cache misses
-        o flushes
-        o allocs
-        o frees
-        o freelist-hit
-        o freelist-miss
-        o freelist-add
-    o profiling - gprof
-    o mit strace prüfen, wann berkeley wirklich plattenzugriffe macht!
-        default cachesize/pagesize an berkeley anpassen
+-----------------------------------------------------
+-----------------------------------------------------
 
-o beim einfügen von werten mit sizeof(wert)<=sizeof(ham_offset_t)
-    können wir die werte direkt im leaf speichern. aber wie erkennen wir
-    das? wir müssen noch ein flag im key mitspeichern (1 byte). 
-    default key grösse anpassen!
-    flag & DATA_IN_OFFSET: data hat 8 byte, ist im offset
-    flag & SMALL_DATA_IN_OFFSET: data hat <8 byte, ist im offset; an byte 0
-        steht die echte grösse
+o in-memory-database
+    o finden wir ne möglichkeit, normale datenbanken in in-memory zu 
+        importieren und umgekehrt wieder zu exportieren? das wäre genial
+        --> geht mit iteratoren:
+            iterator from=db1.begin()
+            while (from)
+                db2.append(from)
+                from.next()
 
-o wie verhält sich der default-comparator (bei ungleichen keygrössen)?
-    1. memcmp auf prefix
-    2. identisch? wenn ein key kürzer ist als der andere, und vollständig
-        vorliegt: kurzer key ist "vorher"
-    3. sonst keys nachladen, wie bei 2) weiter
+-----------------------------------------------------
 
-o variable length keys
-    o grösse prüfen: nach 8 stunden hat hamster 121 MB, berk 64 MB
-        o wird die freelist korrekt benutzt?
-        o werden data blobs immer alignt?
-        o wie wiele pages hat berkeley für den index, wie viele hamster?
-    o testen mit verschiedenen cachegrössen
-        o wird die grösse eingehalten?
-        o cachegrösse 0?
-        o readthrough/writethrough
-    o testen, testen, testen
-        o variable length keys
-        o non-numeric keys
-        o sehr grosse datensätze (bis 100 MB)
+o profiling! aber mit der release-version...
+    o in-memory-db
+    o os_mmap
+    o read
+    o verschiedene page- und keygrössen
+    o nur inserts
+    o nur inserts ohne blob
+    o nur erase
+    o nur lookup
+    o auch gegen qdbm und andere backends
+    o etc etc etc
 
-o beim schliessen der db sollten alle txn geschlossen werden
+-----------------------------------------------------
+-----------------------------------------------------
 
-o sicherstellen dass in der aktuellen version immer nur 1 transaktion 
-    geöffnet ist!
+o replace/overwrite keys
 
--------------- -------------- -------------- --------------
+o extended keys
+    o store_key(ham_key_t *key, internal_key_t *intkey);
+    o load_key(internal_key_t *intkey, ham_key_t *key);
+    o shift/insert/remove ext. keys (wie in btree.c)
+    o wie verhält sich der default-comparator (bei ungleichen keygrössen)?
+        1. memcmp auf prefix
+        2. identisch? wenn ein key kürzer ist als der andere, und vollständig
+            vorliegt: kurzer key ist "vorher"
+        3. sonst keys nachladen, wie bei 2) weiter
 
-o btree: address of root-page must be part of the (persistent) backend
+    o eventuell wäre es gut, wenn die gebufferten extended keys global 
+        gespeichert werden, nicht bei der page; dadurch müssen wir keine
+        shifts/moves machen; nur wenn eine page komplett (aus dem
+        cache oder der datei) gelöscht wird, müssen die keys raus; oder 
+        wenn ein key-eintrag gelöscht wird. sonst gibt's keine weiteren
+        operationen, und evtl können wir die geschwindigkeit halbwegs 
+        schnell kriegen (hash-tabelle).
+        o extkey_get(name, extkey *) - lädt notfalls key von der platte
+        o extkey_remove(extkey *)
+        o extkey_put(extkey *, name)
 
-o support multiple indices
-    max. number of indices can be set at compile time (default: 16 or 32 - 
-    check sizes!)
+-----------------------------------------------------
 
-o db_get_keysize() -> backend_get_keysize()
+o iteratoren (nicht in version 0.10)
+
+-----------------------------------------------------
+
+o duplicate keys (nicht in version 0.10)
+    jeder key bekommt einen dupcounter; der wird mit unsigned(-1) initialisiert
+    beim einfuegen wird rekursiv abgestiegen. im leaf wird dann ein neuer key
+    eingefuegt, mit dem dupcounter=existierender ("kleinster") key minus 1.
+
+-----------------------------------------------------
+-----------------------------------------------------
+
+o tests
+    o test mit freelist
+    o test mit mmap, verschiedene pagesizes
+    o test mit read, verschiedene pagesizes
+    o test mit in-memory-db, verschiedene pagesizes
+    o os_mmap: macht segfault (nach split?)
+    o os_mmap: datenbank-headerpage muss page-aligned sein
+    o os_mmap: sinnvolle erkennung der pagesize und setzen von USE_MMAP
+    o in-memory-database testen
+    o verschiedene pagesizes/keysizes für
+        o in-memory-db
+        o os_mmap
+        o read(2)
+
+-----------------------------------------------------
+
+o momentan werden alle pages auf null gesetzt (memset(page->pers->payload, 0))
+    und zwar evtl sogar mehrmals (freelist!)
+    raus damit!
+
+-----------------------------------------------------
+
+o doku
+    o überarbeiten
+    o erweitern
+
+-----------------------------------------------------
+
+o statistics
+    will wissen wie viele freelist-hits/misses und cache-hits/misses es gab
+
+    brauche bei den statistik-feldern die anzahl der aktuellen Keys in der
+    Datenbank
+
+    wird im sql gebraucht für AUTO_INCREMENT vom index und für eine schnelle
+    Berechnung
+    von MAX() über die ganze tabelle.
+
+    allerdings wird das etwas tricky, sobald transaktionen dazu kommen - erst
+    beim commit der transaktion muss der zähler inkrementiert/dekrementiert und
+    auf platte geschrieben werden. erst sobald der erhöhte zähler wirklich auf
+    platte geschrieben wurde, ist die transaktion abgeschlossen.
+
+    jedoch ist das blöd, weil es dann immer einen zusätzlichen
+    schreibzugriff gibt, sobald ein insert oder erase stattfindet. eher 
+    sollte nach dem start geprüft werden, ob es einen absturz gab - 
+    falls ja, werden die statistiken gelöscht, und on demand wieder 
+    initialisiert. (diese ganze problematik kommt erst, wenn wir sql brauchen).
+
+    Die MAX-Berechnung sollte recht simpel sein. Alle anderen Statistiken (z.b.
+    total size von allen Datensätzen) werden teuer - die sollten nicht immer
+    up-to-date gehalten werden, sondern nur on-demand vom cli-tool "ham_stats"
+    ausgegeben werden).
 
 o statistics
     get generic getter/setter for statistical value, i.e. 
@@ -109,7 +137,32 @@ o statistics
         ham_get_global_statistics(stat)
         ham_get_index_statistics(index, stat)
 
---------------
+-----------------------------------------------------
+
+o nochmal durchgehen und die ganzen flags zusammenschreiben - 
+    teilweise sind sie an verschiedenen stellen deklariert und benützt 
+    - das ist momentan nicht sehr schön
+
+-----------------------------------------------------
+
+o get hamster version
+    gibt's ne möglichkeit, die version der
+    library abzufragen? klar - sie steht in einer header-datei
+    aber die ist privat und kann nicht "von aussen" abgefragt werden. 
+    evtl wäre eine exportierte funktion besser:
+    
+    ham_status_t ham_get_version(ham_u32_t *major,
+            ham_u32_t *minor, ham_u32_t *revision)
+
+-----------------------------------------------------
+
+-----------------------------------------------------
+
+o tools
+    o ham_dump
+    o ham_stats
+
+-----------------------------------------------------
 
 o configuration management: HAM_32BIT/HAM_64BIT, HAM_OS_POSIX/HAM_OS_WINDOWS
     automatisch während des build-prozesses erkennen; momentan 
@@ -120,7 +173,10 @@ o stress test mit zufällig fehlschlagenden io-funktionen und zufälligen
 
 --------------
 
-o review: make sure that error codes are propagated correctly (ham_set_error())
+o cache: bucketgrösse in ham_config.h verschieben, eine #define-konstante
+    draus machen
+
+--------------
 
 o new flag for create/open: USE_FLOCK calls flock() around insert/erase 
         (makes mostly sense if cachesize==0)
@@ -130,67 +186,58 @@ o profiling: if a page is allocated, allocate more pages, then we have only
 
 --------------
 
-o documentation -> texinfo?? 
+o documentation -> texinfo? doxygen?
     merge the documentation with doxygen-docs
-
-x use scons instead of make
 
 o define HAM_EXPORT DECLSPEC _dllexport
     compile a shared library
 
 --------------
---------------
 
-o functionen wie page_ref_* im release-mode durch makros ersetzen,
-    im debug-mode durch funktionen mit debug-info (__FILE__, __LINE__)
+Version 0.1.0 - first release!!
 
-o cache priority:
-    beim "delete" von unused pages hat jede page eine priorität. 
-    z.b. Index: 20, Data-Header 10, Data 0
-    in der ring-liste wird zum letzten Element gesprungen. Dann wird 
-    bis zum Start gegangen. Alle Prioritäten der pages werden um 1 
-    decrementiert. Wird eine page mit Prio 0 gefunden, wird sie gelöscht.
-    Ansonsten wird die Page mit der niedrigsten Prio gelöscht.
+o komplettes review
+    werden fehlerwerte korrekt propagiert?
+    machen fehlerwerte immer sinn? z.b. in flush_all()
+    was passiert mit fehlern beim flushen?
+    was passiert mit fehlern in ham_close()?
 
-o bei btree_find und blob_read macht es derzeit keinen sinn, die 
-    seiten in der pagelist zu cachen (ausser evtl die seiten mit dem 
-    blob_t header und die seiten, die nur zum teil benötigt werden).
+x bbaum fehlerfrei
+x TXN raus (wir können die txn's auch komplett
+    für diesen release abschalten... man soll dafür ja ne spezielle version
+    kaufen müssen)
+o caching
+o performance vergleichbar mit berkeley-db
+o overwrite keys
+o extended keys
+o in memory-datenbanken
+o memory-mapped access
+o optionales file locking mit flock vor insert/erase/find/check/dump
+o erzeugt .dll/.so
+o compiliert unter linux, windows, darwin, 32bit und 64bit, unter windows
+    mit mingw, icc, msvc, borland, watcom
+o legal issues
+o dokumentation: tutorial, interface, FAQ
+o webseite
+o stress-test-tool(s), das ALLE optionen durchprobiert
+o admin-tool(s) fuer dump, stats, reorg
+    o db_dump: 
+        o key/daten dumpen machen wir erst später, wenn's iteratoren gibt
+        o header dumpen
 
-o cache policy
-    es gibt
-    - strikt: wenn speicher aufgebraucht wurde, gibt's EWOULDBLOCK
-    - lax: kurzfristig darf speicher dazuallokiert werden (default)
+-----------------------------------------------------
 
-o test ham_open() - could be part of btree_row; after the db is closed, 
-    it's re-opened, and all items are searched with "find"
+o backend
+    o darauf hinarbeiten dass später mal mehrere backends in einer datei
+        sind, nicht nur eines
 
-o duplicate keys
-    jeder key bekommt einen dupcounter; der wird mit unsigned(-1) initialisiert
-    beim einfuegen wird rekursiv abgestiegen. im leaf wird dann ein neuer key
-    eingefuegt, mit dem dupcounter=existierender ("kleinster") key -1.
+o blob
+    o neu: header in jeder page mit blobid
+    o header auch im verify prüfen
 
-o in-memory database
-
-o cache verbessern
-    o cachesize kann noch nicht geaendert werden
-    o moegliche policies: so wenig speicher wie noetig/kein cache, 
-        fixe cache size, so viel wie beliebt
-
-o verbessern der key-compares
-    zweistufige abfrage:
-        int compare_key(const void *lhs, int lhs_size, lhs_fullsize,
-                        const void *rhs, int rhs_size, rhs_fullsize);
-        rückgabe: -1: lhs < rhs
-        rückgabe: +1: lhs > rhs
-        rückgabe:  0: lhs== rhs
-        rückgabe: 99: request fulldata bei varkeys
-    danach wird compare_key() erneut aufgerufen, aber mit den vollständigen
-    keys
-
-o prefetch pages, i.e. with async. i/o
-
-o cursors
-    @@@
+o debug
+    o im debug-modus output wie gehabt; bei non-debug: statt file- und line
+        nur "hamsterdb: " ausgeben
 
 o filter
     generische filter, sowie 2 implementationen davon: ein encryption-codec 
@@ -210,49 +257,26 @@ o bindings
 o asset-tool
     GUI und library für computerspiele
 
-o logging
-    @@@
+-----------------------------------------------------
 
-o locking/concurrency
-    @@@
+-------------- -------------- -------------- --------------
 
-o transactions/ACID
-    @@@
+Version 0.2.0
 
-o real time support (transaction priorities, timeouts...)
-    @@@
-
---------------
---------------
-
-Version 0.1.0
-
-o bbaum fehlerfrei
 o duplicate keys
-o variable key length
-o caching
-o multiple indices
-o optionales file locking mit flock vor insert/erase
-o live reorganisation
-o in memory-datenbanken
 o iteratoren
-o komplettes review
-    werden fehlerwerte korrekt propagiert?
-    machen fehlerwerte immer sinn? z.b. in flush_all()
-    was passiert mit fehlern beim flushen?
-    was passiert mit fehlern in ham_close()?
+o bindings: C++, Python, Perl, PHP
+o filter: encryption
+o filter: compression
 
-o stress-test-tool(s), das ALLE optionen durchprobiert
-o admin-tool(s) fuer dump, stats, reorg
-    o db_dump: 
-        o key/daten dumpen machen wir erst später, wenn's iteratoren gibt
-        o header dumpen
+-----------------------------------------------------
 
---------------
-
-Version 0.1.0
+Version 0.3.0
 
 o hash-tabelle
+o live reorganisation???
+o database-environment (ein file fuer mehrere datenbanken, gesharter cache
+    etc)
 
 -------------------------- literature -----------------------
 pB+ Trees prefetching B+ Trees 

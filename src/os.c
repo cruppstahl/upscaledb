@@ -5,8 +5,9 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
 #include <errno.h>
+#include <string.h>
+#include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -14,6 +15,33 @@
 #include <ham/types.h>
 #include "error.h"
 #include "os.h"
+#define __USE_XOPEN2K 1 /* for ftruncate() */
+#include <unistd.h>
+
+ham_status_t
+os_mmap(ham_fd_t fd, ham_offset_t position, ham_size_t size, 
+        ham_u8_t **buffer)
+{
+    *buffer=mmap(0, size, PROT_READ, MAP_PRIVATE, fd, position);
+    if (*buffer==(void *)-1) {
+        *buffer=0;
+        ham_log("mmap failed with status %d (%s)", errno, strerror(errno));
+        return (errno);
+    }
+
+    return (HAM_SUCCESS);
+}
+
+ham_status_t
+os_munmap(void *buffer, ham_size_t size)
+{
+    int r=munmap(buffer, size);
+    if (r) {
+        ham_log("munmap failed with status %d (%s)", errno, strerror(errno));
+        return (errno);
+    }
+    return (HAM_SUCCESS);
+}
 
 ham_status_t
 os_read(ham_fd_t fd, ham_u8_t *buffer, ham_size_t bufferlen)

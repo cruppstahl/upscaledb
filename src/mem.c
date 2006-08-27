@@ -24,6 +24,6 @@ _ham_mem_free(const char *file, int line, void *ptr)
     file=file;
     line=line;
 
-    if (ptr)
+    if (ptr) 
         free(ptr);
 }

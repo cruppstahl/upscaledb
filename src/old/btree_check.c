@@ -11,7 +11,6 @@
 #include <ham/config.h>
 #include "db.h"
 #include "error.h"
-#include "keys.h"
 #include "btree.h"
 #include "txn.h"
 
@@ -43,15 +42,15 @@ typedef struct
  * the linked list of all the siblings
  */
 static ham_status_t 
-my_verify_level(ham_txn_t *txn, ham_page_t *parent, ham_page_t *page, 
-        ham_u32_t level, check_scratchpad_t *scratchpad);
+my_verify_level(ham_page_t *parent, ham_page_t *page, ham_u32_t level, 
+        check_scratchpad_t *scratchpad);
 
 /*
  * verify a single page
  */
 static ham_status_t
 my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page, 
-        ham_u32_t level, ham_u32_t count, check_scratchpad_t *scratchpad);
+        ham_u32_t level, ham_u32_t count);
     
 ham_status_t 
 btree_check_integrity(ham_btree_t *be, ham_txn_t *txn)
@@ -62,20 +61,20 @@ btree_check_integrity(ham_btree_t *be, ham_txn_t *txn)
     ham_status_t st=0;
     ham_offset_t ptr_left;
     ham_db_t *db=btree_get_db(be);
-    check_scratchpad_t scratchpad;
-
     ham_assert(btree_get_rootpage(be)!=0, 0, 0);
+    check_scratchpad_t scratchpad;
 
     scratchpad.be=be;
     scratchpad.flags=0;
     scratchpad.txn=txn;
 
     /* get the root page of the tree */
-    page=db_fetch_page(db, txn, btree_get_rootpage(be), 0);
+    page=txn_fetch_page(txn, btree_get_rootpage(be), 0);
     if (!page) {
         ham_trace("error 0x%x while fetching root page", db_get_error(db));
         return (db_get_error(db));
     }
+    ham_assert(page_get_shadowpage(page)==0, 0, 0);
 
     /* while we found a page... */
     while (page) {
@@ -85,7 +84,7 @@ btree_check_integrity(ham_btree_t *be, ham_txn_t *txn)
         /*
          * verify the page and all its siblings
          */
-        st=my_verify_level(txn, parent, page, level, &scratchpad);
+        st=my_verify_level(parent, page, level, &scratchpad);
         if (st)
             break;
         parent=page;
@@ -94,7 +93,8 @@ btree_check_integrity(ham_btree_t *be, ham_txn_t *txn)
          * follow the pointer to the smallest child
          */
         if (ptr_left) {
-            page=db_fetch_page(db, txn, ptr_left, 0);
+            page=txn_fetch_page(txn, ptr_left, 0);
+            ham_assert(page_get_shadowpage(page)==0, 0, 0);
         }
         else
             page=0;
@@ -106,8 +106,8 @@ btree_check_integrity(ham_btree_t *be, ham_txn_t *txn)
 }
 
 static ham_status_t 
-my_verify_level(ham_txn_t *txn, ham_page_t *parent, ham_page_t *page, 
-        ham_u32_t level, check_scratchpad_t *scratchpad)
+my_verify_level(ham_page_t *parent, ham_page_t *page, ham_u32_t level, 
+        check_scratchpad_t *scratchpad)
 {
     int cmp;
     ham_u32_t count=0;
@@ -121,9 +121,18 @@ my_verify_level(ham_txn_t *txn, ham_page_t *parent, ham_page_t *page,
      * than the largest item in this page
      */
     if (parent && btree_node_get_left(node)) {
-        btree_node_t *cnode =ham_page_get_btree_node(page);
+        btree_node_t *pnode   =ham_page_get_btree_node(parent);
+        btree_entry_t *pentry =btree_node_get_entry(db, pnode, 0);
+        btree_node_t *cnode   =ham_page_get_btree_node(page);
+        btree_entry_t *centry =btree_node_get_entry(db, cnode, 
+                btree_node_get_count(cnode)-1);
 
-        cmp=key_compare_int_to_int(page, 0, btree_node_get_count(cnode)-1);
+        cmp=db_compare_keys(db, page,
+                0, btree_entry_get_flags(pentry), btree_entry_get_key(pentry), 
+                btree_entry_get_size(pentry), btree_entry_get_size(pentry),
+                btree_node_get_count(cnode)-1,
+                btree_entry_get_flags(centry), btree_entry_get_key(centry), 
+                btree_entry_get_size(centry), btree_entry_get_size(centry));
         if (db_get_error(db))
             return (db_get_error(db));
         if (cmp<0) {
@@ -138,7 +147,7 @@ my_verify_level(ham_txn_t *txn, ham_page_t *parent, ham_page_t *page,
         /*
          * verify the page
          */
-        st=my_verify_page(parent, leftsib, page, level, count, scratchpad);
+        st=my_verify_page(parent, leftsib, page, level, count);
         if (st)
             break;
 
@@ -147,8 +156,9 @@ my_verify_level(ham_txn_t *txn, ham_page_t *parent, ham_page_t *page,
          */
         node=ham_page_get_btree_node(page);
         if (btree_node_get_right(node)) {
-            child=db_fetch_page(db, scratchpad->txn, 
-                    btree_node_get_right(node), 0);
+            child=txn_fetch_page(scratchpad->txn, btree_node_get_right(node), 
+                    0);
+            ham_assert(page_get_shadowpage(child)==0, 0, 0);
         }
         else
             child=0;
@@ -164,15 +174,15 @@ my_verify_level(ham_txn_t *txn, ham_page_t *parent, ham_page_t *page,
 
 static ham_status_t
 my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page, 
-        ham_u32_t level, ham_u32_t sibcount, check_scratchpad_t *scratchpad)
+        ham_u32_t level, ham_u32_t sibcount)
 {
     int cmp;
-    ham_size_t i=0, count, maxkeys;
+    ham_size_t i, count, maxkeys;
     ham_db_t *db=page_get_owner(page);
-    key_t *bte;
+    btree_entry_t *bte_lhs, *bte_rhs;
     btree_node_t *node=ham_page_get_btree_node(page);
 
-    maxkeys=btree_get_maxkeys(scratchpad->be);
+    maxkeys=db_get_maxkeys(db);
     count=btree_node_get_count(node);
 
     if(count==0) {
@@ -214,30 +224,19 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
      */
     if (leftsib) {
         btree_node_t *sibnode=ham_page_get_btree_node(leftsib);
-
-        key_t *sibentry=btree_node_get_key(db, sibnode, 
+        btree_entry_t *sibentry=btree_node_get_entry(db, sibnode, 
                 btree_node_get_count(sibnode)-1);
-        bte=btree_node_get_key(db, node, 0);
+        bte_lhs=btree_node_get_entry(db, node, 0);
 
-        if (key_get_flags(bte)!=0 && !btree_node_is_leaf(node)) {
-            ham_log("integrity check failed in page 0x%llx: item #0 "
-                    "has flags, but it's not a leaf page", 
-                    page_get_self(page), i);
-            return (HAM_INTEGRITY_VIOLATED);
-        }
-
-        cmp=db_compare_keys(db, page,
-                0, key_get_flags(bte), 
-                key_get_key(bte), 
-                db_get_keysize(page_get_owner(page)), 
-                key_get_size(bte), 
+        cmp=db_compare_keys(db, page, 0, 
+                btree_entry_get_flags(bte_lhs), btree_entry_get_key(bte_lhs), 
+                btree_entry_get_size(bte_lhs), btree_entry_get_size(bte_lhs),
                 btree_node_get_count(sibnode)-1,
-                key_get_flags(sibentry), 
-                key_get_key(sibentry), 
-                db_get_keysize(page_get_owner(page)), 
-                key_get_size(sibentry));
+                btree_entry_get_flags(sibentry), btree_entry_get_key(sibentry), 
+                btree_entry_get_size(sibentry), btree_entry_get_size(sibentry));
         if (db_get_error(db))
             return (db_get_error(db));
+
         if (cmp<0) {
             ham_log("integrity check failed in page 0x%llx: item #0 "
                     "< left sibling item #%d\n", page_get_self(page), 
@@ -250,7 +249,14 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
         return (0);
 
     for (i=0; i<count-1; i++) {
-        cmp=key_compare_int_to_int(page, i, i+1);
+        bte_lhs=btree_node_get_entry(db, node, i);
+        bte_rhs=btree_node_get_entry(db, node, i+1);
+        cmp=db_compare_keys(db, page, i, 
+                btree_entry_get_flags(bte_lhs), btree_entry_get_key(bte_lhs), 
+                btree_entry_get_size(bte_lhs), btree_entry_get_size(bte_lhs),
+                i+1, 
+                btree_entry_get_flags(bte_rhs), btree_entry_get_key(bte_rhs), 
+                btree_entry_get_size(bte_rhs), btree_entry_get_size(bte_rhs));
         if (db_get_error(db))
             return (db_get_error(db));
         if (cmp>=0) {

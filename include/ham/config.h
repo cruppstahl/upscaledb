@@ -32,12 +32,6 @@ extern "C" {
  */
 #define HAM_64BIT 1
 
-/**
- * is this a POSIX/Un*x-platform or Microsoft Windows? for POSIX/Un*x, 
- * define HAM_OS_POSIX; for Windows, define HAM_OS_WIN
- */
-#define HAM_OS_POSIX 1
-
 /** 
  * the serial number; for non-commercial versions, this is always
  * 0x0; commercial versions get a serial number from the vendor
@@ -58,14 +52,14 @@ extern "C" {
 #define HAM_HAS_HASHDB             1
 
 /**
- * the default pagesize is 1kb
+ * the default pagesize is 4kb
  */
-#define HAM_DEFAULT_PAGESIZE       (1024*1)
+#define HAM_DEFAULT_PAGESIZE       (1024*4)
 
 /**
- * the default cache size is 1mb
+ * the default cache size is 128kb
  */
-#define HAM_DEFAULT_CACHESIZE      (1024*1024)
+#define HAM_DEFAULT_CACHESIZE      (1024*128)
 
 
 #ifdef __cplusplus

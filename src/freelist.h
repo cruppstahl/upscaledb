@@ -18,7 +18,6 @@ extern "C" {
  * the deleted pages and blobs
  */
 
-#include "txn.h"
 #include "packstart.h"
 
 /**
@@ -66,9 +65,14 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freel_entry_t
 typedef HAM_PACK_0 struct HAM_PACK_1 freel_payload_t
 {
     /**
-     * number of used entries in the page - unused TODO
+     * number of used entries in the page 
      */
     ham_u16_t _count;
+
+    /**
+     * maximum number of entries for this page
+     */
+    ham_u16_t _maxsize;
 
     /**
      * address of the next freelist page
@@ -87,44 +91,48 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freel_payload_t
 /**
  * get the number of entries of a freelist-page
  */
-#define freel_page_get_count(fl)          (ham_db2h16((fl)->_count))
+#define freel_payload_get_count(fl)          (ham_db2h16((fl)->_count))
 
 /**
  * set the number of entries of a freelist-page
  */
-#define freel_page_set_count(fl, c)       (fl)->_count=ham_h2db16(c)
+#define freel_payload_set_count(fl, c)       (fl)->_count=ham_h2db16(c)
+
+/**
+ * get the number of maximum entries of a freelist-page
+ */
+#define freel_payload_get_maxsize(fl)        (ham_db2h16((fl)->_maxsize))
+
+/**
+ * set the number of maximum entries of a freelist-page
+ */
+#define freel_payload_set_maxsize(fl, s)     (fl)->_maxsize=ham_h2db16(s)
 
 /**
  * get the address of the next overflow page
  */
-#define freel_page_get_overflow(fl)       (ham_db2h_offset((fl)->_overflow))
+#define freel_payload_get_overflow(fl)   (ham_db2h_offset((fl)->_overflow))
 
 /**
  * set the address of the next overflow page
  */
-#define freel_page_set_overflow(fl, o)    (fl)->_overflow=ham_h2db_offset(o)
+#define freel_payload_set_overflow(fl, o) (fl)->_overflow=ham_h2db_offset(o)
 
 /**
  * get a freel_payload_t from a ham_page_t
  */
-#define page_get_freel_payload(p)         ((freel_payload_t *)p->_pers._payload)
+#define page_get_freel_payload(p)     ((freel_payload_t *)p->_pers->_s._payload)
 
 /**
  * get the array of freelist-entries
  */
-#define freel_page_get_entries(fl)        (fl)->_entries
+#define freel_payload_get_entries(fl)    (fl)->_entries
 
 /**
- * get maximum number of freelist entries in the database header page
+ * create a freelist
  */
-extern ham_size_t
-freel_get_max_header_elements(ham_db_t *db);
-
-/**
- * get maximum number of freelist entries in an overflow page
- */
-extern ham_size_t
-freel_get_max_overflow_elements(ham_db_t *db);
+extern ham_status_t
+freel_create(ham_db_t *db);
 
 /**
  * search for a free freelist entry which has space for @a size bytes,
@@ -134,16 +142,20 @@ freel_get_max_overflow_elements(ham_db_t *db);
  * @remark you can set the HAM_NO_PAGE_ALIGN as a flag
  */
 extern ham_offset_t
-freel_alloc_area(ham_db_t *db, ham_txn_t *txn, ham_size_t size, 
-        ham_u32_t flags);
+freel_alloc_area(ham_db_t *db, ham_size_t size, ham_u32_t flags);
 
 /**
  * add a new entry to the freelist; the freelist will automatically
  * allocate an overflow page if necessary
  */
 extern ham_status_t 
-freel_add_area(ham_db_t *db, ham_txn_t *txn, ham_offset_t address, 
-        ham_size_t size);
+freel_add_area(ham_db_t *db, ham_offset_t address, ham_size_t size);
+
+/**
+ * flush all freelist pages
+ */
+extern ham_status_t
+freel_shutdown(ham_db_t *db);
 
 
 #ifdef __cplusplus

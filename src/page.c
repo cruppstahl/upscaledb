@@ -11,7 +11,9 @@
 #include "page.h"
 #include "mem.h"
 #include "os.h"
+#include "freelist.h"
 
+#if (HAM_DEBUG)
 static ham_bool_t
 my_is_in_list(ham_page_t *p, int which)
 {
@@ -21,21 +23,6 @@ my_is_in_list(ham_page_t *p, int which)
 static void
 my_validage_page(ham_page_t *p)
 {
-    ham_size_t i;
-
-    /*
-     * make sure that we've no circular references
-     */
-    for (i=0; i<MAX_PAGE_LISTS; i++) {
-        if (p->_npers._prev[i])
-            ham_assert(p->_npers._prev[i]!=p->_npers._next[i],
-                "circular reference in list %d", i);
-        ham_assert(p->_npers._prev[i]!=p,
-            "circular reference in list %d", i);
-        ham_assert(p->_npers._next[i]!=p,
-            "circular reference in list %d", i);
-    }
-
     /*
      * not allowed: dirty and in garbage bin
      */
@@ -43,35 +30,17 @@ my_validage_page(ham_page_t *p)
             "dirty and in garbage bin", 0);
 
     /*
-     * not allowed: shadowpage and in garbage bin
+     * not allowed: in use and in garbage bin
      */
-    ham_assert(!(page_get_shadowpage(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
-            "shadowpage and in garbage bin", 0);
-
-    /*
-     * not allowed: shadowpage and in garbage bin
-     */
-    ham_assert(!(page_get_shadowpage(p) && my_is_in_list(p, PAGE_LIST_UNREF)),
-            "shadowpage and in unref-list", 0);
-
-    /*
-     * not allowed: referenced and in garbage bin
-    ham_assert(!(page_ref_get(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
+    ham_assert(!(page_is_inuse(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
             "referenced and in garbage bin", 0);
-     */
-
-    /*
-     * not allowed: shadowpage and in garbage bin
-     */
-    ham_assert(!(page_get_shadowpage(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
-            "shadow-page and in garbage bin", 0);
 
     /*
      * not allowed: in transaction and in garbage bin
+     */
     ham_assert(!(my_is_in_list(p, PAGE_LIST_TXN) && 
                my_is_in_list(p, PAGE_LIST_GARBAGE)),
             "in txn and in garbage bin", 0);
-     */
 
     /*
      * not allowed: cached and in garbage bin
@@ -81,10 +50,10 @@ my_validage_page(ham_page_t *p)
             "cached and in garbage bin", 0);
 
     /*
-     * not allowed: referenced and in unref-list
+     * not allowed: unknown page types
      */
-    ham_assert(!(page_ref_get(p) && my_is_in_list(p, PAGE_LIST_UNREF)),
-            "referenced and in unref-list", 0);
+    ham_assert(page_get_type(p)!=PAGE_TYPE_UNKNOWN, 
+            "page type is unknown", 0);
 }
 
 ham_page_t *
@@ -124,198 +93,18 @@ page_set_previous(ham_page_t *page, int which, ham_page_t *other)
     if (other)
         my_validage_page(other);
 }
+#endif /* HAM_DEBUG */
 
-ham_page_t *
-page_new(ham_db_t *db)
+ham_bool_t 
+page_is_in_list(ham_page_t *head, ham_page_t *page, int which)
 {
-    ham_page_t *page;
-    ham_size_t size;
-
-    /*
-     * allocate one page of memory
-     */
-    size=db_get_pagesize(db)+sizeof(page->_npers);
-    page=(ham_page_t *)ham_mem_alloc(size);
-    if (!page)
-        ham_log("page_new failed - out of memory", 0);
-    else {
-        memset(page, 0, size);
-        page_set_owner(page, db);
-    }
-
-    return (page);
-}
-
-void
-page_delete_ext_keys(ham_page_t *page)
-{
-    ham_size_t i;
-    ham_ext_key_t *extkeys;
-    
-    extkeys=page_get_extkeys(page);
-    if (!extkeys) 
-        return;
-
-    for (i=0; i<db_get_maxkeys(page_get_owner(page)); i++) {
-        if (extkeys[i].data) {
-            ham_mem_free(extkeys[i].data);
-            extkeys[i].data=0;
-            extkeys[i].size=0;
-        }
-    }
-    ham_mem_free(extkeys);
-    page_set_extkeys(page, 0);
-}
-
-void
-page_delete(ham_page_t *page)
-{
-    page_delete_ext_keys(page);
-    ham_mem_free(page);
-}
-
-void
-page_ref_inc_impl(ham_page_t *page, const char *file, int line)
-{
-    (void)file;
-    (void)line;
-    ++page->_npers._refcount;
-}
-
-ham_size_t
-page_ref_dec_impl(ham_page_t *page, const char *file, int line)
-{
-    (void)file;
-    (void)line;
-    return (--page->_npers._refcount);
-}
-
-ham_status_t
-page_io_read(ham_page_t *page, ham_offset_t address)
-{
-    ham_status_t st;
-    ham_db_t *db=page_get_owner(page);
-
-    /* move to the position of the page */
-    st=os_seek(db_get_fd(db), address, HAM_OS_SEEK_SET);
-    if (st) {
-        ham_log("os_seek failed with status %d (%s)", st, ham_strerror(st));
-        return (st);
-    }
-
-    /* initialize the page */
-    page_set_self(page, address);
-    page_set_owner(page, db);
-
-    /* read the page */
-    st=os_read(db_get_fd(db), (ham_u8_t *)&page->_pers, 
-            db_get_pagesize(db));
-    if (st) {
-        ham_log("os_read failed with status %d (%s)", st, ham_strerror(st));
-        return (st);
-    }
-
-    return (HAM_SUCCESS);
-}
-
-ham_status_t
-page_io_write(ham_page_t *page)
-{
-    ham_status_t st;
-
-    /* move to the position of the page */
-    st=os_seek(db_get_fd(page_get_owner(page)), page_get_self(page), 
-            HAM_OS_SEEK_SET);
-    if (st) {
-        ham_log("os_seek failed with status %d (%s)", st, ham_strerror(st));
-        return (st);
-    }
-
-    /* write the file */
-    st=os_write(db_get_fd(page_get_owner(page)), (ham_u8_t *)&page->_pers, 
-            db_get_pagesize(page_get_owner(page)));
-    if (st) {
-        ham_log("os_write failed with status %d (%s)", st, ham_strerror(st));
-        return (st);
-    }
-    
-    /* delete the "dirty"-flag */
-    page_set_dirty(page, 0);
-
-    return (HAM_SUCCESS);
-}
-
-ham_status_t
-page_io_alloc(ham_page_t *page, ham_txn_t *txn, ham_u32_t flags)
-{
-    ham_status_t st;
-    ham_offset_t tellpos, resize=0;
-    ham_db_t *db=page_get_owner(page);
-    
-    /* first, we ask the freelist for a page */
-    if (!(flags & PAGE_IGNORE_FREELIST)) {
-        tellpos=freel_alloc_area(db, txn, db_get_pagesize(db), 
-                ham_get_flags(db));
-        if (tellpos) {
-            page_set_self(page, tellpos);
-            return (0);
-        }
-    }
-
-    /* move to the end of the file */
-    st=os_seek(db_get_fd(db), 0, HAM_OS_SEEK_END);
-    if (st) {
-        ham_log("os_seek failed with status %d (%s)", st, ham_strerror(st));
-        return (st);
-    }
-
-    /* get the current file position */
-    st=os_tell(db_get_fd(db), &tellpos);
-    if (st) {
-        ham_log("os_tell failed with status %d (%s)", st, ham_strerror(st));
-        return (st);
-    }
-
-    /* align the page, if necessary */
-    if (!ham_get_flags(db) & HAM_NO_PAGE_ALIGN) {
-        if (tellpos%db_get_pagesize(db)) {
-            resize=db_get_pagesize(db)-(tellpos%db_get_pagesize(db));
-
-            /* add the file chunk to the freelist */
-            if (!(flags & PAGE_IGNORE_FREELIST))
-                freel_add_area(page_get_owner(page), txn, tellpos, 
-                        db_get_pagesize(db)-(tellpos%db_get_pagesize(db)));
-
-            /* adjust the position of the new page */
-            tellpos+=db_get_pagesize(db)-(tellpos%db_get_pagesize(db));
-        }
-    }
-
-    /* initialize the page */
-    memset(page->_pers._payload, 0, db_get_pagesize(db));
-    page_set_self(page, tellpos);
-
-    /* and write it to disk */
-    st=os_truncate(db_get_fd(db), tellpos+resize+db_get_pagesize(db));
-    if (st) {
-        ham_log("os_truncate failed with status %d (%s)", st, ham_strerror(st));
-        return st;
-    }
-
-    /* change the statistical information in the database header */
-    db_set_dirty(db, HAM_TRUE);
-
-    return (HAM_SUCCESS);
-}
-
-ham_status_t
-page_io_free(ham_txn_t *txn, ham_page_t *page)
-{
-    ham_db_t *db=page_get_owner(page);
-    db_set_dirty(db, HAM_TRUE);
-
-    return (freel_add_area(page_get_owner(page), txn, page_get_self(page), 
-                db_get_pagesize(page_get_owner(page))));
+    if (page_get_next(page, which))
+        return (HAM_TRUE);
+    if (page_get_previous(page, which))
+        return (HAM_TRUE);
+    if (head==page)
+        return (HAM_TRUE);
+    return (HAM_FALSE);
 }
 
 ham_page_t *

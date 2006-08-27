@@ -11,43 +11,49 @@
 #include "freelist.h"
 #include "error.h"
 
+#define OFFSET_OF(obj, field) ((int)(&((obj).field)) - (int)&(obj) )
+
+/*
+ * !!!
+ * one day, we have to protect these functions with a mutex
+ */
+
+static ham_page_t *g_txncache=0;
+
 static ham_offset_t
-my_alloc_in_list(ham_db_t *db, freel_entry_t *list, ham_size_t elements, 
-        ham_size_t junksize, ham_u32_t flags)
+my_alloc_in_list(ham_db_t *db, freel_payload_t *fp, 
+        ham_size_t chunksize, ham_u32_t flags)
 {
     ham_offset_t result;
-    ham_size_t i, newsize, best=elements;
+    ham_size_t i, newsize, best=freel_payload_get_count(fp);
+    freel_entry_t *list=freel_payload_get_entries(fp);
 
     /*
      * search the freelist for an unused entry; we prefer entries 
      * which are the same size as requested
      */
-    for (i=0; i<elements; i++) {
-        /* check alignment of the page */
-        if (flags & HAM_NO_PAGE_ALIGN) {
-            if (freel_get_address(&list[i])%db_get_pagesize(db))
-                continue;
-        }
+    for (i=0; i<freel_payload_get_count(fp); i++) {
 
-        if (freel_get_size(&list[i])==junksize) {
+        if (freel_get_size(&list[i])==chunksize) {
             result=freel_get_address(&list[i]);
             freel_set_size(&list[i], 0);
             freel_set_address(&list[i], 0);
+            freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
             return (result);
         }
 
-        if (freel_get_size(&list[i])>junksize)
+        if (freel_get_size(&list[i])>chunksize)
             best=i;
     }
 
     /* 
      * we haven't found a perfect match, but an entry which is big enough
      */
-    if (best<elements) {
+    if (best<freel_payload_get_count(fp)) {
         ham_offset_t addr=freel_get_address(&list[best]);
-        newsize=freel_get_size(&list[best])-junksize;
+        newsize=freel_get_size(&list[best])-chunksize;
         freel_set_size(&list[best], newsize);
-        freel_set_address(&list[best], addr+junksize);
+        freel_set_address(&list[best], addr+chunksize);
         return (addr);
     }
 
@@ -55,12 +61,12 @@ my_alloc_in_list(ham_db_t *db, freel_entry_t *list, ham_size_t elements,
 }
 
 static ham_bool_t
-my_add_area(freel_entry_t *list, ham_size_t elements, 
-        ham_offset_t address, ham_size_t size)
+my_add_area(freel_payload_t *fp, ham_offset_t address, ham_size_t size)
 {
     ham_size_t i;
+    freel_entry_t *list=freel_payload_get_entries(fp); 
 
-    for (i=0; i<elements; i++) {
+    for (i=0; i<freel_payload_get_maxsize(fp); i++) {
         if (freel_get_address(&list[i])==0) {
             freel_set_address(&list[i], address);
             freel_set_size(&list[i], size);
@@ -71,67 +77,158 @@ my_add_area(freel_entry_t *list, ham_size_t elements,
     return (HAM_FALSE);
 }
 
-ham_size_t
-freel_get_max_header_elements(ham_db_t *db)
+static ham_size_t
+my_get_max_elements(ham_db_t *db)
 {
-    unsigned long pfl=(unsigned long)&db->_u._pers._freelist;
-    unsigned long pst=(unsigned long)db;
-    return ((pst+SIZEOF_PERS_HEADER)-pfl)/sizeof(freel_entry_t);
-}
-
-ham_size_t
-freel_get_max_overflow_elements(ham_db_t *db)
-{
+    static struct page_union_header_t h;
     /*
      * a freelist overflow page has one overflow pointer of type 
      * ham_size_t at the very beginning
      */
-    return ((db_get_pagesize(db)-sizeof(ham_u16_t)-sizeof(ham_offset_t))
-            /sizeof(freel_entry_t));
+    return ((db_get_usable_pagesize(db)-OFFSET_OF(h, _payload)-
+                sizeof(ham_u16_t)-sizeof(ham_offset_t))/sizeof(freel_entry_t));
+}
+
+static ham_page_t *
+my_fetch_page(ham_db_t *db, ham_offset_t address)
+{
+    ham_page_t *page;
+    ham_status_t st;
+
+    /*
+     * check if the page is in the list
+     */
+    page=g_txncache;
+    while (page) {
+        if (page_get_self(page)==address)
+            return (page);
+        page=page_get_next(page, PAGE_LIST_TXN);
+    }
+
+    /*
+     * allocate a new page structure
+     */
+    page=db_alloc_page_struct(db);
+    if (!page)
+        return (0);
+
+    /* 
+     * fetch the page from the device 
+     */
+    st=db_fetch_page_from_device(page, address);
+    if (st) {
+        db_free_page_struct(page);
+        return (0);
+    }
+
+    /*
+     * insert the page in our local cache and return the page
+     */
+    g_txncache=page_list_insert(g_txncache, PAGE_LIST_TXN, page);
+    return (page);
+}
+
+static ham_page_t *
+my_alloc_page(ham_db_t *db)
+{
+    ham_page_t *page;
+    ham_status_t st;
+
+    /*
+     * allocate a new page, if the cache is not yet full enough - although
+     * the freelist pages are not managed by the cache, we try to respect
+     * the maximum cache size
+     */
+    if (!cache_can_add_page(db_get_cache(db))) {
+        ham_trace("cache size full!", 0);
+        db_set_error(db, HAM_CACHE_FULL);
+        return (0);
+    }
+
+    page=db_alloc_page_struct(db);
+    if (!page)
+        return (0);
+    st=db_alloc_page_device(page, PAGE_IGNORE_FREELIST);
+    if (st) {
+        db_free_page_struct(page);
+        return (0);
+    }
+
+    page_set_type(page, PAGE_TYPE_FREELIST);
+
+    /*
+     * insert the page in our local cache and return the page
+     */
+    g_txncache=page_list_insert(g_txncache, PAGE_LIST_TXN, page);
+    return (page);
+}
+
+ham_status_t
+freel_create(ham_db_t *db)
+{
+    (void)db;
+    return (0);
 }
 
 ham_offset_t
-freel_alloc_area(ham_db_t *db, ham_txn_t *txn, ham_size_t size, ham_u32_t flags)
+freel_alloc_area(ham_db_t *db, ham_size_t size, ham_u32_t flags)
 {
     ham_offset_t overflow, result=0;
-    ham_size_t max=freel_get_max_header_elements(db);
+    ham_page_t *page;
+    ham_status_t st;
+    freel_payload_t *fp;
+    db_header_t *hdr;
 
-    /* search the header page for a freelist entry */
-    result=my_alloc_in_list(db, 
-            freel_page_get_entries(&db->_u._pers._freelist), 
-            max, size, flags);
+    /* 
+     * get the database header page, and its freelist payload 
+     */ 
+    page=db_get_header_page(db);
+    hdr=(db_header_t *)page_get_payload(page);
+    fp=&hdr->_freelist;
+
+    /* 
+     * search the page for a freelist entry 
+     */
+    result=my_alloc_in_list(db, fp, size, flags);
     if (result) {
-        db_set_dirty(db, HAM_TRUE);
+        page_set_dirty(page, HAM_TRUE);
+        st=db_write_page_to_device(page);
+        if (st) {
+            db_set_error(db, st);
+            return (0);
+        }
         return (result);
     }
 
-    /* continue with overflow pages */
-    overflow=freel_page_get_overflow(&db->_u._pers._freelist); 
-    max=freel_get_max_overflow_elements(db);
+    /* 
+     * continue with overflow pages 
+     */
+    overflow=freel_payload_get_overflow(fp);
 
     while (overflow) {
-        ham_page_t *p;
-        freel_payload_t *fp;
-        
         /* allocate the overflow page */
-        p=txn_fetch_page(txn, overflow, 0);
-        if (!p) /* TODO error!! */
-            return (0);
+        page=my_fetch_page(db, overflow);
+        if (!page)
+            return (db_get_error(db));
 
         /* get a pointer to a freelist-page */
-        fp=page_get_freel_payload(p);
+        fp=page_get_freel_payload(page);
 
         /* first member is the overflow pointer */
-        overflow=freel_page_get_overflow(fp);
+        overflow=freel_payload_get_overflow(fp);
 
         /* search for an empty entry */
-        result=my_alloc_in_list(db, freel_page_get_entries(fp), 
-                max, size, flags);
+        result=my_alloc_in_list(db, fp, size, flags);
         if (result) {
-            page_set_dirty(p, HAM_TRUE);
+            /* write the page to disk */
+            page_set_dirty(page, HAM_TRUE);
+            st=db_write_page_to_device(page);
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
             return (result);
         }
-
     }
 
     /* no success at all... */
@@ -139,80 +236,110 @@ freel_alloc_area(ham_db_t *db, ham_txn_t *txn, ham_size_t size, ham_u32_t flags)
 }
 
 ham_status_t 
-freel_add_area(ham_db_t *db, ham_txn_t *txn, ham_offset_t address, 
-        ham_size_t size)
+freel_add_area(ham_db_t *db, ham_offset_t address, ham_size_t size)
 {
-    ham_page_t *p=0, *newp;
+    ham_page_t *page=0, *newp;
     ham_offset_t overflow;
     freel_payload_t *fp;
-    ham_size_t max=freel_get_max_header_elements(db);
+    db_header_t *hdr;
 
-    /* first we try to add the new area to the header page */
-    if (my_add_area(freel_page_get_entries(&db->_u._pers._freelist), 
-                max, address, size)) {
-        db_set_dirty(db, HAM_TRUE);
+    /* 
+     * get the database header page, and its freelist payload 
+     */ 
+    page=db_get_header_page(db);
+    hdr=(db_header_t *)page_get_payload(page);
+
+    /* try to add the entry to the freelist */
+    fp=&hdr->_freelist;
+    if (my_add_area(fp, address, size)) {
+        freel_payload_set_count(fp, freel_payload_get_count(fp)+1);
+        page_set_dirty(page, HAM_TRUE);
         return (0);
     }
 
     /* 
-     * continue with overflow pages
+     * if there freelist page is full: continue with the overflow page
      */
-    max=freel_get_max_overflow_elements(db);
-    overflow=freel_page_get_overflow(&db->_u._pers._freelist);
+    overflow=freel_payload_get_overflow(fp);
 
     while (overflow) {
         /* read the overflow page */
-        p=txn_fetch_page(txn, overflow, 0);
-        if (!p) /* TODO fatal error!! */
-            return (0);
+        page=my_fetch_page(db, overflow);
+        if (!page) 
+            return (db_get_error(db));
 
         /* get a pointer to a freelist-page */
-        fp=page_get_freel_payload(p);
+        fp=page_get_freel_payload(page);
 
         /* get the overflow pointer */
-        overflow=freel_page_get_overflow(fp); 
+        overflow=freel_payload_get_overflow(fp); 
 
         /* try to add the entry */
-        if (my_add_area(freel_page_get_entries(fp), max, address, size)) {
-            page_set_dirty(p, HAM_TRUE);
+        if (my_add_area(fp, address, size)) {
+            freel_payload_set_count(fp, freel_payload_get_count(fp)+1);
+            page_set_dirty(page, HAM_TRUE);
             return (0);
         }
     }
 
     /* 
-     * all overflow pages are full - add a new one! p is still a valid
+     * all overflow pages are full - add a new one! page is still a valid
      * page pointer 
      * we allocate a page on disk for the page WITHOUT accessing
      * the freelist, because right now the freelist is totally full
      * and every access would result in problems. 
      */
-    newp=txn_alloc_page(txn, PAGE_IGNORE_FREELIST);
+    newp=my_alloc_page(db);
 
     /* set the whole page to zero */
-    memset(newp->_pers._payload, 0, db_get_pagesize(db));
+    memset(newp->_pers->_s._payload, 0, db_get_usable_pagesize(db));
 
     /* 
      * now update the overflow pointer of the previous freelist page,
      * and set the dirty-flag 
      */
-    if (p) {
-        freel_page_set_overflow(page_get_freel_payload(p), 
-                page_get_self(newp));
-        page_set_dirty(p, 1);
-    }
-    else {
-        db_set_dirty(db, HAM_TRUE);
-        freel_page_set_overflow(&db->_u._pers._freelist, page_get_self(newp));
-    }
+    freel_payload_set_overflow(page_get_freel_payload(page), 
+            page_get_self(newp));
+    if (page==db_get_header_page(db))
+        db_set_dirty(db, 1);
+    page_set_dirty(page, 1);
 
-    /* try to add the entry to the new freelist page */
     fp=page_get_freel_payload(newp);
-    if (my_add_area(freel_page_get_entries(fp), max, address, size)) {
+    freel_payload_set_maxsize(fp, my_get_max_elements(db));
+
+    /* 
+     * try to add the entry to the new freelist page 
+     */
+    if (my_add_area(fp, address, size)) {
+        freel_payload_set_count(fp, freel_payload_get_count(fp)+1);
         page_set_dirty(newp, HAM_TRUE);
         return (0);
     }
 
-    /* TODO we're still here - this means we got a strange error. this 
-     * shouldn't happen! */
-    return (-1); /* TODO */
+    /* 
+     * we're still here - this means we got a strange error. this 
+     * shouldn't happen! 
+     */
+    ham_assert(!"shouldn't be here...", 0, 0);
+    return (HAM_INTERNAL_ERROR);
+}
+
+ham_status_t
+freel_shutdown(ham_db_t *db)
+{
+    ham_page_t *page, *next;
+
+    /*
+     * write all pages to the device
+     */
+    page=g_txncache;
+    while (page) {
+        next=page_get_next(page, PAGE_LIST_TXN);
+        (void)db_write_page_and_delete(db, page, 0);
+        page=next;
+    }
+
+    g_txncache=0;
+
+    return (0);
 }

@@ -17,6 +17,23 @@ extern "C" {
 #include <ham/types.h>
 
 /**
+ * read data from a file with mmap
+ *
+ * @remark mmap is called with MAP_PRIVATE - the allocated buffer
+ * is just a copy of the file; writing to the buffer will not alter
+ * the file itself.
+ */
+extern ham_status_t
+os_mmap(ham_fd_t fd, ham_offset_t position, ham_size_t size, 
+        ham_u8_t **buffer);
+
+/**
+ * unmap a buffer 
+ */
+extern ham_status_t
+os_munmap(void *buffer, ham_size_t size);
+
+/**
  * read data from a file
  */
 extern ham_status_t

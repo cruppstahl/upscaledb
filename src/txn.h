@@ -14,63 +14,35 @@ extern "C" {
 #endif 
 
 #include <ham/hamsterdb.h>
-#include "page.h"
+
+struct ham_page_t;
 
 /**
- * a transaction structure
+ * a dummy transaction structure
  */
-struct ham_txn_t 
+typedef struct 
 {
     /**
-     * the database object
+     * owner of this transaction 
      */
     ham_db_t *_db;
 
     /**
-     * the transaction ID
-     */
-    ham_u32_t _id;
-
-    /**
-     * transaction flags
-     */
-    ham_u32_t _flags;
-
-    /**
      * a list of pages which are referenced by this transaction
      */
-    ham_page_t *_pagelist;
-};
+    struct ham_page_t *_pagelist;
+
+} ham_txn_t;
 
 /**
- * get the database owner
+ * get the database pointer
  */
-#define txn_get_owner(txn)                      (txn)->_db
+#define txn_get_db(txn)                         (txn)->_db
 
 /**
- * set the database owner
+ * set the database pointer
  */
-#define txn_set_owner(txn, db)                  (txn)->_db=db
-
-/**
- * get the transaction ID
- */
-#define txn_get_id(txn)                         (txn)->_id
-
-/**
- * set the transaction ID
- */
-#define txn_set_id(txn, id)                     (txn)->_id=id
-
-/**
- * get the transaction flags
- */
-#define txn_get_flags(txn)                      (txn)->_flags
-
-/**
- * set the transaction flags
- */
-#define txn_set_flags(txn, f)                   (txn)->_flags=f
+#define txn_set_db(txn, db)                     (txn)->_db=db
 
 /**
  * get the page list
@@ -83,27 +55,23 @@ struct ham_txn_t
 #define txn_set_pagelist(txn, pl)                (txn)->_pagelist=pl
 
 /**
- * fetch a page 
- *
- * @remark if the page was touched in this transaction, the touched page
- * is returned; otherwise the page is fetched from the cache
+ * add a page to the transaction's pagelist
  */
-extern ham_page_t *
-txn_fetch_page(ham_txn_t *txn, ham_offset_t address, ham_u32_t flags);
-
-/**
- * allocate a new page
- *
- * @remark the page is added to the txn's page list
- */
-extern ham_page_t *
-txn_alloc_page(ham_txn_t *txn, ham_u32_t flags);
+extern ham_status_t
+txn_add_page(ham_txn_t *txn, struct ham_page_t *page);
 
 /**
  * remove a page from the transaction's pagelist
  */
-extern void
-txn_remove_page(ham_txn_t *txn, ham_page_t *page);
+extern ham_status_t
+txn_remove_page(ham_txn_t *txn, struct ham_page_t *page);
+
+/**
+ * get a page from the transaction's pagelist; returns 0 if the page
+ * is not in the list
+ */
+extern struct ham_page_t *
+txn_get_page(ham_txn_t *txn, ham_offset_t address);
 
 /**
  * start a transaction
@@ -111,12 +79,7 @@ txn_remove_page(ham_txn_t *txn, ham_page_t *page);
  * @remark flags are defined below
  */
 extern ham_status_t
-ham_txn_begin(ham_txn_t *txn, ham_db_t *db, ham_u32_t flags);
-
-/**
- * flag for ham_txn_begin: this txn is read-only
- */
-#define TXN_READ_ONLY               1
+ham_txn_begin(ham_txn_t *txn, ham_db_t *db);
 
 /**
  * commit a transaction
@@ -124,7 +87,7 @@ ham_txn_begin(ham_txn_t *txn, ham_db_t *db, ham_u32_t flags);
  * @remark flags are undefined, set to zero
  */
 extern ham_status_t
-ham_txn_commit(ham_txn_t *txn, ham_u32_t flags);
+ham_txn_commit(ham_txn_t *txn);
 
 /**
  * abort a transaction
@@ -132,7 +95,7 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags);
  * @remark flags are undefined, set to zero
  */
 extern ham_status_t
-ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
+ham_txn_abort(ham_txn_t *txn);
 
 
 #ifdef __cplusplus

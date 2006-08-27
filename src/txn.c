@@ -7,139 +7,151 @@
 #include <string.h>
 #include "txn.h"
 #include "db.h"
-#include "cachemgr.h"
 #include "error.h"
+#include "freelist.h"
+#include "mem.h"
 
-ham_page_t *
-txn_fetch_page(ham_txn_t *txn, ham_offset_t address, ham_u32_t flags)
+ham_status_t
+txn_add_page(ham_txn_t *txn, ham_page_t *page)
 {
-    ham_page_t *p;
-    ham_db_t *db=txn_get_owner(txn);
+#if HAM_DEBUG
+    /*
+     * check if the page is already in the transaction's pagelist - 
+     * that would be a bug
+     */
+    ham_assert(txn_get_page(txn, page_get_self(page))==0, 
+            "page 0x%llx is already in the txn", page_get_self(page));
+    ham_assert(page_is_inuse(page)==0, 
+            "page 0x%llx is already in use", page_get_self(page));
+#endif
 
     /*
-     * check the internal page list
-     * TODO we don't need an internal list if the txn is readonly!
+     * not found? add the page
      */
-    p=txn_get_pagelist(txn);
+    txn_set_pagelist(txn, page_list_insert(txn_get_pagelist(txn), 
+            PAGE_LIST_TXN, page));
+
+    page_set_inuse(page, 1);
+
+    return (0);
+}
+
+ham_status_t
+txn_remove_page(ham_txn_t *txn, struct ham_page_t *page)
+{
+    page_set_inuse(page, 0);
+
+    txn_set_pagelist(txn, page_list_remove(txn_get_pagelist(txn), 
+            PAGE_LIST_TXN, page));
+
+    return (0);
+}
+
+ham_page_t *
+txn_get_page(ham_txn_t *txn, ham_offset_t address)
+{
+    ham_page_t *p=txn_get_pagelist(txn);
+
     while (p) {
         if (page_get_self(p)==address)
-            return p;
+            return (p);
         p=page_get_next(p, PAGE_LIST_TXN);
     }
 
-    /*
-     * not found? fetch the page from the cache
-     */
-    if ((flags&TXN_READ_ONLY) || (txn_get_flags(txn)&TXN_READ_ONLY))
-        p=cm_fetch(db->_npers._cm, address, CM_READ_ONLY);
-    else
-        p=cm_fetch(db->_npers._cm, address, 0);
-    if (p) {
-        page_ref_inc(p, 0);
-        txn_set_pagelist(txn, page_list_insert(txn_get_pagelist(txn), 
-                PAGE_LIST_TXN, p));
-    }
-    return p;
-}
-
-ham_page_t *
-txn_alloc_page(ham_txn_t *txn, ham_u32_t flags)
-{
-    ham_page_t *p;
-    ham_db_t *db=txn_get_owner(txn);
-
-    /*
-     * TODO assert(txn->flags!=READ_ONLY);
-     */
-    p=cm_alloc_page(db->_npers._cm, txn, flags);
-    if (p) {
-        page_ref_inc(p, 0);
-        txn_set_pagelist(txn, page_list_insert(txn_get_pagelist(txn), 
-                PAGE_LIST_TXN, p));
-    }
-    return p;
-}
-
-void
-txn_remove_page(ham_txn_t *txn, ham_page_t *page)
-{
-    ham_page_t *sp;
-
-    page_set_dirty(page, 0);
-    page_ref_dec(page, 0);
-    ham_assert(page_ref_get(page)==1, "refcount of page 0x%llx is %d", 
-            page_get_self(page), page_ref_get(page));
-
-    sp=page_get_shadowpage(page);
-    if (sp)
-        page_set_shadowpage(sp, 0);
-    page_set_shadowpage(page, 0);
-
-    txn_set_pagelist(txn, 
-            page_list_remove(txn_get_pagelist(txn), 
-            PAGE_LIST_TXN, page));
-}
-
-ham_status_t
-ham_txn_begin(ham_txn_t *txn, ham_db_t *db, ham_u32_t flags)
-{
-    memset(txn, 0, sizeof(*txn));
-    txn_set_owner(txn, db);
-    txn_set_flags(txn, flags);
     return (0);
 }
 
 ham_status_t
-ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
+ham_txn_begin(ham_txn_t *txn, ham_db_t *db)
 {
-    ham_status_t st;
-    ham_page_t *head, *next;
-    ham_db_t *db=txn_get_owner(txn);
+    memset(txn, 0, sizeof(*txn));
+    txn_set_db(txn, db);
+    return (0);
+}
 
-    (void)flags;
+ham_status_t
+ham_txn_commit(ham_txn_t *txn)
+{
+    ham_status_t st=0;
+    ham_page_t *head, *next;
+    ham_db_t *db=txn_get_db(txn);
 
     /*
      * flush the pages
      */
     head=txn_get_pagelist(txn);
     while (head) {
-        page_ref_dec(head, 0);
+        /* page is no longer in use */
+        page_set_inuse(head, 0);
+
         next=page_get_next(head, PAGE_LIST_TXN);
-        st=cm_flush(db->_npers._cm, head, 0);
+        page_set_next(head, PAGE_LIST_TXN, 0);
+        page_set_previous(head, PAGE_LIST_TXN, 0);
+
+        /* delete the page? */
+        if (page_get_npers_flags(head)&PAGE_NPERS_DELETE_PENDING) {
+            /* remove page from cache, add it to garbage list */
+            page_set_dirty(head, 0);
+            st=cache_move_to_garbage(db_get_cache(db), head);
+            if (st)
+                ham_trace("cache_move_to_garbage failed with status 0x%x", st);
+            /* add the page to the freelist */
+            st=freel_add_area(db, page_get_self(head), 
+                db_get_pagesize(db));
+            if (st) {
+                ham_trace("freel_add_page failed with status 0x%x", st);
+                st=0;
+            }
+            goto commit_next;
+        }
+
+        /* flush the page */
+        st=db_flush_page(db, 0, head, 0);
         if (st) {
             ham_trace("commit failed with status 0x%x", st);
             txn_set_pagelist(txn, head);
-            (void)ham_txn_abort(txn, flags);
-            return (st);
+            (void)ham_txn_abort(txn);
+            return (st); /* TODO oder return 0? */
         }
-        page_set_next(head, PAGE_LIST_TXN, 0);
-        page_set_previous(head, PAGE_LIST_TXN, 0);
+
+commit_next:
         head=next;
     }
 
     txn_set_pagelist(txn, 0);
+    db_set_txn(db, 0);
 
     return (0);
 }
 
 ham_status_t
-ham_txn_abort(ham_txn_t *txn, ham_u32_t flags)
+ham_txn_abort(ham_txn_t *txn)
 {
     ham_page_t *head, *next;
-    ham_db_t *db=txn_get_owner(txn);
-
-    (void)flags;
+    ham_db_t *db=txn_get_db(txn);
 
     /*
-     * flush the pages
+     * delete all modified pages
      */
     head=txn_get_pagelist(txn);
     while (head) {
-        page_ref_dec(head, 0);
+        /* page is no longer in use */
+        page_set_inuse(head, 0);
+        page_set_dirty(head, 0);
+
         next=page_get_next(head, PAGE_LIST_TXN);
-        (void)cm_flush(db->_npers._cm, head, HAM_CM_REVERT_CHANGES);
         page_set_next(head, PAGE_LIST_TXN, 0);
         page_set_previous(head, PAGE_LIST_TXN, 0);
+
+        /* delete the page? */
+        if (page_get_npers_flags(head)&PAGE_NPERS_DELETE_PENDING) {
+            /* remove the flag */
+            page_set_npers_flags(head, 
+                    page_get_npers_flags(head)&(~PAGE_NPERS_DELETE_PENDING));
+        }
+
+        (void)cache_move_to_garbage(db_get_cache(db), head);
+
         head=next;
     }
 
@@ -147,3 +159,4 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags)
 
     return (0);
 }
+

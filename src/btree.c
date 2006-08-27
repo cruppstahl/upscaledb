@@ -9,15 +9,60 @@
 #include <string.h>
 #include <ham/config.h>
 #include "db.h"
+#include "keys.h"
 #include "error.h"
 #include "btree.h"
-#include "cachemgr.h"
 
 #define offsetof(type, member) ((size_t) &((type *)0)->member)
+
+ham_status_t 
+btree_get_slot(ham_db_t *db, ham_page_t *page, ham_key_t *key, ham_s32_t *slot)
+{
+    int cmp;
+    ham_size_t i;
+    btree_node_t *node=ham_page_get_btree_node(page);
+
+    /*
+     * if the value we are searching for is < the smallest value in this 
+     * node: get the "down left"-child node
+     * TODO der compare pub_to_int(key, 0) passiert weiter unten 
+     * auch nochmal! nur einmal aufrufen...
+     */
+    cmp=key_compare_pub_to_int(page, key, 0);
+    if (db_get_error(db))
+        return (db_get_error(db));
+    if (cmp<0) {
+        *slot=-1;
+        return (0);
+    }
+
+    /* 
+     * otherwise search all but the last element
+     */
+    for (i=0; i<btree_node_get_count(node)-1; i++) {
+        cmp=key_compare_pub_to_int(page, key, i);
+        if (db_get_error(db))
+            return (db_get_error(db));
+        if (cmp<0) /* TODO kann das überhaupt passieren?? */
+            continue;
+
+        cmp=key_compare_pub_to_int(page, key, i+1);
+        if (db_get_error(db))
+            return (db_get_error(db));
+        if (cmp<0) {
+            *slot=i;
+            return (0);
+        }
+    }
+
+    *slot=btree_node_get_count(node)-1;
+    return (0);
+}
 
 static ham_size_t
 my_calc_maxkeys(ham_db_t *db)
 {
+    union page_union_t u;
     ham_size_t p, k, max;
 
     /* 
@@ -26,15 +71,16 @@ my_calc_maxkeys(ham_db_t *db)
      */
     p=db_get_pagesize(db);
 
-    /*
-     * every btree page has a header where we can't store entries
-     */
+    /* every btree page has a header where we can't store entries */
     p-=offsetof(btree_node_t, _entries);
+
+    /* every page has a header where we can't store entries */
+    p-=sizeof(u._s)-1;
 
     /*
      * compute the size of a key, k. 
      */
-    k=db_get_keysize(db)+sizeof(btree_entry_t)-1;
+    k=db_get_keysize(db)+sizeof(key_t)-1;
 
     /* 
      * make sure that MAX is an even number, otherwise we can't calculate
@@ -48,11 +94,11 @@ static ham_status_t
 my_fun_create(ham_btree_t *be, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_txn_t txn;
     ham_page_t *root;
     ham_size_t maxkeys;
     ham_u16_t keysize;
     ham_db_t *db=btree_get_db(be);
+    ham_u8_t *indexdata=db_get_indexdata(db);
 
     /* 
      * initialize the database with a good default value;
@@ -62,9 +108,9 @@ my_fun_create(ham_btree_t *be, ham_u32_t flags)
      */
     keysize=db_get_keysize(db);
     if (keysize==0)
-        keysize=16-sizeof(btree_entry_t)-1;
+        keysize=16-sizeof(key_t)-1;
 
-    if (!db_get_keysize(db) && (st=ham_set_keysize(db, keysize))) {
+    if (!db_get_keysize(db) && (st=db_set_keysize(db, keysize))) {
         ham_log("failed to set keysize: 0x%x", st);
         return (db_get_error(db));
     }
@@ -74,32 +120,40 @@ my_fun_create(ham_btree_t *be, ham_u32_t flags)
      * and make sure that this number is even
      */
     maxkeys=my_calc_maxkeys(db);
-    db_set_maxkeys(db, maxkeys);
+    btree_set_maxkeys(be, maxkeys);
 
     /*
      * allocate a new root page
      */
-    st=ham_txn_begin(&txn, db, 0);
-    if (st)
-        return (st);
-    root=txn_alloc_page(&txn, 0);
+    root=db_alloc_page(db, PAGE_TYPE_ROOT, 0, 0);
     if (!root)
         return (db_get_error(db));
-
-    /* 
-     * set the whole page to zero and flush the page 
-     */
-    memset(root->_pers._payload, 0, db_get_pagesize(db));
     btree_set_rootpage(be, page_get_self(root));
-    return (ham_txn_commit(&txn, 0));
+
+    /*
+     * store root address and maxkeys 
+     */
+    *(ham_u16_t    *)&indexdata[0]=ham_h2db16(maxkeys);
+    *(ham_offset_t *)&indexdata[2]=ham_h2db_offset(page_get_self(root));
+    db_set_dirty(db, 1);
+    return (0);
 }
 
 static ham_status_t 
 my_fun_open(ham_btree_t *be, ham_u32_t flags)
 {
+    ham_offset_t rootadd;
+    ham_u16_t maxkeys;
+    ham_db_t *db=btree_get_db(be);
+    ham_u8_t *indexdata=db_get_indexdata(db);
+
     /*
-     * nothing to do
+     * load root address and maxkeys
      */
+    maxkeys=ham_db2h16(*(ham_u16_t *)&indexdata[0]);
+    rootadd=ham_db2h_offset(*(ham_offset_t *)&indexdata[2]);
+    btree_set_rootpage(be, rootadd);
+    btree_set_maxkeys(be, maxkeys);
     return (0);
 }
 
@@ -137,47 +191,55 @@ btree_create(ham_btree_t *btree, ham_db_t *db, ham_u32_t flags)
     return (0);
 }
 
-/*
- * TODO - one day, we should optimize this function, i.e. with 
- * binary search
- */
-ham_u32_t
+ham_page_t *
+btree_traverse_tree(ham_db_t *db, ham_txn_t *txn, ham_page_t *page, 
+        ham_key_t *key, ham_s32_t *idxptr)
+{
+    ham_status_t st;
+    ham_s32_t slot;
+    key_t *bte;
+    btree_node_t *node=ham_page_get_btree_node(page);
+
+    /*
+     * make sure that we're not in a leaf page, and that the 
+     * page is not empty
+     */
+    ham_assert(btree_node_get_count(node)>0, 0, 0);
+    ham_assert(btree_node_get_ptr_left(node)!=0, 0, 0);
+
+    st=btree_get_slot(db, page, key, &slot);
+    if (st)
+        return (0);
+
+    if (idxptr)
+        *idxptr=slot;
+
+    if (slot==-1)
+        return (db_fetch_page(db, txn, btree_node_get_ptr_left(node), 0));
+    else {
+        bte=btree_node_get_key(db, node, slot);
+        ham_assert(key_get_flags(bte)==0, "invalid key flags 0x%x", 
+                key_get_flags(bte));
+        return (db_fetch_page(db, txn, key_get_ptr(bte), 0));
+    }
+}
+
+ham_s32_t 
 btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key)
 {
     int cmp;
     ham_size_t i;
-    btree_entry_t *entry;
     btree_node_t *node=ham_page_get_btree_node(page);
 
     db_set_error(db, 0);
 
     for (i=0; i<btree_node_get_count(node); i++) {
-        entry=btree_node_get_entry(db, node, i);
-        cmp=db_compare_keys(db, page,
-                i, btree_entry_get_flags(entry), btree_entry_get_key(entry), 
-                btree_entry_get_real_size(db, entry), 
-                btree_entry_get_size(entry),
-                -1, key->_flags, key->data, key->size, key->size);
+        cmp=key_compare_int_to_pub(page, i, key);
         if (db_get_error(db))
-            return (0);
+            return (-1);
         if (cmp==0)
-            return (i+1);
+            return (i);
     }
 
-    return (0);
-}
-
-ham_u32_t
-btree_node_search_by_ptr(ham_db_t *db, btree_node_t *node, ham_offset_t ptr)
-{
-    ham_size_t i;
-    btree_entry_t *entry;
-
-    for (i=0; i<btree_node_get_count(node); i++) {
-        entry=btree_node_get_entry(db, node, i);
-        if (btree_entry_get_ptr(entry)==ptr)
-            return (i+1);
-    }
-
-    return (0);
+    return (-1);
 }

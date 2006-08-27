@@ -12,290 +12,158 @@
 #include "freelist.h"
 #include "mem.h"
 #include "page.h"
-#include "txn.h"
-
-/*
- * initial header of a blob
- */
-#define BLOB_INITIAL_HEADER 1
-
-/*
- * mark this blob as deleted
- */
-#define BLOB_FLAG_DELETED   2
-
-
-blob_t *
-ham_page_get_blob(ham_page_t *page, ham_offset_t blobid)
-{
-    ham_db_t *db=page_get_owner(page);
-    ham_offset_t pageid;
-
-    /*
-     * get the page-ID of this blob
-     */
-    blobid-=SIZEOF_PERS_HEADER;
-    pageid=blobid;
-    pageid=(blobid/db_get_pagesize(db))*db_get_pagesize(db);
-
-    /*
-     * is this the right page?
-     */
-    if (page_get_self(page)!=pageid+SIZEOF_PERS_HEADER) /* TODO log */
-        return (0);
-
-    /*
-     * return the blob
-     */
-    return ((blob_t *)(&page->_pers._payload[blobid%db_get_pagesize(db)]));
-}
-
-static blob_t *
-my_blob_load(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid, 
-        ham_page_t **page)
-{
-    ham_offset_t pageid;
-
-    /*
-     * get page id from the blob id
-     */
-    pageid=blobid-SIZEOF_PERS_HEADER;
-    pageid=(pageid/db_get_pagesize(db))*db_get_pagesize(db);
-
-    /*
-     * load the page
-     */
-    *page=txn_fetch_page(txn, pageid+SIZEOF_PERS_HEADER, 0);
-    if (!*page)
-        return (0);
-
-    return (ham_page_get_blob(*page, blobid));
-}
 
 static ham_page_t *
-my_alloc_page(ham_db_t *db, ham_txn_t *txn, ham_size_t size, 
-        ham_offset_t *address)
+my_allocate_header(ham_db_t *db, ham_txn_t *txn, 
+        ham_size_t size, blob_t **hdr)
 {
-    ham_page_t *page=0;
-    ham_offset_t addr=0;
+    ham_page_t *page;
+    ham_size_t hdrsize, tocsize, writesize;
+    ham_offset_t writestart;
 
-    if (address)
-        *address=0;
+    *hdr=0;
 
     /*
-     * allocate a page - try the freelist first
+     * calculate the (estimated) toc size and header size
      */
-    addr=freel_alloc_area(db, txn, size, 0);
-    if (addr) {
-        if (address)
-            *address=addr;
-        addr-=SIZEOF_PERS_HEADER;
-        addr=(addr/db_get_pagesize(db))*db_get_pagesize(db);
-        addr+=SIZEOF_PERS_HEADER;
-        page=txn_fetch_page(txn, addr, 0);
-        if (!page)
-            ;/* TODO log */
+    tocsize=(size/db_get_usable_pagesize(db))+3;
+    hdrsize=sizeof(blob_t)+(tocsize-1)*sizeof(struct blob_chunk_t);
+
+    /*
+     * allocate a page or an area which is large enough for the header 
+     * and maybe even the size
+     */
+    page=db_alloc_area(db, PAGE_TYPE_BLOBHDR, txn, 0, 
+            hdrsize+size, &writestart, &writesize);
+    if (!page)
+        return (0);
+
+    /*
+     * how many toc-elements can we really have?
+     */
+    if (writesize!=hdrsize+size) {
+        if (writesize<hdrsize)
+            tocsize=(writesize-sizeof(blob_t))/sizeof(struct blob_chunk_t);
     }
 
     /*
-     * not found? get a new page
+     * get a pointer to the header structure and initialize the header
      */
-    if (!page) {
-        page=txn_alloc_page(txn, 0);
-        if (!page) /* TODO log */
-            return (0);
-        if (address)
-            *address=page_get_self(page);
+    *hdr=(blob_t *)&page_get_payload(page)[writestart]; 
+    memset(*hdr, 0, writesize);
+    blob_set_self(*hdr, page_get_self(page)+writestart);
+    blob_set_total_size(*hdr, size);
+    blob_set_toc_maxsize(*hdr, tocsize);
+
+    /*
+     * if the allocated area is large enough: store the first chunk 
+     * in this page
+     *
+     * the start offset and size of this chunk is a bit tricky - it's the
+     * id of the blob + sizeof(blob_t) + the toc entries
+     */
+    if (writesize>hdrsize) {
+        blob_set_toc_usedsize(*hdr, 1);
+        blob_set_chunk_offset(*hdr, 0, page_get_self(page)+writestart+hdrsize);
+        blob_set_chunk_size  (*hdr, 0, writesize-hdrsize);
+        blob_set_chunk_flags (*hdr, 0, BLOB_CHUNK_NEXT_TO_HEADER);
+
+        if (page_get_self(page)==blob_get_self(*hdr) &&
+            writesize==db_get_usable_pagesize(db))
+            blob_set_chunk_flags(*hdr, 0, 
+                    blob_get_chunk_flags(*hdr, 0)|BLOB_CHUNK_SPANS_PAGE);
     }
 
+    page_set_dirty(page, 1);
     return (page);
 }
 
 static ham_page_t *
-my_initialize_header(ham_db_t *db, ham_txn_t *txn, blob_t **blob, 
-        ham_size_t datasize, ham_u32_t flags, ham_size_t *writestart, 
-        ham_size_t *writesize)
+my_load_header(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid, 
+        blob_t **hdr)
 {
-    ham_size_t pagecount;
-    ham_size_t headersize, pagesize=db_get_pagesize(db), size;
-    blob_t *hdrblob;
-    ham_page_t *hdrpage;
-    ham_offset_t address;
+    ham_page_t *page;
+    ham_offset_t pageid=blobid;
 
-    /*
-     * try to estimate the number of pages we need
-     */
-    pagecount=datasize/pagesize;
-    if (datasize%pagesize)
-        pagecount++;
-    pagecount+=2;
+    *hdr=0;
 
-    /*
-     * get a blob_t header for 'pagecount' pages (but make sure
-     * that the blob_t header still fits in a page)
-     */
-    size=sizeof(blob_t)+sizeof(hdrblob->_parts[0])*(pagecount-1);
-    if (size>pagesize) {
-        pagecount=(pagesize-sizeof(blob_t))/sizeof(hdrblob->_parts[0]);
-        size=sizeof(blob_t)+sizeof(hdrblob->_parts[0])*(pagecount-1);
-    }
+    pageid=(pageid/db_get_pagesize(db))*db_get_pagesize(db);
 
-    /*
-     * now allocate a page with enough room for the blob_t header
-     * and the data itself (or, if this is too much, just a single page)
-     */
-    hdrpage=my_alloc_page(db, txn,
-            size+datasize>pagesize ? pagesize : size+datasize, &address);
-    if (!hdrpage) {
-        ham_trace("page allocation failed", 0, 0);
+    page=db_fetch_page(db, txn, pageid, 0);
+    if (!page)
         return (0);
-    }
 
-    /*
-     * initialize the blob
-     */
-    hdrblob=ham_page_get_blob(hdrpage, address);
-    headersize=sizeof(blob_t)+sizeof(hdrblob->_parts[0])*(pagecount-1);
-    memset(hdrblob, 0, headersize);
-    blob_set_self(hdrblob, address);
-    if (flags & BLOB_INITIAL_HEADER) {
-        blob_set_flags(hdrblob, flags);
-        blob_set_total_size(hdrblob, datasize);
-    }
-    blob_set_parts_size(hdrblob, pagecount);
-    blob_set_part_size(hdrblob, 0, pagesize-(address%pagesize)-headersize);
-    blob_set_part_offset(hdrblob, 0, address+headersize);
-
-    *blob=hdrblob;
-    *writesize =blob_get_part_size(hdrblob, 0);
-    *writestart=blob_get_part_offset(hdrblob, 0);
-    return (hdrpage);
+    *hdr=(blob_t *)&page_get_payload(page)[blobid-pageid];
+    return (page);
 }
 
 ham_status_t
 blob_allocate(ham_db_t *db, ham_txn_t *txn, ham_u8_t *data, 
-        ham_size_t datasize, ham_u32_t flags, ham_offset_t *blobid)
+        ham_size_t size, ham_u32_t flags, ham_offset_t *blobid)
 {
-    ham_status_t st;
-    blob_t *hdrblob;
-    ham_page_t *hdrpage;
-    ham_u8_t *dataptr=data;
-    ham_page_t *page;
-    ham_size_t remaining=datasize, pagesize=db_get_pagesize(db);
-    ham_size_t parts_left, writestart, writesize;
+    ham_size_t remaining=size;
+    ham_size_t writesize;
+    ham_offset_t writestart;
+    ham_page_t *page=0;
+    blob_t *hdr=0;
+
+    *blobid=0;
 
     /*
-     * initialize a page with a blob_t header
-     */
-    hdrpage=my_initialize_header(db, txn, &hdrblob, remaining, 
-            BLOB_INITIAL_HEADER, &writestart, &writesize);
-    if (!hdrpage) {
-        ham_trace("header initialization failed", 0, 0);
-        return (db_get_error(db));
-    }
-    *blobid=blob_get_self(hdrblob);
-    parts_left=blob_get_parts_size(hdrblob)-1;
-
-    /*
-     * write data to the header page
-     */
-    if (writesize) {
-        writestart-=SIZEOF_PERS_HEADER;
-        writestart%=db_get_pagesize(db);
-        if (remaining<=writesize) {
-            memcpy(&hdrpage->_pers._payload[writestart], dataptr, remaining);
-            blob_set_part_size(hdrblob, 0, remaining);
-            blob_set_parts_size(hdrblob, 1);
-            page_set_dirty(hdrpage, 1);
-            remaining=0;
-        }
-        else {
-            memcpy(&hdrpage->_pers._payload[writestart], dataptr, writesize);
-            dataptr+=writesize;
-            remaining-=writesize;
-            blob_set_parts_size(hdrblob, 1);
-            page_set_dirty(hdrpage, 1);
-        }
-    }
-
-    /*
-     * while we have data left...
+     * while we have to write remaining data
      */
     while (remaining) {
+        writestart=0; 
+        writesize=0;
+
         /*
-         * can we append another page to the current blob_t header?
+         * if the toc is full (or no toc was yet allocated): 
+         * allocate a header for this blob; the allocation 
+         * also returns the address and size of the first chunk
+         * in toc[0]
          */
-        if (parts_left==0) {
-            blob_t *b=hdrblob;
-            /*
-             * no, we need a new page for additional parts
-             *
-             * 1. allocate a page
-             * 2. set the overflow pointer of the old blob_t structure
-             * 3. set parts_left 
-             */
-            hdrpage=my_initialize_header(db, txn, &hdrblob, remaining, 0, 
-                    &writestart, &writesize);
-            if (!hdrpage) {
-                ham_trace("header initialization failed", 0, 0);
-                st=db_get_error(db);
-                (void)blob_free(db, txn, *blobid, 0);
-                return (st);
-            }
-            blob_set_parts_overflow(b, page_get_self(hdrpage));
-            parts_left=blob_get_parts_size(hdrblob);
-            blob_set_parts_size(hdrblob, 0);
-            if (writesize>remaining)
-                writesize=remaining;
-            writestart-=SIZEOF_PERS_HEADER;
-            writestart%=db_get_pagesize(db);
-        }
-        else {
-            /*
-             * make sure that we don't write more than pagesize bytes
-             */
-            writestart=0;
-            writesize=remaining<pagesize ? remaining : pagesize;
+        if (!hdr || blob_get_toc_usedsize(hdr)==blob_get_toc_maxsize(hdr)) {
+            blob_t *oldhdr=hdr;
+            page=my_allocate_header(db, txn, remaining, &hdr);
+            if (!page)
+                return (db_get_error(db));
+            writestart=blob_get_chunk_offset(hdr, 0);
+            writesize =blob_get_chunk_size(hdr, 0);
+            /* fix the overflow links */
+            if (oldhdr)
+                blob_set_overflow(oldhdr, blob_get_self(hdr));
+            else
+                *blobid=blob_get_self(hdr);
+            /* chunk offset is absolute! */
+            writestart-=page_get_self(page);
         }
 
         /*
-         * get a new page - first, check the freelist for a page.
-         * if that fails, then allocate a new one
+         * otherwise allocate a page or an area for the next chunk
          */
-        page=my_alloc_page(db, txn, pagesize, 0);
-        if (!page) {
-            ham_trace("page allocation failed", 0, 0);
-            st=db_get_error(db);
-            (void)blob_free(db, txn, *blobid, 0);
-            return (st);
+        if (!writesize) {
+            page=db_alloc_area(db, PAGE_TYPE_BLOBDATA, txn, 0, 
+                    remaining, &writestart, &writesize);
+            if (!page)
+                return (db_get_error(db));
+            /* chunk offset is absolute! */
+            blob_set_chunk_offset(hdr, blob_get_toc_usedsize(hdr), 
+                    writestart+page_get_self(page));
+            blob_set_chunk_size(hdr, blob_get_toc_usedsize(hdr), writesize);
+            blob_set_toc_usedsize(hdr, blob_get_toc_usedsize(hdr)+1);
         }
 
         /*
-         * write the data to the page
+         * write the data
          */
-        memcpy(&page->_pers._payload[writestart], dataptr, writesize);
-        dataptr+=writesize;
-        parts_left--;
+        memcpy(&page_get_payload(page)[writestart], data, writesize);
+
+        /*
+         * update remaining size and data pointer
+         */
+        data+=writesize;
         remaining-=writesize;
         page_set_dirty(page, 1);
-
-        /*
-         * if writesize<pagesize, and we allocated a new page: 
-         * add the remaining padding to the freelist
-         */
-        if (writesize<pagesize) {
-            /* TODO */
-        }
-
-        /*
-         * store the page ID and length
-         */
-        blob_set_part_offset(hdrblob, blob_get_parts_size(hdrblob), 
-                page_get_self(page));
-        blob_set_part_size(hdrblob, blob_get_parts_size(hdrblob), 
-                writesize);
-        blob_set_parts_size(hdrblob, blob_get_parts_size(hdrblob)+1);
-        page_set_dirty(hdrpage, 1);
     }
 
     return (0);
@@ -305,110 +173,108 @@ ham_status_t
 blob_read(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid, 
         ham_record_t *record, ham_u32_t flags)
 {
-    ham_size_t i;
-    blob_t *blobhdr;
-    ham_page_t *hdrpage, *page;
-    ham_offset_t overflow;
-    ham_u8_t *recdata;
+    ham_page_t *page, *cpage;
+    blob_t *hdr=0;
+    ham_u8_t *data=0;
+    ham_size_t i, total_size;
 
     record->size=0;
 
     /*
      * load the blob header
      */
-    blobhdr=my_blob_load(db, txn, blobid, &hdrpage);
-    if (!blobhdr) /* TODO log */
+    page=my_load_header(db, txn, blobid, &hdr);
+    if (!page)
         return (HAM_BLOB_NOT_FOUND);
 
-    /*
-     * check if this blob was deleted
-     */
-    if (blob_get_flags(blobhdr)&BLOB_FLAG_DELETED)
-        return (HAM_BLOB_NOT_FOUND);
-
-    record->size=blob_get_total_size(blobhdr);
+    total_size=blob_get_total_size(hdr);
 
     /*
      * if the memory was not allocated by the user, we might have
      * to resize it
      */
     if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-        if (blob_get_total_size(blobhdr)>db_get_record_allocsize(db)) {
-            void *newdata=ham_mem_alloc(blob_get_total_size(blobhdr));
+        if (blob_get_total_size(hdr)>db_get_record_allocsize(db)) {
+            void *newdata=ham_mem_alloc(blob_get_total_size(hdr));
             if (!newdata) 
                 return (HAM_OUT_OF_MEMORY);
             if (record->data)
                 ham_mem_free(record->data);
             record->data=newdata;
             db_set_record_allocdata(db, newdata);
-            db_set_record_allocsize(db, blob_get_total_size(blobhdr));
+            db_set_record_allocsize(db, blob_get_total_size(hdr));
         }
         else
             record->data=db_get_record_allocdata(db);
     }
-
-    recdata=(ham_u8_t *)record->data;
+    data=(ham_u8_t *)record->data;
 
     while (1) {
         /*
-         * foreach page in blobhdr->_parts...
+         * foreach toc entry
          */
-        for (i=0; i<blob_get_parts_size(blobhdr); i++) {
-            ham_offset_t pageid=blob_get_part_offset(blobhdr, i);
+        for (i=0; i<blob_get_toc_usedsize(hdr); i++) {
+            ham_offset_t chunkstart, pageid;
+            ham_size_t chunksize;
+
+            /*
+             * read the chunk
+             */
+            pageid=chunkstart=blob_get_chunk_offset(hdr, i);
+            chunksize=blob_get_chunk_size(hdr, i);
+
+            /*
+             * fetch the page
+             *
+             * !!!
+             * call db_fetch_page without a txn pointer - the page_t
+             * structure is no longer needed and can be reused
+             *
+             * !!!
+             * this is not thread safe and therefore bad for concurrency
+             */
             pageid=(pageid/db_get_pagesize(db))*db_get_pagesize(db);
+            if (pageid==page_get_self(page))
+                cpage=page;
+            else
+                cpage=db_fetch_page(db, 0, pageid, 0);
+            if (!cpage)
+                return (HAM_BLOB_NOT_FOUND);
 
             /*
-             * get the page
+             * append the data
              */
-            if (i==0 && pageid==page_get_self(hdrpage)) {
-                page=hdrpage;
-            }
-            else {
-                page=txn_fetch_page(txn, pageid, 0);
-                if (!page) 
-                    return (db_get_error(db));
-            }
-
-            /*
-             * append the page data to the record
-             */
-            pageid= blob_get_part_offset(blobhdr, i)-SIZEOF_PERS_HEADER;
-            pageid%=db_get_pagesize(db);
-            memcpy(recdata, &page->_pers._payload[pageid],
-                    blob_get_part_size(blobhdr, i));
-            recdata+=blob_get_part_size(blobhdr, i);
+            memcpy(data, &page_get_payload(cpage)[chunkstart-pageid], 
+                    chunksize);
+            data+=chunksize;
         }
 
-        /* 
-         * get overflow pointer 
-         */
-        overflow=blob_get_parts_overflow(blobhdr);
-
         /*
-         * get the next blob header, if available
+         * load the next blob header
          */
-        if (!overflow)
+        if (!blob_get_overflow(hdr)) 
             break;
-        blobhdr=my_blob_load(db, txn, blobid, &hdrpage);
-        if (!blobhdr)
-            return (db_get_error(db));
+        page=my_load_header(db, txn, blob_get_overflow(hdr), &hdr);
+        if (!page)
+            return (HAM_BLOB_NOT_FOUND);
     }
 
+    record->size=total_size;
     return (0);
 }
 
 ham_status_t
 blob_replace(ham_db_t *db, ham_txn_t *txn, ham_offset_t old_blobid, 
-        ham_u8_t *data, ham_size_t datasize, ham_u32_t flags, 
+        ham_u8_t *data, ham_size_t size, ham_u32_t flags, 
         ham_offset_t *new_blobid)
 {
     ham_status_t st;
 
     st=blob_free(db, txn, old_blobid, flags);
     if (st)
-        ; /* TODO wat nu? */
-    st=blob_allocate(db, txn, data, datasize, flags, new_blobid);
-    if (st) /* TODO log */
+        return (st);
+    st=blob_allocate(db, txn, data, size, flags, new_blobid);
+    if (st) 
         return (st);
 
     return (0);
@@ -417,77 +283,64 @@ blob_replace(ham_db_t *db, ham_txn_t *txn, ham_offset_t old_blobid,
 ham_status_t
 blob_free(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid, ham_u32_t flags)
 {
-    ham_status_t st;
-    blob_t *blobhdr;
     ham_page_t *page;
-    ham_size_t i, headersize;
-    ham_offset_t overflow;
-
-    (void)flags;
+    blob_t *hdr;
+    ham_size_t i;
 
     /*
      * load the blob header
      */
-    blobhdr=my_blob_load(db, txn, blobid, &page);
-    if (!blobhdr) /* TODO log */
+    page=my_load_header(db, txn, blobid, &hdr);
+    if (!page)
         return (HAM_BLOB_NOT_FOUND);
-
-    /*
-     * mark this blob as deleted
-     */
-    blob_set_flags(blobhdr, 
-            blob_get_flags(blobhdr)|BLOB_FLAG_DELETED);
-    page_set_dirty(page, 1);
 
     while (1) {
         /*
-         * foreach page in blobhdr->_parts...
-         *
-         * we skip part #0, since it contains the blob_t header.
-         * to avoid concurrency problems (i.e. the blob parts
-         * are freed, while the blob header page is already re-used
-         * by another thread), we free part #0 later.
+         * foreach toc entry
          */
-        for (i=1; i<blob_get_parts_size(blobhdr); i++) {
-            /*
-             * move the page to the freelist
-             */
-            st=freel_add_area(db, txn, blob_get_part_offset(blobhdr, i), 
-                    blob_get_part_size(blobhdr, i));
-            if (st) /* TODO log */
-                return (st);
+        for (i=0; i<blob_get_toc_usedsize(hdr); i++) {
+            ham_offset_t chunkstart;
+            ham_size_t chunksize;
 
-            if (i>0)
-                ham_assert(blob_get_part_offset(blobhdr, i-1)
-                        !=blob_get_part_offset(blobhdr, i), 
-                        "invalid offset in blob [%d,%d]", i-1, i);
+            /*
+             * get the chunk
+             */
+            chunkstart=blob_get_chunk_offset(hdr, 0);
+            chunksize=blob_get_chunk_size(hdr, 0);
+
+            /*
+             * if the chunk spans the full page: load the page and delete
+             * it
+             */
+            if (blob_get_chunk_flags(hdr, 0)&BLOB_CHUNK_SPANS_PAGE) {
+                page=db_fetch_page(db, txn, chunkstart, 0);
+                if (page)
+                    (void)db_free_page(db, txn, page, 0);
+            }
+            /*
+             * otherwise: if this chunk is adjacent to the blob_t header, 
+             * we also delete the blob_t header
+             */
+            else if (blob_get_chunk_flags(hdr, 0)&BLOB_CHUNK_NEXT_TO_HEADER) {
+                chunkstart-=sizeof(blob_t)+(blob_get_toc_maxsize(hdr)-1)*
+                    sizeof(struct blob_chunk_t);
+                (void)freel_add_area(db, chunkstart, chunksize);
+            }
+            /*
+             * otherwise delete the chunk
+             */
+            else {
+                (void)freel_add_area(db, chunkstart, chunksize);
+            }
         }
 
         /*
-         * calculate size of part #0 + blob_t header
+         * load the next blob header
          */
-        headersize=sizeof(blob_t)+sizeof(blobhdr->_parts[0])*
-            (blob_get_parts_size(blobhdr)-1);
-
-        /* 
-         * get overflow pointer
-         */
-        overflow=blob_get_parts_overflow(blobhdr);
-        if (!overflow)
+        if (!blob_get_overflow(hdr)) 
             break;
-
-        /*
-         * now get rid of part #0
-         */
-        st=freel_add_area(db, txn, blobid, headersize);
-        if (st) /* TODO log */
-            return (st);
-
-        /*
-         * get the next blob header, if available
-         */
-        blobhdr=my_blob_load(db, txn, blobid, &page);
-        if (!blobhdr) /* TODO log */
+        page=my_load_header(db, txn, blob_get_overflow(hdr), &hdr);
+        if (!page)
             return (HAM_BLOB_NOT_FOUND);
     }
 

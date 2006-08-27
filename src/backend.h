@@ -14,6 +14,7 @@ extern "C" {
 #endif 
 
 #include <ham/hamsterdb.h>
+#include <ham/hamsterdb_int.h>
 #include "txn.h"
 
 /**
@@ -48,7 +49,7 @@ extern "C" {
      * find a key in the index                                          \
      */                                                                 \
     ham_status_t (*_fun_find)(clss *be, ham_txn_t *txn, ham_key_t *key, \
-            ham_offset_t *rid, ham_u32_t flags);                        \
+            ham_record_t *record, ham_u32_t flags);                     \
                                                                         \
     /**                                                                 \
      * insert (or update) a key in the index                            \
@@ -66,7 +67,7 @@ extern "C" {
      * in @a rid                                                        \
      */                                                                 \
     ham_status_t (*_fun_erase)(clss *be, ham_txn_t *txn, ham_key_t *key,\
-            ham_offset_t *rid, ham_u32_t flags);                        \
+            ham_offset_t *rid, ham_u32_t *intflags, ham_u32_t flags);   \
                                                                         \
     /**                                                                 \
      * dump the whole tree to stdout                                    \

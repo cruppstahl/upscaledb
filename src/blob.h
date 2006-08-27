@@ -23,19 +23,20 @@ extern "C" {
 /**
  * a blob structure (blob_t)
  *
- * if a blob is bigger than a page, it is split into several pages 
- * ("blob_part_t").  information about these overflow pages 
- * (page ID and page length) are stored in the '_parts'-array.
+ * every blob has a blob_t header; it holds flags and some other 
+ * administrative information. and it has a "toc" - table of contents - 
+ * with pointers to the chunks in the file; all those chunks 
+ * together are the data of the blob. 
  *
- * if the blob is too big, and the number of blob_part_t-pages is too high for
- * the blob_t::_parts array (because the whole blob_t structure would
- * not fit in a single page), the blob_t::_parts_overflow member points
- * to a page with another blob_t structure and more blob_part_t elements.
+ * since (theoretically) it's possible that a blob is very, very large, and 
+ * therefore the toc of a blob_t does not fit in a single page, every 
+ * blob_t structure has an overflow pointer to another blob_t header. 
  */
 typedef HAM_PACK_0 struct HAM_PACK_1 
 {
     /**
-     * the blob ID
+     * the blob ID - which is the absolute address/offset of this 
+     * blob_t structure in the file
      */
     ham_offset_t _blobid;
 
@@ -45,50 +46,56 @@ typedef HAM_PACK_0 struct HAM_PACK_1
     ham_u64_t _total_size;
 
     /**
+     * the real size of the blob - if a blob needs padding because it's 
+     * encrypted, the real_size holds the size before the padding
+     */
+    ham_u64_t _real_size;
+
+    /**
      * additional flags
      */
     ham_u32_t _flags;
 
     /**
      * pointer to an overflow page with a blob_t header
-     * and more blob_part_t elements
+     * and more blob_chunk_t elements
      */
-    ham_offset_t _parts_overflow;
+    ham_offset_t _overflow;
 
     /**
-     * number of elements in _parts
+     * number of used elements in _toc
      */
-    ham_u16_t _parts_size;
+    ham_u16_t _toc_usedsize;
 
     /**
-     * array of blob_part_t descriptors
+     * maximum capacity of _toc
      */
-    struct blob_part_t {
+    ham_u16_t _toc_maxsize;
+
+    /**
+     * array of blob_chunk_t descriptors
+     */
+    struct blob_chunk_t {
         /**
-         * ID of the page
+         * absolute address of the chunk in the file
          */
-        ham_offset_t _page;
+        ham_offset_t _offset;
 
         /**
-         * size of data in the page; w/o the header information!
+         * size of this chunk
          */
         ham_u32_t _size;
 
-    } _parts[1];
+        /**
+         * flags of this chunk
+         */
+        ham_u32_t _flags;
 
-    /**
-     * the data itself follows here...
-     */
+    } _toc[1];
 
 } HAM_PACK_2 blob_t;
 
 #include "packstop.h"
-
-/**
- * get a blob_t from a ham_page_t
- */
-extern blob_t *
-ham_page_get_blob(ham_page_t *page, ham_offset_t blobid);
 
 /**
  * get the blob ID (blob start address) of a blob_t
@@ -111,6 +118,16 @@ ham_page_get_blob(ham_page_t *page, ham_offset_t blobid);
 #define blob_set_total_size(b, s)      (b)->_total_size=ham_h2db64(s)
 
 /**
+ * get the real size of a blob_t
+ */
+#define blob_get_real_size(b)          (ham_db2h64((b)->_real_size))
+
+/**
+ * get the real size of a blob_t
+ */
+#define blob_set_real_size(b, s)       (b)->_real_size=ham_h2db64(s)
+
+/**
  * get flags of a blob_t
  */
 #define blob_get_flags(b)              (ham_db2h32((b)->_flags))
@@ -121,50 +138,76 @@ ham_page_get_blob(ham_page_t *page, ham_offset_t blobid);
 #define blob_set_flags(b, f)           (b)->_flags=ham_h2db32(f)
 
 /**
- * get the overflow pointer to more parts
+ * get the overflow pointer to the next blob_t header
  */
-#define blob_get_parts_overflow(b)     (ham_db2h_offset((b)->_parts_overflow))
+#define blob_get_overflow(b)           (ham_db2h_offset((b)->_overflow))
 
 /**
- * set the overflow pointer to more parts
+ * set the overflow pointer 
  */
-#define blob_set_parts_overflow(b, o)  (b)->_parts_overflow=ham_h2db_offset(o)
+#define blob_set_overflow(b, o)        (b)->_overflow=ham_h2db_offset(o)
 
 /**
- * get number of elements in _parts
+ * get number of used elements in the toc
  */
-#define blob_get_parts_size(b)         (ham_db2h16((b)->_parts_size))
+#define blob_get_toc_usedsize(b)       (ham_db2h16((b)->_toc_usedsize))
 
 /**
- * set number of elements in _parts
+ * set number of used elements in the toc
  */
-#define blob_set_parts_size(b, s)      (b)->_parts_size=ham_h2db16(s)
+#define blob_set_toc_usedsize(b, s)    (b)->_toc_usedsize=ham_h2db16(s)
 
 /**
- * get the offset of part #i
+ * get maximum capacity of the toc
  */
-#define blob_get_part_offset(b, i)     (ham_db2h_offset((b)->_parts[i]._page))
+#define blob_get_toc_maxsize(b)        (ham_db2h16((b)->_toc_maxsize))
 
 /**
- * set the offset of part #i
+ * set maximum capacity of the toc
  */
-#define blob_set_part_offset(b, i, o)  (b)->_parts[i]._page=ham_h2db_offset(o)
+#define blob_set_toc_maxsize(b, s)     (b)->_toc_maxsize=ham_h2db16(s)
 
 /**
- * get the size of part #i
+ * get the offset of chunk #i
  */
-#define blob_get_part_size(b, i)       (ham_db2h32((b)->_parts[i]._size))
+#define blob_get_chunk_offset(b, i)    (ham_db2h_offset((b)->_toc[i]._offset))
 
 /**
- * set the size of part #i
+ * set the offset of chunk #i
  */
-#define blob_set_part_size(b, i, s)    (b)->_parts[i]._size=ham_h2db32(s)
+#define blob_set_chunk_offset(b, i, o) (b)->_toc[i]._offset=ham_h2db_offset(o)
 
 /**
- * get a pointer to the data of this blob_t; the data follows 
- * immediately after the blob_t structure
+ * get the size of chunk #i
  */
-#define blob_get_data(b)    ((ham_u8_t *)(b)->_parts[blob_get_parts_size(b)])
+#define blob_get_chunk_size(b, i)      (ham_db2h32((b)->_toc[i]._size))
+
+/**
+ * set the size of chunk #i
+ */
+#define blob_set_chunk_size(b, i, s)   (b)->_toc[i]._size=ham_h2db32(s)
+
+/**
+ * get the flags of chunk #i
+ */
+#define blob_get_chunk_flags(b, i)     (ham_db2h32((b)->_toc[i]._flags))
+
+/**
+ * set the flags of chunk #i
+ */
+#define blob_set_chunk_flags(b, i, f)  (b)->_toc[i]._flags=ham_h2db32(f)
+
+/**
+ * the following chunk flags are available
+ *
+ * the chunk is directly adjacent to the blob_t header
+ */
+#define BLOB_CHUNK_NEXT_TO_HEADER       1
+
+/*
+ * the chunk spans a full page
+ */
+#define BLOB_CHUNK_SPANS_PAGE           2
 
 /**
  * write a blob
@@ -173,7 +216,7 @@ ham_page_get_blob(ham_page_t *page, ham_offset_t blobid);
  */
 extern ham_status_t
 blob_allocate(ham_db_t *db, ham_txn_t *txn, ham_u8_t *data, 
-        ham_size_t datasize, ham_u32_t flags, ham_offset_t *blobid);
+        ham_size_t size, ham_u32_t flags, ham_offset_t *blobid);
 
 /**
  * read a blob
@@ -192,7 +235,7 @@ blob_read(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid,
  */
 extern ham_status_t
 blob_replace(ham_db_t *db, ham_txn_t *txn, ham_offset_t old_blobid, 
-        ham_u8_t *data, ham_size_t datasize, ham_u32_t flags, 
+        ham_u8_t *data, ham_size_t size, ham_u32_t flags, 
         ham_offset_t *new_blobid);
 
 /**

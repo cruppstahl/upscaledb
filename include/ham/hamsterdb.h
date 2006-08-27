@@ -31,6 +31,8 @@ typedef struct
     ham_u32_t flags;
     void *data;
     ham_size_t _allocsize;
+    ham_u32_t _intflags;
+    ham_u64_t _rid;
 } ham_record_t;
 
 /**
@@ -50,10 +52,49 @@ typedef struct
 } ham_key_t;
 
 /**
- * a transaction handle
+ * a typedef for a custom error handler function
  */
-struct ham_txn_t;
-typedef struct ham_txn_t ham_txn_t; 
+typedef void (*ham_errhandler_fun)(const char *message);
+
+/**
+ * set a global error handler; this handler will receive <b>all</b> debug 
+ * messages which are emitted by hamster-db. you can remove the handler by
+ * setting @a f to 0.
+ */
+extern void
+ham_set_errhandler(ham_errhandler_fun f);
+
+/** 
+ * get a descriptive error string from a hamster status code
+ */
+extern const char *
+ham_strerror(ham_status_t result);
+
+/**
+ * hamster error- and status codes.
+ * hamster-error codes are always negative, so we have no conflicts with 
+ * errno.h
+ */
+#define HAM_SUCCESS                  (  0)
+#define HAM_SHORT_READ               ( -1)
+#define HAM_SHORT_WRITE              ( -2)
+#define HAM_INV_KEYSIZE              ( -3)
+#define HAM_INV_PAGESIZE             ( -4)
+#define HAM_DB_ALREADY_OPEN          ( -5)
+#define HAM_OUT_OF_MEMORY            ( -6)
+#define HAM_INV_BACKEND              ( -7)
+#define HAM_INV_PARAMETER            ( -8)
+#define HAM_INV_FILE_HEADER          ( -9)
+#define HAM_INV_FILE_VERSION         (-10)
+#define HAM_KEY_NOT_FOUND            (-11)
+#define HAM_DUPLICATE_KEY            (-12)
+#define HAM_INTEGRITY_VIOLATED       (-13)
+#define HAM_INTERNAL_ERROR           (-14)
+#define HAM_DB_READ_ONLY             (-15)
+#define HAM_BLOB_NOT_FOUND           (-16)
+#define HAM_PREFIX_REQUEST_FULLKEY   (-17)
+#define HAM_IO_ERROR                 (-18)
+#define HAM_CACHE_FULL               (-19)
 
 /**
  * create a new ham_db_t handle
@@ -89,24 +130,12 @@ ham_create_ex(ham_db_t *db, const char *filename,
         ham_u16_t keysize, ham_size_t cachesize);
 
 /**
- * close a database
- */
-extern ham_status_t
-ham_close(ham_db_t *db);
-
-/**
  * Flags for opening and creating the database
+ *
+ * When file pages are modified, write them imediately to the file.
+ * The flag is disabled by default.
  */
-
-/**
- * If new pages are allocated on the hard drive, they are aligned to
- * 1024 byte-boundaries. You can disable this alignment by setting 
- * the HAM_NO_PAGE_ALIGN-flag when you create the database. Files
- * become a bit smaller then, for the price of a speed tradeoff.
- * TODO benchmark it!
- * The alignment is enabled by default.
- */
-#define HAM_NO_PAGE_ALIGN            0x00000001
+#define HAM_WRITE_THROUGH            0x00000001
 
 /**
  * If ham_open() fails, if a file with the given name does not 
@@ -148,40 +177,25 @@ ham_close(ham_db_t *db);
 #define HAM_DISABLE_VAR_KEYLEN       0x00000040
 
 /**
- * get the key size
+ * create an in-memory-database. No file will be written, and the 
+ * database contents are lost after the database is closed.
+ * This flag is disabled by default.
  */
-extern ham_u16_t 
-ham_get_keysize(ham_db_t *db);
+#define HAM_IN_MEMORY_DB             0x00000080
 
-/** 
- * set key size
+/**
+ * 0x100 is a reserved value
+ */
+
+/**
+ * Flags and policies for the database cache
  *
- * @remark This function fails if the database was already created or
- * is already open.
+ * If this flag is true, the cache must *never* be bigger then 
+ * the maximum cachesize; otherwise, the cache is allowed to allocate 
+ * more pages then the maximum cachesize, but only if it's necessary and 
+ * only for a short time. Default: flag is off
  */
-extern ham_status_t
-ham_set_keysize(ham_db_t *db, ham_u16_t size);
-
-/** 
- * get page size
- */
-extern ham_u16_t
-ham_get_pagesize(ham_db_t *db);
-
-/** 
- * set page size
- *
- * @remark This function fails if the database was already created or
- * is already open.
- */
-extern ham_u16_t
-ham_set_pagesize(ham_db_t *db, ham_u16_t size);
-
-/** 
- * get the flags
- */
-extern ham_u32_t
-ham_get_flags(ham_db_t *db);
+#define HAM_CACHE_STRICT            0x00000001
 
 /** 
  * get the last error code
@@ -209,98 +223,44 @@ extern ham_status_t
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
 
 /** 
- * check if the database is open
- */
-extern ham_bool_t
-ham_is_open(ham_db_t *db);
-
-/**
- * a typedef for a custom error handler function
- */
-typedef void (*ham_errhandler_fun)(const char *message);
-
-/**
- * set an error handler; this handler will receive <b>all</b> debug messages
- * which are emitted by hamster-db. you can remove the handler by
- * setting @a f to 0.
- */
-extern void
-ham_set_errhandler(ham_errhandler_fun f);
-
-/** 
- * get a descriptive error string from a hamster status code
- */
-extern const char *
-ham_strerror(ham_status_t result);
-
-/**
- * hamster error- and status codes.
- * hamster-error codes are always negative, so we have no conflicts with 
- * errno.h
- */
-#define HAM_SUCCESS                  (  0)
-#define HAM_SHORT_READ               ( -1)
-#define HAM_SHORT_WRITE              ( -2)
-#define HAM_INV_KEYSIZE              ( -3)
-#define HAM_DB_ALREADY_OPEN          ( -4)
-#define HAM_OUT_OF_MEMORY            ( -5)
-#define HAM_INV_BACKEND              ( -6)
-#define HAM_INV_PARAMETER            ( -7)
-#define HAM_INV_FILE_HEADER          ( -8)
-#define HAM_INV_FILE_VERSION         ( -9)
-#define HAM_KEY_NOT_FOUND            (-10)
-#define HAM_DUPLICATE_KEY            (-11)
-#define HAM_INTEGRITY_VIOLATED       (-12)
-#define HAM_INTERNAL_ERROR           (-13)
-#define HAM_DB_READ_ONLY             (-14)
-#define HAM_BLOB_NOT_FOUND           (-15)
-#define HAM_PREFIX_REQUEST_FULLKEY   (-16)
-
-/** 
  * find a key in the database
  *
- * @remark not yet frozen...
+ * @remark set 'reserved' to NULL
  */
 extern ham_status_t
-ham_find(ham_db_t *db, ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+ham_find(ham_db_t *db, void *reserved, ham_key_t *key, 
+        ham_record_t *record, ham_u32_t flags);
 
 /** 
  * insert a database entry
  *
- * @remark not yet frozen...
+ * @remark set 'reserved' to NULL
  */
 extern ham_status_t
-ham_insert(ham_db_t *db, ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+ham_insert(ham_db_t *db, void *reserved, ham_key_t *key, 
+        ham_record_t *record, ham_u32_t flags);
 
 /** 
  * erase a database entry
  *
- * @remark not yet frozen...
+ * @remark set 'reserved' to NULL
  */
 extern ham_status_t
-ham_erase(ham_db_t *db, ham_key_t *key, ham_u32_t flags);
+ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, 
+        ham_u32_t flags);
 
 /**
- * a callback function for dump - dumps a single key to stdout
- *
- * @remark see the default implementation in db.c for an example
- */
-typedef void (*ham_dump_cb_t)(const ham_u8_t *key, ham_size_t keysize);
-
-/** 
- * dump the whole tree to stdout
- *
- * @remark you can pass a callback function pointer, or NULL for the default
- * function (dumps the first 16 bytes of the key)
+ * flush all open pages
  */
 extern ham_status_t
-ham_dump(ham_db_t *db, ham_dump_cb_t cb);
+ham_flush(ham_db_t *db);
 
-/** 
- * verify the whole tree
+/**
+ * close a database
  */
 extern ham_status_t
-ham_check_integrity(ham_db_t *db);
+ham_close(ham_db_t *db);
+
 
 #ifdef __cplusplus
 } // extern "C"

@@ -9,17 +9,303 @@
 #include <ham/hamsterdb.h>
 #include <ham/config.h>
 #include "error.h"
+#include "cache.h"
+#include "freelist.h"
 #include "mem.h"
-#include "db.h"
 #include "os.h"
+#include "db.h"
 #include "btree.h"
 #include "version.h"
-#include "cachemgr.h"
 #include "txn.h"
-#include "blob.h"
 
-static int 
-my_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length, 
+static ham_status_t 
+my_write_page(ham_db_t *db, ham_page_t *page)
+{
+    ham_status_t st;
+
+    /*
+     * !!!
+     * one day, we'll have to protect these file IO-operations
+     * with a mutex
+     */
+    ham_assert(!(db_get_flags(db)&HAM_IN_MEMORY_DB), 
+            "can't fetch a page from in-memory-db", 0);
+    ham_assert(page_get_pers(page)!=0, 
+            "writing page 0x%llx, but page has no buffer", 
+            page_get_self(page));
+
+    st=os_seek(db_get_fd(db), page_get_self(page), HAM_OS_SEEK_SET);
+    if (st) {
+        ham_log("os_seek failed with status %d (%s)", st, ham_strerror(st));
+        db_set_error(db, HAM_IO_ERROR);
+        return (HAM_IO_ERROR);
+    }
+    st=os_write(db_get_fd(db), (ham_u8_t *)page_get_pers(page), 
+            db_get_pagesize(db));
+    if (st) {
+        ham_log("os_write failed with status %d (%s)", st, ham_strerror(st));
+        db_set_error(db, HAM_IO_ERROR);
+        return (HAM_IO_ERROR);
+    }
+
+    page_set_dirty(page, 0);
+    return (0);
+}
+
+static ham_status_t 
+my_read_page(ham_db_t *db, ham_offset_t address, ham_page_t *page)
+{
+    ham_status_t st;
+
+    /*
+     * !!!
+     * one day, we'll have to protect these file IO-operations
+     * with a mutex
+     */
+
+    ham_assert(!(db_get_flags(db)&HAM_IN_MEMORY_DB), 
+            "can't fetch a page from in-memory-db", 0);
+
+    if (db_get_flags(db)&DB_USE_MMAP) {
+        ham_u8_t *buffer;
+        st=os_mmap(db_get_fd(db), address, db_get_pagesize(db),
+            &buffer);
+        if (st) {
+            ham_log("os_mmap failed with status %d (%s)", st, ham_strerror(st));
+            db_set_error(db, HAM_IO_ERROR);
+            return (HAM_IO_ERROR);
+        }
+        page_set_pers(page, (union page_union_t *)buffer);
+    }
+    else {
+        st=os_seek(db_get_fd(db), address, HAM_OS_SEEK_SET);
+        if (st) {
+            ham_log("os_seek failed with status %d (%s)", st, ham_strerror(st));
+            db_set_error(db, HAM_IO_ERROR);
+            return (HAM_IO_ERROR);
+        }
+        st=os_read(db_get_fd(db), (void *)page_get_pers(page), 
+                db_get_pagesize(db));
+        if (st) {
+            ham_log("os_read failed with status %d (%s)", st, ham_strerror(st));
+            db_set_error(db, HAM_IO_ERROR);
+            return (HAM_IO_ERROR);
+        }
+    }
+
+    return (0);
+}
+
+static ham_page_t *
+my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
+{
+    ham_page_t *page;
+    ham_status_t st;
+
+    (void)need_pers;
+
+    /*
+     * allocate one page of memory, if we have room for one more page
+     */
+    if (cache_can_add_page(db_get_cache(db))) {
+        page=db_alloc_page_struct(db);
+        if (!page) {
+            ham_log("db_alloc_page_struct failed", 0);
+            return (0);
+        }
+    }
+
+    /*
+     * otherwise: replace a page
+     */
+    else {
+        page=cache_get_unused(db_get_cache(db));
+        if (!page) {
+            db_set_error(db, HAM_CACHE_FULL);
+            return (0);
+        }
+
+        if (page_is_dirty(page) && !(db_get_flags(db)&HAM_IN_MEMORY_DB)) { 
+            st=my_write_page(db, page);
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
+        }
+        if (!page_get_npers_flags(page)&PAGE_NPERS_MALLOC) {
+            st=os_munmap(page_get_pers(page), db_get_pagesize(db));
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
+        }
+        else {
+            ham_mem_free(page_get_pers(page));
+            page_set_npers_flags(page, 
+                    page_get_npers_flags(page)&(~PAGE_NPERS_MALLOC));
+            page_set_pers(page, 0);
+        }
+        memset(page, 0, sizeof(ham_page_t));
+        page_set_owner(page, db);
+    }
+
+    /* 
+     * for in-memory-databases and if we use read(2) for I/O, we need 
+     * a second page buffer for the file data
+     */
+    if (!(db_get_flags(db)&DB_USE_MMAP) && !page_get_pers(page)) {
+        page_set_pers(page, (union page_union_t *)ham_mem_alloc(
+                    db_get_pagesize(db)));
+        if (!page_get_pers(page)) {
+            ham_log("page_new failed - out of memory", 0);
+            db_set_error(db, HAM_OUT_OF_MEMORY);
+            return (0);
+        }
+        page_set_npers_flags(page, 
+                page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
+    }
+
+    /* TODO wenn wir in dieser funktion mit einem fehler rausgehen, 
+     * haben wir memory leaks! */
+
+    return (page);
+}
+
+ham_page_t *
+db_alloc_page_struct(ham_db_t *db)
+{
+    ham_page_t *page;
+
+    page=(ham_page_t *)ham_mem_alloc(sizeof(ham_page_t));
+    if (!page) {
+        db_set_error(db, HAM_OUT_OF_MEMORY);
+        return (0);
+    }
+
+    memset(page, 0, sizeof(*page));
+    page_set_owner(page, db);
+    /* temporarily initialize the cache counter, just to be on the safe side */
+    page_set_cache_cntr(page, 20);
+
+    if (!(db_get_flags(db)&DB_USE_MMAP)) {
+        page_set_pers(page, (union page_union_t *)ham_mem_alloc(
+                    db_get_pagesize(db)));
+        if (!page_get_pers(page)) {
+            ham_log("page_set_pers failed - out of memory", 0);
+            db_set_error(db, HAM_OUT_OF_MEMORY);
+            return (0);
+        }
+        page_set_npers_flags(page, 
+                page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
+    }
+
+    return (page);
+}
+
+void
+db_free_page_struct(ham_page_t *page)
+{
+    ham_db_t *db=page_get_owner(page);
+    
+    /*
+     * make sure that the page is removed from the cache
+     */
+    (void)cache_remove_page(db_get_cache(db), page);
+
+    page_set_npers_flags(page, 0xffff);
+
+    if (page_get_pers(page)) {
+        if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC) 
+            ham_mem_free(page_get_pers(page));
+        else 
+            (void)os_munmap(page_get_pers(page), db_get_pagesize(db));
+    }
+    ham_mem_free(page);
+}
+
+ham_status_t
+db_write_page_to_device(ham_page_t *page)
+{
+    return (my_write_page(page_get_owner(page), page));
+}
+
+ham_status_t
+db_fetch_page_from_device(ham_page_t *page, ham_offset_t address)
+{
+    page_set_self(page, address);
+    return (my_read_page(page_get_owner(page), address, page));
+}
+
+ham_status_t
+db_alloc_page_device(ham_page_t *page, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_offset_t tellpos=0, resize=0;
+    ham_db_t *db=page_get_owner(page);
+
+    /* 
+     * if this is not an in-memory-db: set the memory to 0 and leave
+     */
+    if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
+        page_set_self(page, (ham_offset_t)page);
+        return (0);
+    }
+
+    /* first, we ask the freelist for a page */
+    if (!(flags&PAGE_IGNORE_FREELIST)) {
+        tellpos=freel_alloc_area(db, db_get_pagesize(db), db_get_flags(db));
+        if (tellpos) 
+            page_set_self(page, tellpos);
+    }
+
+    /* otherwise: move to the end of the file */
+    if (!tellpos) {
+        st=os_seek(db_get_fd(db), 0, HAM_OS_SEEK_END);
+        if (st) 
+            return (st);
+
+        /* get the current file position */
+        st=os_tell(db_get_fd(db), &tellpos);
+        if (st) 
+            return (st);
+
+        /* and write it to disk */
+        st=os_truncate(db_get_fd(db), tellpos+resize+db_get_pagesize(db));
+        if (st) 
+            return (st);
+
+        /*
+         * if we're using MMAP: when allocating a new page, we need
+         * memory for the persistent buffer
+         */
+        if ((db_get_flags(db)&DB_USE_MMAP) && !page_get_pers(page)) {
+            page_set_pers(page, (union page_union_t *)ham_mem_alloc(
+                        db_get_pagesize(db)));
+            if (!page_get_pers(page)) 
+                return (HAM_OUT_OF_MEMORY);
+            /*
+             * TODO memset is needed for valgrind
+             */
+            memset(page_get_pers(page), 0, db_get_pagesize(db));
+            page_set_npers_flags(page, 
+                    page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
+        }
+
+        /* TODO bei mmap muss gleich die page gemappt werden?? ne, eigentlich
+         * nicht. */
+    }
+
+    if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC) 
+        memset(page_get_pers(page), 0, db_get_pagesize(db));
+
+    page_set_self(page, tellpos);
+    page_set_dirty(page, 0);
+
+    return (0);
+}
+
+int 
+db_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length, 
                    const ham_u8_t *rhs, ham_size_t rhs_length)
 {
     int m;
@@ -43,466 +329,7 @@ my_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
             return (0);
     }
 
-    return memcmp(lhs, rhs, lhs_length);
-}
-
-static ham_u8_t *
-my_load_key(ham_db_t *db, ham_ext_key_t *extkey, const ham_u8_t *prefix, 
-        ham_size_t prefix_length, ham_size_t real_length)
-{
-    ham_txn_t txn;
-    ham_u8_t *ptr;
-    ham_offset_t blobid;
-    ham_record_t record;
-
-    ham_assert(prefix_length>=sizeof(ham_offset_t), "invalid prefix length", 0);
-    memset(&record, 0, sizeof(record));
-
-    ptr=ham_mem_alloc(real_length);
-    if (!ptr) {
-        db_set_error(db, HAM_OUT_OF_MEMORY);
-        return (0);
-    }
-    memcpy(ptr, prefix, prefix_length-sizeof(ham_offset_t));
-    record.data =ptr+prefix_length-sizeof(ham_offset_t);
-    record.flags=HAM_RECORD_USER_ALLOC;
-    blobid=*(ham_offset_t *)&prefix[prefix_length-sizeof(ham_offset_t)];
-    blobid=ham_db2h_offset(blobid);
-
-    ham_txn_begin(&txn, db, TXN_READ_ONLY);
-    if (blob_read(db, &txn, blobid, &record, 0)) {
-        ham_txn_abort(&txn, 0);
-        return (0);
-    }
-    ham_txn_commit(&txn, 0);
-
-    ham_assert(real_length==record.size+(prefix_length-sizeof(ham_offset_t)), 
-            "key length mismatch", 0);
-
-    extkey->data=ptr;
-    extkey->size=real_length;
-    return (ptr);
-}
-
-static ham_backend_t *
-my_create_backend(ham_db_t *db, ham_u32_t flags)
-{
-    ham_status_t st;
-    ham_backend_t *be;
-
-    if (flags &  HAM_BE_HASH) {
-        /*
-         * TODO
-         */
-        return (0);
-    }
-
-    /* 
-     * the default backend is the BTREE
-     */
-    if (1) { /* flags & HAM_BE_BTREE */
-        /*
-         * note that we create a ham_backend_t with the size of a 
-         * ham_btree_t!
-         */
-        be=(ham_backend_t *)ham_mem_alloc(sizeof(ham_btree_t));
-        if (!be) {
-            ham_log("out of memory", 0);
-            return (0);
-        }
-
-        /* initialize the backend */
-        st=btree_create((ham_btree_t *)be, db, flags);
-        if (st) {
-            ham_log("failed to initialize backend: 0x%s", st);
-            return (0);
-        }
-
-        return (be);
-    }
-
-    return (0);
-}
-
-ham_status_t
-ham_new(ham_db_t **db)
-{
-    ham_size_t size;
-
-    size=SIZEOF_PERS_HEADER+sizeof((*db)->_npers);
-    /* allocate memory for the ham_db_t-structure */
-    *db=(ham_db_t *)ham_mem_alloc(size);
-    if (!(*db)) 
-        return (HAM_OUT_OF_MEMORY);
-
-    /* reset the whole structure */
-    memset(*db, 0, size);
-    db_set_fd((*db), -1);
-    return (0);
-}
-
-ham_status_t
-ham_delete(ham_db_t *db)
-{
-    /* free cached data pointers */
-    if (db_get_record_allocdata(db))
-        ham_mem_free(db_get_record_allocdata(db));
-
-    /* close the backend */
-    if (db_get_backend(db)) {
-        ham_backend_t *be=db_get_backend(db);
-        be->_fun_delete(be);
-        ham_mem_free(be);
-    }
-
-    /* dispose the cache manager */
-    if (db->_npers._cm)
-        cm_delete(db->_npers._cm);
-
-    /* free all remaining memory */
-    ham_mem_free(db);
-    return (0);
-}
-
-ham_status_t
-ham_open(ham_db_t *db, const char *filename, ham_u32_t flags)
-{
-    ham_fd_t fd;
-    ham_status_t st;
-    ham_backend_t *backend;
-    ham_cachemgr_t *cm;
-
-    /* open the file */
-    st=os_open(filename, flags, &fd);
-    if (st) {
-        ham_log("os_open of %s failed with status %d (%s)", filename, 
-                st, ham_strerror(st));
-        db_set_error(db, st);
-        return (st);
-    }
-
-    /* read the database header */
-    st=os_read(fd, db->_u._persistent, SIZEOF_PERS_HEADER);
-    if (st) {
-        ham_log("os_read of %s failed with status %d (%s)", filename, 
-                st, ham_strerror(st));
-        db_set_error(db, st);
-        return (st);
-    }
-
-    /* check the file magic */
-    if (db_get_magic(db, 0)!='H' || 
-        db_get_magic(db, 1)!='A' || 
-        db_get_magic(db, 2)!='M' || 
-        db_get_magic(db, 3)!='\0') {
-        ham_log("invalid file type - %s is not a hamster-db", filename);
-        db_set_error(db, HAM_INV_FILE_HEADER);
-        return (HAM_INV_FILE_HEADER);
-    }
-
-    /* check the database version */
-    if (db_get_version(db, 0)!=HAM_VERSION_MAJ || 
-        db_get_version(db, 1)!=HAM_VERSION_MIN) {
-        ham_log("invalid file version", 0);
-        db_set_error(db, HAM_INV_FILE_VERSION);
-        return (HAM_INV_FILE_VERSION);
-    }
-
-    /* initialize the database handle */
-    db_set_fd(db, fd);
-    db_set_error(db, HAM_SUCCESS);
-
-    /* create the backend */
-    backend=my_create_backend(db, flags);
-    if (!backend) {
-        ham_log("unable to create backend with flags 0x%x", flags);
-        db_set_error(db, HAM_INV_BACKEND);
-        return (HAM_INV_BACKEND);
-    }
-    db_set_backend(db, backend);
-
-    /* initialize the backend */
-    st=backend->_fun_open(backend, flags);
-    if (st) {
-        ham_log("backend create() failed with status %d (%s)", 
-                st, ham_strerror(st));
-        db_set_error(db, st);
-        return (st);
-    }
-
-    /* create a new cache manager */
-    cm=cm_new(db, 0, HAM_DEFAULT_CACHESIZE);
-    if (!cm)
-        return (db_get_error(db));
-    db_set_cm(db, cm);
-
-    /* set the key compare function */
-    ham_set_compare_func(db, my_default_compare);
-
-    return (HAM_SUCCESS);
-}
-
-ham_status_t
-ham_create(ham_db_t *db, const char *filename, ham_u32_t flags, ham_u32_t mode)
-{
-    return (ham_create_ex(db, filename, flags, mode, 0, 0, 
-                HAM_DEFAULT_CACHESIZE));
-}
-
-ham_status_t
-ham_create_ex(ham_db_t *db, const char *filename, 
-        ham_u32_t flags, ham_u32_t mode, ham_u16_t pagesize, 
-        ham_u16_t keysize, ham_size_t cachesize)
-{
-    ham_fd_t fd;
-    ham_status_t st;
-    ham_backend_t *backend;
-    ham_cachemgr_t *cm;
-
-    /*
-     * calculate a pagesize
-     */
-    if (pagesize==0) {
-        pagesize=16*keysize;
-        if (pagesize<1024)
-            pagesize=HAM_DEFAULT_PAGESIZE;
-        else
-            pagesize-=(pagesize%1024);
-    }
-
-    ham_set_pagesize(db, pagesize);
-    ham_set_keysize(db, keysize);
-
-    /* create the file */
-    st=os_create(filename, flags, mode, &fd);
-    if (st) {
-        ham_log("os_open of %s failed with status %d (%s)", filename, 
-                st, ham_strerror(st));
-        db_set_error(db, st);
-        return (st);
-    }
-    
-    db_set_magic(db, 'H', 'A', 'M', '\0');
-    db_set_version(db, HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV, 0);
-    db_set_serialno(db, HAM_SERIALNO);
-    db_set_fd(db, fd);
-    db_set_flags(db, flags);
-    db_set_error(db, HAM_SUCCESS);
-    db_set_dirty(db, HAM_TRUE);
-
-    /* create a new cache manager */
-    cm=cm_new(db, 0, cachesize);
-    if (!cm)
-        return (db_get_error(db));
-    db_set_cm(db, cm);
-
-    /* write the database header */
-    st=os_write(fd, db->_u._persistent, SIZEOF_PERS_HEADER);
-    if (st) {
-        ham_log("os_write of %s failed with status %d (%s)", filename, 
-                st, ham_strerror(st));
-        db_set_error(db, st);
-        return (st);
-    }
-
-    /* create the backend */
-    backend=my_create_backend(db, flags);
-    if (!backend) {
-        ham_log("unable to create backend with flags 0x%x", flags);
-        db_set_error(db, HAM_INV_BACKEND);
-        return (HAM_INV_BACKEND);
-    }
-
-    /* initialize the backend */
-    st=backend->_fun_create(backend, flags);
-    if (st) {
-        ham_log("backend create() failed with status %d (%s)", 
-                st, ham_strerror(st));
-        db_set_error(db, st);
-        return (st);
-    }
-
-    /* store the backend in the database */
-    db_set_backend(db, backend);
-
-    /* set the key compare function */
-    ham_set_compare_func(db, my_default_compare);
-
-    return (HAM_SUCCESS);
-}
-
-ham_status_t
-ham_close(ham_db_t *db)
-{
-    ham_status_t st=0;
-
-    /* 
-     * if we're not in read-only mode, and the dirty-flag is true:
-     * flush the page-header to disk 
-     */
-    if (ham_is_open(db) && (!(ham_get_flags(db)&HAM_READ_ONLY)) && 
-            db_is_dirty(db)) {
-
-        /* move to the beginning of the file */
-        st=os_seek(db_get_fd(db), 0, HAM_OS_SEEK_SET);
-        if (st) {
-            ham_log("os_seek failed with status %d (%s)", 
-                    st, ham_strerror(st));
-        }
-        else {
-            /* write the database header */
-            st=os_write(db_get_fd(db), db->_u._persistent, SIZEOF_PERS_HEADER);
-            if (st) {
-                ham_log("os_write failed with status %d (%s)", 
-                        st, ham_strerror(st));
-            }
-        }
-    }
-
-    /* flush the whole cache */
-    if (db_get_cm(db)) {
-        st=db_flush_all(db, 0);
-        if (st) {
-            ham_log("flushing the caches failed with status %d (%s)", 
-                    st, ham_strerror(st));
-            db_set_error(db, st);
-            return (st);
-        }
-    }
-
-    /* close the backend */
-    if (db_get_backend(db)) {
-        st=db_get_backend(db)->_fun_close(db_get_backend(db));
-        if (st) {
-            ham_log("backend close() failed with status %d (%s)", 
-                    st, ham_strerror(st));
-            db_set_error(db, st);
-            return (st);
-        }
-    }
-
-    /* close the file */
-    if (ham_is_open(db)) {
-        (void)os_close(db_get_fd(db));
-        /* set an invalid database handle */
-        db_set_fd(db, -1);
-    }
-
-    return (0);
-}
-
-ham_u16_t 
-ham_get_keysize(ham_db_t *db)
-{
-    return (db_get_keysize(db));
-}
-
-ham_status_t
-ham_set_keysize(ham_db_t *db, ham_u16_t size)
-{
-    if (ham_is_open(db)) {
-        db_set_error(db, HAM_DB_ALREADY_OPEN);
-        return (HAM_DB_ALREADY_OPEN);
-    }
-    db->_u._pers._keysize=ham_h2db16(size);
-    return (0);
-}
-
-ham_u16_t
-ham_get_pagesize(ham_db_t *db)
-{
-    return (db_get_pagesize(db));
-}
-
-ham_u16_t
-ham_set_pagesize(ham_db_t *db, ham_u16_t size)
-{
-    if (ham_is_open(db)) {
-        db_set_error(db, HAM_DB_ALREADY_OPEN);
-        return (HAM_DB_ALREADY_OPEN);
-    }
-    db->_u._pers._pagesize=ham_h2db16(size);
-    return (0);
-}
-
-ham_u32_t
-ham_get_flags(ham_db_t *db)
-{
-    return (ham_db2h32(db->_u._pers._flags));
-}
-
-ham_status_t
-ham_get_error(ham_db_t *db)
-{
-    return (db_get_error(db));
-}
-
-ham_compare_func_t
-ham_get_compare_func(ham_db_t *db)
-{
-    return (db->_npers._compfoo);
-}
-
-ham_status_t
-ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo)
-{
-    db->_npers._compfoo=foo;
-    return (0);
-}
-
-ham_status_t
-ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo)
-{
-    db->_npers._prefixcompfoo=foo;
-    return (0);
-}
-
-ham_bool_t
-ham_is_open(ham_db_t *db)
-{
-    return (db_get_backend(db)!=0 && db_get_fd(db)!=-1);
-}
-
-ham_offset_t
-db_ext_key_insert(ham_db_t *db, ham_txn_t *txn, ham_page_t *page, 
-        ham_key_t *key)
-{
-    ham_status_t st;
-    ham_offset_t blobid;
-    ham_u8_t *data=(ham_u8_t *)key->data;
-    ham_size_t size=key->size;
-    ham_ext_key_t *ext;
-
-    if (!page_get_extkeys(page)) {
-        ext=(ham_ext_key_t *)ham_mem_alloc(db_get_maxkeys(db)*
-                sizeof(ham_ext_key_t));
-        if (!ext) {
-            db_set_error(db, HAM_OUT_OF_MEMORY);
-            return (0);
-        }
-        memset(ext, 0, db_get_maxkeys(db)*sizeof(ham_ext_key_t));
-        page_set_extkeys(page, ext);
-    }
-
-    data+=db_get_keysize(db)-sizeof(ham_offset_t);
-    size-=db_get_keysize(db)-sizeof(ham_offset_t);
-
-    st=blob_allocate(db, txn, data, size, 0, &blobid);
-    if (st) {
-        db_set_error(db, st);
-        return (0);
-    }
-    return (blobid);
-}
-
-ham_status_t
-db_ext_key_erase(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid)
-{
-    ham_status_t st;
-    st=blob_free(db, txn, blobid, 0);
-    if (st)
-        db_set_error(db, st);
-    return (st);
+    return (memcmp(lhs, rhs, lhs_length));
 }
 
 int
@@ -512,23 +339,27 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
                 long rhs_idx, ham_u32_t rhs_flags, const ham_u8_t *rhs, 
                 ham_size_t rhs_length, ham_size_t rhs_real_length)
 {
-    int cmp=0;
+#if 0 /* @@@ */
     ham_ext_key_t *ext;
     ham_size_t lhsprefixlen, rhsprefixlen;
-    ham_compare_func_t foo=db_get_compare_func(db);
     ham_prefix_compare_func_t prefoo=db_get_prefix_compare_func(db);
+#endif
+
+    int cmp=0;
+    ham_compare_func_t foo=db_get_compare_func(db);
     db_set_error(db, 0);
 
     /*
      * need prefix compare? 
      */
-    if (lhs_length==lhs_real_length && rhs_length==rhs_real_length) {
+    if (lhs_real_length<=lhs_length && rhs_real_length<=rhs_length) {
         /*
          * no!
          */
         return (foo(lhs, lhs_length, rhs, rhs_length));
     }
 
+#if 0 /* @@@ */
     /*
      * yes! - run prefix comparison, but only if we have a prefix
      * comparison function
@@ -586,181 +417,259 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
          */
         return (foo(lhs, lhs_length, rhs, rhs_length));
     }
+#endif
+
     return (cmp);
 }
 
+ham_backend_t *
+db_create_backend(ham_db_t *db, ham_u32_t flags)
+{
+    ham_backend_t *be;
+    ham_status_t st;
+
+    /*
+     * hash tables are not yet supported
+     */
+    if (flags&HAM_BE_HASH) {
+        return (0);
+    }
+
+    /* 
+     * the default backend is the BTREE
+     *
+     * create a ham_backend_t with the size of a ham_btree_t
+     */
+    be=(ham_backend_t *)ham_mem_alloc(sizeof(ham_btree_t));
+    if (!be) {
+        ham_log("out of memory", 0);
+        return (0);
+    }
+
+    /* initialize the backend */
+    st=btree_create((ham_btree_t *)be, db, flags);
+    if (st) {
+        ham_log("failed to initialize backend: 0x%s", st);
+        return (0);
+    }
+
+    return (be);
+}
+
+ham_page_t *
+db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address, 
+        ham_u32_t flags)
+{
+    ham_page_t *page;
+    ham_status_t st;
+
+    (void)flags;
+
+    /*
+     * first, check if the page is in the txn
+     */
+    page=txn_get_page(txn, address);
+    if (page)
+        return (page);
+
+    /*
+     * if we have a cache: fetch the page from the cache
+     */
+    if (db_get_cache(db)) {
+        page=cache_get(db_get_cache(db), address);
+        if (page) {
+            st=txn_add_page(txn, page);
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
+            return (page);
+        }
+    }
+
+    /*
+     * otherwise allocate memory for the page
+     */
+    page=my_alloc_page(db, HAM_FALSE);
+    if (!page)
+        return (0);
+
+    /*
+     * and read the page, either with mmap or read
+     */
+    st=my_read_page(db, address, page);
+    if (st) {
+        db_set_error(db, st);
+        (void)cache_move_to_garbage(db_get_cache(db), page);
+        return (0);
+    }
+    page_set_self(page, address);
+
+    /*
+     * add the page to the transaction
+     */
+    st=txn_add_page(txn, page);
+    if (st) {
+        db_set_error(db, st);
+        (void)cache_move_to_garbage(db_get_cache(db), page);
+        return (0);
+    }
+
+    /*
+     * add the page to the cache
+     */
+    st=cache_put(db_get_cache(db), page);
+    if (st) {
+        db_set_error(db, st);
+        return (0);
+    }
+
+    return (page);
+}
+
+ham_status_t
+db_flush_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
+        ham_u32_t flags)
+{
+    ham_status_t st;
+
+    (void)txn;
+
+    /* write the page, if it's dirty and if write-through is enabled */
+    if ((db_get_flags(db)&HAM_WRITE_THROUGH) && page_is_dirty(page)) {
+        st=my_write_page(db, page);
+        if (st)
+            return (st);
+    }
+
+    return (cache_put(db_get_cache(db), page));
+}
+
+ham_status_t
+db_flush_all(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
+{
+    (void)txn;
+
+    return (cache_flush_and_delete(db_get_cache(db), flags));
+}
+
+ham_page_t *
+db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_page_t *page;
+
+    /* allocate memory for the page */
+    page=my_alloc_page(db, HAM_TRUE);
+    if (!page)
+        return (0);
+
+    /* allocate storage on the device */
+    st=db_alloc_page_device(page, flags);
+    if (st) {
+        db_set_error(db, st); /* TODO memleak! */
+        return (0);
+    }
+
+    /* set the page type */
+    page_set_type(page, type);
+
+    /* add the page to the transaction */
+    if (txn) {
+        st=txn_add_page(txn, page);
+        if (st) {
+            db_set_error(db, st);
+            return (0);
+        }
+    }
+
+    /* store the page in the cache */
+    st=cache_put(db_get_cache(db), page);
+    if (st) {
+        db_set_error(db, st); /* TODO memleak! */
+        return (0);
+    }
+
+    return (page);
+
+    /* TODO avoid memory leak! auch nach anderen 
+        aufrufen von my_alloc_page() */
+}
+
+ham_page_t *
+db_alloc_area(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, 
+        ham_u32_t flags, ham_size_t size, 
+        ham_offset_t *area_offset, ham_size_t *area_size)
+{
+    ham_offset_t address;
+    ham_page_t *page;
+
+    *area_offset=0;
+    *area_size=0;
+
+    /*
+     * limit the request to one page
+     */
+    if (size>db_get_usable_pagesize(db)) {
+        *area_size=db_get_usable_pagesize(db);
+        return (db_alloc_page(db, type, txn, flags));
+    }
+
+    /*
+     * otherwise check the freelist
+     */
+    address=freel_alloc_area(db, size, db_get_flags(db));
+    if (address) {
+        ham_offset_t pageid=address;
+        pageid=(pageid/db_get_pagesize(db))*db_get_pagesize(db);
+        *area_size=size;
+        *area_offset=address-pageid;
+        return (db_fetch_page(db, txn, pageid, flags));
+    }
+
+    /* 
+     * no freelist entry found? allocate a new page, and move the
+     * unneeded space to the freelist
+     */
+    page=db_alloc_page(db, type, txn, flags);
+    if (!page)
+        return (0);
+
+    (void)freel_add_area(db, page_get_self(page)+size, 
+            db_get_usable_pagesize(db)-size);
+
+    *area_size=size;
+    *area_offset=0;
+    return (page);
+}
+
+ham_status_t
+db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page, 
+        ham_u32_t flags)
+{
+    (void)txn;
+    (void)flags;
+
+    page_set_npers_flags(page, 
+            page_get_npers_flags(page)|PAGE_NPERS_DELETE_PENDING);
+
+    return (0);
+}
+
 ham_status_t 
-db_flush_all(ham_db_t *db, ham_u32_t flags)
+db_write_page_and_delete(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
 {
-    return (cm_flush_all(db->_npers._cm, flags));
-}
-
-ham_status_t
-ham_find(ham_db_t *db, ham_key_t *key, ham_record_t *record, ham_u32_t flags)
-{
-    ham_txn_t txn;
-    ham_status_t st;
-    ham_backend_t *be=db_get_backend(db);
-    ham_offset_t blobid;
-
-    if (!be)
-        return (HAM_INV_BACKEND);
-    if ((st=ham_txn_begin(&txn, db, TXN_READ_ONLY)))
-        return (st);
-
     /*
-     * first look up the blob id
+     * write page to disk
      */
-    st=be->_fun_find(be, &txn, key, &blobid, flags);
-    if (st) {
-        (void)ham_txn_abort(&txn, 0);
-        return (st);
-    }
+    if (page_is_dirty(page) && !(db_get_flags(db)&HAM_IN_MEMORY_DB))
+        (void)my_write_page(db, page);
 
-    /*
-     * then fetch the blob
+    /* 
+     * free the memory of the page
      */
-    st=blob_read(db, &txn, blobid, record, flags);
-    if (st) {
-        (void)ham_txn_abort(&txn, 0);
-        return (st);
-    }
+    if (!(flags&DB_FLUSH_NODELETE))
+        db_free_page_struct(page);
 
-    return (ham_txn_commit(&txn, 0));
-}
-
-ham_status_t
-ham_insert(ham_db_t *db, ham_key_t *key, ham_record_t *record, ham_u32_t flags)
-{
-    ham_txn_t txn;
-    ham_status_t st;
-    ham_backend_t *be=db_get_backend(db);
-
-    if (!be)
-        return (HAM_INV_BACKEND);
-    if (ham_get_flags(db)&HAM_READ_ONLY)
-        return (HAM_DB_READ_ONLY);
-    if ((ham_get_flags(db)&HAM_DISABLE_VAR_KEYLEN) && 
-        key->size>db_get_keysize(db))
-        return (HAM_INV_KEYSIZE);
-    if ((db_get_keysize(db)<=sizeof(ham_offset_t)) && 
-        key->size>db_get_keysize(db))
-        return (HAM_INV_KEYSIZE);
-
-    if ((st=ham_txn_begin(&txn, db, 0)))
-        return (st);
-
-    /*
-     * store the index entry; the backend will store the blob
-     */
-    st=be->_fun_insert(be, &txn, key, record, flags);
-    if (st) {
-        (void)ham_txn_abort(&txn, 0);
-        return (st);
-    }
-
-    return (ham_txn_commit(&txn, 0));
-}
-
-ham_status_t
-ham_erase(ham_db_t *db, ham_key_t *key, ham_u32_t flags)
-{
-    ham_txn_t txn;
-    ham_status_t st;
-    ham_backend_t *be=db_get_backend(db);
-    ham_offset_t blobid;
-
-    if (!be)
-        return (HAM_INV_BACKEND);
-    if (ham_get_flags(db)&HAM_READ_ONLY)
-        return (HAM_DB_READ_ONLY);
-    if ((st=ham_txn_begin(&txn, db, 0)))
-        return (st);
-
-    /*
-     * get rid of the index entry
-     */
-    st=be->_fun_erase(be, &txn, key, &blobid, flags);
-    if (st) {
-        (void)ham_txn_abort(&txn, 0);
-        return (st);
-    }
-
-    /*
-     * now free the blob
-     */
-    st=blob_free(db, &txn, blobid, flags);
-    if (st) {
-        (void)ham_txn_abort(&txn, 0);
-        return (st);
-    }
-
-    return (ham_txn_commit(&txn, 0));
-}
-
-/*
- * default callback function which dumps a key
- */
-static void
-my_dump_cb(const ham_u8_t *key, ham_size_t keysize)
-{
-    ham_size_t i, limit;
-
-    if (keysize>16)
-        limit=16;
-    else
-        limit=keysize;
-
-    for (i=0; i<limit; i++)
-        printf("%02x ", key[i]);
-
-    if (keysize>limit)
-        printf("... (%d more bytes)\n", keysize-limit);
-    else
-        printf("\n");
-}
-    
-ham_status_t
-ham_dump(ham_db_t *db, ham_dump_cb_t cb)
-{
-    ham_txn_t txn;
-    ham_status_t st;
-    ham_backend_t *be=db_get_backend(db);
-
-    if (!be)
-        return (HAM_INV_BACKEND);
-    if (!cb)
-        cb=my_dump_cb;
-
-    if ((st=ham_txn_begin(&txn, db, TXN_READ_ONLY)))
-        return (st);
-
-    st=be->_fun_dump(be, &txn, cb);
-    if (st) {
-        (void)ham_txn_abort(&txn, 0);
-        return (st);
-    }
-
-    return (ham_txn_commit(&txn, 0));
-}
-
-ham_status_t
-ham_check_integrity(ham_db_t *db)
-{
-    ham_txn_t txn;
-    ham_status_t st;
-
-    ham_backend_t *be=db_get_backend(db);
-    if (!be)
-        return (HAM_INV_BACKEND);
-    if ((st=ham_txn_begin(&txn, db, TXN_READ_ONLY)))
-        return (st);
-
-    st=be->_fun_check_integrity(be, &txn);
-    if (st) {
-        (void)ham_txn_abort(&txn, 0);
-        return (st);
-    }
-
-    return (ham_txn_commit(&txn, 0));
+    return (0);
 }

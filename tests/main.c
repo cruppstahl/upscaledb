@@ -1,123 +1,136 @@
-/**
- * Copyright (C) 2005, 2006 Christoph Rupp (chris@crupp.de)
- * see file LICENSE for license and copyright information
- *
- * entry point for a test suite based on CUnit (http://cunit.sf.net)
- *
- */
 
+#include <assert.h>
+#include <unistd.h>
 #include <stdio.h>
-#include <string.h>
-#include <CUnit/Basic.h>
+#include "getopts.h"
+
 #include <ham/hamsterdb.h>
-#include "main.h"
 
-/* 
- * array of all tests, indexed by name
- */
-typedef struct {
-    /* name of the test */
-    const char *name;
-    /* test function */
-    void (*foo)(void);
-} test_entry; 
+#define ARG_HELP            1
+#define ARG_CREATE          2
+#define ARG_OPEN            3
+#define ARG_IN_MEMORY_DB    4
+#define ARG_DB              5
 
-/* 
- * global variables, declared in main.h
- */
-int argc; 
-char **argv;
+ham_u32_t g_flags=0;
 
-test_entry tests[]={
-    { "pageio", test_pageio },
-    { "db", test_db },
-    { "errhand", test_errhand },
-    { "cache", test_cache },
-    { "freelist", test_freelist },
-    { "blob", test_blob },
-    { "btree_payload", test_btree_payload },
-    { "btree_find", test_btree_find },
-    { "btree_row", test_btree_row },
-    { "btree_extkeys", test_btree_extkeys },
-    /*{ "btree_berk", test_btree_berk },*/
-    { 0, 0 }
+option_t opts[]={
+  { 
+      ARG_HELP,               // symbolic name of this option
+      "h",                    // short option 
+      "help",                 // long option 
+      "this help screen",     // help string
+      0 },                    // no flags
+  { 
+      ARG_CREATE,
+      "c",
+      "create",
+      "<filename>   create an empty database file",
+      GETOPTS_NEED_ARGUMENT },
+  { 
+      ARG_OPEN,
+      "o",
+      "open",
+      "<filename>   open a database file",
+      GETOPTS_NEED_ARGUMENT },
+  { 
+      ARG_IN_MEMORY_DB,
+      "mem",
+      "in-memory",
+      "create an in-memory-db",
+      0 },
+  { 
+      ARG_DB,
+      "db",
+      "db",
+      "<testscript>   run the big database test",
+      GETOPTS_NEED_ARGUMENT },
+  { 0, 0, 0, 0, 0 }           // the terminating entry
 };
 
-/* 
- * suite initialization function.
- * returns zero on success, non-zero otherwise.
- */
-static int 
-init_suite(void) {
-    return 0;
-}
-
-/* 
- * suite cleanup function.
- * returns zero on success, non-zero otherwise.
- */
-static int 
-clean_suite(void)
-{
-    return 0;
-}
-
-/* 
- * the main() function for setting up and running the tests.
- * returns a CUE_SUCCESS on successful running, another
- * CUnit error code on failure.
- */
 int 
-main(int _argc, char **_argv)
+test_db(const char *filename);
+static int
+my_test_db(const char *filename)
 {
-    int i=0, found=0;
-    CU_pSuite suite;
-
-    argc=_argc;
-    argv=_argv;
-
-    /* initialize the CUnit test registry */
-    if (CUE_SUCCESS!=CU_initialize_registry())
-        return CU_get_error();
-
-    /* add a suite to the registry */
-    suite=CU_add_suite("Suite_1", init_suite, clean_suite);
-    if (!suite) {
-        CU_cleanup_registry();
-        return CU_get_error();
-    }
-
-    /* 
-     * if argc>=2: only run the test with the name in argv[1];
-     * otherwise run all tests
-     */
-    if (argc>=2) {
-        while (tests[i].name) {
-            if (tests[i].name && !strcmp(tests[i].name, argv[1])) {
-                CU_add_test(suite, tests[i].name, tests[i].foo);
-                found=1;
-                break;
-            }
-            i++;
-        }
-    }
-    else {
-        while (tests[i].name) {
-            CU_add_test(suite, tests[i].name, tests[i].foo);
-            found=1;
-            i++;
-        }
-    }
-
-    if (!found) {
-        printf("no valid test found\n");
-        return -1;
-    }
-
-    /* Run all tests using the CUnit Basic interface */
-    CU_basic_set_mode(CU_BRM_VERBOSE);
-    CU_basic_run_tests();
-    CU_cleanup_registry();
-    return CU_get_error();
+    return (test_db(filename));
 }
 
+static int
+my_test_create(const char *filename)
+{
+    ham_status_t st;
+    ham_db_t *db;
+
+    (void)unlink(filename);
+
+    st=ham_new(&db);
+    assert(st==0);
+    st=ham_create(db, filename, g_flags, 0644);
+    assert(st==0);
+    st=ham_close(db);
+    assert(st==0);
+    st=ham_delete(db);
+    assert(st==0);
+
+    return (0);
+}
+
+static int
+my_test_open(const char *filename)
+{
+    ham_status_t st;
+    ham_db_t *db;
+
+    st=ham_new(&db);
+    assert(st==0);
+    st=ham_open(db, filename, g_flags);
+    assert(st==0);
+    st=ham_close(db);
+    assert(st==0);
+    st=ham_delete(db);
+    assert(st==0);
+
+    return (0);
+}
+
+int 
+main(int argc, char **argv)
+{
+    unsigned int opt;
+    char *param;
+    getopts_init(argc, argv, "test");
+
+    while ((opt=getopts(&opts[0], &param))) {
+        if (opt==ARG_HELP) {
+            break;
+        }
+        else if (opt==ARG_DB) {
+            printf("getopt: db test, file is %s\n", param);
+            return (my_test_db(param));
+        }
+        else if (opt==ARG_CREATE) {
+            printf("getopt: create file is %s\n", param);
+            return (my_test_create(param));
+        }
+        else if (opt==ARG_OPEN) {
+            printf("getopt: open file is %s\n", param);
+            return (my_test_open(param));
+        }
+        else if (opt==ARG_IN_MEMORY_DB) {
+            printf("getopt: in-memory-db\n");
+            g_flags|=HAM_IN_MEMORY_DB;
+        }
+        else if (opt==GETOPTS_UNKNOWN) {
+            printf("getopt: unknown parameter %s\n", param);
+            break;
+        }
+        else if (opt==GETOPTS_MISSING_PARAM) {
+            printf("getopt: parameter of %s is missing\n", param);
+            break;
+        }
+    }
+
+    getopts_usage(&opts[0]);
+    return (0);
+}

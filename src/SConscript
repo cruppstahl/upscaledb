@@ -9,22 +9,24 @@
 import os
 
 files=[
-        "blob", 
-        "txn", 
-        "btree", 
-        "btree_check", 
-        "btree_dump", 
-        "btree_erase", 
-        "btree_find", 
-        "btree_insert", 
-        "cachemgr", 
         "db", 
         "error", 
-        "freelist", 
         "mem", 
-        "os", 
-        "page", 
-        "util", 
+        "os",
+        "page",
+        "freelist",
+        "txn",
+        "util",
+        "blob",
+        "cache",
+        "keys",
+        "hamsterdb",
+        "btree",
+        "btree_insert",
+        "btree_erase",
+        "btree_find",
+        "btree_check",
+        "btree_dump"
     ]
 
 include     = ['.', '../include']
@@ -32,10 +34,10 @@ include     = ['.', '../include']
 # set up the environment(s)
 if not os.environ.has_key('RELEASE'):
     sfx='dbg'
-    cflags  = '-g -Wall -ansi -DHAM_DEBUG'
+    cflags  = '-g -Wall -ansi -DHAM_DEBUG -DHAM_OS_POSIX'
 else:
     sfx='rel'
-    cflags  = '-O3 -Wall -ansi -DHAM_RELEASE'
+    cflags  = '-O3 -Wall -ansi -DHAM_RELEASE -DHAM_OS_POSIX'
 
 env=Environment(CCFLAGS = cflags, CPPPATH = include)
 

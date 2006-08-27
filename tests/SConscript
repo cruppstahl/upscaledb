@@ -8,24 +8,14 @@
 
 files=[
         "db.c",
-        #"btree_berk.c",
-        "btree_extkeys.c",
-        "btree_find.c",
-        "btree_payload.c",
-        "btree_row.c",
-        "blob.c",
-        "cache.c",
-        "errhand.c",
-        "freelist.c",
         "main.c",
-        "page.c",
         "getopts.c"
     ]
 
 
 cflags    = '-g -pg -Wall -DHAM_DEBUG -DHAM_OS_LIN32'
 include   = ['../include']
-libraries = ['hamsterdb', 'cunit', 'db']
+libraries = ['hamsterdb', 'db']
 libpaths  = ['../build']
 
 # set up the environment

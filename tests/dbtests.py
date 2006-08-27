@@ -9,6 +9,8 @@ import sys
 import re
 import popen2
 
+TESTFILES = "../../../hamsterdb-tests/trunk"
+
 def dump(out):
     for o in out:
         print o,
@@ -16,7 +18,7 @@ def dump(out):
 def run_db(path):
     # run ./test db <file>
     print "running test ", path
-    status=os.system("./test db --profile --quiet "+path+" > /tmp/dbtest.out")
+    status=os.system("./test --db "+path+" --profile --check --check --quiet > /tmp/dbtest.out")
     print "    status is", status
     if status: 
         return 0
@@ -45,12 +47,12 @@ except:
 if param:
     run_db(param);
 else:
-    list=os.listdir("./testfiles/db")
+    list=os.listdir(TESTFILES+"/testfiles/db")
     list.sort()
     for f in list:
-        if stat.S_ISDIR(os.stat("./testfiles/db/"+f)[stat.ST_MODE]):
+        if stat.S_ISDIR(os.stat(TESTFILES+"/testfiles/db/"+f)[stat.ST_MODE]):
             continue
         # run the test
-        if not run_db("./testfiles/db/"+f):
+        if not run_db(TESTFILES+"/testfiles/db/"+f):
             break
 

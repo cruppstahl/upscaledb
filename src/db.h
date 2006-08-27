@@ -14,262 +14,296 @@ extern "C" {
 #endif 
 
 #include "endian.h"
-#include "cachemgr.h"
 #include "backend.h"
+#include "cache.h"
+#include "page.h"
+#include "os.h"
 #include "freelist.h"
-
-/*
- * the size of the database header page is always constant
- */
-#define SIZEOF_PERS_HEADER  (1024*4)
 
 #include "packstart.h"
 
 /*
- * the database structure
+ * the persistent database header
  */
-struct ham_db_t
+typedef HAM_PACK_0 struct HAM_PACK_1 
 {
-    /*
-     * the database has a persistent header and non-persistent runtime
-     * information (i.e. file handle etc). 
-     *
-     * the non-persistent part of the database header
+    /* magic cookie - always "ham\0" */
+    ham_u8_t  _magic[4];
+
+    /* version information - major, minor, rev, reserved */
+    ham_u8_t  _version[4];
+
+    /* serial number */
+    ham_u32_t _serialno;
+
+    /* size of the page */
+    ham_u16_t _pagesize;
+
+    /* size of the key */
+    ham_u16_t _keysize;
+
+    /* global database flags which were specified when the database
+     * was created */
+    ham_u32_t _flags;
+
+    /* dirty-flag */
+    ham_u8_t _dirty;
+
+    /* private data of the index backend */
+    ham_u8_t _indexdata[64];
+
+    /* the active txn */
+    ham_txn_t *_txn;
+    
+    /* 
+     * start of the freelist - with a variable size!! don't add members 
+     * after this field.
      */
-    struct {
-        /* the file handle */
-        ham_fd_t _fd;
+    freel_payload_t _freelist;
 
-        /* the last error code */
-        ham_status_t _error;
-
-        /* a custom error handler */
-        ham_errhandler_fun _errh;
-
-        /* the cache manager */
-        ham_cachemgr_t *_cm;
-
-        /* the backend */
-        ham_backend_t *_backend;
-
-        /* the prefix-comparison function */
-        ham_prefix_compare_func_t _prefixcompfoo;
-
-        /* the comparison function */
-        ham_compare_func_t _compfoo;
-
-        /* the dirty-flag - set to HAM_TRUE if the persistent header
-         * was changed */
-        ham_bool_t _dirty;
-
-        /* the size of the last allocated data pointer */
-        ham_size_t _allocsize;
-
-        /* the last allocated data pointer */
-        void *_allocdata;
-
-    } _npers;
-
-    /*
-     * the persistent part of the database header
-     */
-    union {
-        /*
-         * the database header is always SIZEOF_PERS_HEADER bytes long
-         */
-        ham_u8_t _persistent[SIZEOF_PERS_HEADER];
-
-        HAM_PACK_0 struct HAM_PACK_1 {
-            /* magic cookie - always "ham\0" */
-            ham_u8_t  _magic[4];
-        
-            /* version information - major, minor, rev, reserved */
-            ham_u8_t  _version[4];
-
-            /* serial number */
-            ham_u32_t _serialno;
-
-            /* size of the key */
-            ham_u16_t _keysize;
-
-            /* size of the page */
-            ham_u16_t _pagesize;
-
-            /* maximum number of keys in a page */
-            ham_u16_t _maxkeys;
-
-            /* database flags which were specified when the database
-             * was created */
-            ham_u32_t _flags;
-
-            /* start of the freelist */
-            freel_payload_t _freelist;
-
-        } HAM_PACK_2 _pers;
-
-    } _u;
-
-};
+} db_header_t;
 
 #include "packstop.h"
 
 /* 
  * set the 'magic' field of a file header
  */
-#define db_set_magic(db, a,b,c,d)  { db->_u._pers._magic[0]=a; \
-                                     db->_u._pers._magic[1]=b; \
-                                     db->_u._pers._magic[2]=c; \
-                                     db->_u._pers._magic[3]=d; }
+#define db_set_magic(db, a,b,c,d)  { db_get_header(db)._magic[0]=a; \
+                                     db_get_header(db)._magic[1]=b; \
+                                     db_get_header(db)._magic[2]=c; \
+                                     db_get_header(db)._magic[3]=d; }
 
 /* 
  * get byte #i of the 'magic'-header
  */
-#define db_get_magic(db, i)        (db->_u._pers._magic[i])
+#define db_get_magic(db, i)        (db_get_header(db)._magic[i])
 
 /*
  * set the version of a file header
  */
-#define db_set_version(db,a,b,c,d) { db->_u._pers._version[0]=a; \
-                                     db->_u._pers._version[1]=b; \
-                                     db->_u._pers._version[2]=c; \
-                                     db->_u._pers._version[3]=d; }
+#define db_set_version(db,a,b,c,d) { db_get_header(db)._version[0]=a; \
+                                     db_get_header(db)._version[1]=b; \
+                                     db_get_header(db)._version[2]=c; \
+                                     db_get_header(db)._version[3]=d; }
 
 /*
  * get byte #i of the 'version'-header
  */
-#define db_get_version(db, i)      (db->_u._pers._version[i])
+#define db_get_version(db, i)      (db_get_header(db)._version[i])
 
 /*
  * get the serial number
  */
-#define db_get_serialno(db)        (ham_db2h32(db->_u._pers._serialno))
+#define db_get_serialno(db)        (ham_db2h32(db_get_header(db)._serialno))
 
 /*
  * set the serial number
  */
-#define db_set_serialno(db, n)     (db)->_u._pers._serialno=ham_h2db32(n)
+#define db_set_serialno(db, n)     db_get_header(db)._serialno=ham_h2db32(n)
 
 /*
  * get the key size
  */
-#define db_get_keysize(db)          (ham_db2h16(db->_u._pers._keysize))
+#define db_get_keysize(db)         (ham_db2h16(db_get_header(db)._keysize))
+
+/*
+ * set the key size
+ */
+#define db_set_keysize(db, ks)     db_get_header(db)._keysize=ham_db2h16(ks)
 
 /*
  * get the page size
  */
-#define db_get_pagesize(db)         (ham_db2h16(db->_u._pers._pagesize))
+#define db_get_pagesize(db)        (ham_db2h16(db_get_header(db)._pagesize))
+
+/*
+ * set the page size
+ */
+#define db_set_pagesize(db, ps)    db_get_header(db)._pagesize=ham_h2db16(ps)
+
+/**
+ * get the size of the usable persistent payload of a page
+ */
+#define db_get_usable_pagesize(db) (db_get_pagesize(db)-(sizeof(ham_u32_t)*3))
 
 /* 
- * get maximum number of keys per page
+ * get the flags
  */
-#define db_get_maxkeys(db)         (ham_db2h16(db->_u._pers._maxkeys))
-
-/* 
- * set maximum number of keys per page
- */
-#define db_set_maxkeys(db, s)      db->_u._pers._maxkeys=ham_h2db16(s)
-
-/* 
- * get the file handle
- */
-#define db_get_fd(db)              (db->_npers._fd)
-
-/* 
- * set the file handle
- */
-#define db_set_fd(db, fd)          (db)->_npers._fd=fd
+#define db_get_flags(db)           ham_db2h32(db_get_header(db)._flags)
 
 /* 
  * set the flags
  */
-#define db_set_flags(db, f)        (db)->_u._pers._flags=ham_h2db32(f)
+#define db_set_flags(db, f)        db_get_header(db)._flags=ham_h2db32(f)
+
+/*
+ * get the private data of the backend; interpretation of the 
+ * data is up to the backend
+ */
+#define db_get_indexdata(db)       db_get_header(db)._indexdata
+
+/*
+ * get the currently active transaction
+ */
+#define db_get_txn(db)             db_get_header(db)._txn
+
+/*
+ * set the currently active transaction
+ */
+#define db_set_txn(db, txn)        db_get_header(db)._txn=txn
+
+/*
+ * the database structure
+ */
+struct ham_db_t
+{
+    /* the file handle */
+    ham_fd_t _fd;
+
+    /* the last error code */
+    ham_status_t _error;
+
+    /* a custom error handler */
+    ham_errhandler_fun _errh;
+
+    /* the backend pointer - btree, hashtable etc */
+    ham_backend_t *_backend;
+
+    /* the cache */
+    ham_cache_t *_cache;
+
+    /* the size of the last allocated data pointer */
+    ham_size_t _allocsize;
+
+    /* the last allocated data pointer */
+    void *_allocdata;
+
+    /* the prefix-comparison function */
+    ham_prefix_compare_func_t _prefixcompfoo;
+
+    /* the comparison function */
+    ham_compare_func_t _compfoo;
+
+    /* the file header page */
+    ham_page_t *_hdrpage;
+
+    /* the database header - this is basically a mirror of the header-page
+     *
+     * it's needed because when a file is opened (or created), we need a 
+     * valid header, even when the _hdr-page is not yet available */
+    db_header_t _hdr;
+};
+
+/*
+ * get the header page 
+ */
+#define db_get_header_page(db)         (db)->_hdrpage
+
+/*
+ * set the header page 
+ */
+#define db_set_header_page(db, h)      (db)->_hdrpage=(h)
+
+/* 
+ * get the file handle
+ */
+#define db_get_fd(db)                  (db->_fd)
+
+/* 
+ * set the file handle
+ */
+#define db_set_fd(db, fd)              (db)->_fd=fd
+
+/*
+ * check if the file handle is valid
+ */
+#define db_is_open(db)                 (db_get_fd(db)!=-1)
 
 /* 
  * get the last error code
  */
-#define db_get_error(db)           (db)->_npers._error
+#define db_get_error(db)               (db)->_error
 
 /* 
  * set the last error code
  */
-#define db_set_error(db, e)        (db)->_npers._error=e
+#define db_set_error(db, e)            (db)->_error=e
 
 /* 
  * get the backend pointer
  */
-#define db_get_backend(db)         (db)->_npers._backend
+#define db_get_backend(db)             (db)->_backend
 
 /* 
  * set the backend pointer
  */
-#define db_set_backend(db, be)     (db)->_npers._backend=be
+#define db_set_backend(db, be)         (db)->_backend=be
+
+/*
+ * get the cache pointer
+ */
+#define db_get_cache(db)               (db)->_cache
+
+/*
+ * set the cache pointer
+ */
+#define db_set_cache(db, c)            (db)->_cache=c
 
 /*
  * get the prefix comparison function
  */
-#define db_get_prefix_compare_func(db)    (db)->_npers._prefixcompfoo
+#define db_get_prefix_compare_func(db) (db)->_prefixcompfoo
+
+/*
+ * set the prefix comparison function
+ */
+#define db_set_prefix_compare_func(db, f) (db)->_prefixcompfoo=f
 
 /*
  * get the default comparison function
  */
-#define db_get_compare_func(db)    (db)->_npers._compfoo
+#define db_get_compare_func(db)        (db)->_compfoo
 
 /*
- * get the cache manager
+ * set the default comparison function
  */
-#define db_get_cm(db)              (db)->_npers._cm
-
-/*
- * set the cache manager
- */
-#define db_set_cm(db, cm)          (db)->_npers._cm=(cm)
+#define db_set_compare_func(db, f)     (db)->_compfoo=f
 
 /* 
  * get the dirty-flag
  */
-#define db_is_dirty(db)            (db)->_npers._dirty==HAM_TRUE
+#define db_is_dirty(db)                (db)->_hdr._dirty
 
 /* 
  * set the dirty-flag 
  */
-#define db_set_dirty(db, d)        (db)->_npers._dirty=d
+#define db_set_dirty(db, d)            (db)->_hdr._dirty=d
 
 /*
  * get the size of the last allocated data blob
  */
-#define db_get_record_allocsize(db) (db)->_npers._allocsize
+#define db_get_record_allocsize(db)    (db)->_allocsize
 
 /*
  * set the size of the last allocated data blob
  */
-#define db_set_record_allocsize(db, s) (db)->_npers._allocsize=s
+#define db_set_record_allocsize(db, s) (db)->_allocsize=s
 
 /*
  * get the pointer to the last allocated data blob
  */
-#define db_get_record_allocdata(db) (db)->_npers._allocdata
+#define db_get_record_allocdata(db)    (db)->_allocdata
 
 /*
  * set the pointer to the last allocated data blob
  */
-#define db_set_record_allocdata(db, p) (db)->_npers._allocdata=p
+#define db_set_record_allocdata(db, p) (db)->_allocdata=p
 
-/**
- * store a variable sized key
- *
- * @remark this function creates a blob in the database and stores
- * the key in the blob; it returns the blobid of the new key
+/*
+ * get a pointer to the header data
  */
-extern ham_offset_t
-db_ext_key_insert(ham_db_t *db, ham_txn_t *txn, ham_page_t *page, 
-        ham_key_t *key);
+#define db_get_header(db)              (db)->_hdr
 
-/**
- * delete a variable sized key
- *
- */
-extern ham_status_t
-db_ext_key_erase(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid);
 
 /**
  * compare two keys
@@ -281,6 +315,19 @@ db_ext_key_erase(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid);
  * HAS to check for this error!
  *
  */
+
+/**
+ * the default key compare function - uses memcmp
+ */
+extern int 
+db_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length, 
+                   const ham_u8_t *rhs, ham_size_t rhs_length);
+
+/**
+ * function which compares two keys
+ *
+ * calls the comparison function
+ */
 extern int
 db_compare_keys(ham_db_t *db, ham_page_t *page,
                 long lhs_idx, ham_u32_t lhs_flags, const ham_u8_t *lhs, 
@@ -288,14 +335,129 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
                 long rhs_idx, ham_u32_t rhs_flags, const ham_u8_t *rhs, 
                 ham_size_t rhs_length, ham_size_t rhs_real_length);
 
-/*
- * flush all pages
- *
- * @remark this function is forwarded to the cache manager
- */ 
-extern ham_status_t 
-db_flush_all(ham_db_t *db, ham_u32_t flags);
+/**
+ * create a backend object according to the database flags
+ */
+extern ham_backend_t *
+db_create_backend(ham_db_t *db, ham_u32_t flags);
 
+/**
+ * fetch a page
+ */
+extern ham_page_t *
+db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address, 
+        ham_u32_t flags);
+#define DB_READ_ONLY            1
+
+/**
+ * flush a page
+ */
+extern ham_status_t
+db_flush_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
+        ham_u32_t flags);
+#define DB_REVERT_CHANGES       1
+
+/**
+ * flush all pages, and clear the cache
+ *
+ * @param flags: set to DB_FLUSH_NODELETE if you do NOT want the cache to 
+ * be cleared
+ */
+extern ham_status_t
+db_flush_all(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags);
+#define DB_FLUSH_NODELETE       1
+
+/**
+ * allocate memory for a ham_db_t-structure
+ */
+extern ham_page_t *
+db_alloc_page_struct(ham_db_t *db);
+
+/**
+ * free memory of a page
+ *
+ * !!!
+ * will NOT write the page to the device!
+ */
+extern void
+db_free_page_struct(ham_page_t *page);
+
+/**
+ * write a page to the device
+ */
+extern ham_status_t
+db_write_page_to_device(ham_page_t *page);
+
+/**
+ * read a page from the device
+ */
+extern ham_status_t
+db_fetch_page_from_device(ham_page_t *page, ham_offset_t address);
+
+/**
+ * allocate a new page on the device
+ *
+ * @remark flags can be of the following value:
+ *  HAM_NO_PAGE_ALIGN           (see ham/hamsterdb.h)
+ *  PAGE_IGNORE_FREELIST        ignores all freelist-operations
+ */
+extern ham_status_t
+db_alloc_page_device(ham_page_t *page, ham_u32_t flags);
+
+/**
+ * allocate a new page 
+ *
+ * !!! the page will be aligned at the current page size. any wasted 
+ * space (due to the alignment) is added to the freelist.
+ * TODO nur wenn NO_ALIGN nicht gesetzt ist! (sollte das nicht eher der 
+ * default sein??)
+ *
+ * @remark flags can be of the following value:
+ *  HAM_NO_PAGE_ALIGN           (see ham/hamsterdb.h)
+ *  PAGE_IGNORE_FREELIST        ignores all freelist-operations
+ */
+extern ham_page_t *
+db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags);
+#define PAGE_IGNORE_FREELIST          2
+
+/**
+ * allocate a blob area
+ *
+ * while db_alloc_page() will only allocate page-sized blobs, 
+ * db_alloc_area() can also allocate smaller blobs.
+ *
+ * size cannot be larger then the pagesize (if size is larger, 
+ * it will be ignored and a new page is returned).
+ */
+extern ham_page_t *
+db_alloc_area(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, 
+        ham_u32_t flags, ham_size_t size, 
+        ham_offset_t *area_offset, ham_size_t *area_size);
+
+/**
+ * free a page
+ *
+ * @remark will mark the page as deleted; the page will be deleted
+ * when the transaction is committed (or not deleted if the transaction
+ * is aborted).
+ */
+extern ham_status_t
+db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page, 
+        ham_u32_t flags);
+
+/**
+ * write a page, then delete the page from memory
+ *
+ * @remark this function is used by the cache; it shouldn't be used 
+ * anywhere else.
+ */
+extern ham_status_t 
+db_write_page_and_delete(ham_db_t *db, ham_page_t *page, ham_u32_t flags);
+
+/**
+ * an internal database flag - use mmap instead of read(2)
+ */
+#define DB_USE_MMAP                  0x00000100
 
 #ifdef __cplusplus
 } // extern "C" {

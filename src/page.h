@@ -27,27 +27,15 @@ extern "C" {
 
 /* a bucket in the hash table of the cache manager */
 #define PAGE_LIST_BUCKET           0
-/* a node in the linked list of unreferenced pages */
-#define PAGE_LIST_UNREF            1
 /* a node in the linked list of a transaction */
-#define PAGE_LIST_TXN              2
+#define PAGE_LIST_TXN              1
 /* garbage collected pages */
-#define PAGE_LIST_GARBAGE          3
+#define PAGE_LIST_GARBAGE          2
+/* list of all cached pages */
+#define PAGE_LIST_CACHED           3
 /* array limit */
 #define MAX_PAGE_LISTS             4
 
-/**
- * an "extended key" - a structure for caching variable sized keys
- * in memory
- */
-typedef struct ham_ext_key_t {
-    /** the key size */
-    ham_u32_t size;
-
-    /** the key data */
-    ham_u8_t *data; 
-
-} ham_ext_key_t;
 
 /**
  * the page structure
@@ -67,217 +55,236 @@ struct ham_page_t {
         /** reference to the database object */
         ham_db_t *_owner;
 
-        /** a reference counter */
-        ham_size_t _refcount;
+        /** non-persistent flags */
+        ham_u32_t _flags;
 
-        /** "dirty"-flag */
-        ham_bool_t _dirty;
+        /** cache counter - used by the cache module */
+        ham_u32_t _cache_cntr;
 
         /** linked lists of pages - see comments above */
         ham_page_t *_prev[MAX_PAGE_LISTS], *_next[MAX_PAGE_LISTS];
-
-        /** pointer to a shadow-page of this page */
-        ham_page_t *_shadowpage;
-
-        /** pointer to the original page, if this page is a shadowpage */
-        ham_page_t *_orig_page;
-
-        /** cached array of variable sized keys */
-        ham_ext_key_t *_extkeys;
 
     } _npers; 
 
     /**
      * from here on everything will be written to disk 
      */
-    struct {
-        /** 
-         * this is just a blob - the backend (hashdb, btree etc) 
-         * will use it appropriately
-         */
-        ham_u8_t _payload[1];
+    union page_union_t {
 
-    } _pers;
+        struct page_union_header_t {
+            /**
+             * flags of this page
+             */
+            ham_u32_t _flags;
+    
+            /**
+             * some reserved bytes
+             */
+            ham_u32_t _reserved1;
+            ham_u32_t _reserved2;
+
+            /** 
+             * this is just a blob - the backend (hashdb, btree etc) 
+             * will use it appropriately
+             */
+            ham_u8_t _payload[1];
+        } _s;
+
+        /*
+         * a char pointer
+         */
+        ham_u8_t _p[1];
+
+    } *_pers;
 
 };
 
 /**
  * get the address of this page
  */
-#define page_get_self(page)         (ham_db2h_offset((page)->_npers._self))
+#define page_get_self(page)          (ham_db2h_offset((page)->_npers._self))
 
 /**
  * set the address of this page
  */
-#define page_set_self(page, a)      (page)->_npers._self=ham_h2db_offset(a)
+#define page_set_self(page, a)       (page)->_npers._self=ham_h2db_offset(a)
 
 /** 
  * get the database object which 0wnz this page 
  */
-#define page_get_owner(page)        ((page)->_npers._owner)
+#define page_get_owner(page)         ((page)->_npers._owner)
 
 /** 
  * set the database object which 0wnz this page 
  */
-#define page_set_owner(page, db)    (page)->_npers._owner=db
+#define page_set_owner(page, db)     (page)->_npers._owner=db
+
+/** 
+ * get the previous page of a linked list
+ */
+#if (HAM_DEBUG)
+extern ham_page_t *
+page_get_previous(ham_page_t *page, int which);
+#else
+#   define page_get_previous(page, which)    ((page)->_npers._prev[(which)])
+#endif /* HAM_DEBUG */
+
+/** 
+ * set the previous page of a linked list
+ */
+#if (HAM_DEBUG)
+extern void
+page_set_previous(ham_page_t *page, int which, ham_page_t *other);
+#else
+#   define page_set_previous(page, which, p) (page)->_npers._prev[(which)]=(p)
+#endif /* HAM_DEBUG */
+
+/** 
+ * get the next page of a linked list
+ */
+#if (HAM_DEBUG)
+extern ham_page_t *
+page_get_next(ham_page_t *page, int which);
+#else
+#   define page_get_next(page, which)        ((page)->_npers._next[(which)])
+#endif /* HAM_DEBUG */
+
+/** 
+ * set the next page of a linked list
+ */
+#if (HAM_DEBUG)
+extern void
+page_set_next(ham_page_t *page, int which, ham_page_t *other);
+#else
+#   define page_set_next(page, which, p)     (page)->_npers._next[(which)]=(p)
+#endif /* HAM_DEBUG */
+
+/**
+ * get persistent page flags
+ */
+#define page_get_pers_flags(page)        ham_db2h32((page)->_pers->_s._flags)
+
+/**
+ * set persistent page flags
+ */
+#define page_set_pers_flags(page, f)     (page)->_pers->_s._flags=ham_h2db32(f)
+
+/**
+ * get non-persistent page flags
+ */
+#define page_get_npers_flags(page)       (page)->_npers._flags
+
+/**
+ * set non-persistent page flags
+ */
+#define page_set_npers_flags(page, f)    (page)->_npers._flags=f
+
+/**
+ * get the cache counter
+ */
+#define page_get_cache_cntr(page)        (page)->_npers._cache_cntr
+
+/**
+ * set the cache counter
+ */
+#define page_set_cache_cntr(page, c)     (page)->_npers._cache_cntr=c
+
+/**
+ * non-persistent page flags: page->_pers was allocated with malloc, not mmap
+ */
+#define PAGE_NPERS_MALLOC            1
+
+/**
+ * non-persistent page flags: page is dirty 
+ */
+#define PAGE_NPERS_DIRTY             2
+
+/**
+ * page is in use
+ */
+#define PAGE_NPERS_INUSE             4
+
+/**
+ * non-persistent page flags: page will be deleted when committed
+ */
+#define PAGE_NPERS_DELETE_PENDING   16
 
 /** 
  * get the dirty-flag
  */
-#define page_is_dirty(page)         ((page)->_npers._dirty)
+#define page_is_dirty(page)      (page_get_npers_flags(page)&PAGE_NPERS_DIRTY)
 
 /** 
  * set the dirty-flag
  */
-#define page_set_dirty(page, d)     (page)->_npers._dirty=d
+#define page_set_dirty(page, d)  page_set_npers_flags(page, \
+            d ? page_get_npers_flags(page)|PAGE_NPERS_DIRTY : \
+            page_get_npers_flags(page)&(~PAGE_NPERS_DIRTY))
 
 /** 
- * get the shadowpage of this page
+ * get the "in use"-flag
  */
-#define page_get_shadowpage(page)   ((page)->_npers._shadowpage)
+#define page_is_inuse(page)      (page_get_npers_flags(page)&PAGE_NPERS_INUSE)
 
 /** 
- * set the shadowpage of this page
+ * set the "in use"-flag
  */
-#define page_set_shadowpage(page, s) (page)->_npers._shadowpage=s
+#define page_set_inuse(page, u)  page_set_npers_flags(page, \
+            u ? page_get_npers_flags(page)|PAGE_NPERS_INUSE : \
+            page_get_npers_flags(page)&(~PAGE_NPERS_INUSE))
 
-/** 
- * get the original page of this shadowpage 
+/**
+ * set the page-type
  */
-#define page_get_orig_page(page)    ((page)->_npers._orig_page)
+#define page_set_type(page, t)   do { \
+            page_set_pers_flags(page, page_get_pers_flags(page)&0x0fffffff);\
+            page_set_pers_flags(page, page_get_pers_flags(page)|t);         \
+        } while (0)
 
-/** 
- * set the original page of this shadowpage 
+/**
+ * get the page-type
  */
-#define page_set_orig_page(page, s) (page)->_npers._orig_page=s
+#define page_get_type(page)      (page_get_pers_flags(page)&0xf0000000)
 
-/** 
- * get the extended key array of this page
+/**
+ * valid page types
+ *
+ * page types always have the highest nybble of the persistent flags
  */
-#define page_get_extkeys(page)      ((page)->_npers._extkeys)
-
-/** 
- * set the extended key array of this page
- */
-#define page_set_extkeys(page, x)   (page)->_npers._extkeys=x
-
-/** 
- * get the previous page of a linked list
-#define page_get_previous(page, which)    ((page)->_npers._prev[(which)])
- */
-extern ham_page_t *
-page_get_previous(ham_page_t *page, int which);
-
-/** 
- * set the previous page of a linked list
-#define page_set_previous(page, which, p) (page)->_npers._prev[(which)]=(p)
- */
-extern void
-page_set_previous(ham_page_t *page, int which, ham_page_t *other);
-
-/** 
- * get the next page of a linked list
-#define page_get_next(page, which)        ((page)->_npers._next[(which)])
- */
-extern ham_page_t *
-page_get_next(ham_page_t *page, int which);
-
-/** 
- * set the next page of a linked list
-#define page_set_next(page, which, p)     (page)->_npers._next[(which)]=(p)
- */
-extern void
-page_set_next(ham_page_t *page, int which, ham_page_t *other);
+#define PAGE_TYPE_UNKNOWN       0x00000000
+#define PAGE_TYPE_HEADER        0x10000000
+#define PAGE_TYPE_ROOT          0x20000000
+#define PAGE_TYPE_INDEX         0x30000000
+#define PAGE_TYPE_BLOBHDR       0x40000000
+#define PAGE_TYPE_BLOBDATA      0x50000000
+#define PAGE_TYPE_FREELIST      0x60000000
 
 /**
  * get pointer to persistent payload
  */
-#define page_get_payload(page)            (page)->_pers._payload
+#define page_get_payload(page)           (page)->_pers->_s._payload
 
 /**
- * allocate a new page in RAM
+ * set pointer to persistent data
  */
-extern ham_page_t *
-page_new(ham_db_t *db);
+#define page_set_pers(page, p)           (page)->_pers=p
 
 /**
- * release allocated memory for extended keys
+ * get pointer to persistent data
  */
-extern void
-page_delete_ext_keys(ham_page_t *page);
+#define page_get_pers(page)              (page)->_pers
 
 /**
- * release the allocated memory
- *
- * @remark this function calls page_delete_ext_keys().
+ * check if a page is in a linked list
  */
-extern void
-page_delete(ham_page_t *page);
-
-/**
- * release the allocated memory
- */
-extern void
-page_delete(ham_page_t *page);
-
-/**
- * get the reference counter
- */
-#define page_ref_get(p)            ((p)->_npers._refcount)
-
-#define page_ref_inc(p, f) page_ref_inc_impl(p, __FILE__, __LINE__)
-#define page_ref_dec(p, f) page_ref_dec_impl(p, __FILE__, __LINE__)
-/**
- * increase the reference counter
- */
-extern void
-page_ref_inc_impl(ham_page_t *page, const char *file, int line);
-
-/**
- * decrease the reference counter
- *
- * @remark returns the new reference counter
- */
-extern ham_size_t
-page_ref_dec_impl(ham_page_t *page, const char *file, int line);
-
-/**
- * read a page from the database file
- */
-extern ham_status_t
-page_io_read(ham_page_t *page, ham_offset_t address);
-
-/**
- * write a page to the database file
- */
-extern ham_status_t
-page_io_write(ham_page_t *page);
-
-/**
- * allocate a new page in the file; the page will be aligned at
- * the current page size. any wasted space (due to the alignment) is added 
- * to the freelist.
- *
- * @remark flags can be of the following value:
- *  HAM_NO_PAGE_ALIGN           (see ham/hamsterdb.h)
- *  PAGE_IGNORE_FREELIST        ignores all freelist-operations
- */
-extern ham_status_t
-page_io_alloc(ham_page_t *page, ham_txn_t *txn, ham_u32_t flags);
-
-#define PAGE_IGNORE_FREELIST        0x2
-
-/**
- * free a page of the file; this page is added to the freelist. the 
- * allocated RAM of the page is NOT released! 
- */
-extern ham_status_t
-page_io_free(ham_txn_t *txn, ham_page_t *page);
+extern ham_bool_t 
+page_is_in_list(ham_page_t *head, ham_page_t *page, int which);
 
 /**
  * linked list functions: insert the page at the beginning of a list
  *
  * @remark returns the new head of the list
+ * TODO release build: replace this function with a macro 
  */
 extern ham_page_t *
 page_list_insert(ham_page_t *head, int which, ham_page_t *page);
@@ -286,6 +293,7 @@ page_list_insert(ham_page_t *head, int which, ham_page_t *page);
  * linked list functions: insert the page at the beginning of a ring list
  *
  * @remark returns the new head of the list
+ * TODO release build: replace this function with a macro 
  */
 extern ham_page_t *
 page_list_insert_ring(ham_page_t *head, int which, ham_page_t *page);
@@ -294,12 +302,12 @@ page_list_insert_ring(ham_page_t *head, int which, ham_page_t *page);
  * linked list functions: remove the page from a list
  *
  * @remark returns the new head of the list
+ * TODO release build: replace this function with a macro 
  */
 extern ham_page_t *
 page_list_remove(ham_page_t *head, int which, ham_page_t *page);
 
-
-#ifdef __cplusplus
+#if __cplusplus
 } // extern "C"
 #endif 
 
