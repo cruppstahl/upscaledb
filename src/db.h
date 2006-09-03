@@ -172,6 +172,9 @@ struct ham_db_t
     /* the cache */
     ham_cache_t *_cache;
 
+    /* the freelist's private cache */
+    ham_page_t *_flcache;
+
     /* the size of the last allocated data pointer */
     ham_size_t _allocsize;
 
@@ -248,6 +251,16 @@ struct ham_db_t
  * set the cache pointer
  */
 #define db_set_cache(db, c)            (db)->_cache=c
+
+/*
+ * get the freelist's private cache
+ */
+#define db_get_freelist_cache(db)      (db)->_flcache
+
+/*
+ * set the freelist's private cache
+ */
+#define db_set_freelist_cache(db, c)   (db)->_flcache=c
 
 /*
  * get the prefix comparison function

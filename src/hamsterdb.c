@@ -146,12 +146,6 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags)
     if (flags&HAM_IN_MEMORY_DB)
         return (HAM_INV_PARAMETER);
 
-    /* 
-     * TODO mmap ist eingeschaltet
-    if (!(flags&HAM_IN_MEMORY_DB))
-        flags|=DB_USE_MMAP;
-     */
-
     /* open the file */
     st=os_open(filename, flags, &fd);
     if (st) {
@@ -163,7 +157,6 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags)
 
     /* initialize the database handle */
     db_set_fd(db, fd);
-    db_set_error(db, 0);
 
     /* 
      * read the database header 
@@ -186,6 +179,17 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags)
     }
     dbhdr=(db_header_t *)&hdrbuf[12];
     db_set_pagesize(db, dbhdr->_pagesize);
+
+    /* 
+     * can we use mmap?
+     */
+    if (!(flags&HAM_DISABLE_MMAP))
+        if (db_get_pagesize(db)==os_get_pagesize()) 
+            flags|=DB_USE_MMAP;
+    flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
+
+    db_set_flags(db, flags);
+    db_set_error(db, HAM_SUCCESS);
 
     /* 
      * now allocate and read the header page 
@@ -278,26 +282,41 @@ ham_create_ex(ham_db_t *db, const char *filename,
     ham_cache_t *cache;
     ham_backend_t *backend;
 
-    /* 
-     * TODO mmap ist eingeschaltet
-    if (!(flags&HAM_IN_MEMORY_DB))
-        flags|=DB_USE_MMAP;
+    /*
+     * make sure that the pagesize is aligned to 512k 
      */
+    if (pagesize) { 
+        if (pagesize%512)
+            return (HAM_INV_PAGESIZE);
+    }
 
+    /*
+     * can we use mmap? 
+     */
+    if (!(flags&HAM_IN_MEMORY_DB) && !(flags&HAM_DISABLE_MMAP)) {
+        if (pagesize) {
+            if (pagesize==os_get_pagesize())
+                flags|=DB_USE_MMAP;
+        }
+        else {
+            pagesize=os_get_pagesize();
+            flags|=DB_USE_MMAP;
+        }
+        flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
+        /* 
+         * make sure that the pagesize is big enough for at least 4 keys
+         */
+        if (keysize)
+            if (pagesize/keysize<4)
+                return (HAM_INV_KEYSIZE);
+    }
+
+    /*
+     * get the default keysize
+     */
     if (keysize==0)
         keysize=32-sizeof(key_t)-1;
 
-    /*
-     * make sure that the pagesize is aligned to 512k and that 
-     * a page is big enough for at least 4 keys
-     */
-    if (pagesize==0) 
-        pagesize=HAM_DEFAULT_PAGESIZE;
-    else if (pagesize%512)
-        return (HAM_INV_PAGESIZE);
-    if (pagesize/keysize<4)
-        return (HAM_INV_KEYSIZE);
-    
     /*
      * initialize the header
      */
@@ -499,13 +518,19 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
+    if (*(unsigned *)key->data==122)
+        printf("hit\n");
+
     /*
      * store the index entry; the backend will store the blob
      */
     st=be->_fun_insert(be, &txn, key, record, flags);
 
     if (st) {
+#if 0
         (void)ham_txn_abort(&txn);
+#endif
+        (void)ham_txn_commit(&txn);
         return (st);
     }
 
@@ -540,7 +565,10 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
     }
 
     if (st) {
+#if 0
         (void)ham_txn_abort(&txn);
+#endif
+        (void)ham_txn_commit(&txn);
         return (st);
     }
 
@@ -616,6 +644,15 @@ ham_status_t
 ham_close(ham_db_t *db)
 {
     ham_status_t st=0;
+
+    /*
+     * free cached memory
+     */
+    if (db_get_record_allocdata(db)) {
+        ham_mem_free(db_get_record_allocdata(db));
+        db_set_record_allocdata(db, 0);
+        db_set_record_allocsize(db, 0);
+    }
 
     /*
      * update the header page, if necessary

@@ -52,11 +52,6 @@ extern "C" {
 #define HAM_HAS_HASHDB             1
 
 /**
- * the default pagesize is 4kb
- */
-#define HAM_DEFAULT_PAGESIZE       (1024*4)
-
-/**
  * the default cache size is 128kb
  */
 #define HAM_DEFAULT_CACHESIZE      (1024*128)

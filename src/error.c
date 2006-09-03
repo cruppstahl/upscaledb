@@ -13,6 +13,9 @@
 #include "db.h"
 #include "error.h"
 
+extern int vsnprintf(char *str, size_t size, const char *format, va_list ap);
+extern int snprintf(char *str, size_t size, const char *format, ...);
+
 static void
 my_errhandler(const char *message)
 {

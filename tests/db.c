@@ -379,7 +379,7 @@ my_execute_create(char *line)
                 ham_assert(st==0, 0, 0);
 #if 0
                 st=ham_create_ex(config.hamdb, FILENAME_HAM, 0, 
-                        0664, HAM_DEFAULT_PAGESIZE, 0, 1024*8);
+                        0664, 0, 0, 1024*8);
 #endif
                 st=ham_create(config.hamdb, FILENAME_HAM, 0, 0664);
                 ham_assert(st==0, 0, 0);

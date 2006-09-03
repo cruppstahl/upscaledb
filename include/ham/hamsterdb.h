@@ -183,9 +183,16 @@ ham_create_ex(ham_db_t *db, const char *filename,
  */
 #define HAM_IN_MEMORY_DB             0x00000080
 
-/**
- * 0x100 is a reserved value
+/*
+ * 0x100 is a reserved value         0x00000100
  */
+
+/**
+ * do not use memory mapped files for I/O. Per default, hamsterdb
+ * checks if it can use mmap, since mmap is faster then read/write.
+ * It's not recommended to use this flag.
+ */
+#define HAM_DISABLE_MMAP             0x00000200
 
 /**
  * Flags and policies for the database cache

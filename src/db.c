@@ -132,6 +132,7 @@ my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
                 return (0);
             }
         }
+
         if (!page_get_npers_flags(page)&PAGE_NPERS_MALLOC) {
             st=os_munmap(page_get_pers(page), db_get_pagesize(db));
             if (st) {
@@ -212,8 +213,6 @@ db_free_page_struct(ham_page_t *page)
      */
     (void)cache_remove_page(db_get_cache(db), page);
 
-    page_set_npers_flags(page, 0xffff);
-
     if (page_get_pers(page)) {
         if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC) 
             ham_mem_free(page_get_pers(page));
@@ -279,20 +278,16 @@ db_alloc_page_device(ham_page_t *page, ham_u32_t flags)
          * memory for the persistent buffer
          */
         if ((db_get_flags(db)&DB_USE_MMAP) && !page_get_pers(page)) {
-            page_set_pers(page, (union page_union_t *)ham_mem_alloc(
-                        db_get_pagesize(db)));
-            if (!page_get_pers(page)) 
-                return (HAM_OUT_OF_MEMORY);
+
+            st=my_read_page(db, tellpos, page);
+            if (st) /* TODO memleaks? */
+                return (st);
+
             /*
              * TODO memset is needed for valgrind
              */
             memset(page_get_pers(page), 0, db_get_pagesize(db));
-            page_set_npers_flags(page, 
-                    page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
         }
-
-        /* TODO bei mmap muss gleich die page gemappt werden?? ne, eigentlich
-         * nicht. */
     }
 
     if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC) 

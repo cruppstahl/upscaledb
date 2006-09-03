@@ -50,6 +50,12 @@ os_write(ham_fd_t fd, const ham_u8_t *buffer, ham_size_t bufferlen);
 #define HAM_OS_SEEK_CUR     SEEK_CUR
 
 /**
+ * get the pagesize of the operating system
+ */
+extern ham_size_t
+os_get_pagesize(void);
+
+/**
  * seek position in a file
  */
 extern ham_status_t

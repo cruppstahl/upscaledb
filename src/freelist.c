@@ -13,13 +13,6 @@
 
 #define OFFSET_OF(obj, field) ((int)(&((obj).field)) - (int)&(obj) )
 
-/*
- * !!!
- * one day, we have to protect these functions with a mutex
- */
-
-static ham_page_t *g_txncache=0;
-
 static ham_offset_t
 my_alloc_in_list(ham_db_t *db, freel_payload_t *fp, 
         ham_size_t chunksize, ham_u32_t flags)
@@ -98,7 +91,7 @@ my_fetch_page(ham_db_t *db, ham_offset_t address)
     /*
      * check if the page is in the list
      */
-    page=g_txncache;
+    page=db_get_freelist_cache(db);
     while (page) {
         if (page_get_self(page)==address)
             return (page);
@@ -124,7 +117,9 @@ my_fetch_page(ham_db_t *db, ham_offset_t address)
     /*
      * insert the page in our local cache and return the page
      */
-    g_txncache=page_list_insert(g_txncache, PAGE_LIST_TXN, page);
+    db_set_freelist_cache(db, 
+            page_list_insert(db_get_freelist_cache(db), PAGE_LIST_TXN, page));
+
     return (page);
 }
 
@@ -159,7 +154,9 @@ my_alloc_page(ham_db_t *db)
     /*
      * insert the page in our local cache and return the page
      */
-    g_txncache=page_list_insert(g_txncache, PAGE_LIST_TXN, page);
+    db_set_freelist_cache(db, 
+            page_list_insert(db_get_freelist_cache(db), PAGE_LIST_TXN, page));
+
     return (page);
 }
 
@@ -332,14 +329,14 @@ freel_shutdown(ham_db_t *db)
     /*
      * write all pages to the device
      */
-    page=g_txncache;
+    page=db_get_freelist_cache(db);
     while (page) {
         next=page_get_next(page, PAGE_LIST_TXN);
         (void)db_write_page_and_delete(db, page, 0);
         page=next;
     }
 
-    g_txncache=0;
+    db_set_freelist_cache(db, 0);
 
     return (0);
 }

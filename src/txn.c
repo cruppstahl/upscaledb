@@ -72,7 +72,6 @@ ham_txn_begin(ham_txn_t *txn, ham_db_t *db)
 ham_status_t
 ham_txn_commit(ham_txn_t *txn)
 {
-    ham_status_t st=0;
     ham_page_t *head, *next;
     ham_db_t *db=txn_get_db(txn);
 
@@ -88,6 +87,7 @@ ham_txn_commit(ham_txn_t *txn)
         page_set_next(head, PAGE_LIST_TXN, 0);
         page_set_previous(head, PAGE_LIST_TXN, 0);
 
+#if 0
         /* delete the page? */
         if (page_get_npers_flags(head)&PAGE_NPERS_DELETE_PENDING) {
             /* remove page from cache, add it to garbage list */
@@ -115,6 +115,8 @@ ham_txn_commit(ham_txn_t *txn)
         }
 
 commit_next:
+#endif
+
         head=next;
     }
 
@@ -128,7 +130,6 @@ ham_status_t
 ham_txn_abort(ham_txn_t *txn)
 {
     ham_page_t *head, *next;
-    ham_db_t *db=txn_get_db(txn);
 
     /*
      * delete all modified pages
@@ -137,11 +138,13 @@ ham_txn_abort(ham_txn_t *txn)
     while (head) {
         /* page is no longer in use */
         page_set_inuse(head, 0);
-        page_set_dirty(head, 0);
 
         next=page_get_next(head, PAGE_LIST_TXN);
         page_set_next(head, PAGE_LIST_TXN, 0);
         page_set_previous(head, PAGE_LIST_TXN, 0);
+
+#if 0
+        page_set_dirty(head, 0);
 
         /* delete the page? */
         if (page_get_npers_flags(head)&PAGE_NPERS_DELETE_PENDING) {
@@ -151,6 +154,7 @@ ham_txn_abort(ham_txn_t *txn)
         }
 
         (void)cache_move_to_garbage(db_get_cache(db), head);
+#endif
 
         head=next;
     }

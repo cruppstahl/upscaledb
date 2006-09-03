@@ -13,16 +13,24 @@
 #include <fcntl.h>
 #include <ham/hamsterdb.h>
 #include <ham/types.h>
-#include "error.h"
-#include "os.h"
 #define __USE_XOPEN2K 1 /* for ftruncate() */
 #include <unistd.h>
+#include "error.h"
+#include "os.h"
+
+extern int getpagesize();
+
+ham_size_t
+os_get_pagesize(void)
+{
+    return ((ham_size_t)getpagesize());
+}
 
 ham_status_t
 os_mmap(ham_fd_t fd, ham_offset_t position, ham_size_t size, 
         ham_u8_t **buffer)
 {
-    *buffer=mmap(0, size, PROT_READ, MAP_PRIVATE, fd, position);
+    *buffer=mmap(0, size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, position);
     if (*buffer==(void *)-1) {
         *buffer=0;
         ham_log("mmap failed with status %d (%s)", errno, strerror(errno));

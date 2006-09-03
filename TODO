@@ -1,11 +1,67 @@
 
 
-o branch in trunk kopieren, branch löschen
+x branch in trunk kopieren, branch löschen
 
 -----------------------------------------------------
 -----------------------------------------------------
 
-o memory mapped file-io
+x memory mapped file-io
+    x os_get_pagesize() für linux implementieren
+    x was passiert wenn der persistent db-header nicht pagesize-aligned 
+        ist? können die pages trotzdem mit mmap gelesen werden?
+        --> nein, geht nicht; der db-header MUSS pagesize-aligned
+        sein!
+    x create:
+        pagesize angegeben? 
+            pagesize=os_pagesize?
+                use_mmap=1
+            sonst
+                use_mmap=0
+        pagesize nicht angegeben? 
+            pagesize=os_pagesize
+            use_mmap=1
+    x open
+        in-memory-db? -> fehler
+        pagesize==os_pagesize?
+            use_mmap=1
+        sonst
+            use_mmap=0
+    x aufpassen: wenn die geladene DB eine andere pagesize als die 
+        os-pagesize hat, read nehmen
+    x DEFAULT_PAGESIZE in ham_config rausschmeissen
+
+    x das txn-zeug ist total kaputt; wofür wird es wirklich gebraucht??
+        wenn z.b. bei ham_insert ein key eingefügt wird, der schon 
+        existiert, gibt's einen fehler. dadurch wird txn_abort 
+        aufgerufen -> alle bisherigen änderungen in den pages 
+        gehen verloren.
+
+        was passiert in bsddb bei einem fehler? test machen mit vielen 
+        inserts, dann die zugriffsrechte der datei auf read-only
+        setzen; ist die db kaputt? --> keine ahnung, wie zum geier 
+        kriegen wir das raus?? -> ich glaub es gibt einen fehler, aber
+        die fehler sind wirklich schwer zu produzieren. das teil ist 
+        rockstable.
+
+    x testen, testen, testen bis es läuft
+
+    x benchmarken - isses schneller als read/write? dazu sollten wir 
+        vielleicht ein flag einfügen (HAM_DISABLE_MMAP).
+        ./test  --db ../../../hamsterdb-tests/trunk/testfiles/db/45.tst
+                --profile
+        mit mmap:
+            profile of backend hamster :    0.190000 sec
+            profile of backend berkeley:    0.066000 sec
+
+        ohne mmap:
+            profile of backend hamster :    0.218000 sec
+            profile of backend berkeley:    0.077000 sec
+
+-----------------------------------------------------
+-----------------------------------------------------
+
+o test 03 hat memory leak
+o test 45 hat memory leak
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -13,7 +69,7 @@ o memory mapped file-io
 o in-memory-database
     o finden wir ne möglichkeit, normale datenbanken in in-memory zu 
         importieren und umgekehrt wieder zu exportieren? das wäre genial
-        --> geht mit iteratoren:
+        --> geht mit iteratoren (erst release 2.0!):
             iterator from=db1.begin()
             while (from)
                 db2.append(from)
