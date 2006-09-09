@@ -40,6 +40,14 @@ my_dump_cb(const ham_u8_t *key, ham_size_t keysize)
         printf("\n");
 }
 
+/*
+ * recursively free all blobs of an in-memory-database
+ */
+static void
+my_free_inmemory_blobs(ham_db_t *db)
+{
+}
+
 const char *
 ham_strerror(ham_status_t result)
 {
@@ -281,6 +289,8 @@ ham_create_ex(ham_db_t *db, const char *filename,
     ham_status_t st;
     ham_cache_t *cache;
     ham_backend_t *backend;
+    db_header_t *h;
+    ham_page_t *page;
 
     /*
      * make sure that the pagesize is aligned to 512k 
@@ -291,9 +301,16 @@ ham_create_ex(ham_db_t *db, const char *filename,
     }
 
     /*
+     * in-memory-db? use the default pagesize of the system
+     */
+    if (flags&HAM_IN_MEMORY_DB) {
+        if (!pagesize)
+            pagesize=os_get_pagesize();
+    }
+    /*
      * can we use mmap? 
      */
-    if (!(flags&HAM_IN_MEMORY_DB) && !(flags&HAM_DISABLE_MMAP)) {
+    else if (!(flags&HAM_DISABLE_MMAP)) {
         if (pagesize) {
             if (pagesize==os_get_pagesize())
                 flags|=DB_USE_MMAP;
@@ -335,9 +352,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
     db_set_cache(db, cache);
 
     if (!(flags&HAM_IN_MEMORY_DB)) {
-        db_header_t *h;
-        ham_page_t *page;
-
         /* create the file */
         st=os_create(filename, flags, mode, &fd);
         if (st) {
@@ -347,24 +361,24 @@ ham_create_ex(ham_db_t *db, const char *filename,
             return (st);
         }
         db_set_fd(db, fd);
-
-        /* 
-         * allocate a database header page 
-         */
-        page=db_alloc_page_struct(db);
-        if (!page)
-            return (db_get_error(db));
-        st=db_alloc_page_device(page, PAGE_IGNORE_FREELIST);
-        if (st) 
-            return (st);
-        page_set_type(page, PAGE_TYPE_HEADER);
-        db_set_header_page(db, page);
-        /* initialize the freelist structure in the header page */
-        h=(db_header_t *)page_get_payload(page);
-        freel_payload_set_maxsize(&h->_freelist, 
-                (db_get_usable_pagesize(db)-sizeof(db_header_t))/
-                sizeof(freel_entry_t));
     }
+
+    /* 
+     * allocate a database header page 
+     */
+    page=db_alloc_page_struct(db);
+    if (!page)
+        return (db_get_error(db));
+    st=db_alloc_page_device(page, PAGE_IGNORE_FREELIST);
+    if (st) 
+        return (st);
+    page_set_type(page, PAGE_TYPE_HEADER);
+    db_set_header_page(db, page);
+    /* initialize the freelist structure in the header page */
+    h=(db_header_t *)page_get_payload(page);
+    freel_payload_set_maxsize(&h->_freelist, 
+            (db_get_usable_pagesize(db)-sizeof(db_header_t))/
+            sizeof(freel_entry_t));
 
     /* create the backend */
     backend=db_create_backend(db, flags);
@@ -518,9 +532,6 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
-    if (*(unsigned *)key->data==122)
-        printf("hit\n");
-
     /*
      * store the index entry; the backend will store the blob
      */
@@ -652,6 +663,13 @@ ham_close(ham_db_t *db)
         ham_mem_free(db_get_record_allocdata(db));
         db_set_record_allocdata(db, 0);
         db_set_record_allocsize(db, 0);
+    }
+
+    /*
+     * in-memory-database: free all allocated blobs
+     */
+    if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
+        my_free_inmemory_blobs(db);
     }
 
     /*

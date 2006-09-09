@@ -144,7 +144,7 @@ btree_insert(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
         newroot=db_alloc_page(db, PAGE_TYPE_ROOT, txn, 0); 
         if (!newroot)
             return (db_get_error(db));
-        page_set_type(root, PAGE_TYPE_INDEX);
+        page_set_type(newroot, PAGE_TYPE_INDEX);
 
         /* 
          * insert the pivot element and the ptr_left
@@ -164,6 +164,15 @@ btree_insert(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
          */
         btree_set_rootpage(be, page_get_self(newroot));
         db_set_dirty(db, 1);
+
+        /*
+         * delete the old root-page
+         */
+        st=db_free_page(db, scratchpad.txn, root, 0);
+        if (st) {
+            db_set_error(db, st); /* TODO ignore error? */
+            return (st);
+        }
     }
 
     /*
@@ -330,6 +339,10 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
      *
      * if the record's size is <= sizeof(ham_offset_t), we don't allocate
      * a blob but store the record data directly in the offset
+     *
+     * in an in-memory-database, we don't use the blob management, but 
+     * allocate a single chunk of memory, and store the memory address
+     * in rid
      */
     if (btree_node_is_leaf(node) && record->size>sizeof(ham_offset_t)) {
         ham_status_t st;
@@ -341,7 +354,7 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
      * if the record's size is <= sizeof(ham_offset_t), store the data
      * directly in the offset
      *
-     * if the record's size is < sizeof(ham_offset_t), the last nibble
+     * if the record's size is < sizeof(ham_offset_t), the last byte
      * in &rid is the size of the data. if the record is empty, we just
      * set the "empty"-flag.
      */

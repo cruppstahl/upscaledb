@@ -72,6 +72,7 @@ ham_txn_begin(ham_txn_t *txn, ham_db_t *db)
 ham_status_t
 ham_txn_commit(ham_txn_t *txn)
 {
+    ham_status_t st;
     ham_page_t *head, *next;
     ham_db_t *db=txn_get_db(txn);
 
@@ -87,7 +88,6 @@ ham_txn_commit(ham_txn_t *txn)
         page_set_next(head, PAGE_LIST_TXN, 0);
         page_set_previous(head, PAGE_LIST_TXN, 0);
 
-#if 0
         /* delete the page? */
         if (page_get_npers_flags(head)&PAGE_NPERS_DELETE_PENDING) {
             /* remove page from cache, add it to garbage list */
@@ -97,7 +97,7 @@ ham_txn_commit(ham_txn_t *txn)
                 ham_trace("cache_move_to_garbage failed with status 0x%x", st);
             /* add the page to the freelist */
             st=freel_add_area(db, page_get_self(head), 
-                db_get_pagesize(db));
+                db_get_usable_pagesize(db));
             if (st) {
                 ham_trace("freel_add_page failed with status 0x%x", st);
                 st=0;
@@ -105,6 +105,7 @@ ham_txn_commit(ham_txn_t *txn)
             goto commit_next;
         }
 
+#if 0
         /* flush the page */
         st=db_flush_page(db, 0, head, 0);
         if (st) {
@@ -114,8 +115,8 @@ ham_txn_commit(ham_txn_t *txn)
             return (st); /* TODO oder return 0? */
         }
 
-commit_next:
 #endif
+commit_next:
 
         head=next;
     }

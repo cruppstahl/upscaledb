@@ -110,6 +110,30 @@ blob_allocate(ham_db_t *db, ham_txn_t *txn, ham_u8_t *data,
     *blobid=0;
 
     /*
+     * in-memory-database: the blobid is actually a pointer to the memory
+     * buffer, in which the blob (with the blob-header) is stored
+     */
+    if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
+        blob_t *hdr;
+        ham_u8_t *p=(ham_u8_t *)ham_mem_alloc(size+sizeof(blob_t));
+        if (!p) {
+            db_set_error(db, HAM_OUT_OF_MEMORY);
+            return (HAM_OUT_OF_MEMORY);
+        }
+        memcpy(p+sizeof(blob_t), data, size);
+
+        /* initialize the header */
+        hdr=(blob_t *)p;
+        memset(hdr, 0, sizeof(&hdr));
+        blob_set_self(hdr, (ham_offset_t)p);
+        blob_set_total_size(hdr, size);
+        blob_set_real_size(hdr, size);
+
+        *blobid=(ham_offset_t)p;
+        return (0);
+    }
+
+    /*
      * while we have to write remaining data
      */
     while (remaining) {
@@ -181,6 +205,35 @@ blob_read(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid,
     record->size=0;
 
     /*
+     * in-memory-database: the blobid is actually a pointer to the memory
+     * buffer, in which the blob is stored
+     */
+    if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
+        blob_t *hdr=(blob_t *)blobid;
+        ham_u8_t *data=((ham_u8_t *)blobid)+sizeof(blob_t);
+
+        /* resize buffer, if necessary */
+        if (blob_get_total_size(hdr)>db_get_record_allocsize(db)) {
+            void *newdata=ham_mem_alloc(blob_get_total_size(hdr));
+            if (!newdata) 
+                return (HAM_OUT_OF_MEMORY);
+            if (db_get_record_allocdata(db))
+                ham_mem_free(db_get_record_allocdata(db));
+            record->data=newdata;
+            db_set_record_allocdata(db, newdata);
+            db_set_record_allocsize(db, blob_get_total_size(hdr));
+        }
+        else
+            record->data=db_get_record_allocdata(db);
+
+        /* and copy the data */
+        memcpy(record->data, data, blob_get_total_size(hdr));
+        record->size=blob_get_total_size(hdr);
+
+        return (0);
+    }
+
+    /*
      * load the blob header
      */
     page=my_load_header(db, txn, blobid, &hdr);
@@ -198,8 +251,8 @@ blob_read(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid,
             void *newdata=ham_mem_alloc(blob_get_total_size(hdr));
             if (!newdata) 
                 return (HAM_OUT_OF_MEMORY);
-            if (record->data)
-                ham_mem_free(record->data);
+            if (db_get_record_allocdata(db))
+                ham_mem_free(db_get_record_allocdata(db));
             record->data=newdata;
             db_set_record_allocdata(db, newdata);
             db_set_record_allocsize(db, blob_get_total_size(hdr));
@@ -286,6 +339,16 @@ blob_free(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid, ham_u32_t flags)
     ham_page_t *page;
     blob_t *hdr;
     ham_size_t i;
+
+    /*
+     * in-memory-database: the blobid is actually a pointer to the memory
+     * buffer, in which the blob is stored
+     */
+    if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
+        ham_u8_t *data=(ham_u8_t *)blobid;
+        ham_mem_free(data);
+        return (0);
+    }
 
     /*
      * load the blob header

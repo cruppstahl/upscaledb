@@ -561,7 +561,7 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
      */
     st=db_free_page(db, scratchpad->txn, sibpage, 0);
     if (st) {
-        db_set_error(db, st);
+        db_set_error(db, st); /* TODO ignore error? */
         return (0);
     }
 
