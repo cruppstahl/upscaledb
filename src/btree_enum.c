@@ -2,7 +2,7 @@
  * Copyright (C) 2005, 2006 Christoph Rupp (chris@crupp.de)
  * see file COPYING for licence information
  *
- * btree dump
+ * btree enumeration
  *
  */
 
@@ -15,22 +15,23 @@
 #include "txn.h"
 
 /*
- * dump a whole level in the tree - start with "page" and traverse
+ * enumerate a whole level in the tree - start with "page" and traverse
  * the linked list of all the siblings
  */
 static ham_status_t 
-my_dump_level(ham_txn_t *txn, ham_page_t *page, ham_u32_t level, 
-        ham_dump_cb_t cb);
+my_enumerate_level(ham_txn_t *txn, ham_page_t *page, ham_u32_t level, 
+        ham_enumerate_cb_t cb, void *context);
 
 /*
- * dump a single page
+ * enumerate a single page
  */
 static ham_status_t
-my_dump_page(ham_page_t *page, ham_u32_t level, ham_u32_t count, 
-        ham_dump_cb_t cb);
+my_enumerate_page(ham_page_t *page, ham_u32_t level, ham_u32_t count, 
+        ham_enumerate_cb_t cb, void *context);
 
-ham_status_t 
-btree_dump(ham_btree_t *be, ham_txn_t *txn, ham_dump_cb_t cb)
+ham_status_t
+btree_enumerate(ham_btree_t *be, ham_txn_t *txn, ham_enumerate_cb_t cb,
+        void *context)
 {
     ham_page_t *page;
     ham_u32_t level=0;
@@ -54,10 +55,12 @@ btree_dump(ham_btree_t *be, ham_txn_t *txn, ham_dump_cb_t cb)
         node=ham_page_get_btree_node(page);
         ptr_left=btree_node_get_ptr_left(node);
 
+        cb(ENUM_EVENT_DESCEND, (void *)&level, 0, context);
+
         /*
-         * dump the page and all its siblings
+         * enumerate the page and all its siblings
          */
-        st=my_dump_level(txn, page, level, cb);
+        st=my_enumerate_level(txn, page, level, cb, context);
         if (st)
             return (st);
 
@@ -76,8 +79,8 @@ btree_dump(ham_btree_t *be, ham_txn_t *txn, ham_dump_cb_t cb)
 }
 
 static ham_status_t 
-my_dump_level(ham_txn_t *txn, ham_page_t *page, ham_u32_t level, 
-        ham_dump_cb_t cb)
+my_enumerate_level(ham_txn_t *txn, ham_page_t *page, ham_u32_t level, 
+        ham_enumerate_cb_t cb, void *context)
 {
     ham_status_t st;
     ham_size_t count=0;
@@ -85,9 +88,9 @@ my_dump_level(ham_txn_t *txn, ham_page_t *page, ham_u32_t level,
 
     while (page) {
         /*
-         * dump the page
+         * enumerate the page
          */
-        st=my_dump_page(page, level, count, cb);
+        st=my_enumerate_page(page, level, count, cb, context);
         if (st)
             return (st);
 
@@ -108,59 +111,30 @@ my_dump_level(ham_txn_t *txn, ham_page_t *page, ham_u32_t level,
 }
 
 ham_status_t
-my_dump_page(ham_page_t *page, ham_u32_t level, ham_u32_t sibcount, 
-        ham_dump_cb_t cb)
+my_enumerate_page(ham_page_t *page, ham_u32_t level, ham_u32_t sibcount, 
+        ham_enumerate_cb_t cb, void *context)
 {
     ham_size_t i, count;
     ham_db_t *db=page_get_owner(page);
     key_t *bte;
     btree_node_t *node=ham_page_get_btree_node(page);
+    ham_bool_t is_leaf;
+
+    if (btree_node_get_ptr_left(node))
+        is_leaf=0;
+    else
+        is_leaf=1;
 
     count=btree_node_get_count(node);
-    printf("\n------ page 0x%lx at level #%d, sibling #%d--------------\n", 
-            page_get_self(page), level, sibcount);
-    printf("left: 0x%lx, right: 0x%lx, ptr_left: 0x%lx\n", 
-            btree_node_get_left(node), btree_node_get_right(node), 
-            btree_node_get_ptr_left(node));
-    printf("found %d items:\n", count);
-    
+
+    cb(ENUM_EVENT_PAGE_START, (void *)page, &is_leaf, context);
+
     for (i=0; i<count; i++) {
         bte=btree_node_get_key(db, node, i);
-        printf(" %02d: ", i);
-        printf(" key (%2d byte): ", key_get_size(bte));
-        cb(key_get_key(bte), key_get_size(bte));
-        printf("      ptr: 0x%lx\n", key_get_ptr(bte));
+
+        cb(ENUM_EVENT_ITEM, (void *)bte, (void *)&count, context);
     }
 
     return (0);
 }
 
-#ifdef HAM_DEBUG
-static void
-my_dump_func(const ham_u8_t *key, ham_size_t keysize)
-{
-    ham_size_t i;
-
-    if (1) {
-        printf("%d\n", *(ham_u32_t *)key);
-    }
-    else {
-        for (i=0; i<keysize; i++)
-            printf("%c", (char)key[i]);
-        printf("\n");
-    }
-}
-
-/*
- * a function which dumps a page to stdout
- *
- * this is especially useful if you use gdb for debugging - just enter
- *  $ pp(page)
- * and the page is dumped.
- */
-void 
-pp(ham_page_t *page)
-{
-    (void)my_dump_page(page, 0, 0, my_dump_func);
-}
-#endif /* HAM_DEBUG */
