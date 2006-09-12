@@ -123,6 +123,11 @@ ham_create(ham_db_t *db, const char *filename,
 
 /**
  * create a new database - extended version
+ *
+ * !!
+ * If you create an in-memory-database (flag HAM_IN_MEMORY_DB), 
+ * you are NOT allowed to set the flag HAM_CACHE_STRICT or to use 
+ * a cache size != 0! 
  */
 extern ham_status_t
 ham_create_ex(ham_db_t *db, const char *filename, 
@@ -201,8 +206,11 @@ ham_create_ex(ham_db_t *db, const char *filename,
  * the maximum cachesize; otherwise, the cache is allowed to allocate 
  * more pages then the maximum cachesize, but only if it's necessary and 
  * only for a short time. Default: flag is off
+ *
+ * !!
+ * This flag is not allowed in combination with HAM_IN_MEMORY_DB!
  */
-#define HAM_CACHE_STRICT            0x00000001
+#define HAM_CACHE_STRICT             0x00000400
 
 /** 
  * get the last error code
@@ -257,7 +265,9 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_u32_t flags);
 
 /**
- * flush all open pages
+ * flush all open pages and write them to disk
+ *
+ * this function has no effect on in-memory-databases
  */
 extern ham_status_t
 ham_flush(ham_db_t *db);

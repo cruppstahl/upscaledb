@@ -18,6 +18,22 @@ extern "C" {
 #include "txn.h"
 
 /**
+ * a callback function for enumeration 
+ */
+typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2, 
+        void *context);
+
+/** descend one level; param1 is an integer value with the new level */
+#define ENUM_EVENT_DESCEND      1
+
+/** start of a new page; param1 points to the page */
+#define ENUM_EVENT_PAGE_START   2
+
+/** an item in the page; param1 points to the key; param2 is the index 
+ * of the key in the page */
+#define ENUM_EVENT_ITEM         3
+
+/**
  * the backend structure - these functions and members are "inherited"
  * by every other backend (i.e. btree, hashdb etc). 
  */
@@ -70,10 +86,10 @@ extern "C" {
             ham_offset_t *rid, ham_u32_t *intflags, ham_u32_t flags);   \
                                                                         \
     /**                                                                 \
-     * dump the whole tree to stdout                                    \
+     * iterate the whole tree and enumerate every item                  \ 
      */                                                                 \
-    ham_status_t (*_fun_dump)(clss *be, ham_txn_t *txn,                 \
-            ham_dump_cb_t cb);                                          \
+    ham_status_t (*_fun_enumerate)(clss *be, ham_txn_t *txn,            \
+            ham_enumerate_cb_t cb, void *context);                      \
                                                                         \
     /**                                                                 \
      * verify the whole tree                                            \

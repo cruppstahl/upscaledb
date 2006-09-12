@@ -95,12 +95,15 @@ ham_txn_commit(ham_txn_t *txn)
             st=cache_move_to_garbage(db_get_cache(db), head);
             if (st)
                 ham_trace("cache_move_to_garbage failed with status 0x%x", st);
-            /* add the page to the freelist */
-            st=freel_add_area(db, page_get_self(head), 
-                db_get_usable_pagesize(db));
-            if (st) {
-                ham_trace("freel_add_page failed with status 0x%x", st);
-                st=0;
+
+            /* add the page to the freelist, if we're not an in-memory-db */
+            if (1) { /*!(db_get_flags(db)&HAM_IN_MEMORY_DB)) { */
+                st=freel_add_area(db, page_get_self(head), 
+                    db_get_usable_pagesize(db));
+                if (st) {
+                    ham_trace("freel_add_page failed with status 0x%x", st);
+                    st=0;
+                }
             }
             goto commit_next;
         }

@@ -18,34 +18,104 @@
 #include "blob.h"
 #include "freelist.h"
 
+typedef struct free_cb_context_t
+{
+    ham_bool_t is_leaf;
+
+} free_cb_context_t;
+
 /*
- * default callback function which dumps a key
+ * callback function for ham_dump
  */
 static void
-my_dump_cb(const ham_u8_t *key, ham_size_t keysize)
+my_dump_cb(int event, void *param1, void *param2, void *context)
 {
-    ham_size_t i, limit;
+    ham_size_t i, limit, keysize;
+    ham_page_t *page;
+    key_t *key;
+    ham_u8_t *data;
+    ham_dump_cb_t cb=(ham_dump_cb_t)context;
 
-    if (keysize>16)
-        limit=16;
-    else
-        limit=keysize;
+    switch (event) {
+    case ENUM_EVENT_DESCEND:
+        break;
 
-    for (i=0; i<limit; i++)
-        printf("%02x ", key[i]);
+    case ENUM_EVENT_PAGE_START:
+        page=(ham_page_t *)param1;
+        printf("\n------ page 0x%lx ---------------------------------------\n", 
+            page_get_self(page));
+        break;
 
-    if (keysize>limit)
-        printf("... (%d more bytes)\n", keysize-limit);
-    else
-        printf("\n");
+    case ENUM_EVENT_ITEM:
+        key=(key_t *)param1;
+        data=key_get_key(key);
+        keysize=key_get_size(key);
+
+        if (cb) {
+            cb(data, keysize);
+        }
+        else {
+            printf(" %02d: ", *(int *)param2);
+            printf(" key (%2d byte): ", key_get_size(key));
+
+            if (keysize>16)
+                limit=16;
+            else
+                limit=keysize;
+    
+            for (i=0; i<limit; i++)
+                printf("%02x ", data[i]);
+    
+            if (keysize>limit)
+                printf("... (%d more bytes)\n", keysize-limit);
+            else
+                printf("\n");
+
+            printf("      ptr: 0x%lx\n", key_get_ptr(key));
+        }
+        break;
+
+    default:
+        ham_assert(!"unknown callback event", 0, 0);
+        break;
+    }
 }
 
 /*
- * recursively free all blobs of an in-memory-database
+ * callback function for freeing blobs of an in-memory-database
  */
 static void
-my_free_inmemory_blobs(ham_db_t *db)
+my_free_cb(int event, void *param1, void *param2, void *context)
 {
+    key_t *key;
+    free_cb_context_t *c;
+
+    c=(free_cb_context_t *)context;
+
+    switch (event) {
+    case ENUM_EVENT_DESCEND:
+        break;
+
+    case ENUM_EVENT_PAGE_START:
+        c->is_leaf=*(ham_bool_t *)param2;
+        break;
+
+    case ENUM_EVENT_ITEM:
+        key=(key_t *)param1;
+
+        if (key_get_flags(key)&KEY_BLOB_SIZE_TINY ||
+            key_get_flags(key)&KEY_BLOB_SIZE_SMALL ||
+            key_get_flags(key)&KEY_BLOB_SIZE_EMPTY)
+            break;
+
+        if (c->is_leaf)
+            ham_mem_free((void *)key_get_ptr(key));
+        break;
+
+    default:
+        ham_assert(!"unknown callback event", 0, 0);
+        break;
+    }
 }
 
 const char *
@@ -276,8 +346,7 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags)
 ham_status_t
 ham_create(ham_db_t *db, const char *filename, ham_u32_t flags, ham_u32_t mode)
 {
-    return (ham_create_ex(db, filename, flags, mode, 0, 0, 
-                HAM_DEFAULT_CACHESIZE));
+    return (ham_create_ex(db, filename, flags, mode, 0, 0, 0));
 }
 
 ham_status_t
@@ -298,6 +367,14 @@ ham_create_ex(ham_db_t *db, const char *filename,
     if (pagesize) { 
         if (pagesize%512)
             return (HAM_INV_PAGESIZE);
+    }
+
+    /*
+     * in-memory-db? don't allow cache limits!
+     */
+    if (flags&HAM_IN_MEMORY_DB) {
+        if ((flags&HAM_CACHE_STRICT) || cachesize!=0) 
+            return (HAM_INV_PARAMETER);
     }
 
     /*
@@ -346,7 +423,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     db_set_keysize(db, keysize);
 
     /* initialize the cache */
-    cache=cache_new(db, flags, cachesize);
+    cache=cache_new(db, flags, cachesize ? cachesize : HAM_DEFAULT_CACHESIZE);
     if (!cache)
         return (db_get_error(db));
     db_set_cache(db, cache);
@@ -595,15 +672,13 @@ ham_dump(ham_db_t *db, void *reserved, ham_dump_cb_t cb)
 
     if (!be)
         return (HAM_INV_BACKEND);
-    if (!cb)
-        cb=my_dump_cb;
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
     /*
      * call the backend function
      */
-    st=be->_fun_dump(be, &txn, cb);
+    st=be->_fun_enumerate(be, &txn, my_dump_cb, cb);
 
     if (st) {
         (void)ham_txn_abort(&txn);
@@ -648,6 +723,12 @@ ham_check_integrity(ham_db_t *db, void *reserved)
 ham_status_t
 ham_flush(ham_db_t *db)
 {
+    /*
+     * never flush an in-memory-database
+     */
+    if (db_get_flags(db)&HAM_IN_MEMORY_DB) 
+        return (0);
+
     return (db_flush_all(db, 0, DB_FLUSH_NODELETE));
 }
 
@@ -655,6 +736,19 @@ ham_status_t
 ham_close(ham_db_t *db)
 {
     ham_status_t st=0;
+    ham_backend_t *be=db_get_backend(db);
+
+    /*
+     * in-memory-database: free all allocated blobs
+     */
+    if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
+        ham_txn_t txn;
+        free_cb_context_t context;
+        if (!ham_txn_begin(&txn, db)) {
+            (void)be->_fun_enumerate(be, &txn, my_free_cb, &context);
+            ham_txn_commit(&txn);
+        }
+    }
 
     /*
      * free cached memory
@@ -663,13 +757,6 @@ ham_close(ham_db_t *db)
         ham_mem_free(db_get_record_allocdata(db));
         db_set_record_allocdata(db, 0);
         db_set_record_allocsize(db, 0);
-    }
-
-    /*
-     * in-memory-database: free all allocated blobs
-     */
-    if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
-        my_free_inmemory_blobs(db);
     }
 
     /*

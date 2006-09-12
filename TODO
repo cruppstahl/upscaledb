@@ -1,79 +1,113 @@
 
 
-x branch in trunk kopieren, branch löschen
-
------------------------------------------------------
------------------------------------------------------
-
-x memory mapped file-io
-    x os_get_pagesize() für linux implementieren
-    x was passiert wenn der persistent db-header nicht pagesize-aligned 
-        ist? können die pages trotzdem mit mmap gelesen werden?
-        --> nein, geht nicht; der db-header MUSS pagesize-aligned
-        sein!
-    x create:
-        pagesize angegeben? 
-            pagesize=os_pagesize?
-                use_mmap=1
-            sonst
-                use_mmap=0
-        pagesize nicht angegeben? 
-            pagesize=os_pagesize
-            use_mmap=1
-    x open
-        in-memory-db? -> fehler
-        pagesize==os_pagesize?
-            use_mmap=1
-        sonst
-            use_mmap=0
-    x aufpassen: wenn die geladene DB eine andere pagesize als die 
-        os-pagesize hat, read nehmen
-    x DEFAULT_PAGESIZE in ham_config rausschmeissen
-
-    x das txn-zeug ist total kaputt; wofür wird es wirklich gebraucht??
-        wenn z.b. bei ham_insert ein key eingefügt wird, der schon 
-        existiert, gibt's einen fehler. dadurch wird txn_abort 
-        aufgerufen -> alle bisherigen änderungen in den pages 
-        gehen verloren.
-
-        was passiert in bsddb bei einem fehler? test machen mit vielen 
-        inserts, dann die zugriffsrechte der datei auf read-only
-        setzen; ist die db kaputt? --> keine ahnung, wie zum geier 
-        kriegen wir das raus?? -> ich glaub es gibt einen fehler, aber
-        die fehler sind wirklich schwer zu produzieren. das teil ist 
-        rockstable.
-
-    x testen, testen, testen bis es läuft
-
-    x benchmarken - isses schneller als read/write? dazu sollten wir 
-        vielleicht ein flag einfügen (HAM_DISABLE_MMAP).
-        ./test  --db ../../../hamsterdb-tests/trunk/testfiles/db/45.tst
-                --profile
-        mit mmap:
-            profile of backend hamster :    0.190000 sec
-            profile of backend berkeley:    0.066000 sec
-
-        ohne mmap:
-            profile of backend hamster :    0.218000 sec
-            profile of backend berkeley:    0.077000 sec
-
------------------------------------------------------
------------------------------------------------------
-
-o test 03 hat memory leak
-o test 45 hat memory leak
-
------------------------------------------------------
------------------------------------------------------
 
 o in-memory-database
-    o finden wir ne möglichkeit, normale datenbanken in in-memory zu 
-        importieren und umgekehrt wieder zu exportieren? das wäre genial
-        --> geht mit iteratoren (erst release 2.0!):
-            iterator from=db1.begin()
-            while (from)
-                db2.append(from)
-                from.next()
+    x parameter für test-programm
+    x implementieren
+    x test 220 crasht noch (OHNE in-memory-db!)
+    x test 45 crasht noch, an der selben stelle
+    x test 220 crasht bei in_memory_db in ham_close (enumerieren und 
+       freigeben der blobs) 
+
+    o 220.tst: 2 memory-leaks, 45.tst ist ok
+        by 0x406B71: _ham_mem_malloc (mem.c:17)
+        by 0x406170: db_alloc_page_struct (db.c:192)
+        by 0x405EF6: my_alloc_page (db.c:111)
+        by 0x40687C: db_alloc_page (db.c:559)
+        by 0x409FB9: my_insert_split (btree_insert.c:418)
+        by 0x409CD2: my_insert_in_page (btree_insert.c:271)
+        by 0x409AC5: my_insert_recursive (btree_insert.c:195)
+        by 0x409B30: my_insert_recursive (btree_insert.c:206)
+        by 0x4098EA: btree_insert (btree_insert.c:131)
+        by 0x4056C1: ham_insert (hamsterdb.c:615)
+        by 0x402D85: my_execute_insert (db.c:656)
+
+
+-----------------------------------------------------
+
+o dbtest.py erweitern, dass alle argv-argumente an ./test weiter-
+    gegeben werden (für --inmemorydb, --profile, --dump etc)
+    o automatisch valgrind aufrufen und nach fehlern checken
+    o wenn valgrind ein memory-leak angibt, dann mit --leak-check=full 
+        und --show-reachable=yes testen, den output speichern
+
+-----------------------------------------------------
+
+o sicherstellen dass die freelist wirklich benutzt wird - bin mir da 
+    nicht so sicher...
+
+-----------------------------------------------------
+
+o test 45 hat 2 memory leaks
+    tritt der fehler nur beim pagesplit auf? evtl ist es einfacher, den 
+    fehler zu provozieren, wenn wir maxkeys auf 3 oder 4 setzen
+
+    valgrind --show-reachable=yes --tool=memcheck --leak-check=full ./test  --db
+    ../../../hamsterdb-tests/trunk/testfiles/db/45.tst --backend2=none
+    ==7536== Memcheck, a memory error detector.
+    ==7536== Copyright (C) 2002-2005, and GNU GPL'd, by Julian Seward et al.
+    ==7536== Using LibVEX rev 1471, a library for dynamic binary translation.
+    ==7536== Copyright (C) 2004-2005, and GNU GPL'd, by OpenWorks LLP.
+    ==7536== Using valgrind-3.1.0, a dynamic binary instrumentation framework.
+    ==7536== Copyright (C) 2000-2005, and GNU GPL'd, by Julian Seward et al.
+    ==7536== For more details, rerun with: -v
+    ==7536==
+    getopt: db test, file is ../../../hamsterdb-tests/trunk/testfiles/db/45.tst
+    ==7536==
+    ==7536== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 5 from 1)
+    ==7536== malloc/free: in use at exit: 13,248 bytes in 138 blocks.
+    ==7536== malloc/free: 14,031 allocs, 13,893 frees, 1,161,949 bytes allocated.
+    ==7536== For counts of detected errors, rerun with: -v
+    ==7536== searching for pointers to 138 not-freed blocks.
+    ==7536== checked 647,304 bytes.
+    ==7536==
+    ==7536== 13,248 (576 direct, 12,672 indirect) bytes in 6 blocks are definitely
+    lost in loss record 1 of 2
+    ==7536==    at 0x4A1AAC6: malloc (vg_replace_malloc.c:149)
+    ==7536==    by 0x4068CD: _ham_mem_malloc (mem.c:17)
+    ==7536==    by 0x405E70: db_alloc_page_struct (db.c:180)
+    ==7536==    by 0x405C6E: my_alloc_page (db.c:111)
+    ==7536==    by 0x4065D9: db_alloc_page (db.c:558)
+    ==7536==    by 0x408F7E: my_fun_create (btree.c:128)
+    ==7536==    by 0x405062: ham_create_ex (hamsterdb.c:378)
+    ==7536==    by 0x404D39: ham_create (hamsterdb.c:271)
+    ==7536==    by 0x401CE4: my_execute_create (db.c:384)
+    ==7536==    by 0x403465: my_execute (db.c:797)
+    ==7536==    by 0x40386E: test_db (db.c:905)
+    ==7536==    by 0x403AB5: my_test_db (main.c:56)
+    ==7536==
+    ==7536==
+    ==7536== 12,672 bytes in 132 blocks are indirectly lost in loss record 2 of 2
+    ==7536==    at 0x4A1AAC6: malloc (vg_replace_malloc.c:149)
+    ==7536==    by 0x4068CD: _ham_mem_malloc (mem.c:17)
+    ==7536==    by 0x405E70: db_alloc_page_struct (db.c:180)
+    ==7536==    by 0x405C6E: my_alloc_page (db.c:111)
+    ==7536==    by 0x4065D9: db_alloc_page (db.c:558)
+    ==7536==    by 0x4067D5: db_alloc_area (db.c:629)
+    ==7536==    by 0x407883: my_allocate_header (blob.c:36)
+    ==7536==    by 0x407B1C: blob_allocate (blob.c:127)
+    ==7536==    by 0x40991A: my_insert_nosplit (btree_insert.c:345)
+    ==7536==    by 0x4096F3: my_insert_in_page (btree_insert.c:259)
+    ==7536==    by 0x40957B: my_insert_recursive (btree_insert.c:200)
+    ==7536==    by 0x40939E: btree_insert (btree_insert.c:131)
+    ==7536==
+    ==7536== LEAK SUMMARY:
+    ==7536==    definitely lost: 576 bytes in 6 blocks.
+    ==7536==    indirectly lost: 12,672 bytes in 132 blocks.
+    ==7536==      possibly lost: 0 bytes in 0 blocks.
+    ==7536==    still reachable: 0 bytes in 0 blocks.
+    ==7536==         suppressed: 0 bytes in 0 blocks.
+
+-----------------------------------------------------
+
+o bei ham_open kann man keine cachesize angeben...
+    evtl sollte es auch ein ham_open_ex geben
+
+-----------------------------------------------------
+
+o replace/overwrite keys
+    o implementieren
+    o neue testreihen erstellen!!
 
 -----------------------------------------------------
 
@@ -86,13 +120,17 @@ o profiling! aber mit der release-version...
     o nur inserts ohne blob
     o nur erase
     o nur lookup
-    o auch gegen qdbm und andere backends
+    o auch gegen andere backends (qdbm, sqlite, ...)
     o etc etc etc
 
------------------------------------------------------
------------------------------------------------------
+    o können wir die minkeys/maxkeys hochsetzen? bzw. später splitten 
+    und später mergen?
+        o pagesplits/merges in bdb zählen
+        o bdb: wie gross sind ihre pages? 
+        o bdb: wie gross sind ihre keys? 
 
-o replace/overwrite keys
+-----------------------------------------------------
+-----------------------------------------------------
 
 o extended keys
     o store_key(ham_key_t *key, internal_key_t *intkey);
@@ -118,6 +156,15 @@ o extended keys
 -----------------------------------------------------
 
 o iteratoren (nicht in version 0.10)
+    o in-memory-db: finden wir ne möglichkeit, normale datenbanken in 
+        in-memory zu importieren und umgekehrt wieder zu exportieren? 
+        das wäre genial
+        --> geht mit iteratoren (erst release 2.0!):
+            iterator from=db1.begin()
+            while (from)
+                db2.append(from)
+                from.next()
+        --> geht auch mit der enum-funktion, die jetzt schon drin ist
 
 -----------------------------------------------------
 
@@ -134,9 +181,6 @@ o tests
     o test mit mmap, verschiedene pagesizes
     o test mit read, verschiedene pagesizes
     o test mit in-memory-db, verschiedene pagesizes
-    o os_mmap: macht segfault (nach split?)
-    o os_mmap: datenbank-headerpage muss page-aligned sein
-    o os_mmap: sinnvolle erkennung der pagesize und setzen von USE_MMAP
     o in-memory-database testen
     o verschiedene pagesizes/keysizes für
         o in-memory-db
@@ -195,12 +239,6 @@ o statistics
 
 -----------------------------------------------------
 
-o nochmal durchgehen und die ganzen flags zusammenschreiben - 
-    teilweise sind sie an verschiedenen stellen deklariert und benützt 
-    - das ist momentan nicht sehr schön
-
------------------------------------------------------
-
 o get hamster version
     gibt's ne möglichkeit, die version der
     library abzufragen? klar - sie steht in einer header-datei
@@ -211,7 +249,6 @@ o get hamster version
             ham_u32_t *minor, ham_u32_t *revision)
 
 -----------------------------------------------------
-
 -----------------------------------------------------
 
 o tools
@@ -238,7 +275,7 @@ o new flag for create/open: USE_FLOCK calls flock() around insert/erase
         (makes mostly sense if cachesize==0)
 
 o profiling: if a page is allocated, allocate more pages, then we have only
-    one disk access
+    one disk access (???)
 
 --------------
 
@@ -262,13 +299,12 @@ x bbaum fehlerfrei
 x TXN raus (wir können die txn's auch komplett
     für diesen release abschalten... man soll dafür ja ne spezielle version
     kaufen müssen)
-o caching
+x caching
+x memory-mapped access
+o in memory-datenbanken
 o performance vergleichbar mit berkeley-db
 o overwrite keys
 o extended keys
-o in memory-datenbanken
-o memory-mapped access
-o optionales file locking mit flock vor insert/erase/find/check/dump
 o erzeugt .dll/.so
 o compiliert unter linux, windows, darwin, 32bit und 64bit, unter windows
     mit mingw, icc, msvc, borland, watcom
@@ -278,8 +314,9 @@ o webseite
 o stress-test-tool(s), das ALLE optionen durchprobiert
 o admin-tool(s) fuer dump, stats, reorg
     o db_dump: 
-        o key/daten dumpen machen wir erst später, wenn's iteratoren gibt
+        o key/daten dumpen
         o header dumpen
+o KEINE valgrind-fehler!
 
 -----------------------------------------------------
 
@@ -314,8 +351,7 @@ o asset-tool
     GUI und library für computerspiele
 
 -----------------------------------------------------
-
--------------- -------------- -------------- --------------
+-----------------------------------------------------
 
 Version 0.2.0
 
@@ -329,10 +365,11 @@ o filter: compression
 
 Version 0.3.0
 
+o database-environment (ein file fuer mehrere datenbanken, gesharter cache,
+    geshartes file-handle, freelist etc)
+    etc)
 o hash-tabelle
 o live reorganisation???
-o database-environment (ein file fuer mehrere datenbanken, gesharter cache
-    etc)
 
 -------------------------- literature -----------------------
 pB+ Trees prefetching B+ Trees 

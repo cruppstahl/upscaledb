@@ -219,7 +219,8 @@ cache_put(ham_cache_t *cache, ham_page_t *page)
      * check if (in non-strict mode) the cache limits were 
      * overstepped - if yes, try to delete some pages
      */
-    if (!(cache_get_flags(cache)&HAM_CACHE_STRICT)) {
+    if (!(cache_get_flags(cache)&HAM_IN_MEMORY_DB) &&
+        !(cache_get_flags(cache)&HAM_CACHE_STRICT)) {
         while (cache_get_usedsize(cache)>cache_get_cachesize(cache)) {
             /*
             ham_trace("cache limits overstepped - used size %u, cache "
@@ -284,7 +285,8 @@ cache_move_to_garbage(ham_cache_t *cache, ham_page_t *page)
      * check if (in non-strict mode) the cache limits were 
      * overstepped - if yes, try to delete some pages
      */
-    if (!(cache_get_flags(cache)&HAM_CACHE_STRICT)) {
+    if (!(cache_get_flags(cache)&HAM_IN_MEMORY_DB) &&
+        !(cache_get_flags(cache)&HAM_CACHE_STRICT)) {
         while (cache_get_usedsize(cache)>cache_get_cachesize(cache)) {
             ham_trace("cache limits overstepped - used size %u, cache "
                     "size %u", cache_get_usedsize(cache), 

@@ -46,6 +46,7 @@ static ham_u64_t g_tv1, g_tv2;
 #define ARG_BACKEND1    6
 #define ARG_BACKEND2    7
 #define ARG_DUMP        9
+#define ARG_INMEMORY   10
 
 #define BACKEND_NONE    0
 #define BACKEND_HAMSTER 1
@@ -68,6 +69,9 @@ static struct {
 
     /* dump the database? */
     unsigned dump;
+
+    /* in-memory-database?  */
+    unsigned inmemory;
 
     /* do profile?  */
     unsigned profile;
@@ -147,6 +151,12 @@ static option_t opts[]={
         "d",
         "dump",
         "dump the hamster-database",
+        0 },
+    {
+        ARG_INMEMORY,
+        "inmem",
+        "inmemorydb",
+        "create in-memory-databases (if available)",
         0 },
     { 0, 0, 0, 0, 0 }
 };
@@ -377,11 +387,9 @@ my_execute_create(char *line)
                 (void)unlink(FILENAME_HAM);
                 st=ham_new(&config.hamdb);
                 ham_assert(st==0, 0, 0);
-#if 0
-                st=ham_create_ex(config.hamdb, FILENAME_HAM, 0, 
-                        0664, 0, 0, 1024*8);
-#endif
-                st=ham_create(config.hamdb, FILENAME_HAM, 0, 0664);
+                st=ham_create(config.hamdb, FILENAME_HAM, 
+                        config.inmemory?HAM_IN_MEMORY_DB:0, 
+                        0664);
                 ham_assert(st==0, 0, 0);
                 if (config.flags & NUMERIC_KEY)
                     ham_set_compare_func(config.hamdb, my_compare_keys);
@@ -865,8 +873,12 @@ test_db(const char *filename)
             else 
                 ham_trace("backend 2: unknown backend %s", param);
         }
-        else if (opt==ARG_DUMP) 
+        else if (opt==ARG_DUMP) {
             config.dump++;
+        }
+        else if (opt==ARG_INMEMORY) {
+            config.inmemory=1;
+        }
         else if (opt==GETOPTS_UNKNOWN) {
             ham_trace("unknown parameter %s", param);
             return (-1);

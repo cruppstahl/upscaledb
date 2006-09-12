@@ -144,7 +144,7 @@ btree_insert(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
         newroot=db_alloc_page(db, PAGE_TYPE_ROOT, txn, 0); 
         if (!newroot)
             return (db_get_error(db));
-        page_set_type(newroot, PAGE_TYPE_INDEX);
+        page_set_type(newroot, PAGE_TYPE_ROOT);
 
         /* 
          * insert the pivot element and the ptr_left
@@ -160,19 +160,14 @@ btree_insert(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
         }
 
         /*
-         * set the new root page 
+         * set the new root page
+         *
+         * !!
+         * do NOT delete the old root page - it's still in use!
          */
         btree_set_rootpage(be, page_get_self(newroot));
         db_set_dirty(db, 1);
-
-        /*
-         * delete the old root-page
-         */
-        st=db_free_page(db, scratchpad.txn, root, 0);
-        if (st) {
-            db_set_error(db, st); /* TODO ignore error? */
-            return (st);
-        }
+        page_set_type(root, PAGE_TYPE_INDEX);
     }
 
     /*
@@ -460,7 +455,7 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
     oldkey.size=key_get_size(nbte);
     if (!util_copy_key(&oldkey, &pivotkey)) {
         (void)db_free_page(db, scratchpad->txn, newpage, 0);
-        /* @@@ page_delete(newpage);*/
+        /* @@@ TODO page_delete(newpage);*/
         db_set_error(db, HAM_OUT_OF_MEMORY);
         return (HAM_OUT_OF_MEMORY);
     }
@@ -491,11 +486,6 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
 
     /*
      * insert the new element
-     * TODO stimmt das?
-    cmp=db_compare_keys(db, page,
-            pivot, btree_entry_get_flags(nbte), btree_entry_get_key(nbte), 
-            btree_entry_get_real_size(db, nbte), btree_entry_get_size(nbte),
-            -1, key->_flags, key->data, key->size, key->size);
      */
     cmp=key_compare_int_to_pub(page, pivot, key);
     if (db_get_error(db)) 

@@ -202,10 +202,11 @@ btree_erase(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
         ham_offset_t *rid, ham_u32_t *intflags, ham_u32_t flags);
 
 /**
- * dump the whole tree to stdout
+ * enumerate all items
  */
 extern ham_status_t
-btree_dump(ham_btree_t *be, ham_txn_t *txn, ham_dump_cb_t cb);
+btree_enumerate(ham_btree_t *be, ham_txn_t *txn, ham_enumerate_cb_t cb,
+        void *context);
 
 /**
  * verify the whole tree
