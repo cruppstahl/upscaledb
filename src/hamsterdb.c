@@ -212,6 +212,14 @@ ham_delete(ham_db_t *db)
 ham_status_t
 ham_open(ham_db_t *db, const char *filename, ham_u32_t flags)
 {
+    return (ham_open_ex(db, filename, flags, HAM_DEFAULT_CACHESIZE));
+
+}
+
+ham_status_t
+ham_open_ex(ham_db_t *db, const char *filename, 
+        ham_u32_t flags, ham_size_t cachesize)
+{
     ham_fd_t fd;
     ham_status_t st;
     ham_cache_t *cache;
@@ -329,11 +337,13 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags)
         return (db_get_error(db));
     db_set_cache(db, cache);
 
-    /* create the freelist */
-    st=freel_create(db);
-    if (st) {
-        ham_log("unable to create freelist", 0);
-        return (st);
+    /* create the freelist - not needed for in-memory-databases */
+    if (!(flags&HAM_IN_MEMORY_DB)) {
+        st=freel_create(db);
+        if (st) {
+            ham_log("unable to create freelist", 0);
+            return (st);
+        }
     }
 
     /* set the key compare function */
@@ -475,11 +485,13 @@ ham_create_ex(ham_db_t *db, const char *filename,
     /* store the backend in the database */
     db_set_backend(db, backend);
 
-    /* create the freelist */
-    st=freel_create(db);
-    if (st) {
-        ham_log("unable to create freelist", 0);
-        return (st);
+    /* create the freelist - not needed for in-memory-databases */
+    if (!(flags&HAM_IN_MEMORY_DB)) {
+        st=freel_create(db);
+        if (st) {
+            ham_log("unable to create freelist", 0);
+            return (st);
+        }
     }
 
     /* set the default key compare functions */

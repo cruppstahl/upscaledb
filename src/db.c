@@ -207,7 +207,7 @@ void
 db_free_page_struct(ham_page_t *page)
 {
     ham_db_t *db=page_get_owner(page);
-    
+
     /*
      * make sure that the page is removed from the cache
      */
@@ -664,7 +664,7 @@ db_write_page_and_delete(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
     /* 
      * free the memory of the page
      */
-    if (!(flags&DB_FLUSH_NODELETE))
+    if (!(flags&DB_FLUSH_NODELETE)) 
         db_free_page_struct(page);
 
     return (0);

@@ -88,16 +88,25 @@ ham_txn_commit(ham_txn_t *txn)
         page_set_next(head, PAGE_LIST_TXN, 0);
         page_set_previous(head, PAGE_LIST_TXN, 0);
 
-        /* delete the page? */
+        /* 
+         * delete the page? 
+         *
+         * in-memory-databases don't use a freelist and therefore
+         * can delete the page without consequences
+         */
         if (page_get_npers_flags(head)&PAGE_NPERS_DELETE_PENDING) {
-            /* remove page from cache, add it to garbage list */
-            page_set_dirty(head, 0);
-            st=cache_move_to_garbage(db_get_cache(db), head);
-            if (st)
-                ham_trace("cache_move_to_garbage failed with status 0x%x", st);
+            if (db_get_flags(db)&HAM_IN_MEMORY_DB) { 
+                db_free_page_struct(head);
+            }
+            else {
+                /* remove page from cache, add it to garbage list */
+                page_set_dirty(head, 0);
+                st=cache_move_to_garbage(db_get_cache(db), head);
+                if (st)
+                    ham_trace("cache_move_to_garbage failed with status 0x%x", 
+                            st);
 
-            /* add the page to the freelist, if we're not an in-memory-db */
-            if (1) { /*!(db_get_flags(db)&HAM_IN_MEMORY_DB)) { */
+                /* add the page to the freelist */
                 st=freel_add_area(db, page_get_self(head), 
                     db_get_usable_pagesize(db));
                 if (st) {
@@ -105,10 +114,10 @@ ham_txn_commit(ham_txn_t *txn)
                     st=0;
                 }
             }
+
             goto commit_next;
         }
 
-#if 0
         /* flush the page */
         st=db_flush_page(db, 0, head, 0);
         if (st) {
@@ -118,7 +127,6 @@ ham_txn_commit(ham_txn_t *txn)
             return (st); /* TODO oder return 0? */
         }
 
-#endif
 commit_next:
 
         head=next;

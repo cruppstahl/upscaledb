@@ -192,7 +192,7 @@ cache_put(ham_cache_t *cache, ham_page_t *page)
           page_set_cache_cntr(page, 50);
           break;
       case PAGE_TYPE_BLOBHDR:
-          page_set_cache_cntr(page, 2);
+          page_set_cache_cntr(page, 10);
           break;
       case PAGE_TYPE_BLOBDATA:
           page_set_cache_cntr(page, 0);
@@ -302,55 +302,48 @@ cache_move_to_garbage(ham_cache_t *cache, ham_page_t *page)
 ham_status_t 
 cache_flush_and_delete(ham_cache_t *cache, ham_u32_t flags)
 {
-    ham_size_t i;
     ham_status_t st;
     ham_page_t *head;
     ham_db_t *db=cache_get_owner(cache);
 
     /*
-     * for each bucket in the hash table
+     * !!
+     * this function flushes all pages; if DB_FLUSH_NODELETE
+     * is set, they will not be deleted; otherwise they will.
+     *
+     * note that the pages are not removed from the cache buckets. 
+     * if the pages are deleted, this is a bug; however, pages are 
+     * only deleted in ham_close(), and then the cache is no longer
+     * needed anyway.
      */
-    for (i=0; i<cache_get_bucketsize(cache); i++) {
+    head=cache_get_totallist(cache); 
+    while (head) {
+        ham_page_t *next=page_get_next(head, PAGE_LIST_CACHED);
+
+        ham_assert(page_is_inuse(head)==0, 
+                "page is in use, but database is closing", 0);
+
         /*
-         * flush all pages in the bucket, and delete the page
+         * don't remove the page from the cache, if flag NODELETE
+         * is set (this flag is used i.e. in ham_flush())
          */
-        head=cache_get_bucket(cache, i);
-        while (head) {
-            ham_page_t *next=page_get_next(head, PAGE_LIST_BUCKET);
-
-            /*
-             * also delete the page from the totallist and decrement 
-             * the cache size
-             */
-            ham_assert(page_is_in_list(cache_get_totallist(cache), 
-                        head, PAGE_LIST_CACHED), "page is not in totallist", 0);
+        if (!(flags&DB_FLUSH_NODELETE)) {
             cache_set_totallist(cache, 
-                    page_list_remove(cache_get_totallist(cache), 
-                    PAGE_LIST_CACHED, head));
+                page_list_remove(cache_get_totallist(cache), 
+                PAGE_LIST_CACHED, head));
             cache_set_usedsize(cache, 
-                    cache_get_usedsize(cache)-db_get_pagesize(db));
-
-            /*
-             * now delete the page
-             *
-             * TODO 
-             * ignoring the error - not sure if this is the best idea...
-             */
-            st=db_write_page_and_delete(db, head, flags);
-            if (st) 
-                ham_log("failed to flush page (%d) - ignoring error...", st);
-            head=next;
+                cache_get_usedsize(cache)-db_get_pagesize(db));
         }
 
-        cache_set_bucket(cache, i, 0);
+        st=db_write_page_and_delete(db, head, flags);
+        if (st) 
+            ham_log("failed to flush page (%d) - ignoring error...", st);
+
+        head=next;
     }
 
-    /*
-     * clear the cached-list and the garbage-list
-     */
-    cache_set_totallist(cache, 0);
-    cache_set_garbagelist(cache, 0);
-
+    if (!(flags&DB_FLUSH_NODELETE)) 
+        cache_set_totallist(cache, 0);
     return (0);
 }
 

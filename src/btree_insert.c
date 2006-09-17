@@ -455,7 +455,6 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
     oldkey.size=key_get_size(nbte);
     if (!util_copy_key(&oldkey, &pivotkey)) {
         (void)db_free_page(db, scratchpad->txn, newpage, 0);
-        /* @@@ TODO page_delete(newpage);*/
         db_set_error(db, HAM_OUT_OF_MEMORY);
         return (HAM_OUT_OF_MEMORY);
     }
