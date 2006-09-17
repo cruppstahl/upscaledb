@@ -115,6 +115,13 @@ extern ham_status_t
 ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
 
 /**
+ * open an (existing) database - extended version
+ */
+extern ham_status_t
+ham_open_ex(ham_db_t *db, const char *filename, 
+        ham_u32_t flags, ham_size_t cachesize);
+
+/**
  * create a new database
  */
 extern ham_status_t
