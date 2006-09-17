@@ -1,141 +1,47 @@
 
-
-
-o in-memory-database
+x in-memory-database
     x parameter für test-programm
     x implementieren
     x test 220 crasht noch (OHNE in-memory-db!)
     x test 45 crasht noch, an der selben stelle
     x test 220 crasht bei in_memory_db in ham_close (enumerieren und 
        freigeben der blobs) 
-
-    o 220.tst: 2 memory-leaks, 45.tst ist ok
-        by 0x406B71: _ham_mem_malloc (mem.c:17)
-        by 0x406170: db_alloc_page_struct (db.c:192)
-        by 0x405EF6: my_alloc_page (db.c:111)
-        by 0x40687C: db_alloc_page (db.c:559)
-        by 0x409FB9: my_insert_split (btree_insert.c:418)
-        by 0x409CD2: my_insert_in_page (btree_insert.c:271)
-        by 0x409AC5: my_insert_recursive (btree_insert.c:195)
-        by 0x409B30: my_insert_recursive (btree_insert.c:206)
-        by 0x4098EA: btree_insert (btree_insert.c:131)
-        by 0x4056C1: ham_insert (hamsterdb.c:615)
-        by 0x402D85: my_execute_insert (db.c:656)
-
+    x 220.tst: 2 memory-leaks, 45.tst ist ok
+    x freelist komplett deaktivieren
 
 -----------------------------------------------------
 
-o dbtest.py erweitern, dass alle argv-argumente an ./test weiter-
-    gegeben werden (für --inmemorydb, --profile, --dump etc)
-    o automatisch valgrind aufrufen und nach fehlern checken
-    o wenn valgrind ein memory-leak angibt, dann mit --leak-check=full 
-        und --show-reachable=yes testen, den output speichern
+x test 45 hat 2 memory leaks
 
 -----------------------------------------------------
 
-o sicherstellen dass die freelist wirklich benutzt wird - bin mir da 
-    nicht so sicher...
+x sicherstellen dass die freelist wirklich benutzt wird - bin mir da 
+    nicht so sicher... -- ja, wird sie!
 
 -----------------------------------------------------
 
-o test 45 hat 2 memory leaks
-    tritt der fehler nur beim pagesplit auf? evtl ist es einfacher, den 
-    fehler zu provozieren, wenn wir maxkeys auf 3 oder 4 setzen
-
-    valgrind --show-reachable=yes --tool=memcheck --leak-check=full ./test  --db
-    ../../../hamsterdb-tests/trunk/testfiles/db/45.tst --backend2=none
-    ==7536== Memcheck, a memory error detector.
-    ==7536== Copyright (C) 2002-2005, and GNU GPL'd, by Julian Seward et al.
-    ==7536== Using LibVEX rev 1471, a library for dynamic binary translation.
-    ==7536== Copyright (C) 2004-2005, and GNU GPL'd, by OpenWorks LLP.
-    ==7536== Using valgrind-3.1.0, a dynamic binary instrumentation framework.
-    ==7536== Copyright (C) 2000-2005, and GNU GPL'd, by Julian Seward et al.
-    ==7536== For more details, rerun with: -v
-    ==7536==
-    getopt: db test, file is ../../../hamsterdb-tests/trunk/testfiles/db/45.tst
-    ==7536==
-    ==7536== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 5 from 1)
-    ==7536== malloc/free: in use at exit: 13,248 bytes in 138 blocks.
-    ==7536== malloc/free: 14,031 allocs, 13,893 frees, 1,161,949 bytes allocated.
-    ==7536== For counts of detected errors, rerun with: -v
-    ==7536== searching for pointers to 138 not-freed blocks.
-    ==7536== checked 647,304 bytes.
-    ==7536==
-    ==7536== 13,248 (576 direct, 12,672 indirect) bytes in 6 blocks are definitely
-    lost in loss record 1 of 2
-    ==7536==    at 0x4A1AAC6: malloc (vg_replace_malloc.c:149)
-    ==7536==    by 0x4068CD: _ham_mem_malloc (mem.c:17)
-    ==7536==    by 0x405E70: db_alloc_page_struct (db.c:180)
-    ==7536==    by 0x405C6E: my_alloc_page (db.c:111)
-    ==7536==    by 0x4065D9: db_alloc_page (db.c:558)
-    ==7536==    by 0x408F7E: my_fun_create (btree.c:128)
-    ==7536==    by 0x405062: ham_create_ex (hamsterdb.c:378)
-    ==7536==    by 0x404D39: ham_create (hamsterdb.c:271)
-    ==7536==    by 0x401CE4: my_execute_create (db.c:384)
-    ==7536==    by 0x403465: my_execute (db.c:797)
-    ==7536==    by 0x40386E: test_db (db.c:905)
-    ==7536==    by 0x403AB5: my_test_db (main.c:56)
-    ==7536==
-    ==7536==
-    ==7536== 12,672 bytes in 132 blocks are indirectly lost in loss record 2 of 2
-    ==7536==    at 0x4A1AAC6: malloc (vg_replace_malloc.c:149)
-    ==7536==    by 0x4068CD: _ham_mem_malloc (mem.c:17)
-    ==7536==    by 0x405E70: db_alloc_page_struct (db.c:180)
-    ==7536==    by 0x405C6E: my_alloc_page (db.c:111)
-    ==7536==    by 0x4065D9: db_alloc_page (db.c:558)
-    ==7536==    by 0x4067D5: db_alloc_area (db.c:629)
-    ==7536==    by 0x407883: my_allocate_header (blob.c:36)
-    ==7536==    by 0x407B1C: blob_allocate (blob.c:127)
-    ==7536==    by 0x40991A: my_insert_nosplit (btree_insert.c:345)
-    ==7536==    by 0x4096F3: my_insert_in_page (btree_insert.c:259)
-    ==7536==    by 0x40957B: my_insert_recursive (btree_insert.c:200)
-    ==7536==    by 0x40939E: btree_insert (btree_insert.c:131)
-    ==7536==
-    ==7536== LEAK SUMMARY:
-    ==7536==    definitely lost: 576 bytes in 6 blocks.
-    ==7536==    indirectly lost: 12,672 bytes in 132 blocks.
-    ==7536==      possibly lost: 0 bytes in 0 blocks.
-    ==7536==    still reachable: 0 bytes in 0 blocks.
-    ==7536==         suppressed: 0 bytes in 0 blocks.
+x dbtest.py erweitern
+    x alle argv-argumente an ./test weitergeben 
+        (für --inmemorydb, --profile, --dump etc)
+    x bei environment-variable mit valgrind aufrufen und nach fehlern checken
 
 -----------------------------------------------------
 
-o bei ham_open kann man keine cachesize angeben...
+x bei ham_open kann man keine cachesize angeben...
     evtl sollte es auch ein ham_open_ex geben
 
 -----------------------------------------------------
 
-o replace/overwrite keys
-    o implementieren
-    o neue testreihen erstellen!!
-
------------------------------------------------------
-
-o profiling! aber mit der release-version...
-    o in-memory-db
-    o os_mmap
-    o read
-    o verschiedene page- und keygrössen
-    o nur inserts
-    o nur inserts ohne blob
-    o nur erase
-    o nur lookup
-    o auch gegen andere backends (qdbm, sqlite, ...)
-    o etc etc etc
-
-    o können wir die minkeys/maxkeys hochsetzen? bzw. später splitten 
-    und später mergen?
-        o pagesplits/merges in bdb zählen
-        o bdb: wie gross sind ihre pages? 
-        o bdb: wie gross sind ihre keys? 
-
------------------------------------------------------
------------------------------------------------------
-
 o extended keys
+    o research: berkeleydb
+    o research: sqlite
+    o research: ixam
+
     o store_key(ham_key_t *key, internal_key_t *intkey);
     o load_key(internal_key_t *intkey, ham_key_t *key);
-    o shift/insert/remove ext. keys (wie in btree.c)
+    o replace_key(internal_key_t *intkey, ham_key_t *key);
+    o erase_key(internal_key_t *intkey, ham_key_t *key);
+
     o wie verhält sich der default-comparator (bei ungleichen keygrössen)?
         1. memcmp auf prefix
         2. identisch? wenn ein key kürzer ist als der andere, und vollständig
@@ -152,7 +58,43 @@ o extended keys
         o extkey_get(name, extkey *) - lädt notfalls key von der platte
         o extkey_remove(extkey *)
         o extkey_put(extkey *, name)
+        o extkey_replace(extkey *, name)
 
+-----------------------------------------------------
+
+o replace/overwrite keys
+    o implementieren
+    o neue testreihen erstellen!!
+
+-----------------------------------------------------
+-----------------------------------------------------
+
+o prerelease 0.02
+
+-----------------------------------------------------
+-----------------------------------------------------
+
+o profiling! aber mit der release-version...
+    o in-memory-db
+    o os_mmap
+    o read
+    o verschiedene page- und keygrössen
+    o nur inserts
+    o nur inserts ohne blob
+    o nur erase
+    o nur lookup
+    o auch gegen andere backends (qdbm, sqlite, ...)
+    o etc etc etc
+
+    o können wir drauf verzichten, beim db_page_alloc ein tell, seek, 
+        truncate zu machen? evtl kommen wir ganz ohne resize aus??
+    o können wir die minkeys/maxkeys hochsetzen? bzw. später splitten 
+    und später mergen?
+        o pagesplits/merges in bdb zählen
+        o bdb: wie gross sind ihre pages? 
+        o bdb: wie gross sind ihre keys? 
+
+-----------------------------------------------------
 -----------------------------------------------------
 
 o iteratoren (nicht in version 0.10)
