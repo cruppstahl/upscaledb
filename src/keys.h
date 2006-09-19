@@ -82,6 +82,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 key_t
 #define KEY_BLOB_SIZE_TINY              1
 #define KEY_BLOB_SIZE_SMALL             2
 #define KEY_BLOB_SIZE_EMPTY             4
+#define KEY_BLOB_SIZE_BIG               8
 
 /**
  * get a pointer to the key 
@@ -99,19 +100,31 @@ typedef HAM_PACK_0 struct HAM_PACK_1 key_t
  * compare an internal key (key_t) to a public key (ham_key_t)
  */
 extern int
-key_compare_int_to_pub(ham_page_t *page, ham_u16_t lhs, ham_key_t *rhs);
+key_compare_int_to_pub(ham_txn_t *txn, ham_page_t *page, 
+        ham_u16_t lhs, ham_key_t *rhs);
 
 /**
  * compare a public key (ham_key_t) to an internal key (key_t)
  */
 extern int
-key_compare_pub_to_int(ham_page_t *page, ham_key_t *lhs, ham_u16_t rhs);
+key_compare_pub_to_int(ham_txn_t *txn, ham_page_t *page, 
+        ham_key_t *lhs, ham_u16_t rhs);
 
 /**
  * compare an internal key (key_t) to an internal key
  */
 extern int
-key_compare_int_to_int(ham_page_t *page, ham_u16_t lhs, ham_u16_t rhs);
+key_compare_int_to_int(ham_txn_t *txn, ham_page_t *page, 
+        ham_u16_t lhs, ham_u16_t rhs);
+
+/**
+ * insert an extended key
+ *
+ * returns the blob-id of this key
+ */
+extern ham_offset_t
+key_insert_extended(ham_db_t *db, ham_txn_t *txn, ham_page_t *page, 
+        ham_key_t *key);
 
 
 #ifdef __cplusplus

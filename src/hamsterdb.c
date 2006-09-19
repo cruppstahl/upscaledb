@@ -348,7 +348,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
 
     /* set the key compare function */
     ham_set_compare_func(db, db_default_compare);
-    ham_set_prefix_compare_func(db, 0); /* TODO */
+    ham_set_prefix_compare_func(db, db_default_prefix_compare);
 
     return (HAM_SUCCESS);
 }
@@ -496,7 +496,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
 
     /* set the default key compare functions */
     ham_set_compare_func(db, db_default_compare);
-    ham_set_prefix_compare_func(db, 0); /* TODO */
+    ham_set_prefix_compare_func(db, db_default_prefix_compare);
     db_set_dirty(db, HAM_TRUE);
 
     return (HAM_SUCCESS);

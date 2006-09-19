@@ -234,7 +234,8 @@ btree_traverse_tree(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
  * @return returns the index of the key, or -1 if the key was not found
  */
 extern ham_s32_t 
-btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key);
+btree_node_search_by_key(ham_db_t *db, ham_txn_t *txn, 
+        ham_page_t *page, ham_key_t *key);
 
 /**
  * get entry #i of a btree node
@@ -247,7 +248,8 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key);
  * get the slot of an element in the page
  */
 ham_status_t 
-btree_get_slot(ham_db_t *db, ham_page_t *page, ham_key_t *key, ham_s32_t *slot);
+btree_get_slot(ham_db_t *db, ham_txn_t *txn, ham_page_t *page, 
+        ham_key_t *key, ham_s32_t *slot);
 
 
 #ifdef __cplusplus

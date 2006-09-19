@@ -327,11 +327,10 @@ my_compare_databases(void)
         /*PROFILE_START(ham);*/
         st=ham_find(config.hamdb, 0, &hkey, &hrec, 0);
         /*PROFILE_STOP(ham);*/
-        if (st==0) {
-            ham_assert(hrec.size==rec.size, 0, 0);
-            if (hrec.data)
-                ham_assert(!memcmp(hrec.data, rec.data, rec.size), 0, 0);
-        }
+        ham_assert(st==0, "hamster-db error %d", st);
+        ham_assert(hrec.size==rec.size, 0, 0);
+        if (hrec.data)
+            ham_assert(!memcmp(hrec.data, rec.data, rec.size), 0, 0);
         /*PROFILE_START(berk);*/
     }
     /*PROFILE_STOP(berk);*/
@@ -468,9 +467,9 @@ my_execute_flush(void)
             case BACKEND_NONE: 
                 break;
             case BACKEND_BERK: 
-                PROFILE_START(i);
+                /*PROFILE_START(i);*/
                 /* nothing to do here TODO */
-                PROFILE_STOP(i);
+                /*PROFILE_STOP(i);*/
                 break;
             case BACKEND_HAMSTER: 
                 VERBOSE2("flushing backend %d (hamster)", i);
@@ -478,10 +477,10 @@ my_execute_flush(void)
                     FAIL("hamster handle is invalid", 0);
                     return 0;
                 }
-                PROFILE_START(i);
+                /*PROFILE_START(i);*/
                 st=ham_flush(config.hamdb);
                 ham_assert(st==0, 0, 0);
-                PROFILE_STOP(i);
+                /*PROFILE_STOP(i);*/
                 break;
         }
     }

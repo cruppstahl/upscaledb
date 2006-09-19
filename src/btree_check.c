@@ -123,7 +123,7 @@ my_verify_level(ham_txn_t *txn, ham_page_t *parent, ham_page_t *page,
     if (parent && btree_node_get_left(node)) {
         btree_node_t *cnode =ham_page_get_btree_node(page);
 
-        cmp=key_compare_int_to_int(page, 0, btree_node_get_count(cnode)-1);
+        cmp=key_compare_int_to_int(txn, page, 0, btree_node_get_count(cnode)-1);
         if (db_get_error(db))
             return (db_get_error(db));
         if (cmp<0) {
@@ -219,26 +219,25 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
                 btree_node_get_count(sibnode)-1);
         bte=btree_node_get_key(db, node, 0);
 
-        if (key_get_flags(bte)!=0 && !btree_node_is_leaf(node)) {
+        if ((key_get_flags(bte)!=0 && key_get_flags(bte)!=KEY_BLOB_SIZE_BIG) && 
+            !btree_node_is_leaf(node)) {
             ham_log("integrity check failed in page 0x%llx: item #0 "
                     "has flags, but it's not a leaf page", 
                     page_get_self(page), i);
             return (HAM_INTEGRITY_VIOLATED);
         }
 
-        cmp=db_compare_keys(db, page,
-                0, key_get_flags(bte), 
-                key_get_key(bte), 
-                db_get_keysize(page_get_owner(page)), 
-                key_get_size(bte), 
+        cmp=db_compare_keys(db, scratchpad->txn, page,
                 btree_node_get_count(sibnode)-1,
                 key_get_flags(sibentry), 
                 key_get_key(sibentry), 
-                db_get_keysize(page_get_owner(page)), 
-                key_get_size(sibentry));
+                key_get_size(sibentry),
+                0, key_get_flags(bte), 
+                key_get_key(bte), 
+                key_get_size(bte));
         if (db_get_error(db))
             return (db_get_error(db));
-        if (cmp<0) {
+        if (cmp>=0) {
             ham_log("integrity check failed in page 0x%llx: item #0 "
                     "< left sibling item #%d\n", page_get_self(page), 
                     btree_node_get_count(sibnode)-1);
@@ -250,7 +249,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
         return (0);
 
     for (i=0; i<count-1; i++) {
-        cmp=key_compare_int_to_int(page, i, i+1);
+        cmp=key_compare_int_to_int(scratchpad->txn, page, i, i+1);
         if (db_get_error(db))
             return (db_get_error(db));
         if (cmp>=0) {

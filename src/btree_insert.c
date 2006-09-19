@@ -259,7 +259,8 @@ my_insert_in_page(ham_page_t *page, ham_key_t *key,
      * but BEFORE we split, we check if the key already exists!
      */
     if (btree_node_is_leaf(node)) {
-        if (btree_node_search_by_key(page_get_owner(page), page, key)>=0) {
+        if (btree_node_search_by_key(page_get_owner(page), scratchpad->txn, 
+                    page, key)>=0) {
             if (flags&OVERWRITE) 
                 return (my_insert_nosplit(page, scratchpad->txn, key, rid, 
                         scratchpad->record, flags));
@@ -291,7 +292,7 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
     for (i=0; i<count; i++) {
         bte=btree_node_get_key(db, node, i);
 
-        cmp=key_compare_int_to_pub(page, i, key);
+        cmp=key_compare_int_to_pub(txn, page, i, key);
         if (db_get_error(db))
             return (db_get_error(db));
 
@@ -354,6 +355,7 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
      * set the "empty"-flag.
      */
     key_set_flags(bte, 0);
+
     if (btree_node_is_leaf(node)) {
         if (record->size==0) {
             key_set_flags(bte, key_get_flags(bte)|KEY_BLOB_SIZE_EMPTY);
@@ -374,21 +376,36 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
     /*
      * we insert the extended key, if necessary
      */
-    key_set_key(bte, key->data, key->size);
-    /* @@@
+    key_set_key(bte, key->data, 
+            db_get_keysize(db)<key->size?db_get_keysize(db):key->size);
+
+    /*
+     * leaf node: if we need an extended key, allocate a blob and store
+     * the blob-id in the key
+     */
     if (btree_node_is_leaf(node) && key->size>db_get_keysize(db)) {
-        ham_offset_t *p;
-        ham_u8_t *prefix=bte->_key;
-        blobid=db_ext_key_insert(db, txn, page, key);
+        ham_offset_t *p, blobid;
+
+        key_set_key(bte, key->data, db_get_keysize(db));
+
+        blobid=key_insert_extended(db, txn, page, key);
         if (!blobid)
             return (db_get_error(db));
-        p=(ham_offset_t *)(prefix+(db_get_keysize(db)-
-                sizeof(ham_offset_t)));
+        p=(ham_offset_t *)(key_get_key(bte)+
+                (db_get_keysize(db)-sizeof(ham_offset_t)));
         *p=ham_db2h_offset(blobid);
     }
-    */
+
+    if (key->size>db_get_keysize(db)) {
+        key_set_flags(bte, key_get_flags(bte)|KEY_BLOB_SIZE_BIG);
+        key_set_size(bte, key->size);
+    }
+    else {
+        key_set_size(bte, key->size);
+        /*key_set_key(bte, key->data, key_get_size(bte));*/
+    }
+
     key_set_ptr(bte, rid);
-    key_set_size(bte, key->size);
     page_set_dirty(page, 1);
     btree_node_set_count(node, count+1);
 
@@ -453,6 +470,7 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
 
     oldkey.data=key_get_key(nbte);
     oldkey.size=key_get_size(nbte);
+    oldkey._flags=key_get_flags(nbte);
     if (!util_copy_key(&oldkey, &pivotkey)) {
         (void)db_free_page(db, scratchpad->txn, newpage, 0);
         db_set_error(db, HAM_OUT_OF_MEMORY);
@@ -486,7 +504,7 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
     /*
      * insert the new element
      */
-    cmp=key_compare_int_to_pub(page, pivot, key);
+    cmp=key_compare_int_to_pub(scratchpad->txn, page, pivot, key);
     if (db_get_error(db)) 
         return (db_get_error(db));
 
@@ -529,3 +547,50 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
     return (SPLIT);
 }
 
+void
+pp(ham_txn_t *txn, ham_page_t *page)
+{
+    ham_size_t i, j, len, count;
+    int cmp;
+    key_t *bte=0;
+    btree_node_t *node;
+    ham_db_t *db=page_get_owner(page);
+
+    printf("page 0x%llx\n", page_get_self(page));
+
+    node=ham_page_get_btree_node(page);
+    count=btree_node_get_count(node);
+
+    /*
+     * TODO this is subject to optimization...
+     */
+    for (i=0; i<count; i++) {
+        bte=btree_node_get_key(db, node, i);
+
+        printf("%03d: ", i);
+
+        if (key_get_flags(bte)&KEY_BLOB_SIZE_BIG) 
+            len=db_get_keysize(page_get_owner(page))-sizeof(ham_offset_t);
+        else
+            len=key_get_size(bte);
+
+        for (j=0; j<len; j++)
+            printf("%02x ", (unsigned char)(key_get_key(bte)[j]));
+
+        printf("(%d bytes, 0x%x flags)  -> rid 0x%llx\n", key_get_size(bte), 
+                key_get_flags(bte), key_get_ptr(bte));
+    }
+
+    /*
+     * verify page
+     */
+    for (i=0; i<count-1; i++) {
+        cmp=key_compare_int_to_int(txn, page, i, i+1);
+        ham_assert(db_get_error(db)==0, 0, 0);
+        if (cmp>=0) {
+            ham_log("integrity check failed in page 0x%llx: item #%d "
+                    "< item #%d\n", page_get_self(page), i, i+1);
+            return;
+        }
+    }
+}

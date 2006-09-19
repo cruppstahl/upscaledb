@@ -16,7 +16,8 @@
 #define offsetof(type, member) ((size_t) &((type *)0)->member)
 
 ham_status_t 
-btree_get_slot(ham_db_t *db, ham_page_t *page, ham_key_t *key, ham_s32_t *slot)
+btree_get_slot(ham_db_t *db, ham_txn_t *txn, ham_page_t *page, 
+        ham_key_t *key, ham_s32_t *slot)
 {
     int cmp;
     ham_size_t i;
@@ -28,7 +29,7 @@ btree_get_slot(ham_db_t *db, ham_page_t *page, ham_key_t *key, ham_s32_t *slot)
      * TODO der compare pub_to_int(key, 0) passiert weiter unten 
      * auch nochmal! nur einmal aufrufen...
      */
-    cmp=key_compare_pub_to_int(page, key, 0);
+    cmp=key_compare_pub_to_int(txn, page, key, 0);
     if (db_get_error(db))
         return (db_get_error(db));
     if (cmp<0) {
@@ -40,13 +41,13 @@ btree_get_slot(ham_db_t *db, ham_page_t *page, ham_key_t *key, ham_s32_t *slot)
      * otherwise search all but the last element
      */
     for (i=0; i<btree_node_get_count(node)-1; i++) {
-        cmp=key_compare_pub_to_int(page, key, i);
+        cmp=key_compare_pub_to_int(txn, page, key, i);
         if (db_get_error(db))
             return (db_get_error(db));
         if (cmp<0) /* TODO kann das überhaupt passieren?? */
             continue;
 
-        cmp=key_compare_pub_to_int(page, key, i+1);
+        cmp=key_compare_pub_to_int(txn, page, key, i+1);
         if (db_get_error(db))
             return (db_get_error(db));
         if (cmp<0) {
@@ -120,6 +121,7 @@ my_fun_create(ham_btree_t *be, ham_u32_t flags)
      * and make sure that this number is even
      */
     maxkeys=my_calc_maxkeys(db);
+    maxkeys=4;
     btree_set_maxkeys(be, maxkeys);
 
     /*
@@ -207,7 +209,7 @@ btree_traverse_tree(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
     ham_assert(btree_node_get_count(node)>0, 0, 0);
     ham_assert(btree_node_get_ptr_left(node)!=0, 0, 0);
 
-    st=btree_get_slot(db, page, key, &slot);
+    st=btree_get_slot(db, txn, page, key, &slot);
     if (st)
         return (0);
 
@@ -218,14 +220,16 @@ btree_traverse_tree(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
         return (db_fetch_page(db, txn, btree_node_get_ptr_left(node), 0));
     else {
         bte=btree_node_get_key(db, node, slot);
-        ham_assert(key_get_flags(bte)==0, "invalid key flags 0x%x", 
-                key_get_flags(bte));
+        ham_assert(key_get_flags(bte)==0 || 
+                key_get_flags(bte)==KEY_BLOB_SIZE_BIG,
+                "invalid key flags 0x%x", key_get_flags(bte));
         return (db_fetch_page(db, txn, key_get_ptr(bte), 0));
     }
 }
 
 ham_s32_t 
-btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key)
+btree_node_search_by_key(ham_db_t *db, ham_txn_t *txn, 
+        ham_page_t *page, ham_key_t *key)
 {
     int cmp;
     ham_size_t i;
@@ -234,7 +238,7 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key)
     db_set_error(db, 0);
 
     for (i=0; i<btree_node_get_count(node); i++) {
-        cmp=key_compare_int_to_pub(page, i, key);
+        cmp=key_compare_int_to_pub(txn, page, i, key);
         if (db_get_error(db))
             return (-1);
         if (cmp==0)

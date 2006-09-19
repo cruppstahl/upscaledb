@@ -17,6 +17,7 @@
 #include "btree.h"
 #include "version.h"
 #include "txn.h"
+#include "blob.h"
 
 static ham_status_t 
 my_write_page(ham_db_t *db, ham_page_t *page)
@@ -301,6 +302,23 @@ db_alloc_page_device(ham_page_t *page, ham_u32_t flags)
 }
 
 int 
+db_default_prefix_compare(const ham_u8_t *lhs, ham_size_t lhs_length, 
+                   ham_size_t lhs_real_length,
+                   const ham_u8_t *rhs, ham_size_t rhs_length,
+                   ham_size_t rhs_real_length)
+{
+    int m;
+    ham_size_t min_length=lhs_length<rhs_length?lhs_length:rhs_length;
+
+    m=memcmp(lhs, rhs, min_length);
+    if (m<0)
+        return (-1);
+    if (m>0)
+        return (+1);
+    return (HAM_PREFIX_REQUEST_FULLKEY);
+}
+
+int 
 db_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length, 
                    const ham_u8_t *rhs, ham_size_t rhs_length)
 {
@@ -308,112 +326,152 @@ db_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
 
     /* 
      * the default compare uses memcmp
+     *
+     * treat shorter strings as "higher"
      */
     if (lhs_length<rhs_length) {
         m=memcmp(lhs, rhs, lhs_length);
-        if (m==0)
+        if (m<0)
             return (-1);
-        else
-            return (0);
+        if (m>0)
+            return (+1);
+        return (-1);
     }
 
     else if (rhs_length<lhs_length) {
         m=memcmp(lhs, rhs, rhs_length);
-        if (m==0)
-            return (1);
-        else
-            return (0);
+        if (m<0)
+            return (-1);
+        if (m>0)
+            return (+1);
+        return (+1);
     }
 
-    return (memcmp(lhs, rhs, lhs_length));
+    m=memcmp(lhs, rhs, lhs_length);
+    if (m<0)
+        return (-1);
+    if (m>0)
+        return (+1);
+    return (0);
 }
 
 int
-db_compare_keys(ham_db_t *db, ham_page_t *page,
-                long lhs_idx, ham_u32_t lhs_flags, const ham_u8_t *lhs, 
-                ham_size_t lhs_length, ham_size_t lhs_real_length, 
-                long rhs_idx, ham_u32_t rhs_flags, const ham_u8_t *rhs, 
-                ham_size_t rhs_length, ham_size_t rhs_real_length)
+db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
+                long lhs_idx, ham_u32_t lhs_flags, 
+                const ham_u8_t *lhs, ham_size_t lhs_length, 
+                long rhs_idx, ham_u32_t rhs_flags, 
+                const ham_u8_t *rhs, ham_size_t rhs_length)
 {
-#if 0 /* @@@ */
-    ham_ext_key_t *ext;
-    ham_size_t lhsprefixlen, rhsprefixlen;
-    ham_prefix_compare_func_t prefoo=db_get_prefix_compare_func(db);
-#endif
-
-    int cmp=0;
+    int cmp=HAM_PREFIX_REQUEST_FULLKEY;
     ham_compare_func_t foo=db_get_compare_func(db);
+    ham_prefix_compare_func_t prefoo=db_get_prefix_compare_func(db);
+    ham_status_t st;
+    ham_record_t lhs_record, rhs_record;
+    ham_u8_t *plhs=0, *prhs=0;
+
     db_set_error(db, 0);
 
     /*
      * need prefix compare? 
      */
-    if (lhs_real_length<=lhs_length && rhs_real_length<=rhs_length) {
+    if (!(lhs_flags&KEY_BLOB_SIZE_BIG) && !(rhs_flags&KEY_BLOB_SIZE_BIG)) {
         /*
          * no!
          */
         return (foo(lhs, lhs_length, rhs, rhs_length));
     }
 
-#if 0 /* @@@ */
     /*
      * yes! - run prefix comparison, but only if we have a prefix
      * comparison function
      */
     if (prefoo) {
-        lhsprefixlen=lhs_length==lhs_real_length 
-                ? lhs_length 
-                : lhs_length-sizeof(ham_offset_t);
-        rhsprefixlen=rhs_length==rhs_real_length 
-                ? rhs_length 
-                : rhs_length-sizeof(ham_offset_t);
-        cmp=prefoo(lhs, lhsprefixlen, lhs_real_length, 
-            rhs, rhsprefixlen, rhs_real_length);
+        ham_size_t lhsprefixlen, rhsprefixlen;
+
+        if (lhs_flags&KEY_BLOB_SIZE_BIG) 
+            lhsprefixlen=db_get_keysize(db)-sizeof(ham_offset_t);
+        else
+            lhsprefixlen=lhs_length;
+
+        if (rhs_flags&KEY_BLOB_SIZE_BIG) 
+            rhsprefixlen=db_get_keysize(db)-sizeof(ham_offset_t);
+        else
+            rhsprefixlen=rhs_length;
+        
+        cmp=prefoo(lhs, lhsprefixlen, lhs_length, rhs, 
+                rhsprefixlen, rhs_length);
         if (db_get_error(db))
             return (0);
     }
-    if (!prefoo || cmp==HAM_PREFIX_REQUEST_FULLKEY) {
-        /*
-         * load the full key
-         * 1. check if an extkeys-array is loaded (if not, allocate memory)
-         */
-        if (!page_get_extkeys(page)) {
-            ext=(ham_ext_key_t *)ham_mem_alloc(db_get_maxkeys(db)*
-                    sizeof(ham_ext_key_t));
-            if (!ext) {
-                db_set_error(db, HAM_OUT_OF_MEMORY);
-                return (0);
-            }
-            memset(ext, 0, db_get_maxkeys(db)*sizeof(ham_ext_key_t));
-            page_set_extkeys(page, ext);
-        }
 
+    if (cmp==HAM_PREFIX_REQUEST_FULLKEY) {
         /*
-         * 2. make sure that both keys are loaded; if not, load them from 
-         * disk
+         * 1. load the first key, if needed
          */
-        ext=page_get_extkeys(page);
-        if (lhs_length!=lhs_real_length && ext[lhs_idx].data==0) {
-            ham_assert(lhs_idx!=-1, "invalid rhs_index -1", 0);
-            if (!(lhs=my_load_key(db, &ext[lhs_idx], lhs, lhs_length,
-                            lhs_real_length)))
-                return (0);
-            lhs_length=lhs_real_length;
+        if (lhs_flags&KEY_BLOB_SIZE_BIG) {
+            ham_offset_t blobid;
+
+            memset(&lhs_record, 0, sizeof(lhs_record));
+
+            blobid=*(ham_offset_t *)(lhs+(db_get_keysize(db)-
+                    sizeof(ham_offset_t)));
+
+            st=blob_read(db, txn, blobid, &lhs_record, 0);
+            if (st) {
+                db_set_error(db, st);
+                goto bail;
+            }
+
+/*plhs=(ham_u8_t *)ham_mem_alloc(lhs_length);*/
+            plhs=(ham_u8_t *)ham_mem_alloc(lhs_record.size+db_get_keysize(db));
+            if (!plhs) {
+                db_set_error(db, HAM_OUT_OF_MEMORY);
+                goto bail;
+            }
+            memcpy(plhs, lhs, db_get_keysize(db)-sizeof(ham_offset_t));
+            memcpy(plhs+(db_get_keysize(db)-sizeof(ham_offset_t)),
+                    lhs_record.data, lhs_record.size);
         }
-        if (rhs_length!=rhs_real_length && ext[rhs_idx].data==0) {
-            ham_assert(rhs_idx!=-1, "invalid rhs_index -1", 0);
-            if (!(rhs=my_load_key(db, &ext[rhs_idx], rhs, rhs_length, 
-                            rhs_real_length)))
-                return (0);
-            rhs_length=rhs_real_length;
+        
+        /*
+         * 2. load the second key, if needed
+         */
+        if (rhs_flags&KEY_BLOB_SIZE_BIG) {
+            ham_offset_t blobid;
+
+            memset(&rhs_record, 0, sizeof(rhs_record));
+
+            blobid=*(ham_offset_t *)(rhs+(db_get_keysize(db)-
+                    sizeof(ham_offset_t)));
+
+            st=blob_read(db, txn, blobid, &rhs_record, 0);
+            if (st) {
+                db_set_error(db, st);
+                goto bail;
+            }
+
+            prhs=(ham_u8_t *)ham_mem_alloc(rhs_record.size+db_get_keysize(db));
+            if (!prhs) {
+                db_set_error(db, HAM_OUT_OF_MEMORY);
+                goto bail;
+            }
+
+            memcpy(prhs, rhs, db_get_keysize(db)-sizeof(ham_offset_t));
+            memcpy(prhs+(db_get_keysize(db)-sizeof(ham_offset_t)),
+                    rhs_record.data, rhs_record.size);
         }
 
         /*
          * 3. run the comparison function
          */
-        return (foo(lhs, lhs_length, rhs, rhs_length));
+        cmp=foo(plhs ? plhs : lhs, lhs_length, prhs ? prhs : rhs, rhs_length);
     }
-#endif
+
+bail:
+    if (plhs)
+        ham_mem_free(plhs);
+    if (prhs)
+        ham_mem_free(prhs);
 
     return (cmp);
 }
@@ -464,9 +522,11 @@ db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
     /*
      * first, check if the page is in the txn
      */
-    page=txn_get_page(txn, address);
-    if (page)
-        return (page);
+    if (txn) {
+        page=txn_get_page(txn, address);
+        if (page)
+            return (page);
+    }
 
     /*
      * if we have a cache: fetch the page from the cache
@@ -496,7 +556,7 @@ db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
     st=my_read_page(db, address, page);
     if (st) {
         db_set_error(db, st);
-        (void)cache_move_to_garbage(db_get_cache(db), page);
+        (void)db_free_page_struct(page);
         return (0);
     }
     page_set_self(page, address);
@@ -504,11 +564,13 @@ db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
     /*
      * add the page to the transaction
      */
-    st=txn_add_page(txn, page);
-    if (st) {
-        db_set_error(db, st);
-        (void)cache_move_to_garbage(db_get_cache(db), page);
-        return (0);
+    if (txn) {
+        st=txn_add_page(txn, page);
+        if (st) {
+            db_set_error(db, st);
+            (void)db_free_page_struct(page);
+            return (0);
+        }
     }
 
     /*

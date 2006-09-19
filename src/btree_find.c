@@ -50,7 +50,7 @@ btree_find(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
     }
 
     /* check the leaf page for the key */
-    idx=btree_node_search_by_key(db, page, key);
+    idx=btree_node_search_by_key(db, txn, page, key);
     if (db_get_error(db))
         return (db_get_error(db));
     if (idx<0) {

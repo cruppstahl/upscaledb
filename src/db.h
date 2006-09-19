@@ -327,9 +327,6 @@ struct ham_db_t
  * on error, the database error code (db_get_error()) is set; the caller
  * HAS to check for this error!
  *
- */
-
-/**
  * the default key compare function - uses memcmp
  */
 extern int 
@@ -337,16 +334,25 @@ db_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
                    const ham_u8_t *rhs, ham_size_t rhs_length);
 
 /**
+ * the default prefix compare function - uses memcmp
+ */
+extern int 
+db_default_prefix_compare(const ham_u8_t *lhs, ham_size_t lhs_length, 
+                   ham_size_t lhs_real_length,
+                   const ham_u8_t *rhs, ham_size_t rhs_length,
+                   ham_size_t rhs_real_length);
+
+/**
  * function which compares two keys
  *
  * calls the comparison function
  */
 extern int
-db_compare_keys(ham_db_t *db, ham_page_t *page,
-                long lhs_idx, ham_u32_t lhs_flags, const ham_u8_t *lhs, 
-                ham_size_t lhs_length, ham_size_t lhs_real_length, 
-                long rhs_idx, ham_u32_t rhs_flags, const ham_u8_t *rhs, 
-                ham_size_t rhs_length, ham_size_t rhs_real_length);
+db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
+                long lhs_idx, ham_u32_t lhs_flags, 
+                const ham_u8_t *lhs, ham_size_t lhs_length, 
+                long rhs_idx, ham_u32_t rhs_flags, 
+                const ham_u8_t *rhs, ham_size_t rhs_length);
 
 /**
  * create a backend object according to the database flags

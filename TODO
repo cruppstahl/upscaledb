@@ -1,75 +1,44 @@
 
-x in-memory-database
-    x parameter für test-programm
-    x implementieren
-    x test 220 crasht noch (OHNE in-memory-db!)
-    x test 45 crasht noch, an der selben stelle
-    x test 220 crasht bei in_memory_db in ham_close (enumerieren und 
-       freigeben der blobs) 
-    x 220.tst: 2 memory-leaks, 45.tst ist ok
-    x freelist komplett deaktivieren
-
------------------------------------------------------
-
-x test 45 hat 2 memory leaks
-
------------------------------------------------------
-
-x sicherstellen dass die freelist wirklich benutzt wird - bin mir da 
-    nicht so sicher... -- ja, wird sie!
-
------------------------------------------------------
-
 x dbtest.py erweitern
     x alle argv-argumente an ./test weitergeben 
         (für --inmemorydb, --profile, --dump etc)
     x bei environment-variable mit valgrind aufrufen und nach fehlern checken
+    x funktioniert momentan nicht, nochmal nach nem reboot versuchen. 
+        berkeleydb blockt in db->open()
 
 -----------------------------------------------------
 
-x bei ham_open kann man keine cachesize angeben...
-    evtl sollte es auch ein ham_open_ex geben
+x extended keys
+    x research: berkeleydb
+    x research: sqlite
+    x research: ixam
 
------------------------------------------------------
+    x btree_insert erweitern
+    x btree_erase erweitern
+    x key comparison erweitern (einfach den key nachladen)
 
-o extended keys
-    o research: berkeleydb
-    o research: sqlite
-    o research: ixam
+    x testen
+    x zweistufige key-comparison (prefix)
+    x testen
 
-    o store_key(ham_key_t *key, internal_key_t *intkey);
-    o load_key(internal_key_t *intkey, ham_key_t *key);
-    o replace_key(internal_key_t *intkey, ham_key_t *key);
-    o erase_key(internal_key_t *intkey, ham_key_t *key);
-
-    o wie verhält sich der default-comparator (bei ungleichen keygrössen)?
-        1. memcmp auf prefix
-        2. identisch? wenn ein key kürzer ist als der andere, und vollständig
-            vorliegt: kurzer key ist "vorher"
-        3. sonst keys nachladen, wie bei 2) weiter
-
-    o eventuell wäre es gut, wenn die gebufferten extended keys global 
-        gespeichert werden, nicht bei der page; dadurch müssen wir keine
-        shifts/moves machen; nur wenn eine page komplett (aus dem
-        cache oder der datei) gelöscht wird, müssen die keys raus; oder 
-        wenn ein key-eintrag gelöscht wird. sonst gibt's keine weiteren
-        operationen, und evtl können wir die geschwindigkeit halbwegs 
-        schnell kriegen (hash-tabelle).
-        o extkey_get(name, extkey *) - lädt notfalls key von der platte
-        o extkey_remove(extkey *)
-        o extkey_put(extkey *, name)
-        o extkey_replace(extkey *, name)
+    x neue testreihen
+    x valgrind-tests
 
 -----------------------------------------------------
 
 o replace/overwrite keys
     o implementieren
-    o neue testreihen erstellen!!
+    o neue testreihen erstellen!! - brauchen wir nicht, die alten haben
+        genug; allerdings muss der test geändert werden, damit er das 
+        flag setzt
 
 -----------------------------------------------------
 -----------------------------------------------------
 
 o prerelease 0.02
+    o copyright-statements überprüfen
+    o lizenz-nummer rausnehmen, ist sonst nicht mehr 
+        100% open source
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -261,6 +230,14 @@ o admin-tool(s) fuer dump, stats, reorg
 o KEINE valgrind-fehler!
 
 -----------------------------------------------------
+
+o extended keys
+    o hash-table zum cachen der extended keys
+        o insert
+        o erase
+        o replace
+        o find
+        o purge
 
 o backend
     o darauf hinarbeiten dass später mal mehrere backends in einer datei

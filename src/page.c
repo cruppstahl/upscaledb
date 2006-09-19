@@ -52,8 +52,9 @@ my_validage_page(ham_page_t *p)
     /*
      * not allowed: unknown page types
      */
-    ham_assert(page_get_type(p)!=PAGE_TYPE_UNKNOWN, 
-            "page type is unknown", 0);
+    if (page_get_pers(p))
+        ham_assert(page_get_type(p)!=PAGE_TYPE_UNKNOWN, 
+                "page type is unknown", 0);
 }
 
 ham_page_t *

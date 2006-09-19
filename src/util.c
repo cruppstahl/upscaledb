@@ -20,5 +20,6 @@ util_copy_key(const ham_key_t *source, ham_key_t *dest)
 
     memcpy(dest->data, source->data, source->size);
     dest->size=source->size;
+    dest->_flags=source->_flags;
     return (dest);
 }
