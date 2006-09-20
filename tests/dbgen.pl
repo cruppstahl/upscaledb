@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 
 #
-# script for generating tests with variable length keys
+# Copyright (C) 2005, 2006 Christoph Rupp (chris@crupp.de)
+# see file COPYING for licence information
 #
-# (C) Christoph Rupp, chris@crupp.de
-# Di Sep 19 13:02:31 GMT 2006
+# script for generating tests with variable length keys
 #
 
 

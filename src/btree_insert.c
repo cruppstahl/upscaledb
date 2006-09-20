@@ -65,8 +65,8 @@ typedef struct
 /*
  * flags for my_insert_nosplit()
  */
-#define NOFLUSH   1
-#define OVERWRITE 2
+#define NOFLUSH   0x1000    /* avoid conflicts with public flags */
+#define OVERWRITE HAM_OVERWRITE
 
 /*
  * this is the function which does most of the work - traversing to a 
@@ -222,7 +222,7 @@ my_insert_recursive(ham_page_t *page, ham_key_t *key,
          */
         case SPLIT:
             st=my_insert_in_page(page, &scratchpad->key, 
-                        scratchpad->rid, OVERWRITE, scratchpad);
+                        scratchpad->rid, HAM_OVERWRITE, scratchpad);
             break;
 
         /*
@@ -261,7 +261,7 @@ my_insert_in_page(ham_page_t *page, ham_key_t *key,
     if (btree_node_is_leaf(node)) {
         if (btree_node_search_by_key(page_get_owner(page), scratchpad->txn, 
                     page, key)>=0) {
-            if (flags&OVERWRITE) 
+            if (flags&HAM_OVERWRITE) 
                 return (my_insert_nosplit(page, scratchpad->txn, key, rid, 
                         scratchpad->record, flags));
             else
@@ -277,6 +277,7 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
         ham_offset_t rid, ham_record_t *record, ham_u32_t flags)
 {
     int cmp;
+    ham_bool_t overwrite=HAM_FALSE;
     ham_size_t i, count, keysize;
     key_t *bte=0;
     btree_node_t *node;
@@ -300,15 +301,17 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
          * key exists already
          */
         if (cmp==0) {
-            if (flags&OVERWRITE) {
+            if (flags&HAM_OVERWRITE) {
                 /* 
-                 * TODO no need to overwrite the key - it already exists! 
-                 * ATTENTION with extended keys! need to be overwritten, too 
-                key_set_key(bte, key->data, keysize);
-                btree_entry_set_size(bte, key->size);
-                page_set_dirty(page, 1);
+                 * no need to overwrite the key - it already exists! 
+                 * however, we have to overwrite the data!
                  */
-                return (HAM_SUCCESS);
+                if (btree_node_is_leaf(node)) {
+                    overwrite=HAM_TRUE;
+                    break;
+                }
+                else
+                    return (HAM_SUCCESS);
             }
             else
                 return (HAM_DUPLICATE_KEY);
@@ -342,8 +345,15 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
      */
     if (btree_node_is_leaf(node) && record->size>sizeof(ham_offset_t)) {
         ham_status_t st;
-        if ((st=blob_allocate(db, txn, record->data, record->size, 0, &rid)))
-            return (st);
+        if (overwrite) {
+            return (blob_replace(db, txn, key_get_ptr(bte), record->data, 
+                            record->size, 0, &rid));
+        }
+        else {
+            if ((st=blob_allocate(db, txn, record->data, 
+                            record->size, 0, &rid)))
+                return (st);
+        }
     }
 
     /*

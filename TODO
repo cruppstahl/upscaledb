@@ -23,14 +23,13 @@ x extended keys
 
     x neue testreihen
     x valgrind-tests
+    x tests einchecken
 
 -----------------------------------------------------
 
-o replace/overwrite keys
-    o implementieren
-    o neue testreihen erstellen!! - brauchen wir nicht, die alten haben
-        genug; allerdings muss der test geändert werden, damit er das 
-        flag setzt
+x replace/overwrite keys
+    x implementieren
+    x test ändern, damit er das OVERWRITE-flag setzt
 
 -----------------------------------------------------
 -----------------------------------------------------

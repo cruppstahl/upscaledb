@@ -121,7 +121,6 @@ my_fun_create(ham_btree_t *be, ham_u32_t flags)
      * and make sure that this number is even
      */
     maxkeys=my_calc_maxkeys(db);
-    maxkeys=4;
     btree_set_maxkeys(be, maxkeys);
 
     /*

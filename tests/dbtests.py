@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Copyright (C) 2005, 2006 Christoph Rupp (chris@crupp.de)
+# see file LICENSE for license and copyright information
+#
 # a simple skript: iterate over all files in ./testfiles/db and call
 # the test program, till we get an error
 

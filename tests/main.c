@@ -1,3 +1,10 @@
+/**
+ * Copyright (C) 2005, 2006 Christoph Rupp (chris@crupp.de)
+ * see file COPYING for licence information
+ *
+ * unit test; reads and executes test files; compares hamsterdb
+ * to berkeleydb
+ */
 
 #include <assert.h>
 #include <unistd.h>

@@ -257,10 +257,15 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  * insert a database entry
  *
  * @remark set 'reserved' to NULL
+ *
+ * @remark see below for valid flags
  */
 extern ham_status_t
 ham_insert(ham_db_t *db, void *reserved, ham_key_t *key, 
         ham_record_t *record, ham_u32_t flags);
+
+/** insert-flag: overwrite the key/record pair, if it exists */
+#define HAM_OVERWRITE               1
 
 /** 
  * erase a database entry
