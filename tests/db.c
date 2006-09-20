@@ -47,6 +47,7 @@ static ham_u64_t g_tv1, g_tv2;
 #define ARG_BACKEND2    7
 #define ARG_DUMP        9
 #define ARG_INMEMORY   10
+#define ARG_OVERWRITE  11
 
 #define BACKEND_NONE    0
 #define BACKEND_HAMSTER 1
@@ -72,6 +73,9 @@ static struct {
 
     /* in-memory-database?  */
     unsigned inmemory;
+
+    /* overwrite keys?  */
+    unsigned overwrite;
 
     /* do profile?  */
     unsigned profile;
@@ -157,6 +161,12 @@ static option_t opts[]={
         "inmem",
         "inmemorydb",
         "create in-memory-databases (if available)",
+        0 },
+    {
+        ARG_OVERWRITE,
+        "over",
+        "overwrite",
+        "overwrite existing keys",
         0 },
     { 0, 0, 0, 0, 0 }
 };
@@ -621,7 +631,7 @@ my_execute_insert(char *line)
                 record.data=data_size ? data : 0;
 
                 config.retval[i]=config.dbp->put(config.dbp, 0, &key, &record, 
-                        DB_NOOVERWRITE);
+                        config.overwrite?0:DB_NOOVERWRITE);
                 PROFILE_STOP(i);
                 VERBOSE2("inserting into backend %d (berkeley): status %d",
                         i, (int)config.retval[i]);
@@ -652,7 +662,9 @@ my_execute_insert(char *line)
                 record.size=data_size;
                 record.data=data_size ? data : 0;
 
-                config.retval[i]=ham_insert(config.hamdb, 0, &key, &record, 0);
+                config.retval[i]=ham_insert(config.hamdb, 0,
+                        &key, &record, 
+                        config.overwrite?HAM_OVERWRITE:0);
                 PROFILE_STOP(i);
                 VERBOSE2("inserting into backend %d (hamster): status %d", 
                         i, (ham_status_t)config.retval[i]);
@@ -877,6 +889,9 @@ test_db(const char *filename)
         }
         else if (opt==ARG_INMEMORY) {
             config.inmemory=1;
+        }
+        else if (opt==ARG_OVERWRITE) {
+            config.overwrite=1;
         }
         else if (opt==GETOPTS_UNKNOWN) {
             ham_trace("unknown parameter %s", param);
