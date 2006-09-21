@@ -1,0 +1,165 @@
+/**
+ * Copyright (C) 2005, 2006 Christoph Rupp (chris@crupp.de)
+ * see file LICENSE for license and copyright information
+ *
+ * a simple example
+ */
+
+#include <unistd.h> /* for unlink */
+#include <stdio.h>
+#include <string.h>
+#include <ham/hamsterdb.h>
+
+#define LOOP 10
+
+int 
+main(int argc, char **argv)
+{
+    int i;
+    ham_status_t st;    /* status variable */
+    ham_db_t *db;       /* hamsterdb database object */
+
+    /*
+     * before we start: delete "test.db" 
+     */
+    (void)unlink("test.db");
+
+    /*
+     * first step: create a new hamsterdb object 
+     */
+    st=ham_new(&db);
+    if (st!=HAM_SUCCESS) {
+        printf("ham_new() failed with error %d\n", st);
+        return (-1);
+    }
+
+    /*
+     * second step: create a new hamsterdb database
+     *
+     * we could also use ham_create_ex() if we wanted to specify the 
+     * page size, key size or cache size limits
+     */
+    st=ham_create(db, "test.db", 0, 0664);
+    if (st!=HAM_SUCCESS) {
+        printf("ham_create() failed with error %d\n", st);
+        return (-1);
+    }
+
+    /*
+     * now we can insert, delete or lookup values in the database
+     *
+     * for our test program, we just insert a few values, then look them 
+     * up, then delete them and try to look them up again (which will fail).
+     */
+    for (i=0; i<LOOP; i++) {
+        ham_key_t key;
+        ham_record_t record;
+
+        memset(&key, 0, sizeof(key));
+        key.size=sizeof(i);
+        key.data=&i;
+
+        memset(&record, 0, sizeof(record));
+        record.size=sizeof(i);
+        record.data=&i;
+
+        /* note: the second parameter of ham_insert() is reserved; set it to 
+         * NULL */
+        st=ham_insert(db, 0, &key, &record, 0);
+        if (st!=HAM_SUCCESS) {
+            printf("ham_insert() failed with error %d\n", st);
+            return (-1);
+        }
+    }
+
+    /*
+     * now lookup all values
+     *
+     * for ham_find(), we could use the flag HAM_RECORD_USER_ALLOC, if WE
+     * allocate record.data (otherwise the memory is automatically allocated
+     * by hamsterdb)
+     */
+    for (i=0; i<LOOP; i++) {
+        ham_key_t key;
+        ham_record_t record;
+
+        memset(&key, 0, sizeof(key));
+        key.size=sizeof(i);
+        key.data=&i;
+
+        memset(&record, 0, sizeof(record));
+
+        /* note: the second parameter of ham_find() is reserved; set it to 
+         * NULL */
+        st=ham_find(db, 0, &key, &record, 0);
+        if (st!=HAM_SUCCESS) {
+            printf("ham_find() failed with error %d\n", st);
+            return (-1);
+        }
+
+        /*
+         * check if the value is ok
+         */
+        if (*(int *)record.data!=i) {
+            printf("ham_find() ok, but returned bad value\n");
+            return (-1);
+        }
+    }
+
+    /*
+     * now erase all values
+     */
+    for (i=0; i<LOOP; i++) {
+        ham_key_t key;
+
+        memset(&key, 0, sizeof(key));
+        key.size=sizeof(i);
+        key.data=&i;
+
+        /* note: the second parameter of ham_erase() is reserved; set it to 
+         * NULL */
+        st=ham_erase(db, 0, &key, 0);
+        if (st!=HAM_SUCCESS) {
+            printf("ham_erase() failed with error %d\n", st);
+            return (-1);
+        }
+    }
+
+    /*
+     * once more we try to find all values... every ham_find() call must
+     * now fail with HAM_KEY_NOT_FOUND
+     */
+    for (i=0; i<LOOP; i++) {
+        ham_key_t key;
+        ham_record_t record;
+
+        memset(&key, 0, sizeof(key));
+        key.size=sizeof(i);
+        key.data=&i;
+
+        memset(&record, 0, sizeof(record));
+
+        st=ham_find(db, 0, &key, &record, 0);
+        if (st!=HAM_KEY_NOT_FOUND) {
+            printf("ham_find() returned bad status %d\n", st);
+            return (-1);
+        }
+    }
+
+    /*
+     * we're done! close the database handle
+     */
+    st=ham_close(db);
+    if (st!=HAM_SUCCESS) {
+        printf("ham_close() failed with error %d\n", st);
+        return (-1);
+    }
+
+    /*
+     * delete the database object to avoid memory leaks
+     */
+    ham_delete(db);
+
+    printf("success!\n");
+    return (0);
+}

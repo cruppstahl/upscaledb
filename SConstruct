@@ -8,4 +8,5 @@
 
 SConscript('src/SConscript', build_dir='build', duplicate=0)
 SConscript('tests/SConscript')
+SConscript('samples/SConscript')
 #SConscript('tools/SConscript') -- TODO broken

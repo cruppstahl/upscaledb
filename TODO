@@ -1,42 +1,13 @@
 
-x dbtest.py erweitern
-    x alle argv-argumente an ./test weitergeben 
-        (für --inmemorydb, --profile, --dump etc)
-    x bei environment-variable mit valgrind aufrufen und nach fehlern checken
-    x funktioniert momentan nicht, nochmal nach nem reboot versuchen. 
-        berkeleydb blockt in db->open()
-
 -----------------------------------------------------
 
-x extended keys
-    x research: berkeleydb
-    x research: sqlite
-    x research: ixam
+o einfaches tutorial/sample
 
-    x btree_insert erweitern
-    x btree_erase erweitern
-    x key comparison erweitern (einfach den key nachladen)
+o auf 32bit-rechner testen
 
-    x testen
-    x zweistufige key-comparison (prefix)
-    x testen
+o brauchen wir HAM_OS_LIN32??
 
-    x neue testreihen
-    x valgrind-tests
-    x tests einchecken
-
------------------------------------------------------
-
-x replace/overwrite keys
-    x implementieren
-    x test ändern, damit er das OVERWRITE-flag setzt
-
------------------------------------------------------
------------------------------------------------------
-
-x prerelease 0.02
-    x copyright-statements überprüfen
-    x freshmeat-announcement
+o ham_strerror()-funktion überarbeiten
 
 -----------------------------------------------------
 -----------------------------------------------------
