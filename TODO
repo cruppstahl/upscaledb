@@ -34,10 +34,9 @@ x replace/overwrite keys
 -----------------------------------------------------
 -----------------------------------------------------
 
-o prerelease 0.02
-    o copyright-statements überprüfen
-    o lizenz-nummer rausnehmen, ist sonst nicht mehr 
-        100% open source
+x prerelease 0.02
+    x copyright-statements überprüfen
+    x freshmeat-announcement
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -65,25 +64,8 @@ o profiling! aber mit der release-version...
 -----------------------------------------------------
 -----------------------------------------------------
 
-o iteratoren (nicht in version 0.10)
-    o in-memory-db: finden wir ne möglichkeit, normale datenbanken in 
-        in-memory zu importieren und umgekehrt wieder zu exportieren? 
-        das wäre genial
-        --> geht mit iteratoren (erst release 2.0!):
-            iterator from=db1.begin()
-            while (from)
-                db2.append(from)
-                from.next()
-        --> geht auch mit der enum-funktion, die jetzt schon drin ist
+o endianness testen
 
------------------------------------------------------
-
-o duplicate keys (nicht in version 0.10)
-    jeder key bekommt einen dupcounter; der wird mit unsigned(-1) initialisiert
-    beim einfuegen wird rekursiv abgestiegen. im leaf wird dann ein neuer key
-    eingefuegt, mit dem dupcounter=existierender ("kleinster") key minus 1.
-
------------------------------------------------------
 -----------------------------------------------------
 
 o tests
@@ -211,24 +193,55 @@ x TXN raus (wir können die txn's auch komplett
     kaufen müssen)
 x caching
 x memory-mapped access
-o in memory-datenbanken
+x in memory-datenbanken
+x overwrite keys
+x extended keys
+x erzeugt .dll/.so
 o performance vergleichbar mit berkeley-db
-o overwrite keys
-o extended keys
-o erzeugt .dll/.so
 o compiliert unter linux, windows, darwin, 32bit und 64bit, unter windows
     mit mingw, icc, msvc, borland, watcom
 o legal issues
 o dokumentation: tutorial, interface, FAQ
 o webseite
 o stress-test-tool(s), das ALLE optionen durchprobiert
-o admin-tool(s) fuer dump, stats, reorg
+    mmap
+    r/w
+    in-memory
+    verschiedene pagesizes
+    grosse keys
+    grosse blobs
+o admin-tool(s) fuer dump, stats, repair
     o db_dump: 
         o key/daten dumpen
         o header dumpen
 o KEINE valgrind-fehler!
 
 -----------------------------------------------------
+-----------------------------------------------------
+-----------------------------------------------------
+-----------------------------------------------------
+
+o iteratoren (nicht in version 0.10)
+    o in-memory-db: finden wir ne möglichkeit, normale datenbanken in 
+        in-memory zu importieren und umgekehrt wieder zu exportieren? 
+        das wäre genial
+        --> geht mit iteratoren (erst release 2.0!):
+            iterator from=db1.begin()
+            while (from)
+                db2.append(from)
+                from.next()
+        --> geht auch mit der enum-funktion, die jetzt schon drin ist
+
+-----------------------------------------------------
+
+o duplicate keys (nicht in version 0.10)
+    jeder key bekommt einen dupcounter; der wird mit unsigned(-1) initialisiert
+    beim einfuegen wird rekursiv abgestiegen. im leaf wird dann ein neuer key
+    eingefuegt, mit dem dupcounter=existierender ("kleinster") key minus 1.
+
+-----------------------------------------------------
+-----------------------------------------------------
+
 
 o extended keys
     o hash-table zum cachen der extended keys
