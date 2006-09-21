@@ -157,11 +157,13 @@ ham_strerror(ham_status_t result)
         case HAM_BLOB_NOT_FOUND:
             return ("Data blob not found");
         case HAM_PREFIX_REQUEST_FULLKEY:
-            return ("Comparator needs more data");
-
-        /* fall back to strerror() */
+            return ("Comparator function needs more data");
+        case HAM_IO_ERROR:
+            return ("System I/O error");
+        case HAM_CACHE_FULL:
+            return ("Database cache is full");
         default: 
-            return (strerror(result));
+            return ("Unknown error");
     }
 }
 

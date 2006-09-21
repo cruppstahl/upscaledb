@@ -1,13 +1,15 @@
 
------------------------------------------------------
+x einfaches tutorial/sample
 
-o einfaches tutorial/sample
+x brauchen wir HAM_OS_LIN32?? - nein, ist draussen
 
-o auf 32bit-rechner testen
+x ham_strerror()-funktion überarbeiten
 
-o brauchen wir HAM_OS_LIN32??
+x flag für ham_open: "overwrite existing file" (momentan schlägt ham_open
+    immer fehl) - gibt's schon, HAM_OPEN_CREATE
 
-o ham_strerror()-funktion überarbeiten
+o auf 32bit-rechner testen; können wir die datenbank-dateien
+    hin- und herkopieren?
 
 -----------------------------------------------------
 -----------------------------------------------------

@@ -13,7 +13,7 @@ files=[
     ]
 
 
-cflags    = '-g -pg -Wall -DHAM_DEBUG -DHAM_OS_LIN32'
+cflags    = '-g -pg -Wall -DHAM_DEBUG'
 include   = ['../include']
 libraries = ['hamsterdb', 'db']
 libpaths  = ['../build']

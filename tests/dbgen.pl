@@ -2,7 +2,7 @@
 
 #
 # Copyright (C) 2005, 2006 Christoph Rupp (chris@crupp.de)
-# see file COPYING for licence information
+# see file LICENSE for licence information
 #
 # script for generating tests with variable length keys
 #
