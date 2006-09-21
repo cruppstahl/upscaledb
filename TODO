@@ -8,6 +8,10 @@ x ham_strerror()-funktion überarbeiten
 x flag für ham_open: "overwrite existing file" (momentan schlägt ham_open
     immer fehl) - gibt's schon, HAM_OPEN_CREATE
 
+x COPYING überall umbenennen in LICENSE
+
+o CHANGELOG anfangen
+
 o auf 32bit-rechner testen; können wir die datenbank-dateien
     hin- und herkopieren?
 
