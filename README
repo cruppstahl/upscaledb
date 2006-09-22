@@ -1,0 +1,60 @@
+
+hamsterdb 0.1pre1                               Fr Sep 22 11:18:43 GMT 2006
+(C) Christoph Rupp, chris@crupp.de; www.crupp.de
+
+This is the README file of hamsterdb. 
+
+Contents:
+
+1. About
+
+hamsterdb is a fast and small database engine. You can insert, delete or look
+up key/data pairs. It supports a B+Tree index structure with variable length 
+keys and variable length data records. 
+
+2. Features
+
+- B+Tree with variable length keys
+- Configurable page size and cache size
+- ANSI-C implementation, should be portable on all platforms, also embedded
+- Uses memory mapped I/O for fast disk access (but falls back to read/write if
+  mmap is not available)
+- Uses 64bit file pointers for large databases
+- Endian-independent (not tested, though)
+- Support for in-memory-databases
+
+3. Known Issues/Bugs
+
+- Endian-independence was not (yet) tested
+- Iterators and duplicate items not yet supported
+- No concurrency, no transactions, no SQL support...
+- Only tested on Linux; should compile on most Unices, but definitely not on 
+    Microsoft Windows
+- Some versions of gcc break the library when compiling with enabled
+    optimization (this is reproducable with gcc 3.4.5)
+
+4. Compiling
+
+To compile hamsterdb, you need scons (www.scons.org). hamsterdb does not use
+Makefiles.
+
+After unpacking the tarball, run 'scons' in the root directory. Run 'RELEASE=1
+scons' to build the non-debug, faster version of the library. The compiled 
+libraries are in the '/build'-directory. 
+
+5. Installation
+
+So far, the scons-Skript does not install hamsterdb to /usr/lib or
+/usr/local/lib. You will have to install the files manually.
+
+6. Testing
+
+Scons automatically compiles a simple example program in the directory
+'/samples'. To see hamsterdb in action, just run '/samples/simple'.
+
+7. API Documentation
+
+API documentation is not yet built. The header files in '/include/ham' are 
+commented, though. The next release will provide a doxygen script to 
+generate the documentation from the header files.  
+
