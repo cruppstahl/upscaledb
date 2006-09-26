@@ -1,4 +1,8 @@
 
 
+Sep 22, 2006 - chris
+o added the README-file
+o enabled support for O_LARGEFILE
+
 Sep 21, 2006 - chris
 o renamed COPYING to LICENSE; also renamed the header comments in all files

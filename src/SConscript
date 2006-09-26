@@ -37,6 +37,7 @@ if not os.environ.has_key('RELEASE'):
     cflags  = '-g -Wall -ansi -DHAM_DEBUG -DHAM_OS_POSIX'
 else:
     sfx='rel'
+    #cflags  = '-O3 -Wall -ansi -DHAM_RELEASE -DHAM_OS_POSIX'
     cflags  = '-O3 -Wall -ansi -DHAM_RELEASE -DHAM_OS_POSIX'
 
 env=Environment(CCFLAGS = cflags, CPPPATH = include)

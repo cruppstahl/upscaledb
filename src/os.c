@@ -4,6 +4,8 @@
  *
  */
 
+#define _GNU_SOURCE   1 /* for O_LARGEFILE */
+#define __USE_XOPEN2K 1 /* for ftruncate() */
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
@@ -13,12 +15,18 @@
 #include <fcntl.h>
 #include <ham/hamsterdb.h>
 #include <ham/types.h>
-#define __USE_XOPEN2K 1 /* for ftruncate() */
 #include <unistd.h>
 #include "error.h"
 #include "os.h"
 
 extern int getpagesize();
+
+static void
+my_enable_largefile(int fd)
+{
+    int oflag=fcntl(fd, F_GETFL, 0);
+    fcntl(fd, F_SETFL, oflag|O_LARGEFILE);
+}
 
 ham_size_t
 os_get_pagesize(void)
@@ -119,6 +127,12 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
     *fd=open(filename, osflags, mode);
     if (*fd<0) 
         return (errno);
+
+    /*
+     * enable O_LARGEFILE support
+     */
+    my_enable_largefile(*fd);
+
     return (HAM_SUCCESS);
 }
 
@@ -137,6 +151,12 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
     *fd=open(filename, osflags);
     if (*fd<0) 
         return (errno);
+
+    /*
+     * enable O_LARGEFILE support
+     */
+    my_enable_largefile(*fd);
+
     return (HAM_SUCCESS);
 }
 

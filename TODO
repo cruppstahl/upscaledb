@@ -1,33 +1,66 @@
 
-x einfaches tutorial/sample
 
-x brauchen wir HAM_OS_LIN32?? - nein, ist draussen
 
-x ham_strerror()-funktion überarbeiten
+x 220.tst: schlägt fehl im release-build!
 
-x flag für ham_open: "overwrite existing file" (momentan schlägt ham_open
-    immer fehl) - gibt's schon, HAM_OPEN_CREATE
+    Lese Spezifikationen von /usr/lib/gcc/x86_64-pc-linux-gnu/3.4.5/specs
+    Konfiguriert mit: /var/tmp/portage/gcc-3.4.5/work/gcc-3.4.5/configure
+    --prefix=/usr --bindir=/usr/x86_64-pc-linux-gnu/gcc-bin/3.4.5
+    --includedir=/usr/lib/gcc/x86_64-pc-linux-gnu/3.4.5/include
+    --datadir=/usr/share/gcc-data/x86_64-pc-linux-gnu/3.4.5
+    --mandir=/usr/share/gcc-data/x86_64-pc-linux-gnu/3.4.5/man
+    --infodir=/usr/share/gcc-data/x86_64-pc-linux-gnu/3.4.5/info
+    --with-gxx-include-dir=/usr/lib/gcc/x86_64-pc-linux-gnu/3.4.5/include/g++-v3
+    --host=x86_64-pc-linux-gnu --build=x86_64-pc-linux-gnu --disable-altivec
+    --enable-nls --without-included-gettext --with-system-zlib --disable-checking
+    --disable-werror --disable-libunwind-exceptions --enable-multilib
+    --disable-libgcj --enable-languages=c,c++,f77 --enable-shared
+    --enable-threads=posix --enable-__cxa_atexit --enable-clocale=gnu
+    Thread-Modell: posix
+    gcc-Version 3.4.5 (Gentoo 3.4.5, ssp-3.4.5-1.0, pie-8.7.9)
+    
+-----------------------------------------------------
 
-x COPYING überall umbenennen in LICENSE
+x README anfangen!
 
-o CHANGELOG anfangen
+x O_LARGEFILE setzen
 
-o auf 32bit-rechner testen; können wir die datenbank-dateien
-    hin- und herkopieren?
+x extended keys: tests > ext_020.tst crashen bei --inmemorydb
+
+x extended keys: tests > ext_020.tst crashen mit Bus error
+
+o SCons-Dateien überarbeiten
+    o doc/-verzeichnis mit dokumentation, soll von doxygen automatisch 
+       generiert werden
+    o default-target: macht release-version als statische und dynamische 
+        lib 
+    o kann über kommandozeilenparameter (--enable-static=1/0,
+        --enable-dynamic=1/0) und environment (HAMSTERDB_BUILDOPTS) 
+        überschrieben werden
+    o default-target: macht kein install, gibt aber hinweistext aus
+        ("run 'scons install' to install..." - aber es gibt auch schon
+        ein install-target, das von scons automatisch erzeugt wird!)
+    o compiler-flags: bei gcc<4 kein -O!! und warnmeldung
+    o target 'install' mit installation nach $(PREFIX)/lib,
+        $(PREFIX)/share/doc/hamsterdb, $(PREFIX)/inc
+    o target 'help'
+
+o root-SConscript-Datei geht nicht, weil im release das 'tests'-verzeichnis
+    fehlt! evtl sollte es in hamsterdb-testfiles verschoben werden? 
 
 -----------------------------------------------------
 -----------------------------------------------------
 
 o profiling! aber mit der release-version...
     o in-memory-db
-    o os_mmap
-    o read
+    o mmap
+    o read/write
     o verschiedene page- und keygrössen
     o nur inserts
     o nur inserts ohne blob
     o nur erase
     o nur lookup
-    o auch gegen andere backends (qdbm, sqlite, ...)
+    o auch gegen andere backends (qdbm, itzam)
     o etc etc etc
 
     o können wir drauf verzichten, beim db_page_alloc ein tell, seek, 
@@ -43,6 +76,9 @@ o profiling! aber mit der release-version...
 
 o endianness testen
 
+o auf 32bit-rechner testen; können wir die datenbank-dateien
+    hin- und herkopieren?
+
 -----------------------------------------------------
 
 o tests
@@ -55,6 +91,15 @@ o tests
         o in-memory-db
         o os_mmap
         o read(2)
+
+o stress-test-tool(s), das ALLE optionen durchprobiert
+    mmap
+    r/w
+    in-memory
+    verschiedene pagesizes
+    grosse keys
+    grosse blobs
+    dauertests (mehrere stunden)
 
 -----------------------------------------------------
 
@@ -135,16 +180,27 @@ o stress test mit zufällig fehlschlagenden io-funktionen und zufälligen
 
 --------------
 
+o super-COMPRESSED-mode: keine headerpage, und pagesize auf 128 byte ->
+    super-mini-datenbanken (für embedded) - möglich ohne Aufwand? wird tricky, 
+    weil die page-alloc-funktionen davon ausgehen dass eine adresse 0 ein
+    fehler ist
+
+--------------
+
+o datenbank mit O_EXCL öffnen, bzw mit flock() (und nem wait, falls die 
+    Datenbank gelockt ist) -> Möglichkeit für pseudo-concurrent access bei
+    kurzen, schnellen Zugriffen (z.b. webseite)
+
+--------------
+
 o cache: bucketgrösse in ham_config.h verschieben, eine #define-konstante
     draus machen
 
 --------------
 
-o new flag for create/open: USE_FLOCK calls flock() around insert/erase 
-        (makes mostly sense if cachesize==0)
-
 o profiling: if a page is allocated, allocate more pages, then we have only
     one disk access (???)
+o read ahead?
 
 --------------
 
@@ -175,11 +231,20 @@ x overwrite keys
 x extended keys
 x erzeugt .dll/.so
 o performance vergleichbar mit berkeley-db
+o mal nachschauen was man nach den GPL-Codingrules noch für 
+    dateien braucht
 o compiliert unter linux, windows, darwin, 32bit und 64bit, unter windows
     mit mingw, icc, msvc, borland, watcom
 o legal issues
 o dokumentation: tutorial, interface, FAQ
 o webseite
+    news
+    releases
+    download
+    faq
+    documentation
+    tutorial
+    mailingliste
 o stress-test-tool(s), das ALLE optionen durchprobiert
     mmap
     r/w
@@ -265,7 +330,7 @@ Version 0.2.0
 
 o duplicate keys
 o iteratoren
-o bindings: C++, Python, Perl, PHP
+o bindings: C++, Python, Perl, PHP (mit online-demo!)
 o filter: encryption
 o filter: compression
 

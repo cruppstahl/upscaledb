@@ -590,8 +590,12 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
             if (!st) 
                 memcpy(record->data, &record->_rid, record->size);
         }
-        else 
+        else if (noblob && record->size==0) {
+            st=0; /* no blob available */
+        }
+        else {
             st=blob_read(db, &txn, record->_rid, record, flags);
+        }
     }
 
     if (st) {

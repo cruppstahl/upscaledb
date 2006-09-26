@@ -31,7 +31,8 @@ keys and variable length data records.
 - Only tested on Linux; should compile on most Unices, but definitely not on 
     Microsoft Windows
 - Some versions of gcc break the library when compiling with enabled
-    optimization (this is reproducable with gcc 3.4.5)
+    optimization (this is reproducable with gcc 3.4.5); gcc 4.1.1 works 
+    however
 
 4. Compiling
 
