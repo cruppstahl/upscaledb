@@ -10,12 +10,12 @@ files=[
         "simple.c"
     ]
 
-
-cflags    = '-g -pg -Wall -DHAM_DEBUG -DHAM_OS_LIN32'
-include   = ['../include']
+#cflags    = '-g -pg -Wall -DHAM_DEBUG -DHAM_OS_LIN32'
+#include   = ['../include']
 libraries = ['hamsterdb', 'db']
 libpaths  = ['../build']
 
+Import('env')
+
 # set up the environment
-env=Environment(CCFLAGS = cflags, CPPPATH = include)
 env.Program('simple', files, LIBS = libraries, LIBPATH = libpaths)

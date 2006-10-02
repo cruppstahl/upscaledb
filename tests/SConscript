@@ -13,11 +13,17 @@ files=[
     ]
 
 
-cflags    = '-g -pg -Wall -DHAM_DEBUG'
-include   = ['../include']
 libraries = ['hamsterdb', 'db']
 libpaths  = ['../build']
 
+Import('env')
+
+# we have to remove -ansi from CFLAGS because berkeleyDb doesn't like it
+l=[]
+for f in env['CCFLAGS']:
+    if f!='-ansi':
+        l.append(f)
+env['CCFLAGS']=l
+
 # set up the environment
-env=Environment(CCFLAGS = cflags, CPPPATH = include)
 env.Program('test', files, LIBS = libraries, LIBPATH = libpaths)

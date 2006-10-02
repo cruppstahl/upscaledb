@@ -21,32 +21,61 @@ x 220.tst: schlägt fehl im release-build!
     
 -----------------------------------------------------
 
-x README anfangen!
+x SCons-Dateien überarbeiten
+    x ein build-skript, das folgende targets unterstützt:
+        x help
+        x install (macht auch doc!)
+        x static 
+        x profile=1 (default: off)
+        x debug=0 (default)
+        x debug=1
+        x allclean (rm -rf build)
+        x doc 
+        x sample
+        x testprogramm
+        x shared (default)
 
-x O_LARGEFILE setzen
+    x targets werden über parameter oder config-date geholt
+    x unterstützt erstmal nur gcc
+    x doc-target basiert auf doxygen
+    x compiler-flags: bei gcc<4 kein -O!! und warnmeldung, kann aber mit
+        parameter überschrieben werden
+    x unterstützt 32bit, 64bit, endianness
+        x vorsicht: in ham/config.h wird alles wieder überschrieben!
 
-x extended keys: tests > ext_020.tst crashen bei --inmemorydb
-
-x extended keys: tests > ext_020.tst crashen mit Bus error
-
-o SCons-Dateien überarbeiten
-    o doc/-verzeichnis mit dokumentation, soll von doxygen automatisch 
-       generiert werden
-    o default-target: macht release-version als statische und dynamische 
-        lib 
-    o kann über kommandozeilenparameter (--enable-static=1/0,
-        --enable-dynamic=1/0) und environment (HAMSTERDB_BUILDOPTS) 
-        überschrieben werden
-    o default-target: macht kein install, gibt aber hinweistext aus
-        ("run 'scons install' to install..." - aber es gibt auch schon
-        ein install-target, das von scons automatisch erzeugt wird!)
-    o compiler-flags: bei gcc<4 kein -O!! und warnmeldung
-    o target 'install' mit installation nach $(PREFIX)/lib,
-        $(PREFIX)/share/doc/hamsterdb, $(PREFIX)/inc
-    o target 'help'
+-----------------------------------------------------
 
 o root-SConscript-Datei geht nicht, weil im release das 'tests'-verzeichnis
     fehlt! evtl sollte es in hamsterdb-testfiles verschoben werden? 
+
+-----------------------------------------------------
+
+o doxyfile anlegen
+
+-----------------------------------------------------
+
+o advogato-eintrag?
+
+-----------------------------------------------------
+
+o test-skript überarbeiten
+    o wrapperskript dbtest.py
+        o syntax: ./dbtest.py <dbtest.py-optionen> -- <./test-optionen>
+            dbtest-optionen:
+                o --enable-valgrind/--disable-valgrind
+                o --filelist=list (liste mit testdateien und deren optionen)
+            test-optionen:
+                o --pagesize=\d
+                o --keysize=\d
+                o --cachesize=\d
+                etc (wie gehabt)
+    o 3 wrapper aussenrum mit filelists
+        o short.lst: je 10 tests normal, extended, inmemory, mmap/rw
+        o full.lst: alle tests normal, extended, inmemory, mmap/rw
+        o monster.lst: alle tests normal, extended, inmemory, mmap/rw
+            mit verschiedenen keygrössen, cachegrössen, cachepolicies, 
+            pagegrössen, rw, mmap etc
+    o alle ausgaben kompakt in ein logfile, bei fehlern nicht abbrechen
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -70,6 +99,18 @@ o profiling! aber mit der release-version...
         o pagesplits/merges in bdb zählen
         o bdb: wie gross sind ihre pages? 
         o bdb: wie gross sind ihre keys? 
+
+o extended keys doch cachen? sind sehr langsam im vergleich
+    zu bdb...
+
+o können wir die minkey/maxkey-regel relaxen? also später splitten
+    und später mergen?
+    minkeys=min(4, maxkeys/2)
+    etc
+
+o momentan werden alle pages auf null gesetzt (memset(page->pers->payload, 0))
+    und zwar evtl sogar mehrmals (freelist!)
+    raus damit!
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -100,12 +141,6 @@ o stress-test-tool(s), das ALLE optionen durchprobiert
     grosse keys
     grosse blobs
     dauertests (mehrere stunden)
-
------------------------------------------------------
-
-o momentan werden alle pages auf null gesetzt (memset(page->pers->payload, 0))
-    und zwar evtl sogar mehrmals (freelist!)
-    raus damit!
 
 -----------------------------------------------------
 
@@ -195,12 +230,6 @@ o datenbank mit O_EXCL öffnen, bzw mit flock() (und nem wait, falls die
 
 o cache: bucketgrösse in ham_config.h verschieben, eine #define-konstante
     draus machen
-
---------------
-
-o profiling: if a page is allocated, allocate more pages, then we have only
-    one disk access (???)
-o read ahead?
 
 --------------
 

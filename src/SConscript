@@ -6,10 +6,10 @@
 #
 #
 
-import os
+Import('vprint env')
 
-files=[
-        "db", 
+# source files (without extension)
+files=[ "db", 
         "error", 
         "mem", 
         "os",
@@ -29,22 +29,21 @@ files=[
         "btree_enum"
     ]
 
-include     = ['.', '../include']
-
-# set up the environment(s)
-if not os.environ.has_key('RELEASE'):
-    sfx='dbg'
-    cflags  = '-g -Wall -ansi -DHAM_DEBUG -DHAM_OS_POSIX'
-else:
-    sfx='rel'
-    #cflags  = '-O3 -Wall -ansi -DHAM_RELEASE -DHAM_OS_POSIX'
-    cflags  = '-O3 -Wall -ansi -DHAM_RELEASE -DHAM_OS_POSIX'
-
-env=Environment(CCFLAGS = cflags, CPPPATH = include)
+# workaround for the SCons error message "Source file blah is static and is not 
+# compatible with shared target". 
+env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME'] = 1
 
 olist=[]
 for f in files:
-    olist.append(env.Object(f+"_"+sfx, f+".c"))
+    obj=env.Object('../'+env['buildpath']+'/'+f, f+".c")
+    olist.append(obj)
 
-env.StaticLibrary('hamsterdb', olist)
-#env.SharedLibrary('hamsterdb', olist)
+# static or dynamic library?
+if env['static']:
+    s=env.StaticLibrary('../build/hamsterdb', olist)
+    env.Install('/usr/local/lib', s)
+else:
+    s=env.SharedLibrary('../build/hamsterdb', olist)
+    env.Install('/usr/local/lib', s)
+
+env.Alias('install', '/usr/local/lib')

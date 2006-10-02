@@ -566,7 +566,7 @@ pp(ham_txn_t *txn, ham_page_t *page)
     btree_node_t *node;
     ham_db_t *db=page_get_owner(page);
 
-    printf("page 0x%llx\n", page_get_self(page));
+    printf("page 0x%llx\n", (unsigned long long)page_get_self(page));
 
     node=ham_page_get_btree_node(page);
     count=btree_node_get_count(node);
@@ -588,7 +588,7 @@ pp(ham_txn_t *txn, ham_page_t *page)
             printf("%02x ", (unsigned char)(key_get_key(bte)[j]));
 
         printf("(%d bytes, 0x%x flags)  -> rid 0x%llx\n", key_get_size(bte), 
-                key_get_flags(bte), key_get_ptr(bte));
+                key_get_flags(bte), (unsigned long long)key_get_ptr(bte));
     }
 
     /*

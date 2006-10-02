@@ -30,7 +30,11 @@ extern "C" {
  * is this a 64bit or a 32bit-platform? for 32bit, define HAM_32BIT;
  * for 64bit, define HAM_64BIT
  */
-#define HAM_64BIT 1
+#ifndef HAM_64BIT
+#   ifndef HAM_32BIT
+#       error "neither HAM_64BIT nor HAM_32BIT defined"
+#   endif
+#endif
 
 /** 
  * the serial number; for non-commercial versions, this is always
@@ -40,9 +44,13 @@ extern "C" {
 
 /** 
  * the endian-architecture of the host computer; set this to 
- * HAM_BIG_ENDIAN if necessary
+ * HAM_LITTLE_ENDIAN or HAM_BIG_ENDIAN 
  */
-#define HAM_LITTLE_ENDIAN          1
+#ifndef HAM_LITTLE_ENDIAN
+#   ifndef HAM_BIG_ENDIAN
+#       error "neither HAM_LITTLE_ENDIAN nor HAM_BIG_ENDIAN defined"
+#   endif
+#endif
 
 /**
  * feature list; describes the features that are enabled or 
