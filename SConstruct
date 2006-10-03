@@ -1,3 +1,12 @@
+#
+# Copyright (C) 2005, 2006 Christoph Rupp (chris@crupp.de)
+# see file LICENSE for licence information
+#
+# This is the SConstruct file for hamsterdb. To build hamsterdb, you 
+# need SCons (www.scons.org). Run 'scons' to build hamsterdb, 
+# 'scons install' to install it and 'scons -h' for help and a list of 
+# available targets and options.
+#
 
 
 import os
@@ -82,7 +91,34 @@ env=conf.Finish()
 
 # ----------------------------------------------------------------------
 # help string
-Help(opts.GenerateHelpText(env))
+Help("""
+This is the SConscript build file for hamsterdb. The following targets 
+and options are supported:
+
+Options (use with <option>=0 or <option>=1):
+  - debug
+        Compile with debug symbols (default: off)
+  - static
+        Build a static library (default: off)
+  - dynamic
+        Build a dynamic library (default: on)
+  - profile
+        Enable profiling (only with gcc - default: off)
+
+Targets:
+  - clean
+        Cleans all intermediate files of the current build configuration.
+  - allclean
+        Cleans all intermediate files of ALL build configurations.
+  - doc
+        Uses doxygen to build the hamsterdb documentation.
+  - install
+        Installs header files and libraries. You might need administrator/root
+        privileges.
+  - (Default target)
+        Builds the hamsterdb library; the library is stored in the /build-
+        subdirectory.
+""")
 
 # ----------------------------------------------------------------------
 # get the current platform
@@ -111,7 +147,7 @@ else:
     vprint("release build")
     env.Append(CCFLAGS=['-DHAM_RELEASE'])
     env['buildpath']+='rel'
-    # TODO gcc<411: kein -O!!
+    # if gcc<4.1.1: don't use -O!!
     if conf.env['GCC_VERSION_OK']:
         env.Append(CCFLAGS='-O3')
     env.Append(CCFLAGS=['-fomit-frame-pointer', \
@@ -168,11 +204,13 @@ if 'allclean' in sys.argv[1:]:
 # ----------------------------------------------------------------------
 # target 'doc' runs doxygen
 if 'doc' in sys.argv[1:]:
-    env.Command('doc', 'doxyfile', ['doxygen -f $SOURCE'])
+    env.Command('doc', 'Doxyfile', ['doxygen'])
 
 # ----------------------------------------------------------------------
 # main targets: build the library, and the sample
 BuildDir('./build/%s' % env['buildpath'], './src', duplicate=0)
 SConscript('src/SConscript')
-SConscript('samples/SConscript')
-SConscript('tests/SConscript')
+if os.path.exists('samples'):
+    SConscript('samples/SConscript')
+if os.path.exists('tests'):
+    SConscript('tests/SConscript')

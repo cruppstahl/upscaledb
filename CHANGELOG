@@ -1,5 +1,9 @@
 
 
+Oct 3rd, 2006 - chris
+o rewrote the SConscript and all scons-files
+o added the Doxyfile (Doxygen build script) to generate the documentation
+
 Sep 22, 2006 - chris
 o added the README-file
 o enabled support for O_LARGEFILE

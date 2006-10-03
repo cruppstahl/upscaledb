@@ -43,18 +43,13 @@ x SCons-Dateien überarbeiten
     x unterstützt 32bit, 64bit, endianness
         x vorsicht: in ham/config.h wird alles wieder überschrieben!
 
------------------------------------------------------
-
-o root-SConscript-Datei geht nicht, weil im release das 'tests'-verzeichnis
+x root-SConscript-Datei geht nicht, weil im release das 'tests'-verzeichnis
     fehlt! evtl sollte es in hamsterdb-testfiles verschoben werden? 
+    oder einen check machen, ob das tests-verzeichnis existiert
 
 -----------------------------------------------------
 
 o doxyfile anlegen
-
------------------------------------------------------
-
-o advogato-eintrag?
 
 -----------------------------------------------------
 
@@ -185,6 +180,11 @@ o statistics
         are global; therefore we need two functions: 
         ham_get_global_statistics(stat)
         ham_get_index_statistics(index, stat)
+
+-----------------------------------------------------
+
+o ein ganz einfaches makefile, das einen release-build baut?? 
+    damit man kein scons braucht
 
 -----------------------------------------------------
 
