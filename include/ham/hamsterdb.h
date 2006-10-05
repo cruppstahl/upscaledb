@@ -82,7 +82,7 @@ ham_strerror(ham_status_t result);
 #define HAM_INV_PAGESIZE             ( -4)
 #define HAM_DB_ALREADY_OPEN          ( -5)
 #define HAM_OUT_OF_MEMORY            ( -6)
-#define HAM_INV_BACKEND              ( -7)
+#define HAM_INV_INDEX                ( -7)
 #define HAM_INV_PARAMETER            ( -8)
 #define HAM_INV_FILE_HEADER          ( -9)
 #define HAM_INV_FILE_VERSION         (-10)
@@ -95,6 +95,13 @@ ham_strerror(ham_status_t result);
 #define HAM_PREFIX_REQUEST_FULLKEY   (-17)
 #define HAM_IO_ERROR                 (-18)
 #define HAM_CACHE_FULL               (-19)
+
+/**
+ * get the version of the hamsterdb library
+ */
+extern void
+ham_get_version(ham_u32_t *major, ham_u32_t *minor, 
+        ham_u32_t *revision);
 
 /**
  * create a new ham_db_t handle
@@ -171,16 +178,16 @@ ham_create_ex(ham_db_t *db, const char *filename,
 #define HAM_OPEN_EXCLUSIVELY         0x00000008
 
 /**
- * use a B+tree as the backend
+ * use a B+tree as the index structure
  * This flag is enabled by default.
  */
-#define HAM_BE_BTREE                 0x00000010
+#define HAM_USE_BTREE                0x00000010
 
 /**
- * use a hash database as the backend
+ * use a hash database as the index structure
  * This flag is disabled by default.
  */
-#define HAM_BE_HASH                  0x00000020
+#define HAM_USE_HASH                 0x00000020
 
 /**
  * do not allow the use of variable length keys

@@ -22,34 +22,19 @@ x 220.tst: schlägt fehl im release-build!
 -----------------------------------------------------
 
 x SCons-Dateien überarbeiten
-    x ein build-skript, das folgende targets unterstützt:
-        x help
-        x install (macht auch doc!)
-        x static 
-        x profile=1 (default: off)
-        x debug=0 (default)
-        x debug=1
-        x allclean (rm -rf build)
-        x doc 
-        x sample
-        x testprogramm
-        x shared (default)
-
-    x targets werden über parameter oder config-date geholt
-    x unterstützt erstmal nur gcc
-    x doc-target basiert auf doxygen
-    x compiler-flags: bei gcc<4 kein -O!! und warnmeldung, kann aber mit
-        parameter überschrieben werden
-    x unterstützt 32bit, 64bit, endianness
-        x vorsicht: in ham/config.h wird alles wieder überschrieben!
 
 x root-SConscript-Datei geht nicht, weil im release das 'tests'-verzeichnis
     fehlt! evtl sollte es in hamsterdb-testfiles verschoben werden? 
     oder einen check machen, ob das tests-verzeichnis existiert
 
+x doxyfile anlegen
+
 -----------------------------------------------------
 
-o doxyfile anlegen
+x der begriff "backend" sollte evtl nicht in hamsterdb.h verwendet 
+    werden (siehe auch HAM_BE_BTREE etc)
+
+x get hamster version
 
 -----------------------------------------------------
 
@@ -71,8 +56,9 @@ o test-skript überarbeiten
             mit verschiedenen keygrössen, cachegrössen, cachepolicies, 
             pagegrössen, rw, mmap etc
     o alle ausgaben kompakt in ein logfile, bei fehlern nicht abbrechen
+    o dokumentation: wie kann man das zeug testen? wie ist die syntax
+        der test-skripte? etc
 
------------------------------------------------------
 -----------------------------------------------------
 
 o profiling! aber mit der release-version...
@@ -95,8 +81,7 @@ o profiling! aber mit der release-version...
         o bdb: wie gross sind ihre pages? 
         o bdb: wie gross sind ihre keys? 
 
-o extended keys doch cachen? sind sehr langsam im vergleich
-    zu bdb...
+o extended keys doch cachen? sind SEHR langsam im vergleich zu bdb...
 
 o können wir die minkey/maxkey-regel relaxen? also später splitten
     und später mergen?
@@ -110,13 +95,6 @@ o momentan werden alle pages auf null gesetzt (memset(page->pers->payload, 0))
 -----------------------------------------------------
 -----------------------------------------------------
 
-o endianness testen
-
-o auf 32bit-rechner testen; können wir die datenbank-dateien
-    hin- und herkopieren?
-
------------------------------------------------------
-
 o tests
     o test mit freelist
     o test mit mmap, verschiedene pagesizes
@@ -127,6 +105,14 @@ o tests
         o in-memory-db
         o os_mmap
         o read(2)
+
+o stress test mit zufällig fehlschlagenden io-funktionen und zufälligen
+    OUT_OF_MEMORYs
+
+o endianness testen
+
+o auf 32bit-rechner testen; können wir die datenbank-dateien
+    hin- und herkopieren?
 
 o stress-test-tool(s), das ALLE optionen durchprobiert
     mmap
@@ -140,8 +126,10 @@ o stress-test-tool(s), das ALLE optionen durchprobiert
 -----------------------------------------------------
 
 o doku
+    o tutorial/sample in die online-hilfe einbeziehen
+    o FAQ mit häufig gestellten fragen, tips zu optimierungen
+    o Dokumentation in den header-dateien überarbeiten
     o überarbeiten
-    o erweitern
 
 -----------------------------------------------------
 
@@ -187,17 +175,6 @@ o ein ganz einfaches makefile, das einen release-build baut??
     damit man kein scons braucht
 
 -----------------------------------------------------
-
-o get hamster version
-    gibt's ne möglichkeit, die version der
-    library abzufragen? klar - sie steht in einer header-datei
-    aber die ist privat und kann nicht "von aussen" abgefragt werden. 
-    evtl wäre eine exportierte funktion besser:
-    
-    ham_status_t ham_get_version(ham_u32_t *major,
-            ham_u32_t *minor, ham_u32_t *revision)
-
------------------------------------------------------
 -----------------------------------------------------
 
 o tools
@@ -206,32 +183,23 @@ o tools
 
 -----------------------------------------------------
 
-o configuration management: HAM_32BIT/HAM_64BIT, HAM_OS_POSIX/HAM_OS_WINDOWS
-    automatisch während des build-prozesses erkennen; momentan 
-    werden sie in ham/config.h gesetzt
-
-o stress test mit zufällig fehlschlagenden io-funktionen und zufälligen
-    OUT_OF_MEMORYs
-
---------------
-
 o super-COMPRESSED-mode: keine headerpage, und pagesize auf 128 byte ->
     super-mini-datenbanken (für embedded) - möglich ohne Aufwand? wird tricky, 
     weil die page-alloc-funktionen davon ausgehen dass eine adresse 0 ein
     fehler ist
 
---------------
+-----------------------------------------------------
 
 o datenbank mit O_EXCL öffnen, bzw mit flock() (und nem wait, falls die 
     Datenbank gelockt ist) -> Möglichkeit für pseudo-concurrent access bei
     kurzen, schnellen Zugriffen (z.b. webseite)
 
---------------
+-----------------------------------------------------
 
 o cache: bucketgrösse in ham_config.h verschieben, eine #define-konstante
     draus machen
 
---------------
+-----------------------------------------------------
 
 o documentation -> texinfo? doxygen?
     merge the documentation with doxygen-docs
@@ -239,7 +207,27 @@ o documentation -> texinfo? doxygen?
 o define HAM_EXPORT DECLSPEC _dllexport
     compile a shared library
 
---------------
+-----------------------------------------------------
+
+o iteratoren 
+    o in-memory-db: finden wir ne möglichkeit, normale datenbanken in 
+        in-memory zu importieren und umgekehrt wieder zu exportieren? 
+        das wäre genial
+        --> geht mit iteratoren (erst release 2.0!):
+            iterator from=db1.begin()
+            while (from)
+                db2.append(from)
+                from.next()
+        --> geht auch mit der enum-funktion, die jetzt schon drin ist
+
+-----------------------------------------------------
+
+o duplicate keys (nicht in version 0.1.0, sondern 0.1.1)
+    jeder key bekommt einen dupcounter; der wird mit unsigned(-1) initialisiert
+    beim einfuegen wird rekursiv abgestiegen. im leaf wird dann ein neuer key
+    eingefuegt, mit dem dupcounter=existierender ("kleinster") key minus 1.
+
+-----------------------------------------------------
 
 Version 0.1.0 - first release!!
 
@@ -259,9 +247,10 @@ x in memory-datenbanken
 x overwrite keys
 x extended keys
 x erzeugt .dll/.so
+x mal nachschauen was man nach den GPL-Codingrules noch für 
+    dateien braucht -> nix mehr
 o performance vergleichbar mit berkeley-db
-o mal nachschauen was man nach den GPL-Codingrules noch für 
-    dateien braucht
+o iteratoren
 o compiliert unter linux, windows, darwin, 32bit und 64bit, unter windows
     mit mingw, icc, msvc, borland, watcom
 o legal issues
@@ -291,28 +280,6 @@ o KEINE valgrind-fehler!
 -----------------------------------------------------
 -----------------------------------------------------
 -----------------------------------------------------
-
-o iteratoren (nicht in version 0.10)
-    o in-memory-db: finden wir ne möglichkeit, normale datenbanken in 
-        in-memory zu importieren und umgekehrt wieder zu exportieren? 
-        das wäre genial
-        --> geht mit iteratoren (erst release 2.0!):
-            iterator from=db1.begin()
-            while (from)
-                db2.append(from)
-                from.next()
-        --> geht auch mit der enum-funktion, die jetzt schon drin ist
-
------------------------------------------------------
-
-o duplicate keys (nicht in version 0.10)
-    jeder key bekommt einen dupcounter; der wird mit unsigned(-1) initialisiert
-    beim einfuegen wird rekursiv abgestiegen. im leaf wird dann ein neuer key
-    eingefuegt, mit dem dupcounter=existierender ("kleinster") key minus 1.
-
------------------------------------------------------
------------------------------------------------------
-
 
 o extended keys
     o hash-table zum cachen der extended keys

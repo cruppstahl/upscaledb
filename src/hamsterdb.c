@@ -136,8 +136,8 @@ ham_strerror(ham_status_t result)
             return ("Db already open");
         case HAM_OUT_OF_MEMORY: 
             return ("Out of memory");
-        case HAM_INV_BACKEND:
-            return ("Invalid backend");
+        case HAM_INV_INDEX:
+            return ("Invalid index structure");
         case HAM_INV_PARAMETER:
             return ("Invalid parameter");
         case HAM_INV_FILE_HEADER:
@@ -165,6 +165,18 @@ ham_strerror(ham_status_t result)
         default: 
             return ("Unknown error");
     }
+}
+
+void
+ham_get_version(ham_u32_t *major, ham_u32_t *minor,
+                ham_u32_t *revision)
+{
+    if (major)
+        *major=HAM_VERSION_MAJ;
+    if (minor)
+        *minor=HAM_VERSION_MIN;
+    if (revision)
+        *revision=HAM_VERSION_REV;
 }
 
 ham_status_t
@@ -319,8 +331,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
     backend=db_create_backend(db, flags);
     if (!backend) {
         ham_log("unable to create backend with flags 0x%x", flags);
-        db_set_error(db, HAM_INV_BACKEND);
-        return (HAM_INV_BACKEND);
+        db_set_error(db, HAM_INV_INDEX);
+        return (HAM_INV_INDEX);
     }
     db_set_backend(db, backend);
 
@@ -473,8 +485,8 @@ ham_create_ex(ham_db_t *db, const char *filename,
     backend=db_create_backend(db, flags);
     if (!backend) {
         ham_log("unable to create backend with flags 0x%x", flags);
-        db_set_error(db, HAM_INV_BACKEND);
-        return (HAM_INV_BACKEND);
+        db_set_error(db, HAM_INV_INDEX);
+        return (HAM_INV_INDEX);
     }
 
     /* initialize the backend */
@@ -533,7 +545,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
     ham_backend_t *be=db_get_backend(db);
 
     if (!be)
-        return (HAM_INV_BACKEND);
+        return (HAM_INV_INDEX);
     if (!record)
         return (HAM_INV_PARAMETER);
     if ((st=ham_txn_begin(&txn, db)))
@@ -615,7 +627,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     ham_backend_t *be=db_get_backend(db);
 
     if (!be)
-        return (HAM_INV_BACKEND);
+        return (HAM_INV_INDEX);
     if (db_get_flags(db)&HAM_READ_ONLY)
         return (HAM_DB_READ_ONLY);
     if ((db_get_flags(db)&HAM_DISABLE_VAR_KEYLEN) && 
@@ -653,7 +665,7 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
     ham_backend_t *be=db_get_backend(db);
 
     if (!be)
-        return (HAM_INV_BACKEND);
+        return (HAM_INV_INDEX);
     if (db_get_flags(db)&HAM_READ_ONLY)
         return (HAM_DB_READ_ONLY);
     if ((st=ham_txn_begin(&txn, db)))
@@ -689,7 +701,7 @@ ham_dump(ham_db_t *db, void *reserved, ham_dump_cb_t cb)
     ham_backend_t *be=db_get_backend(db);
 
     if (!be)
-        return (HAM_INV_BACKEND);
+        return (HAM_INV_INDEX);
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
@@ -721,7 +733,7 @@ ham_check_integrity(ham_db_t *db, void *reserved)
         return (st);
 
     if (!be)
-        return (HAM_INV_BACKEND);
+        return (HAM_INV_INDEX);
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
