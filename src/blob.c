@@ -151,15 +151,17 @@ blob_allocate(ham_db_t *db, ham_txn_t *txn, ham_u8_t *data,
             page=my_allocate_header(db, txn, remaining, &hdr);
             if (!page)
                 return (db_get_error(db));
-            writestart=blob_get_chunk_offset(hdr, 0);
-            writesize =blob_get_chunk_size(hdr, 0);
+            if (blob_get_chunk_flags (hdr, 0)&BLOB_CHUNK_NEXT_TO_HEADER) {
+                writestart=blob_get_chunk_offset(hdr, 0);
+                writesize =blob_get_chunk_size(hdr, 0);
+                /* chunk offset is absolute! */
+                writestart-=page_get_self(page);
+            }
             /* fix the overflow links */
             if (oldhdr)
                 blob_set_overflow(oldhdr, blob_get_self(hdr));
             else
                 *blobid=blob_get_self(hdr);
-            /* chunk offset is absolute! */
-            writestart-=page_get_self(page);
         }
 
         /*
@@ -290,7 +292,7 @@ blob_read(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid,
             if (pageid==page_get_self(page))
                 cpage=page;
             else
-                cpage=db_fetch_page(db, 0, pageid, 0);
+                cpage=db_fetch_page(db, txn, pageid, 0);
             if (!cpage)
                 return (HAM_BLOB_NOT_FOUND);
 
@@ -376,7 +378,9 @@ blob_free(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid, ham_u32_t flags)
              * it
              */
             if (blob_get_chunk_flags(hdr, 0)&BLOB_CHUNK_SPANS_PAGE) {
-                page=db_fetch_page(db, txn, chunkstart, 0);
+                page=db_fetch_page(db, txn, 
+                        (chunkstart/db_get_pagesize(db))*db_get_pagesize(db), 
+                        0);
                 if (page)
                     (void)db_free_page(db, txn, page, 0);
             }

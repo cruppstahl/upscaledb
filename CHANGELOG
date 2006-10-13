@@ -1,6 +1,13 @@
 
+Oct 12, 2006 - chris
+o fixed a bug in blob_allocate when allocating big blobs
+o fixed a bug when overwriting keys, and the blob was empty, tiny or 
+    small (<=sizeof(ham_offset_t))
 
-Oct 3rd, 2006 - chris
+Oct 8, 2006 - chris
+o completely rewrote the test environment (./dbtest.py)
+
+Oct 3, 2006 - chris
 o rewrote the SConscript and all scons-files
 o added the Doxyfile (Doxygen build script) to generate the documentation
 

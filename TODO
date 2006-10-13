@@ -21,47 +21,102 @@ x 220.tst: schlägt fehl im release-build!
     
 -----------------------------------------------------
 
-x SCons-Dateien überarbeiten
-
-x root-SConscript-Datei geht nicht, weil im release das 'tests'-verzeichnis
-    fehlt! evtl sollte es in hamsterdb-testfiles verschoben werden? 
-    oder einen check machen, ob das tests-verzeichnis existiert
-
-x doxyfile anlegen
-
------------------------------------------------------
-
-x der begriff "backend" sollte evtl nicht in hamsterdb.h verwendet 
-    werden (siehe auch HAM_BE_BTREE etc)
-
-x get hamster version
-
------------------------------------------------------
-
-o test-skript überarbeiten
-    o wrapperskript dbtest.py
-        o syntax: ./dbtest.py <dbtest.py-optionen> -- <./test-optionen>
+x test-skript überarbeiten
+    x wrapperskript dbtest.py
+        x syntax: ./dbtest.py <dbtest.py-optionen> -- <./test-optionen>
             dbtest-optionen:
-                o --enable-valgrind/--disable-valgrind
-                o --filelist=list (liste mit testdateien und deren optionen)
+                x --enable-valgrind/--disable-valgrind
+                x --filelist=list (liste mit testdateien und deren optionen)
             test-optionen:
-                o --pagesize=\d
-                o --keysize=\d
-                o --cachesize=\d
+                x --pagesize=\d
+                x --keysize=\d
+                x --cachesize=\d
                 etc (wie gehabt)
-    o 3 wrapper aussenrum mit filelists
-        o short.lst: je 10 tests normal, extended, inmemory, mmap/rw
-        o full.lst: alle tests normal, extended, inmemory, mmap/rw
-        o monster.lst: alle tests normal, extended, inmemory, mmap/rw
-            mit verschiedenen keygrössen, cachegrössen, cachepolicies, 
-            pagegrössen, rw, mmap etc
-    o alle ausgaben kompakt in ein logfile, bei fehlern nicht abbrechen
-    o dokumentation: wie kann man das zeug testen? wie ist die syntax
-        der test-skripte? etc
+        x konfig aus der eltern-konfig übernehmen
+        x test: unterstützung von 
+            x --profile=[0, 1] (short option: -prof)
+            x --check=[0, 1] (short option: -chk)
+            x --inmemorydb=[0, 1] (short option: -memdb)
+            x --overwrite=[0, 1]
+
+    x können wir eine "progress bar" anzeigen? gerade die ext_20+-tests 
+        dauern sehr lang
+        -> ja, können wir: wir kennen die dateigrösse, und wir wissen 
+            an welchem offset wir in der datei sind
+
+    x 3 wrapper aussenrum mit filelists
+        x short.lst: nur die wichtigsten dateien, keine optionen
+        x full.lst: alle testdateien
+        x monster.lst: alle tests  in allen möglichen kombinationen
+            x normal
+            x inmemory
+            x overwrite
+            x mmap/rw
+            x verschiedene pagegrössen
+            x verschiedene keygrössen
+            x verschiedene cachegrössen
+            x verschiedene cachepolicies
+
+    x leere zeilen, kommentare
+
+    x --progress (u.a.) wird z.b. noch nicht an kindlisten weitergegeben
+
+    x den fenstertitel setzen, die aktuelle konfiguration und fileliste 
+        anzeigen (oder auch ne progress-bar/prozentanzeige in der fileliste)
+        - irgendwas, dass wir sehen wo wir gerade stehen
+
+    x alle wichtigen ausgaben in ein logfile
+    x bei fehlern nicht abbrechen, aber nen permanenten fehlerzähler
+
+-----------------------------------------------------
+
+x ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/01.tst --inmemorydb
+
+x file test.tst crasht
+
+x ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/100.tst --overwrite=1
+--check=1 --check=1 --verbose=1
+
+x ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/100.tst --overwrite=1         --inmemorydb=1
+    --> valgrind-fehler, sonst läuft's durch
+
+o file test.tst hat ein kleines memory leak (blob.c, zeile 409)
+
+o einige tests bekommen "out of memory"-fehlermeldungen in mmap und munmap
+    --> wie gibt's das, dass es bei munmap "out of memory"-fehler gibt?
+    o wie viel wird wirklich allokiert?
+    o muss ich einen munmap machen, wenn ich eh nur eine private read-only-
+        kopie machen will?
+    o passiert nur bei --overwrite=1; bleiben bei blob_free memory-leaks
+        übrig?
+
+    ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/190.tst --overwrite=1
+    ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/199.tst --overwrite=1
+    ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/200.tst --overwrite=1
+
+    src/os.c[44]: mmap failed with status 12 (Cannot allocate memory)
+    src/db.c[75]: os_mmap failed with status 12 (Unknown error)
+    src/os.c[44]: mmap failed with status 12 (Cannot allocate memory)
+    src/db.c[75]: os_mmap failed with status 12 (Unknown error)
+
+-----------------------------------------------------
+
+o mit noch grösseren blobs und datenbanken testen 
 
 -----------------------------------------------------
 
 o profiling! aber mit der release-version...
+
+    o binary sort statt linear sort
+
+    o statt --profile ab sofort:
+        o --profile=all - wie bisher
+        o --profile=none - ausschalten
+        o --profile=insert - nur insert
+        o --profile=erase - nur erase
+        o --profile=find - nur find
+        o etc
+
     o in-memory-db
     o mmap
     o read/write
@@ -254,7 +309,7 @@ o iteratoren
 o compiliert unter linux, windows, darwin, 32bit und 64bit, unter windows
     mit mingw, icc, msvc, borland, watcom
 o legal issues
-o dokumentation: tutorial, interface, FAQ
+o dokumentation: tutorial, interface, FAQ (auch zu unittests)
 o webseite
     news
     releases
@@ -275,6 +330,19 @@ o admin-tool(s) fuer dump, stats, repair
         o key/daten dumpen
         o header dumpen
 o KEINE valgrind-fehler!
+
+VORSICHT! am besten ein skript schreiben - make-release.sh
+    1. version.h hochzählen
+    2. einchecken
+    3. taggen bzw. copy in release-trunk in hamsterdb-v.v.v
+    4. einchecken
+    5. export vom release-verzeichnis
+    6. tar/gzip
+    7. upload
+
+    freshmeat
+    alle anderen linklisten
+    blog-eintrag (pingen!)
 
 -----------------------------------------------------
 -----------------------------------------------------

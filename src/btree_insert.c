@@ -152,7 +152,7 @@ btree_insert(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
         node=ham_page_get_btree_node(newroot);
         btree_node_set_ptr_left(node, btree_get_rootpage(be));
         st=my_insert_nosplit(newroot, scratchpad.txn, &scratchpad.key, 
-                scratchpad.rid, scratchpad.record, NOFLUSH);
+                scratchpad.rid, scratchpad.record, flags|NOFLUSH);
         if (st) {
             if (scratchpad.key.data)
                 ham_mem_free(scratchpad.key.data);
@@ -192,7 +192,8 @@ my_insert_recursive(ham_page_t *page, ham_key_t *key,
      * if we've reached a leaf: insert the key
      */
     if (btree_node_is_leaf(node)) 
-        return (my_insert_in_page(page, key, rid, 0, scratchpad));
+        return (my_insert_in_page(page, key, rid, 
+                    scratchpad->flags, scratchpad));
 
     /*
      * otherwise traverse the root down to the leaf
@@ -222,7 +223,8 @@ my_insert_recursive(ham_page_t *page, ham_key_t *key,
          */
         case SPLIT:
             st=my_insert_in_page(page, &scratchpad->key, 
-                        scratchpad->rid, HAM_OVERWRITE, scratchpad);
+                        scratchpad->rid, scratchpad->flags|HAM_OVERWRITE, 
+                        scratchpad);
             break;
 
         /*
@@ -345,9 +347,21 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
      */
     if (btree_node_is_leaf(node) && record->size>sizeof(ham_offset_t)) {
         ham_status_t st;
+        /*
+         * make sure that we only call blob_replace(), if there IS a blob
+         * to replace! otherwise call blob_allocate()
+         */
         if (overwrite) {
-            return (blob_replace(db, txn, key_get_ptr(bte), record->data, 
-                            record->size, 0, &rid));
+            st=blob_allocate(db, txn, record->data, 
+                        record->size, 0, &rid);
+            if (st)
+                return (st);
+
+            if (!((key_get_flags(bte)&KEY_BLOB_SIZE_TINY) || 
+                  (key_get_flags(bte)&KEY_BLOB_SIZE_SMALL) || 
+                  (key_get_flags(bte)&KEY_BLOB_SIZE_EMPTY)))
+                (void)blob_free(db, txn, key_get_ptr(bte), 0); 
+                /* TODO use blob_replace... */
         }
         else {
             if ((st=blob_allocate(db, txn, record->data, 
@@ -383,6 +397,15 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
         }
     }
 
+    key_set_ptr(bte, rid);
+    page_set_dirty(page, 1);
+
+    /*
+     * if we've overwritten a key: no need to continue, we're done
+     */
+    if (overwrite)
+        return (0);
+
     /*
      * we insert the extended key, if necessary
      */
@@ -415,8 +438,6 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
         /*key_set_key(bte, key->data, key_get_size(bte));*/
     }
 
-    key_set_ptr(bte, rid);
-    page_set_dirty(page, 1);
     btree_node_set_count(node, count+1);
 
     return (0);

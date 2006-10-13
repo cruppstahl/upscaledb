@@ -20,6 +20,8 @@
 
 static ham_u64_t g_tv1, g_tv2;
 
+static unsigned long g_filesize, g_filepos;
+
 #define FILENAME_BERK "/tmp/test-berk.db"
 #define FILENAME_HAM  "/tmp/test-ham.db"
 
@@ -48,6 +50,12 @@ static ham_u64_t g_tv1, g_tv2;
 #define ARG_DUMP        9
 #define ARG_INMEMORY   10
 #define ARG_OVERWRITE  11
+#define ARG_PROGRESS   12
+#define ARG_MMAP       13
+#define ARG_PAGESIZE   14
+#define ARG_KEYSIZE    15
+#define ARG_CACHESIZE  16
+#define ARG_CACHEPOLICY 17
 
 #define BACKEND_NONE    0
 #define BACKEND_HAMSTER 1
@@ -76,6 +84,24 @@ static struct {
 
     /* overwrite keys?  */
     unsigned overwrite;
+
+    /* show progress?  */
+    unsigned progress;
+
+    /* use mmap? */
+    unsigned mmap;
+
+    /* the page size */
+    unsigned pagesize;
+
+    /* the key size */
+    unsigned keysize;
+
+    /* the cache size */
+    unsigned cachesize;
+
+    /* use strict cache policy? */
+    unsigned strict_cache;
 
     /* do profile?  */
     unsigned profile;
@@ -125,19 +151,19 @@ static option_t opts[]={
         "p",
         "profile",
         "enable profiling",
-        0 },
+        GETOPTS_NEED_ARGUMENT },
     {
         ARG_QUIET,
         "q",
         "quiet",
         "suppress output",
-        0 },
+        GETOPTS_NEED_ARGUMENT },
     {
         ARG_CHECK,
         "c",
         "check",
         "do more consistency checks (-c twice will check even more)",
-        0 },
+        GETOPTS_NEED_ARGUMENT },
     {
         ARG_BACKEND1,
         "b1",
@@ -161,15 +187,69 @@ static option_t opts[]={
         "inmem",
         "inmemorydb",
         "create in-memory-databases (if available)",
-        0 },
+        GETOPTS_NEED_ARGUMENT },
     {
         ARG_OVERWRITE,
         "over",
         "overwrite",
         "overwrite existing keys",
-        0 },
+        GETOPTS_NEED_ARGUMENT },
+    {
+        ARG_PROGRESS,
+        "prog",
+        "progress",
+        "show progress",
+        GETOPTS_NEED_ARGUMENT },
+    {
+        ARG_MMAP,
+        "mmap",
+        "mmap",
+        "enable/disable mmap",
+        GETOPTS_NEED_ARGUMENT },
+    {
+        ARG_PAGESIZE,
+        "ps",
+        "pagesize",
+        "set the pagesize (use 0 for default)",
+        GETOPTS_NEED_ARGUMENT },
+    {
+        ARG_KEYSIZE,
+        "ks",
+        "keysize",
+        "set the keysize (use 0 for default)",
+        GETOPTS_NEED_ARGUMENT },
+    {
+        ARG_CACHESIZE,
+        "cs",
+        "cachesize",
+        "set the cachesize (use 0 for default)",
+        GETOPTS_NEED_ARGUMENT },
+    {
+        ARG_CACHEPOLICY,
+        "cp",
+        "cachepolicy",
+        "set the cachepolicy (allowed value: 'strict')",
+        GETOPTS_NEED_ARGUMENT },
     { 0, 0, 0, 0, 0 }
 };
+
+static void
+my_increment_progressbar(void)
+{
+#define PROGRESSBAR_COLUMNS  60
+    int i;
+    float pos=(float)g_filesize/(float)PROGRESSBAR_COLUMNS;
+    pos=(float)g_filepos/pos;
+
+    if (config.progress) {
+        printf("progress: ");
+        for (i=0; i<(int)pos; i++)
+            printf("*");
+        for (; i<PROGRESSBAR_COLUMNS; i++)
+            printf(".");
+        printf("\r");
+    }
+}
 
 static const char *
 my_get_profile_name(int i)
@@ -356,6 +436,7 @@ my_execute_create(char *line)
     int i, ret;
     ham_status_t st;
     char *flags;
+    ham_u32_t f=0;
 
     flags=line;
 
@@ -396,9 +477,14 @@ my_execute_create(char *line)
                 (void)unlink(FILENAME_HAM);
                 st=ham_new(&config.hamdb);
                 ham_assert(st==0, 0, 0);
-                st=ham_create(config.hamdb, FILENAME_HAM, 
-                        config.inmemory?HAM_IN_MEMORY_DB:0, 
-                        0664);
+                if (config.inmemory) {
+                    f|=HAM_IN_MEMORY_DB;
+                    config.cachesize=0;
+                }
+                f|=config.mmap?0:HAM_DISABLE_MMAP; 
+                f|=config.strict_cache?HAM_CACHE_STRICT:0;
+                st=ham_create_ex(config.hamdb, FILENAME_HAM, f, 0664, 
+                        config.pagesize, config.keysize, config.cachesize);
                 ham_assert(st==0, 0, 0);
                 if (config.flags & NUMERIC_KEY)
                     ham_set_compare_func(config.hamdb, my_compare_keys);
@@ -810,22 +896,38 @@ my_execute(char *line)
     if (!tok || tok[0]==0)
         return 1;
     VERBOSE2("reading token '%s'", tok);
-    if (strstr(tok, "--"))
+    if (strstr(tok, "--")) {
+        my_increment_progressbar();
         return 1;
-    if (!strcasecmp(tok, "CREATE"))
+    }
+    if (!strcasecmp(tok, "CREATE")) {
+        my_increment_progressbar();
         return my_execute_create(&line[pos]);
-    if (!strcasecmp(tok, "OPEN"))
+    }
+    if (!strcasecmp(tok, "OPEN")) {
+        my_increment_progressbar();
         return my_execute_open(&line[pos]);
-    if (!strcasecmp(tok, "INSERT"))
+    }
+    if (!strcasecmp(tok, "INSERT")) {
+        my_increment_progressbar();
         return my_execute_insert(&line[pos]);
-    if (!strcasecmp(tok, "ERASE"))
+    }
+    if (!strcasecmp(tok, "ERASE")) {
+        my_increment_progressbar();
         return my_execute_erase(&line[pos]);
-    if (!strcasecmp(tok, "FULLCHECK"))
+    }
+    if (!strcasecmp(tok, "FULLCHECK")) {
+        my_increment_progressbar();
         return my_execute_fullcheck(&line[pos]);
-    if (!strcasecmp(tok, "CLOSE"))
+    }
+    if (!strcasecmp(tok, "CLOSE")) {
+        my_increment_progressbar();
         return my_execute_close();
-    if (!strcasecmp(tok, "FLUSH"))
+    }
+    if (!strcasecmp(tok, "FLUSH")) {
+        my_increment_progressbar();
         return my_execute_flush();
+    }
     ham_trace("line %d: invalid token '%s'", config.cur_line, tok);
     return HAM_FALSE;
 }
@@ -847,19 +949,30 @@ test_db(const char *filename)
     config.backend[0]=BACKEND_HAMSTER;
     config.backend[1]=BACKEND_BERK;
     config.filename=filename;
+    config.mmap=1; /* mmap is enabled by default */
+    config.cachesize=HAM_DEFAULT_CACHESIZE;
 
     /*
      * parse command line parameters
      */
     while ((opt=getopts(&opts[0], &param))) {
         if (opt==ARG_PROFILE) {
-            config.profile++;
+            if (!param || param[0]=='1' || param[0]=='y' || param[0]=='Y')
+                config.profile++;
+            else
+                config.profile=0;
         }
         else if (opt==ARG_CHECK) {
-            config.check++;
+            if (!param || param[0]=='1' || param[0]=='y' || param[0]=='Y')
+                config.check++;
+            else
+                config.check=0;
         }
         else if (opt==ARG_QUIET) {
-            config.quiet++;
+            if (!param || param[0]=='1' || param[0]=='y' || param[0]=='Y')
+                config.quiet++;
+            else
+                config.quiet=0;
         }
         else if (opt==ARG_VERBOSE) {
             config.verbose++;
@@ -888,10 +1001,40 @@ test_db(const char *filename)
             config.dump++;
         }
         else if (opt==ARG_INMEMORY) {
-            config.inmemory=1;
+            if (!param || param[0]=='1' || param[0]=='y' || param[0]=='Y')
+                config.inmemory=1;
+            else
+                config.inmemory=0;
         }
         else if (opt==ARG_OVERWRITE) {
-            config.overwrite=1;
+            if (!param || param[0]=='1' || param[0]=='y' || param[0]=='Y')
+                config.overwrite=1;
+            else
+                config.overwrite=0;
+        }
+        else if (opt==ARG_PROGRESS) {
+            if (!param || param[0]=='1' || param[0]=='y' || param[0]=='Y')
+                config.progress=1;
+            else
+                config.progress=0;
+        }
+        else if (opt==ARG_MMAP) {
+            if (!param || param[0]=='1' || param[0]=='y' || param[0]=='Y')
+                config.mmap=1;
+            else
+                config.mmap=0;
+        }
+        else if (opt==ARG_PAGESIZE) {
+            config.pagesize=strtoul(param, 0, 0);
+        }
+        else if (opt==ARG_KEYSIZE) {
+            config.keysize=strtoul(param, 0, 0);
+        }
+        else if (opt==ARG_CACHESIZE) {
+            config.cachesize=strtoul(param, 0, 0);
+        }
+        else if (opt==ARG_CACHEPOLICY) {
+            config.strict_cache=!strcmp(param, "strict");
         }
         else if (opt==GETOPTS_UNKNOWN) {
             ham_trace("unknown parameter %s", param);
@@ -906,14 +1049,25 @@ test_db(const char *filename)
     /*
      * open the file
      */
-    if (!config.filename)
+    if (!config.filename) {
         f=stdin;
+        if (config.progress)  /* no progress bar if reading from stdin */
+            config.progress=0;
+    }
     else {
         f=fopen(config.filename, "rt");
         if (!f) {
             ham_trace("cannot open %s: %s", config.filename, 
                     strerror(errno));
             return (-1);
+        }
+        /* get the file size, if we display a progress bar */
+        if (config.progress) {
+            fseek(f, 0, SEEK_END);
+            g_filesize=ftell(f);
+            fseek(f, 0, SEEK_SET);
+            g_filepos =0;
+            VERBOSE2("file size is %u bytes", g_filesize);
         }
     }
 
@@ -927,6 +1081,9 @@ test_db(const char *filename)
         char *p=fgets(line, sizeof(line), f);
         if (!p)
             break;
+
+        if (config.progress)
+            g_filepos=ftell(f);
 
         if (!my_execute(line))
             break;

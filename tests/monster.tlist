@@ -1,0 +1,78 @@
+
+--filelist=full.tlist 
+--filelist=full.tlist -- --inmemorydb=1
+--filelist=full.tlist -- --overwrite=1
+--filelist=full.tlist -- --inmemorydb=1 --overwrite=1
+--filelist=full.tlist -- --mmap=0
+--filelist=full.tlist -- --mmap=0 --overwrite=1
+
+--filelist=full.tlist -- --pagesize=1024
+--filelist=full.tlist -- --pagesize=1024 --inmemorydb=1
+--filelist=full.tlist -- --pagesize=1024 --overwrite=1
+--filelist=full.tlist -- --pagesize=1024 --inmemorydb=1 --overwrite=1
+
+--filelist=full.tlist -- --pagesize=3072
+--filelist=full.tlist -- --pagesize=3072 --inmemorydb=1
+--filelist=full.tlist -- --pagesize=3072 --overwrite=1
+--filelist=full.tlist -- --pagesize=3072 --inmemorydb=1 --overwrite=1
+
+--filelist=full.tlist -- --pagesize=8192
+--filelist=full.tlist -- --pagesize=8192 --inmemorydb=1
+--filelist=full.tlist -- --pagesize=8192 --overwrite=1
+--filelist=full.tlist -- --pagesize=8192 --inmemorydb=1 --overwrite=1
+
+--filelist=full.tlist -- --keysize=8
+--filelist=full.tlist -- --keysize=8 --inmemorydb=1
+--filelist=full.tlist -- --keysize=8 --overwrite=1
+--filelist=full.tlist -- --keysize=8 --inmemorydb=1 --overwrite=1
+--filelist=full.tlist -- --keysize=8 --mmap=0
+--filelist=full.tlist -- --keysize=8 --mmap=0 --overwrite=1
+
+--filelist=full.tlist -- --keysize=16
+--filelist=full.tlist -- --keysize=16 --inmemorydb=1
+--filelist=full.tlist -- --keysize=16 --overwrite=1
+--filelist=full.tlist -- --keysize=16 --inmemorydb=1 --overwrite=1
+--filelist=full.tlist -- --keysize=16 --mmap=0
+--filelist=full.tlist -- --keysize=16 --mmap=0 --overwrite=1
+
+--filelist=full.tlist -- --keysize=128
+--filelist=full.tlist -- --keysize=128 --inmemorydb=1
+--filelist=full.tlist -- --keysize=128 --overwrite=1
+--filelist=full.tlist -- --keysize=128 --inmemorydb=1 --overwrite=1
+--filelist=full.tlist -- --keysize=128 --mmap=0
+--filelist=full.tlist -- --keysize=128 --mmap=0 --overwrite=1
+
+--filelist=full.tlist -- --cachesize=0
+--filelist=full.tlist -- --cachesize=0 --inmemorydb=1
+--filelist=full.tlist -- --cachesize=0 --overwrite=1
+--filelist=full.tlist -- --cachesize=0 --inmemorydb=1 --overwrite=1
+--filelist=full.tlist -- --cachesize=0 --mmap=0
+--filelist=full.tlist -- --cachesize=0 --mmap=0 --overwrite=1
+
+--filelist=full.tlist -- --cachesize=50
+--filelist=full.tlist -- --cachesize=50 --inmemorydb=1
+--filelist=full.tlist -- --cachesize=50 --overwrite=1
+--filelist=full.tlist -- --cachesize=50 --inmemorydb=1 --overwrite=1
+--filelist=full.tlist -- --cachesize=50 --mmap=0
+--filelist=full.tlist -- --cachesize=50 --mmap=0 --overwrite=1
+
+--filelist=full.tlist -- --cachesize=1048576
+--filelist=full.tlist -- --cachesize=1048576 --inmemorydb=1
+--filelist=full.tlist -- --cachesize=1048576 --overwrite=1
+--filelist=full.tlist -- --cachesize=1048576 --inmemorydb=1 --overwrite=1
+--filelist=full.tlist -- --cachesize=1048576 --mmap=0
+--filelist=full.tlist -- --cachesize=1048576 --mmap=0 --overwrite=1
+
+--filelist=full.tlist -- --cachepolicy=strict
+--filelist=full.tlist -- --cachepolicy=strict --inmemorydb=1
+--filelist=full.tlist -- --cachepolicy=strict --overwrite=1
+--filelist=full.tlist -- --cachepolicy=strict --inmemorydb=1 --overwrite=1
+--filelist=full.tlist -- --cachepolicy=strict --mmap=0
+--filelist=full.tlist -- --cachepolicy=strict --mmap=0 --overwrite=1
+
+--filelist=full.tlist -- --cachesize=1024 --cachepolicy=strict
+--filelist=full.tlist -- --cachesize=1024 --cachepolicy=strict --inmemorydb=1
+--filelist=full.tlist -- --cachesize=1024 --cachepolicy=strict --overwrite=1
+--filelist=full.tlist -- --cachesize=1024 --cachepolicy=strict --inmemorydb=1 --overwrite=1
+--filelist=full.tlist -- --cachesize=1024 --cachepolicy=strict --mmap=0
+--filelist=full.tlist -- --cachesize=1024 --cachepolicy=strict --mmap=0 --overwrite=1
