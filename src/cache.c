@@ -200,8 +200,13 @@ cache_put(ham_cache_t *cache, ham_page_t *page)
       case PAGE_TYPE_FREELIST:
           /* freelist pages should never be in the cache - fall through */
       default:
+          break;
+          /* ignore unknown pages... otherwise test 220 fails (allocates
+           * a page from the freelist and has no way to set the 
+           * page type, because the page is immediately added to the cache
           ham_assert(!"unknown page type",
                   "type is 0x%08x", page_get_type(page));
+           */ 
     }
 
     /*

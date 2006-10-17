@@ -18,12 +18,13 @@
 #include "getopts.h"
 #include "../src/error.h"
 
+static ham_u64_t g_total_insert=0;
 static ham_u64_t g_tv1, g_tv2;
 
 static unsigned long g_filesize, g_filepos;
 
-#define FILENAME_BERK "/tmp/test-berk.db"
-#define FILENAME_HAM  "/tmp/test-ham.db"
+#define FILENAME_BERK "test-berk.db"
+#define FILENAME_HAM  "test-ham.db"
 
 #define PROFILE_START(i)    while (config.profile) {                        \
                                 struct timeval tv;                          \
@@ -751,6 +752,7 @@ my_execute_insert(char *line)
                 config.retval[i]=ham_insert(config.hamdb, 0,
                         &key, &record, 
                         config.overwrite?HAM_OVERWRITE:0);
+                g_total_insert+=record.size;
                 PROFILE_STOP(i);
                 VERBOSE2("inserting into backend %d (hamster): status %d", 
                         i, (ham_status_t)config.retval[i]);
@@ -1112,5 +1114,6 @@ test_db(const char *filename)
                 my_get_profile_name(1), f);
     }
 
+    printf("totally inserted: %llu\n", g_total_insert);
     return (0);
 }

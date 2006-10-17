@@ -294,12 +294,21 @@ freel_add_area(ham_db_t *db, ham_offset_t address, ham_size_t size)
     /* 
      * now update the overflow pointer of the previous freelist page,
      * and set the dirty-flag 
+     *
+     * TODO flush the modified page?? 
+     *
      */
-    freel_payload_set_overflow(page_get_freel_payload(page), 
-            page_get_self(newp));
-    if (page==db_get_header_page(db))
+    if (page==db_get_header_page(db)) {
+        fp=&hdr->_freelist;
+        freel_payload_set_overflow(fp, page_get_self(newp));
         db_set_dirty(db, 1);
-    page_set_dirty(page, 1);
+        page_set_dirty(page, 1);
+    }
+    else {
+        freel_payload_set_overflow(page_get_freel_payload(page), 
+                page_get_self(newp));
+        page_set_dirty(page, 1);
+    }
 
     fp=page_get_freel_payload(newp);
     freel_payload_set_maxsize(fp, my_get_max_elements(db));

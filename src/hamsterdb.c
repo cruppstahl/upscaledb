@@ -430,6 +430,15 @@ ham_create_ex(ham_db_t *db, const char *filename,
     }
 
     /*
+     * if we still don't have a pagesize, try to get a good default value
+     */
+    if (!pagesize) {
+        pagesize=os_get_pagesize();
+        if (!pagesize)
+            pagesize=1024*4;
+    }
+
+    /*
      * get the default keysize
      */
     if (keysize==0)
@@ -638,6 +647,9 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
         return (HAM_INV_KEYSIZE);
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
+
+    if (*(unsigned *)key->data==606)
+        printf("hit\n");
 
     /*
      * store the index entry; the backend will store the blob

@@ -675,7 +675,8 @@ db_alloc_area(ham_db_t *db, ham_u32_t type, ham_txn_t *txn,
     }
 
     /*
-     * otherwise check the freelist
+     * otherwise check the freelist; if we find a page, we 
+     * also set the page type
      */
     address=freel_alloc_area(db, size, db_get_flags(db));
     if (address) {
@@ -683,7 +684,10 @@ db_alloc_area(ham_db_t *db, ham_u32_t type, ham_txn_t *txn,
         pageid=(pageid/db_get_pagesize(db))*db_get_pagesize(db);
         *area_size=size;
         *area_offset=address-pageid;
-        return (db_fetch_page(db, txn, pageid, flags));
+        page=db_fetch_page(db, txn, pageid, flags);
+        if (page)
+            page_set_type(page, type);
+        return (page);
     }
 
     /* 

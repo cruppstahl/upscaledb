@@ -357,11 +357,13 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
             if (st)
                 return (st);
 
+#if 0
             if (!((key_get_flags(bte)&KEY_BLOB_SIZE_TINY) || 
                   (key_get_flags(bte)&KEY_BLOB_SIZE_SMALL) || 
                   (key_get_flags(bte)&KEY_BLOB_SIZE_EMPTY)))
                 (void)blob_free(db, txn, key_get_ptr(bte), 0); 
                 /* TODO use blob_replace... */
+#endif
         }
         else {
             if ((st=blob_allocate(db, txn, record->data, 

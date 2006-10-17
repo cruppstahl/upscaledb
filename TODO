@@ -21,83 +21,28 @@ x 220.tst: schlägt fehl im release-build!
     
 -----------------------------------------------------
 
-x test-skript überarbeiten
-    x wrapperskript dbtest.py
-        x syntax: ./dbtest.py <dbtest.py-optionen> -- <./test-optionen>
-            dbtest-optionen:
-                x --enable-valgrind/--disable-valgrind
-                x --filelist=list (liste mit testdateien und deren optionen)
-            test-optionen:
-                x --pagesize=\d
-                x --keysize=\d
-                x --cachesize=\d
-                etc (wie gehabt)
-        x konfig aus der eltern-konfig übernehmen
-        x test: unterstützung von 
-            x --profile=[0, 1] (short option: -prof)
-            x --check=[0, 1] (short option: -chk)
-            x --inmemorydb=[0, 1] (short option: -memdb)
-            x --overwrite=[0, 1]
+x einige tests bekommen "out of memory"-fehlermeldungen in mmap und munmap
 
-    x können wir eine "progress bar" anzeigen? gerade die ext_20+-tests 
-        dauern sehr lang
-        -> ja, können wir: wir kennen die dateigrösse, und wir wissen 
-            an welchem offset wir in der datei sind
-
-    x 3 wrapper aussenrum mit filelists
-        x short.lst: nur die wichtigsten dateien, keine optionen
-        x full.lst: alle testdateien
-        x monster.lst: alle tests  in allen möglichen kombinationen
-            x normal
-            x inmemory
-            x overwrite
-            x mmap/rw
-            x verschiedene pagegrössen
-            x verschiedene keygrössen
-            x verschiedene cachegrössen
-            x verschiedene cachepolicies
-
-    x leere zeilen, kommentare
-
-    x --progress (u.a.) wird z.b. noch nicht an kindlisten weitergegeben
-
-    x den fenstertitel setzen, die aktuelle konfiguration und fileliste 
-        anzeigen (oder auch ne progress-bar/prozentanzeige in der fileliste)
-        - irgendwas, dass wir sehen wo wir gerade stehen
-
-    x alle wichtigen ausgaben in ein logfile
-    x bei fehlern nicht abbrechen, aber nen permanenten fehlerzähler
-
------------------------------------------------------
-
-x ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/01.tst --inmemorydb
-
-x file test.tst crasht
-
-x ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/100.tst --overwrite=1
---check=1 --check=1 --verbose=1
-
-x ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/100.tst --overwrite=1         --inmemorydb=1
-    --> valgrind-fehler, sonst läuft's durch
+x ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/220.tst --verbose=1
+    schlägt fehl, allerdings nicht bei inmemory=1
+    scheint ein freelist/blob_free-problem zu sein
 
 o file test.tst hat ein kleines memory leak (blob.c, zeile 409)
 
-o einige tests bekommen "out of memory"-fehlermeldungen in mmap und munmap
-    --> wie gibt's das, dass es bei munmap "out of memory"-fehler gibt?
-    o wie viel wird wirklich allokiert?
-    o muss ich einen munmap machen, wenn ich eh nur eine private read-only-
-        kopie machen will?
-    o passiert nur bei --overwrite=1; bleiben bei blob_free memory-leaks
-        übrig?
+-----------------------------------------------------
 
-    ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/190.tst --overwrite=1
-    ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/199.tst --overwrite=1
-    ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/200.tst --overwrite=1
+o warum wird die datenbank so verdammt gross? z.b. test 190 mit overwrite=1:
+    test-berk.db: 232 kb, test-ham.db: 500 MB!
 
-    src/os.c[44]: mmap failed with status 12 (Cannot allocate memory)
-    src/db.c[75]: os_mmap failed with status 12 (Unknown error)
-    src/os.c[44]: mmap failed with status 12 (Cannot allocate memory)
-    src/db.c[75]: os_mmap failed with status 12 (Unknown error)
+-----------------------------------------------------
+
+o beim blob_allocate und blob_read brauchen wir die pages nicht zu 
+    cachen; -> die hdr-page wird gecacht und in der txn verwaltet,
+    aber der rest könnte direkt geschrieben bzw. gelesen 
+    werden (os_read/os_mmap, os_write)
+
+o freelist: versuchen, die einträge beim einfügen gleich zusammenzulegen, 
+    falls sie nebeneinander sind
 
 -----------------------------------------------------
 

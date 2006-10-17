@@ -62,7 +62,8 @@ os_munmap(void *buffer, ham_size_t size)
 ham_status_t
 os_read(ham_fd_t fd, ham_u8_t *buffer, ham_size_t bufferlen)
 {
-    ham_size_t r, total=0;
+    int r;
+    ham_size_t total=0;
 
     while (total<bufferlen) {
         r=read(fd, &buffer[total], bufferlen-total);
@@ -79,7 +80,8 @@ os_read(ham_fd_t fd, ham_u8_t *buffer, ham_size_t bufferlen)
 ham_status_t
 os_write(ham_fd_t fd, const ham_u8_t *buffer, ham_size_t bufferlen)
 {
-    ham_size_t w, total=0;
+    int w;
+    ham_size_t total=0;
 
     while (total<bufferlen) {
         w=write(fd, &buffer[total], bufferlen-total);

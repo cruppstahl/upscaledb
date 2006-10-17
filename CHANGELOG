@@ -1,4 +1,9 @@
 
+Oct 18, 2006 - chris
+o fixed a bug in the freelist - too many freelist pages were allocated
+o fixed a bug: when allocating pages, and the page was removed from the
+    freelist, and the page type was not set correctly
+
 Oct 12, 2006 - chris
 o fixed a bug in blob_allocate when allocating big blobs
 o fixed a bug when overwriting keys, and the blob was empty, tiny or 
