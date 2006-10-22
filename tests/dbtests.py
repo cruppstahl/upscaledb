@@ -101,12 +101,25 @@ def parse_args(hargs, argv):
             vprint("Appending file "+a[1])
         elif a[0] in ['--']:
             test_opts=1
-            hargs['test_opts']=[]
+            if not hargs.has_key('test_opts'):
+                hargs['test_opts']=[]
         else:
-            print "unknown argument", a[0]
-            print ""
-            help()
-            sys.exit(-1)
+            unknown=0
+            try:
+                if a[0]==['-'] and a[1]=='-':
+                    unknown=1
+            except:
+                unknown=1
+            if unknown:
+                print "unknown argument", a[0]
+                print ""
+                help()
+                sys.exit(-1)
+            else: # treat unknown parameters as filelists
+                if not hargs.has_key('filelist'):
+                    hargs['filelist']=[]
+                hargs['filelist'].append(a[0]);
+                vprint("Appending filelist "+a[0])
     return hargs
 
 def save_file(path):
@@ -135,7 +148,7 @@ def exec_file(hargs, file):
     out=f.readlines()
     for o in out:
         if "progress: " in o:
-            print o
+            print o,
             continue
         fnd1=re.findall("asserts\s+\d+\s+\d+\s+\d+\s+(\d+)", o)
         fnd2=re.findall("ASSERT", o)
@@ -160,8 +173,8 @@ def exec_file(hargs, file):
         if fnd5: # profile
             lprint("   ", o,)
 
-    if status==2: # exit on strg-c
-        sys.exit(-1)
+    #if status==2: # exit on strg-c
+        #sys.exit(-1)
     if status:
         g_error_count=g_error_count+1
     lprint("    status is "+str(status)+" ("+str(g_error_count)+" errors)")
@@ -184,8 +197,9 @@ def exec_filelist(hargs, file):
             hargs['file']=[]
         if hargs.has_key('filelist'):
             hargs['filelist']=[]
-        hargs=parse_args(copy.deepcopy(hargs), args)
-        exec_args(hargs)
+        myargs=copy.deepcopy(hargs)
+        myargs=parse_args(myargs, args)
+        exec_args(myargs)
 
 def exec_args(hargs):
     # first, we run all tests which were specified with --file=XXX
