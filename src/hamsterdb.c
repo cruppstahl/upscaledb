@@ -648,9 +648,6 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
-    if (*(unsigned *)key->data==606)
-        printf("hit\n");
-
     /*
      * store the index entry; the backend will store the blob
      */

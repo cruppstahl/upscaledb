@@ -21,18 +21,31 @@ x 220.tst: schlägt fehl im release-build!
     
 -----------------------------------------------------
 
-x einige tests bekommen "out of memory"-fehlermeldungen in mmap und munmap
-
-x ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/220.tst --verbose=1
-    schlägt fehl, allerdings nicht bei inmemory=1
-    scheint ein freelist/blob_free-problem zu sein
-
 o file test.tst hat ein kleines memory leak (blob.c, zeile 409)
+
+x ./dbtest.py ohne argumente sollte IMMER eine filelist nehmen
+
+x die ext-key-tests schlagen bei overwrite=1 fehl
+
+o wenn alle tests laufen: rudimentäres makefile machen, dann neues release!
+
+o auch mit release-version testen!
+
+    zuletzt getestet: --pagesize=1024 --overwrite=1
 
 -----------------------------------------------------
 
 o warum wird die datenbank so verdammt gross? z.b. test 190 mit overwrite=1:
-    test-berk.db: 232 kb, test-ham.db: 500 MB!
+    test-berk.db: 232 kb, test-ham.db: 40 MB!
+    
+    -> liegt daran dass die datei nicht kleiner wird, wenn einträge mit 
+    erase gelöscht werden. wenn man berkeley-db mit strace startet, 
+    kommen sicher am schluss viele "negative" truncate()-aufrufe, die 
+    die datei schrumpfen lassen.
+
+    -> können wir das auch?? lohnt sich das?
+
+    -> bei der freelist die einträge zusammenlegen, soweit das möglich ist
 
 -----------------------------------------------------
 
@@ -41,18 +54,22 @@ o beim blob_allocate und blob_read brauchen wir die pages nicht zu
     aber der rest könnte direkt geschrieben bzw. gelesen 
     werden (os_read/os_mmap, os_write)
 
-o freelist: versuchen, die einträge beim einfügen gleich zusammenzulegen, 
-    falls sie nebeneinander sind
+o overwrite: wenn der blob gleich gross ist, muss er nicht gelöscht 
+    sondern kann direkt überschrieben werden. es kommt in der praxis
+    sicher häufig vor, dass die datensätze gleich gross sind. also 
+    würde sich eine solche optimierung lohnen.
 
 -----------------------------------------------------
 
 o mit noch grösseren blobs und datenbanken testen 
 
+o Datei > 2GB erzeugen
+
 -----------------------------------------------------
 
 o profiling! aber mit der release-version...
 
-    o binary sort statt linear sort
+    o binary search statt linear search
 
     o statt --profile ab sofort:
         o --profile=all - wie bisher
@@ -75,11 +92,6 @@ o profiling! aber mit der release-version...
 
     o können wir drauf verzichten, beim db_page_alloc ein tell, seek, 
         truncate zu machen? evtl kommen wir ganz ohne resize aus??
-    o können wir die minkeys/maxkeys hochsetzen? bzw. später splitten 
-    und später mergen?
-        o pagesplits/merges in bdb zählen
-        o bdb: wie gross sind ihre pages? 
-        o bdb: wie gross sind ihre keys? 
 
 o extended keys doch cachen? sind SEHR langsam im vergleich zu bdb...
 
@@ -210,6 +222,8 @@ o define HAM_EXPORT DECLSPEC _dllexport
 -----------------------------------------------------
 
 o iteratoren 
+    o sind schon designt (siehe iterators.txt im rechner auf arbeit)
+
     o in-memory-db: finden wir ne möglichkeit, normale datenbanken in 
         in-memory zu importieren und umgekehrt wieder zu exportieren? 
         das wäre genial

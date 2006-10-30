@@ -1,13 +1,13 @@
-
---filelist=full.tlist 
---filelist=full.tlist -- --inmemorydb=1
---filelist=full.tlist -- --overwrite=1
---filelist=full.tlist -- --inmemorydb=1 --overwrite=1
---filelist=full.tlist -- --mmap=0
---filelist=full.tlist -- --mmap=0 --overwrite=1
-
---filelist=full.tlist -- --pagesize=1024
---filelist=full.tlist -- --pagesize=1024 --inmemorydb=1
+#
+#--filelist=full.tlist 
+#--filelist=full.tlist -- --inmemorydb=1
+#--filelist=full.tlist -- --overwrite=1
+#--filelist=full.tlist -- --inmemorydb=1 --overwrite=1
+#--filelist=full.tlist -- --mmap=0
+#--filelist=full.tlist -- --mmap=0 --overwrite=1
+#
+#--filelist=full.tlist -- --pagesize=1024
+#--filelist=full.tlist -- --pagesize=1024 --inmemorydb=1
 --filelist=full.tlist -- --pagesize=1024 --overwrite=1
 --filelist=full.tlist -- --pagesize=1024 --inmemorydb=1 --overwrite=1
 

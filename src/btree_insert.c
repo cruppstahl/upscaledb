@@ -379,6 +379,8 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
      * if the record's size is < sizeof(ham_offset_t), the last byte
      * in &rid is the size of the data. if the record is empty, we just
      * set the "empty"-flag.
+     *
+     * before, disable the key-flags
      */
     key_set_flags(bte, 0);
 
@@ -401,6 +403,19 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
 
     key_set_ptr(bte, rid);
     page_set_dirty(page, 1);
+
+    /*
+     * set a flag if the key is extended, and does not fit into the 
+     * btree
+     */
+    if (key->size>db_get_keysize(db)) {
+        key_set_flags(bte, key_get_flags(bte)|KEY_IS_EXTENDED);
+        key_set_size(bte, key->size);
+    }
+    else {
+        key_set_size(bte, key->size);
+        /*key_set_key(bte, key->data, key_get_size(bte));*/
+    }
 
     /*
      * if we've overwritten a key: no need to continue, we're done
@@ -429,15 +444,6 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
         p=(ham_offset_t *)(key_get_key(bte)+
                 (db_get_keysize(db)-sizeof(ham_offset_t)));
         *p=ham_db2h_offset(blobid);
-    }
-
-    if (key->size>db_get_keysize(db)) {
-        key_set_flags(bte, key_get_flags(bte)|KEY_BLOB_SIZE_BIG);
-        key_set_size(bte, key->size);
-    }
-    else {
-        key_set_size(bte, key->size);
-        /*key_set_key(bte, key->data, key_get_size(bte));*/
     }
 
     btree_node_set_count(node, count+1);
@@ -602,7 +608,7 @@ pp(ham_txn_t *txn, ham_page_t *page)
 
         printf("%03d: ", i);
 
-        if (key_get_flags(bte)&KEY_BLOB_SIZE_BIG) 
+        if (key_get_flags(bte)&KEY_IS_EXTENDED) 
             len=db_get_keysize(page_get_owner(page))-sizeof(ham_offset_t);
         else
             len=key_get_size(bte);

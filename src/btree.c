@@ -220,7 +220,7 @@ btree_traverse_tree(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
     else {
         bte=btree_node_get_key(db, node, slot);
         ham_assert(key_get_flags(bte)==0 || 
-                key_get_flags(bte)==KEY_BLOB_SIZE_BIG,
+                key_get_flags(bte)==KEY_IS_EXTENDED,
                 "invalid key flags 0x%x", key_get_flags(bte));
         return (db_fetch_page(db, txn, key_get_ptr(bte), 0));
     }

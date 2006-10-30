@@ -374,7 +374,7 @@ db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
     /*
      * need prefix compare? 
      */
-    if (!(lhs_flags&KEY_BLOB_SIZE_BIG) && !(rhs_flags&KEY_BLOB_SIZE_BIG)) {
+    if (!(lhs_flags&KEY_IS_EXTENDED) && !(rhs_flags&KEY_IS_EXTENDED)) {
         /*
          * no!
          */
@@ -388,12 +388,12 @@ db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
     if (prefoo) {
         ham_size_t lhsprefixlen, rhsprefixlen;
 
-        if (lhs_flags&KEY_BLOB_SIZE_BIG) 
+        if (lhs_flags&KEY_IS_EXTENDED) 
             lhsprefixlen=db_get_keysize(db)-sizeof(ham_offset_t);
         else
             lhsprefixlen=lhs_length;
 
-        if (rhs_flags&KEY_BLOB_SIZE_BIG) 
+        if (rhs_flags&KEY_IS_EXTENDED) 
             rhsprefixlen=db_get_keysize(db)-sizeof(ham_offset_t);
         else
             rhsprefixlen=rhs_length;
@@ -408,7 +408,7 @@ db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
         /*
          * 1. load the first key, if needed
          */
-        if (lhs_flags&KEY_BLOB_SIZE_BIG) {
+        if (lhs_flags&KEY_IS_EXTENDED) {
             ham_offset_t blobid;
 
             memset(&lhs_record, 0, sizeof(lhs_record));
@@ -436,7 +436,7 @@ db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
         /*
          * 2. load the second key, if needed
          */
-        if (rhs_flags&KEY_BLOB_SIZE_BIG) {
+        if (rhs_flags&KEY_IS_EXTENDED) {
             ham_offset_t blobid;
 
             memset(&rhs_record, 0, sizeof(rhs_record));

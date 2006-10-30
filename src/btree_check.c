@@ -219,7 +219,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
                 btree_node_get_count(sibnode)-1);
         bte=btree_node_get_key(db, node, 0);
 
-        if ((key_get_flags(bte)!=0 && key_get_flags(bte)!=KEY_BLOB_SIZE_BIG) && 
+        if ((key_get_flags(bte)!=0 && key_get_flags(bte)!=KEY_IS_EXTENDED) && 
             !btree_node_is_leaf(node)) {
             ham_log("integrity check failed in page 0x%llx: item #0 "
                     "has flags, but it's not a leaf page", 

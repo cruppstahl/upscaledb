@@ -82,7 +82,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 key_t
 #define KEY_BLOB_SIZE_TINY              1
 #define KEY_BLOB_SIZE_SMALL             2
 #define KEY_BLOB_SIZE_EMPTY             4
-#define KEY_BLOB_SIZE_BIG               8
+#define KEY_IS_EXTENDED                 8
 
 /**
  * get a pointer to the key 
