@@ -287,6 +287,8 @@ freel_add_area(ham_db_t *db, ham_offset_t address, ham_size_t size)
      * and every access would result in problems. 
      */
     newp=my_alloc_page(db);
+    if (!newp) 
+        return (0);
 
     /* set the whole page to zero */
     memset(newp->_pers->_s._payload, 0, db_get_usable_pagesize(db));
