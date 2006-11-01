@@ -75,9 +75,10 @@ env['buildpath']='build/'
 conf=Configure(env, custom_tests={'CheckGccVersion': CheckGccVersion, 
                                   'CheckWordSize': CheckWordSize})
 
+conf.env['GCC_VERSION_OK']=False
 if conf.CheckGccVersion():
     vprint("Gcc version >= 4.1.1, compiling with -O3")
-    conf.env['GCC_VERSION_OK']=True;
+    conf.env['GCC_VERSION_OK']=True
 
 ws=conf.CheckWordSize()
 if ws=='4':
@@ -150,8 +151,7 @@ else:
     # if gcc<4.1.1: don't use -O!!
     if conf.env['GCC_VERSION_OK']:
         env.Append(CCFLAGS='-O3')
-    env.Append(CCFLAGS=['-fomit-frame-pointer', \
-        '-ffast-math', '-funit-at-a-time'])
+    env.Append(CCFLAGS=['-fomit-frame-pointer', '-ffast-math'])
     env['suffix']='_rel'
 
 if env['WORDSIZE']==32:
