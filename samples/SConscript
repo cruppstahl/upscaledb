@@ -12,7 +12,7 @@ files=[
 
 #cflags    = '-g -pg -Wall -DHAM_DEBUG -DHAM_OS_LIN32'
 #include   = ['../include']
-libraries = ['hamsterdb', 'db']
+libraries = ['hamsterdb']
 libpaths  = ['../build']
 
 Import('env')
