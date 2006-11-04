@@ -1,4 +1,12 @@
 
+Oct 26, 2006 - chris
+o fixed a bug in the freelist - the return value was ignored, when 
+    allocating a new page. if the cache was too small, NULL was returned
+    and the library crashed
+
+Oct 24, 2006 - chris
+o fixed minor issues for compiling on 32bit machines
+
 Oct 18, 2006 - chris
 o fixed a bug in the freelist - too many freelist pages were allocated
 o fixed a bug: when allocating pages, and the page was removed from the
