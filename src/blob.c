@@ -338,7 +338,7 @@ blob_replace(ham_db_t *db, ham_txn_t *txn, ham_offset_t old_blobid,
 ham_status_t
 blob_free(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid, ham_u32_t flags)
 {
-    ham_page_t *page;
+    ham_page_t *page, *page2;
     blob_t *hdr;
     ham_size_t i;
 
@@ -378,11 +378,11 @@ blob_free(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid, ham_u32_t flags)
              * it
              */
             if (blob_get_chunk_flags(hdr, 0)&BLOB_CHUNK_SPANS_PAGE) {
-                page=db_fetch_page(db, txn, 
+                page2=db_fetch_page(db, txn, 
                         (chunkstart/db_get_pagesize(db))*db_get_pagesize(db), 
                         0);
-                if (page)
-                    (void)db_free_page(db, txn, page, 0);
+                if (page2)
+                    (void)db_free_page(db, txn, page2, 0);
             }
             /*
              * otherwise: if this chunk is adjacent to the blob_t header, 

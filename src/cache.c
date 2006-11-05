@@ -347,8 +347,31 @@ cache_flush_and_delete(ham_cache_t *cache, ham_u32_t flags)
         head=next;
     }
 
-    if (!(flags&DB_FLUSH_NODELETE)) 
+    if (!(flags&DB_FLUSH_NODELETE)) {
         cache_set_totallist(cache, 0);
+
+        head=cache_get_garbagelist(cache); 
+        while (head) {
+            ham_page_t *next=page_get_next(head, PAGE_LIST_GARBAGE);
+    
+            ham_assert(page_is_inuse(head)==0, 
+                    "page is in use, but database is closing", 0);
+
+            /*
+             * delete the page structure and free the memory
+             *
+             * TODO
+             * db_free_page_struct() calls cache_remove_page(); this 
+             * call is not needed...
+             */
+            db_free_page_struct(head);
+    
+            head=next;
+        }
+
+        cache_set_garbagelist(cache, 0);
+    }
+
     return (0);
 }
 

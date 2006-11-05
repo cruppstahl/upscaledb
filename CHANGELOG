@@ -1,4 +1,10 @@
 
+Nov 05, 2006 - chris 
+o fixed a tiny memory leak in blob_erase
+
+Nov 04, 2006 - chris ---------------------------------------------------
+                      release of hamsterdb-0.1pre2
+
 Oct 26, 2006 - chris
 o fixed a bug in the freelist - the return value was ignored, when 
     allocating a new page. if the cache was too small, NULL was returned
