@@ -26,19 +26,26 @@ static unsigned long g_filesize, g_filepos;
 #define FILENAME_BERK "test-berk.db"
 #define FILENAME_HAM  "test-ham.db"
 
-#define PROFILE_START(i)    while (config.profile) {                        \
+#define PROFILE_START(w,i)  while (config.profile&w) {                      \
                                 struct timeval tv;                          \
                                 gettimeofday(&tv, 0);                       \
                                 g_tv1=(ham_u64_t)(tv.tv_sec)*1000+          \
                                     (ham_u64_t)(tv.tv_usec)/1000;           \
                                 break;                                      \
                             }       
-#define PROFILE_STOP(i)     while (config.profile) {                        \
+#define PROFILE_STOP(w,i)     while (config.profile&w) {                    \
                                 struct timeval tv;                          \
                                 gettimeofday(&tv, 0);                       \
                                 g_tv2=(ham_u64_t)(tv.tv_sec)*1000+          \
                                     (ham_u64_t)(tv.tv_usec)/1000;           \
-                                config.prof[i]+=g_tv2-g_tv1;                \
+                                if (w==PROF_INSERT)                         \
+                                    config.prof_insert[i]+=g_tv2-g_tv1;     \
+                                else if (w==PROF_ERASE)                     \
+                                    config.prof_erase[i]+=g_tv2-g_tv1;      \
+                                else if (w==PROF_FIND)                      \
+                                    config.prof_find[i]+=g_tv2-g_tv1;       \
+                                else if (w==PROF_OTHER)                     \
+                                    config.prof_other[i]+=g_tv2-g_tv1;      \
                                 break;                                      \
                             }
 
@@ -58,13 +65,20 @@ static unsigned long g_filesize, g_filepos;
 #define ARG_CACHESIZE  16
 #define ARG_CACHEPOLICY 17
 
+#define PROF_INSERT     1
+#define PROF_ERASE      2
+#define PROF_FIND       4
+#define PROF_OTHER      8
+#define PROF_ALL        (PROF_INSERT|PROF_ERASE|PROF_FIND|PROF_OTHER)
+#define PROF_NONE       (~PROF_ALL)
+
 #define BACKEND_NONE    0
 #define BACKEND_HAMSTER 1
 #define BACKEND_BERK    2
 
 #define NUMERIC_KEY     1
 
-#define VERBOSE2        if (config.verbose>=2) ham_trace
+#define VERBOSE2        if (config.verbose>=2) ham_log
 #define FAIL            ham_trace
 
 /*
@@ -133,7 +147,10 @@ static struct {
     unsigned long long retval[2];
 
     /* performance counter */
-    ham_u64_t prof[2];
+    ham_u64_t prof_insert[2];
+    ham_u64_t prof_erase[2];
+    ham_u64_t prof_find[2];
+    ham_u64_t prof_other[2];
 
 } config;
 
@@ -264,6 +281,69 @@ my_get_profile_name(int i)
             return "none    ";
         default:
             return "?? unknown ??";
+    }
+}
+
+static void
+my_print_profile(void)
+{
+    float f, total[2]={0, 0};
+
+    if (config.profile&PROF_INSERT) {
+        f=config.prof_insert[0];
+        total[0]+=f;
+        f/=1000.f;
+        printf("insert: profile of backend %s:\t%f sec\n", 
+                my_get_profile_name(0), f);
+        f=config.prof_insert[1];
+        total[1]+=f;
+        f/=1000.f;
+        printf("insert: profile of backend %s:\t%f sec\n", 
+                my_get_profile_name(1), f);
+    }
+    if (config.profile&PROF_ERASE) {
+        f=config.prof_erase[0];
+        total[0]+=f;
+        f/=1000.f;
+        printf("erase:  profile of backend %s:\t%f sec\n", 
+                my_get_profile_name(0), f);
+        f=config.prof_erase[1];
+        total[1]+=f;
+        f/=1000.f;
+        printf("erase:  profile of backend %s:\t%f sec\n", 
+                my_get_profile_name(1), f);
+    }
+    if (config.profile&PROF_FIND) {
+        f=config.prof_find[0];
+        total[0]+=f;
+        f/=1000.f;
+        printf("find:   profile of backend %s:\t%f sec\n", 
+                my_get_profile_name(0), f);
+        f=config.prof_find[1];
+        total[1]+=f;
+        f/=1000.f;
+        printf("find:   profile of backend %s:\t%f sec\n", 
+                my_get_profile_name(1), f);
+    }
+    if (config.profile&PROF_OTHER) {
+        f=config.prof_other[0];
+        total[0]+=f;
+        f/=1000.f;
+        printf("other:  profile of backend %s:\t%f sec\n", 
+                my_get_profile_name(0), f);
+        f=config.prof_other[1];
+        total[1]+=f;
+        f/=1000.f;
+        printf("other:  profile of backend %s:\t%f sec\n", 
+                my_get_profile_name(1), f);
+    }
+    if (config.profile==PROF_ALL) {
+        total[0]/=1000.f;
+        printf("total:  profile of backend %s:\t%f sec\n", 
+                my_get_profile_name(0), total[0]);
+        total[1]/=1000.f;
+        printf("total:  profile of backend %s:\t%f sec\n", 
+                my_get_profile_name(1), total[1]);
     }
 }
 
@@ -460,13 +540,13 @@ my_execute_create(char *line)
                     return 0;
                 }
                 (void)unlink(FILENAME_BERK);
-                PROFILE_START(i);
+                PROFILE_START(PROF_OTHER, i);
                 ret=db_create(&config.dbp, 0, 0);
                 ham_assert(ret==0, 0, 0);
                 ret=config.dbp->open(config.dbp, 0, FILENAME_BERK, 0, 
                         DB_BTREE, DB_CREATE, 0);
                 ham_assert(ret==0, 0, 0);
-                PROFILE_STOP(i);
+                PROFILE_STOP(PROF_OTHER, i);
                 break;
             case BACKEND_HAMSTER: 
                 VERBOSE2("opening backend %d (hamster)", i);
@@ -474,8 +554,8 @@ my_execute_create(char *line)
                     FAIL("hamster handle already exists", 0);
                     return 0;
                 }
-                PROFILE_START(i);
                 (void)unlink(FILENAME_HAM);
+                PROFILE_START(PROF_OTHER, i);
                 st=ham_new(&config.hamdb);
                 ham_assert(st==0, 0, 0);
                 if (config.inmemory) {
@@ -489,7 +569,7 @@ my_execute_create(char *line)
                 ham_assert(st==0, 0, 0);
                 if (config.flags & NUMERIC_KEY)
                     ham_set_compare_func(config.hamdb, my_compare_keys);
-                PROFILE_STOP(i);
+                PROFILE_STOP(PROF_OTHER, i);
                 break;
         }
     }
@@ -524,13 +604,13 @@ my_execute_open(char *line)
                     FAIL("berkeley handle already exists", 0);
                     return 0;
                 }
-                PROFILE_START(i);
+                PROFILE_START(PROF_OTHER, i);
                 ret=db_create(&config.dbp, 0, 0);
                 ham_assert(ret==0, 0, 0);
                 ret=config.dbp->open(config.dbp, 0, FILENAME_BERK, 0, 
                         DB_BTREE, 0, 0);
                 ham_assert(ret==0, 0, 0);
-                PROFILE_STOP(i);
+                PROFILE_STOP(PROF_OTHER, i);
                 break;
             case BACKEND_HAMSTER: 
                 VERBOSE2("opening backend %d (hamster)", i);
@@ -538,14 +618,14 @@ my_execute_open(char *line)
                     FAIL("hamster handle already exists", 0);
                     return 0;
                 }
-                PROFILE_START(i);
+                PROFILE_START(PROF_OTHER, i);
                 st=ham_new(&config.hamdb);
                 ham_assert(st==0, 0, 0);
                 st=ham_open(config.hamdb, FILENAME_HAM, 0);
                 ham_assert(st==0, 0, 0);
                 if (config.flags & NUMERIC_KEY)
                     ham_set_compare_func(config.hamdb, my_compare_keys);
-                PROFILE_STOP(i);
+                PROFILE_STOP(PROF_OTHER, i);
                 break;
         }
     }
@@ -613,10 +693,10 @@ my_execute_close(void)
                     FAIL("berkeley handle is invalid", 0);
                     return 0;
                 }
-                PROFILE_START(i);
+                PROFILE_START(PROF_OTHER, i);
                 config.dbp->close(config.dbp, 0);
                 config.dbp=0;
-                PROFILE_STOP(i);
+                PROFILE_STOP(PROF_OTHER, i);
                 break;
             case BACKEND_HAMSTER: 
                 VERBOSE2("closing backend %d (hamster)", i);
@@ -624,12 +704,12 @@ my_execute_close(void)
                     FAIL("hamster handle is invalid", 0);
                     return 0;
                 }
-                PROFILE_START(i);
+                PROFILE_START(PROF_OTHER, i);
                 st=ham_close(config.hamdb);
                 ham_assert(st==0, 0, 0);
                 ham_delete(config.hamdb);
                 config.hamdb=0;
-                PROFILE_STOP(i);
+                PROFILE_STOP(PROF_OTHER, i);
                 break;
         }
     }
@@ -701,7 +781,7 @@ my_execute_insert(char *line)
                         free(data);
                     return 0;
                 }
-                PROFILE_START(i);
+                PROFILE_START(PROF_INSERT, i);
 
                 memset(&key, 0, sizeof(key));
                 memset(&record, 0, sizeof(record));
@@ -719,7 +799,7 @@ my_execute_insert(char *line)
 
                 config.retval[i]=config.dbp->put(config.dbp, 0, &key, &record, 
                         config.overwrite?0:DB_NOOVERWRITE);
-                PROFILE_STOP(i);
+                PROFILE_STOP(PROF_INSERT, i);
                 VERBOSE2("inserting into backend %d (berkeley): status %d",
                         i, (int)config.retval[i]);
                 break;
@@ -733,7 +813,7 @@ my_execute_insert(char *line)
                         free(data);
                     return 0;
                 }
-                PROFILE_START(i);
+                PROFILE_START(PROF_INSERT, i);
 
                 memset(&key, 0, sizeof(key));
                 memset(&record, 0, sizeof(record));
@@ -753,7 +833,7 @@ my_execute_insert(char *line)
                         &key, &record, 
                         config.overwrite?HAM_OVERWRITE:0);
                 g_total_insert+=record.size;
-                PROFILE_STOP(i);
+                PROFILE_STOP(PROF_INSERT, i);
                 VERBOSE2("inserting into backend %d (hamster): status %d", 
                         i, (ham_status_t)config.retval[i]);
                 break;
@@ -811,7 +891,7 @@ my_execute_erase(char *line)
                     FAIL("berkeley handle is invalid", 0);
                     return 0;
                 }
-                PROFILE_START(i);
+                PROFILE_START(PROF_ERASE, i);
 
                 memset(&key, 0, sizeof(key));
 
@@ -825,7 +905,7 @@ my_execute_erase(char *line)
                 }
 
                 config.retval[i]=config.dbp->del(config.dbp, 0, &key, 0);
-                PROFILE_STOP(i);
+                PROFILE_STOP(PROF_ERASE, i);
                 VERBOSE2("erasing from backend %d (berkeley): status %d",
                         i, (int)config.retval[i]);
                 break;
@@ -836,7 +916,7 @@ my_execute_erase(char *line)
                     FAIL("hamster handle is invalid", 0);
                     return 0;
                 }
-                PROFILE_START(i);
+                PROFILE_START(PROF_ERASE, i);
 
                 memset(&key, 0, sizeof(key));
 
@@ -850,7 +930,7 @@ my_execute_erase(char *line)
                 }
 
                 config.retval[i]=ham_erase(config.hamdb, 0, &key, 0);
-                PROFILE_STOP(i);
+                PROFILE_STOP(PROF_ERASE, i);
                 VERBOSE2("erasing from backend %d (hamster): status %d", 
                         i, (ham_status_t)config.retval[i]);
                 break;
@@ -959,10 +1039,38 @@ test_db(const char *filename)
      */
     while ((opt=getopts(&opts[0], &param))) {
         if (opt==ARG_PROFILE) {
-            if (!param || param[0]=='1' || param[0]=='y' || param[0]=='Y')
-                config.profile++;
-            else
-                config.profile=0;
+            if (!param) {
+                printf("missing profile parameter (none, all, "
+                        "insert, erase, find, other)\n");
+                return (-1);
+            }
+            if (!strcmp(param, "all")) {
+                config.profile=PROF_ALL;
+                continue;
+            }
+            if (!strcmp(param, "none")) {
+                config.profile=PROF_NONE;
+                continue;
+            }
+            if (!strcmp(param, "insert")) {
+                config.profile=PROF_INSERT;
+                continue;
+            }
+            if (!strcmp(param, "erase")) {
+                config.profile=PROF_ERASE;
+                continue;
+            }
+            if (!strcmp(param, "find")) {
+                config.profile=PROF_FIND;
+                continue;
+            }
+            if (!strcmp(param, "other")) {
+                config.profile=PROF_OTHER;
+                continue;
+            }
+            printf("bad profile parameter (none, all, "
+                        "insert, erase, find, other)\n");
+            return (-1);
         }
         else if (opt==ARG_CHECK) {
             if (!param || param[0]=='1' || param[0]=='y' || param[0]=='Y')
@@ -1102,18 +1210,9 @@ test_db(const char *filename)
     if (config.filename)
         fclose(f);
 
-    if (config.profile) {
-        float f;
-        f=config.prof[0];
-        f/=1000.f;
-        printf("profile of backend %s:\t%f sec\n", 
-                my_get_profile_name(0), f);
-        f=config.prof[1];
-        f/=1000.f;
-        printf("profile of backend %s:\t%f sec\n", 
-                my_get_profile_name(1), f);
-    }
+    if (config.profile) 
+        my_print_profile();
 
-    printf("totally inserted: %llu\n", g_total_insert);
+    printf("totally inserted: %llu\n", (long long unsigned int)g_total_insert);
     return (0);
 }

@@ -279,19 +279,83 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
         ham_offset_t rid, ham_record_t *record, ham_u32_t flags)
 {
     int cmp;
+    ham_status_t st;
     ham_bool_t overwrite=HAM_FALSE;
     ham_size_t i, count, keysize;
     key_t *bte=0;
     btree_node_t *node;
     ham_db_t *db=page_get_owner(page);
+    ham_s32_t slot;
 
     node=ham_page_get_btree_node(page);
     count=btree_node_get_count(node);
     keysize=db_get_keysize(db);
 
+    if (btree_node_get_count(node)==0)
+        slot=0;
+    else {
+        st=btree_get_slot(db, txn, page, key, &slot);
+        if (st)
+            return (db_set_error(db, st));
+
+        /* insert the new key at the beginning? */
+        if (slot==-1) {
+            slot++;
+            bte=btree_node_get_key(db, node, slot);
+            goto shift_elements;
+        }
+
+        cmp=key_compare_int_to_pub(txn, page, slot, key);
+        if (db_get_error(db))
+            return (db_get_error(db));
+
+        bte=btree_node_get_key(db, node, slot);
+
+        /*
+         * key exists already
+         */
+        if (cmp==0) {
+            if (flags&HAM_OVERWRITE) {
+                /* 
+                 * no need to overwrite the key - it already exists! 
+                 * however, we have to overwrite the data!
+                 */
+                if (btree_node_is_leaf(node)) 
+                    overwrite=HAM_TRUE;
+                else
+                    return (HAM_SUCCESS);
+            }
+            else
+                return (HAM_DUPLICATE_KEY);
+        }
+        /*
+         * otherwise, if the new key is < then the slot key, move to 
+         * the next slot
+         */
+        else if (cmp<0) {
+            slot++;
+            bte=btree_node_get_key(db, node, slot);
+            memmove(((char *)bte)+sizeof(key_t)-1+keysize, bte,
+                    (sizeof(key_t)-1+keysize)*(count-slot));
+        }
+        /*
+         * otherwise, the current slot is the first key, which is 
+         * bigger than the new key; this is where we insert the new key
+         */
+        else {
+shift_elements:
+            /* shift all keys one position to the right */
+            memmove(((char *)bte)+sizeof(key_t)-1+keysize, bte,
+                    (sizeof(key_t)-1+keysize)*(count-slot));
+        }
+    }
+
+    i=slot;
+
     /*
      * TODO this is subject to optimization...
      */
+#if 0
     for (i=0; i<count; i++) {
         bte=btree_node_get_key(db, node, i);
 
@@ -320,7 +384,7 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
         }
 
         /*
-         * we found the first key which is > then the new key
+         * we found the first key which is bigger than the new key
          */
         if (cmp>0) {
             /* shift all keys one position to the right */
@@ -330,6 +394,7 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
         }
 
     }
+#endif
 
     if (i==count)
         bte=btree_node_get_key(db, node, count);

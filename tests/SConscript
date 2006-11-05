@@ -12,11 +12,13 @@ files=[
         "getopts.c"
     ]
 
-
-libraries = ['hamsterdb', 'db']
-libpaths  = ['../build']
-
 Import('env')
+
+libraries = ['hamsterdb', 'db', 'c']
+ldflags = []
+if env['profile']:
+    ldflags.append(['-pg'])
+libpaths  = ['../build']
 
 # we have to remove -ansi from CFLAGS because berkeleyDb doesn't like it
 l=[]
@@ -26,4 +28,4 @@ for f in env['CCFLAGS']:
 env['CCFLAGS']=l
 
 # set up the environment
-env.Program('test', files, LIBS = libraries, LIBPATH = libpaths)
+env.Program('test', files, LIBS = libraries, LIBPATH = libpaths, LDFLAGS = ldflags)

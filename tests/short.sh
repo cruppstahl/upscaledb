@@ -255,6 +255,8 @@ echo "status is $?"
 echo "status is $?"
 ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/209.tst $1 $2 $3 $4 $5
 echo "status is $?"
+./test --db ../../../hamsterdb-tests/trunk/testfiles/db/220.tst $1 $2 $3 $4 $5
+echo "status is $?"
 ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/20.tst $1 $2 $3 $4 $5
 echo "status is $?"
 ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/21.tst $1 $2 $3 $4 $5

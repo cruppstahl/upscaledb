@@ -151,7 +151,7 @@ else:
     # if gcc<4.1.1: don't use -O!!
     if conf.env['GCC_VERSION_OK']:
         env.Append(CCFLAGS='-O3')
-    env.Append(CCFLAGS=['-fomit-frame-pointer', '-ffast-math'])
+    env.Append(CCFLAGS=['-ffast-math'])
     env['suffix']='_rel'
 
 if env['WORDSIZE']==32:
@@ -162,7 +162,7 @@ if env['WORDSIZE']==64:
 if env['profile']:
     print("profile")
     env['buildpath']+='_prof'
-    env.Append(CCFLAGS=['-pg'])
+    env.Append(CCFLAGS=['-pg', '-g'])
     env['suffix']+='_prof'
 else:
     print("no profile")

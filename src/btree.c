@@ -20,43 +20,61 @@ btree_get_slot(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
         ham_key_t *key, ham_s32_t *slot)
 {
     int cmp;
-    ham_size_t i;
     btree_node_t *node=ham_page_get_btree_node(page);
+    ham_size_t r=btree_node_get_count(node)-1, l=1, i, last;
 
     /*
-     * if the value we are searching for is < the smallest value in this 
-     * node: get the "down left"-child node
-     * TODO der compare pub_to_int(key, 0) passiert weiter unten 
-     * auch nochmal! nur einmal aufrufen...
+     * otherwise perform a binary search for the *smallest* element, which 
+     * is >= the key
      */
-    cmp=key_compare_pub_to_int(txn, page, key, 0);
-    if (db_get_error(db))
-        return (db_get_error(db));
-    if (cmp<0) {
-        *slot=-1;
+    last=(ham_size_t)-1;
+
+    ham_assert(btree_node_get_count(node)>0, 
+            "node is empty", 0);
+
+    if (r==0) {
+        cmp=key_compare_pub_to_int(txn, page, key, 0);
+        if (db_get_error(db))
+            return (db_get_error(db));
+        *slot=cmp<0 ? -1 : 0;
         return (0);
     }
 
-    /* 
-     * otherwise search all but the last element
-     */
-    for (i=0; i<btree_node_get_count(node)-1; i++) {
-        cmp=key_compare_pub_to_int(txn, page, key, i);
-        if (db_get_error(db))
-            return (db_get_error(db));
-        if (cmp<0) /* TODO kann das überhaupt passieren?? */
-            continue;
+    while (r>=0) {
+        /* get the median item; if it's identical with the "last" item, 
+         * we've found the slot */
+        i=(l+r)/2;
 
-        cmp=key_compare_pub_to_int(txn, page, key, i+1);
-        if (db_get_error(db))
-            return (db_get_error(db));
-        if (cmp<0) {
+        if (i==last) {
             *slot=i;
             return (0);
         }
-    }
+        
+        /* compare it against the key */
+        cmp=key_compare_pub_to_int(txn, page, key, i);
+        if (db_get_error(db))
+            return (db_get_error(db));
 
-    *slot=btree_node_get_count(node)-1;
+        /* found it? */
+        if (cmp==0) {
+            *slot=i;
+            return (0);
+        }
+
+        /* if the key is bigger than the item: search "to the left" */
+        if (cmp<0) {
+            if (r==0) {
+                *slot=-1;
+                return (0);
+            }
+            r=i-1;
+        }
+        else {
+            last=i;
+            l=i+1;
+        }
+    }
+    
     return (0);
 }
 
