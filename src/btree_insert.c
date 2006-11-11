@@ -352,50 +352,6 @@ shift_elements:
 
     i=slot;
 
-    /*
-     * TODO this is subject to optimization...
-     */
-#if 0
-    for (i=0; i<count; i++) {
-        bte=btree_node_get_key(db, node, i);
-
-        cmp=key_compare_int_to_pub(txn, page, i, key);
-        if (db_get_error(db))
-            return (db_get_error(db));
-
-        /*
-         * key exists already
-         */
-        if (cmp==0) {
-            if (flags&HAM_OVERWRITE) {
-                /* 
-                 * no need to overwrite the key - it already exists! 
-                 * however, we have to overwrite the data!
-                 */
-                if (btree_node_is_leaf(node)) {
-                    overwrite=HAM_TRUE;
-                    break;
-                }
-                else
-                    return (HAM_SUCCESS);
-            }
-            else
-                return (HAM_DUPLICATE_KEY);
-        }
-
-        /*
-         * we found the first key which is bigger than the new key
-         */
-        if (cmp>0) {
-            /* shift all keys one position to the right */
-            memmove(((char *)bte)+sizeof(key_t)-1+keysize, bte,
-                    (sizeof(key_t)-1+keysize)*(count-i));
-            break;
-        }
-
-    }
-#endif
-
     if (i==count)
         bte=btree_node_get_key(db, node, count);
 
@@ -417,18 +373,16 @@ shift_elements:
          * to replace! otherwise call blob_allocate()
          */
         if (overwrite) {
-            st=blob_allocate(db, txn, record->data, 
-                        record->size, 0, &rid);
+            if (!((key_get_flags(bte)&KEY_BLOB_SIZE_TINY) ||
+                (key_get_flags(bte)&KEY_BLOB_SIZE_SMALL) ||
+                (key_get_flags(bte)&KEY_BLOB_SIZE_EMPTY)))
+                st=blob_replace(db, txn, key_get_ptr(bte), record->data, 
+                            record->size, 0, &rid);
+            else
+                st=blob_allocate(db, txn, record->data, 
+                            record->size, 0, &rid);
             if (st)
                 return (st);
-
-#if 0
-            if (!((key_get_flags(bte)&KEY_BLOB_SIZE_TINY) || 
-                  (key_get_flags(bte)&KEY_BLOB_SIZE_SMALL) || 
-                  (key_get_flags(bte)&KEY_BLOB_SIZE_EMPTY)))
-                (void)blob_free(db, txn, key_get_ptr(bte), 0); 
-                /* TODO use blob_replace... */
-#endif
         }
         else {
             if ((st=blob_allocate(db, txn, record->data, 
