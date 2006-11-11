@@ -67,8 +67,12 @@ struct ham_btree_t
 
 /**
  * a macro for getting the minimum number of keys
+ *
+ * note that we're relaxing the BTree rule - pages are now merged
+ * when they have less than 4 keys. but i'm not really convinced that 
+ * this has performance advantages...
  */
-#define btree_get_minkeys(maxkeys)      (maxkeys/2)
+#define btree_get_minkeys(maxkeys)      (maxkeys/2 < 4 ? maxkeys/2 : 4)
 
 
 #include "packstart.h"

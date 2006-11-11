@@ -248,7 +248,7 @@ db_alloc_page_device(ham_page_t *page, ham_u32_t flags)
      */
     if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
         page_set_self(page, (ham_offset_t)page);
-        memset(page_get_pers(page), 0, db_get_pagesize(db));
+        memset(page_get_pers(page), 0, sizeof(struct page_union_header_t));
         return (0);
     }
 
@@ -287,13 +287,13 @@ db_alloc_page_device(ham_page_t *page, ham_u32_t flags)
 
             /*
              * TODO memset is needed for valgrind
-             */
             memset(page_get_pers(page), 0, db_get_pagesize(db));
+             */
         }
     }
 
     if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC) 
-        memset(page_get_pers(page), 0, db_get_pagesize(db));
+        memset(page_get_pers(page), 0, sizeof(struct page_union_header_t));
 
     page_set_self(page, tellpos);
     page_set_dirty(page, 0);
