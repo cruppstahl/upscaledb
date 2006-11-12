@@ -141,10 +141,11 @@ btree_insert(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
         /*
          * allocate a new root page
          */
-        newroot=db_alloc_page(db, PAGE_TYPE_ROOT, txn, 0); 
+        newroot=db_alloc_page(db, PAGE_TYPE_B_ROOT, txn, 0); 
         if (!newroot)
             return (db_get_error(db));
-        page_set_type(newroot, PAGE_TYPE_ROOT);
+        /* clear the node header */
+        memset(page_get_payload(newroot), 0, sizeof(btree_node_t));
 
         /* 
          * insert the pivot element and the ptr_left
@@ -167,7 +168,7 @@ btree_insert(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
          */
         btree_set_rootpage(be, page_get_self(newroot));
         db_set_dirty(db, 1);
-        page_set_type(root, PAGE_TYPE_INDEX);
+        page_set_type(root, PAGE_TYPE_B_INDEX);
     }
 
     /*
@@ -490,9 +491,11 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
     /*
      * allocate a new page
      */
-    newpage=db_alloc_page(db, PAGE_TYPE_INDEX, scratchpad->txn, 0); 
+    newpage=db_alloc_page(db, PAGE_TYPE_B_INDEX, scratchpad->txn, 0); 
     if (!newpage)
-        return (db_get_error(db));
+        return (db_get_error(db)); 
+    /* clear the node header */
+    memset(page_get_payload(newpage), 0, sizeof(btree_node_t));
 
     /*
      * move half of the key/rid-tuples to the new page
