@@ -1,6 +1,26 @@
 
+Nov 12, 2006 - chris 
+o completely rewrote the blob storage - blobs are now stored in one big 
+    chunk, and not splitted into pages
+o replaced read/write with pread/pwrite
+o fixed a small bug related to a performance improvement on Nov 5th
+    (removed too many memset's...)
+
+Nov 09, 2006 - chris 
+o fetching in-memory-blobs created a memory leak if the record data 
+    was allocated by the user
+
+Nov 07, 2006 - chris 
+o blobs which were overwritten (and therefore were deleted) were not 
+    added to the freelist
+
 Nov 05, 2006 - chris 
 o fixed a tiny memory leak in blob_erase
+o replaced linear search in btree_get_slot and btree_insert with 
+    binary search, got significant performance improvements
+o removed some unnecessary memsets, after allocating a new page
+o relaxed the "minkey"-rule: after erasing, pages are now merged when 
+    there are <=4 elements in the page
 
 Nov 04, 2006 - chris ---------------------------------------------------
                       release of hamsterdb-0.1pre2

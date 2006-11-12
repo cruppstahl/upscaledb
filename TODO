@@ -21,19 +21,6 @@ x 220.tst: schlägt fehl im release-build!
     
 -----------------------------------------------------
 
-x parameters: --cachepolicy=strict --overwrite=1 crasht (und alles, was 
-    danach kommt)
-
-x crashes auf 32bit
-
-x mit noch grösseren blobs und datenbanken testen 
-
-x Datei > 2GB erzeugen
-
-x file blb_001.tst hat ein kleines memory leak (blob.c, zeile 409)
-
------------------------------------------------------
-
 o warum wird die datenbank so verdammt gross? z.b. test 190 mit overwrite=1:
     test-berk.db: 232 kb, test-ham.db: 40 MB!
     
@@ -45,6 +32,10 @@ o warum wird die datenbank so verdammt gross? z.b. test 190 mit overwrite=1:
     -> können wir das auch?? lohnt sich das?
 
     o bei der freelist die einträge zusammenlegen, soweit das möglich ist
+
+-----------------------------------------------------
+
+wenatex
 
 -----------------------------------------------------
 
@@ -65,31 +56,60 @@ o profiling! aber mit der release-version...
         x btree_insert:285 (kann durch btree_get_slot() ersetzt werden)
         x nochmal profilen (debug=0!)
         
-    o können wir die minkey/maxkey-regel relaxen? also später splitten
+    x können wir die minkey/maxkey-regel relaxen? also später splitten
         und später mergen?
         minkeys=min(4, maxkeys/2)
         etc
     
-    o momentan werden alle pages auf null gesetzt 
+    x momentan werden alle pages auf null gesetzt 
         (memset(page->pers->payload, 0)) und zwar evtl sogar 
         mehrmals (freelist!) - raus damit!
 
-    o beim blob_allocate und blob_read brauchen wir die pages nicht zu 
-        cachen; -> die hdr-page wird gecacht und in der txn verwaltet,
-        aber der rest könnte direkt geschrieben bzw. gelesen 
-        werden (os_read/os_mmap, os_write)
+    x blob überarbeiten - kompletten blob in einem chunk abspeichern, 
+        nicht page-weise aufteilen
+        x blob_write
+            problem: man muss davon ausgehen, dass JEDE betroffene page 
+            im cache sein KÖNNTE!
+        x blob_read
+        x blob_free
+        x brauchen wir db_alloc_area noch? - nein, raus damit
+        x blob_replace
+        x testen (overwrite)
+        x testen (non-overwrite)
+        x testen (inmemory)
+        x testen (inmemory, overwrite)
 
-    o overwrite: wenn der blob gleich gross ist, muss er nicht gelöscht 
-        sondern kann direkt überschrieben werden. es kommt in der praxis
-        sicher häufig vor, dass die datensätze gleich gross sind. also 
-        würde sich eine solche optimierung lohnen.
+    x os_write durch os_pwrite ersetzen, os_write raus
 
     o freelist schneller machen
+        x HAM_NO_PAGE_ALIGN: wird private flag der freelist
         o items zusammenlegen, wenn möglich
-        o eventuell sortiert nach grösse ablegen?
+        o freelist-handling überarbeiten (muss alignte pages zurückliefern)
+        o testen
+        o eventuell sortiert nach grösse ablegen? oder anderweitig
+            beschleunigen?
+        o freelist-tests: direkt nach ham_create einen sehr grossen 
+            blob einfügen (grösse ist zufällig, aber > 1 page)
+            und dann wieder löschen; während des tests immer mal wieder 
+            machen
 
-    o extended keys cachen
+    o extended keys cachen (ist eigentlich gar nicht mehr nötig...)
         (vorsicht: cachegrösse beachten!)
+        wie löschen wir lange nicht benötigte keys, damit wir nicht den
+        kompletten cache vollmüllen?
+
+-----------------------------------------------------
+
+o neuer test-modules: --user_allocated_records
+    allokiert die records im userspeicher - auch mit valgrind checken!
+
+o viele memory leaks bei extended keys und in-memory-db - die blobs der 
+    keys werden nicht freigegeben!
+
+-----------------------------------------------------
+-----------------------------------------------------
+
+                NÄCHSTER RELEASE - PERFORMANCE ENHANCEMENTS ???
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -98,18 +118,6 @@ o autoconf/automake oder scons?
 
 -----------------------------------------------------
 -----------------------------------------------------
-
-x auf 32bit-rechner testen; können wir die datenbank-dateien
-    hin- und herkopieren?
-
-x stress-test-tool(s), das ALLE optionen durchprobiert
-    mmap
-    r/w
-    in-memory
-    verschiedene pagesizes
-    grosse keys
-    grosse blobs
-    dauertests (mehrere stunden)
 
 o stress test mit zufällig fehlschlagenden io-funktionen und zufälligen
     OUT_OF_MEMORYs
@@ -163,16 +171,11 @@ o statistics
         ham_get_index_statistics(index, stat)
 
 -----------------------------------------------------
-
-o ein ganz einfaches makefile, das einen release-build baut?? 
-    damit man kein scons braucht
-
------------------------------------------------------
 -----------------------------------------------------
 
 o tools
     o ham_dump
-    o ham_stats
+    o ham_stats/ham_info
 
 -----------------------------------------------------
 
@@ -194,11 +197,10 @@ o cache: bucketgrösse in ham_config.h verschieben, eine #define-konstante
 
 -----------------------------------------------------
 
-o documentation -> texinfo? doxygen?
-    merge the documentation with doxygen-docs
-
-o define HAM_EXPORT DECLSPEC _dllexport
-    compile a shared library
+o port to ms windows
+    o mit mingw, bcc, watcom, msvc, icc...
+    o projekt-umgebungen für visual studio 6 und .NET
+    o define HAM_EXPORT DECLSPEC _dllexport for DLLs und .so
 
 -----------------------------------------------------
 
