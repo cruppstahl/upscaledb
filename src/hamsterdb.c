@@ -270,9 +270,9 @@ ham_open_ex(ham_db_t *db, const char *filename,
      * extract the "real" page size, then read the real page. 
      * (but i really don't like this)
      */
-    st=os_read(fd, hdrbuf, sizeof(hdrbuf));
+    st=os_pread(fd, 0, hdrbuf, sizeof(hdrbuf));
     if (st) {
-        ham_log("os_read of %s failed with status %d (%s)", filename, 
+        ham_log("os_pread of %s failed with status %d (%s)", filename, 
                 st, ham_strerror(st));
         db_set_error(db, st);
         return (st);
