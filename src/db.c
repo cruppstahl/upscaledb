@@ -35,18 +35,11 @@ my_write_page(ham_db_t *db, ham_page_t *page)
             "writing page 0x%llx, but page has no buffer", 
             page_get_self(page));
 
-    st=os_seek(db_get_fd(db), page_get_self(page), HAM_OS_SEEK_SET);
+    st=os_pwrite(db_get_fd(db), page_get_self(page), 
+            (void *)page_get_pers(page), db_get_pagesize(db));
     if (st) {
-        ham_log("os_seek failed with status %d (%s)", st, ham_strerror(st));
-        db_set_error(db, HAM_IO_ERROR);
-        return (HAM_IO_ERROR);
-    }
-    st=os_write(db_get_fd(db), (ham_u8_t *)page_get_pers(page), 
-            db_get_pagesize(db));
-    if (st) {
-        ham_log("os_write failed with status %d (%s)", st, ham_strerror(st));
-        db_set_error(db, HAM_IO_ERROR);
-        return (HAM_IO_ERROR);
+        ham_log("os_pwrite failed with status %d (%s)", st, ham_strerror(st));
+        return (db_set_error(db, HAM_IO_ERROR));
     }
 
     page_set_dirty(page, 0);
@@ -79,18 +72,12 @@ my_read_page(ham_db_t *db, ham_offset_t address, ham_page_t *page)
         page_set_pers(page, (union page_union_t *)buffer);
     }
     else {
-        st=os_seek(db_get_fd(db), address, HAM_OS_SEEK_SET);
-        if (st) {
-            ham_log("os_seek failed with status %d (%s)", st, ham_strerror(st));
-            db_set_error(db, HAM_IO_ERROR);
-            return (HAM_IO_ERROR);
-        }
-        st=os_read(db_get_fd(db), (void *)page_get_pers(page), 
+        st=os_pread(db_get_fd(db), address, (void *)page_get_pers(page), 
                 db_get_pagesize(db));
         if (st) {
-            ham_log("os_read failed with status %d (%s)", st, ham_strerror(st));
-            db_set_error(db, HAM_IO_ERROR);
-            return (HAM_IO_ERROR);
+            ham_log("os_pread failed with status %d (%s)", st, 
+                    ham_strerror(st));
+            return (db_set_error(db, HAM_IO_ERROR));
         }
     }
 
@@ -518,8 +505,6 @@ db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
     ham_page_t *page;
     ham_status_t st;
 
-    (void)flags;
-
     /*
      * first, check if the page is in the txn
      */
@@ -543,6 +528,9 @@ db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
             return (page);
         }
     }
+    
+    if (flags&DB_ONLY_FROM_CACHE)
+        return (0);
 
     /*
      * otherwise allocate memory for the page
@@ -653,57 +641,6 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags)
 
     /* TODO avoid memory leak! auch nach anderen 
         aufrufen von my_alloc_page() */
-}
-
-ham_page_t *
-db_alloc_area(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, 
-        ham_u32_t flags, ham_size_t size, 
-        ham_offset_t *area_offset, ham_size_t *area_size)
-{
-    ham_offset_t address;
-    ham_page_t *page;
-
-    *area_offset=0;
-    *area_size=0;
-
-    /*
-     * limit the request to one page
-     */
-    if (size>db_get_usable_pagesize(db)) {
-        *area_size=db_get_usable_pagesize(db);
-        return (db_alloc_page(db, type, txn, flags));
-    }
-
-    /*
-     * otherwise check the freelist; if we find a page, we 
-     * also set the page type
-     */
-    address=freel_alloc_area(db, size, db_get_flags(db));
-    if (address) {
-        ham_offset_t pageid=address;
-        pageid=(pageid/db_get_pagesize(db))*db_get_pagesize(db);
-        *area_size=size;
-        *area_offset=address-pageid;
-        page=db_fetch_page(db, txn, pageid, flags);
-        if (page)
-            page_set_type(page, type);
-        return (page);
-    }
-
-    /* 
-     * no freelist entry found? allocate a new page, and move the
-     * unneeded space to the freelist
-     */
-    page=db_alloc_page(db, type, txn, flags);
-    if (!page)
-        return (0);
-
-    (void)freel_add_area(db, page_get_self(page)+size, 
-            db_get_usable_pagesize(db)-size);
-
-    *area_size=size;
-    *area_offset=0;
-    return (page);
 }
 
 ham_status_t

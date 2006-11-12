@@ -37,13 +37,15 @@ os_munmap(void *buffer, ham_size_t size);
  * read data from a file
  */
 extern ham_status_t
-os_read(ham_fd_t fd, ham_u8_t *buffer, ham_size_t bufferlen);
+os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer, 
+        ham_size_t bufferlen);
 
 /**
  * write data to a file
  */
 extern ham_status_t
-os_write(ham_fd_t fd, const ham_u8_t *buffer, ham_size_t bufferlen);
+os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer, 
+        ham_size_t bufferlen);
 
 #define HAM_OS_SEEK_SET     SEEK_SET
 #define HAM_OS_SEEK_END     SEEK_END

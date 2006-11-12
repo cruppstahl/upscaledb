@@ -59,8 +59,9 @@ os_munmap(void *buffer, ham_size_t size)
     return (HAM_SUCCESS);
 }
 
-ham_status_t
-os_read(ham_fd_t fd, ham_u8_t *buffer, ham_size_t bufferlen)
+#if 0
+static ham_status_t
+my_os_read(ham_fd_t fd, ham_u8_t *buffer, ham_size_t bufferlen)
 {
     int r;
     ham_size_t total=0;
@@ -76,9 +77,30 @@ os_read(ham_fd_t fd, ham_u8_t *buffer, ham_size_t bufferlen)
 
     return (total==bufferlen ? HAM_SUCCESS : HAM_SHORT_READ);
 }
+#endif
 
 ham_status_t
-os_write(ham_fd_t fd, const ham_u8_t *buffer, ham_size_t bufferlen)
+os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer, 
+        ham_size_t bufferlen)
+{
+    int r;
+    ham_size_t total=0;
+
+    while (total<bufferlen) {
+        r=pread(fd, buffer+total, bufferlen-total, addr+total);
+        if (r<0)
+            return (errno);
+        if (r==0)
+            break;
+        total+=r;
+    }
+
+    return (total==bufferlen ? HAM_SUCCESS : HAM_SHORT_READ);
+}
+
+#if 0
+static ham_status_t
+my_os_write(ham_fd_t fd, const ham_u8_t *buffer, ham_size_t bufferlen)
 {
     int w;
     ham_size_t total=0;
@@ -90,6 +112,26 @@ os_write(ham_fd_t fd, const ham_u8_t *buffer, ham_size_t bufferlen)
         if (w==0)
             break;
         total+=w;
+    }
+
+    return (total==bufferlen ? HAM_SUCCESS : HAM_SHORT_WRITE);
+}
+#endif
+
+ham_status_t
+os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer, 
+        ham_size_t bufferlen)
+{
+    ssize_t s;
+    ham_size_t total=0;
+
+    while (total<bufferlen) {
+        s=pwrite(fd, buffer, bufferlen, addr+total);
+        if (s<0)
+            return (errno);
+        if (s==0)
+            break;
+        total+=s;
     }
 
     return (total==bufferlen ? HAM_SUCCESS : HAM_SHORT_WRITE);
