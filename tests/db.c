@@ -499,7 +499,7 @@ my_compare_databases(void)
         st=ham_find(config.hamdb, 0, &hkey, &hrec, 0);
         /*PROFILE_STOP(ham);*/
         ham_assert(st==0, "hamster-db error %d", st);
-        ham_assert(hrec.size==rec.size, 0, 0);
+        ham_assert(hrec.size==rec.size, "%u != %u", hrec.size, rec.size);
         if (hrec.data)
             ham_assert(!memcmp(hrec.data, rec.data, rec.size), 0, 0);
         /*PROFILE_START(berk);*/
