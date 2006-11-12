@@ -36,12 +36,12 @@ extern "C" {
 /* array limit */
 #define MAX_PAGE_LISTS             4
 
+struct ham_page_t;
+typedef struct ham_page_t ham_page_t;
 
 /**
  * the page structure
  */
-struct ham_page_t;
-typedef struct ham_page_t ham_page_t;
 struct ham_page_t {
     /**
      * the header is non-persistent and NOT written to disk. 
@@ -71,6 +71,13 @@ struct ham_page_t {
      */
     union page_union_t {
 
+        /*
+         * this header is only available if the (non-persistent) flag
+         * NPERS_NO_HEADER is not set! 
+         *
+         * all blob-areas in the file do not have such a header, if they
+         * span page-boundaries
+         */
         struct page_union_header_t {
             /**
              * flags of this page
@@ -98,6 +105,15 @@ struct ham_page_t {
     } *_pers;
 
 };
+
+/**
+ * the size of struct page_union_t, without the payload byte
+ *
+ * !!
+ * this is not equal to sizeof(struct page_union_t)-1, because of
+ * padding (i.e. on gcc 4.1, 64bit the size would be 15 bytes)
+ */
+#define SIZEOF_PAGE_UNION_HEADER        12
 
 /**
  * get the address of this page
@@ -189,25 +205,16 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
  */
 #define page_set_cache_cntr(page, c)     (page)->_npers._cache_cntr=c
 
-/**
- * non-persistent page flags: page->_pers was allocated with malloc, not mmap
- */
+/** page->_pers was allocated with malloc, not mmap */
 #define PAGE_NPERS_MALLOC            1
-
-/**
- * non-persistent page flags: page is dirty 
- */
+/**  page is dirty */
 #define PAGE_NPERS_DIRTY             2
-
-/**
- * page is in use
- */
+/** page is in use */
 #define PAGE_NPERS_INUSE             4
-
-/**
- * non-persistent page flags: page will be deleted when committed
- */
+/** page will be deleted when committed */
 #define PAGE_NPERS_DELETE_PENDING   16
+/** page has no header */
+#define PAGE_NPERS_NO_HEADER        32
 
 /** 
  * get the dirty-flag
@@ -253,16 +260,19 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
  */
 #define PAGE_TYPE_UNKNOWN       0x00000000
 #define PAGE_TYPE_HEADER        0x10000000
-#define PAGE_TYPE_ROOT          0x20000000
-#define PAGE_TYPE_INDEX         0x30000000
-#define PAGE_TYPE_BLOBHDR       0x40000000
-#define PAGE_TYPE_BLOBDATA      0x50000000
-#define PAGE_TYPE_FREELIST      0x60000000
+#define PAGE_TYPE_B_ROOT        0x20000000
+#define PAGE_TYPE_B_INDEX       0x30000000
+#define PAGE_TYPE_FREELIST      0x40000000
 
 /**
- * get pointer to persistent payload
+ * get pointer to persistent payload (after the header!)
  */
 #define page_get_payload(page)           (page)->_pers->_s._payload
+
+/**
+ * get pointer to persistent payload (including the header!)
+ */
+#define page_get_raw_payload(page)       (page)->_pers->_p
 
 /**
  * set pointer to persistent data

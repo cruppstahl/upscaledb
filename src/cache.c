@@ -181,32 +181,31 @@ cache_put(ham_cache_t *cache, ham_page_t *page)
     /*
      * initialize the cache counter with sane values
      */
-    switch (page_get_type(page)) {
-      case PAGE_TYPE_HEADER:
-          page_set_cache_cntr(page, 1000);
-          break;
-      case PAGE_TYPE_ROOT:
-          page_set_cache_cntr(page, 1000);
-          break;
-      case PAGE_TYPE_INDEX:
-          page_set_cache_cntr(page, 50);
-          break;
-      case PAGE_TYPE_BLOBHDR:
+    if (page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER) {
           page_set_cache_cntr(page, 10);
-          break;
-      case PAGE_TYPE_BLOBDATA:
-          page_set_cache_cntr(page, 0);
-          break;
-      case PAGE_TYPE_FREELIST:
-          /* freelist pages should never be in the cache - fall through */
-      default:
-          break;
-          /* ignore unknown pages... otherwise test 220 fails (allocates
-           * a page from the freelist and has no way to set the 
-           * page type, because the page is immediately added to the cache
-          ham_assert(!"unknown page type",
-                  "type is 0x%08x", page_get_type(page));
-           */ 
+    }
+    else {
+        switch (page_get_type(page)) {
+          case PAGE_TYPE_HEADER:
+              page_set_cache_cntr(page, 1000);
+              break;
+          case PAGE_TYPE_B_ROOT:
+              page_set_cache_cntr(page, 1000);
+              break;
+          case PAGE_TYPE_B_INDEX:
+              page_set_cache_cntr(page, 50);
+              break;
+          case PAGE_TYPE_FREELIST:
+              /* freelist pages should never be in the cache - fall through */
+          default:
+              break;
+              /* ignore unknown pages... otherwise test 220 fails (allocates
+               * a page from the freelist and has no way to set the 
+               * page type, because the page is immediately added to the cache
+              ham_assert(!"unknown page type",
+                      "type is 0x%08x", page_get_type(page));
+               */ 
+        }
     }
 
     /*
