@@ -367,6 +367,7 @@ extern ham_page_t *
 db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address, 
         ham_u32_t flags);
 #define DB_READ_ONLY            1
+#define DB_ONLY_FROM_CACHE      2
 
 /**
  * flush a page
@@ -417,7 +418,6 @@ db_fetch_page_from_device(ham_page_t *page, ham_offset_t address);
  * allocate a new page on the device
  *
  * @remark flags can be of the following value:
- *  HAM_NO_PAGE_ALIGN           (see ham/hamsterdb.h)
  *  PAGE_IGNORE_FREELIST        ignores all freelist-operations
  */
 extern ham_status_t
@@ -432,26 +432,11 @@ db_alloc_page_device(ham_page_t *page, ham_u32_t flags);
  * default sein??)
  *
  * @remark flags can be of the following value:
- *  HAM_NO_PAGE_ALIGN           (see ham/hamsterdb.h)
  *  PAGE_IGNORE_FREELIST        ignores all freelist-operations
  */
 extern ham_page_t *
 db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags);
 #define PAGE_IGNORE_FREELIST          2
-
-/**
- * allocate a blob area
- *
- * while db_alloc_page() will only allocate page-sized blobs, 
- * db_alloc_area() can also allocate smaller blobs.
- *
- * size cannot be larger then the pagesize (if size is larger, 
- * it will be ignored and a new page is returned).
- */
-extern ham_page_t *
-db_alloc_area(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, 
-        ham_u32_t flags, ham_size_t size, 
-        ham_offset_t *area_offset, ham_size_t *area_size);
 
 /**
  * free a page
