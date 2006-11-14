@@ -629,6 +629,11 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags)
             return (0);
         }
     }
+    /* if there's no txn, set the "in_use"-flag - otherwise the cache
+     * might purge it immediately */
+    else {
+        page_set_inuse(page, 1);
+    }
 
     /* store the page in the cache */
     st=cache_put(db_get_cache(db), page);

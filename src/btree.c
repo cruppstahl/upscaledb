@@ -156,6 +156,13 @@ my_fun_create(ham_btree_t *be, ham_u32_t flags)
     *(ham_u16_t    *)&indexdata[0]=ham_h2db16(maxkeys);
     *(ham_offset_t *)&indexdata[2]=ham_h2db_offset(page_get_self(root));
     db_set_dirty(db, 1);
+
+    /*
+     * since we didn't use a txn when allocating the page, we have to 
+     * manually reset the in-use-flag
+     */
+    page_set_inuse(root, 0);
+
     return (0);
 }
 
