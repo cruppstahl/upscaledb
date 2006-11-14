@@ -139,10 +139,12 @@ freel_create(ham_db_t *db);
  * and return the address of this area. the freelist entry is removed
  * from the list.
  *
- * @remark you can set the HAM_NO_PAGE_ALIGN as a flag
+ * @remark you can set FREEL_DONT_ALIGN as a flag
  */
 extern ham_offset_t
 freel_alloc_area(ham_db_t *db, ham_size_t size, ham_u32_t flags);
+
+#define FREEL_DONT_ALIGN     1
 
 /**
  * add a new entry to the freelist; the freelist will automatically

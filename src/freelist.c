@@ -28,6 +28,9 @@ my_alloc_in_list(ham_db_t *db, freel_payload_t *fp,
     for (i=0; i<freel_payload_get_count(fp); i++) {
 
         if (freel_get_size(&list[i])==chunksize) {
+            if ((!(flags&FREEL_DONT_ALIGN) && 
+                    freel_get_address(&list[i])%db_get_pagesize(db)))
+                continue;
             result=freel_get_address(&list[i]);
             freel_set_size(&list[i], 0);
             freel_set_address(&list[i], 0);
@@ -35,8 +38,21 @@ my_alloc_in_list(ham_db_t *db, freel_payload_t *fp,
             return (result);
         }
 
-        if (freel_get_size(&list[i])>chunksize)
+        if (freel_get_size(&list[i])>chunksize) {
+            if ((!(flags&FREEL_DONT_ALIGN) && 
+                    freel_get_address(&list[i])%db_get_pagesize(db))) {
+                continue;
+                /*
+                ham_offset_t aligned;
+                aligned=freel_get_address(&list[i])+db_get_pagesize(db);
+                aligned=(aligned/db_get_pagesize(db))*db_get_pagesize(db);
+                if (freel_get_size(&list[i])-(aligned-
+                            freel_get_address(&list[i])>=chunksize))
+                    best=i;
+                */
+            }
             best=i;
+        }
     }
 
     /* 
