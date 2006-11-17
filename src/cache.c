@@ -95,6 +95,9 @@ cache_get_unused(ham_cache_t *cache)
         cache_set_garbagelist(cache, 
                 page_list_remove(cache_get_garbagelist(cache), 
                     PAGE_LIST_GARBAGE, page));
+        cache_set_usedsize(cache, 
+                cache_get_usedsize(cache)-
+                    db_get_pagesize(page_get_owner(page)));
         return (page);
     }
 
@@ -267,7 +270,6 @@ ham_status_t
 cache_move_to_garbage(ham_cache_t *cache, ham_page_t *page)
 {
     ham_size_t hash=my_calc_hash(cache, page_get_self(page));
-    ham_db_t *db=cache_get_owner(cache);
 
     ham_assert(page_is_inuse(page)==0, "page 0x%lx is in use", 
             page_get_self(page));
@@ -277,8 +279,8 @@ cache_move_to_garbage(ham_cache_t *cache, ham_page_t *page)
     if (page_is_in_list(cache_get_totallist(cache), page, PAGE_LIST_CACHED)) {
         cache_set_totallist(cache, page_list_remove(cache_get_totallist(cache), 
                 PAGE_LIST_CACHED, page));
-        cache_set_usedsize(cache, 
-                cache_get_usedsize(cache)-db_get_pagesize(db));
+        /*cache_set_usedsize(cache, 
+                cache_get_usedsize(cache)-db_get_pagesize(db));*/
     }
     cache_get_bucket(cache, hash)=page_list_remove(cache_get_bucket(cache, 
                 hash), PAGE_LIST_BUCKET, page);
@@ -432,6 +434,11 @@ cache_check_integrity(ham_cache_t *cache)
     while (head) {
         usedsize+=db_get_pagesize(cache_get_owner(cache));
         head=page_get_next(head, PAGE_LIST_CACHED);
+    }
+    head=cache_get_garbagelist(cache);
+    while (head) {
+        usedsize+=db_get_pagesize(cache_get_owner(cache));
+        head=page_get_next(head, PAGE_LIST_GARBAGE);
     }
 
     /*
