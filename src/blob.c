@@ -123,6 +123,9 @@ my_read_chunk(ham_db_t *db, ham_txn_t *txn, ham_offset_t addr,
             if (page)
                 page_set_npers_flags(page, 
                     page_get_npers_flags(page)|PAGE_NPERS_NO_HEADER);
+            else
+                if (db_get_error(db))
+                    return (db_get_error(db));
         }
 
         /*
@@ -436,6 +439,11 @@ blob_replace(ham_db_t *db, ham_txn_t *txn, ham_offset_t old_blobid,
                   blob_get_self(&new_hdr)+blob_get_alloc_size(&new_hdr), 
                   blob_get_alloc_size(&old_hdr)-blob_get_alloc_size(&new_hdr));
         }
+
+        /*
+         * the old rid is the new rid
+         */
+        *new_blobid=blob_get_self(&new_hdr);
 
         return (0);
     }
