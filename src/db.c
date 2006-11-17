@@ -121,7 +121,7 @@ my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
             }
         }
 
-        if (!page_get_npers_flags(page)&PAGE_NPERS_MALLOC) {
+        if (!(page_get_npers_flags(page)&PAGE_NPERS_MALLOC)) {
             st=os_munmap(page_get_pers(page), db_get_pagesize(db));
             if (st) {
                 db_set_error(db, st);
@@ -130,9 +130,6 @@ my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
         }
         else {
             ham_mem_free(page_get_pers(page));
-            page_set_npers_flags(page, 
-                    page_get_npers_flags(page)&(~PAGE_NPERS_MALLOC));
-            page_set_pers(page, 0);
         }
         memset(page, 0, sizeof(ham_page_t));
         page_set_owner(page, db);
@@ -271,11 +268,6 @@ db_alloc_page_device(ham_page_t *page, ham_u32_t flags)
             st=my_read_page(db, tellpos, page);
             if (st) /* TODO memleaks? */
                 return (st);
-
-            /*
-             * TODO memset is needed for valgrind
-            memset(page_get_pers(page), 0, db_get_pagesize(db));
-             */
         }
     }
 
@@ -532,6 +524,15 @@ db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
     if (flags&DB_ONLY_FROM_CACHE)
         return (0);
 
+    /* 
+     * check if the cache allows us to allocate another page
+     */
+    if (!cache_can_add_page(db_get_cache(db))) {
+        ham_trace("cache is full! resize the cache", 0);
+        db_set_error(db, HAM_CACHE_FULL);
+        return (0);
+    }
+
     /*
      * otherwise allocate memory for the page
      */
@@ -611,12 +612,16 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags)
     if (!page)
         return (0);
 
+    ham_assert(cache_can_add_page(db_get_cache(db)), 0, 0);
+
     /* allocate storage on the device */
     st=db_alloc_page_device(page, flags);
     if (st) {
         db_set_error(db, st); /* TODO memleak! */
         return (0);
     }
+
+    ham_assert(cache_can_add_page(db_get_cache(db)), 0, 0);
 
     /* set the page type */
     page_set_type(page, type);
@@ -634,6 +639,8 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags)
     else {
         page_set_inuse(page, 1);
     }
+
+    ham_assert(cache_can_add_page(db_get_cache(db)), 0, 0);
 
     /* store the page in the cache */
     st=cache_put(db_get_cache(db), page);
