@@ -151,7 +151,7 @@ my_alloc_page(ham_db_t *db)
      * the maximum cache size
      */
     if (!cache_can_add_page(db_get_cache(db))) {
-        ham_trace("cache size full!", 0);
+        ham_trace("cache is full! resize the cache", 0);
         db_set_error(db, HAM_CACHE_FULL);
         return (0);
     }

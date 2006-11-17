@@ -200,7 +200,8 @@ my_insert_recursive(ham_page_t *page, ham_key_t *key,
      * otherwise traverse the root down to the leaf
      */
     child=btree_traverse_tree(db, scratchpad->txn, page, key, 0);
-    ham_assert(child!=0, "guru meditation error", 0);
+    if (!child)
+        return (db_get_error(db));
 
     /*
      * and call this function recursively
