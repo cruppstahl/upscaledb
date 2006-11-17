@@ -21,7 +21,7 @@ if env['profile']:
 libpaths  = ['../build']
 
 # we have to remove -ansi from CFLAGS because berkeleyDb doesn't like it
-l=[]
+l=['-DHAM_DEBUG']
 for f in env['CCFLAGS']:
     if f!='-ansi':
         l.append(f)
