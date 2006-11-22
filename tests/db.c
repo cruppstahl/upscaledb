@@ -64,6 +64,7 @@ static unsigned long g_filesize, g_filepos;
 #define ARG_KEYSIZE    15
 #define ARG_CACHESIZE  16
 #define ARG_CACHEPOLICY 17
+#define ARG_REOPEN     18
 
 #define PROF_INSERT     1
 #define PROF_ERASE      2
@@ -96,6 +97,9 @@ static struct {
 
     /* in-memory-database?  */
     unsigned inmemory;
+
+    /* open/fullcheck/close after close? */
+    unsigned reopen;
 
     /* overwrite keys?  */
     unsigned overwrite;
@@ -223,6 +227,12 @@ static option_t opts[]={
         "mmap",
         "mmap",
         "enable/disable mmap",
+        GETOPTS_NEED_ARGUMENT },
+    {
+        ARG_REOPEN,
+        "reopen",
+        "reopen",
+        "call OPEN/FULLCHECK/CLOSE after each close",
         GETOPTS_NEED_ARGUMENT },
     {
         ARG_PAGESIZE,
@@ -512,6 +522,44 @@ my_compare_databases(void)
 }
 
 static ham_bool_t
+my_execute_open(char *line);
+static ham_bool_t
+my_execute_fullcheck(char *line);
+static ham_bool_t
+my_execute_close(void);
+
+static ham_bool_t 
+my_execute_reopen(void)
+{
+    ham_bool_t b, old=config.reopen, reopen=0;
+
+    /* avoid recursion */
+    config.reopen=0; 
+
+    if (config.hamdb) {
+        reopen=1;
+        b=my_execute_close();
+        ham_assert(b==1, "reopen failed with status %u", b);
+    }
+
+    b=my_execute_open("");
+    ham_assert(b==1, "reopen failed with status %u", b);
+    b=my_execute_fullcheck("");
+    ham_assert(b==1, "reopen failed with status %u", b);
+    b=my_execute_close();
+    ham_assert(b==1, "reopen failed with status %u", b);
+
+    if (reopen) {
+        b=my_execute_open("");
+        ham_assert(b==1, "reopen failed with status %u", b);
+    }
+
+    config.reopen=old; 
+
+    return (1);
+}
+
+static ham_bool_t
 my_execute_create(char *line)
 {
     int i, ret;
@@ -658,58 +706,6 @@ my_execute_flush(void)
                 st=ham_flush(config.hamdb);
                 ham_assert(st==0, 0, 0);
                 /*PROFILE_STOP(i);*/
-                break;
-        }
-    }
-
-    return 1;
-}
-
-static ham_bool_t
-my_execute_close(void)
-{
-    int i;
-    ham_status_t st;
-
-    /* 
-     * dump
-     */
-    if (config.dump>=1) {
-        ham_status_t st=0;
-        if (config.backend[0]==BACKEND_HAMSTER ||
-            config.backend[1]==BACKEND_HAMSTER)
-            ham_assert((st=ham_dump(config.hamdb, 0, my_dump_func))==0, 0, 0);
-        if (st)
-            ham_trace("hamster dump failed with status %d", st);
-    }
-
-    for (i=0; i<2; i++) {
-        switch (config.backend[i]) {
-            case BACKEND_NONE: 
-                break;
-            case BACKEND_BERK: 
-                VERBOSE2("closing backend %d (berkeley)", i);
-                if (!config.dbp) {
-                    FAIL("berkeley handle is invalid", 0);
-                    return 0;
-                }
-                PROFILE_START(PROF_OTHER, i);
-                config.dbp->close(config.dbp, 0);
-                config.dbp=0;
-                PROFILE_STOP(PROF_OTHER, i);
-                break;
-            case BACKEND_HAMSTER: 
-                VERBOSE2("closing backend %d (hamster)", i);
-                if (!config.hamdb) {
-                    FAIL("hamster handle is invalid", 0);
-                    return 0;
-                }
-                PROFILE_START(PROF_OTHER, i);
-                st=ham_close(config.hamdb);
-                ham_assert(st==0, 0, 0);
-                ham_delete(config.hamdb);
-                config.hamdb=0;
-                PROFILE_STOP(PROF_OTHER, i);
                 break;
         }
     }
@@ -947,6 +943,11 @@ my_execute_erase(char *line)
 static ham_bool_t
 my_execute_fullcheck(char *line)
 {
+    if (config.reopen>=2) {
+        ham_bool_t b=my_execute_reopen();
+        ham_assert(b!=0, "my_execute_reopen failed", 0);
+    }
+
     /* 
      * check integrity
      */
@@ -968,6 +969,63 @@ my_execute_fullcheck(char *line)
         ham_assert("failed to compare the databases, or databases not equal", 
                 0, 0);
     return HAM_TRUE;
+}
+
+static ham_bool_t
+my_execute_close(void)
+{
+    int i;
+    ham_status_t st;
+
+    /* 
+     * dump
+     */
+    if (config.dump>=1) {
+        ham_status_t st=0;
+        if (config.backend[0]==BACKEND_HAMSTER ||
+            config.backend[1]==BACKEND_HAMSTER)
+            ham_assert((st=ham_dump(config.hamdb, 0, my_dump_func))==0, 0, 0);
+        if (st)
+            ham_trace("hamster dump failed with status %d", st);
+    }
+
+    for (i=0; i<2; i++) {
+        switch (config.backend[i]) {
+            case BACKEND_NONE: 
+                break;
+            case BACKEND_BERK: 
+                VERBOSE2("closing backend %d (berkeley)", i);
+                if (!config.dbp) {
+                    FAIL("berkeley handle is invalid", 0);
+                    return 0;
+                }
+                PROFILE_START(PROF_OTHER, i);
+                config.dbp->close(config.dbp, 0);
+                config.dbp=0;
+                PROFILE_STOP(PROF_OTHER, i);
+                break;
+            case BACKEND_HAMSTER: 
+                VERBOSE2("closing backend %d (hamster)", i);
+                if (!config.hamdb) {
+                    FAIL("hamster handle is invalid", 0);
+                    return 0;
+                }
+                PROFILE_START(PROF_OTHER, i);
+                st=ham_close(config.hamdb);
+                ham_assert(st==0, 0, 0);
+                ham_delete(config.hamdb);
+                config.hamdb=0;
+                PROFILE_STOP(PROF_OTHER, i);
+                break;
+        }
+    }
+
+    if (config.reopen) {
+        ham_bool_t b=my_execute_reopen();
+        ham_assert(b!=0, "my_execute_reopen failed", 0);
+    }
+
+    return 1;
 }
 
 static ham_bool_t
@@ -1145,6 +1203,9 @@ test_db(const char *filename)
         }
         else if (opt==ARG_CACHEPOLICY) {
             config.strict_cache=!strcmp(param, "strict");
+        }
+        else if (opt==ARG_REOPEN) {
+            config.reopen++;
         }
         else if (opt==GETOPTS_UNKNOWN) {
             ham_trace("unknown parameter %s", param);

@@ -95,8 +95,9 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freel_payload_t
 
 /**
  * set the number of entries of a freelist-page
- */
 #define freel_payload_set_count(fl, c)       (fl)->_count=ham_h2db16(c)
+ */
+#define freel_payload_set_count(fl, c)       do { (fl)->_count=ham_h2db16(c); ham_assert((fl)->_count<=(fl)->_maxsize, 0, 0); } while (0)
 
 /**
  * get the number of maximum entries of a freelist-page

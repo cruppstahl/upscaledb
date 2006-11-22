@@ -214,7 +214,8 @@ blob_allocate(ham_db_t *db, ham_txn_t *txn, ham_u8_t *data,
          * if the blob is small, we load the page through the cache
          */
         if (my_blob_is_small(db, sizeof(blob_t)+size)) {
-            page=db_alloc_page(db, PAGE_TYPE_B_INDEX, txn, 0);
+            page=db_alloc_page(db, PAGE_TYPE_B_INDEX|PAGE_IGNORE_FREELIST, 
+                    txn, 0);
             if (!page)
                 return (db_get_error(db));
             /* blob pages don't have a page header */

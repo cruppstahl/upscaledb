@@ -829,6 +829,16 @@ ham_close(ham_db_t *db)
         return (st);
     }
 
+    /* close the backend */
+    if (db_get_backend(db)) {
+        st=db_get_backend(db)->_fun_close(db_get_backend(db));
+        if (st) {
+            ham_log("backend close() failed with status %d (%s)", 
+                    st, ham_strerror(st));
+            return (st);
+        }
+    }
+
     /* 
      * if we're not in read-only mode, and not an in-memory-database, 
      * and the dirty-flag is true: flush the page-header to disk 
@@ -837,21 +847,14 @@ ham_close(ham_db_t *db)
         db_is_open(db) && 
         (!(db_get_flags(db)&HAM_READ_ONLY)) && 
         db_is_dirty(db)) {
+        /* copy the persistent header to the database object */
+        memcpy(page_get_payload(db_get_header_page(db)), &db_get_header(db), 
+            sizeof(db_header_t)-sizeof(freel_payload_t));
 
         /* write the database header */
         st=db_write_page_to_device(db_get_header_page(db));
         if (st) {
             ham_log("db_write_page_to_device() failed with status %d (%s)", 
-                    st, ham_strerror(st));
-            return (st);
-        }
-    }
-
-    /* close the backend */
-    if (db_get_backend(db)) {
-        st=db_get_backend(db)->_fun_close(db_get_backend(db));
-        if (st) {
-            ham_log("backend close() failed with status %d (%s)", 
                     st, ham_strerror(st));
             return (st);
         }

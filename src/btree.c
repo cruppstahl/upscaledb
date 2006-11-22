@@ -187,9 +187,19 @@ my_fun_open(ham_btree_t *be, ham_u32_t flags)
 static ham_status_t
 my_fun_close(ham_btree_t *be)
 {
+    ham_db_t *db=btree_get_db(be);
+    ham_u8_t *indexdata=db_get_indexdata(db);
+
     /*
-     * nothing to do
+     * store root address and maxkeys
+     *
+     * TODO they are always stored, even if they are not modified
      */
+
+    *(ham_u16_t    *)&indexdata[0]=ham_h2db16(btree_get_maxkeys(be));
+    *(ham_offset_t *)&indexdata[2]=ham_h2db_offset(btree_get_rootpage(be));
+    db_set_dirty(db, HAM_TRUE);
+
     return (0);
 }
 

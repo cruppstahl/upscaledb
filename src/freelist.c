@@ -13,12 +13,81 @@
 
 #define OFFSET_OF(obj, field) ((int)(&((obj).field)) - (int)&(obj) )
 
+static ham_bool_t
+my_add_area(freel_payload_t *fp, ham_offset_t address, ham_size_t size)
+{
+    ham_size_t i;
+    freel_entry_t *list=freel_payload_get_entries(fp); 
+
+    ham_assert(freel_payload_get_count(fp)<=freel_payload_get_maxsize(fp), 
+            0, 0);
+
+    /*
+     * try to append the item to an existing entry
+     */
+    for (i=0; i<freel_payload_get_count(fp); i++) {
+        /*
+         * if we can append the item, remove the item from the 
+         * freelist and re-insert it
+         */
+        if (freel_get_address(&list[i])+freel_get_size(&list[i])==address) {
+            size  +=freel_get_size(&list[i]);
+            address=freel_get_address(&list[i]);
+            if (i<freel_payload_get_count(fp)-1) 
+                memmove(&list[i], &list[i+1], 
+                    (freel_payload_get_count(fp)-i-1)*sizeof(list[i]));
+            freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
+            return (my_add_area(fp, address, size));
+        }
+        /*
+         * same if we can prepend the item
+         */
+        if (address+size==freel_get_address(&list[i])) {
+            size   +=freel_get_size(&list[i]);
+            if (i<freel_payload_get_count(fp)-1) 
+                memmove(&list[i], &list[i+1], 
+                    (freel_payload_get_count(fp)-i-1)*sizeof(list[i]));
+            freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
+            return (my_add_area(fp, address, size));
+        }
+    }
+
+    /* 
+     * did not found room for this chunk?
+     */
+    if (freel_payload_get_count(fp)==freel_payload_get_maxsize(fp))
+        return (HAM_FALSE);
+
+    /*
+     * we were not able to append the item to an existing entry - insert
+     * it in the list
+     */
+    for (i=0; i<freel_payload_get_count(fp); i++) {
+        if (size>=freel_get_size(&list[i])) {
+            memmove(&list[i+1], &list[i], 
+                    (freel_payload_get_count(fp)-i)*sizeof(list[i]));
+            freel_set_size(&list[i], size);
+            freel_set_address(&list[i], address);
+            freel_payload_set_count(fp, freel_payload_get_count(fp)+1);
+            return (HAM_TRUE);
+        }
+    }
+
+    /*
+     * append at the end of the list
+     */
+    freel_set_size(&list[i], size);
+    freel_set_address(&list[i], address);
+    freel_payload_set_count(fp, freel_payload_get_count(fp)+1);
+    return (HAM_TRUE);
+}
+
 static ham_offset_t
 my_alloc_in_list(ham_db_t *db, freel_payload_t *fp, 
         ham_size_t chunksize, ham_u32_t flags)
 {
-    ham_offset_t result;
-    ham_size_t i, newsize, best=freel_payload_get_count(fp);
+    ham_offset_t newoffs=0;
+    ham_size_t i, best=freel_payload_get_count(fp);
     freel_entry_t *list=freel_payload_get_entries(fp);
 
     /*
@@ -27,63 +96,108 @@ my_alloc_in_list(ham_db_t *db, freel_payload_t *fp,
      */
     for (i=0; i<freel_payload_get_count(fp); i++) {
 
-        if (freel_get_size(&list[i])==chunksize) {
-            if ((!(flags&FREEL_DONT_ALIGN) && 
-                    freel_get_address(&list[i])%db_get_pagesize(db)))
-                continue;
-            result=freel_get_address(&list[i]);
-            freel_set_size(&list[i], 0);
-            freel_set_address(&list[i], 0);
-            freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
-            return (result);
-        }
-
+        /*
+         * blob is bigger then the requested blob?
+         */
         if (freel_get_size(&list[i])>chunksize) {
-            if ((!(flags&FREEL_DONT_ALIGN) && 
-                    freel_get_address(&list[i])%db_get_pagesize(db))) {
-                continue;
-                /*
-                ham_offset_t aligned;
-                aligned=freel_get_address(&list[i])+db_get_pagesize(db);
-                aligned=(aligned/db_get_pagesize(db))*db_get_pagesize(db);
-                if (freel_get_size(&list[i])-(aligned-
-                            freel_get_address(&list[i])>=chunksize))
+            /*
+             * need aligned page in an unaligned blob?
+             */
+            if (!(flags&FREEL_DONT_ALIGN) && chunksize==db_get_pagesize(db)) {
+                newoffs=(freel_get_address(&list[i])/db_get_pagesize(db))*
+                    db_get_pagesize(db)+db_get_pagesize(db);
+                if (freel_get_size(&list[i])-
+                        (newoffs-freel_get_address(&list[i]))>=chunksize)
                     best=i;
-                */
             }
-            best=i;
+            else
+                best=i;
+        }
+        /*
+         * blob is the same size as requested?
+         */
+        else if (freel_get_size(&list[i])==chunksize) {
+            /*
+             * need aligned chunk, and the chunk is aligned
+             * OR need no aligned chunk: use this chunk
+             */
+            if ((flags&FREEL_DONT_ALIGN && 
+                    freel_get_address(&list[i])%db_get_pagesize(db)==0) ||
+                !(flags&FREEL_DONT_ALIGN)) {
+                best=i;
+                break;
+            }
+        }
+        /*
+         * otherwise, if the current chunk is smaller then the requested 
+         * chunk size, there's no need to continue, because all following
+         * chunks are even smaller.
+         */
+        else {
+            break;
         }
     }
 
-    /* 
-     * we haven't found a perfect match, but an entry which is big enough
+    /*
+     * nothing found - return to caller
      */
-    if (best<freel_payload_get_count(fp)) {
-        ham_offset_t addr=freel_get_address(&list[best]);
-        newsize=freel_get_size(&list[best])-chunksize;
-        freel_set_size(&list[best], newsize);
-        freel_set_address(&list[best], addr+chunksize);
-        return (addr);
+    if (best==freel_payload_get_count(fp)) 
+        return (0);
+
+    /*
+     * otherwise remove the chunk
+     */
+    if (freel_get_size(&list[best])>chunksize) {
+
+        if (flags&FREEL_DONT_ALIGN) {
+            ham_size_t   diff=freel_get_size(&list[best])-chunksize;
+            ham_offset_t offs=freel_get_address(&list[best]);
+
+            if (best<freel_payload_get_count(fp)-1) 
+                memmove(&list[best], &list[best+1], 
+                        (freel_payload_get_count(fp)-best-1)*sizeof(list[i]));
+            freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
+
+            (void)my_add_area(fp, offs+chunksize, diff);
+            return (offs);
+        }
+        ham_assert(!"shouldn't be here...", 0, 0);
+#if 0
+        else {
+            ham_offset_t offs1, offs2, newoffs;
+            ham_size_t   size1, size2;
+            
+            newoffs=(freel_get_address(&list[best])/db_get_pagesize(db))*
+                        db_get_pagesize(db)+db_get_pagesize(db);
+            offs1  =freel_get_address(&list[best]);
+            size1  =newoffs-freel_get_address(&list[best]);
+            offs2  =newoffs+chunksize;
+            size2  =(freel_get_address(&list[best])+
+                        freel_get_size(&list[best]))-(newoffs+chunksize);
+
+            if (best<freel_payload_get_count(fp)-1) 
+                memmove(&list[best], &list[best+1], 
+                        (freel_payload_get_count(fp)-best-1)*sizeof(list[i]));
+            freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
+
+            (void)my_add_area(fp, offs1, size1);
+            (void)my_add_area(fp, offs2, size2);
+            return (newoffs);
+        }
+#endif
+    }
+    else {
+        ham_offset_t newoffs=freel_get_address(&list[best]);
+
+        if (best<freel_payload_get_count(fp)-1) 
+            memmove(&list[best], &list[best+1], 
+                    (freel_payload_get_count(fp)-best-1)*sizeof(list[i]));
+        freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
+
+        return (newoffs);
     }
 
     return (0);
-}
-
-static ham_bool_t
-my_add_area(freel_payload_t *fp, ham_offset_t address, ham_size_t size)
-{
-    ham_size_t i;
-    freel_entry_t *list=freel_payload_get_entries(fp); 
-
-    for (i=0; i<freel_payload_get_maxsize(fp); i++) {
-        if (freel_get_address(&list[i])==0) {
-            freel_set_address(&list[i], address);
-            freel_set_size(&list[i], size);
-            return (HAM_TRUE);
-        }
-    }
-
-    return (HAM_FALSE);
 }
 
 static ham_size_t
@@ -265,7 +379,6 @@ freel_add_area(ham_db_t *db, ham_offset_t address, ham_size_t size)
     /* try to add the entry to the freelist */
     fp=&hdr->_freelist;
     if (my_add_area(fp, address, size)) {
-        freel_payload_set_count(fp, freel_payload_get_count(fp)+1);
         page_set_dirty(page, HAM_TRUE);
         return (0);
     }
@@ -289,7 +402,6 @@ freel_add_area(ham_db_t *db, ham_offset_t address, ham_size_t size)
 
         /* try to add the entry */
         if (my_add_area(fp, address, size)) {
-            freel_payload_set_count(fp, freel_payload_get_count(fp)+1);
             page_set_dirty(page, HAM_TRUE);
             return (0);
         }
@@ -335,7 +447,6 @@ freel_add_area(ham_db_t *db, ham_offset_t address, ham_size_t size)
      * try to add the entry to the new freelist page 
      */
     if (my_add_area(fp, address, size)) {
-        freel_payload_set_count(fp, freel_payload_get_count(fp)+1);
         page_set_dirty(newp, HAM_TRUE);
         return (0);
     }

@@ -31,8 +31,6 @@ o warum wird die datenbank so verdammt gross? z.b. test 190 mit overwrite=1:
 
     -> können wir das auch?? lohnt sich das?
 
-    o bei der freelist die einträge zusammenlegen, soweit das möglich ist
-
 -----------------------------------------------------
 
 wenatex
@@ -41,70 +39,86 @@ wenatex
 
 o profiling! aber mit der release-version...
 
-    x statt --profile ab sofort:
-        x --profile=all - wie bisher
-        x --profile=none - ausschalten
-        x --profile=insert - nur insert
-        x --profile=erase - nur erase
-        x --profile=find - nur find
-        x etc
-
-    x profiling mit gprof
-
-    x binary search statt linear search
-        x btree_get_slot
-        x btree_insert:285 (kann durch btree_get_slot() ersetzt werden)
-        x nochmal profilen (debug=0!)
-        
-    x können wir die minkey/maxkey-regel relaxen? also später splitten
-        und später mergen?
-        minkeys=min(4, maxkeys/2)
-        etc
-    
-    x momentan werden alle pages auf null gesetzt 
-        (memset(page->pers->payload, 0)) und zwar evtl sogar 
-        mehrmals (freelist!) - raus damit!
-
-    x blob überarbeiten - kompletten blob in einem chunk abspeichern, 
-        nicht page-weise aufteilen
-        x blob_write
-            problem: man muss davon ausgehen, dass JEDE betroffene page 
-            im cache sein KÖNNTE!
-        x blob_read
-        x blob_free
-        x brauchen wir db_alloc_area noch? - nein, raus damit
-        x blob_replace
-        x testen (overwrite)
-        x testen (non-overwrite)
-        x testen (inmemory)
-        x testen (inmemory, overwrite)
-
-    x os_write durch os_pwrite ersetzen, os_write raus
-
     o freelist schneller machen
+
+        siehe email für pseudocode
+
         x HAM_NO_PAGE_ALIGN: wird private flag der freelist
-        o items zusammenlegen, wenn möglich
-        o freelist-handling überarbeiten (muss alignte pages zurückliefern)
-        o testen
-        o eventuell sortiert nach grösse ablegen? oder anderweitig
+        x items zusammenlegen, wenn möglich
+        x freelist-handling überarbeiten (muss alignte pages zurückliefern)
+        x eventuell sortiert nach grösse ablegen? oder anderweitig
             beschleunigen?
+
+        x testen
+
+        x blob_allocate: es wird zuerst die freelist durchsucht, dann (falls nix
+              gefunden wird) eine page allokiert; beim allokieren wird 
+              nochmal die freelist durchsucht - unnötig!
+
+        x testen
+
+        x reopen-tests: direkt nach dem close ein open/fullcheck/close 
+            machen; allerdings nur wenn NICHT inmemorydb!
+
+        x testen - test 45 und 220 schlagen fehl, die erzeugten dateien
+            sind sehr klein
+            das problem (am beispiel von 45.tst): in btree_insert.c:169 
+            wird eine neue root-page gesetzt. die adresse ist 28672
+            (statt 4096). beim nächsten ham_find ist jedoch noch die 
+            4096 gespeichert. 
+
         o freelist-tests: direkt nach ham_create einen sehr grossen 
-            blob einfügen (grösse ist zufällig, aber > 1 page)
+            blob einfügen (grösse ist zufällig, aber weit mehr als 1 page)
             und dann wieder löschen; während des tests immer mal wieder 
             machen
 
+        o testen
+
+        o die freelist flusht sich momentan nach jeder alloc-operation 
+            können wir das etwas begrenzen? 
+            eventuell ein zusatzflag, das auf kosten der stabilität geht
+
+        o testen
+
+        o monstertest! auch mit overwrite etc (und reopen!)
+
     o extended keys cachen (ist eigentlich gar nicht mehr nötig...)
         (vorsicht: cachegrösse beachten!)
-        wie löschen wir lange nicht benötigte keys, damit wir nicht den
-        kompletten cache vollmüllen?
+        o wie löschen wir lange nicht benötigte keys, damit wir nicht den
+            kompletten cache vollmüllen?
+        o viele memory leaks bei extended keys und in-memory-db - die blobs der 
+            keys werden nicht freigegeben! bei inmemory könnten wir die keys
+            nicht als blob speichern, sondern direkt im cache (und den cache
+            nie leeren, nur am ende alles freigeben)
 
 -----------------------------------------------------
+
+o my_fun_close: schreibt die werte immer zurück, auch wenn sie 
+    sich nicht geändert haben
+
+o blb-001 und blb-002 fehlen im full.sh
+
+o bei ALLEN tests die OPENs rausmachen
+
+o blob: grosser blob (>sizeof(offset_)) ersetzt einen kleinen blob 
+    (<sizeof(offset_t) und umgekehrt - testen! wird der existierende blob
+    korrekt in die freelist gesteckt?
 
 o neuer test-modules: --user_allocated_records
     allokiert die records im userspeicher - auch mit valgrind checken!
 
-o viele memory leaks bei extended keys und in-memory-db - die blobs der 
-    keys werden nicht freigegeben!
+o ausgabe der test-skripte überarbeiten: 
+    options: full.sh --cachepolicy=strict --overwrite=1
+        45.tst                                      [ok]     - 0
+        202.tst                                     [failed] - 19
+        test results: 1 error(s)
+    (exit-code ist der error code von hamsterdb, oder -1)
+
+x test-tool: im release-modus werden die asserts nicht ausgeführt
+    -> entweder assert-makro ersetzen oder ./test immer im 
+    debug-modus ausführen (eher letzeres)
+
+o sicherstellen dass die fehler immer komplett reportet werden!
 
 -----------------------------------------------------
 -----------------------------------------------------

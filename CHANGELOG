@@ -1,4 +1,10 @@
 
+Nov 22, 2006 - chris 
+o completely rewrote the freelist - elements are now sorted, and access is 
+    a lot faster. also, elements are merged, if possible.
+o fixed a bug; if the root page is split, the address of the root page
+    was not stored correctly in the database header
+
 Nov 12, 2006 - chris 
 o completely rewrote the blob storage - blobs are now stored in one big 
     chunk, and not splitted into pages
