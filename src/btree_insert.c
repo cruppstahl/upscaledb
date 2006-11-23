@@ -167,6 +167,7 @@ btree_insert(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
          * do NOT delete the old root page - it's still in use!
          */
         btree_set_rootpage(be, page_get_self(newroot));
+        btree_set_dirty(be, HAM_TRUE);
         db_set_dirty(db, 1);
         page_set_type(root, PAGE_TYPE_B_INDEX);
     }
@@ -288,6 +289,7 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
     btree_node_t *node;
     ham_db_t *db=page_get_owner(page);
     ham_s32_t slot;
+    ham_u32_t oldflags;
 
     node=ham_page_get_btree_node(page);
     count=btree_node_get_count(node);
@@ -401,11 +403,28 @@ shift_elements:
      * in &rid is the size of the data. if the record is empty, we just
      * set the "empty"-flag.
      *
-     * before, disable the key-flags
+     * before, reset the key-flags
      */
+    oldflags=key_get_flags(bte);
     key_set_flags(bte, 0);
 
     if (btree_node_is_leaf(node)) {
+        /*
+         * if a blob exists, free it
+         */
+        if (overwrite && record->size<=sizeof(ham_offset_t)) {
+            if (!((oldflags&KEY_BLOB_SIZE_TINY) ||
+                (oldflags&KEY_BLOB_SIZE_SMALL) ||
+                (oldflags&KEY_BLOB_SIZE_EMPTY))) {
+                st=blob_free(db, txn, key_get_ptr(bte), 0);
+                if (st)
+                    return (st);
+            }
+        }
+
+        /*
+         * now set the new key flags 
+         */
         if (record->size==0) {
             key_set_flags(bte, key_get_flags(bte)|KEY_BLOB_SIZE_EMPTY);
         }
