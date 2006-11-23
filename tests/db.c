@@ -65,6 +65,7 @@ static unsigned long g_filesize, g_filepos;
 #define ARG_CACHESIZE  16
 #define ARG_CACHEPOLICY 17
 #define ARG_REOPEN     18
+#define ARG_USERALLOC  19
 
 #define PROF_INSERT     1
 #define PROF_ERASE      2
@@ -100,6 +101,9 @@ static struct {
 
     /* open/fullcheck/close after close? */
     unsigned reopen;
+
+    /* ham_find: use flag HAM_RECORD_USER_ALLOC */
+    unsigned useralloc;
 
     /* overwrite keys?  */
     unsigned overwrite;
@@ -233,6 +237,12 @@ static option_t opts[]={
         "reopen",
         "reopen",
         "call OPEN/FULLCHECK/CLOSE after each close",
+        GETOPTS_NEED_ARGUMENT },
+    {
+        ARG_USERALLOC,
+        "usr",
+        "useralloc",
+        "ham_find: use flag HAM_RECORD_USER_ALLOC",
         GETOPTS_NEED_ARGUMENT },
     {
         ARG_PAGESIZE,
@@ -505,6 +515,16 @@ my_compare_databases(void)
         /*PROFILE_STOP(berk);*/
         hkey.size=key.size;
         hkey.data=key.data;
+    
+        if (config.useralloc) {
+            hrec.data=malloc(1024*1024*64); /* 64 mb? */
+            if (!hrec.data) {
+                FAIL("useralloc: out of memory", 0);
+                return 0;
+            }
+            hrec.flags=HAM_RECORD_USER_ALLOC;
+        }
+
         /*PROFILE_START(ham);*/
         st=ham_find(config.hamdb, 0, &hkey, &hrec, 0);
         /*PROFILE_STOP(ham);*/
@@ -512,6 +532,8 @@ my_compare_databases(void)
         ham_assert(hrec.size==rec.size, "%u != %u", hrec.size, rec.size);
         if (hrec.data)
             ham_assert(!memcmp(hrec.data, rec.data, rec.size), 0, 0);
+        if (config.useralloc) 
+            free(hrec.data);
         /*PROFILE_START(berk);*/
     }
     /*PROFILE_STOP(berk);*/
@@ -1206,6 +1228,9 @@ test_db(const char *filename)
         }
         else if (opt==ARG_REOPEN) {
             config.reopen++;
+        }
+        else if (opt==ARG_USERALLOC) {
+            config.useralloc=1;
         }
         else if (opt==GETOPTS_UNKNOWN) {
             ham_trace("unknown parameter %s", param);
