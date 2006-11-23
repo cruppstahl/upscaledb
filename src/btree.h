@@ -38,6 +38,10 @@ struct ham_btree_t
      */
     ham_u16_t _maxkeys;
 
+    /**
+     * flag if the backend has to be written to disk
+     */
+    ham_bool_t _dirty;
 };
 
 /**
@@ -67,13 +71,18 @@ struct ham_btree_t
 
 /**
  * a macro for getting the minimum number of keys
- *
- * note that we're relaxing the BTree rule - pages are now merged
- * when they have less than 4 keys. but i'm not really convinced that 
- * this has performance advantages...
-#define btree_get_minkeys(maxkeys)      (maxkeys/2 < 4 ? maxkeys/2 : 4)
  */
 #define btree_get_minkeys(maxkeys)      (maxkeys/2)
+
+/*
+ * get the dirty-flag
+ */
+#define btree_is_dirty(be)              (be)->_dirty
+
+/*
+ * set the dirty-flag
+ */
+#define btree_set_dirty(be, v)          (be)->_dirty=(v)
 
 
 #include "packstart.h"

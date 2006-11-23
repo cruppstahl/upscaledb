@@ -339,6 +339,7 @@ static ham_status_t
 my_collapse_root(ham_page_t *newroot, erase_scratchpad_t *scratchpad)
 {
     btree_set_rootpage(scratchpad->be, page_get_self(newroot));
+    btree_set_dirty(scratchpad->be, HAM_TRUE);
     db_set_dirty(page_get_owner(newroot), 1);
     page_set_type(newroot, PAGE_TYPE_B_ROOT);
     return (0);

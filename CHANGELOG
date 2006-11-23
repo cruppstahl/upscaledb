@@ -1,7 +1,13 @@
 
+Nov 23, 2006 - chris 
+o fixed a small leak - if records are overwritten, and the new record size
+    is smaller then sizeof(ham_offset_t), the old blob was not added to 
+    the freelist
+
 Nov 22, 2006 - chris 
 o completely rewrote the freelist - elements are now sorted, and access is 
-    a lot faster. also, elements are merged, if possible.
+    a lot faster. also, elements are merged, if possible, which 
+    results in smaller files
 o fixed a bug; if the root page is split, the address of the root page
     was not stored correctly in the database header
 

@@ -140,6 +140,7 @@ my_fun_create(ham_btree_t *be, ham_u32_t flags)
      */
     maxkeys=my_calc_maxkeys(db);
     btree_set_maxkeys(be, maxkeys);
+    btree_set_dirty(be, HAM_TRUE);
 
     /*
      * allocate a new root page
@@ -191,14 +192,19 @@ my_fun_close(ham_btree_t *be)
     ham_u8_t *indexdata=db_get_indexdata(db);
 
     /*
-     * store root address and maxkeys
-     *
-     * TODO they are always stored, even if they are not modified
+     * nothing todo if the backend was not touched
      */
+    if (!btree_is_dirty(be))
+        return (0);
 
+    /*
+     * store root address and maxkeys
+     */
     *(ham_u16_t    *)&indexdata[0]=ham_h2db16(btree_get_maxkeys(be));
     *(ham_offset_t *)&indexdata[2]=ham_h2db_offset(btree_get_rootpage(be));
     db_set_dirty(db, HAM_TRUE);
+
+    btree_set_dirty(be, HAM_FALSE);
 
     return (0);
 }

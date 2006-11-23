@@ -80,9 +80,7 @@ o profiling! aber mit der release-version...
 
         o testen
 
-        o monstertest! auch mit overwrite etc (und reopen!)
-
-    o extended keys cachen (ist eigentlich gar nicht mehr nötig...)
+    o extended keys cachen (ist das noch nötig?)
         (vorsicht: cachegrösse beachten!)
         o wie löschen wir lange nicht benötigte keys, damit wir nicht den
             kompletten cache vollmüllen?
@@ -93,18 +91,24 @@ o profiling! aber mit der release-version...
 
 -----------------------------------------------------
 
-o my_fun_close: schreibt die werte immer zurück, auch wenn sie 
+x blb-001 und blb-002 fehlen im full.sh
+
+x bei ALLEN tests die OPENs rausmachen
+
+x my_fun_close: schreibt die werte immer zurück, auch wenn sie 
     sich nicht geändert haben
 
-o blb-001 und blb-002 fehlen im full.sh
+x test-tool: im release-modus werden die asserts nicht ausgeführt
+    -> entweder assert-makro ersetzen oder ./test immer im 
+    debug-modus ausführen (eher letzeres)
 
-o bei ALLEN tests die OPENs rausmachen
+x sicherstellen dass die fehler immer komplett reportet werden!
 
-o blob: grosser blob (>sizeof(offset_)) ersetzt einen kleinen blob 
+x blob: grosser blob (>sizeof(offset_)) ersetzt einen kleinen blob 
     (<sizeof(offset_t) und umgekehrt - testen! wird der existierende blob
     korrekt in die freelist gesteckt?
 
-o neuer test-modules: --user_allocated_records
+x neuer test-modules: --user_allocated_records
     allokiert die records im userspeicher - auch mit valgrind checken!
 
 o ausgabe der test-skripte überarbeiten: 
@@ -114,11 +118,9 @@ o ausgabe der test-skripte überarbeiten:
         test results: 1 error(s)
     (exit-code ist der error code von hamsterdb, oder -1)
 
-x test-tool: im release-modus werden die asserts nicht ausgeführt
-    -> entweder assert-makro ersetzen oder ./test immer im 
-    debug-modus ausführen (eher letzeres)
+-----------------------------------------------------
 
-o sicherstellen dass die fehler immer komplett reportet werden!
+o neue profile-runde, damit wir zahlen haben
 
 -----------------------------------------------------
 -----------------------------------------------------
