@@ -161,8 +161,9 @@ my_alloc_in_list(ham_db_t *db, freel_payload_t *fp,
             (void)my_add_area(fp, offs+chunksize, diff);
             return (offs);
         }
-        ham_assert(!"shouldn't be here...", 0, 0);
+        return (0);
 #if 0
+        /*ham_assert(!"shouldn't be here...", 0, 0);*/
         else {
             ham_offset_t offs1, offs2, newoffs;
             ham_size_t   size1, size2;

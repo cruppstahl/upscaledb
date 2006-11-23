@@ -238,7 +238,7 @@ db_alloc_page_device(ham_page_t *page, ham_u32_t flags)
 
     /* first, we ask the freelist for a page */
     if (!(flags&PAGE_IGNORE_FREELIST)) {
-        tellpos=freel_alloc_area(db, db_get_pagesize(db), db_get_flags(db));
+        tellpos=freel_alloc_area(db, db_get_pagesize(db), 0);
         if (tellpos) 
             page_set_self(page, tellpos);
     }
