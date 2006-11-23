@@ -499,7 +499,7 @@ echo "status is $?"
 echo "status is $?"
 ./test --db ../../../hamsterdb-tests/trunk/testfiles/db/ext_031.tst $1 $2 $3 $4 $5
 echo "status is $?"
-./test --db ../../../hamsterdb-tests/trunk/testfiles/db/insert.tst $1 $2 $3 $4 $5
+./test --db ../../../hamsterdb-tests/trunk/testfiles/db/blb-001.tst $1 $2 $3 $4 $5
 echo "status is $?"
-./test --db ../../../hamsterdb-tests/trunk/testfiles/db/small.tst $1 $2 $3 $4 $5
+./test --db ../../../hamsterdb-tests/trunk/testfiles/db/blb-002.tst $1 $2 $3 $4 $5
 echo "status is $?"
