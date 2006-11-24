@@ -39,46 +39,11 @@ wenatex
 
 o profiling! aber mit der release-version...
 
-    o freelist schneller machen
-
-        siehe email für pseudocode
-
-        x HAM_NO_PAGE_ALIGN: wird private flag der freelist
-        x items zusammenlegen, wenn möglich
-        x freelist-handling überarbeiten (muss alignte pages zurückliefern)
-        x eventuell sortiert nach grösse ablegen? oder anderweitig
-            beschleunigen?
-
-        x testen
-
-        x blob_allocate: es wird zuerst die freelist durchsucht, dann (falls nix
-              gefunden wird) eine page allokiert; beim allokieren wird 
-              nochmal die freelist durchsucht - unnötig!
-
-        x testen
-
-        x reopen-tests: direkt nach dem close ein open/fullcheck/close 
-            machen; allerdings nur wenn NICHT inmemorydb!
-
-        x testen - test 45 und 220 schlagen fehl, die erzeugten dateien
-            sind sehr klein
-            das problem (am beispiel von 45.tst): in btree_insert.c:169 
-            wird eine neue root-page gesetzt. die adresse ist 28672
-            (statt 4096). beim nächsten ham_find ist jedoch noch die 
-            4096 gespeichert. 
-
-        o freelist-tests: direkt nach ham_create einen sehr grossen 
-            blob einfügen (grösse ist zufällig, aber weit mehr als 1 page)
-            und dann wieder löschen; während des tests immer mal wieder 
-            machen
-
-        o testen
-
-        o die freelist flusht sich momentan nach jeder alloc-operation 
+    x freelist
+        x die freelist flusht sich momentan nach jeder alloc-operation 
             können wir das etwas begrenzen? 
             eventuell ein zusatzflag, das auf kosten der stabilität geht
-
-        o testen
+        x testen
 
     o extended keys cachen (ist das noch nötig?)
         (vorsicht: cachegrösse beachten!)
@@ -88,37 +53,6 @@ o profiling! aber mit der release-version...
             keys werden nicht freigegeben! bei inmemory könnten wir die keys
             nicht als blob speichern, sondern direkt im cache (und den cache
             nie leeren, nur am ende alles freigeben)
-
------------------------------------------------------
-
-x blb-001 und blb-002 fehlen im full.sh
-
-x bei ALLEN tests die OPENs rausmachen
-
-x my_fun_close: schreibt die werte immer zurück, auch wenn sie 
-    sich nicht geändert haben
-
-x test-tool: im release-modus werden die asserts nicht ausgeführt
-    -> entweder assert-makro ersetzen oder ./test immer im 
-    debug-modus ausführen (eher letzeres)
-
-x sicherstellen dass die fehler immer komplett reportet werden!
-
-x blob: grosser blob (>sizeof(offset_)) ersetzt einen kleinen blob 
-    (<sizeof(offset_t) und umgekehrt - testen! wird der existierende blob
-    korrekt in die freelist gesteckt?
-
-x neuer test-modules: --user_allocated_records
-    allokiert die records im userspeicher - auch mit valgrind checken!
-
-o ausgabe der test-skripte überarbeiten: 
-    options: full.sh --cachepolicy=strict --overwrite=1
-        45.tst                                      [ok]     - 0
-        202.tst                                     [failed] - 19
-        test results: 1 error(s)
-    (exit-code ist der error code von hamsterdb, oder -1)
-
------------------------------------------------------
 
 o neue profile-runde, damit wir zahlen haben
 
@@ -139,6 +73,34 @@ o stress test mit zufällig fehlschlagenden io-funktionen und zufälligen
     OUT_OF_MEMORYs
 
 o endianness testen
+
+o port to ms windows
+    o mit mingw, bcc, watcom, msvc, icc...
+    o projekt-umgebungen für visual studio 6 und .NET
+    o define HAM_EXPORT DECLSPEC _dllexport for DLLs und .so
+
+-----------------------------------------------------
+-----------------------------------------------------
+
+o iteratoren 
+    o sind schon designt (siehe iterators.txt im rechner auf arbeit)
+
+    o in-memory-db: finden wir ne möglichkeit, normale datenbanken in 
+        in-memory zu importieren und umgekehrt wieder zu exportieren? 
+        das wäre genial
+        --> geht mit iteratoren (erst release 2.0!):
+            iterator from=db1.begin()
+            while (from)
+                db2.append(from)
+                from.next()
+        --> geht auch mit der enum-funktion, die jetzt schon drin ist
+
+-----------------------------------------------------
+
+o duplicate keys (nicht in version 0.1.0, sondern 0.1.1)
+    jeder key bekommt einen dupcounter; der wird mit unsigned(-1) initialisiert
+    beim einfuegen wird rekursiv abgestiegen. im leaf wird dann ein neuer key
+    eingefuegt, mit dem dupcounter=existierender ("kleinster") key minus 1.
 
 -----------------------------------------------------
 
@@ -212,34 +174,6 @@ o cache: bucketgrösse in ham_config.h verschieben, eine #define-konstante
     draus machen
 
 -----------------------------------------------------
-
-o port to ms windows
-    o mit mingw, bcc, watcom, msvc, icc...
-    o projekt-umgebungen für visual studio 6 und .NET
-    o define HAM_EXPORT DECLSPEC _dllexport for DLLs und .so
-
------------------------------------------------------
-
-o iteratoren 
-    o sind schon designt (siehe iterators.txt im rechner auf arbeit)
-
-    o in-memory-db: finden wir ne möglichkeit, normale datenbanken in 
-        in-memory zu importieren und umgekehrt wieder zu exportieren? 
-        das wäre genial
-        --> geht mit iteratoren (erst release 2.0!):
-            iterator from=db1.begin()
-            while (from)
-                db2.append(from)
-                from.next()
-        --> geht auch mit der enum-funktion, die jetzt schon drin ist
-
------------------------------------------------------
-
-o duplicate keys (nicht in version 0.1.0, sondern 0.1.1)
-    jeder key bekommt einen dupcounter; der wird mit unsigned(-1) initialisiert
-    beim einfuegen wird rekursiv abgestiegen. im leaf wird dann ein neuer key
-    eingefuegt, mit dem dupcounter=existierender ("kleinster") key minus 1.
-
 -----------------------------------------------------
 
 Version 0.1.0 - first release!!

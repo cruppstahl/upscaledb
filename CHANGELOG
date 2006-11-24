@@ -1,4 +1,9 @@
 
+Nov 24, 2006 - chris 
+o added HAM_DISABLE_FREELIST_FLUSH - when a freelist page is modified, it 
+    is no longer flushed immediately. this is dangerous - in case of a 
+    crash, the database is most likely broken.
+
 Nov 23, 2006 - chris 
 o fixed a small leak - if records are overwritten, and the new record size
     is smaller then sizeof(ham_offset_t), the old blob was not added to 

@@ -163,6 +163,8 @@ my_alloc_in_list(ham_db_t *db, freel_payload_t *fp,
         }
         return (0);
 #if 0
+        TODO implement this...
+
         /*ham_assert(!"shouldn't be here...", 0, 0);*/
         else {
             ham_offset_t offs1, offs2, newoffs;
@@ -320,10 +322,12 @@ freel_alloc_area(ham_db_t *db, ham_size_t size, ham_u32_t flags)
     result=my_alloc_in_list(db, fp, size, flags);
     if (result) {
         page_set_dirty(page, HAM_TRUE);
-        st=db_write_page_to_device(page);
-        if (st) {
-            db_set_error(db, st);
-            return (0);
+        if (!(db_get_flags(db)&HAM_DISABLE_FREELIST_FLUSH)) {
+            st=db_write_page_to_device(page);
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
         }
         return (result);
     }
@@ -350,10 +354,12 @@ freel_alloc_area(ham_db_t *db, ham_size_t size, ham_u32_t flags)
         if (result) {
             /* write the page to disk */
             page_set_dirty(page, HAM_TRUE);
-            st=db_write_page_to_device(page);
-            if (st) {
-                db_set_error(db, st);
-                return (0);
+            if (!(db_get_flags(db)&HAM_DISABLE_FREELIST_FLUSH)) {
+                st=db_write_page_to_device(page);
+                if (st) {
+                    db_set_error(db, st);
+                    return (0);
+                }
             }
             return (result);
         }

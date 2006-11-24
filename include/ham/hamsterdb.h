@@ -226,6 +226,14 @@ ham_create_ex(ham_db_t *db, const char *filename,
  */
 #define HAM_CACHE_STRICT             0x00000400
 
+/**
+ * do not immediately writeback modified freelist pages
+ * leads to small performance improvements, but comes with additional
+ * risk in case of a system crash or program crash
+ * It's not recommended to use this flag.
+ */
+#define HAM_DISABLE_FREELIST_FLUSH   0x00000800
+
 /** 
  * get the last error code
  */

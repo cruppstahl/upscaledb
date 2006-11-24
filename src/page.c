@@ -13,7 +13,7 @@
 #include "os.h"
 #include "freelist.h"
 
-#if (HAM_DEBUG)
+#ifndef HAM_RELEASE
 static ham_bool_t
 my_is_in_list(ham_page_t *p, int which)
 {
@@ -21,7 +21,7 @@ my_is_in_list(ham_page_t *p, int which)
 }
 
 static void
-my_validage_page(ham_page_t *p)
+my_validate_page(ham_page_t *p)
 {
     /*
      * not allowed: dirty and in garbage bin
@@ -63,7 +63,7 @@ page_get_next(ham_page_t *page, int which)
     ham_page_t *p=page->_npers._next[which];
     my_validage_page(page);
     if (p)
-        my_validage_page(p);
+        my_validate_page(p);
     return (p);
 }
 
@@ -71,18 +71,18 @@ void
 page_set_next(ham_page_t *page, int which, ham_page_t *other)
 {
     page->_npers._next[which]=other;
-    my_validage_page(page);
+    my_validate_page(page);
     if (other)
-        my_validage_page(other);
+        my_validate_page(other);
 }
 
 ham_page_t *
 page_get_previous(ham_page_t *page, int which)
 {
     ham_page_t *p=page->_npers._prev[which];
-    my_validage_page(page);
+    my_validate_page(page);
     if (p)
-        my_validage_page(p);
+        my_validate_page(p);
     return (p);
 }
 
@@ -90,11 +90,11 @@ void
 page_set_previous(ham_page_t *page, int which, ham_page_t *other)
 {
     page->_npers._prev[which]=other;
-    my_validage_page(page);
+    my_validate_page(page);
     if (other)
-        my_validage_page(other);
+        my_validate_page(other);
 }
-#endif /* HAM_DEBUG */
+#endif /* !HAM_RELEASE */
 
 ham_bool_t 
 page_is_in_list(ham_page_t *head, ham_page_t *page, int which)

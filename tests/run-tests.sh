@@ -10,11 +10,11 @@ errors=0
 testdir=../../../hamsterdb-tests/trunk/testfiles
 
 function call {
-    ./test --db $1 $2 $3 $4 $5 $6 $7 $8 $9 &> /dev/null
+    ./test --db $1 $2 $3 $4 $5 $6 $7 $8 $9 &> .tmp
 
     if [[ $? = 0 ]]
         then echo "[OK]   $1"
-        else echo "[FAIL] $1"; (( errors+=1 ))
+        else echo "[FAIL] $1"; cat .tmp; (( errors+=1 ))
     fi
     (( total+=1 ))
 }

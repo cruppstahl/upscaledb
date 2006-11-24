@@ -138,42 +138,42 @@ struct ham_page_t {
 /** 
  * get the previous page of a linked list
  */
-#if (HAM_DEBUG)
+#ifndef HAM_RELEASE
 extern ham_page_t *
 page_get_previous(ham_page_t *page, int which);
 #else
 #   define page_get_previous(page, which)    ((page)->_npers._prev[(which)])
-#endif /* HAM_DEBUG */
+#endif /* !HAM_RELEASE */
 
 /** 
  * set the previous page of a linked list
  */
-#if (HAM_DEBUG)
+#ifndef HAM_RELEASE
 extern void
 page_set_previous(ham_page_t *page, int which, ham_page_t *other);
 #else
 #   define page_set_previous(page, which, p) (page)->_npers._prev[(which)]=(p)
-#endif /* HAM_DEBUG */
+#endif /* !HAM_RELEASE */
 
 /** 
  * get the next page of a linked list
  */
-#if (HAM_DEBUG)
+#ifndef HAM_RELEASE
 extern ham_page_t *
 page_get_next(ham_page_t *page, int which);
 #else
 #   define page_get_next(page, which)        ((page)->_npers._next[(which)])
-#endif /* HAM_DEBUG */
+#endif /* !HAM_RELEASE */
 
 /** 
  * set the next page of a linked list
  */
-#if (HAM_DEBUG)
+#ifndef HAM_RELEASE
 extern void
 page_set_next(ham_page_t *page, int which, ham_page_t *other);
 #else
 #   define page_set_next(page, which, p)     (page)->_npers._next[(which)]=(p)
-#endif /* HAM_DEBUG */
+#endif /* !HAM_RELEASE */
 
 /**
  * get persistent page flags
