@@ -15,6 +15,7 @@
 #include "mem.h"
 #include "util.h"
 #include "keys.h"
+#include "extkeys.h"
 #include "blob.h"
 
 /*
@@ -943,6 +944,9 @@ my_remove_entry(ham_txn_t *txn, ham_page_t *page, ham_s32_t slot,
         blobid=*(ham_offset_t *)(prefix+(db_get_keysize(db)-
                     sizeof(ham_offset_t)));
         (void)blob_free(db, txn, blobid, 0); 
+        /* remove the cached extended key */
+        if (db_get_extkey_cache(db)) 
+            (void)extkey_cache_remove(db_get_extkey_cache(db), blobid);
     }
 
     /*

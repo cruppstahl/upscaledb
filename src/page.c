@@ -13,7 +13,7 @@
 #include "os.h"
 #include "freelist.h"
 
-#ifndef HAM_RELEASE
+#ifdef HAM_DEBUG
 static ham_bool_t
 my_is_in_list(ham_page_t *p, int which)
 {
@@ -61,7 +61,7 @@ ham_page_t *
 page_get_next(ham_page_t *page, int which)
 {
     ham_page_t *p=page->_npers._next[which];
-    my_validage_page(page);
+    my_validate_page(page);
     if (p)
         my_validate_page(p);
     return (p);
@@ -94,7 +94,7 @@ page_set_previous(ham_page_t *page, int which, ham_page_t *other)
     if (other)
         my_validate_page(other);
 }
-#endif /* !HAM_RELEASE */
+#endif /* HAM_DEBUG */
 
 ham_bool_t 
 page_is_in_list(ham_page_t *head, ham_page_t *page, int which)

@@ -19,6 +19,7 @@ extern "C" {
 #include "page.h"
 #include "os.h"
 #include "freelist.h"
+#include "extkeys.h"
 
 #include "packstart.h"
 
@@ -54,6 +55,9 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 
     /* the active txn */
     ham_txn_t *_txn;
+
+    /* the cache for extended keys */
+    extkey_cache_t *_extkey_cache;
     
     /* 
      * start of the freelist - with a variable size!! don't add members 
@@ -151,6 +155,16 @@ typedef HAM_PACK_0 struct HAM_PACK_1
  * set the currently active transaction
  */
 #define db_set_txn(db, txn)        db_get_header(db)._txn=txn
+
+/*
+ * get the cache for extended keys
+ */
+#define db_get_extkey_cache(db)    db_get_header(db)._extkey_cache
+
+/*
+ * set the cache for extended keys
+ */
+#define db_set_extkey_cache(db, c) db_get_header(db)._extkey_cache=c
 
 /*
  * the database structure

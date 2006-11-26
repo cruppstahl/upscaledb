@@ -379,9 +379,14 @@ shift_elements:
         if (overwrite) {
             if (!((key_get_flags(bte)&KEY_BLOB_SIZE_TINY) ||
                 (key_get_flags(bte)&KEY_BLOB_SIZE_SMALL) ||
-                (key_get_flags(bte)&KEY_BLOB_SIZE_EMPTY)))
+                (key_get_flags(bte)&KEY_BLOB_SIZE_EMPTY))) {
+                /* remove the cached extended key */
+                if (db_get_extkey_cache(db)) 
+                    (void)extkey_cache_remove(db_get_extkey_cache(db), 
+                            key_get_ptr(bte));
                 st=blob_replace(db, txn, key_get_ptr(bte), record->data, 
                             record->size, 0, &rid);
+            }
             else
                 st=blob_allocate(db, txn, record->data, 
                             record->size, 0, &rid);
@@ -419,6 +424,10 @@ shift_elements:
                 st=blob_free(db, txn, key_get_ptr(bte), 0);
                 if (st)
                     return (st);
+                /* remove the cached extended key */
+                if (db_get_extkey_cache(db)) 
+                    (void)extkey_cache_remove(db_get_extkey_cache(db), 
+                            key_get_ptr(bte));
             }
         }
 

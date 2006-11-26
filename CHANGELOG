@@ -1,4 +1,7 @@
 
+Nov 26, 2006 - chris 
+o extended keys are now cached (if the cache size is big enough) 
+
 Nov 24, 2006 - chris 
 o added HAM_DISABLE_FREELIST_FLUSH - when a freelist page is modified, it 
     is no longer flushed immediately. this is dangerous - in case of a 

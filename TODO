@@ -21,38 +21,66 @@ x 220.tst: schlägt fehl im release-build!
     
 -----------------------------------------------------
 
-o warum wird die datenbank so verdammt gross? z.b. test 190 mit overwrite=1:
-    test-berk.db: 232 kb, test-ham.db: 40 MB!
-    
-    -> liegt daran dass die datei nicht kleiner wird, wenn einträge mit 
-    erase gelöscht werden. wenn man berkeley-db mit strace startet, 
-    kommen sicher am schluss viele "negative" truncate()-aufrufe, die 
-    die datei schrumpfen lassen.
-
-    -> können wir das auch?? lohnt sich das?
-
------------------------------------------------------
-
 wenatex
 
 -----------------------------------------------------
 
 o profiling! aber mit der release-version...
 
-    x freelist
-        x die freelist flusht sich momentan nach jeder alloc-operation 
-            können wir das etwas begrenzen? 
-            eventuell ein zusatzflag, das auf kosten der stabilität geht
-        x testen
-
     o extended keys cachen (ist das noch nötig?)
         (vorsicht: cachegrösse beachten!)
-        o wie löschen wir lange nicht benötigte keys, damit wir nicht den
-            kompletten cache vollmüllen?
-        o viele memory leaks bei extended keys und in-memory-db - die blobs der 
-            keys werden nicht freigegeben! bei inmemory könnten wir die keys
-            nicht als blob speichern, sondern direkt im cache (und den cache
-            nie leeren, nur am ende alles freigeben)
+
+./test --db ../../../hamsterdb-tests/trunk/testfiles/1/ext_021.tst
+--profile=all --progress=1
+
+ohne änderungen (debug):
+insert: profile of backend hamster :****0.506000 sec******************
+insert: profile of backend berkeley:    0.145000 sec
+real    18m31.162s
+user    17m24.729s
+sys     1m3.212s
+
+mit änderungen (debug):
+insert: profile of backend hamster :****0.227000 sec******************
+insert: profile of backend berkeley:    0.171000 sec
+real    1m59.596s
+user    1m42.658s
+sys     0m16.897s
+
+mit änderungen (release):
+insert: profile of backend hamster :****0.176000 sec*****************.
+insert: profile of backend berkeley:    0.161000 sec
+real    1m20.036s
+user    1m2.692s
+sys     0m17.309s
+
+        x keys.h erweitern um einfache cache-klasse
+        x cache::insert(blobid, size, data)
+        x cache::remove(blobid)
+        x cache::fetch(blobid, extkey **)
+        x cache bei close löschen
+        x cache bei bedarf anlegen
+        x cache einsetzen!
+        x bei page_delete: alle extkeys dieser page löschen
+        x test ext_031 crasht (im ham_close sind noch keys drin)
+        x testen 
+        x overwrite=1: beim insert die alten keys rauslöschen
+        x testen 
+        x bei inmemorydb: blob ausschliesslich in cache speichern (oder 
+            einfach nicht cachen)
+        x testen 
+        x testen mit overwrite=1
+        x cachegrösse beachten!
+        x testen
+
+        o noch ein paar tests generieren:
+            wenige keys (ca 200 stück), die gelöscht und überschrieben werden
+            o mit vielen FIND-aufrufen!
+            o testen: extkeys vs normale keys und keys < sizeof(offset_t)
+            o testen
+            o valgrind
+
+-----------------------------------------------------
 
 o neue profile-runde, damit wir zahlen haben
 
@@ -61,6 +89,15 @@ o neue profile-runde, damit wir zahlen haben
 
                 NÄCHSTER RELEASE - PERFORMANCE ENHANCEMENTS ???
 
+VORSICHT! am besten ein skript schreiben - make-release.sh
+    1. version.h hochzählen
+    2. einchecken
+    3. taggen bzw. copy in release-trunk in hamsterdb-v.v.v
+    4. einchecken
+    5. export vom release-verzeichnis
+    6. tar/gzip
+    7. upload
+
 -----------------------------------------------------
 -----------------------------------------------------
 
@@ -68,6 +105,10 @@ o autoconf/automake oder scons?
 
 -----------------------------------------------------
 -----------------------------------------------------
+
+o prefix comparison hinzufügen
+
+o prefix comparison testen
 
 o stress test mit zufällig fehlschlagenden io-funktionen und zufälligen
     OUT_OF_MEMORYs
@@ -113,30 +154,8 @@ o doku
 -----------------------------------------------------
 
 o statistics
-    will wissen wie viele freelist-hits/misses und cache-hits/misses es gab
-
-    brauche bei den statistik-feldern die anzahl der aktuellen Keys in der
-    Datenbank
-
-    wird im sql gebraucht für AUTO_INCREMENT vom index und für eine schnelle
-    Berechnung
-    von MAX() über die ganze tabelle.
-
-    allerdings wird das etwas tricky, sobald transaktionen dazu kommen - erst
-    beim commit der transaktion muss der zähler inkrementiert/dekrementiert und
-    auf platte geschrieben werden. erst sobald der erhöhte zähler wirklich auf
-    platte geschrieben wurde, ist die transaktion abgeschlossen.
-
-    jedoch ist das blöd, weil es dann immer einen zusätzlichen
-    schreibzugriff gibt, sobald ein insert oder erase stattfindet. eher 
-    sollte nach dem start geprüft werden, ob es einen absturz gab - 
-    falls ja, werden die statistiken gelöscht, und on demand wieder 
-    initialisiert. (diese ganze problematik kommt erst, wenn wir sql brauchen).
-
-    Die MAX-Berechnung sollte recht simpel sein. Alle anderen Statistiken (z.b.
-    total size von allen Datensätzen) werden teuer - die sollten nicht immer
-    up-to-date gehalten werden, sondern nur on-demand vom cli-tool "ham_stats"
-    ausgegeben werden).
+    will wissen wie viele freelist-hits/misses und cache-hits/misses es gab,
+    auch im extkey-cache
 
 o statistics
     get generic getter/setter for statistical value, i.e. 
@@ -153,7 +172,8 @@ o statistics
 
 o tools
     o ham_dump
-    o ham_stats/ham_info
+    o ham_info
+    o ham_recover
 
 -----------------------------------------------------
 
@@ -238,6 +258,19 @@ VORSICHT! am besten ein skript schreiben - make-release.sh
 
 -----------------------------------------------------
 -----------------------------------------------------
+-----------------------------------------------------
+-----------------------------------------------------
+
+o ein paar sachen müssten umbenannt werden:
+    o alle statischen funktionen bekommen statt "my_" ein 
+        prefix, das ihrem modul entspricht (z.b. "bt_" für btree etc)
+
+    o keys.h/keys.c aufteilen in generische keys (zusammenlegen mit extkeys)
+        und btree-spezifischen keys
+
+    o db hat 2 funktionen, die die extended keys löschen - das gehört
+        ins backend
+
 -----------------------------------------------------
 -----------------------------------------------------
 

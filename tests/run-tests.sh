@@ -28,7 +28,7 @@ maxdir=$1; shift
 
 for dir in `echo "1 2 3"`
 do
-    for file in `ls $testdir/$dir/*.tst`
+    for file in `ls $testdir/$dir/ext*.tst`
     do
         call $file  $1 $2 $3 $4 $5 $6 $7 
     done

@@ -17,6 +17,7 @@
 #include "cache.h"
 #include "blob.h"
 #include "freelist.h"
+#include "extkeys.h"
 
 typedef struct free_cb_context_t
 {
@@ -827,6 +828,13 @@ ham_close(ham_db_t *db)
         ham_log("db_flush_all() failed with status %d (%s)", 
                 st, ham_strerror(st));
         return (st);
+    }
+
+    /*
+     * free the cache for extended keys
+     */
+    if (db_get_extkey_cache(db)) {
+        extkey_cache_destroy(db_get_extkey_cache(db));
     }
 
     /* close the backend */
