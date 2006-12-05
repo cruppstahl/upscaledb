@@ -24,6 +24,11 @@ d=1
 ./run-tests.sh $d --keysize=33 --inmemorydb=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --keysize=33 --overwrite=1 --inmemorydb=1 $1 $2 $3 $4 $5
 
+./run-tests.sh $d --keysize=680 --reopen=1 $1 $2 $3 $4 $5
+./run-tests.sh $d --keysize=680 --overwrite=1 --reopen=1 $1 $2 $3 $4 $5
+./run-tests.sh $d --keysize=680 --inmemorydb=1 $1 $2 $3 $4 $5
+./run-tests.sh $d --keysize=680 --overwrite=1 --inmemorydb=1 $1 $2 $3 $4 $5
+
 ./run-tests.sh $d --pagesize=1024 --reopen=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --pagesize=1024 --overwrite=1 --reopen=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --pagesize=1024 --inmemorydb=1 $1 $2 $3 $4 $5

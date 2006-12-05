@@ -963,6 +963,103 @@ my_execute_erase(char *line)
 }
 
 static ham_bool_t
+my_execute_find(char *line)
+{
+    int i, use_numeric_key=0;
+    unsigned long numeric_key;
+    char *flags, *keytok;
+
+    /*
+     * syntax: FIND flags, key
+     */
+    flags =my_strtok(line, ",");
+    keytok=my_strtok(0, ",");
+
+    VERBOSE2("find: flags=%s, key=%s", flags, keytok);
+
+    /*
+     * check flag NUMERIC_KEY
+     */
+    if ((flags && strstr(flags, "NUMERIC_KEY")) ||
+        (config.flags & NUMERIC_KEY)) {
+        use_numeric_key=1;
+        numeric_key=strtoul(keytok, 0, 0);
+        if (!numeric_key) {
+            FAIL("line %d: key is invalid", config.cur_line);
+            return 0;
+        }
+    }
+
+    /*
+     * now find the key
+     */
+    for (i=0; i<2; i++) {
+        switch (config.backend[i]) {
+            case BACKEND_NONE: 
+                break;
+            case BACKEND_BERK: {
+                DBT key, rec;
+                if (!config.dbp) {
+                    FAIL("berkeley handle is invalid", 0);
+                    return 0;
+                }
+                PROFILE_START(PROF_FIND, i);
+
+                memset(&key, 0, sizeof(key));
+                memset(&rec, 0, sizeof(rec));
+
+                if (use_numeric_key) {
+                    key.size=sizeof(unsigned long);
+                    key.data=&numeric_key;
+                }
+                else {
+                    key.size=strlen(keytok);
+                    key.data=keytok;
+                }
+
+                config.retval[i]=config.dbp->get(config.dbp, 0, &key, &rec, 0);
+                PROFILE_STOP(PROF_FIND, i);
+                VERBOSE2("finding from backend %d (berkeley): status %d",
+                        i, (int)config.retval[i]);
+                break;
+            }
+            case BACKEND_HAMSTER: {
+                ham_key_t key;
+                ham_record_t record;
+                if (!config.hamdb) {
+                    FAIL("hamster handle is invalid", 0);
+                    return 0;
+                }
+                PROFILE_START(PROF_FIND, i);
+
+                memset(&key, 0, sizeof(key));
+                memset(&record, 0, sizeof(record));
+
+                if (use_numeric_key) {
+                    key.size=sizeof(unsigned long);
+                    key.data=&numeric_key;
+                }
+                else {
+                    key.size=strlen(keytok);
+                    key.data=keytok;
+                }
+
+                config.retval[i]=ham_find(config.hamdb, 0, &key, &record, 0);
+                PROFILE_STOP(PROF_FIND, i);
+                VERBOSE2("find from backend %d (hamster): status %d", 
+                        i, (ham_status_t)config.retval[i]);
+                break;
+            }
+        }
+    }
+
+    /*
+     * compare the two return values
+     */
+    return my_compare_return();
+}
+
+static ham_bool_t
 my_execute_fullcheck(char *line)
 {
     if (config.reopen>=2) {
@@ -1077,6 +1174,10 @@ my_execute(char *line)
     if (!strcasecmp(tok, "ERASE")) {
         my_increment_progressbar();
         return my_execute_erase(&line[pos]);
+    }
+    if (!strcasecmp(tok, "FIND")) {
+        my_increment_progressbar();
+        return my_execute_find(&line[pos]);
     }
     if (!strcasecmp(tok, "FULLCHECK")) {
         my_increment_progressbar();

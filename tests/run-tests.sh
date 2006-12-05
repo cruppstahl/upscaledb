@@ -26,9 +26,9 @@ echo "parameters: ($1) $2 $3 $4 $5 $6 $7 "
 
 maxdir=$1; shift
 
-for dir in `echo "1 2 3"`
+for dir in `echo "1 2 3 4"`
 do
-    for file in `ls $testdir/$dir/ext*.tst`
+    for file in `ls $testdir/$dir/*.tst`
     do
         call $file  $1 $2 $3 $4 $5 $6 $7 
     done
