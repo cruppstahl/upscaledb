@@ -121,9 +121,11 @@ my_alloc_in_list(ham_db_t *db, freel_payload_t *fp,
              * need aligned chunk, and the chunk is aligned
              * OR need no aligned chunk: use this chunk
              */
-            if ((flags&FREEL_DONT_ALIGN && 
-                    freel_get_address(&list[i])%db_get_pagesize(db)==0) ||
-                !(flags&FREEL_DONT_ALIGN)) {
+            if (flags&FREEL_DONT_ALIGN) {
+                best=i;
+                break;
+            }
+            else if (freel_get_address(&list[i])%db_get_pagesize(db)==0) {
                 best=i;
                 break;
             }

@@ -21,6 +21,8 @@
 
 typedef struct free_cb_context_t
 {
+    ham_db_t *db;
+
     ham_bool_t is_leaf;
 
 } free_cb_context_t;
@@ -108,6 +110,13 @@ my_free_cb(int event, void *param1, void *param2, void *context)
             key_get_flags(key)&KEY_BLOB_SIZE_SMALL ||
             key_get_flags(key)&KEY_BLOB_SIZE_EMPTY)
             break;
+        if (key_get_flags(key)&KEY_IS_EXTENDED) {
+            ham_offset_t blobid=*(ham_offset_t *)(key_get_key(key)+
+                        (db_get_keysize(c->db)-sizeof(ham_offset_t)));
+            *(ham_offset_t *)(key_get_key(key)+
+                        (db_get_keysize(c->db)-sizeof(ham_offset_t)))=0;
+            ham_mem_free((void *)blobid);
+        }
 
         if (c->is_leaf)
             ham_mem_free((void *)key_get_ptr(key));
@@ -784,6 +793,7 @@ ham_close(ham_db_t *db)
     if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
         ham_txn_t txn;
         free_cb_context_t context;
+        context.db=db;
         if (!ham_txn_begin(&txn, db)) {
             (void)be->_fun_enumerate(be, &txn, my_free_cb, &context);
             ham_txn_commit(&txn);
@@ -835,6 +845,7 @@ ham_close(ham_db_t *db)
      */
     if (db_get_extkey_cache(db)) {
         extkey_cache_destroy(db_get_extkey_cache(db));
+        db_set_extkey_cache(db, 0);
     }
 
     /* close the backend */

@@ -14,6 +14,8 @@ extern "C" {
 #endif 
 
 #include <ham/hamsterdb.h>
+#include "db.h"
+#include "txn.h"
 
 /** 
  * copy a key
@@ -21,7 +23,8 @@ extern "C" {
  * uses ham_malloc() - memory in dest->key has to be freed by the caller
  */
 extern ham_key_t *
-util_copy_key(const ham_key_t *source, ham_key_t *dest);
+util_copy_key(ham_db_t *db, ham_txn_t *txn, 
+            const ham_key_t *source, ham_key_t *dest);
 
 #ifdef __cplusplus
 } // extern "C"

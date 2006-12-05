@@ -357,6 +357,15 @@ db_default_prefix_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
                    ham_size_t rhs_real_length);
 
 /**
+ * load an extended key
+ * returns the full data of the extended key in ext_key
+ */
+extern ham_status_t 
+db_get_extended_key(ham_db_t *db, ham_txn_t *txn, ham_u8_t *key_data, 
+                    ham_size_t key_length, ham_u32_t key_flags, 
+                    ham_u8_t **ext_key);
+
+/**
  * function which compares two keys
  *
  * calls the comparison function

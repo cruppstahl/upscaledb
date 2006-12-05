@@ -204,7 +204,8 @@ db_free_page_struct(ham_page_t *page)
      * cache
      * TODO move this to the backend!
      */
-    if (!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING) && 
+    if ((!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING) && 
+         !(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER)) &&
         (page_get_type(page)==PAGE_TYPE_B_ROOT || 
          page_get_type(page)==PAGE_TYPE_B_INDEX)) {
         ham_size_t i;
@@ -219,6 +220,8 @@ db_free_page_struct(ham_page_t *page)
                 if (key_get_flags(bte)&KEY_IS_EXTENDED) {
                     blobid=*(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)));
+                    *(ham_offset_t *)(key_get_key(bte)+
+                            (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
                     if (db_get_flags(db)&HAM_IN_MEMORY_DB) 
                         (void)blob_free(db, 0, blobid, 0);
                     else if (c)
@@ -273,8 +276,14 @@ db_alloc_page_device(ham_page_t *page, ham_u32_t flags)
     /* first, we ask the freelist for a page */
     if (!(flags&PAGE_IGNORE_FREELIST)) {
         tellpos=freel_alloc_area(db, db_get_pagesize(db), 0);
-        if (tellpos) 
+        if (tellpos) {
+            ham_assert(tellpos%db_get_pagesize(db)==0, 
+                    "page id %llu is not aligned", tellpos);
             page_set_self(page, tellpos);
+            st=my_read_page(db, tellpos, page);
+            if (st) /* TODO memleaks? */
+                return (st);
+        }
     }
 
     /* otherwise: move to the end of the file */
@@ -298,7 +307,6 @@ db_alloc_page_device(ham_page_t *page, ham_u32_t flags)
          * memory for the persistent buffer
          */
         if ((db_get_flags(db)&DB_USE_MMAP) && !page_get_pers(page)) {
-
             st=my_read_page(db, tellpos, page);
             if (st) /* TODO memleaks? */
                 return (st);
@@ -368,6 +376,86 @@ db_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
     return (0);
 }
 
+ham_status_t 
+db_get_extended_key(ham_db_t *db, ham_txn_t *txn, ham_u8_t *key_data, 
+                    ham_size_t key_length, ham_u32_t key_flags, 
+                    ham_u8_t **ext_key)
+{
+    ham_offset_t blobid;
+    ham_status_t st;
+    ham_size_t temp;
+    ham_record_t record;
+    ham_u8_t *ptr;
+
+    *ext_key=0;
+
+    ham_assert(key_flags&KEY_IS_EXTENDED, 
+            "key is not extended", 0);
+
+    if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
+        if (!db_get_extkey_cache(db)) {
+            db_set_extkey_cache(db, extkey_cache_new(db));
+            if (!db_get_extkey_cache(db))
+                return (db_get_error(db));
+        }
+    }
+
+    blobid=*(ham_offset_t *)(key_data+(db_get_keysize(db)-
+            sizeof(ham_offset_t)));
+
+    /* fetch from the cache */
+    if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
+        st=extkey_cache_fetch(db_get_extkey_cache(db), blobid, 
+                        &temp, &ptr);
+        if (!st) {
+            ham_assert(temp==key_length, "invalid key length", 0);
+
+            *ext_key=(ham_u8_t *)ham_mem_alloc(key_length);
+            if (!*ext_key) {
+                db_set_error(db, HAM_OUT_OF_MEMORY);
+                return (HAM_OUT_OF_MEMORY);
+            }
+            memcpy(*ext_key, ptr, key_length);
+
+            return (0);
+        }
+        if (st!=HAM_KEY_NOT_FOUND) {
+            db_set_error(db, st);
+            return (st);
+        }
+    }
+
+    /* not cached - fetch from disk */
+    memset(&record, 0, sizeof(record));
+
+    st=blob_read(db, txn, blobid, &record, 0);
+    if (st) {
+        db_set_error(db, st);
+        return (st);
+    }
+
+    *ext_key=(ham_u8_t *)ham_mem_alloc(key_length);
+    if (!*ext_key) {
+        db_set_error(db, HAM_OUT_OF_MEMORY);
+        return (HAM_OUT_OF_MEMORY);
+    }
+    memcpy(*ext_key, key_data, db_get_keysize(db)-sizeof(ham_offset_t));
+    memcpy(*ext_key+(db_get_keysize(db)-sizeof(ham_offset_t)),
+               record.data, record.size);
+
+    /* insert the FULL key in the cache */
+    if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
+        (void)extkey_cache_insert(db_get_extkey_cache(db), 
+                blobid, key_length, *ext_key);
+    }
+
+    return (0);
+}
+
+/* 
+ * TODO TODO TODO
+ * too much duplicated code - use db_get_extended_key
+ */
 int
 db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
                 long lhs_idx, ham_u32_t lhs_flags, 
@@ -784,6 +872,8 @@ db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
                 if (key_get_flags(bte)&KEY_IS_EXTENDED) {
                     blobid=*(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)));
+                    *(ham_offset_t *)(key_get_key(bte)+
+                            (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
                     if (db_get_flags(db)&HAM_IN_MEMORY_DB) 
                         (void)blob_free(db, txn, blobid, 0);
                     else if (c)

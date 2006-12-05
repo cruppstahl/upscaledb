@@ -105,8 +105,8 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
  * replace two keys in a page 
  */
 static ham_status_t
-my_replace_key(ham_page_t *page, ham_s32_t slot, key_t *newentry,
-        ham_u32_t flags);
+my_replace_key(ham_page_t *page, ham_txn_t *txn, ham_s32_t slot, 
+        key_t *newentry, ham_u32_t flags);
 
 /*
  * remove an item from a page 
@@ -119,6 +119,7 @@ my_remove_entry(ham_txn_t *txn, ham_page_t *page, ham_s32_t slot,
  * flags for my_replace_key
  */
 #define NOFLUSH 1
+#define INTERNAL_KEY 2
 
 
 ham_status_t
@@ -490,8 +491,10 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
         ham_key_t key; 
 
         bte =btree_node_get_key(db, sibnode, 0);
-        key.data=key_get_key(bte);
-        key.size=key_get_size(bte);
+        memset(&key, 0, sizeof(key));
+        key._flags=key_get_flags(bte);
+        key.data  =key_get_key(bte);
+        key.size  =key_get_size(bte);
 
         st=btree_get_slot(db, scratchpad->txn, ancpage, &key, &slot);
         if (st) {
@@ -615,8 +618,10 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             ham_key_t key;
 
             bte=btree_node_get_key(db, sibnode, 0);
-            key.data=key_get_key(bte);
-            key.size=key_get_size(bte);
+            memset(&key, 0, sizeof(key));
+            key._flags=key_get_flags(bte);
+            key.data  =key_get_key(bte);
+            key.size  =key_get_size(bte);
             st=btree_get_slot(db, scratchpad->txn, ancpage, &key, &slot);
             if (st) {
                 db_set_error(db, st);
@@ -641,7 +646,8 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             /*
              * update the anchor node with sibling[0]
              */
-            (void)my_replace_key(ancpage, slot, bte, 0);
+            (void)my_replace_key(ancpage, scratchpad->txn, slot, 
+                    bte, INTERNAL_KEY);
             /*
              * shift the whole sibling to the left
              */
@@ -700,13 +706,26 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             btree_node_set_ptr_left(sibnode, key_get_ptr(bte));
             if (anchor) {
                 ham_key_t key;
-                key.data=key_get_key(bte);
+                memset(&key, 0, sizeof(key));
+                key._flags=key_get_flags(bte);
+                key.data  =key_get_key(bte);
+                key.size  =key_get_size(bte);
                 st=btree_get_slot(db, scratchpad->txn, ancpage, &key, &slot);
                 if (st) {
                     db_set_error(db, st);
-                    return 0;
+                    return (0);
                 }
-                (void)my_replace_key(ancpage, slot, bte, 0);
+                /* don't replace if the slot is outside of the key range */
+#if 0
+                if (slot<btree_node_get_count(ancnode)-1) {
+#endif
+                    st=my_replace_key(ancpage, scratchpad->txn, slot, 
+                        bte, INTERNAL_KEY);
+                    if (st) {
+                        db_set_error(db, st);
+                        return (0);
+                    }
+/*}*/
             }
             /*
              * shift once more
@@ -723,14 +742,25 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             ham_key_t key;
             key_t *bte;
             bte=btree_node_get_key(db, sibnode, 0);
-            key.data=key_get_key(bte);
-            key.size=key_get_size(bte);
+            memset(&key, 0, sizeof(key));
+            key._flags=key_get_flags(bte);
+            key.data  =key_get_key(bte);
+            key.size  =key_get_size(bte);
             st=btree_get_slot(db, scratchpad->txn, ancpage, &key, &slot);
             if (st) {
                 db_set_error(db, st);
-                return 0;
+                return (0);
             }
-            (void)my_replace_key(ancpage, slot, bte, 0);
+#if 0
+            if (slot<btree_node_get_count(ancnode)-1) {
+#endif
+                st=my_replace_key(ancpage, scratchpad->txn, slot, 
+                    bte, INTERNAL_KEY);
+                if (st) {
+                    db_set_error(db, st);
+                    return (0);
+                }
+/*}*/
         }
 
         /*
@@ -762,8 +792,10 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             ham_key_t key;
     
             bte =btree_node_get_key(db, sibnode, 0);
-            key.data=key_get_key(bte);
-            key.size=key_get_size(bte);
+            memset(&key, 0, sizeof(key));
+            key._flags=key_get_flags(bte);
+            key.data  =key_get_key(bte);
+            key.size  =key_get_size(bte);
             st=btree_get_slot(db, scratchpad->txn, ancpage, &key, &slot);
             if (st) {
                 db_set_error(db, st);
@@ -795,8 +827,10 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             btree_node_set_ptr_left(sibnode, key_get_ptr(bte_lhs));
             /*
              * new anchor element is node[node.count-1].key
+             * TODO rückgabewert prüfen
              */
-            (void)my_replace_key(ancpage, slot, bte_lhs, NOFLUSH);
+            (void)my_replace_key(ancpage, scratchpad->txn, slot, bte_lhs, 
+                    NOFLUSH|INTERNAL_KEY);
             /*
              * page: one item less; sibling: one item more
              */
@@ -825,7 +859,9 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             }
             bte_lhs=btree_node_get_key(db, sibnode, 0);
             bte_rhs=btree_node_get_key(db, ancnode, slot);
-            (void)my_replace_key(sibpage, 0, bte_rhs, NOFLUSH);
+             /* TODO rückgabewert prüfen*/
+            (void)my_replace_key(sibpage, scratchpad->txn, 0, bte_rhs, 
+                    NOFLUSH|(btree_node_is_leaf(node)?0:INTERNAL_KEY));
             key_set_ptr(bte_lhs, btree_node_get_ptr_left(sibnode));
             btree_node_set_count(sibnode, btree_node_get_count(sibnode)+1);
         }
@@ -874,16 +910,29 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             else
                 bte =btree_node_get_key(db, sibnode, 0);
 
-            key.data=key_get_key(bte);
-            key.size=key_get_size(bte);
+            key._flags=key_get_flags(bte);
+            key.data  =key_get_key(bte);
+            key.size  =key_get_size(bte);
+
             st=btree_get_slot(db, scratchpad->txn, ancpage, &key, &slot);
             if (st) {
                 db_set_error(db, st);
-                return 0;
+                return (0);
             }
+            /* don't replace if the slot is outside of the key range */
+#if 0
+            if (slot==btree_node_get_count(ancnode)-1) {
+                page_set_dirty(ancpage, 1);
+                return (0);
+            }
+#endif
 
-            if (my_replace_key(ancpage, slot+1, bte, 0))
-                return (0); /* TODO Log */
+            st=my_replace_key(ancpage, scratchpad->txn, slot+1, 
+                        bte, INTERNAL_KEY);
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
         }
     }
 
@@ -901,16 +950,55 @@ cleanup:
 }
 
 static ham_status_t
-my_replace_key(ham_page_t *page, ham_s32_t slot, key_t *newbte,
-        ham_u32_t flags)
+my_replace_key(ham_page_t *page, ham_txn_t *txn, ham_s32_t slot, 
+        key_t *rhs, ham_u32_t flags)
 {
-    key_t *oldbte;
+    key_t *lhs;
     ham_db_t *db=page_get_owner(page);
     btree_node_t *node=ham_page_get_btree_node(page);
 
-    oldbte=btree_node_get_key(db, node, slot);
-    memcpy(key_get_key(oldbte), key_get_key(newbte), 
+    lhs=btree_node_get_key(db, node, slot);
+
+    memcpy(key_get_key(lhs), key_get_key(rhs), 
             db_get_keysize(db));
+    key_set_flags(lhs, key_get_flags(rhs));
+
+    /*
+     * internal keys are not allowed to have blob-flags, because only the
+     * leaf-node can manage the blob. Therefore we have to disable those 
+     * flags if we modify an internal key.
+     */
+    if (flags&INTERNAL_KEY)
+        key_set_flags(lhs, key_get_flags(lhs)&
+                ~(KEY_BLOB_SIZE_TINY|KEY_BLOB_SIZE_SMALL|KEY_BLOB_SIZE_EMPTY));
+
+    /*
+     * if this key is extended, we copy the extended blob; otherwise, we'd
+     * have to add reference counting to the blob, because two keys are now 
+     * using the same blobid. this would be too complicated.
+     */
+    if (key_get_flags(lhs)&KEY_IS_EXTENDED) {
+        ham_status_t st;
+        ham_record_t record;
+        ham_offset_t rhsblobid, lhsblobid;
+
+        memset(&record, 0, sizeof(record));
+
+        rhsblobid=*(ham_offset_t *)(key_get_key(rhs)+
+                        (db_get_keysize(db)-sizeof(ham_offset_t)));
+        st=blob_read(db, txn, rhsblobid, &record, 0);
+        if (st)
+            return (st);
+
+        st=blob_allocate(db, txn, record.data, record.size, 0, &lhsblobid);
+        if (st)
+            return (st);
+        *(ham_offset_t *)(key_get_key(lhs)+
+                (db_get_keysize(db)-sizeof(ham_offset_t)))=lhsblobid;
+    }
+
+    key_set_size(lhs, key_get_size(rhs));
+
     page_set_dirty(page, 1);
 
     return (HAM_SUCCESS);
@@ -935,10 +1023,10 @@ my_remove_entry(ham_txn_t *txn, ham_page_t *page, ham_s32_t slot,
     /*
      * get rid of the extended key (if there is one)
      *
-     * TODO also remove the key from the cache
+     * also remove the key from the cache
      */
     bte=btree_node_get_key(db, node, slot);
-    if (key_get_size(bte)>db_get_keysize(db)) {
+    if (btree_node_is_leaf(node) && key_get_flags(bte)&KEY_IS_EXTENDED) {
         ham_offset_t blobid;
         ham_u8_t *prefix=key_get_key(bte);
         blobid=*(ham_offset_t *)(prefix+(db_get_keysize(db)-

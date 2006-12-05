@@ -479,10 +479,10 @@ shift_elements:
             db_get_keysize(db)<key->size?db_get_keysize(db):key->size);
 
     /*
-     * leaf node: if we need an extended key, allocate a blob and store
+     * if we need an extended key, allocate a blob and store
      * the blob-id in the key
      */
-    if (btree_node_is_leaf(node) && key->size>db_get_keysize(db)) {
+    if (key->size>db_get_keysize(db)) {
         ham_offset_t *p, blobid;
 
         key_set_key(bte, key->data, db_get_keysize(db));
@@ -561,10 +561,9 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
     oldkey.data=key_get_key(nbte);
     oldkey.size=key_get_size(nbte);
     oldkey._flags=key_get_flags(nbte);
-    if (!util_copy_key(&oldkey, &pivotkey)) {
+    if (!util_copy_key(db, scratchpad->txn, &oldkey, &pivotkey)) {
         (void)db_free_page(db, scratchpad->txn, newpage, 0);
-        db_set_error(db, HAM_OUT_OF_MEMORY);
-        return (HAM_OUT_OF_MEMORY);
+        return (db_get_error(db));
     }
     pivotrid=page_get_self(newpage);
 
@@ -665,7 +664,8 @@ pp(ham_txn_t *txn, ham_page_t *page)
             len=key_get_size(bte);
 
         for (j=0; j<len; j++)
-            printf("%02x ", (unsigned char)(key_get_key(bte)[j]));
+            /*printf("%02x ", (unsigned char)(key_get_key(bte)[j]));*/
+            printf("%c", key_get_key(bte)[j]);
 
         printf("(%d bytes, 0x%x flags)  -> rid 0x%llx\n", key_get_size(bte), 
                 key_get_flags(bte), (unsigned long long)key_get_ptr(bte));

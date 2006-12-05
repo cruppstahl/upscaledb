@@ -83,7 +83,7 @@ my_calc_maxkeys(ham_db_t *db)
 {
     union page_union_t u;
     ham_size_t p, k, max;
-
+return (6);
     /* 
      * a btree page is always P bytes long, where P is the pagesize of 
      * the database. 

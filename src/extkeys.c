@@ -37,17 +37,20 @@ extkey_cache_new(ham_db_t *db)
 void
 extkey_cache_destroy(extkey_cache_t *cache)
 {
-    /*
-     * DEBUG build: make sure that all entries are empty
-     */
-#ifndef HAM_RELEASE
     ham_size_t i;
+    extkey_t *e, *n;
 
+    /*
+     * make sure that all entries are empty
+     */
     for (i=0; i<extkey_cache_get_bucketsize(cache); i++) {
-        ham_assert(extkey_cache_get_bucket(cache, i)==0, 
-                "extended key cache bucket %d is not empty!", (int)i);
+        e=extkey_cache_get_bucket(cache, i);
+        while (e) {
+            n=extkey_get_next(e);
+            ham_mem_free(e);
+            e=n;
+        }
     }
-#endif
 
     ham_mem_free(cache);
 }
