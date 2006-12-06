@@ -17,6 +17,12 @@
 #include "mem.h"
 #include "util.h"
 
+static void
+my_memcpy(char *l, char *r, ham_size_t s)
+{
+    memcpy(l, r, s);
+}
+
 /*
  * the insert_scratchpad_t structure helps us to propagate return values
  * from the bottom of the tree to the root.
@@ -542,7 +548,7 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
      * it to the parent node only.
      */
     if (btree_node_is_leaf(obtp)) {
-        memcpy((char *)nbte,
+        my_memcpy((char *)nbte,
                ((char *)obte)+(sizeof(key_t)-1+keysize)*pivot, 
                (sizeof(key_t)-1+keysize)*(count-pivot));
     }
