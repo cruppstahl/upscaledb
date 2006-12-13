@@ -66,6 +66,7 @@ static unsigned long g_filesize, g_filepos;
 #define ARG_CACHEPOLICY 17
 #define ARG_REOPEN     18
 #define ARG_USERALLOC  19
+#define ARG_OPT_SIZE   20
 
 #define PROF_INSERT     1
 #define PROF_ERASE      2
@@ -110,6 +111,9 @@ static struct {
 
     /* show progress?  */
     unsigned progress;
+
+    /* optimize for size?  */
+    unsigned opt_size;
 
     /* use mmap? */
     unsigned mmap;
@@ -243,6 +247,12 @@ static option_t opts[]={
         "usr",
         "useralloc",
         "ham_find: use flag HAM_RECORD_USER_ALLOC",
+        GETOPTS_NEED_ARGUMENT },
+    {
+        ARG_OPT_SIZE,
+        "size",
+        "optimizesize",
+        "creates database with HAM_OPTIMIZE_SIZE flag",
         GETOPTS_NEED_ARGUMENT },
     {
         ARG_PAGESIZE,
@@ -634,6 +644,7 @@ my_execute_create(char *line)
                 }
                 f|=config.mmap?0:HAM_DISABLE_MMAP; 
                 f|=config.strict_cache?HAM_CACHE_STRICT:0;
+                f|=config.opt_size?HAM_OPTIMIZE_SIZE:0;
                 st=ham_create_ex(config.hamdb, FILENAME_HAM, f, 0664, 
                         config.pagesize, config.keysize, config.cachesize);
                 ham_assert(st==0, 0, 0);
@@ -1308,6 +1319,12 @@ test_db(const char *filename)
                 config.progress=1;
             else
                 config.progress=0;
+        }
+        else if (opt==ARG_OPT_SIZE) {
+            if (!param || param[0]=='1' || param[0]=='y' || param[0]=='Y')
+                config.opt_size=1;
+            else
+                config.opt_size=0;
         }
         else if (opt==ARG_MMAP) {
             if (!param || param[0]=='1' || param[0]=='y' || param[0]=='Y')
