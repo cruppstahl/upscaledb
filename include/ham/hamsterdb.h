@@ -234,6 +234,14 @@ ham_create_ex(ham_db_t *db, const char *filename,
  */
 #define HAM_DISABLE_FREELIST_FLUSH   0x00000800
 
+/**
+ * optimize for smaller database files; this will try to merge freelist
+ * entries, whenever possible. Files can become significantly smaller, 
+ * but it costs performance, especially when ham_erase() is called 
+ * frequently. Default: flag is off
+ */
+#define HAM_OPTIMIZE_SIZE            0x00001000
+
 /** 
  * get the last error code
  */
