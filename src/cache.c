@@ -18,6 +18,39 @@
         ? 0                                                                 \
         : (((o)&(cache_get_bucketsize(cache)-1))))
 
+#if HAM_DEBUG
+static void
+my_check_totallist(ham_cache_t *cache)
+{
+#if 0
+    ham_page_t *page, *p, *n;
+
+    page=cache_get_totallist(cache);
+    while (page) {
+        p=page_get_previous(page, PAGE_LIST_CACHED);
+        while (p) {
+            if (p==page)
+                break;
+            ham_assert(page_get_self(p)!=page_get_self(page), 
+                    "page %llu is a dupe!", page_get_self(page));
+            p=page_get_previous(p, PAGE_LIST_CACHED);
+        }
+
+        n=page_get_next(page, PAGE_LIST_CACHED);
+        while (n) {
+            if (n==page)
+                break;
+            ham_assert(page_get_self(n)!=page_get_self(page), 
+                    "page %llu is a dupe!", page_get_self(page));
+            n=page_get_previous(n, PAGE_LIST_CACHED);
+        }
+
+        page=page_get_next(page, PAGE_LIST_CACHED);
+    }
+#endif
+}
+#endif
+
 static ham_bool_t
 my_purge(ham_cache_t *cache)
 {
@@ -48,6 +81,10 @@ my_purge(ham_cache_t *cache)
     }
     (void)db_write_page_and_delete(cache_get_owner(cache), page, 0);
     /*ham_trace("cache purged one page", 0);*/
+
+#if HAM_DEBUG
+    my_check_totallist(cache);
+#endif
 
     return (HAM_FALSE);
 }
@@ -140,6 +177,10 @@ found_page:
             page_list_remove(cache_get_bucket(cache, 
             hash), PAGE_LIST_BUCKET, min);
 
+#if HAM_DEBUG
+    my_check_totallist(cache);
+#endif
+
     return (min);
 }
 
@@ -180,6 +221,10 @@ cache_put(ham_cache_t *cache, ham_page_t *page)
             PAGE_LIST_CACHED, page));
     cache_set_usedsize(cache, 
             cache_get_usedsize(cache)+db_get_pagesize(db));
+
+#if HAM_DEBUG
+    my_check_totallist(cache);
+#endif
 
     /*
      * initialize the cache counter with sane values
@@ -263,6 +308,10 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page)
     cache_get_garbagelist(cache)=page_list_remove(cache_get_garbagelist(cache), 
                 PAGE_LIST_GARBAGE, page);
 
+#if HAM_DEBUG
+    my_check_totallist(cache);
+#endif
+
     return (0);
 }
 
@@ -286,6 +335,10 @@ cache_move_to_garbage(ham_cache_t *cache, ham_page_t *page)
                 hash), PAGE_LIST_BUCKET, page);
     cache_get_garbagelist(cache)=page_list_insert(cache_get_garbagelist(cache), 
                 PAGE_LIST_GARBAGE, page);
+
+#if HAM_DEBUG
+    my_check_totallist(cache);
+#endif
 
     /*
      * check if (in non-strict mode) the cache limits were 
@@ -340,6 +393,10 @@ cache_flush_and_delete(ham_cache_t *cache, ham_u32_t flags)
             cache_set_usedsize(cache, 
                 cache_get_usedsize(cache)-db_get_pagesize(db));
         }
+        
+#if HAM_DEBUG
+    my_check_totallist(cache);
+#endif
 
         st=db_write_page_and_delete(db, head, flags);
         if (st) 

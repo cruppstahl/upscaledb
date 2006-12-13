@@ -208,7 +208,6 @@ blob_allocate(ham_db_t *db, ham_txn_t *txn, ham_u8_t *data,
      * check if we have space in the freelist 
      */
     addr=freel_alloc_area(db, sizeof(blob_t)+size, FREEL_DONT_ALIGN);
-
     if (!addr) {
         /*
          * if the blob is small, we load the page through the cache

@@ -14,7 +14,8 @@
 #define OFFSET_OF(obj, field) ((int)(&((obj).field)) - (int)&(obj) )
 
 static ham_bool_t
-my_add_area(freel_payload_t *fp, ham_offset_t address, ham_size_t size)
+my_add_area(ham_db_t *db, freel_payload_t *fp, 
+        ham_offset_t address, ham_size_t size)
 {
     ham_size_t i;
     freel_entry_t *list=freel_payload_get_entries(fp); 
@@ -25,30 +26,32 @@ my_add_area(freel_payload_t *fp, ham_offset_t address, ham_size_t size)
     /*
      * try to append the item to an existing entry
      */
-    for (i=0; i<freel_payload_get_count(fp); i++) {
-        /*
-         * if we can append the item, remove the item from the 
-         * freelist and re-insert it
-         */
-        if (freel_get_address(&list[i])+freel_get_size(&list[i])==address) {
-            size  +=freel_get_size(&list[i]);
-            address=freel_get_address(&list[i]);
-            if (i<freel_payload_get_count(fp)-1) 
-                memmove(&list[i], &list[i+1], 
-                    (freel_payload_get_count(fp)-i-1)*sizeof(list[i]));
-            freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
-            return (my_add_area(fp, address, size));
-        }
-        /*
-         * same if we can prepend the item
-         */
-        if (address+size==freel_get_address(&list[i])) {
-            size   +=freel_get_size(&list[i]);
-            if (i<freel_payload_get_count(fp)-1) 
-                memmove(&list[i], &list[i+1], 
-                    (freel_payload_get_count(fp)-i-1)*sizeof(list[i]));
-            freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
-            return (my_add_area(fp, address, size));
+    if (db_get_flags(db)&HAM_OPTIMIZE_SIZE) {
+        for (i=0; i<freel_payload_get_count(fp); i++) {
+            /*
+             * if we can append the item, remove the item from the 
+             * freelist and re-insert it
+             */
+            if (freel_get_address(&list[i])+freel_get_size(&list[i])==address) {
+                size  +=freel_get_size(&list[i]);
+                address=freel_get_address(&list[i]);
+                if (i<freel_payload_get_count(fp)-1) 
+                    memmove(&list[i], &list[i+1], 
+                        (freel_payload_get_count(fp)-i-1)*sizeof(list[i]));
+                freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
+                return (my_add_area(db, fp, address, size));
+            }
+            /*
+             * same if we can prepend the item
+             */
+            if (address+size==freel_get_address(&list[i])) {
+                size   +=freel_get_size(&list[i]);
+                if (i<freel_payload_get_count(fp)-1) 
+                    memmove(&list[i], &list[i+1], 
+                        (freel_payload_get_count(fp)-i-1)*sizeof(list[i]));
+                freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
+                return (my_add_area(db, fp, address, size));
+            }
         }
     }
 
@@ -79,6 +82,7 @@ my_add_area(freel_payload_t *fp, ham_offset_t address, ham_size_t size)
     freel_set_size(&list[i], size);
     freel_set_address(&list[i], address);
     freel_payload_set_count(fp, freel_payload_get_count(fp)+1);
+
     return (HAM_TRUE);
 }
 
@@ -160,7 +164,7 @@ my_alloc_in_list(ham_db_t *db, freel_payload_t *fp,
                         (freel_payload_get_count(fp)-best-1)*sizeof(list[i]));
             freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
 
-            (void)my_add_area(fp, offs+chunksize, diff);
+            (void)my_add_area(db, fp, offs+chunksize, diff);
             return (offs);
         }
         return (0);
@@ -185,8 +189,8 @@ my_alloc_in_list(ham_db_t *db, freel_payload_t *fp,
                         (freel_payload_get_count(fp)-best-1)*sizeof(list[i]));
             freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
 
-            (void)my_add_area(fp, offs1, size1);
-            (void)my_add_area(fp, offs2, size2);
+            (void)my_add_area(db, fp, offs1, size1);
+            (void)my_add_area(db, fp, offs2, size2);
             return (newoffs);
         }
 #endif
@@ -262,7 +266,6 @@ static ham_page_t *
 my_alloc_page(ham_db_t *db)
 {
     ham_page_t *page;
-    ham_status_t st;
 
     /*
      * allocate a new page, if the cache is not yet full enough - although
@@ -275,14 +278,9 @@ my_alloc_page(ham_db_t *db)
         return (0);
     }
 
-    page=db_alloc_page_struct(db);
-    if (!page)
+    page=db_alloc_page_device(db, 0, PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
+    if (!page) 
         return (0);
-    st=db_alloc_page_device(page, PAGE_IGNORE_FREELIST);
-    if (st) {
-        db_free_page_struct(page);
-        return (0);
-    }
 
     page_set_type(page, PAGE_TYPE_FREELIST);
 
@@ -387,7 +385,7 @@ freel_add_area(ham_db_t *db, ham_offset_t address, ham_size_t size)
 
     /* try to add the entry to the freelist */
     fp=&hdr->_freelist;
-    if (my_add_area(fp, address, size)) {
+    if (my_add_area(db, fp, address, size)) {
         page_set_dirty(page, HAM_TRUE);
         return (0);
     }
@@ -410,7 +408,7 @@ freel_add_area(ham_db_t *db, ham_offset_t address, ham_size_t size)
         overflow=freel_payload_get_overflow(fp); 
 
         /* try to add the entry */
-        if (my_add_area(fp, address, size)) {
+        if (my_add_area(db, fp, address, size)) {
             page_set_dirty(page, HAM_TRUE);
             return (0);
         }
@@ -455,7 +453,7 @@ freel_add_area(ham_db_t *db, ham_offset_t address, ham_size_t size)
     /* 
      * try to add the entry to the new freelist page 
      */
-    if (my_add_area(fp, address, size)) {
+    if (my_add_area(db, fp, address, size)) {
         page_set_dirty(newp, HAM_TRUE);
         return (0);
     }

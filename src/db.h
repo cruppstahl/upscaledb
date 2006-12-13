@@ -442,9 +442,10 @@ db_fetch_page_from_device(ham_page_t *page, ham_offset_t address);
  *
  * @remark flags can be of the following value:
  *  PAGE_IGNORE_FREELIST        ignores all freelist-operations
+    PAGE_CLEAR_WITH_ZERO        memset the persistent page with 0
  */
-extern ham_status_t
-db_alloc_page_device(ham_page_t *page, ham_u32_t flags);
+extern ham_page_t *
+db_alloc_page_device(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags);
 
 /**
  * allocate a new page 
@@ -456,10 +457,12 @@ db_alloc_page_device(ham_page_t *page, ham_u32_t flags);
  *
  * @remark flags can be of the following value:
  *  PAGE_IGNORE_FREELIST        ignores all freelist-operations
+    PAGE_CLEAR_WITH_ZERO        memset the persistent page with 0
  */
 extern ham_page_t *
 db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags);
 #define PAGE_IGNORE_FREELIST          2
+#define PAGE_CLEAR_WITH_ZERO          4
 
 /**
  * free a page

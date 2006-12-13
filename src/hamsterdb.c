@@ -486,12 +486,9 @@ ham_create_ex(ham_db_t *db, const char *filename,
     /* 
      * allocate a database header page 
      */
-    page=db_alloc_page_struct(db);
-    if (!page)
+    page=db_alloc_page_device(db, 0, PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
+    if (!page) 
         return (db_get_error(db));
-    st=db_alloc_page_device(page, PAGE_IGNORE_FREELIST);
-    if (st) 
-        return (st);
     page_set_type(page, PAGE_TYPE_HEADER);
     db_set_header_page(db, page);
     /* initialize the freelist structure in the header page */
@@ -652,7 +649,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     if ((db_get_flags(db)&HAM_DISABLE_VAR_KEYLEN) && 
         key->size>db_get_keysize(db))
         return (HAM_INV_KEYSIZE);
-    if ((db_get_keysize(db)<=sizeof(ham_offset_t)) && 
+    if ((db_get_keysize(db)<sizeof(ham_offset_t)) && 
         key->size>db_get_keysize(db))
         return (HAM_INV_KEYSIZE);
     if ((st=ham_txn_begin(&txn, db)))

@@ -19,7 +19,6 @@ ham_key_t *
 util_copy_key(ham_db_t *db, ham_txn_t *txn, 
             const ham_key_t *source, ham_key_t *dest)
 {
-
     /*
      * extended key: copy the whole key
      */
@@ -32,6 +31,7 @@ util_copy_key(ham_db_t *db, ham_txn_t *txn,
         }
         ham_assert(dest->data!=0, "invalid extended key", 0);
         dest->size=source->size;
+        /* the extended flag is set later, when this key is inserted */
         dest->_flags=source->_flags&(~KEY_IS_EXTENDED);
     }
     else {

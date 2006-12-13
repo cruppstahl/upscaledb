@@ -257,20 +257,27 @@ db_fetch_page_from_device(ham_page_t *page, ham_offset_t address)
     return (my_read_page(page_get_owner(page), address, page));
 }
 
-ham_status_t
-db_alloc_page_device(ham_page_t *page, ham_u32_t flags)
+ham_page_t *
+db_alloc_page_device(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
 {
     ham_status_t st;
     ham_offset_t tellpos=0, resize=0;
-    ham_db_t *db=page_get_owner(page);
+    ham_page_t *page=0;
 
     /* 
      * if this is not an in-memory-db: set the memory to 0 and leave
      */
     if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
+        /* allocate memory for the page */
+        page=my_alloc_page(db, HAM_TRUE);
+        if (!page)
+            return (0);
         page_set_self(page, (ham_offset_t)page);
-        memset(page_get_pers(page), 0, sizeof(struct page_union_header_t));
-        return (0);
+        if (flags&PAGE_CLEAR_WITH_ZERO)
+            memset(page_get_pers(page), 0, db_get_pagesize(db));
+        else
+            memset(page_get_pers(page), 0, sizeof(struct page_union_header_t));
+        return (page);
     }
 
     /* first, we ask the freelist for a page */
@@ -279,28 +286,51 @@ db_alloc_page_device(ham_page_t *page, ham_u32_t flags)
         if (tellpos) {
             ham_assert(tellpos%db_get_pagesize(db)==0, 
                     "page id %llu is not aligned", tellpos);
+            /* try to fetch the page from the txn */
+            if (txn) {
+                page=txn_get_page(txn, tellpos);
+                if (page)
+                    goto done;
+            }
+            /* try to fetch the page from the cache */
+            if (db_get_cache(db)) {
+                page=cache_get(db_get_cache(db), tellpos);
+                if (page)
+                    goto done;
+            }
+            /* allocate a new page structure */
+            page=my_alloc_page(db, HAM_TRUE);
+            if (!page)
+                return (0);
             page_set_self(page, tellpos);
+            /* TODO dieser read ist eigentlich nur bei mmap nötig, oder? */
             st=my_read_page(db, tellpos, page);
             if (st) /* TODO memleaks? */
-                return (st);
+                return (0);
         }
+    }
+
+    if (!page) {
+        page=my_alloc_page(db, HAM_TRUE);
+        if (!page)
+            return (0);
     }
 
     /* otherwise: move to the end of the file */
     if (!tellpos) {
         st=os_seek(db_get_fd(db), 0, HAM_OS_SEEK_END);
         if (st) 
-            return (st);
+            return (0);
 
         /* get the current file position */
         st=os_tell(db_get_fd(db), &tellpos);
         if (st) 
-            return (st);
+            return (0);
 
         /* and write it to disk */
         st=os_truncate(db_get_fd(db), tellpos+resize+db_get_pagesize(db));
         if (st) 
-            return (st);
+            return (0);
 
         /*
          * if we're using MMAP: when allocating a new page, we need
@@ -309,17 +339,25 @@ db_alloc_page_device(ham_page_t *page, ham_u32_t flags)
         if ((db_get_flags(db)&DB_USE_MMAP) && !page_get_pers(page)) {
             st=my_read_page(db, tellpos, page);
             if (st) /* TODO memleaks? */
-                return (st);
+                return (0);
         }
     }
 
+done:
+
+    /*
     if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC) 
+        memset(page_get_pers(page), 0, sizeof(struct page_union_header_t));
+        */
+    if (flags&PAGE_CLEAR_WITH_ZERO)
+        memset(page_get_pers(page), 0, db_get_pagesize(db));
+    else
         memset(page_get_pers(page), 0, sizeof(struct page_union_header_t));
 
     page_set_self(page, tellpos);
     page_set_dirty(page, 0);
 
-    return (0);
+    return (page);
 }
 
 int 
@@ -682,7 +720,7 @@ ham_page_t *
 db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address, 
         ham_u32_t flags)
 {
-    ham_page_t *page;
+    ham_page_t *page=0;
     ham_status_t st;
 
     /*
@@ -795,17 +833,15 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags)
     ham_status_t st;
     ham_page_t *page;
 
-    /* allocate memory for the page */
-    page=my_alloc_page(db, HAM_TRUE);
-    if (!page)
+    if (!cache_can_add_page(db_get_cache(db))) {
+        db_set_error(db, HAM_CACHE_FULL);
         return (0);
-
-    ham_assert(cache_can_add_page(db_get_cache(db)), 0, 0);
+    }
 
     /* allocate storage on the device */
-    st=db_alloc_page_device(page, flags);
-    if (st) {
-        db_set_error(db, st); /* TODO memleak! */
+    page=db_alloc_page_device(db, txn, flags);
+    if (!page) {
+        /* TODO memleak? */
         return (0);
     }
 
