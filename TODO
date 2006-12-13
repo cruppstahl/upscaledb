@@ -20,76 +20,58 @@ x 220.tst: schlägt fehl im release-build!
     gcc-Version 3.4.5 (Gentoo 3.4.5, ssp-3.4.5-1.0, pie-8.7.9)
     
 -----------------------------------------------------
-
-wenatex
-
 -----------------------------------------------------
 
-o profiling! aber mit der release-version...
+x profiling! aber mit der release-version...
 
-    o extended keys cachen (ist das noch nötig?)
-        (vorsicht: cachegrösse beachten!)
+        x viele valgrind-fehler
 
-./test --db ../../../hamsterdb-tests/trunk/testfiles/1/ext_021.tst
---profile=all --progress=1
+        x test 220 schlägt fehl, bei --reopen=1 und --pagesize=1024
 
-ohne änderungen (debug):
-insert: profile of backend hamster :****0.506000 sec******************
-insert: profile of backend berkeley:    0.145000 sec
-real    18m31.162s
-user    17m24.729s
-sys     1m3.212s
+        x monster.sh
 
-mit änderungen (debug):
-insert: profile of backend hamster :****0.227000 sec******************
-insert: profile of backend berkeley:    0.171000 sec
-real    1m59.596s
-user    1m42.658s
-sys     0m16.897s
+        x die wichtigsten tests in den wichtigsten konfigurationen mit 
+            valgrind prüfen
 
-mit änderungen (release):
-insert: profile of backend hamster :****0.176000 sec*****************.
-insert: profile of backend berkeley:    0.161000 sec
-real    1m20.036s
-user    1m2.692s
-sys     0m17.309s
+        x eine neue option, mit der man die freelist schneller machen kann
+            -> die dateien werden halt etwas grösser
+            x tests/db.c anpassen
+            x monster.sh anpassen
+            x testen!
 
-        x keys.h erweitern um einfache cache-klasse
-        x cache::insert(blobid, size, data)
-        x cache::remove(blobid)
-        x cache::fetch(blobid, extkey **)
-        x cache bei close löschen
-        x cache bei bedarf anlegen
-        x cache einsetzen!
-        x bei page_delete: alle extkeys dieser page löschen
-        x test ext_031 crasht (im ham_close sind noch keys drin)
-        x testen 
-        x overwrite=1: beim insert die alten keys rauslöschen
-        x testen 
-        x bei inmemorydb: blob ausschliesslich in cache speichern (oder 
-            einfach nicht cachen)
-        x testen 
-        x testen mit overwrite=1
-        x cachegrösse beachten!
-        x testen
-
-        o noch ein paar tests generieren:
-            wenige keys (ca 200 stück), die gelöscht und überschrieben werden
-            o mit vielen FIND-aufrufen!
-            o testen: extkeys vs normale keys und keys < sizeof(offset_t)
-            o testen
-            o valgrind
+        x valgrind-tests schlagen fehl:
+            x ../../../hamsterdb-tests/trunk/testfiles/1/45.tst --reopen=1
+            x ../../../hamsterdb-tests/trunk/testfiles/1/45.tst --mmap=0
+                    --overwrite=1 --reopen=1
+            x ../../../hamsterdb-tests/trunk/testfiles/1/ext_060.tst
+                    --inmemorydb=1
+            x ../../../hamsterdb-tests/trunk/testfiles/1/ext_020.tst --keysize=8
+                    --overwrite=1 --reopen=1
+                    --> invalid keysize??
+            x ../../../hamsterdb-tests/trunk/testfiles/1/ext_060.tst --keysize=8
+                    --overwrite=1 --reopen=1
+                    --> invalid keysize??
 
 -----------------------------------------------------
 
 o neue profile-runde, damit wir zahlen haben
+    (auch die dateigrössen vergleichen!)
+
+o vergleiche mit den bisherigen zahlen
+    (blog-artikel! interessant auch, dass time(2) zeigt, dass der grösste
+    teil im usermode abläuft; d.h. der zugriff auf die platte ist wirklich
+    nicht der limitierende faktor!)
 
 -----------------------------------------------------
+
+o auf autoconf/automake umstellen
+    x in blog-artikel dokumentieren
+
 -----------------------------------------------------
 
-                NÄCHSTER RELEASE - PERFORMANCE ENHANCEMENTS ???
+o nächsten release machen!
 
-VORSICHT! am besten ein skript schreiben - make-release.sh
+o VORSICHT! am besten ein skript schreiben - make-release.sh
     1. version.h hochzählen
     2. einchecken
     3. taggen bzw. copy in release-trunk in hamsterdb-v.v.v
@@ -98,15 +80,24 @@ VORSICHT! am besten ein skript schreiben - make-release.sh
     6. tar/gzip
     7. upload
 
+o Regelwerk für releases schreiben, z.b.
+    1. alle tests (auch 2-4) durchlaufen (monster.sh)
+    2. ausgewählte tests mit valgrind (valgrind.sh)
+    3. sicherstellen dass alles eingecheckt ist
+    4. changelog updaten
+    5. make-release.sh
+
 -----------------------------------------------------
 -----------------------------------------------------
 
-o autoconf/automake oder scons?
+o das test-tool umschreiben - nur noch die db.c, die anderen
+    optionen (-c etc) können raus
+
+o verschieben in das test-verzeichnis?
 
 -----------------------------------------------------
------------------------------------------------------
 
-o prefix comparison hinzufügen
+o prefix comparison hinzufügen (schon vorhanden?)
 
 o prefix comparison testen
 
@@ -119,6 +110,8 @@ o port to ms windows
     o mit mingw, bcc, watcom, msvc, icc...
     o projekt-umgebungen für visual studio 6 und .NET
     o define HAM_EXPORT DECLSPEC _dllexport for DLLs und .so
+
+o nächsten release machen!
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -136,6 +129,9 @@ o iteratoren
                 from.next()
         --> geht auch mit der enum-funktion, die jetzt schon drin ist
 
+o nächsten release machen!
+
+-----------------------------------------------------
 -----------------------------------------------------
 
 o duplicate keys (nicht in version 0.1.0, sondern 0.1.1)
@@ -143,6 +139,15 @@ o duplicate keys (nicht in version 0.1.0, sondern 0.1.1)
     beim einfuegen wird rekursiv abgestiegen. im leaf wird dann ein neuer key
     eingefuegt, mit dem dupcounter=existierender ("kleinster") key minus 1.
 
+-----------------------------------------------------
+
+o mehrere datenbanken in einer datei
+    (siehe eintrag im notizbuch)
+
+    -> database-environment (ein file fuer mehrere datenbanken, 
+        gesharter cache, geshartes file-handle, freelist etc)
+
+-----------------------------------------------------
 -----------------------------------------------------
 
 o doku
@@ -203,6 +208,18 @@ o komplettes review
     machen fehlerwerte immer sinn? z.b. in flush_all()
     was passiert mit fehlern beim flushen?
     was passiert mit fehlern in ham_close()?
+    o ein paar sachen müssten umbenannt werden:
+        o alle statischen funktionen bekommen statt "my_" ein 
+            prefix, das ihrem modul entspricht (z.b. "bt_" für btree etc)
+        o keys.h/keys.c aufteilen in generische keys (zusammenlegen mit extkeys)
+            und btree-spezifischen keys
+        o db hat 2 funktionen, die die extended keys löschen - das gehört
+            ins backend
+    o nochmal schaun ob die ganzen flags so sinn machen
+
+-----------------------------------------------------
+-----------------------------------------------------
+
 
 x bbaum fehlerfrei
 x TXN raus (wir können die txn's auch komplett
@@ -216,8 +233,9 @@ x extended keys
 x erzeugt .dll/.so
 x mal nachschauen was man nach den GPL-Codingrules noch für 
     dateien braucht -> nix mehr
-o performance vergleichbar mit berkeley-db
+x performance vergleichbar mit berkeley-db
 o iteratoren
+o mehrere db in einer datei
 o compiliert unter linux, windows, darwin, 32bit und 64bit, unter windows
     mit mingw, icc, msvc, borland, watcom
 o legal issues
@@ -243,15 +261,6 @@ o admin-tool(s) fuer dump, stats, repair
         o header dumpen
 o KEINE valgrind-fehler!
 
-VORSICHT! am besten ein skript schreiben - make-release.sh
-    1. version.h hochzählen
-    2. einchecken
-    3. taggen bzw. copy in release-trunk in hamsterdb-v.v.v
-    4. einchecken
-    5. export vom release-verzeichnis
-    6. tar/gzip
-    7. upload
-
     freshmeat
     alle anderen linklisten
     blog-eintrag (pingen!)
@@ -260,27 +269,6 @@ VORSICHT! am besten ein skript schreiben - make-release.sh
 -----------------------------------------------------
 -----------------------------------------------------
 -----------------------------------------------------
-
-o ein paar sachen müssten umbenannt werden:
-    o alle statischen funktionen bekommen statt "my_" ein 
-        prefix, das ihrem modul entspricht (z.b. "bt_" für btree etc)
-
-    o keys.h/keys.c aufteilen in generische keys (zusammenlegen mit extkeys)
-        und btree-spezifischen keys
-
-    o db hat 2 funktionen, die die extended keys löschen - das gehört
-        ins backend
-
------------------------------------------------------
------------------------------------------------------
-
-o extended keys
-    o hash-table zum cachen der extended keys
-        o insert
-        o erase
-        o replace
-        o find
-        o purge
 
 o backend
     o darauf hinarbeiten dass später mal mehrere backends in einer datei

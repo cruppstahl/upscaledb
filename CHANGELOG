@@ -1,4 +1,8 @@
 
+Dec 10, 2006 - chris 
+o a new parameter HAM_OPTIMIZE_SIZE creates smaller files by merging 
+    freelist entries (comes at a small performance penalty)
+
 Nov 26, 2006 - chris 
 o extended keys are now cached (if the cache size is big enough) 
 
