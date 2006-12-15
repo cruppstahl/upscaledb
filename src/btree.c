@@ -7,7 +7,7 @@
  */
 
 #include <string.h>
-#include <ham/config.h>
+#include "config.h"
 #include "db.h"
 #include "keys.h"
 #include "error.h"
@@ -30,7 +30,7 @@ btree_get_slot(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
     last=(ham_size_t)-1;
 
     ham_assert(btree_node_get_count(node)>0, 
-            "node is empty", 0);
+            ("node is empty"));
 
     if (r==0) {
         cmp=key_compare_pub_to_int(txn, page, key, 0);
@@ -127,10 +127,10 @@ my_fun_create(ham_btree_t *be, ham_u32_t flags)
      */
     keysize=db_get_keysize(db);
     if (keysize==0)
-        keysize=16-sizeof(key_t)-1;
+        keysize=(ham_u16_t)(16-sizeof(key_t)-1);
 
     if (!db_get_keysize(db) && (st=db_set_keysize(db, keysize))) {
-        ham_log("failed to set keysize: 0x%x", st);
+        ham_log(("failed to set keysize: 0x%x", st));
         return (db_get_error(db));
     }
 
@@ -247,8 +247,8 @@ btree_traverse_tree(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
      * make sure that we're not in a leaf page, and that the 
      * page is not empty
      */
-    ham_assert(btree_node_get_count(node)>0, 0, 0);
-    ham_assert(btree_node_get_ptr_left(node)!=0, 0, 0);
+    ham_assert(btree_node_get_count(node)>0, (0));
+    ham_assert(btree_node_get_ptr_left(node)!=0, (0));
 
     st=btree_get_slot(db, txn, page, key, &slot);
     if (st)
@@ -263,7 +263,7 @@ btree_traverse_tree(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
         bte=btree_node_get_key(db, node, slot);
         ham_assert(key_get_flags(bte)==0 || 
                 key_get_flags(bte)==KEY_IS_EXTENDED,
-                "invalid key flags 0x%x", key_get_flags(bte));
+                ("invalid key flags 0x%x", key_get_flags(bte)));
         return (db_fetch_page(db, txn, key_get_ptr(bte), 0));
     }
 }

@@ -7,7 +7,6 @@
  */
 
 #include <string.h>
-#include <ham/config.h>
 #include "db.h"
 #include "error.h"
 #include "page.h"
@@ -213,7 +212,7 @@ my_erase_recursive(ham_page_t *page, ham_offset_t left, ham_offset_t right,
     if (!btree_node_is_leaf(node)) {
         child=btree_traverse_tree(db, scratchpad->txn, page, 
                 scratchpad->key, &slot);
-        ham_assert(child!=0, "guru meditation error", 0);
+        ham_assert(child!=0, ("guru meditation error"));
     }
     else {
         st=btree_get_slot(db, scratchpad->txn, page, scratchpad->key, &slot);
@@ -651,7 +650,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             /*
              * shift the whole sibling to the left
              */
-            for (i=0; i<btree_node_get_count(sibnode)-1; i++) {
+            for (i=0; i<(ham_size_t)btree_node_get_count(sibnode)-1; i++) {
                 bte_lhs=btree_node_get_key(db, sibnode, i);
                 bte_rhs=btree_node_get_key(db, sibnode, i+1);
                 memcpy(bte_lhs, bte_rhs, sizeof(key_t)-1+keysize);
@@ -1017,8 +1016,8 @@ my_remove_entry(ham_txn_t *txn, ham_page_t *page, ham_s32_t slot,
     node=ham_page_get_btree_node(page);
     keysize=db_get_keysize(db);
 
-    ham_assert(slot>=0, "invalid slot %ld", slot);
-    ham_assert(slot<btree_node_get_count(node), "invalid slot %ld", slot);
+    ham_assert(slot>=0, ("invalid slot %ld", slot));
+    ham_assert(slot<btree_node_get_count(node), ("invalid slot %ld", slot));
 
     /*
      * get rid of the extended key (if there is one)

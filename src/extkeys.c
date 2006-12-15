@@ -64,7 +64,7 @@ ham_status_t
 extkey_cache_insert(extkey_cache_t *cache, ham_offset_t blobid, 
             ham_size_t size, const ham_u8_t *data)
 {
-    ham_size_t h=my_calc_hash(cache, blobid);
+    ham_size_t h=(ham_size_t)my_calc_hash(cache, blobid);
     extkey_t *e;
     ham_db_t *db=extkey_cache_get_db(cache);
 
@@ -75,8 +75,8 @@ extkey_cache_insert(extkey_cache_t *cache, ham_offset_t blobid,
     e=extkey_cache_get_bucket(cache, h);
     while (e) {
         ham_assert(extkey_get_blobid(e)!=blobid, 
-                "extkey (blob id %llu) is already in the cache!", 
-                (unsigned long long)blobid);
+                ("extkey (blob id %llu) is already in the cache!", 
+                (unsigned long long)blobid));
         e=extkey_get_next(e);
     }
 #endif
@@ -107,7 +107,7 @@ extkey_cache_insert(extkey_cache_t *cache, ham_offset_t blobid,
 ham_status_t
 extkey_cache_remove(extkey_cache_t *cache, ham_offset_t blobid)
 {
-    ham_size_t h=my_calc_hash(cache, blobid);
+    ham_size_t h=(ham_size_t)my_calc_hash(cache, blobid);
     extkey_t *e, *prev=0;
 
     e=extkey_cache_get_bucket(cache, h);
@@ -137,7 +137,7 @@ ham_status_t
 extkey_cache_fetch(extkey_cache_t *cache, ham_offset_t blobid, 
             ham_size_t *size, ham_u8_t **data)
 {
-    ham_size_t h=my_calc_hash(cache, blobid);
+    ham_size_t h=(ham_size_t)my_calc_hash(cache, blobid);
     extkey_t *e;
 
     e=extkey_cache_get_bucket(cache, h);

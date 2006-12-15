@@ -17,6 +17,7 @@
 #include <sys/time.h>
 #include "getopts.h"
 #include "../src/error.h"
+#include "../src/config.h"
 
 static ham_u64_t g_total_insert=0;
 static ham_u64_t g_tv1, g_tv2;
@@ -81,7 +82,7 @@ static unsigned long g_filesize, g_filepos;
 
 #define NUMERIC_KEY     1
 
-#define VERBOSE2        if (config.verbose>=2) ham_log
+#define VERBOSE2(x)     if (config.verbose>=2) ham_log(x)
 #define FAIL            ham_trace
 
 /*
@@ -432,21 +433,21 @@ my_compare_return(void)
 
     switch (st) {
         case HAM_SUCCESS: 
-            ham_assert(ret==0, "hamster return: %d, berk: %d", st, ret);
+            ham_assert(ret==0, ("hamster return: %d, berk: %d", st, ret));
             break;
         case HAM_KEY_NOT_FOUND:
-            ham_assert(ret==DB_NOTFOUND, "hamster return: %d, berk: %d", 
-                    st, ret);
+            ham_assert(ret==DB_NOTFOUND, ("hamster return: %d, berk: %d", 
+                    st, ret));
             break;
         case HAM_DUPLICATE_KEY:
-            ham_assert(ret==DB_KEYEXIST, "hamster return: %d, berk: %d", 
-                    st, ret);
+            ham_assert(ret==DB_KEYEXIST, ("hamster return: %d, berk: %d", 
+                    st, ret));
             break;
         case HAM_CACHE_FULL:
-            ham_assert(1!=0, "hamster return: %d, berk: %d", st, ret);
+            ham_assert(1!=0, ("hamster return: %d, berk: %d", st, ret));
             return (HAM_FALSE);
         default:
-            ham_assert(1!=0, "hamster return: %d, berk: %d", st, ret);
+            ham_assert(1!=0, ("hamster return: %d, berk: %d", st, ret));
             return (HAM_FALSE);
     }
 
@@ -472,7 +473,7 @@ my_strtok(char *s, char *t)
 {
     char *e, *p=strtok(s, t);
     if (!p) {
-        ham_trace("line %d: expected token '%s'", config.cur_line, t);
+        ham_trace(("line %d: expected token '%s'", config.cur_line, t));
         exit(-1);
     }
     while (*p==' ' || *p=='\t' || *p=='\n' || *p=='\r' || *p=='(' || *p=='"')
@@ -518,8 +519,8 @@ my_compare_databases(void)
      * query hamster for each item
      */
     ret=config.dbp->cursor(config.dbp, NULL, &cursor, 0);
-    ham_assert(ret==0, "berkeley-db error", 0);
-    VERBOSE2("comparing databases...", 0);
+    ham_assert(ret==0, ("berkeley-db error"));
+    VERBOSE2(("comparing databases...", 0));
     /*PROFILE_START(berk);*/
     while ((ret=cursor->c_get(cursor, &key, &rec, DB_NEXT))==0) {
         /*PROFILE_STOP(berk);*/
@@ -529,7 +530,7 @@ my_compare_databases(void)
         if (config.useralloc) {
             hrec.data=malloc(1024*1024*64); /* 64 mb? */
             if (!hrec.data) {
-                FAIL("useralloc: out of memory", 0);
+                FAIL(("useralloc: out of memory"));
                 return 0;
             }
             hrec.flags=HAM_RECORD_USER_ALLOC;
@@ -538,16 +539,16 @@ my_compare_databases(void)
         /*PROFILE_START(ham);*/
         st=ham_find(config.hamdb, 0, &hkey, &hrec, 0);
         /*PROFILE_STOP(ham);*/
-        ham_assert(st==0, "hamster-db error %d", st);
-        ham_assert(hrec.size==rec.size, "%u != %u", hrec.size, rec.size);
+        ham_assert(st==0, ("hamster-db error %d", st));
+        ham_assert(hrec.size==rec.size, ("%u != %u", hrec.size, rec.size));
         if (hrec.data)
-            ham_assert(!memcmp(hrec.data, rec.data, rec.size), 0, 0);
+            ham_assert(!memcmp(hrec.data, rec.data, rec.size), (0));
         if (config.useralloc) 
             free(hrec.data);
         /*PROFILE_START(berk);*/
     }
     /*PROFILE_STOP(berk);*/
-    ham_assert(ret==DB_NOTFOUND, 0, 0);
+    ham_assert(ret==DB_NOTFOUND, (0));
     cursor->c_close(cursor);
 
     return 1;
@@ -571,19 +572,19 @@ my_execute_reopen(void)
     if (config.hamdb) {
         reopen=1;
         b=my_execute_close();
-        ham_assert(b==1, "reopen failed with status %u", b);
+        ham_assert(b==1, ("reopen failed with status %u", b));
     }
 
     b=my_execute_open("");
-    ham_assert(b==1, "reopen failed with status %u", b);
+    ham_assert(b==1, ("reopen failed with status %u", b));
     b=my_execute_fullcheck("");
-    ham_assert(b==1, "reopen failed with status %u", b);
+    ham_assert(b==1, ("reopen failed with status %u", b));
     b=my_execute_close();
-    ham_assert(b==1, "reopen failed with status %u", b);
+    ham_assert(b==1, ("reopen failed with status %u", b));
 
     if (reopen) {
         b=my_execute_open("");
-        ham_assert(b==1, "reopen failed with status %u", b);
+        ham_assert(b==1, ("reopen failed with status %u", b));
     }
 
     config.reopen=old; 
@@ -606,7 +607,7 @@ my_execute_create(char *line)
      */
     if (flags && strstr(flags, "NUMERIC_KEY")) {
         config.flags |= NUMERIC_KEY;
-        VERBOSE2("using numeric keys", 0);
+        VERBOSE2(("using numeric keys"));
     }
 
     for (i=0; i<2; i++) {
@@ -614,30 +615,30 @@ my_execute_create(char *line)
             case BACKEND_NONE: 
                 break;
             case BACKEND_BERK: 
-                VERBOSE2("opening backend %d (berkeley)", i);
+                VERBOSE2(("opening backend %d (berkeley)", i));
                 if (config.dbp) {
-                    FAIL("berkeley handle already exists", 0);
+                    FAIL(("berkeley handle already exists"));
                     return 0;
                 }
                 (void)unlink(FILENAME_BERK);
                 PROFILE_START(PROF_OTHER, i);
                 ret=db_create(&config.dbp, 0, 0);
-                ham_assert(ret==0, 0, 0);
+                ham_assert(ret==0, (0));
                 ret=config.dbp->open(config.dbp, 0, FILENAME_BERK, 0, 
                         DB_BTREE, DB_CREATE, 0);
-                ham_assert(ret==0, 0, 0);
+                ham_assert(ret==0, (0));
                 PROFILE_STOP(PROF_OTHER, i);
                 break;
             case BACKEND_HAMSTER: 
-                VERBOSE2("opening backend %d (hamster)", i);
+                VERBOSE2(("opening backend %d (hamster)", i));
                 if (config.hamdb) {
-                    FAIL("hamster handle already exists", 0);
+                    FAIL(("hamster handle already exists"));
                     return 0;
                 }
                 (void)unlink(FILENAME_HAM);
                 PROFILE_START(PROF_OTHER, i);
                 st=ham_new(&config.hamdb);
-                ham_assert(st==0, 0, 0);
+                ham_assert(st==0, (0));
                 if (config.inmemory) {
                     f|=HAM_IN_MEMORY_DB;
                     config.cachesize=0;
@@ -647,7 +648,7 @@ my_execute_create(char *line)
                 f|=config.opt_size?HAM_OPTIMIZE_SIZE:0;
                 st=ham_create_ex(config.hamdb, FILENAME_HAM, f, 0664, 
                         config.pagesize, config.keysize, config.cachesize);
-                ham_assert(st==0, 0, 0);
+                ham_assert(st==0, (0));
                 if (config.flags & NUMERIC_KEY)
                     ham_set_compare_func(config.hamdb, my_compare_keys);
                 PROFILE_STOP(PROF_OTHER, i);
@@ -672,7 +673,7 @@ my_execute_open(char *line)
      */
     if (flags && strstr(flags, "NUMERIC_KEY")) {
         config.flags |= NUMERIC_KEY;
-        VERBOSE2("using numeric keys", 0);
+        VERBOSE2(("using numeric keys"));
     }
 
     for (i=0; i<2; i++) {
@@ -680,30 +681,30 @@ my_execute_open(char *line)
             case BACKEND_NONE: 
                 break;
             case BACKEND_BERK: 
-                VERBOSE2("opening backend %d (berkeley)", i);
+                VERBOSE2(("opening backend %d (berkeley)", i));
                 if (config.dbp) {
-                    FAIL("berkeley handle already exists", 0);
+                    FAIL(("berkeley handle already exists"));
                     return 0;
                 }
                 PROFILE_START(PROF_OTHER, i);
                 ret=db_create(&config.dbp, 0, 0);
-                ham_assert(ret==0, 0, 0);
+                ham_assert(ret==0, (0));
                 ret=config.dbp->open(config.dbp, 0, FILENAME_BERK, 0, 
                         DB_BTREE, 0, 0);
-                ham_assert(ret==0, 0, 0);
+                ham_assert(ret==0, (0));
                 PROFILE_STOP(PROF_OTHER, i);
                 break;
             case BACKEND_HAMSTER: 
-                VERBOSE2("opening backend %d (hamster)", i);
+                VERBOSE2(("opening backend %d (hamster)", i));
                 if (config.hamdb) {
-                    FAIL("hamster handle already exists", 0);
+                    FAIL(("hamster handle already exists"));
                     return 0;
                 }
                 PROFILE_START(PROF_OTHER, i);
                 st=ham_new(&config.hamdb);
-                ham_assert(st==0, 0, 0);
+                ham_assert(st==0, (0));
                 st=ham_open(config.hamdb, FILENAME_HAM, 0);
-                ham_assert(st==0, 0, 0);
+                ham_assert(st==0, (0));
                 if (config.flags & NUMERIC_KEY)
                     ham_set_compare_func(config.hamdb, my_compare_keys);
                 PROFILE_STOP(PROF_OTHER, i);
@@ -730,14 +731,14 @@ my_execute_flush(void)
                 /*PROFILE_STOP(i);*/
                 break;
             case BACKEND_HAMSTER: 
-                VERBOSE2("flushing backend %d (hamster)", i);
+                VERBOSE2(("flushing backend %d (hamster)", i));
                 if (!config.hamdb) {
-                    FAIL("hamster handle is invalid", 0);
+                    FAIL(("hamster handle is invalid"));
                     return 0;
                 }
                 /*PROFILE_START(i);*/
                 st=ham_flush(config.hamdb);
-                ham_assert(st==0, 0, 0);
+                ham_assert(st==0, (0));
                 /*PROFILE_STOP(i);*/
                 break;
         }
@@ -760,7 +761,7 @@ my_execute_insert(char *line)
     keytok=my_strtok(0, ",");
     data  =my_strtok(0, ",");
 
-    VERBOSE2("insert: flags=%s, key=%s, data=%s", flags, keytok, data);
+    VERBOSE2(("insert: flags=%s, key=%s, data=%s", flags, keytok, data));
 
     /*
      * check flag NUMERIC_KEY
@@ -770,7 +771,7 @@ my_execute_insert(char *line)
         use_numeric_key=1;
         numeric_key=strtoul(keytok, 0, 0);
         if (!numeric_key) {
-            FAIL("line %d: key is invalid", config.cur_line);
+            FAIL(("line %d: key is invalid", config.cur_line));
             return 0;
         }
     }
@@ -779,16 +780,10 @@ my_execute_insert(char *line)
      * allocate and initialize data 
      */
     data_size=strtoul(data, 0, 0);
-    /*
-    if (!data_size) {
-        FAIL("line %d: data size is invalid", config.cur_line);
-        return 0;
-    }
-    */
     if (data_size) {
         data=(char *)malloc(data_size);
         if (!data) {
-            FAIL("line %d: out of memory", config.cur_line);
+            FAIL(("line %d: out of memory", config.cur_line));
             return 0;
         }
         for (i=0; i<data_size; i++)
@@ -805,7 +800,7 @@ my_execute_insert(char *line)
             case BACKEND_BERK: {
                 DBT key, record;
                 if (!config.dbp) {
-                    FAIL("berkeley handle is invalid", 0);
+                    FAIL(("berkeley handle is invalid"));
                     if (data_size)
                         free(data);
                     return 0;
@@ -829,15 +824,15 @@ my_execute_insert(char *line)
                 config.retval[i]=config.dbp->put(config.dbp, 0, &key, &record, 
                         config.overwrite?0:DB_NOOVERWRITE);
                 PROFILE_STOP(PROF_INSERT, i);
-                VERBOSE2("inserting into backend %d (berkeley): status %d",
-                        i, (int)config.retval[i]);
+                VERBOSE2(("inserting into backend %d (berkeley): status %d",
+                        i, (int)config.retval[i]));
                 break;
             }
             case BACKEND_HAMSTER: {
                 ham_key_t key;
                 ham_record_t record;
                 if (!config.hamdb) {
-                    FAIL("hamster handle is invalid", 0);
+                    FAIL(("hamster handle is invalid"));
                     if (data_size)
                         free(data);
                     return 0;
@@ -863,8 +858,8 @@ my_execute_insert(char *line)
                         config.overwrite?HAM_OVERWRITE:0);
                 g_total_insert+=record.size;
                 PROFILE_STOP(PROF_INSERT, i);
-                VERBOSE2("inserting into backend %d (hamster): status %d", 
-                        i, (ham_status_t)config.retval[i]);
+                VERBOSE2(("inserting into backend %d (hamster): status %d", 
+                        i, (ham_status_t)config.retval[i]));
                 break;
             }
         }
@@ -892,7 +887,7 @@ my_execute_erase(char *line)
     flags =my_strtok(line, ",");
     keytok=my_strtok(0, ",");
 
-    VERBOSE2("erase: flags=%s, key=%s", flags, keytok);
+    VERBOSE2(("erase: flags=%s, key=%s", flags, keytok));
 
     /*
      * check flag NUMERIC_KEY
@@ -902,7 +897,7 @@ my_execute_erase(char *line)
         use_numeric_key=1;
         numeric_key=strtoul(keytok, 0, 0);
         if (!numeric_key) {
-            FAIL("line %d: key is invalid", config.cur_line);
+            FAIL(("line %d: key is invalid", config.cur_line));
             return 0;
         }
     }
@@ -917,7 +912,7 @@ my_execute_erase(char *line)
             case BACKEND_BERK: {
                 DBT key;
                 if (!config.dbp) {
-                    FAIL("berkeley handle is invalid", 0);
+                    FAIL(("berkeley handle is invalid"));
                     return 0;
                 }
                 PROFILE_START(PROF_ERASE, i);
@@ -935,14 +930,14 @@ my_execute_erase(char *line)
 
                 config.retval[i]=config.dbp->del(config.dbp, 0, &key, 0);
                 PROFILE_STOP(PROF_ERASE, i);
-                VERBOSE2("erasing from backend %d (berkeley): status %d",
-                        i, (int)config.retval[i]);
+                VERBOSE2(("erasing from backend %d (berkeley): status %d",
+                        i, (int)config.retval[i]));
                 break;
             }
             case BACKEND_HAMSTER: {
                 ham_key_t key;
                 if (!config.hamdb) {
-                    FAIL("hamster handle is invalid", 0);
+                    FAIL(("hamster handle is invalid"));
                     return 0;
                 }
                 PROFILE_START(PROF_ERASE, i);
@@ -960,8 +955,8 @@ my_execute_erase(char *line)
 
                 config.retval[i]=ham_erase(config.hamdb, 0, &key, 0);
                 PROFILE_STOP(PROF_ERASE, i);
-                VERBOSE2("erasing from backend %d (hamster): status %d", 
-                        i, (ham_status_t)config.retval[i]);
+                VERBOSE2(("erasing from backend %d (hamster): status %d", 
+                        i, (ham_status_t)config.retval[i]));
                 break;
             }
         }
@@ -986,7 +981,7 @@ my_execute_find(char *line)
     flags =my_strtok(line, ",");
     keytok=my_strtok(0, ",");
 
-    VERBOSE2("find: flags=%s, key=%s", flags, keytok);
+    VERBOSE2(("find: flags=%s, key=%s", flags, keytok));
 
     /*
      * check flag NUMERIC_KEY
@@ -996,7 +991,7 @@ my_execute_find(char *line)
         use_numeric_key=1;
         numeric_key=strtoul(keytok, 0, 0);
         if (!numeric_key) {
-            FAIL("line %d: key is invalid", config.cur_line);
+            FAIL(("line %d: key is invalid", config.cur_line));
             return 0;
         }
     }
@@ -1011,7 +1006,7 @@ my_execute_find(char *line)
             case BACKEND_BERK: {
                 DBT key, rec;
                 if (!config.dbp) {
-                    FAIL("berkeley handle is invalid", 0);
+                    FAIL(("berkeley handle is invalid"));
                     return 0;
                 }
                 PROFILE_START(PROF_FIND, i);
@@ -1030,15 +1025,15 @@ my_execute_find(char *line)
 
                 config.retval[i]=config.dbp->get(config.dbp, 0, &key, &rec, 0);
                 PROFILE_STOP(PROF_FIND, i);
-                VERBOSE2("finding from backend %d (berkeley): status %d",
-                        i, (int)config.retval[i]);
+                VERBOSE2(("finding from backend %d (berkeley): status %d",
+                        i, (int)config.retval[i]));
                 break;
             }
             case BACKEND_HAMSTER: {
                 ham_key_t key;
                 ham_record_t record;
                 if (!config.hamdb) {
-                    FAIL("hamster handle is invalid", 0);
+                    FAIL(("hamster handle is invalid"));
                     return 0;
                 }
                 PROFILE_START(PROF_FIND, i);
@@ -1057,8 +1052,8 @@ my_execute_find(char *line)
 
                 config.retval[i]=ham_find(config.hamdb, 0, &key, &record, 0);
                 PROFILE_STOP(PROF_FIND, i);
-                VERBOSE2("find from backend %d (hamster): status %d", 
-                        i, (ham_status_t)config.retval[i]);
+                VERBOSE2(("find from backend %d (hamster): status %d", 
+                        i, (ham_status_t)config.retval[i]));
                 break;
             }
         }
@@ -1075,7 +1070,7 @@ my_execute_fullcheck(char *line)
 {
     if (config.reopen>=2) {
         ham_bool_t b=my_execute_reopen();
-        ham_assert(b!=0, "my_execute_reopen failed", 0);
+        ham_assert(b!=0, ("my_execute_reopen failed"));
     }
 
     /* 
@@ -1088,7 +1083,7 @@ my_execute_fullcheck(char *line)
             st=ham_check_integrity(config.hamdb, 0);
             if (config.dump>=1) 
                 (void)ham_dump(config.hamdb, 0, my_dump_func);
-            ham_assert(st==0, "check integrity failed", 0);
+            ham_assert(st==0, ("check integrity failed"));
         }
     }
 
@@ -1096,8 +1091,8 @@ my_execute_fullcheck(char *line)
      * check database contents
      */
     if (!my_compare_databases()) 
-        ham_assert("failed to compare the databases, or databases not equal", 
-                0, 0);
+        ham_assert(0, 
+                ("failed to compare the databases, or databases not equal"));
     return HAM_TRUE;
 }
 
@@ -1114,9 +1109,9 @@ my_execute_close(void)
         ham_status_t st=0;
         if (config.backend[0]==BACKEND_HAMSTER ||
             config.backend[1]==BACKEND_HAMSTER)
-            ham_assert((st=ham_dump(config.hamdb, 0, my_dump_func))==0, 0, 0);
+            ham_assert((st=ham_dump(config.hamdb, 0, my_dump_func))==0, (0));
         if (st)
-            ham_trace("hamster dump failed with status %d", st);
+            ham_trace(("hamster dump failed with status %d", st));
     }
 
     for (i=0; i<2; i++) {
@@ -1124,9 +1119,9 @@ my_execute_close(void)
             case BACKEND_NONE: 
                 break;
             case BACKEND_BERK: 
-                VERBOSE2("closing backend %d (berkeley)", i);
+                VERBOSE2(("closing backend %d (berkeley)", i));
                 if (!config.dbp) {
-                    FAIL("berkeley handle is invalid", 0);
+                    FAIL(("berkeley handle is invalid"));
                     return 0;
                 }
                 PROFILE_START(PROF_OTHER, i);
@@ -1135,14 +1130,14 @@ my_execute_close(void)
                 PROFILE_STOP(PROF_OTHER, i);
                 break;
             case BACKEND_HAMSTER: 
-                VERBOSE2("closing backend %d (hamster)", i);
+                VERBOSE2(("closing backend %d (hamster)", i));
                 if (!config.hamdb) {
-                    FAIL("hamster handle is invalid", 0);
+                    FAIL(("hamster handle is invalid"));
                     return 0;
                 }
                 PROFILE_START(PROF_OTHER, i);
                 st=ham_close(config.hamdb);
-                ham_assert(st==0, 0, 0);
+                ham_assert(st==0, (0));
                 ham_delete(config.hamdb);
                 config.hamdb=0;
                 PROFILE_STOP(PROF_OTHER, i);
@@ -1152,7 +1147,7 @@ my_execute_close(void)
 
     if (config.reopen) {
         ham_bool_t b=my_execute_reopen();
-        ham_assert(b!=0, "my_execute_reopen failed", 0);
+        ham_assert(b!=0, ("my_execute_reopen failed"));
     }
 
     return 1;
@@ -1165,7 +1160,7 @@ my_execute(char *line)
     char *tok=my_get_token(line, &pos);
     if (!tok || tok[0]==0)
         return 1;
-    VERBOSE2("reading token '%s'", tok);
+    VERBOSE2(("reading token '%s'", tok));
     if (strstr(tok, "--")) {
         my_increment_progressbar();
         return 1;
@@ -1202,7 +1197,7 @@ my_execute(char *line)
         my_increment_progressbar();
         return my_execute_flush();
     }
-    ham_trace("line %d: invalid token '%s'", config.cur_line, tok);
+    ham_trace(("line %d: invalid token '%s'", config.cur_line, tok));
     return HAM_FALSE;
 }
 
@@ -1287,7 +1282,7 @@ test_db(const char *filename)
             else if (!strcmp(param, "none")) 
                 config.backend[0]=BACKEND_NONE;
             else 
-                ham_trace("backend 1: unknown backend %s", param);
+                ham_trace(("backend 1: unknown backend %s", param));
         }
         else if (opt==ARG_BACKEND2) {
             if (!strcmp(param, "berk")) 
@@ -1297,7 +1292,7 @@ test_db(const char *filename)
             else if (!strcmp(param, "none")) 
                 config.backend[1]=BACKEND_NONE;
             else 
-                ham_trace("backend 2: unknown backend %s", param);
+                ham_trace(("backend 2: unknown backend %s", param));
         }
         else if (opt==ARG_DUMP) {
             config.dump++;
@@ -1351,11 +1346,11 @@ test_db(const char *filename)
             config.useralloc=1;
         }
         else if (opt==GETOPTS_UNKNOWN) {
-            ham_trace("unknown parameter %s", param);
+            ham_trace(("unknown parameter %s", param));
             return (-1);
         }
         else {
-            ham_trace("unknown parameter %d", opt);
+            ham_trace(("unknown parameter %d", opt));
             return (-1);
         }
     }
@@ -1371,8 +1366,8 @@ test_db(const char *filename)
     else {
         f=fopen(config.filename, "rt");
         if (!f) {
-            ham_trace("cannot open %s: %s", config.filename, 
-                    strerror(errno));
+            ham_trace(("cannot open %s: %s", config.filename, 
+                    strerror(errno)));
             return (-1);
         }
         /* get the file size, if we display a progress bar */
@@ -1381,7 +1376,7 @@ test_db(const char *filename)
             g_filesize=ftell(f);
             fseek(f, 0, SEEK_SET);
             g_filepos =0;
-            VERBOSE2("file size is %u bytes", g_filesize);
+            VERBOSE2(("file size is %u bytes", g_filesize));
         }
     }
 
@@ -1405,10 +1400,10 @@ test_db(const char *filename)
         if (config.check>=2) {
             if ((config.backend[0]==BACKEND_HAMSTER ||
                 config.backend[1]==BACKEND_HAMSTER) && config.hamdb)
-                ham_assert(ham_check_integrity(config.hamdb, 0)==0, 0, 0);
+                ham_assert(ham_check_integrity(config.hamdb, 0)==0, (0));
         }
 
-        VERBOSE2("---- line %04d ----", config.cur_line);
+        VERBOSE2(("---- line %04d ----", config.cur_line));
     }
 
     if (config.filename)

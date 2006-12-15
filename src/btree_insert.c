@@ -7,7 +7,6 @@
  */
 
 #include <string.h>
-#include <ham/config.h>
 #include "db.h"
 #include "error.h"
 #include "keys.h"
@@ -128,7 +127,7 @@ btree_insert(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
     /* 
      * get the root-page...
      */
-    ham_assert(btree_get_rootpage(be)!=0, 0, 0);
+    ham_assert(btree_get_rootpage(be)!=0, ("btree has no root page"));
     root=db_fetch_page(db, scratchpad.txn, btree_get_rootpage(be), 0);
 
     /* 
@@ -255,7 +254,8 @@ my_insert_in_page(ham_page_t *page, ham_key_t *key,
     ham_size_t maxkeys=btree_get_maxkeys(scratchpad->be);
     btree_node_t *node=ham_page_get_btree_node(page);
 
-    ham_assert(maxkeys>1, "invalid result of db_get_maxkeys(): %d", maxkeys);
+    ham_assert(maxkeys>1, 
+            ("invalid result of db_get_maxkeys(): %d", maxkeys));
 
     /*
      * if we can insert the new key without splitting the page: 
@@ -682,10 +682,10 @@ pp(ham_txn_t *txn, ham_page_t *page)
      */
     for (i=0; i<count-1; i++) {
         cmp=key_compare_int_to_int(txn, page, i, i+1);
-        ham_assert(db_get_error(db)==0, 0, 0);
+        ham_assert(db_get_error(db)==0, ("key compare failed"));
         if (cmp>=0) {
-            ham_log("integrity check failed in page 0x%llx: item #%d "
-                    "< item #%d\n", page_get_self(page), i, i+1);
+            ham_log(("integrity check failed in page 0x%llx: item #%d "
+                    "< item #%d\n", page_get_self(page), i, i+1));
             return;
         }
     }

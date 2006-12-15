@@ -234,7 +234,7 @@ struct ham_db_t
 /*
  * check if the file handle is valid
  */
-#define db_is_open(db)                 (db_get_fd(db)!=-1)
+#define db_is_open(db)              (db_get_fd(db)!=HAM_INVALID_FD)
 
 /* 
  * get the last error code

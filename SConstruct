@@ -138,7 +138,7 @@ else:
     vprint("building for win32")
     env.Append(CCFLAGS=['-DHAM_OS_WIN32'])
 
-if env['debug']=='1':
+if 1: #env['debug']=='1':
     vprint("debug build")
     env.Append(CCFLAGS=['-DHAM_DEBUG'])
     env['buildpath']+='dbg'

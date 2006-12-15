@@ -11,7 +11,7 @@
 #include "freelist.h"
 #include "error.h"
 
-#define OFFSET_OF(obj, field) ((int)(&((obj).field)) - (int)&(obj) )
+#define OFFSET_OF(obj, field) ((char *)(&((obj).field))-(char *)&(obj))
 
 static ham_bool_t
 my_add_area(ham_db_t *db, freel_payload_t *fp, 
@@ -21,7 +21,7 @@ my_add_area(ham_db_t *db, freel_payload_t *fp,
     freel_entry_t *list=freel_payload_get_entries(fp); 
 
     ham_assert(freel_payload_get_count(fp)<=freel_payload_get_maxsize(fp), 
-            0, 0);
+            ("invalid freelist object"));
 
     /*
      * try to append the item to an existing entry
@@ -35,7 +35,7 @@ my_add_area(ham_db_t *db, freel_payload_t *fp,
             if (freel_get_address(&list[i])+freel_get_size(&list[i])==address) {
                 size  +=freel_get_size(&list[i]);
                 address=freel_get_address(&list[i]);
-                if (i<freel_payload_get_count(fp)-1) 
+                if (i<(ham_size_t)freel_payload_get_count(fp)-1) 
                     memmove(&list[i], &list[i+1], 
                         (freel_payload_get_count(fp)-i-1)*sizeof(list[i]));
                 freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
@@ -46,7 +46,7 @@ my_add_area(ham_db_t *db, freel_payload_t *fp,
              */
             if (address+size==freel_get_address(&list[i])) {
                 size   +=freel_get_size(&list[i]);
-                if (i<freel_payload_get_count(fp)-1) 
+                if (i<(ham_size_t)freel_payload_get_count(fp)-1) 
                     memmove(&list[i], &list[i+1], 
                         (freel_payload_get_count(fp)-i-1)*sizeof(list[i]));
                 freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
@@ -159,7 +159,7 @@ my_alloc_in_list(ham_db_t *db, freel_payload_t *fp,
             ham_size_t   diff=freel_get_size(&list[best])-chunksize;
             ham_offset_t offs=freel_get_address(&list[best]);
 
-            if (best<freel_payload_get_count(fp)-1) 
+            if (best<(ham_size_t)freel_payload_get_count(fp)-1) 
                 memmove(&list[best], &list[best+1], 
                         (freel_payload_get_count(fp)-best-1)*sizeof(list[i]));
             freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
@@ -198,7 +198,7 @@ my_alloc_in_list(ham_db_t *db, freel_payload_t *fp,
     else {
         ham_offset_t newoffs=freel_get_address(&list[best]);
 
-        if (best<freel_payload_get_count(fp)-1) 
+        if (best<(ham_size_t)freel_payload_get_count(fp)-1) 
             memmove(&list[best], &list[best+1], 
                     (freel_payload_get_count(fp)-best-1)*sizeof(list[i]));
         freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
@@ -217,7 +217,7 @@ my_get_max_elements(ham_db_t *db)
      * a freelist overflow page has one overflow pointer of type 
      * ham_size_t at the very beginning
      */
-    return ((db_get_usable_pagesize(db)-OFFSET_OF(h, _payload)-
+    return ((db_get_usable_pagesize(db)-(int)(OFFSET_OF(h, _payload))-
                 sizeof(ham_u16_t)-sizeof(ham_offset_t))/sizeof(freel_entry_t));
 }
 
@@ -273,7 +273,7 @@ my_alloc_page(ham_db_t *db)
      * the maximum cache size
      */
     if (!cache_can_add_page(db_get_cache(db))) {
-        ham_trace("cache is full! resize the cache", 0);
+        ham_trace(("cache is full! resize the cache"));
         db_set_error(db, HAM_CACHE_FULL);
         return (0);
     }
@@ -462,7 +462,7 @@ freel_add_area(ham_db_t *db, ham_offset_t address, ham_size_t size)
      * we're still here - this means we got a strange error. this 
      * shouldn't happen! 
      */
-    ham_assert(!"shouldn't be here...", 0, 0);
+    ham_assert(!"shouldn't be here...", (""));
     return (HAM_INTERNAL_ERROR);
 }
 

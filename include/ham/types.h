@@ -13,7 +13,45 @@
 extern "C" {
 #endif 
 
-#include <ham/config.h>
+/*
+ * check the operating system and word size
+ */
+#ifdef WIN32
+#    undef  HAM_OS_WIN32
+#    define HAM_OS_WIN32 1
+#    ifdef _WIN64
+#        undef  HAM_64BIT
+#        define HAM_64BIT 1
+#    elif _WIN32
+#        undef  HAM_32BIT
+#        define HAM_32BIT 1
+#    else
+#        error "Neither _WIN32 nor _WIN64 defined!"
+#    endif
+#else /* posix? */
+#    undef  HAM_OS_POSIX
+#    define HAM_OS_POSIX 1
+#    if defined(__LP64__) || defined(__LP64) || __WORDSIZE==64
+#        undef  HAM_64BIT
+#        define HAM_64BIT 1
+#    else
+#        undef  HAM_32BIT
+#        define HAM_32BIT 1
+#    endif
+#endif
+
+#if defined(HAM_OS_POSIX) && defined(HAM_OS_WIN32)
+#    error "blah"
+#endif
+
+/*
+ * need windows.h for HANDLE
+ */
+#ifdef HAM_OS_WIN32
+#    define WIN32_MEAN_AND_LEAN
+#    include <windows.h>
+#endif
+
 
 /** 
  * typedefs for 32bit operating systems
@@ -43,18 +81,27 @@ typedef signed char        ham_s8_t;
 typedef unsigned char      ham_u8_t;
 #endif 
 
-/** 
- * typedefs for linux/unix
+/*
+ * undefine macros to avoid macro redefinitions
  */
-#if (HAM_OS_POSIX)
+#undef HAM_INVALID_FD
+#undef HAM_FALSE
+#undef HAM_TRUE
+
+/** 
+ * typedefs for posix
+ */
+#ifdef HAM_OS_POSIX
 typedef int                ham_fd_t;
+#   define HAM_INVALID_FD  (-1)
 #endif 
 
 /** 
- * typedefs for windows 32- and 64-bit
+ * typedefs for Windows 32- and 64-bit
  */
-#if (HAM_OS_WIN)
+#ifdef HAM_OS_WIN32
 typedef HANDLE             ham_fd_t; 
+#   define HAM_INVALID_FD  (0)
 #endif 
 
 /** 

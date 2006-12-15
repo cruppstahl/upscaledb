@@ -7,7 +7,6 @@
  */
 
 #include <string.h>
-#include <ham/config.h>
 #include "db.h"
 #include "error.h"
 #include "btree.h"

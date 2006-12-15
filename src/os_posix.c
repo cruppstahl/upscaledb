@@ -41,7 +41,7 @@ os_mmap(ham_fd_t fd, ham_offset_t position, ham_size_t size,
     *buffer=mmap(0, size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, position);
     if (*buffer==(void *)-1) {
         *buffer=0;
-        ham_log("mmap failed with status %d (%s)", errno, strerror(errno));
+        ham_log(("mmap failed with status %d (%s)", errno, strerror(errno)));
         return (errno);
     }
 
@@ -53,7 +53,7 @@ os_munmap(void *buffer, ham_size_t size)
 {
     int r=munmap(buffer, size);
     if (r) {
-        ham_log("munmap failed with status %d (%s)", errno, strerror(errno));
+        ham_log(("munmap failed with status %d (%s)", errno, strerror(errno)));
         return (errno);
     }
     return (HAM_SUCCESS);

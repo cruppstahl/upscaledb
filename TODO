@@ -22,50 +22,10 @@ x 220.tst: schlägt fehl im release-build!
 -----------------------------------------------------
 -----------------------------------------------------
 
-x profiling! aber mit der release-version...
-
-        x viele valgrind-fehler
-
-        x test 220 schlägt fehl, bei --reopen=1 und --pagesize=1024
-
-        x monster.sh
-
-        x die wichtigsten tests in den wichtigsten konfigurationen mit 
-            valgrind prüfen
-
-        x eine neue option, mit der man die freelist schneller machen kann
-            -> die dateien werden halt etwas grösser
-            x tests/db.c anpassen
-            x monster.sh anpassen
-            x testen!
-
-        x valgrind-tests schlagen fehl:
-            x ../../../hamsterdb-tests/trunk/testfiles/1/45.tst --reopen=1
-            x ../../../hamsterdb-tests/trunk/testfiles/1/45.tst --mmap=0
-                    --overwrite=1 --reopen=1
-            x ../../../hamsterdb-tests/trunk/testfiles/1/ext_060.tst
-                    --inmemorydb=1
-            x ../../../hamsterdb-tests/trunk/testfiles/1/ext_020.tst --keysize=8
-                    --overwrite=1 --reopen=1
-                    --> invalid keysize??
-            x ../../../hamsterdb-tests/trunk/testfiles/1/ext_060.tst --keysize=8
-                    --overwrite=1 --reopen=1
-                    --> invalid keysize??
-
------------------------------------------------------
-
-o neue profile-runde, damit wir zahlen haben
-    (auch die dateigrössen vergleichen!)
-
-o vergleiche mit den bisherigen zahlen
-    (blog-artikel! interessant auch, dass time(2) zeigt, dass der grösste
-    teil im usermode abläuft; d.h. der zugriff auf die platte ist wirklich
-    nicht der limitierende faktor!)
-
------------------------------------------------------
-
 o auf autoconf/automake umstellen
     x in blog-artikel dokumentieren
+
+o auf windows portieren
 
 -----------------------------------------------------
 
@@ -83,9 +43,11 @@ o VORSICHT! am besten ein skript schreiben - make-release.sh
 o Regelwerk für releases schreiben, z.b.
     1. alle tests (auch 2-4) durchlaufen (monster.sh)
     2. ausgewählte tests mit valgrind (valgrind.sh)
-    3. sicherstellen dass alles eingecheckt ist
-    4. changelog updaten
-    5. make-release.sh
+    3. die releases für windows machen (8 stück)
+    4. tests unter windows machen
+    5. sicherstellen dass alles eingecheckt ist
+    6. changelog updaten
+    7. make-release.sh
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -96,6 +58,9 @@ o das test-tool umschreiben - nur noch die db.c, die anderen
 o verschieben in das test-verzeichnis?
 
 -----------------------------------------------------
+
+o cache: bucketgrösse in ham_config.h verschieben, eine #define-konstante
+    draus machen
 
 o prefix comparison hinzufügen (schon vorhanden?)
 
@@ -134,69 +99,10 @@ o nächsten release machen!
 -----------------------------------------------------
 -----------------------------------------------------
 
-o duplicate keys (nicht in version 0.1.0, sondern 0.1.1)
-    jeder key bekommt einen dupcounter; der wird mit unsigned(-1) initialisiert
-    beim einfuegen wird rekursiv abgestiegen. im leaf wird dann ein neuer key
-    eingefuegt, mit dem dupcounter=existierender ("kleinster") key minus 1.
-
------------------------------------------------------
-
-o mehrere datenbanken in einer datei
-    (siehe eintrag im notizbuch)
-
-    -> database-environment (ein file fuer mehrere datenbanken, 
-        gesharter cache, geshartes file-handle, freelist etc)
-
------------------------------------------------------
------------------------------------------------------
-
-o doku
-    o tutorial/sample in die online-hilfe einbeziehen
-    o FAQ mit häufig gestellten fragen, tips zu optimierungen
-    o Dokumentation in den header-dateien überarbeiten
-    o überarbeiten
-
------------------------------------------------------
-
-o statistics
-    will wissen wie viele freelist-hits/misses und cache-hits/misses es gab,
-    auch im extkey-cache
-
-o statistics
-    get generic getter/setter for statistical value, i.e. 
-        enum { CACHEHITS, CACHEMISSES, PAGES, FREEPAGES, ... };
-        ham_u64_t statistics[8];
-    set_stats_value(db, which, value): db->statistics[which]=ham_h2db32(value)
-    ATTENTION: some of those values are specific for each backend, others
-        are global; therefore we need two functions: 
-        ham_get_global_statistics(stat)
-        ham_get_index_statistics(index, stat)
-
------------------------------------------------------
------------------------------------------------------
-
 o tools
     o ham_dump
     o ham_info
     o ham_recover
-
------------------------------------------------------
-
-o super-COMPRESSED-mode: keine headerpage, und pagesize auf 128 byte ->
-    super-mini-datenbanken (für embedded) - möglich ohne Aufwand? wird tricky, 
-    weil die page-alloc-funktionen davon ausgehen dass eine adresse 0 ein
-    fehler ist
-
------------------------------------------------------
-
-o datenbank mit O_EXCL öffnen, bzw mit flock() (und nem wait, falls die 
-    Datenbank gelockt ist) -> Möglichkeit für pseudo-concurrent access bei
-    kurzen, schnellen Zugriffen (z.b. webseite)
-
------------------------------------------------------
-
-o cache: bucketgrösse in ham_config.h verschieben, eine #define-konstante
-    draus machen
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -220,6 +126,15 @@ o komplettes review
 -----------------------------------------------------
 -----------------------------------------------------
 
+o doku
+    o tutorial/sample in die online-hilfe einbeziehen
+    o FAQ mit häufig gestellten fragen, tips zu optimierungen
+    o Dokumentation in den header-dateien überarbeiten
+    o webseite
+    o mailing list
+    o überarbeiten
+
+-----------------------------------------------------
 
 x bbaum fehlerfrei
 x TXN raus (wir können die txn's auch komplett
@@ -230,14 +145,13 @@ x memory-mapped access
 x in memory-datenbanken
 x overwrite keys
 x extended keys
-x erzeugt .dll/.so
 x mal nachschauen was man nach den GPL-Codingrules noch für 
     dateien braucht -> nix mehr
 x performance vergleichbar mit berkeley-db
-o iteratoren
-o mehrere db in einer datei
+o erzeugt .dll/.so
 o compiliert unter linux, windows, darwin, 32bit und 64bit, unter windows
-    mit mingw, icc, msvc, borland, watcom
+    mit mingw, icc, msvc, borland, watcom; läuft auf little- und bigendian
+o iteratoren
 o legal issues
 o dokumentation: tutorial, interface, FAQ (auch zu unittests)
 o webseite
@@ -248,7 +162,7 @@ o webseite
     documentation
     tutorial
     mailingliste
-o stress-test-tool(s), das ALLE optionen durchprobiert
+x stress-test-tool(s), das ALLE optionen durchprobiert
     mmap
     r/w
     in-memory
@@ -261,15 +175,59 @@ o admin-tool(s) fuer dump, stats, repair
         o header dumpen
 o KEINE valgrind-fehler!
 
-    freshmeat
-    alle anderen linklisten
-    blog-eintrag (pingen!)
+-----------------------------------------------------
+-----------------------------------------------------
+-----------------------------------------------------
+-----------------------------------------------------
+-----------------------------------------------------
+-----------------------------------------------------
+-----------------------------------------------------
+
+o duplicate keys (nicht in version 0.1.0, sondern 0.1.1)
+    jeder key bekommt einen dupcounter; der wird mit unsigned(-1) initialisiert
+    beim einfuegen wird rekursiv abgestiegen. im leaf wird dann ein neuer key
+    eingefuegt, mit dem dupcounter=existierender ("kleinster") key minus 1.
+
+-----------------------------------------------------
+
+o mehrere datenbanken in einer datei
+    (siehe eintrag im notizbuch)
+
+    -> database-environment (ein file fuer mehrere datenbanken, 
+        gesharter cache, geshartes file-handle, freelist etc)
 
 -----------------------------------------------------
 -----------------------------------------------------
+
+o statistics
+    will wissen wie viele freelist-hits/misses und cache-hits/misses es gab,
+    auch im extkey-cache
+
+o statistics
+    get generic getter/setter for statistical value, i.e. 
+        enum { CACHEHITS, CACHEMISSES, PAGES, FREEPAGES, ... };
+        ham_u64_t statistics[8];
+    set_stats_value(db, which, value): db->statistics[which]=ham_h2db32(value)
+    ATTENTION: some of those values are specific for each backend, others
+        are global; therefore we need two functions: 
+        ham_get_global_statistics(stat)
+        ham_get_index_statistics(index, stat)
+
 -----------------------------------------------------
 -----------------------------------------------------
 
+o super-COMPRESSED-mode: keine headerpage, und pagesize auf 128 byte ->
+    super-mini-datenbanken (für embedded) - möglich ohne Aufwand? wird tricky, 
+    weil die page-alloc-funktionen davon ausgehen dass eine adresse 0 ein
+    fehler ist
+
+-----------------------------------------------------
+
+o datenbank mit O_EXCL öffnen, bzw mit flock() (und nem wait, falls die 
+    Datenbank gelockt ist) -> Möglichkeit für pseudo-concurrent access bei
+    kurzen, schnellen Zugriffen (z.b. webseite)
+
+-----------------------------------------------------
 o backend
     o darauf hinarbeiten dass später mal mehrere backends in einer datei
         sind, nicht nur eines

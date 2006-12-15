@@ -7,7 +7,7 @@
 
 #include <string.h>
 #include <ham/hamsterdb.h>
-#include <ham/config.h>
+#include "config.h"
 #include "error.h"
 #include "mem.h"
 #include "db.h"
@@ -79,7 +79,7 @@ my_dump_cb(int event, void *param1, void *param2, void *context)
         break;
 
     default:
-        ham_assert(!"unknown callback event", 0, 0);
+        ham_assert(!"unknown callback event", (""));
         break;
     }
 }
@@ -123,7 +123,7 @@ my_free_cb(int event, void *param1, void *param2, void *context)
         break;
 
     default:
-        ham_assert(!"unknown callback event", 0, 0);
+        ham_assert(!"unknown callback event", (""));
         break;
     }
 }
@@ -199,7 +199,7 @@ ham_new(ham_db_t **db)
 
     /* reset the whole structure */
     memset(*db, 0, sizeof(ham_db_t));
-    db_set_fd((*db), -1);
+    db_set_fd((*db), HAM_INVALID_FD);
     return (0);
 }
 
@@ -259,8 +259,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
     /* open the file */
     st=os_open(filename, flags, &fd);
     if (st) {
-        ham_log("os_open of %s failed with status %d (%s)", filename, 
-                st, ham_strerror(st));
+        ham_log(("os_open of %s failed with status %d (%s)", filename, 
+                st, ham_strerror(st)));
         db_set_error(db, st);
         return (st);
     }
@@ -282,8 +282,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
      */
     st=os_pread(fd, 0, hdrbuf, sizeof(hdrbuf));
     if (st) {
-        ham_log("os_pread of %s failed with status %d (%s)", filename, 
-                st, ham_strerror(st));
+        ham_log(("os_pread of %s failed with status %d (%s)", filename, 
+                st, ham_strerror(st)));
         db_set_error(db, st);
         return (st);
     }
@@ -324,7 +324,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
         db_get_magic(db, 1)!='A' || 
         db_get_magic(db, 2)!='M' || 
         db_get_magic(db, 3)!='\0') {
-        ham_log("invalid file type - %s is not a hamster-db", filename);
+        ham_log(("invalid file type - %s is not a hamster-db", filename));
         db_set_error(db, HAM_INV_FILE_HEADER);
         return (HAM_INV_FILE_HEADER);
     }
@@ -332,7 +332,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     /* check the database version */
     if (db_get_version(db, 0)!=HAM_VERSION_MAJ || 
         db_get_version(db, 1)!=HAM_VERSION_MIN) {
-        ham_log("invalid file version", 0);
+        ham_log(("invalid file version"));
         db_set_error(db, HAM_INV_FILE_VERSION);
         return (HAM_INV_FILE_VERSION);
     }
@@ -340,7 +340,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     /* create the backend */
     backend=db_create_backend(db, flags);
     if (!backend) {
-        ham_log("unable to create backend with flags 0x%x", flags);
+        ham_log(("unable to create backend with flags 0x%x", flags));
         db_set_error(db, HAM_INV_INDEX);
         return (HAM_INV_INDEX);
     }
@@ -349,8 +349,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
     /* initialize the backend */
     st=backend->_fun_open(backend, flags);
     if (st) {
-        ham_log("backend create() failed with status %d (%s)", 
-                st, ham_strerror(st));
+        ham_log(("backend create() failed with status %d (%s)", 
+                st, ham_strerror(st)));
         db_set_error(db, st);
         return (st);
     }
@@ -365,7 +365,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     if (!(flags&HAM_IN_MEMORY_DB)) {
         st=freel_create(db);
         if (st) {
-            ham_log("unable to create freelist", 0);
+            ham_log(("unable to create freelist"));
             return (st);
         }
     }
@@ -475,8 +475,8 @@ ham_create_ex(ham_db_t *db, const char *filename,
         /* create the file */
         st=os_create(filename, flags, mode, &fd);
         if (st) {
-            ham_log("os_open of %s failed with status %d (%s)", filename, 
-                    st, ham_strerror(st));
+            ham_log(("os_open of %s failed with status %d (%s)", filename, 
+                    st, ham_strerror(st)));
             db_set_error(db, st);
             return (st);
         }
@@ -500,7 +500,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     /* create the backend */
     backend=db_create_backend(db, flags);
     if (!backend) {
-        ham_log("unable to create backend with flags 0x%x", flags);
+        ham_log(("unable to create backend with flags 0x%x", flags));
         db_set_error(db, HAM_INV_INDEX);
         return (HAM_INV_INDEX);
     }
@@ -519,7 +519,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     if (!(flags&HAM_IN_MEMORY_DB)) {
         st=freel_create(db);
         if (st) {
-            ham_log("unable to create freelist", 0);
+            ham_log(("unable to create freelist"));
             return (st);
         }
     }
@@ -822,8 +822,8 @@ ham_close(ham_db_t *db)
      */
     st=freel_shutdown(db);
     if (st) {
-        ham_log("freel_shutdown() failed with status %d (%s)", 
-                st, ham_strerror(st));
+        ham_log(("freel_shutdown() failed with status %d (%s)", 
+                st, ham_strerror(st)));
         return (st);
     }
 
@@ -832,8 +832,8 @@ ham_close(ham_db_t *db)
      */
     st=db_flush_all(db, 0, 0);
     if (st) {
-        ham_log("db_flush_all() failed with status %d (%s)", 
-                st, ham_strerror(st));
+        ham_log(("db_flush_all() failed with status %d (%s)", 
+                st, ham_strerror(st)));
         return (st);
     }
 
@@ -849,8 +849,8 @@ ham_close(ham_db_t *db)
     if (db_get_backend(db)) {
         st=db_get_backend(db)->_fun_close(db_get_backend(db));
         if (st) {
-            ham_log("backend close() failed with status %d (%s)", 
-                    st, ham_strerror(st));
+            ham_log(("backend close() failed with status %d (%s)", 
+                    st, ham_strerror(st)));
             return (st);
         }
     }
@@ -870,8 +870,8 @@ ham_close(ham_db_t *db)
         /* write the database header */
         st=db_write_page_to_device(db_get_header_page(db));
         if (st) {
-            ham_log("db_write_page_to_device() failed with status %d (%s)", 
-                    st, ham_strerror(st));
+            ham_log(("db_write_page_to_device() failed with status %d (%s)", 
+                    st, ham_strerror(st)));
             return (st);
         }
     }
@@ -881,7 +881,7 @@ ham_close(ham_db_t *db)
         db_is_open(db)) {
         (void)os_close(db_get_fd(db));
         /* set an invalid database handle */
-        db_set_fd(db, -1);
+        db_set_fd(db, HAM_INVALID_FD);
     }
 
     return (0);

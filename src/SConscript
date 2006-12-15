@@ -12,7 +12,7 @@ Import('vprint env')
 files=[ "db", 
         "error", 
         "mem", 
-        "os",
+        "os_posix",
         "page",
         "freelist",
         "txn",

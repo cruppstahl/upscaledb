@@ -15,38 +15,57 @@ extern "C" {
 
 #include <ham/types.h>
 
+/**
+ * function prototypes
+ */
+extern void dbg_lock(void);
+extern void dbg_unlock(void);
+extern void dbg_prepare(const char *file, int line, const char *expr);
+extern void dbg_log(const char *format, ...);
+extern void dbg_verify_failed(const char *format, ...);
+
 /** 
  * in debug mode we write trace()-messages to stderr, and assert() 
  * is enabled.
  *
  * not every preprocessor supports ellipsis as macro-arguments -
- * a separate version for crippled preprocessors will be provided
- * when necessary
+ * therefore we have to use brackets, so preprocessors treat multiple
+ * arguments like a single argument. and we need to lock the output, 
+ * otherwise we are not thread-safe. this is super-ugly.
  */
 #ifdef HAM_DEBUG
-#   define ham_trace(f, ...) _ham_log(__FILE__, __LINE__, f, __VA_ARGS__) 
-#   define ham_assert(e, f, ...) ((e) ?      \
-                                  (void)0 : \
-                        _ham_verify(__FILE__, __LINE__, #e, f, __VA_ARGS__))
+#   define ham_trace(f)      do {                                       \
+                                dbg_lock();                               \
+                                dbg_prepare(__FILE__, __LINE__, 0);    \
+                                dbg_log f;                             \
+                                dbg_unlock();                          \
+                             } while (0)
+#   define ham_assert(e, f)  if (!(e)) {                               \
+                                dbg_lock();                               \
+                                dbg_prepare(__FILE__, __LINE__, #e);   \
+                                dbg_verify_failed f;                        \
+                                dbg_unlock();                           \
+                             }
 #else /* HAM_RELEASE */
-#   define ham_trace(...)  (void)0
-#   define ham_assert(...) (void)0
+#   define ham_trace(f)      
+#   define ham_assert(e, f)     
 #endif /* HAM_DEBUG */
 
 /**
  * log() and verify() are available in every build
  */
-#define ham_log(f, ...)       _ham_log(__FILE__, __LINE__, f, __VA_ARGS__)
-#define ham_verify(e, f, ...) _ham_verify(__FILE__, __LINE__,#e,f,__VA_ARGS__)
-
-/**
- * function prototypes
- */
-extern void _ham_log(const char *file, int line, const char *format, ...);
-extern void _ham_verify(const char *file, int line, const char *msg, 
-        const char *format, ...);
-
-
+#define ham_log(f)           do {                                       \
+                                dbg_lock();                               \
+                                dbg_prepare(__FILE__, __LINE__, 0);    \
+                                dbg_log f;                             \
+                                dbg_unlock();                          \
+                             } while (0)
+#define ham_verify(e, f)     if (!(e)) {                               \
+                                dbg_lock();                               \
+                                dbg_prepare(__FILE__, __LINE__, #e);   \
+                                dbg_verify_failed f;                      \
+                                dbg_unlock();                           \
+                             }
 #ifdef __cplusplus
 } // extern "C"
 #endif 

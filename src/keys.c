@@ -61,12 +61,13 @@ key_insert_extended(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
         ham_key_t *key)
 {
     ham_offset_t blobid;
+    ham_u8_t *data_ptr=(ham_u8_t *)key->data;
     ham_status_t st;
 
-    ham_assert(key->size>db_get_keysize(db), 0, 0);
+    ham_assert(key->size>db_get_keysize(db), ("invalid keysize"));
     
     if ((st=blob_allocate(db, txn, 
-                key->data+(db_get_keysize(db)-sizeof(ham_offset_t)), 
+                data_ptr +(db_get_keysize(db)-sizeof(ham_offset_t)), 
                 key->size-(db_get_keysize(db)-sizeof(ham_offset_t)), 
                 0, &blobid))) {
         db_set_error(db, st);

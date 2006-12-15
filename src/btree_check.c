@@ -8,7 +8,7 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <ham/config.h>
+#include "config.h"
 #include "db.h"
 #include "error.h"
 #include "keys.h"
@@ -64,7 +64,7 @@ btree_check_integrity(ham_btree_t *be, ham_txn_t *txn)
     ham_db_t *db=btree_get_db(be);
     check_scratchpad_t scratchpad;
 
-    ham_assert(btree_get_rootpage(be)!=0, 0, 0);
+    ham_assert(btree_get_rootpage(be)!=0, ("invalid root page"));
 
     scratchpad.be=be;
     scratchpad.flags=0;
@@ -73,7 +73,7 @@ btree_check_integrity(ham_btree_t *be, ham_txn_t *txn)
     /* get the root page of the tree */
     page=db_fetch_page(db, txn, btree_get_rootpage(be), 0);
     if (!page) {
-        ham_trace("error 0x%x while fetching root page", db_get_error(db));
+        ham_trace(("error 0x%x while fetching root page", db_get_error(db)));
         return (db_get_error(db));
     }
 
@@ -127,9 +127,9 @@ my_verify_level(ham_txn_t *txn, ham_page_t *parent, ham_page_t *page,
         if (db_get_error(db))
             return (db_get_error(db));
         if (cmp<0) {
-            ham_log("integrity check failed in page 0x%llx: parent item #0 "
+            ham_log(("integrity check failed in page 0x%llx: parent item #0 "
                     "< item #%d\n", page_get_self(page), 
-                    btree_node_get_count(cnode)-1);
+                    btree_node_get_count(cnode)-1));
             return (HAM_INTEGRITY_VIOLATED);
         }
     }
@@ -184,8 +184,8 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
         if (page_get_self(page)==btree_get_rootpage(be))
             return (0);
 
-        ham_log("integrity check failed in page 0x%llx: empty page!\n",
-                page_get_self(page));
+        ham_log(("integrity check failed in page 0x%llx: empty page!\n",
+                page_get_self(page)));
         return (HAM_INTEGRITY_VIOLATED);
     }
 
@@ -201,9 +201,9 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
         else
             isfew=btree_node_get_count(node)<btree_get_minkeys(maxkeys);
         if (isfew) {
-            ham_log("integrity check failed in page 0x%llx: not enough keys "
+            ham_log(("integrity check failed in page 0x%llx: not enough keys "
                     " (need %d, got %d)\n", page_get_self(page),
-                    btree_get_minkeys(maxkeys), btree_node_get_count(node));
+                    btree_get_minkeys(maxkeys), btree_node_get_count(node)));
             return (HAM_INTEGRITY_VIOLATED);
         }
     }
@@ -221,9 +221,9 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
 
         if ((key_get_flags(bte)!=0 && key_get_flags(bte)!=KEY_IS_EXTENDED) && 
             !btree_node_is_leaf(node)) {
-            ham_log("integrity check failed in page 0x%llx: item #0 "
+            ham_log(("integrity check failed in page 0x%llx: item #0 "
                     "has flags, but it's not a leaf page", 
-                    page_get_self(page), i);
+                    page_get_self(page), i));
             return (HAM_INTEGRITY_VIOLATED);
         }
 
@@ -238,9 +238,9 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
         if (db_get_error(db))
             return (db_get_error(db));
         if (cmp>=0) {
-            ham_log("integrity check failed in page 0x%llx: item #0 "
+            ham_log(("integrity check failed in page 0x%llx: item #0 "
                     "< left sibling item #%d\n", page_get_self(page), 
-                    btree_node_get_count(sibnode)-1);
+                    btree_node_get_count(sibnode)-1));
             return (HAM_INTEGRITY_VIOLATED);
         }
     }
@@ -253,8 +253,8 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
         if (db_get_error(db))
             return (db_get_error(db));
         if (cmp>=0) {
-            ham_log("integrity check failed in page 0x%llx: item #%d "
-                    "< item #%d\n", page_get_self(page), i, i+1);
+            ham_log(("integrity check failed in page 0x%llx: item #%d "
+                    "< item #%d\n", page_get_self(page), i, i+1));
             return (HAM_INTEGRITY_VIOLATED);
         }
     }

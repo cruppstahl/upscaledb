@@ -47,9 +47,15 @@ extern ham_status_t
 os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer, 
         ham_size_t bufferlen);
 
-#define HAM_OS_SEEK_SET     SEEK_SET
-#define HAM_OS_SEEK_END     SEEK_END
-#define HAM_OS_SEEK_CUR     SEEK_CUR
+#ifdef HAM_OS_POSIX
+#    define HAM_OS_SEEK_SET     SEEK_SET
+#    define HAM_OS_SEEK_END     SEEK_END
+#    define HAM_OS_SEEK_CUR     SEEK_CUR
+#else
+#    define HAM_OS_SEEK_SET     FILE_BEGIN
+#    define HAM_OS_SEEK_END     FILE_END
+#    define HAM_OS_SEEK_CUR     FILE_CURRENT
+#endif
 
 /**
  * get the pagesize of the operating system

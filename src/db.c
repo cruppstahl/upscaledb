@@ -7,7 +7,6 @@
 
 #include <string.h>
 #include <ham/hamsterdb.h>
-#include <ham/config.h>
 #include "error.h"
 #include "cache.h"
 #include "freelist.h"
@@ -31,15 +30,15 @@ my_write_page(ham_db_t *db, ham_page_t *page)
      * with a mutex
      */
     ham_assert(!(db_get_flags(db)&HAM_IN_MEMORY_DB), 
-            "can't fetch a page from in-memory-db", 0);
+            ("can't fetch a page from in-memory-db"));
     ham_assert(page_get_pers(page)!=0, 
-            "writing page 0x%llx, but page has no buffer", 
-            page_get_self(page));
+            ("writing page 0x%llx, but page has no buffer", 
+            page_get_self(page)));
 
     st=os_pwrite(db_get_fd(db), page_get_self(page), 
             (void *)page_get_pers(page), db_get_pagesize(db));
     if (st) {
-        ham_log("os_pwrite failed with status %d (%s)", st, ham_strerror(st));
+        ham_log(("os_pwrite failed with status %d (%s)", st, ham_strerror(st)));
         return (db_set_error(db, HAM_IO_ERROR));
     }
 
@@ -59,14 +58,14 @@ my_read_page(ham_db_t *db, ham_offset_t address, ham_page_t *page)
      */
 
     ham_assert(!(db_get_flags(db)&HAM_IN_MEMORY_DB), 
-            "can't fetch a page from in-memory-db", 0);
+            ("can't fetch a page from in-memory-db"));
 
     if (db_get_flags(db)&DB_USE_MMAP) {
         ham_u8_t *buffer;
         st=os_mmap(db_get_fd(db), address, db_get_pagesize(db),
             &buffer);
         if (st) {
-            ham_log("os_mmap failed with status %d (%s)", st, ham_strerror(st));
+            ham_log(("os_mmap failed with status %d (%s)", st, ham_strerror(st)));
             db_set_error(db, HAM_IO_ERROR);
             return (HAM_IO_ERROR);
         }
@@ -76,8 +75,8 @@ my_read_page(ham_db_t *db, ham_offset_t address, ham_page_t *page)
         st=os_pread(db_get_fd(db), address, (void *)page_get_pers(page), 
                 db_get_pagesize(db));
         if (st) {
-            ham_log("os_pread failed with status %d (%s)", st, 
-                    ham_strerror(st));
+            ham_log(("os_pread failed with status %d (%s)", st, 
+                    ham_strerror(st)));
             return (db_set_error(db, HAM_IO_ERROR));
         }
     }
@@ -99,7 +98,7 @@ my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
     if (cache_can_add_page(db_get_cache(db))) {
         page=db_alloc_page_struct(db);
         if (!page) {
-            ham_log("db_alloc_page_struct failed", 0);
+            ham_log(("db_alloc_page_struct failed"));
             return (0);
         }
     }
@@ -144,7 +143,7 @@ my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
         page_set_pers(page, (union page_union_t *)ham_mem_alloc(
                     db_get_pagesize(db)));
         if (!page_get_pers(page)) {
-            ham_log("page_new failed - out of memory", 0);
+            ham_log(("page_new failed - out of memory"));
             db_set_error(db, HAM_OUT_OF_MEMORY);
             return (0);
         }
@@ -178,7 +177,7 @@ db_alloc_page_struct(ham_db_t *db)
         page_set_pers(page, (union page_union_t *)ham_mem_alloc(
                     db_get_pagesize(db)));
         if (!page_get_pers(page)) {
-            ham_log("page_set_pers failed - out of memory", 0);
+            ham_log(("page_set_pers failed - out of memory"));
             db_set_error(db, HAM_OUT_OF_MEMORY);
             return (0);
         }
@@ -285,7 +284,7 @@ db_alloc_page_device(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
         tellpos=freel_alloc_area(db, db_get_pagesize(db), 0);
         if (tellpos) {
             ham_assert(tellpos%db_get_pagesize(db)==0, 
-                    "page id %llu is not aligned", tellpos);
+                    ("page id %llu is not aligned", tellpos));
             /* try to fetch the page from the txn */
             if (txn) {
                 page=txn_get_page(txn, tellpos);
@@ -428,7 +427,7 @@ db_get_extended_key(ham_db_t *db, ham_txn_t *txn, ham_u8_t *key_data,
     *ext_key=0;
 
     ham_assert(key_flags&KEY_IS_EXTENDED, 
-            "key is not extended", 0);
+            ("key is not extended"));
 
     if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
         if (!db_get_extkey_cache(db)) {
@@ -446,7 +445,7 @@ db_get_extended_key(ham_db_t *db, ham_txn_t *txn, ham_u8_t *key_data,
         st=extkey_cache_fetch(db_get_extkey_cache(db), blobid, 
                         &temp, &ptr);
         if (!st) {
-            ham_assert(temp==key_length, "invalid key length", 0);
+            ham_assert(temp==key_length, ("invalid key length"));
 
             *ext_key=(ham_u8_t *)ham_mem_alloc(key_length);
             if (!*ext_key) {
@@ -575,7 +574,7 @@ db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
                 st=extkey_cache_fetch(db_get_extkey_cache(db), blobid, 
                         &temp, &plhs);
                 if (!st) 
-                    ham_assert(temp==lhs_length, "invalid key length", 0);
+                    ham_assert(temp==lhs_length, ("invalid key length"));
             }
             else
                 st=HAM_KEY_NOT_FOUND;
@@ -627,7 +626,7 @@ db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
                 st=extkey_cache_fetch(db_get_extkey_cache(db), blobid, 
                         &temp, &prhs);
                 if (!st) 
-                    ham_assert(temp==rhs_length, "invalid key length", 0);
+                    ham_assert(temp==rhs_length, ("invalid key length"));
             }
             else
                 st=HAM_KEY_NOT_FOUND;
@@ -691,7 +690,7 @@ db_create_backend(ham_db_t *db, ham_u32_t flags)
      * hash tables are not yet supported
      */
     if (flags&HAM_USE_HASH) {
-        ham_log("hash indices are not yet supported", 0);
+        ham_log(("hash indices are not yet supported"));
         return (0);
     }
 
@@ -702,14 +701,14 @@ db_create_backend(ham_db_t *db, ham_u32_t flags)
      */
     be=(ham_backend_t *)ham_mem_alloc(sizeof(ham_btree_t));
     if (!be) {
-        ham_log("out of memory", 0);
+        ham_log(("out of memory"));
         return (0);
     }
 
     /* initialize the backend */
     st=btree_create((ham_btree_t *)be, db, flags);
     if (st) {
-        ham_log("failed to initialize backend: 0x%s", st);
+        ham_log(("failed to initialize backend: 0x%s", st));
         return (0);
     }
 
@@ -754,7 +753,7 @@ db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
      * check if the cache allows us to allocate another page
      */
     if (!cache_can_add_page(db_get_cache(db))) {
-        ham_trace("cache is full! resize the cache", 0);
+        ham_trace(("cache is full! resize the cache"));
         db_set_error(db, HAM_CACHE_FULL);
         return (0);
     }
@@ -845,7 +844,8 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags)
         return (0);
     }
 
-    ham_assert(cache_can_add_page(db_get_cache(db)), 0, 0);
+    ham_assert(cache_can_add_page(db_get_cache(db)), 
+            ("cache is full - can't add new page"));
 
     /* set the page type */
     page_set_type(page, type);
@@ -864,7 +864,8 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags)
         page_set_inuse(page, 1);
     }
 
-    ham_assert(cache_can_add_page(db_get_cache(db)), 0, 0);
+    ham_assert(cache_can_add_page(db_get_cache(db)), 
+            ("cache is full - can't add new page"));
 
     /* store the page in the cache */
     st=cache_put(db_get_cache(db), page);
@@ -887,7 +888,7 @@ db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
     (void)flags;
 
     ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING), 
-            "deleting a page which is already deleted", 0);
+            ("deleting a page which is already deleted"));
 
     /*
      * if we have extended keys: remove all extended keys from the 

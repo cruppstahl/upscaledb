@@ -20,9 +20,9 @@ txn_add_page(ham_txn_t *txn, ham_page_t *page)
      * that would be a bug
      */
     ham_assert(txn_get_page(txn, page_get_self(page))==0, 
-            "page 0x%llx is already in the txn", page_get_self(page));
+            ("page 0x%llx is already in the txn", page_get_self(page)));
     ham_assert(page_is_inuse(page)==0, 
-            "page 0x%llx is already in use", page_get_self(page));
+            ("page 0x%llx is already in use", page_get_self(page)));
 #endif
 
     /*
@@ -106,14 +106,14 @@ ham_txn_commit(ham_txn_t *txn)
                 st=freel_add_area(db, page_get_self(head), 
                     db_get_usable_pagesize(db));
                 if (st) {
-                    ham_trace("freel_add_page failed with status 0x%x", st);
+                    ham_trace(("freel_add_page failed with status 0x%x", st));
                     st=0;
                 }
 
                 st=cache_move_to_garbage(db_get_cache(db), head);
                 if (st) {
-                    ham_trace("cache_move_to_garbage failed with status 0x%x", 
-                            st);
+                    ham_trace(("cache_move_to_garbage failed with status 0x%x", 
+                            st));
                     st=0;
                 }
             }
@@ -124,7 +124,7 @@ ham_txn_commit(ham_txn_t *txn)
         /* flush the page */
         st=db_flush_page(db, 0, head, 0);
         if (st) {
-            ham_trace("commit failed with status 0x%x", st);
+            ham_trace(("commit failed with status 0x%x", st));
             txn_set_pagelist(txn, head);
             (void)ham_txn_abort(txn);
             return (st); /* TODO oder return 0? */

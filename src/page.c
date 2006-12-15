@@ -27,27 +27,27 @@ my_validate_page(ham_page_t *p)
      * not allowed: dirty and in garbage bin
      */
     ham_assert(!(page_is_dirty(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
-            "dirty and in garbage bin", 0);
+            ("dirty and in garbage bin"));
 
     /*
      * not allowed: in use and in garbage bin
      */
     ham_assert(!(page_is_inuse(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
-            "referenced and in garbage bin", 0);
+            ("referenced and in garbage bin"));
 
     /*
      * not allowed: in transaction and in garbage bin
      */
     ham_assert(!(my_is_in_list(p, PAGE_LIST_TXN) && 
                my_is_in_list(p, PAGE_LIST_GARBAGE)),
-            "in txn and in garbage bin", 0);
+            ("in txn and in garbage bin"));
 
     /*
      * not allowed: cached and in garbage bin
      */
     ham_assert(!(my_is_in_list(p, PAGE_LIST_BUCKET) && 
                my_is_in_list(p, PAGE_LIST_GARBAGE)),
-            "cached and in garbage bin", 0);
+            ("cached and in garbage bin"));
 
     /*
      * not allowed: unknown page types

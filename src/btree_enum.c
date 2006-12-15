@@ -8,7 +8,6 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <ham/config.h>
 #include "db.h"
 #include "error.h"
 #include "btree.h"
@@ -40,13 +39,13 @@ btree_enumerate(ham_btree_t *be, ham_txn_t *txn, ham_enumerate_cb_t cb,
     ham_status_t st;
     ham_db_t *db=btree_get_db(be);
 
-    ham_assert(btree_get_rootpage(be)!=0, 0, 0);
-    ham_assert(cb!=0, 0, 0);
+    ham_assert(btree_get_rootpage(be)!=0, ("invalid root page"));
+    ham_assert(cb!=0, ("invalid parameter"));
 
     /* get the root page of the tree */
     page=db_fetch_page(db, txn, btree_get_rootpage(be), 0);
     if (!page) {
-        ham_trace("error 0x%x while fetching root page", db_get_error(db));
+        ham_trace(("error 0x%x while fetching root page", db_get_error(db)));
         return (db_get_error(db));
     }
 

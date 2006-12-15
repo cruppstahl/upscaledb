@@ -29,7 +29,7 @@ util_copy_key(ham_db_t *db, ham_txn_t *txn,
             db_set_error(db, st);
             return (0);
         }
-        ham_assert(dest->data!=0, "invalid extended key", 0);
+        ham_assert(dest->data!=0, ("invalid extended key"));
         dest->size=source->size;
         /* the extended flag is set later, when this key is inserted */
         dest->_flags=source->_flags&(~KEY_IS_EXTENDED);

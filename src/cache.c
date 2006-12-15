@@ -69,7 +69,7 @@ my_purge(ham_cache_t *cache)
      * page size, write and delete the page
      */
     if (page_is_in_list(cache_get_totallist(cache), page, PAGE_LIST_CACHED)) {
-        ham_size_t hash=my_calc_hash(cache, page_get_self(page));
+        ham_size_t hash=(ham_size_t)my_calc_hash(cache, page_get_self(page));
 
         cache_set_totallist(cache, 
                 page_list_remove(cache_get_totallist(cache), 
@@ -128,7 +128,7 @@ cache_get_unused(ham_cache_t *cache)
     page=cache_get_garbagelist(cache);
     if (page) {
         ham_assert(page_is_inuse(page)==0, 
-                "page is in use and in garbage list", 0);
+                ("page is in use and in garbage list"));
         cache_set_garbagelist(cache, 
                 page_list_remove(cache_get_garbagelist(cache), 
                     PAGE_LIST_GARBAGE, page));
@@ -165,7 +165,7 @@ cache_get_unused(ham_cache_t *cache)
         return (0);
 
 found_page:
-    hash=my_calc_hash(cache, page_get_self(min));
+    hash=(ham_size_t)my_calc_hash(cache, page_get_self(min));
 
     cache_set_totallist(cache, 
             page_list_remove(cache_get_totallist(cache), 
@@ -188,7 +188,7 @@ ham_page_t *
 cache_get(ham_cache_t *cache, ham_offset_t address)
 {
     ham_page_t *page=0;
-    ham_size_t hash=my_calc_hash(cache, address);
+    ham_size_t hash=(ham_size_t)my_calc_hash(cache, address);
 
     page=cache_get_bucket(cache, hash);
     while (page) {
@@ -203,7 +203,7 @@ cache_get(ham_cache_t *cache, ham_offset_t address)
 ham_status_t 
 cache_put(ham_cache_t *cache, ham_page_t *page)
 {
-    ham_size_t hash=my_calc_hash(cache, page_get_self(page));
+    ham_size_t hash=(ham_size_t)my_calc_hash(cache, page_get_self(page));
     ham_db_t *db=cache_get_owner(cache);
 
     /*
@@ -294,7 +294,7 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page)
     ham_db_t *db=cache_get_owner(cache);
     
     if (page_get_self(page)) {
-        hash=my_calc_hash(cache, page_get_self(page));
+        hash=(ham_size_t)my_calc_hash(cache, page_get_self(page));
         cache_get_bucket(cache, hash)=page_list_remove(cache_get_bucket(cache, 
                 hash), PAGE_LIST_BUCKET, page);
     }
@@ -318,12 +318,12 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page)
 ham_status_t
 cache_move_to_garbage(ham_cache_t *cache, ham_page_t *page)
 {
-    ham_size_t hash=my_calc_hash(cache, page_get_self(page));
+    ham_size_t hash=(ham_size_t)my_calc_hash(cache, page_get_self(page));
 
-    ham_assert(page_is_inuse(page)==0, "page 0x%lx is in use", 
-            page_get_self(page));
-    ham_assert(page_is_dirty(page)==0, "page 0x%lx is dirty", 
-            page_get_self(page));
+    ham_assert(page_is_inuse(page)==0, 
+            ("page 0x%lx is in use", page_get_self(page)));
+    ham_assert(page_is_dirty(page)==0, 
+            ("page 0x%lx is dirty", page_get_self(page)));
 
     if (page_is_in_list(cache_get_totallist(cache), page, PAGE_LIST_CACHED)) {
         cache_set_totallist(cache, page_list_remove(cache_get_totallist(cache), 
@@ -347,9 +347,9 @@ cache_move_to_garbage(ham_cache_t *cache, ham_page_t *page)
     if (!(cache_get_flags(cache)&HAM_IN_MEMORY_DB) &&
         !(cache_get_flags(cache)&HAM_CACHE_STRICT)) {
         while (cache_get_usedsize(cache)>cache_get_cachesize(cache)) {
-            ham_trace("cache limits overstepped - used size %u, cache "
+            ham_trace(("cache limits overstepped - used size %u, cache "
                     "size %u", cache_get_usedsize(cache), 
-                    cache_get_cachesize(cache));
+                    cache_get_cachesize(cache)));
             if (!my_purge(cache))
                 break;
         }
@@ -380,7 +380,7 @@ cache_flush_and_delete(ham_cache_t *cache, ham_u32_t flags)
         ham_page_t *next=page_get_next(head, PAGE_LIST_CACHED);
 
         ham_assert(page_is_inuse(head)==0, 
-                "page is in use, but database is closing", 0);
+                ("page is in use, but database is closing"));
 
         /*
          * don't remove the page from the cache, if flag NODELETE
@@ -400,7 +400,7 @@ cache_flush_and_delete(ham_cache_t *cache, ham_u32_t flags)
 
         st=db_write_page_and_delete(db, head, flags);
         if (st) 
-            ham_log("failed to flush page (%d) - ignoring error...", st);
+            ham_log(("failed to flush page (%d) - ignoring error...", st));
 
         head=next;
     }
@@ -413,7 +413,7 @@ cache_flush_and_delete(ham_cache_t *cache, ham_u32_t flags)
             ham_page_t *next=page_get_next(head, PAGE_LIST_GARBAGE);
     
             ham_assert(page_is_inuse(head)==0, 
-                    "page is in use, but database is closing", 0);
+                    ("page is in use, but database is closing"));
 
             /*
              * delete the page structure and free the memory
@@ -440,7 +440,7 @@ cache_dump(ham_db_t *db)
     ham_page_t *head;
     ham_cache_t *cache=db_get_cache(db);
 
-    ham_log("cache_dump ---------------------------------------------", 0);
+    ham_log(("cache_dump ---------------------------------------------"));
 
     /*
      * for each bucket in the hash table
@@ -451,7 +451,7 @@ cache_dump(ham_db_t *db)
          */
         head=cache_get_bucket(cache, i);
         while (head) {
-            ham_log("    %02d: page %lld", i, page_get_self(head));
+            ham_log(("    %02d: page %lld", i, page_get_self(head)));
             head=page_get_next(head, PAGE_LIST_BUCKET);
         }
     }
@@ -502,8 +502,8 @@ cache_check_integrity(ham_cache_t *cache)
      * compare page size
      */
     if (cache_get_usedsize(cache)!=usedsize) {
-        ham_trace("cache's usedsize (%d) != actual size (%d)", 
-                cache_get_usedsize(cache), usedsize);
+        ham_trace(("cache's usedsize (%d) != actual size (%d)", 
+                cache_get_usedsize(cache), usedsize));
         return (HAM_INTEGRITY_VIOLATED);
     }
 
@@ -512,8 +512,8 @@ cache_check_integrity(ham_cache_t *cache)
      */
     if (cache_get_flags(cache)&HAM_CACHE_STRICT) {
         if (cache_get_usedsize(cache)>cache_get_cachesize(cache)) {
-            ham_trace("cache's usedsize (%d) > maximum size (%d)", 
-                    cache_get_usedsize(cache), cache_get_cachesize(cache));
+            ham_trace(("cache's usedsize (%d) > maximum size (%d)", 
+                    cache_get_usedsize(cache), cache_get_cachesize(cache)));
             return (HAM_INTEGRITY_VIOLATED);
         }
     }

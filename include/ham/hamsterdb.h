@@ -13,7 +13,6 @@
 extern "C" {
 #endif 
 
-#include <ham/config.h>
 #include <ham/types.h>
 
 /**
@@ -227,18 +226,18 @@ ham_create_ex(ham_db_t *db, const char *filename,
 #define HAM_CACHE_STRICT             0x00000400
 
 /**
- * do not immediately writeback modified freelist pages
+ * Do not immediately writeback modified freelist pages.
  * leads to small performance improvements, but comes with additional
- * risk in case of a system crash or program crash
- * It's not recommended to use this flag.
+ * risk in case of a system crash or program crash.
+ * Default: flag is off.
  */
 #define HAM_DISABLE_FREELIST_FLUSH   0x00000800
 
 /**
- * optimize for smaller database files; this will try to merge freelist
+ * Optimize for smaller database files; this will try to merge freelist
  * entries, whenever possible. Files can become significantly smaller, 
  * but it costs performance, especially when ham_erase() is called 
- * frequently. Default: flag is off
+ * frequently. Default: flag is off.
  */
 #define HAM_OPTIMIZE_SIZE            0x00001000
 
