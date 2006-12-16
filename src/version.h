@@ -27,13 +27,6 @@ extern "C" {
 #define HAM_VERSION_REV 1
 #define HAM_VERSION_STR "0.0.1"
 
-/** 
- * same as above, but packed to 32 bits
- */
-#define HAM_VERSION_INT ((HAM_VERSION_MAJ<<16)| \
-                         (HAM_VERSION_MIN<< 8)| \
-                          HAM_VERSION_REV)
-
 
 #ifdef __cplusplus
 } // extern "C"

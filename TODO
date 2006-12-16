@@ -24,8 +24,22 @@ x 220.tst: schlägt fehl im release-build!
 
 o auf autoconf/automake umstellen
     x in blog-artikel dokumentieren
+    x --enable-debug
+    x --enable-profile
+    x hamsterdb versions-string aus src/version.h extrahieren
+        (wie in expat)
+    x config.h im source benutzen: HAVE_MMAP, HAVE_MUNMAP, HAVE_PREAD,
+            HAVE_PWRITE
+    x welche dateien müssen wir ausliefern, welche nicht? -> make distclean
+            räumt automatisch auf
+    o disable optimization in gcc < 4.1.1 (aber: --force-optimization)
+    o test auch noch umbauen
+    o vorsicht: sample soll nicht installiert werden!
 
 o auf windows portieren
+    o kein makefile, aber einfache batch-files zum compilieren
+    o sourcen portieren - mmap fehlt noch!
+    o monster.sh!
 
 -----------------------------------------------------
 

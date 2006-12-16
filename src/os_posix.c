@@ -4,17 +4,21 @@
  *
  */
 
+#include <ham/hamsterdb.h>
+#include <ham/types.h>
+#include "config.h"
+
 #define _GNU_SOURCE   1 /* for O_LARGEFILE */
 #define __USE_XOPEN2K 1 /* for ftruncate() */
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include <sys/mman.h>
+#if HAVE_MMAP
+#  include <sys/mman.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <ham/hamsterdb.h>
-#include <ham/types.h>
 #include <unistd.h>
 #include "error.h"
 #include "os.h"
@@ -38,6 +42,7 @@ ham_status_t
 os_mmap(ham_fd_t fd, ham_offset_t position, ham_size_t size, 
         ham_u8_t **buffer)
 {
+#if HAVE_MMAP
     *buffer=mmap(0, size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, position);
     if (*buffer==(void *)-1) {
         *buffer=0;
@@ -46,20 +51,27 @@ os_mmap(ham_fd_t fd, ham_offset_t position, ham_size_t size,
     }
 
     return (HAM_SUCCESS);
+#else
+    return (HAM_NOT_IMPLEMENTED);
+#endif
 }
 
 ham_status_t
 os_munmap(void *buffer, ham_size_t size)
 {
+#if HAVE_MUNMAP
     int r=munmap(buffer, size);
     if (r) {
         ham_log(("munmap failed with status %d (%s)", errno, strerror(errno)));
         return (errno);
     }
     return (HAM_SUCCESS);
+#else
+    return (HAM_NOT_IMPLEMENTED);
+#endif
 }
 
-#if 0
+#ifndef HAVE_PREAD
 static ham_status_t
 my_os_read(ham_fd_t fd, ham_u8_t *buffer, ham_size_t bufferlen)
 {
@@ -83,6 +95,7 @@ ham_status_t
 os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer, 
         ham_size_t bufferlen)
 {
+#if HAVE_PREAD
     int r;
     ham_size_t total=0;
 
@@ -96,9 +109,18 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
     }
 
     return (total==bufferlen ? HAM_SUCCESS : HAM_SHORT_READ);
+#else
+    ham_status_t st;
+
+    st=os_seek(fd, addr, HAM_OS_SEEK_SET);
+    if (st)
+        return (st);
+    st=my_os_read(fd, buffer, bufferlen);
+    return (st);
+#endif
 }
 
-#if 0
+#ifndef HAVE_PWRITE
 static ham_status_t
 my_os_write(ham_fd_t fd, const ham_u8_t *buffer, ham_size_t bufferlen)
 {
@@ -122,6 +144,7 @@ ham_status_t
 os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer, 
         ham_size_t bufferlen)
 {
+#if HAVE_PWRITE
     ssize_t s;
     ham_size_t total=0;
 
@@ -135,6 +158,15 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
     }
 
     return (total==bufferlen ? HAM_SUCCESS : HAM_SHORT_WRITE);
+#else
+    ham_status_t st;
+
+    st=os_seek(fd, addr, HAM_OS_SEEK_SET);
+    if (st)
+        return (st);
+    st=my_os_write(fd, buffer, bufferlen);
+    return (st);
+#endif
 }
 
 ham_status_t

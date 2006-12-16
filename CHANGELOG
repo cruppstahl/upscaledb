@@ -3,6 +3,8 @@ Dec 15, 2006 - chris
 o started the port to MS Windows; so far, there are only two batch
     files to create the library, but no nmake file or Visual Studio 
     project.
+o started to move the stuff to automake/autoconf; transition is not
+    yet complete
 
 Dec 10, 2006 - chris 
 o a new parameter HAM_OPTIMIZE_SIZE creates smaller files by merging 

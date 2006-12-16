@@ -94,6 +94,7 @@ ham_strerror(ham_status_t result);
 #define HAM_PREFIX_REQUEST_FULLKEY   (-17)
 #define HAM_IO_ERROR                 (-18)
 #define HAM_CACHE_FULL               (-19)
+#define HAM_NOT_IMPLEMENTED          (-20)
 
 /**
  * get the version of the hamsterdb library

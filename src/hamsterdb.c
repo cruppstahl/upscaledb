@@ -293,10 +293,12 @@ ham_open_ex(ham_db_t *db, const char *filename,
     /* 
      * can we use mmap?
      */
+#if HAVE_MMAP
     if (!(flags&HAM_DISABLE_MMAP))
         if (db_get_pagesize(db)==os_get_pagesize()) 
             flags|=DB_USE_MMAP;
     flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
+#endif
 
     db_set_flags(db, flags);
     db_set_error(db, HAM_SUCCESS);
@@ -421,6 +423,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     /*
      * can we use mmap? 
      */
+#if HAVE_MMAP
     else if (!(flags&HAM_DISABLE_MMAP)) {
         if (pagesize) {
             if (pagesize==os_get_pagesize())
@@ -438,6 +441,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
             if (pagesize/keysize<4)
                 return (HAM_INV_KEYSIZE);
     }
+#endif
 
     /*
      * if we still don't have a pagesize, try to get a good default value
