@@ -179,7 +179,7 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-SUBDIRS = src samples
+SUBDIRS = src samples tests
 EXTRA_DIST = documentation/Doxyfile 
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive

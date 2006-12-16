@@ -10,7 +10,7 @@ errors=0
 testdir=../../../hamsterdb-tests/trunk/testfiles
 
 function call {
-    ./test --db $1 $2 $3 $4 $5 $6 $7 $8 $9 &> .tmp
+    ./test --file $1 $2 $3 $4 $5 $6 $7 $8 $9 &> .tmp
 
     if [[ $? = 0 ]]
         then echo "[OK]   $1"

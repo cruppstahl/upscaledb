@@ -1,5 +1,5 @@
 
-SUBDIRS = src samples
+SUBDIRS = src samples tests
 
 EXTRA_DIST = documentation/Doxyfile 
 

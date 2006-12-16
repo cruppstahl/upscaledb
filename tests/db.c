@@ -68,6 +68,7 @@ static unsigned long g_filesize, g_filepos;
 #define ARG_REOPEN     18
 #define ARG_USERALLOC  19
 #define ARG_OPT_SIZE   20
+#define ARG_FILE       21
 
 #define PROF_INSERT     1
 #define PROF_ERASE      2
@@ -177,6 +178,12 @@ static option_t opts[]={
         "verbose",
         "be verbose",
         0 },
+    {
+        ARG_FILE,
+        "f",
+        "file",
+        "the test script file",
+        GETOPTS_NEED_ARGUMENT },
     {
         ARG_PROFILE,
         "p",
@@ -1202,12 +1209,14 @@ my_execute(char *line)
 }
 
 int 
-test_db(const char *filename)
+main(int argc, char **argv)
 {
     FILE *f;
     unsigned opt;
     char *param;
     char line[1024*1024];
+
+    getopts_init(argc, argv, "test");
 
     /*
      * initialize configuration with sane default values
@@ -1217,7 +1226,6 @@ test_db(const char *filename)
     config.check=1;
     config.backend[0]=BACKEND_HAMSTER;
     config.backend[1]=BACKEND_BERK;
-    config.filename=filename;
     config.mmap=1; /* mmap is enabled by default */
     config.cachesize=HAM_DEFAULT_CACHESIZE;
 
@@ -1273,6 +1281,9 @@ test_db(const char *filename)
         }
         else if (opt==ARG_VERBOSE) {
             config.verbose++;
+        }
+        else if (opt==ARG_FILE) {
+            config.filename=param;
         }
         else if (opt==ARG_BACKEND1) {
             if (!strcmp(param, "berk")) 

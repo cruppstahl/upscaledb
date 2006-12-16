@@ -65,6 +65,6 @@ dnl if test "$GCC" = yes ; then
                    dnl AC_MSG_RESULT(no); CFLAGS="$OLDCFLAGS")
 dnl fi
 
-AC_CONFIG_FILES(Makefile src/Makefile samples/Makefile)
+AC_CONFIG_FILES(Makefile src/Makefile samples/Makefile tests/Makefile)
 AC_OUTPUT
 

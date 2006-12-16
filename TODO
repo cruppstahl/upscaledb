@@ -33,8 +33,13 @@ o auf autoconf/automake umstellen
     x welche dateien müssen wir ausliefern, welche nicht? -> make distclean
             räumt automatisch auf
     o disable optimization in gcc < 4.1.1 (aber: --force-optimization)
-    o test auch noch umbauen
     o vorsicht: sample soll nicht installiert werden!
+
+o test auch noch umbauen
+    x nur noch die db.c, die anderen optionen (-c etc) können raus
+    x umbauen für configure
+    o verschieben in das test-verzeichnis?
+    o testen
 
 o auf windows portieren
     o kein makefile, aber einfache batch-files zum compilieren
@@ -47,12 +52,13 @@ o nächsten release machen!
 
 o VORSICHT! am besten ein skript schreiben - make-release.sh
     1. version.h hochzählen
-    2. einchecken
-    3. taggen bzw. copy in release-trunk in hamsterdb-v.v.v
-    4. einchecken
-    5. export vom release-verzeichnis
-    6. tar/gzip
-    7. upload
+    2. README überarbeiten, CHANGELOG überarbeiten
+    3. einchecken
+    4. taggen bzw. copy in release-trunk in hamsterdb-v.v.v
+    5. einchecken
+    6. export vom release-verzeichnis
+    7. tar/gzip
+    8. upload
 
 o Regelwerk für releases schreiben, z.b.
     1. alle tests (auch 2-4) durchlaufen (monster.sh)
@@ -62,14 +68,6 @@ o Regelwerk für releases schreiben, z.b.
     5. sicherstellen dass alles eingecheckt ist
     6. changelog updaten
     7. make-release.sh
-
------------------------------------------------------
------------------------------------------------------
-
-o das test-tool umschreiben - nur noch die db.c, die anderen
-    optionen (-c etc) können raus
-
-o verschieben in das test-verzeichnis?
 
 -----------------------------------------------------
 
