@@ -50,6 +50,7 @@ static unsigned long g_filesize, g_filepos;
                                 break;                                      \
                             }
 
+#define ARG_HELP        1
 #define ARG_VERBOSE     2
 #define ARG_PROFILE     3
 #define ARG_QUIET       4
@@ -172,6 +173,12 @@ static struct {
  * command line parameters
  */
 static option_t opts[]={
+    { 
+        ARG_HELP,               // symbolic name of this option
+        "h",                    // short option 
+        "help",                 // long option 
+        "this help screen",     // help string
+        0 },                    // no flags
     {
         ARG_VERBOSE,
         "v",
@@ -1233,7 +1240,11 @@ main(int argc, char **argv)
      * parse command line parameters
      */
     while ((opt=getopts(&opts[0], &param))) {
-        if (opt==ARG_PROFILE) {
+        if (opt==ARG_HELP) {
+            getopts_usage(&opts[0]);
+            break;
+        }
+        else if (opt==ARG_PROFILE) {
             if (!param) {
                 printf("missing profile parameter (none, all, "
                         "insert, erase, find, other)\n");

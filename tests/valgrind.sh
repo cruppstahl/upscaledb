@@ -7,7 +7,7 @@ function call {
     for file in $files
     do
         echo "running $dir/$file $1 $2 $3 $4 $5"
-        valgrind --tool=memcheck ./test --db $dir/$file $1 $2 $3 $4 $5 
+        valgrind --tool=memcheck ./test --file $dir/$file $1 $2 $3 $4 $5 
     done
 }
 

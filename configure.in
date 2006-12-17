@@ -31,6 +31,16 @@ AC_TYPE_OFF_T
 AC_FUNC_MMAP
 
 dnl
+dnl big endian or little endian?
+dnl 
+AC_C_BIGENDIAN(
+        big_endian=yes,
+        big_endian=no,
+        AC_MSG_ERROR(Don't know if this platform is bigendian or little
+                     endian))
+AM_CONDITIONAL(BIG_ENDIAN, test x$big_endian = xyes)
+
+dnl
 dnl support debugging
 dnl 
 AC_ARG_ENABLE(debug,
@@ -57,13 +67,31 @@ AM_CONDITIONAL(PROFILE, test x$profile = xtrue)
 dnl
 dnl don't use optimization if gcc version is < 4.1.1 
 dnl
-dnl if test "$GCC" = yes ; then
-    dnl AC_MSG_CHECKING(whether gcc version is older than 4.1.1)
-    dnl dnl TODO
-    dnl AC_TRY_COMPILE(,(void)1,
-                   dnl AC_MSG_RESULT(yes),
-                   dnl AC_MSG_RESULT(no); CFLAGS="$OLDCFLAGS")
-dnl fi
+AM_CONDITIONAL(USING_GCC, test x$GCC = xyes)
+if test "$GCC" = yes ; then
+    AC_MSG_CHECKING(whether gcc version is older than 4.1.1)
+    AC_TRY_COMPILE(,
+        [#define GCC_VERSION (__GNUC__ * 10000 \
+                            + __GNUC_MINOR__ * 100 \
+                            + __GNUC_PATCHLEVEL__)
+        #if GCC_VERSION<40101
+        #   error "gcc too old, disabling optimizations"
+        #endif
+        int main(void) { return 0; }],
+                   gcc_version_ok=yes, 
+                   gcc_version_ok=no)
+    if test $gcc_version_ok != yes; then
+        AC_MSG_RESULT(Yes, disabling optimizations)
+    else
+        AC_MSG_RESULT(No, enabling optimizations)
+    fi
+fi
+AM_CONDITIONAL(ENABLE_GCC_OPTIMIZATION, test x$gcc_version_ok = xyes)
+
+dnl
+dnl are we using gcc? we need this to disable optimization for debug builds
+dnl
+AM_CONDITIONAL(USGIN_GCC, test x$GCC = xyes)
 
 AC_CONFIG_FILES(Makefile src/Makefile samples/Makefile tests/Makefile)
 AC_OUTPUT

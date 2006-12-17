@@ -41,12 +41,12 @@ build with debugging symbols etc).
 
 5. Testing and Example Code
 
-Scons automatically compiles a simple example program in the directory
+Make automatically compiles a simple example program in the directory
 '/samples'. To see hamsterdb in action, just run '/samples/simple'.
 
 6. API Documentation
 
-API documentation is not yet built. The header files in '/include/ham' are 
+API documentation is not yet available. The header files in '/include/ham' are 
 commented, though. The next release will provide a doxygen script to 
 generate the documentation from the header files.  
 

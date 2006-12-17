@@ -22,7 +22,7 @@ x 220.tst: schlägt fehl im release-build!
 -----------------------------------------------------
 -----------------------------------------------------
 
-o auf autoconf/automake umstellen
+x auf autoconf/automake umstellen
     x in blog-artikel dokumentieren
     x --enable-debug
     x --enable-profile
@@ -32,14 +32,26 @@ o auf autoconf/automake umstellen
             HAVE_PWRITE
     x welche dateien müssen wir ausliefern, welche nicht? -> make distclean
             räumt automatisch auf
-    o disable optimization in gcc < 4.1.1 (aber: --force-optimization)
-    o vorsicht: sample soll nicht installiert werden!
+    x disable optimization in gcc < 4.1.1
 
-o test auch noch umbauen
-    x nur noch die db.c, die anderen optionen (-c etc) können raus
-    x umbauen für configure
-    o verschieben in das test-verzeichnis?
-    o testen
+    x test auch noch umbauen
+        x nur noch die db.c, die anderen optionen (-c etc) können raus
+        x umbauen für configure
+        x verschieben in das test-verzeichnis? - bin eher dagegen...
+                lizenztechnisch ist das testprogramm unter der GPL, 
+                und die ist kompatibel mit bdb. deshalb sollte es so passen.
+        x ein beispiel-sample im test-verzeichnis einchecken
+        x eine readme.txt
+        x valgrind-checks gehen momentan nicht, weil ./test ein shell-skript 
+                ist und nicht die binary
+        x testen
+
+    x dokumentation machen
+
+    x installation testen
+        x vorsicht: sample soll nicht installiert werden!
+        x vorsicht: test soll nicht installiert werden!
+        x erzeugte bibliothek heisst libhamsterdb.so.0.0.0
 
 o auf windows portieren
     o kein makefile, aber einfache batch-files zum compilieren
@@ -51,14 +63,15 @@ o auf windows portieren
 o nächsten release machen!
 
 o VORSICHT! am besten ein skript schreiben - make-release.sh
-    1. version.h hochzählen
-    2. README überarbeiten, CHANGELOG überarbeiten
-    3. einchecken
-    4. taggen bzw. copy in release-trunk in hamsterdb-v.v.v
-    5. einchecken
-    6. export vom release-verzeichnis
-    7. tar/gzip
-    8. upload
+    1. version.h hochzählen (auch in src/Makefile.am!)
+    2. README überarbeiten, versionsnummer und datum hochzählen
+    3. CHANGELOG überarbeiten, release reinschreiben
+    4. einchecken
+    5. taggen bzw. copy in release-trunk in hamsterdb-v.v.v
+    6. einchecken
+    7. export vom release-verzeichnis
+    8. tar/gzip
+    9. upload
 
 o Regelwerk für releases schreiben, z.b.
     1. alle tests (auch 2-4) durchlaufen (monster.sh)

@@ -83,6 +83,8 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
+BIG_ENDIAN_FALSE = @BIG_ENDIAN_FALSE@
+BIG_ENDIAN_TRUE = @BIG_ENDIAN_TRUE@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -103,6 +105,8 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
+ENABLE_GCC_OPTIMIZATION_FALSE = @ENABLE_GCC_OPTIMIZATION_FALSE@
+ENABLE_GCC_OPTIMIZATION_TRUE = @ENABLE_GCC_OPTIMIZATION_TRUE@
 EXEEXT = @EXEEXT@
 F77 = @F77@
 FFLAGS = @FFLAGS@
@@ -132,6 +136,10 @@ RANLIB = @RANLIB@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
+USGIN_GCC_FALSE = @USGIN_GCC_FALSE@
+USGIN_GCC_TRUE = @USGIN_GCC_TRUE@
+USING_GCC_FALSE = @USING_GCC_FALSE@
+USING_GCC_TRUE = @USING_GCC_TRUE@
 VERSION = @VERSION@
 ac_ct_AR = @ac_ct_AR@
 ac_ct_AS = @ac_ct_AS@
@@ -616,6 +624,9 @@ uninstall-info: uninstall-info-recursive
 	mostlyclean-libtool mostlyclean-recursive pdf pdf-am ps ps-am \
 	tags tags-recursive uninstall uninstall-am uninstall-info-am
 
+
+doc:
+	doxygen documentation/Doxyfile
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

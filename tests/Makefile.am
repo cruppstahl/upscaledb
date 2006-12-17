@@ -1,7 +1,7 @@
 
 INCLUDES		= -I$(top_builddir)/include
 
-bin_PROGRAMS	= test
+noinst_PROGRAMS	= test
 
 # TODO little or big endian?
 AM_CFLAGS = -DHAM_LITTLE_ENDIAN
@@ -17,5 +17,6 @@ if PROFILE
     AM_CFLAGS += -pg
 endif
 
-test_SOURCES    = test.c getopts.c
+test_SOURCES    = db.c getopts.c
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la -ldb
+
