@@ -30,7 +30,8 @@ keys and variable length data records.
 - No concurrency, no transactions, no SQL support...
 - Some versions of gcc break the library when compiling with enabled
     optimization (this is reproducable with gcc 3.4.5); gcc 4.1.1 works 
-    however
+    however. The configure script recognizes broken compilers and disables
+    optimization.
 
 4. Compiling
 
@@ -50,3 +51,31 @@ API documentation is not yet available. The header files in '/include/ham' are
 commented, though. The next release will provide a doxygen script to 
 generate the documentation from the header files.  
 
+7. Compiling for Microsoft Windows
+
+See the subdirectory ./win32 for batch-files which use the Microsoft compiler 
+(cl). Before you start those files, you have to execute the setenv.bat file 
+which is in the Visual Studio directory.
+
+8. Other Ways to Compile hamsterdb
+
+If you want to compile hamsterdb without using the provided ./configure
+environment, you have to set some preprocessor macros:
+
+WIN32                   Win32 platform
+DEBUG                   enable debugging output and checks (slow!)
+HAM_LITTLE_ENDIAN       compile for little endian machines (i.e. x86)
+HAM_BIG_ENDIAN          compile for big endian machines (most other
+                            architectures)
+HAM_32BIT               compile for 32bit
+HAM_64BIT               compile for 64bit
+
+Also, if you compile for windows, you have to compile the file src/os_win32.c,
+and ignore the file src/os_posix.c. Vice versa on non-Windows platforms.
+
+9. Porting hamsterdb
+
+Porting hamsterdb shouldn't be too difficult. All operating system dependend
+functions are declared in os.h and defined in os_win32.h or os_posix.h. Most 
+likely, these are the only files which have to be touched. Also see item 8)
+for compiler instructions.

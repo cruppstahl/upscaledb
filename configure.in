@@ -3,7 +3,7 @@ dnl   configuration script for hamsterdb
 dnl
 dnl   (C) 2006, Christoph Rupp, chris@crupp.de
 dnl
-dnl   TODO see license for licenses
+dnl   see file LICENSE for licence information
 dnl
 
 AC_PREREQ(2.59)
