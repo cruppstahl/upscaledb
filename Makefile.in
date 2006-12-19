@@ -37,10 +37,10 @@ build_triplet = @build@
 host_triplet = @host@
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
-	$(top_srcdir)/configure TODO build/scripts/config.guess \
-	build/scripts/config.sub build/scripts/depcomp \
-	build/scripts/install-sh build/scripts/ltmain.sh \
-	build/scripts/missing
+	$(top_srcdir)/configure COPYING TODO \
+	build/scripts/config.guess build/scripts/config.sub \
+	build/scripts/depcomp build/scripts/install-sh \
+	build/scripts/ltmain.sh build/scripts/missing
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.in
@@ -105,8 +105,6 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
-ENABLE_GCC_OPTIMIZATION_FALSE = @ENABLE_GCC_OPTIMIZATION_FALSE@
-ENABLE_GCC_OPTIMIZATION_TRUE = @ENABLE_GCC_OPTIMIZATION_TRUE@
 EXEEXT = @EXEEXT@
 F77 = @F77@
 FFLAGS = @FFLAGS@
@@ -136,10 +134,6 @@ RANLIB = @RANLIB@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
-USGIN_GCC_FALSE = @USGIN_GCC_FALSE@
-USGIN_GCC_TRUE = @USGIN_GCC_TRUE@
-USING_GCC_FALSE = @USING_GCC_FALSE@
-USING_GCC_TRUE = @USING_GCC_TRUE@
 VERSION = @VERSION@
 ac_ct_AR = @ac_ct_AR@
 ac_ct_AS = @ac_ct_AS@
@@ -188,7 +182,8 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 SUBDIRS = src samples tests
-EXTRA_DIST = documentation/Doxyfile 
+EXTRA_DIST = documentation/Doxyfile include/ham/hamsterdb.h \
+	include/ham/hamsterdb_int.h include/ham/types.h src/*
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -389,7 +384,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/build/scripts $(distdir)/documentation
+	$(mkdir_p) $(distdir)/build/scripts $(distdir)/documentation $(distdir)/include/ham $(distdir)/src
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \

@@ -491,8 +491,10 @@ ham_create_ex(ham_db_t *db, const char *filename,
      * allocate a database header page 
      */
     page=db_alloc_page_device(db, 0, PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
-    if (!page) 
+    if (!page) {
+        ham_log(("unable to allocate the header page"));
         return (db_get_error(db));
+    }
     page_set_type(page, PAGE_TYPE_HEADER);
     db_set_header_page(db, page);
     /* initialize the freelist structure in the header page */
@@ -512,6 +514,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     /* initialize the backend */
     st=backend->_fun_create(backend, flags);
     if (st) {
+        ham_log(("unable to create the backend"));
         db_set_error(db, st);
         return (st);
     }

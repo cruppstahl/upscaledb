@@ -53,14 +53,14 @@ x auf autoconf/automake umstellen
         x vorsicht: test soll nicht installiert werden!
         x erzeugte bibliothek heisst libhamsterdb.so.0.0.0
 
-o auf windows portieren
-    o kein makefile, aber einfache batch-files zum compilieren
-    o sourcen portieren - mmap fehlt noch!
-    o monster.sh!
+x test 2/210 (overwrite/reopen) schlägt fehl - offenbar 
+    eine endlosschleife/rekursion in der txn? - ne, hat wohl einfach
+    so lang gedauert
 
 -----------------------------------------------------
 
-o nächsten release machen!
+o nächsten release machen! 
+    oh wieder umstellen auf libtool-library...
 
 o VORSICHT! am besten ein skript schreiben - make-release.sh
     1. version.h hochzählen (auch in src/Makefile.am!)
@@ -85,6 +85,11 @@ o Regelwerk für releases schreiben, z.b.
     7. make-release.sh
 
 -----------------------------------------------------
+
+o auf windows portieren
+    o kein makefile, aber einfache batch-files zum compilieren
+    o sourcen portieren - mmap fehlt noch!
+    o monster.sh!
 
 o cache: bucketgrösse in ham_config.h verschieben, eine #define-konstante
     draus machen
@@ -175,7 +180,8 @@ x extended keys
 x mal nachschauen was man nach den GPL-Codingrules noch für 
     dateien braucht -> nix mehr
 x performance vergleichbar mit berkeley-db
-o erzeugt .dll/.so
+x erzeugt .dll/.so
+x umsteigen auf autoconf/automake
 o compiliert unter linux, windows, darwin, 32bit und 64bit, unter windows
     mit mingw, icc, msvc, borland, watcom; läuft auf little- und bigendian
 o iteratoren

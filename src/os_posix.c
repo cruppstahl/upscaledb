@@ -181,7 +181,7 @@ ham_status_t
 os_tell(ham_fd_t fd, ham_offset_t *offset)
 {
     *offset=lseek(fd, 0, SEEK_CUR);
-    return (*offset==(ham_offset_t)0 ? errno : HAM_SUCCESS);
+    return (*offset==(ham_offset_t)-1 ? errno : HAM_SUCCESS);
 }
 
 ham_status_t

@@ -20,3 +20,4 @@ endif
 test_SOURCES    = db.c getopts.c
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la -ldb
 
+EXTRA_DIST      = getopts.h script.tst

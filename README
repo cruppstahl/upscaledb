@@ -1,5 +1,5 @@
 
-hamsterdb 0.1pre1                               Fr Sep 22 11:18:43 GMT 2006
+hamsterdb 0.3                                  Tue Dec 20 21:44:43 GMT 2006
 (C) Christoph Rupp, chris@crupp.de; www.crupp.de
 
 This is the README file of hamsterdb. 
@@ -12,7 +12,27 @@ hamsterdb is a fast and small database engine. You can insert, delete or look
 up key/data pairs. It supports a B+Tree index structure with variable length 
 keys and variable length data records. 
 
-2. Features
+2. Changes
+
+This release features major performance improvements; hamsterdb became
+significantly faster in all benchmarks. Also, there's a new option 
+HAM_OPTIMIZE_SIZE, which makes the database file much smaller by merging
+the freelist entry. (This option comes at the cost of performance, therefore
+it's disabled by default.) 
+
+Also, the build infrastructure was ported to autoconf/automake. Since autoconf
+has special rules about version numbers, this release is 0.3.0 and not 0.1pre3.
+
+To see a list of all changes, look in the file CHANGELOG.
+
+3. Roadmap
+
+The next releases will feature iterators and duplicate items. Also, the
+library will be ported to Win32 (this is work in progress, but needs
+further testing). The documentation will be overhauled, and hamsterdb
+will get its own webpage.
+
+4. Features
 
 - B+Tree with variable length keys
 - Configurable page size and cache size
@@ -23,41 +43,37 @@ keys and variable length data records.
 - Endian-independent (not tested, though)
 - Support for in-memory-databases
 
-3. Known Issues/Bugs
+5. Known Issues/Bugs
 
 - Endian-independence was not (yet) tested
 - Iterators and duplicate items not yet supported
 - No concurrency, no transactions, no SQL support...
-- Some versions of gcc break the library when compiling with enabled
-    optimization (this is reproducable with gcc 3.4.5); gcc 4.1.1 works 
-    however. The configure script recognizes broken compilers and disables
-    optimization.
 
-4. Compiling
+6. Compiling
 
 To compile hamsterdb, run ./configure, make, make install.
 
 Run `./configure --help' for more options (i.e. static/dynamic library, 
 build with debugging symbols etc).
 
-5. Testing and Example Code
+7. Testing and Example Code
 
 Make automatically compiles a simple example program in the directory
 '/samples'. To see hamsterdb in action, just run '/samples/simple'.
 
-6. API Documentation
+8. API Documentation
 
 API documentation is not yet available. The header files in '/include/ham' are 
 commented, though. The next release will provide a doxygen script to 
 generate the documentation from the header files.  
 
-7. Compiling for Microsoft Windows
+9. Compiling for Microsoft Windows
 
 See the subdirectory ./win32 for batch-files which use the Microsoft compiler 
 (cl). Before you start those files, you have to execute the setenv.bat file 
 which is in the Visual Studio directory.
 
-8. Other Ways to Compile hamsterdb
+10. Other Ways to Compile hamsterdb
 
 If you want to compile hamsterdb without using the provided ./configure
 environment, you have to set some preprocessor macros:
@@ -73,9 +89,10 @@ HAM_64BIT               compile for 64bit
 Also, if you compile for windows, you have to compile the file src/os_win32.c,
 and ignore the file src/os_posix.c. Vice versa on non-Windows platforms.
 
-9. Porting hamsterdb
+11. Porting hamsterdb
 
 Porting hamsterdb shouldn't be too difficult. All operating system dependend
 functions are declared in os.h and defined in os_win32.h or os_posix.h. Most 
 likely, these are the only files which have to be touched. Also see item 8)
 for compiler instructions.
+

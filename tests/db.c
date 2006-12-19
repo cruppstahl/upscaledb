@@ -18,6 +18,7 @@
 #include "getopts.h"
 #include "../src/error.h"
 #include "../src/config.h"
+#include "../src/db.h"
 
 static ham_u64_t g_total_insert=0;
 static ham_u64_t g_tv1, g_tv2;
@@ -663,6 +664,7 @@ my_execute_create(char *line)
                 st=ham_create_ex(config.hamdb, FILENAME_HAM, f, 0664, 
                         config.pagesize, config.keysize, config.cachesize);
                 ham_assert(st==0, (0));
+                ham_assert(config.hamdb->_backend!=0, (0));
                 if (config.flags & NUMERIC_KEY)
                     ham_set_compare_func(config.hamdb, my_compare_keys);
                 PROFILE_STOP(PROF_OTHER, i);

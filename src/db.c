@@ -318,18 +318,27 @@ db_alloc_page_device(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
     /* otherwise: move to the end of the file */
     if (!tellpos) {
         st=os_seek(db_get_fd(db), 0, HAM_OS_SEEK_END);
-        if (st) 
+        if (st) {
+            ham_log(("failed to seek the end of the file"));
+            db_set_error(db, HAM_IO_ERROR);
             return (0);
+        }
 
         /* get the current file position */
         st=os_tell(db_get_fd(db), &tellpos);
-        if (st) 
+        if (st) {
+            ham_log(("failed to tell the file position"));
+            db_set_error(db, HAM_IO_ERROR);
             return (0);
+        }
 
         /* and write it to disk */
         st=os_truncate(db_get_fd(db), tellpos+resize+db_get_pagesize(db));
-        if (st) 
+        if (st) {
+            ham_log(("failed to resize the file"));
+            db_set_error(db, HAM_IO_ERROR);
             return (0);
+        }
 
         /*
          * if we're using MMAP: when allocating a new page, we need
