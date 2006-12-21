@@ -200,7 +200,7 @@ AM_CFLAGS = $(am__append_1) $(am__append_2) $(am__append_3) \
 	$(am__append_4) $(am__append_5)
 lib_LTLIBRARIES = libhamsterdb.la
 libhamsterdb_la_SOURCES = blob.c btree.c btree_check.c btree_enum.c btree_erase.c btree_find.c btree_insert.c cache.c db.c error.c extkeys.c freelist.c hamsterdb.c keys.c mem.c os_posix.c page.c txn.c util.c
-libhamsterdb_la_LDFLAGS = -version-info 0:3:0
+libhamsterdb_la_LDFLAGS = -version-info 0:0:0
 all: all-am
 
 .SUFFIXES:
@@ -496,7 +496,7 @@ uninstall-am: uninstall-info-am uninstall-libLTLIBRARIES
 
 #libhamsterdb_a_SOURCES = blob.c btree.c btree_check.c btree_enum.c btree_erase.c btree_find.c btree_insert.c cache.c db.c error.c extkeys.c freelist.c hamsterdb.c keys.c mem.c os_posix.c page.c txn.c util.c
 
-#libhamsterdb_a_LDFLAGS = -version-info 0:1:0
+#libhamsterdb_a_LDFLAGS = -version-info 0:0:0
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

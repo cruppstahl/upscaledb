@@ -9,6 +9,8 @@ EXTRA_DIST += include/ham/hamsterdb.h \
 
 EXTRA_DIST += src/*
 
+EXTRA_DIST += build/scripts/*
+
 doc:
 	doxygen documentation/Doxyfile
 

@@ -60,35 +60,17 @@ x test 2/210 (overwrite/reopen) schlägt fehl - offenbar
 -----------------------------------------------------
 
 o nächsten release machen! 
-    oh wieder umstellen auf libtool-library...
-
-o VORSICHT! am besten ein skript schreiben - make-release.sh
-    1. version.h hochzählen (auch in src/Makefile.am!)
-    2. README überarbeiten, versionsnummer und datum hochzählen
-    3. CHANGELOG überarbeiten, release reinschreiben
-    4. einchecken
-    5. taggen bzw. copy in release-trunk in hamsterdb-v.v.v
-    6. einchecken
-    7. export vom release-verzeichnis
-    8. tar/gzip
-    9. upload
-   10. die 8 windows-libs erzeugen, testen
-   11. freshmeat-eintrag, blog-kommentar
-
-o Regelwerk für releases schreiben, z.b.
-    1. alle tests (auch 2-4) durchlaufen (monster.sh)
-    2. ausgewählte tests mit valgrind (valgrind.sh)
-    3. die releases für windows machen (8 stück)
-    4. tests unter windows machen
-    5. sicherstellen dass alles eingecheckt ist
-    6. changelog updaten
-    7. make-release.sh
+    x wieder umstellen auf libtool-library...
+    o monster.sh
+    o valgrind.sh
+    o blog-kommentar
+    o freshmeat-announcement
 
 -----------------------------------------------------
 
 o auf windows portieren
+    x sourcen portieren - mmap fehlt noch!
     o kein makefile, aber einfache batch-files zum compilieren
-    o sourcen portieren - mmap fehlt noch!
     o monster.sh!
 
 o cache: bucketgrösse in ham_config.h verschieben, eine #define-konstante
