@@ -183,10 +183,11 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-SUBDIRS = src include samples 
+SUBDIRS = src include samples tests
 EXTRA_DIST = documentation/Doxyfile include/ham/hamsterdb.h \
 	include/ham/hamsterdb_int.h include/ham/types.h src/* \
-	build/scripts/*
+	tests/*.c tests/*.h tests/Makefile.am tests/Makefile.in \
+	tests/README tests/script.tst build/scripts/*
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -387,7 +388,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/build/scripts $(distdir)/documentation $(distdir)/include/ham $(distdir)/src
+	$(mkdir_p) $(distdir)/build/scripts $(distdir)/documentation $(distdir)/include/ham $(distdir)/src $(distdir)/tests
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
@@ -622,11 +623,6 @@ uninstall-info: uninstall-info-recursive
 	mostlyclean-libtool mostlyclean-recursive pdf pdf-am ps ps-am \
 	tags tags-recursive uninstall uninstall-am uninstall-info-am
 
-
-@HAVE_DB_H_TRUE@	SUBDIRS += tests
-@HAVE_DB_H_FALSE@	echo 
-@HAVE_DB_H_FALSE@	echo db.h could not be found; skipping subdirectory ./tests
-@HAVE_DB_H_FALSE@	echo 
 
 doc:
 	doxygen documentation/Doxyfile

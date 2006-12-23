@@ -29,9 +29,6 @@ AC_CHECK_FUNCS(pread pwrite mmap munmap)
 AC_CHECK_HEADERS(fcntl.h unistd.h)
 AC_TYPE_OFF_T
 AC_FUNC_MMAP
-AC_CHECK_HEADER(db.h, 
-        AM_CONDITIONAL(HAVE_DB_H, true),
-        AM_CONDITIONAL(HAVE_DB_H, false))
 
 dnl
 dnl big endian or little endian?
@@ -66,6 +63,16 @@ AC_ARG_ENABLE(profile,
        *) AC_MSG_ERROR(bad value ${enableval} for --enable-profile) ;;
      esac],[profile=false])
 AM_CONDITIONAL(PROFILE, test x$profile = xtrue)
+
+dnl
+dnl check for db.h - don't build ./tests if it's missing
+dnl
+AC_CHECK_HEADER(db.h,
+        have_db_h=yes,
+        have_db_h=no)
+AC_MSG_NOTICE([Checking for berkeleyDb (db.h); if berkeleyDb is missing, the tests will not be built.])
+AM_CONDITIONAL(HAVE_DB_H, test x$have_db_h = xyes)
+
 
 AC_CONFIG_FILES(Makefile src/Makefile include/Makefile include/ham/Makefile samples/Makefile tests/Makefile)
 AC_OUTPUT

@@ -1,23 +1,31 @@
 
-INCLUDES		= -I$(top_builddir)/include
 
+if HAVE_DB_H
 noinst_PROGRAMS	= test
+endif
 
-# TODO little or big endian?
-AM_CFLAGS = -DHAM_LITTLE_ENDIAN
+INCLUDE   = -I$(top_builddir)/include
 
-# TODO kein -O bei gcc < 4.1.1
+AM_CFLAGS =
+
+# little or big endian?
+if BIG_ENDIAN
+    AM_CFLAGS += -DHAM_BIG_ENDIAN
+else
+    AM_CFLAGS += -DHAM_LITTLE_ENDIAN
+endif
+
+# debug or release mode? 
 if DEBUG
     AM_CFLAGS += -DDEBUG -DHAM_DEBUG
 else
-    AM_CFLAGS += -DHAM_RELEASE -O3 -ffast-math
+    AM_CFLAGS += -DHAM_RELEASE 
 endif
 
+# use profiling?
 if PROFILE
     AM_CFLAGS += -pg
 endif
 
 test_SOURCES    = db.c getopts.c
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la -ldb
-
-EXTRA_DIST      = getopts.h script.tst

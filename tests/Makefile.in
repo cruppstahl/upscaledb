@@ -36,12 +36,18 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-noinst_PROGRAMS = test$(EXEEXT)
+@HAVE_DB_H_TRUE@noinst_PROGRAMS = test$(EXEEXT)
 
-# TODO kein -O bei gcc < 4.1.1
-@DEBUG_TRUE@am__append_1 = -DDEBUG -DHAM_DEBUG
-@DEBUG_FALSE@am__append_2 = -DHAM_RELEASE -O3 -ffast-math
-@PROFILE_TRUE@am__append_3 = -pg
+# little or big endian?
+@BIG_ENDIAN_TRUE@am__append_1 = -DHAM_BIG_ENDIAN
+@BIG_ENDIAN_FALSE@am__append_2 = -DHAM_LITTLE_ENDIAN
+
+# debug or release mode? 
+@DEBUG_TRUE@am__append_3 = -DDEBUG -DHAM_DEBUG
+@DEBUG_FALSE@am__append_4 = -DHAM_RELEASE 
+
+# use profiling?
+@PROFILE_TRUE@am__append_5 = -pg
 subdir = tests
 DIST_COMMON = README $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -181,14 +187,11 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-INCLUDES = -I$(top_builddir)/include
-
-# TODO little or big endian?
-AM_CFLAGS = -DHAM_LITTLE_ENDIAN $(am__append_1) $(am__append_2) \
-	$(am__append_3)
+INCLUDE = -I$(top_builddir)/include
+AM_CFLAGS = $(am__append_1) $(am__append_2) $(am__append_3) \
+	$(am__append_4) $(am__append_5)
 test_SOURCES = db.c getopts.c
 test_LDADD = $(top_builddir)/src/libhamsterdb.la -ldb
-EXTRA_DIST = getopts.h script.tst
 all: all-am
 
 .SUFFIXES:
