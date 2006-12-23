@@ -29,6 +29,9 @@ AC_CHECK_FUNCS(pread pwrite mmap munmap)
 AC_CHECK_HEADERS(fcntl.h unistd.h)
 AC_TYPE_OFF_T
 AC_FUNC_MMAP
+AC_CHECK_HEADER(db.h, 
+        AM_CONDITIONAL(HAVE_DB_H, true),
+        AM_CONDITIONAL(HAVE_DB_H, false))
 
 dnl
 dnl big endian or little endian?
@@ -64,6 +67,6 @@ AC_ARG_ENABLE(profile,
      esac],[profile=false])
 AM_CONDITIONAL(PROFILE, test x$profile = xtrue)
 
-AC_CONFIG_FILES(Makefile src/Makefile samples/Makefile tests/Makefile)
+AC_CONFIG_FILES(Makefile src/Makefile include/Makefile include/ham/Makefile samples/Makefile tests/Makefile)
 AC_OUTPUT
 
