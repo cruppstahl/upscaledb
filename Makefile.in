@@ -185,9 +185,10 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 SUBDIRS = src include samples tests
 EXTRA_DIST = documentation/Doxyfile include/ham/hamsterdb.h \
-	include/ham/hamsterdb_int.h include/ham/types.h src/* \
-	tests/*.c tests/*.h tests/Makefile.am tests/Makefile.in \
-	tests/README tests/script.tst build/scripts/*
+	include/ham/hamsterdb_int.h include/ham/types.h tests/*.c \
+	tests/*.h tests/Makefile.am tests/Makefile.in tests/README \
+	tests/script.tst build/scripts/* src/*.c src/*.h \
+	src/Makefile.am src/Makefile.in
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
