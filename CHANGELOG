@@ -1,3 +1,10 @@
+Dec 23, 2006 - chris ---------------------------------------------------
+                      release of hamsterdb-0.3.1
+
+Dec 23, 2006 - chris
+o header-files are now installed to $prefix/include/ham
+o test is not build if db.h is missing
+
 Dec 19, 2006 - chris ---------------------------------------------------
                       release of hamsterdb-0.3
 

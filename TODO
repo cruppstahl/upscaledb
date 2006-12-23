@@ -22,77 +22,40 @@ x 220.tst: schlägt fehl im release-build!
 -----------------------------------------------------
 -----------------------------------------------------
 
-x auf autoconf/automake umstellen
-    x in blog-artikel dokumentieren
-    x --enable-debug
-    x --enable-profile
-    x hamsterdb versions-string aus src/version.h extrahieren
-        (wie in expat)
-    x config.h im source benutzen: HAVE_MMAP, HAVE_MUNMAP, HAVE_PREAD,
-            HAVE_PWRITE
-    x welche dateien müssen wir ausliefern, welche nicht? -> make distclean
-            räumt automatisch auf
-    x disable optimization in gcc < 4.1.1
+x header-dateien werden nicht installiert
 
-    x test auch noch umbauen
-        x nur noch die db.c, die anderen optionen (-c etc) können raus
-        x umbauen für configure
-        x verschieben in das test-verzeichnis? - bin eher dagegen...
-                lizenztechnisch ist das testprogramm unter der GPL, 
-                und die ist kompatibel mit bdb. deshalb sollte es so passen.
-        x ein beispiel-sample im test-verzeichnis einchecken
-        x eine readme.txt
-        x valgrind-checks gehen momentan nicht, weil ./test ein shell-skript 
-                ist und nicht die binary
-        x testen
+x wenn db.h nicht installiert ist: kleine warnung ausgeben, 
+    test nicht bauen
 
-    x dokumentation machen
-
-    x installation testen
-        x vorsicht: sample soll nicht installiert werden!
-        x vorsicht: test soll nicht installiert werden!
-        x erzeugte bibliothek heisst libhamsterdb.so.0.0.0
-
-x test 2/210 (overwrite/reopen) schlägt fehl - offenbar 
-    eine endlosschleife/rekursion in der txn? - ne, hat wohl einfach
-    so lang gedauert
+o "silent" zwischenrelease
 
 -----------------------------------------------------
-
-o nächsten release machen! 
-    x wieder umstellen auf libtool-library...
-    o monster.sh
-    o valgrind.sh
-    o blog-kommentar
-    o freshmeat-announcement
-
 -----------------------------------------------------
 
-o auf windows portieren
-    x sourcen portieren - mmap fehlt noch!
-    o kein makefile, aber einfache batch-files zum compilieren
-    o monster.sh!
-
-o cache: bucketgrösse in ham_config.h verschieben, eine #define-konstante
+x cache: bucketgrösse in ham_config.h verschieben, eine #define-konstante
     draus machen
 
-o prefix comparison hinzufügen (schon vorhanden?)
+x default prefix comparison funktion hinzufügen (schon vorhanden?)
 
-o prefix comparison testen
-
-o stress test mit zufällig fehlschlagenden io-funktionen und zufälligen
-    OUT_OF_MEMORYs
+x prefix comparison testen
 
 o endianness testen
 
 o port to ms windows
+    x win32: sourcen portieren - mmap fehlt noch!
     o mit mingw, bcc, watcom, msvc, icc...
     o projekt-umgebungen für visual studio 6 und .NET
     o define HAM_EXPORT DECLSPEC _dllexport for DLLs und .so
+    o kein makefile, aber einfache batch-files zum compilieren
+    o monster.sh!
 
 o nächsten release machen!
 
 -----------------------------------------------------
+-----------------------------------------------------
+
+o logo!!
+
 -----------------------------------------------------
 
 o iteratoren 
@@ -115,8 +78,19 @@ o nächsten release machen!
 
 o tools
     o ham_dump
+        erzeugt einen iterator auf den ersten eintrag, dumpt den 
+        key und die daten (zumindest einen teil davon)
+        --key-format=char|short|long|longlong|string|binary
+        --key-length=<n>
+        --data-format=char|short|long|longlong|string|binary
+        --data-length=<n>
     o ham_info
+        gibt alle infos aus dem header aus, sowie die anzahl der elemente,
+        average key size, average data size, min/max etc
     o ham_recover
+        holt die header-page, dann die root-page, und geht runter zum 
+        ersten leaf. läuft dann alle index-pages ab, schreibt die keys 
+        und die daten raus 
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -147,6 +121,12 @@ o doku
     o webseite
     o mailing list
     o überarbeiten
+    o interne doku schreiben
+        o db-handle, pageverwaltung
+        o backend-aufbau
+        o freelist
+        o cache
+        o iteratoren
 
 -----------------------------------------------------
 
@@ -164,9 +144,10 @@ x mal nachschauen was man nach den GPL-Codingrules noch für
 x performance vergleichbar mit berkeley-db
 x erzeugt .dll/.so
 x umsteigen auf autoconf/automake
-o compiliert unter linux, windows, darwin, 32bit und 64bit, unter windows
-    mit mingw, icc, msvc, borland, watcom; läuft auf little- und bigendian
+o compiliert unter linux, windows, darwin, 32bit und 64bit, läuft auf 
+    little- und bigendian
 o iteratoren
+o logo
 o legal issues
 o dokumentation: tutorial, interface, FAQ (auch zu unittests)
 o webseite
