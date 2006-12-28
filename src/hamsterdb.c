@@ -879,18 +879,6 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 }
 
 ham_status_t
-ham_cursor_get_key(ham_cursor_t *cursor, ham_key_t *key)
-{
-    return (bt_cursor_get_key((ham_bt_cursor_t *)cursor, key));
-}
-
-ham_status_t
-ham_cursor_get_record(ham_cursor_t *cursor, ham_record_t *record)
-{
-    return (bt_cursor_get_record((ham_bt_cursor_t *)cursor, record));
-}
-
-ham_status_t
 ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags)
 {
@@ -898,27 +886,10 @@ ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
 }
 
 ham_status_t
-ham_cursor_first(ham_cursor_t *cursor, ham_u32_t flags)
+ham_cursor_next(ham_cursor_t *cursor, ham_key_t *key,
+            ham_record_t *record, ham_u32_t flags)
 {
-    return (bt_cursor_first((ham_bt_cursor_t *)cursor, flags));
-}
-
-ham_status_t
-ham_cursor_last(ham_cursor_t *cursor, ham_u32_t flags)
-{
-    return (bt_cursor_last((ham_bt_cursor_t *)cursor, flags));
-}
-
-ham_status_t
-ham_cursor_next(ham_cursor_t *cursor, ham_u32_t flags)
-{
-    return (bt_cursor_next((ham_bt_cursor_t *)cursor, flags));
-}
-
-ham_status_t
-ham_cursor_previous(ham_cursor_t *cursor, ham_u32_t flags)
-{
-    return (bt_cursor_previous((ham_bt_cursor_t *)cursor, flags));
+    return (bt_cursor_move((ham_bt_cursor_t *)cursor, key, record, flags));
 }
 
 ham_status_t
