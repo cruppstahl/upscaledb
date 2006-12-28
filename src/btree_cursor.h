@@ -15,7 +15,7 @@
 #include "keys.h"
 
 /**
- * the cursor structure for a b+tree 
+ * the cursor structure for a b+tree
  */
 struct ham_bt_cursor_t;
 typedef struct ham_bt_cursor_t ham_bt_cursor_t;
@@ -32,8 +32,8 @@ struct ham_bt_cursor_t
     ham_u32_t _flags;
 
     /**
-     * "coupled" or "uncoupled" states; coupled means that the 
-     * cursor points into a ham_page_t object, which is in 
+     * "coupled" or "uncoupled" states; coupled means that the
+     * cursor points into a ham_page_t object, which is in
      * memory. "uncoupled" means that the cursor has a copy
      * of the key on which it points
      */
@@ -74,22 +74,22 @@ struct ham_bt_cursor_t
 #define BT_CURSOR_FLAG_UNCOUPLED            2
 
 /**
- * get the database pointer 
+ * get the database pointer
  */
 #define bt_cursor_get_db(cu)                (cu)->_db
 
 /**
- * set the database pointer 
+ * set the database pointer
  */
 #define bt_cursor_set_db(cu, db)            (cu)->_db=db
 
 /**
- * get the txn pointer 
+ * get the txn pointer
  */
 #define bt_cursor_get_txn(cu)               (cu)->_txn
 
 /**
- * set the txn pointer 
+ * set the txn pointer
  */
 #define bt_cursor_set_txn(cu, txn)          (cu)->_txn=txn
 
@@ -104,7 +104,7 @@ struct ham_bt_cursor_t
 #define bt_cursor_set_flags(cu, f)          (cu)->_flags=f
 
 /**
- * is the cursor pointing to "NULL"? this is the case when the 
+ * is the cursor pointing to "NULL"? this is the case when the
  * cursor is neither coupled nor uncoupled
  */
 #define bt_cursor_is_null(cu)                              \
@@ -166,82 +166,47 @@ bt_cursor_uncouple(ham_bt_cursor_t *cu, ham_u32_t flags);
 /**
  * create a new cursor
  */
-ham_status_t 
-bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags, 
+ham_status_t
+bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
             ham_bt_cursor_t **cu);
 
 /**
  * clone an existing cursor
- */ 
-ham_status_t 
+ */
+ham_status_t
 bt_cursor_clone(ham_bt_cursor_t *cu, ham_bt_cursor_t **newit);
 
 /**
  * close an existing cursor
  */
-ham_status_t 
+ham_status_t
 bt_cursor_close(ham_bt_cursor_t *cu);
 
 /**
- * get the key of this cursor
+ * set the cursor to the first item in the database
  */
-ham_status_t 
-bt_cursor_get_key(ham_bt_cursor_t *cu, ham_key_t *key);
-
-/**
- * get the record of this cursor
- */
-ham_status_t 
-bt_cursor_get_record(ham_bt_cursor_t *cu, ham_record_t *record);
-
-/**
- * get the key of this cursor
- */
-ham_status_t 
-bt_cursor_get_key(ham_bt_cursor_t *cu, ham_key_t *key);
+ham_status_t
+bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
+            ham_record_t *record, ham_u32_t flags);
 
 /**
  * replace the record of this cursor
  */
 ham_status_t
-bt_cursor_replace(ham_bt_cursor_t *cu, ham_record_t *record, 
+bt_cursor_replace(ham_bt_cursor_t *cu, ham_record_t *record,
             ham_u32_t flags);
-
-/**
- * set the cursor to the first item in the database
- */
-ham_status_t 
-bt_cursor_first(ham_bt_cursor_t *cu, ham_u32_t flags);
-
-/**
- * set the cursor to the last item in the database
- */
-ham_status_t 
-bt_cursor_last(ham_bt_cursor_t *cu, ham_u32_t flags);
-
-/**
- * set the cursor to the next item in the database
- */
-ham_status_t 
-bt_cursor_next(ham_bt_cursor_t *cu, ham_u32_t flags);
-
-/**
- * set the cursor to the previous item in the database
- */
-ham_status_t 
-bt_cursor_previous(ham_bt_cursor_t *cu, ham_u32_t flags);
 
 /**
  * find a key in the index and positions the cursor
  * on this key
  */
-ham_status_t 
+ham_status_t
 bt_cursor_find(ham_bt_cursor_t *cu, ham_key_t *key, ham_u32_t flags);
 
 /**
  * insert (or update) a key in the index
  */
-ham_status_t 
+ham_status_t
 bt_cursor_insert(ham_bt_cursor_t *cu, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags);
 
@@ -249,7 +214,7 @@ bt_cursor_insert(ham_bt_cursor_t *cu, ham_key_t *key,
  * erases the key from the index and positions the cursor to the
  * next key
  */
-ham_status_t 
+ham_status_t
 bt_cursor_erase(ham_bt_cursor_t *cu, ham_offset_t *rid,
             ham_u32_t *intflags, ham_u32_t flags);
 

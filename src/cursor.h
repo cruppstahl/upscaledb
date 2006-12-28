@@ -15,7 +15,7 @@
 
 /**
  * the cursor structure - these functions and members are "inherited"
- * by every other cursor (i.e. btree, hashdb etc). 
+ * by every other cursor (i.e. btree, hashdb etc).
  */
 #define CURSOR_DECLARATIONS(clss)                                       \
     /**                                                                 \
@@ -45,24 +45,10 @@
             ham_u32_t flags);                                           \
                                                                         \
     /**                                                                 \
-     * set the cursor to the first item in the database                 \
+     * move the cursor                                                  \
      */                                                                 \
-    ham_status_t (*_fun_first)(clss *cu, ham_u32_t flags);              \
-                                                                        \
-    /**                                                                 \
-     * set the cursor to the last item in the database                  \
-     */                                                                 \
-    ham_status_t (*_fun_last)(clss *cu, ham_u32_t flags);               \
-                                                                        \
-    /**                                                                 \
-     * set the cursor to the next item in the database                  \
-     */                                                                 \
-    ham_status_t (*_fun_next)(clss *cu, ham_u32_t flags);               \
-                                                                        \
-    /**                                                                 \
-     * set the cursor to the previous item in the database              \
-     */                                                                 \
-    ham_status_t (*_fun_previous)(clss *cu, ham_u32_t flags);           \
+    ham_status_t (*_fun_move)(clss *cu, ham_key_t *key,                 \
+            ham_record_t *record, ham_u32_t flags);                     \
                                                                         \
     /**                                                                 \
      * find a key in the index and positions the cursor                 \
@@ -100,7 +86,7 @@
 
 
 /**
- * a generic cursor structure, which has the same memory layout as 
+ * a generic cursor structure, which has the same memory layout as
  * all other backends
  */
 struct ham_cursor_t

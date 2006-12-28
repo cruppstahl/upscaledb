@@ -48,7 +48,7 @@ my_dump_cb(int event, void *param1, void *param2, void *context)
 
     case ENUM_EVENT_PAGE_START:
         page=(ham_page_t *)param1;
-        printf("\n------ page 0x%lx ---------------------------------------\n", 
+        printf("\n------ page 0x%lx ---------------------------------------\n",
             page_get_self(page));
         break;
 
@@ -68,10 +68,10 @@ my_dump_cb(int event, void *param1, void *param2, void *context)
                 limit=16;
             else
                 limit=keysize;
-    
+
             for (i=0; i<limit; i++)
                 printf("%02x ", data[i]);
-    
+
             if (keysize>limit)
                 printf("... (%d more bytes)\n", keysize-limit);
             else
@@ -135,19 +135,19 @@ const char *
 ham_strerror(ham_status_t result)
 {
     switch (result) {
-        case HAM_SUCCESS: 
+        case HAM_SUCCESS:
             return ("Success");
-        case HAM_SHORT_READ: 
+        case HAM_SHORT_READ:
             return ("Short read");
-        case HAM_SHORT_WRITE: 
+        case HAM_SHORT_WRITE:
             return ("Short write");
-        case HAM_INV_KEYSIZE: 
+        case HAM_INV_KEYSIZE:
             return ("Invalid key size");
-        case HAM_INV_PAGESIZE: 
+        case HAM_INV_PAGESIZE:
             return ("Invalid page size");
-        case HAM_DB_ALREADY_OPEN: 
+        case HAM_DB_ALREADY_OPEN:
             return ("Db already open");
-        case HAM_OUT_OF_MEMORY: 
+        case HAM_OUT_OF_MEMORY:
             return ("Out of memory");
         case HAM_INV_INDEX:
             return ("Invalid index structure");
@@ -177,7 +177,7 @@ ham_strerror(ham_status_t result)
             return ("Database cache is full");
         case HAM_CURSOR_IS_NIL:
             return ("Cursor points to NIL");
-        default: 
+        default:
             return ("Unknown error");
     }
 }
@@ -199,7 +199,7 @@ ham_new(ham_db_t **db)
 {
     /* allocate memory for the ham_db_t-structure */
     *db=(ham_db_t *)ham_mem_alloc(sizeof(ham_db_t));
-    if (!(*db)) 
+    if (!(*db))
         return (HAM_OUT_OF_MEMORY);
 
     /* reset the whole structure */
@@ -214,6 +214,8 @@ ham_delete(ham_db_t *db)
     /* free cached data pointers */
     if (db_get_record_allocdata(db))
         ham_mem_free(db_get_record_allocdata(db));
+    if (db_get_key_allocdata(db))
+        ham_mem_free(db_get_key_allocdata(db));
 
     /* close the backend */
     if (db_get_backend(db)) {
@@ -246,7 +248,7 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags)
 }
 
 ham_status_t
-ham_open_ex(ham_db_t *db, const char *filename, 
+ham_open_ex(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_size_t cachesize)
 {
     ham_fd_t fd;
@@ -264,7 +266,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     /* open the file */
     st=os_open(filename, flags, &fd);
     if (st) {
-        ham_log(("os_open of %s failed with status %d (%s)", filename, 
+        ham_log(("os_open of %s failed with status %d (%s)", filename,
                 st, ham_strerror(st)));
         db_set_error(db, st);
         return (st);
@@ -273,21 +275,21 @@ ham_open_ex(ham_db_t *db, const char *filename,
     /* initialize the database handle */
     db_set_fd(db, fd);
 
-    /* 
-     * read the database header 
+    /*
+     * read the database header
      *
      * !!!
      * now this is an ugly problem - the database header is one page, but
-     * how large is one page? chances are good that it's the default 
+     * how large is one page? chances are good that it's the default
      * page-size, but we really can't be sure.
      *
-     * read 512 byte (the minimum page size) and 
-     * extract the "real" page size, then read the real page. 
+     * read 512 byte (the minimum page size) and
+     * extract the "real" page size, then read the real page.
      * (but i really don't like this)
      */
     st=os_pread(fd, 0, hdrbuf, sizeof(hdrbuf));
     if (st) {
-        ham_log(("os_pread of %s failed with status %d (%s)", filename, 
+        ham_log(("os_pread of %s failed with status %d (%s)", filename,
                 st, ham_strerror(st)));
         db_set_error(db, st);
         return (st);
@@ -295,12 +297,12 @@ ham_open_ex(ham_db_t *db, const char *filename,
     dbhdr=(db_header_t *)&hdrbuf[12];
     db_set_pagesize(db, dbhdr->_pagesize);
 
-    /* 
+    /*
      * can we use mmap?
      */
 #if HAVE_MMAP
     if (!(flags&HAM_DISABLE_MMAP))
-        if (db_get_pagesize(db)==os_get_pagesize()) 
+        if (db_get_pagesize(db)==os_get_pagesize())
             flags|=DB_USE_MMAP;
     flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
 #endif
@@ -308,14 +310,14 @@ ham_open_ex(ham_db_t *db, const char *filename,
     db_set_flags(db, flags);
     db_set_error(db, HAM_SUCCESS);
 
-    /* 
-     * now allocate and read the header page 
+    /*
+     * now allocate and read the header page
      */
     page=db_alloc_page_struct(db);
     if (!page)
         return (db_get_error(db));
     st=db_fetch_page_from_device(page, 0);
-    if (st) 
+    if (st)
         return (st);
     page_set_type(page, PAGE_TYPE_HEADER);
     db_set_header_page(db, page);
@@ -323,13 +325,13 @@ ham_open_ex(ham_db_t *db, const char *filename,
     /*
      * copy the persistent header to the database object
      */
-    memcpy(&db_get_header(db), page_get_payload(page), 
+    memcpy(&db_get_header(db), page_get_payload(page),
             sizeof(db_header_t)-sizeof(freel_payload_t));
 
     /* check the file magic */
-    if (db_get_magic(db, 0)!='H' || 
-        db_get_magic(db, 1)!='A' || 
-        db_get_magic(db, 2)!='M' || 
+    if (db_get_magic(db, 0)!='H' ||
+        db_get_magic(db, 1)!='A' ||
+        db_get_magic(db, 2)!='M' ||
         db_get_magic(db, 3)!='\0') {
         ham_log(("invalid file type - %s is not a hamster-db", filename));
         db_set_error(db, HAM_INV_FILE_HEADER);
@@ -337,7 +339,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     }
 
     /* check the database version */
-    if (db_get_version(db, 0)!=HAM_VERSION_MAJ || 
+    if (db_get_version(db, 0)!=HAM_VERSION_MAJ ||
         db_get_version(db, 1)!=HAM_VERSION_MIN) {
         ham_log(("invalid file version"));
         db_set_error(db, HAM_INV_FILE_VERSION);
@@ -356,7 +358,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     /* initialize the backend */
     st=backend->_fun_open(backend, flags);
     if (st) {
-        ham_log(("backend create() failed with status %d (%s)", 
+        ham_log(("backend create() failed with status %d (%s)",
                 st, ham_strerror(st)));
         db_set_error(db, st);
         return (st);
@@ -391,8 +393,8 @@ ham_create(ham_db_t *db, const char *filename, ham_u32_t flags, ham_u32_t mode)
 }
 
 ham_status_t
-ham_create_ex(ham_db_t *db, const char *filename, 
-        ham_u32_t flags, ham_u32_t mode, ham_u16_t pagesize, 
+ham_create_ex(ham_db_t *db, const char *filename,
+        ham_u32_t flags, ham_u32_t mode, ham_u16_t pagesize,
         ham_u16_t keysize, ham_size_t cachesize)
 {
     ham_fd_t fd;
@@ -403,9 +405,9 @@ ham_create_ex(ham_db_t *db, const char *filename,
     ham_page_t *page;
 
     /*
-     * make sure that the pagesize is aligned to 512k 
+     * make sure that the pagesize is aligned to 512k
      */
-    if (pagesize) { 
+    if (pagesize) {
         if (pagesize%512)
             return (HAM_INV_PAGESIZE);
     }
@@ -414,7 +416,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
      * in-memory-db? don't allow cache limits!
      */
     if (flags&HAM_IN_MEMORY_DB) {
-        if ((flags&HAM_CACHE_STRICT) || cachesize!=0) 
+        if ((flags&HAM_CACHE_STRICT) || cachesize!=0)
             return (HAM_INV_PARAMETER);
     }
 
@@ -426,7 +428,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
             pagesize=os_get_pagesize();
     }
     /*
-     * can we use mmap? 
+     * can we use mmap?
      */
 #if HAVE_MMAP
     else if (!(flags&HAM_DISABLE_MMAP)) {
@@ -439,7 +441,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
             flags|=DB_USE_MMAP;
         }
         flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
-        /* 
+        /*
          * make sure that the pagesize is big enough for at least 4 keys
          */
         if (keysize)
@@ -484,7 +486,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
         /* create the file */
         st=os_create(filename, flags, mode, &fd);
         if (st) {
-            ham_log(("os_open of %s failed with status %d (%s)", filename, 
+            ham_log(("os_open of %s failed with status %d (%s)", filename,
                     st, ham_strerror(st)));
             db_set_error(db, st);
             return (st);
@@ -492,8 +494,8 @@ ham_create_ex(ham_db_t *db, const char *filename,
         db_set_fd(db, fd);
     }
 
-    /* 
-     * allocate a database header page 
+    /*
+     * allocate a database header page
      */
     page=db_alloc_page_device(db, 0, PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
     if (!page) {
@@ -504,7 +506,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     db_set_header_page(db, page);
     /* initialize the freelist structure in the header page */
     h=(db_header_t *)page_get_payload(page);
-    freel_payload_set_maxsize(&h->_freelist, 
+    freel_payload_set_maxsize(&h->_freelist,
             (db_get_usable_pagesize(db)-sizeof(db_header_t))/
             sizeof(freel_entry_t));
 
@@ -545,7 +547,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
 }
 
 ham_status_t
-ham_create_cursor(ham_db_t *db, void *reserved, ham_u32_t flags, 
+ham_create_cursor(ham_db_t *db, void *reserved, ham_u32_t flags,
             ham_cursor_t **cursor)
 {
     /*
@@ -575,7 +577,7 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo)
 }
 
 ham_status_t
-ham_find(ham_db_t *db, void *reserved, ham_key_t *key, 
+ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
 {
     ham_txn_t txn;
@@ -594,7 +596,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
      * first look up the blob id, then fetch the blob
      */
     st=be->_fun_find(be, &txn, key, record, flags);
-    if (st==HAM_SUCCESS) 
+    if (st==HAM_SUCCESS)
         st=util_read_record(db, &txn, record, flags);
 
     if (st) {
@@ -606,7 +608,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
 }
 
 ham_status_t
-ham_insert(ham_db_t *db, void *reserved, ham_key_t *key, 
+ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
 {
     ham_txn_t txn;
@@ -617,10 +619,10 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
         return (HAM_INV_INDEX);
     if (db_get_flags(db)&HAM_READ_ONLY)
         return (HAM_DB_READ_ONLY);
-    if ((db_get_flags(db)&HAM_DISABLE_VAR_KEYLEN) && 
+    if ((db_get_flags(db)&HAM_DISABLE_VAR_KEYLEN) &&
         key->size>db_get_keysize(db))
         return (HAM_INV_KEYSIZE);
-    if ((db_get_keysize(db)<sizeof(ham_offset_t)) && 
+    if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
         key->size>db_get_keysize(db))
         return (HAM_INV_KEYSIZE);
     if ((st=ham_txn_begin(&txn, db)))
@@ -663,10 +665,10 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
      */
     st=be->_fun_erase(be, &txn, key, &blobid, &intflags, flags);
     if (st==HAM_SUCCESS) {
-        if (!((intflags&KEY_BLOB_SIZE_TINY) || 
+        if (!((intflags&KEY_BLOB_SIZE_TINY) ||
               (intflags&KEY_BLOB_SIZE_SMALL) ||
               (intflags&KEY_BLOB_SIZE_EMPTY)))
-            st=blob_free(db, &txn, blobid, flags); 
+            st=blob_free(db, &txn, blobid, flags);
     }
 
     if (st) {
@@ -679,7 +681,7 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
 
     return (ham_txn_commit(&txn));
 }
-    
+
 ham_status_t
 ham_dump(ham_db_t *db, void *reserved, ham_dump_cb_t cb)
 {
@@ -743,7 +745,7 @@ ham_flush(ham_db_t *db)
     /*
      * never flush an in-memory-database
      */
-    if (db_get_flags(db)&HAM_IN_MEMORY_DB) 
+    if (db_get_flags(db)&HAM_IN_MEMORY_DB)
         return (0);
 
     return (db_flush_all(db, 0, DB_FLUSH_NODELETE));
@@ -776,6 +778,11 @@ ham_close(ham_db_t *db)
         db_set_record_allocdata(db, 0);
         db_set_record_allocsize(db, 0);
     }
+    if (db_get_key_allocdata(db)) {
+        ham_mem_free(db_get_key_allocdata(db));
+        db_set_key_allocdata(db, 0);
+        db_set_key_allocsize(db, 0);
+    }
 
     /*
      * update the header page, if necessary
@@ -783,7 +790,7 @@ ham_close(ham_db_t *db)
     if (db_is_dirty(db)) {
         ham_page_t *page=db_get_header_page(db);
 
-        memcpy(page_get_payload(page), &db_get_header(db), 
+        memcpy(page_get_payload(page), &db_get_header(db),
                 sizeof(db_header_t)-sizeof(freel_payload_t));
         page_set_dirty(page, 1);
     }
@@ -793,7 +800,7 @@ ham_close(ham_db_t *db)
      */
     st=freel_shutdown(db);
     if (st) {
-        ham_log(("freel_shutdown() failed with status %d (%s)", 
+        ham_log(("freel_shutdown() failed with status %d (%s)",
                 st, ham_strerror(st)));
         return (st);
     }
@@ -803,7 +810,7 @@ ham_close(ham_db_t *db)
      */
     st=db_flush_all(db, 0, 0);
     if (st) {
-        ham_log(("db_flush_all() failed with status %d (%s)", 
+        ham_log(("db_flush_all() failed with status %d (%s)",
                 st, ham_strerror(st)));
         return (st);
     }
@@ -820,35 +827,35 @@ ham_close(ham_db_t *db)
     if (db_get_backend(db)) {
         st=db_get_backend(db)->_fun_close(db_get_backend(db));
         if (st) {
-            ham_log(("backend close() failed with status %d (%s)", 
+            ham_log(("backend close() failed with status %d (%s)",
                     st, ham_strerror(st)));
             return (st);
         }
     }
 
-    /* 
-     * if we're not in read-only mode, and not an in-memory-database, 
-     * and the dirty-flag is true: flush the page-header to disk 
+    /*
+     * if we're not in read-only mode, and not an in-memory-database,
+     * and the dirty-flag is true: flush the page-header to disk
      */
-    if (!(db_get_flags(db)&HAM_IN_MEMORY_DB) && 
-        db_is_open(db) && 
-        (!(db_get_flags(db)&HAM_READ_ONLY)) && 
+    if (!(db_get_flags(db)&HAM_IN_MEMORY_DB) &&
+        db_is_open(db) &&
+        (!(db_get_flags(db)&HAM_READ_ONLY)) &&
         db_is_dirty(db)) {
         /* copy the persistent header to the database object */
-        memcpy(page_get_payload(db_get_header_page(db)), &db_get_header(db), 
+        memcpy(page_get_payload(db_get_header_page(db)), &db_get_header(db),
             sizeof(db_header_t)-sizeof(freel_payload_t));
 
         /* write the database header */
         st=db_write_page_to_device(db_get_header_page(db));
         if (st) {
-            ham_log(("db_write_page_to_device() failed with status %d (%s)", 
+            ham_log(("db_write_page_to_device() failed with status %d (%s)",
                     st, ham_strerror(st)));
             return (st);
         }
     }
 
     /* close the file */
-    if (!(db_get_flags(db)&HAM_IN_MEMORY_DB) && 
+    if (!(db_get_flags(db)&HAM_IN_MEMORY_DB) &&
         db_is_open(db)) {
         (void)os_close(db_get_fd(db));
         /* set an invalid database handle */
@@ -859,7 +866,7 @@ ham_close(ham_db_t *db)
 }
 
 ham_status_t
-ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags, 
+ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags,
         ham_cursor_t **cursor)
 {
     return (bt_cursor_create(db, 0, flags, (ham_bt_cursor_t **)cursor));
@@ -871,63 +878,63 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
     return (bt_cursor_clone((ham_bt_cursor_t *)src, (ham_bt_cursor_t **)dest));
 }
 
-ham_status_t 
+ham_status_t
 ham_cursor_get_key(ham_cursor_t *cursor, ham_key_t *key)
 {
     return (bt_cursor_get_key((ham_bt_cursor_t *)cursor, key));
 }
 
-ham_status_t 
+ham_status_t
 ham_cursor_get_record(ham_cursor_t *cursor, ham_record_t *record)
 {
     return (bt_cursor_get_record((ham_bt_cursor_t *)cursor, record));
 }
 
-ham_status_t 
+ham_status_t
 ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags)
 {
     return (bt_cursor_replace((ham_bt_cursor_t *)cursor, record, flags));
 }
 
-ham_status_t 
+ham_status_t
 ham_cursor_first(ham_cursor_t *cursor, ham_u32_t flags)
 {
     return (bt_cursor_first((ham_bt_cursor_t *)cursor, flags));
 }
 
-ham_status_t 
+ham_status_t
 ham_cursor_last(ham_cursor_t *cursor, ham_u32_t flags)
 {
     return (bt_cursor_last((ham_bt_cursor_t *)cursor, flags));
 }
 
-ham_status_t 
+ham_status_t
 ham_cursor_next(ham_cursor_t *cursor, ham_u32_t flags)
 {
     return (bt_cursor_next((ham_bt_cursor_t *)cursor, flags));
 }
 
-ham_status_t 
+ham_status_t
 ham_cursor_previous(ham_cursor_t *cursor, ham_u32_t flags)
 {
     return (bt_cursor_previous((ham_bt_cursor_t *)cursor, flags));
 }
 
-ham_status_t 
+ham_status_t
 ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags)
 {
     return (bt_cursor_find((ham_bt_cursor_t *)cursor, key, flags));
 }
 
-ham_status_t 
+ham_status_t
 ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     return (bt_cursor_insert((ham_bt_cursor_t *)cursor, key, record, flags));
 }
 
-ham_status_t 
+ham_status_t
 ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 {
     ham_status_t st;
@@ -938,12 +945,12 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     if ((st=ham_txn_begin(&txn, cursor_get_db(cursor))))
         return (st);
 
-    st=bt_cursor_erase((ham_bt_cursor_t *)cursor, &rid, &intflags, flags); 
+    st=bt_cursor_erase((ham_bt_cursor_t *)cursor, &rid, &intflags, flags);
     if (st==HAM_SUCCESS) {
-        if (!((intflags&KEY_BLOB_SIZE_TINY) || 
+        if (!((intflags&KEY_BLOB_SIZE_TINY) ||
               (intflags&KEY_BLOB_SIZE_SMALL) ||
               (intflags&KEY_BLOB_SIZE_EMPTY)))
-            st=blob_free(cursor_get_db(cursor), &txn, rid, flags); 
+            st=blob_free(cursor_get_db(cursor), &txn, rid, flags);
     }
 
     if (st) {

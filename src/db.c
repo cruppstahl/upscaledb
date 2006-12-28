@@ -21,7 +21,7 @@
 #include "cursor.h"
 #include "btree_cursor.h"
 
-static ham_status_t 
+static ham_status_t
 my_write_page(ham_db_t *db, ham_page_t *page)
 {
     ham_status_t st;
@@ -31,13 +31,13 @@ my_write_page(ham_db_t *db, ham_page_t *page)
      * one day, we'll have to protect these file IO-operations
      * with a mutex
      */
-    ham_assert(!(db_get_flags(db)&HAM_IN_MEMORY_DB), 
+    ham_assert(!(db_get_flags(db)&HAM_IN_MEMORY_DB),
             ("can't fetch a page from in-memory-db"));
-    ham_assert(page_get_pers(page)!=0, 
-            ("writing page 0x%llx, but page has no buffer", 
+    ham_assert(page_get_pers(page)!=0,
+            ("writing page 0x%llx, but page has no buffer",
             page_get_self(page)));
 
-    st=os_pwrite(db_get_fd(db), page_get_self(page), 
+    st=os_pwrite(db_get_fd(db), page_get_self(page),
             (void *)page_get_pers(page), db_get_pagesize(db));
     if (st) {
         ham_log(("os_pwrite failed with status %d (%s)", st, ham_strerror(st)));
@@ -48,7 +48,7 @@ my_write_page(ham_db_t *db, ham_page_t *page)
     return (0);
 }
 
-static ham_status_t 
+static ham_status_t
 my_read_page(ham_db_t *db, ham_offset_t address, ham_page_t *page)
 {
     ham_status_t st;
@@ -59,7 +59,7 @@ my_read_page(ham_db_t *db, ham_offset_t address, ham_page_t *page)
      * with a mutex
      */
 
-    ham_assert(!(db_get_flags(db)&HAM_IN_MEMORY_DB), 
+    ham_assert(!(db_get_flags(db)&HAM_IN_MEMORY_DB),
             ("can't fetch a page from in-memory-db"));
 
     if (db_get_flags(db)&DB_USE_MMAP) {
@@ -74,10 +74,10 @@ my_read_page(ham_db_t *db, ham_offset_t address, ham_page_t *page)
         page_set_pers(page, (union page_union_t *)buffer);
     }
     else {
-        st=os_pread(db_get_fd(db), address, (void *)page_get_pers(page), 
+        st=os_pread(db_get_fd(db), address, (void *)page_get_pers(page),
                 db_get_pagesize(db));
         if (st) {
-            ham_log(("os_pread failed with status %d (%s)", st, 
+            ham_log(("os_pread failed with status %d (%s)", st,
                     ham_strerror(st)));
             return (db_set_error(db, HAM_IO_ERROR));
         }
@@ -115,7 +115,7 @@ my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
             return (0);
         }
 
-        if (page_is_dirty(page) && !(db_get_flags(db)&HAM_IN_MEMORY_DB)) { 
+        if (page_is_dirty(page) && !(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
             st=my_write_page(db, page);
             if (st) {
                 db_set_error(db, st);
@@ -142,8 +142,8 @@ my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
         page_set_owner(page, db);
     }
 
-    /* 
-     * for in-memory-databases and if we use read(2) for I/O, we need 
+    /*
+     * for in-memory-databases and if we use read(2) for I/O, we need
      * a second page buffer for the file data
      */
     if (!(db_get_flags(db)&DB_USE_MMAP) && !page_get_pers(page)) {
@@ -154,11 +154,11 @@ my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
             db_set_error(db, HAM_OUT_OF_MEMORY);
             return (0);
         }
-        page_set_npers_flags(page, 
+        page_set_npers_flags(page,
                 page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
     }
 
-    /* TODO wenn wir in dieser funktion mit einem fehler rausgehen, 
+    /* TODO wenn wir in dieser funktion mit einem fehler rausgehen,
      * haben wir memory leaks! */
 
     return (page);
@@ -172,7 +172,7 @@ db_uncouple_all_cursors(ham_db_t *db, ham_page_t *page)
     (void)db;
 
     while (c) {
-        (void)bt_cursor_uncouple((ham_bt_cursor_t *)c, 
+        (void)bt_cursor_uncouple((ham_bt_cursor_t *)c,
                 BT_CURSOR_UNCOUPLE_NO_REMOVE);
         c=cursor_get_next(c);
     }
@@ -206,7 +206,7 @@ db_alloc_page_struct(ham_db_t *db)
             db_set_error(db, HAM_OUT_OF_MEMORY);
             return (0);
         }
-        page_set_npers_flags(page, 
+        page_set_npers_flags(page,
                 page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
     }
 
@@ -221,7 +221,7 @@ db_free_page_struct(ham_page_t *page)
     /*
      * make sure that there are no more cursors coupled to this page
      */
-    ham_assert(page_get_cursors(page)==0, 
+    ham_assert(page_get_cursors(page)==0,
             ("deleting a page with coupled cursors!"));
 
     /*
@@ -230,13 +230,13 @@ db_free_page_struct(ham_page_t *page)
     (void)cache_remove_page(db_get_cache(db), page);
 
     /*
-     * if we have extended keys: remove all extended keys from the 
+     * if we have extended keys: remove all extended keys from the
      * cache
      * TODO move this to the backend!
      */
-    if ((!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING) && 
+    if ((!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING) &&
          !(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER)) &&
-        (page_get_type(page)==PAGE_TYPE_B_ROOT || 
+        (page_get_type(page)==PAGE_TYPE_B_ROOT ||
          page_get_type(page)==PAGE_TYPE_B_INDEX)) {
         ham_size_t i;
         ham_offset_t blobid;
@@ -252,7 +252,7 @@ db_free_page_struct(ham_page_t *page)
                             (db_get_keysize(db)-sizeof(ham_offset_t)));
                     *(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
-                    if (db_get_flags(db)&HAM_IN_MEMORY_DB) 
+                    if (db_get_flags(db)&HAM_IN_MEMORY_DB)
                         (void)blob_free(db, 0, blobid, 0);
                     else if (c)
                         (void)extkey_cache_remove(c, blobid);
@@ -265,9 +265,9 @@ db_free_page_struct(ham_page_t *page)
      * free the memory
      */
     if (page_get_pers(page)) {
-        if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC) 
+        if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC)
             ham_mem_free(page_get_pers(page));
-        else 
+        else
             (void)os_munmap(page_get_pers(page), db_get_pagesize(db));
     }
 
@@ -294,7 +294,7 @@ db_alloc_page_device(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
     ham_offset_t tellpos=0, resize=0;
     ham_page_t *page=0;
 
-    /* 
+    /*
      * if this is not an in-memory-db: set the memory to 0 and leave
      */
     if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
@@ -314,7 +314,7 @@ db_alloc_page_device(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
     if (!(flags&PAGE_IGNORE_FREELIST)) {
         tellpos=freel_alloc_area(db, db_get_pagesize(db), 0);
         if (tellpos) {
-            ham_assert(tellpos%db_get_pagesize(db)==0, 
+            ham_assert(tellpos%db_get_pagesize(db)==0,
                     ("page id %llu is not aligned", tellpos));
             /* try to fetch the page from the txn */
             if (txn) {
@@ -385,7 +385,7 @@ db_alloc_page_device(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
 done:
 
     /*
-    if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC) 
+    if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC)
         memset(page_get_pers(page), 0, sizeof(struct page_union_header_t));
         */
     if (flags&PAGE_CLEAR_WITH_ZERO)
@@ -399,8 +399,8 @@ done:
     return (page);
 }
 
-int 
-db_default_prefix_compare(const ham_u8_t *lhs, ham_size_t lhs_length, 
+int
+db_default_prefix_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
                    ham_size_t lhs_real_length,
                    const ham_u8_t *rhs, ham_size_t rhs_length,
                    ham_size_t rhs_real_length)
@@ -416,13 +416,13 @@ db_default_prefix_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
     return (HAM_PREFIX_REQUEST_FULLKEY);
 }
 
-int 
-db_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length, 
+int
+db_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
                    const ham_u8_t *rhs, ham_size_t rhs_length)
 {
     int m;
 
-    /* 
+    /*
      * the default compare uses memcmp
      *
      * treat shorter strings as "higher"
@@ -453,9 +453,9 @@ db_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
     return (0);
 }
 
-ham_status_t 
-db_get_extended_key(ham_db_t *db, ham_txn_t *txn, ham_u8_t *key_data, 
-                    ham_size_t key_length, ham_u32_t key_flags, 
+ham_status_t
+db_get_extended_key(ham_db_t *db, ham_txn_t *txn, ham_u8_t *key_data,
+                    ham_size_t key_length, ham_u32_t key_flags,
                     ham_u8_t **ext_key)
 {
     ham_offset_t blobid;
@@ -466,7 +466,7 @@ db_get_extended_key(ham_db_t *db, ham_txn_t *txn, ham_u8_t *key_data,
 
     *ext_key=0;
 
-    ham_assert(key_flags&KEY_IS_EXTENDED, 
+    ham_assert(key_flags&KEY_IS_EXTENDED,
             ("key is not extended"));
 
     if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
@@ -482,7 +482,7 @@ db_get_extended_key(ham_db_t *db, ham_txn_t *txn, ham_u8_t *key_data,
 
     /* fetch from the cache */
     if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
-        st=extkey_cache_fetch(db_get_extkey_cache(db), blobid, 
+        st=extkey_cache_fetch(db_get_extkey_cache(db), blobid,
                         &temp, &ptr);
         if (!st) {
             ham_assert(temp==key_length, ("invalid key length"));
@@ -522,22 +522,22 @@ db_get_extended_key(ham_db_t *db, ham_txn_t *txn, ham_u8_t *key_data,
 
     /* insert the FULL key in the cache */
     if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
-        (void)extkey_cache_insert(db_get_extkey_cache(db), 
+        (void)extkey_cache_insert(db_get_extkey_cache(db),
                 blobid, key_length, *ext_key);
     }
 
     return (0);
 }
 
-/* 
+/*
  * TODO TODO TODO
  * too much duplicated code - use db_get_extended_key
  */
 int
 db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
-                long lhs_idx, ham_u32_t lhs_flags, 
-                const ham_u8_t *lhs, ham_size_t lhs_length, 
-                long rhs_idx, ham_u32_t rhs_flags, 
+                long lhs_idx, ham_u32_t lhs_flags,
+                const ham_u8_t *lhs, ham_size_t lhs_length,
+                long rhs_idx, ham_u32_t rhs_flags,
                 const ham_u8_t *rhs, ham_size_t rhs_length)
 {
     int cmp=HAM_PREFIX_REQUEST_FULLKEY;
@@ -552,7 +552,7 @@ db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
     db_set_error(db, 0);
 
     /*
-     * need prefix compare? 
+     * need prefix compare?
      */
     if (!(lhs_flags&KEY_IS_EXTENDED) && !(rhs_flags&KEY_IS_EXTENDED)) {
         /*
@@ -568,17 +568,17 @@ db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
     if (prefoo) {
         ham_size_t lhsprefixlen, rhsprefixlen;
 
-        if (lhs_flags&KEY_IS_EXTENDED) 
+        if (lhs_flags&KEY_IS_EXTENDED)
             lhsprefixlen=db_get_keysize(db)-sizeof(ham_offset_t);
         else
             lhsprefixlen=lhs_length;
 
-        if (rhs_flags&KEY_IS_EXTENDED) 
+        if (rhs_flags&KEY_IS_EXTENDED)
             rhsprefixlen=db_get_keysize(db)-sizeof(ham_offset_t);
         else
             rhsprefixlen=rhs_length;
-        
-        cmp=prefoo(lhs, lhsprefixlen, lhs_length, rhs, 
+
+        cmp=prefoo(lhs, lhsprefixlen, lhs_length, rhs,
                 rhsprefixlen, rhs_length);
         if (db_get_error(db))
             return (0);
@@ -587,9 +587,9 @@ db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
     if (cmp==HAM_PREFIX_REQUEST_FULLKEY) {
         /*
          * make sure that we have an extended key-cache
-         * 
+         *
          * in in-memory-db, the extkey-cache doesn't lead to performance
-         * advantages; it only duplicates the data and wastes memory. 
+         * advantages; it only duplicates the data and wastes memory.
          * therefore we don't use it.
          */
         if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
@@ -611,9 +611,9 @@ db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
 
             /* fetch from the cache */
             if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
-                st=extkey_cache_fetch(db_get_extkey_cache(db), blobid, 
+                st=extkey_cache_fetch(db_get_extkey_cache(db), blobid,
                         &temp, &plhs);
-                if (!st) 
+                if (!st)
                     ham_assert(temp==lhs_length, ("invalid key length"));
             }
             else
@@ -645,13 +645,13 @@ db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
 
                 /* insert the FULL key in the cache */
                 if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
-                    (void)extkey_cache_insert(db_get_extkey_cache(db), 
+                    (void)extkey_cache_insert(db_get_extkey_cache(db),
                             blobid, lhs_length, plhs);
                 }
                 alloc1=HAM_TRUE;
             }
         }
-        
+
         /*
          * 2. load the second key, if needed
          */
@@ -663,9 +663,9 @@ db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
 
             /* fetch from the cache */
             if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
-                st=extkey_cache_fetch(db_get_extkey_cache(db), blobid, 
+                st=extkey_cache_fetch(db_get_extkey_cache(db), blobid,
                         &temp, &prhs);
-                if (!st) 
+                if (!st)
                     ham_assert(temp==rhs_length, ("invalid key length"));
             }
             else
@@ -698,7 +698,7 @@ db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
 
                 /* insert the FULL key in the cache */
                 if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
-                    (void)extkey_cache_insert(db_get_extkey_cache(db), 
+                    (void)extkey_cache_insert(db_get_extkey_cache(db),
                             blobid, rhs_length, prhs);
                 }
                 alloc2=HAM_TRUE;
@@ -712,7 +712,7 @@ db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
     }
 
 bail:
-    if (alloc1 && plhs) 
+    if (alloc1 && plhs)
         ham_mem_free(plhs);
     if (alloc2 && prhs)
         ham_mem_free(prhs);
@@ -734,7 +734,7 @@ db_create_backend(ham_db_t *db, ham_u32_t flags)
         return (0);
     }
 
-    /* 
+    /*
      * the default backend is the BTREE
      *
      * create a ham_backend_t with the size of a ham_btree_t
@@ -756,7 +756,7 @@ db_create_backend(ham_db_t *db, ham_u32_t flags)
 }
 
 ham_page_t *
-db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address, 
+db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
         ham_u32_t flags)
 {
     ham_page_t *page=0;
@@ -785,11 +785,11 @@ db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
             return (page);
         }
     }
-    
+
     if (flags&DB_ONLY_FROM_CACHE)
         return (0);
 
-    /* 
+    /*
      * check if the cache allows us to allocate another page
      */
     if (!cache_can_add_page(db_get_cache(db))) {
@@ -884,7 +884,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags)
         return (0);
     }
 
-    ham_assert(cache_can_add_page(db_get_cache(db)), 
+    ham_assert(cache_can_add_page(db_get_cache(db)),
             ("cache is full - can't add new page"));
 
     /* set the page type */
@@ -904,7 +904,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags)
         page_set_inuse(page, 1);
     }
 
-    ham_assert(cache_can_add_page(db_get_cache(db)), 
+    ham_assert(cache_can_add_page(db_get_cache(db)),
             ("cache is full - can't add new page"));
 
     /* store the page in the cache */
@@ -916,18 +916,18 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags)
 
     return (page);
 
-    /* TODO avoid memory leak! auch nach anderen 
+    /* TODO avoid memory leak! auch nach anderen
         aufrufen von my_alloc_page() */
 }
 
 ham_status_t
-db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page, 
+db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
         ham_u32_t flags)
 {
     (void)txn;
     (void)flags;
 
-    ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING), 
+    ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING),
             ("deleting a page which is already deleted"));
 
     /*
@@ -936,11 +936,11 @@ db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
     (void)db_uncouple_all_cursors(db, page);
 
     /*
-     * if we have extended keys: remove all extended keys from the 
+     * if we have extended keys: remove all extended keys from the
      * cache
      * TODO move this to the backend!
      */
-    if ((page_get_type(page)==PAGE_TYPE_B_ROOT || 
+    if ((page_get_type(page)==PAGE_TYPE_B_ROOT ||
          page_get_type(page)==PAGE_TYPE_B_INDEX)) {
         ham_size_t i;
         ham_offset_t blobid;
@@ -956,7 +956,7 @@ db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
                             (db_get_keysize(db)-sizeof(ham_offset_t)));
                     *(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
-                    if (db_get_flags(db)&HAM_IN_MEMORY_DB) 
+                    if (db_get_flags(db)&HAM_IN_MEMORY_DB)
                         (void)blob_free(db, txn, blobid, 0);
                     else if (c)
                         (void)extkey_cache_remove(c, blobid);
@@ -965,13 +965,13 @@ db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
         }
     }
 
-    page_set_npers_flags(page, 
+    page_set_npers_flags(page,
             page_get_npers_flags(page)|PAGE_NPERS_DELETE_PENDING);
 
     return (0);
 }
 
-ham_status_t 
+ham_status_t
 db_write_page_and_delete(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
 {
     /*
@@ -985,10 +985,10 @@ db_write_page_and_delete(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
      */
     (void)db_uncouple_all_cursors(db, page);
 
-    /* 
+    /*
      * free the memory of the page
      */
-    if (!(flags&DB_FLUSH_NODELETE)) 
+    if (!(flags&DB_FLUSH_NODELETE))
         db_free_page_struct(page);
 
     return (0);
