@@ -22,6 +22,12 @@ struct ham_db_t;
 typedef struct ham_db_t ham_db_t;
 
 /**
+ * a database cursor
+ */
+struct ham_cursor_t;
+typedef struct ham_cursor_t ham_cursor_t;
+
+/**
  * a generic record
  */
 typedef struct
@@ -45,10 +51,18 @@ typedef struct
  */
 typedef struct
 {
-    ham_u32_t _flags;
     ham_size_t size;
     void *data;
+    ham_u32_t flags;
+    ham_u32_t _flags;
 } ham_key_t;
+
+/**
+ * flags for ham_key_t: data points to memory which is allocated 
+ * by the user. this is only useful if you read the key from a cursor
+ * (ham_cursor_get_key());
+ */
+#define HAM_KEY_USER_ALLOC      1
 
 /**
  * a typedef for a custom error handler function
@@ -95,6 +109,7 @@ ham_strerror(ham_status_t result);
 #define HAM_IO_ERROR                 (-18)
 #define HAM_CACHE_FULL               (-19)
 #define HAM_NOT_IMPLEMENTED          (-20)
+#define HAM_CURSOR_IS_NIL           (-100)
 
 /**
  * get the version of the hamsterdb library
@@ -242,6 +257,15 @@ ham_create_ex(ham_db_t *db, const char *filename,
  */
 #define HAM_OPTIMIZE_SIZE            0x00001000
 
+/**
+ * create a database cursor
+ *
+ * @remark set reserved and flags to 0
+ */
+extern ham_status_t
+ham_create_cursor(ham_db_t *db, void *reserved, ham_u32_t flags, 
+            ham_cursor_t **cursor);
+
 /** 
  * get the last error code
  */
@@ -312,6 +336,70 @@ ham_flush(ham_db_t *db);
  */
 extern ham_status_t
 ham_close(ham_db_t *db);
+
+/**
+ * create a database cursor
+ *
+ * @remark set @a reserved to NULL and @a flags to 0
+ */
+extern ham_status_t
+ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags, 
+        ham_cursor_t **cursor);
+
+/**
+ * clone a database cursor
+ */
+extern ham_status_t
+ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
+
+/**
+ * moves the cursor
+ *
+ * @remark @a key and/or @a record can be NULL; if @a flag is neither
+ * first, last, next or previous, the current key/record is returned
+ */
+extern ham_status_t
+ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key, 
+        ham_record_t *record, ham_u32_t flags;
+
+#define HAM_CURSOR_FIRST            1
+#define HAM_CURSOR_LAST             2
+#define HAM_CURSOR_NEXT             4
+#define HAM_CURSOR_PREVIOUS         8
+
+/**
+ * replace the current record
+ */
+extern ham_status_t 
+ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
+            ham_u32_t flags);
+
+/**
+ * find a key in the index and positions the cursor
+ * on this key
+ */
+extern ham_status_t 
+ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
+
+/**
+ * insert (or update) a key in the index
+ */
+extern ham_status_t 
+ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
+            ham_record_t *record, ham_u32_t flags);
+
+/**
+ * erases the key from the index and positions the cursor to the
+ * next key
+ */
+extern ham_status_t 
+ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
+
+/**
+ * close a database cursor
+ */
+extern ham_status_t
+ham_cursor_close(ham_cursor_t *cursor);
 
 
 #ifdef __cplusplus

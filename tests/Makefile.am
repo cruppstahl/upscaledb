@@ -4,7 +4,7 @@ if HAVE_DB_H
 noinst_PROGRAMS	= test
 endif
 
-INCLUDE   = -I$(top_builddir)/include
+INCLUDES  = -I$(top_builddir)/include
 
 AM_CFLAGS =
 

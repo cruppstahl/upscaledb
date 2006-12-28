@@ -187,7 +187,7 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-INCLUDE = -I$(top_builddir)/include
+INCLUDES = -I$(top_builddir)/include
 AM_CFLAGS = $(am__append_1) $(am__append_2) $(am__append_3) \
 	$(am__append_4) $(am__append_5)
 test_SOURCES = db.c getopts.c

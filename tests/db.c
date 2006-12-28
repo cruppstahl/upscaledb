@@ -18,7 +18,6 @@
 #include "getopts.h"
 #include "../src/error.h"
 #include "../src/config.h"
-#include "../src/db.h"
 
 static ham_u64_t g_total_insert=0;
 static ham_u64_t g_tv1, g_tv2;
@@ -48,6 +47,8 @@ static unsigned long g_filesize, g_filepos;
                                     config.prof_find[i]+=g_tv2-g_tv1;       \
                                 else if (w==PROF_OTHER)                     \
                                     config.prof_other[i]+=g_tv2-g_tv1;      \
+                                else if (w==PROF_CURSOR)                    \
+                                    config.prof_cursor[i]+=g_tv2-g_tv1;     \
                                 break;                                      \
                             }
 
@@ -76,8 +77,9 @@ static unsigned long g_filesize, g_filepos;
 #define PROF_ERASE      2
 #define PROF_FIND       4
 #define PROF_OTHER      8
-#define PROF_ALL        (PROF_INSERT|PROF_ERASE|PROF_FIND|PROF_OTHER)
-#define PROF_NONE       (~PROF_ALL)
+#define PROF_CURSOR    16
+#define PROF_ALL      (PROF_INSERT|PROF_ERASE|PROF_FIND|PROF_CURSOR|PROF_OTHER)
+#define PROF_NONE     (~PROF_ALL)
 
 #define BACKEND_NONE    0
 #define BACKEND_HAMSTER 1
@@ -167,6 +169,7 @@ static struct {
     ham_u64_t prof_erase[2];
     ham_u64_t prof_find[2];
     ham_u64_t prof_other[2];
+    ham_u64_t prof_cursor[2];
 
 } config;
 
@@ -371,6 +374,18 @@ my_print_profile(void)
         printf("find:   profile of backend %s:\t%f sec\n", 
                 my_get_profile_name(1), f);
     }
+    if (config.profile&PROF_CURSOR) {
+        f=config.prof_cursor[0];
+        total[0]+=f;
+        f/=1000.f;
+        printf("other:  profile of backend %s:\t%f sec\n", 
+                my_get_profile_name(0), f);
+        f=config.prof_cursor[1];
+        total[1]+=f;
+        f/=1000.f;
+        printf("other:  profile of backend %s:\t%f sec\n", 
+                my_get_profile_name(1), f);
+    }
     if (config.profile&PROF_OTHER) {
         f=config.prof_other[0];
         total[0]+=f;
@@ -509,11 +524,10 @@ my_compare_databases(void)
     ham_key_t hkey;
     ham_record_t hrec;
     ham_status_t st;
+    ham_cursor_t *hamc;
 
     memset(&key, 0, sizeof(key));
     memset(&rec, 0, sizeof(rec));
-    memset(&hkey, 0, sizeof(hkey));
-    memset(&hrec, 0, sizeof(hrec));
 
     if (!config.dbp || !config.hamdb)
         return 1;
@@ -530,17 +544,20 @@ my_compare_databases(void)
     }
 
     /*
-     * get a cursor on the berkeley database; traverse the database, and
-     * query hamster for each item
+     * get a cursor on the berkeley database and for hamsterdb; traverse the 
+     * database, and compare each record
      */
     ret=config.dbp->cursor(config.dbp, NULL, &cursor, 0);
     ham_assert(ret==0, ("berkeley-db error"));
+    st=ham_cursor_create(config.hamdb, 0, 0, &hamc);
+    ham_assert(st==0, ("hamster-db error"));
+    st=ham_cursor_first(hamc, 0);
+    ham_assert(st==0, ("hamster-db error"));
+
     VERBOSE2(("comparing databases...", 0));
     /*PROFILE_START(berk);*/
     while ((ret=cursor->c_get(cursor, &key, &rec, DB_NEXT))==0) {
         /*PROFILE_STOP(berk);*/
-        hkey.size=key.size;
-        hkey.data=key.data;
     
         if (config.useralloc) {
             hrec.data=malloc(1024*1024*64); /* 64 mb? */
@@ -551,20 +568,32 @@ my_compare_databases(void)
             hrec.flags=HAM_RECORD_USER_ALLOC;
         }
 
+        /* get hamster key and record */
+        memset(&hkey, 0, sizeof(hkey));
+        memset(&hrec, 0, sizeof(hrec));
+        st=ham_cursor_get_key(hamc, &hkey);
+        ham_assert(st==0, ("hamster-db error"));
+        st=ham_cursor_get_record(hamc, &hrec);
+        ham_assert(st==0, ("hamster-db error"));
+
         /*PROFILE_START(ham);*/
-        st=ham_find(config.hamdb, 0, &hkey, &hrec, 0);
+        /*st=ham_find(config.hamdb, 0, &hkey, &hrec, 0);*/
         /*PROFILE_STOP(ham);*/
-        ham_assert(st==0, ("hamster-db error %d", st));
+        /*ham_assert(st==0, ("hamster-db error %d", st));*/
+/*printf("hamster key %d, data %d; bdb key %d, data %d\n", 
+        hkey.size, hrec.size, key.size,rec.size);*/
         ham_assert(hrec.size==rec.size, ("%u != %u", hrec.size, rec.size));
         if (hrec.data)
             ham_assert(!memcmp(hrec.data, rec.data, rec.size), (0));
         if (config.useralloc) 
             free(hrec.data);
         /*PROFILE_START(berk);*/
+        ham_cursor_next(hamc, 0);
     }
     /*PROFILE_STOP(berk);*/
     ham_assert(ret==DB_NOTFOUND, (0));
     cursor->c_close(cursor);
+    ham_cursor_close(hamc);
 
     return 1;
 }
