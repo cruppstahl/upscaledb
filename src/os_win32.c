@@ -22,7 +22,7 @@ os_get_pagesize(void)
 }
 
 ham_status_t
-os_mmap(ham_fd_t fd, ham_offset_t position, ham_size_t size, 
+os_mmap(ham_fd_t fd, ham_offset_t position, ham_size_t size,
         ham_u8_t **buffer)
 {
 #if 0
@@ -50,7 +50,7 @@ os_munmap(void *buffer, ham_size_t size)
 }
 
 ham_status_t
-os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer, 
+os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
         ham_size_t bufferlen)
 {
     ham_status_t st;
@@ -64,12 +64,12 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
         ham_trace(("read failed with OS status %u", st));
         return (st);
     }
-  
+
     return (0);
 }
 
 ham_status_t
-os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer, 
+os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
         ham_size_t bufferlen)
 {
     ham_status_t st;
@@ -84,7 +84,7 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
         ham_trace(("write failed with OS status %u", st));
         return (st);
     }
-  
+
     return (written==bufferlen ? HAM_SUCCESS : HAM_SHORT_WRITE);
 }
 
@@ -92,7 +92,7 @@ ham_status_t
 os_seek(ham_fd_t fd, ham_offset_t offset, int whence)
 {
     DWORD st;
-    LARGE_INTEGER i; 
+    LARGE_INTEGER i;
     i.QuadPart=offset;
     
     st=SetFilePointerEx((HANDLE)fd, i, 0, whence);
@@ -110,8 +110,8 @@ os_tell(ham_fd_t fd, ham_offset_t *offset)
     DWORD st;
     LARGE_INTEGER i, d;
     d.QuadPart=0;
-    
-    st=SetFilePointerEx((HANDLE)fd, d, &i, HAM_OS_SEEK_SET);
+
+    st=SetFilePointerEx((HANDLE)fd, d, &i, HAM_OS_SEEK_CUR);
     if (st==0 && (st=GetLastError())!=NO_ERROR) {
         ham_trace(("tell failed with OS status %u", st));
         return ((ham_status_t)st);
@@ -135,7 +135,7 @@ os_truncate(ham_fd_t fd, ham_offset_t newsize)
         ham_trace(("SetEndOfFile failed with OS status %u", st));
         return (st);
     }
-    
+
     return (HAM_SUCCESS);
 }
 
@@ -145,7 +145,7 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
     ham_status_t st;
     DWORD osflags=FILE_FLAG_RANDOM_ACCESS;
 
-    *fd=(ham_fd_t)CreateFile(filename, FILE_ALL_ACCESS, 0, 0, 
+    *fd=(ham_fd_t)CreateFile(filename, FILE_ALL_ACCESS, 0, 0,
                 CREATE_ALWAYS, osflags, 0);
     if (*fd==0) {
         st=(ham_status_t)GetLastError();
@@ -168,7 +168,7 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
     if (flags&HAM_READ_ONLY)
         osflags|=FILE_ATTRIBUTE_READONLY;
 
-    *fd=(ham_fd_t)CreateFile(filename, FILE_ALL_ACCESS, 0, 0, dispo, 
+    *fd=(ham_fd_t)CreateFile(filename, FILE_ALL_ACCESS, 0, 0, dispo,
                 osflags, 0);
     if (*fd==0) {
         st=(ham_status_t)GetLastError();
