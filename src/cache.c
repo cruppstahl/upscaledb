@@ -13,6 +13,8 @@
 #include "page.h"
 #include "error.h"
 
+#define BUCKET_SIZE     128
+
 #define my_calc_hash(cache, o)                                              \
     (cache_get_cachesize(cache)==0                                          \
         ? 0                                                                 \
@@ -95,7 +97,7 @@ cache_new(ham_db_t *db, ham_u32_t flags, ham_size_t cachesize)
     ham_cache_t *cache;
     ham_size_t mem, buckets;
 
-    buckets=128; /*(cachesize/db_get_pagesize(db))/2;*/
+    buckets=BUCKET_SIZE;
     if (!buckets)
         buckets=1;
     mem=sizeof(ham_cache_t)+(buckets-1)*sizeof(void *);

@@ -9,13 +9,10 @@
 #ifndef HAM_UTIL_H__
 #define HAM_UTIL_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 #include <ham/hamsterdb.h>
 #include "db.h"
 #include "txn.h"
+#include "keys.h"
 
 /** 
  * copy a key
@@ -26,8 +23,26 @@ extern ham_key_t *
 util_copy_key(ham_db_t *db, ham_txn_t *txn, 
             const ham_key_t *source, ham_key_t *dest);
 
-#ifdef __cplusplus
-} // extern "C"
-#endif 
+/**
+ * same as above, but copies a internal key_t structure
+ */
+extern ham_key_t *
+util_copy_key_int2pub(ham_db_t *db, ham_txn_t *txn, 
+            const key_t *source, ham_key_t *dest);
+
+/**
+ * read a record 
+ */
+extern ham_status_t
+util_read_record(ham_db_t *db, ham_txn_t *txn, 
+        ham_record_t *record, ham_u32_t flags);
+
+/**
+ * read a key
+ */
+extern ham_status_t
+util_read_key(ham_db_t *db, ham_txn_t *txn, 
+        key_t *source, ham_key_t *dest, ham_u32_t flags);
+
 
 #endif /* HAM_UTIL_H__ */

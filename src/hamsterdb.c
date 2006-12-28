@@ -18,6 +18,9 @@
 #include "blob.h"
 #include "freelist.h"
 #include "extkeys.h"
+#include "btree_cursor.h"
+#include "cursor.h"
+#include "util.h"
 
 typedef struct free_cb_context_t
 {
@@ -172,6 +175,8 @@ ham_strerror(ham_status_t result)
             return ("System I/O error");
         case HAM_CACHE_FULL:
             return ("Database cache is full");
+        case HAM_CURSOR_IS_NIL:
+            return ("Cursor points to NIL");
         default: 
             return ("Unknown error");
     }
@@ -540,6 +545,16 @@ ham_create_ex(ham_db_t *db, const char *filename,
 }
 
 ham_status_t
+ham_create_cursor(ham_db_t *db, void *reserved, ham_u32_t flags, 
+            ham_cursor_t **cursor)
+{
+    /*
+     * so far we only support B+Tree cursors
+     */
+    return (bt_cursor_create(db, 0, flags, (ham_bt_cursor_t **)cursor));
+}
+
+ham_status_t
 ham_get_error(ham_db_t *db)
 {
     return (db_get_error(db));
@@ -569,8 +584,9 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
 
     if (!be)
         return (HAM_INV_INDEX);
-    if (!record)
+    if (!db || !key || !record)
         return (HAM_INV_PARAMETER);
+
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
@@ -578,60 +594,8 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
      * first look up the blob id, then fetch the blob
      */
     st=be->_fun_find(be, &txn, key, record, flags);
-    if (st==HAM_SUCCESS) {
-        ham_bool_t noblob=HAM_FALSE;
-
-        /*
-         * success!
-         *
-         * sometimes (if the record size is small enough), there's
-         * no blob available, but the data is stored in the record's
-         * offset.
-         */
-        if (record->_intflags&KEY_BLOB_SIZE_TINY) {
-            /* the highest nibble of the record id is the size of the blob */
-            char *p=(char *)&record->_rid;
-            record->size=p[sizeof(ham_offset_t)-1];
-            noblob=HAM_TRUE;
-        }
-        else if (record->_intflags&KEY_BLOB_SIZE_SMALL) {
-            /* record size is sizeof(ham_offset_t) */
-            record->size=sizeof(ham_offset_t);
-            noblob=HAM_TRUE;
-        }
-        else if (record->_intflags&KEY_BLOB_SIZE_EMPTY) {
-            /* record size is 0 */
-            record->size=0;
-            noblob=HAM_TRUE;
-        }
-
-        if (noblob && record->size>0) {
-            if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-                if (record->size>db_get_record_allocsize(db)) {
-                    if (db_get_record_allocdata(db))
-                        ham_mem_free(db_get_record_allocdata(db));
-                    db_set_record_allocdata(db, ham_mem_alloc(record->size));
-                    if (!db_get_record_allocdata(db)) {
-                        st=HAM_OUT_OF_MEMORY;
-                        db_set_record_allocsize(db, 0);
-                    }
-                    else {
-                        db_set_record_allocsize(db, record->size);
-                    }
-                }
-                record->data=db_get_record_allocdata(db);
-            }
-
-            if (!st) 
-                memcpy(record->data, &record->_rid, record->size);
-        }
-        else if (noblob && record->size==0) {
-            st=0; /* no blob available */
-        }
-        else {
-            st=blob_read(db, &txn, record->_rid, record, flags);
-        }
-    }
+    if (st==HAM_SUCCESS) 
+        st=util_read_record(db, &txn, record, flags);
 
     if (st) {
         (void)ham_txn_abort(&txn);
@@ -892,4 +856,106 @@ ham_close(ham_db_t *db)
     }
 
     return (0);
+}
+
+ham_status_t
+ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags, 
+        ham_cursor_t **cursor)
+{
+    return (bt_cursor_create(db, 0, flags, (ham_bt_cursor_t **)cursor));
+}
+
+ham_status_t
+ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
+{
+    return (bt_cursor_clone((ham_bt_cursor_t *)src, (ham_bt_cursor_t **)dest));
+}
+
+ham_status_t 
+ham_cursor_get_key(ham_cursor_t *cursor, ham_key_t *key)
+{
+    return (bt_cursor_get_key((ham_bt_cursor_t *)cursor, key));
+}
+
+ham_status_t 
+ham_cursor_get_record(ham_cursor_t *cursor, ham_record_t *record)
+{
+    return (bt_cursor_get_record((ham_bt_cursor_t *)cursor, record));
+}
+
+ham_status_t 
+ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
+            ham_u32_t flags)
+{
+    return (bt_cursor_replace((ham_bt_cursor_t *)cursor, record, flags));
+}
+
+ham_status_t 
+ham_cursor_first(ham_cursor_t *cursor, ham_u32_t flags)
+{
+    return (bt_cursor_first((ham_bt_cursor_t *)cursor, flags));
+}
+
+ham_status_t 
+ham_cursor_last(ham_cursor_t *cursor, ham_u32_t flags)
+{
+    return (bt_cursor_last((ham_bt_cursor_t *)cursor, flags));
+}
+
+ham_status_t 
+ham_cursor_next(ham_cursor_t *cursor, ham_u32_t flags)
+{
+    return (bt_cursor_next((ham_bt_cursor_t *)cursor, flags));
+}
+
+ham_status_t 
+ham_cursor_previous(ham_cursor_t *cursor, ham_u32_t flags)
+{
+    return (bt_cursor_previous((ham_bt_cursor_t *)cursor, flags));
+}
+
+ham_status_t 
+ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags)
+{
+    return (bt_cursor_find((ham_bt_cursor_t *)cursor, key, flags));
+}
+
+ham_status_t 
+ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
+            ham_record_t *record, ham_u32_t flags)
+{
+    return (bt_cursor_insert((ham_bt_cursor_t *)cursor, key, record, flags));
+}
+
+ham_status_t 
+ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_offset_t rid;
+    ham_u32_t intflags;
+    ham_txn_t txn;
+
+    if ((st=ham_txn_begin(&txn, cursor_get_db(cursor))))
+        return (st);
+
+    st=bt_cursor_erase((ham_bt_cursor_t *)cursor, &rid, &intflags, flags); 
+    if (st==HAM_SUCCESS) {
+        if (!((intflags&KEY_BLOB_SIZE_TINY) || 
+              (intflags&KEY_BLOB_SIZE_SMALL) ||
+              (intflags&KEY_BLOB_SIZE_EMPTY)))
+            st=blob_free(cursor_get_db(cursor), &txn, rid, flags); 
+    }
+
+    if (st) {
+        (void)ham_txn_abort(&txn);
+        return (st);
+    }
+
+    return (ham_txn_commit(&txn));
+}
+
+ham_status_t
+ham_cursor_close(ham_cursor_t *cursor)
+{
+    return (bt_cursor_close((ham_bt_cursor_t *)cursor));
 }

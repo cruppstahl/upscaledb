@@ -9,12 +9,9 @@
 #ifndef HAM_PAGE_H__
 #define HAM_PAGE_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 #include <ham/hamsterdb.h>
 #include "endian.h"
+#include "cursor.h"
 
 /*
  * indices for page lists
@@ -63,6 +60,9 @@ struct ham_page_t {
 
         /** linked lists of pages - see comments above */
         ham_page_t *_prev[MAX_PAGE_LISTS], *_next[MAX_PAGE_LISTS];
+
+        /** linked list of all cursors which point to that page */
+        ham_cursor_t *_cursors;
 
     } _npers; 
 
@@ -174,6 +174,16 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 #else
 #   define page_set_next(page, which, p)     (page)->_npers._next[(which)]=(p)
 #endif /* HAM_DEBUG */
+
+/**
+ * get linked list of cursors
+ */
+#define page_get_cursors(page)           (page)->_npers._cursors
+
+/**
+ * set linked list of cursors
+ */
+#define page_set_cursors(page, c)        (page)->_npers._cursors=c
 
 /**
  * get persistent page flags
@@ -317,8 +327,17 @@ page_list_insert_ring(ham_page_t *head, int which, ham_page_t *page);
 extern ham_page_t *
 page_list_remove(ham_page_t *head, int which, ham_page_t *page);
 
-#if __cplusplus
-} // extern "C"
-#endif 
+/**
+ * add a cursor to this page
+ */
+extern void
+page_add_cursor(ham_page_t *page, ham_cursor_t *cursor);
+
+/**
+ * remove a cursor from this page
+ */
+extern void
+page_remove_cursor(ham_page_t *page, ham_cursor_t *cursor);
+
 
 #endif /* HAM_PAGE_H__ */

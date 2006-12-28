@@ -9,12 +9,9 @@
 #ifndef HAM_BTREE_H__
 #define HAM_BTREE_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 #include "backend.h"
 #include "keys.h"
+#include "btree_cursor.h"
 
 /**
  * the backend structure for a b+tree 
@@ -202,11 +199,25 @@ btree_find(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
            ham_record_t *record, ham_u32_t flags);
 
 /**
+ * same as above, but sets the cursor to the position
+ */
+extern ham_status_t 
+btree_find_cursor(ham_btree_t *be, ham_txn_t *txn, ham_bt_cursor_t *cursor, 
+           ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+
+/**
  * insert a new tuple (key/record) in the tree
  */
 extern ham_status_t
 btree_insert(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key, 
         ham_record_t *record, ham_u32_t flags);
+
+/**
+ * same as above, but sets the cursor position to the new item
+ */
+extern ham_status_t
+btree_insert_cursor(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key, 
+        ham_record_t *record, ham_bt_cursor_t *cursor, ham_u32_t flags);
 
 /**
  * erase a key from the tree
@@ -261,13 +272,9 @@ btree_node_search_by_key(ham_db_t *db, ham_txn_t *txn,
 /*
  * get the slot of an element in the page
  */
-ham_status_t 
+extern ham_status_t 
 btree_get_slot(ham_db_t *db, ham_txn_t *txn, ham_page_t *page, 
         ham_key_t *key, ham_s32_t *slot);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_BTREE_H__ */

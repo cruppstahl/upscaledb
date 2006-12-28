@@ -12,10 +12,11 @@
 #include "btree.h"
 #include "txn.h"
 #include "keys.h"
+#include "btree_cursor.h"
 
 ham_status_t 
-btree_find(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
-           ham_record_t *record, ham_u32_t flags)
+btree_find_cursor(ham_btree_t *be, ham_txn_t *txn, ham_bt_cursor_t *cursor, 
+           ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
     ham_page_t *page;
     btree_node_t *node;
@@ -59,8 +60,29 @@ btree_find(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
 
     /* load the entry, and store record ID and key flags */
     entry=btree_node_get_key(db, node, idx);
-    record->_rid=key_get_ptr(entry);
-    record->_intflags=key_get_flags(entry);
+    if (record) {
+        record->_rid=key_get_ptr(entry);
+        record->_intflags=key_get_flags(entry);
+    }
+
+    /* set the cursor-position to this key */
+    if (cursor) {
+        ham_assert(bt_cursor_get_flags(cursor)&(~BT_CURSOR_FLAG_UNCOUPLED), 
+                ("coupling a coupled cursor"));
+        page_add_cursor(page, (ham_cursor_t *)cursor);
+        bt_cursor_set_flags(cursor, 
+                bt_cursor_get_flags(cursor)|BT_CURSOR_FLAG_COUPLED);
+        bt_cursor_set_coupled_page(cursor, page);
+        bt_cursor_set_coupled_index(cursor, idx);
+    }
 
     return (0);
 }
+
+ham_status_t 
+btree_find(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
+           ham_record_t *record, ham_u32_t flags)
+{
+    return (btree_find_cursor(be, txn, 0, key, record, flags));
+}
+

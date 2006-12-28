@@ -12,6 +12,7 @@
 #include "mem.h"
 #include "os.h"
 #include "freelist.h"
+#include "cursor.h"
 
 #ifdef HAM_DEBUG
 static ham_bool_t
@@ -36,6 +37,12 @@ my_validate_page(ham_page_t *p)
             ("referenced and in garbage bin"));
 
     /*
+     * not allowed: in garbage bin and cursors
+     */
+    ham_assert(!(page_get_cursors(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
+            ("cursors and in garbage bin"));
+
+    /*
      * not allowed: in transaction and in garbage bin
      */
     ham_assert(!(my_is_in_list(p, PAGE_LIST_TXN) && 
@@ -48,13 +55,6 @@ my_validate_page(ham_page_t *p)
     ham_assert(!(my_is_in_list(p, PAGE_LIST_BUCKET) && 
                my_is_in_list(p, PAGE_LIST_GARBAGE)),
             ("cached and in garbage bin"));
-
-    /*
-     * not allowed: unknown page types
-    if (page_get_pers(p))
-        ham_assert(page_get_type(p)!=PAGE_TYPE_UNKNOWN, 
-                "page type is unknown", 0);
-     */
 }
 
 ham_page_t *
@@ -164,4 +164,36 @@ page_list_remove(ham_page_t *head, int which, ham_page_t *page)
     page_set_next(page, which, 0);
     page_set_previous(page, which, 0);
     return (head);
+}
+
+void
+page_add_cursor(ham_page_t *page, ham_cursor_t *cursor)
+{
+    if (page_get_cursors(page))
+        cursor_set_next(cursor, page_get_cursors(page));
+    page_set_cursors(page, cursor);
+}
+
+void
+page_remove_cursor(ham_page_t *page, ham_cursor_t *cursor)
+{
+    ham_cursor_t *n, *p;
+
+    if (cursor==page_get_cursors(page)) {
+        n=cursor_get_next(cursor);
+        if (n)
+            cursor_set_previous(n, 0);
+        page_set_cursors(page, n);
+    }
+    else {
+        n=cursor_get_next(cursor);
+        p=cursor_get_previous(cursor);
+        if (p)
+            cursor_set_next(p, n);
+        if (n)
+            cursor_set_previous(n, p);
+    }
+
+    cursor_set_next(cursor, 0);
+    cursor_set_previous(cursor, 0);
 }

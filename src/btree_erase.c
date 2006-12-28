@@ -482,6 +482,17 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
     }
 
     /*
+     * uncouple all cursors
+     */
+    if ((st=db_uncouple_all_cursors(db, page)))
+        return (0);
+    if ((st=db_uncouple_all_cursors(db, sibpage)))
+        return (0);
+    if (ancpage)
+        if ((st=db_uncouple_all_cursors(db, ancpage)))
+            return (0);
+
+    /*
      * internal node: insert the anchornode separator value to 
      * this node
      */
@@ -516,7 +527,6 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
 
     /*
      * shift items from the sibling to this page
-     * TODO we could also shift the extkeys... 
      */
     memcpy(bte_lhs, bte_rhs, (sizeof(key_t)-1+keysize)*c);
             
@@ -600,14 +610,20 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
     ancnode=ham_page_get_btree_node(ancpage);
 
     /*
+     * uncouple all cursors
+     */
+    if ((st=db_uncouple_all_cursors(db, page)))
+        return (0);
+    if ((st=db_uncouple_all_cursors(db, sibpage)))
+        return (0);
+    if (ancpage)
+        if ((st=db_uncouple_all_cursors(db, ancpage)))
+            return (0);
+
+    /*
      * shift from sibling to this node
      */
     if (btree_node_get_count(sibnode)>=btree_node_get_count(node)) {
-        /*
-         * TODO this is slow: we just delete all extkeys of the sibling.
-        page_delete_ext_keys(sibpage);
-         */
-
         /*
          * internal node: insert the anchornode separator value to 
          * this node
@@ -774,13 +790,6 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
      * shift from this node to the sibling
      */
     else {
-        /*
-         * TODO this is slow: we just delete all extkeys of the page and
-         * of the sibling.
-        page_delete_ext_keys(page);
-        page_delete_ext_keys(sibpage);
-         */
-
         /*
         * internal node: insert the anchornode separator value to 
         * this node
@@ -953,8 +962,15 @@ my_replace_key(ham_page_t *page, ham_txn_t *txn, ham_s32_t slot,
         key_t *rhs, ham_u32_t flags)
 {
     key_t *lhs;
+    ham_status_t st;
     ham_db_t *db=page_get_owner(page);
     btree_node_t *node=ham_page_get_btree_node(page);
+
+    /*
+     * uncouple all cursors
+     */
+    if ((st=db_uncouple_all_cursors(db, page)))
+        return (db_set_error(db, st));
 
     lhs=btree_node_get_key(db, node, slot);
 
@@ -1007,6 +1023,7 @@ static ham_status_t
 my_remove_entry(ham_txn_t *txn, ham_page_t *page, ham_s32_t slot, 
         erase_scratchpad_t *scratchpad)
 {
+    ham_status_t st;
     key_t *bte_lhs, *bte_rhs, *bte;
     btree_node_t *node;
     ham_size_t keysize;
@@ -1015,6 +1032,12 @@ my_remove_entry(ham_txn_t *txn, ham_page_t *page, ham_s32_t slot,
     db=page_get_owner(page);
     node=ham_page_get_btree_node(page);
     keysize=db_get_keysize(db);
+
+    /*
+     * uncouple all cursors
+     */
+    if ((st=db_uncouple_all_cursors(db, page)))
+        return (db_set_error(db, st));
 
     ham_assert(slot>=0, ("invalid slot %ld", slot));
     ham_assert(slot<btree_node_get_count(node), ("invalid slot %ld", slot));
@@ -1053,3 +1076,4 @@ my_remove_entry(ham_txn_t *txn, ham_page_t *page, ham_s32_t slot,
 
     return (0);
 }
+

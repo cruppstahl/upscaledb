@@ -331,6 +331,13 @@ struct ham_db_t
  */
 #define db_get_header(db)              (db)->_hdr
 
+/**
+ * uncouple all cursors from a page
+ *
+ * @remark this is called whenever the page is deleted or becoming invalid
+ */
+extern ham_status_t
+db_uncouple_all_cursors(ham_db_t *db, ham_page_t *page);
 
 /**
  * compare two keys

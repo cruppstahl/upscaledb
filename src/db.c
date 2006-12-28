@@ -18,6 +18,8 @@
 #include "txn.h"
 #include "blob.h"
 #include "extkeys.h"
+#include "cursor.h"
+#include "btree_cursor.h"
 
 static ham_status_t 
 my_write_page(ham_db_t *db, ham_page_t *page)
@@ -121,6 +123,11 @@ my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
             }
         }
 
+        /*
+         * uncouple all cursors
+         */
+        (void)db_uncouple_all_cursors(db, page);
+
         if (!(page_get_npers_flags(page)&PAGE_NPERS_MALLOC)) {
             st=os_munmap(page_get_pers(page), db_get_pagesize(db));
             if (st) {
@@ -155,6 +162,24 @@ my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
      * haben wir memory leaks! */
 
     return (page);
+}
+
+ham_status_t
+db_uncouple_all_cursors(ham_db_t *db, ham_page_t *page)
+{
+    ham_cursor_t *c=page_get_cursors(page);
+
+    (void)db;
+
+    while (c) {
+        (void)bt_cursor_uncouple((ham_bt_cursor_t *)c, 
+                BT_CURSOR_UNCOUPLE_NO_REMOVE);
+        c=cursor_get_next(c);
+    }
+
+    page_set_cursors(page, 0);
+
+    return (0);
 }
 
 ham_page_t *
@@ -192,6 +217,12 @@ void
 db_free_page_struct(ham_page_t *page)
 {
     ham_db_t *db=page_get_owner(page);
+
+    /*
+     * make sure that there are no more cursors coupled to this page
+     */
+    ham_assert(page_get_cursors(page)==0, 
+            ("deleting a page with coupled cursors!"));
 
     /*
      * make sure that the page is removed from the cache
@@ -900,6 +931,11 @@ db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
             ("deleting a page which is already deleted"));
 
     /*
+     * detach all cursors
+     */
+    (void)db_uncouple_all_cursors(db, page);
+
+    /*
      * if we have extended keys: remove all extended keys from the 
      * cache
      * TODO move this to the backend!
@@ -943,6 +979,11 @@ db_write_page_and_delete(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
      */
     if (page_is_dirty(page) && !(db_get_flags(db)&HAM_IN_MEMORY_DB))
         (void)my_write_page(db, page);
+
+    /*
+     * uncouple all cursors
+     */
+    (void)db_uncouple_all_cursors(db, page);
 
     /* 
      * free the memory of the page

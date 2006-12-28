@@ -69,7 +69,8 @@ libhamsterdb_la_LIBADD =
 am_libhamsterdb_la_OBJECTS = blob.lo btree.lo btree_check.lo \
 	btree_enum.lo btree_erase.lo btree_find.lo btree_insert.lo \
 	cache.lo db.lo error.lo extkeys.lo freelist.lo hamsterdb.lo \
-	keys.lo mem.lo os_posix.lo page.lo txn.lo util.lo
+	keys.lo mem.lo os_posix.lo page.lo txn.lo util.lo \
+	btree_cursor.lo
 libhamsterdb_la_OBJECTS = $(am_libhamsterdb_la_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build/scripts/depcomp
@@ -101,7 +102,7 @@ BIG_ENDIAN_FALSE = @BIG_ENDIAN_FALSE@
 BIG_ENDIAN_TRUE = @BIG_ENDIAN_TRUE@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
-CFLAGS = @CFLAGS@
+CFLAGS = @CFLAGS@ -Wall
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
@@ -201,7 +202,7 @@ INCLUDES = -I../include
 AM_CFLAGS = $(am__append_1) $(am__append_2) $(am__append_3) \
 	$(am__append_4) $(am__append_5)
 lib_LTLIBRARIES = libhamsterdb.la
-libhamsterdb_la_SOURCES = blob.c btree.c btree_check.c btree_enum.c btree_erase.c btree_find.c btree_insert.c cache.c db.c error.c extkeys.c freelist.c hamsterdb.c keys.c mem.c os_posix.c page.c txn.c util.c
+libhamsterdb_la_SOURCES = blob.c btree.c btree_check.c btree_enum.c btree_erase.c btree_find.c btree_insert.c cache.c db.c error.c extkeys.c freelist.c hamsterdb.c keys.c mem.c os_posix.c page.c txn.c util.c btree_cursor.c
 libhamsterdb_la_LDFLAGS = -version-info 0:0:0
 all: all-am
 
@@ -275,6 +276,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/blob.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/btree.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/btree_check.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/btree_cursor.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/btree_enum.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/btree_erase.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/btree_find.Plo@am__quote@
@@ -493,6 +495,7 @@ uninstall-am: uninstall-info-am uninstall-libLTLIBRARIES
 	tags uninstall uninstall-am uninstall-info-am \
 	uninstall-libLTLIBRARIES
 
+@DEBUG_TRUE@	CFLAGS     =
 
 #lib_LIBRARIES = libhamsterdb.a
 
