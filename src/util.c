@@ -90,7 +90,7 @@ util_read_record(ham_db_t *db, ham_txn_t *txn,
         ham_record_t *record, ham_u32_t flags)
 {
     ham_bool_t noblob=HAM_FALSE;
-    ham_status_t st;
+    ham_status_t st=0;
 
     /*
      * sometimes (if the record size is small enough), there's
