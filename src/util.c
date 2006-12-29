@@ -90,7 +90,6 @@ util_read_record(ham_db_t *db, ham_txn_t *txn,
         ham_record_t *record, ham_u32_t flags)
 {
     ham_bool_t noblob=HAM_FALSE;
-    ham_status_t st=0;
 
     /*
      * sometimes (if the record size is small enough), there's
@@ -121,8 +120,8 @@ util_read_record(ham_db_t *db, ham_txn_t *txn,
                     ham_mem_free(db_get_record_allocdata(db));
                 db_set_record_allocdata(db, ham_mem_alloc(record->size));
                 if (!db_get_record_allocdata(db)) {
-                    st=HAM_OUT_OF_MEMORY;
                     db_set_record_allocsize(db, 0);
+                    return (db_set_error(db, HAM_OUT_OF_MEMORY));;
                 }
                 else {
                     db_set_record_allocsize(db, record->size);
@@ -131,17 +130,13 @@ util_read_record(ham_db_t *db, ham_txn_t *txn,
             record->data=db_get_record_allocdata(db);
         }
 
-        if (!st)
-            memcpy(record->data, &record->_rid, record->size);
+        memcpy(record->data, &record->_rid, record->size);
     }
-    else if (noblob && record->size==0) {
-        st=0; /* no blob available */
-    }
-    else {
-        st=blob_read(db, txn, record->_rid, record, flags);
+    else if (!noblob && record->size!=0) {
+        return (blob_read(db, txn, record->_rid, record, flags));
     }
 
-    return (st);
+    return (0);
 }
 
 ham_status_t

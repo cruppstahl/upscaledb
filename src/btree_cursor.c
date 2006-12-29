@@ -18,17 +18,17 @@
 static ham_status_t
 my_set_to_nil(ham_bt_cursor_t *c)
 {
-    ham_status_t st;
-
     /*
      * uncoupled cursor: free the cached pointer
      */
     if (bt_cursor_get_flags(c)&BT_CURSOR_FLAG_UNCOUPLED) {
-        st=bt_cursor_couple(c);
-        if (st)
-            return (st);
+        ham_key_t *key=bt_cursor_get_uncoupled_key(c);
+        if (key->data)
+            ham_mem_free(key->data);
+        ham_mem_free(key);
+        bt_cursor_set_uncoupled_key(c, 0);
         bt_cursor_set_flags(c,
-                bt_cursor_get_flags(c)&(~BT_CURSOR_FLAG_COUPLED));
+                bt_cursor_get_flags(c)&(~BT_CURSOR_FLAG_UNCOUPLED));
     }
     /*
      * coupled cursor: uncouple, remove from page
@@ -50,6 +50,7 @@ my_move_first(ham_btree_t *be, ham_txn_t *txn,
     ham_status_t st;
     ham_page_t *page;
     btree_node_t *node;
+    ham_db_t *db=cursor_get_db(c);
 
     /*
      * get a NIL cursor
@@ -65,7 +66,7 @@ my_move_first(ham_btree_t *be, ham_txn_t *txn,
      */
     if (!btree_get_rootpage(be))
         return (db_set_error(db, HAM_KEY_NOT_FOUND));
-    page=db_fetch_page(db, &txn, btree_get_rootpage(be), flags);
+    page=db_fetch_page(db, txn, btree_get_rootpage(be), flags);
     if (!page)
         return (db_get_error(db));
 
@@ -78,7 +79,7 @@ my_move_first(ham_btree_t *be, ham_txn_t *txn,
         if (btree_node_is_leaf(node))
             break;
 
-        page=db_fetch_page(db, &txn, btree_node_get_ptr_left(node), 0);
+        page=db_fetch_page(db, txn, btree_node_get_ptr_left(node), 0);
         if (!page) {
             if (!db_get_error(db))
                 db_set_error(db, HAM_KEY_NOT_FOUND);
@@ -105,6 +106,7 @@ my_move_last(ham_btree_t *be, ham_txn_t *txn,
     ham_status_t st;
     ham_page_t *page;
     btree_node_t *node;
+    ham_db_t *db=cursor_get_db(c);
 
     /*
      * get a NIL cursor
@@ -120,7 +122,7 @@ my_move_last(ham_btree_t *be, ham_txn_t *txn,
      */
     if (!btree_get_rootpage(be))
         return (db_set_error(db, HAM_KEY_NOT_FOUND));
-    page=db_fetch_page(db, &txn, btree_get_rootpage(be), flags);
+    page=db_fetch_page(db, txn, btree_get_rootpage(be), flags);
     if (!page)
         return (db_get_error(db));
 
@@ -137,7 +139,7 @@ my_move_last(ham_btree_t *be, ham_txn_t *txn,
 
         key=btree_node_get_key(db, node, btree_node_get_count(node)-1);
 
-        page=db_fetch_page(db, &txn, key_get_ptr(key), 0);
+        page=db_fetch_page(db, txn, key_get_ptr(key), 0);
         if (!page) {
             if (!db_get_error(db))
                 db_set_error(db, HAM_KEY_NOT_FOUND);
@@ -164,6 +166,7 @@ my_move_next(ham_btree_t *be, ham_txn_t *txn,
     ham_status_t st;
     ham_page_t *page;
     btree_node_t *node;
+    ham_db_t *db=cursor_get_db(c);
 
     /*
      * uncoupled cursor: couple it
@@ -175,7 +178,6 @@ my_move_next(ham_btree_t *be, ham_txn_t *txn,
     }
     else if (!(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED))
         return (HAM_CURSOR_IS_NIL);
-
 
     db_set_error(db, 0);
 
@@ -200,7 +202,7 @@ my_move_next(ham_btree_t *be, ham_txn_t *txn,
     if (!btree_node_get_right(node))
         return (HAM_CURSOR_IS_NIL);
 
-    page=db_fetch_page(db, &txn, btree_node_get_right(node), flags);
+    page=db_fetch_page(db, txn, btree_node_get_right(node), flags);
     if (!page)
         return (db_get_error(db));
 
@@ -223,6 +225,7 @@ my_move_previous(ham_btree_t *be, ham_txn_t *txn,
     ham_status_t st;
     ham_page_t *page;
     btree_node_t *node;
+    ham_db_t *db=cursor_get_db(c);
 
     /*
      * uncoupled cursor: couple it
@@ -259,7 +262,7 @@ my_move_previous(ham_btree_t *be, ham_txn_t *txn,
     if (!btree_node_get_left(node))
         return (HAM_CURSOR_IS_NIL);
 
-    page=db_fetch_page(db, &txn, btree_node_get_left(node), flags);
+    page=db_fetch_page(db, txn, btree_node_get_left(node), flags);
     if (!page)
         return (db_get_error(db));
 
@@ -436,16 +439,7 @@ bt_cursor_clone(ham_bt_cursor_t *oldcu, ham_bt_cursor_t **newcu)
 ham_status_t
 bt_cursor_close(ham_bt_cursor_t *c)
 {
-    if (bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED) {
-        ham_page_t *page=bt_cursor_get_coupled_page(c);
-        page_remove_cursor(page, (ham_cursor_t *)c);
-    }
-    else if (bt_cursor_get_flags(c)&BT_CURSOR_FLAG_UNCOUPLED) {
-        ham_key_t *key=bt_cursor_get_uncoupled_key(c);
-        if (key->data)
-            ham_mem_free(key->data);
-        ham_mem_free(key);
-    }
+    (void)my_set_to_nil(c);
 
     ham_mem_free(c);
 
@@ -572,6 +566,7 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
     btree_node_t *node;
     ham_db_t *db=bt_cursor_get_db(c);
     ham_btree_t *be=(ham_btree_t *)db_get_backend(db);
+    key_t *entry;
     ham_txn_t txn;
 
     if (!be)
@@ -595,9 +590,9 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
 
     page=bt_cursor_get_coupled_page(c);
     node=ham_page_get_btree_node(page);
+    entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
 
     if (key) {
-        entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
         st=util_read_key(db, &txn, entry, key, 0);
         if (st) {
             (void)ham_txn_abort(&txn);
@@ -606,8 +601,8 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
     }
 
     if (record) {
-        record->_rid=key_get_ptr(key);
-        record->_intflags=key_get_flags(key);
+        record->_rid=key_get_ptr(entry);
+        record->_intflags=key_get_flags(entry);
         st=util_read_record(db, &txn, record, 0);
         if (st) {
             (void)ham_txn_abort(&txn);
@@ -722,7 +717,7 @@ bt_cursor_erase(ham_bt_cursor_t *c, ham_offset_t *rid,
         return (db_get_error(db));
     }
 
-    st=bt_cursor_next(c, 0);
+    st=my_move_next(be, &txn, c, flags);
     if (st) {
         (void)ham_txn_abort(&txn);
         return (st);

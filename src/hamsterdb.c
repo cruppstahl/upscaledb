@@ -886,7 +886,7 @@ ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
 }
 
 ham_status_t
-ham_cursor_next(ham_cursor_t *cursor, ham_key_t *key,
+ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     return (bt_cursor_move((ham_bt_cursor_t *)cursor, key, record, flags));

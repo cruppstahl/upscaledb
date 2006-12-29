@@ -378,12 +378,12 @@ my_print_profile(void)
         f=config.prof_cursor[0];
         total[0]+=f;
         f/=1000.f;
-        printf("other:  profile of backend %s:\t%f sec\n", 
+        printf("cursor: profile of backend %s:\t%f sec\n", 
                 my_get_profile_name(0), f);
         f=config.prof_cursor[1];
         total[1]+=f;
         f/=1000.f;
-        printf("other:  profile of backend %s:\t%f sec\n", 
+        printf("cursor: profile of backend %s:\t%f sec\n", 
                 my_get_profile_name(1), f);
     }
     if (config.profile&PROF_OTHER) {
@@ -547,17 +547,24 @@ my_compare_databases(void)
      * get a cursor on the berkeley database and for hamsterdb; traverse the 
      * database, and compare each record
      */
+    PROFILE_START(PROF_CURSOR, berk);
     ret=config.dbp->cursor(config.dbp, NULL, &cursor, 0);
     ham_assert(ret==0, ("berkeley-db error"));
+    PROFILE_STOP(PROF_CURSOR, berk);
+
+    PROFILE_START(PROF_CURSOR, ham);
     st=ham_cursor_create(config.hamdb, 0, 0, &hamc);
     ham_assert(st==0, ("hamster-db error"));
-    st=ham_cursor_first(hamc, 0);
+    memset(&hkey, 0, sizeof(hkey));
+    memset(&hrec, 0, sizeof(hrec));
+    st=ham_cursor_move(hamc, &hkey, &hrec, HAM_CURSOR_FIRST);
+    PROFILE_STOP(PROF_CURSOR, ham);
     ham_assert(st==0, ("hamster-db error"));
 
     VERBOSE2(("comparing databases...", 0));
-    /*PROFILE_START(berk);*/
+    PROFILE_START(PROF_CURSOR, berk);
     while ((ret=cursor->c_get(cursor, &key, &rec, DB_NEXT))==0) {
-        /*PROFILE_STOP(berk);*/
+        PROFILE_STOP(PROF_CURSOR, berk);
     
         if (config.useralloc) {
             hrec.data=malloc(1024*1024*64); /* 64 mb? */
@@ -568,29 +575,19 @@ my_compare_databases(void)
             hrec.flags=HAM_RECORD_USER_ALLOC;
         }
 
-        /* get hamster key and record */
-        memset(&hkey, 0, sizeof(hkey));
-        memset(&hrec, 0, sizeof(hrec));
-        st=ham_cursor_get_key(hamc, &hkey);
-        ham_assert(st==0, ("hamster-db error"));
-        st=ham_cursor_get_record(hamc, &hrec);
-        ham_assert(st==0, ("hamster-db error"));
-
-        /*PROFILE_START(ham);*/
-        /*st=ham_find(config.hamdb, 0, &hkey, &hrec, 0);*/
-        /*PROFILE_STOP(ham);*/
-        /*ham_assert(st==0, ("hamster-db error %d", st));*/
-/*printf("hamster key %d, data %d; bdb key %d, data %d\n", 
-        hkey.size, hrec.size, key.size,rec.size);*/
         ham_assert(hrec.size==rec.size, ("%u != %u", hrec.size, rec.size));
         if (hrec.data)
             ham_assert(!memcmp(hrec.data, rec.data, rec.size), (0));
         if (config.useralloc) 
             free(hrec.data);
-        /*PROFILE_START(berk);*/
-        ham_cursor_next(hamc, 0);
+
+        memset(&hkey, 0, sizeof(hkey));
+        memset(&hrec, 0, sizeof(hrec));
+        PROFILE_START(PROF_CURSOR, ham);
+        st=ham_cursor_move(hamc, &hkey, &hrec, HAM_CURSOR_NEXT);
+        PROFILE_STOP(PROF_CURSOR, ham);
+        ham_assert(st==0, ("hamster-db error"));
     }
-    /*PROFILE_STOP(berk);*/
     ham_assert(ret==DB_NOTFOUND, (0));
     cursor->c_close(cursor);
     ham_cursor_close(hamc);

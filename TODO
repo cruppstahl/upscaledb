@@ -102,36 +102,8 @@ o iteratoren
         x public interface
 
         o testen:
-            o performance-test für iterator-operationen
-                --> schon fast fertig, aber die zeit muss noch gestoppt werden
-            o fullcheck: auch bei hamster mit iteratoren machen
-                --> schon drin, aber ich bin nicht 100% sicher ob immer alle
-                    keys überprüft werden - bei allen erfolgreichen inserts
-                    einen counter machen, und dann prüfen ob von den iteratoren
-                    genauso viele keys gefunden werden. geht nur bei
-                    overwrite=0
-
-insert.tst und small.tst crashen; anscheinend wird beim cache-purge eine
-page freigegeben, und der cursor darauf ist noch gekoppelt:
-
-==18041== Invalid read of size 8
-==18041==    at 0x4B2EFA2: bt_cursor_next (btree_cursor.c:590)
-==18041==    by 0x402283: my_execute_fullcheck (db.c:591)
-==18041==    by 0x402D20: my_execute (db.c:1235)
-==18041==    by 0x403521: main (db.c:1450)
-==18041==  Address 0x51CA408 is 96 bytes inside a block of size 104 free'd
-==18041==    at 0x4A1F61D: free (vg_replace_malloc.c:235)
-==18041==    by 0x4B2B80B: db_write_page_and_delete (db.c:986)
-==18041==    by 0x4B2A6ED: my_purge (cache.c:84)
-==18041==    by 0x4B2A8B1: cache_put (cache.c:284)
-==18041==    by 0x4B2BAAC: db_fetch_page (db.c:833)
-==18041==    by 0x4B269C0: my_read_chunk (blob.c:122)
-==18041==    by 0x4B26E13: blob_read (blob.c:335)
-==18041==    by 0x4B2F445: bt_cursor_get_record (btree_cursor.c:260)
-==18041==    by 0x402331: my_execute_fullcheck (db.c:576)
-==18041==    by 0x402D20: my_execute (db.c:1235)
-==18041==    by 0x403521: main (db.c:1450)
-
+            x performance-test für iterator-operationen
+            x fullcheck: auch bei hamster mit iteratoren machen
 
             o nach jeder operation auf first setzen, vergleichen
             o nach jeder operation auf last setzen, vergleichen
@@ -139,6 +111,7 @@ page freigegeben, und der cursor darauf ist noch gekoppelt:
                     danach immer prev und next vergleichen
             o inserts auch mit replace machen; wenn replace fehlschlägt,
                     insert nehmen (oder erst insert, dann replace machen)
+            o fullcheck auch weiterhin mit ham_find ausführen!
 
     o in-memory-db: finden wir ne möglichkeit, normale datenbanken in 
         in-memory zu importieren und umgekehrt wieder zu exportieren? 
