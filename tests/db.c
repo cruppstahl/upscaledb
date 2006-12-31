@@ -52,26 +52,28 @@ static unsigned long g_filesize, g_filepos;
                                 break;                                      \
                             }
 
-#define ARG_HELP        1
-#define ARG_VERBOSE     2
-#define ARG_PROFILE     3
-#define ARG_QUIET       4
-#define ARG_CHECK       5
-#define ARG_BACKEND1    6
-#define ARG_BACKEND2    7
-#define ARG_DUMP        9
-#define ARG_INMEMORY   10
-#define ARG_OVERWRITE  11
-#define ARG_PROGRESS   12
-#define ARG_MMAP       13
-#define ARG_PAGESIZE   14
-#define ARG_KEYSIZE    15
-#define ARG_CACHESIZE  16
-#define ARG_CACHEPOLICY 17
-#define ARG_REOPEN     18
-#define ARG_USERALLOC  19
-#define ARG_OPT_SIZE   20
-#define ARG_FILE       21
+#define ARG_HELP                        1
+#define ARG_VERBOSE                     2
+#define ARG_PROFILE                     3
+#define ARG_QUIET                       4
+#define ARG_CHECK                       5
+#define ARG_BACKEND1                    6
+#define ARG_BACKEND2                    7
+#define ARG_DUMP                        9
+#define ARG_INMEMORY                   10
+#define ARG_OVERWRITE                  11
+#define ARG_PROGRESS                   12
+#define ARG_MMAP                       13
+#define ARG_PAGESIZE                   14
+#define ARG_KEYSIZE                    15
+#define ARG_CACHESIZE                  16
+#define ARG_CACHEPOLICY                17
+#define ARG_REOPEN                     18
+#define ARG_USERALLOC                  19
+#define ARG_OPT_SIZE                   20
+#define ARG_FILE                       21
+#define ARG_FULLCHECK_FIND             22
+#define ARG_TEST_CURSORS               23
 
 #define PROF_INSERT     1
 #define PROF_ERASE      2
@@ -89,6 +91,10 @@ static unsigned long g_filesize, g_filepos;
 
 #define VERBOSE2(x)     if (config.verbose>=2) ham_log(x)
 #define FAIL            ham_trace
+
+#define MAX_CURSORS     3
+static ham_cursor_t *ham_cursors[MAX_CURSORS];
+static DBC *bdb_cursors[MAX_CURSORS];
 
 /*
  * configuration
@@ -123,6 +129,12 @@ static struct {
 
     /* use mmap? */
     unsigned mmap;
+
+    /* use ham_find for database compares */
+    unsigned fullcheck_find;
+
+    /* use cursors for insert/erase? */
+    unsigned test_cursors;
 
     /* the page size */
     unsigned pagesize;
@@ -242,6 +254,18 @@ static option_t opts[]={
         "over",
         "overwrite",
         "overwrite existing keys",
+        GETOPTS_NEED_ARGUMENT },
+    {
+        ARG_FULLCHECK_FIND,
+        "full",
+        "fullcheck",
+        "use ham_find for database compares instead of cursors",
+        GETOPTS_NEED_ARGUMENT },
+    {
+        ARG_TEST_CURSORS,
+        "cursors",
+        "test-cursors",
+        "use cursors for insert/erase",
         GETOPTS_NEED_ARGUMENT },
     {
         ARG_PROGRESS,
@@ -552,14 +576,16 @@ my_compare_databases(void)
     ham_assert(ret==0, ("berkeley-db error"));
     PROFILE_STOP(PROF_CURSOR, berk);
 
-    PROFILE_START(PROF_CURSOR, ham);
-    st=ham_cursor_create(config.hamdb, 0, 0, &hamc);
-    ham_assert(st==0, ("hamster-db error"));
-    memset(&hkey, 0, sizeof(hkey));
-    memset(&hrec, 0, sizeof(hrec));
-    st=ham_cursor_move(hamc, &hkey, &hrec, HAM_CURSOR_FIRST);
-    PROFILE_STOP(PROF_CURSOR, ham);
-    ham_assert(st==0, ("hamster-db error"));
+    if (!config.fullcheck_find) {
+        PROFILE_START(PROF_CURSOR, ham);
+        st=ham_cursor_create(config.hamdb, 0, 0, &hamc);
+        ham_assert(st==0, ("hamster-db error"));
+        memset(&hkey, 0, sizeof(hkey));
+        memset(&hrec, 0, sizeof(hrec));
+        st=ham_cursor_move(hamc, &hkey, &hrec, HAM_CURSOR_FIRST);
+        PROFILE_STOP(PROF_CURSOR, ham);
+        ham_assert(st==0, ("hamster-db error"));
+    }
 
     VERBOSE2(("comparing databases...", 0));
     PROFILE_START(PROF_CURSOR, berk);
@@ -575,22 +601,39 @@ my_compare_databases(void)
             hrec.flags=HAM_RECORD_USER_ALLOC;
         }
 
-        ham_assert(hrec.size==rec.size, ("%u != %u", hrec.size, rec.size));
+        if (config.fullcheck_find) {
+            memset(&hkey, 0, sizeof(hkey));
+            memset(&hrec, 0, sizeof(hrec));
+            hkey.data=key.data;
+            hkey.size=key.size;
+            st=ham_find(config.hamdb, 0, &hkey, &hrec, 0);
+            ham_assert(st==0, ("hamster-db error"));
+        }
+
+        ham_assert(hrec.size==rec.size, 
+                ("data: %u != %u", hrec.size, rec.size));
+        ham_assert(hkey.size==key.size, 
+                ("key: %u != %u", hkey.size, key.size));
+        if (hkey.data)
+            ham_assert(!memcmp(hkey.data, key.data, key.size), (0));
         if (hrec.data)
             ham_assert(!memcmp(hrec.data, rec.data, rec.size), (0));
         if (config.useralloc) 
             free(hrec.data);
 
-        memset(&hkey, 0, sizeof(hkey));
-        memset(&hrec, 0, sizeof(hrec));
-        PROFILE_START(PROF_CURSOR, ham);
-        st=ham_cursor_move(hamc, &hkey, &hrec, HAM_CURSOR_NEXT);
-        PROFILE_STOP(PROF_CURSOR, ham);
-        ham_assert(st==0, ("hamster-db error"));
+        if (!config.fullcheck_find) {
+            memset(&hkey, 0, sizeof(hkey));
+            memset(&hrec, 0, sizeof(hrec));
+            PROFILE_START(PROF_CURSOR, ham);
+            st=ham_cursor_move(hamc, &hkey, &hrec, HAM_CURSOR_NEXT);
+            PROFILE_STOP(PROF_CURSOR, ham);
+            ham_assert(st==0, ("hamster-db error"));
+        }
     }
     ham_assert(ret==DB_NOTFOUND, (0));
     cursor->c_close(cursor);
-    ham_cursor_close(hamc);
+    if (!config.fullcheck_find)
+        ham_cursor_close(hamc);
 
     return 1;
 }
@@ -698,6 +741,19 @@ my_execute_create(char *line)
         }
     }
 
+    /*
+     * initialize the cursors
+     */
+    if (config.test_cursors) {
+        int i;
+        for (i=0; i<MAX_CURSORS; i++) {
+            st=ham_cursor_create(config.hamdb, 0, 0, &ham_cursors[i]);
+            ham_assert(st==0, ("hamster-db error"));
+            ret=config.dbp->cursor(config.dbp, NULL, &bdb_cursors[i], 0);
+            ham_assert(ret==0, ("berkeley-db error"));
+        }
+    }
+
     return 1;
 }
 
@@ -751,6 +807,19 @@ my_execute_open(char *line)
                     ham_set_compare_func(config.hamdb, my_compare_keys);
                 PROFILE_STOP(PROF_OTHER, i);
                 break;
+        }
+    }
+
+    /*
+     * initialize the cursors
+     */
+    if (config.test_cursors) {
+        int i;
+        for (i=0; i<MAX_CURSORS; i++) {
+            st=ham_cursor_create(config.hamdb, 0, 0, &ham_cursors[i]);
+            ham_assert(st==0, ("hamster-db error"));
+            ret=config.dbp->cursor(config.dbp, NULL, &bdb_cursors[i], 0);
+            ham_assert(ret==0, ("berkeley-db error"));
         }
     }
 
@@ -1156,6 +1225,21 @@ my_execute_close(void)
             ham_trace(("hamster dump failed with status %d", st));
     }
 
+    /*
+     * close the cursors
+     */
+    if (config.test_cursors) {
+        int i;
+        for (i=0; i<MAX_CURSORS; i++) {
+            if (ham_cursors[i])
+                ham_cursor_close(ham_cursors[i]);
+            ham_cursors[i]=0;
+            if (bdb_cursors[i])
+                bdb_cursors[i]->c_close(bdb_cursors[i]);
+            bdb_cursors[i]=0;
+        }
+    }
+
     for (i=0; i<2; i++) {
         switch (config.backend[i]) {
             case BACKEND_NONE: 
@@ -1190,6 +1274,83 @@ my_execute_close(void)
     if (config.reopen) {
         ham_bool_t b=my_execute_reopen();
         ham_assert(b!=0, ("my_execute_reopen failed"));
+    }
+
+    return 1;
+}
+
+static ham_bool_t
+my_test_cursors(void)
+{
+    int i, ret=0, ham=0, berk=1;
+    ham_status_t st=0;
+    DBT key, rec;
+    ham_key_t hkey;
+    ham_record_t hrec;
+
+    if (config.backend[0]==BACKEND_BERK) {
+        berk=0;
+        ham=1;
+    }
+    else {
+        ham=0;
+        berk=1;
+    }
+
+    /*
+     * check 'first' element
+     */
+    for (i=0; i<MAX_CURSORS; i++) {
+        if (ham_cursors[i]) {
+            memset(&hkey, 0, sizeof(hkey));
+            memset(&hrec, 0, sizeof(hrec));
+            PROFILE_START(PROF_CURSOR, ham);
+            st=ham_cursor_move(ham_cursors[i], &hkey, &hrec, HAM_CURSOR_FIRST);
+            PROFILE_STOP(PROF_CURSOR, ham);
+            ham_assert(hkey.size==key.size, (""));
+            ham_assert(hrec.size==rec.size, (""));
+            ham_assert(!memcmp(hkey.data, key.data, key.size), (""));
+            ham_assert(!memcmp(hrec.data, rec.data, rec.size), (""));
+        }
+        if (bdb_cursors[i]) {
+            memset(&key, 0, sizeof(key));
+            memset(&rec, 0, sizeof(rec));
+            PROFILE_START(PROF_CURSOR, berk);
+            ret=bdb_cursors[i]->c_get(bdb_cursors[i], &key, &rec, DB_FIRST);
+            PROFILE_STOP(PROF_CURSOR, berk);
+            ham_assert(hkey.size==key.size, (""));
+            ham_assert(hrec.size==rec.size, (""));
+            ham_assert(!memcmp(hkey.data, key.data, key.size), (""));
+            ham_assert(!memcmp(hrec.data, rec.data, rec.size), (""));
+        }
+
+        config.retval[berk]=ret;
+        config.retval[ham] =st;
+        ham_assert(my_compare_return(), ("return values are different"));
+    }
+
+    /*
+     * check 'last' element
+     */
+    for (i=0; i<MAX_CURSORS; i++) {
+        if (ham_cursors[i]) {
+            memset(&hkey, 0, sizeof(hkey));
+            memset(&hrec, 0, sizeof(hrec));
+            PROFILE_START(PROF_CURSOR, ham);
+            st=ham_cursor_move(ham_cursors[i], &hkey, &hrec, HAM_CURSOR_LAST);
+            PROFILE_STOP(PROF_CURSOR, ham);
+        }
+        if (bdb_cursors[i]) {
+            memset(&key, 0, sizeof(key));
+            memset(&rec, 0, sizeof(rec));
+            PROFILE_START(PROF_CURSOR, berk);
+            ret=bdb_cursors[i]->c_get(bdb_cursors[i], &key, &rec, DB_LAST);
+            PROFILE_STOP(PROF_CURSOR, berk);
+        }
+
+        config.retval[berk]=ret;
+        config.retval[ham] =st;
+        ham_assert(my_compare_return(), ("return values are different"));
     }
 
     return 1;
@@ -1359,6 +1520,16 @@ main(int argc, char **argv)
             else
                 config.overwrite=0;
         }
+        else if (opt==ARG_FULLCHECK_FIND) {
+            if (param && !strcmp(param, "find"))
+                config.fullcheck_find=1;
+        }
+        else if (opt==ARG_TEST_CURSORS) {
+            if (!param || param[0]=='1' || param[0]=='y' || param[0]=='Y')
+                config.test_cursors=1;
+            else
+                config.test_cursors=0;
+        }
         else if (opt==ARG_PROGRESS) {
             if (!param || param[0]=='1' || param[0]=='y' || param[0]=='Y')
                 config.progress=1;
@@ -1452,6 +1623,9 @@ main(int argc, char **argv)
                 config.backend[1]==BACKEND_HAMSTER) && config.hamdb)
                 ham_assert(ham_check_integrity(config.hamdb, 0)==0, (0));
         }
+
+        if (config.test_cursors && !my_test_cursors())
+            break;
 
         VERBOSE2(("---- line %04d ----", config.cur_line));
     }

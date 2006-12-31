@@ -75,7 +75,12 @@ my_move_first(ham_btree_t *be, ham_txn_t *txn,
      * and traverse down
      */
     while (1) {
+
         node=ham_page_get_btree_node(page);
+        /* check for an empty root page */
+        if (btree_node_get_count(node)==0)
+            return (db_set_error(db, HAM_KEY_NOT_FOUND));
+        /* leave the loop when we've reached the leaf page */
         if (btree_node_is_leaf(node))
             break;
 
@@ -134,6 +139,10 @@ my_move_last(ham_btree_t *be, ham_txn_t *txn,
         key_t *key;
 
         node=ham_page_get_btree_node(page);
+        /* check for an empty root page */
+        if (btree_node_get_count(node)==0)
+            return (db_set_error(db, HAM_KEY_NOT_FOUND));
+        /* leave the loop when we've reached a leaf page */
         if (btree_node_is_leaf(node))
             break;
 
@@ -318,6 +327,8 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
 
     ham_assert(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED,
             ("uncoupling a cursor which is not coupled"));
+    ham_assert(bt_cursor_get_coupled_page(c)!=0,
+            ("uncoupling a cursor which has no coupled page"));
 
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
@@ -590,6 +601,7 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
 
     page=bt_cursor_get_coupled_page(c);
     node=ham_page_get_btree_node(page);
+    ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
     entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
 
     if (key) {

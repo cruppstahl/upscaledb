@@ -104,14 +104,26 @@ o iteratoren
         o testen:
             x performance-test für iterator-operationen
             x fullcheck: auch bei hamster mit iteratoren machen
+            x bei --fullcheck=find: fullcheck auch weiterhin mit 
+                    ham_find ausführen!
+            x bei --test-cursor=1
+                x das alles mit bis zu 4 cursorn, damit wir auch 
+                    den einsatz mehrerer cursor gleichzeitig testen
+                x die cursors werden global gehalten, d.h. nur einmal
+                    erzeugt und gelöscht
+                x nach jeder operation auf first setzen, vergleichen
+                x nach jeder operation auf last setzen, vergleichen
 
-            o nach jeder operation auf first setzen, vergleichen
-            o nach jeder operation auf last setzen, vergleichen
-            o jedes insert und erase mit iteratoren machen, 
-                    danach immer prev und next vergleichen
-            o inserts auch mit replace machen; wenn replace fehlschlägt,
+    ext_021 und ext_050 haben eine endlosschleife!
+    kann das damit zusammenhängen, dass mehrere transaktionen 
+    parallel offen sind? > evtl statt page_set_inuse() ein 
+    page_inc_inuse() und page_dec_inuse()???
+
+            o bei --test-cursor=1
+                o jedes insert und erase mit iteratoren machen, 
+                o inserts auch mit replace machen; wenn replace fehlschlägt,
                     insert nehmen (oder erst insert, dann replace machen)
-            o fullcheck auch weiterhin mit ham_find ausführen!
+                o danach immer prev und next vergleichen
 
     o in-memory-db: finden wir ne möglichkeit, normale datenbanken in 
         in-memory zu importieren und umgekehrt wieder zu exportieren? 
@@ -124,6 +136,11 @@ o iteratoren
         --> geht auch mit der enum-funktion, die jetzt schon drin ist
 
 o nächsten release machen!
+    o release-regeln ändern: vor einem release auch die tests 2/3/4 
+        machen! (auch wenn's lang dauert...)??????
+        ne das dauert ja ne woche!!
+    o testscript in perl umschreiben, damit's auch auf windows läuft. 
+        oder so lassen? sollte in cygwin eigentlich funktionieren
 
 -----------------------------------------------------
 -----------------------------------------------------

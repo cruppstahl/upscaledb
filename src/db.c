@@ -167,14 +167,19 @@ my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
 ham_status_t
 db_uncouple_all_cursors(ham_db_t *db, ham_page_t *page)
 {
-    ham_cursor_t *c=page_get_cursors(page);
+    ham_cursor_t *c=page_get_cursors(page), *n=0;
 
     (void)db;
 
     while (c) {
         (void)bt_cursor_uncouple((ham_bt_cursor_t *)c,
                 BT_CURSOR_UNCOUPLE_NO_REMOVE);
-        c=cursor_get_next(c);
+        n=cursor_get_next(c);
+        cursor_set_next(c, 0);
+        cursor_set_previous(c, 0);
+        if (n)
+            cursor_set_previous(n, 0);
+        c=n;
     }
 
     page_set_cursors(page, 0);

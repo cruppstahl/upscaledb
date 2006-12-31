@@ -21,8 +21,11 @@ txn_add_page(ham_txn_t *txn, ham_page_t *page)
      */
     ham_assert(txn_get_page(txn, page_get_self(page))==0, 
             ("page 0x%llx is already in the txn", page_get_self(page)));
-    ham_assert(page_is_inuse(page)==0, 
+    /* don't check the inuse-flag - with the new cursors, more than one
+     * transaction can be open 
+     ham_assert(page_is_inuse(page)==0, 
             ("page 0x%llx is already in use", page_get_self(page)));
+            */
 #endif
 
     /*
@@ -50,12 +53,17 @@ txn_remove_page(ham_txn_t *txn, struct ham_page_t *page)
 ham_page_t *
 txn_get_page(ham_txn_t *txn, ham_offset_t address)
 {
-    ham_page_t *p=txn_get_pagelist(txn);
+    ham_page_t *start, *p=txn_get_pagelist(txn);
+
+    start=p;
 
     while (p) {
         if (page_get_self(p)==address)
             return (p);
         p=page_get_next(p, PAGE_LIST_TXN);
+        ham_assert(start!=p, ("circular reference in page-list"));
+        if (start==p)
+            break;
     }
 
     return (0);

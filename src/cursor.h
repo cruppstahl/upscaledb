@@ -102,7 +102,7 @@ struct ham_cursor_t
 /**
  * set the 'next' pointer of the linked list
  */
-#define cursor_set_next(c, n)           (c)->_next=n
+#define cursor_set_next(c, n) { if (n) ham_assert(c->_previous!=n, ("")); (c)->_next=n; }
 
 /**
  * get the 'previous' pointer of the linked list
@@ -112,7 +112,7 @@ struct ham_cursor_t
 /**
  * set the 'previous' pointer of the linked list
  */
-#define cursor_set_previous(c, p)       (c)->_previous=p
+#define cursor_set_previous(c, p) {if (p) ham_assert(c->_next!=p, ("")); (c)->_previous=p; }
 
 /**
  * get the database pointer
