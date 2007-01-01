@@ -29,16 +29,6 @@
     ham_status_t (*_fun_close)(clss *cu);                               \
                                                                         \
     /**                                                                 \
-     * get the record of this cursor                                    \
-     */                                                                 \
-    ham_status_t (*_fun_get_record)(clss *cu, ham_record_t *record);    \
-                                                                        \
-    /**                                                                 \
-     * get the key of this cursor                                       \
-     */                                                                 \
-    ham_status_t (*_fun_get_key)(clss *cu, ham_key_t *key);             \
-                                                                        \
-    /**                                                                 \
      * replace the record of this cursor                                \
      */                                                                 \
     ham_status_t (*_fun_replace)(clss *cu, ham_record_t *record,        \

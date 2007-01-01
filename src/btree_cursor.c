@@ -316,13 +316,13 @@ bt_cursor_couple(ham_bt_cursor_t *c)
 }
 
 ham_status_t
-bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
+bt_cursor_uncouple(ham_bt_cursor_t *c, ham_txn_t *txn, ham_u32_t flags)
 {
     btree_node_t *node;
     key_t *entry;
     ham_key_t *key;
     ham_db_t *db=bt_cursor_get_db(c);
-    ham_txn_t txn;
+    ham_txn_t stxn;
     ham_status_t st;
 
     ham_assert(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED,
@@ -330,8 +330,9 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
     ham_assert(bt_cursor_get_coupled_page(c)!=0,
             ("uncoupling a cursor which has no coupled page"));
 
-    if ((st=ham_txn_begin(&txn, db)))
-        return (st);
+    if (!txn)
+        if ((st=ham_txn_begin(&stxn, db)))
+            return (st);
 
     /*
      * get the btree-entry of this key
@@ -345,13 +346,15 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
      */
     key=(ham_key_t *)ham_mem_alloc(sizeof(*key));
     if (!key) {
-        (void)ham_txn_abort(&txn);
+        if (!txn)
+            (void)ham_txn_abort(&stxn);
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
     }
     memset(key, 0, sizeof(*key));
-    key=util_copy_key_int2pub(db, &txn, entry, key);
+    key=util_copy_key_int2pub(db, txn ? txn : &stxn, entry, key);
     if (!key) {
-        (void)ham_txn_abort(&txn);
+        if (!txn)
+            (void)ham_txn_abort(&stxn);
         return (db_get_error(bt_cursor_get_db(c)));
     }
 
@@ -369,7 +372,9 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
     bt_cursor_set_flags(c, bt_cursor_get_flags(c)|BT_CURSOR_FLAG_UNCOUPLED);
     bt_cursor_set_uncoupled_key(c, key);
 
-    return (ham_txn_commit(&txn));
+    if (!txn)
+        return (ham_txn_commit(&stxn));
+    return (0);
 }
 
 ham_status_t
@@ -599,7 +604,17 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
         return (st);
     }
 
+    /*
+     * during util_read_key and util_read_record, new pages might be needed,
+     * and the page at which we're pointing could be moved out of memory; 
+     * that would mean that the cursor would be uncoupled, and we're losing
+     * the 'entry'-pointer. therefore we 'lock' the page by incrementing 
+     * the inuse-flag.
+     */
+    ham_assert(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED, 
+            ("move: cursor is not coupled"));
     page=bt_cursor_get_coupled_page(c);
+    page_inc_inuse(page);
     node=ham_page_get_btree_node(page);
     ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
     entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
@@ -608,6 +623,7 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
         st=util_read_key(db, &txn, entry, key, 0);
         if (st) {
             (void)ham_txn_abort(&txn);
+            page_dec_inuse(page);
             return (st);
         }
     }
@@ -618,10 +634,12 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
         st=util_read_record(db, &txn, record, 0);
         if (st) {
             (void)ham_txn_abort(&txn);
+            page_dec_inuse(page);
             return (st);
         }
     }
 
+    page_dec_inuse(page);
     return (ham_txn_commit(&txn));
 }
 
@@ -639,12 +657,17 @@ bt_cursor_find(ham_bt_cursor_t *c, ham_key_t *key, ham_u32_t flags)
     if ((st=ham_txn_begin(&txn, bt_cursor_get_db(c))))
         return (st);
 
+    st=my_set_to_nil(c);
+    if (st)
+        return (st);
+    /*
     if (bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED) {
         page_remove_cursor(bt_cursor_get_coupled_page(c),
                 (ham_cursor_t *)c);
         bt_cursor_set_flags(c,
                 bt_cursor_get_flags(c)&(~BT_CURSOR_FLAG_COUPLED));
     }
+    */
 
     st=btree_find_cursor((ham_btree_t *)be, &txn, c, key, 0, flags);
     if (st) {
@@ -706,7 +729,7 @@ bt_cursor_erase(ham_bt_cursor_t *c, ham_offset_t *rid,
     /*
      * if this cursor is coupled: uncouple it
      */
-    st=bt_cursor_uncouple(c, 0);
+    st=bt_cursor_uncouple(c, 0, 0);
     if (st)
         return (st);
 

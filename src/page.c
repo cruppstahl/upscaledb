@@ -33,7 +33,7 @@ my_validate_page(ham_page_t *p)
     /*
      * not allowed: in use and in garbage bin
      */
-    ham_assert(!(page_is_inuse(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
+    ham_assert(!(page_get_inuse(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
             ("referenced and in garbage bin"));
 
     /*
@@ -166,47 +166,21 @@ page_list_remove(ham_page_t *head, int which, ham_page_t *page)
     return (head);
 }
 
-#if HAM_DEBUG
-static void
-my_check_circular_cursors(ham_page_t *page)
-{
-    ham_cursor_t *start, *c=page_get_cursors(page);
-    start=c;
-
-    while (c) {
-        c=cursor_get_next(c);
-        ham_assert(start!=c, ("circular reference found"));
-    }
-}
-#endif
-
 void
 page_add_cursor(ham_page_t *page, ham_cursor_t *cursor)
 {
-#if HAM_DEBUG
-    my_check_circular_cursors(page);
-#endif
-
     if (page_get_cursors(page)) {
         cursor_set_next(cursor, page_get_cursors(page));
         cursor_set_previous(cursor, 0);
         cursor_set_previous(page_get_cursors(page), cursor);
     }
     page_set_cursors(page, cursor);
-
-#if HAM_DEBUG
-    my_check_circular_cursors(page);
-#endif
 }
 
 void
 page_remove_cursor(ham_page_t *page, ham_cursor_t *cursor)
 {
     ham_cursor_t *n, *p;
-
-#if HAM_DEBUG
-    my_check_circular_cursors(page);
-#endif
 
     if (cursor==page_get_cursors(page)) {
         n=cursor_get_next(cursor);
@@ -225,8 +199,4 @@ page_remove_cursor(ham_page_t *page, ham_cursor_t *cursor)
 
     cursor_set_next(cursor, 0);
     cursor_set_previous(cursor, 0);
-
-#if HAM_DEBUG
-    my_check_circular_cursors(page);
-#endif
 }

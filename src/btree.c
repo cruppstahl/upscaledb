@@ -162,7 +162,7 @@ my_fun_create(ham_btree_t *be, ham_u32_t flags)
      * since we didn't use a txn when allocating the page, we have to 
      * manually reset the in-use-flag
      */
-    page_set_inuse(root, 0);
+    page_dec_inuse(root);
 
     return (0);
 }

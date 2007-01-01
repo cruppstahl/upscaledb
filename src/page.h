@@ -58,6 +58,10 @@ struct ham_page_t {
         /** cache counter - used by the cache module */
         ham_u32_t _cache_cntr;
 
+        /** inuse-counter counts the number of transactions, which access
+         * this page*/
+        ham_u32_t _inuse;
+
         /** linked lists of pages - see comments above */
         ham_page_t *_prev[MAX_PAGE_LISTS], *_next[MAX_PAGE_LISTS];
 
@@ -241,14 +245,19 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /** 
  * get the "in use"-flag
  */
-#define page_is_inuse(page)      (page_get_npers_flags(page)&PAGE_NPERS_INUSE)
+#define page_get_inuse(page)    (page)->_npers._inuse
 
 /** 
- * set the "in use"-flag
+ * increment the "in use"-flag
  */
-#define page_set_inuse(page, u)  page_set_npers_flags(page, \
-            u ? page_get_npers_flags(page)|PAGE_NPERS_INUSE : \
-            page_get_npers_flags(page)&(~PAGE_NPERS_INUSE))
+#define page_inc_inuse(page)    ++(page)->_npers._inuse
+
+/** 
+ * decrement the "in use"-flag
+ */
+#define page_dec_inuse(page)    do { ham_assert(page_get_inuse(page)!=0, \
+                                     ("decrementing empty inuse-flag")); \
+                                     --(page)->_npers._inuse; } while (0)
 
 /**
  * set the page-type

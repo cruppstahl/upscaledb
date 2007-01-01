@@ -362,7 +362,7 @@ struct ham_db_t
  * @remark this is called whenever the page is deleted or becoming invalid
  */
 extern ham_status_t
-db_uncouple_all_cursors(ham_db_t *db, ham_page_t *page);
+db_uncouple_all_cursors(ham_db_t *db, ham_txn_t *txn, ham_page_t *page);
 
 /**
  * compare two keys
@@ -514,7 +514,8 @@ db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
  * anywhere else.
  */
 extern ham_status_t
-db_write_page_and_delete(ham_db_t *db, ham_page_t *page, ham_u32_t flags);
+db_write_page_and_delete(ham_db_t *db, ham_txn_t *txn, 
+        ham_page_t *page, ham_u32_t flags);
 
 /**
  * an internal database flag - use mmap instead of read(2)

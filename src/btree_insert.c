@@ -316,7 +316,7 @@ my_insert_nosplit(ham_page_t *page, ham_txn_t *txn, ham_key_t *key,
     /*
      * uncouple all cursors
      */
-    st=db_uncouple_all_cursors(db, page);
+    st=db_uncouple_all_cursors(db, txn, page);
     if (st)
         return (db_set_error(db, st));
 
@@ -557,7 +557,7 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
     /*
      * uncouple all cursors
      */
-    st=db_uncouple_all_cursors(db, page);
+    st=db_uncouple_all_cursors(db, scratchpad->txn, page);
     if (st)
         return (db_set_error(db, st));
 

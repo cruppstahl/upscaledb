@@ -54,7 +54,7 @@ my_check_totallist(ham_cache_t *cache)
 #endif
 
 static ham_bool_t
-my_purge(ham_cache_t *cache)
+my_purge(ham_cache_t *cache, ham_txn_t *txn)
 {
     ham_page_t *page;
     ham_db_t *db=cache_get_owner(cache);
@@ -81,7 +81,7 @@ my_purge(ham_cache_t *cache)
         cache_get_bucket(cache, hash)=page_list_remove(cache_get_bucket(cache, 
                 hash), PAGE_LIST_BUCKET, page);
     }
-    (void)db_write_page_and_delete(cache_get_owner(cache), page, 0);
+    (void)db_write_page_and_delete(cache_get_owner(cache), txn, page, 0);
     /*ham_trace("cache purged one page", 0);*/
 
 #if HAM_DEBUG
@@ -129,7 +129,7 @@ cache_get_unused(ham_cache_t *cache)
 
     page=cache_get_garbagelist(cache);
     if (page) {
-        ham_assert(page_is_inuse(page)==0, 
+        ham_assert(page_get_inuse(page)==0, 
                 ("page is in use and in garbage list"));
         cache_set_garbagelist(cache, 
                 page_list_remove(cache_get_garbagelist(cache), 
@@ -146,7 +146,7 @@ cache_get_unused(ham_cache_t *cache)
 
     do {
         /* only handle unused pages */
-        if (!page_is_inuse(page)) {
+        if (!page_get_inuse(page)) {
             if (page_get_cache_cntr(page)==0) {
                 min=page;
                 goto found_page;
@@ -203,7 +203,7 @@ cache_get(ham_cache_t *cache, ham_offset_t address)
 }
 
 ham_status_t 
-cache_put(ham_cache_t *cache, ham_page_t *page)
+cache_put(ham_cache_t *cache, ham_txn_t *txn, ham_page_t *page)
 {
     ham_size_t hash=(ham_size_t)my_calc_hash(cache, page_get_self(page));
     ham_db_t *db=cache_get_owner(cache);
@@ -281,7 +281,7 @@ cache_put(ham_cache_t *cache, ham_page_t *page)
                     "size %u", cache_get_usedsize(cache), 
                     cache_get_cachesize(cache));
                     */
-            if (!my_purge(cache))
+            if (!my_purge(cache, txn))
                 break;
         }
     }
@@ -318,11 +318,11 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page)
 }
 
 ham_status_t
-cache_move_to_garbage(ham_cache_t *cache, ham_page_t *page)
+cache_move_to_garbage(ham_cache_t *cache, ham_txn_t *txn, ham_page_t *page)
 {
     ham_size_t hash=(ham_size_t)my_calc_hash(cache, page_get_self(page));
 
-    ham_assert(page_is_inuse(page)==0, 
+    ham_assert(page_get_inuse(page)==0, 
             ("page 0x%lx is in use", page_get_self(page)));
     ham_assert(page_is_dirty(page)==0, 
             ("page 0x%lx is dirty", page_get_self(page)));
@@ -352,7 +352,7 @@ cache_move_to_garbage(ham_cache_t *cache, ham_page_t *page)
             ham_trace(("cache limits overstepped - used size %u, cache "
                     "size %u", cache_get_usedsize(cache), 
                     cache_get_cachesize(cache)));
-            if (!my_purge(cache))
+            if (!my_purge(cache, txn))
                 break;
         }
     }
@@ -381,7 +381,7 @@ cache_flush_and_delete(ham_cache_t *cache, ham_u32_t flags)
     while (head) {
         ham_page_t *next=page_get_next(head, PAGE_LIST_CACHED);
 
-        ham_assert(page_is_inuse(head)==0, 
+        ham_assert(page_get_inuse(head)==0, 
                 ("page is in use, but database is closing"));
 
         /*
@@ -400,7 +400,7 @@ cache_flush_and_delete(ham_cache_t *cache, ham_u32_t flags)
     my_check_totallist(cache);
 #endif
 
-        st=db_write_page_and_delete(db, head, flags);
+        st=db_write_page_and_delete(db, 0, head, flags);
         if (st) 
             ham_log(("failed to flush page (%d) - ignoring error...", st));
 
@@ -414,7 +414,7 @@ cache_flush_and_delete(ham_cache_t *cache, ham_u32_t flags)
         while (head) {
             ham_page_t *next=page_get_next(head, PAGE_LIST_GARBAGE);
     
-            ham_assert(page_is_inuse(head)==0, 
+            ham_assert(page_get_inuse(head)==0, 
                     ("page is in use, but database is closing"));
 
             /*

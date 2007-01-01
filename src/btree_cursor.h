@@ -155,7 +155,7 @@ bt_cursor_couple(ham_bt_cursor_t *cu);
  * @remark to uncouple a page, it has to be coupled!
  */
 ham_status_t
-bt_cursor_uncouple(ham_bt_cursor_t *cu, ham_u32_t flags);
+bt_cursor_uncouple(ham_bt_cursor_t *c, ham_txn_t *txn, ham_u32_t flags);
 
 /**
  * flag for bt_cursor_uncouple: uncouple from the page, but do not

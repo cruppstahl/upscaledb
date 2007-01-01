@@ -163,7 +163,7 @@ cache_get(ham_cache_t *cache, ham_offset_t address);
  * store a page in the cache
  */
 extern ham_status_t 
-cache_put(ham_cache_t *cache, ham_page_t *page);
+cache_put(ham_cache_t *cache, ham_txn_t *txn, ham_page_t *page);
 
 /**
  * remove a page from the cache
@@ -175,7 +175,7 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page);
  * move a page from the regular cache to the garbage bin
  */
 extern ham_status_t
-cache_move_to_garbage(ham_cache_t *cache, ham_page_t *page);
+cache_move_to_garbage(ham_cache_t *cache, ham_txn_t *txn, ham_page_t *page);
 
 /**
  * flush all pages, then delete them

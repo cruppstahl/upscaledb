@@ -11,6 +11,8 @@
 #include "freelist.h"
 #include "mem.h"
 
+static ham_bool_t open=0;
+
 ham_status_t
 txn_add_page(ham_txn_t *txn, ham_page_t *page)
 {
@@ -23,7 +25,7 @@ txn_add_page(ham_txn_t *txn, ham_page_t *page)
             ("page 0x%llx is already in the txn", page_get_self(page)));
     /* don't check the inuse-flag - with the new cursors, more than one
      * transaction can be open 
-     ham_assert(page_is_inuse(page)==0, 
+     ham_assert(page_get_inuse(page)==0, 
             ("page 0x%llx is already in use", page_get_self(page)));
             */
 #endif
@@ -34,7 +36,7 @@ txn_add_page(ham_txn_t *txn, ham_page_t *page)
     txn_set_pagelist(txn, page_list_insert(txn_get_pagelist(txn), 
             PAGE_LIST_TXN, page));
 
-    page_set_inuse(page, 1);
+    page_inc_inuse(page);
 
     return (0);
 }
@@ -42,7 +44,7 @@ txn_add_page(ham_txn_t *txn, ham_page_t *page)
 ham_status_t
 txn_remove_page(ham_txn_t *txn, struct ham_page_t *page)
 {
-    page_set_inuse(page, 0);
+    page_dec_inuse(page);
 
     txn_set_pagelist(txn, page_list_remove(txn_get_pagelist(txn), 
             PAGE_LIST_TXN, page));
@@ -74,6 +76,8 @@ ham_txn_begin(ham_txn_t *txn, ham_db_t *db)
 {
     memset(txn, 0, sizeof(*txn));
     txn_set_db(txn, db);
+    ham_assert(open==0, ("more than 1 txn is opened"));
+    open=1;
     return (0);
 }
 
@@ -90,7 +94,7 @@ ham_txn_commit(ham_txn_t *txn)
     head=txn_get_pagelist(txn);
     while (head) {
         /* page is no longer in use */
-        page_set_inuse(head, 0);
+        page_dec_inuse(head);
 
         next=page_get_next(head, PAGE_LIST_TXN);
         page_set_next(head, PAGE_LIST_TXN, 0);
@@ -118,7 +122,7 @@ ham_txn_commit(ham_txn_t *txn)
                     st=0;
                 }
 
-                st=cache_move_to_garbage(db_get_cache(db), head);
+                st=cache_move_to_garbage(db_get_cache(db), 0, head);
                 if (st) {
                     ham_trace(("cache_move_to_garbage failed with status 0x%x", 
                             st));
@@ -146,6 +150,7 @@ commit_next:
     txn_set_pagelist(txn, 0);
     db_set_txn(db, 0);
 
+    open=0;
     return (0);
 }
 
@@ -160,7 +165,7 @@ ham_txn_abort(ham_txn_t *txn)
     head=txn_get_pagelist(txn);
     while (head) {
         /* page is no longer in use */
-        page_set_inuse(head, 0);
+        page_dec_inuse(head);
 
         next=page_get_next(head, PAGE_LIST_TXN);
         page_set_next(head, PAGE_LIST_TXN, 0);
@@ -176,7 +181,7 @@ ham_txn_abort(ham_txn_t *txn)
                     page_get_npers_flags(head)&(~PAGE_NPERS_DELETE_PENDING));
         }
 
-        (void)cache_move_to_garbage(db_get_cache(db), head);
+        (void)cache_move_to_garbage(db_get_cache(db), 0, head);
 #endif
 
         head=next;
@@ -184,6 +189,7 @@ ham_txn_abort(ham_txn_t *txn)
 
     txn_set_pagelist(txn, 0);
 
+    open=0;
     return (0);
 }
 

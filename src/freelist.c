@@ -477,7 +477,7 @@ freel_shutdown(ham_db_t *db)
     page=db_get_freelist_cache(db);
     while (page) {
         next=page_get_next(page, PAGE_LIST_TXN);
-        (void)db_write_page_and_delete(db, page, 0);
+        (void)db_write_page_and_delete(db, 0, page, 0);
         page=next;
     }
 

@@ -114,10 +114,19 @@ o iteratoren
                 x nach jeder operation auf first setzen, vergleichen
                 x nach jeder operation auf last setzen, vergleichen
 
-    ext_021 und ext_050 haben eine endlosschleife!
-    kann das damit zusammenhängen, dass mehrere transaktionen 
-    parallel offen sind? > evtl statt page_set_inuse() ein 
-    page_inc_inuse() und page_dec_inuse()???
+    ext_021 und ext_050 crashen!
+
+    Ursache: beim util_read_key wird die page entladen, weil der cache 
+    zu voll ist. Ich habe deshalb in btree_cursor.c:612 den 
+    inuse-Counter erhöht, aber jetzt asserted der test beim 
+    ham_close, weil der inuse-counter viel zu hoch ist. 
+
+    Warum ist der counter so hoch? Weil zwei Transaktionen parallel 
+    geöffnet werden - bei btree_insert und dann bei bt_cursor_uncouple, 
+    das von db_uncouple_cursors aufgerufen wird.
+
+    Fehler finden -> fertig! (sollte jetzt hoffentlich gefixt sein - 
+    alles testen, auch tests 2/3/4 mit cursors)
 
             o bei --test-cursor=1
                 o jedes insert und erase mit iteratoren machen, 
@@ -125,9 +134,11 @@ o iteratoren
                     insert nehmen (oder erst insert, dann replace machen)
                 o danach immer prev und next vergleichen
 
+                o welche funktionen sind noch nicht getestet? clone?
+
     o in-memory-db: finden wir ne möglichkeit, normale datenbanken in 
         in-memory zu importieren und umgekehrt wieder zu exportieren? 
-        das wäre genial
+        das wäre genial...
         --> geht mit iteratoren (erst release 2.0!):
             iterator from=db1.begin()
             while (from)
@@ -138,7 +149,7 @@ o iteratoren
 o nächsten release machen!
     o release-regeln ändern: vor einem release auch die tests 2/3/4 
         machen! (auch wenn's lang dauert...)??????
-        ne das dauert ja ne woche!!
+        ne, das dauert ja ne woche!!
     o testscript in perl umschreiben, damit's auch auf windows läuft. 
         oder so lassen? sollte in cygwin eigentlich funktionieren
 
