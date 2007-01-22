@@ -1,3 +1,14 @@
+Jan 21, 2007 - chris
+o the cursor implementation is finished and seems to work; testing is not 
+    yet complete. 
+o ham_flush now has an (unused) flags-parameter.
+o renamed samples/simple.c to samples/db1.c
+
+Jan 20, 2007 - chris
+o created one global transaction-pointer in the database object, and 
+    removed all transaction parameters for most functions; added tests that 
+    only one single transaction object is created.
+
 Dec 23, 2006 - chris ---------------------------------------------------
                       release of hamsterdb-0.3.1
 

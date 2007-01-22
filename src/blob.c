@@ -23,7 +23,7 @@ my_blob_is_small(ham_db_t *db, ham_size_t size)
 }
 
 static ham_status_t
-my_write_chunks(ham_db_t *db, ham_txn_t *txn, ham_page_t *page, 
+my_write_chunks(ham_db_t *db, ham_page_t *page, 
         ham_offset_t addr, ham_u8_t **chunk_data, ham_size_t *chunk_size, 
         ham_size_t chunks)
 {
@@ -48,7 +48,7 @@ my_write_chunks(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
              */
             if (!(page && page_get_self(page)==pageid) || 
                     my_blob_is_small(db, chunk_size[i])) {
-                page=db_fetch_page(db, txn, pageid, 
+                page=db_fetch_page(db, pageid, 
                         my_blob_is_small(db, chunk_size[i]) 
                         ? 0 : DB_ONLY_FROM_CACHE);
                 /* blob pages don't have a page header */
@@ -99,7 +99,7 @@ my_write_chunks(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
 }
 
 static ham_status_t
-my_read_chunk(ham_db_t *db, ham_txn_t *txn, ham_offset_t addr, 
+my_read_chunk(ham_db_t *db, ham_offset_t addr, 
         ham_u8_t *data, ham_size_t size)
 {
     ham_status_t st;
@@ -119,7 +119,7 @@ my_read_chunk(ham_db_t *db, ham_txn_t *txn, ham_offset_t addr,
          */
         if (!(page && page_get_self(page)==pageid) || 
                 my_blob_is_small(db, size)) {
-            page=db_fetch_page(db, txn, pageid, 
+            page=db_fetch_page(db, pageid, 
                     my_blob_is_small(db, size) ? 0 : DB_ONLY_FROM_CACHE);
             /* blob pages don't have a page header */
             if (page)
@@ -169,7 +169,7 @@ my_read_chunk(ham_db_t *db, ham_txn_t *txn, ham_offset_t addr,
 }
 
 ham_status_t
-blob_allocate(ham_db_t *db, ham_txn_t *txn, ham_u8_t *data, 
+blob_allocate(ham_db_t *db, ham_u8_t *data, 
         ham_size_t size, ham_u32_t flags, ham_offset_t *blobid)
 {
     ham_status_t st;
@@ -217,8 +217,7 @@ blob_allocate(ham_db_t *db, ham_txn_t *txn, ham_u8_t *data,
          * if the blob is small, we load the page through the cache
          */
         if (my_blob_is_small(db, sizeof(blob_t)+size)) {
-            page=db_alloc_page(db, PAGE_TYPE_B_INDEX|PAGE_IGNORE_FREELIST, 
-                    txn, 0);
+            page=db_alloc_page(db, PAGE_TYPE_B_INDEX|PAGE_IGNORE_FREELIST, 0);
             if (!page)
                 return (db_get_error(db));
             /* blob pages don't have a page header */
@@ -280,7 +279,7 @@ blob_allocate(ham_db_t *db, ham_txn_t *txn, ham_u8_t *data,
     chunk_data[1]=(ham_u8_t *)data;
     chunk_size[1]=size;
 
-    st=my_write_chunks(db, txn, page, addr, chunk_data, chunk_size, 2);
+    st=my_write_chunks(db, page, addr, chunk_data, chunk_size, 2);
     if (st)
         return (st);
 
@@ -290,7 +289,7 @@ blob_allocate(ham_db_t *db, ham_txn_t *txn, ham_u8_t *data,
 }
 
 ham_status_t
-blob_read(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid, 
+blob_read(ham_db_t *db, ham_offset_t blobid, 
         ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
@@ -305,6 +304,10 @@ blob_read(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid,
     if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
         blob_t *hdr=(blob_t *)blobid;
         ham_u8_t *data=((ham_u8_t *)blobid)+sizeof(blob_t);
+
+        /* when the database is closing, the header is already deleted */
+        if (!hdr)
+            return (0);
 
         /* resize buffer, if necessary */
         if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
@@ -332,7 +335,7 @@ blob_read(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid,
     /*
      * first step: read the blob header 
      */
-    st=my_read_chunk(db, txn, blobid, (ham_u8_t *)&hdr, sizeof(hdr));
+    st=my_read_chunk(db, blobid, (ham_u8_t *)&hdr, sizeof(hdr));
     if (st)
         return (st);
 
@@ -365,7 +368,7 @@ blob_read(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid,
     /*
      * third step: read the blob data
      */
-    st=my_read_chunk(db, txn, blobid+sizeof(blob_t), record->data, 
+    st=my_read_chunk(db, blobid+sizeof(blob_t), record->data, 
             (ham_size_t)blob_get_user_size(&hdr));
     if (st)
         return (st);
@@ -376,7 +379,7 @@ blob_read(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid,
 }
 
 ham_status_t
-blob_replace(ham_db_t *db, ham_txn_t *txn, ham_offset_t old_blobid, 
+blob_replace(ham_db_t *db, ham_offset_t old_blobid, 
         ham_u8_t *data, ham_size_t size, ham_u32_t flags, 
         ham_offset_t *new_blobid)
 {
@@ -388,10 +391,10 @@ blob_replace(ham_db_t *db, ham_txn_t *txn, ham_offset_t old_blobid,
      * allocate a new blob
      */
     if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
-        st=blob_free(db, txn, old_blobid, flags);
+        st=blob_free(db, old_blobid, flags);
         if (st)
             return (st);
-        return (blob_allocate(db, txn, data, size, flags, new_blobid));
+        return (blob_allocate(db, data, size, flags, new_blobid));
     }
 
     /*
@@ -399,7 +402,7 @@ blob_replace(ham_db_t *db, ham_txn_t *txn, ham_offset_t old_blobid,
      * old blob, we overwrite the old blob (and add the remaining
      * space to the freelist, if there is any)
      */
-    st=my_read_chunk(db, txn, old_blobid, (ham_u8_t *)&old_hdr, 
+    st=my_read_chunk(db, old_blobid, (ham_u8_t *)&old_hdr, 
             sizeof(old_hdr));
     if (st)
         return (st);
@@ -432,7 +435,7 @@ blob_replace(ham_db_t *db, ham_txn_t *txn, ham_offset_t old_blobid,
         else
             blob_set_alloc_size(&new_hdr, blob_get_alloc_size(&old_hdr));
 
-        st=my_write_chunks(db, txn, 0, blob_get_self(&new_hdr),
+        st=my_write_chunks(db, 0, blob_get_self(&new_hdr),
                 chunk_data, chunk_size, 2);
         if (st)
             return (st);
@@ -458,12 +461,12 @@ blob_replace(ham_db_t *db, ham_txn_t *txn, ham_offset_t old_blobid,
         (void)freel_add_area(db, old_blobid, 
                 (ham_size_t)blob_get_alloc_size(&old_hdr));
 
-        return (blob_allocate(db, txn, data, size, flags, new_blobid));
+        return (blob_allocate(db, data, size, flags, new_blobid));
     }
 }
 
 ham_status_t
-blob_free(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid, ham_u32_t flags)
+blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
 {
     ham_status_t st;
     blob_t hdr;
@@ -481,7 +484,7 @@ blob_free(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid, ham_u32_t flags)
     /*
      * fetch the blob header 
      */
-    st=my_read_chunk(db, txn, blobid, (ham_u8_t *)&hdr, sizeof(hdr));
+    st=my_read_chunk(db, blobid, (ham_u8_t *)&hdr, sizeof(hdr));
     if (st)
         return (st);
 

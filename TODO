@@ -22,16 +22,6 @@ x 220.tst: schlägt fehl im release-build!
 -----------------------------------------------------
 -----------------------------------------------------
 
-x header-dateien werden nicht installiert
-
-x wenn db.h nicht installiert ist: kleine warnung ausgeben, 
-    test nicht bauen
-
-x "silent" zwischenrelease
-
------------------------------------------------------
------------------------------------------------------
-
 x cache: bucketgrösse in ham_config.h verschieben, eine #define-konstante
     draus machen
 
@@ -50,8 +40,16 @@ o port to ms windows
     o monster.sh!
 
 o automake: mit -Wall compilieren!
+    dnl Only use -Wall if we have gcc
+    if test "x$GCC" = "xyes"; then
+        if test -z "`echo "$CFLAGS" | grep "\-Wall" 2> /dev/null`" ; then
+            CFLAGS="$CFLAGS -Wall"
+        fi
+    fi
 
-o nächsten release machen!
+o vorsicht - in /usr/local/include liegt eine Makefile.am aus der hamsterdb-
+    installation. nur ein versehen, oder wird sie bei jedem 'make install'
+    reinkopiert? ausprobieren.
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -60,105 +58,62 @@ o logo!!
 
 -----------------------------------------------------
 
-o iteratoren 
-    o sind schon designt (siehe iterators.txt im rechner auf arbeit)
-        x wie läuft das mit den transaktionen??? welche txn-zeiger werden 
-                verwendet? eigentlich müssten wir bei allen sachen eine
-                neue txn verwenden - also bei find, first, last, insert etc.
-        x create
-        x couple
-        x page_add_cursor
-        x page_remove_cursor
-        x clone 
-        x close
-        x find
-        x uncouple
-        x page-unload: alle cursor uncouplen
-                evtl sollte es eine einzige 'page-cleanup'-funktion
-                geben, die immer dann aufgerufen wird, wenn eine page
-                in die garbage-list kommt oder freigegeben wird
-                (überall da wo munmap aufgerufen wird)
-        x first
-        x last
-        x next
-        x previous
-        x get_record (aus ham_find nach util verschieben!)
-        x get_key
-        x replace (nicht vergessen: page_set_dirty(page, 1))
-        x insert (über btree-funktionen)
-        x erase (über btree-funktionen) - koppelt den key; dann einfach next()
-        x vor SMOs und page-modifikationen: alle cursor, die auf die 
-                page zeigen, entkoppeln (bzw zumindest die, die betroffen
-                sind)
-            x insert ohne SMO
-            x insert mit split
-            x erase ohne SMO
-            x erase mit merge
-            x erase mit shift
+x siehe aufzeichnung: es kann nur eine transaktion geben - also eine 
+    globale txn (db_set_txn, db_get_txn), und dann brauchen wir 
+    den txn-pointer nirgendwo mehr als parameter übergeben, sondern
+    nur noch die db
 
-        x page_verify: sicherstellen dass eine gelöschte
-                page und eine page im garbage keine cursors hat
+x cursors 
+    x inmemory testen
+    x performance bei insert und erase?
+    x mit valgrind testen 
+      x cursors, overwrite, inmemory
+      x cursors, overwrite, reopen
+      x cursors, inmemory
+      x cursors, reopen
+      x cursors, overwrite, extkeys, reopen
+      x cursors, overwrite, extkeys, inmemory
+      x cursors, extkeys, inmemory
+      x cursors, extkeys, reopen
 
-        x public interface
+x ham_flush sollte einen (ungenutzen) flags-parameter bekommen
 
-        o testen:
-            x performance-test für iterator-operationen
-            x fullcheck: auch bei hamster mit iteratoren machen
-            x bei --fullcheck=find: fullcheck auch weiterhin mit 
-                    ham_find ausführen!
-            x bei --test-cursor=1
-                x das alles mit bis zu 4 cursorn, damit wir auch 
-                    den einsatz mehrerer cursor gleichzeitig testen
-                x die cursors werden global gehalten, d.h. nur einmal
-                    erzeugt und gelöscht
-                x nach jeder operation auf first setzen, vergleichen
-                x nach jeder operation auf last setzen, vergleichen
+x samples umbenennen: aus simple wird db1.c 
 
-    ext_021 und ext_050 crashen!
+o default-cachesize auf 256kb ausbauen? das ist auch die default-grösse bei 
+    berkeleydb (dann auch die cache-hashtable vergrössern)
 
-    Ursache: beim util_read_key wird die page entladen, weil der cache 
-    zu voll ist. Ich habe deshalb in btree_cursor.c:612 den 
-    inuse-Counter erhöht, aber jetzt asserted der test beim 
-    ham_close, weil der inuse-counter viel zu hoch ist. 
+o in-memory-db: finden wir ne möglichkeit, normale datenbanken in 
+    in-memory zu importieren und umgekehrt wieder zu exportieren? 
+    das wäre genial. müsste aber nicht in die API, sondern einfach 
+    ein sample: "append db1 to db2" (db2.c)
+    --> geht mit cursors 
+        cursor from=db1.begin()
+        while (from)
+            db2.append(from)
+            from.next()
 
-    Warum ist der counter so hoch? Weil zwei Transaktionen parallel 
-    geöffnet werden - bei btree_insert und dann bei bt_cursor_uncouple, 
-    das von db_uncouple_cursors aufgerufen wird.
-
-    Fehler finden -> fertig! (sollte jetzt hoffentlich gefixt sein - 
-    alles testen, auch tests 2/3/4 mit cursors)
-
-            o bei --test-cursor=1
-                o jedes insert und erase mit iteratoren machen, 
-                o inserts auch mit replace machen; wenn replace fehlschlägt,
-                    insert nehmen (oder erst insert, dann replace machen)
-                o danach immer prev und next vergleichen
-
-                o welche funktionen sind noch nicht getestet? clone?
-
-    o in-memory-db: finden wir ne möglichkeit, normale datenbanken in 
-        in-memory zu importieren und umgekehrt wieder zu exportieren? 
-        das wäre genial...
-        --> geht mit iteratoren (erst release 2.0!):
-            iterator from=db1.begin()
-            while (from)
-                db2.append(from)
-                from.next()
-        --> geht auch mit der enum-funktion, die jetzt schon drin ist
+o siehe aufzeichnungen - noch ein paar änderungen im db-format für
+    environments und duplicate keys...
 
 o nächsten release machen!
     o release-regeln ändern: vor einem release auch die tests 2/3/4 
         machen! (auch wenn's lang dauert...)??????
-        ne, das dauert ja ne woche!!
-    o testscript in perl umschreiben, damit's auch auf windows läuft. 
-        oder so lassen? sollte in cygwin eigentlich funktionieren
+        ne, das dauert ja ne woche!! zumindest die tests in 2 ausdünnen...
+    o monster.sh erweitern für --test-cursors=1
+    o monster.sh ausführen...
 
 -----------------------------------------------------
 -----------------------------------------------------
+
+o portieren auf windows
+
+o testscript in perl umschreiben, damit's auch auf windows läuft. 
+    oder so lassen? sollte in cygwin eigentlich funktionieren
 
 o tools
     o ham_dump
-        erzeugt einen iterator auf den ersten eintrag, dumpt den 
+        erzeugt einen cursor auf den ersten eintrag, dumpt den 
         key und die daten (zumindest einen teil davon)
         --key-format=char|short|long|longlong|string|binary
         --key-length=<n>
@@ -190,6 +145,7 @@ o komplettes review
         o db hat 2 funktionen, die die extended keys löschen - das gehört
             ins backend
     o nochmal schaun ob die ganzen flags so sinn machen
+    o TODOs durchgehen
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -206,7 +162,7 @@ o doku
         o backend-aufbau
         o freelist
         o cache
-        o iteratoren
+        o cursors
 
 -----------------------------------------------------
 
@@ -226,7 +182,7 @@ x erzeugt .dll/.so
 x umsteigen auf autoconf/automake
 o compiliert unter linux, windows, darwin, 32bit und 64bit, läuft auf 
     little- und bigendian
-o iteratoren
+o cursors
 o logo
 o legal issues
 o dokumentation: tutorial, interface, FAQ (auch zu unittests)
@@ -271,6 +227,67 @@ o mehrere datenbanken in einer datei
 
     -> database-environment (ein file fuer mehrere datenbanken, 
         gesharter cache, geshartes file-handle, freelist etc)
+
+-----------------------------------------------------
+-----------------------------------------------------
+
+o c++-api: 
+
+namespace ham {
+  class key {
+  public:
+    key(void *data=0, int length=0, int flags=0);
+    void *get_data();
+    int get_length();
+    int get_flags();
+  };
+
+  class record {
+    record(void *data=0, int length=0, int flags=0);
+    void *get_data();
+    int get_length();
+    int get_flags();
+  };
+
+  class cursor {
+  public:
+    cursor(db *db);
+    cursor &clone();
+
+    // this is a bi-directional iterator!
+    operator++(); 
+    operator--(); 
+    operator bool();  // isnull?
+
+    ham_status_t first(int flags=0);
+    ham_status_t last(int flags=0);
+    ham_status_t next(int flags=0);
+    ham_status_t previous(int flags=0);
+    
+  private:
+    cursor(cursor &other); // forbid copy constructor
+  };
+
+  class db {
+  public:
+    db();
+    ~db();
+
+    ham_status_t create(const char *filename, int flags=0);
+    ham_status_t open(const char *filename, int flags=0);
+    ham_status_t close(); // implizit im destruktor
+
+    ham_status_t insert(key *key, record *record, int flags=0);
+    // erase, find...
+    
+    // operators
+    const record &operator[](const key &key);
+    record operator[](const key &key);
+
+  private:
+    db(db &other); // forbid copy constructor
+  };
+};
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -340,7 +357,6 @@ o asset-tool
 Version 0.2.0
 
 o duplicate keys
-o iteratoren
 o bindings: C++, Python, Perl, PHP (mit online-demo!)
 o filter: encryption
 o filter: compression

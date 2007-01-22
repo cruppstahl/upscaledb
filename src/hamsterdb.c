@@ -205,6 +205,7 @@ ham_new(ham_db_t **db)
     /* reset the whole structure */
     memset(*db, 0, sizeof(ham_db_t));
     db_set_fd((*db), HAM_INVALID_FD);
+
     return (0);
 }
 
@@ -244,7 +245,6 @@ ham_status_t
 ham_open(ham_db_t *db, const char *filename, ham_u32_t flags)
 {
     return (ham_open_ex(db, filename, flags, HAM_DEFAULT_CACHESIZE));
-
 }
 
 ham_status_t
@@ -497,7 +497,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     /*
      * allocate a database header page
      */
-    page=db_alloc_page_device(db, 0, PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
+    page=db_alloc_page_device(db, PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
     if (!page) {
         ham_log(("unable to allocate the header page"));
         return (db_get_error(db));
@@ -553,7 +553,7 @@ ham_create_cursor(ham_db_t *db, void *reserved, ham_u32_t flags,
     /*
      * so far we only support B+Tree cursors
      */
-    return (bt_cursor_create(db, 0, flags, (ham_bt_cursor_t **)cursor));
+    return (bt_cursor_create(db, reserved, flags, (ham_bt_cursor_t **)cursor));
 }
 
 ham_status_t
@@ -566,6 +566,7 @@ ham_status_t
 ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo)
 {
     db_set_prefix_compare_func(db, foo);
+
     return (HAM_SUCCESS);
 }
 
@@ -573,6 +574,7 @@ ham_status_t
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo)
 {
     db_set_compare_func(db, foo);
+
     return (HAM_SUCCESS);
 }
 
@@ -595,9 +597,9 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
     /*
      * first look up the blob id, then fetch the blob
      */
-    st=be->_fun_find(be, &txn, key, record, flags);
+    st=be->_fun_find(be, key, record, flags);
     if (st==HAM_SUCCESS)
-        st=util_read_record(db, &txn, record, flags);
+        st=util_read_record(db, record, flags);
 
     if (st) {
         (void)ham_txn_abort(&txn);
@@ -631,7 +633,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     /*
      * store the index entry; the backend will store the blob
      */
-    st=be->_fun_insert(be, &txn, key, record, flags);
+    st=be->_fun_insert(be, key, record, flags);
 
     if (st) {
 #if 0
@@ -663,12 +665,12 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
     /*
      * get rid of the index entry, then free the blob
      */
-    st=be->_fun_erase(be, &txn, key, &blobid, &intflags, flags);
+    st=be->_fun_erase(be, key, &blobid, &intflags, flags);
     if (st==HAM_SUCCESS) {
         if (!((intflags&KEY_BLOB_SIZE_TINY) ||
               (intflags&KEY_BLOB_SIZE_SMALL) ||
               (intflags&KEY_BLOB_SIZE_EMPTY)))
-            st=blob_free(db, &txn, blobid, flags);
+            st=blob_free(db, blobid, flags);
     }
 
     if (st) {
@@ -697,7 +699,7 @@ ham_dump(ham_db_t *db, void *reserved, ham_dump_cb_t cb)
     /*
      * call the backend function
      */
-    st=be->_fun_enumerate(be, &txn, my_dump_cb, cb);
+    st=be->_fun_enumerate(be, my_dump_cb, cb);
 
     if (st) {
         (void)ham_txn_abort(&txn);
@@ -729,7 +731,7 @@ ham_check_integrity(ham_db_t *db, void *reserved)
     /*
      * call the backend function
      */
-    st=be->_fun_check_integrity(be, &txn);
+    st=be->_fun_check_integrity(be);
 
     if (st) {
         (void)ham_txn_abort(&txn);
@@ -740,15 +742,17 @@ ham_check_integrity(ham_db_t *db, void *reserved)
 }
 
 ham_status_t
-ham_flush(ham_db_t *db)
+ham_flush(ham_db_t *db, ham_u32_t flags)
 {
+    (void)flags;
+
     /*
      * never flush an in-memory-database
      */
     if (db_get_flags(db)&HAM_IN_MEMORY_DB)
         return (0);
 
-    return (db_flush_all(db, 0, DB_FLUSH_NODELETE));
+    return (db_flush_all(db, DB_FLUSH_NODELETE));
 }
 
 ham_status_t
@@ -765,8 +769,8 @@ ham_close(ham_db_t *db)
         free_cb_context_t context;
         context.db=db;
         if (!ham_txn_begin(&txn, db)) {
-            (void)be->_fun_enumerate(be, &txn, my_free_cb, &context);
-            ham_txn_commit(&txn);
+            (void)be->_fun_enumerate(be, my_free_cb, &context);
+            (void)ham_txn_commit(&txn);
         }
     }
 
@@ -808,7 +812,7 @@ ham_close(ham_db_t *db)
     /*
      * flush all pages
      */
-    st=db_flush_all(db, 0, 0);
+    st=db_flush_all(db, 0);
     if (st) {
         ham_log(("db_flush_all() failed with status %d (%s)",
                 st, ham_strerror(st)));
@@ -921,7 +925,7 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         if (!((intflags&KEY_BLOB_SIZE_TINY) ||
               (intflags&KEY_BLOB_SIZE_SMALL) ||
               (intflags&KEY_BLOB_SIZE_EMPTY)))
-            st=blob_free(cursor_get_db(cursor), &txn, rid, flags);
+            st=blob_free(cursor_get_db(cursor), rid, flags);
     }
 
     if (st) {

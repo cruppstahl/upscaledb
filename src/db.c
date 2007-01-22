@@ -87,13 +87,12 @@ my_read_page(ham_db_t *db, ham_offset_t address, ham_page_t *page)
 }
 
 static ham_page_t *
-my_alloc_page(ham_db_t *db, ham_txn_t *txn, ham_bool_t need_pers)
+my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
 {
     ham_page_t *page;
     ham_status_t st;
 
     (void)need_pers;
-    (void)txn;
 
     /*
      * allocate one page of memory, if we have room for one more page
@@ -127,7 +126,7 @@ my_alloc_page(ham_db_t *db, ham_txn_t *txn, ham_bool_t need_pers)
         /*
          * uncouple all cursors
          */
-        (void)db_uncouple_all_cursors(db, txn, page);
+        (void)db_uncouple_all_cursors(page);
 
         if (!(page_get_npers_flags(page)&PAGE_NPERS_MALLOC)) {
             st=os_munmap(page_get_pers(page), db_get_pagesize(db));
@@ -166,20 +165,15 @@ my_alloc_page(ham_db_t *db, ham_txn_t *txn, ham_bool_t need_pers)
 }
 
 ham_status_t
-db_uncouple_all_cursors(ham_db_t *db, ham_txn_t *txn, ham_page_t *page)
+db_uncouple_all_cursors(ham_page_t *page)
 {
-    ham_cursor_t *c=page_get_cursors(page), *n=0;
-
-    (void)db;
+    ham_cursor_t *n, *c=page_get_cursors(page);
 
     while (c) {
-        (void)bt_cursor_uncouple((ham_bt_cursor_t *)c, txn,
-                BT_CURSOR_UNCOUPLE_NO_REMOVE);
         n=cursor_get_next(c);
+        (void)bt_cursor_uncouple((ham_bt_cursor_t *)c, 0);
         cursor_set_next(c, 0);
         cursor_set_previous(c, 0);
-        if (n)
-            cursor_set_previous(n, 0);
         c=n;
     }
 
@@ -259,7 +253,7 @@ db_free_page_struct(ham_page_t *page)
                     *(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
                     if (db_get_flags(db)&HAM_IN_MEMORY_DB)
-                        (void)blob_free(db, 0, blobid, 0);
+                        (void)blob_free(db, blobid, 0);
                     else if (c)
                         (void)extkey_cache_remove(c, blobid);
                 }
@@ -294,7 +288,7 @@ db_fetch_page_from_device(ham_page_t *page, ham_offset_t address)
 }
 
 ham_page_t *
-db_alloc_page_device(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
+db_alloc_page_device(ham_db_t *db, ham_u32_t flags)
 {
     ham_status_t st;
     ham_offset_t tellpos=0, resize=0;
@@ -305,7 +299,7 @@ db_alloc_page_device(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
      */
     if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
         /* allocate memory for the page */
-        page=my_alloc_page(db, txn, HAM_TRUE);
+        page=my_alloc_page(db, HAM_TRUE);
         if (!page)
             return (0);
         page_set_self(page, (ham_offset_t)page);
@@ -323,8 +317,8 @@ db_alloc_page_device(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
             ham_assert(tellpos%db_get_pagesize(db)==0,
                     ("page id %llu is not aligned", tellpos));
             /* try to fetch the page from the txn */
-            if (txn) {
-                page=txn_get_page(txn, tellpos);
+            if (db_get_txn(db)) {
+                page=txn_get_page(db_get_txn(db), tellpos);
                 if (page)
                     goto done;
             }
@@ -335,7 +329,7 @@ db_alloc_page_device(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
                     goto done;
             }
             /* allocate a new page structure */
-            page=my_alloc_page(db, txn, HAM_TRUE);
+            page=my_alloc_page(db, HAM_TRUE);
             if (!page)
                 return (0);
             page_set_self(page, tellpos);
@@ -347,7 +341,7 @@ db_alloc_page_device(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
     }
 
     if (!page) {
-        page=my_alloc_page(db, txn, HAM_TRUE);
+        page=my_alloc_page(db, HAM_TRUE);
         if (!page)
             return (0);
     }
@@ -460,7 +454,7 @@ db_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
 }
 
 ham_status_t
-db_get_extended_key(ham_db_t *db, ham_txn_t *txn, ham_u8_t *key_data,
+db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
                     ham_size_t key_length, ham_u32_t key_flags,
                     ham_u8_t **ext_key)
 {
@@ -511,7 +505,7 @@ db_get_extended_key(ham_db_t *db, ham_txn_t *txn, ham_u8_t *key_data,
     /* not cached - fetch from disk */
     memset(&record, 0, sizeof(record));
 
-    st=blob_read(db, txn, blobid, &record, 0);
+    st=blob_read(db, blobid, &record, 0);
     if (st) {
         db_set_error(db, st);
         return (st);
@@ -540,7 +534,7 @@ db_get_extended_key(ham_db_t *db, ham_txn_t *txn, ham_u8_t *key_data,
  * too much duplicated code - use db_get_extended_key
  */
 int
-db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
+db_compare_keys(ham_db_t *db, ham_page_t *page,
                 long lhs_idx, ham_u32_t lhs_flags,
                 const ham_u8_t *lhs, ham_size_t lhs_length,
                 long rhs_idx, ham_u32_t rhs_flags,
@@ -633,7 +627,7 @@ db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
                 /* not cached - fetch from disk */
                 memset(&lhs_record, 0, sizeof(lhs_record));
 
-                st=blob_read(db, txn, blobid, &lhs_record, 0);
+                st=blob_read(db, blobid, &lhs_record, 0);
                 if (st) {
                     db_set_error(db, st);
                     goto bail;
@@ -685,7 +679,7 @@ db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
                 /* not cached - fetch from disk */
                 memset(&rhs_record, 0, sizeof(rhs_record));
 
-                st=blob_read(db, txn, blobid, &rhs_record, 0);
+                st=blob_read(db, blobid, &rhs_record, 0);
                 if (st) {
                     db_set_error(db, st);
                     goto bail;
@@ -762,8 +756,7 @@ db_create_backend(ham_db_t *db, ham_u32_t flags)
 }
 
 ham_page_t *
-db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
-        ham_u32_t flags)
+db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
 {
     ham_page_t *page=0;
     ham_status_t st;
@@ -771,8 +764,8 @@ db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
     /*
      * first, check if the page is in the txn
      */
-    if (txn) {
-        page=txn_get_page(txn, address);
+    if (db_get_txn(db)) {
+        page=txn_get_page(db_get_txn(db), address);
         if (page)
             return (page);
     }
@@ -783,10 +776,12 @@ db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
     if (db_get_cache(db)) {
         page=cache_get(db_get_cache(db), address);
         if (page) {
-            st=txn_add_page(txn, page);
-            if (st) {
-                db_set_error(db, st);
-                return (0);
+            if (db_get_txn(db)) {
+                st=txn_add_page(db_get_txn(db), page);
+                if (st) {
+                    db_set_error(db, st);
+                    return (0);
+                }
             }
             return (page);
         }
@@ -807,7 +802,7 @@ db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
     /*
      * otherwise allocate memory for the page
      */
-    page=my_alloc_page(db, txn, HAM_FALSE);
+    page=my_alloc_page(db, HAM_FALSE);
     if (!page)
         return (0);
 
@@ -825,8 +820,8 @@ db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
     /*
      * add the page to the transaction
      */
-    if (txn) {
-        st=txn_add_page(txn, page);
+    if (db_get_txn(db)) {
+        st=txn_add_page(db_get_txn(db), page);
         if (st) {
             db_set_error(db, st);
             (void)db_free_page_struct(page);
@@ -837,7 +832,7 @@ db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
     /*
      * add the page to the cache
      */
-    st=cache_put(db_get_cache(db), txn, page);
+    st=cache_put(db_get_cache(db), page);
     if (st) {
         db_set_error(db, st);
         return (0);
@@ -847,12 +842,9 @@ db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
 }
 
 ham_status_t
-db_flush_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
-        ham_u32_t flags)
+db_flush_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
 {
     ham_status_t st;
-
-    (void)txn;
 
     /* write the page, if it's dirty and if write-through is enabled */
     if ((db_get_flags(db)&HAM_WRITE_THROUGH) && page_is_dirty(page)) {
@@ -861,19 +853,17 @@ db_flush_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
             return (st);
     }
 
-    return (cache_put(db_get_cache(db), txn, page));
+    return (cache_put(db_get_cache(db), page));
 }
 
 ham_status_t
-db_flush_all(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags)
+db_flush_all(ham_db_t *db, ham_u32_t flags)
 {
-    (void)txn;
-
     return (cache_flush_and_delete(db_get_cache(db), flags));
 }
 
 ham_page_t *
-db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags)
+db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
 {
     ham_status_t st;
     ham_page_t *page;
@@ -884,7 +874,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags)
     }
 
     /* allocate storage on the device */
-    page=db_alloc_page_device(db, txn, flags);
+    page=db_alloc_page_device(db, flags);
     if (!page) {
         /* TODO memleak? */
         return (0);
@@ -897,8 +887,8 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags)
     page_set_type(page, type);
 
     /* add the page to the transaction */
-    if (txn) {
-        st=txn_add_page(txn, page);
+    if (db_get_txn(db)) {
+        st=txn_add_page(db_get_txn(db), page);
         if (st) {
             db_set_error(db, st);
             return (0);
@@ -913,7 +903,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags)
             ("cache is full - can't add new page"));
 
     /* store the page in the cache */
-    st=cache_put(db_get_cache(db), txn, page);
+    st=cache_put(db_get_cache(db), page);
     if (st) {
         db_set_error(db, st); /* TODO memleak! */
         return (0);
@@ -926,10 +916,8 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags)
 }
 
 ham_status_t
-db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
-        ham_u32_t flags)
+db_free_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
 {
-    (void)txn;
     (void)flags;
 
     ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING),
@@ -938,7 +926,7 @@ db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
     /*
      * detach all cursors
      */
-    (void)db_uncouple_all_cursors(db, txn, page);
+    (void)db_uncouple_all_cursors(page);
 
     /*
      * if we have extended keys: remove all extended keys from the
@@ -962,7 +950,7 @@ db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
                     *(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
                     if (db_get_flags(db)&HAM_IN_MEMORY_DB)
-                        (void)blob_free(db, txn, blobid, 0);
+                        (void)blob_free(db, blobid, 0);
                     else if (c)
                         (void)extkey_cache_remove(c, blobid);
                 }
@@ -977,25 +965,30 @@ db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
 }
 
 ham_status_t
-db_write_page_and_delete(ham_db_t *db, ham_txn_t *txn, 
-        ham_page_t *page, ham_u32_t flags)
+db_write_page_and_delete(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
 {
+    ham_status_t st;
+
     /*
      * write page to disk
      */
-    if (page_is_dirty(page) && !(db_get_flags(db)&HAM_IN_MEMORY_DB))
-        (void)my_write_page(db, page);
+    if (page_is_dirty(page) && !(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
+        st=my_write_page(db, page);
+        if (st)
+            return (st);
+    }
 
     /*
-     * uncouple all cursors
-     */
-    (void)db_uncouple_all_cursors(db, txn, page);
-
-    /*
+     * if the page is deleted, uncouple all cursors, then 
      * free the memory of the page
      */
-    if (!(flags&DB_FLUSH_NODELETE))
+    if (!(flags&DB_FLUSH_NODELETE)) {
+        st=db_uncouple_all_cursors(page);
+        if (st)
+            return (st);
         db_free_page_struct(page);
+    }
 
     return (0);
 }
+

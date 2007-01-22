@@ -10,12 +10,11 @@
 #include "db.h"
 #include "error.h"
 #include "btree.h"
-#include "txn.h"
 #include "keys.h"
 #include "btree_cursor.h"
 
 ham_status_t 
-btree_find_cursor(ham_btree_t *be, ham_txn_t *txn, ham_bt_cursor_t *cursor, 
+btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor, 
            ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
     ham_page_t *page;
@@ -30,7 +29,7 @@ btree_find_cursor(ham_btree_t *be, ham_txn_t *txn, ham_bt_cursor_t *cursor,
         return (db_set_error(db, HAM_KEY_NOT_FOUND));
 
     /* load the root page */
-    page=db_fetch_page(db, txn, btree_get_rootpage(be), flags);
+    page=db_fetch_page(db, btree_get_rootpage(be), flags);
     if (!page)
         return (db_get_error(db));
 
@@ -46,11 +45,11 @@ btree_find_cursor(ham_btree_t *be, ham_txn_t *txn, ham_bt_cursor_t *cursor,
         if (btree_node_is_leaf(node))
             break;
 
-        page=btree_traverse_tree(db, txn, page, key, 0);
+        page=btree_traverse_tree(db, page, key, 0);
     }
 
     /* check the leaf page for the key */
-    idx=btree_node_search_by_key(db, txn, page, key);
+    idx=btree_node_search_by_key(db, page, key);
     if (db_get_error(db))
         return (db_get_error(db));
     if (idx<0) {
@@ -67,8 +66,10 @@ btree_find_cursor(ham_btree_t *be, ham_txn_t *txn, ham_bt_cursor_t *cursor,
 
     /* set the cursor-position to this key */
     if (cursor) {
-        ham_assert(bt_cursor_get_flags(cursor)&(~BT_CURSOR_FLAG_UNCOUPLED), 
-                ("coupling a coupled cursor"));
+        ham_assert(!(bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_UNCOUPLED), 
+                ("coupling an uncoupled cursor, but need a nil-cursor"));
+        ham_assert(!(bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_COUPLED), 
+                ("coupling a coupled cursor, but need a nil-cursor"));
         page_add_cursor(page, (ham_cursor_t *)cursor);
         bt_cursor_set_flags(cursor, 
                 bt_cursor_get_flags(cursor)|BT_CURSOR_FLAG_COUPLED);
@@ -80,9 +81,9 @@ btree_find_cursor(ham_btree_t *be, ham_txn_t *txn, ham_bt_cursor_t *cursor,
 }
 
 ham_status_t 
-btree_find(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
+btree_find(ham_btree_t *be, ham_key_t *key,
            ham_record_t *record, ham_u32_t flags)
 {
-    return (btree_find_cursor(be, txn, 0, key, record, flags));
+    return (btree_find_cursor(be, 0, key, record, flags));
 }
 

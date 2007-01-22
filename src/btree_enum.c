@@ -11,14 +11,13 @@
 #include "db.h"
 #include "error.h"
 #include "btree.h"
-#include "txn.h"
 
 /*
  * enumerate a whole level in the tree - start with "page" and traverse
  * the linked list of all the siblings
  */
 static ham_status_t 
-my_enumerate_level(ham_txn_t *txn, ham_page_t *page, ham_u32_t level, 
+my_enumerate_level(ham_page_t *page, ham_u32_t level, 
         ham_enumerate_cb_t cb, void *context);
 
 /*
@@ -29,7 +28,7 @@ my_enumerate_page(ham_page_t *page, ham_u32_t level, ham_u32_t count,
         ham_enumerate_cb_t cb, void *context);
 
 ham_status_t
-btree_enumerate(ham_btree_t *be, ham_txn_t *txn, ham_enumerate_cb_t cb,
+btree_enumerate(ham_btree_t *be, ham_enumerate_cb_t cb,
         void *context)
 {
     ham_page_t *page;
@@ -43,7 +42,7 @@ btree_enumerate(ham_btree_t *be, ham_txn_t *txn, ham_enumerate_cb_t cb,
     ham_assert(cb!=0, ("invalid parameter"));
 
     /* get the root page of the tree */
-    page=db_fetch_page(db, txn, btree_get_rootpage(be), 0);
+    page=db_fetch_page(db, btree_get_rootpage(be), 0);
     if (!page) {
         ham_trace(("error 0x%x while fetching root page", db_get_error(db)));
         return (db_get_error(db));
@@ -59,7 +58,7 @@ btree_enumerate(ham_btree_t *be, ham_txn_t *txn, ham_enumerate_cb_t cb,
         /*
          * enumerate the page and all its siblings
          */
-        st=my_enumerate_level(txn, page, level, cb, context);
+        st=my_enumerate_level(page, level, cb, context);
         if (st)
             return (st);
 
@@ -67,7 +66,7 @@ btree_enumerate(ham_btree_t *be, ham_txn_t *txn, ham_enumerate_cb_t cb,
          * follow the pointer to the smallest child
          */
         if (ptr_left)
-            page=db_fetch_page(db, txn, ptr_left, 0);
+            page=db_fetch_page(db, ptr_left, 0);
         else
             page=0;
 
@@ -78,7 +77,7 @@ btree_enumerate(ham_btree_t *be, ham_txn_t *txn, ham_enumerate_cb_t cb,
 }
 
 static ham_status_t 
-my_enumerate_level(ham_txn_t *txn, ham_page_t *page, ham_u32_t level, 
+my_enumerate_level(ham_page_t *page, ham_u32_t level, 
         ham_enumerate_cb_t cb, void *context)
 {
     ham_status_t st;
@@ -98,7 +97,7 @@ my_enumerate_level(ham_txn_t *txn, ham_page_t *page, ham_u32_t level,
          */
         node=ham_page_get_btree_node(page);
         if (btree_node_get_right(node))
-            page=db_fetch_page(page_get_owner(page), txn, 
+            page=db_fetch_page(page_get_owner(page), 
                     btree_node_get_right(node), 0);
         else
             break;

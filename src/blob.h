@@ -16,7 +16,6 @@ extern "C" {
 
 #include <ham/hamsterdb.h>
 #include "page.h"
-#include "txn.h"
 
 #include "packstart.h"
 
@@ -116,7 +115,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
  * returns the blob-id (the start address of the blob header) in @a blobid
  */
 extern ham_status_t
-blob_allocate(ham_db_t *db, ham_txn_t *txn, ham_u8_t *data, 
+blob_allocate(ham_db_t *db, ham_u8_t *data, 
         ham_size_t size, ham_u32_t flags, ham_offset_t *blobid);
 
 /**
@@ -125,7 +124,7 @@ blob_allocate(ham_db_t *db, ham_txn_t *txn, ham_u8_t *data,
  * stores the data in @a record
  */
 extern ham_status_t
-blob_read(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid, 
+blob_read(ham_db_t *db, ham_offset_t blobid, 
         ham_record_t *record, ham_u32_t flags);
 
 /**
@@ -135,7 +134,7 @@ blob_read(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid,
  * returns the blob-id (the start address of the blob header) in @a blobid
  */
 extern ham_status_t
-blob_replace(ham_db_t *db, ham_txn_t *txn, ham_offset_t old_blobid, 
+blob_replace(ham_db_t *db, ham_offset_t old_blobid, 
         ham_u8_t *data, ham_size_t size, ham_u32_t flags, 
         ham_offset_t *new_blobid);
 
@@ -143,7 +142,7 @@ blob_replace(ham_db_t *db, ham_txn_t *txn, ham_offset_t old_blobid,
  * delete an existing blob
  */
 extern ham_status_t
-blob_free(ham_db_t *db, ham_txn_t *txn, ham_offset_t blobid, ham_u32_t flags);
+blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags);
 
 
 #ifdef __cplusplus

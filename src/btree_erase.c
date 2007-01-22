@@ -34,11 +34,6 @@ typedef struct
     ham_u32_t flags;
 
     /*
-     * the transaction object 
-     */
-    ham_txn_t *txn;
-
-    /*
      * the key which will be deleted
      */
     ham_key_t *key;
@@ -104,14 +99,14 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
  * replace two keys in a page 
  */
 static ham_status_t
-my_replace_key(ham_page_t *page, ham_txn_t *txn, ham_s32_t slot, 
+my_replace_key(ham_page_t *page, ham_s32_t slot, 
         key_t *newentry, ham_u32_t flags);
 
 /*
  * remove an item from a page 
  */
 static ham_status_t
-my_remove_entry(ham_txn_t *txn, ham_page_t *page, ham_s32_t slot, 
+my_remove_entry(ham_page_t *page, ham_s32_t slot, 
         erase_scratchpad_t *scratchpad);
 
 /*
@@ -122,7 +117,7 @@ my_remove_entry(ham_txn_t *txn, ham_page_t *page, ham_s32_t slot,
 
 
 ham_status_t
-btree_erase(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key, 
+btree_erase(ham_btree_t *be, ham_key_t *key, 
         ham_offset_t *rid, ham_u32_t *intflags, ham_u32_t flags)
 {
     ham_status_t st=0;
@@ -136,7 +131,6 @@ btree_erase(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
      */
     memset(&scratchpad, 0, sizeof(scratchpad));
     scratchpad.be=be;
-    scratchpad.txn=txn;
     scratchpad.key=key;
     scratchpad.rid=rid;
     scratchpad.intflags=intflags;
@@ -148,7 +142,7 @@ btree_erase(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
     rootaddr=btree_get_rootpage(be);
     if (!rootaddr)
         return (db_set_error(db, HAM_KEY_NOT_FOUND));
-    root=db_fetch_page(db, scratchpad.txn, rootaddr, flags);
+    root=db_fetch_page(db, rootaddr, flags);
 
     db_set_error(db, 0);
 
@@ -166,7 +160,7 @@ btree_erase(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
         /* 
          * delete the old root page 
          */
-        st=db_free_page(db, scratchpad.txn, root, 0);
+        st=db_free_page(db, root, 0);
         if (st)
             return (st);
     }
@@ -210,12 +204,11 @@ my_erase_recursive(ham_page_t *page, ham_offset_t left, ham_offset_t right,
         scratchpad->mergepage=page;
 
     if (!btree_node_is_leaf(node)) {
-        child=btree_traverse_tree(db, scratchpad->txn, page, 
-                scratchpad->key, &slot);
+        child=btree_traverse_tree(db, page, scratchpad->key, &slot);
         ham_assert(child!=0, ("guru meditation error"));
     }
     else {
-        st=btree_get_slot(db, scratchpad->txn, page, scratchpad->key, &slot);
+        st=btree_get_slot(db, page, scratchpad->key, &slot);
         if (st) {
             db_set_error(db, st);
             return 0;
@@ -236,7 +229,7 @@ my_erase_recursive(ham_page_t *page, ham_offset_t left, ham_offset_t right,
             else {
                 key_t *bte; 
                 btree_node_t *n;
-                tempp=db_fetch_page(db, scratchpad->txn, left, 0);
+                tempp=db_fetch_page(db, left, 0);
                 n=ham_page_get_btree_node(tempp);
                 bte=btree_node_get_key(db, n, btree_node_get_count(n)-1);
                 next_left=key_get_ptr(bte);
@@ -260,7 +253,7 @@ my_erase_recursive(ham_page_t *page, ham_offset_t left, ham_offset_t right,
             else {
                 key_t *bte; 
                 btree_node_t *n;
-                tempp=db_fetch_page(db, scratchpad->txn, right, 0);
+                tempp=db_fetch_page(db, right, 0);
                 n=ham_page_get_btree_node(tempp);
                 bte=btree_node_get_key(db, n, 0);
                 next_right=key_get_ptr(bte);
@@ -291,7 +284,7 @@ my_erase_recursive(ham_page_t *page, ham_offset_t left, ham_offset_t right,
 
             bte=btree_node_get_key(db, node, slot);
 
-            cmp=db_compare_keys(db, scratchpad->txn, page, 
+            cmp=db_compare_keys(db, page, 
                     -1, scratchpad->key->_flags, scratchpad->key->data, 
                     scratchpad->key->size,
                     slot, key_get_flags(bte), key_get_key(bte), 
@@ -321,7 +314,7 @@ my_erase_recursive(ham_page_t *page, ham_offset_t left, ham_offset_t right,
     if (newme) {
         if (slot==-1)
             slot=0;
-        st=my_remove_entry(scratchpad->txn, page, slot, scratchpad);
+        st=my_remove_entry(page, slot, scratchpad);
         if (st) /* TODO log */
             return (0);
     }
@@ -365,7 +358,7 @@ my_rebalance(ham_page_t *page, ham_offset_t left, ham_offset_t right,
      * get the left and the right sibling of this page
      */
     leftpage =left
-                ? db_fetch_page(page_get_owner(page), scratchpad->txn, 
+                ? db_fetch_page(page_get_owner(page), 
                         btree_node_get_left(node), 0)
                 : 0;
     if (leftpage) {
@@ -374,7 +367,7 @@ my_rebalance(ham_page_t *page, ham_offset_t left, ham_offset_t right,
                 ? HAM_TRUE : HAM_FALSE;
     }
     rightpage=right
-                ? db_fetch_page(page_get_owner(page), scratchpad->txn, 
+                ? db_fetch_page(page_get_owner(page), 
                         btree_node_get_right(node), 0)
                 : 0;
     if (rightpage) {
@@ -390,7 +383,7 @@ my_rebalance(ham_page_t *page, ham_offset_t left, ham_offset_t right,
         if (btree_node_is_leaf(node))
             return (0);
         else 
-            return (db_fetch_page(page_get_owner(page), scratchpad->txn, 
+            return (db_fetch_page(page_get_owner(page), 
                         btree_node_get_ptr_left(node), 0));
     }
 
@@ -473,7 +466,7 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
     sibnode=ham_page_get_btree_node(sibpage);
 
     if (anchor) {
-        ancpage=db_fetch_page(db, scratchpad->txn, anchor, 0);
+        ancpage=db_fetch_page(db, anchor, 0);
         ancnode=ham_page_get_btree_node(ancpage);
     }
     else {
@@ -484,12 +477,12 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
     /*
      * uncouple all cursors
      */
-    if ((st=db_uncouple_all_cursors(db, scratchpad->txn, page)))
+    if ((st=db_uncouple_all_cursors(page)))
         return (0);
-    if ((st=db_uncouple_all_cursors(db, scratchpad->txn, sibpage)))
+    if ((st=db_uncouple_all_cursors(sibpage)))
         return (0);
     if (ancpage)
-        if ((st=db_uncouple_all_cursors(db, scratchpad->txn, ancpage)))
+        if ((st=db_uncouple_all_cursors(ancpage)))
             return (0);
 
     /*
@@ -506,7 +499,7 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
         key.data  =key_get_key(bte);
         key.size  =key_get_size(bte);
 
-        st=btree_get_slot(db, scratchpad->txn, ancpage, &key, &slot);
+        st=btree_get_slot(db, ancpage, &key, &slot);
         if (st) {
             db_set_error(db, st);
             return 0;
@@ -540,7 +533,7 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
      */
     if (btree_node_get_left(node)==page_get_self(sibpage)) {
         if (btree_node_get_left(sibnode)) {
-            ham_page_t *p=db_fetch_page(db, scratchpad->txn, 
+            ham_page_t *p=db_fetch_page(db, 
                     btree_node_get_left(sibnode), 0);
             btree_node_t *n=ham_page_get_btree_node(p);
             btree_node_set_right(n, btree_node_get_right(sibnode));
@@ -552,7 +545,7 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
     }
     else if (btree_node_get_right(node)==page_get_self(sibpage)) {
         if (btree_node_get_right(sibnode)) {
-            ham_page_t *p=db_fetch_page(db, scratchpad->txn, 
+            ham_page_t *p=db_fetch_page(db, 
                     btree_node_get_right(sibnode), 0);
             btree_node_t *n=ham_page_get_btree_node(p);
 
@@ -575,7 +568,7 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
     /* 
      * delete the page
      */
-    st=db_free_page(db, scratchpad->txn, sibpage, 0);
+    st=db_free_page(db, sibpage, 0);
     if (st) {
         db_set_error(db, st); /* TODO ignore error? */
         return (0);
@@ -606,18 +599,18 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
         return (0);
     keysize=db_get_keysize(db);
     intern =!btree_node_is_leaf(node);
-    ancpage=db_fetch_page(db, scratchpad->txn, anchor, 0);
+    ancpage=db_fetch_page(db, anchor, 0);
     ancnode=ham_page_get_btree_node(ancpage);
 
     /*
      * uncouple all cursors
      */
-    if ((st=db_uncouple_all_cursors(db, scratchpad->txn, page)))
+    if ((st=db_uncouple_all_cursors(page)))
         return (0);
-    if ((st=db_uncouple_all_cursors(db, scratchpad->txn, sibpage)))
+    if ((st=db_uncouple_all_cursors(sibpage)))
         return (0);
     if (ancpage)
-        if ((st=db_uncouple_all_cursors(db, scratchpad->txn, ancpage)))
+        if ((st=db_uncouple_all_cursors(ancpage)))
             return (0);
 
     /*
@@ -637,7 +630,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             key._flags=key_get_flags(bte);
             key.data  =key_get_key(bte);
             key.size  =key_get_size(bte);
-            st=btree_get_slot(db, scratchpad->txn, ancpage, &key, &slot);
+            st=btree_get_slot(db, ancpage, &key, &slot);
             if (st) {
                 db_set_error(db, st);
                 return 0;
@@ -661,7 +654,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             /*
              * update the anchor node with sibling[0]
              */
-            (void)my_replace_key(ancpage, scratchpad->txn, slot, 
+            (void)my_replace_key(ancpage, slot, 
                     bte, INTERNAL_KEY);
             /*
              * shift the whole sibling to the left
@@ -725,7 +718,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
                 key._flags=key_get_flags(bte);
                 key.data  =key_get_key(bte);
                 key.size  =key_get_size(bte);
-                st=btree_get_slot(db, scratchpad->txn, ancpage, &key, &slot);
+                st=btree_get_slot(db, ancpage, &key, &slot);
                 if (st) {
                     db_set_error(db, st);
                     return (0);
@@ -734,7 +727,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
 #if 0
                 if (slot<btree_node_get_count(ancnode)-1) {
 #endif
-                    st=my_replace_key(ancpage, scratchpad->txn, slot, 
+                    st=my_replace_key(ancpage, slot, 
                         bte, INTERNAL_KEY);
                     if (st) {
                         db_set_error(db, st);
@@ -761,7 +754,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             key._flags=key_get_flags(bte);
             key.data  =key_get_key(bte);
             key.size  =key_get_size(bte);
-            st=btree_get_slot(db, scratchpad->txn, ancpage, &key, &slot);
+            st=btree_get_slot(db, ancpage, &key, &slot);
             if (st) {
                 db_set_error(db, st);
                 return (0);
@@ -769,8 +762,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
 #if 0
             if (slot<btree_node_get_count(ancnode)-1) {
 #endif
-                st=my_replace_key(ancpage, scratchpad->txn, slot, 
-                    bte, INTERNAL_KEY);
+                st=my_replace_key(ancpage, slot, bte, INTERNAL_KEY);
                 if (st) {
                     db_set_error(db, st);
                     return (0);
@@ -804,7 +796,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             key._flags=key_get_flags(bte);
             key.data  =key_get_key(bte);
             key.size  =key_get_size(bte);
-            st=btree_get_slot(db, scratchpad->txn, ancpage, &key, &slot);
+            st=btree_get_slot(db, ancpage, &key, &slot);
             if (st) {
                 db_set_error(db, st);
                 return 0;
@@ -837,7 +829,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
              * new anchor element is node[node.count-1].key
              * TODO rückgabewert prüfen
              */
-            (void)my_replace_key(ancpage, scratchpad->txn, slot, bte_lhs, 
+            (void)my_replace_key(ancpage, slot, bte_lhs, 
                     NOFLUSH|INTERNAL_KEY);
             /*
              * page: one item less; sibling: one item more
@@ -868,7 +860,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             bte_lhs=btree_node_get_key(db, sibnode, 0);
             bte_rhs=btree_node_get_key(db, ancnode, slot);
              /* TODO rückgabewert prüfen*/
-            (void)my_replace_key(sibpage, scratchpad->txn, 0, bte_rhs, 
+            (void)my_replace_key(sibpage, 0, bte_rhs, 
                     NOFLUSH|(btree_node_is_leaf(node)?0:INTERNAL_KEY));
             key_set_ptr(bte_lhs, btree_node_get_ptr_left(sibnode));
             btree_node_set_count(sibnode, btree_node_get_count(sibnode)+1);
@@ -922,7 +914,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             key.data  =key_get_key(bte);
             key.size  =key_get_size(bte);
 
-            st=btree_get_slot(db, scratchpad->txn, ancpage, &key, &slot);
+            st=btree_get_slot(db, ancpage, &key, &slot);
             if (st) {
                 db_set_error(db, st);
                 return (0);
@@ -935,8 +927,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             }
 #endif
 
-            st=my_replace_key(ancpage, scratchpad->txn, slot+1, 
-                        bte, INTERNAL_KEY);
+            st=my_replace_key(ancpage, slot+1, bte, INTERNAL_KEY);
             if (st) {
                 db_set_error(db, st);
                 return (0);
@@ -958,7 +949,7 @@ cleanup:
 }
 
 static ham_status_t
-my_replace_key(ham_page_t *page, ham_txn_t *txn, ham_s32_t slot, 
+my_replace_key(ham_page_t *page, ham_s32_t slot, 
         key_t *rhs, ham_u32_t flags)
 {
     key_t *lhs;
@@ -969,7 +960,7 @@ my_replace_key(ham_page_t *page, ham_txn_t *txn, ham_s32_t slot,
     /*
      * uncouple all cursors
      */
-    if ((st=db_uncouple_all_cursors(db, txn, page)))
+    if ((st=db_uncouple_all_cursors(page)))
         return (db_set_error(db, st));
 
     lhs=btree_node_get_key(db, node, slot);
@@ -1001,11 +992,11 @@ my_replace_key(ham_page_t *page, ham_txn_t *txn, ham_s32_t slot,
 
         rhsblobid=*(ham_offset_t *)(key_get_key(rhs)+
                         (db_get_keysize(db)-sizeof(ham_offset_t)));
-        st=blob_read(db, txn, rhsblobid, &record, 0);
+        st=blob_read(db, rhsblobid, &record, 0);
         if (st)
             return (st);
 
-        st=blob_allocate(db, txn, record.data, record.size, 0, &lhsblobid);
+        st=blob_allocate(db, record.data, record.size, 0, &lhsblobid);
         if (st)
             return (st);
         *(ham_offset_t *)(key_get_key(lhs)+
@@ -1020,7 +1011,7 @@ my_replace_key(ham_page_t *page, ham_txn_t *txn, ham_s32_t slot,
 }
 
 static ham_status_t
-my_remove_entry(ham_txn_t *txn, ham_page_t *page, ham_s32_t slot, 
+my_remove_entry(ham_page_t *page, ham_s32_t slot, 
         erase_scratchpad_t *scratchpad)
 {
     ham_status_t st;
@@ -1036,7 +1027,7 @@ my_remove_entry(ham_txn_t *txn, ham_page_t *page, ham_s32_t slot,
     /*
      * uncouple all cursors
      */
-    if ((st=db_uncouple_all_cursors(db, txn, page)))
+    if ((st=db_uncouple_all_cursors(page)))
         return (db_set_error(db, st));
 
     ham_assert(slot>=0, ("invalid slot %ld", slot));
@@ -1053,7 +1044,7 @@ my_remove_entry(ham_txn_t *txn, ham_page_t *page, ham_s32_t slot,
         ham_u8_t *prefix=key_get_key(bte);
         blobid=*(ham_offset_t *)(prefix+(db_get_keysize(db)-
                     sizeof(ham_offset_t)));
-        (void)blob_free(db, txn, blobid, 0); 
+        (void)blob_free(db, blobid, 0); 
         /* remove the cached extended key */
         if (db_get_extkey_cache(db)) 
             (void)extkey_cache_remove(db_get_extkey_cache(db), blobid);

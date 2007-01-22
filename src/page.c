@@ -200,3 +200,4 @@ page_remove_cursor(ham_page_t *page, ham_cursor_t *cursor)
     cursor_set_next(cursor, 0);
     cursor_set_previous(cursor, 0);
 }
+

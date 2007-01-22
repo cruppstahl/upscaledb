@@ -195,49 +195,49 @@ btree_create(ham_btree_t *btree, ham_db_t *db, ham_u32_t flags);
  * @remark this function is exported through the backend structure.
  */
 extern ham_status_t 
-btree_find(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key,
+btree_find(ham_btree_t *be, ham_key_t *key,
            ham_record_t *record, ham_u32_t flags);
 
 /**
  * same as above, but sets the cursor to the position
  */
 extern ham_status_t 
-btree_find_cursor(ham_btree_t *be, ham_txn_t *txn, ham_bt_cursor_t *cursor, 
+btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor, 
            ham_key_t *key, ham_record_t *record, ham_u32_t flags);
 
 /**
  * insert a new tuple (key/record) in the tree
  */
 extern ham_status_t
-btree_insert(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key, 
+btree_insert(ham_btree_t *be, ham_key_t *key, 
         ham_record_t *record, ham_u32_t flags);
 
 /**
  * same as above, but sets the cursor position to the new item
  */
 extern ham_status_t
-btree_insert_cursor(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key, 
+btree_insert_cursor(ham_btree_t *be, ham_key_t *key, 
         ham_record_t *record, ham_bt_cursor_t *cursor, ham_u32_t flags);
 
 /**
  * erase a key from the tree
  */
 extern ham_status_t
-btree_erase(ham_btree_t *be, ham_txn_t *txn, ham_key_t *key, 
+btree_erase(ham_btree_t *be, ham_key_t *key, 
         ham_offset_t *rid, ham_u32_t *intflags, ham_u32_t flags);
 
 /**
  * enumerate all items
  */
 extern ham_status_t
-btree_enumerate(ham_btree_t *be, ham_txn_t *txn, ham_enumerate_cb_t cb,
+btree_enumerate(ham_btree_t *be, ham_enumerate_cb_t cb,
         void *context);
 
 /**
  * verify the whole tree
  */
 extern ham_status_t
-btree_check_integrity(ham_btree_t *be, ham_txn_t *txn);
+btree_check_integrity(ham_btree_t *be);
 
 /**
  * find the child page for a key
@@ -247,7 +247,7 @@ btree_check_integrity(ham_btree_t *be, ham_txn_t *txn);
  *      loaded page
  */
 extern ham_page_t *
-btree_traverse_tree(ham_db_t *db, ham_txn_t *txn, ham_page_t *page, 
+btree_traverse_tree(ham_db_t *db, ham_page_t *page, 
         ham_key_t *key, ham_s32_t *idxptr);
 
 /**
@@ -259,8 +259,7 @@ btree_traverse_tree(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
  * @return returns the index of the key, or -1 if the key was not found
  */
 extern ham_s32_t 
-btree_node_search_by_key(ham_db_t *db, ham_txn_t *txn, 
-        ham_page_t *page, ham_key_t *key);
+btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key);
 
 /**
  * get entry #i of a btree node
@@ -273,7 +272,7 @@ btree_node_search_by_key(ham_db_t *db, ham_txn_t *txn,
  * get the slot of an element in the page
  */
 extern ham_status_t 
-btree_get_slot(ham_db_t *db, ham_txn_t *txn, ham_page_t *page, 
+btree_get_slot(ham_db_t *db, ham_page_t *page, 
         ham_key_t *key, ham_s32_t *slot);
 
 

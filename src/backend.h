@@ -15,7 +15,6 @@ extern "C" {
 
 #include <ham/hamsterdb.h>
 #include <ham/hamsterdb_int.h>
-#include "txn.h"
 
 /**
  * a callback function for enumeration 
@@ -64,7 +63,7 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
     /**                                                                 \
      * find a key in the index                                          \
      */                                                                 \
-    ham_status_t (*_fun_find)(clss *be, ham_txn_t *txn, ham_key_t *key, \
+    ham_status_t (*_fun_find)(clss *be, ham_key_t *key,                 \
             ham_record_t *record, ham_u32_t flags);                     \
                                                                         \
     /**                                                                 \
@@ -73,7 +72,7 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
      * the backend is responsible for inserting or updating the         \
      * record. (see blob.h for blob management functions)               \
      */                                                                 \
-    ham_status_t (*_fun_insert)(clss *be, ham_txn_t *txn,               \
+    ham_status_t (*_fun_insert)(clss *be,                               \
             ham_key_t *key, ham_record_t *record, ham_u32_t flags);     \
                                                                         \
     /**                                                                 \
@@ -82,13 +81,13 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
      * @remark this function returns the record of the key              \
      * in @a rid                                                        \
      */                                                                 \
-    ham_status_t (*_fun_erase)(clss *be, ham_txn_t *txn, ham_key_t *key,\
+    ham_status_t (*_fun_erase)(clss *be, ham_key_t *key,                \
             ham_offset_t *rid, ham_u32_t *intflags, ham_u32_t flags);   \
                                                                         \
     /**                                                                 \
      * iterate the whole tree and enumerate every item                  \ 
      */                                                                 \
-    ham_status_t (*_fun_enumerate)(clss *be, ham_txn_t *txn,            \
+    ham_status_t (*_fun_enumerate)(clss *be,                            \
             ham_enumerate_cb_t cb, void *context);                      \
                                                                         \
     /**                                                                 \
@@ -96,7 +95,7 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
      *                                                                  \
      * @remark this function is available in DEBUG-mode only            \
      */                                                                 \
-    ham_status_t (*_fun_check_integrity)(clss *be, ham_txn_t *txn);     \
+    ham_status_t (*_fun_check_integrity)(clss *be);                     \
                                                                         \
     /**                                                                 \
      * free all allocated resources                                     \

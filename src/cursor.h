@@ -65,7 +65,7 @@
     ham_db_t *_db;                                                      \
                                                                         \
     /**                                                                 \
-     * pointer to the transaction object                                \
+     * pointer to the transaction object (not yet used)                 \
      */                                                                 \
     ham_txn_t *_txn;                                                    \
                                                                         \

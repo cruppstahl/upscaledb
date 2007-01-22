@@ -20,6 +20,7 @@ extern "C" {
 #include "os.h"
 #include "freelist.h"
 #include "extkeys.h"
+#include "txn.h"
 
 #include "packstart.h"
 
@@ -59,10 +60,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1
     /* the cache for extended keys */
     extkey_cache_t *_extkey_cache;
 
-    /*
-     * start of the freelist - with a variable size!! don't add members
-     * after this field.
-     */
+    /* start of the freelist - with a variable size!! don't add members
+     * after this field. */
     freel_payload_t _freelist;
 
 } db_header_t;
@@ -362,7 +361,7 @@ struct ham_db_t
  * @remark this is called whenever the page is deleted or becoming invalid
  */
 extern ham_status_t
-db_uncouple_all_cursors(ham_db_t *db, ham_txn_t *txn, ham_page_t *page);
+db_uncouple_all_cursors(ham_page_t *page);
 
 /**
  * compare two keys
@@ -393,7 +392,7 @@ db_default_prefix_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
  * returns the full data of the extended key in ext_key
  */
 extern ham_status_t
-db_get_extended_key(ham_db_t *db, ham_txn_t *txn, ham_u8_t *key_data,
+db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
                     ham_size_t key_length, ham_u32_t key_flags,
                     ham_u8_t **ext_key);
 
@@ -403,7 +402,7 @@ db_get_extended_key(ham_db_t *db, ham_txn_t *txn, ham_u8_t *key_data,
  * calls the comparison function
  */
 extern int
-db_compare_keys(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
+db_compare_keys(ham_db_t *db, ham_page_t *page,
                 long lhs_idx, ham_u32_t lhs_flags,
                 const ham_u8_t *lhs, ham_size_t lhs_length,
                 long rhs_idx, ham_u32_t rhs_flags,
@@ -419,8 +418,7 @@ db_create_backend(ham_db_t *db, ham_u32_t flags);
  * fetch a page
  */
 extern ham_page_t *
-db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
-        ham_u32_t flags);
+db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags);
 #define DB_READ_ONLY            1
 #define DB_ONLY_FROM_CACHE      2
 
@@ -428,8 +426,7 @@ db_fetch_page(ham_db_t *db, ham_txn_t *txn, ham_offset_t address,
  * flush a page
  */
 extern ham_status_t
-db_flush_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
-        ham_u32_t flags);
+db_flush_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags);
 #define DB_REVERT_CHANGES       1
 
 /**
@@ -439,7 +436,7 @@ db_flush_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
  * be cleared
  */
 extern ham_status_t
-db_flush_all(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags);
+db_flush_all(ham_db_t *db, ham_u32_t flags);
 #define DB_FLUSH_NODELETE       1
 
 /**
@@ -477,7 +474,7 @@ db_fetch_page_from_device(ham_page_t *page, ham_offset_t address);
     PAGE_CLEAR_WITH_ZERO        memset the persistent page with 0
  */
 extern ham_page_t *
-db_alloc_page_device(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags);
+db_alloc_page_device(ham_db_t *db, ham_u32_t flags);
 
 /**
  * allocate a new page
@@ -492,7 +489,7 @@ db_alloc_page_device(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags);
     PAGE_CLEAR_WITH_ZERO        memset the persistent page with 0
  */
 extern ham_page_t *
-db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags);
+db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags);
 #define PAGE_IGNORE_FREELIST          2
 #define PAGE_CLEAR_WITH_ZERO          4
 
@@ -504,8 +501,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_txn_t *txn, ham_u32_t flags);
  * is aborted).
  */
 extern ham_status_t
-db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
-        ham_u32_t flags);
+db_free_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags);
 
 /**
  * write a page, then delete the page from memory
@@ -514,8 +510,7 @@ db_free_page(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
  * anywhere else.
  */
 extern ham_status_t
-db_write_page_and_delete(ham_db_t *db, ham_txn_t *txn, 
-        ham_page_t *page, ham_u32_t flags);
+db_write_page_and_delete(ham_db_t *db, ham_page_t *page, ham_u32_t flags);
 
 /**
  * an internal database flag - use mmap instead of read(2)

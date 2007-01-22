@@ -10,21 +10,19 @@
 
 #include "util.h"
 #include "mem.h"
-#include "txn.h"
 #include "db.h"
 #include "keys.h"
 #include "error.h"
 #include "blob.h"
 
 ham_key_t *
-util_copy_key(ham_db_t *db, ham_txn_t *txn,
-            const ham_key_t *source, ham_key_t *dest)
+util_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
 {
     /*
      * extended key: copy the whole key
      */
     if (source->_flags&KEY_IS_EXTENDED) {
-        ham_status_t st=db_get_extended_key(db, txn, source->data,
+        ham_status_t st=db_get_extended_key(db, source->data,
                     source->size, source->_flags, (ham_u8_t **)&dest->data);
         if (st) {
             db_set_error(db, st);
@@ -51,14 +49,13 @@ util_copy_key(ham_db_t *db, ham_txn_t *txn,
 }
 
 ham_key_t *
-util_copy_key_int2pub(ham_db_t *db, ham_txn_t *txn,
-            const key_t *source, ham_key_t *dest)
+util_copy_key_int2pub(ham_db_t *db, const key_t *source, ham_key_t *dest)
 {
     /*
      * extended key: copy the whole key
      */
     if (key_get_flags(source)&KEY_IS_EXTENDED) {
-        ham_status_t st=db_get_extended_key(db, txn, key_get_key(source),
+        ham_status_t st=db_get_extended_key(db, key_get_key(source),
                     key_get_size(source), key_get_flags(source),
                     (ham_u8_t **)&dest->data);
         if (st) {
@@ -86,8 +83,7 @@ util_copy_key_int2pub(ham_db_t *db, ham_txn_t *txn,
 }
 
 ham_status_t
-util_read_record(ham_db_t *db, ham_txn_t *txn,
-        ham_record_t *record, ham_u32_t flags)
+util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
 {
     ham_bool_t noblob=HAM_FALSE;
 
@@ -133,15 +129,14 @@ util_read_record(ham_db_t *db, ham_txn_t *txn,
         memcpy(record->data, &record->_rid, record->size);
     }
     else if (!noblob && record->size!=0) {
-        return (blob_read(db, txn, record->_rid, record, flags));
+        return (blob_read(db, record->_rid, record, flags));
     }
 
     return (0);
 }
 
 ham_status_t
-util_read_key(ham_db_t *db, ham_txn_t *txn,
-        key_t *source, ham_key_t *dest, ham_u32_t flags)
+util_read_key(ham_db_t *db, key_t *source, ham_key_t *dest, ham_u32_t flags)
 {
     ham_u8_t *data;
 
@@ -149,7 +144,7 @@ util_read_key(ham_db_t *db, ham_txn_t *txn,
      * extended key: copy the whole key
      */
     if (key_get_flags(source)&KEY_IS_EXTENDED) {
-        ham_status_t st=db_get_extended_key(db, txn, key_get_key(source),
+        ham_status_t st=db_get_extended_key(db, key_get_key(source),
                     key_get_size(source), key_get_flags(source),
                     (ham_u8_t **)&data);
         if (st) {

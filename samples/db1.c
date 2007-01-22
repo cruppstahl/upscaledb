@@ -2,7 +2,8 @@
  * Copyright (C) 2005, 2006 Christoph Rupp (chris@crupp.de)
  * see file LICENSE for license and copyright information
  *
- * a simple example
+ * a simple example, which creates a database, inserts some values, 
+ * looks them up and erases them
  */
 
 #include <unistd.h> /* for unlink */
@@ -163,3 +164,4 @@ main(int argc, char **argv)
     printf("success!\n");
     return (0);
 }
+

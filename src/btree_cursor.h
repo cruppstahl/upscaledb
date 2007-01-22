@@ -107,7 +107,7 @@ struct ham_bt_cursor_t
  * is the cursor pointing to "NULL"? this is the case when the
  * cursor is neither coupled nor uncoupled
  */
-#define bt_cursor_is_null(cu)                              \
+#define bt_cursor_is_nil(cu)                               \
                 ~(((cu)->_flags&BT_CURSOR_FLAG_COUPLED) || \
                   ((cu)->_flags&BT_CURSOR_FLAG_UNCOUPLED))
 
@@ -155,7 +155,7 @@ bt_cursor_couple(ham_bt_cursor_t *cu);
  * @remark to uncouple a page, it has to be coupled!
  */
 ham_status_t
-bt_cursor_uncouple(ham_bt_cursor_t *c, ham_txn_t *txn, ham_u32_t flags);
+bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags);
 
 /**
  * flag for bt_cursor_uncouple: uncouple from the page, but do not

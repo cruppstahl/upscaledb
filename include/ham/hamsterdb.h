@@ -329,7 +329,7 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key,
  * this function has no effect on in-memory-databases
  */
 extern ham_status_t
-ham_flush(ham_db_t *db);
+ham_flush(ham_db_t *db, ham_u32_t flags);
 
 /**
  * close a database

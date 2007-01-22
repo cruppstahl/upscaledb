@@ -278,7 +278,7 @@ my_alloc_page(ham_db_t *db)
         return (0);
     }
 
-    page=db_alloc_page_device(db, 0, PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
+    page=db_alloc_page_device(db, PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
     if (!page) 
         return (0);
 
@@ -477,7 +477,7 @@ freel_shutdown(ham_db_t *db)
     page=db_get_freelist_cache(db);
     while (page) {
         next=page_get_next(page, PAGE_LIST_TXN);
-        (void)db_write_page_and_delete(db, 0, page, 0);
+        (void)db_write_page_and_delete(db, page, 0);
         page=next;
     }
 

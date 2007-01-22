@@ -461,6 +461,73 @@ my_compare_keys(const ham_u8_t *lhs, ham_size_t lhs_length,
     return 1;
 }
 
+static int 
+my_compare_cursors(ham_cursor_t *hc, DBC *bc)
+{
+    int ret;
+    ham_status_t st;
+    ham_cursor_t *hcp, *hcn;
+    DBC *bcp, *bcn;
+
+    ham_key_t hkey;
+    ham_record_t hrec;
+    DBT bkey;
+    DBT brec;
+
+    /*
+     * clone the cursors
+     */
+    ret=bc->c_dup(bc, &bcp, DB_POSITION);
+    ham_assert(ret==0, ("c_dup failed"));
+    ret=bc->c_dup(bc, &bcn, DB_POSITION);
+    ham_assert(ret==0, ("c_dup failed"));
+    st=ham_cursor_clone(hc, &hcp);
+    ham_assert(st==0, ("ham_cursor_clone failed"));
+    st=ham_cursor_clone(hc, &hcn);
+    ham_assert(st==0, ("ham_cursor_clone failed"));
+
+    /* 
+     * move to the previous value and compare them
+     */
+    memset(&hkey, 0, sizeof(hkey));
+    memset(&hrec, 0, sizeof(hrec));
+    memset(&bkey, 0, sizeof(bkey));
+    memset(&brec, 0, sizeof(brec));
+
+    st=ham_cursor_move(hcp, &hkey, &hrec, HAM_CURSOR_PREVIOUS);
+    ret=bcp->c_get(bcp, &bkey, &brec, DB_PREV);
+    if (st==HAM_CURSOR_IS_NIL)
+        ham_assert(ret==DB_NOTFOUND, ("ham is nil, but bdb not"));
+    ham_assert(hkey.size==bkey.size, (""));
+    ham_assert(hrec.size==brec.size, (""));
+    ham_assert(!memcmp(hkey.data, bkey.data, hkey.size), (""));
+    ham_assert(!memcmp(hrec.data, brec.data, hrec.size), (""));
+
+    /* 
+     * move to the next value and compare them
+     */
+    memset(&hkey, 0, sizeof(hkey));
+    memset(&hrec, 0, sizeof(hrec));
+    memset(&bkey, 0, sizeof(bkey));
+    memset(&brec, 0, sizeof(brec));
+
+    st=ham_cursor_move(hcn, &hkey, &hrec, HAM_CURSOR_NEXT);
+    ret=bcn->c_get(bcn, &bkey, &brec, DB_NEXT);
+    if (st==HAM_CURSOR_IS_NIL)
+        ham_assert(ret==DB_NOTFOUND, ("ham is nil, but bdb not"));
+    ham_assert(hkey.size==bkey.size, (""));
+    ham_assert(hrec.size==brec.size, (""));
+    ham_assert(!memcmp(hkey.data, bkey.data, hkey.size), (""));
+    ham_assert(!memcmp(hrec.data, brec.data, hrec.size), (""));
+
+    ham_cursor_close(hcp);
+    ham_cursor_close(hcn);
+    bcp->c_close(bcp);
+    bcn->c_close(bcn);
+
+    return (0);
+}
+
 static int
 my_compare_return(void)
 {
@@ -848,7 +915,7 @@ my_execute_flush(void)
                     return 0;
                 }
                 /*PROFILE_START(i);*/
-                st=ham_flush(config.hamdb);
+                st=ham_flush(config.hamdb, 0);
                 ham_assert(st==0, (0));
                 /*PROFILE_STOP(i);*/
                 break;
@@ -932,9 +999,16 @@ my_execute_insert(char *line)
                 record.size=data_size;
                 record.data=data_size ? data : 0;
 
-                config.retval[i]=config.dbp->put(config.dbp, 0, &key, &record, 
-                        config.overwrite?0:DB_NOOVERWRITE);
+                if (config.test_cursors) {
+                    config.retval[i]=bdb_cursors[0]->c_put(bdb_cursors[0], 
+                            &key, &record, config.overwrite?0:DB_NOOVERWRITE);
+                }
+                else {
+                    config.retval[i]=config.dbp->put(config.dbp, 0, 
+                            &key, &record, config.overwrite?0:DB_NOOVERWRITE);
+                }
                 PROFILE_STOP(PROF_INSERT, i);
+
                 VERBOSE2(("inserting into backend %d (berkeley): status %d",
                         i, (int)config.retval[i]));
                 break;
@@ -964,17 +1038,37 @@ my_execute_insert(char *line)
                 record.size=data_size;
                 record.data=data_size ? data : 0;
 
-                config.retval[i]=ham_insert(config.hamdb, 0,
+                if (config.test_cursors) {
+                    ham_status_t st;
+
+                    /* overwrite: do a normal insert; if it fails, use 
+                     * replace (i do this to test ham_cursor_replace(); 
+                     * it would be faster to use ham_cursor_insert with 
+                     * flag HAM_OVERWRITE, though) */
+                    st=ham_cursor_insert(ham_cursors[0], &key, &record, 0);
+                    if (config.overwrite && st==HAM_DUPLICATE_KEY) {
+                        st=ham_cursor_find(ham_cursors[0], &key, 0); 
+                        if (st==0)
+                            st=ham_cursor_replace(ham_cursors[0], &record, 0);
+                    }
+                    config.retval[i]=st;
+                }
+                else {
+                    config.retval[i]=ham_insert(config.hamdb, 0,
                         &key, &record, 
                         config.overwrite?HAM_OVERWRITE:0);
-                g_total_insert+=record.size;
+                }
                 PROFILE_STOP(PROF_INSERT, i);
+                g_total_insert+=record.size;
                 VERBOSE2(("inserting into backend %d (hamster): status %d", 
                         i, (ham_status_t)config.retval[i]));
                 break;
             }
         }
     }
+
+    if (config.test_cursors)
+        (void)my_compare_cursors(ham_cursors[0], bdb_cursors[0]);
     
     if (data_size)
         free(data);
@@ -1039,7 +1133,16 @@ my_execute_erase(char *line)
                     key.data=keytok;
                 }
 
-                config.retval[i]=config.dbp->del(config.dbp, 0, &key, 0);
+                if (config.test_cursors) {
+                    config.retval[i]=bdb_cursors[0]->c_get(bdb_cursors[0], 
+                            &key, 0, 0); 
+                    if (config.retval[i]==0)
+                        config.retval[i]=bdb_cursors[0]->c_del(bdb_cursors[0], 
+                                0);
+                }
+                else {
+                    config.retval[i]=config.dbp->del(config.dbp, 0, &key, 0);
+                }
                 PROFILE_STOP(PROF_ERASE, i);
                 VERBOSE2(("erasing from backend %d (berkeley): status %d",
                         i, (int)config.retval[i]));
@@ -1064,7 +1167,14 @@ my_execute_erase(char *line)
                     key.data=keytok;
                 }
 
-                config.retval[i]=ham_erase(config.hamdb, 0, &key, 0);
+                if (config.test_cursors) {
+                    config.retval[i]=ham_cursor_find(ham_cursors[0], &key, 0); 
+                    if (config.retval[i]==0)
+                        config.retval[i]=ham_cursor_erase(ham_cursors[0], 0); 
+                }
+                else {
+                    config.retval[i]=ham_erase(config.hamdb, 0, &key, 0);
+                }
                 PROFILE_STOP(PROF_ERASE, i);
                 VERBOSE2(("erasing from backend %d (hamster): status %d", 
                         i, (ham_status_t)config.retval[i]));
@@ -1072,6 +1182,9 @@ my_execute_erase(char *line)
             }
         }
     }
+
+    if (config.test_cursors)
+        (void)my_compare_cursors(ham_cursors[0], bdb_cursors[0]);
 
     /*
      * compare the two return values
@@ -1210,14 +1323,13 @@ my_execute_fullcheck(char *line)
 static ham_bool_t
 my_execute_close(void)
 {
-    int i;
+    int i, ret;
     ham_status_t st;
 
     /* 
      * dump
      */
     if (config.dump>=1) {
-        ham_status_t st=0;
         if (config.backend[0]==BACKEND_HAMSTER ||
             config.backend[1]==BACKEND_HAMSTER)
             ham_assert((st=ham_dump(config.hamdb, 0, my_dump_func))==0, (0));

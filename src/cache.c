@@ -54,7 +54,7 @@ my_check_totallist(ham_cache_t *cache)
 #endif
 
 static ham_bool_t
-my_purge(ham_cache_t *cache, ham_txn_t *txn)
+my_purge(ham_cache_t *cache)
 {
     ham_page_t *page;
     ham_db_t *db=cache_get_owner(cache);
@@ -81,7 +81,7 @@ my_purge(ham_cache_t *cache, ham_txn_t *txn)
         cache_get_bucket(cache, hash)=page_list_remove(cache_get_bucket(cache, 
                 hash), PAGE_LIST_BUCKET, page);
     }
-    (void)db_write_page_and_delete(cache_get_owner(cache), txn, page, 0);
+    (void)db_write_page_and_delete(cache_get_owner(cache), page, 0);
     /*ham_trace("cache purged one page", 0);*/
 
 #if HAM_DEBUG
@@ -203,7 +203,7 @@ cache_get(ham_cache_t *cache, ham_offset_t address)
 }
 
 ham_status_t 
-cache_put(ham_cache_t *cache, ham_txn_t *txn, ham_page_t *page)
+cache_put(ham_cache_t *cache, ham_page_t *page)
 {
     ham_size_t hash=(ham_size_t)my_calc_hash(cache, page_get_self(page));
     ham_db_t *db=cache_get_owner(cache);
@@ -281,7 +281,7 @@ cache_put(ham_cache_t *cache, ham_txn_t *txn, ham_page_t *page)
                     "size %u", cache_get_usedsize(cache), 
                     cache_get_cachesize(cache));
                     */
-            if (!my_purge(cache, txn))
+            if (!my_purge(cache))
                 break;
         }
     }
@@ -318,7 +318,7 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page)
 }
 
 ham_status_t
-cache_move_to_garbage(ham_cache_t *cache, ham_txn_t *txn, ham_page_t *page)
+cache_move_to_garbage(ham_cache_t *cache, ham_page_t *page)
 {
     ham_size_t hash=(ham_size_t)my_calc_hash(cache, page_get_self(page));
 
@@ -352,7 +352,7 @@ cache_move_to_garbage(ham_cache_t *cache, ham_txn_t *txn, ham_page_t *page)
             ham_trace(("cache limits overstepped - used size %u, cache "
                     "size %u", cache_get_usedsize(cache), 
                     cache_get_cachesize(cache)));
-            if (!my_purge(cache, txn))
+            if (!my_purge(cache))
                 break;
         }
     }
@@ -400,7 +400,7 @@ cache_flush_and_delete(ham_cache_t *cache, ham_u32_t flags)
     my_check_totallist(cache);
 #endif
 
-        st=db_write_page_and_delete(db, 0, head, flags);
+        st=db_write_page_and_delete(db, head, flags);
         if (st) 
             ham_log(("failed to flush page (%d) - ignoring error...", st));
 

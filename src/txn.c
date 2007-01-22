@@ -11,8 +11,6 @@
 #include "freelist.h"
 #include "mem.h"
 
-static ham_bool_t open=0;
-
 ham_status_t
 txn_add_page(ham_txn_t *txn, ham_page_t *page)
 {
@@ -76,8 +74,7 @@ ham_txn_begin(ham_txn_t *txn, ham_db_t *db)
 {
     memset(txn, 0, sizeof(*txn));
     txn_set_db(txn, db);
-    ham_assert(open==0, ("more than 1 txn is opened"));
-    open=1;
+    db_set_txn(db, txn);
     return (0);
 }
 
@@ -87,6 +84,8 @@ ham_txn_commit(ham_txn_t *txn)
     ham_status_t st;
     ham_page_t *head, *next;
     ham_db_t *db=txn_get_db(txn);
+
+    db_set_txn(db, 0);
 
     /*
      * flush the pages
@@ -122,7 +121,7 @@ ham_txn_commit(ham_txn_t *txn)
                     st=0;
                 }
 
-                st=cache_move_to_garbage(db_get_cache(db), 0, head);
+                st=cache_move_to_garbage(db_get_cache(db), head);
                 if (st) {
                     ham_trace(("cache_move_to_garbage failed with status 0x%x", 
                             st));
@@ -134,7 +133,7 @@ ham_txn_commit(ham_txn_t *txn)
         }
 
         /* flush the page */
-        st=db_flush_page(db, 0, head, 0);
+        st=db_flush_page(db, head, 0);
         if (st) {
             ham_trace(("commit failed with status 0x%x", st));
             txn_set_pagelist(txn, head);
@@ -148,9 +147,7 @@ commit_next:
     }
 
     txn_set_pagelist(txn, 0);
-    db_set_txn(db, 0);
 
-    open=0;
     return (0);
 }
 
@@ -158,6 +155,8 @@ ham_status_t
 ham_txn_abort(ham_txn_t *txn)
 {
     ham_page_t *head, *next;
+
+    db_set_txn(txn_get_db(txn), 0);
 
     /*
      * delete all modified pages
@@ -189,7 +188,6 @@ ham_txn_abort(ham_txn_t *txn)
 
     txn_set_pagelist(txn, 0);
 
-    open=0;
     return (0);
 }
 

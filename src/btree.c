@@ -16,7 +16,7 @@
 #define offsetof(type, member) ((size_t) &((type *)0)->member)
 
 ham_status_t 
-btree_get_slot(ham_db_t *db, ham_txn_t *txn, ham_page_t *page, 
+btree_get_slot(ham_db_t *db, ham_page_t *page, 
         ham_key_t *key, ham_s32_t *slot)
 {
     int cmp;
@@ -33,7 +33,7 @@ btree_get_slot(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
             ("node is empty"));
 
     if (r==0) {
-        cmp=key_compare_pub_to_int(txn, page, key, 0);
+        cmp=key_compare_pub_to_int(page, key, 0);
         if (db_get_error(db))
             return (db_get_error(db));
         *slot=cmp<0 ? -1 : 0;
@@ -51,7 +51,7 @@ btree_get_slot(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
         }
         
         /* compare it against the key */
-        cmp=key_compare_pub_to_int(txn, page, key, i);
+        cmp=key_compare_pub_to_int(page, key, i);
         if (db_get_error(db))
             return (db_get_error(db));
 
@@ -145,7 +145,7 @@ my_fun_create(ham_btree_t *be, ham_u32_t flags)
     /*
      * allocate a new root page
      */
-    root=db_alloc_page(db, PAGE_TYPE_B_ROOT, 0, 0);
+    root=db_alloc_page(db, PAGE_TYPE_B_ROOT, 0);
     if (!root)
         return (db_get_error(db));
     memset(page_get_payload(root), 0, sizeof(btree_node_t));
@@ -235,7 +235,7 @@ btree_create(ham_btree_t *btree, ham_db_t *db, ham_u32_t flags)
 }
 
 ham_page_t *
-btree_traverse_tree(ham_db_t *db, ham_txn_t *txn, ham_page_t *page, 
+btree_traverse_tree(ham_db_t *db, ham_page_t *page, 
         ham_key_t *key, ham_s32_t *idxptr)
 {
     ham_status_t st;
@@ -250,7 +250,7 @@ btree_traverse_tree(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
     ham_assert(btree_node_get_count(node)>0, (0));
     ham_assert(btree_node_get_ptr_left(node)!=0, (0));
 
-    st=btree_get_slot(db, txn, page, key, &slot);
+    st=btree_get_slot(db, page, key, &slot);
     if (st)
         return (0);
 
@@ -258,19 +258,18 @@ btree_traverse_tree(ham_db_t *db, ham_txn_t *txn, ham_page_t *page,
         *idxptr=slot;
 
     if (slot==-1)
-        return (db_fetch_page(db, txn, btree_node_get_ptr_left(node), 0));
+        return (db_fetch_page(db, btree_node_get_ptr_left(node), 0));
     else {
         bte=btree_node_get_key(db, node, slot);
         ham_assert(key_get_flags(bte)==0 || 
                 key_get_flags(bte)==KEY_IS_EXTENDED,
                 ("invalid key flags 0x%x", key_get_flags(bte)));
-        return (db_fetch_page(db, txn, key_get_ptr(bte), 0));
+        return (db_fetch_page(db, key_get_ptr(bte), 0));
     }
 }
 
 ham_s32_t 
-btree_node_search_by_key(ham_db_t *db, ham_txn_t *txn, 
-        ham_page_t *page, ham_key_t *key)
+btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key)
 {
     int cmp;
     ham_size_t i;
@@ -279,7 +278,7 @@ btree_node_search_by_key(ham_db_t *db, ham_txn_t *txn,
     db_set_error(db, 0);
 
     for (i=0; i<btree_node_get_count(node); i++) {
-        cmp=key_compare_int_to_pub(txn, page, i, key);
+        cmp=key_compare_int_to_pub(page, i, key);
         if (db_get_error(db))
             return (-1);
         if (cmp==0)
