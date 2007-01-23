@@ -30,11 +30,11 @@ copy_db(ham_db_t *source, ham_db_t *dest)
 {
     ham_cursor_t *c;    /* hamsterdb cursor object */
     ham_status_t st;
-    ham_key_t hkey;
-    ham_record_t hrec;
+    ham_key_t key;
+    ham_record_t rec;
 
-    memset(&hkey, 0, sizeof(hkey));
-    memset(&hrec, 0, sizeof(hrec));
+    memset(&key, 0, sizeof(key));
+    memset(&rec, 0, sizeof(rec));
 
     /* create a new cursor */
     st=ham_cursor_create(source, 0, 0, &c); 
@@ -42,13 +42,13 @@ copy_db(ham_db_t *source, ham_db_t *dest)
         error("ham_cursor_create", st);
 
     /* get a cursor to the source database */
-    st=ham_cursor_move(c, &hkey, &hrec, HAM_CURSOR_FIRST);
+    st=ham_cursor_move(c, &key, &rec, HAM_CURSOR_FIRST);
     if (st)
         error("ham_cursor_move", st);
 
     do {
         /* insert this element into the new database */
-        st=ham_insert(dest, 0, &hkey, &hrec, 0);
+        st=ham_insert(dest, 0, &key, &rec, 0);
         if (st)
             error("ham_insert", st);
 
@@ -57,10 +57,10 @@ copy_db(ham_db_t *source, ham_db_t *dest)
 
         /* fetch the next item, and repeat till we've reached the end
          * of the database */
-        memset(&hkey, 0, sizeof(hkey));
-        memset(&hrec, 0, sizeof(hrec));
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
 
-        st=ham_cursor_move(c, &hkey, &hrec, HAM_CURSOR_NEXT);
+        st=ham_cursor_move(c, &key, &rec, HAM_CURSOR_NEXT);
         if (st && st!=HAM_CURSOR_IS_NIL)
             error("ham_cursor_move", st);
 
