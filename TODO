@@ -80,21 +80,32 @@ x ham_flush sollte einen (ungenutzen) flags-parameter bekommen
 
 x samples umbenennen: aus simple wird db1.c 
 
+o neues sample db2 kopiert eine datenbank in eine andere mit einem cursor
+    x code schreiben
+    o testen
+        o mit db1 eine datenbank erstellen ==> beim open gibt's nen fehler:
+            hamsterdb.c[336]: invalid file type - test.db is not a hamster-db
+            ham_open() returned error -9: Invalid database file header
+            die datenbank scheint komplett leer zu sein
+        o wenn man ham_create macht und die datei schon existiert, wird sie 
+            nicht überschrieben, sondern ein unbekannter fehler wird erzeugt:
+            hamsterdb.c[490]: os_open of xx failed with status 17 
+                    (Unknown error)
+            ham_create() returned error 17: Unknown error
+            o was sollte das default-behaviour sein - überschreiben oder nicht?
+            o fehler 17 ist an dieser stelle ganz falsch...
+    o einchecken
+
 o default-cachesize auf 256kb ausbauen? das ist auch die default-grösse bei 
     berkeleydb (dann auch die cache-hashtable vergrössern)
-
-o in-memory-db: finden wir ne möglichkeit, normale datenbanken in 
-    in-memory zu importieren und umgekehrt wieder zu exportieren? 
-    das wäre genial. müsste aber nicht in die API, sondern einfach 
-    ein sample: "append db1 to db2" (db2.c)
-    --> geht mit cursors 
-        cursor from=db1.begin()
-        while (from)
-            db2.append(from)
-            from.next()
+    erst nochmal bei berkeleydb nachschauen...
 
 o siehe aufzeichnungen - noch ein paar änderungen im db-format für
     environments und duplicate keys...
+
+o alle copyright-strings mit 2007 updaten!
+
+o db.c: zeile 1413 hat viel auskommentiert. reinnehmen und nochmal testen!
 
 o nächsten release machen!
     o release-regeln ändern: vor einem release auch die tests 2/3/4 

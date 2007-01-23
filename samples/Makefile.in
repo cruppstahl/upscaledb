@@ -36,7 +36,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-noinst_PROGRAMS = db1$(EXEEXT)
+noinst_PROGRAMS = db1$(EXEEXT) db2$(EXEEXT)
 subdir = samples
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -50,6 +50,9 @@ PROGRAMS = $(noinst_PROGRAMS)
 am_db1_OBJECTS = db1.$(OBJEXT)
 db1_OBJECTS = $(am_db1_OBJECTS)
 db1_DEPENDENCIES = $(top_builddir)/src/libhamsterdb.la
+am_db2_OBJECTS = db2.$(OBJEXT)
+db2_OBJECTS = $(am_db2_OBJECTS)
+db2_DEPENDENCIES = $(top_builddir)/src/libhamsterdb.la
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build/scripts/depcomp
 am__depfiles_maybe = depfiles
@@ -61,8 +64,8 @@ LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(db1_SOURCES)
-DIST_SOURCES = $(db1_SOURCES)
+SOURCES = $(db1_SOURCES) $(db2_SOURCES)
+DIST_SOURCES = $(db1_SOURCES) $(db2_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -181,7 +184,9 @@ target_alias = @target_alias@
 INCLUDES = -I$(top_builddir)/include
 db1_SOURCES = db1.c
 db1_LDADD = $(top_builddir)/src/libhamsterdb.la
-noinst_BIN = db1
+db2_SOURCES = db2.c
+db2_LDADD = $(top_builddir)/src/libhamsterdb.la
+noinst_BIN = db1 db2
 all: all-am
 
 .SUFFIXES:
@@ -225,6 +230,9 @@ clean-noinstPROGRAMS:
 db1$(EXEEXT): $(db1_OBJECTS) $(db1_DEPENDENCIES) 
 	@rm -f db1$(EXEEXT)
 	$(LINK) $(db1_LDFLAGS) $(db1_OBJECTS) $(db1_LDADD) $(LIBS)
+db2$(EXEEXT): $(db2_OBJECTS) $(db2_DEPENDENCIES) 
+	@rm -f db2$(EXEEXT)
+	$(LINK) $(db2_LDFLAGS) $(db2_OBJECTS) $(db2_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -233,6 +241,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/db1.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/db2.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \

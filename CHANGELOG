@@ -1,3 +1,7 @@
+Jan 23, 2007 - chris
+o added a new sample db2.c, which copies an existing database to another
+    database using a cursor.
+
 Jan 21, 2007 - chris
 o the cursor implementation is finished and seems to work; testing is not 
     yet complete. 

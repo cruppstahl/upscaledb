@@ -108,8 +108,8 @@ struct ham_bt_cursor_t
  * cursor is neither coupled nor uncoupled
  */
 #define bt_cursor_is_nil(cu)                               \
-                ~(((cu)->_flags&BT_CURSOR_FLAG_COUPLED) || \
-                  ((cu)->_flags&BT_CURSOR_FLAG_UNCOUPLED))
+                (!((cu)->_flags&BT_CURSOR_FLAG_COUPLED) && \
+                 !((cu)->_flags&BT_CURSOR_FLAG_UNCOUPLED))
 
 /**
  * get the page we're pointing to - if the cursor is coupled
