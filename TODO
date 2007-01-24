@@ -28,7 +28,7 @@ o logo!!
 
 x db.c: zeile 1413 hat viel auskommentiert. reinnehmen und nochmal testen!
 
-o alle copyright-strings mit 2007 updaten!
+x alle copyright-strings mit 2007 updaten!
 
 o automake: mit -Wall compilieren!
     dnl Only use -Wall if we have gcc

@@ -31,6 +31,15 @@ AC_TYPE_OFF_T
 AC_FUNC_MMAP
 
 dnl
+dnl use -Wall on platforms with gcc
+dnl
+if test "x$GCC" = "xyes"; then
+    if test -z "`echo "$CFLAGS" | grep "\-Wall" 2> /dev/null`" ; then
+        CFLAGS="$CFLAGS -Wall"
+    fi
+fi
+
+dnl
 dnl big endian or little endian?
 dnl 
 AC_C_BIGENDIAN(
