@@ -1,6 +1,7 @@
 Jan 24, 2007 - chris
 o default behaviour for ham_create changed; already existing files are now
     overwritten
+o now uses -Wall on platforms with gcc
 
 Jan 23, 2007 - chris
 o added a new sample db2.c, which copies an existing database to another
