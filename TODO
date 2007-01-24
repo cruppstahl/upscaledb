@@ -30,7 +30,7 @@ x db.c: zeile 1413 hat viel auskommentiert. reinnehmen und nochmal testen!
 
 x alle copyright-strings mit 2007 updaten!
 
-o automake: mit -Wall compilieren!
+x automake: mit -Wall compilieren!
     dnl Only use -Wall if we have gcc
     if test "x$GCC" = "xyes"; then
         if test -z "`echo "$CFLAGS" | grep "\-Wall" 2> /dev/null`" ; then
@@ -38,9 +38,8 @@ o automake: mit -Wall compilieren!
         fi
     fi
 
-o default-cachesize auf 256kb ausbauen? das ist auch die default-grösse bei 
+o default-cachesize auf 256kb ausbauen; das ist auch die default-grösse bei 
     berkeleydb (dann auch die cache-hashtable vergrössern)
-    erst nochmal bei berkeleydb nachschauen...
 
 o vorsicht - in /usr/local/include liegt eine Makefile.am aus der hamsterdb-
     installation. nur ein versehen, oder wird sie bei jedem 'make install'

@@ -60,9 +60,9 @@
 #define HAM_HAS_HASHDB             1
 
 /*
- * the default cache size is 128kb
+ * the default cache size is 256
  */
-#define HAM_DEFAULT_CACHESIZE      (1024*128)
+#define HAM_DEFAULT_CACHESIZE      (1024*256)
 
 
 #endif /* CONFIG_H__ */
