@@ -801,7 +801,6 @@ my_execute_create(char *line)
                 st=ham_create_ex(config.hamdb, FILENAME_HAM, f, 0664, 
                         config.pagesize, config.keysize, config.cachesize);
                 ham_assert(st==0, (0));
-                ham_assert(config.hamdb->_backend!=0, (0));
                 if (config.flags & NUMERIC_KEY)
                     ham_set_compare_func(config.hamdb, my_compare_keys);
                 PROFILE_STOP(PROF_OTHER, i);
@@ -1324,16 +1323,18 @@ my_execute_fullcheck(char *line)
 static ham_bool_t
 my_execute_close(void)
 {
-    int i, ret;
-    ham_status_t st;
+    int i;
+    ham_status_t st=0;
 
     /* 
      * dump
      */
     if (config.dump>=1) {
         if (config.backend[0]==BACKEND_HAMSTER ||
-            config.backend[1]==BACKEND_HAMSTER)
-            ham_assert((st=ham_dump(config.hamdb, 0, my_dump_func))==0, (0));
+            config.backend[1]==BACKEND_HAMSTER) {
+            st=ham_dump(config.hamdb, 0, my_dump_func);
+            ham_assert(st==0, (0));
+        }
         if (st)
             ham_trace(("hamster dump failed with status %d", st));
     }

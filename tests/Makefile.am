@@ -15,12 +15,9 @@ else
     AM_CFLAGS += -DHAM_LITTLE_ENDIAN
 endif
 
-# debug or release mode? 
-if DEBUG
-    AM_CFLAGS += -DDEBUG -DHAM_DEBUG
-else
-    AM_CFLAGS += -DHAM_RELEASE 
-endif
+# debug or release mode? - the test program is always compiled in 
+# debug mode, because it contains a lot of asserts and debug output
+AM_CFLAGS += -DDEBUG -DHAM_DEBUG
 
 # use profiling?
 if PROFILE
