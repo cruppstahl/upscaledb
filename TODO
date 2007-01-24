@@ -22,12 +22,39 @@ x 220.tst: schlägt fehl im release-build!
 -----------------------------------------------------
 -----------------------------------------------------
 
-x cache: bucketgrösse in ham_config.h verschieben, eine #define-konstante
-    draus machen
+o logo!!
 
-x default prefix comparison funktion hinzufügen (schon vorhanden?)
+-----------------------------------------------------
 
-x prefix comparison testen
+x db.c: zeile 1413 hat viel auskommentiert. reinnehmen und nochmal testen!
+
+o alle copyright-strings mit 2007 updaten!
+
+o automake: mit -Wall compilieren!
+    dnl Only use -Wall if we have gcc
+    if test "x$GCC" = "xyes"; then
+        if test -z "`echo "$CFLAGS" | grep "\-Wall" 2> /dev/null`" ; then
+            CFLAGS="$CFLAGS -Wall"
+        fi
+    fi
+
+o default-cachesize auf 256kb ausbauen? das ist auch die default-grösse bei 
+    berkeleydb (dann auch die cache-hashtable vergrössern)
+    erst nochmal bei berkeleydb nachschauen...
+
+o vorsicht - in /usr/local/include liegt eine Makefile.am aus der hamsterdb-
+    installation. nur ein versehen, oder wird sie bei jedem 'make install'
+    reinkopiert? ausprobieren.
+
+o siehe aufzeichnungen - noch ein paar änderungen im db-format für
+    environments und duplicate keys...
+
+o nächsten release machen!
+    o release-regeln ändern: vor einem release auch die tests 2/3/4 
+        machen! (auch wenn's lang dauert...)??????
+        ne, das dauert ja ne woche!! zumindest die tests in 2 ausdünnen...
+    o monster.sh erweitern für --test-cursors=1
+    o monster.sh ausführen...
 
 o endianness testen
 
@@ -38,81 +65,6 @@ o port to ms windows
     o define HAM_EXPORT DECLSPEC _dllexport for DLLs und .so
     o kein makefile, aber einfache batch-files zum compilieren
     o monster.sh!
-
-o automake: mit -Wall compilieren!
-    dnl Only use -Wall if we have gcc
-    if test "x$GCC" = "xyes"; then
-        if test -z "`echo "$CFLAGS" | grep "\-Wall" 2> /dev/null`" ; then
-            CFLAGS="$CFLAGS -Wall"
-        fi
-    fi
-
-o vorsicht - in /usr/local/include liegt eine Makefile.am aus der hamsterdb-
-    installation. nur ein versehen, oder wird sie bei jedem 'make install'
-    reinkopiert? ausprobieren.
-
------------------------------------------------------
------------------------------------------------------
-
-o logo!!
-
------------------------------------------------------
-
-x siehe aufzeichnung: es kann nur eine transaktion geben - also eine 
-    globale txn (db_set_txn, db_get_txn), und dann brauchen wir 
-    den txn-pointer nirgendwo mehr als parameter übergeben, sondern
-    nur noch die db
-
-x cursors 
-    x inmemory testen
-    x performance bei insert und erase?
-    x mit valgrind testen 
-      x cursors, overwrite, inmemory
-      x cursors, overwrite, reopen
-      x cursors, inmemory
-      x cursors, reopen
-      x cursors, overwrite, extkeys, reopen
-      x cursors, overwrite, extkeys, inmemory
-      x cursors, extkeys, inmemory
-      x cursors, extkeys, reopen
-
-x ham_flush sollte einen (ungenutzen) flags-parameter bekommen
-
-x samples umbenennen: aus simple wird db1.c 
-
-o neues sample db2 kopiert eine datenbank in eine andere mit einem cursor
-    x code schreiben
-    o testen
-        o mit db1 eine datenbank erstellen ==> beim open gibt's nen fehler:
-            hamsterdb.c[336]: invalid file type - test.db is not a hamster-db
-            ham_open() returned error -9: Invalid database file header
-            die datenbank scheint komplett leer zu sein
-        o wenn man ham_create macht und die datei schon existiert, wird sie 
-            nicht überschrieben, sondern ein unbekannter fehler wird erzeugt:
-            hamsterdb.c[490]: os_open of xx failed with status 17 
-                    (Unknown error)
-            ham_create() returned error 17: Unknown error
-            o was sollte das default-behaviour sein - überschreiben oder nicht?
-            o fehler 17 ist an dieser stelle ganz falsch...
-    o einchecken
-
-o default-cachesize auf 256kb ausbauen? das ist auch die default-grösse bei 
-    berkeleydb (dann auch die cache-hashtable vergrössern)
-    erst nochmal bei berkeleydb nachschauen...
-
-o siehe aufzeichnungen - noch ein paar änderungen im db-format für
-    environments und duplicate keys...
-
-o alle copyright-strings mit 2007 updaten!
-
-o db.c: zeile 1413 hat viel auskommentiert. reinnehmen und nochmal testen!
-
-o nächsten release machen!
-    o release-regeln ändern: vor einem release auch die tests 2/3/4 
-        machen! (auch wenn's lang dauert...)??????
-        ne, das dauert ja ne woche!! zumindest die tests in 2 ausdünnen...
-    o monster.sh erweitern für --test-cursors=1
-    o monster.sh ausführen...
 
 -----------------------------------------------------
 -----------------------------------------------------

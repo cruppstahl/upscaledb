@@ -1,6 +1,7 @@
 /**
- * Copyright (C) 2005, 2006 Christoph Rupp (chris@crupp.de)
- * see file LICENSE for licence information
+ * Copyright (C) 2005-2007 Christoph Rupp (chris@crupp.de).
+ * All rights reserved. See file LICENSE for licence and copyright
+ * information.
  *
  */
 

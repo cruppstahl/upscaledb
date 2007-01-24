@@ -1,6 +1,7 @@
 /**
- * Copyright (C) 2005, 2006 Christoph Rupp (chris@crupp.de)
- * see file LICENSE for license and copyright information
+ * Copyright (C) 2005-2007 Christoph Rupp (chris@crupp.de).
+ * All rights reserved. See file LICENSE for license and copyright 
+ * information.
  *
  */
 
@@ -1411,6 +1412,7 @@ my_test_cursors(void)
 
     /*
      * check 'first' element
+     */
     for (i=0; i<MAX_CURSORS; i++) {
         if (ham_cursors[i]) {
             memset(&hkey, 0, sizeof(hkey));
@@ -1439,7 +1441,6 @@ my_test_cursors(void)
         config.retval[ham] =st;
         ham_assert(my_compare_return(), ("return values are different"));
     }
-     */
 
     /*
      * check 'last' element

@@ -2,7 +2,9 @@
 #
 # hamsterdb test script
 #
-# (c) Christoph Rupp, 2006; chris@crupp.de
+# Copyright (C) 2005-2007, Christoph Rupp (chris@crupp.de). 
+# All rights reserved. See file LICENSE for license and copyright 
+# information.
 #
 
 total=0

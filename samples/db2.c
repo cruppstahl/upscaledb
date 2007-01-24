@@ -1,6 +1,7 @@
 /**
- * Copyright (C) 2005, 2006 Christoph Rupp (chris@crupp.de)
- * see file LICENSE for license and copyright information
+ * Copyright (C) 2005-2007 Christoph Rupp (chris@crupp.de).
+ * All rights reserved. See file LICENSE for license and copyright 
+ * information.
  *
  * this example copies one database into another. this works also for 
  * copying in-memory-databases to on-disk-databases and vice versa.
