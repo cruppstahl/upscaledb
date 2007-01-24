@@ -195,14 +195,17 @@ os_truncate(ham_fd_t fd, ham_offset_t newsize)
 ham_status_t
 os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 {
-    int osflags=O_CREAT|O_RDWR|O_EXCL;
+    int osflags=O_CREAT|O_RDWR;
 
     if (flags&HAM_READ_ONLY)
         osflags|=O_RDONLY;
 
     *fd=open(filename, osflags, mode);
-    if (*fd<0) 
-        return (errno);
+    if (*fd<0) {
+        ham_log(("os_create of %s failed with status %u (%s)", filename,
+                errno, strerror(errno)));
+        return (HAM_IO_ERROR);
+    }
 
     /*
      * enable O_LARGEFILE support
@@ -225,8 +228,11 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
         osflags|=O_EXCL;
 
     *fd=open(filename, osflags);
-    if (*fd<0) 
-        return (errno);
+    if (*fd<0) {
+        ham_log(("os_create of %s failed with status %u (%s)", filename,
+                errno, strerror(errno)));
+        return (HAM_IO_ERROR);
+    }
 
     /*
      * enable O_LARGEFILE support

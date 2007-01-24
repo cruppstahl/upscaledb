@@ -266,8 +266,6 @@ ham_open_ex(ham_db_t *db, const char *filename,
     /* open the file */
     st=os_open(filename, flags, &fd);
     if (st) {
-        ham_log(("os_open of %s failed with status %d (%s)", filename,
-                st, ham_strerror(st)));
         db_set_error(db, st);
         return (st);
     }
@@ -486,8 +484,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
         /* create the file */
         st=os_create(filename, flags, mode, &fd);
         if (st) {
-            ham_log(("os_create of %s failed with status %d (%s)", filename,
-                    st, ham_strerror(st)));
             db_set_error(db, st);
             return (st);
         }
