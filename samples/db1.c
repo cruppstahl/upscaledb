@@ -6,7 +6,6 @@
  * looks them up and erases them
  */
 
-#include <unistd.h> /* for unlink */
 #include <stdio.h>
 #include <string.h>
 #include <ham/hamsterdb.h>
@@ -19,11 +18,6 @@ main(int argc, char **argv)
     int i;
     ham_status_t st;    /* status variable */
     ham_db_t *db;       /* hamsterdb database object */
-
-    /*
-     * before we start: delete "test.db" 
-     */
-    (void)unlink("test.db");
 
     /*
      * first step: create a new hamsterdb object 
