@@ -43,7 +43,11 @@ copy_db(ham_db_t *source, ham_db_t *dest)
 
     /* get a cursor to the source database */
     st=ham_cursor_move(c, &key, &rec, HAM_CURSOR_FIRST);
-    if (st)
+    if (st==HAM_KEY_NOT_FOUND) {
+        printf("database is empty!\n");
+        exit(-1);
+    }
+    else if (st)
         error("ham_cursor_move", st);
 
     do {
