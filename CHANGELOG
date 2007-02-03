@@ -2,6 +2,9 @@
 Feb 03, 2007 - chris
 o all write-functions return an error if they're called but the 
     database is in read-only mode
+o added a new sample db3.c, which reads words from stdin and prints them 
+    in sorted order
+o removed the flag HAM_OPEN_CREATE; it was broken anyway
 
 Feb 02, 2007 - chris
 o database cursors are now fully implemented and tested

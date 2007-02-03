@@ -166,7 +166,7 @@ ham_strerror(ham_status_t result)
         case HAM_INTERNAL_ERROR:
             return ("Internal error");
         case HAM_DB_READ_ONLY:
-            return ("Database opened read only");
+            return ("Database opened in read-only mode");
         case HAM_BLOB_NOT_FOUND:
             return ("Data blob not found");
         case HAM_PREFIX_REQUEST_FULLKEY:
@@ -175,6 +175,8 @@ ham_strerror(ham_status_t result)
             return ("System I/O error");
         case HAM_CACHE_FULL:
             return ("Database cache is full");
+        case HAM_FILE_NOT_FOUND:
+            return ("File not found");
         case HAM_CURSOR_IS_NIL:
             return ("Cursor points to NIL");
         default:

@@ -221,8 +221,6 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 {
     int osflags=0;
 
-    if (flags&HAM_OPEN_CREATE)
-        osflags|=O_CREAT;
     if (flags&HAM_READ_ONLY)
         osflags|=O_RDONLY;
     else
@@ -234,7 +232,7 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
     if (*fd<0) {
         ham_log(("os_create of %s failed with status %u (%s)", filename,
                 errno, strerror(errno)));
-        return (HAM_IO_ERROR);
+        return (errno==ENOENT ? HAM_FILE_NOT_FOUND : HAM_IO_ERROR);
     }
 
     /*

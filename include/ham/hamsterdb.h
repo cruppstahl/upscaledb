@@ -110,6 +110,7 @@ ham_strerror(ham_status_t result);
 #define HAM_IO_ERROR                 (-18)
 #define HAM_CACHE_FULL               (-19)
 #define HAM_NOT_IMPLEMENTED          (-20)
+#define HAM_FILE_NOT_FOUND           (-21)
 #define HAM_CURSOR_IS_NIL           (-100)
 
 /**
@@ -171,14 +172,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
  * The flag is disabled by default.
  */
 #define HAM_WRITE_THROUGH            0x00000001
-
-/**
- * If ham_open() fails, if a file with the given name does not
- * exist. If you set the flag HAM_OPEN_CREATE, the file will
- * be created if it does not exist.
- * The flag is disabled by default.
- */
-#define HAM_OPEN_CREATE              0x00000002
 
 /**
  * Open the file for reading only

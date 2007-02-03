@@ -164,8 +164,6 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
     DWORD osflags=FILE_FLAG_RANDOM_ACCESS;
     DWORD dispo  =OPEN_EXISTING;
 
-    if (flags&HAM_OPEN_CREATE)
-        dispo|=OPEN_ALWAYS;
     if (flags&HAM_READ_ONLY)
         osflags|=FILE_ATTRIBUTE_READONLY;
 
@@ -174,7 +172,7 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
     if (*fd==0) {
         st=(ham_status_t)GetLastError();
         ham_trace(("CreateFile (open) failed with OS status %u", st));
-        return (st);
+        return (GetLastError()==ENOENT ? HAM_FILE_NOT_FOUND : HAM_IO_ERROR);
     }
 
     return (HAM_SUCCESS);

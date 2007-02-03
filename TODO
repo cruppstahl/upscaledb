@@ -57,24 +57,19 @@ x tests laufen nicht. das problem ist dass bdb-cursor die keys
 
 x O_DIRECT ausprobieren; benchmarken - bringt nix, wird langsamer
 
-o HAM_READ_ONLY: liefert fehler zurück wenn man ham_insert und ham_erase
+x HAM_READ_ONLY: liefert fehler zurück wenn man ham_insert und ham_erase
     aufruft; muss auch fehler bei den cursor-funktionen (insert, erase,
     replace) zurückgeben!
 
-o test nach ham_test umbenennen? auf alle fälle sollte er ins test-
-    repository. es ist unprofessionell, eine berkeleydb-abhängigkeit
-    im source zu haben, und ein test-programm gehört da nicht rein.
-    wer will kann dann immer noch das test-repository komplett
-    runterladen.
+x ein neues sample: use hamsterdb for sorting big amounts of data
+    x liesst eine textdatei ein
+    x jedes wort wird eingefügt, HAM_DUPLICATE_KEY wird ignoriert
+    x danach mit einem cursor sortiert ausgeben
 
-o ein neues sample: use hamsterdb for sorting big amounts of data
-    - liesst eine textdatei ein
-    - jedes wort wird eingefügt, HAM_KEY_EXISTS wird ignoriert
-    - danach mit einem cursor sortiert ausgeben
+x HAM_OPEN_CREATE
+    funktioniert derzeit nicht, rausschmeissen
 
-o HAM_OPEN_CREATE
-    funktioniert derzeit nicht, die datei wird zwar geöffnet aber nicht
-    gelesen; entweder raus oder selbst implementieren
+o ham_strerror überprüfen - ist es vollständig?
 
 o nächsten release machen!
     o release-regeln ändern: vor einem release auch die tests 2/3/4 
@@ -82,7 +77,6 @@ o nächsten release machen!
         ne, das dauert ja ne woche!! zumindest alle tests ausser 2 nehmen?
     o monster.sh erweitern für --test-cursors=1
     o monster.sh ausführen...
-    o valgrind.sh
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -171,6 +165,7 @@ o doku
         o freelist
         o cache
         o cursors
+    o header-file überarbeiten
 
 -----------------------------------------------------
 
