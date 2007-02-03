@@ -206,7 +206,7 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     bt_cursor_set_flags(c, bt_cursor_get_flags(c)&(~BT_CURSOR_FLAG_COUPLED));
 
     if (!btree_node_get_right(node))
-        return (HAM_CURSOR_IS_NIL);
+        return db_set_error(db, HAM_KEY_NOT_FOUND);
 
     page=db_fetch_page(db, btree_node_get_right(node), flags);
     if (!page)
@@ -265,11 +265,12 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     bt_cursor_set_flags(c, bt_cursor_get_flags(c)&(~BT_CURSOR_FLAG_COUPLED));
 
     if (!btree_node_get_left(node))
-        return (HAM_CURSOR_IS_NIL);
+        return db_set_error(db, HAM_KEY_NOT_FOUND);
 
     page=db_fetch_page(db, btree_node_get_left(node), flags);
     if (!page)
         return (db_get_error(db));
+    node=ham_page_get_btree_node(page);
 
     /*
      * couple this cursor to the highest key in this page
@@ -516,6 +517,7 @@ bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
     ham_db_t *db=bt_cursor_get_db(c);
     ham_txn_t txn;
     ham_bool_t local_txn=db_get_txn(db) ? HAM_FALSE : HAM_TRUE;
+    ham_u32_t oldflags;
 
     if (local_txn) {
         st=ham_txn_begin(&txn, db);
@@ -548,12 +550,20 @@ bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
     key=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
 
     /*
+     * copy the key flags, and remove all flags concerning the key size
+     */
+    oldflags=key_get_flags(key);
+    key_set_flags(key, key_get_flags(key)&(~KEY_BLOB_SIZE_TINY));
+    key_set_flags(key, key_get_flags(key)&(~KEY_BLOB_SIZE_SMALL));
+    key_set_flags(key, key_get_flags(key)&(~KEY_BLOB_SIZE_EMPTY));
+
+    /*
      * delete the record?
      */
     if (record->size==0) {
-        if (!((key_get_flags(key)&KEY_BLOB_SIZE_TINY) ||
-            (key_get_flags(key)&KEY_BLOB_SIZE_SMALL) ||
-            (key_get_flags(key)&KEY_BLOB_SIZE_EMPTY))) {
+        if (!((oldflags&KEY_BLOB_SIZE_TINY) ||
+              (oldflags&KEY_BLOB_SIZE_SMALL) ||
+              (oldflags&KEY_BLOB_SIZE_EMPTY))) {
             /* remove the cached extended key */
             if (db_get_extkey_cache(db))
                 (void)extkey_cache_remove(db_get_extkey_cache(db),
@@ -574,9 +584,9 @@ bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
          * make sure that we only call blob_replace(), if there IS a blob
          * to replace! otherwise call blob_allocate()
          */
-        if (!((key_get_flags(key)&KEY_BLOB_SIZE_TINY) ||
-            (key_get_flags(key)&KEY_BLOB_SIZE_SMALL) ||
-            (key_get_flags(key)&KEY_BLOB_SIZE_EMPTY))) {
+        if (!((oldflags&KEY_BLOB_SIZE_TINY) ||
+              (oldflags&KEY_BLOB_SIZE_SMALL) ||
+              (oldflags&KEY_BLOB_SIZE_EMPTY))) {
             /* remove the cached extended key */
             if (db_get_extkey_cache(db))
                 (void)extkey_cache_remove(db_get_extkey_cache(db),
@@ -601,9 +611,9 @@ bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
     else {
         ham_offset_t rid;
 
-        if (!((key_get_flags(key)&KEY_BLOB_SIZE_TINY) ||
-            (key_get_flags(key)&KEY_BLOB_SIZE_SMALL) ||
-            (key_get_flags(key)&KEY_BLOB_SIZE_EMPTY))) {
+        if (!((oldflags&KEY_BLOB_SIZE_TINY) ||
+              (oldflags&KEY_BLOB_SIZE_SMALL) ||
+              (oldflags&KEY_BLOB_SIZE_EMPTY))) {
             /* remove the cached extended key */
             if (db_get_extkey_cache(db))
                 (void)extkey_cache_remove(db_get_extkey_cache(db),
@@ -620,6 +630,8 @@ bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
         else {
             key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_SMALL);
         }
+
+        key_set_ptr(key, rid);
     }
 
     page_set_dirty(bt_cursor_get_coupled_page(c), 1);
@@ -831,18 +843,11 @@ bt_cursor_erase(ham_bt_cursor_t *c, ham_offset_t *rid,
     ham_status_t st;
     ham_db_t *db=bt_cursor_get_db(c);
     ham_btree_t *be=(ham_btree_t *)db_get_backend(db);
-    ham_key_t oldkey;
     ham_txn_t txn;
     ham_bool_t local_txn=db_get_txn(db) ? HAM_FALSE : HAM_TRUE;
 
     if (!be)
         return (HAM_INV_INDEX);
-
-    /*
-     * make sure that the cursor is not NIL
-     */
-    if (bt_cursor_is_nil(c))
-        return (HAM_CURSOR_IS_NIL);
 
     if (local_txn) {
         st=ham_txn_begin(&txn, db);
@@ -851,48 +856,29 @@ bt_cursor_erase(ham_bt_cursor_t *c, ham_offset_t *rid,
     }
 
     /*
-     * make a backup of the key, then move the iterator to the next key
-     * and delete the old key. 
+     * coupled cursor: uncouple it
      */
-
-    memset(&oldkey, 0, sizeof(oldkey));
-
-    if (bt_cursor_get_flags(c)&BT_CURSOR_FLAG_UNCOUPLED) {
-        if (!util_copy_key(db, bt_cursor_get_uncoupled_key(c), &oldkey)) {
-            if (local_txn)
-                (void)ham_txn_abort(&txn);
-            return (db_get_error(db));
-        }
+    if (bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED) {
+        st=bt_cursor_uncouple(c, 0);
+        if (st)
+            return (st);
     }
-    else {
-        btree_node_t *node;
-        key_t *entry;
+    else if (!(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_UNCOUPLED))
+        return (HAM_CURSOR_IS_NIL);
 
-        node=ham_page_get_btree_node(bt_cursor_get_coupled_page(c));
-        ham_assert(btree_node_is_leaf(node), 
-                ("iterator points to internal node"));
-        entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
-
-        if (!util_copy_key_int2pub(db, entry, &oldkey)) {
-            if (local_txn)
-                (void)ham_txn_abort(&txn);
-            return (db_get_error(db));
-        }
-    }
-
-    st=my_move_next(be, c, flags);
+    st=btree_erase(be, bt_cursor_get_uncoupled_key(c), rid, intflags, flags);
     if (st) {
         if (local_txn)
             (void)ham_txn_abort(&txn);
         return (st);
     }
 
-    st=btree_erase(be, &oldkey, rid, intflags, flags);
-    if (st) {
-        if (local_txn)
-            (void)ham_txn_abort(&txn);
+    /*
+     * set cursor to nil
+     */
+    st=my_set_to_nil(c);
+    if (st)
         return (st);
-    }
 
     if (local_txn)
         return (ham_txn_commit(&txn));

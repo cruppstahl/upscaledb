@@ -391,8 +391,8 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags);
 
 /**
- * erases the key from the index and positions the cursor to the
- * next key
+ * erases the key from the index; after the erase, the cursor 
+ * is invalid
  */
 extern ham_status_t
 ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);

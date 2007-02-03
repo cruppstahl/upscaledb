@@ -108,6 +108,10 @@ util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
         record->size=0;
         noblob=HAM_TRUE;
     }
+    else
+        /* set to a dummy value, so the second if-branch is 
+         * executed */
+        record->size=0xffffffff;
 
     if (noblob && record->size>0) {
         if (!(record->flags & HAM_RECORD_USER_ALLOC)) {

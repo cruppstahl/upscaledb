@@ -1,28 +1,9 @@
-
-
-
-x 220.tst: schlägt fehl im release-build!
-
-    Lese Spezifikationen von /usr/lib/gcc/x86_64-pc-linux-gnu/3.4.5/specs
-    Konfiguriert mit: /var/tmp/portage/gcc-3.4.5/work/gcc-3.4.5/configure
-    --prefix=/usr --bindir=/usr/x86_64-pc-linux-gnu/gcc-bin/3.4.5
-    --includedir=/usr/lib/gcc/x86_64-pc-linux-gnu/3.4.5/include
-    --datadir=/usr/share/gcc-data/x86_64-pc-linux-gnu/3.4.5
-    --mandir=/usr/share/gcc-data/x86_64-pc-linux-gnu/3.4.5/man
-    --infodir=/usr/share/gcc-data/x86_64-pc-linux-gnu/3.4.5/info
-    --with-gxx-include-dir=/usr/lib/gcc/x86_64-pc-linux-gnu/3.4.5/include/g++-v3
-    --host=x86_64-pc-linux-gnu --build=x86_64-pc-linux-gnu --disable-altivec
-    --enable-nls --without-included-gettext --with-system-zlib --disable-checking
-    --disable-werror --disable-libunwind-exceptions --enable-multilib
-    --disable-libgcj --enable-languages=c,c++,f77 --enable-shared
-    --enable-threads=posix --enable-__cxa_atexit --enable-clocale=gnu
-    Thread-Modell: posix
-    gcc-Version 3.4.5 (Gentoo 3.4.5, ssp-3.4.5-1.0, pie-8.7.9)
-    
------------------------------------------------------
------------------------------------------------------
-
 o logo!!
+
+o webseite
+    http://nitrosecurity.com/
+    http://www.opf3.com/Opf3/Default.aspx
+    http://www.pixelmedia.com/
 
 -----------------------------------------------------
 
@@ -31,29 +12,80 @@ x db.c: zeile 1413 hat viel auskommentiert. reinnehmen und nochmal testen!
 x alle copyright-strings mit 2007 updaten!
 
 x automake: mit -Wall compilieren!
-    dnl Only use -Wall if we have gcc
-    if test "x$GCC" = "xyes"; then
-        if test -z "`echo "$CFLAGS" | grep "\-Wall" 2> /dev/null`" ; then
-            CFLAGS="$CFLAGS -Wall"
-        fi
-    fi
 
-o default-cachesize auf 256kb ausbauen; das ist auch die default-grösse bei 
+x default-cachesize auf 256kb ausbauen; das ist auch die default-grösse bei 
     berkeleydb (dann auch die cache-hashtable vergrössern)
 
-o vorsicht - in /usr/local/include liegt eine Makefile.am aus der hamsterdb-
+x vorsicht - in /usr/local/include liegt eine Makefile.am aus der hamsterdb-
     installation. nur ein versehen, oder wird sie bei jedem 'make install'
-    reinkopiert? ausprobieren.
+    reinkopiert? ausprobieren. 
+    --> wird nicht reinkopiert
 
-o siehe aufzeichnungen - noch ein paar änderungen im db-format für
-    environments und duplicate keys...
+x bei cursor_move über die "grenzen" (also z.b. previous von erstem element)
+    nicht IS_NIL zurückgeben sondern KEY_NOT_FOUND
+
+x tests laufen nicht. das problem ist dass bdb-cursor die keys 
+    nicht sortiert durchläuft.
+    x nachfragen, wie man das ändern kann
+    x neue db installieren!
+    x vorsicht - momentan ist sehr viel gehackt und umgeschrieben...
+
+    x momentan ist alles sehr instabil - wieder zum laufen kriegen
+        x --test-cursors=0 crasht oft
+        x --test-cursors=1 passt nicht - beim erase schlägt hamster fehl
+            mit KEY_NOT_FOUND (evtl aber auch schon beim insert - 
+            rausfinden, indem der cursor-erase mit ham_erase ausgetauscht 
+            wird)
+        x my_compare_cursors ist gerade auskommentiert
+        x viele tests schlagen fehl
+        x test 220 schlägt fehl
+        x test ext_51, ext_60, ext_61 schlägt fehl
+
+    x bei erase ist der my_compare_cursor auskommentiert; problem: der bdb-
+        cursor ist NIL nach dem erase; also erst c_get(key), dann c_get(NEXT),
+        dann erase (ohne cursor). ODER (besser): auch hamster-cursor
+        nach dem erase auf NIL setzen
+
+    x Testen bei test-cursors=1:
+        Beim insert erst ham_cursor_find/ham_cursor_replace machen, wenn
+        ham_cursor_find fehlschlägt: ham_cursor_insert machen
+
+    x ./run-tests.sh 1 --test-cursors=1
+    x ./run-tests.sh 1 --test-cursors=1 --overwrite=1
+    x ./run-tests.sh 1 --test-cursors=1
+    x valgrind-tests durchlaufen lassen
+
+o O_DIRECT ausprobieren; benchmarken
+
+o HAM_READ_ONLY: liefert fehler zurück wenn man ham_insert und ham_erase
+    aufruft; muss auch fehler bei den cursor-funktionen (insert, erase,
+    replace) zurückgeben!
+
+o test nach ham_test umbenennen? auf alle fälle sollte er ins test-
+    repository. es ist unprofessionell, eine berkeleydb-abhängigkeit
+    im source zu haben, und ein test-programm gehört da nicht rein.
+    wer will kann dann immer noch das test-repository komplett
+    runterladen.
+
+o ein neues sample: use hamsterdb for sorting big amounts of data
+    - liesst eine textdatei ein
+    - jedes wort wird eingefügt, HAM_KEY_EXISTS wird ignoriert
+    - danach mit einem cursor sortiert ausgeben
+
+o HAM_OPEN_CREATE
+    funktioniert derzeit nicht, die datei wird zwar geöffnet aber nicht
+    gelesen; entweder raus oder selbst implementieren
 
 o nächsten release machen!
     o release-regeln ändern: vor einem release auch die tests 2/3/4 
         machen! (auch wenn's lang dauert...)??????
-        ne, das dauert ja ne woche!! zumindest die tests in 2 ausdünnen...
+        ne, das dauert ja ne woche!! zumindest alle tests ausser 2 nehmen?
     o monster.sh erweitern für --test-cursors=1
     o monster.sh ausführen...
+    o valgrind.sh
+
+-----------------------------------------------------
+-----------------------------------------------------
 
 o endianness testen
 
@@ -65,13 +97,24 @@ o port to ms windows
     o kein makefile, aber einfache batch-files zum compilieren
     o monster.sh!
 
+o nächsten release machen
+
+o können wir problemlos 32bit-filepointer nehmen?
+
 -----------------------------------------------------
 -----------------------------------------------------
 
-o portieren auf windows
+o 1 writer, multiple reader - wie lässt sich das machen?
+    alle ohne caching, alle mit read-through/write-through?
+    testen, evtl brauchen wir noch ein exclusive locking
+    
+o es ist noch ein kleiner valgrind-bug drin:
+    valgrind --tool=memcheck --leak-check=full --show-reachable=yes
+    .libs/lt-test --file ../../../hamsterdb-tests/trunk/testfiles/1/ext_060.tst
+    --inmemorydb=1 --verbose=1
 
-o testscript in perl umschreiben, damit's auch auf windows läuft. 
-    oder so lassen? sollte in cygwin eigentlich funktionieren
+-----------------------------------------------------
+-----------------------------------------------------
 
 o tools
     o ham_dump
@@ -88,11 +131,14 @@ o tools
         holt die header-page, dann die root-page, und geht runter zum 
         ersten leaf. läuft dann alle index-pages ab, schreibt die keys 
         und die daten raus 
+    o ham_check
+        macht einen check_integrity auf die datenbank
+    o ham_reorg
+        macht eine reorg (im grunde nur ein neues schreiben der datenbank
+        mit gleichzeitigem minimieren der freelist-entries)
 
 -----------------------------------------------------
 -----------------------------------------------------
-
-Version 0.1.0 - first release!!
 
 o komplettes review
     werden fehlerwerte korrekt propagiert?
@@ -142,20 +188,7 @@ x mal nachschauen was man nach den GPL-Codingrules noch für
 x performance vergleichbar mit berkeley-db
 x erzeugt .dll/.so
 x umsteigen auf autoconf/automake
-o compiliert unter linux, windows, darwin, 32bit und 64bit, läuft auf 
-    little- und bigendian
-o cursors
-o logo
-o legal issues
-o dokumentation: tutorial, interface, FAQ (auch zu unittests)
-o webseite
-    news
-    releases
-    download
-    faq
-    documentation
-    tutorial
-    mailingliste
+x cursors
 x stress-test-tool(s), das ALLE optionen durchprobiert
     mmap
     r/w
@@ -163,7 +196,19 @@ x stress-test-tool(s), das ALLE optionen durchprobiert
     verschiedene pagesizes
     grosse keys
     grosse blobs
-o admin-tool(s) fuer dump, stats, repair
+o compiliert unter linux, windows, darwin, 32bit und 64bit, läuft auf 
+    little- und bigendian
+o logo
+o legal issues
+o dokumentation: tutorial, interface, FAQ (auch zu unittests)
+o webseite
+    about (home)
+    features
+    download
+    documentation (faq, tutorial)
+    support (mailingliste)
+    contact
+o admin-tool(s) fuer dump, stats, repair, update, reorg
     o db_dump: 
         o key/daten dumpen
         o header dumpen
@@ -177,11 +222,12 @@ o KEINE valgrind-fehler!
 -----------------------------------------------------
 -----------------------------------------------------
 
-o duplicate keys (nicht in version 0.1.0, sondern 0.1.1)
+o duplicate keys
     jeder key bekommt einen dupcounter; der wird mit unsigned(-1) initialisiert
     beim einfuegen wird rekursiv abgestiegen. im leaf wird dann ein neuer key
     eingefuegt, mit dem dupcounter=existierender ("kleinster") key minus 1.
 
+-----------------------------------------------------
 -----------------------------------------------------
 
 o mehrere datenbanken in einer datei
@@ -193,63 +239,7 @@ o mehrere datenbanken in einer datei
 -----------------------------------------------------
 -----------------------------------------------------
 
-o c++-api: 
-
-namespace ham {
-  class key {
-  public:
-    key(void *data=0, int length=0, int flags=0);
-    void *get_data();
-    int get_length();
-    int get_flags();
-  };
-
-  class record {
-    record(void *data=0, int length=0, int flags=0);
-    void *get_data();
-    int get_length();
-    int get_flags();
-  };
-
-  class cursor {
-  public:
-    cursor(db *db);
-    cursor &clone();
-
-    // this is a bi-directional iterator!
-    operator++(); 
-    operator--(); 
-    operator bool();  // isnull?
-
-    ham_status_t first(int flags=0);
-    ham_status_t last(int flags=0);
-    ham_status_t next(int flags=0);
-    ham_status_t previous(int flags=0);
-    
-  private:
-    cursor(cursor &other); // forbid copy constructor
-  };
-
-  class db {
-  public:
-    db();
-    ~db();
-
-    ham_status_t create(const char *filename, int flags=0);
-    ham_status_t open(const char *filename, int flags=0);
-    ham_status_t close(); // implizit im destruktor
-
-    ham_status_t insert(key *key, record *record, int flags=0);
-    // erase, find...
-    
-    // operators
-    const record &operator[](const key &key);
-    record operator[](const key &key);
-
-  private:
-    db(db &other); // forbid copy constructor
-  };
-};
+o c++-api
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -267,6 +257,18 @@ o statistics
         are global; therefore we need two functions: 
         ham_get_global_statistics(stat)
         ham_get_index_statistics(index, stat)
+    max elements in einer datenbank
+
+-----------------------------------------------------
+-----------------------------------------------------
+
+o filter
+    generische filter, sowie 2 implementationen davon: ein encryption-codec 
+    und ein zlib-codec
+    arbeiten sie page- oder blob-basiert? evtl waere page-basiert besser, 
+    denn dann koennten auch index-pages (bzw NUR index-pages) gefiltert 
+    werden.
+    (my_result_t) (*filter)(my_key_t *key, my_data_t *data, int direction);
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -283,32 +285,29 @@ o datenbank mit O_EXCL öffnen, bzw mit flock() (und nem wait, falls die
     kurzen, schnellen Zugriffen (z.b. webseite)
 
 -----------------------------------------------------
-o backend
-    o darauf hinarbeiten dass später mal mehrere backends in einer datei
-        sind, nicht nur eines
-
-o blob
-    o neu: header in jeder page mit blobid
-    o header auch im verify prüfen
 
 o debug
     o im debug-modus output wie gehabt; bei non-debug: statt file- und line
         nur "hamsterdb: " ausgeben
 
-o filter
-    generische filter, sowie 2 implementationen davon: ein encryption-codec 
-    und ein zlib-codec
-    arbeiten sie page- oder blob-basiert? evtl waere page-basiert besser, 
-    denn dann koennten auch index-pages (bzw NUR index-pages) gefiltert 
-    werden.
-    (my_result_t) (*filter)(my_key_t *key, my_data_t *data, int direction);
-
 o hash-tabelle
     @@@
 
+-----------------------------------------------------
+-----------------------------------------------------
+
 o bindings 
-    c++-wrapper (ähnlich stl? müsste möglich sein, aber
-    schwer), python-db-modul, perl, java (alle swig?)
+    python (auch für python-shelf!)
+    perl
+    php
+    java
+    COM
+    .NET (Sample)
+    C# (Sample)
+    VB.NET (Sample)
+
+-----------------------------------------------------
+-----------------------------------------------------
 
 o asset-tool
     GUI und library für computerspiele
@@ -316,21 +315,6 @@ o asset-tool
 -----------------------------------------------------
 -----------------------------------------------------
 
-Version 0.2.0
-
-o duplicate keys
-o bindings: C++, Python, Perl, PHP (mit online-demo!)
-o filter: encryption
-o filter: compression
-
------------------------------------------------------
-
-Version 0.3.0
-
-o database-environment (ein file fuer mehrere datenbanken, gesharter cache,
-    geshartes file-handle, freelist etc)
-    etc)
-o hash-tabelle
 o live reorganisation???
 
 -------------------------- literature -----------------------

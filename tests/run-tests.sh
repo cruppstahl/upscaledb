@@ -28,6 +28,8 @@ echo "parameters: ($1) $2 $3 $4 $5 $6 $7 "
 
 maxdir=$1; shift
 
+\rm -f *.db
+
 for dir in `echo "1 2 3 4"`
 do
     for file in `ls $testdir/$dir/*.tst`

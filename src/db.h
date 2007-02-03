@@ -55,14 +55,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1
     /* private data of the index backend */
     ham_u8_t _indexdata[64];
 
-    /* the active txn */
-    ham_txn_t *_txn;
-
-    /* the cache for extended keys */
-    extkey_cache_t *_extkey_cache;
-
-    /* start of the freelist - with a variable size!! don't add members
-     * after this field. */
+    /* start of the freelist - the freelist spans the rest of the page. 
+     * don't add members after this field! */
     freel_payload_t _freelist;
 
 } db_header_t;
@@ -149,22 +143,22 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 /*
  * get the currently active transaction
  */
-#define db_get_txn(db)             db_get_header(db)._txn
+#define db_get_txn(db)             (db)->_txn
 
 /*
  * set the currently active transaction
  */
-#define db_set_txn(db, txn)        db_get_header(db)._txn=txn
+#define db_set_txn(db, txn)        (db)->_txn=txn
 
 /*
  * get the cache for extended keys
  */
-#define db_get_extkey_cache(db)    db_get_header(db)._extkey_cache
+#define db_get_extkey_cache(db)    (db)->_extkey_cache
 
 /*
  * set the cache for extended keys
  */
-#define db_set_extkey_cache(db, c) db_get_header(db)._extkey_cache=c
+#define db_set_extkey_cache(db, c) (db)->_extkey_cache=c
 
 /*
  * the database structure
@@ -209,6 +203,12 @@ struct ham_db_t
 
     /* the file header page */
     ham_page_t *_hdrpage;
+
+    /* the active txn */
+    ham_txn_t *_txn;
+
+    /* the cache for extended keys */
+    extkey_cache_t *_extkey_cache;
 
     /* the database header - this is basically a mirror of the header-page
      *
