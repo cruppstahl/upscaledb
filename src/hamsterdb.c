@@ -882,6 +882,9 @@ ham_status_t
 ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags)
 {
+    if (db_get_flags(cursor_get_db(cursor))&HAM_READ_ONLY)
+        return (HAM_DB_READ_ONLY);
+
     return (bt_cursor_replace((ham_bt_cursor_t *)cursor, record, flags));
 }
 
@@ -902,6 +905,9 @@ ham_status_t
 ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
+    if (db_get_flags(cursor_get_db(cursor))&HAM_READ_ONLY)
+        return (HAM_DB_READ_ONLY);
+
     return (bt_cursor_insert((ham_bt_cursor_t *)cursor, key, record, flags));
 }
 
@@ -912,6 +918,9 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     ham_offset_t rid;
     ham_u32_t intflags;
     ham_txn_t txn;
+
+    if (db_get_flags(cursor_get_db(cursor))&HAM_READ_ONLY)
+        return (HAM_DB_READ_ONLY);
 
     if ((st=ham_txn_begin(&txn, cursor_get_db(cursor))))
         return (st);

@@ -219,12 +219,14 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 ham_status_t
 os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 {
-    int osflags=O_RDWR;
+    int osflags=0;
 
     if (flags&HAM_OPEN_CREATE)
         osflags|=O_CREAT;
     if (flags&HAM_READ_ONLY)
         osflags|=O_RDONLY;
+    else
+        osflags|=O_RDWR;
     if (flags&HAM_OPEN_EXCLUSIVELY)
         osflags|=O_EXCL;
 

@@ -55,7 +55,7 @@ x tests laufen nicht. das problem ist dass bdb-cursor die keys
     x ./run-tests.sh 1 --test-cursors=1
     x valgrind-tests durchlaufen lassen
 
-o O_DIRECT ausprobieren; benchmarken
+x O_DIRECT ausprobieren; benchmarken - bringt nix, wird langsamer
 
 o HAM_READ_ONLY: liefert fehler zurück wenn man ham_insert und ham_erase
     aufruft; muss auch fehler bei den cursor-funktionen (insert, erase,
