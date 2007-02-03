@@ -36,7 +36,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-noinst_PROGRAMS = db1$(EXEEXT) db2$(EXEEXT)
+noinst_PROGRAMS = db1$(EXEEXT) db2$(EXEEXT) db3$(EXEEXT)
 subdir = samples
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -53,6 +53,9 @@ db1_DEPENDENCIES = $(top_builddir)/src/libhamsterdb.la
 am_db2_OBJECTS = db2.$(OBJEXT)
 db2_OBJECTS = $(am_db2_OBJECTS)
 db2_DEPENDENCIES = $(top_builddir)/src/libhamsterdb.la
+am_db3_OBJECTS = db3.$(OBJEXT)
+db3_OBJECTS = $(am_db3_OBJECTS)
+db3_DEPENDENCIES = $(top_builddir)/src/libhamsterdb.la
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build/scripts/depcomp
 am__depfiles_maybe = depfiles
@@ -64,8 +67,8 @@ LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(db1_SOURCES) $(db2_SOURCES)
-DIST_SOURCES = $(db1_SOURCES) $(db2_SOURCES)
+SOURCES = $(db1_SOURCES) $(db2_SOURCES) $(db3_SOURCES)
+DIST_SOURCES = $(db1_SOURCES) $(db2_SOURCES) $(db3_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -186,7 +189,9 @@ db1_SOURCES = db1.c
 db1_LDADD = $(top_builddir)/src/libhamsterdb.la
 db2_SOURCES = db2.c
 db2_LDADD = $(top_builddir)/src/libhamsterdb.la
-noinst_BIN = db1 db2
+db3_SOURCES = db3.c
+db3_LDADD = $(top_builddir)/src/libhamsterdb.la
+noinst_BIN = db1 db2 db3
 all: all-am
 
 .SUFFIXES:
@@ -233,6 +238,9 @@ db1$(EXEEXT): $(db1_OBJECTS) $(db1_DEPENDENCIES)
 db2$(EXEEXT): $(db2_OBJECTS) $(db2_DEPENDENCIES) 
 	@rm -f db2$(EXEEXT)
 	$(LINK) $(db2_LDFLAGS) $(db2_OBJECTS) $(db2_LDADD) $(LIBS)
+db3$(EXEEXT): $(db3_OBJECTS) $(db3_DEPENDENCIES) 
+	@rm -f db3$(EXEEXT)
+	$(LINK) $(db3_LDFLAGS) $(db3_OBJECTS) $(db3_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -242,6 +250,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/db1.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/db2.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/db3.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
