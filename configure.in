@@ -10,7 +10,7 @@ AC_PREREQ(2.59)
 
 dnl Get the version number of hamsterdb
 define([ham_version], [esyscmd(build/scripts/get-version.sh src/version.h)])
-AC_INIT([hamsterdb], 0.3.1, [chris@crupp.de])
+AC_INIT([hamsterdb], 0.4.0, [chris@crupp.de])
 
 AC_CONFIG_AUX_DIR(build/scripts)
 AM_INIT_AUTOMAKE([1.9 foreign])
