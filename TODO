@@ -7,102 +7,14 @@ o webseite
 
 -----------------------------------------------------
 
-x db.c: zeile 1413 hat viel auskommentiert. reinnehmen und nochmal testen!
-
-x alle copyright-strings mit 2007 updaten!
-
-x automake: mit -Wall compilieren!
-
-x default-cachesize auf 256kb ausbauen; das ist auch die default-grösse bei 
-    berkeleydb (dann auch die cache-hashtable vergrössern)
-
-x vorsicht - in /usr/local/include liegt eine Makefile.am aus der hamsterdb-
-    installation. nur ein versehen, oder wird sie bei jedem 'make install'
-    reinkopiert? ausprobieren. 
-    --> wird nicht reinkopiert
-
-x bei cursor_move über die "grenzen" (also z.b. previous von erstem element)
-    nicht IS_NIL zurückgeben sondern KEY_NOT_FOUND
-
-x tests laufen nicht. das problem ist dass bdb-cursor die keys 
-    nicht sortiert durchläuft.
-    x nachfragen, wie man das ändern kann
-    x neue db installieren!
-    x vorsicht - momentan ist sehr viel gehackt und umgeschrieben...
-
-    x momentan ist alles sehr instabil - wieder zum laufen kriegen
-        x --test-cursors=0 crasht oft
-        x --test-cursors=1 passt nicht - beim erase schlägt hamster fehl
-            mit KEY_NOT_FOUND (evtl aber auch schon beim insert - 
-            rausfinden, indem der cursor-erase mit ham_erase ausgetauscht 
-            wird)
-        x my_compare_cursors ist gerade auskommentiert
-        x viele tests schlagen fehl
-        x test 220 schlägt fehl
-        x test ext_51, ext_60, ext_61 schlägt fehl
-
-    x bei erase ist der my_compare_cursor auskommentiert; problem: der bdb-
-        cursor ist NIL nach dem erase; also erst c_get(key), dann c_get(NEXT),
-        dann erase (ohne cursor). ODER (besser): auch hamster-cursor
-        nach dem erase auf NIL setzen
-
-    x Testen bei test-cursors=1:
-        Beim insert erst ham_cursor_find/ham_cursor_replace machen, wenn
-        ham_cursor_find fehlschlägt: ham_cursor_insert machen
-
-    x ./run-tests.sh 1 --test-cursors=1
-    x ./run-tests.sh 1 --test-cursors=1 --overwrite=1
-    x ./run-tests.sh 1 --test-cursors=1
-    x valgrind-tests durchlaufen lassen
-
-x O_DIRECT ausprobieren; benchmarken - bringt nix, wird langsamer
-
-x HAM_READ_ONLY: liefert fehler zurück wenn man ham_insert und ham_erase
-    aufruft; muss auch fehler bei den cursor-funktionen (insert, erase,
-    replace) zurückgeben!
-
-x ein neues sample: use hamsterdb for sorting big amounts of data
-    x liesst eine textdatei ein
-    x jedes wort wird eingefügt, HAM_DUPLICATE_KEY wird ignoriert
-    x danach mit einem cursor sortiert ausgeben
-
-x HAM_OPEN_CREATE
-    funktioniert derzeit nicht, rausschmeissen
-
-x ham_strerror überprüfen - ist es vollständig?
-
-o nächsten release machen!
-    x monster.sh erweitern für --test-cursors=1
-    x monster.sh testen
-    x kurz testen mit --fullcheck-find=1
-    x kurz testen mit --useralloc
-    o kurz testen mit valgrind
-
-    o release machen (entsprechend checkliste)
-    o upload des tarballs
-    o blog-eintrag
-    o freshmeat-eintrag
-
-x monster.sh und valgrind.sh erweitern
-    x monster.sh erweitern für --fullcheck-find=1
-    x monster.sh erweitern für --fullcheck-find=1 --useralloc=1
-    x monster.sh erweitern für --useralloc=1
-    x valgrind.sh erweitern für --fullcheck-find=1
-    x valgrind.sh erweitern für --fullcheck-find=1 --useralloc=1
-    x valgrind.sh erweitern für --useralloc=1
-
------------------------------------------------------
------------------------------------------------------
-
-o endianness testen
-
 o port to ms windows
     x win32: sourcen portieren - mmap fehlt noch!
     o mit mingw, bcc, watcom, msvc, icc...
-    o projekt-umgebungen für visual studio 6 und .NET
+    o projekt-umgebungen für visual studio 6
     o define HAM_EXPORT DECLSPEC _dllexport for DLLs und .so
-    o kein makefile, aber einfache batch-files zum compilieren
     o monster.sh!
+
+o endianness testen
 
 o können wir problemlos 32bit-filepointer nehmen?
 
@@ -116,6 +28,24 @@ o es ist noch ein kleiner valgrind-bug drin:
     --inmemorydb=1 --verbose=1
 
 o nächsten release machen
+
+-----------------------------------------------------
+-----------------------------------------------------
+
+o doku
+    o tutorial/sample in die online-hilfe einbeziehen
+    o FAQ mit häufig gestellten fragen, tips zu optimierungen
+    o Dokumentation in den header-dateien überarbeiten
+    o webseite
+    o mailing list
+    o überarbeiten
+    o interne doku schreiben
+        o db-handle, pageverwaltung
+        o backend-aufbau
+        o freelist
+        o cache
+        o cursors
+    o header-file überarbeiten
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -162,23 +92,6 @@ o komplettes review
 -----------------------------------------------------
 -----------------------------------------------------
 
-o doku
-    o tutorial/sample in die online-hilfe einbeziehen
-    o FAQ mit häufig gestellten fragen, tips zu optimierungen
-    o Dokumentation in den header-dateien überarbeiten
-    o webseite
-    o mailing list
-    o überarbeiten
-    o interne doku schreiben
-        o db-handle, pageverwaltung
-        o backend-aufbau
-        o freelist
-        o cache
-        o cursors
-    o header-file überarbeiten
-
------------------------------------------------------
-
 x bbaum fehlerfrei
 x TXN raus (wir können die txn's auch komplett
     für diesen release abschalten... man soll dafür ja ne spezielle version
@@ -207,12 +120,7 @@ o logo
 o legal issues
 o dokumentation: tutorial, interface, FAQ (auch zu unittests)
 o webseite
-    about (home)
-    features
-    download
-    documentation (faq, tutorial)
-    support (mailingliste)
-    contact
+o documentation
 o admin-tool(s) fuer dump, stats, repair, update, reorg
     o db_dump: 
         o key/daten dumpen
@@ -244,6 +152,17 @@ o mehrere datenbanken in einer datei
 -----------------------------------------------------
 -----------------------------------------------------
 
+o filter
+    generische filter, sowie 2 implementationen davon: ein encryption-codec 
+    und ein zlib-codec
+    arbeiten sie page- oder blob-basiert? evtl waere page-basiert besser, 
+    denn dann koennten auch index-pages (bzw NUR index-pages) gefiltert 
+    werden.
+    (my_result_t) (*filter)(my_key_t *key, my_data_t *data, int direction);
+
+-----------------------------------------------------
+-----------------------------------------------------
+
 o c++-api
 
 -----------------------------------------------------
@@ -267,13 +186,15 @@ o statistics
 -----------------------------------------------------
 -----------------------------------------------------
 
-o filter
-    generische filter, sowie 2 implementationen davon: ein encryption-codec 
-    und ein zlib-codec
-    arbeiten sie page- oder blob-basiert? evtl waere page-basiert besser, 
-    denn dann koennten auch index-pages (bzw NUR index-pages) gefiltert 
-    werden.
-    (my_result_t) (*filter)(my_key_t *key, my_data_t *data, int direction);
+o bindings 
+    python (auch für python-shelf!)
+    perl
+    php
+    java
+    COM
+    .NET (Sample)
+    C# (Sample)
+    VB.NET (Sample)
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -291,25 +212,8 @@ o datenbank mit O_EXCL öffnen, bzw mit flock() (und nem wait, falls die
 
 -----------------------------------------------------
 
-o debug
-    o im debug-modus output wie gehabt; bei non-debug: statt file- und line
-        nur "hamsterdb: " ausgeben
-
 o hash-tabelle
     @@@
-
------------------------------------------------------
------------------------------------------------------
-
-o bindings 
-    python (auch für python-shelf!)
-    perl
-    php
-    java
-    COM
-    .NET (Sample)
-    C# (Sample)
-    VB.NET (Sample)
 
 -----------------------------------------------------
 -----------------------------------------------------
