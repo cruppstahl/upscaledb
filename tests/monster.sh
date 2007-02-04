@@ -9,10 +9,21 @@
 
 d=1 
 
+\rm -f *.db
+
 ./run-tests.sh $d --reopen=1 $1 $2 $3 $4 $5
+./run-tests.sh $d --fullcheck=find $1 $2 $3 $4 $5
+./run-tests.sh $d --reopen=1 --useralloc=1 $1 $2 $3 $4 $5
+./run-tests.sh $d --fullcheck=find --useralloc=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --overwrite=1 --reopen=1 $1 $2 $3 $4 $5
+./run-tests.sh $d --overwrite=1 --reopen=1 --useralloc=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --inmemorydb=1 $1 $2 $3 $4 $5
+./run-tests.sh $d --inmemorydb=1 --useralloc=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --overwrite=1 --inmemorydb=1 $1 $2 $3 $4 $5
+./run-tests.sh $d --test-cursors=1 --reopen=1 $1 $2 $3 $4 $5
+./run-tests.sh $d --test-cursors=1 --overwrite=1 --reopen=1 $1 $2 $3 $4 $5
+./run-tests.sh $d --test-cursors=1 --inmemorydb=1 $1 $2 $3 $4 $5
+./run-tests.sh $d --test-cursors=1 --overwrite=1 --inmemorydb=1 $1 $2 $3 $4 $5
 
 ./run-tests.sh $d --optimizesize=1 --reopen=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --optimizesize=1 --overwrite=1 --reopen=1 $1 $2 $3 $4 $5
@@ -21,15 +32,16 @@ d=1
 
 ./run-tests.sh $d --mmap=0 --reopen=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --mmap=0 --overwrite=1 --reopen=1 $1 $2 $3 $4 $5
-
 ./run-tests.sh $d --optimizesize=1 --mmap=0 --reopen=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --optimizesize=1 --mmap=0 --overwrite=1 --reopen=1 $1 $2 $3 $4 $5
+./run-tests.sh $d --test-cursors=1 --optimizesize=1 --mmap=0 --overwrite=1 --reopen=1 $1 $2 $3 $4 $5
 
 ./run-tests.sh $d --keysize=8 --reopen=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --keysize=8 --overwrite=1 --reopen=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --keysize=8 --overwrite=1 --reopen=1 --optimizesize=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --keysize=8 --inmemorydb=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --keysize=8 --overwrite=1 --inmemorydb=1 $1 $2 $3 $4 $5
+./run-tests.sh $d --keysize=8 --test-cursors=1 --overwrite=1 --inmemorydb=1 $1 $2 $3 $4 $5
 
 ./run-tests.sh $d --keysize=12 --reopen=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --keysize=12 --overwrite=1 --reopen=1 $1 $2 $3 $4 $5
@@ -74,6 +86,7 @@ d=1
 ./run-tests.sh $d --cachesize=50 --overwrite=1 --reopen=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --cachesize=50 --mmap=0 --reopen=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --cachesize=50 --overwrite=1 --mmap=0 --reopen=1 $1 $2 $3 $4 $5
+./run-tests.sh $d --cachesize=50 --test-cursors=1 --overwrite=1 --mmap=0 --reopen=1 $1 $2 $3 $4 $5
 
 ./run-tests.sh $d --cachesize=1024 --reopen=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --cachesize=1024 --overwrite=1 --reopen=1 $1 $2 $3 $4 $5

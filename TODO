@@ -69,14 +69,27 @@ x ein neues sample: use hamsterdb for sorting big amounts of data
 x HAM_OPEN_CREATE
     funktioniert derzeit nicht, rausschmeissen
 
-o ham_strerror überprüfen - ist es vollständig?
+x ham_strerror überprüfen - ist es vollständig?
 
 o nächsten release machen!
-    o release-regeln ändern: vor einem release auch die tests 2/3/4 
-        machen! (auch wenn's lang dauert...)??????
-        ne, das dauert ja ne woche!! zumindest alle tests ausser 2 nehmen?
-    o monster.sh erweitern für --test-cursors=1
-    o monster.sh ausführen...
+    x monster.sh erweitern für --test-cursors=1
+    x monster.sh testen
+    x kurz testen mit --fullcheck-find=1
+    x kurz testen mit --useralloc
+    o kurz testen mit valgrind
+
+    o release machen (entsprechend checkliste)
+    o upload des tarballs
+    o blog-eintrag
+    o freshmeat-eintrag
+
+x monster.sh und valgrind.sh erweitern
+    x monster.sh erweitern für --fullcheck-find=1
+    x monster.sh erweitern für --fullcheck-find=1 --useralloc=1
+    x monster.sh erweitern für --useralloc=1
+    x valgrind.sh erweitern für --fullcheck-find=1
+    x valgrind.sh erweitern für --fullcheck-find=1 --useralloc=1
+    x valgrind.sh erweitern für --useralloc=1
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -91,12 +104,7 @@ o port to ms windows
     o kein makefile, aber einfache batch-files zum compilieren
     o monster.sh!
 
-o nächsten release machen
-
 o können wir problemlos 32bit-filepointer nehmen?
-
------------------------------------------------------
------------------------------------------------------
 
 o 1 writer, multiple reader - wie lässt sich das machen?
     alle ohne caching, alle mit read-through/write-through?
@@ -106,6 +114,8 @@ o es ist noch ein kleiner valgrind-bug drin:
     valgrind --tool=memcheck --leak-check=full --show-reachable=yes
     .libs/lt-test --file ../../../hamsterdb-tests/trunk/testfiles/1/ext_060.tst
     --inmemorydb=1 --verbose=1
+
+o nächsten release machen
 
 -----------------------------------------------------
 -----------------------------------------------------

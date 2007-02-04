@@ -646,9 +646,6 @@ my_compare_databases(void)
     ham_record_t hrec;
     ham_status_t st=HAM_KEY_NOT_FOUND;
     ham_cursor_t *hamc;
-#if 0
-    int elements=0;
-#endif
 
     memset(&key, 0, sizeof(key));
     memset(&rec, 0, sizeof(rec));
@@ -676,60 +673,17 @@ my_compare_databases(void)
     ham_assert(ret==0, ("berkeley-db error"));
     PROFILE_STOP(PROF_CURSOR, berk);
 
-#if 0
-    PROFILE_START(PROF_CURSOR, berk);
-    while ((ret=cursor->c_get(cursor, &key, &rec, DB_NEXT))==0) {
-        PROFILE_STOP(PROF_CURSOR, berk);
+    VERBOSE2(("comparing databases...", 0));
 
-        if (config.useralloc) {
-            hrec.data=malloc(1024*1024*64); /* 64 mb? */
-            if (!hrec.data) {
-                FAIL(("useralloc: out of memory"));
-                return 0;
-            }
-            hrec.flags=HAM_RECORD_USER_ALLOC;
-        }
-
-        memset(&hkey, 0, sizeof(hkey));
-        memset(&hrec, 0, sizeof(hrec));
-        hkey.data=key.data;
-        hkey.size=key.size;
-        st=ham_find(config.hamdb, 0, &hkey, &hrec, 0);
-        ham_assert(st==0, ("hamster-db error"));
-
-        ham_assert(hrec.size==rec.size, 
-                ("data: %u != %u", hrec.size, rec.size));
-        ham_assert(hkey.size==key.size, 
-                ("key: %u != %u", hkey.size, key.size));
-        if (hkey.data)
-            ham_assert(!memcmp(hkey.data, key.data, hkey.size), (0));
-        if (hrec.data)
-            ham_assert(!memcmp(hrec.data, rec.data, hrec.size), (0));
-        if (config.useralloc) 
-            free(hrec.data);
-
-        elements++;
-    }
-    cursor->c_close(cursor);
-#endif
-
+    /*
+     * this version compares the databases with two cursors
+     */
     if (!config.fullcheck_find) {
         PROFILE_START(PROF_CURSOR, ham);
         st=ham_cursor_create(config.hamdb, 0, 0, &hamc);
         ham_assert(st==0, ("hamster-db error"));
         memset(&hkey, 0, sizeof(hkey));
         memset(&hrec, 0, sizeof(hrec));
-        st=ham_cursor_move(hamc, &hkey, &hrec, HAM_CURSOR_FIRST);
-        PROFILE_STOP(PROF_CURSOR, ham);
-        if (st && st!=HAM_KEY_NOT_FOUND)
-            ham_assert(st==0, ("hamster-db error"));
-    }
-
-    VERBOSE2(("comparing databases...", 0));
-    PROFILE_START(PROF_CURSOR, berk);
-    while ((ret=cursor->c_get(cursor, &key, &rec, DB_NEXT))==0) {
-        PROFILE_STOP(PROF_CURSOR, berk);
-    
         if (config.useralloc) {
             hrec.data=malloc(1024*1024*64); /* 64 mb? */
             if (!hrec.data) {
@@ -738,39 +692,96 @@ my_compare_databases(void)
             }
             hrec.flags=HAM_RECORD_USER_ALLOC;
         }
-
-        if (config.fullcheck_find) {
-            memset(&hkey, 0, sizeof(hkey));
-            memset(&hrec, 0, sizeof(hrec));
-            hkey.data=key.data;
-            hkey.size=key.size;
-            st=ham_find(config.hamdb, 0, &hkey, &hrec, 0);
+        st=ham_cursor_move(hamc, &hkey, &hrec, HAM_CURSOR_FIRST);
+        PROFILE_STOP(PROF_CURSOR, ham);
+        if (st && st!=HAM_KEY_NOT_FOUND)
             ham_assert(st==0, ("hamster-db error"));
-        }
 
-        ham_assert(hrec.size==rec.size, 
-                ("data: %u != %u", hrec.size, rec.size));
-        if (hkey.data)
-            ham_assert(!memcmp(hkey.data, key.data, hkey.size), (0));
-        if (hrec.data)
-            ham_assert(!memcmp(hrec.data, rec.data, hrec.size), (0));
-        if (config.useralloc) 
-            free(hrec.data);
+        PROFILE_START(PROF_CURSOR, berk);
+        while ((ret=cursor->c_get(cursor, &key, &rec, DB_NEXT))==0) {
+            PROFILE_STOP(PROF_CURSOR, berk);
 
-        if (!config.fullcheck_find) {
+            /*
+            printf("status: %d/%d\n", st, ret);
+            printf("keys: %u/%u, record: %u/%u\n", 
+                    hkey.size ? *(unsigned *)hkey.data : 0, 
+                    key.size ? *(unsigned *)key.data : 0, 
+                    hrec.size, rec.size);
+                    */
+            ham_assert(hrec.size==rec.size, 
+                    ("data: %u != %u", hrec.size, rec.size));
+            if (hkey.data)
+                ham_assert(!memcmp(hkey.data, key.data, hkey.size), (0));
+            if (hrec.data)
+                ham_assert(!memcmp(hrec.data, rec.data, hrec.size), (0));
+
+            if (config.useralloc) 
+                free(hrec.data);
             memset(&hkey, 0, sizeof(hkey));
             memset(&hrec, 0, sizeof(hrec));
+            if (config.useralloc) {
+                hrec.data=malloc(1024*1024*64); /* 64 mb? */
+                if (!hrec.data) {
+                    FAIL(("useralloc: out of memory"));
+                    return 0;
+                }
+                hrec.flags=HAM_RECORD_USER_ALLOC;
+            }
+
             PROFILE_START(PROF_CURSOR, ham);
             st=ham_cursor_move(hamc, &hkey, &hrec, HAM_CURSOR_NEXT);
             PROFILE_STOP(PROF_CURSOR, ham);
         }
+
+        if (ret==DB_NOTFOUND)
+            ham_assert(st==HAM_KEY_NOT_FOUND, ("hamster-db error %d", st));
+
+        free(hrec.data);
+        ham_cursor_close(hamc);
     }
 
-    if (ret==DB_NOTFOUND)
-        ham_assert(st==HAM_KEY_NOT_FOUND, ("hamster-db error %d", st));
+    /*
+     * and this version compares with a berkeleydb cursor and ham_find
+     */
+    else {
+        PROFILE_START(PROF_CURSOR, berk);
+        while ((ret=cursor->c_get(cursor, &key, &rec, DB_NEXT))==0) {
+            PROFILE_STOP(PROF_CURSOR, berk);
+    
+            memset(&hkey, 0, sizeof(hkey));
+            memset(&hrec, 0, sizeof(hrec));
 
-    if (!config.fullcheck_find)
-        ham_cursor_close(hamc);
+            if (config.useralloc) {
+                hrec.data=malloc(1024*1024*64); /* 64 mb? */
+                if (!hrec.data) {
+                    FAIL(("useralloc: out of memory"));
+                    return 0;
+                }
+                hrec.flags=HAM_RECORD_USER_ALLOC;
+            }
+
+            hkey.data=key.data;
+            hkey.size=key.size;
+            st=ham_find(config.hamdb, 0, &hkey, &hrec, 0);
+            ham_assert(st==0, ("hamster-db error"));
+
+            /*
+            printf("status: %d/%d\n", st, ret);
+            printf("keys: %u/%u, record: %u/%u\n", 
+                    hkey.size ? *(unsigned *)hkey.data : 0, 
+                    key.size ? *(unsigned *)key.data : 0, 
+                    hrec.size, rec.size);
+                    */
+            ham_assert(hrec.size==rec.size, 
+                    ("data: %u != %u", hrec.size, rec.size));
+            if (hkey.data)
+                ham_assert(!memcmp(hkey.data, key.data, hkey.size), (0));
+            if (hrec.data)
+                ham_assert(!memcmp(hrec.data, rec.data, hrec.size), (0));
+            if (config.useralloc) 
+                free(hrec.data);
+        }
+    }
 
     return 1;
 }

@@ -65,7 +65,7 @@ my_move_first(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
      */
     if (!btree_get_rootpage(be))
         return (db_set_error(db, HAM_KEY_NOT_FOUND));
-    page=db_fetch_page(db, btree_get_rootpage(be), flags);
+    page=db_fetch_page(db, btree_get_rootpage(be), 0);
     if (!page)
         return (db_get_error(db));
 
@@ -125,7 +125,7 @@ my_move_last(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
      */
     if (!btree_get_rootpage(be))
         return (db_set_error(db, HAM_KEY_NOT_FOUND));
-    page=db_fetch_page(db, btree_get_rootpage(be), flags);
+    page=db_fetch_page(db, btree_get_rootpage(be), 0);
     if (!page)
         return (db_get_error(db));
 
@@ -208,7 +208,7 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     if (!btree_node_get_right(node))
         return db_set_error(db, HAM_KEY_NOT_FOUND);
 
-    page=db_fetch_page(db, btree_node_get_right(node), flags);
+    page=db_fetch_page(db, btree_node_get_right(node), 0);
     if (!page)
         return (db_get_error(db));
 
@@ -267,7 +267,7 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     if (!btree_node_get_left(node))
         return db_set_error(db, HAM_KEY_NOT_FOUND);
 
-    page=db_fetch_page(db, btree_node_get_left(node), flags);
+    page=db_fetch_page(db, btree_node_get_left(node), 0);
     if (!page)
         return (db_get_error(db));
     node=ham_page_get_btree_node(page);

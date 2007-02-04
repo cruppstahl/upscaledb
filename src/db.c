@@ -494,7 +494,6 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
                 return (HAM_OUT_OF_MEMORY);
             }
             memcpy(*ext_key, ptr, key_length);
-
             return (0);
         }
         if (st!=HAM_KEY_NOT_FOUND) {
@@ -503,19 +502,27 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
         }
     }
 
-    /* not cached - fetch from disk */
+    /* 
+     * not cached - fetch from disk;
+     * we allocate the memory here to avoid that the global record 
+     * pointer is overwritten
+     */
     memset(&record, 0, sizeof(record));
+    record.data=ham_mem_alloc(key_length+sizeof(ham_offset_t));
+    if (!record.data) 
+        return (db_set_error(db, HAM_OUT_OF_MEMORY));
+    record.flags=HAM_RECORD_USER_ALLOC;
 
     st=blob_read(db, blobid, &record, 0);
     if (st) {
-        db_set_error(db, st);
-        return (st);
+        ham_mem_free(record.data);
+        return (db_set_error(db, st));
     }
 
     *ext_key=(ham_u8_t *)ham_mem_alloc(key_length);
     if (!*ext_key) {
-        db_set_error(db, HAM_OUT_OF_MEMORY);
-        return (HAM_OUT_OF_MEMORY);
+        ham_mem_free(record.data);
+        return (db_set_error(db, HAM_OUT_OF_MEMORY));
     }
     memcpy(*ext_key, key_data, db_get_keysize(db)-sizeof(ham_offset_t));
     memcpy(*ext_key+(db_get_keysize(db)-sizeof(ham_offset_t)),
@@ -527,6 +534,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
                 blobid, key_length, *ext_key);
     }
 
+    ham_mem_free(record.data);
     return (0);
 }
 
