@@ -1,7 +1,7 @@
 
 SUBDIRS = src include samples tests
 
-EXTRA_DIST = documentation/Doxyfile 
+EXTRA_DIST = documentation/Doxyfile CHANGELOG
 
 EXTRA_DIST += include/ham/hamsterdb.h \
           	  include/ham/hamsterdb_int.h \
