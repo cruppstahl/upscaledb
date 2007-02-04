@@ -24,9 +24,9 @@ extern "C" {
  * means the release is a bugfix with a compatible database format.
  */
 #define HAM_VERSION_MAJ 0
-#define HAM_VERSION_MIN 3
-#define HAM_VERSION_REV 1
-#define HAM_VERSION_STR "0.3.1"
+#define HAM_VERSION_MIN 4
+#define HAM_VERSION_REV 0
+#define HAM_VERSION_STR "0.4.0"
 
 
 #ifdef __cplusplus
