@@ -26,8 +26,11 @@ extern "C" {
 #    elif _WIN32
 #        undef  HAM_32BIT
 #        define HAM_32BIT 1
+#    elif WIN32
+#        undef  HAM_32BIT
+#        define HAM_32BIT 1
 #    else
-#        error "Neither _WIN32 nor _WIN64 defined!"
+#        error "Neither WIN32, _WIN32 nor _WIN64 defined!"
 #    endif
 #else /* posix? */
 #    undef  HAM_OS_POSIX
@@ -42,7 +45,7 @@ extern "C" {
 #endif
 
 #if defined(HAM_OS_POSIX) && defined(HAM_OS_WIN32)
-#    error "blah"
+#    error "Unknown arch - neither HAM_OS_POSIX nor HAM_OS_WIN32 defined"
 #endif
 
 /*
@@ -101,7 +104,11 @@ typedef int                ham_fd_t;
  * typedefs for Windows 32- and 64-bit
  */
 #ifdef HAM_OS_WIN32
+#   ifdef CYGWIN
+typedef int                ham_fd_t; 
+#   else
 typedef HANDLE             ham_fd_t; 
+#   endif
 #   define HAM_INVALID_FD  (0)
 #endif 
 

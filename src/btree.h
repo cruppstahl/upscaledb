@@ -121,7 +121,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 btree_node_t
     /**
      * the entries of this node
      */
-    key_t _entries[1];
+    int_key_t _entries[1];
 
 } HAM_PACK_2 btree_node_t;
 
@@ -266,8 +266,8 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key);
  * get entry #i of a btree node
  */
 #define btree_node_get_key(db, node, i)                             \
-    ((key_t *)&((const char *)(node)->_entries)                     \
-            [(db_get_keysize((db))+sizeof(key_t)-1)*(i)])
+    ((int_key_t *)&((const char *)(node)->_entries)                 \
+            [(db_get_keysize((db))+sizeof(int_key_t)-1)*(i)])
 
 /*
  * get the slot of an element in the page

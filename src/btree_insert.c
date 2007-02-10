@@ -308,7 +308,7 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
     ham_status_t st;
     ham_bool_t overwrite=HAM_FALSE;
     ham_size_t i, count, keysize;
-    key_t *bte=0;
+    int_key_t *bte=0;
     btree_node_t *node;
     ham_db_t *db=page_get_owner(page);
     ham_s32_t slot;
@@ -369,8 +369,8 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
         else if (cmp<0) {
             slot++;
             bte=btree_node_get_key(db, node, slot);
-            memmove(((char *)bte)+sizeof(key_t)-1+keysize, bte,
-                    (sizeof(key_t)-1+keysize)*(count-slot));
+            memmove(((char *)bte)+sizeof(int_key_t)-1+keysize, bte,
+                    (sizeof(int_key_t)-1+keysize)*(count-slot));
         }
         /*
          * otherwise, the current slot is the first key, which is 
@@ -379,8 +379,8 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
         else {
 shift_elements:
             /* shift all keys one position to the right */
-            memmove(((char *)bte)+sizeof(key_t)-1+keysize, bte,
-                    (sizeof(key_t)-1+keysize)*(count-slot));
+            memmove(((char *)bte)+sizeof(int_key_t)-1+keysize, bte,
+                    (sizeof(int_key_t)-1+keysize)*(count-slot));
         }
     }
 
@@ -553,7 +553,7 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
     int cmp;
     ham_status_t st;
     ham_page_t *newpage, *oldsib;
-    key_t *nbte, *obte;
+    int_key_t *nbte, *obte;
     btree_node_t *nbtp, *obtp, *sbtp;
     ham_size_t count, pivot, keysize;
     ham_db_t *db=page_get_owner(page);
@@ -595,13 +595,13 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
      */
     if (btree_node_is_leaf(obtp)) {
         memcpy((char *)nbte,
-               ((char *)obte)+(sizeof(key_t)-1+keysize)*pivot, 
-               (sizeof(key_t)-1+keysize)*(count-pivot));
+               ((char *)obte)+(sizeof(int_key_t)-1+keysize)*pivot, 
+               (sizeof(int_key_t)-1+keysize)*(count-pivot));
     }
     else {
         memcpy((char *)nbte,
-               ((char *)obte)+(sizeof(key_t)-1+keysize)*(pivot+1), 
-               (sizeof(key_t)-1+keysize)*(count-pivot-1));
+               ((char *)obte)+(sizeof(int_key_t)-1+keysize)*(pivot+1), 
+               (sizeof(int_key_t)-1+keysize)*(count-pivot-1));
     }
     
     /* 
@@ -695,7 +695,7 @@ pp(ham_page_t *page)
 {
     ham_size_t i, j, len, count;
     int cmp;
-    key_t *bte=0;
+    int_key_t *bte=0;
     btree_node_t *node;
     ham_db_t *db=page_get_owner(page);
 

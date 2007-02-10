@@ -241,7 +241,7 @@ db_free_page_struct(ham_page_t *page)
          page_get_type(page)==PAGE_TYPE_B_INDEX)) {
         ham_size_t i;
         ham_offset_t blobid;
-        key_t *bte;
+        int_key_t *bte;
         btree_node_t *node=ham_page_get_btree_node(page);
         extkey_cache_t *c=db_get_extkey_cache(page_get_owner(page));
 
@@ -946,7 +946,7 @@ db_free_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
          page_get_type(page)==PAGE_TYPE_B_INDEX)) {
         ham_size_t i;
         ham_offset_t blobid;
-        key_t *bte;
+        int_key_t *bte;
         btree_node_t *node=ham_page_get_btree_node(page);
         extkey_cache_t *c=db_get_extkey_cache(page_get_owner(page));
 

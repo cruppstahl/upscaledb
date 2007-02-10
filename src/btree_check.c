@@ -162,7 +162,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
     int cmp;
     ham_size_t i=0, count, maxkeys;
     ham_db_t *db=page_get_owner(page);
-    key_t *bte;
+    int_key_t *bte;
     btree_node_t *node=ham_page_get_btree_node(page);
 
     maxkeys=btree_get_maxkeys(scratchpad->be);
@@ -208,7 +208,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
     if (leftsib) {
         btree_node_t *sibnode=ham_page_get_btree_node(leftsib);
 
-        key_t *sibentry=btree_node_get_key(db, sibnode, 
+        int_key_t *sibentry=btree_node_get_key(db, sibnode, 
                 btree_node_get_count(sibnode)-1);
         bte=btree_node_get_key(db, node, 0);
 

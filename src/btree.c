@@ -14,7 +14,7 @@
 #include "error.h"
 #include "btree.h"
 
-#define offsetof(type, member) ((size_t) &((type *)0)->member)
+#define OFFSETOF(type, member) ((size_t) &((type *)0)->member)
 
 ham_status_t 
 btree_get_slot(ham_db_t *db, ham_page_t *page, 
@@ -92,7 +92,7 @@ my_calc_maxkeys(ham_db_t *db)
     p=db_get_pagesize(db);
 
     /* every btree page has a header where we can't store entries */
-    p-=offsetof(btree_node_t, _entries);
+    p-=OFFSETOF(btree_node_t, _entries);
 
     /* every page has a header where we can't store entries */
     p-=sizeof(u._s)-1;
@@ -100,7 +100,7 @@ my_calc_maxkeys(ham_db_t *db)
     /*
      * compute the size of a key, k. 
      */
-    k=db_get_keysize(db)+sizeof(key_t)-1;
+    k=db_get_keysize(db)+sizeof(int_key_t)-1;
 
     /* 
      * make sure that MAX is an even number, otherwise we can't calculate
@@ -128,7 +128,7 @@ my_fun_create(ham_btree_t *be, ham_u32_t flags)
      */
     keysize=db_get_keysize(db);
     if (keysize==0)
-        keysize=(ham_u16_t)(16-sizeof(key_t)-1);
+        keysize=(ham_u16_t)(16-sizeof(int_key_t)-1);
 
     if (!db_get_keysize(db) && (st=db_set_keysize(db, keysize))) {
         ham_log(("failed to set keysize: 0x%x", st));
@@ -241,7 +241,7 @@ btree_traverse_tree(ham_db_t *db, ham_page_t *page,
 {
     ham_status_t st;
     ham_s32_t slot;
-    key_t *bte;
+    int_key_t *bte;
     btree_node_t *node=ham_page_get_btree_node(page);
 
     /*

@@ -115,7 +115,7 @@ my_enumerate_page(ham_page_t *page, ham_u32_t level, ham_u32_t sibcount,
 {
     ham_size_t i, count;
     ham_db_t *db=page_get_owner(page);
-    key_t *bte;
+    int_key_t *bte;
     btree_node_t *node=ham_page_get_btree_node(page);
     ham_bool_t is_leaf;
 

@@ -134,7 +134,7 @@ my_move_last(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
      * and traverse down
      */
     while (1) {
-        key_t *key;
+        int_key_t *key;
 
         node=ham_page_get_btree_node(page);
         /* check for an empty root page */
@@ -338,7 +338,7 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
 {
     ham_status_t st=0;
     btree_node_t *node;
-    key_t *entry;
+    int_key_t *entry;
     ham_key_t *key;
     ham_db_t *db=bt_cursor_get_db(c);
     ham_txn_t txn;
@@ -513,7 +513,7 @@ bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
 {
     ham_status_t st;
     btree_node_t *node;
-    key_t *key;
+    int_key_t *key;
     ham_db_t *db=bt_cursor_get_db(c);
     ham_txn_t txn;
     ham_bool_t local_txn=db_get_txn(db) ? HAM_FALSE : HAM_TRUE;
@@ -651,7 +651,7 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
     btree_node_t *node;
     ham_db_t *db=bt_cursor_get_db(c);
     ham_btree_t *be=(ham_btree_t *)db_get_backend(db);
-    key_t *entry;
+    int_key_t *entry;
     ham_txn_t txn;
     ham_bool_t local_txn=db_get_txn(db) ? HAM_FALSE : HAM_TRUE;
 

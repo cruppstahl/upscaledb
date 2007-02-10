@@ -20,7 +20,7 @@ btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor,
 {
     ham_page_t *page;
     btree_node_t *node;
-    key_t *entry;
+    int_key_t *entry;
     ham_s32_t idx;
     ham_db_t *db=btree_get_db(be);
 

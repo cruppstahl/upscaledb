@@ -15,7 +15,7 @@
 int
 key_compare_int_to_pub(ham_page_t *page, ham_u16_t lhs, ham_key_t *rhs)
 {
-    key_t *l;
+    int_key_t *l;
     btree_node_t *node=ham_page_get_btree_node(page);
 
     l=btree_node_get_key(page_get_owner(page), node, lhs);
@@ -28,7 +28,7 @@ key_compare_int_to_pub(ham_page_t *page, ham_u16_t lhs, ham_key_t *rhs)
 int
 key_compare_pub_to_int(ham_page_t *page, ham_key_t *lhs, ham_u16_t rhs)
 {
-    key_t *r;
+    int_key_t *r;
     btree_node_t *node=ham_page_get_btree_node(page);
 
     r=btree_node_get_key(page_get_owner(page), node, rhs);
@@ -42,7 +42,7 @@ int
 key_compare_int_to_int(ham_page_t *page, 
         ham_u16_t lhs, ham_u16_t rhs)
 {
-    key_t *l, *r;
+    int_key_t *l, *r;
     btree_node_t *node=ham_page_get_btree_node(page);
 
     l=btree_node_get_key(page_get_owner(page), node, lhs);

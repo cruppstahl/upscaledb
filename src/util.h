@@ -23,10 +23,10 @@ extern ham_key_t *
 util_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest);
 
 /**
- * same as above, but copies a internal key_t structure
+ * same as above, but copies a internal int_key_t structure
  */
 extern ham_key_t *
-util_copy_key_int2pub(ham_db_t *db, const key_t *source, ham_key_t *dest);
+util_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest);
 
 /**
  * read a record 
@@ -38,7 +38,8 @@ util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags);
  * read a key
  */
 extern ham_status_t
-util_read_key(ham_db_t *db, key_t *source, ham_key_t *dest, ham_u32_t flags);
+util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest, 
+                ham_u32_t flags);
 
 
 #endif /* HAM_UTIL_H__ */

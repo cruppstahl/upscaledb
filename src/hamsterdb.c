@@ -38,7 +38,7 @@ my_dump_cb(int event, void *param1, void *param2, void *context)
 {
     ham_size_t i, limit, keysize;
     ham_page_t *page;
-    key_t *key;
+    int_key_t *key;
     ham_u8_t *data;
     ham_dump_cb_t cb=(ham_dump_cb_t)context;
 
@@ -48,12 +48,12 @@ my_dump_cb(int event, void *param1, void *param2, void *context)
 
     case ENUM_EVENT_PAGE_START:
         page=(ham_page_t *)param1;
-        printf("\n------ page 0x%lx ---------------------------------------\n",
+        printf("\n------ page 0x%llx ---------------------------------------\n",
             page_get_self(page));
         break;
 
     case ENUM_EVENT_ITEM:
-        key=(key_t *)param1;
+        key=(int_key_t *)param1;
         data=key_get_key(key);
         keysize=key_get_size(key);
 
@@ -77,7 +77,7 @@ my_dump_cb(int event, void *param1, void *param2, void *context)
             else
                 printf("\n");
 
-            printf("      ptr: 0x%lx\n", key_get_ptr(key));
+            printf("      ptr: 0x%llx\n", key_get_ptr(key));
         }
         break;
 
@@ -93,7 +93,7 @@ my_dump_cb(int event, void *param1, void *param2, void *context)
 static void
 my_free_cb(int event, void *param1, void *param2, void *context)
 {
-    key_t *key;
+    int_key_t *key;
     free_cb_context_t *c;
 
     c=(free_cb_context_t *)context;
@@ -107,7 +107,7 @@ my_free_cb(int event, void *param1, void *param2, void *context)
         break;
 
     case ENUM_EVENT_ITEM:
-        key=(key_t *)param1;
+        key=(int_key_t *)param1;
 
         if (key_get_flags(key)&KEY_BLOB_SIZE_TINY ||
             key_get_flags(key)&KEY_BLOB_SIZE_SMALL ||
@@ -261,6 +261,14 @@ ham_open_ex(ham_db_t *db, const char *filename,
     db_header_t *dbhdr;
     ham_page_t *page;
 
+    /*
+     * no idea why, but on cygwin the mmap functions do not work
+     * (although they should); temporarily disable mmap
+     */
+#ifdef CYGWIN
+    flags|=HAM_DISABLE_MMAP;
+#endif
+
     /* cannot open an in-memory-db */
     if (flags&HAM_IN_MEMORY_DB)
         return (HAM_INV_PARAMETER);
@@ -405,6 +413,14 @@ ham_create_ex(ham_db_t *db, const char *filename,
     ham_page_t *page;
 
     /*
+     * no idea why, but on cygwin the mmap functions do not work
+     * (although they should); temporarily disable mmap
+     */
+#ifdef CYGWIN
+    flags|=HAM_DISABLE_MMAP;
+#endif
+
+    /*
      * make sure that the pagesize is aligned to 512k
      */
     if (pagesize) {
@@ -463,7 +479,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
      * get the default keysize
      */
     if (keysize==0)
-        keysize=32-sizeof(key_t)-1;
+        keysize=32-sizeof(int_key_t)-1;
 
     /*
      * initialize the header

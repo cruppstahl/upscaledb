@@ -24,13 +24,18 @@
 #include "error.h"
 #include "os.h"
 
-extern int getpagesize();
+extern size_t getpagesize();
 
 static void
 my_enable_largefile(int fd)
 {
+    /*
+     * not available on cygwin...
+     */
+#ifndef CYGWIN
     int oflag=fcntl(fd, F_GETFL, 0);
     fcntl(fd, F_SETFL, oflag|O_LARGEFILE);
+#endif
 }
 
 ham_size_t

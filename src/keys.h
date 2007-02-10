@@ -19,7 +19,7 @@ extern "C" {
 /**
  * the internal representation of a key
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 key_t
+typedef HAM_PACK_0 struct HAM_PACK_1 int_key_t
 {
     /**
      * flags
@@ -41,7 +41,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 key_t
      */
     ham_u8_t _key[1];
     
-} HAM_PACK_2 key_t;
+} HAM_PACK_2 int_key_t;
 
 /**
  * get the pointer of an btree-entry
@@ -98,19 +98,19 @@ typedef HAM_PACK_0 struct HAM_PACK_1 key_t
 #include "packstop.h"
 
 /**
- * compare an internal key (key_t) to a public key (ham_key_t)
+ * compare an internal key (int_key_t) to a public key (ham_key_t)
  */
 extern int
 key_compare_int_to_pub(ham_page_t *page, ham_u16_t lhs, ham_key_t *rhs);
 
 /**
- * compare a public key (ham_key_t) to an internal key (key_t)
+ * compare a public key (ham_key_t) to an internal key (int_key_t)
  */
 extern int
 key_compare_pub_to_int(ham_page_t *page, ham_key_t *lhs, ham_u16_t rhs);
 
 /**
- * compare an internal key (key_t) to an internal key
+ * compare an internal key (int_key_t) to an internal key
  */
 extern int
 key_compare_int_to_int(ham_page_t *page, ham_u16_t lhs, ham_u16_t rhs);

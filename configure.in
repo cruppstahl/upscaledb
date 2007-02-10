@@ -11,13 +11,14 @@ AC_PREREQ(2.59)
 dnl Get the version number of hamsterdb
 define([ham_version], [esyscmd(build/scripts/get-version.sh src/version.h)])
 AC_INIT([hamsterdb], 0.4.0, [chris@crupp.de])
+AC_CANONICAL_SYSTEM
 
 AC_CONFIG_AUX_DIR(build/scripts)
 AM_INIT_AUTOMAKE([1.9 foreign])
 AC_CONFIG_HEADER(config.h)
 
-AC_LIBTOOL_WIN32_DLL
 AC_PROG_LIBTOOL
+AC_LIBTOOL_WIN32_DLL
 AC_PROG_RANLIB
 AC_PROG_CC
 AC_PROG_INSTALL
@@ -29,6 +30,18 @@ AC_CHECK_FUNCS(pread pwrite mmap munmap)
 AC_CHECK_HEADERS(fcntl.h unistd.h)
 AC_TYPE_OFF_T
 AC_FUNC_MMAP
+
+dnl 
+dnl check for cygwin/Win32
+dnl
+case $host in 
+*-*-cygwin*)
+    CFLAGS="${CFLAGS} -DWIN32 -DCYGWIN"
+    ;;
+*-*-mingw32*)
+    CFLAGS="${CFLAGS} -DWIN32"
+    ;;
+esac
 
 dnl
 dnl use -Wall on platforms with gcc
