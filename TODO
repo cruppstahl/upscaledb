@@ -1,11 +1,3 @@
-o logo!!
-
-o webseite
-    http://nitrosecurity.com/
-    http://www.opf3.com/Opf3/Default.aspx
-    http://www.pixelmedia.com/
-
------------------------------------------------------
 
 o port to ms windows
     x win32: sourcen portieren - mmap fehlt noch!
@@ -14,7 +6,30 @@ o port to ms windows
     o define HAM_EXPORT DECLSPEC _dllexport for DLLs und .so
     o monster.sh!
 
-o endianness testen
+o endianness testen - schlägt fehl! 
+
+o logo!!
+
+o webseite
+    http://nitrosecurity.com/
+    http://www.opf3.com/Opf3/Default.aspx
+    http://www.pixelmedia.com/
+    x grund-layout und php-framework erstellen
+    x doxygen in webseite integrieren
+    o hamsterdb.h überarbeiten, dokumentieren
+    o inhalte
+        x frontseite
+        o frontseite: hamster-bild einbetten
+        x features
+        o download
+        o legal/impressum
+        o sitemap
+        o GPL/Verweise auf GPL
+        o roadmap
+        o links
+        o doku bzgl installation, compilieren, portieren
+        o sidebars
+    o korrigieren lassen
 
 o können wir problemlos 32bit-filepointer nehmen?
 

@@ -24,7 +24,11 @@
 #include "error.h"
 #include "os.h"
 
+#ifdef CYGWIN
 extern size_t getpagesize();
+#else
+extern int getpagesize();
+#endif
 
 static void
 my_enable_largefile(int fd)
