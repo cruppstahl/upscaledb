@@ -102,6 +102,7 @@ main(int argc, char **argv)
         }
     }
 
+#if 0
     /*
      * now erase all values
      */
@@ -141,6 +142,7 @@ main(int argc, char **argv)
             return (-1);
         }
     }
+#endif
 
     /*
      * we're done! close the database handle

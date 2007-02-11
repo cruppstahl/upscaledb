@@ -24,9 +24,7 @@
 #include "error.h"
 #include "os.h"
 
-#ifdef CYGWIN
-extern size_t getpagesize();
-#else
+#ifndef CYGWIN
 extern int getpagesize();
 #endif
 
@@ -45,7 +43,16 @@ my_enable_largefile(int fd)
 ham_size_t
 os_get_pagesize(void)
 {
+#ifndef CYGWIN
     return ((ham_size_t)getpagesize());
+#else
+    /*
+     * cygwin returns weird pagesizes (usually 64k) and uses those
+     * pages for mmap; but they make btrees really huge; just
+     * return 0 and let the caller deal with the problem
+     */
+    return (0);
+#endif
 }
 
 ham_status_t
@@ -207,8 +214,19 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 {
     int osflags=O_CREAT|O_RDWR;
 
+    /*
+     * TODO flag only makes sense in os_open, not os_create!
+     */
     if (flags&HAM_READ_ONLY)
         osflags|=O_RDONLY;
+
+#if CYGWIN
+    /*
+     * cygwin: delete a previously existing file; otherwise the file 
+     * is not overwritten
+     */
+    (void)unlink(filename);
+#endif
 
     *fd=open(filename, osflags, mode);
     if (*fd<0) {

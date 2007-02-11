@@ -261,14 +261,6 @@ ham_open_ex(ham_db_t *db, const char *filename,
     db_header_t *dbhdr;
     ham_page_t *page;
 
-    /*
-     * no idea why, but on cygwin the mmap functions do not work
-     * (although they should); temporarily disable mmap
-     */
-#ifdef CYGWIN
-    flags|=HAM_DISABLE_MMAP;
-#endif
-
     /* cannot open an in-memory-db */
     if (flags&HAM_IN_MEMORY_DB)
         return (HAM_INV_PARAMETER);
@@ -413,14 +405,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
     ham_page_t *page;
 
     /*
-     * no idea why, but on cygwin the mmap functions do not work
-     * (although they should); temporarily disable mmap
-     */
-#ifdef CYGWIN
-    flags|=HAM_DISABLE_MMAP;
-#endif
-
-    /*
      * make sure that the pagesize is aligned to 512k
      */
     if (pagesize) {
@@ -440,8 +424,13 @@ ham_create_ex(ham_db_t *db, const char *filename,
      * in-memory-db? use the default pagesize of the system
      */
     if (flags&HAM_IN_MEMORY_DB) {
-        if (!pagesize)
+        if (!pagesize) {
             pagesize=os_get_pagesize();
+            if (!pagesize) {
+                pagesize=1024*4;
+                flags|=HAM_DISABLE_MMAP;
+            }
+        }
     }
     /*
      * can we use mmap?
@@ -454,7 +443,12 @@ ham_create_ex(ham_db_t *db, const char *filename,
         }
         else {
             pagesize=os_get_pagesize();
-            flags|=DB_USE_MMAP;
+            if (!pagesize) {
+                pagesize=1024*4;
+                flags|=HAM_DISABLE_MMAP;
+            }
+            else
+                flags|=DB_USE_MMAP;
         }
         flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
         /*
@@ -471,8 +465,10 @@ ham_create_ex(ham_db_t *db, const char *filename,
      */
     if (!pagesize) {
         pagesize=os_get_pagesize();
-        if (!pagesize)
+        if (!pagesize) {
             pagesize=1024*4;
+            flags&=~DB_USE_MMAP;
+        }
     }
 
     /*

@@ -36,6 +36,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+LIBOBJDIR =
 noinst_PROGRAMS = db1$(EXEEXT) db2$(EXEEXT) db3$(EXEEXT)
 subdir = samples
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in

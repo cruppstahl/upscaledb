@@ -36,6 +36,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+LIBOBJDIR =
 
 # little or big endian?
 @BIG_ENDIAN_TRUE@am__append_1 = -DHAM_BIG_ENDIAN

@@ -36,6 +36,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+LIBOBJDIR =
 @HAVE_DB_H_TRUE@noinst_PROGRAMS = test$(EXEEXT)
 
 # little or big endian?
