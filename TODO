@@ -1,4 +1,7 @@
 
+./test.exe --test-cursors=1 --overwrite=1 --mmap=0 --reopen=1 --cachesize=50
+--file ../../../hamsterdb-tests/trunk/testfiles/1/ext_021.tst --verbose=1
+
 o port to ms windows
     x win32: sourcen portieren - mmap fehlt noch!
     o mit mingw, bcc, watcom, msvc, icc...
