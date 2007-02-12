@@ -11,9 +11,9 @@ d=1
 
 \rm -f *.db
 
-./run-tests.sh $d --reopen=1 $1 $2 $3 $4 $5
-./run-tests.sh $d --fullcheck=find $1 $2 $3 $4 $5
-./run-tests.sh $d --reopen=1 --useralloc=1 $1 $2 $3 $4 $5
+#./run-tests.sh $d --reopen=1 $1 $2 $3 $4 $5
+#./run-tests.sh $d --fullcheck=find $1 $2 $3 $4 $5
+#./run-tests.sh $d --reopen=1 --useralloc=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --fullcheck=find --useralloc=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --overwrite=1 --reopen=1 $1 $2 $3 $4 $5
 ./run-tests.sh $d --overwrite=1 --reopen=1 --useralloc=1 $1 $2 $3 $4 $5

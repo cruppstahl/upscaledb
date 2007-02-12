@@ -1026,6 +1026,8 @@ my_execute_insert(char *line)
     flags =my_strtok(line, ",");
     keytok=my_strtok(0, ",");
     data  =my_strtok(0, ",");
+    if (!data)
+        data="";
 
     VERBOSE2(("insert: flags=%s, key=%s, data=%s", flags, keytok, data));
 

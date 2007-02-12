@@ -88,7 +88,7 @@ void
 dbg_log(const char *format, ...)
 {
     int s;
-    char buffer[1024];
+    char buffer[1024*4];
 
     va_list ap;
     va_start(ap, format);
@@ -103,7 +103,7 @@ void
 dbg_verify_failed(const char *format, ...)
 {
     int s;
-    char buffer[1024];
+    char buffer[1024*4];
     va_list ap;
 
     if (!g_expr)
