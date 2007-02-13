@@ -518,6 +518,7 @@ bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
     ham_txn_t txn;
     ham_bool_t local_txn=db_get_txn(db) ? HAM_FALSE : HAM_TRUE;
     ham_u32_t oldflags;
+    ham_page_t *page;
 
     if (local_txn) {
         st=ham_txn_begin(&txn, db);
@@ -541,6 +542,12 @@ bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
             (void)ham_txn_abort(&txn);
         return (HAM_CURSOR_IS_NIL);
     }
+
+    /*
+     * make sure that the page is not unloaded
+     */
+    page=bt_cursor_get_coupled_page(c);
+    page_inc_inuse(page);
 
     /*
      * get the btree node entry
@@ -570,6 +577,7 @@ bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
                         key_get_ptr(key));
             (void)blob_free(db, key_get_ptr(key), 0);
         }
+
         key_set_ptr(key, 0);
         key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_EMPTY);
     }
@@ -597,6 +605,7 @@ bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
         else
             st=blob_allocate(db, record->data, record->size, 0, &rid);
         if (st) {
+            page_dec_inuse(page);
             if (local_txn)
                 (void)ham_txn_abort(&txn);
             return (st);
@@ -627,14 +636,14 @@ bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
             p[sizeof(ham_offset_t)-1]=record->size;
             key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_TINY);
         }
-        else {
+        else
             key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_SMALL);
-        }
 
         key_set_ptr(key, rid);
     }
 
     page_set_dirty(bt_cursor_get_coupled_page(c), 1);
+    page_dec_inuse(page);
 
     if (local_txn)
         return (ham_txn_commit(&txn));

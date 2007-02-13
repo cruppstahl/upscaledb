@@ -49,7 +49,7 @@ my_dump_cb(int event, void *param1, void *param2, void *context)
     case ENUM_EVENT_PAGE_START:
         page=(ham_page_t *)param1;
         printf("\n------ page 0x%llx ---------------------------------------\n",
-            page_get_self(page));
+            (long long unsigned int)page_get_self(page));
         break;
 
     case ENUM_EVENT_ITEM:
@@ -77,7 +77,8 @@ my_dump_cb(int event, void *param1, void *param2, void *context)
             else
                 printf("\n");
 
-            printf("      ptr: 0x%llx\n", key_get_ptr(key));
+            printf("      ptr: 0x%llx\n", 
+                    (long long unsigned int)key_get_ptr(key));
         }
         break;
 
