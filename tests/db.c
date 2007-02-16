@@ -701,14 +701,11 @@ my_compare_databases(void)
         while ((ret=cursor->c_get(cursor, &key, &rec, DB_NEXT))==0) {
             PROFILE_STOP(PROF_CURSOR, berk);
 
-            /*
             printf("status: %d/%d\n", st, ret);
             printf("keys: %u/%u, record: %u/%u\n", 
                     hkey.size ? *(unsigned *)hkey.data : 0, 
                     key.size ? *(unsigned *)key.data : 0, 
                     hrec.size, rec.size);
-            */
-
             ham_assert(hrec.size==rec.size, 
                     ("data: %u != %u", hrec.size, rec.size));
             if (hkey.data)
@@ -1138,7 +1135,6 @@ my_execute_insert(char *line)
                      * flag HAM_OVERWRITE, though) */
                     st=ham_cursor_insert(ham_cursors[0], &key, &record, 0);
                     if (config.overwrite && st==HAM_DUPLICATE_KEY) {
-                        VERBOSE2(("overwriting key"));
                         st=ham_cursor_find(ham_cursors[0], &key, 0); 
                         if (st==0) {
                             st=ham_cursor_replace(ham_cursors[0], &record, 0);
