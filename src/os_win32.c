@@ -27,6 +27,8 @@ os_mmap(ham_fd_t fd, ham_offset_t position, ham_size_t size,
         ham_u8_t **buffer)
 {
 #if 0
+    TODO TODO TODO
+
     *buffer=mmap(0, size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, position);
     if (*buffer==(void *)-1) {
         *buffer=0;
@@ -41,6 +43,8 @@ ham_status_t
 os_munmap(void *buffer, ham_size_t size)
 {
 #if 0
+    TODO TODO TODO
+
     int r=munmap(buffer, size);
     if (r) {
         ham_log("munmap failed with status %d (%s)", errno, strerror(errno));
@@ -163,6 +167,8 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
     ham_status_t st;
     DWORD osflags=FILE_FLAG_RANDOM_ACCESS;
     DWORD dispo  =OPEN_EXISTING;
+    /* TODO open exclusively? 
+    TODO TODO TODO */
 
     if (flags&HAM_READ_ONLY)
         osflags|=FILE_ATTRIBUTE_READONLY;
