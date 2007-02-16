@@ -3,7 +3,7 @@
  * All rights reserved. See file LICENSE for licence and copyright
  * information.
  *
- * include file for hamster-db
+ * Include file for hamsterdb.
  *
  */
 
@@ -17,100 +17,198 @@ extern "C" {
 #include <ham/types.h>
 
 /**
- * the database structure
+ * The hamsterdb database structure.
+ * 
+ * This structure is allocated with @a ham_new and deleted with 
+ * @a ham_delete.
  */
 struct ham_db_t;
 typedef struct ham_db_t ham_db_t;
 
 /**
- * a database cursor
+ * A database cursor.
+ * 
+ * A cursor is used for bi-directionally traversing the database and 
+ * for inserting/deleting/searching database items.
+ * 
+ * This structure is allocated with @a ham_cursor_create and deleted with 
+ * @a ham_cursor_close.
  */
 struct ham_cursor_t;
 typedef struct ham_cursor_t ham_cursor_t;
 
 /**
- * a generic record
+ * A generic record.
+ * 
+ * A record represents data items in hamsterdb. Before using a record, it
+ * is important to initialize all record fields with zeroes, i.e. with 
+ * the C library routines memset(3) or bzero(2). 
+ * 
+ * When hamsterdb returns a record structure, the pointer to the record 
+ * data is provided in @a data. This pointer is only temporary and will be 
+ * overwritten by subsequent hamsterdb API calls. 
+ * 
+ * To avoid this, the calling application can allocate the @a data pointer.  
+ * In this case, you have to set the flag @a HAM_RECORD_USER_ALLOC. The 
+ * @a size parameter will then return the size of the record. It's the 
+ * responsibility of the caller to make sure that the @a data parameter is 
+ * large enough for the record.
+ * 
  */
 typedef struct
 {
+    /** The size of the record data, in bytes */
     ham_size_t size;
-    ham_u32_t flags;
+
+    /** The record data, usually a temporary pointer allocated by hamsterdb */
     void *data;
+
+    /** The record flags */
+    ham_u32_t flags;
+
+    /** For internal use */
     ham_size_t _allocsize;
+
+    /** For internal use */
     ham_u32_t _intflags;
+
+    /** For internal use */
     ham_u64_t _rid;
+
 } ham_record_t;
 
 /**
- * flags for ham_record_t: data points to memory which is allocated
- * by the user
+ * Flag for @a ham_record_t
+ * 
+ * Data points to memory which is allocated by the user
  */
 #define HAM_RECORD_USER_ALLOC   1
 
 /**
- * a generic key
+ * A generic key.
+ * 
+ * A key represents key items in hamsterdb. Before using a key, it
+ * is important to initialize all key fields with zeroes, i.e. with 
+ * the C library routines memset(3) or bzero(2). 
+ * 
+ * hamsterdb usually uses keys to insert, delete or search for items.
+ * However, when using database cursors and the function @a ham_cursor_move,
+ * hamsterdb also returns keys. In this case, the pointer to the key 
+ * data is provided in @a data. This pointer is only temporary and will be 
+ * overwritten by subsequent calls to @a ham_cursor_move. 
+ * 
+ * To avoid this, the calling application can allocate the @a data pointer.  
+ * In this case, you have to set the flag @a HAM_KEY_USER_ALLOC. The 
+ * @a size parameter will then return the size of the key. It's the 
+ * responsibility of the caller to make sure that the @a data parameter is 
+ * large enough for the key.
+ * 
  */
 typedef struct
 {
+    /** The size of the key, in bytes */
     ham_size_t size;
+
+    /** The data of the key */
     void *data;
+
+    /** The flags of the key */
     ham_u32_t flags;
+
+    /** For internal use */
     ham_u32_t _flags;
 } ham_key_t;
 
 /**
- * flags for ham_key_t: data points to memory which is allocated
- * by the user. this is only useful if you read the key from a cursor
- * (ham_cursor_get_key());
+ * Flag for @a ham_key_t
+ * 
+ * Data points to memory which is allocated by the user (only makes sense
+ * when querying keys with @a ham_cursor_move).
  */
 #define HAM_KEY_USER_ALLOC      1
 
 /**
- * a typedef for a custom error handler function
+ * A typedef for a custom error handler function
+ * 
+ * @param message The error message.
  */
 typedef void (*ham_errhandler_fun)(const char *message);
 
 /**
- * set a global error handler; this handler will receive <b>all</b> debug
- * messages which are emitted by hamster-db. you can remove the handler by
- * setting @a f to 0.
+ * Set a global error handler
+ * 
+ * This handler will receive <b>all</b> debug messages which are emitted 
+ * by hamsterdb. You can install the default handler by setting @a f to 0.
+ * 
+ * The default error handler prints all messages to stderr. To install a 
+ * different logging facility, you can provide your own error handler.
+ *
+ * @param f A pointer to the error handler function, or NULL to restore 
+ *          the default handler.
  */
 extern void
 ham_set_errhandler(ham_errhandler_fun f);
 
 /**
- * get a descriptive error string from a hamster status code
+ * Get a descriptive error string from a hamsterdb status code
+ *
+ * @param status The hamsterdb status code
+ *
+ * @return Returns a C string with a descriptive error string.
  */
 extern const char *
-ham_strerror(ham_status_t result);
+ham_strerror(ham_status_t status);
 
-/**
- * hamster error- and status codes.
- * hamster-error codes are always negative, so we have no conflicts with
- * errno.h
+/*
+ * hamsterdb error- and status codes.
+ * These codes are always negative, so we have no conflicts with errno.h
  */
+
+/** Success, no error */
 #define HAM_SUCCESS                  (  0)
+/** Failed to read the file */
 #define HAM_SHORT_READ               ( -1)
+/** Failed to write the file */
 #define HAM_SHORT_WRITE              ( -2)
+/** Invalid key size */
 #define HAM_INV_KEYSIZE              ( -3)
+/** Invalid page size (not a multiple of 1024?) */
 #define HAM_INV_PAGESIZE             ( -4)
+/** Database is already open */
 #define HAM_DB_ALREADY_OPEN          ( -5)
+/** Memory allocation failed - out of memory */
 #define HAM_OUT_OF_MEMORY            ( -6)
+/** Invalid backend index */
 #define HAM_INV_INDEX                ( -7)
+/** Invalid function parameter */
 #define HAM_INV_PARAMETER            ( -8)
+/** Invalid file header */
 #define HAM_INV_FILE_HEADER          ( -9)
+/** Invalid file version */
 #define HAM_INV_FILE_VERSION         (-10)
+/** Database key not found */
 #define HAM_KEY_NOT_FOUND            (-11)
+/** Key already exists */
 #define HAM_DUPLICATE_KEY            (-12)
+/** Internal database integrity violated */
 #define HAM_INTEGRITY_VIOLATED       (-13)
+/** Internal hamsterdb error */
 #define HAM_INTERNAL_ERROR           (-14)
+/** Database was opened read-only */
 #define HAM_DB_READ_ONLY             (-15)
+/** Database record not found */
 #define HAM_BLOB_NOT_FOUND           (-16)
+/** Prefix comparison function needs more data */
 #define HAM_PREFIX_REQUEST_FULLKEY   (-17)
+/** Generic file I/O error */
 #define HAM_IO_ERROR                 (-18)
+/** Database cache is full */
 #define HAM_CACHE_FULL               (-19)
+/** Function is not implemented */
 #define HAM_NOT_IMPLEMENTED          (-20)
+/** Database file not found */
 #define HAM_FILE_NOT_FOUND           (-21)
+/** Cursor does not point to a valid database item */
 #define HAM_CURSOR_IS_NIL           (-100)
 
 /**
