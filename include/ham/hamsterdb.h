@@ -127,38 +127,6 @@ typedef struct
  */
 #define HAM_KEY_USER_ALLOC      1
 
-/**
- * A typedef for a custom error handler function
- * 
- * @param message The error message.
- */
-typedef void (*ham_errhandler_fun)(const char *message);
-
-/**
- * Set a global error handler
- * 
- * This handler will receive <b>all</b> debug messages which are emitted 
- * by hamsterdb. You can install the default handler by setting @a f to 0.
- * 
- * The default error handler prints all messages to stderr. To install a 
- * different logging facility, you can provide your own error handler.
- *
- * @param f A pointer to the error handler function, or NULL to restore 
- *          the default handler.
- */
-extern void
-ham_set_errhandler(ham_errhandler_fun f);
-
-/**
- * Get a descriptive error string from a hamsterdb status code
- *
- * @param status The hamsterdb status code
- *
- * @return Returns a C string with a descriptive error string.
- */
-extern const char *
-ham_strerror(ham_status_t status);
-
 /*
  * hamsterdb error- and status codes.
  * These codes are always negative, so we have no conflicts with errno.h
@@ -212,39 +180,119 @@ ham_strerror(ham_status_t status);
 #define HAM_CURSOR_IS_NIL           (-100)
 
 /**
- * get the version of the hamsterdb library
+ * A typedef for a custom error handler function
+ * 
+ * @param message The error message.
+ */
+typedef void (*ham_errhandler_fun)(const char *message);
+
+/**
+ * Set a global error handler
+ * 
+ * This handler will receive <b>all</b> debug messages which are emitted 
+ * by hamsterdb. You can install the default handler by setting @a f to 0.
+ * 
+ * The default error handler prints all messages to stderr. To install a 
+ * different logging facility, you can provide your own error handler.
+ *
+ * @param f A pointer to the error handler function, or NULL to restore 
+ *          the default handler.
+ */
+extern void
+ham_set_errhandler(ham_errhandler_fun f);
+
+/**
+ * Get a descriptive error string from a hamsterdb status code
+ *
+ * @param status The hamsterdb status code
+ *
+ * @return Returns a C string with a descriptive error string.
+ */
+extern const char *
+ham_strerror(ham_status_t status);
+
+/**
+ * Get the version of the hamsterdb library
  */
 extern void
 ham_get_version(ham_u32_t *major, ham_u32_t *minor,
         ham_u32_t *revision);
 
 /**
- * create a new ham_db_t handle
+ * Allocate a ham_db_t handle
+ *
+ * @param db Pointer to a pointer which is allocated with the structure
+ *
+ * @return @a HAM_SUCCESS on success
+ * TODO TODO TODO mehr fehlercodes?
  */
 extern ham_status_t
 ham_new(ham_db_t **db);
 
 /**
- * delete a ham_db_t handle
+ * Delete a ham_db_t handle
+ *
+ * This function frees the ham_db_t structure. It does not close the 
+ * database. Call this function <b>AFTER</b> you have closed the 
+ * database with @a ham_close, or you will lose your data!
+ *
+ * @param db A valid database handle.
+ *
+ * @return @a HAM_SUCCESS on success
+ * TODO TODO TODO mehr fehlercodes?
  */
 extern ham_status_t
 ham_delete(ham_db_t *db);
 
 /**
- * open an (existing) database
+ * Open a database
+ *
+ * @param db A valid database handle.
+ * @param filename The filename of the database file.
+ * @param flags Optional flags for opening the database, combined with 
+ *        bitwise OR. 
+ *
+ * @return @a HAM_SUCCESS on success
+ * TODO TODO TODO mehr fehlercodes?
+ * TODO TODO TODO flags beschreiben
  */
 extern ham_status_t
 ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
 
 /**
- * open an (existing) database - extended version
+ * Open a database - extended version
+ *
+ * @param db A valid database handle.
+ * @param filename The filename of the database file.
+ * @param flags Optional flags for opening the database, combined with 
+ *        bitwise OR. 
+ * @param cachesize The size of the database cache, in bytes.
+ *
+ * @return @a HAM_SUCCESS on success
+ * TODO TODO TODO mehr fehlercodes?
+ * TODO TODO TODO flags beschreiben
  */
 extern ham_status_t
 ham_open_ex(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_size_t cachesize);
 
 /**
- * create a new database
+ * Create a database
+ *
+ * @param db A valid database handle.
+ * @param filename The filename of the database file.
+ * @param flags Optional flags for opening the database, combined with 
+ *        bitwise OR. 
+ *
+ * @return @a HAM_SUCCESS on success
+ * TODO TODO TODO mehr fehlercodes?
+ * TODO TODO TODO flags beschreiben
+ * TODO TODO TODO was passiert wenn die datei schon existiert? 
+ *    wird sie überschrieben?
+ *
+ * @remark If you create an in-memory-database (flag HAM_IN_MEMORY_DB),
+ * you are NOT allowed to set the flag HAM_CACHE_STRICT or to use
+ * a cache size != 0!
  */
 extern ham_status_t
 ham_create(ham_db_t *db, const char *filename,
@@ -253,10 +301,30 @@ ham_create(ham_db_t *db, const char *filename,
 /**
  * create a new database - extended version
  *
- * !!
- * If you create an in-memory-database (flag HAM_IN_MEMORY_DB),
+ * Create a database - extended version
+ *
+ * @param db A valid database handle.
+ * @param filename The filename of the database file.
+ * @param flags Optional flags for opening the database, combined with 
+ *        bitwise OR. 
+ * @param keysize The size of the keys in the B+Tree index. Set to 0 for 
+ *        the default size (usually about 9 to 15 bytes). TODO 
+ * @param pagesize The size of the file page, in bytes. Set to 0 for 
+ *        the default size (recommended). The default size depends on 
+ *        your hardware and operating system. Page sizes must be a multiple
+ *        of 1024.
+ * @param cachesize The size of the database cache, in bytes.
+ *
+ * @return @a HAM_SUCCESS on success
+ * TODO TODO TODO mehr fehlercodes?
+ * TODO TODO TODO flags beschreiben
+ * TODO TODO TODO was passiert wenn die datei schon existiert? 
+ *    wird sie überschrieben?
+ *
+ * @remark If you create an in-memory-database (flag HAM_IN_MEMORY_DB),
  * you are NOT allowed to set the flag HAM_CACHE_STRICT or to use
  * a cache size != 0!
+ *
  */
 extern ham_status_t
 ham_create_ex(ham_db_t *db, const char *filename,
@@ -264,47 +332,71 @@ ham_create_ex(ham_db_t *db, const char *filename,
         ham_u16_t keysize, ham_size_t cachesize);
 
 /**
- * Flags for opening and creating the database
+ * Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex
  *
- * When file pages are modified, write them imediately to the file.
+ * When file pages are modified, write them imediately to the file. This 
+ * slows down all database operations, but might save the database integrity
+ * in case of a system crash. 
+ * 
  * The flag is disabled by default.
  */
 #define HAM_WRITE_THROUGH            0x00000001
 
 /**
- * Open the file for reading only
+ * Flag for @a ham_open, @a ham_open_ex
+ *
+ * Open the file for reading only. Operations which need write access 
+ * (i.e. @a ham_insert) will return error @a HAM_DB_READ_ONLY.
+ * 
  * The flag is disabled by default.
  */
 #define HAM_READ_ONLY                0x00000004
 
 /**
- * Open the file exclusively
+ * Flag for @a ham_open, @a ham_open_ex
+ *
+ * Opens the file exclusively by specifying O_EXCL (Posix). TODO win32?
+ *
  * This is broken on nfs and most likely on other network filesystems, too.
+ *
  * The flag is disabled by default.
  */
 #define HAM_OPEN_EXCLUSIVELY         0x00000008
 
 /**
- * use a B+tree as the index structure
+ * Flag for @a ham_create, @a ham_create_ex
+ *
+ * Use a B+Tree for the index structure. Currently, this is your only choice,
+ * but future releases of hamsterdb will offer additional index structures, 
+ * i.e. hash tables.
+ *
  * This flag is enabled by default.
  */
 #define HAM_USE_BTREE                0x00000010
 
-/**
- * use a hash database as the index structure
+/*
+ * Use a hash database as the index structure
  * This flag is disabled by default.
- */
 #define HAM_USE_HASH                 0x00000020
+ */
 
 /**
- * do not allow the use of variable length keys
+ * Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex
+ * TODO stimmt das? open und create?
+ *
+ * Do not allow the use of variable length keys. Inserting a key, which is 
+ * larger than the B+Tree index key size, returns error @a HAM_INV_KEYSIZE.
+ *
  * This flag is disabled by default.
  */
 #define HAM_DISABLE_VAR_KEYLEN       0x00000040
 
 /**
- * create an in-memory-database. No file will be written, and the
+ * Flag for @a ham_create, @a ham_create_ex
+ *
+ * Create an in-memory-database. No file will be created, and the
  * database contents are lost after the database is closed.
+ *
  * This flag is disabled by default.
  */
 #define HAM_IN_MEMORY_DB             0x00000080
@@ -314,38 +406,51 @@ ham_create_ex(ham_db_t *db, const char *filename,
  */
 
 /**
- * do not use memory mapped files for I/O. Per default, hamsterdb
+ * Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex
+ *
+ * Do not use memory mapped files for I/O. Per default, hamsterdb
  * checks if it can use mmap, since mmap is faster then read/write.
  * It's not recommended to use this flag.
+ * 
+ * This flag is disabled by default.
  */
 #define HAM_DISABLE_MMAP             0x00000200
 
 /**
- * Flags and policies for the database cache
+ * Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex
  *
- * If this flag is true, the cache must *never* be bigger then
- * the maximum cachesize; otherwise, the cache is allowed to allocate
+ * If this flag is set, the cache is never allowed to grow larger than 
+ * the maximum cachesize. If a database operation needs to resize the 
+ * cache, it will return with error @a HAM_CACHE_FULL.
+ * 
+ * If the flag is not set, the cache is allowed to allocate
  * more pages then the maximum cachesize, but only if it's necessary and
- * only for a short time. Default: flag is off
+ * only for a short time. 
  *
- * !!
- * This flag is not allowed in combination with HAM_IN_MEMORY_DB!
+ * This flag is disabled by default.
  */
 #define HAM_CACHE_STRICT             0x00000400
 
 /**
- * Do not immediately writeback modified freelist pages.
+ * Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex
+ *
+ * Do not immediately writeback modified freelist pages. This flag
  * leads to small performance improvements, but comes with additional
  * risk in case of a system crash or program crash.
- * Default: flag is off.
+ *
+ * This flag is disabled by default.
  */
 #define HAM_DISABLE_FREELIST_FLUSH   0x00000800
 
 /**
- * Optimize for smaller database files; this will try to merge freelist
+ * Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex
+ *
+ * Optimize for smaller database files; hamsterdb will try to merge freelist
  * entries, whenever possible. Files can become significantly smaller,
- * but it costs performance, especially when ham_erase() is called
- * frequently. Default: flag is off.
+ * but it costs performance, especially when the application deletes a 
+ * lot of items.
+ * 
+ * This flag is disabled by default.
  */
 #define HAM_OPTIMIZE_SIZE            0x00001000
 
