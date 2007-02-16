@@ -55,7 +55,8 @@ util_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest)
      * extended key: copy the whole key
      */
     if (key_get_flags(source)&KEY_IS_EXTENDED) {
-        ham_status_t st=db_get_extended_key(db, key_get_key(source),
+        ham_status_t st=db_get_extended_key(db, 
+					(ham_u8_t *)key_get_key(source),
                     key_get_size(source), key_get_flags(source),
                     (ham_u8_t **)&dest->data);
         if (st) {

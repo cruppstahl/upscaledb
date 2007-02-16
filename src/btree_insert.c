@@ -339,7 +339,7 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
             goto shift_elements;
         }
 
-        cmp=key_compare_int_to_pub(page, slot, key);
+        cmp=key_compare_int_to_pub(page, (ham_u16_t)slot, key);
         if (db_get_error(db))
             return (db_get_error(db));
 
@@ -555,10 +555,11 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
     ham_page_t *newpage, *oldsib;
     int_key_t *nbte, *obte;
     btree_node_t *nbtp, *obtp, *sbtp;
-    ham_size_t count, pivot, keysize;
+    ham_size_t count, keysize;
     ham_db_t *db=page_get_owner(page);
     ham_key_t pivotkey, oldkey;
     ham_offset_t pivotrid;
+	ham_u16_t pivot;
 
     keysize=db_get_keysize(db);
 

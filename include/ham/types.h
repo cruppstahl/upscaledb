@@ -61,8 +61,13 @@ extern "C" {
  * typedefs for 32bit operating systems
  */
 #ifdef HAM_32BIT
+#    ifdef WIN32
+typedef signed __int64     ham_s64_t;
+typedef unsigned __int64   ham_u64_t;
+#else
 typedef signed long long   ham_s64_t;
 typedef unsigned long long ham_u64_t;
+#endif
 typedef signed int         ham_s32_t;
 typedef unsigned int       ham_u32_t;
 typedef signed short       ham_s16_t;

@@ -737,11 +737,11 @@ db_create_backend(ham_db_t *db, ham_u32_t flags)
 
     /*
      * hash tables are not yet supported
-     */
     if (flags&HAM_USE_HASH) {
         ham_log(("hash indices are not yet supported"));
         return (0);
     }
+     */
 
     /*
      * the default backend is the BTREE

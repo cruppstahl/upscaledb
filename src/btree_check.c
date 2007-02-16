@@ -117,7 +117,8 @@ my_verify_level(ham_page_t *parent, ham_page_t *page,
     if (parent && btree_node_get_left(node)) {
         btree_node_t *cnode =ham_page_get_btree_node(page);
 
-        cmp=key_compare_int_to_int(page, 0, btree_node_get_count(cnode)-1);
+        cmp=key_compare_int_to_int(page, 0, 
+					(ham_u16_t)(btree_node_get_count(cnode)-1));
         if (db_get_error(db))
             return (db_get_error(db));
         if (cmp<0) {
@@ -242,7 +243,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
         return (0);
 
     for (i=0; i<count-1; i++) {
-        cmp=key_compare_int_to_int(page, i, i+1);
+        cmp=key_compare_int_to_int(page, (ham_u16_t)i, (ham_u16_t)(i+1));
         if (db_get_error(db))
             return (db_get_error(db));
         if (cmp>=0) {

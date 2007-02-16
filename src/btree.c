@@ -52,7 +52,7 @@ btree_get_slot(ham_db_t *db, ham_page_t *page,
         }
         
         /* compare it against the key */
-        cmp=key_compare_pub_to_int(page, key, i);
+        cmp=key_compare_pub_to_int(page, key, (ham_u16_t)i);
         if (db_get_error(db))
             return (db_get_error(db));
 
@@ -279,7 +279,7 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key)
     db_set_error(db, 0);
 
     for (i=0; i<btree_node_get_count(node); i++) {
-        cmp=key_compare_int_to_pub(page, i, key);
+        cmp=key_compare_int_to_pub(page, (ham_u16_t)i, key);
         if (db_get_error(db))
             return (-1);
         if (cmp==0)

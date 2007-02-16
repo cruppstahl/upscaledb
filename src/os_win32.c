@@ -93,6 +93,10 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
     return (written==bufferlen ? HAM_SUCCESS : HAM_SHORT_WRITE);
 }
 
+#ifndef INVALID_SET_FILE_POINTER
+#   define INVALID_SET_FILE_POINTER  ((DWORD)-1)
+#endif
+
 ham_status_t
 os_seek(ham_fd_t fd, ham_offset_t offset, int whence)
 {
@@ -100,8 +104,10 @@ os_seek(ham_fd_t fd, ham_offset_t offset, int whence)
     LARGE_INTEGER i;
     i.QuadPart=offset;
     
-    st=SetFilePointerEx((HANDLE)fd, i, 0, whence);
-    if (st==0 && (st=GetLastError())!=NO_ERROR) {
+	i.LowPart=SetFilePointer((HANDLE)fd, i.LowPart, 
+			&i.HighPart, whence);
+	if (i.LowPart==INVALID_SET_FILE_POINTER && 
+		(st=GetLastError())!=NO_ERROR) {
         ham_trace(("seek failed with OS status %u", st));
         return ((ham_status_t)st);
     }
@@ -113,11 +119,13 @@ ham_status_t
 os_tell(ham_fd_t fd, ham_offset_t *offset)
 {
     DWORD st;
-    LARGE_INTEGER i, d;
-    d.QuadPart=0;
+    LARGE_INTEGER i;
+    i.QuadPart=0;
 
-    st=SetFilePointerEx((HANDLE)fd, d, &i, HAM_OS_SEEK_CUR);
-    if (st==0 && (st=GetLastError())!=NO_ERROR) {
+	i.LowPart=SetFilePointer((HANDLE)fd, i.LowPart, 
+			&i.HighPart, HAM_OS_SEEK_CUR);
+	if (i.LowPart==INVALID_SET_FILE_POINTER && 
+		(st=GetLastError())!=NO_ERROR) {
         ham_trace(("tell failed with OS status %u", st));
         return ((ham_status_t)st);
     }
@@ -150,12 +158,16 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
     ham_status_t st;
     DWORD osflags=FILE_FLAG_RANDOM_ACCESS;
 
-    *fd=(ham_fd_t)CreateFile(filename, FILE_ALL_ACCESS, 0, 0,
-                CREATE_ALWAYS, osflags, 0);
-    if (*fd==0) {
+    *fd=(ham_fd_t)CreateFile(filename, GENERIC_WRITE, 0, 0,
+                CREATE_ALWAYS, 
+				FILE_ATTRIBUTE_NORMAL|FILE_FLAG_OVERLAPPED, 0);
+    if (*fd==INVALID_HANDLE_VALUE) {
         st=(ham_status_t)GetLastError();
+		/* this function can return errors even when it succeeds... */
+		if (st==ERROR_ALREADY_EXISTS)
+			return (0);
         ham_trace(("CreateFile failed with OS status %u", st));
-        return (st);
+        return (HAM_IO_ERROR);
     }
 
     return (HAM_SUCCESS);
@@ -168,6 +180,10 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
     DWORD osflags=FILE_FLAG_RANDOM_ACCESS;
     DWORD dispo  =OPEN_EXISTING;
     /* TODO open exclusively? 
+	DWORD share=0;
+
+	if (!(flags&HAM_OPEN_EXCLUSIVELY))
+		share=FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE;
     TODO TODO TODO */
 
     if (flags&HAM_READ_ONLY)
