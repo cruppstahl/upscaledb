@@ -130,6 +130,9 @@ typedef struct
 /*
  * hamsterdb error- and status codes.
  * These codes are always negative, so we have no conflicts with errno.h
+ *
+ * @defgroup ham_status_codes hamsterdb Status Codes
+ * @{
  */
 
 /** Success, no error */
@@ -179,6 +182,15 @@ typedef struct
 /** Cursor does not point to a valid database item */
 #define HAM_CURSOR_IS_NIL           (-100)
 
+/*
+ * @}
+ */
+
+/*
+ * @defgroup ham_static hamsterdb Static Functions
+ * @{
+ */
+
 /**
  * A typedef for a custom error handler function
  * 
@@ -217,6 +229,15 @@ ham_strerror(ham_status_t status);
 extern void
 ham_get_version(ham_u32_t *major, ham_u32_t *minor,
         ham_u32_t *revision);
+
+/*
+ * @}
+ */
+
+/*
+ * @defgroup ham_db hamsterdb Database Functions
+ * @{
+ */
 
 /**
  * Allocate a ham_db_t handle
@@ -455,84 +476,172 @@ ham_create_ex(ham_db_t *db, const char *filename,
 #define HAM_OPTIMIZE_SIZE            0x00001000
 
 /**
- * create a database cursor
- *
- * @remark set reserved and flags to 0
- */
-extern ham_status_t
-ham_create_cursor(ham_db_t *db, void *reserved, ham_u32_t flags,
-            ham_cursor_t **cursor);
-
-/**
  * get the last error code
  */
 extern ham_status_t
 ham_get_error(ham_db_t *db);
 
 /**
- * set the prefix comparison function
+ * Set the prefix comparison function
  *
- * @remark the prefix comparison function is called when an index uses
+ * The prefix comparison function is called when an index uses
  * keys with variable length, and one of the two keys is loaded only
  * partially.
+ *
+ * @param db A valid database handle.
+ * @param foo A pointer to the prefix compare function.
+ *
+ * @return @a HAM_SUCCESS on success
+ * TODO TODO TODO mehr fehlercodes?
  */
 extern ham_status_t
 ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
 
 /**
- * set the default comparison function
+ * Set the comparison function
  *
- * @remark the default comparison function is called when an index does NOT
- * use keys with variable length, or if both keys are loaded completely.
+ * The comparison function compares two index keys. It returns -1 if the 
+ * first key is smaller, +1 if the second key is smaller or 0 if both
+ * keys are equal.
+ *
+ * The default comparison function uses memcmp to compare the keys.
+ *
+ * @param db A valid database handle.
+ * @param foo A pointer to the compare function.
+ *
+ * @return @a HAM_SUCCESS on success
+ * TODO TODO TODO mehr fehlercodes?
  */
 extern ham_status_t
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
 
 /**
- * find a key in the database
+ * Search an item in the database
  *
- * @remark set 'reserved' to NULL
+ * This function searches the database for the @a key; if the key
+ * is found, the record of this item is returned in @a record and 
+ * @a HAM_SUCCESS is returned. If the key is not found, the function
+ * returns with @a HAM_KEY_NOT_FOUND.
+ *
+ * Before using a ham_record_t structure, it should be initialized with 
+ * zeroes, i.e. with the C library routines memset(3) or bzero(2). 
+ *
+ * If the function returns successfully, the @a record pointer is 
+ * initialized with the size of the record (in record->size) and a 
+ * pointer to the actual record data (in record->data). If the record 
+ * is empty, @a size is 0 and @a data is NULL.
+ *
+ * The @a data pointer is a temporary pointer and will be overwritten 
+ * by subsequent hamsterdb API calls. You can alter this behaviour by 
+ * allocating the @a data pointer in the application and setting 
+ * record->flags to HAM_RECORD_USER_ALLOC. Make sure that the allocated
+ * buffer is large enough. 
+ *
+ * @param db A valid database handle.
+ * @param reserved A reserved value; set to NULL.
+ * @param key The key of the item.
+ * @param record The record of the item.
+ * @param flags Search flags; unused, set to 0.
+ *
+ * @return @a HAM_SUCCESS on success
+ * TODO TODO TODO mehr fehlercodes?
  */
 extern ham_status_t
 ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags);
 
 /**
- * insert a database entry
+ * Insert a database item
  *
- * @remark set 'reserved' to NULL
+ * This function inserts a key/record pair as a new database item.
  *
- * @remark see below for valid flags
+ * If the key already exists in the database, error @a HAM_DUPLICATE_KEY
+ * is returned. If you wish to overwrite an existing entry, specify the
+ * flag @a HAM_OVERWRITE.
+ *
+ * @param db A valid database handle.
+ * @param reserved A reserved value; set to NULL.
+ * @param key The key of the new item.
+ * @param record The record of the new item.
+ * @param flags Insert flags TODO 
+ *
+ * @return @a HAM_SUCCESS on success
+ * TODO TODO TODO mehr fehlercodes?
  */
 extern ham_status_t
 ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags);
 
-/** insert-flag: overwrite the key/record pair, if it exists */
+/** 
+ * Flag for @a ham_insert and @a ham_cursor_insert
+ *
+ * When inserting a key/record pair, and the key already exists, then
+ * overwrite the existing item.
+ */
 #define HAM_OVERWRITE               1
 
 /**
- * erase a database entry
+ * Erase a database item
  *
- * @remark set 'reserved' to NULL
+ * This function erases a database item. If the item with the @a key
+ * does not exist, @a HAM_KEY_NOT_FOUND is returned.
+ *
+ * @param db A valid database handle.
+ * @param reserved A reserved value; set to NULL.
+ * @param key The key of the new item.
+ * @param flags Erase flags; unused, set to 0.
+ *
+ * @return @a HAM_SUCCESS on success
+ * TODO TODO TODO mehr fehlercodes?
  */
 extern ham_status_t
 ham_erase(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_u32_t flags);
 
 /**
- * flush all open pages and write them to disk
+ * Flush the database
  *
- * this function has no effect on in-memory-databases
+ * This function flushes the database cache and writes the whole file 
+ * to disk. 
+ *
+ * @remark Since in-memory-databases do not have a file on disk, the 
+ * function will have no effect and return @a HAM_SUCCESS.
+ *
+ * @param db A valid database handle.
+ * @param flags Flush flags; unused, set to 0.
+ *
+ * @return @a HAM_SUCCESS on success
+ * TODO TODO TODO mehr fehlercodes?
  */
 extern ham_status_t
 ham_flush(ham_db_t *db, ham_u32_t flags);
 
 /**
- * close a database
+ * Close a database
+ *
+ * This function flushes the database, and then closes the file handle. 
+ * It does not free the memory resources allocated in the @a db handle - 
+ * use @a ham_delete to free @a db. 
+ *
+ * The application should close all database cursors before closing 
+ * the database.
+ *
+ * @param db A valid database handle.
+ *
+ * @return @a HAM_SUCCESS on success
+ * TODO TODO TODO mehr fehlercodes?
  */
 extern ham_status_t
 ham_close(ham_db_t *db);
+
+/*
+ * @}
+ */
+
+/*
+ * @defgroup ham_cursor hamsterdb Cursor Functions
+ * @{
+ */
 
 /**
  * create a database cursor
@@ -599,6 +708,9 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
 extern ham_status_t
 ham_cursor_close(ham_cursor_t *cursor);
 
+/*
+ * @}
+ */
 
 #ifdef __cplusplus
 } // extern "C"
