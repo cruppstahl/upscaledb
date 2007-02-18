@@ -23,16 +23,20 @@ extern "C" {
  * @remark mmap is called with MAP_PRIVATE - the allocated buffer
  * is just a copy of the file; writing to the buffer will not alter
  * the file itself.
+ *
+ * @remark win32 needs a second handle for CreateFileMapping
  */
 extern ham_status_t
-os_mmap(ham_fd_t fd, ham_offset_t position, ham_size_t size, 
-        ham_u8_t **buffer);
+os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position, 
+		ham_size_t size, ham_u8_t **buffer);
 
 /**
  * unmap a buffer 
+ *
+ * @remark win32 needs a second handle for CreateFileMapping
  */
 extern ham_status_t
-os_munmap(void *buffer, ham_size_t size);
+os_munmap(ham_fd_t mmaph, void *buffer, ham_size_t size);
 
 /**
  * read data from a file

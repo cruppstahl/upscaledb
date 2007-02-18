@@ -63,6 +63,11 @@ struct ham_page_t {
          * this page*/
         ham_u32_t _inuse;
 
+#if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
+		/** handle for win32 mmap */
+		HANDLE _win32mmap;
+#endif
+
         /** linked lists of pages - see comments above */
         ham_page_t *_prev[MAX_PAGE_LISTS], *_next[MAX_PAGE_LISTS];
 
@@ -259,6 +264,15 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 #define page_dec_inuse(page)    do { ham_assert(page_get_inuse(page)!=0, \
                                      ("decrementing empty inuse-flag")); \
                                      --(page)->_npers._inuse; } while (0)
+
+#if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
+/**
+ * win32: get a pointer to the mmap handle
+ */
+#   define page_get_mmap_handle_ptr(p)		&((p)->_npers._win32mmap)
+#else
+#   define page_get_mmap_handle_ptr(p)		0
+#endif
 
 /**
  * set the page-type

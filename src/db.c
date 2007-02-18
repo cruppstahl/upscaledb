@@ -65,8 +65,8 @@ my_read_page(ham_db_t *db, ham_offset_t address, ham_page_t *page)
 
     if (db_get_flags(db)&DB_USE_MMAP) {
         ham_u8_t *buffer;
-        st=os_mmap(db_get_fd(db), address, db_get_pagesize(db),
-            &buffer);
+        st=os_mmap(db_get_fd(db), page_get_mmap_handle_ptr(page), 
+				address, db_get_pagesize(db), &buffer);
         if (st) {
             ham_log(("os_mmap failed with status %d (%s)", st, ham_strerror(st)));
             db_set_error(db, HAM_IO_ERROR);
@@ -130,7 +130,8 @@ my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
         (void)db_uncouple_all_cursors(page);
 
         if (!(page_get_npers_flags(page)&PAGE_NPERS_MALLOC)) {
-            st=os_munmap(page_get_pers(page), db_get_pagesize(db));
+			st=os_munmap(page_get_mmap_handle_ptr(page), 
+					page_get_pers(page), db_get_pagesize(db));
             if (st) {
                 db_set_error(db, st);
                 return (0);
@@ -269,7 +270,8 @@ db_free_page_struct(ham_page_t *page)
         if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC)
             ham_mem_free(page_get_pers(page));
         else
-            (void)os_munmap(page_get_pers(page), db_get_pagesize(db));
+			(void)os_munmap(page_get_mmap_handle_ptr(page), 
+						page_get_pers(page), db_get_pagesize(db));
     }
 
     ham_mem_free(page);
