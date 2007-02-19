@@ -40,7 +40,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
     ham_u32_t _serialno;
 
     /* size of the page */
-    ham_u16_t _pagesize;
+    ham_u32_t _pagesize;
 
     /* size of the key */
     ham_u16_t _keysize;
@@ -112,12 +112,12 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 /*
  * get the page size
  */
-#define db_get_pagesize(db)        (ham_db2h16(db_get_header(db)._pagesize))
+#define db_get_pagesize(db)        (ham_db2h32(db_get_header(db)._pagesize))
 
 /*
  * set the page size
  */
-#define db_set_pagesize(db, ps)    db_get_header(db)._pagesize=ham_h2db16(ps)
+#define db_set_pagesize(db, ps)    db_get_header(db)._pagesize=ham_h2db32(ps)
 
 /**
  * get the size of the usable persistent payload of a page
