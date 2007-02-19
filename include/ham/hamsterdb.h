@@ -349,7 +349,7 @@ ham_create(ham_db_t *db, const char *filename,
  */
 extern ham_status_t
 ham_create_ex(ham_db_t *db, const char *filename,
-        ham_u32_t flags, ham_u32_t mode, ham_u16_t pagesize,
+        ham_u32_t flags, ham_u32_t mode, ham_u32_t pagesize,
         ham_u16_t keysize, ham_size_t cachesize);
 
 /**
@@ -476,6 +476,18 @@ ham_create_ex(ham_db_t *db, const char *filename,
 #define HAM_OPTIMIZE_SIZE            0x00001000
 
 /**
+<<<<<<< .mine
+ * Create a database cursor
+ *
+ * @remark set reserved and flags to 0
+ */
+extern ham_status_t
+ham_create_cursor(ham_db_t *db, void *reserved, ham_u32_t flags,
+            ham_cursor_t **cursor);
+
+/**
+=======
+>>>>>>> .r159
  * get the last error code
  */
 extern ham_status_t
