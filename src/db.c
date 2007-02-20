@@ -236,10 +236,11 @@ db_free_page_struct(ham_page_t *page)
      * cache
      * TODO move this to the backend!
      */
-    if ((!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING) &&
-         !(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER)) &&
-        (page_get_type(page)==PAGE_TYPE_B_ROOT ||
-         page_get_type(page)==PAGE_TYPE_B_INDEX)) {
+    if (page_get_pers(page) && 
+	    ((!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING) &&
+          !(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER)) &&
+         (page_get_type(page)==PAGE_TYPE_B_ROOT ||
+          page_get_type(page)==PAGE_TYPE_B_INDEX))) {
         ham_size_t i;
         ham_offset_t blobid;
         int_key_t *bte;

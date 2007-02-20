@@ -26,6 +26,8 @@
 
 #ifndef CYGWIN
 extern int getpagesize();
+#else
+extern size_t getpagesize();
 #endif
 
 static void
@@ -43,16 +45,7 @@ my_enable_largefile(int fd)
 ham_size_t
 os_get_pagesize(void)
 {
-#ifndef CYGWIN
     return ((ham_size_t)getpagesize());
-#else
-    /*
-     * cygwin returns weird pagesizes (usually 64k) and uses those
-     * pages for mmap; but they make btrees really huge; just
-     * return 0 and let the caller deal with the problem
-     */
-    return (0);
-#endif
 }
 
 ham_status_t

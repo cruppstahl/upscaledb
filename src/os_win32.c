@@ -77,12 +77,13 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
         ham_size_t bufferlen)
 {
     ham_status_t st;
+	DWORD read=0;
 
     st=os_seek(fd, addr, HAM_OS_SEEK_SET);
     if (st)
         return (st);
 
-    if (!ReadFile((HANDLE)fd, buffer, bufferlen, 0, 0)) {
+    if (!ReadFile((HANDLE)fd, buffer, bufferlen, &read, 0)) {
         st=(ham_status_t)GetLastError();
         ham_trace(("read failed with OS status %u", st));
         return (HAM_IO_ERROR);
@@ -96,7 +97,7 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
         ham_size_t bufferlen)
 {
     ham_status_t st;
-    DWORD written;
+    DWORD written=0;
 
     st=os_seek(fd, addr, HAM_OS_SEEK_SET);
     if (st)
@@ -194,21 +195,22 @@ ham_status_t
 os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 {
     ham_status_t st;
-    DWORD osflags=FILE_FLAG_RANDOM_ACCESS;
+    DWORD access =0;
+	DWORD share  =0;
     DWORD dispo  =OPEN_EXISTING;
-    /* TODO open exclusively? 
-	DWORD share=0;
+	DWORD osflags=0;
 
 	if (!(flags&HAM_OPEN_EXCLUSIVELY))
 		share=FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE;
-    TODO TODO TODO */
 
     if (flags&HAM_READ_ONLY)
-        osflags|=FILE_ATTRIBUTE_READONLY;
+        access|=GENERIC_READ;
+	else
+		access|=GENERIC_READ|GENERIC_WRITE;
 
-    *fd=(ham_fd_t)CreateFile(filename, FILE_ALL_ACCESS, 0, 0, dispo,
-                osflags, 0);
-    if (*fd==0) {
+    *fd=(ham_fd_t)CreateFile(filename, access, share, 0, 
+                        dispo, osflags, 0);
+    if (*fd==INVALID_HANDLE_VALUE) {
         st=(ham_status_t)GetLastError();
         ham_trace(("CreateFile (open) failed with OS status %u", st));
         return (GetLastError()==ENOENT ? HAM_FILE_NOT_FOUND : HAM_IO_ERROR);
