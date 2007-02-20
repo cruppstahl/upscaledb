@@ -1,18 +1,11 @@
 
-x ./test.exe --test-cursors=1 --overwrite=1 --mmap=0 --reopen=1 --cachesize=50 --file ../../../hamsterdb-tests/trunk/testfiles/1/ext_021.tst --verbose=1
-
-x .libs/lt-test --test-cursors=1 --overwrite=1 --file ../../../hamsterdb-tests/trunk/testfiles/1/ext_021.tst --verbose=1
-    -> db.c:1843 ("hit") - das element wird mit replace eingefügt, beim 
-        anschliessenden fullcheck wird es zwar korrekt gelesen, allerdings
-        ist der record 8 statt 1 byte gross.
-    x den insert ("", 422) rausnehmen -> keine auswirkung
-    x ein break beim fullcheck, bei dem das problem auftritt; dann 
-        breaken bei keysize==307 && recsize==1 (das "hit" ist schon
-        drin, allerdings muss der aufruf VOR dem ham_cursor_move kommen!)
-        -> oder direkt nach dem overwrite ein ham_cursor_move(dir=0, key=0,
-                &record) machen
-
 x port to cygwin 
+
+o ham_flush: sollte os_flush aufrufen
+    BOOL FlushFileBuffers(HANDLE hFile);
+    bzw fflush oder so in linux
+
+o os_tell durch os_get_filesize erweitern
 
 o port to ms windows
     x win32: sourcen portieren - mmap fehlt noch!
@@ -34,16 +27,16 @@ o webseite
     o hamsterdb.h überarbeiten, dokumentieren
     o inhalte
         x frontseite
-        o frontseite: hamster-bild einbetten
         x features
-        o download
-        o legal/impressum
-        o sitemap
-        o GPL/Verweise auf GPL
+        x download
+        x legal/impressum
+        x sitemap
+        x GPL/Verweise auf GPL
+        x sidebars
+        o frontseite: hamster-bild einbetten
         o roadmap
         o links
         o doku bzgl installation, compilieren, portieren
-        o sidebars
     o korrigieren lassen
 
 o können wir problemlos 32bit-filepointer nehmen?

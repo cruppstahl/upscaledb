@@ -56,9 +56,11 @@ os_get_pagesize(void)
 }
 
 ham_status_t
-os_mmap(ham_fd_t fd, ham_offset_t position, ham_size_t size, 
-        ham_u8_t **buffer)
+os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
+		ham_size_t size, ham_u8_t **buffer)
 {
+    (void)mmaph; /* only used on win32-platforms */
+
 #if HAVE_MMAP
     *buffer=mmap(0, size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, position);
     if (*buffer==(void *)-1) {
@@ -74,8 +76,10 @@ os_mmap(ham_fd_t fd, ham_offset_t position, ham_size_t size,
 }
 
 ham_status_t
-os_munmap(void *buffer, ham_size_t size)
+os_munmap(ham_fd_t mmaph, void *buffer, ham_size_t size)
 {
+    (void)mmaph; /* only used on win32-platforms */
+
 #if HAVE_MUNMAP
     int r=munmap(buffer, size);
     if (r) {

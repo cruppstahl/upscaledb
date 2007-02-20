@@ -701,11 +701,13 @@ my_compare_databases(void)
         while ((ret=cursor->c_get(cursor, &key, &rec, DB_NEXT))==0) {
             PROFILE_STOP(PROF_CURSOR, berk);
 
+            /*
             printf("status: %d/%d\n", st, ret);
             printf("keys: %u/%u, record: %u/%u\n", 
                     hkey.size ? *(unsigned *)hkey.data : 0, 
                     key.size ? *(unsigned *)key.data : 0, 
                     hrec.size, rec.size);
+                    */
             ham_assert(hrec.size==rec.size, 
                     ("data: %u != %u", hrec.size, rec.size));
             if (hkey.data)
