@@ -10,9 +10,9 @@
 #include <string.h>
 #include "config.h"
 #include "db.h"
-#include "keys.h"
 #include "error.h"
 #include "btree.h"
+#include "keys.h"
 
 #define OFFSETOF(type, member) ((size_t) &((type *)0)->member)
 
@@ -113,27 +113,10 @@ my_calc_maxkeys(ham_db_t *db)
 static ham_status_t 
 my_fun_create(ham_btree_t *be, ham_u32_t flags)
 {
-    ham_status_t st;
     ham_page_t *root;
     ham_size_t maxkeys;
-    ham_u16_t keysize;
     ham_db_t *db=btree_get_db(be);
     ham_u8_t *indexdata=db_get_indexdata(db);
-
-    /* 
-     * initialize the database with a good default value;
-     * 32byte is the size of a first level cache line for most modern
-     * processors; adjust the keysize, so the keys are aligned to
-     * 32byte (or 16)
-     */
-    keysize=db_get_keysize(db);
-    if (keysize==0)
-        keysize=(ham_u16_t)(16-sizeof(int_key_t)-1);
-
-    if (!db_get_keysize(db) && (st=db_set_keysize(db, keysize))) {
-        ham_log(("failed to set keysize: 0x%x", st));
-        return (db_get_error(db));
-    }
 
     /*
      * calculate the maximum number of keys for this page, 

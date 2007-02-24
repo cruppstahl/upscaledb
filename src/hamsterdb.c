@@ -13,7 +13,6 @@
 #include "db.h"
 #include "version.h"
 #include "txn.h"
-#include "keys.h"
 #include "cache.h"
 #include "blob.h"
 #include "freelist.h"
@@ -21,6 +20,7 @@
 #include "btree_cursor.h"
 #include "cursor.h"
 #include "util.h"
+#include "keys.h"
 
 typedef struct free_cb_context_t
 {
@@ -472,11 +472,16 @@ ham_create_ex(ham_db_t *db, const char *filename,
         }
     }
 
-    /*
-     * get the default keysize
+    /* 
+     * initialize the database with a good default value;
+     * 32byte is the size of a first level cache line for most modern
+     * processors; adjust the keysize, so the keys are aligned to
+     * 32byte (or 16)
      */
-    if (keysize==0)
-        keysize=32-sizeof(int_key_t)-1;
+    if (keysize==0) {
+        keysize=sizeof(int_key_t);
+        keysize=32-(sizeof(int_key_t)-1);
+    }
 
     /*
      * initialize the header

@@ -14,7 +14,7 @@
 #  pragma pack()
 #endif
 #ifdef _NEWMSC_
-#  pragma pack(pop, HAM_PACKING)
+#  pragma pack(pop)
 #endif
 
 #endif /* HAM_PACKSTOP_H__ */

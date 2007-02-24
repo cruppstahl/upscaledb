@@ -11,8 +11,8 @@
 #include "db.h"
 #include "error.h"
 #include "btree.h"
-#include "keys.h"
 #include "btree_cursor.h"
+#include "keys.h"
 
 ham_status_t 
 btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor, 

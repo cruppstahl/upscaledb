@@ -10,16 +10,12 @@
 #ifndef HAM_KEY_H__
 #define HAM_KEY_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 #include "packstart.h"
 
 /**
  * the internal representation of a key
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 int_key_t
+typedef HAM_PACK_0 HAM_PACK_1 struct int_key_t
 {
     /**
      * the pointer of this entry
@@ -42,6 +38,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1 int_key_t
     ham_u8_t _key[1];
 
 } HAM_PACK_2 int_key_t;
+
+#include "packstop.h"
 
 /**
  * get the pointer of an btree-entry
@@ -95,8 +93,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1 int_key_t
  */
 #define key_set_key(bte, ptr, len)      memcpy(bte->_key, ptr, len)
 
-#include "packstop.h"
-
 /**
  * compare an internal key (int_key_t) to a public key (ham_key_t)
  */
@@ -123,9 +119,5 @@ key_compare_int_to_int(ham_page_t *page, ham_u16_t lhs, ham_u16_t rhs);
 extern ham_offset_t
 key_insert_extended(ham_db_t *db, ham_page_t *page, ham_key_t *key);
 
-
-#ifdef __cplusplus
-} // extern "C"
-#endif 
 
 #endif /* HAM_KEY_H__ */

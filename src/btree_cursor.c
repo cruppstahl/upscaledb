@@ -14,6 +14,7 @@
 #include "util.h"
 #include "error.h"
 #include "blob.h"
+#include "db.h"
 #include "keys.h"
 
 static ham_status_t

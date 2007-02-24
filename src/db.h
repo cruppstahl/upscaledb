@@ -28,7 +28,7 @@ extern "C" {
 /*
  * the persistent database header
  */
-typedef HAM_PACK_0 struct HAM_PACK_1
+typedef HAM_PACK_0 HAM_PACK_1 struct
 {
     /* magic cookie - always "ham\0" */
     ham_u8_t  _magic[4];
@@ -42,15 +42,12 @@ typedef HAM_PACK_0 struct HAM_PACK_1
     /* size of the page */
     ham_u32_t _pagesize;
 
-    /* size of the key */
-    ham_u16_t _keysize;
-
     /* global database flags which were specified when the database
      * was created */
     ham_u32_t _flags;
 
-    /* dirty-flag */
-    ham_u8_t _dirty;
+    /* size of the key */
+    ham_u16_t _keysize;
 
     /* private data of the index backend */
     ham_u8_t _indexdata[64];
@@ -210,6 +207,9 @@ struct ham_db_t
     /* the cache for extended keys */
     extkey_cache_t *_extkey_cache;
 
+    /* dirty-flag for the header */
+    ham_u8_t _dirty;
+
     /* the database header - this is basically a mirror of the header-page
      *
      * it's needed because when a file is opened (or created), we need a
@@ -305,12 +305,12 @@ struct ham_db_t
 /*
  * get the dirty-flag
  */
-#define db_is_dirty(db)                (db)->_hdr._dirty
+#define db_is_dirty(db)                (db)->_dirty
 
 /*
  * set the dirty-flag
  */
-#define db_set_dirty(db, d)            (db)->_hdr._dirty=d
+#define db_set_dirty(db, d)            (db)->_dirty=d
 
 /*
  * get the size of the last allocated data blob

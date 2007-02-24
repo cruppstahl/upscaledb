@@ -7,15 +7,12 @@
  *
  */
 
-#ifndef HAM_PACKSTART_H__
-#define HAM_PACKSTART_H__
-
 /**
  *  example usage:
  *
  *  #include "packstart.h"
  *
- *  typedef HAM_PACK_0 struct HAM_PACK_1 example_struct
+ *  typedef HAM_PACK_0 HAM_PACK_1 struct example_struct
  *  {
  *    oef_u16_t var1;
  *    oef_u8_t var2;
@@ -26,9 +23,6 @@
  *
  */
 
-#ifndef HAM_PACK_1
-#  define HAM_PACK_1
-#endif
 
 #ifdef __GNUC__
 #  if (((__GNUC__==2) && (__GNUC_MINOR__>=7)) || (__GNUC__>2))
@@ -41,14 +35,6 @@
 #  define HAM_PACK_0 _Packed
 #endif
 
-#ifndef HAM_PACK_2
-#  define HAM_PACK_2
-#endif
-
-#ifndef HAM_PACK_0
-#  define HAM_PACK_0
-#endif
-
 #if (defined(_MSC_VER) && (_MSC_VER >= 900)) || defined(__BORLANDC__)
 #  define _NEWMSC_
 #endif
@@ -56,7 +42,18 @@
 #  pragma pack(1)
 #endif
 #ifdef _NEWMSC_
-#  pragma pack(push, HAM_PACKING, 1)
+#  pragma pack(push, 1)
+#  define HAM_PACK_2 __declspec(align(1))
 #endif
 
-#endif /* HAM_PACKSTART_H__ */
+#ifndef HAM_PACK_0
+#  define HAM_PACK_0
+#endif
+
+#ifndef HAM_PACK_1
+#  define HAM_PACK_1
+#endif
+
+#ifndef HAM_PACK_2
+#  define HAM_PACK_2
+#endif
