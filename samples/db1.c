@@ -13,21 +13,29 @@
 
 #define LOOP 10
 
+void 
+error(const char *foo, ham_status_t st)
+{
+    printf("%s() returned error %d: %s\n", foo, st, ham_strerror(st));
+    exit(-1);
+}
+
 int 
 main(int argc, char **argv)
 {
     int i;
     ham_status_t st;    /* status variable */
     ham_db_t *db;       /* hamsterdb database object */
+    ham_cursor_t *c;
+    ham_key_t key;
+    ham_record_t record;
 
     /*
      * first step: create a new hamsterdb object 
      */
     st=ham_new(&db);
-    if (st!=HAM_SUCCESS) {
-        printf("ham_new() failed with error %d\n", st);
-        return (-1);
-    }
+    if (st!=HAM_SUCCESS)
+        error("ham_new", st);
 
     /*
      * second step: create a new hamsterdb database
@@ -36,10 +44,8 @@ main(int argc, char **argv)
      * page size, key size or cache size limits
      */
     st=ham_create(db, "test.db", 0, 0664);
-    if (st!=HAM_SUCCESS) {
-        printf("ham_create() failed with error %d\n", st);
-        return (-1);
-    }
+    if (st!=HAM_SUCCESS)
+        error("ham_create", st);
 
     /*
      * now we can insert, delete or lookup values in the database
@@ -62,10 +68,8 @@ main(int argc, char **argv)
         /* note: the second parameter of ham_insert() is reserved; set it to 
          * NULL */
         st=ham_insert(db, 0, &key, &record, 0);
-        if (st!=HAM_SUCCESS) {
-            printf("ham_insert() failed with error %d\n", st);
-            return (-1);
-        }
+        if (st!=HAM_SUCCESS)
+            error("ham_insert", st);
     }
 
     /*
@@ -88,10 +92,8 @@ main(int argc, char **argv)
         /* note: the second parameter of ham_find() is reserved; set it to 
          * NULL */
         st=ham_find(db, 0, &key, &record, 0);
-        if (st!=HAM_SUCCESS) {
-            printf("ham_find() failed with error %d\n", st);
-            return (-1);
-        }
+        if (st!=HAM_SUCCESS)
+            error("ham_find", st);
 
         /*
          * check if the value is ok
@@ -100,6 +102,35 @@ main(int argc, char **argv)
             printf("ham_find() ok, but returned bad value\n");
             return (-1);
         }
+    }
+
+    st=ham_cursor_create(db, 0, 0, &c);
+    if (st!=HAM_SUCCESS)
+        error("ham_cursor_create", st);
+
+    memset(&key, 0, sizeof(key));
+    memset(&record, 0, sizeof(record));
+
+    st=ham_cursor_move(c, &key, &record, HAM_CURSOR_FIRST);
+    if (st!=HAM_SUCCESS)
+        error("ham_cursor_move", st);
+
+    i=0;
+    while (1) {
+
+        if (*(int *)record.data!=i) {
+            printf("ham_find() ok, but returned bad value\n");
+            return (-1);
+        }
+
+        i++;
+
+        memset(&key, 0, sizeof(key));
+        memset(&record, 0, sizeof(record));
+
+        st=ham_cursor_move(c, &key, &record, HAM_CURSOR_NEXT);
+        if (st!=HAM_SUCCESS && st!=HAM_KEY_NOT_FOUND)
+            error("ham_cursor_move", st);
     }
 
 #if 0
