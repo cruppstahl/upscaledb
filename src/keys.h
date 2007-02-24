@@ -22,41 +22,41 @@ extern "C" {
 typedef HAM_PACK_0 struct HAM_PACK_1 int_key_t
 {
     /**
-     * flags
+     * the pointer of this entry
      */
-    ham_u8_t _flags; 
+    ham_offset_t _ptr;
 
     /**
      * the size of this entry
      */
     ham_u16_t _keysize;
 
-    /**
-     * the pointer of this entry
+   /**
+     * flags
      */
-    ham_offset_t _ptr;
+    ham_u8_t _flags; 
 
     /**
      * the key
      */
     ham_u8_t _key[1];
-    
+
 } HAM_PACK_2 int_key_t;
 
 /**
  * get the pointer of an btree-entry
  */
-#define key_get_ptr(bte)                (ham_db2h_offset(bte->_ptr))
+#define key_get_ptr(bte)                (ham_db2h_offset((bte)->_ptr))
 
 /**
  * set the pointer of an btree-entry
  */
-#define key_set_ptr(bte, p)             bte->_ptr=ham_h2db_offset(p)
+#define key_set_ptr(bte, p)             (bte)->_ptr=ham_h2db_offset(p)
 
 /**
  * get the size of an btree-entry
  */
-#define key_get_size(bte)               (ham_db2h16(bte->_keysize))
+#define key_get_size(bte)               (ham_db2h16((bte)->_keysize))
 
 /**
  * set the size of an btree-entry
