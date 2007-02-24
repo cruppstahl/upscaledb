@@ -14,6 +14,7 @@
 #include "util.h"
 #include "error.h"
 #include "blob.h"
+#include "keys.h"
 
 static ham_status_t
 my_set_to_nil(ham_bt_cursor_t *c)
@@ -728,8 +729,8 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
     }
 
     if (record) {
-        record->_rid=key_get_ptr(entry);
         record->_intflags=key_get_flags(entry);
+		record->_rid=key_get_ptr(entry);
         st=util_read_record(db, record, 0);
         if (st) {
             page_dec_inuse(page);
