@@ -19,7 +19,6 @@ os_get_pagesize(void)
 {
     SYSTEM_INFO info;
     GetSystemInfo(&info);
-    //return ((ham_size_t)info.dwPageSize);
 	return ((ham_size_t)info.dwAllocationGranularity);
 }
 
