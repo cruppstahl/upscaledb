@@ -26,9 +26,6 @@ main(int argc, char **argv)
     int i;
     ham_status_t st;    /* status variable */
     ham_db_t *db;       /* hamsterdb database object */
-    ham_cursor_t *c;
-    ham_key_t key;
-    ham_record_t record;
 
     /*
      * first step: create a new hamsterdb object 
@@ -104,36 +101,6 @@ main(int argc, char **argv)
         }
     }
 
-    st=ham_cursor_create(db, 0, 0, &c);
-    if (st!=HAM_SUCCESS)
-        error("ham_cursor_create", st);
-
-    memset(&key, 0, sizeof(key));
-    memset(&record, 0, sizeof(record));
-
-    st=ham_cursor_move(c, &key, &record, HAM_CURSOR_FIRST);
-    if (st!=HAM_SUCCESS)
-        error("ham_cursor_move", st);
-
-    i=0;
-    while (1) {
-
-        if (*(int *)record.data!=i) {
-            printf("ham_find() ok, but returned bad value\n");
-            return (-1);
-        }
-
-        i++;
-
-        memset(&key, 0, sizeof(key));
-        memset(&record, 0, sizeof(record));
-
-        st=ham_cursor_move(c, &key, &record, HAM_CURSOR_NEXT);
-        if (st!=HAM_SUCCESS && st!=HAM_KEY_NOT_FOUND)
-            error("ham_cursor_move", st);
-    }
-
-#if 0
     /*
      * now erase all values
      */
@@ -147,10 +114,8 @@ main(int argc, char **argv)
         /* note: the second parameter of ham_erase() is reserved; set it to 
          * NULL */
         st=ham_erase(db, 0, &key, 0);
-        if (st!=HAM_SUCCESS) {
-            printf("ham_erase() failed with error %d\n", st);
-            return (-1);
-        }
+        if (st!=HAM_SUCCESS)
+            error("ham_erase", st);
     }
 
     /*
@@ -168,21 +133,16 @@ main(int argc, char **argv)
         memset(&record, 0, sizeof(record));
 
         st=ham_find(db, 0, &key, &record, 0);
-        if (st!=HAM_KEY_NOT_FOUND) {
-            printf("ham_find() returned bad status %d\n", st);
-            return (-1);
-        }
+        if (st!=HAM_KEY_NOT_FOUND)
+            error("ham_find", st);
     }
-#endif
 
     /*
      * we're done! close the database handle
      */
     st=ham_close(db);
-    if (st!=HAM_SUCCESS) {
-        printf("ham_close() failed with error %d\n", st);
-        return (-1);
-    }
+    if (st!=HAM_SUCCESS)
+        error("ham_close", st);
 
     /*
      * delete the database object to avoid memory leaks
