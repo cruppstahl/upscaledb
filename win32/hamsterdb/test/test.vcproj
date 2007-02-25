@@ -71,7 +71,7 @@
 				AdditionalIncludeDirectories="D:\hamsterdb\trunk\include;db"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;HAM_LITTLE_ENDIAN"
 				RuntimeLibrary="4"
-				UsePrecompiledHeader="3"
+				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="TRUE"
 				DebugInformationFormat="3"/>
