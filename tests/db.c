@@ -9,14 +9,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 #include <errno.h>
 #include <ctype.h>
-#include <unistd.h>
+#ifndef WIN32
+#  include <unistd.h>
+#  include <sys/time.h>
+#else
+#  define strcasecmp stricmp
+#endif
 #include <ham/hamsterdb.h>
 #include <ham/hamsterdb_int.h>
 #include <db.h>
-#include <sys/time.h>
 #include "getopts.h"
 #include "../src/error.h"
 #include "../src/config.h"
@@ -29,18 +32,32 @@ static unsigned long g_filesize, g_filepos;
 #define FILENAME_BERK "test-berk.db"
 #define FILENAME_HAM  "test-ham.db"
 
+static ham_u64_t
+get_current_time(void)
+{
+#ifdef WIN32
+	ham_u64_t usec, sec;
+    union {
+        __int64 ns100; /*time since 1 Jan 1601 in 100ns units */
+        FILETIME ft;
+    } now;
+    GetSystemTimeAsFileTime(&now.ft);
+    usec = (long) ((now.ns100 / 10LL) % 1000000LL);
+    sec = (long) ((now.ns100 - 116444736000000000LL) / 10000000LL);
+	return (ham_u64_t)(sec)*1000+(ham_u64_t)(usec)/1000;
+#else
+	struct timeval tv;
+    gettimeofday(&tv, 0);
+    return (ham_u64_t)(tv.tv_sec)*1000+(ham_u64_t)(tv.tv_usec)/1000;
+#endif
+}
+
 #define PROFILE_START(w,i)  while (config.profile&w) {                      \
-                                struct timeval tv;                          \
-                                gettimeofday(&tv, 0);                       \
-                                g_tv1=(ham_u64_t)(tv.tv_sec)*1000+          \
-                                    (ham_u64_t)(tv.tv_usec)/1000;           \
+                                g_tv1=get_current_time();                   \
                                 break;                                      \
                             }       
-#define PROFILE_STOP(w,i)     while (config.profile&w) {                    \
-                                struct timeval tv;                          \
-                                gettimeofday(&tv, 0);                       \
-                                g_tv2=(ham_u64_t)(tv.tv_sec)*1000+          \
-                                    (ham_u64_t)(tv.tv_usec)/1000;           \
+#define PROFILE_STOP(w,i)   while (config.profile&w) {                      \
+                                g_tv2=get_current_time();                   \
                                 if (w==PROF_INSERT)                         \
                                     config.prof_insert[i]+=g_tv2-g_tv1;     \
                                 else if (w==PROF_ERASE)                     \
@@ -365,60 +382,60 @@ my_print_profile(void)
     float f, total[2]={0, 0};
 
     if (config.profile&PROF_INSERT) {
-        f=config.prof_insert[0];
+        f=(float)config.prof_insert[0];
         total[0]+=f;
         f/=1000.f;
         printf("insert: profile of backend %s:\t%f sec\n", 
                 my_get_profile_name(0), f);
-        f=config.prof_insert[1];
+        f=(float)config.prof_insert[1];
         total[1]+=f;
         f/=1000.f;
         printf("insert: profile of backend %s:\t%f sec\n", 
                 my_get_profile_name(1), f);
     }
     if (config.profile&PROF_ERASE) {
-        f=config.prof_erase[0];
+        f=(float)config.prof_erase[0];
         total[0]+=f;
         f/=1000.f;
         printf("erase:  profile of backend %s:\t%f sec\n", 
                 my_get_profile_name(0), f);
-        f=config.prof_erase[1];
+        f=(float)config.prof_erase[1];
         total[1]+=f;
         f/=1000.f;
         printf("erase:  profile of backend %s:\t%f sec\n", 
                 my_get_profile_name(1), f);
     }
     if (config.profile&PROF_FIND) {
-        f=config.prof_find[0];
+        f=(float)config.prof_find[0];
         total[0]+=f;
         f/=1000.f;
         printf("find:   profile of backend %s:\t%f sec\n", 
                 my_get_profile_name(0), f);
-        f=config.prof_find[1];
+        f=(float)config.prof_find[1];
         total[1]+=f;
         f/=1000.f;
         printf("find:   profile of backend %s:\t%f sec\n", 
                 my_get_profile_name(1), f);
     }
     if (config.profile&PROF_CURSOR) {
-        f=config.prof_cursor[0];
+        f=(float)config.prof_cursor[0];
         total[0]+=f;
         f/=1000.f;
         printf("cursor: profile of backend %s:\t%f sec\n", 
                 my_get_profile_name(0), f);
-        f=config.prof_cursor[1];
+        f=(float)config.prof_cursor[1];
         total[1]+=f;
         f/=1000.f;
         printf("cursor: profile of backend %s:\t%f sec\n", 
                 my_get_profile_name(1), f);
     }
     if (config.profile&PROF_OTHER) {
-        f=config.prof_other[0];
+        f=(float)config.prof_other[0];
         total[0]+=f;
         f/=1000.f;
         printf("other:  profile of backend %s:\t%f sec\n", 
                 my_get_profile_name(0), f);
-        f=config.prof_other[1];
+        f=(float)config.prof_other[1];
         total[1]+=f;
         f/=1000.f;
         printf("other:  profile of backend %s:\t%f sec\n", 
@@ -615,7 +632,7 @@ my_get_token(char *p, unsigned *pos)
     while (*p && !isspace(*p))
         p++;
     *p=0;
-    *pos=p-ret+1;
+    *pos=*(unsigned *)(p-ret+1);
     return ret;
 }
 
@@ -1083,7 +1100,7 @@ my_execute_insert(char *line)
                     key.data=&numeric_key;
                 }
                 else {
-                    key.size=strlen(keytok);
+                    key.size=(ham_size_t)strlen(keytok);
                     key.data=keytok;
                 }
                 record.size=data_size;
@@ -1122,7 +1139,7 @@ my_execute_insert(char *line)
                     key.data=&numeric_key;
                 }
                 else {
-                    key.size=strlen(keytok);
+                    key.size=(ham_size_t)strlen(keytok);
                     key.data=keytok;
                 }
                 record.size=data_size;
@@ -1225,7 +1242,7 @@ my_execute_erase(char *line)
                     key.data=&numeric_key;
                 }
                 else {
-                    key.size=strlen(keytok);
+                    key.size=(ham_size_t)strlen(keytok);
                     key.data=keytok;
                 }
 
@@ -1259,7 +1276,7 @@ my_execute_erase(char *line)
                     key.data=&numeric_key;
                 }
                 else {
-                    key.size=strlen(keytok);
+                    key.size=(ham_size_t)strlen(keytok);
                     key.data=keytok;
                 }
 
@@ -1336,7 +1353,7 @@ my_execute_find(char *line)
                     key.data=&numeric_key;
                 }
                 else {
-                    key.size=strlen(keytok);
+                    key.size=(ham_size_t)strlen(keytok);
                     key.data=keytok;
                 }
 
@@ -1363,7 +1380,7 @@ my_execute_find(char *line)
                     key.data=&numeric_key;
                 }
                 else {
-                    key.size=strlen(keytok);
+                    key.size=(ham_size_t)strlen(keytok);
                     key.data=keytok;
                 }
 
@@ -1812,10 +1829,11 @@ main(int argc, char **argv)
      * ... and run the test
      */
     while (!feof(f)) {
+		char *p;
         config.cur_line++;
 
         /* read from the file */
-        char *p=fgets(line, sizeof(line), f);
+        p=fgets(line, sizeof(line), f);
         if (!p)
             break;
 
