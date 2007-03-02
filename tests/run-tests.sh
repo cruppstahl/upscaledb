@@ -9,10 +9,12 @@
 
 total=0
 errors=0
+#executable=./test
+executable=../win32/hamsterdb/test/Release/test.exe
 testdir=../../../hamsterdb-tests/trunk/testfiles
 
 function call {
-    ./test --file $1 $2 $3 $4 $5 $6 $7 $8 $9 #&> .tmp
+    $executable --file $1 $2 $3 $4 $5 $6 $7 $8 $9 &> .tmp
 
     if [[ $? = 0 ]]
         then echo "[OK]   $1"
