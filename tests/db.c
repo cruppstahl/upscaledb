@@ -11,15 +11,18 @@
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
+#include <assert.h>
 #ifndef WIN32
 #  include <unistd.h>
 #  include <sys/time.h>
 #else
 #  define strcasecmp stricmp
 #endif
+
+#include <db.h>
 #include <ham/hamsterdb.h>
 #include <ham/hamsterdb_int.h>
-#include <db.h>
+
 #include "getopts.h"
 #include "../src/error.h"
 #include "../src/config.h"
@@ -632,7 +635,7 @@ my_get_token(char *p, unsigned *pos)
     while (*p && !isspace(*p))
         p++;
     *p=0;
-    *pos=*(unsigned *)(p-ret+1);
+    *pos=(unsigned)(p-ret+1);
     return ret;
 }
 
@@ -1634,7 +1637,9 @@ main(int argc, char **argv)
     FILE *f;
     unsigned opt;
     char *param;
-    char line[1024*1024];
+    char *line;
+	
+	line=malloc(1024*1024);
 
     getopts_init(argc, argv, "test");
 
@@ -1833,7 +1838,7 @@ main(int argc, char **argv)
         config.cur_line++;
 
         /* read from the file */
-        p=fgets(line, sizeof(line), f);
+        p=fgets(line, 1024*1024, f);
         if (!p)
             break;
 
@@ -1854,6 +1859,8 @@ main(int argc, char **argv)
 
         VERBOSE2(("---- line %04d ----", config.cur_line));
     }
+
+	free(line);
 
     if (config.filename)
         fclose(f);
