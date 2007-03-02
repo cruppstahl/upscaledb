@@ -5,7 +5,6 @@
  *
  */
 
-#define HAM_DEBUG 1 /* need ham_assert etc */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,6 +23,7 @@
 #include <ham/hamsterdb_int.h>
 
 #include "getopts.h"
+#define HAM_DEBUG 1 /* need assert etc */
 #include "../src/error.h"
 #include "../src/config.h"
 
@@ -512,13 +512,13 @@ my_compare_cursors(ham_cursor_t *hc, DBC *bc)
      * clone the cursors
      */
     ret=bc->c_dup(bc, &bcp, DB_POSITION);
-    ham_assert(ret==0, ("c_dup failed"));
+    assert(ret==0);
     ret=bc->c_dup(bc, &bcn, DB_POSITION);
-    ham_assert(ret==0, ("c_dup failed"));
+    assert(ret==0);
     st=ham_cursor_clone(hc, &hcp);
-    ham_assert(st==0, ("ham_cursor_clone failed"));
+    assert(st==0);
     st=ham_cursor_clone(hc, &hcn);
-    ham_assert(st==0, ("ham_cursor_clone failed"));
+    assert(st==0);
 
     /* 
      * move to the previous value and compare them
@@ -531,7 +531,7 @@ my_compare_cursors(ham_cursor_t *hc, DBC *bc)
     st=ham_cursor_move(hcp, &hkey, &hrec, HAM_CURSOR_PREVIOUS);
     ret=bcp->c_get(bcp, &bkey, &brec, DB_PREV);
     if (st==HAM_CURSOR_IS_NIL)
-        ham_assert(ret==DB_NOTFOUND, ("ham is nil, but bdb not (%d)", ret));
+        assert(ret==DB_NOTFOUND);
     if (st==0 && ret==0) {
         /*
         printf("status: %d/%d\n", st, ret);
@@ -540,10 +540,9 @@ my_compare_cursors(ham_cursor_t *hc, DBC *bc)
                 bkey.size ? *(unsigned *)bkey.data : 0, 
                 hrec.size, brec.size);
                 */
-        ham_assert(hrec.size==brec.size, ("ham record %u, bdb record %d", 
-                hrec.size, brec.size));
-        ham_assert(!memcmp(hkey.data, bkey.data, hkey.size), (""));
-        ham_assert(!memcmp(hrec.data, brec.data, hrec.size), (""));
+        assert(hrec.size==brec.size);
+        assert(!memcmp(hkey.data, bkey.data, hkey.size));
+        assert(!memcmp(hrec.data, brec.data, hrec.size));
     }
 
     /* 
@@ -563,11 +562,11 @@ my_compare_cursors(ham_cursor_t *hc, DBC *bc)
             bkey.size ? *(unsigned *)bkey.data : 0, 
             hrec.size, brec.size);*/
     if (st==HAM_CURSOR_IS_NIL)
-        ham_assert(ret==DB_NOTFOUND, ("ham is nil, but bdb not"));
+        assert(ret==DB_NOTFOUND);
     if (st==0 && ret==0) {
-        ham_assert(hrec.size==brec.size, (""));
-        ham_assert(!memcmp(hkey.data, bkey.data, hkey.size), (""));
-        ham_assert(!memcmp(hrec.data, brec.data, hrec.size), (""));
+        assert(hrec.size==brec.size);
+        assert(!memcmp(hkey.data, bkey.data, hkey.size));
+        assert(!memcmp(hrec.data, brec.data, hrec.size));
     }
 
     ham_cursor_close(hcp);
@@ -604,21 +603,20 @@ my_compare_return(void)
 
     switch (st) {
         case HAM_SUCCESS: 
-            ham_assert(ret==0, ("hamster return: %d, berk: %d", st, ret));
+            assert(ret==0);
             break;
         case HAM_KEY_NOT_FOUND:
-            ham_assert(ret==DB_NOTFOUND, ("hamster return: %d, berk: %d", 
-                    st, ret));
+            assert(ret==DB_NOTFOUND);
             break;
         case HAM_DUPLICATE_KEY:
-            ham_assert(ret==DB_KEYEXIST, ("hamster return: %d, berk: %d", 
-                    st, ret));
+            assert(ret==DB_KEYEXIST);
             break;
         case HAM_CACHE_FULL:
-            ham_assert(1!=0, ("hamster return: %d, berk: %d", st, ret));
+            assert(0);
             return (HAM_FALSE);
         default:
-            ham_assert(1!=0, ("hamster return: %d, berk: %d", st, ret));
+            printf("unknown errors (ham: %d; berk: %u)\n", st, ret);
+            assert(0);
             return (HAM_FALSE);
     }
 
@@ -690,7 +688,7 @@ my_compare_databases(void)
      */
     PROFILE_START(PROF_CURSOR, berk);
     ret=config.dbp->cursor(config.dbp, NULL, &cursor, 0);
-    ham_assert(ret==0, ("berkeley-db error"));
+    assert(ret==0);
     PROFILE_STOP(PROF_CURSOR, berk);
 
     VERBOSE2(("comparing databases...", 0));
@@ -701,7 +699,7 @@ my_compare_databases(void)
     if (!config.fullcheck_find) {
         PROFILE_START(PROF_CURSOR, ham);
         st=ham_cursor_create(config.hamdb, 0, 0, &hamc);
-        ham_assert(st==0, ("hamster-db error"));
+        assert(st==0);
         memset(&hkey, 0, sizeof(hkey));
         memset(&hrec, 0, sizeof(hrec));
         if (config.useralloc) {
@@ -715,7 +713,7 @@ my_compare_databases(void)
         st=ham_cursor_move(hamc, &hkey, &hrec, HAM_CURSOR_FIRST);
         PROFILE_STOP(PROF_CURSOR, ham);
         if (st && st!=HAM_KEY_NOT_FOUND)
-            ham_assert(st==0, ("hamster-db error"));
+            assert(st==0);
 
         PROFILE_START(PROF_CURSOR, berk);
         while ((ret=cursor->c_get(cursor, &key, &rec, DB_NEXT))==0) {
@@ -728,12 +726,11 @@ my_compare_databases(void)
                     key.size ? *(unsigned *)key.data : 0, 
                     hrec.size, rec.size);
                     */
-            ham_assert(hrec.size==rec.size, 
-                    ("data: %u != %u", hrec.size, rec.size));
+            assert(hrec.size==rec.size);
             if (hkey.data)
-                ham_assert(!memcmp(hkey.data, key.data, hkey.size), (0));
+                assert(!memcmp(hkey.data, key.data, hkey.size));
             if (hrec.data)
-                ham_assert(!memcmp(hrec.data, rec.data, hrec.size), (0));
+                assert(!memcmp(hrec.data, rec.data, hrec.size));
 
             if (config.useralloc) 
                 free(hrec.data);
@@ -754,7 +751,7 @@ my_compare_databases(void)
         }
 
         if (ret==DB_NOTFOUND)
-            ham_assert(st==HAM_KEY_NOT_FOUND, ("hamster-db error %d", st));
+            assert(st==HAM_KEY_NOT_FOUND);
 
         free(hrec.data);
         ham_cursor_close(hamc);
@@ -783,7 +780,7 @@ my_compare_databases(void)
             hkey.data=key.data;
             hkey.size=key.size;
             st=ham_find(config.hamdb, 0, &hkey, &hrec, 0);
-            ham_assert(st==0, ("hamster-db error"));
+            assert(st==0);
 
             /*
             printf("status: %d/%d\n", st, ret);
@@ -792,12 +789,11 @@ my_compare_databases(void)
                     key.size ? *(unsigned *)key.data : 0, 
                     hrec.size, rec.size);
                     */
-            ham_assert(hrec.size==rec.size, 
-                    ("data: %u != %u", hrec.size, rec.size));
+            assert(hrec.size==rec.size);
             if (hkey.data)
-                ham_assert(!memcmp(hkey.data, key.data, hkey.size), (0));
+                assert(!memcmp(hkey.data, key.data, hkey.size));
             if (hrec.data)
-                ham_assert(!memcmp(hrec.data, rec.data, hrec.size), (0));
+                assert(!memcmp(hrec.data, rec.data, hrec.size));
             if (config.useralloc) 
                 free(hrec.data);
         }
@@ -824,19 +820,19 @@ my_execute_reopen(void)
     if (config.hamdb) {
         reopen=1;
         b=my_execute_close();
-        ham_assert(b==1, ("reopen failed with status %u", b));
+        assert(b==1);
     }
 
     b=my_execute_open("");
-    ham_assert(b==1, ("reopen failed with status %u", b));
+    assert(b==1);
     b=my_execute_fullcheck("");
-    ham_assert(b==1, ("reopen failed with status %u", b));
+    assert(b==1);
     b=my_execute_close();
-    ham_assert(b==1, ("reopen failed with status %u", b));
+    assert(b==1);
 
     if (reopen) {
         b=my_execute_open("");
-        ham_assert(b==1, ("reopen failed with status %u", b));
+        assert(b==1);
     }
 
     config.reopen=old; 
@@ -875,14 +871,14 @@ my_execute_create(char *line)
                 (void)unlink(FILENAME_BERK);
                 PROFILE_START(PROF_OTHER, i);
                 ret=db_create(&config.dbp, 0, 0);
-                ham_assert(ret==0, (0));
+                assert(ret==0);
                 if (config.flags & NUMERIC_KEY) {
                     ret=config.dbp->set_bt_compare(config.dbp, my_compare_db);
-                    ham_assert(ret==0, (0));
+                    assert(ret==0);
                 }
                 ret=config.dbp->open(config.dbp, 0, FILENAME_BERK, 0, 
                         DB_BTREE, DB_CREATE, 0);
-                ham_assert(ret==0, (0));
+                assert(ret==0);
                 PROFILE_STOP(PROF_OTHER, i);
                 break;
             case BACKEND_HAMSTER: 
@@ -894,7 +890,7 @@ my_execute_create(char *line)
                 (void)unlink(FILENAME_HAM);
                 PROFILE_START(PROF_OTHER, i);
                 st=ham_new(&config.hamdb);
-                ham_assert(st==0, (0));
+                assert(st==0);
                 if (config.inmemory) {
                     f|=HAM_IN_MEMORY_DB;
                     config.cachesize=0;
@@ -904,7 +900,7 @@ my_execute_create(char *line)
                 f|=config.opt_size?HAM_OPTIMIZE_SIZE:0;
                 st=ham_create_ex(config.hamdb, FILENAME_HAM, f, 0664, 
                         config.pagesize, config.keysize, config.cachesize);
-                ham_assert(st==0, (0));
+                assert(st==0);
                 if (config.flags & NUMERIC_KEY)
                     ham_set_compare_func(config.hamdb, my_compare_keys);
                 PROFILE_STOP(PROF_OTHER, i);
@@ -919,9 +915,9 @@ my_execute_create(char *line)
         int i;
         for (i=0; i<MAX_CURSORS; i++) {
             st=ham_cursor_create(config.hamdb, 0, 0, &ham_cursors[i]);
-            ham_assert(st==0, ("hamster-db error"));
+            assert(st==0);
             ret=config.dbp->cursor(config.dbp, NULL, &bdb_cursors[i], 0);
-            ham_assert(ret==0, ("berkeley-db error"));
+            assert(ret==0);
         }
     }
 
@@ -957,14 +953,14 @@ my_execute_open(char *line)
                 }
                 PROFILE_START(PROF_OTHER, i);
                 ret=db_create(&config.dbp, 0, 0);
-                ham_assert(ret==0, (0));
+                assert(ret==0);
                 if (config.flags & NUMERIC_KEY) {
                     ret=config.dbp->set_bt_compare(config.dbp, my_compare_db);
-                    ham_assert(ret==0, (0));
+                    assert(ret==0);
                 }
                 ret=config.dbp->open(config.dbp, 0, FILENAME_BERK, 0, 
                         DB_BTREE, 0, 0);
-                ham_assert(ret==0, (0));
+                assert(ret==0);
                 PROFILE_STOP(PROF_OTHER, i);
                 break;
             case BACKEND_HAMSTER: 
@@ -975,9 +971,9 @@ my_execute_open(char *line)
                 }
                 PROFILE_START(PROF_OTHER, i);
                 st=ham_new(&config.hamdb);
-                ham_assert(st==0, (0));
+                assert(st==0);
                 st=ham_open(config.hamdb, FILENAME_HAM, 0);
-                ham_assert(st==0, (0));
+                assert(st==0);
                 if (config.flags & NUMERIC_KEY)
                     ham_set_compare_func(config.hamdb, my_compare_keys);
                 PROFILE_STOP(PROF_OTHER, i);
@@ -992,9 +988,9 @@ my_execute_open(char *line)
         int i;
         for (i=0; i<MAX_CURSORS; i++) {
             st=ham_cursor_create(config.hamdb, 0, 0, &ham_cursors[i]);
-            ham_assert(st==0, ("hamster-db error"));
+            assert(st==0);
             ret=config.dbp->cursor(config.dbp, NULL, &bdb_cursors[i], 0);
-            ham_assert(ret==0, ("berkeley-db error"));
+            assert(ret==0);
         }
     }
 
@@ -1024,7 +1020,7 @@ my_execute_flush(void)
                 }
                 /*PROFILE_START(i);*/
                 st=ham_flush(config.hamdb, 0);
-                ham_assert(st==0, (0));
+                assert(st==0);
                 /*PROFILE_STOP(i);*/
                 break;
         }
@@ -1160,9 +1156,9 @@ my_execute_insert(char *line)
                         st=ham_cursor_find(ham_cursors[0], &key, 0); 
                         if (st==0) {
                             st=ham_cursor_replace(ham_cursors[0], &record, 0);
-                            ham_assert(st==0, (""));
+                            assert(st==0);
                             st=ham_cursor_find(ham_cursors[0], &key, 0); 
-                            ham_assert(st==0, (""));
+                            assert(st==0);
                         }
                     }
                     config.retval[i]=st;
@@ -1407,7 +1403,7 @@ my_execute_fullcheck(char *line)
 {
     if (config.reopen>=2) {
         ham_bool_t b=my_execute_reopen();
-        ham_assert(b!=0, ("my_execute_reopen failed"));
+        assert(b!=0);
     }
 
     /* 
@@ -1420,16 +1416,14 @@ my_execute_fullcheck(char *line)
             st=ham_check_integrity(config.hamdb, 0);
             if (config.dump>=1) 
                 (void)ham_dump(config.hamdb, 0, my_dump_func);
-            ham_assert(st==0, ("check integrity failed"));
+            assert(st==0);
         }
     }
 
     /*
      * check database contents
      */
-    if (!my_compare_databases()) 
-        ham_assert(0, 
-                ("failed to compare the databases, or databases not equal"));
+    assert(my_compare_databases());
     return HAM_TRUE;
 }
 
@@ -1446,7 +1440,7 @@ my_execute_close(void)
         if (config.backend[0]==BACKEND_HAMSTER ||
             config.backend[1]==BACKEND_HAMSTER) {
             st=ham_dump(config.hamdb, 0, my_dump_func);
-            ham_assert(st==0, (0));
+            assert(st==0);
         }
         if (st)
             ham_trace(("hamster dump failed with status %d", st));
@@ -1490,7 +1484,7 @@ my_execute_close(void)
                 }
                 PROFILE_START(PROF_OTHER, i);
                 st=ham_close(config.hamdb);
-                ham_assert(st==0, (0));
+                assert(st==0);
                 ham_delete(config.hamdb);
                 config.hamdb=0;
                 PROFILE_STOP(PROF_OTHER, i);
@@ -1500,7 +1494,7 @@ my_execute_close(void)
 
     if (config.reopen) {
         ham_bool_t b=my_execute_reopen();
-        ham_assert(b!=0, ("my_execute_reopen failed"));
+        assert(b!=0);
     }
 
     return 1;
@@ -1543,14 +1537,14 @@ my_test_cursors(void)
             PROFILE_START(PROF_CURSOR, berk);
             ret=bdb_cursors[i]->c_get(bdb_cursors[i], &key, &rec, DB_FIRST);
             PROFILE_STOP(PROF_CURSOR, berk);
-            ham_assert(hrec.size==rec.size, (""));
-            ham_assert(!memcmp(hkey.data, key.data, hkey.size), (""));
-            ham_assert(!memcmp(hrec.data, rec.data, hrec.size), (""));
+            assert(hrec.size==rec.size);
+            assert(!memcmp(hkey.data, key.data, hkey.size));
+            assert(!memcmp(hrec.data, rec.data, hrec.size));
         }
 
         config.retval[berk]=ret;
         config.retval[ham] =st;
-        ham_assert(my_compare_return(), ("return values are different"));
+        assert(my_compare_return());
     }
 
     /*
@@ -1570,14 +1564,14 @@ my_test_cursors(void)
             PROFILE_START(PROF_CURSOR, berk);
             ret=bdb_cursors[i]->c_get(bdb_cursors[i], &key, &rec, DB_LAST);
             PROFILE_STOP(PROF_CURSOR, berk);
-            ham_assert(hrec.size==rec.size, (""));
-            ham_assert(!memcmp(hkey.data, key.data, hkey.size), (""));
-            ham_assert(!memcmp(hrec.data, rec.data, hrec.size), (""));
+            assert(hrec.size==rec.size);
+            assert(!memcmp(hkey.data, key.data, hkey.size));
+            assert(!memcmp(hrec.data, rec.data, hrec.size));
         }
 
         config.retval[berk]=ret;
         config.retval[ham] =st;
-        ham_assert(my_compare_return(), ("return values are different"));
+        assert(my_compare_return());
     }
 
     return 1;
@@ -1851,7 +1845,7 @@ main(int argc, char **argv)
         if (config.check>=2) {
             if ((config.backend[0]==BACKEND_HAMSTER ||
                 config.backend[1]==BACKEND_HAMSTER) && config.hamdb)
-                ham_assert(ham_check_integrity(config.hamdb, 0)==0, (0));
+                assert(ham_check_integrity(config.hamdb, 0)==0);
         }
 
         if (config.test_cursors && !my_test_cursors())
