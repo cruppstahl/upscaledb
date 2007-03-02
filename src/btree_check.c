@@ -169,7 +169,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
     maxkeys=btree_get_maxkeys(scratchpad->be);
     count=btree_node_get_count(node);
 
-    if(count==0) {
+    if (count==0) {
         /*
          * a rootpage can be empty! check if this page is the 
          * rootpage.
@@ -243,12 +243,29 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
         return (0);
 
     for (i=0; i<count-1; i++) {
-        cmp=key_compare_int_to_int(page, (ham_u16_t)i, (ham_u16_t)(i+1));
+		/* 
+		 * if this is an extended key: check for a blob-id
+		 */
+		bte=btree_node_get_key(db, node, i);
+		if (key_get_flags(bte)&KEY_IS_EXTENDED) {
+			ham_offset_t blobid;
+	        blobid=*(ham_offset_t *)(key_get_key(bte)+(db_get_keysize(db)-
+                    sizeof(ham_offset_t)));
+			if (!blobid) {
+				ham_trace(("integrity check failed in page 0x%llx: item #%d "
+						"is extended, but has no blob", 
+						page_get_self(page), i));
+				return (HAM_INTEGRITY_VIOLATED);
+			}
+		}
+        
+		cmp=key_compare_int_to_int(page, (ham_u16_t)i, (ham_u16_t)(i+1));
+
         if (db_get_error(db))
             return (db_get_error(db));
         if (cmp>=0) {
             ham_log(("integrity check failed in page 0x%llx: item #%d "
-                    "< item #%d\n", page_get_self(page), i, i+1));
+                    "< item #%d", page_get_self(page), i, i+1));
             return (HAM_INTEGRITY_VIOLATED);
         }
     }

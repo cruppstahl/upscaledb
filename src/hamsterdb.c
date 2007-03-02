@@ -476,12 +476,10 @@ ham_create_ex(ham_db_t *db, const char *filename,
      * initialize the database with a good default value;
      * 32byte is the size of a first level cache line for most modern
      * processors; adjust the keysize, so the keys are aligned to
-     * 32byte (or 16)
+     * 32byte
      */
-    if (keysize==0) {
-        keysize=sizeof(int_key_t);
+    if (keysize==0)
         keysize=32-(sizeof(int_key_t)-1);
-    }
 
     /*
      * initialize the header

@@ -672,6 +672,7 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
 
             blobid=*(ham_offset_t *)(rhs+(db_get_keysize(db)-
                     sizeof(ham_offset_t)));
+			ham_assert(blobid, ("blobid is empty"));
 
             /* fetch from the cache */
             if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
