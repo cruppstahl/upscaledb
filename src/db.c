@@ -253,10 +253,12 @@ db_free_page_struct(ham_page_t *page)
                 if (key_get_flags(bte)&KEY_IS_EXTENDED) {
                     blobid=*(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)));
-                    *(ham_offset_t *)(key_get_key(bte)+
+					if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
+						/* delete the blobid, to prevent that it's freed twice */
+	                    *(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
-                    if (db_get_flags(db)&HAM_IN_MEMORY_DB)
-                        (void)blob_free(db, blobid, 0);
+						(void)blob_free(db, blobid, 0);
+					}
                     else if (c)
                         (void)extkey_cache_remove(c, blobid);
                 }
