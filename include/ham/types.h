@@ -56,6 +56,14 @@ extern "C" {
 #    include <windows.h>
 #endif
 
+/*
+ * create the EXPORT-macro for Microsoft Visual C++
+ */
+#ifdef _MSC_VER
+#    define HAM_EXPORT __declspec(dllexport)
+#else
+#    define HAM_EXPORT extern
+#endif
 
 /** 
  * typedefs for 32bit operating systems

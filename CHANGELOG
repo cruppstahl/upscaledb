@@ -1,4 +1,8 @@
 
+Mar 03, 2007
+o win32 compiles and links as a static or dynamic library with Visual C++ 
+    2005 Express Edition; testes are all successful
+
 Feb 11, 2007
 o many small changes to compile everything on cygwin
 

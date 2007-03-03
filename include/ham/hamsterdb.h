@@ -210,7 +210,7 @@ typedef void (*ham_errhandler_fun)(const char *message);
  * @param f A pointer to the error handler function, or NULL to restore 
  *          the default handler.
  */
-extern void
+HAM_EXPORT void
 ham_set_errhandler(ham_errhandler_fun f);
 
 /**
@@ -220,13 +220,13 @@ ham_set_errhandler(ham_errhandler_fun f);
  *
  * @return Returns a C string with a descriptive error string.
  */
-extern const char *
+HAM_EXPORT const char *
 ham_strerror(ham_status_t status);
 
 /**
  * Get the version of the hamsterdb library
  */
-extern void
+HAM_EXPORT void
 ham_get_version(ham_u32_t *major, ham_u32_t *minor,
         ham_u32_t *revision);
 
@@ -247,7 +247,7 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
  * @return @a HAM_SUCCESS on success
  * TODO TODO TODO mehr fehlercodes?
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_new(ham_db_t **db);
 
 /**
@@ -262,7 +262,7 @@ ham_new(ham_db_t **db);
  * @return @a HAM_SUCCESS on success
  * TODO TODO TODO mehr fehlercodes?
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_delete(ham_db_t *db);
 
 /**
@@ -277,7 +277,7 @@ ham_delete(ham_db_t *db);
  * TODO TODO TODO mehr fehlercodes?
  * TODO TODO TODO flags beschreiben
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
 
 /**
@@ -293,7 +293,7 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  * TODO TODO TODO mehr fehlercodes?
  * TODO TODO TODO flags beschreiben
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_open_ex(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_size_t cachesize);
 
@@ -315,7 +315,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
  * you are NOT allowed to set the flag HAM_CACHE_STRICT or to use
  * a cache size != 0!
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_create(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_u32_t mode);
 
@@ -347,7 +347,7 @@ ham_create(ham_db_t *db, const char *filename,
  * a cache size != 0!
  *
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_create_ex(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_u32_t mode, ham_u32_t pagesize,
         ham_u16_t keysize, ham_size_t cachesize);
@@ -476,21 +476,9 @@ ham_create_ex(ham_db_t *db, const char *filename,
 #define HAM_OPTIMIZE_SIZE            0x00001000
 
 /**
-<<<<<<< .mine
- * Create a database cursor
- *
- * @remark set reserved and flags to 0
- */
-extern ham_status_t
-ham_create_cursor(ham_db_t *db, void *reserved, ham_u32_t flags,
-            ham_cursor_t **cursor);
-
-/**
-=======
->>>>>>> .r159
  * get the last error code
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_get_error(ham_db_t *db);
 
 /**
@@ -506,7 +494,7 @@ ham_get_error(ham_db_t *db);
  * @return @a HAM_SUCCESS on success
  * TODO TODO TODO mehr fehlercodes?
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
 
 /**
@@ -524,7 +512,7 @@ ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
  * @return @a HAM_SUCCESS on success
  * TODO TODO TODO mehr fehlercodes?
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
 
 /**
@@ -558,7 +546,7 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  * @return @a HAM_SUCCESS on success
  * TODO TODO TODO mehr fehlercodes?
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags);
 
@@ -580,7 +568,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  * @return @a HAM_SUCCESS on success
  * TODO TODO TODO mehr fehlercodes?
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags);
 
@@ -606,7 +594,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
  * @return @a HAM_SUCCESS on success
  * TODO TODO TODO mehr fehlercodes?
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_erase(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_u32_t flags);
 
@@ -625,7 +613,7 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key,
  * @return @a HAM_SUCCESS on success
  * TODO TODO TODO mehr fehlercodes?
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_flush(ham_db_t *db, ham_u32_t flags);
 
 /**
@@ -643,7 +631,7 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  * @return @a HAM_SUCCESS on success
  * TODO TODO TODO mehr fehlercodes?
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_close(ham_db_t *db);
 
 /*
@@ -660,14 +648,14 @@ ham_close(ham_db_t *db);
  *
  * @remark set @a reserved to NULL and @a flags to 0
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags,
         ham_cursor_t **cursor);
 
 /**
  * clone a database cursor
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
 
 /**
@@ -677,7 +665,7 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * HAM_CURSOR_FIRST, HAM_CURSOR_LAST, HAM_CURSOR_NEXT or HAM_CURSOR_PREVIOUS,
  * the current key/record is returned
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags);
 
@@ -689,7 +677,7 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 /**
  * replace the current record
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags);
 
@@ -697,13 +685,13 @@ ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
  * find a key in the index and positions the cursor
  * on this key
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
 
 /**
  * insert (or update) a key in the index
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags);
 
@@ -711,13 +699,13 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
  * erases the key from the index; after the erase, the cursor 
  * is invalid
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
 
 /**
  * close a database cursor
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_cursor_close(ham_cursor_t *cursor);
 
 /*

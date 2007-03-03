@@ -1,29 +1,17 @@
 
 x port to cygwin 
 
-../win32/hamsterdb/test/Debug/test.exe --file ../../../hamsterdb-tests/trunk/tes
-tfiles/1/ext_021.tst --keysize=8 --reopen=1
-ext_030
-ext_031
-etc
-keysize=12
-keysize=33 (nur ext_020, 021, 030)
-
-
-
-o ham_flush: sollte os_flush aufrufen
-    BOOL FlushFileBuffers(HANDLE hFile);
-    bzw fflush oder so in linux
-
-o os_tell durch os_get_filesize erweitern
-
 o port to ms windows
     x win32: sourcen portieren - mmap fehlt noch!
     x projekt-umgebungen fuer visual studio 6 (oder 8?)
-    o define HAM_EXPORT DECLSPEC _dllexport for DLLs und .so
+    x define HAM_EXPORT DECLSPEC _dllexport for DLLs und .so
+    o dll compilieren, kurz testen
     o monster.sh!
 
-o endianness testen - schlägt fehl! 
+o nächsten release machen (mit Windows-binaries!)
+
+----------------------------------------------------------------------
+----------------------------------------------------------------------
 
 o logo!!
 
@@ -48,6 +36,9 @@ o webseite
         o doku bzgl installation, compilieren, portieren
     o korrigieren lassen
 
+----------------------------------------------------------------------
+----------------------------------------------------------------------
+
 o können wir problemlos 32bit-filepointer nehmen?
 
 o 1 writer, multiple reader - wie lässt sich das machen?
@@ -58,6 +49,14 @@ o es ist noch ein kleiner valgrind-bug drin:
     valgrind --tool=memcheck --leak-check=full --show-reachable=yes
     .libs/lt-test --file ../../../hamsterdb-tests/trunk/testfiles/1/ext_060.tst
     --inmemorydb=1 --verbose=1
+
+o endianness testen - schlaegt fehl! 
+
+o ham_flush: sollte os_flush aufrufen
+    BOOL FlushFileBuffers(HANDLE hFile);
+    bzw fflush oder so in linux
+
+o os_tell durch os_get_filesize erweitern
 
 o nächsten release machen
 

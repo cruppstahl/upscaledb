@@ -561,16 +561,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
 }
 
 ham_status_t
-ham_create_cursor(ham_db_t *db, void *reserved, ham_u32_t flags,
-            ham_cursor_t **cursor)
-{
-    /*
-     * so far we only support B+Tree cursors
-     */
-    return (bt_cursor_create(db, reserved, flags, (ham_bt_cursor_t **)cursor));
-}
-
-ham_status_t
 ham_get_error(ham_db_t *db)
 {
     return (db_get_error(db));

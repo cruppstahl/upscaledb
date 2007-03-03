@@ -30,7 +30,7 @@ typedef void (*ham_dump_cb_t)(const ham_u8_t *key, ham_size_t keysize);
  *
  * @remark set 'reserved' to NULL
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_dump(ham_db_t *db, void *reserved, ham_dump_cb_t cb);
 
 /** 
@@ -38,7 +38,7 @@ ham_dump(ham_db_t *db, void *reserved, ham_dump_cb_t cb);
  *
  * @remark set 'reserved' to NULL
  */
-extern ham_status_t
+HAM_EXPORT ham_status_t
 ham_check_integrity(ham_db_t *db, void *reserved);
 
 

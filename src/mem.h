@@ -32,8 +32,11 @@ extern "C" {
 /**
  * the implementation of ham_mem_malloc() and ham_mem_free()
  */
-extern void *_ham_mem_malloc(const char *file, int line, ham_u32_t size);
-extern void  _ham_mem_free(const char *file, int line, void *ptr);
+extern void *
+_ham_mem_malloc(const char *file, int line, ham_u32_t size);
+
+extern void
+_ham_mem_free(const char *file, int line, void *ptr);
 
 #ifdef __cplusplus
 } // extern "C"
