@@ -10,22 +10,21 @@ Contents:
 
 hamsterdb is a fast and small database engine. You can insert, delete or look
 up key/data pairs. It supports a B+Tree index structure with variable length 
-keys and variable length data records. 
+keys and variable length data records. hamsterdb can run as 
+in-memory-databases.
 
 2. Changes
 
-This release features the implementation of database cursors. You can 
-use cursors to traverse all records from front to end or end to front. You
-can also use cursors to insert, erase or replace records.
+Finally, hamsterdb was ported to win32. See below how to build hamsterdb for 
+Windows.
 
 Some minor bugs were fixed as well. To see a list of all changes, look 
 in the file CHANGELOG.
 
 3. Roadmap
 
-The next releases will finally port hamsterdb to Win32 platforms and to 
-linux on PowerPC. Also, the endian-independence will be tested.
-The documentation will be overhauled, and hamsterdb will get its own webpage.
+The next releases will port hamsterdb to linux on PowerPC, and to MacOS/Darwin. 
+Also, the endian-independence will be tested. 
 
 4. Features
 
@@ -35,25 +34,40 @@ The documentation will be overhauled, and hamsterdb will get its own webpage.
 - Uses memory mapped I/O for fast disk access (but falls back to read/write if
   mmap is not available)
 - Uses 64bit file pointers for large databases
-- Endian-independent (not tested, though)
 - Support for in-memory-databases
 - Database cursors
+- Compiles and runs on Linux, Cygwin/Win32, Visual C++ 2005
 
 5. Known Issues/Bugs
 
 - Endian-independence was not (yet) tested
 
-6. Compiling
+6. Compiling 
+
+6.1 Linux and Cygwin/Win32
 
 To compile hamsterdb, run ./configure, make, make install.
 
 Run `./configure --help' for more options (i.e. static/dynamic library, 
 build with debugging symbols etc).
 
+6.2 Microsoft Visual Studio 8
+
+A Solution file is provided for Microsoft Visual C++ 2005:
+win32/hamsterdb/hamsterdb.sln. It compiles a static and a dynamic library. 
+The static library is built in '/win32/hamsterdb/lib/Release/hamsterdb.lib', 
+the dynamic library is in '/win32/hamsterdb/lib/Debug/hamsterdb.dll'. An import
+library is also provided. All libraries can be downloaded separately from 
+the hamsterdb webpage.
+
+To download Microsoft Visual C++ 2005 Express Edition for free, go to
+http://msdn.microsoft.com/vstudio/express/visualc/default.aspx.
+
 7. Testing and Example Code
 
 Make automatically compiles a simple example program in the directory
-'/samples'. To see hamsterdb in action, just run '/samples/db1'.
+'/samples'. To see hamsterdb in action, just run '/samples/db1' (or 
+'/win32/hamsterdb/db1/Release/db1.exe' on Win32 platforms).
 
 8. API Documentation
 
@@ -61,13 +75,7 @@ API documentation is not yet available. The header files in '/include/ham' are
 commented, though. The next release will provide a doxygen script to 
 generate the documentation from the header files.  
 
-9. Compiling for Microsoft Windows
-
-See the subdirectory ./win32 for batch-files which use the Microsoft compiler 
-(cl). Before you start those files, you have to execute the setenv.bat file 
-which is in the Visual Studio directory.
-
-10. Other Ways to Compile hamsterdb
+9. Other Ways to Compile hamsterdb
 
 If you want to compile hamsterdb without using the provided ./configure
 environment, you have to set some preprocessor macros:
@@ -83,10 +91,12 @@ HAM_64BIT               compile for 64bit
 Also, if you compile for windows, you have to compile the file src/os_win32.c,
 and ignore the file src/os_posix.c. Vice versa on non-Windows platforms.
 
-11. Porting hamsterdb
+10. Porting hamsterdb
 
 Porting hamsterdb shouldn't be too difficult. All operating system dependend
-functions are declared in os.h and defined in os_win32.c or os_posix.c. Most 
-likely, these are the only files which have to be touched. Also see item 8)
-for compiler instructions.
+functions are declared in 'src/os.h' and defined in 'src/os_win32.c' or 
+'src/os_posix.c'. 
+Other compiler- and OS-specific macros are in 'include/ham/types.h'. 
+Most likely, these are the only files which have to be touched. Also see item 
+9) for important macros. 
 
