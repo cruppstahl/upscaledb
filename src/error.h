@@ -35,17 +35,17 @@ extern void dbg_verify_failed(const char *format, ...);
  * otherwise we are not thread-safe. this is super-ugly.
  */
 #ifdef HAM_DEBUG
-#   define ham_trace(f)      do {                                       \
-                                dbg_lock();                               \
+#   define ham_trace(f)      do {                                      \
+                                dbg_lock();                            \
                                 dbg_prepare(__FILE__, __LINE__, 0);    \
                                 dbg_log f;                             \
                                 dbg_unlock();                          \
                              } while (0)
 #   define ham_assert(e, f)  if (!(e)) {                               \
-                                dbg_lock();                               \
+                                dbg_lock();                            \
                                 dbg_prepare(__FILE__, __LINE__, #e);   \
-                                dbg_verify_failed f;                        \
-                                dbg_unlock();                           \
+                                dbg_verify_failed f;                   \
+                                dbg_unlock();                          \
                              }
 #else /* HAM_RELEASE */
 #   define ham_trace(f)      
@@ -55,17 +55,17 @@ extern void dbg_verify_failed(const char *format, ...);
 /**
  * log() and verify() are available in every build
  */
-#define ham_log(f)           do {                                       \
-                                dbg_lock();                               \
+#define ham_log(f)           do {                                      \
+                                dbg_lock();                            \
                                 dbg_prepare(__FILE__, __LINE__, 0);    \
                                 dbg_log f;                             \
                                 dbg_unlock();                          \
                              } while (0)
 #define ham_verify(e, f)     if (!(e)) {                               \
-                                dbg_lock();                               \
+                                dbg_lock();                            \
                                 dbg_prepare(__FILE__, __LINE__, #e);   \
-                                dbg_verify_failed f;                      \
-                                dbg_unlock();                           \
+                                dbg_verify_failed f;                   \
+                                dbg_unlock();                          \
                              }
 #ifdef __cplusplus
 } // extern "C"

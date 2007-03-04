@@ -5,8 +5,10 @@ o port to ms windows
     x win32: sourcen portieren - mmap fehlt noch!
     x projekt-umgebungen fuer visual studio 6 (oder 8?)
     x define HAM_EXPORT DECLSPEC _dllexport for DLLs und .so
-    o dll compilieren, kurz testen
+    x dll compilieren, kurz testen
     o monster.sh!
+
+o test auslagern in eigenes unterverzeichnis
 
 o nächsten release machen (mit Windows-binaries!)
 

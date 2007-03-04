@@ -35,7 +35,6 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-LIBOBJDIR =
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(top_srcdir)/configure COPYING TODO \
@@ -110,8 +109,6 @@ EXEEXT = @EXEEXT@
 F77 = @F77@
 FFLAGS = @FFLAGS@
 GREP = @GREP@
-HAVE_DB_H_FALSE = @HAVE_DB_H_FALSE@
-HAVE_DB_H_TRUE = @HAVE_DB_H_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -186,12 +183,11 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-SUBDIRS = src include samples tests
+SUBDIRS = src include samples 
 EXTRA_DIST = documentation/Doxyfile CHANGELOG include/ham/hamsterdb.h \
-	include/ham/hamsterdb_int.h include/ham/types.h tests/*.c \
-	tests/*.h tests/Makefile.am tests/Makefile.in tests/README \
-	tests/script.tst build/scripts/* src/*.c src/*.h \
-	src/Makefile.am src/Makefile.in
+	include/ham/hamsterdb_int.h include/ham/types.h \
+	build/scripts/* src/*.c src/*.h src/Makefile.am \
+	src/Makefile.in
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -392,7 +388,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/build/scripts $(distdir)/documentation $(distdir)/include/ham $(distdir)/src $(distdir)/tests
+	$(mkdir_p) $(distdir)/build/scripts $(distdir)/documentation $(distdir)/include/ham $(distdir)/src
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \

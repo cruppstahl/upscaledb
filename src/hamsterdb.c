@@ -626,10 +626,10 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     if (db_get_flags(db)&HAM_READ_ONLY)
         return (HAM_DB_READ_ONLY);
     if ((db_get_flags(db)&HAM_DISABLE_VAR_KEYLEN) &&
-        key->size>db_get_keysize(db))
+        (key->size>db_get_keysize(db)))
         return (HAM_INV_KEYSIZE);
     if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
-        key->size>db_get_keysize(db))
+        (key->size>db_get_keysize(db)))
         return (HAM_INV_KEYSIZE);
     if ((st=ham_txn_begin(&txn, db)))
         return (st);

@@ -1,4 +1,7 @@
 
+Mar 04, 2007
+o moved the ./tests-subdirectory to a separate repository
+
 Mar 03, 2007
 o win32 compiles and links as a static or dynamic library with Visual C++ 
     2005 Express Edition; testes are all successful
