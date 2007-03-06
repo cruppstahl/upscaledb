@@ -14,7 +14,7 @@ AC_INIT([hamsterdb], 0.4.0, [chris@crupp.de])
 
 AC_CONFIG_AUX_DIR(build/scripts)
 AM_INIT_AUTOMAKE([1.9 foreign])
-AC_CONFIG_HEADER(config.h)
+AM_CONFIG_HEADER(config.h)
 
 AC_LIBTOOL_WIN32_DLL
 AC_PROG_LIBTOOL
