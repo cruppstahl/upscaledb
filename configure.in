@@ -6,23 +6,20 @@ dnl All rights reserved. See file LICENSE for licence and copyright
 dnl information
 dnl
 
-AC_PREREQ(2.59)
-
-dnl Get the version number of hamsterdb
-define([ham_version], [esyscmd(build/scripts/get-version.sh src/version.h)])
-AC_INIT([hamsterdb], 0.4.0, [chris@crupp.de])
-
+dnl Initialize autoconf/automake
+AC_INIT(hamsterdb, 0.4.1)
+AC_CONFIG_SRCDIR(src/hamsterdb.c)
 AC_CONFIG_AUX_DIR(build/scripts)
-AM_INIT_AUTOMAKE([1.9 foreign])
+AM_INIT_AUTOMAKE(foreign)
+
 AM_CONFIG_HEADER(config.h)
 
+AC_PROG_CC
+AC_PROG_RANLIB
 AC_LIBTOOL_WIN32_DLL
 AC_PROG_LIBTOOL
-AC_PROG_RANLIB
-AC_PROG_CC
 AC_PROG_INSTALL
 AC_HEADER_STDC
-AC_C_BIGENDIAN
 AC_C_CONST
 AC_TYPE_SIZE_T
 AC_CHECK_FUNCS(pread pwrite mmap munmap)
@@ -34,56 +31,73 @@ dnl
 dnl use -Wall on platforms with gcc
 dnl
 if test "x$GCC" = "xyes"; then
-    if test -z "`echo "$CFLAGS" | grep "\-Wall" 2> /dev/null`" ; then
-        CFLAGS="${CFLAGS} -Wall"
-    fi
+    CFLAGS="${CFLAGS} -Wall"
 fi
 
-dnl 
-dnl check for cygwin/Win32
 dnl
-case $host in 
-*-*-cygwin*)
-    CFLAGS="${CFLAGS} -DWIN32 -DCYGWIN"
-    ;;
-*-*-mingw32*)
-    CFLAGS="${CFLAGS} -DWIN32"
-    ;;
-esac
-
+dnl check for little endian/big endian
 dnl
-dnl big endian or little endian?
-dnl 
 AC_C_BIGENDIAN(
-        big_endian=yes,
-        big_endian=no,
-        AC_MSG_ERROR(Don't know if this platform is bigendian or little
-                     endian))
-AM_CONDITIONAL(BIG_ENDIAN, test x$big_endian = xyes)
+        ac_big_endian=yes,
+        ac_big_endian=no,
+        ac_big_endian=no)
+if test $ac_big_endian = yes; then
+    CFLAGS="${CFLAGS} -DHAM_BIG_ENDIAN"
+else
+    CFLAGS="${CFLAGS} -DHAM_LITTLE_ENDIAN"
+fi
 
 dnl
-dnl support debugging
-dnl 
-AC_ARG_ENABLE(debug,
-     [  --enable-debug          Turn on debugging],
-     [case "${enableval}" in
-       yes) debug=true ;;
-       no)  debug=false ;;
-       *) AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
-     esac],[debug=false])
-AM_CONDITIONAL(DEBUG, test x$debug = xtrue)
+dnl check for --enable-debug
+dnl
+AC_ARG_WITH(debug,
+    AC_HELP_STRING([--enable-debug],
+        [Build with diagnostics and debug symbols (slow!)]),
+    [CFLAGS="${CFLAGS} -DHAM_DEBUG"])
 
 dnl
-dnl support profiling
-dnl 
-AC_ARG_ENABLE(profile,
-     [  --enable-profile        Turn on profiling],
-     [case "${enableval}" in
-       yes) profile=true ;;
-       no)  profile=false ;;
-       *) AC_MSG_ERROR(bad value ${enableval} for --enable-profile) ;;
-     esac],[profile=false])
-AM_CONDITIONAL(PROFILE, test x$profile = xtrue)
+dnl check for --enable-profile
+dnl
+AC_ARG_WITH(profile,
+    AC_HELP_STRING([--enable-profile],
+        [Build with profiling information]),
+    [CFLAGS="${CFLAGS} -pg"])
+
+dnl
+dnl check for O_LARGEFILE
+dnl
+AC_CACHE_CHECK(for support of the O_LARGEFILE flag,ac_cv_largefile,
+    [AC_TRY_RUN([
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <fcntl.h>
+int main(void) {
+    printf("O_LARGEFILE: %d\n", O_LARGEFILE);
+    return 0;
+}],ac_cv_largefile=yes,ac_cv_largefile=no,ac_cv_largefile=no)])
+if test $ac_cv_largefile = yes; then
+    AC_DEFINE(HAVE_O_LARGEFILE,1,[flag O_LARGEFILE is supported])
+fi
+
+dnl
+dnl check for the return type of getpagesize()
+dnl
+AC_CACHE_CHECK(if getpagesize() returns int,ac_cv_getpagesize_int,
+    [AC_TRY_RUN([
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <fcntl.h>
+extern int getpagesize(void);
+int main(void) {
+    printf("pagesize: %d\n", getpagesize());
+    return 0;
+}],ac_cv_getpagesize_int=yes,ac_cv_getpagesize_int=no,ac_cv_getpagesize_int=no)])
+if test $ac_cv_getpagesize_int = yes; then
+    AC_DEFINE(HAVE_GETPAGESIZE_INT,1,[getpagesize() returns int])
+fi
+
 
 AC_CONFIG_FILES(Makefile src/Makefile include/Makefile include/ham/Makefile samples/Makefile)
 AC_OUTPUT

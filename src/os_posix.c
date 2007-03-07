@@ -24,7 +24,7 @@
 #include "error.h"
 #include "os.h"
 
-#ifndef CYGWIN
+#ifdef HAVE_GETPAGESIZE_INT
 extern int getpagesize();
 #else
 extern size_t getpagesize();
@@ -36,7 +36,7 @@ my_enable_largefile(int fd)
     /*
      * not available on cygwin...
      */
-#ifndef CYGWIN
+#ifdef HAVE_O_LARGEFILE
     int oflag=fcntl(fd, F_GETFL, 0);
     fcntl(fd, F_SETFL, oflag|O_LARGEFILE);
 #endif
@@ -210,20 +210,6 @@ ham_status_t
 os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 {
     int osflags=O_CREAT|O_RDWR;
-
-    /*
-     * TODO flag only makes sense in os_open, not os_create!
-     */
-    if (flags&HAM_READ_ONLY)
-        osflags|=O_RDONLY;
-
-#if CYGWIN
-    /*
-     * cygwin: delete a previously existing file; otherwise the file 
-     * is not overwritten
-     */
-    (void)unlink(filename);
-#endif
 
     *fd=open(filename, osflags, mode);
     if (*fd<0) {

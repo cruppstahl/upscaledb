@@ -9,6 +9,9 @@
 /* Define to 1 if you have the `getpagesize' function. */
 #undef HAVE_GETPAGESIZE
 
+/* getpagesize() returns int */
+#undef HAVE_GETPAGESIZE_INT
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
@@ -20,6 +23,9 @@
 
 /* Define to 1 if you have the `munmap' function. */
 #undef HAVE_MUNMAP
+
+/* flag O_LARGEFILE is supported */
+#undef HAVE_O_LARGEFILE
 
 /* Define to 1 if you have the `pread' function. */
 #undef HAVE_PREAD
@@ -71,10 +77,6 @@
 
 /* Version number of package */
 #undef VERSION
-
-/* Define to 1 if your processor stores words with the most significant byte
-   first (like Motorola and SPARC, unlike Intel and VAX). */
-#undef WORDS_BIGENDIAN
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
