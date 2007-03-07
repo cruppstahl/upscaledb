@@ -1,19 +1,25 @@
 
 x port to cygwin 
 
-o port to ms windows
+x port to ms windows
     x win32: sourcen portieren - mmap fehlt noch!
     x projekt-umgebungen fuer visual studio 6 (oder 8?)
     x define HAM_EXPORT DECLSPEC _dllexport for DLLs und .so
     x dll compilieren, kurz testen
-    o monster.sh!
+    x monster.sh!
 
 x test auslagern in eigenes unterverzeichnis
+    x für linux
+        o monster.sh
+    o für win32
+        o monster.sh
 
 o nächsten release machen (mit Windows-binaries!)
 
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------
+
+O_LARGEFLAG funktioniert nicht
 
 o logo!!
 

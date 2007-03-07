@@ -68,12 +68,13 @@ dnl check for O_LARGEFILE
 dnl
 AC_CACHE_CHECK(for support of the O_LARGEFILE flag,ac_cv_largefile,
     [AC_TRY_RUN([
+#define _GNU_SOURCE   1 /* for O_LARGEFILE */
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <fcntl.h>
 int main(void) {
-    printf("O_LARGEFILE: %d\n", O_LARGEFILE);
+    int i=(int)O_LARGEFILE;
     return 0;
 }],ac_cv_largefile=yes,ac_cv_largefile=no,ac_cv_largefile=no)])
 if test $ac_cv_largefile = yes; then
@@ -91,7 +92,7 @@ AC_CACHE_CHECK(if getpagesize() returns int,ac_cv_getpagesize_int,
 #include <fcntl.h>
 extern int getpagesize(void);
 int main(void) {
-    printf("pagesize: %d\n", getpagesize());
+    int i=(int)getpagesize();
     return 0;
 }],ac_cv_getpagesize_int=yes,ac_cv_getpagesize_int=no,ac_cv_getpagesize_int=no)])
 if test $ac_cv_getpagesize_int = yes; then
