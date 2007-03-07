@@ -8,7 +8,7 @@ o port to ms windows
     x dll compilieren, kurz testen
     o monster.sh!
 
-o test auslagern in eigenes unterverzeichnis
+x test auslagern in eigenes unterverzeichnis
 
 o nächsten release machen (mit Windows-binaries!)
 
@@ -23,7 +23,7 @@ o webseite
     http://www.pixelmedia.com/
     x grund-layout und php-framework erstellen
     x doxygen in webseite integrieren
-    o hamsterdb.h überarbeiten, dokumentieren
+    o hamsterdb.h ueberarbeiten, dokumentieren
     o inhalte
         x frontseite
         x features
@@ -32,16 +32,18 @@ o webseite
         x sitemap
         x GPL/Verweise auf GPL
         x sidebars
-        o frontseite: hamster-bild einbetten
+        o frontseite: hamster-bild einbetten (oder so lassen?)
         o roadmap
         o links
         o doku bzgl installation, compilieren, portieren
+        o sidebars ueberpruefen
+        o startseite: "News"-Bereich
     o korrigieren lassen
 
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------
 
-o können wir problemlos 32bit-filepointer nehmen?
+o koennen wir problemlos 32bit-filepointer nehmen?
 
 o 1 writer, multiple reader - wie lässt sich das machen?
     alle ohne caching, alle mit read-through/write-through?
