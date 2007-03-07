@@ -1,11 +1,11 @@
 #!/usr/bin/perl
 
-opendir(DH, "html") or die "cannot open subdir: $!\n";
+opendir(DH, "html_www") or die "cannot open subdir: $!\n";
 @f=readdir(DH);
 closedir(DH);
 foreach (@f) {
-    if (/\.html$/) {
-        process("html/$_");
+    if (/html$/) {
+        process("html_www/$_");
     }
 }
 
