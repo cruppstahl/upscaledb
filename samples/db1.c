@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h> /* for exit() */
 #include <ham/hamsterdb.h>
 
 #define LOOP 10
