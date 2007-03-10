@@ -6,7 +6,10 @@ x port to ms windows
     x projekt-umgebungen fuer visual studio 6 (oder 8?)
     x define HAM_EXPORT DECLSPEC _dllexport for DLLs und .so
     x dll compilieren, kurz testen
+    x dll compilieren, kurz testen
     x monster.sh!
+    o aufpassen dass bei MAKE DIST alle win32-files im verzeichnis sind!
+    o monster.sh!
 
 x test auslagern in eigenes unterverzeichnis
     x für linux
@@ -19,7 +22,10 @@ o nächsten release machen (mit Windows-binaries!)
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------
 
-O_LARGEFLAG funktioniert nicht
+x O_LARGEFLAG funktioniert nicht
+
+o was ist bei --optimizesize und --inmemorydb? das flag duerfte doch gar
+    nix bewirken, weil es bei inmemorydb keine freelist gibt, oder?
 
 o logo!!
 
