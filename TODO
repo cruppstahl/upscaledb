@@ -1,32 +1,4 @@
 
-x port to cygwin 
-
-x port to ms windows
-    x win32: sourcen portieren - mmap fehlt noch!
-    x projekt-umgebungen fuer visual studio 6 (oder 8?)
-    x define HAM_EXPORT DECLSPEC _dllexport for DLLs und .so
-    x dll compilieren, kurz testen
-    x dll compilieren, kurz testen
-    x monster.sh!
-    o aufpassen dass bei MAKE DIST alle win32-files im verzeichnis sind!
-    o monster.sh!
-
-x test auslagern in eigenes unterverzeichnis
-    x für linux
-        o monster.sh
-    o für win32
-        o monster.sh
-
-o nächsten release machen (mit Windows-binaries!)
-
-----------------------------------------------------------------------
-----------------------------------------------------------------------
-
-x O_LARGEFLAG funktioniert nicht
-
-o was ist bei --optimizesize und --inmemorydb? das flag duerfte doch gar
-    nix bewirken, weil es bei inmemorydb keine freelist gibt, oder?
-
 o logo!!
 
 o webseite
@@ -46,14 +18,40 @@ o webseite
         x sidebars
         o frontseite: hamster-bild einbetten (oder so lassen?)
         o roadmap
-        o links
         o doku bzgl installation, compilieren, portieren
         o sidebars ueberpruefen
         o startseite: "News"-Bereich
     o korrigieren lassen
 
-----------------------------------------------------------------------
-----------------------------------------------------------------------
+x was ist bei --optimizesize und --inmemorydb? das flag duerfte doch gar
+    nix bewirken, weil es bei inmemorydb keine freelist gibt, oder?
+    -> ja, wird ignoriert
+
+x vor jeder operation den last-error auf 0 setzen
+
+x Autoconf sollte mit -O3 bauen!
+
+x keine optimization bei --enable-debug
+
+x optimisieren für minimum-size
+
+o neuer configure-modus zum disablen von internen funktionen - z.b. dump
+    und check_integrity etc
+    -> ist blöd - da muss auch die ham/hamsterdb_int.h geändert werden!
+    vielleicht sollten wir diese funktionen einfach nicht exportieren?
+    dann kann man sie mit loadlibrary/getprocaddress laden, wenn man
+    sie braucht. ist aber auch doof...
+
+o 2 mal linken: einmal ohne hamsterdb, einmal mit. Wie gross wird die
+    executable? -> footprint (wie bei itzam)
+
+o portieren auf linux/ppc
+
+o portieren auf MacOS/Darwin
+
+o sicherstellen dass die datenbanken endian-agnostic sind
+
+o sicherstellen dass die datenbanken wordsize-agnostic sind
 
 o koennen wir problemlos 32bit-filepointer nehmen?
 
@@ -65,8 +63,6 @@ o es ist noch ein kleiner valgrind-bug drin:
     valgrind --tool=memcheck --leak-check=full --show-reachable=yes
     .libs/lt-test --file ../../../hamsterdb-tests/trunk/testfiles/1/ext_060.tst
     --inmemorydb=1 --verbose=1
-
-o endianness testen - schlaegt fehl! 
 
 o ham_flush: sollte os_flush aufrufen
     BOOL FlushFileBuffers(HANDLE hFile);
@@ -82,17 +78,13 @@ o nächsten release machen
 o doku
     o tutorial/sample in die online-hilfe einbeziehen
     o FAQ mit häufig gestellten fragen, tips zu optimierungen
-    o Dokumentation in den header-dateien überarbeiten
-    o webseite
     o mailing list
-    o überarbeiten
     o interne doku schreiben
         o db-handle, pageverwaltung
         o backend-aufbau
         o freelist
         o cache
         o cursors
-    o header-file überarbeiten
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -163,22 +155,26 @@ x stress-test-tool(s), das ALLE optionen durchprobiert
     grosse blobs
 o compiliert unter linux, windows, darwin, 32bit und 64bit, läuft auf 
     little- und bigendian
-o logo
-o legal issues
-o dokumentation: tutorial, interface, FAQ (auch zu unittests)
+o dokumentation: tutorial, interface, FAQ
 o webseite
-o documentation
 o admin-tool(s) fuer dump, stats, repair, update, reorg
     o db_dump: 
         o key/daten dumpen
         o header dumpen
 o KEINE valgrind-fehler!
+o logo
+o legal issues
 
 -----------------------------------------------------
 -----------------------------------------------------
 -----------------------------------------------------
 -----------------------------------------------------
 -----------------------------------------------------
+-----------------------------------------------------
+-----------------------------------------------------
+
+o c++-api
+
 -----------------------------------------------------
 -----------------------------------------------------
 
@@ -186,6 +182,8 @@ o duplicate keys
     jeder key bekommt einen dupcounter; der wird mit unsigned(-1) initialisiert
     beim einfuegen wird rekursiv abgestiegen. im leaf wird dann ein neuer key
     eingefuegt, mit dem dupcounter=existierender ("kleinster") key minus 1.
+
+    ist blöd, weil im key dann 2 (oder 4) byte für jeden key verloren gehen!
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -205,30 +203,11 @@ o filter
     arbeiten sie page- oder blob-basiert? evtl waere page-basiert besser, 
     denn dann koennten auch index-pages (bzw NUR index-pages) gefiltert 
     werden.
+
+    vielleicht müsste man unterscheiden zwischen page- und blob-basierten
+    filtern...
+
     (my_result_t) (*filter)(my_key_t *key, my_data_t *data, int direction);
-
------------------------------------------------------
------------------------------------------------------
-
-o c++-api
-
------------------------------------------------------
------------------------------------------------------
-
-o statistics
-    will wissen wie viele freelist-hits/misses und cache-hits/misses es gab,
-    auch im extkey-cache
-
-o statistics
-    get generic getter/setter for statistical value, i.e. 
-        enum { CACHEHITS, CACHEMISSES, PAGES, FREEPAGES, ... };
-        ham_u64_t statistics[8];
-    set_stats_value(db, which, value): db->statistics[which]=ham_h2db32(value)
-    ATTENTION: some of those values are specific for each backend, others
-        are global; therefore we need two functions: 
-        ham_get_global_statistics(stat)
-        ham_get_index_statistics(index, stat)
-    max elements in einer datenbank
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -275,11 +254,14 @@ o live reorganisation???
 
 -------------------------- literature -----------------------
 pB+ Trees prefetching B+ Trees 
+
 [CGM01] Improving Index Performance through Prefetching. S. Chen, P.B. 
 Gibbons, and T.C. Mowry. ACM International Conference on Management
 of Data (SIGMOD), Santa Barbara, California, May 2001
+
 [GL01] B-Tree Indexes and CPU Caches. G Graefe and P. Larson. International
 Conference on Data Engineering (ICDE), Heidelberg, Germany, April 2001.
+
 [RR00] Making B+ Trees Cache Conscious in Main Memory. J. Rao 
 and K.A. Ross. ACM International Conference on Management of Data (SIGMOD),
 Dallas, Texas, May 2000.
