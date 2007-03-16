@@ -470,6 +470,9 @@ ham_create_ex(ham_db_t *db, const char *filename,
  * entries, whenever possible. Files can become significantly smaller,
  * but it costs performance, especially when the application deletes a 
  * lot of items.
+ *
+ * In-memory-databases ignore this flag, because they don't use a 
+ * freelist.
  * 
  * This flag is disabled by default.
  */
