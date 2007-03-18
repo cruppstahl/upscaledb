@@ -77,11 +77,7 @@ typedef struct
 
 } ham_record_t;
 
-/**
- * Flag for @a ham_record_t
- * 
- * Data points to memory which is allocated by the user
- */
+/** Flag for @a ham_record_t */
 #define HAM_RECORD_USER_ALLOC   1
 
 /**
@@ -119,12 +115,7 @@ typedef struct
     ham_u32_t _flags;
 } ham_key_t;
 
-/**
- * Flag for @a ham_key_t
- * 
- * Data points to memory which is allocated by the user (only makes sense
- * when querying keys with @a ham_cursor_move).
- */
+/** Flag for @a ham_key_t in combination with  @a ham_cursor_move) */
 #define HAM_KEY_USER_ALLOC      1
 
 /*
@@ -245,7 +236,7 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
  * @param db Pointer to a pointer which is allocated 
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_OUT_OF_MEMORY if memory could not be allocated
+ * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
  */
 HAM_EXPORT ham_status_t
 ham_new(ham_db_t **db);
@@ -274,13 +265,13 @@ ham_delete(ham_db_t *db);
  *        for the allowed flags.
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if the @a db pointer is NULL or an 
+ * @return @a HAM_INV_PARAMETER if the @a db pointer is NULL or an 
  *              invalid combination of flags was specified
- *         @a HAM_FILE_NOT_FOUND if the file does not exist
- *         @a HAM_IO_ERROR if the file could not be opened or reading failed
- *         @a HAM_INV_FILE_VERSION if the database version is not 
+ * @return @a HAM_FILE_NOT_FOUND if the file does not exist
+ * @return @a HAM_IO_ERROR if the file could not be opened or reading failed
+ * @return @a HAM_INV_FILE_VERSION if the database version is not 
  *              compatible with the library version
- *         @a HAM_OUT_OF_MEMORY if memory could not be allocated
+ * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
  */
 HAM_EXPORT ham_status_t
 ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
@@ -292,52 +283,53 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  * @param filename The filename of the database file.
  * @param flags Optional flags for opening the database, combined with 
  *        bitwise OR. Possible flags are:
- *
- *         @a HAM_READ_ONLY Opens the file for reading only. Operations 
- *              which need write access (i.e. @a ham_insert) will return 
- *              error @a HAM_DB_READ_ONLY.
- *         @a HAM_WRITE_THROUGH Immediately write modified pages to the 
- *              disk. This slows down all database operations, but might
- *              save the database integrity in case of a system crash. 
- *         @a HAM_OPEN_EXCLUSIVELY Opens the file exclusively by 
- *              specifying O_EXCL (Posix) or similar flags on other 
- *              operating systems. This is broken on nfs and most likely 
- *              on other network filesystems, too.
- *         @ HAM_DISABLE_VAR_KEYLEN Do not allow the use of variable 
- *              length keys. Inserting a key, which is larger than the 
- *              B+Tree index key size, returns error @a HAM_INV_KEYSIZE.
- *         @a HAM_DISABLE_MMAP Do not use memory mapped files for I/O. 
- *              Per default, hamsterdb checks if it can use mmap, 
- *              since mmap is faster then read/write. For performance 
- *              reasons, this flag should not be used.
- *         @a HAM_CACHE_STRICT Do not allow the cache to grow larger than 
- *              the cachesize. If a database operation needs to resize the 
- *              cache, it will return with error @a HAM_CACHE_FULL.
- *              If the flag is not set, the cache is allowed to allocate
- *              more pages then the maximum cachesize, but only if it's 
- *              necessary and only for a short time. 
- *         @a HAM_DISABLE_FREELIST_FLUSH Do not immediately writeback 
- *              modified freelist pages. This flag leads to small 
- *              performance improvements, but comes with additional
- *              risk in case of a system crash or program crash.
- *         @a HAM_OPTIMIZE_SIZE Optimize for smaller database files; 
- *              hamsterdb will try to merge freelist entries, whenever 
- *              possible. Files can become significantly smaller,
- *              but it costs performance, especially when the application 
- *              often deletes items.
+ *      <ul>
+ *       <li>@a HAM_READ_ONLY</li> Opens the file for reading only. 
+ *            Operations which need write access (i.e. @a ham_insert) will 
+ *            return error @a HAM_DB_READ_ONLY.
+ *       <li>@a HAM_WRITE_THROUGH</li> Immediately write modified pages 
+ *            to the disk. This slows down all database operations, but 
+ *            could save the database integrity in case of a system crash. 
+ *       <li>@a HAM_OPEN_EXCLUSIVELY</li> Opens the file exclusively by 
+ *            specifying O_EXCL (Posix) or similar flags on other 
+ *            operating systems. This is broken on nfs and most likely 
+ *            on other network filesystems, too.
+ *       <li>@a HAM_DISABLE_VAR_KEYLEN</li> Do not allow the use of variable 
+ *            length keys. Inserting a key, which is larger than the 
+ *            B+Tree index key size, returns error @a HAM_INV_KEYSIZE.
+ *       <li>@a HAM_DISABLE_MMAP</li> Do not use memory mapped files for I/O. 
+ *            Per default, hamsterdb checks if it can use mmap, 
+ *            since mmap is faster then read/write. For performance 
+ *            reasons, this flag should not be used.
+ *       <li>@a HAM_CACHE_STRICT</li> Do not allow the cache to grow larger 
+ *            than the cachesize. If a database operation needs to resize the 
+ *            cache, it will return with error @a HAM_CACHE_FULL.
+ *            If the flag is not set, the cache is allowed to allocate
+ *            more pages then the maximum cachesize, but only if it's 
+ *            necessary and only for a short time. 
+ *       <li>@a HAM_DISABLE_FREELIST_FLUSH</li> Do not immediately writeback 
+ *            modified freelist pages. This flag leads to small 
+ *            performance improvements, but comes with additional
+ *            risk in case of a system crash or program crash.
+ *       <li>@a HAM_OPTIMIZE_SIZE</li> Optimize for smaller database files; 
+ *            hamsterdb will try to merge freelist entries, whenever 
+ *            possible. Files can become significantly smaller,
+ *            but it costs performance, especially when the application 
+ *            often deletes items.
+ *      </ul>
  *
  * @param cachesize The size of the database cache, in bytes. Set to 0
  *        for the default size (defined in src/config.h as
  *        HAM_DEFAULT_CACHESIZE - usually 256kb)
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if the @a db pointer is NULL or an 
+ * @return @a HAM_INV_PARAMETER if the @a db pointer is NULL or an 
  *              invalid combination of flags was specified
- *         @a HAM_FILE_NOT_FOUND if the file does not exist
- *         @a HAM_IO_ERROR if the file could not be opened or reading failed
- *         @a HAM_INV_FILE_VERSION if the database version is not 
+ * @return @a HAM_FILE_NOT_FOUND if the file does not exist
+ * @return @a HAM_IO_ERROR if the file could not be opened or reading failed
+ * @return @a HAM_INV_FILE_VERSION if the database version is not 
  *              compatible with the library version
- *         @a HAM_OUT_OF_MEMORY if memory could not be allocated
+ * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
  */
 HAM_EXPORT ham_status_t
 ham_open_ex(ham_db_t *db, const char *filename,
@@ -354,13 +346,13 @@ ham_open_ex(ham_db_t *db, const char *filename,
  *        bitwise OR. For allowed flags, see @a ham_create_ex.
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if the @a db pointer is NULL or an 
+ * @return @a HAM_INV_PARAMETER if the @a db pointer is NULL or an 
  *              invalid combination of flags was specified
- *         @a HAM_IO_ERROR if the file could not be opened or 
+ * @return @a HAM_IO_ERROR if the file could not be opened or 
  *              reading/writing failed
- *         @a HAM_INV_FILE_VERSION if the database version is not 
+ * @return @a HAM_INV_FILE_VERSION if the database version is not 
  *              compatible with the library version
- *         @a HAM_OUT_OF_MEMORY if memory could not be allocated
+ * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
  *
  */
 HAM_EXPORT ham_status_t
@@ -368,8 +360,6 @@ ham_create(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_u32_t mode);
 
 /**
- * create a new database - extended version
- *
  * Create a database - extended version
  *
  * @param db A valid database handle.
@@ -379,45 +369,47 @@ ham_create(ham_db_t *db, const char *filename,
  * @param flags Optional flags for opening the database, combined with 
  *        bitwise OR. Possible flags are:
  *
- *         @a HAM_WRITE_THROUGH Immediately write modified pages to the 
- *              disk. This slows down all database operations, but might
- *              save the database integrity in case of a system crash. 
- *         @a HAM_OPEN_EXCLUSIVELY Opens the file exclusively by 
- *              specifying O_EXCL (Posix) or similar flags on other 
- *              operating systems. This is broken on nfs and most likely 
- *              on other network filesystems, too.
- *         @a HAM_USE_BTREE Use a B+Tree for the index structure. 
- *              Currently, this is your only choice, but future releases 
- *              of hamsterdb will offer additional index structures, 
- *              i.e. hash tables. Enabled by default.
- *         @ HAM_DISABLE_VAR_KEYLEN Do not allow the use of variable 
- *              length keys. Inserting a key, which is larger than the 
- *              B+Tree index key size, returns error @a HAM_INV_KEYSIZE.
- *         @ HAM_IN_MEMORY_DB Create an in-memory-database. No file 
- *              will be created, and the database contents are lost after 
- *              the database is closed. The @a filename parameter can 
- *              be NULL. Do <b>NOT</b> use in combination with 
- *              @a HAM_CACHE_STRICT and to NOT specify a cachesize other 
- *              than 0.
- *         @a HAM_DISABLE_MMAP Do not use memory mapped files for I/O. 
- *              Per default, hamsterdb checks if it can use mmap, 
- *              since mmap is faster then read/write. For performance 
- *              reasons, this flag should not be used.
- *         @a HAM_CACHE_STRICT Do not allow the cache to grow larger than 
- *              the cachesize. If a database operation needs to resize the 
- *              cache, it will return with error @a HAM_CACHE_FULL.
- *              If the flag is not set, the cache is allowed to allocate
- *              more pages then the maximum cachesize, but only if it's 
- *              necessary and only for a short time. 
- *         @a HAM_DISABLE_FREELIST_FLUSH Do not immediately writeback 
- *              modified freelist pages. This flag leads to small 
- *              performance improvements, but comes with additional
- *              risk in case of a system crash or program crash.
- *         @a HAM_OPTIMIZE_SIZE Optimize for smaller database files; 
- *              hamsterdb will try to merge freelist entries, whenever 
- *              possible. Files can become significantly smaller,
- *              but it costs performance, especially when the application 
- *              often deletes items.
+ *      <ul>
+ *       <li>@a HAM_WRITE_THROUGH</li> Immediately write modified pages to the 
+ *            disk. This slows down all database operations, but might
+ *            save the database integrity in case of a system crash. 
+ *       <li>@a HAM_OPEN_EXCLUSIVELY</li> Opens the file exclusively by 
+ *            specifying O_EXCL (Posix) or similar flags on other 
+ *            operating systems. This is broken on nfs and most likely 
+ *            on other network filesystems, too.
+ *       <li>@a HAM_USE_BTREE</li> Use a B+Tree for the index structure. 
+ *            Currently, this is your only choice, but future releases 
+ *            of hamsterdb will offer additional index structures, 
+ *            i.e. hash tables. Enabled by default.
+ *       <li>@a HAM_DISABLE_VAR_KEYLEN</li> Do not allow the use of variable 
+ *            length keys. Inserting a key, which is larger than the 
+ *            B+Tree index key size, returns error @a HAM_INV_KEYSIZE.
+ *       <li>@a HAM_IN_MEMORY_DB</li> Create an in-memory-database. No file 
+ *            will be created, and the database contents are lost after 
+ *            the database is closed. The @a filename parameter can 
+ *            be NULL. Do <b>NOT</b> use in combination with 
+ *            @a HAM_CACHE_STRICT and do NOT specify a cachesize other 
+ *            than 0.
+ *       <li>@a HAM_DISABLE_MMAP</li> Do not use memory mapped files for I/O. 
+ *            Per default, hamsterdb checks if it can use mmap, 
+ *            since mmap is faster then read/write. For performance 
+ *            reasons, this flag should not be used.
+ *       <li>@a HAM_CACHE_STRICT</li> Do not allow the cache to grow larger 
+ *            than the cachesize. If a database operation needs to resize the 
+ *            cache, it will return with error @a HAM_CACHE_FULL.
+ *            If the flag is not set, the cache is allowed to allocate
+ *            more pages then the maximum cachesize, but only if it's 
+ *            necessary and only for a short time. 
+ *       <li>@a HAM_DISABLE_FREELIST_FLUSH</li> Do not immediately writeback 
+ *            modified freelist pages. This flag leads to small 
+ *            performance improvements, but comes with additional
+ *            risk in case of a system crash or program crash.
+ *       <li>@a HAM_OPTIMIZE_SIZE</li> Optimize for smaller database files; 
+ *            hamsterdb will try to merge freelist entries, whenever 
+ *            possible. Files can become significantly smaller,
+ *            but it costs performance, especially when the application 
+ *            often deletes items.
+ *      </ul>
  *
  * @param keysize The size of the keys in the B+Tree index. Set to 0 for 
  *        the default size (default size: 21 bytes).
@@ -430,15 +422,15 @@ ham_create(ham_db_t *db, const char *filename,
  *        HAM_DEFAULT_CACHESIZE - usually 256kb)
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if the @a db pointer is NULL or an 
+ * @return @a HAM_INV_PARAMETER if the @a db pointer is NULL or an 
  *              invalid combination of flags was specified
- *         @a HAM_IO_ERROR if the file could not be opened or 
+ * @return @a HAM_IO_ERROR if the file could not be opened or 
  *              reading/writing failed
- *         @a HAM_INV_FILE_VERSION if the database version is not 
+ * @return @a HAM_INV_FILE_VERSION if the database version is not 
  *              compatible with the library version
- *         @a HAM_OUT_OF_MEMORY if memory could not be allocated
- *         @a HAM_INV_PAGESIZE if the pagesize is not a multiple of 1024
- *         @a HAM_INV_KEYSIZE if the keysize is too large (at least 4 
+ * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
+ * @return @a HAM_INV_PAGESIZE if the pagesize is not a multiple of 1024
+ * @return @a HAM_INV_KEYSIZE if the keysize is too large (at least 4 
  *              keys must fit in a page)
  *
  */
@@ -506,7 +498,7 @@ ham_get_error(ham_db_t *db);
  * @param foo A pointer to the prefix compare function.
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if one of the parameters is NULL
+ * @return @a HAM_INV_PARAMETER if one of the parameters is NULL
  */
 HAM_EXPORT ham_status_t
 ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
@@ -524,7 +516,7 @@ ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
  * @param foo A pointer to the compare function.
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if one of the parameters is NULL
+ * @return @a HAM_INV_PARAMETER if one of the parameters is NULL
  */
 HAM_EXPORT ham_status_t
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
@@ -558,8 +550,8 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  * @param flags Search flags; unused, set to 0.
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if @a db or @a key or @a record is NULL
- *         @a HAM_KEY_NOT_FOUND if the @a key does not exist
+ * @return @a HAM_INV_PARAMETER if @a db or @a key or @a record is NULL
+ * @return @a HAM_KEY_NOT_FOUND if the @a key does not exist
  */
 HAM_EXPORT ham_status_t
 ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
@@ -583,10 +575,10 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  *              overwritten; otherwise, the key is inserted.
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if @a db or @a key or @a record is NULL
- *         @a HAM_DB_READ_ONLY if you tried to insert a key in a read-only
+ * @return @a HAM_INV_PARAMETER if @a db or @a key or @a record is NULL
+ * @return @a HAM_DB_READ_ONLY if you tried to insert a key in a read-only
  *              database
- *         @a HAM_INV_KEYSIZE if the key's size is larger than the keysize
+ * @return @a HAM_INV_KEYSIZE if the key's size is larger than the keysize
  *              parameter specified for @a ham_create_ex and variable 
  *              key sizes are disabled (see @a HAM_DISABLE_VAR_KEYLEN)
  *              OR if the keysize parameter specified for @a ham_create_ex 
@@ -611,10 +603,10 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
  * @param flags Erase flags; unused, set to 0.
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if @a db or @a key is NULL
- *         @a HAM_DB_READ_ONLY if you tried to erase a key from a read-only
+ * @return @a HAM_INV_PARAMETER if @a db or @a key is NULL
+ * @return @a HAM_DB_READ_ONLY if you tried to erase a key from a read-only
  *              database
- *         @a HAM_KEY_NOT_FOUND if the key was not found
+ * @return @a HAM_KEY_NOT_FOUND if the key was not found
  */
 HAM_EXPORT ham_status_t
 ham_erase(ham_db_t *db, void *reserved, ham_key_t *key,
@@ -633,7 +625,7 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key,
  * @param flags Flush flags; unused, set to 0.
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if @a db is NULL
+ * @return @a HAM_INV_PARAMETER if @a db is NULL
  */
 HAM_EXPORT ham_status_t
 ham_flush(ham_db_t *db, ham_u32_t flags);
@@ -651,7 +643,7 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  * @param db A valid database handle.
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if @a db is NULL
+ * @return @a HAM_INV_PARAMETER if @a db is NULL
  */
 HAM_EXPORT ham_status_t
 ham_close(ham_db_t *db);
@@ -682,8 +674,8 @@ ham_close(ham_db_t *db);
  *          new cursor handle
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if @a db or cursor is NULL
- *         @a HAM_OUT_OF_MEMORY if the new structure could not be allocated
+ * @return @a HAM_INV_PARAMETER if @a db or cursor is NULL
+ * @return @a HAM_OUT_OF_MEMORY if the new structure could not be allocated
  */
 HAM_EXPORT ham_status_t
 ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags,
@@ -700,8 +692,8 @@ ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags,
  *          cloned cursor handle
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if @a src or dest is NULL
- *         @a HAM_OUT_OF_MEMORY if the new structure could not be allocated
+ * @return @a HAM_INV_PARAMETER if @a src or dest is NULL
+ * @return @a HAM_OUT_OF_MEMORY if the new structure could not be allocated
  */
 HAM_EXPORT ham_status_t
 ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
@@ -740,10 +732,10 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  *              HAM_CURSOR_LAST.
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if @a cursor is NULL
- *         @a HAM_CURSOR_IS_NIL if the cursor does not point to an item, but
+ * @return @a HAM_INV_PARAMETER if @a cursor is NULL
+ * @return @a HAM_CURSOR_IS_NIL if the cursor does not point to an item, but
  *              key and/or record were requested
- *         @a HAM_KEY_NOT_FOUND if the cursor points to the first (or last)
+ * @return @a HAM_KEY_NOT_FOUND if the cursor points to the first (or last)
  *              item, and a move to the previous (or next) item was 
  *              attempted
  */
@@ -773,8 +765,8 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
  * @param flags Flags for replacing the item; unused, set to 0
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if @a cursor or @a record is NULL
- *         @a HAM_CURSOR_IS_NIL if the cursor does not point to an item, but
+ * @return @a HAM_INV_PARAMETER if @a cursor or @a record is NULL
+ * @return @a HAM_CURSOR_IS_NIL if the cursor does not point to an item, but
  *              key and/or record were requested
  */
 HAM_EXPORT ham_status_t
@@ -793,8 +785,8 @@ ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
  * @param flags Flags for searching the item; unused, set to 0
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if @a cursor or @a key is NULL
- *         @a HAM_KEY_NOT_FOUND if the requested key was not found
+ * @return @a HAM_INV_PARAMETER if @a cursor or @a key is NULL
+ * @return @a HAM_KEY_NOT_FOUND if the requested key was not found
  */
 HAM_EXPORT ham_status_t
 ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
@@ -815,10 +807,10 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  *              overwritten; otherwise, the key is inserted.
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if @a db or @a key or @a record is NULL
- *         @a HAM_DB_READ_ONLY if you tried to insert a key in a read-only
+ * @return @a HAM_INV_PARAMETER if @a db or @a key or @a record is NULL
+ * @return @a HAM_DB_READ_ONLY if you tried to insert a key in a read-only
  *              database
- *         @a HAM_INV_KEYSIZE if the key's size is larger than the keysize
+ * @return @a HAM_INV_KEYSIZE if the key's size is larger than the keysize
  *              parameter specified for @a ham_create_ex and variable 
  *              key sizes are disabled (see @a HAM_DISABLE_VAR_KEYLEN)
  *              OR if the keysize parameter specified for @a ham_create_ex 
@@ -839,10 +831,10 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
  * @param flags Erase flags; unused, set to 0.
  *
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if @a db or @a key is NULL
- *         @a HAM_DB_READ_ONLY if you tried to erase a key from a read-only
+ * @return @a HAM_INV_PARAMETER if @a db or @a key is NULL
+ * @return @a HAM_DB_READ_ONLY if you tried to erase a key from a read-only
  *              database
- *         @a HAM_KEY_NOT_FOUND if the key was not found
+ * @return @a HAM_KEY_NOT_FOUND if the key was not found
  */
 HAM_EXPORT ham_status_t
 ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
@@ -855,7 +847,7 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
  *
  * @param cursor A valid cursor handle.
  * @return @a HAM_SUCCESS on success
- *         @a HAM_INV_PARAMETER if @a db or @a key is NULL
+ * @return @a HAM_INV_PARAMETER if @a db or @a key is NULL
  *
  */
 HAM_EXPORT ham_status_t

@@ -1,9 +1,9 @@
-/**
+/*
  * Copyright (C) 2005-2007 Christoph Rupp (chris@crupp.de).
  * All rights reserved. See file LICENSE for licence and copyright
  * information.
  *
- * this file contains portable typedefs
+ * This file contains portable typedefs.
  *
  */
 
@@ -65,7 +65,7 @@ extern "C" {
 #    define HAM_EXPORT extern
 #endif
 
-/** 
+/*
  * typedefs for 32bit operating systems
  */
 #ifdef HAM_32BIT
@@ -84,7 +84,7 @@ typedef signed char        ham_s8_t;
 typedef unsigned char      ham_u8_t;
 #endif
 
-/** 
+/* 
  * typedefs for 64bit operating systems
  */
 #ifdef HAM_64BIT
@@ -105,7 +105,7 @@ typedef unsigned char      ham_u8_t;
 #undef HAM_FALSE
 #undef HAM_TRUE
 
-/** 
+/* 
  * typedefs for posix
  */
 #ifdef HAM_OS_POSIX
@@ -113,7 +113,7 @@ typedef int                ham_fd_t;
 #   define HAM_INVALID_FD  (-1)
 #endif 
 
-/** 
+/* 
  * typedefs for Windows 32- and 64-bit
  */
 #ifdef HAM_OS_WIN32
@@ -125,19 +125,19 @@ typedef HANDLE             ham_fd_t;
 #   define HAM_INVALID_FD  (0)
 #endif 
 
-/** 
+/* 
  * a boolean type
  */
 typedef int                ham_bool_t;
 #define HAM_FALSE          0
 #define HAM_TRUE           (!HAM_FALSE)
 
-/** 
+/* 
  * typedef for error- and status-code
  */
 typedef int                ham_status_t;
 
-/** 
+/* 
  * typedef for addressing the file; this limits the file size
  * to 64 bit. should be enough, hopefully...
  *
@@ -146,7 +146,7 @@ typedef int                ham_status_t;
  */
 typedef ham_u64_t          ham_offset_t;
 
-/**
+/*
  * typedef for sizes; this limits data blobs to 32 bits
  *
  * @remark if you change this datatype, then you also have to change
@@ -154,7 +154,7 @@ typedef ham_u64_t          ham_offset_t;
  */
 typedef ham_u32_t          ham_size_t;
 
-/**
+/*
  * typedef for a prefix-compare-function
  *
  * @remark this function compares two index keys; it returns -1, if lhs
@@ -172,7 +172,7 @@ typedef int (*ham_prefix_compare_func_t)
                                   const ham_u8_t *rhs, ham_size_t rhs_length,
                                   ham_size_t rhs_real_length);
 
-/**
+/*
  * typedef for a compare-function
  *
  * @remark this function compares two index keys; it returns -1, if lhs

@@ -28,6 +28,9 @@ typedef void (*ham_dump_cb_t)(const ham_u8_t *key, ham_size_t keysize);
  * @remark you can pass a callback function pointer, or NULL for the default
  * function (dumps the first 16 bytes of the key)
  *
+ * @remark This function returns HAM_NOT_IMPLEMENTED unless hamsterdb
+ * was built with HAM_ENABLE_INTERNAL (run ./configure --enable-internal)
+ *
  * @remark set 'reserved' to NULL
  */
 HAM_EXPORT ham_status_t
@@ -35,6 +38,9 @@ ham_dump(ham_db_t *db, void *reserved, ham_dump_cb_t cb);
 
 /** 
  * verify the whole tree - this is only useful when you debug hamsterdb
+ *
+ * @remark This function returns HAM_NOT_IMPLEMENTED unless hamsterdb
+ * was built with HAM_ENABLE_INTERNAL (run ./configure --enable-internal)
  *
  * @remark set 'reserved' to NULL
  */
