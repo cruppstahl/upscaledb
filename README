@@ -1,5 +1,5 @@
 
-hamsterdb 0.4.1                                Sun Mar  6 17:49:12 UTC 2007
+hamsterdb 0.4.1                                Mon Mar 12 17:49:12 UTC 2007
 (C) Christoph Rupp, chris@crupp.de; www.crupp.de
 
 This is the README file of hamsterdb. 
@@ -24,7 +24,8 @@ in the file CHANGELOG.
 3. Roadmap
 
 The next releases will port hamsterdb to linux on PowerPC, and to MacOS/Darwin. 
-Also, the endian-independence will be tested. 
+Also, the endian-independence will be tested, and a dedicated webpage is 
+created. 
 
 4. Features
 
