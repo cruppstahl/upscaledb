@@ -214,7 +214,11 @@ btree_create(ham_btree_t *btree, ham_db_t *db, ham_u32_t flags)
     btree->_fun_insert=btree_insert;
     btree->_fun_erase=btree_erase;
     btree->_fun_enumerate=btree_enumerate;
+#ifdef HAM_ENABLE_INTERNAL
     btree->_fun_check_integrity=btree_check_integrity;
+#else
+    btree->_fun_check_integrity=0;
+#endif
     return (0);
 }
 

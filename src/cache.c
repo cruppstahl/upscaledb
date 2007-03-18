@@ -481,6 +481,7 @@ cache_can_add_page(ham_cache_t *cache)
     return (HAM_TRUE);
 }
 
+#ifdef HAM_ENABLE_INTERNAL
 ham_status_t
 cache_check_integrity(ham_cache_t *cache)
 {
@@ -523,3 +524,4 @@ cache_check_integrity(ham_cache_t *cache)
 
     return (0);
 }
+#endif /* HAM_ENABLE_INTERNAL */

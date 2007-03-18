@@ -7,6 +7,8 @@
  *
  */
 
+#ifdef HAM_ENABLE_INTERNAL
+
 #include <string.h>
 #include <stdio.h>
 #include "config.h"
@@ -273,3 +275,4 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
     return (0);
 }
 
+#endif /* HAM_ENABLE_INTERNAL */

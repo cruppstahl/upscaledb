@@ -194,8 +194,10 @@ cache_can_add_page(ham_cache_t *cache);
 /**
  * check the cache integrity
  */
+#ifdef HAM_ENABLE_INTERNAL
 extern ham_status_t
 cache_check_integrity(ham_cache_t *cache);
+#endif
 
 
 #ifdef __cplusplus

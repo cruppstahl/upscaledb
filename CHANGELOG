@@ -1,3 +1,13 @@
+Mar 17, 2007 - chris
+o added configure-option --enable-internal to enable all internal 
+    functions (ham_dump and ham_check_integrity). disabling those functions
+    shrinks the library size by a few kilobytes
+o improved the documentation in the header-files
+
+Mar 16, 2007 - chris
+o improved configure.in - added --enable-shrink, removed optimizations 
+    for --enable-debug, all other modes will now use -O3
+
 Mar 06, 2007 - chris ---------------------------------------------------
                       release of hamsterdb-0.4.1
 

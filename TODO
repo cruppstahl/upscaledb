@@ -7,7 +7,8 @@ o webseite
     http://www.pixelmedia.com/
     x grund-layout und php-framework erstellen
     x doxygen in webseite integrieren
-    o hamsterdb.h ueberarbeiten, dokumentieren
+    x hamsterdb.h ueberarbeiten, dokumentieren
+    o tutorial
     o inhalte
         x frontseite
         x features
@@ -16,11 +17,13 @@ o webseite
         x sitemap
         x GPL/Verweise auf GPL
         x sidebars
+        x roadmap
+        x sidebars ueberpruefen
         o frontseite: hamster-bild einbetten (oder so lassen?)
-        o roadmap
         o doku bzgl installation, compilieren, portieren
-        o sidebars ueberpruefen
         o startseite: "News"-Bereich
+    o tutorial
+    o api-doku und tutorial als PDF zum download
     o korrigieren lassen
 
 x was ist bei --optimizesize und --inmemorydb? das flag duerfte doch gar
@@ -35,15 +38,28 @@ x keine optimization bei --enable-debug
 
 x optimisieren für minimum-size
 
-o neuer configure-modus zum disablen von internen funktionen - z.b. dump
+x neuer configure-modus zum disablen von internen funktionen - z.b. dump
     und check_integrity etc
-    -> ist blöd - da muss auch die ham/hamsterdb_int.h geändert werden!
-    vielleicht sollten wir diese funktionen einfach nicht exportieren?
-    dann kann man sie mit loadlibrary/getprocaddress laden, wenn man
-    sie braucht. ist aber auch doof...
+    -> function body raus, funktionen liefern HAM_NOT_IMPLEMENTED zurück
 
-o 2 mal linken: einmal ohne hamsterdb, einmal mit. Wie gross wird die
-    executable? -> footprint (wie bei itzam)
+o HAM_OPEN_EXCLUSIVELY testen - geht das auch unter windows?
+
+o HAM_DISABLE_VAR_KEYLEN sollte nur bei ham_create* gehen, nicht ham_open*
+
+o sicherstellen dass die folgenden flags nicht abgespeichert werden
+    (beim open und create)
+    HAM_CACHE_STRICT
+    HAM_DISABLE_MMAP
+    HAM_OPEN_EXCLUSIVELY
+    HAM_WRITE_THROUGH
+    HAM_READ_ONLY
+    HAM_OPTIMIZE_SIZE
+    HAM_DISABLE_FREELIST_FLUSH
+o sicherstellen, dass die folgenden flags abgespeichert werden:
+    HAM_DISABLE_VAR_KEYLEN
+
+o was passiert wenn ein cursor null ist, und man key/record holt, ohne 
+    einen move zu machen? Muss CURSOR_IS_NIL zurückgeben
 
 o portieren auf linux/ppc
 
@@ -52,6 +68,9 @@ o portieren auf MacOS/Darwin
 o sicherstellen dass die datenbanken endian-agnostic sind
 
 o sicherstellen dass die datenbanken wordsize-agnostic sind
+
+-----------------------------------------------------
+-----------------------------------------------------
 
 o koennen wir problemlos 32bit-filepointer nehmen?
 
@@ -71,6 +90,12 @@ o ham_flush: sollte os_flush aufrufen
 o os_tell durch os_get_filesize erweitern
 
 o nächsten release machen
+
+-----------------------------------------------------
+-----------------------------------------------------
+
+o gescheite roadmap schreiben (internes dokument), die TODO-liste
+    behandelt dann immer nur den obersten/aktuellen eintrag der roadmap!
 
 -----------------------------------------------------
 -----------------------------------------------------

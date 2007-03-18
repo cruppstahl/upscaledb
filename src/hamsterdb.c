@@ -33,6 +33,7 @@ typedef struct free_cb_context_t
 /*
  * callback function for ham_dump
  */
+#ifdef HAM_ENABLE_INTERNAL
 static void
 my_dump_cb(int event, void *param1, void *param2, void *context)
 {
@@ -87,6 +88,7 @@ my_dump_cb(int event, void *param1, void *param2, void *context)
         break;
     }
 }
+#endif /* HAM_ENABLE_INTERNAL */
 
 /*
  * callback function for freeing blobs of an in-memory-database
@@ -262,6 +264,11 @@ ham_open_ex(ham_db_t *db, const char *filename,
     db_header_t *dbhdr;
     ham_page_t *page;
 
+    if (!db)
+        return (HAM_INV_PARAMETER);
+
+    db_set_error(db, 0);
+
     /* cannot open an in-memory-db */
     if (flags&HAM_IN_MEMORY_DB)
         return (HAM_INV_PARAMETER);
@@ -405,6 +412,11 @@ ham_create_ex(ham_db_t *db, const char *filename,
     db_header_t *h;
     ham_page_t *page;
 
+    if (!db)
+        return (HAM_INV_PARAMETER);
+
+    db_set_error(db, 0);
+
     /*
      * make sure that the pagesize is aligned to 512k
      */
@@ -452,12 +464,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
                 flags|=DB_USE_MMAP;
         }
         flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
-        /*
-         * make sure that the pagesize is big enough for at least 4 keys
-         */
-        if (keysize)
-            if (pagesize/keysize<4)
-                return (HAM_INV_KEYSIZE);
     }
 #endif
 
@@ -471,6 +477,13 @@ ham_create_ex(ham_db_t *db, const char *filename,
             flags&=~DB_USE_MMAP;
         }
     }
+
+    /*
+     * make sure that the pagesize is big enough for at least 4 keys
+     */
+    if (keysize)
+        if (pagesize/keysize<4)
+            return (HAM_INV_KEYSIZE);
 
     /* 
      * initialize the database with a good default value;
@@ -569,6 +582,10 @@ ham_get_error(ham_db_t *db)
 ham_status_t
 ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo)
 {
+    if (!db)
+        return (HAM_INV_PARAMETER);
+
+    db_set_error(db, 0);
     db_set_prefix_compare_func(db, foo);
 
     return (HAM_SUCCESS);
@@ -577,6 +594,10 @@ ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo)
 ham_status_t
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo)
 {
+    if (!db)
+        return (HAM_INV_PARAMETER);
+
+    db_set_error(db, 0);
     db_set_compare_func(db, foo);
 
     return (HAM_SUCCESS);
@@ -588,12 +609,16 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
 {
     ham_txn_t txn;
     ham_status_t st;
-    ham_backend_t *be=db_get_backend(db);
+    ham_backend_t *be;
 
-    if (!be)
-        return (HAM_INV_INDEX);
     if (!db || !key || !record)
         return (HAM_INV_PARAMETER);
+
+    db_set_error(db, 0);
+
+    be=db_get_backend(db);
+    if (!be)
+        return (db_set_error(db, HAM_INV_INDEX));
 
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
@@ -619,18 +644,24 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
 {
     ham_txn_t txn;
     ham_status_t st;
-    ham_backend_t *be=db_get_backend(db);
+    ham_backend_t *be;
 
+    if (!db || !key || !record)
+        return (HAM_INV_PARAMETER);
+
+    db_set_error(db, 0);
+
+    be=db_get_backend(db);
     if (!be)
-        return (HAM_INV_INDEX);
+        return (db_set_error(db, HAM_INV_INDEX));
     if (db_get_flags(db)&HAM_READ_ONLY)
-        return (HAM_DB_READ_ONLY);
+        return (db_set_error(db, HAM_DB_READ_ONLY));
     if ((db_get_flags(db)&HAM_DISABLE_VAR_KEYLEN) &&
         (key->size>db_get_keysize(db)))
-        return (HAM_INV_KEYSIZE);
+        return (db_set_error(db, HAM_INV_KEYSIZE));
     if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
         (key->size>db_get_keysize(db)))
-        return (HAM_INV_KEYSIZE);
+        return (db_set_error(db, HAM_INV_KEYSIZE));
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
@@ -657,12 +688,18 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
     ham_status_t st;
     ham_u32_t intflags=0;
     ham_offset_t blobid=0;
-    ham_backend_t *be=db_get_backend(db);
+    ham_backend_t *be;
 
+    if (!db || !key)
+        return (HAM_INV_PARAMETER);
+
+    db_set_error(db, 0);
+
+    be=db_get_backend(db);
     if (!be)
-        return (HAM_INV_INDEX);
+        return (db_set_error(db, HAM_INV_INDEX));
     if (db_get_flags(db)&HAM_READ_ONLY)
-        return (HAM_DB_READ_ONLY);
+        return (db_set_error(db, HAM_DB_READ_ONLY));
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
@@ -691,12 +728,19 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
 ham_status_t
 ham_dump(ham_db_t *db, void *reserved, ham_dump_cb_t cb)
 {
+#ifdef HAM_ENABLE_INTERNAL
     ham_txn_t txn;
     ham_status_t st;
-    ham_backend_t *be=db_get_backend(db);
+    ham_backend_t *be;
+    
+    if (!db || !cb)
+        return (HAM_INV_PARAMETER);
 
+    db_set_error(db, 0);
+
+    be=db_get_backend(db);
     if (!be)
-        return (HAM_INV_INDEX);
+        return (db_set_error(db, HAM_INV_INDEX));
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
@@ -711,14 +755,23 @@ ham_dump(ham_db_t *db, void *reserved, ham_dump_cb_t cb)
     }
 
     return (ham_txn_commit(&txn));
+#else /* !HAM_ENABLE_INTERNAL */
+    return (HAM_NOT_IMPLEMENTED);
+#endif 
 }
 
 ham_status_t
 ham_check_integrity(ham_db_t *db, void *reserved)
 {
+#ifdef HAM_ENABLE_INTERNAL
     ham_txn_t txn;
     ham_status_t st;
-    ham_backend_t *be=db_get_backend(db);
+    ham_backend_t *be;
+
+    if (!db)
+        return (HAM_INV_PARAMETER);
+
+    db_set_error(db, 0);
 
     /*
      * check the cache integrity
@@ -727,8 +780,9 @@ ham_check_integrity(ham_db_t *db, void *reserved)
     if (st)
         return (st);
 
+    be=db_get_backend(db);
     if (!be)
-        return (HAM_INV_INDEX);
+        return (db_set_error(db, HAM_INV_INDEX));
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
@@ -743,12 +797,20 @@ ham_check_integrity(ham_db_t *db, void *reserved)
     }
 
     return (ham_txn_commit(&txn));
+#else /* !HAM_ENABLE_INTERNAL */
+    return (HAM_NOT_IMPLEMENTED);
+#endif 
 }
 
 ham_status_t
 ham_flush(ham_db_t *db, ham_u32_t flags)
 {
     (void)flags;
+
+    if (!db)
+        return (HAM_INV_PARAMETER);
+
+    db_set_error(db, 0);
 
     /*
      * never flush an in-memory-database
@@ -763,7 +825,14 @@ ham_status_t
 ham_close(ham_db_t *db)
 {
     ham_status_t st=0;
-    ham_backend_t *be=db_get_backend(db);
+    ham_backend_t *be;
+
+    if (!db)
+        return (HAM_INV_PARAMETER);
+
+    db_set_error(db, 0);
+
+    be=db_get_backend(db);
 
     /*
      * in-memory-database: free all allocated blobs
@@ -877,12 +946,22 @@ ham_status_t
 ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags,
         ham_cursor_t **cursor)
 {
+    if (!db || !cursor)
+        return (HAM_INV_PARAMETER);
+
+    db_set_error(db, 0);
+
     return (bt_cursor_create(db, 0, flags, (ham_bt_cursor_t **)cursor));
 }
 
 ham_status_t
 ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 {
+    if (!src || !dest)
+        return (HAM_INV_PARAMETER);
+
+    db_set_error(cursor_get_db(src), 0);
+
     return (bt_cursor_clone((ham_bt_cursor_t *)src, (ham_bt_cursor_t **)dest));
 }
 
@@ -890,8 +969,13 @@ ham_status_t
 ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags)
 {
+    if (!cursor || !record)
+        return (HAM_INV_PARAMETER);
+
     if (db_get_flags(cursor_get_db(cursor))&HAM_READ_ONLY)
-        return (HAM_DB_READ_ONLY);
+        return (db_set_error(cursor_get_db(cursor), HAM_DB_READ_ONLY));
+
+    db_set_error(cursor_get_db(cursor), 0);
 
     return (bt_cursor_replace((ham_bt_cursor_t *)cursor, record, flags));
 }
@@ -900,12 +984,22 @@ ham_status_t
 ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
+    if (!cursor)
+        return (HAM_INV_PARAMETER);
+
+    db_set_error(cursor_get_db(cursor), 0);
+
     return (bt_cursor_move((ham_bt_cursor_t *)cursor, key, record, flags));
 }
 
 ham_status_t
 ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags)
 {
+    if (!cursor || !key)
+        return (HAM_INV_PARAMETER);
+
+    db_set_error(cursor_get_db(cursor), 0);
+
     return (bt_cursor_find((ham_bt_cursor_t *)cursor, key, flags));
 }
 
@@ -913,8 +1007,22 @@ ham_status_t
 ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
-    if (db_get_flags(cursor_get_db(cursor))&HAM_READ_ONLY)
-        return (HAM_DB_READ_ONLY);
+    ham_db_t *db;
+
+    if (!cursor || !key || !record)
+        return (HAM_INV_PARAMETER);
+
+    db=cursor_get_db(cursor);
+    db_set_error(db, 0);
+
+    if (db_get_flags(db)&HAM_READ_ONLY)
+        return (db_set_error(db, HAM_DB_READ_ONLY));
+    if ((db_get_flags(db)&HAM_DISABLE_VAR_KEYLEN) &&
+        (key->size>db_get_keysize(db)))
+        return (db_set_error(db, HAM_INV_KEYSIZE));
+    if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
+        (key->size>db_get_keysize(db)))
+        return (db_set_error(db, HAM_INV_KEYSIZE));
 
     return (bt_cursor_insert((ham_bt_cursor_t *)cursor, key, record, flags));
 }
@@ -926,11 +1034,18 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     ham_offset_t rid;
     ham_u32_t intflags;
     ham_txn_t txn;
+    ham_db_t *db;
 
-    if (db_get_flags(cursor_get_db(cursor))&HAM_READ_ONLY)
-        return (HAM_DB_READ_ONLY);
+    if (!cursor)
+        return (HAM_INV_PARAMETER);
 
-    if ((st=ham_txn_begin(&txn, cursor_get_db(cursor))))
+    db=cursor_get_db(cursor);
+    db_set_error(db, 0);
+
+    if (db_get_flags(db)&HAM_READ_ONLY)
+        return (db_set_error(db, HAM_DB_READ_ONLY));
+
+    if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
     st=bt_cursor_erase((ham_bt_cursor_t *)cursor, &rid, &intflags, flags);
@@ -952,5 +1067,10 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 ham_status_t
 ham_cursor_close(ham_cursor_t *cursor)
 {
+    if (!cursor)
+        return (HAM_INV_PARAMETER);
+
+    db_set_error(cursor_get_db(cursor), 0);
+
     return (bt_cursor_close((ham_bt_cursor_t *)cursor));
 }
