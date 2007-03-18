@@ -253,12 +253,13 @@ db_free_page_struct(ham_page_t *page)
                 if (key_get_flags(bte)&KEY_IS_EXTENDED) {
                     blobid=*(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)));
+                    blobid=ham_db2h_offset(blobid);
 					if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
-						/* delete the blobid, to prevent that it's freed twice */
-	                    *(ham_offset_t *)(key_get_key(bte)+
+                        /* delete the blobid to prevent that it's freed twice */
+                        *(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
-						(void)blob_free(db, blobid, 0);
-					}
+                        (void)blob_free(db, blobid, 0);
+                    }
                     else if (c)
                         (void)extkey_cache_remove(c, blobid);
                 }
@@ -485,6 +486,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
 
     blobid=*(ham_offset_t *)(key_data+(db_get_keysize(db)-
             sizeof(ham_offset_t)));
+    blobid=ham_db2h_offset(blobid);
 
     /* fetch from the cache */
     if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
@@ -507,14 +509,14 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
         }
     }
 
-    /* 
+    /*
      * not cached - fetch from disk;
-     * we allocate the memory here to avoid that the global record 
+     * we allocate the memory here to avoid that the global record
      * pointer is overwritten
      */
     memset(&record, 0, sizeof(record));
     record.data=ham_mem_alloc(key_length+sizeof(ham_offset_t));
-    if (!record.data) 
+    if (!record.data)
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
     record.flags=HAM_RECORD_USER_ALLOC;
 
@@ -622,6 +624,7 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
 
             blobid=*(ham_offset_t *)(lhs+(db_get_keysize(db)-
                     sizeof(ham_offset_t)));
+            blobid=ham_db2h_offset(blobid);
 
             /* fetch from the cache */
             if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
@@ -674,6 +677,7 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
 
             blobid=*(ham_offset_t *)(rhs+(db_get_keysize(db)-
                     sizeof(ham_offset_t)));
+            blobid=ham_db2h_offset(blobid);
 			ham_assert(blobid, ("blobid is empty"));
 
             /* fetch from the cache */
@@ -911,7 +915,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
     }
     /* if there's no txn, set the "in_use"-flag - otherwise the cache
      * might purge it immediately */
-    else 
+    else
         page_inc_inuse(page);
 
     ham_assert(cache_can_add_page(db_get_cache(db)),
@@ -962,6 +966,7 @@ db_free_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
                 if (key_get_flags(bte)&KEY_IS_EXTENDED) {
                     blobid=*(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)));
+                    blobid=ham_db2h_offset(blobid);
                     *(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
                     if (db_get_flags(db)&HAM_IN_MEMORY_DB)
@@ -994,7 +999,7 @@ db_write_page_and_delete(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
     }
 
     /*
-     * if the page is deleted, uncouple all cursors, then 
+     * if the page is deleted, uncouple all cursors, then
      * free the memory of the page
      */
     if (!(flags&DB_FLUSH_NODELETE)) {

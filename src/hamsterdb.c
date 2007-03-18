@@ -78,7 +78,7 @@ my_dump_cb(int event, void *param1, void *param2, void *context)
             else
                 printf("\n");
 
-            printf("      ptr: 0x%llx\n", 
+            printf("      ptr: 0x%llx\n",
                     (ham_u64_t)key_get_ptr(key));
         }
         break;
@@ -303,7 +303,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
         return (st);
     }
     dbhdr=(db_header_t *)&hdrbuf[12];
-    db_set_pagesize(db, dbhdr->_pagesize);
+    db_set_pagesize(db, ham_db2h32(dbhdr->_pagesize));
 
     /*
      * can we use mmap?
@@ -485,7 +485,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
         if (pagesize/keysize<4)
             return (HAM_INV_KEYSIZE);
 
-    /* 
+    /*
      * initialize the database with a good default value;
      * 32byte is the size of a first level cache line for most modern
      * processors; adjust the keysize, so the keys are aligned to
@@ -732,7 +732,7 @@ ham_dump(ham_db_t *db, void *reserved, ham_dump_cb_t cb)
     ham_txn_t txn;
     ham_status_t st;
     ham_backend_t *be;
-    
+
     if (!db || !cb)
         return (HAM_INV_PARAMETER);
 
@@ -757,7 +757,7 @@ ham_dump(ham_db_t *db, void *reserved, ham_dump_cb_t cb)
     return (ham_txn_commit(&txn));
 #else /* !HAM_ENABLE_INTERNAL */
     return (HAM_NOT_IMPLEMENTED);
-#endif 
+#endif
 }
 
 ham_status_t
@@ -799,7 +799,7 @@ ham_check_integrity(ham_db_t *db, void *reserved)
     return (ham_txn_commit(&txn));
 #else /* !HAM_ENABLE_INTERNAL */
     return (HAM_NOT_IMPLEMENTED);
-#endif 
+#endif
 }
 
 ham_status_t
