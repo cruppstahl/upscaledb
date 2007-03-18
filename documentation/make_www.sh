@@ -1,4 +1,4 @@
-\rm -rf html.tar
+\rm -rf html.tar html_www
 cd ..
 doxygen documentation/Doxyfile.www
 cd documentation
