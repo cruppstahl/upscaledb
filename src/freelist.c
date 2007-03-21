@@ -27,7 +27,7 @@ my_add_area(ham_db_t *db, freel_payload_t *fp,
     /*
      * try to append the item to an existing entry
      */
-    if (db_get_flags(db)&HAM_OPTIMIZE_SIZE) {
+    if (db_get_rt_flags(db)&HAM_OPTIMIZE_SIZE) {
         for (i=0; i<freel_payload_get_count(fp); i++) {
             /*
              * if we can append the item, remove the item from the 
@@ -323,7 +323,7 @@ freel_alloc_area(ham_db_t *db, ham_size_t size, ham_u32_t flags)
     result=my_alloc_in_list(db, fp, size, flags);
     if (result) {
         page_set_dirty(page, HAM_TRUE);
-        if (!(db_get_flags(db)&HAM_DISABLE_FREELIST_FLUSH)) {
+        if (!(db_get_rt_flags(db)&HAM_DISABLE_FREELIST_FLUSH)) {
             st=db_write_page_to_device(page);
             if (st) {
                 db_set_error(db, st);
@@ -355,7 +355,7 @@ freel_alloc_area(ham_db_t *db, ham_size_t size, ham_u32_t flags)
         if (result) {
             /* write the page to disk */
             page_set_dirty(page, HAM_TRUE);
-            if (!(db_get_flags(db)&HAM_DISABLE_FREELIST_FLUSH)) {
+            if (!(db_get_rt_flags(db)&HAM_DISABLE_FREELIST_FLUSH)) {
                 st=db_write_page_to_device(page);
                 if (st) {
                     db_set_error(db, st);

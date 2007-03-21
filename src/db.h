@@ -42,7 +42,7 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
     /* size of the page */
     ham_u32_t _pagesize;
 
-    /* global database flags which were specified when the database
+    /* persistent database flags which were specified when the database
      * was created */
     ham_u32_t _flags;
 
@@ -124,12 +124,12 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
 /*
  * get the flags
  */
-#define db_get_flags(db)           ham_db2h32(db_get_header(db)._flags)
+#define db_get_pers_flags(db)      ham_db2h32(db_get_header(db)._flags)
 
 /*
  * set the flags
  */
-#define db_set_flags(db, f)        db_get_header(db)._flags=ham_h2db32(f)
+#define db_set_pers_flags(db, f)   db_get_header(db)._flags=ham_h2db32(f)
 
 /*
  * get the private data of the backend; interpretation of the
@@ -206,6 +206,10 @@ struct ham_db_t
 
     /* the cache for extended keys */
     extkey_cache_t *_extkey_cache;
+
+    /* the database flags - a combination of the persistent flags
+     * and runtime flags */
+    ham_u32_t _rt_flags;
 
     /* dirty-flag for the header */
     ham_u8_t _dirty;
@@ -311,6 +315,16 @@ struct ham_db_t
  * set the dirty-flag
  */
 #define db_set_dirty(db, d)            (db)->_dirty=d
+
+/*
+ * get the runtime-flags
+ */
+#define db_get_rt_flags(db)            (db)->_rt_flags
+
+/*
+ * set the runtime-flags
+ */
+#define db_set_rt_flags(db, f)         (db)->_rt_flags=(f)
 
 /*
  * get the size of the last allocated data blob

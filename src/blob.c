@@ -186,7 +186,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
      * in-memory-database: the blobid is actually a pointer to the memory
      * buffer, in which the blob (with the blob-header) is stored
      */
-    if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
+    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
         blob_t *hdr;
         ham_u8_t *p=(ham_u8_t *)ham_mem_alloc(size+sizeof(blob_t));
         if (!p) {
@@ -302,7 +302,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
      * in-memory-database: the blobid is actually a pointer to the memory
      * buffer, in which the blob is stored
      */
-    if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
+    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
         blob_t *hdr=(blob_t *)blobid;
         ham_u8_t *data=((ham_u8_t *)blobid)+sizeof(blob_t);
 
@@ -391,7 +391,7 @@ blob_replace(ham_db_t *db, ham_offset_t old_blobid,
      * inmemory-databases: free the old blob, 
      * allocate a new blob
      */
-    if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
+    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
         st=blob_free(db, old_blobid, flags);
         if (st)
             return (st);
@@ -476,7 +476,7 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
      * in-memory-database: the blobid is actually a pointer to the memory
      * buffer, in which the blob is stored
      */
-    if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
+    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
         ham_u8_t *data=(ham_u8_t *)blobid;
         ham_mem_free(data);
         return (0);

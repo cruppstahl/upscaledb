@@ -32,7 +32,7 @@ my_write_page(ham_db_t *db, ham_page_t *page)
      * one day, we'll have to protect these file IO-operations
      * with a mutex
      */
-    ham_assert(!(db_get_flags(db)&HAM_IN_MEMORY_DB),
+    ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB),
             ("can't fetch a page from in-memory-db"));
     ham_assert(page_get_pers(page)!=0,
             ("writing page 0x%llx, but page has no buffer",
@@ -60,10 +60,10 @@ my_read_page(ham_db_t *db, ham_offset_t address, ham_page_t *page)
      * with a mutex
      */
 
-    ham_assert(!(db_get_flags(db)&HAM_IN_MEMORY_DB),
+    ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB),
             ("can't fetch a page from in-memory-db"));
 
-    if (db_get_flags(db)&DB_USE_MMAP) {
+    if (db_get_rt_flags(db)&DB_USE_MMAP) {
         ham_u8_t *buffer;
         st=os_mmap(db_get_fd(db), page_get_mmap_handle_ptr(page), 
 				address, db_get_pagesize(db), &buffer);
@@ -116,7 +116,7 @@ my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
             return (0);
         }
 
-        if (page_is_dirty(page) && !(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
+        if (page_is_dirty(page) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
             st=my_write_page(db, page);
             if (st) {
                 db_set_error(db, st);
@@ -148,7 +148,7 @@ my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
      * for in-memory-databases and if we use read(2) for I/O, we need
      * a second page buffer for the file data
      */
-    if (!(db_get_flags(db)&DB_USE_MMAP) && !page_get_pers(page)) {
+    if (!(db_get_rt_flags(db)&DB_USE_MMAP) && !page_get_pers(page)) {
         page_set_pers(page, (union page_union_t *)ham_mem_alloc(
                     db_get_pagesize(db)));
         if (!page_get_pers(page)) {
@@ -200,7 +200,7 @@ db_alloc_page_struct(ham_db_t *db)
     /* temporarily initialize the cache counter, just to be on the safe side */
     page_set_cache_cntr(page, 20);
 
-    if (!(db_get_flags(db)&DB_USE_MMAP)) {
+    if (!(db_get_rt_flags(db)&DB_USE_MMAP)) {
         page_set_pers(page, (union page_union_t *)ham_mem_alloc(
                     db_get_pagesize(db)));
         if (!page_get_pers(page)) {
@@ -254,7 +254,7 @@ db_free_page_struct(ham_page_t *page)
                     blobid=*(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)));
                     blobid=ham_db2h_offset(blobid);
-					if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
+					if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
                         /* delete the blobid to prevent that it's freed twice */
                         *(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
@@ -304,7 +304,7 @@ db_alloc_page_device(ham_db_t *db, ham_u32_t flags)
     /*
      * if this is not an in-memory-db: set the memory to 0 and leave
      */
-    if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
+    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
         /* allocate memory for the page */
         page=my_alloc_page(db, HAM_TRUE);
         if (!page)
@@ -382,7 +382,7 @@ db_alloc_page_device(ham_db_t *db, ham_u32_t flags)
          * if we're using MMAP: when allocating a new page, we need
          * memory for the persistent buffer
          */
-        if ((db_get_flags(db)&DB_USE_MMAP) && !page_get_pers(page)) {
+        if ((db_get_rt_flags(db)&DB_USE_MMAP) && !page_get_pers(page)) {
             st=my_read_page(db, tellpos, page);
             if (st) /* TODO memleaks? */
                 return (0);
@@ -476,7 +476,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
     ham_assert(key_flags&KEY_IS_EXTENDED,
             ("key is not extended"));
 
-    if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
+    if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
         if (!db_get_extkey_cache(db)) {
             db_set_extkey_cache(db, extkey_cache_new(db));
             if (!db_get_extkey_cache(db))
@@ -489,7 +489,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
     blobid=ham_db2h_offset(blobid);
 
     /* fetch from the cache */
-    if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
+    if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
         st=extkey_cache_fetch(db_get_extkey_cache(db), blobid,
                         &temp, &ptr);
         if (!st) {
@@ -536,7 +536,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
                record.data, record.size);
 
     /* insert the FULL key in the cache */
-    if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
+    if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
         (void)extkey_cache_insert(db_get_extkey_cache(db),
                 blobid, key_length, *ext_key);
     }
@@ -608,7 +608,7 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
          * advantages; it only duplicates the data and wastes memory.
          * therefore we don't use it.
          */
-        if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
+        if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
             if (!db_get_extkey_cache(db)) {
                 db_set_extkey_cache(db, extkey_cache_new(db));
                 if (!db_get_extkey_cache(db))
@@ -627,7 +627,7 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
             blobid=ham_db2h_offset(blobid);
 
             /* fetch from the cache */
-            if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
+            if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
                 st=extkey_cache_fetch(db_get_extkey_cache(db), blobid,
                         &temp, &plhs);
                 if (!st)
@@ -661,7 +661,7 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
                         lhs_record.data, lhs_record.size);
 
                 /* insert the FULL key in the cache */
-                if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
+                if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
                     (void)extkey_cache_insert(db_get_extkey_cache(db),
                             blobid, lhs_length, plhs);
                 }
@@ -681,7 +681,7 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
 			ham_assert(blobid, ("blobid is empty"));
 
             /* fetch from the cache */
-            if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
+            if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
                 st=extkey_cache_fetch(db_get_extkey_cache(db), blobid,
                         &temp, &prhs);
                 if (!st)
@@ -716,7 +716,7 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
                         rhs_record.data, rhs_record.size);
 
                 /* insert the FULL key in the cache */
-                if (!(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
+                if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
                     (void)extkey_cache_insert(db_get_extkey_cache(db),
                             blobid, rhs_length, prhs);
                 }
@@ -866,7 +866,7 @@ db_flush_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
     ham_status_t st;
 
     /* write the page, if it's dirty and if write-through is enabled */
-    if ((db_get_flags(db)&HAM_WRITE_THROUGH) && page_is_dirty(page)) {
+    if ((db_get_rt_flags(db)&HAM_WRITE_THROUGH) && page_is_dirty(page)) {
         st=my_write_page(db, page);
         if (st)
             return (st);
@@ -969,7 +969,7 @@ db_free_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
                     blobid=ham_db2h_offset(blobid);
                     *(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
-                    if (db_get_flags(db)&HAM_IN_MEMORY_DB)
+                    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
                         (void)blob_free(db, blobid, 0);
                     else if (c)
                         (void)extkey_cache_remove(c, blobid);
@@ -992,7 +992,7 @@ db_write_page_and_delete(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
     /*
      * write page to disk
      */
-    if (page_is_dirty(page) && !(db_get_flags(db)&HAM_IN_MEMORY_DB)) {
+    if (page_is_dirty(page) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
         st=my_write_page(db, page);
         if (st)
             return (st);

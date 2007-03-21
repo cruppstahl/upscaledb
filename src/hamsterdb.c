@@ -310,12 +310,11 @@ ham_open_ex(ham_db_t *db, const char *filename,
      */
 #if HAVE_MMAP
     if (!(flags&HAM_DISABLE_MMAP))
-        if (db_get_pagesize(db)==os_get_pagesize())
+        if (db_get_pagesize(db)%os_get_pagesize()==0)
             flags|=DB_USE_MMAP;
     flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
 #endif
 
-    db_set_flags(db, flags);
     db_set_error(db, HAM_SUCCESS);
 
     /*
@@ -335,6 +334,23 @@ ham_open_ex(ham_db_t *db, const char *filename,
      */
     memcpy(&db_get_header(db), page_get_payload(page),
             sizeof(db_header_t)-sizeof(freel_payload_t));
+
+    /* set the database flags */
+    db_set_rt_flags(db, flags|db_get_pers_flags(db));
+    ham_assert(!(db_get_pers_flags(db)&HAM_DISABLE_VAR_KEYLEN), 
+            ("invalid persistent database flags 0x%x", db_get_pers_flags(db)));
+    ham_assert(!(db_get_pers_flags(db)&HAM_CACHE_STRICT), 
+            ("invalid persistent database flags 0x%x", db_get_pers_flags(db)));
+    ham_assert(!(db_get_pers_flags(db)&HAM_DISABLE_MMAP), 
+            ("invalid persistent database flags 0x%x", db_get_pers_flags(db)));
+    ham_assert(!(db_get_pers_flags(db)&HAM_WRITE_THROUGH), 
+            ("invalid persistent database flags 0x%x", db_get_pers_flags(db)));
+    ham_assert(!(db_get_pers_flags(db)&HAM_READ_ONLY), 
+            ("invalid persistent database flags 0x%x", db_get_pers_flags(db)));
+    ham_assert(!(db_get_pers_flags(db)&HAM_OPTIMIZE_SIZE), 
+            ("invalid persistent database flags 0x%x", db_get_pers_flags(db)));
+    ham_assert(!(db_get_pers_flags(db)&HAM_DISABLE_FREELIST_FLUSH), 
+            ("invalid persistent database flags 0x%x", db_get_pers_flags(db)));
 
     /* check the file magic */
     if (db_get_magic(db, 0)!='H' ||
@@ -411,6 +427,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     ham_backend_t *backend;
     db_header_t *h;
     ham_page_t *page;
+    ham_u32_t pflags;
 
     if (!db)
         return (HAM_INV_PARAMETER);
@@ -451,7 +468,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
 #if HAVE_MMAP
     else if (!(flags&HAM_DISABLE_MMAP)) {
         if (pagesize) {
-            if (pagesize==os_get_pagesize())
+            if (pagesize%os_get_pagesize()==0)
                 flags|=DB_USE_MMAP;
         }
         else {
@@ -500,10 +517,23 @@ ham_create_ex(ham_db_t *db, const char *filename,
     db_set_magic(db, 'H', 'A', 'M', '\0');
     db_set_version(db, HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV, 0);
     db_set_serialno(db, HAM_SERIALNO);
-    db_set_flags(db, flags);
     db_set_error(db, HAM_SUCCESS);
     db_set_pagesize(db, pagesize);
     db_set_keysize(db, keysize);
+
+    /*
+     * set the flags
+     */
+    pflags=flags;
+    pflags&=~HAM_DISABLE_VAR_KEYLEN;
+    pflags&=~HAM_CACHE_STRICT;
+    pflags&=~HAM_DISABLE_MMAP;
+    pflags&=~HAM_WRITE_THROUGH;
+    pflags&=~HAM_READ_ONLY;
+    pflags&=~HAM_OPTIMIZE_SIZE;
+    pflags&=~HAM_DISABLE_FREELIST_FLUSH;
+    db_set_pers_flags(db, pflags);
+    db_set_rt_flags(db, flags);
 
     /* initialize the cache */
     cache=cache_new(db, flags, cachesize ? cachesize : HAM_DEFAULT_CACHESIZE);
@@ -654,9 +684,9 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     be=db_get_backend(db);
     if (!be)
         return (db_set_error(db, HAM_INV_INDEX));
-    if (db_get_flags(db)&HAM_READ_ONLY)
+    if (db_get_rt_flags(db)&HAM_READ_ONLY)
         return (db_set_error(db, HAM_DB_READ_ONLY));
-    if ((db_get_flags(db)&HAM_DISABLE_VAR_KEYLEN) &&
+    if ((db_get_rt_flags(db)&HAM_DISABLE_VAR_KEYLEN) &&
         (key->size>db_get_keysize(db)))
         return (db_set_error(db, HAM_INV_KEYSIZE));
     if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
@@ -698,7 +728,7 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
     be=db_get_backend(db);
     if (!be)
         return (db_set_error(db, HAM_INV_INDEX));
-    if (db_get_flags(db)&HAM_READ_ONLY)
+    if (db_get_rt_flags(db)&HAM_READ_ONLY)
         return (db_set_error(db, HAM_DB_READ_ONLY));
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
@@ -805,6 +835,8 @@ ham_check_integrity(ham_db_t *db, void *reserved)
 ham_status_t
 ham_flush(ham_db_t *db, ham_u32_t flags)
 {
+    ham_status_t st;
+
     (void)flags;
 
     if (!db)
@@ -813,9 +845,23 @@ ham_flush(ham_db_t *db, ham_u32_t flags)
     db_set_error(db, 0);
 
     /*
+     * update the header page, if necessary
+     */
+    if (db_is_dirty(db)) {
+        ham_page_t *page=db_get_header_page(db);
+
+        memcpy(page_get_payload(page), &db_get_header(db),
+                sizeof(db_header_t)-sizeof(freel_payload_t));
+        page_set_dirty(page, 1);
+        st=db_write_page_to_device(page);
+        if (st)
+            return (db_set_error(db, st));
+    }
+
+    /*
      * never flush an in-memory-database
      */
-    if (db_get_flags(db)&HAM_IN_MEMORY_DB)
+    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
         return (0);
 
     return (db_flush_all(db, DB_FLUSH_NODELETE));
@@ -837,7 +883,7 @@ ham_close(ham_db_t *db)
     /*
      * in-memory-database: free all allocated blobs
      */
-    if (db_get_flags(db)&HAM_IN_MEMORY_DB) {
+    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
         ham_txn_t txn;
         free_cb_context_t context;
         context.db=db;
@@ -859,17 +905,6 @@ ham_close(ham_db_t *db)
         ham_mem_free(db_get_key_allocdata(db));
         db_set_key_allocdata(db, 0);
         db_set_key_allocsize(db, 0);
-    }
-
-    /*
-     * update the header page, if necessary
-     */
-    if (db_is_dirty(db)) {
-        ham_page_t *page=db_get_header_page(db);
-
-        memcpy(page_get_payload(page), &db_get_header(db),
-                sizeof(db_header_t)-sizeof(freel_payload_t));
-        page_set_dirty(page, 1);
     }
 
     /*
@@ -914,9 +949,9 @@ ham_close(ham_db_t *db)
      * if we're not in read-only mode, and not an in-memory-database,
      * and the dirty-flag is true: flush the page-header to disk
      */
-    if (!(db_get_flags(db)&HAM_IN_MEMORY_DB) &&
+    if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB) &&
         db_is_open(db) &&
-        (!(db_get_flags(db)&HAM_READ_ONLY)) &&
+        (!(db_get_rt_flags(db)&HAM_READ_ONLY)) &&
         db_is_dirty(db)) {
         /* copy the persistent header to the database object */
         memcpy(page_get_payload(db_get_header_page(db)), &db_get_header(db),
@@ -932,7 +967,7 @@ ham_close(ham_db_t *db)
     }
 
     /* close the file */
-    if (!(db_get_flags(db)&HAM_IN_MEMORY_DB) &&
+    if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB) &&
         db_is_open(db)) {
         (void)os_close(db_get_fd(db));
         /* set an invalid database handle */
@@ -972,7 +1007,7 @@ ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
     if (!cursor || !record)
         return (HAM_INV_PARAMETER);
 
-    if (db_get_flags(cursor_get_db(cursor))&HAM_READ_ONLY)
+    if (db_get_rt_flags(cursor_get_db(cursor))&HAM_READ_ONLY)
         return (db_set_error(cursor_get_db(cursor), HAM_DB_READ_ONLY));
 
     db_set_error(cursor_get_db(cursor), 0);
@@ -1015,9 +1050,9 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     db=cursor_get_db(cursor);
     db_set_error(db, 0);
 
-    if (db_get_flags(db)&HAM_READ_ONLY)
+    if (db_get_rt_flags(db)&HAM_READ_ONLY)
         return (db_set_error(db, HAM_DB_READ_ONLY));
-    if ((db_get_flags(db)&HAM_DISABLE_VAR_KEYLEN) &&
+    if ((db_get_rt_flags(db)&HAM_DISABLE_VAR_KEYLEN) &&
         (key->size>db_get_keysize(db)))
         return (db_set_error(db, HAM_INV_KEYSIZE));
     if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
@@ -1042,7 +1077,7 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     db=cursor_get_db(cursor);
     db_set_error(db, 0);
 
-    if (db_get_flags(db)&HAM_READ_ONLY)
+    if (db_get_rt_flags(db)&HAM_READ_ONLY)
         return (db_set_error(db, HAM_DB_READ_ONLY));
 
     if ((st=ham_txn_begin(&txn, db)))
