@@ -107,7 +107,7 @@ ham_txn_commit(ham_txn_t *txn)
          * can delete the page without consequences
          */
         if (page_get_npers_flags(head)&PAGE_NPERS_DELETE_PENDING) {
-            if (db_get_flags(db)&HAM_IN_MEMORY_DB) { 
+            if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) { 
                 db_free_page_struct(head);
             }
             else {
