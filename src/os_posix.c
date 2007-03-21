@@ -235,8 +235,6 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
         osflags|=O_RDONLY;
     else
         osflags|=O_RDWR;
-    if (flags&HAM_OPEN_EXCLUSIVELY)
-        osflags|=O_EXCL;
 
     *fd=open(filename, osflags);
     if (*fd<0) {

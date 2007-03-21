@@ -290,10 +290,6 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *       <li>@a HAM_WRITE_THROUGH</li> Immediately write modified pages 
  *            to the disk. This slows down all database operations, but 
  *            could save the database integrity in case of a system crash. 
- *       <li>@a HAM_OPEN_EXCLUSIVELY</li> Opens the file exclusively by 
- *            specifying O_EXCL (Posix) or similar flags on other 
- *            operating systems. This is broken on nfs and most likely 
- *            on other network filesystems, too.
  *       <li>@a HAM_DISABLE_VAR_KEYLEN</li> Do not allow the use of variable 
  *            length keys. Inserting a key, which is larger than the 
  *            B+Tree index key size, returns error @a HAM_INV_KEYSIZE.
@@ -373,10 +369,6 @@ ham_create(ham_db_t *db, const char *filename,
  *       <li>@a HAM_WRITE_THROUGH</li> Immediately write modified pages to the 
  *            disk. This slows down all database operations, but might
  *            save the database integrity in case of a system crash. 
- *       <li>@a HAM_OPEN_EXCLUSIVELY</li> Opens the file exclusively by 
- *            specifying O_EXCL (Posix) or similar flags on other 
- *            operating systems. This is broken on nfs and most likely 
- *            on other network filesystems, too.
  *       <li>@a HAM_USE_BTREE</li> Use a B+Tree for the index structure. 
  *            Currently, this is your only choice, but future releases 
  *            of hamsterdb will offer additional index structures, 
@@ -445,8 +437,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
 /** Flag for @a ham_open, @a ham_open_ex */
 #define HAM_READ_ONLY                0x00000004
 
-/** Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex */
-#define HAM_OPEN_EXCLUSIVELY         0x00000008
+/* unused                            0x00000008 */
 
 /** Flag for @a ham_create, @a ham_create_ex */
 #define HAM_USE_BTREE                0x00000010

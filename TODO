@@ -26,28 +26,9 @@ o webseite
     o api-doku und tutorial als PDF zum download
     o korrigieren lassen
 
-x was ist bei --optimizesize und --inmemorydb? das flag duerfte doch gar
-    nix bewirken, weil es bei inmemorydb keine freelist gibt, oder?
-    -> ja, wird ignoriert
-
-x vor jeder operation den last-error auf 0 setzen
-
-x Autoconf sollte mit -O3 bauen!
-
-x keine optimization bei --enable-debug
-
-x optimisieren für minimum-size
-
-x neuer configure-modus zum disablen von internen funktionen - z.b. dump
-    und check_integrity etc
-    -> function body raus, funktionen liefern HAM_NOT_IMPLEMENTED zurück
-
-o HAM_OPEN_EXCLUSIVELY testen - geht das auch unter windows?
-
-o HAM_DISABLE_VAR_KEYLEN sollte nur bei ham_create* gehen, nicht ham_open*
-
-o sicherstellen dass die folgenden flags nicht abgespeichert werden
+x sicherstellen dass die folgenden flags nicht abgespeichert werden
     (beim open und create)
+    HAM_DISABLE_VAR_KEYLEN 
     HAM_CACHE_STRICT
     HAM_DISABLE_MMAP
     HAM_OPEN_EXCLUSIVELY
@@ -55,11 +36,24 @@ o sicherstellen dass die folgenden flags nicht abgespeichert werden
     HAM_READ_ONLY
     HAM_OPTIMIZE_SIZE
     HAM_DISABLE_FREELIST_FLUSH
-o sicherstellen, dass die folgenden flags abgespeichert werden:
-    HAM_DISABLE_VAR_KEYLEN
+    x db_get_flags kommt raus; stattdessen: db_get_pers_flags() und 
+        db_get_all_flags()
+    x beim create wird in den pers. flags nur die "richtigen" flags 
+        gespeichert
+    x db_get_all_flags() gibt die flags vom caller (beim open oder create)
+        verodert mit den persistent flags zurück
+    x testen
 
-o was passiert wenn ein cursor null ist, und man key/record holt, ohne 
+x wenn die pagesize!=os_getpagesize ist, wird kein mmap genommen. aber
+    zumindest unter posix (evtl nicht win32 und cygwin!) kann mmap immer 
+    dann genommen werden, wenn die pagesize ein *vielfaches* von der 
+    os-pagesize ist! coden, dann testen, auch unter cygwin und windows
+
+x was passiert wenn ein cursor null ist, und man key/record holt, ohne 
     einen move zu machen? Muss CURSOR_IS_NIL zurückgeben
+
+x HAM_OPEN_EXCLUSIVELY raus - das muss mal durch gescheites file-locking 
+    ersetzt werden
 
 o portieren auf linux/ppc
 
@@ -69,15 +63,11 @@ o sicherstellen dass die datenbanken endian-agnostic sind
 
 o sicherstellen dass die datenbanken wordsize-agnostic sind
 
+o release machen!
+
 -----------------------------------------------------
 -----------------------------------------------------
 
-o koennen wir problemlos 32bit-filepointer nehmen?
-
-o 1 writer, multiple reader - wie lässt sich das machen?
-    alle ohne caching, alle mit read-through/write-through?
-    testen, evtl brauchen wir noch ein exclusive locking
-    
 o es ist noch ein kleiner valgrind-bug drin:
     valgrind --tool=memcheck --leak-check=full --show-reachable=yes
     .libs/lt-test --file ../../../hamsterdb-tests/trunk/testfiles/1/ext_060.tst
@@ -97,6 +87,17 @@ o nächsten release machen
 o gescheite roadmap schreiben (internes dokument), die TODO-liste
     behandelt dann immer nur den obersten/aktuellen eintrag der roadmap!
 
+-----------------------------------------------------
+-----------------------------------------------------
+
+o file locking:
+    o alles exclusive
+    o on demand (locked_shared bei read, lock_ex bei write)
+
+o 1 writer, multiple reader - wie lässt sich das machen?
+    alle ohne caching, alle mit read-through/write-through?
+    testen, evtl brauchen wir noch ein exclusive locking
+    
 -----------------------------------------------------
 -----------------------------------------------------
 
@@ -209,6 +210,20 @@ o duplicate keys
     eingefuegt, mit dem dupcounter=existierender ("kleinster") key minus 1.
 
     ist blöd, weil im key dann 2 (oder 4) byte für jeden key verloren gehen!
+    ist auch blöd, denn wie will man mitten in den duplicates einen key
+    einfügen? bdb kann das.
+
+    alternative 1: key nur einmal speichern (evtl mit reference-counter), 
+    dann eine linked list im blob-bereich -> aufwändig, kann langsam werden
+
+    alternative 2: statt dup-counter nehmen wir ein tupel (key/rid). aber 
+    auch das ist nicht eindeutig, denn wenn ein dupe gelöscht und ein anderes
+    wieder eingefügt wird, und die freelist die selbe rid vergibt, 
+    können wir beide nicht unterscheiden. das selbe passiert wenn der record
+    NULL ist oder short.
+
+    -> erstmal bei berkeleydb nachschaun, wie die das machen, und evtl 
+    auch bei qdbm u.a. 
 
 -----------------------------------------------------
 -----------------------------------------------------

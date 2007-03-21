@@ -19,32 +19,32 @@ os_get_pagesize(void)
 {
     SYSTEM_INFO info;
     GetSystemInfo(&info);
-	return ((ham_size_t)info.dwAllocationGranularity);
+    return ((ham_size_t)info.dwAllocationGranularity);
 }
 
 ham_status_t
 os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position, 
-		ham_size_t size, ham_u8_t **buffer)
+        ham_size_t size, ham_u8_t **buffer)
 {
-	ham_status_t st;
-	DWORD hsize, fsize=GetFileSize(fd, &hsize);
+    ham_status_t st;
+    DWORD hsize, fsize=GetFileSize(fd, &hsize);
 
-	*mmaph=CreateFileMapping(fd, 0, PAGE_READWRITE, hsize, fsize, 0); 
-	if (!*mmaph) {
+    *mmaph=CreateFileMapping(fd, 0, PAGE_READWRITE, hsize, fsize, 0); 
+    if (!*mmaph) {
         *buffer=0;
         st=(ham_status_t)GetLastError();
         ham_log(("CreateFileMapping failed with status %u", st));
         return (HAM_IO_ERROR);
-	}
+    }
 
-	*buffer=MapViewOfFile(*mmaph, PAGE_READONLY, 
-			(unsigned long)(position&0xffffffff00000000),
-			(unsigned long)(position&0x00000000ffffffff), size);
-	if (!*buffer) {
+    *buffer=MapViewOfFile(*mmaph, PAGE_READONLY, 
+            (unsigned long)(position&0xffffffff00000000),
+            (unsigned long)(position&0x00000000ffffffff), size);
+    if (!*buffer) {
         st=(ham_status_t)GetLastError();
         ham_log(("MapViewOfFile failed with status %u", st));
         return (HAM_IO_ERROR);
-	}
+    }
 
     return (HAM_SUCCESS);
 }
@@ -52,21 +52,21 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
 ham_status_t
 os_munmap(ham_fd_t *mmaph, void *buffer, ham_size_t size)
 {
-	ham_status_t st;
+    ham_status_t st;
 
-	if (!UnmapViewOfFile(buffer)) {
+    if (!UnmapViewOfFile(buffer)) {
         st=(ham_status_t)GetLastError();
         ham_log(("UnMapViewOfFile failed with status %u", st));
         return (HAM_IO_ERROR);
-	}
+    }
 
-	if (!CloseHandle(*mmaph)) {
+    if (!CloseHandle(*mmaph)) {
         st=(ham_status_t)GetLastError();
         ham_log(("CloseHandle failed with status %u", st));
         return (HAM_IO_ERROR);
-	}
+    }
 
-	*mmaph=0;
+    *mmaph=0;
 
     return (HAM_SUCCESS);
 }
@@ -76,7 +76,7 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
         ham_size_t bufferlen)
 {
     ham_status_t st;
-	DWORD read=0;
+    DWORD read=0;
 
     st=os_seek(fd, addr, HAM_OS_SEEK_SET);
     if (st)
@@ -122,10 +122,10 @@ os_seek(ham_fd_t fd, ham_offset_t offset, int whence)
     LARGE_INTEGER i;
     i.QuadPart=offset;
     
-	i.LowPart=SetFilePointer((HANDLE)fd, i.LowPart, 
-			&i.HighPart, whence);
-	if (i.LowPart==INVALID_SET_FILE_POINTER && 
-		(st=GetLastError())!=NO_ERROR) {
+    i.LowPart=SetFilePointer((HANDLE)fd, i.LowPart, 
+            &i.HighPart, whence);
+    if (i.LowPart==INVALID_SET_FILE_POINTER && 
+        (st=GetLastError())!=NO_ERROR) {
         ham_trace(("seek failed with OS status %u", st));
         return (HAM_IO_ERROR);
     }
@@ -140,10 +140,10 @@ os_tell(ham_fd_t fd, ham_offset_t *offset)
     LARGE_INTEGER i;
     i.QuadPart=0;
 
-	i.LowPart=SetFilePointer((HANDLE)fd, i.LowPart, 
-			&i.HighPart, HAM_OS_SEEK_CUR);
-	if (i.LowPart==INVALID_SET_FILE_POINTER && 
-		(st=GetLastError())!=NO_ERROR) {
+    i.LowPart=SetFilePointer((HANDLE)fd, i.LowPart, 
+            &i.HighPart, HAM_OS_SEEK_CUR);
+    if (i.LowPart==INVALID_SET_FILE_POINTER && 
+        (st=GetLastError())!=NO_ERROR) {
         ham_trace(("tell failed with OS status %u", st));
         return (HAM_IO_ERROR);
     }
@@ -177,12 +177,12 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
     DWORD osflags=FILE_FLAG_RANDOM_ACCESS;
 
     *fd=(ham_fd_t)CreateFile(filename, GENERIC_READ|GENERIC_WRITE, 
-				0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+                0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
     if (*fd==INVALID_HANDLE_VALUE) {
         st=(ham_status_t)GetLastError();
-		/* this function can return errors even when it succeeds... */
-		if (st==ERROR_ALREADY_EXISTS)
-			return (0);
+        /* this function can return errors even when it succeeds... */
+        if (st==ERROR_ALREADY_EXISTS)
+            return (0);
         ham_trace(("CreateFile failed with OS status %u", st));
         return (HAM_IO_ERROR);
     }
@@ -195,17 +195,16 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 {
     ham_status_t st;
     DWORD access =0;
-	DWORD share  =0;
+    DWORD share  =0;
     DWORD dispo  =OPEN_EXISTING;
-	DWORD osflags=0;
+    DWORD osflags=0;
 
-	if (!(flags&HAM_OPEN_EXCLUSIVELY))
-		share=FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE;
+    share=FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE;
 
     if (flags&HAM_READ_ONLY)
         access|=GENERIC_READ;
-	else
-		access|=GENERIC_READ|GENERIC_WRITE;
+    else
+        access|=GENERIC_READ|GENERIC_WRITE;
 
     *fd=(ham_fd_t)CreateFile(filename, access, share, 0, 
                         dispo, osflags, 0);

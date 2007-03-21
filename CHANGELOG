@@ -1,3 +1,15 @@
+Mar 21, 2007 - chris
+o removed HAM_OPEN_EXCLUSIVELY - i'll replace it with file locking in a 
+    few weeks
+o use mmap if the db-pagesize is a multiple of the os-pagesize, and not 
+    just if it's equal
+o do not store the following flags in the database: HAM_DISABLE_VAR_KEYLEN,
+    HAM_CACHE_STRICT, HAM_DISABLE_MMAP, HAM_OPEN_EXCLUSIVELY, 
+    HAM_WRITE_THROUGH, HAM_READ_ONLY, HAM_OPTIMIZE_SIZE, 
+    HAM_DISABLE_FREELIST_FLUSH
+o fixed an unlikely crash in ham_cursor_move: if the cursor was nil after 
+    moving the cursor, return an error
+
 Mar 17, 2007 - chris
 o added configure-option --enable-internal to enable all internal 
     functions (ham_dump and ham_check_integrity). disabling those functions
