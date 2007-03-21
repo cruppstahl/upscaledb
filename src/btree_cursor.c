@@ -698,6 +698,15 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
         st=my_move_next(be, c, flags);
     else if (flags&HAM_CURSOR_PREVIOUS)
         st=my_move_previous(be, c, flags);
+    /* no move, but cursor is nil? return error */
+    else if (bt_cursor_is_nil(c)) {
+        if (local_txn)
+            (void)ham_txn_abort(&txn);
+        if (key || record) 
+            return (HAM_CURSOR_IS_NIL);
+        else
+            return (0);
+    }
     if (st) {
         if (local_txn)
             (void)ham_txn_abort(&txn);
