@@ -864,7 +864,15 @@ ham_flush(ham_db_t *db, ham_u32_t flags)
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
         return (0);
 
-    return (db_flush_all(db, DB_FLUSH_NODELETE));
+    st=db_flush_all(db, DB_FLUSH_NODELETE);
+    if (st)
+        return (db_set_error(db, st));
+
+    st=os_flush(db_get_fd(db));
+    if (st)
+        return (db_set_error(db, st));
+
+    return (HAM_SUCCESS);
 }
 
 ham_status_t

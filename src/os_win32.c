@@ -191,6 +191,20 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 }
 
 ham_status_t
+os_flush(ham_fd_t fd)
+{
+    ham_status_t st;
+
+    if (!FlushFileBuffers((HANDLE)fd)) {
+        st=(ham_status_t)GetLastError();
+        ham_trace(("FlushFileBuffers failed with OS status %u", st));
+        return (HAM_IO_ERROR);
+    }
+
+    return (HAM_SUCCESS);
+}
+
+ham_status_t
 os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 {
     ham_status_t st;
@@ -225,7 +239,7 @@ os_close(ham_fd_t fd)
     if (!CloseHandle((HANDLE)fd)) {
         st=(ham_status_t)GetLastError();
         ham_trace(("CloseHandle failed with OS status %u", st));
-        return (st);
+        return (HAM_IO_ERROR);
     }
 
     return (HAM_SUCCESS);

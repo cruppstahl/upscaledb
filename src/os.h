@@ -99,6 +99,12 @@ extern ham_status_t
 os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd);
 
 /**
+ * flush a file
+ */
+extern ham_status_t
+os_flush(ham_fd_t fd);
+
+/**
  * close a filedescriptor
  */
 extern ham_status_t
