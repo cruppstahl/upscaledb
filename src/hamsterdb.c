@@ -351,6 +351,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
             ("invalid persistent database flags 0x%x", db_get_pers_flags(db)));
     ham_assert(!(db_get_pers_flags(db)&HAM_DISABLE_FREELIST_FLUSH), 
             ("invalid persistent database flags 0x%x", db_get_pers_flags(db)));
+    ham_assert(!(db_get_pers_flags(db)&DB_USE_MMAP), 
+            ("invalid persistent database flags 0x%x", db_get_pers_flags(db)));
 
     /* check the file magic */
     if (db_get_magic(db, 0)!='H' ||
@@ -532,6 +534,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     pflags&=~HAM_READ_ONLY;
     pflags&=~HAM_OPTIMIZE_SIZE;
     pflags&=~HAM_DISABLE_FREELIST_FLUSH;
+    pflags&=~DB_USE_MMAP;
     db_set_pers_flags(db, pflags);
     db_set_rt_flags(db, flags);
 
