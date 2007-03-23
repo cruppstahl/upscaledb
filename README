@@ -81,13 +81,15 @@ generate the documentation from the header files.
 If you want to compile hamsterdb without using the provided ./configure
 environment, you have to set some preprocessor macros:
 
-WIN32                   Win32 platform
-DEBUG                   enable debugging output and checks (slow!)
+WIN32                   Build for Win32 platform
+DEBUG                   enable debugging output and diagnostic checks (slow!)
 HAM_LITTLE_ENDIAN       compile for little endian machines (i.e. x86)
 HAM_BIG_ENDIAN          compile for big endian machines (most other
                             architectures)
 HAM_32BIT               compile for 32bit
 HAM_64BIT               compile for 64bit
+HAM_ENABLE_INTERNAL     enable internal functions (declared in
+                            include/ham/hamsterdb_int.h)
 
 Also, if you compile for windows, you have to compile the file src/os_win32.c,
 and ignore the file src/os_posix.c. Vice versa on non-Windows platforms.
