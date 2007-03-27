@@ -1,3 +1,10 @@
+Mar 29, 2007 - chris ---------------------------------------------------
+                      release of hamsterdb-0.4.2
+
+Mar 27, 2007 - chris
+o database files are now endian-agnostic; hamsterdb can now use big-endian 
+    databases on little-endian architectures and vice versa 
+
 Mar 21, 2007 - chris
 o removed HAM_OPEN_EXCLUSIVELY - i'll replace it with file locking in a 
     few weeks

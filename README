@@ -1,6 +1,6 @@
 
-hamsterdb 0.4.1                                Mon Mar 12 17:49:12 UTC 2007
-(C) Christoph Rupp, chris@crupp.de; www.crupp.de
+hamsterdb 0.4.2                                Tue Mar 27 19:08:01 UTC 2007
+(C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb. 
 
@@ -8,40 +8,47 @@ Contents:
 
 1. About
 
-hamsterdb is a fast and small database engine. You can insert, delete or look
-up key/data pairs. It supports a B+Tree index structure with variable length 
-keys and variable length data records. hamsterdb can run as 
-in-memory-databases.
+hamsterdb is a database engine written in ANSI C. It supports a B+Tree index
+structure, uses memory mapped I/O (if available), supports cursors, and can
+create in-memory databases.
 
 2. Changes
 
-Finally, hamsterdb was ported to win32. See below how to build hamsterdb for 
-Windows.
+hamsterdb is now endian agnostic. Database files created on little-endian
+architectures will also work on big-endian systems, and vice versa. 
+
+The documentation was completely rewritten and a webpage was created 
+(http://www.hamsterdb.com).
 
 Some minor bugs were fixed as well. To see a list of all changes, look 
 in the file CHANGELOG.
 
 3. Roadmap
 
-The next releases will port hamsterdb to linux on PowerPC, and to MacOS/Darwin. 
-Also, the endian-independence will be tested, and a dedicated webpage is 
-created. 
+The next releases will offer the following new features:
+- command line tools for recovery, dump and statistics
+- duplicate items
+- multiple databases in one file
 
 4. Features
 
-- B+Tree with variable length keys
-- Configurable page size and cache size
-- ANSI-C implementation, should be portable on all platforms, also embedded
+- Very fast sorted B+Tree with variable length keys
+- Can run as an in-memory-database
+- Fast Database cursors 
+- Configurable page size, cache size and index key size
+- Portable ANSI-C implementation
+- Runs on Linux, Unices, Microsoft Windows
+- Database files are endian-agnostic
 - Uses memory mapped I/O for fast disk access (but falls back to read/write if
   mmap is not available)
-- Uses 64bit file pointers for large databases
-- Support for in-memory-databases
-- Database cursors
-- Compiles and runs on Linux, Cygwin/Win32, Visual C++ 2005
+- Uses 64bit file pointers and supports huge files (>2 GB)
+- Easy to use and well-documented
+- Supports rudimentary live-reorganization by merging freelist entries
+- Open source and released under the GPL 2.0
 
 5. Known Issues/Bugs
 
-- Endian-independence was not (yet) tested
+none so far
 
 6. Compiling 
 
