@@ -1,85 +1,21 @@
 
 o logo!!
 
-o webseite
-    http://nitrosecurity.com/
-    http://www.opf3.com/Opf3/Default.aspx
-    http://www.pixelmedia.com/
-    x grund-layout und php-framework erstellen
-    x doxygen in webseite integrieren
-    x hamsterdb.h ueberarbeiten, dokumentieren
-    o inhalte
-        x frontseite
-        x features
-        x download
-        x legal/impressum
-        x sitemap
-        x GPL/Verweise auf GPL
-        x sidebars
-        x roadmap
-        x sidebars ueberpruefen
-        o frontseite: hamster-bild einbetten (oder so lassen?)
-        o startseite: "News"-Bereich
+o create a webpage
+    o contents are missing
+        o front page: embed the hamster picture? or leave as is?
+        o front page: add "news"-area
     o tutorial
-        o doku bzgl installation, compilieren, portieren
-    o api-doku und tutorial als PDF zum download
-    o korrigieren lassen
+        x also add docs about installation, compilation, porting
+    o offer API doc and tutorial as pdf
+    o ask someone to correct my english
 
-x sicherstellen dass die folgenden flags nicht abgespeichert werden
-    (beim open und create)
-    HAM_DISABLE_VAR_KEYLEN, HAM_CACHE_STRICT, HAM_DISABLE_MMAP,
-    HAM_OPEN_EXCLUSIVELY, HAM_WRITE_THROUGH, HAM_READ_ONLY,
-    HAM_OPTIMIZE_SIZE, HAM_DISABLE_FREELIST_FLUSH
-    x db_get_flags kommt raus; stattdessen: db_get_pers_flags() und 
-        db_get_all_flags()
-    x beim create wird in den pers. flags nur die "richtigen" flags 
-        gespeichert
-    x db_get_all_flags() gibt die flags vom caller (beim open oder create)
-        verodert mit den persistent flags zurück
-    x testen
-
-x wenn die pagesize!=os_getpagesize ist, wird kein mmap genommen. aber
-    zumindest unter posix (evtl nicht win32 und cygwin!) kann mmap immer 
-    dann genommen werden, wenn die pagesize ein *vielfaches* von der 
-    os-pagesize ist! coden, dann testen, auch unter cygwin und windows
-
-x was passiert wenn ein cursor null ist, und man key/record holt, ohne 
-    einen move zu machen? Muss CURSOR_IS_NIL zurückgeben
-
-x HAM_OPEN_EXCLUSIVELY raus - das muss mal durch gescheites file-locking 
-    ersetzt werden
-
-x ham_flush: sollte os_flush aufrufen
-    BOOL FlushFileBuffers(HANDLE hFile);
-    bzw fflush oder so in linux
-
-x sicherstellen dass die datenbanken zwischen windows und linux 
-    umherkopiert werden können
-
-x sicherstellen dass die datenbanken wordsize-agnostic sind
-
-    einlesen ->  lin64    lin32    win32  cygwin   lin/ppc 
- e       
- r  lin64           ok       ok       ok      ok        ok
- s  lin32           ok       ok       ok      ok        ok
- t  win32           ok       ok       ok      ok        ok
- e  cygwin          ok       ok       ok      ok        ok
- l  lin/ppc         ok       ok               ok        ok
- t
-
-x portieren auf linux/ppc
-
-x sicherstellen dass die datenbanken endian-agnostic sind
-
-x test umstrukturieren (siehe mail)
-x test: soll beim insert kein malloc machen
-
-o release machen!
+o release 0.4.1!
 
 -----------------------------------------------------
 -----------------------------------------------------
 
-o es ist noch ein kleiner valgrind-bug drin:
+o fix a small valgrind bug
     valgrind --tool=memcheck --leak-check=full --show-reachable=yes .libs/lt-test --file ../../testfiles/1/ext_060.tst --inmemorydb=1 --verbose=1
     ==26699== 53 bytes in 1 blocks are definitely lost in loss record 1 of 1
     ==26699==    at 0x4A1EAC6: malloc (vg_replace_malloc.c:149)
@@ -95,229 +31,55 @@ o es ist noch ein kleiner valgrind-bug drin:
     ==26699==    by 0x403717: my_execute (test.c:1168)
     ==26699==    by 0x4041FC: main (test.c:1855)
 
-o os_tell durch os_get_filesize erweitern
+o replace os_tell with os_get_filesize 
 
-o nächsten release machen
-
------------------------------------------------------
------------------------------------------------------
-
-o gescheite roadmap schreiben (internes dokument), die TODO-liste
-    behandelt dann immer nur den obersten/aktuellen eintrag der roadmap!
+o release 0.4.3
 
 -----------------------------------------------------
 -----------------------------------------------------
 
-o file locking:
-    o alles exclusive
-    o on demand (locked_shared bei read, lock_ex bei write)
+o add file locking to enable simple concurrency:
+    o either no locking at all
+    o or exclusive locking
+    o or shared locking when reading, excl. lock when writing
 
-o 1 writer, multiple reader - wie lässt sich das machen?
-    alle ohne caching, alle mit read-through/write-through?
-    testen, evtl brauchen wir noch ein exclusive locking
+o test 1 writer, multiple reader scenarios
+
+o release 0.4.4
     
 -----------------------------------------------------
 -----------------------------------------------------
 
-o doku
-    o tutorial/sample in die online-hilfe einbeziehen
-    o FAQ mit häufig gestellten fragen, tips zu optimierungen
-    o mailing list
-    o interne doku schreiben
-        o db-handle, pageverwaltung
-        o backend-aufbau
-        o freelist
-        o cache
-        o cursors
-
------------------------------------------------------
------------------------------------------------------
-
-o tools
+o command line tools
     o ham_dump
-        erzeugt einen cursor auf den ersten eintrag, dumpt den 
-        key und die daten (zumindest einen teil davon)
+        dumps keys and records
         --key-format=char|short|long|longlong|string|binary
         --key-length=<n>
         --data-format=char|short|long|longlong|string|binary
         --data-length=<n>
     o ham_info
-        gibt alle infos aus dem header aus, sowie die anzahl der elemente,
+        prints all statistics of the database header, number of items, 
         average key size, average data size, min/max etc
     o ham_recover
-        holt die header-page, dann die root-page, und geht runter zum 
-        ersten leaf. läuft dann alle index-pages ab, schreibt die keys 
-        und die daten raus 
-    o ham_check
-        macht einen check_integrity auf die datenbank
+        gets the header-page, then the root-page, then goes down to the 
+        first leaf; walks through all pages. if it's a leaf page: get the 
+        blob, insert it in the new database. print all lost items/records
+        to stdout.
     o ham_reorg
-        macht eine reorg (im grunde nur ein neues schreiben der datenbank
-        mit gleichzeitigem minimieren der freelist-entries)
+        for a reorganization (creates a new database with HAM_OPT_SIZE, 
+        writes all items to the new database)
 
------------------------------------------------------
------------------------------------------------------
+o do a complete source code review, or ask someone to do it
+    are error numbers propagated correctly?
+    what happens with errors during flush?
+    what happens with errors during close?
+    o rename some stuff
+        o all static functions have the prefix "my_", they should
+            become a better prefix (i.e. "bt_" for btree etc)
+        o db.c has some backend-specific functions, maybe they should 
+            be moved to the backend
+    o check the TODOs in the source
 
-o komplettes review
-    werden fehlerwerte korrekt propagiert?
-    machen fehlerwerte immer sinn? z.b. in flush_all()
-    was passiert mit fehlern beim flushen?
-    was passiert mit fehlern in ham_close()?
-    o ein paar sachen müssten umbenannt werden:
-        o alle statischen funktionen bekommen statt "my_" ein 
-            prefix, das ihrem modul entspricht (z.b. "bt_" für btree etc)
-        o keys.h/keys.c aufteilen in generische keys (zusammenlegen mit extkeys)
-            und btree-spezifischen keys
-        o db hat 2 funktionen, die die extended keys löschen - das gehört
-            ins backend
-    o nochmal schaun ob die ganzen flags so sinn machen
-    o TODOs durchgehen
-
------------------------------------------------------
------------------------------------------------------
-
-x bbaum fehlerfrei
-x TXN raus (wir können die txn's auch komplett
-    für diesen release abschalten... man soll dafür ja ne spezielle version
-    kaufen müssen)
-x caching
-x memory-mapped access
-x in memory-datenbanken
-x overwrite keys
-x extended keys
-x mal nachschauen was man nach den GPL-Codingrules noch für 
-    dateien braucht -> nix mehr
-x performance vergleichbar mit berkeley-db
-x erzeugt .dll/.so
-x umsteigen auf autoconf/automake
-x cursors
-x stress-test-tool(s), das ALLE optionen durchprobiert
-    mmap
-    r/w
-    in-memory
-    verschiedene pagesizes
-    grosse keys
-    grosse blobs
-o compiliert unter linux, windows, darwin, 32bit und 64bit, läuft auf 
-    little- und bigendian
-o dokumentation: tutorial, interface, FAQ
-o webseite
-o admin-tool(s) fuer dump, stats, repair, update, reorg
-    o db_dump: 
-        o key/daten dumpen
-        o header dumpen
-o KEINE valgrind-fehler!
-o logo
-o legal issues
-
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
-
-o c++-api
-
------------------------------------------------------
------------------------------------------------------
-
-o duplicate keys
-    neues (internes) flag per key: HAS_DUPLICATES
-
-    die duplicate-blobs bilden eine doppelt verkettete liste.
-
-    d.h. dass es bei duplicate-keys keine tiny/small/null-records
-    gibt - für alle muss im bedarfsfall ein blob allokiert werden.
-
-    ein cursor, der an einen entry gekoppelt ist, speichert immer die 
-    blobid des aktuellen duplicates. (falls der key duplicates hat).
-    Beim coupling lädt er den blob - falls der blob nicht mehr existiert, 
-    wurde er zwischenzeitlich gelöscht - KEY_NOT_FOUND. Andernfalls 
-    kann der blob sofort geladen werden, ohne dass die verkettete liste
-    abgelaufen werden muss.
-
-    (vorsicht: die blobid ist zwar eindeutig, aber wenn der blob gelöscht 
-    und gleich wieder gefüllt wird, ist sie es nicht mehr!)
-
------------------------------------------------------
------------------------------------------------------
-
-o mehrere datenbanken in einer datei
-    (siehe eintrag im notizbuch)
-
-    -> database-environment (ein file fuer mehrere datenbanken, 
-        gesharter cache, geshartes file-handle, freelist etc)
-
------------------------------------------------------
------------------------------------------------------
-
-o filter
-    generische filter, sowie 2 implementationen davon: ein encryption-codec 
-    und ein zlib-codec
-    arbeiten sie page- oder blob-basiert? evtl waere page-basiert besser, 
-    denn dann koennten auch index-pages (bzw NUR index-pages) gefiltert 
-    werden.
-
-    vielleicht müsste man unterscheiden zwischen page- und blob-basierten
-    filtern...
-
-    (my_result_t) (*filter)(my_key_t *key, my_data_t *data, int direction);
-
------------------------------------------------------
------------------------------------------------------
-
-o bindings 
-    python (auch für python-shelf!)
-    perl
-    php
-    java
-    COM
-    .NET (Sample)
-    C# (Sample)
-    VB.NET (Sample)
-
------------------------------------------------------
------------------------------------------------------
-
-o super-COMPRESSED-mode: keine headerpage, und pagesize auf 128 byte ->
-    super-mini-datenbanken (für embedded) - möglich ohne Aufwand? wird tricky, 
-    weil die page-alloc-funktionen davon ausgehen dass eine adresse 0 ein
-    fehler ist
-
------------------------------------------------------
-
-o datenbank mit O_EXCL öffnen, bzw mit flock() (und nem wait, falls die 
-    Datenbank gelockt ist) -> Möglichkeit für pseudo-concurrent access bei
-    kurzen, schnellen Zugriffen (z.b. webseite)
-
------------------------------------------------------
-
-o hash-tabelle
-    @@@
-
------------------------------------------------------
------------------------------------------------------
-
-o asset-tool
-    GUI und library für computerspiele
-
------------------------------------------------------
------------------------------------------------------
-
-o live reorganisation???
-
--------------------------- literature -----------------------
-pB+ Trees prefetching B+ Trees 
-
-[CGM01] Improving Index Performance through Prefetching. S. Chen, P.B. 
-Gibbons, and T.C. Mowry. ACM International Conference on Management
-of Data (SIGMOD), Santa Barbara, California, May 2001
-
-[GL01] B-Tree Indexes and CPU Caches. G Graefe and P. Larson. International
-Conference on Data Engineering (ICDE), Heidelberg, Germany, April 2001.
-
-[RR00] Making B+ Trees Cache Conscious in Main Memory. J. Rao 
-and K.A. Ross. ACM International Conference on Management of Data (SIGMOD),
-Dallas, Texas, May 2000.
+o release 0.4.5 - should be stable!!
+    increment libtool version to 0.1
 
