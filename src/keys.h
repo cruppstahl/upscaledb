@@ -43,13 +43,28 @@ typedef HAM_PACK_0 HAM_PACK_1 struct int_key_t
 
 /**
  * get the pointer of an btree-entry
+ * 
+ * !!!
+ * if TINY or SMALL is set, the key is actually a char*-pointer;
+ * in this case, we must not use endian-conversion!
  */
-#define key_get_ptr(bte)                (ham_db2h_offset((bte)->_ptr))
+#define key_get_ptr(k)             (((key_get_flags(k)&KEY_BLOB_SIZE_TINY) ||  \
+                                     (key_get_flags(k)&KEY_BLOB_SIZE_SMALL))   \
+                                    ? (k)->_ptr                                \
+                                    : ham_db2h_offset((k)->_ptr))
 
 /**
  * set the pointer of an btree-entry
+ *
+ * !!! same problems as with key_get_ptr():
+ * if TINY or SMALL is set, the key is actually a char*-pointer;
+ * in this case, we must not use endian-conversion!
  */
-#define key_set_ptr(bte, p)             (bte)->_ptr=ham_h2db_offset(p)
+#define key_set_ptr(k, p)          (k)->_ptr=(                                 \
+                                    ((key_get_flags(k)&KEY_BLOB_SIZE_TINY) ||  \
+                                     (key_get_flags(k)&KEY_BLOB_SIZE_SMALL))   \
+                                    ? p                                        \
+                                    : ham_h2db_offset(p))
 
 /**
  * get the size of an btree-entry
