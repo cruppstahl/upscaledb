@@ -848,6 +848,12 @@ ham_flush(ham_db_t *db, ham_u32_t flags)
     db_set_error(db, 0);
 
     /*
+     * never flush an in-memory-database
+     */
+    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
+        return (0);
+
+    /*
      * update the header page, if necessary
      */
     if (db_is_dirty(db)) {
@@ -860,12 +866,6 @@ ham_flush(ham_db_t *db, ham_u32_t flags)
         if (st)
             return (db_set_error(db, st));
     }
-
-    /*
-     * never flush an in-memory-database
-     */
-    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
-        return (0);
 
     st=db_flush_all(db, DB_FLUSH_NODELETE);
     if (st)
