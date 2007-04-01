@@ -28,6 +28,16 @@ AC_TYPE_OFF_T
 AC_FUNC_MMAP
 
 dnl
+dnl check for db.h - needed for unit tests
+dnl
+AC_MSG_NOTICE([Checking for CppUnit (optional; needed for unit tests)])
+AC_TRY_CPP(cppunit/TestSuite.h,
+           ac_have_cppunit=yes,
+           ac_have_cppunit=no)
+AM_CONDITIONAL(HAVE_CPPUNIT, test x$ac_have_cppunit = xyes)
+
+
+dnl
 dnl check for --enable-debug
 dnl
 AC_ARG_ENABLE(debug,
@@ -142,6 +152,6 @@ if test $ac_cv_getpagesize_int = yes; then
 fi
 
 
-AC_CONFIG_FILES(Makefile src/Makefile include/Makefile include/ham/Makefile samples/Makefile)
+AC_CONFIG_FILES(Makefile src/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile)
 AC_OUTPUT
 

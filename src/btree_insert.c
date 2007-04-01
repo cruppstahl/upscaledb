@@ -162,7 +162,7 @@ btree_insert_cursor(ham_btree_t *be, ham_key_t *key,
                                 is called again */
         if (st) {
             if (scratchpad.key.data)
-                ham_mem_free(scratchpad.key.data);
+                ham_mem_free(db, scratchpad.key.data);
             return (st);
         }
 
@@ -182,7 +182,7 @@ btree_insert_cursor(ham_btree_t *be, ham_key_t *key,
      * release the scratchpad-memory and return to caller
      */
     if (scratchpad.key.data)
-        ham_mem_free(scratchpad.key.data);
+        ham_mem_free(db, scratchpad.key.data);
 
     return (st);
 }
@@ -683,7 +683,7 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
      * propagate the pivot key to the parent page
      */
     if (scratchpad->key.data)
-        ham_mem_free(scratchpad->key.data);
+        ham_mem_free(db, scratchpad->key.data);
     scratchpad->key=pivotkey;
     scratchpad->rid=pivotrid;
 

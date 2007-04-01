@@ -33,7 +33,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
     if (!*mmaph) {
         *buffer=0;
         st=(ham_status_t)GetLastError();
-        ham_log(("CreateFileMapping failed with status %u", st));
+        ham_trace(("CreateFileMapping failed with status %u", st));
         return (HAM_IO_ERROR);
     }
 
@@ -42,7 +42,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
             (unsigned long)(position&0x00000000ffffffff), size);
     if (!*buffer) {
         st=(ham_status_t)GetLastError();
-        ham_log(("MapViewOfFile failed with status %u", st));
+        ham_trace(("MapViewOfFile failed with status %u", st));
         return (HAM_IO_ERROR);
     }
 
@@ -56,13 +56,13 @@ os_munmap(ham_fd_t *mmaph, void *buffer, ham_size_t size)
 
     if (!UnmapViewOfFile(buffer)) {
         st=(ham_status_t)GetLastError();
-        ham_log(("UnMapViewOfFile failed with status %u", st));
+        ham_trace(("UnMapViewOfFile failed with status %u", st));
         return (HAM_IO_ERROR);
     }
 
     if (!CloseHandle(*mmaph)) {
         st=(ham_status_t)GetLastError();
-        ham_log(("CloseHandle failed with status %u", st));
+        ham_trace(("CloseHandle failed with status %u", st));
         return (HAM_IO_ERROR);
     }
 

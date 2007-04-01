@@ -26,8 +26,8 @@ my_set_to_nil(ham_bt_cursor_t *c)
     if (bt_cursor_get_flags(c)&BT_CURSOR_FLAG_UNCOUPLED) {
         ham_key_t *key=bt_cursor_get_uncoupled_key(c);
         if (key->data)
-            ham_mem_free(key->data);
-        ham_mem_free(key);
+            ham_mem_free(cursor_get_db(c), key->data);
+        ham_mem_free(cursor_get_db(c), key);
         bt_cursor_set_uncoupled_key(c, 0);
         bt_cursor_set_flags(c,
                 bt_cursor_get_flags(c)&(~BT_CURSOR_FLAG_UNCOUPLED));
@@ -327,7 +327,7 @@ bt_cursor_couple(ham_bt_cursor_t *c)
      * free the cached key
      */
     if (key.data)
-        ham_mem_free(key.data);
+        ham_mem_free(db, key.data);
 
     if (local_txn)
         return (ham_txn_commit(&txn));
@@ -370,7 +370,7 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
     /*
      * copy the key
      */
-    key=(ham_key_t *)ham_mem_alloc(sizeof(*key));
+    key=(ham_key_t *)ham_mem_alloc(db, sizeof(*key));
     if (!key) {
         if (local_txn)
             (void)ham_txn_abort(&txn);
@@ -414,7 +414,7 @@ bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 
     *cu=0;
 
-    c=(ham_bt_cursor_t *)ham_mem_alloc(sizeof(*c));
+    c=(ham_bt_cursor_t *)ham_mem_alloc(db, sizeof(*c));
     if (!c)
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
 
@@ -444,7 +444,7 @@ bt_cursor_clone(ham_bt_cursor_t *oldcu, ham_bt_cursor_t **newcu)
 
     *newcu=0;
 
-    c=(ham_bt_cursor_t *)ham_mem_alloc(sizeof(*c));
+    c=(ham_bt_cursor_t *)ham_mem_alloc(db, sizeof(*c));
     if (!c)
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
     memcpy(c, oldcu, sizeof(*c));
@@ -471,7 +471,7 @@ bt_cursor_clone(ham_bt_cursor_t *oldcu, ham_bt_cursor_t **newcu)
     else if (bt_cursor_get_flags(oldcu)&BT_CURSOR_FLAG_UNCOUPLED) {
         ham_key_t *key;
 
-        key=(ham_key_t *)ham_mem_alloc(sizeof(*key));
+        key=(ham_key_t *)ham_mem_alloc(db, sizeof(*key));
         if (!key) {
             if (local_txn)
                 (void)ham_txn_abort(&txn);
@@ -482,8 +482,8 @@ bt_cursor_clone(ham_bt_cursor_t *oldcu, ham_bt_cursor_t **newcu)
         if (!util_copy_key(bt_cursor_get_db(c), 
                 bt_cursor_get_uncoupled_key(oldcu), key)) {
             if (key->data)
-                ham_mem_free(key->data);
-            ham_mem_free(key);
+                ham_mem_free(db, key->data);
+            ham_mem_free(db, key);
             if (local_txn)
                 (void)ham_txn_abort(&txn);
             return (db_get_error(bt_cursor_get_db(c)));
@@ -504,7 +504,7 @@ bt_cursor_close(ham_bt_cursor_t *c)
 {
     (void)my_set_to_nil(c);
 
-    ham_mem_free(c);
+    ham_mem_free(cursor_get_db(c), c);
 
     return (0);
 }

@@ -58,8 +58,8 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
     *buffer=mmap(0, size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, position);
     if (*buffer==(void *)-1) {
         *buffer=0;
-        ham_log(("mmap failed with status %d (%s)", errno, strerror(errno)));
-        return (errno);
+        ham_trace(("mmap failed with status %d (%s)", errno, strerror(errno)));
+        return (HAM_IO_ERROR);
     }
 
     return (HAM_SUCCESS);
@@ -76,8 +76,9 @@ os_munmap(ham_fd_t mmaph, void *buffer, ham_size_t size)
 #if HAVE_MUNMAP
     int r=munmap(buffer, size);
     if (r) {
-        ham_log(("munmap failed with status %d (%s)", errno, strerror(errno)));
-        return (errno);
+        ham_trace(("munmap failed with status %d (%s)", errno, 
+                    strerror(errno)));
+        return (HAM_IO_ERROR);
     }
     return (HAM_SUCCESS);
 #else
@@ -95,7 +96,7 @@ my_os_read(ham_fd_t fd, ham_u8_t *buffer, ham_size_t bufferlen)
     while (total<bufferlen) {
         r=read(fd, &buffer[total], bufferlen-total);
         if (r<0)
-            return (errno);
+            return (HAM_IO_ERROR);
         if (r==0)
             break;
         total+=r;
@@ -116,7 +117,7 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
     while (total<bufferlen) {
         r=pread(fd, buffer+total, bufferlen-total, addr+total);
         if (r<0)
-            return (errno);
+            return (HAM_IO_ERROR);
         if (r==0)
             break;
         total+=r;
@@ -144,7 +145,7 @@ my_os_write(ham_fd_t fd, const ham_u8_t *buffer, ham_size_t bufferlen)
     while (total<bufferlen) {
         w=write(fd, &buffer[total], bufferlen-total);
         if (w<0)
-            return (errno);
+            return (HAM_IO_ERROR);
         if (w==0)
             break;
         total+=w;
@@ -165,7 +166,7 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
     while (total<bufferlen) {
         s=pwrite(fd, buffer, bufferlen, addr+total);
         if (s<0)
-            return (errno);
+            return (HAM_IO_ERROR);
         if (s==0)
             break;
         total+=s;
@@ -187,7 +188,7 @@ ham_status_t
 os_seek(ham_fd_t fd, ham_offset_t offset, int whence)
 {
     if (lseek(fd, offset, whence)<0)
-        return (errno);
+        return (HAM_IO_ERROR);
     return (HAM_SUCCESS);
 }
 
@@ -202,7 +203,7 @@ ham_status_t
 os_truncate(ham_fd_t fd, ham_offset_t newsize)
 {
     if (ftruncate(fd, newsize))
-        return (errno);
+        return (HAM_IO_ERROR);
     return (HAM_SUCCESS);
 }
 
@@ -210,10 +211,11 @@ ham_status_t
 os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 {
     int osflags=O_CREAT|O_RDWR;
+    (void)flags;
 
     *fd=open(filename, osflags, mode);
     if (*fd<0) {
-        ham_log(("os_create of %s failed with status %u (%s)", filename,
+        ham_trace(("os_create of %s failed with status %u (%s)", filename,
                 errno, strerror(errno)));
         return (HAM_IO_ERROR);
     }
@@ -245,7 +247,7 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 
     *fd=open(filename, osflags);
     if (*fd<0) {
-        ham_log(("os_create of %s failed with status %u (%s)", filename,
+        ham_trace(("os_open of %s failed with status %u (%s)", filename,
                 errno, strerror(errno)));
         return (errno==ENOENT ? HAM_FILE_NOT_FOUND : HAM_IO_ERROR);
     }
@@ -262,6 +264,6 @@ ham_status_t
 os_close(ham_fd_t fd)
 {
     if (close(fd)==-1)
-        return (errno);
+        return (HAM_IO_ERROR);
     return (HAM_SUCCESS);
 }

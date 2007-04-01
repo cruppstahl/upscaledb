@@ -1,4 +1,17 @@
 
+o port to big-endian
+    still a bug on big-endian: ./test 1/130.tst --overwrite=1 --pagesize=8192
+    o test with valgrind
+    o switch default endian to big endian - does it work on my local machine?
+
+o monster.sh: test with massive page splits: pagesize=512 and
+    keysize=128 (in-memory-db should be sufficient)
+
+o release 0.4.1!
+
+-----------------------------------------------------
+-----------------------------------------------------
+
 o logo!!
 
 o create a webpage
@@ -10,13 +23,19 @@ o create a webpage
     o offer API doc and tutorial as pdf
     o ask someone to correct my english
 
-o release 0.4.1!
+o release 0.4.2!
 
 -----------------------------------------------------
 -----------------------------------------------------
+
+o insert: es wird erst ein move der bte's gemacht, dann wird der 
+    blob allokiert. andersrum wäre es besser, dann ist nix kaputt
+    falls die allokation fehlschlägt
 
 o fix a small valgrind bug
-    valgrind --tool=memcheck --leak-check=full --show-reachable=yes .libs/lt-test --file ../../testfiles/1/ext_060.tst --inmemorydb=1 --verbose=1
+    valgrind --tool=memcheck --leak-check=full --show-reachable=yes 
+        .libs/lt-test --file ../../testfiles/1/ext_060.tst 
+        --inmemorydb=1 --verbose=1
     ==26699== 53 bytes in 1 blocks are definitely lost in loss record 1 of 1
     ==26699==    at 0x4A1EAC6: malloc (vg_replace_malloc.c:149)
     ==26699==    by 0x407745: _ham_mem_malloc (mem.c:25)
@@ -30,6 +49,23 @@ o fix a small valgrind bug
     ==26699==    by 0x406C0F: ham_insert (hamsterdb.c:704)
     ==26699==    by 0x403717: my_execute (test.c:1168)
     ==26699==    by 0x4041FC: main (test.c:1855)
+
+    tests/src/ext_060.tst: wenn das allerletzte erase drin ist, gibt's ein 
+    leak. wenn nicht, gibt's keins.
+    endet in btree_erase.c:1040 - wenn in einer internen page ein key 
+    gelöscht wird, wird der record nicht gelöscht
+
+o something is weird: database files are overwritten, but somehow this 
+    is not reflected...
+
+    cd samples
+    ./db1 # creates test.db
+    ./db2 test.db test2.db # prints: "database is empty", ok
+    cat db3.c | ./db3 # creates/overwrites test.db
+    ./db2 test.db test2.db # prints: "database is empty" ????
+    rm *.db
+    cat db3.c | ./db3 # creates/overwrites test.db
+    ./db2 test.db test2.db # now the database is not empty!
 
 o replace os_tell with os_get_filesize 
 

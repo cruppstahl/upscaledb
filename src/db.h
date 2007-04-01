@@ -22,6 +22,7 @@ extern "C" {
 #include "freelist.h"
 #include "extkeys.h"
 #include "txn.h"
+#include "mem.h"
 
 #include "packstart.h"
 
@@ -174,6 +175,9 @@ struct ham_db_t
     /* the backend pointer - btree, hashtable etc */
     ham_backend_t *_backend;
 
+    /* the memory allocator */
+    mem_allocator_t _allocator;
+
     /* the cache */
     ham_cache_t *_cache;
 
@@ -265,6 +269,16 @@ struct ham_db_t
  * set the backend pointer
  */
 #define db_set_backend(db, be)         (db)->_backend=be
+
+/*
+ * get the memory allocator
+ */
+#define db_get_allocator(db)           (&(db)->_allocator)
+
+/*
+ * set the memory allocator
+ */
+#define db_set_allocator(db, a)        (db)->_allocator=(*a)
 
 /*
  * get the cache pointer

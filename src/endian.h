@@ -11,6 +11,10 @@
 #ifndef HAM_ENDIAN_H__
 #define HAM_ENDIAN_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif 
+
 /** 
  * byte swapping macros - we use little endian
  */
@@ -38,18 +42,17 @@
 #   define ham_db2h_size(x)   (x)
 #endif
 
-#ifdef HAM_BIG_ENDIAN
-#   define _ham_byteswap16(x)                    \
+#define _ham_byteswap16(x)                       \
         ((((x) >> 8) & 0xff) |                   \
          (((x) & 0xff) << 8))
 
-#   define _ham_byteswap32(x)                    \
+#define _ham_byteswap32(x)                       \
         ((((x) & 0xff000000) >> 24) |            \
          (((x) & 0x00ff0000) >>  8) |            \
          (((x) & 0x0000ff00) <<  8) |            \
          (((x) & 0x000000ff) << 24))
 
-#   define _ham_byteswap64(x)                    \
+#define _ham_byteswap64(x)                       \
         ((((x) & 0xff00000000000000ull) >> 56) | \
          (((x) & 0x00ff000000000000ull) >> 40) | \
          (((x) & 0x0000ff0000000000ull) >> 24) | \
@@ -58,6 +61,10 @@
          (((x) & 0x0000000000ff0000ull) << 24) | \
          (((x) & 0x000000000000ff00ull) << 40) | \
          (((x) & 0x00000000000000ffull) << 56))
-#endif /* HAM_BIG_ENDIAN */
+
+
+#ifdef __cplusplus
+} // extern "C"
+#endif 
 
 #endif /* HAM_ENDIAN_H__ */

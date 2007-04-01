@@ -21,3 +21,5 @@ EXTRA_DIST = documentation/Doxyfile         \
 doc:
 	doxygen documentation/Doxyfile
 
+test:
+	cd unittests && make && ./test

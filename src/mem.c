@@ -7,6 +7,8 @@
 
 #include "config.h"
 
+#include <string.h>
+
 #ifdef HAVE_MALLOC_H
 #  include <malloc.h>
 #else
@@ -14,24 +16,42 @@
 #endif
 
 #include "mem.h"
+#include "error.h"
 
 void *
-_ham_mem_malloc(const char *file, int line, ham_u32_t size)
+alloc_impl(mem_allocator_t *self, const char *file, int line, ham_u32_t size)
 {
-    /* avoid "not used"-warnings */
-    file=file;
-    line=line;
+    (void)self;
+    (void)file;
+    (void)line;
 
     return (malloc(size));
 }
 
 void 
-_ham_mem_free(const char *file, int line, void *ptr)
+free_impl(mem_allocator_t *self, const char *file, int line, void *ptr)
 {
-    /* avoid "not used"-warnings */
-    file=file;
-    line=line;
+    (void)self;
+    (void)file;
+    (void)line;
 
-    if (ptr) 
-        free(ptr);
+    ham_assert(ptr, ("freeing NULL pointer in line %s:%d", file, line)) 
+    free(ptr);
+}
+
+void 
+close_impl(mem_allocator_t *self)
+{
+    (void)self;
+}
+
+mem_allocator_t *
+ham_default_allocator_new(void)
+{
+    static mem_allocator_t m;
+    m.alloc=alloc_impl;
+    m.free =free_impl;
+    m.close=close_impl;
+     
+    return (&m);
 }

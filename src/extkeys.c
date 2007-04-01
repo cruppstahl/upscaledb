@@ -21,7 +21,7 @@ extkey_cache_new(ham_db_t *db)
     int memsize;
 
     memsize=sizeof(extkey_cache_t)+(EXTKEY_CACHE_BUCKETSIZE-1)*sizeof(void *);
-    c=(extkey_cache_t *)ham_mem_alloc(memsize);
+    c=(extkey_cache_t *)ham_mem_alloc(db, memsize);
     if (!c) {
         db_set_error(db, HAM_OUT_OF_MEMORY);
         return (0);
@@ -48,12 +48,12 @@ extkey_cache_destroy(extkey_cache_t *cache)
         e=extkey_cache_get_bucket(cache, i);
         while (e) {
             n=extkey_get_next(e);
-            ham_mem_free(e);
+            ham_mem_free(extkey_cache_get_db(cache), e);
             e=n;
         }
     }
 
-    ham_mem_free(cache);
+    ham_mem_free(extkey_cache_get_db(cache), cache);
 }
 
 #define my_calc_hash(cache, o)                                              \
@@ -91,7 +91,7 @@ extkey_cache_insert(extkey_cache_t *cache, ham_offset_t blobid,
         return (HAM_CACHE_FULL);
     }
 
-    e=(extkey_t *)ham_mem_alloc(SIZEOF_EXTKEY_T+size);
+    e=(extkey_t *)ham_mem_alloc(db, SIZEOF_EXTKEY_T+size);
     if (!e)
         return (HAM_OUT_OF_MEMORY);
     extkey_set_blobid(e, blobid);
@@ -129,7 +129,7 @@ extkey_cache_remove(extkey_cache_t *cache, ham_offset_t blobid)
 
     extkey_cache_set_usedsize(cache, 
             extkey_cache_get_usedsize(cache)-extkey_get_size(e));
-    ham_mem_free(e);
+    ham_mem_free(extkey_cache_get_db(cache), e);
 
     return (0);
 }

@@ -16,27 +16,60 @@ extern "C" {
 
 #include <ham/types.h>
 
+/**
+ * typedefs for allocator function pointers
+ */
+struct mem_allocator_t;
+typedef struct mem_allocator_t mem_allocator_t;
+
+typedef void *(*alloc_func_t)(mem_allocator_t *self, const char *file, 
+                   int line, ham_size_t size);
+typedef void  (*free_func_t) (mem_allocator_t *self, const char *file, 
+                   int line, void *ptr);
+typedef void  (*close_func_t)(mem_allocator_t *self);
+
+/**
+ * an allocator "class"
+ */
+struct mem_allocator_t
+{
+    alloc_func_t alloc;
+    free_func_t  free;
+    close_func_t close;
+    void *priv;
+};
+
+/**
+ * a factory for creating the standard allocator (based on libc malloc 
+ * and free)
+ */
+extern mem_allocator_t *
+ham_default_allocator_new(void);
+
 /** 
  * allocate memory 
  * returns 0 if memory can not be allocated; the default implementation
  * uses malloc()
  */
-#define ham_mem_alloc(size) _ham_mem_malloc(__FILE__, __LINE__, size)
+#define ham_mem_alloc(db, size) db_get_allocator(db)->alloc(                  \
+                                    db_get_allocator(db), __FILE__, __LINE__, \
+                                        size)
 
 /** 
  * free memory 
  * the default implementation uses free()
  */
-#define ham_mem_free(ptr)  _ham_mem_free(__FILE__, __LINE__, ptr)
+#define ham_mem_free(db, ptr)   db_get_allocator(db)->free(                   \
+                                    db_get_allocator(db), __FILE__, __LINE__, \
+                                        ptr)
 
 /**
- * the implementation of ham_mem_malloc() and ham_mem_free()
+ * frees memory, then sets the pointer to NULL
  */
-extern void *
-_ham_mem_malloc(const char *file, int line, ham_u32_t size);
+#define ham_mem_free_null(d, p) do { db_get_allocator(db)->free(              \
+                                    db_get_allocator(db), __FILE__, __LINE__, \
+                                        ptr); ptr=0; } while (0)
 
-extern void
-_ham_mem_free(const char *file, int line, void *ptr);
 
 #ifdef __cplusplus
 } // extern "C"

@@ -188,7 +188,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
      */
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
         blob_t *hdr;
-        ham_u8_t *p=(ham_u8_t *)ham_mem_alloc(size+sizeof(blob_t));
+        ham_u8_t *p=(ham_u8_t *)ham_mem_alloc(db, size+sizeof(blob_t));
         if (!p) {
             db_set_error(db, HAM_OUT_OF_MEMORY);
             return (HAM_OUT_OF_MEMORY);
@@ -313,11 +313,12 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
         /* resize buffer, if necessary */
         if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
             if (blob_get_user_size(hdr)>db_get_record_allocsize(db)) {
-                void *newdata=ham_mem_alloc((ham_u32_t)blob_get_user_size(hdr));
+                void *newdata=ham_mem_alloc(db, 
+                        (ham_u32_t)blob_get_user_size(hdr));
                 if (!newdata) 
                     return (HAM_OUT_OF_MEMORY);
                 if (db_get_record_allocdata(db))
-                    ham_mem_free(db_get_record_allocdata(db));
+                    ham_mem_free(db, db_get_record_allocdata(db));
                 record->data=newdata;
                 db_set_record_allocdata(db, newdata);
                 db_set_record_allocsize(db, (ham_size_t)blob_get_user_size(hdr));
@@ -353,11 +354,12 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
      */
     if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
         if (blob_get_real_size(&hdr)>db_get_record_allocsize(db)) {
-            void *newdata=ham_mem_alloc((ham_u32_t)blob_get_real_size(&hdr));
+            void *newdata=ham_mem_alloc(db, 
+                    (ham_size_t)blob_get_real_size(&hdr));
             if (!newdata) 
                 return (HAM_OUT_OF_MEMORY);
             if (db_get_record_allocdata(db))
-                ham_mem_free(db_get_record_allocdata(db));
+                ham_mem_free(db, db_get_record_allocdata(db));
             record->data=newdata;
             db_set_record_allocdata(db, newdata);
             db_set_record_allocsize(db, (ham_size_t)blob_get_real_size(&hdr));
@@ -478,7 +480,7 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
      */
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
         ham_u8_t *data=(ham_u8_t *)blobid;
-        ham_mem_free(data);
+        ham_mem_free(db, data);
         return (0);
     }
 

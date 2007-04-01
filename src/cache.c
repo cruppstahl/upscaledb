@@ -103,7 +103,7 @@ cache_new(ham_db_t *db, ham_u32_t flags, ham_size_t cachesize)
         buckets=1;
     mem=sizeof(ham_cache_t)+(buckets-1)*sizeof(void *);
 
-    cache=ham_mem_alloc(mem);
+    cache=ham_mem_alloc(db, mem);
     if (!cache) {
         db_set_error(db, HAM_OUT_OF_MEMORY);
         return (0);
@@ -119,7 +119,7 @@ cache_new(ham_db_t *db, ham_u32_t flags, ham_size_t cachesize)
 void
 cache_delete(ham_cache_t *cache)
 {
-    ham_mem_free(cache);
+    ham_mem_free(cache_get_owner(cache), cache);
 }
 
 ham_page_t * 

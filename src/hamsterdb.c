@@ -5,6 +5,11 @@
  *
  */
 
+#ifdef HAVE_MALLOC_H
+#  include <malloc.h>
+#else
+#  include <stdlib.h>
+#endif
 #include <string.h>
 #include <ham/hamsterdb.h>
 #include "config.h"
@@ -116,16 +121,9 @@ my_free_cb(int event, void *param1, void *param2, void *context)
             key_get_flags(key)&KEY_BLOB_SIZE_SMALL ||
             key_get_flags(key)&KEY_BLOB_SIZE_EMPTY)
             break;
-        if (key_get_flags(key)&KEY_IS_EXTENDED) {
-            ham_offset_t blobid=*(ham_offset_t *)(key_get_key(key)+
-                        (db_get_keysize(c->db)-sizeof(ham_offset_t)));
-            *(ham_offset_t *)(key_get_key(key)+
-                        (db_get_keysize(c->db)-sizeof(ham_offset_t)))=0;
-            ham_mem_free((void *)blobid);
-        }
 
         if (c->is_leaf)
-            ham_mem_free((void *)key_get_ptr(key));
+            ham_mem_free(c->db, (void *)key_get_ptr(key));
         break;
 
     default:
@@ -202,8 +200,9 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
 ham_status_t
 ham_new(ham_db_t **db)
 {
-    /* allocate memory for the ham_db_t-structure */
-    *db=(ham_db_t *)ham_mem_alloc(sizeof(ham_db_t));
+    /* allocate memory for the ham_db_t-structure;
+     * we can't use our allocator because it's not yet created! */
+    *db=(ham_db_t *)malloc(sizeof(ham_db_t));
     if (!(*db))
         return (HAM_OUT_OF_MEMORY);
 
@@ -219,15 +218,15 @@ ham_delete(ham_db_t *db)
 {
     /* free cached data pointers */
     if (db_get_record_allocdata(db))
-        ham_mem_free(db_get_record_allocdata(db));
+        ham_mem_free(db, db_get_record_allocdata(db));
     if (db_get_key_allocdata(db))
-        ham_mem_free(db_get_key_allocdata(db));
+        ham_mem_free(db, db_get_key_allocdata(db));
 
     /* close the backend */
     if (db_get_backend(db)) {
         ham_backend_t *be=db_get_backend(db);
         be->_fun_delete(be);
-        ham_mem_free(be);
+        ham_mem_free(db, be);
     }
 
     /* get rid of the header page */
@@ -240,8 +239,12 @@ ham_delete(ham_db_t *db)
         db_set_cache(db, 0);
     }
 
-    /* free all remaining memory */
-    ham_mem_free(db);
+    /* close the allocator */
+    db_get_allocator(db)->close(db_get_allocator(db));
+    memset(db_get_allocator(db), 0, sizeof(mem_allocator_t));
+
+    /* "free" all remaining memory */
+    free(db);
 
     return (0);
 }
@@ -271,7 +274,14 @@ ham_open_ex(ham_db_t *db, const char *filename,
 
     /* cannot open an in-memory-db */
     if (flags&HAM_IN_MEMORY_DB)
-        return (HAM_INV_PARAMETER);
+        return (db_set_error(db, HAM_INV_PARAMETER));
+
+    /* if we do not yet have an allocator: create a new one */
+    if (!db_get_allocator(db)->alloc) {
+        db_set_allocator(db, ham_default_allocator_new());
+        if (!db_get_allocator(db)->alloc)
+            return (db_set_error(db, HAM_OUT_OF_MEMORY));
+    }
 
     /* open the file */
     st=os_open(filename, flags, &fd);
@@ -441,7 +451,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
      */
     if (pagesize) {
         if (pagesize%512)
-            return (HAM_INV_PAGESIZE);
+            return (db_set_error(db, HAM_INV_PAGESIZE));
     }
 
     /*
@@ -449,7 +459,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
      */
     if (flags&HAM_IN_MEMORY_DB) {
         if ((flags&HAM_CACHE_STRICT) || cachesize!=0)
-            return (HAM_INV_PARAMETER);
+            return (db_set_error(db, HAM_INV_PARAMETER));
     }
 
     /*
@@ -502,7 +512,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
      */
     if (keysize)
         if (pagesize/keysize<4)
-            return (HAM_INV_KEYSIZE);
+            return (db_set_error(db, HAM_INV_KEYSIZE));
 
     /*
      * initialize the database with a good default value;
@@ -512,6 +522,13 @@ ham_create_ex(ham_db_t *db, const char *filename,
      */
     if (keysize==0)
         keysize=32-(sizeof(int_key_t)-1);
+
+    /* if we do not yet have an allocator: create a new one */
+    if (!db_get_allocator(db)->alloc) {
+        db_set_allocator(db, ham_default_allocator_new());
+        if (!db_get_allocator(db)->alloc)
+            return (db_set_error(db, HAM_OUT_OF_MEMORY));
+    }
 
     /*
      * initialize the header
@@ -908,12 +925,12 @@ ham_close(ham_db_t *db)
      * free cached memory
      */
     if (db_get_record_allocdata(db)) {
-        ham_mem_free(db_get_record_allocdata(db));
+        ham_mem_free(db, db_get_record_allocdata(db));
         db_set_record_allocdata(db, 0);
         db_set_record_allocsize(db, 0);
     }
     if (db_get_key_allocdata(db)) {
-        ham_mem_free(db_get_key_allocdata(db));
+        ham_mem_free(db, db_get_key_allocdata(db));
         db_set_key_allocdata(db, 0);
         db_set_key_allocsize(db, 0);
     }

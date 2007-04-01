@@ -34,7 +34,7 @@ util_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
         dest->_flags=source->_flags&(~KEY_IS_EXTENDED);
     }
     else {
-        dest->data=(ham_u8_t *)ham_mem_alloc(source->size);
+        dest->data=(ham_u8_t *)ham_mem_alloc(db, source->size);
         if (!dest->data) {
             db_set_error(db, HAM_OUT_OF_MEMORY);
             return (0);
@@ -69,7 +69,7 @@ util_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest)
         dest->_flags=key_get_flags(source)&(~KEY_IS_EXTENDED);
     }
     else {
-        dest->data=(ham_u8_t *)ham_mem_alloc(key_get_size(source));
+        dest->data=(ham_u8_t *)ham_mem_alloc(db, key_get_size(source));
         if (!dest->data) {
             db_set_error(db, HAM_OUT_OF_MEMORY);
             return (0);
@@ -118,8 +118,8 @@ util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
         if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
             if (record->size>db_get_record_allocsize(db)) {
                 if (db_get_record_allocdata(db))
-                    ham_mem_free(db_get_record_allocdata(db));
-                db_set_record_allocdata(db, ham_mem_alloc(record->size));
+                    ham_mem_free(db, db_get_record_allocdata(db));
+                db_set_record_allocdata(db, ham_mem_alloc(db, record->size));
                 if (!db_get_record_allocdata(db)) {
                     db_set_record_allocsize(db, 0);
                     return (db_set_error(db, HAM_OUT_OF_MEMORY));;
@@ -162,11 +162,11 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest, ham_u32_t flags)
         if (key_get_size(source)) {
             if (dest->flags&HAM_KEY_USER_ALLOC) {
                 memcpy(dest->data, data, key_get_size(source));
-                ham_mem_free(data);
+                ham_mem_free(db, data);
             }
             else {
                 if (db_get_key_allocdata(db))
-                    ham_mem_free(db_get_key_allocdata(db));
+                    ham_mem_free(db, db_get_key_allocdata(db));
                 db_set_key_allocdata(db, data);
                 db_set_key_allocsize(db, dest->size);
                 dest->data=data;
@@ -192,8 +192,8 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest, ham_u32_t flags)
             else {
                 if (dest->size>db_get_key_allocsize(db)) {
                     if (db_get_key_allocdata(db))
-                        ham_mem_free(db_get_key_allocdata(db));
-                    db_set_key_allocdata(db, ham_mem_alloc(dest->size));
+                        ham_mem_free(db, db_get_key_allocdata(db));
+                    db_set_key_allocdata(db, ham_mem_alloc(db, dest->size));
                     if (!db_get_key_allocdata(db)) {
                         db_set_key_allocsize(db, 0);
                         return (db_set_error(db, HAM_OUT_OF_MEMORY));

@@ -1024,6 +1024,26 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
     db=page_get_owner(page);
     node=ham_page_get_btree_node(page);
     keysize=db_get_keysize(db);
+    bte=btree_node_get_key(db, node, slot);
+
+#if 0
+    /*
+     * TODO the blob is not deleted - why???
+     * wenn der blob auch im leaf benutzt wird, was ist dann? haben 
+     * wir da ein reference counting, oder wird er kopiert??
+     *
+     * wenn man das auskommentierte wieder einkommentiert, gibt's
+     * nen crash
+     *
+     * delete the blob (if there is a blob)
+     */
+    if (!((key_get_flags(bte)&KEY_BLOB_SIZE_TINY) ||
+          (key_get_flags(bte)&KEY_BLOB_SIZE_SMALL))) {
+        ham_offset_t blobid=key_get_ptr(bte);
+        if (blobid) /* TODO rückgabewert? */
+            (void)blob_free(db, blobid, 0); 
+    }
+#endif
 
     /*
      * uncouple all cursors
@@ -1039,7 +1059,6 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
      *
      * also remove the key from the cache
      */
-    bte=btree_node_get_key(db, node, slot);
     if (btree_node_is_leaf(node) && key_get_flags(bte)&KEY_IS_EXTENDED) {
         ham_offset_t blobid;
         ham_u8_t *prefix=key_get_key(bte);

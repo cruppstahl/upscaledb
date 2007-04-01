@@ -138,7 +138,7 @@ my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
             }
         }
         else {
-            ham_mem_free(page_get_pers(page));
+            ham_mem_free(db, page_get_pers(page));
         }
         memset(page, 0, sizeof(ham_page_t));
         page_set_owner(page, db);
@@ -149,7 +149,7 @@ my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
      * a second page buffer for the file data
      */
     if (!(db_get_rt_flags(db)&DB_USE_MMAP) && !page_get_pers(page)) {
-        page_set_pers(page, (union page_union_t *)ham_mem_alloc(
+        page_set_pers(page, (union page_union_t *)ham_mem_alloc(db, 
                     db_get_pagesize(db)));
         if (!page_get_pers(page)) {
             ham_log(("page_new failed - out of memory"));
@@ -189,7 +189,7 @@ db_alloc_page_struct(ham_db_t *db)
 {
     ham_page_t *page;
 
-    page=(ham_page_t *)ham_mem_alloc(sizeof(ham_page_t));
+    page=(ham_page_t *)ham_mem_alloc(db, sizeof(ham_page_t));
     if (!page) {
         db_set_error(db, HAM_OUT_OF_MEMORY);
         return (0);
@@ -201,7 +201,7 @@ db_alloc_page_struct(ham_db_t *db)
     page_set_cache_cntr(page, 20);
 
     if (!(db_get_rt_flags(db)&DB_USE_MMAP)) {
-        page_set_pers(page, (union page_union_t *)ham_mem_alloc(
+        page_set_pers(page, (union page_union_t *)ham_mem_alloc(db, 
                     db_get_pagesize(db)));
         if (!page_get_pers(page)) {
             ham_log(("page_set_pers failed - out of memory"));
@@ -247,22 +247,20 @@ db_free_page_struct(ham_page_t *page)
         btree_node_t *node=ham_page_get_btree_node(page);
         extkey_cache_t *c=db_get_extkey_cache(page_get_owner(page));
 
-        if (btree_node_is_leaf(node)) {
-            for (i=0; i<btree_node_get_count(node); i++) {
-                bte=btree_node_get_key(db, node, i);
-                if (key_get_flags(bte)&KEY_IS_EXTENDED) {
-                    blobid=*(ham_offset_t *)(key_get_key(bte)+
-                            (db_get_keysize(db)-sizeof(ham_offset_t)));
-                    blobid=ham_db2h_offset(blobid);
-					if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
-                        /* delete the blobid to prevent that it's freed twice */
-                        *(ham_offset_t *)(key_get_key(bte)+
-                            (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
-                        (void)blob_free(db, blobid, 0);
-                    }
-                    else if (c)
-                        (void)extkey_cache_remove(c, blobid);
+        for (i=0; i<btree_node_get_count(node); i++) {
+            bte=btree_node_get_key(db, node, i);
+            if (key_get_flags(bte)&KEY_IS_EXTENDED) {
+                blobid=*(ham_offset_t *)(key_get_key(bte)+
+                        (db_get_keysize(db)-sizeof(ham_offset_t)));
+                blobid=ham_db2h_offset(blobid);
+                if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
+                    /* delete the blobid to prevent that it's freed twice */
+                    *(ham_offset_t *)(key_get_key(bte)+
+                        (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
+                    (void)blob_free(db, blobid, 0);
                 }
+                else if (c)
+                    (void)extkey_cache_remove(c, blobid);
             }
         }
     }
@@ -271,14 +269,16 @@ db_free_page_struct(ham_page_t *page)
      * free the memory
      */
     if (page_get_pers(page)) {
-        if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC)
-            ham_mem_free(page_get_pers(page));
-        else
+        if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC) {
+            ham_mem_free(db, page_get_pers(page));
+        }
+        else {
 			(void)os_munmap(page_get_mmap_handle_ptr(page), 
 						page_get_pers(page), db_get_pagesize(db));
+        }
     }
 
-    ham_mem_free(page);
+    ham_mem_free(db, page);
 }
 
 ham_status_t
@@ -495,7 +495,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
         if (!st) {
             ham_assert(temp==key_length, ("invalid key length"));
 
-            *ext_key=(ham_u8_t *)ham_mem_alloc(key_length);
+            *ext_key=(ham_u8_t *)ham_mem_alloc(db, key_length);
             if (!*ext_key) {
                 db_set_error(db, HAM_OUT_OF_MEMORY);
                 return (HAM_OUT_OF_MEMORY);
@@ -515,20 +515,20 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
      * pointer is overwritten
      */
     memset(&record, 0, sizeof(record));
-    record.data=ham_mem_alloc(key_length+sizeof(ham_offset_t));
+    record.data=ham_mem_alloc(db, key_length+sizeof(ham_offset_t));
     if (!record.data)
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
     record.flags=HAM_RECORD_USER_ALLOC;
 
     st=blob_read(db, blobid, &record, 0);
     if (st) {
-        ham_mem_free(record.data);
+        ham_mem_free(db, record.data);
         return (db_set_error(db, st));
     }
 
-    *ext_key=(ham_u8_t *)ham_mem_alloc(key_length);
+    *ext_key=(ham_u8_t *)ham_mem_alloc(db, key_length);
     if (!*ext_key) {
-        ham_mem_free(record.data);
+        ham_mem_free(db, record.data);
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
     }
     memcpy(*ext_key, key_data, db_get_keysize(db)-sizeof(ham_offset_t));
@@ -541,7 +541,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
                 blobid, key_length, *ext_key);
     }
 
-    ham_mem_free(record.data);
+    ham_mem_free(db, record.data);
     return (0);
 }
 
@@ -650,7 +650,7 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
                     goto bail;
                 }
 
-                plhs=(ham_u8_t *)ham_mem_alloc(lhs_record.size+
+                plhs=(ham_u8_t *)ham_mem_alloc(db, lhs_record.size+
                         db_get_keysize(db));
                 if (!plhs) {
                     db_set_error(db, HAM_OUT_OF_MEMORY);
@@ -704,7 +704,7 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
                     goto bail;
                 }
 
-                prhs=(ham_u8_t *)ham_mem_alloc(rhs_record.size+
+                prhs=(ham_u8_t *)ham_mem_alloc(db, rhs_record.size+
                         db_get_keysize(db));
                 if (!prhs) {
                     db_set_error(db, HAM_OUT_OF_MEMORY);
@@ -732,9 +732,9 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
 
 bail:
     if (alloc1 && plhs)
-        ham_mem_free(plhs);
+        ham_mem_free(db, plhs);
     if (alloc2 && prhs)
-        ham_mem_free(prhs);
+        ham_mem_free(db, prhs);
 
     return (cmp);
 }
@@ -758,7 +758,7 @@ db_create_backend(ham_db_t *db, ham_u32_t flags)
      *
      * create a ham_backend_t with the size of a ham_btree_t
      */
-    be=(ham_backend_t *)ham_mem_alloc(sizeof(ham_btree_t));
+    be=(ham_backend_t *)ham_mem_alloc(db, sizeof(ham_btree_t));
     if (!be) {
         ham_log(("out of memory"));
         return (0);
@@ -947,6 +947,7 @@ db_free_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
      */
     (void)db_uncouple_all_cursors(page);
 
+#if 0
     /*
      * if we have extended keys: remove all extended keys from the
      * cache
@@ -967,16 +968,18 @@ db_free_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
                     blobid=*(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)));
                     blobid=ham_db2h_offset(blobid);
-                    *(ham_offset_t *)(key_get_key(bte)+
+                    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
+                        *(ham_offset_t *)(key_get_key(bte)+
                             (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
-                    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
                         (void)blob_free(db, blobid, 0);
+                    }
                     else if (c)
                         (void)extkey_cache_remove(c, blobid);
                 }
             }
         }
     }
+#endif
 
     page_set_npers_flags(page,
             page_get_npers_flags(page)|PAGE_NPERS_DELETE_PENDING);
