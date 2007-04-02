@@ -48,14 +48,14 @@ public:
     }
 
     void byteswap64() {
-        CPPUNIT_ASSERT_EQUAL((unsigned long long)0x3210cba987654321, 
-                             _ham_byteswap64(0x21436587a9cb1032));
-        CPPUNIT_ASSERT_EQUAL((unsigned long long)0xafbc132423abcf09, 
-                             _ham_byteswap64(0x09cfab232413bcaf));
-        CPPUNIT_ASSERT_EQUAL((unsigned long long)0x0000000000000000, 
-                             _ham_byteswap64(0x0000000000000000));
-        CPPUNIT_ASSERT_EQUAL((unsigned long long)0xffffffffffffffff, 
-                             _ham_byteswap64(0xffffffffffffffff));
+        CPPUNIT_ASSERT_EQUAL((unsigned long long)0x3210cba987654321ull, 
+                             _ham_byteswap64(0x21436587a9cb1032ull));
+        CPPUNIT_ASSERT_EQUAL((unsigned long long)0xafbc132423abcf09ull, 
+                             _ham_byteswap64(0x09cfab232413bcafull));
+        CPPUNIT_ASSERT_EQUAL((unsigned long long)0x0000000000000000ull, 
+                             _ham_byteswap64(0x0000000000000000ull));
+        CPPUNIT_ASSERT_EQUAL((unsigned long long)0xffffffffffffffffull, 
+                             _ham_byteswap64(0xffffffffffffffffull));
     }
 
     void byteswapTwice16() {
@@ -79,8 +79,8 @@ public:
     }
 
     void byteswapTwice64() {
-        unsigned long long swapped, orig, d[]={0x12345678abcd0123, 
-                0xafbc238919475868, 0, 0xffffffffffffffff};
+        unsigned long long swapped, orig, d[]={0x12345678abcd0123ull, 
+                0xafbc238919475868ull, 0ull, 0xffffffffffffffffull};
         for (int i=0; i<4; i++) {
             orig=d[i];
             swapped=_ham_byteswap64(orig);
