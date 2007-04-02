@@ -180,10 +180,10 @@ __destroy(ham_dev_t *self)
     return (0);
 }
 
-ham_device_t *
+ham_dev_t *
 ham_device_new(ham_db_t *db, ham_bool_t inmemorydb)
 {
-    static ham_device_t dev;
+    static ham_dev_t dev;
     memset(&dev, 0, sizeof(dev));
     device_set_db(&dev, db);
 

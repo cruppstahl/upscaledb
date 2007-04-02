@@ -16,12 +16,16 @@ extern "C" {
 #endif 
 
 #include <ham/hamsterdb.h>
-#include <ham/hamsterdb_int.h>
+#include "page.h"
 
 /*
  * the device structure
  */
-typedef struct {
+
+struct ham_dev_t;
+typedef struct ham_dev_t ham_dev_t; 
+
+struct ham_dev_t {
     /*
      * create a new device 
      */
@@ -126,7 +130,7 @@ typedef struct {
      */
     void *m_private;
 
-} ham_dev_t;
+};
 
 /*
  * get the database of this device
@@ -161,7 +165,7 @@ typedef struct {
 /*
  * create a new device structure; either for in-memory or file-based
  */
-extern ham_device_t *
+extern ham_dev_t *
 ham_device_new(ham_db_t *db, ham_bool_t inmemorydb);
 
 
