@@ -189,41 +189,41 @@ ham_device_new(ham_db_t *db, ham_bool_t inmemorydb)
 
     if (inmemorydb) {
         device_set_private(&dev, 0);
-        dev._fun_create       = __m_create;
-        dev._fun_open         = __m_open;
-        dev._fun_close        = __m_close;
-        dev._fun_flush        = __m_flush;
-        dev._fun_is_open      = __m_is_open;
-        dev._fun_get_pagesize = __m_get_pagesize;
-        dev._fun_set_flags    = __set_flags;
-        dev._fun_get_flags    = __get_flags;
-        dev._fun_alloc_page   = __m_alloc_page;
-        dev._fun_read         = __m_read;
-        dev._fun_write        = __m_write;
-        dev._fun_read_page    = __m_read_page;
-        dev._fun_write_page   = __m_write_page;
-        dev._fun_free         = __m_free;
-        dev._fun_free_page    = __m_free_page;
-        dev._fun_destroy      = __destroy;
+        dev.create       = __m_create;
+        dev.open         = __m_open;
+        dev.close        = __m_close;
+        dev.flush        = __m_flush;
+        dev.is_open      = __m_is_open;
+        dev.get_pagesize = __m_get_pagesize;
+        dev.set_flags    = __set_flags;
+        dev.get_flags    = __get_flags;
+        dev.alloc_page   = __m_alloc_page;
+        dev.read         = __m_read;
+        dev.write        = __m_write;
+        dev.read_page    = __m_read_page;
+        dev.write_page   = __m_write_page;
+        dev.free         = __m_free;
+        dev.free_page    = __m_free_page;
+        dev.destroy      = __destroy;
     }
     else {
         device_set_private(&dev, (void *)HAM_INVALID_FD);
-        dev._fun_create       = __f_create;
-        dev._fun_open         = __f_open;
-        dev._fun_close        = __f_close;
-        dev._fun_flush        = __f_flush;
-        dev._fun_is_open      = __f_is_open;
-        dev._fun_get_pagesize = __f_get_pagesize;
-        dev._fun_set_flags    = __set_flags;
-        dev._fun_get_flags    = __get_flags;
-        dev._fun_alloc_page   = __f_alloc_page;
-        dev._fun_read         = __f_read;
-        dev._fun_write        = __f_write;
-        dev._fun_read_page    = __f_read_page;
-        dev._fun_write_page   = __f_write_page;
-        dev._fun_free         = __f_free;
-        dev._fun_free_page    = __f_free_page;
-        dev._fun_destroy      = __destroy;
+        dev.create       = __f_create;
+        dev.open         = __f_open;
+        dev.close        = __f_close;
+        dev.flush        = __f_flush;
+        dev.is_open      = __f_is_open;
+        dev.get_pagesize = __f_get_pagesize;
+        dev.set_flags    = __set_flags;
+        dev.get_flags    = __get_flags;
+        dev.alloc_page   = __f_alloc_page;
+        dev.read         = __f_read;
+        dev.write        = __f_write;
+        dev.read_page    = __f_read_page;
+        dev.write_page   = __f_write_page;
+        dev.free         = __f_free;
+        dev.free_page    = __f_free_page;
+        dev.destroy      = __destroy;
     }
 
     return (&dev);
