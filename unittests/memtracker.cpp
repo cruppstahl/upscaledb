@@ -87,22 +87,20 @@ void
 close_impl(mem_allocator_t *self)
 {
     memtracker_t *mt=(memtracker_t *)self;
+    (void)mt;
 
     /* TODO ausgabe machen? */
-    free(mt);
 }
 
 memtracker_t *
 memtracker_new(void)
 {
-    memtracker_t *m=(memtracker_t *)malloc(sizeof(*m));
-    if (m) {
-        memset(m, 0, sizeof(*m));
-        m->alloc=alloc_impl;
-        m->free =free_impl;
-        m->close=close_impl;
-    }
-    return (m);
+    static memtracker_t m;
+    memset(&m, 0, sizeof(m));
+    m.alloc=alloc_impl;
+    m.free =free_impl;
+    m.close=close_impl;
+    return (&m);
 }
 
 unsigned long
