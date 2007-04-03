@@ -208,7 +208,6 @@ ham_new(ham_db_t **db)
 
     /* reset the whole structure */
     memset(*db, 0, sizeof(ham_db_t));
-    db_set_fd((*db), HAM_INVALID_FD);
 
     return (0);
 }
@@ -231,7 +230,7 @@ ham_delete(ham_db_t *db)
 
     /* get rid of the header page */
     if (db_get_header_page(db))
-        db_free_page_struct(db_get_header_page(db));
+        db_free_page(db_get_header_page(db));
 
     /* get rid of the cache */
     if (db_get_cache(db)) {
@@ -259,13 +258,13 @@ ham_status_t
 ham_open_ex(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_size_t cachesize)
 {
-    ham_fd_t fd;
     ham_status_t st;
     ham_cache_t *cache;
     ham_backend_t *backend;
     ham_u8_t hdrbuf[512];
     db_header_t *dbhdr;
     ham_page_t *page;
+    ham_device_t *device;
 
     if (!db)
         return (HAM_INV_PARAMETER);
@@ -283,15 +282,15 @@ ham_open_ex(ham_db_t *db, const char *filename,
             return (db_set_error(db, HAM_OUT_OF_MEMORY));
     }
 
+    /* initialize the device */
+    device=ham_device_new(db, flags&HAM_IN_MEMORY_DB);
+    if (!device)
+        return (db_set_error(db, st));
     /* open the file */
-    st=os_open(filename, flags, &fd);
-    if (st) {
-        db_set_error(db, st);
-        return (st);
-    }
-
-    /* initialize the database handle */
-    db_set_fd(db, fd);
+    st=device->open(device, filename, flags);
+    if (st)
+        return (db_set_error(db, st));
+    db_set_device(db, device);
 
     /*
      * read the database header
@@ -305,12 +304,11 @@ ham_open_ex(ham_db_t *db, const char *filename,
      * extract the "real" page size, then read the real page.
      * (but i really don't like this)
      */
-    st=os_pread(fd, 0, hdrbuf, sizeof(hdrbuf));
+    st=device->read(device, 0, hdrbuf, sizeof(hdrbuf));
     if (st) {
         ham_log(("os_pread of %s failed with status %d (%s)", filename,
                 st, ham_strerror(st)));
-        db_set_error(db, st);
-        return (st);
+        return (db_set_error(db, st));
     }
     dbhdr=(db_header_t *)&hdrbuf[12];
     db_set_pagesize(db, ham_db2h32(dbhdr->_pagesize));
@@ -319,10 +317,15 @@ ham_open_ex(ham_db_t *db, const char *filename,
      * can we use mmap?
      */
 #if HAVE_MMAP
-    if (!(flags&HAM_DISABLE_MMAP))
+    if (!(flags&HAM_DISABLE_MMAP)) {
         if (db_get_pagesize(db)%os_get_pagesize()==0)
             flags|=DB_USE_MMAP;
+        else
+            device->set_flags(device, DEVICE_NO_MMAP);
+    }
     flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
+#else
+    device->set_flags(device, DEVICE_NO_MMAP);
 #endif
 
     db_set_error(db, HAM_SUCCESS);
@@ -330,10 +333,10 @@ ham_open_ex(ham_db_t *db, const char *filename,
     /*
      * now allocate and read the header page
      */
-    page=db_alloc_page_struct(db);
+    page=page_new(db);
     if (!page)
         return (db_get_error(db));
-    st=db_fetch_page_from_device(page, 0);
+    st=page_fetch(page);
     if (st)
         return (st);
     page_set_type(page, PAGE_TYPE_HEADER);
@@ -433,13 +436,13 @@ ham_create_ex(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_u32_t mode, ham_u32_t pagesize,
         ham_u16_t keysize, ham_size_t cachesize)
 {
-    ham_fd_t fd;
     ham_status_t st;
     ham_cache_t *cache;
     ham_backend_t *backend;
     db_header_t *h;
     ham_page_t *page;
     ham_u32_t pflags;
+    ham_device_t *device;
 
     if (!db)
         return (HAM_INV_PARAMETER);
@@ -474,6 +477,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
             }
         }
     }
+
     /*
      * can we use mmap?
      */
@@ -482,18 +486,23 @@ ham_create_ex(ham_db_t *db, const char *filename,
         if (pagesize) {
             if (pagesize%os_get_pagesize()==0)
                 flags|=DB_USE_MMAP;
+            else
+                device->set_flags(device, DEVICE_NO_MMAP);
         }
         else {
             pagesize=os_get_pagesize();
             if (!pagesize) {
                 pagesize=1024*4;
                 flags|=HAM_DISABLE_MMAP;
+                device->set_flags(device, DEVICE_NO_MMAP);
             }
             else
                 flags|=DB_USE_MMAP;
         }
         flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
     }
+#else
+    device->set_flags(device, DEVICE_NO_MMAP);
 #endif
 
     /*
@@ -561,26 +570,28 @@ ham_create_ex(ham_db_t *db, const char *filename,
         return (db_get_error(db));
     db_set_cache(db, cache);
 
-    if (!(flags&HAM_IN_MEMORY_DB)) {
-        /* create the file */
-        st=os_create(filename, flags, mode, &fd);
-        if (st) {
-            db_set_error(db, st);
-            return (st);
-        }
-        db_set_fd(db, fd);
-    }
+    /* initialize the device */
+    device=ham_device_new(db, flags&HAM_IN_MEMORY_DB);
+    if (!device)
+        return (db_set_error(db, st));
+    /* create the file */
+    st=device->create(device, filename, flags, mode);
+    if (st)
+        return (db_set_error(db, st));
+    db_set_device(db, device);
 
-    /*
-     * allocate a database header page
-     */
-    page=db_alloc_page_device(db, PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
+    /* allocate a database header page */
+    page=page_new(db);
     if (!page) {
         ham_log(("unable to allocate the header page"));
         return (db_get_error(db));
     }
+    st=page_alloc(page, PAGE_CLEAR_WITH_ZERO);
+    if (st)
+        return (st);
     page_set_type(page, PAGE_TYPE_HEADER);
     db_set_header_page(db, page);
+
     /* initialize the freelist structure in the header page */
     h=(db_header_t *)page_get_payload(page);
     freel_payload_set_maxsize(&h->_freelist,
@@ -879,7 +890,7 @@ ham_flush(ham_db_t *db, ham_u32_t flags)
         memcpy(page_get_payload(page), &db_get_header(db),
                 sizeof(db_header_t)-sizeof(freel_payload_t));
         page_set_dirty(page, 1);
-        st=db_write_page_to_device(page);
+        st=page_flush(page);
         if (st)
             return (db_set_error(db, st));
     }
@@ -888,7 +899,7 @@ ham_flush(ham_db_t *db, ham_u32_t flags)
     if (st)
         return (db_set_error(db, st));
 
-    st=os_flush(db_get_fd(db));
+    st=db_get_device(db)->flush(db_get_device(db));
     if (st)
         return (db_set_error(db, st));
 
@@ -978,7 +989,7 @@ ham_close(ham_db_t *db)
      * and the dirty-flag is true: flush the page-header to disk
      */
     if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB) &&
-        db_is_open(db) &&
+        db_get_device(db)->is_open(db_get_device(db)) &&
         (!(db_get_rt_flags(db)&HAM_READ_ONLY)) &&
         db_is_dirty(db)) {
         /* copy the persistent header to the database object */
@@ -986,20 +997,18 @@ ham_close(ham_db_t *db)
             sizeof(db_header_t)-sizeof(freel_payload_t));
 
         /* write the database header */
-        st=db_write_page_to_device(db_get_header_page(db));
+        st=page_flush(db_get_header_page(db));
         if (st) {
-            ham_log(("db_write_page_to_device() failed with status %d (%s)",
+            ham_log(("page_flush() failed with status %d (%s)",
                     st, ham_strerror(st)));
-            return (st);
+            return (db_set_error(db, st));
         }
     }
 
-    /* close the file */
+    /* close the device */
     if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB) &&
-        db_is_open(db)) {
-        (void)os_close(db_get_fd(db));
-        /* set an invalid database handle */
-        db_set_fd(db, HAM_INVALID_FD);
+        db_get_device(db)->is_open(db_get_device(db))) {
+        db_get_device(db)->close(db_get_device(db));
     }
 
     return (0);

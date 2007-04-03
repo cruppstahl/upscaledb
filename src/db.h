@@ -164,9 +164,6 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
  */
 struct ham_db_t
 {
-    /* the file handle */
-    ham_fd_t _fd;
-
     /* the last error code */
     ham_status_t _error;
 
@@ -238,21 +235,6 @@ struct ham_db_t
  * set the header page
  */
 #define db_set_header_page(db, h)      (db)->_hdrpage=(h)
-
-/*
- * get the file handle
- */
-#define db_get_fd(db)                  (db->_fd)
-
-/*
- * set the file handle
- */
-#define db_set_fd(db, fd)              (db)->_fd=fd
-
-/*
- * check if the file handle is valid
- */
-#define db_is_open(db)              (db_get_fd(db)!=HAM_INVALID_FD)
 
 /*
  * get the last error code
@@ -462,7 +444,6 @@ db_create_backend(ham_db_t *db, ham_u32_t flags);
  */
 extern ham_page_t *
 db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags);
-#define DB_READ_ONLY            1
 #define DB_ONLY_FROM_CACHE      2
 
 /**
@@ -470,7 +451,6 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags);
  */
 extern ham_status_t
 db_flush_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags);
-#define DB_REVERT_CHANGES       1
 
 /**
  * flush all pages, and clear the cache
@@ -481,43 +461,6 @@ db_flush_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags);
 extern ham_status_t
 db_flush_all(ham_db_t *db, ham_u32_t flags);
 #define DB_FLUSH_NODELETE       1
-
-/**
- * allocate memory for a ham_db_t-structure
- */
-extern ham_page_t *
-db_alloc_page_struct(ham_db_t *db);
-
-/**
- * free memory of a page
- *
- * !!!
- * will NOT write the page to the device!
- */
-extern void
-db_free_page_struct(ham_page_t *page);
-
-/**
- * write a page to the device
- */
-extern ham_status_t
-db_write_page_to_device(ham_page_t *page);
-
-/**
- * read a page from the device
- */
-extern ham_status_t
-db_fetch_page_from_device(ham_page_t *page, ham_offset_t address);
-
-/**
- * allocate a new page on the device
- *
- * @remark flags can be of the following value:
- *  PAGE_IGNORE_FREELIST        ignores all freelist-operations
-    PAGE_CLEAR_WITH_ZERO        memset the persistent page with 0
- */
-extern ham_page_t *
-db_alloc_page_device(ham_db_t *db, ham_u32_t flags);
 
 /**
  * allocate a new page
@@ -544,7 +487,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags);
  * is aborted).
  */
 extern ham_status_t
-db_free_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags);
+db_free_page(ham_page_t *page);
 
 /**
  * write a page, then delete the page from memory
@@ -553,7 +496,7 @@ db_free_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags);
  * anywhere else.
  */
 extern ham_status_t
-db_write_page_and_delete(ham_db_t *db, ham_page_t *page, ham_u32_t flags);
+db_write_page_and_delete(ham_page_t *page, ham_u32_t flags);
 
 /**
  * an internal database flag - use mmap instead of read(2)

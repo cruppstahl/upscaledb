@@ -31,6 +31,7 @@ my_write_chunks(ham_db_t *db, ham_page_t *page,
     ham_size_t i;
     ham_status_t st;
     ham_offset_t pageid;
+    ham_device_t *device=db_get_device(db);
 
     /*
      * for each chunk...
@@ -83,12 +84,9 @@ my_write_chunks(ham_db_t *db, ham_page_t *page,
                 if (s>pageid+db_get_pagesize(db)-addr)
                     s=(ham_size_t)(pageid+db_get_pagesize(db)-addr);
 
-                st=os_pwrite(db_get_fd(db), addr, chunk_data[i], s);
-                if (st) {
-                    ham_log(("os_pwrite failed with status %d (%s)", st, 
-                        ham_strerror(st)));
-                    return (db_set_error(db, HAM_IO_ERROR));
-                }
+                st=device->write(device, addr, chunk_data[i], s);
+                if (st)
+                    return (st);
                 addr+=s;
                 chunk_data[i]+=s;
                 chunk_size[i]-=s;
@@ -106,6 +104,7 @@ my_read_chunk(ham_db_t *db, ham_offset_t addr,
     ham_status_t st;
     ham_page_t *page=0;
     ham_offset_t pageid;
+    ham_device_t *device=db_get_device(db);
 
     while (size) {
         /*
@@ -154,12 +153,9 @@ my_read_chunk(ham_db_t *db, ham_offset_t addr,
             if (s>pageid+db_get_pagesize(db)-addr)
                 s=(ham_size_t)(pageid+db_get_pagesize(db)-addr);
 
-            st=os_pread(db_get_fd(db), addr, data, s);
-            if (st) {
-                ham_log(("os_pread failed with status %d (%s)", st, 
-                    ham_strerror(st)));
-                return (db_set_error(db, HAM_IO_ERROR));
-            }
+            st=device->read(device, addr, data, s);
+            if (st) 
+                return (st);
             addr+=s;
             data+=s;
             size-=s;
@@ -179,7 +175,8 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
     blob_t hdr;
     ham_u8_t *chunk_data[2];
     ham_size_t chunk_size[2];
-
+    ham_device_t *device=db_get_device(db);
+   
     *blobid=0;
 
     /*
@@ -217,7 +214,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
         /*
          * if the blob is small, we load the page through the cache
          */
-        if (my_blob_is_small(db, sizeof(blob_t)+size)) {
+/* !! */if (1 || my_blob_is_small(db, sizeof(blob_t)+size)) {
             page=db_alloc_page(db, PAGE_TYPE_B_INDEX|PAGE_IGNORE_FREELIST, 0);
             if (!page)
                 return (db_get_error(db));
@@ -234,20 +231,10 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
          * otherwise use direct IO to allocate the space
          */
         else {
+            ham_page_t *newp=page_new(db);
             ham_size_t aligned=sizeof(blob_t)+size;
 
-            st=os_seek(db_get_fd(db), 0, HAM_OS_SEEK_END);
-            if (st) 
-                return (st);
-            /* get the current file position */
-            st=os_tell(db_get_fd(db), &addr);
-            if (st) 
-                return (st);
-            /* and resize the file; align to pagesize! */
-            if (aligned%db_get_pagesize(db))
-                aligned=((aligned+db_get_pagesize(db))/db_get_pagesize(db))*
-                            db_get_pagesize(db);
-            st=os_truncate(db_get_fd(db), addr+aligned);
+            st=device->alloc_page(device, newp);
             if (st) 
                 return (st);
             /* if aligned!=size, and the remaining chunk is large enough:
@@ -263,6 +250,10 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
             }
             else
                 blob_set_alloc_size(&hdr, aligned);
+            /*
+             * TODO stimmt nicht mehr! newp wird allokiert, aber nicht 
+             * freigegeben. bei inmemorydb stimmt das auch nicht.
+             */
         }
     }
     else

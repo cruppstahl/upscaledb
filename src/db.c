@@ -22,158 +22,19 @@
 #include "cursor.h"
 #include "btree_cursor.h"
 
-static ham_status_t
-my_write_page(ham_db_t *db, ham_page_t *page)
-{
-    ham_status_t st;
 
-    /*
-     * !!!
-     * one day, we'll have to protect these file IO-operations
-     * with a mutex
-     */
-    ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB),
-            ("can't fetch a page from in-memory-db"));
-    ham_assert(page_get_pers(page)!=0,
-            ("writing page 0x%llx, but page has no buffer",
-            page_get_self(page)));
-
-    st=os_pwrite(db_get_fd(db), page_get_self(page),
-            (void *)page_get_pers(page), db_get_pagesize(db));
-    if (st) {
-        ham_log(("os_pwrite failed with status %d (%s)", st, ham_strerror(st)));
-        return (db_set_error(db, HAM_IO_ERROR));
-    }
-
-    page_set_dirty(page, 0);
-    return (0);
-}
-
-static ham_status_t
-my_read_page(ham_db_t *db, ham_offset_t address, ham_page_t *page)
-{
-    ham_status_t st;
-
-    /*
-     * !!!
-     * one day, we'll have to protect these file IO-operations
-     * with a mutex
-     */
-
-    ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB),
-            ("can't fetch a page from in-memory-db"));
-
-    if (db_get_rt_flags(db)&DB_USE_MMAP) {
-        ham_u8_t *buffer;
-        st=os_mmap(db_get_fd(db), page_get_mmap_handle_ptr(page), 
-				address, db_get_pagesize(db), &buffer);
-        if (st) {
-            ham_log(("os_mmap failed with status %d (%s)", st, ham_strerror(st)));
-            db_set_error(db, HAM_IO_ERROR);
-            return (HAM_IO_ERROR);
-        }
-        page_set_pers(page, (union page_union_t *)buffer);
-    }
-    else {
-        st=os_pread(db_get_fd(db), address, (void *)page_get_pers(page),
-                db_get_pagesize(db));
-        if (st) {
-            ham_log(("os_pread failed with status %d (%s)", st,
-                    ham_strerror(st)));
-            return (db_set_error(db, HAM_IO_ERROR));
-        }
-    }
-
-    return (0);
-}
-
-static ham_page_t *
-my_alloc_page(ham_db_t *db, ham_bool_t need_pers)
-{
-    ham_page_t *page;
-    ham_status_t st;
-
-    (void)need_pers;
-
-    /*
-     * allocate one page of memory, if we have room for one more page
-     */
-    if (cache_can_add_page(db_get_cache(db))) {
-        page=db_alloc_page_struct(db);
-        if (!page) {
-            ham_log(("db_alloc_page_struct failed"));
-            return (0);
-        }
-    }
-
-    /*
-     * otherwise: replace a page
-     */
-    else {
-        page=cache_get_unused(db_get_cache(db));
-        if (!page) {
-            db_set_error(db, HAM_CACHE_FULL);
-            return (0);
-        }
-
-        if (page_is_dirty(page) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
-            st=my_write_page(db, page);
-            if (st) {
-                db_set_error(db, st);
-                return (0);
-            }
-        }
-
-        /*
-         * uncouple all cursors
-         */
-        (void)db_uncouple_all_cursors(page);
-
-        if (!(page_get_npers_flags(page)&PAGE_NPERS_MALLOC)) {
-			st=os_munmap(page_get_mmap_handle_ptr(page), 
-					page_get_pers(page), db_get_pagesize(db));
-            if (st) {
-                db_set_error(db, st);
-                return (0);
-            }
-        }
-        else {
-            ham_mem_free(db, page_get_pers(page));
-        }
-        memset(page, 0, sizeof(ham_page_t));
-        page_set_owner(page, db);
-    }
-
-    /*
-     * for in-memory-databases and if we use read(2) for I/O, we need
-     * a second page buffer for the file data
-     */
-    if (!(db_get_rt_flags(db)&DB_USE_MMAP) && !page_get_pers(page)) {
-        page_set_pers(page, (union page_union_t *)ham_mem_alloc(db, 
-                    db_get_pagesize(db)));
-        if (!page_get_pers(page)) {
-            ham_log(("page_new failed - out of memory"));
-            db_set_error(db, HAM_OUT_OF_MEMORY);
-            return (0);
-        }
-        page_set_npers_flags(page,
-                page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
-    }
-
-    /* TODO wenn wir in dieser funktion mit einem fehler rausgehen,
-     * haben wir memory leaks! */
-
-    return (page);
-}
 
 ham_status_t
 db_uncouple_all_cursors(ham_page_t *page)
 {
+    ham_status_t st;
     ham_cursor_t *n, *c=page_get_cursors(page);
 
     while (c) {
         n=cursor_get_next(c);
-        (void)bt_cursor_uncouple((ham_bt_cursor_t *)c, 0);
+        st=bt_cursor_uncouple((ham_bt_cursor_t *)c, 0);
+        if (st)
+            return (st);
         cursor_set_next(c, 0);
         cursor_set_previous(c, 0);
         c=n;
@@ -182,228 +43,6 @@ db_uncouple_all_cursors(ham_page_t *page)
     page_set_cursors(page, 0);
 
     return (0);
-}
-
-ham_page_t *
-db_alloc_page_struct(ham_db_t *db)
-{
-    ham_page_t *page;
-
-    page=(ham_page_t *)ham_mem_alloc(db, sizeof(ham_page_t));
-    if (!page) {
-        db_set_error(db, HAM_OUT_OF_MEMORY);
-        return (0);
-    }
-
-    memset(page, 0, sizeof(*page));
-    page_set_owner(page, db);
-    /* temporarily initialize the cache counter, just to be on the safe side */
-    page_set_cache_cntr(page, 20);
-
-    if (!(db_get_rt_flags(db)&DB_USE_MMAP)) {
-        page_set_pers(page, (union page_union_t *)ham_mem_alloc(db, 
-                    db_get_pagesize(db)));
-        if (!page_get_pers(page)) {
-            ham_log(("page_set_pers failed - out of memory"));
-            db_set_error(db, HAM_OUT_OF_MEMORY);
-            return (0);
-        }
-        page_set_npers_flags(page,
-                page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
-    }
-
-    return (page);
-}
-
-void
-db_free_page_struct(ham_page_t *page)
-{
-    ham_db_t *db=page_get_owner(page);
-
-    /*
-     * make sure that there are no more cursors coupled to this page
-     */
-    ham_assert(page_get_cursors(page)==0,
-            ("deleting a page with coupled cursors!"));
-
-    /*
-     * make sure that the page is removed from the cache
-     */
-    (void)cache_remove_page(db_get_cache(db), page);
-
-    /*
-     * if we have extended keys: remove all extended keys from the
-     * cache
-     * TODO move this to the backend!
-     */
-    if (page_get_pers(page) && 
-	    ((!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING) &&
-          !(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER)) &&
-         (page_get_type(page)==PAGE_TYPE_B_ROOT ||
-          page_get_type(page)==PAGE_TYPE_B_INDEX))) {
-        ham_size_t i;
-        ham_offset_t blobid;
-        int_key_t *bte;
-        btree_node_t *node=ham_page_get_btree_node(page);
-        extkey_cache_t *c=db_get_extkey_cache(page_get_owner(page));
-
-        for (i=0; i<btree_node_get_count(node); i++) {
-            bte=btree_node_get_key(db, node, i);
-            if (key_get_flags(bte)&KEY_IS_EXTENDED) {
-                blobid=*(ham_offset_t *)(key_get_key(bte)+
-                        (db_get_keysize(db)-sizeof(ham_offset_t)));
-                blobid=ham_db2h_offset(blobid);
-                if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
-                    /* delete the blobid to prevent that it's freed twice */
-                    *(ham_offset_t *)(key_get_key(bte)+
-                        (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
-                    (void)blob_free(db, blobid, 0);
-                }
-                else if (c)
-                    (void)extkey_cache_remove(c, blobid);
-            }
-        }
-    }
-
-    /*
-     * free the memory
-     */
-    if (page_get_pers(page)) {
-        if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC) {
-            ham_mem_free(db, page_get_pers(page));
-        }
-        else {
-			(void)os_munmap(page_get_mmap_handle_ptr(page), 
-						page_get_pers(page), db_get_pagesize(db));
-        }
-    }
-
-    ham_mem_free(db, page);
-}
-
-ham_status_t
-db_write_page_to_device(ham_page_t *page)
-{
-    return (my_write_page(page_get_owner(page), page));
-}
-
-ham_status_t
-db_fetch_page_from_device(ham_page_t *page, ham_offset_t address)
-{
-    page_set_self(page, address);
-    return (my_read_page(page_get_owner(page), address, page));
-}
-
-ham_page_t *
-db_alloc_page_device(ham_db_t *db, ham_u32_t flags)
-{
-    ham_status_t st;
-    ham_offset_t tellpos=0, resize=0;
-    ham_page_t *page=0;
-
-    /*
-     * if this is not an in-memory-db: set the memory to 0 and leave
-     */
-    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
-        /* allocate memory for the page */
-        page=my_alloc_page(db, HAM_TRUE);
-        if (!page)
-            return (0);
-        page_set_self(page, (ham_offset_t)page);
-        if (flags&PAGE_CLEAR_WITH_ZERO)
-            memset(page_get_pers(page), 0, db_get_pagesize(db));
-        else
-            memset(page_get_pers(page), 0, sizeof(struct page_union_header_t));
-        return (page);
-    }
-
-    /* first, we ask the freelist for a page */
-    if (!(flags&PAGE_IGNORE_FREELIST)) {
-        tellpos=freel_alloc_area(db, db_get_pagesize(db), 0);
-        if (tellpos) {
-            ham_assert(tellpos%db_get_pagesize(db)==0,
-                    ("page id %llu is not aligned", tellpos));
-            /* try to fetch the page from the txn */
-            if (db_get_txn(db)) {
-                page=txn_get_page(db_get_txn(db), tellpos);
-                if (page)
-                    goto done;
-            }
-            /* try to fetch the page from the cache */
-            if (db_get_cache(db)) {
-                page=cache_get(db_get_cache(db), tellpos);
-                if (page)
-                    goto done;
-            }
-            /* allocate a new page structure */
-            page=my_alloc_page(db, HAM_TRUE);
-            if (!page)
-                return (0);
-            page_set_self(page, tellpos);
-            /* TODO dieser read ist eigentlich nur bei mmap nötig, oder? */
-            st=my_read_page(db, tellpos, page);
-            if (st) /* TODO memleaks? */
-                return (0);
-        }
-    }
-
-    if (!page) {
-        page=my_alloc_page(db, HAM_TRUE);
-        if (!page)
-            return (0);
-    }
-
-    /* otherwise: move to the end of the file */
-    if (!tellpos) {
-        st=os_seek(db_get_fd(db), 0, HAM_OS_SEEK_END);
-        if (st) {
-            ham_log(("failed to seek the end of the file"));
-            db_set_error(db, HAM_IO_ERROR);
-            return (0);
-        }
-
-        /* get the current file position */
-        st=os_tell(db_get_fd(db), &tellpos);
-        if (st) {
-            ham_log(("failed to tell the file position"));
-            db_set_error(db, HAM_IO_ERROR);
-            return (0);
-        }
-
-        /* and write it to disk */
-        st=os_truncate(db_get_fd(db), tellpos+resize+db_get_pagesize(db));
-        if (st) {
-            ham_log(("failed to resize the file"));
-            db_set_error(db, HAM_IO_ERROR);
-            return (0);
-        }
-
-        /*
-         * if we're using MMAP: when allocating a new page, we need
-         * memory for the persistent buffer
-         */
-        if ((db_get_rt_flags(db)&DB_USE_MMAP) && !page_get_pers(page)) {
-            st=my_read_page(db, tellpos, page);
-            if (st) /* TODO memleaks? */
-                return (0);
-        }
-    }
-
-done:
-
-    /*
-    if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC)
-        memset(page_get_pers(page), 0, sizeof(struct page_union_header_t));
-        */
-    if (flags&PAGE_CLEAR_WITH_ZERO)
-        memset(page_get_pers(page), 0, db_get_pagesize(db));
-    else
-        memset(page_get_pers(page), 0, sizeof(struct page_union_header_t));
-
-    page_set_self(page, tellpos);
-    page_set_dirty(page, 0);
-
-    return (page);
 }
 
 int
@@ -774,6 +413,169 @@ db_create_backend(ham_db_t *db, ham_u32_t flags)
     return (be);
 }
 
+
+ham_page_t *
+db_page_alloc(ham_db_t *db)
+{
+    ham_page_t *page;
+    ham_status_t st;
+
+    /*
+     * allocate one page of memory, if we have room for one more page
+     */
+    if (cache_can_add_page(db_get_cache(db))) {
+        page=page_new(db);
+        if (!page)
+            return (0);
+    }
+
+    /*
+     * otherwise: replace a page
+     */
+    else {
+        page=cache_get_unused(db_get_cache(db));
+        if (!page) {
+            db_set_error(db, HAM_CACHE_FULL);
+            return (0);
+        }
+
+        st=page_flush(page);
+        if (st)
+            return (0);
+
+        st=db_uncouple_all_cursors(page);
+        if (st)
+            return (0);
+
+        st=page_free(page);
+        if (st)
+            return (0);
+
+        memset(page, 0, sizeof(ham_page_t));
+        page_set_owner(page, db);
+    }
+
+    return (page);
+}
+
+ham_status_t
+db_free_page(ham_page_t *page)
+{
+    ham_status_t st;
+    ham_db_t *db=page_get_owner(page);
+
+    st=db_uncouple_all_cursors(page);
+    if (st)
+        return (st);
+
+    st=cache_remove_page(db_get_cache(db), page);
+    if (st)
+        return (st);
+
+    /*
+     * if we have extended keys: remove all extended keys from the
+     * cache
+     * TODO move this to the backend!
+     */
+    if (page_get_pers(page) && 
+	    ((!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING) &&
+          !(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER)) &&
+         (page_get_type(page)==PAGE_TYPE_B_ROOT ||
+          page_get_type(page)==PAGE_TYPE_B_INDEX))) {
+        ham_size_t i;
+        ham_offset_t blobid;
+        int_key_t *bte;
+        btree_node_t *node=ham_page_get_btree_node(page);
+        extkey_cache_t *c=db_get_extkey_cache(page_get_owner(page));
+
+        for (i=0; i<btree_node_get_count(node); i++) {
+            bte=btree_node_get_key(db, node, i);
+            if (key_get_flags(bte)&KEY_IS_EXTENDED) {
+                blobid=*(ham_offset_t *)(key_get_key(bte)+
+                        (db_get_keysize(db)-sizeof(ham_offset_t)));
+                blobid=ham_db2h_offset(blobid);
+                if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
+                    /* delete the blobid to prevent that it's freed twice */
+                    *(ham_offset_t *)(key_get_key(bte)+
+                        (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
+                    (void)blob_free(db, blobid, 0);
+                }
+                else if (c)
+                    (void)extkey_cache_remove(c, blobid);
+            }
+        }
+    }
+
+    st=page_free(page);
+    if (st)
+        return (st);
+
+    page_delete(page);
+    return (HAM_SUCCESS);
+}
+
+ham_page_t *
+db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_offset_t tellpos=0;
+    ham_page_t *page=0;
+
+    if (!cache_can_add_page(db_get_cache(db))) {
+        db_set_error(db, HAM_CACHE_FULL);
+        return (0);
+    }
+
+    /* first, we ask the freelist for a page */
+    if (!(flags&PAGE_IGNORE_FREELIST)) {
+        tellpos=freel_alloc_area(db, db_get_pagesize(db), 0);
+        if (tellpos) {
+            ham_assert(tellpos%db_get_pagesize(db)==0,
+                    ("page id %llu is not aligned", tellpos));
+            /* try to fetch the page from the txn */
+            if (db_get_txn(db)) {
+                page=txn_get_page(db_get_txn(db), tellpos);
+                if (page)
+                    goto done;
+            }
+            /* try to fetch the page from the cache */
+            if (db_get_cache(db)) {
+                page=cache_get(db_get_cache(db), tellpos);
+                if (page)
+                    goto done;
+            }
+            /* allocate a new page structure */
+            page=page_new(db);
+            if (!page)
+                return (0);
+            page_set_self(page, tellpos);
+            /* fetch the page from disk */
+            st=page_fetch(page);
+            if (st) /* TODO memleaks? */
+                return (0);
+        }
+    }
+
+    if (!page) {
+        page=page_new(db);
+        if (!page)
+            return (0);
+    }
+
+    st=page_alloc(page, flags);
+    if (st)
+        return (0);
+
+    page_inc_inuse(page);
+
+done:
+
+    page_set_type(page, type);
+    page_set_dirty(page, 0);
+
+    return (page);
+}
+
 ham_page_t *
 db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
 {
@@ -821,20 +623,19 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
     /*
      * otherwise allocate memory for the page
      */
-    page=my_alloc_page(db, HAM_FALSE);
+    page=page_new(db);
     if (!page)
         return (0);
 
     /*
      * and read the page, either with mmap or read
      */
-    st=my_read_page(db, address, page);
+    page_set_self(page, address);
+    st=page_fetch(page);
     if (st) {
-        db_set_error(db, st);
-        (void)db_free_page_struct(page);
+        (void)page_delete(page);
         return (0);
     }
-    page_set_self(page, address);
 
     /*
      * add the page to the transaction
@@ -843,7 +644,7 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
         st=txn_add_page(db_get_txn(db), page);
         if (st) {
             db_set_error(db, st);
-            (void)db_free_page_struct(page);
+            (void)page_delete(page);
             return (0);
         }
     }
@@ -854,6 +655,7 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
     st=cache_put(db_get_cache(db), page);
     if (st) {
         db_set_error(db, st);
+        (void)page_delete(page);
         return (0);
     }
 
@@ -867,7 +669,7 @@ db_flush_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
 
     /* write the page, if it's dirty and if write-through is enabled */
     if ((db_get_rt_flags(db)&HAM_WRITE_THROUGH) && page_is_dirty(page)) {
-        st=my_write_page(db, page);
+        st=page_flush(page);
         if (st)
             return (st);
     }
@@ -881,122 +683,17 @@ db_flush_all(ham_db_t *db, ham_u32_t flags)
     return (cache_flush_and_delete(db_get_cache(db), flags));
 }
 
-ham_page_t *
-db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
+ham_status_t
+db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_page_t *page;
-
-    if (!cache_can_add_page(db_get_cache(db))) {
-        db_set_error(db, HAM_CACHE_FULL);
-        return (0);
-    }
-
-    /* allocate storage on the device */
-    page=db_alloc_page_device(db, flags);
-    if (!page) {
-        /* TODO memleak? */
-        return (0);
-    }
-
-    ham_assert(cache_can_add_page(db_get_cache(db)),
-            ("cache is full - can't add new page"));
-
-    /* set the page type */
-    page_set_type(page, type);
-
-    /* add the page to the transaction */
-    if (db_get_txn(db)) {
-        st=txn_add_page(db_get_txn(db), page);
-        if (st) {
-            db_set_error(db, st);
-            return (0);
-        }
-    }
-    /* if there's no txn, set the "in_use"-flag - otherwise the cache
-     * might purge it immediately */
-    else
-        page_inc_inuse(page);
-
-    ham_assert(cache_can_add_page(db_get_cache(db)),
-            ("cache is full - can't add new page"));
-
-    /* store the page in the cache */
-    st=cache_put(db_get_cache(db), page);
-    if (st) {
-        db_set_error(db, st); /* TODO memleak! */
-        return (0);
-    }
-
-    return (page);
-
-    /* TODO avoid memory leak! auch nach anderen
-        aufrufen von my_alloc_page() */
-}
-
-ham_status_t
-db_free_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
-{
-    (void)flags;
-
-    ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING),
-            ("deleting a page which is already deleted"));
-
-    /*
-     * detach all cursors
-     */
-    (void)db_uncouple_all_cursors(page);
-
-#if 0
-    /*
-     * if we have extended keys: remove all extended keys from the
-     * cache
-     * TODO move this to the backend!
-     */
-    if ((page_get_type(page)==PAGE_TYPE_B_ROOT ||
-         page_get_type(page)==PAGE_TYPE_B_INDEX)) {
-        ham_size_t i;
-        ham_offset_t blobid;
-        int_key_t *bte;
-        btree_node_t *node=ham_page_get_btree_node(page);
-        extkey_cache_t *c=db_get_extkey_cache(page_get_owner(page));
-
-        if (btree_node_is_leaf(node)) {
-            for (i=0; i<btree_node_get_count(node); i++) {
-                bte=btree_node_get_key(db, node, i);
-                if (key_get_flags(bte)&KEY_IS_EXTENDED) {
-                    blobid=*(ham_offset_t *)(key_get_key(bte)+
-                            (db_get_keysize(db)-sizeof(ham_offset_t)));
-                    blobid=ham_db2h_offset(blobid);
-                    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
-                        *(ham_offset_t *)(key_get_key(bte)+
-                            (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
-                        (void)blob_free(db, blobid, 0);
-                    }
-                    else if (c)
-                        (void)extkey_cache_remove(c, blobid);
-                }
-            }
-        }
-    }
-#endif
-
-    page_set_npers_flags(page,
-            page_get_npers_flags(page)|PAGE_NPERS_DELETE_PENDING);
-
-    return (0);
-}
-
-ham_status_t
-db_write_page_and_delete(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
-{
-    ham_status_t st;
+    ham_db_t *db=page_get_owner(page);
 
     /*
      * write page to disk
      */
     if (page_is_dirty(page) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
-        st=my_write_page(db, page);
+        st=page_flush(page);
         if (st)
             return (st);
     }
@@ -1009,9 +706,12 @@ db_write_page_and_delete(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
         st=db_uncouple_all_cursors(page);
         if (st)
             return (st);
-        db_free_page_struct(page);
+        st=page_free(page);
+        if (st)
+            return (st);
+        page_delete(page);
     }
 
-    return (0);
+    return (HAM_SUCCESS);
 }
 

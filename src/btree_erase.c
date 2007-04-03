@@ -161,7 +161,7 @@ btree_erase(ham_btree_t *be, ham_key_t *key,
         /* 
          * delete the old root page 
          */
-        st=db_free_page(db, root, 0);
+        st=db_free_page(root);
         if (st)
             return (st);
     }
@@ -569,7 +569,7 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
     /* 
      * delete the page
      */
-    st=db_free_page(db, sibpage, 0);
+    st=db_free_page(sibpage);
     if (st) {
         db_set_error(db, st); /* TODO ignore error? */
         return (0);

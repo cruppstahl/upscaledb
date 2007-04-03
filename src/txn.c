@@ -40,6 +40,15 @@ txn_add_page(ham_txn_t *txn, ham_page_t *page)
     return (0);
 }
 
+void
+txn_free_page(ham_txn_t *txn, ham_page_t *page)
+{
+    ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING), (0));
+
+    page_set_npers_flags(page,
+            page_get_npers_flags(page)|PAGE_NPERS_DELETE_PENDING);
+}
+
 ham_status_t
 txn_remove_page(ham_txn_t *txn, struct ham_page_t *page)
 {
@@ -108,7 +117,7 @@ ham_txn_commit(ham_txn_t *txn)
          */
         if (page_get_npers_flags(head)&PAGE_NPERS_DELETE_PENDING) {
             if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) { 
-                db_free_page_struct(head);
+                db_free_page(head);
             }
             else {
                 /* remove page from cache, add it to garbage list */

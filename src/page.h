@@ -363,5 +363,42 @@ page_add_cursor(ham_page_t *page, ham_cursor_t *cursor);
 extern void
 page_remove_cursor(ham_page_t *page, ham_cursor_t *cursor);
 
+/**
+ * create a new page structure
+ */
+extern ham_page_t *
+page_new(ham_db_t *db);
+
+/**
+ * delete a page structure
+ */
+extern void
+page_delete(ham_page_t *page);
+
+/**
+ * allocate a new page from the device
+ */
+extern ham_status_t
+page_alloc(ham_page_t *page, ham_u32_t flags);
+/*#define PAGE_CLEAR_WITH_ZERO  1 - defined in db.h */
+
+/**
+ * fetch a page from the device
+ */
+extern ham_status_t
+page_fetch(ham_page_t *page);
+
+/**
+ * write a page to the device
+ */
+extern ham_status_t
+page_flush(ham_page_t *page);
+
+/**
+ * free a page
+ */
+extern ham_status_t
+page_free(ham_page_t *page);
+
 
 #endif /* HAM_PAGE_H__ */

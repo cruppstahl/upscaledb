@@ -82,7 +82,7 @@ my_purge(ham_cache_t *cache)
         cache_get_bucket(cache, hash)=page_list_remove(cache_get_bucket(cache, 
                 hash), PAGE_LIST_BUCKET, page);
     }
-    (void)db_write_page_and_delete(cache_get_owner(cache), page, 0);
+    (void)db_write_page_and_delete(page, 0);
     /*ham_trace("cache purged one page", 0);*/
 
 #if HAM_DEBUG
@@ -401,7 +401,7 @@ cache_flush_and_delete(ham_cache_t *cache, ham_u32_t flags)
     my_check_totallist(cache);
 #endif
 
-        st=db_write_page_and_delete(db, head, flags);
+        st=db_write_page_and_delete(head, flags);
         if (st) 
             ham_log(("failed to flush page (%d) - ignoring error...", st));
 
@@ -425,7 +425,7 @@ cache_flush_and_delete(ham_cache_t *cache, ham_u32_t flags)
              * db_free_page_struct() calls cache_remove_page(); this 
              * call is not needed...
              */
-            db_free_page_struct(head);
+            db_free_page(head);
     
             head=next;
         }

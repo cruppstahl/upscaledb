@@ -241,16 +241,17 @@ my_fetch_page(ham_db_t *db, ham_offset_t address)
     /*
      * allocate a new page structure
      */
-    page=db_alloc_page_struct(db);
+    page=page_new(db);
     if (!page)
         return (0);
 
     /* 
      * fetch the page from the device 
      */
-    st=db_fetch_page_from_device(page, address);
+    page_set_self(page, address);
+    st=page_fetch(page);
     if (st) {
-        db_free_page_struct(page);
+        page_delete(page);
         return (0);
     }
 
@@ -279,11 +280,10 @@ my_alloc_page(ham_db_t *db)
         return (0);
     }
 
-    page=db_alloc_page_device(db, PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
+    page=db_alloc_page(db, PAGE_TYPE_FREELIST, 
+                PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
     if (!page) 
         return (0);
-
-    page_set_type(page, PAGE_TYPE_FREELIST);
 
     /*
      * insert the page in our local cache and return the page
@@ -324,7 +324,7 @@ freel_alloc_area(ham_db_t *db, ham_size_t size, ham_u32_t flags)
     if (result) {
         page_set_dirty(page, HAM_TRUE);
         if (!(db_get_rt_flags(db)&HAM_DISABLE_FREELIST_FLUSH)) {
-            st=db_write_page_to_device(page);
+            st=page_flush(page);
             if (st) {
                 db_set_error(db, st);
                 return (0);
@@ -356,7 +356,7 @@ freel_alloc_area(ham_db_t *db, ham_size_t size, ham_u32_t flags)
             /* write the page to disk */
             page_set_dirty(page, HAM_TRUE);
             if (!(db_get_rt_flags(db)&HAM_DISABLE_FREELIST_FLUSH)) {
-                st=db_write_page_to_device(page);
+                st=page_flush(page);
                 if (st) {
                     db_set_error(db, st);
                     return (0);
@@ -478,7 +478,7 @@ freel_shutdown(ham_db_t *db)
     page=db_get_freelist_cache(db);
     while (page) {
         next=page_get_next(page, PAGE_LIST_TXN);
-        (void)db_write_page_and_delete(db, page, 0);
+        (void)db_write_page_and_delete(page, 0);
         page=next;
     }
 

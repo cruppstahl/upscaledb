@@ -74,6 +74,12 @@ struct ham_device_t {
     ham_u32_t (*get_flags)(ham_device_t *self);
 
     /*
+     * allocate storage from this device; this function 
+     * will *NOT* use mmap.
+     */
+    ham_status_t (*alloc)(ham_device_t *self, void *buffer, ham_size_t size);
+
+    /*
      * allocate storage for a page from this device; this function 
      * *can* use mmap.
      *

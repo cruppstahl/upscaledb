@@ -138,6 +138,27 @@ __f_read_page(ham_device_t *self, ham_page_t *page)
 }
 
 static ham_status_t 
+__f_alloc(ham_device_t *self, void *buffer, ham_size_t size)
+{
+    ham_status_t st;
+    ham_offset_t pos;
+    dev_file_t *t=(dev_file_t *)device_get_private(self);
+
+    st=os_seek(t->fd, 0, HAM_OS_SEEK_END);
+    if (st)
+        return (db_set_error(device_get_db(self), st));
+    st=os_tell(t->fd, &pos);
+    if (st)
+        return (db_set_error(device_get_db(self), st));
+    st=os_truncate(t->fd, pos+size);
+    if (st)
+        return (db_set_error(device_get_db(self), st));
+
+    st=__f_read(self, pos, buffer, size);
+    return (db_set_error(device_get_db(self), st));
+}
+
+static ham_status_t 
 __f_alloc_page(ham_device_t *self, ham_page_t *page)
 {
     ham_status_t st;
@@ -266,6 +287,16 @@ __m_get_pagesize(ham_device_t *self)
 }
 
 static ham_status_t 
+__m_alloc(ham_device_t *self, void *buffer, ham_size_t size)
+{
+    (void)self;
+    (void)buffer;
+    (void)size;
+    ham_assert(!"can't alloc from an in-memory-device", (0));
+    return (HAM_NOT_IMPLEMENTED);
+}
+
+static ham_status_t 
 __m_alloc_page(ham_device_t *self, ham_page_t *page)
 {
     ham_u8_t *buffer;
@@ -279,6 +310,7 @@ __m_alloc_page(ham_device_t *self, ham_page_t *page)
     page_set_pers(page, (union page_union_t *)buffer);
     page_set_npers_flags(page, 
         page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
+    page_set_self(page, (ham_offset_t)buffer);
 
     return (HAM_SUCCESS);
 }
@@ -377,6 +409,7 @@ ham_device_new(ham_db_t *db, ham_bool_t inmemorydb)
         dev.get_pagesize = __m_get_pagesize;
         dev.set_flags    = __set_flags;
         dev.get_flags    = __get_flags;
+        dev.alloc        = __m_alloc;
         dev.alloc_page   = __m_alloc_page;
         dev.read         = __m_read;
         dev.write        = __m_write;
@@ -399,6 +432,7 @@ ham_device_new(ham_db_t *db, ham_bool_t inmemorydb)
         dev.get_pagesize = __f_get_pagesize;
         dev.set_flags    = __set_flags;
         dev.get_flags    = __get_flags;
+        dev.alloc        = __f_alloc;
         dev.alloc_page   = __f_alloc_page;
         dev.read         = __f_read;
         dev.write        = __f_write;

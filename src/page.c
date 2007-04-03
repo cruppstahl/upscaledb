@@ -14,6 +14,7 @@
 #include "os.h"
 #include "freelist.h"
 #include "cursor.h"
+#include "device.h"
 
 #ifdef HAM_DEBUG
 static ham_bool_t
@@ -200,5 +201,86 @@ page_remove_cursor(ham_page_t *page, ham_cursor_t *cursor)
 
     cursor_set_next(cursor, 0);
     cursor_set_previous(cursor, 0);
+}
+
+ham_page_t *
+page_new(ham_db_t *db)
+{
+    ham_page_t *page;
+
+    page=(ham_page_t *)ham_mem_alloc(db, sizeof(ham_page_t));
+    if (!page) {
+        db_set_error(db, HAM_OUT_OF_MEMORY);
+        return (0);
+    }
+
+    memset(page, 0, sizeof(*page));
+    page_set_owner(page, db);
+    /* temporarily initialize the cache counter, just to be on the safe side */
+    page_set_cache_cntr(page, 20);
+
+    return (page);
+}
+
+void
+page_delete(ham_page_t *page)
+{
+    ham_db_t *db=page_get_owner(page);
+
+    ham_assert(page_get_pers(page)==0, (0));
+
+    ham_mem_free(db, page);
+}
+
+ham_status_t
+page_alloc(ham_page_t *page, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_db_t *db=page_get_owner(page);
+    ham_device_t *dev=db_get_device(db);
+
+    st=dev->alloc_page(dev, page);
+    if (st)
+        return (st);
+
+    if (flags&PAGE_CLEAR_WITH_ZERO)
+        memset(page_get_pers(page), 0, db_get_pagesize(db));
+    return (HAM_SUCCESS);
+}
+
+ham_status_t
+page_fetch(ham_page_t *page)
+{
+    ham_db_t *db=page_get_owner(page);
+    ham_device_t *dev=db_get_device(db);
+
+    return (dev->read_page(dev, page));
+}
+
+ham_status_t
+page_flush(ham_page_t *page)
+{
+    ham_status_t st;
+    ham_db_t *db=page_get_owner(page);
+    ham_device_t *dev=db_get_device(db);
+
+    if (!page_is_dirty(page))
+        return (HAM_SUCCESS);
+
+    st=dev->write_page(dev, page);
+    if (st)
+        return (st);
+
+    page_set_dirty(page, 0);
+    return (HAM_SUCCESS);
+}
+
+ham_status_t
+page_free(ham_page_t *page)
+{
+    ham_db_t *db=page_get_owner(page);
+    ham_device_t *dev=db_get_device(db);
+
+    return (dev->free_page(dev, page));
 }
 
