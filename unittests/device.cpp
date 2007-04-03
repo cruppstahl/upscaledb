@@ -21,6 +21,7 @@ class DeviceTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (createCloseTest);
     CPPUNIT_TEST      (openCloseTest);
     CPPUNIT_TEST      (pagesizeTest);
+    CPPUNIT_TEST      (allocTest);
     CPPUNIT_TEST      (allocFreeTest);
     CPPUNIT_TEST      (flushTest);
     CPPUNIT_TEST      (mmapUnmapTest);
@@ -73,7 +74,7 @@ public:
     {
         if (!m_inmemory) {
             CPPUNIT_ASSERT(!m_dev->is_open(m_dev));
-            CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
+            CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0,0644)==HAM_SUCCESS);
             CPPUNIT_ASSERT(m_dev->is_open(m_dev));
             CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
             CPPUNIT_ASSERT(!m_dev->is_open(m_dev));
@@ -89,6 +90,20 @@ public:
         ham_size_t ps=m_dev->get_pagesize(m_dev);
         CPPUNIT_ASSERT(ps!=0);
         CPPUNIT_ASSERT(ps%1024==0);
+    }
+
+    void allocTest()
+    {
+        int i;
+        ham_offset_t address;
+
+        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(m_dev->is_open(m_dev));
+        for (i=0; i<10; i++) {
+            CPPUNIT_ASSERT(m_dev->alloc(m_dev, 1024, &address)==HAM_SUCCESS);
+            CPPUNIT_ASSERT(address==1024*i);
+        }
+        CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
     }
 
     void allocFreeTest()
@@ -181,6 +196,7 @@ public:
                         buffer[i], ps)==HAM_SUCCESS);
             memset(temp, i, ps);
             CPPUNIT_ASSERT(memcmp(buffer[i], temp, ps)==0);
+            free(buffer[i]);
         }
         m_dev->close(m_dev);
         free(temp);
@@ -197,8 +213,6 @@ class InMemoryDeviceTest : public DeviceTest
     CPPUNIT_TEST      (pagesizeTest);
     CPPUNIT_TEST      (allocFreeTest);
     CPPUNIT_TEST      (flushTest);
-    CPPUNIT_TEST      (mmapUnmapTest);
-    CPPUNIT_TEST      (readWriteTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:

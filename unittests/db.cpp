@@ -36,13 +36,19 @@ protected:
     ham_db_t *m_db;
     ham_bool_t m_inmemory;
     ham_device_t *m_dev;
-    memtracker_t *m_alloc;
+//    memtracker_t *m_alloc;
+    mem_allocator_t *m_alloc;
 
 public:
+    DbTest()
+    :   m_inmemory(HAM_FALSE)
+    {
+    }
+
     void setUp()
     { 
         CPPUNIT_ASSERT(0==ham_new(&m_db));
-        m_alloc=memtracker_new();
+        m_alloc=ham_default_allocator_new(); //memtracker_new();
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         db_set_device(m_db, (m_dev=ham_device_new(m_db, m_inmemory)));
         db_set_pagesize(m_db, m_dev->get_pagesize(m_dev));
@@ -51,7 +57,7 @@ public:
     void tearDown() 
     { 
         ham_delete(m_db);
-        CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
+        //CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void headerTest()
@@ -178,15 +184,14 @@ public:
                         (ham_u8_t *)"abc", 3, 2)==HAM_PREFIX_REQUEST_FULLKEY);
     }
 
-    void allocPageTest()
+    void allocPageTest(void)
     {
         ham_page_t *page;
-
+        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
         CPPUNIT_ASSERT((page=db_alloc_page(m_db, 0, PAGE_IGNORE_FREELIST))!=0);
-#if 0
         CPPUNIT_ASSERT(page_get_owner(page)==m_db);
         CPPUNIT_ASSERT(db_free_page(page)==HAM_SUCCESS);
-#endif
+        CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
     }
 
 };

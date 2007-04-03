@@ -5,7 +5,8 @@ endif
 
 INCLUDES		= -I$(top_builddir)/include
 
-test_SOURCES  	= db.cpp \
+test_SOURCES  	= device.cpp \
+				  db.cpp \
                   main.cpp \
                   mem.cpp \
                   endian.cpp \
