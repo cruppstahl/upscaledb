@@ -22,51 +22,56 @@ extern "C" {
  * the device structure
  */
 
-struct ham_dev_t;
-typedef struct ham_dev_t ham_dev_t; 
+struct ham_device_t;
+typedef struct ham_device_t ham_device_t; 
 
-struct ham_dev_t {
+struct ham_device_t {
     /*
      * create a new device 
      */
-    ham_status_t (*create)(ham_dev_t *self, const char *fname, 
+    ham_status_t (*create)(ham_device_t *self, const char *fname, 
             ham_u32_t flags, ham_u32_t mode);
 
     /*
      * open an existing device
      */
-    ham_status_t (*open)(ham_dev_t *self, const char *fname, 
+    ham_status_t (*open)(ham_device_t *self, const char *fname, 
             ham_u32_t flags);
 
     /*
      * close the device; also calls self->del
      */
-    ham_status_t (*close)(ham_dev_t *self);
+    ham_status_t (*close)(ham_device_t *self);
 
     /*
      * flushes the device
      */
-    ham_status_t (*flush)(ham_dev_t *self);
+    ham_status_t (*flush)(ham_device_t *self);
+
+    /*
+     * truncate/resize the device
+     */
+    ham_status_t (*truncate)(ham_device_t *self, ham_offset_t newsize);
 
     /*
      * returns true if the device is open
      */
-    ham_bool_t (*is_open)(ham_dev_t *self);
+    ham_bool_t (*is_open)(ham_device_t *self);
 
     /*
      * get the default pagesize
      */
-    ham_size_t (*get_pagesize)(ham_dev_t *self);
+    ham_size_t (*get_pagesize)(ham_device_t *self);
 
     /*
      * set the device flags
      */
-    void (*set_flags)(ham_dev_t *self, ham_u32_t flags);
+    void (*set_flags)(ham_device_t *self, ham_u32_t flags);
 
     /*
      * get the device flags
      */
-    ham_u32_t (*get_flags)(ham_dev_t *self);
+    ham_u32_t (*get_flags)(ham_device_t *self);
 
     /*
      * allocate storage for a page from this device; this function 
@@ -76,44 +81,39 @@ struct ham_dev_t {
      * The caller is responsible for flushing the page; the function will 
      * assert that the page is not dirty.
      */
-    ham_status_t (*alloc_page)(ham_dev_t *self, ham_page_t *page);
+    ham_status_t (*alloc_page)(ham_device_t *self, ham_page_t *page);
 
     /*
      * reads from the device; this function does not use mmap
      */
-    ham_status_t (*read)(ham_dev_t *self, ham_offset_t offset, 
+    ham_status_t (*read)(ham_device_t *self, ham_offset_t offset, 
             void *buffer, ham_size_t size);
 
     /*
      * writes to the device; this function does not use mmap
      */
-    ham_status_t (*write)(ham_dev_t *self, ham_offset_t offset, 
+    ham_status_t (*write)(ham_device_t *self, ham_offset_t offset, 
             void *buffer, ham_size_t size);
 
     /*
      * reads a page from the device; this function CAN use mmap
      */
-    ham_status_t (*read_page)(ham_dev_t *self, ham_page_t *page);
+    ham_status_t (*read_page)(ham_device_t *self, ham_page_t *page);
 
     /*
      * writes a page to the device
      */
-    ham_status_t (*write_page)(ham_dev_t *self, ham_page_t *page);
-
-    /*
-     * frees the memory
-     */
-    ham_status_t (*free)(ham_dev_t *self, void *buffer, ham_size_t size);
+    ham_status_t (*write_page)(ham_device_t *self, ham_page_t *page);
 
     /*
      * frees a page
      */
-    ham_status_t (*free_page)(ham_dev_t *self, ham_page_t *page);
+    ham_status_t (*free_page)(ham_device_t *self, ham_page_t *page);
 
     /*
      * destructor for this device structure
      */
-    void (*destroy)(ham_dev_t *self);
+    void (*destroy)(ham_device_t *self);
 
     /*
      * the database
@@ -128,9 +128,14 @@ struct ham_dev_t {
     /*
      * some private data for this device
      */
-    void *m_private;
+    void *_private;
 
 };
+
+/*
+ * currently, the only flag means: do not use mmap but pread
+ */
+#define DEVICE_NO_MMAP                     1
 
 /*
  * get the database of this device
@@ -165,7 +170,7 @@ struct ham_dev_t {
 /*
  * create a new device structure; either for in-memory or file-based
  */
-extern ham_dev_t *
+extern ham_device_t *
 ham_device_new(ham_db_t *db, ham_bool_t inmemorydb);
 
 

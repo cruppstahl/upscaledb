@@ -116,8 +116,11 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
 
     while (total<bufferlen) {
         r=pread(fd, buffer+total, bufferlen-total, addr+total);
-        if (r<0)
+        if (r<0) {
+            ham_trace(("os_pread failed with status %u (%s)", 
+                    errno, strerror(errno)));
             return (HAM_IO_ERROR);
+        }
         if (r==0)
             break;
         total+=r;

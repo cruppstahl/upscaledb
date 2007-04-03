@@ -23,6 +23,7 @@ extern "C" {
 #include "extkeys.h"
 #include "txn.h"
 #include "mem.h"
+#include "device.h"
 
 #include "packstart.h"
 
@@ -178,6 +179,9 @@ struct ham_db_t
     /* the memory allocator */
     mem_allocator_t _allocator;
 
+    /* the device (either a file or an in-memory-db) */
+    ham_device_t *_device;
+
     /* the cache */
     ham_cache_t *_cache;
 
@@ -279,6 +283,16 @@ struct ham_db_t
  * set the memory allocator
  */
 #define db_set_allocator(db, a)        (db)->_allocator=(*a)
+
+/*
+ * get the device
+ */
+#define db_get_device(db)              (db)->_device
+
+/*
+ * set the device
+ */
+#define db_set_device(db, d)           (db)->_device=(d)
 
 /*
  * get the cache pointer
