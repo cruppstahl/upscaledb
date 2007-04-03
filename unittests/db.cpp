@@ -86,12 +86,6 @@ public:
         db_set_header_page(m_db, 0); /* avoid crash in ham_delete */
         CPPUNIT_ASSERT(db_get_header_page(m_db)==0);
 
-        CPPUNIT_ASSERT(!db_is_open(m_db));
-        CPPUNIT_ASSERT(db_get_fd(m_db)==HAM_INVALID_FD);
-        db_set_fd(m_db, (ham_fd_t)14);
-        CPPUNIT_ASSERT(db_get_fd(m_db)==(ham_fd_t)14);
-        CPPUNIT_ASSERT(db_is_open(m_db));
-
         CPPUNIT_ASSERT(db_get_error(m_db)==HAM_SUCCESS);
         db_set_error(m_db, HAM_IO_ERROR);
         CPPUNIT_ASSERT(db_get_error(m_db)==HAM_IO_ERROR);
