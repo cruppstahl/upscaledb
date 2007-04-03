@@ -521,9 +521,11 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
     ham_offset_t tellpos=0;
     ham_page_t *page=0;
 
-    if (!cache_can_add_page(db_get_cache(db))) {
-        db_set_error(db, HAM_CACHE_FULL);
-        return (0);
+    if (db_get_cache(db)) {
+        if (!cache_can_add_page(db_get_cache(db))) {
+            db_set_error(db, HAM_CACHE_FULL);
+            return (0);
+        }
     }
 
     /* first, we ask the freelist for a page */
