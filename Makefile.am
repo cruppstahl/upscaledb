@@ -1,5 +1,5 @@
                 
-SUBDIRS = src include samples 
+SUBDIRS = src include samples unittests
 
 EXTRA_DIST = documentation/Doxyfile         \
              CHANGELOG                      \
