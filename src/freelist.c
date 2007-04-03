@@ -285,6 +285,8 @@ my_alloc_page(ham_db_t *db)
     if (!page) 
         return (0);
 
+    page_inc_inuse(page);
+
     /*
      * insert the page in our local cache and return the page
      */
@@ -478,7 +480,11 @@ freel_shutdown(ham_db_t *db)
     page=db_get_freelist_cache(db);
     while (page) {
         next=page_get_next(page, PAGE_LIST_TXN);
-        (void)db_write_page_and_delete(page, 0);
+        page_dec_inuse(page);
+        page_flush(page);
+        /*(void)db_write_page_and_delete(page, 0); TODO löscht die 
+         *  page; die page ist aber noch in der totallist -> beim
+         *  cache_flush_and_delete wird auf die page wieder zugegriffen */
         page=next;
     }
 

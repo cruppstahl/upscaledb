@@ -78,7 +78,7 @@ txn_get_page(ham_txn_t *txn, ham_offset_t address);
  * mark a page in the transaction as 'deleted'
  * it will be deleted when the transaction is committed
  */
-extern void
+extern ham_status_t
 txn_free_page(ham_txn_t *txn, struct ham_page_t *page);
 
 /**

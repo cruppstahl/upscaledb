@@ -468,9 +468,11 @@ db_free_page(ham_page_t *page)
     if (st)
         return (st);
 
-    st=cache_remove_page(db_get_cache(db), page);
-    if (st)
-        return (st);
+    if (db_get_cache(db)) {
+        st=cache_remove_page(db_get_cache(db), page);
+        if (st)
+            return (st);
+    }
 
     /*
      * if we have extended keys: remove all extended keys from the
@@ -564,16 +566,26 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
             return (0);
     }
 
-    st=page_alloc(page, flags);
+    st=page_alloc(page);
     if (st)
         return (0);
-
-    page_inc_inuse(page);
 
 done:
 
     page_set_type(page, type);
     page_set_dirty(page, 0);
+
+    if (flags&PAGE_CLEAR_WITH_ZERO)
+        memset(page_get_pers(page), 0, db_get_pagesize(db));
+
+    if (db_get_cache(db)) {
+        st=cache_put(db_get_cache(db), page);
+        if (st) {
+            db_set_error(db, st);
+            /* TODO memleak? */
+            return (0);
+        }
+    }
 
     return (page);
 }

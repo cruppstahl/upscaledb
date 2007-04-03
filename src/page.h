@@ -261,7 +261,10 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /** 
  * decrement the "in use"-flag
  */
-#define page_dec_inuse(page)    do { ham_assert(page_get_inuse(page)!=0, \
+#define page_dec_inuse(page)    do { ham_assert(page_get_inuse(page)!=1, \
+                                     ("decrementing empty inuse-flag")); \
+                                     --(page)->_npers._inuse; } while (0)
+#define page_dec_inuse_0(page)  do { ham_assert(page_get_inuse(page)!=0, \
                                      ("decrementing empty inuse-flag")); \
                                      --(page)->_npers._inuse; } while (0)
 
@@ -379,8 +382,7 @@ page_delete(ham_page_t *page);
  * allocate a new page from the device
  */
 extern ham_status_t
-page_alloc(ham_page_t *page, ham_u32_t flags);
-/*#define PAGE_CLEAR_WITH_ZERO  1 - defined in db.h */
+page_alloc(ham_page_t *page);
 
 /**
  * fetch a page from the device

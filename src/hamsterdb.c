@@ -221,23 +221,6 @@ ham_delete(ham_db_t *db)
     if (db_get_key_allocdata(db))
         ham_mem_free(db, db_get_key_allocdata(db));
 
-    /* close the backend */
-    if (db_get_backend(db)) {
-        ham_backend_t *be=db_get_backend(db);
-        be->_fun_delete(be);
-        ham_mem_free(db, be);
-    }
-
-    /* get rid of the header page */
-    if (db_get_header_page(db))
-        db_free_page(db_get_header_page(db));
-
-    /* get rid of the cache */
-    if (db_get_cache(db)) {
-        cache_delete(db_get_cache(db));
-        db_set_cache(db, 0);
-    }
-
     /* close the allocator */
     db_get_allocator(db)->close(db_get_allocator(db));
     memset(db_get_allocator(db), 0, sizeof(mem_allocator_t));
@@ -478,6 +461,11 @@ ham_create_ex(ham_db_t *db, const char *filename,
         }
     }
 
+    /* initialize the device */
+    device=ham_device_new(db, flags&HAM_IN_MEMORY_DB);
+    if (!device)
+        return (db_set_error(db, st));
+
     /*
      * can we use mmap?
      */
@@ -517,10 +505,10 @@ ham_create_ex(ham_db_t *db, const char *filename,
     }
 
     /*
-     * make sure that the pagesize is big enough for at least 4 keys
+     * make sure that the pagesize is big enough for at least 5 keys
      */
     if (keysize)
-        if (pagesize/keysize<4)
+        if (pagesize/keysize<5)
             return (db_set_error(db, HAM_INV_KEYSIZE));
 
     /*
@@ -570,10 +558,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
         return (db_get_error(db));
     db_set_cache(db, cache);
 
-    /* initialize the device */
-    device=ham_device_new(db, flags&HAM_IN_MEMORY_DB);
-    if (!device)
-        return (db_set_error(db, st));
     /* create the file */
     st=device->create(device, filename, flags, mode);
     if (st)
@@ -586,11 +570,13 @@ ham_create_ex(ham_db_t *db, const char *filename,
         ham_log(("unable to allocate the header page"));
         return (db_get_error(db));
     }
-    st=page_alloc(page, PAGE_CLEAR_WITH_ZERO);
+    st=page_alloc(page);
     if (st)
         return (st);
+    memset(page_get_pers(page), 0, pagesize);
     page_set_type(page, PAGE_TYPE_HEADER);
     db_set_header_page(db, page);
+    page_set_dirty(page, 1);
 
     /* initialize the freelist structure in the header page */
     h=(db_header_t *)page_get_payload(page);
@@ -995,8 +981,7 @@ ham_close(ham_db_t *db)
         /* copy the persistent header to the database object */
         memcpy(page_get_payload(db_get_header_page(db)), &db_get_header(db),
             sizeof(db_header_t)-sizeof(freel_payload_t));
-
-        /* write the database header */
+        page_set_dirty(db_get_header_page(db), 1);
         st=page_flush(db_get_header_page(db));
         if (st) {
             ham_log(("page_flush() failed with status %d (%s)",
@@ -1005,10 +990,17 @@ ham_close(ham_db_t *db)
         }
     }
 
+    /* get rid of the cache */
+    if (db_get_cache(db)) {
+        cache_delete(db_get_cache(db));
+        db_set_cache(db, 0);
+    }
+
     /* close the device */
-    if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB) &&
-        db_get_device(db)->is_open(db_get_device(db))) {
-        db_get_device(db)->close(db_get_device(db));
+    if (db_get_device(db)->is_open(db_get_device(db))) {
+        (void)db_get_device(db)->flush(db_get_device(db));
+        (void)db_get_device(db)->close(db_get_device(db));
+        db_set_device(db, 0);
     }
 
     return (0);

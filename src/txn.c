@@ -22,11 +22,6 @@ txn_add_page(ham_txn_t *txn, ham_page_t *page)
      */
     ham_assert(txn_get_page(txn, page_get_self(page))==0, 
             ("page 0x%llx is already in the txn", page_get_self(page)));
-    /* don't check the inuse-flag - with the new cursors, more than one
-     * transaction can be open 
-     ham_assert(page_get_inuse(page)==0, 
-            ("page 0x%llx is already in use", page_get_self(page)));
-            */
 #endif
 
     /*
@@ -37,16 +32,18 @@ txn_add_page(ham_txn_t *txn, ham_page_t *page)
 
     page_inc_inuse(page);
 
-    return (0);
+    return (HAM_SUCCESS);
 }
 
-void
+ham_status_t
 txn_free_page(ham_txn_t *txn, ham_page_t *page)
 {
     ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING), (0));
 
     page_set_npers_flags(page,
             page_get_npers_flags(page)|PAGE_NPERS_DELETE_PENDING);
+
+    return (HAM_SUCCESS);
 }
 
 ham_status_t
@@ -116,28 +113,12 @@ ham_txn_commit(ham_txn_t *txn)
          * can delete the page without consequences
          */
         if (page_get_npers_flags(head)&PAGE_NPERS_DELETE_PENDING) {
-            if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) { 
-                db_free_page(head);
-            }
-            else {
-                /* remove page from cache, add it to garbage list */
-                page_set_dirty(head, 0);
-
-                /* add the page to the freelist */
-                st=freel_add_area(db, page_get_self(head), 
-                    db_get_usable_pagesize(db));
-                if (st) {
-                    ham_trace(("freel_add_page failed with status 0x%x", st));
-                    st=0;
-                }
-
-                st=cache_move_to_garbage(db_get_cache(db), head);
-                if (st) {
-                    ham_trace(("cache_move_to_garbage failed with status 0x%x", 
-                            st));
-                    st=0;
-                }
-            }
+            /* remove page from cache, add it to garbage list */
+            page_set_dirty(head, 0);
+        
+            st=db_free_page(head);
+            if (st)
+                return (st);
 
             goto commit_next;
         }

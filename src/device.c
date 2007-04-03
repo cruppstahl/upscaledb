@@ -138,23 +138,21 @@ __f_read_page(ham_device_t *self, ham_page_t *page)
 }
 
 static ham_status_t 
-__f_alloc(ham_device_t *self, void *buffer, ham_size_t size)
+__f_alloc(ham_device_t *self, ham_size_t size, ham_offset_t *address)
 {
     ham_status_t st;
-    ham_offset_t pos;
     dev_file_t *t=(dev_file_t *)device_get_private(self);
 
     st=os_seek(t->fd, 0, HAM_OS_SEEK_END);
     if (st)
         return (db_set_error(device_get_db(self), st));
-    st=os_tell(t->fd, &pos);
+    st=os_tell(t->fd, address);
     if (st)
         return (db_set_error(device_get_db(self), st));
-    st=os_truncate(t->fd, pos+size);
+    st=os_truncate(t->fd, (*address)+size);
     if (st)
         return (db_set_error(device_get_db(self), st));
 
-    st=__f_read(self, pos, buffer, size);
     return (db_set_error(device_get_db(self), st));
 }
 
@@ -287,11 +285,11 @@ __m_get_pagesize(ham_device_t *self)
 }
 
 static ham_status_t 
-__m_alloc(ham_device_t *self, void *buffer, ham_size_t size)
+__m_alloc(ham_device_t *self, ham_size_t size, ham_offset_t *address)
 {
     (void)self;
-    (void)buffer;
     (void)size;
+    (void)address;
     ham_assert(!"can't alloc from an in-memory-device", (0));
     return (HAM_NOT_IMPLEMENTED);
 }
@@ -322,6 +320,7 @@ __m_read(ham_device_t *self, ham_offset_t offset, void *buffer, ham_size_t size)
     (void)offset;
     (void)buffer;
     (void)size;
+    ham_assert(!"this operation is not possible for in-memory-databases", (0));
     return (HAM_SUCCESS);
 }
 
@@ -334,6 +333,7 @@ __m_write(ham_device_t *self, ham_offset_t offset, void *buffer,
     (void)offset;
     (void)buffer;
     (void)size;
+    ham_assert(!"this operation is not possible for in-memory-databases", (0));
     return (HAM_SUCCESS);
 }
 
@@ -342,6 +342,7 @@ __m_read_page(ham_device_t *self, ham_page_t *page)
 {
     (void)self;
     (void)page;
+    ham_assert(!"this operation is not possible for in-memory-databases", (0));
     return (HAM_SUCCESS);
 }
 
@@ -350,6 +351,7 @@ __m_write_page(ham_device_t *self, ham_page_t *page)
 {
     (void)self;
     (void)page;
+    ham_assert(!"this operation is not possible for in-memory-databases", (0));
     return (HAM_SUCCESS);
 }
 

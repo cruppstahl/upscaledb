@@ -77,7 +77,8 @@ struct ham_device_t {
      * allocate storage from this device; this function 
      * will *NOT* use mmap.
      */
-    ham_status_t (*alloc)(ham_device_t *self, void *buffer, ham_size_t size);
+    ham_status_t (*alloc)(ham_device_t *self, ham_size_t size, 
+            ham_offset_t *address);
 
     /*
      * allocate storage for a page from this device; this function 

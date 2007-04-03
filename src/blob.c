@@ -214,7 +214,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
         /*
          * if the blob is small, we load the page through the cache
          */
-/* !! */if (1 || my_blob_is_small(db, sizeof(blob_t)+size)) {
+        if (my_blob_is_small(db, sizeof(blob_t)+size)) {
             page=db_alloc_page(db, PAGE_TYPE_B_INDEX|PAGE_IGNORE_FREELIST, 0);
             if (!page)
                 return (db_get_error(db));
@@ -231,12 +231,12 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
          * otherwise use direct IO to allocate the space
          */
         else {
-            ham_page_t *newp=page_new(db);
             ham_size_t aligned=sizeof(blob_t)+size;
 
-            st=device->alloc_page(device, newp);
+            st=device->alloc(device, aligned, &addr);
             if (st) 
                 return (st);
+
             /* if aligned!=size, and the remaining chunk is large enough:
              * move it to the freelist */
             if (aligned!=size+sizeof(blob_t)) {

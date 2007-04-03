@@ -213,7 +213,7 @@ os_truncate(ham_fd_t fd, ham_offset_t newsize)
 ham_status_t
 os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 {
-    int osflags=O_CREAT|O_RDWR;
+    int osflags=O_CREAT|O_RDWR|O_TRUNC;
     (void)flags;
 
     *fd=open(filename, osflags, mode);

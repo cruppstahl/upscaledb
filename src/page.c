@@ -35,7 +35,7 @@ my_validate_page(ham_page_t *p)
     /*
      * not allowed: in use and in garbage bin
      */
-    ham_assert(!(page_get_inuse(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
+    ham_assert(!(1==page_get_inuse(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
             ("referenced and in garbage bin"));
 
     /*
@@ -218,6 +218,7 @@ page_new(ham_db_t *db)
     page_set_owner(page, db);
     /* temporarily initialize the cache counter, just to be on the safe side */
     page_set_cache_cntr(page, 20);
+    page_inc_inuse(page);
 
     return (page);
 }
@@ -226,14 +227,16 @@ void
 page_delete(ham_page_t *page)
 {
     ham_db_t *db=page_get_owner(page);
+    page_dec_inuse_0(page);
 
+    ham_assert(page_get_inuse(page)==0, (0));
     ham_assert(page_get_pers(page)==0, (0));
 
     ham_mem_free(db, page);
 }
 
 ham_status_t
-page_alloc(ham_page_t *page, ham_u32_t flags)
+page_alloc(ham_page_t *page)
 {
     ham_status_t st;
     ham_db_t *db=page_get_owner(page);
@@ -243,8 +246,6 @@ page_alloc(ham_page_t *page, ham_u32_t flags)
     if (st)
         return (st);
 
-    if (flags&PAGE_CLEAR_WITH_ZERO)
-        memset(page_get_pers(page), 0, db_get_pagesize(db));
     return (HAM_SUCCESS);
 }
 
