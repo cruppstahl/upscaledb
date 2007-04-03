@@ -20,6 +20,7 @@ class PageTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(PageTest);
     CPPUNIT_TEST      (newDeleteTest);
     CPPUNIT_TEST      (allocFreeTest);
+    CPPUNIT_TEST      (multipleAllocFreeTest);
     CPPUNIT_TEST      (fetchFlushTest);
     CPPUNIT_TEST      (negativeFreeTest);
     CPPUNIT_TEST_SUITE_END();
@@ -61,26 +62,31 @@ public:
 
     void allocFreeTest()
     {
-        CPPUNIT_ASSERT(!m_dev->is_open(m_dev));
-        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(m_dev->is_open(m_dev));
-        CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(!m_dev->is_open(m_dev));
+        ham_page_t *page;
+        page=page_new(m_db);
+        CPPUNIT_ASSERT(page_alloc(page)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(page_free(page)==HAM_SUCCESS);
+        page_delete(page);
+    }
+
+    void multipleAllocFreeTest()
+    {
+        int i;
+        ham_page_t *page;
+        ham_size_t ps=os_get_pagesize();
+
+        for (i=0; i<10; i++) {
+            page=page_new(m_db);
+            CPPUNIT_ASSERT(page_alloc(page)==HAM_SUCCESS);
+            CPPUNIT_ASSERT(page_get_self(page)==i*ps);
+            CPPUNIT_ASSERT(page_free(page)==HAM_SUCCESS);
+            page_delete(page);
+        }
     }
 
     void fetchFlushTest()
     {
-        if (!m_inmemory) {
-            CPPUNIT_ASSERT(!m_dev->is_open(m_dev));
-            CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
-            CPPUNIT_ASSERT(m_dev->is_open(m_dev));
-            CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
-            CPPUNIT_ASSERT(!m_dev->is_open(m_dev));
-            CPPUNIT_ASSERT(m_dev->open(m_dev, ".test", 0)==HAM_SUCCESS);
-            CPPUNIT_ASSERT(m_dev->is_open(m_dev));
-            CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
-            CPPUNIT_ASSERT(!m_dev->is_open(m_dev));
-        }
+        /* TODO */
     }
 
 };

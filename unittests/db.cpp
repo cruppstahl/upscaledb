@@ -11,6 +11,7 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
+#include "../src/page.h"
 #include "memtracker.h"
 
 class DbTest : public CppUnit::TestFixture
@@ -20,9 +21,9 @@ class DbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (structureTest);
     CPPUNIT_TEST      (defaultCompareTest);
     CPPUNIT_TEST      (defaultPrefixCompareTest);
+    CPPUNIT_TEST      (allocPageTest);
 
 /*
-    CPPUNIT_TEST      (allocPageTest);
     CPPUNIT_TEST      (freePageTest);
     CPPUNIT_TEST      (fetchPageTest);
     CPPUNIT_TEST      (flushPageTest);
@@ -31,18 +32,26 @@ class DbTest : public CppUnit::TestFixture
 */
     CPPUNIT_TEST_SUITE_END();
 
+protected:
     ham_db_t *m_db;
+    ham_bool_t m_inmemory;
+    ham_device_t *m_dev;
+    memtracker_t *m_alloc;
 
 public:
     void setUp()
     { 
         CPPUNIT_ASSERT(0==ham_new(&m_db));
-        db_set_allocator(m_db, (mem_allocator_t *)memtracker_new());
+        m_alloc=memtracker_new();
+        db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
+        db_set_device(m_db, (m_dev=ham_device_new(m_db, m_inmemory)));
+        db_set_pagesize(m_db, m_dev->get_pagesize(m_dev));
     }
     
     void tearDown() 
     { 
         ham_delete(m_db);
+        CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void headerTest()
@@ -167,6 +176,17 @@ public:
         CPPUNIT_ASSERT(db_default_prefix_compare(
                         (ham_u8_t *)"abc", 3, 80239, 
                         (ham_u8_t *)"abc", 3, 2)==HAM_PREFIX_REQUEST_FULLKEY);
+    }
+
+    void allocPageTest()
+    {
+        ham_page_t *page;
+
+        CPPUNIT_ASSERT((page=db_alloc_page(m_db, 0, PAGE_IGNORE_FREELIST))!=0);
+#if 0
+        CPPUNIT_ASSERT(page_get_owner(page)==m_db);
+        CPPUNIT_ASSERT(db_free_page(page)==HAM_SUCCESS);
+#endif
     }
 
 };
