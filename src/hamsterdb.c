@@ -268,7 +268,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     /* initialize the device */
     device=ham_device_new(db, flags&HAM_IN_MEMORY_DB);
     if (!device)
-        return (db_set_error(db, st));
+        return (db_get_error(db));
     /* open the file */
     st=device->open(device, filename, flags);
     if (st)
@@ -464,7 +464,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     /* initialize the device */
     device=ham_device_new(db, flags&HAM_IN_MEMORY_DB);
     if (!device)
-        return (db_set_error(db, st));
+        return (db_get_error(db));
 
     /*
      * can we use mmap?
