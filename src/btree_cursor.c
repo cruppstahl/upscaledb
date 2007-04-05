@@ -549,7 +549,7 @@ bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
      * make sure that the page is not unloaded
      */
     page=bt_cursor_get_coupled_page(c);
-    page_inc_inuse(page);
+    page_add_ref(page);
 
     /*
      * get the btree node entry
@@ -607,7 +607,7 @@ bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
         else
             st=blob_allocate(db, record->data, record->size, 0, &rid);
         if (st) {
-            page_dec_inuse(page);
+            page_release_ref(page);
             if (local_txn)
                 (void)ham_txn_abort(&txn);
             return (st);
@@ -645,7 +645,7 @@ bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
     }
 
     page_set_dirty(bt_cursor_get_coupled_page(c), 1);
-    page_dec_inuse(page);
+    page_release_ref(page);
 
     if (local_txn)
         return (ham_txn_commit(&txn));
@@ -718,12 +718,12 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
      * and the page at which we're pointing could be moved out of memory; 
      * that would mean that the cursor would be uncoupled, and we're losing
      * the 'entry'-pointer. therefore we 'lock' the page by incrementing 
-     * the inuse-flag.
+     * the reference counter
      */
     ham_assert(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED, 
             ("move: cursor is not coupled"));
     page=bt_cursor_get_coupled_page(c);
-    page_inc_inuse(page);
+    page_add_ref(page);
     node=ham_page_get_btree_node(page);
     ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
     entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
@@ -731,7 +731,7 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
     if (key) {
         st=util_read_key(db, entry, key, 0);
         if (st) {
-            page_dec_inuse(page);
+            page_release_ref(page);
             if (local_txn)
                 (void)ham_txn_abort(&txn);
             return (st);
@@ -743,14 +743,14 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
 		record->_rid=key_get_ptr(entry);
         st=util_read_record(db, record, 0);
         if (st) {
-            page_dec_inuse(page);
+            page_release_ref(page);
             if (local_txn)
                 (void)ham_txn_abort(&txn);
             return (st);
         }
     }
 
-    page_dec_inuse(page);
+    page_release_ref(page);
 
     if (local_txn)
         return (ham_txn_commit(&txn));

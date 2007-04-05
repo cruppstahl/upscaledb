@@ -67,7 +67,7 @@ my_purge(ham_cache_t *cache)
     if (!page)
         return (HAM_FALSE);
 
-    ham_assert(page_get_inuse(page)<=1, (0));
+    ham_assert(page_get_refcount(page)==0, (0));
 
     /*
      * delete it: remove the page from the totallist, decrement the 
@@ -132,7 +132,7 @@ cache_get_unused(ham_cache_t *cache)
 
     page=cache_get_garbagelist(cache);
     if (page) {
-        ham_assert(page_get_inuse(page)==1, 
+        ham_assert(page_get_refcount(page)==0, 
                 ("page is in use and in garbage list"));
         cache_set_garbagelist(cache, 
                 page_list_remove(cache_get_garbagelist(cache), 
@@ -149,7 +149,7 @@ cache_get_unused(ham_cache_t *cache)
 
     do {
         /* only handle unused pages */
-        if (page_get_inuse(page)==1) {
+        if (page_get_refcount(page)==0) {
             if (page_get_cache_cntr(page)==0) {
                 min=page;
                 goto found_page;
@@ -202,6 +202,8 @@ cache_get(ham_cache_t *cache, ham_offset_t address)
         page=page_get_next(page, PAGE_LIST_BUCKET);
     }
 
+    if (page)
+        ham_assert(page_get_pers(page), (0));
     return (page);
 }
 
@@ -326,7 +328,7 @@ cache_move_to_garbage(ham_cache_t *cache, ham_page_t *page)
 {
     ham_size_t hash=(ham_size_t)my_calc_hash(cache, page_get_self(page));
 
-    ham_assert(page_get_inuse(page)==1, 
+    ham_assert(page_get_refcount(page)==0, 
             ("page 0x%lx is in use", page_get_self(page)));
     ham_assert(page_is_dirty(page)==0, 
             ("page 0x%lx is dirty", page_get_self(page)));
@@ -385,7 +387,7 @@ cache_flush_and_delete(ham_cache_t *cache, ham_u32_t flags)
     while (head) {
         ham_page_t *next=page_get_next(head, PAGE_LIST_CACHED);
 
-        ham_assert(page_get_inuse(head)<=1, 
+        ham_assert(page_get_refcount(head)==0, 
                 ("page is in use, but database is closing"));
 
         /*
@@ -418,7 +420,7 @@ cache_flush_and_delete(ham_cache_t *cache, ham_u32_t flags)
         while (head) {
             ham_page_t *next=page_get_next(head, PAGE_LIST_GARBAGE);
     
-            ham_assert(page_get_inuse(head)<=1, 
+            ham_assert(page_get_refcount(head)==0,
                     ("page is in use, but database is closing"));
 
             db_free_page(head);

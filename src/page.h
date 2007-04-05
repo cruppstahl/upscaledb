@@ -59,9 +59,9 @@ struct ham_page_t {
         /** cache counter - used by the cache module */
         ham_u32_t _cache_cntr;
 
-        /** inuse-counter counts the number of transactions, which access
+        /** reference-counter counts the number of transactions, which access
          * this page*/
-        ham_u32_t _inuse;
+        ham_u32_t _refcount;
 
 #if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
 		/** handle for win32 mmap */
@@ -249,24 +249,21 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
             page_get_npers_flags(page)&(~PAGE_NPERS_DIRTY))
 
 /** 
- * get the "in use"-flag
+ * get the reference counter
  */
-#define page_get_inuse(page)    (page)->_npers._inuse
+#define page_get_refcount(page) (page)->_npers._refcount
 
 /** 
- * increment the "in use"-flag
+ * increment the reference counter
  */
-#define page_inc_inuse(page)    ++(page)->_npers._inuse
+#define page_add_ref(page)      ++(page)->_npers._refcount
 
 /** 
- * decrement the "in use"-flag
+ * decrement the reference counter
  */
-#define page_dec_inuse(page)    do { ham_assert(page_get_inuse(page)!=1, \
-                                     ("decrementing empty inuse-flag")); \
-                                     --(page)->_npers._inuse; } while (0)
-#define page_dec_inuse_0(page)  do { ham_assert(page_get_inuse(page)!=0, \
-                                     ("decrementing empty inuse-flag")); \
-                                     --(page)->_npers._inuse; } while (0)
+#define page_release_ref(page)  do { ham_assert(page_get_refcount(page)!=0, \
+                                     ("decrementing empty refcounter"));    \
+                                     --(page)->_npers._refcount; } while (0)
 
 #if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
 /**

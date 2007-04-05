@@ -30,7 +30,7 @@ txn_add_page(ham_txn_t *txn, ham_page_t *page)
     txn_set_pagelist(txn, page_list_insert(txn_get_pagelist(txn), 
             PAGE_LIST_TXN, page));
 
-    page_inc_inuse(page);
+    page_add_ref(page);
 
     return (HAM_SUCCESS);
 }
@@ -49,7 +49,7 @@ txn_free_page(ham_txn_t *txn, ham_page_t *page)
 ham_status_t
 txn_remove_page(ham_txn_t *txn, struct ham_page_t *page)
 {
-    page_dec_inuse(page);
+    page_release_ref(page);
 
     txn_set_pagelist(txn, page_list_remove(txn_get_pagelist(txn), 
             PAGE_LIST_TXN, page));
@@ -100,7 +100,7 @@ ham_txn_commit(ham_txn_t *txn)
     head=txn_get_pagelist(txn);
     while (head) {
         /* page is no longer in use */
-        page_dec_inuse(head);
+        page_release_ref(head);
 
         next=page_get_next(head, PAGE_LIST_TXN);
         page_set_next(head, PAGE_LIST_TXN, 0);
@@ -155,7 +155,7 @@ ham_txn_abort(ham_txn_t *txn)
     head=txn_get_pagelist(txn);
     while (head) {
         /* page is no longer in use */
-        page_dec_inuse(head);
+        page_release_ref(head);
 
         next=page_get_next(head, PAGE_LIST_TXN);
         page_set_next(head, PAGE_LIST_TXN, 0);
