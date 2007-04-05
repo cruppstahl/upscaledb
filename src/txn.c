@@ -129,7 +129,8 @@ ham_txn_commit(ham_txn_t *txn)
             ham_trace(("commit failed with status 0x%x", st));
             txn_set_pagelist(txn, head);
             (void)ham_txn_abort(txn);
-            return (st); /* TODO oder return 0? */
+            /* errors here are fatal... */
+            return (st);
         }
 
 commit_next:

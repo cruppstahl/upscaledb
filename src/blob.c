@@ -250,10 +250,6 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
             }
             else
                 blob_set_alloc_size(&hdr, aligned);
-            /*
-             * TODO stimmt nicht mehr! newp wird allokiert, aber nicht 
-             * freigegeben. bei inmemorydb stimmt das auch nicht.
-             */
         }
     }
     else

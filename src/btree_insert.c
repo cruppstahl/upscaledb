@@ -705,9 +705,6 @@ pp(ham_page_t *page)
     node=ham_page_get_btree_node(page);
     count=btree_node_get_count(node);
 
-    /*
-     * TODO this is subject to optimization...
-     */
     for (i=0; i<count; i++) {
         bte=btree_node_get_key(db, node, i);
 

@@ -67,13 +67,13 @@ ham_set_errhandler(ham_errhandler_fun f)
 void 
 dbg_lock(void)
 {
-    /* TODO implement this... */
+    /* not yet needed, we do not yet support multithreading */
 }
 
 void 
 dbg_unlock(void)
 {
-    /* TODO implement this... */
+    /* not yet needed, we do not yet support multithreading */
 }
 
 void 

@@ -599,8 +599,10 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
             page_set_self(page, tellpos);
             /* fetch the page from disk */
             st=page_fetch(page);
-            if (st) /* TODO memleaks? */
+            if (st) {
+                page_delete(page);
                 return (0);
+            }
         }
     }
 
@@ -615,7 +617,6 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
         return (0);
 
 done:
-
     page_set_type(page, type);
     page_set_dirty(page, 0);
 

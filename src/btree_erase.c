@@ -316,7 +316,7 @@ my_erase_recursive(ham_page_t *page, ham_offset_t left, ham_offset_t right,
         if (slot==-1)
             slot=0;
         st=my_remove_entry(page, slot, scratchpad);
-        if (st) /* TODO log */
+        if (st)
             return (0);
     }
 
@@ -508,7 +508,6 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
         bte_rhs=btree_node_get_key(db, ancnode, slot);
         bte_lhs=btree_node_get_key(db, node,
             btree_node_get_count(node));
-        /* TODO we could also copy the cached extkey... */
         memcpy(bte_lhs, bte_rhs, sizeof(int_key_t)-1+keysize);
         key_set_ptr(bte_lhs, btree_node_get_ptr_left(sibnode));
         btree_node_set_count(node, btree_node_get_count(node)+1);
@@ -571,13 +570,10 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
      */
     st=txn_free_page(db_get_txn(db), sibpage);
     if (st) {
-        db_set_error(db, st); /* TODO ignore error? */
+        db_set_error(db, st);
         return (0);
     }
 
-    /* TODO it's no problem to return an invalid pointer to a deleted page,
-     * but we need only a boolean value. maybe the return type should
-     * be replaced with ham_bool_t. */
     return (sibpage);
 }
 
@@ -1025,25 +1021,6 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
     node=ham_page_get_btree_node(page);
     keysize=db_get_keysize(db);
     bte=btree_node_get_key(db, node, slot);
-
-#if 0
-    /*
-     * TODO the blob is not deleted - why???
-     * wenn der blob auch im leaf benutzt wird, was ist dann? haben 
-     * wir da ein reference counting, oder wird er kopiert??
-     *
-     * wenn man das auskommentierte wieder einkommentiert, gibt's
-     * nen crash
-     *
-     * delete the blob (if there is a blob)
-     */
-    if (!((key_get_flags(bte)&KEY_BLOB_SIZE_TINY) ||
-          (key_get_flags(bte)&KEY_BLOB_SIZE_SMALL))) {
-        ham_offset_t blobid=key_get_ptr(bte);
-        if (blobid) /* TODO rückgabewert? */
-            (void)blob_free(db, blobid, 0); 
-    }
-#endif
 
     /*
      * uncouple all cursors
