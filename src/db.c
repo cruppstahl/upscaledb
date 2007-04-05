@@ -413,46 +413,92 @@ db_create_backend(ham_db_t *db, ham_u32_t flags)
     return (be);
 }
 
+static ham_status_t
+my_purge_cache(ham_db_t *db)
+{
+    ham_status_t st;
+    ham_page_t *page;
+
+    if (!db_get_cache(db))
+        return (HAM_SUCCESS);
+
+    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
+        return (HAM_SUCCESS);
+
+    while (cache_too_big(db_get_cache(db))) {
+        page=cache_get_unused_page(db_get_cache(db));
+        if (!page) {
+            if (db_get_rt_flags(db)&HAM_CACHE_STRICT) 
+                return (db_set_error(db, HAM_CACHE_FULL));
+            else
+                break;
+        }
+
+        st=db_write_page_and_delete(page, 0);
+        if (st)
+            return (db_set_error(db, st));
+    }
+
+    return (HAM_SUCCESS);
+}
 
 ham_page_t *
 db_page_alloc(ham_db_t *db)
 {
-    ham_page_t *page;
     ham_status_t st;
+    ham_page_t *page=0;
 
-    /*
-     * allocate one page of memory, if we have room for one more page
-     */
-    if (cache_can_add_page(db_get_cache(db))) {
-        page=page_new(db);
-        if (!page)
-            return (0);
-    }
+    /* purge cache, if necessary */
+    st=my_purge_cache(db);
+    if (st)
+        return (0);
 
-    /*
-     * otherwise: replace a page
-     */
-    else {
-        page=cache_get_unused(db_get_cache(db));
-        if (!page) {
-            db_set_error(db, HAM_CACHE_FULL);
+    /* try to get an unused page from the cache */
+    if (db_get_cache(db))
+        page=cache_get_unused_page(db_get_cache(db));
+
+    if (page) {
+        st=page_flush(page);
+        if (st) {
+            db_set_error(db, st);
             return (0);
         }
 
-        st=page_flush(page);
-        if (st)
-            return (0);
-
         st=db_uncouple_all_cursors(page);
-        if (st)
+        if (st) {
+            db_set_error(db, st);
             return (0);
+        }
 
         st=page_free(page);
-        if (st)
+        if (st) {
+            db_set_error(db, st);
             return (0);
+        }
 
         memset(page, 0, sizeof(ham_page_t));
         page_set_owner(page, db);
+    }
+    else {
+        page=page_new(db);
+        if (!page) {
+            db_set_error(db, st);
+            return (0);
+        }
+        
+        st=page_alloc(page);
+        if (st) {
+            db_set_error(db, st);
+            return (0);
+        }
+    }
+
+    if (page && db_get_cache(db)) {
+        st=cache_put_page(db_get_cache(db), page);
+        if (st) {
+            db_set_error(db, st);
+            return (0);
+        }
     }
 
     return (page);
@@ -523,12 +569,10 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
     ham_offset_t tellpos=0;
     ham_page_t *page=0;
 
-    if (db_get_cache(db)) {
-        if (!cache_can_add_page(db_get_cache(db))) {
-            db_set_error(db, HAM_CACHE_FULL);
-            return (0);
-        }
-    }
+    /* purge the cache, if necessary */
+    st=my_purge_cache(db);
+    if (st)
+        return (0);
 
     /* first, we ask the freelist for a page */
     if (!(flags&PAGE_IGNORE_FREELIST)) {
@@ -544,7 +588,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
             }
             /* try to fetch the page from the cache */
             if (db_get_cache(db)) {
-                page=cache_get(db_get_cache(db), tellpos);
+                page=cache_get_page(db_get_cache(db), tellpos);
                 if (page)
                     goto done;
             }
@@ -579,7 +623,7 @@ done:
         memset(page_get_pers(page), 0, db_get_pagesize(db));
 
     if (db_get_cache(db)) {
-        st=cache_put(db_get_cache(db), page);
+        st=cache_put_page(db_get_cache(db), page);
         if (st) {
             db_set_error(db, st);
             /* TODO memleak? */
@@ -609,7 +653,7 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
      * if we have a cache: fetch the page from the cache
      */
     if (db_get_cache(db)) {
-        page=cache_get(db_get_cache(db), address);
+        page=cache_get_page(db_get_cache(db), address);
         if (page) {
             if (db_get_txn(db)) {
                 st=txn_add_page(db_get_txn(db), page);
@@ -618,6 +662,11 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
                     return (0);
                 }
             }
+            st=cache_put_page(db_get_cache(db), page);
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
             return (page);
         }
     }
@@ -625,14 +674,10 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
     if (flags&DB_ONLY_FROM_CACHE)
         return (0);
 
-    /*
-     * check if the cache allows us to allocate another page
-     */
-    if (!cache_can_add_page(db_get_cache(db))) {
-        ham_trace(("cache is full! resize the cache"));
-        db_set_error(db, HAM_CACHE_FULL);
+    /* check if the cache allows us to allocate another page */
+    st=my_purge_cache(db);
+    if (st)
         return (0);
-    }
 
     /*
      * otherwise allocate memory for the page
@@ -666,11 +711,13 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
     /*
      * add the page to the cache
      */
-    st=cache_put(db_get_cache(db), page);
-    if (st) {
-        db_set_error(db, st);
-        (void)page_delete(page);
-        return (0);
+    if (db_get_cache(db)) {
+        st=cache_put_page(db_get_cache(db), page);
+        if (st) {
+            db_set_error(db, st);
+            (void)page_delete(page);
+            return (0);
+        }
     }
 
     return (page);
@@ -688,13 +735,42 @@ db_flush_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
             return (st);
     }
 
-    return (cache_put(db_get_cache(db), page));
+    return (cache_put_page(db_get_cache(db), page));
 }
 
 ham_status_t
 db_flush_all(ham_db_t *db, ham_u32_t flags)
 {
-    return (cache_flush_and_delete(db_get_cache(db), flags));
+    ham_status_t st;
+    ham_page_t *head;
+
+    head=cache_get_totallist(db_get_cache(db)); 
+    while (head) {
+        ham_page_t *next=page_get_next(head, PAGE_LIST_CACHED);
+
+        ham_assert(page_get_refcount(head)==0, 
+                ("page is in use, but database is closing"));
+
+        /*
+         * don't remove the page from the cache, if flag NODELETE
+         * is set (this flag is used i.e. in ham_flush())
+         */
+        if (!(flags&DB_FLUSH_NODELETE)) {
+            cache_set_totallist(db_get_cache(db), 
+                page_list_remove(cache_get_totallist(db_get_cache(db)), 
+                PAGE_LIST_CACHED, head));
+            cache_set_cur_elements(db_get_cache(db), 
+                cache_get_cur_elements(db_get_cache(db))-1);
+        }
+
+        st=db_write_page_and_delete(head, flags);
+        if (st) 
+            ham_log(("failed to flush page (%d) - ignoring error...", st));
+
+        head=next;
+    }
+
+    return (HAM_SUCCESS);
 }
 
 ham_status_t

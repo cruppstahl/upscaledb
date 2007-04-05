@@ -84,12 +84,12 @@ extkey_cache_insert(extkey_cache_t *cache, ham_offset_t blobid,
 
     /*
      * enough cache capacity to insert the key?
-     */
     if (cache_get_usedsize(db_get_cache(db))+
             extkey_cache_get_usedsize(cache)+size >
             cache_get_cachesize(db_get_cache(db))) {
         return (HAM_CACHE_FULL);
     }
+     */
 
     e=(extkey_t *)ham_mem_alloc(db, SIZEOF_EXTKEY_T+size);
     if (!e)

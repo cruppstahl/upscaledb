@@ -387,7 +387,9 @@ ham_open_ex(ham_db_t *db, const char *filename,
     }
 
     /* initialize the cache */
-    cache=cache_new(db, 0, HAM_DEFAULT_CACHESIZE);
+    if (cachesize==0)
+        cachesize=HAM_DEFAULT_CACHESIZE; 
+    cache=cache_new(db, cachesize/db_get_pagesize(db));
     if (!cache)
         return (db_get_error(db));
     db_set_cache(db, cache);
@@ -553,7 +555,9 @@ ham_create_ex(ham_db_t *db, const char *filename,
     db_set_rt_flags(db, flags);
 
     /* initialize the cache */
-    cache=cache_new(db, flags, cachesize ? cachesize : HAM_DEFAULT_CACHESIZE);
+    if (cachesize==0)
+        cachesize=HAM_DEFAULT_CACHESIZE;
+    cache=cache_new(db, cachesize/db_get_pagesize(db));
     if (!cache)
         return (db_get_error(db));
     db_set_cache(db, cache);
@@ -992,7 +996,7 @@ ham_close(ham_db_t *db)
 
     /* get rid of the cache */
     if (db_get_cache(db)) {
-        cache_delete(db_get_cache(db));
+        cache_delete(db, db_get_cache(db));
         db_set_cache(db, 0);
     }
 

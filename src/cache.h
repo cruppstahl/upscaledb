@@ -22,17 +22,11 @@ extern "C" {
  */
 typedef struct
 {
-    /** the owner of the cache */
-    ham_db_t *_db;
+    /** the maximum number of cached elements */
+    ham_size_t _max_elements;
 
-    /** cache policy/cache flags */
-    ham_u32_t _flags;
-
-    /** the cache size, in byte */
-    ham_size_t _cachesize;
-
-    /** the used size, in byte */
-    ham_size_t _usedsize;
+    /** the current number of cached elements */
+    ham_size_t _cur_elements;
 
     /** the number of buckets */
     ham_size_t _bucketsize;
@@ -49,54 +43,34 @@ typedef struct
 } ham_cache_t;
 
 /*
- * get the database owner
+ * get the maximum number of elements
  */
-#define cache_get_owner(cm)                    (cm)->_db
+#define cache_get_max_elements(cm)             (cm)->_max_elements
 
 /*
- * set the database owner
+ * set the maximum number of elements
  */
-#define cache_set_owner(cm, o)                 (cm)->_db=(o)
+#define cache_set_max_elements(cm, s)          (cm)->_max_elements=(s)
 
 /*
- * get the cache manager flags
+ * get the current number of elements
  */
-#define cache_get_flags(cm)                    (cm)->_flags
+#define cache_get_cur_elements(cm)             (cm)->_cur_elements
 
 /*
- * set the cache manager flags
+ * set the current number of elements
  */
-#define cache_set_flags(cm, f)                 (cm)->_flags=(f)
+#define cache_set_cur_elements(cm, s)          (cm)->_cur_elements=(s)
 
 /*
- * get the cache manager cache size
- */
-#define cache_get_cachesize(cm)                (cm)->_cachesize
-
-/*
- * set the cache manager cache size
- */
-#define cache_set_cachesize(cm, s)             (cm)->_cachesize=(s)
-
-/*
- * get the used size
+ * get the bucket-size
  */
 #define cache_get_bucketsize(cm)               (cm)->_bucketsize
 
 /*
- * set the used size
+ * set the bucket-size
  */
 #define cache_set_bucketsize(cm, s)            (cm)->_bucketsize=(s)
-
-/*
- * get the size of the _buckets-array
- */
-#define cache_get_usedsize(cm)                 (cm)->_usedsize
-
-/*
- * set the size of the _buckets-array
- */
-#define cache_set_usedsize(cm, s)              (cm)->_usedsize=(s)
 
 /*
  * get the linked list of unused pages
@@ -132,7 +106,7 @@ typedef struct
  * initialize a cache manager object
  */
 extern ham_cache_t *
-cache_new(ham_db_t *db, ham_u32_t flags, ham_size_t cachesize);
+cache_new(ham_db_t *db, ham_size_t max_elements);
 
 /**
  * close and destroy a cache manager object
@@ -140,7 +114,7 @@ cache_new(ham_db_t *db, ham_u32_t flags, ham_size_t cachesize);
  * @remark this will NOT flush the cache! use @a cache_flush_all() 
  */
 extern void
-cache_delete(ham_cache_t *cache);
+cache_delete(ham_db_t *db, ham_cache_t *cache);
 
 /**
  * get an unused page (or an unreferenced page, if no unused page
@@ -148,23 +122,27 @@ cache_delete(ham_cache_t *cache);
  *
  * @remark if the page is dirty, it's the caller's responsibility to 
  * write it to disk!
+ *
+ * @remark the page is removed from the cache
  */
 extern ham_page_t *
-cache_get_unused(ham_cache_t *cache);
+cache_get_unused_page(ham_cache_t *cache);
 
 /**
  * get a page from the cache
  *
+ * @remark the page is removed from the cache
+ *
  * @return 0 if the page was not cached
  */
 extern ham_page_t *
-cache_get(ham_cache_t *cache, ham_offset_t address);
+cache_get_page(ham_cache_t *cache, ham_offset_t address);
 
 /**
  * store a page in the cache
  */
 extern ham_status_t 
-cache_put(ham_cache_t *cache, ham_page_t *page);
+cache_put_page(ham_cache_t *cache, ham_page_t *page);
 
 /**
  * remove a page from the cache
@@ -179,17 +157,10 @@ extern ham_status_t
 cache_move_to_garbage(ham_cache_t *cache, ham_page_t *page);
 
 /**
- * flush all pages, then delete them
- */
-extern ham_status_t 
-cache_flush_and_delete(ham_cache_t *cache, ham_u32_t flags);
-
-/**
- * check if the cache policy/cache size allows another allocated 
- * page
+ * returns true if the caller should purge the cache
  */
 extern ham_bool_t 
-cache_can_add_page(ham_cache_t *cache);
+cache_too_big(ham_cache_t *cache);
 
 /**
  * check the cache integrity

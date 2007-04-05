@@ -273,12 +273,13 @@ my_alloc_page(ham_db_t *db)
      * allocate a new page, if the cache is not yet full enough - although
      * the freelist pages are not managed by the cache, we try to respect
      * the maximum cache size
-     */
     if (!cache_can_add_page(db_get_cache(db))) {
         ham_trace(("cache is full! resize the cache"));
         db_set_error(db, HAM_CACHE_FULL);
         return (0);
     }
+TODO
+     */
 
     page=db_alloc_page(db, PAGE_TYPE_FREELIST, 
                 PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
