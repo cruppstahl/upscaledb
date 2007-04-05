@@ -1,5 +1,10 @@
+Apr 04, 2007 - chris
+o refactored the cache and some other modules
+o bugfix in ham_open_ex: the cachesize parameter was ignored; ham_open_ex
+    always used HAM_DEFAULT_CACHESIZE
+
 Apr 02, 2007 - chris
-o   started writing unittests and refactoring
+o started writing unittests and refactoring
 
 Mar 27, 2007 - chris
 o database files are now endian-agnostic; hamsterdb can now use big-endian 
