@@ -10,6 +10,7 @@ test_SOURCES  	= device.cpp \
                   main.cpp \
                   mem.cpp \
                   endian.cpp \
+				  page.cpp \
                   os.cpp \
                   memtracker.cpp
 test_LDADD    	= $(top_builddir)/src/libhamsterdb.la -lcppunit

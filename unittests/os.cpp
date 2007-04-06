@@ -30,6 +30,7 @@ class OsTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (openReadOnlyCloseTest);
     CPPUNIT_TEST      (negativeOpenCloseTest);
     CPPUNIT_TEST      (createCloseTest);
+    CPPUNIT_TEST      (createCloseOverwriteTest);
     CPPUNIT_TEST      (closeTest);
     CPPUNIT_TEST      (readWriteTest);
     CPPUNIT_TEST      (pagesizeTest);
@@ -100,6 +101,24 @@ public:
         CPPUNIT_ASSERT(st==0);
         st=os_close(fd);
         CPPUNIT_ASSERT(st==0);
+    }
+
+    void createCloseOverwriteTest()
+    {
+        ham_fd_t fd;
+        ham_offset_t filesize;
+
+        for (int i=0; i<3; i++) {
+            CPPUNIT_ASSERT(os_create(".test", 0, 0664, &fd)==HAM_SUCCESS);
+            CPPUNIT_ASSERT(os_seek(fd, 0, HAM_OS_SEEK_END)==HAM_SUCCESS);
+            CPPUNIT_ASSERT(os_tell(fd, &filesize)==HAM_SUCCESS);
+            CPPUNIT_ASSERT(filesize==0);
+            CPPUNIT_ASSERT(os_truncate(fd, 1024)==HAM_SUCCESS);
+            CPPUNIT_ASSERT(os_seek(fd, 0, HAM_OS_SEEK_END)==HAM_SUCCESS);
+            CPPUNIT_ASSERT(os_tell(fd, &filesize)==HAM_SUCCESS);
+            CPPUNIT_ASSERT(filesize==1024);
+            CPPUNIT_ASSERT(os_close(fd)==HAM_SUCCESS);
+        }
     }
 
     void closeTest()

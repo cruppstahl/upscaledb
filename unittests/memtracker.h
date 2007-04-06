@@ -22,12 +22,17 @@ typedef struct memdesc_t
 
 typedef struct 
 {
+    memdesc_t *header;
+    unsigned long total;
+} memtracker_priv_t;
+
+typedef struct 
+{
     alloc_func_t alloc;
     free_func_t  free;
     close_func_t close;
 
-    memdesc_t *header;
-    unsigned long total_size;
+    memtracker_priv_t *priv;
 
 } memtracker_t;
 

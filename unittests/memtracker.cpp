@@ -37,6 +37,7 @@ void *
 alloc_impl(mem_allocator_t *self, const char *file, int line, ham_u32_t size)
 {
     memtracker_t *mt=(memtracker_t *)self;
+    memtracker_priv_t *priv=(memtracker_priv_t *)mt->priv;
     memdesc_t *desc=(memdesc_t *)malloc(sizeof(*desc)+size-1+sizeof(int));
     if (!desc)
         return (0);
@@ -47,12 +48,12 @@ alloc_impl(mem_allocator_t *self, const char *file, int line, ham_u32_t size)
     desc->magic_start=MAGIC_START;
     *(int *)(desc->data+size)=MAGIC_STOP;
 
-    desc->next=mt->header;
-    if (mt->header)
-        mt->header->previous=desc;
-    mt->header=desc;
+    desc->next=priv->header;
+    if (priv->header)
+        priv->header->previous=desc;
+    priv->header=desc;
+    priv->total+=size;
 
-    mt->total_size+=desc->size;
     return (desc->data);
 }
 
@@ -60,6 +61,7 @@ void
 free_impl(mem_allocator_t *self, const char *file, int line, void *ptr)
 {
     memtracker_t *mt=(memtracker_t *)self;
+    memtracker_priv_t *priv=(memtracker_priv_t *)mt->priv;
     memdesc_t *desc, *p, *n;
 
     if (!ptr)
@@ -68,8 +70,8 @@ free_impl(mem_allocator_t *self, const char *file, int line, void *ptr)
     desc=get_descriptor(ptr);
     verify_mem_desc(desc);
 
-    if (mt->header==desc)
-        mt->header=desc->next;
+    if (priv->header==desc)
+        priv->header=desc->next;
     else {
         p=desc->previous;
         n=desc->next;
@@ -79,7 +81,7 @@ free_impl(mem_allocator_t *self, const char *file, int line, void *ptr)
             n->previous=p;
     }
 
-    mt->total_size-=desc->size;
+    priv->total-=desc->size;
     free(desc);
 }
 
@@ -96,16 +98,20 @@ memtracker_t *
 memtracker_new(void)
 {
     static memtracker_t m;
+    static memtracker_priv_t p;
     memset(&m, 0, sizeof(m));
+    memset(&p, 0, sizeof(p));
     m.alloc=alloc_impl;
     m.free =free_impl;
     m.close=close_impl;
+    m.priv=&p;
     return (&m);
 }
 
 unsigned long
 memtracker_get_leaks(memtracker_t *mt)
 {
-    return (mt->total_size);
+    memtracker_priv_t *priv=(memtracker_priv_t *)mt->priv;
+    return (priv->total);
 }
 
