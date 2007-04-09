@@ -232,6 +232,11 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
          */
         else {
             ham_size_t aligned=sizeof(blob_t)+size;
+            if (aligned%db_get_pagesize(db)) {
+                aligned+=db_get_pagesize(db);
+                aligned/=db_get_pagesize(db);
+                aligned*=db_get_pagesize(db);
+            }
 
             st=device->alloc(device, aligned, &addr);
             if (st) 

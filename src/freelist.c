@@ -255,6 +255,8 @@ my_fetch_page(ham_db_t *db, ham_offset_t address)
         return (0);
     }
 
+    page_add_ref(page);
+
     /*
      * insert the page in our local cache and return the page
      */
@@ -300,7 +302,7 @@ freel_alloc_area(ham_db_t *db, ham_size_t size, ham_u32_t flags)
     ham_status_t st;
     freel_payload_t *fp;
     db_header_t *hdr;
-
+return (0);
     /* 
      * get the database header page, and its freelist payload 
      */ 
@@ -368,6 +370,7 @@ freel_add_area(ham_db_t *db, ham_offset_t address, ham_size_t size)
     ham_offset_t overflow;
     freel_payload_t *fp;
     db_header_t *hdr;
+return (0);
 
     /* 
      * get the database header page, and its freelist payload 

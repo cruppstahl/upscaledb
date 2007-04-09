@@ -623,6 +623,15 @@ done:
     if (flags&PAGE_CLEAR_WITH_ZERO)
         memset(page_get_pers(page), 0, db_get_pagesize(db));
 
+    if (db_get_txn(db)) {
+        st=txn_add_page(db_get_txn(db), page);
+        if (st) {
+            db_set_error(db, st);
+            /* TODO memleak? */
+            return (0);
+        }
+    }
+
     if (db_get_cache(db)) {
         st=cache_put_page(db_get_cache(db), page);
         if (st) {
@@ -641,18 +650,12 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
     ham_page_t *page=0;
     ham_status_t st;
 
-    /*
-     * first, check if the page is in the txn
-     */
     if (db_get_txn(db)) {
         page=txn_get_page(db_get_txn(db), address);
         if (page)
             return (page);
     }
 
-    /*
-     * if we have a cache: fetch the page from the cache
-     */
     if (db_get_cache(db)) {
         page=cache_get_page(db_get_cache(db), address);
         if (page) {
@@ -680,16 +683,10 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
     if (st)
         return (0);
 
-    /*
-     * otherwise allocate memory for the page
-     */
     page=page_new(db);
     if (!page)
         return (0);
 
-    /*
-     * and read the page, either with mmap or read
-     */
     page_set_self(page, address);
     st=page_fetch(page);
     if (st) {
@@ -697,9 +694,6 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
         return (0);
     }
 
-    /*
-     * add the page to the transaction
-     */
     if (db_get_txn(db)) {
         st=txn_add_page(db_get_txn(db), page);
         if (st) {
@@ -709,9 +703,6 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
         }
     }
 
-    /*
-     * add the page to the cache
-     */
     if (db_get_cache(db)) {
         st=cache_put_page(db_get_cache(db), page);
         if (st) {

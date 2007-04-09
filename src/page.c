@@ -52,6 +52,13 @@ my_validate_page(ham_page_t *p)
             ("in txn and in garbage bin"));
 
     /*
+     * not allowed: in transaction, but not referenced
+     */
+    if (my_is_in_list(p, PAGE_LIST_TXN))
+        ham_assert(page_get_refcount(p)>0,
+            ("in txn, but refcount is zero"));
+
+    /*
      * not allowed: cached and in garbage bin
      */
     ham_assert(!(my_is_in_list(p, PAGE_LIST_BUCKET) && 
