@@ -3,16 +3,17 @@ if HAVE_CPPUNIT
 noinst_PROGRAMS = test
 endif
 
-INCLUDES		= -I$(top_builddir)/include
+INCLUDES        = -I$(top_builddir)/include
 
-test_SOURCES  	= device.cpp \
-				  db.cpp \
+test_SOURCES    = device.cpp \
+                  cache.cpp \
+                  db.cpp \
                   main.cpp \
                   mem.cpp \
                   endian.cpp \
-				  page.cpp \
+                  page.cpp \
                   os.cpp \
                   memtracker.cpp
-test_LDADD    	= $(top_builddir)/src/libhamsterdb.la -lcppunit
+test_LDADD      = $(top_builddir)/src/libhamsterdb.la -lcppunit
 
 noinst_BIN      = test

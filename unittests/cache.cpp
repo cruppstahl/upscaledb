@@ -1,0 +1,244 @@
+/**
+ * Copyright (C) 2005-2007 Christoph Rupp (chris@crupp.de).
+ * All rights reserved. See file LICENSE for licence and copyright
+ * information.
+ *
+ * unit tests for mem.h/mem.c
+ *
+ */
+
+#include <stdexcept>
+#include <vector>
+#include <cppunit/extensions/HelperMacros.h>
+#include <ham/hamsterdb.h>
+#include "../src/db.h"
+#include "../src/page.h"
+#include "../src/cache.h"
+#include "memtracker.h"
+
+class CacheTest : public CppUnit::TestFixture
+{
+    CPPUNIT_TEST_SUITE(CacheTest);
+    CPPUNIT_TEST      (newDeleteTest);
+    CPPUNIT_TEST      (structureTest);
+    CPPUNIT_TEST      (putGetTest);
+    CPPUNIT_TEST      (putGetRemoveGetTest);
+    CPPUNIT_TEST      (putGetReplaceTest);
+    CPPUNIT_TEST      (multiplePutTest);
+    CPPUNIT_TEST      (negativeGetTest);
+    CPPUNIT_TEST      (garbageTest);
+    CPPUNIT_TEST      (unusedTest);
+    CPPUNIT_TEST      (overflowTest);
+    CPPUNIT_TEST_SUITE_END();
+
+protected:
+    ham_db_t *m_db;
+    ham_device_t *m_dev;
+    memtracker_t *m_alloc;
+
+public:
+    void setUp()
+    { 
+        CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
+        CPPUNIT_ASSERT(0==ham_new(&m_db));
+        CPPUNIT_ASSERT((m_dev=ham_device_new(m_db, HAM_TRUE))!=0);
+        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
+        db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
+        db_set_device(m_db, m_dev);
+        db_set_pagesize(m_db, m_dev->get_pagesize(m_dev));
+    }
+    
+    void tearDown() 
+    { 
+        CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
+        ham_delete(m_db);
+        CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
+    }
+
+    void newDeleteTest(void)
+    {
+        ham_cache_t *cache=cache_new(m_db, 15);
+        CPPUNIT_ASSERT(cache!=0);
+        cache_delete(m_db, cache);
+    }
+
+    void structureTest(void)
+    {
+        ham_cache_t *cache=cache_new(m_db, 15);
+        CPPUNIT_ASSERT(cache!=0);
+        CPPUNIT_ASSERT(cache_get_max_elements(cache)==15);
+        cache_set_cur_elements(cache, 12);
+        CPPUNIT_ASSERT(cache_get_cur_elements(cache)==12);
+        cache_set_bucketsize(cache, 11);
+        CPPUNIT_ASSERT(cache_get_bucketsize(cache)==11);
+        CPPUNIT_ASSERT(cache_get_totallist(cache)==0);
+        CPPUNIT_ASSERT(cache_get_unused_page(cache)==0);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==0);
+        CPPUNIT_ASSERT(cache_too_big(cache)==0);
+        cache_delete(m_db, cache);
+    }
+    
+    void putGetTest(void)
+    {
+        ham_page_t *page;
+        ham_cache_t *cache=cache_new(m_db, 15);
+        CPPUNIT_ASSERT(cache!=0);
+        page=page_new(m_db);
+        page_set_self(page, 0x123ull);
+        page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
+        CPPUNIT_ASSERT(cache_put_page(cache, page)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==page);
+        cache_delete(m_db, cache);
+        page_delete(page);
+    }
+
+    void putGetRemoveGetTest(void)
+    {
+        ham_page_t *page;
+        ham_cache_t *cache=cache_new(m_db, 15);
+        CPPUNIT_ASSERT(cache!=0);
+        page=page_new(m_db);
+        page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
+        page_set_self(page, 0x123ull);
+        CPPUNIT_ASSERT(cache_put_page(cache, page)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==page);
+        CPPUNIT_ASSERT(cache_remove_page(cache, page)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==0);
+        cache_delete(m_db, cache);
+        page_delete(page);
+    }
+    
+    void putGetReplaceTest(void)
+    {
+        ham_page_t *page1, *page2;
+        ham_cache_t *cache=cache_new(m_db, 15);
+        CPPUNIT_ASSERT(cache!=0);
+        page1=page_new(m_db);
+        page_set_npers_flags(page1, PAGE_NPERS_NO_HEADER);
+        page_set_self(page1, 0x123ull);
+        page2=page_new(m_db);
+        page_set_npers_flags(page2, PAGE_NPERS_NO_HEADER);
+        page_set_self(page2, 0x456ull);
+        CPPUNIT_ASSERT(cache_put_page(cache, page1)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(cache_remove_page(cache, page1)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(cache_put_page(cache, page2)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==0);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x456ull)==page2);
+        cache_delete(m_db, cache);
+        page_delete(page1);
+        page_delete(page2);
+    }
+    
+    void multiplePutTest(void)
+    {
+        ham_page_t *page[20];
+        ham_cache_t *cache=cache_new(m_db, 15);
+
+        for (int i=0; i<20; i++) {
+            page[i]=page_new(m_db);
+            page_set_npers_flags(page[i], PAGE_NPERS_NO_HEADER);
+            page_set_self(page[i], i*1024);
+            CPPUNIT_ASSERT(cache_put_page(cache, page[i])==HAM_SUCCESS);
+        }
+        for (int i=0; i<20; i++) {
+            CPPUNIT_ASSERT(cache_get_page(cache, i*1024)==page[i]);
+        }
+        for (int i=0; i<20; i++) {
+            CPPUNIT_ASSERT(cache_remove_page(cache, page[i])==0);
+        }
+        for (int i=0; i<20; i++) {
+            CPPUNIT_ASSERT(cache_get_page(cache, i*1024)==0);
+            page_delete(page[i]);
+        }
+        cache_delete(m_db, cache);
+    }
+    
+    void negativeGetTest(void)
+    {
+        ham_cache_t *cache=cache_new(m_db, 15);
+        for (int i=0; i<20; i++) {
+            CPPUNIT_ASSERT(cache_get_page(cache, i*1024*13)==0);
+        }
+        cache_delete(m_db, cache);
+    }
+    
+    void garbageTest(void)
+    {
+        ham_page_t *page;
+        ham_cache_t *cache=cache_new(m_db, 15);
+        CPPUNIT_ASSERT(cache!=0);
+        page=page_new(m_db);
+        page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
+        page_set_self(page, 0x123ull);
+        CPPUNIT_ASSERT(cache_put_page(cache, page)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==page);
+        CPPUNIT_ASSERT(cache_move_to_garbage(cache, page)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==0);
+        CPPUNIT_ASSERT(cache_get_unused_page(cache)==page);
+        CPPUNIT_ASSERT(cache_get_unused_page(cache)==0);
+        cache_delete(m_db, cache);
+        page_delete(page);
+    }
+    
+    void unusedTest(void)
+    {
+        ham_page_t *page1, *page2;
+        ham_cache_t *cache=cache_new(m_db, 15);
+        CPPUNIT_ASSERT(cache!=0);
+        page1=page_new(m_db);
+        page_set_npers_flags(page1, PAGE_NPERS_NO_HEADER);
+        page_set_self(page1, 0x123ull);
+        page_add_ref(page1);
+        page2=page_new(m_db);
+        page_set_npers_flags(page2, PAGE_NPERS_NO_HEADER);
+        page_set_self(page2, 0x456ull);
+        CPPUNIT_ASSERT(cache_put_page(cache, page1)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(cache_put_page(cache, page2)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(cache_get_unused_page(cache)==page2);
+        CPPUNIT_ASSERT(cache_get_unused_page(cache)==0);
+        CPPUNIT_ASSERT(cache_get_unused_page(cache)==0);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==page1);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x456ull)==0);
+        cache_delete(m_db, cache);
+        page_delete(page1);
+        page_delete(page2);
+    }
+    
+    void overflowTest(void)
+    {
+        ham_cache_t *cache=cache_new(m_db, 15);
+        std::vector<ham_page_t *> v;
+
+        for (int i=0; i<cache_get_max_elements(cache)+10; i++) {
+            ham_page_t *p=page_new(m_db);
+            page_set_npers_flags(p, PAGE_NPERS_NO_HEADER);
+            page_set_self(p, i*1024);
+            v.push_back(p);
+            CPPUNIT_ASSERT(cache_put_page(cache, p)==0);
+        }
+
+        for (int i=0; i<=10; i++) {
+            ham_page_t *p;
+            CPPUNIT_ASSERT(cache_too_big(cache));
+            p=v.back();
+            v.pop_back();
+            CPPUNIT_ASSERT(cache_remove_page(cache, p)==HAM_SUCCESS);
+            page_delete(p);
+        }
+
+        for (int i=0; i<cache_get_max_elements(cache)-1; i++) {
+            ham_page_t *p;
+            p=v.back();
+            v.pop_back();
+            CPPUNIT_ASSERT(!cache_too_big(cache));
+            CPPUNIT_ASSERT(cache_remove_page(cache, p)==HAM_SUCCESS);
+            page_delete(p);
+        }
+
+        CPPUNIT_ASSERT(!cache_too_big(cache));
+        cache_delete(m_db, cache);
+    }
+};
+
+CPPUNIT_TEST_SUITE_REGISTRATION(CacheTest);
+
