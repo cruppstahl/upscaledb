@@ -136,6 +136,12 @@ extern ham_status_t
 freel_create(ham_db_t *db);
 
 /**
+ * flush all freelist pages
+ */
+extern ham_status_t
+freel_shutdown(ham_db_t *db);
+
+/**
  * search for a free freelist entry which has space for @a size bytes,
  * and return the address of this area. the freelist entry is removed
  * from the list.
@@ -153,12 +159,6 @@ freel_alloc_area(ham_db_t *db, ham_size_t size, ham_u32_t flags);
  */
 extern ham_status_t 
 freel_add_area(ham_db_t *db, ham_offset_t address, ham_size_t size);
-
-/**
- * flush all freelist pages
- */
-extern ham_status_t
-freel_shutdown(ham_db_t *db);
 
 
 #ifdef __cplusplus

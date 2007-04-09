@@ -965,13 +965,15 @@ ham_close(ham_db_t *db)
     }
 
     /* close the backend */
-    if (db_get_backend(db)) {
-        st=db_get_backend(db)->_fun_close(db_get_backend(db));
+    if (be) {
+        st=be->_fun_close(db_get_backend(db));
         if (st) {
             ham_log(("backend close() failed with status %d (%s)",
                     st, ham_strerror(st)));
             return (st);
         }
+        ham_mem_free(db, be);
+        db_set_backend(db, 0);
     }
 
     /*
@@ -992,6 +994,8 @@ ham_close(ham_db_t *db)
                     st, ham_strerror(st)));
             return (db_set_error(db, st));
         }
+        page_delete(db_get_header_page(db));
+        db_set_header_page(db, 0);
     }
 
     /* get rid of the cache */
