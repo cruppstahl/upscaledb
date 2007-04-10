@@ -122,7 +122,6 @@ cache_get_page(ham_cache_t *cache, ham_offset_t address)
     }
 
     if (page) {
-        ham_assert(page_get_pers(page), (0));
         cache_set_totallist(cache, 
             page_list_remove(cache_get_totallist(cache), 
             PAGE_LIST_CACHED, page));

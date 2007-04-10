@@ -994,6 +994,12 @@ ham_close(ham_db_t *db)
                     st, ham_strerror(st)));
             return (db_set_error(db, st));
         }
+        st=page_free(db_get_header_page(db));
+        if (st) {
+            ham_log(("page_free() failed with status %d (%s)",
+                    st, ham_strerror(st)));
+            return (db_set_error(db, st));
+        }
         page_delete(db_get_header_page(db));
         db_set_header_page(db, 0);
     }
