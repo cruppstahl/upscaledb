@@ -14,6 +14,7 @@
 #include "../src/db.h"
 #include "../src/page.h"
 #include "../src/cache.h"
+#include "../src/error.h"
 #include "memtracker.h"
 
 class CacheTest : public CppUnit::TestFixture
@@ -200,6 +201,7 @@ public:
         CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==page1);
         CPPUNIT_ASSERT(cache_get_page(cache, 0x456ull)==0);
         cache_delete(m_db, cache);
+        page_release_ref(page1);
         page_delete(page1);
         page_delete(page2);
     }
