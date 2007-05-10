@@ -40,17 +40,26 @@ protected:
 public:
     void setUp()
     { 
+        ham_page_t *p;
         CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
         CPPUNIT_ASSERT(0==ham_new(&m_db));
         CPPUNIT_ASSERT((m_dev=ham_device_new(m_db, HAM_TRUE))!=0);
         CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         db_set_device(m_db, m_dev);
+        p=page_new(m_db);
+        CPPUNIT_ASSERT(0==page_alloc(p, m_dev->get_pagesize(m_dev)));
+        db_set_header_page(m_db, p);
         db_set_pagesize(m_db, m_dev->get_pagesize(m_dev));
     }
     
     void tearDown() 
     { 
+        if (db_get_header_page(m_db)) {
+            page_free(db_get_header_page(m_db));
+            page_delete(db_get_header_page(m_db));
+            db_set_header_page(m_db, 0);
+        }
         CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
         ham_delete(m_db);
         CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));

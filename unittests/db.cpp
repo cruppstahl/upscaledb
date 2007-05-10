@@ -47,15 +47,25 @@ public:
 
     void setUp()
     { 
+        ham_page_t *p;
         CPPUNIT_ASSERT(0==ham_new(&m_db));
         m_alloc=ham_default_allocator_new(); //memtracker_new();
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         db_set_device(m_db, (m_dev=ham_device_new(m_db, m_inmemory)));
+        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
+        p=page_new(m_db);
+        CPPUNIT_ASSERT(0==page_alloc(p, m_dev->get_pagesize(m_dev)));
+        db_set_header_page(m_db, p);
         db_set_pagesize(m_db, m_dev->get_pagesize(m_dev));
     }
     
     void tearDown() 
     { 
+        if (db_get_header_page(m_db)) {
+            page_free(db_get_header_page(m_db));
+            page_delete(db_get_header_page(m_db));
+            db_set_header_page(m_db, 0);
+        }
         ham_delete(m_db);
         //CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
     }
@@ -80,8 +90,10 @@ public:
         db_set_keysize(m_db, 12);
         CPPUNIT_ASSERT(db_get_keysize(m_db)==12);
 
+        ham_size_t ps=db_get_pagesize(m_db);
         db_set_pagesize(m_db, 1024*64);
         CPPUNIT_ASSERT(db_get_pagesize(m_db)==1024*64);
+        db_set_pagesize(m_db, ps);
 
         db_set_pers_flags(m_db, 12);
         CPPUNIT_ASSERT(db_get_pers_flags(m_db)==12);
@@ -95,11 +107,7 @@ public:
 
     void structureTest()
     {
-        CPPUNIT_ASSERT(db_get_header_page(m_db)==0);
-        db_set_header_page(m_db, (ham_page_t *)13);
-        CPPUNIT_ASSERT(db_get_header_page(m_db)==(ham_page_t *)13);
-        db_set_header_page(m_db, 0); /* avoid crash in ham_delete */
-        CPPUNIT_ASSERT(db_get_header_page(m_db)==0);
+        CPPUNIT_ASSERT(db_get_header_page(m_db)!=0);
 
         CPPUNIT_ASSERT(db_get_error(m_db)==HAM_SUCCESS);
         db_set_error(m_db, HAM_IO_ERROR);
@@ -115,10 +123,10 @@ public:
         CPPUNIT_ASSERT(db_get_cache(m_db)==(ham_cache_t *)16);
         db_set_cache(m_db, 0);
 
-        CPPUNIT_ASSERT(db_get_freelist_cache(m_db)==0);
-        db_set_freelist_cache(m_db, (ham_page_t *)17);
-        CPPUNIT_ASSERT(db_get_freelist_cache(m_db)==(ham_page_t *)17);
-        db_set_freelist_cache(m_db, 0);
+        CPPUNIT_ASSERT(db_get_freelist_txn(m_db)==0);
+        db_set_freelist_txn(m_db, (ham_txn_t *)17);
+        CPPUNIT_ASSERT(db_get_freelist_txn(m_db)==(ham_txn_t *)17);
+        db_set_freelist_txn(m_db, 0);
 
         CPPUNIT_ASSERT(db_get_prefix_compare_func(m_db)==0);
         db_set_prefix_compare_func(m_db, (ham_prefix_compare_func_t)18);
@@ -187,7 +195,6 @@ public:
     void allocPageTest(void)
     {
         ham_page_t *page;
-        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
         CPPUNIT_ASSERT((page=db_alloc_page(m_db, 0, PAGE_IGNORE_FREELIST))!=0);
         CPPUNIT_ASSERT(page_get_owner(page)==m_db);
         CPPUNIT_ASSERT(db_free_page(page)==HAM_SUCCESS);

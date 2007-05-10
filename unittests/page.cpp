@@ -39,6 +39,7 @@ public:
 
     void setUp()
     { 
+        ham_page_t *p;
         CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
         CPPUNIT_ASSERT(0==ham_new(&m_db));
         CPPUNIT_ASSERT((m_dev=ham_device_new(m_db, m_inmemory))!=0);
@@ -47,11 +48,19 @@ public:
         CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         db_set_device(m_db, m_dev);
+        p=page_new(m_db);
+        CPPUNIT_ASSERT(0==page_alloc(p, m_dev->get_pagesize(m_dev)));
+        db_set_header_page(m_db, p);
         db_set_pagesize(m_db, m_dev->get_pagesize(m_dev));
     }
     
     void tearDown() 
     { 
+        if (db_get_header_page(m_db)) {
+            page_free(db_get_header_page(m_db));
+            page_delete(db_get_header_page(m_db));
+            db_set_header_page(m_db, 0);
+        }
         CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
         ham_delete(m_db);
         CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
@@ -69,7 +78,7 @@ public:
     {
         ham_page_t *page;
         page=page_new(m_db);
-        CPPUNIT_ASSERT(page_alloc(page)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(page_alloc(page, db_get_pagesize(m_db))==HAM_SUCCESS);
         CPPUNIT_ASSERT(page_free(page)==HAM_SUCCESS);
         page_delete(page);
     }
@@ -82,9 +91,9 @@ public:
 
         for (i=0; i<10; i++) {
             page=page_new(m_db);
-            CPPUNIT_ASSERT(page_alloc(page)==HAM_SUCCESS);
+            CPPUNIT_ASSERT(page_alloc(page, db_get_pagesize(m_db))==0);
             if (!m_inmemory)
-                CPPUNIT_ASSERT(page_get_self(page)==i*ps);
+                CPPUNIT_ASSERT(page_get_self(page)==(i+1)*ps);
             CPPUNIT_ASSERT(page_free(page)==HAM_SUCCESS);
             page_delete(page);
         }
@@ -97,17 +106,18 @@ public:
 
         page=page_new(m_db);
         temp=page_new(m_db);
-        CPPUNIT_ASSERT(page_alloc(page)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(page_get_self(page)==0);
+        CPPUNIT_ASSERT(page_alloc(page, db_get_pagesize(m_db))==HAM_SUCCESS);
+        CPPUNIT_ASSERT(page_get_self(page)==ps);
         CPPUNIT_ASSERT(page_free(page)==HAM_SUCCESS);
         
-        CPPUNIT_ASSERT(page_fetch(page)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(page_fetch(page, db_get_pagesize(m_db))==HAM_SUCCESS);
         memset(page_get_pers(page), 0x13, ps);
         page_set_dirty(page, 1);
         CPPUNIT_ASSERT(page_flush(page)==HAM_SUCCESS);
 
-        page_set_self(temp, 0);
-        CPPUNIT_ASSERT(page_fetch(temp)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(page_is_dirty(page)==0);
+        page_set_self(temp, ps);
+        CPPUNIT_ASSERT(page_fetch(temp, db_get_pagesize(m_db))==HAM_SUCCESS);
         CPPUNIT_ASSERT(0==memcmp(page_get_pers(page), page_get_pers(temp), ps));
 
         CPPUNIT_ASSERT(page_free(page)==HAM_SUCCESS);

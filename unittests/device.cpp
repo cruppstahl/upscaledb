@@ -42,15 +42,25 @@ public:
 
     void setUp()
     { 
+        ham_page_t *p;
         m_alloc=memtracker_new();
         CPPUNIT_ASSERT(0==ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         db_set_device(m_db, (m_dev=ham_device_new(m_db, m_inmemory)));
+        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
+        p=page_new(m_db);
+        CPPUNIT_ASSERT(0==page_alloc(p, m_dev->get_pagesize(m_dev)));
+        db_set_header_page(m_db, p);
         db_set_pagesize(m_db, m_dev->get_pagesize(m_dev));
     }
     
     void tearDown() 
     { 
+        if (db_get_header_page(m_db)) {
+            page_free(db_get_header_page(m_db));
+            page_delete(db_get_header_page(m_db));
+            db_set_header_page(m_db, 0);
+        }
         ham_delete(m_db);
         CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
     }
@@ -63,8 +73,6 @@ public:
 
     void createCloseTest()
     {
-        CPPUNIT_ASSERT(!m_dev->is_open(m_dev));
-        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
         CPPUNIT_ASSERT(m_dev->is_open(m_dev));
         CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
         CPPUNIT_ASSERT(!m_dev->is_open(m_dev));
@@ -73,8 +81,6 @@ public:
     void openCloseTest()
     {
         if (!m_inmemory) {
-            CPPUNIT_ASSERT(!m_dev->is_open(m_dev));
-            CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0,0644)==HAM_SUCCESS);
             CPPUNIT_ASSERT(m_dev->is_open(m_dev));
             CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
             CPPUNIT_ASSERT(!m_dev->is_open(m_dev));
@@ -97,11 +103,10 @@ public:
         int i;
         ham_offset_t address;
 
-        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
         CPPUNIT_ASSERT(m_dev->is_open(m_dev));
         for (i=0; i<10; i++) {
             CPPUNIT_ASSERT(m_dev->alloc(m_dev, 1024, &address)==HAM_SUCCESS);
-            CPPUNIT_ASSERT(address==1024*i);
+            CPPUNIT_ASSERT(address==db_get_pagesize(m_db)+1024*i);
         }
         CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
     }
@@ -112,9 +117,9 @@ public:
         ham_page_t page;
         memset(&page, 0, sizeof(page));
 
-        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
         CPPUNIT_ASSERT(m_dev->is_open(m_dev));
-        CPPUNIT_ASSERT(m_dev->alloc_page(m_dev, &page)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(m_dev->alloc_page(m_dev, &page, 
+                    db_get_pagesize(m_db))==HAM_SUCCESS);
         CPPUNIT_ASSERT(page_get_pers(&page)!=0);
         CPPUNIT_ASSERT(m_dev->free_page(m_dev, &page)==HAM_SUCCESS);
         CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
@@ -122,12 +127,9 @@ public:
 
     void flushTest()
     {
-        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
         CPPUNIT_ASSERT(m_dev->is_open(m_dev));
         CPPUNIT_ASSERT(m_dev->flush(m_dev)==HAM_SUCCESS);
         CPPUNIT_ASSERT(m_dev->is_open(m_dev));
-        CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(!m_dev->is_open(m_dev));
     }
 
     void mmapUnmapTest()
@@ -137,13 +139,13 @@ public:
         ham_size_t ps=m_dev->get_pagesize(m_dev);
         ham_u8_t *temp=(ham_u8_t *)malloc(ps);
 
-        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
         CPPUNIT_ASSERT(m_dev->is_open(m_dev));
         CPPUNIT_ASSERT(m_dev->truncate(m_dev, ps*10)==HAM_SUCCESS);
         for (i=0; i<10; i++) {
             memset(&pages[i], 0, sizeof(ham_page_t));
             page_set_self(&pages[i], i*ps);
-            CPPUNIT_ASSERT(m_dev->read_page(m_dev, &pages[i])==HAM_SUCCESS);
+            CPPUNIT_ASSERT(m_dev->read_page(m_dev, &pages[i], 
+                        db_get_pagesize(m_db))==HAM_SUCCESS);
         }
         for (i=0; i<10; i++)
             memset(page_get_pers(&pages[i]), i, ps);
@@ -156,7 +158,8 @@ public:
             memset(temp, i, ps);
             CPPUNIT_ASSERT(m_dev->free_page(m_dev, &pages[i])==HAM_SUCCESS);
 
-            CPPUNIT_ASSERT(m_dev->read_page(m_dev, &pages[i])==HAM_SUCCESS);
+            CPPUNIT_ASSERT(m_dev->read_page(m_dev, &pages[i], 
+                        db_get_pagesize(m_db))==HAM_SUCCESS);
             buffer=(ham_u8_t *)page_get_pers(&pages[i]);
             CPPUNIT_ASSERT(memcmp(buffer, temp, ps)==0);
         }
@@ -176,7 +179,6 @@ public:
 
         m_dev->set_flags(m_dev, DEVICE_NO_MMAP);
 
-        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
         CPPUNIT_ASSERT(m_dev->is_open(m_dev));
         CPPUNIT_ASSERT(m_dev->truncate(m_dev, ps*10)==HAM_SUCCESS);
         for (i=0; i<10; i++) {
