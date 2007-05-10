@@ -307,11 +307,6 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *            modified freelist pages. This flag leads to small 
  *            performance improvements, but comes with additional
  *            risk in case of a system crash or program crash.
- *       <li>@a HAM_OPTIMIZE_SIZE</li> Optimize for smaller database files; 
- *            hamsterdb will try to merge freelist entries, whenever 
- *            possible. Files can become significantly smaller,
- *            but it costs performance, especially when the application 
- *            often deletes items.
  *      </ul>
  *
  * @param cachesize The size of the database cache, in bytes. Set to 0
@@ -396,11 +391,6 @@ ham_create(ham_db_t *db, const char *filename,
  *            modified freelist pages. This flag leads to small 
  *            performance improvements, but comes with additional
  *            risk in case of a system crash or program crash.
- *       <li>@a HAM_OPTIMIZE_SIZE</li> Optimize for smaller database files; 
- *            hamsterdb will try to merge freelist entries, whenever 
- *            possible. Files can become significantly smaller,
- *            but it costs performance, especially when the application 
- *            often deletes items.
  *      </ul>
  *
  * @param keysize The size of the keys in the B+Tree index. Set to 0 for 
@@ -462,9 +452,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
 
 /** Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex */
 #define HAM_DISABLE_FREELIST_FLUSH   0x00000800
-
-/** Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex */
-#define HAM_OPTIMIZE_SIZE            0x00001000
 
 /**
  * Get the last error code
