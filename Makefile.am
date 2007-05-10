@@ -9,6 +9,7 @@ EXTRA_DIST = documentation/Doxyfile         \
              build/scripts/*                \
              src/*.c src/*.h src/Makefile.am\
              src/Makefile.in                \
+             unittests/memtracker.h         \
              win32                          \
              win32/hamsterdb                \
              win32/hamsterdb/hamsterdb.sln  \
