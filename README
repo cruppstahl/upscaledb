@@ -1,5 +1,5 @@
 
-hamsterdb 0.4.2                                Tue Mar 27 19:08:01 UTC 2007
+hamsterdb 0.4.2                                Thu May 10 19:50:01 UTC 2007
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb. 
@@ -14,21 +14,22 @@ create in-memory databases.
 
 2. Changes
 
-hamsterdb is now endian agnostic. Database files created on little-endian
-architectures will also work on big-endian systems, and vice versa. 
+The header file comments were rewritten. The freelist is now a bitmap and 
+therefore faster and more efficient.
 
-The documentation was completely rewritten and a webpage was created 
-(http://www.hamsterdb.com).
+Added a unittest suite based on cppunit with more then 70 unittests.
 
 Some minor bugs were fixed as well. To see a list of all changes, look 
 in the file CHANGELOG.
 
 3. Roadmap
 
-The next releases will offer the following new features:
-- command line tools for recovery, dump and statistics
-- duplicate items
+The next releases will offer one of the following new features:
+- a web page, more documentation
+- endian agnostic files
 - multiple databases in one file
+- duplicate items
+- command line tools for recovery, dump and statistics
 
 4. Features
 
@@ -38,12 +39,12 @@ The next releases will offer the following new features:
 - Configurable page size, cache size and index key size
 - Portable ANSI-C implementation
 - Runs on Linux, Unices, Microsoft Windows
-- Database files are endian-agnostic
 - Uses memory mapped I/O for fast disk access (but falls back to read/write if
   mmap is not available)
 - Uses 64bit file pointers and supports huge files (>2 GB)
 - Easy to use and well-documented
-- Supports rudimentary live-reorganization by merging freelist entries
+- Supports rudimentary live-reorganization by automatically
+    merging freelist entries
 - Open source and released under the GPL 2.0
 
 5. Known Issues/Bugs

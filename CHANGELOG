@@ -1,9 +1,12 @@
-Mai 10, 2007 - chris
+May 10, 2007 - chris ---------------------------------------------------
+                      release of hamsterdb-0.4.2
+
+May 10, 2007 - chris
 o refactored the freelist and reimplemented it as a bitmap
 o removed HAM_OPTIMIZE_SIZE - this flag is no longer needed, the new bitmap
     structures are automatically optimized
 
-Mai 5, 2007 - chris
+May 5, 2007 - chris
 o new unittests for the freelist
 
 Apr 04, 2007 - chris
