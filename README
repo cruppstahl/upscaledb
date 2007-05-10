@@ -12,6 +12,12 @@ hamsterdb is a database engine written in ANSI C. It supports a B+Tree index
 structure, uses memory mapped I/O (if available), supports cursors, and can
 create in-memory databases.
 
+Database files from 0.4.1 are not compatible to 0.4.2. 
+
+Although no bugs are known, this release is marked "unstable", because the
+database file format is still subject to change. The first stable release 
+will be version 1.0. 
+
 2. Changes
 
 The header file comments were rewritten. The freelist is now a bitmap and 
