@@ -6,7 +6,7 @@ x monster.sh: test with massive page splits: pagesize=1024 and
 
 x remove HAM_OPTIMIZE_SIZE - no longer necessary
 
-o release 0.4.1! (unstable! database format changed!)
+o release 0.4.2! (unstable! database format changed!)
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -22,7 +22,7 @@ o create a webpage
     o offer API doc and tutorial as pdf
     o ask someone to correct my english
 
-o release 0.4.2!
+o release 0.4.3!
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -65,7 +65,7 @@ o shrink files, if the freelist allows shrinking and if "HAM_AUTO_REORG" is
 
 o replace os_tell with os_get_filesize 
 
-o release 0.4.3
+o release 0.4.4
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -77,7 +77,7 @@ o add file locking to enable simple concurrency:
 
 o test 1 writer, multiple reader scenarios
 
-o release 0.4.4
+o release 0.4.5
     
 -----------------------------------------------------
 -----------------------------------------------------
@@ -112,6 +112,6 @@ o do a complete source code review, or ask someone to do it
             be moved to the backend
     o check the TODOs in the source
 
-o release 0.4.5 - should be stable!!
+o release 0.4.6 - should be stable!!
     increment libtool version to 0.1
 
