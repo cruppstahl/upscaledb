@@ -88,7 +88,8 @@ struct ham_device_t {
      * The caller is responsible for flushing the page; the function will 
      * assert that the page is not dirty.
      */
-    ham_status_t (*alloc_page)(ham_device_t *self, ham_page_t *page);
+    ham_status_t (*alloc_page)(ham_device_t *self, ham_page_t *page, 
+            ham_size_t size);
 
     /*
      * reads from the device; this function does not use mmap
@@ -105,7 +106,8 @@ struct ham_device_t {
     /*
      * reads a page from the device; this function CAN use mmap
      */
-    ham_status_t (*read_page)(ham_device_t *self, ham_page_t *page);
+    ham_status_t (*read_page)(ham_device_t *self, ham_page_t *page,
+            ham_size_t size);
 
     /*
      * writes a page to the device

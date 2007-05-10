@@ -174,7 +174,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
     ham_offset_t addr;
     blob_t hdr;
     ham_u8_t *chunk_data[2];
-    ham_size_t chunk_size[2];
+    ham_size_t alloc_size, chunk_size[2];
     ham_device_t *device=db_get_device(db);
    
     *blobid=0;
@@ -206,15 +206,22 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
 
     memset(&hdr, 0, sizeof(hdr));
 
+    /*
+     * blobs are CHUNKSIZE-allocated 
+     */
+    alloc_size=sizeof(blob_t)+size;
+    if (alloc_size%DB_CHUNKSIZE!=0)
+        alloc_size=((alloc_size/DB_CHUNKSIZE)*DB_CHUNKSIZE)+DB_CHUNKSIZE;
+
     /* 
      * check if we have space in the freelist 
      */
-    addr=freel_alloc_area(db, sizeof(blob_t)+size, FREEL_DONT_ALIGN);
+    addr=freel_alloc_area(db, alloc_size);
     if (!addr) {
         /*
          * if the blob is small, we load the page through the cache
          */
-        if (my_blob_is_small(db, sizeof(blob_t)+size)) {
+        if (my_blob_is_small(db, alloc_size)) {
             page=db_alloc_page(db, PAGE_TYPE_B_INDEX|PAGE_IGNORE_FREELIST, 0);
             if (!page)
                 return (db_get_error(db));
@@ -223,15 +230,15 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
                     page_get_npers_flags(page)|PAGE_NPERS_NO_HEADER);
             addr=page_get_self(page);
             /* move the remaining space to the freelist */
-            (void)freel_add_area(db, addr+size+sizeof(blob_t), 
-                    db_get_pagesize(db)-size-sizeof(blob_t));
-            blob_set_alloc_size(&hdr, sizeof(blob_t)+size);
+            (void)freel_mark_free(db, addr+alloc_size,
+                    db_get_pagesize(db)-alloc_size);
+            blob_set_alloc_size(&hdr, alloc_size);
         }
         /*
          * otherwise use direct IO to allocate the space
          */
         else {
-            ham_size_t aligned=sizeof(blob_t)+size;
+            ham_size_t aligned=alloc_size;
             if (aligned%db_get_pagesize(db)) {
                 aligned+=db_get_pagesize(db);
                 aligned/=db_get_pagesize(db);
@@ -244,10 +251,10 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
 
             /* if aligned!=size, and the remaining chunk is large enough:
              * move it to the freelist */
-            if (aligned!=size+sizeof(blob_t)) {
-                ham_size_t diff=aligned-(size+sizeof(blob_t));
+            if (aligned!=alloc_size) {
+                ham_size_t diff=aligned-alloc_size;
                 if (diff>SMALLEST_CHUNK_SIZE) {
-                    (void)freel_add_area(db, addr+size+sizeof(blob_t), diff);
+                    (void)freel_mark_free(db, addr+alloc_size, diff);
                     blob_set_alloc_size(&hdr, aligned-diff);
                 }
                 else 
@@ -258,7 +265,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
         }
     }
     else
-        blob_set_alloc_size(&hdr, sizeof(blob_t)+size);
+        blob_set_alloc_size(&hdr, alloc_size);
 
     blob_set_real_size(&hdr, sizeof(blob_t)+size);
     blob_set_user_size(&hdr, size);
@@ -313,7 +320,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
                     ham_mem_free(db, db_get_record_allocdata(db));
                 record->data=newdata;
                 db_set_record_allocdata(db, newdata);
-                db_set_record_allocsize(db, (ham_size_t)blob_get_user_size(hdr));
+                db_set_record_allocsize(db,(ham_size_t)blob_get_user_size(hdr));
             }
             else
                 record->data=db_get_record_allocdata(db);
@@ -326,12 +333,16 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
         return (0);
     }
 
+    ham_assert(blobid%DB_CHUNKSIZE==0, (0));
+
     /*
      * first step: read the blob header 
      */
     st=my_read_chunk(db, blobid, (ham_u8_t *)&hdr, sizeof(hdr));
     if (st)
         return (st);
+
+    ham_assert(blob_get_alloc_size(&hdr)%DB_CHUNKSIZE==0, (0));
 
     /*
      * sanity check
@@ -379,6 +390,7 @@ blob_replace(ham_db_t *db, ham_offset_t old_blobid,
         ham_offset_t *new_blobid)
 {
     ham_status_t st;
+    ham_size_t alloc_size;
     blob_t old_hdr, new_hdr;
 
     /*
@@ -392,6 +404,15 @@ blob_replace(ham_db_t *db, ham_offset_t old_blobid,
         return (blob_allocate(db, data, size, flags, new_blobid));
     }
 
+    ham_assert(old_blobid%DB_CHUNKSIZE==0, (0));
+
+    /*
+     * blobs are CHUNKSIZE-allocated 
+     */
+    alloc_size=sizeof(blob_t)+size;
+    if (alloc_size%DB_CHUNKSIZE!=0)
+        alloc_size=((alloc_size/DB_CHUNKSIZE)*DB_CHUNKSIZE)+DB_CHUNKSIZE;
+
     /*
      * first, read the blob header; if the new blob fits into the 
      * old blob, we overwrite the old blob (and add the remaining
@@ -401,6 +422,8 @@ blob_replace(ham_db_t *db, ham_offset_t old_blobid,
             sizeof(old_hdr));
     if (st)
         return (st);
+
+    ham_assert(blob_get_alloc_size(&old_hdr)%DB_CHUNKSIZE==0, (0));
 
     /*
      * sanity check
@@ -414,7 +437,7 @@ blob_replace(ham_db_t *db, ham_offset_t old_blobid,
     /*
      * now compare the sizes
      */
-    if (size+sizeof(blob_t)<=blob_get_alloc_size(&old_hdr)) {
+    if (alloc_size<=blob_get_alloc_size(&old_hdr)) {
         ham_u8_t *chunk_data[2]={(ham_u8_t *)&new_hdr, data};
         ham_size_t chunk_size[2]={sizeof(new_hdr), size};
 
@@ -424,9 +447,8 @@ blob_replace(ham_db_t *db, ham_offset_t old_blobid,
         blob_set_self(&new_hdr, blob_get_self(&old_hdr));
         blob_set_user_size(&new_hdr, size);
         blob_set_real_size(&new_hdr, size+sizeof(blob_t));
-        if (blob_get_alloc_size(&old_hdr)-(size+sizeof(blob_t))>
-                SMALLEST_CHUNK_SIZE)
-            blob_set_alloc_size(&new_hdr, size+sizeof(blob_t));
+        if (blob_get_alloc_size(&old_hdr)-alloc_size>SMALLEST_CHUNK_SIZE)
+            blob_set_alloc_size(&new_hdr, alloc_size);
         else
             blob_set_alloc_size(&new_hdr, blob_get_alloc_size(&old_hdr));
 
@@ -439,7 +461,7 @@ blob_replace(ham_db_t *db, ham_offset_t old_blobid,
          * move remaining data to the freelist
          */
         if (blob_get_alloc_size(&old_hdr)!=blob_get_alloc_size(&new_hdr)) {
-            (void)freel_add_area(db, 
+            (void)freel_mark_free(db, 
                   blob_get_self(&new_hdr)+blob_get_alloc_size(&new_hdr), 
                   (ham_size_t)(blob_get_alloc_size(&old_hdr)-
                     blob_get_alloc_size(&new_hdr)));
@@ -453,7 +475,7 @@ blob_replace(ham_db_t *db, ham_offset_t old_blobid,
         return (0);
     }
     else {
-        (void)freel_add_area(db, old_blobid, 
+        (void)freel_mark_free(db, old_blobid, 
                 (ham_size_t)blob_get_alloc_size(&old_hdr));
 
         return (blob_allocate(db, data, size, flags, new_blobid));
@@ -476,12 +498,16 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
         return (0);
     }
 
+    ham_assert(blobid%DB_CHUNKSIZE==0, (0));
+
     /*
      * fetch the blob header 
      */
     st=my_read_chunk(db, blobid, (ham_u8_t *)&hdr, sizeof(hdr));
     if (st)
         return (st);
+
+    ham_assert(blob_get_alloc_size(&hdr)%DB_CHUNKSIZE==0, (0));
 
     /*
      * sanity check
@@ -494,7 +520,7 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
     /*
      * move the blob to the freelist
      */
-    (void)freel_add_area(db, blobid, 
+    (void)freel_mark_free(db, blobid, 
             (ham_size_t)blob_get_alloc_size(&hdr));
 
     return (0);

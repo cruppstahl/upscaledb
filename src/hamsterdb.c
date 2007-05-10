@@ -245,7 +245,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     ham_cache_t *cache;
     ham_backend_t *backend;
     ham_u8_t hdrbuf[512];
-    db_header_t *dbhdr;
+    ham_size_t pagesize;
     ham_page_t *page;
     ham_device_t *device;
 
@@ -293,15 +293,14 @@ ham_open_ex(ham_db_t *db, const char *filename,
                 st, ham_strerror(st)));
         return (db_set_error(db, st));
     }
-    dbhdr=(db_header_t *)&hdrbuf[12];
-    db_set_pagesize(db, ham_db2h32(dbhdr->_pagesize));
+    pagesize=ham_db2h32(((db_header_t *)&hdrbuf[12])->_pagesize);
 
     /*
      * can we use mmap?
      */
 #if HAVE_MMAP
     if (!(flags&HAM_DISABLE_MMAP)) {
-        if (db_get_pagesize(db)%os_get_pagesize()==0)
+        if (pagesize%os_get_pagesize()==0)
             flags|=DB_USE_MMAP;
         else
             device->set_flags(device, DEVICE_NO_MMAP);
@@ -319,17 +318,11 @@ ham_open_ex(ham_db_t *db, const char *filename,
     page=page_new(db);
     if (!page)
         return (db_get_error(db));
-    st=page_fetch(page);
+    st=page_fetch(page, pagesize);
     if (st)
         return (st);
     page_set_type(page, PAGE_TYPE_HEADER);
     db_set_header_page(db, page);
-
-    /*
-     * copy the persistent header to the database object
-     */
-    memcpy(&db_get_header(db), page_get_payload(page),
-            sizeof(db_header_t)-sizeof(freel_payload_t));
 
     /* set the database flags */
     db_set_rt_flags(db, flags|db_get_pers_flags(db));
@@ -342,8 +335,6 @@ ham_open_ex(ham_db_t *db, const char *filename,
     ham_assert(!(db_get_pers_flags(db)&HAM_WRITE_THROUGH), 
             ("invalid persistent database flags 0x%x", db_get_pers_flags(db)));
     ham_assert(!(db_get_pers_flags(db)&HAM_READ_ONLY), 
-            ("invalid persistent database flags 0x%x", db_get_pers_flags(db)));
-    ham_assert(!(db_get_pers_flags(db)&HAM_OPTIMIZE_SIZE), 
             ("invalid persistent database flags 0x%x", db_get_pers_flags(db)));
     ham_assert(!(db_get_pers_flags(db)&HAM_DISABLE_FREELIST_FLUSH), 
             ("invalid persistent database flags 0x%x", db_get_pers_flags(db)));
@@ -424,7 +415,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
     ham_status_t st;
     ham_cache_t *cache;
     ham_backend_t *backend;
-    db_header_t *h;
     ham_page_t *page;
     ham_u32_t pflags;
     ham_device_t *device;
@@ -529,9 +519,27 @@ ham_create_ex(ham_db_t *db, const char *filename,
             return (db_set_error(db, HAM_OUT_OF_MEMORY));
     }
 
-    /*
-     * initialize the header
-     */
+    /* create the file */
+    st=device->create(device, filename, flags, mode);
+    if (st)
+        return (db_set_error(db, st));
+    db_set_device(db, device);
+
+    /* allocate a database header page */
+    page=page_new(db);
+    if (!page) {
+        ham_log(("unable to allocate the header page"));
+        return (db_get_error(db));
+    }
+    st=page_alloc(page, pagesize);
+    if (st)
+        return (st);
+    memset(page_get_pers(page), 0, pagesize);
+    page_set_type(page, PAGE_TYPE_HEADER);
+    db_set_header_page(db, page);
+    page_set_dirty(page, 1);
+
+    /* initialize the header */
     db_set_magic(db, 'H', 'A', 'M', '\0');
     db_set_version(db, HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV, 0);
     db_set_serialno(db, HAM_SERIALNO);
@@ -548,7 +556,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
     pflags&=~HAM_DISABLE_MMAP;
     pflags&=~HAM_WRITE_THROUGH;
     pflags&=~HAM_READ_ONLY;
-    pflags&=~HAM_OPTIMIZE_SIZE;
     pflags&=~HAM_DISABLE_FREELIST_FLUSH;
     pflags&=~DB_USE_MMAP;
     db_set_pers_flags(db, pflags);
@@ -562,38 +569,22 @@ ham_create_ex(ham_db_t *db, const char *filename,
         return (db_get_error(db));
     db_set_cache(db, cache);
 
-    /* create the file */
-    st=device->create(device, filename, flags, mode);
-    if (st)
+    /* initialize the freelist structure in the header page;
+     * the freelist starts _after_ the header-page, therefore 
+     * the start-address of the freelist is the pagesize */
+    st=freel_prepare(db, db_get_freelist(db), db_get_pagesize(db),
+            db_get_usable_pagesize(db)-
+            (OFFSET_OF(db_header_t, _freelist_start)+1));
+    if (st) {
+        ham_log(("unable to setup the freelist"));
         return (db_set_error(db, st));
-    db_set_device(db, device);
-
-    /* allocate a database header page */
-    page=page_new(db);
-    if (!page) {
-        ham_log(("unable to allocate the header page"));
-        return (db_get_error(db));
     }
-    st=page_alloc(page);
-    if (st)
-        return (st);
-    memset(page_get_pers(page), 0, pagesize);
-    page_set_type(page, PAGE_TYPE_HEADER);
-    db_set_header_page(db, page);
-    page_set_dirty(page, 1);
-
-    /* initialize the freelist structure in the header page */
-    h=(db_header_t *)page_get_payload(page);
-    freel_payload_set_maxsize(&h->_freelist,
-            (db_get_usable_pagesize(db)-sizeof(db_header_t))/
-            sizeof(freel_entry_t));
 
     /* create the backend */
     backend=db_create_backend(db, flags);
     if (!backend) {
         ham_log(("unable to create backend with flags 0x%x", flags));
-        db_set_error(db, HAM_INV_INDEX);
-        return (HAM_INV_INDEX);
+        return (db_set_error(db, HAM_INV_INDEX));
     }
 
     /* initialize the backend */
@@ -875,12 +866,7 @@ ham_flush(ham_db_t *db, ham_u32_t flags)
      * update the header page, if necessary
      */
     if (db_is_dirty(db)) {
-        ham_page_t *page=db_get_header_page(db);
-
-        memcpy(page_get_payload(page), &db_get_header(db),
-                sizeof(db_header_t)-sizeof(freel_payload_t));
-        page_set_dirty(page, 1);
-        st=page_flush(page);
+        st=page_flush(db_get_header_page(db));
         if (st)
             return (db_set_error(db, st));
     }
@@ -982,15 +968,19 @@ ham_close(ham_db_t *db)
      */
     if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB) &&
         db_get_device(db)->is_open(db_get_device(db)) &&
-        (!(db_get_rt_flags(db)&HAM_READ_ONLY)) &&
-        db_is_dirty(db)) {
-        /* copy the persistent header to the database object */
-        memcpy(page_get_payload(db_get_header_page(db)), &db_get_header(db),
-            sizeof(db_header_t)-sizeof(freel_payload_t));
-        page_set_dirty(db_get_header_page(db), 1);
-        st=page_flush(db_get_header_page(db));
+        (!(db_get_rt_flags(db)&HAM_READ_ONLY))) {
+        /* flush the database header, if it's dirty */
+        if (db_is_dirty(db)) {
+            st=page_flush(db_get_header_page(db));
+            if (st) {
+                ham_log(("page_flush() failed with status %d (%s)",
+                        st, ham_strerror(st)));
+                return (db_set_error(db, st));
+            }
+        }
+        st=page_free(db_get_header_page(db));
         if (st) {
-            ham_log(("page_flush() failed with status %d (%s)",
+            ham_log(("page_free() failed with status %d (%s)",
                     st, ham_strerror(st)));
             return (db_set_error(db, st));
         }

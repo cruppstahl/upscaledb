@@ -87,6 +87,10 @@ struct ham_page_t {
          *
          * all blob-areas in the file do not have such a header, if they
          * span page-boundaries
+         *
+         * !!
+         * if this structure is changed, db_get_usable_pagesize has 
+         * to be changed as well!
          */
         struct page_union_header_t {
             /**
@@ -379,13 +383,13 @@ page_delete(ham_page_t *page);
  * allocate a new page from the device
  */
 extern ham_status_t
-page_alloc(ham_page_t *page);
+page_alloc(ham_page_t *page, ham_size_t size);
 
 /**
  * fetch a page from the device
  */
 extern ham_status_t
-page_fetch(ham_page_t *page);
+page_fetch(ham_page_t *page, ham_size_t size);
 
 /**
  * write a page to the device

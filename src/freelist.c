@@ -12,472 +12,321 @@
 #include "freelist.h"
 #include "error.h"
 
-#define OFFSET_OF(obj, field) ((char *)(&((obj).field))-(char *)&(obj))
-
-static ham_bool_t
-my_add_area(ham_db_t *db, freel_payload_t *fp, 
-        ham_offset_t address, ham_size_t size)
+static void
+__freel_set_bits(freelist_t *fl, ham_size_t start_bit, ham_size_t size_bits, 
+        ham_bool_t set)
 {
     ham_size_t i;
-    freel_entry_t *list=freel_payload_get_entries(fp); 
+    ham_u8_t *p=freel_get_bitmap(fl);
 
-    ham_assert(freel_payload_get_count(fp)<=freel_payload_get_maxsize(fp), 
-            ("invalid freelist object"));
-
-    /*
-     * try to append the item to an existing entry
-     */
-    if (db_get_rt_flags(db)&HAM_OPTIMIZE_SIZE) {
-        for (i=0; i<freel_payload_get_count(fp); i++) {
-            /*
-             * if we can append the item, remove the item from the 
-             * freelist and re-insert it
-             */
-            if (freel_get_address(&list[i])+freel_get_size(&list[i])==address) {
-                size  +=freel_get_size(&list[i]);
-                address=freel_get_address(&list[i]);
-                if (i<(ham_size_t)freel_payload_get_count(fp)-1) 
-                    memmove(&list[i], &list[i+1], 
-                        (freel_payload_get_count(fp)-i-1)*sizeof(list[i]));
-                freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
-                return (my_add_area(db, fp, address, size));
-            }
-            /*
-             * same if we can prepend the item
-             */
-            if (address+size==freel_get_address(&list[i])) {
-                size   +=freel_get_size(&list[i]);
-                if (i<(ham_size_t)freel_payload_get_count(fp)-1) 
-                    memmove(&list[i], &list[i+1], 
-                        (freel_payload_get_count(fp)-i-1)*sizeof(list[i]));
-                freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
-                return (my_add_area(db, fp, address, size));
-            }
+    if (set) {
+        for (i=0; i<size_bits; i++, start_bit++) {
+            ham_assert(!(p[start_bit/8] & 1 << (start_bit%8)), 
+                    ("bit is already set!"));
+            p[start_bit>>3] |= 1 << (start_bit%8);
         }
-    }
-
-    /* 
-     * did not found room for this chunk?
-     */
-    if (freel_payload_get_count(fp)==freel_payload_get_maxsize(fp))
-        return (HAM_FALSE);
-
-    /*
-     * we were not able to append the item to an existing entry - insert
-     * it in the list
-     */
-    for (i=0; i<freel_payload_get_count(fp); i++) {
-        if (size>=freel_get_size(&list[i])) {
-            memmove(&list[i+1], &list[i], 
-                    (freel_payload_get_count(fp)-i)*sizeof(list[i]));
-            freel_set_size(&list[i], size);
-            freel_set_address(&list[i], address);
-            freel_payload_set_count(fp, freel_payload_get_count(fp)+1);
-            return (HAM_TRUE);
-        }
-    }
-
-    /*
-     * append at the end of the list
-     */
-    freel_set_size(&list[i], size);
-    freel_set_address(&list[i], address);
-    freel_payload_set_count(fp, freel_payload_get_count(fp)+1);
-
-    return (HAM_TRUE);
-}
-
-static ham_offset_t
-my_alloc_in_list(ham_db_t *db, freel_payload_t *fp, 
-        ham_size_t chunksize, ham_u32_t flags)
-{
-    ham_offset_t newoffs=0;
-    ham_size_t i, best=freel_payload_get_count(fp);
-    freel_entry_t *list=freel_payload_get_entries(fp);
-
-    /*
-     * search the freelist for an unused entry; we prefer entries 
-     * which are the same size as requested
-     */
-    for (i=0; i<freel_payload_get_count(fp); i++) {
-
-        /*
-         * blob is bigger then the requested blob?
-         */
-        if (freel_get_size(&list[i])>chunksize) {
-            /*
-             * need aligned page in an unaligned blob?
-             */
-            if (!(flags&FREEL_DONT_ALIGN) && chunksize==db_get_pagesize(db)) {
-                newoffs=(freel_get_address(&list[i])/db_get_pagesize(db))*
-                    db_get_pagesize(db)+db_get_pagesize(db);
-                if (freel_get_size(&list[i])-
-                        (newoffs-freel_get_address(&list[i]))>=chunksize)
-                    best=i;
-            }
-            else
-                best=i;
-        }
-        /*
-         * blob is the same size as requested?
-         */
-        else if (freel_get_size(&list[i])==chunksize) {
-            /*
-             * need aligned chunk, and the chunk is aligned
-             * OR need no aligned chunk: use this chunk
-             */
-            if (flags&FREEL_DONT_ALIGN) {
-                best=i;
-                break;
-            }
-            else if (freel_get_address(&list[i])%db_get_pagesize(db)==0) {
-                best=i;
-                break;
-            }
-        }
-        /*
-         * otherwise, if the current chunk is smaller then the requested 
-         * chunk size, there's no need to continue, because all following
-         * chunks are even smaller.
-         */
-        else {
-            break;
-        }
-    }
-
-    /*
-     * nothing found - return to caller
-     */
-    if (best==freel_payload_get_count(fp)) 
-        return (0);
-
-    /*
-     * otherwise remove the chunk
-     */
-    if (freel_get_size(&list[best])>chunksize) {
-
-        if (flags&FREEL_DONT_ALIGN) {
-            ham_size_t   diff=freel_get_size(&list[best])-chunksize;
-            ham_offset_t offs=freel_get_address(&list[best]);
-
-            if (best<(ham_size_t)freel_payload_get_count(fp)-1) 
-                memmove(&list[best], &list[best+1], 
-                        (freel_payload_get_count(fp)-best-1)*sizeof(list[i]));
-            freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
-
-            (void)my_add_area(db, fp, offs+chunksize, diff);
-            return (offs);
-        }
-        return (0);
-#if 0
-        TODO implement this...
-
-        /*ham_assert(!"shouldn't be here...", 0, 0);*/
-        else {
-            ham_offset_t offs1, offs2, newoffs;
-            ham_size_t   size1, size2;
-            
-            newoffs=(freel_get_address(&list[best])/db_get_pagesize(db))*
-                        db_get_pagesize(db)+db_get_pagesize(db);
-            offs1  =freel_get_address(&list[best]);
-            size1  =newoffs-freel_get_address(&list[best]);
-            offs2  =newoffs+chunksize;
-            size2  =(freel_get_address(&list[best])+
-                        freel_get_size(&list[best]))-(newoffs+chunksize);
-
-            if (best<freel_payload_get_count(fp)-1) 
-                memmove(&list[best], &list[best+1], 
-                        (freel_payload_get_count(fp)-best-1)*sizeof(list[i]));
-            freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
-
-            (void)my_add_area(db, fp, offs1, size1);
-            (void)my_add_area(db, fp, offs2, size2);
-            return (newoffs);
-        }
-#endif
     }
     else {
-        ham_offset_t newoffs=freel_get_address(&list[best]);
-
-        if (best<(ham_size_t)freel_payload_get_count(fp)-1) 
-            memmove(&list[best], &list[best+1], 
-                    (freel_payload_get_count(fp)-best-1)*sizeof(list[i]));
-        freel_payload_set_count(fp, freel_payload_get_count(fp)-1);
-
-        return (newoffs);
+        for (i=0; i<size_bits; i++, start_bit++) {
+            ham_assert((p[start_bit/8] & 1 << (start_bit%8)), 
+                    ("bit is already deleted!"));
+            p[start_bit>>3] &= ~(1 << (start_bit%8));
+        }
     }
-
-    return (0);
 }
 
-static ham_size_t
-my_get_max_elements(ham_db_t *db)
+static ham_s32_t
+__freel_search_bits(freelist_t *f, ham_size_t size_bits)
 {
-    static struct page_union_header_t h;
-    /*
-     * a freelist overflow page has one overflow pointer of type 
-     * ham_size_t at the very beginning
-     */
-    return ((db_get_usable_pagesize(db)-(int)(OFFSET_OF(h, _payload))-
-                sizeof(ham_u16_t)-sizeof(ham_offset_t))/sizeof(freel_entry_t));
+    ham_size_t bit=0, i, j, max=freel_get_max_bits(f), 
+               max64=(freel_get_max_bits(f)>>3)>>3;
+    ham_u64_t *p64=(ham_u64_t *)freel_get_bitmap(f);
+    ham_u8_t *p=(ham_u8_t *)p64;
+    ham_size_t found=0, start=0;
+
+    for (i=0; i<max64; i++) {
+        if (p64[i]) {
+            bit=i*64;
+            for (j=0; j<64 && bit<max; j++) {
+                if (p[bit/8] & 1 << (bit%8)) {
+                    if (!found)
+                        start=bit;
+                    found++;
+                    if (found==size_bits)
+                        return (start);
+                }
+                else
+                    found=0;
+                bit++;
+            }
+        }
+        else 
+            found=0;
+    }
+
+    return (-1);
+}
+
+static ham_s32_t
+__freel_search_aligned_bits(ham_db_t *db, freelist_t *fl, ham_size_t size_bits)
+{
+    ham_size_t i=0, j, start, max=freel_get_max_bits(fl);
+    ham_u64_t *p64=(ham_u64_t *)freel_get_bitmap(fl);
+    ham_u8_t *p=(ham_u8_t *)p64;
+
+    /* fix the start position, if the start-address of this page is 
+     * not page-aligned */
+    if (freel_get_start_address(fl)%db_get_pagesize(db)) {
+        ham_offset_t start=((freel_get_start_address(fl)+db_get_pagesize(db))
+                /db_get_pagesize(db))*db_get_pagesize(db);
+        i=(ham_size_t)((start-freel_get_start_address(fl)/DB_CHUNKSIZE));
+        max-=db_get_pagesize(db)/DB_CHUNKSIZE;
+    }
+
+    /* TODO this does not yet check for spaces which span several pages */
+    for (; i<max/size_bits; i++) {
+        if (p[i/8] & 1 << (i%8)) {
+            start=i;
+            for (j=0; j<size_bits; j++) {
+                if (!(p[(start+j)/8] & 1 << ((start+j)%8)))
+                    break;
+            }
+            if (j==size_bits)
+                return (start);
+        }
+    }
+
+    return (-1);
 }
 
 static ham_page_t *
-my_fetch_page(ham_db_t *db, ham_offset_t address)
+__freel_alloc_page(ham_db_t *db, ham_offset_t start_address)
 {
     ham_page_t *page;
     ham_status_t st;
+    ham_txn_t *old_txn=db_get_txn(db);
 
-    /*
-     * check if the page is in the list
-     */
-    page=db_get_freelist_cache(db);
-    while (page) {
-        if (page_get_self(page)==address)
-            return (page);
-        page=page_get_next(page, PAGE_LIST_TXN);
+    db_set_txn(db, db_get_freelist_txn(db));
+
+    page=db_alloc_page(db, PAGE_TYPE_FREELIST, PAGE_IGNORE_FREELIST);
+    if (!page) {
+        db_set_txn(db, old_txn);
+        return (0);
     }
 
-    /*
-     * allocate a new page structure
-     */
-    page=page_new(db);
-    if (!page)
-        return (0);
-
-    /* 
-     * fetch the page from the device 
-     */
-    page_set_self(page, address);
-    st=page_fetch(page);
+    st=freel_prepare(db, page_get_freelist(page), start_address,
+            db_get_usable_pagesize(db));
     if (st) {
-        page_delete(page);
+        db_set_txn(db, old_txn);
+        db_set_error(db, st);
         return (0);
     }
 
-    page_add_ref(page);
-
-    /*
-     * insert the page in our local cache and return the page
-     */
-    db_set_freelist_cache(db, 
-            page_list_insert(db_get_freelist_cache(db), PAGE_LIST_TXN, page));
-
+    db_set_txn(db, old_txn);
     return (page);
 }
 
 static ham_page_t *
-my_alloc_page(ham_db_t *db)
+__freel_fetch_page(ham_db_t *db, ham_offset_t address)
 {
     ham_page_t *page;
+    ham_txn_t *old_txn=db_get_txn(db);
 
-    page=db_alloc_page(db, PAGE_TYPE_FREELIST, 
-                PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
-    if (!page) 
-        return (0);
+    db_set_txn(db, db_get_freelist_txn(db));
 
-    page_add_ref(page);
+    page=db_fetch_page(db, address, 0);
 
-    /*
-     * insert the page in our local cache and return the page
-     */
-    db_set_freelist_cache(db, 
-            page_list_insert(db_get_freelist_cache(db), PAGE_LIST_TXN, page));
-
+    db_set_txn(db, old_txn);
     return (page);
 }
 
 ham_status_t
 freel_create(ham_db_t *db)
 {
-    (void)db;
-    return (0);
-}
-
-ham_offset_t
-freel_alloc_area(ham_db_t *db, ham_size_t size, ham_u32_t flags)
-{
-    ham_offset_t overflow, result=0;
-    ham_page_t *page;
     ham_status_t st;
-    freel_payload_t *fp;
-    db_header_t *hdr;
-return (0);
-    /* 
-     * get the database header page, and its freelist payload 
-     */ 
-    page=db_get_header_page(db);
-    hdr=(db_header_t *)page_get_payload(page);
-    fp=&hdr->_freelist;
+    ham_txn_t *new_txn, *old_txn;
 
-    /* 
-     * search the page for a freelist entry 
-     */
-    result=my_alloc_in_list(db, fp, size, flags);
-    if (result) {
-        page_set_dirty(page, HAM_TRUE);
-        if (!(db_get_rt_flags(db)&HAM_DISABLE_FREELIST_FLUSH)) {
-            st=page_flush(page);
-            if (st) {
-                db_set_error(db, st);
-                return (0);
-            }
-        }
-        return (result);
-    }
+    ham_assert(db_get_freelist_txn(db)==0, ("freelist already exists!"));
 
-    /* 
-     * continue with overflow pages 
-     */
-    overflow=freel_payload_get_overflow(fp);
+    new_txn=(ham_txn_t *)ham_mem_alloc(db, sizeof(ham_txn_t));
+    if (!new_txn)
+        return (db_set_error(db, HAM_OUT_OF_MEMORY));
 
-    while (overflow) {
-        /* allocate the overflow page */
-        page=my_fetch_page(db, overflow);
-        if (!page)
-            return (db_get_error(db));
+    old_txn=db_get_txn(db);
+    st=ham_txn_begin(new_txn, db);
+    db_set_txn(db, old_txn);
+    if (st)
+        return (db_set_error(db, st));
 
-        /* get a pointer to a freelist-page */
-        fp=page_get_freel_payload(page);
+    db_set_freelist_txn(db, new_txn);
 
-        /* first member is the overflow pointer */
-        overflow=freel_payload_get_overflow(fp);
-
-        /* search for an empty entry */
-        result=my_alloc_in_list(db, fp, size, flags);
-        if (result) {
-            /* write the page to disk */
-            page_set_dirty(page, HAM_TRUE);
-            if (!(db_get_rt_flags(db)&HAM_DISABLE_FREELIST_FLUSH)) {
-                st=page_flush(page);
-                if (st) {
-                    db_set_error(db, st);
-                    return (0);
-                }
-            }
-            return (result);
-        }
-    }
-
-    /* no success at all... */
     return (0);
-}
-
-ham_status_t 
-freel_add_area(ham_db_t *db, ham_offset_t address, ham_size_t size)
-{
-    ham_page_t *page=0, *newp;
-    ham_offset_t overflow;
-    freel_payload_t *fp;
-    db_header_t *hdr;
-return (0);
-
-    /* 
-     * get the database header page, and its freelist payload 
-     */ 
-    page=db_get_header_page(db);
-    hdr=(db_header_t *)page_get_payload(page);
-
-    /* try to add the entry to the freelist */
-    fp=&hdr->_freelist;
-    if (my_add_area(db, fp, address, size)) {
-        page_set_dirty(page, HAM_TRUE);
-        return (0);
-    }
-
-    /* 
-     * if there freelist page is full: continue with the overflow page
-     */
-    overflow=freel_payload_get_overflow(fp);
-
-    while (overflow) {
-        /* read the overflow page */
-        page=my_fetch_page(db, overflow);
-        if (!page) 
-            return (db_get_error(db));
-
-        /* get a pointer to a freelist-page */
-        fp=page_get_freel_payload(page);
-
-        /* get the overflow pointer */
-        overflow=freel_payload_get_overflow(fp); 
-
-        /* try to add the entry */
-        if (my_add_area(db, fp, address, size)) {
-            page_set_dirty(page, HAM_TRUE);
-            return (0);
-        }
-    }
-
-    /* 
-     * all overflow pages are full - add a new one! page is still a valid
-     * page pointer 
-     * we allocate a page on disk for the page WITHOUT accessing
-     * the freelist, because right now the freelist is totally full
-     * and every access would result in problems. 
-     */
-    newp=my_alloc_page(db);
-    if (!newp) 
-        return (0);
-
-    /* set the whole page to zero */
-    memset(newp->_pers->_s._payload, 0, db_get_usable_pagesize(db));
-
-    /* 
-     * now update the overflow pointer of the previous freelist page,
-     * and set the dirty-flag 
-     *
-     * TODO flush the modified page?? 
-     *
-     */
-    if (page==db_get_header_page(db)) {
-        fp=&hdr->_freelist;
-        freel_payload_set_overflow(fp, page_get_self(newp));
-        db_set_dirty(db, 1);
-        page_set_dirty(page, 1);
-    }
-    else {
-        freel_payload_set_overflow(page_get_freel_payload(page), 
-                page_get_self(newp));
-        page_set_dirty(page, 1);
-    }
-
-    fp=page_get_freel_payload(newp);
-    freel_payload_set_maxsize(fp, my_get_max_elements(db));
-
-    /* 
-     * try to add the entry to the new freelist page 
-     */
-    if (my_add_area(db, fp, address, size)) {
-        page_set_dirty(newp, HAM_TRUE);
-        return (0);
-    }
-
-    /* 
-     * we're still here - this means we got a strange error. this 
-     * shouldn't happen! 
-     */
-    ham_assert(!"shouldn't be here...", (""));
-    return (HAM_INTERNAL_ERROR);
 }
 
 ham_status_t
 freel_shutdown(ham_db_t *db)
 {
-    ham_page_t *page, *next;
+    ham_status_t st;
+    ham_txn_t *old_txn;
 
-    /*
-     * write all pages to the device
-     */
-    page=db_get_freelist_cache(db);
-    while (page) {
-        next=page_get_next(page, PAGE_LIST_TXN);
-        page_release_ref(page);
-        page_flush(page);
-        page=next;
+    if (!db_get_freelist_txn(db))
+        return (0);
+
+    old_txn=db_get_txn(db);
+    db_set_txn(db, db_get_freelist_txn(db));
+
+    st=ham_txn_commit(db_get_freelist_txn(db));
+    if (st) {
+        db_set_txn(db, old_txn);
+        return (db_set_error(db, st));
     }
 
-    db_set_freelist_cache(db, 0);
+    ham_mem_free(db, db_get_freelist_txn(db));
+    db_set_freelist_txn(db, 0);
+    db_set_txn(db, old_txn);
+    return (0);
+}
+
+ham_status_t
+freel_prepare(ham_db_t *db, freelist_t *fl, ham_offset_t start_address, 
+        ham_size_t size)
+{
+    (void)db;
+
+    memset(fl, 0, size);
+
+    size-=sizeof(*fl)+1; /* +1 for bitmap[1] */
+
+    freel_set_start_address(fl, start_address);
+    freel_set_max_bits(fl, size*8);
 
     return (0);
 }
+
+ham_status_t
+freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size)
+{
+    freelist_t *fl;
+    ham_offset_t end;
+    ham_page_t *page;
+
+    ham_assert(size%DB_CHUNKSIZE==0, (0));
+    ham_assert(address%DB_CHUNKSIZE==0, (0));
+
+    fl=db_get_freelist(db);
+    ham_assert(address>=freel_get_start_address(fl), (0));
+
+    end=freel_get_start_address(fl)+freel_get_max_bits(fl)*DB_CHUNKSIZE;
+
+    while (1) {
+        if (address<end) {
+            if (address+size<end) {
+                freel_set_used_bits(fl, 
+                        freel_get_used_bits(fl)+size/DB_CHUNKSIZE);
+                __freel_set_bits(fl, 
+                        (address-freel_get_start_address(fl))/DB_CHUNKSIZE,
+                        size/DB_CHUNKSIZE, HAM_TRUE);
+                break;
+            }
+            else {
+                ham_size_t s=end-address+1;
+                freel_set_used_bits(fl, 
+                        freel_get_used_bits(fl)+s/DB_CHUNKSIZE);
+                __freel_set_bits(fl, 
+                        (address-freel_get_start_address(fl))/DB_CHUNKSIZE,
+                        s/DB_CHUNKSIZE, HAM_TRUE);
+                address+=s;
+                size-=s;
+                /* fall through */
+            }
+        }
+
+        if (!freel_get_overflow(fl)) {
+            page=__freel_alloc_page(db, end);
+            if (!page) 
+                return (db_get_error(db));
+
+            freel_set_overflow(fl, page_get_self(page));
+            fl=page_get_freelist(page);
+        }
+        else {
+            page=__freel_fetch_page(db, freel_get_overflow(fl));
+            if (!page) 
+                return (db_get_error(db));
+            fl=page_get_freelist(page);
+        }
+        end=freel_get_start_address(fl)+freel_get_max_bits(fl)*DB_CHUNKSIZE;
+    }
+
+    return (0);
+}
+
+ham_offset_t
+freel_alloc_area(ham_db_t *db, ham_size_t size)
+{
+    ham_s32_t s;
+    freelist_t *fl;
+    ham_page_t *page;
+
+    ham_assert(size%DB_CHUNKSIZE==0, (0));
+
+    fl=db_get_freelist(db);
+
+    while (1) {
+        if (freel_get_used_bits(fl)>=size/DB_CHUNKSIZE) {
+            s=__freel_search_bits(fl, size/DB_CHUNKSIZE);
+            if (s!=-1) {
+                __freel_set_bits(fl, s, size/DB_CHUNKSIZE, HAM_FALSE);
+                break;
+            }
+        }
+
+        if (!freel_get_overflow(fl))
+            return (0);
+
+        page=__freel_fetch_page(db, freel_get_overflow(fl));
+        if (!page) 
+            return (0);
+
+        fl=page_get_freelist(page);
+    }
+
+    freel_set_used_bits(fl, freel_get_used_bits(fl)-size/DB_CHUNKSIZE);
+
+    return (freel_get_start_address(fl)+(s*DB_CHUNKSIZE));
+}
+
+ham_offset_t
+freel_alloc_page(ham_db_t *db)
+{
+    ham_s32_t s;
+    freelist_t *fl;
+    ham_page_t *page;
+    ham_size_t size=db_get_pagesize(db);
+
+    fl=db_get_freelist(db);
+
+    while (1) {
+        if (freel_get_used_bits(fl)>=size/DB_CHUNKSIZE) {
+            s=__freel_search_aligned_bits(db, fl, size/DB_CHUNKSIZE);
+            if (s!=-1) {
+                __freel_set_bits(fl, s, size/DB_CHUNKSIZE, HAM_FALSE);
+                break;
+            }
+        }
+
+        if (!freel_get_overflow(fl))
+            return (0);
+
+        page=__freel_fetch_page(db, freel_get_overflow(fl));
+        if (!page) 
+            return (0);
+
+        fl=page_get_freelist(page);
+    }
+
+    freel_set_used_bits(fl, freel_get_used_bits(fl)-size/DB_CHUNKSIZE);
+
+    return (freel_get_start_address(fl)+(s*DB_CHUNKSIZE));
+}
+

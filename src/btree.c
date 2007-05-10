@@ -14,8 +14,6 @@
 #include "btree.h"
 #include "keys.h"
 
-#define OFFSETOF(type, member) ((size_t) &((type *)0)->member)
-
 ham_status_t 
 btree_get_slot(ham_db_t *db, ham_page_t *page, 
         ham_key_t *key, ham_s32_t *slot)
@@ -92,7 +90,7 @@ my_calc_maxkeys(ham_db_t *db)
     p=db_get_pagesize(db);
 
     /* every btree page has a header where we can't store entries */
-    p-=OFFSETOF(btree_node_t, _entries);
+    p-=OFFSET_OF(btree_node_t, _entries);
 
     /* every page has a header where we can't store entries */
     p-=sizeof(u._s)-1;

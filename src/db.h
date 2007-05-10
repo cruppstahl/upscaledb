@@ -25,6 +25,14 @@ extern "C" {
 #include "mem.h"
 #include "device.h"
 
+#define OFFSET_OF(type, member) ((size_t) &((type *)0)->member)
+
+/*
+ * This is the minimum chunk size; all chunks (pages and blobs) are aligned
+ * to this size. 
+ */
+#define DB_CHUNKSIZE        64
+
 #include "packstart.h"
 
 /*
@@ -56,7 +64,7 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
 
     /* start of the freelist - the freelist spans the rest of the page. 
      * don't add members after this field! */
-    freel_payload_t _freelist;
+    ham_u8_t _freelist_start;
 
 } db_header_t;
 
@@ -65,58 +73,58 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
 /*
  * set the 'magic' field of a file header
  */
-#define db_set_magic(db, a,b,c,d)  { db_get_header(db)._magic[0]=a; \
-                                     db_get_header(db)._magic[1]=b; \
-                                     db_get_header(db)._magic[2]=c; \
-                                     db_get_header(db)._magic[3]=d; }
+#define db_set_magic(db, a,b,c,d)  { db_get_header(db)->_magic[0]=a; \
+                                     db_get_header(db)->_magic[1]=b; \
+                                     db_get_header(db)->_magic[2]=c; \
+                                     db_get_header(db)->_magic[3]=d; }
 
 /*
  * get byte #i of the 'magic'-header
  */
-#define db_get_magic(db, i)        (db_get_header(db)._magic[i])
+#define db_get_magic(db, i)        (db_get_header(db)->_magic[i])
 
 /*
  * set the version of a file header
  */
-#define db_set_version(db,a,b,c,d) { db_get_header(db)._version[0]=a; \
-                                     db_get_header(db)._version[1]=b; \
-                                     db_get_header(db)._version[2]=c; \
-                                     db_get_header(db)._version[3]=d; }
+#define db_set_version(db,a,b,c,d) { db_get_header(db)->_version[0]=a; \
+                                     db_get_header(db)->_version[1]=b; \
+                                     db_get_header(db)->_version[2]=c; \
+                                     db_get_header(db)->_version[3]=d; }
 
 /*
  * get byte #i of the 'version'-header
  */
-#define db_get_version(db, i)      (db_get_header(db)._version[i])
+#define db_get_version(db, i)      (db_get_header(db)->_version[i])
 
 /*
  * get the serial number
  */
-#define db_get_serialno(db)        (ham_db2h32(db_get_header(db)._serialno))
+#define db_get_serialno(db)        (ham_db2h32(db_get_header(db)->_serialno))
 
 /*
  * set the serial number
  */
-#define db_set_serialno(db, n)     db_get_header(db)._serialno=ham_h2db32(n)
+#define db_set_serialno(db, n)     db_get_header(db)->_serialno=ham_h2db32(n)
 
 /*
  * get the key size
  */
-#define db_get_keysize(db)         (ham_db2h16(db_get_header(db)._keysize))
+#define db_get_keysize(db)         (ham_db2h16(db_get_header(db)->_keysize))
 
 /*
  * set the key size
  */
-#define db_set_keysize(db, ks)     db_get_header(db)._keysize=ham_db2h16(ks)
+#define db_set_keysize(db, ks)     db_get_header(db)->_keysize=ham_db2h16(ks)
 
 /*
  * get the page size
  */
-#define db_get_pagesize(db)        (ham_db2h32(db_get_header(db)._pagesize))
+#define db_get_pagesize(db)        (ham_db2h32(db_get_header(db)->_pagesize))
 
 /*
  * set the page size
  */
-#define db_set_pagesize(db, ps)    db_get_header(db)._pagesize=ham_h2db32(ps)
+#define db_set_pagesize(db, ps)    db_get_header(db)->_pagesize=ham_h2db32(ps)
 
 /**
  * get the size of the usable persistent payload of a page
@@ -126,18 +134,18 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
 /*
  * get the flags
  */
-#define db_get_pers_flags(db)      ham_db2h32(db_get_header(db)._flags)
+#define db_get_pers_flags(db)      ham_db2h32(db_get_header(db)->_flags)
 
 /*
  * set the flags
  */
-#define db_set_pers_flags(db, f)   db_get_header(db)._flags=ham_h2db32(f)
+#define db_set_pers_flags(db, f)   db_get_header(db)->_flags=ham_h2db32(f)
 
 /*
  * get the private data of the backend; interpretation of the
  * data is up to the backend
  */
-#define db_get_indexdata(db)       db_get_header(db)._indexdata
+#define db_get_indexdata(db)       db_get_header(db)->_indexdata
 
 /*
  * get the currently active transaction
@@ -182,8 +190,8 @@ struct ham_db_t
     /* the cache */
     ham_cache_t *_cache;
 
-    /* the freelist's private cache */
-    ham_page_t *_flcache;
+    /* the private txn object used by the freelist */
+    ham_txn_t *_freel_txn;
 
     /* the size of the last allocated data pointer for records */
     ham_size_t _rec_allocsize;
@@ -218,12 +226,6 @@ struct ham_db_t
 
     /* dirty-flag for the header */
     ham_u8_t _dirty;
-
-    /* the database header - this is basically a mirror of the header-page
-     *
-     * it's needed because when a file is opened (or created), we need a
-     * valid header, even when the _hdr-page is not yet available */
-    db_header_t _hdr;
 };
 
 /*
@@ -287,14 +289,14 @@ struct ham_db_t
 #define db_set_cache(db, c)            (db)->_cache=c
 
 /*
- * get the freelist's private cache
+ * get the freelist's txn
  */
-#define db_get_freelist_cache(db)      (db)->_flcache
+#define db_get_freelist_txn(db)        (db)->_freel_txn
 
 /*
- * set the freelist's private cache
+ * set the freelist's txn
  */
-#define db_set_freelist_cache(db, c)   (db)->_flcache=c
+#define db_set_freelist_txn(db, txn)   (db)->_freel_txn=txn
 
 /*
  * get the prefix comparison function
@@ -315,16 +317,6 @@ struct ham_db_t
  * set the default comparison function
  */
 #define db_set_compare_func(db, f)     (db)->_compfoo=f
-
-/*
- * get the dirty-flag
- */
-#define db_is_dirty(db)                (db)->_dirty
-
-/*
- * set the dirty-flag
- */
-#define db_set_dirty(db, d)            (db)->_dirty=d
 
 /*
  * get the runtime-flags
@@ -378,7 +370,27 @@ struct ham_db_t
 /*
  * get a pointer to the header data
  */
-#define db_get_header(db)              (db)->_hdr
+#define db_get_header(db)              ((db_header_t *)(page_get_payload(\
+                                          db_get_header_page(db))))
+
+/*
+ * get the freelist object of the database
+ * add 1 byte because the freelist starts AFTER _freelist_start!
+ */
+#define db_get_freelist(db)            (freelist_t *)(page_get_payload(  \
+                                          db_get_header_page(db))+       \
+                                          OFFSET_OF(db_header_t,         \
+                                              _freelist_start)+1)
+
+/*
+ * get the dirty-flag
+ */
+#define db_is_dirty(db)                page_is_dirty(db_get_header_page(db))
+
+/*
+ * set the dirty-flag
+ */
+#define db_set_dirty(db, d)            page_set_dirty(db_get_header_page(db), d)
 
 /**
  * uncouple all cursors from a page

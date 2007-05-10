@@ -166,16 +166,11 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page)
               page_set_cache_cntr(page, 1000);
               break;
           case PAGE_TYPE_B_INDEX:
+          case PAGE_TYPE_FREELIST:
               page_set_cache_cntr(page, 50);
               break;
-          case PAGE_TYPE_FREELIST:
-              /* freelist pages should never be in the cache - fall through */
-                /* TODO assert? */
           default:
-              /*
-              ham_assert(!"unknown page type",
-                      ("type is 0x%08x", page_get_type(page)));
-              */
+              /* ignore all other pages (most likely they're blobs) */
               break;
         }
     }
@@ -183,7 +178,7 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page)
     /*
      * insert it in the cache bucket
      * !!!
-     * to avoid inserting the page twice, we remove it from the 
+     * to avoid inserting the page twice, we first remove it from the 
      * bucket
      */
     cache_get_bucket(cache, hash)=page_list_remove(cache_get_bucket(cache, 

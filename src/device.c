@@ -102,16 +102,19 @@ __f_read(ham_device_t *self, ham_offset_t offset, void *buffer, ham_size_t size)
 }
 
 static ham_status_t
-__f_read_page(ham_device_t *self, ham_page_t *page)
+__f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
 {
     ham_u8_t *buffer;
     ham_status_t st;
     ham_db_t *db=device_get_db(self);
     dev_file_t *t=(dev_file_t *)device_get_private(self);
 
+    if (!size)
+        size=db_get_pagesize(db);
+
     if (device_get_flags(self)&DEVICE_NO_MMAP) {
         if (page_get_pers(page)==0) {
-            buffer=ham_mem_alloc(db, db_get_pagesize(db));
+            buffer=ham_mem_alloc(db, size);
             if (!buffer)
                 return (db_set_error(db, HAM_OUT_OF_MEMORY));
             page_set_pers(page, (union page_union_t *)buffer);
@@ -121,8 +124,7 @@ __f_read_page(ham_device_t *self, ham_page_t *page)
         else
             ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_MALLOC), (0));
 
-        st=__f_read(self, page_get_self(page), page_get_pers(page), 
-                    db_get_pagesize(db));
+        st=__f_read(self, page_get_self(page), page_get_pers(page), size);
         return (db_set_error(db, st));
     }
 
@@ -130,7 +132,7 @@ __f_read_page(ham_device_t *self, ham_page_t *page)
     ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_MALLOC), (""));
 
     st=os_mmap(t->fd, page_get_mmap_handle_ptr(page), 
-            page_get_self(page), db_get_pagesize(db), &buffer);
+            page_get_self(page), size, &buffer);
     if (st)
         return (db_set_error(db, st));
     page_set_pers(page, (union page_union_t *)buffer);
@@ -157,7 +159,7 @@ __f_alloc(ham_device_t *self, ham_size_t size, ham_offset_t *address)
 }
 
 static ham_status_t 
-__f_alloc_page(ham_device_t *self, ham_page_t *page)
+__f_alloc_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
 {
     ham_status_t st;
     ham_offset_t pos;
@@ -169,12 +171,12 @@ __f_alloc_page(ham_device_t *self, ham_page_t *page)
     st=os_tell(t->fd, &pos);
     if (st)
         return (db_set_error(device_get_db(self), st));
-    st=os_truncate(t->fd, pos+db_get_pagesize(device_get_db(self)));
+    st=os_truncate(t->fd, pos+size);
     if (st)
         return (db_set_error(device_get_db(self), st));
 
     page_set_self(page, pos);
-    st=__f_read_page(self, page);
+    st=__f_read_page(self, page, size);
     return (db_set_error(device_get_db(self), st));
 }
 
@@ -295,14 +297,14 @@ __m_alloc(ham_device_t *self, ham_size_t size, ham_offset_t *address)
 }
 
 static ham_status_t 
-__m_alloc_page(ham_device_t *self, ham_page_t *page)
+__m_alloc_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
 {
     ham_u8_t *buffer;
     ham_db_t *db=device_get_db(self);
 
     ham_assert(page_get_pers(page)==0, (0));
 
-    buffer=ham_mem_alloc(db, db_get_pagesize(db));
+    buffer=ham_mem_alloc(db, size);
     if (!buffer)
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
     page_set_pers(page, (union page_union_t *)buffer);
@@ -338,7 +340,7 @@ __m_write(ham_device_t *self, ham_offset_t offset, void *buffer,
 }
 
 static ham_status_t
-__m_read_page(ham_device_t *self, ham_page_t *page)
+__m_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
 {
     (void)self;
     (void)page;

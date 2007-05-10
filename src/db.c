@@ -486,7 +486,7 @@ db_page_alloc(ham_db_t *db)
             return (0);
         }
         
-        st=page_alloc(page);
+        st=page_alloc(page, db_get_pagesize(db));
         if (st) {
             db_set_error(db, st);
             return (0);
@@ -576,7 +576,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
 
     /* first, we ask the freelist for a page */
     if (!(flags&PAGE_IGNORE_FREELIST)) {
-        tellpos=freel_alloc_area(db, db_get_pagesize(db), 0);
+        tellpos=freel_alloc_page(db);
         if (tellpos) {
             ham_assert(tellpos%db_get_pagesize(db)==0,
                     ("page id %llu is not aligned", tellpos));
@@ -598,7 +598,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
                 return (0);
             page_set_self(page, tellpos);
             /* fetch the page from disk */
-            st=page_fetch(page);
+            st=page_fetch(page, db_get_pagesize(db));
             if (st) {
                 page_delete(page);
                 return (0);
@@ -612,7 +612,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
             return (0);
     }
 
-    st=page_alloc(page);
+    st=page_alloc(page, db_get_pagesize(db));
     if (st)
         return (0);
 
@@ -688,7 +688,7 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
         return (0);
 
     page_set_self(page, address);
-    st=page_fetch(page);
+    st=page_fetch(page, db_get_pagesize(db));
     if (st) {
         (void)page_delete(page);
         return (0);
