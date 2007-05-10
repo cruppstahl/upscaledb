@@ -1,13 +1,12 @@
 
-o port to big-endian
-    still a bug on big-endian: ./test 1/130.tst --overwrite=1 --pagesize=8192
-    o test with valgrind
-    o switch default endian to big endian - does it work on my local machine?
+x rewrite freelist with bitmap
 
-o monster.sh: test with massive page splits: pagesize=512 and
+x monster.sh: test with massive page splits: pagesize=1024 and
     keysize=128 (in-memory-db should be sufficient)
 
-o release 0.4.1!
+x remove HAM_OPTIMIZE_SIZE - no longer necessary
+
+o release 0.4.1! (unstable! database format changed!)
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -28,9 +27,15 @@ o release 0.4.2!
 -----------------------------------------------------
 -----------------------------------------------------
 
+o port to big-endian
+    still a bug on big-endian: ./test 1/130.tst --overwrite=1 --pagesize=8192
+    o test with valgrind
+    o switch default endian to big endian - does it work on my local machine?
+
 o insert: es wird erst ein move der bte's gemacht, dann wird der 
     blob allokiert. andersrum wäre es besser, dann ist nix kaputt
     falls die allokation fehlschlägt
+    davor aber erst durch unittests absichern!
 
 o fix a small valgrind bug
     valgrind --tool=memcheck --leak-check=full --show-reachable=yes 
@@ -55,17 +60,8 @@ o fix a small valgrind bug
     endet in btree_erase.c:1040 - wenn in einer internen page ein key 
     gelöscht wird, wird der record nicht gelöscht
 
-o something is weird: database files are overwritten, but somehow this 
-    is not reflected...
-
-    cd samples
-    ./db1 # creates test.db
-    ./db2 test.db test2.db # prints: "database is empty", ok
-    cat db3.c | ./db3 # creates/overwrites test.db
-    ./db2 test.db test2.db # prints: "database is empty" ????
-    rm *.db
-    cat db3.c | ./db3 # creates/overwrites test.db
-    ./db2 test.db test2.db # now the database is not empty!
+o shrink files, if the freelist allows shrinking and if "HAM_AUTO_REORG" is 
+    set
 
 o replace os_tell with os_get_filesize 
 
