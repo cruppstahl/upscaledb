@@ -66,6 +66,8 @@ public:
             page_delete(db_get_header_page(m_db));
             db_set_header_page(m_db, 0);
         }
+        if (m_dev->is_open(m_dev))
+            CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
         ham_delete(m_db);
         //CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
     }

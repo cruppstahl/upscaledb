@@ -98,9 +98,9 @@ public:
         ham_fd_t fd;
 
         st=os_create(".test", 0, 0664, &fd);
-        CPPUNIT_ASSERT(st==0);
+        CPPUNIT_ASSERT_EQUAL(0, st);
         st=os_close(fd);
-        CPPUNIT_ASSERT(st==0);
+        CPPUNIT_ASSERT_EQUAL(0, st);
     }
 
     void createCloseOverwriteTest()

@@ -61,14 +61,14 @@ public:
             page_delete(db_get_header_page(m_db));
             db_set_header_page(m_db, 0);
         }
+        if (m_dev->is_open(m_dev))
+            CPPUNIT_ASSERT(0==m_dev->close(m_dev));
         ham_delete(m_db);
         CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void newDeleteTest()
     {
-        ham_device_t *dev=ham_device_new(m_db, m_inmemory);
-        CPPUNIT_ASSERT(dev!=0);
     }
 
     void createCloseTest()

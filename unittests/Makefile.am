@@ -6,6 +6,7 @@ endif
 INCLUDES        = -I$(top_builddir)/include
 
 test_SOURCES    = device.cpp \
+                  os.cpp \
                   cache.cpp \
                   freelist.cpp \
                   db.cpp \
@@ -13,7 +14,6 @@ test_SOURCES    = device.cpp \
                   mem.cpp \
                   endian.cpp \
                   page.cpp \
-                  os.cpp \
                   memtracker.cpp
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la -lcppunit
 
