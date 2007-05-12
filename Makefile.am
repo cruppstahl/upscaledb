@@ -2,6 +2,7 @@
 SUBDIRS = src include samples unittests
 
 EXTRA_DIST = documentation/Doxyfile         \
+             documentation/tutorial.odt     \
              CHANGELOG                      \
              include/ham/hamsterdb.h        \
              include/ham/hamsterdb_int.h    \
