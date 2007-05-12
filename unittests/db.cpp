@@ -66,8 +66,12 @@ public:
             page_delete(db_get_header_page(m_db));
             db_set_header_page(m_db, 0);
         }
-        if (m_dev->is_open(m_dev))
-            CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
+        if (db_get_device(m_db)) {
+            if (db_get_device(m_db)->is_open(db_get_device(m_db)))
+                db_get_device(m_db)->close(db_get_device(m_db));
+            db_get_device(m_db)->destroy(db_get_device(m_db));
+            db_set_device(m_db, 0);
+        }
         ham_delete(m_db);
         //CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
     }

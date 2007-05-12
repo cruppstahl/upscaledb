@@ -47,6 +47,7 @@ public:
     { 
         CPPUNIT_ASSERT(ham_close(m_db)==HAM_SUCCESS);
         ham_delete(m_db);
+        m_db=0;
         CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
