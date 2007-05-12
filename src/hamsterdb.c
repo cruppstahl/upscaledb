@@ -117,6 +117,16 @@ my_free_cb(int event, void *param1, void *param2, void *context)
     case ENUM_EVENT_ITEM:
         key=(int_key_t *)param1;
 
+        if (db_get_rt_flags(c->db)&HAM_IN_MEMORY_DB) {
+            if (key_get_size(key)>db_get_keysize(c->db)) {
+                ham_offset_t *p, blobid;
+                p=(ham_offset_t *)(key_get_key(key)+
+                        (db_get_keysize(c->db)-sizeof(ham_offset_t)));
+                blobid=ham_h2db_offset(*p);
+                ham_mem_free(c->db, (void *)blobid);
+            }
+        }
+
         if (key_get_flags(key)&KEY_BLOB_SIZE_TINY ||
             key_get_flags(key)&KEY_BLOB_SIZE_SMALL ||
             key_get_flags(key)&KEY_BLOB_SIZE_EMPTY)
@@ -978,19 +988,12 @@ ham_close(ham_db_t *db)
                 return (db_set_error(db, st));
             }
         }
-        st=page_free(db_get_header_page(db));
-        if (st) {
-            ham_log(("page_free() failed with status %d (%s)",
-                    st, ham_strerror(st)));
-            return (db_set_error(db, st));
-        }
-        st=page_free(db_get_header_page(db));
-        if (st) {
-            ham_log(("page_free() failed with status %d (%s)",
-                    st, ham_strerror(st)));
-            return (db_set_error(db, st));
-        }
-        page_delete(db_get_header_page(db));
+    }
+
+    if (db_get_header_page(db)) {
+        if (page_get_pers(db_get_header_page(db)))
+            (void)page_free(db_get_header_page(db));
+        (void)page_delete(db_get_header_page(db));
         db_set_header_page(db, 0);
     }
 
