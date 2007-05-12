@@ -6,11 +6,6 @@ x monster.sh: test with massive page splits: pagesize=1024 and
 
 x remove HAM_OPTIMIZE_SIZE - no longer necessary
 
-x test/env/posix/valgrind.log
-    inmemorydb hat noch zahlreiche memory leaks
-
-x samples funktionieren nicht
-
 o windows: remove the project files; write makefile for nmake 
     and add just *one* solution with the projects
 
