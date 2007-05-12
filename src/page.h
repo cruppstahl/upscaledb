@@ -202,7 +202,7 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /**
  * get persistent page flags
  */
-#define page_get_pers_flags(page)        ham_db2h32((page)->_pers->_s._flags)
+#define page_get_pers_flags(page)        (ham_db2h32((page)->_pers->_s._flags))
 
 /**
  * set persistent page flags

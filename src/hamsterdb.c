@@ -453,6 +453,13 @@ ham_create_ex(ham_db_t *db, const char *filename,
         }
     }
 
+    /* if we do not yet have an allocator: create a new one */
+    if (!db_get_allocator(db)->alloc) {
+        db_set_allocator(db, ham_default_allocator_new());
+        if (!db_get_allocator(db)->alloc)
+            return (db_set_error(db, HAM_OUT_OF_MEMORY));
+    }
+
     /* initialize the device */
     device=ham_device_new(db, flags&HAM_IN_MEMORY_DB);
     if (!device)
@@ -511,13 +518,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
      */
     if (keysize==0)
         keysize=32-(sizeof(int_key_t)-1);
-
-    /* if we do not yet have an allocator: create a new one */
-    if (!db_get_allocator(db)->alloc) {
-        db_set_allocator(db, ham_default_allocator_new());
-        if (!db_get_allocator(db)->alloc)
-            return (db_set_error(db, HAM_OUT_OF_MEMORY));
-    }
 
     /* create the file */
     st=device->create(device, filename, flags, mode);
@@ -1004,6 +1004,7 @@ ham_close(ham_db_t *db)
     if (db_get_device(db)->is_open(db_get_device(db))) {
         (void)db_get_device(db)->flush(db_get_device(db));
         (void)db_get_device(db)->close(db_get_device(db));
+        (void)db_get_device(db)->destroy(db_get_device(db));
         db_set_device(db, 0);
     }
 

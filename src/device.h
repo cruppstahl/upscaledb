@@ -120,9 +120,9 @@ struct ham_device_t {
     ham_status_t (*free_page)(ham_device_t *self, ham_page_t *page);
 
     /*
-     * destructor for this device structure
+     * destroy the device object, free all memory
      */
-    void (*destroy)(ham_device_t *self);
+    ham_status_t (*destroy)(ham_device_t *self);
 
     /*
      * the database
