@@ -740,8 +740,10 @@ db_flush_all(ham_db_t *db, ham_u32_t flags)
     while (head) {
         ham_page_t *next=page_get_next(head, PAGE_LIST_CACHED);
 
+        /* TODO - only if we're closing, but not if we call ham_flush()
         ham_assert(page_get_refcount(head)==0, 
                 ("page is in use, but database is closing"));
+                */
 
         /*
          * don't remove the page from the cache, if flag NODELETE
