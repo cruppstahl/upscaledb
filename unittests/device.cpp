@@ -73,7 +73,6 @@ public:
 
     void newDeleteTest()
     {
-        dev->destroy(dev);
     }
 
     void createCloseTest()
