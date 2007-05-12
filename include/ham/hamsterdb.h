@@ -120,7 +120,6 @@ typedef struct
 
 /*
  * hamsterdb error- and status codes.
- * These codes are always negative, so we have no conflicts with errno.h
  *
  * @defgroup ham_status_codes hamsterdb Status Codes
  * @{
@@ -190,7 +189,7 @@ typedef struct
 typedef void (*ham_errhandler_fun)(const char *message);
 
 /**
- * Set a global error handler
+ * Sets the global error handler
  * 
  * This handler will receive <b>all</b> debug messages which are emitted 
  * by hamsterdb. You can install the default handler by setting @a f to 0.
@@ -205,7 +204,7 @@ HAM_EXPORT void
 ham_set_errhandler(ham_errhandler_fun f);
 
 /**
- * Get a descriptive error string from a hamsterdb status code
+ * Gets a descriptive error string from a hamsterdb status code
  *
  * @param status The hamsterdb status code
  *
@@ -215,7 +214,7 @@ HAM_EXPORT const char *
 ham_strerror(ham_status_t status);
 
 /**
- * Get the version of the hamsterdb library
+ * Returns the version of the hamsterdb library
  */
 HAM_EXPORT void
 ham_get_version(ham_u32_t *major, ham_u32_t *minor,
@@ -231,7 +230,7 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
  */
 
 /**
- * Allocate a ham_db_t handle
+ * Allocates a ham_db_t handle
  *
  * @param db Pointer to a pointer which is allocated 
  *
@@ -242,9 +241,9 @@ HAM_EXPORT ham_status_t
 ham_new(ham_db_t **db);
 
 /**
- * Delete a ham_db_t handle
+ * Deletes a ham_db_t handle
  *
- * This function frees the ham_db_t structure. It does not close the 
+ * Frees the ham_db_t structure, but does not close the 
  * database. Call this function <b>AFTER</b> you have closed the 
  * database with @a ham_close, or you will lose your data!
  *
@@ -256,7 +255,7 @@ HAM_EXPORT ham_status_t
 ham_delete(ham_db_t *db);
 
 /**
- * Open a database
+ * Opens an existing database
  *
  * @param db A valid database handle.
  * @param filename The filename of the database file.
@@ -277,7 +276,7 @@ HAM_EXPORT ham_status_t
 ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
 
 /**
- * Open a database - extended version
+ * Opens an existing database - extended version
  *
  * @param db A valid database handle.
  * @param filename The filename of the database file.
@@ -327,7 +326,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_size_t cachesize);
 
 /**
- * Create a database
+ * Creates a database
  *
  * @param db A valid database handle.
  * @param filename The filename of the database file. If the file already
@@ -351,7 +350,7 @@ ham_create(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_u32_t mode);
 
 /**
- * Create a database - extended version
+ * Creates a database - extended version
  *
  * @param db A valid database handle.
  * @param filename The filename of the database file. If the file already
@@ -454,7 +453,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
 #define HAM_DISABLE_FREELIST_FLUSH   0x00000800
 
 /**
- * Get the last error code
+ * Returns the last error code
  *
  * @param db A valid database handle.
  *
@@ -466,7 +465,7 @@ HAM_EXPORT ham_status_t
 ham_get_error(ham_db_t *db);
 
 /**
- * Set the prefix comparison function
+ * Sets the prefix comparison function
  *
  * The prefix comparison function is called when an index uses
  * keys with variable length, and one of the two keys is loaded only
@@ -482,7 +481,7 @@ HAM_EXPORT ham_status_t
 ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
 
 /**
- * Set the comparison function
+ * Sets the comparison function
  *
  * The comparison function compares two index keys. It returns -1 if the 
  * first key is smaller, +1 if the second key is smaller or 0 if both
@@ -500,7 +499,7 @@ HAM_EXPORT ham_status_t
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
 
 /**
- * Search an item in the database
+ * Searches an item in the database
  *
  * This function searches the database for the @a key; if the key
  * is found, the record of this item is returned in @a record and 
@@ -536,7 +535,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags);
 
 /**
- * Insert a database item
+ * Inserts a database item
  *
  * This function inserts a key/record pair as a new database item.
  *
@@ -570,7 +569,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
 #define HAM_OVERWRITE               1
 
 /**
- * Erase a database item
+ * Erases a database item
  *
  * This function erases a database item. If the item with the @a key
  * does not exist, @a HAM_KEY_NOT_FOUND is returned.
@@ -591,7 +590,7 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_u32_t flags);
 
 /**
- * Flush the database
+ * Flushes the database
  *
  * This function flushes the database cache and writes the whole file 
  * to disk. 
@@ -609,7 +608,7 @@ HAM_EXPORT ham_status_t
 ham_flush(ham_db_t *db, ham_u32_t flags);
 
 /**
- * Close a database
+ * Closes the database
  *
  * This function flushes the database, and then closes the file handle. 
  * It does not free the memory resources allocated in the @a db handle - 
@@ -636,9 +635,9 @@ ham_close(ham_db_t *db);
  */
 
 /**
- * Create a database cursor
+ * Creates a database cursor
  *
- * This function creates a new database cursor. Cursors can be used to 
+ * Creates a new database cursor. Cursors can be used to 
  * traverse the database from start to end or from end to start. 
  * A created cursor does not point to any item in the database. 
  *
@@ -660,9 +659,9 @@ ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags,
         ham_cursor_t **cursor);
 
 /**
- * Clone a database cursor
+ * Clones a database cursor
  *
- * This function clones an existing cursor. The new cursor will point to 
+ * Clones an existing cursor. The new cursor will point to 
  * exactly the same item as the old cursor.
  *
  * @param src The existing cursor
@@ -679,7 +678,7 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
 /**
  * Moves the cursor
  *
- * This function moves the cursor. You can specify the direction in the 
+ * Moves the cursor. You can specify the direction in the 
  * flags. After the move, it returns the key and the record of the item.
  *
  * @param cursor A valid cursor handle.
@@ -721,22 +720,22 @@ HAM_EXPORT ham_status_t
 ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags);
 
-/** flag for @a ham_cursor_move */
+/** Flag for @a ham_cursor_move */
 #define HAM_CURSOR_FIRST            1
 
-/** flag for @a ham_cursor_move */
+/** Flag for @a ham_cursor_move */
 #define HAM_CURSOR_LAST             2
 
-/** flag for @a ham_cursor_move */
+/** Flag for @a ham_cursor_move */
 #define HAM_CURSOR_NEXT             4
 
-/** flag for @a ham_cursor_move */
+/** Flag for @a ham_cursor_move */
 #define HAM_CURSOR_PREVIOUS         8
 
 /**
- * Replace the current record
+ * Replaces the current record
  *
- * This function replaces the record of the current item. 
+ * This function replaces the record of the current cursor item.
  *
  * @param cursor A valid cursor handle.
  * @param record A valid record structure.
@@ -752,9 +751,9 @@ ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags);
 
 /**
- * Find a key and position the cursor on this key
+ * Searches a key and position the cursor on this key
  *
- * This function searches for an item in the database and positions the 
+ * Searches for an item in the database and positions the 
  * cursor on this item. If the item could not be found, the cursor is 
  * not modified.
  *
@@ -770,9 +769,9 @@ HAM_EXPORT ham_status_t
 ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
 
 /**
- * Insert (or update) a key 
+ * Inserts (or updates) a key 
  *
- * This function inserts a key in the database. If the flag @a HAM_OVERWRITE
+ * Inserts a key in the database. If the flag @a HAM_OVERWRITE
  * is specified, an already existing item with this key is overwritten;
  * otherwise, error @a HAM_DUPLICATE_ITEM is returned. 
  * In case of an error, the cursor is not modified.
@@ -801,7 +800,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
 /**
  * Erases the key
  *
- * This function deletes a key from the database. If the erase was 
+ * Erases a key from the database. If the erase was 
  * successfull, the cursor is invalidated. On error, the cursor is not
  * modified.
  *
@@ -818,9 +817,9 @@ HAM_EXPORT ham_status_t
 ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
 
 /**
- * Close a database cursor
+ * Closes a database cursor
  *
- * This function closes a cursor and frees allocated memory. All cursors 
+ * Closes a cursor and frees allocated memory. All cursors 
  * should be closed before closing the database (see @a ham_close);
  *
  * @param cursor A valid cursor handle.
