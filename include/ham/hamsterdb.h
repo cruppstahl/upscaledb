@@ -776,6 +776,9 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  * otherwise, error @a HAM_DUPLICATE_ITEM is returned. 
  * In case of an error, the cursor is not modified.
  *
+ * After insertion, the cursor will point to the new item. If inserting
+ * the item failed, the cursor is not modified.
+ *
  * @param cursor A valid cursor handle.
  * @param key A valid key structure.
  * @param record A valid record structure.
