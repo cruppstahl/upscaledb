@@ -29,7 +29,7 @@ usage(void)
 void
 copy_db(ham_db_t *source, ham_db_t *dest)
 {
-    ham_cursor_t *c;    /* hamsterdb cursor object */
+    ham_cursor_t *cursor;    /* hamsterdb cursor object */
     ham_status_t st;
     ham_key_t key;
     ham_record_t rec;
@@ -38,15 +38,15 @@ copy_db(ham_db_t *source, ham_db_t *dest)
     memset(&rec, 0, sizeof(rec));
 
     /* create a new cursor */
-    st=ham_cursor_create(source, 0, 0, &c); 
+    st=ham_cursor_create(source, 0, 0, &cursor); 
     if (st)
         error("ham_cursor_create", st);
 
     /* get a cursor to the source database */
-    st=ham_cursor_move(c, &key, &rec, HAM_CURSOR_FIRST);
+    st=ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_FIRST);
     if (st==HAM_KEY_NOT_FOUND) {
         printf("database is empty!\n");
-        exit(-1);
+        return;
     }
     else if (st)
         error("ham_cursor_move", st);
@@ -65,14 +65,14 @@ copy_db(ham_db_t *source, ham_db_t *dest)
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
 
-        st=ham_cursor_move(c, &key, &rec, HAM_CURSOR_NEXT);
+        st=ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT);
         if (st && st!=HAM_KEY_NOT_FOUND)
             error("ham_cursor_move", st);
 
     } while (st==0);
 
     /* clean up and return */
-    ham_cursor_close(c);
+    ham_cursor_close(cursor);
 }
 
 int 
