@@ -554,6 +554,12 @@ db_free_page(ham_page_t *page)
         }
     }
 
+    /* TODO TODO TODO 
+     * if (page_is_dirty(page))
+     *    st=page_flush(page);
+     *    ...
+     */
+
     st=page_free(page);
     if (st)
         return (st);
@@ -728,7 +734,9 @@ db_flush_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
             return (st);
     }
 
-    return (cache_put_page(db_get_cache(db), page));
+    if (db_get_cache(db))
+        return (cache_put_page(db_get_cache(db), page));
+    return (0);
 }
 
 ham_status_t
