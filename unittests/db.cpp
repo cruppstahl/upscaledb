@@ -11,6 +11,7 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
+#include "../src/cache.h"
 #include "../src/page.h"
 #include "memtracker.h"
 
@@ -22,26 +23,19 @@ class DbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (defaultCompareTest);
     CPPUNIT_TEST      (defaultPrefixCompareTest);
     CPPUNIT_TEST      (allocPageTest);
-
-/*
-    CPPUNIT_TEST      (freePageTest);
     CPPUNIT_TEST      (fetchPageTest);
     CPPUNIT_TEST      (flushPageTest);
-    CPPUNIT_TEST      (allocPageStructTest);
-    CPPUNIT_TEST      (freePageStructTest);
-*/
     CPPUNIT_TEST_SUITE_END();
 
 protected:
     ham_db_t *m_db;
     ham_bool_t m_inmemory;
     ham_device_t *m_dev;
-//    memtracker_t *m_alloc;
-    mem_allocator_t *m_alloc;
+    memtracker_t *m_alloc;
 
 public:
-    DbTest()
-    :   m_inmemory(HAM_FALSE)
+    DbTest(bool inmem=false)
+    :   m_inmemory(inmem)
     {
     }
 
@@ -49,7 +43,7 @@ public:
     { 
         ham_page_t *p;
         CPPUNIT_ASSERT(0==ham_new(&m_db));
-        m_alloc=ham_default_allocator_new(); //memtracker_new();
+        m_alloc=memtracker_new(); //ham_default_allocator_new();
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         db_set_device(m_db, (m_dev=ham_device_new(m_db, m_inmemory)));
         CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
@@ -66,6 +60,10 @@ public:
             page_delete(db_get_header_page(m_db));
             db_set_header_page(m_db, 0);
         }
+        if (db_get_cache(m_db)) {
+            cache_delete(m_db, db_get_cache(m_db));
+            db_set_cache(m_db, 0);
+        }
         if (db_get_device(m_db)) {
             if (db_get_device(m_db)->is_open(db_get_device(m_db)))
                 db_get_device(m_db)->close(db_get_device(m_db));
@@ -73,7 +71,7 @@ public:
             db_set_device(m_db, 0);
         }
         ham_delete(m_db);
-        //CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
+        CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void headerTest()
@@ -207,6 +205,63 @@ public:
         CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
     }
 
+    void fetchPageTest(void)
+    {
+        ham_page_t *p1, *p2;
+        CPPUNIT_ASSERT((p1=db_alloc_page(m_db, 0, PAGE_IGNORE_FREELIST))!=0);
+        CPPUNIT_ASSERT(page_get_owner(p1)==m_db);
+        CPPUNIT_ASSERT((p2=db_fetch_page(m_db, page_get_self(p1), 0))!=0);
+        CPPUNIT_ASSERT(page_get_self(p2)==page_get_self(p1));
+        CPPUNIT_ASSERT(db_free_page(p1)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(db_free_page(p2)==HAM_SUCCESS);
+    }
+
+    void flushPageTest(void)
+    {
+        ham_page_t *page;
+        ham_offset_t address;
+        ham_u8_t *p;
+
+        ham_cache_t *cache=cache_new(m_db, 15);
+        CPPUNIT_ASSERT(cache!=0);
+        db_set_cache(m_db, cache);
+
+        CPPUNIT_ASSERT((page=db_alloc_page(m_db, 0, PAGE_IGNORE_FREELIST))!=0);
+        CPPUNIT_ASSERT(page_get_owner(page)==m_db);
+        p=page_get_raw_payload(page);
+        for (int i=0; i<16; i++)
+            p[i]=(ham_u8_t)i;
+        page_set_dirty(page, 1);
+        address=page_get_self(page);
+        CPPUNIT_ASSERT(db_flush_page(m_db, page, 0)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(db_free_page(page)==HAM_SUCCESS);
+
+        CPPUNIT_ASSERT((page=db_fetch_page(m_db, address, 0))!=0);
+        CPPUNIT_ASSERT(page_get_self(page)==address);
+        p=page_get_raw_payload(page);
+        /* TODO see comment in db.c - db_free_page()
+        for (int i=0; i<16; i++)
+            CPPUNIT_ASSERT(p[i]==(ham_u8_t)i);
+        */
+        CPPUNIT_ASSERT(db_free_page(page)==HAM_SUCCESS);
+    }
+};
+
+class DbInMemoryTest : public DbTest
+{
+    CPPUNIT_TEST_SUITE(DbTest);
+    CPPUNIT_TEST      (headerTest);
+    CPPUNIT_TEST      (structureTest);
+    CPPUNIT_TEST      (defaultCompareTest);
+    CPPUNIT_TEST      (defaultPrefixCompareTest);
+    CPPUNIT_TEST      (allocPageTest);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    DbInMemoryTest()
+    :   DbTest(true)
+    { };
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(DbTest);
+CPPUNIT_TEST_SUITE_REGISTRATION(DbInMemoryTest);
