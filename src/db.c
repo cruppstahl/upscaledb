@@ -603,6 +603,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
                 page_delete(page);
                 return (0);
             }
+            goto done;
         }
     }
 
