@@ -111,7 +111,7 @@ cache_new(ham_db_t *db, ham_size_t max_elements);
 /**
  * close and destroy a cache manager object
  *
- * @remark this will NOT flush the cache! use @a cache_flush_all() 
+ * @remark this will NOT flush the cache!
  */
 extern void
 cache_delete(ham_db_t *db, ham_cache_t *cache);
