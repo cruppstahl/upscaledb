@@ -23,13 +23,9 @@ o create a webpage
     x tutorial
         x also add docs about installation, compilation, porting
         x download as pdf
+        x don't forget to add it to Makefile.am/EXTRA_DIST
     o faq
     o ask someone to correct my english
-
-o tutorial
-    o don't forget to add it to Makefile.am/EXTRA_DIST
-
-o release 0.4.3??
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -71,8 +67,7 @@ o shrink files, if the freelist allows shrinking and if "HAM_AUTO_REORG" is
     set
 
 o replace os_tell with os_get_filesize 
-
-o release 0.4.4
+    o unit tests!
 
 -----------------------------------------------------
 -----------------------------------------------------
@@ -84,8 +79,6 @@ o add file locking to enable simple concurrency:
 
 o test 1 writer, multiple reader scenarios
 
-o release 0.4.5
-    
 -----------------------------------------------------
 -----------------------------------------------------
 
@@ -118,7 +111,4 @@ o do a complete source code review, or ask someone to do it
         o db.c has some backend-specific functions, maybe they should 
             be moved to the backend
     o check the TODOs in the source
-
-o release 0.4.6 - should be stable!!
-    increment libtool version to 0.1
 
