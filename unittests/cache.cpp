@@ -3,7 +3,7 @@
  * All rights reserved. See file LICENSE for licence and copyright
  * information.
  *
- * unit tests for mem.h/mem.c
+ * unit tests for cache.h/cache.c
  *
  */
 
