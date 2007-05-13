@@ -84,7 +84,7 @@ __freel_search_aligned_bits(ham_db_t *db, freelist_t *fl, ham_size_t size_bits)
     }
 
     /* TODO this does not yet check for spaces which span several pages */
-    for (; i<max/size_bits; i++) {
+    for (; i<max/size_bits; i+=db_get_pagesize(db)/DB_CHUNKSIZE) {
         if (p[i/8] & 1 << (i%8)) {
             start=i;
             for (j=0; j<size_bits; j++) {
