@@ -27,6 +27,9 @@ o create a webpage
     o faq
     o ask someone to correct my english
 
+o compare performance of default-keysize with keysize=8 or
+    keysize=default_keysize+1
+
 -----------------------------------------------------
 -----------------------------------------------------
 

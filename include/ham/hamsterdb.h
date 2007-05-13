@@ -182,14 +182,14 @@ typedef struct
  */
 
 /**
- * A typedef for a custom error handler function
+ * A typedef for a custom error handler function.
  * 
  * @param message The error message.
  */
 typedef void (*ham_errhandler_fun)(const char *message);
 
 /**
- * Sets the global error handler
+ * Sets the global error handler.
  * 
  * This handler will receive <b>all</b> debug messages which are emitted 
  * by hamsterdb. You can install the default handler by setting @a f to 0.
@@ -204,9 +204,9 @@ HAM_EXPORT void
 ham_set_errhandler(ham_errhandler_fun f);
 
 /**
- * Gets a descriptive error string from a hamsterdb status code
+ * Translates a hamsterdb status code to a descriptive error string.
  *
- * @param status The hamsterdb status code
+ * @param status The hamsterdb status code.
  *
  * @return Returns a pointer to a descriptive error string.
  */
@@ -214,7 +214,7 @@ HAM_EXPORT const char *
 ham_strerror(ham_status_t status);
 
 /**
- * Returns the version of the hamsterdb library
+ * Returns the version of the hamsterdb library.
  */
 HAM_EXPORT void
 ham_get_version(ham_u32_t *major, ham_u32_t *minor,
@@ -230,18 +230,18 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
  */
 
 /**
- * Allocates a ham_db_t handle
+ * Allocates a ham_db_t handle.
  *
- * @param db Pointer to a pointer which is allocated 
+ * @param db Pointer to a pointer which is allocated.
  *
- * @return @a HAM_SUCCESS on success
- * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
+ * @return @a HAM_SUCCESS on success.
+ * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
  */
 HAM_EXPORT ham_status_t
 ham_new(ham_db_t **db);
 
 /**
- * Deletes a ham_db_t handle
+ * Deletes a ham_db_t handle.
  *
  * Frees the ham_db_t structure, but does not close the 
  * database. Call this function <b>AFTER</b> you have closed the 
@@ -255,7 +255,7 @@ HAM_EXPORT ham_status_t
 ham_delete(ham_db_t *db);
 
 /**
- * Opens an existing database
+ * Opens an existing database.
  *
  * @param db A valid database handle.
  * @param filename The filename of the database file.
@@ -263,20 +263,20 @@ ham_delete(ham_db_t *db);
  *        bitwise OR. See the documentation of @a ham_open_ex
  *        for the allowed flags.
  *
- * @return @a HAM_SUCCESS on success
+ * @return @a HAM_SUCCESS on success.
  * @return @a HAM_INV_PARAMETER if the @a db pointer is NULL or an 
- *              invalid combination of flags was specified
- * @return @a HAM_FILE_NOT_FOUND if the file does not exist
- * @return @a HAM_IO_ERROR if the file could not be opened or reading failed
+ *              invalid combination of flags was specified.
+ * @return @a HAM_FILE_NOT_FOUND if the file does not exist.
+ * @return @a HAM_IO_ERROR if the file could not be opened or reading failed.
  * @return @a HAM_INV_FILE_VERSION if the database version is not 
- *              compatible with the library version
- * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
+ *              compatible with the library version.
+ * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
  */
 HAM_EXPORT ham_status_t
 ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
 
 /**
- * Opens an existing database - extended version
+ * Opens an existing database - extended version.
  *
  * @param db A valid database handle.
  * @param filename The filename of the database file.
@@ -310,23 +310,23 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *
  * @param cachesize The size of the database cache, in bytes. Set to 0
  *        for the default size (defined in src/config.h as
- *        HAM_DEFAULT_CACHESIZE - usually 256kb)
+ *        HAM_DEFAULT_CACHESIZE - usually 256kb).
  *
- * @return @a HAM_SUCCESS on success
+ * @return @a HAM_SUCCESS on success.
  * @return @a HAM_INV_PARAMETER if the @a db pointer is NULL or an 
- *              invalid combination of flags was specified
- * @return @a HAM_FILE_NOT_FOUND if the file does not exist
- * @return @a HAM_IO_ERROR if the file could not be opened or reading failed
+ *              invalid combination of flags was specified.
+ * @return @a HAM_FILE_NOT_FOUND if the file does not exist.
+ * @return @a HAM_IO_ERROR if the file could not be opened or reading failed.
  * @return @a HAM_INV_FILE_VERSION if the database version is not 
- *              compatible with the library version
- * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
+ *              compatible with the library version.
+ * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
  */
 HAM_EXPORT ham_status_t
 ham_open_ex(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_size_t cachesize);
 
 /**
- * Creates a database
+ * Creates a database.
  *
  * @param db A valid database handle.
  * @param filename The filename of the database file. If the file already
@@ -335,14 +335,14 @@ ham_open_ex(ham_db_t *db, const char *filename,
  * @param flags Optional flags for opening the database, combined with 
  *        bitwise OR. For allowed flags, see @a ham_create_ex.
  *
- * @return @a HAM_SUCCESS on success
+ * @return @a HAM_SUCCESS on success.
  * @return @a HAM_INV_PARAMETER if the @a db pointer is NULL or an 
- *              invalid combination of flags was specified
+ *              invalid combination of flags was specified.
  * @return @a HAM_IO_ERROR if the file could not be opened or 
- *              reading/writing failed
+ *              reading/writing failed.
  * @return @a HAM_INV_FILE_VERSION if the database version is not 
- *              compatible with the library version
- * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
+ *              compatible with the library version.
+ * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
  *
  */
 HAM_EXPORT ham_status_t
@@ -350,7 +350,7 @@ ham_create(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_u32_t mode);
 
 /**
- * Creates a database - extended version
+ * Creates a database - extended version.
  *
  * @param db A valid database handle.
  * @param filename The filename of the database file. If the file already
@@ -400,19 +400,19 @@ ham_create(ham_db_t *db, const char *filename,
  *        of 1024.
  * @param cachesize The size of the database cache, in bytes. Set to 0
  *        for the default size (defined in src/config.h as
- *        HAM_DEFAULT_CACHESIZE - usually 256kb)
+ *        HAM_DEFAULT_CACHESIZE - usually 256kb).
  *
- * @return @a HAM_SUCCESS on success
+ * @return @a HAM_SUCCESS on success.
  * @return @a HAM_INV_PARAMETER if the @a db pointer is NULL or an 
- *              invalid combination of flags was specified
+ *              invalid combination of flags was specified.
  * @return @a HAM_IO_ERROR if the file could not be opened or 
- *              reading/writing failed
+ *              reading/writing failed.
  * @return @a HAM_INV_FILE_VERSION if the database version is not 
- *              compatible with the library version
- * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
- * @return @a HAM_INV_PAGESIZE if the pagesize is not a multiple of 1024
+ *              compatible with the library version.
+ * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
+ * @return @a HAM_INV_PAGESIZE if the pagesize is not a multiple of 1024.
  * @return @a HAM_INV_KEYSIZE if the keysize is too large (at least 4 
- *              keys must fit in a page)
+ *              keys must fit in a page).
  *
  */
 HAM_EXPORT ham_status_t
@@ -453,7 +453,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
 #define HAM_DISABLE_FREELIST_FLUSH   0x00000800
 
 /**
- * Returns the last error code
+ * Returns the last error code.
  *
  * @param db A valid database handle.
  *
@@ -465,7 +465,7 @@ HAM_EXPORT ham_status_t
 ham_get_error(ham_db_t *db);
 
 /**
- * Sets the prefix comparison function
+ * Sets the prefix comparison function.
  *
  * The prefix comparison function is called when an index uses
  * keys with variable length, and one of the two keys is loaded only
@@ -474,14 +474,14 @@ ham_get_error(ham_db_t *db);
  * @param db A valid database handle.
  * @param foo A pointer to the prefix compare function.
  *
- * @return @a HAM_SUCCESS on success
- * @return @a HAM_INV_PARAMETER if one of the parameters is NULL
+ * @return @a HAM_SUCCESS on success.
+ * @return @a HAM_INV_PARAMETER if one of the parameters is NULL.
  */
 HAM_EXPORT ham_status_t
 ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
 
 /**
- * Sets the comparison function
+ * Sets the comparison function.
  *
  * The comparison function compares two index keys. It returns -1 if the 
  * first key is smaller, +1 if the second key is smaller or 0 if both
@@ -492,14 +492,14 @@ ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
  * @param db A valid database handle.
  * @param foo A pointer to the compare function.
  *
- * @return @a HAM_SUCCESS on success
- * @return @a HAM_INV_PARAMETER if one of the parameters is NULL
+ * @return @a HAM_SUCCESS on success.
+ * @return @a HAM_INV_PARAMETER if one of the parameters is NULL.
  */
 HAM_EXPORT ham_status_t
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
 
 /**
- * Searches an item in the database
+ * Searches an item in the database.
  *
  * This function searches the database for the @a key; if the key
  * is found, the record of this item is returned in @a record and 
@@ -526,16 +526,16 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  * @param record The record of the item.
  * @param flags Search flags; unused, set to 0.
  *
- * @return @a HAM_SUCCESS on success
- * @return @a HAM_INV_PARAMETER if @a db or @a key or @a record is NULL
- * @return @a HAM_KEY_NOT_FOUND if the @a key does not exist
+ * @return @a HAM_SUCCESS on success.
+ * @return @a HAM_INV_PARAMETER if @a db or @a key or @a record is NULL.
+ * @return @a HAM_KEY_NOT_FOUND if the @a key does not exist.
  */
 HAM_EXPORT ham_status_t
 ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags);
 
 /**
- * Inserts a database item
+ * Inserts a database item.
  *
  * This function inserts a key/record pair as a new database item.
  *
@@ -551,15 +551,15 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  *         @a HAM_OVERWRITE If the @a key already exists, the record is 
  *              overwritten; otherwise, the key is inserted.
  *
- * @return @a HAM_SUCCESS on success
- * @return @a HAM_INV_PARAMETER if @a db or @a key or @a record is NULL
+ * @return @a HAM_SUCCESS on success.
+ * @return @a HAM_INV_PARAMETER if @a db or @a key or @a record is NULL.
  * @return @a HAM_DB_READ_ONLY if you tried to insert a key in a read-only
- *              database
+ *              database.
  * @return @a HAM_INV_KEYSIZE if the key's size is larger than the keysize
  *              parameter specified for @a ham_create_ex and variable 
  *              key sizes are disabled (see @a HAM_DISABLE_VAR_KEYLEN)
  *              OR if the keysize parameter specified for @a ham_create_ex 
- *              is smaller than 8
+ *              is smaller than 8.
  */
 HAM_EXPORT ham_status_t
 ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
@@ -579,36 +579,36 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
  * @param key The key of the new item.
  * @param flags Erase flags; unused, set to 0.
  *
- * @return @a HAM_SUCCESS on success
- * @return @a HAM_INV_PARAMETER if @a db or @a key is NULL
+ * @return @a HAM_SUCCESS on success.
+ * @return @a HAM_INV_PARAMETER if @a db or @a key is NULL.
  * @return @a HAM_DB_READ_ONLY if you tried to erase a key from a read-only
- *              database
- * @return @a HAM_KEY_NOT_FOUND if the key was not found
+ *              database.
+ * @return @a HAM_KEY_NOT_FOUND if the key was not found.
  */
 HAM_EXPORT ham_status_t
 ham_erase(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_u32_t flags);
 
 /**
- * Flushes the database
+ * Flushes the database.
  *
  * This function flushes the database cache and writes the whole file 
  * to disk. 
  *
- * @remark Since in-memory-databases do not have a file on disk, the 
+ * Since in-memory-databases do not have a file on disk, the 
  * function will have no effect and return @a HAM_SUCCESS.
  *
  * @param db A valid database handle.
  * @param flags Flush flags; unused, set to 0.
  *
- * @return @a HAM_SUCCESS on success
- * @return @a HAM_INV_PARAMETER if @a db is NULL
+ * @return @a HAM_SUCCESS on success.
+ * @return @a HAM_INV_PARAMETER if @a db is NULL.
  */
 HAM_EXPORT ham_status_t
 ham_flush(ham_db_t *db, ham_u32_t flags);
 
 /**
- * Closes the database
+ * Closes the database.
  *
  * This function flushes the database, and then closes the file handle. 
  * It does not free the memory resources allocated in the @a db handle - 
@@ -619,8 +619,8 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  *
  * @param db A valid database handle.
  *
- * @return @a HAM_SUCCESS on success
- * @return @a HAM_INV_PARAMETER if @a db is NULL
+ * @return @a HAM_SUCCESS on success.
+ * @return @a HAM_INV_PARAMETER if @a db is NULL.
  */
 HAM_EXPORT ham_status_t
 ham_close(ham_db_t *db);
@@ -635,10 +635,11 @@ ham_close(ham_db_t *db);
  */
 
 /**
- * Creates a database cursor
+ * Creates a database cursor.
  *
  * Creates a new database cursor. Cursors can be used to 
- * traverse the database from start to end or from end to start. 
+ * traverse the database from start to end or vice versa. Cursors
+ * can also be used to insert or delete or search database items.
  * A created cursor does not point to any item in the database. 
  *
  * The application should close all database cursors before closing 
@@ -650,9 +651,9 @@ ham_close(ham_db_t *db);
  * @param cursor A pointer to a pointer, which is allocated with the
  *          new cursor handle
  *
- * @return @a HAM_SUCCESS on success
- * @return @a HAM_INV_PARAMETER if @a db or cursor is NULL
- * @return @a HAM_OUT_OF_MEMORY if the new structure could not be allocated
+ * @return @a HAM_SUCCESS on success.
+ * @return @a HAM_INV_PARAMETER if @a db or cursor is NULL.
+ * @return @a HAM_OUT_OF_MEMORY if the new structure could not be allocated.
  */
 HAM_EXPORT ham_status_t
 ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags,
@@ -662,24 +663,29 @@ ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags,
  * Clones a database cursor
  *
  * Clones an existing cursor. The new cursor will point to 
- * exactly the same item as the old cursor.
+ * exactly the same item as the old cursor. If the old cursor did not point
+ * to an item, the new cursor will also not point to an item.
  *
  * @param src The existing cursor
  * @param dest A pointer to a pointer, which is allocated with the
- *          cloned cursor handle
+ *          cloned cursor handle.
  *
- * @return @a HAM_SUCCESS on success
- * @return @a HAM_INV_PARAMETER if @a src or dest is NULL
- * @return @a HAM_OUT_OF_MEMORY if the new structure could not be allocated
+ * @return @a HAM_SUCCESS on success.
+ * @return @a HAM_INV_PARAMETER if @a src or dest is NULL.
+ * @return @a HAM_OUT_OF_MEMORY if the new structure could not be allocated.
  */
 HAM_EXPORT ham_status_t
 ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
 
 /**
- * Moves the cursor
+ * Moves the cursor.
  *
- * Moves the cursor. You can specify the direction in the 
- * flags. After the move, it returns the key and the record of the item.
+ * Moves the cursor. You can specify the direction in the flags.
+ * After the move, it returns the key and the record of the item.
+ *
+ * If you do not specify a direction, the cursor will not move. Do not 
+ * specify a direction, if you want to fetch the key and/or record of 
+ * the current item.
  *
  * @param cursor A valid cursor handle.
  * @param key An optional pointer to a @a ham_key_t structure; if this 
@@ -708,13 +714,13 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  *              item, the function behaves as if direction was
  *              HAM_CURSOR_LAST.
  *
- * @return @a HAM_SUCCESS on success
- * @return @a HAM_INV_PARAMETER if @a cursor is NULL
+ * @return @a HAM_SUCCESS on success.
+ * @return @a HAM_INV_PARAMETER if @a cursor is NULL.
  * @return @a HAM_CURSOR_IS_NIL if the cursor does not point to an item, but
- *              key and/or record were requested
+ *              key and/or record were requested.
  * @return @a HAM_KEY_NOT_FOUND if the cursor points to the first (or last)
  *              item, and a move to the previous (or next) item was 
- *              attempted
+ *              attempted.
  */
 HAM_EXPORT ham_status_t
 ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
@@ -733,7 +739,7 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 #define HAM_CURSOR_PREVIOUS         8
 
 /**
- * Replaces the current record
+ * Replaces the current record.
  *
  * This function replaces the record of the current cursor item.
  *
@@ -741,17 +747,16 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
  * @param record A valid record structure.
  * @param flags Flags for replacing the item; unused, set to 0
  *
- * @return @a HAM_SUCCESS on success
- * @return @a HAM_INV_PARAMETER if @a cursor or @a record is NULL
- * @return @a HAM_CURSOR_IS_NIL if the cursor does not point to an item, but
- *              key and/or record were requested
+ * @return @a HAM_SUCCESS on success.
+ * @return @a HAM_INV_PARAMETER if @a cursor or @a record is NULL.
+ * @return @a HAM_CURSOR_IS_NIL if the cursor does not point to an item.
  */
 HAM_EXPORT ham_status_t
 ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags);
 
 /**
- * Searches a key and position the cursor on this key
+ * Searches a key and position the cursor on this key.
  *
  * Searches for an item in the database and positions the 
  * cursor on this item. If the item could not be found, the cursor is 
@@ -761,15 +766,15 @@ ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
  * @param key A valid key structure.
  * @param flags Flags for searching the item; unused, set to 0
  *
- * @return @a HAM_SUCCESS on success
- * @return @a HAM_INV_PARAMETER if @a cursor or @a key is NULL
- * @return @a HAM_KEY_NOT_FOUND if the requested key was not found
+ * @return @a HAM_SUCCESS on success.
+ * @return @a HAM_INV_PARAMETER if @a cursor or @a key is NULL.
+ * @return @a HAM_KEY_NOT_FOUND if the requested key was not found.
  */
 HAM_EXPORT ham_status_t
 ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
 
 /**
- * Inserts (or updates) a key 
+ * Inserts (or updates) a key .
  *
  * Inserts a key in the database. If the flag @a HAM_OVERWRITE
  * is specified, an already existing item with this key is overwritten;
@@ -786,48 +791,49 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  *         @a HAM_OVERWRITE If the @a key already exists, the record is 
  *              overwritten; otherwise, the key is inserted.
  *
- * @return @a HAM_SUCCESS on success
- * @return @a HAM_INV_PARAMETER if @a db or @a key or @a record is NULL
+ * @return @a HAM_SUCCESS on success.
+ * @return @a HAM_INV_PARAMETER if @a db or @a key or @a record is NULL.
  * @return @a HAM_DB_READ_ONLY if you tried to insert a key in a read-only
- *              database
+ *              database.
  * @return @a HAM_INV_KEYSIZE if the key's size is larger than the keysize
  *              parameter specified for @a ham_create_ex and variable 
  *              key sizes are disabled (see @a HAM_DISABLE_VAR_KEYLEN)
  *              OR if the keysize parameter specified for @a ham_create_ex 
- *              is smaller than 8
+ *              is smaller than 8.
  */
 HAM_EXPORT ham_status_t
 ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags);
 
 /**
- * Erases the key
+ * Erases the key.
  *
  * Erases a key from the database. If the erase was 
- * successfull, the cursor is invalidated. On error, the cursor is not
- * modified.
+ * successfull, the cursor is invalidated, and does no longer point to
+ * any item. In case of an error, the cursor is not modified.
  *
  * @param cursor A valid cursor handle.
  * @param flags Erase flags; unused, set to 0.
  *
- * @return @a HAM_SUCCESS on success
- * @return @a HAM_INV_PARAMETER if @a db or @a key is NULL
+ * @return @a HAM_SUCCESS on success.
+ * @return @a HAM_INV_PARAMETER if @a db or @a key is NULL.
  * @return @a HAM_DB_READ_ONLY if you tried to erase a key from a read-only
- *              database
- * @return @a HAM_KEY_NOT_FOUND if the key was not found
+ *              database.
+ * @return @a HAM_KEY_NOT_FOUND if the key was not found.
  */
 HAM_EXPORT ham_status_t
 ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
 
 /**
- * Closes a database cursor
+ * Closes a database cursor.
  *
  * Closes a cursor and frees allocated memory. All cursors 
  * should be closed before closing the database (see @a ham_close);
  *
  * @param cursor A valid cursor handle.
- * @return @a HAM_SUCCESS on success
- * @return @a HAM_INV_PARAMETER if @a db or @a key is NULL
+ *
+ * @return @a HAM_SUCCESS on success.
+ * @return @a HAM_INV_PARAMETER if @a db or @a key is NULL.
  *
  */
 HAM_EXPORT ham_status_t
