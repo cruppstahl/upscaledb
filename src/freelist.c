@@ -224,16 +224,16 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size)
                 freel_set_used_bits(fl, 
                         freel_get_used_bits(fl)+size/DB_CHUNKSIZE);
                 __freel_set_bits(fl, 
-                        (address-freel_get_start_address(fl))/DB_CHUNKSIZE,
+                        (ham_size_t)(address-freel_get_start_address(fl))/DB_CHUNKSIZE,
                         size/DB_CHUNKSIZE, HAM_TRUE);
                 break;
             }
             else {
-                ham_size_t s=end-address+1;
+                ham_size_t s=(ham_size_t)(end-address+1);
                 freel_set_used_bits(fl, 
                         freel_get_used_bits(fl)+s/DB_CHUNKSIZE);
                 __freel_set_bits(fl, 
-                        (address-freel_get_start_address(fl))/DB_CHUNKSIZE,
+                        (ham_size_t)(address-freel_get_start_address(fl))/DB_CHUNKSIZE,
                         s/DB_CHUNKSIZE, HAM_TRUE);
                 address+=s;
                 size-=s;
