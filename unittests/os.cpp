@@ -52,7 +52,7 @@ public:
     void tearDown() 
     { 
 #if WIN32
-        (void)DeleteFile(".test");
+        (void)DeleteFile(LPCWSTR(".test"));
 #else
         (void)unlink(".test");
 #endif
@@ -77,7 +77,7 @@ public:
 
         st=os_open("Makefile", HAM_READ_ONLY, &fd);
         CPPUNIT_ASSERT(st==0);
-        st=os_pwrite(fd, 0, p, strlen(p));
+        st=os_pwrite(fd, 0, p, (ham_size_t)strlen(p));
         CPPUNIT_ASSERT(st==HAM_IO_ERROR);
         st=os_close(fd);
         CPPUNIT_ASSERT(st==0);
@@ -125,7 +125,7 @@ public:
     {
         ham_status_t st;
 
-        st=os_close((ham_fd_t)0x12345);
+		st=os_close((ham_fd_t)0x12345);
         CPPUNIT_ASSERT(st==HAM_IO_ERROR);
     }
 
@@ -204,9 +204,9 @@ public:
         for (i=0; i<5; i++) {
             size=ps*(i+1);
 
-            p1=(ham_u8_t *)malloc(size);
-            memset(p1, i, size);
-            st=os_pwrite(fd, addr, p1, size);
+            p1=(ham_u8_t *)malloc((size_t)size);
+            memset(p1, i, (size_t)size);
+            st=os_pwrite(fd, addr, p1, (ham_size_t)size);
             CPPUNIT_ASSERT(st==0);
             free(p1);
             addr+=size;
@@ -216,12 +216,12 @@ public:
         for (i=0; i<5; i++) {
             size=ps*(i+1);
 
-            p1=(ham_u8_t *)malloc(size);
-            memset(p1, i, size);
-            st=os_mmap(fd, 0, addr, size, &p2);
+            p1=(ham_u8_t *)malloc((size_t)size);
+            memset(p1, i, (size_t)size);
+            st=os_mmap(fd, 0, addr, (ham_size_t)size, &p2);
             CPPUNIT_ASSERT(st==0);
-            CPPUNIT_ASSERT(0==memcmp(p1, p2, size));
-            st=os_munmap(0, p2, size);
+            CPPUNIT_ASSERT(0==memcmp(p1, p2, (size_t)size));
+            st=os_munmap(0, p2, (ham_size_t)size);
             CPPUNIT_ASSERT(st==0);
             free(p1);
             addr+=size;

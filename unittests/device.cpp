@@ -157,7 +157,6 @@ public:
             CPPUNIT_ASSERT(m_dev->write_page(m_dev, &pages[i])==HAM_SUCCESS);
         }
         for (i=0; i<10; i++) {
-            int j;
             ham_u8_t *buffer;
             memset(temp, i, ps);
             CPPUNIT_ASSERT(m_dev->free_page(m_dev, &pages[i])==HAM_SUCCESS);
@@ -197,7 +196,6 @@ public:
                         buffer[i], ps)==HAM_SUCCESS);
         }
         for (i=0; i<10; i++) {
-            int j;
             CPPUNIT_ASSERT(m_dev->read(m_dev, i*ps, 
                         buffer[i], ps)==HAM_SUCCESS);
             memset(temp, i, ps);

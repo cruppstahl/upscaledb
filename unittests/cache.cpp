@@ -225,7 +225,7 @@ public:
         ham_cache_t *cache=cache_new(m_db, 15);
         std::vector<ham_page_t *> v;
 
-        for (int i=0; i<cache_get_max_elements(cache)+10; i++) {
+        for (unsigned int i=0; i<cache_get_max_elements(cache)+10; i++) {
             ham_page_t *p=page_new(m_db);
             page_set_npers_flags(p, PAGE_NPERS_NO_HEADER);
             page_set_self(p, i*1024);
@@ -233,7 +233,7 @@ public:
             CPPUNIT_ASSERT(cache_put_page(cache, p)==0);
         }
 
-        for (int i=0; i<=10; i++) {
+        for (unsigned int i=0; i<=10; i++) {
             ham_page_t *p;
             CPPUNIT_ASSERT(cache_too_big(cache));
             p=v.back();
@@ -242,7 +242,7 @@ public:
             page_delete(p);
         }
 
-        for (int i=0; i<cache_get_max_elements(cache)-1; i++) {
+        for (unsigned int i=0; i<cache_get_max_elements(cache)-1; i++) {
             ham_page_t *p;
             p=v.back();
             v.pop_back();
