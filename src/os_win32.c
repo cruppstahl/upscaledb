@@ -176,7 +176,7 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
     ham_status_t st;
     DWORD osflags=FILE_FLAG_RANDOM_ACCESS;
 
-    *fd=(ham_fd_t)CreateFile(filename, GENERIC_READ|GENERIC_WRITE, 
+    *fd=(ham_fd_t)CreateFileA(filename, GENERIC_READ|GENERIC_WRITE, 
                 0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
     if (*fd==INVALID_HANDLE_VALUE) {
         st=(ham_status_t)GetLastError();
@@ -220,7 +220,7 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
     else
         access|=GENERIC_READ|GENERIC_WRITE;
 
-    *fd=(ham_fd_t)CreateFile(filename, access, share, 0, 
+    *fd=(ham_fd_t)CreateFileA(filename, access, share, 0, 
                         dispo, osflags, 0);
     if (*fd==INVALID_HANDLE_VALUE) {
         st=(ham_status_t)GetLastError();
