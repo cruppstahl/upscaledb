@@ -17,9 +17,9 @@ EXTRA_DIST = documentation/Doxyfile                     \
              win32/hamsterdb/hamsterdb.sln              \
 		     win32/dll/dll.vcproj             			\
 		     win32/lib/lib.vcproj             			\
-		     win32/sample_db1/db1.vcproj      			\
-		     win32/sample_db2/db2.vcproj      			\
-		     win32/sample_db3/db3.vcproj      			\
+		     win32/sample_db1/sample_db1.vcproj         \
+		     win32/sample_db2/sample_db2.vcproj         \
+		     win32/sample_db3/sample_db3.vcproj         \
 		     win32/unittests/unittests.vcproj
 
 doc:
