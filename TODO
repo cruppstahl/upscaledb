@@ -30,6 +30,9 @@ o create a webpage
 o compare performance of default-keysize with keysize=8 or
     keysize=default_keysize+1
 
+o check monster.sh: --cachepolicy=strict (with default cachesize) should
+    lead to errors, but doesn't - but maybe that's okay
+
 -----------------------------------------------------
 -----------------------------------------------------
 

@@ -36,7 +36,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
  * @remark win32 needs a second handle for CreateFileMapping
  */
 extern ham_status_t
-os_munmap(ham_fd_t mmaph, void *buffer, ham_size_t size);
+os_munmap(ham_fd_t *mmaph, void *buffer, ham_size_t size);
 
 /**
  * read data from a file
