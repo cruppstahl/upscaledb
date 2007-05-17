@@ -70,8 +70,8 @@ build with debugging symbols etc).
 
 A Solution file is provided for Microsoft Visual C++ 2005:
 win32/hamsterdb/hamsterdb.sln. It compiles a static and a dynamic library. 
-The static library is built in '/win32/hamsterdb/lib/Release/hamsterdb.lib', 
-the dynamic library is in '/win32/hamsterdb/lib/Debug/hamsterdb.dll'. An import
+The static library is built in '/win32/hamsterdb/release/libhamsterdb.lib', 
+the dynamic library is in '/win32/hamsterdb/release/hamsterdb.dll'. An import
 library is also provided. All libraries can be downloaded separately from 
 the hamsterdb webpage.
 
@@ -82,7 +82,7 @@ http://msdn.microsoft.com/vstudio/express/visualc/default.aspx.
 
 Make automatically compiles a simple example program in the directory
 '/samples'. To see hamsterdb in action, just run '/samples/db1' (or 
-'/win32/hamsterdb/db1/Release/db1.exe' on Win32 platforms).
+'/win32/hamsterdb/release/db1.exe' on Win32 platforms).
 
 8. API Documentation
 
