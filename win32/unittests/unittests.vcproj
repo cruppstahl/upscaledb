@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../include;&quot;../cppunit-1.12.0/include&quot;"
+				AdditionalIncludeDirectories="../../include;&quot;../../../../alien/cppunit-1.12.0/include&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -61,9 +61,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../cppunit-1.12.0/lib/cppunit.lib"
+				AdditionalDependencies="&quot;../../../../alien/cppunit-1.12.0/lib/cppunitd.lib&quot;"
 				LinkIncremental="2"
-				GenerateManifest="false"
+				GenerateManifest="true"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"
