@@ -203,6 +203,20 @@ os_tell(ham_fd_t fd, ham_offset_t *offset)
 }
 
 ham_status_t
+os_get_filesize(ham_fd_t fd, ham_offset_t *size)
+{
+    ham_status_t st;
+
+    st=os_seek(fd, 0, HAM_OS_SEEK_END);
+    if (st)
+        return (st);
+    st=os_tell(fd, size);
+    if (st)
+        return (st);
+    return (0);
+}
+
+ham_status_t
 os_truncate(ham_fd_t fd, ham_offset_t newsize)
 {
     if (ftruncate(fd, newsize))

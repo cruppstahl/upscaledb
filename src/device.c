@@ -145,10 +145,7 @@ __f_alloc(ham_device_t *self, ham_size_t size, ham_offset_t *address)
     ham_status_t st;
     dev_file_t *t=(dev_file_t *)device_get_private(self);
 
-    st=os_seek(t->fd, 0, HAM_OS_SEEK_END);
-    if (st)
-        return (db_set_error(device_get_db(self), st));
-    st=os_tell(t->fd, address);
+    st=os_get_filesize(t->fd, address);
     if (st)
         return (db_set_error(device_get_db(self), st));
     st=os_truncate(t->fd, (*address)+size);
@@ -165,10 +162,7 @@ __f_alloc_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
     ham_offset_t pos;
     dev_file_t *t=(dev_file_t *)device_get_private(self);
 
-    st=os_seek(t->fd, 0, HAM_OS_SEEK_END);
-    if (st)
-        return (db_set_error(device_get_db(self), st));
-    st=os_tell(t->fd, &pos);
+    st=os_get_filesize(t->fd, &pos);
     if (st)
         return (db_set_error(device_get_db(self), st));
     st=os_truncate(t->fd, pos+size);

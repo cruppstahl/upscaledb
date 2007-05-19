@@ -81,6 +81,12 @@ extern ham_status_t
 os_tell(ham_fd_t fd, ham_offset_t *offset);
 
 /**
+ * get the size of the database file
+ */
+extern ham_status_t
+os_get_filesize(ham_fd_t fd, ham_offset_t *size);
+
+/**
  * truncate/resize the file
  */
 extern ham_status_t

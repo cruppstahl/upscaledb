@@ -153,6 +153,21 @@ os_tell(ham_fd_t fd, ham_offset_t *offset)
 }
 
 ham_status_t
+os_get_filesize(ham_fd_t fd, ham_offset_t *size)
+{
+    LARGE_INTEGER i;
+
+    if (!GetFileSizeEx(fd, &i)) {
+        ham_trace(("GetFileSizeEx failed with OS status %u", 
+                    GetLastError()));
+        return (HAM_IO_ERROR);
+    }
+
+    *size=(ham_offset_t)i.QuadPart;
+    return (0);
+}
+
+ham_status_t
 os_truncate(ham_fd_t fd, ham_offset_t newsize)
 {
     ham_status_t st;

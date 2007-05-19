@@ -287,18 +287,16 @@ public:
         int i;
         ham_status_t st;
         ham_fd_t fd;
-        ham_offset_t tell;
+        ham_offset_t fsize;
 
         st=os_create(".test", 0, 0664, &fd);
         CPPUNIT_ASSERT(st==0);
         for (i=0; i<10; i++) {
             st=os_truncate(fd, i*128);
             CPPUNIT_ASSERT(st==0);
-            st=os_seek(fd, 0, HAM_OS_SEEK_END);
+            st=os_get_filesize(fd, &fsize);
             CPPUNIT_ASSERT(st==0);
-            st=os_tell(fd, &tell);
-            CPPUNIT_ASSERT(st==0);
-            CPPUNIT_ASSERT(tell==(ham_offset_t)(i*128));
+            CPPUNIT_ASSERT(fsize==(ham_offset_t)(i*128));
         }
         st=os_close(fd);
         CPPUNIT_ASSERT(st==0);
