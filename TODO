@@ -8,25 +8,30 @@ x check monster.sh: --cachepolicy=strict (with default cachesize) should
 x replace os_tell with os_get_filesize 
     x unit tests!
 
-o old cppunits are recognized, but don't compile 
+x old cppunits are recognized, but don't compile 
     (cppunit/extensions/HelperMacros.h does not exist) - fix the test in 
     configure.in
 
 o logo!!
 
 o create a webpage
-    o contents are missing
-        o front page: embed the hamster picture? or leave as is?
-        o front page: add "news"-area
+    x contents are missing
+        x sidebars
+        x faq
     x tutorial
         x also add docs about installation, compilation, porting
         x download as pdf
         x don't forget to add it to Makefile.am/EXTRA_DIST
-    o faq
+    o news
     o ask someone to correct my english
+    o ask someone (Stephan?) to review the "impressum"
+    o move to subversion repository!
 
 -----------------------------------------------------
 -----------------------------------------------------
+
+x win32 monster.sh: does not [FAIL] if test throws an assertion
+    (test with ./test --inmemorydb=1 --reopen=1 or sth similar)
 
 o port to big-endian
     still a bug on big-endian: ./test 1/130.tst --overwrite=1 --pagesize=8192
@@ -56,43 +61,4 @@ o fix a small valgrind bug
     endet in btree_erase.c:1040 - wenn in einer internen page ein key 
     gelöscht wird, wird der record nicht gelöscht
 
-o add file locking to enable simple concurrency:
-    o either no locking at all
-    o or exclusive locking
-    o or shared locking when reading, excl. lock when writing
-
 o test 1 writer, multiple reader scenarios
-
------------------------------------------------------
------------------------------------------------------
-
-o command line tools
-    o ham_dump
-        dumps keys and records
-        --key-format=char|short|long|longlong|string|binary
-        --key-length=<n>
-        --data-format=char|short|long|longlong|string|binary
-        --data-length=<n>
-    o ham_info
-        prints all statistics of the database header, number of items, 
-        average key size, average data size, min/max etc
-    o ham_recover
-        gets the header-page, then the root-page, then goes down to the 
-        first leaf; walks through all pages. if it's a leaf page: get the 
-        blob, insert it in the new database. print all lost items/records
-        to stdout.
-    o ham_reorg
-        for a reorganization (creates a new database with HAM_OPT_SIZE, 
-        writes all items to the new database)
-
-o do a complete source code review, or ask someone to do it
-    are error numbers propagated correctly?
-    what happens with errors during flush?
-    what happens with errors during close?
-    o rename some stuff
-        o all static functions have the prefix "my_", they should
-            become a better prefix (i.e. "bt_" for btree etc)
-        o db.c has some backend-specific functions, maybe they should 
-            be moved to the backend
-    o check the TODOs in the source
-
