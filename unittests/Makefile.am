@@ -5,7 +5,8 @@ endif
 
 INCLUDES        = -I$(top_builddir)/include
 
-test_SOURCES    = device.cpp \
+test_SOURCES    = bt_cursor.cpp \
+				  device.cpp \
                   os.cpp \
                   cache.cpp \
                   freelist.cpp \
