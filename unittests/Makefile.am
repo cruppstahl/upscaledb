@@ -6,6 +6,7 @@ endif
 INCLUDES        = -I$(top_builddir)/include
 
 test_SOURCES    = bt_cursor.cpp \
+				  util.cpp \
 				  device.cpp \
                   os.cpp \
                   cache.cpp \
