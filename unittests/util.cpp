@@ -76,7 +76,6 @@ public:
         CPPUNIT_ASSERT(util_copy_key_int2pub(m_db, &src, &dest));
         CPPUNIT_ASSERT(dest.size==0);
         CPPUNIT_ASSERT(dest.data==0);
-        CPPUNIT_ASSERT(dest.flags&KEY_BLOB_SIZE_EMPTY);
     }
 
     void copyKeyInt2PubTinyTest(void)
@@ -92,7 +91,7 @@ public:
         CPPUNIT_ASSERT(util_copy_key_int2pub(m_db, &src, &dest));
         CPPUNIT_ASSERT(dest.size==1);
         CPPUNIT_ASSERT(((char *)dest.data)[0]=='a');
-        CPPUNIT_ASSERT(dest.flags&KEY_BLOB_SIZE_TINY);
+        ham_mem_free(m_db, dest.data);
     }
 
     void copyKeyInt2PubSmallTest(void)
@@ -109,7 +108,7 @@ public:
         CPPUNIT_ASSERT(util_copy_key_int2pub(m_db, src, &dest));
         CPPUNIT_ASSERT(dest.size==src->_keysize);
         CPPUNIT_ASSERT(!::strcmp((char *)dest.data, (char *)src->_key));
-        CPPUNIT_ASSERT(dest.flags&KEY_BLOB_SIZE_SMALL);
+        ham_mem_free(m_db, dest.data);
     }
 
     void copyKeyInt2PubFullTest(void)
@@ -126,7 +125,6 @@ public:
         CPPUNIT_ASSERT(util_copy_key_int2pub(m_db, src, &dest));
         CPPUNIT_ASSERT(dest.size==src->_keysize);
         CPPUNIT_ASSERT(!::strcmp((char *)dest.data, (char *)src->_key));
-        CPPUNIT_ASSERT(dest.flags&KEY_BLOB_SIZE_SMALL);
 
         ham_mem_free(m_db, dest.data);
     }
