@@ -10,6 +10,10 @@
 #ifndef HAM_UTIL_H__
 #define HAM_UTIL_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif 
+
 #include <ham/hamsterdb.h>
 #include "db.h"
 #include "keys.h"
@@ -41,5 +45,9 @@ extern ham_status_t
 util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest, 
                 ham_u32_t flags);
 
+
+#ifdef __cplusplus
+} // extern "C"
+#endif 
 
 #endif /* HAM_UTIL_H__ */
