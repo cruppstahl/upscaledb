@@ -27,10 +27,10 @@ typedef HAM_PACK_0 HAM_PACK_1 struct int_key_t
      */
     ham_u16_t _keysize;
 
-   /**
+    /**
      * flags
      */
-    ham_u8_t _flags; 
+    ham_u8_t _flags;
 
     /**
      * the key
