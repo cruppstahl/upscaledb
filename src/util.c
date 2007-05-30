@@ -68,7 +68,7 @@ util_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest)
         /* the extended flag is set later, when this key is inserted */
         dest->_flags=key_get_flags(source)&(~KEY_IS_EXTENDED);
     }
-    else {
+    else if (key_get_size(source)) {
         dest->data=(ham_u8_t *)ham_mem_alloc(db, key_get_size(source));
         if (!dest->data) {
             db_set_error(db, HAM_OUT_OF_MEMORY);
@@ -77,6 +77,11 @@ util_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest)
 
         memcpy(dest->data, key_get_key(source), key_get_size(source));
         dest->size=key_get_size(source);
+        dest->_flags=key_get_flags(source);
+    }
+    else { /* key.size is 0 */
+        dest->size=0;
+        dest->data=0;
         dest->_flags=key_get_flags(source);
     }
 
