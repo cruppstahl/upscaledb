@@ -1,9 +1,11 @@
-/*
+/**
+ * \file types.h
+ * \brief Portable typedefs for hamsterdb.
+ * \author Christoph Rupp, chris@crupp.de
+ *
  * Copyright (C) 2005-2007 Christoph Rupp (chris@crupp.de).
  * All rights reserved. See file LICENSE for licence and copyright
  * information.
- *
- * This file contains portable typedefs.
  *
  */
 

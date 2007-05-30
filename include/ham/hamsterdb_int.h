@@ -1,9 +1,11 @@
 /**
+ * \file hamsterdb_int.h
+ * \brief Internal hamsterdb functions.
+ * \author Christoph Rupp, chris@crupp.de
+ *
  * Copyright (C) 2005-2007 Christoph Rupp (chris@crupp.de).
  * All rights reserved. See file LICENSE for licence and copyright
  * information.
- *
- * include file for hamster-db
  *
  */
 

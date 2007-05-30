@@ -1,9 +1,13 @@
 /**
+ * \mainpage hamsterdb embeddable database
+ * \file hamsterdb.h
+ * \brief Include file for hamsterdb.
+ * \author Christoph Rupp, chris@crupp.de
+ * \version 0.4.2
+ *
  * Copyright (C) 2005-2007 Christoph Rupp (chris@crupp.de).
  * All rights reserved. See file LICENSE for licence and copyright
  * information.
- *
- * Include file for hamsterdb.
  *
  */
 
@@ -118,9 +122,7 @@ typedef struct
 /** Flag for @a ham_key_t in combination with @a ham_cursor_move */
 #define HAM_KEY_USER_ALLOC      1
 
-/*
- * hamsterdb error- and status codes.
- *
+/**
  * @defgroup ham_status_codes hamsterdb Status Codes
  * @{
  */
@@ -172,11 +174,11 @@ typedef struct
 /** Cursor does not point to a valid database item */
 #define HAM_CURSOR_IS_NIL           (-100)
 
-/*
+/**
  * @}
  */
 
-/*
+/**
  * @defgroup ham_static hamsterdb Static Functions
  * @{
  */
@@ -220,11 +222,11 @@ HAM_EXPORT void
 ham_get_version(ham_u32_t *major, ham_u32_t *minor,
         ham_u32_t *revision);
 
-/*
+/**
  * @}
  */
 
-/*
+/**
  * @defgroup ham_db hamsterdb Database Functions
  * @{
  */
@@ -334,6 +336,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
  *          in-memory database.
  * @param flags Optional flags for opening the database, combined with 
  *        bitwise OR. For allowed flags, see @a ham_create_ex.
+ * @param mode File access rights for the new file. This is the @a mode
+ *        parameter for creat(2). Ignored on Microsoft Windows.
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if the @a db pointer is NULL or an 
@@ -392,12 +396,14 @@ ham_create(ham_db_t *db, const char *filename,
  *            in case of a system crash or program crash.
  *      </ul>
  *
- * @param keysize The size of the keys in the B+Tree index. Set to 0 for 
- *        the default size (default size: 21 bytes).
+ * @param mode File access rights for the new file. This is the @a mode
+ *        parameter for creat(2). Ignored on Microsoft Windows.
  * @param pagesize The size of the file page, in bytes. Set to 0 for 
  *        the default size (recommended). The default size depends on 
  *        your hardware and operating system. Page sizes must be a multiple
  *        of 1024.
+ * @param keysize The size of the keys in the B+Tree index. Set to 0 for 
+ *        the default size (default size: 21 bytes).
  * @param cachesize The size of the database cache, in bytes. Set to 0
  *        for the default size (defined in src/config.h as
  *        HAM_DEFAULT_CACHESIZE - usually 256kb).
@@ -626,11 +632,11 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
 HAM_EXPORT ham_status_t
 ham_close(ham_db_t *db);
 
-/*
+/**
  * @}
  */
 
-/*
+/**
  * @defgroup ham_cursor hamsterdb Cursor Functions
  * @{
  */

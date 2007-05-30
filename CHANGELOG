@@ -1,5 +1,7 @@
+
 May 30, 2007 - chris
 o added unittests for util.c
+o modified doxygen tags in the documentation (ham/hamsterdb.h)
 
 May 29, 2007 - chris
 o added unittests for btree_cursor.c
