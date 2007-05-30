@@ -10,6 +10,10 @@
 #ifndef HAM_BT_CURSORS_H__
 #define HAM_BT_CURSORS_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif 
+
 #include "page.h"
 #include "txn.h"
 #include "cursor.h"
@@ -219,5 +223,9 @@ ham_status_t
 bt_cursor_erase(ham_bt_cursor_t *cu, ham_offset_t *rid,
             ham_u32_t *intflags, ham_u32_t flags);
 
+
+#ifdef __cplusplus
+} // extern "C"
+#endif 
 
 #endif /* HAM_BT_CURSORS_H__ */
