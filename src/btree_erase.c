@@ -962,9 +962,23 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
 
     lhs=btree_node_get_key(db, node, slot);
 
+    /* 
+     * if we overwrite an extended key: delete the existing extended blob
+     */
+    if (key_get_flags(lhs)&KEY_IS_EXTENDED) {
+        ham_offset_t blobid;
+        blobid=*(ham_offset_t *)(key_get_key(lhs)+
+                     (db_get_keysize(db)-sizeof(ham_offset_t)));
+        ham_assert(blobid, (""));
+
+        st=blob_free(db, blobid, 0);
+        if (st)
+            return (st);
+    }
+
+    key_set_flags(lhs, key_get_flags(rhs));
     memcpy(key_get_key(lhs), key_get_key(rhs), 
             db_get_keysize(db));
-    key_set_flags(lhs, key_get_flags(rhs));
 
     /*
      * internal keys are not allowed to have blob-flags, because only the

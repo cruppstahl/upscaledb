@@ -19,6 +19,11 @@ x unit-tests for cursor.c (as described in tdd.txt)
 
 x unit-tests for util.c (as described in tdd.txt)
 
+x fix doxygen tags (see mail)
+
+-----------------------------------------------------
+-----------------------------------------------------
+
 o create a webpage
     x contents are missing
         x sidebars
@@ -34,9 +39,6 @@ o create a webpage
     o ask someone (Stephan?) to review the "impressum"
 
 o logo!!
-
------------------------------------------------------
------------------------------------------------------
 
 o fix a small valgrind bug
     valgrind --tool=memcheck --leak-check=full --show-reachable=yes ./test --file ../../testfiles/2/ext_060.tst --inmemorydb=1
@@ -62,6 +64,4 @@ o port to big-endian
     still a bug on big-endian: ./test 1/130.tst --overwrite=1 --pagesize=8192
     o test with valgrind
     o switch default endian to big endian - does it work on my local machine?
-
-o fix doxygen tags (see mail)
 

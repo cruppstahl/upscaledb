@@ -2,6 +2,8 @@
 May 30, 2007 - chris
 o added unittests for util.c
 o modified doxygen tags in the documentation (ham/hamsterdb.h)
+o fixed a rare memory leak with SMOs during ham_erase 
+    (only for in-memory databases)
 
 May 29, 2007 - chris
 o added unittests for btree_cursor.c
