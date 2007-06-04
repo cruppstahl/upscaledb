@@ -780,7 +780,8 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
     ham_db_t *db=page_get_owner(page);
 
     /*
-     * write page to disk
+     * write page to disk if it's dirty (and if we don't have 
+     * an IN-MEMORY DB)
      */
     if (page_is_dirty(page) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
         st=page_flush(page);
