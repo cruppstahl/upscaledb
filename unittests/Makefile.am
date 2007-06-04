@@ -1,7 +1,5 @@
 
-if HAVE_CPPUNIT
 noinst_PROGRAMS = test
-endif
 
 INCLUDES        = -I$(top_builddir)/include
 

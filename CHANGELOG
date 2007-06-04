@@ -1,4 +1,8 @@
 
+Jun 04, 2007 - chris
+o fixed configure.in - do not build unittests if cppunit is not
+    installed
+
 May 30, 2007 - chris
 o added unittests for util.c
 o modified doxygen tags in the documentation (ham/hamsterdb.h)
