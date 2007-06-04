@@ -71,10 +71,11 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
 ham_status_t
 os_munmap(ham_fd_t *mmaph, void *buffer, ham_size_t size)
 {
+    int r;
     (void)mmaph; /* only used on win32-platforms */
 
 #if HAVE_MUNMAP
-    int r=munmap(buffer, size);
+    r=munmap(buffer, size);
     if (r) {
         ham_trace(("munmap failed with status %d (%s)", errno, 
                     strerror(errno)));
