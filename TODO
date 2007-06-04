@@ -21,26 +21,7 @@ x unit-tests for util.c (as described in tdd.txt)
 
 x fix doxygen tags (see mail)
 
------------------------------------------------------
------------------------------------------------------
-
-o create a webpage
-    x contents are missing
-        x sidebars
-        x faq
-    x tutorial
-        x also add docs about installation, compilation, porting
-        x download as pdf
-        x don't forget to add it to Makefile.am/EXTRA_DIST
-    x news
-        x sidebar!
-    x move to a subversion repository!
-    o ask someone to correct my english
-    o ask someone (Stephan?) to review the "impressum"
-
-o logo!!
-
-o fix a small valgrind bug
+x fix a small memory leak
     valgrind --tool=memcheck --leak-check=full --show-reachable=yes ./test --file ../../testfiles/2/ext_060.tst --inmemorydb=1
     ==26699== 53 bytes in 1 blocks are definitely lost in loss record 1 of 1
     ==26699==    at 0x4A1EAC6: malloc (vg_replace_malloc.c:149)
@@ -55,13 +36,47 @@ o fix a small valgrind bug
     ==26699==    by 0x403717: my_execute (test.c:1168)
     ==26699==    by 0x4041FC: main (test.c:1855)
 
-o simple concurrency between processe
-    o test 1 writer, multiple reader scenarios
-    o test no writer, multiple reader scenarios
-    o write documentation (tutorial, faq)
+x logo!!
+
+x create a webpage
+    x contents are missing
+        x sidebars
+        x faq
+    x tutorial
+        x also add docs about installation, compilation, porting
+        x download as pdf
+        x don't forget to add it to Makefile.am/EXTRA_DIST
+    x news
+        x sidebar!
+    x move to a subversion repository!
+    x gpl2: sidebar is messed up (esp. in fullscreen mode)
+    x ask someone to correct my english
+    x front-picture
+        x change the text
+        x insert the logo (?)
+    x doxygen-documentation is broken
+    x ask someone (Stephan?) to review the "impressum"
+
+-----------------------------------------------------
+-----------------------------------------------------
+
+o simple concurrency between processes
+    o new flag HAM_LOCK_EXCLUSIVE
+        o for linux/posix
+        o for win32
+    o documentation!
+    o unittests!
 
 o port to big-endian
     still a bug on big-endian: ./test 1/130.tst --overwrite=1 --pagesize=8192
     o test with valgrind
     o switch default endian to big endian - does it work on my local machine?
+
+o port to the SUN Sparc architecture (different from other big-endian
+    archs, because of alignment issues)
+
+-----------------------------------------------------
+-----------------------------------------------------
+
+o write more unittests
 
