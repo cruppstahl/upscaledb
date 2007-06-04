@@ -32,6 +32,11 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_t
     ham_u64_t _start_address;
 
     /**
+     * address of the next freelist page
+     */
+    ham_offset_t _overflow;
+
+    /**
      * maximum number of bits for this page
      */
     ham_u16_t _max_bits;
@@ -40,11 +45,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_t
      * number of used bits in the page 
      */
     ham_u16_t _used_bits;
-
-    /**
-     * address of the next freelist page
-     */
-    ham_offset_t _overflow;
 
     /**
      * the bitmap; the size of the bitmap is _max_bits/8

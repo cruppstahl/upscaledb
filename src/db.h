@@ -59,6 +59,9 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
     /* size of the key */
     ham_u16_t _keysize;
 
+    /* padding for alignment on Sun SPARC */
+    ham_u16_t _reserved1;
+
     /* private data of the index backend */
     ham_u8_t _indexdata[64];
 
