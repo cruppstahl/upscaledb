@@ -55,28 +55,25 @@ x create a webpage
         x change the text
         x insert the logo (?)
     x doxygen-documentation is broken
-    x ask someone (Stephan?) to review the "impressum"
+    x review the "impressum"
+    x need meta-tags
 
------------------------------------------------------
------------------------------------------------------
+x configure.in/Makefile.am: should not build cppunit if it's not 
+    installed (HAVE_CPPUNIT is ignored!)
 
-o simple concurrency between processes
-    o new flag HAM_LOCK_EXCLUSIVE
-        o for linux/posix
-        o for win32
-    o documentation!
-    o unittests!
+x port to big-endian
 
-o port to big-endian
-    still a bug on big-endian: ./test 1/130.tst --overwrite=1 --pagesize=8192
-    o test with valgrind
-    o switch default endian to big endian - does it work on my local machine?
-
-o port to the SUN Sparc architecture (different from other big-endian
+x port to the SUN Sparc architecture (different from other big-endian
     archs, because of alignment issues)
 
 -----------------------------------------------------
 -----------------------------------------------------
 
 o write more unittests
+
+o new flag HAM_LOCK_EXCLUSIVE
+        o for linux/posix
+        o for win32
+    o documentation!
+    o unittests!
 

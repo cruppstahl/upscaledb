@@ -1,18 +1,16 @@
 
-hamsterdb 0.4.2                                Thu May 10 19:50:01 UTC 2007
+hamsterdb 0.4.3                                Fri Jun 08 18:00:12 UTC 2007
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
-This is the README file of hamsterdb. 
+This is the README file of hamsterdb.
 
 Contents:
 
 1. About
 
 hamsterdb is a database engine written in ANSI C. It supports a B+Tree index
-structure, uses memory mapped I/O (if available), supports cursors, and can
-create in-memory databases.
-
-Database files from 0.4.1 are not compatible to 0.4.2. 
+structure, uses memory mapped I/O (if available), supports cursors and
+variable length keys and can create in-memory databases.
 
 Although no bugs are known, this release is marked "unstable", because the
 database file format is still subject to change. The first stable release 
@@ -20,22 +18,23 @@ will be version 1.0.
 
 2. Changes
 
-The header file comments were rewritten. The freelist is now a bitmap and 
-therefore faster and more efficient.
+Database files from 0.4.2 are not compatible to 0.4.3.
 
-Added a unittest suite based on cppunit with more then 70 unittests.
+hamsterdb database files are now endian agnostic, and hamsterdb was ported
+to SUN Sparcs and PowerPC. A small memory leak was fixed (in-memory 
+databases only). New unittests were added, and the configure.in script was 
+modified.
 
-Some minor bugs were fixed as well. To see a list of all changes, look 
-in the file CHANGELOG.
+To see a list of all changes, look in the file CHANGELOG.
 
 3. Roadmap
 
 The next releases will offer one of the following new features:
-- a web page, more documentation
-- endian agnostic files
+- allow exclusive locking of database files
 - multiple databases in one file
 - duplicate items
 - command line tools for recovery, dump and statistics
+- a C++ wrapper class
 
 4. Features
 
@@ -48,6 +47,7 @@ The next releases will offer one of the following new features:
 - Uses memory mapped I/O for fast disk access (but falls back to read/write if
   mmap is not available)
 - Uses 64bit file pointers and supports huge files (>2 GB)
+- Endian-agnostic database files work on little-endian and big-endian platforms
 - Easy to use and well-documented
 - Supports rudimentary live-reorganization by automatically
     merging freelist entries
@@ -55,7 +55,7 @@ The next releases will offer one of the following new features:
 
 5. Known Issues/Bugs
 
-none so far
+None so far
 
 6. Compiling 
 
