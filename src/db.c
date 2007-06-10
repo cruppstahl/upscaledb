@@ -521,15 +521,16 @@ db_free_page(ham_page_t *page)
     }
 
     /*
-     * if we have extended keys: remove all extended keys from the
-     * cache
+     * if this page has a header, and it's either a B-Tree root page or 
+     * a B-Tree index page: remove all extended keys from the cache, 
+     * and/or free their blobs
+     *
      * TODO move this to the backend!
      */
     if (page_get_pers(page) && 
-	    ((!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING) &&
-          !(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER)) &&
+	    (!(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER)) &&
          (page_get_type(page)==PAGE_TYPE_B_ROOT ||
-          page_get_type(page)==PAGE_TYPE_B_INDEX))) {
+          page_get_type(page)==PAGE_TYPE_B_INDEX)) {
         ham_size_t i;
         ham_offset_t blobid;
         int_key_t *bte;
@@ -546,20 +547,17 @@ db_free_page(ham_page_t *page)
                     /* delete the blobid to prevent that it's freed twice */
                     *(ham_offset_t *)(key_get_key(bte)+
                         (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
-                    (void)blob_free(db, blobid, 0);
                 }
-                else if (c)
-                    (void)extkey_cache_remove(c, blobid);
+                (void)blob_free(db, blobid, 0);
+                (void)extkey_cache_remove(c, blobid);
             }
         }
     }
 
-    /* TODO TODO TODO 
-     * if (page_is_dirty(page))
-     *    st=page_flush(page);
-     *    ...
+    /*
+     * free the page; this will automatically flush the page, if 
+     * it's dirty
      */
-
     st=page_free(page);
     if (st)
         return (st);

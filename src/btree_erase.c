@@ -97,6 +97,12 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
         erase_scratchpad_t *scratchpad);
 
 /*
+ * copy a key
+ */
+static ham_status_t
+my_copy_key(ham_db_t *db, int_key_t *lhs, int_key_t *rhs);
+
+/*
  * replace two keys in a page 
  */
 static ham_status_t
@@ -487,7 +493,7 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             return (0);
 
     /*
-     * internal node: insert the anchornode separator value to 
+     * internal node: append the anchornode separator value to 
      * this node
      */
     if (!btree_node_is_leaf(node)) {
@@ -505,10 +511,16 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             db_set_error(db, st);
             return 0;
         }
-        bte_rhs=btree_node_get_key(db, ancnode, slot);
+
         bte_lhs=btree_node_get_key(db, node,
             btree_node_get_count(node));
-        memcpy(bte_lhs, bte_rhs, sizeof(int_key_t)-1+keysize);
+        bte_rhs=btree_node_get_key(db, ancnode, slot);
+
+        st=my_copy_key(db, bte_lhs, bte_rhs);
+        if (st) {
+            db_set_error(db, st);
+            return 0;
+        }
         key_set_ptr(bte_lhs, btree_node_get_ptr_left(sibnode));
         btree_node_set_count(node, btree_node_get_count(node)+1);
     }
@@ -639,20 +651,29 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             bte_rhs=btree_node_get_key(db, ancnode, slot);
             bte_lhs=btree_node_get_key(db, node,
                 btree_node_get_count(node));
-            memcpy(bte_lhs, bte_rhs, sizeof(int_key_t)-1+keysize);
+
+            st=my_copy_key(db, bte_lhs, bte_rhs);
+            if (st) {
+                db_set_error(db, st);
+                return 0;
+            }
+
             /*
              * the pointer of this new node is ptr_left of the sibling
              */
             key_set_ptr(bte_lhs, btree_node_get_ptr_left(sibnode));
+
             /*
              * new pointer left of the sibling is sibling[0].ptr
              */
             btree_node_set_ptr_left(sibnode, key_get_ptr(bte));
+
             /*
              * update the anchor node with sibling[0]
              */
             (void)my_replace_key(ancpage, slot, 
                     bte, INTERNAL_KEY);
+
             /*
              * shift the whole sibling to the left
              */
@@ -661,6 +682,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
                 bte_rhs=btree_node_get_key(db, sibnode, i+1);
                 memcpy(bte_lhs, bte_rhs, sizeof(int_key_t)-1+keysize);
             }
+
             /*
              * adjust counters
              */
@@ -681,7 +703,13 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             bte_lhs=btree_node_get_key(db, node, 
                     btree_node_get_count(node));
             bte_rhs=btree_node_get_key(db, ancnode, slot);
-            memcpy(bte_lhs, bte_rhs, sizeof(int_key_t)-1+keysize);
+
+            st=my_copy_key(db, bte_lhs, bte_rhs);
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
+
             key_set_ptr(bte_lhs, btree_node_get_ptr_left(sibnode));
             btree_node_set_count(node, btree_node_get_count(node)+1);
         }
@@ -798,6 +826,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
                 db_set_error(db, st);
                 return 0;
             }
+
             /*
              * shift sibling by 1 to the right 
              */
@@ -806,28 +835,41 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
                 bte_rhs=btree_node_get_key(db, sibnode, i-1);
                 memcpy(bte_lhs, bte_rhs, sizeof(int_key_t)-1+keysize);
             }
+
             /*
              * copy the old anchor element to sibling[0]
              */
             bte_lhs=btree_node_get_key(db, sibnode, 0);
             bte_rhs=btree_node_get_key(db, ancnode, slot);
-            memcpy(bte_lhs, bte_rhs, sizeof(int_key_t)-1+keysize);
+
+            st=my_copy_key(db, bte_lhs, bte_rhs);
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
+
             /*
              * sibling[0].ptr = sibling.ptr_left
              */
             key_set_ptr(bte_lhs, btree_node_get_ptr_left(sibnode));
+
             /*
              * sibling.ptr_left = node[node.count-1].ptr
              */
             bte_lhs=btree_node_get_key(db, node, 
             btree_node_get_count(node)-1);
             btree_node_set_ptr_left(sibnode, key_get_ptr(bte_lhs));
+
             /*
              * new anchor element is node[node.count-1].key
-             * TODO rückgabewert prüfen
              */
-            (void)my_replace_key(ancpage, slot, bte_lhs, 
+            st=my_replace_key(ancpage, slot, bte_lhs, 
                     NOFLUSH|INTERNAL_KEY);
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
+
             /*
              * page: one item less; sibling: one item more
              */
@@ -846,6 +888,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
          */
         if (intern) {
             ham_size_t i;
+
             /*
              * shift sibling by 1 to the right 
              */
@@ -854,11 +897,17 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
                 bte_rhs=btree_node_get_key(db, sibnode, i-1);
                 memcpy(bte_lhs, bte_rhs, sizeof(int_key_t)-1+keysize);
             }
+
             bte_lhs=btree_node_get_key(db, sibnode, 0);
             bte_rhs=btree_node_get_key(db, ancnode, slot);
-             /* TODO rückgabewert prüfen*/
-            (void)my_replace_key(sibpage, 0, bte_rhs, 
+
+            st=my_replace_key(sibpage, 0, bte_rhs, 
                     NOFLUSH|(btree_node_is_leaf(node)?0:INTERNAL_KEY));
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
+
             key_set_ptr(bte_lhs, btree_node_get_ptr_left(sibnode));
             btree_node_set_count(sibnode, btree_node_get_count(sibnode)+1);
         }
@@ -891,6 +940,22 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             bte_lhs=btree_node_get_key(db, node, 
                     btree_node_get_count(node)-1);
             btree_node_set_ptr_left(sibnode, key_get_ptr(bte_lhs));
+
+            /*
+             * free the extended blob of this key
+             */
+            if (key_get_flags(bte_lhs)&KEY_IS_EXTENDED) {
+                ham_offset_t blobid=*(ham_offset_t *)(key_get_key(bte_lhs)+
+                        (db_get_keysize(db)-sizeof(ham_offset_t)));
+                ham_assert(blobid, (""));
+
+                if (db_get_extkey_cache(db))
+                    (void)extkey_cache_remove(db_get_extkey_cache(db), blobid);
+
+                st=blob_free(db, blobid, 0);
+                if (st)
+                    return (0);
+            }
             btree_node_set_count(node, btree_node_get_count(node)-1);
         }
 
@@ -916,13 +981,6 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
                 db_set_error(db, st);
                 return (0);
             }
-            /* don't replace if the slot is outside of the key range */
-#if 0
-            if (slot==btree_node_get_count(ancnode)-1) {
-                page_set_dirty(ancpage, 1);
-                return (0);
-            }
-#endif
 
             st=my_replace_key(ancpage, slot+1, bte, INTERNAL_KEY);
             if (st) {
@@ -941,6 +999,39 @@ cleanup:
     page_set_dirty(sibpage, 1);
 
     scratchpad->mergepage=0;
+
+    return (0);
+}
+
+static ham_status_t
+my_copy_key(ham_db_t *db, int_key_t *lhs, int_key_t *rhs)
+{
+    memcpy(lhs, rhs, sizeof(int_key_t)-1+db_get_keysize(db));
+
+    /*
+     * if the key is extended, we copy the extended blob; otherwise, we'd
+     * have to add reference counting to the blob, because two keys are now 
+     * using the same blobid. this would be too complicated.
+     */
+    if (key_get_flags(rhs)&KEY_IS_EXTENDED) {
+        ham_status_t st;
+        ham_record_t record;
+        ham_offset_t rhsblobid, lhsblobid;
+
+        memset(&record, 0, sizeof(record));
+
+        rhsblobid=*(ham_offset_t *)(key_get_key(rhs)+
+                        (db_get_keysize(db)-sizeof(ham_offset_t)));
+        st=blob_read(db, rhsblobid, &record, 0);
+        if (st)
+            return (st);
+
+        st=blob_allocate(db, record.data, record.size, 0, &lhsblobid);
+        if (st)
+            return (st);
+        *(ham_offset_t *)(key_get_key(lhs)+
+                (db_get_keysize(db)-sizeof(ham_offset_t)))=lhsblobid;
+    }
 
     return (0);
 }
@@ -971,6 +1062,9 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
                      (db_get_keysize(db)-sizeof(ham_offset_t)));
         ham_assert(blobid, (""));
 
+        if (db_get_extkey_cache(db))
+            (void)extkey_cache_remove(db_get_extkey_cache(db), blobid);
+
         st=blob_free(db, blobid, 0);
         if (st)
             return (st);
@@ -994,7 +1088,7 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
      * have to add reference counting to the blob, because two keys are now 
      * using the same blobid. this would be too complicated.
      */
-    if (key_get_flags(lhs)&KEY_IS_EXTENDED) {
+    if (key_get_flags(rhs)&KEY_IS_EXTENDED) {
         ham_status_t st;
         ham_record_t record;
         ham_offset_t rhsblobid, lhsblobid;
@@ -1050,7 +1144,7 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
      *
      * also remove the key from the cache
      */
-    if (btree_node_is_leaf(node) && key_get_flags(bte)&KEY_IS_EXTENDED) {
+    if (key_get_flags(bte)&KEY_IS_EXTENDED) {
         ham_offset_t blobid;
         ham_u8_t *prefix=key_get_key(bte);
         blobid=*(ham_offset_t *)(prefix+(db_get_keysize(db)-

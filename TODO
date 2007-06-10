@@ -61,10 +61,37 @@ x create a webpage
 x configure.in/Makefile.am: should not build cppunit if it's not 
     installed (HAVE_CPPUNIT is ignored!)
 
-x port to big-endian
-
 x port to the SUN Sparc architecture (different from other big-endian
     archs, because of alignment issues)
+
+x fix memory-leaks:
+    valgrind --leak-check=full --tool=memcheck ./test --file
+    ../../testfiles/2/ext_050.tst --inmemorydb=1
+    ==30040== 498 bytes in 10 blocks are definitely lost in loss record 1 of 1
+    ==30040==    at 0x4A1EAC6: malloc (vg_replace_malloc.c:149)
+    ==30040==    by 0x407FDD: alloc_impl (mem.c:28)
+    ==30040==    by 0x40CE18: blob_allocate (blob.c:188)
+    ==30040==    by 0x40FCAA: my_replace_key (btree_erase.c:1010)
+    ==30040==    by 0x40F9AF: my_shift_pages (btree_erase.c:927)
+    ==30040==    by 0x40E5B7: my_rebalance (btree_erase.c:446)
+    ==30040==    by 0x40E17F: my_erase_recursive (btree_erase.c:327)
+    ==30040==    by 0x40DF68: my_erase_recursive (btree_erase.c:271)
+    ==30040==    by 0x40DABE: btree_erase (btree_erase.c:153)
+    ==30040==    by 0x40746A: ham_erase (hamsterdb.c:761)
+    ==30040==    by 0x401D5C: my_execute_erase (test.c:1280)
+    ==30040==    by 0x4033A0: my_execute (test.c:1599)
+
+x more tests for memory leaks with extended keys and page splits, with 
+    and without in-memory db, with and without overwrite
+    ./test --file ../../testfiles/2/ext_050.tst --pagesize=1024 --keysize=128
+            [--inmemorydb=1] [--overwrite=1]
+
+-----------------------------------------------------
+-----------------------------------------------------
+
+o big-endian (linppc): several tests failed, i.e.
+    --pagesize=8192 --reopen=1 --file ../../testfiles/1/220.tst
+    --pagesize=8192 --reopen=1 --file ../../testfiles/1/220.tst --overwrite=1
 
 -----------------------------------------------------
 -----------------------------------------------------

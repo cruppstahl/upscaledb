@@ -106,6 +106,8 @@ my_free_cb(int event, void *param1, void *param2, void *context)
 
     c=(free_cb_context_t *)context;
 
+    ham_assert(db_get_rt_flags(c->db)&HAM_IN_MEMORY_DB, (""));
+
     switch (event) {
     case ENUM_EVENT_DESCEND:
         break;
@@ -117,14 +119,12 @@ my_free_cb(int event, void *param1, void *param2, void *context)
     case ENUM_EVENT_ITEM:
         key=(int_key_t *)param1;
 
-        if (db_get_rt_flags(c->db)&HAM_IN_MEMORY_DB) {
-            if (key_get_size(key)>db_get_keysize(c->db)) {
-                ham_offset_t *p, blobid;
-                p=(ham_offset_t *)(key_get_key(key)+
-                        (db_get_keysize(c->db)-sizeof(ham_offset_t)));
-                blobid=ham_h2db_offset(*p);
-                ham_mem_free(c->db, (void *)blobid);
-            }
+        if (key_get_flags(key)&KEY_IS_EXTENDED) {
+            ham_offset_t *p, blobid;
+            p=(ham_offset_t *)(key_get_key(key)+
+                    (db_get_keysize(c->db)-sizeof(ham_offset_t)));
+            blobid=ham_h2db_offset(*p);
+            (void)blob_free(c->db, blobid, 0);
         }
 
         if (key_get_flags(key)&KEY_BLOB_SIZE_TINY ||
@@ -133,7 +133,7 @@ my_free_cb(int event, void *param1, void *param2, void *context)
             break;
 
         if (c->is_leaf)
-            ham_mem_free(c->db, (void *)key_get_ptr(key));
+             ham_mem_free(c->db, (void *)key_get_ptr(key));
         break;
 
     default:
