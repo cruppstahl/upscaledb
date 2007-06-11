@@ -151,6 +151,11 @@ if test $ac_cv_getpagesize_int = yes; then
     AC_DEFINE(HAVE_GETPAGESIZE_INT,1,[getpagesize() returns int])
 fi
 
+#
+# make sure that our modified CFLAGS are also respected by g++
+#
+CXXFLAGS = "${CFLAGS}"
+
 
 AC_CONFIG_FILES(Makefile src/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile)
 AC_OUTPUT
