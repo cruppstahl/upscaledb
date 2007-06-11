@@ -1,4 +1,6 @@
 
+CXXFLAGS = $(CFLAGS)
+
 noinst_PROGRAMS = test
 
 INCLUDES        = -I$(top_builddir)/include

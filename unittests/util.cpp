@@ -68,9 +68,9 @@ public:
         int_key_t src;
         ham_key_t dest;
 
-        src._ptr=0x12345;
-        src._keysize=0;
-        src._flags=0;
+        key_set_ptr(&src, 0x12345);
+        key_set_size(&src, 0);
+        key_set_flags(&src, 0);
         src._key[0]=0;
 
         CPPUNIT_ASSERT(util_copy_key_int2pub(m_db, &src, &dest));
@@ -83,14 +83,14 @@ public:
         int_key_t src;
         ham_key_t dest;
 
-        src._ptr=0x12345;
-        src._keysize=1;
-        src._flags=0;
+        key_set_ptr(&src, 0x12345);
+        key_set_size(&src, 1);
+        key_set_flags(&src, 0);
         src._key[0]='a';
 
         CPPUNIT_ASSERT(util_copy_key_int2pub(m_db, &src, &dest));
-        CPPUNIT_ASSERT(dest.size==1);
-        CPPUNIT_ASSERT(((char *)dest.data)[0]=='a');
+        CPPUNIT_ASSERT(1==dest.size);
+        CPPUNIT_ASSERT('a'==((char *)dest.data)[0]);
         ham_mem_free(m_db, dest.data);
     }
 
@@ -100,13 +100,13 @@ public:
         int_key_t *src=(int_key_t *)buffer;
         ham_key_t dest;
 
-        src->_ptr=0x12345;
-        src->_keysize=8;
-        src->_flags=0;
+        key_set_ptr(src, 0x12345);
+        key_set_size(src, 8);
+        key_set_flags(src, 0);
         ::strcpy((char *)src->_key, "1234567\0");
 
         CPPUNIT_ASSERT(util_copy_key_int2pub(m_db, src, &dest));
-        CPPUNIT_ASSERT(dest.size==src->_keysize);
+        CPPUNIT_ASSERT(dest.size==(ham_size_t)key_get_size(src));
         CPPUNIT_ASSERT(!::strcmp((char *)dest.data, (char *)src->_key));
         ham_mem_free(m_db, dest.data);
     }
@@ -117,13 +117,13 @@ public:
         int_key_t *src=(int_key_t *)buffer;
         ham_key_t dest;
 
-        src->_ptr=0x12345;
-        src->_keysize=16;
-        src->_flags=0;
+        key_set_ptr(src, 0x12345);
+        key_set_size(src, 16);
+        key_set_flags(src, 0);
         ::strcpy((char *)src->_key, "123456781234567\0");
 
         CPPUNIT_ASSERT(util_copy_key_int2pub(m_db, src, &dest));
-        CPPUNIT_ASSERT(dest.size==src->_keysize);
+        CPPUNIT_ASSERT(dest.size==(ham_size_t)key_get_size(src));
         CPPUNIT_ASSERT(!::strcmp((char *)dest.data, (char *)src->_key));
 
         ham_mem_free(m_db, dest.data);

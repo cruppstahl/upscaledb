@@ -127,9 +127,9 @@ public:
 
         CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_add_page(&txn, page)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(txn_get_page(&txn, 0x12345)==page);
+        CPPUNIT_ASSERT(txn_get_page(&txn, page_get_self(page))==page);
         CPPUNIT_ASSERT(txn_remove_page(&txn, page)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(txn_get_page(&txn, 0x12345)==0);
+        CPPUNIT_ASSERT(txn_get_page(&txn, page_get_self(page))==0);
 
         CPPUNIT_ASSERT(ham_txn_commit(&txn)==HAM_SUCCESS);
 
