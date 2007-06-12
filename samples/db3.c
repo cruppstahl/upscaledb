@@ -78,7 +78,7 @@ main(int argc, char **argv)
             memset(&record, 0, sizeof(record));
 
             key.data=p;
-            key.size=strlen(p)+1; /* also store the terminating 0-byte */
+            key.size=(ham_size_t)strlen(p)+1; /* also store the terminating 0-byte */
 
             /* note: the second parameter of ham_insert() is reserved; set it 
              * to NULL */
@@ -87,6 +87,7 @@ main(int argc, char **argv)
                 printf("ham_insert() failed with error %d\n", st);
                 return (-1);
             }
+            printf(".");
 
             start=0;
         }
