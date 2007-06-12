@@ -1,4 +1,7 @@
 
+#
+# make sure that our modified CFLAGS are also respected by g++
+#
 CXXFLAGS = $(CFLAGS)
 
 noinst_PROGRAMS = test
