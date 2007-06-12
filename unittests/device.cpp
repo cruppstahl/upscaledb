@@ -117,7 +117,6 @@ public:
 
     void allocFreeTest()
     {
-        void *buffer=0;
         ham_page_t page;
         memset(&page, 0, sizeof(page));
 
