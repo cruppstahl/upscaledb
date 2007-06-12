@@ -86,10 +86,7 @@ x more tests for memory leaks with extended keys and page splits, with
     ./test --file ../../testfiles/2/ext_050.tst --pagesize=1024 --keysize=128
             [--inmemorydb=1] [--overwrite=1]
 
------------------------------------------------------
------------------------------------------------------
-
-o big-endian (linppc): several tests failed, i.e.
+x big-endian (linppc): several tests failed, i.e.
     --pagesize=8192 --reopen=1 --file ../../testfiles/1/220.tst
     --pagesize=8192 --reopen=1 --file ../../testfiles/1/220.tst --overwrite=1
 
