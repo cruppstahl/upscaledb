@@ -234,6 +234,7 @@ page_delete(ham_page_t *page)
 {
     ham_db_t *db=page_get_owner(page);
 
+    ham_assert(page!=0, (0));
     ham_assert(page_get_refcount(page)==0, (0));
     ham_assert(page_get_pers(page)==0, (0));
 
