@@ -1060,14 +1060,19 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
         ham_offset_t blobid;
         blobid=*(ham_offset_t *)(key_get_key(lhs)+
                      (db_get_keysize(db)-sizeof(ham_offset_t)));
-        ham_assert(blobid, (""));
 
+        ham_assert(blobid, (""));
+        blobid=ham_db2h_offset(blobid);
         if (db_get_extkey_cache(db))
             (void)extkey_cache_remove(db_get_extkey_cache(db), blobid);
 
         st=blob_free(db, blobid, 0);
         if (st)
             return (st);
+
+        /* remove the cached extended key */
+        if (db_get_extkey_cache(db)) 
+            (void)extkey_cache_remove(db_get_extkey_cache(db), blobid);
     }
 
     key_set_flags(lhs, key_get_flags(rhs));
@@ -1097,6 +1102,7 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
 
         rhsblobid=*(ham_offset_t *)(key_get_key(rhs)+
                         (db_get_keysize(db)-sizeof(ham_offset_t)));
+        rhsblobid=ham_db2h_offset(rhsblobid);
         st=blob_read(db, rhsblobid, &record, 0);
         if (st)
             return (st);
@@ -1104,6 +1110,7 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
         st=blob_allocate(db, record.data, record.size, 0, &lhsblobid);
         if (st)
             return (st);
+        lhsblobid=ham_h2db_offset(lhsblobid);
         *(ham_offset_t *)(key_get_key(lhs)+
                 (db_get_keysize(db)-sizeof(ham_offset_t)))=lhsblobid;
     }
@@ -1149,7 +1156,10 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
         ham_u8_t *prefix=key_get_key(bte);
         blobid=*(ham_offset_t *)(prefix+(db_get_keysize(db)-
                     sizeof(ham_offset_t)));
+
+        blobid=ham_db2h_offset(blobid);
         (void)blob_free(db, blobid, 0); 
+
         /* remove the cached extended key */
         if (db_get_extkey_cache(db)) 
             (void)extkey_cache_remove(db_get_extkey_cache(db), blobid);

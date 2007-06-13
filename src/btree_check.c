@@ -253,6 +253,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
 			ham_offset_t blobid;
 	        blobid=*(ham_offset_t *)(key_get_key(bte)+(db_get_keysize(db)-
                     sizeof(ham_offset_t)));
+            blobid=ham_db2h_offset(blobid);
 			if (!blobid) {
 				ham_trace(("integrity check failed in page 0x%llx: item #%d "
 						"is extended, but has no blob", 
