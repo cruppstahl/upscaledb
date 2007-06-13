@@ -29,7 +29,7 @@ verify_mem_desc(memdesc_t *desc)
         throw std::out_of_range("memory blob size is 0");
     if (desc->magic_start!=MAGIC_START)
         throw std::out_of_range("memory blob descriptor is corrupt");
-    if (*(int *)(desc->data+desc->size)!=MAGIC_STOP)
+    if (*(unsigned *)(desc->data+desc->size)!=MAGIC_STOP)
         throw std::out_of_range("memory blob was corrupted after end");
 }
 
