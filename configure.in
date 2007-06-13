@@ -30,11 +30,15 @@ AC_FUNC_MMAP
 dnl
 dnl check for db.h - needed for unit tests
 dnl
+dnl TODO 
+dnl I don't know why, but this doesn'T work as expected - if i 
+dnl test HAVE_CPPUNIT in Makefile.am, it's always negative
+dnl
 AC_MSG_NOTICE([Checking for CppUnit (optional; needed for unit tests)])
-AC_TRY_CPP(cppunit/extensions/HelperMacros.h,
+AC_TRY_CPP([#include cppunit/extensions/HelperMacros.h],
            ac_have_cppunit=yes,
            ac_have_cppunit=no)
-AM_CONDITIONAL(HAVE_CPPUNIT, test x$ac_have_cppunit = xyes)
+AM_CONDITIONAL(HAVE_CPPUNIT, test "x$ac_have_cppunit" = "xyes")
 
 
 dnl
