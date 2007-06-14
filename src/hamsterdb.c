@@ -435,10 +435,10 @@ ham_create_ex(ham_db_t *db, const char *filename,
     db_set_error(db, 0);
 
     /*
-     * make sure that the pagesize is aligned to 512k
+     * make sure that the pagesize is aligned to 1024k
      */
     if (pagesize) {
-        if (pagesize%512)
+        if (pagesize%1024)
             return (db_set_error(db, HAM_INV_PAGESIZE));
     }
 
