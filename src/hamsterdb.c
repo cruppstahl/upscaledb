@@ -293,8 +293,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
      * how large is one page? chances are good that it's the default
      * page-size, but we really can't be sure.
      *
-     * read 512 byte (the minimum page size) and
-     * extract the "real" page size, then read the real page.
+     * read 512 byte and extract the "real" page size, then read the real page.
      * (but i really don't like this)
      */
     st=device->read(device, 0, hdrbuf, sizeof(hdrbuf));
