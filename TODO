@@ -1,99 +1,14 @@
 
-x compare performance of default-keysize with keysize=8 or
-    keysize=default_keysize+1 - no differences
+x make sure that --mmap=0 really disables mmap (getopt-problem?)
 
-x check monster.sh: --cachepolicy=strict (with default cachesize) should
-    lead to errors, but doesn't - it's ok
-
-x replace os_tell with os_get_filesize 
-    x unit tests!
-
-x old cppunits are recognized, but don't compile 
-    (cppunit/extensions/HelperMacros.h does not exist) - fix the test in 
-    configure.in
-
-x win32 monster.sh: does not [FAIL] if test throws an assertion
-    (test with ./test --inmemorydb=1 --reopen=1 or sth similar)
-
-x unit-tests for cursor.c (as described in tdd.txt)
-
-x unit-tests for util.c (as described in tdd.txt)
-
-x fix doxygen tags (see mail)
-
-x fix a small memory leak
-    valgrind --tool=memcheck --leak-check=full --show-reachable=yes ./test --file ../../testfiles/2/ext_060.tst --inmemorydb=1
-    ==26699== 53 bytes in 1 blocks are definitely lost in loss record 1 of 1
-    ==26699==    at 0x4A1EAC6: malloc (vg_replace_malloc.c:149)
-    ==26699==    by 0x40A92E: blob_allocate (blob.c:188)
-    ==26699==    by 0x4135BF: key_insert_extended (keys.c:67)
-    ==26699==    by 0x40E46B: my_insert_nosplit (btree_insert.c:520)
-    ==26699==    by 0x40DD81: my_insert_in_page (btree_insert.c:274)
-    ==26699==    by 0x40DCB3: my_insert_recursive (btree_insert.c:241)
-    ==26699==    by 0x40DA0A: btree_insert_cursor (btree_insert.c:134)
-    ==26699==    by 0x40DBBE: btree_insert (btree_insert.c:194)
-    ==26699==    by 0x406C0F: ham_insert (hamsterdb.c:704)
-    ==26699==    by 0x403717: my_execute (test.c:1168)
-    ==26699==    by 0x4041FC: main (test.c:1855)
-
-x logo!!
-
-x create a webpage
-    x contents are missing
-        x sidebars
-        x faq
-    x tutorial
-        x also add docs about installation, compilation, porting
-        x download as pdf
-        x don't forget to add it to Makefile.am/EXTRA_DIST
-    x news
-        x sidebar!
-    x move to a subversion repository!
-    x gpl2: sidebar is messed up (esp. in fullscreen mode)
-    x ask someone to correct my english
-    x front-picture
-        x change the text
-        x insert the logo (?)
-    x doxygen-documentation is broken
-    x review the "impressum"
-    x need meta-tags
-
-x configure.in/Makefile.am: should not build cppunit if it's not 
-    installed (HAVE_CPPUNIT is ignored!)
-
-x port to the SUN Sparc architecture (different from other big-endian
-    archs, because of alignment issues)
-
-x fix memory-leaks:
-    valgrind --leak-check=full --tool=memcheck ./test --file
-    ../../testfiles/2/ext_050.tst --inmemorydb=1
-    ==30040== 498 bytes in 10 blocks are definitely lost in loss record 1 of 1
-    ==30040==    at 0x4A1EAC6: malloc (vg_replace_malloc.c:149)
-    ==30040==    by 0x407FDD: alloc_impl (mem.c:28)
-    ==30040==    by 0x40CE18: blob_allocate (blob.c:188)
-    ==30040==    by 0x40FCAA: my_replace_key (btree_erase.c:1010)
-    ==30040==    by 0x40F9AF: my_shift_pages (btree_erase.c:927)
-    ==30040==    by 0x40E5B7: my_rebalance (btree_erase.c:446)
-    ==30040==    by 0x40E17F: my_erase_recursive (btree_erase.c:327)
-    ==30040==    by 0x40DF68: my_erase_recursive (btree_erase.c:271)
-    ==30040==    by 0x40DABE: btree_erase (btree_erase.c:153)
-    ==30040==    by 0x40746A: ham_erase (hamsterdb.c:761)
-    ==30040==    by 0x401D5C: my_execute_erase (test.c:1280)
-    ==30040==    by 0x4033A0: my_execute (test.c:1599)
-
-x more tests for memory leaks with extended keys and page splits, with 
-    and without in-memory db, with and without overwrite
-    ./test --file ../../testfiles/2/ext_050.tst --pagesize=1024 --keysize=128
-            [--inmemorydb=1] [--overwrite=1]
-
-x big-endian (linppc): several tests failed, i.e.
-    --pagesize=8192 --reopen=1 --file ../../testfiles/1/220.tst
-    --pagesize=8192 --reopen=1 --file ../../testfiles/1/220.tst --overwrite=1
-
------------------------------------------------------
------------------------------------------------------
+o crupp.de: add technorati.com badge, and ohloh.net badge
 
 o write more unittests
+
+o fix ALL compiler warnings
+    o 32bit gcc
+    o 64bit gcc
+    o msvc
 
 o new flag HAM_LOCK_EXCLUSIVE
         o for linux/posix

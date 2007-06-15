@@ -314,6 +314,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
         else
             device->set_flags(device, DEVICE_NO_MMAP);
     }
+    else
+        device->set_flags(device, DEVICE_NO_MMAP);
     flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
 #else
     device->set_flags(device, DEVICE_NO_MMAP);
@@ -478,7 +480,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
      * can we use mmap?
      */
 #if HAVE_MMAP
-    else if (!(flags&HAM_DISABLE_MMAP)) {
+    if (!(flags&HAM_DISABLE_MMAP)) {
         if (pagesize) {
             if (pagesize%os_get_pagesize()==0)
                 flags|=DB_USE_MMAP;
@@ -497,6 +499,8 @@ ham_create_ex(ham_db_t *db, const char *filename,
         }
         flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
     }
+    else 
+        device->set_flags(device, DEVICE_NO_MMAP);
 #else
     device->set_flags(device, DEVICE_NO_MMAP);
 #endif
