@@ -190,9 +190,12 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 {
     ham_status_t st;
     DWORD osflags=FILE_FLAG_RANDOM_ACCESS;
+    DWORD share  =flags & HAM_LOCK_EXCLUSIVE 
+                    ? 0 
+                    : (FILE_SHARE_READ|FILE_SHARE_WRITE);
 
     *fd=(ham_fd_t)CreateFileA(filename, GENERIC_READ|GENERIC_WRITE, 
-                0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+                share, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
     if (*fd==INVALID_HANDLE_VALUE) {
         st=(ham_status_t)GetLastError();
         /* this function can return errors even when it succeeds... */
@@ -224,11 +227,11 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 {
     ham_status_t st;
     DWORD access =0;
-    DWORD share  =0;
+    DWORD share  =flags & HAM_LOCK_EXCLUSIVE 
+                    ? 0 
+                    : (FILE_SHARE_READ|FILE_SHARE_WRITE);
     DWORD dispo  =OPEN_EXISTING;
     DWORD osflags=0;
-
-    share=FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE;
 
     if (flags&HAM_READ_ONLY)
         access|=GENERIC_READ;
@@ -247,9 +250,11 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 }
 
 ham_status_t
-os_close(ham_fd_t fd)
+os_close(ham_fd_t fd, ham_u32_t flags)
 {
     ham_status_t st;
+
+    (void)flags;
 
     if (!CloseHandle((HANDLE)fd)) {
         st=(ham_status_t)GetLastError();

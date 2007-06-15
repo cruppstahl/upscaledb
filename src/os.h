@@ -114,7 +114,7 @@ os_flush(ham_fd_t fd);
  * close a filedescriptor
  */
 extern ham_status_t
-os_close(ham_fd_t fd);
+os_close(ham_fd_t fd, ham_u32_t flags);
 
 
 #ifdef __cplusplus

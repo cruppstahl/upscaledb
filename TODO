@@ -1,18 +1,27 @@
 
 x make sure that --mmap=0 really disables mmap (getopt-problem?)
 
-o crupp.de: add technorati.com badge, and ohloh.net badge
+o new flag HAM_LOCK_EXCLUSIVE
+    x implementation
+        x for linux/posix
+        x for win32
+    x documentation
+    o test
+        x linux
+        o windows
+
+o move blobid handling of extended keys to its own function
 
 o write more unittests
 
 o fix ALL compiler warnings
-    o 32bit gcc
-    o 64bit gcc
+    x gcc 4.x
+    o gcc 3.x
     o msvc
 
-o new flag HAM_LOCK_EXCLUSIVE
-        o for linux/posix
-        o for win32
-    o documentation!
-    o unittests!
+o port to QNX (?)
+
+o allow x64-bit builds with MSVC/Visual Studio Solution file
+
+o release 0.4.4!
 

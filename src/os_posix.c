@@ -19,6 +19,7 @@
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include "error.h"
@@ -29,6 +30,17 @@ extern int getpagesize();
 #else
 extern size_t getpagesize();
 #endif
+
+static ham_status_t
+my_lock_exclusive(int fd, ham_bool_t lock)
+{
+    if (flock(fd, lock ? LOCK_EX : LOCK_UN)) {
+        ham_trace(("flock failed with status %u (%s)", errno, strerror(errno)));
+        return (HAM_IO_ERROR);
+    }
+
+    return (0);
+}
 
 static void
 my_enable_largefile(int fd)
@@ -228,6 +240,7 @@ os_truncate(ham_fd_t fd, ham_offset_t newsize)
 ham_status_t
 os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 {
+    ham_status_t st;
     int osflags=O_CREAT|O_RDWR|O_TRUNC;
     (void)flags;
 
@@ -236,6 +249,15 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
         ham_trace(("os_create of %s failed with status %u (%s)", filename,
                 errno, strerror(errno)));
         return (HAM_IO_ERROR);
+    }
+
+    /*
+     * exclusive locking?
+     */
+    if (flags&HAM_LOCK_EXCLUSIVE) {
+        st=my_lock_exclusive(*fd, HAM_TRUE);
+        if (st)
+            return (st);
     }
 
     /*
@@ -256,6 +278,7 @@ os_flush(ham_fd_t fd)
 ham_status_t
 os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 {
+    ham_status_t st;
     int osflags=0;
 
     if (flags&HAM_READ_ONLY)
@@ -271,6 +294,15 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
     }
 
     /*
+     * exclusive locking?
+     */
+    if (flags&HAM_LOCK_EXCLUSIVE) {
+        st=my_lock_exclusive(*fd, HAM_TRUE);
+        if (st)
+            return (st);
+    }
+
+    /*
      * enable O_LARGEFILE support
      */
     my_enable_largefile(*fd);
@@ -279,8 +311,19 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 }
 
 ham_status_t
-os_close(ham_fd_t fd)
+os_close(ham_fd_t fd, ham_u32_t flags)
 {
+    ham_status_t st;
+
+    /*
+     * unlock the file?
+     */
+    if (flags&HAM_LOCK_EXCLUSIVE) {
+        st=my_lock_exclusive(fd, HAM_FALSE);
+        if (st)
+            return (st);
+    }
+
     if (close(fd)==-1)
         return (HAM_IO_ERROR);
     return (HAM_SUCCESS);

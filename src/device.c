@@ -49,9 +49,10 @@ static ham_status_t
 __f_close(ham_device_t *self)
 {
     ham_status_t st;
+    ham_db_t *db=device_get_db(self);
     dev_file_t *t=(dev_file_t *)device_get_private(self);
 
-    st=os_close(t->fd);
+    st=os_close(t->fd, db_get_rt_flags(db));
     if (st==HAM_SUCCESS)
         t->fd=HAM_INVALID_FD;
     return (db_set_error(device_get_db(self), st));

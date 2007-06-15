@@ -308,6 +308,10 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *            modified freelist pages. Using this flag leads to small 
  *            performance improvements, but may prove to be risky 
  *            in case of a system crash or program crash.
+ *       <li>@a HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the 
+ *            file. Only one process may hold an exclusive lock for 
+ *            a given file at a given time. This flag will block the 
+ *            operation if the lock is held by another process.
  *      </ul>
  *
  * @param cachesize The size of the database cache, in bytes. Set to 0
@@ -394,6 +398,10 @@ ham_create(ham_db_t *db, const char *filename,
  *            modified freelist pages. Using this flag leads to small 
  *            performance improvements, but may prove to be risky 
  *            in case of a system crash or program crash.
+ *       <li>@a HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the 
+ *            file. Only one process may hold an exclusive lock for 
+ *            a given file at a given time. This flag will block the 
+ *            operation if the lock is held by another process.
  *      </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
@@ -457,6 +465,9 @@ ham_create_ex(ham_db_t *db, const char *filename,
 
 /** Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex */
 #define HAM_DISABLE_FREELIST_FLUSH   0x00000800
+
+/** Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex */
+#define HAM_LOCK_EXCLUSIVE           0x00001000
 
 /**
  * Returns the last error code.
