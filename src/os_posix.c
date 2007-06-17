@@ -34,8 +34,19 @@ extern size_t getpagesize();
 static ham_status_t
 my_lock_exclusive(int fd, ham_bool_t lock)
 {
-    if (flock(fd, lock ? LOCK_EX : LOCK_UN)) {
+    int flags;
+
+    if (lock)
+        flags=LOCK_EX|LOCK_NB;
+    else
+        flags=LOCK_UN;
+
+    if (0!=flock(fd, flags)) {
         ham_trace(("flock failed with status %u (%s)", errno, strerror(errno)));
+        /* it seems that linux does not only return EWOULDBLOCK, as stated
+         * in the documentation (flock(2)), but also other errors... */
+        if (errno)
+            return (HAM_WOULD_BLOCK);
         return (HAM_IO_ERROR);
     }
 
