@@ -5,14 +5,21 @@
  *
  */
 
+#include <windows.h>
+
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
 #include <ham/hamsterdb.h>
 #include <ham/types.h>
-#include <windows.h>
+
 #include "error.h"
 #include "os.h"
+
+extern BOOL WINAPI GetFileSizeEx(
+  HANDLE hFile,
+  PLARGE_INTEGER lpFileSize
+);
 
 ham_size_t
 os_get_pagesize(void)
@@ -201,6 +208,8 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
         /* this function can return errors even when it succeeds... */
         if (st==ERROR_ALREADY_EXISTS)
             return (0);
+        if (st==ERROR_SHARING_VIOLATION)
+            return (HAM_WOULD_BLOCK);
         ham_trace(("CreateFile failed with OS status %u", st));
         return (HAM_IO_ERROR);
     }
