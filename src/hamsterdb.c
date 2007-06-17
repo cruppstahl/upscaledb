@@ -120,10 +120,12 @@ my_free_cb(int event, void *param1, void *param2, void *context)
         key=(int_key_t *)param1;
 
         if (key_get_flags(key)&KEY_IS_EXTENDED) {
-            ham_offset_t *p, blobid;
+            ham_offset_t blobid=key_get_extended_rid(c->db, key);
+#if 0 /* @@@ */
             p=(ham_offset_t *)(key_get_key(key)+
                     (db_get_keysize(c->db)-sizeof(ham_offset_t)));
             blobid=ham_h2db_offset(*p);
+#endif
             (void)blob_free(c->db, blobid, 0);
         }
 

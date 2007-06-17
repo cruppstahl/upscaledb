@@ -513,20 +513,21 @@ shift_elements:
      * the blob-id in the key
      */
     if (key->size>db_get_keysize(db)) {
-        ham_offset_t *p, blobid;
+        ham_offset_t blobid;
 
         key_set_key(bte, key->data, db_get_keysize(db));
 
         blobid=key_insert_extended(db, page, key);
         if (!blobid)
             return (db_get_error(db));
+
+        key_set_extended_rid(db, bte, blobid);
+
+#if 0 /* TODO @@@ */
         p=(ham_offset_t *)(key_get_key(bte)+
                 (db_get_keysize(db)-sizeof(ham_offset_t)));
         *p=ham_h2db_offset(blobid);
-
-        /* TODO TODO this shouldn't crash! 
-        if (db_get_extkey_cache(db)) 
-            ham_assert(HAM_KEY_NOT_FOUND==extkey_cache_remove(db_get_extkey_cache(db), blobid), ("")); */
+#endif
     }
 
     btree_node_set_count(node, count+1);

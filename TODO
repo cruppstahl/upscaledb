@@ -1,18 +1,34 @@
 
 x make sure that --mmap=0 really disables mmap (getopt-problem?)
 
-o new flag HAM_LOCK_EXCLUSIVE
+x new flag HAM_LOCK_EXCLUSIVE
     x implementation
         x for linux/posix
         x for win32
     x documentation
-    o test
+    x test
         x linux
-        o windows
+        x windows
 
-o move blobid handling of extended keys to its own function
+x allow x64-bit builds with MSVC/Visual Studio Solution file
+
+x move blobid handling of extended keys to its own function
+
+o extkey-refactoring
+    o free all extkeys! (search for blob_frees)
+        -> debug && inmemorydb: assert that the extkey-cache is empty
+        AFTER the extkeys were freed
+    o respect cache size and policy!
+        o unittest!
 
 o write more unittests
+    o keys.c/keys.h
+    o extkeys.c/extkeys.h
+    o blob.c/blob.h
+
+    o trying to open/create databases with invalid page sizes, key sizes,
+        invalid flag combinations etc
+    o negative tests for all functions!
 
 o fix ALL compiler warnings
     x gcc 4.x
@@ -20,8 +36,6 @@ o fix ALL compiler warnings
     o msvc
 
 o port to QNX (?)
-
-o allow x64-bit builds with MSVC/Visual Studio Solution file
 
 o release 0.4.4!
 

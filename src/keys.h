@@ -85,6 +85,20 @@ typedef HAM_PACK_0 HAM_PACK_1 struct int_key_t
         : db_get_keysize(db))
 
 /**
+ * get the record-ID of an extended key
+ */
+#define key_get_extended_rid(db, key)   ham_db2h_offset(                      \
+                *(ham_offset_t *)(key_get_key(key)+                           \
+                     (db_get_keysize(db)-sizeof(ham_offset_t))))
+
+/**
+ * set the record-ID of an extended key
+ */
+#define key_set_extended_rid(db, key, r)   *(ham_offset_t *)(key_get_key(key)+\
+                            (db_get_keysize(db)-sizeof(ham_offset_t)))=       \
+                                ham_h2db_offset(r)
+
+/**
  * get the flags of a key
  */
 #define key_get_flags(bte)              (bte)->_flags

@@ -250,10 +250,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
 		 */
 		bte=btree_node_get_key(db, node, i);
 		if (key_get_flags(bte)&KEY_IS_EXTENDED) {
-			ham_offset_t blobid;
-	        blobid=*(ham_offset_t *)(key_get_key(bte)+(db_get_keysize(db)-
-                    sizeof(ham_offset_t)));
-            blobid=ham_db2h_offset(blobid);
+			ham_offset_t blobid=key_get_extended_rid(db, bte);
 			if (!blobid) {
 				ham_trace(("integrity check failed in page 0x%llx: item #%d "
 						"is extended, but has no blob", 
