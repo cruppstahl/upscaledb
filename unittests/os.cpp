@@ -69,7 +69,7 @@ public:
         st=os_open("Makefile", 0, &fd);
 #endif
         CPPUNIT_ASSERT(st==0);
-        st=os_close(fd);
+        st=os_close(fd, 0);
         CPPUNIT_ASSERT(st==0);
     }
 
@@ -87,7 +87,7 @@ public:
         CPPUNIT_ASSERT(st==0);
         st=os_pwrite(fd, 0, p, (ham_size_t)strlen(p));
         CPPUNIT_ASSERT(st==HAM_IO_ERROR);
-        st=os_close(fd);
+        st=os_close(fd, 0);
         CPPUNIT_ASSERT(st==0);
     }
 
@@ -107,7 +107,7 @@ public:
 
         st=os_create(".test", 0, 0664, &fd);
         CPPUNIT_ASSERT_EQUAL(0, st);
-        st=os_close(fd);
+        st=os_close(fd, 0);
         CPPUNIT_ASSERT_EQUAL(0, st);
     }
 
@@ -125,7 +125,7 @@ public:
             CPPUNIT_ASSERT(os_seek(fd, 0, HAM_OS_SEEK_END)==HAM_SUCCESS);
             CPPUNIT_ASSERT(os_tell(fd, &filesize)==HAM_SUCCESS);
             CPPUNIT_ASSERT(filesize==1024);
-            CPPUNIT_ASSERT(os_close(fd)==HAM_SUCCESS);
+            CPPUNIT_ASSERT(os_close(fd, 0)==HAM_SUCCESS);
         }
     }
 
@@ -134,7 +134,7 @@ public:
 #ifndef WIN32  // crashs in ntdll.dll
         ham_status_t st;
 
-		st=os_close((ham_fd_t)0x12345);
+		st=os_close((ham_fd_t)0x12345, 0);
         CPPUNIT_ASSERT(st==HAM_IO_ERROR);
 #endif
     }
@@ -160,7 +160,7 @@ public:
             CPPUNIT_ASSERT(st==0);
             CPPUNIT_ASSERT(0==memcmp(buffer, orig, sizeof(buffer)));
         }
-        st=os_close(fd);
+        st=os_close(fd, 0);
         CPPUNIT_ASSERT(st==0);
     }
 
@@ -195,7 +195,7 @@ public:
             st=os_munmap(&mmaph, p2, ps);
             CPPUNIT_ASSERT(st==0);
         }
-        st=os_close(fd);
+        st=os_close(fd, 0);
         CPPUNIT_ASSERT(st==0);
         free(p1);
     }
@@ -236,7 +236,7 @@ public:
             free(p1);
             addr+=size;
         }
-        st=os_close(fd);
+        st=os_close(fd, 0);
         CPPUNIT_ASSERT(st==0);
     }
 
@@ -250,7 +250,7 @@ public:
         CPPUNIT_ASSERT(st==0);
         st=os_mmap(fd, &mmaph, 33, 66, &page); // bad address && page size!
         CPPUNIT_ASSERT(st==HAM_IO_ERROR);
-        st=os_close(fd);
+        st=os_close(fd, 0);
         CPPUNIT_ASSERT(st==0);
     }
 
@@ -270,7 +270,7 @@ public:
             CPPUNIT_ASSERT(st==0);
             CPPUNIT_ASSERT(tell==(ham_offset_t)i);
         }
-        st=os_close(fd);
+        st=os_close(fd, 0);
         CPPUNIT_ASSERT(st==0);
     }
 
@@ -298,7 +298,7 @@ public:
             CPPUNIT_ASSERT(st==0);
             CPPUNIT_ASSERT(fsize==(ham_offset_t)(i*128));
         }
-        st=os_close(fd);
+        st=os_close(fd, 0);
         CPPUNIT_ASSERT(st==0);
     }
 
@@ -318,7 +318,7 @@ public:
             st=os_pwrite(fd, i*sizeof(kb), kb, sizeof(kb));
             CPPUNIT_ASSERT(st==0);
         }
-        st=os_close(fd);
+        st=os_close(fd, 0);
         CPPUNIT_ASSERT(st==0);
 
         st=os_open(".test", 0, &fd);
@@ -328,7 +328,7 @@ public:
         st=os_tell(fd, &tell);
         CPPUNIT_ASSERT(st==0);
         CPPUNIT_ASSERT(tell==(ham_offset_t)1024*1024*4);
-        st=os_close(fd);
+        st=os_close(fd, 0);
         CPPUNIT_ASSERT(st==0);
     }
 
