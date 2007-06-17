@@ -171,6 +171,8 @@ typedef struct
 #define HAM_NOT_IMPLEMENTED          (-20)
 /** Database file not found */
 #define HAM_FILE_NOT_FOUND           (-21)
+/** Operation would block */
+#define HAM_WOULD_BLOCK              (-22)
 /** Cursor does not point to a valid database item */
 #define HAM_CURSOR_IS_NIL           (-100)
 
@@ -273,6 +275,7 @@ ham_delete(ham_db_t *db);
  * @return @a HAM_INV_FILE_VERSION if the database version is not 
  *              compatible with the library version.
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
+ * @return @a HAM_WOULD_BLOCK if another process has locked the file
  */
 HAM_EXPORT ham_status_t
 ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
@@ -326,6 +329,7 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  * @return @a HAM_INV_FILE_VERSION if the database version is not 
  *              compatible with the library version.
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
+ * @return @a HAM_WOULD_BLOCK if another process has locked the file
  */
 HAM_EXPORT ham_status_t
 ham_open_ex(ham_db_t *db, const char *filename,
@@ -351,6 +355,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
  * @return @a HAM_INV_FILE_VERSION if the database version is not 
  *              compatible with the library version.
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
+ * @return @a HAM_WOULD_BLOCK if another process has locked the file
  *
  */
 HAM_EXPORT ham_status_t
@@ -427,6 +432,7 @@ ham_create(ham_db_t *db, const char *filename,
  * @return @a HAM_INV_PAGESIZE if @a pagesize is not a multiple of 1024.
  * @return @a HAM_INV_KEYSIZE if @a keysize is too large (at least 4 
  *              keys must fit in a page).
+ * @return @a HAM_WOULD_BLOCK if another process has locked the file
  *
  */
 HAM_EXPORT ham_status_t
