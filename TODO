@@ -14,12 +14,16 @@ x allow x64-bit builds with MSVC/Visual Studio Solution file
 
 x move blobid handling of extended keys to its own function
 
+o remove TODOs (grep for @@@), if tests run on PowerPC
+
 o extkey-refactoring
     x free all extkeys! (search for blob_frees)
         -> debug && inmemorydb: assert that the extkey-cache is empty
            AFTER the extkeys were freed
     o respect cache size and policy!
         o unittest!
+
+o do some profiling - make sure that the extkey-cache could be a bottleneck
 
 o write more unittests
     x keys.c/keys.h
@@ -28,7 +32,7 @@ o write more unittests
 
     o trying to open/create databases with invalid page sizes, key sizes,
         invalid flag combinations etc
-    o negative tests for all functions!
+    o negative tests for all public functions!
 
 o fix ALL compiler warnings
     x gcc 4.x
@@ -37,7 +41,7 @@ o fix ALL compiler warnings
 
 o port to QNX (?)
 
-o remove TODOs (grep for @@@), if tests run on PowerPC
+o completely automate the release-process for the tar-ball
 
 o release 0.4.4!
 
