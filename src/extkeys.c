@@ -41,6 +41,7 @@ extkey_cache_destroy(extkey_cache_t *cache)
 {
     ham_size_t i;
     extkey_t *e, *n;
+    ham_db_t *db=extkey_cache_get_db(cache);
 
     /*
      * make sure that all entries are empty
@@ -48,8 +49,16 @@ extkey_cache_destroy(extkey_cache_t *cache)
     for (i=0; i<extkey_cache_get_bucketsize(cache); i++) {
         e=extkey_cache_get_bucket(cache, i);
         while (e) {
+#if HAM_DEBUG
+            /*
+             * make sure that the extkey-cache is empty - only for in-memory
+             * databases and DEBUG builds.
+             */
+            if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
+                ham_assert(!"extkey-cache is not empty!", (""));
+#endif
             n=extkey_get_next(e);
-            ham_mem_free(extkey_cache_get_db(cache), e);
+            ham_mem_free(db, e);
             e=n;
         }
     }

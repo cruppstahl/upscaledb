@@ -126,6 +126,19 @@ my_free_cb(int event, void *param1, void *param2, void *context)
                     (db_get_keysize(c->db)-sizeof(ham_offset_t)));
             blobid=ham_h2db_offset(*p);
 #endif
+#if HAM_DEBUG
+            /*
+             * only in debug-build: make sure that all extended keys are 
+             * deleted. in extkey_cache_destroy(), an assert makes sure
+             * that the cache is empty. 
+             *
+             * we need that to make sure that the cache doesn't overflow,
+             * because cached keys are never removed.
+             */
+            if (db_get_extkey_cache(c->db))
+                (void)extkey_cache_remove(db_get_extkey_cache(c->db), blobid);
+#endif
+
             (void)blob_free(c->db, blobid, 0);
         }
 
