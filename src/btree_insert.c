@@ -451,14 +451,9 @@ shift_elements:
             if (!((oldflags&KEY_BLOB_SIZE_TINY) ||
                 (oldflags&KEY_BLOB_SIZE_SMALL) ||
                 (oldflags&KEY_BLOB_SIZE_EMPTY))) {
-                ham_offset_t blobid=key_get_extended_rid(db, bte);
-                st=blob_free(db, blobid, 0);
+                st=blob_free(db, key_get_ptr(bte), 0);
                 if (st)
                     return (st);
-                /* remove the cached extended key */
-                if (db_get_extkey_cache(db)) 
-                    (void)extkey_cache_remove(db_get_extkey_cache(db), 
-                            blobid);
             }
         }
 
