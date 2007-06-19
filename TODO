@@ -20,8 +20,12 @@ o extkey-refactoring
     x free all extkeys! (search for blob_frees)
         -> debug && inmemorydb: assert that the extkey-cache is empty
            AFTER the extkeys were freed
-    o respect cache size and policy!
-        o unittest!
+    o extkeys need an "age"
+        o use (npers) txn_id as an age
+        o extkeys, which are older than 5 txn's, are marked for removal
+    o when purging the cache, also purge the extkeys (but not too often - 
+        only when the cache is too full and txn_id%10==0)
+    o unittests!
 
 o do some profiling - make sure that the extkey-cache could be a bottleneck
 
