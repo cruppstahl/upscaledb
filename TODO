@@ -30,8 +30,7 @@ o remove TODOs (grep for @@@), if tests run on PowerPC
 
 o write more unittests
     x keys.c/keys.h
-    o extkeys.c/extkeys.h
-        o also test the caching behaviour!
+    x extkeys.c/extkeys.h (also test the caching behaviour!)
     o blob.c/blob.h
 
     o trying to open/create databases with invalid page sizes, key sizes,
