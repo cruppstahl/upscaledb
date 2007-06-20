@@ -23,9 +23,9 @@ x extkey-refactoring
         only when the cache is too full and txn_id%10==0)
         x extkeys, which are older than 5 txn's, are marked for removal
 
-o remove TODOs (grep for @@@), if tests run on PowerPC
-
 o do some profiling - make sure that the extkey-cache is not a bottleneck
+
+o remove TODOs (grep for @@@), if tests run on PowerPC
 
 o write more unittests
     x keys.c/keys.h

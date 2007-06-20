@@ -13,7 +13,7 @@
 #include "error.h"
 #include "cache.h"
 
-#define EXTKEY_CACHE_BUCKETSIZE         128
+#define EXTKEY_CACHE_BUCKETSIZE         251
 
 extkey_cache_t *
 extkey_cache_new(ham_db_t *db)
