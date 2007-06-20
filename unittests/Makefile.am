@@ -8,7 +8,8 @@ noinst_PROGRAMS = test
 
 INCLUDES        = -I$(top_builddir)/include
 
-test_SOURCES    = keys.cpp \
+test_SOURCES    = extkeys.cpp \
+				  keys.cpp \
 				  bt_cursor.cpp \
 				  util.cpp \
 				  device.cpp \
