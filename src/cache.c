@@ -14,7 +14,7 @@
 #include "page.h"
 #include "error.h"
 
-#define BUCKET_SIZE     256
+#define BUCKET_SIZE     512
 
 #define my_calc_hash(cache, o)                                              \
     (cache_get_max_elements(cache)==0                                       \
