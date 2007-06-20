@@ -338,15 +338,6 @@ extern ham_page_t *
 page_list_insert(ham_page_t *head, int which, ham_page_t *page);
 
 /**
- * linked list functions: insert the page at the beginning of a ring list
- *
- * @remark returns the new head of the list
- * TODO release build: replace this function with a macro 
- */
-extern ham_page_t *
-page_list_insert_ring(ham_page_t *head, int which, ham_page_t *page);
-
-/**
  * linked list functions: remove the page from a list
  *
  * @remark returns the new head of the list

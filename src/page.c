@@ -132,25 +132,6 @@ page_list_insert(ham_page_t *head, int which, ham_page_t *page)
 }
 
 ham_page_t *
-page_list_insert_ring(ham_page_t *head, int which, ham_page_t *page)
-{
-   ham_page_t *last;
-
-    if (!head) {
-        page_set_next(page, which, page);
-        page_set_previous(page, which, page);
-        return (page);
-    }
-
-    last=page_get_previous(head, which);
-    page_set_previous(page, which, last);
-    page_set_previous(head, which, page);
-    page_set_next(page, which, head);
-    page_set_next(last, which, page);
-    return (page);
-}
-
-ham_page_t *
 page_list_remove(ham_page_t *head, int which, ham_page_t *page)
 {
     ham_page_t *n, *p;
