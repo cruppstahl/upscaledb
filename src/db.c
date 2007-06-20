@@ -419,24 +419,36 @@ my_purge_cache(ham_db_t *db)
     ham_status_t st;
     ham_page_t *page;
 
-    if (!db_get_cache(db))
-        return (HAM_SUCCESS);
+    /*
+     * first, try to delete unused pages from the cache
+     */
+    if (db_get_cache(db) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
+        while (cache_too_big(db_get_cache(db))) {
+            page=cache_get_unused_page(db_get_cache(db));
+            if (!page) {
+                if (db_get_rt_flags(db)&HAM_CACHE_STRICT) 
+                    return (db_set_error(db, HAM_CACHE_FULL));
+                else
+                    break;
+            }
 
-    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
-        return (HAM_SUCCESS);
-
-    while (cache_too_big(db_get_cache(db))) {
-        page=cache_get_unused_page(db_get_cache(db));
-        if (!page) {
-            if (db_get_rt_flags(db)&HAM_CACHE_STRICT) 
-                return (db_set_error(db, HAM_CACHE_FULL));
-            else
-                break;
+            st=db_write_page_and_delete(page, 0);
+            if (st)
+                return (db_set_error(db, st));
         }
+    }
 
-        st=db_write_page_and_delete(page, 0);
-        if (st)
-            return (db_set_error(db, st));
+    /*
+     * then free unused extended keys. We don't do this too often to 
+     * avoid a thrashing of the cache, and freeing unused extkeys
+     * is more expensive (performance-wise) than freeing unused pages.
+     */
+    if (db_get_extkey_cache(db)) {
+        if (db_get_txn_id(db)%10==0) {
+            st=extkey_cache_purge(db_get_extkey_cache(db));
+            if (st)
+                return (db_set_error(db, st));
+        }
     }
 
     return (HAM_SUCCESS);

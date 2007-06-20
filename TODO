@@ -14,24 +14,23 @@ x allow x64-bit builds with MSVC/Visual Studio Solution file
 
 x move blobid handling of extended keys to its own function
 
-o remove TODOs (grep for @@@), if tests run on PowerPC
-
-o extkey-refactoring
+x extkey-refactoring
     x free all extkeys! (search for blob_frees)
         -> debug && inmemorydb: assert that the extkey-cache is empty
            AFTER the extkeys were freed
-    o extkeys need an "age"
-        o use (npers) txn_id as an age
-        o extkeys, which are older than 5 txn's, are marked for removal
-    o when purging the cache, also purge the extkeys (but not too often - 
+    x extkeys need an "age"; use (npers) txn_id as an age
+    x when purging the cache, also purge the extkeys (but not too often - 
         only when the cache is too full and txn_id%10==0)
-    o unittests!
+        x extkeys, which are older than 5 txn's, are marked for removal
 
-o do some profiling - make sure that the extkey-cache could be a bottleneck
+o remove TODOs (grep for @@@), if tests run on PowerPC
+
+o do some profiling - make sure that the extkey-cache is not a bottleneck
 
 o write more unittests
     x keys.c/keys.h
     o extkeys.c/extkeys.h
+        o also test the caching behaviour!
     o blob.c/blob.h
 
     o trying to open/create databases with invalid page sizes, key sizes,

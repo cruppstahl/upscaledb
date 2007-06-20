@@ -1,3 +1,7 @@
+Jun 20, 2007 - chris
+o improved the caching of extended keys; the cache is now purged when it's
+    too full
+
 Jun 17, 2007 - chris
 o added the flag HAM_OPEN_EXCLUSIVE; will lock the file exclusively, as 
     long as it's open. Returns HAM_WOULD_BLOCK if you try to place an

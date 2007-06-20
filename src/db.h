@@ -175,6 +175,9 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
  */
 struct ham_db_t
 {
+    /* the current transaction ID */
+    ham_u64_t _txn_id;
+
     /* the last error code */
     ham_status_t _error;
 
@@ -240,6 +243,16 @@ struct ham_db_t
  * set the header page
  */
 #define db_set_header_page(db, h)      (db)->_hdrpage=(h)
+
+/*
+ * get the current transaction ID
+ */
+#define db_get_txn_id(db)              (db)->_txn_id
+
+/*
+ * set the current transaction ID
+ */
+#define db_set_txn_id(db, id)          (db)->_txn_id=id
 
 /*
  * get the last error code

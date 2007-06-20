@@ -96,6 +96,7 @@ extkey_cache_insert(extkey_cache_t *cache, ham_offset_t blobid,
     if (!e)
         return (HAM_OUT_OF_MEMORY);
     extkey_set_blobid(e, blobid);
+    extkey_set_txn_id(e, db_get_txn_id(db));
     extkey_set_next(e, extkey_cache_get_bucket(cache, h));
     extkey_set_size(e, size);
     memcpy(extkey_get_data(e), data, size);
@@ -158,3 +159,35 @@ extkey_cache_fetch(extkey_cache_t *cache, ham_offset_t blobid,
     return (0);
 }
 
+ham_status_t
+extkey_cache_purge(extkey_cache_t *cache)
+{
+    ham_size_t i;
+    extkey_t *e, *n;
+    ham_db_t *db=extkey_cache_get_db(cache);
+
+    /*
+     * delete all entries which are "too old" (were not 
+     * used in the last 5 transactions)
+     */
+    for (i=0; i<extkey_cache_get_bucketsize(cache); i++) {
+        extkey_t *p=0;
+        e=extkey_cache_get_bucket(cache, i);
+        while (e) {
+            n=extkey_get_next(e);
+            if (db_get_txn_id(db)-extkey_get_txn_id(e)>5) {
+                /* deleted the head element of the list? */
+                if (!p)
+                    extkey_cache_set_bucket(cache, i, n);
+                else
+                    extkey_set_next(p, n);
+                ham_mem_free(db, e);
+            }
+            else
+                p=e;
+            e=n;
+        }
+    }
+
+    return (0);
+}

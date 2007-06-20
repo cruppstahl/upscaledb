@@ -26,6 +26,10 @@ typedef struct extkey_t
     /** the blobid of this key */
     ham_offset_t _blobid;
 
+    /** the current transaction, which created this extkey; used to 
+     * get the age of the extkey */
+    ham_u64_t _txn_id;
+
     /** pointer to the next key in the linked list */
     struct extkey_t *_next;
 
@@ -51,6 +55,16 @@ typedef struct extkey_t
  * set the blobid 
  */
 #define extkey_set_blobid(e, id)             (e)->_blobid=(id)
+
+/**
+ * get the txn id 
+ */
+#define extkey_get_txn_id(e)                 (e)->_txn_id
+
+/**
+ * set the txn id 
+ */
+#define extkey_set_txn_id(e, id)             (e)->_txn_id=(id)
 
 /**
  * get the next-pointer 
@@ -170,6 +184,12 @@ extkey_cache_remove(extkey_cache_t *cache, ham_offset_t blobid);
 extern ham_status_t
 extkey_cache_fetch(extkey_cache_t *cache, ham_offset_t blobid, 
             ham_size_t *size, ham_u8_t **data);
+
+/**
+ * removes all old keys from the cache
+ */
+extern ham_status_t
+extkey_cache_purge(extkey_cache_t *cache);
 
 #ifdef __cplusplus
 } // extern "C"
