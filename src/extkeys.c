@@ -82,7 +82,7 @@ extkey_cache_insert(extkey_cache_t *cache, ham_offset_t blobid,
     /*
      * DEBUG build: make sure that the item is not inserted twice!
      */
-#ifndef HAM_RELEASE
+#ifdef HAM_DEBUG
     e=extkey_cache_get_bucket(cache, h);
     while (e) {
         ham_assert(extkey_get_blobid(e)!=blobid, 
