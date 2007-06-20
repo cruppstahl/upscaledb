@@ -15,7 +15,7 @@
 ham_status_t
 txn_add_page(ham_txn_t *txn, ham_page_t *page)
 {
-#ifndef HAM_RELEASE
+#ifdef HAM_DEBUG
     /*
      * check if the page is already in the transaction's pagelist - 
      * that would be a bug
