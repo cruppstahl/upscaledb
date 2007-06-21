@@ -26,12 +26,15 @@ x extkey-refactoring
 x do some profiling - make sure that the extkey-cache is not a bottleneck
     -> no, we're really great
 
-o remove TODOs (grep for @@@), if tests run on PowerPC
+x remove TODOs (grep for @@@), if tests run on PowerPC
 
 o write more unittests
     x keys.c/keys.h
     x extkeys.c/extkeys.h (also test the caching behaviour!)
     o blob.c/blob.h
+        o special code paths in blob_read and blob_write: doesn't use 
+            the cache but direct file access; also in blob_replace, where
+            a blob can be replaced in-place, or deleted/allocated
 
     o trying to open/create databases with invalid page sizes, key sizes,
         invalid flag combinations etc
@@ -43,6 +46,8 @@ o fix ALL compiler warnings
     o msvc
 
 o port to QNX (?)
+
+o port to Windows CE
 
 o completely automate the release-process for the tar-ball
 
