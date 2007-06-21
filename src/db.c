@@ -185,8 +185,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
 }
 
 /*
- * TODO TODO TODO
- * too much duplicated code - use db_get_extended_key
+ * TODO too much duplicated code - use db_get_extended_key
  */
 int
 db_compare_keys(ham_db_t *db, ham_page_t *page,
@@ -552,11 +551,6 @@ db_free_page(ham_page_t *page)
         for (i=0; i<btree_node_get_count(node); i++) {
             bte=btree_node_get_key(db, node, i);
             if (key_get_flags(bte)&KEY_IS_EXTENDED) {
-#if 0 /* TODO @@@ */
-                blobid=*(ham_offset_t *)(key_get_key(bte)+
-                        (db_get_keysize(db)-sizeof(ham_offset_t)));
-                blobid=ham_db2h_offset(blobid);
-#endif
                 blobid=key_get_extended_rid(db, bte);
                 if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
                     /* delete the blobid to prevent that it's freed twice */

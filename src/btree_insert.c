@@ -518,12 +518,6 @@ shift_elements:
             return (db_get_error(db));
 
         key_set_extended_rid(db, bte, blobid);
-
-#if 0 /* TODO @@@ */
-        p=(ham_offset_t *)(key_get_key(bte)+
-                (db_get_keysize(db)-sizeof(ham_offset_t)));
-        *p=ham_h2db_offset(blobid);
-#endif
     }
 
     btree_node_set_count(node, count+1);
