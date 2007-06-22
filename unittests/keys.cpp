@@ -106,10 +106,10 @@ public:
 
         int_key_t *key=(int_key_t *)&buffer[0];
 
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0x0123456789abcdef, 
+        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0x0123456789abcdefull, 
                 key_get_ptr(key));
         CPPUNIT_ASSERT_EQUAL((ham_u8_t)0xf0, key_get_flags(key));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0xfedcba9876543210, 
+        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0xfedcba9876543210ull, 
                 key_get_extended_rid(m_db, key));
     }
 

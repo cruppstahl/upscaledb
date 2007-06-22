@@ -8,7 +8,8 @@ noinst_PROGRAMS = test
 
 INCLUDES        = -I$(top_builddir)/include
 
-test_SOURCES    = extkeys.cpp \
+test_SOURCES    = blob.cpp \
+				  extkeys.cpp \
 				  keys.cpp \
 				  bt_cursor.cpp \
 				  util.cpp \
@@ -23,6 +24,8 @@ test_SOURCES    = extkeys.cpp \
                   page.cpp \
                   txn.cpp \
                   memtracker.cpp
-test_LDADD      = $(top_builddir)/src/libhamsterdb.la -lcppunit -ldl
+
+test_LDADD      = $(top_builddir)/src/libhamsterdb.la \
+				  D:\hamster\alien\cppunit-1.12.0\src\cppunit\.libs\libcppunit.a -ldl
 
 noinst_BIN      = test
