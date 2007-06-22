@@ -26,6 +26,6 @@ test_SOURCES    = blob.cpp \
                   memtracker.cpp
 
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la \
-				  D:\hamster\alien\cppunit-1.12.0\src\cppunit\.libs\libcppunit.a -ldl
+				  -lcppunit -ldl
 
 noinst_BIN      = test
