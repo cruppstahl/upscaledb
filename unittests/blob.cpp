@@ -19,20 +19,29 @@ class BlobTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(BlobTest);
     CPPUNIT_TEST      (structureTest);
     CPPUNIT_TEST      (allocReadFreeTest);
+    CPPUNIT_TEST      (replaceTest);
+    CPPUNIT_TEST      (replaceWithBigTest);
+    CPPUNIT_TEST      (replaceWithSmallTest);
     /* negative tests are not necessary, because hamsterdb asserts that
      * blob-IDs actually exist */
     //CPPUNIT_TEST      (negativeReadTest);
     //CPPUNIT_TEST      (negativeFreeTest);
     CPPUNIT_TEST      (multipleAllocReadFreeTest);
     CPPUNIT_TEST      (hugeBlobTest);
-    // TODO see TODO file for missing tests (auch in-memory)
+    CPPUNIT_TEST      (smallBlobTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
     ham_db_t *m_db;
     memtracker_t *m_alloc;
+    ham_bool_t m_inmemory;
 
 public:
+    BlobTest(ham_bool_t inmemory=HAM_FALSE)
+    :   m_db(0), m_alloc(0), m_inmemory(inmemory)
+    {
+    }
+
     void setUp()
     { 
 #if WIN32
@@ -43,7 +52,8 @@ public:
         CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", 
+                    m_inmemory ? HAM_IN_MEMORY_DB : 0, 0));
     }
     
     void tearDown() 
@@ -63,13 +73,13 @@ public:
                         blob_get_self(&b));
 
         blob_set_alloc_size(&b, 0x789ull);
-        CPPUNIT_ASSERT_EQUAL(0x789ull, blob_get_alloc_size(&b));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x789ull, blob_get_alloc_size(&b));
 
         blob_set_real_size(&b, 0xabcull);
-        CPPUNIT_ASSERT_EQUAL(0xabcull, blob_get_real_size(&b));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0xabcull, blob_get_real_size(&b));
 
         blob_set_user_size(&b, 0x123ull);
-        CPPUNIT_ASSERT_EQUAL(0x123ull, blob_get_user_size(&b));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x123ull, blob_get_user_size(&b));
 
         blob_set_flags(&b, 0x13);
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)0x13, blob_get_flags(&b));
@@ -89,10 +99,106 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, blob_read(m_db, blobid, 
                                 &record, 0));
-        CPPUNIT_ASSERT_EQUAL(record.size, sizeof(buffer));
+        CPPUNIT_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
         CPPUNIT_ASSERT(0==::memcmp(buffer, record.data, record.size));
 
         CPPUNIT_ASSERT_EQUAL(0, blob_free(m_db, blobid, 0));
+    }
+
+    void replaceTest(void)
+    {
+        ham_u8_t buffer[64], buffer2[64];
+        ham_offset_t blobid, blobid2;
+        ham_record_t record;
+        ::memset(&record,  0, sizeof(record));
+        ::memset(&buffer,  0x12, sizeof(buffer));
+        ::memset(&buffer2, 0x15, sizeof(buffer2));
+
+        CPPUNIT_ASSERT_EQUAL(0, blob_allocate(m_db, buffer, 
+                                (ham_size_t)sizeof(buffer), 0, &blobid));
+        CPPUNIT_ASSERT(blobid!=0);
+
+        CPPUNIT_ASSERT_EQUAL(0, blob_read(m_db, blobid, 
+                                &record, 0));
+        CPPUNIT_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
+        CPPUNIT_ASSERT(0==::memcmp(buffer, record.data, record.size));
+
+        CPPUNIT_ASSERT_EQUAL(0, blob_replace(m_db, blobid, buffer2, 
+                    sizeof(buffer2), 0, &blobid2));
+        CPPUNIT_ASSERT(blobid2!=0);
+
+        CPPUNIT_ASSERT_EQUAL(0, blob_read(m_db, blobid2, 
+                                &record, 0));
+        CPPUNIT_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer2));
+        CPPUNIT_ASSERT(0==::memcmp(buffer2, record.data, record.size));
+
+        CPPUNIT_ASSERT_EQUAL(0, blob_free(m_db, blobid2, 0));
+    }
+
+    void replaceWithBigTest(void)
+    {
+        ham_u8_t buffer[64], buffer2[128];
+        ham_offset_t blobid, blobid2;
+        ham_record_t record;
+        ::memset(&record,  0, sizeof(record));
+        ::memset(&buffer,  0x12, sizeof(buffer));
+        ::memset(&buffer2, 0x15, sizeof(buffer2));
+
+        CPPUNIT_ASSERT_EQUAL(0, blob_allocate(m_db, buffer, 
+                                (ham_size_t)sizeof(buffer), 0, &blobid));
+        CPPUNIT_ASSERT(blobid!=0);
+
+        CPPUNIT_ASSERT_EQUAL(0, blob_read(m_db, blobid, 
+                                &record, 0));
+        CPPUNIT_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
+        CPPUNIT_ASSERT(0==::memcmp(buffer, record.data, record.size));
+
+        CPPUNIT_ASSERT_EQUAL(0, blob_replace(m_db, blobid, buffer2, 
+                    sizeof(buffer2), 0, &blobid2));
+        CPPUNIT_ASSERT(blobid2!=0);
+
+        CPPUNIT_ASSERT_EQUAL(0, blob_read(m_db, blobid2, 
+                                &record, 0));
+        CPPUNIT_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer2));
+        CPPUNIT_ASSERT(0==::memcmp(buffer2, record.data, record.size));
+
+        CPPUNIT_ASSERT_EQUAL(0, blob_free(m_db, blobid2, 0));
+    }
+
+    void replaceWithSmallTest(void)
+    {
+        ham_u8_t buffer[128], buffer2[64];
+        ham_offset_t blobid, blobid2;
+        ham_record_t record;
+        ::memset(&record,  0, sizeof(record));
+        ::memset(&buffer,  0x12, sizeof(buffer));
+        ::memset(&buffer2, 0x15, sizeof(buffer2));
+
+        CPPUNIT_ASSERT_EQUAL(0, blob_allocate(m_db, buffer, 
+                                (ham_size_t)sizeof(buffer), 0, &blobid));
+        CPPUNIT_ASSERT(blobid!=0);
+
+        CPPUNIT_ASSERT_EQUAL(0, blob_read(m_db, blobid, 
+                                &record, 0));
+        CPPUNIT_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
+        CPPUNIT_ASSERT(0==::memcmp(buffer, record.data, record.size));
+
+        CPPUNIT_ASSERT_EQUAL(0, blob_replace(m_db, blobid, buffer2, 
+                    sizeof(buffer2), 0, &blobid2));
+        CPPUNIT_ASSERT(blobid2!=0);
+
+        CPPUNIT_ASSERT_EQUAL(0, blob_read(m_db, blobid2, 
+                                &record, 0));
+        CPPUNIT_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer2));
+        CPPUNIT_ASSERT(0==::memcmp(buffer2, record.data, record.size));
+
+        /* make sure that at least 64bit are in the freelist */
+        CPPUNIT_ASSERT(freel_alloc_area(m_db, 64)!=0);
+
+        CPPUNIT_ASSERT_EQUAL(0, blob_free(m_db, blobid2, 0));
+
+        /* and now another 64bit should be in the freelist */
+        CPPUNIT_ASSERT(freel_alloc_area(m_db, 64)!=0);
     }
 
     void negativeReadTest(void)
@@ -160,7 +266,57 @@ public:
         loopInsert(10, 1024*1024*4);
     }
 
+    void smallBlobTest(void)
+    {
+        loopInsert(20, 64);
+    }
+
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION(BlobTest);
+class FileBlobTest : public BlobTest
+{
+    CPPUNIT_TEST_SUITE(FileBlobTest);
+    CPPUNIT_TEST      (structureTest);
+    CPPUNIT_TEST      (allocReadFreeTest);
+    CPPUNIT_TEST      (replaceTest);
+    CPPUNIT_TEST      (replaceWithBigTest);
+    CPPUNIT_TEST      (replaceWithSmallTest);
+    /* negative tests are not necessary, because hamsterdb asserts that
+     * blob-IDs actually exist */
+    //CPPUNIT_TEST      (negativeReadTest);
+    //CPPUNIT_TEST      (negativeFreeTest);
+    CPPUNIT_TEST      (multipleAllocReadFreeTest);
+    CPPUNIT_TEST      (hugeBlobTest);
+    CPPUNIT_TEST      (smallBlobTest);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    FileBlobTest()
+    : BlobTest(HAM_FALSE)
+    {
+    }
+};
+
+class InMemoryBlobTest : public BlobTest
+{
+    CPPUNIT_TEST_SUITE(InMemoryBlobTest);
+    CPPUNIT_TEST      (structureTest);
+    CPPUNIT_TEST      (allocReadFreeTest);
+    CPPUNIT_TEST      (replaceTest);
+    CPPUNIT_TEST      (replaceWithBigTest);
+    CPPUNIT_TEST      (replaceWithSmallTest);
+    CPPUNIT_TEST      (multipleAllocReadFreeTest);
+    CPPUNIT_TEST      (hugeBlobTest);
+    CPPUNIT_TEST      (smallBlobTest);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    InMemoryBlobTest()
+    : BlobTest(HAM_FALSE)
+    {
+    }
+};
+
+CPPUNIT_TEST_SUITE_REGISTRATION(FileBlobTest);
+CPPUNIT_TEST_SUITE_REGISTRATION(InMemoryBlobTest);
 
