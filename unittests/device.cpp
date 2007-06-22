@@ -42,14 +42,19 @@ public:
 
     void setUp()
     { 
+#if WIN32
+        (void)DeleteFileA((LPCSTR)".test");
+#else
+        (void)unlink(".test");
+#endif
         ham_page_t *p;
         m_alloc=memtracker_new();
-        CPPUNIT_ASSERT(0==ham_new(&m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         db_set_device(m_db, (m_dev=ham_device_new(m_db, m_inmemory)));
-        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
+        CPPUNIT_ASSERT_EQUAL(0, m_dev->create(m_dev, ".test", 0, 0644));
         p=page_new(m_db);
-        CPPUNIT_ASSERT(0==page_alloc(p, m_dev->get_pagesize(m_dev)));
+        CPPUNIT_ASSERT_EQUAL(0, page_alloc(p, m_dev->get_pagesize(m_dev)));
         db_set_header_page(m_db, p);
         db_set_pagesize(m_db, m_dev->get_pagesize(m_dev));
     }
