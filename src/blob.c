@@ -333,7 +333,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
         return (0);
     }
 
-    ham_assert(blobid%DB_CHUNKSIZE==0, (0));
+    ham_assert(blobid%DB_CHUNKSIZE==0, ("blobid is %llu", blobid));
 
     /*
      * first step: read the blob header 

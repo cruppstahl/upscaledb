@@ -990,7 +990,7 @@ ham_close(ham_db_t *db)
      * and the dirty-flag is true: flush the page-header to disk
      */
     if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB) &&
-        db_get_device(db)->is_open(db_get_device(db)) &&
+        db_get_device(db) && db_get_device(db)->is_open(db_get_device(db)) &&
         (!(db_get_rt_flags(db)&HAM_READ_ONLY))) {
         /* flush the database header, if it's dirty */
         if (db_is_dirty(db)) {
@@ -1017,7 +1017,7 @@ ham_close(ham_db_t *db)
     }
 
     /* close the device */
-    if (db_get_device(db)->is_open(db_get_device(db))) {
+    if (db_get_device(db) && db_get_device(db)->is_open(db_get_device(db))) {
         (void)db_get_device(db)->flush(db_get_device(db));
         (void)db_get_device(db)->close(db_get_device(db));
         (void)db_get_device(db)->destroy(db_get_device(db));

@@ -752,6 +752,9 @@ db_flush_all(ham_db_t *db, ham_u32_t flags)
     ham_status_t st;
     ham_page_t *head;
 
+    if (!db_get_cache(db)) 
+        return (0);
+
     head=cache_get_totallist(db_get_cache(db)); 
     while (head) {
         ham_page_t *next=page_get_next(head, PAGE_LIST_CACHED);
