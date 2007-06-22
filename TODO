@@ -31,21 +31,11 @@ x remove TODOs (grep for @@@), if tests run on PowerPC
 o write more unittests
     x keys.c/keys.h
     x extkeys.c/extkeys.h (also test the caching behaviour!)
-    o blob.c/blob.h
-        o special code paths in blob_read and blob_write: doesn't use 
-            the cache but direct file access; also in blob_replace, where
-            a blob can be replaced in-place, or deleted/allocated
+    x blob.c/blob.h
 
     o trying to open/create databases with invalid page sizes, key sizes,
         invalid flag combinations etc
     o negative tests for all public functions!
-
-o fix ALL compiler warnings
-    x gcc 4.x
-    o gcc 3.x
-    o msvc
-
-o port to QNX (?)
 
 o port to Windows CE
 
