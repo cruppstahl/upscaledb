@@ -28,14 +28,15 @@ x do some profiling - make sure that the extkey-cache is not a bottleneck
 
 x remove TODOs (grep for @@@), if tests run on PowerPC
 
-o write more unittests
+x ham_strerror prüfen - vollständig?
+
+x write more unittests
     x keys.c/keys.h
     x extkeys.c/extkeys.h (also test the caching behaviour!)
     x blob.c/blob.h
-
-    o trying to open/create databases with invalid page sizes, key sizes,
+    x trying to open/create databases with invalid page sizes, key sizes,
         invalid flag combinations etc
-    o negative tests for all public functions!
+    x negative tests for all public functions!
 
 o port to Windows CE
 
