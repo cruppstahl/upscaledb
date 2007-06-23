@@ -8,7 +8,8 @@ noinst_PROGRAMS = test
 
 INCLUDES        = -I$(top_builddir)/include
 
-test_SOURCES    = blob.cpp \
+test_SOURCES    = hamsterdb.cpp \
+				  blob.cpp \
 				  extkeys.cpp \
 				  keys.cpp \
 				  bt_cursor.cpp \
