@@ -676,7 +676,7 @@ ham_close(ham_db_t *db);
  *          new cursor handle
  *
  * @return @a HAM_SUCCESS upon success.
- * @return @a HAM_INV_PARAMETER if @a db or cursor is NULL.
+ * @return @a HAM_INV_PARAMETER if @a db or @a cursor is NULL.
  * @return @a HAM_OUT_OF_MEMORY if the new structure could not be allocated.
  */
 HAM_EXPORT ham_status_t
@@ -695,7 +695,7 @@ ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags,
  *          cloned cursor handle.
  *
  * @return @a HAM_SUCCESS upon success.
- * @return @a HAM_INV_PARAMETER if @a src or dest is NULL.
+ * @return @a HAM_INV_PARAMETER if @a src or @a dest is NULL.
  * @return @a HAM_OUT_OF_MEMORY if the new structure could not be allocated.
  */
 HAM_EXPORT ham_status_t
@@ -769,7 +769,7 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
  *
  * @param cursor A valid cursor handle.
  * @param record A valid record structure.
- * @param flags Flags for replacing the item; unused, set to 0
+ * @param flags Flags for replacing the item; unused, set to 0.
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if @a cursor or @a record is NULL.
