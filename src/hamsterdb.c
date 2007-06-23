@@ -196,8 +196,12 @@ ham_strerror(ham_status_t result)
             return ("System I/O error");
         case HAM_CACHE_FULL:
             return ("Database cache is full");
+        case HAM_NOT_IMPLEMENTED:
+            return ("Operation not implemented");
         case HAM_FILE_NOT_FOUND:
             return ("File not found");
+        case HAM_WOULD_BLOCK:
+            return ("Operation would block");
         case HAM_CURSOR_IS_NIL:
             return ("Cursor points to NIL");
         default:
@@ -220,6 +224,9 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
 ham_status_t
 ham_new(ham_db_t **db)
 {
+    if (!db)
+        return (HAM_INV_PARAMETER);
+
     /* allocate memory for the ham_db_t-structure;
      * we can't use our allocator because it's not yet created! */
     *db=(ham_db_t *)malloc(sizeof(ham_db_t));
@@ -235,6 +242,9 @@ ham_new(ham_db_t **db)
 ham_status_t
 ham_delete(ham_db_t *db)
 {
+    if (!db)
+        return (HAM_INV_PARAMETER);
+
     /* free cached data pointers */
     if (db_get_record_allocdata(db))
         ham_mem_free(db, db_get_record_allocdata(db));
@@ -271,6 +281,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
 
     if (!db)
         return (HAM_INV_PARAMETER);
+    if (!filename)
+        return (HAM_INV_PARAMETER);
 
     db_set_error(db, 0);
 
@@ -291,8 +303,10 @@ ham_open_ex(ham_db_t *db, const char *filename,
         return (db_get_error(db));
     /* open the file */
     st=device->open(device, filename, flags);
-    if (st)
+    if (st) {
+        (void)device->destroy(device);
         return (db_set_error(db, st));
+    }
     db_set_device(db, device);
 
     /*
@@ -310,6 +324,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
     if (st) {
         ham_log(("os_pread of %s failed with status %d (%s)", filename,
                 st, ham_strerror(st)));
+        (void)device->close(device);
+        (void)device->destroy(device);
         return (db_set_error(db, st));
     }
     pagesize=ham_db2h32(((db_header_t *)&hdrbuf[12])->_pagesize);
@@ -337,11 +353,20 @@ ham_open_ex(ham_db_t *db, const char *filename,
      * now allocate and read the header page
      */
     page=page_new(db);
-    if (!page)
+    if (!page) {
+        (void)device->close(device);
+        (void)device->destroy(device);
         return (db_get_error(db));
+    }
     st=page_fetch(page, pagesize);
-    if (st)
+    if (st) {
+        if (page_get_pers(page))
+            (void)page_free(page);
+        (void)page_delete(page);
+        (void)device->close(device);
+        (void)device->destroy(device);
         return (st);
+    }
     page_set_type(page, PAGE_TYPE_HEADER);
     db_set_header_page(db, page);
 
@@ -368,6 +393,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
         db_get_magic(db, 2)!='M' ||
         db_get_magic(db, 3)!='\0') {
         ham_log(("invalid file type - %s is not a hamster-db", filename));
+        (void)ham_close(db);
         db_set_error(db, HAM_INV_FILE_HEADER);
         return (HAM_INV_FILE_HEADER);
     }
@@ -376,6 +402,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     if (db_get_version(db, 0)!=HAM_VERSION_MAJ ||
         db_get_version(db, 1)!=HAM_VERSION_MIN) {
         ham_log(("invalid file version"));
+        (void)ham_close(db);
         db_set_error(db, HAM_INV_FILE_VERSION);
         return (HAM_INV_FILE_VERSION);
     }
@@ -384,6 +411,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     backend=db_create_backend(db, flags);
     if (!backend) {
         ham_log(("unable to create backend with flags 0x%x", flags));
+        (void)ham_close(db);
         db_set_error(db, HAM_INV_INDEX);
         return (HAM_INV_INDEX);
     }
@@ -395,6 +423,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
         ham_log(("backend create() failed with status %d (%s)",
                 st, ham_strerror(st)));
         db_set_error(db, st);
+        (void)ham_close(db);
         return (st);
     }
 
@@ -402,8 +431,10 @@ ham_open_ex(ham_db_t *db, const char *filename,
     if (cachesize==0)
         cachesize=HAM_DEFAULT_CACHESIZE; 
     cache=cache_new(db, cachesize/db_get_pagesize(db));
-    if (!cache)
+    if (!cache) {
+        (void)ham_close(db);
         return (db_get_error(db));
+    }
     db_set_cache(db, cache);
 
     /* create the freelist - not needed for in-memory-databases */
@@ -411,6 +442,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
         st=freel_create(db);
         if (st) {
             ham_log(("unable to create freelist"));
+            (void)ham_close(db);
             return (st);
         }
     }
@@ -441,6 +473,8 @@ ham_create_ex(ham_db_t *db, const char *filename,
     ham_device_t *device;
 
     if (!db)
+        return (HAM_INV_PARAMETER);
+    if (!filename && !(flags&HAM_IN_MEMORY_DB))
         return (HAM_INV_PARAMETER);
 
     db_set_error(db, 0);
@@ -544,19 +578,27 @@ ham_create_ex(ham_db_t *db, const char *filename,
 
     /* create the file */
     st=device->create(device, filename, flags, mode);
-    if (st)
+    if (st) {
+        device->destroy(device);
         return (db_set_error(db, st));
+    }
     db_set_device(db, device);
 
     /* allocate a database header page */
     page=page_new(db);
     if (!page) {
         ham_log(("unable to allocate the header page"));
+        device->close(device);
+        device->destroy(device);
         return (db_get_error(db));
     }
     st=page_alloc(page, pagesize);
-    if (st)
+    if (st) {
+        page_delete(page);
+        device->close(device);
+        device->destroy(device);
         return (st);
+    }
     memset(page_get_pers(page), 0, pagesize);
     page_set_type(page, PAGE_TYPE_HEADER);
     db_set_header_page(db, page);
@@ -588,8 +630,10 @@ ham_create_ex(ham_db_t *db, const char *filename,
     if (cachesize==0)
         cachesize=HAM_DEFAULT_CACHESIZE;
     cache=cache_new(db, cachesize/db_get_pagesize(db));
-    if (!cache)
+    if (!cache) {
+        (void)ham_close(db);
         return (db_get_error(db));
+    }
     db_set_cache(db, cache);
 
     /* initialize the freelist structure in the header page;
@@ -600,6 +644,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
             (OFFSET_OF(db_header_t, _freelist_start)+1));
     if (st) {
         ham_log(("unable to setup the freelist"));
+        (void)ham_close(db);
         return (db_set_error(db, st));
     }
 
@@ -607,6 +652,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     backend=db_create_backend(db, flags);
     if (!backend) {
         ham_log(("unable to create backend with flags 0x%x", flags));
+        (void)ham_close(db);
         return (db_set_error(db, HAM_INV_INDEX));
     }
 
@@ -614,6 +660,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     st=backend->_fun_create(backend, flags);
     if (st) {
         ham_log(("unable to create the backend"));
+        (void)ham_close(db);
         db_set_error(db, st);
         return (st);
     }
@@ -626,7 +673,8 @@ ham_create_ex(ham_db_t *db, const char *filename,
         st=freel_create(db);
         if (st) {
             ham_log(("unable to create freelist"));
-            return (st);
+            (void)ham_close(db);
+            return (db_set_error(db, st));
         }
     }
 
@@ -641,6 +689,9 @@ ham_create_ex(ham_db_t *db, const char *filename,
 ham_status_t
 ham_get_error(ham_db_t *db)
 {
+    if (!db)
+        return (0);
+
     return (db_get_error(db));
 }
 
