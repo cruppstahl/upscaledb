@@ -19,6 +19,12 @@ extern "C" {
 /*
  * check the operating system and word size
  */
+#ifdef UNDER_CE
+#	undef WIN32
+#	define WIN32 1
+#	define HAM_OS_WINCE 1
+#endif
+
 #ifdef WIN32
 #    undef  HAM_OS_WIN32
 #    define HAM_OS_WIN32 1

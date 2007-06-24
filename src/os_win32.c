@@ -8,7 +8,6 @@
 #include <windows.h>
 
 #include <stdio.h>
-#include <errno.h>
 #include <string.h>
 #include <ham/hamsterdb.h>
 #include <ham/types.h>
@@ -16,10 +15,11 @@
 #include "error.h"
 #include "os.h"
 
-extern BOOL WINAPI GetFileSizeEx(
-  HANDLE hFile,
-  PLARGE_INTEGER lpFileSize
-);
+static void
+__utf8_string(const char *filename, wchar_t *wfilename, int wlen)
+{
+	MultiByteToWideChar(CP_ACP, 0, filename, -1, wfilename, wlen);
+}
 
 ham_size_t
 os_get_pagesize(void)
@@ -38,6 +38,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
 
     *mmaph=CreateFileMapping(fd, 0, PAGE_READWRITE, hsize, fsize, 0); 
     if (!*mmaph) {
+	MessageBox(0, TEXT("os_mmap"), TEXT("failed"), 0);
         *buffer=0;
         st=(ham_status_t)GetLastError();
         ham_trace(("CreateFileMapping failed with status %u", st));
@@ -162,15 +163,15 @@ os_tell(ham_fd_t fd, ham_offset_t *offset)
 ham_status_t
 os_get_filesize(ham_fd_t fd, ham_offset_t *size)
 {
-    LARGE_INTEGER i;
+	DWORD upper, lower=GetFileSize(fd, &upper);
 
-    if (!GetFileSizeEx(fd, &i)) {
+	if (lower==(DWORD)-1) {
         ham_trace(("GetFileSizeEx failed with OS status %u", 
                     GetLastError()));
         return (HAM_IO_ERROR);
-    }
+	}
 
-    *size=(ham_offset_t)i.QuadPart;
+	*size=(((ham_offset_t)upper)<<32)+lower;
     return (0);
 }
 
@@ -200,10 +201,15 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
     DWORD share  =flags & HAM_LOCK_EXCLUSIVE 
                     ? 0 
                     : (FILE_SHARE_READ|FILE_SHARE_WRITE);
+	wchar_t *wfilename=malloc(strlen(filename)*3*sizeof(wchar_t));
 
-    *fd=(ham_fd_t)CreateFileA(filename, GENERIC_READ|GENERIC_WRITE, 
+	/* translate ASCII filename to unicode */
+	__utf8_string(filename, wfilename, (int)strlen(filename)*3);
+    *fd=(ham_fd_t)CreateFile(wfilename, GENERIC_READ|GENERIC_WRITE, 
                 share, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
-    if (*fd==INVALID_HANDLE_VALUE) {
+	free(wfilename);
+
+	if (*fd==INVALID_HANDLE_VALUE) {
         st=(ham_status_t)GetLastError();
         /* this function can return errors even when it succeeds... */
         if (st==ERROR_ALREADY_EXISTS)
@@ -214,7 +220,7 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
         return (HAM_IO_ERROR);
     }
 
-    return (HAM_SUCCESS);
+	return (HAM_SUCCESS);
 }
 
 ham_status_t
@@ -241,18 +247,22 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
                     : (FILE_SHARE_READ|FILE_SHARE_WRITE);
     DWORD dispo  =OPEN_EXISTING;
     DWORD osflags=0;
+	wchar_t *wfilename=malloc(strlen(filename)*3*sizeof(wchar_t));
 
     if (flags&HAM_READ_ONLY)
         access|=GENERIC_READ;
     else
         access|=GENERIC_READ|GENERIC_WRITE;
 
-    *fd=(ham_fd_t)CreateFileA(filename, access, share, 0, 
+	/* translate ASCII filename to unicode */
+	__utf8_string(filename, wfilename, (int)strlen(filename)*3);
+    *fd=(ham_fd_t)CreateFile(wfilename, access, share, 0, 
                         dispo, osflags, 0);
+	free(wfilename);
     if (*fd==INVALID_HANDLE_VALUE) {
         st=(ham_status_t)GetLastError();
         ham_trace(("CreateFile (open) failed with OS status %u", st));
-        return (GetLastError()==ENOENT ? HAM_FILE_NOT_FOUND : HAM_IO_ERROR);
+        return (GetLastError()==ERROR_FILE_NOT_FOUND ? HAM_FILE_NOT_FOUND : HAM_IO_ERROR);
     }
 
     return (HAM_SUCCESS);

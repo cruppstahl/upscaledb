@@ -20,7 +20,7 @@ extern int vsnprintf(char *str, size_t size, const char *format, va_list ap);
 #endif
 
 static const char *g_file=0;
-static int           g_line=0;
+static int         g_line=0;
 static const char *g_expr=0;
 
 static int
@@ -122,6 +122,11 @@ dbg_verify_failed(const char *format, ...)
     }
     
     g_hand(buffer);
+
+#ifndef HAM_OS_WINCE
     abort();
+#else
+	ExitProcess(-1);
+#endif
 }
 
