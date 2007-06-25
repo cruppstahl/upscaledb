@@ -78,10 +78,8 @@ main(int argc, char **argv)
         /* note: the second parameter of ham_insert() is reserved; set it to 
          * NULL */
         st=ham_insert(db, 0, &key, &record, 0);
-		if (st!=HAM_SUCCESS) {
+		if (st!=HAM_SUCCESS)
             error("ham_insert", st);
-			MessageBox(0, TEXT("insert"), TEXT("blah"), 0);
-		}
     }
 
     /*
