@@ -229,9 +229,6 @@ struct ham_db_t
     /* the database flags - a combination of the persistent flags
      * and runtime flags */
     ham_u32_t _rt_flags;
-
-    /* dirty-flag for the header */
-    ham_u8_t _dirty;
 };
 
 /*
