@@ -24,7 +24,17 @@ EXTRA_DIST = documentation/Doxyfile                     \
 		     win32/sample_db1/sample_db1.vcproj         \
 		     win32/sample_db2/sample_db2.vcproj         \
 		     win32/sample_db3/sample_db3.vcproj         \
-		     win32/unittests/unittests.vcproj
+		     win32/unittests/unittests.vcproj		    \
+			 wince										\
+			 wince/lib									\
+			 wince/lib/lib.vcproj						\
+			 wince/sample_db1							\
+			 wince/sample_db1/sample_db1.vcproj			\
+			 wince/hamsterdb							\
+			 wince/hamsterdb/hamsterdb.sln				\
+			 wince/README.TXT							\
+			 wince/dll									\
+			 wince/dll/dll.vcproj
 
 doc:
 	doxygen documentation/Doxyfile
