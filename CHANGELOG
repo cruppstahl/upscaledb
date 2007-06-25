@@ -1,7 +1,8 @@
 
 Jun 24, 2007 - chris
 o finished the port to Windows CE. Solution files are in the wince 
-    directory (configured for STANDARDSDK 5.0 (x86))
+    directory (configured for STANDARDSDK 5.0 (x86)). See wince/README.TXT
+    for the details.
 
 Jun 20, 2007 - chris
 o improved the caching of extended keys; the cache is now purged when it's
