@@ -131,7 +131,7 @@ public:
                 ham_create(db, "c:\\windows", 0, 0664));
 #else
         CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, 
-                ham_create(db, "/dev", 0, 0664));
+                ham_create(db, "/home", 0, 0664));
 #endif
         ham_delete(db);
     }
