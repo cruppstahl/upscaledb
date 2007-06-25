@@ -97,8 +97,8 @@ public:
         CPPUNIT_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, 
                 ham_open(db, "xxxx...", 0));
         st=ham_open(db, "Makefile", 0);
-
         CPPUNIT_ASSERT(st==HAM_INV_FILE_VERSION || st==HAM_SHORT_READ);
+
 #if WIN32
         CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, 
                 ham_open(db, "c:\\windows", 0));
