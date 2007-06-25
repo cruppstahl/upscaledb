@@ -96,8 +96,8 @@ public:
                 ham_open(db, 0, HAM_IN_MEMORY_DB));
         CPPUNIT_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, 
                 ham_open(db, "xxxx...", 0));
-        st=ham_open(db, "Makefile", 0);
-        CPPUNIT_ASSERT(st==HAM_INV_FILE_VERSION || st==HAM_SHORT_READ);
+        CPPUNIT_ASSERT(0!==ham_open(db, "Makefile", 0));
+        // either HAM_INV_FILE_VERSION or HAM_SHORT_READ or bad pagesize
 
 #if WIN32
         CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, 
