@@ -38,7 +38,7 @@ x write more unittests
         invalid flag combinations etc
     x negative tests for all public functions!
 
-o port to Windows CE
+x port to Windows CE
 
 o completely automate the release-process for the tar-ball
 
