@@ -155,6 +155,7 @@ extkey_cache_fetch(extkey_cache_t *cache, ham_offset_t blobid,
 
     *size=extkey_get_size(e);
     *data=extkey_get_data(e);
+    extkey_set_txn_id(e, db_get_txn_id(extkey_cache_get_db(cache)));
 
     return (0);
 }
