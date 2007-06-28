@@ -110,6 +110,8 @@ public:
     void createTest(void)
     {
         ham_db_t *db;
+        ham_parameter_t cs[]={{HAM_PARAM_CACHESIZE, 1024}, {0, 0}};
+        ham_parameter_t ps[]={{HAM_PARAM_PAGESIZE,   512}, {0, 0}};
 
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
 
@@ -120,9 +122,9 @@ public:
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create(db, 0, HAM_IN_MEMORY_DB|HAM_CACHE_STRICT, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                ham_create_ex(db, 0, HAM_IN_MEMORY_DB, 0, 0, 0, 1024));
+                ham_create_ex(db, 0, HAM_IN_MEMORY_DB, 0, &cs[0]));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PAGESIZE, 
-                ham_create_ex(db, ".test", 0, 0, 512, 0, 0));
+                ham_create_ex(db, ".test", 0, 0, &ps[0]));
 #if WIN32
         CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, 
                 ham_create(db, "c:\\windows", 0, 0664));

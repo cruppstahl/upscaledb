@@ -32,11 +32,13 @@ protected:
 public:
     void setUp()
     { 
+        ham_parameter_t p[]={{HAM_PARAM_PAGESIZE, 4096}, {0, 0}};
+
         CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
         CPPUNIT_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         CPPUNIT_ASSERT(ham_create_ex(m_db, 0, HAM_IN_MEMORY_DB, 0644, 
-                        4096, 0, 0)==HAM_SUCCESS);
+                        &p[0])==HAM_SUCCESS);
     }
     
     void tearDown() 

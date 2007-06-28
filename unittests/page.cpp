@@ -43,7 +43,8 @@ public:
         CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
         CPPUNIT_ASSERT(0==ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        CPPUNIT_ASSERT((m_dev=ham_device_new(m_db, m_inmemory))!=0);
+        CPPUNIT_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
+                        m_inmemory))!=0);
         if (!m_usemmap)
             m_dev->set_flags(m_dev, DEVICE_NO_MMAP);
         CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);

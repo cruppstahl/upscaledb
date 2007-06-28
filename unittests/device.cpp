@@ -51,7 +51,9 @@ public:
         m_alloc=memtracker_new();
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        db_set_device(m_db, (m_dev=ham_device_new(m_db, m_inmemory)));
+        CPPUNIT_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
+                        m_inmemory))!=0);
+        db_set_device(m_db, m_dev);
         CPPUNIT_ASSERT_EQUAL(0, m_dev->create(m_dev, ".test", 0, 0644));
         p=page_new(m_db);
         CPPUNIT_ASSERT_EQUAL(0, page_alloc(p, m_dev->get_pagesize(m_dev)));

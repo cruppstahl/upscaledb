@@ -13,6 +13,7 @@
 #include "../src/db.h"
 #include "../src/cache.h"
 #include "../src/page.h"
+#include "../src/env.h"
 #include "memtracker.h"
 
 class DbTest : public CppUnit::TestFixture
@@ -20,6 +21,7 @@ class DbTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(DbTest);
     CPPUNIT_TEST      (headerTest);
     CPPUNIT_TEST      (structureTest);
+    CPPUNIT_TEST      (envStructureTest);
     CPPUNIT_TEST      (defaultCompareTest);
     CPPUNIT_TEST      (defaultPrefixCompareTest);
     CPPUNIT_TEST      (allocPageTest);
@@ -45,7 +47,9 @@ public:
         CPPUNIT_ASSERT(0==ham_new(&m_db));
         m_alloc=memtracker_new(); //ham_default_allocator_new();
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        db_set_device(m_db, (m_dev=ham_device_new(m_db, m_inmemory)));
+        CPPUNIT_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
+                        m_inmemory))!=0);
+        db_set_device(m_db, m_dev);
         CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
         p=page_new(m_db);
         CPPUNIT_ASSERT(0==page_alloc(p, m_dev->get_pagesize(m_dev)));
@@ -149,6 +153,15 @@ public:
         db_set_rt_flags(m_db, 20);
         CPPUNIT_ASSERT(db_get_rt_flags(m_db)==20);
 
+        CPPUNIT_ASSERT(db_get_env(m_db)==0);
+        db_set_env(m_db, (ham_env_t *)30);
+        CPPUNIT_ASSERT(db_get_env(m_db)==(ham_env_t *)30);
+        db_set_env(m_db, 0);
+
+        CPPUNIT_ASSERT(db_get_next(m_db)==0);
+        db_set_next(m_db, (ham_db_t *)40);
+        CPPUNIT_ASSERT(db_get_next(m_db)==(ham_db_t *)40);
+
         CPPUNIT_ASSERT(db_get_record_allocsize(m_db)==0);
         db_set_record_allocsize(m_db, 21);
         CPPUNIT_ASSERT(db_get_record_allocsize(m_db)==21);
@@ -158,6 +171,40 @@ public:
         db_set_record_allocdata(m_db, (void *)22);
         CPPUNIT_ASSERT(db_get_record_allocdata(m_db)==(void *)22);
         db_set_record_allocdata(m_db, 0);
+    }
+
+    void envStructureTest()
+    {
+        ham_env_t *env;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        env_set_txn_id(env, 0x12345ull);
+        env_set_device(env, (ham_device_t *)0x13);
+        env_set_cache(env, (ham_cache_t *)0x14);
+        env_set_freelist_txn(env, (ham_txn_t *)0x15);
+        env_set_txn(env, (ham_txn_t *)0x16);
+        env_set_extkey_cache(env, (extkey_cache_t *)0x17);
+        env_set_rt_flags(env, 0x18);
+        env_set_header_page(env, (ham_page_t *)0x19);
+        env_set_list(env, m_db);
+
+        db_set_env(m_db, env);
+
+        CPPUNIT_ASSERT_EQUAL((ham_page_t *)0x19, 
+                db_get_header_page(m_db));
+
+        CPPUNIT_ASSERT_EQUAL((ham_cache_t *)0x14, 
+                db_get_cache(m_db));
+
+        CPPUNIT_ASSERT_EQUAL((ham_txn_t *)0x15, 
+                db_get_freelist_txn(m_db));
+
+        CPPUNIT_ASSERT_EQUAL((ham_u32_t)0x18, db_get_rt_flags(m_db));
+
+        CPPUNIT_ASSERT_EQUAL(env, db_get_env(m_db));
+
+        db_set_env(m_db, 0);
+        ham_env_delete(env);
     }
 
     void defaultCompareTest()
@@ -252,6 +299,7 @@ class DbInMemoryTest : public DbTest
     CPPUNIT_TEST_SUITE(DbTest);
     CPPUNIT_TEST      (headerTest);
     CPPUNIT_TEST      (structureTest);
+    CPPUNIT_TEST      (envStructureTest);
     CPPUNIT_TEST      (defaultCompareTest);
     CPPUNIT_TEST      (defaultPrefixCompareTest);
     CPPUNIT_TEST      (allocPageTest);
