@@ -15,6 +15,7 @@
 #include "config.h"
 #include "error.h"
 #include "mem.h"
+#include "env.h"
 #include "db.h"
 #include "version.h"
 #include "txn.h"
@@ -209,6 +210,135 @@ ham_strerror(ham_status_t result)
     }
 }
 
+static ham_status_t 
+__check_create_parameters(const char *filename, 
+        ham_u32_t *flags, ham_parameter_t *param, ham_size_t *ppagesize, 
+        ham_u16_t *pkeysize, ham_size_t *pcachesize)
+{
+    ham_u32_t pagesize=0;
+    ham_u16_t keysize=0; 
+    ham_size_t cachesize=0;
+    ham_bool_t no_mmap=HAM_FALSE;
+
+    if (!filename && !((*flags)&HAM_IN_MEMORY_DB))
+        return (HAM_INV_PARAMETER);
+
+    /* 
+     * parse parameters 
+     */
+    if (param) {
+        for (; param->name; param++) {
+            switch (param->name) {
+            case HAM_PARAM_CACHESIZE:
+                cachesize=(ham_size_t)param->value;
+                break;
+            case HAM_PARAM_KEYSIZE:
+                keysize=(ham_u16_t)param->value;
+                break;
+            case HAM_PARAM_PAGESIZE:
+                pagesize=(ham_u32_t)param->value;
+                break;
+            default:
+                return (HAM_INV_PARAMETER);
+            }
+        }
+    }
+
+    /*
+     * make sure that the pagesize is aligned to 1024k
+     */
+    if (pagesize) {
+        if (pagesize%1024)
+            return (HAM_INV_PAGESIZE);
+    }
+
+    /*
+     * in-memory-db? don't allow cache limits!
+     */
+    if ((*flags)&HAM_IN_MEMORY_DB) {
+        if (((*flags)&HAM_CACHE_STRICT) || cachesize!=0)
+            return (HAM_INV_PARAMETER);
+    }
+
+    /*
+     * in-memory-db? use the default pagesize of the system
+     */
+    if ((*flags)&HAM_IN_MEMORY_DB) {
+        if (!pagesize) {
+            pagesize=os_get_pagesize();
+            if (!pagesize) {
+                pagesize=1024*4;
+                no_mmap=HAM_TRUE;
+            }
+        }
+    }
+
+    /*
+     * can we use mmap?
+     */
+#if HAVE_MMAP
+    if (!((*flags)&HAM_DISABLE_MMAP)) {
+        if (pagesize) {
+            if (pagesize%os_get_pagesize()!=0)
+                no_mmap=HAM_TRUE;
+        }
+        else {
+            pagesize=os_get_pagesize();
+            if (!pagesize) {
+                pagesize=1024*4;
+                no_mmap=HAM_TRUE;
+            }
+        }
+    }
+#else
+    no_mmap=HAM_TRUE;
+#endif
+
+    /*
+     * if we still don't have a pagesize, try to get a good default value
+     */
+    if (!pagesize) {
+        pagesize=os_get_pagesize();
+        if (!pagesize) {
+            pagesize=1024*4;
+            no_mmap=HAM_TRUE;
+        }
+    }
+
+    /*
+     * set the database flags if we can't use mmapped I/O
+     */
+    if (no_mmap) {
+        (*flags)|=DB_USE_MMAP;
+        (*flags)|=HAM_DISABLE_MMAP;
+    }
+
+    /*
+     * make sure that the pagesize is big enough for at least 5 keys
+     */
+    if (keysize)
+        if (pagesize/keysize<5)
+            return (HAM_INV_KEYSIZE);
+
+    /*
+     * initialize the database with a good default value;
+     * 32byte is the size of a first level cache line for most modern
+     * processors; adjust the keysize, so the keys are aligned to
+     * 32byte
+     */
+    if (keysize==0)
+        keysize=32-(sizeof(int_key_t)-1);
+
+    /*
+     * return the fixed parameters
+     */
+    *pcachesize=cachesize;
+    *pkeysize  =keysize;
+    *ppagesize =pagesize;
+
+    return (0);
+}
+
 void
 ham_get_version(ham_u32_t *major, ham_u32_t *minor,
                 ham_u32_t *revision)
@@ -219,6 +349,207 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
         *minor=HAM_VERSION_MIN;
     if (revision)
         *revision=HAM_VERSION_REV;
+}
+
+ham_status_t
+ham_env_new(ham_env_t **env)
+{
+    if (!env)
+        return (HAM_INV_PARAMETER);
+
+    /* allocate memory for the ham_db_t-structure;
+     * we can't use our allocator because it's not yet created! */
+    *env=(ham_env_t *)malloc(sizeof(ham_env_t));
+    if (!(*env))
+        return (HAM_OUT_OF_MEMORY);
+
+    /* reset the whole structure */
+    memset(*env, 0, sizeof(ham_env_t));
+
+    return (0);
+}
+
+ham_status_t
+ham_env_delete(ham_env_t *env)
+{
+    if (!env)
+        return (HAM_INV_PARAMETER);
+
+    /* TODO there's some cleanup to do, i'd guess */
+
+    free(env);
+    return (0);
+}
+
+ham_status_t
+ham_env_create(ham_env_t *env, const char *filename,
+        ham_u32_t flags, ham_u32_t mode)
+{
+    return (ham_env_create_ex(env, filename, flags, mode, 0));
+}
+
+ham_status_t
+ham_env_create_ex(ham_env_t *env, const char *filename,
+        ham_u32_t flags, ham_u32_t mode, ham_parameter_t *param)
+{
+    ham_status_t st;
+    ham_size_t pagesize;
+    ham_u16_t keysize;
+    ham_size_t cachesize;
+    ham_device_t *device;
+
+    if (!env)
+        return (HAM_INV_PARAMETER);
+
+    /*
+     * check (and modify) the parameters
+     */
+    st=__check_create_parameters(filename, &flags, param, 
+            &pagesize, &keysize, &cachesize);
+    if (st)
+        return (st);
+
+    /* 
+     * if we do not yet have an allocator: create a new one 
+     */
+    if (!env_get_allocator(env)) {
+        env_set_allocator(env, ham_default_allocator_new());
+        if (!env_get_allocator(env))
+            return (HAM_OUT_OF_MEMORY);
+    }
+
+    /* 
+     * initialize the device 
+     */
+    device=ham_device_new(env_get_allocator(env), flags&HAM_IN_MEMORY_DB);
+    if (!device)
+        return (HAM_OUT_OF_MEMORY);
+
+    env_set_device(env, device);
+
+    /* 
+     * create the file 
+     */
+    st=device->create(device, filename, flags, mode);
+    if (st) {
+        (void)ham_env_close(env);
+        return (st);
+    }
+
+    /*
+     * store the parameters
+     */
+    env_set_pagesize(env, pagesize);
+    env_set_keysize(env, keysize);
+    env_set_cachesize(env, cachesize);
+
+    return (HAM_SUCCESS);
+}
+
+ham_status_t
+ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags)
+{
+    return (ham_env_open_ex(env, filename, flags, 0));
+}
+
+ham_status_t
+ham_env_open_ex(ham_env_t *env, const char *filename,
+        ham_u32_t flags, ham_parameter_t *param)
+{
+    ham_status_t st;
+    ham_size_t cachesize;
+    ham_device_t *device;
+
+    if (!env)
+        return (HAM_INV_PARAMETER);
+
+    /* 
+     * cannot open an in-memory-db 
+     */
+    if (flags&HAM_IN_MEMORY_DB)
+        return (HAM_INV_PARAMETER);
+
+    /* 
+     * parse parameters
+     */
+    if (param) {
+        for (; param->name; param++) {
+            switch (param->name) {
+            case HAM_PARAM_CACHESIZE:
+                cachesize=(ham_size_t)param->value;
+                break;
+            default:
+                return (HAM_INV_PARAMETER);
+            }
+        }
+    }
+
+    /* 
+     * if we do not yet have an allocator: create a new one 
+     */
+    if (!env_get_allocator(env)) {
+        env_set_allocator(env, ham_default_allocator_new());
+        if (!env_get_allocator(env))
+            return (HAM_OUT_OF_MEMORY);
+    }
+
+    /* 
+     * initialize the device 
+     */
+    device=ham_device_new(env_get_allocator(env), flags&HAM_IN_MEMORY_DB);
+    if (!device)
+        return (HAM_OUT_OF_MEMORY);
+
+    env_set_device(env, device);
+
+    /* 
+     * open the file 
+     */
+    st=device->open(device, filename, flags);
+    if (st) {
+        (void)ham_env_close(env);
+        return (st);
+    }
+
+    /*
+     * store the parameters
+     */
+    env_set_pagesize(env, 0);
+    env_set_keysize(env, 0);
+    env_set_cachesize(env, cachesize);
+
+    return (HAM_SUCCESS);
+}
+
+ham_status_t
+ham_env_close(ham_env_t *env)
+{
+    if (!env)
+        return (HAM_INV_PARAMETER);
+    if (env_get_list(env))
+        return (HAM_ENV_NOT_EMPTY);
+
+    /* 
+     * close the device
+     */
+    if (env_get_device(env)) {
+        if (env_get_device(env)->is_open(env_get_device(env))) {
+            (void)env_get_device(env)->flush(env_get_device(env));
+            (void)env_get_device(env)->close(env_get_device(env));
+        }
+        (void)env_get_device(env)->destroy(env_get_device(env));
+        env_set_device(env, 0);
+    }
+
+    /* 
+     * close the memory allocator 
+     */
+    if (env_get_allocator(env)) {
+        env_get_allocator(env)->close(env_get_allocator(env));
+        env_set_allocator(env, 0);
+    }
+
+    return (HAM_SUCCESS);
 }
 
 ham_status_t
@@ -251,10 +582,6 @@ ham_delete(ham_db_t *db)
     if (db_get_key_allocdata(db))
         ham_mem_free(db, db_get_key_allocdata(db));
 
-    /* close the allocator */
-    db_get_allocator(db)->close(db_get_allocator(db));
-    memset(db_get_allocator(db), 0, sizeof(mem_allocator_t));
-
     /* "free" all remaining memory */
     free(db);
 
@@ -264,18 +591,18 @@ ham_delete(ham_db_t *db)
 ham_status_t
 ham_open(ham_db_t *db, const char *filename, ham_u32_t flags)
 {
-    return (ham_open_ex(db, filename, flags, HAM_DEFAULT_CACHESIZE));
+    return (ham_open_ex(db, filename, flags, 0));
 }
 
 ham_status_t
 ham_open_ex(ham_db_t *db, const char *filename,
-        ham_u32_t flags, ham_size_t cachesize)
+        ham_u32_t flags, ham_parameter_t *param)
 {
     ham_status_t st;
     ham_cache_t *cache;
     ham_backend_t *backend;
     ham_u8_t hdrbuf[512];
-    ham_size_t pagesize;
+    ham_size_t cachesize=0, pagesize=0;
     ham_page_t *page;
     ham_device_t *device;
 
@@ -290,24 +617,43 @@ ham_open_ex(ham_db_t *db, const char *filename,
     if (flags&HAM_IN_MEMORY_DB)
         return (db_set_error(db, HAM_INV_PARAMETER));
 
+    /* parse parameters */
+    if (param) {
+        for (; param->name; param++) {
+            switch (param->name) {
+            case HAM_PARAM_CACHESIZE:
+                cachesize=(ham_size_t)param->value;
+                break;
+            default:
+                return (db_set_error(db, HAM_INV_PARAMETER));
+            }
+        }
+    }
+
     /* if we do not yet have an allocator: create a new one */
-    if (!db_get_allocator(db)->alloc) {
+    if (!db_get_allocator(db)) {
         db_set_allocator(db, ham_default_allocator_new());
-        if (!db_get_allocator(db)->alloc)
+        if (!db_get_allocator(db))
             return (db_set_error(db, HAM_OUT_OF_MEMORY));
     }
 
-    /* initialize the device */
-    device=ham_device_new(db, flags&HAM_IN_MEMORY_DB);
+    /* 
+     * initialize the device
+     */
+    device=ham_device_new(db_get_allocator(db), flags&HAM_IN_MEMORY_DB);
     if (!device)
         return (db_get_error(db));
-    /* open the file */
+
+    db_set_device(db, device);
+
+    /* 
+     * open the file 
+     */
     st=device->open(device, filename, flags);
     if (st) {
-        (void)device->destroy(device);
+        (void)ham_close(db);
         return (db_set_error(db, st));
     }
-    db_set_device(db, device);
 
     /*
      * read the database header
@@ -324,11 +670,11 @@ ham_open_ex(ham_db_t *db, const char *filename,
     if (st) {
         ham_log(("os_pread of %s failed with status %d (%s)", filename,
                 st, ham_strerror(st)));
-        (void)device->close(device);
-        (void)device->destroy(device);
+        (void)ham_close(db);
         return (db_set_error(db, st));
     }
     pagesize=ham_db2h32(((db_header_t *)&hdrbuf[12])->_pagesize);
+    device_set_pagesize(device, pagesize);
 
     /*
      * can we use mmap?
@@ -338,13 +684,13 @@ ham_open_ex(ham_db_t *db, const char *filename,
         if (pagesize%os_get_pagesize()==0)
             flags|=DB_USE_MMAP;
         else
-            device->set_flags(device, DEVICE_NO_MMAP);
+            device->set_flags(device, flags|HAM_DISABLE_MMAP);
     }
     else
-        device->set_flags(device, DEVICE_NO_MMAP);
+        device->set_flags(device, flags|HAM_DISABLE_MMAP);
     flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
 #else
-    device->set_flags(device, DEVICE_NO_MMAP);
+    device->set_flags(device, flags|HAM_DISABLE_MMAP);
 #endif
 
     db_set_error(db, HAM_SUCCESS);
@@ -354,8 +700,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
      */
     page=page_new(db);
     if (!page) {
-        (void)device->close(device);
-        (void)device->destroy(device);
+        (void)ham_close(db);
         return (db_get_error(db));
     }
     st=page_fetch(page, pagesize);
@@ -363,8 +708,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
         if (page_get_pers(page))
             (void)page_free(page);
         (void)page_delete(page);
-        (void)device->close(device);
-        (void)device->destroy(device);
+        (void)ham_close(db);
         return (st);
     }
     page_set_type(page, PAGE_TYPE_HEADER);
@@ -457,13 +801,12 @@ ham_open_ex(ham_db_t *db, const char *filename,
 ham_status_t
 ham_create(ham_db_t *db, const char *filename, ham_u32_t flags, ham_u32_t mode)
 {
-    return (ham_create_ex(db, filename, flags, mode, 0, 0, 0));
+    return (ham_create_ex(db, filename, flags, mode, 0));
 }
 
 ham_status_t
 ham_create_ex(ham_db_t *db, const char *filename,
-        ham_u32_t flags, ham_u32_t mode, ham_u32_t pagesize,
-        ham_u16_t keysize, ham_size_t cachesize)
+        ham_u32_t flags, ham_u32_t mode, ham_parameter_t *param)
 {
     ham_status_t st;
     ham_cache_t *cache;
@@ -472,131 +815,64 @@ ham_create_ex(ham_db_t *db, const char *filename,
     ham_u32_t pflags;
     ham_device_t *device;
 
+    ham_size_t pagesize;
+    ham_u16_t keysize;
+    ham_size_t cachesize;
+
     if (!db)
-        return (HAM_INV_PARAMETER);
-    if (!filename && !(flags&HAM_IN_MEMORY_DB))
         return (HAM_INV_PARAMETER);
 
     db_set_error(db, 0);
 
     /*
-     * make sure that the pagesize is aligned to 1024k
+     * check (and modify) the parameters
      */
-    if (pagesize) {
-        if (pagesize%1024)
-            return (db_set_error(db, HAM_INV_PAGESIZE));
-    }
+    st=__check_create_parameters(filename, &flags, param, 
+            &pagesize, &keysize, &cachesize);
+    if (st)
+        return (db_set_error(db, st));
 
-    /*
-     * in-memory-db? don't allow cache limits!
+    /* 
+     * if we do not yet have an allocator: create a new one 
      */
-    if (flags&HAM_IN_MEMORY_DB) {
-        if ((flags&HAM_CACHE_STRICT) || cachesize!=0)
-            return (db_set_error(db, HAM_INV_PARAMETER));
-    }
-
-    /*
-     * in-memory-db? use the default pagesize of the system
-     */
-    if (flags&HAM_IN_MEMORY_DB) {
-        if (!pagesize) {
-            pagesize=os_get_pagesize();
-            if (!pagesize) {
-                pagesize=1024*4;
-                flags|=HAM_DISABLE_MMAP;
-            }
-        }
-    }
-
-    /* if we do not yet have an allocator: create a new one */
-    if (!db_get_allocator(db)->alloc) {
+    if (!db_get_allocator(db)) {
         db_set_allocator(db, ham_default_allocator_new());
-        if (!db_get_allocator(db)->alloc)
+        if (!db_get_allocator(db))
             return (db_set_error(db, HAM_OUT_OF_MEMORY));
     }
 
-    /* initialize the device */
-    device=ham_device_new(db, flags&HAM_IN_MEMORY_DB);
+    /* 
+     * initialize the device 
+     */
+    device=ham_device_new(db_get_allocator(db), flags&HAM_IN_MEMORY_DB);
     if (!device)
         return (db_get_error(db));
+    db_set_device(db, device);
+    device->set_flags(device, flags);
+    flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
 
-    /*
-     * can we use mmap?
+    device_set_pagesize(device, pagesize);
+
+    /* 
+     * create the file 
      */
-#if HAVE_MMAP
-    if (!(flags&HAM_DISABLE_MMAP)) {
-        if (pagesize) {
-            if (pagesize%os_get_pagesize()==0)
-                flags|=DB_USE_MMAP;
-            else
-                device->set_flags(device, DEVICE_NO_MMAP);
-        }
-        else {
-            pagesize=os_get_pagesize();
-            if (!pagesize) {
-                pagesize=1024*4;
-                flags|=HAM_DISABLE_MMAP;
-                device->set_flags(device, DEVICE_NO_MMAP);
-            }
-            else
-                flags|=DB_USE_MMAP;
-        }
-        flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
-    }
-    else 
-        device->set_flags(device, DEVICE_NO_MMAP);
-#else
-    device->set_flags(device, DEVICE_NO_MMAP);
-#endif
-
-    /*
-     * if we still don't have a pagesize, try to get a good default value
-     */
-    if (!pagesize) {
-        pagesize=os_get_pagesize();
-        if (!pagesize) {
-            pagesize=1024*4;
-            flags&=~DB_USE_MMAP;
-        }
-    }
-
-    /*
-     * make sure that the pagesize is big enough for at least 5 keys
-     */
-    if (keysize)
-        if (pagesize/keysize<5)
-            return (db_set_error(db, HAM_INV_KEYSIZE));
-
-    /*
-     * initialize the database with a good default value;
-     * 32byte is the size of a first level cache line for most modern
-     * processors; adjust the keysize, so the keys are aligned to
-     * 32byte
-     */
-    if (keysize==0)
-        keysize=32-(sizeof(int_key_t)-1);
-
-    /* create the file */
     st=device->create(device, filename, flags, mode);
     if (st) {
-        device->destroy(device);
+        (void)ham_close(db);
         return (db_set_error(db, st));
     }
-    db_set_device(db, device);
 
     /* allocate a database header page */
     page=page_new(db);
     if (!page) {
         ham_log(("unable to allocate the header page"));
-        device->close(device);
-        device->destroy(device);
+        (void)ham_close(db);
         return (db_get_error(db));
     }
     st=page_alloc(page, pagesize);
     if (st) {
         page_delete(page);
-        device->close(device);
-        device->destroy(device);
+        (void)ham_close(db);
         return (st);
     }
     memset(page_get_pers(page), 0, pagesize);
@@ -1061,18 +1337,32 @@ ham_close(ham_db_t *db)
         db_set_header_page(db, 0);
     }
 
-    /* get rid of the cache */
+    /* 
+     * get rid of the cache 
+     */
     if (db_get_cache(db)) {
         cache_delete(db, db_get_cache(db));
         db_set_cache(db, 0);
     }
 
-    /* close the device */
-    if (db_get_device(db) && db_get_device(db)->is_open(db_get_device(db))) {
-        (void)db_get_device(db)->flush(db_get_device(db));
-        (void)db_get_device(db)->close(db_get_device(db));
+    /* 
+     * close the device
+     */
+    if (db_get_device(db)) {
+        if (db_get_device(db)->is_open(db_get_device(db))) {
+            (void)db_get_device(db)->flush(db_get_device(db));
+            (void)db_get_device(db)->close(db_get_device(db));
+        }
         (void)db_get_device(db)->destroy(db_get_device(db));
         db_set_device(db, 0);
+    }
+
+    /* 
+     * close the allocator
+     */
+    if (db_get_allocator(db)) {
+        db_get_allocator(db)->close(db_get_allocator(db));
+        db_set_allocator(db, 0);
     }
 
     return (0);

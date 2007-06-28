@@ -21,9 +21,11 @@ extern "C" {
 #include "os.h"
 #include "freelist.h"
 #include "extkeys.h"
+#include "error.h"
 #include "txn.h"
 #include "mem.h"
 #include "device.h"
+#include "env.h"
 
 #define OFFSET_OF(type, member) ((size_t) &((type *)0)->member)
 
@@ -32,6 +34,12 @@ extern "C" {
  * to this size. 
  */
 #define DB_CHUNKSIZE        64
+
+/*
+ * the maximum number of indices (if this file is an environment with 
+ * multiple indices)
+ */
+#define DB_MAX_INDICES      16  /* 16*32 = 512 byte wasted */
 
 #include "packstart.h"
 
@@ -59,11 +67,21 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
     /* size of the key */
     ham_u16_t _keysize;
 
-    /* padding for alignment on Sun SPARC */
+    /* padding for SUN Sparc */
     ham_u16_t _reserved1;
 
+    /* padding for SUN Sparc */
+    ham_u32_t _reserved2;
+
+    /* maximum number of _indexdata arrays - always set to 
+     * DB_MAX_INDICES (not yet needed, but stored for later use) */
+    ham_u16_t _max_db;
+
+    /* padding for SUN Sparc */
+    ham_u16_t _reserved3;
+
     /* private data of the index backend */
-    ham_u8_t _indexdata[64];
+    ham_u8_t _indexdata[DB_MAX_INDICES][32];
 
     /* start of the freelist - the freelist spans the rest of the page. 
      * don't add members after this field! */
@@ -148,17 +166,22 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
  * get the private data of the backend; interpretation of the
  * data is up to the backend
  */
-#define db_get_indexdata(db)       db_get_header(db)->_indexdata
+#define db_get_indexdata(db)      &db_get_header(db)->_indexdata[             \
+                                        db_get_indexdata_offset(db)][0]
 
 /*
  * get the currently active transaction
  */
-#define db_get_txn(db)             (db)->_txn
+#define db_get_txn(db)             (db_get_env(db)                            \
+                                   ? env_get_txn(db_get_env(db))              \
+                                   : (db)->_txn)
 
 /*
  * set the currently active transaction
  */
-#define db_set_txn(db, txn)        (db)->_txn=txn
+#define db_set_txn(db, txn)        do { if (db_get_env(db))                   \
+                                     env_set_txn(db_get_env(db), txn);        \
+                                     else (db)->_txn=txn; } while(0)
 
 /*
  * get the cache for extended keys
@@ -188,7 +211,7 @@ struct ham_db_t
     ham_backend_t *_backend;
 
     /* the memory allocator */
-    mem_allocator_t _allocator;
+    mem_allocator_t *_allocator;
 
     /* the device (either a file or an in-memory-db) */
     ham_device_t *_device;
@@ -229,27 +252,43 @@ struct ham_db_t
     /* the database flags - a combination of the persistent flags
      * and runtime flags */
     ham_u32_t _rt_flags;
+
+    /* the offset of this database in the environment _indexdata */
+    ham_u16_t _indexdata_offset;
+
+    /* the environment of this database - can be NULL */
+    ham_env_t *_env;
+
+    /* the next database in a linked list of databases */
+    ham_db_t *_next;
 };
 
 /*
  * get the header page
  */
-#define db_get_header_page(db)         (db)->_hdrpage
+#define db_get_header_page(db)         (db_get_env(db)                        \
+                                       ? env_get_header_page(db_get_env(db))  \
+                                       : (db)->_hdrpage)
 
 /*
- * set the header page
+ * set the header page - not allowed when we have an environment!
  */
-#define db_set_header_page(db, h)      (db)->_hdrpage=(h)
+#define db_set_header_page(db, h)      ham_assert(db_get_env(db)==0, (""));   \
+                                       (db)->_hdrpage=(h)
 
 /*
  * get the current transaction ID
  */
-#define db_get_txn_id(db)              (db)->_txn_id
+#define db_get_txn_id(db)              (db_get_env(db)                        \
+                                       ? env_get_txn_id(db_get_env(db))       \
+                                       : (db)->_txn_id)
 
 /*
  * set the current transaction ID
  */
-#define db_set_txn_id(db, id)          (db)->_txn_id=id
+#define db_set_txn_id(db, id)          do { if (db_get_env(db))               \
+                                         env_set_txn_id(db_get_env(db), id);  \
+                                         else (db)->_txn_id=id; } while(0)
 
 /*
  * get the last error code
@@ -274,42 +313,54 @@ struct ham_db_t
 /*
  * get the memory allocator
  */
-#define db_get_allocator(db)           (&(db)->_allocator)
+#define db_get_allocator(db)           (db_get_env(db)                        \
+                                       ? env_get_allocator(db_get_env(db))    \
+                                       : (db)->_allocator)
 
 /*
  * set the memory allocator
  */
-#define db_set_allocator(db, a)        (db)->_allocator=(*a)
+#define db_set_allocator(db, a)        ham_assert(db_get_env(db)==0, (""));   \
+                                       (db)->_allocator=(a)
 
 /*
  * get the device
  */
-#define db_get_device(db)              (db)->_device
+#define db_get_device(db)              (db_get_env(db)                        \
+                                       ? env_get_device(db_get_env(db))       \
+                                       : (db)->_device)
 
 /*
- * set the device
+ * set the device - not allowed in an environment
  */
-#define db_set_device(db, d)           (db)->_device=(d)
+#define db_set_device(db, d)           ham_assert(db_get_env(db)==0, (""));   \
+                                       (db)->_device=(d)
 
 /*
  * get the cache pointer
  */
-#define db_get_cache(db)               (db)->_cache
+#define db_get_cache(db)               (db_get_env(db)                        \
+                                       ? env_get_cache(db_get_env(db))        \
+                                       : (db)->_cache)
 
 /*
- * set the cache pointer
+ * set the cache pointer - not allowed in an environment
  */
-#define db_set_cache(db, c)            (db)->_cache=c
+#define db_set_cache(db, c)            ham_assert(db_get_env(db)==0, (""));   \
+                                       (db)->_cache=c
 
 /*
  * get the freelist's txn
  */
-#define db_get_freelist_txn(db)        (db)->_freel_txn
+#define db_get_freelist_txn(db)        (db_get_env(db)                        \
+                                       ? env_get_freelist_txn(db_get_env(db)) \
+                                       : (db)->_freel_txn)
 
 /*
- * set the freelist's txn
+ * set the freelist's txn - not allowed in an environment
  */
-#define db_set_freelist_txn(db, txn)   (db)->_freel_txn=txn
+#define db_set_freelist_txn(db, t)     ham_assert(db_get_env(db)==0, (""));   \
+                                       (db)->_freel_txn=t
 
 /*
  * get the prefix comparison function
@@ -332,14 +383,47 @@ struct ham_db_t
 #define db_set_compare_func(db, f)     (db)->_compfoo=f
 
 /*
- * get the runtime-flags
+ * get the runtime-flags - if this database has an environment, the flags
+ * are "mixed"
  */
-#define db_get_rt_flags(db)            (db)->_rt_flags
+#define db_get_rt_flags(db)            (db_get_env(db)                        \
+                           ? env_get_rt_flags(db_get_env(db))|(db)->_rt_flags \
+                           : (db)->_rt_flags)
 
 /*
- * set the runtime-flags
+ * set the runtime-flags - NOT setting environment flags!
  */
 #define db_set_rt_flags(db, f)         (db)->_rt_flags=(f)
+
+/*
+ * get the index of this database in the indexdata array
+ */
+#define db_get_indexdata_offset(db)    (db)->_indexdata_offset
+
+/*
+ * set the index of this database in the indexdata array
+ */
+#define db_set_indexdata_offset(db, o) (db)->_indexdata_offset=o
+
+/*
+ * get the environment pointer
+ */
+#define db_get_env(db)                 (db)->_env
+
+/*
+ * set the environment pointer
+ */
+#define db_set_env(db, env)            (db)->_env=env
+
+/*
+ * get the next database in a linked list of databases
+ */
+#define db_get_next(db)                (db)->_next
+
+/*
+ * set the pointer to the next database
+ */
+#define db_set_next(db, next)          (db)->_next=next
 
 /*
  * get the size of the last allocated data blob

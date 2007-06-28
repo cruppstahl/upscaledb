@@ -55,6 +55,11 @@ ham_default_allocator_new(void);
                                     db_get_allocator(db), __FILE__, __LINE__, \
                                         size)
 
+/**
+ * same as above, but with an mem_allocator_t pointer
+ */
+#define allocator_alloc(a, size)  (a)->alloc(a, __FILE__, __LINE__, size)
+
 /** 
  * free memory 
  * the default implementation uses free()
@@ -64,11 +69,9 @@ ham_default_allocator_new(void);
                                         ptr)
 
 /**
- * frees memory, then sets the pointer to NULL
+ * same as above, but with an mem_allocator_t pointer
  */
-#define ham_mem_free_null(d, p) do { db_get_allocator(db)->free(              \
-                                    db_get_allocator(db), __FILE__, __LINE__, \
-                                        ptr); ptr=0; } while (0)
+#define allocator_free(a, ptr)  (a)->free(a, __FILE__, __LINE__, ptr)
 
 
 #ifdef __cplusplus

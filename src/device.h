@@ -17,6 +17,7 @@ extern "C" {
 
 #include <ham/hamsterdb.h>
 #include "page.h"
+#include "mem.h"
 
 /*
  * the device structure
@@ -125,9 +126,14 @@ struct ham_device_t {
     ham_status_t (*destroy)(ham_device_t *self);
 
     /*
-     * the database
+     * the memory allocator
      */
-    ham_db_t *_db;
+    mem_allocator_t *_malloc;
+
+    /*
+     * the pagesize
+     */
+    ham_size_t _pagesize;
 
     /*
      * flags of this device 
@@ -147,14 +153,24 @@ struct ham_device_t {
 #define DEVICE_NO_MMAP                     1
 
 /*
- * get the database of this device
+ * get the allocator of this device
  */
-#define device_get_db(dev)                 (dev)->_db
+#define device_get_allocator(dev)          (dev)->_malloc
 
 /*
- * set the database of this device
+ * set the allocator of this device
  */
-#define device_set_db(dev, db)             (dev)->_db=db
+#define device_set_allocator(dev, a)       (dev)->_malloc=a
+
+/*
+ * get the pagesize
+ */
+#define device_get_pagesize(dev)           (dev)->_pagesize
+
+/*
+ * set the pagesize
+ */
+#define device_set_pagesize(dev, ps)       (dev)->_pagesize=ps
 
 /*
  * get the flags of this device
@@ -180,7 +196,7 @@ struct ham_device_t {
  * create a new device structure; either for in-memory or file-based
  */
 extern ham_device_t *
-ham_device_new(ham_db_t *db, ham_bool_t inmemorydb);
+ham_device_new(mem_allocator_t *alloc, ham_bool_t inmemorydb);
 
 
 #ifdef __cplusplus

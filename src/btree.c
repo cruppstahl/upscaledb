@@ -134,9 +134,10 @@ my_fun_create(ham_btree_t *be, ham_u32_t flags)
     btree_set_rootpage(be, page_get_self(root));
 
     /*
-     * store root address and maxkeys 
+     * store root address and maxkeys (first two bytes are the
+     * database name)
      */
-    *(ham_u16_t    *)&indexdata[0]=ham_h2db16(maxkeys);
+    *(ham_u16_t    *)&indexdata[2]=ham_h2db16(maxkeys);
     *(ham_offset_t *)&indexdata[4]=ham_h2db_offset(page_get_self(root));
     db_set_dirty(db, 1);
 
@@ -152,9 +153,10 @@ my_fun_open(ham_btree_t *be, ham_u32_t flags)
     ham_u8_t *indexdata=db_get_indexdata(db);
 
     /*
-     * load root address and maxkeys
+     * load root address and maxkeys (first two bytes are the
+     * database name)
      */
-    maxkeys=ham_db2h16(*(ham_u16_t *)&indexdata[0]);
+    maxkeys=ham_db2h16(*(ham_u16_t *)&indexdata[2]);
     rootadd=ham_db2h_offset(*(ham_offset_t *)&indexdata[4]);
     btree_set_rootpage(be, rootadd);
     btree_set_maxkeys(be, maxkeys);
@@ -174,9 +176,10 @@ my_fun_close(ham_btree_t *be)
         return (0);
 
     /*
-     * store root address and maxkeys
+     * store root address and maxkeys (first two bytes are the
+     * database name)
      */
-    *(ham_u16_t    *)&indexdata[0]=ham_h2db16(btree_get_maxkeys(be));
+    *(ham_u16_t    *)&indexdata[2]=ham_h2db16(btree_get_maxkeys(be));
     *(ham_offset_t *)&indexdata[4]=ham_h2db_offset(btree_get_rootpage(be));
     db_set_dirty(db, HAM_TRUE);
 

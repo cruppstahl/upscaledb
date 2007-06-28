@@ -40,6 +40,106 @@ x write more unittests
 
 x port to Windows CE
 
+o unittest crashes in cygwin
+
+o multiple files per database
+    x define the ham_parameter_t lists
+    x rewrite ham_open_ex and ham_create_ex
+    x change the unit test
+    x change the acceptance test
+
+    x write the ham_env_t structure (with the linked db-list), ham_env_new 
+        and ham_env_delete
+    x write a unittest
+
+    x change the database header format
+    x make sure that the acceptance tests still work
+
+    x DbTest::structureTest: try again, but this time with 
+        a real Environment!
+
+    x change the backend structure in the indexdata - first two bytes
+        are always the database name! (u16_t)
+
+    x allocator umschreiben auf pointer
+    x device entkoppeln von db
+
+    x implement ham_env_create
+        x create allocator
+        x create device/file
+        x store flags, parameter list
+
+    x implement ham_env_close
+        x make sure that all db's are closed
+
+    x implement ham_env_open
+        x store flags, parameter list
+        x create allocator
+        x open device/file
+
+    x write a unittest for ham_env_create
+    x write a unittest for ham_env_close
+    x write a unittest for ham_env_open
+
+
+
+
+    o implement ham_env_create_db(name, flags, param_list *)
+        o valid flags: HAM_USE_BTREE, HAM_DISABLE_VAR_KEYLEN
+        o must also use stored flags, parameter list from env
+        o must not create device, allocator
+        o must create all other shared members if they are NULL
+        o add database to env->list
+        o set dbheader->_max_db to DB_MAX_INDICES
+        x move dbheader->_indexdata_offset to non-persistent db-storage!
+        o set db->_indexdata_offset
+    o write a unittest (create several databases; insert data, etc)
+
+    o implement ham_env_open_db(name, flags, param_list *)
+        o valid flags: none???
+        o must also use stored flags, parameter list from env
+        o must not create device, allocator
+        o must create all other shared members if they are NULL
+        o add database to env->list
+        o set db->_indexdata_offset
+    o write a unittest (create several databases; insert data, etc)
+
+    o modify ham_close - must free all ressources if it's the last
+        database in the environment
+        o remove database from env->list
+
+    o modify all(!) public functions: prepare the shared members for 
+        operations of THIS database:
+        if (db_get_env(db)) {
+          cache_set_db(cache, db);
+          extkey_cache_set_db(extkey_cache, db);
+          ...
+        }
+
+    o rewrite the acceptance test
+    o create new test-rows
+
+
+
+
+
+    o implement ham_env_rename_db
+    o write a unittest
+
+    o implement ham_env_erase_db
+        o move all pages (and blobs) to freelist
+    o write a unittest
+
+    o cleanups:
+        o ham_env_create_ex accepts the keysize, but it's a "per database"
+            parameter
+        o ham_env_close sollte AUTOFLUSH können
+        o make sure that only valid flags in ham_env_open_db and
+            ham_env_create_db are accepted!
+
+    o write a new sample
+    o update the tutorial
+
 o completely automate the release-process for the tar-ball
 
 o release 0.4.4!

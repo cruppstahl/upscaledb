@@ -10,7 +10,6 @@
 #include "error.h"
 #include "os.h"
 #include "mem.h"
-#include "db.h"
 #include "page.h"
 #include "error.h"
 
@@ -28,54 +27,45 @@ static ham_status_t
 __f_create(ham_device_t *self, const char *fname, ham_u32_t flags, 
             ham_u32_t mode)
 {
-    ham_status_t st;
     dev_file_t *t=(dev_file_t *)device_get_private(self);
 
-    st=os_create(fname, flags, mode, &t->fd);
-    return (db_set_error(device_get_db(self), st));
+    return (os_create(fname, flags, mode, &t->fd));
 }
 
 static ham_status_t 
 __f_open(ham_device_t *self, const char *fname, ham_u32_t flags)
 {
-    ham_status_t st;
     dev_file_t *t=(dev_file_t *)device_get_private(self);
 
-    st=os_open(fname, flags, &t->fd);
-    return (db_set_error(device_get_db(self), st));
+    return (os_open(fname, flags, &t->fd));
 }
 
 static ham_status_t
 __f_close(ham_device_t *self)
 {
     ham_status_t st;
-    ham_db_t *db=device_get_db(self);
     dev_file_t *t=(dev_file_t *)device_get_private(self);
 
-    st=os_close(t->fd, db_get_rt_flags(db));
+    st=os_close(t->fd, device_get_flags(self));
     if (st==HAM_SUCCESS)
         t->fd=HAM_INVALID_FD;
-    return (db_set_error(device_get_db(self), st));
+    return (st);
 }
 
 static ham_status_t 
 __f_flush(ham_device_t *self)
 {
-    ham_status_t st;
     dev_file_t *t=(dev_file_t *)device_get_private(self);
 
-    st=os_flush(t->fd);
-    return (db_set_error(device_get_db(self), st));
+    return (os_flush(t->fd));
 }
 
 static ham_status_t 
 __f_truncate(ham_device_t *self, ham_offset_t newsize)
 {
-    ham_status_t st;
     dev_file_t *t=(dev_file_t *)device_get_private(self);
 
-    st=os_truncate(t->fd, newsize);
-    return (db_set_error(device_get_db(self), st));
+    return (os_truncate(t->fd, newsize));
 }
 
 static ham_bool_t 
@@ -95,11 +85,9 @@ __f_get_pagesize(ham_device_t *self)
 static ham_status_t 
 __f_read(ham_device_t *self, ham_offset_t offset, void *buffer, ham_size_t size)
 {
-    ham_status_t st;
     dev_file_t *t=(dev_file_t *)device_get_private(self);
 
-    st=os_pread(t->fd, offset, buffer, size);
-    return (db_set_error(device_get_db(self), st));
+    return (os_pread(t->fd, offset, buffer, size));
 }
 
 static ham_status_t
@@ -107,17 +95,16 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
 {
     ham_u8_t *buffer;
     ham_status_t st;
-    ham_db_t *db=device_get_db(self);
     dev_file_t *t=(dev_file_t *)device_get_private(self);
 
     if (!size)
-        size=db_get_pagesize(db);
+        size=device_get_pagesize(self);
 
-    if (device_get_flags(self)&DEVICE_NO_MMAP) {
+    if (device_get_flags(self)&HAM_DISABLE_MMAP) {
         if (page_get_pers(page)==0) {
-            buffer=ham_mem_alloc(db, size);
+            buffer=allocator_alloc(device_get_allocator(self), size);
             if (!buffer)
-                return (db_set_error(db, HAM_OUT_OF_MEMORY));
+                return (HAM_OUT_OF_MEMORY);
             page_set_pers(page, (union page_union_t *)buffer);
             page_set_npers_flags(page, 
                 page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
@@ -125,8 +112,7 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
         else
             ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_MALLOC), (0));
 
-        st=__f_read(self, page_get_self(page), page_get_pers(page), size);
-        return (db_set_error(db, st));
+        return (__f_read(self, page_get_self(page), page_get_pers(page), size));
     }
 
     ham_assert(page_get_pers(page)==0, (""));
@@ -135,9 +121,9 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
     st=os_mmap(t->fd, page_get_mmap_handle_ptr(page), 
             page_get_self(page), size, &buffer);
     if (st)
-        return (db_set_error(db, st));
+        return (st);
     page_set_pers(page, (union page_union_t *)buffer);
-    return (db_set_error(db, HAM_SUCCESS));
+    return (0);
 }
 
 static ham_status_t 
@@ -148,12 +134,12 @@ __f_alloc(ham_device_t *self, ham_size_t size, ham_offset_t *address)
 
     st=os_get_filesize(t->fd, address);
     if (st)
-        return (db_set_error(device_get_db(self), st));
+        return (st);
     st=os_truncate(t->fd, (*address)+size);
     if (st)
-        return (db_set_error(device_get_db(self), st));
+        return (st);
 
-    return (db_set_error(device_get_db(self), st));
+    return (0);
 }
 
 static ham_status_t 
@@ -165,70 +151,62 @@ __f_alloc_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
 
     st=os_get_filesize(t->fd, &pos);
     if (st)
-        return (db_set_error(device_get_db(self), st));
+        return (st);
     st=os_truncate(t->fd, pos+size);
     if (st)
-        return (db_set_error(device_get_db(self), st));
+        return (st);
 
     page_set_self(page, pos);
-    st=__f_read_page(self, page, size);
-    return (db_set_error(device_get_db(self), st));
+    return (__f_read_page(self, page, size));
 }
 
 static ham_status_t 
 __f_write(ham_device_t *self, ham_offset_t offset, void *buffer, 
             ham_size_t size)
 {
-    ham_status_t st;
     dev_file_t *t=(dev_file_t *)device_get_private(self);
 
-    st=os_pwrite(t->fd, offset, buffer, size);
-    return (db_set_error(device_get_db(self), st));
+    return (os_pwrite(t->fd, offset, buffer, size));
 }
 
 static ham_status_t 
 __f_write_page(ham_device_t *self, ham_page_t *page)
 {
-    ham_db_t *db=device_get_db(self);
-
     return (__f_write(self, page_get_self(page), page_get_pers(page), 
-            db_get_pagesize(db)));
+                    device_get_pagesize(self)));
 }
 
 static ham_status_t 
 __f_free_page(ham_device_t *self, ham_page_t *page)
 {
     ham_status_t st;
-    ham_db_t *db=device_get_db(self);
 
     if (page_get_pers(page)) {
         if (page_get_npers_flags(page)&PAGE_NPERS_MALLOC) {
-            ham_mem_free(db, page_get_pers(page));
+            allocator_free(device_get_allocator(self), page_get_pers(page));
             page_set_npers_flags(page, 
                 page_get_npers_flags(page)&~PAGE_NPERS_MALLOC);
         }
         else {
             st=os_munmap(page_get_mmap_handle_ptr(page), 
-                    page_get_pers(page), db_get_pagesize(db));
+                    page_get_pers(page), device_get_pagesize(self));
             if (st)
-                return (db_set_error(db, st));
+                return (st);
         }
     }
 
     page_set_pers(page, 0);
-    return (db_set_error(db, HAM_SUCCESS));
+    return (0);
 }
 
 static ham_status_t 
 __f_destroy(ham_device_t *self)
 {
-    ham_db_t *db=device_get_db(self);
-
     ham_assert(!__f_is_open(self), ("destroying a device which is open"));
 
-    ham_mem_free(db, device_get_private(self));
-    ham_mem_free(db, self);
-    return (db_set_error(db, HAM_SUCCESS));
+    allocator_free(device_get_allocator(self), device_get_private(self));
+    allocator_free(device_get_allocator(self), self);
+    return (0);
 }
 
 static ham_status_t 
@@ -243,7 +221,7 @@ __m_create(ham_device_t *self, const char *fname, ham_u32_t flags,
 
     ham_assert(!t->is_open, (0));
     t->is_open=HAM_TRUE;
-    return (HAM_SUCCESS);
+    return (0);
 }
 
 static ham_status_t 
@@ -307,13 +285,12 @@ static ham_status_t
 __m_alloc_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
 {
     ham_u8_t *buffer;
-    ham_db_t *db=device_get_db(self);
 
     ham_assert(page_get_pers(page)==0, (0));
 
-    buffer=ham_mem_alloc(db, size);
+    buffer=allocator_alloc(device_get_allocator(self), size);
     if (!buffer)
-        return (db_set_error(db, HAM_OUT_OF_MEMORY));
+        return (HAM_OUT_OF_MEMORY);
     page_set_pers(page, (union page_union_t *)buffer);
     page_set_npers_flags(page, 
         page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
@@ -367,12 +344,10 @@ __m_write_page(ham_device_t *self, ham_page_t *page)
 static ham_status_t 
 __m_free_page(ham_device_t *self, ham_page_t *page)
 {
-    ham_db_t *db=device_get_db(self);
-
     ham_assert(page_get_pers(page)!=0, (0));
     ham_assert(page_get_npers_flags(page)|PAGE_NPERS_MALLOC, (0));
 
-    ham_mem_free(db, page_get_pers(page));
+    allocator_free(device_get_allocator(self), page_get_pers(page));
     page_set_pers(page, 0);
     page_set_npers_flags(page, 
         page_get_npers_flags(page)&~PAGE_NPERS_MALLOC);
@@ -383,13 +358,11 @@ __m_free_page(ham_device_t *self, ham_page_t *page)
 static ham_status_t 
 __m_destroy(ham_device_t *self)
 {
-    ham_db_t *db=device_get_db(self);
-
     ham_assert(!__m_is_open(self), ("destroying a device which is open"));
 
-    ham_mem_free(db, device_get_private(self));
-    ham_mem_free(db, self);
-    return (db_set_error(db, HAM_SUCCESS));
+    allocator_free(device_get_allocator(self), device_get_private(self));
+    allocator_free(device_get_allocator(self), self);
+    return (HAM_SUCCESS);
 }
 
 static void 
@@ -405,23 +378,19 @@ __get_flags(ham_device_t *self)
 }
 
 ham_device_t *
-ham_device_new(ham_db_t *db, ham_bool_t inmemorydb)
+ham_device_new(mem_allocator_t *alloc, ham_bool_t inmemorydb)
 {
-    ham_device_t *dev=(ham_device_t *)ham_mem_alloc(db, sizeof(*dev));
-    if (!dev) {
-        db_set_error(db, HAM_OUT_OF_MEMORY);
+    ham_device_t *dev=(ham_device_t *)allocator_alloc(alloc, sizeof(*dev));
+    if (!dev)
         return (0);
-    }
 
     memset(dev, 0, sizeof(*dev));
-    device_set_db(dev, db);
+    device_set_allocator(dev, alloc);
 
     if (inmemorydb) {
-        dev_inmem_t *t=(dev_inmem_t *)ham_mem_alloc(db, sizeof(*t));
-        if (!t) {
-            db_set_error(db, HAM_OUT_OF_MEMORY);
+        dev_inmem_t *t=(dev_inmem_t *)allocator_alloc(alloc, sizeof(*t));
+        if (!t)
             return (0);
-        }
         t->is_open=0;
         device_set_private(dev, t);
 
@@ -444,11 +413,9 @@ ham_device_new(ham_db_t *db, ham_bool_t inmemorydb)
         dev->destroy      = __m_destroy;
     }
     else {
-        dev_file_t *t=(dev_file_t *)ham_mem_alloc(db, sizeof(*t));
-        if (!t) {
-            db_set_error(db, HAM_OUT_OF_MEMORY);
+        dev_file_t *t=(dev_file_t *)allocator_alloc(alloc, sizeof(*t));
+        if (!t)
             return (0);
-        }
         t->fd=HAM_INVALID_FD;
         device_set_private(dev, t);
 
@@ -470,6 +437,13 @@ ham_device_new(ham_db_t *db, ham_bool_t inmemorydb)
         dev->free_page    = __f_free_page;
         dev->destroy      = __f_destroy;
     }
+
+    /*
+     * initialize the pagesize with a default value - this will be
+     * overwritten i.e. by ham_open, ham_create when the pagesize 
+     * of the file is known
+     */
+    device_set_pagesize(dev, dev->get_pagesize(dev));
 
     return (dev);
 }

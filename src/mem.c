@@ -42,16 +42,22 @@ free_impl(mem_allocator_t *self, const char *file, int line, void *ptr)
 void 
 close_impl(mem_allocator_t *self)
 {
-    (void)self;
+    free(self);
 }
 
 mem_allocator_t *
 ham_default_allocator_new(void)
 {
-    static mem_allocator_t m;
-    m.alloc=alloc_impl;
-    m.free =free_impl;
-    m.close=close_impl;
+    mem_allocator_t *m;
+
+    m=(mem_allocator_t *)malloc(sizeof(*m));
+    if (!m)
+        return (0);
+
+    memset(m, 0, sizeof(*m));
+    m->alloc=alloc_impl;
+    m->free =free_impl;
+    m->close=close_impl;
      
-    return (&m);
+    return (m);
 }
