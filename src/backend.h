@@ -43,8 +43,12 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
      *                                                                  \
      * @remark this function is called after the ham_db_t structure     \ 
      * and the file were created                                        \
+     *                                                                  \
+     * the @a flags are stored in the database; only transfer           \
+     * the persistent flags!                                            \
      */                                                                 \
-    ham_status_t (*_fun_create)(clss *be, ham_u32_t flags);             \
+    ham_status_t (*_fun_create)(clss *be, ham_u16_t keysize,            \
+            ham_u32_t flags);                                           \
                                                                         \
     /**                                                                 \
      * open and initialize a backend                                    \
@@ -108,7 +112,17 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
     /**                                                                 \
      * pointer to the database object                                   \
      */                                                                 \
-    ham_db_t *_db;
+    ham_db_t *_db;                                                      \
+                                                                        \
+    /**                                                                 \
+     * the keysize of this backend index                                \
+     */                                                                 \
+    ham_u16_t *_keysize;                                                \
+                                                                        \
+    /**                                                                 \
+     * the persistent flags of this backend index                       \
+     */                                                                 \
+    ham_u32_t *_flags;
 
 
 /**
@@ -125,6 +139,26 @@ struct ham_backend_t
 {
     BACKEND_DECLARATIONS(ham_backend_t)
 };
+
+/*
+ * get the keysize
+ */
+#define be_get_keysize(be)                  (be)->_keysize
+
+/*
+ * set the keysize
+ */
+#define be_set_keysize(be, ks)              (be)->_keysize=ks
+
+/*
+ * get the flags
+ */
+#define be_get_flags(be)                    (be)->_flags
+
+/*
+ * set the flags
+ */
+#define be_set_flags(be, f)                 (be)->_flags=f
 
 
 #ifdef __cplusplus

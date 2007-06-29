@@ -84,10 +84,7 @@ o multiple files per database
 
 
 
-    o db_set_keysize: must move to the backend
-    o db_set_pers_flags: must move to the backend
-
-    o implement ham_env_create_db(name, flags, param_list *)
+    x implement ham_env_create_db(name, flags, param_list *)
         x move dbheader->_indexdata_offset to non-persistent db-storage!
         x valid flags: HAM_USE_BTREE, HAM_DISABLE_VAR_KEYLEN
         x must also use stored flags, parameter list from env
@@ -97,14 +94,17 @@ o multiple files per database
         x set dbheader->_max_db to DB_MAX_INDICES
         x set db->_indexdata_offset
 
-    o implement ham_env_open_db(name, flags, param_list *)
-        o valid flags: none???
-        o make sure that the database was not yet opened
-        o must also use stored flags, parameter list from env
-        o must not create device, allocator
-        o must create all other shared members if they are NULL
-        o add database to env->list
-        o set db->_indexdata_offset
+    x db_set_keysize: must move to the backend
+    x db_set_pers_flags: must move to the backend
+
+    x implement ham_env_open_db(name, flags, param_list *)
+        x valid flags: none???
+        x make sure that the database was not yet opened
+        x must also use stored flags, parameter list from env
+        x must not create device, allocator
+        x must create all other shared members if they are NULL
+        x add database to env->list
+        x set db->_indexdata_offset
 
     o modify ham_close - must free all ressources if it's the last
         database in the environment

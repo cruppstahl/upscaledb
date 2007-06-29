@@ -222,6 +222,8 @@ typedef struct {
 #define HAM_DATABASE_NOT_FOUND      (-201)
 /** Database name already exists */
 #define HAM_DATABASE_ALREADY_EXISTS (-202)
+/** Database already open */
+#define HAM_DATABASE_ALREADY_OPEN   (-203)
 
 /**
  * @}
@@ -543,6 +545,8 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
  *              invalid combination of flags was specified.
  * @return @a HAM_DATABASE_NOT_FOUND if a database with this @a name
  *              does not exists in this environment.
+ * @return @a HAM_DATABASE_ALREADY_OPEN if this database was already
+ *              opened
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
  *
  */

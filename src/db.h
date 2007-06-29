@@ -60,16 +60,6 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
     /* size of the page */
     ham_u32_t _pagesize;
 
-    /* persistent database flags which were specified when the database
-     * was created */
-    ham_u32_t _flags;
-
-    /* size of the key */
-    ham_u16_t _keysize;
-
-    /* padding for SUN Sparc */
-    ham_u16_t _reserved1;
-
     /* padding for SUN Sparc */
     ham_u32_t _reserved2;
 
@@ -130,12 +120,7 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
 /*
  * get the key size
  */
-#define db_get_keysize(db)         (ham_db2h16(db_get_header(db)->_keysize))
-
-/*
- * set the key size
- */
-#define db_set_keysize(db, ks)     db_get_header(db)->_keysize=ham_db2h16(ks)
+#define db_get_keysize(db)         be_get_keysize(db_get_backend(db))
 
 /*
  * get the page size
@@ -151,16 +136,6 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
  * get the size of the usable persistent payload of a page
  */
 #define db_get_usable_pagesize(db) (db_get_pagesize(db)-(sizeof(ham_u32_t)*3))
-
-/*
- * get the flags
- */
-#define db_get_pers_flags(db)      ham_db2h32(db_get_header(db)->_flags)
-
-/*
- * set the flags
- */
-#define db_set_pers_flags(db, f)   db_get_header(db)->_flags=ham_h2db32(f)
 
 /*
  * get the maximum number of databases for this file
