@@ -218,6 +218,10 @@ typedef struct {
 #define HAM_CURSOR_IS_NIL           (-100)
 /** Not all databases were closed before closing the environment */
 #define HAM_ENV_NOT_EMPTY           (-200)
+/** Database not found */
+#define HAM_DATABASE_NOT_FOUND      (-201)
+/** Database name already exists */
+#define HAM_DATABASE_ALREADY_EXISTS (-202)
 
 /**
  * @}
@@ -463,8 +467,10 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *      </ul>
  *
  * @return @a HAM_SUCCESS upon success.
- * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL or an
- *              invalid combination of flags was specified.
+ * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL, an
+ *              invalid combination of flags was specified or if
+ *              the database name is invalid (i.e. 0 or in the reserved
+ *              range, see above).
  * @return @a HAM_FILE_NOT_FOUND if the file does not exist.
  * @return @a HAM_IO_ERROR if the file could not be opened or reading failed.
  * @return @a HAM_INV_FILE_VERSION if the database version is not
@@ -475,6 +481,74 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
 HAM_EXPORT ham_status_t
 ham_env_open_ex(ham_env_t *env, const char *filename,
         ham_u32_t flags, ham_parameter_t *param);
+
+/**
+ * Creates a database in an database environment.
+ *
+ * @param env A valid environment handle.
+ * @param env A valid database handle, which will point to the created
+ *          database. To close the handle, use @see ham_close.
+ * @param name The name of the database. If a database with this name 
+ *          already exists, the function will fail with 
+ *          @a HAM_DATABASE_ALREADY_EXISTS. Database names from 0xf000 to
+ *          0xffff and 0 are reserved.
+ * @param flags Optional flags for creating the database, combined with
+ *        bitwise OR. Possible flags are:
+ *
+ *      <ul>
+ *       <li>@a HAM_USE_BTREE</li> Use a B+Tree for the index structure.
+ *            Currently enabled by default, but future releases
+ *            of hamsterdb will offer additional index structures,
+ *            i.e. hash tables.
+ *       <li>@a HAM_DISABLE_VAR_KEYLEN</li> Do not allow the use of variable
+ *            length keys. Inserting a key, which is larger than the
+ *            B+Tree index key size, returns @a HAM_INV_KEYSIZE.
+ *      </ul>
+ *
+ * @param param An array of ham_parameter_t structures. The following
+ *        parameters are available:
+ *      <ul>
+ *        <li>HAM_PARAM_KEYSIZE</li> The size of the keys in the B+Tree
+ *            index. The default size is 21 bytes.
+ *      </ul>
+ *
+ * @return @a HAM_SUCCESS upon success.
+ * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL or an
+ *              invalid combination of flags was specified.
+ * @return @a HAM_DATABASE_ALREADY_EXISTS if a database with this @a name
+ *              already exists in this environment.
+ * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
+ *
+ */
+HAM_EXPORT ham_status_t
+ham_env_create_db(ham_env_t *env, ham_db_t *db,
+        ham_u16_t name, ham_u32_t flags, ham_parameter_t *params);
+
+/**
+ * Opens a database in an database environment.
+ *
+ * @param env A valid environment handle.
+ * @param env A valid database handle, which will point to the created
+ *          database. To close the handle, use @see ham_close.
+ * @param name The name of the database. If a database with this name 
+ *          does not exist, the function will fail with 
+ *          @a HAM_DATABASE_NOT_FOUND.
+ * @param flags Optional flags for opening the database, combined with
+ *        bitwise OR. Unused, set to 0.
+ * @param param An array of ham_parameter_t structures. Unused, set 
+ *        to NULL.
+ *
+ * @return @a HAM_SUCCESS upon success.
+ * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL or an
+ *              invalid combination of flags was specified.
+ * @return @a HAM_DATABASE_NOT_FOUND if a database with this @a name
+ *              does not exists in this environment.
+ * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
+ *
+ */
+HAM_EXPORT ham_status_t
+ham_env_open_db(ham_env_t *env, ham_db_t *db,
+        ham_u16_t name, ham_u32_t flags, ham_parameter_t *params);
 
 /**
  * Closes the database environment.

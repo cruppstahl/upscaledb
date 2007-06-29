@@ -84,29 +84,34 @@ o multiple files per database
 
 
 
+    o db_set_keysize: must move to the backend
+    o db_set_pers_flags: must move to the backend
+
     o implement ham_env_create_db(name, flags, param_list *)
-        o valid flags: HAM_USE_BTREE, HAM_DISABLE_VAR_KEYLEN
-        o must also use stored flags, parameter list from env
-        o must not create device, allocator
-        o must create all other shared members if they are NULL
-        o add database to env->list
-        o set dbheader->_max_db to DB_MAX_INDICES
         x move dbheader->_indexdata_offset to non-persistent db-storage!
-        o set db->_indexdata_offset
-    o write a unittest (create several databases; insert data, etc)
+        x valid flags: HAM_USE_BTREE, HAM_DISABLE_VAR_KEYLEN
+        x must also use stored flags, parameter list from env
+        x add database to env->list
+        x must not create device, allocator
+        x must create all other shared members if they are NULL
+        x set dbheader->_max_db to DB_MAX_INDICES
+        x set db->_indexdata_offset
 
     o implement ham_env_open_db(name, flags, param_list *)
         o valid flags: none???
+        o make sure that the database was not yet opened
         o must also use stored flags, parameter list from env
         o must not create device, allocator
         o must create all other shared members if they are NULL
         o add database to env->list
         o set db->_indexdata_offset
-    o write a unittest (create several databases; insert data, etc)
 
     o modify ham_close - must free all ressources if it's the last
         database in the environment
         o remove database from env->list
+
+    o write a unittest (create several databases; insert data, 
+        etc, close, reopen, close, etc)
 
     o modify all(!) public functions: prepare the shared members for 
         operations of THIS database:
@@ -141,6 +146,12 @@ o multiple files per database
     o update the tutorial
 
 o completely automate the release-process for the tar-ball
+
+o ham_open kann laut doku DISABLE_VARLEN_KEYS - fehlt in ham_env_open_db!
+
+o remove HAM_RELEASE (not needed, same as !HAM_DEBUG)
+    o remove from sln files
+    o remove from README.TXT
 
 o release 0.4.4!
 

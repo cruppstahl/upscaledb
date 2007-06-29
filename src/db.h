@@ -163,11 +163,27 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
 #define db_set_pers_flags(db, f)   db_get_header(db)->_flags=ham_h2db32(f)
 
 /*
+ * get the maximum number of databases for this file
+ */
+#define db_get_indexdata_size(db)  ham_db2h16(db_get_header(db)->_max_db)
+
+/*
+ * set the maximum number of databases for this file
+ */
+#define db_set_indexdata_size(db,s) db_get_header(db)->_max_db=ham_h2db16(s)
+
+/*
  * get the private data of the backend; interpretation of the
  * data is up to the backend
  */
 #define db_get_indexdata(db)      &db_get_header(db)->_indexdata[             \
                                         db_get_indexdata_offset(db)][0]
+
+/*
+ * get the private data of the backend; interpretation of the
+ * data is up to the backend
+ */
+#define db_get_indexdata_at(db, i) &db_get_header(db)->_indexdata[i][0]
 
 /*
  * get the currently active transaction

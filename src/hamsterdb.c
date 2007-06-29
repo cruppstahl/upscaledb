@@ -28,6 +28,10 @@
 #include "util.h"
 #include "keys.h"
 
+/* private parameter list entry for ham_create_ex */
+#define HAM_PARAM_DBNAME          (1000)
+
+
 typedef struct free_cb_context_t
 {
     ham_db_t *db;
@@ -205,6 +209,13 @@ ham_strerror(ham_status_t result)
             return ("Operation would block");
         case HAM_CURSOR_IS_NIL:
             return ("Cursor points to NIL");
+        case HAM_ENV_NOT_EMPTY:
+            return ("Not all databases were closed before "
+                    "closing the environment");
+        case HAM_DATABASE_NOT_FOUND:
+            return ("Database not found");
+        case HAM_DATABASE_ALREADY_EXISTS:
+            return ("Database name already exists");
         default:
             return ("Unknown error");
     }
@@ -213,15 +224,12 @@ ham_strerror(ham_status_t result)
 static ham_status_t 
 __check_create_parameters(const char *filename, 
         ham_u32_t *flags, ham_parameter_t *param, ham_size_t *ppagesize, 
-        ham_u16_t *pkeysize, ham_size_t *pcachesize)
+        ham_u16_t *pkeysize, ham_size_t *pcachesize, ham_u16_t *pdbname)
 {
     ham_u32_t pagesize=0;
-    ham_u16_t keysize=0; 
+    ham_u16_t keysize=0, dbname=0; 
     ham_size_t cachesize=0;
     ham_bool_t no_mmap=HAM_FALSE;
-
-    if (!filename && !((*flags)&HAM_IN_MEMORY_DB))
-        return (HAM_INV_PARAMETER);
 
     /* 
      * parse parameters 
@@ -238,10 +246,18 @@ __check_create_parameters(const char *filename,
             case HAM_PARAM_PAGESIZE:
                 pagesize=(ham_u32_t)param->value;
                 break;
+            case HAM_PARAM_DBNAME:
+                dbname=(ham_u16_t)param->value;
+                break;
             default:
                 return (HAM_INV_PARAMETER);
             }
         }
+    }
+
+    if (!dbname) {
+        if (!filename && !((*flags)&HAM_IN_MEMORY_DB))
+            return (HAM_INV_PARAMETER);
     }
 
     /*
@@ -335,6 +351,8 @@ __check_create_parameters(const char *filename,
     *pcachesize=cachesize;
     *pkeysize  =keysize;
     *ppagesize =pagesize;
+    if (pdbname)
+        *pdbname=dbname;
 
     return (0);
 }
@@ -405,7 +423,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
      * check (and modify) the parameters
      */
     st=__check_create_parameters(filename, &flags, param, 
-            &pagesize, &keysize, &cachesize);
+            &pagesize, &keysize, &cachesize, 0);
     if (st)
         return (st);
 
@@ -444,6 +462,69 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     env_set_cachesize(env, cachesize);
 
     return (HAM_SUCCESS);
+}
+
+ham_status_t
+ham_env_create_db(ham_env_t *env, ham_db_t *db,
+        ham_u16_t name, ham_u32_t flags, ham_parameter_t *param)
+{
+    ham_u16_t keysize=env_get_keysize(env);
+
+    if (!env || !db)
+        return (HAM_INV_PARAMETER);
+
+    if (!name || name>=0xf000)
+        return (HAM_INV_PARAMETER);
+
+    /*
+     * only a few flags are allowed
+     */
+    if (flags&~(HAM_USE_BTREE|HAM_DISABLE_VAR_KEYLEN))
+        return (HAM_INV_PARAMETER);
+
+    /* 
+     * parse parameters
+     */
+    if (param) {
+        for (; param->name; param++) {
+            switch (param->name) {
+            case HAM_PARAM_KEYSIZE:
+                keysize=(ham_u16_t)param->value;
+                break;
+            default:
+                return (HAM_INV_PARAMETER);
+            }
+        }
+    }
+
+    /*
+     * store the env pointer in the database
+     */
+    db_set_env(db, env);
+
+    /*
+     * now create the database
+     */
+    {
+    ham_parameter_t full_param[]={
+        {HAM_PARAM_PAGESIZE,  env_get_pagesize(env)},
+        {HAM_PARAM_CACHESIZE, env_get_cachesize(env)},
+        {HAM_PARAM_KEYSIZE,   keysize},
+        {HAM_PARAM_DBNAME,    name},
+        {0, 0}};
+    st=ham_create_ex(db, 0, flags|env_get_rt_flags(env), full_param);
+    if (st)
+        return (st);
+    }
+
+    /*
+     * on success: store the open database in the environment's list of
+     * opened databases
+     */
+    db_set_next(db, env_get_list(env));
+    env_set_list(env, db);
+
+    return (0);
 }
 
 ham_status_t
@@ -816,7 +897,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     ham_device_t *device;
 
     ham_size_t pagesize;
-    ham_u16_t keysize;
+    ham_u16_t keysize, dbname=0xf000, i;
     ham_size_t cachesize;
 
     if (!db)
@@ -828,7 +909,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
      * check (and modify) the parameters
      */
     st=__check_create_parameters(filename, &flags, param, 
-            &pagesize, &keysize, &cachesize);
+            &pagesize, &keysize, &cachesize, &dbname);
     if (st)
         return (db_set_error(db, st));
 
@@ -842,54 +923,129 @@ ham_create_ex(ham_db_t *db, const char *filename,
     }
 
     /* 
-     * initialize the device 
+     * initialize the device, if it does not yet exist
      */
-    device=ham_device_new(db_get_allocator(db), flags&HAM_IN_MEMORY_DB);
-    if (!device)
-        return (db_get_error(db));
-    db_set_device(db, device);
-    device->set_flags(device, flags);
-    flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
+    if (!db_get_device(db)) {
+        device=ham_device_new(db_get_allocator(db), flags&HAM_IN_MEMORY_DB);
+        if (!device)
+            return (db_get_error(db));
+        db_set_device(db, device);
+        device->set_flags(device, flags);
+        flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
+        device_set_pagesize(device, pagesize);
 
-    device_set_pagesize(device, pagesize);
+        /* 
+         * create the file 
+         */
+        st=device->create(device, filename, flags, mode);
+        if (st) {
+            (void)ham_close(db);
+            return (db_set_error(db, st));
+        }
+    }
+    else
+        device=db_get_device(db);
 
     /* 
-     * create the file 
+     * allocate a database header page, if it does not yet exist
      */
-    st=device->create(device, filename, flags, mode);
-    if (st) {
-        (void)ham_close(db);
-        return (db_set_error(db, st));
-    }
+    if (!db_get_header_page(db)) {
+        page=page_new(db);
+        if (!page) {
+            ham_log(("unable to allocate the header page"));
+            (void)ham_close(db);
+            return (db_get_error(db));
+        }
+        st=page_alloc(page, pagesize);
+        if (st) {
+            page_delete(page);
+            (void)ham_close(db);
+            return (st);
+        }
+        memset(page_get_pers(page), 0, pagesize);
+        page_set_type(page, PAGE_TYPE_HEADER);
+        db_set_header_page(db, page);
+        page_set_dirty(page, 1);
 
-    /* allocate a database header page */
-    page=page_new(db);
-    if (!page) {
-        ham_log(("unable to allocate the header page"));
-        (void)ham_close(db);
-        return (db_get_error(db));
-    }
-    st=page_alloc(page, pagesize);
-    if (st) {
-        page_delete(page);
-        (void)ham_close(db);
-        return (st);
-    }
-    memset(page_get_pers(page), 0, pagesize);
-    page_set_type(page, PAGE_TYPE_HEADER);
-    db_set_header_page(db, page);
-    page_set_dirty(page, 1);
+        /* initialize the header */
+        db_set_magic(db, 'H', 'A', 'M', '\0');
+        db_set_version(db, HAM_VERSION_MAJ, HAM_VERSION_MIN, 
+                HAM_VERSION_REV, 0);
+        db_set_serialno(db, HAM_SERIALNO);
+        db_set_error(db, HAM_SUCCESS);
+        db_set_pagesize(db, pagesize);
+        db_set_indexdata_size(db, DB_MAX_INDICES);
 
-    /* initialize the header */
-    db_set_magic(db, 'H', 'A', 'M', '\0');
-    db_set_version(db, HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV, 0);
-    db_set_serialno(db, HAM_SERIALNO);
-    db_set_error(db, HAM_SUCCESS);
-    db_set_pagesize(db, pagesize);
-    db_set_keysize(db, keysize);
+        /* 
+         * initialize the freelist structure in the header page;
+         * the freelist starts _after_ the header-page, therefore 
+         * the start-address of the freelist is the pagesize
+         */
+        st=freel_prepare(db, db_get_freelist(db), db_get_pagesize(db),
+                db_get_usable_pagesize(db)-
+                (OFFSET_OF(db_header_t, _freelist_start)+1));
+        if (st) {
+            ham_log(("unable to setup the freelist"));
+            (void)ham_close(db);
+            return (db_set_error(db, st));
+        }
+
+        /* 
+         * create the freelist - not needed for in-memory-databases
+         */
+        if (!(flags&HAM_IN_MEMORY_DB)) {
+            st=freel_create(db);
+            if (st) {
+                ham_log(("unable to create freelist"));
+                (void)ham_close(db);
+                return (db_set_error(db, st));
+            }
+        }
+    }
 
     /*
-     * set the flags
+     * check if this database name is unique
+     */
+    for (i=0; i<db_get_indexdata_size(db); i++) {
+        ham_u16_t name=ham_h2db16(&db_get_indexdata_at(db, i)[0]);
+        if (name==dbname) {
+            (void)ham_close(db);
+            return (db_set_error(db, HAM_DATABASE_ALREADY_EXISTS));
+        }
+    }
+
+    /*
+     * find a free slot in the indexdata array
+     */
+    for (i=0; i<db_get_indexdata_size(db); i++) {
+        ham_u8_t *ptr=&db_get_indexdata_at(db, i)[0];
+        ham_u16_t name=ham_h2db16(*(ham_u16_t *)ptr);
+        if (!name) {
+            *(ham_u16_t *)ptr=ham_db2h16(dbname);
+            db_set_indexdata_offset(db, i);
+            break;
+        }
+    }
+    if (i==db_get_indexdata_size(db)) {
+        (void)ham_close(db);
+        return (db_set_error(db, HAM_INTERNAL_ERROR)); /* TODO */
+    }
+
+    /*
+     * store the database name in the indexdata
+     */
+    for (i=0; i<db_get_indexdata_size(db); i++) {
+        ham_u16_t name=ham_h2db16(&db_get_indexdata_at(db, i)[0]);
+        if (name==dbname) {
+            (void)ham_close(db);
+            return (db_set_error(db, HAM_DATABASE_ALREADY_EXISTS));
+        }
+    }
+
+    db_set_keysize(db, keysize); /* TODO backend-specific!! */
+
+    /*
+     * set the flags - TODO backend-specific!!
      */
     pflags=flags;
     pflags&=~HAM_DISABLE_VAR_KEYLEN;
@@ -902,29 +1058,23 @@ ham_create_ex(ham_db_t *db, const char *filename,
     db_set_pers_flags(db, pflags);
     db_set_rt_flags(db, flags);
 
-    /* initialize the cache */
-    if (cachesize==0)
-        cachesize=HAM_DEFAULT_CACHESIZE;
-    cache=cache_new(db, cachesize/db_get_pagesize(db));
-    if (!cache) {
-        (void)ham_close(db);
-        return (db_get_error(db));
-    }
-    db_set_cache(db, cache);
-
-    /* initialize the freelist structure in the header page;
-     * the freelist starts _after_ the header-page, therefore 
-     * the start-address of the freelist is the pagesize */
-    st=freel_prepare(db, db_get_freelist(db), db_get_pagesize(db),
-            db_get_usable_pagesize(db)-
-            (OFFSET_OF(db_header_t, _freelist_start)+1));
-    if (st) {
-        ham_log(("unable to setup the freelist"));
-        (void)ham_close(db);
-        return (db_set_error(db, st));
+    /* 
+     * initialize the cache
+     */
+    if (!db_get_cache(db)) {
+        if (cachesize==0)
+            cachesize=HAM_DEFAULT_CACHESIZE;
+        cache=cache_new(db, cachesize/db_get_pagesize(db));
+        if (!cache) {
+            (void)ham_close(db);
+            return (db_get_error(db));
+        }
+        db_set_cache(db, cache);
     }
 
-    /* create the backend */
+    /* 
+     * create the backend
+     */
     backend=db_create_backend(db, flags);
     if (!backend) {
         ham_log(("unable to create backend with flags 0x%x", flags));
@@ -932,7 +1082,9 @@ ham_create_ex(ham_db_t *db, const char *filename,
         return (db_set_error(db, HAM_INV_INDEX));
     }
 
-    /* initialize the backend */
+    /* 
+     * initialize the backend
+     */
     st=backend->_fun_create(backend, flags);
     if (st) {
         ham_log(("unable to create the backend"));
@@ -941,20 +1093,14 @@ ham_create_ex(ham_db_t *db, const char *filename,
         return (st);
     }
 
-    /* store the backend in the database */
+    /* 
+     * store the backend in the database
+     */
     db_set_backend(db, backend);
 
-    /* create the freelist - not needed for in-memory-databases */
-    if (!(flags&HAM_IN_MEMORY_DB)) {
-        st=freel_create(db);
-        if (st) {
-            ham_log(("unable to create freelist"));
-            (void)ham_close(db);
-            return (db_set_error(db, st));
-        }
-    }
-
-    /* set the default key compare functions */
+    /*
+     * set the default key compare functions
+     */
     ham_set_compare_func(db, db_default_compare);
     ham_set_prefix_compare_func(db, db_default_prefix_compare);
     db_set_dirty(db, HAM_TRUE);
