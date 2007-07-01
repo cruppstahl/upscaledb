@@ -95,16 +95,10 @@ public:
         db_set_serialno(m_db, 0x1234);
         CPPUNIT_ASSERT(db_get_serialno(m_db)==0x1234);
 
-        db_set_keysize(m_db, 12);
-        CPPUNIT_ASSERT(db_get_keysize(m_db)==12);
-
         ham_size_t ps=db_get_pagesize(m_db);
         db_set_pagesize(m_db, 1024*64);
         CPPUNIT_ASSERT(db_get_pagesize(m_db)==1024*64);
         db_set_pagesize(m_db, ps);
-
-        db_set_pers_flags(m_db, 12);
-        CPPUNIT_ASSERT(db_get_pers_flags(m_db)==12);
 
         db_set_txn(m_db, (ham_txn_t *)13);
         CPPUNIT_ASSERT(db_get_txn(m_db)==(ham_txn_t *)13);
@@ -203,6 +197,14 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(env, db_get_env(m_db));
 
+        env_set_device(env, 0);
+        env_set_cache(env, 0);
+        env_set_freelist_txn(env, 0);
+        env_set_txn(env, 0);
+        env_set_extkey_cache(env, 0);
+        env_set_rt_flags(env, 0x18);
+        env_set_header_page(env, 0);
+        env_set_list(env, 0);
         db_set_env(m_db, 0);
         ham_env_delete(env);
     }

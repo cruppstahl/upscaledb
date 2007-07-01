@@ -158,7 +158,10 @@ freel_create(ham_db_t *db)
     if (st)
         return (db_set_error(db, st));
 
-    db_set_freelist_txn(db, new_txn);
+    if (db_get_env(db))
+        env_set_freelist_txn(db_get_env(db), new_txn);
+    else
+        db_set_freelist_txn(db, new_txn);
 
     return (0);
 }
@@ -182,7 +185,12 @@ freel_shutdown(ham_db_t *db)
     }
 
     ham_mem_free(db, db_get_freelist_txn(db));
-    db_set_freelist_txn(db, 0);
+
+    if (db_get_env(db))
+        env_set_freelist_txn(db_get_env(db), 0);
+    else
+        db_set_freelist_txn(db, 0);
+
     db_set_txn(db, old_txn);
     return (0);
 }

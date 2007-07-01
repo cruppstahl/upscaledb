@@ -166,6 +166,13 @@ struct ham_env_t
 #define env_set_list(env, db)            (env)->_next=db
 
 /*
+ * get the parameter list
+ */
+#define env_get_pagesize(env)            (env)->_pagesize
+#define env_get_keysize(env)             (env)->_keysize
+#define env_get_cachesize(env)           (env)->_cachesize
+
+/*
  * set the parameter list
  */
 #define env_set_pagesize(env, ps)        (env)->_pagesize =ps

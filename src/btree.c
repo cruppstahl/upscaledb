@@ -78,7 +78,7 @@ btree_get_slot(ham_db_t *db, ham_page_t *page,
 }
 
 static ham_size_t
-my_calc_maxkeys(ham_db_t *db)
+my_calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
 {
     union page_union_t u;
     ham_size_t p, k, max;
@@ -87,7 +87,7 @@ my_calc_maxkeys(ham_db_t *db)
      * a btree page is always P bytes long, where P is the pagesize of 
      * the database. 
      */
-    p=db_get_pagesize(db);
+    p=pagesize;
 
     /* every btree page has a header where we can't store entries */
     p-=OFFSET_OF(btree_node_t, _entries);
@@ -98,7 +98,7 @@ my_calc_maxkeys(ham_db_t *db)
     /*
      * compute the size of a key, k. 
      */
-    k=db_get_keysize(db)+sizeof(int_key_t)-1;
+    k=keysize+sizeof(int_key_t)-1;
 
     /* 
      * make sure that MAX is an even number, otherwise we can't calculate
@@ -120,9 +120,10 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
      * calculate the maximum number of keys for this page, 
      * and make sure that this number is even
      */
-    maxkeys=my_calc_maxkeys(db);
+    maxkeys=my_calc_maxkeys(db_get_pagesize(db), keysize);
     btree_set_maxkeys(be, maxkeys);
     btree_set_dirty(be, HAM_TRUE);
+    be_set_keysize(be, keysize);
 
     /*
      * allocate a new root page
@@ -150,7 +151,6 @@ static ham_status_t
 my_fun_open(ham_btree_t *be, ham_u32_t flags)
 {
     ham_offset_t rootadd;
-    ham_u32_t flags;
     ham_u16_t maxkeys, keysize;
     ham_db_t *db=btree_get_db(be);
     ham_u8_t *indexdata=db_get_indexdata(db);

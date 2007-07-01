@@ -77,14 +77,6 @@ typedef HAM_PACK_0 HAM_PACK_1 struct int_key_t
 #define key_set_size(bte, s)            (bte)->_keysize=ham_h2db16(s)
 
 /**
- * get the real size of the btree-entry
- */
-#define key_get_real_size(db, bte)      \
-       (key_get_size(bte)<db_get_keysize(db) \
-        ? key_get_size(bte) \
-        : db_get_keysize(db))
-
-/**
  * get the record-ID of an extended key
  */
 #define key_get_extended_rid(db, key)   ham_db2h_offset(                      \

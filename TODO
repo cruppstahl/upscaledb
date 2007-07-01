@@ -81,9 +81,6 @@ o multiple files per database
     x write a unittest for ham_env_close
     x write a unittest for ham_env_open
 
-
-
-
     x implement ham_env_create_db(name, flags, param_list *)
         x move dbheader->_indexdata_offset to non-persistent db-storage!
         x valid flags: HAM_USE_BTREE, HAM_DISABLE_VAR_KEYLEN
@@ -106,20 +103,34 @@ o multiple files per database
         x add database to env->list
         x set db->_indexdata_offset
 
-    o modify ham_close - must free all ressources if it's the last
+    x unittests gehen nicht
+    x acceptance-tests gehen nicht
+
+    x modify ham_close - must free all ressources if it's the last
         database in the environment
-        o remove database from env->list
+        x remove database from env->list
 
-    o write a unittest (create several databases; insert data, 
-        etc, close, reopen, close, etc)
+    x beim ham_close müssen alle pages, die als owner die schliessende db
+        haben, eine andere db als owner bekommen!
 
-    o modify all(!) public functions: prepare the shared members for 
+    x write a unittest (create several databases; close, reopen, close, etc)
+        x also for in-memory-db!
+
+    x modify all(!) public functions: prepare the shared members for 
         operations of THIS database:
         if (db_get_env(db)) {
           cache_set_db(cache, db);
           extkey_cache_set_db(extkey_cache, db);
           ...
         }
+
+    o write unittests for the new functionalities
+        o with extended keys (and reopen, unless in-memory)
+        o with extended keys and erase/freelist (and reopen, unless in-memory)
+        o with cursors (and reopen, unless in-memory)
+        o with extended keys and erase/freelist and "random" create/close (and
+            reopen, unless in-memory)
+        o all of the above, with in-memory db
 
     o rewrite the acceptance test
     o create new test-rows
@@ -129,25 +140,27 @@ o multiple files per database
 
 
     o implement ham_env_rename_db
-    o write a unittest
+    o write unittests
 
     o implement ham_env_erase_db
         o move all pages (and blobs) to freelist
-    o write a unittest
+    o write unittests
 
     o cleanups:
         o ham_env_create_ex accepts the keysize, but it's a "per database"
             parameter
-        o ham_env_close sollte AUTOFLUSH können
+        o ham_env_close sollte AUTOFLUSH können, sonst fehler wenn
+            datenbanken noch offen sind
         o make sure that only valid flags in ham_env_open_db and
             ham_env_create_db are accepted!
+        o ham_open kann laut doku DISABLE_VARLEN_KEYS - fehlt in 
+            ham_env_open_db!
+        o fix TODOs
 
-    o write a new sample
+    o write a new sample (structure with primary and secondary index)
     o update the tutorial
 
 o completely automate the release-process for the tar-ball
-
-o ham_open kann laut doku DISABLE_VARLEN_KEYS - fehlt in ham_env_open_db!
 
 o remove HAM_RELEASE (not needed, same as !HAM_DEBUG)
     o remove from sln files

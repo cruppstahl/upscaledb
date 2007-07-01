@@ -267,7 +267,7 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key);
  */
 #define btree_node_get_key(db, node, i)                             \
     ((int_key_t *)&((const char *)(node)->_entries)                 \
-            [(db_get_keysize((db))+sizeof(int_key_t)-1)*(i)])
+            [(db_get_keysize(db)+sizeof(int_key_t)-1)*(i)])
 
 /*
  * get the slot of an element in the page

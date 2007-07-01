@@ -117,12 +117,12 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
     /**                                                                 \
      * the keysize of this backend index                                \
      */                                                                 \
-    ham_u16_t *_keysize;                                                \
+    ham_u16_t _keysize;                                                 \
                                                                         \
     /**                                                                 \
      * the persistent flags of this backend index                       \
      */                                                                 \
-    ham_u32_t *_flags;
+    ham_u32_t _flags;
 
 
 /**
