@@ -252,10 +252,11 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
          */
         if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
             if (!db_get_extkey_cache(db)) {
+                extkey_cache_t *c=extkey_cache_new(db);
                 if (db_get_env(db))
-                    env_set_extkey_cache(db_get_env(db), extkey_cache_new(db));
+                    env_set_extkey_cache(db_get_env(db), c);
                 else
-                    db_set_extkey_cache(db, extkey_cache_new(db));
+                    db_set_extkey_cache(db, c);
                 if (!db_get_extkey_cache(db))
                     return (db_get_error(db));
             }

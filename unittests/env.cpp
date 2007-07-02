@@ -28,6 +28,8 @@ class EnvTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (multiDbInsertFindTest);
     CPPUNIT_TEST      (multiDbInsertFindExtendedTest);
     CPPUNIT_TEST      (multiDbInsertFindExtendedEraseTest);
+    CPPUNIT_TEST      (multiDbInsertCursorTest);
+    CPPUNIT_TEST      (multiDbInsertFindExtendedCloseTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -466,6 +468,185 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
+    void multiDbInsertCursorTest(void)
+    {
+        int i;
+        const int MAX_DB=5;
+        const int MAX_ITEMS=300;
+        ham_env_t *env;
+        ham_db_t *db[MAX_DB];
+        ham_cursor_t *cursor[MAX_DB];
+        ham_record_t rec;
+        ham_key_t key;
+        char buffer[512];
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+
+        for (i=0; i<MAX_DB; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+                        (ham_u16_t)i+1, 0, 0));
+            CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(db[i], 0, 0, &cursor[i]));
+
+            for (int j=0; j<MAX_ITEMS; j++) {
+                memset(&key, 0, sizeof(key));
+                memset(&rec, 0, sizeof(rec));
+                sprintf(buffer, "%08x%08x", j, i+1);
+                key.data=buffer;
+                key.size=strlen(buffer)+1;
+                rec.data=buffer;
+                rec.size=strlen(buffer)+1;
+
+                CPPUNIT_ASSERT_EQUAL(0, ham_cursor_insert(cursor[i], 
+                            &key, &rec, 0));
+            }
+        }
+
+        for (i=0; i<MAX_DB; i++) {
+            memset(&key, 0, sizeof(key));
+            memset(&rec, 0, sizeof(rec));
+
+            CPPUNIT_ASSERT_EQUAL(0, ham_cursor_move(cursor[i], &key, 
+                        &rec, HAM_CURSOR_FIRST));
+            sprintf(buffer, "%08x%08x", 0, i+1);
+            CPPUNIT_ASSERT_EQUAL((ham_size_t)strlen(buffer)+1, rec.size);
+            CPPUNIT_ASSERT_EQUAL(0, strcmp(buffer, (char *)rec.data));
+
+            for (int j=1; j<MAX_ITEMS; j++) {
+                CPPUNIT_ASSERT_EQUAL(0, ham_cursor_move(cursor[i], &key, 
+                        &rec, HAM_CURSOR_NEXT));
+                sprintf(buffer, "%08x%08x", j, i+1);
+                CPPUNIT_ASSERT_EQUAL((ham_size_t)strlen(buffer)+1, rec.size);
+                CPPUNIT_ASSERT_EQUAL(0, strcmp(buffer, (char *)rec.data));
+            }
+        }
+
+        for (i=0; i<MAX_DB; i++) { 
+            for (int j=0; j<MAX_ITEMS; j+=2) { // delete every 2nd entry
+                memset(&key, 0, sizeof(key));
+                memset(&rec, 0, sizeof(rec));
+                sprintf(buffer, "%08x%08x", j, i+1);
+                key.data=buffer;
+                key.size=strlen(buffer)+1;
+
+                CPPUNIT_ASSERT_EQUAL(0, ham_cursor_find(cursor[i], &key, 0));
+                CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(cursor[i], 0));
+            }
+        }
+
+        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+            for (i=0; i<MAX_DB; i++) {
+                CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor[i]));
+                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+                CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
+                            (ham_u16_t)i+1, 0, 0));
+                CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(db[i], 0, 
+                            0, &cursor[i]));
+                for (int j=0; j<MAX_ITEMS; j++) {
+                    memset(&key, 0, sizeof(key));
+                    memset(&rec, 0, sizeof(rec));
+                    sprintf(buffer, "%08x%08x", j, i+1);
+                    key.data=buffer;
+                    key.size=strlen(buffer)+1;
+    
+                    if (j&1) { // must exist
+                        CPPUNIT_ASSERT_EQUAL(0, 
+                                ham_cursor_find(cursor[i], &key, 0));
+                        CPPUNIT_ASSERT_EQUAL(0, 
+                                ham_cursor_move(cursor[i], 0, &rec, 0));
+                        CPPUNIT_ASSERT_EQUAL((ham_size_t)strlen(buffer)+1, 
+                                rec.size);
+                        CPPUNIT_ASSERT_EQUAL(0, 
+                                strcmp(buffer, (char *)rec.data));
+                    }
+                    else { // was deleted
+                        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                                ham_cursor_find(cursor[i], &key, 0));
+                    }
+                }
+            }
+        }
+
+        for (i=0; i<MAX_DB; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void multiDbInsertFindExtendedCloseTest(void)
+    {
+        int i;
+        const int MAX_DB=5;
+        const int MAX_ITEMS=300;
+        ham_env_t *env;
+        ham_db_t *db[MAX_DB];
+        ham_record_t rec;
+        ham_key_t key;
+        char buffer[512];
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+
+        for (i=0; i<MAX_DB; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+                        (ham_u16_t)i+1, 0, 0));
+        }
+
+        for (i=0; i<MAX_DB; i++) {
+            for (int j=0; j<MAX_ITEMS; j++) {
+                int value=j*(i+1);
+                memset(&key, 0, sizeof(key));
+                memset(&rec, 0, sizeof(rec));
+                memset(buffer, (char)value, sizeof(buffer));
+                key.data=buffer;
+                key.size=sizeof(buffer);
+                rec.data=buffer;
+                rec.size=sizeof(buffer);
+                sprintf(buffer, "%08x%08x", j, i+1);
+
+                CPPUNIT_ASSERT_EQUAL(0, ham_insert(db[i], 0, &key, &rec, 0));
+            }
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+        }
+
+        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+            for (i=0; i<MAX_DB; i++) {
+                CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
+                            (ham_u16_t)i+1, 0, 0));
+                for (int j=0; j<MAX_ITEMS; j++) {
+                    int value=j*(i+1);
+                    memset(&key, 0, sizeof(key));
+                    memset(&rec, 0, sizeof(rec));
+                    memset(buffer, (char)value, sizeof(buffer));
+                    key.data=buffer;
+                    key.size=sizeof(buffer);
+                    sprintf(buffer, "%08x%08x", j, i+1);
+    
+                    CPPUNIT_ASSERT_EQUAL(0, ham_find(db[i], 0, &key, &rec, 0));
+                    CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(buffer), rec.size);
+                    CPPUNIT_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
+                }
+            }
+
+            for (i=0; i<MAX_DB; i++) {
+                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            }
+        }
+
+        for (i=0; i<MAX_DB; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
 };
 
 class InMemoryEnvTest : public EnvTest
@@ -476,6 +657,8 @@ class InMemoryEnvTest : public EnvTest
     CPPUNIT_TEST      (multiDbInsertFindTest);
     CPPUNIT_TEST      (multiDbInsertFindExtendedTest);
     CPPUNIT_TEST      (multiDbInsertFindExtendedEraseTest);
+    CPPUNIT_TEST      (multiDbInsertCursorTest);
+    CPPUNIT_TEST      (multiDbInsertFindExtendedCloseTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:

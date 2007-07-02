@@ -124,16 +124,14 @@ o multiple files per database
           ...
         }
 
-    o write unittests for the new functionalities
-        o with extended keys (and reopen, unless in-memory)
-        o with extended keys and erase/freelist (and reopen, unless in-memory)
-        o with cursors (and reopen, unless in-memory)
-        o with extended keys and erase/freelist and "random" create/close (and
+    x write unittests for the new functionalities
+        x with extended keys (and reopen, unless in-memory)
+        x with extended keys and erase/freelist (and reopen, unless in-memory)
+        x with cursors (and reopen, unless in-memory)
+        x with extended keys and erase/freelist and "random" create/close (and
             reopen, unless in-memory)
-        o all of the above, with in-memory db
+        x all of the above, with in-memory db
 
-    o rewrite the acceptance test
-    o create new test-rows
 
 
 
@@ -145,6 +143,8 @@ o multiple files per database
     o implement ham_env_erase_db
         o move all pages (and blobs) to freelist
     o write unittests
+
+    o endian-tests!
 
     o cleanups:
         o ham_env_create_ex accepts the keysize, but it's a "per database"
