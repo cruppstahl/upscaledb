@@ -177,12 +177,15 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
 /*
  * get the cache for extended keys
  */
-#define db_get_extkey_cache(db)    (db)->_extkey_cache
+#define db_get_extkey_cache(db)    (db_get_env(db)                            \
+                                   ? env_get_extkey_cache(db_get_env(db))     \
+                                   : (db)->_extkey_cache)
 
 /*
  * set the cache for extended keys
  */
-#define db_set_extkey_cache(db, c) (db)->_extkey_cache=c
+#define db_set_extkey_cache(db, c)     ham_assert(db_get_env(db)==0, (""));   \
+                                       (db)->_extkey_cache=c
 
 /*
  * the database structure

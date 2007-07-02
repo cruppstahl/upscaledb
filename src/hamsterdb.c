@@ -1691,7 +1691,10 @@ ham_close(ham_db_t *db)
      */
     if (noenv && db_get_extkey_cache(db)) {
         extkey_cache_destroy(db_get_extkey_cache(db));
-        db_set_extkey_cache(db, 0);
+        if (db_get_env(db))
+            env_set_extkey_cache(db_get_env(db), 0);
+        else
+            db_set_extkey_cache(db, 0);
     }
 
     /* close the backend */
