@@ -35,6 +35,9 @@
  * an environment (and therefore don't have a name) */
 #define EMPTY_DATABASE_NAME       (0xf000)
 
+/* a reserved database name for the first database in an environment */
+#define FIRST_DATABASE_NAME       (0xf001)
+
 
 typedef struct free_cb_context_t
 {
@@ -584,13 +587,9 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
     if (!env || !db)
         return (HAM_INV_PARAMETER);
 
-    if (!name || name>=EMPTY_DATABASE_NAME)
+    if (!name)
         return (HAM_INV_PARAMETER);
-
-    /*
-     * flags aren't allowed
-     */
-    if (flags)
+    if (name!=FIRST_DATABASE_NAME && name>=EMPTY_DATABASE_NAME)
         return (HAM_INV_PARAMETER);
 
     /* 
@@ -705,6 +704,99 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
     env_set_cachesize(env, cachesize);
 
     return (HAM_SUCCESS);
+}
+
+ham_status_t
+ham_env_rename_db(ham_env_t *env, ham_u16_t oldname, 
+                ham_u16_t newname, ham_u32_t flags)
+{
+    ham_u16_t i, slot;
+    ham_u8_t *ptr;
+    ham_db_t *db;
+    ham_bool_t owner=HAM_FALSE;
+    ham_status_t st;
+
+    if (!env)
+        return (HAM_INV_PARAMETER);
+    if (!oldname || !newname || newname>=EMPTY_DATABASE_NAME)
+        return (HAM_INV_PARAMETER);
+
+    /*
+     * make sure that the environment was either created or opened, and 
+     * a valid device exists - TODO wrong error code!
+     */
+    if (!env_get_device(env))
+        return (HAM_INV_PARAMETER);
+
+    /*
+     * no need to do anything if oldname==newname
+     */
+    if (oldname==newname)
+        return (0);
+
+    /*
+     * !!
+     * we have to distinguish two cases: in the first case, we have a valid
+     * ham_db_t pointer, and can therefore access the header page.
+     *
+     * In the second case, no db was opened/created, and therefore we 
+     * have to temporarily fetch the header page
+     */
+    if (env_get_list(env)) {
+        db=env_get_list(env);
+    }
+    else {
+        owner=HAM_TRUE;
+        st=ham_new(&db);
+        if (st)
+            return (st);
+        st=ham_env_open_db(env, db, FIRST_DATABASE_NAME, 0, 0);
+        if (st) {
+            ham_delete(db);
+            return (st);
+        }
+    }
+
+    /*
+     * check if a database with the new name already exists; also search 
+     * for the database with the old name
+     */
+    slot=db_get_indexdata_size(db);
+    for (i=0; i<db_get_indexdata_size(db); i++) {
+        ham_u16_t name=ham_h2db16(*(ham_u16_t *)db_get_indexdata_at(db, i));
+        if (name==newname) {
+            if (owner) {
+                (void)ham_close(db);
+                (void)ham_delete(db);
+            }
+            return (HAM_DATABASE_ALREADY_EXISTS);
+        }
+        if (name==oldname)
+            slot=i;
+    }
+
+    if (slot==db_get_indexdata_size(db)) {
+        if (owner) {
+            (void)ham_close(db);
+            (void)ham_delete(db);
+        }
+        return (HAM_DATABASE_NOT_FOUND);
+    }
+
+    /*
+     * replace the database name with the new name
+     */
+    ptr=db_get_indexdata_at(db, slot);
+    *(ham_u16_t *)ptr=ham_db2h16(newname);
+
+    db_set_dirty(db, HAM_TRUE);
+    
+    if (owner) {
+        (void)ham_close(db);
+        (void)ham_delete(db);
+    }
+
+    return (0);
 }
 
 ham_status_t
@@ -987,7 +1079,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
      */
     for (i=0; i<db_get_indexdata_size(db); i++) {
         ham_u8_t *ptr=db_get_indexdata_at(db, i);
-        if (dbname==ham_h2db16(*(ham_u16_t *)ptr)) {
+        if (dbname==FIRST_DATABASE_NAME ||
+            dbname==ham_h2db16(*(ham_u16_t *)ptr)) {
             db_set_indexdata_offset(db, i);
             break;
         }
