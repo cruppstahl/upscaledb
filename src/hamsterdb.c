@@ -800,6 +800,51 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
 }
 
 ham_status_t
+ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
+{
+    ham_db_t *db;
+    ham_status_t st;
+
+    if (!env || !name)
+        return (HAM_INVALID_PARAMETER);
+
+    /*
+     * check if this database is still open
+     */
+    db=env_get_list(env);
+    while (db) {
+        ham_u16_t dbname=ham_h2db16(*(ham_u16_t *)db_get_indexdata(db));
+        if (dbname==name)
+            return (HAM_DATABASE_ALREADY_OPEN);
+        db=db_get_next(db);
+    }
+
+    /*
+     * temporarily load the database
+     */
+    st=ham_new(&db);
+    if (st)
+        return (st);
+    st=ham_env_open_db(env, db, name, 0, 0);
+    if (st)
+        return (st);
+
+    /*
+     * TODO TODO TODO
+     * delete all pages, blobs and extended keys, also from the cache and
+     * the extkey_cache
+     */
+
+    /*
+     * clean up and return
+     */
+    (void)ham_close(db);
+    (void)ham_delete(db);
+
+    return (0);
+}
+
+ham_status_t
 ham_env_close(ham_env_t *env)
 {
     if (!env)

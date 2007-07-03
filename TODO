@@ -151,9 +151,12 @@ o multiple files per database
 
 
     o implement ham_env_erase_db
-        o make sure that the database is not open
-        o move all pages (and blobs) to freelist
-            o inmemory: nothing, NOT_SUPPORTED
+        x make sure that the database is not open
+        x inmemory: function is not available (should be automatically
+            the case, because the database does not exist, if it's not
+            open)
+        o move all pages (and blobs, and extkeys) to the freelist
+            o how can we make sure that we're exhaustive??
     o write unittests
 
     o endian-tests!
@@ -184,4 +187,6 @@ o remove HAM_RELEASE (not needed, same as !HAM_DEBUG)
     o remove from README.TXT
 
 o release 0.4.4!
+
+o more tests and performance checks with very large files - around 10 GB
 

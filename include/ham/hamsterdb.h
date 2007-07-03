@@ -581,6 +581,28 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
                 ham_u16_t newname, ham_u32_t flags);
 
 /**
+ * Erases a database from an environment.
+ *
+ * @param env A valid environment handle.
+ * @param name The name of the database, which is deleted. If a database 
+ *          with this name does not exist, the function will fail with 
+ *          @a HAM_DATABASE_NOT_FOUND. If the database was already opened,
+ *          the function will fail with @a HAM_DATABASE_ALREADY_OPEN.
+ * @param flags Optional flags for renaming the database, combined with
+ *        bitwise OR. Unused, set to 0.
+ *
+ * @return @a HAM_SUCCESS upon success.
+ * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL or if
+ *              the new database name is reserved.
+ * @return @a HAM_DATABASE_NOT_FOUND if a database with this @a name
+ *              does not exists in this environment.
+ * @return @a HAM_DATABASE_ALREADY_OPEN if a database with this name is
+ *              still open.
+ */
+HAM_EXPORT ham_status_t
+ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
+
+/**
  * Closes the database environment.
  *
  * This function closes the database environment. It does not free the 
@@ -987,7 +1009,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
 #define HAM_OVERWRITE               1
 
 /**
- * Erases a database item
+ * Erases a database item.
  *
  * This function erases a database item. If the item @a key
  * does not exist, @a HAM_KEY_NOT_FOUND is returned.
