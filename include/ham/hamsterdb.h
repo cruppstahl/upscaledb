@@ -485,7 +485,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
         ham_u32_t flags, ham_parameter_t *param);
 
 /**
- * Creates a database in an database environment.
+ * Creates a new database in an database environment.
  *
  * @param env A valid environment handle.
  * @param env A valid database handle, which will point to the created
@@ -519,11 +519,12 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  *              invalid combination of flags was specified.
  * @return @a HAM_DATABASE_ALREADY_EXISTS if a database with this @a name
  *              already exists in this environment.
- *
+ * @return @a HAM_OUT_OF_MEMORY if memory could not be
+ *              allocated.
  */
 HAM_EXPORT ham_status_t
-ham_env_rename_db(ham_env_t *env, ham_u16_t oldname, 
-                ham_u16_t newname, ham_u32_t flags);
+ham_env_create_db(ham_env_t *env, ham_db_t *db,
+        ham_u16_t name, ham_u32_t flags, ham_parameter_t *params);
 
 /**
  * Opens a database in an database environment.
@@ -574,11 +575,10 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
  * @return @a HAM_DATABASE_ALREADY_EXISTS if a database with the new name
  *              already exists
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
- *
  */
 HAM_EXPORT ham_status_t
-ham_env_open_db(ham_env_t *env, ham_db_t *db,
-        ham_u16_t name, ham_u32_t flags, ham_parameter_t *params);
+ham_env_rename_db(ham_env_t *env, ham_u16_t oldname, 
+                ham_u16_t newname, ham_u32_t flags);
 
 /**
  * Closes the database environment.
