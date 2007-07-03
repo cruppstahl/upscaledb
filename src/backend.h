@@ -29,9 +29,12 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
 /** start of a new page; param1 points to the page */
 #define ENUM_EVENT_PAGE_START   2
 
+/** end of a new page; param1 points to the page */
+#define ENUM_EVENT_PAGE_STOP    3
+
 /** an item in the page; param1 points to the key; param2 is the index 
  * of the key in the page */
-#define ENUM_EVENT_ITEM         3
+#define ENUM_EVENT_ITEM         4
 
 /**
  * the backend structure - these functions and members are "inherited"

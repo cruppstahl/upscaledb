@@ -118,8 +118,6 @@ my_free_cb(int event, void *param1, void *param2, void *context)
 
     c=(free_cb_context_t *)context;
 
-    ham_assert(db_get_rt_flags(c->db)&HAM_IN_MEMORY_DB, (""));
-
     switch (event) {
     case ENUM_EVENT_DESCEND:
         break;
@@ -128,24 +126,31 @@ my_free_cb(int event, void *param1, void *param2, void *context)
         c->is_leaf=*(ham_bool_t *)param2;
         break;
 
+    case ENUM_EVENT_PAGE_STOP:
+        /*
+         * if this callback function is called from ham_env_erase_db:
+         * move the page to the freelist
+         */
+        if (!db_get_rt_flags(c->db)&HAM_IN_MEMORY_DB) {
+            ham_page_t *page=(ham_page_t *)param1;
+            (void)txn_free_page(db_get_txn(c->db), page);
+        }
+        break;
+
     case ENUM_EVENT_ITEM:
         key=(int_key_t *)param1;
 
         if (key_get_flags(key)&KEY_IS_EXTENDED) {
             ham_offset_t blobid=key_get_extended_rid(c->db, key);
-#if HAM_DEBUG
             /*
-             * only in debug-build: make sure that all extended keys are 
-             * deleted. in extkey_cache_destroy(), an assert makes sure
-             * that the cache is empty. 
-             *
-             * we need that to make sure that the cache doesn't overflow,
-             * because cached keys are never removed.
+             * delete the cached extended key
              */
             if (db_get_extkey_cache(c->db))
                 (void)extkey_cache_remove(db_get_extkey_cache(c->db), blobid);
-#endif
 
+            /*
+             * then delete the blob
+             */
             (void)blob_free(c->db, blobid, 0);
         }
 
@@ -154,8 +159,11 @@ my_free_cb(int event, void *param1, void *param2, void *context)
             key_get_flags(key)&KEY_BLOB_SIZE_EMPTY)
             break;
 
+        /*
+         * if we're in the leaf page, delete the blob
+         */
         if (c->is_leaf)
-             ham_mem_free(c->db, (void *)key_get_ptr(key));
+             (void)blob_free(c->db, key_get_ptr(key), 0);
         break;
 
     default:
@@ -804,16 +812,18 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
 {
     ham_db_t *db;
     ham_status_t st;
+    free_cb_context_t context;
+    ham_txn_t txn;
 
     if (!env || !name)
-        return (HAM_INVALID_PARAMETER);
+        return (HAM_INV_PARAMETER);
 
     /*
      * check if this database is still open
      */
     db=env_get_list(env);
     while (db) {
-        ham_u16_t dbname=ham_h2db16(*(ham_u16_t *)db_get_indexdata(db));
+        ham_u16_t dbname=ham_db2h16(*(ham_u16_t *)db_get_indexdata(db));
         if (dbname==name)
             return (HAM_DATABASE_ALREADY_OPEN);
         db=db_get_next(db);
@@ -830,10 +840,39 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
         return (st);
 
     /*
-     * TODO TODO TODO
-     * delete all pages, blobs and extended keys, also from the cache and
+     * delete all blobs and extended keys, also from the cache and
      * the extkey_cache
+     *
+     * also delete all pages and move them to the freelist; if they're 
+     * cached, delete them from the cache
      */
+    if ((st=ham_txn_begin(&txn, db))) {
+        (void)ham_close(db);
+        (void)ham_delete(db);
+        return (st);
+    }
+    context.db=db;
+    st=db_get_backend(db)->_fun_enumerate(db_get_backend(db), 
+            my_free_cb, &context);
+    if (st) {
+        (void)ham_txn_abort(&txn);
+        (void)ham_close(db);
+        (void)ham_delete(db);
+        return (st);
+    }
+
+    st=ham_txn_commit(&txn);
+    if (st) {
+        (void)ham_close(db);
+        (void)ham_delete(db);
+        return (st);
+    }
+
+    /*
+     * set database name to 0
+     */
+    *(ham_u16_t *)db_get_indexdata(db)=ham_h2db16(0);
+    db_set_dirty(db, HAM_TRUE);
 
     /*
      * clean up and return

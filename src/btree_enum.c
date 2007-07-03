@@ -134,6 +134,8 @@ my_enumerate_page(ham_page_t *page, ham_u32_t level, ham_u32_t sibcount,
         cb(ENUM_EVENT_ITEM, (void *)bte, (void *)&count, context);
     }
 
+    cb(ENUM_EVENT_PAGE_STOP, (void *)page, &is_leaf, context);
+
     return (0);
 }
 
