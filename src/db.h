@@ -588,9 +588,14 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags);
  * @remark will mark the page as deleted; the page will be deleted
  * when the transaction is committed (or not deleted if the transaction
  * is aborted).
+ *
+ * @remark valid flag: DB_MOVE_TO_FREELIST; marks the page as 'deleted'
+ * in the freelist. Ignored in in-memory databases.
  */
 extern ham_status_t
-db_free_page(ham_page_t *page);
+db_free_page(ham_page_t *page, ham_u32_t flags);
+
+#define DB_MOVE_TO_FREELIST         1
 
 /**
  * write a page, then delete the page from memory

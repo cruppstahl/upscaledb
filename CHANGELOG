@@ -1,3 +1,6 @@
+Jul 03, 2007 - chris
+o bugfix: deleted pages (with db_free_page()) were not moved to the
+    freelist, and zombie pages were created
 
 Jun 24, 2007 - chris
 o finished the port to Windows CE. Solution files are in the wince 

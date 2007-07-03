@@ -250,7 +250,7 @@ public:
         ham_page_t *page;
         CPPUNIT_ASSERT((page=db_alloc_page(m_db, 0, PAGE_IGNORE_FREELIST))!=0);
         CPPUNIT_ASSERT(page_get_owner(page)==m_db);
-        CPPUNIT_ASSERT(db_free_page(page)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(db_free_page(page, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
     }
 
@@ -261,8 +261,8 @@ public:
         CPPUNIT_ASSERT(page_get_owner(p1)==m_db);
         CPPUNIT_ASSERT((p2=db_fetch_page(m_db, page_get_self(p1), 0))!=0);
         CPPUNIT_ASSERT(page_get_self(p2)==page_get_self(p1));
-        CPPUNIT_ASSERT(db_free_page(p1)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(db_free_page(p2)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(db_free_page(p1, 0)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(db_free_page(p2, 0)==HAM_SUCCESS);
     }
 
     void flushPageTest(void)
@@ -283,7 +283,7 @@ public:
         page_set_dirty(page, 1);
         address=page_get_self(page);
         CPPUNIT_ASSERT(db_flush_page(m_db, page, 0)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(db_free_page(page)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(db_free_page(page, 0)==HAM_SUCCESS);
 
         CPPUNIT_ASSERT((page=db_fetch_page(m_db, address, 0))!=0);
         CPPUNIT_ASSERT(page_get_self(page)==address);
@@ -292,7 +292,7 @@ public:
         for (int i=0; i<16; i++)
             CPPUNIT_ASSERT(p[i]==(ham_u8_t)i);
         */
-        CPPUNIT_ASSERT(db_free_page(page)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(db_free_page(page, 0)==HAM_SUCCESS);
     }
 };
 

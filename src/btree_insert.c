@@ -610,7 +610,7 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
     oldkey.size=key_get_size(nbte);
     oldkey._flags=key_get_flags(nbte);
     if (!util_copy_key(db, &oldkey, &pivotkey)) {
-        (void)db_free_page(newpage);
+        (void)db_free_page(newpage, DB_MOVE_TO_FREELIST);
         return (db_get_error(db));
     }
     pivotrid=page_get_self(newpage);

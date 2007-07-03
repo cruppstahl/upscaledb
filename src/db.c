@@ -524,7 +524,7 @@ db_page_alloc(ham_db_t *db)
 }
 
 ham_status_t
-db_free_page(ham_page_t *page)
+db_free_page(ham_page_t *page, ham_u32_t flags)
 {
     ham_status_t st;
     ham_db_t *db=page_get_owner(page);
@@ -545,6 +545,7 @@ db_free_page(ham_page_t *page)
      * and/or free their blobs
      *
      * TODO move this to the backend!
+     * TODO not necessary, if we come from my_free_cb (hamsterdb)
      */
     if (page_get_pers(page) && 
 	    (!(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER)) &&
@@ -571,6 +572,7 @@ db_free_page(ham_page_t *page)
         }
     }
 
+#if 0
     /*
      * free the page; this will automatically flush the page, if 
      * it's dirty
@@ -579,7 +581,22 @@ db_free_page(ham_page_t *page)
     if (st)
         return (st);
 
-    page_delete(page);
+#endif
+    /*
+     * move the page to the freelist
+     */
+    if (flags&DB_MOVE_TO_FREELIST) {
+        if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB))
+            (void)freel_mark_free(db, page_get_self(page), db_get_pagesize(db));
+    }
+
+    /*
+     * free the page; since it's deleted, we don't need to flush it
+     */
+    page_set_dirty(page, HAM_FALSE);
+    (void)page_free(page);
+    (void)page_delete(page);
+
     return (HAM_SUCCESS);
 }
 

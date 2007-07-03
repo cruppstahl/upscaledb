@@ -117,7 +117,7 @@ ham_txn_commit(ham_txn_t *txn)
             /* remove page from cache, add it to garbage list */
             page_set_dirty(head, 0);
         
-            st=db_free_page(head);
+            st=db_free_page(head, DB_MOVE_TO_FREELIST);
             if (st)
                 return (st);
 
