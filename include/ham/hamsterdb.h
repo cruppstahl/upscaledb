@@ -519,12 +519,11 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  *              invalid combination of flags was specified.
  * @return @a HAM_DATABASE_ALREADY_EXISTS if a database with this @a name
  *              already exists in this environment.
- * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
  *
  */
 HAM_EXPORT ham_status_t
-ham_env_create_db(ham_env_t *env, ham_db_t *db,
-        ham_u16_t name, ham_u32_t flags, ham_parameter_t *params);
+ham_env_rename_db(ham_env_t *env, ham_u16_t oldname, 
+                ham_u16_t newname, ham_u32_t flags);
 
 /**
  * Opens a database in an database environment.
@@ -547,6 +546,33 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
  *              does not exists in this environment.
  * @return @a HAM_DATABASE_ALREADY_OPEN if this database was already
  *              opened
+ * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
+ *
+ */
+HAM_EXPORT ham_status_t
+ham_env_open_db(ham_env_t *env, ham_db_t *db,
+        ham_u16_t name, ham_u32_t flags, ham_parameter_t *params);
+
+/**
+ * Renames a database in an environment.
+ *
+ * @param env A valid environment handle.
+ * @param oldname The old name of the existing database. If a database 
+ *          with this name does not exist, the function will fail with 
+ *          @a HAM_DATABASE_NOT_FOUND.
+ * @param newname The new name of this database. If a database 
+ *          with this name already exists, the function will fail with 
+ *          @a HAM_DATABASE_ALREADY_EXISTS.
+ * @param flags Optional flags for renaming the database, combined with
+ *        bitwise OR. Unused, set to 0.
+ *
+ * @return @a HAM_SUCCESS upon success.
+ * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL or if
+ *              the new database name is reserved.
+ * @return @a HAM_DATABASE_NOT_FOUND if a database with this @a name
+ *              does not exists in this environment.
+ * @return @a HAM_DATABASE_ALREADY_EXISTS if a database with the new name
+ *              already exists
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
  *
  */
