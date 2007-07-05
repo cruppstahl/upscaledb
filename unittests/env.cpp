@@ -793,6 +793,7 @@ public:
         ham_record_t rec;
         ham_key_t key;
         char buffer[512];
+        ham_size_t free=0;
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
@@ -816,8 +817,14 @@ public:
             CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
+        freelist_t *fl=db_get_freelist(db[0]);
+        free=freel_get_used_bits(fl);
+printf("free bits BEFORE deleting: %u\n", free);
+
         for (i=0; i<MAX_DB; i++) {
             CPPUNIT_ASSERT_EQUAL(0, ham_env_erase_db(env, (ham_u16_t)i+1, 0));
+free=freel_get_used_bits(fl);
+printf("free bits AFTER deleting: %u\n", free);
         }
 
         for (i=0; i<10; i++) {
