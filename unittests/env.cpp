@@ -34,6 +34,7 @@ class EnvTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (renameClosedDatabases);
     CPPUNIT_TEST      (eraseOpenDatabases);
     CPPUNIT_TEST      (eraseUnknownDatabases);
+    CPPUNIT_TEST      (eraseMultipleDatabases);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -776,6 +777,52 @@ public:
             CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
                             ham_env_erase_db(env, (ham_u16_t)i+1000, 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void eraseMultipleDatabases(void)
+    {
+        int i, j;
+        const int MAX_DB=10;
+        const int MAX_ITEMS=300;
+        ham_env_t *env;
+        ham_db_t *db[MAX_DB];
+        ham_record_t rec;
+        ham_key_t key;
+        char buffer[512];
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+
+        for (i=0; i<MAX_DB; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+                        (ham_u16_t)i+1, 0, 0));
+            for (j=0; j<MAX_ITEMS; j++) {
+                memset(&key, 0, sizeof(key));
+                memset(&rec, 0, sizeof(rec));
+                sprintf(buffer, "%08x%08x", j, i+1);
+                key.data=buffer;
+                key.size=sizeof(buffer);
+                rec.data=buffer;
+                rec.size=sizeof(buffer);
+
+                CPPUNIT_ASSERT_EQUAL(0, ham_insert(db[i], 0, &key, &rec, 0));
+            }
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+        }
+
+        for (i=0; i<MAX_DB; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, ham_env_erase_db(env, (ham_u16_t)i+1, 0));
+        }
+
+        for (i=0; i<10; i++) {
+            CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
+                            ham_env_open_db(env, db[i], (ham_u16_t)i+1, 0, 0));
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
