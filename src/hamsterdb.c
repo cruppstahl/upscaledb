@@ -222,6 +222,8 @@ ham_strerror(ham_status_t result)
             return ("File not found");
         case HAM_WOULD_BLOCK:
             return ("Operation would block");
+        case HAM_NOT_READY:
+            return ("Object was not initialized correctly");
         case HAM_CURSOR_IS_NIL:
             return ("Cursor points to NIL");
         case HAM_ENV_NOT_EMPTY:
@@ -233,6 +235,8 @@ ham_strerror(ham_status_t result)
             return ("Database name already exists");
         case HAM_DATABASE_ALREADY_OPEN:
             return ("Database already open");
+        case HAM_ENV_FULL:
+            return ("Environment is full");
         default:
             return ("Unknown error");
     }
@@ -256,7 +260,7 @@ __prepare_db(ham_db_t *db)
 }
 
 static ham_status_t 
-__check_create_parameters(const char *filename, 
+__check_create_parameters(ham_bool_t is_env, const char *filename, 
         ham_u32_t *flags, ham_parameter_t *param, ham_size_t *ppagesize, 
         ham_u16_t *pkeysize, ham_size_t *pcachesize, ham_u16_t *pdbname)
 {
@@ -275,7 +279,10 @@ __check_create_parameters(const char *filename,
                 cachesize=(ham_size_t)param->value;
                 break;
             case HAM_PARAM_KEYSIZE:
-                keysize=(ham_u16_t)param->value;
+                if (is_env) /* calling from ham_env_create_ex? */
+                    return (HAM_INV_PARAMETER);
+                else
+                    keysize=(ham_u16_t)param->value;
                 break;
             case HAM_PARAM_PAGESIZE:
                 pagesize=(ham_u32_t)param->value;
@@ -474,7 +481,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     /*
      * check (and modify) the parameters
      */
-    st=__check_create_parameters(filename, &flags, param, 
+    st=__check_create_parameters(HAM_TRUE, filename, &flags, param, 
             &pagesize, &keysize, &cachesize, 0);
     if (st)
         return (st);
@@ -731,10 +738,10 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
 
     /*
      * make sure that the environment was either created or opened, and 
-     * a valid device exists - TODO wrong error code!
+     * a valid device exists
      */
     if (!env_get_device(env))
-        return (HAM_INV_PARAMETER);
+        return (HAM_NOT_READY);
 
     /*
      * no need to do anything if oldname==newname
@@ -843,8 +850,10 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     if (st)
         return (st);
     st=ham_env_open_db(env, db, name, 0, 0);
-    if (st)
+    if (st) {
+        (void)ham_delete(db);
         return (st);
+    }
 
     /*
      * delete all blobs and extended keys, also from the cache and
@@ -1279,7 +1288,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     /*
      * check (and modify) the parameters
      */
-    st=__check_create_parameters(filename, &flags, param, 
+    st=__check_create_parameters(HAM_FALSE, filename, &flags, param, 
             &pagesize, &keysize, &cachesize, &dbname);
     if (st)
         return (db_set_error(db, st));

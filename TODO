@@ -149,47 +149,49 @@ o multiple files per database
     x db_free_page doesn't move the page to the freelist!!
         -> README/BUGFIX 
 
-
-
-
-
-    o implement ham_env_erase_db
+    x implement ham_env_erase_db
         x make sure that the database is not open
         x inmemory: function is not available (should be automatically
             the case, because the database does not exist, if it's not
             open)
         x move all pages (and blobs, and extkeys) to the freelist
-            o how can we make sure that we're exhaustive??
-    o write unittests
+    x write unittests
+
+    x cleanups:
+        x ham_env_open_db: make sure that a database is opened only once!
+        x ham_env_create_ex accepts the keysize, but it's a "per database"
+            parameter
+        x ham_env_create_db must accept keysize (and actually use it!)
+        x ham_open kann laut doku DISABLE_VARLEN_KEYS - fehlt in 
+            ham_env_open_db!
+        x fix TODOs
+
+
+
+
+    o write a new sample (structure with primary and secondary index)
+    o update the tutorial
 
     o endian-tests!
         -> as part of the unittest - create database, check in to svn, 
             open, read/write, close etc
 
-    o cleanups:
-        o ham_env_create_ex accepts the keysize, but it's a "per database"
-            parameter
-        o ham_env_close sollte AUTOFLUSH können, sonst fehler wenn
-            datenbanken noch offen sind
-        o make sure that only valid flags in ham_env_open_db and
-            ham_env_create_db are accepted!
-        o ham_env_open_db: make sure that a database is opened only once!
-        o ham_open kann laut doku DISABLE_VARLEN_KEYS - fehlt in 
-            ham_env_open_db!
-        o fix TODOs
-
-    o write a new sample (structure with primary and secondary index)
-    o update the tutorial
+x freelist-unittest: check if freelist pages are marked as dirty
 
 o unittest crashes in cygwin
-
-o completely automate the release-process for the tar-ball
 
 o remove HAM_RELEASE (not needed, same as !HAM_DEBUG)
     o remove from sln files
     o remove from README.TXT
 
+o make sure that the process memory consumption doesn't grow
+    (endless loop with extended keys!)
+o make sure that extkey_cache is empty when closing the database
+    (especially for in-memory databases)
+
 o release 0.4.4!
+
+o completely automate the release-process for the tar-ball
 
 o more tests and performance checks with very large files - around 10 GB
 

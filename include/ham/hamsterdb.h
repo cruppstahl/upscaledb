@@ -214,6 +214,8 @@ typedef struct {
 #define HAM_FILE_NOT_FOUND           (-21)
 /** Operation would block */
 #define HAM_WOULD_BLOCK              (-22)
+/** Object was not initialized correctly */
+#define HAM_NOT_READY                (-23)
 /** Cursor does not point to a valid database item */
 #define HAM_CURSOR_IS_NIL           (-100)
 /** Not all databases were closed before closing the environment */
@@ -224,6 +226,8 @@ typedef struct {
 #define HAM_DATABASE_ALREADY_EXISTS (-202)
 /** Database already open */
 #define HAM_DATABASE_ALREADY_OPEN   (-203)
+/** Environment is full */
+#define HAM_ENV_FULL                (-204)
 
 /**
  * @}
@@ -385,13 +389,11 @@ ham_env_create(ham_env_t *env, const char *filename,
  *            bytes. It is recommended not to change the default size. The
  *            default size depends on your hardware and operating system.
  *            Page sizes must be a multiple of 1024.
- *        <li>HAM_PARAM_KEYSIZE</li> The size of the keys in the B+Tree
- *            index. The default size is 21 bytes.
  *      </ul>
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL or an
- *              invalid combination of flags was specified.
+ *              invalid combination of flags or parameters was specified.
  * @return @a HAM_IO_ERROR if the file could not be opened or
  *              reading/writing failed.
  * @return @a HAM_INV_FILE_VERSION if the environment version is not
@@ -521,6 +523,8 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  *              already exists in this environment.
  * @return @a HAM_OUT_OF_MEMORY if memory could not be
  *              allocated.
+ * @return @a HAM_ENV_FULL if the maximum number of databases per 
+ *              environment was already created
  */
 HAM_EXPORT ham_status_t
 ham_env_create_db(ham_env_t *env, ham_db_t *db,
@@ -536,7 +540,12 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
  *          does not exist, the function will fail with 
  *          @a HAM_DATABASE_NOT_FOUND.
  * @param flags Optional flags for opening the database, combined with
- *        bitwise OR. Unused, set to 0.
+ *        bitwise OR. Possible flags are:
+ *     <ul>
+ *       <li>@a HAM_DISABLE_VAR_KEYLEN</li> Do not allow the use of variable
+ *            length keys. Inserting a key, which is larger than the
+ *            B+Tree index key size, returns @a HAM_INV_KEYSIZE.
+ *     </ul>
  * @param param An array of ham_parameter_t structures. Unused, set 
  *        to NULL.
  *
@@ -575,6 +584,8 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
  * @return @a HAM_DATABASE_ALREADY_EXISTS if a database with the new name
  *              already exists
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
+ * @return @a HAM_NOT_READY if the environment @env was not initialized
+ *              correctly (i.e. not yet opened or created)
  */
 HAM_EXPORT ham_status_t
 ham_env_rename_db(ham_env_t *env, ham_u16_t oldname, 
