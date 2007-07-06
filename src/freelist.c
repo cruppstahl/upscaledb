@@ -108,7 +108,8 @@ __freel_alloc_page(ham_db_t *db, ham_offset_t start_address)
 
     db_set_txn(db, db_get_freelist_txn(db));
 
-    page=db_alloc_page(db, PAGE_TYPE_FREELIST, PAGE_IGNORE_FREELIST);
+    page=db_alloc_page(db, PAGE_TYPE_FREELIST, 
+            PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
     if (!page) {
         db_set_txn(db, old_txn);
         return (0);
@@ -122,7 +123,9 @@ __freel_alloc_page(ham_db_t *db, ham_offset_t start_address)
         return (0);
     }
 
+    page_set_dirty(page, HAM_TRUE);
     db_set_txn(db, old_txn);
+
     return (page);
 }
 
@@ -216,7 +219,7 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size)
 {
     freelist_t *fl;
     ham_offset_t end;
-    ham_page_t *page;
+    ham_page_t *page=0;
 
     ham_assert(size%DB_CHUNKSIZE==0, (0));
     ham_assert(address%DB_CHUNKSIZE==0, (0));
@@ -232,8 +235,12 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size)
                 freel_set_used_bits(fl, 
                         freel_get_used_bits(fl)+size/DB_CHUNKSIZE);
                 __freel_set_bits(fl, 
-                        (ham_size_t)(address-freel_get_start_address(fl))/DB_CHUNKSIZE,
-                        size/DB_CHUNKSIZE, HAM_TRUE);
+                        (ham_size_t)(address-freel_get_start_address(fl))/
+                            DB_CHUNKSIZE, size/DB_CHUNKSIZE, HAM_TRUE);
+                if (page)
+                    page_set_dirty(page, HAM_TRUE);
+                else
+                    db_set_dirty(db, HAM_TRUE);
                 break;
             }
             else {
@@ -241,21 +248,28 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size)
                 freel_set_used_bits(fl, 
                         freel_get_used_bits(fl)+s/DB_CHUNKSIZE);
                 __freel_set_bits(fl, 
-                        (ham_size_t)(address-freel_get_start_address(fl))/DB_CHUNKSIZE,
-                        s/DB_CHUNKSIZE, HAM_TRUE);
+                        (ham_size_t)(address-freel_get_start_address(fl))/
+                            DB_CHUNKSIZE, s/DB_CHUNKSIZE, HAM_TRUE);
                 address+=s;
                 size-=s;
+                if (page)
+                    page_set_dirty(page, HAM_TRUE);
+                else
+                    db_set_dirty(db, HAM_TRUE);
                 /* fall through */
             }
         }
 
         if (!freel_get_overflow(fl)) {
+            if (!page)
+                db_set_dirty(db, HAM_TRUE);
             page=__freel_alloc_page(db, end);
             if (!page) 
                 return (db_get_error(db));
 
             freel_set_overflow(fl, page_get_self(page));
             fl=page_get_freelist(page);
+            ham_assert(freel_get_overflow(fl)!=page_get_self(page), (""));
         }
         else {
             page=__freel_fetch_page(db, freel_get_overflow(fl));

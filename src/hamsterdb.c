@@ -613,8 +613,8 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
     while (head) {
         ham_u8_t *ptr=db_get_indexdata(head);
         if (ham_db2h16(*(ham_u16_t *)ptr)==name)
-            return HAM_DATABASE_ALREADY_OPEN;
-        head=db_get_next(db);
+            return (HAM_DATABASE_ALREADY_OPEN);
+        head=db_get_next(head);
     }
 
     /*
@@ -828,6 +828,13 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
             return (HAM_DATABASE_ALREADY_OPEN);
         db=db_get_next(db);
     }
+
+    /*
+     * if it's an in-memory environment: no need to go on, if the 
+     * database was closed, it does no longer exist
+     */
+    if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
+        return (HAM_DATABASE_NOT_FOUND);
 
     /*
      * temporarily load the database
