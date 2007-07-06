@@ -28,6 +28,7 @@ class EnvTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (openWithKeysizeTest);
     CPPUNIT_TEST      (createWithKeysizeTest);
     CPPUNIT_TEST      (createDbWithKeysizeTest);
+    CPPUNIT_TEST      (disableVarkeyTests);
     CPPUNIT_TEST      (multiDbTest);
     CPPUNIT_TEST      (multiDbTest2);
     CPPUNIT_TEST      (multiDbInsertFindTest);
@@ -225,6 +226,48 @@ public:
                 ham_env_create_db(env, db, 333, 0, parameters2));
         CPPUNIT_ASSERT_EQUAL((ham_u16_t)64, db_get_keysize(db));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void disableVarkeyTests(void)
+    {
+        ham_env_t *env;
+        ham_db_t *db;
+        ham_key_t key;
+        ham_record_t rec;
+
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+        key.data=(void *)
+            "19823918723018702931780293710982730918723091872309187230918";
+        key.size=strlen((char *)key.data);
+        rec.data=(void *)
+            "19823918723018702931780293710982730918723091872309187230918";
+        rec.size=strlen((char *)rec.data);
+
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0644));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create_db(env, db, 333, HAM_DISABLE_VAR_KEYLEN, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
+                ham_insert(db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+
+        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_env_open_db(env, db, 333, HAM_DISABLE_VAR_KEYLEN, 0));
+            CPPUNIT_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
+                    ham_insert(db, 0, &key, &rec, 0));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        }
+
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
@@ -917,6 +960,7 @@ class InMemoryEnvTest : public EnvTest
     CPPUNIT_TEST      (openWithKeysizeTest);
     CPPUNIT_TEST      (createWithKeysizeTest);
     CPPUNIT_TEST      (createDbWithKeysizeTest);
+    CPPUNIT_TEST      (disableVarkeyTests);
     CPPUNIT_TEST      (memoryDbTest);
     CPPUNIT_TEST      (multiDbInsertFindTest);
     CPPUNIT_TEST      (multiDbInsertFindExtendedTest);
