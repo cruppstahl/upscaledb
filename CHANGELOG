@@ -1,3 +1,7 @@
+Jul 06, 2007 - chris
+o bugfix: freelist pages were not marked as dirty, and therefore 
+    sometimes weren't written to disk
+
 Jul 03, 2007 - chris
 o bugfix: deleted pages (with db_free_page()) were not moved to the
     freelist, and zombie pages were created
