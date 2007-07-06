@@ -33,11 +33,9 @@
 /*
  * check for a valid build
  */
-#if (!defined(HAM_DEBUG) && !defined(HAM_RELEASE))
+#if (!defined(HAM_DEBUG))
 #   if (defined(_DEBUG) || defined(DEBUG))
 #       define HAM_DEBUG 1
-#   else
-#       define HAM_RELEASE 1
 #   endif
 #endif
 

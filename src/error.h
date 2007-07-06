@@ -47,7 +47,7 @@ extern void dbg_verify_failed(const char *format, ...);
                                 dbg_verify_failed f;                   \
                                 dbg_unlock();                          \
                              }
-#else /* HAM_RELEASE */
+#else /* !HAM_DEBUG */
 #   define ham_trace(f)      
 #   define ham_assert(e, f)     
 #endif /* HAM_DEBUG */
