@@ -107,6 +107,7 @@ public:
         }
 
         CPPUNIT_ASSERT(0==freel_alloc_area(m_db, 64));
+        CPPUNIT_ASSERT(db_is_dirty(m_db));
     }
 
     void markAllocHighOffsetTest(void)
@@ -122,6 +123,7 @@ public:
         }
 
         CPPUNIT_ASSERT(0==freel_alloc_area(m_db, 64));
+        CPPUNIT_ASSERT(db_is_dirty(m_db));
     }
 
     void markAllocRangeTest(void)
@@ -142,6 +144,7 @@ public:
         }
 
         CPPUNIT_ASSERT(0==freel_alloc_area(m_db, 64));
+        CPPUNIT_ASSERT(db_is_dirty(m_db));
     }
 
         /* TODO füllen, ham_close; ham_open, alloc */
@@ -158,6 +161,7 @@ public:
         CPPUNIT_ASSERT(freel_mark_free(m_db, o*2, DB_CHUNKSIZE)==HAM_SUCCESS);
         CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==o*2); 
         CPPUNIT_ASSERT(freel_alloc_area(m_db, 64)==0);
+        CPPUNIT_ASSERT(db_is_dirty(m_db));
     }
 
     void markAllocOverflow2Test(void)
@@ -172,6 +176,7 @@ public:
         CPPUNIT_ASSERT(freel_mark_free(m_db, 10*o, DB_CHUNKSIZE)==HAM_SUCCESS);
         CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==10*o); 
         CPPUNIT_ASSERT(freel_alloc_area(m_db, 64)==0);
+        CPPUNIT_ASSERT(db_is_dirty(m_db));
     }
 
     void markAllocOverflow3Test(void)

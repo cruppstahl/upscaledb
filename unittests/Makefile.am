@@ -27,6 +27,7 @@ test_SOURCES    = env.cpp \
                   txn.cpp \
                   memtracker.cpp
 
+test_SOURCES    = env.cpp main.cpp
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la \
 				  -lcppunit -ldl
 

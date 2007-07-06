@@ -25,6 +25,9 @@ class EnvTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (createCloseTest);
     CPPUNIT_TEST      (createCloseOpenCloseTest);
     CPPUNIT_TEST      (openFailCloseTest);
+    CPPUNIT_TEST      (openWithKeysizeTest);
+    CPPUNIT_TEST      (createWithKeysizeTest);
+    CPPUNIT_TEST      (createDbWithKeysizeTest);
     CPPUNIT_TEST      (multiDbTest);
     CPPUNIT_TEST      (multiDbTest2);
     CPPUNIT_TEST      (multiDbInsertFindTest);
@@ -156,6 +159,75 @@ public:
                 ham_env_open(env, "xxxxxx...", 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
 
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void openWithKeysizeTest(void)
+    {
+        ham_env_t *env;
+        ham_parameter_t parameters[]={
+           { HAM_PARAM_KEYSIZE,      (ham_u64_t)20 },
+           { 0, 0ull }
+        };
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_open_ex(env, ".test", m_flags, &parameters[0]));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void createWithKeysizeTest(void)
+    {
+        ham_env_t *env;
+        ham_parameter_t parameters[]={
+           { HAM_PARAM_CACHESIZE,  (ham_u64_t)1024 },
+           { HAM_PARAM_PAGESIZE, (ham_u64_t)1024*4 },
+           { HAM_PARAM_KEYSIZE,      (ham_u64_t)20 },
+           { 0, 0ull }
+        };
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_create_ex(env, ".test", m_flags, 0644, &parameters[0]));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void createDbWithKeysizeTest(void)
+    {
+        ham_env_t *env;
+        ham_db_t *db;
+        ham_parameter_t parameters[]={
+           { HAM_PARAM_CACHESIZE,  (ham_u64_t)1024 },
+           { HAM_PARAM_PAGESIZE, (ham_u64_t)1024*4 },
+           { HAM_PARAM_KEYSIZE,      (ham_u64_t)20 },
+           { 0, 0ull }
+        };
+
+        ham_parameter_t parameters2[]={
+           { HAM_PARAM_KEYSIZE,      (ham_u64_t)64 },
+           { 0, 0ull }
+        };
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0644));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_env_create_db(env, db, 333, 0, parameters));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create_db(env, db, 333, 0, parameters2));
+        CPPUNIT_ASSERT_EQUAL((ham_u16_t)64, db_get_keysize(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
@@ -842,6 +914,9 @@ class InMemoryEnvTest : public EnvTest
 {
     CPPUNIT_TEST_SUITE(InMemoryEnvTest);
     CPPUNIT_TEST      (createCloseTest);
+    CPPUNIT_TEST      (openWithKeysizeTest);
+    CPPUNIT_TEST      (createWithKeysizeTest);
+    CPPUNIT_TEST      (createDbWithKeysizeTest);
     CPPUNIT_TEST      (memoryDbTest);
     CPPUNIT_TEST      (multiDbInsertFindTest);
     CPPUNIT_TEST      (multiDbInsertFindExtendedTest);
