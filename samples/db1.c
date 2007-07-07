@@ -24,8 +24,10 @@ error(const char *foo, ham_status_t st)
 	wchar_t title[1024];
 	wchar_t text[1024];
 
-	MultiByteToWideChar(CP_ACP, 0, foo, -1, title, sizeof(title)/sizeof(wchar_t));
-	MultiByteToWideChar(CP_ACP, 0, ham_strerror(st), -1, text, sizeof(text)/sizeof(wchar_t));
+	MultiByteToWideChar(CP_ACP, 0, foo, -1, title, 
+            sizeof(title)/sizeof(wchar_t));
+	MultiByteToWideChar(CP_ACP, 0, ham_strerror(st), -1, text, 
+            sizeof(text)/sizeof(wchar_t));
 
 	MessageBox(0, title, text, 0);
 #endif
