@@ -288,7 +288,7 @@ freel_alloc_area(ham_db_t *db, ham_size_t size)
 {
     ham_s32_t s;
     freelist_t *fl;
-    ham_page_t *page;
+    ham_page_t *page=0;
 
     ham_assert(size%DB_CHUNKSIZE==0, (0));
 
@@ -299,6 +299,10 @@ freel_alloc_area(ham_db_t *db, ham_size_t size)
             s=__freel_search_bits(fl, size/DB_CHUNKSIZE);
             if (s!=-1) {
                 __freel_set_bits(fl, s, size/DB_CHUNKSIZE, HAM_FALSE);
+                if (page)
+                    page_set_dirty(page, HAM_TRUE);
+                else
+                    db_set_dirty(db, HAM_TRUE);
                 break;
             }
         }
@@ -323,7 +327,7 @@ freel_alloc_page(ham_db_t *db)
 {
     ham_s32_t s;
     freelist_t *fl;
-    ham_page_t *page;
+    ham_page_t *page=0;
     ham_size_t size=db_get_pagesize(db);
 
     fl=db_get_freelist(db);
@@ -333,6 +337,10 @@ freel_alloc_page(ham_db_t *db)
             s=__freel_search_aligned_bits(db, fl, size/DB_CHUNKSIZE);
             if (s!=-1) {
                 __freel_set_bits(fl, s, size/DB_CHUNKSIZE, HAM_FALSE);
+                if (page)
+                    page_set_dirty(page, HAM_TRUE);
+                else
+                    db_set_dirty(db, HAM_TRUE);
                 break;
             }
         }
