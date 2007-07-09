@@ -46,8 +46,27 @@ x write more unittests
 x port to Windows CE
     -> README/NEW FEATURE
 
+x remove HAM_RELEASE (not needed, same as !HAM_DEBUG)
+
+x freelist-unittest: check if freelist pages are marked as dirty
+
+x bugfix: freelist-pages were not marked 'dirty' and therefore not
+    written to disk 
+    -> README/BUGFIX
+
+x make sure that the process memory consumption doesn't grow
+    (endless loop with extended keys!) -> grows!!!!!
+    x make sure that extkey_cache is empty when closing the database
+        (especially for in-memory databases)
+    x extkey_cache must not leak
+    x all pages allocated by the freelist are never flushed and therefore
+        the freelist's memory consumption grows and grows...
+    -> README/BUGFIX
+    x HAM_DISABLE_FREELIST_FLUSH is currently ignored
+    -> README/BUGFIX
+
 o multiple files per database
-    -> README/NEW FEATURE (BIG!)
+    -> README/NEW FEATURE
     x define the ham_parameter_t lists
     -> README/API CHANGE
     x rewrite ham_open_ex and ham_create_ex
@@ -166,32 +185,41 @@ o multiple files per database
             ham_env_open_db!
         x fix TODOs
 
+    x write a new sample (structure with primary and secondary index)
+    -> README
 
 
 
-    o write a new sample (structure with primary and secondary index)
+
     o update the tutorial
+    -> README
 
     o endian-tests!
         -> as part of the unittest - create database, check in to svn, 
             open, read/write, close etc
 
-x freelist-unittest: check if freelist pages are marked as dirty
+    o acceptance-tests! create an environment with 5 databases, 
+        all databases do the same operations
+
+x header file change: internal key size is u16, external key size is size_t
+    -> README
 
 o unittest crashes in cygwin
 
-o remove HAM_RELEASE (not needed, same as !HAM_DEBUG)
-    o remove from sln files
-    o remove from README.TXT
+o port the new sample to CE
 
-o make sure that the process memory consumption doesn't grow
-    (endless loop with extended keys!)
-o make sure that extkey_cache is empty when closing the database
-    (especially for in-memory databases)
+o update samples on hamsterdb.com
 
 o release 0.4.4!
+
+------------------------------------------------------------------------------
 
 o completely automate the release-process for the tar-ball
 
 o more tests and performance checks with very large files - around 10 GB
+
+o freelist speed-up: keep lookaside-list of freelist pages (which freelist
+    page starts at address xxxx?) to speed up the whole process
+
+o new unittest: insert extended keys with 0xffff byte size, search for it
 
