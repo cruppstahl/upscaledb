@@ -116,7 +116,7 @@ typedef struct
 typedef struct
 {
     /** The size of the key, in bytes */
-    ham_size_t size;
+    ham_u16_t size;
 
     /** The data of the key */
     void *data;
