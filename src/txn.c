@@ -87,7 +87,7 @@ ham_txn_begin(ham_txn_t *txn, ham_db_t *db)
 }
 
 ham_status_t
-ham_txn_commit(ham_txn_t *txn)
+ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
 {
     ham_status_t st;
     ham_page_t *head, *next;
@@ -125,7 +125,8 @@ ham_txn_commit(ham_txn_t *txn)
         }
 
         /* flush the page */
-        st=db_flush_page(db, head, 0);
+        st=db_flush_page(db, head, 
+                flags&TXN_FORCE_WRITE ? HAM_WRITE_THROUGH : 0);
         if (st) {
             ham_trace(("commit failed with status 0x%x", st));
             txn_set_pagelist(txn, head);

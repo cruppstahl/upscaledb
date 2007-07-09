@@ -72,6 +72,10 @@ key_insert_extended(ham_db_t *db, ham_page_t *page,
         return (0);
     }
 
+    if (db_get_extkey_cache(db)) 
+        (void)extkey_cache_insert(db_get_extkey_cache(db), blobid, 
+                key->size, key->data);
+
     return (blobid);
 }
 

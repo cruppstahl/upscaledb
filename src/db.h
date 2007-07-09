@@ -213,9 +213,6 @@ struct ham_db_t
     /* the cache */
     ham_cache_t *_cache;
 
-    /* the private txn object used by the freelist */
-    ham_txn_t *_freel_txn;
-
     /* the size of the last allocated data pointer for records */
     ham_size_t _rec_allocsize;
 
@@ -342,19 +339,6 @@ struct ham_db_t
  */
 #define db_set_cache(db, c)            ham_assert(db_get_env(db)==0, (""));   \
                                        (db)->_cache=c
-
-/*
- * get the freelist's txn
- */
-#define db_get_freelist_txn(db)        (db_get_env(db)                        \
-                                       ? env_get_freelist_txn(db_get_env(db)) \
-                                       : (db)->_freel_txn)
-
-/*
- * set the freelist's txn - not allowed in an environment
- */
-#define db_set_freelist_txn(db, t)     ham_assert(db_get_env(db)==0, (""));   \
-                                       (db)->_freel_txn=t
 
 /*
  * get the prefix comparison function

@@ -760,7 +760,8 @@ db_flush_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
     ham_status_t st;
 
     /* write the page, if it's dirty and if write-through is enabled */
-    if ((db_get_rt_flags(db)&HAM_WRITE_THROUGH) && page_is_dirty(page)) {
+    if ((db_get_rt_flags(db)&HAM_WRITE_THROUGH || flags&HAM_WRITE_THROUGH) && 
+        page_is_dirty(page)) {
         st=page_flush(page);
         if (st)
             return (st);

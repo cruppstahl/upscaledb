@@ -37,9 +37,6 @@ struct ham_env_t
     /* the memory allocator */
     mem_allocator_t *_alloc;
 
-    /* the private txn object used by the freelist */
-    ham_txn_t *_freel_txn;
-
     /* the file header page */
     ham_page_t *_hdrpage;
 
@@ -104,16 +101,6 @@ struct ham_env_t
  * set the cache pointer
  */
 #define env_set_cache(env, c)            (env)->_cache=c
-
-/*
- * get the freelist's txn
- */
-#define env_get_freelist_txn(env)        (env)->_freel_txn
-
-/*
- * set the freelist's txn
- */
-#define env_set_freelist_txn(env, txn)   (env)->_freel_txn=txn
 
 /*
  * get the header page

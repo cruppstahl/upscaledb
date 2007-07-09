@@ -91,16 +91,14 @@ ham_txn_begin(ham_txn_t *txn, ham_db_t *db);
 
 /**
  * commit a transaction
- *
- * @remark flags are undefined, set to zero
  */
 extern ham_status_t
-ham_txn_commit(ham_txn_t *txn);
+ham_txn_commit(ham_txn_t *txn, ham_u32_t flags);
+
+#define TXN_FORCE_WRITE         1
 
 /**
  * abort a transaction
- *
- * @remark flags are undefined, set to zero
  */
 extern ham_status_t
 ham_txn_abort(ham_txn_t *txn);

@@ -14,6 +14,7 @@
 #include "cache.h"
 
 #define EXTKEY_CACHE_BUCKETSIZE         251
+#define EXTKEY_MAX_AGE                    5
 
 extkey_cache_t *
 extkey_cache_new(ham_db_t *db)
@@ -21,7 +22,7 @@ extkey_cache_new(ham_db_t *db)
     extkey_cache_t *c;
     int memsize;
 
-    memsize=sizeof(extkey_cache_t)+(EXTKEY_CACHE_BUCKETSIZE-1)*sizeof(void *);
+    memsize=sizeof(extkey_cache_t)+EXTKEY_CACHE_BUCKETSIZE*sizeof(void *);
     c=(extkey_cache_t *)ham_mem_alloc(db, memsize);
     if (!c) {
         db_set_error(db, HAM_OUT_OF_MEMORY);
@@ -69,7 +70,7 @@ extkey_cache_destroy(extkey_cache_t *cache)
 #define my_calc_hash(cache, o)                                              \
     (extkey_cache_get_bucketsize(cache)==0                                  \
         ? 0                                                                 \
-        : (((o)&(cache_get_bucketsize(cache)-1))))
+        : (((o)%(cache_get_bucketsize(cache)))))
 
 ham_status_t
 extkey_cache_insert(extkey_cache_t *cache, ham_offset_t blobid, 
@@ -169,14 +170,14 @@ extkey_cache_purge(extkey_cache_t *cache)
 
     /*
      * delete all entries which are "too old" (were not 
-     * used in the last 5 transactions)
+     * used in the last EXTKEY_MAX_AGE transactions)
      */
     for (i=0; i<extkey_cache_get_bucketsize(cache); i++) {
         extkey_t *p=0;
         e=extkey_cache_get_bucket(cache, i);
         while (e) {
             n=extkey_get_next(e);
-            if (db_get_txn_id(db)-extkey_get_txn_id(e)>5) {
+            if (db_get_txn_id(db)-extkey_get_txn_id(e)>EXTKEY_MAX_AGE) {
                 /* deleted the head element of the list? */
                 if (!p)
                     extkey_cache_set_bucket(cache, i, n);

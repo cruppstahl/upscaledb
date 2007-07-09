@@ -255,8 +255,6 @@ __prepare_db(ham_db_t *db)
         extkey_cache_set_db(env_get_extkey_cache(env), db);
     if (env_get_txn(env))
         txn_set_db(env_get_txn(env), db);
-    if (env_get_freelist_txn(env))
-        txn_set_db(env_get_freelist_txn(env), db);
 }
 
 static ham_status_t 
@@ -877,7 +875,7 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
         return (st);
     }
 
-    st=ham_txn_commit(&txn);
+    st=ham_txn_commit(&txn, 0);
     if (st) {
         (void)ham_close(db);
         (void)ham_delete(db);
@@ -921,7 +919,7 @@ ham_env_close(ham_env_t *env)
         if (page_get_pers(page))
             (void)device->free_page(device, page);
         allocator_free(env_get_allocator(env), page);
-        env_set_header_page(env, page);
+        env_set_header_page(env, 0);
     }
 
     /* 
@@ -1560,7 +1558,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
         return (st);
     }
 
-    return (ham_txn_commit(&txn));
+    return (ham_txn_commit(&txn, 0));
 }
 
 ham_status_t
@@ -1602,11 +1600,11 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
 #if 0
         (void)ham_txn_abort(&txn);
 #endif
-        (void)ham_txn_commit(&txn);
+        (void)ham_txn_commit(&txn, 0);
         return (st);
     }
 
-    return (ham_txn_commit(&txn));
+    return (ham_txn_commit(&txn, 0));
 }
 
 ham_status_t
@@ -1649,11 +1647,11 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
 #if 0
         (void)ham_txn_abort(&txn);
 #endif
-        (void)ham_txn_commit(&txn);
+        (void)ham_txn_commit(&txn, 0);
         return (st);
     }
 
-    return (ham_txn_commit(&txn));
+    return (ham_txn_commit(&txn, 0));
 }
 
 ham_status_t
@@ -1688,7 +1686,7 @@ ham_dump(ham_db_t *db, void *reserved, ham_dump_cb_t cb)
         return (st);
     }
 
-    return (ham_txn_commit(&txn));
+    return (ham_txn_commit(&txn, 0));
 #else /* !HAM_ENABLE_INTERNAL */
     return (HAM_NOT_IMPLEMENTED);
 #endif
@@ -1733,7 +1731,7 @@ ham_check_integrity(ham_db_t *db, void *reserved)
         return (st);
     }
 
-    return (ham_txn_commit(&txn));
+    return (ham_txn_commit(&txn, 0));
 #else /* !HAM_ENABLE_INTERNAL */
     return (HAM_NOT_IMPLEMENTED);
 #endif
@@ -1837,7 +1835,7 @@ ham_close(ham_db_t *db)
         context.db=db;
         if (!ham_txn_begin(&txn, db)) {
             (void)be->_fun_enumerate(be, my_free_cb, &context);
-            (void)ham_txn_commit(&txn);
+            (void)ham_txn_commit(&txn, 0);
         }
     }
 
@@ -2133,7 +2131,7 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         return (st);
     }
 
-    return (ham_txn_commit(&txn));
+    return (ham_txn_commit(&txn, 0));
 }
 
 ham_status_t

@@ -330,7 +330,7 @@ bt_cursor_couple(ham_bt_cursor_t *c)
         ham_mem_free(db, key.data);
 
     if (local_txn)
-        return (ham_txn_commit(&txn));
+        return (ham_txn_commit(&txn, 0));
 
     return (0);
 }
@@ -399,7 +399,7 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
     bt_cursor_set_uncoupled_key(c, key);
 
     if (local_txn)
-        return (ham_txn_commit(&txn));
+        return (ham_txn_commit(&txn, 0));
 
     return (0);
 }
@@ -494,7 +494,7 @@ bt_cursor_clone(ham_bt_cursor_t *oldcu, ham_bt_cursor_t **newcu)
     *newcu=c;
 
     if (local_txn)
-        return (ham_txn_commit(&txn));
+        return (ham_txn_commit(&txn, 0));
 
     return (0);
 }
@@ -648,7 +648,7 @@ bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
     page_release_ref(page);
 
     if (local_txn)
-        return (ham_txn_commit(&txn));
+        return (ham_txn_commit(&txn, 0));
 
     return (0);
 }
@@ -753,7 +753,7 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
     page_release_ref(page);
 
     if (local_txn)
-        return (ham_txn_commit(&txn));
+        return (ham_txn_commit(&txn, 0));
 
     return (0);
 }
@@ -802,7 +802,7 @@ bt_cursor_find(ham_bt_cursor_t *c, ham_key_t *key, ham_u32_t flags)
     }
 
     if (local_txn)
-        return (ham_txn_commit(&txn));
+        return (ham_txn_commit(&txn, 0));
 
     return (0);
 }
@@ -851,7 +851,7 @@ bt_cursor_insert(ham_bt_cursor_t *c, ham_key_t *key,
     }
 
     if (local_txn)
-        return (ham_txn_commit(&txn));
+        return (ham_txn_commit(&txn, 0));
 
     return (0);
 }
@@ -901,7 +901,7 @@ bt_cursor_erase(ham_bt_cursor_t *c, ham_offset_t *rid,
         return (st);
 
     if (local_txn)
-        return (ham_txn_commit(&txn));
+        return (ham_txn_commit(&txn, 0));
 
     return (0);
 }
