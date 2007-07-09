@@ -35,7 +35,7 @@ class EnvTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (multiDbInsertFindExtendedTest);
     CPPUNIT_TEST      (multiDbInsertFindExtendedEraseTest);
     CPPUNIT_TEST      (multiDbInsertCursorTest);
-    CPPUNIT_TEST      (multiDbInsertFindExtendedCloseTest);
+    CPPUNIT_TEST      (multiDbInsertFindExtendedCloseReopenTest);
     CPPUNIT_TEST      (renameOpenDatabases);
     CPPUNIT_TEST      (renameClosedDatabases);
     CPPUNIT_TEST      (eraseOpenDatabases);
@@ -85,11 +85,6 @@ public:
         env_set_cache(env, (ham_cache_t *)16);
         CPPUNIT_ASSERT(env_get_cache(env)==(ham_cache_t *)16);
         env_set_cache(env, 0);
-
-        CPPUNIT_ASSERT(env_get_freelist_txn(env)==0);
-        env_set_freelist_txn(env, (ham_txn_t *)17);
-        CPPUNIT_ASSERT(env_get_freelist_txn(env)==(ham_txn_t *)17);
-        env_set_freelist_txn(env, 0);
 
         CPPUNIT_ASSERT(env_get_header_page(env)==0);
         env_set_header_page(env, (ham_page_t *)18);
@@ -375,7 +370,7 @@ public:
 
                 CPPUNIT_ASSERT_EQUAL(0, ham_find(db[i], 0, &key, &rec, 0));
                 CPPUNIT_ASSERT_EQUAL(value, *(int *)key.data);
-                CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(value), key.size);
+                CPPUNIT_ASSERT_EQUAL((ham_u16_t)sizeof(value), key.size);
             }
         }
 
@@ -393,7 +388,7 @@ public:
     
                     CPPUNIT_ASSERT_EQUAL(0, ham_find(db[i], 0, &key, &rec, 0));
                     CPPUNIT_ASSERT_EQUAL(value, *(int *)key.data);
-                    CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(value), key.size);
+                    CPPUNIT_ASSERT_EQUAL((ham_u16_t)sizeof(value), key.size);
                 }
             }
         }
@@ -700,7 +695,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
-    void multiDbInsertFindExtendedCloseTest(void)
+    void multiDbInsertFindExtendedCloseReopenTest(void)
     {
         int i;
         const int MAX_DB=5;
@@ -738,6 +733,9 @@ public:
         }
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
+            CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+            CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, ".test", m_flags));
+
             for (i=0; i<MAX_DB; i++) {
                 CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                             (ham_u16_t)i+1, 0, 0));
@@ -966,7 +964,7 @@ class InMemoryEnvTest : public EnvTest
     CPPUNIT_TEST      (multiDbInsertFindExtendedTest);
     CPPUNIT_TEST      (multiDbInsertFindExtendedEraseTest);
     CPPUNIT_TEST      (multiDbInsertCursorTest);
-    CPPUNIT_TEST      (multiDbInsertFindExtendedCloseTest);
+    CPPUNIT_TEST      (multiDbInsertFindExtendedCloseReopenTest);
     CPPUNIT_TEST      (renameOpenDatabases);
     CPPUNIT_TEST      (eraseOpenDatabases);
     CPPUNIT_TEST      (eraseUnknownDatabases);
