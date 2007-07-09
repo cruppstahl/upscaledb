@@ -125,11 +125,6 @@ public:
         CPPUNIT_ASSERT(db_get_cache(m_db)==(ham_cache_t *)16);
         db_set_cache(m_db, 0);
 
-        CPPUNIT_ASSERT(db_get_freelist_txn(m_db)==0);
-        db_set_freelist_txn(m_db, (ham_txn_t *)17);
-        CPPUNIT_ASSERT(db_get_freelist_txn(m_db)==(ham_txn_t *)17);
-        db_set_freelist_txn(m_db, 0);
-
         CPPUNIT_ASSERT(db_get_prefix_compare_func(m_db)==0);
         db_set_prefix_compare_func(m_db, (ham_prefix_compare_func_t)18);
         CPPUNIT_ASSERT(db_get_prefix_compare_func(m_db)==
@@ -175,7 +170,6 @@ public:
         env_set_txn_id(env, 0x12345ull);
         env_set_device(env, (ham_device_t *)0x13);
         env_set_cache(env, (ham_cache_t *)0x14);
-        env_set_freelist_txn(env, (ham_txn_t *)0x15);
         env_set_txn(env, (ham_txn_t *)0x16);
         env_set_extkey_cache(env, (extkey_cache_t *)0x17);
         env_set_rt_flags(env, 0x18);
@@ -190,16 +184,12 @@ public:
         CPPUNIT_ASSERT_EQUAL((ham_cache_t *)0x14, 
                 db_get_cache(m_db));
 
-        CPPUNIT_ASSERT_EQUAL((ham_txn_t *)0x15, 
-                db_get_freelist_txn(m_db));
-
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)0x18, db_get_rt_flags(m_db));
 
         CPPUNIT_ASSERT_EQUAL(env, db_get_env(m_db));
 
         env_set_device(env, 0);
         env_set_cache(env, 0);
-        env_set_freelist_txn(env, 0);
         env_set_txn(env, 0);
         env_set_extkey_cache(env, 0);
         env_set_rt_flags(env, 0x18);
