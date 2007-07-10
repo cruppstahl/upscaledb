@@ -101,7 +101,7 @@ public:
                 ham_open(db, "c:\\windows", 0));
 #else
         CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, 
-                ham_open(db, "/dev", 0));
+                ham_open(db, "/usr", 0));
 #endif
 
         ham_delete(db);
