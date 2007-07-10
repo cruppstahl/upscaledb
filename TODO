@@ -204,7 +204,7 @@ o multiple files per database
 x header file change: internal key size is u16, external key size is size_t
     -> README
 
-o unittest crashes in cygwin
+x unittest crashes in cygwin
 
 o port the new sample to CE
 
