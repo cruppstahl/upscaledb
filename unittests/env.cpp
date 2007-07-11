@@ -41,6 +41,7 @@ class EnvTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (eraseOpenDatabases);
     CPPUNIT_TEST      (eraseUnknownDatabases);
     CPPUNIT_TEST      (eraseMultipleDatabases);
+    CPPUNIT_TEST      (endianTestOpenDatabase);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -945,6 +946,31 @@ public:
             CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void endianTestOpenDatabase(void)
+    {
+        ham_env_t *env;
+        ham_db_t *db;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+
+#if HAM_LITTLE_ENDIAN
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, 
+                    "data/env-endian-test-open-database-be.hdb", 0));
+#else
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, 
+                    "data/env-endian-test-open-database-le.hdb", 0));
+#endif
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 1, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 2, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
     }
