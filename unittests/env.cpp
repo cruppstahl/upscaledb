@@ -239,10 +239,10 @@ public:
         memset(&rec, 0, sizeof(rec));
         key.data=(void *)
             "19823918723018702931780293710982730918723091872309187230918";
-        key.size=strlen((char *)key.data);
+        key.size=(ham_u16_t)strlen((char *)key.data);
         rec.data=(void *)
             "19823918723018702931780293710982730918723091872309187230918";
-        rec.size=strlen((char *)rec.data);
+        rec.size=(ham_u16_t)strlen((char *)rec.data);
 
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
@@ -612,9 +612,9 @@ public:
                 memset(&rec, 0, sizeof(rec));
                 sprintf(buffer, "%08x%08x", j, i+1);
                 key.data=buffer;
-                key.size=strlen(buffer)+1;
+                key.size=(ham_u16_t)strlen(buffer)+1;
                 rec.data=buffer;
-                rec.size=strlen(buffer)+1;
+                rec.size=(ham_u16_t)strlen(buffer)+1;
 
                 CPPUNIT_ASSERT_EQUAL(0, ham_cursor_insert(cursor[i], 
                             &key, &rec, 0));
@@ -646,7 +646,7 @@ public:
                 memset(&rec, 0, sizeof(rec));
                 sprintf(buffer, "%08x%08x", j, i+1);
                 key.data=buffer;
-                key.size=strlen(buffer)+1;
+                key.size=(ham_u16_t)strlen(buffer)+1;
 
                 CPPUNIT_ASSERT_EQUAL(0, ham_cursor_find(cursor[i], &key, 0));
                 CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(cursor[i], 0));
@@ -666,7 +666,7 @@ public:
                     memset(&rec, 0, sizeof(rec));
                     sprintf(buffer, "%08x%08x", j, i+1);
                     key.data=buffer;
-                    key.size=strlen(buffer)+1;
+                    key.size=(ham_u16_t)strlen(buffer)+1;
     
                     if (j&1) { // must exist
                         CPPUNIT_ASSERT_EQUAL(0, 

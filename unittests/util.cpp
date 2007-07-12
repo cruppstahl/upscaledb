@@ -54,7 +54,7 @@ public:
         ham_key_t src, dest;
 
         src.data=(void *)"hallo welt";
-        src.size=::strlen((char *)src.data)+1;
+        src.size=(ham_u16_t)::strlen((char *)src.data)+1;
         src.flags=0;
         src._flags=0;
 

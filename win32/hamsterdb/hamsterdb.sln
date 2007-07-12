@@ -25,7 +25,15 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "unittests", "..\unittests\u
 		{10DCD767-DFBE-4096-9258-111D4CAF09B0} = {10DCD767-DFBE-4096-9258-111D4CAF09B0}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_env1", "..\sample_env1\sample_env1.vcproj", "{57E4DDEF-945C-46A7-A889-3B2E9B2B7096}"
+	ProjectSection(ProjectDependencies) = postProject
+		{10DCD767-DFBE-4096-9258-111D4CAF09B0} = {10DCD767-DFBE-4096-9258-111D4CAF09B0}
+	EndProjectSection
+EndProject
 Global
+	GlobalSection(DPCodeReviewSolutionGUID) = preSolution
+		DPCodeReviewSolutionGUID = {00000000-0000-0000-0000-000000000000}
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
 		Debug|x64 = Debug|x64
@@ -79,6 +87,12 @@ Global
 		{0C5D0A1D-A98A-4A4A-A954-EC15F8A611A6}.Release|Win32.ActiveCfg = Release|Win32
 		{0C5D0A1D-A98A-4A4A-A954-EC15F8A611A6}.Release|Win32.Build.0 = Release|Win32
 		{0C5D0A1D-A98A-4A4A-A954-EC15F8A611A6}.Release|x64.ActiveCfg = Release|Win32
+		{57E4DDEF-945C-46A7-A889-3B2E9B2B7096}.Debug|Win32.ActiveCfg = Debug|Win32
+		{57E4DDEF-945C-46A7-A889-3B2E9B2B7096}.Debug|Win32.Build.0 = Debug|Win32
+		{57E4DDEF-945C-46A7-A889-3B2E9B2B7096}.Debug|x64.ActiveCfg = Debug|Win32
+		{57E4DDEF-945C-46A7-A889-3B2E9B2B7096}.Release|Win32.ActiveCfg = Release|Win32
+		{57E4DDEF-945C-46A7-A889-3B2E9B2B7096}.Release|Win32.Build.0 = Release|Win32
+		{57E4DDEF-945C-46A7-A889-3B2E9B2B7096}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

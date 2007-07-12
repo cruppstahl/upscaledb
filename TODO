@@ -188,11 +188,10 @@ o multiple files per database
     x write a new sample (structure with primary and secondary index)
     -> README
 
-
-
-
-    o update the tutorial
+    x update the tutorial
     -> README
+
+
 
     o endian-tests!
         -> as part of the unittest - create database, check in to svn, 
@@ -205,6 +204,8 @@ x header file change: internal key size is u16, external key size is size_t
     -> README
 
 x unittest crashes in cygwin
+
+o unittest crashes in win32 (InMemoryEnvTest::cursorTests")
 
 o port the new sample to CE
 

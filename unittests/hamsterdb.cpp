@@ -259,7 +259,7 @@ public:
     void cursorReplaceTest(void)
     {
         ham_cursor_t cursor;
-        ham_record_t *record;
+        ham_record_t *record=0;
 
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_replace(0, record, 0));
@@ -270,7 +270,7 @@ public:
     void cursorFindTest(void)
     {
         ham_cursor_t cursor;
-        ham_key_t *key;
+        ham_key_t *key=0;
 
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_find(0, key, 0));
