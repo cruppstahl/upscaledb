@@ -17,6 +17,7 @@
 #include "mem.h"
 #include "env.h"
 #include "db.h"
+#include "page.h"
 #include "version.h"
 #include "txn.h"
 #include "cache.h"

@@ -13,6 +13,7 @@
 #include <ham/hamsterdb.h>
 #include "endian.h"
 #include "cursor.h"
+#include "config.h"
 
 /*
  * indices for page lists

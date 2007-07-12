@@ -76,7 +76,6 @@ my_move_first(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
      * and traverse down
      */
     while (1) {
-
         node=ham_page_get_btree_node(page);
         /* check for an empty root page */
         if (btree_node_get_count(node)==0)
