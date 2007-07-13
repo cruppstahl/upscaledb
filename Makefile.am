@@ -2,7 +2,7 @@
 SUBDIRS = src include samples
 
 if HAVE_CPPUNIT
-SUBDIRS += unittests/
+SUBDIRS += unittests
 endif
 
 EXTRA_DIST = documentation/Doxyfile                     \
