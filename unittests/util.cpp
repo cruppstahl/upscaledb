@@ -69,6 +69,8 @@ public:
     {
         int_key_t src;
         ham_key_t dest;
+		memset(src, 0, sizeof(src));
+		memset(dest, 0, sizeof(dest));
 
         key_set_ptr(&src, 0x12345);
         key_set_size(&src, 0);
@@ -83,7 +85,9 @@ public:
     void copyKeyInt2PubTinyTest(void)
     {
         int_key_t src;
-        ham_key_t dest;
+		ham_key_t dest;
+		memset(&src, 0, sizeof(src));
+		memset(&dest, 0, sizeof(dest));
 
         key_set_ptr(&src, 0x12345);
         key_set_size(&src, 1);
