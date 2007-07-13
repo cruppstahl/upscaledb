@@ -210,6 +210,7 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 	free(wfilename);
 
 	if (*fd==INVALID_HANDLE_VALUE) {
+		*fd=HAM_INVALID_FD;
         st=(ham_status_t)GetLastError();
         /* this function can return errors even when it succeeds... */
         if (st==ERROR_ALREADY_EXISTS)
@@ -260,6 +261,7 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
                         dispo, osflags, 0);
 	free(wfilename);
     if (*fd==INVALID_HANDLE_VALUE) {
+		*fd=HAM_INVALID_FD;
         st=(ham_status_t)GetLastError();
         ham_trace(("CreateFile (open) failed with OS status %u", st));
         return (GetLastError()==ERROR_FILE_NOT_FOUND ? HAM_FILE_NOT_FOUND : HAM_IO_ERROR);

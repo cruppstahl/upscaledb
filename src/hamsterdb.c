@@ -656,8 +656,8 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
         ham_u32_t flags, ham_parameter_t *param)
 {
     ham_status_t st;
-    ham_size_t cachesize;
-    ham_device_t *device;
+    ham_size_t cachesize=0;
+    ham_device_t *device=0;
 
     if (!env)
         return (HAM_INV_PARAMETER);

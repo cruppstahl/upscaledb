@@ -134,14 +134,23 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
  *
  * @remark we're pre-declaring struct ham_backend_t and the typedef 
  * to avoid syntax errors in BACKEND_DECLARATIONS
+ *
+ * @remark since this structure is not persistent, we don't really
+ * need packing; however, with Microsoft Visual C++ 8, the
+ * offset of ham_backend_t::_flags (the last member) is not the same
+ * as the offset of ham_btree_t::_flags, unless packing is enabled.
  */
 struct ham_backend_t;
 typedef struct ham_backend_t ham_backend_t;
 
-struct ham_backend_t
+#include "packstart.h"
+
+HAM_PACK_0 struct HAM_PACK_1 ham_backend_t
 {
     BACKEND_DECLARATIONS(ham_backend_t)
-};
+} HAM_PACK_2;
+
+#include "packstop.h"
 
 /*
  * get the keysize

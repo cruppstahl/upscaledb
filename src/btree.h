@@ -14,12 +14,22 @@
 #include "keys.h"
 #include "btree_cursor.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif 
+
 /**
  * the backend structure for a b+tree 
+ *
+ * @remark doesn't need packing, because it's not persistent; 
+ * see comment before ham_backend_t for an explanation.
  */
 struct ham_btree_t;
 typedef struct ham_btree_t ham_btree_t;
-struct ham_btree_t
+
+#include "packstart.h"
+
+struct HAM_PACK_0 ham_btree_t HAM_PACK_1
 {
     /**
      * the common declaratons of all backends
@@ -40,7 +50,10 @@ struct ham_btree_t
      * flag if the backend has to be written to disk
      */
     ham_bool_t _dirty;
-};
+} HAM_PACK_2;
+
+#include "packstop.h"
+
 
 /**
  * convenience macro to get the database pointer of a ham_btree_t-structure
@@ -276,5 +289,8 @@ extern ham_status_t
 btree_get_slot(ham_db_t *db, ham_page_t *page, 
         ham_key_t *key, ham_s32_t *slot);
 
+#ifdef __cplusplus
+} // extern "C"
+#endif 
 
 #endif /* HAM_BTREE_H__ */
