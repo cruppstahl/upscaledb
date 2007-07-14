@@ -29,6 +29,8 @@ __f_create(ham_device_t *self, const char *fname, ham_u32_t flags,
 {
     dev_file_t *t=(dev_file_t *)device_get_private(self);
 
+	device_set_flags(self, flags);
+
     return (os_create(fname, flags, mode, &t->fd));
 }
 
@@ -36,6 +38,8 @@ static ham_status_t
 __f_open(ham_device_t *self, const char *fname, ham_u32_t flags)
 {
     dev_file_t *t=(dev_file_t *)device_get_private(self);
+
+	device_set_flags(self, flags);
 
     return (os_open(fname, flags, &t->fd));
 }
@@ -101,7 +105,7 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
         size=device_get_pagesize(self);
 
     if (device_get_flags(self)&HAM_DISABLE_MMAP) {
-        if (page_get_pers(page)==0) {
+		if (page_get_pers(page)==0) {
             buffer=allocator_alloc(device_get_allocator(self), size);
             if (!buffer)
                 return (HAM_OUT_OF_MEMORY);
@@ -152,7 +156,8 @@ __f_alloc_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
     st=os_get_filesize(t->fd, &pos);
     if (st)
         return (st);
-    st=os_truncate(t->fd, pos+size);
+
+	st=os_truncate(t->fd, pos+size);
     if (st)
         return (st);
 

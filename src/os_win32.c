@@ -38,8 +38,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
 
     *mmaph=CreateFileMapping(fd, 0, PAGE_READWRITE, hsize, fsize, 0); 
     if (!*mmaph) {
-	MessageBox(0, TEXT("os_mmap"), TEXT("failed"), 0);
-        *buffer=0;
+	    *buffer=0;
         st=(ham_status_t)GetLastError();
         ham_trace(("CreateFileMapping failed with status %u", st));
         return (HAM_IO_ERROR);

@@ -333,6 +333,7 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
      * can we use mmap?
      */
 #if HAVE_MMAP
+
     if (!((*flags)&HAM_DISABLE_MMAP)) {
         if (pagesize) {
             if (pagesize%os_get_pagesize()!=0)
@@ -365,7 +366,7 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
      * set the database flags if we can't use mmapped I/O
      */
     if (no_mmap) {
-        (*flags)|=DB_USE_MMAP;
+        (*flags)&=~DB_USE_MMAP;
         (*flags)|=HAM_DISABLE_MMAP;
     }
 
@@ -1306,6 +1307,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
      */
     if (!db_get_device(db)) {
         device=ham_device_new(db_get_allocator(db), flags&HAM_IN_MEMORY_DB);
+
         if (!device)
             return (db_get_error(db));
         if (db_get_env(db))
@@ -1313,9 +1315,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
         else
             db_set_device(db, device);
         device->set_flags(device, flags);
-        flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
         device_set_pagesize(device, pagesize);
-
         /* 
          * create the file 
          */
@@ -1351,7 +1351,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
             (void)ham_close(db);
             return (db_get_error(db));
         }
-        st=page_alloc(page, pagesize);
+		st=page_alloc(page, pagesize);
         if (st) {
             page_delete(page);
             (void)ham_close(db);
@@ -1865,7 +1865,6 @@ ham_close(ham_db_t *db)
             return (st);
         }
     }
-
     /*
      * flush all pages
      */
@@ -1905,13 +1904,13 @@ ham_close(ham_db_t *db)
      * if we're not in read-only mode, and not an in-memory-database,
      * and the dirty-flag is true: flush the page-header to disk
      */
-    if (noenv &&
+	if (db_get_header_page(db) && noenv &&
         !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB) &&
         db_get_device(db) && db_get_device(db)->is_open(db_get_device(db)) &&
         (!(db_get_rt_flags(db)&HAM_READ_ONLY))) {
         /* flush the database header, if it's dirty */
-        if (db_is_dirty(db)) {
-            st=page_flush(db_get_header_page(db));
+		if (db_is_dirty(db)) {
+			st=page_flush(db_get_header_page(db));
             if (st) {
                 ham_log(("page_flush() failed with status %d (%s)",
                         st, ham_strerror(st)));
