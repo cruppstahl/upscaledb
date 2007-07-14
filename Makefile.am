@@ -30,6 +30,8 @@ EXTRA_DIST = documentation/Doxyfile                     \
 			 wince/lib/lib.vcproj						\
 			 wince/sample_db1							\
 			 wince/sample_db1/sample_db1.vcproj			\
+			 wince/sample_env1							\
+			 wince/sample_env1/sample_env1.vcproj		\
 			 wince/hamsterdb							\
 			 wince/hamsterdb/hamsterdb.sln				\
 			 wince/README.TXT							\

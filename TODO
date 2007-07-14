@@ -65,7 +65,7 @@ x make sure that the process memory consumption doesn't grow
     x HAM_DISABLE_FREELIST_FLUSH is currently ignored
     -> README/BUGFIX
 
-o multiple files per database
+x multiple files per database
     -> README/NEW FEATURE
     x define the ham_parameter_t lists
     -> README/API CHANGE
@@ -191,36 +191,48 @@ o multiple files per database
     x update the tutorial
     -> README
 
-
-
-    o endian-tests!
+    x endian-tests!
         -> as part of the unittest - create database, check in to svn, 
-            open, read/write, close etc
-
-    o acceptance-tests! create an environment with 5 databases, 
-        all databases do the same operations
+            open, read/write, close etc (use the database from the 
+            env1-sample)
+        x write the test
+        x add database for little endian
+        x add database for big endian
 
 x header file change: internal key size is u16, external key size is size_t
     -> README
 
 x unittest crashes in cygwin
 
-o unittest crashes in win32 (InMemoryEnvTest::cursorTests")
+x update the tutorial - ham_create_ex and ham_open_ex have new interface!
+    -> also update tutorial version
+
+x unittest crashes in win32 (InMemoryEnvTest::cursorTests)
 
 o port the new sample to CE
 
-o update samples on hamsterdb.com
-
 o release 0.4.4!
+
+o update samples and tutorial on hamsterdb.com
 
 ------------------------------------------------------------------------------
 
-o completely automate the release-process for the tar-ball
-
 o more tests and performance checks with very large files - around 10 GB
 
-o freelist speed-up: keep lookaside-list of freelist pages (which freelist
+? freelist: keep lookaside-list of freelist pages (which freelist
     page starts at address xxxx?) to speed up the whole process
 
 o new unittest: insert extended keys with 0xffff byte size, search for it
+
+o new unittest: create an environment, don't insert a database; close, reopen
+    o then open the environment as a database file (ham_open)
+        - should fail with HAM_DATABASE_NOT_FOUND (document this!)
+
+o new unittest: create an environment, insert two databases, delete the first
+    o then open the environment as a database file (ham_open)
+        - should load the first available database
+
+o acceptance-tests! create an environment with 5 databases, 
+    all databases do the same operations
+
 

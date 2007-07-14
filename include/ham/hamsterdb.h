@@ -3,7 +3,7 @@
  * \file hamsterdb.h
  * \brief Include file for hamsterdb.
  * \author Christoph Rupp, chris@crupp.de
- * \version 0.4.3
+ * \version 0.4.4
  *
  * Copyright (C) 2005-2007 Christoph Rupp (chris@crupp.de).
  * All rights reserved. See file LICENSE for licence and copyright

@@ -1,3 +1,10 @@
+Jun 15, 2007 - chris ---------------------------------------------------
+                      release of hamsterdb-0.4.4
+
+Jul 13, 2007 - chris
+o finalized "environment" functions, APIs and unittests; added a new sample
+    (samples/env1.c).
+
 Jul 06, 2007 - chris
 o bugfix: freelist pages were not marked as dirty, and therefore 
     sometimes weren't written to disk
