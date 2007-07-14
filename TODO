@@ -209,7 +209,7 @@ x update the tutorial - ham_create_ex and ham_open_ex have new interface!
 
 x unittest crashes in win32 (InMemoryEnvTest::cursorTests)
 
-o port the new sample to CE
+x port the new sample to CE
 
 o release 0.4.4!
 
