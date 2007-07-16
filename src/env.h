@@ -21,6 +21,11 @@ extern "C" {
 #include "extkeys.h"
 
 /*
+ * need packing for msvc x64bit
+ */
+#include "packstart.h"
+
+/*
  * the environment structure
  */
 struct ham_env_t
@@ -61,6 +66,8 @@ struct ham_env_t
     ham_size_t _cachesize;
     ham_u16_t  _keysize;
 };
+
+#include "packstop.h"
 
 /*
  * get the current transaction ID
