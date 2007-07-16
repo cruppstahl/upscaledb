@@ -15,6 +15,8 @@ EXTRA_DIST = documentation/Doxyfile                     \
              src/*.c src/*.h src/Makefile.am            \
              src/Makefile.in                            \
              unittests/memtracker.h                     \
+             unittests/data/env-endian-test-open-database-be.hdb  \
+             unittests/data/env-endian-test-open-database-le.hdb  \
              win32                                      \
              win32/README.TXT                           \
              win32/hamsterdb                            \
