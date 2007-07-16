@@ -138,7 +138,7 @@ typedef struct
  * @a ham_create_ex etc to pass variable length parameter lists.
  *
  * The lists are always arrays of type ham_parameter_t, with a terminating
- * element of { 0, NULL}, i.e.
+ * element of { 0, NULL}, e.g.
  *
  * <pre>
  *   ham_parameter_t parameters[]={
@@ -437,14 +437,14 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *        bitwise OR. Possible flags are:
  *      <ul>
  *       <li>@a HAM_READ_ONLY</li> Opens the file for reading only.
- *            Operations which need write access (i.e. @a ham_insert) will
+ *            Operations that need write access (i.e. @a ham_insert) will
  *            return @a HAM_DB_READ_ONLY.
  *       <li>@a HAM_WRITE_THROUGH</li> Immediately write modified pages
  *            to the disk. This slows down all database operations, but
  *            could save the database integrity in case of a system crash.
  *       <li>@a HAM_DISABLE_MMAP</li> Do not use memory mapped files for I/O.
  *            By default, hamsterdb checks if it can use mmap,
- *            since mmap is faster then read/write. For performance
+ *            since mmap is faster than read/write. For performance
  *            reasons, this flag should not be used.
  *       <li>@a HAM_CACHE_STRICT</li> Do not allow the cache to grow larger
  *            than @a cachesize. If a database operation needs to resize the
@@ -487,7 +487,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
         ham_u32_t flags, ham_parameter_t *param);
 
 /**
- * Creates a new database in an database environment.
+ * Creates a new database in a database environment.
  *
  * @param env A valid environment handle.
  * @param env A valid database handle, which will point to the created
@@ -503,7 +503,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  *       <li>@a HAM_USE_BTREE</li> Use a B+Tree for the index structure.
  *            Currently enabled by default, but future releases
  *            of hamsterdb will offer additional index structures,
- *            i.e. hash tables.
+ *            like hash tables.
  *       <li>@a HAM_DISABLE_VAR_KEYLEN</li> Do not allow the use of variable
  *            length keys. Inserting a key, which is larger than the
  *            B+Tree index key size, returns @a HAM_INV_KEYSIZE.
@@ -531,7 +531,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
         ham_u16_t name, ham_u32_t flags, ham_parameter_t *params);
 
 /**
- * Opens a database in an database environment.
+ * Opens a database in a database environment.
  *
  * @param env A valid environment handle.
  * @param env A valid database handle, which will point to the created
@@ -553,7 +553,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
  * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL or an
  *              invalid combination of flags was specified.
  * @return @a HAM_DATABASE_NOT_FOUND if a database with this @a name
- *              does not exists in this environment.
+ *              does not exist in this environment.
  * @return @a HAM_DATABASE_ALREADY_OPEN if this database was already
  *              opened
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
@@ -580,7 +580,7 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
  * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL or if
  *              the new database name is reserved.
  * @return @a HAM_DATABASE_NOT_FOUND if a database with this @a name
- *              does not exists in this environment.
+ *              does not exist in this environment.
  * @return @a HAM_DATABASE_ALREADY_EXISTS if a database with the new name
  *              already exists
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
@@ -592,7 +592,7 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
                 ham_u16_t newname, ham_u32_t flags);
 
 /**
- * Erases a database from an environment.
+ * Deletes a database from an environment.
  *
  * @param env A valid environment handle.
  * @param name The name of the database, which is deleted. If a database 
@@ -815,7 +815,7 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *            B+Tree index key size, returns @a HAM_INV_KEYSIZE.
  *       <li>@a HAM_DISABLE_MMAP</li> Do not use memory mapped files for I/O.
  *            By default, hamsterdb checks if it can use mmap,
- *            since mmap is faster then read/write. For performance
+ *            since mmap is faster than read/write. For performance
  *            reasons, this flag should not be used.
  *       <li>@a HAM_CACHE_STRICT</li> Do not allow the cache to grow larger
  *            than @a cachesize. If a database operation needs to resize the
