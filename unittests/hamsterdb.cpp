@@ -125,6 +125,10 @@ public:
                 ham_create(db, 0, HAM_IN_MEMORY_DB|HAM_CACHE_STRICT, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create_ex(db, 0, HAM_IN_MEMORY_DB, 0, &cs[0]));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_create_ex(db, 0, HAM_IN_MEMORY_DB|HAM_READ_ONLY, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_create_ex(db, 0, HAM_READ_ONLY, 0, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PAGESIZE, 
                 ham_create_ex(db, ".test", 0, 0, &ps[0]));
 #if WIN32

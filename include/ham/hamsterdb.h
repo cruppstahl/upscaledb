@@ -216,6 +216,8 @@ typedef struct {
 #define HAM_WOULD_BLOCK              (-22)
 /** Object was not initialized correctly */
 #define HAM_NOT_READY                (-23)
+/** Database limits reached */
+#define HAM_LIMITS_REACHED           (-24)
 /** Cursor does not point to a valid database item */
 #define HAM_CURSOR_IS_NIL           (-100)
 /** Not all databases were closed before closing the environment */
@@ -226,8 +228,6 @@ typedef struct {
 #define HAM_DATABASE_ALREADY_EXISTS (-202)
 /** Database already open */
 #define HAM_DATABASE_ALREADY_OPEN   (-203)
-/** Database limits reached */
-#define HAM_LIMITS_REACHED          (-204)
 
 /**
  * @}

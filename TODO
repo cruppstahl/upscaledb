@@ -9,13 +9,22 @@ x replace return code INVALID_INDEX with NOT_INITIALIZED
 
 x replace return code ENV_FULL with a generic HAM_LIMITS_REACHED
 
+x unittest: fill an environment, till it returns HAM_LIMITS_REACHED
+
+x new unittest: ham_new, create, ham_close, open, ham_close, ham_delete
+    x for db
+    x for env
+    x for db in env
+
+x new unittest: insert extended keys with 0xffff byte size, search for it
+
+x new unittest: create with READ_ONLY -> fail INVALID_PARAMETER
+
 o db1.c: 
     x should reopen the database file (then we have a call to ham_open,
         which is otherwise not tested on CE)
     x crashes!!
     o then test on CE
-
-o unittest: fill an environment, till it returns HAM_LIMITS_REACHED
 
 o new unittest: 
     o set compare function
@@ -26,21 +35,10 @@ o new unittest:
     o unset prefix-compare function
     o set prefix-compare function AFTER db_open -> failure
 
-o new unittest: ham_new, create, ham_close, open, ham_close, ham_delete
-    o for db
-    o for env
-    o for db in env
-
 o new unittest: open with READ_ONLY; all write-functions must fail
 
 o new unittest: open env with READ_ONLY; all write-functions must fail, 
         and write-functions of opened databases must fail, too
-
-o new unittest: open with READ_ONLY/IN-MEMORY-DB -> fail INVALID_PARAMETER
-
-o new unittest: create with READ_ONLY -> fail INVALID_PARAMETER
-
-o new unittest: insert extended keys with 0xffff byte size, search for it
 
 o new unittest: create an environment, don't insert a database; close, reopen
     o then open the environment as a database file (ham_open)

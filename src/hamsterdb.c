@@ -309,6 +309,12 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
     }
 
     /*
+     * creating a file in READ_ONLY mode? doesn't make sense
+     */
+    if ((*flags)&HAM_READ_ONLY)
+        return (HAM_INV_PARAMETER);
+
+    /*
      * in-memory-db? don't allow cache limits!
      */
     if ((*flags)&HAM_IN_MEMORY_DB) {
