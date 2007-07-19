@@ -1934,7 +1934,7 @@ ham_close(ham_db_t *db)
         if (page_get_pers(db_get_header_page(db)))
             (void)page_free(db_get_header_page(db));
         (void)page_delete(db_get_header_page(db));
-        db_set_header_page(db, db_get_header_page(db));
+        db_set_header_page(db, 0);
     }
 
     /* 
