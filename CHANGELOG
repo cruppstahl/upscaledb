@@ -1,3 +1,7 @@
+Jul 19, 2007 - chris
+o bugfix: if a ham_db_t handle was reused after ham_close, an internal
+    pointer was not set to NULL, which resulted in a segfault
+
 Jun 15, 2007 - chris ---------------------------------------------------
                       release of hamsterdb-0.4.4
 
