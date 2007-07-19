@@ -24,6 +24,7 @@ class EnvTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (newDeleteTest);
     CPPUNIT_TEST      (createCloseTest);
     CPPUNIT_TEST      (createCloseOpenCloseTest);
+    CPPUNIT_TEST      (createCloseOpenCloseWithDatabasesTest);
     CPPUNIT_TEST      (openFailCloseTest);
     CPPUNIT_TEST      (openWithKeysizeTest);
     CPPUNIT_TEST      (createWithKeysizeTest);
@@ -145,6 +146,30 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void createCloseOpenCloseWithDatabasesTest(void)
+    {
+        ham_env_t *env;
+        ham_db_t *db;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, ".test", 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
 
     void openFailCloseTest(void)

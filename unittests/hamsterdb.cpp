@@ -22,6 +22,7 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (deleteTest);
     CPPUNIT_TEST      (openTest);
     CPPUNIT_TEST      (createTest);
+    CPPUNIT_TEST      (createCloseCreateTest);
     CPPUNIT_TEST      (getErrorTest);
     CPPUNIT_TEST      (setPrefixCompareTest);
     CPPUNIT_TEST      (setCompareTest);
@@ -132,6 +133,20 @@ public:
         CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, 
                 ham_create(db, "/home", 0, 0664));
 #endif
+        ham_delete(db);
+    }
+
+    void createCloseCreateTest(void)
+    {
+        ham_db_t *db;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_create(db, ".test", 0, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(db, ".test", 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+
         ham_delete(db);
     }
 
