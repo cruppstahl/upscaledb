@@ -3,17 +3,19 @@ x release 0.4.4!
 
 x update samples and tutorial on hamsterdb.com
 
+x add grammar fixes for the tutorial
+
+x replace return code INVALID_INDEX with NOT_INITIALIZED
+
+x replace return code ENV_FULL with a generic HAM_LIMITS_REACHED
+
 o db1.c: 
     x should reopen the database file (then we have a call to ham_open,
         which is otherwise not tested on CE)
     x crashes!!
     o then test on CE
 
-o add grammar fixes for the tutorial
-
-o replace return code INVALID_INDEX with NOT_INITIALIZED
-
-o replace return code ENV_FULL with a generic HAM_LIMITS_REACHED
+o unittest: fill an environment, till it returns HAM_LIMITS_REACHED
 
 o new unittest: 
     o set compare function
@@ -23,6 +25,11 @@ o new unittest:
     o set prefix-compare function
     o unset prefix-compare function
     o set prefix-compare function AFTER db_open -> failure
+
+o new unittest: ham_new, create, ham_close, open, ham_close, ham_delete
+    o for db
+    o for env
+    o for db in env
 
 o new unittest: open with READ_ONLY; all write-functions must fail
 

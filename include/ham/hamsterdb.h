@@ -226,8 +226,8 @@ typedef struct {
 #define HAM_DATABASE_ALREADY_EXISTS (-202)
 /** Database already open */
 #define HAM_DATABASE_ALREADY_OPEN   (-203)
-/** Environment is full */
-#define HAM_ENV_FULL                (-204)
+/** Database limits reached */
+#define HAM_LIMITS_REACHED          (-204)
 
 /**
  * @}
@@ -523,7 +523,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  *              already exists in this environment.
  * @return @a HAM_OUT_OF_MEMORY if memory could not be
  *              allocated.
- * @return @a HAM_ENV_FULL if the maximum number of databases per 
+ * @return @a HAM_LIMITS_REACHED if the maximum number of databases per 
  *              environment was already created
  */
 HAM_EXPORT ham_status_t

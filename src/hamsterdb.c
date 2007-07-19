@@ -236,8 +236,8 @@ ham_strerror(ham_status_t result)
             return ("Database name already exists");
         case HAM_DATABASE_ALREADY_OPEN:
             return ("Database already open");
-        case HAM_ENV_FULL:
-            return ("Environment is full");
+        case HAM_LIMITS_REACHED:
+            return ("Database limits reached");
         default:
             return ("Unknown error");
     }
@@ -1434,7 +1434,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     }
     if (i==db_get_indexdata_size(db)) {
         (void)ham_close(db);
-        return (db_set_error(db, HAM_INTERNAL_ERROR)); /* TODO */
+        return (db_set_error(db, HAM_LIMITS_REACHED));
     }
 
     /* 
