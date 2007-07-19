@@ -117,6 +117,17 @@ main(int argc, char **argv)
     }
 
     /*
+     * close the database handle, then re-open it (to demonstrate the 
+     * call ham_open)
+     */
+    st=ham_close(db);
+    if (st!=HAM_SUCCESS)
+        error("ham_close", st);
+    st=ham_open(db, "test.db", 0);
+    if (st!=HAM_SUCCESS)
+        error("ham_open", st);
+
+    /*
      * now erase all values
      */
     for (i=0; i<LOOP; i++) {
