@@ -3,20 +3,35 @@ x release 0.4.4!
 
 x update samples and tutorial on hamsterdb.com
 
+o db1.c: 
+    x should reopen the database file (then we have a call to ham_open,
+        which is otherwise not tested on CE)
+    x crashes!!
+    o then test on CE
+
 o add grammar fixes for the tutorial
 
 o replace return code INVALID_INDEX with NOT_INITIALIZED
 
 o replace return code ENV_FULL with a generic HAM_LIMITS_REACHED
 
-o db1.c: should reopen the database file (then we have a call to ham_open,
-    which is otherwise not tested on CE)
-    o then test on CE
-
 o new unittest: 
     o set compare function
     o unset compare function
     o set compare function AFTER db_open -> failure
+
+    o set prefix-compare function
+    o unset prefix-compare function
+    o set prefix-compare function AFTER db_open -> failure
+
+o new unittest: open with READ_ONLY; all write-functions must fail
+
+o new unittest: open env with READ_ONLY; all write-functions must fail, 
+        and write-functions of opened databases must fail, too
+
+o new unittest: open with READ_ONLY/IN-MEMORY-DB -> fail INVALID_PARAMETER
+
+o new unittest: create with READ_ONLY -> fail INVALID_PARAMETER
 
 o new unittest: insert extended keys with 0xffff byte size, search for it
 
@@ -32,11 +47,11 @@ o new unittests for exclusive file locking (but how?)
 
 o more tests and performance checks with very large files - around 10 GB
 
-o add support for logical record numbers
-
 o should backends have a version information? otherwise, the 32byte might be
     full, and we don't have room for an overflow area...
 
 ? freelist: keep lookaside-list of freelist pages (which freelist
     page starts at address xxxx?) to speed up the whole process
+
+o add support for logical record numbers
 

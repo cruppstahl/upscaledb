@@ -666,7 +666,7 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
     ham_bool_t local_txn=db_get_txn(db) ? HAM_FALSE : HAM_TRUE;
 
     if (!be)
-        return (HAM_INV_INDEX);
+        return (HAM_NOT_INITIALIZED);
 
     if (local_txn) {
         st=ham_txn_begin(&txn, db);
@@ -767,7 +767,7 @@ bt_cursor_find(ham_bt_cursor_t *c, ham_key_t *key, ham_u32_t flags)
     ham_bool_t local_txn=db_get_txn(db) ? HAM_FALSE : HAM_TRUE;
 
     if (!be)
-        return (HAM_INV_INDEX);
+        return (HAM_NOT_INITIALIZED);
     if (!key)
         return (HAM_INV_PARAMETER);
 
@@ -817,7 +817,7 @@ bt_cursor_insert(ham_bt_cursor_t *c, ham_key_t *key,
     ham_bool_t local_txn=db_get_txn(db) ? HAM_FALSE : HAM_TRUE;
 
     if (!be)
-        return (HAM_INV_INDEX);
+        return (HAM_NOT_INITIALIZED);
     if (!key)
         return (HAM_INV_PARAMETER);
     if (!record)
@@ -866,7 +866,7 @@ bt_cursor_erase(ham_bt_cursor_t *c, ham_offset_t *rid,
     ham_bool_t local_txn=db_get_txn(db) ? HAM_FALSE : HAM_TRUE;
 
     if (!be)
-        return (HAM_INV_INDEX);
+        return (HAM_NOT_INITIALIZED);
 
     if (local_txn) {
         st=ham_txn_begin(&txn, db);

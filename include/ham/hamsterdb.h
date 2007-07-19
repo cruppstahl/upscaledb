@@ -182,8 +182,8 @@ typedef struct {
 #define HAM_DB_ALREADY_OPEN          ( -5)
 /** Memory allocation failed - out of memory */
 #define HAM_OUT_OF_MEMORY            ( -6)
-/** Invalid backend index */
-#define HAM_INV_INDEX                ( -7)
+/** Object not initialized */
+#define HAM_NOT_INITIALIZED          ( -7)
 /** Invalid function parameter */
 #define HAM_INV_PARAMETER            ( -8)
 /** Invalid database file header */
