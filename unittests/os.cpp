@@ -32,6 +32,7 @@ class OsTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (createCloseTest);
     CPPUNIT_TEST      (createCloseOverwriteTest);
     CPPUNIT_TEST      (closeTest);
+    CPPUNIT_TEST      (openExclusiveTest);
     CPPUNIT_TEST      (readWriteTest);
     CPPUNIT_TEST      (pagesizeTest);
     CPPUNIT_TEST      (mmapTest);
@@ -137,6 +138,24 @@ public:
 		st=os_close((ham_fd_t)0x12345, 0);
         CPPUNIT_ASSERT(st==HAM_IO_ERROR);
 #endif
+    }
+
+    void openExclusiveTest()
+    {
+        ham_fd_t fd, fd2;
+
+		CPPUNIT_ASSERT_EQUAL(0, os_create(".test", 
+                    HAM_LOCK_EXCLUSIVE, 0664, &fd));
+		CPPUNIT_ASSERT_EQUAL(0, os_close(fd, HAM_LOCK_EXCLUSIVE));
+        
+		CPPUNIT_ASSERT_EQUAL(0, os_open(".test", HAM_LOCK_EXCLUSIVE, &fd));
+		CPPUNIT_ASSERT_EQUAL(HAM_WOULD_BLOCK, 
+                os_open(".test", HAM_LOCK_EXCLUSIVE, &fd2));
+		CPPUNIT_ASSERT_EQUAL(0, os_close(fd, HAM_LOCK_EXCLUSIVE));
+		CPPUNIT_ASSERT_EQUAL(0, os_open(".test", HAM_LOCK_EXCLUSIVE, &fd2));
+		CPPUNIT_ASSERT_EQUAL(0, os_close(fd2, HAM_LOCK_EXCLUSIVE));
+		CPPUNIT_ASSERT_EQUAL(0, os_open(".test", 0, &fd2));
+		CPPUNIT_ASSERT_EQUAL(0, os_close(fd2, 0));
     }
 
     void readWriteTest()
