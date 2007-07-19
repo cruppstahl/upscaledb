@@ -28,6 +28,7 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (setCompareTest);
     CPPUNIT_TEST      (findTest);
     CPPUNIT_TEST      (insertTest);
+    CPPUNIT_TEST      (insertBigKeyTest);
     CPPUNIT_TEST      (eraseTest);
     CPPUNIT_TEST      (flushTest);
     CPPUNIT_TEST      (closeTest);
@@ -199,6 +200,21 @@ public:
                 ham_insert(m_db, 0, &key, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_insert(m_db, 0, &key, &rec, 0));
+    }
+
+    void insertBigKeyTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        char buffer[0xffff];
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        ::memset(buffer, 0, sizeof(buffer));
+        key.size=sizeof(buffer);
+        key.data=buffer;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
     }
 
     void eraseTest(void)
