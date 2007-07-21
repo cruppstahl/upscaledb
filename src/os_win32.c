@@ -263,6 +263,8 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 		*fd=HAM_INVALID_FD;
         st=(ham_status_t)GetLastError();
         ham_trace(("CreateFile (open) failed with OS status %u", st));
+		if (st==ERROR_SHARING_VIOLATION)
+			return (HAM_WOULD_BLOCK);
         return (GetLastError()==ERROR_FILE_NOT_FOUND ? HAM_FILE_NOT_FOUND : HAM_IO_ERROR);
     }
 

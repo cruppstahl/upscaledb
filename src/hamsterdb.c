@@ -1069,18 +1069,22 @@ ham_open_ex(ham_db_t *db, const char *filename,
             (void)ham_close(db);
             return (db_set_error(db, st));
         }
+	}
+	else
+		device=db_get_device(db);
 
-        /*
-         * read the database header
-         *
-         * !!!
-         * now this is an ugly problem - the database header is one page, but
-         * how large is one page? chances are good that it's the default
-         * page-size, but we really can't be sure.
-         *
-         * read 512 byte and extract the "real" page size, then read 
-         * the real page. (but i really don't like this)
-         */
+    /*
+     * read the database header
+     *
+     * !!!
+     * now this is an ugly problem - the database header is one page, but
+     * how large is one page? chances are good that it's the default
+     * page-size, but we really can't be sure.
+     *
+     * read 512 byte and extract the "real" page size, then read 
+     * the real page. (but i really don't like this)
+     */
+	if (!db_get_header_page(db)) {
         st=device->read(device, 0, hdrbuf, sizeof(hdrbuf));
         if (st) {
             ham_log(("os_pread of %s failed with status %d (%s)", filename,
