@@ -26,15 +26,16 @@ x new unittest:
     x set prefix-compare function
     x unset prefix-compare function
 
-o new unittests for exclusive file locking
-    x check on linux
-    o check on windows
-
-o db1.c: 
+x db1.c: 
     x should reopen the database file (then we have a call to ham_open,
         which is otherwise not tested on CE)
     x crashes!!
-    o then test on CE
+    x then test on CE
+
+o new unittests for exclusive file locking
+    x check on linux
+    x check on windows
+    o check on cygwin -- fails!
 
 o new unittest: open with READ_ONLY; all write-functions must fail
 
