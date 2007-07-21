@@ -49,7 +49,9 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (openTest);
     CPPUNIT_TEST      (createTest);
     CPPUNIT_TEST      (createCloseCreateTest);
+    CPPUNIT_TEST      (createPagesizeReopenTest);
     CPPUNIT_TEST      (readOnlyTest);
+    CPPUNIT_TEST      (invalidPagesizeTest);
     CPPUNIT_TEST      (getErrorTest);
     CPPUNIT_TEST      (setPrefixCompareTest);
     CPPUNIT_TEST      (setCompareTest);
@@ -184,6 +186,20 @@ public:
         ham_delete(db);
     }
 
+    void createPagesizeReopenTest(void)
+    {
+        ham_db_t *db;
+        ham_parameter_t ps[]={{HAM_PARAM_PAGESIZE,   1024*128}, {0, 0}};
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_create_ex(db, ".test", 0, 0664, &ps[0]));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(db, ".test", 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+    }
+
     void readOnlyTest(void)
     {
         ham_db_t *db;
@@ -213,7 +229,24 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
-        ham_delete(db);
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+    }
+
+    void invalidPagesizeTest(void)
+    {
+        ham_db_t *db;
+        ham_parameter_t p[]={
+            {HAM_PARAM_PAGESIZE, 1024}, 
+            {HAM_PARAM_KEYSIZE,   512}, 
+            {0, 0}
+        };
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
+                ham_create_ex(db, ".test", 0, 0664, &p[0]));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
 
     void getErrorTest(void)

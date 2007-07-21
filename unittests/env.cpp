@@ -26,6 +26,7 @@ class EnvTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (createCloseOpenCloseTest);
     CPPUNIT_TEST      (createCloseOpenCloseWithDatabasesTest);
     CPPUNIT_TEST      (readOnlyTest);
+    CPPUNIT_TEST      (createPagesizeReopenTest);
     CPPUNIT_TEST      (openFailCloseTest);
     CPPUNIT_TEST      (openWithKeysizeTest);
     CPPUNIT_TEST      (createWithKeysizeTest);
@@ -214,6 +215,23 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
         ham_delete(db);
         ham_env_delete(env);
+    }
+
+    void createPagesizeReopenTest(void)
+    {
+        ham_env_t *env;
+        ham_parameter_t ps[]={{HAM_PARAM_PAGESIZE,   1024*128}, {0, 0}};
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_env_create_ex(env, ".test", m_flags, 0644, &ps[0]));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_env_open(env, ".test", m_flags));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void openFailCloseTest(void)
