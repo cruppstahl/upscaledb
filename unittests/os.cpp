@@ -64,11 +64,7 @@ public:
         ham_status_t st;
         ham_fd_t fd;
 
-#if WIN32
-        st=os_open("../../unittests/Makefile.am", 0, &fd);
-#else
         st=os_open("Makefile", 0, &fd);
-#endif
         CPPUNIT_ASSERT(st==0);
         st=os_close(fd, 0);
         CPPUNIT_ASSERT(st==0);
@@ -80,11 +76,7 @@ public:
         ham_fd_t fd;
         const char *p="# XXXXXXXXX ERROR\n";
 
-#if WIN32
-        st=os_open("../../unittests/Makefile.am", HAM_READ_ONLY, &fd);
-#else
         st=os_open("Makefile", HAM_READ_ONLY, &fd);
-#endif
         CPPUNIT_ASSERT(st==0);
         st=os_pwrite(fd, 0, p, (ham_size_t)strlen(p));
         CPPUNIT_ASSERT(st==HAM_IO_ERROR);
@@ -135,7 +127,7 @@ public:
 #ifndef WIN32  // crashs in ntdll.dll
         ham_status_t st;
 
-		st=os_close((ham_fd_t)0x12345, 0);
+        st=os_close((ham_fd_t)0x12345, 0);
         CPPUNIT_ASSERT(st==HAM_IO_ERROR);
 #endif
     }
@@ -144,18 +136,20 @@ public:
     {
         ham_fd_t fd, fd2;
 
-		CPPUNIT_ASSERT_EQUAL(0, os_create(".test", 
+        CPPUNIT_ASSERT_EQUAL(0, os_create(".test", 
                     HAM_LOCK_EXCLUSIVE, 0664, &fd));
-		CPPUNIT_ASSERT_EQUAL(0, os_close(fd, HAM_LOCK_EXCLUSIVE));
+        CPPUNIT_ASSERT_EQUAL(0, os_close(fd, HAM_LOCK_EXCLUSIVE));
         
-		CPPUNIT_ASSERT_EQUAL(0, os_open(".test", HAM_LOCK_EXCLUSIVE, &fd));
-		CPPUNIT_ASSERT_EQUAL(HAM_WOULD_BLOCK, 
+        CPPUNIT_ASSERT_EQUAL(0, 
+                         os_open(".test", HAM_LOCK_EXCLUSIVE, &fd));
+        CPPUNIT_ASSERT_EQUAL(HAM_WOULD_BLOCK, 
                 os_open(".test", HAM_LOCK_EXCLUSIVE, &fd2));
-		CPPUNIT_ASSERT_EQUAL(0, os_close(fd, HAM_LOCK_EXCLUSIVE));
-		CPPUNIT_ASSERT_EQUAL(0, os_open(".test", HAM_LOCK_EXCLUSIVE, &fd2));
-		CPPUNIT_ASSERT_EQUAL(0, os_close(fd2, HAM_LOCK_EXCLUSIVE));
-		CPPUNIT_ASSERT_EQUAL(0, os_open(".test", 0, &fd2));
-		CPPUNIT_ASSERT_EQUAL(0, os_close(fd2, 0));
+        CPPUNIT_ASSERT_EQUAL(0, os_close(fd, HAM_LOCK_EXCLUSIVE));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                         os_open(".test", HAM_LOCK_EXCLUSIVE, &fd2));
+        CPPUNIT_ASSERT_EQUAL(0, os_close(fd2, HAM_LOCK_EXCLUSIVE));
+        CPPUNIT_ASSERT_EQUAL(0, os_open(".test", 0, &fd2));
+        CPPUNIT_ASSERT_EQUAL(0, os_close(fd2, 0));
     }
 
     void readWriteTest()

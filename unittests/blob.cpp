@@ -221,10 +221,13 @@ public:
     void loopInsert(int loops, int factor)
     {
         ham_u8_t *buffer;
-        ham_offset_t blobid[loops];
+        ham_offset_t *blobid;
         ham_record_t record;
         ::memset(&record, 0, sizeof(record));
         ::memset(&buffer, 0x12, sizeof(buffer));
+
+		blobid=(ham_offset_t *)::malloc(sizeof(ham_offset_t)*loops);
+		CPPUNIT_ASSERT(blobid!=0);
 
         for (int i=0; i<loops; i++) {
             buffer=(ham_u8_t *)::malloc((i+1)*factor);
@@ -254,6 +257,8 @@ public:
         for (int i=0; i<loops; i++) {
             CPPUNIT_ASSERT_EQUAL(0, blob_free(m_db, blobid[i], 0));
         }
+
+		::free(blobid);
     }
 
     void multipleAllocReadFreeTest(void)
