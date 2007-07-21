@@ -14,6 +14,32 @@
 #include "../src/db.h"
 #include "../src/version.h"
 
+static int
+my_compare_func(const ham_u8_t *lhs, ham_size_t lhs_length,
+                const ham_u8_t *rhs, ham_size_t rhs_length)
+{
+    (void)lhs;
+    (void)rhs;
+    (void)lhs_length;
+    (void)rhs_length;
+    return (0);
+}
+
+static int
+my_prefix_compare_func(const ham_u8_t *lhs, ham_size_t lhs_length,
+               ham_size_t lhs_real_length,
+               const ham_u8_t *rhs, ham_size_t rhs_length,
+               ham_size_t rhs_real_length)
+{
+    (void)lhs;
+    (void)rhs;
+    (void)lhs_length;
+    (void)rhs_length;
+    (void)lhs_real_length;
+    (void)rhs_real_length;
+    return (0);
+}
+
 class HamsterdbTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(HamsterdbTest);
@@ -32,6 +58,8 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (eraseTest);
     CPPUNIT_TEST      (flushTest);
     CPPUNIT_TEST      (closeTest);
+    CPPUNIT_TEST      (compareTest);
+    CPPUNIT_TEST      (prefixCompareTest);
     CPPUNIT_TEST      (cursorCreateTest);
     CPPUNIT_TEST      (cursorCloneTest);
     CPPUNIT_TEST      (cursorMoveTest);
@@ -245,6 +273,31 @@ public:
     void closeTest(void)
     {
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_close(0));
+    }
+
+    void compareTest(void)
+    {
+        ham_compare_func_t f=my_compare_func;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_set_compare_func(m_db, f));
+        CPPUNIT_ASSERT_EQUAL(f, db_get_compare_func(m_db));
+
+        f=db_default_compare;
+        CPPUNIT_ASSERT_EQUAL(0, ham_set_compare_func(m_db, 0));
+        CPPUNIT_ASSERT(f==db_get_compare_func(m_db));
+    }
+
+    void prefixCompareTest(void)
+    {
+        ham_prefix_compare_func_t f=my_prefix_compare_func;
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_set_prefix_compare_func(m_db, f));
+        CPPUNIT_ASSERT_EQUAL(f, db_get_prefix_compare_func(m_db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_set_prefix_compare_func(m_db, 0));
+        f=db_default_prefix_compare;
+        CPPUNIT_ASSERT_EQUAL(f, db_get_prefix_compare_func(m_db));
     }
 
     void cursorCreateTest(void)

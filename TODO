@@ -20,20 +20,21 @@ x new unittest: insert extended keys with 0xffff byte size, search for it
 
 x new unittest: create with READ_ONLY -> fail INVALID_PARAMETER
 
+x new unittest: 
+    x set compare function
+    x unset compare function
+    x set prefix-compare function
+    x unset prefix-compare function
+
+o new unittests for exclusive file locking
+    x check on linux
+    o check on windows
+
 o db1.c: 
     x should reopen the database file (then we have a call to ham_open,
         which is otherwise not tested on CE)
     x crashes!!
     o then test on CE
-
-o new unittest: 
-    o set compare function
-    o unset compare function
-    o set compare function AFTER db_open -> failure
-
-    o set prefix-compare function
-    o unset prefix-compare function
-    o set prefix-compare function AFTER db_open -> failure
 
 o new unittest: open with READ_ONLY; all write-functions must fail
 
@@ -48,7 +49,12 @@ o new unittest: create an environment, insert two databases, delete the first
     o then open the environment as a database file (ham_open)
         - should load the first available database
 
-o new unittests for exclusive file locking (but how?)
+o new unittest: select a pagesize/keysize so less than 4 keys fit on a 
+    page -> INV_KEYSIZE
+
+
+
+o make all unittests run on Windows CE
 
 o more tests and performance checks with very large files - around 10 GB
 

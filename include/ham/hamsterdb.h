@@ -921,11 +921,14 @@ ham_get_error(ham_db_t *db);
  * keys with variable length, and one of the two keys is loaded only
  * partially.
  *
+ * If @a foo is NULL, hamsterdb will use the default prefix compare
+ * function (which is based on memcmp(3)).
+ *
  * @param db A valid database handle.
  * @param foo A pointer to the prefix compare function.
  *
  * @return @a HAM_SUCCESS upon success.
- * @return @a HAM_INV_PARAMETER if one of the parameters is NULL.
+ * @return @a HAM_INV_PARAMETER if the @db parameter is NULL
  */
 HAM_EXPORT ham_status_t
 ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
@@ -937,7 +940,8 @@ ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
  * first key is smaller, +1 if the second key is smaller or 0 if
  * keys are equal.
  *
- * The default comparison function uses memcmp to compare the keys.
+ * If @a foo is NULL, hamsterdb will use the default compare
+ * function (which is based on memcmp(3)).
  *
  * @param db A valid database handle.
  * @param foo A pointer to the compare function.
