@@ -37,10 +37,14 @@ o new unittests for exclusive file locking
     x check on windows
     o check on cygwin -- fails!
 
-o new unittest: open with READ_ONLY; all write-functions must fail
+x new unittest: open with READ_ONLY; all write-functions must fail
 
 o new unittest: open env with READ_ONLY; all write-functions must fail, 
         and write-functions of opened databases must fail, too
+
+o new unittest: create file with pagesize 64kb, then open it
+
+o new unittest: create env with pagesize 64kb, then open it
 
 o new unittest: create an environment, don't insert a database; close, reopen
     o then open the environment as a database file (ham_open)
@@ -55,7 +59,7 @@ o new unittest: select a pagesize/keysize so less than 4 keys fit on a
 
 
 
-o make all unittests run on Windows CE
+o all unittests should run on Windows CE
 
 o more tests and performance checks with very large files - around 10 GB
 

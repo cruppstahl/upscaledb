@@ -1,4 +1,6 @@
 Jul 21, 2007 - chris
+o when opening an environment, the flags were not stored
+o don't allow ham_env_create_db if the environment was opened r/o
 o calling ham_set_prefix_compare_func and ham_set_compare_func with NULL
     as second parameter resets the compare function to the default
     compare function (based on memcmp)

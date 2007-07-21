@@ -49,6 +49,7 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (openTest);
     CPPUNIT_TEST      (createTest);
     CPPUNIT_TEST      (createCloseCreateTest);
+    CPPUNIT_TEST      (readOnlyTest);
     CPPUNIT_TEST      (getErrorTest);
     CPPUNIT_TEST      (setPrefixCompareTest);
     CPPUNIT_TEST      (setCompareTest);
@@ -180,6 +181,38 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_open(db, ".test", 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
 
+        ham_delete(db);
+    }
+
+    void readOnlyTest(void)
+    {
+        ham_db_t *db;
+        ham_key_t key;
+        ham_record_t rec;
+        ham_cursor_t *cursor;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_create(db, ".test", 0, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(db, ".test", HAM_READ_ONLY));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
+
+        CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+                ham_insert(db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+                ham_erase(db, 0, &key, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+                ham_cursor_replace(cursor, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+                ham_cursor_insert(cursor, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+                ham_cursor_erase(cursor, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
         ham_delete(db);
     }
 

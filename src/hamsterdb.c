@@ -543,6 +543,9 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
     if (!name || name>=EMPTY_DATABASE_NAME)
         return (HAM_INV_PARAMETER);
 
+    if (env_get_rt_flags(env)&HAM_READ_ONLY)
+        return (HAM_DB_READ_ONLY);
+
     /*
      * only a few flags are allowed
      */
@@ -723,6 +726,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
     env_set_pagesize(env, 0);
     env_set_keysize(env, 0);
     env_set_cachesize(env, cachesize);
+    env_set_rt_flags(env, flags);
 
     return (HAM_SUCCESS);
 }
