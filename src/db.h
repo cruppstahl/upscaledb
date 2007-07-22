@@ -184,8 +184,8 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
 /*
  * set the cache for extended keys
  */
-#define db_set_extkey_cache(db, c)     ham_assert(db_get_env(db)==0, (""));   \
-                                       (db)->_extkey_cache=c
+#define db_set_extkey_cache(db, c) do {ham_assert(db_get_env(db)==0, (""));   \
+                                       (db)->_extkey_cache=(c); } while (0)
 
 /*
  * the database structure
@@ -264,8 +264,8 @@ struct ham_db_t
 /*
  * set the header page - not allowed when we have an environment!
  */
-#define db_set_header_page(db, h)      ham_assert(db_get_env(db)==0, (""));   \
-                                       (db)->_hdrpage=(h)
+#define db_set_header_page(db, h)    do { ham_assert(db_get_env(db)==0, (""));\
+                                       (db)->_hdrpage=(h); } while (0)
 
 /*
  * get the current transaction ID
@@ -311,8 +311,8 @@ struct ham_db_t
 /*
  * set the memory allocator
  */
-#define db_set_allocator(db, a)        ham_assert(db_get_env(db)==0, (""));   \
-                                       (db)->_allocator=(a)
+#define db_set_allocator(db, a)      do { ham_assert(db_get_env(db)==0, (""));\
+                                       (db)->_allocator=(a); } while (0)
 
 /*
  * get the device
@@ -324,8 +324,8 @@ struct ham_db_t
 /*
  * set the device - not allowed in an environment
  */
-#define db_set_device(db, d)           ham_assert(db_get_env(db)==0, (""));   \
-                                       (db)->_device=(d)
+#define db_set_device(db, d)         do { ham_assert(db_get_env(db)==0, (""));\
+                                       (db)->_device=(d); } while (0)
 
 /*
  * get the cache pointer
@@ -337,8 +337,8 @@ struct ham_db_t
 /*
  * set the cache pointer - not allowed in an environment
  */
-#define db_set_cache(db, c)            ham_assert(db_get_env(db)==0, (""));   \
-                                       (db)->_cache=c
+#define db_set_cache(db, c)          do { ham_assert(db_get_env(db)==0, (""));\
+                                       (db)->_cache=(c); } while(0)
 
 /*
  * get the prefix comparison function

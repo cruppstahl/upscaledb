@@ -1007,7 +1007,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     ham_cache_t *cache;
     ham_backend_t *backend;
     ham_u8_t hdrbuf[512];
-    ham_u16_t dbname=EMPTY_DATABASE_NAME;
+    ham_u16_t dbname=FIRST_DATABASE_NAME;
     ham_size_t i, cachesize=0, pagesize=0;
     ham_page_t *page;
     ham_device_t *device;
@@ -1037,7 +1037,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
         }
     }
 
-    if (dbname==EMPTY_DATABASE_NAME && !filename)
+    if (!db_get_env(db) && !filename)
         return (HAM_INV_PARAMETER);
 
     /* 
@@ -1193,6 +1193,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
      */
     for (i=0; i<db_get_indexdata_size(db); i++) {
         ham_u8_t *ptr=db_get_indexdata_at(db, i);
+        if (0==ham_h2db16(*(ham_u16_t *)ptr))
+            continue;
         if (dbname==FIRST_DATABASE_NAME ||
             dbname==ham_h2db16(*(ham_u16_t *)ptr)) {
             db_set_indexdata_offset(db, i);
