@@ -46,6 +46,9 @@ class EnvTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (eraseMultipleDatabases);
     CPPUNIT_TEST      (endianTestOpenDatabase);
     CPPUNIT_TEST      (limitsReachedTest);
+    CPPUNIT_TEST      (createEnvOpenDbTest);
+    CPPUNIT_TEST      (createFullEnvOpenDbTest);
+    CPPUNIT_TEST      (createFullEnvOpenSecondDbTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -1091,6 +1094,69 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void createEnvOpenDbTest(void)
+    {
+        ham_env_t *env;
+        ham_db_t *db;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        CPPUNIT_ASSERT_EQUAL(HAM_SHORT_READ, 
+                ham_open(db, ".test", m_flags));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+    }
+    
+    void createFullEnvOpenDbTest(void)
+    {
+        ham_env_t *env;
+        ham_db_t *db;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create_db(env, db, 111, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_open(db, ".test", m_flags));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+    }
+
+    void createFullEnvOpenSecondDbTest(void)
+    {
+        ham_env_t *env;
+        ham_db_t *db;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create_db(env, db, 111, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create_db(env, db, 222, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_erase_db(env, 111, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_open(db, ".test", m_flags));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
 
 };

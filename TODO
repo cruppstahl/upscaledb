@@ -32,30 +32,33 @@ x db1.c:
     x crashes!!
     x then test on CE
 
+x new unittest: open with READ_ONLY; all write-functions must fail
+
+x new unittest: open env with READ_ONLY; all write-functions must fail, 
+        and write-functions of opened databases must fail, too
+
+x new unittest: create file with pagesize 64kb, then open it
+
+x new unittest: create env with pagesize 64kb, then open it
+
+x new unittest: select a pagesize/keysize so less than 4 keys fit on a 
+    page -> INV_KEYSIZE
+
+x new unittest: create an environment, don't insert a database; close
+    then open the environment as a database file (ham_open)
+
+x new unittest: create an environment, insert a database; close
+    then open the environment as a database file (ham_open)
+        - should load the first available database
+
+x new unittest: create an environment, insert two databases, delete the first
+    then open the environment as a database file (ham_open)
+        - should load the first available database
+
 o new unittests for exclusive file locking
     x check on linux
     x check on windows
     o check on cygwin -- fails!
-
-x new unittest: open with READ_ONLY; all write-functions must fail
-
-o new unittest: open env with READ_ONLY; all write-functions must fail, 
-        and write-functions of opened databases must fail, too
-
-o new unittest: create file with pagesize 64kb, then open it
-
-o new unittest: create env with pagesize 64kb, then open it
-
-o new unittest: create an environment, don't insert a database; close, reopen
-    o then open the environment as a database file (ham_open)
-        - should fail with HAM_DATABASE_NOT_FOUND (document this!)
-
-o new unittest: create an environment, insert two databases, delete the first
-    o then open the environment as a database file (ham_open)
-        - should load the first available database
-
-o new unittest: select a pagesize/keysize so less than 4 keys fit on a 
-    page -> INV_KEYSIZE
 
 
 
@@ -70,4 +73,6 @@ o should backends have a version information? otherwise, the 32byte might be
     page starts at address xxxx?) to speed up the whole process
 
 o add support for logical record numbers
+    o new call "u64_t ham_get_count(db)" (can also be used to get the last
+        lrn)
 
