@@ -75,4 +75,5 @@ o should backends have a version information? otherwise, the 32byte might be
 o add support for logical record numbers
     o new call "u64_t ham_get_count(db)" (can also be used to get the last
         lrn)
+    o stored at little-endian, but returned to the caller in host-endian
 
