@@ -76,4 +76,96 @@ o add support for logical record numbers
     o new call "u64_t ham_get_count(db)" (can also be used to get the last
         lrn)
     o stored at little-endian, but returned to the caller in host-endian
+    o needs new compare function for this database
+    o make sure that keysize is >= 8 (set a good default keysize - needs
+        benchmarks!)
+    o btree insert: add optimization for "late splits" (don't split at 
+        50% but select better pivot element - 95% or so)
+    o write a new sample
+    o enhance tutorial
+    o new unittests (at least 20!)
+    o new acceptance tests!
+
+
+HAM_EXPORT ham_status_t
+ham_get_count(ham_db_t *db, ham_u64_t *newid)
+{
+    ham_backend_t be;
+
+    if (!db)
+        return (db_set_error(db, HAM_INV_PARAMETER));
+
+    be=db_get_backend(db);
+    if (!be)
+        return (db_set_error(db, HAM_NOT_INITIALIZED));
+
+    *newid=be->be_get_count(be);
+    return (db_set_error(db, 0));
+}
+
+static ham_status_t
+be_get_count(btree_backend_t *be, ham_u64_t *count)
+{
+    ham_db_t *db=be_get_owner(be);
+    ham_u8_t *p=db_get_indexdata(db);
+    ham_u64_t c=*(ham_u64_t *)p[16]; // 16??
+
+    *count=ham_db2h64(c);
+    return (0);
+}
+
+static ham_status_t
+be_set_count(btree_backend_t *be, ham_u64_t c)
+{
+    ham_db_t *db=be_get_owner(be);
+    ham_u8_t *p=db_get_indexdata(db);
+    *(ham_u64_t *)p[16]=ham_h2db64(c); // 16??
+
+    return (0);
+}
+
+ham_insert:
+    ham_u64_t newid;
+
+    /*
+     * only an empty key (0/0) is accepted - unless the key is 
+     * user-allocated
+     */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        if (key->flags & HAM_KEY_USERALLOC) {
+            if (!key->data || key->size!=sizeof(ham_u64_t))
+                return (HAM_INV_PARAMETER);
+        }
+        else {
+            if (key->data || key->size)
+                return (HAM_INV_PARAMETER);
+            /* allocate memory for the key */
+            /* TODO */
+        }
+
+        /*
+         * fill in the key - take care of endian-issues!
+         */
+        st=ham_get_count(db, &newid);
+        if (st)
+            return (st);
+        newid++;
+        newid=ham_h2db64(newid);
+    
+        memcpy(key->data, &newid, sizeof(newid));
+        key->size=sizeof(newid);
+    }
+
+
+    /* continue as usually... */
+
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        /* insert failed: if !HAM_KEY_USERALLOC: key->data=0; key->size=0; */
+        /*
+         * on success: return record ID as host endian!
+         */
+        newid=ham_db2h64(newid);
+        memcpy(key->data, &newid, sizeof(newid));
+        ham_assert(ham_get_count(db)==newid);
+    }
 

@@ -64,7 +64,7 @@ The next releases will offer one of the following new features:
 - Fast Database cursors 
 - Configurable page size, cache size and index key size
 - Portable ANSI-C implementation
-- Runs on Linux, Unices, Microsoft Windows
+- Runs on Linux, Unices, Microsoft Windows, Windows CE
 - Uses memory mapped I/O for fast disk access (but falls back to read/write if
   mmap is not available)
 - Uses 64bit file pointers and supports huge files (>2 GB)
