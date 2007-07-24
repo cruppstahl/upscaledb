@@ -62,20 +62,35 @@ o new unittests for exclusive file locking
 
 
 
-o all unittests should run on Windows CE
-
 o more tests and performance checks with very large files - around 10 GB
+    o write perl-script to generate the tests - w/o extended keys
+    o write perl-script to generate the tests - w/  extended keys
+
+
+o all unittests should run on Windows CE
 
 o should backends have a version information? otherwise, the 32byte might be
     full, and we don't have room for an overflow area...
 
 ? freelist: keep lookaside-list of freelist pages (which freelist
     page starts at address xxxx?) to speed up the whole process
+        o collect this idea in a file, but don't implement it (yet)
 
 o add support for logical record numbers
+    o new (persistent) flag
     o new call "u64_t ham_get_count(db)" (can also be used to get the last
         lrn)
     o stored at little-endian, but returned to the caller in host-endian
+    o ham_insert: key must be NULL, (0/NULL) or (sizeof(u64_t)/!NULL)
+        - in the last case, the key is filled (host-endian)
+
+    o unittest: create, insert, close; reopen, insert, close -> must 
+        continue the sequence
+
+    o new sample db4
+    o documentation
+    o tutorial
+
     o needs new compare function for this database
     o make sure that keysize is >= 8 (set a good default keysize - needs
         benchmarks!)
@@ -168,4 +183,6 @@ ham_insert:
         memcpy(key->data, &newid, sizeof(newid));
         ham_assert(ham_get_count(db)==newid);
     }
+
+o release 0.4.5
 
