@@ -55,10 +55,15 @@ x new unittest: create an environment, insert two databases, delete the first
     then open the environment as a database file (ham_open)
         - should load the first available database
 
-o new unittests for exclusive file locking
+x new unittests for exclusive file locking
     x check on linux
     x check on windows
-    o check on cygwin -- fails!
+    x check on cygwin -- fails!
+
+x should backends have a version information? otherwise, the 32byte might be
+    full, and we don't have room for an overflow area...
+    -> not yet, still enough room
+
 
 
 
@@ -67,39 +72,35 @@ o more tests and performance checks with very large files - around 10 GB
     o write perl-script to generate the tests - w/  extended keys
 
 
-o all unittests should run on Windows CE
-
-o should backends have a version information? otherwise, the 32byte might be
-    full, and we don't have room for an overflow area...
-
-? freelist: keep lookaside-list of freelist pages (which freelist
-    page starts at address xxxx?) to speed up the whole process
-        o collect this idea in a file, but don't implement it (yet)
-
 o add support for logical record numbers
-    o new (persistent) flag
+    o new (persistent) flag HAM_RECORD_NUMBER
     o new call "u64_t ham_get_count(db)" (can also be used to get the last
         lrn)
-    o stored at little-endian, but returned to the caller in host-endian
-    o ham_insert: key must be NULL, (0/NULL) or (sizeof(u64_t)/!NULL)
-        - in the last case, the key is filled (host-endian)
+    o stored in db-endian, but returned to the caller in host-endian
+    o how to recover after a crash?? 
+        if file is opened as recno, always check if count==last_element??
+        yes - would be a cheep check, and the pages are needed anyway
 
-    o unittest: create, insert, close; reopen, insert, close -> must 
-        continue the sequence
-
-    o new sample db4
-    o documentation
-    o tutorial
-
-    o needs new compare function for this database
+    o needs new compare function for this database (same as in acceptance test)
     o make sure that keysize is >= 8 (set a good default keysize - needs
         benchmarks!)
+    o ham_insert: key must be NULL, (0/NULL) or (sizeof(u64_t)/!NULL)
+        - in the last case, the key is filled (host-endian)
     o btree insert: add optimization for "late splits" (don't split at 
         50% but select better pivot element - 95% or so)
-    o write a new sample
-    o enhance tutorial
+    o also modify ham_cursor_insert
+
     o new unittests (at least 20!)
+        o create, insert, close; reopen, insert, close -> must 
+            continue the sequence
+        o insert other keys -> not allowed
+
     o new acceptance tests!
+    o cross-platform-tests!
+
+    o new sample db4 - same as db3.c, but with recno
+    o documentation
+    o tutorial
 
 
 HAM_EXPORT ham_status_t
@@ -123,7 +124,7 @@ be_get_count(btree_backend_t *be, ham_u64_t *count)
 {
     ham_db_t *db=be_get_owner(be);
     ham_u8_t *p=db_get_indexdata(db);
-    ham_u64_t c=*(ham_u64_t *)p[16]; // 16??
+    ham_u64_t c=*(ham_u64_t *)p[20]; // 20??
 
     *count=ham_db2h64(c);
     return (0);
@@ -134,7 +135,7 @@ be_set_count(btree_backend_t *be, ham_u64_t c)
 {
     ham_db_t *db=be_get_owner(be);
     ham_u8_t *p=db_get_indexdata(db);
-    *(ham_u64_t *)p[16]=ham_h2db64(c); // 16??
+    *(ham_u64_t *)p[20]=ham_h2db64(c); // 20??
 
     return (0);
 }
@@ -184,5 +185,22 @@ ham_insert:
         ham_assert(ham_get_count(db)==newid);
     }
 
+? freelist: keep lookaside-list of freelist pages (which freelist
+    page starts at address xxxx?) to speed up the whole process
+        o collect this idea in a file, but don't implement it (yet)
+
+o bei ham_flush wird auch die db-header-page geflusht. wird sie zuvor auch
+    vom btree geupdated? das passiert nämlich nur in btree_close
+    o neue funktion btree_flush
+    o wird von btree_close aufgerufen
+    o wird im ham_flush aufgerufen
+
+o unittest for ham_flush
+    o create a new environment, insert a few items, erase them (for the 
+        freelist); then flush; don't close the database; open the 
+        file with a second handle, and check if everything is available
+
 o release 0.4.5
+
+o environment should support a configurable number of databases
 
