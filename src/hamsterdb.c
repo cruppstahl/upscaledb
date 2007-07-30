@@ -2286,6 +2286,8 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             }
             else
                 db_set_key_allocsize(db, sizeof(ham_u64_t));
+
+            key->data=db_get_key_allocdata(db);
         }
 
         /*
