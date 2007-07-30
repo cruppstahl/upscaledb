@@ -93,7 +93,7 @@ o add support for logical record numbers
         x create, insert, close; reopen, insert, close -> must 
             continue the sequence
         x insert other keys -> not allowed
-        o repeat all unit-tests with cursors
+        x repeat all unit-tests with cursors
         o test recno in an environment (with other databases, and
             non-recno databases)
 
