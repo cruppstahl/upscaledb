@@ -195,6 +195,9 @@ struct ham_db_t
     /* the current transaction ID */
     ham_u64_t _txn_id;
 
+    /* the last recno-value */
+    ham_u64_t _recno;
+
     /* the last error code */
     ham_status_t _error;
 
@@ -280,6 +283,16 @@ struct ham_db_t
 #define db_set_txn_id(db, id)          do { if (db_get_env(db))               \
                                          env_set_txn_id(db_get_env(db), id);  \
                                          else (db)->_txn_id=id; } while(0)
+
+/*
+ * get the last recno value
+ */
+#define db_get_recno(db)               (db)->_recno
+
+/*
+ * set the last recno value
+ */
+#define db_set_recno(db, r)            (db)->_recno=r
 
 /*
  * get the last error code
@@ -488,6 +501,18 @@ db_uncouple_all_cursors(ham_page_t *page);
  */
 extern int
 db_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
+                   const ham_u8_t *rhs, ham_size_t rhs_length);
+
+/**
+ * compare two recno-keys
+ *
+ * this function compares two record numbers
+ *
+ * on error, the database error code (db_get_error()) is set; the caller
+ * HAS to check for this error!
+ */
+extern int
+db_default_recno_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
                    const ham_u8_t *rhs, ham_size_t rhs_length);
 
 /**

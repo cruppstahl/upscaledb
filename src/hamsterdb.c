@@ -280,8 +280,12 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
             case HAM_PARAM_KEYSIZE:
                 if (is_env) /* calling from ham_env_create_ex? */
                     return (HAM_INV_PARAMETER);
-                else
+                else {
                     keysize=(ham_u16_t)param->value;
+                    if ((*flags)&HAM_RECORD_NUMBER)
+                        if (keysize<sizeof(ham_u64_t))
+                            return (HAM_INV_KEYSIZE);
+                }
                 break;
             case HAM_PARAM_PAGESIZE:
                 pagesize=(ham_u32_t)param->value;
@@ -377,20 +381,26 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
     }
 
     /*
-     * make sure that the pagesize is big enough for at least 5 keys
+     * make sure that the pagesize is big enough for at least 5 keys;
+     * record number database: need 8 byte
      */
-    if (keysize)
+    if (keysize) {
         if (pagesize/keysize<5)
             return (HAM_INV_KEYSIZE);
+    }
 
     /*
-     * initialize the database with a good default value;
+     * initialize the keysize with a good default value;
      * 32byte is the size of a first level cache line for most modern
      * processors; adjust the keysize, so the keys are aligned to
      * 32byte
      */
-    if (keysize==0)
-        keysize=32-(sizeof(int_key_t)-1);
+    if (keysize==0) {
+        if ((*flags)&HAM_RECORD_NUMBER)
+            keysize=sizeof(ham_u64_t); /* TODO benchmark! */
+        else
+            keysize=32-(sizeof(int_key_t)-1);
+    }
 
     /*
      * return the fixed parameters
@@ -400,6 +410,35 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
     *ppagesize =pagesize;
     if (pdbname)
         *pdbname=dbname;
+
+    return (0);
+}
+
+static ham_status_t
+__recno_lazy_load(ham_db_t *db, ham_u64_t *recno)
+{
+    ham_status_t st;
+    ham_cursor_t *cursor;
+    ham_key_t key;
+
+    memset(&key, 0, sizeof(key));
+    key.flags=HAM_KEY_USER_ALLOC;
+    key.data=recno;
+    key.size=sizeof(*recno);
+
+    st=ham_cursor_create(db, 0, 0, &cursor);
+    if (st)
+        return (db_set_error(db, st));
+
+    st=ham_cursor_move(cursor, &key, 0, HAM_CURSOR_LAST);
+    (void)ham_cursor_close(cursor);
+    if (st==HAM_KEY_NOT_FOUND)
+        return (db_set_error(db, 0));
+    else
+        return (db_set_error(db, st));
+    
+    *recno=*(ham_u64_t *)key.data;
+    *recno=ham_db2h64(*recno);
 
     return (0);
 }
@@ -1268,8 +1307,13 @@ ham_open_ex(ham_db_t *db, const char *filename,
     /* 
      * set the key compare function
      */
-    ham_set_compare_func(db, db_default_compare);
-    ham_set_prefix_compare_func(db, db_default_prefix_compare);
+    if (flags&HAM_RECORD_NUMBER) {
+        ham_set_compare_func(db, db_default_recno_compare);
+    }
+    else {
+        ham_set_compare_func(db, db_default_compare);
+        ham_set_prefix_compare_func(db, db_default_prefix_compare);
+    }
 
     return (HAM_SUCCESS);
 }
@@ -1299,6 +1343,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
         return (HAM_INV_PARAMETER);
 
     db_set_error(db, 0);
+
 
     /*
      * check (and modify) the parameters
@@ -1499,8 +1544,13 @@ ham_create_ex(ham_db_t *db, const char *filename,
     /*
      * set the default key compare functions
      */
-    ham_set_compare_func(db, db_default_compare);
-    ham_set_prefix_compare_func(db, db_default_prefix_compare);
+    if (flags&HAM_RECORD_NUMBER) {
+        ham_set_compare_func(db, db_default_recno_compare);
+    }
+    else {
+        ham_set_compare_func(db, db_default_compare);
+        ham_set_prefix_compare_func(db, db_default_prefix_compare);
+    }
     db_set_dirty(db, HAM_TRUE);
 
     return (HAM_SUCCESS);
@@ -1584,6 +1634,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     ham_txn_t txn;
     ham_status_t st;
     ham_backend_t *be;
+    ham_u64_t recno;
 
     if (!db || !key || !record)
         return (HAM_INV_PARAMETER);
@@ -1608,6 +1659,69 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
         return (st);
 
     /*
+     * record number: make sure that we have a valid key structure,
+     * and lazy load the last used record number
+     */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        /*
+         * get the record number (host endian) and increment it
+         */
+        recno=db_get_recno(db);
+        if (!recno) {
+            st=__recno_lazy_load(db, &recno);
+            if (st) {
+                (void)ham_txn_abort(&txn);
+                return (st);
+            }
+        }
+        recno++;
+
+        /*
+         * now do the allocation (__recno_lazy_load uses a cursor, which
+         * could overwrite our next key allocation
+         */
+        if (key->flags&HAM_KEY_USER_ALLOC) {
+            if (!key->data || key->size!=sizeof(ham_u64_t)) {
+                (void)ham_txn_abort(&txn);
+                return (HAM_INV_PARAMETER);
+            }
+        }
+        else {
+            if (key->data || key->size) {
+                (void)ham_txn_abort(&txn);
+                return (HAM_INV_PARAMETER);
+            }
+            /* 
+             * allocate memory for the key
+             */
+            if (sizeof(ham_u64_t)>db_get_key_allocsize(db)) {
+                if (db_get_key_allocdata(db))
+                    ham_mem_free(db, db_get_key_allocdata(db));
+                db_set_key_allocdata(db, ham_mem_alloc(db, sizeof(ham_u64_t)));
+                if (!db_get_key_allocdata(db)) {
+                    (void)ham_txn_abort(&txn);
+                    db_set_key_allocsize(db, 0);
+                    return (db_set_error(db, HAM_OUT_OF_MEMORY));
+                }
+                else {
+                    db_set_key_allocsize(db, sizeof(ham_u64_t));
+                }
+            }
+            else
+                db_set_key_allocsize(db, sizeof(ham_u64_t));
+
+            key->data=db_get_key_allocdata(db);
+        }
+
+        /*
+         * store it in db endian
+         */
+        recno=ham_h2db64(recno);
+        memcpy(key->data, &recno, sizeof(ham_u64_t));
+        key->size=sizeof(ham_u64_t);
+    }
+
+    /*
      * store the index entry; the backend will store the blob
      */
     st=be->_fun_insert(be, key, record, flags);
@@ -1617,7 +1731,27 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
         (void)ham_txn_abort(&txn);
 #endif
         (void)ham_txn_commit(&txn, 0);
+
+        if (!(key->flags&HAM_KEY_USER_ALLOC)) {
+            key->data=0;
+            key->size=0;
+        }
+#if HAM_DEBUG
+        if (db_get_rt_flags(db)&HAM_RECORD_NUMBER)
+            ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
+#endif
         return (st);
+    }
+
+    /*
+     * record numbers: return key in host endian! and store the incremented
+     * record number
+     */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        recno=ham_db2h64(recno);
+        memcpy(key->data, &recno, sizeof(ham_u64_t));
+        key->size=sizeof(ham_u64_t);
+        db_set_recno(db, recno);
     }
 
     return (ham_txn_commit(&txn, 0));
@@ -2086,6 +2220,8 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     ham_db_t *db;
+    ham_status_t st;
+    ham_u64_t recno;
 
     if (!cursor || !key || !record)
         return (HAM_INV_PARAMETER);
@@ -2106,7 +2242,86 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         (key->size>db_get_keysize(db)))
         return (db_set_error(db, HAM_INV_KEYSIZE));
 
-    return (bt_cursor_insert((ham_bt_cursor_t *)cursor, key, record, flags));
+    /*
+     * record number: make sure that we have a valid key structure,
+     * and lazy load the last used record number
+     */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        /*
+         * get the record number (host endian) and increment it
+         */
+        recno=db_get_recno(db);
+        if (!recno) {
+            st=__recno_lazy_load(db, &recno);
+            if (st)
+                return (st);
+        }
+        recno++;
+
+        /*
+         * now do the allocation (__recno_lazy_load uses a cursor, which
+         * could overwrite our next key allocation
+         */
+        if (key->flags&HAM_KEY_USER_ALLOC) {
+            if (!key->data || key->size!=sizeof(ham_u64_t))
+                return (HAM_INV_PARAMETER);
+        }
+        else {
+            if (key->data || key->size)
+                return (HAM_INV_PARAMETER);
+            /* 
+             * allocate memory for the key
+             */
+            if (sizeof(ham_u64_t)>db_get_key_allocsize(db)) {
+                if (db_get_key_allocdata(db))
+                    ham_mem_free(db, db_get_key_allocdata(db));
+                db_set_key_allocdata(db, ham_mem_alloc(db, sizeof(ham_u64_t)));
+                if (!db_get_key_allocdata(db)) {
+                    db_set_key_allocsize(db, 0);
+                    return (db_set_error(db, HAM_OUT_OF_MEMORY));
+                }
+                else {
+                    db_set_key_allocsize(db, sizeof(ham_u64_t));
+                }
+            }
+            else
+                db_set_key_allocsize(db, sizeof(ham_u64_t));
+        }
+
+        /*
+         * store it in db endian
+         */
+        recno=ham_h2db64(recno);
+        memcpy(key->data, &recno, sizeof(ham_u64_t));
+        key->size=sizeof(ham_u64_t);
+    }
+
+    st=bt_cursor_insert((ham_bt_cursor_t *)cursor, key, record, flags);
+
+    if (st) {
+        if (!(key->flags&HAM_KEY_USER_ALLOC)) {
+            key->data=0;
+            key->size=0;
+        }
+#if HAM_DEBUG
+        if (db_get_rt_flags(db)&HAM_RECORD_NUMBER)
+            ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
+#endif
+        return (st);
+    }
+
+    /*
+     * record numbers: return key in host endian! and store the incremented
+     * record number
+     */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        recno=ham_db2h64(recno);
+        memcpy(key->data, &recno, sizeof(ham_u64_t));
+        key->size=sizeof(ham_u64_t);
+        db_set_recno(db, recno);
+    }
+
+    return (0);
 }
 
 ham_status_t

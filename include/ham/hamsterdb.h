@@ -720,6 +720,13 @@ ham_create(ham_db_t *db, const char *filename,
  *            be NULL. Do <b>NOT</b> use in combination with
  *            @a HAM_CACHE_STRICT and do <b>NOT</b> specify @a cachesize
  *            other than 0.
+ *       <li>@a HAM_RECORD_NUMBER</li> Creates an "auto-increment" database.
+ *            Record number databases are automatically assigned an 
+ *            incrementing key value. If key->data is not NULL
+ *            (and key->flags is @a HAM_KEY_USER_ALLOC and key->size is 8),
+ *            the value of the current key is returned in @a key (a 
+ *            host-endian 64bit number of type ham_u64_t). Otherwise,
+ *            key->data must be NULL and key->size must be 0.
  *       <li>@a HAM_DISABLE_MMAP</li> Do not use memory mapped files for I/O.
  *            By default, hamsterdb checks if it can use mmap,
  *            since mmap is faster than read/write. For performance
@@ -889,6 +896,9 @@ ham_open_ex(ham_db_t *db, const char *filename,
 
 /** Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex */
 #define HAM_LOCK_EXCLUSIVE           0x00001000
+
+/** Flag for @a ham_create, @a ham_create_ex */
+#define HAM_RECORD_NUMBER            0x00002000
 
 /** Parameter name for @a ham_open_ex, @a ham_create_ex; sets the cache
  * size*/

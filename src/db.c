@@ -99,6 +99,20 @@ db_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
     return (0);
 }
 
+int
+db_default_recno_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
+                   const ham_u8_t *rhs, ham_size_t rhs_length)
+{
+    ham_u64_t ulhs=ham_db2h64(*(unsigned *)lhs);
+    ham_u64_t urhs=ham_db2h64(*(unsigned *)rhs);
+
+    if (ulhs<urhs)
+        return -1;
+    if (ulhs==urhs)
+        return 0;
+    return 1;
+}
+
 ham_status_t
 db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
                     ham_size_t key_length, ham_u32_t key_flags,
