@@ -21,9 +21,11 @@ class RecNoTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (createCloseTest);
     CPPUNIT_TEST      (createCloseOpenCloseTest);
     CPPUNIT_TEST      (createInsertCloseTest);
+    CPPUNIT_TEST      (createInsertCloseCursorTest);
     CPPUNIT_TEST      (createInsertCloseReopenTest);
     CPPUNIT_TEST      (createInsertCloseReopenTwiceTest);
     CPPUNIT_TEST      (insertBadKeyTest);
+    CPPUNIT_TEST      (insertBadKeyCursorTest);
     CPPUNIT_TEST      (createBadKeysizeTest);
     CPPUNIT_TEST_SUITE_END();
 
@@ -139,6 +141,39 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
     }
 
+    void createInsertCloseCursorTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_cursor_t *cursor;
+        ham_u64_t recno, value=1;
+
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+
+        key.flags|=HAM_KEY_USER_ALLOC;
+        key.data=&recno;
+        key.size=sizeof(recno);
+
+        rec.data=&value;
+        rec.size=sizeof(value);
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_create(m_db, 0, 0, &cursor));
+
+        for (int i=0; i<5; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(cursor, &key, &rec, 0));
+            CPPUNIT_ASSERT_EQUAL((ham_u64_t)i+1, recno);
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+    }
+
     void createInsertCloseReopenTwiceTest(void)
     {
         ham_key_t key;
@@ -222,6 +257,45 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
     }
 
+    void insertBadKeyCursorTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_cursor_t *cursor;
+        ham_u64_t recno;
+
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_create(m_db, 0, 0, &cursor));
+
+        key.flags=0;
+        key.data=&recno;
+        key.size=sizeof(recno);
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_insert(cursor, &key, &rec, 0));
+
+        key.data=0;
+        key.size=8;
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_insert(cursor, &key, &rec, 0));
+
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_insert(cursor, 0, &rec, 0));
+
+        key.data=0;
+        key.size=0;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_insert(cursor, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)1ull, *(ham_u64_t *)key.data);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+    }
+
     void createBadKeysizeTest(void)
     {
         ham_parameter_t p[]={
@@ -238,7 +312,6 @@ public:
                 ham_create_ex(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 
                     0664, &p[0]));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
-
     }
 };
 
@@ -247,7 +320,9 @@ class InMemoryRecNoTest : public RecNoTest
     CPPUNIT_TEST_SUITE(InMemoryRecNoTest);
     CPPUNIT_TEST      (createCloseTest);
     CPPUNIT_TEST      (createInsertCloseTest);
+    CPPUNIT_TEST      (createInsertCloseCursorTest);
     CPPUNIT_TEST      (insertBadKeyTest);
+    //CPPUNIT_TEST      (insertBadKeyCursorTest);
     CPPUNIT_TEST      (createBadKeysizeTest);
     CPPUNIT_TEST_SUITE_END();
 
