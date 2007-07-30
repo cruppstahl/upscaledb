@@ -397,7 +397,7 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
      */
     if (keysize==0) {
         if ((*flags)&HAM_RECORD_NUMBER)
-            keysize=sizeof(ham_u64_t); /* TODO benchmark! */
+            keysize=sizeof(ham_u64_t);
         else
             keysize=32-(sizeof(int_key_t)-1);
     }

@@ -189,8 +189,12 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
      * check if we've at least "minkeys" entries in this node.
      * a root page can have ANY number of keys, and we relax the "minkeys"
      * for internal pages.
+     *
+     * !! recno databases have relaxed SMO rules
      */
-    if (btree_node_get_left(node)!=0 || btree_node_get_right(node)!=0) {
+    if ((btree_node_get_left(node)!=0 
+        || btree_node_get_right(node)!=0)
+        && !(db_get_rt_flags(db)&HAM_RECORD_NUMBER)) {
         ham_bool_t isfew=HAM_FALSE;
         if (btree_node_get_ptr_left(node))
             isfew=btree_node_get_count(node)<btree_get_minkeys(maxkeys)-1;

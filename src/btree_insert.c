@@ -576,13 +576,19 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
 
     /*
      * move half of the key/rid-tuples to the new page
+     *
+     * !! recno: keys are sorted; we do a "lazy split"
      */
     nbtp=ham_page_get_btree_node(newpage);
     nbte=btree_node_get_key(db, nbtp, 0);
     obtp=ham_page_get_btree_node(page);
     obte=btree_node_get_key(db, obtp, 0);
     count=btree_node_get_count(obtp);
-    pivot=count/2;
+
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER && count>8)
+        pivot=count-4;
+    else
+        pivot=count/2;
 
     /*
      * if we split a leaf, we'll insert the pivot element in the leaf
