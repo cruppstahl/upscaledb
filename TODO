@@ -64,135 +64,55 @@ x should backends have a version information? otherwise, the 32byte might be
     full, and we don't have room for an overflow area...
     -> not yet, still enough room
 
+x more tests and performance checks with very large files - around 256 MB
+    x write perl-script to generate the tests - w/o extended keys, big blobs
+    x write perl-script to generate the tests - w/  extended keys, big blobs
+    -> findings: ham_insert is a bit slower, but cursors (and erase and find)
+        are way faster
 
 
 
-o more tests and performance checks with very large files - around 10 GB
-    o write perl-script to generate the tests - w/o extended keys
-    o write perl-script to generate the tests - w/  extended keys
 
 
 o add support for logical record numbers
-    o new (persistent) flag HAM_RECORD_NUMBER
-    o new call "u64_t ham_get_count(db)" (can also be used to get the last
-        lrn)
-    o stored in db-endian, but returned to the caller in host-endian
-    o how to recover after a crash?? 
-        if file is opened as recno, always check if count==last_element??
-        yes - would be a cheep check, and the pages are needed anyway
-
-    o needs new compare function for this database (same as in acceptance test)
-    o make sure that keysize is >= 8 (set a good default keysize - needs
+    x new (persistent) flag HAM_RECORD_NUMBER
+    x needs new compare function for this database (same as in acceptance test)
+    x on first request, get a cursor to the last element and fetch the
+        previous recno
+    x make sure that keysize is >= 8 (set a good default keysize - needs
         benchmarks!)
-    o ham_insert: key must be NULL, (0/NULL) or (sizeof(u64_t)/!NULL)
+    x ham_insert: key must be NULL, (0/NULL) or (sizeof(u64_t)/!NULL)
         - in the last case, the key is filled (host-endian)
+    x stored in db-endian, returned in host-endian
+    x also modify ham_cursor_insert
+
     o btree insert: add optimization for "late splits" (don't split at 
         50% but select better pivot element - 95% or so)
-    o also modify ham_cursor_insert
 
-    o new unittests (at least 20!)
-        o create, insert, close; reopen, insert, close -> must 
+    o new unittests
+        x create, insert, close; reopen, insert, close -> must 
             continue the sequence
-        o insert other keys -> not allowed
+        x insert other keys -> not allowed
+        o repeat all unit-tests with cursors
+        o test recno in an environment (with other databases, and
+            non-recno databases)
 
     o new acceptance tests!
     o cross-platform-tests!
+    o benchmark for best keysize
 
     o new sample db4 - same as db3.c, but with recno
     o documentation
     o tutorial
 
-
-HAM_EXPORT ham_status_t
-ham_get_count(ham_db_t *db, ham_u64_t *newid)
-{
-    ham_backend_t be;
-
-    if (!db)
-        return (db_set_error(db, HAM_INV_PARAMETER));
-
-    be=db_get_backend(db);
-    if (!be)
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
-
-    *newid=be->be_get_count(be);
-    return (db_set_error(db, 0));
-}
-
-static ham_status_t
-be_get_count(btree_backend_t *be, ham_u64_t *count)
-{
-    ham_db_t *db=be_get_owner(be);
-    ham_u8_t *p=db_get_indexdata(db);
-    ham_u64_t c=*(ham_u64_t *)p[20]; // 20??
-
-    *count=ham_db2h64(c);
-    return (0);
-}
-
-static ham_status_t
-be_set_count(btree_backend_t *be, ham_u64_t c)
-{
-    ham_db_t *db=be_get_owner(be);
-    ham_u8_t *p=db_get_indexdata(db);
-    *(ham_u64_t *)p[20]=ham_h2db64(c); // 20??
-
-    return (0);
-}
-
-ham_insert:
-    ham_u64_t newid;
-
-    /*
-     * only an empty key (0/0) is accepted - unless the key is 
-     * user-allocated
-     */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        if (key->flags & HAM_KEY_USERALLOC) {
-            if (!key->data || key->size!=sizeof(ham_u64_t))
-                return (HAM_INV_PARAMETER);
-        }
-        else {
-            if (key->data || key->size)
-                return (HAM_INV_PARAMETER);
-            /* allocate memory for the key */
-            /* TODO */
-        }
-
-        /*
-         * fill in the key - take care of endian-issues!
-         */
-        st=ham_get_count(db, &newid);
-        if (st)
-            return (st);
-        newid++;
-        newid=ham_h2db64(newid);
-    
-        memcpy(key->data, &newid, sizeof(newid));
-        key->size=sizeof(newid);
-    }
-
-
-    /* continue as usually... */
-
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        /* insert failed: if !HAM_KEY_USERALLOC: key->data=0; key->size=0; */
-        /*
-         * on success: return record ID as host endian!
-         */
-        newid=ham_db2h64(newid);
-        memcpy(key->data, &newid, sizeof(newid));
-        ham_assert(ham_get_count(db)==newid);
-    }
-
-? freelist: keep lookaside-list of freelist pages (which freelist
-    page starts at address xxxx?) to speed up the whole process
-        o collect this idea in a file, but don't implement it (yet)
+o unittest for cursors: ham_insert(x), ham_insert(x+1) 
+    cursor_find(x); cursor!=NULL; ham_erase(x); 
+    cursor_move(key, rec, NEXT); -> KEY_NOT_FOUND
 
 o bei ham_flush wird auch die db-header-page geflusht. wird sie zuvor auch
     vom btree geupdated? das passiert nämlich nur in btree_close
     o neue funktion btree_flush
-    o wird von btree_close aufgerufen
+    o wird auch von btree_close aufgerufen
     o wird im ham_flush aufgerufen
 
 o unittest for ham_flush
