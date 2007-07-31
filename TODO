@@ -103,8 +103,16 @@ o add support for logical record numbers
     o cross-platform-tests!
 
     x new sample db4 - same as db3.c, but with recno
+    o add sample to Visual Studio solution
     o documentation (for ham_insert, ham_cursor_insert)
     o tutorial
+
+o rename HAM_SHORT_READ/HAM_SHORT_WRITE to HAM_IO_ERROR
+
+o unittests don't work on win32
+    o wrong working directory (can't find data files)
+    o HAM_LOCK_EXCLUSIVE broken
+    o HAM_READ_ONLY broken
 
 o unittest for cursors: ham_insert(x), ham_insert(x+1) 
     cursor_find(x); cursor!=NULL; ham_erase(x); 
