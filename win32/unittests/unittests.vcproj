@@ -407,6 +407,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\unittests\recno.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\..\unittests\txn.cpp"
 			>
 		</File>
