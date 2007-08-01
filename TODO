@@ -76,6 +76,18 @@ x unittest for cursors: ham_insert(x), ham_insert(x+1)
     cursor_find(x); cursor!=NULL; ham_erase(x); 
     cursor_move(key, rec, NEXT); -> KEY_NOT_FOUND
 
+x bei ham_flush wird auch die db-header-page geflusht. wird sie zuvor auch
+    vom btree geupdated? das passiert nämlich nur in btree_close
+    x neue funktion btree_flush
+    x wird auch von btree_close aufgerufen
+    x wird im ham_flush aufgerufen
+
+x unittest for ham_flush
+    x create a new environment, insert a few items, then flush; 
+        don't close the database; open the file with a second handle, 
+        and check if everything is available
+
+
 
 
 
@@ -117,35 +129,5 @@ o unittests don't work on win32
     o HAM_LOCK_EXCLUSIVE broken
     o HAM_READ_ONLY broken
 
-o bei ham_flush wird auch die db-header-page geflusht. wird sie zuvor auch
-    vom btree geupdated? das passiert nämlich nur in btree_close
-    o neue funktion btree_flush
-    o wird auch von btree_close aufgerufen
-    o wird im ham_flush aufgerufen
-
-o unittest for ham_flush
-    o create a new environment, insert a few items, then flush; 
-        don't close the database; open the file with a second handle, 
-        and check if everything is available
-
 o release 0.4.5
-
-o environment should support a configurable number of databases
-
-o refactor acceptance test
-    o support for different databases
-    o can work with btree, recno and future backends
-    o os-independent (profiling-support)
-    o databases are always linked dynamically; dll/so files are part
-        of the repository; every system (linux/le/32, linux/be/32, etc)
-        gets its own subdirectory in /env)
-    o better verbosity/error logging, diagnostics
-
-    design:
-        parser runs through script; for inserts: prepares keys/record blobs;
-        calls database-objects (through callbacks/interface ptr)
-
-        tricky: how to do database comparisons
-        -> first database is ALWAYS hamsterdb
-        -> walk through second database w/ cursor, use ham_find on hamsterdb
 

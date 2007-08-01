@@ -33,7 +33,7 @@ extern "C" {
  * This is the minimum chunk size; all chunks (pages and blobs) are aligned
  * to this size. 
  */
-#define DB_CHUNKSIZE        64
+#define DB_CHUNKSIZE        32
 
 /*
  * the maximum number of indices (if this file is an environment with 
