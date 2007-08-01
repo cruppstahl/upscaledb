@@ -3,6 +3,8 @@ o removed status codes HAM_SHORT_READ and HAM_SHORT_WRITE; instead,
     HAM_IO_ERROR is now used
 o ham_flush() now also flushes the header page (so far the header page was
     forgotten under certain circumstances)
+o set the DB_CHUNKSIZE (which is the minimum size of a freelist entry) to 
+    32 instead of 64; generated database files are much smaller now
 
 Jul 22, 2007 - chris
 o when opening an environment file with ham_open (as a database), the first
