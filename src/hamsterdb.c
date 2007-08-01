@@ -1905,6 +1905,13 @@ ham_flush(ham_db_t *db, ham_u32_t flags)
         return (0);
 
     /*
+     * flush the backend
+     */
+    st=db_get_backend(db)->_fun_flush(db_get_backend(db));
+    if (st)
+        return (db_set_error(db, st));
+
+    /*
      * update the header page, if necessary
      */
     if (db_is_dirty(db)) {

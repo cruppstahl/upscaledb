@@ -173,7 +173,7 @@ my_fun_open(ham_btree_t *be, ham_u32_t flags)
 }
 
 static ham_status_t
-my_fun_close(ham_btree_t *be)
+my_fun_flush(ham_btree_t *be)
 {
     ham_db_t *db=btree_get_db(be);
     ham_u8_t *indexdata=db_get_indexdata(db);
@@ -199,6 +199,15 @@ my_fun_close(ham_btree_t *be)
     return (0);
 }
 
+static ham_status_t
+my_fun_close(ham_btree_t *be)
+{
+    /*
+     * just flush the backend info if it's dirty
+     */
+    return (my_fun_flush(be));
+}
+
 static void
 my_fun_delete(ham_btree_t *be)
 {
@@ -215,6 +224,7 @@ btree_create(ham_btree_t *btree, ham_db_t *db, ham_u32_t flags)
     btree->_fun_create=my_fun_create;
     btree->_fun_open=my_fun_open;
     btree->_fun_close=my_fun_close;
+    btree->_fun_flush=my_fun_flush;
     btree->_fun_delete=my_fun_delete;
     btree->_fun_find=btree_find;
     btree->_fun_insert=btree_insert;

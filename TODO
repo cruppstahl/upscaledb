@@ -70,6 +70,12 @@ x more tests and performance checks with very large files - around 256 MB
     -> findings: ham_insert is a bit slower, but cursors (and erase and find)
         are way faster
 
+x rename HAM_SHORT_READ/HAM_SHORT_WRITE to HAM_IO_ERROR
+
+x unittest for cursors: ham_insert(x), ham_insert(x+1) 
+    cursor_find(x); cursor!=NULL; ham_erase(x); 
+    cursor_move(key, rec, NEXT); -> KEY_NOT_FOUND
+
 
 
 
@@ -106,7 +112,25 @@ o add support for logical record numbers
     o documentation (for ham_insert, ham_cursor_insert)
     o tutorial
 
-o rename HAM_SHORT_READ/HAM_SHORT_WRITE to HAM_IO_ERROR
+o unittests don't work on win32
+    o wrong working directory (can't find data files)
+    o HAM_LOCK_EXCLUSIVE broken
+    o HAM_READ_ONLY broken
+
+o bei ham_flush wird auch die db-header-page geflusht. wird sie zuvor auch
+    vom btree geupdated? das passiert nämlich nur in btree_close
+    o neue funktion btree_flush
+    o wird auch von btree_close aufgerufen
+    o wird im ham_flush aufgerufen
+
+o unittest for ham_flush
+    o create a new environment, insert a few items, then flush; 
+        don't close the database; open the file with a second handle, 
+        and check if everything is available
+
+o release 0.4.5
+
+o environment should support a configurable number of databases
 
 o refactor acceptance test
     o support for different databases
@@ -124,28 +148,4 @@ o refactor acceptance test
         tricky: how to do database comparisons
         -> first database is ALWAYS hamsterdb
         -> walk through second database w/ cursor, use ham_find on hamsterdb
-
-o unittests don't work on win32
-    o wrong working directory (can't find data files)
-    o HAM_LOCK_EXCLUSIVE broken
-    o HAM_READ_ONLY broken
-
-o unittest for cursors: ham_insert(x), ham_insert(x+1) 
-    cursor_find(x); cursor!=NULL; ham_erase(x); 
-    cursor_move(key, rec, NEXT); -> KEY_NOT_FOUND
-
-o bei ham_flush wird auch die db-header-page geflusht. wird sie zuvor auch
-    vom btree geupdated? das passiert nämlich nur in btree_close
-    o neue funktion btree_flush
-    o wird auch von btree_close aufgerufen
-    o wird im ham_flush aufgerufen
-
-o unittest for ham_flush
-    o create a new environment, insert a few items, erase them (for the 
-        freelist); then flush; don't close the database; open the 
-        file with a second handle, and check if everything is available
-
-o release 0.4.5
-
-o environment should support a configurable number of databases
 

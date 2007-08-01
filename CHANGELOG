@@ -1,6 +1,8 @@
 Aug 01, 2007 - chris
 o removed status codes HAM_SHORT_READ and HAM_SHORT_WRITE; instead, 
     HAM_IO_ERROR is now used
+o ham_flush() now also flushes the header page (so far the header page was
+    forgotten under certain circumstances)
 
 Jul 22, 2007 - chris
 o when opening an environment file with ham_open (as a database), the first

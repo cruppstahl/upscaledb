@@ -60,6 +60,7 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (insertBigKeyTest);
     CPPUNIT_TEST      (eraseTest);
     CPPUNIT_TEST      (flushTest);
+    CPPUNIT_TEST      (flushBackendTest);
     CPPUNIT_TEST      (closeTest);
     CPPUNIT_TEST      (compareTest);
     CPPUNIT_TEST      (prefixCompareTest);
@@ -335,6 +336,38 @@ public:
     {
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_flush(0, 0));
+    }
+
+    void flushBackendTest(void)
+    {
+        ham_env_t *env1, *env2;
+        ham_db_t *db1, *db2;
+
+        ham_key_t key;
+        ham_record_t rec;
+        int value=1;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        key.data=&value;
+        key.size=sizeof(value);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env1));
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db1));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env1, ".test", 0, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env1, db1, 111, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(db1, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_flush(db1, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env2));
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db2));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env2, ".test", 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env2, db2, 111, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(db2, 0, &key, &rec, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db1));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db1));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env1));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env1));
     }
 
     void closeTest(void)

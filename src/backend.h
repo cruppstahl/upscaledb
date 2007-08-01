@@ -69,6 +69,13 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
     ham_status_t (*_fun_close)(clss *be);                               \
                                                                         \
     /**                                                                 \
+     * flush the backend                                                \
+     *                                                                  \
+     * @remark this function is called during ham_flush                 \
+     */                                                                 \
+    ham_status_t (*_fun_flush)(clss *be);                               \
+                                                                        \
+    /**                                                                 \
      * find a key in the index                                          \
      */                                                                 \
     ham_status_t (*_fun_find)(clss *be, ham_key_t *key,                 \
