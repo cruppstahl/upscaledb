@@ -71,6 +71,7 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (cursorInsertTest);
     CPPUNIT_TEST      (cursorEraseTest);
     CPPUNIT_TEST      (cursorCloseTest);
+    CPPUNIT_TEST      (cursorGetErasedItemTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -458,6 +459,38 @@ public:
     {
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_close(0));
+    }
+
+    void cursorGetErasedItemTest(void)
+    {
+        ham_db_t *db;
+        ham_cursor_t *cursor;
+        ham_key_t key;
+        ham_record_t rec;
+        int value=0;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        key.data=&value;
+        key.size=sizeof(value);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_create(db, ".test", 0, 0664));
+
+        value=1;
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+        value=2;
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
+        value=1;
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_erase(db, 0, &key, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_cursor_move(cursor, &key, 0, HAM_CURSOR_NEXT));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
 };
 
