@@ -87,6 +87,9 @@ x unittest for ham_flush
         don't close the database; open the file with a second handle, 
         and check if everything is available
 
+x test other values for DB_CHUNKSIZE
+    -> 32 is better, change it (files are much smaller now)
+
 
 
 
