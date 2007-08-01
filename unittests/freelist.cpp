@@ -99,14 +99,16 @@ public:
         ham_size_t ps=db_get_pagesize(m_db);
 
         for (int i=0; i<10; i++) {
-            CPPUNIT_ASSERT(freel_mark_free(m_db, ps+i*64, 64)==HAM_SUCCESS);
+            CPPUNIT_ASSERT(freel_mark_free(m_db, 
+                        ps+i*DB_CHUNKSIZE, DB_CHUNKSIZE)==HAM_SUCCESS);
         }
 
         for (int i=0; i<10; i++) {
-            CPPUNIT_ASSERT(ps+i*64==freel_alloc_area(m_db, 64));
+            CPPUNIT_ASSERT(ps+i*DB_CHUNKSIZE==freel_alloc_area(m_db, 
+                        DB_CHUNKSIZE));
         }
 
-        CPPUNIT_ASSERT(0==freel_alloc_area(m_db, 64));
+        CPPUNIT_ASSERT(0==freel_alloc_area(m_db, DB_CHUNKSIZE));
         CPPUNIT_ASSERT(db_is_dirty(m_db));
     }
 
@@ -115,14 +117,16 @@ public:
         ham_size_t ps=db_get_pagesize(m_db);
 
         for (int i=60; i<70; i++) {
-            CPPUNIT_ASSERT(freel_mark_free(m_db, ps+i*64, 64)==HAM_SUCCESS);
+            CPPUNIT_ASSERT(freel_mark_free(m_db, 
+                        ps+i*DB_CHUNKSIZE, DB_CHUNKSIZE)==HAM_SUCCESS);
         }
 
         for (int i=60; i<70; i++) {
-            CPPUNIT_ASSERT(ps+i*64==freel_alloc_area(m_db, 64));
+            CPPUNIT_ASSERT(ps+i*DB_CHUNKSIZE==freel_alloc_area(m_db, 
+                        DB_CHUNKSIZE));
         }
 
-        CPPUNIT_ASSERT(0==freel_alloc_area(m_db, 64));
+        CPPUNIT_ASSERT(0==freel_alloc_area(m_db, DB_CHUNKSIZE));
         CPPUNIT_ASSERT(db_is_dirty(m_db));
     }
 
@@ -132,18 +136,18 @@ public:
         ham_offset_t offset=ps;
 
         for (int i=60; i<70; i++) {
-            CPPUNIT_ASSERT(freel_mark_free(m_db, offset, (i+1)*64)
+            CPPUNIT_ASSERT(freel_mark_free(m_db, offset, (i+1)*DB_CHUNKSIZE)
                     ==HAM_SUCCESS);
-            offset+=(i+1)*64;
+            offset+=(i+1)*DB_CHUNKSIZE;
         }
 
         offset=ps;
         for (int i=60; i<70; i++) {
-            CPPUNIT_ASSERT(offset==freel_alloc_area(m_db, (i+1)*64));
-            offset+=(i+1)*64;
+            CPPUNIT_ASSERT(offset==freel_alloc_area(m_db, (i+1)*DB_CHUNKSIZE));
+            offset+=(i+1)*DB_CHUNKSIZE;
         }
 
-        CPPUNIT_ASSERT(0==freel_alloc_area(m_db, 64));
+        CPPUNIT_ASSERT(0==freel_alloc_area(m_db, DB_CHUNKSIZE));
         CPPUNIT_ASSERT(db_is_dirty(m_db));
     }
 
@@ -156,11 +160,11 @@ public:
         o=db_get_usable_pagesize(m_db)*8*DB_CHUNKSIZE;
         CPPUNIT_ASSERT(freel_mark_free(m_db, o, DB_CHUNKSIZE)==HAM_SUCCESS);
         CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==o); 
-        CPPUNIT_ASSERT(freel_alloc_area(m_db, 64)==0);
+        CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==0);
 
         CPPUNIT_ASSERT(freel_mark_free(m_db, o*2, DB_CHUNKSIZE)==HAM_SUCCESS);
         CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==o*2); 
-        CPPUNIT_ASSERT(freel_alloc_area(m_db, 64)==0);
+        CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==0);
         CPPUNIT_ASSERT(db_is_dirty(m_db));
     }
 
@@ -171,11 +175,11 @@ public:
         o=db_get_usable_pagesize(m_db)*8*DB_CHUNKSIZE;
         CPPUNIT_ASSERT(freel_mark_free(m_db, 3*o, DB_CHUNKSIZE)==HAM_SUCCESS);
         CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==3*o); 
-        CPPUNIT_ASSERT(freel_alloc_area(m_db, 64)==0);
+        CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==0);
 
         CPPUNIT_ASSERT(freel_mark_free(m_db, 10*o, DB_CHUNKSIZE)==HAM_SUCCESS);
         CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==10*o); 
-        CPPUNIT_ASSERT(freel_alloc_area(m_db, 64)==0);
+        CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==0);
         CPPUNIT_ASSERT(db_is_dirty(m_db));
     }
 
@@ -192,18 +196,18 @@ public:
 
         CPPUNIT_ASSERT(freel_mark_free(m_db, ps, ps)==HAM_SUCCESS);
         CPPUNIT_ASSERT(freel_alloc_page(m_db)==ps);
-        CPPUNIT_ASSERT(freel_alloc_area(m_db, 64)==0);
+        CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==0);
     }
 
     void markAllocAlignMultipleTest(void)
     {
         ham_size_t ps=db_get_pagesize(m_db);
 
-        CPPUNIT_ASSERT(freel_mark_free(m_db, ps, ps*3)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(freel_alloc_page(m_db)==ps*1);
-        CPPUNIT_ASSERT(freel_alloc_page(m_db)==ps*2);
-        CPPUNIT_ASSERT(freel_alloc_page(m_db)==ps*3);
-        CPPUNIT_ASSERT(freel_alloc_area(m_db, 64)==0);
+        CPPUNIT_ASSERT_EQUAL(0, freel_mark_free(m_db, ps, ps*2));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)ps*1, freel_alloc_page(m_db));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)ps*2, freel_alloc_page(m_db));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0, 
+                freel_alloc_area(m_db, DB_CHUNKSIZE));
     }
 
 };
