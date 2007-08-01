@@ -99,7 +99,6 @@ o add support for logical record numbers
         50% but select better pivot element - 95% or so)
 
     x benchmark for best keysize -> as small as possible
-    o new acceptance tests!
     o cross-platform-tests!
 
     x new sample db4 - same as db3.c, but with recno
@@ -108,6 +107,23 @@ o add support for logical record numbers
     o tutorial
 
 o rename HAM_SHORT_READ/HAM_SHORT_WRITE to HAM_IO_ERROR
+
+o refactor acceptance test
+    o support for different databases
+    o can work with btree, recno and future backends
+    o os-independent (profiling-support)
+    o databases are always linked dynamically; dll/so files are part
+        of the repository; every system (linux/le/32, linux/be/32, etc)
+        gets its own subdirectory in /env)
+    o better verbosity/error logging, diagnostics
+
+    design:
+        parser runs through script; for inserts: prepares keys/record blobs;
+        calls database-objects (through callbacks/interface ptr)
+
+        tricky: how to do database comparisons
+        -> first database is ALWAYS hamsterdb
+        -> walk through second database w/ cursor, use ham_find on hamsterdb
 
 o unittests don't work on win32
     o wrong working directory (can't find data files)

@@ -126,7 +126,7 @@ my_os_read(ham_fd_t fd, ham_u8_t *buffer, ham_size_t bufferlen)
         total+=r;
     }
 
-    return (total==bufferlen ? HAM_SUCCESS : HAM_SHORT_READ);
+    return (total==bufferlen ? HAM_SUCCESS : HAM_IO_ERROR);
 }
 #endif
 
@@ -150,7 +150,7 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
         total+=r;
     }
 
-    return (total==bufferlen ? HAM_SUCCESS : HAM_SHORT_READ);
+    return (total==bufferlen ? HAM_SUCCESS : HAM_IO_ERROR);
 #else
     ham_status_t st;
 
@@ -178,7 +178,7 @@ my_os_write(ham_fd_t fd, const ham_u8_t *buffer, ham_size_t bufferlen)
         total+=w;
     }
 
-    return (total==bufferlen ? HAM_SUCCESS : HAM_SHORT_WRITE);
+    return (total==bufferlen ? HAM_SUCCESS : HAM_IO_ERROR);
 }
 #endif
 
@@ -199,7 +199,7 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
         total+=s;
     }
 
-    return (total==bufferlen ? HAM_SUCCESS : HAM_SHORT_WRITE);
+    return (total==bufferlen ? HAM_SUCCESS : HAM_IO_ERROR);
 #else
     ham_status_t st;
 

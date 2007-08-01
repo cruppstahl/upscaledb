@@ -115,7 +115,7 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
         return (HAM_IO_ERROR);
     }
 
-    return (written==bufferlen ? HAM_SUCCESS : HAM_SHORT_WRITE);
+    return (written==bufferlen ? HAM_SUCCESS : HAM_IO_ERROR);
 }
 
 #ifndef INVALID_SET_FILE_POINTER

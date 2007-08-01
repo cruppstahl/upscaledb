@@ -170,10 +170,6 @@ typedef struct {
 
 /** Operation completed successfully */
 #define HAM_SUCCESS                  (  0)
-/** Failed to read the database file */
-#define HAM_SHORT_READ               ( -1)
-/** Failed to write the database file */
-#define HAM_SHORT_WRITE              ( -2)
 /** Invalid key size */
 #define HAM_INV_KEYSIZE              ( -3)
 /** Invalid page size (must be a not a multiple of 1024) */

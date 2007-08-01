@@ -179,10 +179,6 @@ ham_strerror(ham_status_t result)
     switch (result) {
         case HAM_SUCCESS:
             return ("Success");
-        case HAM_SHORT_READ:
-            return ("Short read");
-        case HAM_SHORT_WRITE:
-            return ("Short write");
         case HAM_INV_KEYSIZE:
             return ("Invalid key size");
         case HAM_INV_PAGESIZE:
@@ -283,7 +279,7 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
                 else {
                     keysize=(ham_u16_t)param->value;
                     if ((*flags)&HAM_RECORD_NUMBER)
-                        if (keysize<sizeof(ham_u64_t))
+                        if (keysize>0 && keysize<sizeof(ham_u64_t))
                             return (HAM_INV_KEYSIZE);
                 }
                 break;

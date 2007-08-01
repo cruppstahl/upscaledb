@@ -1107,7 +1107,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
-        CPPUNIT_ASSERT_EQUAL(HAM_SHORT_READ, 
+        CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, 
                 ham_open(db, ".test", m_flags));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
