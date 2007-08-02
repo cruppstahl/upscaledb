@@ -9,14 +9,14 @@ noinst_PROGRAMS = test
 INCLUDES        = -I$(top_builddir)/include
 
 test_SOURCES    = recno.cpp \
-				  env.cpp \
-				  hamsterdb.cpp \
-				  blob.cpp \
-				  extkeys.cpp \
-				  keys.cpp \
-				  bt_cursor.cpp \
-				  util.cpp \
-				  device.cpp \
+                  env.cpp \
+                  hamsterdb.cpp \
+                  blob.cpp \
+                  extkeys.cpp \
+                  keys.cpp \
+                  bt_cursor.cpp \
+                  util.cpp \
+                  device.cpp \
                   os.cpp \
                   cache.cpp \
                   freelist.cpp \
@@ -29,6 +29,6 @@ test_SOURCES    = recno.cpp \
                   memtracker.cpp
 
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la \
-				  -lcppunit -ldl
+                  -lcppunit -ldl
 
 noinst_BIN      = test
