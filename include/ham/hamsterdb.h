@@ -1004,6 +1004,14 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  * is returned. If you wish to overwrite an existing entry specify the
  * flag @a HAM_OVERWRITE.
  *
+ * Record number databases (created with @a HAM_RECORD_NUMBER) expect 
+ * either an empty @a key (with a size of 0 and data pointing to NULL),
+ * or a user-supplied key (with key.flag @a HAM_KEY_USER_ALLOC, a size
+ * of 8 and a valid data pointer). All other keys will return error
+ * @a HAM_INV_PARAMETER. If key.size is 0 and key.data is NULL, hamsterdb
+ * will temporarily allocate memory for the key, which is an 8-byte
+ * unsigned integer in host-endian.
+ *
  * @param db A valid database handle.
  * @param reserved A reserved value; set to NULL.
  * @param key The key of the new item.
@@ -1014,6 +1022,8 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if @a db, @a key or @a record is NULL.
+ * @return @a HAM_INV_PARAMETER if the database is a record number database
+ *              and the key is invalid (see above).
  * @return @a HAM_DB_READ_ONLY if you tried to insert a key in a read-only
  *              database.
  * @return @a HAM_INV_KEYSIZE if the key's size is larger than the @a keysize
@@ -1245,6 +1255,14 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  * After insertion, the cursor will point to the new item. If inserting
  * the item failed, the cursor is not modified.
  *
+ * Record number databases (created with @a HAM_RECORD_NUMBER) expect 
+ * either an empty @a key (with a size of 0 and data pointing to NULL),
+ * or a user-supplied key (with key.flag @a HAM_KEY_USER_ALLOC, a size
+ * of 8 and a valid data pointer). All other keys will return error
+ * @a HAM_INV_PARAMETER. If key.size is 0 and key.data is NULL, hamsterdb
+ * will temporarily allocate memory for the key, which is an 8-byte
+ * unsigned integer in host-endian.
+ *
  * @param cursor A valid cursor handle.
  * @param key A valid key structure.
  * @param record A valid record structure.
@@ -1254,6 +1272,8 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if @a key or @a record is NULL.
+ * @return @a HAM_INV_PARAMETER if the database is a record number database
+ *              and the key is invalid (see above).
  * @return @a HAM_DB_READ_ONLY if you tried to insert a key to a read-only
  *              database.
  * @return @a HAM_INV_KEYSIZE if the key's size is larger than the @a keysize
