@@ -36,6 +36,7 @@ class OsTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (readWriteTest);
     CPPUNIT_TEST      (pagesizeTest);
     CPPUNIT_TEST      (mmapTest);
+	CPPUNIT_TEST      (mmapReadOnlyTest);
     CPPUNIT_TEST      (multipleMmapTest);
     CPPUNIT_TEST      (negativeMmapTest);
     CPPUNIT_TEST      (seekTellTest);
@@ -213,6 +214,32 @@ public:
         }
         st=os_close(fd, 0);
         CPPUNIT_ASSERT(st==0);
+        free(p1);
+    }
+
+    void mmapReadOnlyTest()
+    {
+        int i;
+        ham_fd_t fd, mmaph;
+        ham_size_t ps=os_get_pagesize();
+        ham_u8_t *p1, *p2;
+        p1=(ham_u8_t *)malloc(ps);
+
+        CPPUNIT_ASSERT_EQUAL(0, os_create(".test", 0, 0664, &fd));
+        for (i=0; i<10; i++) {
+            memset(p1, i, ps);
+            CPPUNIT_ASSERT_EQUAL(0, os_pwrite(fd, i*ps, p1, ps));
+        }
+        CPPUNIT_ASSERT_EQUAL(0, os_close(fd, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, os_open(".test", HAM_READ_ONLY, &fd));
+        for (i=0; i<10; i++) {
+            memset(p1, i, ps);
+            CPPUNIT_ASSERT_EQUAL(0, os_mmap(fd, &mmaph, i*ps, ps, &p2));
+            CPPUNIT_ASSERT_EQUAL(0, memcmp(p1, p2, ps));
+            CPPUNIT_ASSERT_EQUAL(0, os_munmap(&mmaph, p2, ps));
+        }
+        CPPUNIT_ASSERT_EQUAL(0, os_close(fd, HAM_READ_ONLY));
         free(p1);
     }
 
