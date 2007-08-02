@@ -82,6 +82,11 @@ protected:
 public:
     void setUp()
     { 
+#if WIN32
+        (void)DeleteFileA((LPCSTR)".test");
+#else
+        (void)unlink(".test");
+#endif
         CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
@@ -368,6 +373,10 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db1));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env1));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env1));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db2));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db2));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env2));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env2));
     }
 
     void closeTest(void)
@@ -506,6 +515,7 @@ public:
         key.data=&value;
         key.size=sizeof(value);
 
+unlink(".test");
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
         CPPUNIT_ASSERT_EQUAL(0, ham_create(db, ".test", 0, 0664));
 
