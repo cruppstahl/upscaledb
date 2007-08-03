@@ -1007,7 +1007,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  * Record number databases (created with @a HAM_RECORD_NUMBER) expect 
  * either an empty @a key (with a size of 0 and data pointing to NULL),
  * or a user-supplied key (with key.flag @a HAM_KEY_USER_ALLOC, a size
- * of 8 and a valid data pointer). All other keys will return error
+ * of 8 and a valid data pointer). All other keys will return
  * @a HAM_INV_PARAMETER. If key.size is 0 and key.data is NULL, hamsterdb
  * will temporarily allocate memory for the key, which is an 8-byte
  * unsigned integer in host-endian.
@@ -1258,7 +1258,7 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  * Record number databases (created with @a HAM_RECORD_NUMBER) expect 
  * either an empty @a key (with a size of 0 and data pointing to NULL),
  * or a user-supplied key (with key.flag @a HAM_KEY_USER_ALLOC, a size
- * of 8 and a valid data pointer). All other keys will return error
+ * of 8 and a valid data pointer). All other keys will return
  * @a HAM_INV_PARAMETER. If key.size is 0 and key.data is NULL, hamsterdb
  * will temporarily allocate memory for the key, which is an 8-byte
  * unsigned integer in host-endian.
