@@ -120,17 +120,20 @@ o add support for logical record numbers
         50% but select better pivot element - 95% or so)
 
     x benchmark for best keysize -> as small as possible
+    x new sample db4 - same as db3.c, but with recno
+    x documentation (for ham_insert, ham_cursor_insert)
+    x tutorial
+    x add sample to Visual Studio solution
     o cross-platform-tests!
 
-    x new sample db4 - same as db3.c, but with recno
-    o add sample to Visual Studio solution
-    o documentation (for ham_insert, ham_cursor_insert)
-    o tutorial
-
 o unittests don't work on win32
-    o wrong working directory (can't find data files)
+    x wrong working directory (can't find data files)
     o HAM_LOCK_EXCLUSIVE broken
     o HAM_READ_ONLY broken
+
+o win32: prebuilt debug libs don't work with vs71
+    o build a testcase
+    o check for compatibility flags
 
 o release 0.4.5
 
