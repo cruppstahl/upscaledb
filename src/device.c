@@ -123,7 +123,8 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
     ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_MALLOC), (""));
 
     st=os_mmap(t->fd, page_get_mmap_handle_ptr(page), 
-            page_get_self(page), size, &buffer);
+            page_get_self(page), size, 
+            device_get_flags(self)&HAM_READ_ONLY, &buffer);
     if (st)
         return (st);
     page_set_pers(page, (union page_union_t *)buffer);

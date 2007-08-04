@@ -1183,7 +1183,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
             (void)ham_close(db);
             return (st);
         }
-        page_set_type(page, PAGE_TYPE_HEADER);
+        ham_assert(page_get_type(page)==PAGE_TYPE_HEADER,
+                ("invalid page header type"));
 
         if (db_get_env(db))
             env_set_header_page(db_get_env(db), page);

@@ -31,12 +31,13 @@ os_get_pagesize(void)
 
 ham_status_t
 os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position, 
-        ham_size_t size, ham_u8_t **buffer)
+        ham_size_t size, ham_bool_t readonly, ham_u8_t **buffer)
 {
     ham_status_t st;
     DWORD hsize, fsize=GetFileSize(fd, &hsize);
 
-    *mmaph=CreateFileMapping(fd, 0, PAGE_READWRITE, hsize, fsize, 0); 
+    *mmaph=CreateFileMapping(fd, 0, readonly ? PAGE_READONLY : PAGE_READWRITE, 
+            hsize, fsize, 0); 
     if (!*mmaph) {
 	    *buffer=0;
         st=(ham_status_t)GetLastError();
@@ -44,9 +45,9 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
         return (HAM_IO_ERROR);
     }
 
-    *buffer=MapViewOfFile(*mmaph, PAGE_READONLY, 
-            (unsigned long)(position&0xffffffff00000000),
-            (unsigned long)(position&0x00000000ffffffff), size);
+    *buffer=MapViewOfFile(*mmaph, readonly ? FILE_MAP_READ : FILE_MAP_WRITE, 
+            (unsigned long)((position&0xffffffff00000000)>>32),
+            (unsigned long) (position&0x00000000ffffffff), size);
     if (!*buffer) {
         st=(ham_status_t)GetLastError();
         ham_trace(("MapViewOfFile failed with status %u", st));
@@ -95,7 +96,7 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
         return (HAM_IO_ERROR);
     }
 
-    return (0);
+    return (read==bufferlen ? 0 : HAM_IO_ERROR);
 }
 
 ham_status_t
