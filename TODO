@@ -126,10 +126,10 @@ o add support for logical record numbers
     x add sample to Visual Studio solution
     o cross-platform-tests!
 
-o unittests don't work on win32
+x unittests don't work on win32
     x wrong working directory (can't find data files)
-    o HAM_LOCK_EXCLUSIVE broken
-    o HAM_READ_ONLY broken
+    x HAM_READ_ONLY broken
+    x HAM_LOCK_EXCLUSIVE broken
 
 o win32: prebuilt debug libs don't work with vs71
     o build a testcase

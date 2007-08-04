@@ -206,7 +206,7 @@ public:
         }
         for (i=0; i<10; i++) {
             memset(p1, i, ps);
-            st=os_mmap(fd, &mmaph, i*ps, ps, &p2);
+            st=os_mmap(fd, &mmaph, i*ps, ps, 0, &p2);
             CPPUNIT_ASSERT(st==0);
             CPPUNIT_ASSERT(0==memcmp(p1, p2, ps));
             st=os_munmap(&mmaph, p2, ps);
@@ -235,7 +235,8 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, os_open(".test", HAM_READ_ONLY, &fd));
         for (i=0; i<10; i++) {
             memset(p1, i, ps);
-            CPPUNIT_ASSERT_EQUAL(0, os_mmap(fd, &mmaph, i*ps, ps, &p2));
+            CPPUNIT_ASSERT_EQUAL(0, os_mmap(fd, &mmaph, i*ps, ps, 
+                    HAM_READ_ONLY, &p2));
             CPPUNIT_ASSERT_EQUAL(0, memcmp(p1, p2, ps));
             CPPUNIT_ASSERT_EQUAL(0, os_munmap(&mmaph, p2, ps));
         }
@@ -271,7 +272,7 @@ public:
 
             p1=(ham_u8_t *)malloc((size_t)size);
             memset(p1, i, (size_t)size);
-            st=os_mmap(fd, &mmaph, addr, (ham_size_t)size, &p2);
+            st=os_mmap(fd, &mmaph, addr, (ham_size_t)size, 0, &p2);
             CPPUNIT_ASSERT(st==0);
             CPPUNIT_ASSERT(0==memcmp(p1, p2, (size_t)size));
             st=os_munmap(&mmaph, p2, (ham_size_t)size);
@@ -291,7 +292,7 @@ public:
 
         st=os_create(".test", 0, 0664, &fd);
         CPPUNIT_ASSERT(st==0);
-        st=os_mmap(fd, &mmaph, 33, 66, &page); // bad address && page size!
+        st=os_mmap(fd, &mmaph, 33, 66, 0, &page); // bad address && page size!
         CPPUNIT_ASSERT(st==HAM_IO_ERROR);
         st=os_close(fd, 0);
         CPPUNIT_ASSERT(st==0);

@@ -1,3 +1,7 @@
+Aug 04, 2007 - chris
+o fixed HAM_READ_ONLY support for win32 - the file handle is now created
+    with GENERIC_READ, not GENERIC_READ|GENERIC_WRITE
+
 Aug 03, 2007 - chris
 o finalized support for record numbers
 o added a sample for record numbers (samples/db4.c)
