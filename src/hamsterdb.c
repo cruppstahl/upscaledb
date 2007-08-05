@@ -1729,14 +1729,13 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
 #endif
         (void)ham_txn_commit(&txn, 0);
 
-        if (!(key->flags&HAM_KEY_USER_ALLOC)) {
-            key->data=0;
-            key->size=0;
-        }
-#if HAM_DEBUG
-        if (db_get_rt_flags(db)&HAM_RECORD_NUMBER)
+        if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+            if (!(key->flags&HAM_KEY_USER_ALLOC)) {
+                key->data=0;
+                key->size=0;
+            }
             ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
-#endif
+        }
         return (st);
     }
 
@@ -2305,14 +2304,13 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     st=bt_cursor_insert((ham_bt_cursor_t *)cursor, key, record, flags);
 
     if (st) {
-        if (!(key->flags&HAM_KEY_USER_ALLOC)) {
-            key->data=0;
-            key->size=0;
-        }
-#if HAM_DEBUG
-        if (db_get_rt_flags(db)&HAM_RECORD_NUMBER)
+        if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+            if (!(key->flags&HAM_KEY_USER_ALLOC)) {
+                key->data=0;
+                key->size=0;
+            }
             ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
-#endif
+        }
         return (st);
     }
 
