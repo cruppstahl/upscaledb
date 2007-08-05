@@ -188,7 +188,7 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size)
                 break;
             }
             else {
-                ham_size_t s=(ham_size_t)(end-address+1);
+                ham_size_t s=(ham_size_t)(end-address);
                 freel_set_used_bits(fl, 
                         freel_get_used_bits(fl)+s/DB_CHUNKSIZE);
                 __freel_set_bits(fl, 
