@@ -31,6 +31,7 @@ class RecNoTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (insertBadKeyCursorTest);
     CPPUNIT_TEST      (createBadKeysizeTest);
     CPPUNIT_TEST      (envTest);
+    CPPUNIT_TEST      (endianTestOpenDatabase);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -74,7 +75,7 @@ public:
                 ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
         CPPUNIT_ASSERT_EQUAL(0, 
-                ham_open(m_db, ".test", m_flags|HAM_RECORD_NUMBER));
+                ham_open(m_db, ".test", m_flags));
         CPPUNIT_ASSERT(db_get_rt_flags(m_db)&HAM_RECORD_NUMBER);
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
     }
@@ -106,7 +107,7 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
         CPPUNIT_ASSERT_EQUAL(0, 
-                ham_open(m_db, ".test", m_flags|HAM_RECORD_NUMBER));
+                ham_open(m_db, ".test", m_flags));
 
         for (int i=5; i<10; i++) {
             CPPUNIT_ASSERT_EQUAL(0, 
@@ -148,7 +149,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
         CPPUNIT_ASSERT_EQUAL(0, 
-                ham_open(m_db, ".test", m_flags|HAM_RECORD_NUMBER));
+                ham_open(m_db, ".test", m_flags));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_cursor_create(m_db, 0, 0, &cursor));
 
@@ -278,7 +279,7 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
         CPPUNIT_ASSERT_EQUAL(0, 
-                ham_open(m_db, ".test", m_flags|HAM_RECORD_NUMBER));
+                ham_open(m_db, ".test", m_flags));
 
         for (int i=5; i<10; i++) {
             CPPUNIT_ASSERT_EQUAL(0, 
@@ -288,7 +289,7 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
         CPPUNIT_ASSERT_EQUAL(0, 
-                ham_open(m_db, ".test", m_flags|HAM_RECORD_NUMBER));
+                ham_open(m_db, ".test", m_flags));
 
         for (int i=10; i<15; i++) {
             CPPUNIT_ASSERT_EQUAL(0, 
@@ -330,7 +331,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
         CPPUNIT_ASSERT_EQUAL(0, 
-                ham_open(m_db, ".test", m_flags|HAM_RECORD_NUMBER));
+                ham_open(m_db, ".test", m_flags));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_cursor_create(m_db, 0, 0, &cursor));
 
@@ -343,7 +344,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
         CPPUNIT_ASSERT_EQUAL(0, 
-                ham_open(m_db, ".test", m_flags|HAM_RECORD_NUMBER));
+                ham_open(m_db, ".test", m_flags));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_cursor_create(m_db, 0, 0, &cursor));
 
@@ -485,6 +486,32 @@ public:
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void endianTestOpenDatabase(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+return;
+#if HAM_LITTLE_ENDIAN
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, 
+                    "data/recno-endian-test-open-database-be.hdb", 0));
+#else
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, 
+                    "data/recno-endian-test-open-database-le.hdb", 0));
+#endif
+        /* generated with `cat ../COPYING | ./db4`; has 2973 entries */
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)2974ull, *(ham_u64_t *)key.data);
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)2975ull, *(ham_u64_t *)key.data);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
     }
 };
 
