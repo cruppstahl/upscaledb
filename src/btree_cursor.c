@@ -316,11 +316,6 @@ bt_cursor_couple(ham_bt_cursor_t *c)
     }
     
     st=bt_cursor_find(c, &key, 0);
-    if (st) {
-        if (local_txn)
-            (void)ham_txn_abort(&txn);
-        return (st);
-    }
 
     /*
      * free the cached key
@@ -328,10 +323,15 @@ bt_cursor_couple(ham_bt_cursor_t *c)
     if (key.data)
         ham_mem_free(db, key.data);
 
-    if (local_txn)
+    if (local_txn) {
+        if (st) {
+            (void)ham_txn_abort(&txn);
+            return (st);
+        }
         return (ham_txn_commit(&txn, 0));
+    }
 
-    return (0);
+    return (st);
 }
 
 ham_status_t
