@@ -26,6 +26,7 @@ EXTRA_DIST = documentation/Doxyfile                     \
 		     win32/sample_db1/sample_db1.vcproj         \
 		     win32/sample_db2/sample_db2.vcproj         \
 		     win32/sample_db3/sample_db3.vcproj         \
+		     win32/sample_db4/sample_db4.vcproj         \
 		     win32/unittests/unittests.vcproj		    \
 			 wince										\
 			 wince/lib									\
