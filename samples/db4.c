@@ -113,9 +113,11 @@ main(int argc, char **argv)
          * print the record number and the word 
          */
 #if WIN32
-        printf("%I64u: %s\n", *(ham_u64_t *)key.data, (const char *)record.data);
+        printf("%I64u: %s\n", *(ham_u64_t *)key.data, 
+                (const char *)record.data);
 #else
-        printf("%llu: %s\n", *(ham_u64_t *)key.data, (const char *)record.data);
+        printf("%llu: %s\n", *(unsigned long long *)key.data, 
+                (const char *)record.data);
 #endif
     }
 
