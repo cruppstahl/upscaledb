@@ -90,6 +90,11 @@ x unittest for ham_flush
 x test other values for DB_CHUNKSIZE
     -> 32 is better, change it (files are much smaller now)
 
+x unittests don't work on win32
+    x wrong working directory (can't find data files)
+    x HAM_READ_ONLY broken
+    x HAM_LOCK_EXCLUSIVE broken
+
 
 
 
@@ -125,11 +130,6 @@ o add support for logical record numbers
     x tutorial
     x add sample to Visual Studio solution
     o cross-platform-tests!
-
-x unittests don't work on win32
-    x wrong working directory (can't find data files)
-    x HAM_READ_ONLY broken
-    x HAM_LOCK_EXCLUSIVE broken
 
 o win32: prebuilt debug libs don't work with vs71
     o build a testcase

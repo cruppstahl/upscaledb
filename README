@@ -1,5 +1,5 @@
 
-hamsterdb 0.4.4                                Sun Jul 15 21:43:20 UTC 2007
+hamsterdb 0.4.5                                Tue Aug 07 21:12:01 UTC 2007
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -18,33 +18,23 @@ will be version 1.0.
 
 2. Changes
 
-This release comes with loads of changes and new features.
-
 New Features
-* "Environments": hamsterdb can now handle multiple files per database 
-    (default: up to 32). New functions were added to ham/hamsterdb.h.
-    A new sample (env1.c) demonstrates the new functions, and the
+* "Record numbers": hamsterdb now supports record number database
+    A new sample (db4.c) demonstrates the new functions, and the
     tutorial was updated.
-* The Visual Studio 2005 Solution now supports 64bit builds
-* hamsterdb was ported to Windows CE - a Solution file is in the
-    wince subdirectory
-* New flag HAM_LOCK_EXCLUSIVE places an exclusive file lock on the database
 
 Bugfixes
-* The flag HAM_DISABLE_MMAP was ignored - fixed
-* Freelist pages were sometimes not marked as 'dirty' and not flushed to disk
-    - fixed
-* The freelist pages were cached, but never flushed, and therefore 
-    polluted the cache - fixed
-* The flag HAM_DISABLE_FREELIST_FLUSH was ignored - fixed
-* Some deleted pages were not added to the freelist - fixed
+* The flag HAM_READ_ONLY was broken on Win32 - fixed
+* Under some circumstances, ham_flush() did not flush the header page - fixed
+* If a ham_db_t handle was reused after ham_close, an internal pointer 
+    was not set to NULL, which resulted in a segfault - fixed
 
 Other Changes
-* An API change: ham_open_ex and ham_create_ex now expect an array of
-    ham_parameter_t elements
-* The type of ham_key_t::size (declared in hamsterdb.h) is now ham_u16_t,
-    and no longer ham_size_t
-* Performance improvements in the handling and caching of extended keys
+* Replaced status codes HAM_SHORT_READ and HAM_SHORT_WRITE with HAM_IO_ERROR
+* Renamed status code HAM_INV_INDEX to HAM_NOT_INITIALIZED
+* Renamed status code HAM_ENV_FULL to HAM_LIMITS_REACHED
+* The minimum alignment of blobs was resized to 32; database files are much
+    smaller now
 * More unittests were added
 
 To see a list of all changes, look in the file CHANGELOG.
@@ -52,7 +42,6 @@ To see a list of all changes, look in the file CHANGELOG.
 3. Roadmap
 
 The next releases will offer one of the following new features:
-- support for logical record numbers
 - duplicate items
 - command line tools for recovery, dump and statistics
 - a C++ wrapper class
@@ -61,7 +50,9 @@ The next releases will offer one of the following new features:
 
 - Very fast sorted B+Tree with variable length keys
 - Can run as an in-memory-database
-- Fast Database cursors 
+- Supports multiple databases in one file
+- Supports record number databases
+- Very fast database cursors 
 - Configurable page size, cache size and index key size
 - Portable ANSI-C implementation
 - Runs on Linux, Unices, Microsoft Windows, Windows CE
