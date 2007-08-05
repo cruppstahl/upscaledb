@@ -124,6 +124,7 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     btree_set_maxkeys(be, maxkeys);
     btree_set_dirty(be, HAM_TRUE);
     be_set_keysize(be, keysize);
+    be_set_flags(be, flags);
 
     /*
      * allocate a new root page
