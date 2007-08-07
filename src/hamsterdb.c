@@ -433,8 +433,11 @@ __recno_lazy_load(ham_db_t *db, ham_u64_t *recno)
     else
         return (db_set_error(db, st));
     
+    /*
+     * no need to fix the endian - the cursor function already returns the
+     * key in host-endian
+     */
     *recno=*(ham_u64_t *)key.data;
-    *recno=ham_db2h64(*recno);
 
     return (0);
 }
