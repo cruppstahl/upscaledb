@@ -492,7 +492,6 @@ public:
     {
         ham_key_t key;
         ham_record_t rec;
-return;
 #if HAM_LITTLE_ENDIAN
         CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, 
                     "data/recno-endian-test-open-database-be.hdb", 0));
@@ -507,6 +506,8 @@ return;
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_insert(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2974ull, *(ham_u64_t *)key.data);
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_insert(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2975ull, *(ham_u64_t *)key.data);
