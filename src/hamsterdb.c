@@ -1307,7 +1307,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     /* 
      * set the key compare function
      */
-    if (flags&HAM_RECORD_NUMBER) {
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         ham_set_compare_func(db, db_default_recno_compare);
     }
     else {
@@ -1544,7 +1544,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     /*
      * set the default key compare functions
      */
-    if (flags&HAM_RECORD_NUMBER) {
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         ham_set_compare_func(db, db_default_recno_compare);
     }
     else {
