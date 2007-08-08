@@ -95,45 +95,7 @@ x unittests don't work on win32
     x HAM_READ_ONLY broken
     x HAM_LOCK_EXCLUSIVE broken
 
-
-
-
-
-
-o add support for logical record numbers
-    x new (persistent) flag HAM_RECORD_NUMBER
-    x needs new compare function for this database (same as in acceptance test)
-    x on first request, get a cursor to the last element and fetch the
-        previous recno
-    x make sure that keysize is >= 8 (set a good default keysize - needs
-        benchmarks!)
-    x ham_insert: key must be NULL, (0/NULL) or (sizeof(u64_t)/!NULL)
-        - in the last case, the key is filled (host-endian)
-    x stored in db-endian, returned in host-endian
-    x also modify ham_cursor_insert
-
-    x new unittests
-        x create, insert, close; reopen, insert, close -> must 
-            continue the sequence
-        x insert other keys -> not allowed
-        x repeat all unit-tests with cursors
-        x with page splits
-        x test recno in an environment (with other databases, and
-            non-recno databases)
-
-    x btree insert: add optimization for "late splits" (don't split at 
-        50% but select better pivot element - 95% or so)
-
-    x benchmark for best keysize -> as small as possible
-    x new sample db4 - same as db3.c, but with recno
-    x documentation (for ham_insert, ham_cursor_insert)
-    x tutorial
-    x add sample to Visual Studio solution
-    o cross-platform-tests!
-
-o win32: prebuilt debug libs don't work with vs71
-    o build a testcase
-    o check for compatibility flags
+x add support for logical record numbers
 
 o release 0.4.5
 
