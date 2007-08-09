@@ -506,11 +506,9 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_insert(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2974ull, *(ham_u64_t *)key.data);
-        ::memset(&key, 0, sizeof(key));
-        ::memset(&rec, 0, sizeof(rec));
+
         CPPUNIT_ASSERT_EQUAL(0, 
-                ham_insert(m_db, 0, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_u64_t)2975ull, *(ham_u64_t *)key.data);
+                ham_erase(m_db, 0, &key, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
     }
