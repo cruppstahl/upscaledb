@@ -201,13 +201,18 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
     DWORD share  =flags & HAM_LOCK_EXCLUSIVE 
                     ? 0 
                     : (FILE_SHARE_READ|FILE_SHARE_WRITE);
+#ifdef UNICODE
 	wchar_t *wfilename=malloc(strlen(filename)*3*sizeof(wchar_t));
 
 	/* translate ASCII filename to unicode */
 	__utf8_string(filename, wfilename, (int)strlen(filename)*3);
-    *fd=(ham_fd_t)CreateFile(wfilename, GENERIC_READ|GENERIC_WRITE, 
+    *fd=(ham_fd_t)CreateFileW(wfilename, GENERIC_READ|GENERIC_WRITE, 
                 share, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 	free(wfilename);
+#else
+    *fd=(ham_fd_t)CreateFileA(filename, GENERIC_READ|GENERIC_WRITE, 
+                share, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+#endif
 
 	if (*fd==INVALID_HANDLE_VALUE) {
 		*fd=HAM_INVALID_FD;
@@ -248,18 +253,27 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
                     : (FILE_SHARE_READ|FILE_SHARE_WRITE);
     DWORD dispo  =OPEN_EXISTING;
     DWORD osflags=0;
-	wchar_t *wfilename=malloc(strlen(filename)*3*sizeof(wchar_t));
+#ifdef UNICODE
+    wchar_t *wfilename;
+#endif
 
     if (flags&HAM_READ_ONLY)
         access|=GENERIC_READ;
     else
         access|=GENERIC_READ|GENERIC_WRITE;
 
+#ifdef UNICODE
 	/* translate ASCII filename to unicode */
+	wfilename=malloc(strlen(filename)*3*sizeof(wchar_t));
 	__utf8_string(filename, wfilename, (int)strlen(filename)*3);
-    *fd=(ham_fd_t)CreateFile(wfilename, access, share, 0, 
+    *fd=(ham_fd_t)CreateFileW(wfilename, access, share, 0, 
                         dispo, osflags, 0);
 	free(wfilename);
+#else
+    *fd=(ham_fd_t)CreateFileA(filename, access, share, 0, 
+                        dispo, osflags, 0);
+#endif
+
     if (*fd==INVALID_HANDLE_VALUE) {
 		*fd=HAM_INVALID_FD;
         st=(ham_status_t)GetLastError();
