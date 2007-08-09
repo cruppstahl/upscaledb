@@ -1,5 +1,9 @@
-Aug 07, 2007 - chris ---------------------------------------------------
+Aug 08, 2007 - chris ---------------------------------------------------
                       release of hamsterdb-0.4.5
+
+Aug 08, 2007 - chris
+o fixed CreateFile calls on win32 - call CreateFileW if UNICODE is defined,
+    otherwise call CreateFileA
 
 Aug 04, 2007 - chris
 o fixed HAM_READ_ONLY support for win32 - the file handle is now created
