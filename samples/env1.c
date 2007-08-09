@@ -183,6 +183,46 @@ main(int argc, char **argv)
     }
 
     /*
+     * to demonstrate even more functions, close all objects, then
+     * re-open the environment and the two databases
+     */
+    for (i=0; i<MAX_DBS; i++) {
+        st=ham_cursor_close(cursor[i]);
+        if (st!=HAM_SUCCESS)
+            error("ham_cursor_close", st);
+        st=ham_close(db[i]);
+        if (st!=HAM_SUCCESS)
+            error("ham_close", st);
+    }
+    st=ham_env_close(env);
+    if (st!=HAM_SUCCESS)
+        error("ham_env_close", st);
+
+    /*
+     * now reopen the environment and the databases 
+     */
+    st=ham_env_open(env, "test.db", 0);
+    if (st!=HAM_SUCCESS)
+        error("ham_env_open", st);
+    st=ham_env_open_db(env, db[0], DBNAME_CUSTOMER, 0, 0);
+    if (st!=HAM_SUCCESS)
+        error("ham_env_open_db (customer)", st);
+    st=ham_env_open_db(env, db[1], DBNAME_ORDER, 0, 0);
+    if (st!=HAM_SUCCESS)
+        error("ham_env_open_db (order)", st);
+
+    /* 
+     * re-create a cursor for each database
+     */
+    for (i=0; i<MAX_DBS; i++) {
+        st=ham_cursor_create(db[i], 0, 0, &cursor[i]);
+        if (st!=HAM_SUCCESS) {
+            printf("ham_cursor_create() failed with error %d\n", st);
+            return (-1);
+        }
+    }
+
+    /*
      * now start the query - we want to dump each customer with his
      * orders
      *
