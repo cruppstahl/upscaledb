@@ -1,14 +1,18 @@
 /**
  * Copyright (C) 2005-2007 Christoph Rupp (chris@crupp.de).
- * All rights reserved. See file LICENSE for license and copyright 
- * information.
  *
- * This sample uses hamsterdb to read data from stdin; 
- * every word is inserted into the database in the order of its processing.
- * Then a cursor is used to print all words in the original order.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or 
+ * (at your option) any later version.
  *
- * This is basically the same as in db3.c, but we use a "record number"
- * database to assign keys.
+ * See file COPYING.GPL2 and COPYING.GPL3 for License information.
+ *
+ *
+ * This sample uses hamsterdb to read data from stdin into a "record number"
+ * database; every word is inserted into the database in the order of 
+ * its processing. Then a cursor is used to print all words in the 
+ * original order.
  */
 
 #include <stdio.h>

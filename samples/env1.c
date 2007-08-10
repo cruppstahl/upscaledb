@@ -1,9 +1,15 @@
 /**
  * Copyright (C) 2005-2007 Christoph Rupp (chris@crupp.de).
- * All rights reserved. See file LICENSE for license and copyright 
- * information.
  *
- * a simple example, which creates a database environment with
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or 
+ * (at your option) any later version.
+ *
+ * See file COPYING.GPL2 and COPYING.GPL3 for License information.
+ *
+ *
+ * A simple example, which creates a database environment with
  * several databases.
  */
 
