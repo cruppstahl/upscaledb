@@ -1,6 +1,11 @@
 
 x release 0.4.5
 
+x support GPL3
+    x change all source headers -> GPL 2.0 *or later*
+    x rename COPYING to COPYING.GPL2
+    x add GPL3 license file (COPYING.GPL3)
+
 o create a new repository for hamsterdb-meta
 
 o make an entry in Heise Software directory
@@ -14,33 +19,6 @@ o create a new repository for hamsterdb-alien for all dependencies
     o linux32-le
     o linux64-le
     o ppc32-be
-
-o support GPL3
-    o change all source headers -> GPL 2.0 *or later*
-        Copyright (C) 2007 Christoph Rupp (chris@crupp.de)
-
-        This program is free software; you can redistribute it and/or modify
-        it under the terms of the GNU General Public License as published by
-        the Free Software Foundation; either version 2 of the License, or
-        (at your option) any later version.
-
-        See files COPYING.GPL2 and COPYING.GPL3 for licensing details.
-
-    o all samples should print a banner:
-        hamsterdb sample db1, Copyright (C) 2007 Christoph Rupp
-        hamsterdb comes with ABSOLUTELY NO WARRANTY. This is free software, 
-        and you are welcome to redistribute it under certain conditions; 
-        read the files COPYING.GPL2 and COPYING.GPL3 for the licensing terms.
-
-    o rename COPYING to COPYING.GPL2
-    o add GPL3 license file (COPYING.GPL3)
-    o update web page
-
-o webpage
-    o rename "Features" to "About"
-    . move to cakephp framework
-    . frontpage: resize hamster picture; remove text -> more space below
-        (for 3 colums: news, main features, articles/testimonials/link cloud)
 
 o support for duplicate keys
     o problem: when a blob is deleted, the blobid might be reused
@@ -85,4 +63,11 @@ o support for duplicate keys
         also, insert the same word in a second db, with a word-counter
         then dump all words with the line information, and how often they
         were used
+
+o webpage
+    o update web page about license change (GPL2 or GPL3)
+    o rename "Features" to "About"
+    . move to cakephp framework
+    . frontpage: resize hamster picture; remove text -> more space below
+        (for 3 colums: news, main features, articles/testimonials/link cloud)
 
