@@ -1,101 +1,88 @@
 
-x release 0.4.4!
+x release 0.4.5
 
-x update samples and tutorial on hamsterdb.com
+o create a new repository for hamsterdb-meta
 
-x add grammar fixes for the tutorial
+o make an entry in Heise Software directory
 
-x replace return code INVALID_INDEX with NOT_INITIALIZED
+o create a new repository for hamsterdb-alien for all dependencies 
+    in source and precompiled (cppunit and berkeleydb)
+    o cygwin32
+    o win32
+    o win64
+    o wince-x86
+    o linux32-le
+    o linux64-le
+    o ppc32-be
 
-x replace return code ENV_FULL with a generic HAM_LIMITS_REACHED
+o support GPL3
+    o change all source headers -> GPL 2.0 *or later*
+        Copyright (C) 2007 Christoph Rupp (chris@crupp.de)
 
-x unittest: fill an environment, till it returns HAM_LIMITS_REACHED
+        This program is free software; you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation; either version 2 of the License, or
+        (at your option) any later version.
 
-x new unittest: ham_new, create, ham_close, open, ham_close, ham_delete
-    x for db
-    x for env
-    x for db in env
+        See files COPYING.GPL2 and COPYING.GPL3 for licensing details.
 
-x new unittest: insert extended keys with 0xffff byte size, search for it
+    o all samples should print a banner:
+        hamsterdb sample db1, Copyright (C) 2007 Christoph Rupp
+        hamsterdb comes with ABSOLUTELY NO WARRANTY. This is free software, 
+        and you are welcome to redistribute it under certain conditions; 
+        read the files COPYING.GPL2 and COPYING.GPL3 for the licensing terms.
 
-x new unittest: create with READ_ONLY -> fail INVALID_PARAMETER
+    o rename COPYING to COPYING.GPL2
+    o add GPL3 license file (COPYING.GPL3)
+    o update web page
 
-x new unittest: 
-    x set compare function
-    x unset compare function
-    x set prefix-compare function
-    x unset prefix-compare function
+o webpage
+    o rename "Features" to "About"
+    . move to cakephp framework
+    . frontpage: resize hamster picture; remove text -> more space below
+        (for 3 colums: news, main features, articles/testimonials/link cloud)
 
-x db1.c: 
-    x should reopen the database file (then we have a call to ham_open,
-        which is otherwise not tested on CE)
-    x crashes!!
-    x then test on CE
+o support for duplicate keys
+    o problem: when a blob is deleted, the blobid might be reused
+        -> a cursor pointing to this blob can't find out if it was replaced
+        -> need a second unique identifier
 
-x new unittest: open with READ_ONLY; all write-functions must fail
+    o make sure that EXTENDED_BLOB flag is always set if blob>=8 byte 
+        (check unittests!)
+    o when replacing a big blob with a blob <= 8 byte: delete the
+        blob, then move it into the key
+        o unittest
+    o un-merge a blob: if it's <=8 byte, create a record structure
+        o unittest
+    o enhance the blob structure for double-linked lists, but only if 
+        the database was opened/created with HAM_ENABLE_DUPLICATES (??)
+        o unittest
+    o enhance the cursor structure for the linked list
+        o coupled cursor: store blobid of the current duplicate (and uid)
+        o unittest
+    o ham_insert: insert duplicate (at the beginning of the list)
+        o if blob is SMALL/TINY: create blob structure
+        o unittests; check dupe with cursor
+    o ham_erase: erases the first element of a list
+        o if blob is SMALL/TINY: remove blob structure
+        o unittest
+    o modify cursor->next, cursor->previous to walk over the linked list 
+        o unittest (w/ ham_insert)
+        o uncoupled cursor: first, try to load the blobid with the cached
+            blobid, then check the "age"; if this doesn't work, 
+            retur HAM_KEY_NOT_FOUND (same as if an item is deleted, but a
+            cursor still points to the item)
+            o unittest
+    o modify cursor->insert - if the cursor is in a linked list, 
+        insert a duplicate at the requested position
+    o ham_cursor_erase: erase the duplicate at the requested position
+        o unittest
 
-x new unittest: open env with READ_ONLY; all write-functions must fail, 
-        and write-functions of opened databases must fail, too
-
-x new unittest: create file with pagesize 64kb, then open it
-
-x new unittest: create env with pagesize 64kb, then open it
-
-x new unittest: select a pagesize/keysize so less than 4 keys fit on a 
-    page -> INV_KEYSIZE
-
-x new unittest: create an environment, don't insert a database; close
-    then open the environment as a database file (ham_open)
-
-x new unittest: create an environment, insert a database; close
-    then open the environment as a database file (ham_open)
-        - should load the first available database
-
-x new unittest: create an environment, insert two databases, delete the first
-    then open the environment as a database file (ham_open)
-        - should load the first available database
-
-x new unittests for exclusive file locking
-    x check on linux
-    x check on windows
-    x check on cygwin -- fails!
-
-x should backends have a version information? otherwise, the 32byte might be
-    full, and we don't have room for an overflow area...
-    -> not yet, still enough room
-
-x more tests and performance checks with very large files - around 256 MB
-    x write perl-script to generate the tests - w/o extended keys, big blobs
-    x write perl-script to generate the tests - w/  extended keys, big blobs
-    -> findings: ham_insert is a bit slower, but cursors (and erase and find)
-        are way faster
-
-x rename HAM_SHORT_READ/HAM_SHORT_WRITE to HAM_IO_ERROR
-
-x unittest for cursors: ham_insert(x), ham_insert(x+1) 
-    cursor_find(x); cursor!=NULL; ham_erase(x); 
-    cursor_move(key, rec, NEXT); -> KEY_NOT_FOUND
-
-x bei ham_flush wird auch die db-header-page geflusht. wird sie zuvor auch
-    vom btree geupdated? das passiert nämlich nur in btree_close
-    x neue funktion btree_flush
-    x wird auch von btree_close aufgerufen
-    x wird im ham_flush aufgerufen
-
-x unittest for ham_flush
-    x create a new environment, insert a few items, then flush; 
-        don't close the database; open the file with a second handle, 
-        and check if everything is available
-
-x test other values for DB_CHUNKSIZE
-    -> 32 is better, change it (files are much smaller now)
-
-x unittests don't work on win32
-    x wrong working directory (can't find data files)
-    x HAM_READ_ONLY broken
-    x HAM_LOCK_EXCLUSIVE broken
-
-x add support for logical record numbers
-
-o release 0.4.5
+    o modify acceptance test for --duplicate=1 (berkdb and hamster)
+    o update documentation
+    o update tutorial
+    o new sample, read all words from stdin, insert them with line information;
+        also, insert the same word in a second db, with a word-counter
+        then dump all words with the line information, and how often they
+        were used
 
