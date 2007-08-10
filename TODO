@@ -8,8 +8,6 @@ x support GPL3
 
 o create a new repository for hamsterdb-meta
 
-o make an entry in Heise Software directory
-
 o create a new repository for hamsterdb-alien for all dependencies 
     in source and precompiled (cppunit and berkeleydb)
     o cygwin32
