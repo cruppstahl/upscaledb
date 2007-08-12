@@ -63,8 +63,7 @@
      * erases the key from the index and positions the cursor to the    \
      * next key                                                         \
      */                                                                 \
-    ham_status_t (*_fun_erase)(clss *cu, ham_offset_t *rid,             \
-            ham_u32_t *intflags, ham_u32_t flags);                      \
+    ham_status_t (*_fun_erase)(clss *cu, ham_u32_t flags);              \
                                                                         \
     /**                                                                 \
      * pointer to the database object                                   \

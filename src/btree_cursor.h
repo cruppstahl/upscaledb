@@ -59,6 +59,11 @@ struct ham_bt_cursor_t
              */
             ham_size_t _index;
 
+            /*
+             * the blobid of the duplicate key
+             */
+            ham_size_t _dupe_id;
+
         } _coupled;
 
         struct ham_bt_cursor_uncoupled_t {
@@ -142,6 +147,16 @@ struct ham_bt_cursor_t
 #define bt_cursor_set_coupled_index(cu, i)  (cu)->_u._coupled._index=i
 
 /**
+ * get the duplicate key we're pointing to - if the cursor is coupled
+ */
+#define bt_cursor_get_coupled_dupe_id(cu)   (cu)->_u._coupled._dupe_id
+
+/**
+ * set the duplicate key we're pointing to - if the cursor is coupled
+ */
+#define bt_cursor_set_coupled_dupe_id(cu, d) (cu)->_u._coupled._dupe_id=d
+
+/**
  * get the key we're pointing to - if the cursor is uncoupled
  */
 #define bt_cursor_get_uncoupled_key(cu)     (cu)->_u._uncoupled._key
@@ -221,12 +236,10 @@ bt_cursor_insert(ham_bt_cursor_t *cu, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags);
 
 /**
- * erases the key from the index and positions the cursor to the
- * next key
+ * erases the key from the index; afterwards, the cursor points to NIL
  */
 ham_status_t
-bt_cursor_erase(ham_bt_cursor_t *cu, ham_offset_t *rid,
-            ham_u32_t *intflags, ham_u32_t flags);
+bt_cursor_erase(ham_bt_cursor_t *cu, ham_u32_t flags);
 
 
 #ifdef __cplusplus

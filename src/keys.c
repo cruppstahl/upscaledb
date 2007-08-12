@@ -72,7 +72,7 @@ key_insert_extended(ham_db_t *db, ham_page_t *page,
     if ((st=blob_allocate(db, 
                 data_ptr +(db_get_keysize(db)-sizeof(ham_offset_t)), 
                 key->size-(db_get_keysize(db)-sizeof(ham_offset_t)), 
-                0, &blobid))) {
+                0, 0, &blobid))) {
         db_set_error(db, st);
         return (0);
     }

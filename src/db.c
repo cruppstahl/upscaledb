@@ -584,22 +584,12 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
                     *(ham_offset_t *)(key_get_key(bte)+
                         (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
                 }
-                (void)blob_free(db, blobid, 0);
+                (void)blob_free(db, blobid, BLOB_FREE_ALL_DUPES);
                 (void)extkey_cache_remove(c, blobid);
             }
         }
     }
 
-#if 0
-    /*
-     * free the page; this will automatically flush the page, if 
-     * it's dirty
-     */
-    st=page_free(page);
-    if (st)
-        return (st);
-
-#endif
     /*
      * move the page to the freelist
      */

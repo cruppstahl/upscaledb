@@ -6,53 +6,91 @@ x support GPL3
     x rename COPYING to COPYING.GPL2
     x add GPL3 license file (COPYING.GPL3)
 
-o create a new repository for hamsterdb-meta
+x create a new repository for hamsterdb-meta
 
 o create a new repository for hamsterdb-alien for all dependencies 
-    in source and precompiled (cppunit and berkeleydb)
+    in source and precompiled (static/non-debug - cppunit and berkeleydb)
+    x linux64-le
+    x linux32-le
     o cygwin32
     o win32
     o win64
     o wince-x86
-    o linux32-le
-    o linux64-le
     o ppc32-be
 
-o support for duplicate keys
-    o problem: when a blob is deleted, the blobid might be reused
-        -> a cursor pointing to this blob can't find out if it was replaced
-        -> need a second unique identifier
+x unittests - check for leaks!
+    x replace big record with tiny
+    x replace big record with null
+    x replace tiny record with null
+    x replace tiny record with big
 
-    o make sure that EXTENDED_BLOB flag is always set if blob>=8 byte 
+o support for duplicate keys
+    x make sure that EXTENDED_BLOB flag is always set if blob>=8 byte 
         (check unittests!)
-    o when replacing a big blob with a blob <= 8 byte: delete the
-        blob, then move it into the key
-        o unittest
-    o un-merge a blob: if it's <=8 byte, create a record structure
-        o unittest
-    o enhance the blob structure for double-linked lists, but only if 
-        the database was opened/created with HAM_ENABLE_DUPLICATES (??)
-        o unittest
-    o enhance the cursor structure for the linked list
-        o coupled cursor: store blobid of the current duplicate (and uid)
-        o unittest
-    o ham_insert: insert duplicate (at the beginning of the list)
-        o if blob is SMALL/TINY: create blob structure
-        o unittests; check dupe with cursor
-    o ham_erase: erases the first element of a list
-        o if blob is SMALL/TINY: remove blob structure
-        o unittest
+        -> not needed - TINY_BLOB or SMALL_BLOB are enough
+    x test if everything runs fine if blobs are always allocated
+    x enhance the blob structure for double-linked lists
+        x unittest (structure)
+    x enhance the cursor structure for the linked list
+        x coupled cursor: store blobid of the current duplicate
+
+    x ham_insert: insert duplicate (at the beginning of the list)
+        x if blob is SMALL/TINY: create blob structure
+        x prepend the new blob, if HAM_DUPLICATE==1
+        x unittests; check dupe with ham_find
+
+    x ham_erase: erases the first element of a list
+        x unittest
+
+    x modify db_free_page; also delete the duplicates
+    x modify my_free_cb
+
+    x ham_create needs flag HAM_ENABLE_DUPLICATES
+        x persistent flag -> unittest
+
+    x don't allow insert(HAM_DUPLICATE|HAM_OVERWRITE)
+        x fix in code
+        x documentation!
+        x unittest
+
     o modify cursor->next, cursor->previous to walk over the linked list 
-        o unittest (w/ ham_insert)
-        o uncoupled cursor: first, try to load the blobid with the cached
-            blobid, then check the "age"; if this doesn't work, 
-            retur HAM_KEY_NOT_FOUND (same as if an item is deleted, but a
-            cursor still points to the item)
+        x flags: HAM_SKIP_DUPLICATES -> don't walk over duplicates
+        o !!! currently, only the blob->next pointer is set, not blob->prev
+            o need to modify ham_insert
+            o need to modify ham_erase
+        o when moving the cursor, always check if the cursor has duplicates
+            -> already started in my_move_next(), my_move_prev()
+            -> implement blob_get_previous_duplicate()
+            -> implement blob_get_next_duplicate()
+
+        o couple cursor (bt_cursor_couple):
+            o don't couple to the dupe if !(db_flags&ENABLE_DUPLICATES) 
+                or (flags&SKIP_DUPLICATES)
+            o otherwise: always walk through the linked list, never load 
+                the blobid directly
+            o ham_insert: don't uncouple cursors if inserting duplicates
             o unittest
+        o uncouple cursor: store blobid (unless SKIP_DUPLICATES)
+            o unittest
+        o a lot of unittests (w/ ham_insert)
+
     o modify cursor->insert - if the cursor is in a linked list, 
         insert a duplicate at the requested position
-    o ham_cursor_erase: erase the duplicate at the requested position
+        o HAM_DUPLICATE_INSERT_AFTER
+        o HAM_DUPELICATE_INSERT_BEFORE
+        o HAM_DUPELICATE_INSERT_FIRST (default)
+        o HAM_DUPELICATE_INSERT_LAST
+    o ham_cursor_erase: erase the duplicate at the current position
         o unittest
+    o modify cursor->replace - if the cursor is in a linked list, 
+        replace a duplicate at the requested position
+    o modify ham_replace - if the blob is in a linked list, 
+        replace the head
+
+    o ham_erase:
+        . un-merge a single, remaining blob: if it's <=8 byte, create a 
+            record structure
+            o unittest
 
     o modify acceptance test for --duplicate=1 (berkdb and hamster)
     o update documentation
@@ -61,6 +99,8 @@ o support for duplicate keys
         also, insert the same word in a second db, with a word-counter
         then dump all words with the line information, and how often they
         were used
+    o modify sample env1, to create a 1:n relationship between orders
+        and customers
 
 o webpage
     o update web page about license change (GPL2 or GPL3)
@@ -68,4 +108,6 @@ o webpage
     . move to cakephp framework
     . frontpage: resize hamster picture; remove text -> more space below
         (for 3 colums: news, main features, articles/testimonials/link cloud)
+
+o btree_insert:421 - warum wird der extkey gelöscht??
 

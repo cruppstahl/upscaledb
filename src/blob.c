@@ -171,8 +171,8 @@ my_read_chunk(ham_db_t *db, ham_offset_t addr,
 }
 
 ham_status_t
-blob_allocate(ham_db_t *db, ham_u8_t *data, 
-        ham_size_t size, ham_u32_t flags, ham_offset_t *blobid)
+blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size, 
+        ham_u32_t flags, ham_offset_t next, ham_offset_t *blobid)
 {
     ham_status_t st;
     ham_page_t *page=0;
@@ -204,6 +204,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
         blob_set_alloc_size(hdr, size+sizeof(blob_t));
         blob_set_real_size(hdr, size+sizeof(blob_t));
         blob_set_user_size(hdr, size);
+        blob_set_next(hdr, next);
 
         *blobid=(ham_offset_t)p;
         return (0);
@@ -275,6 +276,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
     blob_set_real_size(&hdr, sizeof(blob_t)+size);
     blob_set_user_size(&hdr, size);
     blob_set_self(&hdr, addr);
+    blob_set_next(&hdr, next);
 
     /* 
      * write header and data 
@@ -314,6 +316,13 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
         if (!hdr)
             return (0);
 
+        /* empty blob? */
+        record->size=(ham_size_t)blob_get_user_size(hdr);
+        if (!record->size) {
+            record->data=0;
+            return (0);
+        }
+
         /* resize buffer, if necessary */
         if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
             if (blob_get_user_size(hdr)>db_get_record_allocsize(db)) {
@@ -332,8 +341,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
         }
 
         /* and copy the data */
-        memcpy(record->data, data, (ham_size_t)blob_get_user_size(hdr));
-        record->size=(ham_size_t)blob_get_user_size(hdr);
+        memcpy(record->data, data, record->size);
 
         return (0);
     }
@@ -356,6 +364,15 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
             ("invalid blobid %llu != %llu", blob_get_self(&hdr), blobid));
     if (blob_get_self(&hdr)!=blobid)
         return (HAM_BLOB_NOT_FOUND);
+
+    /* 
+     * empty blob? 
+     */
+    record->size=(ham_size_t)blob_get_user_size(&hdr);
+    if (!record->size) {
+        record->data=0;
+        return (0);
+    }
 
     /*
      * second step: resize the blob buffer
@@ -406,7 +423,7 @@ blob_replace(ham_db_t *db, ham_offset_t old_blobid,
         st=blob_free(db, old_blobid, flags);
         if (st)
             return (st);
-        return (blob_allocate(db, data, size, flags, new_blobid));
+        return (blob_allocate(db, data, size, flags, 0, new_blobid));
     }
 
     ham_assert(old_blobid%DB_CHUNKSIZE==0, (0));
@@ -483,12 +500,29 @@ blob_replace(ham_db_t *db, ham_offset_t old_blobid,
         (void)freel_mark_free(db, old_blobid, 
                 (ham_size_t)blob_get_alloc_size(&old_hdr));
 
-        return (blob_allocate(db, data, size, flags, new_blobid));
+        return (blob_allocate(db, data, size, flags, 0, new_blobid));
     }
 }
 
 ham_status_t
 blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_offset_t newhead=0;
+
+    do {
+        st=blob_free_dupes(db, blobid, flags, &newhead);
+        if (st)
+            return (st);
+        blobid=newhead;
+    } while ((flags&BLOB_FREE_ALL_DUPES) && blobid);
+
+    return (0);
+}
+
+ham_status_t
+blob_free_dupes(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags, 
+        ham_offset_t *newhead)
 {
     ham_status_t st;
     blob_t hdr;
@@ -498,8 +532,10 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
      * buffer, in which the blob is stored
      */
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
-        ham_u8_t *data=(ham_u8_t *)blobid;
-        ham_mem_free(db, data);
+        blob_t *phdr=(ham_u8_t *)blobid;
+        if (newhead)
+            *newhead=blob_get_next(phdr);
+        ham_mem_free(db, phdr);
         return (0);
     }
 
@@ -521,6 +557,9 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
             ("invalid blobid %llu != %llu", blob_get_self(&hdr), blobid);)
     if (blob_get_self(&hdr)!=blobid)
         return (HAM_BLOB_NOT_FOUND);
+
+    if (newhead)
+        *newhead=blob_get_next(&hdr);
 
     /*
      * move the blob to the freelist

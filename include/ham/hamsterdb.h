@@ -728,6 +728,8 @@ ham_create(ham_db_t *db, const char *filename,
  *            the value of the current key is returned in @a key (a 
  *            host-endian 64bit number of type ham_u64_t). Otherwise,
  *            key->data must be NULL and key->size must be 0.
+ *       <li>@a HAM_ENABLE_DUPLICATES</li> Enable duplicate keys for this
+ *            database. By default, duplicate keys are disabled.
  *       <li>@a HAM_DISABLE_MMAP</li> Do not use memory mapped files for I/O.
  *            By default, hamsterdb checks if it can use mmap,
  *            since mmap is faster than read/write. For performance
@@ -901,6 +903,9 @@ ham_open_ex(ham_db_t *db, const char *filename,
 /** Flag for @a ham_create, @a ham_create_ex */
 #define HAM_RECORD_NUMBER            0x00002000
 
+/** Flag for @a ham_create, @a ham_create_ex */
+#define HAM_ENABLE_DUPLICATES        0x00004000
+
 /** Parameter name for @a ham_open_ex, @a ham_create_ex; sets the cache
  * size*/
 #define HAM_PARAM_CACHESIZE          0x00000100
@@ -986,6 +991,9 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  * @a record.flags to @a HAM_RECORD_USER_ALLOC. Make sure that the allocated
  * buffer is large enough.
  *
+ * Note that ham_find can not search for duplicate keys. If @a key has
+ * multiple duplicates, only the first duplicate is found.
+ *
  * @param db A valid database handle.
  * @param reserved A reserved value; set to NULL.
  * @param key The key of the item.
@@ -1007,7 +1015,9 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  *
  * If the key already exists in the database, error @a HAM_DUPLICATE_KEY
  * is returned. If you wish to overwrite an existing entry specify the
- * flag @a HAM_OVERWRITE.
+ * flag @a HAM_OVERWRITE. If you wish to insert a duplicate key, 
+ * specify the flag @a HAM_DUPLICATE. (Note that the database has to be 
+ * created with @a HAM_ENABLE_DUPLICATES, in order to use duplicate keys.)
  *
  * Record number databases (created with @a HAM_RECORD_NUMBER) expect 
  * either an empty @a key (with a size of 0 and data pointing to NULL),
@@ -1024,11 +1034,18 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  * @param flags Insert flags. Currently, only one flag is available:
  *         @a HAM_OVERWRITE. If the @a key already exists, the record is
  *              overwritten. Otherwise, the key is inserted.
+ *         @a HAM_DUPLICATE. If the @a key already exists, a duplicate 
+ *              key is inserted. The key is inserted before the already
+ *              existing key.
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if @a db, @a key or @a record is NULL.
  * @return @a HAM_INV_PARAMETER if the database is a record number database
  *              and the key is invalid (see above).
+ * @return @a HAM_INV_PARAMETER if the flags @a HAM_OVERWRITE <b>and</b>
+ *              @a HAM_DUPLICATE were specified, or if @a HAM_DUPLICATE
+ *              was specified, but the database was not created with 
+ *              flag @a HAM_ENABLE_DUPLICATES.
  * @return @a HAM_DB_READ_ONLY if you tried to insert a key in a read-only
  *              database.
  * @return @a HAM_INV_KEYSIZE if the key's size is larger than the @a keysize
@@ -1044,11 +1061,17 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
 /** Flag for @a ham_insert and @a ham_cursor_insert */
 #define HAM_OVERWRITE               1
 
+/** Flag for @a ham_insert and @a ham_cursor_insert */
+#define HAM_DUPLICATE               2
+
 /**
  * Erases a database item.
  *
  * This function erases a database item. If the item @a key
  * does not exist, @a HAM_KEY_NOT_FOUND is returned.
+ *
+ * Note that ham_erase can not erase duplicate keys. If @a key has multiple
+ * duplicates, only the first duplicate is erased.
  *
  * @param db A valid database handle.
  * @param reserved A reserved value; set to NULL.
@@ -1189,6 +1212,7 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  *              in the database; if the cursor does not point to any
  *              item, the function behaves as if direction was
  *              HAM_CURSOR_LAST.
+ *          @a HAM_SKIP_DUPLICATES: skip duplicate keys of the current key.
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if @a cursor is NULL.
@@ -1213,6 +1237,9 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
 /** Flag for @a ham_cursor_move */
 #define HAM_CURSOR_PREVIOUS         8
+
+/** Flag for @a ham_cursor_move */
+#define HAM_SKIP_DUPLICATES        16
 
 /**
  * Replaces the current record.
@@ -1254,6 +1281,9 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  *
  * Inserts a key to the database. If the flag @a HAM_OVERWRITE
  * is specified, a pre-existing item with this key is overwritten.
+ * If the flag @a HAM_DUPLICATE is specified, and the key already exists,
+ * a duplicate entry is inserted. (Note that the database has to be 
+ * created with @a HAM_ENABLE_DUPLICATES, in order to use duplicate keys.)
  * Otherwise, @a HAM_DUPLICATE_ITEM is returned.
  * In case of an error the cursor is not modified.
  *
@@ -1272,13 +1302,20 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  * @param key A valid key structure.
  * @param record A valid record structure.
  * @param flags Flags for inserting the item.
- *         Specify @a HAM_OVERWRITE to overwrite an existing
- *              record. Otherwise a new key will be inserted.
+ *         @a HAM_OVERWRITE. If the @a key already exists, the record is
+ *              overwritten. Otherwise, the key is inserted.
+ *         @a HAM_DUPLICATE. If the @a key already exists, a duplicate 
+ *              key is inserted. The key is inserted before the already
+ *              existing key.
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if @a key or @a record is NULL.
  * @return @a HAM_INV_PARAMETER if the database is a record number database
  *              and the key is invalid (see above).
+ * @return @a HAM_INV_PARAMETER if the flags @a HAM_OVERWRITE <b>and</b>
+ *              @a HAM_DUPLICATE were specified, or if @a HAM_DUPLICATE
+ *              was specified, but the database was not created with 
+ *              flag @a HAM_ENABLE_DUPLICATES.
  * @return @a HAM_DB_READ_ONLY if you tried to insert a key to a read-only
  *              database.
  * @return @a HAM_INV_KEYSIZE if the key's size is larger than the @a keysize

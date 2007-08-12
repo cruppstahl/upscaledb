@@ -57,6 +57,16 @@ typedef HAM_PACK_0 struct HAM_PACK_1
     ham_u64_t _user_size;
 
     /**
+     * the previous blob in a list of duplicates
+     */
+    ham_offset_t _previous;
+
+    /**
+     * the next blob in a list of duplicates
+     */
+    ham_offset_t _next;
+
+    /**
      * additional flags
      */
     ham_u32_t _flags;
@@ -106,6 +116,26 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 #define blob_set_user_size(b, s)       (b)->_user_size=ham_h2db64(s)
 
 /**
+ * get the previous blob in a linked list of duplicates
+ */
+#define blob_get_previous(b)           (ham_db2h64((b)->_previous))
+
+/**
+ * set the previous blob in a linked list of duplicates
+ */
+#define blob_set_previous(b, p)        (b)->_previous=ham_h2db64(p)
+
+/**
+ * get the next blob in a linked list of duplicates
+ */
+#define blob_get_next(b)               (ham_db2h64((b)->_next))
+
+/**
+ * set the next blob in a linked list of duplicates
+ */
+#define blob_set_next(b, n)            (b)->_next=ham_h2db64(n)
+
+/**
  * get flags of a blob_t
  */
 #define blob_get_flags(b)              (ham_db2h32((b)->_flags))
@@ -118,11 +148,14 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 /**
  * write a blob
  *
+ * @a next is the next-pointer in a linked list of dupes
+ *
  * returns the blob-id (the start address of the blob header) in @a blobid
  */
 extern ham_status_t
 blob_allocate(ham_db_t *db, ham_u8_t *data, 
-        ham_size_t size, ham_u32_t flags, ham_offset_t *blobid);
+        ham_size_t size, ham_u32_t flags, ham_offset_t next, 
+        ham_offset_t *blobid);
 
 /**
  * read a blob
@@ -149,6 +182,15 @@ blob_replace(ham_db_t *db, ham_offset_t old_blobid,
  */
 extern ham_status_t
 blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags);
+
+#define BLOB_FREE_ALL_DUPES   1
+
+/**
+ * delete the head element of a linked blob list
+ */
+extern ham_status_t
+blob_free_dupes(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags, 
+        ham_offset_t *newhead);
 
 
 #ifdef __cplusplus

@@ -97,12 +97,9 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
                                                                         \
     /**                                                                 \
      * erase a key in the index                                         \
-     *                                                                  \
-     * @remark this function returns the record of the key              \
-     * in @a rid                                                        \
      */                                                                 \
     ham_status_t (*_fun_erase)(clss *be, ham_key_t *key,                \
-            ham_offset_t *rid, ham_u32_t *intflags, ham_u32_t flags);   \
+            ham_u32_t flags);                                           \
                                                                         \
     /**                                                                 \
      * iterate the whole tree and enumerate every item                  \ 

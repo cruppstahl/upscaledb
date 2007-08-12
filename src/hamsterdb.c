@@ -169,7 +169,7 @@ my_free_cb(int event, void *param1, void *param2, void *context)
          * if we're in the leaf page, delete the blob
          */
         if (c->is_leaf)
-             (void)blob_free(c->db, key_get_ptr(key), 0);
+            (void)blob_free(c->db, key_get_ptr(key), BLOB_FREE_ALL_DUPES);
         break;
 
     default:
@@ -1063,6 +1063,10 @@ ham_open_ex(ham_db_t *db, const char *filename,
     /* cannot open an in-memory-db */
     if (flags&HAM_IN_MEMORY_DB)
         return (db_set_error(db, HAM_INV_PARAMETER));
+    /* HAM_ENABLE_DUPLICATES has to be specified in ham_create, not 
+     * ham_open */
+    if (flags&HAM_ENABLE_DUPLICATES)
+        return (db_set_error(db, HAM_INV_PARAMETER));
 
     /* parse parameters */
     if (param) {
@@ -1660,6 +1664,8 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
         (key->size>db_get_keysize(db)))
         return (db_set_error(db, HAM_INV_KEYSIZE));
+    if ((flags&HAM_DUPLICATE) && (flags&HAM_OVERWRITE))
+        return (db_set_error(db, HAM_INV_PARAMETER));
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
@@ -1766,8 +1772,6 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
 {
     ham_txn_t txn;
     ham_status_t st;
-    ham_u32_t intflags=0;
-    ham_offset_t blobid=0;
     ham_backend_t *be;
 
     if (!db || !key)
@@ -1787,15 +1791,9 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
         return (st);
 
     /*
-     * get rid of the index entry, then free the blob
+     * get rid of the entry
      */
-    st=be->_fun_erase(be, key, &blobid, &intflags, flags);
-    if (st==HAM_SUCCESS) {
-        if (!((intflags&KEY_BLOB_SIZE_TINY) ||
-              (intflags&KEY_BLOB_SIZE_SMALL) ||
-              (intflags&KEY_BLOB_SIZE_EMPTY)))
-            st=blob_free(db, blobid, flags);
-    }
+    st=be->_fun_erase(be, key, flags);
 
     if (st) {
 #if 0
@@ -2252,6 +2250,8 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
         (key->size>db_get_keysize(db)))
         return (db_set_error(db, HAM_INV_KEYSIZE));
+    if ((flags&HAM_DUPLICATE) && (flags&HAM_OVERWRITE))
+        return (db_set_error(db, HAM_INV_PARAMETER));
 
     /*
      * record number: make sure that we have a valid key structure,
@@ -2340,8 +2340,6 @@ ham_status_t
 ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_offset_t rid;
-    ham_u32_t intflags;
     ham_txn_t txn;
     ham_db_t *db;
 
@@ -2360,13 +2358,7 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
-    st=bt_cursor_erase((ham_bt_cursor_t *)cursor, &rid, &intflags, flags);
-    if (st==HAM_SUCCESS) {
-        if (!((intflags&KEY_BLOB_SIZE_TINY) ||
-              (intflags&KEY_BLOB_SIZE_SMALL) ||
-              (intflags&KEY_BLOB_SIZE_EMPTY)))
-            st=blob_free(cursor_get_db(cursor), rid, flags);
-    }
+    st=bt_cursor_erase((ham_bt_cursor_t *)cursor, flags);
 
     if (st) {
         (void)ham_txn_abort(&txn);

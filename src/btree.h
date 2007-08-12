@@ -242,8 +242,7 @@ btree_insert_cursor(ham_btree_t *be, ham_key_t *key,
  * erase a key from the tree
  */
 extern ham_status_t
-btree_erase(ham_btree_t *be, ham_key_t *key, 
-        ham_offset_t *rid, ham_u32_t *intflags, ham_u32_t flags);
+btree_erase(ham_btree_t *be, ham_key_t *key, ham_u32_t flags);
 
 /**
  * enumerate all items

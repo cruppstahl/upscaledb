@@ -74,7 +74,6 @@ typedef struct
  * flags for my_insert_nosplit()
  */
 #define NOFLUSH   0x1000    /* avoid conflicts with public flags */
-#define OVERWRITE HAM_OVERWRITE
 
 /*
  * this is the function which does most of the work - traversing to a 
@@ -289,7 +288,7 @@ my_insert_in_page(ham_page_t *page, ham_key_t *key,
      */
     if (btree_node_is_leaf(node)) {
         if (btree_node_search_by_key(page_get_owner(page), page, key)>=0) {
-            if (flags&HAM_OVERWRITE) {
+            if ((flags&HAM_OVERWRITE) || (flags&HAM_DUPLICATE)) {
                 ham_status_t st=my_insert_nosplit(page, key, rid, 
                         scratchpad->record, scratchpad->cursor, flags);
                 /* don't overwrite cursor if my_insert_nosplit
@@ -312,11 +311,11 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
 {
     int cmp;
     ham_status_t st;
-    ham_bool_t overwrite=HAM_FALSE;
     ham_size_t i, count, keysize;
     int_key_t *bte=0;
     btree_node_t *node;
     ham_db_t *db=page_get_owner(page);
+    ham_bool_t exists=HAM_FALSE;
     ham_s32_t slot;
     ham_u32_t oldflags;
 
@@ -360,13 +359,13 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
                  * no need to overwrite the key - it already exists! 
                  * however, we have to overwrite the data!
                  */
-                if (btree_node_is_leaf(node)) 
-                    overwrite=HAM_TRUE;
-                else
+                if (!btree_node_is_leaf(node)) 
                     return (HAM_SUCCESS);
             }
-            else
+            else if (!(flags&HAM_DUPLICATE))
                 return (HAM_DUPLICATE_KEY);
+
+            exists=HAM_TRUE;
         }
         /*
          * otherwise, if the new key is < then the slot key, move to 
@@ -395,6 +394,9 @@ shift_elements:
     if (i==count) 
         bte=btree_node_get_key(db, node, count);
 
+    oldflags=key_get_flags(bte);
+    key_set_flags(bte, 0);
+
     /*
      * if we're in the leaf: insert the blob, and append the blob-id 
      * in this node; otherwise just append the entry (rid)
@@ -406,78 +408,118 @@ shift_elements:
      * allocate a single chunk of memory, and store the memory address
      * in rid
      */
-    if (btree_node_is_leaf(node) && record->size>sizeof(ham_offset_t)) {
+    if (btree_node_is_leaf(node)) {
         ham_status_t st;
+
         /*
-         * make sure that we only call blob_replace(), if there IS a blob
-         * to replace! otherwise call blob_allocate()
+         * insert a duplicate key? 
+         *
+         * if the previous key is SMALL, TINY or EMPTY: allocate a blob
+         * structure to start a linked list
+         *
+         * then allocate another blob for the dupe and insert the dupe
+         * at the head of the linked list
          */
-        if (overwrite) {
-            if (!((key_get_flags(bte)&KEY_BLOB_SIZE_TINY) ||
-                (key_get_flags(bte)&KEY_BLOB_SIZE_SMALL) ||
-                (key_get_flags(bte)&KEY_BLOB_SIZE_EMPTY))) {
-                ham_offset_t blobid=key_get_extended_rid(db, bte);
-                /* remove the cached extended key */
-                if (db_get_extkey_cache(db)) 
-                    (void)extkey_cache_remove(db_get_extkey_cache(db), blobid);
-                st=blob_replace(db, key_get_ptr(bte), record->data, 
-                            record->size, 0, &rid);
+        if (exists && (flags&HAM_DUPLICATE)) {
+            ham_offset_t old_blobid=0;
+
+            if ((oldflags&KEY_BLOB_SIZE_TINY) ||
+                (oldflags&KEY_BLOB_SIZE_SMALL) ||
+                (oldflags&KEY_BLOB_SIZE_EMPTY)) {
+                ham_offset_t bid=key_get_ptr(bte);
+                ham_size_t size=0;
+
+                if (oldflags&KEY_BLOB_SIZE_TINY) {
+                    char *p=(char *)&record->_rid;
+                    size=p[sizeof(ham_offset_t)-1];
+                }
+                if (oldflags&KEY_BLOB_SIZE_SMALL)
+                    size=sizeof(ham_offset_t);
+
+                st=blob_allocate(db, size ? (void *)&bid : 0, size, 
+                        0, 0, &old_blobid);
+                if (st)
+                    return (st);
             }
-            else
-                st=blob_allocate(db, record->data, 
-                            record->size, 0, &rid);
+            else {
+                old_blobid=key_get_ptr(bte);
+            }
+
+            /* allocate the new blob, and set the 'next' pointer */
+            st=blob_allocate(db, record->data, record->size, 0, 
+                    old_blobid, &rid);
             if (st)
                 return (st);
         }
-        else {
-            if ((st=blob_allocate(db, record->data, 
-                            record->size, 0, &rid)))
-                return (st);
-        }
-    }
 
-    /*
-     * if the record's size is <= sizeof(ham_offset_t), store the data
-     * directly in the offset
-     *
-     * if the record's size is < sizeof(ham_offset_t), the last byte
-     * in &rid is the size of the data. if the record is empty, we just
-     * set the "empty"-flag.
-     *
-     * before, reset the key-flags
-     */
-    oldflags=key_get_flags(bte);
-    key_set_flags(bte, 0);
-
-    if (btree_node_is_leaf(node)) {
         /*
-         * if a blob exists, free it
+         * continue inserting routine for non-duplicates
          */
-        if (overwrite && record->size<=sizeof(ham_offset_t)) {
-            if (!((oldflags&KEY_BLOB_SIZE_TINY) ||
-                (oldflags&KEY_BLOB_SIZE_SMALL) ||
-                (oldflags&KEY_BLOB_SIZE_EMPTY))) {
-                st=blob_free(db, key_get_ptr(bte), 0);
+        else if (record->size>sizeof(ham_offset_t)) {
+            /*
+             * make sure that we only call blob_replace(), if there IS a blob
+             * to replace! otherwise call blob_allocate()
+             */
+            if (exists && (flags&HAM_OVERWRITE)) {
+                if (!((oldflags&KEY_BLOB_SIZE_TINY) ||
+                    (oldflags&KEY_BLOB_SIZE_SMALL) ||
+                    (oldflags&KEY_BLOB_SIZE_EMPTY))) {
+                    st=blob_replace(db, key_get_ptr(bte), record->data, 
+                                record->size, 0, &rid);
+                }
+                else
+                    st=blob_allocate(db, record->data, 
+                                record->size, 0, 0, &rid);
                 if (st)
+                    return (st);
+            }
+            else {
+                if ((st=blob_allocate(db, record->data, 
+                                record->size, 0, 0, &rid)))
                     return (st);
             }
         }
 
         /*
-         * now set the new key flags 
+         * if the record's size is <= sizeof(ham_offset_t), store the data
+         * directly in the offset
+         *
+         * if the record's size is < sizeof(ham_offset_t), the last byte
+         * in &rid is the size of the data. if the record is empty, we just
+         * set the "empty"-flag.
+         *
+         * before, reset the key-flags
          */
-        if (record->size==0) {
-            key_set_flags(bte, key_get_flags(bte)|KEY_BLOB_SIZE_EMPTY);
-        }
-        else if (record->size<=sizeof(ham_offset_t)) {
-            memcpy(&rid, record->data, record->size);
-            if (record->size<sizeof(ham_offset_t)) {
-                char *p=(char *)&rid;
-                p[sizeof(ham_offset_t)-1]=record->size;
-                key_set_flags(bte, key_get_flags(bte)|KEY_BLOB_SIZE_TINY);
+        else {
+            /*
+             * if a blob exists, free it
+             */
+            if (exists && (flags&HAM_OVERWRITE)) {
+                if (!((oldflags&KEY_BLOB_SIZE_TINY) ||
+                    (oldflags&KEY_BLOB_SIZE_SMALL) ||
+                    (oldflags&KEY_BLOB_SIZE_EMPTY))) {
+                    st=blob_free(db, key_get_ptr(bte), 0);
+                    if (st)
+                        return (st);
+                }
             }
-            else {
-                key_set_flags(bte, key_get_flags(bte)|KEY_BLOB_SIZE_SMALL);
+
+            /*
+             * now set the new key flags 
+             */
+            if (record->size==0) {
+                key_set_flags(bte, key_get_flags(bte)|KEY_BLOB_SIZE_EMPTY);
+            }
+            else if (record->size<=sizeof(ham_offset_t)) {
+                memcpy(&rid, record->data, record->size);
+                if (record->size<sizeof(ham_offset_t)) {
+                    char *p=(char *)&rid;
+                    p[sizeof(ham_offset_t)-1]=record->size;
+                    key_set_flags(bte, key_get_flags(bte)|KEY_BLOB_SIZE_TINY);
+                }
+                else {
+                    key_set_flags(bte, key_get_flags(bte)|KEY_BLOB_SIZE_SMALL);
+                }
             }
         }
     }
@@ -501,7 +543,7 @@ shift_elements:
     /*
      * if we've overwritten a key: no need to continue, we're done
      */
-    if (overwrite)
+    if (exists)
         return (0);
 
     /*

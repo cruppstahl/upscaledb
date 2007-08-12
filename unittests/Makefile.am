@@ -8,7 +8,8 @@ noinst_PROGRAMS = test
 
 INCLUDES        = -I$(top_builddir)/include
 
-test_SOURCES    = recno.cpp \
+test_SOURCES    = duplicates.cpp \
+			      recno.cpp \
                   env.cpp \
                   hamsterdb.cpp \
                   blob.cpp \
@@ -27,6 +28,7 @@ test_SOURCES    = recno.cpp \
                   page.cpp \
                   txn.cpp \
                   memtracker.cpp
+test_SOURCES    = duplicates.cpp main.cpp
 
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la \
                   -lcppunit -ldl

@@ -75,6 +75,8 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (cursorEraseTest);
     CPPUNIT_TEST      (cursorCloseTest);
     CPPUNIT_TEST      (cursorGetErasedItemTest);
+    CPPUNIT_TEST      (replaceKeyTest);
+    CPPUNIT_TEST      (replaceKeyFileTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -309,6 +311,31 @@ public:
                 ham_insert(m_db, 0, &key, &rec, 0));
     }
 
+    void insertDuplicateTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE|HAM_OVERWRITE));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+
+        ham_db_t *db;
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create(db, ".test", HAM_ENABLE_DUPLICATES, 0664));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE|HAM_OVERWRITE));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+    }
+
     void insertBigKeyTest(void)
     {
         ham_key_t key;
@@ -517,7 +544,6 @@ public:
         key.data=&value;
         key.size=sizeof(value);
 
-unlink(".test");
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
         CPPUNIT_ASSERT_EQUAL(0, ham_create(db, ".test", 0, 0664));
 
@@ -536,6 +562,87 @@ unlink(".test");
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+    }
+
+    void replaceKeyTest(void)
+    {
+        /* in-memory */
+        ham_key_t key;
+        ham_record_t rec;
+        char buffer1[32], buffer2[7];
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        ::memset(buffer1, 0, sizeof(buffer1));
+        ::memset(buffer2, 0, sizeof(buffer2));
+        rec.size=sizeof(buffer1);
+        rec.data=buffer1;
+
+        /* insert a big blob */
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(buffer1), rec.size);
+        CPPUNIT_ASSERT_EQUAL(0, ::memcmp(rec.data, buffer1, sizeof(buffer1)));
+
+        /* replace with a tiny blob */
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        rec.size=sizeof(buffer2);
+        rec.data=buffer2;
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(buffer2), rec.size);
+        CPPUNIT_ASSERT_EQUAL(0, ::memcmp(rec.data, buffer2, sizeof(buffer2)));
+
+        /* replace with a big blob */
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        rec.size=sizeof(buffer1);
+        rec.data=buffer1;
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(buffer1), rec.size);
+        CPPUNIT_ASSERT_EQUAL(0, ::memcmp(rec.data, buffer1, sizeof(buffer1)));
+
+        /* replace with a NULL blob */
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        rec.size=0;
+        rec.data=0;
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)0, rec.size);
+        CPPUNIT_ASSERT(rec.data==0);
+
+        /* replace with a tiny blob */
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        rec.size=sizeof(buffer2);
+        rec.data=buffer2;
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(buffer2), rec.size);
+        CPPUNIT_ASSERT_EQUAL(0, ::memcmp(rec.data, buffer2, sizeof(buffer2)));
+
+        /* replace with a NULL blob */
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        rec.size=0;
+        rec.data=0;
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)0, rec.size);
+        CPPUNIT_ASSERT(rec.data==0);
+    }
+
+    void replaceKeyFileTest(void)
+    {
+        ham_db_t *olddb=m_db;
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", 0, 0664));
+        replaceKeyTest();
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(m_db));
+        m_db=olddb;
     }
 };
 

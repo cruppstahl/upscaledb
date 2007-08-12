@@ -46,16 +46,6 @@ typedef struct
     ham_key_t *key;
 
     /*
-     * a pointer to the record id of the deleted key
-     */
-    ham_offset_t *rid;
-
-    /*
-     * the internal flags of the key
-     */
-    ham_u32_t *intflags;
-
-    /*
      * a page which needs rebalancing
      */
     ham_page_t *mergepage;
@@ -130,8 +120,7 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
 
 
 ham_status_t
-btree_erase(ham_btree_t *be, ham_key_t *key, 
-        ham_offset_t *rid, ham_u32_t *intflags, ham_u32_t flags)
+btree_erase(ham_btree_t *be, ham_key_t *key, ham_u32_t flags)
 {
     ham_status_t st=0;
     ham_page_t *root, *p;
@@ -145,8 +134,6 @@ btree_erase(ham_btree_t *be, ham_key_t *key,
     memset(&scratchpad, 0, sizeof(scratchpad));
     scratchpad.be=be;
     scratchpad.key=key;
-    scratchpad.rid=rid;
-    scratchpad.intflags=intflags;
     scratchpad.flags=flags;
 
     /* 
@@ -304,11 +291,8 @@ my_erase_recursive(ham_page_t *page, ham_offset_t left, ham_offset_t right,
                     key_get_size(bte));
             if (db_get_error(db))
                 return (0);
-            if (cmp==0) {
-                *scratchpad->rid=key_get_ptr(bte);
-                *scratchpad->intflags=key_get_flags(bte);
+            if (cmp==0)
                 newme=page;
-            }
             else {
                 db_set_error(db, HAM_KEY_NOT_FOUND);
                 return (0);
@@ -1029,7 +1013,7 @@ my_copy_key(ham_db_t *db, int_key_t *lhs, int_key_t *rhs)
         if (st)
             return (st);
 
-        st=blob_allocate(db, record.data, record.size, 0, &lhsblobid);
+        st=blob_allocate(db, record.data, record.size, 0, 0, &lhsblobid);
         if (st)
             return (st);
         key_set_extended_rid(db, lhs, lhsblobid);
@@ -1101,7 +1085,7 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
         if (st)
             return (st);
 
-        st=blob_allocate(db, record.data, record.size, 0, &lhsblobid);
+        st=blob_allocate(db, record.data, record.size, 0, 0, &lhsblobid);
         if (st)
             return (st);
         key_set_extended_rid(db, lhs, lhsblobid);
@@ -1139,13 +1123,42 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
     ham_assert(slot<btree_node_get_count(node), ("invalid slot %ld", slot));
 
     /*
+     * leaf page: get rid of the record
+     *
+     * if there are duplicate keys: remove the head of the linked list,
+     * then return immediately
+     */
+    if (btree_node_is_leaf(node)) {
+        if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
+            ham_offset_t newid;
+            st=blob_free_dupes(db, key_get_ptr(bte), 0, &newid);
+            if (st)
+                return (st);
+            if (newid) {
+                key_set_ptr(bte, newid);
+                page_set_dirty(page, 1);
+                return (0);
+            }
+        }
+        else {
+            if (!((key_get_flags(bte)&KEY_BLOB_SIZE_TINY) ||
+                (key_get_flags(bte)&KEY_BLOB_SIZE_SMALL) ||
+                (key_get_flags(bte)&KEY_BLOB_SIZE_EMPTY))) {
+                st=blob_free(db, key_get_ptr(bte), 0);
+                if (st)
+                    return (st);
+            }
+        }
+    }
+
+    /*
      * get rid of the extended key (if there is one)
      *
      * also remove the key from the cache
      */
     if (key_get_flags(bte)&KEY_IS_EXTENDED) {
         ham_offset_t blobid=key_get_extended_rid(db, bte);
-        (void)blob_free(db, blobid, 0); 
+        (void)blob_free(db, blobid, 0);
 
         /* remove the cached extended key */
         if (db_get_extkey_cache(db)) 

@@ -180,9 +180,11 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     ham_page_t *page;
     btree_node_t *node;
     ham_db_t *db=cursor_get_db(c);
+    int_key_t *entry;
 
     /*
      * uncoupled cursor: couple it
+     * TODO bt_cursor_couple: if we're coupled to a dupe: search for it!!
      */
     if (bt_cursor_get_flags(c)&BT_CURSOR_FLAG_UNCOUPLED) {
         st=bt_cursor_couple(c);
@@ -196,6 +198,26 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
 
     page=bt_cursor_get_coupled_page(c);
     node=ham_page_get_btree_node(page);
+
+    /*
+     * if this key has duplicates: get the next duplicate; otherwise 
+     * (and if there's no duplicate): fall through
+     */
+    if ((db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) 
+        && (!(flags&HAM_SKIP_DUPLICATES))) {
+        ham_offset_t next, blid;
+        entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
+        blid=key_get_ptr(entry);
+        st=blob_get_next_duplicate(db, blid, &next);
+        if (st)
+            return (db_set_error(db, st));
+        if (next) {
+            bt_cursor_set_coupled_dupe_id(c, next);
+            return (0);
+        }
+    }
+
+    bt_cursor_set_coupled_dupe_id(c, 0);
 
     /*
      * if the index+1 is till in the coupled page, just increment the
@@ -238,6 +260,7 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     ham_page_t *page;
     btree_node_t *node;
     ham_db_t *db=cursor_get_db(c);
+    int_key_t *entry;
 
     /*
      * uncoupled cursor: couple it
@@ -255,6 +278,26 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
 
     page=bt_cursor_get_coupled_page(c);
     node=ham_page_get_btree_node(page);
+
+    /*
+     * if this key has duplicates: get the previous duplicate; otherwise 
+     * (and if there's no duplicate): fall through
+     */
+    if ((db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) 
+        && (!(flags&HAM_SKIP_DUPLICATES))) {
+        ham_offset_t prev, blid;
+        entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
+        blid=key_get_ptr(entry);
+        st=blob_get_previous_duplicate(db, blid, &prev);
+        if (st)
+            return (db_set_error(db, st));
+        if (prev) {
+            bt_cursor_set_coupled_dupe_id(c, prev);
+            return (0);
+        }
+    }
+
+    bt_cursor_set_coupled_dupe_id(c, 0);
 
     /*
      * if the index-1 is till in the coupled page, just decrement the
@@ -610,7 +653,7 @@ bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
                         record->size, 0, &rid);
         }
         else
-            st=blob_allocate(db, record->data, record->size, 0, &rid);
+            st=blob_allocate(db, record->data, record->size, 0, 0, &rid);
         if (st) {
             page_release_ref(page);
             if (local_txn)
@@ -744,8 +787,14 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
     }
 
     if (record) {
-        record->_intflags=key_get_flags(entry);
-		record->_rid=key_get_ptr(entry);
+        if (bt_cursor_get_coupled_dupe_id(c)) {
+            record->_intflags=0;
+		    record->_rid=bt_cursor_get_coupled_dupe_id(c);
+        }
+        else {
+            record->_intflags=key_get_flags(entry);
+		    record->_rid=key_get_ptr(entry);
+        }
         st=util_read_record(db, record, 0);
         if (st) {
             page_release_ref(page);
@@ -862,8 +911,7 @@ bt_cursor_insert(ham_bt_cursor_t *c, ham_key_t *key,
 }
 
 ham_status_t
-bt_cursor_erase(ham_bt_cursor_t *c, ham_offset_t *rid,
-            ham_u32_t *intflags, ham_u32_t flags)
+bt_cursor_erase(ham_bt_cursor_t *c, ham_u32_t flags)
 {
     ham_status_t st;
     ham_db_t *db=bt_cursor_get_db(c);
@@ -891,7 +939,7 @@ bt_cursor_erase(ham_bt_cursor_t *c, ham_offset_t *rid,
     else if (!(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_UNCOUPLED))
         return (HAM_CURSOR_IS_NIL);
 
-    st=btree_erase(be, bt_cursor_get_uncoupled_key(c), rid, intflags, flags);
+    st=btree_erase(be, bt_cursor_get_uncoupled_key(c), flags);
     if (st) {
         if (local_txn)
             (void)ham_txn_abort(&txn);
