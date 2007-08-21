@@ -55,42 +55,62 @@ o support for duplicate keys
 
     o modify cursor->next, cursor->previous to walk over the linked list 
         x flags: HAM_SKIP_DUPLICATES -> don't walk over duplicates
-        o !!! currently, only the blob->next pointer is set, not blob->prev
-            o need to modify ham_insert
-            o need to modify ham_erase
-        o when moving the cursor, always check if the cursor has duplicates
+        x !!! currently, only the blob->next pointer is set, not blob->prev
+            x need to modify ham_insert
+            x need to modify ham_erase
+            x unittests!
+                x insert dupes, look up, erase them, look up
+                x also for in-memory databases!
+
+        x when moving the cursor, always check if the cursor has duplicates
             -> already started in my_move_next(), my_move_prev()
-            -> implement blob_get_previous_duplicate()
-            -> implement blob_get_next_duplicate()
+            x implement blob_get_previous_duplicate()
+            x implement blob_get_next_duplicate()
+                x unittests!
+
+            x ignore dupes if !(db_flags&ENABLE_DUPLICATES) 
+                or (flags&SKIP_DUPLICATES)
+            x otherwise: always store the current blobid
+            x when fetching the record: if (blobid) load blobid; otherwise
+                continue as usual
+
+            x unittests w/  SKIP_DUPLICATES
+            x unittests w/o SKIP_DUPLICATES
 
         o couple cursor (bt_cursor_couple):
-            o don't couple to the dupe if !(db_flags&ENABLE_DUPLICATES) 
-                or (flags&SKIP_DUPLICATES)
-            o otherwise: always walk through the linked list, never load 
+            o always walk through the linked list, never load 
                 the blobid directly
             o ham_insert: don't uncouple cursors if inserting duplicates
-            o unittest
-        o uncouple cursor: store blobid (unless SKIP_DUPLICATES)
-            o unittest
-        o a lot of unittests (w/ ham_insert)
+            o unittests w/ coupling, uncoupling
+
+    o unittests: insert NULL/TINY/SMALL blobs, then create linked lists
+    o unittests: insert NULL/TINY/SMALL as duplicates
 
     o modify cursor->insert - if the cursor is in a linked list, 
         insert a duplicate at the requested position
-        o HAM_DUPLICATE_INSERT_AFTER
+        o HAM_DUPLICATE_INSERT_AFTER (=HAM_DUPLICATE)
         o HAM_DUPELICATE_INSERT_BEFORE
         o HAM_DUPELICATE_INSERT_FIRST (default)
         o HAM_DUPELICATE_INSERT_LAST
     o ham_cursor_erase: erase the duplicate at the current position
         o unittest
-    o modify cursor->replace - if the cursor is in a linked list, 
-        replace a duplicate at the requested position
-    o modify ham_replace - if the blob is in a linked list, 
-        replace the head
 
-    o ham_erase:
-        . un-merge a single, remaining blob: if it's <=8 byte, create a 
+    o replace duplicates
+        !! the blob-id can change when replacing a blob - all cursors
+        have to be updated; this imples that we need...
+        o access to ALL uncoupled cursors of a database
+        o modify cursor->replace - if the cursor is in a linked list, 
+            replace a duplicate at the requested position
+        o modify ham_replace - if the blob is in a linked list, 
+            replace the head
+
+    . ham_erase:
+        o un-merge a single, remaining blob: if it's <=8 byte, create a 
             record structure
-            o unittest
+        o unittest
+
+    . be more careful when uncoupling cursors - especially when inserting 
+        or deleting items, uncoupling is often not necessary
 
     o modify acceptance test for --duplicate=1 (berkdb and hamster)
     o update documentation
@@ -99,7 +119,7 @@ o support for duplicate keys
         also, insert the same word in a second db, with a word-counter
         then dump all words with the line information, and how often they
         were used
-    o modify sample env1, to create a 1:n relationship between orders
+    . modify sample env1, to create a 1:n relationship between orders
         and customers
 
 o webpage
@@ -110,4 +130,11 @@ o webpage
         (for 3 colums: news, main features, articles/testimonials/link cloud)
 
 o btree_insert:421 - warum wird der extkey gelöscht??
+
+o protect users against uninitialized ham_key_t and ham_record_t structures
+    o check if key->flags is 0 or USER_ALLOC
+    o check if key->_rid is 0
+    o check if record->flags is 0 or USER_ALLOC
+    o check all other private flags
+    o unittests!
 

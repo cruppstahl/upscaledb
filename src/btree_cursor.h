@@ -41,6 +41,11 @@ struct ham_bt_cursor_t
      */
     ham_u32_t _flags;
 
+    /*
+     * the blobid of the duplicate key
+     */
+    ham_size_t _dupe_id;
+
     /**
      * "coupled" or "uncoupled" states; coupled means that the
      * cursor points into a ham_page_t object, which is in
@@ -58,11 +63,6 @@ struct ham_bt_cursor_t
              * the offset of the key in the page
              */
             ham_size_t _index;
-
-            /*
-             * the blobid of the duplicate key
-             */
-            ham_size_t _dupe_id;
 
         } _coupled;
 
@@ -149,12 +149,12 @@ struct ham_bt_cursor_t
 /**
  * get the duplicate key we're pointing to - if the cursor is coupled
  */
-#define bt_cursor_get_coupled_dupe_id(cu)   (cu)->_u._coupled._dupe_id
+#define bt_cursor_get_dupe_id(cu)           (cu)->_dupe_id
 
 /**
  * set the duplicate key we're pointing to - if the cursor is coupled
  */
-#define bt_cursor_set_coupled_dupe_id(cu, d) (cu)->_u._coupled._dupe_id=d
+#define bt_cursor_set_dupe_id(cu, d)        (cu)->_dupe_id=d
 
 /**
  * get the key we're pointing to - if the cursor is uncoupled

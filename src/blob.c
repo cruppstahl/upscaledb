@@ -199,12 +199,20 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
 
         /* initialize the header */
         hdr=(blob_t *)p;
-        memset(hdr, 0, sizeof(&hdr));
+        memset(hdr, 0, sizeof(*hdr));
         blob_set_self(hdr, (ham_offset_t)p);
         blob_set_alloc_size(hdr, size+sizeof(blob_t));
         blob_set_real_size(hdr, size+sizeof(blob_t));
         blob_set_user_size(hdr, size);
         blob_set_next(hdr, next);
+
+        /* 
+         * if there's a "next": load this blob and set its "previous"-pointer
+         */
+        if (next) {
+            blob_t *n=(blob_t *)next;
+            blob_set_previous(n, (ham_offset_t)p);
+        }
 
         *blobid=(ham_offset_t)p;
         return (0);
@@ -291,6 +299,27 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
         return (st);
 
     *blobid=addr;
+
+    /* 
+     * if there's a "next": load this blob and set its "previous"-pointer
+     */
+    if (next) {
+        blob_t nhdr;
+        ham_u8_t *chunk_data[1];
+        ham_size_t chunk_size[1];
+
+        st=my_read_chunk(db, next, (ham_u8_t *)&nhdr, sizeof(nhdr));
+        if (st)
+            return (st);
+        blob_set_previous(&nhdr, addr);
+        /* TODO second parameter is page - optimization! */
+        chunk_data[0]=(ham_u8_t *)&nhdr;
+        chunk_size[0]=sizeof(nhdr);
+        st=my_write_chunks(db, 0, blob_get_self(&nhdr),
+                chunk_data, chunk_size, 1);
+        if (st)
+            return (st);
+    }
 
     return (0);
 }
@@ -530,11 +559,18 @@ blob_free_dupes(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags,
     /*
      * in-memory-database: the blobid is actually a pointer to the memory
      * buffer, in which the blob is stored
+     *
+     * duplicate items: if there's a "next" blob, it will become the
+     * new head
      */
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
-        blob_t *phdr=(ham_u8_t *)blobid;
+        blob_t *phdr=(blob_t *)blobid;
         if (newhead)
             *newhead=blob_get_next(phdr);
+        if (blob_get_next(phdr)) {
+            blob_t *nhdr=(blob_t *)blob_get_next(phdr);
+            blob_set_previous(nhdr, 0);
+        }
         ham_mem_free(db, phdr);
         return (0);
     }
@@ -562,10 +598,74 @@ blob_free_dupes(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags,
         *newhead=blob_get_next(&hdr);
 
     /*
+     * duplicate? the next element becomes the new list head
+     */
+    if (blob_get_next(&hdr)) {
+        blob_t nhdr;
+        ham_u8_t *chunk_data[1];
+        ham_size_t chunk_size[1];
+
+        st=my_read_chunk(db, blob_get_next(&hdr), 
+                (ham_u8_t *)&nhdr, sizeof(nhdr));
+        if (st)
+            return (st);
+        blob_set_previous(&nhdr, 0);
+        /* TODO second parameter is page - optimization! */
+        chunk_data[0]=(ham_u8_t *)&nhdr;
+        chunk_size[0]=sizeof(nhdr);
+        st=my_write_chunks(db, 0, blob_get_self(&nhdr),
+                chunk_data, chunk_size, 1);
+        if (st)
+            return (st);
+    }
+
+    /*
      * move the blob to the freelist
      */
     (void)freel_mark_free(db, blobid, 
             (ham_size_t)blob_get_alloc_size(&hdr));
 
+    return (0);
+}
+
+ham_status_t
+blob_get_next_duplicate(ham_db_t *db, ham_offset_t blobid, 
+        ham_offset_t *next)
+{
+    blob_t hdr;
+    ham_status_t st;
+
+    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
+        blob_t *phdr=(blob_t *)blobid;
+        *next=blob_get_next(phdr);
+        return (0);
+    }
+
+    st=my_read_chunk(db, blobid, (ham_u8_t *)&hdr, sizeof(hdr));
+    if (st)
+        return (st);
+
+    *next=blob_get_next(&hdr);
+    return (0);
+}
+
+ham_status_t
+blob_get_previous_duplicate(ham_db_t *db, ham_offset_t blobid, 
+        ham_offset_t *prev)
+{
+    blob_t hdr;
+    ham_status_t st;
+
+    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
+        blob_t *phdr=(blob_t *)blobid;
+        *prev=blob_get_previous(phdr);
+        return (0);
+    }
+
+    st=my_read_chunk(db, blobid, (ham_u8_t *)&hdr, sizeof(hdr));
+    if (st)
+        return (st);
+
+    *prev=blob_get_previous(&hdr);
     return (0);
 }

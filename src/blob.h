@@ -150,6 +150,9 @@ typedef HAM_PACK_0 struct HAM_PACK_1
  *
  * @a next is the next-pointer in a linked list of dupes
  *
+ * this function loads the "next"-blob and sets the "previous"-blobid
+ * to create a double-linked list
+ *
  * returns the blob-id (the start address of the blob header) in @a blobid
  */
 extern ham_status_t
@@ -191,6 +194,20 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags);
 extern ham_status_t
 blob_free_dupes(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags, 
         ham_offset_t *newhead);
+
+/**
+ * get the next duplicate item of a blob
+ */
+extern ham_status_t
+blob_get_next_duplicate(ham_db_t *db, ham_offset_t blobid, 
+        ham_offset_t *next);
+
+/**
+ * get the previous duplicate item of a blob
+ */
+extern ham_status_t
+blob_get_previous_duplicate(ham_db_t *db, ham_offset_t blobid, 
+        ham_offset_t *prev);
 
 
 #ifdef __cplusplus
