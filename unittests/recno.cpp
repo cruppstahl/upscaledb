@@ -34,6 +34,7 @@ class RecNoTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (createBadKeysizeTest);
     CPPUNIT_TEST      (envTest);
     CPPUNIT_TEST      (endianTestOpenDatabase);
+    CPPUNIT_TEST      (overwriteTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -514,6 +515,37 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
     }
+
+    void overwriteTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_u64_t recno;
+
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+
+        key.data=&recno;
+        key.flags=HAM_KEY_USER_ALLOC;
+        key.size=sizeof(recno);
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+
+        recno=0x13ull;
+        memset(&rec, 0, sizeof(rec));
+        rec.data=&recno;
+        rec.size=sizeof(recno);
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+
+        memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x13ull, *(ham_u64_t *)rec.data);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+    }
 };
 
 class InMemoryRecNoTest : public RecNoTest
@@ -527,6 +559,7 @@ class InMemoryRecNoTest : public RecNoTest
     CPPUNIT_TEST      (insertBadKeyCursorTest);
     CPPUNIT_TEST      (createBadKeysizeTest);
     CPPUNIT_TEST      (envTest);
+    CPPUNIT_TEST      (overwriteTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
