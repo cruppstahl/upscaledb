@@ -1674,62 +1674,69 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
      * and lazy load the last used record number
      */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        /*
-         * get the record number (host endian) and increment it
-         */
-        recno=db_get_recno(db);
-        if (!recno) {
-            st=__recno_lazy_load(db, &recno);
-            if (st) {
-                (void)ham_txn_abort(&txn);
-                return (st);
-            }
-        }
-        recno++;
-
-        /*
-         * now do the allocation (__recno_lazy_load uses a cursor, which
-         * could overwrite our next key allocation
-         */
-        if (key->flags&HAM_KEY_USER_ALLOC) {
-            if (!key->data || key->size!=sizeof(ham_u64_t)) {
-                (void)ham_txn_abort(&txn);
+        if (flags&HAM_OVERWRITE) {
+            if (key->size!=sizeof(ham_u64_t) || !key->data)
                 return (HAM_INV_PARAMETER);
-            }
         }
         else {
-            if (key->data || key->size) {
-                (void)ham_txn_abort(&txn);
-                return (HAM_INV_PARAMETER);
-            }
-            /* 
-             * allocate memory for the key
+            /*
+             * get the record number (host endian) and increment it
              */
-            if (sizeof(ham_u64_t)>db_get_key_allocsize(db)) {
-                if (db_get_key_allocdata(db))
-                    ham_mem_free(db, db_get_key_allocdata(db));
-                db_set_key_allocdata(db, ham_mem_alloc(db, sizeof(ham_u64_t)));
-                if (!db_get_key_allocdata(db)) {
+            recno=db_get_recno(db);
+            if (!recno) {
+                st=__recno_lazy_load(db, &recno);
+                if (st) {
                     (void)ham_txn_abort(&txn);
-                    db_set_key_allocsize(db, 0);
-                    return (db_set_error(db, HAM_OUT_OF_MEMORY));
-                }
-                else {
-                    db_set_key_allocsize(db, sizeof(ham_u64_t));
+                    return (st);
                 }
             }
-            else
-                db_set_key_allocsize(db, sizeof(ham_u64_t));
+            recno++;
+    
+            /*
+             * now do the allocation (__recno_lazy_load uses a cursor, which
+             * could overwrite our next key allocation
+             */
+            if (key->flags&HAM_KEY_USER_ALLOC) {
+                if (!key->data || key->size!=sizeof(ham_u64_t)) {
+                    (void)ham_txn_abort(&txn);
+                    return (HAM_INV_PARAMETER);
+                }
+            }
+            else {
+                if (key->data || key->size) {
+                    (void)ham_txn_abort(&txn);
+                    return (HAM_INV_PARAMETER);
+                }
+                /* 
+                 * allocate memory for the key
+                 */
+                if (sizeof(ham_u64_t)>db_get_key_allocsize(db)) {
+                    if (db_get_key_allocdata(db))
+                        ham_mem_free(db, db_get_key_allocdata(db));
+                    db_set_key_allocdata(db, 
+                            ham_mem_alloc(db, sizeof(ham_u64_t)));
+                    if (!db_get_key_allocdata(db)) {
+                        (void)ham_txn_abort(&txn);
+                        db_set_key_allocsize(db, 0);
+                        return (db_set_error(db, HAM_OUT_OF_MEMORY));
+                    }
+                    else {
+                        db_set_key_allocsize(db, sizeof(ham_u64_t));
+                    }
+                }
+                else
+                    db_set_key_allocsize(db, sizeof(ham_u64_t));
 
-            key->data=db_get_key_allocdata(db);
+                key->data=db_get_key_allocdata(db);
+            }
+
+            /*
+             * store it in db endian
+             */
+            recno=ham_h2db64(recno);
+            memcpy(key->data, &recno, sizeof(ham_u64_t));
+            key->size=sizeof(ham_u64_t);
         }
-
-        /*
-         * store it in db endian
-         */
-        recno=ham_h2db64(recno);
-        memcpy(key->data, &recno, sizeof(ham_u64_t));
-        key->size=sizeof(ham_u64_t);
     }
 
     /*
@@ -1743,7 +1750,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
 #endif
         (void)ham_txn_commit(&txn, 0);
 
-        if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
                 key->data=0;
                 key->size=0;
@@ -1757,7 +1764,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
      * record numbers: return key in host endian! and store the incremented
      * record number
      */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+    if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
         recno=ham_db2h64(recno);
         memcpy(key->data, &recno, sizeof(ham_u64_t));
         key->size=sizeof(ham_u64_t);
@@ -2258,61 +2265,68 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
      * and lazy load the last used record number
      */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        /*
-         * get the record number (host endian) and increment it
-         */
-        recno=db_get_recno(db);
-        if (!recno) {
-            st=__recno_lazy_load(db, &recno);
-            if (st)
-                return (st);
-        }
-        recno++;
-
-        /*
-         * now do the allocation (__recno_lazy_load uses a cursor, which
-         * could overwrite our next key allocation
-         */
-        if (key->flags&HAM_KEY_USER_ALLOC) {
-            if (!key->data || key->size!=sizeof(ham_u64_t))
+        if (flags&HAM_OVERWRITE) {
+            if (key->size!=sizeof(ham_u64_t) || !key->data)
                 return (HAM_INV_PARAMETER);
         }
         else {
-            if (key->data || key->size)
-                return (HAM_INV_PARAMETER);
-            /* 
-             * allocate memory for the key
+            /*
+             * get the record number (host endian) and increment it
              */
-            if (sizeof(ham_u64_t)>db_get_key_allocsize(db)) {
-                if (db_get_key_allocdata(db))
-                    ham_mem_free(db, db_get_key_allocdata(db));
-                db_set_key_allocdata(db, ham_mem_alloc(db, sizeof(ham_u64_t)));
-                if (!db_get_key_allocdata(db)) {
-                    db_set_key_allocsize(db, 0);
-                    return (db_set_error(db, HAM_OUT_OF_MEMORY));
-                }
-                else {
-                    db_set_key_allocsize(db, sizeof(ham_u64_t));
-                }
+            recno=db_get_recno(db);
+            if (!recno) {
+                st=__recno_lazy_load(db, &recno);
+                if (st)
+                    return (st);
             }
-            else
-                db_set_key_allocsize(db, sizeof(ham_u64_t));
+            recno++;
 
-            key->data=db_get_key_allocdata(db);
+            /*
+             * now do the allocation (__recno_lazy_load uses a cursor, which
+             * could overwrite our next key allocation
+             */
+            if (key->flags&HAM_KEY_USER_ALLOC) {
+                if (!key->data || key->size!=sizeof(ham_u64_t))
+                    return (HAM_INV_PARAMETER);
+            }
+            else {
+                if (key->data || key->size)
+                    return (HAM_INV_PARAMETER);
+                /* 
+                 * allocate memory for the key
+                 */
+                if (sizeof(ham_u64_t)>db_get_key_allocsize(db)) {
+                    if (db_get_key_allocdata(db))
+                        ham_mem_free(db, db_get_key_allocdata(db));
+                    db_set_key_allocdata(db, 
+                            ham_mem_alloc(db, sizeof(ham_u64_t)));
+                    if (!db_get_key_allocdata(db)) {
+                        db_set_key_allocsize(db, 0);
+                        return (db_set_error(db, HAM_OUT_OF_MEMORY));
+                    }
+                    else {
+                        db_set_key_allocsize(db, sizeof(ham_u64_t));
+                    }
+                }
+                else
+                    db_set_key_allocsize(db, sizeof(ham_u64_t));
+    
+                key->data=db_get_key_allocdata(db);
+            }
+    
+            /*
+             * store it in db endian
+             */
+            recno=ham_h2db64(recno);
+            memcpy(key->data, &recno, sizeof(ham_u64_t));
+            key->size=sizeof(ham_u64_t);
         }
-
-        /*
-         * store it in db endian
-         */
-        recno=ham_h2db64(recno);
-        memcpy(key->data, &recno, sizeof(ham_u64_t));
-        key->size=sizeof(ham_u64_t);
     }
 
     st=bt_cursor_insert((ham_bt_cursor_t *)cursor, key, record, flags);
 
     if (st) {
-        if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
                 key->data=0;
                 key->size=0;
@@ -2326,7 +2340,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
      * record numbers: return key in host endian! and store the incremented
      * record number
      */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+    if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
         recno=ham_db2h64(recno);
         memcpy(key->data, &recno, sizeof(ham_u64_t));
         key->size=sizeof(ham_u64_t);

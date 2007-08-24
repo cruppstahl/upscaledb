@@ -1,3 +1,8 @@
+Aug 24, 2007 - chris
+o overwriting record number keys was not possible because a new (incremented) 
+    recno key was assigned even if the flag HAM_OVERWRITE was specified. 
+    fixed - recno keys can now be overwritten
+
 Aug 09, 2007 - chris
 o hamsterdb is now released under GPL 2 *or any later version*, which also
 	includes GPL 3.
