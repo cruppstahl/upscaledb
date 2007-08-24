@@ -122,6 +122,12 @@ o support for duplicate keys
     . modify sample env1, to create a 1:n relationship between orders
         and customers
 
+o recno: keys lassen sich nicht überschreiben
+    o für ham_insert fixen
+        x unittest
+    o für ham_cursor_insert fixen
+        o unittest
+
 o webpage
     o update web page about license change (GPL2 or GPL3)
     o rename "Features" to "About"
