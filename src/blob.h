@@ -161,6 +161,30 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
         ham_offset_t *blobid);
 
 /**
+ * write a blob AFTER the current blob (in a linked list of duplicates)
+ */
+extern ham_status_t
+blob_allocate_after(ham_db_t *db, ham_u8_t *data, 
+        ham_size_t size, ham_u32_t flags, ham_offset_t current,
+        ham_offset_t *blobid);
+
+/**
+ * write a blob as the LAST blob (in a linked list of duplicates)
+ */
+extern ham_status_t
+blob_allocate_last(ham_db_t *db, ham_u8_t *data, 
+        ham_size_t size, ham_u32_t flags, ham_offset_t previous, 
+        ham_offset_t *blobid);
+
+/**
+ * write a blob BEFORE the current blob (in a linked list of duplicates)
+ */
+extern ham_status_t
+blob_allocate_before(ham_db_t *db, ham_u8_t *data, 
+        ham_size_t size, ham_u32_t flags, ham_offset_t current,
+        ham_offset_t *blobid);
+
+/**
  * read a blob
  *
  * stores the data in @a record

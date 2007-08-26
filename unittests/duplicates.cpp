@@ -16,6 +16,8 @@
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
 #include "../src/blob.h"
+#include "../src/backend.h"
+#include "../src/btree.h"
 #include "memtracker.h"
 
 class DupeTest : public CppUnit::TestFixture
@@ -26,6 +28,7 @@ class DupeTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (insertEraseStackedDuplicatesTest);
     CPPUNIT_TEST      (insertTest);
     CPPUNIT_TEST      (insertSkipDuplicatesTest);
+    CPPUNIT_TEST      (coupleUncoupleTest);
     CPPUNIT_TEST      (reopenTest);
     CPPUNIT_TEST_SUITE_END();
 
@@ -380,6 +383,51 @@ public:
         ham_cursor_close(c);
     }
 
+    void coupleUncoupleTest(void)
+    {
+        ham_cursor_t *c;
+        ham_page_t *page;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+
+        insertData("000", "aaaaaaaaaa");
+        insertData("111", "0000000000");
+        insertData("111", "9999999999");
+        insertData("111", "8888888888");
+        insertData("111", "7777777777");
+        insertData("111", "6666666666");
+        insertData("111", "5555555555");
+        insertData("111", "4444444444");
+        insertData("111", "3333333333");
+        insertData("111", "2222222222");
+        insertData("111", "1111111111");
+        insertData("222", "bbbbbbbbbb");
+        insertData("333", "cccccccccc");
+
+        ham_btree_t *be=(ham_btree_t *)db_get_backend(m_db);
+        page=db_fetch_page(m_db, btree_get_rootpage(be), 0);
+        CPPUNIT_ASSERT(page!=0);
+
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page));
+        checkData(c, HAM_CURSOR_NEXT,     0, "aaaaaaaaaa");
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page));
+        checkData(c, HAM_CURSOR_NEXT,     0, "1111111111");
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page));
+        checkData(c, HAM_CURSOR_NEXT,     0, "2222222222");
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page));
+        checkData(c, HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page));
+        checkData(c, HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES, 0, "cccccccccc");
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page));
+        checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page));
+        checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "1111111111");
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page));
+        checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "aaaaaaaaaa");
+
+        ham_cursor_close(c);
+    }
+
     void reopenTest(void)
     {
         ham_key_t key;
@@ -435,6 +483,7 @@ class InMemoryDupeTest : public DupeTest
     CPPUNIT_TEST      (insertEraseStackedDuplicatesTest);
     CPPUNIT_TEST      (insertTest);
     CPPUNIT_TEST      (insertSkipDuplicatesTest);
+    CPPUNIT_TEST      (coupleUncoupleTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:

@@ -8,21 +8,17 @@ x support GPL3
 
 x create a new repository for hamsterdb-meta
 
-o create a new repository for hamsterdb-alien for all dependencies 
-    in source and precompiled (static/non-debug - cppunit and berkeleydb)
-    x linux64-le
-    x linux32-le
-    o cygwin32
-    o win32
-    o win64
-    o wince-x86
-    o ppc32-be
-
 x unittests - check for leaks!
     x replace big record with tiny
     x replace big record with null
     x replace tiny record with null
     x replace tiny record with big
+
+x recno: keys lassen sich nicht überschreiben
+    x für ham_insert fixen
+        x unittest
+    x für ham_cursor_insert fixen
+        x unittest
 
 o support for duplicate keys
     x make sure that EXTENDED_BLOB flag is always set if blob>=8 byte 
@@ -53,7 +49,7 @@ o support for duplicate keys
         x documentation!
         x unittest
 
-    o modify cursor->next, cursor->previous to walk over the linked list 
+    x modify cursor->next, cursor->previous to walk over the linked list 
         x flags: HAM_SKIP_DUPLICATES -> don't walk over duplicates
         x !!! currently, only the blob->next pointer is set, not blob->prev
             x need to modify ham_insert
@@ -77,23 +73,31 @@ o support for duplicate keys
             x unittests w/  SKIP_DUPLICATES
             x unittests w/o SKIP_DUPLICATES
 
-        o couple cursor (bt_cursor_couple):
-            o always walk through the linked list, never load 
-                the blobid directly
-            o ham_insert: don't uncouple cursors if inserting duplicates
-            o unittests w/ coupling, uncoupling
-
-    o unittests: insert NULL/TINY/SMALL blobs, then create linked lists
-    o unittests: insert NULL/TINY/SMALL as duplicates
+        x couple cursor (bt_cursor_couple):
+            x ham_insert: don't uncouple cursors if inserting duplicates
+            x unittests w/ coupling, uncoupling
 
     o modify cursor->insert - if the cursor is in a linked list, 
         insert a duplicate at the requested position
-        o HAM_DUPLICATE_INSERT_AFTER (=HAM_DUPLICATE)
-        o HAM_DUPELICATE_INSERT_BEFORE
-        o HAM_DUPELICATE_INSERT_FIRST (default)
-        o HAM_DUPELICATE_INSERT_LAST
+        x HAM_DUPLICATE_INSERT_AFTER
+            o unittests
+        x HAM_DUPELICATE_INSERT_LAST
+            o unittests
+        x HAM_DUPELICATE_INSERT_BEFORE (=HAM_DUPLICATE)
+            o unittests
+        x HAM_DUPELICATE_INSERT_FIRST
+            o unittests
+
+        o unittests for the new blob functions?
+
+        o don't allow these flags in ham_insert, only in ham_cursor_insert
+            o unittest
+
     o ham_cursor_erase: erase the duplicate at the current position
-        o unittest
+        o need a list of ALL cursors
+        o walk through all cursors and make sure that no other cursor
+            points to this key (by NILling the cursor)
+        o unittests
 
     o replace duplicates
         !! the blob-id can change when replacing a blob - all cursors
@@ -103,6 +107,10 @@ o support for duplicate keys
             replace a duplicate at the requested position
         o modify ham_replace - if the blob is in a linked list, 
             replace the head
+
+    o new flag HAM_CURSOR_ONLY_DUPLICATES - only walk through duplicates,
+        not to the next key
+        o unittest
 
     . ham_erase:
         o un-merge a single, remaining blob: if it's <=8 byte, create a 
@@ -120,13 +128,24 @@ o support for duplicate keys
         then dump all words with the line information, and how often they
         were used
     . modify sample env1, to create a 1:n relationship between orders
-        and customers
+        and customers (or create a new sample)
 
-o recno: keys lassen sich nicht überschreiben
-    o für ham_insert fixen
-        x unittest
-    o für ham_cursor_insert fixen
-        o unittest
+    o endian-tests
+
+o more ideas for unittests
+    o unittests: insert NULL/TINY/SMALL blobs, then create linked lists
+    o unittests: insert NULL/TINY/SMALL as duplicates
+    o unittests: 
+        o create cursor -> must be NIL
+        o insert item   -> must be NIL
+        o move cursor to item
+        o insert item2 < item -> cursor is uncoupled
+        o move cursor to item
+        o insert duplicate of item -> cursor is still coupled
+        o insert item2 > item -> cursor is still coupled
+
+o ham_close with flag HAM_AUTO_CLOSE_CURSORS
+o ham_env_close with flag HAM_AUTO_CLOSE_DATABASES
 
 o webpage
     o update web page about license change (GPL2 or GPL3)
@@ -144,3 +163,19 @@ o protect users against uninitialized ham_key_t and ham_record_t structures
     o check all other private flags
     o unittests!
 
+o create a new repository for hamsterdb-alien for all dependencies 
+    in source and precompiled (static/non-debug - cppunit and berkeleydb)
+    x linux64-le
+    x linux32-le
+    o cygwin32
+    o win32
+    o win64
+    o wince-x86
+    o ppc32-be
+
+o record numbers should not be reused
+    currently, if the last record is deleted, and then the database is
+    reopened, this record number is reused
+    persistently cache the number of elements in the database - we need 
+    this information anyway.
+    o add a new function ham_get_count()

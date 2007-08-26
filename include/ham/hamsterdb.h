@@ -1059,10 +1059,22 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags);
 
 /** Flag for @a ham_insert and @a ham_cursor_insert */
-#define HAM_OVERWRITE               1
+#define HAM_OVERWRITE                   1
 
 /** Flag for @a ham_insert and @a ham_cursor_insert */
-#define HAM_DUPLICATE               2
+#define HAM_DUPLICATE                   2
+
+/** Flag for @a ham_cursor_insert */
+#define HAM_DUPLICATE_INSERT_BEFORE     4
+
+/** Flag for @a ham_cursor_insert */
+#define HAM_DUPLICATE_INSERT_AFTER      8
+
+/** Flag for @a ham_cursor_insert */
+#define HAM_DUPLICATE_INSERT_FIRST     16
+
+/** Flag for @a ham_cursor_insert */
+#define HAM_DUPLICATE_INSERT_LAST      32
 
 /**
  * Erases a database item.
@@ -1305,8 +1317,19 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  *         @a HAM_OVERWRITE. If the @a key already exists, the record is
  *              overwritten. Otherwise, the key is inserted.
  *         @a HAM_DUPLICATE. If the @a key already exists, a duplicate 
- *              key is inserted. The key is inserted before the already
- *              existing key.
+ *              key is inserted. Same as @a HAM_DUPLICATE_INSERT_BEFORE.
+ *         @a HAM_DUPLICATE_INSERT_BEFORE. If the @a key already exists, 
+ *              a duplicate key is inserted before the duplicate pointed
+ *              to by the cursor.
+ *         @a HAM_DUPLICATE_INSERT_AFTER. If the @a key already exists, 
+ *              a duplicate key is inserted after the duplicate pointed
+ *              to by the cursor.
+ *         @a HAM_DUPLICATE_INSERT_FIRST. If the @a key already exists, 
+ *              a duplicate key is inserted as the first duplicate of 
+ *              the current key.
+ *         @a HAM_DUPLICATE_INSERT_LAST. If the @a key already exists, 
+ *              a duplicate key is inserted as the last duplicate of 
+ *              the current key.
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if @a key or @a record is NULL.

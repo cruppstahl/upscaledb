@@ -318,17 +318,11 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
     ham_bool_t exists=HAM_FALSE;
     ham_s32_t slot;
     ham_u32_t oldflags;
+    ham_offset_t dupeid=0;
 
     node=ham_page_get_btree_node(page);
     count=btree_node_get_count(node);
     keysize=db_get_keysize(db);
-
-    /*
-     * uncouple all cursors
-     */
-    st=db_uncouple_all_cursors(page);
-    if (st)
-        return (db_set_error(db, st));
 
     if (btree_node_get_count(node)==0)
         slot=0;
@@ -372,6 +366,11 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
          * the next slot
          */
         else if (cmp<0) {
+            /* uncouple all cursors */
+            st=db_uncouple_all_cursors(page);
+            if (st)
+                return (db_set_error(db, st));
+
             slot++;
             bte=btree_node_get_key(db, node, slot);
             memmove(((char *)bte)+sizeof(int_key_t)-1+keysize, bte,
@@ -383,6 +382,11 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
          */
         else {
 shift_elements:
+            /* uncouple all cursors */
+            st=db_uncouple_all_cursors(page);
+            if (st)
+                return (db_set_error(db, st));
+
             /* shift all keys one position to the right */
             memmove(((char *)bte)+sizeof(int_key_t)-1+keysize, bte,
                     (sizeof(int_key_t)-1+keysize)*(count-slot));
@@ -445,9 +449,46 @@ shift_elements:
                 old_blobid=key_get_ptr(bte);
             }
 
-            /* allocate the new blob, and set the 'next' pointer */
-            st=blob_allocate(db, record->data, record->size, 0, 
-                    old_blobid, &rid);
+            if (flags&HAM_DUPLICATE_INSERT_AFTER) {
+                if (bt_cursor_get_dupe_id(cursor)) {
+                    st=blob_allocate_after(db, record->data, record->size, 0, 
+                            bt_cursor_get_dupe_id(cursor), &rid);
+                }
+                else {
+                    st=blob_allocate(db, record->data, record->size, 0, 
+                            old_blobid, &rid);
+                }
+                dupeid=rid;
+            }
+            else if (flags&HAM_DUPLICATE_INSERT_FIRST) {
+                /* allocate the new blob, and set the 'next' pointer */
+                st=blob_allocate(db, record->data, record->size, 0, 
+                        old_blobid, &rid);
+                dupeid=rid;
+            }
+            else if (flags&HAM_DUPLICATE_INSERT_LAST) {
+                if (bt_cursor_get_dupe_id(cursor)) {
+                    st=blob_allocate_last(db, record->data, record->size, 0, 
+                            bt_cursor_get_dupe_id(cursor), &rid);
+                }
+                else {
+                    st=blob_allocate_last(db, record->data, record->size, 0, 
+                            old_blobid, &rid);
+                }
+                dupeid=rid;
+            }
+            else { /* if (flags&HAM_DUPLICATE_INSERT_BEFORE) */
+                if (cursor && bt_cursor_get_dupe_id(cursor)) {
+                    st=blob_allocate_before(db, record->data, record->size, 0, 
+                            bt_cursor_get_dupe_id(cursor), &rid);
+                }
+                else {
+                    st=blob_allocate(db, record->data, record->size, 0, 
+                            old_blobid, &rid);
+                }
+                dupeid=rid;
+            }
+
             if (st)
                 return (st);
         }
@@ -582,6 +623,7 @@ shift_elements:
                 bt_cursor_get_flags(cursor)|BT_CURSOR_FLAG_COUPLED);
         bt_cursor_set_coupled_page(cursor, page);
         bt_cursor_set_coupled_index(cursor, slot);
+        bt_cursor_set_dupe_id(cursor, dupeid);
         page_add_cursor(page, (ham_cursor_t *)cursor);
     }
 
