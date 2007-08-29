@@ -76,9 +76,14 @@
     ham_txn_t *_txn;                                                    \
                                                                         \
     /**                                                                 \
+     * linked list of all cursors                                       \
+     */                                                                 \
+    clss *_next, *_previous;                                            \
+                                                                        \
+    /**                                                                 \
      * linked list of cursors which point to the same page              \
      */                                                                 \
-    clss *_next, *_previous;
+    clss *_next_in_page, *_previous_in_page;
 
 
 /**
@@ -93,22 +98,42 @@ struct ham_cursor_t
 /**
  * get the 'next' pointer of the linked list
  */
-#define cursor_get_next(c)              (c)->_next
+#define cursor_get_next(c)                (c)->_next
 
 /**
  * set the 'next' pointer of the linked list
  */
-#define cursor_set_next(c, n) { if (n) ham_assert(c->_previous!=n, ("")); (c)->_next=n; }
+#define cursor_set_next(c, n)             (c)->_next=n
 
 /**
  * get the 'previous' pointer of the linked list
  */
-#define cursor_get_previous(c)          (c)->_previous
+#define cursor_get_previous(c)            (c)->_previous
 
 /**
  * set the 'previous' pointer of the linked list
  */
-#define cursor_set_previous(c, p) {if (p) ham_assert(c->_next!=p, ("")); (c)->_previous=p; }
+#define cursor_set_previous(c, p)         (c)->_previous=p
+
+/**
+ * get the 'next' pointer of the linked list
+ */
+#define cursor_get_next_in_page(c)       (c)->_next_in_page
+
+/**
+ * set the 'next' pointer of the linked list
+ */
+#define cursor_set_next_in_page(c, n) { if (n) ham_assert(c->_previous_in_page!=n, ("")); (c)->_next_in_page=n; }
+
+/**
+ * get the 'previous' pointer of the linked list
+ */
+#define cursor_get_previous_in_page(c)   (c)->_previous_in_page
+
+/**
+ * set the 'previous' pointer of the linked list
+ */
+#define cursor_set_previous_in_page(c, p) {if (p) ham_assert(c->_next_in_page!=p, ("")); (c)->_previous_in_page=p; }
 
 /**
  * get the database pointer

@@ -504,8 +504,8 @@ bt_cursor_clone(ham_bt_cursor_t *oldcu, ham_bt_cursor_t **newcu)
     if (!c)
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
     memcpy(c, oldcu, sizeof(*c));
-    cursor_set_next(c, 0);
-    cursor_set_previous(c, 0);
+    cursor_set_next_in_page(c, 0);
+    cursor_set_previous_in_page(c, 0);
 
     if (local_txn) {
         st=ham_txn_begin(&txn, db);

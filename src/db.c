@@ -35,12 +35,12 @@ db_uncouple_all_cursors(ham_page_t *page)
     ham_cursor_t *n, *c=page_get_cursors(page);
 
     while (c) {
-        n=cursor_get_next(c);
+        n=cursor_get_next_in_page(c);
         st=bt_cursor_uncouple((ham_bt_cursor_t *)c, 0);
         if (st)
             return (st);
-        cursor_set_next(c, 0);
-        cursor_set_previous(c, 0);
+        cursor_set_next_in_page(c, 0);
+        cursor_set_previous_in_page(c, 0);
         c=n;
     }
 

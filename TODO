@@ -88,21 +88,26 @@ o support for duplicate keys
         x HAM_DUPELICATE_INSERT_FIRST
             o unittests
 
-        o unittests for the new blob functions?
-
         o don't allow these flags in ham_insert, only in ham_cursor_insert
             o unittest
 
+    o need a list of all cursors
+        x add cursor_next, cursor_previous
+        o add cursor *ham_db_t::_cursor_list
+        o btree_cursor_create: prepend new cursor to the list
+        o btree_cursor_destroy: delete cursor from the list
+        o unittest: check if links are correct
+
     o ham_cursor_erase: erase the duplicate at the current position
-        o need a list of ALL cursors
-        o walk through all cursors and make sure that no other cursor
-            points to this key (by NILling the cursor)
+        o what's the berkeleydb behaviour for accessing a previously 
+            deleted key? does it point to the next item, or to NIL?
+        o walk through all existing cursors and make sure that no other 
+            cursor points to this key (by NILling the cursor)
         o unittests
 
     o replace duplicates
-        !! the blob-id can change when replacing a blob - all cursors
-        have to be updated; this imples that we need...
-        o access to ALL uncoupled cursors of a database
+        o walk through all existing cursors and replace the blobid 
+            of all cursors pointing to this duplicate
         o modify cursor->replace - if the cursor is in a linked list, 
             replace a duplicate at the requested position
         o modify ham_replace - if the blob is in a linked list, 
