@@ -100,10 +100,18 @@ o support for duplicate keys
             x also with cloned cursors!
 
     o ham_cursor_erase: erase the duplicate at the current position
-        o what's the berkeleydb behaviour for accessing a previously 
-            deleted key? does it point to the next item, or to NIL?
-        o walk through all existing cursors and make sure that no other 
-            cursor points to this key (by NILling the cursor)
+        o ham_cursor_erase 
+            o delete only the selected duplicate
+            o if the whole key is deleted: make sure that all cursors are 
+                NILled if they point to the deleted item; if just a dupe is
+                deleted: only NIL those cursors which point to the dupe
+            o unittest!
+        o ham_erase
+            o delete ALL duplicates
+            o make sure that all cursors are NILled if they point to
+                the deleted item - regardless if there are dupes or not
+            o unittest
+        o document the differences between ham_erase and ham_cursor_erase!
         o unittests
 
     o replace duplicates
@@ -142,6 +150,10 @@ o rename ham_cursor_replace to ham_cursor_overwrite (and all other instances
     of "replace" with "overwrite"
     o don't forget the samples
     o don't forget the documentation and tutorial
+
+o check ham_txn_abort in btree_cursor.c
+    this call never appears in hamsterdb.c, but quite frequently in the
+    cursor routines; is this a problem?
 
 o more ideas for unittests
     o unittests: insert NULL/TINY/SMALL blobs, then create linked lists
