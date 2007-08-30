@@ -86,17 +86,26 @@ o support for duplicate keys
             x also with cloned cursors!
 
     o ham_cursor_erase: erase the duplicate at the current position
+        x ham_erase
+            x delete ALL duplicates
+            x make sure that all cursors are NILled if they point to
+                the deleted item - regardless if there are dupes or not
+            x unittest
         o ham_cursor_erase 
-            o delete only the selected duplicate
-            o if the whole key is deleted: make sure that all cursors are 
+            x delete only the selected duplicate
+            x if the whole key is deleted: make sure that all cursors are 
                 NILled if they point to the deleted item; if just a dupe is
                 deleted: only NIL those cursors which point to the dupe
             o unittest!
-        o ham_erase
-            o delete ALL duplicates
-            o make sure that all cursors are NILled if they point to
-                the deleted item - regardless if there are dupes or not
-            o unittest
+                o insert 2 dupes, 2 cursors on the first dupe; erase one
+                    cursor; the other points to nil. the other dupe is
+                    still available -> broken!!
+                o insert 2 dupes, 2 cursors (one on the first, the other on
+                    the second dupe); erase the first cursor; the second
+                    is still valid
+                o insert 2 dupes, 2 cursors (one on the first, the other on
+                    the second dupe); erase the second cursor; the first 
+                    is still valid
         o document the differences between ham_erase and ham_cursor_erase!
         o unittests
 
@@ -108,8 +117,16 @@ o support for duplicate keys
         o modify ham_replace - if the blob is in a linked list, 
             replace the head
 
+    o when freeing pages/blobs: also free the duplicates (otherwise
+        we create [memory] leaks)
+
     o new flag HAM_CURSOR_ONLY_DUPLICATES - only walk through duplicates,
         not to the next key
+        o unittest
+
+    o unittest for flag HAM_CURSOR_SKIP_DUPLICATES
+
+    o don't allow HAM_CURSOR_SKIP_DUPLICATES|HAM_CURSOR_ONLY_DUPLICATES
         o unittest
 
     o modify cursor->insert - if the cursor is in a linked list, 
@@ -173,6 +190,7 @@ o ham_env_close with flag HAM_AUTO_CLOSE_DATABASES
 o webpage
     o update web page about license change (GPL2 or GPL3)
     o rename "Features" to "About"
+    o update roadmap
     . move to cakephp framework
     . frontpage: resize hamster picture; remove text -> more space below
         (for 3 colums: news, main features, articles/testimonials/link cloud)
@@ -195,6 +213,11 @@ o create a new repository for hamsterdb-alien for all dependencies
     o win64
     o wince-x86
     o ppc32-be
+
+o currently, there's no "cheap" way to get the number of duplicates of a key
+    o is this needed? use cases?
+    o could always add the number to the very first blob; if the first
+        blob is deleted, the number moves to the next first blob
 
 o record numbers should not be reused
     currently, if the last record is deleted, and then the database is

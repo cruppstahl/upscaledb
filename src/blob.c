@@ -843,13 +843,13 @@ ham_status_t
 blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_offset_t newhead=0;
+    ham_offset_t next_id=0;
 
     do {
-        st=blob_free_dupes(db, blobid, flags, &newhead);
+        st=blob_free_dupes(db, blobid, flags, &next_id);
         if (st)
             return (st);
-        blobid=newhead;
+        blobid=next_id;
     } while ((flags&BLOB_FREE_ALL_DUPES) && blobid);
 
     return (0);
@@ -857,7 +857,7 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
 
 ham_status_t
 blob_free_dupes(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags, 
-        ham_offset_t *newhead)
+        ham_offset_t *next_id)
 {
     ham_status_t st;
     blob_t hdr;
@@ -866,17 +866,18 @@ blob_free_dupes(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags,
      * in-memory-database: the blobid is actually a pointer to the memory
      * buffer, in which the blob is stored
      *
-     * duplicate items: if there's a "next" blob, it will become the
-     * new head
+     * duplicate items: fix the linked list
      */
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
         blob_t *phdr=(blob_t *)blobid;
-        if (newhead)
-            *newhead=blob_get_next(phdr);
-        if (blob_get_next(phdr)) {
-            blob_t *nhdr=(blob_t *)blob_get_next(phdr);
-            blob_set_previous(nhdr, 0);
-        }
+        if (next_id)
+            *next_id=blob_get_next(phdr);
+        if (blob_get_next(phdr))
+            blob_set_previous((blob_t *)blob_get_next(phdr), 
+                    blob_get_previous(phdr));
+        if (blob_get_previous(phdr))
+            blob_set_next((blob_t *)blob_get_previous(phdr), 
+                    blob_get_next(phdr));
         ham_mem_free(db, phdr);
         return (0);
     }
@@ -900,26 +901,44 @@ blob_free_dupes(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags,
     if (blob_get_self(&hdr)!=blobid)
         return (HAM_BLOB_NOT_FOUND);
 
-    if (newhead)
-        *newhead=blob_get_next(&hdr);
+    if (next_id)
+        *next_id=blob_get_next(&hdr);
 
     /*
-     * duplicate? the next element becomes the new list head
+     * duplicates: fix the linked list
      */
     if (blob_get_next(&hdr)) {
-        blob_t nhdr;
+        blob_t n;
         ham_u8_t *chunk_data[1];
         ham_size_t chunk_size[1];
 
-        st=my_read_chunk(db, blob_get_next(&hdr), 
-                (ham_u8_t *)&nhdr, sizeof(nhdr));
+        st=my_read_chunk(db, blob_get_next(&hdr), (ham_u8_t *)&n, sizeof(n));
         if (st)
             return (st);
-        blob_set_previous(&nhdr, 0);
-        /* TODO second parameter is page - optimization! */
-        chunk_data[0]=(ham_u8_t *)&nhdr;
-        chunk_size[0]=sizeof(nhdr);
-        st=my_write_chunks(db, 0, blob_get_self(&nhdr),
+        blob_set_previous(&n, blob_get_previous(&hdr));
+
+        chunk_data[0]=(ham_u8_t *)&n;
+        chunk_size[0]=sizeof(n);
+        st=my_write_chunks(db, 0, blob_get_self(&n),
+                chunk_data, chunk_size, 1);
+        if (st)
+            return (st);
+    }
+
+    if (blob_get_previous(&hdr)) {
+        blob_t p;
+        ham_u8_t *chunk_data[1];
+        ham_size_t chunk_size[1];
+
+        st=my_read_chunk(db, blob_get_previous(&hdr), 
+                (ham_u8_t *)&p, sizeof(p));
+        if (st)
+            return (st);
+        blob_set_next(&p, blob_get_next(&hdr));
+
+        chunk_data[0]=(ham_u8_t *)&p;
+        chunk_size[0]=sizeof(p);
+        st=my_write_chunks(db, 0, blob_get_self(&p),
                 chunk_data, chunk_size, 1);
         if (st)
             return (st);

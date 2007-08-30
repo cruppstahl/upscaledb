@@ -166,6 +166,12 @@ struct ham_bt_cursor_t
  */
 #define bt_cursor_set_uncoupled_key(cu, k)  (cu)->_u._uncoupled._key=k
 
+/*
+ * set a cursor to NIL
+ */
+ham_status_t
+bt_cursor_set_to_nil(ham_bt_cursor_t *c);
+
 /**
  * couple the cursor
  *

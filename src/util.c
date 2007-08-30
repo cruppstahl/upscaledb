@@ -232,6 +232,5 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest, ham_u32_t flags)
         memcpy(dest->data, &recno, sizeof(ham_u64_t));
     }
 
-
     return (0);
 }

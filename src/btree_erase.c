@@ -50,6 +50,11 @@ typedef struct
      */
     ham_page_t *mergepage;
 
+    /*
+     * a coupled cursor (can be NULL)
+     */
+    ham_bt_cursor_t *cursor;
+
 } erase_scratchpad_t;
 
 /*
@@ -122,6 +127,13 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
 ham_status_t
 btree_erase(ham_btree_t *be, ham_key_t *key, ham_u32_t flags)
 {
+    return (btree_erase_cursor(be, key, 0, flags));
+}
+
+ham_status_t
+btree_erase_cursor(ham_btree_t *be, ham_key_t *key, 
+        ham_bt_cursor_t *cursor, ham_u32_t flags)
+{
     ham_status_t st=0;
     ham_page_t *root, *p;
     ham_offset_t rootaddr;
@@ -135,6 +147,7 @@ btree_erase(ham_btree_t *be, ham_key_t *key, ham_u32_t flags)
     scratchpad.be=be;
     scratchpad.key=key;
     scratchpad.flags=flags;
+    scratchpad.cursor=cursor;
 
     /* 
      * get the root-page...
@@ -1125,10 +1138,81 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
     /*
      * leaf page: get rid of the record
      *
-     * if there are duplicate keys: remove the head of the linked list,
-     * then return immediately
+     * if duplicates are enabled and a cursor exists: remove the duplicate
+     * 
+     * otherwise remove the full key with all duplicates
      */
     if (btree_node_is_leaf(node)) {
+        if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES && scratchpad->cursor) {
+            ham_cursor_t *cursor=db_get_cursors(db);
+            ham_bt_cursor_t *c=(ham_bt_cursor_t *)scratchpad->cursor;
+
+            if (bt_cursor_get_dupe_id(c)) {
+                st=blob_free_dupes(db, 
+                        bt_cursor_get_dupe_id(c) 
+                        ? bt_cursor_get_dupe_id(c) 
+                        : key_get_ptr(bte),
+                        0, 0);
+                if (st)
+                    return (st);
+            }
+
+            /*
+             * make sure that no cursor is pointing to this dupe
+             */
+            while (cursor) {
+                ham_bt_cursor_t *btc=(ham_bt_cursor_t *)cursor;
+                if (bt_cursor_get_dupe_id(btc)==bt_cursor_get_dupe_id(c))
+                    bt_cursor_set_to_nil(btc);
+                cursor=cursor_get_next(cursor);
+
+                if (bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) {
+                    if (bt_cursor_get_coupled_page(btc)==page
+                        && bt_cursor_get_coupled_index(btc)==slot
+                        && bt_cursor_get_dupe_id(btc)==bt_cursor_get_dupe_id(c))
+                        bt_cursor_set_to_nil(btc);
+                }
+                else if (!bt_cursor_is_nil(btc)) {
+                    if (bt_cursor_get_dupe_id(btc)==bt_cursor_get_dupe_id(c)
+                        && !key_compare_int_to_pub(page, slot, 
+                                bt_cursor_get_uncoupled_key(btc)))
+                        bt_cursor_set_to_nil(btc);
+                }
+            }
+        }
+        else {
+            ham_cursor_t *cursor=db_get_cursors(db);
+
+            if (!((key_get_flags(bte)&KEY_BLOB_SIZE_TINY) ||
+                (key_get_flags(bte)&KEY_BLOB_SIZE_SMALL) ||
+                (key_get_flags(bte)&KEY_BLOB_SIZE_EMPTY))) {
+                st=blob_free(db, key_get_ptr(bte), 0);
+                if (st)
+                    return (st);
+            }
+
+            /*
+             * make sure that no cursor is pointing to this item
+             */
+            while (cursor) {
+                ham_bt_cursor_t *btc=(ham_bt_cursor_t *)cursor;
+                if (bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) {
+                    if (bt_cursor_get_coupled_page(btc)==page
+                        && bt_cursor_get_coupled_index(btc)==slot) {
+                        bt_cursor_set_to_nil(btc);
+                    }
+                }
+                else if (!bt_cursor_is_nil(btc)) {
+                    if (0==key_compare_int_to_pub(page, slot, 
+                            bt_cursor_get_uncoupled_key(btc)))
+                        bt_cursor_set_to_nil(btc);
+                }
+
+                cursor=cursor_get_next(cursor);
+            }
+        }
+
+#if 0
         if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
             ham_offset_t newid;
             st=blob_free_dupes(db, key_get_ptr(bte), 0, &newid);
@@ -1149,6 +1233,7 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
                     return (st);
             }
         }
+#endif
     }
 
     /*

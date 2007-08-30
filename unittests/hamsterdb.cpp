@@ -556,8 +556,8 @@ public:
         value=1;
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_erase(db, 0, &key, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
-                ham_cursor_move(cursor, &key, 0, HAM_CURSOR_NEXT));
+        CPPUNIT_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
+                ham_cursor_move(cursor, &key, 0, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
