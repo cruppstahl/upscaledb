@@ -485,6 +485,12 @@ bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     bt_cursor_set_db(c, db);
     bt_cursor_set_txn(c, txn);
 
+    /* fix the linked list of cursors */
+    cursor_set_next((ham_cursor_t *)c, db_get_cursors(db));
+    if (db_get_cursors(db))
+        cursor_set_previous(db_get_cursors(db), (ham_cursor_t *)c);
+    db_set_cursors(db, (ham_cursor_t *)c);
+
     *cu=c;
     return (0);
 }
@@ -506,6 +512,13 @@ bt_cursor_clone(ham_bt_cursor_t *oldcu, ham_bt_cursor_t **newcu)
     memcpy(c, oldcu, sizeof(*c));
     cursor_set_next_in_page(c, 0);
     cursor_set_previous_in_page(c, 0);
+
+    /* fix the linked list of cursors */
+    cursor_set_previous((ham_cursor_t *)c, 0);
+    cursor_set_next((ham_cursor_t *)c, db_get_cursors(db));
+    if (db_get_cursors(db))
+        cursor_set_previous(db_get_cursors(db), (ham_cursor_t *)c);
+    db_set_cursors(db, (ham_cursor_t *)c);
 
     if (local_txn) {
         st=ham_txn_begin(&txn, db);
@@ -558,6 +571,22 @@ bt_cursor_clone(ham_bt_cursor_t *oldcu, ham_bt_cursor_t **newcu)
 ham_status_t
 bt_cursor_close(ham_bt_cursor_t *c)
 {
+    ham_db_t *db=bt_cursor_get_db(c);
+
+    /* fix the linked list of cursors */
+    ham_cursor_t *p=(ham_cursor_t *)cursor_get_previous(c);
+    ham_cursor_t *n=(ham_cursor_t *)cursor_get_next(c);
+
+    if (p)
+        cursor_set_next(p, n);
+    else
+        db_set_cursors(db, n);
+
+    if (n)
+        cursor_set_previous(n, p);
+    else
+        db_set_cursors(db, 0);
+
     (void)my_set_to_nil(c);
 
     ham_mem_free(cursor_get_db(c), c);

@@ -222,6 +222,9 @@ struct ham_db_t
     /* the cache */
     ham_cache_t *_cache;
 
+    /* linked list of all cursors */
+    ham_cursor_t *_cursors;
+
     /* the size of the last allocated data pointer for records */
     ham_size_t _rec_allocsize;
 
@@ -421,6 +424,16 @@ struct ham_db_t
  * set the pointer to the next database
  */
 #define db_set_next(db, next)          (db)->_next=next
+
+/*
+ * get the linked list of all cursors
+ */
+#define db_get_cursors(db)             (db)->_cursors
+
+/*
+ * set the linked list of all cursors
+ */
+#define db_set_cursors(db, c)          (db)->_cursors=c
 
 /*
  * get the size of the last allocated data blob

@@ -91,12 +91,13 @@ o support for duplicate keys
         o don't allow these flags in ham_insert, only in ham_cursor_insert
             o unittest
 
-    o need a list of all cursors
+    x need a list of all cursors
         x add cursor_next, cursor_previous
-        o add cursor *ham_db_t::_cursor_list
-        o btree_cursor_create: prepend new cursor to the list
-        o btree_cursor_destroy: delete cursor from the list
-        o unittest: check if links are correct
+        x add cursor *ham_db_t::_cursor_list
+        x btree_cursor_create: prepend new cursor to the list
+        x btree_cursor_destroy: delete cursor from the list
+        x unittest: check if links are correct
+            x also with cloned cursors!
 
     o ham_cursor_erase: erase the duplicate at the current position
         o what's the berkeleydb behaviour for accessing a previously 
@@ -137,6 +138,11 @@ o support for duplicate keys
 
     o endian-tests
 
+o rename ham_cursor_replace to ham_cursor_overwrite (and all other instances
+    of "replace" with "overwrite"
+    o don't forget the samples
+    o don't forget the documentation and tutorial
+
 o more ideas for unittests
     o unittests: insert NULL/TINY/SMALL blobs, then create linked lists
     o unittests: insert NULL/TINY/SMALL as duplicates
@@ -159,7 +165,7 @@ o webpage
     . frontpage: resize hamster picture; remove text -> more space below
         (for 3 colums: news, main features, articles/testimonials/link cloud)
 
-o btree_insert:421 - warum wird der extkey gelöscht??
+o btree_insert:421 - why is the extkey deleted??
 
 o protect users against uninitialized ham_key_t and ham_record_t structures
     o check if key->flags is 0 or USER_ALLOC

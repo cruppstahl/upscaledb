@@ -25,14 +25,22 @@ class BtreeCursorTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (createCloseTest);
     CPPUNIT_TEST      (cloneTest);
     CPPUNIT_TEST      (structureTest);
+    CPPUNIT_TEST      (linkedListTest);
+    CPPUNIT_TEST      (linkedListReverseCloseTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
     ham_db_t *m_db;
     ham_device_t *m_dev;
+    bool m_inmemory;
     memtracker_t *m_alloc;
 
 public:
+    BtreeCursorTest(bool inmemory=false)
+    :   m_inmemory(inmemory) 
+    {
+    }
+
     void setUp()
     { 
         ham_page_t *p;
@@ -41,7 +49,9 @@ public:
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         CPPUNIT_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
                         HAM_TRUE))!=0);
-        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 
+                                m_inmemory?HAM_IN_MEMORY_DB:0, 
+                                0644)==HAM_SUCCESS);
         db_set_device(m_db, m_dev);
         p=page_new(m_db);
         CPPUNIT_ASSERT(0==page_alloc(p, m_dev->get_pagesize(m_dev)));
@@ -119,7 +129,78 @@ public:
         CPPUNIT_ASSERT(bt_cursor_close(cursor)==0);
     }
 
+    void linkedListTest(void)
+    {
+        ham_bt_cursor_t *cursor[5], *clone;
+
+        CPPUNIT_ASSERT_EQUAL((ham_cursor_t *)0, db_get_cursors(m_db));
+
+        for (int i=0; i<5; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, 
+                            bt_cursor_create(m_db, 0, 0, &cursor[i]));
+            CPPUNIT_ASSERT(cursor[i]!=0);
+            CPPUNIT_ASSERT_EQUAL((ham_cursor_t *)cursor[i], 
+                            db_get_cursors(m_db));
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, bt_cursor_clone(cursor[0], &clone));
+        CPPUNIT_ASSERT(clone!=0);
+        CPPUNIT_ASSERT_EQUAL((ham_cursor_t *)clone, db_get_cursors(m_db));
+
+        for (int i=0; i<5; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, bt_cursor_close(cursor[i]));
+        }
+        CPPUNIT_ASSERT_EQUAL(0, bt_cursor_close(clone));
+
+        CPPUNIT_ASSERT_EQUAL((ham_cursor_t *)0, db_get_cursors(m_db));
+    }
+
+    void linkedListReverseCloseTest(void)
+    {
+        ham_bt_cursor_t *cursor[5], *clone;
+
+        CPPUNIT_ASSERT_EQUAL((ham_cursor_t *)0, db_get_cursors(m_db));
+
+        for (int i=0; i<5; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, 
+                            bt_cursor_create(m_db, 0, 0, &cursor[i]));
+            CPPUNIT_ASSERT(cursor[i]!=0);
+            CPPUNIT_ASSERT_EQUAL((ham_cursor_t *)cursor[i], 
+                            db_get_cursors(m_db));
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, bt_cursor_clone(cursor[0], &clone));
+        CPPUNIT_ASSERT(clone!=0);
+        CPPUNIT_ASSERT_EQUAL((ham_cursor_t *)clone, db_get_cursors(m_db));
+
+        for (int i=4; i>=0; i--) {
+            CPPUNIT_ASSERT_EQUAL(0, bt_cursor_close(cursor[i]));
+        }
+        CPPUNIT_ASSERT_EQUAL(0, bt_cursor_close(clone));
+
+        CPPUNIT_ASSERT_EQUAL((ham_cursor_t *)0, db_get_cursors(m_db));
+    }
+
+};
+
+class InMemoryBtreeCursorTest : public BtreeCursorTest
+{
+    CPPUNIT_TEST_SUITE(InMemoryBtreeCursorTest);
+    CPPUNIT_TEST      (createCloseTest);
+    CPPUNIT_TEST      (cloneTest);
+    CPPUNIT_TEST      (structureTest);
+    CPPUNIT_TEST      (linkedListTest);
+    CPPUNIT_TEST      (linkedListReverseCloseTest);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    InMemoryBtreeCursorTest()
+    :   BtreeCursorTest(true)
+    {
+    }
+
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(BtreeCursorTest);
+CPPUNIT_TEST_SUITE_REGISTRATION(InMemoryBtreeCursorTest);
 
