@@ -77,20 +77,6 @@ o support for duplicate keys
             x ham_insert: don't uncouple cursors if inserting duplicates
             x unittests w/ coupling, uncoupling
 
-    o modify cursor->insert - if the cursor is in a linked list, 
-        insert a duplicate at the requested position
-        x HAM_DUPLICATE_INSERT_AFTER
-            o unittests
-        x HAM_DUPELICATE_INSERT_LAST
-            o unittests
-        x HAM_DUPELICATE_INSERT_BEFORE (=HAM_DUPLICATE)
-            o unittests
-        x HAM_DUPELICATE_INSERT_FIRST
-            o unittests
-
-        o don't allow these flags in ham_insert, only in ham_cursor_insert
-            o unittest
-
     x need a list of all cursors
         x add cursor_next, cursor_previous
         x add cursor *ham_db_t::_cursor_list
@@ -125,6 +111,20 @@ o support for duplicate keys
     o new flag HAM_CURSOR_ONLY_DUPLICATES - only walk through duplicates,
         not to the next key
         o unittest
+
+    o modify cursor->insert - if the cursor is in a linked list, 
+        insert a duplicate at the requested position
+        x HAM_DUPLICATE_INSERT_AFTER
+            o unittests
+        x HAM_DUPELICATE_INSERT_LAST
+            o unittests
+        x HAM_DUPELICATE_INSERT_BEFORE (=HAM_DUPLICATE)
+            o unittests
+        x HAM_DUPELICATE_INSERT_FIRST
+            o unittests
+
+        o don't allow these flags in ham_insert, only in ham_cursor_insert
+            o unittest
 
     . ham_erase:
         o un-merge a single, remaining blob: if it's <=8 byte, create a 
