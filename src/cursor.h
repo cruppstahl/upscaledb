@@ -36,9 +36,9 @@
     ham_status_t (*_fun_close)(clss *cu);                               \
                                                                         \
     /**                                                                 \
-     * replace the record of this cursor                                \
+     * overwrite the record of this cursor                              \
      */                                                                 \
-    ham_status_t (*_fun_replace)(clss *cu, ham_record_t *record,        \
+    ham_status_t (*_fun_overwrite)(clss *cu, ham_record_t *record,      \
             ham_u32_t flags);                                           \
                                                                         \
     /**                                                                 \

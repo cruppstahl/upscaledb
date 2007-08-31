@@ -506,7 +506,7 @@ bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     memset(c, 0, sizeof(*c));
     c->_fun_clone=bt_cursor_clone;
     c->_fun_close=bt_cursor_close;
-    c->_fun_replace=bt_cursor_replace;
+    c->_fun_overwrite=bt_cursor_overwrite;
     c->_fun_move=bt_cursor_move;
     c->_fun_find=bt_cursor_find;
     c->_fun_insert=bt_cursor_insert;
@@ -624,7 +624,7 @@ bt_cursor_close(ham_bt_cursor_t *c)
 }
 
 ham_status_t
-bt_cursor_replace(ham_bt_cursor_t *c, ham_record_t *record,
+bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
             ham_u32_t flags)
 {
     ham_status_t st;

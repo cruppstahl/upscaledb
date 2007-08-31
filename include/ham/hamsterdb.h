@@ -1263,20 +1263,20 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 #define HAM_ONLY_DUPLICATES        32
 
 /**
- * Replaces the current record.
+ * Overwrites the current record.
  *
- * This function replaces the record of the current cursor item.
+ * This function overwrites the record of the current cursor item.
  *
  * @param cursor A valid cursor handle.
  * @param record A valid record structure.
- * @param flags Flags for replacing the item; unused, set to 0.
+ * @param flags Flags for overwriting the item; unused, set to 0.
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if @a cursor or @a record is NULL.
  * @return @a HAM_CURSOR_IS_NIL if the cursor does not point to an item.
  */
 HAM_EXPORT ham_status_t
-ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
+ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags);
 
 /**

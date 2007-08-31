@@ -176,8 +176,10 @@ o support for duplicate keys
 
 o rename ham_cursor_replace to ham_cursor_overwrite (and all other instances
     of "replace" with "overwrite")
-    o don't forget the samples
-    o don't forget the documentation and tutorial
+    x hamsterdb.h 
+    x replace sources
+    x fix unittests
+    o tutorial
 
 o check ham_txn_abort in btree_cursor.c
     this call never appears in hamsterdb.c, but quite frequently in the
@@ -236,3 +238,4 @@ o record numbers should not be reused
     persistently cache the number of elements in the database - we need 
     this information anyway.
     o add a new function ham_get_count()
+

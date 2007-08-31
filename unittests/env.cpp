@@ -209,7 +209,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
                 ham_erase(db, 0, &key, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
-                ham_cursor_replace(cursor, &rec, 0));
+                ham_cursor_overwrite(cursor, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
                 ham_cursor_insert(cursor, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 

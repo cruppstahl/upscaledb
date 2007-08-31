@@ -2187,7 +2187,7 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 }
 
 ham_status_t
-ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
+ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags)
 {
     if (!cursor || !record)
@@ -2201,7 +2201,7 @@ ham_cursor_replace(ham_cursor_t *cursor, ham_record_t *record,
 
     db_set_error(cursor_get_db(cursor), 0);
 
-    return (bt_cursor_replace((ham_bt_cursor_t *)cursor, record, flags));
+    return (bt_cursor_overwrite((ham_bt_cursor_t *)cursor, record, flags));
 }
 
 ham_status_t

@@ -221,10 +221,10 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags);
 
 /**
- * replace the record of this cursor
+ * overwrite the record of this cursor
  */
 ham_status_t
-bt_cursor_replace(ham_bt_cursor_t *cu, ham_record_t *record,
+bt_cursor_overwrite(ham_bt_cursor_t *cu, ham_record_t *record,
             ham_u32_t flags);
 
 /**

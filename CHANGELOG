@@ -1,3 +1,7 @@
+Aug 31, 2007 - chris
+o renamed ham_cursor_replace to ham_cursor_overwrite (to be consistent with
+	the flag HAM_OVERWRITE)
+
 Aug 30, 2007 - chris
 o bugfix: if a cursor pointed to an item, but this item was erased (either
 	with another cursor or ham_erase), the dangling pointer was not updated,
