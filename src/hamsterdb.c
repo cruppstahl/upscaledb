@@ -2210,6 +2210,8 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 {
     if (!cursor)
         return (HAM_INV_PARAMETER);
+    if ((flags&HAM_ONLY_DUPLICATES) && (flags&HAM_SKIP_DUPLICATES))
+        return (HAM_INV_PARAMETER);
 
     if (db_get_env(cursor_get_db(cursor)))
         __prepare_db(cursor_get_db(cursor));

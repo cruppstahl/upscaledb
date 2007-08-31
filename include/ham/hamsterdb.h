@@ -1226,9 +1226,14 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  *              item, the function behaves as if direction was
  *              HAM_CURSOR_LAST.
  *          @a HAM_SKIP_DUPLICATES: skip duplicate keys of the current key.
+ *              Not allowed in combination with @a HAM_ONLY_DUPLICATES.
+ *          @a HAM_ONLY_DUPLICATES: only move through duplicate keys of the
+ *              current key. Not allowed in combination with 
+ *              @a HAM_SKIP_DUPLICATES.
  *
  * @return @a HAM_SUCCESS upon success.
- * @return @a HAM_INV_PARAMETER if @a cursor is NULL.
+ * @return @a HAM_INV_PARAMETER if @a cursor is NULL, or if an invalid
+ *              combination of flags was specified.
  * @return @a HAM_CURSOR_IS_NIL if the cursor does not point to an item, but
  *              key and/or record were requested.
  * @return @a HAM_KEY_NOT_FOUND if @a cursor points to the first (or last)
@@ -1253,6 +1258,9 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
 /** Flag for @a ham_cursor_move */
 #define HAM_SKIP_DUPLICATES        16
+
+/** Flag for @a ham_cursor_move */
+#define HAM_ONLY_DUPLICATES        32
 
 /**
  * Replaces the current record.

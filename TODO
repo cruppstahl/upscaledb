@@ -112,6 +112,15 @@ o support for duplicate keys
     x ham_cursor_move(LAST) ignores the duplicate keys!
         x unittest
 
+    x new flag HAM_CURSOR_ONLY_DUPLICATES - only walk through duplicates,
+        not to the next key
+        x unittest
+
+    x unittest for flag HAM_CURSOR_SKIP_DUPLICATES
+
+    x don't allow HAM_CURSOR_SKIP_DUPLICATES|HAM_CURSOR_ONLY_DUPLICATES
+        x unittest
+
     o replace duplicates
         o ham_cursor_replace
             o replace just the duplicate
@@ -127,14 +136,6 @@ o support for duplicate keys
 
     o when freeing pages/blobs: also free the duplicates (otherwise
         we create [memory] leaks)
-
-    o new flag HAM_CURSOR_ONLY_DUPLICATES - only walk through duplicates,
-        not to the next key
-        o unittest
-
-    o unittest for flag HAM_CURSOR_SKIP_DUPLICATES
-
-    o don't allow HAM_CURSOR_SKIP_DUPLICATES|HAM_CURSOR_ONLY_DUPLICATES
         o unittest
 
     o modify cursor->insert - if the cursor is in a linked list, 
@@ -174,7 +175,7 @@ o support for duplicate keys
     o endian-tests
 
 o rename ham_cursor_replace to ham_cursor_overwrite (and all other instances
-    of "replace" with "overwrite"
+    of "replace" with "overwrite")
     o don't forget the samples
     o don't forget the documentation and tutorial
 

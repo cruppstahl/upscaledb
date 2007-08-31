@@ -132,6 +132,12 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     }
 
     /*
+     * don't continue if ONLY_DUPLICATES is set
+     */
+    if (flags&HAM_ONLY_DUPLICATES)
+        return (HAM_KEY_NOT_FOUND);
+
+    /*
      * if the index+1 is till in the coupled page, just increment the
      * index
      */
@@ -216,6 +222,12 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
             return (0);
         }
     }
+
+    /*
+     * don't continue if ONLY_DUPLICATES is set
+     */
+    if (flags&HAM_ONLY_DUPLICATES)
+        return (HAM_KEY_NOT_FOUND);
 
     /*
      * if the index-1 is till in the coupled page, just decrement the

@@ -27,9 +27,11 @@ class DupeTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (insertEraseTest);
     CPPUNIT_TEST      (insertTest);
     CPPUNIT_TEST      (insertSkipDuplicatesTest);
+    CPPUNIT_TEST      (insertOnlyDuplicatesTest);
     CPPUNIT_TEST      (coupleUncoupleTest);
     CPPUNIT_TEST      (reopenTest);
     CPPUNIT_TEST      (moveToLastDuplicateTest);
+    CPPUNIT_TEST      (invalidFlagsTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -271,6 +273,38 @@ public:
         ham_cursor_close(c);
     }
 
+    void insertOnlyDuplicatesTest(void)
+    {
+        ham_cursor_t *c;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        
+        insertData("000", "aaaaaaaaaa");
+        insertData("111", "0000000000");
+        insertData("111", "9999999999");
+        insertData("111", "8888888888");
+        insertData("222", "bbbbbbbbbb");
+
+        checkData(c, HAM_CURSOR_FIRST,    0, "aaaaaaaaaa");
+        checkData(c, HAM_CURSOR_NEXT,     0, "8888888888");
+        checkData(c, HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES, 0, "9999999999");
+        checkData(c, HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES, 0, "0000000000");
+        checkData(c, HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES, HAM_KEY_NOT_FOUND, 0);
+
+        checkData(c, HAM_CURSOR_FIRST,    0, "aaaaaaaaaa");
+        checkData(c, HAM_CURSOR_NEXT,     0, "8888888888");
+        checkData(c, HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES, 0, "9999999999");
+        checkData(c, HAM_CURSOR_PREVIOUS|HAM_ONLY_DUPLICATES, 0, "8888888888");
+        checkData(c, HAM_CURSOR_PREVIOUS|HAM_ONLY_DUPLICATES, 
+                        HAM_KEY_NOT_FOUND, 0);
+
+        checkData(c, HAM_CURSOR_FIRST,    0, "aaaaaaaaaa");
+        checkData(c, HAM_CURSOR_PREVIOUS|HAM_ONLY_DUPLICATES, 
+                        HAM_KEY_NOT_FOUND, 0);
+
+        ham_cursor_close(c);
+    }
+
     void coupleUncoupleTest(void)
     {
         ham_cursor_t *c;
@@ -382,6 +416,18 @@ public:
         ham_cursor_close(c);
     }
 
+    void invalidFlagsTest(void)
+    {
+        ham_cursor_t *c;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_move(c, 0, 0, 
+                        HAM_SKIP_DUPLICATES|HAM_ONLY_DUPLICATES));
+        
+        ham_cursor_close(c);
+    }
+
 };
 
 class InMemoryDupeTest : public DupeTest
@@ -391,8 +437,10 @@ class InMemoryDupeTest : public DupeTest
     CPPUNIT_TEST      (insertEraseTest);
     CPPUNIT_TEST      (insertTest);
     CPPUNIT_TEST      (insertSkipDuplicatesTest);
+    CPPUNIT_TEST      (insertOnlyDuplicatesTest);
     CPPUNIT_TEST      (coupleUncoupleTest);
     CPPUNIT_TEST      (moveToLastDuplicateTest);
+    CPPUNIT_TEST      (invalidFlagsTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
