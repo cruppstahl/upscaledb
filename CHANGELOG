@@ -1,3 +1,8 @@
+Aug 30, 2007 - chris
+o bugfix: if a cursor pointed to an item, but this item was erased (either
+	with another cursor or ham_erase), the dangling pointer was not updated,
+	and a subsequent access would result in undefined behaviour - fixed.
+
 Aug 24, 2007 - chris
 o overwriting record number keys was not possible because a new (incremented) 
     recno key was assigned even if the flag HAM_OVERWRITE was specified. 
