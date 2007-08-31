@@ -30,6 +30,7 @@ my_move_first(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     ham_page_t *page;
     btree_node_t *node;
     ham_db_t *db=cursor_get_db(c);
+    int_key_t *entry;
 
     /*
      * get a NIL cursor
@@ -78,69 +79,8 @@ my_move_first(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     bt_cursor_set_coupled_index(c, 0);
     bt_cursor_set_flags(c,
             bt_cursor_get_flags(c)|BT_CURSOR_FLAG_COUPLED);
-
-    return (0);
-}
-
-static ham_status_t
-my_move_last(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
-{
-    ham_status_t st;
-    ham_page_t *page;
-    btree_node_t *node;
-    ham_db_t *db=cursor_get_db(c);
-
-    /*
-     * get a NIL cursor
-     */
-    st=bt_cursor_set_to_nil(c);
-    if (st)
-        return (st);
-
-    db_set_error(db, 0);
-
-    /*
-     * get the root page
-     */
-    if (!btree_get_rootpage(be))
-        return (db_set_error(db, HAM_KEY_NOT_FOUND));
-    page=db_fetch_page(db, btree_get_rootpage(be), 0);
-    if (!page)
-        return (db_get_error(db));
-
-    /*
-     * while we've not reached the leaf: pick the largest element
-     * and traverse down
-     */
-    while (1) {
-        int_key_t *key;
-
-        node=ham_page_get_btree_node(page);
-        /* check for an empty root page */
-        if (btree_node_get_count(node)==0)
-            return (db_set_error(db, HAM_KEY_NOT_FOUND));
-        /* leave the loop when we've reached a leaf page */
-        if (btree_node_is_leaf(node))
-            break;
-
-        key=btree_node_get_key(db, node, btree_node_get_count(node)-1);
-
-        page=db_fetch_page(db, key_get_ptr(key), 0);
-        if (!page) {
-            if (!db_get_error(db))
-                db_set_error(db, HAM_KEY_NOT_FOUND);
-            return (db_get_error(db));
-        }
-    }
-
-    /*
-     * couple this cursor to the largest key in this page
-     */
-    page_add_cursor(page, (ham_cursor_t *)c);
-    bt_cursor_set_coupled_page(c, page);
-    bt_cursor_set_coupled_index(c, btree_node_get_count(node)-1);
-    bt_cursor_set_flags(c,
-            bt_cursor_get_flags(c)|BT_CURSOR_FLAG_COUPLED);
+    entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
+    bt_cursor_set_dupe_id(c, key_get_ptr(entry));
 
     return (0);
 }
@@ -199,7 +139,6 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
         bt_cursor_set_coupled_index(c, bt_cursor_get_coupled_index(c)+1);
         entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
         bt_cursor_set_dupe_id(c, key_get_ptr(entry));
-
         return (0);
     }
 
@@ -313,6 +252,79 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
             bt_cursor_get_flags(c)|BT_CURSOR_FLAG_COUPLED);
     entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
     bt_cursor_set_dupe_id(c, key_get_ptr(entry));
+
+    return (0);
+}
+
+static ham_status_t
+my_move_last(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_page_t *page;
+    btree_node_t *node;
+    int_key_t *entry;
+    ham_db_t *db=cursor_get_db(c);
+
+    /*
+     * get a NIL cursor
+     */
+    st=bt_cursor_set_to_nil(c);
+    if (st)
+        return (st);
+
+    db_set_error(db, 0);
+
+    /*
+     * get the root page
+     */
+    if (!btree_get_rootpage(be))
+        return (db_set_error(db, HAM_KEY_NOT_FOUND));
+    page=db_fetch_page(db, btree_get_rootpage(be), 0);
+    if (!page)
+        return (db_get_error(db));
+
+    /*
+     * while we've not reached the leaf: pick the largest element
+     * and traverse down
+     */
+    while (1) {
+        int_key_t *key;
+
+        node=ham_page_get_btree_node(page);
+        /* check for an empty root page */
+        if (btree_node_get_count(node)==0)
+            return (db_set_error(db, HAM_KEY_NOT_FOUND));
+        /* leave the loop when we've reached a leaf page */
+        if (btree_node_is_leaf(node))
+            break;
+
+        key=btree_node_get_key(db, node, btree_node_get_count(node)-1);
+
+        page=db_fetch_page(db, key_get_ptr(key), 0);
+        if (!page) {
+            if (!db_get_error(db))
+                db_set_error(db, HAM_KEY_NOT_FOUND);
+            return (db_get_error(db));
+        }
+    }
+
+    /*
+     * couple this cursor to the largest key in this page
+     */
+    page_add_cursor(page, (ham_cursor_t *)c);
+    bt_cursor_set_coupled_page(c, page);
+    bt_cursor_set_coupled_index(c, btree_node_get_count(node)-1);
+    bt_cursor_set_flags(c,
+            bt_cursor_get_flags(c)|BT_CURSOR_FLAG_COUPLED);
+    entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
+    bt_cursor_set_dupe_id(c, key_get_ptr(entry));
+
+    /*
+     * if duplicates are enabled: move the key to the last duplicate
+     */
+    if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)
+        while (!my_move_next(be, c, flags))
+            ;
 
     return (0);
 }
@@ -797,6 +809,11 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
         else
             return (0);
     }
+    /* no move, but cursor is not coupled? couple it */
+    else if (bt_cursor_get_flags(c)&BT_CURSOR_FLAG_UNCOUPLED) {
+        st=bt_cursor_couple(c);
+    }
+
     if (st) {
         if (local_txn)
             (void)ham_txn_abort(&txn);

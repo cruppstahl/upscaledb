@@ -1666,6 +1666,8 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
         return (db_set_error(db, HAM_INV_KEYSIZE));
     if ((flags&HAM_DUPLICATE) && (flags&HAM_OVERWRITE))
         return (db_set_error(db, HAM_INV_PARAMETER));
+    if ((flags&HAM_DUPLICATE) && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES))
+        return (db_set_error(db, HAM_INV_PARAMETER));
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
@@ -2258,6 +2260,8 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         (key->size>db_get_keysize(db)))
         return (db_set_error(db, HAM_INV_KEYSIZE));
     if ((flags&HAM_DUPLICATE) && (flags&HAM_OVERWRITE))
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    if ((flags&HAM_DUPLICATE) && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES))
         return (db_set_error(db, HAM_INV_PARAMETER));
 
     /*

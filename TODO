@@ -85,37 +85,45 @@ o support for duplicate keys
         x unittest: check if links are correct
             x also with cloned cursors!
 
-    o ham_cursor_erase: erase the duplicate at the current position
+    x ham_cursor_erase: erase the duplicate at the current position
         x ham_erase
             x delete ALL duplicates
             x make sure that all cursors are NILled if they point to
                 the deleted item - regardless if there are dupes or not
             x unittest
-        o ham_cursor_erase 
+        x ham_cursor_erase 
             x delete only the selected duplicate
             x if the whole key is deleted: make sure that all cursors are 
                 NILled if they point to the deleted item; if just a dupe is
                 deleted: only NIL those cursors which point to the dupe
-            o unittest!
-                o insert 2 dupes, 2 cursors on the first dupe; erase one
+            x unittest!
+                x insert 2 dupes, 2 cursors on the first dupe; erase one
                     cursor; the other points to nil. the other dupe is
-                    still available -> broken!!
-                o insert 2 dupes, 2 cursors (one on the first, the other on
+                    still available
+                x insert 2 dupes, 2 cursors (one on the first, the other on
                     the second dupe); erase the first cursor; the second
                     is still valid
-                o insert 2 dupes, 2 cursors (one on the first, the other on
+                x insert 2 dupes, 2 cursors (one on the first, the other on
                     the second dupe); erase the second cursor; the first 
                     is still valid
-        o document the differences between ham_erase and ham_cursor_erase!
-        o unittests
+                x same as the three above, but uncouple the cursors!
+        x document the differences between ham_erase and ham_cursor_erase!
+
+    x ham_cursor_move(LAST) ignores the duplicate keys!
+        x unittest
 
     o replace duplicates
-        o walk through all existing cursors and replace the blobid 
-            of all cursors pointing to this duplicate
-        o modify cursor->replace - if the cursor is in a linked list, 
-            replace a duplicate at the requested position
-        o modify ham_replace - if the blob is in a linked list, 
-            replace the head
+        o ham_cursor_replace
+            o replace just the duplicate
+                o in-place
+                o free/alloc (for resizing) - update all cursors
+            o unittests
+        o ham_insert(OVERWRITE) 
+            o only replace the first item
+            o replace in a linked list
+                o in-place
+                o free/alloc (for resizing) - update all cursors
+            o unittests
 
     o when freeing pages/blobs: also free the duplicates (otherwise
         we create [memory] leaks)
@@ -152,6 +160,8 @@ o support for duplicate keys
         or deleting items, uncoupling is often not necessary
 
     o modify acceptance test for --duplicate=1 (berkdb and hamster)
+        o --duplicate-position="before"|"after"|"first"(default)|"last"
+        o new acceptance tests with many, many duplicates
     o update documentation
     o update tutorial
     o new sample, read all words from stdin, insert them with line information;

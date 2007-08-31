@@ -434,7 +434,7 @@ shift_elements:
                 ham_size_t size=0;
 
                 if (oldflags&KEY_BLOB_SIZE_TINY) {
-                    char *p=(char *)&record->_rid;
+                    char *p=(char *)&bid;
                     size=p[sizeof(ham_offset_t)-1];
                 }
                 if (oldflags&KEY_BLOB_SIZE_SMALL)
@@ -460,12 +460,6 @@ shift_elements:
                 }
                 dupeid=rid;
             }
-            else if (flags&HAM_DUPLICATE_INSERT_FIRST) {
-                /* allocate the new blob, and set the 'next' pointer */
-                st=blob_allocate(db, record->data, record->size, 0, 
-                        old_blobid, &rid);
-                dupeid=rid;
-            }
             else if (flags&HAM_DUPLICATE_INSERT_LAST) {
                 if (bt_cursor_get_dupe_id(cursor)) {
                     st=blob_allocate_last(db, record->data, record->size, 0, 
@@ -477,7 +471,7 @@ shift_elements:
                 }
                 dupeid=rid;
             }
-            else { /* if (flags&HAM_DUPLICATE_INSERT_BEFORE) */
+            else if (flags&HAM_DUPLICATE_INSERT_BEFORE) {
                 if (cursor && bt_cursor_get_dupe_id(cursor)) {
                     st=blob_allocate_before(db, record->data, record->size, 0, 
                             bt_cursor_get_dupe_id(cursor), &rid);
@@ -486,6 +480,12 @@ shift_elements:
                     st=blob_allocate(db, record->data, record->size, 0, 
                             old_blobid, &rid);
                 }
+                dupeid=rid;
+            }
+            else { /* if (flags&HAM_DUPLICATE_INSERT_FIRST) */
+                /* allocate the new blob, and set the 'next' pointer */
+                st=blob_allocate(db, record->data, record->size, 0, 
+                        old_blobid, &rid);
                 dupeid=rid;
             }
 
@@ -569,6 +569,12 @@ shift_elements:
     page_set_dirty(page, 1);
 
     /*
+     * if we've overwritten a key: no need to continue, we're done
+     */
+    if (exists)
+        return (0);
+
+    /*
      * set a flag if the key is extended, and does not fit into the 
      * btree
      */
@@ -580,12 +586,6 @@ shift_elements:
         key_set_size(bte, key->size);
         /*key_set_key(bte, key->data, key_get_size(bte));*/
     }
-
-    /*
-     * if we've overwritten a key: no need to continue, we're done
-     */
-    if (exists)
-        return (0);
 
     /*
      * we insert the extended key, if necessary

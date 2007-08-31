@@ -29,6 +29,7 @@ class DupeTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (insertSkipDuplicatesTest);
     CPPUNIT_TEST      (coupleUncoupleTest);
     CPPUNIT_TEST      (reopenTest);
+    CPPUNIT_TEST      (moveToLastDuplicateTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -359,6 +360,27 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ::memcmp(data, rec2.data, sizeof(data)));
     }
 
+    void moveToLastDuplicateTest(void)
+    {
+        ham_cursor_t *c;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        
+        insertData(0, "0000000000");
+        insertData(0, "9999999999");
+        insertData(0, "8888888888");
+        insertData(0, "7777777777");
+        insertData(0, "6666666666");
+        insertData(0, "5555555555");
+        insertData(0, "4444444444");
+        insertData(0, "3333333333");
+        insertData(0, "2222222222");
+        insertData(0, "1111111111");
+
+        checkData(c, HAM_CURSOR_LAST,     0, "0000000000");
+
+        ham_cursor_close(c);
+    }
 
 };
 
@@ -370,6 +392,7 @@ class InMemoryDupeTest : public DupeTest
     CPPUNIT_TEST      (insertTest);
     CPPUNIT_TEST      (insertSkipDuplicatesTest);
     CPPUNIT_TEST      (coupleUncoupleTest);
+    CPPUNIT_TEST      (moveToLastDuplicateTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:

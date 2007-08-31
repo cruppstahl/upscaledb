@@ -1143,18 +1143,24 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
      * otherwise remove the full key with all duplicates
      */
     if (btree_node_is_leaf(node)) {
+        ham_bt_cursor_t *c=(ham_bt_cursor_t *)scratchpad->cursor;
+
         if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES && scratchpad->cursor) {
             ham_cursor_t *cursor=db_get_cursors(db);
-            ham_bt_cursor_t *c=(ham_bt_cursor_t *)scratchpad->cursor;
+            ham_u64_t newid=0;
 
-            if (bt_cursor_get_dupe_id(c)) {
-                st=blob_free_dupes(db, 
-                        bt_cursor_get_dupe_id(c) 
-                        ? bt_cursor_get_dupe_id(c) 
-                        : key_get_ptr(bte),
-                        0, 0);
-                if (st)
-                    return (st);
+            ham_assert(bt_cursor_get_dupe_id(c)!=0, (""));
+            st=blob_free_dupes(db, bt_cursor_get_dupe_id(c), 0, &newid);
+            if (st)
+                return (st);
+
+            /*
+             * fix the entry in the index tree, if the very first duplicate
+             * was deleted
+             */
+            if (bt_cursor_get_dupe_id(c)==key_get_ptr(bte)) {
+                key_set_ptr(bte, newid);
+                page_set_dirty(page, 1);
             }
 
             /*
@@ -1165,20 +1171,12 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
                 if (bt_cursor_get_dupe_id(btc)==bt_cursor_get_dupe_id(c))
                     bt_cursor_set_to_nil(btc);
                 cursor=cursor_get_next(cursor);
-
-                if (bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) {
-                    if (bt_cursor_get_coupled_page(btc)==page
-                        && bt_cursor_get_coupled_index(btc)==slot
-                        && bt_cursor_get_dupe_id(btc)==bt_cursor_get_dupe_id(c))
-                        bt_cursor_set_to_nil(btc);
-                }
-                else if (!bt_cursor_is_nil(btc)) {
-                    if (bt_cursor_get_dupe_id(btc)==bt_cursor_get_dupe_id(c)
-                        && !key_compare_int_to_pub(page, slot, 
-                                bt_cursor_get_uncoupled_key(btc)))
-                        bt_cursor_set_to_nil(btc);
-                }
             }
+
+            /*
+             * return immediately
+             */
+            return (0);
         }
         else {
             ham_cursor_t *cursor=db_get_cursors(db);
@@ -1211,29 +1209,6 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
                 cursor=cursor_get_next(cursor);
             }
         }
-
-#if 0
-        if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
-            ham_offset_t newid;
-            st=blob_free_dupes(db, key_get_ptr(bte), 0, &newid);
-            if (st)
-                return (st);
-            if (newid) {
-                key_set_ptr(bte, newid);
-                page_set_dirty(page, 1);
-                return (0);
-            }
-        }
-        else {
-            if (!((key_get_flags(bte)&KEY_BLOB_SIZE_TINY) ||
-                (key_get_flags(bte)&KEY_BLOB_SIZE_SMALL) ||
-                (key_get_flags(bte)&KEY_BLOB_SIZE_EMPTY))) {
-                st=blob_free(db, key_get_ptr(bte), 0);
-                if (st)
-                    return (st);
-            }
-        }
-#endif
     }
 
     /*
