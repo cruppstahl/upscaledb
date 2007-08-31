@@ -285,6 +285,10 @@ my_insert_in_page(ham_page_t *page, ham_key_t *key,
     /*
      * otherwise, we have to split the page.
      * but BEFORE we split, we check if the key already exists!
+     *
+     * TODO
+     * btree_node_search_by_key is called inside my_insert_split; remove
+     * at least one of the calls for optimization
      */
     if (btree_node_is_leaf(node)) {
         if (btree_node_search_by_key(page_get_owner(page), page, key)>=0) {
