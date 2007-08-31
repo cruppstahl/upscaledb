@@ -69,6 +69,13 @@ class BtreeCursorTest : public CppUnit::TestFixture
      */
     CPPUNIT_TEST      (eraseOtherDuplicateUncoupledTest);
 
+    /*
+     * inserts 3 dupes, creates 2 cursors on the middle item; delete the
+     * first cursor, make sure that the second is NILled and that the first
+     * and last item still exists
+     */
+    CPPUNIT_TEST      (eraseMiddleDuplicateTest);
+
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -613,6 +620,90 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c2));
     }
 
+    void eraseMiddleDuplicateTest(void)
+    {
+        ham_cursor_t *c1, *c2;
+        ham_key_t key;
+        ham_record_t rec;
+        int value=0;
+        ::memset(&key, 0, sizeof(key));
+
+        /* recreate the database with duplicates */
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", 
+                HAM_ENABLE_DUPLICATES|(m_inmemory?HAM_IN_MEMORY_DB:0), 0664));
+
+        ::memset(&rec, 0, sizeof(rec));
+        value=1;
+        rec.data=&value;
+        rec.size=sizeof(value);
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+
+        ::memset(&rec, 0, sizeof(rec));
+        value=2;
+        rec.data=&value;
+        rec.size=sizeof(value);
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+
+        ::memset(&rec, 0, sizeof(rec));
+        value=3;
+        rec.data=&value;
+        rec.size=sizeof(value);
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c1));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c2));
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                        ham_cursor_move(c1, &key, &rec, HAM_CURSOR_FIRST));
+        CPPUNIT_ASSERT_EQUAL(3, *(int *)rec.data);
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                        ham_cursor_move(c1, &key, &rec, HAM_CURSOR_NEXT));
+        CPPUNIT_ASSERT_EQUAL(2, *(int *)rec.data);
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                        ham_cursor_move(c2, &key, &rec, HAM_CURSOR_LAST));
+        CPPUNIT_ASSERT_EQUAL(1, *(int *)rec.data);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
+        CPPUNIT_ASSERT(bt_cursor_is_nil((ham_bt_cursor_t *)c1));
+        CPPUNIT_ASSERT(!bt_cursor_is_nil((ham_bt_cursor_t *)c2));
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_move(c1, &key, &rec, HAM_CURSOR_FIRST));
+        CPPUNIT_ASSERT_EQUAL(3, *(int *)rec.data);
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_move(c1, &key, &rec, HAM_CURSOR_NEXT));
+        CPPUNIT_ASSERT_EQUAL(1, *(int *)rec.data);
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_move(c2, &key, &rec, HAM_CURSOR_LAST));
+        CPPUNIT_ASSERT_EQUAL(1, *(int *)rec.data);
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_move(c2, &key, &rec, HAM_CURSOR_PREVIOUS));
+        CPPUNIT_ASSERT_EQUAL(3, *(int *)rec.data);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c1));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c2));
+    }
+
 };
 
 class InMemoryBtreeCursorTest : public BtreeCursorTest
@@ -630,6 +721,7 @@ class InMemoryBtreeCursorTest : public BtreeCursorTest
     CPPUNIT_TEST      (eraseSecondDuplicateUncoupledTest);
     CPPUNIT_TEST      (eraseOtherDuplicateTest);
     CPPUNIT_TEST      (eraseOtherDuplicateUncoupledTest);
+    CPPUNIT_TEST      (eraseMiddleDuplicateTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
