@@ -134,8 +134,8 @@ o support for duplicate keys
                 o free/alloc (for resizing) - update all cursors
             o unittests
 
-    o when freeing pages/blobs: also free the duplicates (otherwise
-        we create [memory] leaks)
+    o when freeing in-memory pages/blobs: also free the duplicates (otherwise
+        we have memory leaks)
         o unittest
 
     o modify cursor->insert - if the cursor is in a linked list, 
