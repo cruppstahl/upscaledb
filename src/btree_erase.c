@@ -1184,7 +1184,7 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
             if (!((key_get_flags(bte)&KEY_BLOB_SIZE_TINY) ||
                 (key_get_flags(bte)&KEY_BLOB_SIZE_SMALL) ||
                 (key_get_flags(bte)&KEY_BLOB_SIZE_EMPTY))) {
-                st=blob_free(db, key_get_ptr(bte), 0);
+                st=blob_free(db, key_get_ptr(bte), BLOB_FREE_ALL_DUPES);
                 if (st)
                     return (st);
             }

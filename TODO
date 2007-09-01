@@ -149,9 +149,9 @@ o support for duplicate keys
                 x free/alloc (for resizing) - update all cursors
             x unittests
 
-    o when freeing in-memory pages/blobs: also free the duplicates (otherwise
+    x when freeing in-memory pages/blobs: also free the duplicates (otherwise
         we have memory leaks)
-        o unittest
+        x unittest
 
     o modify cursor->insert - if the cursor is in a linked list, 
         insert a duplicate at the requested position
@@ -166,11 +166,6 @@ o support for duplicate keys
 
         o don't allow these flags in ham_insert, only in ham_cursor_insert
             o unittest
-
-    . ham_erase:
-        o un-merge a single, remaining blob: if it's <=8 byte, create a 
-            record structure
-        o unittest
 
     . be more careful when uncoupling cursors - especially when inserting 
         or deleting items, uncoupling is often not necessary
