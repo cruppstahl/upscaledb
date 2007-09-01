@@ -20,6 +20,13 @@ x recno: keys lassen sich nicht überschreiben
     x für ham_cursor_insert fixen
         x unittest
 
+x rename ham_cursor_replace to ham_cursor_overwrite (and all other instances
+    of "replace" with "overwrite")
+    x hamsterdb.h 
+    x replace sources
+    x fix unittests
+    x tutorial
+
 o support for duplicate keys
     x make sure that EXTENDED_BLOB flag is always set if blob>=8 byte 
         (check unittests!)
@@ -121,18 +128,26 @@ o support for duplicate keys
     x don't allow HAM_CURSOR_SKIP_DUPLICATES|HAM_CURSOR_ONLY_DUPLICATES
         x unittest
 
-    o replace duplicates
-        o ham_cursor_replace
-            o replace just the duplicate
-                o in-place
-                o free/alloc (for resizing) - update all cursors
-            o unittests
-        o ham_insert(OVERWRITE) 
-            o only replace the first item
-            o replace in a linked list
-                o in-place
-                o free/alloc (for resizing) - update all cursors
-            o unittests
+    x ./test --file ../../testfiles/1/ext_021.tst --overwrite=1 --verbose=1
+        --> broken
+        step into insert in line 592
+
+    x cursor: move_previous must move the cursor to the last element in 
+        the duplicate list (but not if SKIP_DUPLICATES is set)
+        x unittest
+
+    x replace duplicates
+        x ham_insert(OVERWRITE) 
+            x only overwrite the first item
+            x overwrite in a linked list
+                x in-place - nothing else to do
+                x free/alloc (for resizing) - update all cursors
+            x unittests
+        x ham_cursor_overwrite
+            x overwrite just the duplicate
+                x in-place - nothing else to do
+                x free/alloc (for resizing) - update all cursors
+            x unittests
 
     o when freeing in-memory pages/blobs: also free the duplicates (otherwise
         we have memory leaks)
@@ -173,13 +188,6 @@ o support for duplicate keys
         and customers (or create a new sample)
 
     o endian-tests
-
-o rename ham_cursor_replace to ham_cursor_overwrite (and all other instances
-    of "replace" with "overwrite")
-    x hamsterdb.h 
-    x replace sources
-    x fix unittests
-    o tutorial
 
 o check ham_txn_abort in btree_cursor.c
     this call never appears in hamsterdb.c, but quite frequently in the

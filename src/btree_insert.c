@@ -498,9 +498,11 @@ shift_elements:
         }
 
         /*
-         * continue inserting routine for non-duplicates
+         * if the record is big OR duplicates are enabled, and we're 
+         * overwriting a hypothetical dupe: replace the blob
          */
-        else if (record->size>sizeof(ham_offset_t)) {
+        else if (record->size>sizeof(ham_offset_t)
+            || db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
             /*
              * make sure that we only call blob_replace(), if there IS a blob
              * to replace! otherwise call blob_allocate()
@@ -511,12 +513,29 @@ shift_elements:
                     (oldflags&KEY_BLOB_SIZE_EMPTY))) {
                     st=blob_replace(db, key_get_ptr(bte), record->data, 
                                 record->size, 0, &rid);
+                    if (st)
+                        return (st);
+
+                    /*
+                     * if the blob was relocated: update each cursor which
+                     * is coupled to this blob
+                     */
+                    if (key_get_ptr(bte)!=rid) {
+                        ham_bt_cursor_t *c=
+                            (ham_bt_cursor_t *)db_get_cursors(db);
+                        while (c) {
+                            if (bt_cursor_get_dupe_id(c)==key_get_ptr(bte))
+                                bt_cursor_set_dupe_id(c, rid);
+                            c=(ham_bt_cursor_t *)cursor_get_next(c);
+                        }
+                    }
                 }
-                else
+                else {
                     st=blob_allocate(db, record->data, 
                                 record->size, 0, 0, &rid);
-                if (st)
-                    return (st);
+                    if (st)
+                        return (st);
+                }
             }
             else {
                 if ((st=blob_allocate(db, record->data, 
@@ -571,25 +590,20 @@ shift_elements:
 
     key_set_ptr(bte, rid);
     page_set_dirty(page, 1);
+    key_set_size(bte, key->size);
+
+    /*
+     * set a flag if the key is extended, and does not fit into the 
+     * btree
+     */
+    if (key->size>db_get_keysize(db))
+        key_set_flags(bte, key_get_flags(bte)|KEY_IS_EXTENDED);
 
     /*
      * if we've overwritten a key: no need to continue, we're done
      */
     if (exists)
         return (0);
-
-    /*
-     * set a flag if the key is extended, and does not fit into the 
-     * btree
-     */
-    if (key->size>db_get_keysize(db)) {
-        key_set_flags(bte, key_get_flags(bte)|KEY_IS_EXTENDED);
-        key_set_size(bte, key->size);
-    }
-    else {
-        key_set_size(bte, key->size);
-        /*key_set_key(bte, key->data, key_get_size(bte));*/
-    }
 
     /*
      * we insert the extended key, if necessary

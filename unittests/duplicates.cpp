@@ -31,7 +31,10 @@ class DupeTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (coupleUncoupleTest);
     CPPUNIT_TEST      (reopenTest);
     CPPUNIT_TEST      (moveToLastDuplicateTest);
+    CPPUNIT_TEST      (moveToPreviousDuplicateTest);
     CPPUNIT_TEST      (invalidFlagsTest);
+    CPPUNIT_TEST      (replaceTest);
+    CPPUNIT_TEST      (overwriteTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -416,6 +419,87 @@ public:
         ham_cursor_close(c);
     }
 
+    void moveToPreviousDuplicateTest(void)
+    {
+        ham_cursor_t *c;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        
+        insertData(0, "0000000000");
+        insertData(0, "9999999999");
+        insertData(0, "8888888888");
+        insertData(0, "7777777777");
+        insertData(0, "6666666666");
+        insertData(0, "5555555555");
+        insertData(0, "4444444444");
+        insertData(0, "3333333333");
+        insertData(0, "2222222222");
+        insertData(0, "1111111111");
+        insertData("1", "xxxxxxxx");
+
+        checkData(c, HAM_CURSOR_LAST,     0, "xxxxxxxx");
+        checkData(c, HAM_CURSOR_PREVIOUS, 0, "0000000000");
+
+        checkData(c, HAM_CURSOR_LAST,     0, "xxxxxxxx");
+        checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "1111111111");
+
+        checkData(c, HAM_CURSOR_LAST,     0, "xxxxxxxx");
+        checkData(c, HAM_CURSOR_PREVIOUS|HAM_ONLY_DUPLICATES, 
+                HAM_KEY_NOT_FOUND, 0);
+
+        checkData(c, HAM_CURSOR_FIRST,    0, "1111111111");
+        checkData(c, HAM_CURSOR_PREVIOUS|HAM_ONLY_DUPLICATES, 
+                HAM_KEY_NOT_FOUND, 0);
+        checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES,
+                HAM_KEY_NOT_FOUND, 0);
+        checkData(c, HAM_CURSOR_PREVIOUS,
+                HAM_KEY_NOT_FOUND, 0);
+
+        ham_cursor_close(c);
+    }
+
+    void overwriteTest(void)
+    {
+        ham_cursor_t *c;
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        
+        insertData(0, "5555555555");
+        insertData(0, "4444444444");
+        insertData(0, "33");
+        insertData(0, "2222222222");
+        insertData(0, "1111111111");
+
+        checkData(c, HAM_CURSOR_FIRST,    0, "1111111111");
+        checkData(c, HAM_CURSOR_NEXT,     0, "2222222222");
+        checkData(c, HAM_CURSOR_NEXT,     0, "33");
+
+        ::memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"3333333333333333333333333333333333333333333333333333";
+        rec.size=strlen((char *)rec.data)+1;
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_overwrite(c, &rec, 0));
+        checkData(c, HAM_CURSOR_FIRST,    0, "1111111111");
+        checkData(c, HAM_CURSOR_NEXT,     0, "2222222222");
+        checkData(c, HAM_CURSOR_NEXT,     0, 
+                "3333333333333333333333333333333333333333333333333333");
+        checkData(c, HAM_CURSOR_NEXT,     0, "4444444444");
+
+        ::memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"44";
+        rec.size=strlen((char *)rec.data)+1;
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_overwrite(c, &rec, 0));
+
+        checkData(c, HAM_CURSOR_LAST,     0, "5555555555");
+        checkData(c, HAM_CURSOR_PREVIOUS, 0, "44");
+        checkData(c, HAM_CURSOR_PREVIOUS, 0, 
+                "3333333333333333333333333333333333333333333333333333");
+
+        ham_cursor_close(c);
+    }
+
     void invalidFlagsTest(void)
     {
         ham_cursor_t *c;
@@ -426,6 +510,46 @@ public:
                         HAM_SKIP_DUPLICATES|HAM_ONLY_DUPLICATES));
         
         ham_cursor_close(c);
+    }
+
+    void replaceTest(void)
+    {
+        ham_cursor_t *c1, *c2;
+        ham_record_t rec;
+        ham_key_t key;
+
+        insertData(0, "4444444444");
+        insertData(0, "333");
+        insertData(0, "2222222222");
+        insertData(0, "111");
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c1));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c2));
+
+        checkData(c1, HAM_CURSOR_FIRST,     0, "111");
+        checkData(c1, HAM_CURSOR_NEXT,      0, "2222222222");
+        checkData(c2, HAM_CURSOR_FIRST,     0, "111");
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"1111111111111111111111111111111111111111";
+        rec.size=strlen((char *)rec.data)+1;
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        checkData(c2, 0,                    0, 
+                "1111111111111111111111111111111111111111");
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"00";
+        rec.size=strlen((char *)rec.data)+1;
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        checkData(c2, 0,                    0, "00");
+
+        checkData(c1, HAM_CURSOR_PREVIOUS,  0, "00");
+        checkData(c1, HAM_CURSOR_FIRST,     0, "00");
+
+        ham_cursor_close(c1);
+        ham_cursor_close(c2);
     }
 
 };
@@ -440,7 +564,10 @@ class InMemoryDupeTest : public DupeTest
     CPPUNIT_TEST      (insertOnlyDuplicatesTest);
     CPPUNIT_TEST      (coupleUncoupleTest);
     CPPUNIT_TEST      (moveToLastDuplicateTest);
+    CPPUNIT_TEST      (moveToPreviousDuplicateTest);
     CPPUNIT_TEST      (invalidFlagsTest);
+    CPPUNIT_TEST      (replaceTest);
+    CPPUNIT_TEST      (overwriteTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:

@@ -749,10 +749,32 @@ blob_replace(ham_db_t *db, ham_offset_t old_blobid,
      * allocate a new blob
      */
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
-        st=blob_free(db, old_blobid, flags);
+        blob_t *nhdr, *phdr=(blob_t *)old_blobid;
+
+        st=blob_allocate(db, data, size, flags, 0, new_blobid);
         if (st)
             return (st);
-        return (blob_allocate(db, data, size, flags, 0, new_blobid));
+
+        nhdr=(blob_t *)*new_blobid;
+        blob_set_previous(nhdr, blob_get_previous(phdr));
+        blob_set_next(nhdr, blob_get_next(phdr));
+        blob_set_flags(nhdr, blob_get_flags(phdr));
+
+        ham_mem_free(db, phdr);
+
+        /*
+         * fix linked list of duplicates
+         */
+        if (blob_get_previous(nhdr)) {
+            blob_t *p=(blob_t *)blob_get_previous(nhdr);
+            blob_set_next(p, *new_blobid);
+        }
+        if (blob_get_next(nhdr)) {
+            blob_t *n=(blob_t *)blob_get_next(nhdr);
+            blob_set_previous(n, *new_blobid);
+        }
+
+        return (0);
     }
 
     ham_assert(old_blobid%DB_CHUNKSIZE==0, (0));
@@ -800,6 +822,7 @@ blob_replace(ham_db_t *db, ham_offset_t old_blobid,
         blob_set_real_size(&new_hdr, size+sizeof(blob_t));
         blob_set_next(&new_hdr, blob_get_next(&old_hdr));
         blob_set_previous(&new_hdr, blob_get_previous(&old_hdr));
+        blob_set_flags(&new_hdr, blob_get_flags(&old_hdr));
         if (blob_get_alloc_size(&old_hdr)-alloc_size>SMALLEST_CHUNK_SIZE)
             blob_set_alloc_size(&new_hdr, alloc_size);
         else
@@ -828,15 +851,56 @@ blob_replace(ham_db_t *db, ham_offset_t old_blobid,
         return (0);
     }
     else {
+        ham_u8_t *chunk_data[1];
+        ham_size_t chunk_size[1];
+
+        st=my_allocate_next(db, data, size, flags, 
+                blob_get_previous(&old_hdr), blob_get_next(&old_hdr), 
+                new_blobid);
+        if (st)
+            return (st);
+
+        if (blob_get_previous(&old_hdr)) {
+            blob_t p;
+
+            st=my_read_chunk(db, blob_get_previous(&old_hdr), (ham_u8_t *)&p, 
+                    sizeof(p));
+            if (st)
+                return (st);
+
+            blob_set_next(&p, *new_blobid);
+
+            chunk_data[0]=(ham_u8_t *)&p;
+            chunk_size[0]=sizeof(p);
+            st=my_write_chunks(db, 0, blob_get_self(&p),
+                    chunk_data, chunk_size, 1);
+            if (st)
+                return (st);
+        }
+
+        if (blob_get_next(&old_hdr)) {
+            blob_t n;
+
+            st=my_read_chunk(db, blob_get_next(&old_hdr), (ham_u8_t *)&n, 
+                    sizeof(n));
+            if (st)
+                return (st);
+
+            blob_set_previous(&n, *new_blobid);
+
+            chunk_data[0]=(ham_u8_t *)&n;
+            chunk_size[0]=sizeof(n);
+            st=my_write_chunks(db, 0, blob_get_self(&n),
+                    chunk_data, chunk_size, 1);
+            if (st)
+                return (st);
+        }
+
         (void)freel_mark_free(db, old_blobid, 
                 (ham_size_t)blob_get_alloc_size(&old_hdr));
-
-        /*
-         * TODO 
-         * need to fix linked list of dupes
-         */
-        return (blob_allocate(db, data, size, flags, 0, new_blobid));
     }
+
+    return (0);
 }
 
 ham_status_t
