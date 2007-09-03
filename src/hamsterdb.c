@@ -592,7 +592,8 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
     /*
      * only a few flags are allowed
      */
-    if (flags&~(HAM_USE_BTREE|HAM_DISABLE_VAR_KEYLEN|HAM_RECORD_NUMBER))
+    if (flags&~(HAM_USE_BTREE|HAM_DISABLE_VAR_KEYLEN
+               |HAM_RECORD_NUMBER|HAM_ENABLE_DUPLICATES))
         return (HAM_INV_PARAMETER);
 
     /* 
