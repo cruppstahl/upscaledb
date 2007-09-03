@@ -82,7 +82,7 @@ btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor,
                 bt_cursor_get_flags(cursor)|BT_CURSOR_FLAG_COUPLED);
         bt_cursor_set_coupled_page(cursor, page);
         bt_cursor_set_coupled_index(cursor, idx);
-        bt_cursor_set_dupe_id(cursor, key_get_ptr(entry));
+        bt_cursor_set_dupe_id(cursor, (ham_size_t)key_get_ptr(entry));
     }
 
     return (0);

@@ -525,7 +525,7 @@ shift_elements:
                             (ham_bt_cursor_t *)db_get_cursors(db);
                         while (c) {
                             if (bt_cursor_get_dupe_id(c)==key_get_ptr(bte))
-                                bt_cursor_set_dupe_id(c, rid);
+                                bt_cursor_set_dupe_id(c, (ham_size_t)rid);
                             c=(ham_bt_cursor_t *)cursor_get_next(c);
                         }
                     }
@@ -641,7 +641,7 @@ shift_elements:
                 bt_cursor_get_flags(cursor)|BT_CURSOR_FLAG_COUPLED);
         bt_cursor_set_coupled_page(cursor, page);
         bt_cursor_set_coupled_index(cursor, slot);
-        bt_cursor_set_dupe_id(cursor, dupeid);
+        bt_cursor_set_dupe_id(cursor, (ham_size_t)dupeid);
         page_add_cursor(page, (ham_cursor_t *)cursor);
     }
 
