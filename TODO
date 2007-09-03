@@ -167,9 +167,6 @@ o support for duplicate keys
         o don't allow these flags in ham_insert, only in ham_cursor_insert
             o unittest
 
-    . be more careful when uncoupling cursors - especially when inserting 
-        or deleting items, uncoupling is often not necessary
-
     o modify acceptance test for --duplicate=1 (berkdb and hamster)
         o --duplicate-position="before"|"after"|"first"(default)|"last"
         o new acceptance tests with many, many duplicates
@@ -188,6 +185,9 @@ o check ham_txn_abort in btree_cursor.c
     this call never appears in hamsterdb.c, but quite frequently in the
     cursor routines; is this a problem?
 
+. be more careful when uncoupling cursors - especially when inserting 
+    or deleting items, uncoupling is often not necessary
+
 o more ideas for unittests
     o unittests: insert NULL/TINY/SMALL blobs, then create linked lists
     o unittests: insert NULL/TINY/SMALL as duplicates
@@ -201,7 +201,10 @@ o more ideas for unittests
         o insert item2 > item -> cursor is still coupled
 
 o ham_close with flag HAM_AUTO_CLOSE_CURSORS
+    o unittests
+
 o ham_env_close with flag HAM_AUTO_CLOSE_DATABASES
+    o unittests
 
 o webpage
     o update web page about license change (GPL2 or GPL3)
@@ -240,5 +243,6 @@ o record numbers should not be reused
     reopened, this record number is reused
     persistently cache the number of elements in the database - we need 
     this information anyway.
+    o insert: set record->_rid to 0, to make things easier
     o add a new function ham_get_count()
 
