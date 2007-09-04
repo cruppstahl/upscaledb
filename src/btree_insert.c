@@ -398,12 +398,13 @@ shift_elements:
     i=slot;
 
     /*
-     * if a new entry is appended: initialize the new key with zeroes
+     * if a new key is created or inserted: initialize it with zeroes
      */
-    if (i==count) {
+    if (i==count)
         bte=btree_node_get_key(db, node, count);
+
+    if (!exists)
         memset(bte, 0, sizeof(int_key_t)-1+keysize);
-    }
 
     /*
      * if we're in the leaf: insert, overwrite or append the blob
