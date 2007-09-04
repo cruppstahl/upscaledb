@@ -80,7 +80,7 @@ my_move_first(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     bt_cursor_set_flags(c,
             bt_cursor_get_flags(c)|BT_CURSOR_FLAG_COUPLED);
     entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
-    bt_cursor_set_dupe_id(c, key_get_ptr(entry));
+    bt_cursor_set_dupe_id(c, 0);
 
     return (0);
 }
@@ -114,6 +114,7 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
      * if this key has duplicates: get the next duplicate; otherwise 
      * (and if there's no duplicate): fall through
      */
+#if 0
     if ((db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) 
             && (!(flags&HAM_SKIP_DUPLICATES))) {
         ham_offset_t next, blid;
@@ -136,6 +137,7 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
      */
     if (flags&HAM_ONLY_DUPLICATES)
         return (HAM_KEY_NOT_FOUND);
+#endif
 
     /*
      * if the index+1 is till in the coupled page, just increment the
@@ -144,7 +146,7 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     if (bt_cursor_get_coupled_index(c)+1<btree_node_get_count(node)) {
         bt_cursor_set_coupled_index(c, bt_cursor_get_coupled_index(c)+1);
         entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
-        bt_cursor_set_dupe_id(c, key_get_ptr(entry));
+        bt_cursor_set_dupe_id(c, 0);
         return (0);
     }
 
@@ -171,7 +173,7 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     bt_cursor_set_flags(c,
             bt_cursor_get_flags(c)|BT_CURSOR_FLAG_COUPLED);
     entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
-    bt_cursor_set_dupe_id(c, key_get_ptr(entry));
+    bt_cursor_set_dupe_id(c, 0);
 
     return (0);
 }
@@ -206,6 +208,7 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
      * if this key has duplicates: get the previous duplicate; otherwise 
      * (and if there's no duplicate): fall through
      */
+#if 0
     if ((db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) 
             && (!(flags&HAM_SKIP_DUPLICATES))) {
         ham_offset_t prev, blid;
@@ -228,6 +231,7 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
      */
     if (flags&HAM_ONLY_DUPLICATES)
         return (HAM_KEY_NOT_FOUND);
+#endif
 
     /*
      * if the index-1 is till in the coupled page, just decrement the
@@ -269,13 +273,15 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     /*
      * if duplicates are enabled: move to the end of the duplicate-list
      */
+#if 0
     if ((db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)
         && !(flags&HAM_SKIP_DUPLICATES)) {
         while (!my_move_next(be, c, HAM_ONLY_DUPLICATES))
             ;
     }
     else
-        bt_cursor_set_dupe_id(c, key_get_ptr(entry));
+#endif
+        bt_cursor_set_dupe_id(c, 0);
 
     return (0);
 }
@@ -341,14 +347,16 @@ my_move_last(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     bt_cursor_set_flags(c,
             bt_cursor_get_flags(c)|BT_CURSOR_FLAG_COUPLED);
     entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
-    bt_cursor_set_dupe_id(c, key_get_ptr(entry));
+    bt_cursor_set_dupe_id(c, 0);
 
     /*
      * if duplicates are enabled: move the key to the last duplicate
      */
+#if 0
     if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)
         while (!my_move_next(be, c, flags))
             ;
+#endif
 
     return (0);
 }
@@ -601,6 +609,8 @@ bt_cursor_clone(ham_bt_cursor_t *oldcu, ham_bt_cursor_t **newcu)
         bt_cursor_set_uncoupled_key(c, key);
     }
 
+    bt_cursor_set_dupe_id(c, bt_cursor_get_dupe_id(oldcu));
+
     *newcu=c;
 
     if (local_txn)
@@ -687,6 +697,7 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
     /*
      * overwrite a duplicate key?
      */
+#if 0
     if ((db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)
         && (bt_cursor_get_dupe_id(c))) {
         ham_offset_t rid;
@@ -695,7 +706,7 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
         ham_assert(!(key_get_flags(key)&KEY_BLOB_SIZE_EMPTY), (""));
         ham_assert(!(key_get_flags(key)&KEY_BLOB_SIZE_SMALL), (""));
 
-        st=blob_replace(db, bt_cursor_get_dupe_id(c), record->data, 
+        st=blob_overwrite(db, bt_cursor_get_dupe_id(c), record->data, 
                     record->size, 0, &rid);
         if (st)
             return (st);
@@ -723,6 +734,7 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
 
         return (0);
     }
+#endif
 
     /*
      * copy the key flags, and remove all flags concerning the key size
@@ -757,7 +769,7 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
         ham_offset_t rid;
 
         /*
-         * make sure that we only call blob_replace(), if there IS a blob
+         * make sure that we only call blob_overwrite(), if there IS a blob
          * to replace! otherwise call blob_allocate()
          */
         if (!((oldflags&KEY_BLOB_SIZE_TINY) ||
@@ -768,7 +780,7 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
             if (db_get_extkey_cache(db))
                 (void)extkey_cache_remove(db_get_extkey_cache(db),
                         key_get_ptr(key));
-            st=blob_replace(db, key_get_ptr(key), record->data,
+            st=blob_overwrite(db, key_get_ptr(key), record->data,
                         record->size, 0, &rid);
         }
         else
@@ -911,11 +923,14 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
     }
 
     if (record) {
+#if 0
         if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES
             && bt_cursor_get_dupe_id(c)) {
             record->_intflags=0;
 		    record->_rid=bt_cursor_get_dupe_id(c);
         }
+#endif
+if (0); 
         else {
             record->_intflags=key_get_flags(entry);
 		    record->_rid=key_get_ptr(entry);

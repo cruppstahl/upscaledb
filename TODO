@@ -32,6 +32,72 @@ o support for duplicate keys
         (check unittests!)
         -> not needed - TINY_BLOB or SMALL_BLOB are enough
     x test if everything runs fine if blobs are always allocated
+
+    x ham_create needs flag HAM_ENABLE_DUPLICATES
+        x persistent flag -> unittest
+
+    x don't allow insert(HAM_DUPLICATE|HAM_OVERWRITE)
+        x fix in code
+        x documentation!
+        x unittest
+
+    x modify db_free_page; also delete the duplicates
+    x modify my_free_cb
+
+    x need a list of all cursors
+        x add cursor_next, cursor_previous
+        x add cursor *ham_db_t::_cursor_list
+        x btree_cursor_create: prepend new cursor to the list
+        x btree_cursor_destroy: delete cursor from the list
+        x unittest: check if links are correct
+            x also with cloned cursors!
+
+    x when freeing in-memory pages/blobs: also free the duplicates (otherwise
+        we have memory leaks)
+        x unittest
+
+===========================
+
+    x remove the old crap
+        x and the unittests!
+
+    x new flag KEY_DUPLICATE (alternatively to TINY, NULL)
+        x must not appear in internal keys
+
+    x cursor: dupe_id is the offset in the dupe_table
+        x type is ham_size_t
+        x always starts with zero
+
+    x create a blob_duplicate_t structure
+        x the structures
+        x getters
+        x setters
+        x unittest for the structure
+
+    o a new function
+        key_set_record(int_key_t *key, ham_record_t *record, 
+            flags=0|OVERWRITE|DUPLICATE[_position]);
+        -> otherwise, there's now duplicate code in btree_cursor.c and
+           btree_erase.c und btree_insert.c
+
+    o blob_duplicate_insert(dupe_table_id, position, flags, [flags, rid]+);
+        -> returns the new dupe_table_id
+    o blob_duplicate_erase(dupe_table_id, position);
+    o blob_duplicate_overwrite(dupe_table_id, position, [flags, rid]);
+    o blob_duplicate_get_count(dupe_table_id);
+
+    o insert:
+        o new dupes are appended at the END of the list (add documentation!)
+        o if no duplicate table exists: create one, and immediately append 
+            the new record
+        o change the unittests
+
+
+
+
+
+===========================
+
     x enhance the blob structure for double-linked lists
         x unittest (structure)
     x enhance the cursor structure for the linked list
@@ -41,20 +107,6 @@ o support for duplicate keys
         x if blob is SMALL/TINY: create blob structure
         x prepend the new blob, if HAM_DUPLICATE==1
         x unittests; check dupe with ham_find
-
-    x ham_erase: erases the first element of a list
-        x unittest
-
-    x modify db_free_page; also delete the duplicates
-    x modify my_free_cb
-
-    x ham_create needs flag HAM_ENABLE_DUPLICATES
-        x persistent flag -> unittest
-
-    x don't allow insert(HAM_DUPLICATE|HAM_OVERWRITE)
-        x fix in code
-        x documentation!
-        x unittest
 
     x modify cursor->next, cursor->previous to walk over the linked list 
         x flags: HAM_SKIP_DUPLICATES -> don't walk over duplicates
@@ -84,14 +136,6 @@ o support for duplicate keys
             x ham_insert: don't uncouple cursors if inserting duplicates
             x unittests w/ coupling, uncoupling
 
-    x need a list of all cursors
-        x add cursor_next, cursor_previous
-        x add cursor *ham_db_t::_cursor_list
-        x btree_cursor_create: prepend new cursor to the list
-        x btree_cursor_destroy: delete cursor from the list
-        x unittest: check if links are correct
-            x also with cloned cursors!
-
     x ham_cursor_erase: erase the duplicate at the current position
         x ham_erase
             x delete ALL duplicates
@@ -116,7 +160,7 @@ o support for duplicate keys
                 x same as the three above, but uncouple the cursors!
         x document the differences between ham_erase and ham_cursor_erase!
 
-    x ham_cursor_move(LAST) ignores the duplicate keys!
+    x ham_cursor_move(LAST) should not ignore duplicate keys
         x unittest
 
     x new flag HAM_CURSOR_ONLY_DUPLICATES - only walk through duplicates,
@@ -149,10 +193,6 @@ o support for duplicate keys
                 x free/alloc (for resizing) - update all cursors
             x unittests
 
-    x when freeing in-memory pages/blobs: also free the duplicates (otherwise
-        we have memory leaks)
-        x unittest
-
     o modify cursor->insert - if the cursor is in a linked list, 
         insert a duplicate at the requested position
         x HAM_DUPLICATE_INSERT_AFTER
@@ -166,6 +206,11 @@ o support for duplicate keys
 
         o don't allow these flags in ham_insert, only in ham_cursor_insert
             o unittest
+
+    o if a cursor is coupled to the very first duplicate, its dupe_id 
+        MUST be 0!
+        o check all cursor functions
+        o everything else should remain as is
 
     o modify acceptance test for --duplicate=1 (berkdb and hamster)
         o --duplicate-position="before"|"after"|"first"(default)|"last"
@@ -185,8 +230,9 @@ o check ham_txn_abort in btree_cursor.c
     this call never appears in hamsterdb.c, but quite frequently in the
     cursor routines; is this a problem?
 
-. be more careful when uncoupling cursors - especially when inserting 
+o be more careful when uncoupling cursors - especially when inserting 
     or deleting items, uncoupling is often not necessary
+    o definitely no need to uncouple if overwriting or adding a duplicate
 
 o more ideas for unittests
     o unittests: insert NULL/TINY/SMALL blobs, then create linked lists

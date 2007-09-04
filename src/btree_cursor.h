@@ -42,7 +42,7 @@ struct ham_bt_cursor_t
     ham_u32_t _flags;
 
     /*
-     * the blobid of the duplicate key
+     * the id of the duplicate key
      */
     ham_size_t _dupe_id;
 

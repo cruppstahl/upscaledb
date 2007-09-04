@@ -84,3 +84,94 @@ key_insert_extended(ham_db_t *db, ham_page_t *page,
     return (blobid);
 }
 
+ham_status_t
+key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record, 
+                ham_size_t dupe_id, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_offset_t rid=0;
+
+    if (!flags)
+        erase=1;
+    if (key_get_flags(key)&KEY_BLOB_SIZE_SMALL)
+        erase=0;
+    if (key_get_flags(key)&KEY_BLOB_SIZE_TINY)
+        erase=0;
+    if (key_get_flags(key)&KEY_BLOB_SIZE_NONE)
+        erase=0;
+
+    /*
+     * no existing key, just create a new key?
+     */
+    if (!key_get_ptr(key)
+            || (key_get_flags(key)&KEY_BLOB_SIZE_SMALL)
+            || (key_get_flags(key)&KEY_BLOB_SIZE_TINY)
+            || (key_get_flags(key)&KEY_BLOB_SIZE_NONE)) {
+        if (record->size>0 && record->size<=sizeof(ham_offset_t)) {
+            if (record->data)
+                memcpy(&rid, record->data, record->size);
+            if (record->size<sizeof(ham_offset_t)) {
+                char *p=(char *)&rid;
+                p[sizeof(ham_offset_t)-1]=record->size;
+                key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_TINY);
+            }
+            else if (record->size!=0)
+                key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_SMALL);
+            else
+                key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_NULL);
+            key_set_ptr(key, rid);
+        }
+        else {
+            st=blob_allocate(db, record->data, record->size, 0, 0, &rid);
+            if (st)
+                return (db_set_error(db, st));
+            key_set_ptr(key, rid);
+        }
+    }
+    /*
+     * an existing key, which is overwritten with a big record?
+     */
+    else if (record->size>sizeof(ham_offset_t) 
+        && !(flags&HAM_DUPLICATE) 
+        && !(flags&HAM_DUPLICATE_INSERT_BEFORE)
+        && !(flags&HAM_DUPLICATE_INSERT_AFTER)
+        && !(flags&HAM_DUPLICATE_INSERT_FIRST)
+        && !(flags&HAM_DUPLICATE_INSERT_LAST)) {
+        /* TODO */
+    }
+    /*
+     * an existing key which is overwritten with a small record?
+     */
+    else if (record->size<=sizeof(ham_offset_t) 
+        && !(flags&HAM_DUPLICATE) 
+        && !(flags&HAM_DUPLICATE_INSERT_BEFORE)
+        && !(flags&HAM_DUPLICATE_INSERT_AFTER)
+        && !(flags&HAM_DUPLICATE_INSERT_FIRST)
+        && !(flags&HAM_DUPLICATE_INSERT_LAST)) {
+        /* TODO */
+    }
+    /*
+     * a duplicate of an existing key?
+     */
+    else {
+        ham_assert((flags&HAM_DUPLICATE) 
+                || (flags&HAM_DUPLICATE_INSERT_BEFORE)
+                || (flags&HAM_DUPLICATE_INSERT_AFTER)
+                || (flags&HAM_DUPLICATE_INSERT_FIRST)
+                || (flags&HAM_DUPLICATE_INSERT_LAST), (""));
+    }
+
+
+
+                key_get_flags(key)&~(KEY_BLOB_SIZE_SMALL
+                                    |KEY_BLOB_SIZE_TINY
+                                    |KEY_BLOB_SIZE_NONE));
+    else {
+        ham_assert(!(key_get_flags(key)&KEY__HAS_DUPLICATES), (""));
+        st=blob_free(db, key_get_ptr(key), BLOB_FREE_ALL_DUPES);
+        if (st)
+            return (db_set_error(db, st));
+    }
+
+}
+

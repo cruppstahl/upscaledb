@@ -109,6 +109,7 @@ typedef HAM_PACK_0 HAM_PACK_1 struct int_key_t
 #define KEY_BLOB_SIZE_SMALL             2
 #define KEY_BLOB_SIZE_EMPTY             4
 #define KEY_IS_EXTENDED                 8
+#define KEY_HAS_DUPLICATES             16
 
 /**
  * get a pointer to the key 
@@ -145,6 +146,22 @@ key_compare_int_to_int(ham_page_t *page, ham_u16_t lhs, ham_u16_t rhs);
  */
 extern ham_offset_t
 key_insert_extended(ham_db_t *db, ham_page_t *page, ham_key_t *key);
+
+/**
+ * inserts and sets a record
+ *
+ * flags can be 
+ * - HAM_OVERWRITE
+ * - HAM_DUPLICATE_INSERT_BEFORE
+ * - HAM_DUPLICATE_INSERT_AFTER
+ * - HAM_DUPLICATE_INSERT_FIRST
+ * - HAM_DUPLICATE_INSERT_LAST or HAM_DUPLICATE
+ *
+ * a previously existing blob will be deleted if necessary
+ */
+extern ham_status_t
+key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record, 
+                ham_size_t dupe_id, ham_u32_t flags);
 
 
 #endif /* HAM_KEY_H__ */

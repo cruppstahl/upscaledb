@@ -1079,7 +1079,10 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
      */
     if (flags&INTERNAL_KEY)
         key_set_flags(lhs, key_get_flags(lhs)&
-                ~(KEY_BLOB_SIZE_TINY|KEY_BLOB_SIZE_SMALL|KEY_BLOB_SIZE_EMPTY));
+                ~(KEY_BLOB_SIZE_TINY
+                    |KEY_BLOB_SIZE_SMALL
+                    |KEY_BLOB_SIZE_EMPTY
+                    |KEY_HAS_DUPLICATES));
 
     /*
      * if this key is extended, we copy the extended blob; otherwise, we'd
@@ -1145,6 +1148,7 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
     if (btree_node_is_leaf(node)) {
         ham_bt_cursor_t *c=(ham_bt_cursor_t *)scratchpad->cursor;
 
+#if 0
         if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES && scratchpad->cursor) {
             ham_cursor_t *cursor=db_get_cursors(db);
             ham_u64_t newid=0;
@@ -1178,6 +1182,8 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
              */
             return (0);
         }
+#endif
+if (0);
         else {
             ham_cursor_t *cursor=db_get_cursors(db);
 

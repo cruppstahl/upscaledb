@@ -428,6 +428,7 @@ shift_elements:
          * then allocate another blob for the dupe and insert the dupe
          * at the head of the linked list
          */
+#if 0
         if (exists && (flags&HAM_DUPLICATE)) {
             ham_offset_t old_blobid=0;
 
@@ -496,22 +497,22 @@ shift_elements:
             if (st)
                 return (st);
         }
+#endif
+if (0) ;
 
         /*
-         * if the record is big OR duplicates are enabled, and we're 
-         * overwriting a hypothetical dupe: replace the blob
+         * if the record is big: replace the blob
          */
-        else if (record->size>sizeof(ham_offset_t)
-            || db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
+        else if (record->size>sizeof(ham_offset_t)) {
             /*
-             * make sure that we only call blob_replace(), if there IS a blob
+             * make sure that we only call blob_overwrite(), if there IS a blob
              * to replace! otherwise call blob_allocate()
              */
             if (exists && (flags&HAM_OVERWRITE)) {
                 if (!((oldflags&KEY_BLOB_SIZE_TINY) ||
                     (oldflags&KEY_BLOB_SIZE_SMALL) ||
                     (oldflags&KEY_BLOB_SIZE_EMPTY))) {
-                    st=blob_replace(db, key_get_ptr(bte), record->data, 
+                    st=blob_overwrite(db, key_get_ptr(bte), record->data, 
                                 record->size, 0, &rid);
                     if (st)
                         return (st);

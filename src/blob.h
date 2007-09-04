@@ -25,6 +25,7 @@ extern "C" {
 
 #include "packstart.h"
 
+
 /**
  * a blob structure (blob_t)
  *
@@ -145,6 +146,113 @@ typedef HAM_PACK_0 struct HAM_PACK_1
  */
 #define blob_set_flags(b, f)           (b)->_flags=ham_h2db32(f)
 
+
+/**
+ * a structure for a duplicate - used in a duplicate table
+ */
+typedef HAM_PACK_0 struct HAM_PACK_1 
+{
+    /*
+     * reserved, for padding
+     */
+    ham_u8_t _padding;
+
+    /*
+     * the flags - same as KEY_TINY, KEY_SMALL, KEY_NULL
+     */
+    ham_u8_t _flags;
+
+    /*
+     * the record id (unless it's TINY, SMALL or NULL)
+     */
+    ham_offset_t _rid;
+
+} dupe_entry_t;
+
+/*
+ * get the flags of a duplicate entry
+ */
+#define dupe_entry_get_flags(e)         (e)->_flags
+
+/*
+ * set the flags of a duplicate entry
+ */
+#define dupe_entry_set_flags(e, f)      (e)->_flags=f
+
+/*
+ * get the record id of a duplicate entry
+ */
+#define dupe_entry_get_rid(e)           (ham_db2h_offset((e)->_rid))
+
+/*
+ * set the record id of a duplicate entry
+ */
+#define dupe_entry_set_rid(e, r)        (e)->_rid=ham_h2db_offset(r)
+
+/**
+ * a structure for duplicates (dupe_table_t)
+ */
+typedef HAM_PACK_0 struct HAM_PACK_1 
+{
+    /**
+     * the dupe table ID - which is the absolute address/offset of this 
+     * dupe_table structure in the file
+     */
+    ham_offset_t _id;
+
+    /*
+     * the number of duplicates (used entries in this table)
+     */
+    ham_u32_t _count;
+
+    /*
+     * the capacity of entries in this table
+     */
+    ham_u32_t _capacity;
+
+    /*
+     * a dynamic array of duplicate entries
+     */
+    dupe_entry_t _entries[1];
+
+} dupe_table_t;
+
+
+/*
+ * get the id of a duplicate table
+ */
+#define dupe_table_get_self(t)          (ham_db2h_offset((t)->_id))
+
+/*
+ * set the id of a duplicate table
+ */
+#define dupe_table_set_self(t, id)      (t)->_id=ham_h2db_offset(id)
+
+/*
+ * get the number of duplicates
+ */
+#define dupe_table_get_count(t)         (ham_db2h32((t)->_count))
+
+/*
+ * set the number of duplicates
+ */
+#define dupe_table_set_count(t, c)      (t)->_count=ham_h2db32(c)
+
+/*
+ * get the maximum number of duplicates
+ */
+#define dupe_table_get_capacity(t)      (ham_db2h32((t)->_capacity))
+
+/*
+ * set the maximum number of duplicates
+ */
+#define dupe_table_set_capacity(t, c)   (t)->_capacity=ham_h2db32(c)
+
+/*
+ * get a pointer to a duplicate entry #i
+ */
+#define dupe_table_get_entry(t, i)      (&(t)->_entries[i])
+
 /**
  * write a blob
  *
@@ -194,13 +302,13 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
         ham_record_t *record, ham_u32_t flags);
 
 /**
- * replace an existing blob
+ * overwrite an existing blob
  *
  * will return an error if the blob does not exist
  * returns the blob-id (the start address of the blob header) in @a blobid
  */
 extern ham_status_t
-blob_replace(ham_db_t *db, ham_offset_t old_blobid, 
+blob_overwrite(ham_db_t *db, ham_offset_t old_blobid, 
         ham_u8_t *data, ham_size_t size, ham_u32_t flags, 
         ham_offset_t *new_blobid);
 

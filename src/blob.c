@@ -22,11 +22,14 @@
 
 #define SMALLEST_CHUNK_SIZE  (sizeof(ham_offset_t)+sizeof(blob_t)+1)
 
+#if 0
 static ham_bool_t
 my_blob_is_small(ham_db_t *db, ham_size_t size)
 {
     return (size<(ham_size_t)(db_get_pagesize(db)/3));
 }
+#endif
+#define my_blob_is_small(db, size)  ((size)<=64)
 
 static ham_status_t
 my_write_chunks(ham_db_t *db, ham_page_t *page, 
@@ -736,7 +739,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
 }
 
 ham_status_t
-blob_replace(ham_db_t *db, ham_offset_t old_blobid, 
+blob_overwrite(ham_db_t *db, ham_offset_t old_blobid, 
         ham_u8_t *data, ham_size_t size, ham_u32_t flags, 
         ham_offset_t *new_blobid)
 {
@@ -747,6 +750,8 @@ blob_replace(ham_db_t *db, ham_offset_t old_blobid,
     /*
      * inmemory-databases: free the old blob, 
      * allocate a new blob
+     *
+     * TODO optimize this: if sizes are equal, don't reallocate the blob
      */
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
         blob_t *nhdr, *phdr=(blob_t *)old_blobid;

@@ -20,6 +20,7 @@ class BlobTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(BlobTest);
     CPPUNIT_TEST      (structureTest);
+    CPPUNIT_TEST      (dupeStructureTest);
     CPPUNIT_TEST      (allocReadFreeTest);
     CPPUNIT_TEST      (replaceTest);
     CPPUNIT_TEST      (replaceWithBigTest);
@@ -92,6 +93,30 @@ public:
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x543ull, blob_get_previous(&b));
     }
 
+    void dupeStructureTest(void)
+    {
+        dupe_table_t t;
+        ::memset(&t, 0, sizeof(t));
+
+        dupe_table_set_self(&t, (ham_offset_t)0x12345ull);
+        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0x12345ull, 
+                        dupe_table_get_self(&t));
+
+        dupe_table_set_count(&t, 0x789ull);
+        CPPUNIT_ASSERT_EQUAL((ham_u32_t)0x789ull, dupe_table_get_count(&t));
+
+        dupe_table_set_capacity(&t, 0x123ull);
+        CPPUNIT_ASSERT_EQUAL((ham_u32_t)0x123ull, dupe_table_get_capacity(&t));
+
+        dupe_entry_t *e=dupe_table_get_entry(&t, 0);
+        dupe_entry_set_flags(e, 0x13);
+        CPPUNIT_ASSERT_EQUAL((ham_u8_t)0x13, dupe_entry_get_flags(e));
+
+        dupe_entry_set_rid(e, (ham_offset_t)0x12345ull);
+        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0x12345ull, 
+                        dupe_entry_get_rid(e));
+    }
+
     void allocReadFreeTest(void)
     {
         ham_u8_t buffer[64];
@@ -130,7 +155,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
         CPPUNIT_ASSERT(0==::memcmp(buffer, record.data, record.size));
 
-        CPPUNIT_ASSERT_EQUAL(0, blob_replace(m_db, blobid, buffer2, 
+        CPPUNIT_ASSERT_EQUAL(0, blob_overwrite(m_db, blobid, buffer2, 
                     sizeof(buffer2), 0, &blobid2));
         CPPUNIT_ASSERT(blobid2!=0);
 
@@ -160,7 +185,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
         CPPUNIT_ASSERT(0==::memcmp(buffer, record.data, record.size));
 
-        CPPUNIT_ASSERT_EQUAL(0, blob_replace(m_db, blobid, buffer2, 
+        CPPUNIT_ASSERT_EQUAL(0, blob_overwrite(m_db, blobid, buffer2, 
                     sizeof(buffer2), 0, &blobid2));
         CPPUNIT_ASSERT(blobid2!=0);
 
@@ -190,7 +215,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
         CPPUNIT_ASSERT(0==::memcmp(buffer, record.data, record.size));
 
-        CPPUNIT_ASSERT_EQUAL(0, blob_replace(m_db, blobid, buffer2, 
+        CPPUNIT_ASSERT_EQUAL(0, blob_overwrite(m_db, blobid, buffer2, 
                     sizeof(buffer2), 0, &blobid2));
         CPPUNIT_ASSERT(blobid2!=0);
 

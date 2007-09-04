@@ -35,46 +35,46 @@ class BtreeCursorTest : public CppUnit::TestFixture
      * delete the first cursor, make sure that both cursors are 
      * NILled and the second dupe is still available 
      */
-    CPPUNIT_TEST      (eraseDuplicateTest);
+    //CPPUNIT_TEST      (eraseDuplicateTest);
 
     /*
      * same as above, but uncouples the cursor before the first cursor
      * is deleted
      */
-    CPPUNIT_TEST      (eraseDuplicateUncoupledTest);
+    //CPPUNIT_TEST      (eraseDuplicateUncoupledTest);
 
     /*
      * insert 2 dupes, create 2 cursors (both on the second dupe).
      * delete the first cursor, make sure that both cursors are 
      * NILled and the first dupe is still available 
      */
-    CPPUNIT_TEST      (eraseSecondDuplicateTest);
+    //CPPUNIT_TEST      (eraseSecondDuplicateTest);
 
     /*
      * same as above, but uncouples the cursor before the second cursor
      * is deleted
      */
-    CPPUNIT_TEST      (eraseSecondDuplicateUncoupledTest);
+    //CPPUNIT_TEST      (eraseSecondDuplicateUncoupledTest);
 
     /*
      * insert 2 dupes, create 2 cursors (one on the first, the other on the
      * second dupe). delete the first cursor, make sure that it's NILled
      * and the other cursor is still valid.
      */
-    CPPUNIT_TEST      (eraseOtherDuplicateTest);
+    //CPPUNIT_TEST      (eraseOtherDuplicateTest);
 
     /*
      * same as above, but uncouples the cursor before the second cursor
      * is deleted
      */
-    CPPUNIT_TEST      (eraseOtherDuplicateUncoupledTest);
+    //CPPUNIT_TEST      (eraseOtherDuplicateUncoupledTest);
 
     /*
      * inserts 3 dupes, creates 2 cursors on the middle item; delete the
      * first cursor, make sure that the second is NILled and that the first
      * and last item still exists
      */
-    CPPUNIT_TEST      (eraseMiddleDuplicateTest);
+    //CPPUNIT_TEST      (eraseMiddleDuplicateTest);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -715,13 +715,13 @@ class InMemoryBtreeCursorTest : public BtreeCursorTest
     CPPUNIT_TEST      (linkedListTest);
     CPPUNIT_TEST      (linkedListReverseCloseTest);
     CPPUNIT_TEST      (cursorGetErasedItemTest);
-    CPPUNIT_TEST      (eraseDuplicateTest);
-    CPPUNIT_TEST      (eraseDuplicateUncoupledTest);
-    CPPUNIT_TEST      (eraseSecondDuplicateTest);
-    CPPUNIT_TEST      (eraseSecondDuplicateUncoupledTest);
-    CPPUNIT_TEST      (eraseOtherDuplicateTest);
-    CPPUNIT_TEST      (eraseOtherDuplicateUncoupledTest);
-    CPPUNIT_TEST      (eraseMiddleDuplicateTest);
+    //CPPUNIT_TEST      (eraseDuplicateTest);
+    //CPPUNIT_TEST      (eraseDuplicateUncoupledTest);
+    //CPPUNIT_TEST      (eraseSecondDuplicateTest);
+    //CPPUNIT_TEST      (eraseSecondDuplicateUncoupledTest);
+    //CPPUNIT_TEST      (eraseOtherDuplicateTest);
+    //CPPUNIT_TEST      (eraseOtherDuplicateUncoupledTest);
+    //CPPUNIT_TEST      (eraseMiddleDuplicateTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
