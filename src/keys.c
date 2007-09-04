@@ -109,14 +109,14 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             if (record->data)
                 memcpy(&rid, record->data, record->size);
             if (record->size==0)
-                key_set_flags(key, oldflags|KEY_BLOB_SIZE_EMPTY);
+                key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_EMPTY);
             else if (record->size<sizeof(ham_offset_t)) {
                 char *p=(char *)&rid;
                 p[sizeof(ham_offset_t)-1]=record->size;
-                key_set_flags(key, oldflags|KEY_BLOB_SIZE_TINY);
+                key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_TINY);
             }
             else 
-                key_set_flags(key, oldflags|KEY_BLOB_SIZE_SMALL);
+                key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_SMALL);
             key_set_ptr(key, rid);
         }
         else {
@@ -170,14 +170,14 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
         if (record->data)
             memcpy(&rid, record->data, record->size);
         if (record->size==0)
-            key_set_flags(key, oldflags|KEY_BLOB_SIZE_EMPTY);
+            key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_EMPTY);
         else if (record->size<sizeof(ham_offset_t)) {
             char *p=(char *)&rid;
             p[sizeof(ham_offset_t)-1]=record->size;
-            key_set_flags(key, oldflags|KEY_BLOB_SIZE_TINY);
+            key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_TINY);
         }
         else 
-            key_set_flags(key, oldflags|KEY_BLOB_SIZE_SMALL);
+            key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_SMALL);
         key_set_ptr(key, rid);
     }
     /*
@@ -198,7 +198,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
         else {
             /* TODO insert duplicate list and the (two?) entries */
         }
-        key_set_flags(key, oldflags|KEY_HAS_DUPLICATES);
+        key_set_flags(key, key_get_flags(key)|KEY_HAS_DUPLICATES);
     }
 
     return (0);
