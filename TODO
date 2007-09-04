@@ -292,3 +292,7 @@ o record numbers should not be reused
     o insert: set record->_rid to 0, to make things easier
     o add a new function ham_get_count()
 
+o record numbers don't check endianess in ham_find/ham_cursor_find:
+    the key parameter coming from the user must be endian-translated!
+    
+

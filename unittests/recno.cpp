@@ -214,10 +214,20 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
 
-        for (int i=0; i<10000; i++) {
+        for (int i=0; i<500; i++) {
             CPPUNIT_ASSERT_EQUAL(0, 
                     ham_insert(m_db, 0, &key, &rec, 0));
             CPPUNIT_ASSERT_EQUAL((ham_u64_t)i+1, recno);
+        }
+
+        for (int i=0; i<500; i++) {
+            recno=i+1;
+            memset(&key, 0, sizeof(key));
+            memset(&rec, 0, sizeof(rec));
+            key.data=&recno;
+            key.size=sizeof(recno);
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_find(m_db, 0, &key, &rec, 0));
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));

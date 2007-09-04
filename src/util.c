@@ -23,6 +23,8 @@
 ham_key_t *
 util_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
 {
+    memset(dest, 0, sizeof(*dest));
+
     /*
      * extended key: copy the whole key
      */
@@ -70,8 +72,6 @@ util_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest)
         }
         ham_assert(dest->data!=0, ("invalid extended key"));
         dest->size=key_get_size(source);
-        /* the extended flag is set later, when this key is inserted */
-        dest->_flags=key_get_flags(source)&(~KEY_IS_EXTENDED);
     }
     else if (key_get_size(source)) {
         dest->data=(ham_u8_t *)ham_mem_alloc(db, key_get_size(source));
@@ -82,13 +82,13 @@ util_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest)
 
         memcpy(dest->data, key_get_key(source), key_get_size(source));
         dest->size=key_get_size(source);
-        dest->_flags=key_get_flags(source);
     }
     else { /* key.size is 0 */
         dest->size=0;
         dest->data=0;
-        dest->_flags=key_get_flags(source);
     }
+
+    dest->flags=0;
 
     return (dest);
 }

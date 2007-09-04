@@ -321,8 +321,6 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
     ham_db_t *db=page_get_owner(page);
     ham_bool_t exists=HAM_FALSE;
     ham_s32_t slot;
-    ham_u32_t oldflags;
-    ham_offset_t dupeid=0;
 
     node=ham_page_get_btree_node(page);
     count=btree_node_get_count(node);
@@ -399,197 +397,28 @@ shift_elements:
 
     i=slot;
 
-    if (i==count) 
+    /*
+     * if a new entry is appended: initialize the new key with zeroes
+     */
+    if (i==count) {
         bte=btree_node_get_key(db, node, count);
-
-    oldflags=key_get_flags(bte);
-    key_set_flags(bte, 0);
+        memset(bte, 0, sizeof(int_key_t)-1+keysize);
+    }
 
     /*
-     * if we're in the leaf: insert the blob, and append the blob-id 
-     * in this node; otherwise just append the entry (rid)
-     *
-     * if the record's size is <= sizeof(ham_offset_t), we don't allocate
-     * a blob but store the record data directly in the offset
-     *
-     * in an in-memory-database, we don't use the blob management, but 
-     * allocate a single chunk of memory, and store the memory address
-     * in rid
+     * if we're in the leaf: insert, overwrite or append the blob
+     * (depends on the flags)
      */
     if (btree_node_is_leaf(node)) {
         ham_status_t st;
 
-        /*
-         * insert a duplicate key? 
-         *
-         * if the previous key is SMALL, TINY or EMPTY: allocate a blob
-         * structure to start a linked list
-         *
-         * then allocate another blob for the dupe and insert the dupe
-         * at the head of the linked list
-         */
-#if 0
-        if (exists && (flags&HAM_DUPLICATE)) {
-            ham_offset_t old_blobid=0;
-
-            if ((oldflags&KEY_BLOB_SIZE_TINY) ||
-                (oldflags&KEY_BLOB_SIZE_SMALL) ||
-                (oldflags&KEY_BLOB_SIZE_EMPTY)) {
-                ham_offset_t bid=key_get_ptr(bte);
-                ham_size_t size=0;
-
-                if (oldflags&KEY_BLOB_SIZE_TINY) {
-                    char *p=(char *)&bid;
-                    size=p[sizeof(ham_offset_t)-1];
-                }
-                if (oldflags&KEY_BLOB_SIZE_SMALL)
-                    size=sizeof(ham_offset_t);
-
-                st=blob_allocate(db, size ? (void *)&bid : 0, size, 
-                        0, 0, &old_blobid);
-                if (st)
-                    return (st);
-            }
-            else {
-                old_blobid=key_get_ptr(bte);
-            }
-
-            if (flags&HAM_DUPLICATE_INSERT_AFTER) {
-                if (bt_cursor_get_dupe_id(cursor)) {
-                    st=blob_allocate_after(db, record->data, record->size, 0, 
-                            bt_cursor_get_dupe_id(cursor), &rid);
-                }
-                else {
-                    st=blob_allocate(db, record->data, record->size, 0, 
-                            old_blobid, &rid);
-                }
-                dupeid=rid;
-            }
-            else if (flags&HAM_DUPLICATE_INSERT_LAST) {
-                if (bt_cursor_get_dupe_id(cursor)) {
-                    st=blob_allocate_last(db, record->data, record->size, 0, 
-                            bt_cursor_get_dupe_id(cursor), &rid);
-                }
-                else {
-                    st=blob_allocate_last(db, record->data, record->size, 0, 
-                            old_blobid, &rid);
-                }
-                dupeid=rid;
-            }
-            else if (flags&HAM_DUPLICATE_INSERT_BEFORE) {
-                if (cursor && bt_cursor_get_dupe_id(cursor)) {
-                    st=blob_allocate_before(db, record->data, record->size, 0, 
-                            bt_cursor_get_dupe_id(cursor), &rid);
-                }
-                else {
-                    st=blob_allocate(db, record->data, record->size, 0, 
-                            old_blobid, &rid);
-                }
-                dupeid=rid;
-            }
-            else { /* if (flags&HAM_DUPLICATE_INSERT_FIRST) */
-                /* allocate the new blob, and set the 'next' pointer */
-                st=blob_allocate(db, record->data, record->size, 0, 
-                        old_blobid, &rid);
-                dupeid=rid;
-            }
-
-            if (st)
-                return (st);
-        }
-#endif
-if (0) ;
-
-        /*
-         * if the record is big: replace the blob
-         */
-        else if (record->size>sizeof(ham_offset_t)) {
-            /*
-             * make sure that we only call blob_overwrite(), if there IS a blob
-             * to replace! otherwise call blob_allocate()
-             */
-            if (exists && (flags&HAM_OVERWRITE)) {
-                if (!((oldflags&KEY_BLOB_SIZE_TINY) ||
-                    (oldflags&KEY_BLOB_SIZE_SMALL) ||
-                    (oldflags&KEY_BLOB_SIZE_EMPTY))) {
-                    st=blob_overwrite(db, key_get_ptr(bte), record->data, 
-                                record->size, 0, &rid);
-                    if (st)
-                        return (st);
-
-                    /*
-                     * if the blob was relocated: update each cursor which
-                     * is coupled to this blob
-                     */
-                    if (key_get_ptr(bte)!=rid) {
-                        ham_bt_cursor_t *c=
-                            (ham_bt_cursor_t *)db_get_cursors(db);
-                        while (c) {
-                            if (bt_cursor_get_dupe_id(c)==key_get_ptr(bte))
-                                bt_cursor_set_dupe_id(c, (ham_size_t)rid);
-                            c=(ham_bt_cursor_t *)cursor_get_next(c);
-                        }
-                    }
-                }
-                else {
-                    st=blob_allocate(db, record->data, 
-                                record->size, 0, 0, &rid);
-                    if (st)
-                        return (st);
-                }
-            }
-            else {
-                if ((st=blob_allocate(db, record->data, 
-                                record->size, 0, 0, &rid)))
-                    return (st);
-            }
-        }
-
-        /*
-         * if the record's size is <= sizeof(ham_offset_t), store the data
-         * directly in the offset
-         *
-         * if the record's size is < sizeof(ham_offset_t), the last byte
-         * in &rid is the size of the data. if the record is empty, we just
-         * set the "empty"-flag.
-         *
-         * before, reset the key-flags
-         */
-        else {
-            /*
-             * if a blob exists, free it
-             */
-            if (exists && (flags&HAM_OVERWRITE)) {
-                if (!((oldflags&KEY_BLOB_SIZE_TINY) ||
-                    (oldflags&KEY_BLOB_SIZE_SMALL) ||
-                    (oldflags&KEY_BLOB_SIZE_EMPTY))) {
-                    st=blob_free(db, key_get_ptr(bte), 0);
-                    if (st)
-                        return (st);
-                }
-            }
-
-            /*
-             * now set the new key flags 
-             */
-            if (record->size==0) {
-                key_set_flags(bte, key_get_flags(bte)|KEY_BLOB_SIZE_EMPTY);
-            }
-            else if (record->size<=sizeof(ham_offset_t)) {
-                memcpy(&rid, record->data, record->size);
-                if (record->size<sizeof(ham_offset_t)) {
-                    char *p=(char *)&rid;
-                    p[sizeof(ham_offset_t)-1]=record->size;
-                    key_set_flags(bte, key_get_flags(bte)|KEY_BLOB_SIZE_TINY);
-                }
-                else {
-                    key_set_flags(bte, key_get_flags(bte)|KEY_BLOB_SIZE_SMALL);
-                }
-            }
-        }
+        st=key_set_record(db, bte, record, 0, flags);
+        if (st)
+            return (st);
     }
+    else
+        key_set_ptr(bte, rid);
 
-    key_set_ptr(bte, rid);
     page_set_dirty(page, 1);
     key_set_size(bte, key->size);
 
@@ -642,7 +471,6 @@ if (0) ;
                 bt_cursor_get_flags(cursor)|BT_CURSOR_FLAG_COUPLED);
         bt_cursor_set_coupled_page(cursor, page);
         bt_cursor_set_coupled_index(cursor, slot);
-        bt_cursor_set_dupe_id(cursor, (ham_size_t)dupeid);
         page_add_cursor(page, (ham_cursor_t *)cursor);
     }
 
@@ -721,6 +549,7 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
      */
     nbte=btree_node_get_key(db, obtp, pivot);
 
+    memset(&oldkey, 0, sizeof(oldkey));
     oldkey.data=key_get_key(nbte);
     oldkey.size=key_get_size(nbte);
     oldkey._flags=key_get_flags(nbte);

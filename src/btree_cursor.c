@@ -655,7 +655,6 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
     ham_db_t *db=bt_cursor_get_db(c);
     ham_txn_t txn;
     ham_bool_t local_txn=db_get_txn(db) ? HAM_FALSE : HAM_TRUE;
-    ham_u32_t oldflags;
     ham_page_t *page;
 
     if (local_txn) {
@@ -695,132 +694,15 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
     key=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
 
     /*
-     * overwrite a duplicate key?
-     */
-#if 0
-    if ((db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)
-        && (bt_cursor_get_dupe_id(c))) {
-        ham_offset_t rid;
-
-        ham_assert(!(key_get_flags(key)&KEY_BLOB_SIZE_TINY),  (""));
-        ham_assert(!(key_get_flags(key)&KEY_BLOB_SIZE_EMPTY), (""));
-        ham_assert(!(key_get_flags(key)&KEY_BLOB_SIZE_SMALL), (""));
-
-        st=blob_overwrite(db, bt_cursor_get_dupe_id(c), record->data, 
-                    record->size, 0, &rid);
-        if (st)
-            return (st);
-
-        /*
-         * if the blob was relocated: update each cursor which
-         * is coupled to this blob
-         */
-        if (bt_cursor_get_dupe_id(c)!=rid) {
-            ham_bt_cursor_t *cur=
-                (ham_bt_cursor_t *)db_get_cursors(db);
-            while (cur) {
-                if (bt_cursor_get_dupe_id(cur)==bt_cursor_get_dupe_id(c))
-                    bt_cursor_set_dupe_id(cur, rid);
-                cur=(ham_bt_cursor_t *)cursor_get_next(cur);
-            }
-
-            bt_cursor_set_dupe_id(c, rid);
-        }
-
-        page_release_ref(page);
-
-        if (local_txn)
-            return (ham_txn_commit(&txn, 0));
-
-        return (0);
-    }
-#endif
-
-    /*
      * copy the key flags, and remove all flags concerning the key size
      */
-    oldflags=key_get_flags(key);
-    key_set_flags(key, key_get_flags(key)&(~KEY_BLOB_SIZE_TINY));
-    key_set_flags(key, key_get_flags(key)&(~KEY_BLOB_SIZE_SMALL));
-    key_set_flags(key, key_get_flags(key)&(~KEY_BLOB_SIZE_EMPTY));
-
-    /*
-     * delete the record?
-     */
-    if (record->size==0) {
-        if (!((oldflags&KEY_BLOB_SIZE_TINY) ||
-              (oldflags&KEY_BLOB_SIZE_SMALL) ||
-              (oldflags&KEY_BLOB_SIZE_EMPTY))) {
-            /* remove the cached extended key */
-            if (db_get_extkey_cache(db))
-                (void)extkey_cache_remove(db_get_extkey_cache(db),
-                        key_get_ptr(key));
-            (void)blob_free(db, key_get_ptr(key), 0);
-        }
-
-        key_set_ptr(key, 0);
-        key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_EMPTY);
-    }
-
-    /*
-     * or replace with a big record?
-     */
-    else if (record->size>sizeof(ham_offset_t)) {
-        ham_offset_t rid;
-
-        /*
-         * make sure that we only call blob_overwrite(), if there IS a blob
-         * to replace! otherwise call blob_allocate()
-         */
-        if (!((oldflags&KEY_BLOB_SIZE_TINY) ||
-              (oldflags&KEY_BLOB_SIZE_SMALL) ||
-              (oldflags&KEY_BLOB_SIZE_EMPTY))) {
-            /* remove the cached extended key */
-            /* TODO not necessary?? */
-            if (db_get_extkey_cache(db))
-                (void)extkey_cache_remove(db_get_extkey_cache(db),
-                        key_get_ptr(key));
-            st=blob_overwrite(db, key_get_ptr(key), record->data,
-                        record->size, 0, &rid);
-        }
-        else
-            st=blob_allocate(db, record->data, record->size, 0, 0, &rid);
-        if (st) {
-            page_release_ref(page);
-            if (local_txn)
-                (void)ham_txn_abort(&txn);
-            return (st);
-        }
-
-        key_set_ptr(key, rid);
-    }
-
-    /*
-     * or replace with a small record?
-     */
-    else {
-        ham_offset_t rid;
-
-        if (!((oldflags&KEY_BLOB_SIZE_TINY) ||
-              (oldflags&KEY_BLOB_SIZE_SMALL) ||
-              (oldflags&KEY_BLOB_SIZE_EMPTY))) {
-            /* remove the cached extended key */
-            if (db_get_extkey_cache(db))
-                (void)extkey_cache_remove(db_get_extkey_cache(db),
-                        key_get_ptr(key));
-            (void)blob_free(db, key_get_ptr(key), 0);
-        }
-
-        memcpy(&rid, record->data, record->size);
-        if (record->size<sizeof(ham_offset_t)) {
-            char *p=(char *)&rid;
-            p[sizeof(ham_offset_t)-1]=record->size;
-            key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_TINY);
-        }
-        else
-            key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_SMALL);
-
-        key_set_ptr(key, rid);
+    st=key_set_record(db, key, record, 
+            bt_cursor_get_dupe_id(c), flags|HAM_OVERWRITE);
+    if (st) {
+        page_release_ref(page);
+        if (local_txn)
+            return (ham_txn_abort(&txn));
+        return (st);
     }
 
     page_set_dirty(bt_cursor_get_coupled_page(c), 1);
