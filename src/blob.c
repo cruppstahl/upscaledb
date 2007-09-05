@@ -173,10 +173,9 @@ my_read_chunk(ham_db_t *db, ham_offset_t addr,
     return (0);
 }
 
-static ham_status_t
-my_allocate_next(ham_db_t *db, ham_u8_t *data, ham_size_t size, 
-        ham_u32_t flags, ham_offset_t previous, ham_offset_t next, 
-        ham_offset_t *blobid)
+ham_status_t
+blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size, 
+        ham_u32_t flags, ham_offset_t *blobid)
 {
     ham_status_t st;
     ham_page_t *page=0;
@@ -208,15 +207,6 @@ my_allocate_next(ham_db_t *db, ham_u8_t *data, ham_size_t size,
         blob_set_alloc_size(hdr, size+sizeof(blob_t));
         blob_set_real_size(hdr, size+sizeof(blob_t));
         blob_set_user_size(hdr, size);
-        blob_set_next(hdr, next);
-
-        /* 
-         * if there's a "next": load this blob and set its "previous"-pointer
-         */
-        if (next) {
-            blob_t *n=(blob_t *)next;
-            blob_set_previous(n, (ham_offset_t)p);
-        }
 
         *blobid=(ham_offset_t)p;
         return (0);
@@ -288,7 +278,6 @@ my_allocate_next(ham_db_t *db, ham_u8_t *data, ham_size_t size,
     blob_set_real_size(&hdr, sizeof(blob_t)+size);
     blob_set_user_size(&hdr, size);
     blob_set_self(&hdr, addr);
-    blob_set_next(&hdr, next);
 
     /* 
      * write header and data 
@@ -304,327 +293,7 @@ my_allocate_next(ham_db_t *db, ham_u8_t *data, ham_size_t size,
 
     *blobid=addr;
 
-    /* 
-     * if there's a "next": load this blob and set its "previous"-pointer
-     */
-    if (next) {
-        blob_t nhdr;
-        ham_u8_t *chunk_data[1];
-        ham_size_t chunk_size[1];
-
-        st=my_read_chunk(db, next, (ham_u8_t *)&nhdr, sizeof(nhdr));
-        if (st)
-            return (st);
-        blob_set_previous(&nhdr, addr);
-        /* TODO second parameter is page - optimization! */
-        chunk_data[0]=(ham_u8_t *)&nhdr;
-        chunk_size[0]=sizeof(nhdr);
-        st=my_write_chunks(db, 0, blob_get_self(&nhdr),
-                chunk_data, chunk_size, 1);
-        if (st)
-            return (st);
-    }
-
     return (0);
-}
-
-
-ham_status_t
-blob_allocate_before(ham_db_t *db, ham_u8_t *data, 
-        ham_size_t size, ham_u32_t flags, ham_offset_t current,
-        ham_offset_t *blobid)
-{
-    ham_status_t st;
-
-    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
-        blob_t *a, *c;
-
-        /*
-         * scenario: A <-> C, now insert B: A <-> B <-> C 
-         *
-         * load "current" blob (C)
-         */
-        c=(blob_t *)current;
-        ham_assert(c!=0, (""));
-
-        /*
-         * get the "previous" pointer (load blob A)
-         */
-        a=(blob_t *)blob_get_previous(c);
-
-        /*
-         * allocate a new blob B; insert it in the linked list
-         */
-        st=my_allocate_next(db, data, size, flags, blob_get_previous(c), 
-                blob_get_self(c), blobid);
-        if (st)
-            return (st);
-
-        /*
-         * fix the "next" pointer of A
-         */
-        if (a)
-            blob_set_next(a, *blobid);
-
-        /*
-         * fix the "previous" pointer of C
-         */
-        blob_set_previous(c, *blobid);
-    }
-
-    /*
-     * same for file-based blobs
-     */
-    else {
-        blob_t a, c;
-        ham_u8_t *chunk_data[2];
-        ham_size_t chunk_size[2];
-
-        /*
-         * scenario: A <-> C, now insert B: A <-> B <-> C 
-         *
-         * load "current" blob (C)
-         */
-        st=my_read_chunk(db, current, (ham_u8_t *)&c, sizeof(c));
-        if (st)
-            return (st);
-
-        /*
-         * get the "previous" pointer (load blob A)
-         */
-        if (blob_get_previous(&c)) {
-            st=my_read_chunk(db, blob_get_previous(&c), 
-                    (ham_u8_t *)&a, sizeof(a));
-            if (st)
-                return (st);
-        }
-
-        /*
-         * allocate a new blob B; insert it in the linked list
-         */
-        st=my_allocate_next(db, data, size, flags, blob_get_previous(&c), 
-                blob_get_self(&c), blobid);
-        if (st)
-            return (st);
-
-        /*
-         * fix the "next" pointer of A
-         */
-        if (blob_get_previous(&c))
-            blob_set_next(&a, *blobid);
-
-        /*
-         * fix the "previous" pointer of C
-         */
-        blob_set_previous(&c, *blobid);
-
-        /*
-         * store A and C
-         */
-        if (blob_get_previous(&c)) {
-            chunk_data[0]=(ham_u8_t *)&a;
-            chunk_size[0]=sizeof(a);
-            st=my_write_chunks(db, 0, blob_get_self(&a), 
-                    chunk_data, chunk_size, 1);
-            if (st)
-                return (st);
-        }
-        chunk_data[0]=(ham_u8_t *)&c;
-        chunk_size[0]=sizeof(c);
-        st=my_write_chunks(db, 0, blob_get_self(&c), 
-                chunk_data, chunk_size, 1);
-        if (st)
-            return (st);
-    }
-
-    return (0);
-}
-
-ham_status_t
-blob_allocate_last(ham_db_t *db, ham_u8_t *data, 
-        ham_size_t size, ham_u32_t flags, ham_offset_t previous, 
-        ham_offset_t *blobid)
-{
-    ham_status_t st;
-    
-    ham_assert(previous!=0, (""));
-
-    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
-        blob_t *n;
-
-        /*
-         * while there's a "next" pointer: move to the next duplicate
-         */
-        while (previous) {
-            n=(blob_t *)previous;
-            previous=blob_get_next(n);
-        }
-
-        /*
-         * insert the new duplicate at the end of the list
-         */
-        st=my_allocate_next(db, data, size, flags, blob_get_self(n), 
-                0, blobid);
-        if (st)
-            return (st);
-
-        blob_set_next(n, *blobid);
-    }
-
-    /*
-     * same for file-based blobs
-     */
-    else {
-        blob_t n;
-        ham_u8_t *chunk_data[2];
-        ham_size_t chunk_size[2];
-
-        /*
-         * while there's a "next" pointer: move to the next duplicate
-         */
-        while (previous) {
-            st=my_read_chunk(db, previous, (ham_u8_t *)&n, sizeof(n));
-            if (st)
-                return (st);
-            previous=blob_get_next(&n);
-        }
-
-        /*
-         * insert the new duplicate at the end of the list
-         */
-        st=my_allocate_next(db, data, size, flags, blob_get_self(&n), 
-                0, blobid);
-        if (st)
-            return (st);
-
-        blob_set_next(&n, *blobid);
-
-        chunk_data[0]=(ham_u8_t *)&n;
-        chunk_size[0]=sizeof(n);
-        st=my_write_chunks(db, 0, blob_get_self(&n), 
-                chunk_data, chunk_size, 1);
-        if (st)
-            return (st);
-    }
-
-    return (0);
-}
-
-ham_status_t
-blob_allocate_after(ham_db_t *db, ham_u8_t *data, 
-        ham_size_t size, ham_u32_t flags, ham_offset_t current,
-        ham_offset_t *blobid)
-{
-    ham_status_t st;
-
-    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
-        blob_t *a, *c;
-
-        /*
-         * scenario: A <-> C, now insert B: A <-> B <-> C 
-         *
-         * load "current" blob (A)
-         */
-        a=(blob_t *)current;
-        ham_assert(a!=0, (""));
-
-        /*
-         * get the "next" pointer (load blob C)
-         */
-        c=(blob_t *)blob_get_next(a);
-
-        /*
-         * allocate a new blob B; insert it in the linked list
-         */
-        st=my_allocate_next(db, data, size, flags, blob_get_self(a), 
-                blob_get_next(a), blobid);
-        if (st)
-            return (st);
-
-        /*
-         * fix the "next" pointer of A
-         */
-        blob_set_next(a, *blobid);
-
-        /*
-         * fix the "previous" pointer of C
-         */
-        if (c)
-            blob_set_previous(c, *blobid);
-    }
-
-    /*
-     * same for file-based blobs
-     */
-    else {
-        blob_t a, c;
-        ham_u8_t *chunk_data[2];
-        ham_size_t chunk_size[2];
-
-        /*
-         * scenario: A <-> C, now insert B: A <-> B <-> C 
-         *
-         * load "current" blob (A)
-         */
-        st=my_read_chunk(db, current, (ham_u8_t *)&a, sizeof(a));
-        if (st)
-            return (st);
-
-        /*
-         * get the "next" pointer (load blob C)
-         */
-        if (blob_get_next(&a)) {
-            st=my_read_chunk(db, blob_get_next(&a), (ham_u8_t *)&c, sizeof(c));
-            if (st)
-                return (st);
-        }
-
-        /*
-         * allocate a new blob B; insert it in the linked list
-         */
-        st=my_allocate_next(db, data, size, flags, blob_get_self(&a), 
-                blob_get_next(&a), blobid);
-        if (st)
-            return (st);
-
-        /*
-         * fix the "next" pointer of A
-         */
-        blob_set_next(&a, *blobid);
-
-        /*
-         * fix the "previous" pointer of C
-         */
-        if (blob_get_next(&a))
-            blob_set_previous(&c, *blobid);
-
-        /*
-         * store A and C
-         */
-        chunk_data[0]=(ham_u8_t *)&a;
-        chunk_size[0]=sizeof(a);
-        st=my_write_chunks(db, 0, blob_get_self(&a), 
-                chunk_data, chunk_size, 1);
-        if (st)
-            return (st);
-        if (blob_get_next(&a)) {
-            chunk_data[0]=(ham_u8_t *)&c;
-            chunk_size[0]=sizeof(c);
-            st=my_write_chunks(db, 0, blob_get_self(&c), 
-                    chunk_data, chunk_size, 1);
-            if (st)
-                return (st);
-        }
-    }
-
-    return (0);
-}
-
-ham_status_t
-blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size, 
-        ham_u32_t flags, ham_offset_t next, ham_offset_t *blobid)
-{
-    return (my_allocate_next(db, data, size, flags, 0, next, blobid));
 }
 
 ham_status_t
@@ -756,28 +425,14 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
         blob_t *nhdr, *phdr=(blob_t *)old_blobid;
 
-        st=blob_allocate(db, data, size, flags, 0, new_blobid);
+        st=blob_allocate(db, data, size, flags, new_blobid);
         if (st)
             return (st);
 
         nhdr=(blob_t *)*new_blobid;
-        blob_set_previous(nhdr, blob_get_previous(phdr));
-        blob_set_next(nhdr, blob_get_next(phdr));
         blob_set_flags(nhdr, blob_get_flags(phdr));
 
         ham_mem_free(db, phdr);
-
-        /*
-         * fix linked list of duplicates
-         */
-        if (blob_get_previous(nhdr)) {
-            blob_t *p=(blob_t *)blob_get_previous(nhdr);
-            blob_set_next(p, *new_blobid);
-        }
-        if (blob_get_next(nhdr)) {
-            blob_t *n=(blob_t *)blob_get_next(nhdr);
-            blob_set_previous(n, *new_blobid);
-        }
 
         return (0);
     }
@@ -825,8 +480,6 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
         blob_set_self(&new_hdr, blob_get_self(&old_hdr));
         blob_set_user_size(&new_hdr, size);
         blob_set_real_size(&new_hdr, size+sizeof(blob_t));
-        blob_set_next(&new_hdr, blob_get_next(&old_hdr));
-        blob_set_previous(&new_hdr, blob_get_previous(&old_hdr));
         blob_set_flags(&new_hdr, blob_get_flags(&old_hdr));
         if (blob_get_alloc_size(&old_hdr)-alloc_size>SMALLEST_CHUNK_SIZE)
             blob_set_alloc_size(&new_hdr, alloc_size);
@@ -856,50 +509,9 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
         return (0);
     }
     else {
-        ham_u8_t *chunk_data[1];
-        ham_size_t chunk_size[1];
-
-        st=my_allocate_next(db, data, size, flags, 
-                blob_get_previous(&old_hdr), blob_get_next(&old_hdr), 
-                new_blobid);
+        st=blob_allocate(db, data, size, flags, new_blobid);
         if (st)
             return (st);
-
-        if (blob_get_previous(&old_hdr)) {
-            blob_t p;
-
-            st=my_read_chunk(db, blob_get_previous(&old_hdr), (ham_u8_t *)&p, 
-                    sizeof(p));
-            if (st)
-                return (st);
-
-            blob_set_next(&p, *new_blobid);
-
-            chunk_data[0]=(ham_u8_t *)&p;
-            chunk_size[0]=sizeof(p);
-            st=my_write_chunks(db, 0, blob_get_self(&p),
-                    chunk_data, chunk_size, 1);
-            if (st)
-                return (st);
-        }
-
-        if (blob_get_next(&old_hdr)) {
-            blob_t n;
-
-            st=my_read_chunk(db, blob_get_next(&old_hdr), (ham_u8_t *)&n, 
-                    sizeof(n));
-            if (st)
-                return (st);
-
-            blob_set_previous(&n, *new_blobid);
-
-            chunk_data[0]=(ham_u8_t *)&n;
-            chunk_size[0]=sizeof(n);
-            st=my_write_chunks(db, 0, blob_get_self(&n),
-                    chunk_data, chunk_size, 1);
-            if (st)
-                return (st);
-        }
 
         (void)freel_mark_free(db, old_blobid, 
                 (ham_size_t)blob_get_alloc_size(&old_hdr));
@@ -915,7 +527,7 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
     ham_offset_t next_id=0;
 
     do {
-        st=blob_free_dupes(db, blobid, flags, &next_id);
+        st=blob_free_dupe(db, blobid, flags, &next_id);
         if (st)
             return (st);
         blobid=next_id;
@@ -925,7 +537,7 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
 }
 
 ham_status_t
-blob_free_dupes(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags, 
+blob_free_dupe(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags, 
         ham_offset_t *next_id)
 {
     ham_status_t st;
@@ -939,14 +551,6 @@ blob_free_dupes(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags,
      */
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
         blob_t *phdr=(blob_t *)blobid;
-        if (next_id)
-            *next_id=blob_get_next(phdr);
-        if (blob_get_next(phdr))
-            blob_set_previous((blob_t *)blob_get_next(phdr), 
-                    blob_get_previous(phdr));
-        if (blob_get_previous(phdr))
-            blob_set_next((blob_t *)blob_get_previous(phdr), 
-                    blob_get_next(phdr));
         ham_mem_free(db, phdr);
         return (0);
     }
@@ -970,49 +574,6 @@ blob_free_dupes(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags,
     if (blob_get_self(&hdr)!=blobid)
         return (HAM_BLOB_NOT_FOUND);
 
-    if (next_id)
-        *next_id=blob_get_next(&hdr);
-
-    /*
-     * duplicates: fix the linked list
-     */
-    if (blob_get_next(&hdr)) {
-        blob_t n;
-        ham_u8_t *chunk_data[1];
-        ham_size_t chunk_size[1];
-
-        st=my_read_chunk(db, blob_get_next(&hdr), (ham_u8_t *)&n, sizeof(n));
-        if (st)
-            return (st);
-        blob_set_previous(&n, blob_get_previous(&hdr));
-
-        chunk_data[0]=(ham_u8_t *)&n;
-        chunk_size[0]=sizeof(n);
-        st=my_write_chunks(db, 0, blob_get_self(&n),
-                chunk_data, chunk_size, 1);
-        if (st)
-            return (st);
-    }
-
-    if (blob_get_previous(&hdr)) {
-        blob_t p;
-        ham_u8_t *chunk_data[1];
-        ham_size_t chunk_size[1];
-
-        st=my_read_chunk(db, blob_get_previous(&hdr), 
-                (ham_u8_t *)&p, sizeof(p));
-        if (st)
-            return (st);
-        blob_set_next(&p, blob_get_next(&hdr));
-
-        chunk_data[0]=(ham_u8_t *)&p;
-        chunk_size[0]=sizeof(p);
-        st=my_write_chunks(db, 0, blob_get_self(&p),
-                chunk_data, chunk_size, 1);
-        if (st)
-            return (st);
-    }
-
     /*
      * move the blob to the freelist
      */
@@ -1023,43 +584,154 @@ blob_free_dupes(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags,
 }
 
 ham_status_t
-blob_get_next_duplicate(ham_db_t *db, ham_offset_t blobid, 
-        ham_offset_t *next)
+blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id, 
+        ham_size_t position, ham_u32_t flags, 
+        dupe_entry_t *entries, ham_size_t num_entries, 
+        ham_offset_t *rid)
 {
-    blob_t hdr;
-    ham_status_t st;
+    ham_status_t st=0;
+    dupe_table_t *table=0;
+    ham_bool_t alloc_table=0;
 
-    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
-        blob_t *phdr=(blob_t *)blobid;
-        *next=blob_get_next(phdr);
-        return (0);
+    /*
+     * create a new duplicate table if none existed, and insert
+     * the first entry
+     */
+    if (!table_id) {
+        ham_assert(num_entries==2, (""));
+        /* allocates space for 8 (!) entries */
+        table=ham_mem_alloc(db, sizeof(dupe_table_t)+7*sizeof(dupe_entry_t));
+        if (!table)
+            return (db_set_error(db, HAM_OUT_OF_MEMORY));
+        memset(table, 0, sizeof(dupe_table_t)+7*sizeof(dupe_entry_t));
+        dupe_table_set_capacity(table, 8);
+        dupe_table_set_count(table, 1);
+        memcpy(dupe_table_get_entry(table, 0), &entries[0], sizeof(entries[0]));
+
+        /* skip the first entry */
+        entries++;
+        num_entries--;
+        alloc_table=1;
+    }
+    else {
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
+
+        /* TODO destroys the public record pointer! */
+        st=blob_read(db, table_id, &rec, 0);
+        if (st)
+            return (st);
+
+        table=(dupe_table_t *)rec.data;
     }
 
-    st=my_read_chunk(db, blobid, (ham_u8_t *)&hdr, sizeof(hdr));
-    if (st)
-        return (st);
+    ham_assert(num_entries==1, (""));
 
-    *next=blob_get_next(&hdr);
-    return (0);
+    /*
+     * resize the table, if necessary
+     */ 
+    if (dupe_table_get_count(table)+1>=dupe_table_get_capacity(table)) {
+        dupe_table_t *old=table;
+        ham_size_t new_cap=dupe_table_get_capacity(table);
+
+        if (new_cap/3<8)
+            new_cap+=8;
+        else
+            new_cap+=new_cap/3;
+
+        table=ham_mem_alloc(db, sizeof(dupe_table_t)+
+                        (new_cap-1)*sizeof(dupe_entry_t));
+        if (!table)
+            return (db_set_error(db, HAM_OUT_OF_MEMORY));
+        memset(table, 0, sizeof(dupe_table_t)+(new_cap-1)*sizeof(dupe_entry_t));
+        dupe_table_set_capacity(table, new_cap);
+        dupe_table_set_count(table, dupe_table_get_count(old));
+        memcpy(dupe_table_get_entry(table, 0), dupe_table_get_entry(old, 0),
+                       dupe_table_get_count(old));
+        if (alloc_table)
+            ham_mem_free(db, old);
+
+        alloc_table=1;
+    }
+
+    /*
+     * insert (or overwrite) the entry at the requested position
+     */
+    if (flags&HAM_OVERWRITE) {
+        memcpy(dupe_table_get_entry(table, position), 
+                        &entries[0], sizeof(entries[0]));
+    }
+    else {
+        /* TODO depends on flags and position! */
+        position=dupe_table_get_count(table);
+        memcpy(dupe_table_get_entry(table, position), 
+                        &entries[0], sizeof(entries[0]));
+        dupe_table_set_count(table, dupe_table_get_count(table)+1);
+    }
+
+    /*
+     * write the table back to disk and return the blobid of the table
+     *
+     * TODO can be optimized: if we didn't resize the table, blob_overwrite
+     * doesn't have to load the blob, check the size, then overwrite 
+     * everything; it can just write the blob without fetching it first
+     */
+    if (table_id) {
+        st=blob_overwrite(db, table_id, (ham_u8_t *)table,
+                sizeof(dupe_table_t)
+                    +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t),
+                0, rid);
+    }
+    else {
+        st=blob_allocate(db, (ham_u8_t *)table,
+                sizeof(dupe_table_t)
+                    +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t),
+                0, rid);
+    }
+
+    if (alloc_table)
+        ham_mem_free(db, table);
+
+    return (st);
 }
 
 ham_status_t
-blob_get_previous_duplicate(ham_db_t *db, ham_offset_t blobid, 
-        ham_offset_t *prev)
+blob_duplicate_get_count(ham_db_t *db, ham_offset_t table_id,
+        ham_size_t *count)
 {
-    blob_t hdr;
     ham_status_t st;
+    ham_record_t rec;
+    dupe_table_t *table;
 
-    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
-        blob_t *phdr=(blob_t *)blobid;
-        *prev=blob_get_previous(phdr);
-        return (0);
-    }
+    memset(&rec, 0, sizeof(rec));
 
-    st=my_read_chunk(db, blobid, (ham_u8_t *)&hdr, sizeof(hdr));
+    /* TODO destroys the public record pointer! */
+    st=blob_read(db, table_id, &rec, 0);
     if (st)
         return (st);
 
-    *prev=blob_get_previous(&hdr);
+    table=(dupe_table_t *)rec.data;
+    *count=dupe_table_get_count(table);
     return (0);
 }
+
+ham_status_t 
+blob_duplicate_get(ham_db_t *db, ham_offset_t table_id,
+        ham_size_t position, dupe_entry_t *entry)
+{
+    ham_status_t st;
+    ham_record_t rec;
+    dupe_table_t *table;
+
+    memset(&rec, 0, sizeof(rec));
+
+    /* TODO destroys the public record pointer! */
+    st=blob_read(db, table_id, &rec, 0);
+    if (st)
+        return (st);
+
+    table=(dupe_table_t *)rec.data;
+    memcpy(entry, dupe_table_get_entry(table, position), sizeof(*entry));
+    return (0);
+}
+

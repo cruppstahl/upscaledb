@@ -23,6 +23,7 @@ extern "C" {
 #include "txn.h"
 #include "cursor.h"
 #include "keys.h"
+#include "blob.h"
 
 /**
  * the cursor structure for a b+tree
@@ -45,6 +46,11 @@ struct ham_bt_cursor_t
      * the id of the duplicate key
      */
     ham_size_t _dupe_id;
+
+    /*
+     * cached flags and record ID of the current duplicate
+     */
+    dupe_entry_t _dupe_cache;
 
     /**
      * "coupled" or "uncoupled" states; coupled means that the
@@ -155,6 +161,11 @@ struct ham_bt_cursor_t
  * set the duplicate key we're pointing to - if the cursor is coupled
  */
 #define bt_cursor_set_dupe_id(cu, d)        (cu)->_dupe_id=d
+
+/**
+ * get the duplicate key's cache
+ */
+#define bt_cursor_get_dupe_cache(cu)        (&(cu)->_dupe_cache)
 
 /**
  * get the key we're pointing to - if the cursor is uncoupled

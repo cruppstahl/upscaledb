@@ -79,138 +79,59 @@ o support for duplicate keys
             flags=0|OVERWRITE|DUPLICATE[_position]);
         -> otherwise, there's now duplicate code in btree_cursor.c and
            btree_erase.c und btree_insert.c
+        o add support for duplicates
+            o blob_duplicate_insert(dupe_table_id, position, flags, 
+                [flags, rid]+);
+                -> returns the new rid; only inserts at the end of the table
+                o enhance cursor_move for next/previous/first/last
+                o unittests - ham_insert, 
+                    ham_cursor_insert, ham_cursor_overwrite
 
-    o blob_duplicate_insert(dupe_table_id, position, flags, [flags, rid]+);
-        -> returns the new dupe_table_id
-    o blob_duplicate_erase(dupe_table_id, position);
-    o blob_duplicate_overwrite(dupe_table_id, position, [flags, rid]);
-    o blob_duplicate_get_count(dupe_table_id);
 
-    o insert:
+            o blob_duplicate_erase(dupe_table_id, position)
+                -> returns the new rid
+            o blob_duplicate_overwrite(dupe_table_id, position, [flags, rid]);
+            o blob_duplicate_get_count(dupe_table_id);
+        o unittests!
+
+        o what happens if ham_insert(... OVERWRITE) is called on a key with 
+            duplicates? -> the first dupe is overwritten
+            o unittest!
+
+        o key_set_record does not always need to dirty the page (i.e. when
+            appending duplicates) -> don't set page dirty in the caller
+
+    o cursor_move
+
+    o cursor_overwrite/cursor_insert: 
+        currently, the cursor_dupe_cache is deleted, but we don't have to
+        also, in cursor_move there are some optimizations regarding the
+        cache (search for TODO)
+
+    o insert
         o new dupes are appended at the END of the list (add documentation!)
-        o if no duplicate table exists: create one, and immediately append 
-            the new record
         o change the unittests
 
+    o cursor_insert
+        o duplicate_insert_after
+        o duplicate_insert_before
+        o duplicate_insert_first
+        o duplicate_insert_last (default)
+        o don't allow these flags in ham_insert -> unittest!
+
+    o erase -> deletes ALL duplicates!
+        -> must NIL all cursors which are coupled to this key!
+
+    o cursor_erase
+        -> must NIL all cursors which are coupled to this duplicate!
+
+    o cursor_overwrite
+        -> must replace all cursors which are coupled to this duplicate!
 
 
 
 
 ===========================
-
-    x enhance the blob structure for double-linked lists
-        x unittest (structure)
-    x enhance the cursor structure for the linked list
-        x coupled cursor: store blobid of the current duplicate
-
-    x ham_insert: insert duplicate (at the beginning of the list)
-        x if blob is SMALL/TINY: create blob structure
-        x prepend the new blob, if HAM_DUPLICATE==1
-        x unittests; check dupe with ham_find
-
-    x modify cursor->next, cursor->previous to walk over the linked list 
-        x flags: HAM_SKIP_DUPLICATES -> don't walk over duplicates
-        x !!! currently, only the blob->next pointer is set, not blob->prev
-            x need to modify ham_insert
-            x need to modify ham_erase
-            x unittests!
-                x insert dupes, look up, erase them, look up
-                x also for in-memory databases!
-
-        x when moving the cursor, always check if the cursor has duplicates
-            -> already started in my_move_next(), my_move_prev()
-            x implement blob_get_previous_duplicate()
-            x implement blob_get_next_duplicate()
-                x unittests!
-
-            x ignore dupes if !(db_flags&ENABLE_DUPLICATES) 
-                or (flags&SKIP_DUPLICATES)
-            x otherwise: always store the current blobid
-            x when fetching the record: if (blobid) load blobid; otherwise
-                continue as usual
-
-            x unittests w/  SKIP_DUPLICATES
-            x unittests w/o SKIP_DUPLICATES
-
-        x couple cursor (bt_cursor_couple):
-            x ham_insert: don't uncouple cursors if inserting duplicates
-            x unittests w/ coupling, uncoupling
-
-    x ham_cursor_erase: erase the duplicate at the current position
-        x ham_erase
-            x delete ALL duplicates
-            x make sure that all cursors are NILled if they point to
-                the deleted item - regardless if there are dupes or not
-            x unittest
-        x ham_cursor_erase 
-            x delete only the selected duplicate
-            x if the whole key is deleted: make sure that all cursors are 
-                NILled if they point to the deleted item; if just a dupe is
-                deleted: only NIL those cursors which point to the dupe
-            x unittest!
-                x insert 2 dupes, 2 cursors on the first dupe; erase one
-                    cursor; the other points to nil. the other dupe is
-                    still available
-                x insert 2 dupes, 2 cursors (one on the first, the other on
-                    the second dupe); erase the first cursor; the second
-                    is still valid
-                x insert 2 dupes, 2 cursors (one on the first, the other on
-                    the second dupe); erase the second cursor; the first 
-                    is still valid
-                x same as the three above, but uncouple the cursors!
-        x document the differences between ham_erase and ham_cursor_erase!
-
-    x ham_cursor_move(LAST) should not ignore duplicate keys
-        x unittest
-
-    x new flag HAM_CURSOR_ONLY_DUPLICATES - only walk through duplicates,
-        not to the next key
-        x unittest
-
-    x unittest for flag HAM_CURSOR_SKIP_DUPLICATES
-
-    x don't allow HAM_CURSOR_SKIP_DUPLICATES|HAM_CURSOR_ONLY_DUPLICATES
-        x unittest
-
-    x ./test --file ../../testfiles/1/ext_021.tst --overwrite=1 --verbose=1
-        --> broken
-        step into insert in line 592
-
-    x cursor: move_previous must move the cursor to the last element in 
-        the duplicate list (but not if SKIP_DUPLICATES is set)
-        x unittest
-
-    x replace duplicates
-        x ham_insert(OVERWRITE) 
-            x only overwrite the first item
-            x overwrite in a linked list
-                x in-place - nothing else to do
-                x free/alloc (for resizing) - update all cursors
-            x unittests
-        x ham_cursor_overwrite
-            x overwrite just the duplicate
-                x in-place - nothing else to do
-                x free/alloc (for resizing) - update all cursors
-            x unittests
-
-    o modify cursor->insert - if the cursor is in a linked list, 
-        insert a duplicate at the requested position
-        x HAM_DUPLICATE_INSERT_AFTER
-            o unittests
-        x HAM_DUPELICATE_INSERT_LAST
-            o unittests
-        x HAM_DUPELICATE_INSERT_BEFORE (=HAM_DUPLICATE)
-            o unittests
-        x HAM_DUPELICATE_INSERT_FIRST
-            o unittests
-
-        o don't allow these flags in ham_insert, only in ham_cursor_insert
-            o unittest
-
-    o if a cursor is coupled to the very first duplicate, its dupe_id 
-        MUST be 0!
-        o check all cursor functions
-        o everything else should remain as is
 
     o modify acceptance test for --duplicate=1 (berkdb and hamster)
         o --duplicate-position="before"|"after"|"first"(default)|"last"
@@ -237,6 +158,8 @@ o be more careful when uncoupling cursors - especially when inserting
 o more ideas for unittests
     o unittests: insert NULL/TINY/SMALL blobs, then create linked lists
     o unittests: insert NULL/TINY/SMALL as duplicates
+    o unittests: insert NULL, then replace with TINY, then with SMALL, 
+        then with big, then SMALL, TINY, NULL
     o unittests: 
         o create cursor -> must be NIL
         o insert item   -> must be NIL

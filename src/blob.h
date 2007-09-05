@@ -22,6 +22,7 @@ extern "C" {
 
 #include <ham/hamsterdb.h>
 #include "page.h"
+#include "keys.h"
 
 #include "packstart.h"
 
@@ -56,16 +57,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1
      * the size of the blob, as it's seen by the user (<= real_size)
      */
     ham_u64_t _user_size;
-
-    /**
-     * the previous blob in a list of duplicates
-     */
-    ham_offset_t _previous;
-
-    /**
-     * the next blob in a list of duplicates
-     */
-    ham_offset_t _next;
 
     /**
      * additional flags
@@ -117,26 +108,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 #define blob_set_user_size(b, s)       (b)->_user_size=ham_h2db64(s)
 
 /**
- * get the previous blob in a linked list of duplicates
- */
-#define blob_get_previous(b)           (ham_db2h64((b)->_previous))
-
-/**
- * set the previous blob in a linked list of duplicates
- */
-#define blob_set_previous(b, p)        (b)->_previous=ham_h2db64(p)
-
-/**
- * get the next blob in a linked list of duplicates
- */
-#define blob_get_next(b)               (ham_db2h64((b)->_next))
-
-/**
- * set the next blob in a linked list of duplicates
- */
-#define blob_set_next(b, n)            (b)->_next=ham_h2db64(n)
-
-/**
  * get flags of a blob_t
  */
 #define blob_get_flags(b)              (ham_db2h32((b)->_flags))
@@ -181,25 +152,35 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 
 /*
  * get the record id of a duplicate entry
+ * 
+ * !!!
+ * if TINY or SMALL is set, the rid is actually a char*-pointer;
+ * in this case, we must not use endian-conversion!
  */
-#define dupe_entry_get_rid(e)           (ham_db2h_offset((e)->_rid))
+#define dupe_entry_get_rid(e)                                                 \
+         (((dupe_entry_get_flags(e)&KEY_BLOB_SIZE_TINY)                       \
+          || (dupe_entry_get_flags(e)&KEY_BLOB_SIZE_SMALL))                   \
+           ? (e)->_rid                                                        \
+           : ham_db2h_offset((e)->_rid))
 
 /*
  * set the record id of a duplicate entry
+ *
+ * !!! same problems as with get_rid():
+ * if TINY or SMALL is set, the rid is actually a char*-pointer;
+ * in this case, we must not use endian-conversion!
  */
-#define dupe_entry_set_rid(e, r)        (e)->_rid=ham_h2db_offset(r)
+#define dupe_entry_set_rid(e, r)                                              \
+         (e)->_rid=(((dupe_entry_get_flags(e)&KEY_BLOB_SIZE_TINY)             \
+                    || (dupe_entry_get_flags(e)&KEY_BLOB_SIZE_SMALL))         \
+                     ? r                                                      \
+                       : ham_h2db_offset(r))
 
 /**
  * a structure for duplicates (dupe_table_t)
  */
 typedef HAM_PACK_0 struct HAM_PACK_1 
 {
-    /**
-     * the dupe table ID - which is the absolute address/offset of this 
-     * dupe_table structure in the file
-     */
-    ham_offset_t _id;
-
     /*
      * the number of duplicates (used entries in this table)
      */
@@ -217,16 +198,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 
 } dupe_table_t;
 
-
-/*
- * get the id of a duplicate table
- */
-#define dupe_table_get_self(t)          (ham_db2h_offset((t)->_id))
-
-/*
- * set the id of a duplicate table
- */
-#define dupe_table_set_self(t, id)      (t)->_id=ham_h2db_offset(id)
 
 /*
  * get the number of duplicates
@@ -254,43 +225,13 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 #define dupe_table_get_entry(t, i)      (&(t)->_entries[i])
 
 /**
- * write a blob
- *
- * @a next is the next-pointer in a linked list of dupes
- *
- * this function loads the "next"-blob and sets the "previous"-blobid
- * to create a double-linked list
+ * allocate/create a blob
  *
  * returns the blob-id (the start address of the blob header) in @a blobid
  */
 extern ham_status_t
 blob_allocate(ham_db_t *db, ham_u8_t *data, 
-        ham_size_t size, ham_u32_t flags, ham_offset_t next, 
-        ham_offset_t *blobid);
-
-/**
- * write a blob AFTER the current blob (in a linked list of duplicates)
- */
-extern ham_status_t
-blob_allocate_after(ham_db_t *db, ham_u8_t *data, 
-        ham_size_t size, ham_u32_t flags, ham_offset_t current,
-        ham_offset_t *blobid);
-
-/**
- * write a blob as the LAST blob (in a linked list of duplicates)
- */
-extern ham_status_t
-blob_allocate_last(ham_db_t *db, ham_u8_t *data, 
-        ham_size_t size, ham_u32_t flags, ham_offset_t previous, 
-        ham_offset_t *blobid);
-
-/**
- * write a blob BEFORE the current blob (in a linked list of duplicates)
- */
-extern ham_status_t
-blob_allocate_before(ham_db_t *db, ham_u8_t *data, 
-        ham_size_t size, ham_u32_t flags, ham_offset_t current,
-        ham_offset_t *blobid);
+        ham_size_t size, ham_u32_t flags, ham_offset_t *blobid);
 
 /**
  * read a blob
@@ -324,22 +265,36 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags);
  * delete the head element of a linked blob list
  */
 extern ham_status_t
-blob_free_dupes(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags, 
+blob_free_dupe(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags, 
         ham_offset_t *newhead);
 
 /**
- * get the next duplicate item of a blob
+ * create a duplicate table and insert all entries in the duplicate
+ * (max. two entries are allowed; first entry will be at the first position,
+ * second entry will be set depending on the flags)
+ *
+ * OR, if the table already exists (i.e. table_id != 0), insert the 
+ * entry depending on the flags (only one entry is allowed in this case)
  */
 extern ham_status_t
-blob_get_next_duplicate(ham_db_t *db, ham_offset_t blobid, 
-        ham_offset_t *next);
+blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id, 
+        ham_size_t position, ham_u32_t flags, 
+        dupe_entry_t *entries, ham_size_t num_entries, 
+        ham_offset_t *rid);
 
-/**
- * get the previous duplicate item of a blob
+/*
+ * get the number of duplicates
  */
 extern ham_status_t
-blob_get_previous_duplicate(ham_db_t *db, ham_offset_t blobid, 
-        ham_offset_t *prev);
+blob_duplicate_get_count(ham_db_t *db, ham_offset_t table_id,
+        ham_size_t *count);
+
+/*
+ * get a duplicate
+ */
+extern ham_status_t 
+blob_duplicate_get(ham_db_t *db, ham_offset_t table_id,
+        ham_size_t position, dupe_entry_t *entry);
 
 
 #ifdef __cplusplus

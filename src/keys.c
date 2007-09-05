@@ -73,7 +73,7 @@ key_insert_extended(ham_db_t *db, ham_page_t *page,
     if ((st=blob_allocate(db, 
                 data_ptr +(db_get_keysize(db)-sizeof(ham_offset_t)), 
                 key->size-(db_get_keysize(db)-sizeof(ham_offset_t)), 
-                0, 0, &blobid))) {
+                0, &blobid))) {
         db_set_error(db, st);
         return (0);
     }
@@ -120,7 +120,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             key_set_ptr(key, rid);
         }
         else {
-            st=blob_allocate(db, record->data, record->size, 0, 0, &rid);
+            st=blob_allocate(db, record->data, record->size, 0, &rid);
             if (st)
                 return (db_set_error(db, st));
             key_set_ptr(key, rid);
@@ -138,7 +138,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
         if ((oldflags&KEY_BLOB_SIZE_SMALL)
                 || (oldflags&KEY_BLOB_SIZE_TINY)
                 || (oldflags&KEY_BLOB_SIZE_EMPTY)) {
-            st=blob_allocate(db, record->data, record->size, 0, 0, &rid);
+            st=blob_allocate(db, record->data, record->size, 0, &rid);
             if (st)
                 return (db_set_error(db, st));
             key_set_ptr(key, rid);
@@ -183,6 +183,8 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
     /*
      * a duplicate of an existing key? - always insert it at the end of
      * the duplicate list
+     *
+     * (or create a duplicate list, if it does not yet exist)
      */
     else {
         ham_assert((flags&HAM_DUPLICATE) 
@@ -190,15 +192,46 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
                 || (flags&HAM_DUPLICATE_INSERT_AFTER)
                 || (flags&HAM_DUPLICATE_INSERT_FIRST)
                 || (flags&HAM_DUPLICATE_INSERT_LAST), (""));
-        if ((oldflags&KEY_BLOB_SIZE_SMALL)
-                || (oldflags&KEY_BLOB_SIZE_TINY)
-                || (oldflags&KEY_BLOB_SIZE_EMPTY)) {
-            /* TODO create a duplicate list */
+        dupe_entry_t entries[2];
+        int i=0;
+        if (!(oldflags&KEY_HAS_DUPLICATES)) {
+            dupe_entry_set_flags(&entries[i], 
+                        oldflags&(KEY_BLOB_SIZE_SMALL
+                                |KEY_BLOB_SIZE_TINY
+                                |KEY_BLOB_SIZE_EMPTY));
+            dupe_entry_set_rid(&entries[i], key_get_ptr(key));
+            dupe_entry_set_flags(&entries[i], 0);
+            i++;
+        }
+        if (record->size<=sizeof(ham_offset_t)) {
+            if (record->data)
+                memcpy(&rid, record->data, record->size);
+            if (record->size==0)
+                dupe_entry_set_flags(&entries[i], KEY_BLOB_SIZE_EMPTY);
+            else if (record->size<sizeof(ham_offset_t)) {
+                char *p=(char *)&rid;
+                p[sizeof(ham_offset_t)-1]=record->size;
+                dupe_entry_set_flags(&entries[i], KEY_BLOB_SIZE_TINY);
+            }
+            else 
+                dupe_entry_set_flags(&entries[i], KEY_BLOB_SIZE_SMALL);
+            key_set_ptr(key, rid);
         }
         else {
-            /* TODO insert duplicate list and the (two?) entries */
+            st=blob_allocate(db, record->data, record->size, 0, &rid);
+            if (st)
+                return (db_set_error(db, st));
+            key_set_ptr(key, rid);
         }
+        i++;
+
+        st=blob_duplicate_insert(db, i==2 ? 0 : key_get_ptr(key), 0, flags,
+                        &entries[0], i, &rid);
+        if (st)
+            return (db_set_error(db, st));
+
         key_set_flags(key, key_get_flags(key)|KEY_HAS_DUPLICATES);
+        key_set_ptr(key, rid);
     }
 
     return (0);

@@ -86,21 +86,12 @@ public:
 
         blob_set_flags(&b, 0x13);
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)0x13, blob_get_flags(&b));
-
-        blob_set_next(&b, 0x435ull);
-        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x435ull, blob_get_next(&b));
-        blob_set_previous(&b, 0x543ull);
-        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x543ull, blob_get_previous(&b));
     }
 
     void dupeStructureTest(void)
     {
         dupe_table_t t;
         ::memset(&t, 0, sizeof(t));
-
-        dupe_table_set_self(&t, (ham_offset_t)0x12345ull);
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0x12345ull, 
-                        dupe_table_get_self(&t));
 
         dupe_table_set_count(&t, 0x789ull);
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)0x789ull, dupe_table_get_count(&t));
@@ -126,7 +117,7 @@ public:
         ::memset(&buffer, 0x12, sizeof(buffer));
 
         CPPUNIT_ASSERT_EQUAL(0, blob_allocate(m_db, buffer, 
-                                (ham_size_t)sizeof(buffer), 0, 0, &blobid));
+                                (ham_size_t)sizeof(buffer), 0, &blobid));
         CPPUNIT_ASSERT(blobid!=0);
 
         CPPUNIT_ASSERT_EQUAL(0, blob_read(m_db, blobid, 
@@ -147,7 +138,7 @@ public:
         ::memset(&buffer2, 0x15, sizeof(buffer2));
 
         CPPUNIT_ASSERT_EQUAL(0, blob_allocate(m_db, buffer, 
-                                (ham_size_t)sizeof(buffer), 0, 0, &blobid));
+                                (ham_size_t)sizeof(buffer), 0, &blobid));
         CPPUNIT_ASSERT(blobid!=0);
 
         CPPUNIT_ASSERT_EQUAL(0, blob_read(m_db, blobid, 
@@ -177,7 +168,7 @@ public:
         ::memset(&buffer2, 0x15, sizeof(buffer2));
 
         CPPUNIT_ASSERT_EQUAL(0, blob_allocate(m_db, buffer, 
-                                (ham_size_t)sizeof(buffer), 0, 0, &blobid));
+                                (ham_size_t)sizeof(buffer), 0, &blobid));
         CPPUNIT_ASSERT(blobid!=0);
 
         CPPUNIT_ASSERT_EQUAL(0, blob_read(m_db, blobid, 
@@ -207,7 +198,7 @@ public:
         ::memset(&buffer2, 0x15, sizeof(buffer2));
 
         CPPUNIT_ASSERT_EQUAL(0, blob_allocate(m_db, buffer, 
-                                (ham_size_t)sizeof(buffer), 0, 0, &blobid));
+                                (ham_size_t)sizeof(buffer), 0, &blobid));
         CPPUNIT_ASSERT(blobid!=0);
 
         CPPUNIT_ASSERT_EQUAL(0, blob_read(m_db, blobid, 
@@ -267,7 +258,7 @@ public:
             ::memset(buffer, (char)i, (i+1)*factor);
 
             CPPUNIT_ASSERT_EQUAL(0, blob_allocate(m_db, buffer, 
-                                (ham_size_t)((i+1)*factor), 0, 0, &blobid[i]));
+                                (ham_size_t)((i+1)*factor), 0, &blobid[i]));
             CPPUNIT_ASSERT(blobid[i]!=0);
 
             ::free(buffer);

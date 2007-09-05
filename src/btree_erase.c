@@ -1026,7 +1026,7 @@ my_copy_key(ham_db_t *db, int_key_t *lhs, int_key_t *rhs)
         if (st)
             return (st);
 
-        st=blob_allocate(db, record.data, record.size, 0, 0, &lhsblobid);
+        st=blob_allocate(db, record.data, record.size, 0, &lhsblobid);
         if (st)
             return (st);
         key_set_extended_rid(db, lhs, lhsblobid);
@@ -1101,7 +1101,7 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
         if (st)
             return (st);
 
-        st=blob_allocate(db, record.data, record.size, 0, 0, &lhsblobid);
+        st=blob_allocate(db, record.data, record.size, 0, &lhsblobid);
         if (st)
             return (st);
         key_set_extended_rid(db, lhs, lhsblobid);
@@ -1146,15 +1146,15 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
      * otherwise remove the full key with all duplicates
      */
     if (btree_node_is_leaf(node)) {
-        ham_bt_cursor_t *c=(ham_bt_cursor_t *)scratchpad->cursor;
 
 #if 0
+        ham_bt_cursor_t *c=(ham_bt_cursor_t *)scratchpad->cursor;
         if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES && scratchpad->cursor) {
             ham_cursor_t *cursor=db_get_cursors(db);
             ham_u64_t newid=0;
 
             ham_assert(bt_cursor_get_dupe_id(c)!=0, (""));
-            st=blob_free_dupes(db, bt_cursor_get_dupe_id(c), 0, &newid);
+            st=blob_free_dupe(db, bt_cursor_get_dupe_id(c), 0, &newid);
             if (st)
                 return (st);
 
