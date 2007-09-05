@@ -29,6 +29,8 @@ test_SOURCES    = duplicates.cpp \
                   txn.cpp \
                   memtracker.cpp
 
+test_SOURCES    = duplicates.cpp memtracker.cpp main.cpp
+
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la \
                   -lcppunit -ldl
 

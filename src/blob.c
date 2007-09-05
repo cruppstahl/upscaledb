@@ -647,7 +647,7 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
         dupe_table_set_capacity(table, new_cap);
         dupe_table_set_count(table, dupe_table_get_count(old));
         memcpy(dupe_table_get_entry(table, 0), dupe_table_get_entry(old, 0),
-                       dupe_table_get_count(old));
+                       dupe_table_get_count(old)*sizeof(dupe_entry_t));
         if (alloc_table)
             ham_mem_free(db, old);
 
@@ -731,6 +731,9 @@ blob_duplicate_get(ham_db_t *db, ham_offset_t table_id,
         return (st);
 
     table=(dupe_table_t *)rec.data;
+    if (position>=dupe_table_get_count(table))
+        return (db_set_error(db, HAM_KEY_NOT_FOUND));
+
     memcpy(entry, dupe_table_get_entry(table, position), sizeof(*entry));
     return (0);
 }

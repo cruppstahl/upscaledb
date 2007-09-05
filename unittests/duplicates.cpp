@@ -23,7 +23,12 @@
 class DupeTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(DupeTest);
+    CPPUNIT_TEST      (invalidFlagsTest);
     CPPUNIT_TEST      (insertDuplicatesTest);
+    CPPUNIT_TEST      (overwriteDuplicatesTest);
+    CPPUNIT_TEST      (overwriteVariousDuplicatesTest);
+    CPPUNIT_TEST      (insertMoveForwardTest);
+    /*
     CPPUNIT_TEST      (insertEraseTest);
     CPPUNIT_TEST      (insertTest);
     CPPUNIT_TEST      (insertSkipDuplicatesTest);
@@ -32,9 +37,9 @@ class DupeTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (reopenTest);
     CPPUNIT_TEST      (moveToLastDuplicateTest);
     CPPUNIT_TEST      (moveToPreviousDuplicateTest);
-    CPPUNIT_TEST      (invalidFlagsTest);
     CPPUNIT_TEST      (replaceTest);
     CPPUNIT_TEST      (overwriteTest);
+    */
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -76,38 +81,134 @@ public:
         ham_key_t key;
         ham_record_t rec, rec2;
         char data[16];
-        ::memset(&key, 0, sizeof(key));
-        ::memset(&rec, 0, sizeof(rec));
-        ::memset(&data, 0x13, sizeof(data));
-        rec.data=data;
-        rec.size=sizeof(data);
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
         ::memset(&rec2, 0, sizeof(rec2));
-        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec2, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(data), rec2.size);
-        CPPUNIT_ASSERT_EQUAL(0, ::memcmp(data, rec2.data, sizeof(data)));
 
-        ::memset(&data, 0x14, sizeof(data));
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
-        ::memset(&rec2, 0, sizeof(rec2));
-        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec2, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(data), rec2.size);
-        CPPUNIT_ASSERT_EQUAL(0, ::memcmp(data, rec2.data, sizeof(data)));
+        for (int i=0; i<10; i++) {
+            ::memset(&key, 0, sizeof(key));
+            ::memset(&rec, 0, sizeof(rec));
+            rec.data=data;
+            rec.size=sizeof(data);
+            ::memset(&data, i+0x15, sizeof(data));
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+        }
 
         ::memset(&data, 0x15, sizeof(data));
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
-        ::memset(&rec2, 0, sizeof(rec2));
         CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec2, 0));
         CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(data), rec2.size);
         CPPUNIT_ASSERT_EQUAL(0, ::memcmp(data, rec2.data, sizeof(data)));
+    }
 
-        ::memset(&data, 0x16, sizeof(data));
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+    void overwriteDuplicatesTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec, rec2;
+        char data[16];
+
         ::memset(&rec2, 0, sizeof(rec2));
+
+        for (int i=0; i<5; i++) {
+            ::memset(&key, 0, sizeof(key));
+            ::memset(&rec, 0, sizeof(rec));
+            rec.data=data;
+            rec.size=sizeof(data);
+            ::memset(&data, i+0x15, sizeof(data));
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+        }
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        rec.data=data;
+        rec.size=sizeof(data);
+        ::memset(&data, 0x99, sizeof(data));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+
         CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec2, 0));
         CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(data), rec2.size);
         CPPUNIT_ASSERT_EQUAL(0, ::memcmp(data, rec2.data, sizeof(data)));
+    }
+
+    void overwriteVariousDuplicatesTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec, rec2;
+        unsigned sizes[]={0, 1, 2, 3, 4, 5, 936, 5, 100, 50};
+        char *data;
+
+        ::memset(&rec2, 0, sizeof(rec2));
+
+        for (unsigned i=0; i<sizeof(sizes)/sizeof(int); i++) {
+            data=0;
+            ::memset(&key, 0, sizeof(key));
+            ::memset(&rec, 0, sizeof(rec));
+            if (sizes[i]) {
+                data=(char *)malloc(sizes[i]);
+                ::memset(data, i+0x15, sizes[i]);
+            }
+            rec.data=sizes[i] ? data : 0;
+            rec.size=sizes[i];
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+            if (sizes[i])
+                free(data);
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec2, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)0, rec2.size);
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        data=(char *)malloc(16);
+        ::memset(data, 0x99, 16);
+        rec.data=data;
+        rec.size=16;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec2, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)16, rec2.size);
+        CPPUNIT_ASSERT_EQUAL(0, ::memcmp(data, rec2.data, 16));
+        free(data);
+    }
+    
+    void insertMoveForwardTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_cursor_t *cursor;
+        char data[16];
+
+        for (int i=0; i<5; i++) {
+            ::memset(&key, 0, sizeof(key));
+            ::memset(&rec, 0, sizeof(rec));
+            rec.data=data;
+            rec.size=sizeof(data);
+            ::memset(&data, i+0x15, sizeof(data));
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+
+        for (int i=0; i<5; i++) {
+            ::memset(&key, 0, sizeof(key));
+            ::memset(&rec, 0, sizeof(rec));
+            ::memset(&data, i+0x15, sizeof(data));
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
+            CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(data), rec.size);
+            CPPUNIT_ASSERT_EQUAL(0, ::memcmp(data, rec.data, sizeof(data)));
+        }
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
     }
 
     void insertEraseTest(void)
@@ -557,7 +658,12 @@ public:
 class InMemoryDupeTest : public DupeTest
 {
     CPPUNIT_TEST_SUITE(InMemoryDupeTest);
+    CPPUNIT_TEST      (invalidFlagsTest);
     CPPUNIT_TEST      (insertDuplicatesTest);
+    CPPUNIT_TEST      (overwriteDuplicatesTest);
+    CPPUNIT_TEST      (overwriteVariousDuplicatesTest);
+    CPPUNIT_TEST      (insertMoveForwardTest);
+    /*
     CPPUNIT_TEST      (insertEraseTest);
     CPPUNIT_TEST      (insertTest);
     CPPUNIT_TEST      (insertSkipDuplicatesTest);
@@ -565,9 +671,9 @@ class InMemoryDupeTest : public DupeTest
     CPPUNIT_TEST      (coupleUncoupleTest);
     CPPUNIT_TEST      (moveToLastDuplicateTest);
     CPPUNIT_TEST      (moveToPreviousDuplicateTest);
-    CPPUNIT_TEST      (invalidFlagsTest);
     CPPUNIT_TEST      (replaceTest);
     CPPUNIT_TEST      (overwriteTest);
+    */
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -578,5 +684,5 @@ public:
 
 };
 
-//CPPUNIT_TEST_SUITE_REGISTRATION(DupeTest);
-//CPPUNIT_TEST_SUITE_REGISTRATION(InMemoryDupeTest);
+CPPUNIT_TEST_SUITE_REGISTRATION(DupeTest);
+CPPUNIT_TEST_SUITE_REGISTRATION(InMemoryDupeTest);

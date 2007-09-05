@@ -129,7 +129,8 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
     /*
      * an existing key, which is overwritten with a big record?
      */
-    else if (record->size>sizeof(ham_offset_t) 
+    else if (!(oldflags&KEY_HAS_DUPLICATES)
+            && record->size>sizeof(ham_offset_t) 
             && !(flags&HAM_DUPLICATE) 
             && !(flags&HAM_DUPLICATE_INSERT_BEFORE)
             && !(flags&HAM_DUPLICATE_INSERT_AFTER)
@@ -154,7 +155,8 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
     /*
      * an existing key which is overwritten with a small record?
      */
-    else if (record->size<=sizeof(ham_offset_t) 
+    else if (!(oldflags&KEY_HAS_DUPLICATES)
+            && record->size<=sizeof(ham_offset_t) 
             && !(flags&HAM_DUPLICATE) 
             && !(flags&HAM_DUPLICATE_INSERT_BEFORE)
             && !(flags&HAM_DUPLICATE_INSERT_AFTER)
@@ -191,7 +193,8 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
                 || (flags&HAM_DUPLICATE_INSERT_BEFORE)
                 || (flags&HAM_DUPLICATE_INSERT_AFTER)
                 || (flags&HAM_DUPLICATE_INSERT_FIRST)
-                || (flags&HAM_DUPLICATE_INSERT_LAST), (""));
+                || (flags&HAM_DUPLICATE_INSERT_LAST)
+                || (flags&HAM_OVERWRITE), (""));
         dupe_entry_t entries[2];
         int i=0;
         if (!(oldflags&KEY_HAS_DUPLICATES)) {
@@ -215,13 +218,13 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             }
             else 
                 dupe_entry_set_flags(&entries[i], KEY_BLOB_SIZE_SMALL);
-            key_set_ptr(key, rid);
         }
         else {
             st=blob_allocate(db, record->data, record->size, 0, &rid);
             if (st)
                 return (db_set_error(db, st));
-            key_set_ptr(key, rid);
+            dupe_entry_set_flags(&entries[i], 0);
+            dupe_entry_set_rid(&entries[i], rid);
         }
         i++;
 

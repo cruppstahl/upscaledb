@@ -813,14 +813,12 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
     }
 
     if (record) {
-#if 0
-        if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES
-            && bt_cursor_get_dupe_id(c)) {
-            record->_intflags=0;
-		    record->_rid=bt_cursor_get_dupe_id(c);
+        if (key_get_flags(entry)&KEY_HAS_DUPLICATES
+                && bt_cursor_get_dupe_id(c)) {
+            dupe_entry_t *e=bt_cursor_get_dupe_cache(c);
+            record->_intflags=dupe_entry_get_flags(e);
+		    record->_rid=dupe_entry_get_rid(e);
         }
-#endif
-if (0); 
         else {
             record->_intflags=key_get_flags(entry);
 		    record->_rid=key_get_ptr(entry);

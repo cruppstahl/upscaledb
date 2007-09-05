@@ -99,6 +99,18 @@ util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
     ham_bool_t noblob=HAM_FALSE;
 
     /*
+     * if this key has duplicates: fetch the duplicate entry
+     */
+    if (record->_intflags&KEY_HAS_DUPLICATES) {
+        dupe_entry_t entry;
+        ham_status_t st=blob_duplicate_get(db, record->_rid, 0, &entry);
+        if (st)
+            return (db_set_error(db, st));
+        record->_intflags=dupe_entry_get_flags(&entry);
+        record->_rid     =dupe_entry_get_rid(&entry);
+    }
+
+    /*
      * sometimes (if the record size is small enough), there's
      * no blob available, but the data is stored in the record's
      * offset.
