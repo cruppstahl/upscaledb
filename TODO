@@ -89,9 +89,9 @@ o support for duplicate keys
         x ham_insert(OVERWRITE) overwrites the first dupe
             x unittest
 
-    o enhance cursor_move for next/previous/first/last
+    x enhance cursor_move for next/previous/first/last
         x unittest for first/next
-        o unittest for last/previous
+        x unittest for last/previous
 
     o blob_duplicate_erase(dupe_table_id, position)
         (does not yet shrink the duplicate table)

@@ -256,15 +256,12 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
 
     /*
      * if duplicates are enabled: move to the end of the duplicate-list
-     *
-     * TODO
-     * fill cursor_dupe_cache
      */
     if (key_get_flags(entry)&KEY_HAS_DUPLICATES
             && !(flags&HAM_SKIP_DUPLICATES)) {
         ham_size_t count;
         ham_status_t st=blob_duplicate_get_count(db, key_get_ptr(entry),
-                                &count);
+                                &count, bt_cursor_get_dupe_cache(c));
         if (st)
             return (db_set_error(db, st));
         bt_cursor_set_dupe_id(c, count-1);
@@ -338,15 +335,12 @@ my_move_last(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
 
     /*
      * if duplicates are enabled: move to the end of the duplicate-list
-     *
-     * TODO
-     * fill cursor_dupe_cache
      */
     if (key_get_flags(entry)&KEY_HAS_DUPLICATES
             && !(flags&HAM_SKIP_DUPLICATES)) {
         ham_size_t count;
         ham_status_t st=blob_duplicate_get_count(db, key_get_ptr(entry),
-                                &count);
+                                &count, bt_cursor_get_dupe_cache(c));
         if (st)
             return (db_set_error(db, st));
         bt_cursor_set_dupe_id(c, count-1);

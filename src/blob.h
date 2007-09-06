@@ -287,7 +287,7 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
  */
 extern ham_status_t
 blob_duplicate_get_count(ham_db_t *db, ham_offset_t table_id,
-        ham_size_t *count);
+        ham_size_t *count, dupe_entry_t *entry);
 
 /*
  * get a duplicate

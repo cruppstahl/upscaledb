@@ -697,7 +697,7 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
 
 ham_status_t
 blob_duplicate_get_count(ham_db_t *db, ham_offset_t table_id,
-        ham_size_t *count)
+        ham_size_t *count, dupe_entry_t *entry)
 {
     ham_status_t st;
     ham_record_t rec;
@@ -712,6 +712,9 @@ blob_duplicate_get_count(ham_db_t *db, ham_offset_t table_id,
 
     table=(dupe_table_t *)rec.data;
     *count=dupe_table_get_count(table);
+    if (entry)
+        memcpy(entry, dupe_table_get_entry(table, (*count)-1), sizeof(*entry));
+
     return (0);
 }
 
