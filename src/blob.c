@@ -732,7 +732,7 @@ blob_duplicate_get(ham_db_t *db, ham_offset_t table_id,
 
     table=(dupe_table_t *)rec.data;
     if (position>=dupe_table_get_count(table))
-        return (db_set_error(db, HAM_KEY_NOT_FOUND));
+        return (HAM_KEY_NOT_FOUND);
 
     memcpy(entry, dupe_table_get_entry(table, position), sizeof(*entry));
     return (0);

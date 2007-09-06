@@ -30,7 +30,6 @@ my_move_first(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     ham_page_t *page;
     btree_node_t *node;
     ham_db_t *db=cursor_get_db(c);
-    int_key_t *entry;
 
     /*
      * get a NIL cursor
@@ -79,7 +78,6 @@ my_move_first(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     bt_cursor_set_coupled_index(c, 0);
     bt_cursor_set_flags(c,
             bt_cursor_get_flags(c)|BT_CURSOR_FLAG_COUPLED);
-    entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
     bt_cursor_set_dupe_id(c, 0);
 
     return (0);
@@ -122,7 +120,7 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
                         bt_cursor_get_dupe_id(c),
                         bt_cursor_get_dupe_cache(c));
         if (st && st!=HAM_KEY_NOT_FOUND)
-            return (db_set_error(db, st));
+            return (st);
         else if (!st)
             return (0);
     }
@@ -139,7 +137,6 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
      */
     if (bt_cursor_get_coupled_index(c)+1<btree_node_get_count(node)) {
         bt_cursor_set_coupled_index(c, bt_cursor_get_coupled_index(c)+1);
-        entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
         bt_cursor_set_dupe_id(c, 0);
         return (0);
     }
@@ -148,7 +145,7 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
      * otherwise uncouple the cursor and load the right sibling page
      */
     if (!btree_node_get_right(node))
-        return db_set_error(db, HAM_KEY_NOT_FOUND);
+        return (HAM_KEY_NOT_FOUND);
 
     page_remove_cursor(page, (ham_cursor_t *)c);
     bt_cursor_set_flags(c, bt_cursor_get_flags(c)&(~BT_CURSOR_FLAG_COUPLED));
@@ -166,7 +163,6 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     bt_cursor_set_coupled_index(c, 0);
     bt_cursor_set_flags(c,
             bt_cursor_get_flags(c)|BT_CURSOR_FLAG_COUPLED);
-    entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
     bt_cursor_set_dupe_id(c, 0);
 
     return (0);
@@ -211,7 +207,7 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
                         bt_cursor_get_dupe_id(c), 
                         bt_cursor_get_dupe_cache(c));
         if (st && st!=HAM_KEY_NOT_FOUND)
-            return (db_set_error(db, st));
+            return (st);
         else if (!st)
             return (0);
     }
@@ -817,11 +813,11 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
                 && bt_cursor_get_dupe_id(c)) {
             dupe_entry_t *e=bt_cursor_get_dupe_cache(c);
             record->_intflags=dupe_entry_get_flags(e);
-		    record->_rid=dupe_entry_get_rid(e);
+            record->_rid=dupe_entry_get_rid(e);
         }
         else {
             record->_intflags=key_get_flags(entry);
-		    record->_rid=key_get_ptr(entry);
+            record->_rid=key_get_ptr(entry);
         }
         st=util_read_record(db, record, 0);
         if (st) {

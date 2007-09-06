@@ -94,10 +94,13 @@ o support for duplicate keys
         o unittest for last/previous
 
     o blob_duplicate_erase(dupe_table_id, position)
-        -> returns the new rid
+        (does not yet shrink the duplicate table)
+        o ham_cursor_erase: only delete the item at the duplicate position
+            o unittest
+        o ham_erase: delete all duplicates
+            o unittest
+
     o blob_duplicate_overwrite(dupe_table_id, position, [flags, rid]);
-    o blob_duplicate_get_count(dupe_table_id);
-        o unittests!
 
     o key_set_record does not always need to dirty the page (i.e. when
         appending duplicates) -> don't set page dirty in the caller
@@ -128,6 +131,10 @@ o support for duplicate keys
     o cursor_overwrite
         -> must replace all cursors which are coupled to this duplicate!
 
+    o ham_get_duplicate_count (???)
+        x blob_duplicate_get_count(dupe_table_id);
+        o unittests
+
 
 
 ===========================
@@ -135,6 +142,7 @@ o support for duplicate keys
     o modify acceptance test for --duplicate=1 (berkdb and hamster)
         o --duplicate-position="before"|"after"|"first"(default)|"last"
         o new acceptance tests with many, many duplicates
+        o fullcheck=reverse - uses back-to-front order for fullcheck
     o update documentation
     o update tutorial
     o new sample, read all words from stdin, insert them with line information;
@@ -217,4 +225,6 @@ o record numbers should not be reused
 o record numbers don't check endianess in ham_find/ham_cursor_find:
     the key parameter coming from the user must be endian-translated!
     
+o optimization idea: could use lookaside-list for the last 5/10 
+    duplicate tables
 
