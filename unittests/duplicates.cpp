@@ -188,7 +188,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
 
-        for (unsigned i=MAX-1; i>=0; i--) {
+        for (int i=MAX-1; i>=0; i--) {
             ::memset(&key, 0, sizeof(key));
             ::memset(&rec, 0, sizeof(rec));
             if (sizes[i]) {
