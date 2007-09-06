@@ -99,12 +99,17 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
                 |KEY_BLOB_SIZE_EMPTY));
 
     /*
-     * no existing key, just create a new key?
+     * no existing key, just create a new key (but not a duplicate)?
      */
     if (!key_get_ptr(key)
-            || (oldflags&KEY_BLOB_SIZE_SMALL)
-            || (oldflags&KEY_BLOB_SIZE_TINY)
-            || (oldflags&KEY_BLOB_SIZE_EMPTY)) {
+            || ((oldflags&KEY_BLOB_SIZE_SMALL)
+                && (oldflags&KEY_BLOB_SIZE_TINY)
+                && (oldflags&KEY_BLOB_SIZE_EMPTY)
+                && !(flags&HAM_DUPLICATE)
+                && !(flags&HAM_DUPLICATE_INSERT_BEFORE)
+                && !(flags&HAM_DUPLICATE_INSERT_AFTER)
+                && !(flags&HAM_DUPLICATE_INSERT_FIRST)
+                && !(flags&HAM_DUPLICATE_INSERT_LAST))) {
         if (record->size>0 && record->size<=sizeof(ham_offset_t)) {
             if (record->data)
                 memcpy(&rid, record->data, record->size);
@@ -197,13 +202,13 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
                 || (flags&HAM_OVERWRITE), (""));
         dupe_entry_t entries[2];
         int i=0;
+        memset(entries, 0, sizeof(entries));
         if (!(oldflags&KEY_HAS_DUPLICATES)) {
             dupe_entry_set_flags(&entries[i], 
                         oldflags&(KEY_BLOB_SIZE_SMALL
                                 |KEY_BLOB_SIZE_TINY
                                 |KEY_BLOB_SIZE_EMPTY));
             dupe_entry_set_rid(&entries[i], key_get_ptr(key));
-            dupe_entry_set_flags(&entries[i], 0);
             i++;
         }
         if (record->size<=sizeof(ham_offset_t)) {
@@ -218,6 +223,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             }
             else 
                 dupe_entry_set_flags(&entries[i], KEY_BLOB_SIZE_SMALL);
+            dupe_entry_set_rid(&entries[i], rid);
         }
         else {
             st=blob_allocate(db, record->data, record->size, 0, &rid);
