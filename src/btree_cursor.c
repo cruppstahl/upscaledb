@@ -969,3 +969,27 @@ bt_cursor_erase(ham_bt_cursor_t *c, ham_u32_t flags)
     return (0);
 }
 
+ham_bool_t 
+bt_cursor_points_to(ham_bt_cursor_t *cursor, int_key_t *key)
+{
+    ham_status_t st;
+    ham_db_t *db=bt_cursor_get_db(cursor);
+
+    if (bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_UNCOUPLED) {
+        st=bt_cursor_couple(cursor);
+        if (st)
+            return (st);
+    }
+
+    if (bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_COUPLED) {
+        ham_page_t *page=bt_cursor_get_coupled_page(cursor);
+        btree_node_t *node=ham_page_get_btree_node(page);
+        int_key_t *entry=btree_node_get_key(db, node, 
+                        bt_cursor_get_coupled_index(cursor));
+
+        if (entry==key)
+            return (1);
+    }
+
+    return (0);
+}

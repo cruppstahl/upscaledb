@@ -246,3 +246,33 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
     return (0);
 }
 
+ham_status_t
+key_erase_record(ham_db_t *db, int_key_t *key, 
+                ham_size_t dupe_id, ham_u32_t flags)
+{
+    ham_status_t st;
+
+    if (!((key_get_flags(key)&KEY_BLOB_SIZE_SMALL)
+            || (key_get_flags(key)&KEY_BLOB_SIZE_TINY)
+            || (key_get_flags(key)&KEY_BLOB_SIZE_EMPTY))) {
+        if (key_get_flags(key)&KEY_HAS_DUPLICATES) {
+            /* delete one (or all) duplicates */
+            st=blob_duplicate_erase(db, key_get_ptr(key), dupe_id, flags);
+            if (st)
+                return (st);
+        }
+        else {
+            /* delete the blob */
+            st=blob_free(db, key_get_ptr(key), 0);
+            if (st)
+                return (st);
+        }
+    }
+
+    key_set_flags(key, key_get_flags(key)&~(KEY_BLOB_SIZE_SMALL
+                        | KEY_BLOB_SIZE_TINY
+                        | KEY_BLOB_SIZE_EMPTY
+                        | KEY_HAS_DUPLICATES));
+    key_set_ptr(key, 0);
+    return (0);
+}

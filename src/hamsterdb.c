@@ -169,7 +169,7 @@ my_free_cb(int event, void *param1, void *param2, void *context)
          * if we're in the leaf page, delete the blob
          */
         if (c->is_leaf)
-            (void)blob_free(c->db, key_get_ptr(key), BLOB_FREE_ALL_DUPES);
+            (void)key_erase_record(c->db, key, 0, BLOB_FREE_ALL_DUPES);
         break;
 
     default:

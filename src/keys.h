@@ -163,5 +163,14 @@ extern ham_status_t
 key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record, 
                 ham_size_t dupe_id, ham_u32_t flags);
 
+/*
+ * deletes a record
+ *
+ * flag can be BLOB_FREE_ALL_DUPES (declared in blob.h)
+ */
+extern ham_status_t
+key_erase_record(ham_db_t *db, int_key_t *key, 
+                ham_size_t dupe_id, ham_u32_t flags);
+
 
 #endif /* HAM_KEY_H__ */

@@ -584,7 +584,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
                     *(ham_offset_t *)(key_get_key(bte)+
                         (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
                 }
-                (void)blob_free(db, blobid, BLOB_FREE_ALL_DUPES);
+                (void)key_erase_record(db, bte, 0, BLOB_FREE_ALL_DUPES);
                 (void)extkey_cache_remove(c, blobid);
             }
         }

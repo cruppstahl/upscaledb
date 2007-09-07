@@ -259,15 +259,6 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
 extern ham_status_t
 blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags);
 
-#define BLOB_FREE_ALL_DUPES   1
-
-/**
- * delete the head element of a linked blob list
- */
-extern ham_status_t
-blob_free_dupe(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags, 
-        ham_offset_t *newhead);
-
 /**
  * create a duplicate table and insert all entries in the duplicate
  * (max. two entries are allowed; first entry will be at the first position,
@@ -281,6 +272,19 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
         ham_size_t position, ham_u32_t flags, 
         dupe_entry_t *entries, ham_size_t num_entries, 
         ham_offset_t *rid);
+
+/**
+ * delete a duplicate
+ *
+ * if flags == BLOB_FREE_ALL_DUPES: all duplicates and the dupe table
+ * are deleted
+ */
+extern ham_status_t
+blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
+        ham_size_t position, ham_u32_t flags);
+
+#define BLOB_FREE_ALL_DUPES   1
+
 
 /*
  * get the number of duplicates

@@ -93,12 +93,16 @@ o support for duplicate keys
         x unittest for first/next
         x unittest for last/previous
 
-    o blob_duplicate_erase(dupe_table_id, position)
-        (does not yet shrink the duplicate table)
-        o ham_cursor_erase: only delete the item at the duplicate position
+    o key_erase_record
+        x blob_duplicate_erase(dupe_table_id, position)
+            (does not yet shrink the duplicate table)
+        x ham_cursor_erase: only delete the item at the duplicate position
             o unittest
-        o ham_erase: delete all duplicates
+        x ham_erase: delete all duplicates
             o unittest
+        x both functions must update all cursors which are coupled 
+            to this item/duplicate
+            o unittests
 
     o blob_duplicate_overwrite(dupe_table_id, position, [flags, rid]);
 
@@ -227,4 +231,6 @@ o record numbers don't check endianess in ham_find/ham_cursor_find:
     
 o optimization idea: could use lookaside-list for the last 5/10 
     duplicate tables
+
+o extkey_cache: merge extkey_cache_remove() and blob_free()
 

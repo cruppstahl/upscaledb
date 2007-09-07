@@ -1146,73 +1146,49 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
      * otherwise remove the full key with all duplicates
      */
     if (btree_node_is_leaf(node)) {
-
-#if 0
-        ham_bt_cursor_t *c=(ham_bt_cursor_t *)scratchpad->cursor;
+        ham_bt_cursor_t *c=(ham_bt_cursor_t *)db_get_cursors(db);
+        ham_bt_cursor_t *cursor=(ham_bt_cursor_t *)scratchpad->cursor;
         if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES && scratchpad->cursor) {
-            ham_cursor_t *cursor=db_get_cursors(db);
-            ham_u64_t newid=0;
-
-            ham_assert(bt_cursor_get_dupe_id(c)!=0, (""));
-            st=blob_free_dupe(db, bt_cursor_get_dupe_id(c), 0, &newid);
+            st=key_erase_record(db, bte, bt_cursor_get_dupe_id(cursor), 0);
             if (st)
-                return (st);
-
-            /*
-             * fix the entry in the index tree, if the very first duplicate
-             * was deleted
-             */
-            if (bt_cursor_get_dupe_id(c)==key_get_ptr(bte)) {
-                key_set_ptr(bte, newid);
-                page_set_dirty(page, 1);
-            }
+                return (db_set_error(db, st));
 
             /*
              * make sure that no cursor is pointing to this dupe
              */
-            while (cursor) {
-                ham_bt_cursor_t *btc=(ham_bt_cursor_t *)cursor;
-                if (bt_cursor_get_dupe_id(btc)==bt_cursor_get_dupe_id(c))
-                    bt_cursor_set_to_nil(btc);
-                cursor=cursor_get_next(cursor);
+            while (c) {
+                ham_bt_cursor_t *next=(ham_bt_cursor_t *)cursor_get_next(c);
+                if (c!=cursor 
+                        && bt_cursor_get_dupe_id(c)==bt_cursor_get_dupe_id(c)) {
+                    if (bt_cursor_points_to(c, bte))
+                        bt_cursor_set_to_nil((ham_bt_cursor_t *)c);
+                }
+                c=next;
             }
-
+    
             /*
              * return immediately
              */
             return (0);
         }
-#endif
-if (0);
         else {
-            ham_cursor_t *cursor=db_get_cursors(db);
+            ham_bt_cursor_t *c=(ham_bt_cursor_t *)db_get_cursors(db);
 
-            if (!((key_get_flags(bte)&KEY_BLOB_SIZE_TINY) ||
-                (key_get_flags(bte)&KEY_BLOB_SIZE_SMALL) ||
-                (key_get_flags(bte)&KEY_BLOB_SIZE_EMPTY))) {
-                st=blob_free(db, key_get_ptr(bte), BLOB_FREE_ALL_DUPES);
-                if (st)
-                    return (st);
-            }
+            st=key_erase_record(db, bte, 0, BLOB_FREE_ALL_DUPES);
+            if (st)
+                return (db_set_error(db, st));
 
             /*
-             * make sure that no cursor is pointing to this item
+             * make sure that no cursor is pointing to this key
              */
-            while (cursor) {
-                ham_bt_cursor_t *btc=(ham_bt_cursor_t *)cursor;
-                if (bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) {
-                    if (bt_cursor_get_coupled_page(btc)==page
-                        && bt_cursor_get_coupled_index(btc)==slot) {
-                        bt_cursor_set_to_nil(btc);
-                    }
+            while (c) {
+                ham_bt_cursor_t *next=(ham_bt_cursor_t *)cursor_get_next(c);
+                if (c!=cursor
+                        && bt_cursor_get_dupe_id(c)==bt_cursor_get_dupe_id(c)) {
+                    if (bt_cursor_points_to(c, bte))
+                        bt_cursor_set_to_nil((ham_bt_cursor_t *)c);
                 }
-                else if (!bt_cursor_is_nil(btc)) {
-                    if (0==key_compare_int_to_pub(page, slot, 
-                            bt_cursor_get_uncoupled_key(btc)))
-                        bt_cursor_set_to_nil(btc);
-                }
-
-                cursor=cursor_get_next(cursor);
+                c=next;
             }
         }
     }

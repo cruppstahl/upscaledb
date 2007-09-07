@@ -258,6 +258,12 @@ bt_cursor_insert(ham_bt_cursor_t *cu, ham_key_t *key,
 ham_status_t
 bt_cursor_erase(ham_bt_cursor_t *cu, ham_u32_t flags);
 
+/**
+ * returns true if a cursor points to this key, otherwise false
+ */
+ham_bool_t 
+bt_cursor_points_to(ham_bt_cursor_t *cursor, int_key_t *key);
+
 
 #ifdef __cplusplus
 } // extern "C"

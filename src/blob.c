@@ -524,23 +524,6 @@ ham_status_t
 blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_offset_t next_id=0;
-
-    do {
-        st=blob_free_dupe(db, blobid, flags, &next_id);
-        if (st)
-            return (st);
-        blobid=next_id;
-    } while ((flags&BLOB_FREE_ALL_DUPES) && blobid);
-
-    return (0);
-}
-
-ham_status_t
-blob_free_dupe(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags, 
-        ham_offset_t *next_id)
-{
-    ham_status_t st;
     blob_t hdr;
 
     /*
@@ -693,6 +676,65 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
         ham_mem_free(db, table);
 
     return (st);
+}
+
+ham_status_t
+blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
+        ham_size_t position, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_record_t rec;
+    ham_size_t i;
+    dupe_table_t *table;
+    ham_offset_t rid;
+
+    memset(&rec, 0, sizeof(rec));
+
+    /* TODO destroys the public record pointer! */
+    st=blob_read(db, table_id, &rec, 0);
+    if (st)
+        return (st);
+
+    table=(dupe_table_t *)rec.data;
+
+    if (flags&BLOB_FREE_ALL_DUPES) {
+        for (i=0; i<dupe_table_get_count(table); i++) {
+            dupe_entry_t *e=dupe_table_get_entry(table, i);
+            if (!((dupe_entry_get_flags(e)&KEY_BLOB_SIZE_SMALL)
+                    || (dupe_entry_get_flags(e)&KEY_BLOB_SIZE_TINY)
+                    || (dupe_entry_get_flags(e)&KEY_BLOB_SIZE_EMPTY))) {
+                st=blob_free(db, dupe_entry_get_rid(e), 0);
+                if (st)
+                    return (st);
+            }
+        }
+        st=blob_free(db, table_id, 0);
+        if (st)
+            return (st);
+    }
+    else {
+        dupe_entry_t *e=dupe_table_get_entry(table, position);
+        if (!((dupe_entry_get_flags(e)&KEY_BLOB_SIZE_SMALL)
+                || (dupe_entry_get_flags(e)&KEY_BLOB_SIZE_TINY)
+                || (dupe_entry_get_flags(e)&KEY_BLOB_SIZE_EMPTY))) {
+            st=blob_free(db, dupe_entry_get_rid(e), 0);
+            if (st)
+                return (st);
+        }
+        memcpy(e, e+sizeof(dupe_entry_t), 
+            ((dupe_table_get_count(table)-position)-1)*sizeof(dupe_entry_t));
+        dupe_table_set_count(table, dupe_table_get_count(table)-1);
+
+        st=blob_overwrite(db, table_id, (ham_u8_t *)table,
+                sizeof(dupe_table_t)
+                    +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t),
+                0, &rid);
+        if (st)
+            return (st);
+        ham_assert(rid==table_id, (""));
+    }
+
+    return (0);
 }
 
 ham_status_t
