@@ -127,6 +127,7 @@ o support for duplicate keys
         o fullcheck=reverse - uses back-to-front order for fullcheck
     o update documentation
     o update tutorial
+    o extend valgrind.sh
     o new sample, read all words from stdin, insert them with line information;
         also, insert the same word in a second db, with a word-counter
         then dump all words with the line information, and how often they
