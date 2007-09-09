@@ -120,6 +120,7 @@ o support for duplicate keys
         x duplicate_insert_last (default)
         o don't allow these flags in ham_insert -> unittest!
         o cursor is placed on inserted dupe - unittest
+            -> ham_insert: set dupe_id, delete dupe_entry_t!
 
     o modify acceptance test for --duplicate=1 (berkdb and hamster)
         o new acceptance tests with many, many duplicates
