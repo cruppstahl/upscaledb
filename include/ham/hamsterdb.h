@@ -1015,9 +1015,12 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  *
  * If the key already exists in the database, error @a HAM_DUPLICATE_KEY
  * is returned. If you wish to overwrite an existing entry specify the
- * flag @a HAM_OVERWRITE. If you wish to insert a duplicate key, 
+ * flag @a HAM_OVERWRITE. If you wish to insert a duplicate key
  * specify the flag @a HAM_DUPLICATE. (Note that the database has to be 
  * created with @a HAM_ENABLE_DUPLICATES, in order to use duplicate keys.)
+ *
+ * A duplicate key is inserted after all other duplicate keys (see
+ * @a HAM_DUPLICATE_INSERT_AFTER).
  *
  * Record number databases (created with @a HAM_RECORD_NUMBER) expect 
  * either an empty @a key (with a size of 0 and data pointing to NULL),
@@ -1306,7 +1309,6 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  * a duplicate entry is inserted. (Note that the database has to be 
  * created with @a HAM_ENABLE_DUPLICATES, in order to use duplicate keys.)
  * Otherwise, @a HAM_DUPLICATE_ITEM is returned.
- * In case of an error the cursor is not modified.
  *
  * After insertion, the cursor will point to the new item. If inserting
  * the item failed, the cursor is not modified.
