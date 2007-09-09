@@ -119,8 +119,11 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
         ham_status_t st=blob_duplicate_get(db, key_get_ptr(entry),
                         bt_cursor_get_dupe_id(c),
                         bt_cursor_get_dupe_cache(c));
-        if (st && st!=HAM_KEY_NOT_FOUND)
-            return (st);
+        if (st) {
+            bt_cursor_set_dupe_id(c, bt_cursor_get_dupe_id(c)-1);
+            if (st!=HAM_KEY_NOT_FOUND)
+                return (st);
+        }
         else if (!st)
             return (0);
     }
@@ -206,8 +209,11 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
         ham_status_t st=blob_duplicate_get(db, key_get_ptr(entry),
                         bt_cursor_get_dupe_id(c), 
                         bt_cursor_get_dupe_cache(c));
-        if (st && st!=HAM_KEY_NOT_FOUND)
-            return (st);
+        if (st) {
+            bt_cursor_set_dupe_id(c, bt_cursor_get_dupe_id(c)+1);
+            if (st!=HAM_KEY_NOT_FOUND)
+                return (st);
+        }
         else if (!st)
             return (0);
     }
@@ -373,8 +379,6 @@ bt_cursor_set_to_nil(ham_bt_cursor_t *c)
         bt_cursor_set_flags(c,
                 bt_cursor_get_flags(c)&(~BT_CURSOR_FLAG_COUPLED));
     }
-
-    bt_cursor_set_dupe_id(c, 0);
 
     return (0);
 }
@@ -806,6 +810,13 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
         if (key_get_flags(entry)&KEY_HAS_DUPLICATES
                 && bt_cursor_get_dupe_id(c)) {
             dupe_entry_t *e=bt_cursor_get_dupe_cache(c);
+            if (!dupe_entry_get_rid(e)) {
+                ham_status_t st=blob_duplicate_get(db, key_get_ptr(entry),
+                        bt_cursor_get_dupe_id(c),
+                        bt_cursor_get_dupe_cache(c));
+                if (st)
+                    return (db_set_error(db, st));
+            }
             record->_intflags=dupe_entry_get_flags(e);
             record->_rid=dupe_entry_get_rid(e);
         }

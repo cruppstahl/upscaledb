@@ -1156,12 +1156,21 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
             /*
              * make sure that no cursor is pointing to this dupe
              */
-            while (c) {
+            while (c && cursor) {
                 ham_bt_cursor_t *next=(ham_bt_cursor_t *)cursor_get_next(c);
-                if (c!=cursor 
-                        && bt_cursor_get_dupe_id(c)==bt_cursor_get_dupe_id(c)) {
-                    if (bt_cursor_points_to(c, bte))
-                        bt_cursor_set_to_nil((ham_bt_cursor_t *)c);
+                if (c!=cursor) {
+                    if (bt_cursor_get_dupe_id(c)
+                            ==bt_cursor_get_dupe_id(cursor)) {
+                        if (bt_cursor_points_to(c, bte))
+                            bt_cursor_set_to_nil((ham_bt_cursor_t *)c);
+                    }
+                    else if (bt_cursor_get_dupe_id(c)>
+                            bt_cursor_get_dupe_id(cursor)) {
+                        bt_cursor_set_dupe_id(c, 
+                                bt_cursor_get_dupe_id(c)-1);
+                        memset(bt_cursor_get_dupe_cache(c), 0,
+                                sizeof(dupe_entry_t));
+                    }
                 }
                 c=next;
             }
@@ -1183,8 +1192,7 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
              */
             while (c) {
                 ham_bt_cursor_t *next=(ham_bt_cursor_t *)cursor_get_next(c);
-                if (c!=cursor
-                        && bt_cursor_get_dupe_id(c)==bt_cursor_get_dupe_id(c)) {
+                if (c!=cursor) {
                     if (bt_cursor_points_to(c, bte))
                         bt_cursor_set_to_nil((ham_bt_cursor_t *)c);
                 }

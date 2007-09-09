@@ -56,8 +56,6 @@ o support for duplicate keys
         we have memory leaks)
         x unittest
 
-===========================
-
     x remove the old crap
         x and the unittests!
 
@@ -93,58 +91,37 @@ o support for duplicate keys
         x unittest for first/next
         x unittest for last/previous
 
-    o key_erase_record
+    x key_erase_record
         x blob_duplicate_erase(dupe_table_id, position)
             (does not yet shrink the duplicate table)
-        x ham_cursor_erase: only delete the item at the duplicate position
-            o unittest
         x ham_erase: delete all duplicates
-            o unittest
+            x unittest
+        x ham_cursor_erase: only delete the item at the duplicate position
+            x unittest
         x both functions must update all cursors which are coupled 
             to this item/duplicate
-            o unittests
+            x unittests
 
-    o blob_duplicate_overwrite(dupe_table_id, position, [flags, rid]);
+    x blob_duplicate_overwrite(dupe_table_id, position, [flags, rid]);
+        x unittests
 
-    o key_set_record does not always need to dirty the page (i.e. when
-        appending duplicates) -> don't set page dirty in the caller
+    x cursor_overwrite
+        -> must replace all cursors which are coupled to this duplicate!
+        x unittest
 
-    o cursor_overwrite/cursor_insert: 
-        currently, the cursor_dupe_cache is deleted, but we don't have to
-        also, in cursor_move there are some optimizations regarding the
-        cache (search for TODO)
-        also, cursor is placed on inserted dupe - unittest
-
-    o insert
-        o new dupes are appended at the END of the list (add documentation!)
-        o change the unittests
+    x insert
+        x new dupes are appended at the END of the list (add documentation!)
+        x change the unittests
 
     o cursor_insert
         o duplicate_insert_after
         o duplicate_insert_before
         o duplicate_insert_first
-        o duplicate_insert_last (default)
+        x duplicate_insert_last (default)
         o don't allow these flags in ham_insert -> unittest!
-
-    o erase -> deletes ALL duplicates!
-        -> must NIL all cursors which are coupled to this key!
-
-    o cursor_erase
-        -> must NIL all cursors which are coupled to this duplicate!
-
-    o cursor_overwrite
-        -> must replace all cursors which are coupled to this duplicate!
-
-    o ham_get_duplicate_count (???)
-        x blob_duplicate_get_count(dupe_table_id);
-        o unittests
-
-
-
-===========================
+        o cursor is placed on inserted dupe - unittest
 
     o modify acceptance test for --duplicate=1 (berkdb and hamster)
-        o --duplicate-position="before"|"after"|"first"(default)|"last"
         o new acceptance tests with many, many duplicates
         o fullcheck=reverse - uses back-to-front order for fullcheck
     o update documentation
@@ -234,3 +211,17 @@ o optimization idea: could use lookaside-list for the last 5/10
 
 o extkey_cache: merge extkey_cache_remove() and blob_free()
 
+o key_set_record does not always need to dirty the page (i.e. when
+    appending duplicates) -> don't set page dirty in the caller
+
+o cursor_overwrite/cursor_insert: 
+    currently, the cursor_dupe_cache is deleted, but we don't have to
+    also, in cursor_move there are some optimizations regarding the
+    cache (search for TODO)
+
+o ham_get_duplicate_count (???)
+    x blob_duplicate_get_count(dupe_table_id);
+    o unittests
+
+o modify acceptance test for --duplicate=1 (berkdb and hamster)
+    o --duplicate-position="before"|"after"|"first"(default)|"last"

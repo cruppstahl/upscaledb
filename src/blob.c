@@ -613,7 +613,8 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
     /*
      * resize the table, if necessary
      */ 
-    if (dupe_table_get_count(table)+1>=dupe_table_get_capacity(table)) {
+    if (!(flags&HAM_OVERWRITE)
+            && dupe_table_get_count(table)+1>=dupe_table_get_capacity(table)) {
         dupe_table_t *old=table;
         ham_size_t new_cap=dupe_table_get_capacity(table);
 
@@ -680,7 +681,7 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
 
 ham_status_t
 blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
-        ham_size_t position, ham_u32_t flags)
+        ham_size_t position, ham_u32_t flags, ham_offset_t *new_table_id)
 {
     ham_status_t st;
     ham_record_t rec;
@@ -689,6 +690,9 @@ blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
     ham_offset_t rid;
 
     memset(&rec, 0, sizeof(rec));
+
+    if (new_table_id)
+        *new_table_id=table_id;
 
     /* TODO destroys the public record pointer! */
     st=blob_read(db, table_id, &rec, 0);
@@ -721,7 +725,7 @@ blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
             if (st)
                 return (st);
         }
-        memcpy(e, e+sizeof(dupe_entry_t), 
+        memcpy(e, e+1,
             ((dupe_table_get_count(table)-position)-1)*sizeof(dupe_entry_t));
         dupe_table_set_count(table, dupe_table_get_count(table)-1);
 
@@ -731,7 +735,8 @@ blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
                 0, &rid);
         if (st)
             return (st);
-        ham_assert(rid==table_id, (""));
+        if (new_table_id)
+            *new_table_id=rid;
     }
 
     return (0);

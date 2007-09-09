@@ -105,6 +105,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             || ((oldflags&KEY_BLOB_SIZE_SMALL)
                 && (oldflags&KEY_BLOB_SIZE_TINY)
                 && (oldflags&KEY_BLOB_SIZE_EMPTY)
+                && !(oldflags&KEY_HAS_DUPLICATES)
                 && !(flags&HAM_DUPLICATE)
                 && !(flags&HAM_DUPLICATE_INSERT_BEFORE)
                 && !(flags&HAM_DUPLICATE_INSERT_AFTER)
@@ -234,8 +235,10 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
         }
         i++;
 
-        st=blob_duplicate_insert(db, i==2 ? 0 : key_get_ptr(key), 0, flags,
-                        &entries[0], i, &rid);
+        st=blob_duplicate_insert(db, 
+                i==2 ? 0 : key_get_ptr(key), 
+                flags&HAM_OVERWRITE ? dupe_id : 0, 
+                flags, &entries[0], i, &rid);
         if (st)
             return (db_set_error(db, st));
 
@@ -251,28 +254,39 @@ key_erase_record(ham_db_t *db, int_key_t *key,
                 ham_size_t dupe_id, ham_u32_t flags)
 {
     ham_status_t st;
+    ham_offset_t rid;
 
     if (!((key_get_flags(key)&KEY_BLOB_SIZE_SMALL)
             || (key_get_flags(key)&KEY_BLOB_SIZE_TINY)
             || (key_get_flags(key)&KEY_BLOB_SIZE_EMPTY))) {
         if (key_get_flags(key)&KEY_HAS_DUPLICATES) {
             /* delete one (or all) duplicates */
-            st=blob_duplicate_erase(db, key_get_ptr(key), dupe_id, flags);
+            st=blob_duplicate_erase(db, key_get_ptr(key), dupe_id, flags,
+                    &rid);
             if (st)
                 return (st);
+            if (flags&BLOB_FREE_ALL_DUPES) {
+                key_set_flags(key, key_get_flags(key)&~KEY_HAS_DUPLICATES);
+                key_set_ptr(key, 0);
+            }
+            else
+                key_set_ptr(key, rid);
         }
         else {
             /* delete the blob */
             st=blob_free(db, key_get_ptr(key), 0);
             if (st)
                 return (st);
+            key_set_ptr(key, 0);
         }
     }
+    else {
+        key_set_flags(key, key_get_flags(key)&~(KEY_BLOB_SIZE_SMALL
+                    | KEY_BLOB_SIZE_TINY
+                    | KEY_BLOB_SIZE_EMPTY
+                    | KEY_HAS_DUPLICATES));
+        key_set_ptr(key, 0);
+    }
 
-    key_set_flags(key, key_get_flags(key)&~(KEY_BLOB_SIZE_SMALL
-                        | KEY_BLOB_SIZE_TINY
-                        | KEY_BLOB_SIZE_EMPTY
-                        | KEY_HAS_DUPLICATES));
-    key_set_ptr(key, 0);
     return (0);
 }
