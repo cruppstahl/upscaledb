@@ -168,6 +168,7 @@ o support for duplicate keys
     o modify acceptance test for --duplicate=1 (berkdb and hamster)
         o new acceptance tests with many, many duplicates
         o fullcheck=reverse - uses back-to-front order for fullcheck
+        o --duplicate-position="before"|"after"|"first"(default)|"last"
     o update documentation
     o update tutorial
     o extend valgrind.sh
@@ -235,11 +236,6 @@ o create a new repository for hamsterdb-alien for all dependencies
     o wince-x86
     o ppc32-be
 
-o currently, there's no "cheap" way to get the number of duplicates of a key
-    o is this needed? use cases?
-    o could always add the number to the very first blob; if the first
-        blob is deleted, the number moves to the next first blob
-
 o record numbers should not be reused
     currently, if the last record is deleted, and then the database is
     reopened, this record number is reused
@@ -268,5 +264,3 @@ o ham_get_duplicate_count (???)
     x blob_duplicate_get_count(dupe_table_id);
     o unittests
 
-o modify acceptance test for --duplicate=1 (berkdb and hamster)
-    o --duplicate-position="before"|"after"|"first"(default)|"last"
