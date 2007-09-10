@@ -113,6 +113,49 @@ o support for duplicate keys
         x new dupes are appended at the END of the list (add documentation!)
         x change the unittests
 
+    o tests are failing:
+        --duplicate=1 --fullcheck-find=1 --useralloc=1
+            ../../testfiles/1/100.tst
+            ../../testfiles/1/180.tst
+            ../../testfiles/1/220.tst
+            ../../testfiles/1/ext_021.tst
+            ...
+        --duplicate=1 --overwrite=1 --reopen=1
+            ../../testfiles/1/02.tst
+            ../../testfiles/1/100.tst
+            ../../testfiles/1/180.tst
+            ../../testfiles/1/220.tst
+            ../../testfiles/1/ext_021.tst
+            ...
+        --duplicate=1 --overwrite=1 --reopen=1 --useralloc=1
+            ../../testfiles/1/02.tst
+            ../../testfiles/1/100.tst
+            ../../testfiles/1/180.tst
+            ../../testfiles/1/220.tst
+            ../../testfiles/1/ext_021.tst
+            ...
+        --duplicate=1 --overwrite=1 --inmemorydb=1
+            ../../testfiles/1/02.tst
+            ../../testfiles/1/100.tst
+            ../../testfiles/1/180.tst
+            ../../testfiles/1/220.tst
+            ../../testfiles/1/ext_021.tst
+            ...
+        --duplicate=1 --use-cursors=1 [--reopen=1|--inmemorydb=1]
+            ../../testfiles/1/15.tst
+            ../../testfiles/1/17.tst
+            ../../testfiles/1/18.tst
+            ../../testfiles/1/220.tst
+            ../../testfiles/1/46.tst
+            ...
+        --duplicate=1 --overwrite=1 --use-cursors=1
+            ../../testfiles/1/02.tst
+            ../../testfiles/1/100.tst
+            ../../testfiles/1/180.tst
+            ../../testfiles/1/220.tst
+            ../../testfiles/1/ext_021.tst
+            ...
+
     o cursor_insert
         o duplicate_insert_after
         o duplicate_insert_before
