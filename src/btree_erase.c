@@ -1148,10 +1148,17 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
     if (btree_node_is_leaf(node)) {
         ham_bt_cursor_t *c=(ham_bt_cursor_t *)db_get_cursors(db);
         ham_bt_cursor_t *cursor=(ham_bt_cursor_t *)scratchpad->cursor;
-        if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES && scratchpad->cursor) {
+        if (key_get_flags(bte)&KEY_HAS_DUPLICATES && scratchpad->cursor) {
             st=key_erase_record(db, bte, bt_cursor_get_dupe_id(cursor), 0);
             if (st)
                 return (db_set_error(db, st));
+
+            /*
+             * if the last duplicate was erased (ptr and flags==0): 
+             * remove the entry completely
+             */
+            if (key_get_ptr(bte)==0 && key_get_flags(bte)==0)
+                goto free_all;
 
             /*
              * make sure that no cursor is pointing to this dupe
@@ -1181,11 +1188,14 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
             return (0);
         }
         else {
-            ham_bt_cursor_t *c=(ham_bt_cursor_t *)db_get_cursors(db);
+            ham_bt_cursor_t *c;
 
             st=key_erase_record(db, bte, 0, BLOB_FREE_ALL_DUPES);
             if (st)
                 return (db_set_error(db, st));
+
+free_all:
+            c=(ham_bt_cursor_t *)db_get_cursors(db);
 
             /*
              * make sure that no cursor is pointing to this key

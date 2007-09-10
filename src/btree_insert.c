@@ -655,9 +655,12 @@ pp(ham_page_t *page)
         else
             len=key_get_size(bte);
 
+#if 0
         for (j=0; j<len; j++)
             /*printf("%02x ", (unsigned char)(key_get_key(bte)[j]));*/
             printf("%c", key_get_key(bte)[j]);
+#endif
+        printf("%d ", *(int *)key_get_key(bte));
 
         printf("(%d bytes, 0x%x flags)  -> rid 0x%llx\n", key_get_size(bte), 
                 key_get_flags(bte), (unsigned long long)key_get_ptr(bte));

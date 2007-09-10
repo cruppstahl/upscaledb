@@ -269,8 +269,11 @@ key_erase_record(ham_db_t *db, int_key_t *key,
                 key_set_flags(key, key_get_flags(key)&~KEY_HAS_DUPLICATES);
                 key_set_ptr(key, 0);
             }
-            else
+            else {
                 key_set_ptr(key, rid);
+                if (!rid) /* rid == 0: the last duplicate was deleted */
+                    key_set_flags(key, 0);
+            }
         }
         else {
             /* delete the blob */

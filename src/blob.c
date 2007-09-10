@@ -739,6 +739,13 @@ blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
             *new_table_id=rid;
     }
 
+    /*
+     * return 0 as a rid if the table is empty
+     */
+    if (dupe_table_get_count(table)==0)
+        if (new_table_id)
+            *new_table_id=0;
+
     return (0);
 }
 
