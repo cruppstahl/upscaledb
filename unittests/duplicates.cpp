@@ -1309,11 +1309,11 @@ public:
 #if HAM_LITTLE_ENDIAN
         CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, 
                     "data/dupe-endian-test-open-database-be.hdb", 
-                    0));
+                    HAM_READ_ONLY));
 #else
         CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, 
                     "data/dupe-endian-test-open-database-le.hdb", 
-                    0));
+                    HAM_READ_ONLY));
 #endif
         /* generated with `cat ../COPYING.GPL2 | ./db5` */
 
