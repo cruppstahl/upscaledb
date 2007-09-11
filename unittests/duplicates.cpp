@@ -18,6 +18,7 @@
 #include "../src/blob.h"
 #include "../src/backend.h"
 #include "../src/btree.h"
+#include "../src/endian.h"
 #include "memtracker.h"
 
 class DupeTest : public CppUnit::TestFixture
@@ -107,6 +108,12 @@ class DupeTest : public CppUnit::TestFixture
      * sure that their positions are not modified
      */
     CPPUNIT_TEST      (overwriteMultipleCursorTest);
+
+    /*
+     * reads a big-endian database (if started on a little-endian system)
+     * or vice versa
+     */
+    CPPUNIT_TEST      (endianTest);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -1288,6 +1295,59 @@ public:
 
         ham_cursor_close(c1);
         ham_cursor_close(c2);
+    }
+
+    void endianTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_cursor_t *c;
+
+        /* close the existing database handle */
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+
+#if HAM_LITTLE_ENDIAN
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, 
+                    "data/dupe-endian-test-open-database-be.hdb", 
+                    0));
+#else
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, 
+                    "data/dupe-endian-test-open-database-le.hdb", 
+                    0));
+#endif
+        /* generated with `cat ../COPYING.GPL2 | ./db5` */
+
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"written";
+        key.size=8;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0));
+        memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_move(c, 0, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(_ham_byteswap32(125), *(unsigned int *)rec.data);
+
+        memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_move(c, 0, &rec, 
+                                HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES));
+        CPPUNIT_ASSERT_EQUAL(_ham_byteswap32(142), *(unsigned int *)rec.data);
+        
+        memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_move(c, 0, &rec, 
+                                HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES));
+        CPPUNIT_ASSERT_EQUAL(_ham_byteswap32(235), *(unsigned int *)rec.data);
+
+        memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_move(c, 0, &rec, 
+                                HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES));
+        CPPUNIT_ASSERT_EQUAL(_ham_byteswap32(331), *(unsigned int *)rec.data);
+
+        memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_cursor_move(c, 0, &rec, 
+                                HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
 
 };
