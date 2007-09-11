@@ -59,7 +59,7 @@ copy_db(ham_db_t *source, ham_db_t *dest)
 
     do {
         /* insert this element into the new database */
-        st=ham_insert(dest, 0, &key, &rec, 0);
+        st=ham_insert(dest, 0, &key, &rec, HAM_DUPLICATE);
         if (st)
             error("ham_insert", st);
 
@@ -114,7 +114,7 @@ main(int argc, char **argv)
     if (st)
         error("ham_new", st);
 
-    st=ham_create(dest, dest_path, 0, 0664);
+    st=ham_create(dest, dest_path, HAM_ENABLE_DUPLICATES, 0664);
     if (st)
         error("ham_create", st);
 
