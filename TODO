@@ -113,6 +113,9 @@ o support for duplicate keys
         x new dupes are appended at the END of the list (add documentation!)
         x change the unittests
 
+    x unittest for cursor_erase: insert 5 duplicate, delete them all 
+        with cursor_erase
+
     o tests are failing:
         --duplicate=1 --use-cursors=1 [--reopen=1|--inmemorydb=1]
           x ../../testfiles/1/15.tst
@@ -131,22 +134,31 @@ o support for duplicate keys
         o cursor is placed on inserted dupe - unittest
             -> ham_insert: set dupe_id, delete dupe_entry_t!
 
-    x unittest for cursor_erase: insert 5 duplicate, delete them all 
-        with cursor_erase
-
     o modify acceptance test for --duplicate=1 (berkdb and hamster)
+        x fullcheck-backwards=1 - uses back-to-front order for fullcheck
         o new acceptance tests with many, many duplicates
-        o fullcheck=reverse - uses back-to-front order for fullcheck
-        o --duplicate-position="before"|"after"|"first"(default)|"last"
+        o --duplicate-position="before"|"after"|"first"|"last"(default)
     o update documentation
     o update tutorial
-    o extend valgrind.sh
+    x extend valgrind.sh
     x new sample, read all words from stdin, insert them with line information;
         also, insert the same word in a second db, with a word-counter
         then dump all words with the line information, and how often they
         were used
 
     o endian-tests
+        x create unittest
+        x check-in le-database (created by the new sample)
+        o check-in be-database (created by the new sample)
+
+o webpage
+    o update web page about license change (GPL2 or GPL3)
+    o rename "Features" to "About"
+    o update roadmap
+
+o release 0.4.6
+
+--------------------------------------------------------------------------
 
 o check ham_txn_abort in btree_cursor.c
     this call never appears in hamsterdb.c, but quite frequently in the
@@ -175,14 +187,6 @@ o ham_close with flag HAM_AUTO_CLOSE_CURSORS
 
 o ham_env_close with flag HAM_AUTO_CLOSE_DATABASES
     o unittests
-
-o webpage
-    o update web page about license change (GPL2 or GPL3)
-    o rename "Features" to "About"
-    o update roadmap
-    . move to cakephp framework
-    . frontpage: resize hamster picture; remove text -> more space below
-        (for 3 colums: news, main features, articles/testimonials/link cloud)
 
 o btree_insert:421 - why is the extkey deleted??
 
@@ -234,3 +238,9 @@ o ham_get_duplicate_count (???)
 o new sample for duplicate keys
     modify sample env1, to create a 1:n relationship between orders
     and customers (or create a new sample)
+
+. webpage
+    o move to cakephp framework
+    o frontpage: resize hamster picture; remove text -> more space below
+        (for 3 colums: news, main features, articles/testimonials/link cloud)
+
