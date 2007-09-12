@@ -115,6 +115,11 @@ class DupeTest : public CppUnit::TestFixture
      */
     CPPUNIT_TEST      (endianTest);
 
+    /*
+     * insert a few duplicate items, then delete them all with a cursor
+     */
+    CPPUNIT_TEST      (eraseCursorTest);
+
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -1350,6 +1355,46 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
 
+    void eraseCursorTest(void)
+    {
+        ham_key_t key;
+        ham_cursor_t *c;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        
+        insertData(0, "1111111111");
+        insertData(0, "2222222222");
+        insertData(0, "3333333333");
+        insertData(0, "4444444444");
+        insertData(0, "5555555555");
+
+        memset(&key, 0, sizeof(key));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+
+        memset(&key, 0, sizeof(key));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+
+        memset(&key, 0, sizeof(key));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+
+        memset(&key, 0, sizeof(key));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+
+        memset(&key, 0, sizeof(key));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_find(c, &key, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+
+        memset(&key, 0, sizeof(key));
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                        ham_cursor_find(c, &key, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
+    }
+
 };
 
 class InMemoryDupeTest : public DupeTest
@@ -1378,6 +1423,7 @@ class InMemoryDupeTest : public DupeTest
     CPPUNIT_TEST      (overwriteTest);
     CPPUNIT_TEST      (overwriteCursorTest);
     CPPUNIT_TEST      (overwriteMultipleCursorTest);
+    CPPUNIT_TEST      (eraseCursorTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:

@@ -119,7 +119,7 @@ o support for duplicate keys
           x ../../testfiles/1/17.tst
           x ../../testfiles/1/18.tst
           x ../../testfiles/1/46.tst
-            ../../testfiles/1/220.tst
+          o ../../testfiles/1/220.tst
             ...
 
     o cursor_insert
@@ -131,7 +131,7 @@ o support for duplicate keys
         o cursor is placed on inserted dupe - unittest
             -> ham_insert: set dupe_id, delete dupe_entry_t!
 
-    o unittest for cursor_erase: insert 5 duplicate, delete them all 
+    x unittest for cursor_erase: insert 5 duplicate, delete them all 
         with cursor_erase
 
     o modify acceptance test for --duplicate=1 (berkdb and hamster)
@@ -141,12 +141,10 @@ o support for duplicate keys
     o update documentation
     o update tutorial
     o extend valgrind.sh
-    o new sample, read all words from stdin, insert them with line information;
+    x new sample, read all words from stdin, insert them with line information;
         also, insert the same word in a second db, with a word-counter
         then dump all words with the line information, and how often they
         were used
-    . modify sample env1, to create a 1:n relationship between orders
-        and customers (or create a new sample)
 
     o endian-tests
 
@@ -233,3 +231,6 @@ o ham_get_duplicate_count (???)
     x blob_duplicate_get_count(dupe_table_id);
     o unittests
 
+o new sample for duplicate keys
+    modify sample env1, to create a 1:n relationship between orders
+    and customers (or create a new sample)

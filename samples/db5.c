@@ -28,7 +28,7 @@ main(int argc, char **argv)
     char line[1024*4];    /* a buffer for reading lines */
     unsigned lineno=0;    /* the current line number */
 
-    /*
+	/*
      * first step: create a new hamsterdb object 
      */
     st=ham_new(&db);

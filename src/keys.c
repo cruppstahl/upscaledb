@@ -195,14 +195,14 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
      * (or create a duplicate list, if it does not yet exist)
      */
     else {
+        dupe_entry_t entries[2];
+        int i=0;
         ham_assert((flags&HAM_DUPLICATE) 
                 || (flags&HAM_DUPLICATE_INSERT_BEFORE)
                 || (flags&HAM_DUPLICATE_INSERT_AFTER)
                 || (flags&HAM_DUPLICATE_INSERT_FIRST)
                 || (flags&HAM_DUPLICATE_INSERT_LAST)
                 || (flags&HAM_OVERWRITE), (""));
-        dupe_entry_t entries[2];
-        int i=0;
         memset(entries, 0, sizeof(entries));
         if (!(oldflags&KEY_HAS_DUPLICATES)) {
             dupe_entry_set_flags(&entries[i], 

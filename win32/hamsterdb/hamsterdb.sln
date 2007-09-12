@@ -35,6 +35,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_db4", "..\sample_db4
 		{10DCD767-DFBE-4096-9258-111D4CAF09B0} = {10DCD767-DFBE-4096-9258-111D4CAF09B0}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_db5", "..\sample_db5\sample_db5\sample_db5.vcproj", "{85F4A998-1E09-4BDB-BA49-C31431260418}"
+	ProjectSection(ProjectDependencies) = postProject
+		{10DCD767-DFBE-4096-9258-111D4CAF09B0} = {10DCD767-DFBE-4096-9258-111D4CAF09B0}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -107,6 +112,13 @@ Global
 		{675E4C9D-E1D2-49AD-B7C0-261B4403F0A1}.Release|Win32.Build.0 = Release|Win32
 		{675E4C9D-E1D2-49AD-B7C0-261B4403F0A1}.Release|x64.ActiveCfg = Release|x64
 		{675E4C9D-E1D2-49AD-B7C0-261B4403F0A1}.Release|x64.Build.0 = Release|x64
+		{85F4A998-1E09-4BDB-BA49-C31431260418}.Debug|Win32.ActiveCfg = Debug|Win32
+		{85F4A998-1E09-4BDB-BA49-C31431260418}.Debug|Win32.Build.0 = Debug|Win32
+		{85F4A998-1E09-4BDB-BA49-C31431260418}.Debug|x64.ActiveCfg = Debug|x64
+		{85F4A998-1E09-4BDB-BA49-C31431260418}.Debug|x64.Build.0 = Debug|x64
+		{85F4A998-1E09-4BDB-BA49-C31431260418}.Release|Win32.ActiveCfg = Release|Win32
+		{85F4A998-1E09-4BDB-BA49-C31431260418}.Release|Win32.Build.0 = Release|Win32
+		{85F4A998-1E09-4BDB-BA49-C31431260418}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

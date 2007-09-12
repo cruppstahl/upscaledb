@@ -359,6 +359,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\unittests\duplicates.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\..\unittests\endian.cpp"
 			>
 		</File>
