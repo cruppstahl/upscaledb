@@ -646,10 +646,30 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
                         &entries[0], sizeof(entries[0]));
     }
     else {
-        /* TODO depends on flags and position! */
-        position=dupe_table_get_count(table);
+        if (flags&HAM_DUPLICATE_INSERT_BEFORE) {
+            if (position>0)
+                position--;
+        }
+        else if (flags&HAM_DUPLICATE_INSERT_AFTER) {
+            position++;
+            if (position>=dupe_table_get_count(table))
+                position=dupe_table_get_count(table);
+        }
+        else if (flags&HAM_DUPLICATE_INSERT_FIRST) {
+            position=0;
+        }
+        else { /* HAM_DUPLICATE_INSERT_LAST and default */
+            position=dupe_table_get_count(table);
+        }
+
+        if (position!=dupe_table_get_count(table))
+            memmove(dupe_table_get_entry(table, position), 
+                dupe_table_get_entry(table, position+1), 
+                sizeof(entries[0])*(dupe_table_get_count(table)-position));
+
         memcpy(dupe_table_get_entry(table, position), 
-                        &entries[0], sizeof(entries[0]));
+                &entries[0], sizeof(entries[0]));
+
         dupe_table_set_count(table, dupe_table_get_count(table)+1);
     }
 

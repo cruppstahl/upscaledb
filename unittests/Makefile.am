@@ -8,8 +8,8 @@ noinst_PROGRAMS = test
 
 INCLUDES        = -I$(top_builddir)/include
 
-test_SOURCES    = duplicates.cpp \
-			      recno.cpp \
+test_SOURCES    = recno.cpp \
+				  duplicates.cpp \
                   env.cpp \
                   hamsterdb.cpp \
                   blob.cpp \

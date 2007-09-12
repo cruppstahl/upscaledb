@@ -126,13 +126,16 @@ o support for duplicate keys
             ...
 
     o cursor_insert
-        o duplicate_insert_after
-        o duplicate_insert_before
-        o duplicate_insert_first
+        x duplicate_insert_after
+        x duplicate_insert_before
+        x duplicate_insert_first
         x duplicate_insert_last (default)
+            o unittests
         o don't allow these flags in ham_insert -> unittest!
         o cursor is placed on inserted dupe - unittest
             -> ham_insert: set dupe_id, delete dupe_entry_t!
+
+    o fix TODO items in blob.c
 
     o modify acceptance test for --duplicate=1 (berkdb and hamster)
         x fullcheck-backwards=1 - uses back-to-front order for fullcheck
