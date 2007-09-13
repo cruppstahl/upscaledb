@@ -1669,6 +1669,11 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
         return (db_set_error(db, HAM_INV_PARAMETER));
     if ((flags&HAM_DUPLICATE) && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES))
         return (db_set_error(db, HAM_INV_PARAMETER));
+    if ((flags&HAM_DUPLICATE_INSERT_AFTER)
+            || (flags&HAM_DUPLICATE_INSERT_BEFORE)
+            || (flags&HAM_DUPLICATE_INSERT_LAST)
+            || (flags&HAM_DUPLICATE_INSERT_FIRST))
+        return (db_set_error(db, HAM_INV_PARAMETER));
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 

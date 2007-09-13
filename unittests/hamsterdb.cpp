@@ -307,6 +307,14 @@ public:
                 ham_insert(m_db, 0, 0, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(m_db, 0, &key, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE_INSERT_BEFORE));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE_INSERT_AFTER));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE_INSERT_FIRST));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE_INSERT_LAST));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_insert(m_db, 0, &key, &rec, 0));
     }
