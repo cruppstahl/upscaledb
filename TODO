@@ -116,6 +116,22 @@ o support for duplicate keys
     x unittest for cursor_erase: insert 5 duplicate, delete them all 
         with cursor_erase
 
+    x cursor_insert
+        x don't allow these flags in ham_insert 
+            x unittest
+        x duplicate_insert_after
+            x unittest
+        x duplicate_insert_before
+            x unittest
+        x duplicate_insert_first
+            x unittest
+        x duplicate_insert_last (default)
+            x unittest
+        x cursor is placed on inserted dupe - unittest
+            -> ham_insert: set dupe_id, delete dupe_entry_t!
+
+    x fix TODO items in blob.c
+
     o tests are failing:
         --duplicate=1 --use-cursors=1 [--reopen=1|--inmemorydb=1]
           x ../../testfiles/1/15.tst
@@ -124,19 +140,6 @@ o support for duplicate keys
           x ../../testfiles/1/46.tst
           o ../../testfiles/1/220.tst
             ...
-
-    o cursor_insert
-        x don't allow these flags in ham_insert 
-            x unittest
-        x duplicate_insert_after
-        x duplicate_insert_before
-        x duplicate_insert_first
-        x duplicate_insert_last (default)
-            o unittests
-        o cursor is placed on inserted dupe - unittest
-            -> ham_insert: set dupe_id, delete dupe_entry_t!
-
-    o fix TODO items in blob.c
 
     o modify acceptance test for --duplicate=1 (berkdb and hamster)
         x fullcheck-backwards=1 - uses back-to-front order for fullcheck

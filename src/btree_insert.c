@@ -315,7 +315,7 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
 {
     int cmp;
     ham_status_t st;
-    ham_size_t i, count, keysize;
+    ham_size_t i, count, keysize, new_dupe_id=0;
     int_key_t *bte=0;
     btree_node_t *node;
     ham_db_t *db=page_get_owner(page);
@@ -413,7 +413,11 @@ shift_elements:
     if (btree_node_is_leaf(node)) {
         ham_status_t st;
 
-        st=key_set_record(db, bte, record, 0, flags);
+        st=key_set_record(db, bte, record, 
+                        cursor
+                            ? bt_cursor_get_dupe_id(cursor)
+                            : 0, 
+                        flags, &new_dupe_id);
         if (st)
             return (st);
     }
@@ -429,6 +433,25 @@ shift_elements:
      */
     if (key->size>db_get_keysize(db))
         key_set_flags(bte, key_get_flags(bte)|KEY_IS_EXTENDED);
+
+    /*
+     * if we have a cursor: couple it to the new key
+     *
+     * the cursor always points to NIL.
+     */
+    if (cursor) {
+        ham_assert(!(bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_UNCOUPLED), 
+                ("coupling an uncoupled cursor, but need a nil-cursor"));
+        ham_assert(!(bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_COUPLED), 
+                ("coupling a coupled cursor, but need a nil-cursor"));
+        bt_cursor_set_flags(cursor, 
+                bt_cursor_get_flags(cursor)|BT_CURSOR_FLAG_COUPLED);
+        bt_cursor_set_coupled_page(cursor, page);
+        bt_cursor_set_coupled_index(cursor, slot);
+        bt_cursor_set_dupe_id(cursor, new_dupe_id);
+        memset(bt_cursor_get_dupe_cache(cursor), 0, sizeof(dupe_entry_t));
+        page_add_cursor(page, (ham_cursor_t *)cursor);
+    }
 
     /*
      * if we've overwritten a key: no need to continue, we're done
@@ -459,21 +482,6 @@ shift_elements:
     }
 
     btree_node_set_count(node, count+1);
-
-    /*
-     * if we have a cursor: couple it to the new key
-     */
-    if (cursor) {
-        ham_assert(!(bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_UNCOUPLED), 
-                ("coupling an uncoupled cursor, but need a nil-cursor"));
-        ham_assert(!(bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_COUPLED), 
-                ("coupling a coupled cursor, but need a nil-cursor"));
-        bt_cursor_set_flags(cursor, 
-                bt_cursor_get_flags(cursor)|BT_CURSOR_FLAG_COUPLED);
-        bt_cursor_set_coupled_page(cursor, page);
-        bt_cursor_set_coupled_index(cursor, slot);
-        page_add_cursor(page, (ham_cursor_t *)cursor);
-    }
 
     return (0);
 }
@@ -655,12 +663,8 @@ pp(ham_page_t *page)
         else
             len=key_get_size(bte);
 
-#if 0
         for (j=0; j<len; j++)
-            /*printf("%02x ", (unsigned char)(key_get_key(bte)[j]));*/
-            printf("%c", key_get_key(bte)[j]);
-#endif
-        printf("%d ", *(int *)key_get_key(bte));
+            printf("%02x ", (unsigned char)(key_get_key(bte)[j]));
 
         printf("(%d bytes, 0x%x flags)  -> rid 0x%llx\n", key_get_size(bte), 
                 key_get_flags(bte), (unsigned long long)key_get_ptr(bte));

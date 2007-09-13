@@ -2273,6 +2273,15 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         return (db_set_error(db, HAM_INV_PARAMETER));
 
     /*
+     * set flag HAM_DUPLICATE if one of DUPLICATE_INSERT* is set
+     */
+    if ((flags&HAM_DUPLICATE_INSERT_AFTER)
+            || (flags&HAM_DUPLICATE_INSERT_BEFORE)
+            || (flags&HAM_DUPLICATE_INSERT_LAST)
+            || (flags&HAM_DUPLICATE_INSERT_FIRST))
+        flags|=HAM_DUPLICATE;
+
+    /*
      * record number: make sure that we have a valid key structure,
      * and lazy load the last used record number
      */

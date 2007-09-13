@@ -87,7 +87,8 @@ key_insert_extended(ham_db_t *db, ham_page_t *page,
 
 ham_status_t
 key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record, 
-                ham_size_t dupe_id, ham_u32_t flags)
+                ham_size_t position, ham_u32_t flags, 
+                ham_size_t *new_position)
 {
     ham_status_t st;
     ham_offset_t rid=0;
@@ -236,9 +237,8 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
         i++;
 
         st=blob_duplicate_insert(db, 
-                i==2 ? 0 : key_get_ptr(key), 
-                flags&HAM_OVERWRITE ? dupe_id : 0, 
-                flags, &entries[0], i, &rid);
+                i==2 ? 0 : key_get_ptr(key), position,
+                flags, &entries[0], i, &rid, new_position);
         if (st)
             return (db_set_error(db, st));
 

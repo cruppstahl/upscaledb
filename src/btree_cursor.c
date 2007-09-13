@@ -696,7 +696,7 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
      * copy the key flags, and remove all flags concerning the key size
      */
     st=key_set_record(db, key, record, 
-            bt_cursor_get_dupe_id(c), flags|HAM_OVERWRITE);
+            bt_cursor_get_dupe_id(c), flags|HAM_OVERWRITE, 0);
     if (st) {
         page_release_ref(page);
         if (local_txn)

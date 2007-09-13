@@ -161,7 +161,8 @@ key_insert_extended(ham_db_t *db, ham_page_t *page, ham_key_t *key);
  */
 extern ham_status_t
 key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record, 
-                ham_size_t dupe_id, ham_u32_t flags);
+                ham_size_t position, ham_u32_t flags,
+                ham_size_t *new_position);
 
 /*
  * deletes a record

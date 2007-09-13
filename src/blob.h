@@ -271,7 +271,7 @@ extern ham_status_t
 blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id, 
         ham_size_t position, ham_u32_t flags, 
         dupe_entry_t *entries, ham_size_t num_entries, 
-        ham_offset_t *rid);
+        ham_offset_t *rid, ham_size_t *new_position);
 
 /**
  * delete a duplicate
