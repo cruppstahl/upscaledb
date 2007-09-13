@@ -91,7 +91,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
                 ham_size_t *new_position)
 {
     ham_status_t st;
-    ham_offset_t rid=0;
+    ham_offset_t rid, ptr=key_get_ptr(key);
     ham_u32_t oldflags=key_get_flags(key);
 
     key_set_flags(key, 
@@ -102,7 +102,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
     /*
      * no existing key, just create a new key (but not a duplicate)?
      */
-    if (!key_get_ptr(key)
+    if (!ptr
             || ((oldflags&KEY_BLOB_SIZE_SMALL)
                 && (oldflags&KEY_BLOB_SIZE_TINY)
                 && (oldflags&KEY_BLOB_SIZE_EMPTY)
@@ -152,7 +152,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             key_set_ptr(key, rid);
         }
         else {
-            st=blob_overwrite(db, key_get_ptr(key), record->data, 
+            st=blob_overwrite(db, ptr, record->data, 
                     record->size, 0, &rid);
             if (st)
                 return (db_set_error(db, st));
@@ -172,7 +172,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
         if (!((oldflags&KEY_BLOB_SIZE_SMALL)
                 || (oldflags&KEY_BLOB_SIZE_TINY)
                 || (oldflags&KEY_BLOB_SIZE_EMPTY))) {
-            st=blob_free(db, key_get_ptr(key), BLOB_FREE_ALL_DUPES);
+            st=blob_free(db, ptr, BLOB_FREE_ALL_DUPES);
             if (st)
                 return (db_set_error(db, st));
         }
@@ -210,7 +210,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
                         oldflags&(KEY_BLOB_SIZE_SMALL
                                 |KEY_BLOB_SIZE_TINY
                                 |KEY_BLOB_SIZE_EMPTY));
-            dupe_entry_set_rid(&entries[i], key_get_ptr(key));
+            dupe_entry_set_rid(&entries[i], ptr);
             i++;
         }
         if (record->size<=sizeof(ham_offset_t)) {
@@ -237,7 +237,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
         i++;
 
         st=blob_duplicate_insert(db, 
-                i==2 ? 0 : key_get_ptr(key), position,
+                i==2 ? 0 : ptr, position,
                 flags, &entries[0], i, &rid, new_position);
         if (st)
             return (db_set_error(db, st));
