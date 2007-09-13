@@ -141,22 +141,25 @@ o support for duplicate keys
           o ../../testfiles/1/220.tst
             ...
 
-    o modify acceptance test for --duplicate=1 (berkdb and hamster)
-        x fullcheck-backwards=1 - uses back-to-front order for fullcheck
-        o new acceptance tests with many, many duplicates
-        o --duplicate-position="before"|"after"|"first"|"last"(default)
-    o update documentation
-    o update tutorial
+    x update documentation
     x extend valgrind.sh
     x new sample, read all words from stdin, insert them with line information;
         also, insert the same word in a second db, with a word-counter
         then dump all words with the line information, and how often they
         were used
+    o update tutorial
+    o modify acceptance test for --duplicate=1 (berkdb and hamster)
+        x fullcheck-backwards=1 - uses back-to-front order for fullcheck
+        o new acceptance tests with many, many duplicates
+        o --duplicate-position="before"|"after"|"first"|"last"(default)
+            o add to monster.sh
+            o add to valgrind.sh
 
     o endian-tests
         x create unittest
         x check-in le-database (created by the new sample)
         o check-in be-database (created by the new sample)
+        o enhance endian-create.sh and endian-check.sh
 
 o webpage
     o update web page about license change (GPL2 or GPL3)

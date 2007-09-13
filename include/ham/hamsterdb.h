@@ -508,6 +508,8 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  *       <li>@a HAM_DISABLE_VAR_KEYLEN</li> Do not allow the use of variable
  *            length keys. Inserting a key, which is larger than the
  *            B+Tree index key size, returns @a HAM_INV_KEYSIZE.
+ *       <li>@a HAM_ENABLE_DUPLICATES</li> Enable duplicate keys for this
+ *            database. By default, duplicate keys are disabled.
  *      </ul>
  *
  * @param param An array of ham_parameter_t structures. The following
@@ -992,7 +994,7 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  * buffer is large enough.
  *
  * Note that ham_find can not search for duplicate keys. If @a key has
- * multiple duplicates, only the first duplicate is found.
+ * multiple duplicates, only the first duplicate is returned.
  *
  * @param db A valid database handle.
  * @param reserved A reserved value; set to NULL.
@@ -1012,15 +1014,17 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  * Inserts a database item.
  *
  * This function inserts a key/record pair as a new database item.
- *
  * If the key already exists in the database, error @a HAM_DUPLICATE_KEY
- * is returned. If you wish to overwrite an existing entry specify the
- * flag @a HAM_OVERWRITE. If you wish to insert a duplicate key
- * specify the flag @a HAM_DUPLICATE. (Note that the database has to be 
- * created with @a HAM_ENABLE_DUPLICATES, in order to use duplicate keys.)
+ * is returned. 
  *
- * A duplicate key is inserted after all other duplicate keys (see
- * @a HAM_DUPLICATE_INSERT_AFTER).
+ * If you wish to overwrite an existing entry specify the 
+ * flag @a HAM_OVERWRITE. 
+ *
+ * If you wish to insert a duplicate key specify the flag @a HAM_DUPLICATE. 
+ * (Note that the database has to be created with @a HAM_ENABLE_DUPLICATES, 
+ * in order to use duplicate keys.)
+ * The duplicate key is inserted after all other duplicate keys (see
+ * @a HAM_DUPLICATE_INSERT_LAST).
  *
  * Record number databases (created with @a HAM_RECORD_NUMBER) expect 
  * either an empty @a key (with a size of 0 and data pointing to NULL),
@@ -1289,6 +1293,9 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  * cursor to this item. If the item could not be found, the cursor is
  * not modified.
  *
+ * Note that ham_cursor_find can not search for duplicate keys. If @a key has
+ * multiple duplicates, only the first duplicate is returned.
+ *
  * @param cursor A valid cursor handle.
  * @param key A valid key structure.
  * @param flags Flags for searching the item; unused, set to 0.
@@ -1301,16 +1308,24 @@ HAM_EXPORT ham_status_t
 ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
 
 /**
- * Inserts (or updates) a key.
+ * Inserts a database item and points the cursor to the inserted item.
  *
- * Inserts a key to the database. If the flag @a HAM_OVERWRITE
- * is specified, a pre-existing item with this key is overwritten.
- * If the flag @a HAM_DUPLICATE is specified, and the key already exists,
- * a duplicate entry is inserted. (Note that the database has to be 
- * created with @a HAM_ENABLE_DUPLICATES, in order to use duplicate keys.)
- * Otherwise, @a HAM_DUPLICATE_ITEM is returned.
+ * This function inserts a key/record pair as a new database item.
+ * If the key already exists in the database, error @a HAM_DUPLICATE_KEY
+ * is returned. 
  *
- * After insertion, the cursor will point to the new item. If inserting
+ * If you wish to overwrite an existing entry specify the 
+ * flag @a HAM_OVERWRITE. 
+ *
+ * If you wish to insert a duplicate key specify the flag @a HAM_DUPLICATE. 
+ * (Note that the database has to be created with @a HAM_ENABLE_DUPLICATES, 
+ * in order to use duplicate keys.)
+ * By default, the duplicate key is inserted after all other duplicate keys 
+ * (see @a HAM_DUPLICATE_INSERT_LAST). This behaviour can be overwritten by
+ * specifying @a HAM_DUPLICATE_INSERT_FIRST, @a HAM_DUPLICATE_INSERT_BEFORE
+ * or @a HAM_DUPLICATE_INSERT_AFTER.
+ *
+ * After inserting, the cursor will point to the new item. If inserting
  * the item failed, the cursor is not modified.
  *
  * Record number databases (created with @a HAM_RECORD_NUMBER) expect 
