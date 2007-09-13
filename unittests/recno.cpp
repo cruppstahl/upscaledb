@@ -506,6 +506,8 @@ public:
     {
         ham_key_t key;
         ham_record_t rec;
+        ham_offset_t recno=100;
+
 #if HAM_LITTLE_ENDIAN
         CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, 
                     "data/recno-endian-test-open-database-be.hdb", 0));
@@ -514,6 +516,14 @@ public:
                     "data/recno-endian-test-open-database-le.hdb", 0));
 #endif
         /* generated with `cat ../COPYING | ./db4`; has 2973 entries */
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        key.data=(void *)&recno;
+        key.size=sizeof(recno);
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_find(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, strcmp("the", (char *)rec.data));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));

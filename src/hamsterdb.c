@@ -1606,6 +1606,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
     ham_txn_t txn;
     ham_status_t st;
     ham_backend_t *be;
+    ham_offset_t recno;
 
     if (!db || !key || !record)
         return (HAM_INV_PARAMETER);
@@ -1614,6 +1615,17 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
         __prepare_db(db);
 
     db_set_error(db, 0);
+
+    /*
+     * record number: make sure that we have a valid key structure
+     */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        if (key->size!=sizeof(ham_u64_t) || !key->data)
+            return (db_set_error(db, HAM_INV_PARAMETER));
+        recno=*(ham_offset_t *)key->data;
+        recno=ham_h2db64(recno);
+        *(ham_offset_t *)key->data=recno;
+    }
 
     be=db_get_backend(db);
     if (!be)
@@ -1632,6 +1644,13 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
     if (st) {
         (void)ham_txn_abort(&txn);
         return (st);
+    }
+
+    /*
+     * record number: re-translate the number to host endian
+     */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        *(ham_offset_t *)key->data=ham_db2h64(recno);
     }
 
     return (ham_txn_commit(&txn, 0));
@@ -1788,6 +1807,7 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
     ham_txn_t txn;
     ham_status_t st;
     ham_backend_t *be;
+    ham_offset_t recno;
 
     if (!db || !key)
         return (HAM_INV_PARAMETER);
@@ -1802,6 +1822,18 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
         return (db_set_error(db, HAM_NOT_INITIALIZED));
     if (db_get_rt_flags(db)&HAM_READ_ONLY)
         return (db_set_error(db, HAM_DB_READ_ONLY));
+
+    /*
+     * record number: make sure that we have a valid key structure
+     */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        if (key->size!=sizeof(ham_u64_t) || !key->data)
+            return (db_set_error(db, HAM_INV_PARAMETER));
+        recno=*(ham_offset_t *)key->data;
+        recno=ham_h2db64(recno);
+        *(ham_offset_t *)key->data=recno;
+    }
+
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
@@ -1816,6 +1848,13 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
 #endif
         (void)ham_txn_commit(&txn, 0);
         return (st);
+    }
+
+    /*
+     * record number: re-translate the number to host endian
+     */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        *(ham_offset_t *)key->data=ham_db2h64(recno);
     }
 
     return (ham_txn_commit(&txn, 0));
@@ -2230,15 +2269,43 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 ham_status_t
 ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags)
 {
+    ham_offset_t recno;
+    ham_status_t st;
+    ham_db_t *db;
+
     if (!cursor || !key)
         return (HAM_INV_PARAMETER);
 
-    if (db_get_env(cursor_get_db(cursor)))
-        __prepare_db(cursor_get_db(cursor));
+    db=cursor_get_db(cursor);
 
-    db_set_error(cursor_get_db(cursor), 0);
+    if (db_get_env(db))
+        __prepare_db(db);
 
-    return (bt_cursor_find((ham_bt_cursor_t *)cursor, key, flags));
+    db_set_error(db, 0);
+
+    /*
+     * record number: make sure that we have a valid key structure,
+     * and translate the record number to database endian
+     */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        if (key->size!=sizeof(ham_u64_t) || !key->data)
+            return (db_set_error(db, HAM_INV_PARAMETER));
+        recno=*(ham_offset_t *)key->data;
+        recno=ham_h2db64(recno);
+        *(ham_offset_t *)key->data=recno;
+    }
+
+    st=bt_cursor_find((ham_bt_cursor_t *)cursor, key, flags);
+    if (st)
+        return (st);
+    /*
+     * record number: re-translate the number to host endian
+     */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        *(ham_offset_t *)key->data=ham_db2h64(recno);
+    }
+
+    return (0);
 }
 
 ham_status_t

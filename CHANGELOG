@@ -1,3 +1,7 @@
+Sep 13, 2007 - chris
+o fixed big endian-bugs in record number databases (ham_find, ham_erase
+    and ham_cursor_find did not convert the record number to db-endian)
+
 Aug 31, 2007 - chris
 o renamed ham_cursor_replace to ham_cursor_overwrite (to be consistent with
 	the flag HAM_OVERWRITE)
