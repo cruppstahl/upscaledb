@@ -118,6 +118,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 #define blob_set_flags(b, f)           (b)->_flags=ham_h2db32(f)
 
 
+#include "packstart.h"
+
 /**
  * a structure for a duplicate - used in a duplicate table
  */
@@ -126,7 +128,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
     /*
      * reserved, for padding
      */
-    ham_u8_t _padding;
+    ham_u8_t _padding[7];
 
     /*
      * the flags - same as KEY_TINY, KEY_SMALL, KEY_NULL
@@ -139,6 +141,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1
     ham_offset_t _rid;
 
 } dupe_entry_t;
+
+#include "packstop.h"
 
 /*
  * get the flags of a duplicate entry
@@ -176,6 +180,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1
                      ? r                                                      \
                        : ham_h2db_offset(r))
 
+#include "packstart.h"
+
 /**
  * a structure for duplicates (dupe_table_t)
  */
@@ -198,6 +204,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 
 } dupe_table_t;
 
+#include "packstop.h"
 
 /*
  * get the number of duplicates
