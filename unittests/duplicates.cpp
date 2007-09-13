@@ -120,6 +120,30 @@ class DupeTest : public CppUnit::TestFixture
      */
     CPPUNIT_TEST      (eraseCursorTest);
 
+    /*
+     * tests HAM_DUPLICATE_INSERT_LAST and makes sure that the cursor
+     * always points to the inserted duplicate
+     */
+    CPPUNIT_TEST      (insertLastTest);
+
+    /*
+     * tests HAM_DUPLICATE_INSERT_FIRST and makes sure that the cursor
+     * always points to the inserted duplicate
+     */
+    CPPUNIT_TEST      (insertFirstTest);
+
+    /*
+     * tests HAM_DUPLICATE_INSERT_AFTER and makes sure that the cursor
+     * always points to the inserted duplicate
+     */
+    CPPUNIT_TEST      (insertAfterTest);
+
+    /*
+     * tests HAM_DUPLICATE_INSERT_BEFORE and makes sure that the cursor
+     * always points to the inserted duplicate
+     */
+    CPPUNIT_TEST      (insertBeforeTest);
+
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -1395,6 +1419,158 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
 
+    void insertLastTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_cursor_t *c;
+        const char *values[]={"11111", "222222", "3333333", "44444444"};
+
+        memset(&key, 0, sizeof(key));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        
+        for (int i=0; i<4; i++) {
+            memset(&rec, 0, sizeof(rec));
+            rec.data=(void *)values[i];
+            rec.size=(ham_size_t)strlen((char *)rec.data)+1;
+            CPPUNIT_ASSERT_EQUAL(0, 
+                        ham_cursor_insert(c, &key, &rec, 
+                                HAM_DUPLICATE_INSERT_LAST));
+            memset(&rec, 0, sizeof(rec));
+            CPPUNIT_ASSERT_EQUAL(0, 
+                        ham_cursor_move(c, 0, &rec, 0));
+            CPPUNIT_ASSERT_EQUAL(strlen((char *)rec.data)+1,
+                            strlen(values[i])+1);
+            CPPUNIT_ASSERT_EQUAL(0, strcmp(values[i], (char *)rec.data));
+            CPPUNIT_ASSERT_EQUAL((ham_size_t)i, 
+                            bt_cursor_get_dupe_id((ham_bt_cursor_t *)c));
+        }
+
+        checkData(c, HAM_CURSOR_FIRST,    0, values[0]);
+        checkData(c, HAM_CURSOR_NEXT,     0, values[1]);
+        checkData(c, HAM_CURSOR_NEXT,     0, values[2]);
+        checkData(c, HAM_CURSOR_NEXT,     0, values[3]);
+        checkData(c, HAM_CURSOR_NEXT,     HAM_KEY_NOT_FOUND, values[3]);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
+    }
+
+    void insertFirstTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_cursor_t *c;
+        const char *values[]={"11111", "222222", "3333333", "44444444"};
+
+        memset(&key, 0, sizeof(key));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        
+        for (int i=0; i<4; i++) {
+            memset(&rec, 0, sizeof(rec));
+            rec.data=(void *)values[i];
+            rec.size=(ham_size_t)strlen((char *)rec.data)+1;
+            CPPUNIT_ASSERT_EQUAL(0, 
+                        ham_cursor_insert(c, &key, &rec, 
+                                HAM_DUPLICATE_INSERT_FIRST));
+            memset(&rec, 0, sizeof(rec));
+            CPPUNIT_ASSERT_EQUAL(0, 
+                        ham_cursor_move(c, 0, &rec, 0));
+            CPPUNIT_ASSERT_EQUAL(strlen((char *)rec.data)+1,
+                            strlen(values[i])+1);
+            CPPUNIT_ASSERT_EQUAL(0, strcmp(values[i], (char *)rec.data));
+            CPPUNIT_ASSERT_EQUAL((ham_size_t)0, 
+                            bt_cursor_get_dupe_id((ham_bt_cursor_t *)c));
+        }
+
+        checkData(c, HAM_CURSOR_FIRST,    0, values[3]);
+        checkData(c, HAM_CURSOR_NEXT,     0, values[2]);
+        checkData(c, HAM_CURSOR_NEXT,     0, values[1]);
+        checkData(c, HAM_CURSOR_NEXT,     0, values[0]);
+        checkData(c, HAM_CURSOR_NEXT,     HAM_KEY_NOT_FOUND, values[0]);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
+    }
+
+    void insertAfterTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_cursor_t *c;
+        const char *values[]={"11111", "222222", "3333333", "44444444"};
+
+        memset(&key, 0, sizeof(key));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        
+        for (int i=0; i<4; i++) {
+            memset(&rec, 0, sizeof(rec));
+            rec.data=(void *)values[i];
+            rec.size=(ham_size_t)strlen((char *)rec.data)+1;
+            CPPUNIT_ASSERT_EQUAL(0, 
+                        ham_cursor_insert(c, &key, &rec, 
+                                HAM_DUPLICATE_INSERT_AFTER));
+            memset(&rec, 0, sizeof(rec));
+            CPPUNIT_ASSERT_EQUAL(0, 
+                        ham_cursor_move(c, 0, &rec, 0));
+            CPPUNIT_ASSERT_EQUAL(strlen((char *)rec.data)+1,
+                            strlen(values[i])+1);
+            CPPUNIT_ASSERT_EQUAL(0, strcmp(values[i], (char *)rec.data));
+            CPPUNIT_ASSERT_EQUAL((ham_size_t)(i>=1 ? 1 : 0), 
+                            bt_cursor_get_dupe_id((ham_bt_cursor_t *)c));
+            CPPUNIT_ASSERT_EQUAL(0, 
+                        ham_cursor_move(c, 0, 0, HAM_CURSOR_FIRST));
+        }
+
+        checkData(c, HAM_CURSOR_FIRST,    0, values[0]);
+        checkData(c, HAM_CURSOR_NEXT,     0, values[3]);
+        checkData(c, HAM_CURSOR_NEXT,     0, values[2]);
+        checkData(c, HAM_CURSOR_NEXT,     0, values[1]);
+        checkData(c, HAM_CURSOR_NEXT,     HAM_KEY_NOT_FOUND, values[0]);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
+    }
+
+    void insertBeforeTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_cursor_t *c;
+        const char *values[]={"11111", "222222", "3333333", "44444444"};
+
+        memset(&key, 0, sizeof(key));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        
+        for (int i=0; i<4; i++) {
+            memset(&rec, 0, sizeof(rec));
+            rec.data=(void *)values[i];
+            rec.size=(ham_size_t)strlen((char *)rec.data)+1;
+            CPPUNIT_ASSERT_EQUAL(0, 
+                        ham_cursor_insert(c, &key, &rec, 
+                                HAM_DUPLICATE_INSERT_BEFORE));
+            memset(&rec, 0, sizeof(rec));
+            CPPUNIT_ASSERT_EQUAL(0, 
+                        ham_cursor_move(c, 0, &rec, 0));
+            CPPUNIT_ASSERT_EQUAL(strlen((char *)rec.data)+1,
+                            strlen(values[i])+1);
+            CPPUNIT_ASSERT_EQUAL(0, strcmp(values[i], (char *)rec.data));
+            CPPUNIT_ASSERT_EQUAL((ham_size_t)(i<=1 ? 0 : i-1),
+                            bt_cursor_get_dupe_id((ham_bt_cursor_t *)c));
+            CPPUNIT_ASSERT_EQUAL(0, 
+                        ham_cursor_move(c, 0, 0, HAM_CURSOR_LAST));
+        }
+
+        checkData(c, HAM_CURSOR_FIRST,    0, values[1]);
+        checkData(c, HAM_CURSOR_NEXT,     0, values[2]);
+        checkData(c, HAM_CURSOR_NEXT,     0, values[3]);
+        checkData(c, HAM_CURSOR_NEXT,     0, values[0]);
+        checkData(c, HAM_CURSOR_NEXT,     HAM_KEY_NOT_FOUND, values[0]);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
+    }
+
 };
 
 class InMemoryDupeTest : public DupeTest
@@ -1424,6 +1600,10 @@ class InMemoryDupeTest : public DupeTest
     CPPUNIT_TEST      (overwriteCursorTest);
     CPPUNIT_TEST      (overwriteMultipleCursorTest);
     CPPUNIT_TEST      (eraseCursorTest);
+    CPPUNIT_TEST      (insertLastTest);
+    CPPUNIT_TEST      (insertFirstTest);
+    CPPUNIT_TEST      (insertAfterTest);
+    CPPUNIT_TEST      (insertBeforeTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
