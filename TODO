@@ -150,6 +150,8 @@ o support for duplicate keys
         --duplicate=1 --use-cursors=1 [--reopen=1|--inmemorydb=1]
           o ../../testfiles/1/220.tst
 
+    o unittests have memory leak
+
     o endian-tests
         x create unittest
         x check-in le-database (created by the new sample)
