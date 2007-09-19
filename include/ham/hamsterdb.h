@@ -510,6 +510,13 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  *            B+Tree index key size, returns @a HAM_INV_KEYSIZE.
  *       <li>@a HAM_ENABLE_DUPLICATES</li> Enable duplicate keys for this
  *            database. By default, duplicate keys are disabled.
+ *       <li>@a HAM_RECORD_NUMBER</li> Creates an "auto-increment" database.
+ *            Record number databases are automatically assigned an 
+ *            incrementing key value. If key->data is not NULL
+ *            (and key->flags is @a HAM_KEY_USER_ALLOC and key->size is 8),
+ *            the value of the current key is returned in @a key (a 
+ *            host-endian 64bit number of type ham_u64_t). Otherwise,
+ *            key->data must be NULL and key->size must be 0.
  *      </ul>
  *
  * @param param An array of ham_parameter_t structures. The following
@@ -902,7 +909,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
 /** Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex */
 #define HAM_LOCK_EXCLUSIVE           0x00001000
 
-/** Flag for @a ham_create, @a ham_create_ex */
+/** Flag for @a ham_create, @a ham_create_ex, @a ham_env_create_db */
 #define HAM_RECORD_NUMBER            0x00002000
 
 /** Flag for @a ham_create, @a ham_create_ex */
