@@ -382,6 +382,9 @@ bt_cursor_set_to_nil(ham_bt_cursor_t *c)
                 bt_cursor_get_flags(c)&(~BT_CURSOR_FLAG_COUPLED));
     }
 
+    bt_cursor_set_dupe_id(c, 0);
+    memset(bt_cursor_get_dupe_cache(c), 0, sizeof(dupe_entry_t));
+
     return (0);
 }
 
