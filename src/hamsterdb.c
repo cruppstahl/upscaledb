@@ -1704,6 +1704,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
         if (flags&HAM_OVERWRITE) {
             if (key->size!=sizeof(ham_u64_t) || !key->data)
                 return (HAM_INV_PARAMETER);
+            recno=*(ham_u64_t *)key->data;
         }
         else {
             /*
@@ -2356,6 +2357,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         if (flags&HAM_OVERWRITE) {
             if (key->size!=sizeof(ham_u64_t) || !key->data)
                 return (HAM_INV_PARAMETER);
+            recno=*(ham_u64_t *)key->data;
         }
         else {
             /*
