@@ -149,6 +149,7 @@ o support for duplicate keys
     o tests are failing:
         --duplicate=1 --use-cursors=1 [--reopen=1|--inmemorydb=1]
           o ../../testfiles/1/201.tst --> file becomes huge!
+          o ../../testfiles/1/202.tst
           o ../../testfiles/1/220.tst
 
     o unittests have memory leak
