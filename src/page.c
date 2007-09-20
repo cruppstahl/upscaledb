@@ -236,7 +236,7 @@ page_alloc(ham_page_t *page, ham_size_t size)
 
 	st=dev->alloc_page(dev, page, size);
     if (st)
-        return (st);
+        return (db_set_error(db, st));
 
     return (HAM_SUCCESS);
 }
@@ -244,10 +244,14 @@ page_alloc(ham_page_t *page, ham_size_t size)
 ham_status_t
 page_fetch(ham_page_t *page, ham_size_t size)
 {
+    ham_status_t st;
     ham_db_t *db=page_get_owner(page);
     ham_device_t *dev=db_get_device(db);
 
-    return (dev->read_page(dev, page, size));
+    st=dev->read_page(dev, page, size);
+    if (st)
+        return (db_set_error(db, st));
+    return (0);
 }
 
 ham_status_t
