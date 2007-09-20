@@ -148,6 +148,7 @@ o support for duplicate keys
 
     o tests are failing:
         --duplicate=1 --use-cursors=1 [--reopen=1|--inmemorydb=1]
+          o ../../testfiles/1/201.tst --> file becomes huge!
           o ../../testfiles/1/220.tst
 
     o unittests have memory leak
@@ -168,8 +169,9 @@ o recno on big endian
         is ok
     x ham_find/ham_erase/ham_cursor_find: translate key to db-endian
         (currently, unittest fails on big endian)
-    o other unittests are failing
+    x other unittests are failing
     o check acceptance tests!
+    o enhance endian-create.sh and endian-check.sh
 
 o release 0.4.6
 
@@ -261,4 +263,10 @@ o new sample for duplicate keys
 
 o btree_node_search_by_key uses linear search, no binary search
     -> optimize this!!
+
+o new option HAM_DISABLE_AUTO_REORG -> adds empty chunks to freelist, but
+    never uses freelist for allocation
+
+o new option HAM_DISABLE_FREELIST -> completely disables the freelist (needs
+    cmd line reorg-tool!)
 
