@@ -29,8 +29,6 @@ test_SOURCES    = recno.cpp \
                   txn.cpp \
                   memtracker.cpp
 
-test_SOURCES    = recno.cpp memtracker.cpp main.cpp
-
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la \
                   -lcppunit -ldl
 
