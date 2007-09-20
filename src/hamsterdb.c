@@ -1756,14 +1756,14 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
 
                 key->data=db_get_key_allocdata(db);
             }
-
-            /*
-             * store it in db endian
-             */
-            recno=ham_h2db64(recno);
-            memcpy(key->data, &recno, sizeof(ham_u64_t));
-            key->size=sizeof(ham_u64_t);
         }
+
+        /*
+         * store it in db endian
+         */
+        recno=ham_h2db64(recno);
+        memcpy(key->data, &recno, sizeof(ham_u64_t));
+        key->size=sizeof(ham_u64_t);
     }
 
     /*
@@ -2401,14 +2401,14 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     
                 key->data=db_get_key_allocdata(db);
             }
-    
-            /*
-             * store it in db endian
-             */
-            recno=ham_h2db64(recno);
-            memcpy(key->data, &recno, sizeof(ham_u64_t));
-            key->size=sizeof(ham_u64_t);
         }
+
+        /*
+         * store it in db endian
+         */
+        recno=ham_h2db64(recno);
+        memcpy(key->data, &recno, sizeof(ham_u64_t));
+        key->size=sizeof(ham_u64_t);
     }
 
     st=bt_cursor_insert((ham_bt_cursor_t *)cursor, key, record, flags);
