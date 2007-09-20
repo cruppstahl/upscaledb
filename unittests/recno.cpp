@@ -541,7 +541,7 @@ public:
     {
         ham_key_t key;
         ham_record_t rec;
-        ham_u64_t recno;
+        ham_u64_t recno, value;
 
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
@@ -554,16 +554,16 @@ public:
         key.size=sizeof(recno);
         CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
 
-        recno=0x13ull;
+        value=0x13ull;
         memset(&rec, 0, sizeof(rec));
-        rec.data=&recno;
-        rec.size=sizeof(recno);
+        rec.data=&value;
+        rec.size=sizeof(value);
         CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
 
         memset(&rec, 0, sizeof(rec));
         CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
 
-        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x13ull, *(ham_u64_t *)rec.data);
+        CPPUNIT_ASSERT_EQUAL(value, *(ham_u64_t *)rec.data);
 
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
     }

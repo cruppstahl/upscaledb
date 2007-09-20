@@ -98,6 +98,9 @@ o fixed a bug which disabled HAM_DISABLE_MMAP; even if the flag was
 Jun 12, 2007 - chris ---------------------------------------------------
                       release of hamsterdb-0.4.3
 
+Jun 11, 2007 - chris
+o unittests work now on big-endian machines
+
 Jun 10, 2007 - chris
 o fixed a small memory leak (in-memory db only, when using extended keys
     and a lot of SMOs occur, because many keys are deleted)

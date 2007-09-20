@@ -70,7 +70,8 @@ txn_get_page(ham_txn_t *txn, ham_offset_t address)
     start=p;
 
     while (p) {
-        if (page_get_self(p)==address)
+        ham_offset_t o=page_get_self(p);
+        if (o==address)
             return (p);
         p=page_get_next(p, PAGE_LIST_TXN);
         ham_assert(start!=p, ("circular reference in page-list"));

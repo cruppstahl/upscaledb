@@ -1792,11 +1792,12 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
      * record numbers: return key in host endian! and store the incremented
      * record number
      */
-    if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         recno=ham_db2h64(recno);
         memcpy(key->data, &recno, sizeof(ham_u64_t));
         key->size=sizeof(ham_u64_t);
-        db_set_recno(db, recno);
+        if (!(flags&HAM_OVERWRITE))
+            db_set_recno(db, recno);
     }
 
     return (ham_txn_commit(&txn, 0));
@@ -2430,11 +2431,12 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
      * record numbers: return key in host endian! and store the incremented
      * record number
      */
-    if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         recno=ham_db2h64(recno);
         memcpy(key->data, &recno, sizeof(ham_u64_t));
         key->size=sizeof(ham_u64_t);
-        db_set_recno(db, recno);
+        if (!(flags&HAM_OVERWRITE))
+            db_set_recno(db, recno);
     }
 
     return (0);
