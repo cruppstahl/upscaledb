@@ -141,13 +141,9 @@ o support for duplicate keys
     o update tutorial
     o modify acceptance test for --duplicate=1 (berkdb and hamster)
         x fullcheck-backwards=1 - uses back-to-front order for fullcheck
-        o new acceptance tests with many, many duplicates
-        o --duplicate-position="before"|"after"|"first"|"last"(default)
-            o add to monster.sh
-            o add to valgrind.sh
 
     o tests are failing:
-        --duplicate=1 --use-cursors=1 [--reopen=1|--inmemorydb=1]
+        --duplicate=1 [--use-cursors=1]
           o ../../testfiles/1/201.tst --> file becomes huge! recursive 
                 freelist access??
           o ../../testfiles/1/202.tst
@@ -271,4 +267,10 @@ o new option HAM_DISABLE_AUTO_REORG -> adds empty chunks to freelist, but
 
 o new option HAM_DISABLE_FREELIST -> completely disables the freelist (needs
     cmd line reorg-tool!)
+
+o modify acceptance test for --duplicate=1 (berkdb and hamster)
+    o new acceptance tests with many, many duplicates
+    o --duplicate-position="before"|"after"|"first"|"last"(default)
+        o add to monster.sh
+        o add to valgrind.sh
 
