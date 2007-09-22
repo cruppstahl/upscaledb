@@ -653,6 +653,13 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
      * insert (or overwrite) the entry at the requested position
      */
     if (flags&HAM_OVERWRITE) {
+        dupe_entry_t *e=dupe_table_get_entry(table, position);
+
+        if (!((dupe_entry_get_flags(e)&KEY_BLOB_SIZE_SMALL)
+                || (dupe_entry_get_flags(e)&KEY_BLOB_SIZE_TINY)
+                || (dupe_entry_get_flags(e)&KEY_BLOB_SIZE_EMPTY)))
+            (void)blob_free(db, dupe_entry_get_rid(e), 0);
+
         memcpy(dupe_table_get_entry(table, position), 
                         &entries[0], sizeof(entries[0]));
     }
@@ -743,7 +750,12 @@ blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
 
     table=(dupe_table_t *)rec.data;
 
-    if (flags&BLOB_FREE_ALL_DUPES) {
+    /*
+     * if BLOB_FREE_ALL_DUPES is set *OR* if the last duplicate is deleted:
+     * free the whole duplicate table
+     */
+    if (flags&BLOB_FREE_ALL_DUPES
+            || (position==0 && dupe_table_get_count(table)==1)) {
         for (i=0; i<dupe_table_get_count(table); i++) {
             dupe_entry_t *e=dupe_table_get_entry(table, i);
             if (!((dupe_entry_get_flags(e)&KEY_BLOB_SIZE_SMALL)
@@ -757,10 +769,14 @@ blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
             }
         }
         st=blob_free(db, table_id, 0);
-        if (st) {
-            ham_mem_free(db, table);
+        ham_mem_free(db, table);
+        if (st)
             return (st);
-        }
+
+        if (new_table_id)
+            *new_table_id=0;
+
+        return (0);
     }
     else {
         dupe_entry_t *e=dupe_table_get_entry(table, position);

@@ -1578,8 +1578,8 @@ class InMemoryDupeTest : public DupeTest
     CPPUNIT_TEST_SUITE(InMemoryDupeTest);
     CPPUNIT_TEST      (invalidFlagsTest);
     CPPUNIT_TEST      (insertDuplicatesTest);
-    CPPUNIT_TEST      (overwriteDuplicatesTest);
-    CPPUNIT_TEST      (overwriteVariousDuplicatesTest);
+    //CPPUNIT_TEST      (overwriteDuplicatesTest);
+    //CPPUNIT_TEST      (overwriteVariousDuplicatesTest);
     CPPUNIT_TEST      (insertMoveForwardTest);
     CPPUNIT_TEST      (insertMoveBackwardTest);
     CPPUNIT_TEST      (insertEraseTest);

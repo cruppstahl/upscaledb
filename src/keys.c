@@ -91,7 +91,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
                 ham_size_t *new_position)
 {
     ham_status_t st;
-    ham_offset_t rid, ptr=key_get_ptr(key);
+    ham_offset_t rid=0, ptr=key_get_ptr(key);
     ham_u32_t oldflags=key_get_flags(key);
 
     key_set_flags(key, 

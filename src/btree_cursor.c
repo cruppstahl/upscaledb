@@ -816,7 +816,7 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
                 && bt_cursor_get_dupe_id(c)) {
             dupe_entry_t *e=bt_cursor_get_dupe_cache(c);
             if (!dupe_entry_get_rid(e)) {
-                ham_status_t st=blob_duplicate_get(db, key_get_ptr(entry),
+                st=blob_duplicate_get(db, key_get_ptr(entry),
                         bt_cursor_get_dupe_id(c),
                         bt_cursor_get_dupe_cache(c));
                 if (st)
@@ -892,6 +892,7 @@ bt_cursor_insert(ham_bt_cursor_t *c, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
+    ham_size_t dupe_id;
     ham_db_t *db=bt_cursor_get_db(c);
     ham_btree_t *be=(ham_btree_t *)db_get_backend(db);
     ham_txn_t txn;
@@ -912,13 +913,20 @@ bt_cursor_insert(ham_bt_cursor_t *c, ham_key_t *key,
 
     /*
      * set the cursor to nil
+     *
+     * if a duplicate is inserted: don't forget the current dupe-id!
      */
+    dupe_id=bt_cursor_get_dupe_id(c);
+
     st=bt_cursor_set_to_nil(c);
     if (st) {
         if (local_txn)
             (void)ham_txn_abort(&txn);
         return (st);
     }
+
+    if (flags&HAM_DUPLICATE)
+        bt_cursor_set_dupe_id(c, dupe_id);
 
     /*
      * then call the btree insert function

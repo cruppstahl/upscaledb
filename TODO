@@ -138,9 +138,10 @@ o support for duplicate keys
         also, insert the same word in a second db, with a word-counter
         then dump all words with the line information, and how often they
         were used
-    o update tutorial
-    o modify acceptance test for --duplicate=1 (berkdb and hamster)
+    x modify acceptance test for --duplicate=1 (berkdb and hamster)
         x fullcheck-backwards=1 - uses back-to-front order for fullcheck
+
+    x unittests have memory leak
 
     o tests are failing:
         --duplicate=1 [--use-cursors=1]
@@ -149,13 +150,13 @@ o support for duplicate keys
           o ../../testfiles/1/202.tst
           o ../../testfiles/1/220.tst
 
-    o unittests have memory leak
-
     o endian-tests
         x create unittest
         x check-in le-database (created by the new sample)
         x check-in be-database (created by the new sample)
         o enhance endian-create.sh and endian-check.sh
+
+    o update tutorial
 
 o webpage
     o update web page about license change (GPL2 or GPL3)
