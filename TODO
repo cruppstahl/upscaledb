@@ -143,27 +143,10 @@ o support for duplicate keys
 
     x unittests have memory leak
 
-    o tests are failing:
-        --duplicate=1
-          x ../../testfiles/1/201.tst
-          x ../../testfiles/1/202.tst
-        --duplicate=1 --use-cursors=1
-          o ../../testfiles/1/100.tst - status mismatch
-          o ../../testfiles/1/202.tst - status mismatch
-          o ../../testfiles/1/220.tst - status mismatch
-
-    o endian-tests
-        x create unittest
-        x check-in le-database (created by the new sample)
-        x check-in be-database (created by the new sample)
-        o enhance endian-create.sh and endian-check.sh
-
-    o update tutorial
-
-o webpage
-    o update web page about license change (GPL2 or GPL3)
-    o rename "Features" to "About"
-    o update roadmap
+x webpage
+    x update web page about license change (GPL2 or GPL3)
+    x rename "Features" to "About"
+    x update roadmap
 
 o recno on big endian
     x ham_find/ham_erase/ham_cursor_find: make sure that the parameter size 
@@ -174,9 +157,26 @@ o recno on big endian
     o check acceptance tests!
     o enhance endian-create.sh and endian-check.sh
 
+o duplicate items on big endian
+    x create unittest
+    x check-in le-database (created by the new sample)
+    x check-in be-database (created by the new sample)
+    o enhance endian-create.sh and endian-check.sh
+
 o release 0.4.6
 
 --------------------------------------------------------------------------
+
+o update tutorial
+
+o tests are failing:
+    --duplicate=1
+      x ../../testfiles/1/201.tst
+      x ../../testfiles/1/202.tst
+    --duplicate=1 --use-cursors=1
+      o ../../testfiles/1/100.tst - status mismatch
+      o ../../testfiles/1/202.tst - status mismatch
+      o ../../testfiles/1/220.tst - status mismatch
 
 o check ham_txn_abort in btree_cursor.c
     this call never appears in hamsterdb.c, but quite frequently in the
