@@ -144,11 +144,13 @@ o support for duplicate keys
     x unittests have memory leak
 
     o tests are failing:
-        --duplicate=1 [--use-cursors=1]
-          o ../../testfiles/1/201.tst --> file becomes huge! recursive 
-                freelist access??
-          o ../../testfiles/1/202.tst
-          o ../../testfiles/1/220.tst
+        --duplicate=1
+          x ../../testfiles/1/201.tst
+          x ../../testfiles/1/202.tst
+        --duplicate=1 --use-cursors=1
+          o ../../testfiles/1/100.tst - status mismatch
+          o ../../testfiles/1/202.tst - status mismatch
+          o ../../testfiles/1/220.tst - status mismatch
 
     o endian-tests
         x create unittest
@@ -274,4 +276,13 @@ o modify acceptance test for --duplicate=1 (berkdb and hamster)
     o --duplicate-position="before"|"after"|"first"|"last"(default)
         o add to monster.sh
         o add to valgrind.sh
+
+o recno-unittest always overwrites the existing database; change the
+    test so the original database is copied, and not modified
+    o also test ham_find
+    o also test ham_cursor_find
+    o also test ham_erase
+    o also test ham_cursor_erase
+    o also test ham_insert
+    o also test ham_cursor_insert
 
