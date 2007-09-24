@@ -1,5 +1,5 @@
 
-hamsterdb 0.4.5                                Tue Aug 07 21:12:01 UTC 2007
+hamsterdb 0.4.6                                Mon Sep 24 16:57:32 UTC 2007
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -14,44 +14,47 @@ variable length keys and can create in-memory databases.
 
 Although no bugs are known, this release is marked "unstable", because the
 database file format is still subject to change. The first stable release 
-will be version 1.0. 
+will be version 1.0. See below for known issues of this release.
 
 2. Changes
 
 New Features
-* "Record numbers": hamsterdb now supports record number database
-    A new sample (db4.c) demonstrates the new functions, and the
-    tutorial was updated.
+* "Duplicate items": hamsterdb now supports duplicate keys.
+    A new sample (db5.c) demonstrates the new functions.
 
 Bugfixes
-* The flag HAM_READ_ONLY was broken on Win32 - fixed
-* Under some circumstances, ham_flush() did not flush the header page - fixed
-* If a ham_db_t handle was reused after ham_close, an internal pointer 
-    was not set to NULL, which resulted in a segfault - fixed
+* Record number databases were broken on big-endian architectures
+* If a cursor pointed to an item, but this item was erased (either
+	with another cursor or ham_erase), the dangling pointer was not updated,
+	and a subsequent access would result in undefined behaviour - fixed
+* Overwriting record number keys was not possible because a new (incremented) 
+    recno key was assigned even if the flag HAM_OVERWRITE was specified. 
+    fixed - recno keys can now be overwritten
 
 Other Changes
-* Replaced status codes HAM_SHORT_READ and HAM_SHORT_WRITE with HAM_IO_ERROR
-* Renamed status code HAM_INV_INDEX to HAM_NOT_INITIALIZED
-* Renamed status code HAM_ENV_FULL to HAM_LIMITS_REACHED
-* The minimum alignment of blobs was resized to 32; database files are much
-    smaller now
+* The function ham_cursor_replace was renamed to ham_cursor_overwrite.
 * More unittests were added
+* hamsterdb is now released under GPL 2.0 *or later*, which also includes 
+    GPL 3.0
 
 To see a list of all changes, look in the file CHANGELOG.
 
+See below for known issues.
+
 3. Roadmap
 
-The next releases will offer one of the following new features:
-- duplicate items
+- The next release will mainly focus on performance improvements for duplicate
+items.
 - command line tools for recovery, dump and statistics
 - a C++ wrapper class
 
 4. Features
 
 - Very fast sorted B+Tree with variable length keys
-- Can run as an in-memory-database
+- Can run as an in-memory database
 - Supports multiple databases in one file
-- Supports record number databases
+- Supports record number databases ("auto-increment")
+- Supports duplicate items
 - Very fast database cursors 
 - Configurable page size, cache size and index key size
 - Portable ANSI-C implementation
@@ -59,16 +62,19 @@ The next releases will offer one of the following new features:
 - Uses memory mapped I/O for fast disk access (but falls back to read/write if
   mmap is not available)
 - Uses 64bit file pointers and supports huge files (>2 GB)
-- Endian-agnostic database files work on little-endian and big-endian platforms
+- Endian-independent file format
 - Easy to use and well-documented
 - Supports rudimentary live-reorganization by automatically
     merging freelist entries
-- Supports multiple databases per file ("Database Environments")
-- Open source and released under the GPL 2.0
+- Open source and released under the GPL 2.0 or later
 
 5. Known Issues/Bugs
 
-None so far
+* The support for duplicate items is feature-complete, but the performance
+is currently deteriorating if the database becomes large (>60 MB) and the 
+page size is 64kb. Also, the freelist thrashes and becomes very large.
+
+Release 0.4.7 will deal with these issues.
 
 6. Compiling 
 

@@ -1,3 +1,10 @@
+Sep 24, 2007 - chris ---------------------------------------------------
+                      release of hamsterdb-0.4.6
+
+Sep 24, 2007 - chris
+o support for duplicate items is finally finished, and a new sample 
+    (db5.c) was added
+
 Sep 13, 2007 - chris
 o fixed big endian-bugs in record number databases (ham_find, ham_erase
     and ham_cursor_find did not convert the record number to db-endian)

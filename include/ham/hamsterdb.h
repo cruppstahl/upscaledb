@@ -13,7 +13,7 @@
  * \file hamsterdb.h
  * \brief Include file for hamsterdb.
  * \author Christoph Rupp, chris@crupp.de
- * \version 0.4.5
+ * \version 0.4.6
  */
 
 #ifndef HAM_HAMSTERDB_H__
