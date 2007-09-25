@@ -8,6 +8,9 @@ endif
 EXTRA_DIST = documentation/Doxyfile                     \
              documentation/tutorial.odt                 \
              CHANGELOG                                  \
+             README                                     \
+             COYPING.GPL2                               \
+             COYPING.GPL3                               \
              include/ham/hamsterdb.h                    \
              include/ham/hamsterdb_int.h                \
              include/ham/types.h                        \
