@@ -1606,7 +1606,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
     ham_txn_t txn;
     ham_status_t st;
     ham_backend_t *be;
-    ham_offset_t recno;
+    ham_offset_t recno=0;
 
     if (!db || !key || !record)
         return (HAM_INV_PARAMETER);
@@ -1809,7 +1809,7 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
     ham_txn_t txn;
     ham_status_t st;
     ham_backend_t *be;
-    ham_offset_t recno;
+    ham_offset_t recno=0;
 
     if (!db || !key)
         return (HAM_INV_PARAMETER);
@@ -2271,7 +2271,7 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 ham_status_t
 ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags)
 {
-    ham_offset_t recno;
+    ham_offset_t recno=0;
     ham_status_t st;
     ham_db_t *db;
 
