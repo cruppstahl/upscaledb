@@ -286,3 +286,5 @@ o recno-unittest always overwrites the existing database; change the
     o also test ham_insert
     o also test ham_cursor_insert
 
+o win32: project for sample db5 is missing
+
