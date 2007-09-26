@@ -1,152 +1,14 @@
 
-x release 0.4.5
+x release 0.4.6
 
-x support GPL3
-    x change all source headers -> GPL 2.0 *or later*
-    x rename COPYING to COPYING.GPL2
-    x add GPL3 license file (COPYING.GPL3)
-
-x create a new repository for hamsterdb-meta
-
-x unittests - check for leaks!
-    x replace big record with tiny
-    x replace big record with null
-    x replace tiny record with null
-    x replace tiny record with big
-
-x recno: keys lassen sich nicht überschreiben
-    x für ham_insert fixen
-        x unittest
-    x für ham_cursor_insert fixen
-        x unittest
-
-x rename ham_cursor_replace to ham_cursor_overwrite (and all other instances
-    of "replace" with "overwrite")
-    x hamsterdb.h 
-    x replace sources
-    x fix unittests
-    x tutorial
-
-o support for duplicate keys
-    x make sure that EXTENDED_BLOB flag is always set if blob>=8 byte 
-        (check unittests!)
-        -> not needed - TINY_BLOB or SMALL_BLOB are enough
-    x test if everything runs fine if blobs are always allocated
-
-    x ham_create needs flag HAM_ENABLE_DUPLICATES
-        x persistent flag -> unittest
-
-    x don't allow insert(HAM_DUPLICATE|HAM_OVERWRITE)
-        x fix in code
-        x documentation!
-        x unittest
-
-    x modify db_free_page; also delete the duplicates
-    x modify my_free_cb
-
-    x need a list of all cursors
-        x add cursor_next, cursor_previous
-        x add cursor *ham_db_t::_cursor_list
-        x btree_cursor_create: prepend new cursor to the list
-        x btree_cursor_destroy: delete cursor from the list
-        x unittest: check if links are correct
-            x also with cloned cursors!
-
-    x when freeing in-memory pages/blobs: also free the duplicates (otherwise
-        we have memory leaks)
-        x unittest
-
-    x remove the old crap
-        x and the unittests!
-
-    x new flag KEY_DUPLICATE (alternatively to TINY, NULL)
-        x must not appear in internal keys
-
-    x cursor: dupe_id is the offset in the dupe_table
-        x type is ham_size_t
-        x always starts with zero
-
-    x create a blob_duplicate_t structure
-        x the structures
-        x getters
-        x setters
-        x unittest for the structure
-
-    x a new function
-        key_set_record(int_key_t *key, ham_record_t *record, 
-            flags=0|OVERWRITE|DUPLICATE[_position]);
-        -> remove duplicated code in btree_cursor.c and btree_insert.c
-
-        x blob_duplicate_insert(dupe_table_id, position, flags, 
-            [flags, rid]+);
-            -> returns the new rid; only inserts at the end of the table
-
-        x ham_find: returns the first item
-            x unittest
-
-        x ham_insert(OVERWRITE) overwrites the first dupe
-            x unittest
-
-    x enhance cursor_move for next/previous/first/last
-        x unittest for first/next
-        x unittest for last/previous
-
-    x key_erase_record
-        x blob_duplicate_erase(dupe_table_id, position)
-            (does not yet shrink the duplicate table)
-        x ham_erase: delete all duplicates
-            x unittest
-        x ham_cursor_erase: only delete the item at the duplicate position
-            x unittest
-        x both functions must update all cursors which are coupled 
-            to this item/duplicate
-            x unittests
-
-    x blob_duplicate_overwrite(dupe_table_id, position, [flags, rid]);
-        x unittests
-
-    x cursor_overwrite
-        -> must replace all cursors which are coupled to this duplicate!
-        x unittest
-
-    x insert
-        x new dupes are appended at the END of the list (add documentation!)
-        x change the unittests
-
-    x unittest for cursor_erase: insert 5 duplicate, delete them all 
-        with cursor_erase
-
-    x cursor_insert
-        x don't allow these flags in ham_insert 
-            x unittest
-        x duplicate_insert_after
-            x unittest
-        x duplicate_insert_before
-            x unittest
-        x duplicate_insert_first
-            x unittest
-        x duplicate_insert_last (default)
-            x unittest
-        x cursor is placed on inserted dupe - unittest
-            -> ham_insert: set dupe_id, delete dupe_entry_t!
-
-    x fix TODO items in blob.c
-
-    x update documentation
-    x extend valgrind.sh
-    x new sample, read all words from stdin, insert them with line information;
-        also, insert the same word in a second db, with a word-counter
-        then dump all words with the line information, and how often they
-        were used
-    x modify acceptance test for --duplicate=1 (berkdb and hamster)
-        x fullcheck-backwards=1 - uses back-to-front order for fullcheck
-
-    x unittests have memory leak
-
-x webpage
-    x update web page about license change (GPL2 or GPL3)
-    x rename "Features" to "About"
-    x update roadmap
+o tests are failing:
+    --duplicate=1 --pagesize=65536
+      o ../../testfiles/1/201.tst - freelist goes berzerk
+      o ../../testfiles/1/202.tst - freelist goes berzerk
+    --duplicate=1 --use-cursors=1
+      o ../../testfiles/1/100.tst - status mismatch
+      o ../../testfiles/1/202.tst - status mismatch
+      o ../../testfiles/1/220.tst - status mismatch
 
 o recno on big endian
     x ham_find/ham_erase/ham_cursor_find: make sure that the parameter size 
@@ -163,20 +25,7 @@ o duplicate items on big endian
     x check-in be-database (created by the new sample)
     o enhance endian-create.sh and endian-check.sh
 
-o release 0.4.6
-
---------------------------------------------------------------------------
-
-o update tutorial
-
-o tests are failing:
-    --duplicate=1
-      x ../../testfiles/1/201.tst
-      x ../../testfiles/1/202.tst
-    --duplicate=1 --use-cursors=1
-      o ../../testfiles/1/100.tst - status mismatch
-      o ../../testfiles/1/202.tst - status mismatch
-      o ../../testfiles/1/220.tst - status mismatch
+o update tutorial - it's missing information about duplicate items
 
 o check ham_txn_abort in btree_cursor.c
     this call never appears in hamsterdb.c, but quite frequently in the
