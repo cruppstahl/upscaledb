@@ -79,14 +79,18 @@ o record numbers should not be reused
     reopened, this record number is reused
     persistently cache the number of elements in the database - we need 
     this information anyway.
-    o insert: set record->_rid to 0, to make things easier
-    o add a new function ham_get_count()
+    o do NOT add a new function ham_get_count(), because this information
+        is risky - if keys are inserted, but the application crashes, 
+        the information is wrong
+    o if the database is opened and the first recno item is appended AND
+        the key already exists: re-read the largest key and set the counter
+        again  
 
-o record numbers don't check endianess in ham_find/ham_cursor_find:
-    the key parameter coming from the user must be endian-translated!
-    
 o optimization idea: could use lookaside-list for the last 5/10 
     duplicate tables
+
+o optimization idea: could use lookaside-list for the last 5/10 
+    freelist pages
 
 o extkey_cache: merge extkey_cache_remove() and blob_free()
 
@@ -136,4 +140,6 @@ o recno-unittest always overwrites the existing database; change the
     o also test ham_cursor_insert
 
 o win32: project for sample db5 is missing
+    maybe restructure the solution file? one sln for win32, another for win64?
+    i don't like it as it is right now
 
