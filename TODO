@@ -3,12 +3,17 @@ x release 0.4.6
 
 o tests are failing:
     --duplicate=1 --pagesize=65536
-      o ../../testfiles/1/201.tst - freelist goes berzerk
-      o ../../testfiles/1/202.tst - freelist goes berzerk
+      x ../../testfiles/1/201.tst - freelist goes berzerk
+      x ../../testfiles/1/202.tst - freelist goes berzerk
     --duplicate=1 --use-cursors=1
       o ../../testfiles/1/100.tst - status mismatch
       o ../../testfiles/1/202.tst - status mismatch
       o ../../testfiles/1/220.tst - status mismatch
+
+o my_blob_is_small must be dependend of the page size!
+    currently it's way too small if the pagesize is 64kb!!
+    o test different sizes and pagesizes
+    o rewrite as a macro
 
 o recno on big endian
     x ham_find/ham_erase/ham_cursor_find: make sure that the parameter size 
@@ -48,6 +53,9 @@ o more ideas for unittests
         o move cursor to item
         o insert duplicate of item -> cursor is still coupled
         o insert item2 > item -> cursor is still coupled
+    o insert some duplicates, then erase all but the last one; the last
+        record must be TINY. is the duplicate table deleted? is the rid
+        set to the TINY dupe?
 
 o ham_close with flag HAM_AUTO_CLOSE_CURSORS
     o unittests

@@ -212,6 +212,8 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size)
         if (!freel_get_overflow(fl)) {
             if (!page)
                 db_set_dirty(db, HAM_TRUE);
+            else
+                page_set_dirty(page, 1);
             page=__freel_alloc_page(db, end);
             if (!page) {
                 (void)ham_txn_abort(&txn);
