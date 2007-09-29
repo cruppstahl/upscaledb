@@ -170,19 +170,6 @@ ham_txn_abort(ham_txn_t *txn)
         /* page is no longer in use */
         page_release_ref(head);
 
-#if 0
-        page_set_dirty(head, 0);
-
-        /* delete the page? */
-        if (page_get_npers_flags(head)&PAGE_NPERS_DELETE_PENDING) {
-            /* remove the flag */
-            page_set_npers_flags(head, 
-                    page_get_npers_flags(head)&(~PAGE_NPERS_DELETE_PENDING));
-        }
-
-        (void)cache_move_to_garbage(db_get_cache(db), 0, head);
-#endif
-
         head=next;
     }
 

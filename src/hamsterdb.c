@@ -1773,10 +1773,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     st=be->_fun_insert(be, key, record, flags);
 
     if (st) {
-#if 0
         (void)ham_txn_abort(&txn);
-#endif
-        (void)ham_txn_commit(&txn, 0);
 
         if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
@@ -1845,10 +1842,7 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
     st=be->_fun_erase(be, key, flags);
 
     if (st) {
-#if 0
         (void)ham_txn_abort(&txn);
-#endif
-        (void)ham_txn_commit(&txn, 0);
         return (st);
     }
 
