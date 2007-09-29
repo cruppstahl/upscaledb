@@ -1,6 +1,15 @@
 
 x release 0.4.6
 
+x check ham_txn_abort in btree_cursor.c
+    this call never appears in hamsterdb.c, but quite frequently in the
+    cursor routines; is this a problem?
+    x no, but enable ham_txn_abort in hamsterdb.c
+
+x update tutorial
+    x duplicate keys
+    x add GPL3
+
 o tests are failing:
     --duplicate=1 --pagesize=65536
       x ../../testfiles/1/201.tst - freelist goes berzerk
@@ -10,10 +19,45 @@ o tests are failing:
       o ../../testfiles/1/202.tst - status mismatch
       o ../../testfiles/1/220.tst - status mismatch
 
+o more ideas for unittests
+    o unittests: insert NULL/TINY/SMALL as duplicates
+    o unittests: insert NULL, then replace with TINY, then with SMALL, 
+        then with big, then SMALL, TINY, NULL
+    o unittests: 
+        o create cursor -> must be NIL
+        o insert item   -> must be NIL
+        o move cursor to item
+        o insert item2 < item -> cursor is uncoupled
+        o move cursor to item
+        o insert duplicate of item -> cursor is still coupled
+        o insert item2 > item -> cursor is still coupled
+    o insert some duplicates, then erase all but the last one; the last
+        record must be TINY. is the duplicate table deleted? is the rid
+        set to the TINY dupe?
+
+o ham_close with flag HAM_AUTO_CLEANUP
+    o unittests
+
+o ham_env_close with flag HAM_AUTO_CLEANUP
+    o unittests
+
+o btree_insert:421 - why is the extkey deleted??
+
+o protect users against uninitialized ham_key_t and ham_record_t structures
+    o check if key->flags is 0 or USER_ALLOC
+    o check if key->_rid is 0
+    o check if record->flags is 0 or USER_ALLOC
+    o check all other private flags
+    o unittests!
+
 o my_blob_is_small must be dependend of the page size!
     currently it's way too small if the pagesize is 64kb!!
     o test different sizes and pagesizes
     o rewrite as a macro
+
+o improve performance of duplicate keys
+    o don't use blob_*-routines to manage the dupe_table
+        instead, just modify the cached page and set the dirty-flag
 
 o recno on big endian
     x ham_find/ham_erase/ham_cursor_find: make sure that the parameter size 
@@ -30,47 +74,9 @@ o duplicate items on big endian
     x check-in be-database (created by the new sample)
     o enhance endian-create.sh and endian-check.sh
 
-o update tutorial - it's missing information about duplicate items
-
-o check ham_txn_abort in btree_cursor.c
-    this call never appears in hamsterdb.c, but quite frequently in the
-    cursor routines; is this a problem?
-
 o be more careful when uncoupling cursors - especially when inserting 
     or deleting items, uncoupling is often not necessary
     o definitely no need to uncouple if overwriting or adding a duplicate
-
-o more ideas for unittests
-    o unittests: insert NULL/TINY/SMALL blobs, then create linked lists
-    o unittests: insert NULL/TINY/SMALL as duplicates
-    o unittests: insert NULL, then replace with TINY, then with SMALL, 
-        then with big, then SMALL, TINY, NULL
-    o unittests: 
-        o create cursor -> must be NIL
-        o insert item   -> must be NIL
-        o move cursor to item
-        o insert item2 < item -> cursor is uncoupled
-        o move cursor to item
-        o insert duplicate of item -> cursor is still coupled
-        o insert item2 > item -> cursor is still coupled
-    o insert some duplicates, then erase all but the last one; the last
-        record must be TINY. is the duplicate table deleted? is the rid
-        set to the TINY dupe?
-
-o ham_close with flag HAM_AUTO_CLOSE_CURSORS
-    o unittests
-
-o ham_env_close with flag HAM_AUTO_CLOSE_DATABASES
-    o unittests
-
-o btree_insert:421 - why is the extkey deleted??
-
-o protect users against uninitialized ham_key_t and ham_record_t structures
-    o check if key->flags is 0 or USER_ALLOC
-    o check if key->_rid is 0
-    o check if record->flags is 0 or USER_ALLOC
-    o check all other private flags
-    o unittests!
 
 o create a new repository for hamsterdb-alien for all dependencies 
     in source and precompiled (static/non-debug - cppunit and berkeleydb)
@@ -110,18 +116,14 @@ o cursor_overwrite/cursor_insert:
     also, in cursor_move there are some optimizations regarding the
     cache (search for TODO)
 
-o ham_get_duplicate_count (???)
+o ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
+        ham_size_t *count, int flags=0);
     x blob_duplicate_get_count(dupe_table_id);
     o unittests
 
 o new sample for duplicate keys
     modify sample env1, to create a 1:n relationship between orders
     and customers (or create a new sample)
-
-. webpage
-    o move to cakephp framework
-    o frontpage: resize hamster picture; remove text -> more space below
-        (for 3 colums: news, main features, articles/testimonials/link cloud)
 
 o btree_node_search_by_key uses linear search, no binary search
     -> optimize this!!
@@ -150,4 +152,11 @@ o recno-unittest always overwrites the existing database; change the
 o win32: project for sample db5 is missing
     maybe restructure the solution file? one sln for win32, another for win64?
     i don't like it as it is right now
+
+o release 0.4.7
+
+. webpage
+    o move to cakephp framework
+    o frontpage: resize hamster picture; remove text -> more space below
+        (for 3 colums: news, main features, articles/testimonials/link cloud)
 
