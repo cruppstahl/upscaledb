@@ -246,11 +246,13 @@ public:
         ham_u8_t *buffer;
         ham_offset_t *blobid;
         ham_record_t record;
+        ham_txn_t txn; /* need a txn object for the blob routines */
         ::memset(&record, 0, sizeof(record));
         ::memset(&buffer, 0x12, sizeof(buffer));
 
 		blobid=(ham_offset_t *)::malloc(sizeof(ham_offset_t)*loops);
 		CPPUNIT_ASSERT(blobid!=0);
+        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db)==HAM_SUCCESS);
 
         for (int i=0; i<loops; i++) {
             buffer=(ham_u8_t *)::malloc((i+1)*factor);
@@ -282,6 +284,7 @@ public:
         }
 
 		::free(blobid);
+        CPPUNIT_ASSERT(ham_txn_commit(&txn, 0)==HAM_SUCCESS);
     }
 
     void multipleAllocReadFreeTest(void)
