@@ -84,6 +84,11 @@ class DupeTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (eraseMiddleDuplicateTest);
 
     /*
+     * inserts a few TINY dupes, then erases them all but the last element
+     */
+    CPPUNIT_TEST      (eraseTinyDuplicatesTest);
+
+    /*
      * inserts a few dplicates, reopens the database; continues inserting
      */
     CPPUNIT_TEST      (reopenTest);
@@ -804,6 +809,33 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c1));
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c2));
+    }
+
+    void eraseTinyDuplicatesTest(void)
+    {
+        ham_cursor_t *c;
+
+        insertData("111", "111");
+        insertData("111", "222");
+        insertData("111", "333");
+        insertData("111", "444");
+        insertData("111", "555");
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+
+        checkData(c, HAM_CURSOR_FIRST,    0, "111");
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+        checkData(c, HAM_CURSOR_FIRST,    0, "222");
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+        checkData(c, HAM_CURSOR_FIRST,    0, "333");
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+        checkData(c, HAM_CURSOR_FIRST,    0, "444");
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+        checkData(c, HAM_CURSOR_FIRST,    0, "555");
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+        checkData(c, HAM_CURSOR_FIRST,    HAM_KEY_NOT_FOUND, "555");
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
 
     void reopenTest(void)
@@ -1662,6 +1694,7 @@ class InMemoryDupeTest : public DupeTest
     CPPUNIT_TEST      (eraseOtherDuplicateTest);
     CPPUNIT_TEST      (eraseOtherDuplicateUncoupledTest);
     CPPUNIT_TEST      (eraseMiddleDuplicateTest);
+    CPPUNIT_TEST      (eraseTinyDuplicatesTest);
     CPPUNIT_TEST      (moveToPreviousDuplicateTest);
     CPPUNIT_TEST      (overwriteTest);
     CPPUNIT_TEST      (overwriteCursorTest);
