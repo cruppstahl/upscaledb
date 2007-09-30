@@ -58,6 +58,14 @@ o protect users against uninitialized ham_key_t and ham_record_t structures
     o check all other private flags
     o unittests!
 
+o my_blob_is_small must be dependend of the page size!
+    currently it's way too small if the pagesize is 64kb!!
+    o test different sizes and pagesizes
+    o rewrite as a macro
+
+
+
+
 o tests are failing:
     --duplicate=1 --pagesize=65536
       x ../../testfiles/1/201.tst - freelist goes berzerk
@@ -69,11 +77,6 @@ o tests are failing:
 
 
 
-
-o my_blob_is_small must be dependend of the page size!
-    currently it's way too small if the pagesize is 64kb!!
-    o test different sizes and pagesizes
-    o rewrite as a macro
 
 o improve performance of duplicate keys
     o don't use blob_*-routines to manage the dupe_table
