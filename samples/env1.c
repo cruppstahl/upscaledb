@@ -193,10 +193,7 @@ main(int argc, char **argv)
      * re-open the environment and the two databases
      */
     for (i=0; i<MAX_DBS; i++) {
-        st=ham_cursor_close(cursor[i]);
-        if (st!=HAM_SUCCESS)
-            error("ham_cursor_close", st);
-        st=ham_close(db[i]);
+        st=ham_close(db[i], HAM_AUTO_CLEANUP);
         if (st!=HAM_SUCCESS)
             error("ham_close", st);
     }
@@ -304,10 +301,7 @@ main(int argc, char **argv)
      * we're done! close the database handles, and delete them
      */
     for (i=0; i<MAX_DBS; i++) {
-        st=ham_cursor_close(cursor[i]);
-        if (st!=HAM_SUCCESS)
-            error("ham_cursor_close", st);
-        st=ham_close(db[i]);
+        st=ham_close(db[i], HAM_AUTO_CLEANUP);
         if (st!=HAM_SUCCESS)
             error("ham_close", st);
         ham_delete(db[i]);

@@ -165,14 +165,14 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, ".test", 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
@@ -194,7 +194,7 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, ".test", HAM_READ_ONLY));
@@ -216,7 +216,7 @@ public:
                 ham_cursor_erase(cursor, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
         ham_delete(db);
         ham_env_delete(env);
@@ -314,7 +314,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 333, 0, parameters2));
         CPPUNIT_ASSERT_EQUAL((ham_u16_t)64, db_get_keysize(db));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
@@ -347,14 +347,14 @@ public:
                 ham_env_create_db(env, db, 333, HAM_DISABLE_VAR_KEYLEN, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
                 ham_insert(db, 0, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
             CPPUNIT_ASSERT_EQUAL(0, 
                     ham_env_open_db(env, db, 333, HAM_DISABLE_VAR_KEYLEN, 0));
             CPPUNIT_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
                     ham_insert(db, 0, &key, &rec, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
@@ -376,16 +376,16 @@ public:
             CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
             CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
         }
 
         for (i=0; i<10; i++) {
             CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
@@ -409,13 +409,13 @@ public:
         }
 
         for (i=0; i<10; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
         }
 
         for (i=0; i<10; i++) {
             CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
@@ -470,7 +470,7 @@ public:
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
             for (i=0; i<MAX_DB; i++) {
-                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
                 CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                             (ham_u16_t)i+1, 0, 0));
                 for (int j=0; j<MAX_ITEMS; j++) {
@@ -488,7 +488,7 @@ public:
         }
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
@@ -548,7 +548,7 @@ public:
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
             for (i=0; i<MAX_DB; i++) {
-                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
                 CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                             (ham_u16_t)i+1, 0, 0));
                 for (int j=0; j<MAX_ITEMS; j++) {
@@ -568,7 +568,7 @@ public:
         }
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
@@ -642,7 +642,7 @@ public:
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
             for (i=0; i<MAX_DB; i++) {
-                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
                 CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                             (ham_u16_t)i+1, 0, 0));
                 for (int j=0; j<MAX_ITEMS; j++) {
@@ -671,7 +671,7 @@ public:
         }
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
@@ -749,7 +749,7 @@ public:
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
             for (i=0; i<MAX_DB; i++) {
                 CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor[i]));
-                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
                 CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                             (ham_u16_t)i+1, 0, 0));
                 CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(db[i], 0, 
@@ -781,7 +781,7 @@ public:
 
         for (i=0; i<MAX_DB; i++) {
             CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor[i]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
@@ -823,7 +823,7 @@ public:
 
                 CPPUNIT_ASSERT_EQUAL(0, ham_insert(db[i], 0, &key, &rec, 0));
             }
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
         }
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
@@ -849,7 +849,7 @@ public:
             }
 
             for (i=0; i<MAX_DB; i++) {
-                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
             }
         }
 
@@ -880,7 +880,7 @@ public:
         for (i=0; i<MAX_DB; i++) {
             CPPUNIT_ASSERT_EQUAL(0, ham_env_rename_db(env, 
                         (ham_u16_t)i+1, (ham_u16_t)i+1000, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
         }
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
@@ -890,7 +890,7 @@ public:
             }
 
             for (i=0; i<MAX_DB; i++) {
-                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
             }
         }
 
@@ -916,7 +916,7 @@ public:
             CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
             CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
         }
 
         for (i=0; i<MAX_DB; i++) {
@@ -927,7 +927,7 @@ public:
         for (i=0; i<MAX_DB; i++) {
             CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                         (ham_u16_t)i+1000, 0, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
@@ -954,7 +954,7 @@ public:
         for (i=0; i<MAX_DB; i++) {
             CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN, 
                             ham_env_erase_db(env, (ham_u16_t)i+1, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
             if (m_flags&HAM_IN_MEMORY_DB)
                 CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
@@ -987,7 +987,7 @@ public:
         for (i=0; i<MAX_DB; i++) {
             CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
                             ham_env_erase_db(env, (ham_u16_t)i+1000, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
             CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
                             ham_env_erase_db(env, (ham_u16_t)i+1000, 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
@@ -1026,7 +1026,7 @@ public:
 
                 CPPUNIT_ASSERT_EQUAL(0, ham_insert(db[i], 0, &key, &rec, 0));
             }
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
         }
 
         for (i=0; i<MAX_DB; i++) {
@@ -1059,9 +1059,9 @@ public:
                     "data/env-endian-test-open-database-le.hdb", 0));
 #endif
         CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 1, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 2, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
@@ -1089,7 +1089,7 @@ public:
                 ham_env_create_db(env, db[i], (ham_u16_t)i+1, 0, 0));
 
         for (i=0; i<MAX_DB-1; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
@@ -1125,13 +1125,13 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 111, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
 
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_open(db, ".test", m_flags));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
 
@@ -1146,10 +1146,10 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 111, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 222, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_env_erase_db(env, 111, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
@@ -1157,7 +1157,7 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_open(db, ".test", m_flags));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
 
@@ -1205,7 +1205,7 @@ public:
         }
 
         for (i=0; i<10; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 

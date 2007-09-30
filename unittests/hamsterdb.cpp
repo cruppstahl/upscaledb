@@ -64,6 +64,8 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (flushTest);
     CPPUNIT_TEST      (flushBackendTest);
     CPPUNIT_TEST      (closeTest);
+    CPPUNIT_TEST      (closeWithCursorsTest);
+    CPPUNIT_TEST      (closeWithCursorsOkTest);
     CPPUNIT_TEST      (compareTest);
     CPPUNIT_TEST      (prefixCompareTest);
     CPPUNIT_TEST      (cursorCreateTest);
@@ -99,7 +101,7 @@ public:
     
     void tearDown() 
     { 
-        ham_close(m_db);
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
     }
@@ -190,9 +192,9 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_create(db, ".test", 0, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_open(db, ".test", 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
 
         ham_delete(db);
     }
@@ -205,9 +207,9 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_create_ex(db, ".test", 0, 0664, &ps[0]));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_open(db, ".test", 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
 
@@ -223,7 +225,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_create(db, ".test", 0, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_open(db, ".test", HAM_READ_ONLY));
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
 
@@ -239,7 +241,7 @@ public:
                 ham_cursor_erase(cursor, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
 
@@ -256,7 +258,7 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
                 ham_create_ex(db, ".test", 0, 0664, &p[0]));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
 
@@ -340,7 +342,7 @@ public:
                 ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE|HAM_OVERWRITE));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
 
@@ -406,11 +408,11 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env2, db2, 111, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_find(db2, 0, &key, &rec, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db1));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db1, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db1));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env1));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env1));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db2));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db2, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db2));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env2));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env2));
@@ -418,7 +420,28 @@ public:
 
     void closeTest(void)
     {
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_close(0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_close(0, 0));
+    }
+
+    void closeWithCursorsTest(void)
+    {
+        ham_cursor_t *c;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        CPPUNIT_ASSERT_EQUAL(HAM_DB_NOT_EMPTY, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    }
+
+    void closeWithCursorsOkTest(void)
+    {
+        ham_cursor_t *c[5];
+
+        for (int i=0; i<5; i++)
+            CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c[i]));
+
+        CPPUNIT_ASSERT_EQUAL(HAM_DB_NOT_EMPTY, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_AUTO_CLEANUP));
     }
 
     void compareTest(void)
@@ -568,7 +591,7 @@ public:
                 ham_cursor_move(cursor, &key, 0, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
 
@@ -648,7 +671,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
         CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", 0, 0664));
         replaceKeyTest();
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(m_db));
         m_db=olddb;
     }

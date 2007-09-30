@@ -179,8 +179,6 @@ typedef struct {
 #define HAM_INV_KEYSIZE              ( -3)
 /** Invalid page size (must be a not a multiple of 1024) */
 #define HAM_INV_PAGESIZE             ( -4)
-/** Database is already open */
-#define HAM_DB_ALREADY_OPEN          ( -5)
 /** Memory allocation failed - out of memory */
 #define HAM_OUT_OF_MEMORY            ( -6)
 /** Object not initialized */
@@ -219,6 +217,8 @@ typedef struct {
 #define HAM_NOT_READY                (-23)
 /** Database limits reached */
 #define HAM_LIMITS_REACHED           (-24)
+/** Not all cursors were closed before closing the database */
+#define HAM_DB_NOT_EMPTY             (-25)
 /** Cursor does not point to a valid database item */
 #define HAM_CURSOR_IS_NIL           (-100)
 /** Not all databases were closed before closing the environment */
@@ -1046,11 +1046,13 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  * @param key The key of the new item.
  * @param record The record of the new item.
  * @param flags Insert flags. Currently, only one flag is available:
- *         @a HAM_OVERWRITE. If the @a key already exists, the record is
+ *      <ul>
+ *        <li>@a HAM_OVERWRITE. If the @a key already exists, the record is
  *              overwritten. Otherwise, the key is inserted.
- *         @a HAM_DUPLICATE. If the @a key already exists, a duplicate 
+ *        <li>@a HAM_DUPLICATE. If the @a key already exists, a duplicate 
  *              key is inserted. The key is inserted before the already
  *              existing key.
+ *      </ul>
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if @a db, @a key or @a record is NULL.
@@ -1140,16 +1142,28 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  * It does not free the memory resources allocated in the @a db handle -
  * use @a ham_delete to free @a db.
  *
- * The application should close all database cursors before closing
- * the database.
+ * If the flag @a HAM_AUTO_CLEANUP is specified, hamsterdb automatically
+ * closes all open cursors. 
+ *
+ * If the flag is not specified, the application must close all database 
+ * cursors with @a ham_cursor_close, otherwise @a HAM_DB_NOT_EMPTY 
+ * is returned.
  *
  * @param db A valid database handle.
+ * @param flags Flags for closing the database.
+ *      <ul>
+ *       <li>@a HAM_AUTO_CLEANUP. Automatically closes all open cursors.
+ *      </ul>
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if @a db is NULL.
+ * @return @a HAM_DB_NOT_EMPTY if there are still cursors open.
  */
 HAM_EXPORT ham_status_t
-ham_close(ham_db_t *db);
+ham_close(ham_db_t *db, ham_u32_t flags);
+
+/** Flag for @a ham_close, @a ham_env_close */
+#define HAM_AUTO_CLEANUP            1
 
 /**
  * @}
@@ -1347,22 +1361,24 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  * @param key A valid key structure.
  * @param record A valid record structure.
  * @param flags Flags for inserting the item.
- *         @a HAM_OVERWRITE. If the @a key already exists, the record is
+ *      <ul>
+ *        <li>@a HAM_OVERWRITE. If the @a key already exists, the record is
  *              overwritten. Otherwise, the key is inserted.
- *         @a HAM_DUPLICATE. If the @a key already exists, a duplicate 
+ *        <li>@a HAM_DUPLICATE. If the @a key already exists, a duplicate 
  *              key is inserted. Same as @a HAM_DUPLICATE_INSERT_BEFORE.
- *         @a HAM_DUPLICATE_INSERT_BEFORE. If the @a key already exists, 
+ *        <li>@a HAM_DUPLICATE_INSERT_BEFORE. If the @a key already exists, 
  *              a duplicate key is inserted before the duplicate pointed
  *              to by the cursor.
- *         @a HAM_DUPLICATE_INSERT_AFTER. If the @a key already exists, 
+ *        <li>@a HAM_DUPLICATE_INSERT_AFTER. If the @a key already exists, 
  *              a duplicate key is inserted after the duplicate pointed
  *              to by the cursor.
- *         @a HAM_DUPLICATE_INSERT_FIRST. If the @a key already exists, 
+ *        <li>@a HAM_DUPLICATE_INSERT_FIRST. If the @a key already exists, 
  *              a duplicate key is inserted as the first duplicate of 
  *              the current key.
- *         @a HAM_DUPLICATE_INSERT_LAST. If the @a key already exists, 
+ *        <li>@a HAM_DUPLICATE_INSERT_LAST. If the @a key already exists, 
  *              a duplicate key is inserted as the last duplicate of 
  *              the current key.
+ *      </ul>
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if @a key or @a record is NULL.

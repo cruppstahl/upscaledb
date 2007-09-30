@@ -10,6 +10,23 @@ x update tutorial
     x duplicate keys
     x add GPL3
 
+x more ideas for unittests
+    x unittests: insert NULL/TINY/SMALL as duplicates
+    x unittests: insert NULL, then replace with TINY, then with SMALL, 
+        then with big, then SMALL, TINY, NULL
+    x insert some duplicates, then erase all but the last one; the last
+        record must be TINY. is the duplicate table deleted? is the rid
+        set to the TINY dupe? -> no, but it's ok for now
+
+o ham_close with flag HAM_AUTO_CLEANUP
+    x return DB_NOT_EMPTY if closing db but cursors still exist
+        x add documentation in header file
+        x unittest
+    x close all cursors if HAM_AUTO_CLEANUP is specified
+        x unittest
+    x change the samples
+    x unittests
+
 o tests are failing:
     --duplicate=1 --pagesize=65536
       x ../../testfiles/1/201.tst - freelist goes berzerk
@@ -18,25 +35,6 @@ o tests are failing:
       o ../../testfiles/1/100.tst - status mismatch
       o ../../testfiles/1/202.tst - status mismatch
       o ../../testfiles/1/220.tst - status mismatch
-
-o more ideas for unittests
-    o unittests: insert NULL/TINY/SMALL as duplicates
-    o unittests: insert NULL, then replace with TINY, then with SMALL, 
-        then with big, then SMALL, TINY, NULL
-    o unittests: 
-        o create cursor -> must be NIL
-        o insert item   -> must be NIL
-        o move cursor to item
-        o insert item2 < item -> cursor is uncoupled
-        o move cursor to item
-        o insert duplicate of item -> cursor is still coupled
-        o insert item2 > item -> cursor is still coupled
-    o insert some duplicates, then erase all but the last one; the last
-        record must be TINY. is the duplicate table deleted? is the rid
-        set to the TINY dupe?
-
-o ham_close with flag HAM_AUTO_CLEANUP
-    o unittests
 
 o ham_env_close with flag HAM_AUTO_CLEANUP
     o unittests
@@ -50,6 +48,9 @@ o protect users against uninitialized ham_key_t and ham_record_t structures
     o check all other private flags
     o unittests!
 
+
+
+
 o my_blob_is_small must be dependend of the page size!
     currently it's way too small if the pagesize is 64kb!!
     o test different sizes and pagesizes
@@ -58,6 +59,8 @@ o my_blob_is_small must be dependend of the page size!
 o improve performance of duplicate keys
     o don't use blob_*-routines to manage the dupe_table
         instead, just modify the cached page and set the dirty-flag
+        -> must make sure that the dupe_table doesn't span multiple pages
+        -> can use this also for other blobs
 
 o recno on big endian
     x ham_find/ham_erase/ham_cursor_find: make sure that the parameter size 
@@ -77,6 +80,14 @@ o duplicate items on big endian
 o be more careful when uncoupling cursors - especially when inserting 
     or deleting items, uncoupling is often not necessary
     o definitely no need to uncouple if overwriting or adding a duplicate
+    o unittests: 
+        o create cursor -> must be NIL
+        o insert item   -> must be NIL
+        o move cursor to item
+        o insert item2 < item -> cursor is uncoupled
+        o move cursor to item
+        o insert duplicate of item -> cursor is still coupled
+        o insert item2 > item -> cursor is still coupled
 
 o create a new repository for hamsterdb-alien for all dependencies 
     in source and precompiled (static/non-debug - cppunit and berkeleydb)
@@ -100,7 +111,7 @@ o record numbers should not be reused
         the key already exists: re-read the largest key and set the counter
         again  
 
-o optimization idea: could use lookaside-list for the last 5/10 
+. optimization idea: could use lookaside-list for the last 5/10 
     duplicate tables
 
 o optimization idea: could use lookaside-list for the last 5/10 
@@ -153,10 +164,17 @@ o win32: project for sample db5 is missing
     maybe restructure the solution file? one sln for win32, another for win64?
     i don't like it as it is right now
 
+o are we using a good default page size? should we rather use 16kb??
+
+o do benchmarking with 1mio inserts/reads
+
 o release 0.4.7
 
 . webpage
     o move to cakephp framework
     o frontpage: resize hamster picture; remove text -> more space below
         (for 3 colums: news, main features, articles/testimonials/link cloud)
+
+. if only one duplicate is left, we could delete the duplicate table
+    does this make sense?
 

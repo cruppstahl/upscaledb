@@ -187,7 +187,7 @@ public:
 
     void tearDown()
     {
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(m_db));
     }
     
@@ -849,7 +849,7 @@ public:
         insertData("222", "bbbbbbbbbb");
 
         /* reopen the database */
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", m_flags));
         CPPUNIT_ASSERT(db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES);
 
@@ -1377,7 +1377,7 @@ public:
         ham_cursor_t *c;
 
         /* close the existing database handle */
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
 #if HAM_LITTLE_ENDIAN
         CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, 

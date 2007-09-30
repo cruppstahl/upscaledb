@@ -62,7 +62,7 @@ public:
 
     void tearDown()
     {
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(m_db));
         CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
     }

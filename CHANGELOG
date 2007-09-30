@@ -1,3 +1,9 @@
+Sep 30, 2007 - chris
+o ham_close now expects a second parameter for flags; you can specify the
+    flag HAM_AUTO_CLOSE, and all open cursors are closed automatically.
+    if the flag is not specified, but cursors are still open, ham_close
+    fails and returns HAM_DB_NOT_EMPTY.
+
 Sep 27, 2007 - chris
 o fixed a bug in the freelist - the dirty-flag was not set, when an overflow
     page was allocated; if the cache was exhausted, freelist pages could

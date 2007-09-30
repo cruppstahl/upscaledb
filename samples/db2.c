@@ -126,10 +126,10 @@ main(int argc, char **argv)
     /*
      * clean up and return
      */
-    st=ham_close(src);
+    st=ham_close(src, 0);
     if (st)
         error("ham_close", st);
-    st=ham_close(dest);
+    st=ham_close(dest, 0);
     if (st)
         error("ham_close", st);
     ham_delete(src);

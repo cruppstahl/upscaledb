@@ -188,8 +188,6 @@ ham_strerror(ham_status_t result)
             return ("Invalid key size");
         case HAM_INV_PAGESIZE:
             return ("Invalid page size");
-        case HAM_DB_ALREADY_OPEN:
-            return ("Db already open");
         case HAM_OUT_OF_MEMORY:
             return ("Out of memory");
         case HAM_NOT_INITIALIZED:
@@ -239,6 +237,9 @@ ham_strerror(ham_status_t result)
             return ("Database already open");
         case HAM_LIMITS_REACHED:
             return ("Database limits reached");
+        case HAM_DB_NOT_EMPTY:
+            return ("Not all cursors were closed before "
+                    "closing the database");
         default:
             return ("Unknown error");
     }
@@ -835,7 +836,7 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
         ham_u16_t name=ham_h2db16(*(ham_u16_t *)db_get_indexdata_at(db, i));
         if (name==newname) {
             if (owner) {
-                (void)ham_close(db);
+                (void)ham_close(db, 0);
                 (void)ham_delete(db);
             }
             return (HAM_DATABASE_ALREADY_EXISTS);
@@ -846,7 +847,7 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
 
     if (slot==db_get_indexdata_size(db)) {
         if (owner) {
-            (void)ham_close(db);
+            (void)ham_close(db, 0);
             (void)ham_delete(db);
         }
         return (HAM_DATABASE_NOT_FOUND);
@@ -861,7 +862,7 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
     db_set_dirty(db, HAM_TRUE);
     
     if (owner) {
-        (void)ham_close(db);
+        (void)ham_close(db, 0);
         (void)ham_delete(db);
     }
 
@@ -917,7 +918,7 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
      * cached, delete them from the cache
      */
     if ((st=ham_txn_begin(&txn, db))) {
-        (void)ham_close(db);
+        (void)ham_close(db, 0);
         (void)ham_delete(db);
         return (st);
     }
@@ -926,14 +927,14 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
             my_free_cb, &context);
     if (st) {
         (void)ham_txn_abort(&txn);
-        (void)ham_close(db);
+        (void)ham_close(db, 0);
         (void)ham_delete(db);
         return (st);
     }
 
     st=ham_txn_commit(&txn, 0);
     if (st) {
-        (void)ham_close(db);
+        (void)ham_close(db, 0);
         (void)ham_delete(db);
         return (st);
     }
@@ -947,7 +948,7 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     /*
      * clean up and return
      */
-    (void)ham_close(db);
+    (void)ham_close(db, 0);
     (void)ham_delete(db);
 
     return (0);
@@ -1118,7 +1119,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
          */
         st=device->open(device, filename, flags);
         if (st) {
-            (void)ham_close(db);
+            (void)ham_close(db, 0);
             return (db_set_error(db, st));
         }
 	}
@@ -1141,7 +1142,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
         if (st) {
             ham_log(("os_pread of %s failed with status %d (%s)", filename,
                     st, ham_strerror(st)));
-            (void)ham_close(db);
+            (void)ham_close(db, 0);
             return (db_set_error(db, st));
         }
         pagesize=ham_db2h32(((db_header_t *)&hdrbuf[12])->_pagesize);
@@ -1171,7 +1172,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
             st=freel_create(db);
             if (st) {
                 ham_log(("unable to create freelist"));
-                (void)ham_close(db);
+                (void)ham_close(db, 0);
                 return (st);
             }
         }
@@ -1185,7 +1186,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     if (!db_get_header_page(db)) {
         page=page_new(db);
         if (!page) {
-            (void)ham_close(db);
+            (void)ham_close(db, 0);
             return (db_get_error(db));
         }
         st=page_fetch(page, pagesize);
@@ -1193,7 +1194,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
             if (page_get_pers(page))
                 (void)page_free(page);
             (void)page_delete(page);
-            (void)ham_close(db);
+            (void)ham_close(db, 0);
             return (st);
         }
         ham_assert(page_get_type(page)==PAGE_TYPE_HEADER,
@@ -1221,7 +1222,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
         db_get_magic(db, 2)!='M' ||
         db_get_magic(db, 3)!='\0') {
         ham_log(("invalid file type - %s is not a hamster-db", filename));
-        (void)ham_close(db);
+        (void)ham_close(db, 0);
         db_set_error(db, HAM_INV_FILE_HEADER);
         return (HAM_INV_FILE_HEADER);
     }
@@ -1232,7 +1233,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     if (db_get_version(db, 0)!=HAM_VERSION_MAJ ||
         db_get_version(db, 1)!=HAM_VERSION_MIN) {
         ham_log(("invalid file version"));
-        (void)ham_close(db);
+        (void)ham_close(db, 0);
         db_set_error(db, HAM_INV_FILE_VERSION);
         return (HAM_INV_FILE_VERSION);
     }
@@ -1251,7 +1252,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
         }
     }
     if (i==db_get_indexdata_size(db)) {
-        (void)ham_close(db);
+        (void)ham_close(db, 0);
         return (db_set_error(db, HAM_DATABASE_NOT_FOUND));
     }
 
@@ -1261,7 +1262,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     backend=db_create_backend(db, flags);
     if (!backend) {
         ham_log(("unable to create backend with flags 0x%x", flags));
-        (void)ham_close(db);
+        (void)ham_close(db, 0);
         return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
     db_set_backend(db, backend);
@@ -1274,7 +1275,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
         ham_log(("backend create() failed with status %d (%s)",
                 st, ham_strerror(st)));
         db_set_error(db, st);
-        (void)ham_close(db);
+        (void)ham_close(db, 0);
         return (st);
     }
 
@@ -1305,7 +1306,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
             cachesize=HAM_DEFAULT_CACHESIZE; 
         cache=cache_new(db, cachesize/db_get_pagesize(db));
         if (!cache) {
-            (void)ham_close(db);
+            (void)ham_close(db, 0);
             return (db_get_error(db));
         }
         if (db_get_env(db))
@@ -1391,7 +1392,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
          */
         st=device->create(device, filename, flags, mode);
         if (st) {
-            (void)ham_close(db);
+            (void)ham_close(db, 0);
             return (db_set_error(db, st));
         }
     }
@@ -1418,13 +1419,13 @@ ham_create_ex(ham_db_t *db, const char *filename,
         page=page_new(db);
         if (!page) {
             ham_log(("unable to allocate the header page"));
-            (void)ham_close(db);
+            (void)ham_close(db, 0);
             return (db_get_error(db));
         }
 		st=page_alloc(page, pagesize);
         if (st) {
             page_delete(page);
-            (void)ham_close(db);
+            (void)ham_close(db, 0);
             return (st);
         }
         memset(page_get_pers(page), 0, pagesize);
@@ -1454,7 +1455,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
                 (OFFSET_OF(db_header_t, _freelist_start)+1));
         if (st) {
             ham_log(("unable to setup the freelist"));
-            (void)ham_close(db);
+            (void)ham_close(db, 0);
             return (db_set_error(db, st));
         }
 
@@ -1465,7 +1466,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
             st=freel_create(db);
             if (st) {
                 ham_log(("unable to create freelist"));
-                (void)ham_close(db);
+                (void)ham_close(db, 0);
                 return (db_set_error(db, st));
             }
         }
@@ -1485,7 +1486,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     for (i=0; i<db_get_indexdata_size(db); i++) {
         ham_u16_t name=ham_h2db16(*(ham_u16_t *)db_get_indexdata_at(db, i));
         if (name==dbname) {
-            (void)ham_close(db);
+            (void)ham_close(db, 0);
             return (db_set_error(db, HAM_DATABASE_ALREADY_EXISTS));
         }
     }
@@ -1504,7 +1505,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
         }
     }
     if (i==db_get_indexdata_size(db)) {
-        (void)ham_close(db);
+        (void)ham_close(db, 0);
         return (db_set_error(db, HAM_LIMITS_REACHED));
     }
 
@@ -1516,7 +1517,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
             cachesize=HAM_DEFAULT_CACHESIZE;
         cache=cache_new(db, cachesize/db_get_pagesize(db));
         if (!cache) {
-            (void)ham_close(db);
+            (void)ham_close(db, 0);
             return (db_get_error(db));
         }
         if (db_get_env(db))
@@ -1531,7 +1532,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     backend=db_create_backend(db, flags);
     if (!backend) {
         ham_log(("unable to create backend with flags 0x%x", flags));
-        (void)ham_close(db);
+        (void)ham_close(db, 0);
         return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
 
@@ -1541,7 +1542,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     st=backend->_fun_create(backend, keysize, pflags);
     if (st) {
         ham_log(("unable to create the backend"));
-        (void)ham_close(db);
+        (void)ham_close(db, 0);
         db_set_error(db, st);
         return (st);
     }
@@ -1988,7 +1989,7 @@ ham_flush(ham_db_t *db, ham_u32_t flags)
 }
 
 ham_status_t
-ham_close(ham_db_t *db)
+ham_close(ham_db_t *db, ham_u32_t flags)
 {
     ham_status_t st=0;
     ham_backend_t *be;
@@ -1997,8 +1998,24 @@ ham_close(ham_db_t *db)
 
     if (!db)
         return (HAM_INV_PARAMETER);
+    if (db_get_cursors(db) && !(flags&HAM_AUTO_CLEANUP))
+        return (db_set_error(db, HAM_DB_NOT_EMPTY));
 
     db_set_error(db, 0);
+
+    /*
+     * auto-cleanup cursors?
+     */
+    if (flags&HAM_AUTO_CLEANUP) {
+        ham_bt_cursor_t *c=(ham_bt_cursor_t *)db_get_cursors(db);
+        while (c) {
+            ham_bt_cursor_t *next=(ham_bt_cursor_t *)cursor_get_next(c);
+            st=ham_cursor_close((ham_cursor_t *)c);
+            if (st)
+                return (st);
+            c=next;
+        }
+    }
 
     /*
      * if we're in an environment: all pages, which have this page

@@ -70,18 +70,18 @@ public:
     {
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void createCloseOpenCloseTest(void)
     {
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_open(m_db, ".test", m_flags));
         CPPUNIT_ASSERT(db_get_rt_flags(m_db)&HAM_RECORD_NUMBER);
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void createInsertCloseReopenTest(void)
@@ -109,7 +109,7 @@ public:
             CPPUNIT_ASSERT_EQUAL((ham_u64_t)i+1, recno);
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_open(m_db, ".test", m_flags));
 
@@ -119,7 +119,7 @@ public:
             CPPUNIT_ASSERT_EQUAL((ham_u64_t)i+1, recno);
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void createInsertCloseReopenCursorTest(void)
@@ -151,7 +151,7 @@ public:
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_open(m_db, ".test", m_flags));
         CPPUNIT_ASSERT_EQUAL(0, 
@@ -164,7 +164,7 @@ public:
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void createInsertCloseTest(void)
@@ -192,7 +192,7 @@ public:
             CPPUNIT_ASSERT_EQUAL((ham_u64_t)i+1, recno);
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void createInsertManyCloseTest(void)
@@ -230,7 +230,7 @@ public:
                     ham_find(m_db, 0, &key, &rec, 0));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void createInsertCloseCursorTest(void)
@@ -263,7 +263,7 @@ public:
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void createInsertCloseReopenTwiceTest(void)
@@ -291,7 +291,7 @@ public:
             CPPUNIT_ASSERT_EQUAL((ham_u64_t)i+1, recno);
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_open(m_db, ".test", m_flags));
 
@@ -301,7 +301,7 @@ public:
             CPPUNIT_ASSERT_EQUAL((ham_u64_t)i+1, recno);
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_open(m_db, ".test", m_flags));
 
@@ -311,7 +311,7 @@ public:
             CPPUNIT_ASSERT_EQUAL((ham_u64_t)i+1, recno);
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void createInsertCloseReopenTwiceCursorTest(void)
@@ -343,7 +343,7 @@ public:
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_open(m_db, ".test", m_flags));
         CPPUNIT_ASSERT_EQUAL(0, 
@@ -356,7 +356,7 @@ public:
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_open(m_db, ".test", m_flags));
         CPPUNIT_ASSERT_EQUAL(0, 
@@ -369,7 +369,7 @@ public:
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void insertBadKeyTest(void)
@@ -404,7 +404,7 @@ public:
                 ham_insert(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)1ull, *(ham_u64_t *)key.data);
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void insertBadKeyCursorTest(void)
@@ -443,7 +443,7 @@ public:
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)1ull, *(ham_u64_t *)key.data);
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void createBadKeysizeTest(void)
@@ -461,7 +461,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 
                     0664, &p[0]));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void envTest(void)
@@ -485,7 +485,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_insert(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)1ull, *(ham_u64_t *)key.data);
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
@@ -495,7 +495,7 @@ public:
             CPPUNIT_ASSERT_EQUAL(0, 
                     ham_insert(m_db, 0, &key, &rec, 0));
             CPPUNIT_ASSERT_EQUAL((ham_u64_t)2ull, *(ham_u64_t *)key.data);
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
         }
 
@@ -534,7 +534,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_erase(m_db, 0, &key, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void overwriteTest(void)
@@ -565,7 +565,7 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(value, *(ham_u64_t *)rec.data);
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void overwriteCursorTest(void)
@@ -601,7 +601,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(value, *(ham_u64_t *)rec.data);
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 };
 
