@@ -559,7 +559,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
      */
     st=device->create(device, filename, flags, mode);
     if (st) {
-        (void)ham_env_close(env);
+        (void)ham_env_close(env, 0);
         return (st);
     }
 
@@ -761,7 +761,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
      */
     st=device->open(device, filename, flags);
     if (st) {
-        (void)ham_env_close(env);
+        (void)ham_env_close(env, 0);
         return (st);
     }
 
@@ -955,12 +955,28 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
 }
 
 ham_status_t
-ham_env_close(ham_env_t *env)
+ham_env_close(ham_env_t *env, ham_u32_t flags)
 {
+    ham_status_t st;
+
     if (!env)
         return (HAM_INV_PARAMETER);
-    if (env_get_list(env))
+    if (env_get_list(env) && !(flags&HAM_AUTO_CLEANUP))
         return (HAM_ENV_NOT_EMPTY);
+
+    /*
+     * close all databases?
+     */
+    if (flags&HAM_AUTO_CLEANUP) {
+        ham_db_t *db=env_get_list(env);
+        while (db) {
+            ham_db_t *next=db_get_next(db);
+            st=ham_close(db, HAM_AUTO_CLEANUP);
+            if (st)
+                return (st);
+            db=next;
+        }
+    }
 
     /*
      * close the header page

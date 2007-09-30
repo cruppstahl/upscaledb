@@ -18,26 +18,36 @@ x more ideas for unittests
         record must be TINY. is the duplicate table deleted? is the rid
         set to the TINY dupe? -> no, but it's ok for now
 
-o ham_close with flag HAM_AUTO_CLEANUP
+x ham_close with flag HAM_AUTO_CLEANUP
     x return DB_NOT_EMPTY if closing db but cursors still exist
         x add documentation in header file
         x unittest
     x close all cursors if HAM_AUTO_CLEANUP is specified
         x unittest
     x change the samples
-    x unittests
 
-o tests are failing:
-    --duplicate=1 --pagesize=65536
-      x ../../testfiles/1/201.tst - freelist goes berzerk
-      x ../../testfiles/1/202.tst - freelist goes berzerk
-    --duplicate=1 --use-cursors=1
-      o ../../testfiles/1/100.tst - status mismatch
-      o ../../testfiles/1/202.tst - status mismatch
-      o ../../testfiles/1/220.tst - status mismatch
+x ham_env_close with flag HAM_AUTO_CLEANUP
+    x return ENV_NOT_EMPTY if closing env but databases still exist
+        x unittest
+    x close all databases if HAM_AUTO_CLEANUP is specified
+        x unittest
+    x change the samples
 
-o ham_env_close with flag HAM_AUTO_CLEANUP
-    o unittests
+o should AUTO_CLEANUP also call ham_delete and ham_env_delete??
+    --> yes, i think so!!
+    o ham_close
+        o update documentation in header file
+        o implement it
+        o change unittests
+        o change samples
+        o update tutorial
+    o ham_env_close
+        o update documentation in header file
+        o implement it
+        o change unittests
+        o change samples
+        o update tutorial
+    o update the CHANGELOG
 
 o btree_insert:421 - why is the extkey deleted??
 
@@ -47,6 +57,15 @@ o protect users against uninitialized ham_key_t and ham_record_t structures
     o check if record->flags is 0 or USER_ALLOC
     o check all other private flags
     o unittests!
+
+o tests are failing:
+    --duplicate=1 --pagesize=65536
+      x ../../testfiles/1/201.tst - freelist goes berzerk
+      x ../../testfiles/1/202.tst - freelist goes berzerk
+    --duplicate=1 --use-cursors=1
+      o ../../testfiles/1/100.tst - status mismatch
+      o ../../testfiles/1/202.tst - status mismatch
+      o ../../testfiles/1/220.tst - status mismatch
 
 
 
@@ -139,10 +158,10 @@ o new sample for duplicate keys
 o btree_node_search_by_key uses linear search, no binary search
     -> optimize this!!
 
-o new option HAM_DISABLE_AUTO_REORG -> adds empty chunks to freelist, but
+. new option HAM_DISABLE_AUTO_REORG -> adds empty chunks to freelist, but
     never uses freelist for allocation
 
-o new option HAM_DISABLE_FREELIST -> completely disables the freelist (needs
+. new option HAM_DISABLE_FREELIST -> completely disables the freelist (needs
     cmd line reorg-tool!)
 
 o modify acceptance test for --duplicate=1 (berkdb and hamster)

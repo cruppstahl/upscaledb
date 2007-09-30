@@ -630,17 +630,26 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
  * memory resources allocated in the @a env handle - use @a ham_env_delete 
  * to free @a env.
  *
- * The application must close all databases before closing
- * the environment, or this function will fail (@see ham_close).
+ * If the flag @a HAM_AUTO_CLEANUP is specified, hamsterdb automatically
+ * closes all open databases and their cursors. 
+ *
+ * If the flag is not specified, the application must close all database 
+ * handles with @a ham_close, otherwise @a HAM_ENV_NOT_EMPTY 
+ * is returned.
  *
  * @param env A valid environment handle.
+ * @param flags Flags for closing the environment handle.
+ *          <ul>
+ *            <li>@a HAM_AUTO_CLEANUP. Calls @a ham_close with the flag 
+ *                @a HAM_AUTO_CLEANUP on every open database.
+ *          </ul>
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if @a env is NULL.
  * @return @a HAM_ENV_NOT_EMPTY if there are still databases open.
  */
 HAM_EXPORT ham_status_t
-ham_env_close(ham_env_t *env);
+ham_env_close(ham_env_t *env, ham_u32_t flags);
 
 /**
  * @}

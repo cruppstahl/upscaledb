@@ -486,7 +486,7 @@ public:
                 ham_insert(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)1ull, *(ham_u64_t *)key.data);
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
             CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, ".test", 0));
@@ -496,7 +496,7 @@ public:
                     ham_insert(m_db, 0, &key, &rec, 0));
             CPPUNIT_ASSERT_EQUAL((ham_u64_t)2ull, *(ham_u64_t *)key.data);
             CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env));
+            CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));

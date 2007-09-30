@@ -1,4 +1,8 @@
 Sep 30, 2007 - chris
+o ham_env_close now expects a second parameter for flags; you can specify the
+    flag HAM_AUTO_CLOSE, and all open databases are closed automatically.
+    if the flag is not specified, but cursors are still open, ham_env_close
+    fails and returns HAM_ENV_NOT_EMPTY.
 o ham_close now expects a second parameter for flags; you can specify the
     flag HAM_AUTO_CLOSE, and all open cursors are closed automatically.
     if the flag is not specified, but cursors are still open, ham_close

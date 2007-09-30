@@ -192,12 +192,7 @@ main(int argc, char **argv)
      * to demonstrate even more functions, close all objects, then
      * re-open the environment and the two databases
      */
-    for (i=0; i<MAX_DBS; i++) {
-        st=ham_close(db[i], HAM_AUTO_CLEANUP);
-        if (st!=HAM_SUCCESS)
-            error("ham_close", st);
-    }
-    st=ham_env_close(env);
+    st=ham_env_close(env, HAM_AUTO_CLEANUP);
     if (st!=HAM_SUCCESS)
         error("ham_env_close", st);
 
@@ -298,18 +293,15 @@ main(int argc, char **argv)
     }
 
     /*
-     * we're done! close the database handles, and delete them
+     * we're done! close the environment
      */
-    for (i=0; i<MAX_DBS; i++) {
-        st=ham_close(db[i], HAM_AUTO_CLEANUP);
-        if (st!=HAM_SUCCESS)
-            error("ham_close", st);
-        ham_delete(db[i]);
-    }
-
-    st=ham_env_close(env);
+    st=ham_env_close(env, HAM_AUTO_CLEANUP);
     if (st!=HAM_SUCCESS)
         error("ham_env_close", st);
+
+    for (i=0; i<MAX_DBS; i++)
+         ham_delete(db[i]);
+
     ham_env_delete(env);
 
 

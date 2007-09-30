@@ -410,11 +410,11 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_close(db1, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db1));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env1));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env1, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env1));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(db2, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db2));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env2));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env2, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env2));
     }
 
