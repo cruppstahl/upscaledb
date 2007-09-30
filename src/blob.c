@@ -230,6 +230,9 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
             page=db_alloc_page(db, PAGE_TYPE_B_INDEX|PAGE_IGNORE_FREELIST, 0);
             if (!page)
                 return (db_get_error(db));
+            /* don't want to loose the page during freelist operations
+             * (cache purge) */
+            page_add_ref(page);
             /* blob pages don't have a page header */
             page_set_npers_flags(page, 
                     page_get_npers_flags(page)|PAGE_NPERS_NO_HEADER);
@@ -285,9 +288,14 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
     chunk_size[1]=size;
 
     st=my_write_chunks(db, page, addr, chunk_data, chunk_size, 2);
-    if (st)
+    if (st) {
+        if (page)
+            page_release_ref(page);
         return (st);
+    }
 
+    if (page)
+        page_release_ref(page);
     *blobid=addr;
 
     return (0);
