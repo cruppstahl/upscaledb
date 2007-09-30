@@ -144,6 +144,12 @@ class DupeTest : public CppUnit::TestFixture
      */
     CPPUNIT_TEST      (insertBeforeTest);
 
+    /*
+     * overwrite NULL-, TINY- and SMALL-duplicates with other
+     * NULL-, TINY- and SMALL-duplicates
+     */
+    CPPUNIT_TEST      (overwriteVariousSizesTest);
+
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -497,8 +503,14 @@ public:
                 ham_cursor_move(cursor, &key, &rec, flags));
 
         if (expected==0) {
-            CPPUNIT_ASSERT_EQUAL(rec.size, (ham_size_t)::strlen(data)+1);
-            CPPUNIT_ASSERT_EQUAL(0, ::memcmp(rec.data, data, rec.size));
+            if (data) {
+                CPPUNIT_ASSERT_EQUAL(rec.size, (ham_size_t)::strlen(data)+1);
+                CPPUNIT_ASSERT_EQUAL(0, ::memcmp(rec.data, data, rec.size));
+            }
+            else {
+                CPPUNIT_ASSERT_EQUAL(rec.size, (ham_size_t)0);
+                CPPUNIT_ASSERT_EQUAL((void *)0, rec.data);
+            }
         }
     }
 
@@ -1571,6 +1583,61 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
 
+    void overwriteVariousSizesTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_cursor_t *c;
+        ham_size_t sizes[] ={0, 6, 8, 10};
+        const char *values[]={0, "55555", "8888888", "999999999"};
+        const char *newvalues[4];
+
+        memset(&key, 0, sizeof(key));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        
+        for (int s=0; s<5; s++) {
+            for (int i=s, j=0; i<s+4; i++, j++) {
+                memset(&rec, 0, sizeof(rec));
+                rec.size=sizes[i%4];
+                if (sizes[i%4]) {
+                    rec.data=(void *)values[i%4];
+                    newvalues[j]=values[i%4];
+                }
+                else {
+                    rec.data=0;
+                    newvalues[j]=0;
+                }
+
+                if (s==0) {
+                    /* first round: insert the duplicates */
+                    CPPUNIT_ASSERT_EQUAL(0, 
+                            ham_cursor_insert(c, &key, &rec, 
+                                    HAM_DUPLICATE_INSERT_LAST));
+                }
+                else {
+                    /* other rounds: just overwrite them */
+                    CPPUNIT_ASSERT_EQUAL(0, 
+                            ham_cursor_overwrite(c, &rec, 0));
+                    if (i!=(s+4)-1)
+                        CPPUNIT_ASSERT_EQUAL(0, 
+                            ham_cursor_move(c, 0, 0, HAM_CURSOR_NEXT));
+                }
+            }
+
+            checkData(c, HAM_CURSOR_FIRST,    0, newvalues[0]);
+            checkData(c, HAM_CURSOR_NEXT,     0, newvalues[1]);
+            checkData(c, HAM_CURSOR_NEXT,     0, newvalues[2]);
+            checkData(c, HAM_CURSOR_NEXT,     0, newvalues[3]);
+            checkData(c, HAM_CURSOR_NEXT,     HAM_KEY_NOT_FOUND, newvalues[1]);
+
+            /* move to first element */
+            checkData(c, HAM_CURSOR_FIRST,    0, newvalues[0]);
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
+    }
+
 };
 
 class InMemoryDupeTest : public DupeTest
@@ -1604,6 +1671,7 @@ class InMemoryDupeTest : public DupeTest
     CPPUNIT_TEST      (insertFirstTest);
     CPPUNIT_TEST      (insertAfterTest);
     CPPUNIT_TEST      (insertBeforeTest);
+    CPPUNIT_TEST      (overwriteVariousSizesTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
