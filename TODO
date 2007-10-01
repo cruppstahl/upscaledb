@@ -35,29 +35,54 @@ x ham_env_close with flag HAM_AUTO_CLEANUP
 
 x btree_insert:421 - why is the extkey deleted??
 
-o protect users against uninitialized ham_key_t and ham_record_t structures
+x protect users against uninitialized ham_key_t and ham_record_t structures
     x check if key->flags is 0 or USER_ALLOC
     x set key->_rid to 0
     x check if record->flags is 0 or USER_ALLOC
     x check all other private flags or set them to 0
-    o modify the samples
+    x modify the samples
 
-o my_blob_is_small must be dependend of the page size!
+x my_blob_is_small must be dependend of the page size!
     currently it's way too small if the pagesize is 64kb!!
-    o test different sizes and pagesizes
-    o rewrite as a macro
+    x test different sizes and pagesizes
+    x rewrite as a macro
 
-o be more careful when uncoupling cursors - especially when inserting 
-    or deleting items, uncoupling is often not necessary
-    o definitely no need to uncouple if overwriting or adding a duplicate
-    o unittests: 
-        o create cursor -> must be NIL
-        o insert item   -> must be NIL
-        o move cursor to item
-        o insert item2 < item -> cursor is uncoupled
-        o move cursor to item
-        o insert duplicate of item -> cursor is still coupled
-        o insert item2 > item -> cursor is still coupled
+o rewrite freelist
+    o keep all freelist pages in a static lookup-table
+    o resize table when necessary
+    o use binary search in freelist table
+    o for testing: ./test  --profile=1 ../../testfiles/1/180.tst --duplicate=1
+        --verbose=1 takes 90 seconds (35 insert, 55 erase)
+
+o improve performance of duplicate keys
+    o don't use blob_*-routines to manage the dupe_table
+        instead, just modify the cached page and set the dirty-flag
+        -> must make sure that the dupe_table doesn't span multiple pages
+        -> can use this also for other blobs
+
+o record numbers should not be reused
+    currently, if the last record is deleted, and then the database is
+    reopened, this record number is reused
+    persistently cache the number of elements in the database - we need 
+    this information anyway.
+    o do NOT add a new function ham_get_count(), because this information
+        is risky - if keys are inserted, but the application crashes, 
+        the information is wrong
+    o if the database is opened and the first recno item is appended AND
+        the key already exists: re-read the largest key and set the counter
+        again  
+
+o ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
+        ham_size_t *count, int flags=0);
+    x blob_duplicate_get_count(dupe_table_id);
+    o unittests
+
+o new sample for duplicate keys
+    modify sample env1, to create a 1:n relationship between orders
+    and customers (or create a new sample)
+
+o btree_node_search_by_key uses linear search, no binary search
+    -> optimize this!!
 
 
 
@@ -73,12 +98,6 @@ o tests are failing:
 
 
 
-
-o improve performance of duplicate keys
-    o don't use blob_*-routines to manage the dupe_table
-        instead, just modify the cached page and set the dirty-flag
-        -> must make sure that the dupe_table doesn't span multiple pages
-        -> can use this also for other blobs
 
 o recno on big endian
     x ham_find/ham_erase/ham_cursor_find: make sure that the parameter size 
@@ -105,24 +124,6 @@ o create a new repository for hamsterdb-alien for all dependencies
     o wince-x86
     o ppc32-be
 
-o record numbers should not be reused
-    currently, if the last record is deleted, and then the database is
-    reopened, this record number is reused
-    persistently cache the number of elements in the database - we need 
-    this information anyway.
-    o do NOT add a new function ham_get_count(), because this information
-        is risky - if keys are inserted, but the application crashes, 
-        the information is wrong
-    o if the database is opened and the first recno item is appended AND
-        the key already exists: re-read the largest key and set the counter
-        again  
-
-. optimization idea: could use lookaside-list for the last 5/10 
-    duplicate tables
-
-o optimization idea: could use lookaside-list for the last 5/10 
-    freelist pages
-
 o extkey_cache: merge extkey_cache_remove() and blob_free()
 
 o key_set_record does not always need to dirty the page (i.e. when
@@ -132,18 +133,6 @@ o cursor_overwrite/cursor_insert:
     currently, the cursor_dupe_cache is deleted, but we don't have to
     also, in cursor_move there are some optimizations regarding the
     cache (search for TODO)
-
-o ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
-        ham_size_t *count, int flags=0);
-    x blob_duplicate_get_count(dupe_table_id);
-    o unittests
-
-o new sample for duplicate keys
-    modify sample env1, to create a 1:n relationship between orders
-    and customers (or create a new sample)
-
-o btree_node_search_by_key uses linear search, no binary search
-    -> optimize this!!
 
 . new option HAM_DISABLE_AUTO_REORG -> adds empty chunks to freelist, but
     never uses freelist for allocation
@@ -174,6 +163,9 @@ o are we using a good default page size? should we rather use 16kb??
 
 o do benchmarking with 1mio inserts/reads
 
+o replace inmemory-blob: do not re-allocate the memory if the memory sizes
+    are the same
+
 o release 0.4.7
 
 . webpage
@@ -183,4 +175,16 @@ o release 0.4.7
 
 . if only one duplicate is left, we could delete the duplicate table
     does this make sense?
+
+. be more careful when uncoupling cursors - especially when inserting 
+    or deleting items, uncoupling is often not necessary
+    o definitely no need to uncouple if overwriting or adding a duplicate
+    o unittests: 
+        o create cursor -> must be NIL
+        o insert item   -> must be NIL
+        o move cursor to item
+        o insert item2 < item -> cursor is uncoupled
+        o move cursor to item
+        o insert duplicate of item -> cursor is still coupled
+        o insert item2 > item -> cursor is still coupled
 

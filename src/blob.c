@@ -22,7 +22,7 @@
 
 #define SMALLEST_CHUNK_SIZE  (sizeof(ham_offset_t)+sizeof(blob_t)+1)
 
-#define my_blob_is_small(db, size)  (size<(ham_size_t)(db_get_pagesize(db)<<3))
+#define my_blob_is_small(db, size)  (size<(ham_size_t)(db_get_pagesize(db)>>3))
 
 static ham_status_t
 my_write_chunks(ham_db_t *db, ham_page_t *page, 
@@ -219,6 +219,9 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
      */
     addr=freel_alloc_area(db, alloc_size);
     if (!addr) {
+        if (db_get_error(db))
+            return (db_get_error(db));
+
         /*
          * if the blob is small, we load the page through the cache
          */
@@ -522,8 +525,6 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
     /*
      * in-memory-database: the blobid is actually a pointer to the memory
      * buffer, in which the blob is stored
-     *
-     * duplicate items: fix the linked list
      */
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
         blob_t *phdr=(blob_t *)blobid;

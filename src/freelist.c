@@ -213,7 +213,7 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size)
             if (!page)
                 db_set_dirty(db, HAM_TRUE);
             else
-                page_set_dirty(page, 1);
+                page_set_dirty(page, HAM_TRUE);
             page=__freel_alloc_page(db, end);
             if (!page) {
                 (void)ham_txn_abort(&txn);
@@ -262,6 +262,8 @@ freel_alloc_area(ham_db_t *db, ham_size_t size)
     fl=db_get_freelist(db);
 
     while (1) {
+        ham_page_t *old=page;
+
         if (freel_get_used_bits(fl)>=size/DB_CHUNKSIZE) {
             s=__freel_search_bits(fl, size/DB_CHUNKSIZE);
             if (s!=-1) {
