@@ -33,35 +33,31 @@ x ham_env_close with flag HAM_AUTO_CLEANUP
         x unittest
     x change the samples
 
-o should AUTO_CLEANUP also call ham_delete and ham_env_delete??
-    --> yes, i think so!!
-    o ham_close
-        o update documentation in header file
-        o implement it
-        o change unittests
-        o change samples
-        o update tutorial
-    o ham_env_close
-        o update documentation in header file
-        o implement it
-        o change unittests
-        o change samples
-        o update tutorial
-    o update the CHANGELOG
-
-o btree_insert:421 - why is the extkey deleted??
+x btree_insert:421 - why is the extkey deleted??
 
 o protect users against uninitialized ham_key_t and ham_record_t structures
-    o check if key->flags is 0 or USER_ALLOC
-    o check if key->_rid is 0
-    o check if record->flags is 0 or USER_ALLOC
-    o check all other private flags
-    o unittests!
+    x check if key->flags is 0 or USER_ALLOC
+    x set key->_rid to 0
+    x check if record->flags is 0 or USER_ALLOC
+    x check all other private flags or set them to 0
+    o modify the samples
 
 o my_blob_is_small must be dependend of the page size!
     currently it's way too small if the pagesize is 64kb!!
     o test different sizes and pagesizes
     o rewrite as a macro
+
+o be more careful when uncoupling cursors - especially when inserting 
+    or deleting items, uncoupling is often not necessary
+    o definitely no need to uncouple if overwriting or adding a duplicate
+    o unittests: 
+        o create cursor -> must be NIL
+        o insert item   -> must be NIL
+        o move cursor to item
+        o insert item2 < item -> cursor is uncoupled
+        o move cursor to item
+        o insert duplicate of item -> cursor is still coupled
+        o insert item2 > item -> cursor is still coupled
 
 
 
@@ -98,18 +94,6 @@ o duplicate items on big endian
     x check-in le-database (created by the new sample)
     x check-in be-database (created by the new sample)
     o enhance endian-create.sh and endian-check.sh
-
-o be more careful when uncoupling cursors - especially when inserting 
-    or deleting items, uncoupling is often not necessary
-    o definitely no need to uncouple if overwriting or adding a duplicate
-    o unittests: 
-        o create cursor -> must be NIL
-        o insert item   -> must be NIL
-        o move cursor to item
-        o insert item2 < item -> cursor is uncoupled
-        o move cursor to item
-        o insert duplicate of item -> cursor is still coupled
-        o insert item2 > item -> cursor is still coupled
 
 o create a new repository for hamsterdb-alien for all dependencies 
     in source and precompiled (static/non-debug - cppunit and berkeleydb)

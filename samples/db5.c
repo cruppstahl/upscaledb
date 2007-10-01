@@ -27,6 +27,11 @@ main(int argc, char **argv)
     ham_cursor_t *cursor; /* a database cursor */
     char line[1024*4];    /* a buffer for reading lines */
     unsigned lineno=0;    /* the current line number */
+    ham_key_t key;
+    ham_record_t record;
+
+    memset(&key, 0, sizeof(key));
+    memset(&record, 0, sizeof(record));
 
 	/*
      * first step: create a new hamsterdb object 
@@ -61,14 +66,9 @@ main(int argc, char **argv)
          * and not flexible, but it's good enough for this example.
          */
         while ((p=strtok(start, " \t\r\n"))) {
-            ham_key_t key;
-            ham_record_t record;
-
-            memset(&key, 0, sizeof(key));
-            memset(&record, 0, sizeof(record));
-
             key.data=p;
-            key.size=(ham_size_t)strlen(p)+1; /* also store the terminating 0-byte */
+            key.size=(ham_size_t)strlen(p)+1; /* also store the terminating 
+                                                 0-byte */
             record.data=&lineno;
             record.size=sizeof(lineno);
 
@@ -95,13 +95,10 @@ main(int argc, char **argv)
         return (-1);
     }
 
+    /*
+     * iterate over all items and print them
+     */
     while (1) {
-        ham_key_t key;
-        ham_record_t record;
-
-        memset(&key, 0, sizeof(key));
-        memset(&record, 0, sizeof(record));
-
         st=ham_cursor_move(cursor, &key, &record, HAM_CURSOR_NEXT);
         if (st!=HAM_SUCCESS) {
             /* reached end of the database? */

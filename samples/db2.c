@@ -68,9 +68,6 @@ copy_db(ham_db_t *source, ham_db_t *dest)
 
         /* fetch the next item, and repeat till we've reached the end
          * of the database */
-        memset(&key, 0, sizeof(key));
-        memset(&rec, 0, sizeof(rec));
-
         st=ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT);
         if (st && st!=HAM_KEY_NOT_FOUND)
             error("ham_cursor_move", st);

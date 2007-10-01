@@ -537,18 +537,22 @@ public:
 
     void cursorInsertTest(void)
     {
-        ham_cursor_t cursor;
+        ham_cursor_t *cursor;
         ham_key_t key;
         ham_record_t rec;
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
 
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_insert(0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                ham_cursor_insert(&cursor, 0, &rec, 0));
+                ham_cursor_insert(cursor, 0, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                ham_cursor_insert(&cursor, &key, 0, 0));
+                ham_cursor_insert(cursor, &key, 0, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
     }
 
     void cursorEraseTest(void)

@@ -85,9 +85,6 @@ typedef struct
     ham_u32_t flags;
 
     /** For internal use */
-    ham_size_t _allocsize;
-
-    /** For internal use */
     ham_u32_t _intflags;
 
     /** For internal use */

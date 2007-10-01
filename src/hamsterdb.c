@@ -245,6 +245,29 @@ ham_strerror(ham_status_t result)
     }
 }
 
+static ham_bool_t
+__prepare_key(ham_key_t *key)
+{
+    if (key->size && !key->data)
+        return (0);
+    if (key->flags!=0 && key->flags!=HAM_KEY_USER_ALLOC)
+        return (0);
+    key->_flags=0;
+    return (1);
+}
+
+static ham_bool_t
+__prepare_record(ham_record_t *record)
+{
+    if (record->size && !record->data)
+        return (0);
+    if (record->flags!=0 && record->flags!=HAM_RECORD_USER_ALLOC)
+        return (0);
+    record->_intflags=0;
+    record->_rid=0;
+    return (1);
+}
+
 static void
 __prepare_db(ham_db_t *db)
 {
@@ -1625,8 +1648,12 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
     ham_backend_t *be;
     ham_offset_t recno=0;
 
-    if (!db || !key || !record)
+    if (!db)
         return (HAM_INV_PARAMETER);
+    if (!key || !record)
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    if (!__prepare_key(key) || !__prepare_record(record))
+        return (db_set_error(db, HAM_INV_PARAMETER));
 
     if (db_get_env(db))
         __prepare_db(db);
@@ -1682,8 +1709,12 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     ham_backend_t *be;
     ham_u64_t recno;
 
-    if (!db || !key || !record)
+    if (!db)
         return (HAM_INV_PARAMETER);
+    if (!key || !record)
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    if (!__prepare_key(key) || !__prepare_record(record))
+        return (db_set_error(db, HAM_INV_PARAMETER));
 
     if (db_get_env(db))
         __prepare_db(db);
@@ -1825,8 +1856,12 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
     ham_backend_t *be;
     ham_offset_t recno=0;
 
-    if (!db || !key)
+    if (!db)
         return (HAM_INV_PARAMETER);
+    if (!key)
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    if (!__prepare_key(key))
+        return (db_set_error(db, HAM_INV_PARAMETER));
 
     if (db_get_env(db))
         __prepare_db(db);
@@ -2264,16 +2299,25 @@ ham_status_t
 ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags)
 {
-    if (!cursor || !record)
+    ham_db_t *db;
+
+    if (!cursor)
         return (HAM_INV_PARAMETER);
 
+    db=cursor_get_db(cursor);
+
+    if (!record)
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    if (!__prepare_record(record))
+        return (db_set_error(db, HAM_INV_PARAMETER));
+
     if (db_get_rt_flags(cursor_get_db(cursor))&HAM_READ_ONLY)
-        return (db_set_error(cursor_get_db(cursor), HAM_DB_READ_ONLY));
+        return (db_set_error(db, HAM_DB_READ_ONLY));
 
-    if (db_get_env(cursor_get_db(cursor)))
-        __prepare_db(cursor_get_db(cursor));
+    if (db_get_env(db))
+        __prepare_db(db);
 
-    db_set_error(cursor_get_db(cursor), 0);
+    db_set_error(db, 0);
 
     return (bt_cursor_overwrite((ham_bt_cursor_t *)cursor, record, flags));
 }
@@ -2282,15 +2326,23 @@ ham_status_t
 ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
+    ham_db_t *db;
     if (!cursor)
         return (HAM_INV_PARAMETER);
+
+    db=cursor_get_db(cursor);
+
     if ((flags&HAM_ONLY_DUPLICATES) && (flags&HAM_SKIP_DUPLICATES))
         return (HAM_INV_PARAMETER);
+    if (key && !__prepare_key(key))
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    if (record && !__prepare_record(record))
+        return (db_set_error(db, HAM_INV_PARAMETER));
 
-    if (db_get_env(cursor_get_db(cursor)))
-        __prepare_db(cursor_get_db(cursor));
+    if (db_get_env(db))
+        __prepare_db(db);
 
-    db_set_error(cursor_get_db(cursor), 0);
+    db_set_error(db, 0);
 
     return (bt_cursor_move((ham_bt_cursor_t *)cursor, key, record, flags));
 }
@@ -2302,10 +2354,16 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags)
     ham_status_t st;
     ham_db_t *db;
 
-    if (!cursor || !key)
+    if (!cursor)
         return (HAM_INV_PARAMETER);
 
     db=cursor_get_db(cursor);
+
+    if (!key)
+        return (db_set_error(db, HAM_INV_PARAMETER));
+
+    if (!__prepare_key(key))
+        return (db_set_error(db, HAM_INV_PARAMETER));
 
     if (db_get_env(db))
         __prepare_db(db);
@@ -2345,10 +2403,15 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     ham_status_t st;
     ham_u64_t recno;
 
-    if (!cursor || !key || !record)
+    if (!cursor)
         return (HAM_INV_PARAMETER);
 
     db=cursor_get_db(cursor);
+
+    if (!key || !record)
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    if (!__prepare_key(key) || !__prepare_record(record))
+        return (db_set_error(db, HAM_INV_PARAMETER));
 
     if (db_get_env(db))
         __prepare_db(db);

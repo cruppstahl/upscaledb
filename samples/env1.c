@@ -76,6 +76,8 @@ main(int argc, char **argv)
     ham_db_t *db[MAX_DBS];  /* hamsterdb database objects */
     ham_env_t *env;         /* hamsterdb environment */
     ham_cursor_t *cursor[MAX_DBS]; /* a cursor for each database */
+    ham_key_t key, cust_key, ord_key;
+    ham_record_t record, cust_record, ord_record;
 
     customer_t customers[MAX_CUSTOMERS]={
         { 1, "Alan Antonov Corp." },
@@ -94,6 +96,13 @@ main(int argc, char **argv)
         { 7, 4, "Chris" },
         { 8, 1, "Ben" }
     };
+
+    memset(&key, 0, sizeof(key));
+    memset(&record, 0, sizeof(record));
+    memset(&cust_key, 0, sizeof(cust_key));
+    memset(&cust_record, 0, sizeof(cust_record));
+    memset(&ord_key, 0, sizeof(ord_key));
+    memset(&ord_record, 0, sizeof(ord_record));
 
     /*
      * first, create a new hamsterdb environment 
@@ -148,14 +157,9 @@ main(int argc, char **argv)
      * insert a few customers in the first database
      */
     for (i=0; i<MAX_CUSTOMERS; i++) {
-        ham_key_t key;
-        ham_record_t record;
-
-        memset(&key, 0, sizeof(key));
         key.size=sizeof(int);
         key.data=&customers[i].id;
 
-        memset(&record, 0, sizeof(record));
         record.size=sizeof(customer_t);
         record.data=&customers[i];
 
@@ -170,14 +174,9 @@ main(int argc, char **argv)
      * and now the orders in the second database
      */
     for (i=0; i<MAX_ORDERS; i++) {
-        ham_key_t key;
-        ham_record_t record;
-
-        memset(&key, 0, sizeof(key));
         key.size=sizeof(int);
         key.data=&orders[i].id;
 
-        memset(&record, 0, sizeof(record));
         record.size=sizeof(order_t);
         record.data=&orders[i];
 
@@ -228,12 +227,7 @@ main(int argc, char **argv)
      * the database with customers, the second loops over the orders
      */
     while (1) {
-        ham_key_t cust_key, ord_key;
-        ham_record_t cust_record, ord_record;
         customer_t *customer;
-
-        memset(&cust_key, 0, sizeof(cust_key));
-        memset(&cust_record, 0, sizeof(cust_record));
 
         st=ham_cursor_move(cursor[0], &cust_key, &cust_record, HAM_CURSOR_NEXT);
         if (st!=HAM_SUCCESS) {
@@ -255,9 +249,6 @@ main(int argc, char **argv)
          * before we start the loop, we move the cursor to the
          * first entry
          */
-        memset(&ord_key, 0, sizeof(ord_key));
-        memset(&ord_record, 0, sizeof(ord_record));
-
         st=ham_cursor_move(cursor[1], &ord_key, &ord_record, HAM_CURSOR_FIRST);
         if (st!=HAM_SUCCESS) {
             /* reached end of the database? */
@@ -276,9 +267,6 @@ main(int argc, char **argv)
             if (order->customer_id==customer->id)
                 printf("  order: %d (assigned to %s)\n", 
                         order->id, order->assignee);
-
-            memset(&ord_key, 0, sizeof(ord_key));
-            memset(&ord_record, 0, sizeof(ord_record));
 
             st=ham_cursor_move(cursor[1], &ord_key, 
                     &ord_record, HAM_CURSOR_NEXT);

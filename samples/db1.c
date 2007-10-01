@@ -45,8 +45,13 @@ int
 main(int argc, char **argv)
 {
     int i;
-    ham_status_t st;    /* status variable */
-    ham_db_t *db;       /* hamsterdb database object */
+    ham_status_t st;       /* status variable */
+    ham_db_t *db;          /* hamsterdb database object */
+    ham_key_t key;         /* the structure for a key */
+    ham_record_t record;   /* the structure for a record */
+
+    memset(&key, 0, sizeof(key));
+    memset(&record, 0, sizeof(record));
 
     /*
      * first step: create a new hamsterdb object 
@@ -72,14 +77,9 @@ main(int argc, char **argv)
      * up, then delete them and try to look them up again (which will fail).
      */
     for (i=0; i<LOOP; i++) {
-        ham_key_t key;
-        ham_record_t record;
-
-        memset(&key, 0, sizeof(key));
         key.size=sizeof(i);
         key.data=&i;
 
-        memset(&record, 0, sizeof(record));
         record.size=sizeof(i);
         record.data=&i;
 
@@ -98,14 +98,8 @@ main(int argc, char **argv)
      * by hamsterdb)
      */
     for (i=0; i<LOOP; i++) {
-        ham_key_t key;
-        ham_record_t record;
-
-        memset(&key, 0, sizeof(key));
         key.size=sizeof(i);
         key.data=&i;
-
-        memset(&record, 0, sizeof(record));
 
         /* note: the second parameter of ham_find() is reserved; set it to 
          * NULL */
@@ -137,9 +131,6 @@ main(int argc, char **argv)
      * now erase all values
      */
     for (i=0; i<LOOP; i++) {
-        ham_key_t key;
-
-        memset(&key, 0, sizeof(key));
         key.size=sizeof(i);
         key.data=&i;
 
@@ -155,14 +146,8 @@ main(int argc, char **argv)
      * now fail with HAM_KEY_NOT_FOUND
      */
     for (i=0; i<LOOP; i++) {
-        ham_key_t key;
-        ham_record_t record;
-
-        memset(&key, 0, sizeof(key));
         key.size=sizeof(i);
         key.data=&i;
-
-        memset(&record, 0, sizeof(record));
 
         st=ham_find(db, 0, &key, &record, 0);
         if (st!=HAM_KEY_NOT_FOUND)

@@ -1,3 +1,8 @@
+Oct 01, 2007 - chris
+o it's now enough to initialize a ham_key_t and ham_record_t once in the
+    beginning, and not before every use. also added some checks and 
+    errors when using an uninitialized structure.
+
 Sep 30, 2007 - chris
 o ham_env_close now expects a second parameter for flags; you can specify the
     flag HAM_AUTO_CLOSE, and all open databases are closed automatically.
