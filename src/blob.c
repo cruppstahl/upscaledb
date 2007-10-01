@@ -22,11 +22,7 @@
 
 #define SMALLEST_CHUNK_SIZE  (sizeof(ham_offset_t)+sizeof(blob_t)+1)
 
-static ham_bool_t
-my_blob_is_small(ham_db_t *db, ham_size_t size)
-{
-    return (size<(ham_size_t)(db_get_pagesize(db)<<3));
-}
+#define my_blob_is_small(db, size)  (size<(ham_size_t)(db_get_pagesize(db)<<3))
 
 static ham_status_t
 my_write_chunks(ham_db_t *db, ham_page_t *page, 
