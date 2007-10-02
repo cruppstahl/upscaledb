@@ -1066,10 +1066,7 @@ ham_delete(ham_db_t *db)
         return (HAM_INV_PARAMETER);
 
     /* free cached data pointers */
-    if (db_get_record_allocdata(db))
-        ham_mem_free(db, db_get_record_allocdata(db));
-    if (db_get_key_allocdata(db))
-        ham_mem_free(db, db_get_key_allocdata(db));
+    (void)db_resize_allocdata(db, 0);
 
     /* "free" all remaining memory */
     free(db);
@@ -2105,11 +2102,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     /*
      * free cached memory
      */
-    if (db_get_record_allocdata(db)) {
-        ham_mem_free(db, db_get_record_allocdata(db));
-        db_set_record_allocdata(db, 0);
-        db_set_record_allocsize(db, 0);
-    }
+    (void)db_resize_allocdata(db, 0);
     if (db_get_key_allocdata(db)) {
         ham_mem_free(db, db_get_key_allocdata(db));
         db_set_key_allocdata(db, 0);

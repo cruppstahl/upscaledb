@@ -648,6 +648,14 @@ extern ham_status_t
 db_write_page_and_delete(ham_page_t *page, ham_u32_t flags);
 
 /**
+ * resize the record data
+ *
+ * set the size to 0, and the data is freed
+ */
+extern ham_status_t
+db_resize_allocdata(ham_db_t *db, ham_size_t size);
+
+/**
  * an internal database flag - use mmap instead of read(2)
  */
 #define DB_USE_MMAP                  0x00000100

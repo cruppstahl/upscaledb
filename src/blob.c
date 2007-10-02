@@ -322,19 +322,10 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
 
         /* resize buffer, if necessary */
         if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-            if (blob_get_user_size(hdr)>db_get_record_allocsize(db)) {
-                void *newdata=ham_mem_alloc(db, 
-                        (ham_u32_t)blob_get_user_size(hdr));
-                if (!newdata) 
-                    return (HAM_OUT_OF_MEMORY);
-                if (db_get_record_allocdata(db))
-                    ham_mem_free(db, db_get_record_allocdata(db));
-                record->data=newdata;
-                db_set_record_allocdata(db, newdata);
-                db_set_record_allocsize(db,(ham_size_t)blob_get_user_size(hdr));
-            }
-            else
-                record->data=db_get_record_allocdata(db);
+            st=db_resize_allocdata(db, blob_get_user_size(hdr));
+            if (st)
+                return (st);
+            record->data=db_get_record_allocdata(db);
         }
 
         /* and copy the data */
@@ -375,19 +366,10 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
      * second step: resize the blob buffer
      */
     if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-        if (blob_get_real_size(&hdr)>db_get_record_allocsize(db)) {
-            void *newdata=ham_mem_alloc(db, 
-                    (ham_size_t)blob_get_real_size(&hdr));
-            if (!newdata) 
-                return (HAM_OUT_OF_MEMORY);
-            if (db_get_record_allocdata(db))
-                ham_mem_free(db, db_get_record_allocdata(db));
-            record->data=newdata;
-            db_set_record_allocdata(db, newdata);
-            db_set_record_allocsize(db, (ham_size_t)blob_get_real_size(&hdr));
-        }
-        else
-            record->data=db_get_record_allocdata(db);
+        st=db_resize_allocdata(db, blob_get_user_size(&hdr));
+        if (st)
+            return (st);
+        record->data=db_get_record_allocdata(db);
     }
 
     /*

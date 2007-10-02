@@ -56,7 +56,12 @@ x rewrite freelist
     x is the freelist loaded correctly after each reopen? -> rewrite unittests
     x check filesize after acceptance tests
 
+x move resizing of db_set_record_allocdata() to its own function
+    x change the code
+    x unittests?
+
 o improve performance of duplicate keys
+    x get some numbers of 0.4.6
     o don't use blob_*-routines to manage the dupe_table
         instead, just modify the cached page and set the dirty-flag
         -> must make sure that the dupe_table doesn't span multiple pages

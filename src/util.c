@@ -96,6 +96,7 @@ util_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest)
 ham_status_t
 util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
 {
+    ham_status_t st;
     ham_bool_t noblob=HAM_FALSE;
 
     /*
@@ -138,18 +139,9 @@ util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
 
     if (noblob && record->size>0) {
         if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-            if (record->size>db_get_record_allocsize(db)) {
-                if (db_get_record_allocdata(db))
-                    ham_mem_free(db, db_get_record_allocdata(db));
-                db_set_record_allocdata(db, ham_mem_alloc(db, record->size));
-                if (!db_get_record_allocdata(db)) {
-                    db_set_record_allocsize(db, 0);
-                    return (db_set_error(db, HAM_OUT_OF_MEMORY));;
-                }
-                else {
-                    db_set_record_allocsize(db, record->size);
-                }
-            }
+            st=db_resize_allocdata(db, record->size);
+            if (st)
+                return (st);
             record->data=db_get_record_allocdata(db);
         }
 

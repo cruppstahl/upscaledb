@@ -850,3 +850,24 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
     return (HAM_SUCCESS);
 }
 
+ham_status_t
+db_resize_allocdata(ham_db_t *db, ham_size_t size)
+{
+    if (size==0) {
+        if (db_get_record_allocdata(db))
+            ham_mem_free(db, db_get_record_allocdata(db));
+        db_set_record_allocdata(db, 0);
+        db_set_record_allocsize(db, 0);
+    }
+    else if (size>db_get_record_allocsize(db)) {
+        void *newdata=ham_mem_alloc(db, size);
+        if (!newdata) 
+            return (HAM_OUT_OF_MEMORY);
+        if (db_get_record_allocdata(db))
+            ham_mem_free(db, db_get_record_allocdata(db));
+        db_set_record_allocdata(db, newdata);
+        db_set_record_allocsize(db, size);
+    }
+
+    return (0);
+}
