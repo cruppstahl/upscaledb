@@ -2120,6 +2120,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
             return (st);
         }
     }
+
     /*
      * flush all pages
      */

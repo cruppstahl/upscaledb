@@ -47,6 +47,10 @@ x my_blob_is_small must be dependend of the page size!
     x test different sizes and pagesizes
     x rewrite as a macro
 
+x move resizing of db_set_record_allocdata() to its own function
+    x change the code
+    x unittests?
+
 x rewrite freelist
     x keep all freelist pages in a static lookup-table
     x resize table when necessary
@@ -55,10 +59,7 @@ x rewrite freelist
         --verbose=1 takes 90 seconds (35 insert, 55 erase)
     x is the freelist loaded correctly after each reopen? -> rewrite unittests
     x check filesize after acceptance tests
-
-x move resizing of db_set_record_allocdata() to its own function
-    x change the code
-    x unittests?
+    x fix memory leak in acceptance test
 
 o improve performance of duplicate keys
     x get some numbers of 0.4.6

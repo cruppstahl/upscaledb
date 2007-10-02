@@ -369,7 +369,10 @@ __freel_lazy_create(ham_db_t *db)
     freel_cache_set_count(cache, 1);
     freel_cache_set_entries(cache, entry);
 
-    db_set_freelist_cache(db, cache);
+    if (db_get_env(db))
+        env_set_freelist_cache(db_get_env(db), cache);
+    else
+        db_set_freelist_cache(db, cache);
 
     /*
      * now load all other freelist pages
@@ -437,7 +440,10 @@ freel_shutdown(ham_db_t *db)
         ham_mem_free(db, freel_cache_get_entries(cache));
 
     ham_mem_free(db, cache);
-    db_set_freelist_cache(db, 0);
+    if (db_get_env(db))
+        env_set_freelist_cache(db_get_env(db), 0);
+    else
+        db_set_freelist_cache(db, 0);
 
     return (0);
 }

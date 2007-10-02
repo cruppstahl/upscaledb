@@ -431,12 +431,15 @@ struct ham_db_t
 /*
  * get the freelist cache pointer
  */
-#define db_get_freelist_cache(db)      (db)->_freelist_cache
+#define db_get_freelist_cache(db)      (db_get_env(db)                        \
+                                     ? env_get_freelist_cache(db_get_env(db)) \
+                                     : (db)->_freelist_cache)
 
 /*
  * set the freelist cache pointer
  */
-#define db_set_freelist_cache(db, p)   (db)->_freelist_cache=p
+#define db_set_freelist_cache(db, p) do { ham_assert(db_get_env(db)==0, (""));\
+                                       (db)->_freelist_cache=p; } while(0)
 
 /*
  * get the linked list of all cursors

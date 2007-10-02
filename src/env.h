@@ -25,6 +25,7 @@ extern "C" {
 #include "device.h"
 #include "cache.h"
 #include "extkeys.h"
+#include "freelist.h"
 
 /*
  * need packing for msvc x64bit
@@ -71,6 +72,9 @@ struct ham_env_t
     ham_size_t _pagesize;
     ham_size_t _cachesize;
     ham_u16_t  _keysize;
+
+    /* the freelist cache */
+    freelist_cache_t *_freelist_cache;
 };
 
 #include "packstop.h"
@@ -178,6 +182,16 @@ struct ham_env_t
 #define env_set_pagesize(env, ps)        (env)->_pagesize =ps
 #define env_set_keysize(env, ks)         (env)->_keysize  =ks
 #define env_set_cachesize(env, cs)       (env)->_cachesize=cs
+
+/*
+ * get the freelist cache
+ */
+#define env_get_freelist_cache(env)      (env)->_freelist_cache
+
+/*
+ * set the freelist cache
+ */
+#define env_set_freelist_cache(env, c)   (env)->_freelist_cache=c
 
 
 #ifdef __cplusplus
