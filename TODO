@@ -47,12 +47,14 @@ x my_blob_is_small must be dependend of the page size!
     x test different sizes and pagesizes
     x rewrite as a macro
 
-o rewrite freelist
-    o keep all freelist pages in a static lookup-table
-    o resize table when necessary
-    o use binary search in freelist table
-    o for testing: ./test  --profile=1 ../../testfiles/1/180.tst --duplicate=1
+x rewrite freelist
+    x keep all freelist pages in a static lookup-table
+    x resize table when necessary
+    x make sure that unittests and acc.tests are running
+    x for testing: ./test  --profile=1 ../../testfiles/1/180.tst --duplicate=1
         --verbose=1 takes 90 seconds (35 insert, 55 erase)
+    x is the freelist loaded correctly after each reopen? -> rewrite unittests
+    x check filesize after acceptance tests
 
 o improve performance of duplicate keys
     o don't use blob_*-routines to manage the dupe_table
@@ -188,3 +190,5 @@ o release 0.4.7
         o insert duplicate of item -> cursor is still coupled
         o insert item2 > item -> cursor is still coupled
 
+. some parts of the code would be nicer if we had ham_mem_realloc
+    and ham_mem_calloc

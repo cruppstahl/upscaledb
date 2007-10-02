@@ -515,24 +515,32 @@ public:
 
     void cursorReplaceTest(void)
     {
-        ham_cursor_t cursor;
+        ham_cursor_t *cursor;
         ham_record_t *record=0;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
 
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_overwrite(0, record, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                ham_cursor_overwrite(&cursor, 0, 0));
+                ham_cursor_overwrite(cursor, 0, 0));
+
+        ham_cursor_close(cursor);
     }
 
     void cursorFindTest(void)
     {
-        ham_cursor_t cursor;
+        ham_cursor_t *cursor;
         ham_key_t *key=0;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
 
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_find(0, key, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                ham_cursor_find(&cursor, 0, 0));
+                ham_cursor_find(cursor, 0, 0));
+
+        ham_cursor_close(cursor);
     }
 
     void cursorInsertTest(void)

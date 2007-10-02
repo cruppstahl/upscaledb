@@ -27,6 +27,7 @@ class FreelistTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (markAllocOverflowTest);
     CPPUNIT_TEST      (markAllocOverflow2Test);
     CPPUNIT_TEST      (markAllocOverflow3Test);
+    CPPUNIT_TEST      (markAllocOverflow4Test);
     CPPUNIT_TEST      (markAllocAlignTest);
     CPPUNIT_TEST      (markAllocAlignMultipleTest);
     CPPUNIT_TEST_SUITE_END();
@@ -57,27 +58,22 @@ public:
 
     void structureTest(void)
     {
-        freelist_t *f;
+        freelist_payload_t *f;
 
         f=db_get_freelist(m_db);
 
-        CPPUNIT_ASSERT(freel_get_start_address(f)==db_get_pagesize(m_db));
-        freel_set_start_address(f, 0x7878787878787878ull);
+        CPPUNIT_ASSERT(freel_get_allocated_bits(f)==0);
+        freel_set_allocated_bits(f, 13);
 
-        CPPUNIT_ASSERT(freel_get_used_bits(f)==0);
-        freel_set_used_bits(f, 13);
-
-        CPPUNIT_ASSERT(freel_get_max_bits(f)!=0);
-        CPPUNIT_ASSERT(freel_get_max_bits(f)>>3 <= 
-                db_get_usable_pagesize(m_db)-(OFFSET_OF(db_header_t, 
-                    _freelist_start)+sizeof(freelist_t)));
+        CPPUNIT_ASSERT(freel_get_max_bits(f)==0);
         freel_set_max_bits(f, 0x1234);
 
         CPPUNIT_ASSERT(freel_get_overflow(f)==0ull);
         freel_set_overflow(f, 0x12345678ull);
 
+        freel_set_start_address(f, 0x7878787878787878ull);
         CPPUNIT_ASSERT(freel_get_start_address(f)==0x7878787878787878ull);
-        CPPUNIT_ASSERT(freel_get_used_bits(f)==13);
+        CPPUNIT_ASSERT(freel_get_allocated_bits(f)==13);
         CPPUNIT_ASSERT(freel_get_max_bits(f)==0x1234);
         CPPUNIT_ASSERT(freel_get_overflow(f)==0x12345678ull);
 
@@ -91,7 +87,7 @@ public:
         f=db_get_freelist(m_db);
 
         CPPUNIT_ASSERT(freel_get_start_address(f)==0x7878787878787878ull);
-        CPPUNIT_ASSERT(freel_get_used_bits(f)==13);
+        CPPUNIT_ASSERT(freel_get_allocated_bits(f)==13);
         CPPUNIT_ASSERT(freel_get_max_bits(f)==0x1234);
         CPPUNIT_ASSERT(freel_get_overflow(f)==0x12345678ull);
     }
@@ -101,16 +97,17 @@ public:
         ham_size_t ps=db_get_pagesize(m_db);
 
         for (int i=0; i<10; i++) {
-            CPPUNIT_ASSERT(freel_mark_free(m_db, 
-                        ps+i*DB_CHUNKSIZE, DB_CHUNKSIZE)==HAM_SUCCESS);
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    freel_mark_free(m_db, ps+i*DB_CHUNKSIZE, DB_CHUNKSIZE));
         }
 
         for (int i=0; i<10; i++) {
-            CPPUNIT_ASSERT(ps+i*DB_CHUNKSIZE==freel_alloc_area(m_db, 
-                        DB_CHUNKSIZE));
+            CPPUNIT_ASSERT_EQUAL((ham_offset_t)(ps+i*DB_CHUNKSIZE), 
+                    freel_alloc_area(m_db, DB_CHUNKSIZE));
         }
 
-        CPPUNIT_ASSERT(0==freel_alloc_area(m_db, DB_CHUNKSIZE));
+        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, 
+                freel_alloc_area(m_db, DB_CHUNKSIZE));
         CPPUNIT_ASSERT(db_is_dirty(m_db));
     }
 
@@ -153,36 +150,91 @@ public:
         CPPUNIT_ASSERT(db_is_dirty(m_db));
     }
 
-        /* TODO füllen, ham_close; ham_open, alloc */
-
     void markAllocOverflowTest(void)
     {
-        ham_offset_t o;
+        ham_offset_t o=db_get_usable_pagesize(m_db)*8*DB_CHUNKSIZE;
 
-        o=db_get_usable_pagesize(m_db)*8*DB_CHUNKSIZE;
-        CPPUNIT_ASSERT(freel_mark_free(m_db, o, DB_CHUNKSIZE)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==o); 
-        CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==0);
+        CPPUNIT_ASSERT_EQUAL(0, 
+                freel_mark_free(m_db, o, DB_CHUNKSIZE));
 
-        CPPUNIT_ASSERT(freel_mark_free(m_db, o*2, DB_CHUNKSIZE)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==o*2); 
-        CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==0);
-        CPPUNIT_ASSERT(db_is_dirty(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+
+        CPPUNIT_ASSERT_EQUAL(o, 
+                freel_alloc_area(m_db, DB_CHUNKSIZE)); 
+        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, 
+                freel_alloc_area(m_db, DB_CHUNKSIZE));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                freel_mark_free(m_db, o*2, DB_CHUNKSIZE));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+
+        CPPUNIT_ASSERT_EQUAL(o*2,
+                freel_alloc_area(m_db, DB_CHUNKSIZE));
+        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0,
+                freel_alloc_area(m_db, DB_CHUNKSIZE));
     }
 
     void markAllocOverflow2Test(void)
     {
-        ham_offset_t o;
+        ham_offset_t o=db_get_usable_pagesize(m_db)*8*DB_CHUNKSIZE;
 
-        o=db_get_usable_pagesize(m_db)*8*DB_CHUNKSIZE;
-        CPPUNIT_ASSERT(freel_mark_free(m_db, 3*o, DB_CHUNKSIZE)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==3*o); 
-        CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==0);
-
-        CPPUNIT_ASSERT(freel_mark_free(m_db, 10*o, DB_CHUNKSIZE)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==10*o); 
-        CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==0);
+        CPPUNIT_ASSERT_EQUAL(0, 
+                freel_mark_free(m_db, 3*o, DB_CHUNKSIZE));
+        CPPUNIT_ASSERT_EQUAL(3*o, 
+                freel_alloc_area(m_db, DB_CHUNKSIZE));
         CPPUNIT_ASSERT(db_is_dirty(m_db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+
+        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, 
+                freel_alloc_area(m_db, DB_CHUNKSIZE));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                freel_mark_free(m_db, 10*o, DB_CHUNKSIZE));
+        CPPUNIT_ASSERT_EQUAL(10*o, 
+                freel_alloc_area(m_db, DB_CHUNKSIZE));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+
+        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, 
+                freel_alloc_area(m_db, DB_CHUNKSIZE));
+    }
+
+    void markAllocOverflow4Test(void)
+    {
+        ham_offset_t o=(ham_offset_t)1024*1024*1024*4;
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                freel_mark_free(m_db, o, DB_CHUNKSIZE*3));
+        CPPUNIT_ASSERT_EQUAL(o, 
+                freel_alloc_area(m_db, DB_CHUNKSIZE));
+        CPPUNIT_ASSERT(db_is_dirty(m_db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+
+        CPPUNIT_ASSERT_EQUAL((ham_offset_t)o+DB_CHUNKSIZE, 
+                freel_alloc_area(m_db, DB_CHUNKSIZE));
+        CPPUNIT_ASSERT_EQUAL((ham_offset_t)o+DB_CHUNKSIZE*2,
+                freel_alloc_area(m_db, DB_CHUNKSIZE));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                freel_mark_free(m_db, o, DB_CHUNKSIZE*2));
+        CPPUNIT_ASSERT_EQUAL(o, 
+                freel_alloc_area(m_db, DB_CHUNKSIZE));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+
+        CPPUNIT_ASSERT_EQUAL(o+DB_CHUNKSIZE, 
+                freel_alloc_area(m_db, DB_CHUNKSIZE));
+        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, 
+                freel_alloc_area(m_db, DB_CHUNKSIZE));
     }
 
     void markAllocOverflow3Test(void)

@@ -1,3 +1,6 @@
+Oct 02, 2007 - chris
+o the freelist routines were completely rewritten and are much faster now.
+
 Oct 01, 2007 - chris
 o it's now enough to initialize a ham_key_t and ham_record_t once in the
     beginning, and not before every use. also added some checks and 

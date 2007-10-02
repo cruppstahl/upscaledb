@@ -1485,20 +1485,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
         db_set_indexdata_size(db, DB_MAX_INDICES);
 
         /* 
-         * initialize the freelist structure in the header page;
-         * the freelist starts _after_ the header-page, therefore 
-         * the start-address of the freelist is the pagesize
-         */
-        st=freel_prepare(db, db_get_freelist(db), db_get_pagesize(db),
-                db_get_usable_pagesize(db)-
-                (OFFSET_OF(db_header_t, _freelist_start)+1));
-        if (st) {
-            ham_log(("unable to setup the freelist"));
-            (void)ham_close(db, 0);
-            return (db_set_error(db, st));
-        }
-
-        /* 
          * create the freelist - not needed for in-memory-databases
          */
         if (!(flags&HAM_IN_MEMORY_DB)) {

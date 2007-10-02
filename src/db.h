@@ -264,6 +264,9 @@ struct ham_db_t
 
     /* the next database in a linked list of databases */
     ham_db_t *_next;
+
+    /* the freelist cache */
+    freelist_cache_t *_freelist_cache;
 };
 
 /*
@@ -426,6 +429,16 @@ struct ham_db_t
 #define db_set_next(db, next)          (db)->_next=next
 
 /*
+ * get the freelist cache pointer
+ */
+#define db_get_freelist_cache(db)      (db)->_freelist_cache
+
+/*
+ * set the freelist cache pointer
+ */
+#define db_set_freelist_cache(db, p)   (db)->_freelist_cache=p
+
+/*
  * get the linked list of all cursors
  */
 #define db_get_cursors(db)             (db)->_cursors
@@ -484,7 +497,7 @@ struct ham_db_t
  * get the freelist object of the database
  * add 1 byte because the freelist starts AFTER _freelist_start!
  */
-#define db_get_freelist(db)            (freelist_t *)(page_get_payload(  \
+#define db_get_freelist(db)       (freelist_payload_t *)(page_get_payload(  \
                                           db_get_header_page(db))+       \
                                           OFFSET_OF(db_header_t,         \
                                               _freelist_start)+1)

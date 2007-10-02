@@ -135,7 +135,7 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     /*
      * allocate a new root page
      */
-    root=db_alloc_page(db, PAGE_TYPE_B_ROOT, 0);
+    root=db_alloc_page(db, PAGE_TYPE_B_ROOT, PAGE_IGNORE_FREELIST);
     if (!root)
         return (db_get_error(db));
     memset(page_get_payload(root), 0, sizeof(btree_node_t));
