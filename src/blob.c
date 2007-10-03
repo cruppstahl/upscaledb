@@ -25,7 +25,7 @@
 #define my_blob_is_small(db, size)  (size<(ham_size_t)(db_get_pagesize(db)>>3))
 
 static ham_status_t
-my_write_chunks(ham_db_t *db, ham_page_t *page, 
+__write_chunks(ham_db_t *db, ham_page_t *page, 
         ham_offset_t addr, ham_u8_t **chunk_data, ham_size_t *chunk_size, 
         ham_size_t chunks)
 {
@@ -99,11 +99,10 @@ my_write_chunks(ham_db_t *db, ham_page_t *page,
 }
 
 static ham_status_t
-my_read_chunk(ham_db_t *db, ham_offset_t addr, 
-        ham_u8_t *data, ham_size_t size)
+__read_chunk(ham_db_t *db, ham_page_t *page, ham_page_t **fpage, 
+        ham_offset_t addr, ham_u8_t *data, ham_size_t size)
 {
     ham_status_t st;
-    ham_page_t *page=0;
     ham_offset_t pageid;
     ham_device_t *device=db_get_device(db);
 
@@ -113,13 +112,17 @@ my_read_chunk(ham_db_t *db, ham_offset_t addr,
          */
         pageid=(addr/db_get_pagesize(db))*db_get_pagesize(db);
 
+        if (page) {
+            if (page_get_self(page)!=pageid)
+                page=0;
+        }
+
         /*
          * is it the current page? if not, try to fetch the page from
          * the cache - but only read the page from disk, if the 
          * chunk is small
          */
-        if (!(page && page_get_self(page)==pageid) || 
-                my_blob_is_small(db, size)) {
+        if (page || my_blob_is_small(db, size)) {
             page=db_fetch_page(db, pageid, 
                     my_blob_is_small(db, size) ? 0 : DB_ONLY_FROM_CACHE);
             /* blob pages don't have a page header */
@@ -163,7 +166,67 @@ my_read_chunk(ham_db_t *db, ham_offset_t addr,
         }
     }
 
+    if (fpage)
+        *fpage=page;
+
     return (0);
+}
+
+static dupe_table_t *
+__get_duplicate_table(ham_db_t *db, ham_offset_t table_id, ham_page_t **page)
+{
+    ham_status_t st;
+    blob_t hdr;
+    ham_page_t *hdrpage=0;
+    dupe_table_t *table;
+
+    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
+        ham_u8_t *p=(ham_u8_t *)table_id;
+        return ((dupe_table_t *)(p+sizeof(hdr)));
+    }
+
+    /*
+     * load the blob header
+     */
+    st=__read_chunk(db, 0, &hdrpage, table_id, (ham_u8_t *)&hdr, sizeof(hdr));
+    if (st) {
+        db_set_error(db, st);
+        return (0);
+    }
+
+    /*
+     * if the whole table is in a page (and not split between several
+     * pages), just return a pointer directly in the page
+     */
+    if (page_get_self(hdrpage)+db_get_usable_pagesize(db)>=
+            table_id+blob_get_user_size(&hdr)) {
+        ham_u8_t *p=page_get_raw_payload(hdrpage);
+        /* yes, table is in the page */
+        *page=hdrpage;
+        return ((dupe_table_t *)
+                &p[table_id-page_get_self(hdrpage)+sizeof(hdr)]);
+    }
+
+    /*
+     * otherwise allocate memory for the table
+     */
+    table=ham_mem_alloc(db, blob_get_user_size(&hdr));
+    if (!table) {
+        db_set_error(db, HAM_OUT_OF_MEMORY);
+        return (0);
+    }
+
+    /*
+     * then read the rest of the blob
+     */
+    st=__read_chunk(db, hdrpage, 0, table_id+sizeof(hdr), 
+            (ham_u8_t *)table, blob_get_user_size(&hdr));
+    if (st) {
+        db_set_error(db, st);
+        return (0);
+    }
+
+    return (table);
 }
 
 ham_status_t
@@ -283,7 +346,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
     chunk_data[1]=(ham_u8_t *)data;
     chunk_size[1]=size;
 
-    st=my_write_chunks(db, page, addr, chunk_data, chunk_size, 2);
+    st=__write_chunks(db, page, addr, chunk_data, chunk_size, 2);
     if (st)
         return (st);
 
@@ -297,6 +360,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
         ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
+    ham_page_t *page;
     blob_t hdr;
 
     record->size=0;
@@ -313,23 +377,22 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
         if (!hdr)
             return (0);
 
-        /* empty blob? */
         record->size=(ham_size_t)blob_get_user_size(hdr);
         if (!record->size) {
+            /* empty blob? */
             record->data=0;
-            return (0);
         }
-
-        /* resize buffer, if necessary */
-        if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-            st=db_resize_allocdata(db, blob_get_user_size(hdr));
-            if (st)
-                return (st);
-            record->data=db_get_record_allocdata(db);
+        else {
+            /* resize buffer, if necessary */
+            if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
+                st=db_resize_allocdata(db, blob_get_user_size(hdr));
+                if (st)
+                    return (st);
+                record->data=db_get_record_allocdata(db);
+            }
+            /* and copy the data */
+            memcpy(record->data, data, record->size);
         }
-
-        /* and copy the data */
-        memcpy(record->data, data, record->size);
 
         return (0);
     }
@@ -339,7 +402,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
     /*
      * first step: read the blob header 
      */
-    st=my_read_chunk(db, blobid, (ham_u8_t *)&hdr, sizeof(hdr));
+    st=__read_chunk(db, 0, &page, blobid, (ham_u8_t *)&hdr, sizeof(hdr));
     if (st)
         return (st);
 
@@ -375,7 +438,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
     /*
      * third step: read the blob data
      */
-    st=my_read_chunk(db, blobid+sizeof(blob_t), record->data, 
+    st=__read_chunk(db, page, 0, blobid+sizeof(blob_t), record->data, 
             (ham_size_t)blob_get_user_size(&hdr));
     if (st)
         return (st);
@@ -393,6 +456,7 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
     ham_status_t st;
     ham_size_t alloc_size;
     blob_t old_hdr, new_hdr;
+    ham_page_t *page;
 
     /*
      * inmemory-databases: free the old blob, 
@@ -429,7 +493,7 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
      * old blob, we overwrite the old blob (and add the remaining
      * space to the freelist, if there is any)
      */
-    st=my_read_chunk(db, old_blobid, (ham_u8_t *)&old_hdr, 
+    st=__read_chunk(db, 0, &page, old_blobid, (ham_u8_t *)&old_hdr, 
             sizeof(old_hdr));
     if (st)
         return (st);
@@ -464,7 +528,7 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
         else
             blob_set_alloc_size(&new_hdr, blob_get_alloc_size(&old_hdr));
 
-        st=my_write_chunks(db, 0, blob_get_self(&new_hdr),
+        st=__write_chunks(db, page, blob_get_self(&new_hdr),
                 chunk_data, chunk_size, 2);
         if (st)
             return (st);
@@ -509,8 +573,7 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
      * buffer, in which the blob is stored
      */
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
-        blob_t *phdr=(blob_t *)blobid;
-        ham_mem_free(db, phdr);
+        ham_mem_free(db, (blob_t *)blobid);
         return (0);
     }
 
@@ -519,7 +582,7 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
     /*
      * fetch the blob header 
      */
-    st=my_read_chunk(db, blobid, (ham_u8_t *)&hdr, sizeof(hdr));
+    st=__read_chunk(db, 0, 0, blobid, (ham_u8_t *)&hdr, sizeof(hdr));
     if (st)
         return (st);
 
@@ -550,7 +613,8 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
 {
     ham_status_t st=0;
     dupe_table_t *table=0;
-    ham_bool_t alloc_table=0;
+    ham_bool_t alloc_table=0, resize=0;
+    ham_page_t *page=0;
 
     /*
      * create a new duplicate table if none existed, and insert
@@ -572,27 +636,13 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
         num_entries--;
         alloc_table=1;
     }
+    /*
+     * otherwise load the existing table 
+     */
     else {
-        ham_record_t rec;
-
-        /* store the public record pointer, otherwise it's destroyed */
-        ham_size_t rs=db_get_record_allocsize(db);
-        void      *rp=db_get_record_allocdata(db);
-        db_set_record_allocdata(db, 0);
-        db_set_record_allocsize(db, 0);
-
-        memset(&rec, 0, sizeof(rec));
-        
-        st=blob_read(db, table_id, &rec, 0);
-        if (st)
-            return (st);
-
-        table=(dupe_table_t *)rec.data;
-
-        /* restore the public record pointer */
-        db_set_record_allocsize(db, rs);
-        db_set_record_allocdata(db, rp);
-        alloc_table=1;
+        table=__get_duplicate_table(db, table_id, &page);
+        if (!table)
+            return (db_get_error(db));
     }
 
     ham_assert(num_entries==1, (""));
@@ -623,6 +673,7 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
             ham_mem_free(db, old);
 
         alloc_table=1;
+        resize=1;
     }
 
     /*
@@ -673,18 +724,23 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
      * doesn't have to load the blob, check the size, then overwrite 
      * everything; it can just write the blob without fetching it first
      */
-    if (table_id) {
+    if ((table_id && !page) || resize) {
         st=blob_overwrite(db, table_id, (ham_u8_t *)table,
                 sizeof(dupe_table_t)
                     +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t),
                 0, rid);
     }
-    else {
+    else if (!table_id) {
         st=blob_allocate(db, (ham_u8_t *)table,
                 sizeof(dupe_table_t)
                     +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t),
                 0, rid);
     }
+    else if (table_id && page) {
+        page_set_dirty(page, 1);
+    }
+    else
+        ham_assert(!"shouldn't be here", (""));
 
     if (alloc_table)
         ham_mem_free(db, table);
@@ -796,22 +852,20 @@ ham_status_t
 blob_duplicate_get_count(ham_db_t *db, ham_offset_t table_id,
         ham_size_t *count, dupe_entry_t *entry)
 {
-    ham_status_t st;
-    ham_record_t rec;
     dupe_table_t *table;
+    ham_page_t *page;
 
-    memset(&rec, 0, sizeof(rec));
+    table=__get_duplicate_table(db, table_id, &page);
+    if (!table)
+        return (db_get_error(db));
 
-    /* TODO destroys the public record pointer! */
-    st=blob_read(db, table_id, &rec, 0);
-    if (st)
-        return (st);
-
-    table=(dupe_table_t *)rec.data;
     *count=dupe_table_get_count(table);
     if (entry)
         memcpy(entry, dupe_table_get_entry(table, (*count)-1), sizeof(*entry));
 
+    if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB))
+        if (!page)
+            ham_mem_free(db, table);
     return (0);
 }
 
@@ -819,22 +873,24 @@ ham_status_t
 blob_duplicate_get(ham_db_t *db, ham_offset_t table_id,
         ham_size_t position, dupe_entry_t *entry)
 {
-    ham_status_t st;
-    ham_record_t rec;
     dupe_table_t *table;
+    ham_page_t *page;
 
-    memset(&rec, 0, sizeof(rec));
+    table=__get_duplicate_table(db, table_id, &page);
+    if (!table)
+        return (db_get_error(db));
 
-    /* TODO destroys the public record pointer! */
-    st=blob_read(db, table_id, &rec, 0);
-    if (st)
-        return (st);
-
-    table=(dupe_table_t *)rec.data;
-    if (position>=dupe_table_get_count(table))
-        return (HAM_KEY_NOT_FOUND);
-
+    if (position>=dupe_table_get_count(table)) {
+        if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB))
+            if (!page)
+                ham_mem_free(db, table);
+        return (db_set_error(db, HAM_KEY_NOT_FOUND));
+    }
     memcpy(entry, dupe_table_get_entry(table, position), sizeof(*entry));
+
+    if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB))
+        if (!page)
+            ham_mem_free(db, table);
     return (0);
 }
 

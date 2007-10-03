@@ -61,9 +61,11 @@ x rewrite freelist
     x check filesize after acceptance tests
     x fix memory leak in acceptance test
 
-o improve performance of duplicate keys
+x key_set_record allocates a blob if record is {0, 0}!!
+
+x improve performance of duplicate keys
     x get some numbers of 0.4.6
-    o don't use blob_*-routines to manage the dupe_table
+    x don't use blob_*-routines to manage the dupe_table
         instead, just modify the cached page and set the dirty-flag
         -> must make sure that the dupe_table doesn't span multiple pages
         -> can use this also for other blobs
@@ -91,6 +93,9 @@ o new sample for duplicate keys
 
 o btree_node_search_by_key uses linear search, no binary search
     -> optimize this!!
+
+o overwrite inmemory-blob: do not re-allocate the memory if the memory sizes
+    are the same
 
 
 
@@ -170,9 +175,6 @@ o win32: project for sample db5 is missing
 o are we using a good default page size? should we rather use 16kb??
 
 o do benchmarking with 1mio inserts/reads
-
-o replace inmemory-blob: do not re-allocate the memory if the memory sizes
-    are the same
 
 o release 0.4.7
 

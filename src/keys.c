@@ -103,16 +103,18 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
      * no existing key, just create a new key (but not a duplicate)?
      */
     if (!ptr
-            || ((oldflags&KEY_BLOB_SIZE_SMALL)
-                && (oldflags&KEY_BLOB_SIZE_TINY)
-                && (oldflags&KEY_BLOB_SIZE_EMPTY)
-                && !(oldflags&KEY_HAS_DUPLICATES)
-                && !(flags&HAM_DUPLICATE)
+            && !(oldflags&KEY_BLOB_SIZE_SMALL)
+            && !(oldflags&KEY_BLOB_SIZE_TINY)
+            && !(oldflags&KEY_BLOB_SIZE_EMPTY)) {
+#if 0
+            && !(oldflags&KEY_HAS_DUPLICATES)
+            && !(flags&HAM_DUPLICATE)
                 && !(flags&HAM_DUPLICATE_INSERT_BEFORE)
                 && !(flags&HAM_DUPLICATE_INSERT_AFTER)
                 && !(flags&HAM_DUPLICATE_INSERT_FIRST)
                 && !(flags&HAM_DUPLICATE_INSERT_LAST))) {
-        if (record->size>0 && record->size<=sizeof(ham_offset_t)) {
+#endif
+        if (record->size<=sizeof(ham_offset_t)) {
             if (record->data)
                 memcpy(&rid, record->data, record->size);
             if (record->size==0)
@@ -146,10 +148,12 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
         if ((oldflags&KEY_BLOB_SIZE_SMALL)
                 || (oldflags&KEY_BLOB_SIZE_TINY)
                 || (oldflags&KEY_BLOB_SIZE_EMPTY)) {
+            rid=0;
             st=blob_allocate(db, record->data, record->size, 0, &rid);
             if (st)
                 return (db_set_error(db, st));
-            key_set_ptr(key, rid);
+            if (rid)
+                key_set_ptr(key, rid);
         }
         else {
             st=blob_overwrite(db, ptr, record->data, 
@@ -236,6 +240,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
         }
         i++;
 
+        rid=0;
         st=blob_duplicate_insert(db, 
                 i==2 ? 0 : ptr, position,
                 flags, &entries[0], i, &rid, new_position);
@@ -243,7 +248,8 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             return (db_set_error(db, st));
 
         key_set_flags(key, key_get_flags(key)|KEY_HAS_DUPLICATES);
-        key_set_ptr(key, rid);
+        if (rid)
+            key_set_ptr(key, rid);
     }
 
     return (0);
