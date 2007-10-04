@@ -128,7 +128,7 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
      */
     maxkeys=my_calc_maxkeys(db_get_pagesize(db), keysize);
     btree_set_maxkeys(be, maxkeys);
-    btree_set_dirty(be, HAM_TRUE);
+    be_set_dirty(be, HAM_TRUE);
     be_set_keysize(be, keysize);
     be_set_flags(be, flags);
 
@@ -149,6 +149,7 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     *(ham_u16_t    *)&indexdata[ 4]=ham_h2db16(keysize);
     *(ham_offset_t *)&indexdata[ 8]=ham_h2db_offset(page_get_self(root));
     *(ham_u32_t    *)&indexdata[16]=ham_h2db32(flags);
+    *(ham_offset_t *)&indexdata[20]=ham_h2db_offset(0ull);
     db_set_dirty(db, 1);
 
     return (0);
@@ -157,7 +158,7 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
 static ham_status_t 
 my_fun_open(ham_btree_t *be, ham_u32_t flags)
 {
-    ham_offset_t rootadd;
+    ham_offset_t rootadd, recno;
     ham_u16_t maxkeys, keysize;
     ham_db_t *db=btree_get_db(be);
     ham_u8_t *indexdata=db_get_indexdata(db);
@@ -170,11 +171,13 @@ my_fun_open(ham_btree_t *be, ham_u32_t flags)
     keysize=ham_db2h16     (*(ham_u16_t    *)&indexdata[ 4]);
     rootadd=ham_db2h_offset(*(ham_offset_t *)&indexdata[ 8]);
     flags  =ham_db2h32     (*(ham_u32_t    *)&indexdata[16]);
+    recno  =ham_db2h_offset(*(ham_offset_t *)&indexdata[20]);
 
     btree_set_rootpage(be, rootadd);
     btree_set_maxkeys(be, maxkeys);
     be_set_keysize(be, keysize);
     be_set_flags(be, flags);
+    be_set_recno(be, recno);
 
     return (0);
 }
@@ -188,7 +191,7 @@ my_fun_flush(ham_btree_t *be)
     /*
      * nothing todo if the backend was not touched
      */
-    if (!btree_is_dirty(be))
+    if (!be_is_dirty(be))
         return (0);
 
     /*
@@ -199,9 +202,10 @@ my_fun_flush(ham_btree_t *be)
     *(ham_u16_t    *)&indexdata[ 4]=ham_h2db16(be_get_keysize(be));
     *(ham_offset_t *)&indexdata[ 8]=ham_h2db_offset(btree_get_rootpage(be));
     *(ham_u32_t    *)&indexdata[16]=ham_h2db32(be_get_flags(be));
+    *(ham_offset_t *)&indexdata[20]=ham_h2db_offset(be_get_recno(be));
 
     db_set_dirty(db, HAM_TRUE);
-    btree_set_dirty(be, HAM_FALSE);
+    be_set_dirty(be, HAM_FALSE);
 
     return (0);
 }

@@ -70,17 +70,18 @@ x improve performance of duplicate keys
         -> must make sure that the dupe_table doesn't span multiple pages
         -> can use this also for other blobs
 
-o record numbers should not be reused
+x record numbers should not be reused
     currently, if the last record is deleted, and then the database is
     reopened, this record number is reused
     persistently cache the number of elements in the database - we need 
     this information anyway.
-    o do NOT add a new function ham_get_count(), because this information
+    x do NOT add a new function ham_get_count(), because this information
         is risky - if keys are inserted, but the application crashes, 
         the information is wrong
-    o if the database is opened and the first recno item is appended AND
+    x if the database is opened and the first recno item is appended AND
         the key already exists: re-read the largest key and set the counter
-        again  
+        again - No, not yet. just return ALREADY_EXISTS -> need reorg-tool
+    x unittest
 
 o ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
         ham_size_t *count, int flags=0);

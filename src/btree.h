@@ -51,10 +51,6 @@ struct HAM_PACK_0 ham_btree_t HAM_PACK_1
      */
     ham_u16_t _maxkeys;
 
-    /**
-     * flag if the backend has to be written to disk
-     */
-    ham_bool_t _dirty;
 } HAM_PACK_2;
 
 #include "packstop.h"
@@ -89,16 +85,6 @@ struct HAM_PACK_0 ham_btree_t HAM_PACK_1
  * a macro for getting the minimum number of keys
  */
 #define btree_get_minkeys(maxkeys)      (maxkeys/2)
-
-/*
- * get the dirty-flag
- */
-#define btree_is_dirty(be)              (be)->_dirty
-
-/*
- * set the dirty-flag
- */
-#define btree_set_dirty(be, v)          (be)->_dirty=(v)
 
 
 #include "packstart.h"

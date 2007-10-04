@@ -439,38 +439,6 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
     return (0);
 }
 
-static ham_status_t
-__recno_lazy_load(ham_db_t *db, ham_u64_t *recno)
-{
-    ham_status_t st;
-    ham_cursor_t *cursor;
-    ham_key_t key;
-
-    memset(&key, 0, sizeof(key));
-    key.flags=HAM_KEY_USER_ALLOC;
-    key.data=recno;
-    key.size=sizeof(*recno);
-
-    st=ham_cursor_create(db, 0, 0, &cursor);
-    if (st)
-        return (db_set_error(db, st));
-
-    st=ham_cursor_move(cursor, &key, 0, HAM_CURSOR_LAST);
-    (void)ham_cursor_close(cursor);
-    if (st==HAM_KEY_NOT_FOUND)
-        return (db_set_error(db, 0));
-    else
-        return (db_set_error(db, st));
-    
-    /*
-     * no need to fix the endian - the cursor function already returns the
-     * key in host-endian
-     */
-    *recno=*(ham_u64_t *)key.data;
-
-    return (0);
-}
-
 void
 ham_get_version(ham_u32_t *major, ham_u32_t *minor,
                 ham_u32_t *revision)
@@ -1741,19 +1709,11 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
             /*
              * get the record number (host endian) and increment it
              */
-            recno=db_get_recno(db);
-            if (!recno) {
-                st=__recno_lazy_load(db, &recno);
-                if (st) {
-                    (void)ham_txn_abort(&txn);
-                    return (st);
-                }
-            }
+            recno=be_get_recno(be);
             recno++;
     
             /*
-             * now do the allocation (__recno_lazy_load uses a cursor, which
-             * could overwrite our next key allocation
+             * allocate memory for the key
              */
             if (key->flags&HAM_KEY_USER_ALLOC) {
                 if (!key->data || key->size!=sizeof(ham_u64_t)) {
@@ -1824,8 +1784,11 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
         recno=ham_db2h64(recno);
         memcpy(key->data, &recno, sizeof(ham_u64_t));
         key->size=sizeof(ham_u64_t);
-        if (!(flags&HAM_OVERWRITE))
-            db_set_recno(db, recno);
+        if (!(flags&HAM_OVERWRITE)) {
+            be_set_recno(be, recno);
+            be_set_dirty(be, 1);
+            db_set_dirty(db, 1);
+        }
     }
 
     return (ham_txn_commit(&txn, 0));
@@ -2381,12 +2344,17 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
 {
     ham_db_t *db;
     ham_status_t st;
+    ham_backend_t *be;
     ham_u64_t recno;
 
     if (!cursor)
         return (HAM_INV_PARAMETER);
 
     db=cursor_get_db(cursor);
+
+    be=db_get_backend(db);
+    if (!be)
+        return (db_set_error(db, HAM_NOT_INITIALIZED));
 
     if (!key || !record)
         return (db_set_error(db, HAM_INV_PARAMETER));
@@ -2434,17 +2402,11 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             /*
              * get the record number (host endian) and increment it
              */
-            recno=db_get_recno(db);
-            if (!recno) {
-                st=__recno_lazy_load(db, &recno);
-                if (st)
-                    return (st);
-            }
+            recno=be_get_recno(be);
             recno++;
 
             /*
-             * now do the allocation (__recno_lazy_load uses a cursor, which
-             * could overwrite our next key allocation
+             * allocate memory for the key
              */
             if (key->flags&HAM_KEY_USER_ALLOC) {
                 if (!key->data || key->size!=sizeof(ham_u64_t))
@@ -2505,8 +2467,11 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         recno=ham_db2h64(recno);
         memcpy(key->data, &recno, sizeof(ham_u64_t));
         key->size=sizeof(ham_u64_t);
-        if (!(flags&HAM_OVERWRITE))
-            db_set_recno(db, recno);
+        if (!(flags&HAM_OVERWRITE)) {
+            be_set_recno(be, recno);
+            be_set_dirty(be, 1);
+            db_set_dirty(db, 1);
+        }
     }
 
     return (0);

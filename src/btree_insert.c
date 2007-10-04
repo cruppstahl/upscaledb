@@ -178,7 +178,7 @@ btree_insert_cursor(ham_btree_t *be, ham_key_t *key,
          * do NOT delete the old root page - it's still in use!
          */
         btree_set_rootpage(be, page_get_self(newroot));
-        btree_set_dirty(be, HAM_TRUE);
+        be_set_dirty(be, HAM_TRUE);
         db_set_dirty(db, 1);
         page_set_type(root, PAGE_TYPE_B_INDEX);
     }

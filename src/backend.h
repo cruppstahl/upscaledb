@@ -127,9 +127,19 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
     ham_db_t *_db;                                                      \
                                                                         \
     /**                                                                 \
+     * the last used record number                                      \
+     */                                                                 \
+    ham_offset_t _recno;                                                \
+                                                                        \
+    /**                                                                 \
      * the keysize of this backend index                                \
      */                                                                 \
     ham_u16_t _keysize;                                                 \
+                                                                        \
+    /**                                                                 \
+     * flag if this backend has to be written to disk                   \
+     */                                                                 \
+    ham_u8_t _dirty;                                                    \
                                                                         \
     /**                                                                 \
      * the persistent flags of this backend index                       \
@@ -180,6 +190,26 @@ HAM_PACK_0 struct HAM_PACK_1 ham_backend_t
  * set the flags
  */
 #define be_set_flags(be, f)                 (be)->_flags=f
+
+/*
+ * get the last used record number
+ */
+#define be_get_recno(be)                    (be)->_recno
+
+/*
+ * set the last used record number
+ */
+#define be_set_recno(be, rn)                (be)->_recno=rn
+
+/*
+ * get the dirty-flag
+ */
+#define be_is_dirty(be)                     (be)->_dirty
+
+/*
+ * set the dirty-flag
+ */
+#define be_set_dirty(be, d)                 (be)->_dirty=d
 
 
 #ifdef __cplusplus

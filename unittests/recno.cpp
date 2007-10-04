@@ -36,6 +36,7 @@ class RecNoTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (endianTestOpenDatabase);
     CPPUNIT_TEST      (overwriteTest);
     CPPUNIT_TEST      (overwriteCursorTest);
+    CPPUNIT_TEST      (eraseLastReopenTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -515,7 +516,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, 
                     "data/recno-endian-test-open-database-le.hdb", 0));
 #endif
-        /* generated with `cat ../COPYING | ./db4`; has 2973 entries */
+        /* generated with `cat ../COPYING.GPL2 | ./db4`; has 2973 entries */
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -601,6 +602,41 @@ public:
         CPPUNIT_ASSERT_EQUAL(value, *(ham_u64_t *)rec.data);
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    }
+
+    void eraseLastReopenTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_u64_t recno;
+
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+
+        key.data=&recno;
+        key.flags=HAM_KEY_USER_ALLOC;
+        key.size=sizeof(recno);
+
+        for (int i=0; i<5; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_insert(m_db, 0, &key, &rec, 0));
+            CPPUNIT_ASSERT_EQUAL((ham_u64_t)i+1, recno);
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", m_flags));
+
+        for (int i=5; i<10; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_insert(m_db, 0, &key, &rec, 0));
+            CPPUNIT_ASSERT_EQUAL((ham_u64_t)i+1, recno);
+        }
+
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 };
