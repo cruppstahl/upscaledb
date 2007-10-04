@@ -460,21 +460,26 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
 
     /*
      * inmemory-databases: free the old blob, 
-     * allocate a new blob
-     *
-     * TODO optimize this: if sizes are equal, don't reallocate the blob
+     * allocate a new blob (but if both sizes are equal, just overwrite
+     * the data)
      */
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
         blob_t *nhdr, *phdr=(blob_t *)old_blobid;
 
-        st=blob_allocate(db, data, size, flags, new_blobid);
-        if (st)
-            return (st);
+        if (blob_get_user_size(phdr)==size) {
+            ham_u8_t *p=(ham_u8_t *)phdr;
+            memcpy(p+sizeof(blob_t), data, size);
+            *new_blobid=(ham_offset_t)phdr;
+        }
+        else {
+            st=blob_allocate(db, data, size, flags, new_blobid);
+            if (st)
+                return (st);
+            nhdr=(blob_t *)*new_blobid;
+            blob_set_flags(nhdr, blob_get_flags(phdr));
 
-        nhdr=(blob_t *)*new_blobid;
-        blob_set_flags(nhdr, blob_get_flags(phdr));
-
-        ham_mem_free(db, phdr);
+            ham_mem_free(db, phdr);
+        }
 
         return (0);
     }

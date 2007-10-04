@@ -83,9 +83,14 @@ x record numbers should not be reused
         again - No, not yet. just return ALREADY_EXISTS -> need reorg-tool
     x unittest
 
+x overwrite inmemory-blob: do not re-allocate the memory if the memory sizes
+    are the same
+
 o ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
         ham_size_t *count, int flags=0);
     x blob_duplicate_get_count(dupe_table_id);
+    o add header file documentation
+    o add tutorial documentation
     o unittests
 
 o new sample for duplicate keys
@@ -94,24 +99,6 @@ o new sample for duplicate keys
 
 o btree_node_search_by_key uses linear search, no binary search
     -> optimize this!!
-
-o overwrite inmemory-blob: do not re-allocate the memory if the memory sizes
-    are the same
-
-
-
-
-o tests are failing:
-    --duplicate=1 --pagesize=65536
-      x ../../testfiles/1/201.tst - freelist goes berzerk
-      x ../../testfiles/1/202.tst - freelist goes berzerk
-    --duplicate=1 --use-cursors=1
-      o ../../testfiles/1/100.tst - status mismatch
-      o ../../testfiles/1/202.tst - status mismatch
-      o ../../testfiles/1/220.tst - status mismatch
-
-
-
 
 o recno on big endian
     x ham_find/ham_erase/ham_cursor_find: make sure that the parameter size 
@@ -127,6 +114,36 @@ o duplicate items on big endian
     x check-in le-database (created by the new sample)
     x check-in be-database (created by the new sample)
     o enhance endian-create.sh and endian-check.sh
+
+o recno-unittest always overwrites the existing database; change the
+    test so the original database is copied, and not modified
+    o also test ham_find
+    o also test ham_cursor_find
+    o also test ham_erase
+    o also test ham_cursor_erase
+    o also test ham_insert
+    o also test ham_cursor_insert
+
+o win32: project for sample db5 is missing
+    maybe restructure the solution file? one sln for win32, another for win64?
+    i don't like it as it is right now
+
+o are we using a good default page size? should we rather use 16kb??
+
+
+
+
+o tests are failing:
+    --duplicate=1 --pagesize=65536
+      x ../../testfiles/1/201.tst - freelist goes berzerk
+      x ../../testfiles/1/202.tst - freelist goes berzerk
+    --duplicate=1 --use-cursors=1
+      o ../../testfiles/1/100.tst - status mismatch
+      o ../../testfiles/1/202.tst - status mismatch
+      o ../../testfiles/1/220.tst - status mismatch
+
+
+
 
 o create a new repository for hamsterdb-alien for all dependencies 
     in source and precompiled (static/non-debug - cppunit and berkeleydb)
@@ -159,21 +176,6 @@ o modify acceptance test for --duplicate=1 (berkdb and hamster)
     o --duplicate-position="before"|"after"|"first"|"last"(default)
         o add to monster.sh
         o add to valgrind.sh
-
-o recno-unittest always overwrites the existing database; change the
-    test so the original database is copied, and not modified
-    o also test ham_find
-    o also test ham_cursor_find
-    o also test ham_erase
-    o also test ham_cursor_erase
-    o also test ham_insert
-    o also test ham_cursor_insert
-
-o win32: project for sample db5 is missing
-    maybe restructure the solution file? one sln for win32, another for win64?
-    i don't like it as it is right now
-
-o are we using a good default page size? should we rather use 16kb??
 
 o do benchmarking with 1mio inserts/reads
 
