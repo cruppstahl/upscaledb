@@ -16,6 +16,7 @@
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
 #include "memtracker.h"
+#include "os.hpp"
 
 class RecNoTest : public CppUnit::TestFixture
 {
@@ -51,14 +52,7 @@ public:
 
     void setUp()
     { 
-#if WIN32
-        (void)DeleteFileA((LPCSTR)".test");
-#else
-        if (unlink(".test")) {
-            if (errno!=2)
-                printf("failed to unlink .test: %s\n", strerror(errno));
-        }
-#endif
+        (void)os::unlink(".test");
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
     }
 
@@ -509,14 +503,15 @@ public:
         ham_record_t rec;
         ham_offset_t recno=100;
 
-#if HAM_LITTLE_ENDIAN
-        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, 
-                    "data/recno-endian-test-open-database-be.hdb", 0));
-#else
-        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, 
-                    "data/recno-endian-test-open-database-le.hdb", 0));
-#endif
         /* generated with `cat ../COPYING.GPL2 | ./db4`; has 2973 entries */
+#if HAM_LITTLE_ENDIAN
+        CPPUNIT_ASSERT_EQUAL(true, 
+            os::copy("data/recno-endian-test-open-database-be.hdb", ".test"));
+#else
+        CPPUNIT_ASSERT_EQUAL(true, 
+            os::copy("data/recno-endian-test-open-database-le.hdb", ".test"));
+#endif
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));

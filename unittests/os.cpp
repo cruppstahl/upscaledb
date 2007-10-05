@@ -12,6 +12,7 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <ham/hamsterdb.h>
 #include "../src/os.h"
+#include "os.hpp"
 
 #if WIN32
 #   include <windows.h>
@@ -55,11 +56,7 @@ public:
 
     void tearDown() 
     { 
-#if WIN32
-        (void)DeleteFileA((LPCSTR)".test");
-#else
-        (void)unlink(".test");
-#endif
+        (void)os::unlink(".test");
     }
 
     void openCloseTest()

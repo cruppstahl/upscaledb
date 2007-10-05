@@ -20,6 +20,7 @@
 #include "../src/btree.h"
 #include "../src/endian.h"
 #include "memtracker.h"
+#include "os.hpp"
 
 class DupeTest : public CppUnit::TestFixture
 {
@@ -175,14 +176,8 @@ public:
 
     void setUp()
     { 
-#if WIN32
-        (void)DeleteFileA((LPCSTR)".test");
-#else
-        if (unlink(".test")) {
-            if (errno!=2)
-                printf("failed to unlink .test: %s\n", strerror(errno));
-        }
-#endif
+        (void)os::unlink(".test");
+
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
         CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", 
                     m_flags|HAM_ENABLE_DUPLICATES, 0664));
@@ -1405,16 +1400,15 @@ public:
         /* close the existing database handle */
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
-#if HAM_LITTLE_ENDIAN
-        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, 
-                    "data/dupe-endian-test-open-database-be.hdb", 
-                    HAM_READ_ONLY));
-#else
-        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, 
-                    "data/dupe-endian-test-open-database-le.hdb", 
-                    HAM_READ_ONLY));
-#endif
         /* generated with `cat ../COPYING.GPL2 | ./db5` */
+#if HAM_LITTLE_ENDIAN
+        CPPUNIT_ASSERT_EQUAL(true, 
+            os::copy("data/dupe-endian-test-open-database-be.hdb", ".test"));
+#else
+        CPPUNIT_ASSERT_EQUAL(true, 
+            os::copy("data/dupe-endian-test-open-database-le.hdb", ".test"));
+#endif
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
 
         memset(&key, 0, sizeof(key));
         key.data=(void *)"written";
