@@ -132,9 +132,6 @@ __read_chunk(ham_db_t *db, ham_page_t *page, ham_page_t **fpage,
             if (page)
                 page_set_npers_flags(page, 
                     page_get_npers_flags(page)|PAGE_NPERS_NO_HEADER);
-            else
-                if (db_get_error(db))
-                    return (db_get_error(db));
         }
 
         /*
@@ -882,7 +879,7 @@ blob_duplicate_get(ham_db_t *db, ham_offset_t table_id,
         ham_size_t position, dupe_entry_t *entry)
 {
     dupe_table_t *table;
-    ham_page_t *page;
+    ham_page_t *page=0;
 
     table=__get_duplicate_table(db, table_id, &page);
     if (!table)

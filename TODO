@@ -127,7 +127,12 @@ o win32: project for sample db5 is missing
 
 o are we using a good default page size? should we rather use 16kb??
 
-
+961
+963
+964
+967
+967
+968 --
 
 
 o tests are failing:
