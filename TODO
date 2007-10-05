@@ -98,7 +98,7 @@ x new sample for duplicate keys
     modify sample env1, to create a 1:n relationship between orders
     and customers (or create a new sample)
 
-o btree_node_search_by_key uses linear search, no binary search
+x btree_node_search_by_key uses linear search, no binary search
     -> optimize this!!
 
 o recno-unittest always overwrites the existing database; change the

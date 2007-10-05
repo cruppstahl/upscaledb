@@ -286,14 +286,33 @@ btree_traverse_tree(ham_db_t *db, ham_page_t *page,
 ham_s32_t 
 btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key)
 {
-    int cmp;
-    ham_size_t i;
+    ham_s32_t slot;
+    ham_status_t st;
     btree_node_t *node=ham_page_get_btree_node(page);
 
     db_set_error(db, 0);
 
+    if (btree_node_get_count(node)==0)
+        return (-1);
+
+    st=btree_get_slot(db, page, key, &slot);
+    if (st) {
+        db_set_error(db, st);
+        return (-1);
+    }
+
+    if (slot!=-1) {
+        int cmp=key_compare_int_to_pub(page, (ham_u16_t)slot, key);
+        if (cmp)
+            return (-1);
+    }
+
+    return (slot);
+#if 0
+    ham_size_t i;
+
     for (i=0; i<btree_node_get_count(node); i++) {
-        cmp=key_compare_int_to_pub(page, (ham_u16_t)i, key);
+        int cmp=key_compare_int_to_pub(page, (ham_u16_t)i, key);
         if (db_get_error(db))
             return (-1);
         if (cmp==0)
@@ -301,4 +320,5 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key)
     }
 
     return (-1);
+#endif
 }
