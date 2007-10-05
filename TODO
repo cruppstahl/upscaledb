@@ -117,8 +117,8 @@ o duplicate items on big endian
     x create unittest
     x check-in le-database (created by the new sample)
     x check-in be-database (created by the new sample)
+    x enhance endian-create.sh and endian-check.sh
     o check acceptance tests!
-    o enhance endian-create.sh and endian-check.sh
 
 o win32: project for sample db5 is missing
     maybe restructure the solution file? one sln for win32, another for win64?
@@ -127,12 +127,8 @@ o win32: project for sample db5 is missing
 
 o are we using a good default page size? should we rather use 16kb??
 
-961
-963
-964
-967
-967
-968 --
+
+
 
 
 o tests are failing:
