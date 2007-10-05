@@ -101,23 +101,17 @@ x new sample for duplicate keys
 x btree_node_search_by_key uses linear search, no binary search
     -> optimize this!!
 
-o recno-unittest always overwrites the existing database; change the
+x recno-unittest always overwrites the existing database; change the
     test so the original database is copied, and not modified
-    o also test ham_find
-    o also test ham_cursor_find
-    o also test ham_erase
-    o also test ham_cursor_erase
-    o also test ham_insert
-    o also test ham_cursor_insert
-
-o recno on big endian
-    x ham_find/ham_erase/ham_cursor_find: make sure that the parameter size 
-        is ok
-    x ham_find/ham_erase/ham_cursor_find: translate key to db-endian
-        (currently, unittest fails on big endian)
-    x other unittests are failing
-    o check acceptance tests!
-    o enhance endian-create.sh and endian-check.sh
+    x create os.hpp (same as in acceptance test)
+        x static os::unlink()
+        x static os::copy()
+    x test ham_find
+    x test ham_cursor_find
+    x test ham_erase
+    x test ham_cursor_erase
+    x test ham_insert
+    x test ham_cursor_insert
 
 o duplicate items on big endian
     x create unittest

@@ -502,6 +502,7 @@ public:
         ham_key_t key;
         ham_record_t rec;
         ham_offset_t recno=100;
+        ham_cursor_t *cursor;
 
         /* generated with `cat ../COPYING.GPL2 | ./db4`; has 2973 entries */
 #if HAM_LITTLE_ENDIAN
@@ -513,6 +514,9 @@ public:
 #endif
         CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
 
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_create(m_db, 0, 0, &cursor));
+
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
         key.data=(void *)&recno;
@@ -521,15 +525,35 @@ public:
                 ham_find(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, strcmp("the", (char *)rec.data));
 
+        ::memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_find(cursor, &key, 0));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_move(cursor, 0, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, strcmp("the", (char *)rec.data));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(cursor, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_find(m_db, 0, &key, &rec, 0));
+
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_insert(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2974ull, *(ham_u64_t *)key.data);
 
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_insert(cursor, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)2975ull, *(ham_u64_t *)key.data);
+
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_erase(m_db, 0, &key, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_find(m_db, 0, &key, &rec, 0));
 
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 

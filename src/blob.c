@@ -45,12 +45,15 @@ __write_chunks(ham_db_t *db, ham_page_t *page,
             pageid=(addr/db_get_pagesize(db))*db_get_pagesize(db);
 
             /*
-             * is it the current page? if not, try to fetch the page from
-             * the cache - but only read the page from disk, if the 
-             * chunk is small
+             * is this the current page?
              */
-            if (!(page && page_get_self(page)==pageid) || 
-                    my_blob_is_small(db, chunk_size[i])) {
+            if (page && page_get_self(page)!=pageid)
+                page=0;
+
+            /*
+             * fetch the page from the cache, if it's in the cache
+             */
+            if (!page) {
                 page=db_fetch_page(db, pageid, 
                         my_blob_is_small(db, chunk_size[i]) 
                         ? 0 : DB_ONLY_FROM_CACHE);
@@ -122,7 +125,7 @@ __read_chunk(ham_db_t *db, ham_page_t *page, ham_page_t **fpage,
          * the cache - but only read the page from disk, if the 
          * chunk is small
          */
-        if (page || my_blob_is_small(db, size)) {
+        if (!page) {
             page=db_fetch_page(db, pageid, 
                     my_blob_is_small(db, size) ? 0 : DB_ONLY_FROM_CACHE);
             /* blob pages don't have a page header */
