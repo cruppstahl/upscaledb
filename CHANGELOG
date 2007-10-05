@@ -1,6 +1,8 @@
 Oct 05, 2007 - chris
 o added function ham_cursor_get_duplicate_count
 o fixed a bug in coupling an uncoupling cursor: the duplicate id was lost
+o added a new sample env2.c, which demonstrates a 1:n relationship for
+    two tables (with the use of duplicate keys)
 
 Oct 04, 2007 - chris
 o record numbers are now no longer reused after they were deleted and the

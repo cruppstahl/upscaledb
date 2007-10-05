@@ -94,12 +94,21 @@ x ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
     x unittests
     x add tutorial documentation
 
-o new sample for duplicate keys
+x new sample for duplicate keys
     modify sample env1, to create a 1:n relationship between orders
     and customers (or create a new sample)
 
 o btree_node_search_by_key uses linear search, no binary search
     -> optimize this!!
+
+o recno-unittest always overwrites the existing database; change the
+    test so the original database is copied, and not modified
+    o also test ham_find
+    o also test ham_cursor_find
+    o also test ham_erase
+    o also test ham_cursor_erase
+    o also test ham_insert
+    o also test ham_cursor_insert
 
 o recno on big endian
     x ham_find/ham_erase/ham_cursor_find: make sure that the parameter size 
@@ -114,20 +123,13 @@ o duplicate items on big endian
     x create unittest
     x check-in le-database (created by the new sample)
     x check-in be-database (created by the new sample)
+    o check acceptance tests!
     o enhance endian-create.sh and endian-check.sh
-
-o recno-unittest always overwrites the existing database; change the
-    test so the original database is copied, and not modified
-    o also test ham_find
-    o also test ham_cursor_find
-    o also test ham_erase
-    o also test ham_cursor_erase
-    o also test ham_insert
-    o also test ham_cursor_insert
 
 o win32: project for sample db5 is missing
     maybe restructure the solution file? one sln for win32, another for win64?
     i don't like it as it is right now
+    o add missing samples env1.c, env2.c
 
 o are we using a good default page size? should we rather use 16kb??
 
