@@ -264,6 +264,13 @@ bt_cursor_erase(ham_bt_cursor_t *cu, ham_u32_t flags);
 ham_bool_t 
 bt_cursor_points_to(ham_bt_cursor_t *cursor, int_key_t *key);
 
+/*
+ * get number of duplicates of this key
+ */
+ham_status_t
+bt_cursor_get_duplicate_count(ham_bt_cursor_t *cursor, 
+                ham_size_t *count, ham_u32_t flags);
+
 
 #ifdef __cplusplus
 } // extern "C"

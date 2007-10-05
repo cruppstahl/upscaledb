@@ -1429,6 +1429,26 @@ HAM_EXPORT ham_status_t
 ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
 
 /**
+ * Get the number of duplicate keys.
+ *
+ * Returns the number of duplicate keys of the item at which the
+ * cursor currently points to.
+ * Returns 1 if the key has no duplicates.
+ *
+ * @param cursor A valid cursor handle.
+ * @param count Returns the number of duplicate keys.
+ * @param flags Flags; unused, set to 0.
+ *
+ * @return @a HAM_SUCCESS upon success.
+ * @return @a HAM_CURSOR_IS_NIL if the cursor does not point to an item.
+ * @return @a HAM_INV_PARAMETER if @a cursor or @count is NULL.
+ *
+ */
+HAM_EXPORT ham_status_t
+ham_cursor_get_duplicate_count(ham_cursor_t *cursor, 
+        ham_size_t *count, ham_u32_t flags);
+
+/**
  * Closes a database cursor.
  *
  * Closes a cursor and frees allocated memory. All cursors

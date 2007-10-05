@@ -155,6 +155,11 @@ class DupeTest : public CppUnit::TestFixture
      */
     CPPUNIT_TEST      (overwriteVariousSizesTest);
 
+    /*
+     * tests get_cuplicate_count
+     */
+    CPPUNIT_TEST      (getDuplicateCountTest);
+
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -220,6 +225,7 @@ public:
         ham_key_t key;
         ham_record_t rec, rec2;
         ham_cursor_t *c;
+        ham_size_t count;
         char data[16];
         ::memset(&rec2, 0, sizeof(rec2));
 
@@ -258,6 +264,12 @@ public:
             CPPUNIT_ASSERT_EQUAL(0, ::memcmp(data, rec2.data, sizeof(data)));
         }
 
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_move(c, 0, 0, HAM_CURSOR_FIRST));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_get_duplicate_count(c, &count, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)5, count);
+
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
 
@@ -269,6 +281,7 @@ public:
         unsigned sizes[MAX]={0, 1, 2, 3, 4, 5, 936, 5, 100, 50};
         char *data;
         ham_cursor_t *cursor;
+        ham_size_t count;
 
         ::memset(&rec2, 0, sizeof(rec2));
 
@@ -314,6 +327,10 @@ public:
             }
         }
 
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_get_duplicate_count(cursor, &count, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)MAX, count);
+
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
 
@@ -334,6 +351,10 @@ public:
                 free(data);
             }
         }
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_get_duplicate_count(cursor, &count, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)MAX, count);
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
 
@@ -522,6 +543,7 @@ public:
     void insertTest(void)
     {
         ham_cursor_t *c;
+        ham_size_t count;
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
         
@@ -563,6 +585,10 @@ public:
         checkData(c, HAM_CURSOR_PREVIOUS, HAM_KEY_NOT_FOUND, "0000000000");
         checkData(c, HAM_CURSOR_NEXT,     0, "2222222222");
         checkData(c, HAM_CURSOR_NEXT,     0, "3333333333");
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_get_duplicate_count(c, &count, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)10, count);
 
         ham_cursor_close(c);
     }
@@ -1670,6 +1696,63 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
 
+    void getDuplicateCountTest(void)
+    {
+        ham_size_t count;
+        ham_cursor_t *c;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+
+        CPPUNIT_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
+                ham_cursor_get_duplicate_count(c, &count, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)0, count);
+
+        insertData(0, "1111111111");
+        checkData(c, HAM_CURSOR_NEXT,     0, "1111111111");
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_get_duplicate_count(c, &count, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)1, count);
+
+        insertData(0, "2222222222");
+        checkData(c, HAM_CURSOR_NEXT,     0, "2222222222");
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_get_duplicate_count(c, &count, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)2, count);
+
+        insertData(0, "3333333333");
+        checkData(c, HAM_CURSOR_NEXT,     0, "3333333333");
+        bt_cursor_uncouple((ham_bt_cursor_t *)c, 0);
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_get_duplicate_count(c, &count, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)3, count);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
+                ham_cursor_get_duplicate_count(c, &count, 0));
+        checkData(c, HAM_CURSOR_FIRST,    0, "1111111111");
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_get_duplicate_count(c, &count, 0));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)2, count);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
+
+        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+            /* reopen the database */
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+            CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", m_flags));
+            CPPUNIT_ASSERT(db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES);
+
+            CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+
+            checkData(c, HAM_CURSOR_NEXT,     0, "1111111111");
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_cursor_get_duplicate_count(c, &count, 0));
+            CPPUNIT_ASSERT_EQUAL((ham_size_t)2, count);
+
+            CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
+        }
+    }
+
 };
 
 class InMemoryDupeTest : public DupeTest
@@ -1705,6 +1788,7 @@ class InMemoryDupeTest : public DupeTest
     CPPUNIT_TEST      (insertAfterTest);
     CPPUNIT_TEST      (insertBeforeTest);
     CPPUNIT_TEST      (overwriteVariousSizesTest);
+    CPPUNIT_TEST      (getDuplicateCountTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:

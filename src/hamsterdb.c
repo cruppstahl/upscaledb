@@ -2510,6 +2510,24 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 }
 
 ham_status_t
+ham_cursor_get_duplicate_count(ham_cursor_t *cursor, 
+        ham_size_t *count, ham_u32_t flags)
+{
+    if (!cursor || !count)
+        return (HAM_INV_PARAMETER);
+
+    *count=0;
+
+    if (db_get_env(cursor_get_db(cursor)))
+        __prepare_db(cursor_get_db(cursor));
+
+    db_set_error(cursor_get_db(cursor), 0);
+
+    return (bt_cursor_get_duplicate_count((ham_bt_cursor_t *)cursor, 
+                count, flags));
+}
+
+ham_status_t
 ham_cursor_close(ham_cursor_t *cursor)
 {
     if (!cursor)

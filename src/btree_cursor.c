@@ -396,6 +396,7 @@ bt_cursor_couple(ham_bt_cursor_t *c)
     ham_db_t *db=cursor_get_db(c);
     ham_txn_t txn;
     ham_bool_t local_txn=db_get_txn(db) ? HAM_FALSE : HAM_TRUE;
+    ham_u32_t dupe_id;
 
     ham_assert(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_UNCOUPLED,
             ("coupling a cursor which is not uncoupled"));
@@ -409,6 +410,9 @@ bt_cursor_couple(ham_bt_cursor_t *c)
     /*
      * make a 'find' on the cached key; if we succeed, the cursor
      * is automatically coupled
+     *
+     * the dupe ID is overwritten in bt_cursor_find, therefore save it
+     * and restore it afterwards
      */
     memset(&key, 0, sizeof(key));
 
@@ -417,8 +421,12 @@ bt_cursor_couple(ham_bt_cursor_t *c)
             (void)ham_txn_abort(&txn);
         return (db_get_error(db));
     }
+
+    dupe_id=bt_cursor_get_dupe_id(c);
     
     st=bt_cursor_find(c, &key, 0);
+
+    bt_cursor_set_dupe_id(c, dupe_id);
 
     /*
      * free the cached key
@@ -1014,6 +1022,67 @@ bt_cursor_points_to(ham_bt_cursor_t *cursor, int_key_t *key)
         if (entry==key)
             return (1);
     }
+
+    return (0);
+}
+
+ham_status_t
+bt_cursor_get_duplicate_count(ham_bt_cursor_t *cursor, 
+                ham_size_t *count, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_db_t *db=bt_cursor_get_db(cursor);
+    ham_btree_t *be=(ham_btree_t *)db_get_backend(db);
+    ham_txn_t txn;
+    ham_bool_t local_txn=db_get_txn(db) ? HAM_FALSE : HAM_TRUE;
+    ham_page_t *page;
+    btree_node_t *node;
+    int_key_t *entry;
+
+    if (!be)
+        return (HAM_NOT_INITIALIZED);
+
+    if (local_txn) {
+        st=ham_txn_begin(&txn, db);
+        if (st)
+            return (st);
+    }
+
+    /*
+     * uncoupled cursor: couple it
+     */
+    if (bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_UNCOUPLED) {
+        st=bt_cursor_couple(cursor);
+        if (st) {
+            if (local_txn)
+                (void)ham_txn_abort(&txn);
+            return (st);
+        }
+    }
+    else if (!(bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_COUPLED)) {
+        if (local_txn)
+            (void)ham_txn_abort(&txn);
+        return (HAM_CURSOR_IS_NIL);
+    }
+
+    page=bt_cursor_get_coupled_page(cursor);
+    node=ham_page_get_btree_node(page);
+    entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(cursor));
+
+    if (!(key_get_flags(entry)&KEY_HAS_DUPLICATES)) {
+        *count=1;
+    }
+    else {
+        st=blob_duplicate_get_count(db, key_get_ptr(entry), count, 0);
+        if (st) {
+            if (local_txn)
+                (void)ham_txn_abort(&txn);
+            return (st);
+        }
+    }
+
+    if (local_txn)
+        return (ham_txn_commit(&txn, 0));
 
     return (0);
 }

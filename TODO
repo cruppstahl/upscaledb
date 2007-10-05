@@ -86,12 +86,13 @@ x record numbers should not be reused
 x overwrite inmemory-blob: do not re-allocate the memory if the memory sizes
     are the same
 
-o ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
+x ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
         ham_size_t *count, int flags=0);
     x blob_duplicate_get_count(dupe_table_id);
-    o add header file documentation
-    o add tutorial documentation
-    o unittests
+    x implement public function
+    x add header file documentation
+    x unittests
+    x add tutorial documentation
 
 o new sample for duplicate keys
     modify sample env1, to create a 1:n relationship between orders
