@@ -468,7 +468,7 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
 
         if (blob_get_user_size(phdr)==size) {
             ham_u8_t *p=(ham_u8_t *)phdr;
-            memcpy(p+sizeof(blob_t), data, size);
+            memmove(p+sizeof(blob_t), data, size);
             *new_blobid=(ham_offset_t)phdr;
         }
         else {
@@ -648,6 +648,8 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
         table=__get_duplicate_table(db, table_id, &page);
         if (!table)
             return (db_get_error(db));
+        if (!page && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB))
+            alloc_table=1;
     }
 
     ham_assert(num_entries==1, (""));
@@ -826,7 +828,7 @@ blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
                 return (st);
             }
         }
-        memcpy(e, e+1,
+        memmove(e, e+1,
             ((dupe_table_get_count(table)-position)-1)*sizeof(dupe_entry_t));
         dupe_table_set_count(table, dupe_table_get_count(table)-1);
 
