@@ -127,6 +127,7 @@ o duplicate items on big endian
 
 o are we using a good default page size? should we rather use 16kb??
 
+o make sure that env2 works on Windows CE
 
 
 
