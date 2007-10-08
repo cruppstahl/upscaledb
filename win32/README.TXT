@@ -1,13 +1,18 @@
 
-hamsterdb Win32 build environment              Thu May 17 14:13:01 UTC 2007
+hamsterdb Win32 build environment              Mon Oct 08 21:53:29 UTC 2007
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 The Win32 build environment is a Solution file for Microsoft Visual C++ 2005 
-(win32/hamsterdb/hamsterdb.sln). It compiles a static and a dynamic library. 
-The static library is built in '/win32/hamsterdb/release/libhamsterdb.lib', 
-the dynamic library is in '/win32/hamsterdb/release/hamsterdb.dll'. An import
-library is also provided. All libraries can be downloaded separately from 
-the hamsterdb webpage.
+(win32/hamsterdb.sln). It compiles a static and a dynamic library, the samples
+and the unittest. 
+
+All libraries and executable files are built in the 'out'-directory. 
+Intermediate files are in the 'tmp'-directory.
+
+The static library is built in 'out/lib[_debug][_x64]/libhamsterdb.lib', 
+the dynamic library is in 'out/dll[_debug][_x64]/hamsterdb.dll'. Import
+libraries and pdb files for debug builds are also provided. 
+All libraries can be downloaded separately from the hamsterdb webpage.
 
 The unittests need cppunit, available at
 http://sourceforge.net/projects/cppunit. You will have to modify 
