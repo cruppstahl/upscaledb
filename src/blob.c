@@ -210,7 +210,7 @@ __get_duplicate_table(ham_db_t *db, ham_offset_t table_id, ham_page_t **page)
     /*
      * otherwise allocate memory for the table
      */
-    table=ham_mem_alloc(db, blob_get_user_size(&hdr));
+    table=ham_mem_alloc(db, (ham_size_t)blob_get_user_size(&hdr));
     if (!table) {
         db_set_error(db, HAM_OUT_OF_MEMORY);
         return (0);
@@ -220,7 +220,7 @@ __get_duplicate_table(ham_db_t *db, ham_offset_t table_id, ham_page_t **page)
      * then read the rest of the blob
      */
     st=__read_chunk(db, hdrpage, 0, table_id+sizeof(hdr), 
-            (ham_u8_t *)table, blob_get_user_size(&hdr));
+            (ham_u8_t *)table, (ham_size_t)blob_get_user_size(&hdr));
     if (st) {
         db_set_error(db, st);
         return (0);
@@ -385,7 +385,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
         else {
             /* resize buffer, if necessary */
             if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-                st=db_resize_allocdata(db, blob_get_user_size(hdr));
+                st=db_resize_allocdata(db, (ham_size_t)blob_get_user_size(hdr));
                 if (st)
                     return (st);
                 record->data=db_get_record_allocdata(db);
@@ -429,7 +429,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
      * second step: resize the blob buffer
      */
     if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-        st=db_resize_allocdata(db, blob_get_user_size(&hdr));
+        st=db_resize_allocdata(db, (ham_size_t)blob_get_user_size(&hdr));
         if (st)
             return (st);
         record->data=db_get_record_allocdata(db);
