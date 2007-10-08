@@ -29,7 +29,7 @@ public:
     static bool unlink(const char *path)
     {
 #ifdef WIN32
-        return ((bool)DeleteFileA((LPCSTR)path));
+        return (DeleteFileA((LPCSTR)path)==TRUE);
 #else
         return (0==::unlink(path));
 #endif
@@ -41,7 +41,7 @@ public:
     static bool copy(const char *src, const char *dest)
     {
 #ifdef WIN32
-        return ((bool)CopyFile(src, dest, FALSE));
+        return (CopyFileA((LPCSTR)src, dest, FALSE)==TRUE);
 #else
         char buffer[1024*4];
 

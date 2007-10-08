@@ -505,9 +505,9 @@ public:
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
         rec.data=(void *)data;
-        rec.size=::strlen(data)+1;
+        rec.size=(ham_size_t)::strlen(data)+1;
         key.data=(void *)k;
-        key.size=k ? ::strlen(k)+1 : 0;
+        key.size=(ham_u16_t)(k ? ::strlen(k)+1 : 0);
 
         CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
     }
@@ -1255,7 +1255,7 @@ public:
 
         ::memset(&rec, 0, sizeof(rec));
         rec.data=(void *)"3333333333333333333333333333333333333333333333333333";
-        rec.size=strlen((char *)rec.data)+1;
+        rec.size=(ham_size_t)strlen((char *)rec.data)+1;
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_overwrite(c, &rec, 0));
         checkData(c, HAM_CURSOR_FIRST,    0, "1111111111");
         checkData(c, HAM_CURSOR_NEXT,     0, "2222222222");
@@ -1265,7 +1265,7 @@ public:
 
         ::memset(&rec, 0, sizeof(rec));
         rec.data=(void *)"44";
-        rec.size=strlen((char *)rec.data)+1;
+        rec.size=(ham_size_t)strlen((char *)rec.data)+1;
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_overwrite(c, &rec, 0));
 
         checkData(c, HAM_CURSOR_LAST,     0, "5555555555");
@@ -1303,7 +1303,7 @@ public:
 
         ::memset(&rec, 0, sizeof(rec));
         rec.data=(void *)"3333333333333333333333333333333333333333333333333333";
-        rec.size=strlen((char *)rec.data)+1;
+        rec.size=(ham_size_t)strlen((char *)rec.data)+1;
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_overwrite(c1, &rec, 0));
         checkData(c1, 0,                   0, 
                 "3333333333333333333333333333333333333333333333333333");
@@ -1319,7 +1319,7 @@ public:
 
         ::memset(&rec, 0, sizeof(rec));
         rec.data=(void *)"44";
-        rec.size=strlen((char *)rec.data)+1;
+        rec.size=(ham_size_t)strlen((char *)rec.data)+1;
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_overwrite(c1, &rec, 0));
         checkData(c3, 0,                   0, "44");
         checkData(c3, HAM_CURSOR_PREVIOUS, 0, 
@@ -1372,7 +1372,7 @@ public:
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
         rec.data=(void *)"1111111111111111111111111111111111111111";
-        rec.size=strlen((char *)rec.data)+1;
+        rec.size=(ham_size_t)strlen((char *)rec.data)+1;
         CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
         checkData(c2, 0,                    0, 
                 "1111111111111111111111111111111111111111");
@@ -1380,7 +1380,7 @@ public:
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
         rec.data=(void *)"00";
-        rec.size=strlen((char *)rec.data)+1;
+        rec.size=(ham_size_t)strlen((char *)rec.data)+1;
         CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
         checkData(c2, 0,                    0, "00");
 
