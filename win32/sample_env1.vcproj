@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="dll"
-	ProjectGUID="{B82D2DF8-F8B2-4331-86D0-508BBD806507}"
-	RootNamespace="dll"
+	Name="sample_env1"
+	ProjectGUID="{57E4DDEF-945C-46A7-A889-3B2E9B2B7096}"
+	RootNamespace="sample_env1"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -20,9 +20,9 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="2"
+			OutputDirectory="out\samples\env1_debug"
+			IntermediateDirectory="tmp\samples\env1_debug"
+			ConfigurationType="1"
 			CharacterSet="1"
 			>
 			<Tool
@@ -43,12 +43,13 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL"
+				AdditionalIncludeDirectories="../include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
+				ProgramDataBaseFileName="$(OutDir)\vc80.pdb"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="4"
@@ -64,10 +65,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\hamsterdb.dll"
+				OutputFile="$(OutDir)\env1.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
-				SubSystem="2"
+				SubSystem="1"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -75,6 +76,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				UseFAT32Workaround="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -97,9 +99,9 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="2"
+			OutputDirectory="out\samples\env1_debug_x64"
+			IntermediateDirectory="tmp\samples\env1_debug_x64"
+			ConfigurationType="1"
 			CharacterSet="1"
 			>
 			<Tool
@@ -121,12 +123,13 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL"
+				AdditionalIncludeDirectories="../include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
+				ProgramDataBaseFileName="$(OutDir)\vc80.pdb"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
@@ -142,10 +145,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\hamsterdb.dll"
+				OutputFile="$(OutDir)\env1.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
-				SubSystem="2"
+				SubSystem="1"
 				TargetMachine="17"
 			/>
 			<Tool
@@ -153,6 +156,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				UseFAT32Workaround="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -175,9 +179,9 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="2"
+			OutputDirectory="out\samples\env1"
+			IntermediateDirectory="tmp\samples\env1"
+			ConfigurationType="1"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -198,8 +202,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;;HAM_ENABLE_INTERNAL"
+				AdditionalIncludeDirectories="../include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -217,10 +221,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\hamsterdb.dll"
+				OutputFile="$(OutDir)\env1.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
-				SubSystem="2"
+				SubSystem="1"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				TargetMachine="1"
@@ -230,6 +234,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				UseFAT32Workaround="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -252,9 +257,9 @@
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="2"
+			OutputDirectory="out\samples\env1_x64"
+			IntermediateDirectory="tmp\samples\env1_x64"
+			ConfigurationType="1"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -276,8 +281,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;;HAM_ENABLE_INTERNAL"
+				AdditionalIncludeDirectories="../include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -295,10 +300,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\hamsterdb.dll"
+				OutputFile="$(OutDir)\env1.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
-				SubSystem="2"
+				SubSystem="1"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				TargetMachine="17"
@@ -308,6 +313,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				UseFAT32Workaround="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -333,179 +339,7 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\src\backend.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\blob.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\blob.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\btree.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\btree.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\btree_check.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\btree_cursor.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\btree_cursor.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\btree_enum.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\btree_erase.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\btree_find.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\btree_insert.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\cache.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\cache.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\config.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\cursor.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\db.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\db.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\device.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\device.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\endian.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\env.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\error.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\error.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\extkeys.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\extkeys.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\freelist.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\freelist.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\hamsterdb.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\keys.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\keys.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\mem.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\mem.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\os.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\os_win32.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\packstart.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\packstop.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\page.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\page.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\txn.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\txn.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\util.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\util.h"
-			>
-		</File>
-		<File
-			RelativePath="..\..\src\version.h"
+			RelativePath="..\samples\env1.c"
 			>
 		</File>
 	</Files>

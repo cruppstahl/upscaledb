@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="sample_db2"
-	ProjectGUID="{1D39526E-1AC3-4E5C-B7B6-AD78FD27C4CC}"
-	RootNamespace="sample_db2"
+	Name="unittests"
+	ProjectGUID="{0C5D0A1D-A98A-4A4A-A954-EC15F8A611A6}"
+	RootNamespace="unittests"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -43,8 +43,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				AdditionalIncludeDirectories="../include;&quot;../../../alien/cppunit-1.12.0/include&quot;"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -64,88 +64,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\db2.exe"
+				AdditionalDependencies="&quot;../../../../alien/cppunit-1.12.0/lib/cppunitd.lib&quot;"
 				LinkIncremental="2"
+				GenerateManifest="true"
 				GenerateDebugInformation="true"
 				SubSystem="1"
-				TargetMachine="1"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
-				UseFAT32Workaround="true"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
-			/>
-		</Configuration>
-		<Configuration
-			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
-			CharacterSet="1"
-			WholeProgramOptimization="1"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-			/>
-			<Tool
-				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
-				RuntimeLibrary="2"
-				UsePrecompiledHeader="0"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="true"
-				DebugInformationFormat="3"
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-			/>
-			<Tool
-				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\db2.exe"
-				LinkIncremental="1"
-				GenerateDebugInformation="true"
-				SubSystem="1"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -200,8 +123,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				AdditionalIncludeDirectories="../include;&quot;../../alien/cppunit-1.12.0/include&quot;"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -221,11 +144,90 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\db2.exe"
+				AdditionalDependencies="&quot;../../../alien/cppunit-1.12.0/lib/cppunitd.lib&quot;"
 				LinkIncremental="2"
+				GenerateManifest="true"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="17"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+				UseFAT32Workaround="true"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCWebDeploymentTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release|Win32"
+			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
+			ConfigurationType="1"
+			CharacterSet="1"
+			WholeProgramOptimization="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="../include;&quot;../../../alien/cppunit-1.12.0/include&quot;"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS"
+				RuntimeLibrary="2"
+				UsePrecompiledHeader="0"
+				WarningLevel="3"
+				Detect64BitPortabilityProblems="true"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalDependencies="&quot;../../../../alien/cppunit-1.12.0/lib/cppunit.lib&quot;"
+				LinkIncremental="1"
+				GenerateDebugInformation="true"
+				SubSystem="1"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				TargetMachine="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -279,8 +281,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
+				AdditionalIncludeDirectories="../include;&quot;../../alien/cppunit-1.12.0/include&quot;"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -298,7 +300,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\db2.exe"
+				AdditionalDependencies="&quot;../../../alien/cppunit-1.12.0/lib/cppunit.lib&quot;"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -337,7 +339,87 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\samples\db2.c"
+			RelativePath="..\unittests\blob.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\bt_cursor.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\cache.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\db.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\device.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\duplicates.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\endian.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\env.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\extkeys.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\freelist.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\hamsterdb.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\keys.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\main.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\mem.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\memtracker.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\memtracker.h"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\os.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\page.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\recno.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\txn.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\util.cpp"
 			>
 		</File>
 	</Files>
