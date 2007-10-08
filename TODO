@@ -113,17 +113,17 @@ x recno-unittest always overwrites the existing database; change the
     x test ham_insert
     x test ham_cursor_insert
 
+x win32: project for sample db5 is missing
+    maybe restructure the solution file? one sln for win32, another for win64?
+    i don't like it as it is right now
+    x add missing samples env1.c, env2.c
+
 o duplicate items on big endian
     x create unittest
     x check-in le-database (created by the new sample)
     x check-in be-database (created by the new sample)
     x enhance endian-create.sh and endian-check.sh
     o check acceptance tests!
-
-o win32: project for sample db5 is missing
-    maybe restructure the solution file? one sln for win32, another for win64?
-    i don't like it as it is right now
-    o add missing samples env1.c, env2.c
 
 o are we using a good default page size? should we rather use 16kb??
 
@@ -147,11 +147,13 @@ o create a new repository for hamsterdb-alien for all dependencies
     in source and precompiled (static/non-debug - cppunit and berkeleydb)
     x linux64-le
     x linux32-le
+    x win32
     o cygwin32
-    o win32
     o win64
     o wince-x86
     o ppc32-be
+
+o release 0.4.7
 
 o extkey_cache: merge extkey_cache_remove() and blob_free()
 
@@ -163,21 +165,13 @@ o cursor_overwrite/cursor_insert:
     also, in cursor_move there are some optimizations regarding the
     cache (search for TODO)
 
-. new option HAM_DISABLE_AUTO_REORG -> adds empty chunks to freelist, but
-    never uses freelist for allocation
-
-. new option HAM_DISABLE_FREELIST -> completely disables the freelist (needs
-    cmd line reorg-tool!)
-
 o modify acceptance test for --duplicate=1 (berkdb and hamster)
     o new acceptance tests with many, many duplicates
     o --duplicate-position="before"|"after"|"first"|"last"(default)
         o add to monster.sh
         o add to valgrind.sh
 
-o do benchmarking with 1mio inserts/reads
-
-o release 0.4.7
+o do benchmarking with 1 mio inserts/reads
 
 . webpage
     o move to cakephp framework
@@ -201,3 +195,10 @@ o release 0.4.7
 
 . some parts of the code would be nicer if we had ham_mem_realloc
     and ham_mem_calloc
+
+. new option HAM_DISABLE_AUTO_REORG -> adds empty chunks to freelist, but
+    never uses freelist for allocation
+
+. new option HAM_DISABLE_FREELIST -> completely disables the freelist (needs
+    cmd line reorg-tool!)
+
