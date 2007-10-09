@@ -118,12 +118,12 @@ x win32: project for sample db5 is missing
     i don't like it as it is right now
     x add missing samples env1.c, env2.c
 
-o duplicate items on big endian
+x duplicate items on big endian
     x create unittest
     x check-in le-database (created by the new sample)
     x check-in be-database (created by the new sample)
     x enhance endian-create.sh and endian-check.sh
-    o check acceptance tests!
+    x check acceptance tests!
 
 o are we using a good default page size? should we rather use 16kb??
 
