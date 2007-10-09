@@ -1,3 +1,9 @@
+Oct 10, 2007 - chris ---------------------------------------------------
+                      release of hamsterdb-0.4.7
+
+Oct 09, 2007 - chris
+o restructured the wince MSV8 solution and project files
+
 Oct 08, 2007 - chris
 o completely recreated the win32 MSVC8 solution and project files
 

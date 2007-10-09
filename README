@@ -1,5 +1,5 @@
 
-hamsterdb 0.4.6                                Mon Sep 24 16:57:32 UTC 2007
+hamsterdb 0.4.7                                Wed Oct 10 08:11:01 UTC 2007
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -14,37 +14,39 @@ variable length keys and can create in-memory databases.
 
 Although no bugs are known, this release is marked "unstable", because the
 database file format is still subject to change. The first stable release 
-will be version 1.0. See below for known issues of this release.
+will be version 1.0.
 
 2. Changes
 
 New Features
-* "Duplicate items": hamsterdb now supports duplicate keys.
-    A new sample (db5.c) demonstrates the new functions.
+* ham_close and ham_env_close now expect a second parameter (flags). By
+    specifying the flag HAM_AUTO_CLEANUP, all open cursors (or open 
+    databases, respectively) are automatically closed. Read the samples
+    to see the flag in action.
+* Added the function ham_cursor_get_duplicate_count(), which returns the
+    number of duplicates of a key.
 
 Bugfixes
-* Record number databases were broken on big-endian architectures
-* If a cursor pointed to an item, but this item was erased (either
-	with another cursor or ham_erase), the dangling pointer was not updated,
-	and a subsequent access would result in undefined behaviour - fixed
-* Overwriting record number keys was not possible because a new (incremented) 
-    recno key was assigned even if the flag HAM_OVERWRITE was specified. 
-    fixed - recno keys can now be overwritten
+* Fixed a bug in the freelist management, which could result in a loss of
+    the freelist information and exploding file size.
+* Record numbers are no longer reused if the highest recno was deleted
+    and the database was then reopened.
+* Fixed a bug in the cursor management, where a cursor could lose the
+    duplicate ID.
 
 Other Changes
-* The function ham_cursor_replace was renamed to ham_cursor_overwrite.
-* More unittests were added
-* hamsterdb is now released under GPL 2.0 *or later*, which also includes 
-    GPL 3.0
+* Added a new sample env2.c, which demonstrates a 1:n relationship for
+    two tables (with the use of duplicate keys).
+* It's now enough to initialize a ham_key_t and ham_record_t once in the
+    beginning, and not before every use. Also added some checks and 
+    errors when using uninitialized ham_key_t or ham_record_t structures.
+* Strong performance improvements for duplicate keys.
 
 To see a list of all changes, look in the file CHANGELOG.
 
-See below for known issues.
-
 3. Roadmap
 
-- The next release will mainly focus on performance improvements for duplicate
-items.
+- more stabilization and moving towards version 1.0
 - command line tools for recovery, dump and statistics
 - a C++ wrapper class
 
@@ -54,7 +56,7 @@ items.
 - Can run as an in-memory database
 - Supports multiple databases in one file
 - Supports record number databases ("auto-increment")
-- Supports duplicate items
+- Supports duplicate keys
 - Very fast database cursors 
 - Configurable page size, cache size and index key size
 - Portable ANSI-C implementation
@@ -70,11 +72,7 @@ items.
 
 5. Known Issues/Bugs
 
-* The support for duplicate items is feature-complete, but the performance
-is currently deteriorating if the database becomes large (>60 MB) and the 
-page size is 64kb. Also, the freelist thrashes and becomes very large.
-
-Release 0.4.7 will deal with these issues.
+No known issues.
 
 6. Compiling 
 
@@ -88,20 +86,18 @@ build with debugging symbols etc).
 6.2 Microsoft Visual Studio 8
 
 A Solution file is provided for Microsoft Visual C++ 2005:
-win32/hamsterdb/hamsterdb.sln. It compiles a static and a dynamic library. 
-The static library is built in '/win32/hamsterdb/release/libhamsterdb.lib', 
-the dynamic library is in '/win32/hamsterdb/release/hamsterdb.dll'. An import
-library is also provided. All libraries can be downloaded separately from 
-the hamsterdb webpage.
+win32/hamsterdb.sln. It compiles a static and a dynamic library. 
+Please read the README.TXT file in the win32 directory.
+All libraries can be downloaded separately from the hamsterdb webpage.
 
 To download Microsoft Visual C++ 2005 Express Edition for free, go to
 http://msdn.microsoft.com/vstudio/express/visualc/default.aspx.
 
 7. Testing and Example Code
 
-Make automatically compiles a simple example program in the directory
-'/samples'. To see hamsterdb in action, just run '/samples/db1' (or 
-'/win32/hamsterdb/release/db1.exe' on Win32 platforms).
+Make automatically compiles several example program in the directory
+'/samples'. To see hamsterdb in action, just run '/samples/db1' or any
+other sample. (or '/win32/out/samples/db1*.exe' on Windows platforms).
 
 8. API Documentation
 
