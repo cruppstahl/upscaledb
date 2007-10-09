@@ -2,8 +2,8 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="sample_env1"
-	ProjectGUID="{7C009F19-82F7-4A98-813A-E76DD5CEEFA4}"
+	Name="lib"
+	ProjectGUID="{606E722C-99A8-46FF-8B04-AB8E957682B3}"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -36,7 +36,7 @@
 			Name="Debug|STANDARDSDK_500 (ARMV4I)"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -58,12 +58,14 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="0"
-				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;DEBUG;_CONSOLE;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
+				AdditionalIncludeDirectories="..\include"
+				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;DEBUG;_LIB;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE;HAM_LITTLE_ENDIAN"
 				MinimalRebuild="true"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="3"
+				DisableSpecificWarnings="4103"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -78,17 +80,9 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
+				Name="VCLibrarianTool"
 				AdditionalOptions=" /subsystem:windowsce,5.00"
-				OutputFile="$(OutDir)/sample_env1.exe"
-				LinkIncremental="2"
-				DelayLoadDLLs="$(NOINHERIT)"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/sample_env1.pdb"
-				SubSystem="0"
-				StackReserveSize="65536"
-				StackCommitSize="4096"
-				EntryPointSymbol="mainWCRTStartup"
+				OutputFile="$(OutDir)/lib.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -118,7 +112,7 @@
 			Name="Debug|STANDARDSDK_500 (x86)"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -140,13 +134,14 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\include"
-				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;DEBUG;_CONSOLE;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
+				AdditionalIncludeDirectories="..\include"
+				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;DEBUG;_LIB;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE;HAM_LITTLE_ENDIAN"
 				MinimalRebuild="true"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="3"
+				DisableSpecificWarnings="4103"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -161,18 +156,9 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
+				Name="VCLibrarianTool"
 				AdditionalOptions=" /subsystem:windowsce,5.00"
-				OutputFile="$(OutDir)/sample_env1.exe"
-				LinkIncremental="2"
-				IgnoreDefaultLibraryNames="libc.lib"
-				DelayLoadDLLs="$(NOINHERIT)"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/sample_env1.pdb"
-				SubSystem="0"
-				StackReserveSize="65536"
-				StackCommitSize="4096"
-				EntryPointSymbol="mainWCRTStartup"
+				OutputFile="$(OutDir)/lib.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -202,7 +188,7 @@
 			Name="Debug|STANDARDSDK_500 (SH4)"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -224,7 +210,7 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="0"
-				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;DEBUG;_CONSOLE;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
+				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;DEBUG;_LIB;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				MinimalRebuild="true"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
@@ -244,17 +230,9 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
+				Name="VCLibrarianTool"
 				AdditionalOptions=" /subsystem:windowsce,5.00"
-				OutputFile="$(OutDir)/sample_env1.exe"
-				LinkIncremental="2"
-				DelayLoadDLLs="$(NOINHERIT)"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/sample_env1.pdb"
-				SubSystem="0"
-				StackReserveSize="65536"
-				StackCommitSize="4096"
-				EntryPointSymbol="mainWCRTStartup"
+				OutputFile="$(OutDir)/lib.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -284,7 +262,7 @@
 			Name="Debug|STANDARDSDK_500 (MIPSII)"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -306,7 +284,7 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="0"
-				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;DEBUG;_CONSOLE;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
+				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;DEBUG;_LIB;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				MinimalRebuild="true"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
@@ -326,17 +304,9 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
+				Name="VCLibrarianTool"
 				AdditionalOptions=" /subsystem:windowsce,5.00 /machine:MIPS"
-				OutputFile="$(OutDir)/sample_env1.exe"
-				LinkIncremental="2"
-				DelayLoadDLLs="$(NOINHERIT)"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/sample_env1.pdb"
-				SubSystem="0"
-				StackReserveSize="65536"
-				StackCommitSize="4096"
-				EntryPointSymbol="mainWCRTStartup"
+				OutputFile="$(OutDir)/lib.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -366,7 +336,7 @@
 			Name="Debug|STANDARDSDK_500 (MIPSII_FP)"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -388,7 +358,7 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="0"
-				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;DEBUG;_CONSOLE;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
+				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;DEBUG;_LIB;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				MinimalRebuild="true"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
@@ -408,17 +378,9 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
+				Name="VCLibrarianTool"
 				AdditionalOptions=" /subsystem:windowsce,5.00 /machine:MIPS"
-				OutputFile="$(OutDir)/sample_env1.exe"
-				LinkIncremental="2"
-				DelayLoadDLLs="$(NOINHERIT)"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/sample_env1.pdb"
-				SubSystem="0"
-				StackReserveSize="65536"
-				StackCommitSize="4096"
-				EntryPointSymbol="mainWCRTStartup"
+				OutputFile="$(OutDir)/lib.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -448,7 +410,7 @@
 			Name="Debug|STANDARDSDK_500 (MIPSIV)"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -470,7 +432,7 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="0"
-				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;DEBUG;_CONSOLE;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
+				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;DEBUG;_LIB;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				MinimalRebuild="true"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
@@ -490,17 +452,9 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
+				Name="VCLibrarianTool"
 				AdditionalOptions=" /subsystem:windowsce,5.00 /machine:MIPSFPU"
-				OutputFile="$(OutDir)/sample_env1.exe"
-				LinkIncremental="2"
-				DelayLoadDLLs="$(NOINHERIT)"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/sample_env1.pdb"
-				SubSystem="0"
-				StackReserveSize="65536"
-				StackCommitSize="4096"
-				EntryPointSymbol="mainWCRTStartup"
+				OutputFile="$(OutDir)/lib.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -530,7 +484,7 @@
 			Name="Debug|STANDARDSDK_500 (MIPSIV_FP)"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -552,7 +506,7 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="0"
-				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;DEBUG;_CONSOLE;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
+				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;DEBUG;_LIB;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				MinimalRebuild="true"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
@@ -572,17 +526,9 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
+				Name="VCLibrarianTool"
 				AdditionalOptions=" /subsystem:windowsce,5.00 /machine:MIPSFPU"
-				OutputFile="$(OutDir)/sample_env1.exe"
-				LinkIncremental="2"
-				DelayLoadDLLs="$(NOINHERIT)"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/sample_env1.pdb"
-				SubSystem="0"
-				StackReserveSize="65536"
-				StackCommitSize="4096"
-				EntryPointSymbol="mainWCRTStartup"
+				OutputFile="$(OutDir)/lib.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -612,7 +558,7 @@
 			Name="Release|STANDARDSDK_500 (ARMV4I)"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -634,11 +580,13 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="2"
-				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;_CONSOLE;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
+				AdditionalIncludeDirectories="..\include"
+				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;_LIB;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE;HAM_LITTLE_ENDIAN"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="3"
+				DisableSpecificWarnings="4103"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -653,19 +601,9 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
+				Name="VCLibrarianTool"
 				AdditionalOptions=" /subsystem:windowsce,5.00"
-				OutputFile="$(OutDir)/sample_env1.exe"
-				LinkIncremental="1"
-				DelayLoadDLLs="$(NOINHERIT)"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/sample_env1.pdb"
-				SubSystem="0"
-				StackReserveSize="65536"
-				StackCommitSize="4096"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
-				EntryPointSymbol="mainWCRTStartup"
+				OutputFile="$(OutDir)/lib.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -695,7 +633,7 @@
 			Name="Release|STANDARDSDK_500 (x86)"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -717,12 +655,13 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="2"
-				AdditionalIncludeDirectories="..\..\include"
-				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;_CONSOLE;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
+				AdditionalIncludeDirectories="..\include"
+				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;_LIB;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE;;HAM_LITTLE_ENDIAN"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="3"
+				DisableSpecificWarnings="4103"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -737,20 +676,9 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
+				Name="VCLibrarianTool"
 				AdditionalOptions=" /subsystem:windowsce,5.00"
-				OutputFile="$(OutDir)/sample_env1.exe"
-				LinkIncremental="1"
-				IgnoreDefaultLibraryNames="libc.lib"
-				DelayLoadDLLs="$(NOINHERIT)"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/sample_env1.pdb"
-				SubSystem="0"
-				StackReserveSize="65536"
-				StackCommitSize="4096"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
-				EntryPointSymbol="mainWCRTStartup"
+				OutputFile="$(OutDir)/lib.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -780,7 +708,7 @@
 			Name="Release|STANDARDSDK_500 (SH4)"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -802,7 +730,7 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="2"
-				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;_CONSOLE;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
+				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;_LIB;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -821,19 +749,9 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
+				Name="VCLibrarianTool"
 				AdditionalOptions=" /subsystem:windowsce,5.00"
-				OutputFile="$(OutDir)/sample_env1.exe"
-				LinkIncremental="1"
-				DelayLoadDLLs="$(NOINHERIT)"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/sample_env1.pdb"
-				SubSystem="0"
-				StackReserveSize="65536"
-				StackCommitSize="4096"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
-				EntryPointSymbol="mainWCRTStartup"
+				OutputFile="$(OutDir)/lib.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -863,7 +781,7 @@
 			Name="Release|STANDARDSDK_500 (MIPSII)"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -885,7 +803,7 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="2"
-				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;_CONSOLE;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
+				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;_LIB;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -904,19 +822,9 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
+				Name="VCLibrarianTool"
 				AdditionalOptions=" /subsystem:windowsce,5.00 /machine:MIPS"
-				OutputFile="$(OutDir)/sample_env1.exe"
-				LinkIncremental="1"
-				DelayLoadDLLs="$(NOINHERIT)"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/sample_env1.pdb"
-				SubSystem="0"
-				StackReserveSize="65536"
-				StackCommitSize="4096"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
-				EntryPointSymbol="mainWCRTStartup"
+				OutputFile="$(OutDir)/lib.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -946,7 +854,7 @@
 			Name="Release|STANDARDSDK_500 (MIPSII_FP)"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -968,7 +876,7 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="2"
-				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;_CONSOLE;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
+				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;_LIB;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -987,19 +895,9 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
+				Name="VCLibrarianTool"
 				AdditionalOptions=" /subsystem:windowsce,5.00 /machine:MIPS"
-				OutputFile="$(OutDir)/sample_env1.exe"
-				LinkIncremental="1"
-				DelayLoadDLLs="$(NOINHERIT)"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/sample_env1.pdb"
-				SubSystem="0"
-				StackReserveSize="65536"
-				StackCommitSize="4096"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
-				EntryPointSymbol="mainWCRTStartup"
+				OutputFile="$(OutDir)/lib.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -1029,7 +927,7 @@
 			Name="Release|STANDARDSDK_500 (MIPSIV)"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -1051,7 +949,7 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="2"
-				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;_CONSOLE;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
+				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;_LIB;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -1070,19 +968,9 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
+				Name="VCLibrarianTool"
 				AdditionalOptions=" /subsystem:windowsce,5.00 /machine:MIPSFPU"
-				OutputFile="$(OutDir)/sample_env1.exe"
-				LinkIncremental="1"
-				DelayLoadDLLs="$(NOINHERIT)"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/sample_env1.pdb"
-				SubSystem="0"
-				StackReserveSize="65536"
-				StackCommitSize="4096"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
-				EntryPointSymbol="mainWCRTStartup"
+				OutputFile="$(OutDir)/lib.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -1112,7 +1000,7 @@
 			Name="Release|STANDARDSDK_500 (MIPSIV_FP)"
 			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -1134,7 +1022,7 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="2"
-				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;_CONSOLE;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
+				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=$(CEVER);UNDER_CE;WINCE;_LIB;$(ARCHFAM);$(_ARCHFAM_);_UNICODE;UNICODE"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -1153,19 +1041,9 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
+				Name="VCLibrarianTool"
 				AdditionalOptions=" /subsystem:windowsce,5.00 /machine:MIPSFPU"
-				OutputFile="$(OutDir)/sample_env1.exe"
-				LinkIncremental="1"
-				DelayLoadDLLs="$(NOINHERIT)"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/sample_env1.pdb"
-				SubSystem="0"
-				StackReserveSize="65536"
-				StackCommitSize="4096"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
-				EntryPointSymbol="mainWCRTStartup"
+				OutputFile="$(OutDir)/lib.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -1196,7 +1074,187 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\samples\env1.c"
+			RelativePath="..\src\backend.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\blob.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\blob.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\btree.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\btree.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\btree_check.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\btree_cursor.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\btree_cursor.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\btree_enum.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\btree_erase.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\btree_find.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\btree_insert.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\cache.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\cache.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\config.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\cursor.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\db.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\db.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\device.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\device.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\endian.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\error.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\error.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\extkeys.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\extkeys.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\freelist.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\freelist.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\hamsterdb.c"
+			>
+		</File>
+		<File
+			RelativePath="..\include\ham\hamsterdb.h"
+			>
+		</File>
+		<File
+			RelativePath="..\include\ham\hamsterdb_int.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\keys.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\keys.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\mem.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\mem.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\os.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\os_win32.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\packstart.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\packstop.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\page.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\page.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\txn.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\txn.h"
+			>
+		</File>
+		<File
+			RelativePath="..\include\ham\types.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\util.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\util.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\version.h"
 			>
 		</File>
 	</Files>
