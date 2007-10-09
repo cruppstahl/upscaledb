@@ -125,9 +125,9 @@ x duplicate items on big endian
     x enhance endian-create.sh and endian-check.sh
     x check acceptance tests!
 
-o are we using a good default page size? should we rather use 16kb??
+x make sure that env2 works on Windows CE
 
-o make sure that env2 works on Windows CE
+o are we using a good default page size? should we rather use 16kb??
 
 
 
