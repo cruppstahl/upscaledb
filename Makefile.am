@@ -42,7 +42,7 @@ EXTRA_DIST = documentation/Doxyfile                     \
              wince/sample_env2.vcproj 
 
 doc:
-    doxygen documentation/Doxyfile
+	doxygen documentation/Doxyfile
 
 test:
-    cd unittests && make && ./test
+	cd unittests && make && ./test
