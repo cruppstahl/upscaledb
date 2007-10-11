@@ -50,6 +50,7 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (deleteTest);
     CPPUNIT_TEST      (openTest);
     CPPUNIT_TEST      (createTest);
+    CPPUNIT_TEST      (createPagesizeTest);
     CPPUNIT_TEST      (createCloseCreateTest);
     CPPUNIT_TEST      (createPagesizeReopenTest);
     CPPUNIT_TEST      (readOnlyTest);
@@ -183,6 +184,23 @@ public:
         CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, 
                 ham_create(db, "/home", 0, 0664));
 #endif
+        ham_delete(db);
+    }
+
+    void createPagesizeTest(void)
+    {
+        ham_db_t *db;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+
+        for (int i=0; i<128; i++) {
+            ham_parameter_t ps[]={{HAM_PARAM_PAGESIZE,   1024}, {0, 0}};
+
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_create_ex(db, ".test", 0, 0644, &ps[0]));
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+        }
+
         ham_delete(db);
     }
 

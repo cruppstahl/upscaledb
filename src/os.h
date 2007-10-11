@@ -69,10 +69,16 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
 #endif
 
 /**
- * get the pagesize of the operating system
+ * get the preferred pagesize of the operating system
  */
 extern ham_size_t
 os_get_pagesize(void);
+
+/**
+ * get the page allocation granularity of the operating system
+ */
+extern ham_size_t
+os_get_granularity(void);
 
 /**
  * seek position in a file

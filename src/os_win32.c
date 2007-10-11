@@ -29,6 +29,12 @@ __utf8_string(const char *filename, wchar_t *wfilename, int wlen)
 ham_size_t
 os_get_pagesize(void)
 {
+    return (os_get_granularity());
+}
+
+ham_size_t
+os_get_granularity(void)
+{
     SYSTEM_INFO info;
     GetSystemInfo(&info);
     return ((ham_size_t)info.dwAllocationGranularity);

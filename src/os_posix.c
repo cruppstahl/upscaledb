@@ -73,6 +73,12 @@ my_enable_largefile(int fd)
 ham_size_t
 os_get_pagesize(void)
 {
+    return (1024*16);
+}
+
+ham_size_t
+os_get_granularity(void)
+{
     return ((ham_size_t)getpagesize());
 }
 

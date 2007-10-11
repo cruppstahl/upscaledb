@@ -1,3 +1,7 @@
+Oct 11, 2007 - chris
+o the default pagesize for unix databases is now 16kb, not 4kb; benchmarks 
+    show that this is the fastest option, but still results in small files
+
 Oct 10, 2007 - chris ---------------------------------------------------
                       release of hamsterdb-0.4.7
 

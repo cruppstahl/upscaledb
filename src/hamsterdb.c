@@ -346,15 +346,12 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
     }
 
     /*
-     * in-memory-db? use the default pagesize of the system
+     * in-memory-db? use a default pagesize of 16kb
      */
     if ((*flags)&HAM_IN_MEMORY_DB) {
         if (!pagesize) {
-            pagesize=os_get_pagesize();
-            if (!pagesize) {
-                pagesize=1024*4;
-                no_mmap=HAM_TRUE;
-            }
+            pagesize=16*1024;
+            no_mmap=HAM_TRUE;
         }
     }
 
@@ -362,19 +359,13 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
      * can we use mmap?
      */
 #if HAVE_MMAP
-
     if (!((*flags)&HAM_DISABLE_MMAP)) {
         if (pagesize) {
-            if (pagesize%os_get_pagesize()!=0)
+            if (pagesize%os_get_granularity()!=0)
                 no_mmap=HAM_TRUE;
         }
-        else {
+        else
             pagesize=os_get_pagesize();
-            if (!pagesize) {
-                pagesize=1024*4;
-                no_mmap=HAM_TRUE;
-            }
-        }
     }
 #else
     no_mmap=HAM_TRUE;
@@ -383,13 +374,8 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
     /*
      * if we still don't have a pagesize, try to get a good default value
      */
-    if (!pagesize) {
+    if (!pagesize)
         pagesize=os_get_pagesize();
-        if (!pagesize) {
-            pagesize=1024*4;
-            no_mmap=HAM_TRUE;
-        }
-    }
 
     /*
      * set the database flags if we can't use mmapped I/O
@@ -1151,7 +1137,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
          */
 #if HAVE_MMAP
         if (!(flags&HAM_DISABLE_MMAP)) {
-            if (pagesize%os_get_pagesize()==0)
+            if (pagesize%os_get_granularity()==0)
                 flags|=DB_USE_MMAP;
             else
                 device->set_flags(device, flags|HAM_DISABLE_MMAP);

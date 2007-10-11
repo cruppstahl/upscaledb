@@ -8,9 +8,14 @@ x some parts of the code would be nicer if we had ham_mem_calloc
 
 x extkey_cache: merge extkey_cache_remove() and blob_free()
 
-o some parts of the code would be nicer if we had ham_mem_realloc
+o are we using a good default page size? should we rather use 16kb??
+    --> yes, 16kb are faster and files are smaller
+    x change handling in hamsterdb.c
+    o add unittests for different pagesizes
+    o update CHANGELOG!
 
 o unittest.vcproj: set working directory 
+
 
 o environments support a configurable number of databases
 
@@ -26,8 +31,6 @@ o do a complete source code review, or ask someone to do it;
     make sure that the test coverage is as high as possible
 
 o c++-api
-
-o are we using a good default page size? should we rather use 16kb??
 
 o tests are failing:
     --duplicate=1 --pagesize=65536
@@ -75,6 +78,8 @@ o be more careful when uncoupling cursors - especially when inserting
         o move cursor to item
         o insert duplicate of item -> cursor is still coupled
         o insert item2 > item -> cursor is still coupled
+
+o some parts of the code would be nicer if we had ham_mem_realloc
 
 . new option HAM_DISABLE_AUTO_REORG -> adds empty chunks to freelist, but
     never uses freelist for allocation
