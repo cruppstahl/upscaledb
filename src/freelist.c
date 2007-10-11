@@ -56,7 +56,7 @@ __freel_cache_get_entry(ham_db_t *db, freelist_cache_t *cache,
         ham_offset_t address)
 {
     ham_size_t i=0;
-    ham_status_t st;
+    ham_status_t st=0;
     freelist_entry_t *entries;
     
     do {
@@ -77,8 +77,8 @@ __freel_cache_get_entry(ham_db_t *db, freelist_cache_t *cache,
          * not found? resize the table
          */
         st=__freel_cache_resize(db, cache, i+8);
-        if (st) /* TODO */
-            break;
+        if (st)
+            return (st);
     } while (1);
 
     ham_assert(!"shouldn't be here", (""));
@@ -164,7 +164,6 @@ __freel_search_aligned_bits(ham_db_t *db, freelist_payload_t *fp,
         max-=db_get_pagesize(db)/DB_CHUNKSIZE;
     }
 
-    /* TODO this does not yet check for spaces which span several pages */
     for (; i<max/size_bits; i+=db_get_pagesize(db)/DB_CHUNKSIZE) {
         if (p[i/8] & 1 << (i%8)) {
             start=i;

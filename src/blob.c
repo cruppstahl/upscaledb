@@ -724,10 +724,6 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
 
     /*
      * write the table back to disk and return the blobid of the table
-     *
-     * TODO can be optimized: if we didn't resize the table, blob_overwrite
-     * doesn't have to load the blob, check the size, then overwrite 
-     * everything; it can just write the blob without fetching it first
      */
     if ((table_id && !page) || resize) {
         st=blob_overwrite(db, table_id, (ham_u8_t *)table,

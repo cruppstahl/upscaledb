@@ -614,8 +614,6 @@ db_flush_all(ham_db_t *db, ham_u32_t flags);
  *
  * !!! the page will be aligned at the current page size. any wasted
  * space (due to the alignment) is added to the freelist.
- * TODO nur wenn NO_ALIGN nicht gesetzt ist! (sollte das nicht eher der
- * default sein??)
  *
  * @remark flags can be of the following value:
  *  PAGE_IGNORE_FREELIST        ignores all freelist-operations
