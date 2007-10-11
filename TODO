@@ -8,11 +8,11 @@ x some parts of the code would be nicer if we had ham_mem_calloc
 
 x extkey_cache: merge extkey_cache_remove() and blob_free()
 
-o are we using a good default page size? should we rather use 16kb??
+x are we using a good default page size? should we rather use 16kb??
     --> yes, 16kb are faster and files are smaller
     x change handling in hamsterdb.c
-    o add unittests for different pagesizes
-    o update CHANGELOG!
+    x add unittests for different pagesizes
+    x update CHANGELOG!
 
 o unittest.vcproj: set working directory 
 
