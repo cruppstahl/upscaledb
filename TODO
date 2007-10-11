@@ -6,3 +6,18 @@ o unittest.vcproj: set working directory
 o unittests: os.cpp:64 and os.cpp:80 try to open files which do not exist
         on win32; use other files instead
 
+o environments support a configurable number of databases
+
+o prepare file format for filters
+
+o add encryption filter
+
+o add compression filter
+
+o remove TODOs in the source
+
+o do a complete source code review, or ask someone to do it;
+    make sure that the test coverage is as high as possible
+
+o c++-api
+
