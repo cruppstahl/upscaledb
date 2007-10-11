@@ -64,7 +64,7 @@ public:
         ham_status_t st;
         ham_fd_t fd;
 
-        st=os_open("Makefile", 0, &fd);
+        st=os_open("Makefile.am", 0, &fd);
         CPPUNIT_ASSERT(st==0);
         st=os_close(fd, 0);
         CPPUNIT_ASSERT(st==0);
@@ -76,7 +76,7 @@ public:
         ham_fd_t fd;
         const char *p="# XXXXXXXXX ERROR\n";
 
-        st=os_open("Makefile", HAM_READ_ONLY, &fd);
+        st=os_open("Makefile.am", HAM_READ_ONLY, &fd);
         CPPUNIT_ASSERT(st==0);
         st=os_pwrite(fd, 0, p, (ham_size_t)strlen(p));
         CPPUNIT_ASSERT(st==HAM_IO_ERROR);
