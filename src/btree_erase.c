@@ -950,10 +950,8 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             if (key_get_flags(bte_lhs)&KEY_IS_EXTENDED) {
                 ham_offset_t blobid=key_get_extended_rid(db, bte_lhs);
                 ham_assert(blobid, (""));
-                if (db_get_extkey_cache(db))
-                    (void)extkey_cache_remove(db_get_extkey_cache(db), blobid);
 
-                st=blob_free(db, blobid, 0);
+                st=extkey_remove(db, blobid);
                 if (st)
                     return (0);
             }
@@ -1059,13 +1057,9 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
         ham_offset_t blobid=key_get_extended_rid(db, lhs);
         ham_assert(blobid, (""));
 
-        st=blob_free(db, blobid, 0);
+        st=extkey_remove(db, blobid);
         if (st)
             return (st);
-
-        /* remove the cached extended key */
-        if (db_get_extkey_cache(db)) 
-            (void)extkey_cache_remove(db_get_extkey_cache(db), blobid);
     }
 
     key_set_flags(lhs, key_get_flags(rhs));
@@ -1218,11 +1212,11 @@ free_all:
      */
     if (key_get_flags(bte)&KEY_IS_EXTENDED) {
         ham_offset_t blobid=key_get_extended_rid(db, bte);
-        (void)blob_free(db, blobid, 0);
+        ham_assert(blobid, (""));
 
-        /* remove the cached extended key */
-        if (db_get_extkey_cache(db)) 
-            (void)extkey_cache_remove(db_get_extkey_cache(db), blobid);
+        st=extkey_remove(db, blobid);
+        if (st)
+            return (st);
     }
 
     /*

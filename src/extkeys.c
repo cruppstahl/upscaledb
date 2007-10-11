@@ -17,6 +17,7 @@
 #include "mem.h"
 #include "error.h"
 #include "cache.h"
+#include "blob.h"
 
 #define EXTKEY_CACHE_BUCKETSIZE         251
 #define EXTKEY_MAX_AGE                    5
@@ -195,4 +196,18 @@ extkey_cache_purge(extkey_cache_t *cache)
     }
 
     return (0);
+}
+
+ham_status_t
+extkey_remove(ham_db_t *db, ham_offset_t blobid)
+{
+    ham_status_t st;
+
+    if (db_get_extkey_cache(db)) {
+        st=extkey_cache_remove(db_get_extkey_cache(db), blobid);
+        if (st && st!=HAM_KEY_NOT_FOUND)
+            return (st);
+    }
+
+    return (blob_free(db, blobid, 0));
 }

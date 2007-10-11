@@ -197,6 +197,12 @@ extkey_cache_fetch(extkey_cache_t *cache, ham_offset_t blobid,
 extern ham_status_t
 extkey_cache_purge(extkey_cache_t *cache);
 
+/**
+ * a combination of extkey_cache_remove and blob_free
+ */
+extern ham_status_t
+extkey_remove(ham_db_t *db, ham_offset_t blobid);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif 

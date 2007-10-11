@@ -149,15 +149,9 @@ my_free_cb(int event, void *param1, void *param2, void *context)
         if (key_get_flags(key)&KEY_IS_EXTENDED) {
             ham_offset_t blobid=key_get_extended_rid(c->db, key);
             /*
-             * delete the cached extended key
+             * delete the extended key
              */
-            if (db_get_extkey_cache(c->db))
-                (void)extkey_cache_remove(db_get_extkey_cache(c->db), blobid);
-
-            /*
-             * then delete the blob
-             */
-            (void)blob_free(c->db, blobid, 0);
+            (void)extkey_remove(c->db, blobid);
         }
 
         if (key_get_flags(key)&KEY_BLOB_SIZE_TINY ||
