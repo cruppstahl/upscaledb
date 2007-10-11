@@ -82,6 +82,7 @@ public:
 
         CPPUNIT_FAIL("should not be here");
     }
+
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(MemoryTest);

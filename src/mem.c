@@ -22,6 +22,7 @@
 
 #include "mem.h"
 #include "error.h"
+#include "db.h"
 
 void *
 alloc_impl(mem_allocator_t *self, const char *file, int line, ham_u32_t size)
@@ -66,3 +67,16 @@ ham_default_allocator_new(void)
      
     return (m);
 }
+
+void *
+ham_mem_calloc(ham_db_t *db, ham_size_t size)
+{
+    void *p;
+
+    if (!(p=ham_mem_alloc(db, size)))
+        return (0);
+
+    memset(p, 0, size);
+    return (p);
+}
+

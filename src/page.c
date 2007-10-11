@@ -201,13 +201,12 @@ page_new(ham_db_t *db)
 {
     ham_page_t *page;
 
-    page=(ham_page_t *)ham_mem_alloc(db, sizeof(ham_page_t));
+    page=(ham_page_t *)ham_mem_calloc(db, sizeof(ham_page_t));
     if (!page) {
         db_set_error(db, HAM_OUT_OF_MEMORY);
         return (0);
     }
 
-    memset(page, 0, sizeof(*page));
     page_set_owner(page, db);
     /* temporarily initialize the cache counter, just to be on the safe side */
     page_set_cache_cntr(page, 20);

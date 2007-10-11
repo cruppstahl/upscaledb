@@ -79,6 +79,12 @@ ham_default_allocator_new(void);
  */
 #define allocator_free(a, ptr)  (a)->free(a, __FILE__, __LINE__, ptr)
 
+/**
+ * a calloc function
+ */
+struct ham_db_t;
+extern void *ham_mem_calloc(struct ham_db_t *db, ham_size_t size);
+
 
 #ifdef __cplusplus
 } // extern "C"

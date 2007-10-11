@@ -28,13 +28,11 @@ extkey_cache_new(ham_db_t *db)
     int memsize;
 
     memsize=sizeof(extkey_cache_t)+EXTKEY_CACHE_BUCKETSIZE*sizeof(void *);
-    c=(extkey_cache_t *)ham_mem_alloc(db, memsize);
+    c=(extkey_cache_t *)ham_mem_calloc(db, memsize);
     if (!c) {
         db_set_error(db, HAM_OUT_OF_MEMORY);
         return (0);
     }
-
-    memset(c, 0, memsize);
 
     extkey_cache_set_db(c, db);
     extkey_cache_set_bucketsize(c, EXTKEY_CACHE_BUCKETSIZE);

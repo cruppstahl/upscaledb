@@ -340,15 +340,13 @@ __freel_lazy_create(ham_db_t *db)
     
     ham_assert(db_get_freelist_cache(db)==0, (""));
 
-    cache=ham_mem_alloc(db, sizeof(*cache));
+    cache=ham_mem_calloc(db, sizeof(*cache));
     if (!cache)
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
-    memset(cache, 0, sizeof(*cache));
 
-    entry=ham_mem_alloc(db, sizeof(*entry)*8);
+    entry=ham_mem_calloc(db, sizeof(*entry)*8);
     if (!entry)
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
-    memset(entry, 0, sizeof(*entry)*8);
 
     /*
      * add the header page to the freelist

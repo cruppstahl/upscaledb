@@ -628,10 +628,9 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
     if (!table_id) {
         ham_assert(num_entries==2, (""));
         /* allocates space for 8 (!) entries */
-        table=ham_mem_alloc(db, sizeof(dupe_table_t)+7*sizeof(dupe_entry_t));
+        table=ham_mem_calloc(db, sizeof(dupe_table_t)+7*sizeof(dupe_entry_t));
         if (!table)
             return (db_set_error(db, HAM_OUT_OF_MEMORY));
-        memset(table, 0, sizeof(dupe_table_t)+7*sizeof(dupe_entry_t));
         dupe_table_set_capacity(table, 8);
         dupe_table_set_count(table, 1);
         memcpy(dupe_table_get_entry(table, 0), &entries[0], sizeof(entries[0]));
@@ -667,11 +666,10 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
         else
             new_cap+=new_cap/3;
 
-        table=ham_mem_alloc(db, sizeof(dupe_table_t)+
+        table=ham_mem_calloc(db, sizeof(dupe_table_t)+
                         (new_cap-1)*sizeof(dupe_entry_t));
         if (!table)
             return (db_set_error(db, HAM_OUT_OF_MEMORY));
-        memset(table, 0, sizeof(dupe_table_t)+(new_cap-1)*sizeof(dupe_entry_t));
         dupe_table_set_capacity(table, new_cap);
         dupe_table_set_count(table, dupe_table_get_count(old));
         memcpy(dupe_table_get_entry(table, 0), dupe_table_get_entry(old, 0),

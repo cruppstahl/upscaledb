@@ -79,6 +79,7 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (cursorGetErasedItemTest);
     CPPUNIT_TEST      (replaceKeyTest);
     CPPUNIT_TEST      (replaceKeyFileTest);
+    CPPUNIT_TEST      (callocTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -686,6 +687,16 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(m_db));
         m_db=olddb;
+    }
+
+    void callocTest() {
+        char *p=(char *)ham_mem_calloc(m_db, 20);
+
+        for (int i=0; i<20; i++) {
+            CPPUNIT_ASSERT_EQUAL('\0', p[i]);
+        }
+
+        ham_mem_free(m_db, p);
     }
 };
 

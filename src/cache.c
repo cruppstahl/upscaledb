@@ -38,12 +38,11 @@ cache_new(ham_db_t *db, ham_size_t max_elements)
         buckets=1;
     mem=sizeof(ham_cache_t)+(buckets-1)*sizeof(void *);
 
-    cache=ham_mem_alloc(db, mem);
+    cache=ham_mem_calloc(db, mem);
     if (!cache) {
         db_set_error(db, HAM_OUT_OF_MEMORY);
         return (0);
     }
-    memset(cache, 0, mem);
     cache_set_max_elements(cache, max_elements);
     cache_set_bucketsize(cache, buckets);
     return (cache);
