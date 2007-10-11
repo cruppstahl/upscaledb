@@ -31,6 +31,16 @@ o do a complete source code review, or ask someone to do it;
     make sure that the test coverage is as high as possible
 
 o c++-api
+    o add static functions
+    o add database functions
+    o add cursor functions
+    o add environments
+    o add unittests (full coverage!)
+    o add at least two samples
+    o add documentation - how do we deal with documentation? refer to the
+        C++ documentation, only document the differences! otherwise
+        we go crazy...
+    o add documentation to webpage
 
 o tests are failing:
     --duplicate=1 --pagesize=65536
