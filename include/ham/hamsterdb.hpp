@@ -78,8 +78,7 @@ public:
 
     /* assignment operator */
     key &operator=(const key &other) {
-        if (this!=&*other) /* TODO correct? */
-            m_key=other.m_key;
+        m_key=other.m_key;
         return *this;
     }
 
@@ -115,6 +114,7 @@ public:
 
 private:
     friend class db;
+    friend class cursor;
     ham_key_t m_key;
 };
 
@@ -134,8 +134,7 @@ public:
 
     /* assignment operator */
     record &operator=(const record &other) {
-        if (this!=&*other) /* TODO correct? */
-            m_rec=other.m_rec;
+        m_rec=other.m_rec;
         return *this;
     }
 
@@ -171,6 +170,7 @@ public:
 
 protected:
     friend class db;
+    friend class cursor;
     ham_record_t m_rec;
 };
 
@@ -181,8 +181,8 @@ public:
     typedef cursor iterator;
 
     /* set error handler function */
-    static ham_status_t set_errhandler(ham_errhandler_fun f) {
-        return (ham_set_errhandler(f));
+    static void set_errhandler(ham_errhandler_fun f) {
+        ham_set_errhandler(f);
     }
 
     /* get hamsterdb library version */
@@ -252,33 +252,31 @@ public:
     }
 
     /* find a value */
-    record find(const key &k, ham_u32_t flags=0) {
+    record find(key *k, record *r, ham_u32_t flags=0) {
         record r;
-        ham_status_t st=ham_find(m_db, 0, (ham_key_t *)&k.m_key, 
-                &r.m_rec, flags);
+        ham_status_t st=ham_find(m_db, 0, &k->m_key, &r->m_rec, flags);
         if (st)
             throw error(st);
         return (r);
     }
 
     /* insert a value */
-    void insert(const key *k, const record *r, ham_u32_t flags=0) {
-        ham_status_t st=ham_insert(m_db, 0, (ham_key_t *)&k->m_key, 
-                (ham_record_t *)&r->m_rec, flags);
+    void insert(key *k, record *r, ham_u32_t flags=0) {
+        ham_status_t st=ham_insert(m_db, 0, &k->m_key, &r->m_rec, flags);
         if (st)
             throw error(st);
     }
 
     /* erase a value */
-    void erase(const key *k, ham_u32_t flags=0) {
-        ham_status_t st=ham_erase(m_db, 0, (ham_key_t *)&k->m_key, flags);
+    void erase(key *k, ham_u32_t flags=0) {
+        ham_status_t st=ham_erase(m_db, 0, &k->m_key, flags);
         if (st)
             throw error(st);
     }
 
     /* flush to disk */
     void flush(ham_u32_t flags=0) { 
-        ham_status_t st=ham_flush(m_db);
+        ham_status_t st=ham_flush(m_db, flags);
         if (st)
             throw error(st);
     }
@@ -289,6 +287,11 @@ public:
         if (st)
             throw error(st);
         m_opened=false;
+    }
+
+    /* get the database handle */
+    ham_db_t *get_handle() {
+        return (m_db);
     }
 
 private:
@@ -326,8 +329,9 @@ public:
     }
 
     /* move the cursor */
-    void move(key *key, record *record, ham_u32_t flags=0) {
-        ham_status_t st=ham_cursor_move(m_cursor, key, record, flags);
+    void move(key *k, record *rec, ham_u32_t flags=0) {
+        ham_status_t st=ham_cursor_move(m_cursor, &k->m_key, 
+                        &rec->m_rec, flags);
         if (st)
             throw error(st);
     }
@@ -355,22 +359,23 @@ public:
     }
 
     /* overwrite the current record */
-    void overwrite(record *record, ham_u32_t flags=0) {
-        ham_status_t st=ham_cursor_overwrite(m_cursor, record, flags);
+    void overwrite(record *rec, ham_u32_t flags=0) {
+        ham_status_t st=ham_cursor_overwrite(m_cursor, &rec->m_rec, flags);
         if (st)
             throw error(st);
     }
 
     /* find a key */
-    void find(key *akey, ham_u32_t flags=0) {
-        ham_status_t st=ham_cursor_find(m_cursor, key, flags);
+    void find(key *k, ham_u32_t flags=0) {
+        ham_status_t st=ham_cursor_find(m_cursor, &k->m_key, flags);
         if (st)
             throw error(st);
     }
 
     /* insert a key */
-    void insert(key *akey, record *rec, ham_u32_t flags=0) {
-        ham_status_t st=ham_cursor_insert(m_cursor, key, rec, flags);
+    void insert(key *k, record *r, ham_u32_t flags=0) {
+        ham_status_t st=ham_cursor_insert(m_cursor, &k->m_key, 
+                        &r->m_rec, flags);
         if (st)
             throw error(st);
     }
