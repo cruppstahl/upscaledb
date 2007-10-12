@@ -89,7 +89,7 @@ o be more careful when uncoupling cursors - especially when inserting
         o insert duplicate of item -> cursor is still coupled
         o insert item2 > item -> cursor is still coupled
 
-o some parts of the code would be nicer if we had ham_mem_realloc
+. some parts of the code would be nicer if we had ham_mem_realloc
 
 . new option HAM_DISABLE_AUTO_REORG -> adds empty chunks to freelist, but
     never uses freelist for allocation
