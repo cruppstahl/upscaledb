@@ -14,7 +14,7 @@ x are we using a good default page size? should we rather use 16kb??
     x add unittests for different pagesizes
     x update CHANGELOG!
 
-o unittest.vcproj: set working directory 
+x unittest.vcproj: set working directory -> can't set it :-(
 
 
 o environments support a configurable number of databases
