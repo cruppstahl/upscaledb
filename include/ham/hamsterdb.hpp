@@ -34,6 +34,8 @@
  *  o the assignment operator of class db is ugly; how else can i make
  *      this work: 
  *      ham::db db=env.create_db(1);
+ *  o db::find, db::insert and db::erase should receive const-parameters,
+ *      and should be const functions (and some other functions as well?)
  *
  * o documentation!!
  * TODO TODO TODO
@@ -205,9 +207,6 @@ public:
     /* destructor - automatically closes the database, if necessary */
     ~db() {
         close();
-        if (m_db)
-            ham_delete(m_db);
-        m_db=0;
     }
 
     /* the assignment operator transfers the ownership of the database
@@ -458,9 +457,6 @@ public:
     /* destructor - automatically closes the environment, if necessary */
     ~env() {
         close();
-        if (m_env)
-            ham_env_delete(m_env);
-        m_env=0;
     }
 
     /* create an environment */
