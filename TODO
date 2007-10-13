@@ -21,12 +21,11 @@ o c++-api
     x add database functions
     x add cursor functions
     x add environments
-    o add unittests (full coverage!)
-    o add at least two samples
+    x add unittests (full coverage!)
+    o convert sample db1.c and env2.c to c++
     o add documentation - how do we deal with documentation? refer to the
         C++ documentation, only document the differences! otherwise
         we go crazy...
-    o add documentation to webpage
 
 
 o environments support a configurable number of databases
@@ -103,3 +102,7 @@ o be more careful when uncoupling cursors - especially when inserting
     o frontpage: resize hamster picture; remove text -> more space below
         (for 3 colums: news, main features, articles/testimonials/link cloud)
 
+o c++ API
+    o add documentation to webpage
+
+o release 0.4.8 
