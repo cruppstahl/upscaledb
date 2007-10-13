@@ -65,6 +65,9 @@ private:
 };
 
 class key {
+    friend class db;
+    friend class cursor;
+
 public:
     /* constructor */
     key(void *data=0, ham_size_t size=0, ham_u32_t flags=0) {
@@ -115,12 +118,13 @@ public:
     }
 
 private:
-    friend class db;
-    friend class cursor;
     ham_key_t m_key;
 };
 
 class record {
+    friend class db;
+    friend class cursor;
+
 public:
     /* constructor */
     record(void *data=0, ham_size_t size=0, ham_u32_t flags=0) {
@@ -171,13 +175,14 @@ public:
     }
 
 protected:
-    friend class db;
-    friend class cursor;
     ham_record_t m_rec;
 };
 
 class db
 {
+    friend class env;
+    friend class cursor;
+
 public:
     class cursor;
     typedef cursor iterator;
@@ -309,13 +314,11 @@ public:
         m_db=0;
     }
 
+protected:
     /* get the database handle */
     ham_db_t *get_handle() {
         return (m_db);
     }
-
-protected:
-    friend class env;
 
     /* constructor */
     db(ham_db_t *db) : m_db(db), m_opened(true) {
