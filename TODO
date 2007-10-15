@@ -1,4 +1,12 @@
 
+Legend:
+
+o a pending TODO item (normal priority)
+. a pending TODO item (low priority)
+x a finished TODO item
+
+-----------------------------------------------------------------------------
+
 x release 0.4.7
 
 x unittests: os.cpp:64 and os.cpp:80 try to open files which do not exist
@@ -97,12 +105,12 @@ o be more careful when uncoupling cursors - especially when inserting
 . new option HAM_DISABLE_FREELIST -> completely disables the freelist (needs
     cmd line reorg-tool!)
 
-. webpage
-    o move to cakephp framework
-    o frontpage: resize hamster picture; remove text -> more space below
-        (for 3 colums: news, main features, articles/testimonials/link cloud)
-
 o c++ API
     o add documentation to webpage
 
 o release 0.4.8 
+
+. webpage
+    o move to cakephp framework
+    o frontpage: resize hamster picture; remove text -> more space below
+        (for 3 colums: news, main features, articles/testimonials/link cloud)
