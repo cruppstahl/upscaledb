@@ -1,8 +1,8 @@
 
 Legend:
 
-o a pending TODO item (normal priority)
-. a pending TODO item (low priority)
+o a pending  TODO item (normal priority)
+. a pending  TODO item (low priority)
 x a finished TODO item
 
 -----------------------------------------------------------------------------
@@ -34,6 +34,11 @@ o c++-api
     o add documentation - how do we deal with documentation? refer to the
         C++ documentation, only document the differences! otherwise
         we go crazy...
+
+o implement qemu images/machines for ARM, Sparc, PowerPC, PowerPC64 etc
+
+o move unittest to C test framework, not cppunit?? bad for embedded
+    platforms
 
 
 o environments support a configurable number of databases
