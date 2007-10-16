@@ -1978,6 +1978,9 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     if (db_get_cursors(db) && !(flags&HAM_AUTO_CLEANUP))
         return (db_set_error(db, HAM_DB_NOT_EMPTY));
 
+    if (db_get_env(db))
+        __prepare_db(db);
+
     db_set_error(db, 0);
 
     /*
