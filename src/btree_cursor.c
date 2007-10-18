@@ -117,9 +117,11 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
             && (!(flags&HAM_SKIP_DUPLICATES))) {
         ham_status_t st;
         bt_cursor_set_dupe_id(c, bt_cursor_get_dupe_id(c)+1);
+        page_add_ref(page);
         st=blob_duplicate_get(db, key_get_ptr(entry),
                         bt_cursor_get_dupe_id(c),
                         bt_cursor_get_dupe_cache(c));
+        page_release_ref(page);
         if (st) {
             bt_cursor_set_dupe_id(c, bt_cursor_get_dupe_id(c)-1);
             if (st!=HAM_KEY_NOT_FOUND)
@@ -208,9 +210,11 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
             && bt_cursor_get_dupe_id(c)>0) {
         ham_status_t st;
         bt_cursor_set_dupe_id(c, bt_cursor_get_dupe_id(c)-1);
+        page_add_ref(page);
         st=blob_duplicate_get(db, key_get_ptr(entry),
                         bt_cursor_get_dupe_id(c), 
                         bt_cursor_get_dupe_cache(c));
+        page_release_ref(page);
         if (st) {
             bt_cursor_set_dupe_id(c, bt_cursor_get_dupe_id(c)+1);
             if (st!=HAM_KEY_NOT_FOUND)
@@ -268,8 +272,10 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     if (key_get_flags(entry)&KEY_HAS_DUPLICATES
             && !(flags&HAM_SKIP_DUPLICATES)) {
         ham_size_t count;
+        page_add_ref(page);
         ham_status_t st=blob_duplicate_get_count(db, key_get_ptr(entry),
                                 &count, bt_cursor_get_dupe_cache(c));
+        page_release_ref(page);
         if (st)
             return (db_set_error(db, st));
         bt_cursor_set_dupe_id(c, count-1);
@@ -347,8 +353,10 @@ my_move_last(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     if (key_get_flags(entry)&KEY_HAS_DUPLICATES
             && !(flags&HAM_SKIP_DUPLICATES)) {
         ham_size_t count;
+        page_add_ref(page);
         ham_status_t st=blob_duplicate_get_count(db, key_get_ptr(entry),
                                 &count, bt_cursor_get_dupe_cache(c));
+        page_release_ref(page);
         if (st)
             return (db_set_error(db, st));
         bt_cursor_set_dupe_id(c, count-1);
