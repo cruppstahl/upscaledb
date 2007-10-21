@@ -8,7 +8,8 @@ noinst_PROGRAMS = test
 
 INCLUDES        = -I$(top_builddir)/include
 
-test_SOURCES    = cppapi.cpp \
+test_SOURCES    = filter.cpp \
+				  cppapi.cpp \
 				  recno.cpp \
 				  duplicates.cpp \
                   env.cpp \

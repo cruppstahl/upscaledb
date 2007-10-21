@@ -37,17 +37,27 @@ o c++-api
 
 o implement qemu images/machines for ARM, Sparc, PowerPC, PowerPC64 etc
 
-o move unittest to C test framework, not cppunit?? bad for embedded
-    platforms
+o add page-level filter
+    x define structures, API
+    x implement functions
+    x add functions to page_read, page_write, ham_close
+    x add unittests
+    o add encryption filter
+        o get public domain AES functions
+        o implement filter (CBC-based!)
+        o add unittest
+        o add a new sample
+    o add new function to c++ api
 
+o add record-level filter
+    o define structures, API
+    o add unittest
+    o add compression filter
+        o add unittest
+        o add a new sample
+    o add new function to c++ api
 
 o environments support a configurable number of databases
-
-o prepare file format for filters
-
-o add encryption filter
-
-o add compression filter
 
 o remove TODOs in the source
 
@@ -119,3 +129,7 @@ o release 0.4.8
     o move to cakephp framework
     o frontpage: resize hamster picture; remove text -> more space below
         (for 3 colums: news, main features, articles/testimonials/link cloud)
+
+. move unittest to C test framework, not cppunit?? bad for embedded
+    platforms
+

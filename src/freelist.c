@@ -77,8 +77,10 @@ __freel_cache_get_entry(ham_db_t *db, freelist_cache_t *cache,
          * not found? resize the table
          */
         st=__freel_cache_resize(db, cache, i+8);
-        if (st)
-            return (st);
+        if (st) {
+            db_set_error(db, st);
+            return (0);
+        }
     } while (1);
 
     ham_assert(!"shouldn't be here", (""));

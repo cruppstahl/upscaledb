@@ -1,3 +1,6 @@
+Oct 21, 2007 - chris
+o added generic page filters - ham_add_page_filter and ham_remove_page_filter
+
 Oct 18, 2007 - chris
 o bugfix: when moving a cursor through duplicates and the cache was
 	exhausted, an assert was triggered - fixed

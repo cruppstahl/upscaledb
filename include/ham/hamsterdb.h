@@ -1155,6 +1155,9 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  * cursors with @a ham_cursor_close, otherwise @a HAM_DB_NOT_EMPTY 
  * is returned.
  *
+ * This function removes all page-level filters installed 
+ * with @a ham_add_page_filter.
+ *
  * @param db A valid database handle.
  * @param flags Flags for closing the database.
  *      <ul>

@@ -246,10 +246,28 @@ page_fetch(ham_page_t *page, ham_size_t size)
     ham_status_t st;
     ham_db_t *db=page_get_owner(page);
     ham_device_t *dev=db_get_device(db);
+    ham_page_filter_t *head=db_get_page_filter(db);
 
     st=dev->read_page(dev, page, size);
     if (st)
         return (db_set_error(db, st));
+
+    /*
+     * run page through page-level filters, but not for the 
+     * root-page!
+     */
+    if (page_get_self(page)==0)
+        return (0);
+
+    while (head) {
+        if (head->post_cb) {
+            st=head->post_cb(head, page_get_raw_payload(page), size);
+            if (st)
+                return (db_set_error(db, st));
+        }
+        head=head->_next;
+    }
+
     return (0);
 }
 
@@ -259,9 +277,26 @@ page_flush(ham_page_t *page)
     ham_status_t st;
     ham_db_t *db=page_get_owner(page);
     ham_device_t *dev=db_get_device(db);
+    ham_page_filter_t *head=db_get_page_filter(db);
 
     if (!page_is_dirty(page))
         return (HAM_SUCCESS);
+
+    /*
+     * run page through page-level filters, but not for the 
+     * root-page!
+     */
+    if (page_get_self(page)!=0) {
+        while (head) {
+            if (head->pre_cb) {
+                st=head->pre_cb(head, page_get_raw_payload(page), 
+                        db_get_pagesize(db));
+                if (st)
+                    return (db_set_error(db, st));
+            }
+            head=head->_next;
+        }
+    }
 
     st=dev->write_page(dev, page);
     if (st)

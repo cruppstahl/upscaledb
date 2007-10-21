@@ -15,6 +15,7 @@
 #include "memtracker.h"
 #include "../src/db.h"
 #include "../src/version.h"
+#include "os.hpp"
 
 static int
 my_compare_func(const ham_u8_t *lhs, ham_size_t lhs_length,
@@ -90,11 +91,7 @@ protected:
 public:
     void setUp()
     { 
-#if WIN32
-        (void)DeleteFileA((LPCSTR)".test");
-#else
-        (void)unlink(".test");
-#endif
+        os::unlink(".test");
         CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);

@@ -267,6 +267,9 @@ struct ham_db_t
 
     /* the freelist cache */
     freelist_cache_t *_freelist_cache;
+
+    /* linked list of all page-level filters */
+    ham_page_filter_t *_page_filters;
 };
 
 /*
@@ -440,6 +443,16 @@ struct ham_db_t
  */
 #define db_set_freelist_cache(db, p) do { ham_assert(db_get_env(db)==0, (""));\
                                        (db)->_freelist_cache=p; } while(0)
+
+/*
+ * get the linked list of all page-level filters
+ */
+#define db_get_page_filter(db)         (db)->_page_filters
+
+/*
+ * set the linked list of all page-level filters
+ */
+#define db_set_page_filter(db, f)      (db)->_page_filters=f
 
 /*
  * get the linked list of all cursors

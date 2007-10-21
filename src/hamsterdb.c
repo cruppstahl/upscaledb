@@ -1972,6 +1972,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     ham_backend_t *be;
     ham_bool_t noenv=HAM_FALSE;
     ham_db_t *newowner=0;
+    ham_page_filter_t *head;
 
     if (!db)
         return (HAM_INV_PARAMETER);
@@ -2169,6 +2170,18 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         db_get_allocator(db)->close(db_get_allocator(db));
         db_set_allocator(db, 0);
     }
+
+    /*
+     * close all page-level filters
+     */
+    head=db_get_page_filter(db);
+    while (head) {
+        ham_page_filter_t *next=head->_next;
+        if (head->close_cb)
+            head->close_cb(head);
+        head=next;
+    }
+    db_set_page_filter(db, 0);
 
     /*
      * remove this database from the environment
@@ -2524,3 +2537,78 @@ ham_cursor_close(ham_cursor_t *cursor)
     return (bt_cursor_close((ham_bt_cursor_t *)cursor));
 }
 
+ham_status_t
+ham_add_page_filter(ham_db_t *db, ham_page_filter_t *filter)
+{
+    ham_page_filter_t *head;
+
+    if (!db)
+        return (HAM_INV_PARAMETER);
+
+    if (db_get_env(db))
+        __prepare_db(db);
+
+    db_set_error(db, 0);
+
+    if (!filter)
+        return (db_set_error(db, HAM_INV_PARAMETER));
+
+    head=db_get_page_filter(db);
+
+    /*
+     * !!
+     * add the filter at the end of all filters, then we can process them
+     * later in the same order as the insertion
+     */
+    if (!head) {
+        db_set_page_filter(db, filter);
+    }
+    else {
+        while (head->_next)
+            head=head->_next;
+
+        filter->_prev=head;
+        head->_next=filter;
+    }
+
+    return (0);
+}
+
+ham_status_t
+ham_remove_page_filter(ham_db_t *db, ham_page_filter_t *filter)
+{
+    ham_page_filter_t *head, *prev;
+
+    if (!db)
+        return (HAM_INV_PARAMETER);
+
+    if (db_get_env(db))
+        __prepare_db(db);
+
+    db_set_error(db, 0);
+
+    if (!filter)
+        return (db_set_error(db, HAM_INV_PARAMETER));
+
+    head=db_get_page_filter(db);
+
+    if (head==filter) {
+        db_set_page_filter(db, head->_next);
+        return 0;
+    }
+
+    do {
+        prev=head;
+        head=head->_next;
+        if (!head)
+            break;
+        if (head==filter) {
+            prev->_next=head->_next;
+            if (head->_next)
+                head->_next->_prev=prev;
+            break;
+        }
+    } while(head);
+
+    return (0);
+}
