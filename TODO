@@ -42,7 +42,7 @@ o add page-level filter
     x implement functions
     x add functions to page_read, page_write, ham_close
     x add unittests
-    o add as autoconf project
+    x add as autoconf project
     o link into hamsterdb library
 
     o add encryption filter
