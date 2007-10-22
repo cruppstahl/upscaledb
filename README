@@ -132,3 +132,20 @@ Other compiler- and OS-specific macros are in 'include/ham/types.h'.
 Most likely, these are the only files which have to be touched. Also see item 
 9) for important macros. 
 
+11. Other Copyrights
+
+The AES library in '3rdparty/aes' is (C) Karl Malbrain, malbrain@yahoo.com
+(http://www.geocities.com/malbrain). It has the following license:
+
+    This work, including the source code, documentation
+    and related data, is placed into the public domain.
+
+    The orginal author is Karl Malbrain.
+
+    THIS SOFTWARE IS PROVIDED AS-IS WITHOUT WARRANTY
+    OF ANY KIND, NOT EVEN THE IMPLIED WARRANTY OF
+    MERCHANTABILITY. THE AUTHOR OF THIS SOFTWARE,
+    ASSUMES _NO_ RESPONSIBILITY FOR ANY CONSEQUENCE
+    RESULTING FROM THE USE, MODIFICATION, OR
+    REDISTRIBUTION OF THIS SOFTWARE.
+
