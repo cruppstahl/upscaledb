@@ -984,6 +984,31 @@ HAM_EXPORT ham_status_t
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
 
 /**
+ * Enable AES encryption.
+ *
+ * This function enables AES encryption (CBC mode) for the database files.
+ * The AES key is cached in the database handle. The AES encryption/decryption
+ * is only active when database pages are written to disk/read from disk;
+ * the cached pages in RAM are decrypted. Please read the FAQ for security
+ * relevant notes.
+ *
+ * The encryption has no effect on in-memory databases, but the function
+ * will return @a HAM_SUCCESS.
+ *
+ * The encryption will be active till @a ham_close is called. If the database
+ * handle is reused after calling @a ham_close, the encryption is no longer
+ * active.
+ *
+ * @param db A valid database handle.
+ * @param key A 128bit AES key.
+ *
+ * @return @a HAM_SUCCESS upon success.
+ * @return @a HAM_INV_PARAMETER if one of the parameters is NULL.
+ */
+HAM_EXPORT ham_status_t
+ham_enable_encryption(ham_db_t *db, ham_u8_t key[16]);
+
+/**
  * Searches an item in the database.
  *
  * This function searches the database for @a key. If the key

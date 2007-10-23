@@ -44,11 +44,14 @@ o add page-level filter
     x add unittests
     x add as autoconf project
     x link into hamsterdb library
+    x add header file documentation
     o add encryption filter
         x get public domain AES functions
         o implement filter (CBC-based!)
         o add unittest
         o add a new sample
+    o add tutorial
+    o add FAQ entry about security
     o add new function to c++ api
 
 o add record-level filter
