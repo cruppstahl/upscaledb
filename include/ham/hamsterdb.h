@@ -1001,12 +1001,13 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  *
  * @param db A valid database handle.
  * @param key A 128bit AES key.
+ * @param flags Flags for the encryption. Unused, set to 0.
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if one of the parameters is NULL.
  */
 HAM_EXPORT ham_status_t
-ham_enable_encryption(ham_db_t *db, ham_u8_t key[16]);
+ham_enable_encryption(ham_db_t *db, ham_u8_t key[16], ham_u32_t flags);
 
 /**
  * Searches an item in the database.
