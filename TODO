@@ -48,7 +48,7 @@ o add page-level filter
     o add encryption filter
         x get public domain AES functions
         o implement filter (CBC-based!)
-        o add unittest
+        o add unittests
         o add a new sample
     o add tutorial
     o add FAQ entry about security
