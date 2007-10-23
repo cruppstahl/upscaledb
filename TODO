@@ -43,10 +43,9 @@ o add page-level filter
     x add functions to page_read, page_write, ham_close
     x add unittests
     x add as autoconf project
-    o link into hamsterdb library
-
+    x link into hamsterdb library
     o add encryption filter
-        o get public domain AES functions
+        x get public domain AES functions
         o implement filter (CBC-based!)
         o add unittest
         o add a new sample
@@ -55,6 +54,9 @@ o add page-level filter
 o add record-level filter
     o define structures, API
     o add unittest
+    o add as autoconf project
+    o link into hamsterdb library
+
     o add compression filter
         o add unittest
         o add a new sample
