@@ -1,9 +1,7 @@
 
 # INCLUDES = 
 
-noinst_lib_LTLIBRARIES = libaes.la
-
-noinst_libdir = $(abs_top_builddir)/build
+noinst_LIBRARIES = libaes.la
 
 libaes_la_SOURCES = aes.c
 
