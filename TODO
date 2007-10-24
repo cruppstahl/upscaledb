@@ -47,12 +47,17 @@ o add page-level filter
     x add header file documentation
     o add encryption filter
         x get public domain AES functions
-        o implement filter (CBC-based!)
+        x implement filter
         o add unittests
         o add a new sample
+        o modify acceptance test
     o add tutorial
     o add FAQ entry about security
     o add new function to c++ api
+        o unittest
+
+    o page filters are actually "file filters" - rename function and 
+        documentation!
 
 o add record-level filter
     o define structures, API

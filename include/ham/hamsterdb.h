@@ -986,9 +986,9 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
 /**
  * Enable AES encryption.
  *
- * This function enables AES encryption (CBC mode) for the database files.
+ * This function enables AES encryption for the database files.
  * The AES key is cached in the database handle. The AES encryption/decryption
- * is only active when database pages are written to disk/read from disk;
+ * is only active when database pages are written disk/read from disk;
  * the cached pages in RAM are decrypted. Please read the FAQ for security
  * relevant notes.
  *
@@ -997,7 +997,8 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  *
  * The encryption will be active till @a ham_close is called. If the database
  * handle is reused after calling @a ham_close, the encryption is no longer
- * active.
+ * active. @a ham_enable_encryption should be called immediately after
+ * @a ham_new, and before @a ham_create[_ex] or @a ham_open[_ex].
  *
  * @param db A valid database handle.
  * @param key A 128bit AES key.

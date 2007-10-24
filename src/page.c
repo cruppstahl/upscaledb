@@ -261,7 +261,7 @@ page_fetch(ham_page_t *page, ham_size_t size)
 
     while (head) {
         if (head->post_cb) {
-            st=head->post_cb(head, page_get_raw_payload(page), size);
+            st=head->post_cb(db, head, page_get_raw_payload(page), size);
             if (st)
                 return (db_set_error(db, st));
         }
@@ -289,7 +289,7 @@ page_flush(ham_page_t *page)
     if (page_get_self(page)!=0) {
         while (head) {
             if (head->pre_cb) {
-                st=head->pre_cb(head, page_get_raw_payload(page), 
+                st=head->pre_cb(db, head, page_get_raw_payload(page), 
                         db_get_pagesize(db));
                 if (st)
                     return (db_set_error(db, st));

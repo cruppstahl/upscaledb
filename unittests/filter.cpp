@@ -24,7 +24,7 @@ typedef struct simple_filter_t
 } simple_filter_t;
 
 static ham_status_t
-my_pre_cb(ham_page_filter_t *filter, ham_u8_t *, ham_size_t)
+my_pre_cb(ham_db_t *, ham_page_filter_t *filter, ham_u8_t *, ham_size_t)
 {
     simple_filter_t *sf=(simple_filter_t *)filter->userdata;
     sf->written++;
@@ -32,7 +32,7 @@ my_pre_cb(ham_page_filter_t *filter, ham_u8_t *, ham_size_t)
 }
 
 static ham_status_t
-my_post_cb(ham_page_filter_t *filter, ham_u8_t *, ham_size_t)
+my_post_cb(ham_db_t *, ham_page_filter_t *filter, ham_u8_t *, ham_size_t)
 {
     simple_filter_t *sf=(simple_filter_t *)filter->userdata;
     sf->read++;
@@ -40,7 +40,7 @@ my_post_cb(ham_page_filter_t *filter, ham_u8_t *, ham_size_t)
 }
 
 static void
-my_close_cb(ham_page_filter_t *filter)
+my_close_cb(ham_db_t *, ham_page_filter_t *filter)
 {
     simple_filter_t *sf=(simple_filter_t *)filter->userdata;
     sf->closed++;

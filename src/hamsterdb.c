@@ -33,6 +33,7 @@
 #include "cursor.h"
 #include "util.h"
 #include "keys.h"
+#include "../3rdparty/aes/aes.h"
 
 /* private parameter list entry for ham_create_ex */
 #define HAM_PARAM_DBNAME          (1000)
@@ -1570,6 +1571,74 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo)
     return (HAM_SUCCESS);
 }
 
+static ham_status_t
+__aes_pre_cb(ham_db_t *db, ham_page_filter_t *filter, 
+        ham_u8_t *page_data, ham_size_t page_size)
+{
+    ham_size_t i, blocks=page_size/16;
+
+    for (i=0; i<blocks; i++) {
+        aes_encrypt(&page_data[i*16], (ham_u8_t *)filter->userdata, 
+                &page_data[i*16]);
+    }
+
+    return (HAM_SUCCESS);
+}
+
+static ham_status_t
+__aes_post_cb(ham_db_t *db, ham_page_filter_t *filter, 
+        ham_u8_t *page_data, ham_size_t page_size)
+{
+    ham_size_t i, blocks=page_size/16;
+
+    for (i=0; i<blocks; i++) {
+        aes_decrypt(&page_data[i*16], (ham_u8_t *)filter->userdata, 
+                &page_data[i*16]);
+    }
+
+    return (HAM_SUCCESS);
+}
+
+static void
+__aes_close_cb(ham_db_t *db, ham_page_filter_t *filter)
+{
+    if (filter) {
+        if (filter->userdata)
+            ham_mem_free(db, filter->userdata);
+        ham_mem_free(db, filter);
+    }
+}
+
+ham_status_t
+ham_enable_encryption(ham_db_t *db, ham_u8_t key[16], ham_u32_t flags)
+{
+    ham_page_filter_t *filter;
+
+    if (!db)
+        return (HAM_INV_PARAMETER);
+
+    db_set_error(db, 0);
+
+    if (!key)
+        return (db_set_error(db, HAM_INV_PARAMETER));
+
+    filter=(ham_page_filter_t *)ham_mem_calloc(db, sizeof(*filter));
+    if (!filter)
+        return (db_set_error(db, HAM_OUT_OF_MEMORY));
+
+    filter->userdata=ham_mem_alloc(db, 16);
+    if (!filter->userdata) {
+        ham_mem_free(db, filter);
+        return (db_set_error(db, HAM_OUT_OF_MEMORY));
+    }
+    memcpy(filter->userdata, key, 16);
+    filter->pre_cb=__aes_pre_cb;
+    filter->post_cb=__aes_post_cb;
+    filter->close_cb=__aes_close_cb;
+
+    return (ham_add_page_filter(db, filter));
+}
+
 ham_status_t
 ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
@@ -2178,7 +2247,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     while (head) {
         ham_page_filter_t *next=head->_next;
         if (head->close_cb)
-            head->close_cb(head);
+            head->close_cb(db, head);
         head=next;
     }
     db_set_page_filter(db, 0);
