@@ -22,7 +22,7 @@ x are we using a good default page size? should we rather use 16kb??
     x add unittests for different pagesizes
     x update CHANGELOG!
 
-x unittest.vcproj: set working directory -> can't set it :-(
+x unittest.vcproj: set working directory -> no, can't set it :-(
 
 o c++-api
     x add static functions
@@ -30,6 +30,7 @@ o c++-api
     x add cursor functions
     x add environments
     x add unittests (full coverage!)
+    o talk to Oleg, finalize wrapper
     o convert sample db1.c and env2.c to c++
     o add documentation - how do we deal with documentation? refer to the
         C++ documentation, only document the differences! otherwise
@@ -58,6 +59,9 @@ o add page-level filter
 
     o page filters are actually "file filters" - rename function and 
         documentation!
+
+o arm: wants to use int getpagesize(), but seems to be size_t getpagesize().
+    -> fix check in configure.in
 
 o add record-level filter
     o define structures, API
