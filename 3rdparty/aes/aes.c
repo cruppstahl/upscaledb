@@ -1,6 +1,6 @@
 /* advanced encryption standard
  * author: karl malbrain, malbrain@yahoo.com
- * http://www.geocities.com/malbrain/aestable2_c.html
+ * http://www.geocities.com/malbrain
  *
  *
  * I applied only minor modifications - i.e. declaring all private functions
@@ -33,9 +33,9 @@ typedef unsigned char uchar;
 #define Nb 4            /* number of columns in the state & expanded key */
 
 #define Nk 4            /* number of columns in a key */
-#define Nr 1            /* number of rounds in encryption */
+#define Nr 10           /* number of rounds in encryption */
 
-uchar Sbox[256] = {     /* forward s-box */
+static const uchar Sbox[256] = {     /* forward s-box */
 0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
 0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
 0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15,
@@ -53,7 +53,7 @@ uchar Sbox[256] = {     /* forward s-box */
 0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
 0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16};
 
-static uchar InvSbox[256] = {  /* inverse s-box */
+static const uchar InvSbox[256] = {  /* inverse s-box */
 0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb,
 0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb,
 0x54, 0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b, 0x42, 0xfa, 0xc3, 0x4e,
@@ -72,7 +72,7 @@ static uchar InvSbox[256] = {  /* inverse s-box */
 0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d};
 
 /* combined Xtimes2[Sbox[]] */
-static uchar Xtime2Sbox[256] = {
+static const uchar Xtime2Sbox[256] = {
 0xc6, 0xf8, 0xee, 0xf6, 0xff, 0xd6, 0xde, 0x91, 0x60, 0x02, 0xce, 0x56, 0xe7, 0xb5, 0x4d, 0xec, 
 0x8f, 0x1f, 0x89, 0xfa, 0xef, 0xb2, 0x8e, 0xfb, 0x41, 0xb3, 0x5f, 0x45, 0x23, 0x53, 0xe4, 0x9b, 
 0x75, 0xe1, 0x3d, 0x4c, 0x6c, 0x7e, 0xf5, 0x83, 0x68, 0x51, 0xd1, 0xf9, 0xe2, 0xab, 0x62, 0x2a, 
@@ -92,7 +92,7 @@ static uchar Xtime2Sbox[256] = {
 };
 
 /* combined Xtimes3[Sbox[]] */
-static uchar Xtime3Sbox[256] = {
+static const uchar Xtime3Sbox[256] = {
 0xa5, 0x84, 0x99, 0x8d, 0x0d, 0xbd, 0xb1, 0x54, 0x50, 0x03, 0xa9, 0x7d, 0x19, 0x62, 0xe6, 0x9a, 
 0x45, 0x9d, 0x40, 0x87, 0x15, 0xeb, 0xc9, 0x0b, 0xec, 0x67, 0xfd, 0xea, 0xbf, 0xf7, 0x96, 0x5b, 
 0xc2, 0x1c, 0xae, 0x6a, 0x5a, 0x41, 0x02, 0x4f, 0x5c, 0xf4, 0x34, 0x08, 0x93, 0x73, 0x53, 0x3f, 
@@ -118,7 +118,7 @@ static uchar Xtime3Sbox[256] = {
  * Xtime3[x] = x^Xtime2[x];
  */
 
-static uchar Xtime2[256] = {
+static const uchar Xtime2[256] = {
 0x00, 0x02, 0x04, 0x06, 0x08, 0x0a, 0x0c, 0x0e, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e, 
 0x20, 0x22, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0x30, 0x32, 0x34, 0x36, 0x38, 0x3a, 0x3c, 0x3e, 
 0x40, 0x42, 0x44, 0x46, 0x48, 0x4a, 0x4c, 0x4e, 0x50, 0x52, 0x54, 0x56, 0x58, 0x5a, 0x5c, 0x5e, 
@@ -136,7 +136,7 @@ static uchar Xtime2[256] = {
 0xdb, 0xd9, 0xdf, 0xdd, 0xd3, 0xd1, 0xd7, 0xd5, 0xcb, 0xc9, 0xcf, 0xcd, 0xc3, 0xc1, 0xc7, 0xc5, 
 0xfb, 0xf9, 0xff, 0xfd, 0xf3, 0xf1, 0xf7, 0xf5, 0xeb, 0xe9, 0xef, 0xed, 0xe3, 0xe1, 0xe7, 0xe5}; 
 
-static uchar Xtime9[256] = {
+static const uchar Xtime9[256] = {
 0x00, 0x09, 0x12, 0x1b, 0x24, 0x2d, 0x36, 0x3f, 0x48, 0x41, 0x5a, 0x53, 0x6c, 0x65, 0x7e, 0x77, 
 0x90, 0x99, 0x82, 0x8b, 0xb4, 0xbd, 0xa6, 0xaf, 0xd8, 0xd1, 0xca, 0xc3, 0xfc, 0xf5, 0xee, 0xe7, 
 0x3b, 0x32, 0x29, 0x20, 0x1f, 0x16, 0x0d, 0x04, 0x73, 0x7a, 0x61, 0x68, 0x57, 0x5e, 0x45, 0x4c, 
@@ -154,7 +154,7 @@ static uchar Xtime9[256] = {
 0xa1, 0xa8, 0xb3, 0xba, 0x85, 0x8c, 0x97, 0x9e, 0xe9, 0xe0, 0xfb, 0xf2, 0xcd, 0xc4, 0xdf, 0xd6, 
 0x31, 0x38, 0x23, 0x2a, 0x15, 0x1c, 0x07, 0x0e, 0x79, 0x70, 0x6b, 0x62, 0x5d, 0x54, 0x4f, 0x46};
 
-static uchar XtimeB[256] = {
+static const uchar XtimeB[256] = {
 0x00, 0x0b, 0x16, 0x1d, 0x2c, 0x27, 0x3a, 0x31, 0x58, 0x53, 0x4e, 0x45, 0x74, 0x7f, 0x62, 0x69, 
 0xb0, 0xbb, 0xa6, 0xad, 0x9c, 0x97, 0x8a, 0x81, 0xe8, 0xe3, 0xfe, 0xf5, 0xc4, 0xcf, 0xd2, 0xd9, 
 0x7b, 0x70, 0x6d, 0x66, 0x57, 0x5c, 0x41, 0x4a, 0x23, 0x28, 0x35, 0x3e, 0x0f, 0x04, 0x19, 0x12, 
@@ -172,7 +172,7 @@ static uchar XtimeB[256] = {
 0x7a, 0x71, 0x6c, 0x67, 0x56, 0x5d, 0x40, 0x4b, 0x22, 0x29, 0x34, 0x3f, 0x0e, 0x05, 0x18, 0x13, 
 0xca, 0xc1, 0xdc, 0xd7, 0xe6, 0xed, 0xf0, 0xfb, 0x92, 0x99, 0x84, 0x8f, 0xbe, 0xb5, 0xa8, 0xa3}; 
 
-static uchar XtimeD[256] = {
+static const uchar XtimeD[256] = {
 0x00, 0x0d, 0x1a, 0x17, 0x34, 0x39, 0x2e, 0x23, 0x68, 0x65, 0x72, 0x7f, 0x5c, 0x51, 0x46, 0x4b, 
 0xd0, 0xdd, 0xca, 0xc7, 0xe4, 0xe9, 0xfe, 0xf3, 0xb8, 0xb5, 0xa2, 0xaf, 0x8c, 0x81, 0x96, 0x9b, 
 0xbb, 0xb6, 0xa1, 0xac, 0x8f, 0x82, 0x95, 0x98, 0xd3, 0xde, 0xc9, 0xc4, 0xe7, 0xea, 0xfd, 0xf0, 
@@ -190,7 +190,7 @@ static uchar XtimeD[256] = {
 0x0c, 0x01, 0x16, 0x1b, 0x38, 0x35, 0x22, 0x2f, 0x64, 0x69, 0x7e, 0x73, 0x50, 0x5d, 0x4a, 0x47, 
 0xdc, 0xd1, 0xc6, 0xcb, 0xe8, 0xe5, 0xf2, 0xff, 0xb4, 0xb9, 0xae, 0xa3, 0x80, 0x8d, 0x9a, 0x97}; 
 
-static uchar XtimeE[256] = {
+static const uchar XtimeE[256] = {
 0x00, 0x0e, 0x1c, 0x12, 0x38, 0x36, 0x24, 0x2a, 0x70, 0x7e, 0x6c, 0x62, 0x48, 0x46, 0x54, 0x5a, 
 0xe0, 0xee, 0xfc, 0xf2, 0xd8, 0xd6, 0xc4, 0xca, 0x90, 0x9e, 0x8c, 0x82, 0xa8, 0xa6, 0xb4, 0xba, 
 0xdb, 0xd5, 0xc7, 0xc9, 0xe3, 0xed, 0xff, 0xf1, 0xab, 0xa5, 0xb7, 0xb9, 0x93, 0x9d, 0x8f, 0x81, 
@@ -212,251 +212,205 @@ static uchar XtimeE[256] = {
  * row0 - unchanged, row1- shifted left 1, 
  * row2 - shifted left 2 and row3 - shifted left 3
  */
-static void ShiftRows (uchar *state, uchar *out)
+static void ShiftRows (uchar *state)
 {
+uchar tmp;
+
     /* just substitute row 0 */
-    out[0] = Sbox[state[0]], out[4] = Sbox[state[4]];
-    out[8] = Sbox[state[8]], out[12] = Sbox[state[12]];
+    state[0] = Sbox[state[0]], state[4] = Sbox[state[4]];
+    state[8] = Sbox[state[8]], state[12] = Sbox[state[12]];
 
     /* rotate row 1 */
-    out[1] = Sbox[state[5]], out[5] = Sbox[state[9]];
-    out[9] = Sbox[state[13]], out[13] = Sbox[state[1]];
+    tmp = Sbox[state[1]], state[1] = Sbox[state[5]];
+    state[5] = Sbox[state[9]], state[9] = Sbox[state[13]], state[13] = tmp;
 
     /* rotate row 2 */
-    out[2] = Sbox[state[10]], out[10] = Sbox[state[2]];
-    out[6] = Sbox[state[14]], out[14] = Sbox[state[6]];
+    tmp = Sbox[state[2]], state[2] = Sbox[state[10]], state[10] = tmp;
+    tmp = Sbox[state[6]], state[6] = Sbox[state[14]], state[14] = tmp;
 
     /* rotate row 3 */
-    out[15] = Sbox[state[11]], out[11] = Sbox[state[7]];
-    out[7] = Sbox[state[3]], out[3] = Sbox[state[15]];
+    tmp = Sbox[state[15]], state[15] = Sbox[state[11]];
+    state[11] = Sbox[state[7]], state[7] = Sbox[state[3]], state[3] = tmp;
 }
 
 /* restores columns in each of 4 rows
  * row0 - unchanged, row1- shifted right 1, 
  * row2 - shifted right 2 and row3 - shifted right 3
  */
-static void InvShiftRows (uchar *state, uchar *out)
+static void InvShiftRows (uchar *state)
 {
+uchar tmp;
+
     /* restore row 0 */
-    out[0] = InvSbox[state[0]], out[4] = InvSbox[state[4]];
-    out[8] = InvSbox[state[8]], out[12] = InvSbox[state[12]];
+    state[0] = InvSbox[state[0]], state[4] = InvSbox[state[4]];
+    state[8] = InvSbox[state[8]], state[12] = InvSbox[state[12]];
 
     /* restore row 1 */
-    out[13] = InvSbox[state[9]], out[9] = InvSbox[state[5]];
-    out[5] = InvSbox[state[1]], out[1] = InvSbox[state[13]];
+    tmp = InvSbox[state[13]], state[13] = InvSbox[state[9]];
+    state[9] = InvSbox[state[5]], state[5] = InvSbox[state[1]], state[1] = tmp;
 
     /* restore row 2 */
-    out[2] = InvSbox[state[10]], out[10] = InvSbox[state[2]];
-    out[6] = InvSbox[state[14]], out[14] = InvSbox[state[6]];
+    tmp = InvSbox[state[2]], state[2] = InvSbox[state[10]], state[10] = tmp;
+    tmp = InvSbox[state[6]], state[6] = InvSbox[state[14]], state[14] = tmp;
 
     /* restore row 3 */
-    out[3] = InvSbox[state[7]], out[7] = InvSbox[state[11]];
-    out[11] = InvSbox[state[15]], out[15] = InvSbox[state[3]];
+    tmp = InvSbox[state[3]], state[3] = InvSbox[state[7]];
+    state[7] = InvSbox[state[11]], state[11] = InvSbox[state[15]], state[15] = tmp;
 }
 
-/* encrypt/decrypt columns of the key */
-
-#define AddRoundKey(state, key, out)\
-do {\
-    out[0] = state[0] ^ key[0];\
-    out[1] = state[1] ^ key[1];\
-    out[2] = state[2] ^ key[2];\
-    out[3] = state[3] ^ key[3];\
-    out[4] = state[4] ^ key[4];\
-    out[5] = state[5] ^ key[5];\
-    out[6] = state[6] ^ key[6];\
-    out[7] = state[7] ^ key[7];\
-    out[8] = state[8] ^ key[8];\
-    out[9] = state[9] ^ key[9];\
-    out[10] = state[10] ^ key[10];\
-    out[11] = state[11] ^ key[11];\
-    out[12] = state[12] ^ key[12];\
-    out[13] = state[13] ^ key[13];\
-    out[14] = state[14] ^ key[14];\
-    out[15] = state[15] ^ key[15];\
-} while(0)
-
 /* recombine and mix each row in a column */
-#define MixSubColumns(state, out, key)\
-do {\
-    /* mixing column 0*/\
-    out[0] = Xtime2Sbox[state[0]] ^ Xtime3Sbox[state[5]] ^ Sbox[state[10]] ^ Sbox[state[15]] ^ key[0];\
-    out[1] = Sbox[state[0]] ^ Xtime2Sbox[state[5]] ^ Xtime3Sbox[state[10]] ^ Sbox[state[15]] ^ key[1];\
-    out[2] = Sbox[state[0]] ^ Sbox[state[5]] ^ Xtime2Sbox[state[10]] ^ Xtime3Sbox[state[15]] ^ key[2];\
-    out[3] = Xtime3Sbox[state[0]] ^ Sbox[state[5]] ^ Sbox[state[10]] ^ Xtime2Sbox[state[15]] ^ key[3];\
-\
-    /* mixing column 1*/\
-    out[4] = Xtime2Sbox[state[4]] ^ Xtime3Sbox[state[9]] ^ Sbox[state[14]] ^ Sbox[state[3]] ^ key[4];\
-    out[5] = Sbox[state[4]] ^ Xtime2Sbox[state[9]] ^ Xtime3Sbox[state[14]] ^ Sbox[state[3]] ^ key[5];\
-    out[6] = Sbox[state[4]] ^ Sbox[state[9]] ^ Xtime2Sbox[state[14]] ^ Xtime3Sbox[state[3]] ^ key[6];\
-    out[7] = Xtime3Sbox[state[4]] ^ Sbox[state[9]] ^ Sbox[state[14]] ^ Xtime2Sbox[state[3]] ^ key[7];\
-\
-    /* mixing column 2*/\
-    out[8] = Xtime2Sbox[state[8]] ^ Xtime3Sbox[state[13]] ^ Sbox[state[2]] ^ Sbox[state[7]] ^ key[8];\
-    out[9] = Sbox[state[8]] ^ Xtime2Sbox[state[13]] ^ Xtime3Sbox[state[2]] ^ Sbox[state[7]] ^ key[9];\
-    out[10]  = Sbox[state[8]] ^ Sbox[state[13]] ^ Xtime2Sbox[state[2]] ^ Xtime3Sbox[state[7]] ^ key[10];\
-    out[11]  = Xtime3Sbox[state[8]] ^ Sbox[state[13]] ^ Sbox[state[2]] ^ Xtime2Sbox[state[7]] ^ key[11];\
-\
-    /* mixing column 3*/\
-    out[12] = Xtime2Sbox[state[12]] ^ Xtime3Sbox[state[1]] ^ Sbox[state[6]] ^ Sbox[state[11]] ^ key[12];\
-    out[13] = Sbox[state[12]] ^ Xtime2Sbox[state[1]] ^ Xtime3Sbox[state[6]] ^ Sbox[state[11]] ^ key[13];\
-    out[14] = Sbox[state[12]] ^ Sbox[state[1]] ^ Xtime2Sbox[state[6]] ^ Xtime3Sbox[state[11]] ^ key[14];\
-    out[15] = Xtime3Sbox[state[12]] ^ Sbox[state[1]] ^ Sbox[state[6]] ^ Xtime2Sbox[state[11]] ^ key[15];\
-} while(0)
+static void MixSubColumns (uchar *state)
+{
+uchar tmp[4 * Nb];
+
+    /* mixing column 0 */
+    tmp[0] = Xtime2Sbox[state[0]] ^ Xtime3Sbox[state[5]] ^ Sbox[state[10]] ^ Sbox[state[15]];
+    tmp[1] = Sbox[state[0]] ^ Xtime2Sbox[state[5]] ^ Xtime3Sbox[state[10]] ^ Sbox[state[15]];
+    tmp[2] = Sbox[state[0]] ^ Sbox[state[5]] ^ Xtime2Sbox[state[10]] ^ Xtime3Sbox[state[15]];
+    tmp[3] = Xtime3Sbox[state[0]] ^ Sbox[state[5]] ^ Sbox[state[10]] ^ Xtime2Sbox[state[15]];
+
+    /* mixing column 1 */
+    tmp[4] = Xtime2Sbox[state[4]] ^ Xtime3Sbox[state[9]] ^ Sbox[state[14]] ^ Sbox[state[3]];
+    tmp[5] = Sbox[state[4]] ^ Xtime2Sbox[state[9]] ^ Xtime3Sbox[state[14]] ^ Sbox[state[3]];
+    tmp[6] = Sbox[state[4]] ^ Sbox[state[9]] ^ Xtime2Sbox[state[14]] ^ Xtime3Sbox[state[3]];
+    tmp[7] = Xtime3Sbox[state[4]] ^ Sbox[state[9]] ^ Sbox[state[14]] ^ Xtime2Sbox[state[3]];
+
+    /* mixing column 2 */
+    tmp[8] = Xtime2Sbox[state[8]] ^ Xtime3Sbox[state[13]] ^ Sbox[state[2]] ^ Sbox[state[7]];
+    tmp[9] = Sbox[state[8]] ^ Xtime2Sbox[state[13]] ^ Xtime3Sbox[state[2]] ^ Sbox[state[7]];
+    tmp[10]  = Sbox[state[8]] ^ Sbox[state[13]] ^ Xtime2Sbox[state[2]] ^ Xtime3Sbox[state[7]];
+    tmp[11]  = Xtime3Sbox[state[8]] ^ Sbox[state[13]] ^ Sbox[state[2]] ^ Xtime2Sbox[state[7]];
+
+    /* mixing column 3 */
+    tmp[12] = Xtime2Sbox[state[12]] ^ Xtime3Sbox[state[1]] ^ Sbox[state[6]] ^ Sbox[state[11]];
+    tmp[13] = Sbox[state[12]] ^ Xtime2Sbox[state[1]] ^ Xtime3Sbox[state[6]] ^ Sbox[state[11]];
+    tmp[14] = Sbox[state[12]] ^ Sbox[state[1]] ^ Xtime2Sbox[state[6]] ^ Xtime3Sbox[state[11]];
+    tmp[15] = Xtime3Sbox[state[12]] ^ Sbox[state[1]] ^ Sbox[state[6]] ^ Xtime2Sbox[state[11]];
+
+    memcpy (state, tmp, sizeof(tmp));
+}
 
 /* restore and un-mix each row in a column */
-#define InvMixSubColumns(state, out, key)\
-do {\
-    /* restore column 0*/\
-    t0 = state[0] ^ key[0];\
-    t1 = state[1] ^ key[1];\
-    t2 = state[2] ^ key[2];\
-    t3 = state[3] ^ key[3];\
-    out[0] = InvSbox[XtimeE[t0] ^ XtimeB[t1] ^ XtimeD[t2] ^ Xtime9[t3]];\
-    out[5] = InvSbox[Xtime9[t0] ^ XtimeE[t1] ^ XtimeB[t2] ^ XtimeD[t3]];\
-    out[10] = InvSbox[XtimeD[t0] ^ Xtime9[t1] ^ XtimeE[t2] ^ XtimeB[t3]];\
-    out[15] = InvSbox[XtimeB[t0] ^ XtimeD[t1] ^ Xtime9[t2] ^ XtimeE[t3]];\
-\
-    /* restore column 1*/\
-    t0 = state[4] ^ key[4];\
-    t1 = state[5] ^ key[5];\
-    t2 = state[6] ^ key[6];\
-    t3 = state[7] ^ key[7];\
-    out[4] = InvSbox[XtimeE[t0] ^ XtimeB[t1] ^ XtimeD[t2] ^ Xtime9[t3]];\
-    out[9] = InvSbox[Xtime9[t0] ^ XtimeE[t1] ^ XtimeB[t2] ^ XtimeD[t3]];\
-    out[14] = InvSbox[XtimeD[t0] ^ Xtime9[t1] ^ XtimeE[t2] ^ XtimeB[t3]];\
-    out[3] = InvSbox[XtimeB[t0] ^ XtimeD[t1] ^ Xtime9[t2] ^ XtimeE[t3]];\
-\
-    /* restore column 2*/\
-    t0 = state[8] ^ key[8];\
-    t1 = state[9] ^ key[9];\
-    t2 = state[10] ^ key[10];\
-    t3 = state[11] ^ key[11];\
-    out[8] = InvSbox[XtimeE[t0] ^ XtimeB[t1] ^ XtimeD[t2] ^ Xtime9[t3]];\
-    out[13] = InvSbox[Xtime9[t0] ^ XtimeE[t1] ^ XtimeB[t2] ^ XtimeD[t3]];\
-    out[2]  = InvSbox[XtimeD[t0] ^ Xtime9[t1] ^ XtimeE[t2] ^ XtimeB[t3]];\
-    out[7]  = InvSbox[XtimeB[t0] ^ XtimeD[t1] ^ Xtime9[t2] ^ XtimeE[t3]];\
-\
-    /* restore column 3*/\
-    t0 = state[12] ^ key[12];\
-    t1 = state[13] ^ key[13];\
-    t2 = state[14] ^ key[14];\
-    t3 = state[15] ^ key[15];\
-    out[12] = InvSbox[XtimeE[t0] ^ XtimeB[t1] ^ XtimeD[t2] ^ Xtime9[t3]];\
-    out[1] = InvSbox[Xtime9[t0] ^ XtimeE[t1] ^ XtimeB[t2] ^ XtimeD[t3]];\
-    out[6] = InvSbox[XtimeD[t0] ^ Xtime9[t1] ^ XtimeE[t2] ^ XtimeB[t3]];\
-    out[11] = InvSbox[XtimeB[t0] ^ XtimeD[t1] ^ Xtime9[t2] ^ XtimeE[t3]];\
-} while(0)
+static void InvMixSubColumns (uchar *state)
+{
+uchar tmp[4 * Nb];
+int i;
+
+    /* restore column 0 */
+    tmp[0] = XtimeE[state[0]] ^ XtimeB[state[1]] ^ XtimeD[state[2]] ^ Xtime9[state[3]];
+    tmp[5] = Xtime9[state[0]] ^ XtimeE[state[1]] ^ XtimeB[state[2]] ^ XtimeD[state[3]];
+    tmp[10] = XtimeD[state[0]] ^ Xtime9[state[1]] ^ XtimeE[state[2]] ^ XtimeB[state[3]];
+    tmp[15] = XtimeB[state[0]] ^ XtimeD[state[1]] ^ Xtime9[state[2]] ^ XtimeE[state[3]];
+
+    /* restore column 1 */
+    tmp[4] = XtimeE[state[4]] ^ XtimeB[state[5]] ^ XtimeD[state[6]] ^ Xtime9[state[7]];
+    tmp[9] = Xtime9[state[4]] ^ XtimeE[state[5]] ^ XtimeB[state[6]] ^ XtimeD[state[7]];
+    tmp[14] = XtimeD[state[4]] ^ Xtime9[state[5]] ^ XtimeE[state[6]] ^ XtimeB[state[7]];
+    tmp[3] = XtimeB[state[4]] ^ XtimeD[state[5]] ^ Xtime9[state[6]] ^ XtimeE[state[7]];
+
+    /* restore column 2 */
+    tmp[8] = XtimeE[state[8]] ^ XtimeB[state[9]] ^ XtimeD[state[10]] ^ Xtime9[state[11]];
+    tmp[13] = Xtime9[state[8]] ^ XtimeE[state[9]] ^ XtimeB[state[10]] ^ XtimeD[state[11]];
+    tmp[2]  = XtimeD[state[8]] ^ Xtime9[state[9]] ^ XtimeE[state[10]] ^ XtimeB[state[11]];
+    tmp[7]  = XtimeB[state[8]] ^ XtimeD[state[9]] ^ Xtime9[state[10]] ^ XtimeE[state[11]];
+
+    /* restore column 3 */
+    tmp[12] = XtimeE[state[12]] ^ XtimeB[state[13]] ^ XtimeD[state[14]] ^ Xtime9[state[15]];
+    tmp[1] = Xtime9[state[12]] ^ XtimeE[state[13]] ^ XtimeB[state[14]] ^ XtimeD[state[15]];
+    tmp[6] = XtimeD[state[12]] ^ Xtime9[state[13]] ^ XtimeE[state[14]] ^ XtimeB[state[15]];
+    tmp[11] = XtimeB[state[12]] ^ XtimeD[state[13]] ^ Xtime9[state[14]] ^ XtimeE[state[15]];
+
+    for( i=0; i < 4 * Nb; i++ )
+        state[i] = InvSbox[tmp[i]];
+}
+
+/* encrypt/decrypt columns of the key
+ * n.b. you can replace this with
+ *      byte-wise xor if you wish.
+ */
+
+static void AddRoundKey (unsigned *state, unsigned *key)
+{
+int idx;
+
+    for( idx = 0; idx < 4; idx++ )
+        state[idx] ^= key[idx];
+}
+
+static const uchar Rcon[11] = {
+0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
+
+/* produce Nb bytes for each round */
+void aes_expand_key (uchar *key, uchar *expkey)
+{
+uchar tmp0, tmp1, tmp2, tmp3, tmp4;
+unsigned idx;
+
+    memcpy (expkey, key, Nk * 4);
+
+    for( idx = Nk; idx < Nb * (Nr + 1); idx++ ) {
+        tmp0 = expkey[4*idx - 4];
+        tmp1 = expkey[4*idx - 3];
+        tmp2 = expkey[4*idx - 2];
+        tmp3 = expkey[4*idx - 1];
+        if( !(idx % Nk) ) {
+            tmp4 = tmp3;
+            tmp3 = Sbox[tmp0];
+            tmp0 = Sbox[tmp1] ^ Rcon[idx/Nk];
+            tmp1 = Sbox[tmp2];
+            tmp2 = Sbox[tmp4];
+        } else if( Nk > 6 && idx % Nk == 4 ) {
+            tmp0 = Sbox[tmp0];
+            tmp1 = Sbox[tmp1];
+            tmp2 = Sbox[tmp2];
+            tmp3 = Sbox[tmp3];
+        }
+
+        expkey[4*idx+0] = expkey[4*idx - 4*Nk + 0] ^ tmp0;
+        expkey[4*idx+1] = expkey[4*idx - 4*Nk + 1] ^ tmp1;
+        expkey[4*idx+2] = expkey[4*idx - 4*Nk + 2] ^ tmp2;
+        expkey[4*idx+3] = expkey[4*idx - 4*Nk + 3] ^ tmp3;
+    }
+}
 
 /* encrypt one 128 bit block */
 void aes_encrypt (uchar *in, uchar *expkey, uchar *out)
 {
-uchar state[Nb * 4], tmp[Nb * 4];
+uchar state[Nb * 4];
+unsigned round;
 
-    AddRoundKey (in, expkey, state);
-    expkey += Nb * 4;
+    memcpy (state, in, Nb * 4);
+    AddRoundKey ((unsigned *)state, (unsigned *)expkey);
 
-    MixSubColumns (state, tmp, expkey);
-    expkey += Nb * 4;
+    for( round = 1; round < Nr + 1; round++ ) {
+        if( round < Nr )
+            MixSubColumns (state);
+        else
+            ShiftRows (state);
 
-    MixSubColumns (tmp, state, expkey);
-    expkey += Nb * 4;
+        AddRoundKey ((unsigned *)state, (unsigned *)expkey + round * Nb);
+    }
 
-    MixSubColumns (state, tmp, expkey);
-    expkey += Nb * 4;
-
-    MixSubColumns (tmp, state, expkey);
-    expkey += Nb * 4;
-
-    MixSubColumns (state, tmp, expkey);
-    expkey += Nb * 4;
-
-    MixSubColumns (tmp, state, expkey);
-    expkey += Nb * 4;
-
-    MixSubColumns (state, tmp, expkey);
-    expkey += Nb * 4;
-
-    MixSubColumns (tmp, state, expkey);
-    expkey += Nb * 4;
-
-    MixSubColumns (state, tmp, expkey);
-    expkey += Nb * 4;
-
-#if (Nr > 10)
-    MixSubColumns (tmp, state, expkey);
-    expkey += Nb * 4;
-
-    MixSubColumns (state, tmp, expkey);
-    expkey += Nb * 4;
-#endif
-
-#if (Nr > 12)
-    MixSubColumns (tmp, state, expkey);
-    expkey += Nb * 4;
-
-    MixSubColumns (state, tmp, expkey);
-    expkey += Nb * 4;
-#endif
-
-    ShiftRows (tmp, state);
-    AddRoundKey (state, expkey, out);
+    memcpy (out, state, sizeof(state));
 }
 
-/* decrypt one 128 bit block */
 void aes_decrypt (uchar *in, uchar *expkey, uchar *out)
 {
-uchar state[Nb * 4], tmp[Nb * 4];
-uchar t0, t1, t2, t3;
+uchar state[Nb * 4];
+unsigned round;
 
-    expkey += Nr * Nb * 4;
-    AddRoundKey (in, expkey, tmp);
-    InvShiftRows(tmp, state);
+    memcpy (state, in, sizeof(state));
 
-    expkey -= Nb * 4;
-    InvMixSubColumns (state, tmp, expkey);
+    AddRoundKey ((unsigned *)state, (unsigned *)expkey + Nr * Nb);
+    InvShiftRows(state);
 
-    expkey -= Nb * 4;
-    InvMixSubColumns (tmp, state, expkey);
+    for( round = Nr; round--; )
+    {
+        AddRoundKey ((unsigned *)state, (unsigned *)expkey + round * Nb);
+        if( round )
+            InvMixSubColumns (state);
+    } 
 
-    expkey -= Nb * 4;
-    InvMixSubColumns (state, tmp, expkey);
-
-    expkey -= Nb * 4;
-    InvMixSubColumns (tmp, state, expkey);
-
-    expkey -= Nb * 4;
-    InvMixSubColumns (state, tmp, expkey);
-
-    expkey -= Nb * 4;
-    InvMixSubColumns (tmp, state, expkey);
-
-    expkey -= Nb * 4;
-    InvMixSubColumns (state, tmp, expkey);
-
-    expkey -= Nb * 4;
-    InvMixSubColumns (tmp, state, expkey);
-
-    expkey -= Nb * 4;
-    InvMixSubColumns (state, tmp, expkey);
-
-#if (Nr > 10)
-    expkey -= Nb * 4;
-    InvMixSubColumns (tmp, state, expkey);
-
-    expkey -= Nb * 4;
-    InvMixSubColumns (state, tmp, expkey);
-#endif
-
-#if (Nr > 12)
-    expkey -= Nb * 4;
-    InvMixSubColumns (tmp, state, expkey);
-
-    expkey -= Nb * 4;
-    InvMixSubColumns (state, tmp, expkey);
-#endif
-
-    expkey -= Nb * 4;
-    AddRoundKey (tmp, expkey, out);
+    memcpy (out, state, sizeof(state));
 }
 

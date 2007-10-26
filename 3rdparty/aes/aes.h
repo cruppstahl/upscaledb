@@ -32,6 +32,17 @@ aes_encrypt(unsigned char *in, unsigned char *key, unsigned char *out);
 extern void 
 aes_decrypt(unsigned char *in, unsigned char *key, unsigned char *out);
 
+/*
+ * produce 4 bytes for each round 
+ *
+ * usage:
+ *
+ * uchar key[16];
+ * uchar expanded_key[32];
+ * aes_expand_key(key, expanded_key);
+ */
+extern void 
+aes_expand_key(unsigned char *key, unsigned char *expkey);
 
 #ifdef __cplusplus
 } // extern "C"

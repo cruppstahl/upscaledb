@@ -34,8 +34,6 @@ x c++-api
     x add documentation
     x convert sample db1.c and env2.c to c++
 
-o implement qemu images/machines for ARM, Sparc, PowerPC, PowerPC64 etc
-
 o add page-level filter
     x define structures, API
     x implement functions
@@ -48,7 +46,6 @@ o add page-level filter
         x get public domain AES functions
         x implement filter
         o add unittests
-        o add a new sample
         o modify acceptance test
     o add tutorial
     o add FAQ entry about security
@@ -69,8 +66,11 @@ o add record-level filter
 
     o add compression filter
         o add unittest
-        o add a new sample
     o add new function to c++ api
+
+o add a new sample for both filters
+
+o implement qemu images/machines for ARM, Sparc, PowerPC, PowerPC64 etc
 
 o environments support a configurable number of databases
 

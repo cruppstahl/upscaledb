@@ -998,7 +998,7 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  * The encryption will be active till @a ham_close is called. If the database
  * handle is reused after calling @a ham_close, the encryption is no longer
  * active. @a ham_enable_encryption should be called immediately after
- * @a ham_new, and before @a ham_create[_ex] or @a ham_open[_ex].
+ * @a ham_create[_ex] or @a ham_open[_ex].
  *
  * @param db A valid database handle.
  * @param key A 128bit AES key.

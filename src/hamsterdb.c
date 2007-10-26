@@ -1591,6 +1591,8 @@ __aes_post_cb(ham_db_t *db, ham_page_filter_t *filter,
 {
     ham_size_t i, blocks=page_size/16;
 
+    ham_assert(page_size%16==0, ("bogus page size"));
+
     for (i=0; i<blocks; i++) {
         aes_decrypt(&page_data[i*16], (ham_u8_t *)filter->userdata, 
                 &page_data[i*16]);
@@ -1626,12 +1628,13 @@ ham_enable_encryption(ham_db_t *db, ham_u8_t key[16], ham_u32_t flags)
     if (!filter)
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
 
-    filter->userdata=ham_mem_alloc(db, 16);
+    filter->userdata=ham_mem_calloc(db, 256);
     if (!filter->userdata) {
         ham_mem_free(db, filter);
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
     }
-    memcpy(filter->userdata, key, 16);
+
+    aes_expand_key(key, filter->userdata);
     filter->pre_cb=__aes_pre_cb;
     filter->post_cb=__aes_post_cb;
     filter->close_cb=__aes_close_cb;
@@ -2232,14 +2235,6 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         db_set_device(db, 0);
     }
 
-    /* 
-     * close the allocator, but not if we're in an environment
-     */
-    if (!db_get_env(db) && db_get_allocator(db)) {
-        db_get_allocator(db)->close(db_get_allocator(db));
-        db_set_allocator(db, 0);
-    }
-
     /*
      * close all page-level filters
      */
@@ -2251,6 +2246,14 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         head=next;
     }
     db_set_page_filter(db, 0);
+
+    /* 
+     * close the allocator, but not if we're in an environment
+     */
+    if (!db_get_env(db) && db_get_allocator(db)) {
+        db_get_allocator(db)->close(db_get_allocator(db));
+        db_set_allocator(db, 0);
+    }
 
     /*
      * remove this database from the environment

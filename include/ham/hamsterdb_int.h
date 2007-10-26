@@ -118,8 +118,7 @@ struct ham_page_filter_t
  * A function to install a page-level filter. 
  *
  * Page-level filters are usually installed immediately after the database
- * handle is created with @a ham_new, and before the database itself is 
- * opened or created.
+ * is created with @a ham_create[_ex] or opened with @a ham_open[_ex].
  */
 HAM_EXPORT ham_status_t
 ham_add_page_filter(ham_db_t *db, ham_page_filter_t *filter);
