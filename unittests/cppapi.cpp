@@ -184,23 +184,23 @@ public:
         db.insert(&k, &r);
         ham::cursor clone=c.clone();
 
-        c.begin(&k2, &r2);
+        c.move_first(&k2, &r2);
         CPPUNIT_ASSERT_EQUAL(k.get_size(), k2.get_size());
         CPPUNIT_ASSERT_EQUAL(r.get_size(), r2.get_size());
 
-        c.end(&k2, &r2);
+        c.move_last(&k2, &r2);
         CPPUNIT_ASSERT_EQUAL(k.get_size(), k2.get_size());
         CPPUNIT_ASSERT_EQUAL(r.get_size(), r2.get_size());
 
         try {
-            c.next();
+            c.move_next();
         }
         catch (ham::error &e) {
             CPPUNIT_ASSERT_EQUAL(e.get_errno(), HAM_KEY_NOT_FOUND);
         }
 
         try {
-            c.previous();
+            c.move_previous();
         }
         catch (ham::error &e) {
             CPPUNIT_ASSERT_EQUAL(e.get_errno(), HAM_KEY_NOT_FOUND);

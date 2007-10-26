@@ -30,7 +30,7 @@ o c++-api
     x add cursor functions
     x add environments
     x add unittests (full coverage!)
-    o talk to Oleg, finalize wrapper
+    x talk to Oleg, finalize wrapper
     o convert sample db1.c and env2.c to c++
     o add documentation - how do we deal with documentation? refer to the
         C++ documentation, only document the differences! otherwise

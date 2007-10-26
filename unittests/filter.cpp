@@ -51,6 +51,7 @@ class PageFilterTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(PageFilterTest);
     CPPUNIT_TEST      (addRemoveTest);
     CPPUNIT_TEST      (simpleFilterTest);
+    CPPUNIT_TEST      (aesFilterTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -165,6 +166,27 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, sf.written);
         CPPUNIT_ASSERT_EQUAL(1, sf.read);
         CPPUNIT_ASSERT_EQUAL(1, sf.closed);
+    }
+
+    void aesFilterTest()
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+        ham_u8_t aeskey[16]={0x13};
+
+#if 0
+        CPPUNIT_ASSERT_EQUAL(0, ham_enable_aes(m_db, aeskey));
+        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_enable_aes(m_db, aeskey));
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+#endif
     }
 
 };
