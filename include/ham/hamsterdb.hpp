@@ -363,6 +363,8 @@ public:
 
     /** Creates a new cursor. */
     void create(db *db, ham_u32_t flags=0) {
+        if (m_cursor)
+            close();
         if (db) {
             ham_status_t st=ham_cursor_create(db->get_handle(), 0,
                             flags, &m_cursor);
@@ -562,7 +564,13 @@ public:
             throw error(st);
     }
 
-    /** Closes the environment. */
+    /** 
+     * Closes the environment. 
+     *
+     * <b>Important!</b> Will throw an exception if there are opened database 
+     * handles. Make sure to close all database handles before closing the
+     * environment.
+     */
     void close(ham_u32_t flags=0) {
         if (!m_opened)
             return;

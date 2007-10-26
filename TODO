@@ -24,17 +24,15 @@ x are we using a good default page size? should we rather use 16kb??
 
 x unittest.vcproj: set working directory -> no, can't set it :-(
 
-o c++-api
+x c++-api
     x add static functions
     x add database functions
     x add cursor functions
     x add environments
     x add unittests (full coverage!)
     x talk to Oleg, finalize wrapper
-    o convert sample db1.c and env2.c to c++
-    o add documentation - how do we deal with documentation? refer to the
-        C++ documentation, only document the differences! otherwise
-        we go crazy...
+    x add documentation
+    x convert sample db1.c and env2.c to c++
 
 o implement qemu images/machines for ARM, Sparc, PowerPC, PowerPC64 etc
 

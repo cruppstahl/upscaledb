@@ -1,3 +1,7 @@
+Oct 26, 2007 - chris
+o finished the C++ API in include/ham/hamsterdb.hpp and added two new C++
+	samples - db6.cpp and env3.cpp.
+
 Oct 21, 2007 - chris
 o added generic page filters - ham_add_page_filter and ham_remove_page_filter
 
