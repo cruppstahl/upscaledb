@@ -128,6 +128,7 @@ public:
     {
         ham_page_t page;
         memset(&page, 0, sizeof(page));
+        page_set_owner(&page, m_db);
 
         CPPUNIT_ASSERT(m_dev->is_open(m_dev));
         CPPUNIT_ASSERT(m_dev->alloc_page(m_dev, &page, 
@@ -155,6 +156,7 @@ public:
         CPPUNIT_ASSERT(m_dev->truncate(m_dev, ps*10)==HAM_SUCCESS);
         for (i=0; i<10; i++) {
             memset(&pages[i], 0, sizeof(ham_page_t));
+            page_set_owner(&pages[i], m_db);
             page_set_self(&pages[i], i*ps);
             CPPUNIT_ASSERT(m_dev->read_page(m_dev, &pages[i], 
                         db_get_pagesize(m_db))==HAM_SUCCESS);
@@ -194,18 +196,18 @@ public:
         CPPUNIT_ASSERT(m_dev->truncate(m_dev, ps*10)==HAM_SUCCESS);
         for (i=0; i<10; i++) {
             buffer[i]=(ham_u8_t *)malloc(ps);
-            CPPUNIT_ASSERT(m_dev->read(m_dev, i*ps, 
-                        buffer[i], ps)==HAM_SUCCESS);
+            CPPUNIT_ASSERT_EQUAL(0,
+                    m_dev->read(m_db, m_dev, i*ps, buffer[i], ps));
         }
         for (i=0; i<10; i++)
             memset(buffer[i], i, ps);
         for (i=0; i<10; i++) {
-            CPPUNIT_ASSERT(m_dev->write(m_dev, i*ps, 
-                        buffer[i], ps)==HAM_SUCCESS);
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    m_dev->write(m_db, m_dev, i*ps, buffer[i], ps));
         }
         for (i=0; i<10; i++) {
-            CPPUNIT_ASSERT(m_dev->read(m_dev, i*ps, 
-                        buffer[i], ps)==HAM_SUCCESS);
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    m_dev->read(m_db, m_dev, i*ps, buffer[i], ps));
             memset(temp, i, ps);
             CPPUNIT_ASSERT(memcmp(buffer[i], temp, ps)==0);
             free(buffer[i]);

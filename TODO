@@ -42,13 +42,19 @@ o add page-level filter
     x add as autoconf project
     x link into hamsterdb library
     x add header file documentation
-    o add encryption filter
+    x add encryption filter
         x get public domain AES functions
         x implement filter
-        o add unittests
-        o modify acceptance test
-    o add tutorial
-    o add FAQ entry about security
+        x add unittests
+        x modify acceptance test
+    x test ../../testfiles/1/45.tst schlägt fehl (--use-aes=1 --reopen=1)
+    x test ../../testfiles/1/ext_021.tst schlägt fehl (--use-aes=1 --reopen=1)
+        --> erster parameter beim rausschreiben muss const sein!!
+            -> verschlüsselung muss in eigenen buffer, original-page
+                darf nicht überschrieben werden! (denn sie bleibt ja weiter
+                gecacht...)
+    o new unittest in an environment: 3 databases, 2 encrypted (with different
+            keys); reopen
     o add new function to c++ api
         o unittest
 
@@ -137,6 +143,12 @@ o be more careful when uncoupling cursors - especially when inserting
 
 o c++ API
     o add documentation to webpage
+
+o update tutorial
+    o aes encryption
+    o compression
+    o C++ API
+    o add FAQ entry about security (aes related)
 
 o release 0.4.8 
 

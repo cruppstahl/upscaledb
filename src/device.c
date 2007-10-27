@@ -17,6 +17,7 @@
 #include "mem.h"
 #include "page.h"
 #include "error.h"
+#include "db.h"
 
 typedef struct 
 {
@@ -92,11 +93,37 @@ __f_get_pagesize(ham_device_t *self)
 }
 
 static ham_status_t 
-__f_read(ham_device_t *self, ham_offset_t offset, void *buffer, ham_size_t size)
+__f_read(ham_db_t *db, ham_device_t *self, ham_offset_t offset, 
+        void *buffer, ham_size_t size)
 {
     dev_file_t *t=(dev_file_t *)device_get_private(self);
+    ham_page_filter_t *head=db_get_page_filter(db);
+    ham_status_t st;
 
-    return (os_pread(t->fd, offset, buffer, size));
+    st=os_pread(t->fd, offset, buffer, size);
+    if (st)
+        return (db_set_error(db, st));
+
+    /*
+     * we're done unless there are file filters (or if we're reading the
+     * header page - the header page is not filtered)
+     */
+    if (!head || offset==0)
+        return (0);
+
+    /*
+     * otherwise run the filters
+     */
+    while (head) {
+        if (head->post_cb) {
+            st=head->post_cb(db, head, buffer, size);
+            if (st)
+                return (db_set_error(db, st));
+        }
+        head=head->_next;
+    }
+
+    return (0);
 }
 
 static ham_status_t
@@ -105,6 +132,8 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
     ham_u8_t *buffer;
     ham_status_t st;
     dev_file_t *t=(dev_file_t *)device_get_private(self);
+    ham_db_t *db=page_get_owner(page);
+    ham_page_filter_t *head=db_get_page_filter(db);
 
     if (!size)
         size=device_get_pagesize(self);
@@ -121,7 +150,8 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
         else
             ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_MALLOC), (0));
 
-        return (__f_read(self, page_get_self(page), page_get_pers(page), size));
+        return (__f_read(db, self, page_get_self(page), 
+                    page_get_pers(page), size));
     }
 
     ham_assert(page_get_pers(page)==0, (""));
@@ -132,6 +162,28 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
             device_get_flags(self)&HAM_READ_ONLY, &buffer);
     if (st)
         return (st);
+
+    /*
+     * we're done unless there are file filters (or if we're reading the
+     * header page - the header page is not filtered)
+     */
+    if (!head || page_get_self(page)==0) {
+        page_set_pers(page, (union page_union_t *)buffer);
+        return (0);
+    }
+
+    /*
+     * otherwise run the filters
+     */
+    while (head) {
+        if (head->post_cb) {
+            st=head->post_cb(db, head, buffer, size);
+            if (st)
+                return (db_set_error(db, st));
+        }
+        head=head->_next;
+    }
+
     page_set_pers(page, (union page_union_t *)buffer);
     return (0);
 }
@@ -172,19 +224,50 @@ __f_alloc_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
 }
 
 static ham_status_t 
-__f_write(ham_device_t *self, ham_offset_t offset, void *buffer, 
+__f_write(ham_db_t *db, ham_device_t *self, ham_offset_t offset, void *buffer, 
             ham_size_t size)
 {
     dev_file_t *t=(dev_file_t *)device_get_private(self);
+    ham_page_filter_t *head=db_get_page_filter(db);
+    ham_u8_t *tempdata=0;
+    ham_status_t st=0;
 
-    return (os_pwrite(t->fd, offset, buffer, size));
+    /*
+     * run page through page-level filters, but not for the 
+     * root-page!
+     */
+    if (!head || offset==0)
+        return (os_pwrite(t->fd, offset, buffer, size));
+
+    /*
+     * don't modify the data in-place!
+     */
+    tempdata=ham_mem_alloc(db, size);
+    if (!tempdata)
+        return (db_set_error(db, HAM_OUT_OF_MEMORY));
+    memcpy(tempdata, buffer, size);
+
+    while (head) {
+        if (head->pre_cb) {
+            st=head->pre_cb(db, head, tempdata, size);
+            if (st) 
+                break;
+        }
+        head=head->_next;
+    }
+
+    if (!st)
+        st=os_pwrite(t->fd, offset, tempdata, size);
+
+    ham_mem_free(db, tempdata);
+    return (st);
 }
 
 static ham_status_t 
 __f_write_page(ham_device_t *self, ham_page_t *page)
 {
-    return (__f_write(self, page_get_self(page), page_get_pers(page), 
-                    device_get_pagesize(self)));
+    return (__f_write(page_get_owner(page), self, page_get_self(page), 
+                page_get_pers(page), device_get_pagesize(self)));
 }
 
 static ham_status_t 
@@ -311,8 +394,10 @@ __m_alloc_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
 }
 
 static ham_status_t 
-__m_read(ham_device_t *self, ham_offset_t offset, void *buffer, ham_size_t size)
+__m_read(ham_db_t *db, ham_device_t *self, ham_offset_t offset, 
+        void *buffer, ham_size_t size)
 {
+    (void)db;
     (void)self;
     (void)offset;
     (void)buffer;
@@ -323,9 +408,10 @@ __m_read(ham_device_t *self, ham_offset_t offset, void *buffer, ham_size_t size)
 
 
 static ham_status_t 
-__m_write(ham_device_t *self, ham_offset_t offset, void *buffer, 
+__m_write(ham_db_t *db, ham_device_t *self, ham_offset_t offset, void *buffer, 
             ham_size_t size)
 {
+    (void)db;
     (void)self;
     (void)offset;
     (void)buffer;

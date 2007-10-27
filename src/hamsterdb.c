@@ -1123,7 +1123,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
      * the real page. (but i really don't like this)
      */
 	if (!db_get_header_page(db)) {
-        st=device->read(device, 0, hdrbuf, sizeof(hdrbuf));
+        st=device->read(db, device, 0, hdrbuf, sizeof(hdrbuf));
         if (st) {
             ham_log(("os_pread of %s failed with status %d (%s)", filename,
                     st, ham_strerror(st)));

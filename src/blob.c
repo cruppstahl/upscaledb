@@ -88,7 +88,7 @@ __write_chunks(ham_db_t *db, ham_page_t *page,
                 if (s>pageid+db_get_pagesize(db)-addr)
                     s=(ham_size_t)(pageid+db_get_pagesize(db)-addr);
 
-                st=device->write(device, addr, chunk_data[i], s);
+                st=device->write(db, device, addr, chunk_data[i], s);
                 if (st)
                     return (st);
                 addr+=s;
@@ -157,7 +157,7 @@ __read_chunk(ham_db_t *db, ham_page_t *page, ham_page_t **fpage,
             if (s>pageid+db_get_pagesize(db)-addr)
                 s=(ham_size_t)(pageid+db_get_pagesize(db)-addr);
 
-            st=device->read(device, addr, data, s);
+            st=device->read(db, device, addr, data, s);
             if (st) 
                 return (st);
             addr+=s;

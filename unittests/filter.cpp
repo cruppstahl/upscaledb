@@ -147,7 +147,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
         CPPUNIT_ASSERT_EQUAL(1, sf.written);
-        CPPUNIT_ASSERT_EQUAL(0, sf.read);
+        CPPUNIT_ASSERT_EQUAL(1, sf.read);
         CPPUNIT_ASSERT_EQUAL(1, sf.closed);
 
         memset(&sf, 0, sizeof(sf));

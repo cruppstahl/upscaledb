@@ -101,14 +101,14 @@ struct ham_device_t {
     /*
      * reads from the device; this function does not use mmap
      */
-    ham_status_t (*read)(ham_device_t *self, ham_offset_t offset, 
-            void *buffer, ham_size_t size);
+    ham_status_t (*read)(ham_db_t *db, ham_device_t *self, 
+            ham_offset_t offset, void *buffer, ham_size_t size);
 
     /*
      * writes to the device; this function does not use mmap
      */
-    ham_status_t (*write)(ham_device_t *self, ham_offset_t offset, 
-            void *buffer, ham_size_t size);
+    ham_status_t (*write)(ham_db_t *db, ham_device_t *self, 
+            ham_offset_t offset, void *buffer, ham_size_t size);
 
     /*
      * reads a page from the device; this function CAN use mmap
