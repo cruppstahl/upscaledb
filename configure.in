@@ -155,6 +155,6 @@ if test $ac_cv_getpagesize_int = yes; then
     AC_DEFINE(HAVE_GETPAGESIZE_INT,1,[getpagesize() returns int])
 fi
 
-AC_CONFIG_FILES(Makefile src/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/aes/Makefile)
+AC_CONFIG_FILES(Makefile src/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/aes/Makefile 3rdparty/zlib/Makefile)
 AC_OUTPUT
 
