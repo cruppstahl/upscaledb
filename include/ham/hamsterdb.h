@@ -988,7 +988,7 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  *
  * This function enables AES encryption for the database files.
  * The AES key is cached in the database handle. The AES encryption/decryption
- * is only active when database pages are written disk/read from disk;
+ * is only active when database chunks are written disk/read from disk;
  * the cached pages in RAM are decrypted. Please read the FAQ for security
  * relevant notes.
  *
@@ -1182,8 +1182,8 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  * cursors with @a ham_cursor_close, otherwise @a HAM_DB_NOT_EMPTY 
  * is returned.
  *
- * This function removes all page-level filters installed 
- * with @a ham_add_page_filter.
+ * This function removes all file-level filters installed 
+ * with @a ham_add_file_filter.
  *
  * @param db A valid database handle.
  * @param flags Flags for closing the database.

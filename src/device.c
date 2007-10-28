@@ -97,7 +97,7 @@ __f_read(ham_db_t *db, ham_device_t *self, ham_offset_t offset,
         void *buffer, ham_size_t size)
 {
     dev_file_t *t=(dev_file_t *)device_get_private(self);
-    ham_page_filter_t *head=db_get_page_filter(db);
+    ham_file_filter_t *head=db_get_file_filter(db);
     ham_status_t st;
 
     st=os_pread(t->fd, offset, buffer, size);
@@ -115,8 +115,8 @@ __f_read(ham_db_t *db, ham_device_t *self, ham_offset_t offset,
      * otherwise run the filters
      */
     while (head) {
-        if (head->post_cb) {
-            st=head->post_cb(db, head, buffer, size);
+        if (head->after_read_cb) {
+            st=head->after_read_cb(db, head, buffer, size);
             if (st)
                 return (db_set_error(db, st));
         }
@@ -133,7 +133,7 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
     ham_status_t st;
     dev_file_t *t=(dev_file_t *)device_get_private(self);
     ham_db_t *db=page_get_owner(page);
-    ham_page_filter_t *head=db_get_page_filter(db);
+    ham_file_filter_t *head=db_get_file_filter(db);
 
     if (!size)
         size=device_get_pagesize(self);
@@ -176,8 +176,8 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
      * otherwise run the filters
      */
     while (head) {
-        if (head->post_cb) {
-            st=head->post_cb(db, head, buffer, size);
+        if (head->after_read_cb) {
+            st=head->after_read_cb(db, head, buffer, size);
             if (st)
                 return (db_set_error(db, st));
         }
@@ -228,7 +228,7 @@ __f_write(ham_db_t *db, ham_device_t *self, ham_offset_t offset, void *buffer,
             ham_size_t size)
 {
     dev_file_t *t=(dev_file_t *)device_get_private(self);
-    ham_page_filter_t *head=db_get_page_filter(db);
+    ham_file_filter_t *head=db_get_file_filter(db);
     ham_u8_t *tempdata=0;
     ham_status_t st=0;
 
@@ -248,8 +248,8 @@ __f_write(ham_db_t *db, ham_device_t *self, ham_offset_t offset, void *buffer,
     memcpy(tempdata, buffer, size);
 
     while (head) {
-        if (head->pre_cb) {
-            st=head->pre_cb(db, head, tempdata, size);
+        if (head->before_write_cb) {
+            st=head->before_write_cb(db, head, tempdata, size);
             if (st) 
                 break;
         }

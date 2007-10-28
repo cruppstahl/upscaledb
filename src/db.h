@@ -268,8 +268,8 @@ struct ham_db_t
     /* the freelist cache */
     freelist_cache_t *_freelist_cache;
 
-    /* linked list of all page-level filters */
-    ham_page_filter_t *_page_filters;
+    /* linked list of all file-level filters */
+    ham_file_filter_t *_file_filters;
 };
 
 /*
@@ -447,12 +447,12 @@ struct ham_db_t
 /*
  * get the linked list of all page-level filters
  */
-#define db_get_page_filter(db)         (db)->_page_filters
+#define db_get_file_filter(db)         (db)->_file_filters
 
 /*
  * set the linked list of all page-level filters
  */
-#define db_set_page_filter(db, f)      (db)->_page_filters=f
+#define db_set_file_filter(db, f)      (db)->_file_filters=f
 
 /*
  * get the linked list of all cursors

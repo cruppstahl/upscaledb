@@ -34,7 +34,7 @@ x c++-api
     x add documentation
     x convert sample db1.c and env2.c to c++
 
-o add page-level filter
+x add page-level filter
     x define structures, API
     x implement functions
     x add functions to page_read, page_write, ham_close
@@ -53,12 +53,10 @@ o add page-level filter
             -> verschlüsselung muss in eigenen buffer, original-page
                 darf nicht überschrieben werden! (denn sie bleibt ja weiter
                 gecacht...)
-    o new unittest in an environment: 3 databases, 2 encrypted (with different
+    x new unittest in an environment: 3 databases, 2 encrypted (with different
             keys); reopen
-    o add new function to c++ api
-        o unittest
-
-    o page filters are actually "file filters" - rename function and 
+    x add new function to c++ api
+    x page filters are actually "file filters" - rename function and 
         documentation!
 
 o arm: wants to use int getpagesize(), but seems to be size_t getpagesize().

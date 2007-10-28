@@ -1572,7 +1572,7 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo)
 }
 
 static ham_status_t
-__aes_pre_cb(ham_db_t *db, ham_page_filter_t *filter, 
+__aes_before_write_cb(ham_db_t *db, ham_file_filter_t *filter, 
         ham_u8_t *page_data, ham_size_t page_size)
 {
     ham_size_t i, blocks=page_size/16;
@@ -1586,7 +1586,7 @@ __aes_pre_cb(ham_db_t *db, ham_page_filter_t *filter,
 }
 
 static ham_status_t
-__aes_post_cb(ham_db_t *db, ham_page_filter_t *filter, 
+__aes_after_read_cb(ham_db_t *db, ham_file_filter_t *filter, 
         ham_u8_t *page_data, ham_size_t page_size)
 {
     ham_size_t i, blocks=page_size/16;
@@ -1602,7 +1602,7 @@ __aes_post_cb(ham_db_t *db, ham_page_filter_t *filter,
 }
 
 static void
-__aes_close_cb(ham_db_t *db, ham_page_filter_t *filter)
+__aes_close_cb(ham_db_t *db, ham_file_filter_t *filter)
 {
     if (filter) {
         if (filter->userdata)
@@ -1614,7 +1614,7 @@ __aes_close_cb(ham_db_t *db, ham_page_filter_t *filter)
 ham_status_t
 ham_enable_encryption(ham_db_t *db, ham_u8_t key[16], ham_u32_t flags)
 {
-    ham_page_filter_t *filter;
+    ham_file_filter_t *filter;
 
     if (!db)
         return (HAM_INV_PARAMETER);
@@ -1624,7 +1624,7 @@ ham_enable_encryption(ham_db_t *db, ham_u8_t key[16], ham_u32_t flags)
     if (!key)
         return (db_set_error(db, HAM_INV_PARAMETER));
 
-    filter=(ham_page_filter_t *)ham_mem_calloc(db, sizeof(*filter));
+    filter=(ham_file_filter_t *)ham_mem_calloc(db, sizeof(*filter));
     if (!filter)
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
 
@@ -1635,11 +1635,11 @@ ham_enable_encryption(ham_db_t *db, ham_u8_t key[16], ham_u32_t flags)
     }
 
     aes_expand_key(key, filter->userdata);
-    filter->pre_cb=__aes_pre_cb;
-    filter->post_cb=__aes_post_cb;
+    filter->before_write_cb=__aes_before_write_cb;
+    filter->after_read_cb=__aes_after_read_cb;
     filter->close_cb=__aes_close_cb;
 
-    return (ham_add_page_filter(db, filter));
+    return (ham_add_file_filter(db, filter));
 }
 
 ham_status_t
@@ -2044,7 +2044,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     ham_backend_t *be;
     ham_bool_t noenv=HAM_FALSE;
     ham_db_t *newowner=0;
-    ham_page_filter_t *head;
+    ham_file_filter_t *head;
 
     if (!db)
         return (HAM_INV_PARAMETER);
@@ -2238,14 +2238,14 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     /*
      * close all page-level filters
      */
-    head=db_get_page_filter(db);
+    head=db_get_file_filter(db);
     while (head) {
-        ham_page_filter_t *next=head->_next;
+        ham_file_filter_t *next=head->_next;
         if (head->close_cb)
             head->close_cb(db, head);
         head=next;
     }
-    db_set_page_filter(db, 0);
+    db_set_file_filter(db, 0);
 
     /* 
      * close the allocator, but not if we're in an environment
@@ -2610,9 +2610,9 @@ ham_cursor_close(ham_cursor_t *cursor)
 }
 
 ham_status_t
-ham_add_page_filter(ham_db_t *db, ham_page_filter_t *filter)
+ham_add_file_filter(ham_db_t *db, ham_file_filter_t *filter)
 {
-    ham_page_filter_t *head;
+    ham_file_filter_t *head;
 
     if (!db)
         return (HAM_INV_PARAMETER);
@@ -2625,7 +2625,7 @@ ham_add_page_filter(ham_db_t *db, ham_page_filter_t *filter)
     if (!filter)
         return (db_set_error(db, HAM_INV_PARAMETER));
 
-    head=db_get_page_filter(db);
+    head=db_get_file_filter(db);
 
     /*
      * !!
@@ -2633,7 +2633,7 @@ ham_add_page_filter(ham_db_t *db, ham_page_filter_t *filter)
      * later in the same order as the insertion
      */
     if (!head) {
-        db_set_page_filter(db, filter);
+        db_set_file_filter(db, filter);
     }
     else {
         while (head->_next)
@@ -2647,9 +2647,9 @@ ham_add_page_filter(ham_db_t *db, ham_page_filter_t *filter)
 }
 
 ham_status_t
-ham_remove_page_filter(ham_db_t *db, ham_page_filter_t *filter)
+ham_remove_file_filter(ham_db_t *db, ham_file_filter_t *filter)
 {
-    ham_page_filter_t *head, *prev;
+    ham_file_filter_t *head, *prev;
 
     if (!db)
         return (HAM_INV_PARAMETER);
@@ -2662,10 +2662,10 @@ ham_remove_page_filter(ham_db_t *db, ham_page_filter_t *filter)
     if (!filter)
         return (db_set_error(db, HAM_INV_PARAMETER));
 
-    head=db_get_page_filter(db);
+    head=db_get_file_filter(db);
 
     if (head==filter) {
-        db_set_page_filter(db, head->_next);
+        db_set_file_filter(db, head->_next);
         return 0;
     }
 
