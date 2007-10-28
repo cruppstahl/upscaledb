@@ -66,11 +66,19 @@ o add record-level filter
     x import zlib, add zlib as autoconf project
     x link into hamsterdb library
     o define structures, API
-    o add unittest
+    o add record-level filter
+    o remove record-level filter
+    o add unittests
 
     o add compression filter
         o add unittest
     o add new function to c++ api
+
+o add zlib and aes to win32 and wince environments
+
+o win32: unittest-working directory should be in /unittests-directory;
+    if we can't change the MSVC-setting, do it in the code (ifdef __MSVC__
+    cwd("../unittests") etc)
 
 o add a new sample for both filters
 
@@ -155,6 +163,4 @@ o release 0.4.8
     o frontpage: resize hamster picture; remove text -> more space below
         (for 3 colums: news, main features, articles/testimonials/link cloud)
 
-. move unittest to C test framework, not cppunit?? bad for embedded
-    platforms
 
