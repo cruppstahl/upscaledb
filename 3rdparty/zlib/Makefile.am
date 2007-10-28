@@ -3,8 +3,7 @@
 
 noinst_LTLIBRARIES = libzlib.la
 
-libzlib_la_SOURCES = example.c \
-					adler32.c \
+libzlib_la_SOURCES = adler32.c \
 					compress.c \
 					crc32.c \
 					gzio.c \
