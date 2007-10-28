@@ -59,7 +59,7 @@ x add page-level filter
     x page filters are actually "file filters" - rename function and 
         documentation!
 
-o arm: wants to use int getpagesize(), but seems to be size_t getpagesize().
+x arm: wants to use int getpagesize(), but seems to be size_t getpagesize().
     -> fix check in configure.in
 
 o add record-level filter

@@ -1,5 +1,7 @@
 Oct 28, 2007 - chris
 o finished AES encryption; a new function was added: ham_enable_encryption()
+o fixed bug in configure.in; on some systems, the call to getpagesize()
+    was not declared correctly. i hope it works now.
 
 Oct 26, 2007 - chris
 o finished the C++ API in include/ham/hamsterdb.hpp and added two new C++
