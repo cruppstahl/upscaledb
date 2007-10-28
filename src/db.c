@@ -671,7 +671,7 @@ done:
         memset(page_get_pers(page), 0, db_get_pagesize(db));
 
     if (db_get_txn(db)) {
-        st=txn_add_page(db_get_txn(db), page);
+        st=txn_add_page(db_get_txn(db), page, HAM_FALSE);
         if (st) {
             db_set_error(db, st);
             /* TODO memleak? */
@@ -707,7 +707,7 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
         page=cache_get_page(db_get_cache(db), address);
         if (page) {
             if (db_get_txn(db)) {
-                st=txn_add_page(db_get_txn(db), page);
+                st=txn_add_page(db_get_txn(db), page, HAM_FALSE);
                 if (st) {
                     db_set_error(db, st);
                     return (0);
@@ -730,6 +730,31 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
     if (st)
         return (0);
 
+    /* after purging, we have to check again if the page is in the cache,
+     * because maybe by uncoupling the cursors (and caching an extended key),
+     * the page was loaded in the meantime.
+     *
+     * -- TODO i don't like this, it costs time but doesn't give big 
+     *  benefits */
+    if (db_get_cache(db)) {
+        page=cache_get_page(db_get_cache(db), address);
+        if (page) {
+            if (db_get_txn(db)) {
+                st=txn_add_page(db_get_txn(db), page, HAM_TRUE);
+                if (st) {
+                    db_set_error(db, st);
+                    return (0);
+                }
+            }
+            st=cache_put_page(db_get_cache(db), page);
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
+            return (page);
+        }
+    }
+
     page=page_new(db);
     if (!page)
         return (0);
@@ -742,7 +767,7 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
     }
 
     if (db_get_txn(db)) {
-        st=txn_add_page(db_get_txn(db), page);
+        st=txn_add_page(db_get_txn(db), page, HAM_FALSE);
         if (st) {
             db_set_error(db, st);
             (void)page_delete(page);

@@ -272,9 +272,10 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     if (key_get_flags(entry)&KEY_HAS_DUPLICATES
             && !(flags&HAM_SKIP_DUPLICATES)) {
         ham_size_t count;
+        ham_status_t st;
         page_add_ref(page);
-        ham_status_t st=blob_duplicate_get_count(db, key_get_ptr(entry),
-                                &count, bt_cursor_get_dupe_cache(c));
+        st=blob_duplicate_get_count(db, key_get_ptr(entry),
+                        &count, bt_cursor_get_dupe_cache(c));
         page_release_ref(page);
         if (st)
             return (db_set_error(db, st));
@@ -353,9 +354,10 @@ my_move_last(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     if (key_get_flags(entry)&KEY_HAS_DUPLICATES
             && !(flags&HAM_SKIP_DUPLICATES)) {
         ham_size_t count;
+        ham_status_t st;
         page_add_ref(page);
-        ham_status_t st=blob_duplicate_get_count(db, key_get_ptr(entry),
-                                &count, bt_cursor_get_dupe_cache(c));
+        st=blob_duplicate_get_count(db, key_get_ptr(entry),
+                        &count, bt_cursor_get_dupe_cache(c));
         page_release_ref(page);
         if (st)
             return (db_set_error(db, st));
@@ -832,8 +834,12 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
                 st=blob_duplicate_get(db, key_get_ptr(entry),
                         bt_cursor_get_dupe_id(c),
                         bt_cursor_get_dupe_cache(c));
-                if (st)
+                if (st) {
+                    page_release_ref(page);
+                    if (local_txn)
+                        (void)ham_txn_abort(&txn);
                     return (db_set_error(db, st));
+                }
             }
             record->_intflags=dupe_entry_get_flags(e);
             record->_rid=dupe_entry_get_rid(e);

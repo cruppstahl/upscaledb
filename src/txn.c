@@ -18,8 +18,14 @@
 #include "mem.h"
 
 ham_status_t
-txn_add_page(ham_txn_t *txn, ham_page_t *page)
+txn_add_page(ham_txn_t *txn, ham_page_t *page, ham_bool_t ignore_if_inserted)
 {
+    /*
+     * don't re-insert, if 'ignore_if_inserted' is true
+     */
+    if (ignore_if_inserted && txn_get_page(txn, page_get_self(page)))
+        return (0);
+
 #ifdef HAM_DEBUG
     /*
      * check if the page is already in the transaction's pagelist - 

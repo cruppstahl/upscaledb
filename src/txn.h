@@ -65,7 +65,8 @@ typedef struct
  * add a page to the transaction's pagelist
  */
 extern ham_status_t
-txn_add_page(ham_txn_t *txn, struct ham_page_t *page);
+txn_add_page(ham_txn_t *txn, struct ham_page_t *page, 
+        ham_bool_t ignore_if_inserted);
 
 /**
  * remove a page from the transaction's pagelist

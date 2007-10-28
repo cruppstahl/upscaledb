@@ -854,7 +854,7 @@ blob_duplicate_get_count(ham_db_t *db, ham_offset_t table_id,
         ham_size_t *count, dupe_entry_t *entry)
 {
     dupe_table_t *table;
-    ham_page_t *page;
+    ham_page_t *page=0;
 
     table=__get_duplicate_table(db, table_id, &page);
     if (!table)
