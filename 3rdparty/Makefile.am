@@ -1,3 +1,3 @@
 
-SUBDIRS = aes
+SUBDIRS = aes zlib
 
