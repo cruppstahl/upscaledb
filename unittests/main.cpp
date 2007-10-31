@@ -27,5 +27,19 @@ main(int argc, char **argv)
     runner.setOutputter(new CppUnit::CompilerOutputter(&runner.result(), 
                     std::cerr));
 
+    /*
+     * when running in visual studio, the working directory is different
+     * from the unix/cygwin environment. this can be changed, but the
+     * working directory setting is not stored in the unittests.vcproj file, 
+     * but in unittests.vcproj.<hostname><username>; and this file is not
+     * distributed.
+     *
+     * therefore, at runtime, if we're compiling under visual studio, set
+     * the working directory manually.
+     */
+#ifdef VISUAL_STUDIO
+    TODO
+#endif
+
     return runner.run() ? 0 : 1;
 }

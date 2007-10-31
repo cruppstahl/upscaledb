@@ -45,7 +45,8 @@ public:
 #else
         char buffer[1024*4];
 
-        snprintf(buffer, sizeof(buffer), "\\cp %s %s", src, dest);
+        snprintf(buffer, sizeof(buffer), "\\cp %s %s && chmod 644 %s", 
+                        src, dest, dest);
         return (0==system(buffer));
 #endif
     }

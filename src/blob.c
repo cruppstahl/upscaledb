@@ -199,7 +199,7 @@ __get_duplicate_table(ham_db_t *db, ham_offset_t table_id, ham_page_t **page)
      * pages), just return a pointer directly in the page
      */
     if (page_get_self(hdrpage)+db_get_usable_pagesize(db)>=
-            table_id+blob_get_user_size(&hdr)) {
+            table_id+blob_get_size(&hdr)) {
         ham_u8_t *p=page_get_raw_payload(hdrpage);
         /* yes, table is in the page */
         *page=hdrpage;
@@ -210,7 +210,7 @@ __get_duplicate_table(ham_db_t *db, ham_offset_t table_id, ham_page_t **page)
     /*
      * otherwise allocate memory for the table
      */
-    table=ham_mem_alloc(db, (ham_size_t)blob_get_user_size(&hdr));
+    table=ham_mem_alloc(db, (ham_size_t)blob_get_size(&hdr));
     if (!table) {
         db_set_error(db, HAM_OUT_OF_MEMORY);
         return (0);
@@ -220,7 +220,7 @@ __get_duplicate_table(ham_db_t *db, ham_offset_t table_id, ham_page_t **page)
      * then read the rest of the blob
      */
     st=__read_chunk(db, hdrpage, 0, table_id+sizeof(hdr), 
-            (ham_u8_t *)table, (ham_size_t)blob_get_user_size(&hdr));
+            (ham_u8_t *)table, (ham_size_t)blob_get_size(&hdr));
     if (st) {
         db_set_error(db, st);
         return (0);
@@ -261,8 +261,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
         memset(hdr, 0, sizeof(*hdr));
         blob_set_self(hdr, (ham_offset_t)p);
         blob_set_alloc_size(hdr, size+sizeof(blob_t));
-        blob_set_real_size(hdr, size+sizeof(blob_t));
-        blob_set_user_size(hdr, size);
+        blob_set_size(hdr, size);
 
         *blobid=(ham_offset_t)p;
         return (0);
@@ -334,8 +333,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
     else
         blob_set_alloc_size(&hdr, alloc_size);
 
-    blob_set_real_size(&hdr, sizeof(blob_t)+size);
-    blob_set_user_size(&hdr, size);
+    blob_set_size(&hdr, size);
     blob_set_self(&hdr, addr);
 
     /* 
@@ -377,7 +375,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
         if (!hdr)
             return (0);
 
-        record->size=(ham_size_t)blob_get_user_size(hdr);
+        record->size=(ham_size_t)blob_get_size(hdr);
         if (!record->size) {
             /* empty blob? */
             record->data=0;
@@ -385,7 +383,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
         else {
             /* resize buffer, if necessary */
             if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-                st=db_resize_allocdata(db, (ham_size_t)blob_get_user_size(hdr));
+                st=db_resize_allocdata(db, (ham_size_t)blob_get_size(hdr));
                 if (st)
                     return (st);
                 record->data=db_get_record_allocdata(db);
@@ -419,7 +417,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
     /* 
      * empty blob? 
      */
-    record->size=(ham_size_t)blob_get_user_size(&hdr);
+    record->size=(ham_size_t)blob_get_size(&hdr);
     if (!record->size) {
         record->data=0;
         return (0);
@@ -429,7 +427,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
      * second step: resize the blob buffer
      */
     if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-        st=db_resize_allocdata(db, (ham_size_t)blob_get_user_size(&hdr));
+        st=db_resize_allocdata(db, (ham_size_t)blob_get_size(&hdr));
         if (st)
             return (st);
         record->data=db_get_record_allocdata(db);
@@ -439,11 +437,11 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
      * third step: read the blob data
      */
     st=__read_chunk(db, page, 0, blobid+sizeof(blob_t), record->data, 
-            (ham_size_t)blob_get_user_size(&hdr));
+            (ham_size_t)blob_get_size(&hdr));
     if (st)
         return (st);
 
-    record->size=(ham_size_t)blob_get_user_size(&hdr);
+    record->size=(ham_size_t)blob_get_size(&hdr);
 
     return (0);
 }
@@ -466,7 +464,7 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
         blob_t *nhdr, *phdr=(blob_t *)old_blobid;
 
-        if (blob_get_user_size(phdr)==size) {
+        if (blob_get_size(phdr)==size) {
             ham_u8_t *p=(ham_u8_t *)phdr;
             memmove(p+sizeof(blob_t), data, size);
             *new_blobid=(ham_offset_t)phdr;
@@ -525,8 +523,7 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
          * setup the new blob header
          */
         blob_set_self(&new_hdr, blob_get_self(&old_hdr));
-        blob_set_user_size(&new_hdr, size);
-        blob_set_real_size(&new_hdr, size+sizeof(blob_t));
+        blob_set_size(&new_hdr, size);
         blob_set_flags(&new_hdr, blob_get_flags(&old_hdr));
         if (blob_get_alloc_size(&old_hdr)-alloc_size>SMALLEST_CHUNK_SIZE)
             blob_set_alloc_size(&new_hdr, alloc_size);

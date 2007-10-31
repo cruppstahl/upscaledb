@@ -15,6 +15,7 @@
 #include "../src/db.h"
 #include "../src/blob.h"
 #include "memtracker.h"
+#include "os.hpp"
 
 class BlobTest : public CppUnit::TestFixture
 {
@@ -47,16 +48,12 @@ public:
 
     void setUp()
     { 
-#if WIN32
-        (void)DeleteFileA((LPCSTR)".test");
-#else
-        (void)unlink(".test");
-#endif
+        os::unlink(".test");
         CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", 
-                    m_inmemory ? HAM_IN_MEMORY_DB : 0, 0));
+                    m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644));
     }
     
     void tearDown() 
@@ -78,11 +75,8 @@ public:
         blob_set_alloc_size(&b, 0x789ull);
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x789ull, blob_get_alloc_size(&b));
 
-        blob_set_real_size(&b, 0xabcull);
-        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0xabcull, blob_get_real_size(&b));
-
-        blob_set_user_size(&b, 0x123ull);
-        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x123ull, blob_get_user_size(&b));
+        blob_set_size(&b, 0x123ull);
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x123ull, blob_get_size(&b));
 
         blob_set_flags(&b, 0x13);
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)0x13, blob_get_flags(&b));

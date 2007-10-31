@@ -187,7 +187,7 @@ public:
 
     void tearDown()
     {
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_AUTO_CLEANUP));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(m_db));
     }
     

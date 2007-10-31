@@ -285,7 +285,6 @@ public:
 
     void negativeMmapTest()
     {
-        ham_status_t st;
         ham_fd_t fd, mmaph;
         ham_u8_t *page;
 

@@ -74,11 +74,18 @@ o add record-level filter
         o add unittest
     o add new function to c++ api
 
-o add zlib and aes to win32 and wince environments
+o add zlib and aes to win32 environment
+
+o add zlib and aes to wince environment
 
 o win32: unittest-working directory should be in /unittests-directory;
     if we can't change the MSVC-setting, do it in the code (ifdef __MSVC__
     cwd("../unittests") etc)
+
+o re-create the unittest/data files for both endians
+    x dupe-test little endian
+    o dupe-test big endian
+    o others....
 
 o add a new sample for both filters
 

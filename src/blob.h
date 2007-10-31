@@ -48,15 +48,9 @@ typedef HAM_PACK_0 struct HAM_PACK_1
     ham_u64_t _allocated_size;
 
     /**
-     * the size of the blob - this can hold additional padding, i.e. because
-     * of encryption alignment (<= allocated_size)
+     * the size of the blob
      */
-    ham_u64_t _real_size;
-
-    /**
-     * the size of the blob, as it's seen by the user (<= real_size)
-     */
-    ham_u64_t _user_size;
+    ham_u64_t _size;
 
     /**
      * additional flags
@@ -88,24 +82,14 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 #define blob_set_alloc_size(b, s)      (b)->_allocated_size=ham_h2db64(s)
 
 /**
- * get the real size of a blob_t
+ * get the size of a blob_t
  */
-#define blob_get_real_size(b)          (ham_db2h64((b)->_real_size))
+#define blob_get_size(b)               (ham_db2h64((b)->_size))
 
 /**
- * set the real size of a blob_t
+ * get the size of a blob_t
  */
-#define blob_set_real_size(b, s)      (b)->_real_size=ham_h2db64(s)
-
-/**
- * get the user size of a blob_t
- */
-#define blob_get_user_size(b)          (ham_db2h64((b)->_user_size))
-
-/**
- * get the user size of a blob_t
- */
-#define blob_set_user_size(b, s)       (b)->_user_size=ham_h2db64(s)
+#define blob_set_size(b, s)            (b)->_size=ham_h2db64(s)
 
 /**
  * get flags of a blob_t
