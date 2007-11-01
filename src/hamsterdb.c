@@ -178,21 +178,17 @@ __record_filters_before_insert(ham_db_t *db, ham_record_t *record)
 {
     ham_status_t st=0;
     ham_record_filter_t *record_head;
-    ham_u8_t rflags=0;
 
     record_head=db_get_record_filter(db);
     while (record_head) {
         if (record_head->before_insert_cb) {
             st=record_head->before_insert_cb(db, record_head, 
-                    (ham_u8_t **)&record->data, &record->size, &rflags);
+                    (ham_u8_t **)&record->data, &record->size);
             if (st)
                 break;
         }
         record_head=record_head->_next;
     }
-
-    if (!st)
-        record->flags|=rflags<<24;
 
     return (st);
 }
@@ -202,13 +198,12 @@ __record_filters_after_find(ham_db_t *db, ham_record_t *record)
 {
     ham_status_t st=0;
     ham_record_filter_t *record_head;
-    ham_u8_t rflags=(record->flags&0xff000000)>>24;
 
     record_head=db_get_record_filter(db);
     while (record_head) {
         if (record_head->after_read_cb) {
             st=record_head->after_read_cb(db, record_head, 
-                    (ham_u8_t **)&record->data, &record->size, rflags);
+                    (ham_u8_t **)&record->data, &record->size);
             if (st)
                 break;
         }

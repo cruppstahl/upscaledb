@@ -24,7 +24,7 @@ typedef struct simple_filter_t
 } simple_filter_t;
 
 static ham_status_t
-my_pre_cb(ham_db_t *, ham_file_filter_t *filter, ham_u8_t *, ham_size_t)
+my_file_pre_cb(ham_db_t *, ham_file_filter_t *filter, ham_u8_t *, ham_size_t)
 {
     simple_filter_t *sf=(simple_filter_t *)filter->userdata;
     sf->written++;
@@ -32,7 +32,7 @@ my_pre_cb(ham_db_t *, ham_file_filter_t *filter, ham_u8_t *, ham_size_t)
 }
 
 static ham_status_t
-my_post_cb(ham_db_t *, ham_file_filter_t *filter, ham_u8_t *, ham_size_t)
+my_file_post_cb(ham_db_t *, ham_file_filter_t *filter, ham_u8_t *, ham_size_t)
 {
     simple_filter_t *sf=(simple_filter_t *)filter->userdata;
     sf->read++;
@@ -40,7 +40,32 @@ my_post_cb(ham_db_t *, ham_file_filter_t *filter, ham_u8_t *, ham_size_t)
 }
 
 static void
-my_close_cb(ham_db_t *, ham_file_filter_t *filter)
+my_file_close_cb(ham_db_t *, ham_file_filter_t *filter)
+{
+    simple_filter_t *sf=(simple_filter_t *)filter->userdata;
+    sf->closed++;
+}
+
+static ham_status_t
+my_record_pre_cb(ham_db_t *, ham_record_filter_t *filter, 
+        ham_u8_t **, ham_size_t *)
+{
+    simple_filter_t *sf=(simple_filter_t *)filter->userdata;
+    sf->written++;
+    return (0);
+}
+
+static ham_status_t
+my_record_post_cb(ham_db_t *, ham_record_filter_t *filter, 
+        ham_u8_t **, ham_size_t *)
+{
+    simple_filter_t *sf=(simple_filter_t *)filter->userdata;
+    sf->read++;
+    return (0);
+}
+
+static void
+my_record_close_cb(ham_db_t *, ham_record_filter_t *filter)
 {
     simple_filter_t *sf=(simple_filter_t *)filter->userdata;
     sf->closed++;
@@ -51,7 +76,8 @@ class PageFilterTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(PageFilterTest);
     CPPUNIT_TEST      (addRemoveFileTest);
     CPPUNIT_TEST      (addRemoveRecordTest);
-    CPPUNIT_TEST      (simpleFilterTest);
+    CPPUNIT_TEST      (simpleFileFilterTest);
+    CPPUNIT_TEST      (simpleRecordFilterTest);
     CPPUNIT_TEST      (aesFilterTest);
     CPPUNIT_TEST      (aesEnvFilterTest);
     CPPUNIT_TEST_SUITE_END();
@@ -172,16 +198,16 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
-    void simpleFilterTest()
+    void simpleFileFilterTest()
     {
         simple_filter_t sf;
         ham_file_filter_t filter;
         memset(&filter, 0, sizeof(filter));
         memset(&sf, 0, sizeof(sf));
         filter.userdata=(void *)&sf;
-        filter.before_write_cb=my_pre_cb;
-        filter.after_read_cb=my_post_cb;
-        filter.close_cb=my_close_cb;
+        filter.before_write_cb=my_file_pre_cb;
+        filter.after_read_cb=my_file_post_cb;
+        filter.close_cb=my_file_close_cb;
 
         CPPUNIT_ASSERT_EQUAL(0, ham_add_file_filter(m_db, &filter));
 
@@ -201,6 +227,53 @@ public:
 
         memset(&sf, 0, sizeof(sf));
         CPPUNIT_ASSERT_EQUAL(0, ham_add_file_filter(m_db, &filter));
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        CPPUNIT_ASSERT_EQUAL(0, sf.written);
+        CPPUNIT_ASSERT_EQUAL(0, sf.read);
+        CPPUNIT_ASSERT_EQUAL(0, sf.closed);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, sf.written);
+        CPPUNIT_ASSERT_EQUAL(1, sf.read);
+        CPPUNIT_ASSERT_EQUAL(0, sf.closed);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, sf.written);
+        CPPUNIT_ASSERT_EQUAL(1, sf.read);
+        CPPUNIT_ASSERT_EQUAL(1, sf.closed);
+    }
+
+    void simpleRecordFilterTest()
+    {
+        simple_filter_t sf;
+        ham_record_filter_t filter;
+        memset(&filter, 0, sizeof(filter));
+        memset(&sf, 0, sizeof(sf));
+        filter.userdata=(void *)&sf;
+        filter.before_insert_cb=my_record_pre_cb;
+        filter.after_read_cb=my_record_post_cb;
+        filter.close_cb=my_record_close_cb;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &filter));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0644));
+
+        ham_key_t key;
+        ham_record_t rec;
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"123";
+        rec.size=3;
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        CPPUNIT_ASSERT_EQUAL(1, sf.written);
+        CPPUNIT_ASSERT_EQUAL(0, sf.read);
+        CPPUNIT_ASSERT_EQUAL(1, sf.closed);
+
+        memset(&sf, 0, sizeof(sf));
+        CPPUNIT_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &filter));
         CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
         CPPUNIT_ASSERT_EQUAL(0, sf.written);
         CPPUNIT_ASSERT_EQUAL(0, sf.read);
