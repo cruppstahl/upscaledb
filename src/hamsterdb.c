@@ -2044,7 +2044,8 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     ham_backend_t *be;
     ham_bool_t noenv=HAM_FALSE;
     ham_db_t *newowner=0;
-    ham_file_filter_t *head;
+    ham_file_filter_t *file_head;
+    ham_record_filter_t *record_head;
 
     if (!db)
         return (HAM_INV_PARAMETER);
@@ -2238,14 +2239,26 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     /*
      * close all page-level filters
      */
-    head=db_get_file_filter(db);
-    while (head) {
-        ham_file_filter_t *next=head->_next;
-        if (head->close_cb)
-            head->close_cb(db, head);
-        head=next;
+    file_head=db_get_file_filter(db);
+    while (file_head) {
+        ham_file_filter_t *next=file_head->_next;
+        if (file_head->close_cb)
+            file_head->close_cb(db, file_head);
+        file_head=next;
     }
     db_set_file_filter(db, 0);
+
+    /*
+     * close all record-level filters
+     */
+    record_head=db_get_record_filter(db);
+    while (record_head) {
+        ham_record_filter_t *next=record_head->_next;
+        if (record_head->close_cb)
+            record_head->close_cb(db, record_head);
+        record_head=next;
+    }
+    db_set_record_filter(db, 0);
 
     /* 
      * close the allocator, but not if we're in an environment
