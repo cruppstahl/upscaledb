@@ -106,14 +106,6 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             && !(oldflags&KEY_BLOB_SIZE_SMALL)
             && !(oldflags&KEY_BLOB_SIZE_TINY)
             && !(oldflags&KEY_BLOB_SIZE_EMPTY)) {
-#if 0
-            && !(oldflags&KEY_HAS_DUPLICATES)
-            && !(flags&HAM_DUPLICATE)
-                && !(flags&HAM_DUPLICATE_INSERT_BEFORE)
-                && !(flags&HAM_DUPLICATE_INSERT_AFTER)
-                && !(flags&HAM_DUPLICATE_INSERT_FIRST)
-                && !(flags&HAM_DUPLICATE_INSERT_LAST))) {
-#endif
         if (record->size<=sizeof(ham_offset_t)) {
             if (record->data)
                 memcpy(&rid, record->data, record->size);
