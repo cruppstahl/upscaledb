@@ -270,6 +270,9 @@ struct ham_db_t
 
     /* linked list of all file-level filters */
     ham_file_filter_t *_file_filters;
+
+    /* linked list of all record-level filters */
+    ham_record_filter_t *_record_filters;
 };
 
 /*
@@ -453,6 +456,16 @@ struct ham_db_t
  * set the linked list of all page-level filters
  */
 #define db_set_file_filter(db, f)      (db)->_file_filters=f
+
+/*
+ * get the linked list of all record-level filters
+ */
+#define db_get_record_filter(db)       (db)->_record_filters
+
+/*
+ * set the linked list of all record-level filters
+ */
+#define db_set_record_filter(db, f)    (db)->_record_filters=f
 
 /*
  * get the linked list of all cursors

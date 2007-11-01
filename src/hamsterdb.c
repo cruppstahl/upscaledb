@@ -2684,3 +2684,80 @@ ham_remove_file_filter(ham_db_t *db, ham_file_filter_t *filter)
 
     return (0);
 }
+
+ham_status_t
+ham_add_record_filter(ham_db_t *db, ham_record_filter_t *filter)
+{
+    ham_record_filter_t *head;
+
+    if (!db)
+        return (HAM_INV_PARAMETER);
+
+    if (db_get_env(db))
+        __prepare_db(db);
+
+    db_set_error(db, 0);
+
+    if (!filter)
+        return (db_set_error(db, HAM_INV_PARAMETER));
+
+    head=db_get_record_filter(db);
+
+    /*
+     * !!
+     * add the filter at the end of all filters, then we can process them
+     * later in the same order as the insertion
+     */
+    if (!head) {
+        db_set_record_filter(db, filter);
+    }
+    else {
+        while (head->_next)
+            head=head->_next;
+
+        filter->_prev=head;
+        head->_next=filter;
+    }
+
+    return (0);
+}
+
+ham_status_t
+ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter)
+{
+    ham_record_filter_t *head, *prev;
+
+    if (!db)
+        return (HAM_INV_PARAMETER);
+
+    if (db_get_env(db))
+        __prepare_db(db);
+
+    db_set_error(db, 0);
+
+    if (!filter)
+        return (db_set_error(db, HAM_INV_PARAMETER));
+
+    head=db_get_record_filter(db);
+
+    if (head==filter) {
+        db_set_record_filter(db, head->_next);
+        return 0;
+    }
+
+    do {
+        prev=head;
+        head=head->_next;
+        if (!head)
+            break;
+        if (head==filter) {
+            prev->_next=head->_next;
+            if (head->_next)
+                head->_next->_prev=prev;
+            break;
+        }
+    } while(head);
+
+    return (0);
+}
+

@@ -133,6 +133,90 @@ ham_add_file_filter(ham_db_t *db, ham_file_filter_t *filter);
 HAM_EXPORT ham_status_t
 ham_remove_file_filter(ham_db_t *db, ham_file_filter_t *filter);
 
+struct ham_record_filter_t;
+typedef struct ham_record_filter_t ham_record_filter_t;
+
+/**
+ * A callback function for a record-level filter; called before the 
+ * record is inserted
+ *
+ * @a record_data, @a record_size and @a flags can be modified or even
+ * re-allocated.
+ */
+typedef ham_status_t (*ham_record_filter_before_insert_cb_t)(ham_db_t *db, 
+        ham_record_filter_t *filter, ham_u8_t **record_data, 
+        ham_size_t *record_size, ham_u8_t *flags);
+
+/**
+ * A callback function for a record-level filter; called immediately after the 
+ * record is read from disk, and before it is returned to the user.
+ */
+typedef ham_status_t (*ham_record_filter_after_read_cb_t)(ham_db_t *db, 
+        ham_record_filter_t *filter, ham_u8_t **record_data, 
+        ham_size_t *file_size, ham_u8_t flags);
+
+/**
+ * A callback function for a record-level filter; called immediately before the
+ * database is closed. Can be used to avoid memory leaks.
+ */
+typedef void (*ham_record_filter_close_cb_t)(ham_db_t *db, 
+        ham_record_filter_t *filter);
+
+/**
+ * A handle for record-level filtering.
+ *
+ * Record-level filters can modify and resize the record data before 
+ * it is inserted, and before it is returned to the user.
+ *
+ * Record-level filters can be used i.e. for writing compression filters. 
+ * See @a ham_enable_compression() to create a filter for zlib-based
+ * compression.
+ *
+ * Each of the three callback functions can be NULL.
+ *
+ * Before this structure is used, it has to be initialized with zeroes.
+ */
+struct ham_record_filter_t
+{
+    /** The user data */
+    void *userdata;
+
+    /** The function which is called before the record is inserted */
+    ham_record_filter_before_insert_cb_t before_insert_cb;
+
+    /** The function which is called after the record is read from disk */
+    ham_record_filter_after_read_cb_t after_read_cb;
+
+    /** The function which is when the database is closed */
+    ham_record_filter_close_cb_t close_cb;
+
+    /** For internal use */
+    ham_u32_t _flags;
+
+    /** For internal use */
+    ham_record_filter_t *_next, *_prev;
+
+};
+
+/**
+ * A function to install a record-level filter. 
+ *
+ * Record-level filters are usually installed immediately after the database
+ * is created with @a ham_create[_ex] or opened with @a ham_open[_ex].
+ */
+HAM_EXPORT ham_status_t
+ham_add_record_filter(ham_db_t *db, ham_record_filter_t *filter);
+
+/**
+ * A function to remove a record-level filter.
+ *
+ * This function is usually not necessary - the lifetime of a record-filter
+ * usually starts before the first database operation, and ends when the
+ * database is closed. It is not recommended to use this function.
+ */
+HAM_EXPORT ham_status_t
+ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter);
+
 
 #ifdef __cplusplus
 } // extern "C"

@@ -65,10 +65,13 @@ x arm: wants to use int getpagesize(), but seems to be size_t getpagesize().
 o add record-level filter
     x import zlib, add zlib as autoconf project
     x link into hamsterdb library
-    o define structures, API
-    o add record-level filter
-    o remove record-level filter
-    o add unittests
+    x do we need to distinguish between "real" size and "user" size?
+        i think not -> remove one of them, rename to "size"
+        it's better if the filter can set flags in the record
+    x define structures, API
+    x add record-level filter
+    x remove record-level filter
+    x add unittests
 
     o add compression filter
         o add unittest

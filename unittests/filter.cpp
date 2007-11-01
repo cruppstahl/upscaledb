@@ -49,7 +49,8 @@ my_close_cb(ham_db_t *, ham_file_filter_t *filter)
 class PageFilterTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(PageFilterTest);
-    CPPUNIT_TEST      (addRemoveTest);
+    CPPUNIT_TEST      (addRemoveFileTest);
+    CPPUNIT_TEST      (addRemoveRecordTest);
     CPPUNIT_TEST      (simpleFilterTest);
     CPPUNIT_TEST      (aesFilterTest);
     CPPUNIT_TEST      (aesEnvFilterTest);
@@ -77,7 +78,7 @@ public:
         CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
-    void addRemoveTest()
+    void addRemoveFileTest()
     {
         ham_file_filter_t filter1, filter2, filter3;
         memset(&filter1, 0, sizeof(filter1));
@@ -119,6 +120,53 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_remove_file_filter(m_db, &filter1));
         CPPUNIT_ASSERT(0==db_get_file_filter(m_db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    }
+
+    void addRemoveRecordTest()
+    {
+        ham_record_filter_t filter1, filter2, filter3;
+        memset(&filter1, 0, sizeof(filter1));
+        memset(&filter2, 0, sizeof(filter2));
+        memset(&filter3, 0, sizeof(filter3));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &filter1));
+        CPPUNIT_ASSERT(filter1._next==0);
+        CPPUNIT_ASSERT(filter1._prev==0);
+        CPPUNIT_ASSERT_EQUAL(&filter1, db_get_record_filter(m_db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &filter2));
+        CPPUNIT_ASSERT(filter1._next==&filter2);
+        CPPUNIT_ASSERT(filter2._prev==&filter1);
+        CPPUNIT_ASSERT(filter1._prev==0);
+        CPPUNIT_ASSERT(filter2._next==0);
+        CPPUNIT_ASSERT_EQUAL(&filter1, db_get_record_filter(m_db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &filter3));
+        CPPUNIT_ASSERT(filter1._next==&filter2);
+        CPPUNIT_ASSERT(filter2._prev==&filter1);
+        CPPUNIT_ASSERT(filter2._next==&filter3);
+        CPPUNIT_ASSERT(filter3._prev==&filter2);
+        CPPUNIT_ASSERT(filter1._prev==0);
+        CPPUNIT_ASSERT(filter3._next==0);
+        CPPUNIT_ASSERT_EQUAL(&filter1, db_get_record_filter(m_db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_remove_record_filter(m_db, &filter2));
+        CPPUNIT_ASSERT(filter1._next==&filter3);
+        CPPUNIT_ASSERT(filter3._prev==&filter1);
+        CPPUNIT_ASSERT(filter1._prev==0);
+        CPPUNIT_ASSERT(filter3._next==0);
+        CPPUNIT_ASSERT_EQUAL(&filter1, db_get_record_filter(m_db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_remove_record_filter(m_db, &filter3));
+        CPPUNIT_ASSERT(filter1._prev==0);
+        CPPUNIT_ASSERT(filter1._next==0);
+        CPPUNIT_ASSERT_EQUAL(&filter1, db_get_record_filter(m_db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_remove_record_filter(m_db, &filter1));
+        CPPUNIT_ASSERT(0==db_get_record_filter(m_db));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0644));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
