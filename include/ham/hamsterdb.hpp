@@ -279,12 +279,14 @@ public:
             throw error(st);
     }
 
+#if HAM_ENABLE_AES
     /** Enable AES encryption. */
     void enable_encryption(ham_u8_t key[16], ham_u32_t flags=0) {
         ham_status_t st=ham_enable_encryption(m_db, key, flags);
         if (st)
             throw error(st);
     }
+#endif /* HAM_ENABLE_AES */
 
     /** Finds a record by looking up the key. */
     record find(key *k, ham_u32_t flags=0) {

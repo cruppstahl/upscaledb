@@ -76,6 +76,7 @@ o add record-level filter
     o add compression filter
         o add unittest
     o add new function to c++ api
+    o add to acceptance test
 
 o add zlib and aes to win32 environment
 

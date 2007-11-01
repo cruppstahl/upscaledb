@@ -1,6 +1,8 @@
 Nov 01, 2007 - chris
 o added generic record filters - ham_add_record_filter and 
     ham_remove_record_filter
+o added a new option --disable-aes for configure; this option does not
+    compile ham_enable_encryption.
 
 Oct 28, 2007 - chris
 o finished AES encryption; a new function was added: ham_enable_encryption()
