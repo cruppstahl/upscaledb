@@ -173,6 +173,51 @@ my_free_cb(int event, void *param1, void *param2, void *context)
     }
 }
 
+static ham_status_t
+__record_filters_before_insert(ham_db_t *db, ham_record_t *record)
+{
+    ham_status_t st=0;
+    ham_record_filter_t *record_head;
+    ham_u8_t rflags=0;
+
+    record_head=db_get_record_filter(db);
+    while (record_head) {
+        if (record_head->before_insert_cb) {
+            st=record_head->before_insert_cb(db, record_head, 
+                    (ham_u8_t **)&record->data, &record->size, &rflags);
+            if (st)
+                break;
+        }
+        record_head=record_head->_next;
+    }
+
+    if (!st)
+        record->flags|=rflags<<24;
+
+    return (st);
+}
+
+static ham_status_t
+__record_filters_after_find(ham_db_t *db, ham_record_t *record)
+{
+    ham_status_t st=0;
+    ham_record_filter_t *record_head;
+    ham_u8_t rflags=(record->flags&0xff000000)>>24;
+
+    record_head=db_get_record_filter(db);
+    while (record_head) {
+        if (record_head->after_read_cb) {
+            st=record_head->after_read_cb(db, record_head, 
+                    (ham_u8_t **)&record->data, &record->size, rflags);
+            if (st)
+                break;
+        }
+        record_head=record_head->_next;
+    }
+
+    return (st);
+}
+
 const char *
 ham_strerror(ham_status_t result)
 {
@@ -1700,6 +1745,15 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
         *(ham_offset_t *)key->data=ham_db2h64(recno);
     }
 
+    /*
+     * run the record-level filters
+     */
+    st=__record_filters_after_find(db, record);
+    if (st) {
+        (void)ham_txn_abort(&txn);
+        return (st);
+    }
+
     return (ham_txn_commit(&txn, 0));
 }
 
@@ -1811,9 +1865,15 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     }
 
     /*
+     * run the record-level filters
+     */
+    st=__record_filters_before_insert(db, record);
+
+    /*
      * store the index entry; the backend will store the blob
      */
-    st=be->_fun_insert(be, key, record, flags);
+    if (!st)
+        st=be->_fun_insert(be, key, record, flags);
 
     if (st) {
         (void)ham_txn_abort(&txn);
@@ -2323,6 +2383,7 @@ ham_status_t
 ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags)
 {
+    ham_status_t st;
     ham_db_t *db;
 
     if (!cursor)
@@ -2343,6 +2404,13 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
 
     db_set_error(db, 0);
 
+    /*
+     * run the record-level filters
+     */
+    st=__record_filters_before_insert(db, record);
+    if (st)
+        return (st);
+
     return (bt_cursor_overwrite((ham_bt_cursor_t *)cursor, record, flags));
 }
 
@@ -2350,7 +2418,9 @@ ham_status_t
 ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
+    ham_status_t st;
     ham_db_t *db;
+
     if (!cursor)
         return (HAM_INV_PARAMETER);
 
@@ -2368,7 +2438,14 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
     db_set_error(db, 0);
 
-    return (bt_cursor_move((ham_bt_cursor_t *)cursor, key, record, flags));
+    st=bt_cursor_move((ham_bt_cursor_t *)cursor, key, record, flags);
+    if (st)
+        return (st);
+
+    /*
+     * run the record-level filters
+     */
+    return (__record_filters_after_find(db, record));
 }
 
 ham_status_t
@@ -2527,7 +2604,13 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         key->size=sizeof(ham_u64_t);
     }
 
-    st=bt_cursor_insert((ham_bt_cursor_t *)cursor, key, record, flags);
+    /*
+     * run the record-level filters
+     */
+    st=__record_filters_before_insert(db, record);
+
+    if (!st)
+        st=bt_cursor_insert((ham_bt_cursor_t *)cursor, key, record, flags);
 
     if (st) {
         if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
