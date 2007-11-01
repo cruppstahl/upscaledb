@@ -1,9 +1,11 @@
 
-if ENABLE_AES
+if ENABLE_ENCRYPTION
 SUBDIRS = aes
 else
 SUBDIRS = 
 endif
 
+if ENABLE_COMPRESSION
 SUBDIRS += zlib
+endif
 

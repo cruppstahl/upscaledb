@@ -983,7 +983,7 @@ ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
 HAM_EXPORT ham_status_t
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
 
-#if HAM_ENABLE_AES
+#if HAM_ENABLE_ENCRYPTION
 /**
  * Enable AES encryption.
  *
@@ -1010,7 +1010,7 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  */
 HAM_EXPORT ham_status_t
 ham_enable_encryption(ham_db_t *db, ham_u8_t key[16], ham_u32_t flags);
-#endif /* HAM_ENABLE_AES */
+#endif /* HAM_ENABLE_ENCRYPTION */
 
 /**
  * Searches an item in the database.

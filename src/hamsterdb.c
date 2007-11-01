@@ -34,7 +34,7 @@
 #include "util.h"
 #include "keys.h"
 
-#if HAM_ENABLE_AES
+#if HAM_ENABLE_ENCRYPTION
 #  include "../3rdparty/aes/aes.h"
 #endif
 
@@ -1614,7 +1614,7 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo)
     return (HAM_SUCCESS);
 }
 
-#if HAM_ENABLE_AES
+#if HAM_ENABLE_ENCRYPTION
 static ham_status_t
 __aes_before_write_cb(ham_db_t *db, ham_file_filter_t *filter, 
         ham_u8_t *page_data, ham_size_t page_size)
@@ -1685,7 +1685,7 @@ ham_enable_encryption(ham_db_t *db, ham_u8_t key[16], ham_u32_t flags)
 
     return (ham_add_file_filter(db, filter));
 }
-#endif /* HAM_ENABLE_AES */
+#endif /* HAM_ENABLE_ENCRYPTION */
 
 ham_status_t
 ham_find(ham_db_t *db, void *reserved, ham_key_t *key,

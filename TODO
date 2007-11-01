@@ -78,6 +78,9 @@ o add record-level filter
     o add new function to c++ api
     o add to acceptance test
 
+o add --disable-encryption
+o add --disable-compression
+
 o add zlib and aes to win32 environment
 
 o add zlib and aes to wince environment
