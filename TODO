@@ -81,11 +81,11 @@ x add record-level filter
 x add --disable-encryption
 x add --disable-compression
 
-o add zlib and aes to win32 environment
+x add zlib and aes to win32 environment
 
-o add zlib and aes to wince environment
+x add zlib and aes to wince environment
 
-o win32: unittest-working directory should be in /unittests-directory;
+x win32: unittest-working directory should be in /unittests-directory;
     if we can't change the MSVC-setting, do it in the code (ifdef __MSVC__
     cwd("../unittests") etc)
 

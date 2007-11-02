@@ -13,6 +13,10 @@
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
 
+#ifdef VISUAL_STUDIO
+#   include <windows.h>
+#endif
+
 int 
 main(int argc, char **argv)
 {
@@ -38,7 +42,7 @@ main(int argc, char **argv)
      * the working directory manually.
      */
 #ifdef VISUAL_STUDIO
-    TODO
+    SetCurrentDirectory(L"../unittests");
 #endif
 
     return runner.run() ? 0 : 1;
