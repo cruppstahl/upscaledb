@@ -94,8 +94,6 @@ o re-create the unittest/data files for both endians
     o dupe-test big endian
     o others....
 
-o add a new sample for both filters
-
 o implement qemu images/machines for ARM, Sparc, PowerPC, PowerPC64 etc
 
 o environments support a configurable number of databases
