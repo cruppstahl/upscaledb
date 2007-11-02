@@ -47,8 +47,7 @@ my_file_close_cb(ham_db_t *, ham_file_filter_t *filter)
 }
 
 static ham_status_t
-my_record_pre_cb(ham_db_t *, ham_record_filter_t *filter, 
-        ham_u8_t **, ham_size_t *)
+my_record_pre_cb(ham_db_t *, ham_record_filter_t *filter, ham_record_t *)
 {
     simple_filter_t *sf=(simple_filter_t *)filter->userdata;
     sf->written++;
@@ -56,8 +55,7 @@ my_record_pre_cb(ham_db_t *, ham_record_filter_t *filter,
 }
 
 static ham_status_t
-my_record_post_cb(ham_db_t *, ham_record_filter_t *filter, 
-        ham_u8_t **, ham_size_t *)
+my_record_post_cb(ham_db_t *, ham_record_filter_t *filter, ham_record_t *)
 {
     simple_filter_t *sf=(simple_filter_t *)filter->userdata;
     sf->read++;
@@ -71,15 +69,17 @@ my_record_close_cb(ham_db_t *, ham_record_filter_t *filter)
     sf->closed++;
 }
 
-class PageFilterTest : public CppUnit::TestFixture
+class FilterTest : public CppUnit::TestFixture
 {
-    CPPUNIT_TEST_SUITE(PageFilterTest);
+    CPPUNIT_TEST_SUITE(FilterTest);
     CPPUNIT_TEST      (addRemoveFileTest);
     CPPUNIT_TEST      (addRemoveRecordTest);
     CPPUNIT_TEST      (simpleFileFilterTest);
     CPPUNIT_TEST      (simpleRecordFilterTest);
     CPPUNIT_TEST      (aesFilterTest);
+    CPPUNIT_TEST      (zlibFilterTest);
     CPPUNIT_TEST      (aesEnvFilterTest);
+    CPPUNIT_TEST      (zlibEnvFilterTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -309,7 +309,56 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
+    void zlibFilterTest()
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"hello world 12345 12345 12345 12345 12345";
+        rec.size=strlen((char *)rec.data);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    }
+
     void aesEnvFilterTest()
+    {
+        ham_env_t *env;
+        ham_db_t *db;
+        ham_key_t key;
+        ham_record_t rec;
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+        ham_u8_t aeskey1[16]={0x13};
+
+        key.data=(void *)"123";
+        key.size=strlen("123");
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create_db(env, db, 333, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, 
+                ham_enable_encryption(db, aeskey1, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+    }
+
+    void zlibEnvFilterTest()
     {
         ham_env_t *env;
         ham_db_t *db[3];
@@ -317,11 +366,9 @@ public:
         ham_record_t rec;
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
-        ham_u8_t aeskey1[16]={0x13};
-        ham_u8_t aeskey2[16]={0x14};
 
-        key.data=(void *)"123";
-        key.size=strlen("123");
+        rec.data=(void *)"123";
+        rec.size=strlen("123");
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[0]));
@@ -333,8 +380,8 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[1], 334, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[2], 335, 0, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_enable_encryption(db[0], aeskey1, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_enable_encryption(db[1], aeskey2, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_enable_compression(db[0], 3, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_enable_compression(db[1], 8, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_insert(db[0], 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_insert(db[1], 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_insert(db[2], 0, &key, &rec, 0));
@@ -345,6 +392,8 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[0], 333, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[1], 334, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[2], 335, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_enable_compression(db[0], 3, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_enable_compression(db[1], 8, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_find(db[0], 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_find(db[1], 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_find(db[2], 0, &key, &rec, 0));
@@ -358,5 +407,5 @@ public:
 
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION(PageFilterTest);
+CPPUNIT_TEST_SUITE_REGISTRATION(FilterTest);
 

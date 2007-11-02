@@ -139,21 +139,16 @@ typedef struct ham_record_filter_t ham_record_filter_t;
 /**
  * A callback function for a record-level filter; called before the 
  * record is inserted
- *
- * @a record_data and @a record_size can be modified or even
- * re-allocated.
  */
 typedef ham_status_t (*ham_record_filter_before_insert_cb_t)(ham_db_t *db, 
-        ham_record_filter_t *filter, ham_u8_t **record_data, 
-        ham_size_t *record_size);
+        ham_record_filter_t *filter, ham_record_t *record);
 
 /**
  * A callback function for a record-level filter; called immediately after the 
  * record is read from disk, and before it is returned to the user.
  */
 typedef ham_status_t (*ham_record_filter_after_read_cb_t)(ham_db_t *db, 
-        ham_record_filter_t *filter, ham_u8_t **record_data, 
-        ham_size_t *file_size);
+        ham_record_filter_t *filter, ham_record_t *record);
 
 /**
  * A callback function for a record-level filter; called immediately before the

@@ -1,11 +1,17 @@
 Nov 01, 2007 - chris
+o implemented zlib-based compression; a new function was added:
+    ham_enable_compression()
+o added a new option --disable-compression for configure; this option does not
+    compile/link ham_enable_compression.
+
+Nov 01, 2007 - chris
 o added generic record filters - ham_add_record_filter and 
     ham_remove_record_filter
 o added a new option --disable-encryption for configure; this option does not
     compile/link ham_enable_encryption.
 
 Oct 28, 2007 - chris
-o finished AES encryption; a new function was added: ham_enable_encryption()
+o implemented AES encryption; a new function was added: ham_enable_encryption()
 o fixed bug in configure.in; on some systems, the call to getpagesize()
     was not declared correctly. i hope it works now.
 

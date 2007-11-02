@@ -62,7 +62,7 @@ x add page-level filter
 x arm: wants to use int getpagesize(), but seems to be size_t getpagesize().
     -> fix check in configure.in
 
-o add record-level filter
+x add record-level filter
     x import zlib, add zlib as autoconf project
     x link into hamsterdb library
     x do we need to distinguish between "real" size and "user" size?
@@ -73,13 +73,13 @@ o add record-level filter
     x remove record-level filter
     x add unittests
 
-    o add compression filter
-        o add unittest
-    o add new function to c++ api
-    o add to acceptance test
+    x add new function to c++ api
+    x add compression filter
+        x add unittest
+    x add to acceptance test
 
-o add --disable-encryption
-o add --disable-compression
+x add --disable-encryption
+x add --disable-compression
 
 o add zlib and aes to win32 environment
 

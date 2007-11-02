@@ -983,7 +983,7 @@ ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
 HAM_EXPORT ham_status_t
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
 
-#if HAM_ENABLE_ENCRYPTION
+#ifndef HAM_DISABLE_ENCRYPTION
 /**
  * Enable AES encryption.
  *
@@ -1001,16 +1001,49 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  * active. @a ham_enable_encryption should be called immediately after
  * @a ham_create[_ex] or @a ham_open[_ex].
  *
+ * Note that currently it is not allowed to use encryption, if the database
+ * is opened in an Environment. In this case, @a HAM_NOT_IMPLEMENTED is
+ * returned. 
+ *
  * @param db A valid database handle.
  * @param key A 128bit AES key.
  * @param flags Flags for the encryption. Unused, set to 0.
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if one of the parameters is NULL.
+ * @return @a HAM_NOT_IMPLEMENTED if @a db was opened in an Environment.
  */
 HAM_EXPORT ham_status_t
 ham_enable_encryption(ham_db_t *db, ham_u8_t key[16], ham_u32_t flags);
-#endif /* HAM_ENABLE_ENCRYPTION */
+#endif /* !HAM_DISABLE_ENCRYPTION */
+
+#ifndef HAM_DISABLE_COMPRESSION
+/**
+ * Enable zlib compression.
+ *
+ * This function enables zlib compression for all inserted database records.
+ *
+ * The compression will be active till @a ham_close is called. If the database
+ * handle is reused after calling @a ham_close, the compression is no longer
+ * active. @a ham_enable_compression should be called immediately after
+ * @a ham_create[_ex] or @a ham_open[_ex].
+ *
+ * Note that zlib usually has an overhead and often is not effective if the
+ * records are small (i.e. < 128byte), but this is highly dependant
+ * on the data that is inserted.
+ *
+ * @param db A valid database handle.
+ * @param level The compression level; set 0 for default (level 6), 1 for
+ *      best speed and 9 for minimum size.
+ * @param flags Flags for compression. Unused, set to 0.
+ *
+ * @return @a HAM_SUCCESS upon success.
+ * @return @a HAM_INV_PARAMETER if @a db is NULL or @a level is not between
+ *      0 and 9.
+ */
+HAM_EXPORT ham_status_t
+ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
+#endif /* !HAM_DISABLE_COMPRESSION */
 
 /**
  * Searches an item in the database.

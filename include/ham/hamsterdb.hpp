@@ -279,14 +279,23 @@ public:
             throw error(st);
     }
 
-#if HAM_ENABLE_ENCRYPTION
+#ifndef HAM_DISABLE_ENCRYPTION
     /** Enable AES encryption. */
     void enable_encryption(ham_u8_t key[16], ham_u32_t flags=0) {
         ham_status_t st=ham_enable_encryption(m_db, key, flags);
         if (st)
             throw error(st);
     }
-#endif /* HAM_ENABLE_ENCRYPTION */
+#endif /* !HAM_DISABLE_ENCRYPTION */
+
+#ifndef HAM_DISABLE_COMPRESSION
+    /** Enable zlib compression. */
+    void enable_compression(ham_u32_t level, ham_u32_t flags=0) {
+        ham_status_t st=ham_enable_compression(m_db, level, flags);
+        if (st)
+            throw error(st);
+    }
+#endif /* !HAM_DISABLE_COMPRESSION */
 
     /** Finds a record by looking up the key. */
     record find(key *k, ham_u32_t flags=0) {

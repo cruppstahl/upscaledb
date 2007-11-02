@@ -34,8 +34,11 @@
 #include "util.h"
 #include "keys.h"
 
-#if HAM_ENABLE_ENCRYPTION
+#ifndef HAM_DISABLE_ENCRYPTION
 #  include "../3rdparty/aes/aes.h"
+#endif
+#ifndef HAM_DISABLE_COMPRESSION
+#  include "../3rdparty/zlib/zlib.h"
 #endif
 
 /* private parameter list entry for ham_create_ex */
@@ -185,8 +188,7 @@ __record_filters_before_insert(ham_db_t *db, ham_record_t *record)
     record_head=db_get_record_filter(db);
     while (record_head) {
         if (record_head->before_insert_cb) {
-            st=record_head->before_insert_cb(db, record_head, 
-                    (ham_u8_t **)&record->data, &record->size);
+            st=record_head->before_insert_cb(db, record_head, record);
             if (st)
                 break;
         }
@@ -205,8 +207,7 @@ __record_filters_after_find(ham_db_t *db, ham_record_t *record)
     record_head=db_get_record_filter(db);
     while (record_head) {
         if (record_head->after_read_cb) {
-            st=record_head->after_read_cb(db, record_head, 
-                    (ham_u8_t **)&record->data, &record->size);
+            st=record_head->after_read_cb(db, record_head, record);
             if (st)
                 break;
         }
@@ -1614,7 +1615,7 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo)
     return (HAM_SUCCESS);
 }
 
-#if HAM_ENABLE_ENCRYPTION
+#ifndef HAM_DISABLE_ENCRYPTION
 static ham_status_t
 __aes_before_write_cb(ham_db_t *db, ham_file_filter_t *filter, 
         ham_u8_t *page_data, ham_size_t page_size)
@@ -1662,11 +1663,12 @@ ham_enable_encryption(ham_db_t *db, ham_u8_t key[16], ham_u32_t flags)
 
     if (!db)
         return (HAM_INV_PARAMETER);
-
-    db_set_error(db, 0);
-
+    if (db_get_env(db))
+        return (db_set_error(db, HAM_NOT_IMPLEMENTED));
     if (!key)
         return (db_set_error(db, HAM_INV_PARAMETER));
+
+    db_set_error(db, 0);
 
     filter=(ham_file_filter_t *)ham_mem_calloc(db, sizeof(*filter));
     if (!filter)
@@ -1685,7 +1687,163 @@ ham_enable_encryption(ham_db_t *db, ham_u8_t key[16], ham_u32_t flags)
 
     return (ham_add_file_filter(db, filter));
 }
-#endif /* HAM_ENABLE_ENCRYPTION */
+#endif /* !HAM_DISABLE_ENCRYPTION */
+
+#ifndef HAM_DISABLE_COMPRESSION
+static ham_status_t 
+__zlib_before_insert_cb(ham_db_t *db, 
+        ham_record_filter_t *filter, ham_record_t *record)
+{
+    ham_u8_t *dest;
+    unsigned long newsize=0;
+    ham_u32_t level=*(ham_u32_t *)filter->userdata;
+    int zret;
+
+    /* we work in a temporary copy of the original data */
+    do {
+        if (!newsize)
+            newsize=compressBound(record->size);
+        else
+            newsize+=newsize/4;
+
+        dest=ham_mem_alloc(db, newsize);
+        if (!dest)
+            return (db_set_error(db, HAM_OUT_OF_MEMORY));
+
+        zret=compress2(dest, &newsize, record->data, record->size, level);
+    } while (zret==Z_BUF_ERROR);
+
+    if (zret==Z_MEM_ERROR) {
+        ham_mem_free(db, dest);
+        return (db_set_error(db, HAM_OUT_OF_MEMORY));
+    }
+
+    if (zret!=Z_OK) {
+        ham_mem_free(db, dest);
+        return (db_set_error(db, HAM_INTERNAL_ERROR));
+    }
+
+    record->data=dest;
+    record->size=(ham_size_t)newsize;
+    return (0);
+}
+
+static ham_status_t 
+__zlib_after_read_cb(ham_db_t *db, 
+        ham_record_filter_t *filter, ham_record_t *record)
+{
+    ham_status_t st=0;
+    ham_u8_t *src;
+    ham_size_t srcsize=record->size;
+    unsigned long newsize=record->size;
+    int zret;
+
+    if (!record->size)
+        return (0);
+
+    src=ham_mem_alloc(db, srcsize);
+    if (!src)
+        return (db_set_error(db, HAM_OUT_OF_MEMORY));
+
+    memcpy(src, record->data, srcsize);
+
+    /* 
+     * don't ignore the USER_ALLOC-flag
+     */
+    if (record->flags&HAM_RECORD_USER_ALLOC) {
+        zret=uncompress(record->data, &newsize, src, srcsize);
+        if (zret==Z_MEM_ERROR || zret==Z_BUF_ERROR)
+            st=HAM_OUT_OF_MEMORY;
+        if (zret==Z_DATA_ERROR)
+            st=HAM_INTEGRITY_VIOLATED;
+        else if (zret==Z_OK)
+            st=0;
+        else
+            st=HAM_INTERNAL_ERROR;
+
+        if (!st)
+            record->size=(ham_size_t)newsize;
+
+        ham_mem_free(db, src);
+        return (db_set_error(db, st));
+    }
+
+    /*
+     * since we don't know the original, uncompressed size, we have to
+     * "guess"... 
+     */
+    while (1) {
+        record->size*=2;
+        st=db_resize_allocdata(db, record->size);
+        if (st)
+            break;
+        record->data=db_get_record_allocdata(db);
+
+        newsize=record->size;
+        zret=uncompress(record->data, &newsize, src, srcsize);
+        if (zret==Z_BUF_ERROR)
+            continue;
+        if (zret==Z_MEM_ERROR)
+            st=HAM_OUT_OF_MEMORY;
+        if (zret==Z_DATA_ERROR)
+            st=HAM_INTEGRITY_VIOLATED;
+        else if (zret==Z_OK)
+            st=0;
+        else
+            st=HAM_INTERNAL_ERROR;
+        break;
+    }
+
+    if (!st)
+        record->size=(ham_size_t)newsize;
+
+    ham_mem_free(db, src);
+    return (db_set_error(db, st));
+}
+
+static void 
+__zlib_close_cb(ham_db_t *db, ham_record_filter_t *filter)
+
+{
+    if (filter) {
+        if (filter->userdata)
+            ham_mem_free(db, filter->userdata);
+        ham_mem_free(db, filter);
+    }
+}
+
+ham_status_t
+ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags)
+{
+    ham_record_filter_t *filter;
+
+    if (!db)
+        return (HAM_INV_PARAMETER);
+    if (level>9)
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    if (!level)
+        level=6;
+
+    db_set_error(db, 0);
+
+    filter=(ham_record_filter_t *)ham_mem_calloc(db, sizeof(*filter));
+    if (!filter)
+        return (db_set_error(db, HAM_OUT_OF_MEMORY));
+
+    filter->userdata=ham_mem_calloc(db, sizeof(level));
+    if (!filter->userdata) {
+        ham_mem_free(db, filter);
+        return (db_set_error(db, HAM_OUT_OF_MEMORY));
+    }
+
+    *(ham_u32_t *)filter->userdata=level;
+    filter->before_insert_cb=__zlib_before_insert_cb;
+    filter->after_read_cb=__zlib_after_read_cb;
+    filter->close_cb=__zlib_close_cb;
+
+    return (ham_add_record_filter(db, filter));
+}
+#endif /* !HAM_DISABLE_COMPRESSION */
 
 ham_status_t
 ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
@@ -1765,6 +1923,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     ham_status_t st;
     ham_backend_t *be;
     ham_u64_t recno;
+    ham_record_t temprec;
 
     if (!db)
         return (HAM_INV_PARAMETER);
@@ -1865,15 +2024,20 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     }
 
     /*
-     * run the record-level filters
+     * run the record-level filters on a temporary record structure - we
+     * don't want to mess up the original structure
      */
-    st=__record_filters_before_insert(db, record);
+    temprec=*record;
+    st=__record_filters_before_insert(db, &temprec);
 
     /*
      * store the index entry; the backend will store the blob
      */
     if (!st)
-        st=be->_fun_insert(be, key, record, flags);
+        st=be->_fun_insert(be, key, &temprec, flags);
+
+    if (temprec.data!=record->data)
+        ham_mem_free(db, temprec.data);
 
     if (st) {
         (void)ham_txn_abort(&txn);
@@ -2385,6 +2549,7 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
 {
     ham_status_t st;
     ham_db_t *db;
+    ham_record_t temprec;
 
     if (!cursor)
         return (HAM_INV_PARAMETER);
@@ -2405,13 +2570,20 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     db_set_error(db, 0);
 
     /*
-     * run the record-level filters
+     * run the record-level filters on a temporary record structure - we
+     * don't want to mess up the original structure
      */
-    st=__record_filters_before_insert(db, record);
+    temprec=*record;
+    st=__record_filters_before_insert(db, &temprec);
     if (st)
         return (st);
 
-    return (bt_cursor_overwrite((ham_bt_cursor_t *)cursor, record, flags));
+    st=bt_cursor_overwrite((ham_bt_cursor_t *)cursor, &temprec, flags);
+
+    if (temprec.data!=record->data)
+        ham_mem_free(db, temprec.data);
+
+    return (st);
 }
 
 ham_status_t
@@ -2504,6 +2676,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     ham_status_t st;
     ham_backend_t *be;
     ham_u64_t recno;
+    ham_record_t temprec;
 
     if (!cursor)
         return (HAM_INV_PARAMETER);
@@ -2605,12 +2778,17 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     }
 
     /*
-     * run the record-level filters
+     * run the record-level filters on a temporary record structure - we
+     * don't want to mess up the original structure
      */
-    st=__record_filters_before_insert(db, record);
+    temprec=*record;
+    st=__record_filters_before_insert(db, &temprec);
 
     if (!st)
-        st=bt_cursor_insert((ham_bt_cursor_t *)cursor, key, record, flags);
+        st=bt_cursor_insert((ham_bt_cursor_t *)cursor, key, &temprec, flags);
+
+    if (temprec.data!=record->data)
+        ham_mem_free(db, temprec.data);
 
     if (st) {
         if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
