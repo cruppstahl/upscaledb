@@ -89,26 +89,52 @@ x win32: unittest-working directory should be in /unittests-directory;
     if we can't change the MSVC-setting, do it in the code (ifdef __MSVC__
     cwd("../unittests") etc)
 
-o re-create the unittest/data files for both endians
-    x dupe-test little endian
-    o dupe-test big endian
-    o others....
-
-o implement qemu images/machines for ARM, Sparc, PowerPC, PowerPC64 etc
+x i'm not happy with AES encryption - if you enter a bad key, the library
+    will crash; is there a way to add a magic value, which is checked
+    immediately after the decryption?
 
 o environments support a configurable number of databases
 
 o remove TODOs in the source
 
-o do a complete source code review, or ask someone to do it;
-    make sure that the test coverage is as high as possible
+o do benchmarking with 1 mio inserts/reads
 
+o key_set_record does not always need to dirty the page (i.e. when
+    appending duplicates) -> don't set page dirty in the caller
+
+o cursor_overwrite/cursor_insert: 
+    currently, the cursor_dupe_cache is deleted, but we don't have to
+    also, in cursor_move there are some optimizations regarding the
+    cache (search for TODO)
+
+o be more careful when uncoupling cursors - especially when inserting 
+    or deleting items, uncoupling is often not necessary
+    o definitely no need to uncouple if overwriting or adding a duplicate
+    o unittests: 
+        o create cursor -> must be NIL
+        o insert item   -> must be NIL
+        o move cursor to item
+        o insert item2 < item -> cursor is uncoupled
+        o move cursor to item
+        o insert duplicate of item -> cursor is still coupled
+        o insert item2 > item -> cursor is still coupled
+
+
+
+
+
+
+
+o re-create the unittest/data files for both endians
+    x dupe-test little endian
+    x recno-test little endian
+    o dupe-test big endian
+    o recno-test big endian
+
+o implement qemu images/machines for ARM, Sparc, PowerPC, PowerPC64 etc
 
 o tests are failing:
-    --duplicate=1 --pagesize=65536
-      x ../../testfiles/1/201.tst - freelist goes berzerk
-      x ../../testfiles/1/202.tst - freelist goes berzerk
-    --duplicate=1 --use-cursors=1
+    --duplicate=1 --use-cursors=1 -- berkeley bug
       o ../../testfiles/1/100.tst - status mismatch
       o ../../testfiles/1/202.tst - status mismatch
       o ../../testfiles/1/220.tst - status mismatch
@@ -123,41 +149,11 @@ o create a new repository for hamsterdb-alien for all dependencies
     o wince-x86
     o ppc32-be
 
-o key_set_record does not always need to dirty the page (i.e. when
-    appending duplicates) -> don't set page dirty in the caller
-
-o cursor_overwrite/cursor_insert: 
-    currently, the cursor_dupe_cache is deleted, but we don't have to
-    also, in cursor_move there are some optimizations regarding the
-    cache (search for TODO)
-
 o modify acceptance test for --duplicate=1 (berkdb and hamster)
     o new acceptance tests with many, many duplicates
     o --duplicate-position="before"|"after"|"first"|"last"(default)
         o add to monster.sh
         o add to valgrind.sh
-
-o do benchmarking with 1 mio inserts/reads
-
-o be more careful when uncoupling cursors - especially when inserting 
-    or deleting items, uncoupling is often not necessary
-    o definitely no need to uncouple if overwriting or adding a duplicate
-    o unittests: 
-        o create cursor -> must be NIL
-        o insert item   -> must be NIL
-        o move cursor to item
-        o insert item2 < item -> cursor is uncoupled
-        o move cursor to item
-        o insert duplicate of item -> cursor is still coupled
-        o insert item2 > item -> cursor is still coupled
-
-. some parts of the code would be nicer if we had ham_mem_realloc
-
-. new option HAM_DISABLE_AUTO_REORG -> adds empty chunks to freelist, but
-    never uses freelist for allocation
-
-. new option HAM_DISABLE_FREELIST -> completely disables the freelist (needs
-    cmd line reorg-tool!)
 
 o c++ API
     o add documentation to webpage
@@ -175,4 +171,6 @@ o release 0.4.8
     o frontpage: resize hamster picture; remove text -> more space below
         (for 3 colums: news, main features, articles/testimonials/link cloud)
 
+. do a complete source code review, or ask someone to do it;
+    make sure that the test coverage is as high as possible
 

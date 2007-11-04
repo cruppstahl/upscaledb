@@ -1012,6 +1012,8 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if one of the parameters is NULL.
  * @return @a HAM_NOT_IMPLEMENTED if @a db was opened in an Environment.
+ * @return @a HAM_INTEGRITY_VIOLATED if the database was created with a 
+ *      different key
  */
 HAM_EXPORT ham_status_t
 ham_enable_encryption(ham_db_t *db, ham_u8_t key[16], ham_u32_t flags);

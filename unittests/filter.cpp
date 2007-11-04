@@ -297,6 +297,7 @@ public:
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
         ham_u8_t aeskey[16]={0x13};
+        ham_u8_t aeskey2[16]={0x14};
 
         CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0644));
         CPPUNIT_ASSERT_EQUAL(0, ham_enable_encryption(m_db, aeskey, 0));
@@ -304,6 +305,8 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INTEGRITY_VIOLATED, 
+                ham_enable_encryption(m_db, aeskey2, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_enable_encryption(m_db, aeskey, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));

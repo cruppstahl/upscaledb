@@ -33,6 +33,7 @@
 #include "cursor.h"
 #include "util.h"
 #include "keys.h"
+#include "btree.h"
 
 #ifndef HAM_DISABLE_ENCRYPTION
 #  include "../3rdparty/aes/aes.h"
@@ -1659,6 +1660,8 @@ __aes_close_cb(ham_db_t *db, ham_file_filter_t *filter)
 ham_status_t
 ham_enable_encryption(ham_db_t *db, ham_u8_t key[16], ham_u32_t flags)
 {
+    ham_btree_t *be;
+    ham_status_t st;
     ham_file_filter_t *filter;
 
     if (!db)
@@ -1685,6 +1688,38 @@ ham_enable_encryption(ham_db_t *db, ham_u8_t key[16], ham_u32_t flags)
     filter->after_read_cb=__aes_after_read_cb;
     filter->close_cb=__aes_close_cb;
 
+    /*
+     * to test if this AES key is correct: load the first database page
+     * and make sure that it's not garbage!
+     */
+    be=(ham_btree_t *)db_get_backend(db);
+    if (be && btree_get_rootpage(be)) {
+        struct page_union_header_t *hdr;
+        ham_u8_t buffer[32];
+        ham_u8_t zerobuffer[32];
+        memset(zerobuffer, 0, sizeof(zerobuffer));
+        st=db_get_device(db)->read(db, db_get_device(db), 
+                btree_get_rootpage(be), buffer, sizeof(buffer));
+        if (st) {
+            ham_log(("os_pread of rootpage failed with status %d (%s)", 
+                    st, ham_strerror(st)));
+            return (db_set_error(db, st));
+        }
+        /* if the buffer is empty (only zeroes), the file was just created */
+        if (!memcmp(buffer, zerobuffer, sizeof(buffer)))
+            goto add_filter;
+
+        st=__aes_after_read_cb(db, filter, buffer, sizeof(buffer));
+        if (st)
+            return (db_set_error(db, st));
+        hdr=(struct page_union_header_t *)buffer;
+        if (hdr->_reserved1!=0 || hdr->_reserved2!=0) {
+            __aes_close_cb(db, filter);
+            return (db_set_error(db, HAM_INTEGRITY_VIOLATED));
+        }
+    }
+
+add_filter:
     return (ham_add_file_filter(db, filter));
 }
 #endif /* !HAM_DISABLE_ENCRYPTION */
