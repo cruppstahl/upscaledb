@@ -8,10 +8,11 @@ Nov 01, 2007 - chris
 o added generic record filters - ham_add_record_filter and 
     ham_remove_record_filter
 o added a new option --disable-encryption for configure; this option does not
-    compile/link ham_enable_encryption.
+    compile/link ham_env_enable_encryption.
 
 Oct 28, 2007 - chris
-o implemented AES encryption; a new function was added: ham_enable_encryption()
+o implemented AES encryption; a new function was added: 
+	ham_env_enable_encryption()
 o fixed bug in configure.in; on some systems, the call to getpagesize()
     was not declared correctly. i hope it works now.
 
@@ -20,7 +21,8 @@ o finished the C++ API in include/ham/hamsterdb.hpp and added two new C++
 	samples - db6.cpp and env3.cpp.
 
 Oct 21, 2007 - chris
-o added generic page filters - ham_add_page_filter and ham_remove_page_filter
+o added generic page filters - ham_env_add_page_filter and 
+	ham_env_remove_page_filter
 
 Oct 18, 2007 - chris
 o bugfix: when moving a cursor through duplicates and the cache was

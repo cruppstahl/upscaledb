@@ -59,34 +59,35 @@ struct ham_file_filter_t;
 typedef struct ham_file_filter_t ham_file_filter_t;
 
 /**
- * A callback function for a page-level filter; called before the 
- * page is written to disk
+ * A callback function for a file-level filter; called before the 
+ * data is written to disk
  */
-typedef ham_status_t (*ham_file_filter_before_write_cb_t)(ham_db_t *db, 
+typedef ham_status_t (*ham_file_filter_before_write_cb_t)(ham_env_t *env, 
         ham_file_filter_t *filter, ham_u8_t *file_data, ham_size_t file_size);
 
 /**
- * A callback function for a page-level filter; called immediately after the 
- * page is read from disk
+ * A callback function for a file-level filter; called immediately after the 
+ * data is read from disk
  */
-typedef ham_status_t (*ham_file_filter_after_read_cb_t)(ham_db_t *db, 
+typedef ham_status_t (*ham_file_filter_after_read_cb_t)(ham_env_t *env, 
         ham_file_filter_t *filter, ham_u8_t *file_data, ham_size_t file_size);
 
 /**
- * A callback function for a page-level filter; called immediately before the
- * database is closed. Can be used to avoid memory leaks.
+ * A callback function for a file-level filter; called immediately before the
+ * Environment is closed. Can be used to avoid memory leaks.
  */
-typedef void (*ham_file_filter_close_cb_t)(ham_db_t *db, 
+typedef void (*ham_file_filter_close_cb_t)(ham_env_t *env, 
         ham_file_filter_t *filter);
 
 /**
- * A handle for page-level filtering.
+ * A handle for file-level filtering.
  *
  * File-level filters can modify the page data before some data is 
  * written to disk, and immediately after it's read from disk.
  *
  * File-level filters can be used i.e. for writing encryption filters. 
- * See @a ham_enable_encryption() to create a filter for AES-based encryption.
+ * See @a ham_env_enable_encryption() to create a filter for AES-based 
+ * encryption.
  *
  * Each of the three callback functions can be NULL.
  *
@@ -117,21 +118,21 @@ struct ham_file_filter_t
 /**
  * A function to install a file-level filter. 
  *
- * File-level filters are usually installed immediately after the database
- * is created with @a ham_create[_ex] or opened with @a ham_open[_ex].
+ * File-level filters are usually installed immediately after the Environment
+ * is created with @a ham_env_create[_ex] or opened with @a ham_env_open[_ex].
  */
 HAM_EXPORT ham_status_t
-ham_add_file_filter(ham_db_t *db, ham_file_filter_t *filter);
+ham_env_add_file_filter(ham_env_t *env, ham_file_filter_t *filter);
 
 /**
  * A function to remove a file-level filter.
  *
  * This function is usually not necessary - the lifetime of a file-filter
  * usually starts before the first database operation, and ends when the
- * database is closed. It is not recommended to use this function.
+ * Environment is closed. It is not recommended to use this function.
  */
 HAM_EXPORT ham_status_t
-ham_remove_file_filter(ham_db_t *db, ham_file_filter_t *filter);
+ham_env_remove_file_filter(ham_env_t *env, ham_file_filter_t *filter);
 
 struct ham_record_filter_t;
 typedef struct ham_record_filter_t ham_record_filter_t;

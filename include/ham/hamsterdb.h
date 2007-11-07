@@ -620,6 +620,39 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
 HAM_EXPORT ham_status_t
 ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
 
+#ifndef HAM_DISABLE_ENCRYPTION
+/**
+ * Enable AES encryption.
+ *
+ * This function enables AES encryption for every database in the Environment.
+ * The AES key is cached in the Environment handle. The AES 
+ * encryption/decryption is only active when file chunks are written to 
+ * disk/read from disk; the cached pages in RAM are decrypted. Please read 
+ * the FAQ for security relevant notes.
+ *
+ * The encryption has no effect on in-memory Environments, but the function
+ * will return @a HAM_SUCCESS.
+ *
+ * The encryption will be active till @a ham_env_close is called. If the 
+ * Environment handle is reused after calling @a ham_env_close, the 
+ * encryption is no longer active. @a ham_env_enable_encryption should 
+ * be called immediately after @a ham_env_create[_ex] or @a ham_env_open[_ex],
+ * and MUST be called before @a ham_env_create_db or @a ham_env_open_db.
+ *
+ * @param env A valid Environment handle.
+ * @param key A 128bit AES key.
+ * @param flags Flags for the encryption. Unused, set to 0.
+ *
+ * @return @a HAM_SUCCESS upon success.
+ * @return @a HAM_INV_PARAMETER if one of the parameters is NULL.
+ * @return @a HAM_DATABASE_ALREADY_OPEN if this function was called AFTER
+ *              @a ham_env_open_db or @a ham_env_create_db.
+ */
+HAM_EXPORT ham_status_t
+ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags);
+#endif /* !HAM_DISABLE_ENCRYPTION */
+
+
 /**
  * Closes the database environment.
  *
@@ -982,42 +1015,6 @@ ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
  */
 HAM_EXPORT ham_status_t
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
-
-#ifndef HAM_DISABLE_ENCRYPTION
-/**
- * Enable AES encryption.
- *
- * This function enables AES encryption for the database files.
- * The AES key is cached in the database handle. The AES encryption/decryption
- * is only active when database chunks are written disk/read from disk;
- * the cached pages in RAM are decrypted. Please read the FAQ for security
- * relevant notes.
- *
- * The encryption has no effect on in-memory databases, but the function
- * will return @a HAM_SUCCESS.
- *
- * The encryption will be active till @a ham_close is called. If the database
- * handle is reused after calling @a ham_close, the encryption is no longer
- * active. @a ham_enable_encryption should be called immediately after
- * @a ham_create[_ex] or @a ham_open[_ex].
- *
- * Note that currently it is not allowed to use encryption, if the database
- * is opened in an Environment. In this case, @a HAM_NOT_IMPLEMENTED is
- * returned. 
- *
- * @param db A valid database handle.
- * @param key A 128bit AES key.
- * @param flags Flags for the encryption. Unused, set to 0.
- *
- * @return @a HAM_SUCCESS upon success.
- * @return @a HAM_INV_PARAMETER if one of the parameters is NULL.
- * @return @a HAM_NOT_IMPLEMENTED if @a db was opened in an Environment.
- * @return @a HAM_INTEGRITY_VIOLATED if the database was created with a 
- *      different key
- */
-HAM_EXPORT ham_status_t
-ham_enable_encryption(ham_db_t *db, ham_u8_t key[16], ham_u32_t flags);
-#endif /* !HAM_DISABLE_ENCRYPTION */
 
 #ifndef HAM_DISABLE_COMPRESSION
 /**

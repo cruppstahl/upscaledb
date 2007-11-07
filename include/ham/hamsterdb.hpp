@@ -279,15 +279,6 @@ public:
             throw error(st);
     }
 
-#ifndef HAM_DISABLE_ENCRYPTION
-    /** Enable AES encryption. */
-    void enable_encryption(ham_u8_t key[16], ham_u32_t flags=0) {
-        ham_status_t st=ham_enable_encryption(m_db, key, flags);
-        if (st)
-            throw error(st);
-    }
-#endif /* !HAM_DISABLE_ENCRYPTION */
-
 #ifndef HAM_DISABLE_COMPRESSION
     /** Enable zlib compression. */
     void enable_compression(ham_u32_t level, ham_u32_t flags=0) {
@@ -601,6 +592,16 @@ public:
             throw error(st);
         m_env=0;
     }
+
+#ifndef HAM_DISABLE_ENCRYPTION
+    /** Enable AES encryption. */
+    void enable_encryption(ham_u8_t key[16], ham_u32_t flags=0) {
+        ham_status_t st=ham_env_enable_encryption(m_env, key, flags);
+        if (st)
+            throw error(st);
+    }
+#endif /* !HAM_DISABLE_ENCRYPTION */
+
 
 private:
     ham_env_t *m_env;

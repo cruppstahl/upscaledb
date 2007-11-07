@@ -73,6 +73,9 @@ struct ham_env_t
     ham_size_t _cachesize;
     ham_u16_t  _keysize;
 
+    /* linked list of all file-level filters */
+    ham_file_filter_t *_file_filters;
+
     /* the freelist cache */
     freelist_cache_t *_freelist_cache;
 };
@@ -182,6 +185,16 @@ struct ham_env_t
 #define env_set_pagesize(env, ps)        (env)->_pagesize =ps
 #define env_set_keysize(env, ks)         (env)->_keysize  =ks
 #define env_set_cachesize(env, cs)       (env)->_cachesize=cs
+
+/*
+ * get the linked list of all file-level filters
+ */
+#define env_get_file_filter(env)         (env)->_file_filters
+
+/*
+ * set the linked list of all file-level filters
+ */
+#define env_set_file_filter(env, f)      (env)->_file_filters=f
 
 /*
  * get the freelist cache
