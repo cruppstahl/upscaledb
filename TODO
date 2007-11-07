@@ -95,6 +95,11 @@ x i'm not happy with AES encryption - if you enter a bad key, the library
 
 o environments support a configurable number of databases
 
+o need a way to enumerate all databases in an environment
+    o ham_env_get_database_names(ham_env_t *env, ham_u16_t *names,
+            ham_size_t *count);
+    o c++: std::vector<ham_u16_t> &get_database_names();
+
 o remove TODOs in the source
 
 o do benchmarking with 1 mio inserts/reads
