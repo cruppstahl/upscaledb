@@ -100,6 +100,18 @@ o need a way to enumerate all databases in an environment
             ham_size_t *count);
     o c++: std::vector<ham_u16_t> &get_database_names();
 
+o make sure that we don't crash if env_enable_encryption() uses a bad
+    password
+
+o enable_encryption and enable_compression should return NOT_IMPLEMENTED
+    if they were disabled, and not fail to link
+
+o release 0.4.8 
+
+
+
+o recheck serial.h and the whole concept of licensing
+
 o remove TODOs in the source
 
 o do benchmarking with 1 mio inserts/reads
@@ -168,8 +180,6 @@ o update tutorial
     o compression
     o C++ API
     o add FAQ entry about security (aes related)
-
-o release 0.4.8 
 
 . webpage
     o move to cakephp framework
