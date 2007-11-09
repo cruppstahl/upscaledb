@@ -1731,10 +1731,12 @@ __aes_close_cb(ham_env_t *env, ham_file_filter_t *filter)
         allocator_free(alloc, filter);
     }
 }
+#endif /* !HAM_DISABLE_ENCRYPTION */
 
 ham_status_t
 ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags)
 {
+#ifndef HAM_DISABLE_ENCRYPTION
     ham_file_filter_t *filter;
     mem_allocator_t *alloc;
 
@@ -1763,8 +1765,10 @@ ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags)
     filter->close_cb=__aes_close_cb;
 
     return (ham_env_add_file_filter(env, filter));
+#else /* !HAM_DISABLE_ENCRYPTION */
+    return (HAM_NOT_IMPLEMENTED);
+#endif
 }
-#endif /* !HAM_DISABLE_ENCRYPTION */
 
 #ifndef HAM_DISABLE_COMPRESSION
 static ham_status_t 
@@ -1888,10 +1892,12 @@ __zlib_close_cb(ham_db_t *db, ham_record_filter_t *filter)
         ham_mem_free(db, filter);
     }
 }
+#endif /* !HAM_DISABLE_COMPRESSION */
 
 ham_status_t
 ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags)
 {
+#ifndef HAM_DISABLE_COMPRESSION
     ham_record_filter_t *filter;
 
     if (!db)
@@ -1919,8 +1925,10 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags)
     filter->close_cb=__zlib_close_cb;
 
     return (ham_add_record_filter(db, filter));
+#else /* !HAM_DISABLE_COMPRESSION */
+    return (db_set_error(db, HAM_NOT_IMPLEMENTED));
+#endif
 }
-#endif /* !HAM_DISABLE_COMPRESSION */
 
 ham_status_t
 ham_find(ham_db_t *db, void *reserved, ham_key_t *key,

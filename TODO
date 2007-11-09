@@ -93,6 +93,9 @@ x i'm not happy with AES encryption - if you enter a bad key, the library
     will crash; is there a way to add a magic value, which is checked
     immediately after the decryption?
 
+x enable_encryption and enable_compression should return NOT_IMPLEMENTED
+    if they were disabled, and not fail to link
+
 o environments support a configurable number of databases
 
 o need a way to enumerate all databases in an environment
@@ -102,9 +105,6 @@ o need a way to enumerate all databases in an environment
 
 o make sure that we don't crash if env_enable_encryption() uses a bad
     password
-
-o enable_encryption and enable_compression should return NOT_IMPLEMENTED
-    if they were disabled, and not fail to link
 
 o release 0.4.8 
 

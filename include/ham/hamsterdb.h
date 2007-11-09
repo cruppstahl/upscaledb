@@ -620,7 +620,6 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
 HAM_EXPORT ham_status_t
 ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
 
-#ifndef HAM_DISABLE_ENCRYPTION
 /**
  * Enable AES encryption.
  *
@@ -647,11 +646,11 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
  * @return @a HAM_INV_PARAMETER if one of the parameters is NULL.
  * @return @a HAM_DATABASE_ALREADY_OPEN if this function was called AFTER
  *              @a ham_env_open_db or @a ham_env_create_db.
+ * @return @a HAM_NOT_IMPLEMENTED if hamsterdb was compiled without support
+ *      for AES encryption.
  */
 HAM_EXPORT ham_status_t
 ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags);
-#endif /* !HAM_DISABLE_ENCRYPTION */
-
 
 /**
  * Closes the database environment.
@@ -1016,7 +1015,6 @@ ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
 HAM_EXPORT ham_status_t
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
 
-#ifndef HAM_DISABLE_COMPRESSION
 /**
  * Enable zlib compression.
  *
@@ -1039,10 +1037,11 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if @a db is NULL or @a level is not between
  *      0 and 9.
+ * @return @a HAM_NOT_IMPLEMENTED if hamsterdb was compiled without support
+ *      for compression.
  */
 HAM_EXPORT ham_status_t
 ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
-#endif /* !HAM_DISABLE_COMPRESSION */
 
 /**
  * Searches an item in the database.
