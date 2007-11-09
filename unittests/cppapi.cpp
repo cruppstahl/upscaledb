@@ -49,6 +49,7 @@ class CppApiTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (insertFindEraseTest);
     CPPUNIT_TEST      (cursorTest);
     CPPUNIT_TEST      (envTest);
+    CPPUNIT_TEST      (envGetDatabaseNamesTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -235,6 +236,22 @@ public:
         }
         db1.close();
         env.erase_db(2);
+    }
+    
+    void envGetDatabaseNamesTest(void)
+    {
+        ham::env env;
+        std::vector<ham_u16_t> v;
+
+        env.create(".test");
+
+        v=env.get_database_names();
+        CPPUNIT_ASSERT_EQUAL(0u, v.size());
+
+        ham::db db1=env.create_db(1);
+        v=env.get_database_names();
+        CPPUNIT_ASSERT_EQUAL(1u, v.size());
+        CPPUNIT_ASSERT_EQUAL((ham_u16_t)1, v[0]);
     }
 };
 

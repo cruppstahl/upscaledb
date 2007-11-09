@@ -704,6 +704,8 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
      * now open the database
      */
     st=ham_open_ex(db, 0, flags|env_get_rt_flags(env), full_param);
+    if (st==HAM_IO_ERROR)
+        st=HAM_DATABASE_NOT_FOUND;
     if (st)
         return (st);
 
@@ -1029,6 +1031,68 @@ ham_env_remove_file_filter(ham_env_t *env, ham_file_filter_t *filter)
     } while(head);
 
     return (0);
+}
+
+ham_status_t
+ham_env_get_database_names(ham_env_t *env, ham_u16_t *names, ham_size_t *count)
+{
+    ham_db_t *db;
+    ham_bool_t temp_db=HAM_FALSE;
+    ham_u16_t name;
+    ham_size_t i=0, max_names;
+    ham_status_t st=0;
+
+    if (!env || !names || !count)
+        return (HAM_INV_PARAMETER);
+
+    max_names=*count;
+    *count=0;
+
+    /*
+     * to access the database header, we need a db handle; either use an
+     * open handle or load a temporary database
+     *
+     * in-memory databases: if we don't have a db handle, the environment
+     * is empty - return success
+     */
+    db=env_get_list(env);
+    if (!db) {
+        if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
+            return (0);
+        st=ham_new(&db);
+        if (st)
+            return (st);
+        st=ham_env_open_db(env, db, FIRST_DATABASE_NAME, 0, 0);
+        if (st) {
+            (void)ham_delete(db);
+            return (st==HAM_DATABASE_NOT_FOUND ? 0 : st);
+        }
+        temp_db=HAM_TRUE;
+    }
+
+    /*
+     * copy each database name in the array
+     */
+    for (i=0; i<db_get_indexdata_size(db); i++) {
+        name=ham_h2db16(*(ham_u16_t *)db_get_indexdata_at(db, i));
+        if (name==0 || name>=EMPTY_DATABASE_NAME)
+            continue;
+
+        if (*count>=max_names) {
+            st=HAM_LIMITS_REACHED;
+            goto bail;
+        }
+
+        names[(*count)++]=name;
+    }
+
+bail:
+    if (temp_db) {
+        (void)ham_close(db, 0);
+        ham_delete(db);
+    }
+
+    return st;
 }
 
 ham_status_t

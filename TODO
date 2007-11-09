@@ -96,15 +96,17 @@ x i'm not happy with AES encryption - if you enter a bad key, the library
 x enable_encryption and enable_compression should return NOT_IMPLEMENTED
     if they were disabled, and not fail to link
 
-o environments support a configurable number of databases
-
-o need a way to enumerate all databases in an environment
-    o ham_env_get_database_names(ham_env_t *env, ham_u16_t *names,
+x need a way to enumerate all databases in an environment
+    x ham_env_get_database_names(ham_env_t *env, ham_u16_t *names,
             ham_size_t *count);
-    o c++: std::vector<ham_u16_t> &get_database_names();
+        x unittests
+    x c++: std::vector<ham_u16_t> &get_database_names();
+        x unittests
 
 o make sure that we don't crash if env_enable_encryption() uses a bad
     password
+
+o environments support a configurable number of databases
 
 o release 0.4.8 
 

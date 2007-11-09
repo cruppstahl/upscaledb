@@ -53,6 +53,7 @@ class EnvTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (createEnvOpenDbTest);
     CPPUNIT_TEST      (createFullEnvOpenDbTest);
     CPPUNIT_TEST      (createFullEnvOpenSecondDbTest);
+    CPPUNIT_TEST      (getDatabaseNamesTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -1206,6 +1207,81 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
 
+    void getDatabaseNamesTest(void)
+    {
+        ham_env_t *env;
+        ham_db_t *db1, *db2, *db3;
+        ham_u16_t names[5];
+        ham_size_t names_size=0;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db1));
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db2));
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db3));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                        ham_env_get_database_names(0, names, &names_size));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                        ham_env_get_database_names(env, 0, &names_size));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                        ham_env_get_database_names(env, names, 0));
+
+        names_size=1;
+        CPPUNIT_ASSERT_EQUAL(0,
+                        ham_env_get_database_names(env, names, &names_size));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)0, names_size);
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create_db(env, db1, 111, 0, 0));
+        names_size=0;
+        CPPUNIT_ASSERT_EQUAL(HAM_LIMITS_REACHED,
+                        ham_env_get_database_names(env, names, &names_size));
+
+        names_size=1;
+        CPPUNIT_ASSERT_EQUAL(0,
+                        ham_env_get_database_names(env, names, &names_size));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)1, names_size);
+        CPPUNIT_ASSERT_EQUAL((ham_u16_t)111, names[0]);
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create_db(env, db2, 222, 0, 0));
+        names_size=1;
+        CPPUNIT_ASSERT_EQUAL(HAM_LIMITS_REACHED,
+                        ham_env_get_database_names(env, names, &names_size));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create_db(env, db3, 333, 0, 0));
+        names_size=5;
+        CPPUNIT_ASSERT_EQUAL(0,
+                        ham_env_get_database_names(env, names, &names_size));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)3, names_size);
+        CPPUNIT_ASSERT_EQUAL((ham_u16_t)111, names[0]);
+        CPPUNIT_ASSERT_EQUAL((ham_u16_t)222, names[1]);
+        CPPUNIT_ASSERT_EQUAL((ham_u16_t)333, names[2]);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db2, 0));
+        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_env_erase_db(env, 222, 0));
+            names_size=5;
+            CPPUNIT_ASSERT_EQUAL(0,
+                        ham_env_get_database_names(env, names, &names_size));
+            CPPUNIT_ASSERT_EQUAL((ham_size_t)2, names_size);
+            CPPUNIT_ASSERT_EQUAL((ham_u16_t)111, names[0]);
+            CPPUNIT_ASSERT_EQUAL((ham_u16_t)333, names[1]);
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db1, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db3, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db1));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db2));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db3));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
 };
 
 class InMemoryEnvTest : public EnvTest
@@ -1228,6 +1304,7 @@ class InMemoryEnvTest : public EnvTest
     CPPUNIT_TEST      (eraseOpenDatabases);
     CPPUNIT_TEST      (eraseUnknownDatabases);
     CPPUNIT_TEST      (limitsReachedTest);
+    CPPUNIT_TEST      (getDatabaseNamesTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:

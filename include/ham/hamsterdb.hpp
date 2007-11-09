@@ -27,7 +27,8 @@
 #define HAM_HAMSTERDB_HPP__
 
 #include <ham/hamsterdb_int.h>
-#include <string.h>
+#include <cstring>
+#include <vector>
 
 /**
  * The global hamsterdb namespace.
@@ -596,6 +597,26 @@ public:
         ham_status_t st=ham_env_enable_encryption(m_env, key, flags);
         if (st)
             throw error(st);
+    }
+
+    /** Get all database names. */
+    std::vector<ham_u16_t> get_database_names(void) {
+        ham_size_t count=32;
+        ham_status_t st;
+        std::vector<ham_u16_t> v(count);
+
+        do {
+            st=ham_env_get_database_names(m_env, &v[0], &count);
+            if (!st)
+                break;
+            if (st && st!=HAM_LIMITS_REACHED)
+                throw error(st);
+            count+=16;
+            v.resize(count);
+        } while (1);
+
+        v.resize(count);
+        return (v);
     }
 
 private:

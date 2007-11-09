@@ -607,7 +607,7 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
  *          @a HAM_DATABASE_NOT_FOUND. If the database was already opened,
  *          the function will fail with @a HAM_DATABASE_ALREADY_OPEN.
  * @param flags Optional flags for renaming the database, combined with
- *        bitwise OR. Unused, set to 0.
+ *          bitwise OR. Unused, set to 0.
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL or if
@@ -651,6 +651,29 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
  */
 HAM_EXPORT ham_status_t
 ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags);
+
+/**
+ * Returns the names of all databases in an Environment.
+ *
+ * This function returns the names of all databases and the number of 
+ * databases in an Environment.
+ *
+ * The memory in @a names must be allocated by the user. @a count
+ * must be the size of @a names when calling the function, and will be
+ * the number of databases when the function returns.
+ *
+ * @param env A valid Environment handle.
+ * @param names Pointer to an array for the database names.
+ * @param flags Pointer to the size of the array; will be used to store the
+ *          number of databases when the function returns.
+ *
+ * @return @a HAM_SUCCESS upon success.
+ * @return @a HAM_INV_PARAMETER if @a env, @a names or @a count is NULL.
+ * @return @a HAM_LIMITS_REACHED if @a names is not large enough to hold
+ *          all database names.
+ */
+HAM_EXPORT ham_status_t
+ham_env_get_database_names(ham_env_t *env, ham_u16_t *names, ham_size_t *count);
 
 /**
  * Closes the database environment.
