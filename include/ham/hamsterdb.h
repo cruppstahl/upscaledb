@@ -1061,7 +1061,7 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  * on the data that is inserted.
  *
  * @param db A valid database handle.
- * @param level The compression level; set 0 for default (level 6), 1 for
+ * @param level The compression level; set 0 for the zlib default, 1 for
  *      best speed and 9 for minimum size.
  * @param flags Flags for compression. Unused, set to 0.
  *
