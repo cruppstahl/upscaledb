@@ -1057,7 +1057,7 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  * @a ham_create[_ex] or @a ham_open[_ex].
  *
  * Note that zlib usually has an overhead and often is not effective if the
- * records are small (i.e. < 128byte), but this is highly dependant
+ * records are small (i.e. < 128byte), but this highly depends
  * on the data that is inserted.
  *
  * @param db A valid database handle.
