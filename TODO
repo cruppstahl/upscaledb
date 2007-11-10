@@ -106,7 +106,7 @@ x environments support a configurable number of databases
         x create env with 50 databases, then close and re-open; value
             is still stored?
 
-o make sure that we don't crash if env_enable_encryption() uses a bad
+x make sure that we don't crash if env_enable_encryption() uses a bad
     password
 
 o re-create the unittest/data files for both endians

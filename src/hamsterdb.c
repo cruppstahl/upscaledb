@@ -280,6 +280,8 @@ ham_strerror(ham_status_t result)
         case HAM_DB_NOT_EMPTY:
             return ("Not all cursors were closed before "
                     "closing the database");
+        case HAM_ACCESS_DENIED:
+            return ("Encryption key is wrong");
         default:
             return ("Unknown error");
     }
@@ -1830,12 +1832,19 @@ ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags)
 #ifndef HAM_DISABLE_ENCRYPTION
     ham_file_filter_t *filter;
     mem_allocator_t *alloc;
+    ham_u8_t buffer[128];
+    ham_device_t *device;
+    ham_status_t st;
+    ham_db_t *db=0;
 
     if (!env)
         return (HAM_INV_PARAMETER);
-
     if (env_get_list(env))
         return (HAM_DATABASE_ALREADY_OPEN);
+    if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
+        return (0);
+
+    device=env_get_device(env);
 
     alloc=env_get_allocator(env);
 
@@ -1850,10 +1859,57 @@ ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags)
         return (HAM_OUT_OF_MEMORY);
     }
 
+    /*
+     * need a temporary database handle to read from the device
+     */
+    st=ham_new(&db);
+    if (st)
+        return (st);
+    st=ham_env_open_db(env, db, FIRST_DATABASE_NAME, 0, 0);
+    if (st) {
+        ham_delete(db);
+        db=0;
+    }
+
     aes_expand_key(key, filter->userdata);
     filter->before_write_cb=__aes_before_write_cb;
     filter->after_read_cb=__aes_after_read_cb;
     filter->close_cb=__aes_close_cb;
+
+    /*
+     * if the database file already exists (i.e. if it's larger than
+     * one page): try to read the header of the next page and decrypt
+     * it; if it's garbage, the key is wrong and we return an error
+     */
+    if (db) {
+        struct page_union_header_t *uh;
+
+        st=device->read(db, device, db_get_pagesize(db),
+                buffer, sizeof(buffer));
+        if (st==0) {
+            st=__aes_after_read_cb(env, filter, buffer, sizeof(buffer));
+            if (st)
+                goto bail;
+            uh=(struct page_union_header_t *)buffer;
+            if (uh->_reserved1 || uh->_reserved2) {
+                st=HAM_ACCESS_DENIED;
+                goto bail;
+            }
+        }
+    }
+    else
+        st=0;
+
+bail:
+    if (db) {
+        ham_close(db, 0);
+        ham_delete(db);
+    }
+
+    if (st) {
+        __aes_close_cb(env, filter);
+        return (st);
+    }
 
     return (ham_env_add_file_filter(env, filter));
 #else /* !HAM_DISABLE_ENCRYPTION */
