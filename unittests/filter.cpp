@@ -346,8 +346,6 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                         ham_env_enable_encryption(0, aeskey, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                        ham_env_enable_encryption(env, 0, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));

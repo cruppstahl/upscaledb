@@ -353,8 +353,10 @@ __freel_lazy_create(ham_db_t *db)
      * add the header page to the freelist
      */
     freel_entry_set_start_address(&entry[0], db_get_pagesize(db));
-    size=db_get_usable_pagesize(db)-(OFFSET_OF(db_header_t, _freelist_start)+1);
-    size-=sizeof(freelist_payload_t)+1; /* +1 for bitmap[1] */
+    size=db_get_usable_pagesize(db)-
+        ((char *)db_get_freelist(db)-
+            (char *)page_get_payload(db_get_header_page(db)));
+    size-=sizeof(freelist_payload_t);
     freel_entry_set_max_bits(&entry[0], size*8);
 
     /*

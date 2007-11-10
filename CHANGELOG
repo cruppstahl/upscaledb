@@ -1,3 +1,12 @@
+Nov 10, 2007 - chris
+o Environments now support a configurable number of databases; the default
+    is 16, but files with a pagesize of 16kb can have up to 508 databases.
+    See parameter HAM_PARAM_MAX_ENV_DATABASES for ham_env_create_ex.
+
+Nov 09, 2007 - chris
+o bugfix: when deleting a database from an Environment (ham_env_erase_db), 
+    the database name was not removed
+
 Nov 06, 2007 - chris
 o added a new function ham_env_get_database_names(), which returns all 
 	database names in an environment.

@@ -120,7 +120,7 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     ham_page_t *root;
     ham_size_t maxkeys;
     ham_db_t *db=btree_get_db(be);
-    ham_u8_t *indexdata=db_get_indexdata(db);
+    ham_u8_t *indexdata=db_get_indexdata_at(db, db_get_indexdata_offset(db));
 
     /*
      * calculate the maximum number of keys for this page, 
@@ -161,7 +161,7 @@ my_fun_open(ham_btree_t *be, ham_u32_t flags)
     ham_offset_t rootadd, recno;
     ham_u16_t maxkeys, keysize;
     ham_db_t *db=btree_get_db(be);
-    ham_u8_t *indexdata=db_get_indexdata(db);
+    ham_u8_t *indexdata=db_get_indexdata_at(db, db_get_indexdata_offset(db));
 
     /*
      * load root address and maxkeys (first two bytes are the
@@ -186,7 +186,7 @@ static ham_status_t
 my_fun_flush(ham_btree_t *be)
 {
     ham_db_t *db=btree_get_db(be);
-    ham_u8_t *indexdata=db_get_indexdata(db);
+    ham_u8_t *indexdata=db_get_indexdata_at(db, db_get_indexdata_offset(db));
 
     /*
      * nothing todo if the backend was not touched

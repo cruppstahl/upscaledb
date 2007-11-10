@@ -246,11 +246,11 @@ public:
         env.create(".test");
 
         v=env.get_database_names();
-        CPPUNIT_ASSERT_EQUAL(0u, v.size());
+        CPPUNIT_ASSERT_EQUAL((size_t)0, v.size());
 
         ham::db db1=env.create_db(1);
         v=env.get_database_names();
-        CPPUNIT_ASSERT_EQUAL(1u, v.size());
+        CPPUNIT_ASSERT_EQUAL((size_t)1, v.size());
         CPPUNIT_ASSERT_EQUAL((ham_u16_t)1, v[0]);
     }
 };

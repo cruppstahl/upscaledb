@@ -89,10 +89,6 @@ x win32: unittest-working directory should be in /unittests-directory;
     if we can't change the MSVC-setting, do it in the code (ifdef __MSVC__
     cwd("../unittests") etc)
 
-x i'm not happy with AES encryption - if you enter a bad key, the library
-    will crash; is there a way to add a magic value, which is checked
-    immediately after the decryption?
-
 x enable_encryption and enable_compression should return NOT_IMPLEMENTED
     if they were disabled, and not fail to link
 
@@ -103,10 +99,23 @@ x need a way to enumerate all databases in an environment
     x c++: std::vector<ham_u16_t> &get_database_names();
         x unittests
 
+x environments support a configurable number of databases
+    x new parameter HAM_PARAM_MAX_ENV_DATABASES
+    x make sure that there's enough room for them 
+        x unittests
+        x create env with 50 databases, then close and re-open; value
+            is still stored?
+
 o make sure that we don't crash if env_enable_encryption() uses a bad
     password
 
-o environments support a configurable number of databases
+o re-create the unittest/data files for both endians
+    x dupe-test little endian
+    x recno-test little endian
+    x env-test little endian
+    o dupe-test big endian
+    o recno-test big endian
+    o env-test big endian
 
 o c++ API
     o add documentation to webpage
@@ -157,12 +166,6 @@ o be more careful when uncoupling cursors - especially when inserting
 
 
 
-
-o re-create the unittest/data files for both endians
-    x dupe-test little endian
-    x recno-test little endian
-    o dupe-test big endian
-    o recno-test big endian
 
 o tests are failing:
     --duplicate=1 --use-cursors=1 -- berkeley bug

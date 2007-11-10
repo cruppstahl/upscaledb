@@ -387,11 +387,15 @@ ham_env_create(ham_env_t *env, const char *filename,
  *            bytes. It is recommended not to change the default size. The
  *            default size depends on your hardware and operating system.
  *            Page sizes must be a multiple of 1024.
+ *        <li>HAM_PARAM_MAX_ENV_DATABASES</li> The number of maximum
+ *            databases in this Environment; default value: 16.
  *      </ul>
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL or an
  *              invalid combination of flags or parameters was specified.
+ * @return @a HAM_INV_PARAMETER if the value for HAM_PARAM_MAX_ENV_DATABASES
+ *              is too high (either decrease it or increase the page size).
  * @return @a HAM_IO_ERROR if the file could not be opened or
  *              reading/writing failed.
  * @return @a HAM_INV_FILE_VERSION if the environment version is not
@@ -977,16 +981,20 @@ ham_open_ex(ham_db_t *db, const char *filename,
 #define HAM_ENABLE_DUPLICATES        0x00004000
 
 /** Parameter name for @a ham_open_ex, @a ham_create_ex; sets the cache
- * size*/
+ * size */
 #define HAM_PARAM_CACHESIZE          0x00000100
 
 /** Parameter name for @a ham_open_ex, @a ham_create_ex; sets the page
- * size*/
+ * size */
 #define HAM_PARAM_PAGESIZE           0x00000101
 
 /** Parameter name for @a ham_open_ex, @a ham_create_ex; sets the key
- * size*/
+ * size */
 #define HAM_PARAM_KEYSIZE            0x00000102
+
+/** Parameter name for @a ham_env_create_ex; sets the number of maximum
+ * databases */
+#define HAM_PARAM_MAX_ENV_DATABASES  0x00000103
 
 /**
  * Returns the last error code.

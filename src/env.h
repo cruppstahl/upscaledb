@@ -72,6 +72,7 @@ struct ham_env_t
     ham_size_t _pagesize;
     ham_size_t _cachesize;
     ham_u16_t  _keysize;
+    ham_size_t _max_databases;
 
     /* linked list of all file-level filters */
     ham_file_filter_t *_file_filters;
@@ -178,6 +179,7 @@ struct ham_env_t
 #define env_get_pagesize(env)            (env)->_pagesize
 #define env_get_keysize(env)             (env)->_keysize
 #define env_get_cachesize(env)           (env)->_cachesize
+#define env_get_max_databases(env)       (env)->_max_databases
 
 /*
  * set the parameter list
@@ -185,6 +187,7 @@ struct ham_env_t
 #define env_set_pagesize(env, ps)        (env)->_pagesize =ps
 #define env_set_keysize(env, ks)         (env)->_keysize  =ks
 #define env_set_cachesize(env, cs)       (env)->_cachesize=cs
+#define env_set_max_databases(env, md)   (env)->_max_databases=md
 
 /*
  * get the linked list of all file-level filters
