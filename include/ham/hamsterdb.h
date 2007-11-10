@@ -1195,9 +1195,9 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
  * This function erases a database item. If the item @a key
  * does not exist, @a HAM_KEY_NOT_FOUND is returned.
  *
- * Note that ham_erase can not erase duplicate keys. If @a key has multiple
- * duplicates, all duplicate keys will be erased. Use @a ham_cursor_erase to 
- * erase a specific duplicate key.
+ * Note that ham_erase can not erase a single duplicate key. If @a key 
+ * has multiple duplicates, all duplicate keys will be erased. Use 
+ * @a ham_cursor_erase to erase a specific duplicate key.
  *
  * @param db A valid database handle.
  * @param reserved A reserved value; set to NULL.
