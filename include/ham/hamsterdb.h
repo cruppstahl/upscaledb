@@ -10,7 +10,6 @@
  *
  *
  * \mainpage hamsterdb embeddable database
- * \file hamsterdb.h
  * \brief Include file for hamsterdb.
  * \author Christoph Rupp, chris@crupp.de
  * \version 0.4.7
@@ -465,7 +464,6 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *            a given file at a given time. This flag will block the
  *            operation if the lock is held by another process.
  *      </ul>
- *
  * @param param An array of ham_parameter_t structures. The following
  *        parameters are available:
  *      <ul>
@@ -491,10 +489,10 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
         ham_u32_t flags, ham_parameter_t *param);
 
 /**
- * Creates a new database in a database environment.
+ * Creates a new database in a database Environment.
  *
  * @param env A valid environment handle.
- * @param env A valid database handle, which will point to the created
+ * @param db A valid database handle, which will point to the created
  *          database. To close the handle, use @see ham_close.
  * @param name The name of the database. If a database with this name 
  *          already exists, the function will fail with 
@@ -502,7 +500,6 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  *          0xffff and 0 are reserved.
  * @param flags Optional flags for creating the database, combined with
  *        bitwise OR. Possible flags are:
- *
  *      <ul>
  *       <li>@a HAM_USE_BTREE</li> Use a B+Tree for the index structure.
  *            Currently enabled by default, but future releases
@@ -522,7 +519,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  *            key->data must be NULL and key->size must be 0.
  *      </ul>
  *
- * @param param An array of ham_parameter_t structures. The following
+ * @param params An array of ham_parameter_t structures. The following
  *        parameters are available:
  *      <ul>
  *        <li>HAM_PARAM_KEYSIZE</li> The size of the keys in the B+Tree
@@ -547,7 +544,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
  * Opens a database in a database environment.
  *
  * @param env A valid environment handle.
- * @param env A valid database handle, which will point to the created
+ * @param db A valid database handle, which will point to the created
  *          database. To close the handle, use @see ham_close.
  * @param name The name of the database. If a database with this name 
  *          does not exist, the function will fail with 
@@ -559,7 +556,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
  *            length keys. Inserting a key, which is larger than the
  *            B+Tree index key size, returns @a HAM_INV_KEYSIZE.
  *     </ul>
- * @param param An array of ham_parameter_t structures. Unused, set 
+ * @param params An array of ham_parameter_t structures. Unused, set 
  *        to NULL.
  *
  * @return @a HAM_SUCCESS upon success.
@@ -597,7 +594,7 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
  * @return @a HAM_DATABASE_ALREADY_EXISTS if a database with the new name
  *              already exists
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated.
- * @return @a HAM_NOT_READY if the environment @env was not initialized
+ * @return @a HAM_NOT_READY if the Environment @a env was not initialized
  *              correctly (i.e. not yet opened or created)
  */
 HAM_EXPORT ham_status_t
@@ -671,7 +668,7 @@ ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags);
  *
  * @param env A valid Environment handle.
  * @param names Pointer to an array for the database names.
- * @param flags Pointer to the size of the array; will be used to store the
+ * @param count Pointer to the size of the array; will be used to store the
  *          number of databases when the function returns.
  *
  * @return @a HAM_SUCCESS upon success.
@@ -1025,7 +1022,7 @@ ham_get_error(ham_db_t *db);
  * @param foo A pointer to the prefix compare function.
  *
  * @return @a HAM_SUCCESS upon success.
- * @return @a HAM_INV_PARAMETER if the @db parameter is NULL
+ * @return @a HAM_INV_PARAMETER if the @a db parameter is NULL
  */
 HAM_EXPORT ham_status_t
 ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
@@ -1538,7 +1535,7 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_CURSOR_IS_NIL if the cursor does not point to an item.
- * @return @a HAM_INV_PARAMETER if @a cursor or @count is NULL.
+ * @return @a HAM_INV_PARAMETER if @a cursor or @a count is NULL.
  *
  */
 HAM_EXPORT ham_status_t

@@ -117,21 +117,16 @@ o re-create the unittest/data files for both endians
     o recno-test big endian
     o env-test big endian
 
-o c++ API
-    o add documentation to webpage
-
 o update tutorial
     o aes encryption
     o compression
     o C++ API
-    o add FAQ entry about security (aes related)
-
-. webpage
-    o move to cakephp framework
-    o frontpage: resize hamster picture; remove text -> more space below
-        (for 3 colums: news, main features, articles/testimonials/link cloud)
 
 o release 0.4.8 
+
+o update webpage
+    o add FAQ entry about security (aes related)
+    o C++ API: add documentation to webpage
 
 
 
@@ -191,4 +186,9 @@ o modify acceptance test for --duplicate=1 (berkdb and hamster)
 
 . do a complete source code review, or ask someone to do it;
     make sure that the test coverage is as high as possible
+
+. webpage
+    o move to cakephp framework
+    o frontpage: resize hamster picture; remove text -> more space below
+        (for 3 colums: news, main features, articles/testimonials/link cloud)
 

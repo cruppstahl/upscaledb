@@ -9,7 +9,6 @@
  * See file COPYING.GPL2 and COPYING.GPL3 for License information.
  *
  *
- * \mainpage hamsterdb C++ API
  * \file hamsterdb.hpp
  * \author Christoph Rupp, chris@crupp.de
  * \version 0.4.7
@@ -29,6 +28,11 @@
 #include <ham/hamsterdb_int.h>
 #include <cstring>
 #include <vector>
+
+/**
+ * @defgroup ham_cpp hamsterdb C++ API wrapper
+ * @{
+ */
 
 /**
  * The global hamsterdb namespace.
@@ -625,5 +629,9 @@ private:
 };
 
 }; // namespace ham
+
+/**
+ * @}
+ */
 
 #endif // HAMSTERDB_HPP__
