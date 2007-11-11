@@ -1,5 +1,5 @@
 
-hamsterdb 0.4.7                                Wed Oct 10 08:11:01 UTC 2007
+hamsterdb 0.4.8                                Sun Nov 11 09:42:07 UTC 2007
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -16,31 +16,37 @@ Although no bugs are known, this release is marked "unstable", because the
 database file format is still subject to change. The first stable release 
 will be version 1.0.
 
+The database format of 0.4.8 is not compatible to 0.4.7.
+
 2. Changes
 
 New Features
-* ham_close and ham_env_close now expect a second parameter (flags). By
-    specifying the flag HAM_AUTO_CLEANUP, all open cursors (or open 
-    databases, respectively) are automatically closed. Read the samples
-    to see the flag in action.
-* Added the function ham_cursor_get_duplicate_count(), which returns the
-    number of duplicates of a key.
+* Environments now support a configurable number of databases; the default
+    is 16, but files with a pagesize of 16kb can have up to 508 databases.
+    See parameter HAM_PARAM_MAX_ENV_DATABASES for ham_env_create_ex.
+* Added a new function ham_env_get_database_names(), which returns all 
+	database names in an environment.
+* Implemented zlib-based compression; a new function was added:
+    ham_enable_compression() (can be disabled by specifying
+    --disable-compression as a ./configure option)
+* Implemented AES encryption; a new function was added: 
+	ham_env_enable_encryption() (can be disabled by specifying
+    --disable-encryption as a ./configure option)
+* Added a C++ API file (include/ham/hamsterdb.hpp) and two samples:
+    samples/db6.cpp and samples/env3.cpp.
 
 Bugfixes
-* Fixed a bug in the freelist management, which could result in a loss of
-    the freelist information and exploding file size.
-* Record numbers are no longer reused if the highest recno was deleted
-    and the database was then reopened.
-* Fixed a bug in the cursor management, where a cursor could lose the
-    duplicate ID.
+* Fixed bug in configure.in; on some systems, the call to getpagesize()
+    was not declared correctly.
+* When moving a cursor through duplicates and the cache was
+	exhausted, an assert was triggered.
+* ham_close in an environment could lead to a segmentation fault, 
+	because the cache for extended keys was not properly set up, before
+	it was deleted.
 
 Other Changes
-* Added a new sample env2.c, which demonstrates a 1:n relationship for
-    two tables (with the use of duplicate keys).
-* It's now enough to initialize a ham_key_t and ham_record_t once in the
-    beginning, and not before every use. Also added some checks and 
-    errors when using uninitialized ham_key_t or ham_record_t structures.
-* Strong performance improvements for duplicate keys.
+* The default pagesize for unix databases is now 16kb, not 4kb; benchmarks 
+    show that this is the fastest option, but still results in small files.
 
 To see a list of all changes, look in the file CHANGELOG.
 
@@ -48,7 +54,6 @@ To see a list of all changes, look in the file CHANGELOG.
 
 - more stabilization and moving towards version 1.0
 - command line tools for recovery, dump and statistics
-- a C++ wrapper class
 
 4. Features
 
@@ -69,6 +74,8 @@ To see a list of all changes, look in the file CHANGELOG.
 - Supports rudimentary live-reorganization by automatically
     merging freelist entries
 - Open source and released under the GPL 2.0 or later
+- Supports AES encryption and zlib compression
+- C++ wrapper
 
 5. Known Issues/Bugs
 
@@ -119,6 +126,8 @@ HAM_32BIT               compile for 32bit
 HAM_64BIT               compile for 64bit
 HAM_ENABLE_INTERNAL     enable internal functions (declared in
                             include/ham/hamsterdb_int.h)
+HAM_DISABLE_COMPRESSION build without support for zlib compression
+HAM_DISABLE_ENCRYPTION  build without support for AES encryption
 
 Also, if you compile for windows, you have to compile the file src/os_win32.c,
 and ignore the file src/os_posix.c. Vice versa on non-Windows platforms.

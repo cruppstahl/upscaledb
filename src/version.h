@@ -31,8 +31,8 @@ extern "C" {
  */
 #define HAM_VERSION_MAJ 0
 #define HAM_VERSION_MIN 4
-#define HAM_VERSION_REV 7
-#define HAM_VERSION_STR "0.4.7"
+#define HAM_VERSION_REV 8
+#define HAM_VERSION_STR "0.4.8"
 
 
 #ifdef __cplusplus
