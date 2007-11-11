@@ -18,6 +18,7 @@
 #define CONFIG_H__
 
 #include <ham/types.h>
+#include "serial.h"
 
 /*
  * include autoconf header file; otherwise, assume sane default values
@@ -46,12 +47,6 @@
 #endif
 
 /* 
- * the serial number; for non-commercial versions, this is always
- * 0x0; commercial versions get a serial number from the vendor
- */
-#define HAM_SERIALNO               0x0
-
-/* 
  * the endian-architecture of the host computer; set this to 
  * HAM_LITTLE_ENDIAN or HAM_BIG_ENDIAN 
  */
@@ -60,13 +55,6 @@
 #       error "neither HAM_LITTLE_ENDIAN nor HAM_BIG_ENDIAN defined"
 #   endif
 #endif
-
-/*
- * feature list; describes the features that are enabled or 
- * disabled
- */
-#define HAM_HAS_BTREE              1
-#define HAM_HAS_HASHDB             1
 
 /*
  * the default cache size is 256
