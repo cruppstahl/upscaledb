@@ -1301,7 +1301,7 @@ public:
                 ham_env_create_ex(env, ".test", m_flags, 0664, ps));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-        if (os_get_pagesize()==1024*16) {
+        if (os_get_pagesize()==1024*16 || m_flags&HAM_IN_MEMORY_DB) {
             ps[0].value=508;
             CPPUNIT_ASSERT_EQUAL(0,
                     ham_env_create_ex(env, ".test", m_flags, 0664, ps));
@@ -1317,14 +1317,9 @@ public:
                     ham_env_create_ex(env, ".test", m_flags, 0664, ps));
             CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-            ps[0].value=2046;
-            while (1) {
-                ps[0].value++;
-                printf("TODO change this (windows!) %u\n", ps[0].value);
-                CPPUNIT_ASSERT_EQUAL(0,
-                        ham_env_create_ex(env, ".test", m_flags, 0664, ps));
-                CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-            }
+            ps[0].value=2045;
+            CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                    ham_env_create_ex(env, ".test", m_flags, 0664, ps));
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
