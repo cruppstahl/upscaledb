@@ -44,6 +44,7 @@ ham_status_t
 os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position, 
         ham_size_t size, ham_bool_t readonly, ham_u8_t **buffer)
 {
+#ifndef UNDER_CE
     ham_status_t st;
     DWORD hsize, fsize=GetFileSize(fd, &hsize);
     DWORD protect=PAGE_WRITECOPY; /* | (readonly ? PAGE_READONLY : PAGE_READWRITE); */
@@ -65,6 +66,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
         return (HAM_IO_ERROR);
     }
 
+#endif /* UNDER_CE */
     return (HAM_SUCCESS);
 }
 
