@@ -340,7 +340,7 @@ public:
 
     void negativeAesFilterTest(void)
     {
-        ham_env_t *env;
+        ham_env_t *env=(ham_env_t *)1;
         ham_db_t *db;
         ham_u8_t aeskey[16]={0x13};
 
@@ -366,7 +366,7 @@ public:
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
         rec.data=(void *)"hello world 12345 12345 12345 12345 12345";
-        rec.size=strlen((char *)rec.data);
+        rec.size=(ham_size_t)strlen((char *)rec.data);
 
         CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0644));
         CPPUNIT_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
@@ -390,7 +390,7 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         rec.data=(void *)"123";
-        rec.size=strlen("123");
+        rec.size=(ham_size_t)strlen("123");
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[0]));
