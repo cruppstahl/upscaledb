@@ -39,10 +39,13 @@ Bugfixes
 * Fixed bug in configure.in; on some systems, the call to getpagesize()
     was not declared correctly.
 * When moving a cursor through duplicates and the cache was
-	exhausted, an assert was triggered.
+    exhausted, an assert was triggered.
 * ham_close in an environment could lead to a segmentation fault, 
-	because the cache for extended keys was not properly set up, before
-	it was deleted.
+    because the cache for extended keys was not properly set up, before
+    it was deleted.
+o (Win32) The parameters for memory mapped I/O did not create 
+    private copies and therefore the file could be damaged if an operation
+    aborted
 
 Other Changes
 * The default pagesize for unix databases is now 16kb, not 4kb; benchmarks 

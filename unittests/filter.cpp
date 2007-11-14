@@ -313,7 +313,8 @@ public:
         ham_record_t rec;
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
-        ham_u8_t aeskey[16]={0x13};
+        ham_u8_t aeskey[16] ={0x13};
+        ham_u8_t aeskey2[16]={0x14};
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
@@ -329,6 +330,8 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, ".test", 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_ACCESS_DENIED, 
+                ham_env_enable_encryption(env, aeskey2, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));

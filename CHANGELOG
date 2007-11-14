@@ -1,5 +1,10 @@
-Nov 11, 2007 - chris ---------------------------------------------------
+Nov 15, 2007 - chris ---------------------------------------------------
                       release of hamsterdb-0.4.8
+
+Nov 14, 2007 - chris
+o bugfix: the parameters for memory mapped I/O on win32 did not create 
+    private copies and therefore the file could be damaged if an operation
+    aborted
 
 Nov 10, 2007 - chris
 o Environments now support a configurable number of databases; the default
