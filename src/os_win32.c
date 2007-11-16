@@ -48,9 +48,9 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
     ham_status_t st;
     DWORD hsize, fsize=GetFileSize(fd, &hsize);
     DWORD protect=PAGE_WRITECOPY; /* | (readonly ? PAGE_READONLY : PAGE_READWRITE); */
-    DWORD access =FILE_MAP_COPY;  /* | (readonly ? FILE_MAP_READ : FILE_MAP_WRITE); */
+    DWORD access =FILE_MAP_COPY; /* | (readonly ? FILE_MAP_READ : FILE_MAP_WRITE); */
 
-    *mmaph=CreateFileMapping(fd, 0, protect,  hsize, fsize, 0); 
+    *mmaph=CreateFileMapping(fd, 0, protect, hsize, fsize, 0); 
     if (!*mmaph) {
 	    *buffer=0;
         st=(ham_status_t)GetLastError();
@@ -59,7 +59,8 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
     }
 
     *buffer=MapViewOfFile(*mmaph, access, 
-            (unsigned long)(position>>32), (unsigned long)(position), size);
+            (unsigned long)(position>>32), 
+            (unsigned long)(position), size);
     if (!*buffer) {
         st=(ham_status_t)GetLastError();
         ham_trace(("MapViewOfFile failed with status %u", st));

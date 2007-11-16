@@ -18,6 +18,8 @@ will be version 1.0.
 
 The database format of 0.4.8 is not compatible to 0.4.7.
 
+See below for known issues.
+
 2. Changes
 
 New Features
@@ -82,7 +84,9 @@ To see a list of all changes, look in the file CHANGELOG.
 
 5. Known Issues/Bugs
 
-No known issues.
+The Debug build for Windows 64 fails in the routines for memory mapped I/O.
+As a workaround, don't use the Debug build for x64. The Release build works
+without problems.
 
 6. Compiling 
 
