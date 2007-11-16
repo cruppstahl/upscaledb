@@ -226,14 +226,15 @@ public:
      * <b>Important!</b> This operator transfers the ownership of the 
      * database handle.
      */
-    db &operator=(db other) {
+    db &operator=(const db &other) {
+		db &rhs=(db &)other;
         if (this==&other)
             return (*this);
         close();
-        m_db=other.m_db;
+        m_db=rhs.m_db;
         m_opened=true;
-        other.m_db=0; 
-        other.m_opened=false;
+        rhs.m_db=0; 
+        rhs.m_opened=false;
         return (*this);
     }
 
@@ -540,8 +541,7 @@ public:
             throw error(st);
         }
 
-        ham::db d(dbh);
-        return (d);
+		return (ham::db(dbh));
     }
 
     /** Opens an existing database in the environment. */
@@ -558,8 +558,7 @@ public:
             throw error(st);
         }
 
-        ham::db d(dbh);
-        return (d);
+		return (ham::db(dbh));
     }
 
     /** Renames an existing database in the environment. */
