@@ -14,8 +14,6 @@ o update webpage
     o add FAQ entry about security (AES related)
     o add FAQ why C++ cursor is not stl-compatible
 
-o acceptance test: encryption is missing
-
 o compression: store the size of the uncompressed data as the first 8 byte
     in the blob; then uncompression is easier and faster
 
@@ -52,12 +50,6 @@ o be more careful when uncoupling cursors - especially when inserting
         o insert duplicate of item -> cursor is still coupled
         o insert item2 > item -> cursor is still coupled
 
-
-
-
-
-
-
 o tests are failing:
     --duplicate=1 --use-cursors=1 -- berkeley bug
       o ../../testfiles/1/100.tst - status mismatch
@@ -74,7 +66,8 @@ o create a new repository for hamsterdb-alien for all dependencies
     o wince-x86
     o ppc32-be
 
-o modify acceptance test for --duplicate=1 (berkdb and hamster)
+o enhance acceptance tests
+    o acceptance test: encryption is missing
     o new acceptance tests with many, many duplicates
     o --duplicate-position="before"|"after"|"first"|"last"(default)
         o add to monster.sh
@@ -83,6 +76,8 @@ o modify acceptance test for --duplicate=1 (berkdb and hamster)
 o command line tool ham_info
 o command line tool ham_dump
 o command line tool ham_recovery
+
+o release 0.4.9
 
 . do a complete source code review, or ask someone to do it;
     make sure that the test coverage is as high as possible
