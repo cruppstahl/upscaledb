@@ -7,124 +7,88 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-x release 0.4.7
-
-x unittests: os.cpp:64 and os.cpp:80 try to open files which do not exist
-        on win32; use other files instead
-
-x some parts of the code would be nicer if we had ham_mem_calloc
-
-x extkey_cache: merge extkey_cache_remove() and blob_free()
-
-x are we using a good default page size? should we rather use 16kb??
-    --> yes, 16kb are faster and files are smaller
-    x change handling in hamsterdb.c
-    x add unittests for different pagesizes
-    x update CHANGELOG!
-
-x unittest.vcproj: set working directory -> no, can't set it :-(
-
-x c++-api
-    x add static functions
-    x add database functions
-    x add cursor functions
-    x add environments
-    x add unittests (full coverage!)
-    x talk to Oleg, finalize wrapper
-    x add documentation
-    x convert sample db1.c and env2.c to c++
-
-x add page-level filter
-    x define structures, API
-    x implement functions
-    x add functions to page_read, page_write, ham_close
-    x add unittests
-    x add as autoconf project
-    x link into hamsterdb library
-    x add header file documentation
-    x add encryption filter
-        x get public domain AES functions
-        x implement filter
-        x add unittests
-        x modify acceptance test
-    x test ../../testfiles/1/45.tst schlägt fehl (--use-aes=1 --reopen=1)
-    x test ../../testfiles/1/ext_021.tst schlägt fehl (--use-aes=1 --reopen=1)
-        --> erster parameter beim rausschreiben muss const sein!!
-            -> verschlüsselung muss in eigenen buffer, original-page
-                darf nicht überschrieben werden! (denn sie bleibt ja weiter
-                gecacht...)
-    x new unittest in an environment: 3 databases, 2 encrypted (with different
-            keys); reopen
-    x add new function to c++ api
-    x page filters are actually "file filters" - rename function and 
-        documentation!
-
-x arm: wants to use int getpagesize(), but seems to be size_t getpagesize().
-    -> fix check in configure.in
-
-x add record-level filter
-    x import zlib, add zlib as autoconf project
-    x link into hamsterdb library
-    x do we need to distinguish between "real" size and "user" size?
-        i think not -> remove one of them, rename to "size"
-        it's better if the filter can set flags in the record
-    x define structures, API
-    x add record-level filter
-    x remove record-level filter
-    x add unittests
-
-    x add new function to c++ api
-    x add compression filter
-        x add unittest
-    x add to acceptance test
-
-x add --disable-encryption
-x add --disable-compression
-
-x add zlib and aes to win32 environment
-
-x add zlib and aes to wince environment
-
-x win32: unittest-working directory should be in /unittests-directory;
-    if we can't change the MSVC-setting, do it in the code (ifdef __MSVC__
-    cwd("../unittests") etc)
-
-x enable_encryption and enable_compression should return NOT_IMPLEMENTED
-    if they were disabled, and not fail to link
-
-x need a way to enumerate all databases in an environment
-    x ham_env_get_database_names(ham_env_t *env, ham_u16_t *names,
-            ham_size_t *count);
-        x unittests
-    x c++: std::vector<ham_u16_t> &get_database_names();
-        x unittests
-
-x environments support a configurable number of databases
-    x new parameter HAM_PARAM_MAX_ENV_DATABASES
-    x make sure that there's enough room for them 
-        x unittests
-        x create env with 50 databases, then close and re-open; value
-            is still stored?
-
-x make sure that we don't crash if env_enable_encryption() uses a bad
-    password
-
-x update tutorial for C++ API
-
-x re-create the unittest/data files for both endians
-    x dupe-test little endian
-    x recno-test little endian
-    x env-test little endian
-    x dupe-test big endian
-    x recno-test big endian
-    x env-test big endian
-
-o release 0.4.8 
+x release 0.4.8 
 
 o update webpage
+    x C++ API: add documentation to webpage
     o add FAQ entry about security (AES related)
     o add FAQ why C++ cursor is not stl-compatible
-    o C++ API: add documentation to webpage
+
+o acceptance test: encryption is missing
+
+o compression: store the size of the uncompressed data as the first 8 byte
+    in the blob; then uncompression is easier and faster
+
+o get a working qemu image for sparc and powerpc, and start extensive testing
+
+o remove TODOs in the source
+
+o do benchmarking with 1 mio inserts/reads
+
+o do benchmarking on windows, esp. with and without mmap
+
+o win64: debug builds fail in mmap routines
+    -> workaround: link against release libraries??
+
+o key_set_record does not always need to dirty the page (i.e. when
+    appending duplicates) -> don't set page dirty in the caller
+    (but that's not important and will not result in performance improvements
+     in 99.99% of all cases, because the page will get dirty by other inserts)
+
+o cursor_overwrite/cursor_insert: 
+    currently, the cursor_dupe_cache is deleted, but we don't have to
+    also, in cursor_move there are some optimizations regarding the
+    cache (search for TODO)
+
+o be more careful when uncoupling cursors - especially when inserting 
+    or deleting items, uncoupling is often not necessary
+    o definitely no need to uncouple if overwriting or adding a duplicate
+    o unittests: 
+        o create cursor -> must be NIL
+        o insert item   -> must be NIL
+        o move cursor to item
+        o insert item2 < item -> cursor is uncoupled
+        o move cursor to item
+        o insert duplicate of item -> cursor is still coupled
+        o insert item2 > item -> cursor is still coupled
 
 
+
+
+
+
+
+o tests are failing:
+    --duplicate=1 --use-cursors=1 -- berkeley bug
+      o ../../testfiles/1/100.tst - status mismatch
+      o ../../testfiles/1/202.tst - status mismatch
+      o ../../testfiles/1/220.tst - status mismatch
+
+o create a new repository for hamsterdb-alien for all dependencies 
+    in source and precompiled (static/non-debug - cppunit and berkeleydb)
+    x linux64-le
+    x linux32-le
+    x win32
+    o cygwin32
+    o win64
+    o wince-x86
+    o ppc32-be
+
+o modify acceptance test for --duplicate=1 (berkdb and hamster)
+    o new acceptance tests with many, many duplicates
+    o --duplicate-position="before"|"after"|"first"|"last"(default)
+        o add to monster.sh
+        o add to valgrind.sh
+
+o command line tool ham_info
+o command line tool ham_dump
+o command line tool ham_recovery
+
+. do a complete source code review, or ask someone to do it;
+    make sure that the test coverage is as high as possible
+
+. webpage
+    o move to cakephp framework
+    o frontpage: resize hamster picture; remove text -> more space below
+        (for 3 colums: news, main features, articles/testimonials/link cloud)
 
