@@ -28,7 +28,7 @@ x be more careful when uncoupling cursors - especially when inserting
 
 o enhance acceptance tests
     x acceptance test: encryption is missing
-    o new acceptance tests with many, many duplicates
+    x new acceptance tests with many, many duplicates
     o --duplicate-position="before"|"after"|"first"|"last"(default)
         o add to monster.sh
         o add to valgrind.sh
@@ -69,8 +69,9 @@ o command line tool ham_recovery
 
 o release 0.4.9
 
+o make sure that the test coverage is as high as possible
+
 . do a complete source code review, or ask someone to do it;
-    make sure that the test coverage is as high as possible
 
 . webpage
     o move to cakephp framework
