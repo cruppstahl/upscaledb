@@ -29,18 +29,37 @@
 
 
 ham_status_t
-db_uncouple_all_cursors(ham_page_t *page)
+db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
 {
     ham_status_t st;
     ham_cursor_t *n, *c=page_get_cursors(page);
 
     while (c) {
+        ham_bt_cursor_t *btc=(ham_bt_cursor_t *)c;
         n=cursor_get_next_in_page(c);
-        st=bt_cursor_uncouple((ham_bt_cursor_t *)c, 0);
-        if (st)
-            return (st);
-        cursor_set_next_in_page(c, 0);
-        cursor_set_previous_in_page(c, 0);
+
+        /*
+         * ignore all cursors which are already uncoupled
+         */
+        if (bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) {
+            /*
+             * skip this cursor if its position is < start
+             */
+            if (bt_cursor_get_coupled_index(btc)<start) {
+                c=n;
+                continue;
+            }
+
+            /*
+             * otherwise: uncouple it
+             */
+            st=bt_cursor_uncouple((ham_bt_cursor_t *)c, 0);
+            if (st)
+                return (st);
+            cursor_set_next_in_page(c, 0);
+            cursor_set_previous_in_page(c, 0);
+        }
+
         c=n;
     }
 
@@ -501,7 +520,7 @@ db_page_alloc(ham_db_t *db)
             return (0);
         }
 
-        st=db_uncouple_all_cursors(page);
+        st=db_uncouple_all_cursors(page, 0);
         if (st) {
             db_set_error(db, st);
             return (0);
@@ -547,7 +566,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
     ham_status_t st;
     ham_db_t *db=page_get_owner(page);
 
-    st=db_uncouple_all_cursors(page);
+    st=db_uncouple_all_cursors(page, 0);
     if (st)
         return (st);
 
@@ -863,7 +882,7 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
      * free the memory of the page
      */
     if (!(flags&DB_FLUSH_NODELETE)) {
-        st=db_uncouple_all_cursors(page);
+        st=db_uncouple_all_cursors(page, 0);
         if (st)
             return (st);
         st=page_free(page);

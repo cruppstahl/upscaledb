@@ -9,15 +9,34 @@ x a finished TODO item
 
 x release 0.4.8 
 
-o update webpage
+x update webpage
     x C++ API: add documentation to webpage
-    o add FAQ entry about security (AES related)
-    o add FAQ why C++ cursor is not stl-compatible
+    x add FAQ entry about security (AES related)
+    x add FAQ why C++ cursor is not stl-compatible
 
-o compression: store the size of the uncompressed data as the first 8 byte
+x be more careful when uncoupling cursors - especially when inserting 
+    or deleting items, uncoupling is often not necessary
+    x definitely no need to uncouple if overwriting or adding a duplicate
+    x often no need to uncouple when inserting/splitting
+    x unittests: 
+        x create cursor -> must be NIL
+        x insert item   -> must be NIL
+        x move cursor to item -> cursor is coupled
+        x insert item2 < item -> cursor is coupled
+        x insert duplicate of item -> cursor is still coupled
+        x insert item2 > item -> cursor is uncoupled
+
+o enhance acceptance tests
+    x acceptance test: encryption is missing
+    o new acceptance tests with many, many duplicates
+    o --duplicate-position="before"|"after"|"first"|"last"(default)
+        o add to monster.sh
+        o add to valgrind.sh
+
+. compression: store the size of the uncompressed data as the first 4 byte
     in the blob; then uncompression is easier and faster
 
-o get a working qemu image for sparc and powerpc, and start extensive testing
+o run extensive tests on sparc architecture
 
 o remove TODOs in the source
 
@@ -27,28 +46,6 @@ o do benchmarking on windows, esp. with and without mmap
 
 o win64: debug builds fail in mmap routines
     -> workaround: link against release libraries??
-
-o key_set_record does not always need to dirty the page (i.e. when
-    appending duplicates) -> don't set page dirty in the caller
-    (but that's not important and will not result in performance improvements
-     in 99.99% of all cases, because the page will get dirty by other inserts)
-
-o cursor_overwrite/cursor_insert: 
-    currently, the cursor_dupe_cache is deleted, but we don't have to
-    also, in cursor_move there are some optimizations regarding the
-    cache (search for TODO)
-
-o be more careful when uncoupling cursors - especially when inserting 
-    or deleting items, uncoupling is often not necessary
-    o definitely no need to uncouple if overwriting or adding a duplicate
-    o unittests: 
-        o create cursor -> must be NIL
-        o insert item   -> must be NIL
-        o move cursor to item
-        o insert item2 < item -> cursor is uncoupled
-        o move cursor to item
-        o insert duplicate of item -> cursor is still coupled
-        o insert item2 > item -> cursor is still coupled
 
 o tests are failing:
     --duplicate=1 --use-cursors=1 -- berkeley bug
@@ -66,13 +63,6 @@ o create a new repository for hamsterdb-alien for all dependencies
     o wince-x86
     o ppc32-be
 
-o enhance acceptance tests
-    o acceptance test: encryption is missing
-    o new acceptance tests with many, many duplicates
-    o --duplicate-position="before"|"after"|"first"|"last"(default)
-        o add to monster.sh
-        o add to valgrind.sh
-
 o command line tool ham_info
 o command line tool ham_dump
 o command line tool ham_recovery
@@ -86,4 +76,14 @@ o release 0.4.9
     o move to cakephp framework
     o frontpage: resize hamster picture; remove text -> more space below
         (for 3 colums: news, main features, articles/testimonials/link cloud)
+    o rss feed
+
+. C++ cursors are no stl iterators
+    -> need ++ and -- (prefix only)
+    -> rend and rbegin
+    -> end: is not the last element, but a symbolic "end"-element
+    -> begin: if it fails, must return end()
+    -> operator*: returns std::pair<key, record>
+    -> operator->: i->first(), i->second()
+    -> operator== and operator!=, operator= and copy-constructor
 

@@ -368,12 +368,13 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
          * the next slot
          */
         else if (cmp<0) {
+            slot++;
+
             /* uncouple all cursors */
-            st=db_uncouple_all_cursors(page);
+            st=db_uncouple_all_cursors(page, slot);
             if (st)
                 return (db_set_error(db, st));
 
-            slot++;
             bte=btree_node_get_key(db, node, slot);
             memmove(((char *)bte)+sizeof(int_key_t)-1+keysize, bte,
                     (sizeof(int_key_t)-1+keysize)*(count-slot));
@@ -385,7 +386,7 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
         else {
 shift_elements:
             /* uncouple all cursors */
-            st=db_uncouple_all_cursors(page);
+            st=db_uncouple_all_cursors(page, slot);
             if (st)
                 return (db_set_error(db, st));
 
@@ -505,13 +506,6 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
     keysize=db_get_keysize(db);
 
     /*
-     * uncouple all cursors
-     */
-    st=db_uncouple_all_cursors(page);
-    if (st)
-        return (db_set_error(db, st));
-
-    /*
      * allocate a new page
      */
     newpage=db_alloc_page(db, PAGE_TYPE_B_INDEX, 0); 
@@ -535,6 +529,13 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
         pivot=count-4;
     else
         pivot=count/2;
+
+    /*
+     * uncouple all cursors
+     */
+    st=db_uncouple_all_cursors(page, pivot);
+    if (st)
+        return (db_set_error(db, st));
 
     /*
      * if we split a leaf, we'll insert the pivot element in the leaf

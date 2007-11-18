@@ -19,6 +19,7 @@
 #include "../src/page.h"
 #include "../src/error.h"
 #include "memtracker.h"
+#include "os.hpp"
 
 class BtreeCursorTest : public CppUnit::TestFixture
 {
@@ -29,6 +30,7 @@ class BtreeCursorTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (linkedListTest);
     CPPUNIT_TEST      (linkedListReverseCloseTest);
     CPPUNIT_TEST      (cursorGetErasedItemTest);
+    CPPUNIT_TEST      (couplingTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -45,19 +47,14 @@ public:
 
     void setUp()
     { 
-#if WIN32
-        (void)DeleteFileA((LPCSTR)".test");
-#else
-        if (unlink(".test")) {
-            if (errno!=2)
-                printf("failed to unlink .test: %s\n", strerror(errno));
-        }
-#endif
+        os::unlink(".test");
+
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
         CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", 
-                    m_inmemory?HAM_IN_MEMORY_DB:0, 0664));
+                    HAM_ENABLE_DUPLICATES|(m_inmemory?HAM_IN_MEMORY_DB:0),
+                    0664));
     }
 
     void tearDown()
@@ -204,6 +201,66 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
     }
 
+    void couplingTest(void)
+    {
+        ham_cursor_t *c;
+        ham_bt_cursor_t *btc;
+        ham_key_t key1, key2, key3;
+        ham_record_t rec;
+        int v1=1, v2=2, v3=3;
+
+        memset(&key1, 0, sizeof(key1));
+        memset(&key2, 0, sizeof(key2));
+        memset(&key3, 0, sizeof(key3));
+        key1.size=sizeof(int);
+        key1.data=(void *)&v1;
+        key2.size=sizeof(int);
+        key2.data=(void *)&v2;
+        key3.size=sizeof(int);
+        key3.data=(void *)&v3;
+        memset(&rec, 0, sizeof(rec));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        btc=(ham_bt_cursor_t *)c;
+        /* after create: cursor is NIL */
+        CPPUNIT_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED));
+        CPPUNIT_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+
+        /* after insert: cursor is NIL */
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key2, &rec, 0));
+        CPPUNIT_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED));
+        CPPUNIT_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+
+        /* move to item: cursor is coupled */
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_find(c, &key2, 0));
+        CPPUNIT_ASSERT(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED);
+        CPPUNIT_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+
+        /* insert item BEFORE the first item - cursor is uncoupled */
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key1, &rec, 0));
+        CPPUNIT_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED));
+        CPPUNIT_ASSERT(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED);
+
+        /* move to item: cursor is coupled */
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_find(c, &key2, 0));
+        CPPUNIT_ASSERT(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED);
+        CPPUNIT_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+
+        /* insert duplicate - cursor stays coupled */
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key2, &rec, HAM_DUPLICATE));
+        CPPUNIT_ASSERT(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED);
+        CPPUNIT_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+
+        /* insert item AFTER the middle item - cursor stays coupled */
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key3, &rec, 0));
+        CPPUNIT_ASSERT(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED);
+        CPPUNIT_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
+    }
+
 };
 
 class InMemoryBtreeCursorTest : public BtreeCursorTest
@@ -215,6 +272,7 @@ class InMemoryBtreeCursorTest : public BtreeCursorTest
     CPPUNIT_TEST      (linkedListTest);
     CPPUNIT_TEST      (linkedListReverseCloseTest);
     CPPUNIT_TEST      (cursorGetErasedItemTest);
+    CPPUNIT_TEST      (couplingTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:

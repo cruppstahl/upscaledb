@@ -677,21 +677,21 @@ public:
         page=db_fetch_page(m_db, btree_get_rootpage(be), 0);
         CPPUNIT_ASSERT(page!=0);
 
-        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page));
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_NEXT,     0, "aaaaaaaaaa");
-        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page));
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_NEXT,     0, "1111111111");
-        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page));
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_NEXT,     0, "2222222222");
-        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page));
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
-        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page));
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES, 0, "cccccccccc");
-        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page));
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "bbbbbbbbbb");
-        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page));
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "1111111111");
-        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page));
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES, 0, "aaaaaaaaaa");
 
         ham_cursor_close(c);

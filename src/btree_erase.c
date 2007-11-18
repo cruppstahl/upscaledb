@@ -487,12 +487,12 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
     /*
      * uncouple all cursors
      */
-    if ((st=db_uncouple_all_cursors(page)))
+    if ((st=db_uncouple_all_cursors(page, 0)))
         return (0);
-    if ((st=db_uncouple_all_cursors(sibpage)))
+    if ((st=db_uncouple_all_cursors(sibpage, 0)))
         return (0);
     if (ancpage)
-        if ((st=db_uncouple_all_cursors(ancpage)))
+        if ((st=db_uncouple_all_cursors(ancpage, 0)))
             return (0);
 
     /*
@@ -617,12 +617,12 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
     /*
      * uncouple all cursors
      */
-    if ((st=db_uncouple_all_cursors(page)))
+    if ((st=db_uncouple_all_cursors(page, 0)))
         return (0);
-    if ((st=db_uncouple_all_cursors(sibpage)))
+    if ((st=db_uncouple_all_cursors(sibpage, 0)))
         return (0);
     if (ancpage)
-        if ((st=db_uncouple_all_cursors(ancpage)))
+        if ((st=db_uncouple_all_cursors(ancpage, 0)))
             return (0);
 
     /*
@@ -1045,7 +1045,7 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
     /*
      * uncouple all cursors
      */
-    if ((st=db_uncouple_all_cursors(page)))
+    if ((st=db_uncouple_all_cursors(page, 0)))
         return (db_set_error(db, st));
 
     lhs=btree_node_get_key(db, node, slot);
@@ -1126,7 +1126,7 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
     /*
      * uncouple all cursors
      */
-    if ((st=db_uncouple_all_cursors(page)))
+    if ((st=db_uncouple_all_cursors(page, 0)))
         return (db_set_error(db, st));
 
     ham_assert(slot>=0, ("invalid slot %ld", slot));

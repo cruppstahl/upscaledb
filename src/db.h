@@ -536,7 +536,7 @@ struct ham_db_t
  * @remark this is called whenever the page is deleted or becoming invalid
  */
 extern ham_status_t
-db_uncouple_all_cursors(ham_page_t *page);
+db_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
 
 /**
  * compare two keys
