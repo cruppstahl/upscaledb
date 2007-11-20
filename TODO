@@ -26,12 +26,18 @@ x be more careful when uncoupling cursors - especially when inserting
         x insert duplicate of item -> cursor is still coupled
         x insert item2 > item -> cursor is uncoupled
 
-o enhance acceptance tests
+x enhance acceptance tests
     x acceptance test: encryption is missing
     x new acceptance tests with many, many duplicates
-    o --duplicate-position="before"|"after"|"first"|"last"(default)
-        o add to monster.sh
-        o add to valgrind.sh
+
+o ham_get_version: get char**-parameter to retrieve the licensed modules,
+    i.e. "SRT" - Commercial, Storage, Recovery, Transactions
+    or "" - for unlicensed GPL version
+    o prepare and think through licensing concept
+    o how can we test different versions?
+
+o make sure we fail to open databases which have incompatible versions
+    -> unittest
 
 . compression: store the size of the uncompressed data as the first 4 byte
     in the blob; then uncompression is easier and faster
@@ -87,4 +93,6 @@ o make sure that the test coverage is as high as possible
     -> operator*: returns std::pair<key, record>
     -> operator->: i->first(), i->second()
     -> operator== and operator!=, operator= and copy-constructor
+
+. need acceptance tests for duplicates-before, -after, -first
 
