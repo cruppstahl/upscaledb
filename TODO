@@ -33,8 +33,10 @@ x enhance acceptance tests
 o ham_get_version: get char**-parameter to retrieve the licensed modules,
     i.e. "SRT" - Commercial, Storage, Recovery, Transactions
     or "" - for unlicensed GPL version
-    o prepare and think through licensing concept
-    o how can we test different versions?
+    x is there something similar for berkdb or QT? -> yes, QT
+    x does this make sense anyway? -> yes, seems so
+    x prepare and think through licensing concept
+    o add API function and license.h (??)
 
 o make sure we fail to open databases which have incompatible versions
     -> unittest
