@@ -82,7 +82,7 @@ o make sure that the test coverage is as high as possible
 . do a complete source code review, or ask someone to do it;
 
 . webpage
-    o move to cakephp framework
+    o move to cakephp framework (or a cms? enanocms.com?)
     o frontpage: resize hamster picture; remove text -> more space below
         (for 3 colums: news, main features, articles/testimonials/link cloud)
     o rss feed
