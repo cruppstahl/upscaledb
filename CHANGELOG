@@ -1,3 +1,7 @@
+Nov 24, 2007 - chris
+o added small performance improvements and fixes in the zlib-based
+    compression-filter
+
 Nov 15, 2007 - chris ---------------------------------------------------
                       release of hamsterdb-0.4.8
 

@@ -1927,10 +1927,15 @@ __zlib_before_insert_cb(ham_db_t *db,
     ham_u32_t level=*(ham_u32_t *)filter->userdata;
     int zret;
 
-    /* we work in a temporary copy of the original data */
+    /* 
+     * we work in a temporary copy of the original data 
+     *
+     * the first 4 bytes in the record are used for storing the original,
+     * uncompressed size; this makes the decompression easier
+     */
     do {
         if (!newsize)
-            newsize=compressBound(record->size);
+            newsize=compressBound(record->size)+sizeof(ham_u32_t);
         else
             newsize+=newsize/4;
 
@@ -1938,8 +1943,13 @@ __zlib_before_insert_cb(ham_db_t *db,
         if (!dest)
             return (db_set_error(db, HAM_OUT_OF_MEMORY));
 
-        zret=compress2(dest, &newsize, record->data, record->size, level);
+        newsize-=sizeof(ham_u32_t);
+        zret=compress2(dest+sizeof(ham_u32_t), &newsize,
+                record->data, record->size, level);
     } while (zret==Z_BUF_ERROR);
+
+    newsize+=sizeof(ham_u32_t);
+    *(ham_u32_t *)dest=ham_h2db32(record->size);
 
     if (zret==Z_MEM_ERROR) {
         ham_mem_free(db, dest);
@@ -1963,64 +1973,42 @@ __zlib_after_read_cb(ham_db_t *db,
     ham_status_t st=0;
     ham_u8_t *src;
     ham_size_t srcsize=record->size;
-    unsigned long newsize=record->size;
+    unsigned long newsize=record->size-sizeof(ham_u32_t);
+    ham_u32_t origsize=ham_db2h32(*(ham_u32_t *)record->data);
     int zret;
 
     if (!record->size)
         return (0);
 
-    src=ham_mem_alloc(db, srcsize);
+    /* don't allow HAM_RECORD_USER_ALLOC */
+    if (record->flags&HAM_RECORD_USER_ALLOC)
+        return (db_set_error(db, HAM_INV_PARAMETER));
+
+    src=ham_mem_alloc(db, newsize);
     if (!src)
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
 
-    memcpy(src, record->data, srcsize);
+    memcpy(src, record->data+4, newsize);
 
-    /* 
-     * don't ignore the USER_ALLOC-flag
-     */
-    if (record->flags&HAM_RECORD_USER_ALLOC) {
-        zret=uncompress(record->data, &newsize, src, srcsize);
-        if (zret==Z_MEM_ERROR || zret==Z_BUF_ERROR)
-            st=HAM_OUT_OF_MEMORY;
-        if (zret==Z_DATA_ERROR)
-            st=HAM_INTEGRITY_VIOLATED;
-        else if (zret==Z_OK)
-            st=0;
-        else
-            st=HAM_INTERNAL_ERROR;
-
-        if (!st)
-            record->size=(ham_size_t)newsize;
-
+    st=db_resize_allocdata(db, origsize);
+    if (st) {
         ham_mem_free(db, src);
-        return (db_set_error(db, st));
+        return (st);
     }
+    record->data=db_get_record_allocdata(db);
+    newsize=origsize;
 
-    /*
-     * since we don't know the original, uncompressed size, we have to
-     * "guess"... 
-     */
-    while (1) {
-        record->size*=2;
-        st=db_resize_allocdata(db, record->size);
-        if (st)
-            break;
-        record->data=db_get_record_allocdata(db);
-
-        newsize=record->size;
-        zret=uncompress(record->data, &newsize, src, srcsize);
-        if (zret==Z_BUF_ERROR)
-            continue;
-        if (zret==Z_MEM_ERROR)
-            st=HAM_OUT_OF_MEMORY;
-        if (zret==Z_DATA_ERROR)
-            st=HAM_INTEGRITY_VIOLATED;
-        else if (zret==Z_OK)
-            st=0;
-        else
-            st=HAM_INTERNAL_ERROR;
-        break;
+    zret=uncompress(record->data, &newsize, src, srcsize);
+    if (zret==Z_MEM_ERROR)
+        st=HAM_LIMITS_REACHED;
+    if (zret==Z_DATA_ERROR)
+        st=HAM_INTEGRITY_VIOLATED;
+    else if (zret==Z_OK) {
+        ham_assert(origsize==newsize, (""));
+        st=0;
     }
+    else
+        st=HAM_INTERNAL_ERROR;
 
     if (!st)
         record->size=(ham_size_t)newsize;

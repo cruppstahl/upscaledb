@@ -340,6 +340,10 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
             goto shift_elements;
         }
 
+        /*
+         * TODO key_compare_int_to_pub was already called inside 
+         * btree_get_slot
+         */
         cmp=key_compare_int_to_pub(page, (ham_u16_t)slot, key);
         if (db_get_error(db))
             return (db_get_error(db));

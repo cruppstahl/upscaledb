@@ -30,23 +30,13 @@ x enhance acceptance tests
     x acceptance test: encryption is missing
     x new acceptance tests with many, many duplicates
 
-o ham_get_version: get char**-parameter to retrieve the licensed modules,
-    i.e. "SRT" - Commercial, Storage, Recovery, Transactions
-    or "" - for unlicensed GPL version
-    x is there something similar for berkdb or QT? -> yes, QT
-    x does this make sense anyway? -> yes, seems so
-    x prepare and think through licensing concept
-    o add API function and license.h (??)
+x make sure we fail to open databases which have incompatible versions
 
-o make sure we fail to open databases which have incompatible versions
-    -> unittest
-
-. compression: store the size of the uncompressed data as the first 4 byte
+x compression: store the size of the uncompressed data as the first 4 byte
     in the blob; then uncompression is easier and faster
+    x unittest w/ HAM_RECORD_USER_ALLOC
 
 o run extensive tests on sparc architecture
-
-o remove TODOs in the source
 
 o do benchmarking with 1 mio inserts/reads
 
@@ -70,16 +60,27 @@ o create a new repository for hamsterdb-alien for all dependencies
     o win64
     o wince-x86
     o ppc32-be
+    o sparc-32
 
 o command line tool ham_info
 o command line tool ham_dump
 o command line tool ham_recovery
+
+o ham_get_version: get char**-parameter to retrieve the licensed modules,
+    i.e. "SRT" - Commercial, Storage, Recovery, Transactions
+    or "" - for unlicensed GPL version
+    x is there something similar for berkdb or QT? -> yes, QT
+    x does this make sense anyway? -> yes, seems so
+    x prepare and think through licensing concept
+    o add API function and license.h (??)
 
 o release 0.4.9
 
 o make sure that the test coverage is as high as possible
 
 . do a complete source code review, or ask someone to do it;
+
+. remove TODOs in the source
 
 . webpage
     o move to cakephp framework (or a cms? enanocms.com?)

@@ -29,7 +29,7 @@ btree_get_slot(ham_db_t *db, ham_page_t *page,
     ham_size_t r=btree_node_get_count(node)-1, l=1, i, last;
 
     /*
-     * otherwise perform a binary search for the *smallest* element, which 
+     * perform a binary search for the *smallest* element, which 
      * is >= the key
      */
     last=(ham_size_t)-1;
@@ -309,17 +309,5 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key)
     }
 
     return (slot);
-#if 0
-    ham_size_t i;
-
-    for (i=0; i<btree_node_get_count(node); i++) {
-        int cmp=key_compare_int_to_pub(page, (ham_u16_t)i, key);
-        if (db_get_error(db))
-            return (-1);
-        if (cmp==0)
-            return (i);
-    }
-
-    return (-1);
-#endif
 }
+

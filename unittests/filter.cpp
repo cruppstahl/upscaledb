@@ -380,6 +380,9 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        rec.flags=HAM_RECORD_USER_ALLOC;
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_find(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 

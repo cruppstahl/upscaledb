@@ -1060,6 +1060,13 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  * records are small (i.e. < 128byte), but this highly depends
  * on the data that is inserted.
  *
+ * Also note that the zlib filter works record-based; if you insert a 
+ * record, the record structure will be modified.
+ *
+ * The zlib compression filter does not allow queries (i.e. with ham_find)
+ * with user-allocated records and the flag HAM_RECORD_USER_ALLOC. In this
+ * case, the query-function will return @a HAM_INV_PARAMETER.
+ *
  * @param db A valid database handle.
  * @param level The compression level; set 0 for the zlib default, 1 for
  *      best speed and 9 for minimum size.
