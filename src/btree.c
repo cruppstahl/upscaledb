@@ -22,7 +22,7 @@
 
 ham_status_t 
 btree_get_slot(ham_db_t *db, ham_page_t *page, 
-        ham_key_t *key, ham_s32_t *slot)
+        ham_key_t *key, ham_s32_t *slot, int *pcmp)
 {
     int cmp;
     btree_node_t *node=ham_page_get_btree_node(page);
@@ -37,12 +37,15 @@ btree_get_slot(ham_db_t *db, ham_page_t *page,
     ham_assert(btree_node_get_count(node)>0, 
             ("node is empty"));
 
+    /*
+     * only one element in this node?
+     */
     if (r==0) {
         cmp=key_compare_pub_to_int(page, key, 0);
         if (db_get_error(db))
             return (db_get_error(db));
         *slot=cmp<0 ? -1 : 0;
-        return (0);
+        goto bail;
     }
 
     while (r>=0) {
@@ -52,7 +55,7 @@ btree_get_slot(ham_db_t *db, ham_page_t *page,
 
         if (i==last) {
             *slot=i;
-            return (0);
+            goto bail;
         }
         
         /* compare it against the key */
@@ -63,14 +66,14 @@ btree_get_slot(ham_db_t *db, ham_page_t *page,
         /* found it? */
         if (cmp==0) {
             *slot=i;
-            return (0);
+            goto bail;
         }
 
         /* if the key is bigger than the item: search "to the left" */
         if (cmp<0) {
             if (r==0) {
                 *slot=-1;
-                return (0);
+                goto bail;
             }
             r=i-1;
         }
@@ -80,6 +83,13 @@ btree_get_slot(ham_db_t *db, ham_page_t *page,
         }
     }
     
+bail:
+    if (pcmp && *slot!=-1) {
+        *pcmp=key_compare_int_to_pub(page, (ham_u16_t)*slot, key);
+        if (db_get_error(db))
+            return (db_get_error(db));
+    }
+
     return (0);
 }
 
@@ -266,7 +276,7 @@ btree_traverse_tree(ham_db_t *db, ham_page_t *page,
     ham_assert(btree_node_get_count(node)>0, (0));
     ham_assert(btree_node_get_ptr_left(node)!=0, (0));
 
-    st=btree_get_slot(db, page, key, &slot);
+    st=btree_get_slot(db, page, key, &slot, 0);
     if (st)
         return (0);
 
@@ -287,6 +297,7 @@ btree_traverse_tree(ham_db_t *db, ham_page_t *page,
 ham_s32_t 
 btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key)
 {
+    int cmp;
     ham_s32_t slot;
     ham_status_t st;
     btree_node_t *node=ham_page_get_btree_node(page);
@@ -296,17 +307,22 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key)
     if (btree_node_get_count(node)==0)
         return (-1);
 
-    st=btree_get_slot(db, page, key, &slot);
+    st=btree_get_slot(db, page, key, &slot, &cmp);
     if (st) {
         db_set_error(db, st);
         return (-1);
     }
 
+#if 0 /* not needed... */
     if (slot!=-1) {
         int cmp=key_compare_int_to_pub(page, (ham_u16_t)slot, key);
         if (cmp)
             return (-1);
     }
+#endif
+
+    if (cmp)
+        return (-1);
 
     return (slot);
 }

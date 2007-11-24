@@ -36,6 +36,8 @@ x compression: store the size of the uncompressed data as the first 4 byte
     in the blob; then uncompression is easier and faster
     x unittest w/ HAM_RECORD_USER_ALLOC
 
+x remove TODOs in the source
+
 o run extensive tests on sparc architecture
 
 o do benchmarking with 1 mio inserts/reads
@@ -63,7 +65,9 @@ o create a new repository for hamsterdb-alien for all dependencies
     o sparc-32
 
 o command line tool ham_info
+
 o command line tool ham_dump
+
 o command line tool ham_recovery
 
 o ham_get_version: get char**-parameter to retrieve the licensed modules,
@@ -79,8 +83,6 @@ o release 0.4.9
 o make sure that the test coverage is as high as possible
 
 . do a complete source code review, or ask someone to do it;
-
-. remove TODOs in the source
 
 . webpage
     o move to cakephp framework (or a cms? enanocms.com?)

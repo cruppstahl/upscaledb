@@ -714,6 +714,25 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
             return (page);
     }
 
+    /* 
+     * check if the cache allows us to allocate another page; if not,
+     * purge it
+     */
+    if (!(flags&DB_ONLY_FROM_CACHE) 
+            && db_get_cache(db) 
+            && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
+        if (cache_too_big(db_get_cache(db))) {
+            st=my_purge_cache(db);
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
+        }
+    }
+
+    /* 
+     * fetch the page from the cache
+     */
     if (db_get_cache(db)) {
         page=cache_get_page(db_get_cache(db), address);
         if (page) {
@@ -736,35 +755,11 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
     if (flags&DB_ONLY_FROM_CACHE)
         return (0);
 
-    /* check if the cache allows us to allocate another page */
-    st=my_purge_cache(db);
-    if (st)
-        return (0);
-
-    /* after purging, we have to check again if the page is in the cache,
-     * because maybe by uncoupling the cursors (and caching an extended key),
-     * the page was loaded in the meantime.
-     *
-     * -- TODO i don't like this, it costs time but doesn't give big 
-     *  benefits */
+#if HAM_DEBUG
     if (db_get_cache(db)) {
-        page=cache_get_page(db_get_cache(db), address);
-        if (page) {
-            if (db_get_txn(db)) {
-                st=txn_add_page(db_get_txn(db), page, HAM_TRUE);
-                if (st) {
-                    db_set_error(db, st);
-                    return (0);
-                }
-            }
-            st=cache_put_page(db_get_cache(db), page);
-            if (st) {
-                db_set_error(db, st);
-                return (0);
-            }
-            return (page);
-        }
+        ham_assert(cache_get_page(db_get_cache(db), address)==0, (""));
     }
+#endif
 
     page=page_new(db);
     if (!page)

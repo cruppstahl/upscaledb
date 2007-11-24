@@ -221,7 +221,7 @@ my_erase_recursive(ham_page_t *page, ham_offset_t left, ham_offset_t right,
         ham_assert(child!=0, ("guru meditation error"));
     }
     else {
-        st=btree_get_slot(db, page, scratchpad->key, &slot);
+        st=btree_get_slot(db, page, scratchpad->key, &slot, 0);
         if (st) {
             db_set_error(db, st);
             return 0;
@@ -509,7 +509,7 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
         key.data  =key_get_key(bte);
         key.size  =key_get_size(bte);
 
-        st=btree_get_slot(db, ancpage, &key, &slot);
+        st=btree_get_slot(db, ancpage, &key, &slot, 0);
         if (st) {
             db_set_error(db, st);
             return 0;
@@ -642,7 +642,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             key._flags=key_get_flags(bte);
             key.data  =key_get_key(bte);
             key.size  =key_get_size(bte);
-            st=btree_get_slot(db, ancpage, &key, &slot);
+            st=btree_get_slot(db, ancpage, &key, &slot, 0);
             if (st) {
                 db_set_error(db, st);
                 return 0;
@@ -746,7 +746,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
                 key._flags=key_get_flags(bte);
                 key.data  =key_get_key(bte);
                 key.size  =key_get_size(bte);
-                st=btree_get_slot(db, ancpage, &key, &slot);
+                st=btree_get_slot(db, ancpage, &key, &slot, 0);
                 if (st) {
                     db_set_error(db, st);
                     return (0);
@@ -782,7 +782,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             key._flags=key_get_flags(bte);
             key.data  =key_get_key(bte);
             key.size  =key_get_size(bte);
-            st=btree_get_slot(db, ancpage, &key, &slot);
+            st=btree_get_slot(db, ancpage, &key, &slot, 0);
             if (st) {
                 db_set_error(db, st);
                 return (0);
@@ -824,7 +824,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             key._flags=key_get_flags(bte);
             key.data  =key_get_key(bte);
             key.size  =key_get_size(bte);
-            st=btree_get_slot(db, ancpage, &key, &slot);
+            st=btree_get_slot(db, ancpage, &key, &slot, 0);
             if (st) {
                 db_set_error(db, st);
                 return 0;
@@ -975,7 +975,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             key.data  =key_get_key(bte);
             key.size  =key_get_size(bte);
 
-            st=btree_get_slot(db, ancpage, &key, &slot);
+            st=btree_get_slot(db, ancpage, &key, &slot, 0);
             if (st) {
                 db_set_error(db, st);
                 return (0);

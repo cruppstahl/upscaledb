@@ -284,7 +284,7 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key);
  */
 extern ham_status_t 
 btree_get_slot(ham_db_t *db, ham_page_t *page, 
-        ham_key_t *key, ham_s32_t *slot);
+        ham_key_t *key, ham_s32_t *slot, int *cmp);
 
 #ifdef __cplusplus
 } // extern "C"

@@ -285,10 +285,6 @@ my_insert_in_page(ham_page_t *page, ham_key_t *key,
     /*
      * otherwise, we have to split the page.
      * but BEFORE we split, we check if the key already exists!
-     *
-     * TODO
-     * btree_node_search_by_key is called inside my_insert_split; remove
-     * at least one of the calls for optimization
      */
     if (btree_node_is_leaf(node)) {
         if (btree_node_search_by_key(page_get_owner(page), page, key)>=0) {
@@ -329,7 +325,7 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
     if (btree_node_get_count(node)==0)
         slot=0;
     else {
-        st=btree_get_slot(db, page, key, &slot);
+        st=btree_get_slot(db, page, key, &slot, &cmp);
         if (st)
             return (db_set_error(db, st));
 
@@ -339,14 +335,6 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
             bte=btree_node_get_key(db, node, slot);
             goto shift_elements;
         }
-
-        /*
-         * TODO key_compare_int_to_pub was already called inside 
-         * btree_get_slot
-         */
-        cmp=key_compare_int_to_pub(page, (ham_u16_t)slot, key);
-        if (db_get_error(db))
-            return (db_get_error(db));
 
         bte=btree_node_get_key(db, node, slot);
 
