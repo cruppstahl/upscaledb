@@ -74,11 +74,21 @@ o command line tool ham_info
     x list database information
     x list full database information
     o create msvc projects
+    o write documentation (man page??)
+    o create automatic tests
 
-o command line tool ham_dump
-    
-
+o command line tool ham_dump: dumps keys and records
+    usage: ham_dump [-key format] [-record format] 
+                [-maxkey n] [-maxrec n] [-db dbname] filename
+    o create autotools infrastructure
+    o dump key/record: u8|u16|u32|u64|string|binary
+    o create msvc projects
+    o write documentation (man page??)
+    o create automatic tests
+ 
 o command line tool ham_recovery
+    o create msvc projects
+    o write documentation (man page??)
 
 o ham_get_version: get char**-parameter to retrieve the licensed modules,
     i.e. "SRT" - Commercial, Storage, Recovery, Transactions
@@ -87,6 +97,8 @@ o ham_get_version: get char**-parameter to retrieve the licensed modules,
     x does this make sense anyway? -> yes, seems so
     x prepare and think through licensing concept
     o add API function and license.h (??)
+
+o check roadmap.txt for other TODO items
 
 o release 0.4.9
 
