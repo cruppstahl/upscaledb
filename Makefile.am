@@ -1,5 +1,5 @@
                 
-SUBDIRS = 3rdparty src include samples
+SUBDIRS = 3rdparty src include samples tools
 
 if HAVE_CPPUNIT
 SUBDIRS += unittests

@@ -242,7 +242,11 @@ main(int argc, char **argv)
     if (st!=HAM_SUCCESS)
         error("ham_env_new", st);
     st=ham_env_open(env, filename, HAM_READ_ONLY);
-    if (st!=HAM_SUCCESS)
+    if (st==HAM_FILE_NOT_FOUND) {
+        printf("File `%s' not found or unable to open it\n", filename);
+        return (-1);
+    }
+    else if (st!=HAM_SUCCESS)
         error("ham_env_open", st);
 
     /*
@@ -267,7 +271,7 @@ main(int argc, char **argv)
     
         st=ham_env_open_db(env, db, dbname, 0, 0);
         if (st==HAM_DATABASE_NOT_FOUND) {
-            printf("database %u (0x%x) was not found\n", dbname, dbname);
+            printf("Database %u (0x%x) not found\n", dbname, dbname);
             return (-1);
         }
         else if (st)

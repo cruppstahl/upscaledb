@@ -65,8 +65,18 @@ o create a new repository for hamsterdb-alien for all dependencies
     o sparc-32
 
 o command line tool ham_info
+    usage: ham_info [-db dbname] [-f] filename
+        -db: prints only stats about this database
+        -f: (--full) - number of items, average key size, average data
+            size, min/max sizes, number of extended keys
+    x create autotools infrastructure
+    x list environment information
+    x list database information
+    x list full database information
+    o create msvc projects
 
 o command line tool ham_dump
+    
 
 o command line tool ham_recovery
 
