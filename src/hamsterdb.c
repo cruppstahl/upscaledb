@@ -700,7 +700,7 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
 
     if (!name)
         return (HAM_INV_PARAMETER);
-    if (name!=FIRST_DATABASE_NAME && name>=EMPTY_DATABASE_NAME)
+    if (name!=FIRST_DATABASE_NAME && name>EMPTY_DATABASE_NAME)
         return (HAM_INV_PARAMETER);
 
     /* 
@@ -1101,7 +1101,7 @@ ham_env_get_database_names(ham_env_t *env, ham_u16_t *names, ham_size_t *count)
      */
     for (i=0; i<db_get_max_databases(db); i++) {
         name=ham_h2db16(*(ham_u16_t *)db_get_indexdata_at(db, i));
-        if (name==0 || name>=EMPTY_DATABASE_NAME)
+        if (name==0 || name>EMPTY_DATABASE_NAME)
             continue;
 
         if (*count>=max_names) {
@@ -1927,6 +1927,9 @@ __zlib_before_insert_cb(ham_db_t *db,
     ham_u32_t level=*(ham_u32_t *)filter->userdata;
     int zret;
 
+    if (!record->size)
+        return (0);
+
     /* 
      * we work in a temporary copy of the original data 
      *
@@ -1974,11 +1977,13 @@ __zlib_after_read_cb(ham_db_t *db,
     ham_u8_t *src;
     ham_size_t srcsize=record->size;
     unsigned long newsize=record->size-sizeof(ham_u32_t);
-    ham_u32_t origsize=ham_db2h32(*(ham_u32_t *)record->data);
+    ham_u32_t origsize;
     int zret;
 
     if (!record->size)
         return (0);
+
+    origsize=ham_db2h32(*(ham_u32_t *)record->data);
 
     /* don't allow HAM_RECORD_USER_ALLOC */
     if (record->flags&HAM_RECORD_USER_ALLOC)

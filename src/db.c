@@ -708,12 +708,6 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
     ham_page_t *page=0;
     ham_status_t st;
 
-    if (db_get_txn(db)) {
-        page=txn_get_page(db_get_txn(db), address);
-        if (page)
-            return (page);
-    }
-
     /* 
      * check if the cache allows us to allocate another page; if not,
      * purge it
@@ -728,6 +722,12 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
                 return (0);
             }
         }
+    }
+
+    if (db_get_txn(db)) {
+        page=txn_get_page(db_get_txn(db), address);
+        if (page)
+            return (page);
     }
 
     /* 
