@@ -79,6 +79,7 @@ class FilterTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (aesFilterTest);
     CPPUNIT_TEST      (negativeAesFilterTest);
     CPPUNIT_TEST      (zlibFilterTest);
+    CPPUNIT_TEST      (zlibFilterEmptyRecordTest);
     CPPUNIT_TEST      (zlibEnvFilterTest);
     CPPUNIT_TEST_SUITE_END();
 
@@ -383,6 +384,25 @@ public:
         rec.flags=HAM_RECORD_USER_ALLOC;
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_find(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    }
+    
+    void zlibFilterEmptyRecordTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
