@@ -1,0 +1,21 @@
+environment
+    pagesize:                   16384
+    version:                    0.4.8.0
+    serialno:                   0
+    max databases:              16
+
+    database 1 (0x1)
+        max key size:           21
+        max keys per page:      510
+        address of root page:   16384
+        flags:                  0x0004
+        number of items:        4
+        average key size:       4
+        minimum key size:       4
+        maximum key size:       4
+        number of extended keys:0
+        total keys (bytes):     16
+        average record size:    36
+        minimum record size:    36
+        maximum record size:    36
+        total records (bytes):  144
