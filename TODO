@@ -73,14 +73,14 @@ o command line tool ham_info
     x list environment information
     x list database information
     x list full database information
+    x create automatic tests
     o create msvc projects
     o write documentation (man page??)
-    o create automatic tests
 
 o command line tool ham_dump: dumps keys and records
     usage: ham_dump [-key format] [-record format] 
                 [-maxkey n] [-maxrec n] [-db dbname] filename
-    o create autotools infrastructure
+    x create autotools infrastructure
     o dump key/record: u8|u16|u32|u64|string|binary
     o create msvc projects
     o write documentation (man page??)
@@ -89,6 +89,17 @@ o command line tool ham_dump: dumps keys and records
 o command line tool ham_recovery
     o create msvc projects
     o write documentation (man page??)
+
+o c++ API: should not fail when closing an environment, but databases
+    are still open
+    o store all open databases in a std::map in the environment
+    o when closing the environment, close all open databases
+    o same for databases and cursors
+
+o c++ API: cursors should be compatible to bi-directional STL-iterators
+
+o command line tools must be installed; currently, automake does not
+    install them
 
 o ham_get_version: get char**-parameter to retrieve the licensed modules,
     i.e. "SRT" - Commercial, Storage, Recovery, Transactions
@@ -123,3 +134,4 @@ o make sure that the test coverage is as high as possible
 
 . need acceptance tests for duplicates-before, -after, -first
 
+. improve test coverage on windows (run unittests, samples and tools)
