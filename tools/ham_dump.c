@@ -317,7 +317,7 @@ main(int argc, char **argv)
         else if (st)
             error("ham_env_open_db", st);
     
-        dump_database(db, names[i]);
+        dump_database(db, dbname);
     
         st=ham_close(db, 0);
         if (st)
