@@ -112,4 +112,4 @@ if [[ $? = 1 ]]; then
 fi
 
 rm x
-
+echo ok
