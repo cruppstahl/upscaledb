@@ -1993,7 +1993,7 @@ __zlib_after_read_cb(ham_db_t *db,
     if (!src)
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
 
-    memcpy(src, record->data+4, newsize);
+    memcpy(src, (char *)record->data+4, newsize);
 
     st=db_resize_allocdata(db, origsize);
     if (st) {
