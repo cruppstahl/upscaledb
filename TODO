@@ -74,15 +74,15 @@ o command line tool ham_info
     x list database information
     x list full database information
     x create automatic tests
-    o create msvc projects
+    x create msvc projects
     o write documentation (man page??)
 
 o command line tool ham_dump: dumps keys and records
     usage: ham_dump [-key format] [-record format] 
                 [-maxkey n] [-maxrec n] [-db dbname] filename
     x create autotools infrastructure
+    x create msvc projects
     o dump key/record: u8|u16|u32|u64|string|binary
-    o create msvc projects
     o write documentation (man page??)
     o create automatic tests
  
