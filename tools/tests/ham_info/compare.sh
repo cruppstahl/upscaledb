@@ -115,4 +115,4 @@ if [[ $? = 1 ]]; then
 fi
 
 rm x
-echo ok
+echo ham_info: ok

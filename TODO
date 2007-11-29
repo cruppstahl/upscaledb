@@ -83,8 +83,8 @@ o command line tool ham_dump: dumps keys and records
     x create autotools infrastructure
     x create msvc projects
     x dump key/record: numeric|string|binary
+    x create automatic tests
     o write documentation (man page??)
-    o create automatic tests
  
 o command line tool ham_recovery
     o create msvc projects

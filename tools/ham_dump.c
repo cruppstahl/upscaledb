@@ -87,6 +87,7 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
                 int rec_fmt, int max_recsize)
 {
     int i, ok=0;
+    char *zterm=0;
 
     printf("key: ");
 
@@ -98,7 +99,14 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
     else {
         switch (key_fmt) {
         case FMT_STRING:
-            printf("%s", (const char *)key->data);
+            if (((char *)key->data)[key->size]!=0) {
+                zterm=malloc(key->size+1);
+                memcpy(zterm, key->data, key->size);
+                zterm[key->size]=0;
+            }
+            if (key->size>max_keysize)
+                ((char *)key->data)[max_keysize]=0;
+            printf("%s", zterm ? zterm : (const char *)key->data);
             break;
         case FMT_NUMERIC:
             switch (key->size) {
@@ -134,6 +142,11 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
         }
     }
 
+    if (zterm) {
+        free(zterm);
+        zterm=0;
+    }
+
     printf(" => ");
 
     ok=0;
@@ -146,7 +159,14 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
     else {
         switch (rec_fmt) {
         case FMT_STRING:
-            printf("%s", (const char *)rec->data);
+            if (((char *)key->data)[key->size]!=0) {
+                zterm=malloc(key->size+1);
+                memcpy(zterm, key->data, key->size);
+                zterm[key->size]=0;
+            }
+            if (rec->size>max_recsize)
+                ((char *)rec->data)[max_recsize]=0;
+            printf("%s", zterm ? zterm : (const char *)rec->data);
             break;
         case FMT_NUMERIC:
             switch (key->size) {
@@ -183,6 +203,11 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
     }
 
     printf("\n");
+
+    if (zterm) {
+        free(zterm);
+        zterm=0;
+    }
 }
 
 static void
