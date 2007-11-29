@@ -15,9 +15,6 @@
 #include <stdlib.h>
 
 #include <ham/hamsterdb.h>
-#include "../src/db.h"
-#include "../src/backend.h"
-#include "../src/btree.h"
 
 #include "getopts.h"
 
