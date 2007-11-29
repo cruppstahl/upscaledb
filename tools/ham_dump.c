@@ -28,12 +28,9 @@
 #define ARG_KEY_MAX_SIZE    5
 #define ARG_REC_MAX_SIZE    6
 
-#define FMT_U8              1
-#define FMT_U16             2
-#define FMT_U32             3
-#define FMT_U64             4
-#define FMT_STRING          5
-#define FMT_BINARY          6
+#define FMT_NUMERIC         1
+#define FMT_STRING          2
+#define FMT_BINARY          3
 
 /*
  * command line parameters
@@ -55,7 +52,7 @@ static option_t opts[]={
         ARG_KEY_FORMAT,
         "key",
         "key-format",
-        "format of the key\n\t\t(u8, u16, u32, u64, string, binary)",
+        "format of the key\n\t\t(numeric, string, binary)",
         GETOPTS_NEED_ARGUMENT },
     {
         ARG_KEY_MAX_SIZE,
@@ -67,7 +64,7 @@ static option_t opts[]={
         ARG_REC_FORMAT,
         "rec",
         "record-format",
-        "format of the record\n\t\t(u8, u16, u32, u64, string, binary)",
+        "format of the record\n\t\t(numeric, string, binary)",
         GETOPTS_NEED_ARGUMENT },
     {
         ARG_REC_MAX_SIZE,
@@ -86,32 +83,121 @@ error(const char *foo, ham_status_t st)
 }
 
 static void
-dump_database(ham_db_t *db, ham_u16_t dbname)
+dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
+                int rec_fmt, int max_recsize)
 {
-    ham_btree_t *be;
+    int i, ok=0;
+
+    printf("key: ");
+
+    if (!max_keysize)
+        max_keysize=key->size;
+
+    if (!key->data || !key->size)
+        printf("(null)");
+    else {
+        switch (key_fmt) {
+        case FMT_STRING:
+            printf("%s", (const char *)key->data);
+            break;
+        case FMT_NUMERIC:
+            switch (key->size) {
+            case 1:
+                printf("%c", *(unsigned char *)key->data);
+                ok=1;
+                break;
+            case 2:
+                printf("%u", (unsigned) *(unsigned short *)key->data);
+                ok=1;
+                break;
+            case 4:
+                printf("%u", *(unsigned int *)key->data);
+                ok=1;
+                break;
+            case 8:
+                printf("%llu", *(unsigned long long *)key->data);
+                ok=1;
+                break;
+            default:
+                /* fall through */
+                break;
+            }
+            if (ok)
+                break;
+            break;
+        case FMT_BINARY:
+            if (key->size<max_keysize)
+                max_keysize=key->size;
+            for (i=0; i<max_keysize; i++)
+                printf("%02x ", ((unsigned char *)key->data)[i]);
+            break;
+        }
+    }
+
+    printf(" => ");
+
+    ok=0;
+
+    if (!max_recsize)
+        max_recsize=rec->size;
+
+    if (!rec->data || !rec->size)
+        printf("(null)");
+    else {
+        switch (rec_fmt) {
+        case FMT_STRING:
+            printf("%s", (const char *)rec->data);
+            break;
+        case FMT_NUMERIC:
+            switch (key->size) {
+            case 1:
+                printf("%c", *(unsigned char *)rec->data);
+                ok=1;
+                break;
+            case 2:
+                printf("%u", (unsigned) *(unsigned short *)rec->data);
+                ok=1;
+                break;
+            case 4:
+                printf("%u", *(unsigned int *)rec->data);
+                ok=1;
+                break;
+            case 8:
+                printf("%llu", *(unsigned long long *)rec->data);
+                ok=1;
+                break;
+            default:
+                /* fall through */
+                break;
+            }
+            if (ok)
+                break;
+            break;
+        case FMT_BINARY:
+            if (rec->size<max_recsize)
+                max_recsize=key->size;
+            for (i=0; i<max_recsize; i++)
+                printf("%02x ", ((unsigned char *)rec->data)[i]);
+            break;
+        }
+    }
+
+    printf("\n");
+}
+
+static void
+dump_database(ham_db_t *db, ham_u16_t dbname, int key_fmt, int max_keysize,
+                int rec_fmt, int max_recsize)
+{
     ham_cursor_t *cursor;
     ham_status_t st;
     ham_key_t key;
     ham_record_t rec;
-    unsigned num_items=0, ext_keys=0, min_key_size=0xffffffff, 
-             max_key_size=0, min_rec_size=0xffffffff, max_rec_size=0,
-            total_key_size=0, total_rec_size=0;
-
-    be=(ham_btree_t *)db_get_backend(db);
 
     memset(&key, 0, sizeof(key));
     memset(&rec, 0, sizeof(rec));
 
-    printf("\n");
-    printf("    database %d (0x%x)\n", (int)dbname, (int)dbname);
-    printf("        max key size:           %u\n", 
-            be_get_keysize(be));
-    printf("        max keys per page:      %u\n", 
-            btree_get_maxkeys(be));
-    printf("        address of root page:   %llu\n", 
-            (long long unsigned int)btree_get_rootpage(be));
-    printf("        flags:                  0x%04x\n", 
-            db_get_rt_flags(db));
+    printf("database %d (0x%x)\n", (int)dbname, (int)dbname);
 
     st=ham_cursor_create(db, 0, 0, &cursor);
     if (st!=HAM_SUCCESS)
@@ -127,39 +213,11 @@ dump_database(ham_db_t *db, ham_u16_t dbname)
                 error("ham_cursor_next", st);
         }
 
-        num_items++;
-
-        if (key.size<min_key_size)
-            min_key_size=key.size;
-        if (key.size>max_key_size)
-            max_key_size=key.size;
-
-        if (rec.size<min_rec_size)
-            min_rec_size=rec.size;
-        if (rec.size>max_rec_size)
-            max_rec_size=rec.size;
-
-        if (key.size>db_get_keysize(db))
-            ext_keys++;
-
-        total_key_size+=key.size;
-        total_rec_size+=rec.size;
+        dump_item(&key, &rec, key_fmt, max_keysize, rec_fmt, max_recsize);
     }
 
     ham_cursor_close(cursor);
-
-    printf("        number of items:        %u\n", num_items);
-    if (num_items==0)
-        return;
-    printf("        average key size:       %u\n", total_key_size/num_items);
-    printf("        minimum key size:       %u\n", min_key_size);
-    printf("        maximum key size:       %u\n", max_key_size);
-    printf("        number of extended keys:%u\n", ext_keys);
-    printf("        total keys (bytes):     %u\n", total_key_size);
-    printf("        average record size:    %u\n", total_rec_size/num_items);
-    printf("        minimum record size:    %u\n", min_rec_size);
-    printf("        maximum record size:    %u\n", min_rec_size);
-    printf("        total records (bytes):  %u\n", total_rec_size);
+    printf("\n");
 }
 
 int
@@ -167,7 +225,7 @@ main(int argc, char **argv)
 {
     unsigned opt;
     char *param, *filename=0, *endptr=0;
-    int key=FMT_BINARY, rec=FMT_BINARY, keysize=0, recsize=0;
+    int key=FMT_BINARY, rec=FMT_BINARY, keysize=16, recsize=16;
     unsigned short dbname=0xffff;
 
     ham_u16_t names[1024];
@@ -194,14 +252,8 @@ main(int argc, char **argv)
                 break;
             case ARG_KEY_FORMAT:
                 if (param) {
-                    if (!strcmp(param, "u8"))
-                        key=FMT_U8;
-                    else if (!strcmp(param, "u16"))
-                        key=FMT_U16;
-                    else if (!strcmp(param, "u32"))
-                        key=FMT_U32;
-                    else if (!strcmp(param, "u64"))
-                        key=FMT_U64;
+                    if (!strcmp(param, "numeric"))
+                        key=FMT_NUMERIC;
                     else if (!strcmp(param, "string"))
                         key=FMT_STRING;
                     else if (!strcmp(param, "binary"))
@@ -214,14 +266,8 @@ main(int argc, char **argv)
                 break;
             case ARG_REC_FORMAT:
                 if (param) {
-                    if (!strcmp(param, "u8"))
-                        rec=FMT_U8;
-                    else if (!strcmp(param, "u16"))
-                        rec=FMT_U16;
-                    else if (!strcmp(param, "u32"))
-                        rec=FMT_U32;
-                    else if (!strcmp(param, "u64"))
-                        rec=FMT_U64;
+                    if (!strcmp(param, "numeric"))
+                        rec=FMT_NUMERIC;
                     else if (!strcmp(param, "string"))
                         rec=FMT_STRING;
                     else if (!strcmp(param, "binary"))
@@ -317,7 +363,7 @@ main(int argc, char **argv)
         else if (st)
             error("ham_env_open_db", st);
     
-        dump_database(db, dbname);
+        dump_database(db, dbname, key, keysize, rec, recsize);
     
         st=ham_close(db, 0);
         if (st)
@@ -337,7 +383,7 @@ main(int argc, char **argv)
             if (st)
                 error("ham_env_open_db", st);
     
-            dump_database(db, names[i]);
+            dump_database(db, names[i], key, keysize, rec, recsize);
     
             st=ham_close(db, 0);
             if (st)

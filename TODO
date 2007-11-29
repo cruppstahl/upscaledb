@@ -82,7 +82,7 @@ o command line tool ham_dump: dumps keys and records
                 [-maxkey n] [-maxrec n] [-db dbname] filename
     x create autotools infrastructure
     x create msvc projects
-    o dump key/record: u8|u16|u32|u64|string|binary
+    x dump key/record: numeric|string|binary
     o write documentation (man page??)
     o create automatic tests
  
