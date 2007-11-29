@@ -73,7 +73,7 @@ o command line tool ham_info
     x list environment information
     x list database information
     x list full database information
-    x create automatic tests
+    x create automated tests
     x create msvc projects
     o write documentation (man page??)
 
@@ -83,10 +83,14 @@ o command line tool ham_dump: dumps keys and records
     x create autotools infrastructure
     x create msvc projects
     x dump key/record: numeric|string|binary
-    x create automatic tests
+    x create automated tests
     o write documentation (man page??)
  
 o command line tool ham_recovery
+    usage: ham_recover source destination
+    o create autotools infrastructure
+    o implement functionality
+    o create automated tests
     o create msvc projects
     o write documentation (man page??)
 

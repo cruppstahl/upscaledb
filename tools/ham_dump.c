@@ -338,13 +338,13 @@ main(int argc, char **argv)
                 return (0);
             default:
                 printf("Invalid or unknown parameter `%s'. "
-                       "Enter `ham_info --help' for usage.", param);
+                       "Enter `ham_dump --help' for usage.", param);
                 return (-1);
         }
     }
 
     if (!filename) {
-        printf("Filename is missing. Enter `ham_info --help' for usage.\n");
+        printf("Filename is missing. Enter `ham_dump --help' for usage.\n");
         return (-1);
     }
 
