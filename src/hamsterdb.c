@@ -564,7 +564,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     ham_size_t pagesize;
     ham_u16_t keysize;
     ham_size_t cachesize, maxdbs;
-    ham_device_t *device;
+    ham_device_t *device=0;
 
     if (!env)
         return (HAM_INV_PARAMETER);
@@ -589,21 +589,23 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     /* 
      * initialize the device 
      */
-    device=ham_device_new(env_get_allocator(env), flags&HAM_IN_MEMORY_DB);
-    if (!device)
-        return (HAM_OUT_OF_MEMORY);
+    if (!env_get_device(env)) {
+        device=ham_device_new(env_get_allocator(env), flags&HAM_IN_MEMORY_DB);
+        if (!device)
+            return (HAM_OUT_OF_MEMORY);
 
-    env_set_device(env, device);
+        env_set_device(env, device);
 
-    /* 
-     * create the file 
-     */
-    st=device->create(device, filename, flags, mode);
-    if (st) {
-        (void)ham_env_close(env, 0);
-        return (st);
+        /* 
+         * create the file 
+         */
+        st=device->create(device, filename, flags, mode);
+        if (st) {
+            (void)ham_env_close(env, 0);
+            return (st);
+        }
     }
-
+    
     /*
      * store the parameters
      */
@@ -794,19 +796,21 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
     /* 
      * initialize the device 
      */
-    device=ham_device_new(env_get_allocator(env), flags&HAM_IN_MEMORY_DB);
-    if (!device)
-        return (HAM_OUT_OF_MEMORY);
+    if (!env_get_device(env)) {
+        device=ham_device_new(env_get_allocator(env), flags&HAM_IN_MEMORY_DB);
+        if (!device)
+            return (HAM_OUT_OF_MEMORY);
 
-    env_set_device(env, device);
+        env_set_device(env, device);
 
-    /* 
-     * open the file 
-     */
-    st=device->open(device, filename, flags);
-    if (st) {
-        (void)ham_env_close(env, 0);
-        return (st);
+        /* 
+         * open the file 
+         */
+        st=device->open(device, filename, flags);
+        if (st) {
+            (void)ham_env_close(env, 0);
+            return (st);
+        }
     }
 
     /*
@@ -3168,6 +3172,19 @@ ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter)
         }
     } while(head);
 
+    return (0);
+}
+
+ham_status_t
+ham_env_set_device(ham_env_t *env, void *device)
+{
+    if (!env || !device)
+        return (HAM_INV_PARAMETER);
+
+    if (env_get_device(env))
+        return (HAM_INV_PARAMETER); /* TODO */
+
+    env_set_device(env, device);
     return (0);
 }
 

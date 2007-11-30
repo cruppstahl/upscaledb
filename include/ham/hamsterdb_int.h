@@ -213,6 +213,23 @@ ham_add_record_filter(ham_db_t *db, ham_record_filter_t *filter);
 HAM_EXPORT ham_status_t
 ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter);
 
+/**
+ * Install a custom device object.
+ *
+ * Custom device objects can be used to overwrite the functions which
+ * open, create, read, write etc. to/from the file. 
+ *
+ * The device structure is defined in src/device.h. The default device
+ * objects (for file-based access and for in-memory access) are implemented
+ * in src/device.c.
+ *
+ * This function has to be called after the Environment handle has been
+ * allocated (with @a ham_env_new) and before the Environment is created
+ * or opened (with @a ham_env_create[_ex] or @a ham_env_open[_ex]).
+ */
+HAM_EXPORT ham_status_t
+ham_env_set_device(ham_env_t *env, void *device);
+
 
 #ifdef __cplusplus
 } // extern "C"
