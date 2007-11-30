@@ -126,8 +126,13 @@ int
 db_default_recno_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
                    const ham_u8_t *rhs, ham_size_t rhs_length)
 {
-    ham_u64_t ulhs=ham_db2h64(*(ham_u64_t *)lhs);
-    ham_u64_t urhs=ham_db2h64(*(ham_u64_t *)rhs);
+    ham_u64_t ulhs, urhs;
+
+memcpy(&ulhs, lhs, 8);
+memcpy(&urhs, rhs, 8);
+
+ulhs=ham_db2h64(ulhs);
+urhs=ham_db2h64(urhs);
 
     if (ulhs<urhs)
         return -1;
