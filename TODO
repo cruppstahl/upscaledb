@@ -101,6 +101,13 @@ o c++ API: should not fail when closing an environment, but databases
     o same for databases and cursors
 
 o c++ API: cursors should be compatible to bi-directional STL-iterators
+    -> need ++ and -- (prefix only)
+    -> rend and rbegin
+    -> end: is not the last element, but a symbolic "end"-element
+    -> begin: if it fails, must return end()
+    -> operator*: returns std::pair<key, record>
+    -> operator->: i->first(), i->second()
+    -> operator== and operator!=, operator= and copy-constructor
 
 o command line tools must be installed; currently, automake does not
     install them
@@ -126,15 +133,6 @@ o make sure that the test coverage is as high as possible
     o frontpage: resize hamster picture; remove text -> more space below
         (for 3 colums: news, main features, articles/testimonials/link cloud)
     o rss feed
-
-. C++ cursors are no stl iterators
-    -> need ++ and -- (prefix only)
-    -> rend and rbegin
-    -> end: is not the last element, but a symbolic "end"-element
-    -> begin: if it fails, must return end()
-    -> operator*: returns std::pair<key, record>
-    -> operator->: i->first(), i->second()
-    -> operator== and operator!=, operator= and copy-constructor
 
 . need acceptance tests for duplicates-before, -after, -first
 
