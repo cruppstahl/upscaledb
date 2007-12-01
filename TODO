@@ -38,33 +38,7 @@ x compression: store the size of the uncompressed data as the first 4 byte
 
 x remove TODOs in the source
 
-o run extensive tests on sparc architecture
-
-o do benchmarking with 1 mio inserts/reads
-
-o do benchmarking on windows, esp. with and without mmap
-
-o win64: debug builds fail in mmap routines
-    -> workaround: link against release libraries??
-
-o tests are failing:
-    --duplicate=1 --use-cursors=1 -- berkeley bug
-      o ../../testfiles/1/100.tst - status mismatch
-      o ../../testfiles/1/202.tst - status mismatch
-      o ../../testfiles/1/220.tst - status mismatch
-
-o create a new repository for hamsterdb-alien for all dependencies 
-    in source and precompiled (static/non-debug - cppunit and berkeleydb)
-    x linux64-le
-    x linux32-le
-    x win32
-    o cygwin32
-    o win64
-    o wince-x86
-    o ppc32-be
-    o sparc-32
-
-o command line tool ham_info
+x command line tool ham_info
     usage: ham_info [-db dbname] [-f] filename
         -db: prints only stats about this database
         -f: (--full) - number of items, average key size, average data
@@ -75,17 +49,27 @@ o command line tool ham_info
     x list full database information
     x create automated tests
     x create msvc projects
-    o write documentation (man page??)
 
-o command line tool ham_dump: dumps keys and records
+x command line tool ham_dump: dumps keys and records
     usage: ham_dump [-key format] [-record format] 
                 [-maxkey n] [-maxrec n] [-db dbname] filename
     x create autotools infrastructure
     x create msvc projects
     x dump key/record: numeric|string|binary
     x create automated tests
-    o write documentation (man page??)
  
+x command line tools must be installed; currently, automake does not
+    install them
+
+o run extensive tests on sparc architecture
+
+o do benchmarking with 1 mio inserts/reads
+
+o do benchmarking on windows, esp. with and without mmap
+
+o win64: debug builds fail in mmap routines
+    -> workaround: link against release libraries??
+
 o autoconf: check if flock, LOCK_EX etc exist and make sure we don't
     fail on solaris 5.9
 
@@ -104,9 +88,6 @@ o c++ API: cursors should be compatible to bi-directional STL-iterators
     -> operator->: i->first(), i->second()
     -> operator== and operator!=, operator= and copy-constructor
 
-o command line tools must be installed; currently, automake does not
-    install them
-
 o ham_get_version: get char**-parameter to retrieve the licensed modules,
     i.e. "SRT" - Commercial, Storage, Recovery, Transactions
     or "" - for unlicensed GPL version
@@ -116,6 +97,8 @@ o ham_get_version: get char**-parameter to retrieve the licensed modules,
     o add API function and license.h (??)
 
 o check roadmap.txt for other TODO items
+
+o add documentation for the command line tools
 
 o release 0.4.9
 
@@ -132,3 +115,21 @@ o make sure that the test coverage is as high as possible
 . need acceptance tests for duplicates-before, -after, -first
 
 . improve test coverage on windows (run unittests, samples and tools)
+
+. tests are failing:
+    --duplicate=1 --use-cursors=1 -- berkeley bug
+      o ../../testfiles/1/100.tst - status mismatch
+      o ../../testfiles/1/202.tst - status mismatch
+      o ../../testfiles/1/220.tst - status mismatch
+
+. create a new repository for hamsterdb-alien for all dependencies 
+    in source and precompiled (static/non-debug - cppunit and berkeleydb)
+    x linux64-le
+    x linux32-le
+    x win32
+    o cygwin32
+    o win64
+    o wince-x86
+    o ppc32-be
+    o sparc-32
+
