@@ -86,13 +86,8 @@ o command line tool ham_dump: dumps keys and records
     x create automated tests
     o write documentation (man page??)
  
-o command line tool ham_recovery
-    usage: ham_recover source destination
-    o create autotools infrastructure
-    o implement functionality
-    o create automated tests
-    o create msvc projects
-    o write documentation (man page??)
+o autoconf: check if flock, LOCK_EX etc exist and make sure we don't
+    fail on solaris 5.9
 
 o c++ API: should not fail when closing an environment, but databases
     are still open
