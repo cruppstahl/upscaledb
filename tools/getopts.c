@@ -45,7 +45,7 @@ getopts_usage(option_t *options)
     printf("usage: %s <options>\n", g_program);
     for (; options->shortopt; options++) {
         if (options->flags & GETOPTS_NEED_ARGUMENT)
-            printf("    -%s, --%s:arg: %s\n", 
+            printf("    -%s, --%s=<arg>: %s\n", 
                 options->shortopt, options->longopt, options->helpdesc);
         else
             printf("    -%s, --%s: %s\n", 

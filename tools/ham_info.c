@@ -221,7 +221,13 @@ main(int argc, char **argv)
                        "or (at your option) any later version.\n\n"
                        "See file COPYING.GPL2 and COPYING.GPL3 for License "
                        "information.\n\n");
-                getopts_usage(&opts[0]);
+                printf("usage: ham_info [-db DBNAME] [-f] file\n");
+                printf("usage: ham_info -h\n");
+                printf("       -h:         this help screen (alias: --help)\n");
+                printf("       -db DBNAME: only print info about "
+                        "this database (alias: --dbname=<arg>)\n");
+                printf("       -f:         print full information "
+                        "(alias: --full)\n");
                 return (0);
             default:
                 printf("Invalid or unknown parameter `%s'. "

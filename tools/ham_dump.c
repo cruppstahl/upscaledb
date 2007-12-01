@@ -334,7 +334,23 @@ main(int argc, char **argv)
                        "or (at your option) any later version.\n\n"
                        "See file COPYING.GPL2 and COPYING.GPL3 for License "
                        "information.\n\n");
-                getopts_usage(&opts[0]);
+                printf("usage: ham_dump [-db DBNAME] [-key FMT] [-maxkey N] "
+                       "[-rec FMT] [-maxrec N] file\n");
+                printf("usage: ham_dump -h\n");
+                printf("       -h:         this help screen (alias: --help)\n");
+                printf("       -db DBNAME: only dump "
+                       "this database (alias: --dbname=<arg>)\n");
+                printf("       -key FMT:   specify format of the key "
+                       "('string', 'binary' (default),\t      \t\t   'numeric')"
+                       " (alias: --key-format=<arg>)\n");
+                printf("       -maxkey N:  limit key length to N bytes "
+                       "(alias: --max-key-size=<arg>)\n");
+                printf("       -rec FMT:   specify format of the record "
+                       "('string', 'binary' (default),\t      \t\t   'numeric')"
+                       " (alias: --record-format=<arg>)\n");
+                printf("       -maxrec N:  limit record length to N bytes "
+                       "(alias: --max-rec-size=<arg>)\n");
+
                 return (0);
             default:
                 printf("Invalid or unknown parameter `%s'. "
