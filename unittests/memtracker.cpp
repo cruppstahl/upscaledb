@@ -27,12 +27,12 @@ get_descriptor(void *p)
 static void 
 verify_mem_desc(memdesc_t *desc)
 {
-    int magic=MAGIC_STOP;
+    unsigned int magic=MAGIC_STOP;
     if (desc->size==0)
         throw std::out_of_range("memory blob size is 0");
     if (desc->magic_start!=MAGIC_START)
         throw std::out_of_range("memory blob descriptor is corrupt");
-    memcpy(&magic, desc->data+size, sizeof(int));
+    memcpy(&magic, desc->data+desc->size, sizeof(magic));
     if (magic!=MAGIC_STOP)
         throw std::out_of_range("memory blob was corrupted after end");
 }
