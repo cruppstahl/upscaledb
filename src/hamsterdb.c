@@ -1337,7 +1337,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
 	if (!db_get_header_page(db)) {
         st=device->read(db, device, 0, hdrbuf, sizeof(hdrbuf));
         if (st) {
-            ham_log(("os_pread of %s failed with status %d (%s)", filename,
+            ham_log(("os_pread of %s failed with status %d (%s)", 
+                    filename ? filename : "(null)",
                     st, ham_strerror(st)));
             (void)ham_close(db, 0);
             return (db_set_error(db, st));
