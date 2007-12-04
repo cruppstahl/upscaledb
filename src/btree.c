@@ -297,7 +297,7 @@ btree_traverse_tree(ham_db_t *db, ham_page_t *page,
 ham_s32_t 
 btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key)
 {
-    int cmp;
+    int cmp=-1;
     ham_s32_t slot;
     ham_status_t st;
     btree_node_t *node=ham_page_get_btree_node(page);
