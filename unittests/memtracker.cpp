@@ -38,6 +38,7 @@ verify_mem_desc(memdesc_t *desc)
 void *
 alloc_impl(mem_allocator_t *self, const char *file, int line, ham_u32_t size)
 {
+    int magic=MAGIC_STOP;
     memtracker_t *mt=(memtracker_t *)self;
     memtracker_priv_t *priv=(memtracker_priv_t *)mt->priv;
     memdesc_t *desc=(memdesc_t *)malloc(sizeof(*desc)+size-1+sizeof(int));
@@ -48,7 +49,8 @@ alloc_impl(mem_allocator_t *self, const char *file, int line, ham_u32_t size)
     desc->line=line;
     desc->size=size;
     desc->magic_start=MAGIC_START;
-    *(int *)(desc->data+size)=MAGIC_STOP;
+    /* avoid unaligned access on sparc */
+    memcpy(desc->data+size, &magic, sizeof(int));
 
     desc->next=priv->header;
     if (priv->header)
