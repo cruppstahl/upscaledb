@@ -39,7 +39,7 @@ class OsTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (readWriteTest);
     CPPUNIT_TEST      (pagesizeTest);
     CPPUNIT_TEST      (mmapTest);
-	CPPUNIT_TEST      (mmapReadOnlyTest);
+    CPPUNIT_TEST      (mmapReadOnlyTest);
     CPPUNIT_TEST      (multipleMmapTest);
     CPPUNIT_TEST      (negativeMmapTest);
     CPPUNIT_TEST      (seekTellTest);
