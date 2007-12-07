@@ -100,9 +100,9 @@ build with debugging symbols etc).
 6.2 Microsoft Visual Studio 8
 
 A Solution file is provided for Microsoft Visual C++ 2005:
-win32/hamsterdb.sln. It compiles a static and a dynamic library. 
+'win32/hamsterdb.sln'. It compiles a static and a dynamic library. 
 Please read the README.TXT file in the win32 directory.
-All libraries can be downloaded separately from the hamsterdb webpage.
+All libraries can be downloaded precompiled from the hamsterdb webpage.
 
 To download Microsoft Visual C++ 2005 Express Edition for free, go to
 http://msdn.microsoft.com/vstudio/express/visualc/default.aspx.
@@ -110,14 +110,14 @@ http://msdn.microsoft.com/vstudio/express/visualc/default.aspx.
 7. Testing and Example Code
 
 Make automatically compiles several example program in the directory
-'/samples'. To see hamsterdb in action, just run '/samples/db1' or any
-other sample. (or '/win32/out/samples/db1*.exe' on Windows platforms).
+'samples'. To see hamsterdb in action, just run 'samples/db1' or any
+other sample. (or 'win32/out/samples/db1/db1.exe' on Windows platforms).
 
 8. API Documentation
 
-API documentation is not yet available. The header files in '/include/ham' are 
-commented, though. The next release will provide a doxygen script to 
-generate the documentation from the header files.  
+The header files in 'include/ham' have extensive comments. Also, a doxygen
+script is available; run 'make test' to start doxygen. The generated
+documentation is also available on the hamsterdb web page.
 
 9. Other Ways to Compile hamsterdb
 
@@ -136,8 +136,8 @@ HAM_ENABLE_INTERNAL     enable internal functions (declared in
 HAM_DISABLE_COMPRESSION build without support for zlib compression
 HAM_DISABLE_ENCRYPTION  build without support for AES encryption
 
-Also, if you compile for windows, you have to compile the file src/os_win32.c,
-and ignore the file src/os_posix.c. Vice versa on non-Windows platforms.
+Also, if you compile for windows, you have to compile the file 'src/os_win32.c',
+and ignore the file 'src/os_posix.c'. Vice versa on non-Windows platforms.
 
 10. Porting hamsterdb
 
