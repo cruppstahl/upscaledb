@@ -62,6 +62,9 @@ x command line tools must be installed; currently, automake does not
     install them
 
 o run extensive tests on sparc architecture
+    o unittests
+    o acceptance tests
+    o bi-directional endian-check!
 
 o do benchmarking with 1 mio inserts/reads
 
