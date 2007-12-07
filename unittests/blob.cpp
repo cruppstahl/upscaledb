@@ -28,8 +28,6 @@ class BlobTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (replaceWithSmallTest);
     /* negative tests are not necessary, because hamsterdb asserts that
      * blob-IDs actually exist */
-    //CPPUNIT_TEST      (negativeReadTest);
-    //CPPUNIT_TEST      (negativeFreeTest);
     CPPUNIT_TEST      (multipleAllocReadFreeTest);
     CPPUNIT_TEST      (hugeBlobTest);
     CPPUNIT_TEST      (smallBlobTest);
@@ -210,29 +208,14 @@ public:
         CPPUNIT_ASSERT(0==::memcmp(buffer2, record.data, record.size));
 
         /* make sure that at least 64bit are in the freelist */
-        CPPUNIT_ASSERT(freel_alloc_area(m_db, 64)!=0);
+        if (!m_inmemory)
+            CPPUNIT_ASSERT(freel_alloc_area(m_db, 64)!=0);
 
         CPPUNIT_ASSERT_EQUAL(0, blob_free(m_db, blobid2, 0));
 
         /* and now another 64bit should be in the freelist */
-        CPPUNIT_ASSERT(freel_alloc_area(m_db, 64)!=0);
-    }
-
-    void negativeReadTest(void)
-    {
-        ham_offset_t blobid=64ull*12;
-        ham_record_t record;
-        ::memset(&record, 0, sizeof(record));
-
-        CPPUNIT_ASSERT_EQUAL(HAM_BLOB_NOT_FOUND, blob_read(m_db, blobid, 
-                                &record, 0));
-    }
-
-    void negativeFreeTest(void)
-    {
-        ham_offset_t blobid=64ull*12;
-
-        CPPUNIT_ASSERT_EQUAL(HAM_BLOB_NOT_FOUND, blob_free(m_db, blobid, 0));
+        if (!m_inmemory)
+            CPPUNIT_ASSERT(freel_alloc_area(m_db, 64)!=0);
     }
 
     void loopInsert(int loops, int factor)
@@ -308,8 +291,6 @@ class FileBlobTest : public BlobTest
     CPPUNIT_TEST      (replaceWithSmallTest);
     /* negative tests are not necessary, because hamsterdb asserts that
      * blob-IDs actually exist */
-    //CPPUNIT_TEST      (negativeReadTest);
-    //CPPUNIT_TEST      (negativeFreeTest);
     CPPUNIT_TEST      (multipleAllocReadFreeTest);
     CPPUNIT_TEST      (hugeBlobTest);
     CPPUNIT_TEST      (smallBlobTest);
@@ -337,7 +318,7 @@ class InMemoryBlobTest : public BlobTest
 
 public:
     InMemoryBlobTest()
-    : BlobTest(HAM_FALSE)
+    : BlobTest(HAM_TRUE)
     {
     }
 };
