@@ -62,9 +62,6 @@ x command line tools must be installed; currently, automake does not
     install them
 
 x check roadmap.txt for other TODO items
-    x unittests
-    o acceptance tests
-    o bi-directional endian-check!
 
 x do benchmarking with 1 mio inserts/reads
 
@@ -80,6 +77,9 @@ o autoconf: check if flock, LOCK_EX etc exist and make sure we don't
 o improve unit-test coverage
 
 o run extensive tests on sparc architecture
+    x unittests
+    o acceptance tests
+    o bi-directional endian-check!
 
 o release 0.4.9
 
