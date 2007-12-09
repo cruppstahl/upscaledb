@@ -141,7 +141,9 @@ cache_get_unused_page(ham_cache_t *cache);
  * @return 0 if the page was not cached
  */
 extern ham_page_t *
-cache_get_page(ham_cache_t *cache, ham_offset_t address);
+cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags);
+
+#define CACHE_NOREMOVE   1      /** don't remove the page from the cache */
 
 /**
  * store a page in the cache

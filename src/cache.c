@@ -114,7 +114,7 @@ found_page:
 }
 
 ham_page_t *
-cache_get_page(ham_cache_t *cache, ham_offset_t address)
+cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags)
 {
     ham_page_t *page=0;
     ham_size_t hash=(ham_size_t)my_calc_hash(cache, address);
@@ -126,7 +126,7 @@ cache_get_page(ham_cache_t *cache, ham_offset_t address)
         page=page_get_next(page, PAGE_LIST_BUCKET);
     }
 
-    if (page) {
+    if (page && flags==0) {
         cache_set_totallist(cache, 
             page_list_remove(cache_get_totallist(cache), 
             PAGE_LIST_CACHED, page));

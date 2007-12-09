@@ -91,7 +91,7 @@ public:
         CPPUNIT_ASSERT(cache_get_bucketsize(cache)==11);
         CPPUNIT_ASSERT(cache_get_totallist(cache)==0);
         CPPUNIT_ASSERT(cache_get_unused_page(cache)==0);
-        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==0);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull, 0)==0);
         CPPUNIT_ASSERT(cache_too_big(cache)==0);
         cache_delete(m_db, cache);
     }
@@ -105,7 +105,7 @@ public:
         page_set_self(page, 0x123ull);
         page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
         CPPUNIT_ASSERT(cache_put_page(cache, page)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==page);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull, 0)==page);
         cache_delete(m_db, cache);
         page_delete(page);
     }
@@ -119,9 +119,9 @@ public:
         page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
         page_set_self(page, 0x123ull);
         CPPUNIT_ASSERT(cache_put_page(cache, page)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==page);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull, 0)==page);
         CPPUNIT_ASSERT(cache_remove_page(cache, page)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==0);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull, 0)==0);
         cache_delete(m_db, cache);
         page_delete(page);
     }
@@ -140,8 +140,8 @@ public:
         CPPUNIT_ASSERT(cache_put_page(cache, page1)==HAM_SUCCESS);
         CPPUNIT_ASSERT(cache_remove_page(cache, page1)==HAM_SUCCESS);
         CPPUNIT_ASSERT(cache_put_page(cache, page2)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==0);
-        CPPUNIT_ASSERT(cache_get_page(cache, 0x456ull)==page2);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull, 0)==0);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x456ull, 0)==page2);
         cache_delete(m_db, cache);
         page_delete(page1);
         page_delete(page2);
@@ -159,13 +159,13 @@ public:
             CPPUNIT_ASSERT(cache_put_page(cache, page[i])==HAM_SUCCESS);
         }
         for (int i=0; i<20; i++) {
-            CPPUNIT_ASSERT(cache_get_page(cache, i*1024)==page[i]);
+            CPPUNIT_ASSERT(cache_get_page(cache, i*1024, 0)==page[i]);
         }
         for (int i=0; i<20; i++) {
             CPPUNIT_ASSERT(cache_remove_page(cache, page[i])==0);
         }
         for (int i=0; i<20; i++) {
-            CPPUNIT_ASSERT(cache_get_page(cache, i*1024)==0);
+            CPPUNIT_ASSERT(cache_get_page(cache, i*1024, 0)==0);
             page_delete(page[i]);
         }
         cache_delete(m_db, cache);
@@ -175,7 +175,7 @@ public:
     {
         ham_cache_t *cache=cache_new(m_db, 15);
         for (int i=0; i<20; i++) {
-            CPPUNIT_ASSERT(cache_get_page(cache, i*1024*13)==0);
+            CPPUNIT_ASSERT(cache_get_page(cache, i*1024*13, 0)==0);
         }
         cache_delete(m_db, cache);
     }
@@ -189,9 +189,9 @@ public:
         page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
         page_set_self(page, 0x123ull);
         CPPUNIT_ASSERT(cache_put_page(cache, page)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==page);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull, 0)==page);
         CPPUNIT_ASSERT(cache_move_to_garbage(cache, page)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==0);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull, 0)==0);
         CPPUNIT_ASSERT(cache_get_unused_page(cache)==page);
         CPPUNIT_ASSERT(cache_get_unused_page(cache)==0);
         cache_delete(m_db, cache);
@@ -215,8 +215,8 @@ public:
         CPPUNIT_ASSERT(cache_get_unused_page(cache)==page2);
         CPPUNIT_ASSERT(cache_get_unused_page(cache)==0);
         CPPUNIT_ASSERT(cache_get_unused_page(cache)==0);
-        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull)==page1);
-        CPPUNIT_ASSERT(cache_get_page(cache, 0x456ull)==0);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x123ull, 0)==page1);
+        CPPUNIT_ASSERT(cache_get_page(cache, 0x456ull, 0)==0);
         cache_delete(m_db, cache);
         page_release_ref(page1);
         page_delete(page1);

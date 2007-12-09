@@ -650,7 +650,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
             }
             /* try to fetch the page from the cache */
             if (db_get_cache(db)) {
-                page=cache_get_page(db_get_cache(db), tellpos);
+                page=cache_get_page(db_get_cache(db), tellpos, 0);
                 if (page)
                     goto done;
             }
@@ -739,7 +739,7 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
      * fetch the page from the cache
      */
     if (db_get_cache(db)) {
-        page=cache_get_page(db_get_cache(db), address);
+        page=cache_get_page(db_get_cache(db), address, CACHE_NOREMOVE);
         if (page) {
             if (db_get_txn(db)) {
                 st=txn_add_page(db_get_txn(db), page, HAM_FALSE);
@@ -747,11 +747,6 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
                     db_set_error(db, st);
                     return (0);
                 }
-            }
-            st=cache_put_page(db_get_cache(db), page);
-            if (st) {
-                db_set_error(db, st);
-                return (0);
             }
             return (page);
         }
@@ -762,7 +757,8 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
 
 #if HAM_DEBUG
     if (db_get_cache(db)) {
-        ham_assert(cache_get_page(db_get_cache(db), address)==0, (""));
+        ham_assert(cache_get_page(db_get_cache(db), address, 0)==0,
+                (""));
     }
 #endif
 
