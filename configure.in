@@ -14,6 +14,9 @@ AM_INIT_AUTOMAKE(hamsterdb, 0.4.8)
 
 AM_CONFIG_HEADER(config.h)
 
+AC_CANONICAL_SYSTEM
+echo "Host: $host"
+
 AC_PROG_CC
 AC_PROG_RANLIB
 AC_LIBTOOL_WIN32_DLL
@@ -186,6 +189,17 @@ int main(void) {
 if test $ac_cv_getpagesize_int = yes; then
     AC_DEFINE(HAVE_GETPAGESIZE_INT,1,[getpagesize() returns int])
 fi
+
+dnl
+dnl Solaris: add /usr/ucbinclude to the include path
+dnl
+case $host in 
+    *-solaris*)
+        CFLAGS="${CFLAGS} -I/usr/ucbinclude"
+        ;;
+    *)
+        ;;
+esac
 
 AC_CONFIG_FILES(Makefile src/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/aes/Makefile 3rdparty/zlib/Makefile tools/Makefile)
 AC_OUTPUT
