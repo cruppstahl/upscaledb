@@ -81,8 +81,6 @@ o improve unit-test coverage
 
 o run extensive tests on sparc architecture
 
-o add documentation for the command line tools
-
 o release 0.4.9
 
 . tests are failing because of a berkeleydb bug:
