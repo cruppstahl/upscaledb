@@ -252,7 +252,9 @@ public:
         v=env.get_database_names();
         CPPUNIT_ASSERT_EQUAL((size_t)1, v.size());
         CPPUNIT_ASSERT_EQUAL((ham_u16_t)1, v[0]);
+        db1.close();
     }
+
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(CppApiTest);
