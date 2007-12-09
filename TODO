@@ -61,12 +61,12 @@ x command line tool ham_dump: dumps keys and records
 x command line tools must be installed; currently, automake does not
     install them
 
-o run extensive tests on sparc architecture
+x check roadmap.txt for other TODO items
     x unittests
     o acceptance tests
     o bi-directional endian-check!
 
-o do benchmarking with 1 mio inserts/reads
+x do benchmarking with 1 mio inserts/reads
 
 o do benchmarking on windows, esp. with and without mmap
 
@@ -74,53 +74,19 @@ o win64: debug builds fail in mmap routines
     -> workaround: link against release libraries??
 
 o autoconf: check if flock, LOCK_EX etc exist and make sure we don't
-    fail on solaris 5.9
+    x add /usr/ucbinclude to solaris include path
+    o test it!
 
-o c++ API: should not fail when closing an environment, but databases
-    are still open
-    o store all open databases in a std::map in the environment
-    o when closing the environment, close all open databases
-    o same for databases and cursors
+o improve unit-test coverage
 
-o c++ API: cursors should be compatible to bi-directional STL-iterators
-    -> need ++ and -- (prefix only)
-    -> rend and rbegin
-    -> end: is not the last element, but a symbolic "end"-element
-    -> begin: if it fails, must return end()
-    -> operator*: returns std::pair<key, record>
-    -> operator->: i->first(), i->second()
-    -> operator== and operator!=, operator= and copy-constructor
-
-o ham_get_version: get char**-parameter to retrieve the licensed modules,
-    i.e. "SRT" - Commercial, Storage, Recovery, Transactions
-    or "" - for unlicensed GPL version
-    x is there something similar for berkdb or QT? -> yes, QT
-    x does this make sense anyway? -> yes, seems so
-    x prepare and think through licensing concept
-    o add API function and license.h (??)
-
-o check roadmap.txt for other TODO items
+o run extensive tests on sparc architecture
 
 o add documentation for the command line tools
 
 o release 0.4.9
 
-o make sure that the test coverage is as high as possible
-
-. do a complete source code review, or ask someone to do it;
-
-. webpage
-    o move to cakephp framework (or a cms? enanocms.com?)
-    o frontpage: resize hamster picture; remove text -> more space below
-        (for 3 colums: news, main features, articles/testimonials/link cloud)
-    o rss feed
-
-. need acceptance tests for duplicates-before, -after, -first
-
-. improve test coverage on windows (run unittests, samples and tools)
-
-. tests are failing:
-    --duplicate=1 --use-cursors=1 -- berkeley bug
+. tests are failing because of a berkeleydb bug:
+    --duplicate=1 --use-cursors=1
       o ../../testfiles/1/100.tst - status mismatch
       o ../../testfiles/1/202.tst - status mismatch
       o ../../testfiles/1/220.tst - status mismatch
