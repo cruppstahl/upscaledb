@@ -30,20 +30,6 @@
 #include "error.h"
 #include "os.h"
 
-#if 0
-/*
- * on some systems, the getpagesize() funciton is not in unistd.h;
- * therefore it's declared here
- */
-#ifndef HAVE_GETPAGESIZE
-#  ifdef HAVE_GETPAGESIZE_INT
-extern int getpagesize();
-#  else
-extern size_t getpagesize();
-#  endif
-#endif
-#endif
-
 static ham_status_t
 my_lock_exclusive(int fd, ham_bool_t lock)
 {
