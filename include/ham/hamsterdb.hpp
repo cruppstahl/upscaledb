@@ -212,7 +212,7 @@ public:
     }
 
     /** Constructor */
-    db() : m_db(0), m_opened(false) {
+    db() : m_db(0) {
     }
 
     /** Destructor - automatically closes the database, if necessary. */
@@ -232,9 +232,7 @@ public:
             return (*this);
         close();
         m_db=rhs.m_db;
-        m_opened=true;
         rhs.m_db=0; 
-        rhs.m_opened=false;
         return (*this);
     }
 
@@ -249,7 +247,6 @@ public:
         }
         if ((st=ham_create_ex(m_db, filename, flags, mode, param)))
             throw error(st);
-        m_opened=true;
     }
 
     /** Opens an existing database. */
@@ -263,7 +260,6 @@ public:
         }
         if ((st=ham_open_ex(m_db, filename, flags, param)))
             throw error(st);
-        m_opened=true;
     }
 
     /** Returns the last database error. */
@@ -326,12 +322,11 @@ public:
 
     /** Closes the database. */
     void close(ham_u32_t flags=0) {
-        if (!m_opened)
+        if (!m_db)
             return;
         ham_status_t st=ham_close(m_db, flags);
         if (st)
             throw error(st);
-        m_opened=false;
         st=ham_delete(m_db);
         if (st)
             throw error(st);
@@ -347,12 +342,11 @@ protected:
     friend class env;
 
     /* Copy Constructor. Is protected and should not be used. */
-    db(ham_db_t *db) : m_db(db), m_opened(true) {
+    db(ham_db_t *db) : m_db(db) {
     }
 
 private:
     ham_db_t *m_db;
-    bool m_opened;
 };
 
 /**
@@ -491,7 +485,7 @@ class env
 {
 public:
     /** Constructor */
-    env() : m_env(0), m_opened(false) {
+    env() : m_env(0) {
     }
 
     /** Destructor - automatically closes the cursor, if necessary. */
@@ -510,7 +504,6 @@ public:
         }
         if ((st=ham_env_create_ex(m_env, filename, flags, mode, param)))
             throw error(st);
-        m_opened=true;
     }
 
     /** Opens an existing environment. */
@@ -524,7 +517,6 @@ public:
         }
         if ((st=ham_env_open_ex(m_env, filename, flags, param)))
             throw error(st);
-        m_opened=true;
     }
 
     /** Creates a new database in the environment. */
@@ -582,13 +574,12 @@ public:
      * handles. Make sure to close all database handles before closing the
      * environment.
      */
-    void close(ham_u32_t flags=0) {
-        if (!m_opened)
+    void close(void) {
+        if (!m_env)
             return;
-        ham_status_t st=ham_env_close(m_env, flags);
+        ham_status_t st=ham_env_close(m_env, 0);
         if (st)
             throw error(st);
-        m_opened=false;
         st=ham_env_delete(m_env);
         if (st)
             throw error(st);
@@ -624,7 +615,6 @@ public:
 
 private:
     ham_env_t *m_env;
-    bool m_opened;
 };
 
 }; // namespace ham
