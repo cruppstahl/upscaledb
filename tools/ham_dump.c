@@ -161,7 +161,7 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
                 memcpy(zterm, key->data, key->size);
                 zterm[key->size]=0;
             }
-            if (rec->size>max_recsize)
+            if (rec->size>(unsigned)max_recsize)
                 ((char *)rec->data)[max_recsize]=0;
             printf("%s", zterm ? zterm : (const char *)rec->data);
             break;
@@ -191,7 +191,7 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
                 break;
             break;
         case FMT_BINARY:
-            if (rec->size<max_recsize)
+            if (rec->size<(unsigned)max_recsize)
                 max_recsize=key->size;
             for (i=0; i<max_recsize; i++)
                 printf("%02x ", ((unsigned char *)rec->data)[i]);
