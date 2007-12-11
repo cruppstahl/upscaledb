@@ -65,7 +65,7 @@ x check roadmap.txt for other TODO items
 
 x do benchmarking with 1 mio inserts/reads
 
-o do benchmarking on windows, esp. with and without mmap
+x do benchmarking on windows, esp. with and without mmap
 
 o win64: debug builds fail in mmap routines
     -> workaround: link against release libraries??
