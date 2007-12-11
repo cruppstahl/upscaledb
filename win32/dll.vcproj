@@ -145,7 +145,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="tmp\3rdparty_aes_x64_debug\3rdparty_aes.lib tmp\3rdparty_x64_zlib_debug\3rdparty_zlib.lib"
+				AdditionalDependencies="tmp\3rdparty_aes_debug_x64\3rdparty_aes.lib tmp\3rdparty_zlib_debug_x64\3rdparty_zlib.lib"
 				OutputFile="$(OutDir)\hamsterdb.dll"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
