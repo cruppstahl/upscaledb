@@ -58,9 +58,9 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
         return (HAM_IO_ERROR);
     }
 
-    *buffer=MapViewOfFile(*mmaph, access, 
-            (unsigned long)(position>>32), 
-            (unsigned long)(position), size);
+	*buffer=MapViewOfFile(*mmaph, access, 
+            (unsigned long)(position&0xffffffff00000000),
+			(unsigned long)(position&0x00000000ffffffff), size);
     if (!*buffer) {
         st=(ham_status_t)GetLastError();
         ham_trace(("MapViewOfFile failed with status %u", st));
