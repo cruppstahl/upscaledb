@@ -185,7 +185,8 @@ os_get_filesize(ham_fd_t fd, ham_offset_t *size)
         return (HAM_IO_ERROR);
 	}
 
-	*size=(((ham_offset_t)upper)<<32)+lower;
+	/* ugly casts to avoid warnings on MSVC 8 for 64bit */
+	*size=(ham_offset_t)((unsigned long long)upper<<32)+lower;
     return (0);
 }
 
