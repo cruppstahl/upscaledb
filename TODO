@@ -67,8 +67,7 @@ x do benchmarking with 1 mio inserts/reads
 
 x do benchmarking on windows, esp. with and without mmap
 
-o win64: debug builds fail in mmap routines
-    -> workaround: link against release libraries??
+x win64: debug builds fail in mmap routines
 
 o autoconf: check if flock, LOCK_EX etc exist and make sure we don't
     x add /usr/ucbinclude to solaris include path
