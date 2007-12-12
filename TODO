@@ -80,6 +80,9 @@ o run extensive tests on sparc architecture
     o acceptance tests
     o bi-directional endian-check!
 
+o new unittest: create environment with 10 (empty) databases, close it;
+    can we open the empty databases?
+
 o release 0.4.9
 
 . tests are failing because of a berkeleydb bug:
