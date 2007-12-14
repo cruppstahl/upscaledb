@@ -191,11 +191,11 @@ if test $ac_cv_getpagesize_int = yes; then
 fi
 
 dnl
-dnl Solaris: add /usr/ucbinclude to the include path
+dnl Solaris: add a flag
 dnl
 case $host in 
     *-solaris*)
-        CFLAGS="${CFLAGS} -I/usr/ucbinclude"
+        CFLAGS="${CFLAGS} -DHAM_SOLARIS"
         ;;
     *)
         ;;
