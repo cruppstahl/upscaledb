@@ -56,6 +56,7 @@ class EnvTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (getDatabaseNamesTest);
     CPPUNIT_TEST      (maxDatabasesTest);
     CPPUNIT_TEST      (maxDatabasesReopenTest);
+    CPPUNIT_TEST      (createOpenEmptyTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -1349,6 +1350,39 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+    }
+
+    void createOpenEmptyTest(void)
+    {
+        ham_env_t *env;
+        ham_db_t *db[10];
+
+        for (int i=0; i<10; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
+        }
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_env_create_ex(env, ".test", m_flags, 0664, 0));
+        for (int i=0; i<10; i++) {
+            CPPUNIT_ASSERT_EQUAL(0,
+                    ham_env_create_db(env, db[i], 333+i, 0, 0));
+        }
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_env_open(env, ".test", m_flags));
+        for (int i=0; i<10; i++) {
+            CPPUNIT_ASSERT_EQUAL(0,
+                ham_env_open_db(env, db[i], 333+i, 0, 0));
+        }
+        for (int i=0; i<10; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+        }
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 };
 
