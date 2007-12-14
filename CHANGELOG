@@ -1,3 +1,6 @@
+Dec 14, 2007 - chris
+o configure: don't use lock_exclusive on Solaris (fails on SunOS 5.9)
+
 Dec 06, 2007 - chris
 o added two tools: ham_dump (for dumping a database) and ham_info
     (for printing statistics)

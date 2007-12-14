@@ -69,19 +69,18 @@ x do benchmarking on windows, esp. with and without mmap
 
 x win64: debug builds fail in mmap routines
 
-o autoconf: check if flock, LOCK_EX etc exist and make sure we don't
-    x add /usr/ucbinclude to solaris include path
-    o test it!
+x new unittest: create environment with 10 (empty) databases, close it;
+    can we open the empty databases?
 
-o improve unit-test coverage
+x autoconf: don't use lock_exclusive on solaris
 
 o run extensive tests on sparc architecture
     x unittests
     o acceptance tests
     o bi-directional endian-check!
 
-o new unittest: create environment with 10 (empty) databases, close it;
-    can we open the empty databases?
+o improve unit-test coverage
+    o get coverage for all files (only for unittests)
 
 o release 0.4.9
 
