@@ -1,3 +1,7 @@
+Dec 06, 2007 - chris
+o added two tools: ham_dump (for dumping a database) and ham_info
+    (for printing statistics)
+
 Dec 03, 2007 - chris
 o bugfix for SPARC: fixed an unaligned access when assigning record numbers
 
