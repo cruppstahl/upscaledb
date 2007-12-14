@@ -33,6 +33,16 @@
 static ham_status_t
 my_lock_exclusive(int fd, ham_bool_t lock)
 {
+#if HAM_SOLARIS
+    /*
+     * SunOS 5.9 doesn't have LOCK_* unless i include /usr/ucbinclude; but then,
+     * mmap behaves strangely (the first write-access to the mmapped buffer
+     * leads to a segmentation fault.
+     *
+     * Tell me if this troubles you/if you have suggestions for fixes.
+     */
+    return (db_set_error(db, HAM_NOT_IMPLEMENTED));
+#else
     int flags;
 
     if (lock)
@@ -50,6 +60,7 @@ my_lock_exclusive(int fd, ham_bool_t lock)
     }
 
     return (0);
+#endif
 }
 
 static void
@@ -67,7 +78,7 @@ my_enable_largefile(int fd)
 ham_size_t
 os_get_pagesize(void)
 {
-#ifdef __CYGWIN__
+#ifndef __CYGWIN__
     return ((ham_size_t)getpagesize());
 #else
     return (1024*16);
