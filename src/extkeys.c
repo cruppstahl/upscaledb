@@ -90,9 +90,7 @@ extkey_cache_insert(extkey_cache_t *cache, ham_offset_t blobid,
 #ifdef HAM_DEBUG
     e=extkey_cache_get_bucket(cache, h);
     while (e) {
-        ham_assert(extkey_get_blobid(e)!=blobid, 
-                ("extkey (blob id %llu) is already in the cache!", 
-                (unsigned long long)blobid));
+        ham_assert(extkey_get_blobid(e)!=blobid, (""));
         e=extkey_get_next(e);
     }
 #endif
