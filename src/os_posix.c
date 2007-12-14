@@ -41,7 +41,7 @@ my_lock_exclusive(int fd, ham_bool_t lock)
      *
      * Tell me if this troubles you/if you have suggestions for fixes.
      */
-    return (db_set_error(db, HAM_NOT_IMPLEMENTED));
+    return (HAM_NOT_IMPLEMENTED);
 #else
     int flags;
 
