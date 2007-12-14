@@ -22,5 +22,8 @@
 #ifdef _NEWMSC_
 #  pragma pack(pop)
 #endif
+#if defined(_NEWMSC_) && !defined(_WIN32_WCE)
+#  pragma pack(pop)
+#endif
 
 #endif /* HAM_PACKSTOP_H__ */

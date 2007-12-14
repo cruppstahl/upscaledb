@@ -52,6 +52,11 @@
 #  define HAM_PACK_2 __declspec(align(1))
 #endif
 
+#if defined(_NEWMSC_) && !defined(_WIN32_WCE)
+#  pragma pack(push, 1)
+#  define HAM_PACK_2 __declspec(align(1))
+#endif
+
 #ifndef HAM_PACK_0
 #  define HAM_PACK_0
 #endif
