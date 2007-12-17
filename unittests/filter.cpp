@@ -114,7 +114,7 @@ public:
         memset(&filter3, 0, sizeof(filter3));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_add_file_filter(env, &filter1));
         CPPUNIT_ASSERT(filter1._next==0);
@@ -199,7 +199,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_remove_record_filter(m_db, &filter1));
         CPPUNIT_ASSERT(0==db_get_record_filter(m_db));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0664));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
@@ -219,7 +219,7 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_add_file_filter(env, &filter));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 333, 0, 0));
@@ -271,7 +271,7 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &filter));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0664));
 
         ham_key_t key;
         ham_record_t rec;
@@ -319,7 +319,7 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
@@ -353,7 +353,7 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN, 
                         ham_env_enable_encryption(env, aeskey, 0));
@@ -372,7 +372,7 @@ public:
         rec.data=(void *)"hello world 12345 12345 12345 12345 12345";
         rec.size=(ham_size_t)strlen((char *)rec.data);
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0664));
         CPPUNIT_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
@@ -394,7 +394,7 @@ public:
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0664));
         CPPUNIT_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
@@ -423,7 +423,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[1]));
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[2]));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[0], 333, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[1], 334, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[2], 335, 0, 0));
