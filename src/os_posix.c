@@ -78,7 +78,7 @@ my_enable_largefile(int fd)
 ham_size_t
 os_get_pagesize(void)
 {
-#ifndef __CYGWIN__
+#ifdef __CYGWIN__
     return ((ham_size_t)getpagesize());
 #else
     return (1024*16);
