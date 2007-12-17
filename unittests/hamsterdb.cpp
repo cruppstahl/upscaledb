@@ -82,6 +82,7 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (replaceKeyTest);
     CPPUNIT_TEST      (replaceKeyFileTest);
     CPPUNIT_TEST      (callocTest);
+    CPPUNIT_TEST      (strerrorTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -712,6 +713,18 @@ public:
         }
 
         ham_mem_free(m_db, p);
+    }
+
+    void strerrorTest() {
+        for (int i=-203; i<=0; i++) {
+            CPPUNIT_ASSERT(ham_strerror((ham_status_t)i)!=0);
+        }
+        CPPUNIT_ASSERT_EQUAL(0, strcmp("Unknown error", 
+                    ham_strerror((ham_status_t)-204)));
+        CPPUNIT_ASSERT_EQUAL(0, strcmp("Unknown error", 
+                    ham_strerror((ham_status_t)-27)));
+        CPPUNIT_ASSERT_EQUAL(0, strcmp("Unknown error", 
+                    ham_strerror((ham_status_t)1)));
     }
 };
 
