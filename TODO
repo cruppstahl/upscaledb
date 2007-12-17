@@ -80,7 +80,7 @@ x run extensive tests on sparc architecture
     x bi-directional endian-check!
 
 o improve unit-test coverage
-    o get coverage for all files (only for unittests)
+    x get coverage for all files (only for unittests)
 
 o release 0.4.9
 
