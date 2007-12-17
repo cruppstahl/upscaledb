@@ -74,10 +74,10 @@ x new unittest: create environment with 10 (empty) databases, close it;
 
 x autoconf: don't use lock_exclusive on solaris
 
-o run extensive tests on sparc architecture
+x run extensive tests on sparc architecture
     x unittests
-    o acceptance tests
-    o bi-directional endian-check!
+    x acceptance tests
+    x bi-directional endian-check!
 
 o improve unit-test coverage
     o get coverage for all files (only for unittests)
