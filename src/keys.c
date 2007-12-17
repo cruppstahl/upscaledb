@@ -291,3 +291,21 @@ key_erase_record(ham_db_t *db, int_key_t *key,
 
     return (0);
 }
+
+ham_offset_t
+key_get_extended_rid(ham_db_t *db, int_key_t *key)
+{
+    ham_offset_t rid;
+    memcpy(&rid, key_get_key(key)+(db_get_keysize(db)-sizeof(ham_offset_t)),
+            sizeof(rid));
+    return (ham_db2h_offset(rid));
+}
+
+void
+key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid)
+{
+    rid=ham_h2db_offset(rid);
+    memcpy(key_get_key(key)+(db_get_keysize(db)-sizeof(ham_offset_t)),
+            &rid, sizeof(rid));
+}
+

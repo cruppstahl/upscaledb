@@ -169,8 +169,8 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
         }
     }
 
-    blobid=*(ham_offset_t *)(key_data+(db_get_keysize(db)-
-            sizeof(ham_offset_t)));
+    memcpy(&blobid, key_data+(db_get_keysize(db)-sizeof(ham_offset_t)), 
+            sizeof(blobid));
     blobid=ham_db2h_offset(blobid);
 
     /* fetch from the cache */
@@ -310,8 +310,8 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
         if (lhs_flags&KEY_IS_EXTENDED) {
             ham_offset_t blobid;
 
-            blobid=*(ham_offset_t *)(lhs+(db_get_keysize(db)-
-                    sizeof(ham_offset_t)));
+            memcpy(&blobid, lhs+(db_get_keysize(db)-sizeof(ham_offset_t)), 
+                    sizeof(blobid));
             blobid=ham_db2h_offset(blobid);
 
             /* fetch from the cache */
@@ -363,8 +363,8 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
         if (rhs_flags&KEY_IS_EXTENDED) {
             ham_offset_t blobid;
 
-            blobid=*(ham_offset_t *)(rhs+(db_get_keysize(db)-
-                    sizeof(ham_offset_t)));
+            memcpy(&blobid, rhs+(db_get_keysize(db)-sizeof(ham_offset_t)), 
+                    sizeof(blobid));
             blobid=ham_db2h_offset(blobid);
 			ham_assert(blobid, ("blobid is empty"));
 
