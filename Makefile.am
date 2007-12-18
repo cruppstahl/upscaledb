@@ -18,6 +18,7 @@ EXTRA_DIST = documentation/Doxyfile                     \
              build/scripts/*                            \
              src/*.c src/*.h src/Makefile.am            \
              src/Makefile.in                            \
+             tools/*.h                                  \
              unittests/*.h                              \
              unittests/*.hpp                            \
              unittests/data/*                           \
