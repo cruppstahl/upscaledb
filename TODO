@@ -79,7 +79,7 @@ x run extensive tests on sparc architecture
     x acceptance tests
     x bi-directional endian-check!
 
-o improve unit-test coverage
+x improve unit-test coverage
     x get coverage for all files (only for unittests)
 
 o release 0.4.9

@@ -1,5 +1,5 @@
 
-hamsterdb 0.4.8                                Sun Nov 11 09:42:07 UTC 2007
+hamsterdb 0.4.9                                Tue Dec 18 18:51:33 UTC 2007
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -16,49 +16,31 @@ Although no bugs are known, this release is marked "unstable", because the
 database file format is still subject to change. The first stable release 
 will be version 1.0.
 
-The database format of 0.4.8 is not compatible to 0.4.7.
-
-See below for known issues.
+The database format of 0.4.9 is not compatible to 0.4.8, if zlib compression
+is enabled.
 
 2. Changes
 
 New Features
-* Environments now support a configurable number of databases; the default
-    is 16, but files with a pagesize of 16kb can have up to 508 databases.
-    See parameter HAM_PARAM_MAX_ENV_DATABASES for ham_env_create_ex.
-* Added a new function ham_env_get_database_names(), which returns all 
-	database names in an environment.
-* Implemented zlib-based compression; a new function was added:
-    ham_enable_compression() (can be disabled by specifying
-    --disable-compression as a ./configure option)
-* Implemented AES encryption; a new function was added: 
-	ham_env_enable_encryption() (can be disabled by specifying
-    --disable-encryption as a ./configure option)
-* Added a C++ API file (include/ham/hamsterdb.hpp) and two samples:
-    samples/db6.cpp and samples/env3.cpp.
+- none
 
 Bugfixes
-* Fixed bug in configure.in; on some systems, the call to getpagesize()
-    was not declared correctly.
-* When moving a cursor through duplicates and the cache was
-    exhausted, an assert was triggered.
-* ham_close in an environment could lead to a segmentation fault, 
-    because the cache for extended keys was not properly set up, before
-    it was deleted.
-o (Win32) The parameters for memory mapped I/O did not create 
-    private copies and therefore the file could be damaged if an operation
-    aborted
+* Disabled exclusive locking on SunOS
+* SPARC architecture: fixed several unaligned memory accesses, especially
+    related to record numbers, duplicate keys and extended keys
+    exhausted, an assert was triggered
+* Fixed several issues with memory mapped access on Windows x64 
 
 Other Changes
-* The default pagesize for unix databases is now 16kb, not 4kb; benchmarks 
-    show that this is the fastest option, but still results in small files.
+* Added two command line tools: ham_dump for dumping a database and 
+    ham_info for printing database information/statistics
+* Minor performance improvements for zlib-compressed databases
 
 To see a list of all changes, look in the file CHANGELOG.
 
 3. Roadmap
 
 - more stabilization and moving towards version 1.0
-- command line tools for recovery, dump and statistics
 
 4. Features
 
@@ -70,11 +52,12 @@ To see a list of all changes, look in the file CHANGELOG.
 - Very fast database cursors 
 - Configurable page size, cache size and index key size
 - Portable ANSI-C implementation
-- Runs on Linux, Unices, Microsoft Windows, Windows CE
+- Runs on Linux, Unices, Microsoft Windows, Windows CE and on many
+    architectures (also embedded and SPARC)
+- Endian-independent file format
 - Uses memory mapped I/O for fast disk access (but falls back to read/write if
   mmap is not available)
 - Uses 64bit file pointers and supports huge files (>2 GB)
-- Endian-independent file format
 - Easy to use and well-documented
 - Supports rudimentary live-reorganization by automatically
     merging freelist entries
@@ -84,9 +67,7 @@ To see a list of all changes, look in the file CHANGELOG.
 
 5. Known Issues/Bugs
 
-The Debug build for Windows 64 fails in the routines for memory mapped I/O.
-As a workaround, don't use the Debug build for x64. The Release build works
-without problems.
+None.
 
 6. Compiling 
 
