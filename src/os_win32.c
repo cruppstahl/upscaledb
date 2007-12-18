@@ -185,7 +185,7 @@ os_get_filesize(ham_fd_t fd, ham_offset_t *size)
         return (HAM_IO_ERROR);
 	}
 
-#ifdef (_WIN32_WCE)
+#ifdef _WIN32_WCE
 	*size=(((ham_offset_t)upper)<<32)+lower;
 #else
 	/* ugly casts to avoid warnings on MSVC 8 for 64bit */
