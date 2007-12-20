@@ -1,5 +1,9 @@
-Dec 18, 2007 - chris ---------------------------------------------------
+Dec 20, 2007 - chris ---------------------------------------------------
                       release of hamsterdb-0.4.9
+
+Dec 19, 2007 - chris
+o Fixes in the MSVC Solution for Win64; the types (include/ham/types.h)
+    were not set correctly to 64bit values
 
 Dec 17, 2007 - chris
 o SPARC fixes: several minor changes to avoid unaligned memory access,

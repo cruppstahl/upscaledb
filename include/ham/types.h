@@ -34,17 +34,14 @@ extern "C" {
 #ifdef WIN32
 #    undef  HAM_OS_WIN32
 #    define HAM_OS_WIN32 1
-#    ifdef _WIN64
+#    ifdef WIN64
 #        undef  HAM_64BIT
 #        define HAM_64BIT 1
-#    elif _WIN32
-#        undef  HAM_32BIT
-#        define HAM_32BIT 1
 #    elif WIN32
 #        undef  HAM_32BIT
 #        define HAM_32BIT 1
 #    else
-#        error "Neither WIN32, _WIN32 nor _WIN64 defined!"
+#        error "Neither WIN32 nor WIN64 defined!"
 #    endif
 #else /* posix? */
 #    undef  HAM_OS_POSIX
@@ -83,13 +80,13 @@ extern "C" {
  * typedefs for 32bit operating systems
  */
 #ifdef HAM_32BIT
-#    ifdef WIN32
+#  ifdef _MSC_VER
 typedef signed __int64     ham_s64_t;
 typedef unsigned __int64   ham_u64_t;
-#else
+#  else
 typedef signed long long   ham_s64_t;
 typedef unsigned long long ham_u64_t;
-#endif
+#  endif
 typedef signed int         ham_s32_t;
 typedef unsigned int       ham_u32_t;
 typedef signed short       ham_s16_t;
@@ -99,11 +96,17 @@ typedef unsigned char      ham_u8_t;
 #endif
 
 /* 
- * typedefs for 64bit operating systems
+ * typedefs for 64bit operating systems; on Win64, 
+ * longs do not always have 64bit!
  */
 #ifdef HAM_64BIT
+#  ifdef _MSC_VER
+typedef signed __int64     ham_s64_t;
+typedef unsigned __int64   ham_u64_t;
+#  else
 typedef signed long        ham_s64_t;
 typedef unsigned long      ham_u64_t;
+#  endif
 typedef signed int         ham_s32_t;
 typedef unsigned int       ham_u32_t;
 typedef signed short       ham_s16_t;
