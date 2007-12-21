@@ -28,7 +28,6 @@ Bugfixes
 * Disabled exclusive locking on SunOS
 * SPARC architecture: fixed several unaligned memory accesses, especially
     related to record numbers, duplicate keys and extended keys
-    exhausted, an assert was triggered
 * Fixed several issues with memory mapped access on Windows x64 
 
 Other Changes
