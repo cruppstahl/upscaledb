@@ -277,6 +277,16 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
         ham_u32_t *revision);
 
 /**
+ * Returns the name of the licensee and the name of the licensed product.
+ *
+ * @param licensee Pointer to the pointer with the licensee name 
+ *      (an empty string "" for non-commercial versions).
+ * @param product Pointer to the pointer with the product name.
+ */
+HAM_EXPORT void
+ham_get_license(const char **licensee, const char **product);
+
+/**
  * @}
  */
 

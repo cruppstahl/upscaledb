@@ -50,6 +50,7 @@ class CppApiTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (cursorTest);
     CPPUNIT_TEST      (envTest);
     CPPUNIT_TEST      (envGetDatabaseNamesTest);
+    CPPUNIT_TEST      (getLicenseTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -253,6 +254,20 @@ public:
         CPPUNIT_ASSERT_EQUAL((size_t)1, v.size());
         CPPUNIT_ASSERT_EQUAL((ham_u16_t)1, v[0]);
         db1.close();
+    }
+
+    void getLicenseTest(void)
+    {
+        const char *licensee=0, *product=0;
+
+        ham::db::get_license(0, 0);
+        ham::db::get_license(&licensee, 0);
+        CPPUNIT_ASSERT(licensee!=0);
+        ham::db::get_license(0, &product);
+        CPPUNIT_ASSERT(product!=0);
+        ham::db::get_license(&licensee, &product);
+        CPPUNIT_ASSERT(licensee!=0);
+        CPPUNIT_ASSERT(product!=0);
     }
 
 };

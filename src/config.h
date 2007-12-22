@@ -18,7 +18,6 @@
 #define CONFIG_H__
 
 #include <ham/types.h>
-#include "serial.h"
 
 /*
  * include autoconf header file; otherwise, assume sane default values

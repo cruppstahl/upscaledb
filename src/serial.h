@@ -30,12 +30,16 @@
 #define HAM_LICENSEE                  ""
 
 /*
- * feature list; describes the features that are enabled or 
- * disabled.
+ * product list; describes the products which were licensed.
  *
  * the basic storage functionality is always enabled.
  */
 #define HAM_PRODUCT_STORAGE           1
+
+/*
+ * same as above, but as a readable string
+ */
+#define HAM_PRODUCT_NAME              "hamsterdb storage"
 
 
 #endif /* SERIAL_H__ */

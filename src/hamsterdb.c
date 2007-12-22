@@ -34,6 +34,7 @@
 #include "util.h"
 #include "keys.h"
 #include "btree.h"
+#include "serial.h"
 
 #ifndef HAM_DISABLE_ENCRYPTION
 #  include "../3rdparty/aes/aes.h"
@@ -499,6 +500,15 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
         *minor=HAM_VERSION_MIN;
     if (revision)
         *revision=HAM_VERSION_REV;
+}
+
+void
+ham_get_license(const char **licensee, const char **product)
+{
+    if (licensee)
+        *licensee=HAM_LICENSEE;
+    if (product)
+        *product=HAM_PRODUCT_NAME;
 }
 
 ham_status_t

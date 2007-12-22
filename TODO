@@ -9,17 +9,18 @@ x a finished TODO item
 
 x release 0.4.9
 
-o increment libtool version to 1.0
+x increment libtool version to 1.0
 
-o prepare licensing concept in serial.h (see roadmap for details)
-    o implement ham_get_license function
-        o also for C++ api
-        o unittests?
-    o print license information in command line tools (help screen, version)
+x prepare licensing concept in serial.h (see roadmap for details)
+    x implement ham_get_license function
+        x also for C++ api
+    x unittest
+    x print license information in command line tools (help screen, version)
 
 o need acceptance tests for duplicates-before/-after/-first
 
-o do a complete source code review (or ask someone to do it)
+o do a complete source code review
+    (and while reviewing, make sure that all parts are covered by unittests)
 
 o improve unit-test coverage
 
