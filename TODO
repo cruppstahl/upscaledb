@@ -7,82 +7,23 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-x release 0.4.8 
+x release 0.4.9
 
-x update webpage
-    x C++ API: add documentation to webpage
-    x add FAQ entry about security (AES related)
-    x add FAQ why C++ cursor is not stl-compatible
+o increment libtool version to 1.0
 
-x be more careful when uncoupling cursors - especially when inserting 
-    or deleting items, uncoupling is often not necessary
-    x definitely no need to uncouple if overwriting or adding a duplicate
-    x often no need to uncouple when inserting/splitting
-    x unittests: 
-        x create cursor -> must be NIL
-        x insert item   -> must be NIL
-        x move cursor to item -> cursor is coupled
-        x insert item2 < item -> cursor is coupled
-        x insert duplicate of item -> cursor is still coupled
-        x insert item2 > item -> cursor is uncoupled
+o prepare licensing concept in serial.h (see roadmap for details)
+    o implement ham_get_license function
+        o also for C++ api
+        o unittests?
+    o print license information in command line tools (help screen, version)
 
-x enhance acceptance tests
-    x acceptance test: encryption is missing
-    x new acceptance tests with many, many duplicates
+o need acceptance tests for duplicates-before/-after/-first
 
-x make sure we fail to open databases which have incompatible versions
+o do a complete source code review (or ask someone to do it)
 
-x compression: store the size of the uncompressed data as the first 4 byte
-    in the blob; then uncompression is easier and faster
-    x unittest w/ HAM_RECORD_USER_ALLOC
+o improve unit-test coverage
 
-x remove TODOs in the source
-
-x command line tool ham_info
-    usage: ham_info [-db dbname] [-f] filename
-        -db: prints only stats about this database
-        -f: (--full) - number of items, average key size, average data
-            size, min/max sizes, number of extended keys
-    x create autotools infrastructure
-    x list environment information
-    x list database information
-    x list full database information
-    x create automated tests
-    x create msvc projects
-
-x command line tool ham_dump: dumps keys and records
-    usage: ham_dump [-key format] [-record format] 
-                [-maxkey n] [-maxrec n] [-db dbname] filename
-    x create autotools infrastructure
-    x create msvc projects
-    x dump key/record: numeric|string|binary
-    x create automated tests
- 
-x command line tools must be installed; currently, automake does not
-    install them
-
-x check roadmap.txt for other TODO items
-
-x do benchmarking with 1 mio inserts/reads
-
-x do benchmarking on windows, esp. with and without mmap
-
-x win64: debug builds fail in mmap routines
-
-x new unittest: create environment with 10 (empty) databases, close it;
-    can we open the empty databases?
-
-x autoconf: don't use lock_exclusive on solaris
-
-x run extensive tests on sparc architecture
-    x unittests
-    x acceptance tests
-    x bi-directional endian-check!
-
-x improve unit-test coverage
-    x get coverage for all files (only for unittests)
-
-o release 0.4.9
+o release 0.5.0 - this is 1.0rc1!!
 
 . tests are failing because of a berkeleydb bug:
     --duplicate=1 --use-cursors=1

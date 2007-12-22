@@ -10,25 +10,33 @@
  * 
  *
  * this file describes the configuration of hamster - serial number, 
- * enabled features etc. 
+ * licensing information etc.
  *
  */
 
 #ifndef SERIAL_H__
 #define SERIAL_H__
 
+
 /* 
- * the serial number; for non-commercial versions, this is always
- * 0x0; commercial versions get a serial number
+ * the serial number; for GPL versions, this is always
+ * 0x0; only non-GPL versions get a serial number.
  */
-#define HAM_SERIALNO               0x0
+#define HAM_SERIALNO                  0x0
+
+/*
+ * the name of the licensee; for GPL, this string is empty ("")
+ */
+#define HAM_LICENSEE                  ""
 
 /*
  * feature list; describes the features that are enabled or 
- * disabled
+ * disabled.
  *
- * the basic functionality is always enabled.
+ * the basic storage functionality is always enabled.
  */
-#define HAM_ENABLE_BASIC           1
+#define HAM_PRODUCT_STORAGE           1
+
 
 #endif /* SERIAL_H__ */
+

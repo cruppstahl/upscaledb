@@ -14,9 +14,6 @@ AM_INIT_AUTOMAKE(hamsterdb, 0.4.9)
 
 AM_CONFIG_HEADER(config.h)
 
-AC_CANONICAL_SYSTEM
-echo "Host: $host"
-
 AC_PROG_CC
 AC_PROG_RANLIB
 AC_LIBTOOL_WIN32_DLL
@@ -29,6 +26,7 @@ AC_CHECK_FUNCS(pread pwrite mmap munmap getpagesize)
 AC_CHECK_HEADERS(fcntl.h unistd.h malloc.h)
 AC_TYPE_OFF_T
 AC_FUNC_MMAP
+AC_CANONICAL_SYSTEM
 
 dnl
 dnl check for db.h - needed for unit tests
