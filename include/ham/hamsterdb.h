@@ -217,6 +217,8 @@ typedef struct {
 #define HAM_DB_NOT_EMPTY             (-25)
 /** AES encryption key is wrong */
 #define HAM_ACCESS_DENIED            (-26)
+/** Object was already initialized */
+#define HAM_ALREADY_INITIALIZED      (-27)
 /** Cursor does not point to a valid database item */
 #define HAM_CURSOR_IS_NIL           (-100)
 /** Not all databases were closed before closing the environment */
@@ -662,6 +664,8 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
  * @return @a HAM_NOT_IMPLEMENTED if hamsterdb was compiled without support
  *              for AES encryption.
  * @return @a HAM_ACCESS_DENIED if the key (= password) was wrong.
+ * @return @a HAM_ALREADY_INITIALIZED if encryption is already enabled
+ *              for this Environment
  */
 HAM_EXPORT ham_status_t
 ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags);

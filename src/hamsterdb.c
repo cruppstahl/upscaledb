@@ -278,6 +278,8 @@ ham_strerror(ham_status_t result)
             return ("Database already open");
         case HAM_LIMITS_REACHED:
             return ("Database limits reached");
+        case HAM_ALREADY_INITIALIZED:
+            return ("Object was already initialized");
         case HAM_DB_NOT_EMPTY:
             return ("Not all cursors were closed before "
                     "closing the database");
@@ -1022,6 +1024,13 @@ ham_env_add_file_filter(ham_env_t *env, ham_file_filter_t *filter)
         return (HAM_INV_PARAMETER);
 
     head=env_get_file_filter(env);
+
+    /*
+     * clean up if there are still links from a previous
+     * installation
+     */
+    filter->_next=0;
+    filter->_prev=0;
 
     /*
      * !!
@@ -1862,6 +1871,16 @@ ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags)
     device=env_get_device(env);
 
     alloc=env_get_allocator(env);
+
+    /*
+     * make sure that we don't already have AES filtering
+     */
+    filter=env_get_file_filter(env);
+    while (filter) {
+        if (filter->before_write_cb==__aes_before_write_cb)
+            return (HAM_ALREADY_INITIALIZED);
+        filter=filter->_next;
+    }
 
     filter=(ham_file_filter_t *)allocator_alloc(alloc, sizeof(*filter));
     if (!filter)
