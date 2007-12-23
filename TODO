@@ -26,8 +26,8 @@ o do a complete source code review
     (and while reviewing, make sure that all parts are covered by unittests)
     x mem.c
     x error.c
-    o device.c
-    o page.c
+    x page.c
+    x device.c
     o cache.c
     o keys.c
     o txn.c
@@ -52,6 +52,8 @@ o when do we use traces, when do we use normal output? should we add more
 
 o ask someone to proof-read/check the documentation
     doc rule: one sentence - no point; two sentences: make a point
+    Environment, Database, Cursor: capital letters!
+    also check the webpage!
 
 o release 0.5.0 - this is 1.0rc1!!
 
