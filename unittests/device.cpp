@@ -15,6 +15,7 @@
 #include "../src/db.h"
 #include "../src/device.h"
 #include "memtracker.h"
+#include "os.hpp"
 
 class DeviceTest : public CppUnit::TestFixture
 {
@@ -28,6 +29,7 @@ class DeviceTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (flushTest);
     CPPUNIT_TEST      (mmapUnmapTest);
     CPPUNIT_TEST      (readWriteTest);
+    CPPUNIT_TEST      (readWritePageTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -44,11 +46,8 @@ public:
 
     void setUp()
     { 
-#if WIN32
-        (void)DeleteFileA((LPCSTR)".test");
-#else
-        (void)unlink(".test");
-#endif
+        (void)os::unlink(".test");
+
         ham_page_t *p;
         m_alloc=memtracker_new();
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
@@ -214,6 +213,46 @@ public:
         }
         m_dev->close(m_dev);
         free(temp);
+    }
+
+    void readWritePageTest()
+    {
+        int i;
+        ham_page_t *pages[2];
+        ham_size_t ps=m_dev->get_pagesize(m_dev);
+
+        m_dev->set_flags(m_dev, HAM_DISABLE_MMAP);
+
+        CPPUNIT_ASSERT(m_dev->is_open(m_dev));
+        CPPUNIT_ASSERT(m_dev->truncate(m_dev, ps*2)==HAM_SUCCESS);
+        for (i=0; i<2; i++) {
+            CPPUNIT_ASSERT((pages[i]=page_new(m_db)));
+            page_set_self(pages[i], ps*i);
+            CPPUNIT_ASSERT_EQUAL(0,
+                    m_dev->read_page(m_dev, pages[i], 0));
+        }
+        for (i=0; i<2; i++) {
+            CPPUNIT_ASSERT(page_get_npers_flags(pages[i])&PAGE_NPERS_MALLOC);
+            memset(page_get_pers(pages[i]), i+1, ps);
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    m_dev->write_page(m_dev, pages[i]));
+            CPPUNIT_ASSERT_EQUAL(0, page_free(pages[i]));
+            page_delete(pages[i]);
+        }
+
+        for (i=0; i<2; i++) {
+            char temp[1024];
+            memset(temp, i+1, sizeof(temp));
+            CPPUNIT_ASSERT((pages[i]=page_new(m_db)));
+            page_set_self(pages[i], ps*i);
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    m_dev->read_page(m_dev, pages[i], ps));
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    memcmp(page_get_pers(pages[i]), temp, sizeof(temp)));
+            CPPUNIT_ASSERT_EQUAL(0, page_free(pages[i]));
+            page_delete(pages[i]);
+        }
+        m_dev->close(m_dev);
     }
 
 };
