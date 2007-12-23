@@ -17,7 +17,10 @@ x prepare licensing concept in serial.h (see roadmap for details)
     x unittest
     x print license information in command line tools (help screen, version)
 
-o need acceptance tests for duplicates-before/-after/-first
+x need acceptance tests for 
+    x duplicates-last = default
+    x duplicates-first (not with fullcheck-backwards - bdb bug)
+    x add to monster.sh and valgrind.sh
 
 o do a complete source code review
     (and while reviewing, make sure that all parts are covered by unittests)
