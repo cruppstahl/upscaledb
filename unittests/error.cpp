@@ -78,7 +78,7 @@ public:
         ham_verify(!"expr", ("hello world %d", 42));
         CPPUNIT_ASSERT_EQUAL(1, g_aborted);
 
-        ham_test_abort=abort;
+        ham_test_abort=0;
     }
 };
 
