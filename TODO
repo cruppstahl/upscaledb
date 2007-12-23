@@ -28,17 +28,17 @@ o do a complete source code review
     x error.c
     x page.c
     x device.c
-    o cache.c
-    o keys.c
-    o txn.c
+    x txn.c
+    x keys.c
+    o extkeys.c
+    o os_posix.c
+    o os_win32.c
     o blob.c
     o freelist.c
     o util.c
-    o extkeys.c
+    o cache.c
     o hamsterdb.c
     o db.c
-    o os_posix.c
-    o os_win32.c
     o btree.c
     o btree_enum.c
     o btree_erase.c

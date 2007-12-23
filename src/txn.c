@@ -71,9 +71,11 @@ txn_remove_page(ham_txn_t *txn, struct ham_page_t *page)
 ham_page_t *
 txn_get_page(ham_txn_t *txn, ham_offset_t address)
 {
-    ham_page_t *start, *p=txn_get_pagelist(txn);
+    ham_page_t *p=txn_get_pagelist(txn);
 
-    start=p;
+#ifdef HAM_DEBUG
+    ham_page_t *start=p;
+#endif
 
     while (p) {
         ham_offset_t o=page_get_self(p);
@@ -81,8 +83,6 @@ txn_get_page(ham_txn_t *txn, ham_offset_t address)
             return (p);
         p=page_get_next(p, PAGE_LIST_TXN);
         ham_assert(start!=p, ("circular reference in page-list"));
-        if (start==p)
-            break;
     }
 
     return (0);
@@ -141,9 +141,8 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
                 flags&TXN_FORCE_WRITE ? HAM_WRITE_THROUGH : 0);
         if (st) {
             ham_trace(("commit failed with status 0x%x", st));
+            page_add_ref(head);
             txn_set_pagelist(txn, head);
-            (void)ham_txn_abort(txn);
-            /* errors here are fatal... */
             return (st);
         }
 
@@ -161,8 +160,9 @@ ham_status_t
 ham_txn_abort(ham_txn_t *txn)
 {
     ham_page_t *head, *next;
+    ham_db_t *db=txn_get_db(txn);
 
-    db_set_txn(txn_get_db(txn), 0);
+    db_set_txn(db, 0);
 
     /*
      * delete all modified pages
@@ -175,6 +175,10 @@ ham_txn_abort(ham_txn_t *txn)
 
         /* page is no longer in use */
         page_release_ref(head);
+
+        /* move to garbage */
+        if (db_get_cache(db))
+            (void)cache_move_to_garbage(db_get_cache(db), head);
 
         head=next;
     }

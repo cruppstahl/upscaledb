@@ -26,6 +26,7 @@ class TxnTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (beginAbortTest);
     CPPUNIT_TEST      (structureTest);
     CPPUNIT_TEST      (addPageTest);
+    CPPUNIT_TEST      (addPageAbortTest);
     CPPUNIT_TEST      (removePageTest);
     CPPUNIT_TEST_SUITE_END();
 
@@ -113,9 +114,31 @@ public:
         CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_get_page(&txn, 0x12345)==0);
         CPPUNIT_ASSERT(txn_add_page(&txn, page, 0)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_add_page(&txn, page, 1)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_get_page(&txn, 0x12345)==page);
 
         CPPUNIT_ASSERT(ham_txn_commit(&txn, 0)==HAM_SUCCESS);
+
+        page_delete(page);
+    }
+
+    void addPageAbortTest(void)
+    {
+        ham_txn_t txn;
+        ham_page_t *page;
+
+        CPPUNIT_ASSERT((page=page_new(m_db))!=0);
+        page_set_self(page, 0x12345);
+
+        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_get_page(&txn, 0x12345)==0);
+        CPPUNIT_ASSERT(txn_add_page(&txn, page, 0)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_add_page(&txn, page, 1)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_get_page(&txn, 0x12345)==page);
+        CPPUNIT_ASSERT_EQUAL(0, txn_free_page(&txn, page));
+        CPPUNIT_ASSERT(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING);
+
+        CPPUNIT_ASSERT(ham_txn_abort(&txn)==HAM_SUCCESS);
 
         page_delete(page);
     }
