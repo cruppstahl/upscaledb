@@ -31,6 +31,11 @@ extern void dbg_prepare(const char *file, int line, const char *expr);
 extern void dbg_log(const char *format, ...);
 extern void dbg_verify_failed(const char *format, ...);
 
+/*
+ * a hook for unittests
+ */
+extern void (*ham_test_abort)(void);
+
 /** 
  * in debug mode we write trace()-messages to stderr, and assert() 
  * is enabled.

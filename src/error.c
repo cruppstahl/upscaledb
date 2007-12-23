@@ -28,6 +28,8 @@ static const char *g_file=0;
 static int         g_line=0;
 static const char *g_expr=0;
 
+void (*ham_test_abort)(void);
+
 static int
 my_vsnprintf(char *str, size_t size, const char *format, va_list ap)
 {
@@ -129,7 +131,10 @@ dbg_verify_failed(const char *format, ...)
     g_hand(buffer);
 
 #ifndef HAM_OS_WINCE
-    abort();
+    if (ham_test_abort)
+        ham_test_abort();
+    else
+        abort();
 #else
 	ExitProcess(-1);
 #endif
