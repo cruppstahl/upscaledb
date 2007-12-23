@@ -24,6 +24,26 @@ typedef struct simple_filter_t
 } simple_filter_t;
 
 static ham_status_t
+my_xor_pre_cb(ham_env_t *, ham_file_filter_t *filter, 
+        ham_u8_t *buffer, ham_size_t size)
+{
+    char ch=*(char *)filter->userdata;
+    for (ham_size_t i=0; i<size; i++)
+        buffer[i]^=ch;
+    return (0);
+}
+
+static ham_status_t
+my_xor_post_cb(ham_env_t *, ham_file_filter_t *filter, 
+        ham_u8_t *buffer, ham_size_t size)
+{
+    char ch=*(char *)filter->userdata;
+    for (ham_size_t i=0; i<size; i++)
+        buffer[i]^=ch;
+    return (0);
+}
+
+static ham_status_t
 my_file_pre_cb(ham_env_t *, ham_file_filter_t *filter, ham_u8_t *, ham_size_t)
 {
     simple_filter_t *sf=(simple_filter_t *)filter->userdata;
@@ -75,8 +95,10 @@ class FilterTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (addRemoveFileTest);
     CPPUNIT_TEST      (addRemoveRecordTest);
     CPPUNIT_TEST      (simpleFileFilterTest);
+    CPPUNIT_TEST      (cascadedFileFilterTest);
     CPPUNIT_TEST      (simpleRecordFilterTest);
     CPPUNIT_TEST      (aesFilterTest);
+    CPPUNIT_TEST      (aesTwiceFilterTest);
     CPPUNIT_TEST      (negativeAesFilterTest);
     CPPUNIT_TEST      (zlibFilterTest);
     CPPUNIT_TEST      (zlibFilterEmptyRecordTest);
@@ -258,6 +280,49 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
 
+    void cascadedFileFilterTest()
+    {
+        ham_env_t *env;
+        ham_db_t *db;
+
+        char ch1=0x13, ch2=0x15;
+        ham_file_filter_t filter1, filter2;
+        memset(&filter1, 0, sizeof(filter1));
+        filter1.userdata=(void *)&ch1;
+        filter1.before_write_cb=my_xor_pre_cb;
+        filter1.after_read_cb=my_xor_post_cb;
+        memset(&filter2, 0, sizeof(filter2));
+        filter2.userdata=(void *)&ch2;
+        filter2.before_write_cb=my_xor_pre_cb;
+        filter2.after_read_cb=my_xor_post_cb;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_add_file_filter(env, &filter1));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_add_file_filter(env, &filter2));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
+
+        ham_key_t key;
+        ham_record_t rec;
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, ".test", 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_add_file_filter(env, &filter1));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_add_file_filter(env, &filter2));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+    }
+
     void simpleRecordFilterTest()
     {
         simple_filter_t sf;
@@ -338,6 +403,34 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
 
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+    }
+
+    void aesTwiceFilterTest()
+    {
+        ham_env_t *env;
+        ham_db_t *db;
+
+        ham_key_t key;
+        ham_record_t rec;
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+        ham_u8_t aeskey1[16]={0x13};
+        ham_u8_t aeskey2[16]={0x14};
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey1, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_ALREADY_INITIALIZED, 
+                ham_env_enable_encryption(env, aeskey2, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
