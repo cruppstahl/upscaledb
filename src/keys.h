@@ -136,12 +136,6 @@ extern int
 key_compare_pub_to_int(ham_page_t *page, ham_key_t *lhs, ham_u16_t rhs);
 
 /**
- * compare an internal key (int_key_t) to an internal key
- */
-extern int
-key_compare_int_to_int(ham_page_t *page, ham_u16_t lhs, ham_u16_t rhs);
-
-/**
  * insert an extended key
  *
  * returns the blob-id of this key

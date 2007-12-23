@@ -44,22 +44,6 @@ key_compare_pub_to_int(ham_page_t *page, ham_key_t *lhs, ham_u16_t rhs)
                 rhs, key_get_flags(r), key_get_key(r), key_get_size(r)));
 }
 
-int
-key_compare_int_to_int(ham_page_t *page, 
-        ham_u16_t lhs, ham_u16_t rhs)
-{
-    int_key_t *l, *r;
-    btree_node_t *node=ham_page_get_btree_node(page);
-
-    l=btree_node_get_key(page_get_owner(page), node, lhs);
-    r=btree_node_get_key(page_get_owner(page), node, rhs);
-
-    return (db_compare_keys(page_get_owner(page), page, 
-                lhs, key_get_flags(l), key_get_key(l), 
-                key_get_size(l), rhs, key_get_flags(r), key_get_key(r), 
-                key_get_size(r)));
-}
-
 ham_offset_t
 key_insert_extended(ham_db_t *db, ham_page_t *page, 
         ham_key_t *key)
