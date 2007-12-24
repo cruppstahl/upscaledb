@@ -37,21 +37,30 @@ protected:
     ham_db_t *m_db;
     memtracker_t *m_alloc;
     ham_bool_t m_inmemory;
+    ham_size_t m_cachesize;
 
 public:
-    BlobTest(ham_bool_t inmemory=HAM_FALSE)
-    :   m_db(0), m_alloc(0), m_inmemory(inmemory)
+    BlobTest(ham_bool_t inmemory=HAM_FALSE, ham_size_t cachesize=0)
+    :   m_db(0), m_alloc(0), m_inmemory(inmemory), m_cachesize(cachesize)
     {
     }
 
     void setUp()
     { 
+        ham_parameter_t params[2]=
+        {
+            { HAM_PARAM_CACHESIZE, m_cachesize },
+            { 0, 0 }
+        };
+
         os::unlink(".test");
+
         CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", 
-                    m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create_ex(m_db, ".test", 
+                    m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644, &params[0]));
     }
     
     void tearDown() 
@@ -303,6 +312,28 @@ public:
     }
 };
 
+class NoCacheBlobTest : public BlobTest
+{
+    CPPUNIT_TEST_SUITE(NoCacheBlobTest);
+    CPPUNIT_TEST      (structureTest);
+    CPPUNIT_TEST      (allocReadFreeTest);
+    CPPUNIT_TEST      (replaceTest);
+    CPPUNIT_TEST      (replaceWithBigTest);
+    CPPUNIT_TEST      (replaceWithSmallTest);
+    /* negative tests are not necessary, because hamsterdb asserts that
+     * blob-IDs actually exist */
+    CPPUNIT_TEST      (multipleAllocReadFreeTest);
+    CPPUNIT_TEST      (hugeBlobTest);
+    CPPUNIT_TEST      (smallBlobTest);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    NoCacheBlobTest()
+    : BlobTest(HAM_FALSE)
+    {
+    }
+};
+
 class InMemoryBlobTest : public BlobTest
 {
     CPPUNIT_TEST_SUITE(InMemoryBlobTest);
@@ -324,5 +355,6 @@ public:
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(FileBlobTest);
+CPPUNIT_TEST_SUITE_REGISTRATION(NoCacheBlobTest);
 CPPUNIT_TEST_SUITE_REGISTRATION(InMemoryBlobTest);
 

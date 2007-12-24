@@ -30,13 +30,13 @@ o do a complete source code review
     x device.c
     x txn.c
     x keys.c
-    o extkeys.c
-    o os_posix.c
-    o os_win32.c
-    o blob.c
+    x extkeys.c
+    x os_posix.c
+    x os_win32.c
+    x blob.c
     o freelist.c
     o util.c
-    o cache.c
+    o cache.c -- profile test with hash table size of 89, 179, 359
     o hamsterdb.c
     o db.c
     o btree.c
@@ -46,6 +46,9 @@ o do a complete source code review
     o btree_find.c
     o btree_cursor.c
     o btree_insert.c
+
+o what happens with a page that is deleted (flag DELETE_PENDING), after 
+    txn_commit or txn_abort were called?
 
 o when do we use traces, when do we use normal output? should we add more
     traces, i.e. in case of invalid parameters?

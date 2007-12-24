@@ -161,6 +161,12 @@ class DupeTest : public CppUnit::TestFixture
      */
     CPPUNIT_TEST      (getDuplicateCountTest);
 
+    /*
+     * insert a lot of duplicates to provoke a page-split in the duplicate
+     * table
+     */
+    CPPUNIT_TEST      (insertManyManyTest);
+
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -1747,6 +1753,46 @@ public:
         }
     }
 
+    void insertManyManyTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_cursor_t *c;
+        ham_parameter_t params[2]=
+        {
+            { HAM_PARAM_PAGESIZE, 1024 },
+            { 0, 0 }
+        };
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_create_ex(m_db, ".test", 
+                    m_flags|HAM_ENABLE_DUPLICATES, 0664, &params[0]));
+
+        memset(&key, 0, sizeof(key));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        
+        for (int i=0; i<256; i++) {
+            memset(&rec, 0, sizeof(rec));
+            rec.size=sizeof(i);
+            rec.data=&i;
+
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+        }
+
+        for (int i=0; i<256; i++) {
+            memset(&rec, 0, sizeof(rec));
+
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_cursor_move(c, &key, &rec, HAM_CURSOR_NEXT));
+            CPPUNIT_ASSERT_EQUAL((ham_size_t)4, rec.size);
+            CPPUNIT_ASSERT_EQUAL(i, *(int *)rec.data);
+        }
+
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_cursor_move(c, 0, 0, HAM_CURSOR_NEXT));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
+    }
 };
 
 class InMemoryDupeTest : public DupeTest
@@ -1783,6 +1829,7 @@ class InMemoryDupeTest : public DupeTest
     CPPUNIT_TEST      (insertBeforeTest);
     CPPUNIT_TEST      (overwriteVariousSizesTest);
     CPPUNIT_TEST      (getDuplicateCountTest);
+    CPPUNIT_TEST      (insertManyManyTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
