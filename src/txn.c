@@ -176,9 +176,11 @@ ham_txn_abort(ham_txn_t *txn)
         /* page is no longer in use */
         page_release_ref(head);
 
+#if 0
         /* move to garbage */
         if (db_get_cache(db))
             (void)cache_move_to_garbage(db_get_cache(db), head);
+#endif
 
         head=next;
     }

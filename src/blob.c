@@ -488,7 +488,7 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
      * blobs are CHUNKSIZE-allocated 
      */
     alloc_size=sizeof(blob_t)+size;
-    if (alloc_size%DB_CHUNKSIZE!=0)
+    if ((alloc_size%DB_CHUNKSIZE)!=0)
         alloc_size=((alloc_size/DB_CHUNKSIZE)*DB_CHUNKSIZE)+DB_CHUNKSIZE;
 
     /*
