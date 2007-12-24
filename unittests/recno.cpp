@@ -15,6 +15,7 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
+#include "../src/btree.h"
 #include "memtracker.h"
 #include "os.hpp"
 
@@ -38,6 +39,7 @@ class RecNoTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (overwriteTest);
     CPPUNIT_TEST      (overwriteCursorTest);
     CPPUNIT_TEST      (eraseLastReopenTest);
+    CPPUNIT_TEST      (uncoupleTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -658,6 +660,47 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
+
+    void uncoupleTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_u64_t recno;
+        ham_cursor_t *cursor, *c2;
+
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+
+        key.flags|=HAM_KEY_USER_ALLOC;
+        key.data=&recno;
+        key.size=sizeof(recno);
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_create(m_db, 0, 0, &cursor));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_create(m_db, 0, 0, &c2));
+
+        for (int i=0; i<5; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(cursor, &key, &rec, 0));
+            CPPUNIT_ASSERT_EQUAL((ham_u64_t)i+1, recno);
+        }
+
+        ham_btree_t *be=(ham_btree_t *)db_get_backend(m_db);
+        ham_page_t *page=db_fetch_page(m_db, btree_get_rootpage(be), 0);
+        CPPUNIT_ASSERT(page!=0);
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+
+        for (int i=0; i<5; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_move(c2, &key, &rec, HAM_CURSOR_NEXT));
+            CPPUNIT_ASSERT_EQUAL((ham_u64_t)i+1, recno);
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_AUTO_CLEANUP));
+    }
 };
 
 class InMemoryRecNoTest : public RecNoTest
@@ -673,6 +716,7 @@ class InMemoryRecNoTest : public RecNoTest
     CPPUNIT_TEST      (envTest);
     CPPUNIT_TEST      (overwriteTest);
     CPPUNIT_TEST      (overwriteCursorTest);
+    CPPUNIT_TEST      (uncoupleTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:

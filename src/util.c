@@ -28,69 +28,33 @@ util_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
     /*
      * extended key: copy the whole key
      */
-    if (source->_flags&KEY_IS_EXTENDED) {
-        ham_status_t st=db_get_extended_key(db, source->data,
-                    source->size, source->_flags, (ham_u8_t **)&dest->data);
-        if (st) {
-            db_set_error(db, st);
-            return (0);
-        }
-        ham_assert(dest->data!=0, ("invalid extended key"));
-        dest->size=source->size;
-        /* the extended flag is set later, when this key is inserted */
-        dest->_flags=source->_flags&(~KEY_IS_EXTENDED);
+    dest->data=(ham_u8_t *)ham_mem_alloc(db, source->size);
+    if (!dest->data) {
+        db_set_error(db, HAM_OUT_OF_MEMORY);
+        return (0);
     }
-    else {
-        dest->data=(ham_u8_t *)ham_mem_alloc(db, source->size);
-        if (!dest->data) {
-            db_set_error(db, HAM_OUT_OF_MEMORY);
-            return (0);
-        }
 
-        memcpy(dest->data, source->data, source->size);
-        dest->size=source->size;
-        dest->_flags=source->_flags;
-    }
+    memcpy(dest->data, source->data, source->size);
+    dest->size=source->size;
+    dest->_flags=source->_flags;
 
     return (dest);
 }
 
 ham_key_t *
-util_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest)
+util_copy_key_int2pub(ham_db_t *db, int_key_t *source, ham_key_t *dest)
 {
-    /*
-     * extended key: copy the whole key
-     */
-    if (key_get_flags(source)&KEY_IS_EXTENDED) {
-        ham_status_t st=db_get_extended_key(db, 
-					(ham_u8_t *)key_get_key(source),
-                    key_get_size(source), key_get_flags(source),
-                    (ham_u8_t **)&dest->data);
-        if (st) {
-            db_set_error(db, st);
-            return (0);
-        }
-        ham_assert(dest->data!=0, ("invalid extended key"));
-        dest->size=key_get_size(source);
-    }
-    else if (key_get_size(source)) {
-        dest->data=(ham_u8_t *)ham_mem_alloc(db, key_get_size(source));
-        if (!dest->data) {
-            db_set_error(db, HAM_OUT_OF_MEMORY);
-            return (0);
-        }
+    ham_status_t st;
+    ham_u8_t *olddata=db_get_key_allocdata(db);
+    ham_size_t oldsize=db_get_key_allocsize(db);
 
-        memcpy(dest->data, key_get_key(source), key_get_size(source));
-        dest->size=key_get_size(source);
-    }
-    else { /* key.size is 0 */
-        dest->size=0;
-        dest->data=0;
-    }
+    db_set_key_allocdata(db, 0);
+    db_set_key_allocsize(db, 0);
+    st=util_read_key(db, source, dest);
+    db_set_key_allocdata(db, olddata);
+    db_set_key_allocsize(db, oldsize);
 
-    dest->flags=0;
-
-    return (dest);
+    return (st ? 0 : dest);
 }
 
 ham_status_t
@@ -155,7 +119,7 @@ util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
 }
 
 ham_status_t
-util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest, ham_u32_t flags)
+util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
 {
     ham_u8_t *data;
 

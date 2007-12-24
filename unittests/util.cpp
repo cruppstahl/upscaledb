@@ -21,6 +21,7 @@ class UtilTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(UtilTest);
     CPPUNIT_TEST      (copyKeyTest);
+    CPPUNIT_TEST      (copyExtendedKeyTest);
     CPPUNIT_TEST      (copyKeyInt2PubEmptyTest);
     CPPUNIT_TEST      (copyKeyInt2PubTinyTest);
     CPPUNIT_TEST      (copyKeyInt2PubSmallTest);
@@ -56,6 +57,22 @@ public:
         ham_key_t src, dest;
 
         src.data=(void *)"hallo welt";
+        src.size=(ham_u16_t)::strlen((char *)src.data)+1;
+        src.flags=0;
+        src._flags=0;
+
+        CPPUNIT_ASSERT(util_copy_key(m_db, &src, &dest));
+        CPPUNIT_ASSERT(dest.size==src.size);
+        CPPUNIT_ASSERT(!::strcmp((char *)dest.data, (char *)src.data));
+
+        ham_mem_free(m_db, dest.data);
+    }
+
+    void copyExtendedKeyTest(void)
+    {
+        ham_key_t src, dest;
+
+        src.data=(void *)"hallo welt, this is an extended key";
         src.size=(ham_u16_t)::strlen((char *)src.data)+1;
         src.flags=0;
         src._flags=0;
@@ -107,6 +124,7 @@ public:
         char buffer[128];
         int_key_t *src=(int_key_t *)buffer;
         ham_key_t dest;
+        memset(&dest, 0, sizeof(dest));
 
         key_set_ptr(src, 0x12345);
         key_set_size(src, 8);
@@ -124,6 +142,7 @@ public:
         char buffer[128];
         int_key_t *src=(int_key_t *)buffer;
         ham_key_t dest;
+        memset(&dest, 0, sizeof(dest));
 
         key_set_ptr(src, 0x12345);
         key_set_size(src, 16);
@@ -136,6 +155,7 @@ public:
 
         ham_mem_free(m_db, dest.data);
     }
+
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(UtilTest);

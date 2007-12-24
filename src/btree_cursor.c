@@ -817,7 +817,7 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
     entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
 
     if (key) {
-        st=util_read_key(db, entry, key, 0);
+        st=util_read_key(db, entry, key);
         if (st) {
             page_release_ref(page);
             if (local_txn)
