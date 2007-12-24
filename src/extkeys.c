@@ -19,7 +19,7 @@
 #include "cache.h"
 #include "blob.h"
 
-#define EXTKEY_CACHE_BUCKETSIZE         251
+#define EXTKEY_CACHE_BUCKETSIZE         179
 #define EXTKEY_MAX_AGE                    5
 
 extkey_cache_t *
