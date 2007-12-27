@@ -128,10 +128,13 @@ public:
 
     void getSetExtendedKeyTest(void)
     {
-        int_key_t key;
-        key_set_extended_rid(m_db, &key, 0x12345);
+        char buffer[32];
+        int_key_t *key=(int_key_t *)buffer;
+        memset(buffer, 0, sizeof(buffer));
+
+        key_set_extended_rid(m_db, key, 0x12345);
         CPPUNIT_ASSERT_EQUAL((ham_offset_t)0x12345, 
-                key_get_extended_rid(m_db, &key));
+                key_get_extended_rid(m_db, key));
     }
 
     void insertEmpty(int_key_t *key, ham_u32_t flags)
