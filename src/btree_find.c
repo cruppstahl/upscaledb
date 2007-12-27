@@ -42,17 +42,16 @@ btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor,
 
     /* now traverse the root to the leaf nodes, till we find a leaf */
     while (1) {
-        if (!page) {
-            if (!db_get_error(db))
-                db_set_error(db, HAM_KEY_NOT_FOUND);
-            return (db_get_error(db));
-        }
-
         node=ham_page_get_btree_node(page);
         if (btree_node_is_leaf(node))
             break;
 
         page=btree_traverse_tree(db, page, key, 0);
+        if (!page) {
+            if (!db_get_error(db))
+                db_set_error(db, HAM_KEY_NOT_FOUND);
+            return (db_get_error(db));
+        }
     }
 
     /* check the leaf page for the key */

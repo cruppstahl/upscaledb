@@ -39,13 +39,13 @@ o do a complete source code review
     x cache.c - yes, got performance improvements
     x db.c -- but leaves room for improvement
     x hamsterdb.c
-    o btree.c
-    o btree_enum.c
-    o btree_erase.c
-    o btree_check.c
-    o btree_find.c
-    o btree_cursor.c
+    x btree.c
+    x btree_enum.c
+    x btree_find.c
+    x btree_check.c
     o btree_insert.c
+    o btree_erase.c
+    o btree_cursor.c
 
 o unittest for invalid file headers ('H''A''M') -> HAM_INV_FILE_HEADER
 
@@ -64,10 +64,12 @@ o what happens with a page that is deleted (flag DELETE_PENDING), after
 o when do we use traces, when do we use normal output? should we add more
     traces, i.e. in case of invalid parameters?
 
-o ask someone to proof-read/check the documentation
+o ask andrew to proof-read/check the documentation (header files, tutorial)
     doc rule: one sentence - no point; two sentences: make a point
     Environment, Database, Cursor: capital letters!
     also check the webpage!
+
+o enhance the tutorial -> send to andrew
 
 o release 0.5.0 - this is 1.0rc1!!
 

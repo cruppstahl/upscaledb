@@ -8,7 +8,8 @@ noinst_PROGRAMS = test
 
 INCLUDES        = -I$(top_builddir)/include
 
-test_SOURCES    = error.cpp \
+test_SOURCES    = check.cpp \
+				  error.cpp \
 				  filter.cpp \
 				  cppapi.cpp \
 				  recno.cpp \
