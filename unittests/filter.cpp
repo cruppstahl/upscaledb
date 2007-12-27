@@ -98,6 +98,7 @@ class FilterTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (cascadedFileFilterTest);
     CPPUNIT_TEST      (simpleRecordFilterTest);
     CPPUNIT_TEST      (aesFilterTest);
+    CPPUNIT_TEST      (aesFilterInMemoryTest);
     CPPUNIT_TEST      (aesTwiceFilterTest);
     CPPUNIT_TEST      (negativeAesFilterTest);
     CPPUNIT_TEST      (zlibFilterTest);
@@ -137,6 +138,15 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_add_file_filter(0, &filter1));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_add_file_filter(env, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_remove_file_filter(0, &filter1));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_remove_file_filter(env, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_add_file_filter(env, &filter1));
         CPPUNIT_ASSERT(filter1._next==0);
@@ -184,6 +194,15 @@ public:
         memset(&filter1, 0, sizeof(filter1));
         memset(&filter2, 0, sizeof(filter2));
         memset(&filter3, 0, sizeof(filter3));
+
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_add_record_filter(0, &filter1));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_add_record_filter(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_remove_record_filter(0, &filter1));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_remove_record_filter(m_db, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &filter1));
         CPPUNIT_ASSERT(filter1._next==0);
@@ -407,6 +426,32 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
 
+    void aesFilterInMemoryTest()
+    {
+        ham_env_t *env;
+        ham_db_t *db;
+
+        ham_key_t key;
+        ham_record_t rec;
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+        ham_u8_t aeskey[16] ={0x13};
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create(env, ".test", HAM_IN_MEMORY_DB, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+    }
+
     void aesTwiceFilterTest()
     {
         ham_env_t *env;
@@ -466,6 +511,10 @@ public:
         rec.size=(ham_size_t)strlen((char *)rec.data);
 
         CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0664));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_enable_compression(0, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_enable_compression(m_db, 9999, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));

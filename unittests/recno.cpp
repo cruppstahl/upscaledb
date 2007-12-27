@@ -90,7 +90,7 @@ public:
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
 
-        key.flags|=HAM_KEY_USER_ALLOC;
+        key.flags=HAM_KEY_USER_ALLOC;
         key.data=&recno;
         key.size=sizeof(recno);
 
@@ -105,6 +105,27 @@ public:
                     ham_insert(m_db, 0, &key, &rec, 0));
             CPPUNIT_ASSERT_EQUAL((ham_u64_t)i+1, recno);
         }
+
+        key.flags=HAM_KEY_USER_ALLOC;
+        key.data=0;
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, 0));
+        key.data=&recno;
+        key.size=4;
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, 0));
+        key.size=sizeof(recno);
+
+        key.flags=0;
+        key.size=0;
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, 0));
+        key.size=8;
+        key.data=0;
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, 0));
+        key.data=&recno;
+        key.flags=HAM_KEY_USER_ALLOC;
 
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, 
@@ -216,6 +237,14 @@ public:
                     ham_insert(m_db, 0, &key, &rec, 0));
             CPPUNIT_ASSERT_EQUAL((ham_u64_t)i+1, recno);
         }
+
+        key.size=4;
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_find(m_db, 0, &key, &rec, 0));
+        key.size=0;
+        key.data=&key;
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_find(m_db, 0, &key, &rec, 0));
 
         for (int i=0; i<500; i++) {
             recno=i+1;
@@ -581,6 +610,15 @@ public:
         rec.data=&value;
         rec.size=sizeof(value);
         CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+
+        key.size=4;
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        key.size=8;
+        key.data=0;
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        key.data=&recno;
 
         memset(&rec, 0, sizeof(rec));
         CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));

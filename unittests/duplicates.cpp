@@ -684,6 +684,7 @@ public:
         CPPUNIT_ASSERT(page!=0);
 
         CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_NEXT,     0, "aaaaaaaaaa");
         CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_NEXT,     0, "1111111111");
@@ -1703,6 +1704,10 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
 
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_get_duplicate_count(0, &count, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_get_duplicate_count(c, 0, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
                 ham_cursor_get_duplicate_count(c, &count, 0));
         CPPUNIT_ASSERT_EQUAL((ham_size_t)0, count);

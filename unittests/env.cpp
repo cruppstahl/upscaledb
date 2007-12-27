@@ -11,7 +11,7 @@
 
 #include <stdexcept>
 #include <cppunit/extensions/HelperMacros.h>
-#include <ham/hamsterdb.h>
+#include <ham/hamsterdb_int.h>
 #include "../src/env.h"
 #include "../src/cache.h"
 #include "../src/page.h"
@@ -57,6 +57,7 @@ class EnvTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (maxDatabasesTest);
     CPPUNIT_TEST      (maxDatabasesReopenTest);
     CPPUNIT_TEST      (createOpenEmptyTest);
+    CPPUNIT_TEST      (setDeviceTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -133,6 +134,9 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_env_new(0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_env_delete(0));
     }
 
     void createCloseTest(void)
@@ -142,6 +146,8 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_close(0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
@@ -170,9 +176,24 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_create_db(0, db, 333, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_create_db(env, 0, 333, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_ALREADY_EXISTS,
+                ham_env_create_db(env, db, 333, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_open_db(0, db, 333, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_open_db(env, 0, 333, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_open_db(env, db, 333, 0, (ham_parameter_t *)0x13));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN,
+                ham_env_open_db(env, db, 333, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
@@ -311,6 +332,8 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
 
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_open_ex(0, ".test", m_flags, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_open_ex(env, ".test", m_flags, &parameters[0]));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
@@ -926,6 +949,21 @@ public:
                         (ham_u16_t)i+1, 0, 0));
         }
 
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_rename_db(0, 1, 2, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_rename_db(env, 0, 2, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_rename_db(env, 1, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_rename_db(env, 1, 0xffff, 0));
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_env_rename_db(env, 1, 1, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_ALREADY_EXISTS,
+                ham_env_rename_db(env, 1, 5, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND,
+                ham_env_rename_db(env, 1000, 20, 0));
+
         for (i=0; i<MAX_DB; i++) {
             CPPUNIT_ASSERT_EQUAL(0, ham_env_rename_db(env, 
                         (ham_u16_t)i+1, (ham_u16_t)i+1000, 0));
@@ -999,6 +1037,11 @@ public:
             CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
         }
+
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                        ham_env_erase_db(0, (ham_u16_t)i+1, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                        ham_env_erase_db(env, 0, 0));
 
         for (i=0; i<MAX_DB; i++) {
             CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN, 
@@ -1384,6 +1427,27 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
     }
+
+    void setDeviceTest(void)
+    {
+        ham_env_t *env;
+        void *dev=(void *)0x13;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_set_device(0, dev));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_set_device(env, 0));
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_env_set_device(env, dev));
+        CPPUNIT_ASSERT_EQUAL(HAM_ALREADY_INITIALIZED,
+                ham_env_set_device(env, dev));
+
+        free(env); /* don't use ham_env_delete, because it tries to 
+                      access the device pointer (which is invalid
+                      in this test */
+    }
 };
 
 class InMemoryEnvTest : public EnvTest
@@ -1408,6 +1472,7 @@ class InMemoryEnvTest : public EnvTest
     CPPUNIT_TEST      (limitsReachedTest);
     CPPUNIT_TEST      (getDatabaseNamesTest);
     CPPUNIT_TEST      (maxDatabasesTest);
+    CPPUNIT_TEST      (setDeviceTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:

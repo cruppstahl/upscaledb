@@ -110,6 +110,7 @@ public:
     {
         ham_u32_t major, minor, revision;
 
+        ham_get_version(0, 0, 0);
         ham_get_version(&major, &minor, &revision);
 
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)HAM_VERSION_MAJ, major);
@@ -130,6 +131,10 @@ public:
     void openTest(void)
     {
         ham_db_t *db;
+        ham_parameter_t params[]={
+            { 0x1234567, 0 },
+            { 0, 0 }
+        };
 
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
 
@@ -141,6 +146,12 @@ public:
                 ham_open(db, 0, HAM_IN_MEMORY_DB));
         CPPUNIT_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, 
                 ham_open(db, "xxxx...", 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_open(db, "test.db", HAM_IN_MEMORY_DB));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_open(db, "test.db", HAM_ENABLE_DUPLICATES));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_open_ex(db, "test.db", HAM_ENABLE_DUPLICATES, params));
 
 #if WIN32
         CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, 
@@ -322,6 +333,26 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(0, 0, &key, &rec, 0));
+        key.flags=0x13;
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, 0));
+        key.flags=0;
+        rec.flags=0x13;
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, 0));
+        rec.flags=0;
+        key.flags=HAM_KEY_USER_ALLOC;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        key.flags=0;
+        rec.flags=HAM_RECORD_USER_ALLOC;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        rec.flags=0;
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE|HAM_DUPLICATE));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(m_db, 0, 0, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
@@ -335,7 +366,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE_INSERT_LAST));
         CPPUNIT_ASSERT_EQUAL(0, 
-                ham_insert(m_db, 0, &key, &rec, 0));
+                ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
     }
 
     void insertDuplicateTest(void)
