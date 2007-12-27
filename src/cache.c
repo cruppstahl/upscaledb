@@ -20,12 +20,12 @@
 #include "page.h"
 #include "error.h"
 
-#define BUCKET_SIZE     512
+#define BUCKET_SIZE     359
 
 #define my_calc_hash(cache, o)                                              \
     (cache_get_max_elements(cache)==0                                       \
         ? 0                                                                 \
-        : (((o)&(cache_get_bucketsize(cache)-1))))
+        : (((o)%(cache_get_bucketsize(cache)))))
 
 ham_cache_t *
 cache_new(ham_db_t *db, ham_size_t max_elements)
