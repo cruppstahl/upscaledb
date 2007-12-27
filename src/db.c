@@ -295,12 +295,12 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
         if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
             if (!db_get_extkey_cache(db)) {
                 extkey_cache_t *c=extkey_cache_new(db);
+                if (!c)
+                    return (db_get_error(db));
                 if (db_get_env(db))
                     env_set_extkey_cache(db_get_env(db), c);
                 else
                     db_set_extkey_cache(db, c);
-                if (!db_get_extkey_cache(db))
-                    return (db_get_error(db));
             }
         }
 
@@ -493,68 +493,6 @@ my_purge_cache(ham_db_t *db)
     }
 
     return (HAM_SUCCESS);
-}
-
-ham_page_t *
-db_page_alloc(ham_db_t *db)
-{
-    ham_status_t st;
-    ham_page_t *page=0;
-
-    /* purge cache, if necessary */
-    st=my_purge_cache(db);
-    if (st)
-        return (0);
-
-    /* try to get an unused page from the cache */
-    if (db_get_cache(db))
-        page=cache_get_unused_page(db_get_cache(db));
-
-    if (page) {
-        st=page_flush(page);
-        if (st) {
-            db_set_error(db, st);
-            return (0);
-        }
-
-        st=db_uncouple_all_cursors(page, 0);
-        if (st) {
-            db_set_error(db, st);
-            return (0);
-        }
-
-        st=page_free(page);
-        if (st) {
-            db_set_error(db, st);
-            return (0);
-        }
-
-        memset(page, 0, sizeof(ham_page_t));
-        page_set_owner(page, db);
-    }
-    else {
-        page=page_new(db);
-        if (!page) {
-            db_set_error(db, st);
-            return (0);
-        }
-        
-        st=page_alloc(page, db_get_pagesize(db));
-        if (st) {
-            db_set_error(db, st);
-            return (0);
-        }
-    }
-
-    if (page && db_get_cache(db)) {
-        st=cache_put_page(db_get_cache(db), page);
-        if (st) {
-            db_set_error(db, st);
-            return (0);
-        }
-    }
-
-    return (page);
 }
 
 ham_status_t
