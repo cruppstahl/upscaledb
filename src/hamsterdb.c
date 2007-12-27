@@ -146,7 +146,7 @@ my_free_cb(int event, void *param1, void *param2, void *context)
          * if this callback function is called from ham_env_erase_db:
          * move the page to the freelist
          */
-        if (!db_get_rt_flags(c->db)&HAM_IN_MEMORY_DB) {
+        if (!(db_get_rt_flags(c->db)&HAM_IN_MEMORY_DB)) {
             ham_page_t *page=(ham_page_t *)param1;
             (void)txn_free_page(db_get_txn(c->db), page);
         }
@@ -635,7 +635,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
         ham_u16_t name, ham_u32_t flags, ham_parameter_t *param)
 {
     ham_status_t st;
-    ham_u16_t keysize=env_get_keysize(env);
+    ham_u16_t keysize;
 
     if (!env || !db)
         return (HAM_INV_PARAMETER);
@@ -645,6 +645,8 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
 
     if (env_get_rt_flags(env)&HAM_READ_ONLY)
         return (HAM_DB_READ_ONLY);
+
+    keysize=env_get_keysize(env);
 
     /*
      * only a few flags are allowed
@@ -705,7 +707,7 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
     ham_db_t *head;
     ham_status_t st;
     ham_parameter_t full_param[]={
-        {HAM_PARAM_CACHESIZE, env_get_cachesize(env)},
+        {HAM_PARAM_CACHESIZE, 0},
         {HAM_PARAM_DBNAME,    name},
         {0, 0}};
 
@@ -716,6 +718,8 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
         return (HAM_INV_PARAMETER);
     if (name!=FIRST_DATABASE_NAME && name>EMPTY_DATABASE_NAME)
         return (HAM_INV_PARAMETER);
+
+    full_param[0].value=env_get_cachesize(env);
 
     /* 
      * parameters aren't allowed
@@ -1383,15 +1387,13 @@ ham_open_ex(ham_db_t *db, const char *filename,
 #endif
 
         /* 
-         * create the freelist - not needed for in-memory-databases
+         * create the freelist
          */
-        if (!(flags&HAM_IN_MEMORY_DB)) {
-            st=freel_create(db);
-            if (st) {
-                ham_log(("unable to create freelist"));
-                (void)ham_close(db, 0);
-                return (st);
-            }
+       st=freel_create(db);
+       if (st) {
+           ham_log(("unable to create freelist"));
+           (void)ham_close(db, 0);
+           return (st);
         }
     }
 
@@ -3212,7 +3214,7 @@ ham_env_set_device(ham_env_t *env, void *device)
         return (HAM_INV_PARAMETER);
 
     if (env_get_device(env))
-        return (HAM_INV_PARAMETER); /* TODO */
+        return (HAM_ALREADY_INITIALIZED);
 
     env_set_device(env, device);
     return (0);
