@@ -50,6 +50,8 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (newTest);
     CPPUNIT_TEST      (deleteTest);
     CPPUNIT_TEST      (openTest);
+    CPPUNIT_TEST      (invHeaderTest);
+    CPPUNIT_TEST      (invVersionTest);
     CPPUNIT_TEST      (createTest);
     CPPUNIT_TEST      (createPagesizeTest);
     CPPUNIT_TEST      (createCloseCreateTest);
@@ -161,6 +163,30 @@ public:
                 ham_open(db, "/usr", 0));
 #endif
 
+        ham_delete(db);
+    }
+
+    void invHeaderTest(void)
+    {
+        ham_db_t *db;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_FILE_HEADER, 
+                ham_open(db, "data/inv-file-header.hdb", 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
+
+    void invVersionTest(void)
+    {
+        ham_db_t *db;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_FILE_VERSION, 
+                ham_open(db, "data/inv-file-version.hdb", 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
     }
 

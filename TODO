@@ -22,6 +22,11 @@ x need acceptance tests for
     x duplicates-first (not with fullcheck-backwards - bdb bug)
     x add to monster.sh and valgrind.sh
 
+x unittest for invalid file headers ('H''A''M') -> HAM_INV_FILE_HEADER
+
+x unittests for invalid database version (either major rev or minor rev
+    != current) -> HAM_INV_FILE_VERSION
+
 o do a complete source code review
     (and while reviewing, make sure that all parts are covered by unittests)
     x mem.c
@@ -46,11 +51,6 @@ o do a complete source code review
     o btree_insert.c
     o btree_erase.c
     o btree_cursor.c
-
-o unittest for invalid file headers ('H''A''M') -> HAM_INV_FILE_HEADER
-
-o unittests for invalid database version (either major rev or minor rev
-    != current) -> HAM_INV_FILE_VERSION
 
 o review the cache routines; when is the page-counter incremented or
     decremented, and how long does it usually take till a page is unloaded,
