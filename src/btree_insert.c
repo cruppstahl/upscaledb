@@ -240,7 +240,7 @@ my_insert_recursive(ham_page_t *page, ham_key_t *key,
             break;
 
         /*
-         * the child was split, and we have to insert a new (key/rid)-tuple.
+         * the child was split, and we have to insert a new key/rid-pair.
          */
         case SPLIT:
             st=my_insert_in_page(page, &scratchpad->key, 
