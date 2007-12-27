@@ -30,15 +30,15 @@ o do a complete source code review
     x device.c
     x txn.c
     x keys.c
-    x extkeys.c
+    x extkeys.c - yes, got performance improvements
     x os_posix.c
     x os_win32.c
     x blob.c
-    o freelist.c
-    o util.c
-    o cache.c -- profile test with hash table size of 89, 179, 359
-    o hamsterdb.c
-    o db.c
+    x freelist.c
+    x util.c
+    x cache.c - yes, got performance improvements
+    x db.c -- but leaves room for improvement
+    x hamsterdb.c
     o btree.c
     o btree_enum.c
     o btree_erase.c
@@ -46,6 +46,17 @@ o do a complete source code review
     o btree_find.c
     o btree_cursor.c
     o btree_insert.c
+
+o unittest for invalid file headers ('H''A''M') -> HAM_INV_FILE_HEADER
+
+o unittests for invalid database version (either major rev or minor rev
+    != current) -> HAM_INV_FILE_VERSION
+
+o review the cache routines; when is the page-counter incremented or
+    decremented, and how long does it usually take till a page is unloaded,
+    because it's too old?
+    to we need these counters? we can check the age of a page through
+    the transaction id
 
 o what happens with a page that is deleted (flag DELETE_PENDING), after 
     txn_commit or txn_abort were called?
