@@ -29,8 +29,6 @@ AC_FUNC_MMAP
 AC_CANONICAL_SYSTEM
 
 dnl
-dnl check for db.h - needed for unit tests
-dnl
 dnl TODO 
 dnl I don't know why, but this doesn'T work as expected - if i 
 dnl test HAVE_CPPUNIT in Makefile.am, it's always negative
@@ -40,7 +38,6 @@ AC_TRY_CPP([#include cppunit/extensions/HelperMacros.h],
            ac_have_cppunit=yes,
            ac_have_cppunit=no)
 AM_CONDITIONAL(HAVE_CPPUNIT, test "x$ac_have_cppunit" = "xyes")
-
 
 dnl
 dnl check for --enable-debug
