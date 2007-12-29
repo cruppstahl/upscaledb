@@ -193,9 +193,9 @@ protected:
 };
 
 /**
- * A database class.
+ * A Database class.
  *
- * This class wraps the ham_db_t database handles.
+ * This class wraps the ham_db_t Database handles.
  */
 class db
 {
@@ -220,7 +220,7 @@ public:
     db() : m_db(0) {
     }
 
-    /** Destructor - automatically closes the database, if necessary. */
+    /** Destructor - automatically closes the Database, if necessary. */
     ~db() {
         close();
     }
@@ -229,7 +229,7 @@ public:
      * Assignment operator.
      *
      * <b>Important!</b> This operator transfers the ownership of the 
-     * database handle.
+     * Database handle.
      */
     db &operator=(const db &other) {
 		db &rhs=(db &)other;
@@ -241,7 +241,7 @@ public:
         return (*this);
     }
 
-    /** Creates a database. */
+    /** Creates a Database. */
     void create(const char *filename, ham_u32_t flags=0,
             ham_u32_t mode=0644, ham_parameter_t *param=0) {
         ham_status_t st;
@@ -254,7 +254,7 @@ public:
             throw error(st);
     }
 
-    /** Opens an existing database. */
+    /** Opens an existing Database. */
     void open(const char *filename, ham_u32_t flags=0,
             ham_parameter_t *param=0) {
         ham_status_t st;
@@ -267,7 +267,7 @@ public:
             throw error(st);
     }
 
-    /** Returns the last database error. */
+    /** Returns the last Database error. */
     ham_status_t get_error() {
         return (ham_get_error(m_db));
     }
@@ -318,14 +318,14 @@ public:
             throw error(st);
     }
 
-    /** Flushes the database to disk. */
+    /** Flushes the Database to disk. */
     void flush(ham_u32_t flags=0) {
         ham_status_t st=ham_flush(m_db, flags);
         if (st)
             throw error(st);
     }
 
-    /** Closes the database. */
+    /** Closes the Database. */
     void close(ham_u32_t flags=0) {
         if (!m_db)
             return;
@@ -355,9 +355,9 @@ private:
 };
 
 /**
- * A database cursor.
+ * A Database Cursor.
  *
- * This class wraps the ham_cursor_t cursor handles.
+ * This class wraps the ham_cursor_t Cursor handles.
  */
 class cursor
 {
@@ -368,12 +368,12 @@ public:
         create(db, flags);
     }
 
-    /** Destructor - automatically closes the cursor, if necessary. */
+    /** Destructor - automatically closes the Cursor, if necessary. */
     ~cursor() {
         close();
     }
 
-    /** Creates a new cursor. */
+    /** Creates a new Cursor. */
     void create(db *db, ham_u32_t flags=0) {
         if (m_cursor)
             close();
@@ -385,7 +385,7 @@ public:
         }
     }
 
-    /** Clones the cursor. */
+    /** Clones the Cursor. */
     cursor clone() {
         ham_cursor_t *dest;
         ham_status_t st=ham_cursor_clone(m_cursor, &dest);
@@ -394,7 +394,7 @@ public:
         return (cursor(dest));
     }
 
-    /** Moves the cursor, and retrieves the key/record of the new position. */
+    /** Moves the Cursor, and retrieves the key/record of the new position. */
     void move(key *k, record *r, ham_u32_t flags=0) {
         ham_status_t st=ham_cursor_move(m_cursor, k ? k->get_handle() : 0,
                         r ? r->get_handle() : 0, flags);
@@ -402,22 +402,22 @@ public:
             throw error(st);
     }
 
-    /** Moves the cursor to the first database element. */
+    /** Moves the Cursor to the first Database element. */
     void move_first(key *k=0, record *r=0) {
         move(k, r, HAM_CURSOR_FIRST);
     }
 
-    /** Moves the cursor to the last database element. */
+    /** Moves the Cursor to the last Database element. */
     void move_last(key *k=0, record *r=0) {
         move(k, r, HAM_CURSOR_LAST);
     }
 
-    /** Moves the cursor to the next database element. */
+    /** Moves the Cursor to the next Database element. */
     void move_next(key *k=0, record *r=0) {
         move(k, r, HAM_CURSOR_NEXT);
     }
 
-    /** Moves the cursor to the previous database element. */
+    /** Moves the Cursor to the previous Database element. */
     void move_previous(key *k=0, record *r=0) {
         move(k, r, HAM_CURSOR_PREVIOUS);
     }
@@ -461,7 +461,7 @@ public:
         return (c);
     }
 
-    /** Closes the cursor. */
+    /** Closes the Cursor. */
     void close() {
         if (!m_cursor)
             return;
@@ -482,7 +482,7 @@ private:
 };
 
 /**
- * An environment class.
+ * An Environment class.
  *
  * This class wraps the ham_env_t structure.
  */
@@ -493,12 +493,12 @@ public:
     env() : m_env(0) {
     }
 
-    /** Destructor - automatically closes the cursor, if necessary. */
+    /** Destructor - automatically closes the Cursor, if necessary. */
     ~env() {
         close();
     }
 
-    /** Creates a new environment. */
+    /** Creates a new Environment. */
     void create(const char *filename, ham_u32_t flags=0,
             ham_u32_t mode=0644, ham_parameter_t *param=0) {
         ham_status_t st;
@@ -511,7 +511,7 @@ public:
             throw error(st);
     }
 
-    /** Opens an existing environment. */
+    /** Opens an existing Environment. */
     void open(const char *filename, ham_u32_t flags=0,
             ham_parameter_t *param=0) {
         ham_status_t st;
@@ -524,7 +524,7 @@ public:
             throw error(st);
     }
 
-    /** Creates a new database in the environment. */
+    /** Creates a new Database in the Environment. */
     db create_db(ham_u16_t name, ham_u32_t flags=0, ham_parameter_t *param=0) {
         ham_status_t st;
         ham_db_t *dbh;
@@ -541,7 +541,7 @@ public:
 		return (ham::db(dbh));
     }
 
-    /** Opens an existing database in the environment. */
+    /** Opens an existing Database in the Environment. */
     db open_db(ham_u16_t name, ham_u32_t flags=0, ham_parameter_t *param=0) {
         ham_status_t st;
         ham_db_t *dbh;
@@ -558,14 +558,14 @@ public:
 		return (ham::db(dbh));
     }
 
-    /** Renames an existing database in the environment. */
+    /** Renames an existing Database in the Environment. */
     void rename_db(ham_u16_t oldname, ham_u16_t newname, ham_u32_t flags=0) {
         ham_status_t st=ham_env_rename_db(m_env, oldname, newname, flags);
         if (st)
             throw error(st);
     }
 
-    /** Deletes a database from the environment. */
+    /** Deletes a Database from the Environment. */
     void erase_db(ham_u16_t name, ham_u32_t flags=0) {
         ham_status_t st=ham_env_erase_db(m_env, name, flags);
         if (st)
@@ -573,11 +573,11 @@ public:
     }
 
     /** 
-     * Closes the environment. 
+     * Closes the Environment. 
      *
-     * <b>Important!</b> Will throw an exception if there are opened database 
-     * handles. Make sure to close all database handles before closing the
-     * environment.
+     * <b>Important!</b> Will throw an exception if there are opened Database 
+     * handles. Make sure to close all Database handles before closing the
+     * Environment.
      */
     void close(void) {
         if (!m_env)
@@ -598,7 +598,7 @@ public:
             throw error(st);
     }
 
-    /** Get all database names. */
+    /** Get all Database names. */
     std::vector<ham_u16_t> get_database_names(void) {
         ham_size_t count=32;
         ham_status_t st;

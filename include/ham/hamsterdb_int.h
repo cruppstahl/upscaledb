@@ -26,31 +26,23 @@ extern "C" {
 
 
 /**
- * a callback function for dump - dumps a single key to stdout
+ * a callback function for ham_dump - dumps a single key to stdout
  */
 typedef void (*ham_dump_cb_t)(const ham_u8_t *key, ham_size_t keysize);
 
 /** 
- * dump the whole tree to stdout
+ * Verifies the whole Database
+ * 
+ * This function is only interesting if you want to debug hamsterdb.
  *
- * @remark you can pass a callback function pointer, or NULL for the default
- * function (dumps the first 16 bytes of the key)
+ * Returns HAM_NOT_IMPLEMENTED unless hamsterdb
+ * was built with HAM_ENABLE_INTERNAL (run ./configure --enable-internal).
  *
- * @remark This function returns HAM_NOT_IMPLEMENTED unless hamsterdb
- * was built with HAM_ENABLE_INTERNAL (run ./configure --enable-internal)
+ * @param db A valid Database handle
+ * @param reserved A reserved value; set to NULL
  *
- * @remark set 'reserved' to NULL
- */
-HAM_EXPORT ham_status_t
-ham_dump(ham_db_t *db, void *reserved, ham_dump_cb_t cb);
-
-/** 
- * verify the whole tree - this is only useful when you debug hamsterdb
- *
- * @remark This function returns HAM_NOT_IMPLEMENTED unless hamsterdb
- * was built with HAM_ENABLE_INTERNAL (run ./configure --enable-internal)
- *
- * @remark set 'reserved' to NULL
+ * @return @a HAM_SUCCESS upon success
+ * @return @a HAM_INTEGRITY_VIOLATED if the Database is broken
  */
 HAM_EXPORT ham_status_t
 ham_check_integrity(ham_db_t *db, void *reserved);
@@ -80,7 +72,7 @@ typedef void (*ham_file_filter_close_cb_t)(ham_env_t *env,
         ham_file_filter_t *filter);
 
 /**
- * A handle for file-level filtering.
+ * A handle for file-level filtering
  *
  * File-level filters can modify the page data before some data is 
  * written to disk, and immediately after it's read from disk.
@@ -104,7 +96,7 @@ struct ham_file_filter_t
     /** The function which is called after the page is read */
     ham_file_filter_after_read_cb_t after_read_cb;
 
-    /** The function which is when the database is closed */
+    /** The function which is when the Database is closed */
     ham_file_filter_close_cb_t close_cb;
 
     /** For internal use */
@@ -120,6 +112,12 @@ struct ham_file_filter_t
  *
  * File-level filters are usually installed immediately after the Environment
  * is created with @a ham_env_create[_ex] or opened with @a ham_env_open[_ex].
+ *
+ * @param env A valid Environment handle
+ * @param filter A pointer to a ham_file_filter_t structure
+ *
+ * @return @a HAM_SUCCESS upon success
+ * @return @a HAM_INV_PARAMETER if @a env or @a filter is NULL
  */
 HAM_EXPORT ham_status_t
 ham_env_add_file_filter(ham_env_t *env, ham_file_filter_t *filter);
@@ -128,8 +126,14 @@ ham_env_add_file_filter(ham_env_t *env, ham_file_filter_t *filter);
  * A function to remove a file-level filter.
  *
  * This function is usually not necessary - the lifetime of a file-filter
- * usually starts before the first database operation, and ends when the
+ * usually starts before the first Database operation, and ends when the
  * Environment is closed. It is not recommended to use this function.
+ *
+ * @param env A valid Environment handle
+ * @param filter A pointer to a ham_file_filter_t structure
+ *
+ * @return @a HAM_SUCCESS upon success
+ * @return @a HAM_INV_PARAMETER if @a env or @a filter is NULL
  */
 HAM_EXPORT ham_status_t
 ham_env_remove_file_filter(ham_env_t *env, ham_file_filter_t *filter);
@@ -153,16 +157,16 @@ typedef ham_status_t (*ham_record_filter_after_read_cb_t)(ham_db_t *db,
 
 /**
  * A callback function for a record-level filter; called immediately before the
- * database is closed. Can be used to avoid memory leaks.
+ * Database is closed. Can be used to avoid memory leaks.
  */
 typedef void (*ham_record_filter_close_cb_t)(ham_db_t *db, 
         ham_record_filter_t *filter);
 
 /**
- * A handle for record-level filtering.
+ * A handle for record-level filtering
  *
  * Record-level filters can modify and resize the record data before 
- * it is inserted, and before it is returned to the user.
+ * the record is inserted, and before it is returned to the user.
  *
  * Record-level filters can be used i.e. for writing compression filters. 
  * See @a ham_enable_compression() to create a filter for zlib-based
@@ -183,7 +187,7 @@ struct ham_record_filter_t
     /** The function which is called after the record is read from disk */
     ham_record_filter_after_read_cb_t after_read_cb;
 
-    /** The function which is when the database is closed */
+    /** The function which is when the Database is closed */
     ham_record_filter_close_cb_t close_cb;
 
     /** For internal use */
@@ -195,10 +199,16 @@ struct ham_record_filter_t
 };
 
 /**
- * A function to install a record-level filter. 
+ * A function to install a record-level filter.
  *
- * Record-level filters are usually installed immediately after the database
+ * Record-level filters are usually installed immediately after the Database
  * is created with @a ham_create[_ex] or opened with @a ham_open[_ex].
+ *
+ * @param db A valid Database handle
+ * @param filter A pointer to a ham_record_filter_t structure
+ *
+ * @return @a HAM_SUCCESS upon success
+ * @return @a HAM_INV_PARAMETER if @a db or @a filter is NULL
  */
 HAM_EXPORT ham_status_t
 ham_add_record_filter(ham_db_t *db, ham_record_filter_t *filter);
@@ -207,14 +217,20 @@ ham_add_record_filter(ham_db_t *db, ham_record_filter_t *filter);
  * A function to remove a record-level filter.
  *
  * This function is usually not necessary - the lifetime of a record-filter
- * usually starts before the first database operation, and ends when the
- * database is closed. It is not recommended to use this function.
+ * usually starts before the first Database operation, and ends when the
+ * Database is closed. It is not recommended to use this function.
+ *
+ * @param db A valid Database handle
+ * @param filter A pointer to a ham_record_filter_t structure
+ *
+ * @return @a HAM_SUCCESS upon success
+ * @return @a HAM_INV_PARAMETER if @a db or @a filter is NULL
  */
 HAM_EXPORT ham_status_t
 ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter);
 
 /**
- * Install a custom device object.
+ * Install a custom device object
  *
  * Custom device objects can be used to overwrite the functions which
  * open, create, read, write etc. to/from the file. 
@@ -226,6 +242,14 @@ ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter);
  * This function has to be called after the Environment handle has been
  * allocated (with @a ham_env_new) and before the Environment is created
  * or opened (with @a ham_env_create[_ex] or @a ham_env_open[_ex]).
+ *
+ * @param env A valid Environment handle
+ * @param device A pointer to a ham_device_t structure
+ *
+ * @return @a HAM_SUCCESS upon success
+ * @return @a HAM_INV_PARAMETER if @a db or @a device is NULL
+ * @return @a HAM_ALREADY_INITIALIZED if this function was already called
+ *            for this Environment
  */
 HAM_EXPORT ham_status_t
 ham_env_set_device(ham_env_t *env, void *device);
