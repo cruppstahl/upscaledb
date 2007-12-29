@@ -63,66 +63,6 @@ typedef struct free_cb_context_t
 } free_cb_context_t;
 
 /*
- * callback function for ham_dump
- */
-#ifdef HAM_ENABLE_INTERNAL
-static void
-my_dump_cb(int event, void *param1, void *param2, void *context)
-{
-    ham_size_t i, limit, keysize;
-    ham_page_t *page;
-    int_key_t *key;
-    ham_u8_t *data;
-    ham_dump_cb_t cb=(ham_dump_cb_t)context;
-
-    switch (event) {
-    case ENUM_EVENT_DESCEND:
-        break;
-
-    case ENUM_EVENT_PAGE_START:
-        page=(ham_page_t *)param1;
-        printf("\n------ page 0x%llx ---------------------------------------\n",
-				(long long unsigned)page_get_self(page));
-        break;
-
-    case ENUM_EVENT_ITEM:
-        key=(int_key_t *)param1;
-        data=key_get_key(key);
-        keysize=key_get_size(key);
-
-        if (cb) {
-            cb(data, keysize);
-        }
-        else {
-            printf(" %02d: ", *(int *)param2);
-            printf(" key (%2d byte): ", key_get_size(key));
-
-            if (keysize>16)
-                limit=16;
-            else
-                limit=keysize;
-
-            for (i=0; i<limit; i++)
-                printf("%02x ", data[i]);
-
-            if (keysize>limit)
-                printf("... (%d more bytes)\n", keysize-limit);
-            else
-                printf("\n");
-
-            printf("      ptr: 0x%llx\n",
-                    (long long unsigned)key_get_ptr(key));
-        }
-        break;
-
-    default:
-        ham_assert(!"unknown callback event", (""));
-        break;
-    }
-}
-#endif /* HAM_ENABLE_INTERNAL */
-
-/*
  * callback function for freeing blobs of an in-memory-database
  */
 static void
@@ -2193,6 +2133,9 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     if (!__prepare_key(key) || !__prepare_record(record))
         return (db_set_error(db, HAM_INV_PARAMETER));
 
+    if ((st=ham_txn_begin(&txn, db)))
+        return (st);
+
     if (db_get_env(db))
         __prepare_db(db);
 
@@ -2389,44 +2332,6 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
     }
 
     return (ham_txn_commit(&txn, 0));
-}
-
-ham_status_t
-ham_dump(ham_db_t *db, void *reserved, ham_dump_cb_t cb)
-{
-#ifdef HAM_ENABLE_INTERNAL
-    ham_txn_t txn;
-    ham_status_t st;
-    ham_backend_t *be;
-
-    if (!db || !cb)
-        return (HAM_INV_PARAMETER);
-
-    if (db_get_env(db))
-        __prepare_db(db);
-
-    db_set_error(db, 0);
-
-    be=db_get_backend(db);
-    if (!be)
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
-    if ((st=ham_txn_begin(&txn, db)))
-        return (st);
-
-    /*
-     * call the backend function
-     */
-    st=be->_fun_enumerate(be, my_dump_cb, cb);
-
-    if (st) {
-        (void)ham_txn_abort(&txn);
-        return (st);
-    }
-
-    return (ham_txn_commit(&txn, 0));
-#else /* !HAM_ENABLE_INTERNAL */
-    return (HAM_NOT_IMPLEMENTED);
-#endif
 }
 
 ham_status_t
@@ -2780,6 +2685,9 @@ ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags,
 ham_status_t
 ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 {
+    ham_status_t st;
+    ham_txn_t txn;
+
     if (!src || !dest)
         return (HAM_INV_PARAMETER);
 
@@ -2788,7 +2696,16 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 
     db_set_error(cursor_get_db(src), 0);
 
-    return (bt_cursor_clone((ham_bt_cursor_t *)src, (ham_bt_cursor_t **)dest));
+    if ((st=ham_txn_begin(&txn, cursor_get_db(src))))
+        return (st);
+
+    st=bt_cursor_clone((ham_bt_cursor_t *)src, (ham_bt_cursor_t **)dest);
+    if (st) {
+        (void)ham_txn_abort(&txn);
+        return (st);
+    }
+
+    return (ham_txn_commit(&txn, 0));
 }
 
 ham_status_t
@@ -2796,6 +2713,7 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags)
 {
     ham_status_t st;
+    ham_txn_t txn;
     ham_db_t *db;
     ham_record_t temprec;
 
@@ -2817,21 +2735,31 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
 
     db_set_error(db, 0);
 
+    if ((st=ham_txn_begin(&txn, db)))
+        return (st);
+
     /*
      * run the record-level filters on a temporary record structure - we
      * don't want to mess up the original structure
      */
     temprec=*record;
     st=__record_filters_before_insert(db, &temprec);
-    if (st)
+    if (st) {
+        (void)ham_txn_abort(&txn);
         return (st);
+    }
 
     st=bt_cursor_overwrite((ham_bt_cursor_t *)cursor, &temprec, flags);
 
     if (temprec.data!=record->data)
         ham_mem_free(db, temprec.data);
 
-    return (st);
+    if (st) {
+        (void)ham_txn_abort(&txn);
+        return (st);
+    }
+
+    return (ham_txn_commit(&txn, 0));
 }
 
 ham_status_t
@@ -2840,6 +2768,7 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 {
     ham_status_t st;
     ham_db_t *db;
+    ham_txn_t txn;
 
     if (!cursor)
         return (HAM_INV_PARAMETER);
@@ -2858,14 +2787,25 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
     db_set_error(db, 0);
 
-    st=bt_cursor_move((ham_bt_cursor_t *)cursor, key, record, flags);
-    if (st)
+    if ((st=ham_txn_begin(&txn, db)))
         return (st);
+
+    st=bt_cursor_move((ham_bt_cursor_t *)cursor, key, record, flags);
+    if (st) {
+        (void)ham_txn_abort(&txn);
+        return (st);
+    }
 
     /*
      * run the record-level filters
      */
-    return (__record_filters_after_find(db, record));
+    st=__record_filters_after_find(db, record);
+    if (st) {
+        (void)ham_txn_abort(&txn);
+        return (st);
+    }
+
+    return (ham_txn_commit(&txn, 0));
 }
 
 ham_status_t
@@ -2925,6 +2865,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     ham_backend_t *be;
     ham_u64_t recno;
     ham_record_t temprec;
+    ham_txn_t txn;
 
     if (!cursor)
         return (HAM_INV_PARAMETER);
@@ -3025,6 +2966,9 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         key->size=sizeof(ham_u64_t);
     }
 
+    if ((st=ham_txn_begin(&txn, db)))
+        return (st);
+
     /*
      * run the record-level filters on a temporary record structure - we
      * don't want to mess up the original structure
@@ -3039,6 +2983,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         ham_mem_free(db, temprec.data);
 
     if (st) {
+        (void)ham_txn_abort(&txn);
         if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
                 key->data=0;
@@ -3064,7 +3009,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         }
     }
 
-    return (0);
+    return (ham_txn_commit(&txn, 0));
 }
 
 ham_status_t
@@ -3103,6 +3048,9 @@ ham_status_t
 ham_cursor_get_duplicate_count(ham_cursor_t *cursor, 
         ham_size_t *count, ham_u32_t flags)
 {
+    ham_status_t st;
+    ham_txn_t txn;
+
     if (!cursor || !count)
         return (HAM_INV_PARAMETER);
 
@@ -3113,8 +3061,16 @@ ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
 
     db_set_error(cursor_get_db(cursor), 0);
 
-    return (bt_cursor_get_duplicate_count((ham_bt_cursor_t *)cursor, 
-                count, flags));
+    if ((st=ham_txn_begin(&txn, cursor_get_db(cursor))))
+        return (st);
+
+    st=bt_cursor_get_duplicate_count((ham_bt_cursor_t *)cursor, count, flags);
+    if (st) {
+        (void)ham_txn_abort(&txn);
+        return (st);
+    }
+
+    return (ham_txn_commit(&txn, 0));
 }
 
 ham_status_t
