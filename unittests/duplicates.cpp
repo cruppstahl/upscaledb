@@ -684,8 +684,8 @@ public:
         CPPUNIT_ASSERT(page!=0);
 
         CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
-        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_NEXT,     0, "aaaaaaaaaa");
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
         CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
         checkData(c, HAM_CURSOR_NEXT,     0, "1111111111");
         CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));

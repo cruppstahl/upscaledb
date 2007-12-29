@@ -18,6 +18,7 @@
 #include "../src/db.h"
 #include "../src/page.h"
 #include "../src/error.h"
+#include "../src/btree.h"
 #include "memtracker.h"
 #include "os.hpp"
 
@@ -26,6 +27,9 @@ class BtreeCursorTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(BtreeCursorTest);
     CPPUNIT_TEST      (createCloseTest);
     CPPUNIT_TEST      (cloneTest);
+    CPPUNIT_TEST      (moveTest);
+    CPPUNIT_TEST      (moveSplitTest);
+    CPPUNIT_TEST      (overwriteTest);
     CPPUNIT_TEST      (structureTest);
     CPPUNIT_TEST      (linkedListTest);
     CPPUNIT_TEST      (linkedListReverseCloseTest);
@@ -83,6 +87,117 @@ public:
         CPPUNIT_ASSERT(clone!=0);
         CPPUNIT_ASSERT(bt_cursor_close(cursor)==0);
         CPPUNIT_ASSERT(bt_cursor_close(clone)==0);
+    }
+
+    void overwriteTest(void)
+    {
+        ham_cursor_t *cursor;
+        ham_key_t key;
+        ham_record_t rec;
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+        int x=5;
+        key.size=sizeof(x);
+        key.data=&x;
+        rec.size=sizeof(x);
+        rec.data=&x;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_overwrite(cursor, &rec, 0));
+
+        ham_btree_t *be=(ham_btree_t *)db_get_backend(m_db);
+        ham_page_t *page=db_fetch_page(m_db, btree_get_rootpage(be), 0);
+        CPPUNIT_ASSERT(page!=0);
+        CPPUNIT_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_overwrite(cursor, &rec, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    }
+
+    void moveSplitTest(void)
+    {
+        ham_cursor_t *cursor, *cursor2, *cursor3;
+        ham_key_t key;
+        ham_record_t rec;
+        ham_parameter_t params[]={
+            { HAM_PARAM_PAGESIZE, 1024 },
+            { HAM_PARAM_KEYSIZE, 128 },
+            { 0, 0 }
+        };
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_create_ex(m_db, ".test", 
+                    HAM_ENABLE_DUPLICATES|(m_inmemory?HAM_IN_MEMORY_DB:0),
+                    0664, &params[0]));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor2));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor3));
+
+        for (int i=0; i<64; i++) {
+            key.size=sizeof(i);
+            key.data=&i;
+            rec.size=sizeof(i);
+            rec.data=&i;
+
+            CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_FIRST));
+        CPPUNIT_ASSERT_EQUAL(0, *(int *)key.data);
+        CPPUNIT_ASSERT_EQUAL(0, *(int *)rec.data);
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_LAST));
+        CPPUNIT_ASSERT_EQUAL(63, *(int *)key.data);
+        CPPUNIT_ASSERT_EQUAL(63, *(int *)rec.data);
+
+        for (int i=0; i<64; i++) {
+            CPPUNIT_ASSERT_EQUAL(0,
+                    ham_cursor_move(cursor2, &key, &rec, HAM_CURSOR_NEXT));
+            CPPUNIT_ASSERT_EQUAL(i, *(int *)key.data);
+            CPPUNIT_ASSERT_EQUAL(i, *(int *)rec.data);
+        }
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+                ham_cursor_move(cursor2, 0, 0, HAM_CURSOR_NEXT));
+        for (int i=63; i>=0; i--) {
+            CPPUNIT_ASSERT_EQUAL(0,
+                    ham_cursor_move(cursor3, &key, &rec, HAM_CURSOR_PREVIOUS));
+            CPPUNIT_ASSERT_EQUAL(i, *(int *)key.data);
+            CPPUNIT_ASSERT_EQUAL(i, *(int *)rec.data);
+        }
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+                ham_cursor_move(cursor3, 0, 0, HAM_CURSOR_PREVIOUS));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor3));
+    }
+
+    void moveTest(void)
+    {
+        ham_cursor_t *cursor;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+
+        /* no move, and cursor is nil: returns 0 if key/rec is 0 */
+        CPPUNIT_ASSERT_EQUAL(0,
+                    ham_cursor_move(cursor, 0, 0, 0));
+
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+                    ham_cursor_move(cursor, 0, 0, HAM_CURSOR_FIRST));
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+                    ham_cursor_move(cursor, 0, 0, HAM_CURSOR_NEXT));
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+                    ham_cursor_move(cursor, 0, 0, HAM_CURSOR_LAST));
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+                    ham_cursor_move(cursor, 0, 0, HAM_CURSOR_PREVIOUS));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
     }
 
     void structureTest(void)
@@ -203,7 +318,7 @@ public:
 
     void couplingTest(void)
     {
-        ham_cursor_t *c;
+        ham_cursor_t *c, *clone;
         ham_bt_cursor_t *btc;
         ham_key_t key1, key2, key3;
         ham_record_t rec;
@@ -235,6 +350,10 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_find(c, &key2, 0));
         CPPUNIT_ASSERT(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED);
         CPPUNIT_ASSERT(!(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+
+        /* clone the coupled cursor */
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_clone(c, &clone));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(clone));
 
         /* insert item BEFORE the first item - cursor is uncoupled */
         CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key1, &rec, 0));
@@ -268,6 +387,9 @@ class InMemoryBtreeCursorTest : public BtreeCursorTest
     CPPUNIT_TEST_SUITE(InMemoryBtreeCursorTest);
     CPPUNIT_TEST      (createCloseTest);
     CPPUNIT_TEST      (cloneTest);
+    CPPUNIT_TEST      (moveTest);
+    CPPUNIT_TEST      (moveSplitTest);
+    CPPUNIT_TEST      (overwriteTest);
     CPPUNIT_TEST      (structureTest);
     CPPUNIT_TEST      (linkedListTest);
     CPPUNIT_TEST      (linkedListReverseCloseTest);
