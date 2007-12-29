@@ -48,9 +48,34 @@ o do a complete source code review
     x btree_enum.c
     x btree_find.c
     x btree_check.c
-    o btree_insert.c
-    o btree_erase.c
+    x btree_insert.c
     o btree_cursor.c
+        o move_first with an empty tree
+        o move_next with an empty tree
+        o move_last with an empty tree
+        o move_previous with an empty tree
+        o move_first with a splitted/levelled btree
+        o move_next with a splitted/levelled btree (auch neg.-test)
+        o move_last with a splitted/levelled btree
+        o move_previous with a splitted/levelled btree (auch neg.-test)
+        o bt_cursor_couple braucht keine local_txn (aber assert!)
+        o uncouple an uncoupled cursor
+        o bt_cursor_clone braucht IMMER eine lokale txn
+        o zeile 581: immer true -> assert
+        o clone: testen mit gekoppelten und ungekoppelten cursorn
+        o bt_cursor_overwrite braucht IMMER eine lokale txn
+        o mit entkoppelten cursor testen
+        o bt_cursor_move braucht IMMER eine lokale txn
+        o move mit key/rec = NULL und flags = 0: return 0
+        o move mit key/rec != NULL und flags = 0: return IS_NIL
+        o bt_cursor_find braucht nur manchmal eine lokale txn
+        o neg.-test mit key = NULL
+        o bt_cursor_insert braucht IMMER eine lokale txn
+        o testen mit key = NULL, record = NULL
+        o bt_cursor_erase braucht IMMER eine lokale txn
+        o bt_cursor_points_to hat keinen negative test
+        o bt_cursor_get_duplicate_count hat IMMER eine lokale txn
+    o btree_erase.c
 
 o review the cache routines; when is the page-counter incremented or
     decremented, and how long does it usually take till a page is unloaded,
