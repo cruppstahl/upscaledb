@@ -9,11 +9,11 @@ noinst_PROGRAMS = test
 INCLUDES        = -I$(top_builddir)/include
 
 test_SOURCES    = check.cpp \
-				  error.cpp \
-				  filter.cpp \
-				  cppapi.cpp \
-				  recno.cpp \
-				  duplicates.cpp \
+                  error.cpp \
+                  filter.cpp \
+                  cppapi.cpp \
+                  recno.cpp \
+                  duplicates.cpp \
                   env.cpp \
                   hamsterdb.cpp \
                   blob.cpp \
