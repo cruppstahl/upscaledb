@@ -26,33 +26,33 @@ extern "C" {
  * check the operating system and word size
  */
 #ifdef UNDER_CE
-#	undef WIN32
-#	define WIN32 1
-#	define HAM_OS_WINCE 1
+#   undef WIN32
+#   define WIN32 1
+#   define HAM_OS_WINCE 1
 #endif
 
 #ifdef WIN32
-#    undef  HAM_OS_WIN32
-#    define HAM_OS_WIN32 1
-#    ifdef WIN64
-#        undef  HAM_64BIT
-#        define HAM_64BIT 1
-#    elif WIN32
-#        undef  HAM_32BIT
-#        define HAM_32BIT 1
-#    else
-#        error "Neither WIN32 nor WIN64 defined!"
-#    endif
+#   undef  HAM_OS_WIN32
+#   define HAM_OS_WIN32 1
+#   ifdef WIN64
+#       undef  HAM_64BIT
+#       define HAM_64BIT 1
+#   elif WIN32
+#       undef  HAM_32BIT
+#       define HAM_32BIT 1
+#   else
+#       error "Neither WIN32 nor WIN64 defined!"
+#   endif
 #else /* posix? */
-#    undef  HAM_OS_POSIX
-#    define HAM_OS_POSIX 1
-#    if defined(__LP64__) || defined(__LP64) || __WORDSIZE==64
-#        undef  HAM_64BIT
-#        define HAM_64BIT 1
-#    else
-#        undef  HAM_32BIT
-#        define HAM_32BIT 1
-#    endif
+#   undef  HAM_OS_POSIX
+#   define HAM_OS_POSIX 1
+#   if defined(__LP64__) || defined(__LP64) || __WORDSIZE==64
+#       undef  HAM_64BIT
+#       define HAM_64BIT 1
+#   else
+#       undef  HAM_32BIT
+#       define HAM_32BIT 1
+#   endif
 #endif
 
 #if defined(HAM_OS_POSIX) && defined(HAM_OS_WIN32)
@@ -63,30 +63,32 @@ extern "C" {
  * need windows.h for HANDLE
  */
 #ifdef HAM_OS_WIN32
-#    define WIN32_MEAN_AND_LEAN
-#    include <windows.h>
+#   define WIN32_MEAN_AND_LEAN
+#   include <windows.h>
 #endif
 
 /*
  * create the EXPORT-macro for Microsoft Visual C++
  */
-#ifdef _MSC_VER
-#    define HAM_EXPORT __declspec(dllexport)
-#else
-#    define HAM_EXPORT extern
+#ifndef HAM_EXPORT
+#   ifdef _MSC_VER
+#       define HAM_EXPORT __declspec(dllexport)
+#   else
+#       define HAM_EXPORT extern
+#   endif
 #endif
 
 /*
  * typedefs for 32bit operating systems
  */
 #ifdef HAM_32BIT
-#  ifdef _MSC_VER
+#   ifdef _MSC_VER
 typedef signed __int64     ham_s64_t;
 typedef unsigned __int64   ham_u64_t;
-#  else
+#   else
 typedef signed long long   ham_s64_t;
 typedef unsigned long long ham_u64_t;
-#  endif
+#   endif
 typedef signed int         ham_s32_t;
 typedef unsigned int       ham_u32_t;
 typedef signed short       ham_s16_t;
@@ -100,13 +102,13 @@ typedef unsigned char      ham_u8_t;
  * longs do not always have 64bit!
  */
 #ifdef HAM_64BIT
-#  ifdef _MSC_VER
+#   ifdef _MSC_VER
 typedef signed __int64     ham_s64_t;
 typedef unsigned __int64   ham_u64_t;
-#  else
+#   else
 typedef signed long        ham_s64_t;
 typedef unsigned long      ham_u64_t;
-#  endif
+#   endif
 typedef signed int         ham_s32_t;
 typedef unsigned int       ham_u32_t;
 typedef signed short       ham_s16_t;
