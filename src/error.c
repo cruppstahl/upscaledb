@@ -24,9 +24,10 @@
 extern int vsnprintf(char *str, size_t size, const char *format, va_list ap);
 #endif
 
-static const char *g_file=0;
-static int         g_line=0;
-static const char *g_expr=0;
+static int         g_level=0;
+static const char *g_file =0;
+static int         g_line =0;
+static const char *g_expr =0;
 
 void (*ham_test_abort)(void);
 
@@ -55,8 +56,12 @@ my_snprintf(char *str, size_t size, const char *format, ...)
 }
 
 static void
-my_errhandler(const char *message)
+my_errhandler(int level, const char *message)
 {
+#ifndef HAM_DEBUG
+    if (level==DBG_LVL_DEBUG)
+        return;
+#endif
     fprintf(stderr, "%s\n", message);
 }
 
@@ -84,8 +89,9 @@ dbg_unlock(void)
 }
 
 void 
-dbg_prepare(const char *file, int line, const char *expr)
+dbg_prepare(int level, const char *file, int line, const char *expr)
 {
+    g_level=level;
     g_file=file;
     g_line=line;
     g_expr=expr;
@@ -103,7 +109,7 @@ dbg_log(const char *format, ...)
     my_vsnprintf (buffer+s, sizeof(buffer)-s, format, ap);
     va_end(ap);
 
-    g_hand(buffer);
+    g_hand(g_level, buffer);
 } 
 
 void 
@@ -128,7 +134,7 @@ dbg_verify_failed(const char *format, ...)
         va_end(ap);
     }
     
-    g_hand(buffer);
+    g_hand(g_level, buffer);
 
 #ifndef HAM_OS_WINCE
     if (ham_test_abort)

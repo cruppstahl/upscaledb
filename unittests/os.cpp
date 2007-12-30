@@ -21,7 +21,7 @@
 #endif
 
 static void
-my_errhandler(const char *message)
+my_errhandler(int level, const char *message)
 {
     (void)message;
 }

@@ -16,7 +16,7 @@
 #include "../src/error.h"
 
 static void
-my_handler(const char *msg)
+my_handler(int level, const char *msg)
 {
     static int i=0;
     static const char *s[]={
@@ -57,7 +57,7 @@ public:
     void errorHandlerTest()
     {
         ham_set_errhandler(my_handler);
-        ham_log(("hello world"));
+        ham_trace(("hello world"));
         ham_set_errhandler(0);
         ham_log(("testing error handler - hello world\n"));
     }

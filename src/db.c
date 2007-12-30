@@ -439,17 +439,13 @@ db_create_backend(ham_db_t *db, ham_u32_t flags)
      * create a ham_backend_t with the size of a ham_btree_t
      */
     be=(ham_backend_t *)ham_mem_alloc(db, sizeof(ham_btree_t));
-    if (!be) {
-        ham_log(("out of memory"));
+    if (!be)
         return (0);
-    }
 
     /* initialize the backend */
     st=btree_create((ham_btree_t *)be, db, flags);
-    if (st) {
-        ham_log(("failed to initialize backend: 0x%s", st));
+    if (st)
         return (0);
-    }
 
     return (be);
 }
@@ -753,7 +749,6 @@ db_flush_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
 ham_status_t
 db_flush_all(ham_db_t *db, ham_u32_t flags)
 {
-    ham_status_t st;
     ham_page_t *head;
 
     if (!db_get_cache(db)) 
@@ -777,9 +772,7 @@ db_flush_all(ham_db_t *db, ham_u32_t flags)
                 cache_get_cur_elements(db_get_cache(db))-1);
         }
 
-        st=db_write_page_and_delete(head, flags);
-        if (st) 
-            ham_log(("failed to flush page (%d) - ignoring error...", st));
+        (void)db_write_page_and_delete(head, flags);
 
         head=next;
     }

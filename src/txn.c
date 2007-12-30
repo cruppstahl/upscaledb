@@ -121,9 +121,6 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
 
         /* 
          * delete the page? 
-         *
-         * in-memory-databases don't use a freelist and therefore
-         * can delete the page without consequences
          */
         if (page_get_npers_flags(head)&PAGE_NPERS_DELETE_PENDING) {
             /* remove page from cache, add it to garbage list */
@@ -140,7 +137,6 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
         st=db_flush_page(db, head, 
                 flags&TXN_FORCE_WRITE ? HAM_WRITE_THROUGH : 0);
         if (st) {
-            ham_trace(("commit failed with status 0x%x", st));
             page_add_ref(head);
             txn_set_pagelist(txn, head);
             return (st);
@@ -173,14 +169,13 @@ ham_txn_abort(ham_txn_t *txn)
         page_set_next(head, PAGE_LIST_TXN, 0);
         page_set_previous(head, PAGE_LIST_TXN, 0);
 
+        /* remove the 'delete pending' flag */
+        if (page_get_npers_flags(head)&PAGE_NPERS_DELETE_PENDING)
+            page_set_npers_flags(head, 
+                    page_get_npers_flags(head)&~PAGE_NPERS_DELETE_PENDING);
+
         /* page is no longer in use */
         page_release_ref(head);
-
-#if 0
-        /* move to garbage */
-        if (db_get_cache(db))
-            (void)cache_move_to_garbage(db_get_cache(db), head);
-#endif
 
         head=next;
     }

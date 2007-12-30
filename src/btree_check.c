@@ -93,10 +93,8 @@ btree_check_integrity(ham_btree_t *be)
 
     /* get the root page of the tree */
     page=db_fetch_page(db, btree_get_rootpage(be), 0);
-    if (!page) {
-        ham_trace(("error 0x%x while fetching root page", db_get_error(db)));
+    if (!page)
         return (db_get_error(db));
-    }
 
     /* while we found a page... */
     while (page) {
@@ -281,7 +279,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
 		if (key_get_flags(bte)&KEY_IS_EXTENDED) {
 			ham_offset_t blobid=key_get_extended_rid(db, bte);
 			if (!blobid) {
-				ham_trace(("integrity check failed in page 0x%llx: item #%d "
+				ham_log(("integrity check failed in page 0x%llx: item #%d "
 						"is extended, but has no blob", 
 						page_get_self(page), i));
 				return (HAM_INTEGRITY_VIOLATED);

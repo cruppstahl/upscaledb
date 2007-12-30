@@ -50,10 +50,8 @@ btree_enumerate(ham_btree_t *be, ham_enumerate_cb_t cb,
 
     /* get the root page of the tree */
     page=db_fetch_page(db, btree_get_rootpage(be), 0);
-    if (!page) {
-        ham_trace(("error 0x%x while fetching root page", db_get_error(db)));
+    if (!page)
         return (db_get_error(db));
-    }
 
     /* while we found a page... */
     while (page) {

@@ -1,3 +1,8 @@
+Dec 30, 2007 - chris
+o The debug- and error-messages are now always compiled; the message handler
+    of the debug build prints all messages, the handler of the release build
+    ignores debug messages
+
 Dec 29, 2007 - chris
 o Removed the function ham_dump; it was replaced by the command line tool
     and is no longer necessary

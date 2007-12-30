@@ -51,7 +51,7 @@ my_lock_exclusive(int fd, ham_bool_t lock)
         flags=LOCK_UN;
 
     if (0!=flock(fd, flags)) {
-        ham_trace(("flock failed with status %u (%s)", errno, strerror(errno)));
+        ham_log(("flock failed with status %u (%s)", errno, strerror(errno)));
         /* it seems that linux does not only return EWOULDBLOCK, as stated
          * in the documentation (flock(2)), but also other errors... */
         if (errno)
@@ -102,7 +102,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
     *buffer=mmap(0, size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, position);
     if (*buffer==(void *)-1) {
         *buffer=0;
-        ham_trace(("mmap failed with status %d (%s)", errno, strerror(errno)));
+        ham_log(("mmap failed with status %d (%s)", errno, strerror(errno)));
         return (HAM_IO_ERROR);
     }
 
@@ -121,7 +121,7 @@ os_munmap(ham_fd_t *mmaph, void *buffer, ham_size_t size)
 #if HAVE_MUNMAP
     r=munmap(buffer, size);
     if (r) {
-        ham_trace(("munmap failed with status %d (%s)", errno, 
+        ham_log(("munmap failed with status %d (%s)", errno, 
                     strerror(errno)));
         return (HAM_IO_ERROR);
     }
@@ -162,7 +162,7 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
     while (total<bufferlen) {
         r=pread(fd, buffer+total, bufferlen-total, addr+total);
         if (r<0) {
-            ham_trace(("os_pread failed with status %u (%s)", 
+            ham_log(("os_pread failed with status %u (%s)", 
                     errno, strerror(errno)));
             return (HAM_IO_ERROR);
         }
@@ -278,7 +278,7 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 
     *fd=open(filename, osflags, mode);
     if (*fd<0) {
-        ham_trace(("os_create of %s failed with status %u (%s)", filename,
+        ham_log(("os_create of %s failed with status %u (%s)", filename,
                 errno, strerror(errno)));
         return (HAM_IO_ERROR);
     }
@@ -320,7 +320,7 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 
     *fd=open(filename, osflags);
     if (*fd<0) {
-        ham_trace(("os_open of %s failed with status %u (%s)", filename,
+        ham_log(("os_open of %s failed with status %u (%s)", filename,
                 errno, strerror(errno)));
         return (errno==ENOENT ? HAM_FILE_NOT_FOUND : HAM_IO_ERROR);
     }
