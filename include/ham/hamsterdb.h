@@ -241,8 +241,15 @@ typedef struct {
  * A typedef for a custom error handler function
  *
  * @param message The error message
+ * @param level The error level:
+ *      <ul>
+ *       <li>0</li> a debug message
+ *       <li>1</li> a normal error message
+ *       <li>2</li> reserved
+ *       <li>3</li> a fatal error message
+ *      </ul>
  */
-typedef void (*ham_errhandler_fun)(const char *message);
+typedef void (*ham_errhandler_fun)(int level, const char *message);
 
 /**
  * Sets the global error handler
