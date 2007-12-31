@@ -39,6 +39,9 @@ main(int argc, char **argv)
     memset(&key, 0, sizeof(key));
     memset(&record, 0, sizeof(record));
 
+    printf("This sample uses hamsterdb to sort data.\n");
+    printf("Reading from stdin...\n");
+
     /*
      * first step: create a new hamsterdb object 
      */

@@ -33,6 +33,10 @@ main(int argc, char **argv)
     memset(&key, 0, sizeof(key));
     memset(&record, 0, sizeof(record));
 
+    printf("This sample uses hamsterdb and duplicate keys to list all words "
+            "in the\noriginal order, together with their line number.\n");
+    printf("Reading from stdin...\n");
+
 	/*
      * first step: create a new hamsterdb object 
      */
