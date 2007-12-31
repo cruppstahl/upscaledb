@@ -22,20 +22,20 @@ extern "C" {
 
 #include <ham/types.h>
 
-/**
+/*
  * Debug output levels
  */
 #define DBG_LVL_DEBUG       0
 #define DBG_LVL_NORMAL      1
 #define DBG_LVL_FATAL       3
 
-/**
+/*
  * function prototypes
  */
 extern void dbg_lock(void);
 extern void dbg_unlock(void);
 extern void dbg_prepare(int level, const char *file, int line, 
-        const char *expr);
+        const char *function, const char *expr);
 extern void dbg_log(const char *format, ...);
 extern void dbg_verify_failed(const char *format, ...);
 
@@ -43,6 +43,13 @@ extern void dbg_verify_failed(const char *format, ...);
  * a hook for unittests
  */
 extern void (*ham_test_abort)(void);
+
+/*
+ * protect against old compilers which do not support __FUNCTION__
+ */
+#ifndef HAVE_FUNCTION_MACRO
+#   define __FUNCTION__ 0
+#endif
 
 /** 
  * in debug mode we write trace()-messages to stderr, and assert() 
@@ -57,7 +64,7 @@ extern void (*ham_test_abort)(void);
 #   define ham_assert(e, f)  if (!(e)) {                               \
                                 dbg_lock();                            \
                                 dbg_prepare(DBG_LVL_FATAL, __FILE__,   \
-                                        __LINE__, #e);   \
+                                        __LINE__, __FUNCTION__, #e);   \
                                 dbg_verify_failed f;                   \
                                 dbg_unlock();                          \
                              }
@@ -71,21 +78,21 @@ extern void (*ham_test_abort)(void);
 #define ham_trace(f)         do {                                      \
                                 dbg_lock();                            \
                                 dbg_prepare(DBG_LVL_DEBUG, __FILE__,   \
-                                        __LINE__, 0);    \
+                                        __LINE__, __FUNCTION__, 0);    \
                                 dbg_log f;                             \
                                 dbg_unlock();                          \
                              } while (0)
 #define ham_log(f)           do {                                      \
                                 dbg_lock();                            \
                                 dbg_prepare(DBG_LVL_NORMAL, __FILE__,  \
-                                        __LINE__, 0);    \
+                                        __LINE__, __FUNCTION__, 0);    \
                                 dbg_log f;                             \
                                 dbg_unlock();                          \
                              } while (0)
 #define ham_verify(e, f)     if (!(e)) {                               \
                                 dbg_lock();                            \
                                 dbg_prepare(DBG_LVL_FATAL, __FILE__,   \
-                                        __LINE__, #e);   \
+                                        __LINE__, __FUNCTION__, #e);   \
                                 dbg_verify_failed f;                   \
                                 dbg_unlock();                          \
                              }

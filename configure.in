@@ -150,6 +150,20 @@ else
 fi
 
 dnl
+dnl check for __FUNCTION__ macro
+dnl
+AC_CACHE_CHECK(whether the compiler supports __FUNCTION__ macro,
+               ac_cv_FUNCTION,
+    [AC_TRY_RUN([
+int main(void) {
+    char *p=__FUNCTION__;
+    return 0;
+}],ac_cv_FUNCTION=yes,ac_cv_FUNCTION=no,ac_cv_FUNCTION=no)])
+if test $ac_cv_FUNCTION = yes; then
+    AC_DEFINE(HAVE_FUNCTION_MACRO,1,[__FUNCTION__ is supported])
+fi
+
+dnl
 dnl check for O_LARGEFILE
 dnl
 AC_CACHE_CHECK(for support of the O_LARGEFILE flag,ac_cv_largefile,

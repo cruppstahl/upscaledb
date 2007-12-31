@@ -24,10 +24,11 @@
 extern int vsnprintf(char *str, size_t size, const char *format, va_list ap);
 #endif
 
-static int         g_level=0;
-static const char *g_file =0;
-static int         g_line =0;
-static const char *g_expr =0;
+static int         g_level   =0;
+static const char *g_file    =0;
+static int         g_line    =0;
+static const char *g_expr    =0;
+static const char *g_function=0;
 
 void (*ham_test_abort)(void);
 
@@ -89,24 +90,32 @@ dbg_unlock(void)
 }
 
 void 
-dbg_prepare(int level, const char *file, int line, const char *expr)
+dbg_prepare(int level, const char *file, int line, const char *function,
+        const char *expr)
 {
     g_level=level;
     g_file=file;
     g_line=line;
     g_expr=expr;
+    g_function=function;
 }
 
 void 
 dbg_log(const char *format, ...)
 {
-    int s;
+    int s=0;
     char buffer[1024*4];
 
     va_list ap;
     va_start(ap, format);
+#if HAM_DEBUG
     s=my_snprintf(buffer,   sizeof(buffer), "%s[%d]: ", g_file, g_line);
     my_vsnprintf (buffer+s, sizeof(buffer)-s, format, ap);
+#else
+    if (g_function)
+        s=my_snprintf(buffer,   sizeof(buffer), "%s: ", g_function);
+    my_vsnprintf (buffer+s, sizeof(buffer)-s, format, ap);
+#endif
     va_end(ap);
 
     g_hand(g_level, buffer);

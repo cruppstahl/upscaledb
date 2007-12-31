@@ -25,7 +25,10 @@ my_handler(int level, const char *msg)
         "(none)",
         "hello world 42",
     };
-    const char *p=strstr(msg, ": ")+2;
+    const char *p=strstr(msg, ": ");
+    if (!p)
+        return;
+    p+=2;
     CPPUNIT_ASSERT_EQUAL(0, ::strcmp(s[i], p));
     i++;
 }

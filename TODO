@@ -34,6 +34,20 @@ x get rid of ham_dump - no longer needed
 x what happens with a page that is deleted (flag DELETE_PENDING), after 
     txn_commit or txn_abort were called?
 
+x when do we use traces, when do we use normal output? should we add more
+    traces, i.e. in case of invalid parameters?
+    x both should ALWAYS compile
+    x the error handler receives a "level"; the default handler prints 
+        everything in DEBUG mode, and only the normal messages in release mode
+        ham_trace: DEBUG level
+        ham_log: normal warning level
+        a custom handler could print anything whenever it wants to
+    x review all logs/traces: unexpected errors -> traces; everything else: log
+    x add a ham_trace call for each HAM_INV_PARAMETER error (and most other
+        errors, if it makes sense for the caller)
+    x release mode: print function name and error message; debug mode: print
+        filename/lineno of hamsterdb source
+
 o do a complete source code review
     (and while reviewing, make sure that all parts are covered by unittests)
     x mem.c
@@ -69,23 +83,14 @@ o do a complete source code review
         o zeile 610: immer false -> assert
         o remove #if 0...
 
-o when do we use traces, when do we use normal output? should we add more
-    traces, i.e. in case of invalid parameters?
-    x both should ALWAYS compile
-    x the error handler receives a "level"; the default handler prints 
-        everything in DEBUG mode, and only the normal messages in release mode
-        ham_trace: DEBUG level
-        ham_log: normal warning level
-        a custom handler could print anything whenever it wants to
-    x review all logs/traces: unexpected errors -> traces; everything else: log
-    o add a ham_trace call for each HAM_INV_PARAMETER error (and most other
-        errors, if it makes sense for the caller)
-
 o review the cache routines; when is the page-counter incremented or
     decremented, and how long does it usually take till a page is unloaded,
     because it's too old?
     to we need these counters? we can check the age of a page through
     the transaction id
+
+o add something like "reading from stdin..." and a short explanation to all 
+    samples which read from stdin; otherwise it's confusing for the user
 
 o enhance the tutorial
     doc rule: one sentence - no point; two sentences: make a point
