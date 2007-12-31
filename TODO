@@ -48,7 +48,10 @@ x when do we use traces, when do we use normal output? should we add more
     x release mode: print function name and error message; debug mode: print
         filename/lineno of hamsterdb source
 
-o do a complete source code review
+x add something like "reading from stdin..." and a short explanation to all 
+    samples which read from stdin; otherwise it's confusing for the user
+
+x do a complete source code review
     (and while reviewing, make sure that all parts are covered by unittests)
     x mem.c
     x error.c
@@ -71,26 +74,13 @@ o do a complete source code review
     x btree_check.c
     x btree_insert.c
     x btree_cursor.c
-    o btree_erase.c
-        o collapse root
-        o negative erase (-> key_not_found)
-        o merge page w. right sibling
-        o merge page w. left sibling
-        o shift to left sibling
-        o shift to right sibling
-        o shift from left sibling
-        o shift from right sibling
-        o zeile 610: immer false -> assert
-        o remove #if 0...
+    x btree_erase.c
 
 o review the cache routines; when is the page-counter incremented or
     decremented, and how long does it usually take till a page is unloaded,
     because it's too old?
     to we need these counters? we can check the age of a page through
     the transaction id
-
-o add something like "reading from stdin..." and a short explanation to all 
-    samples which read from stdin; otherwise it's confusing for the user
 
 o enhance the tutorial
     doc rule: one sentence - no point; two sentences: make a point
