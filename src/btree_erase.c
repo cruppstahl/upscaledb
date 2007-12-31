@@ -607,12 +607,12 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
 
     node   =ham_page_get_btree_node(page);
     sibnode=ham_page_get_btree_node(sibpage);
-    if (btree_node_get_count(node)==btree_node_get_count(sibnode))
-        return (0);
     keysize=db_get_keysize(db);
     intern =!btree_node_is_leaf(node);
     ancpage=db_fetch_page(db, anchor, 0);
     ancnode=ham_page_get_btree_node(ancpage);
+
+    ham_assert(btree_node_get_count(node)!=btree_node_get_count(sibnode), (""));
 
     /*
      * uncouple all cursors
@@ -751,17 +751,12 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
                     db_set_error(db, st);
                     return (0);
                 }
-                /* don't replace if the slot is outside of the key range */
-#if 0
-                if (slot<btree_node_get_count(ancnode)-1) {
-#endif
-                    st=my_replace_key(ancpage, slot, 
-                        bte, INTERNAL_KEY);
-                    if (st) {
-                        db_set_error(db, st);
-                        return (0);
-                    }
-/*}*/
+                /* replace the key */
+                st=my_replace_key(ancpage, slot, bte, INTERNAL_KEY);
+                if (st) {
+                    db_set_error(db, st);
+                    return (0);
+                }
             }
             /*
              * shift once more
@@ -787,15 +782,12 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
                 db_set_error(db, st);
                 return (0);
             }
-#if 0
-            if (slot<btree_node_get_count(ancnode)-1) {
-#endif
-                st=my_replace_key(ancpage, slot, bte, INTERNAL_KEY);
-                if (st) {
-                    db_set_error(db, st);
-                    return (0);
-                }
-/*}*/
+            /* replace the key */
+            st=my_replace_key(ancpage, slot, bte, INTERNAL_KEY);
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
         }
 
         /*

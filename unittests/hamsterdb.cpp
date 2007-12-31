@@ -228,13 +228,15 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
 
-        for (int i=0; i<128; i++) {
-            ham_parameter_t ps[]={{HAM_PARAM_PAGESIZE,   1024}, {0, 0}};
+        ham_parameter_t ps[]={{HAM_PARAM_PAGESIZE,   512}, {0, 0}};
 
-            CPPUNIT_ASSERT_EQUAL(0, 
-                    ham_create_ex(db, ".test", 0, 0644, &ps[0]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        }
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PAGESIZE, 
+                ham_create_ex(db, ".test", 0, 0644, &ps[0]));
+
+        ps[0].value=1024;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create_ex(db, ".test", 0, 0644, &ps[0]));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
 
         ham_delete(db);
     }
@@ -783,6 +785,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, strcmp("Unknown error", 
                     ham_strerror((ham_status_t)1)));
     }
+
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(HamsterdbTest);
