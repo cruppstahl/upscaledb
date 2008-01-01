@@ -1,3 +1,8 @@
+Jan 01, 2008 - chris
+o calling ham_set_prefix_compare_func with NULL as a function pointer
+    does no longer set the default prefix compare function, but completely
+    disables prefix comparison
+
 Dec 31, 2007 - chris
 o Most errors now emit a ham_trace debug messages, esp. HAM_INV_PARAMETER;
     also, in release mode all messages now show the hamsterdb function name,

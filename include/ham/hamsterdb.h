@@ -1023,11 +1023,10 @@ ham_get_error(ham_db_t *db);
  * Sets the prefix comparison function
  *
  * The prefix comparison function is called when an index uses
- * keys with variable length, and one of the two keys is loaded only
- * partially.
+ * keys with variable length, and at least one of the two keys is loaded
+ * only partially.
  *
- * If @a foo is NULL, hamsterdb will use the default prefix compare
- * function (which is based on memcmp(3)).
+ * If @a foo is NULL, hamsterdb will not use any prefix comparison.
  *
  * @param db A valid Database handle
  * @param foo A pointer to the prefix compare function
@@ -1047,6 +1046,10 @@ ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
  *
  * If @a foo is NULL, hamsterdb will use the default compare
  * function (which is based on memcmp(3)).
+ *
+ * Note that if you use a custom comparison routine in combination with
+ * extended keys, it might be useful to disable the prefix comparison, which
+ * is based on memcmp(3). See @sa ham_set_prefix_compare_func for details.
  *
  * @param db A valid Database handle
  * @param foo A pointer to the compare function

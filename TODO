@@ -81,10 +81,24 @@ x review the cache routines; when is the page-counter incremented or
     because it's too old?
     do we need these counters? we can check the age of a page through
     the transaction id
+    x need troubleshooting section which describes how to install a message
+        handler
 
-o enhance the tutorial
+x enhance the tutorial
     doc rule: one sentence - no point; two sentences: make a point
-    Environment, Database, Cursor: capital letters!
+    x Database
+    x Environment
+    x Cursor
+    x In-Memory [Database/Environment]
+    x Record Number Database
+
+x re-check header files:
+    x In-Memory [Database/Environment]
+    x Record Number Database
+    
+x test extkeys without prefix compare function - is it faster? it should
+    be the default!! But then it needs documentation in the tutorial
+    -> no, it's slower; don't disable it by default
 
 o send header files/tutorial to andrew/shira
 
@@ -95,15 +109,3 @@ o release 0.5.0 - this is 1.0rc1!!
       o ../../testfiles/1/100.tst - status mismatch
       o ../../testfiles/1/202.tst - status mismatch
       o ../../testfiles/1/220.tst - status mismatch
-
-. create a new repository for hamsterdb-alien for all dependencies 
-    in source and precompiled (static/non-debug - cppunit and berkeleydb)
-    x linux64-le
-    x linux32-le
-    x win32
-    o cygwin32
-    o win64
-    o wince-x86
-    o ppc32-be
-    o sparc-32
-

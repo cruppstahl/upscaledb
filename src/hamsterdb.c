@@ -1857,7 +1857,7 @@ ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo)
     }
 
     db_set_error(db, 0);
-    db_set_prefix_compare_func(db, foo ? foo : db_default_prefix_compare);
+    db_set_prefix_compare_func(db, foo);
 
     return (HAM_SUCCESS);
 }
