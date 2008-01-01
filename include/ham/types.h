@@ -78,7 +78,7 @@ extern "C" {
 #   endif
 #endif
 
-/*
+/**
  * typedefs for 32bit operating systems
  */
 #ifdef HAM_32BIT
@@ -97,7 +97,7 @@ typedef signed char        ham_s8_t;
 typedef unsigned char      ham_u8_t;
 #endif
 
-/* 
+/** 
  * typedefs for 64bit operating systems; on Win64, 
  * longs do not always have 64bit!
  */
@@ -144,19 +144,19 @@ typedef HANDLE             ham_fd_t;
 #   define HAM_INVALID_FD  (0)
 #endif 
 
-/* 
+/**
  * a boolean type
  */
 typedef int                ham_bool_t;
 #define HAM_FALSE          0
 #define HAM_TRUE           (!HAM_FALSE)
 
-/* 
+/**
  * typedef for error- and status-code
  */
 typedef int                ham_status_t;
 
-/* 
+/**
  * typedef for addressing the file; this limits the file size
  * to 64 bit. should be enough, hopefully...
  *
@@ -165,7 +165,7 @@ typedef int                ham_status_t;
  */
 typedef ham_u64_t          ham_offset_t;
 
-/*
+/**
  * typedef for sizes; this limits data blobs to 32 bits
  *
  * @remark if you change this datatype, then you also have to change
@@ -173,7 +173,7 @@ typedef ham_u64_t          ham_offset_t;
  */
 typedef ham_u32_t          ham_size_t;
 
-/*
+/**
  * typedef for a prefix-compare-function
  *
  * @remark this function compares two index keys; it returns -1, if lhs
@@ -191,7 +191,7 @@ typedef int (*ham_prefix_compare_func_t)
                                   const ham_u8_t *rhs, ham_size_t rhs_length,
                                   ham_size_t rhs_real_length);
 
-/*
+/**
  * typedef for a compare-function
  *
  * @remark this function compares two index keys; it returns -1, if lhs
