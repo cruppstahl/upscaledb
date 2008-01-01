@@ -335,7 +335,7 @@ ham_env_delete(ham_env_t *env);
  *
  * @param env A valid Environment handle, which was created with @a ham_env_new
  * @param filename The filename of the Environment file. If the file already
- *          exists, it is overwritten. Can be NULL if an in-memory 
+ *          exists, it is overwritten. Can be NULL if an In-Memory 
  *          Environment is created.
  * @param flags Optional flags for opening the Environment, combined with
  *        bitwise OR. For allowed flags, see @a ham_env_create_ex.
@@ -361,14 +361,14 @@ ham_env_create(ham_env_t *env, const char *filename,
  *
  * @param env A valid Environment handle, which was created with @a ham_env_new
  * @param filename The filename of the Environment file. If the file already
- *          exists, it is overwritten. Can be NULL if an in-memory 
+ *          exists, it is overwritten. Can be NULL if an In-Memory 
  * @param flags Optional flags for opening the Environment, combined with
  *        bitwise OR. Possible flags are:
  *      <ul>
  *       <li>@a HAM_WRITE_THROUGH</li> Immediately write modified pages to the
  *            disk. This slows down all Database operations, but may
  *            save the Database integrity in case of a system crash.
- *       <li>@a HAM_IN_MEMORY_DB</li> Creates an in-memory Environment. No 
+ *       <li>@a HAM_IN_MEMORY_DB</li> Creates an In-Memory Environment. No 
  *            file will be created, and the Database contents are lost after
  *            the Environment is closed. The @a filename parameter can
  *            be NULL. Do <b>NOT</b> use in combination with
@@ -526,7 +526,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  *       <li>@a HAM_ENABLE_DUPLICATES</li> Enable duplicate keys for this
  *            Database. By default, duplicate keys are disabled.
  *       <li>@a HAM_RECORD_NUMBER</li> Creates an "auto-increment" Database.
- *            Keys in record number Databases are automatically assigned an 
+ *            Keys in Record Number Databases are automatically assigned an 
  *            incrementing 64bit value. If key->data is not NULL
  *            (and key->flags is @a HAM_KEY_USER_ALLOC and key->size is 8),
  *            the value of the current key is returned in @a key (a 
@@ -646,7 +646,7 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
  * disk/read from disk; the cached pages in RAM are decrypted. Please read 
  * the FAQ for security relevant notes.
  *
- * The encryption has no effect on in-memory Environments, but the function
+ * The encryption has no effect on In-Memory Environments, but the function
  * will return @a HAM_SUCCESS.
  *
  * The encryption will be active till @a ham_env_close is called. If the 
@@ -765,7 +765,7 @@ ham_delete(ham_db_t *db);
  * @param db A valid Database handle
  * @param filename The filename of the Database file. If the file already
  *          exists, it is overwritten. Can be NULL if you create an
- *          in-memory Database
+ *          In-Memory Database
  * @param flags Optional flags for opening the Database, combined with
  *        bitwise OR. For allowed flags, see @a ham_create_ex.
  * @param mode File access rights for the new file. This is the @a mode
@@ -791,7 +791,7 @@ ham_create(ham_db_t *db, const char *filename,
  * @param db A valid Database handle
  * @param filename The filename of the Database file. If the file already
  *          exists, it will be overwritten. Can be NULL if you create an
- *          in-memory Database
+ *          In-Memory Database
  * @param flags Optional flags for opening the Database, combined with
  *        bitwise OR. Possible flags are:
  *      <ul>
@@ -805,14 +805,14 @@ ham_create(ham_db_t *db, const char *filename,
  *       <li>@a HAM_DISABLE_VAR_KEYLEN</li> Do not allow the use of variable
  *            length keys. Inserting a key, which is larger than the
  *            B+Tree index key size, returns @a HAM_INV_KEYSIZE.
- *       <li>@a HAM_IN_MEMORY_DB</li> Creates an in-memory Database. No file
+ *       <li>@a HAM_IN_MEMORY_DB</li> Creates an In-Memory Database. No file
  *            will be created, and the Database contents are lost after
  *            the Database is closed. The @a filename parameter can
  *            be NULL. Do <b>NOT</b> use in combination with
  *            @a HAM_CACHE_STRICT and do <b>NOT</b> specify @a cachesize
  *            other than 0.
  *       <li>@a HAM_RECORD_NUMBER</li> Creates an "auto-increment" Database.
- *            Keys in record number Databases are automatically assigned an 
+ *            Keys in Record Number Databases are automatically assigned an 
  *            incrementing 64bit value. If key->data is not NULL
  *            (and key->flags is @a HAM_KEY_USER_ALLOC and key->size is 8),
  *            the value of the current key is returned in @a key (a 
@@ -1146,7 +1146,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  * The duplicate key is inserted after all other duplicate keys (see
  * @a HAM_DUPLICATE_INSERT_LAST).
  *
- * Record number Databases (created with @a HAM_RECORD_NUMBER) expect 
+ * Record Number Databases (created with @a HAM_RECORD_NUMBER) expect 
  * either an empty @a key (with a size of 0 and data pointing to NULL),
  * or a user-supplied key (with key.flag @a HAM_KEY_USER_ALLOC, a size
  * of 8 and a valid data pointer). 
@@ -1169,7 +1169,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  *
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if @a db, @a key or @a record is NULL
- * @return @a HAM_INV_PARAMETER if the Database is a record number Database
+ * @return @a HAM_INV_PARAMETER if the Database is a Record Number Database
  *              and the key is invalid (see above)
  * @return @a HAM_INV_PARAMETER if the flags @a HAM_OVERWRITE <b>and</b>
  *              @a HAM_DUPLICATE were specified, or if @a HAM_DUPLICATE
@@ -1236,7 +1236,7 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags);
  * to disk. If this Database was opened in an Environment, all other
  * Databases of this Environment are flushed as well.
  *
- * Since in-memory Databases do not have a file on disk, the
+ * Since In-Memory Databases do not have a file on disk, the
  * function will have no effect and will return @a HAM_SUCCESS.
  *
  * @param db A valid Database handle
@@ -1467,7 +1467,7 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  * After inserting, the Cursor will point to the new item. If inserting
  * the item failed, the Cursor is not modified.
  *
- * Record number Databases (created with @a HAM_RECORD_NUMBER) expect 
+ * Record Number Databases (created with @a HAM_RECORD_NUMBER) expect 
  * either an empty @a key (with a size of 0 and data pointing to NULL),
  * or a user-supplied key (with key.flag @a HAM_KEY_USER_ALLOC, a size
  * of 8 and a valid data pointer). 
@@ -1501,7 +1501,7 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  *
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if @a key or @a record is NULL
- * @return @a HAM_INV_PARAMETER if the Database is a record number Database
+ * @return @a HAM_INV_PARAMETER if the Database is a Record Number Database
  *              and the key is invalid (see above)
  * @return @a HAM_INV_PARAMETER if the flags @a HAM_OVERWRITE <b>and</b>
  *              @a HAM_DUPLICATE were specified, or if @a HAM_DUPLICATE
