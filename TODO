@@ -76,10 +76,10 @@ x do a complete source code review
     x btree_cursor.c
     x btree_erase.c
 
-o review the cache routines; when is the page-counter incremented or
+x review the cache routines; when is the page-counter incremented or
     decremented, and how long does it usually take till a page is unloaded,
     because it's too old?
-    to we need these counters? we can check the age of a page through
+    do we need these counters? we can check the age of a page through
     the transaction id
 
 o enhance the tutorial
