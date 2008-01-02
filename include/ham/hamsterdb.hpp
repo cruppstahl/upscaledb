@@ -574,10 +574,6 @@ public:
 
     /** 
      * Closes the Environment. 
-     *
-     * <b>Important!</b> Will throw an exception if there are opened Database 
-     * handles. Make sure to close all Database handles before closing the
-     * Environment.
      */
     void close(void) {
         if (!m_env)

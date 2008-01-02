@@ -211,22 +211,18 @@ typedef struct {
 #define HAM_NOT_READY                (-23)
 /** Database limits reached */
 #define HAM_LIMITS_REACHED           (-24)
-/** Not all Cursors were closed before closing the Database */
-#define HAM_DB_NOT_EMPTY             (-25)
 /** AES encryption key is wrong */
-#define HAM_ACCESS_DENIED            (-26)
+#define HAM_ACCESS_DENIED            (-25)
 /** Object was already initialized */
 #define HAM_ALREADY_INITIALIZED      (-27)
 /** Cursor does not point to a valid item */
 #define HAM_CURSOR_IS_NIL           (-100)
-/** Not all Databases were closed before closing the Environment */
-#define HAM_ENV_NOT_EMPTY           (-200)
 /** Database not found */
-#define HAM_DATABASE_NOT_FOUND      (-201)
+#define HAM_DATABASE_NOT_FOUND      (-200)
 /** Database name already exists */
-#define HAM_DATABASE_ALREADY_EXISTS (-202)
+#define HAM_DATABASE_ALREADY_EXISTS (-201)
 /** Database already open */
-#define HAM_DATABASE_ALREADY_OPEN   (-203)
+#define HAM_DATABASE_ALREADY_OPEN   (-202)
 
 /**
  * @}
@@ -705,17 +701,18 @@ ham_env_get_database_names(ham_env_t *env, ham_u16_t *names, ham_size_t *count);
  * to free @a env.
  *
  * If the flag @a HAM_AUTO_CLEANUP is specified, hamsterdb automatically
- * closes all open Databases and their Cursors. 
+ * calls @a ham_close with flag @a HAM_AUTO_CLEANUP on all open Databases
+ * (which closes all open Databases and their Cursors). This invalidates the
+ * ham_db_t and ham_cursor_t handles!
  *
  * If the flag is not specified, the application must close all Database 
- * handles with @a ham_close, otherwise @a HAM_ENV_NOT_EMPTY 
- * is returned.
+ * handles with @a ham_close to prevent memory leaks.
  *
  * @param env A valid Environment handle
  * @param flags Optional flags for closing the handle. Possible flags are:
  *          <ul>
  *            <li>@a HAM_AUTO_CLEANUP. Calls @a ham_close with the flag 
- *                @a HAM_AUTO_CLEANUP on every open Database.
+ *                @a HAM_AUTO_CLEANUP on every open Database
  *          </ul>
  *
  * @return @a HAM_SUCCESS upon success
@@ -1259,11 +1256,11 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  * use @a ham_delete to free @a db.
  *
  * If the flag @a HAM_AUTO_CLEANUP is specified, hamsterdb automatically
- * closes all open Cursors.
+ * calls @a ham_cursor_close on all open Cursors. This invalidates the
+ * ham_cursor_t handle! 
  *
  * If the flag is not specified, the application must close all Database 
- * Cursors with @a ham_cursor_close, otherwise @a HAM_DB_NOT_EMPTY 
- * is returned.
+ * Cursors with @a ham_cursor_close to prevent memory leaks.
  *
  * This function removes all file-level filters installed 
  * with @a ham_add_file_filter.
@@ -1271,12 +1268,11 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  * @param db A valid Database handle
  * @param flags Optional flags for closing the Database. Possible values are:
  *      <ul>
- *       <li>@a HAM_AUTO_CLEANUP. Automatically closes all open Cursors.
+ *       <li>@a HAM_AUTO_CLEANUP. Automatically closes all open Cursors
  *      </ul>
  *
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if @a db is NULL
- * @return @a HAM_DB_NOT_EMPTY if there are still Cursors open
  */
 HAM_EXPORT ham_status_t
 ham_close(ham_db_t *db, ham_u32_t flags);

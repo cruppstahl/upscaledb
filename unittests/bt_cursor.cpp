@@ -74,7 +74,7 @@ public:
 
         CPPUNIT_ASSERT(bt_cursor_create(m_db, 0, 0, &cursor)==0);
         CPPUNIT_ASSERT(cursor!=0);
-        CPPUNIT_ASSERT(bt_cursor_close(cursor)==0);
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)cursor));
     }
 
     void cloneTest(void)
@@ -85,8 +85,8 @@ public:
         CPPUNIT_ASSERT(cursor!=0);
         CPPUNIT_ASSERT(bt_cursor_clone(cursor, &clone)==0);
         CPPUNIT_ASSERT(clone!=0);
-        CPPUNIT_ASSERT(bt_cursor_close(cursor)==0);
-        CPPUNIT_ASSERT(bt_cursor_close(clone)==0);
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)clone));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)cursor));
     }
 
     void overwriteTest(void)
@@ -225,7 +225,7 @@ public:
         bt_cursor_set_flags(cursor, 0);
         CPPUNIT_ASSERT(bt_cursor_get_flags(cursor)==0);
 
-        CPPUNIT_ASSERT(bt_cursor_close(cursor)==0);
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)cursor));
     }
 
     void linkedListTest(void)
@@ -247,9 +247,10 @@ public:
         CPPUNIT_ASSERT_EQUAL((ham_cursor_t *)clone, db_get_cursors(m_db));
 
         for (int i=0; i<5; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, bt_cursor_close(cursor[i]));
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_cursor_close((ham_cursor_t *)cursor[i]));
         }
-        CPPUNIT_ASSERT_EQUAL(0, bt_cursor_close(clone));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)clone));
 
         CPPUNIT_ASSERT_EQUAL((ham_cursor_t *)0, db_get_cursors(m_db));
     }
@@ -273,9 +274,10 @@ public:
         CPPUNIT_ASSERT_EQUAL((ham_cursor_t *)clone, db_get_cursors(m_db));
 
         for (int i=4; i>=0; i--) {
-            CPPUNIT_ASSERT_EQUAL(0, bt_cursor_close(cursor[i]));
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_cursor_close((ham_cursor_t *)cursor[i]));
         }
-        CPPUNIT_ASSERT_EQUAL(0, bt_cursor_close(clone));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)clone));
 
         CPPUNIT_ASSERT_EQUAL((ham_cursor_t *)0, db_get_cursors(m_db));
     }

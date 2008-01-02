@@ -315,7 +315,9 @@ main(int argc, char **argv)
     }
 
     /*
-     * we're done! close the environment
+     * now close the environment handle; the flag
+     * HAM_AUTO_CLEANUP will automatically close all databases and
+     * cursors
      */
     st=ham_env_close(env, HAM_AUTO_CLEANUP);
     if (st!=HAM_SUCCESS)

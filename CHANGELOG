@@ -1,3 +1,14 @@
+Jan 02, 2008 - chris
+o API change for ham_env_close: if you call ham_env_close and there are still
+    open Databases, the function will no longer fail with HAM_ENV_NOT_EMPTY; 
+    instead, the Databases are closed with ham_close; you still have to
+    close the Cursors of each Database, though.
+o API change for ham_close: if you call ham_close and there are still
+    open Cursors, the function will no longer fail with HAM_DB_NOT_EMPTY; 
+    instead, the Cursors are invalidated, but you still have to call 
+    ham_cursor_close to prevent memory leaks. Alternatively, the flag
+    HAM_AUTO_CLEANUP implicitely calls ham_cursor_close on each function.
+
 Jan 01, 2008 - chris
 o calling ham_set_prefix_compare_func with NULL as a function pointer
     does no longer set the default prefix compare function, but completely

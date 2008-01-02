@@ -207,9 +207,6 @@ ham_strerror(ham_status_t result)
             return ("Object was not initialized correctly");
         case HAM_CURSOR_IS_NIL:
             return ("Cursor points to NIL");
-        case HAM_ENV_NOT_EMPTY:
-            return ("Not all databases were closed before "
-                    "closing the environment");
         case HAM_DATABASE_NOT_FOUND:
             return ("Database not found");
         case HAM_DATABASE_ALREADY_EXISTS:
@@ -220,9 +217,6 @@ ham_strerror(ham_status_t result)
             return ("Database limits reached");
         case HAM_ALREADY_INITIALIZED:
             return ("Object was already initialized");
-        case HAM_DB_NOT_EMPTY:
-            return ("Not all cursors were closed before "
-                    "closing the database");
         case HAM_ACCESS_DENIED:
             return ("Encryption key is wrong");
         default:
@@ -1211,23 +1205,20 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-    if (env_get_list(env) && !(flags&HAM_AUTO_CLEANUP)) {
-        ham_trace(("not all databases were closed, aborting"));
-        return (HAM_ENV_NOT_EMPTY);
-    }
 
     /*
      * close all databases?
      */
-    if (flags&HAM_AUTO_CLEANUP) {
+    if (env_get_list(env)) {
         ham_db_t *db=env_get_list(env);
         while (db) {
             ham_db_t *next=db_get_next(db);
-            st=ham_close(db, HAM_AUTO_CLEANUP);
+            st=ham_close(db, flags&HAM_AUTO_CLEANUP ? HAM_AUTO_CLEANUP : 0);
             if (st)
                 return (st);
             db=next;
         }
+        env_set_list(env, 0);
     }
 
     /*
@@ -1312,6 +1303,12 @@ ham_delete(ham_db_t *db)
 
     /* free cached data pointers */
     (void)db_resize_allocdata(db, 0);
+
+    /* close the allocator */
+    if (db_get_allocator(db)) {
+        db_get_allocator(db)->close(db_get_allocator(db));
+        db_set_allocator(db, 0);
+    }
 
     /* "free" all remaining memory */
     free(db);
@@ -2632,10 +2629,6 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-    if (db_get_cursors(db) && !(flags&HAM_AUTO_CLEANUP)) {
-        ham_trace(("not all cursors were closed, aborting"));
-        return (db_set_error(db, HAM_DB_NOT_EMPTY));
-    }
 
     if (db_get_env(db))
         __prepare_db(db);
@@ -2645,15 +2638,19 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     /*
      * auto-cleanup cursors?
      */
-    if (flags&HAM_AUTO_CLEANUP) {
+    if (db_get_cursors(db)) {
         ham_bt_cursor_t *c=(ham_bt_cursor_t *)db_get_cursors(db);
         while (c) {
             ham_bt_cursor_t *next=(ham_bt_cursor_t *)cursor_get_next(c);
-            st=ham_cursor_close((ham_cursor_t *)c);
+            if (flags&HAM_AUTO_CLEANUP)
+                st=ham_cursor_close((ham_cursor_t *)c);
+            else
+                st=bt_cursor_close(c);
             if (st)
                 return (st);
             c=next;
         }
+        db_set_cursors(db, 0);
     }
 
     /*
@@ -2821,14 +2818,6 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     }
     db_set_record_filter(db, 0);
 
-    /* 
-     * close the allocator, but not if we're in an environment
-     */
-    if (!db_get_env(db) && db_get_allocator(db)) {
-        db_get_allocator(db)->close(db_get_allocator(db));
-        db_set_allocator(db, 0);
-    }
-
     /*
      * remove this database from the environment
      */
@@ -2848,7 +2837,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         db_set_env(db, 0);
     }
 
-    return (0);
+    return (HAM_SUCCESS);
 }
 
 ham_status_t
@@ -3325,6 +3314,8 @@ ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
 ham_status_t
 ham_cursor_close(ham_cursor_t *cursor)
 {
+    ham_status_t st;
+
     if (!cursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
         return (HAM_INV_PARAMETER);
@@ -3335,7 +3326,11 @@ ham_cursor_close(ham_cursor_t *cursor)
 
     db_set_error(cursor_get_db(cursor), 0);
 
-    return (bt_cursor_close((ham_bt_cursor_t *)cursor));
+    st=bt_cursor_close((ham_bt_cursor_t *)cursor);
+    if (!st)
+        ham_mem_free(cursor_get_db(cursor), cursor);
+
+    return (st);
 }
 
 ham_status_t

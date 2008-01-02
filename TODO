@@ -100,7 +100,28 @@ x test extkeys without prefix compare function - is it faster? it should
     be the default!! But then it needs documentation in the tutorial
     -> no, it's slower; don't disable it by default
 
-o send header files/tutorial to andrew/shira
+x send header files/tutorial to andrew/shira
+
+x ham_close: detach the internal cursor handle when ham_close is called
+        without HAM_AUTO_CLEANUP
+    x update header file
+    x implement
+    x add unittests
+    x use HAM_AUTO_CLEANUP in samples
+    x update tutorial
+
+x ham_env_close: detach the internal database handles when ham_env_close is
+        called without HAM_AUTO_CLEANUP
+    x update header file
+    x implement
+    x add unittests
+    x use HAM_AUTO_CLEANUP in samples
+    x the C++ API does no longer have the ugly env/db restrictions! 
+        x change the samples
+        x add unittest
+    x update tutorial
+
+x are HAM_DB_NOT_EMPTY and HAM_ENV_NOT_EMPTY still needed? -- no! remove them
 
 o release 0.5.0 - this is 1.0rc1!!
 

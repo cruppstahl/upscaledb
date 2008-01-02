@@ -120,7 +120,7 @@ main(int argc, char **argv)
      * close the database handle, then re-open it (to demonstrate the 
      * call ham_open)
      */
-    st=ham_close(db, HAM_AUTO_CLEANUP);
+    st=ham_close(db, 0);
     if (st!=HAM_SUCCESS)
         error("ham_close", st);
     st=ham_open(db, "test.db", 0);
@@ -157,7 +157,7 @@ main(int argc, char **argv)
     /*
      * we're done! close the database handle
      */
-    st=ham_close(db, HAM_AUTO_CLEANUP);
+    st=ham_close(db, 0);
     if (st!=HAM_SUCCESS)
         error("ham_close", st);
 

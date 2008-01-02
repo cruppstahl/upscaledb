@@ -27,8 +27,8 @@ class EnvTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (createCloseTest);
     CPPUNIT_TEST      (createCloseOpenCloseTest);
     CPPUNIT_TEST      (createCloseOpenCloseWithDatabasesTest);
-    CPPUNIT_TEST      (envNotEmptyTest);
     CPPUNIT_TEST      (autoCleanupTest);
+    CPPUNIT_TEST      (autoCleanup2Test);
     CPPUNIT_TEST      (readOnlyTest);
     CPPUNIT_TEST      (createPagesizeReopenTest);
     CPPUNIT_TEST      (openFailCloseTest);
@@ -206,25 +206,6 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
 
-    void envNotEmptyTest(void)
-    {
-        ham_env_t *env;
-        ham_db_t *db;
-
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
-
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_ENV_NOT_EMPTY, ham_env_close(env, 0));
-
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
-    }
-
     void autoCleanupTest(void)
     {
         ham_env_t *env;
@@ -241,12 +222,28 @@ public:
         for (int i=0; i<5; i++)
             CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(db[0], 0, 0, &c[i]));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_ENV_NOT_EMPTY, ham_env_close(env, 0));
-
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
         for (int i=0; i<3; i++)
             CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+    }
+
+    void autoCleanup2Test(void)
+    {
+        ham_env_t *env;
+        ham_db_t *db;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db, 1, 0, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
     }
 
     void readOnlyTest(void)
@@ -1458,8 +1455,8 @@ class InMemoryEnvTest : public EnvTest
     CPPUNIT_TEST      (createWithKeysizeTest);
     CPPUNIT_TEST      (createDbWithKeysizeTest);
     CPPUNIT_TEST      (disableVarkeyTests);
-    CPPUNIT_TEST      (envNotEmptyTest);
     CPPUNIT_TEST      (autoCleanupTest);
+    CPPUNIT_TEST      (autoCleanup2Test);
     CPPUNIT_TEST      (memoryDbTest);
     CPPUNIT_TEST      (multiDbInsertFindTest);
     CPPUNIT_TEST      (multiDbInsertFindExtendedTest);

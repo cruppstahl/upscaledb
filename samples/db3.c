@@ -131,9 +131,9 @@ main(int argc, char **argv)
     }
 
     /*
-     * then close the database handle; the flag HAM_AUTO_CLEANUP closes
-     * all open cursors, so we don't have to call ham_cursor_close
-     * manually
+     * then close the database handle; the flag
+     * HAM_AUTO_CLEANUP will automatically close all cursors, and we
+     * do not need to call ham_cursor_close
      */
     st=ham_close(db, HAM_AUTO_CLEANUP);
     if (st!=HAM_SUCCESS) {

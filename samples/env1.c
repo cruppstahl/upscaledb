@@ -189,9 +189,17 @@ main(int argc, char **argv)
 
     /*
      * to demonstrate even more functions, close all objects, then
-     * re-open the environment and the two databases
+     * re-open the environment and the two databases.
+     *
+     * note that ham_env_close automatically calls ham_close on all 
+     * databases.
      */
-    st=ham_env_close(env, HAM_AUTO_CLEANUP);
+    for (i=0; i<MAX_DBS; i++) {
+        st=ham_cursor_close(cursor[i]);
+        if (st!=HAM_SUCCESS)
+            error("ham_cursor_close", st);
+    }
+    st=ham_env_close(env, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_close", st);
 
@@ -281,7 +289,9 @@ main(int argc, char **argv)
     }
 
     /*
-     * we're done! close the environment
+     * now close the environment handle; the flag
+     * HAM_AUTO_CLEANUP will automatically close all databases and
+     * cursors
      */
     st=ham_env_close(env, HAM_AUTO_CLEANUP);
     if (st!=HAM_SUCCESS)
@@ -291,7 +301,6 @@ main(int argc, char **argv)
          ham_delete(db[i]);
 
     ham_env_delete(env);
-
 
 #if UNDER_CE
     error("success", 0);

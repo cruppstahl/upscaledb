@@ -55,11 +55,6 @@ typedef struct
 int 
 run_demo(void)
 {
-    /* when allocating objects on the stack, the environment object
-     * MUST be allocated BEFORE the database objects; otherwise, the 
-     * database objects are destructed after the environment, and then
-     * then ham_env_close will return an error.
-     */
     int i;
     ham::env env;           /* hamsterdb environment */
     ham::db db[MAX_DBS];    /* hamsterdb database objects */
@@ -263,11 +258,6 @@ run_demo(void)
     /*
      * we're done! no need to cleanup, the destructors will prevent memory
      * leaks
-     *
-     * Since the environment object was allocated BEFORE the database objects,
-     * the database objects are destructed first. Would it be the other way,
-     * the destructor of the environment would throw an exception, because
-     * it's not allowed to close an environment if a database is still open.
      */
 
     std::cout << "success!" << std::endl;

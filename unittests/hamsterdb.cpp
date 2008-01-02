@@ -69,7 +69,7 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (flushBackendTest);
     CPPUNIT_TEST      (closeTest);
     CPPUNIT_TEST      (closeWithCursorsTest);
-    CPPUNIT_TEST      (closeWithCursorsOkTest);
+    CPPUNIT_TEST      (closeWithCursorsAutoCleanupTest);
     CPPUNIT_TEST      (compareTest);
     CPPUNIT_TEST      (prefixCompareTest);
     CPPUNIT_TEST      (cursorCreateTest);
@@ -501,22 +501,23 @@ public:
 
     void closeWithCursorsTest(void)
     {
-        ham_cursor_t *c;
+        ham_cursor_t *c[5];
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
-        CPPUNIT_ASSERT_EQUAL(HAM_DB_NOT_EMPTY, ham_close(m_db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
+        for (int i=0; i<5; i++)
+            CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c[i]));
+
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        for (int i=0; i<5; i++)
+            CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c[i]));
     }
 
-    void closeWithCursorsOkTest(void)
+    void closeWithCursorsAutoCleanupTest(void)
     {
         ham_cursor_t *c[5];
 
         for (int i=0; i<5; i++)
             CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c[i]));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_DB_NOT_EMPTY, ham_close(m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_AUTO_CLEANUP));
     }
 
@@ -541,8 +542,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(f, db_get_prefix_compare_func(m_db));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_set_prefix_compare_func(m_db, 0));
-        f=db_default_prefix_compare;
-        CPPUNIT_ASSERT_EQUAL(f, db_get_prefix_compare_func(m_db));
+        CPPUNIT_ASSERT(0==db_get_prefix_compare_func(m_db));
     }
 
     void cursorCreateTest(void)

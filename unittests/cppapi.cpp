@@ -49,6 +49,7 @@ class CppApiTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (insertFindEraseTest);
     CPPUNIT_TEST      (cursorTest);
     CPPUNIT_TEST      (envTest);
+    CPPUNIT_TEST      (envDestructorTest);
     CPPUNIT_TEST      (envGetDatabaseNamesTest);
     CPPUNIT_TEST      (getLicenseTest);
     CPPUNIT_TEST_SUITE_END();
@@ -237,6 +238,17 @@ public:
         }
         db1.close();
         env.erase_db(2);
+    }
+
+    void envDestructorTest(void)
+    {
+        ham::db db1;
+        ham::env env;
+
+        env.create(".test");
+        db1=env.create_db(1);
+
+        /* let the objects go out of scope */
     }
     
     void envGetDatabaseNamesTest(void)

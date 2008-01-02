@@ -613,12 +613,11 @@ bt_cursor_close(ham_bt_cursor_t *c)
 
     if (n)
         cursor_set_previous(n, p);
-    else
-        db_set_cursors(db, 0);
+
+    cursor_set_next(c, 0);
+    cursor_set_previous(c, 0);
 
     (void)bt_cursor_set_to_nil(c);
-
-    ham_mem_free(cursor_get_db(c), c);
 
     return (0);
 }
