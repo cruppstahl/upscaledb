@@ -50,6 +50,7 @@ ham_status_t
 txn_free_page(ham_txn_t *txn, ham_page_t *page)
 {
     ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING), (0));
+    ham_assert(page_get_cursors(page)==0, (0));
 
     page_set_npers_flags(page,
             page_get_npers_flags(page)|PAGE_NPERS_DELETE_PENDING);
