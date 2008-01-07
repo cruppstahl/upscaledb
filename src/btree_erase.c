@@ -166,15 +166,16 @@ btree_erase_cursor(ham_btree_t *be, ham_key_t *key,
     if (db_get_error(db))
         return (db_get_error(db));
     if (p) {
-        st=my_collapse_root(p, &scratchpad);
-        if (st)
-            return (st);
-
         /* 
          * delete the old root page 
          */
-        st=txn_free_page(db_get_txn(db), root);
-        if (st)
+        if ((st=db_uncouple_all_cursors(root, 0)))
+            return (st);
+
+        if ((st=my_collapse_root(p, &scratchpad)))
+            return (st);
+
+        if ((st=txn_free_page(db_get_txn(db), root)))
             return (st);
     }
 
