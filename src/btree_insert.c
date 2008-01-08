@@ -433,6 +433,9 @@ shift_elements:
      * the cursor always points to NIL.
      */
     if (cursor) {
+        if ((st=bt_cursor_set_to_nil(cursor)))
+            return (db_set_error(db, st));
+
         ham_assert(!(bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_UNCOUPLED), 
                 ("coupling an uncoupled cursor, but need a nil-cursor"));
         ham_assert(!(bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_COUPLED), 

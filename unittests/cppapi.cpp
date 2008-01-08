@@ -150,7 +150,7 @@ public:
         ham::db db, tmp;
 
         try {
-            db.create("...");
+            db.create("data/");
         }
         catch (ham::error &) {
         }

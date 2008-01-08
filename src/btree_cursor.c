@@ -833,7 +833,6 @@ bt_cursor_insert(ham_bt_cursor_t *c, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_size_t dupe_id;
     ham_db_t *db=bt_cursor_get_db(c);
     ham_btree_t *be=(ham_btree_t *)db_get_backend(db);
 
@@ -843,21 +842,7 @@ bt_cursor_insert(ham_bt_cursor_t *c, ham_key_t *key,
     ham_assert(record, (""));
 
     /*
-     * set the cursor to nil
-     *
-     * if a duplicate is inserted: don't forget the current dupe-id!
-     */
-    dupe_id=bt_cursor_get_dupe_id(c);
-
-    st=bt_cursor_set_to_nil(c);
-    if (st)
-        return (st);
-
-    if (flags&HAM_DUPLICATE)
-        bt_cursor_set_dupe_id(c, dupe_id);
-
-    /*
-     * then call the btree insert function
+     * call the btree insert function
      */
     st=btree_insert_cursor(be, key, record, c, flags);
     if (st)

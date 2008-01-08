@@ -32,7 +32,7 @@ sub process
                 next;
             }
         }
-        s/href=\"(.*?)\"/href=\"?page=doxygen&module=$1\"/g;
+        s/href=\"(.*?)\"/href=\"api\/module\/$1\"/g;
         print TH $_;
     }
     close(FH);
