@@ -1,3 +1,6 @@
+Jan 08, 2008 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.0rc1
+
 Jan 08, 2008 - chris
 o bugfix: when inserting with ham_cursor_insert, but the insert fails (i.e.
     because the key already exists), the cursor is modified and uninitialized,

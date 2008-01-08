@@ -29,10 +29,10 @@ extern "C" {
  * the database format is no longer compatible. a change of the revision 
  * means the release is a bugfix with a compatible database format.
  */
-#define HAM_VERSION_MAJ 0
-#define HAM_VERSION_MIN 4
-#define HAM_VERSION_REV 9
-#define HAM_VERSION_STR "0.4.9"
+#define HAM_VERSION_MAJ 1
+#define HAM_VERSION_MIN 0
+#define HAM_VERSION_REV 0
+#define HAM_VERSION_STR "1.0.0rc1"
 
 
 #ifdef __cplusplus

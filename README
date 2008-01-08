@@ -1,5 +1,5 @@
 
-hamsterdb 0.4.9                                Tue Dec 18 18:51:33 UTC 2007
+hamsterdb 1.0.0rc1                             Tue Jan 08 21:09:12 UTC 2008
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -12,34 +12,44 @@ hamsterdb is a database engine written in ANSI C. It supports a B+Tree index
 structure, uses memory mapped I/O (if available), supports cursors and
 variable length keys and can create in-memory databases.
 
-Although no bugs are known, this release is marked "unstable", because the
-database file format is still subject to change. The first stable release 
-will be version 1.0.
-
-The database format of 0.4.9 is not compatible to 0.4.8, if zlib compression
-is enabled.
+This is the first release candidate for version 1.0. 
+The first stable release will be version 1.0.
 
 2. Changes
 
 New Features
-- none
+* none
 
 Bugfixes
-* Disabled exclusive locking on SunOS
-* SPARC architecture: fixed several unaligned memory accesses, especially
-    related to record numbers, duplicate keys and extended keys
-* Fixed several issues with memory mapped access on Windows x64 
+* When inserting with ham_cursor_insert, and the function fails, the
+    cursor became uninitialized
+* When inserting keys, a cursor attached to a page could become detached,
+    but this was not stored correctly in the cursor handle
 
 Other Changes
-* Added two command line tools: ham_dump for dumping a database and 
-    ham_info for printing database information/statistics
-* Minor performance improvements for zlib-compressed databases
+* API change for ham_env_close: if you call ham_env_close and there are still
+    open Databases, the function will no longer fail with HAM_ENV_NOT_EMPTY;
+    instead, the Databases are closed with ham_close; you still have to
+    close the Cursors of each Database, though.
+* API change for ham_close: if you call ham_close and there are still
+    open Cursors, the function will no longer fail with HAM_DB_NOT_EMPTY;
+    instead, the Cursors are invalidated, but you still have to call
+    ham_cursor_close to prevent memory leaks. Alternatively, the flag
+    HAM_AUTO_CLEANUP implicitely calls ham_cursor_close on each function.
+* Calling ham_set_prefix_compare_func with NULL as a function pointer
+    does no longer set the default prefix compare function, but completely
+    disables prefix comparison
+* Most errors now emit ham_trace debug messages, which are also compiled
+    in Release mode; they can be made visible with a custom error handler
+    function
+* Removed the function ham_dump; it was replaced by a command line tool
+    in the previous release and is no longer necessary
 
 To see a list of all changes, look in the file CHANGELOG.
 
 3. Roadmap
 
-- more stabilization and moving towards version 1.0
+- moving towards version 1.0
 
 4. Features
 
