@@ -222,6 +222,7 @@ page_delete(ham_page_t *page)
     ham_assert(page!=0, (0));
     ham_assert(page_get_refcount(page)==0, (0));
     ham_assert(page_get_pers(page)==0, (0));
+    ham_assert(page_get_cursors(page)==0, (0));
 
     ham_mem_free(db, page);
 }
@@ -272,6 +273,8 @@ page_free(ham_page_t *page)
 {
     ham_db_t *db=page_get_owner(page);
     ham_device_t *dev=db_get_device(db);
+
+    ham_assert(page_get_cursors(page)==0, (0));
 
     return (dev->free_page(dev, page));
 }

@@ -1,3 +1,7 @@
+Jan 06, 2008 - chris
+o bugfix: when uncoupling a cursor, sometimes the connection between page
+    and cursor was broken
+
 Jan 02, 2008 - chris
 o API change for ham_env_close: if you call ham_env_close and there are still
     open Databases, the function will no longer fail with HAM_ENV_NOT_EMPTY; 

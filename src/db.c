@@ -32,6 +32,7 @@ ham_status_t
 db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
 {
     ham_status_t st;
+    ham_bool_t skipped=HAM_FALSE;
     ham_cursor_t *n, *c=page_get_cursors(page);
 
     while (c) {
@@ -47,6 +48,7 @@ db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
              */
             if (bt_cursor_get_coupled_index(btc)<start) {
                 c=n;
+                skipped=HAM_TRUE;
                 continue;
             }
 
@@ -63,7 +65,8 @@ db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
         c=n;
     }
 
-    page_set_cursors(page, 0);
+    if (!skipped)
+        page_set_cursors(page, 0);
 
     return (0);
 }
