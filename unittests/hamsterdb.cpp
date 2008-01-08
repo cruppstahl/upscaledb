@@ -15,6 +15,7 @@
 #include "memtracker.h"
 #include "../src/db.h"
 #include "../src/version.h"
+#include "../src/serial.h"
 #include "os.hpp"
 
 static int
@@ -47,6 +48,7 @@ class HamsterdbTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(HamsterdbTest);
     CPPUNIT_TEST      (versionTest);
+    CPPUNIT_TEST      (licenseTest);
     CPPUNIT_TEST      (newTest);
     CPPUNIT_TEST      (deleteTest);
     CPPUNIT_TEST      (openTest);
@@ -118,6 +120,17 @@ public:
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)HAM_VERSION_MAJ, major);
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)HAM_VERSION_MIN, minor);
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)HAM_VERSION_REV, revision);
+    };
+
+    void licenseTest(void)
+    {
+        const char *licensee=0, *product=0;
+
+        ham_get_license(0, 0);
+        ham_get_license(&licensee, &product);
+
+        CPPUNIT_ASSERT_EQUAL(0, strcmp(HAM_LICENSEE, licensee));
+        CPPUNIT_ASSERT_EQUAL(0, strcmp(HAM_PRODUCT_NAME, product));
     };
 
     void newTest(void)
@@ -321,6 +334,7 @@ public:
     void getErrorTest(void)
     {
         CPPUNIT_ASSERT_EQUAL(0, ham_get_error(0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_get_error(m_db));
     }
 
     void setPrefixCompareTest(void)
