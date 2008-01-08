@@ -43,7 +43,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../include;../../hamsterdb-alien/inc"
+				AdditionalIncludeDirectories="../include;../../../hamsterdb-alien/inc"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;VISUAL_STUDIO"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -64,7 +64,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../../hamsterdb-alien/libs/win32-msvc8/cppunitd.lib"
+				AdditionalDependencies="../../../hamsterdb-alien/libs/win32-msvc8/cppunitd.lib"
 				LinkIncremental="2"
 				GenerateManifest="true"
 				GenerateDebugInformation="true"
@@ -348,6 +348,10 @@
 		</File>
 		<File
 			RelativePath="..\unittests\cache.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\cppapi.cpp"
 			>
 		</File>
 		<File

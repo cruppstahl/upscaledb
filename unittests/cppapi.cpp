@@ -44,10 +44,12 @@ class CppApiTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(CppApiTest);
     CPPUNIT_TEST      (keyTest);
     CPPUNIT_TEST      (recordTest);
+	CPPUNIT_TEST      (staticFunctionsTest);
     CPPUNIT_TEST      (compareTest);
     CPPUNIT_TEST      (createOpenCloseDbTest);
     CPPUNIT_TEST      (insertFindEraseTest);
     CPPUNIT_TEST      (cursorTest);
+    CPPUNIT_TEST      (compressionTest);
     CPPUNIT_TEST      (envTest);
     CPPUNIT_TEST      (envDestructorTest);
     CPPUNIT_TEST      (envGetDatabaseNamesTest);
@@ -127,6 +129,13 @@ public:
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)0, r1.get_flags());
     }
 
+    void staticFunctionsTest(void)
+    {
+        ham::db db;
+        CPPUNIT_ASSERT_EQUAL(0, db.get_error());
+        db.get_version(0, 0, 0);
+    }
+
     void compareTest(void)
     {
         ham::db db;
@@ -138,10 +147,28 @@ public:
 
     void createOpenCloseDbTest(void)
     {
-        ham::db db;
+        ham::db db, tmp;
+
+        try {
+            db.create("...");
+        }
+        catch (ham::error &) {
+        }
+
         db.create(".test");
         db.close();
+
+        try {
+            db.open("xxxxxx");
+        }
+        catch (ham::error &) {
+        }
+
         db.open(".test");
+        db=db;
+        db.flush();
+        tmp=db;
+        db.close();
     }
 
     void insertFindEraseTest(void)
@@ -156,17 +183,57 @@ public:
         r.set_size(6);
 
         db.create(".test");
+
+        try {
+            db.insert(0, &r);
+        }
+        catch (ham::error &) {
+        }
+
+        try {
+            db.insert(&k, 0);
+        }
+        catch (ham::error &) {
+        }
+
         db.insert(&k, &r);
+        try {
+            db.insert(&k, &r);  // already exists
+        }
+        catch (ham::error &) {
+        }
+
         out=db.find(&k);
         CPPUNIT_ASSERT_EQUAL(r.get_size(), out.get_size());
         CPPUNIT_ASSERT_EQUAL(0,
                         ::memcmp(r.get_data(), out.get_data(), out.get_size()));
         db.erase(&k);
+
+        try {
+            db.erase(0);
+        }
+        catch(ham::error &) {
+        }
+
+        try {
+            db.erase(&k);
+        }
+        catch(ham::error &) {
+        }
+
         try {
             out=db.find(&k);
         }
         catch(ham::error &e) {
             CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, e.get_errno());
+            CPPUNIT_ASSERT_EQUAL(std::string("Key not found"), 
+                    std::string(e.get_string()));
+        }
+
+        try {
+            out=db.find(0);
+        }
+        catch(ham::error &e) {
         }
 
         db.close();
@@ -178,13 +245,42 @@ public:
     void cursorTest(void)
     {
         ham::db db;
+
+        try {
+            ham::cursor cerr(&db);
+        }
+        catch (ham::error &) {
+        }
+
         ham::key k((void *)"12345", 5), k2;
         ham::record r((void *)"12345", 5), r2;
 
         db.create(".test");
         ham::cursor c(&db);
+        c.create(&db); // overwrite
 
-        db.insert(&k, &r);
+        c.insert(&k, &r);
+        try {
+            c.insert(&k, 0);
+        }
+        catch (ham::error &) {
+        }
+        try {
+            c.insert(0, &r);
+        }
+        catch (ham::error &) {
+        }
+        try {
+            c.insert(&k, &r);  // already exists
+        }
+        catch (ham::error &) {
+        }
+        try {
+            c.overwrite(0); 
+        }
+        catch (ham::error &) {
+        }        
+        c.overwrite(&r); 
         ham::cursor clone=c.clone();
 
         c.move_first(&k2, &r2);
@@ -213,6 +309,34 @@ public:
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)1, c.get_duplicate_count());
 
         c.erase();
+        try {
+            c.erase();
+        }
+        catch (ham::error &) {
+        }
+
+        try {
+            c.find(&k);
+        }
+        catch (ham::error &) {
+        }
+
+        ham::cursor temp;
+        temp.close();
+    }
+
+    void compressionTest(void)
+    {
+        ham::db db;
+        db.create(".test");
+
+        try {
+            db.enable_compression(999);
+        }
+        catch (ham::error &e) {
+        }
+        
+        db.enable_compression(0);
     }
 
     void envTest(void)
@@ -259,7 +383,7 @@ public:
         env.create(".test");
 
         v=env.get_database_names();
-        CPPUNIT_ASSERT_EQUAL((size_t)0, v.size());
+        CPPUNIT_ASSERT_EQUAL((size_t)0, (size_t)v.size());
 
         ham::db db1=env.create_db(1);
         v=env.get_database_names();
