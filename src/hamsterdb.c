@@ -2289,13 +2289,8 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     if (!__prepare_key(key) || !__prepare_record(record))
         return (db_set_error(db, HAM_INV_PARAMETER));
 
-    if ((st=ham_txn_begin(&txn, db)))
-        return (st);
-
     if (db_get_env(db))
         __prepare_db(db);
-
-    db_set_error(db, 0);
 
     be=db_get_backend(db);
     if (!be)
@@ -2331,6 +2326,9 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
                     "see ham_cursor_insert"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+
+    db_set_error(db, 0);
+
     if ((st=ham_txn_begin(&txn, db)))
         return (st);
 
