@@ -23,7 +23,7 @@ extern "C" {
 #endif 
 
 /*
- * check the operating system and word size
+ * Check the operating system and word size
  */
 #ifdef UNDER_CE
 #   undef WIN32
@@ -60,7 +60,7 @@ extern "C" {
 #endif
 
 /*
- * need windows.h for HANDLE
+ * windows.h is needed for for HANDLE
  */
 #ifdef HAM_OS_WIN32
 #   define WIN32_MEAN_AND_LEAN
@@ -68,7 +68,7 @@ extern "C" {
 #endif
 
 /*
- * create the EXPORT-macro for Microsoft Visual C++
+ * Create the EXPORT macro for Microsoft Visual C++
  */
 #ifndef HAM_EXPORT
 #   ifdef _MSC_VER
@@ -118,7 +118,7 @@ typedef unsigned char      ham_u8_t;
 #endif 
 
 /*
- * undefine macros to avoid macro redefinitions
+ * Undefine macros to avoid macro redefinitions
  */
 #undef HAM_INVALID_FD
 #undef HAM_FALSE
@@ -157,31 +157,30 @@ typedef int                ham_bool_t;
 typedef int                ham_status_t;
 
 /**
- * typedef for addressing the file; this limits the file size
- * to 64 bit. should be enough, hopefully...
+ * typedef for addressing the file, which limits the file size to 64 bit
  *
- * @remark if you change this datatype, then you also have to change
+ * @remark If you change this datatype, you also have to change
  * the endian-macros in src/endian.h (ham_db2h_offset/ham_h2db_offset)
  */
 typedef ham_u64_t          ham_offset_t;
 
 /**
- * typedef for sizes; this limits data blobs to 32 bits
+ * typedef for sizes, which limits data blobs to 32 bits
  *
- * @remark if you change this datatype, then you also have to change
+ * @remark If you change this datatype, you also have to change
  * the endian-macros in src/endian.h (ham_db2h_size/ham_h2db_size)
  */
 typedef ham_u32_t          ham_size_t;
 
 /**
- * typedef for a prefix-compare-function
+ * typedef for a prefix comparison function
  *
- * @remark this function compares two index keys; it returns -1, if lhs
+ * @remark This function compares two index keys; it returns -1, if lhs
  * ("left-hand side", the paramter on the left side) is smaller than 
  * rhs ("right-hand side"), 0 if both keys are equal, and 1 if lhs 
  * is larger than rhs.
  *
- * @remark if one of the keys is loaded only partially, but the comparison
+ * @remark If one of the keys is loaded only partially, but the comparison
  * function needs the full key, the return value should be
  * HAM_PREFIX_REQUEST_FULLKEY.
  */
@@ -192,9 +191,9 @@ typedef int (*ham_prefix_compare_func_t)
                                   ham_size_t rhs_real_length);
 
 /**
- * typedef for a compare-function
+ * typedef for a comparison function
  *
- * @remark this function compares two index keys; it returns -1, if lhs
+ * @remark This function compares two index keys; it returns -1, if lhs
  * ("left-hand side", the paramter on the left side) is smaller than 
  * rhs ("right-hand side"), 0 if both keys are equal, and 1 if lhs 
  * is larger than rhs.

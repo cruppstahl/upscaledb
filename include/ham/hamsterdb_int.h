@@ -77,7 +77,7 @@ typedef void (*ham_file_filter_close_cb_t)(ham_env_t *env,
  * File-level filters can modify the page data before some data is 
  * written to disk, and immediately after it's read from disk.
  *
- * File-level filters can be used i.e. for writing encryption filters. 
+ * File-level filters can be used for example for writing encryption filters. 
  * See @a ham_env_enable_encryption() to create a filter for AES-based 
  * encryption.
  *
@@ -168,8 +168,8 @@ typedef void (*ham_record_filter_close_cb_t)(ham_db_t *db,
  * Record-level filters can modify and resize the record data before 
  * the record is inserted, and before it is returned to the user.
  *
- * Record-level filters can be used i.e. for writing compression filters. 
- * See @a ham_enable_compression() to create a filter for zlib-based
+ * Record-level filters can be used for example for writing compression 
+ * filters.  See @a ham_enable_compression() to create a filter for zlib-based
  * compression.
  *
  * Each of the three callback functions can be NULL.
