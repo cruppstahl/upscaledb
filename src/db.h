@@ -213,6 +213,9 @@ struct ham_db_t
     /* a custom error handler */
     ham_errhandler_fun _errh;
 
+    /* the user-provided context data */
+    void *_context;
+
     /* the backend pointer - btree, hashtable etc */
     ham_backend_t *_backend;
 
@@ -321,6 +324,16 @@ struct ham_db_t
  * set the last error code
  */
 #define db_set_error(db, e)            (db)->_error=e
+
+/*
+ * get the user-provided context pointer
+ */
+#define db_get_context_data(db)        (db)->_context
+
+/*
+ * set the user-provided context pointer
+ */
+#define db_set_context_data(db, ctxt)  (db)->_context=ctxt
 
 /*
  * get the backend pointer

@@ -3436,3 +3436,17 @@ ham_env_set_device(ham_env_t *env, void *device)
     return (0);
 }
 
+void
+ham_set_context_data(ham_db_t *db, void *data)
+{
+    if (db)
+        db_set_context_data(db, data);
+}
+
+void *
+ham_get_context_data(ham_db_t *db)
+{
+    if (db)
+        return (db_get_context_data(db));
+    return (0);
+}

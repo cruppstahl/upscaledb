@@ -47,6 +47,32 @@ typedef void (*ham_dump_cb_t)(const ham_u8_t *key, ham_size_t keysize);
 HAM_EXPORT ham_status_t
 ham_check_integrity(ham_db_t *db, void *reserved);
 
+/**
+ * Set a user-provided context pointer
+ *
+ * This function sets a user-provided context pointer. This can be any
+ * arbitrary pointer; it is stored in the Database handle and can be
+ * retrieved with @a ham_get_context_data. It is mainly used by Wrappers
+ * and language bindings.
+ *
+ * @param db A valid Database handle
+ * @param data The pointer to the context data
+ */
+HAM_EXPORT void
+ham_set_context_data(ham_db_t *db, void *data);
+
+/**
+ * Retrieves a user-provided context pointer
+ *
+ * This function retrieves a user-provided context pointer. This can be any
+ * arbitrary pointer which was previously stored with @a ham_set_context_data.
+ *
+ * @param db A valid Database handle
+ * @return The pointer to the context data
+ */
+HAM_EXPORT void *
+ham_get_context_data(ham_db_t *db);
+
 struct ham_file_filter_t;
 typedef struct ham_file_filter_t ham_file_filter_t;
 

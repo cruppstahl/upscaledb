@@ -9,7 +9,29 @@ x a finished TODO item
 
 o wait for bugs...
 
+o remove win32 compiler warnings (related to __FUNCTION__)
+
 o release 1.0.0!
+
+x need new internal hamster function: add_context_data, get_context_data
+    x unittests
+
+o java wrapper
+    x package name is de.crupp.hamsterdb (??)
+    x create directory structure - bindings/java/..., src/java
+    o add autoconf stuff (search jni.h, --disable-java)
+    o create the classes (synchronized!)
+    o create the wrapper sources (javah!)
+    o implement
+    o add tests
+    o create jar
+    o add win32 build automization
+
+    o add testing scheme to release process
+        o win32
+        o win64
+        o linux 32bit
+        o linux 64bit
 
 . tests are failing because of a berkeleydb bug:
     --duplicate=1 --use-cursors=1
