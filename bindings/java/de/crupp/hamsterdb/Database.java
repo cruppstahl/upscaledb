@@ -149,6 +149,10 @@ public class Database {
 	public Database() {
 	}
 	
+	public Database(long handle) {
+		m_handle=handle;
+	}
+	
 	/**
 	 * Destructor
 	 */
@@ -367,6 +371,13 @@ public class Database {
 			throw new Error(status);
 		ham_delete(m_handle);
 		m_handle=0;
+	}
+	
+	/**
+	 * Retrieves the database handle
+	 */
+	public long getHandle() {
+		return m_handle;
 	}
 
 	/**

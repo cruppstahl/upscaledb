@@ -25,20 +25,31 @@ o java wrapper
         x search jni.h
         x --enable-java
         x --with-jdk=...
-    o implementation (synchronized!)
+    x implementation (synchronized!)
         x key
         x record
         x error
         x database
-        o cursor
-        o environment
+        x cursor
+        x environment
     o wie steht's mit synchronization, wenn gleichzeitig ham_insert und
         ham_cursor_insert aufgerufen werden? denn dann muss ja sowohl die
         cursor-klasse als auch die database-klasse gelockt werden
+    o die cursor-classe ist synchronized, database auch; aber wenn 
+        ham_insert und ham_cursor_insert gleichzeitig aufgerufen werden,
+        ist das database handle nicht gelockt. der cursor müsste dann auch
+        seine parent-datenbank locken. wie mach ich das?
+    o wohin kommen die verbleibenden konstanten? (z.b. flags für insert etc)
+    o braucht die Key/Record-klasse wirklich getter und setter?
+        oder sollen sie ganz raus, und ich nehme nur byte[]-arrays?
+    o ham_cursor_move hat zwei parameter, die gefüllt werden - wie mach ich
+        das?
+    o sicherstellen dass key.data und record.data nie null sind
+    o unittests - wohin? projektstruktur?
     o add header comments/copyright
-    o add unittests
     o test with valgrind
     o add 2 samples
+    o improve documentation
     o create jar
     o add autoconf build automization
     o add win32 build automization
