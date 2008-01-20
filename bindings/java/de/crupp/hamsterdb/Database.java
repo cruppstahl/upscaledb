@@ -396,6 +396,10 @@ public class Database {
 		}
 	}
 	
+	/*
+	 * Don't remove these! They are used in the callback function,
+	 * which is implemented by the native library
+	 */
 	private Comparable m_cmp;
 	private PrefixComparable m_prefix_cmp;
 	
