@@ -1,10 +1,6 @@
                 
 SUBDIRS = 3rdparty src include samples tools
 
-if HAVE_CPPUNIT
-SUBDIRS += unittests
-endif
-
 EXTRA_DIST = documentation/Doxyfile                     \
              documentation/tutorial.odt                 \
              CHANGELOG                                  \

@@ -32,7 +32,7 @@ public class Cursor {
 	/**
 	 * Clones the Cursor
 	 */
-	public synchronized Cursor clone() {
+	public synchronized Cursor cloneCursor() {
 		return null; // TODO
 	}
 	

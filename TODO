@@ -11,6 +11,8 @@ o wait for bugs...
 
 o remove win32 compiler warnings (related to __FUNCTION__)
 
+o define a new release process for stable/unstable releases
+
 o release 1.0.0!
 
 x need new internal hamster function: add_context_data, get_context_data
@@ -19,12 +21,26 @@ x need new internal hamster function: add_context_data, get_context_data
 o java wrapper
     x package name is de.crupp.hamsterdb (??)
     x create directory structure - bindings/java/..., src/java
-    o add autoconf stuff (search jni.h, --disable-java)
-    o create the classes (synchronized!)
-    o create the wrapper sources (javah!)
-    o implement
-    o add tests
+    x add autoconf stuff 
+        x search jni.h
+        x --enable-java
+        x --with-jdk=...
+    o implementation (synchronized!)
+        x key
+        x record
+        x error
+        x database
+        o cursor
+        o environment
+    o wie steht's mit synchronization, wenn gleichzeitig ham_insert und
+        ham_cursor_insert aufgerufen werden? denn dann muss ja sowohl die
+        cursor-klasse als auch die database-klasse gelockt werden
+    o add header comments/copyright
+    o add unittests
+    o test with valgrind
+    o add 2 samples
     o create jar
+    o add autoconf build automization
     o add win32 build automization
 
     o add testing scheme to release process

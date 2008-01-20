@@ -28,130 +28,92 @@ AC_TYPE_OFF_T
 AC_FUNC_MMAP
 AC_CANONICAL_SYSTEM
 
-dnl
-dnl TODO 
-dnl I don't know why, but this doesn'T work as expected - if i 
-dnl test HAVE_CPPUNIT in Makefile.am, it's always negative
-dnl
-AC_MSG_NOTICE([Checking for CppUnit (optional; needed for unit tests)])
-AC_TRY_CPP([#include cppunit/extensions/HelperMacros.h],
-           ac_have_cppunit=yes,
-           ac_have_cppunit=no)
-AM_CONDITIONAL(HAVE_CPPUNIT, test "x$ac_have_cppunit" = "xyes")
+# A string describing all enabled/disabled settings
+settings=""
 
-dnl
-dnl check for --enable-debug
-dnl
+# Default settings: -Wall and -O3
+CFLAGS="${CFLAGS} -Wall"
+CFLAGS=`echo "$CFLAGS" | sed 's/-O. /-O3 /g'`
+
+#
+# Debug mode
+#
 AC_ARG_ENABLE(debug,
     AC_HELP_STRING([--enable-debug],
-        [Build with diagnostics and debug symbols (slow!)]),
-    [ac_enable_debug=yes],
-    [ac_enable_debug=no]
-)
-
-dnl
-dnl check for --enable-profile
-dnl
-AC_ARG_ENABLE(profile,
-    AC_HELP_STRING([--enable-profile],
-        [Build with profiling information (gprof)]),
-    [ac_enable_profile=yes],
-    [ac_enable_profile=no]
-)
-
-dnl
-dnl check for --enable-shrink
-dnl
-AC_ARG_ENABLE(shrink,
-    AC_HELP_STRING([--enable-shrink],
-        [Optimize for minimum size of the library]),
-    [ac_enable_shrink=yes],
-    [ac_enable_shrink=no]
-)
-
-dnl
-dnl check for --enable-internal
-dnl
-AC_ARG_ENABLE(internal,
-    AC_HELP_STRING([--enable-internal],
-        [Enables internal functions (ham_check_integrity)]),
-    [ac_enable_internal=yes],
-    [ac_enable_internal=no]
-)
-if test $ac_enable_internal = yes; then
-    CFLAGS="${CFLAGS} -DHAM_ENABLE_INTERNAL"
+        [build with diagnostics and debug symbols (slow!)]))
+if test "$enable_debug" = "yes"
+then
+    CFLAGS=`echo "$CFLAGS" | sed 's/-O. / /g'`
+    CFLAGS="${CFLAGS} -g -DHAM_DEBUG"
+    settings="$settings (debug)"
 fi
 
-dnl
-dnl check for --disable-encryption
-dnl
-AC_MSG_CHECKING(--disable-encryption argument)
-AC_ARG_ENABLE(encryption,
-    [  --disable-encryption    Don't support AES encryption (ham_enable_encryption).], ,
-    [enable_encryption="yes"])
+#
+# Profiling mode
+#
+AC_ARG_ENABLE(profile,
+    AC_HELP_STRING([--enable-profile],
+        [build with profiling information (gprof)]))
+if test "$enable_profile" = "yes"
+then
+    CFLAGS="${CFLAGS} -pg"
+    settings="$settings (profile)"
+fi
 
-if test "$enable_encryption" = "yes"; then
-    AC_MSG_RESULT(no)
-else
+#
+# Enable internal functions
+#
+AC_ARG_ENABLE(internal,
+    AC_HELP_STRING([--enable-internal],
+        [Enables internal functions (ham_check_integrity)]))
+if test "$enable_internal" = "yes"
+then
+    CFLAGS="${CFLAGS} -DHAM_ENABLE_INTERNAL"
+    settings="$settings (internal)"
+fi
+
+#
+# Disable AES encryption
+#
+AC_ARG_ENABLE(encryption,
+    AC_HELP_STRING([--disable-encryption], 
+                   [Disable AES encryption (ham_enable_encryption)]))
+if test "$enable_encryption" = "no"; then
     CFLAGS="${CFLAGS} -DHAM_DISABLE_ENCRYPTION"
-    AC_MSG_RESULT(yes)
+    settings="$settings (no encryption)"
 fi
 AM_CONDITIONAL(ENABLE_ENCRYPTION, test "x$enable_encryption" = "xyes")
 
-dnl
-dnl check for --disable-compression
-dnl
-AC_MSG_CHECKING(--disable-compression argument)
+#
+# Disable zlib compression
+#
 AC_ARG_ENABLE(compression,
-    [  --disable-compression   Don't support zlib compression (ham_enable_compression).], ,
-    [enable_compression="yes"])
-
-if test "$enable_compression" = "yes"; then
-    AC_MSG_RESULT(no)
-else
+    AC_HELP_STRING([--disable-compression], 
+                   [Disable zlib compression (ham_enable_compression)]))
+if test "$enable_compression" = "no"; then
     CFLAGS="${CFLAGS} -DHAM_DISABLE_COMPRESSION"
-    AC_MSG_RESULT(yes)
+    settings="$settings (no compression)"
 fi
 AM_CONDITIONAL(ENABLE_COMPRESSION, test "x$enable_compression" = "xyes")
 
-dnl
-dnl use -O3 on platforms with gcc, or -Os if we optimize for size, or 
-dnl no optimization if debugging is enabled; also, force -Wall
-dnl
-if test "x$GCC" = "xyes"; then
-    # force a trailing whitespace
-    CFLAGS="${CFLAGS} "
-    if test "$ac_enable_profile" = "yes"; then
-        CFLAGS="${CFLAGS} -pg"
-    fi
-    if test "$ac_enable_shrink" = "yes"; then
-        CFLAGS=`echo "$CFLAGS" | sed 's/-O. /-Os /g'`
-    else
-        CFLAGS=`echo "$CFLAGS" | sed 's/-O. /-O3 /g'`
-    fi
-    if test "$ac_enable_debug" = "yes"; then
-        CFLAGS=`echo "$CFLAGS" | sed 's/-O. / /g'`
-        CFLAGS="${CFLAGS} -DHAM_DEBUG"
-    fi
-    CFLAGS="${CFLAGS} -Wall"
-fi
-
-dnl
-dnl check for little endian/big endian
-dnl
+#
+# Check for little endian/big endian
+#
 AC_C_BIGENDIAN(
         ac_big_endian=yes,
         ac_big_endian=no,
         ac_big_endian=no)
 if test $ac_big_endian = yes; then
     CFLAGS="${CFLAGS} -DHAM_BIG_ENDIAN"
+    settings="$settings (big endian)"
 else
     CFLAGS="${CFLAGS} -DHAM_LITTLE_ENDIAN"
+    settings="$settings (little endian)"
 fi
 
-dnl
-dnl check for __FUNCTION__ macro
-dnl
+#
+# Check for __FUNCTION__ macro
+#
 AC_CACHE_CHECK(whether the compiler supports __FUNCTION__ macro,
                ac_cv_FUNCTION,
     [AC_TRY_RUN([
@@ -163,9 +125,9 @@ if test $ac_cv_FUNCTION = yes; then
     AC_DEFINE(HAVE_FUNCTION_MACRO,1,[__FUNCTION__ is supported])
 fi
 
-dnl
-dnl check for O_LARGEFILE
-dnl
+#
+# Check for O_LARGEFILE
+#
 AC_CACHE_CHECK(for support of the O_LARGEFILE flag,ac_cv_largefile,
     [AC_TRY_RUN([
 #define _GNU_SOURCE   1 /* for O_LARGEFILE */
@@ -181,27 +143,9 @@ if test $ac_cv_largefile = yes; then
     AC_DEFINE(HAVE_O_LARGEFILE,1,[flag O_LARGEFILE is supported])
 fi
 
-dnl
-dnl check for the return type of getpagesize()
-dnl
-AC_CACHE_CHECK(if getpagesize() returns int,ac_cv_getpagesize_int,
-    [AC_TRY_RUN([
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <fcntl.h>
-extern int getpagesize(void);
-int main(void) {
-    int i=(int)getpagesize();
-    return 0;
-}],ac_cv_getpagesize_int=yes,ac_cv_getpagesize_int=no,ac_cv_getpagesize_int=no)])
-if test $ac_cv_getpagesize_int = yes; then
-    AC_DEFINE(HAVE_GETPAGESIZE_INT,1,[getpagesize() returns int])
-fi
-
-dnl
-dnl Solaris: add a flag
-dnl
+#
+# Solaris: add a flag
+#
 case $host in 
     *-solaris*)
         CFLAGS="${CFLAGS} -DHAM_SOLARIS"
@@ -210,6 +154,44 @@ case $host in
         ;;
 esac
 
+#
+# Overwrite JDK path
+#
+AC_ARG_WITH(jdk, [  --with-jdk=[PATH]       set JDK path])
+if test "$with_jdk" != ""
+then
+    settings="$settings (jdk=$with_jdk)"
+    # TODO how to specify the OS-dependent sub-directory???
+    CFLAGS="${CFLAGS} -I$with_jdk/include -I$with_jdk/include/linux -I$with_jdk/include/win32 -I$with_jdk/include/solaris"
+fi
+
+#
+# Enable Java wrapper?
+#
+AC_ARG_ENABLE(java,
+    AC_HELP_STRING([--enable-java],
+        [build with Java wrapper]))
+if test "$enable_java" = "yes"
+then
+    settings="$settings (java)"
+else
+    # Only enable Java if jni.h is available
+    AC_CHECK_HEADER(jni.h)
+    if test "$ac_cv_header_jni_h" = "yes"
+    then
+        enable_java="yes"
+        settings="$settings (java)"
+    fi
+fi
+AM_CONDITIONAL(ENABLE_JAVA, test "x$enable_java" = "xyes")
+
 AC_CONFIG_FILES(Makefile src/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/aes/Makefile 3rdparty/zlib/Makefile tools/Makefile)
 AC_OUTPUT
+
+# Messages
+printf '#================================================================\n'
+printf "# Configuring hamsterdb version $PACKAGE_VERSION\n"
+printf "# Settings:$settings\n"
+printf '#================================================================\n'
+
 
