@@ -32,20 +32,13 @@ o java wrapper
         x database
         x cursor
         x environment
-    o wie steht's mit synchronization, wenn gleichzeitig ham_insert und
-        ham_cursor_insert aufgerufen werden? denn dann muss ja sowohl die
-        cursor-klasse als auch die database-klasse gelockt werden
-    o die cursor-classe ist synchronized, database auch; aber wenn 
-        ham_insert und ham_cursor_insert gleichzeitig aufgerufen werden,
-        ist das database handle nicht gelockt. der cursor müsste dann auch
-        seine parent-datenbank locken. wie mach ich das?
-    o wohin kommen die verbleibenden konstanten? (z.b. flags für insert etc)
-    o braucht die Key/Record-klasse wirklich getter und setter?
-        oder sollen sie ganz raus, und ich nehme nur byte[]-arrays?
-    o ham_cursor_move hat zwei parameter, die gefüllt werden - wie mach ich
-        das?
-    o sicherstellen dass key.data und record.data nie null sind
-    o unittests - wohin? projektstruktur?
+    x synchronization problem - currently, Cursor and Database have
+        their own mutex; instead, Cursor must use the mutex of its
+        Database!
+    x new class Const for flags etc
+    o get rid of Key and Record and replace them with byte[]-arrays
+    o ham_cursor_move returns 3 parameters, 2 of them are optional - but how?
+    o unittests - where? project structure?
     o add header comments/copyright
     o test with valgrind
     o add 2 samples

@@ -50,7 +50,7 @@ interface PrefixComparable {
 	 * @param rhs_realsize The real size of the second key
 	 * @return -1 if the first key is smaller, +1 if the first key
 	 *     is larger, 0 if both keys are equal, or 
-	 *     Error.HAM_PREFIX_REQUEST_FULLKEY if the Prefixes are
+	 *     Const.HAM_PREFIX_REQUEST_FULLKEY if the Prefixes are
 	 *     not sufficient for the comparison 
 	 */
 	public int compare(byte[] lhs, int lhs_realsize, 
@@ -194,7 +194,7 @@ public class Database {
 		if (m_handle==0) {
 			m_handle=ham_new();
 			if (m_handle==0)
-				throw new Error(Error.HAM_OUT_OF_MEMORY);
+				throw new Error(Const.HAM_OUT_OF_MEMORY);
 		}
 		status=ham_create_ex(m_handle, filename, flags, mode, params);
 		if (status!=0)
@@ -228,7 +228,7 @@ public class Database {
 		if (m_handle==0) {
 			m_handle=ham_new();
 			if (m_handle==0)
-				throw new Error(Error.HAM_OUT_OF_MEMORY);
+				throw new Error(Const.HAM_OUT_OF_MEMORY);
 		}
 		status=ham_open_ex(m_handle, filename, flags, params);
 		if (status!=0)

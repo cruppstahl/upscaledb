@@ -77,7 +77,7 @@ public class Environment {
 		if (m_handle==0) {
 			m_handle=ham_env_new();
 			if (m_handle==0)
-				throw new Error(Error.HAM_OUT_OF_MEMORY);
+				throw new Error(Const.HAM_OUT_OF_MEMORY);
 		}
 		status=ham_env_create_ex(m_handle, filename, flags, mode, params);
 		if (status!=0)
@@ -112,7 +112,7 @@ public class Environment {
 		if (m_handle==0) {
 			m_handle=ham_env_new();
 			if (m_handle==0)
-				throw new Error(Error.HAM_OUT_OF_MEMORY);
+				throw new Error(Const.HAM_OUT_OF_MEMORY);
 		}
 		status=ham_env_open_ex(m_handle, filename, flags, params);
 		if (status!=0)
@@ -213,7 +213,7 @@ public class Environment {
 	public synchronized void enableEncryption(byte[] aeskey)
 			throws Error {
 		if (aeskey==null || aeskey.length!=16)
-			throw new Error(Error.HAM_INV_PARAMETER);
+			throw new Error(Const.HAM_INV_PARAMETER);
 		int status=ham_env_enable_encryption(m_handle, aeskey, 0);
 		if (status!=0)
 			throw new Error(status);

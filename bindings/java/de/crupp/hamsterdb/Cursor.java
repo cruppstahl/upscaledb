@@ -2,12 +2,6 @@ package de.crupp.hamsterdb;
 
 public class Cursor {
 	
-	// TODO fix the constants!
-	public final static int HAM_CURSOR_FIRST = 1;
-	public final static int HAM_CURSOR_LAST = 1;
-	public final static int HAM_CURSOR_NEXT = 1;
-	public final static int HAM_CURSOR_PREVIOUS = 1;
-	
 	private native long ham_cursor_create(long dbhandle);
 
 	private native long ham_cursor_clone(long handle);
@@ -35,12 +29,14 @@ public class Cursor {
 	/**
 	 * Constructor
 	 */
-	public Cursor(long handle) {
+	public Cursor(Database db, long handle) {
+		m_db=db;
 		m_handle=handle;
 	}
 	
 	public Cursor(Database db)
 			throws Error {
+		m_db=db;
 		create(db);
 	}
 	
@@ -57,13 +53,15 @@ public class Cursor {
 	 * 
 	 * Wraps the ham_cursor_create function.
 	 */
-	public synchronized void create(Database db) 
+	public void create(Database db) 
 			throws Error {
 		// TODO losing the error code!! throw exception 
 		// from native code??
-		m_handle=ham_cursor_create(db.getHandle());
+		synchronized (m_db) {
+			m_handle=ham_cursor_create(db.getHandle());
+		}
 		if (m_handle==0)
-			throw new Error(Error.HAM_OUT_OF_MEMORY);	
+			throw new Error(Const.HAM_OUT_OF_MEMORY);
 	}
 
 	/**
@@ -71,14 +69,17 @@ public class Cursor {
 	 * 
 	 * Wraps the ham_cursor_clone function.
 	 */
-	public synchronized Cursor cloneCursor() 
+	public Cursor cloneCursor() 
 			throws Error {
+		long newhandle;
 		if (m_handle==0)
-			throw new Error(Error.HAM_INV_PARAMETER);
-		long newhandle=ham_cursor_clone(m_handle);
+			throw new Error(Const.HAM_INV_PARAMETER);
+		synchronized (m_db) {
+			newhandle=ham_cursor_clone(m_handle);
+		}
 		if (newhandle==0)
-			throw new Error(Error.HAM_OUT_OF_MEMORY);
-		return new Cursor(newhandle);
+			throw new Error(Const.HAM_OUT_OF_MEMORY);
+		return new Cursor(m_db, newhandle);
 	}
 	
 	/**
@@ -86,9 +87,12 @@ public class Cursor {
 	 * 
 	 * Wraps the ham_cursor_move function.
 	 */
-	public synchronized void move(Key key, Record record, int flags) 
+	public void move(Key key, Record record, int flags) 
 			throws Error {
-		int status=ham_cursor_move(m_handle, key, record, flags);
+		int status;
+		synchronized (m_db) {
+			status=ham_cursor_move(m_handle, key, record, flags);
+		}
 		if (status!=0)
 			throw new Error(status);
 	}
@@ -98,7 +102,7 @@ public class Cursor {
 	 */
 	public void moveFirst(Key key, Record record)
 			throws Error {
-		move(key, record, HAM_CURSOR_FIRST);
+		move(key, record, Const.HAM_CURSOR_FIRST);
 	}
 	
 	/**
@@ -106,7 +110,7 @@ public class Cursor {
 	 */
 	public void moveLast(Key key, Record record) 
 			throws Error {
-		move(key, record, HAM_CURSOR_LAST);
+		move(key, record, Const.HAM_CURSOR_LAST);
 	}
 	
 	/**
@@ -114,7 +118,7 @@ public class Cursor {
 	 */
 	public void moveNext(Key key, Record record) 
 			throws Error {
-		move(key, record, HAM_CURSOR_NEXT);
+		move(key, record, Const.HAM_CURSOR_NEXT);
 	}
 	
 	/**
@@ -122,7 +126,7 @@ public class Cursor {
 	 */
 	public void movePrevious(Key key, Record record) 
 			throws Error {
-		move(key, record, HAM_CURSOR_PREVIOUS);
+		move(key, record, Const.HAM_CURSOR_PREVIOUS);
 	}
 	
 	/**
@@ -130,11 +134,14 @@ public class Cursor {
 	 * 
 	 * Wraps the ham_cursor_overwrite function.
 	 */
-	public synchronized void overwrite(Record record) 
+	public void overwrite(Record record) 
 			throws Error {
 		if (record==null)
 			throw new NullPointerException();
-		int status=ham_cursor_overwrite(m_handle, record.data, 0);
+		int status;
+		synchronized (m_db) {
+			status=ham_cursor_overwrite(m_handle, record.data, 0);
+		}
 		if (status!=0)
 			throw new Error(status);
 	}
@@ -144,11 +151,14 @@ public class Cursor {
 	 * 
 	 * Wraps the ham_cursor_find function.
 	 */
-	public synchronized void find(Key key) 
+	public void find(Key key) 
 			throws Error {
 		if (key==null)
 			throw new NullPointerException();
-		int status=ham_cursor_find(m_handle, key.data, 0);
+		int status;
+		synchronized (m_db) {
+			status=ham_cursor_find(m_handle, key.data, 0);
+		}
 		if (status!=0)
 			throw new Error(status);	
 	}
@@ -163,11 +173,14 @@ public class Cursor {
 		insert(key, record, 0);
 	}
 	
-	public synchronized void insert(Key key, Record record, int flags) 
+	public void insert(Key key, Record record, int flags) 
 			throws Error {
 		if (key==null || record==null)
 			throw new NullPointerException();
-		int status=ham_cursor_insert(m_handle, key.data, record.data, flags);
+		int status;
+		synchronized (m_db) {
+			status=ham_cursor_insert(m_handle, key.data, record.data, flags);
+		}
 		if (status!=0)
 			throw new Error(status);
 	}
@@ -177,9 +190,12 @@ public class Cursor {
 	 * 
 	 * Wraps the ham_cursor_erase function.
 	 */
-	public synchronized void erase() 
+	public void erase() 
 			throws Error {
-		int status=ham_cursor_erase(m_handle, 0);
+		int status;
+		synchronized (m_db) {
+			status=ham_cursor_erase(m_handle, 0);
+		}
 		if (status!=0)
 			throw new Error(status);
 	}
@@ -189,11 +205,13 @@ public class Cursor {
 	 * 
 	 * Wraps the ham_cursor_get_duplicate_count function.
 	 */
-	public synchronized int getDuplicateCount() 
+	public int getDuplicateCount() 
 			throws Error {
 		// TODO status code is missing! throw exception 
 		// from native code??
-		return ham_cursor_get_duplicate_count(m_handle, 0);
+		synchronized (m_db) {
+			return ham_cursor_get_duplicate_count(m_handle, 0);
+		}
 	}
 	
 	/**
@@ -201,13 +219,17 @@ public class Cursor {
 	 * 
 	 * Wraps the ham_cursor_close function.
 	 */
-	public synchronized void close() 
+	public void close() 
 			throws Error {
-		int status=ham_cursor_close(m_handle);
+		int status;
+		synchronized (m_db) {
+			status=ham_cursor_close(m_handle);
+		}
 		if (status!=0)
 			throw new Error(status);
 		m_handle=0;
 	}
 	
 	private long m_handle;
+	private Database m_db;
 }
