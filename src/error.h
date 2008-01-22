@@ -45,11 +45,9 @@ extern void dbg_verify_failed(const char *format, ...);
 extern void (*ham_test_abort)(void);
 
 /*
- * protect against old compilers which do not support __FUNCTION__
+ * if your compiler does not support __FUNCTION__, you can define it here:
+ *    #define __FUNCTION__ 0
  */
-#ifndef HAVE_FUNCTION_MACRO
-#   define __FUNCTION__ 0
-#endif
 
 /** 
  * in debug mode we write trace()-messages to stderr, and assert() 
