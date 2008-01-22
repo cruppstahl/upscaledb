@@ -127,6 +127,8 @@ public class Database {
 	 * Wraps the ham_set_error_handler function.
 	 */
 	public static void setErrorHandler(ErrorHandler eh) {
+		// set a reference to eh, to avoid that it's garbage collected
+		m_eh=eh;
 		ham_set_errhandler(eh);
 	}
 
@@ -202,13 +204,9 @@ public class Database {
 				if (params[i]==null)
 					throw new NullPointerException();
 		}
-		int status;
-		if (m_handle==0) {
+		if (m_handle==0)
 			m_handle=ham_new();
-			if (m_handle==0)
-				throw new Error(Const.HAM_OUT_OF_MEMORY);
-		}
-		status=ham_create_ex(m_handle, filename, flags, mode, params);
+		int status=ham_create_ex(m_handle, filename, flags, mode, params);
 		if (status!=0)
 			throw new Error(status);
 	}
@@ -236,13 +234,9 @@ public class Database {
 				if (params[i]==null)
 					throw new NullPointerException();
 		}
-		int status;
-		if (m_handle==0) {
+		if (m_handle==0)
 			m_handle=ham_new();
-			if (m_handle==0)
-				throw new Error(Const.HAM_OUT_OF_MEMORY);
-		}
-		status=ham_open_ex(m_handle, filename, flags, params);
+		int status=ham_open_ex(m_handle, filename, flags, params);
 		if (status!=0)
 			throw new Error(status);
 	}
@@ -397,34 +391,13 @@ public class Database {
 	 */
 	private long m_handle;
 	
-	public static void main(String[] args) {
-		Version v=getVersion();
-		System.out.println("version major: "+v.major);
-		System.out.println("version minor: "+v.minor);
-		System.out.println("version rev: "+v.revision);
-		
-		License l=getLicense();
-		System.out.println("license licensee: "+l.licensee);
-		System.out.println("license product: "+l.product);
-		
-		Database db=new Database();
-		try {
-			db.create("jtest.db", 0, 0644);
-			db.close();
-			db.open("jtest.db", 0);
-			db.close();
-		}
-		catch (Error err) {
-			System.out.println("Exception: "+err.getMessage());
-		}
-	}
-	
 	/*
 	 * Don't remove these! They are used in the callback function,
 	 * which is implemented in the native library
 	 */
 	private Comparable m_cmp;
 	private PrefixComparable m_prefix_cmp;
+	private static ErrorHandler m_eh;
 	
 	static {
 		System.loadLibrary("hamsterdb");
