@@ -224,7 +224,7 @@ public class Environment {
 	 */
 	public synchronized short[] getDatabaseNames()
 			throws Error {
-		/* the native library throws an exception, if needed */
+		/* the native library throws an exception, if necessary */
 		return ham_env_get_database_names(m_handle);
 	}
 	
