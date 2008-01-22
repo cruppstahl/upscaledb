@@ -1,7 +1,7 @@
 /* 
  * getopts()
 
-  Copyright (C) 2005-2007 Christoph Rupp, www.crupp.de
+  Copyright (C) 2005-2008 Christoph Rupp, www.crupp.de
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
