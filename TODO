@@ -36,7 +36,8 @@ o java wrapper
         their own mutex; instead, Cursor must use the mutex of its
         Database!
     x new class Const for flags etc
-    o get rid of Key and Record and replace them with byte[]-arrays
+    x get rid of Key and Record and replace them with byte[]-arrays
+    x Environment::getDatabaseNames() is losing an error code!
     o ham_cursor_move returns 3 parameters, 2 of them are optional - but how?
     o unittests - where? project structure?
     o add header comments/copyright

@@ -36,6 +36,15 @@ static JNIEnv *g_jenv_db=0;
 #define PREPARE_DB_ENV                  g_jenv_db=jenv; g_jobj_db=jobj
 
 static void
+jni_throw_error(JNIEnv *jenv, ham_status_t st)
+{
+    jclass jcls=(*jenv)->FindClass(jenv, "de/crupp/hamsterdb/Error");
+    jmethodID ctor=(*jenv)->GetMethodID(jenv, jcls, "", "(I)V");
+    jobject jobj=(*jenv)->NewObject(jenv, jcls, ctor, st);
+    (*jenv)->Throw(jenv, jobj);
+}
+
+static void
 jni_errhandler(int level, const char *message)
 {
     jstring jstr;
@@ -444,9 +453,13 @@ Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1create(JNIEnv *jenv, jobject jobj,
     ham_cursor_t *cursor;
     ham_status_t st;
 
+    /* 
+     * in case of an error, return 0; the java library will check for
+     * 0 and return ham_get_error(db)
+     */
     st=ham_cursor_create((ham_db_t *)jdbhandle, 0, 0, &cursor);
     if (st)
-        return (0); /* TODO losing st! */
+        return (0);
     return ((jlong)cursor);
 }
 
@@ -457,9 +470,13 @@ Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1clone(JNIEnv *jenv, jobject jobj,
     ham_cursor_t *cursor;
     ham_status_t st;
 
+    /* 
+     * in case of an error, return 0; the java library will check for
+     * 0 and return ham_get_error(db)
+     */
     st=ham_cursor_clone((ham_cursor_t *)jhandle, &cursor);
     if (st)
-        return (0); /* TODO losing st! */
+        return (0);
     return ((jlong)cursor);
 }
 
@@ -482,12 +499,10 @@ Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1move(JNIEnv *jenv, jobject jobj,
         return ((jint)st);
 
     if (jkey && hkey.size){
-        /* TODO stimmt das? */
         (*jenv)->SetByteArrayRegion(jenv, jkey, 0,
                 hkey.size, (jbyte *)hkey.data);
     }
     if (jrec && hrec.size) {
-        /* TODO stimmt das? */
         (*jenv)->SetByteArrayRegion(jenv, jrec, 0,
                 hrec.size, (jbyte *)hrec.data);
     }
@@ -575,10 +590,14 @@ Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1get_1duplicate_1count(JNIEnv *jenv,
     ham_size_t count;
     ham_status_t st;
 
+    /* 
+     * in case of an error, return 0; the java library will check for
+     * 0 and return ham_get_error(db)
+     */
     st=ham_cursor_get_duplicate_count((ham_cursor_t *)jhandle, &count, 
             (ham_u32_t)jflags);
     if (st)
-        return (0); /* TODO losing st! */
+        return (0);
     return ((jlong)count);
 }
 
@@ -677,18 +696,21 @@ Java_de_crupp_hamsterdb_Environment_ham_1env_1create_1db(JNIEnv *jenv,
             return (st);
     }
 
-    if (ham_new(&db))
-        return (0); /* TODO */
+    if ((st=ham_new(&db))) {
+        jni_throw_error(jenv, st);
+        return (0);
+    }
 
     st=ham_env_create_db((ham_env_t *)jhandle, db, (ham_u16_t)jname,
             (ham_u32_t)jflags, params);
 
     if (params)
         free(params);
-    if (st)
+    if (st) {
         ham_delete(db);
+        jni_throw_error(jenv, st);
+    }
 
-    /* TODO losing error code */
     return ((jlong)db);
 }
 
@@ -707,18 +729,21 @@ Java_de_crupp_hamsterdb_Environment_ham_1env_1open_1db(JNIEnv *jenv,
             return (st);
     }
 
-    if (ham_new(&db))
-        return (0); /* TODO */
+    if ((st=ham_new(&db))) {
+        jni_throw_error(jenv, st);
+        return (0);
+    }
 
     st=ham_env_open_db((ham_env_t *)jhandle, db, (ham_u16_t)jname,
             (ham_u32_t)jflags, params);
 
     if (params)
         free(params);
-    if (st)
+    if (st) {
         ham_delete(db);
+        jni_throw_error(jenv, st);
+    }
 
-    /* TODO losing error code */
     return ((jlong)db);
 }
 
@@ -765,8 +790,10 @@ Java_de_crupp_hamsterdb_Environment_ham_1env_1get_1database_1names(JNIEnv *jenv,
     
     while (1) {
         dbs=(ham_u16_t *)realloc(dbs, sizeof(ham_u16_t)*num_dbs);
-        if (!dbs) /* TODO */
+        if (!dbs) {
+            jni_throw_error(jenv, HAM_OUT_OF_MEMORY);
             return (0);
+        }
 
         st=ham_env_get_database_names((ham_env_t *)jhandle, dbs, &num_dbs);
 
@@ -775,8 +802,11 @@ Java_de_crupp_hamsterdb_Environment_ham_1env_1get_1database_1names(JNIEnv *jenv,
             num_dbs*=2;
             continue;
         }
-        if (st) /* TODO - free(dbs) */
+        if (st) {
+            free(dbs);
+            jni_throw_error(jenv, st);
             return (0);
+        }
         break;
     }
 
