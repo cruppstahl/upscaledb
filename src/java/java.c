@@ -271,7 +271,8 @@ Java_de_crupp_hamsterdb_Database_ham_1create_1ex(JNIEnv *jenv, jobject jobj,
 
     if (params)
         free(params);
-    (*jenv)->ReleaseStringUTFChars(jenv, jfilename, filename); 
+    if (jfilename)
+        (*jenv)->ReleaseStringUTFChars(jenv, jfilename, filename); 
 
     return (st);
 }
@@ -299,7 +300,8 @@ Java_de_crupp_hamsterdb_Database_ham_1open_1ex(JNIEnv *jenv, jobject jobj,
 
     if (params)
         free(params);
-    (*jenv)->ReleaseStringUTFChars(jenv, jfilename, filename); 
+    if (jfilename)
+        (*jenv)->ReleaseStringUTFChars(jenv, jfilename, filename); 
 
     return (st);
 }
