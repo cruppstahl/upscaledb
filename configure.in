@@ -82,7 +82,7 @@ if test "$enable_encryption" = "no"; then
     CFLAGS="${CFLAGS} -DHAM_DISABLE_ENCRYPTION"
     settings="$settings (no encryption)"
 fi
-AM_CONDITIONAL(ENABLE_ENCRYPTION, test "x$enable_encryption" = "xyes")
+AM_CONDITIONAL(ENABLE_ENCRYPTION, test "x$enable_encryption" != "xno")
 
 #
 # Disable zlib compression
@@ -94,7 +94,7 @@ if test "$enable_compression" = "no"; then
     CFLAGS="${CFLAGS} -DHAM_DISABLE_COMPRESSION"
     settings="$settings (no compression)"
 fi
-AM_CONDITIONAL(ENABLE_COMPRESSION, test "x$enable_compression" = "xyes")
+AM_CONDITIONAL(ENABLE_COMPRESSION, test "x$enable_compression" != "xno")
 
 #
 # Check for little endian/big endian
