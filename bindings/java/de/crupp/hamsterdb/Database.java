@@ -286,18 +286,18 @@ public class Database {
 	 * 
 	 * Wraps the ham_find function.
 	 */
-	public Record find(Key key) 
+	public byte[] find(byte[] key) 
 			throws Error {
 		return find(key, 0);
 	}
 	
-	public synchronized Record find(Key key, int flags)
+	public synchronized byte[] find(byte[] key, int flags)
 			throws Error {
 		if (key==null)
 			throw new NullPointerException();
-		Record r=new Record();
-		r.data=ham_find(m_handle, key.data, flags);
-		if (r.data==null)
+		byte[] r;
+		r=ham_find(m_handle, key, flags);
+		if (r==null)
 			throw new Error(getError());
 		return r;
 	}
@@ -307,16 +307,16 @@ public class Database {
 	 * 
 	 * Wraps the ham_insert function.
 	 */
-	public void insert(Key key, Record record)
+	public void insert(byte[] key, byte[] record)
 			throws Error {
 		insert(key, record, 0);
 	}
 	
-	public synchronized void insert(Key key, Record record, int flags)
+	public synchronized void insert(byte[] key, byte[] record, int flags)
 			throws Error {
 		if (key==null || record==null)
 			throw new NullPointerException();
-		int status=ham_insert(m_handle, key.data, record.data, flags);
+		int status=ham_insert(m_handle, key, record, flags);
 		if (status!=0)
 			throw new Error(status);
 	}
@@ -326,16 +326,16 @@ public class Database {
 	 * 
 	 * Wraps the ham_erase function.
 	 */
-	public void erase(Key key)
+	public void erase(byte[] key)
 			throws Error {
 		erase(key, 0);
 	}
 	 
-	public synchronized void erase(Key key, int flags)
+	public synchronized void erase(byte[] key, int flags)
 			throws Error {
 		if (key==null)
 			throw new NullPointerException();
-		int status=ham_erase(m_handle, key.data, flags);
+		int status=ham_erase(m_handle, key, flags);
 		if (status!=0)
 			throw new Error(status);
 	}
@@ -409,7 +409,7 @@ public class Database {
 	
 	/*
 	 * Don't remove these! They are used in the callback function,
-	 * which is implemented by the native library
+	 * which is implemented in the native library
 	 */
 	private Comparable m_cmp;
 	private PrefixComparable m_prefix_cmp;

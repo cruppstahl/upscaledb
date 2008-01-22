@@ -7,7 +7,7 @@ public class Cursor {
 	private native long ham_cursor_clone(long handle);
 	
 	private native int ham_cursor_move(long handle, 
-			Key key, Record record, int flags);
+			byte[] key, byte[] record, int flags);
 	
 	private native int ham_cursor_overwrite(long handle, 
 			byte[] record, int flags);
@@ -55,13 +55,11 @@ public class Cursor {
 	 */
 	public void create(Database db) 
 			throws Error {
-		// TODO losing the error code!! throw exception 
-		// from native code??
 		synchronized (m_db) {
 			m_handle=ham_cursor_create(db.getHandle());
 		}
 		if (m_handle==0)
-			throw new Error(Const.HAM_OUT_OF_MEMORY);
+			throw new Error(m_db.getError());
 	}
 
 	/**
@@ -78,7 +76,7 @@ public class Cursor {
 			newhandle=ham_cursor_clone(m_handle);
 		}
 		if (newhandle==0)
-			throw new Error(Const.HAM_OUT_OF_MEMORY);
+			throw new Error(m_db.getError());
 		return new Cursor(m_db, newhandle);
 	}
 	
@@ -87,7 +85,7 @@ public class Cursor {
 	 * 
 	 * Wraps the ham_cursor_move function.
 	 */
-	public void move(Key key, Record record, int flags) 
+	public void move(byte[] key, byte[] record, int flags) 
 			throws Error {
 		int status;
 		synchronized (m_db) {
@@ -100,7 +98,7 @@ public class Cursor {
 	/**
 	 * Moves the Cursor to the first Database element
 	 */
-	public void moveFirst(Key key, Record record)
+	public void moveFirst(byte[] key, byte[] record)
 			throws Error {
 		move(key, record, Const.HAM_CURSOR_FIRST);
 	}
@@ -108,7 +106,7 @@ public class Cursor {
 	/**
 	 * Moves the Cursor to the last Database element
 	 */
-	public void moveLast(Key key, Record record) 
+	public void moveLast(byte[] key, byte[] record) 
 			throws Error {
 		move(key, record, Const.HAM_CURSOR_LAST);
 	}
@@ -116,7 +114,7 @@ public class Cursor {
 	/**
 	 * Moves the Cursor to the next Database element
 	 */
-	public void moveNext(Key key, Record record) 
+	public void moveNext(byte[] key, byte[] record) 
 			throws Error {
 		move(key, record, Const.HAM_CURSOR_NEXT);
 	}
@@ -124,7 +122,7 @@ public class Cursor {
 	/**
 	 * Moves the Cursor to the previous Database element
 	 */
-	public void movePrevious(Key key, Record record) 
+	public void movePrevious(byte[] key, byte[] record) 
 			throws Error {
 		move(key, record, Const.HAM_CURSOR_PREVIOUS);
 	}
@@ -134,13 +132,13 @@ public class Cursor {
 	 * 
 	 * Wraps the ham_cursor_overwrite function.
 	 */
-	public void overwrite(Record record) 
+	public void overwrite(byte[] record) 
 			throws Error {
 		if (record==null)
 			throw new NullPointerException();
 		int status;
 		synchronized (m_db) {
-			status=ham_cursor_overwrite(m_handle, record.data, 0);
+			status=ham_cursor_overwrite(m_handle, record, 0);
 		}
 		if (status!=0)
 			throw new Error(status);
@@ -151,13 +149,13 @@ public class Cursor {
 	 * 
 	 * Wraps the ham_cursor_find function.
 	 */
-	public void find(Key key) 
+	public void find(byte[] key) 
 			throws Error {
 		if (key==null)
 			throw new NullPointerException();
 		int status;
 		synchronized (m_db) {
-			status=ham_cursor_find(m_handle, key.data, 0);
+			status=ham_cursor_find(m_handle, key, 0);
 		}
 		if (status!=0)
 			throw new Error(status);	
@@ -168,18 +166,18 @@ public class Cursor {
 	 * 
 	 * Wraps the ham_cursor_insert function.
 	 */
-	public void insert(Key key, Record record) 
+	public void insert(byte[] key, byte[] record) 
 			throws Error {
 		insert(key, record, 0);
 	}
 	
-	public void insert(Key key, Record record, int flags) 
+	public void insert(byte[] key, byte[] record, int flags) 
 			throws Error {
 		if (key==null || record==null)
 			throw new NullPointerException();
 		int status;
 		synchronized (m_db) {
-			status=ham_cursor_insert(m_handle, key.data, record.data, flags);
+			status=ham_cursor_insert(m_handle, key, record, flags);
 		}
 		if (status!=0)
 			throw new Error(status);
@@ -207,11 +205,13 @@ public class Cursor {
 	 */
 	public int getDuplicateCount() 
 			throws Error {
-		// TODO status code is missing! throw exception 
-		// from native code??
+		int count;
 		synchronized (m_db) {
-			return ham_cursor_get_duplicate_count(m_handle, 0);
+			count=ham_cursor_get_duplicate_count(m_handle, 0);
 		}
+		if (count==0)
+			throw new Error(m_db.getError());
+		return count;
 	}
 	
 	/**

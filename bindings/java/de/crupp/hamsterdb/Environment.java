@@ -224,10 +224,8 @@ public class Environment {
 	 */
 	public synchronized short[] getDatabaseNames()
 			throws Error {
-		short ret[]=ham_env_get_database_names(m_handle);
-		if (ret==null) /* TODO losing status */
-			throw new Error(-1);
-		return ret;
+		/* the native library throws an exception, if needed */
+		return ham_env_get_database_names(m_handle);
 	}
 	
 	/**
