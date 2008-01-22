@@ -38,9 +38,9 @@ o java wrapper
     x new class Const for flags etc
     x get rid of Key and Record and replace them with byte[]-arrays
     x Environment::getDatabaseNames() is losing an error code!
+    x add header comments/copyright
     o ham_cursor_move returns 3 parameters, 2 of them are optional - but how?
     o unittests - where? project structure?
-    o add header comments/copyright
     o test with valgrind
     o add 2 samples
     o improve documentation
