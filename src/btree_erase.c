@@ -1148,7 +1148,8 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
                 goto free_all;
 
             /*
-             * make sure that no cursor is pointing to this dupe
+             * make sure that no cursor is pointing to this dupe, and shift
+             * all other cursors
              */
             while (c && cursor) {
                 ham_bt_cursor_t *next=(ham_bt_cursor_t *)cursor_get_next(c);
