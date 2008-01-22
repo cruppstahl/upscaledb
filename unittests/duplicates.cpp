@@ -167,6 +167,13 @@ class DupeTest : public CppUnit::TestFixture
      */
     CPPUNIT_TEST      (insertManyManyTest);
 
+    /*
+     * insert several duplicates; then set a cursor to the 2nd duplicate. 
+     * clone the cursor, move it to the next element. then erase the 
+     * first cursor.
+     */
+    CPPUNIT_TEST      (cloneTest);
+
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -1798,6 +1805,64 @@ public:
                 ham_cursor_move(c, 0, 0, HAM_CURSOR_NEXT));
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
+
+    void cloneTest(void)
+    {
+        ham_cursor_t *c1, *c2;
+        ham_key_t key;
+        ham_record_t rec;
+        int value=0;
+        ::memset(&key, 0, sizeof(key));
+
+        ::memset(&rec, 0, sizeof(rec));
+        value=1;
+        rec.data=&value;
+        rec.size=sizeof(value);
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+
+        ::memset(&rec, 0, sizeof(rec));
+        value=2;
+        rec.data=&value;
+        rec.size=sizeof(value);
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+
+        ::memset(&rec, 0, sizeof(rec));
+        value=3;
+        rec.data=&value;
+        rec.size=sizeof(value);
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c1));
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                        ham_cursor_move(c1, &key, &rec, HAM_CURSOR_FIRST));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                        ham_cursor_move(c1, &key, &rec, HAM_CURSOR_NEXT));
+        CPPUNIT_ASSERT_EQUAL(2, *(int *)rec.data);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_clone(c1, &c2));
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                        ham_cursor_move(c2, &key, &rec, HAM_CURSOR_NEXT));
+        CPPUNIT_ASSERT_EQUAL(3, *(int *)rec.data);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(c1, 0));
+        CPPUNIT_ASSERT(bt_cursor_is_nil((ham_bt_cursor_t *)c1));
+        CPPUNIT_ASSERT(!bt_cursor_is_nil((ham_bt_cursor_t *)c2));
+
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_cursor_move(c2, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(3, *(int *)rec.data);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c1));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c2));
+    }
 };
 
 class InMemoryDupeTest : public DupeTest
@@ -1835,6 +1900,7 @@ class InMemoryDupeTest : public DupeTest
     CPPUNIT_TEST      (overwriteVariousSizesTest);
     CPPUNIT_TEST      (getDuplicateCountTest);
     CPPUNIT_TEST      (insertManyManyTest);
+    CPPUNIT_TEST      (cloneTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
