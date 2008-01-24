@@ -40,7 +40,12 @@ o java wrapper
     x Environment::getDatabaseNames() is losing an error code!
     x add header comments/copyright
     x ham_cursor_move returns 3 parameters, 2 of them are optional - but how?
-    o unittests - where? project structure?
+    o add unittests for each function and code path
+        x const
+        x error
+        o database
+        o cursor
+        o environment
     o test with valgrind
     o add 2 samples
     o improve documentation
