@@ -18,8 +18,11 @@ public class Cursor {
 
 	private native long ham_cursor_clone(long handle);
 	
-	private native int ham_cursor_move(long handle, 
-			byte[] key, byte[] record, int flags);
+	private native int ham_cursor_move_to(long handle, int flags);
+	
+	private native byte[] ham_cursor_get_key(long handle, int flags);
+	
+	private native byte[] ham_cursor_get_record(long handle, int flags);
 	
 	private native int ham_cursor_overwrite(long handle, 
 			byte[] record, int flags);
@@ -93,52 +96,90 @@ public class Cursor {
 	}
 	
 	/**
-	 * Moves the Cursor, and retrieves the Key/Record pair
+	 * Moves the Cursor to the direction specified in the flags.
 	 * 
 	 * Wraps the ham_cursor_move function.
 	 */
-	public void move(byte[] key, byte[] record, int flags) 
+	public void move(int flags) 
 			throws Error {
 		int status;
 		synchronized (m_db) {
-			status=ham_cursor_move(m_handle, key, record, flags);
+			status=ham_cursor_move_to(m_handle, flags);
 		}
 		if (status!=0)
 			throw new Error(status);
 	}
-	
+
 	/**
 	 * Moves the Cursor to the first Database element
 	 */
-	public void moveFirst(byte[] key, byte[] record)
+	public void moveFirst()
 			throws Error {
-		move(key, record, Const.HAM_CURSOR_FIRST);
+		move(Const.HAM_CURSOR_FIRST);
 	}
 	
 	/**
 	 * Moves the Cursor to the last Database element
 	 */
-	public void moveLast(byte[] key, byte[] record) 
+	public void moveLast() 
 			throws Error {
-		move(key, record, Const.HAM_CURSOR_LAST);
+		move(Const.HAM_CURSOR_LAST);
 	}
 	
 	/**
 	 * Moves the Cursor to the next Database element
 	 */
-	public void moveNext(byte[] key, byte[] record) 
+	public void moveNext() 
 			throws Error {
-		move(key, record, Const.HAM_CURSOR_NEXT);
+		move(Const.HAM_CURSOR_NEXT);
 	}
 	
 	/**
 	 * Moves the Cursor to the previous Database element
 	 */
-	public void movePrevious(byte[] key, byte[] record) 
+	public void movePrevious() 
 			throws Error {
-		move(key, record, Const.HAM_CURSOR_PREVIOUS);
+		move(Const.HAM_CURSOR_PREVIOUS);
 	}
 	
+	/**
+	 * Retrieve the Key of the current item.
+	 */
+	public byte[] getKey() 
+			throws Error {
+		return getKey(0);
+	}
+	
+	public byte[] getKey(int flags) 
+			throws Error {
+		byte[] ret;
+		synchronized (m_db) {
+			ret=ham_cursor_get_key(m_handle, flags);
+		}
+		if (ret==null)
+			throw new Error(m_db.getError());
+		return ret;
+	}
+
+	/**
+	 * Retrieve the Record of the current item.
+	 */
+	public byte[] getRecord() 
+			throws Error {
+		return getRecord(0);
+	}
+	
+	public byte[] getRecord(int flags) 
+			throws Error {
+		byte[] ret;
+		synchronized (m_db) {
+			ret=ham_cursor_get_record(m_handle, flags);
+		}
+		if (ret==null)
+			throw new Error(m_db.getError());
+		return ret;
+	}
+
 	/**
 	 * Overwrites the current Record
 	 * 

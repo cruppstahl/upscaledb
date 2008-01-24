@@ -483,33 +483,49 @@ Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1clone(JNIEnv *jenv, jobject jobj,
 }
 
 JNIEXPORT jint JNICALL
-Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1move(JNIEnv *jenv, jobject jobj,
-        jlong jhandle, jobject jkey, jobject jrec, jint jflags)
+Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1move_1to(JNIEnv *jenv, 
+        jobject jobj, jlong jhandle, jint jflags)
+{
+    return ((jint)ham_cursor_move((ham_cursor_t *)jhandle, 0, 0, 
+                (ham_u32_t)jflags));
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1get_1key(JNIEnv *jenv,
+        jobject jobj, jlong jhandle, jint jflags)
 {
     ham_status_t st;
-    ham_key_t hkey;
-    ham_record_t hrec;
-    memset(&hkey, 0, sizeof(hkey));
-    memset(&hrec, 0, sizeof(hrec));
+    ham_key_t key;
+    jbyteArray ret;
+    memset(&key, 0, sizeof(key));
 
-    PREPARE_DB_ENV;
-
-    st=ham_cursor_move((ham_cursor_t *)jhandle, 
-            jkey ? &hkey : 0, jrec ? &hrec : 0, (ham_u32_t)jflags);
-
+    st=ham_cursor_move((ham_cursor_t *)jhandle, &key, 0, (ham_u32_t)jflags);
     if (st)
-        return ((jint)st);
+        return (0);
 
-    if (jkey && hkey.size){
-        (*jenv)->SetByteArrayRegion(jenv, jkey, 0,
-                hkey.size, (jbyte *)hkey.data);
-    }
-    if (jrec && hrec.size) {
-        (*jenv)->SetByteArrayRegion(jenv, jrec, 0,
-                hrec.size, (jbyte *)hrec.data);
-    }
+    ret=(*jenv)->NewByteArray(jenv, key.size);
+    if (key.size)
+        (*jenv)->SetByteArrayRegion(jenv, ret, 0, key.size, (jbyte *)key.data);
+    return (ret);
+}
 
-    return (0);
+JNIEXPORT jbyteArray JNICALL
+Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1get_1record(JNIEnv *jenv,
+        jobject jobj, jlong jhandle, jint jflags)
+{
+    ham_status_t st;
+    ham_record_t rec;
+    jbyteArray ret;
+    memset(&rec, 0, sizeof(rec));
+
+    st=ham_cursor_move((ham_cursor_t *)jhandle, 0, &rec, (ham_u32_t)jflags);
+    if (st)
+        return (0);
+
+    ret=(*jenv)->NewByteArray(jenv, rec.size);
+    if (rec.size)
+        (*jenv)->SetByteArrayRegion(jenv, ret, 0, rec.size, (jbyte *)rec.data);
+    return (ret);
 }
 
 JNIEXPORT jint JNICALL

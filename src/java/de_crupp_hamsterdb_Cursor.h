@@ -7,14 +7,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#undef de_crupp_hamsterdb_Cursor_HAM_CURSOR_FIRST
-#define de_crupp_hamsterdb_Cursor_HAM_CURSOR_FIRST 1L
-#undef de_crupp_hamsterdb_Cursor_HAM_CURSOR_LAST
-#define de_crupp_hamsterdb_Cursor_HAM_CURSOR_LAST 1L
-#undef de_crupp_hamsterdb_Cursor_HAM_CURSOR_NEXT
-#define de_crupp_hamsterdb_Cursor_HAM_CURSOR_NEXT 1L
-#undef de_crupp_hamsterdb_Cursor_HAM_CURSOR_PREVIOUS
-#define de_crupp_hamsterdb_Cursor_HAM_CURSOR_PREVIOUS 1L
 /*
  * Class:     de_crupp_hamsterdb_Cursor
  * Method:    ham_cursor_create
@@ -33,11 +25,27 @@ JNIEXPORT jlong JNICALL Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1clone
 
 /*
  * Class:     de_crupp_hamsterdb_Cursor
- * Method:    ham_cursor_move
- * Signature: (JLde/crupp/hamsterdb/Key;Lde/crupp/hamsterdb/Record;I)I
+ * Method:    ham_cursor_move_to
+ * Signature: (JI)I
  */
-JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1move
-  (JNIEnv *, jobject, jlong, jobject, jobject, jint);
+JNIEXPORT jint JNICALL Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1move_1to
+  (JNIEnv *, jobject, jlong, jint);
+
+/*
+ * Class:     de_crupp_hamsterdb_Cursor
+ * Method:    ham_cursor_get_key
+ * Signature: (JI)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1get_1key
+  (JNIEnv *, jobject, jlong, jint);
+
+/*
+ * Class:     de_crupp_hamsterdb_Cursor
+ * Method:    ham_cursor_get_record
+ * Signature: (JI)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1get_1record
+  (JNIEnv *, jobject, jlong, jint);
 
 /*
  * Class:     de_crupp_hamsterdb_Cursor
