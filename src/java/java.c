@@ -44,26 +44,39 @@ jni_throw_error(JNIEnv *jenv, ham_status_t st)
     (*jenv)->Throw(jenv, jobj);
 }
 
+static JavaVM *javavm;
+
 static void
 jni_errhandler(int level, const char *message)
 {
-    jstring jstr;
     jclass jcls;
     jmethodID jmid;
+    JNIEnv *jenv;
 
-    /* create jstring from message */
-    jstr=(*g_jenv_eh)->NewStringUTF(g_jenv_eh, message);
+    if ((*javavm)->AttachCurrentThread(javavm, (void **)&jenv, 0) != 0) {
+        printf("JNI error: AttachCurrentThread failed\n");
+        return;
+    }
+
+    printf("local env: 0x%llx\n", (unsigned long long)jenv);
+    printf("local obj: 0x%llx\n", (unsigned long long)g_jobj_eh);
+    
+printf("%d\n", __LINE__);
 
     /* get callback method */
-    jcls=(*g_jenv_eh)->GetObjectClass(g_jenv_eh, g_jobj_eh);
-    jmid=(*g_jenv_eh)->GetMethodID(g_jenv_eh, jcls, "handleMessage", 
+    jcls=(*jenv)->GetObjectClass(jenv, g_jobj_eh);
+printf("%d - jcls is 0x%llx\n", __LINE__, (unsigned long long)jcls);
+    jmid=(*jenv)->GetMethodID(jenv, jcls, "handleMessage",
             "(ILjava/lang/String;)V");
+printf("%d\n", __LINE__);
 
     /* call the java method */
-    (*g_jenv_eh)->CallVoidMethod(g_jenv_eh, g_jobj_eh, jmid, (jint)level, jstr);
+    (*jenv)->CallNonvirtualVoidMethod(jenv, g_jobj_eh, jcls,
+            jmid, (jint)level, (*jenv)->NewStringUTF(jenv, message));
+printf("%d\n", __LINE__);
 
-    /* clean up */
-    (*g_jenv_eh)->ReleaseStringUTFChars(g_jenv_eh, jstr, message);
+    /* clean up  - not needed??
+    (*jenv)->ReleaseStringUTFChars(jenv, jstr, message); */
 }
 
 static int
@@ -222,6 +235,14 @@ Java_de_crupp_hamsterdb_Database_ham_1set_1errhandler(JNIEnv *jenv,
 
     g_jobj_eh=jeh;
     g_jenv_eh=jenv;
+    printf("set_errhandler env=0x%llx, obj=0x%llx\n",
+            (unsigned long long)jenv, (unsigned long long)jeh);
+
+    if ((*jenv)->GetJavaVM(jenv, &javavm) != 0) {
+        printf("Cannot get Java VM\n");
+        return;
+    }
+
     ham_set_errhandler(jni_errhandler);
 }
 
