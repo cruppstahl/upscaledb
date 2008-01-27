@@ -203,36 +203,36 @@ public:
 
     void defaultCompareTest()
     {
-        CPPUNIT_ASSERT( 0==db_default_compare(
+        CPPUNIT_ASSERT( 0==db_default_compare(0,
                         (ham_u8_t *)"abc", 3, (ham_u8_t *)"abc", 3));
-        CPPUNIT_ASSERT(-1==db_default_compare(
+        CPPUNIT_ASSERT(-1==db_default_compare(0,
                         (ham_u8_t *)"ab",  2, (ham_u8_t *)"abc", 3));
-        CPPUNIT_ASSERT(-1==db_default_compare(
+        CPPUNIT_ASSERT(-1==db_default_compare(0,
                         (ham_u8_t *)"abc", 3, (ham_u8_t *)"bcd", 3));
-        CPPUNIT_ASSERT(+1==db_default_compare(
+        CPPUNIT_ASSERT(+1==db_default_compare(0,
                         (ham_u8_t *)"abc", 3, (ham_u8_t *)0,     0));
-        CPPUNIT_ASSERT(-1==db_default_compare(
+        CPPUNIT_ASSERT(-1==db_default_compare(0,
                         (ham_u8_t *)0,     0, (ham_u8_t *)"abc", 3));
     }
 
     void defaultPrefixCompareTest()
     {
-        CPPUNIT_ASSERT(db_default_prefix_compare(
+        CPPUNIT_ASSERT(db_default_prefix_compare(0,
                         (ham_u8_t *)"abc", 3, 3, 
                         (ham_u8_t *)"abc", 3, 3)==HAM_PREFIX_REQUEST_FULLKEY);
-        CPPUNIT_ASSERT(db_default_prefix_compare(
+        CPPUNIT_ASSERT(db_default_prefix_compare(0,
                         (ham_u8_t *)"ab",  2, 2, 
                         (ham_u8_t *)"abc", 3, 3)==HAM_PREFIX_REQUEST_FULLKEY);
-        CPPUNIT_ASSERT(-1==db_default_prefix_compare(
+        CPPUNIT_ASSERT(-1==db_default_prefix_compare(0,
                         (ham_u8_t *)"abc", 3, 3,
                         (ham_u8_t *)"bcd", 3, 3));
-        CPPUNIT_ASSERT(db_default_prefix_compare(
+        CPPUNIT_ASSERT(db_default_prefix_compare(0,
                         (ham_u8_t *)"abc", 3, 3,
                         (ham_u8_t *)0,     0, 0)==HAM_PREFIX_REQUEST_FULLKEY);
-        CPPUNIT_ASSERT(db_default_prefix_compare(
+        CPPUNIT_ASSERT(db_default_prefix_compare(0,
                         (ham_u8_t *)0,     0, 0,
                         (ham_u8_t *)"abc", 3, 3)==HAM_PREFIX_REQUEST_FULLKEY);
-        CPPUNIT_ASSERT(db_default_prefix_compare(
+        CPPUNIT_ASSERT(db_default_prefix_compare(0,
                         (ham_u8_t *)"abc", 3, 80239, 
                         (ham_u8_t *)"abc", 3, 2)==HAM_PREFIX_REQUEST_FULLKEY);
     }

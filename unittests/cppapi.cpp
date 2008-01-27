@@ -14,9 +14,11 @@
 #include <ham/hamsterdb.hpp>
 
 static int
-my_compare_func(const ham_u8_t *lhs, ham_size_t lhs_length,
+my_compare_func(ham_db_t *db,
+                const ham_u8_t *lhs, ham_size_t lhs_length,
                 const ham_u8_t *rhs, ham_size_t rhs_length)
 {
+    (void)db;
     (void)lhs;
     (void)rhs;
     (void)lhs_length;
@@ -25,11 +27,13 @@ my_compare_func(const ham_u8_t *lhs, ham_size_t lhs_length,
 }
 
 static int
-my_prefix_compare_func(const ham_u8_t *lhs, ham_size_t lhs_length,
+my_prefix_compare_func(ham_db_t *db,
+               const ham_u8_t *lhs, ham_size_t lhs_length,
                ham_size_t lhs_real_length,
                const ham_u8_t *rhs, ham_size_t rhs_length,
                ham_size_t rhs_real_length)
 {
+    (void)db;
     (void)lhs;
     (void)rhs;
     (void)lhs_length;
