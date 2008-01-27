@@ -1095,7 +1095,7 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * This function searches the Database for @a key. If the key
  * is found, @a record will receive the record of this item and
  * @a HAM_SUCCESS is returned. If the key is not found, the function
- * returns with @a HAM_KEY_NOT_FOUND.
+ * returns @a HAM_KEY_NOT_FOUND.
  *
  * A ham_record_t structure should be initialized with
  * zeroes before it is being used. This can be done with the C library
@@ -1177,7 +1177,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  *              flag @a HAM_ENABLE_DUPLICATES.
  * @return @a HAM_DB_READ_ONLY if you tried to insert a key in a read-only
  *              Database
- * @return @a HAM_INV_KEYSIZE if the key's size is larger than the @a keysize
+ * @return @a HAM_INV_KEYSIZE if the key size is larger than the @a keysize
  *              parameter specified for @a ham_create_ex and variable
  *              key sizes are disabled (see @a HAM_DISABLE_VAR_KEYLEN)
  *              OR if the @a keysize parameter specified for @a ham_create_ex
@@ -1336,7 +1336,7 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
 /**
  * Moves the Cursor
  *
- * Moves the Cursor. You may specify the direction in the @a flags.
+ * Moves the Cursor. Use the @a flags to specify the direction.
  * After the move, key and record of the item are returned, if @a key
  * and/or @a record are valid pointers.
  *
@@ -1543,8 +1543,8 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
 /**
  * Get the number of duplicate keys
  *
- * Returns the number of duplicate keys of the item at which the
- * Cursor currently points to.
+ * Returns the number of duplicate keys of the item to which the
+ * Cursor currently points.
  * Returns 1 if the key has no duplicates.
  *
  * @param cursor A valid Cursor handle
