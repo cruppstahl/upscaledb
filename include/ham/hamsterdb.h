@@ -12,7 +12,7 @@
  * \mainpage hamsterdb embeddable database
  * \brief Include file for hamsterdb
  * \author Christoph Rupp, chris@crupp.de
- * \version 1.0.0rc1
+ * \version 1.0.0
  */
 
 #ifndef HAM_HAMSTERDB_H__
@@ -1017,6 +1017,25 @@ HAM_EXPORT ham_status_t
 ham_get_error(ham_db_t *db);
 
 /**
+ * Typedef for a prefix comparison function
+ *
+ * @remark This function compares two index keys; it returns -1, if lhs
+ * ("left-hand side", the paramter on the left side) is smaller than 
+ * rhs ("right-hand side"), 0 if both keys are equal, and 1 if lhs 
+ * is larger than rhs.
+ *
+ * @remark If one of the keys is loaded only partially, but the comparison
+ * function needs the full key, the return value should be
+ * HAM_PREFIX_REQUEST_FULLKEY.
+ */
+typedef int (*ham_prefix_compare_func_t)
+                                 (ham_db_t *db, 
+                                  const ham_u8_t *lhs, ham_size_t lhs_length, 
+                                  ham_size_t lhs_real_length,
+                                  const ham_u8_t *rhs, ham_size_t rhs_length,
+                                  ham_size_t rhs_real_length);
+
+/**
  * Sets the prefix comparison function
  *
  * The prefix comparison function is called when an index uses
@@ -1033,6 +1052,18 @@ ham_get_error(ham_db_t *db);
  */
 HAM_EXPORT ham_status_t
 ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
+
+/**
+ * Typedef for a comparison function
+ *
+ * @remark This function compares two index keys; it returns -1, if lhs
+ * ("left-hand side", the paramter on the left side) is smaller than 
+ * rhs ("right-hand side"), 0 if both keys are equal, and 1 if lhs 
+ * is larger than rhs.
+ */
+typedef int (*ham_compare_func_t)(ham_db_t *db, 
+                                  const ham_u8_t *lhs, ham_size_t lhs_length, 
+                                  const ham_u8_t *rhs, ham_size_t rhs_length);
 
 /**
  * Sets the comparison function
