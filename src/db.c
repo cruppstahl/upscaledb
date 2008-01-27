@@ -72,13 +72,16 @@ db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
 }
 
 int
-db_default_prefix_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
+db_default_prefix_compare(ham_db_t *db, 
+                   const ham_u8_t *lhs, ham_size_t lhs_length,
                    ham_size_t lhs_real_length,
                    const ham_u8_t *rhs, ham_size_t rhs_length,
                    ham_size_t rhs_real_length)
 {
     int m;
     ham_size_t min_length=lhs_length<rhs_length?lhs_length:rhs_length;
+
+    (void)db;
 
     m=memcmp(lhs, rhs, min_length);
     if (m<0)
@@ -89,10 +92,13 @@ db_default_prefix_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
 }
 
 int
-db_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
+db_default_compare(ham_db_t *db, 
+                   const ham_u8_t *lhs, ham_size_t lhs_length,
                    const ham_u8_t *rhs, ham_size_t rhs_length)
 {
     int m;
+
+    (void)db;
 
     /*
      * the default compare uses memcmp
@@ -126,10 +132,13 @@ db_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
 }
 
 int
-db_default_recno_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
+db_default_recno_compare(ham_db_t *db, 
+                   const ham_u8_t *lhs, ham_size_t lhs_length,
                    const ham_u8_t *rhs, ham_size_t rhs_length)
 {
     ham_u64_t ulhs, urhs;
+
+    (void)db;
 
     memcpy(&ulhs, lhs, 8);
     memcpy(&urhs, rhs, 8);
@@ -261,7 +270,7 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
         /*
          * no!
          */
-        return (foo(lhs, lhs_length, rhs, rhs_length));
+        return (foo(db, lhs, lhs_length, rhs, rhs_length));
     }
 
     /*
@@ -281,7 +290,7 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
         else
             rhsprefixlen=rhs_length;
 
-        cmp=prefoo(lhs, lhsprefixlen, lhs_length, rhs,
+        cmp=prefoo(db, lhs, lhsprefixlen, lhs_length, rhs,
                 rhsprefixlen, rhs_length);
         if (db_get_error(db))
             return (0);
@@ -418,7 +427,8 @@ db_compare_keys(ham_db_t *db, ham_page_t *page,
         /*
          * 3. run the comparison function
          */
-        cmp=foo(plhs ? plhs : lhs, lhs_length, prhs ? prhs : rhs, rhs_length);
+        cmp=foo(db, plhs ? plhs : lhs, lhs_length, 
+                prhs ? prhs : rhs, rhs_length);
     }
 
 bail:

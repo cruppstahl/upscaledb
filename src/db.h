@@ -563,8 +563,9 @@ db_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
  * the default key compare function - uses memcmp
  */
 extern int
-db_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
-                   const ham_u8_t *rhs, ham_size_t rhs_length);
+db_default_compare(ham_db_t *db,
+        const ham_u8_t *lhs, ham_size_t lhs_length,
+        const ham_u8_t *rhs, ham_size_t rhs_length);
 
 /**
  * compare two recno-keys
@@ -575,17 +576,19 @@ db_default_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
  * HAS to check for this error!
  */
 extern int
-db_default_recno_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
-                   const ham_u8_t *rhs, ham_size_t rhs_length);
+db_default_recno_compare(ham_db_t *db,
+        const ham_u8_t *lhs, ham_size_t lhs_length,
+        const ham_u8_t *rhs, ham_size_t rhs_length);
 
 /**
  * the default prefix compare function - uses memcmp
  */
 extern int
-db_default_prefix_compare(const ham_u8_t *lhs, ham_size_t lhs_length,
-                   ham_size_t lhs_real_length,
-                   const ham_u8_t *rhs, ham_size_t rhs_length,
-                   ham_size_t rhs_real_length);
+db_default_prefix_compare(ham_db_t *db,
+        const ham_u8_t *lhs, ham_size_t lhs_length,
+        ham_size_t lhs_real_length,
+        const ham_u8_t *rhs, ham_size_t rhs_length,
+        ham_size_t rhs_real_length);
 
 /**
  * load an extended key
