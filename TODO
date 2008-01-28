@@ -7,16 +7,27 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-o wait for bugs...
-
-o remove win32 compiler warnings (related to __FUNCTION__)
-
-o define a new release process for stable/unstable releases
-
-o release 1.0.0!
+x remove win32 compiler warnings (related to __FUNCTION__)
 
 x need new internal hamster function: add_context_data, get_context_data
     x unittests
+
+x add documentation fixes
+
+x change the interface of the callback functions (prefix-compare
+    and normal compare); need an additional "db" parameter!
+
+o release 1.0.0!
+
+-----------------------------------------------------------------------------
+
+o merge changes of 1.0 with the trunk
+
+o define a new release process for stable/unstable releases
+
+o new web page
+
+o commercial licensing
 
 o java wrapper
     x package name is de.crupp.hamsterdb (??)
@@ -46,9 +57,10 @@ o java wrapper
         o database
         o cursor
         o environment
+    o more robustness in the jni code!! - error checks etc
     o test with valgrind
     o add 2 samples
-    o improve documentation
+    o add the full documentation!!
     o create jar
     o add autoconf build automization
     o add win32 build automization
@@ -58,6 +70,21 @@ o java wrapper
         o win64
         o linux 32bit
         o linux 64bit
+
+    o extend release process for java
+
+o .NET wrapper
+
+o PHP wrapper
+
+o Python wrapper
+
+o Perl wrapper
+
+-----------------------------------------------------------------------------
+
+java callback-comparison:
+    libdb_java/db_java_wrap.c funktion __dbj_bt_compare
 
 . tests are failing because of a berkeleydb bug:
     --duplicate=1 --use-cursors=1
