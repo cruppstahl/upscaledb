@@ -59,7 +59,7 @@ o java wrapper
         o environment
     o more robustness in the jni code!! - error checks etc
     o test with valgrind
-    o add 2 samples
+    o add 2 samples (db1.java, env2.java)
     o add the full documentation!!
     o create jar
     o add autoconf build automization

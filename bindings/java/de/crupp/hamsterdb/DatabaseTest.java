@@ -23,6 +23,10 @@ public class DatabaseTest extends TestCase {
 			m_counter++;
 			System.out.println(level+": "+message);		
 		}
+		
+		public void finalize() {
+			System.out.println("gone!");
+		}
 	}
 
 	public void testSetErrorHandler() {

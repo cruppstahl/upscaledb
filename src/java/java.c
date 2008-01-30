@@ -51,6 +51,8 @@ jni_errhandler(int level, const char *message)
 {
     jclass jcls;
     jmethodID jmid;
+    jobject jobj;
+    jfieldID jfid;
     JNIEnv *jenv;
 
     if ((*javavm)->AttachCurrentThread(javavm, (void **)&jenv, 0) != 0) {
@@ -63,6 +65,7 @@ jni_errhandler(int level, const char *message)
     
 printf("%d\n", __LINE__);
 
+#if 0
     /* get callback method */
     jcls=(*jenv)->GetObjectClass(jenv, g_jobj_eh);
 printf("%d - jcls is 0x%llx\n", __LINE__, (unsigned long long)jcls);
@@ -70,8 +73,25 @@ printf("%d - jcls is 0x%llx\n", __LINE__, (unsigned long long)jcls);
             "(ILjava/lang/String;)V");
 printf("%d\n", __LINE__);
 
+#endif
+    jcls=(*jenv)->FindClass(jenv, "de/crupp/hamsterdb/Database");
+printf("%d - jcls is 0x%llx\n", __LINE__, (unsigned long long)jcls);
+
+    jfid=(*jenv)->GetStaticFieldID(jenv, jcls, "m_eh", 
+            "Lde/crupp/hamsterdb/ErrorHandler;");
+printf("%d - jfid is 0x%llx\n", __LINE__, (unsigned long long)jfid);
+
+    jobj=(*jenv)->GetStaticObjectField(jenv, jcls, jfid);
+printf("%d - jobj is 0x%llx\n", __LINE__, (unsigned long long)jobj);
+
+    jcls=(*jenv)->GetObjectClass(jenv, jobj);
+printf("%d - jcls is 0x%llx\n", __LINE__, (unsigned long long)jcls);
+
+    jmid=(*jenv)->GetMethodID(jenv, jcls, "handleMessage",
+            "(ILjava/lang/String;)V");
+
     /* call the java method */
-    (*jenv)->CallNonvirtualVoidMethod(jenv, g_jobj_eh, jcls,
+    (*jenv)->CallNonvirtualVoidMethod(jenv, jobj, jcls,
             jmid, (jint)level, (*jenv)->NewStringUTF(jenv, message));
 printf("%d\n", __LINE__);
 
@@ -80,7 +100,8 @@ printf("%d\n", __LINE__);
 }
 
 static int
-jni_compare_func(const ham_u8_t *lhs, ham_size_t lhs_length, 
+jni_compare_func(ham_db_t *db, 
+        const ham_u8_t *lhs, ham_size_t lhs_length, 
         const ham_u8_t *rhs, ham_size_t rhs_length)
 {
     int ret;
@@ -117,9 +138,9 @@ jni_compare_func(const ham_u8_t *lhs, ham_size_t lhs_length,
 }
 
 static int
-jni_prefix_compare_func(const ham_u8_t *lhs, ham_size_t lhs_length, 
-        ham_size_t lhs_real_length, const ham_u8_t *rhs, ham_size_t rhs_length,
-        ham_size_t rhs_real_length)
+jni_prefix_compare_func(ham_db_t *db,
+        const ham_u8_t *lhs, ham_size_t lhs_length, ham_size_t lhs_real_length,
+        const ham_u8_t *rhs, ham_size_t rhs_length, ham_size_t rhs_real_length)
 {
     int ret;
 
