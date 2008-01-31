@@ -20,20 +20,44 @@
 #endif
 #include <string.h>
 
-#include <ham/hamsterdb.h>
+#include <ham/hamsterdb_int.h>
 
 #include "de_crupp_hamsterdb_Error.h"
 
-#define jni_log(x) fprintf(stderr, x);
-
 static JavaVM *javavm=0;
+
+#define jni_log(x) printf(x)
+
+typedef struct jnipriv
+{
+    JNIEnv *jenv;
+    jobject jobj;
+} jnipriv;
+
+#define SET_DB_CONTEXT(db, jenv, jobj) jnipriv p; p.jenv=jenv; p.jobj=jobj; \
+                                       ham_set_context_data(db, &p);
 
 static void
 jni_throw_error(JNIEnv *jenv, ham_status_t st)
 {
     jclass jcls=(*jenv)->FindClass(jenv, "de/crupp/hamsterdb/Error");
+    if (!jcls) {
+        jni_log(("Cannot find class de.crupp.hamsterdb.Error\n"));
+        return;
+    }
+
     jmethodID ctor=(*jenv)->GetMethodID(jenv, jcls, "", "(I)V");
+    if (!ctor) {
+        jni_log(("Cannot find constructor of Error class\n"));
+        return;
+    }
+
     jobject jobj=(*jenv)->NewObject(jenv, jcls, ctor, st);
+    if (!jobj) {
+        jni_log(("Cannot create new Exception\n"));
+        return;
+    }
+
     (*jenv)->Throw(jenv, jobj);
 }
 
@@ -45,6 +69,7 @@ jni_errhandler(int level, const char *message)
     jobject jobj;
     jfieldID jfid;
     JNIEnv *jenv;
+    jstring str;
 
     if ((*javavm)->AttachCurrentThread(javavm, (void **)&jenv, 0) != 0) {
         jni_log(("AttachCurrentThread failed\n"));
@@ -83,12 +108,15 @@ jni_errhandler(int level, const char *message)
         return;
     }
 
+    str=(*jenv)->NewStringUTF(jenv, message);
+    if (!str) {
+        jni_log(("unable to create new Java string\n"));
+        return;
+    }
+
     /* call the java method */
     (*jenv)->CallNonvirtualVoidMethod(jenv, jobj, jcls,
-            jmid, (jint)level, (*jenv)->NewStringUTF(jenv, message));
-
-    /* TODO clean up  - not needed??
-    (*jenv)->ReleaseStringUTFChars(jenv, jstr, message); */
+            jmid, (jint)level, str);
 }
 
 static int
@@ -96,35 +124,82 @@ jni_compare_func(ham_db_t *db,
         const ham_u8_t *lhs, ham_size_t lhs_length, 
         const ham_u8_t *rhs, ham_size_t rhs_length)
 {
-    int ret;
-
+    jobject jcmpobj;
+    jclass jcls, jcmpcls;
+    jfieldID jfid;
+    jmethodID jmid;
     jbyteArray jlhs, jrhs;
 
+    int ret;
+
+    /* get the Java Environment and the Database instance */
+    jnipriv *p=(jnipriv *)ham_get_context_data(db);
+
     /* get the callback method */
-    jclass jcls   =(*g_jenv_db)->GetObjectClass(g_jenv_db, g_jobj_db);
-    jfieldID fid  =(*g_jenv_db)->GetFieldID(g_jenv_db, jcls, "m_cmp", 
+    jcls=(*p->jenv)->GetObjectClass(p->jenv, p->jobj);
+    if (!jcls) {
+        jni_log(("GetObjectClass failed\n"));
+        return (-1); /* TODO throw! */
+    }
+
+    jfid=(*p->jenv)->GetFieldID(p->jenv, jcls, "m_cmp", 
             "Lde/crupp/hamsterdb/Comparable;");
-    jobject jcmp  =(*g_jenv_db)->GetObjectField(g_jenv_db, g_jobj_db, fid);
-    jclass jcmpcls=(*g_jenv_db)->GetObjectClass(g_jenv_db, jcmp);
-    jmethodID jmid=(*g_jenv_db)->GetMethodID(g_jenv_db, jcmpcls, "comparable",
+    if (!jfid) {
+        jni_log(("GetFieldID failed\n"));
+        return (-1); /* TODO throw! */
+    }
+
+    jcmpobj=(*p->jenv)->GetObjectField(p->jenv, p->jobj, jfid);
+    if (!jcmpobj) {
+        jni_log(("GetObjectFieldID failed\n"));
+        return (-1); /* TODO throw! */
+    }
+
+    jcmpcls=(*p->jenv)->GetObjectClass(p->jenv, jcmpobj);
+    if (!jcmpcls) {
+        jni_log(("GetObjectClass failed\n"));
+        return (-1); /* TODO throw! */
+    }
+
+    jmid=(*p->jenv)->GetMethodID(p->jenv, jcmpcls, "compare",
             "([B[B)I");
+    if (!jmid) {
+        jni_log(("GetMethodID failed\n"));
+        return (-1); /* TODO throw! */
+    }
 
     /* prepare the parameters */
-    jlhs=(*g_jenv_db)->NewByteArray(g_jenv_db, lhs_length);
+    jlhs=(*p->jenv)->NewByteArray(p->jenv, lhs_length);
+    if (!jlhs) {
+        jni_log(("NewByteArray failed\n"));
+        return (-1); /* TODO throw! */
+    }
+
     if (lhs_length)
-        (*g_jenv_db)->SetByteArrayRegion(g_jenv_db, jlhs, 0, lhs_length,
+        (*p->jenv)->SetByteArrayRegion(p->jenv, jlhs, 0, lhs_length,
                 (jbyte *)lhs);
-    jrhs=(*g_jenv_db)->NewByteArray(g_jenv_db, rhs_length);
+
+    jrhs=(*p->jenv)->NewByteArray(p->jenv, rhs_length);
+    if (!jrhs) {
+        jni_log(("NewByteArray failed\n"));
+        return (-1); /* TODO throw! */
+    }
+
     if (rhs_length)
-        (*g_jenv_db)->SetByteArrayRegion(g_jenv_db, jrhs, 0, rhs_length,
+        (*p->jenv)->SetByteArrayRegion(p->jenv, jrhs, 0, rhs_length,
                 (jbyte *)rhs);
 
-    ret=(*g_jenv_db)->CallIntMethod(g_jenv_db, jcmp, jmid, jlhs, jrhs);
+    ret=(*p->jenv)->CallIntMethod(p->jenv, jcmpobj, jmid, jlhs, jrhs);
 
-    (*g_jenv_db)->ReleaseByteArrayElements(g_jenv_db, jlhs, 
+    /*
+     * TODO do i have to release this??
+    if (lhs_length)
+        (*p->jenv)->ReleaseByteArrayElements(p->jenv, jlhs, 
             lhs_length ? (jbyte *)lhs : 0, 0);
-    (*g_jenv_db)->ReleaseByteArrayElements(g_jenv_db, jrhs, 
+    if (rhs_length)
+        (*p->jenv)->ReleaseByteArrayElements(p->jenv, jrhs, 
             rhs_length ? (jbyte *)rhs : 0, 0);
+            */
 
     return (ret);
 }
@@ -134,36 +209,83 @@ jni_prefix_compare_func(ham_db_t *db,
         const ham_u8_t *lhs, ham_size_t lhs_length, ham_size_t lhs_real_length,
         const ham_u8_t *rhs, ham_size_t rhs_length, ham_size_t rhs_real_length)
 {
-    int ret;
-
+    jobject jcmpobj;
+    jclass jcls, jcmpcls;
+    jfieldID jfid;
+    jmethodID jmid;
     jbyteArray jlhs, jrhs;
 
+    int ret;
+
+    /* get the Java Environment and the Database instance */
+    jnipriv *p=(jnipriv *)ham_get_context_data(db);
+
     /* get the callback method */
-    jclass jcls   =(*g_jenv_db)->GetObjectClass(g_jenv_db, g_jobj_db);
-    jfieldID fid  =(*g_jenv_db)->GetFieldID(g_jenv_db, jcls, "m_cmp", 
-            "Lde/crupp/hamsterdb/Comparable;");
-    jobject jcmp  =(*g_jenv_db)->GetObjectField(g_jenv_db, g_jobj_db, fid);
-    jclass jcmpcls=(*g_jenv_db)->GetObjectClass(g_jenv_db, jcmp);
-    jmethodID jmid=(*g_jenv_db)->GetMethodID(g_jenv_db, jcmpcls, "comparable",
-            "([B[B)I");
+    jcls=(*p->jenv)->GetObjectClass(p->jenv, p->jobj);
+    if (!jcls) {
+        jni_log(("GetObjectClass failed\n"));
+        return (-1); /* TODO throw! */
+    }
+
+    jfid=(*p->jenv)->GetFieldID(p->jenv, jcls, "m_prefix_cmp", 
+            "Lde/crupp/hamsterdb/PrefixComparable;");
+    if (!jfid) {
+        jni_log(("GetFieldID failed\n"));
+        return (-1); /* TODO throw! */
+    }
+
+    jcmpobj=(*p->jenv)->GetObjectField(p->jenv, p->jobj, jfid);
+    if (!jcmpobj) {
+        jni_log(("GetObjectFieldID failed\n"));
+        return (-1); /* TODO throw! */
+    }
+
+    jcmpcls=(*p->jenv)->GetObjectClass(p->jenv, jcmpobj);
+    if (!jcmpcls) {
+        jni_log(("GetObjectClass failed\n"));
+        return (-1); /* TODO throw! */
+    }
+
+    jmid=(*p->jenv)->GetMethodID(p->jenv, jcmpcls, "compare",
+            "([BI[BI)I");
+    if (!jmid) {
+        jni_log(("GetMethodID failed\n"));
+        return (-1); /* TODO throw! */
+    }
 
     /* prepare the parameters */
-    jlhs=(*g_jenv_db)->NewByteArray(g_jenv_db, lhs_length);
+    jlhs=(*p->jenv)->NewByteArray(p->jenv, lhs_length);
+    if (!jlhs) {
+        jni_log(("NewByteArray failed\n"));
+        return (-1); /* TODO throw! */
+    }
+
     if (lhs_length)
-        (*g_jenv_db)->SetByteArrayRegion(g_jenv_db, jlhs, 0, lhs_length,
+        (*p->jenv)->SetByteArrayRegion(p->jenv, jlhs, 0, lhs_length,
                 (jbyte *)lhs);
-    jrhs=(*g_jenv_db)->NewByteArray(g_jenv_db, rhs_length);
+
+    jrhs=(*p->jenv)->NewByteArray(p->jenv, rhs_length);
+    if (!jrhs) {
+        jni_log(("NewByteArray failed\n"));
+        return (-1); /* TODO throw! */
+    }
+
     if (rhs_length)
-        (*g_jenv_db)->SetByteArrayRegion(g_jenv_db, jrhs, 0, rhs_length,
+        (*p->jenv)->SetByteArrayRegion(p->jenv, jrhs, 0, rhs_length,
                 (jbyte *)rhs);
 
-    ret=(*g_jenv_db)->CallIntMethod(g_jenv_db, jcmp, jmid, jlhs, 
+    ret=(*p->jenv)->CallIntMethod(p->jenv, jcmpobj, jmid, jlhs, 
             (jint)lhs_real_length, jrhs, (jint)rhs_real_length);
 
-    (*g_jenv_db)->ReleaseByteArrayElements(g_jenv_db, jlhs, 
+    /*
+     * TODO do i have to release this??
+    if (lhs_length)
+        (*p->jenv)->ReleaseByteArrayElements(p->jenv, jlhs, 
             lhs_length ? (jbyte *)lhs : 0, 0);
-    (*g_jenv_db)->ReleaseByteArrayElements(g_jenv_db, jrhs, 
+    if (rhs_length)
+        (*p->jenv)->ReleaseByteArrayElements(p->jenv, jrhs, 
             rhs_length ? (jbyte *)rhs : 0, 0);
+            */
 
     return (ret);
 }
@@ -377,6 +499,9 @@ Java_de_crupp_hamsterdb_Database_ham_1find(JNIEnv *jenv, jobject jobj,
     ham_key_t hkey;
     ham_record_t hrec;
     jbyteArray jrec;
+
+    SET_DB_CONTEXT((ham_db_t *)jhandle, jenv, jobj);
+
     memset(&hkey, 0, sizeof(hkey));
     memset(&hrec, 0, sizeof(hrec));
 
@@ -404,6 +529,9 @@ Java_de_crupp_hamsterdb_Database_ham_1insert(JNIEnv *jenv, jobject jobj,
     ham_status_t st;
     ham_key_t hkey;
     ham_record_t hrec;
+
+    SET_DB_CONTEXT((ham_db_t *)jhandle, jenv, jobj);
+
     memset(&hkey, 0, sizeof(hkey));
     memset(&hrec, 0, sizeof(hrec));
 
@@ -426,6 +554,9 @@ Java_de_crupp_hamsterdb_Database_ham_1erase(JNIEnv *jenv, jobject jobj,
 {
     ham_status_t st;
     ham_key_t hkey;
+
+    SET_DB_CONTEXT((ham_db_t *)jhandle, jenv, jobj);
+
     memset(&hkey, 0, sizeof(hkey));
 
     hkey.data=(ham_u8_t *)(*jenv)->GetByteArrayElements(jenv, jkey, 0);
