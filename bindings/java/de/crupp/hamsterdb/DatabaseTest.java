@@ -21,11 +21,6 @@ public class DatabaseTest extends TestCase {
 		
 		public void handleMessage(int level, String message) {
 			m_counter++;
-			System.out.println(level+": "+message);		
-		}
-		
-		public void finalize() {
-			System.out.println("gone!");
 		}
 	}
 
@@ -37,8 +32,9 @@ public class DatabaseTest extends TestCase {
 			db.create(null);
 		}
 		catch (Error err) {
-			fail("Exception "+err);
+			assertEquals(1, eh.m_counter);
 		}
+		Database.setErrorHandler(null);
 	}
 
 	public void testGetVersion() {
@@ -115,13 +111,68 @@ public class DatabaseTest extends TestCase {
 		}
 		assertEquals(Const.HAM_INV_PARAMETER, db.getError());
 	}
+	
+	private class MyComparator implements Comparable
+	{
+		public int m_counter;
+		
+		public int compare(byte[] lhs, byte[] rhs) {
+			m_counter++;
+			return m_counter; /* need to return different values, or 
+								ham_insert thinks we're inserting 
+								duplicates */
+		}
+	}
 
 	public void testSetComparator() {
-		fail("Not yet implemented");
+		byte[] k=new byte[5];
+		byte[] r=new byte[5];
+		Database db=new Database();
+		MyComparator cmp=new MyComparator();
+		try {
+			db.create("jtest.db");
+			db.setComparator(cmp);
+			db.insert(k, r);
+			k[0]=1;
+			db.insert(k, r);
+		}
+		catch (Error err) {
+			fail("Exception "+err);
+		}
+		assertEquals(2, cmp.m_counter);
+	}
+
+	private class MyPrefixComparator implements PrefixComparable
+	{
+		public int m_counter;
+		
+		public int compare(byte[] lhs, int lhs_real_size, 
+				byte[] rhs, int rhs_real_size) {
+			m_counter++;
+			return m_counter; /* need to return different values, or 
+								ham_insert thinks we're inserting 
+								duplicates */
+		}
 	}
 
 	public void testSetPrefixComparator() {
-		fail("Not yet implemented");
+		byte[] k=new byte[25];
+		byte[] r=new byte[5];
+		Database db=new Database();
+		MyPrefixComparator cmp=new MyPrefixComparator();
+		try {
+			db.create("jtest.db");
+			db.setPrefixComparator(cmp);
+			db.insert(k, r);
+			k[0]=1;
+			db.insert(k, r);
+			k[0]=2;
+			db.insert(k, r);
+		}
+		catch (Error err) {
+			fail("Exception "+err);
+		}
+		assertEquals(4, cmp.m_counter);
 	}
 
 	public void testEnableCompressionWithoutHandle() {
@@ -161,33 +212,182 @@ public class DatabaseTest extends TestCase {
 			assertEquals(Const.HAM_INV_PARAMETER, err.getErrno());
 		}
 	}
+	
+	public void assertByteArrayEquals(byte[] r1, byte[] r2) {
+		assertEquals(r1.length, r2.length);
+		
+		for (int i=0; i<r1.length; i++) {
+			assertEquals(r1[i], r2[i]);
+		}
+	}
 
 	public void testFindByteArrayInt() {
-		fail("Not yet implemented");
+		byte[] k=new byte[5];
+		byte[] r=new byte[5];
+		r[1]=0x14; r[2]=0x15;
+		Database db=new Database();
+		try {
+			db.create("jtest.db");
+			db.insert(k, r);
+			byte[]r2=db.find(k);
+			assertByteArrayEquals(r, r2);
+		}
+		catch (Error err) {
+			fail("Exception "+err);
+		}
+	}
+	
+	public void testFindNegativeKey() {
+		byte[] k=new byte[5];
+		byte[] r=new byte[5];
+		r[1]=0x14; r[2]=0x15;
+		Database db=new Database();
+		try {
+			db.create("jtest.db");
+			db.insert(k, r);
+			byte[]r2=db.find(null);
+			assertByteArrayEquals(r, r2);
+		}
+		catch (Error err) {
+			fail("Exception "+err);
+		}
+		catch (NullPointerException ex) {
+		}
+	}
+	
+	public void testFindUnknownKey() {
+		byte[] k=new byte[5];
+		Database db=new Database();
+		try {
+			db.create("jtest.db");
+			db.find(k);
+		}
+		catch (Error err) {
+			assertEquals(Const.HAM_KEY_NOT_FOUND, err.getErrno());
+		}	
 	}
 
 	public void testInsertByteArrayByteArrayInt() {
-		fail("Not yet implemented");
+		byte[] k=new byte[5];
+		byte[] r=new byte[5];
+		r[1]=0x14; r[2]=0x15;
+		Database db=new Database();
+		try {
+			db.create("jtest.db", Const.HAM_ENABLE_DUPLICATES);
+			db.insert(k, r);
+			db.insert(k, r, Const.HAM_OVERWRITE);
+			db.insert(k, r, Const.HAM_DUPLICATE);
+			byte[]r2=db.find(k);
+			assertByteArrayEquals(r, r2);
+		}
+		catch (Error err) {
+			fail("Exception "+err);
+		}
+	}
+	
+	public void testInsertNegativeKey() {
+		byte[] r=new byte[5];
+		Database db=new Database();
+		try {
+			db.create("jtest.db");
+			db.insert(null, r);
+		}
+		catch (NullPointerException ex) {
+		}
+		catch (Error err) {
+			fail("Exception "+err);
+		}	
+	}
+
+	public void testInsertNegativeRecord() {
+		byte[] k=new byte[5];
+		Database db=new Database();
+		try {
+			db.create("jtest.db");
+			db.insert(k, null);
+		}
+		catch (NullPointerException ex) {
+		}
+		catch (Error err) {
+			fail("Exception "+err);
+		}	
+	}
+
+	public void testInsertNegativeOverwrite() {
+		byte[] r=new byte[5];
+		byte[] k=new byte[5];
+		Database db=new Database();
+		try {
+			db.create("jtest.db");
+			db.insert(k, r);
+			db.insert(k, r);
+		}
+		catch (Error err) {
+			assertEquals(Const.HAM_DUPLICATE_KEY, err.getErrno());
+		}	
 	}
 
 	public void testEraseByteArrayInt() {
-		fail("Not yet implemented");
+		byte[] r=new byte[5];
+		byte[] k=new byte[5];
+		Database db=new Database();
+		try {
+			db.create("jtest.db");
+			db.insert(k, r);
+			db.erase(k);
+		}
+		catch (Error err) {
+			fail("Exception "+err);
+		}
+	}
+	
+	public void testEraseTwice() {
+		byte[] r=new byte[5];
+		byte[] k=new byte[5];
+		Database db=new Database();
+		try {
+			db.create("jtest.db");
+			db.insert(k, r);
+			db.erase(k);
+			db.erase(k);
+		}
+		catch (Error err) {
+			assertEquals(Const.HAM_KEY_NOT_FOUND, err.getErrno());
+		}
+	}
+
+	public void testEraseNegativeKey() {
+		Database db=new Database();
+		try {
+			db.create("jtest.db");
+			db.erase(null);
+		}
+		catch (Error err) {
+			fail("Exception "+err);
+		}
+		catch (NullPointerException ex) {
+		}
 	}
 
 	public void testFlush() {
-		fail("Not yet implemented");
+		Database db=new Database();
+		try {
+			db.create("jtest.db");
+			db.flush();
+		}
+		catch (Error err) {
+			fail("Exception "+err);
+		}
 	}
 
 	public void testCloseInt() {
-		fail("Not yet implemented");
+		Database db=new Database();
+		try {
+			db.create("jtest.db");
+			db.close();
+		}
+		catch (Error err) {
+			fail("Exception "+err);
+		}
 	}
-
-	public void testGetHandle() {
-		fail("Not yet implemented");
-	}
-
-	public void testMain() {
-		fail("Not yet implemented");
-	}
-
 }

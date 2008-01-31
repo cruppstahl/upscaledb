@@ -54,10 +54,11 @@ o java wrapper
     o add unittests for each function and code path
         x const
         x error
-        o database
+        x database
         o cursor
         o environment
     o more robustness in the jni code!! - error checks etc
+    o make sure that throwing exceptions really works!
     o test with valgrind
     o add 2 samples (db1.java, env2.java)
     o add the full documentation!!
