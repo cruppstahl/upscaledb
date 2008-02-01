@@ -191,16 +191,6 @@ jni_compare_func(ham_db_t *db,
 
     ret=(*p->jenv)->CallIntMethod(p->jenv, jcmpobj, jmid, jlhs, jrhs);
 
-    /*
-     * TODO do i have to release this??
-    if (lhs_length)
-        (*p->jenv)->ReleaseByteArrayElements(p->jenv, jlhs, 
-            lhs_length ? (jbyte *)lhs : 0, 0);
-    if (rhs_length)
-        (*p->jenv)->ReleaseByteArrayElements(p->jenv, jrhs, 
-            rhs_length ? (jbyte *)rhs : 0, 0);
-            */
-
     return (ret);
 }
 
@@ -276,16 +266,6 @@ jni_prefix_compare_func(ham_db_t *db,
 
     ret=(*p->jenv)->CallIntMethod(p->jenv, jcmpobj, jmid, jlhs, 
             (jint)lhs_real_length, jrhs, (jint)rhs_real_length);
-
-    /*
-     * TODO do i have to release this??
-    if (lhs_length)
-        (*p->jenv)->ReleaseByteArrayElements(p->jenv, jlhs, 
-            lhs_length ? (jbyte *)lhs : 0, 0);
-    if (rhs_length)
-        (*p->jenv)->ReleaseByteArrayElements(p->jenv, jrhs, 
-            rhs_length ? (jbyte *)rhs : 0, 0);
-            */
 
     return (ret);
 }
