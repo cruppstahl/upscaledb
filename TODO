@@ -55,16 +55,16 @@ o java wrapper
         x const
         x error
         x database
-        o cursor
+        x cursor
         o environment
-    o more robustness in the jni code!! - error checks etc
-    o make sure that throwing exceptions really works!
-    o test with valgrind
+    x make sure that throwing exceptions really works!
+    x more robustness in the jni code!! - error checks etc
     o add 2 samples (db1.java, env2.java)
+    o add autoconf build automization
+    o test with valgrind
+    o add win32 build automization
     o add the full documentation!!
     o create jar
-    o add autoconf build automization
-    o add win32 build automization
 
     o add testing scheme to release process
         o win32

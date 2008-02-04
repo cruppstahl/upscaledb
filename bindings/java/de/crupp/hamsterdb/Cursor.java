@@ -147,14 +147,9 @@ public class Cursor {
 	 */
 	public byte[] getKey() 
 			throws Error {
-		return getKey(0);
-	}
-	
-	public byte[] getKey(int flags) 
-			throws Error {
 		byte[] ret;
 		synchronized (m_db) {
-			ret=ham_cursor_get_key(m_handle, flags);
+			ret=ham_cursor_get_key(m_handle, 0);
 		}
 		if (ret==null)
 			throw new Error(m_db.getError());
@@ -166,14 +161,9 @@ public class Cursor {
 	 */
 	public byte[] getRecord() 
 			throws Error {
-		return getRecord(0);
-	}
-	
-	public byte[] getRecord(int flags) 
-			throws Error {
 		byte[] ret;
 		synchronized (m_db) {
-			ret=ham_cursor_get_record(m_handle, flags);
+			ret=ham_cursor_get_record(m_handle, 0);
 		}
 		if (ret==null)
 			throw new Error(m_db.getError());
@@ -275,12 +265,21 @@ public class Cursor {
 	public void close() 
 			throws Error {
 		int status;
+		if (m_handle==0)
+			return;
 		synchronized (m_db) {
 			status=ham_cursor_close(m_handle);
 		}
 		if (status!=0)
 			throw new Error(status);
 		m_handle=0;
+	}
+	
+	/**
+	 * Retrieves the Cursor handle
+	 */
+	public long getHandle() {
+		return m_handle;
 	}
 	
 	private long m_handle;

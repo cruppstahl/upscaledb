@@ -32,6 +32,7 @@ public class DatabaseTest extends TestCase {
 			db.create(null);
 		}
 		catch (Error err) {
+			assertEquals(Const.HAM_INV_PARAMETER, err.getErrno());
 			assertEquals(1, eh.m_counter);
 		}
 		Database.setErrorHandler(null);
