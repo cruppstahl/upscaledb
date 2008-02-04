@@ -19,16 +19,16 @@ public class Environment {
 	private native void ham_env_delete(long handle);
 			
 	private native int ham_env_create_ex(long handle, String filename, int flags,
-			int mode, Parameters[] params);
+			int mode, Parameter[] params);
 	
 	private native int ham_env_open_ex(long handle, String filename, int flags, 
-			Parameters[] params);
+			Parameter[] params);
 	
 	private native long ham_env_create_db(long handle, short name, int flags,
-			Parameters[] params);
+			Parameter[] params);
 	
 	private native long ham_env_open_db(long handle, short name, int flags,
-			Parameters[] params);
+			Parameter[] params);
 	
 	private native int ham_env_rename_db(long handle, short oldname,
 			short newname, int flags);
@@ -77,7 +77,7 @@ public class Environment {
 	}
 
 	public synchronized void create(String filename, int flags, int mode, 
-			Parameters[] params)
+			Parameter[] params)
 			throws Error {
 		// make sure that the parameters don't have a NULL-element
 		if (params!=null) {
@@ -112,7 +112,7 @@ public class Environment {
 	}
 	
 	public synchronized void open(String filename, int flags, 
-			Parameters[] params) 
+			Parameter[] params) 
 			throws Error {
 		// make sure that the parameters don't have a NULL-element
 		if (params!=null) {
@@ -147,7 +147,7 @@ public class Environment {
 	}
 	
 	public synchronized Database createDatabase(short name, int flags, 
-			Parameters[] params) 
+			Parameter[] params) 
 			throws Error {
 		// make sure that the parameters don't have a NULL-element
 		if (params!=null) {
@@ -155,11 +155,8 @@ public class Environment {
 				if (params[i]==null)
 					throw new NullPointerException();
 		}
-		long dbhandle;
-		dbhandle=ham_env_create_db(m_handle, name, flags, params);
-		if (dbhandle!=0) /* TODO losing status! */
-			throw new Error(-1);
-		return new Database(dbhandle);
+		// ham_env_create_db will throw an Error if it fails
+		return new Database(ham_env_create_db(m_handle, name, flags, params));
 	}
 	
 	/**
@@ -178,7 +175,7 @@ public class Environment {
 	}
 
 	public synchronized Database openDatabase(short name, int flags,
-			Parameters[] params) 
+			Parameter[] params) 
 			throws Error {
 		// make sure that the parameters don't have a NULL-element
 		if (params!=null) {
@@ -186,11 +183,8 @@ public class Environment {
 				if (params[i]==null)
 					throw new NullPointerException();
 		}
-		long dbhandle;
-		dbhandle=ham_env_open_db(m_handle, name, flags, params);
-		if (dbhandle!=0) /* TODO losing status! */
-			throw new Error(-1);
-		return new Database(dbhandle);
+		// ham_env_open_db will throw an Error if it fails
+		return new Database(ham_env_open_db(m_handle, name, flags, params));
 	}
 	
 	/**
@@ -257,6 +251,10 @@ public class Environment {
 			throw new Error(status);
 		ham_env_delete(m_handle);
 		m_handle=0;
+	}
+	
+	static {
+		System.loadLibrary("hamsterdb");
 	}
 	
 	private long m_handle;

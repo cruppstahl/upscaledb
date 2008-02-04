@@ -51,12 +51,12 @@ o java wrapper
     x Environment::getDatabaseNames() is losing an error code!
     x add header comments/copyright
     x ham_cursor_move returns 3 parameters, 2 of them are optional - but how?
-    o add unittests for each function and code path
+    x add unittests for each function and code path
         x const
         x error
         x database
         x cursor
-        o environment
+        x environment
     x make sure that throwing exceptions really works!
     x more robustness in the jni code!! - error checks etc
     o add 2 samples (db1.java, env2.java)

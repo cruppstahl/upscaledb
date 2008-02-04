@@ -12,11 +12,11 @@
 
 package de.crupp.hamsterdb;
 
-class Parameters {
-	public Parameters() {
+class Parameter {
+	public Parameter() {
 	}
 	
-	public Parameters(int name, long value) {
+	public Parameter(int name, long value) {
 		this.name=name;
 		this.value=value;
 	}
@@ -94,10 +94,10 @@ public class Database {
 	private native void ham_delete(long handle);
 			
 	private native int ham_create_ex(long handle, String filename, int flags,
-			int mode, Parameters[] params);
+			int mode, Parameter[] params);
 	
 	private native int ham_open_ex(long handle, String filename, int flags, 
-			Parameters[] params);
+			Parameter[] params);
 
 	private native int ham_get_error(long handle);
 	
@@ -172,7 +172,6 @@ public class Database {
 	 */
 	protected void finalize() 
 			throws Error {
-		System.out.println("finalize");
 		close();
 	}
 
@@ -197,7 +196,7 @@ public class Database {
 	}
 
 	public synchronized void create(String filename, int flags, int mode,
-			Parameters[] params) throws Error {
+			Parameter[] params) throws Error {
 		// make sure that the parameters don't have a NULL-element
 		if (params!=null) {
 			for (int i=0; i<params.length; i++) 
@@ -227,7 +226,7 @@ public class Database {
 	}
 	
 	public synchronized void open(String filename, int flags, 
-			Parameters[] params) throws Error {
+			Parameter[] params) throws Error {
 		// make sure that the parameters don't have a NULL-element
 		if (params!=null) {
 			for (int i=0; i<params.length; i++) 

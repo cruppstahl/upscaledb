@@ -53,6 +53,11 @@ public class DatabaseTest extends TestCase {
 
 	public void testDatabase() {
 		Database db=new Database();
+		try {
+			db.finalize();
+		} catch (Error e) {
+			fail("Exception "+e);
+		}
 	}
 
 	public void testDatabaseLong() {
@@ -74,9 +79,9 @@ public class DatabaseTest extends TestCase {
 	}
 	
 	public void testCreateInvalidParameters() {
-		Parameters[] params=new Parameters[3];
-		params[1]=new Parameters();
-		params[2]=new Parameters();
+		Parameter[] params=new Parameter[3];
+		params[1]=new Parameter();
+		params[2]=new Parameter();
 		Database db=new Database();
 		try {
 			db.create("jtest.db", 0, 0, params);
@@ -86,7 +91,6 @@ public class DatabaseTest extends TestCase {
 		catch (Error err) {
 			fail("Exception "+err);
 		}
-
 	}
 
 	public void testCreateStringIntIntParametersArray() {
@@ -94,7 +98,7 @@ public class DatabaseTest extends TestCase {
 		try {
 			db.create("jtest.db", 0, 0644, null);
 			db.close();
-			db.open("jtest.db", 0);
+			db.open("jtest.db");
 			db.close();
 		}
 		catch (Error err) {
@@ -391,4 +395,5 @@ public class DatabaseTest extends TestCase {
 			fail("Exception "+err);
 		}
 	}
+	
 }
