@@ -37,6 +37,38 @@ typedef struct jnipriv
 #define SET_DB_CONTEXT(db, jenv, jobj) jnipriv p; p.jenv=jenv; p.jobj=jobj; \
                                        ham_set_context_data(db, &p);
 
+static jint
+jni_set_cursor_env(JNIEnv *jenv, jobject jobj, jlong jhandle)
+{
+    jclass jcls;
+    jfieldID jfid;
+    jobject jdbobject;
+    ham_cursor_t *c=(ham_cursor_t *)jhandle;
+
+    /* get the callback method */
+    jcls=(*jenv)->GetObjectClass(jenv, jobj);
+    if (!jcls) {
+        jni_log(("GetObjectClass failed\n"));
+        return (HAM_INTERNAL_ERROR);
+    }
+
+    jfid=(*jenv)->GetFieldID(jenv, jcls, "m_db", 
+            "Lde/crupp/hamsterdb/Database;");
+    if (!jfid) {
+        jni_log(("GetFieldID failed\n"));
+        return (HAM_INTERNAL_ERROR);
+    }
+
+    jdbobj=(*jenv)->GetObjectField(jenv, jobj, jfid);
+    if (!jdbobj) {
+        jni_log(("GetObjectFieldID failed\n"));
+        return (HAM_INTERNAL_ERROR);
+    }
+
+    SET_DB_CONTEXT(cursor_get_db(c), jenv, jdbobj);
+    return (0);
+}
+
 static void
 jni_throw_error(JNIEnv *jenv, ham_status_t st)
 {
@@ -601,6 +633,10 @@ JNIEXPORT jint JNICALL
 Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1move_1to(JNIEnv *jenv, 
         jobject jobj, jlong jhandle, jint jflags)
 {
+    jint st=jni_set_cursor_env(jenv, jobj, jhandle);
+    if (st)
+        return (st);
+
     return ((jint)ham_cursor_move((ham_cursor_t *)jhandle, 0, 0, 
                 (ham_u32_t)jflags));
 }
@@ -613,6 +649,10 @@ Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1get_1key(JNIEnv *jenv,
     ham_key_t key;
     jbyteArray ret;
     memset(&key, 0, sizeof(key));
+
+    st=jni_set_cursor_env(jenv, jobj, jhandle);
+    if (st)
+        return (st);
 
     st=ham_cursor_move((ham_cursor_t *)jhandle, &key, 0, (ham_u32_t)jflags);
     if (st)
@@ -633,6 +673,10 @@ Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1get_1record(JNIEnv *jenv,
     jbyteArray ret;
     memset(&rec, 0, sizeof(rec));
 
+    st=jni_set_cursor_env(jenv, jobj, jhandle);
+    if (st)
+        return (st);
+
     st=ham_cursor_move((ham_cursor_t *)jhandle, 0, &rec, (ham_u32_t)jflags);
     if (st)
         return (0);
@@ -651,6 +695,10 @@ Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1overwrite(JNIEnv *jenv,
     ham_record_t hrec;
     memset(&hrec, 0, sizeof(hrec));
 
+    st=jni_set_cursor_env(jenv, jobj, jhandle);
+    if (st)
+        return (st);
+
     hrec.data=(ham_u8_t *)(*jenv)->GetByteArrayElements(jenv, jrec, 0);
     hrec.size=(ham_size_t)(*jenv)->GetArrayLength(jenv, jrec);
     
@@ -668,6 +716,10 @@ Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1find(JNIEnv *jenv, jobject jobj,
     ham_status_t st;
     ham_key_t hkey;
     memset(&hkey, 0, sizeof(hkey));
+
+    st=jni_set_cursor_env(jenv, jobj, jhandle);
+    if (st)
+        return (st);
 
     hkey.data=(ham_u8_t *)(*jenv)->GetByteArrayElements(jenv, jkey, 0);
     hkey.size=(ham_size_t)(*jenv)->GetArrayLength(jenv, jkey);
@@ -689,6 +741,10 @@ Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1insert(JNIEnv *jenv, jobject jobj,
     memset(&hkey, 0, sizeof(hkey));
     memset(&hrec, 0, sizeof(hrec));
 
+    st=jni_set_cursor_env(jenv, jobj, jhandle);
+    if (st)
+        return (st);
+
     hkey.data=(ham_u8_t *)(*jenv)->GetByteArrayElements(jenv, jkey, 0);
     hkey.size=(ham_size_t)(*jenv)->GetArrayLength(jenv, jkey);
     hrec.data=(ham_u8_t *)(*jenv)->GetByteArrayElements(jenv, jrecord, 0);
@@ -707,6 +763,10 @@ JNIEXPORT jint JNICALL
 Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1erase(JNIEnv *jenv, jobject jobj,
         jlong jhandle, jint jflags)
 {
+    jint st=jni_set_cursor_env(jenv, jobj, jhandle);
+    if (st)
+        return (st);
+
     return ((jint)ham_cursor_erase((ham_cursor_t *)jhandle, (ham_u32_t)jflags));
 }
 
@@ -716,6 +776,10 @@ Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1get_1duplicate_1count(JNIEnv *jenv,
 {
     ham_size_t count;
     ham_status_t st;
+
+    st=jni_set_cursor_env(jenv, jobj, jhandle);
+    if (st)
+        return (st);
 
     /* 
      * in case of an error, return 0; the java library will check for
@@ -732,6 +796,10 @@ JNIEXPORT jint JNICALL
 Java_de_crupp_hamsterdb_Cursor_ham_1cursor_1close(JNIEnv *jenv, jobject jobj,
         jlong jhandle)
 {
+    jint st=jni_set_cursor_env(jenv, jobj, jhandle);
+    if (st)
+        return (st);
+
     return ((jint)ham_cursor_close((ham_cursor_t *)jhandle));
 }
 
