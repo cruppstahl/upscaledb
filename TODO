@@ -59,7 +59,7 @@ o java wrapper
         x environment
     x make sure that throwing exceptions really works!
     x more robustness in the jni code!! - error checks etc
-    o add 2 samples (db1.java, env2.java)
+    o add 2 samples (db6.java, env3.java)
     o add autoconf build automization
     o test with valgrind
     o add win32 build automization
