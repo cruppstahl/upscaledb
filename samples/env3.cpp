@@ -231,7 +231,7 @@ run_demo(void)
             ord_record=db[1].find(&ord_key);
 
             std::cout << "  order: " << order_id << " (assigned to "
-                      << (char *)ord_record.get_data() << std::endl;
+                      << (char *)ord_record.get_data() << ")" << std::endl;
 
             /*
              * the flag HAM_ONLY_DUPLICATES restricts the cursor
