@@ -154,37 +154,6 @@ case $host in
         ;;
 esac
 
-#
-# Overwrite JDK path
-#
-AC_ARG_WITH(jdk, [  --with-jdk=[PATH]       set JDK path])
-if test "$with_jdk" != ""
-then
-    settings="$settings (jdk=$with_jdk)"
-    # TODO how to specify the OS-dependent sub-directory???
-    CFLAGS="${CFLAGS} -I$with_jdk/include -I$with_jdk/include/linux -I$with_jdk/include/win32 -I$with_jdk/include/solaris"
-fi
-
-#
-# Enable Java wrapper?
-#
-AC_ARG_ENABLE(java,
-    AC_HELP_STRING([--enable-java],
-        [build with Java wrapper]))
-if test "$enable_java" = "yes"
-then
-    settings="$settings (java)"
-else
-    # Only enable Java if jni.h is available
-    AC_CHECK_HEADER(jni.h)
-    if test "$ac_cv_header_jni_h" = "yes"
-    then
-        enable_java="yes"
-        settings="$settings (java)"
-    fi
-fi
-AM_CONDITIONAL(ENABLE_JAVA, test "x$enable_java" = "xyes")
-
 AC_CONFIG_FILES(Makefile src/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/aes/Makefile 3rdparty/zlib/Makefile tools/Makefile)
 AC_OUTPUT
 

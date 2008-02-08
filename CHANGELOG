@@ -1,3 +1,11 @@
+Jan 25, 2008 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.0
+
+Jan 24, 2008 - chris
+o added documentation fixes in the tutorial and the header files
+o API change: added an additional parameter to the comparison-callback 
+    functions
+
 Jan 08, 2008 - chris ---------------------------------------------------
                       release of hamsterdb-1.0.0rc1
 
