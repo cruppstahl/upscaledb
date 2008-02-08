@@ -7,10 +7,6 @@ libhamsterdb_la_SOURCES = blob.c btree.c btree_check.c btree_enum.c btree_erase.
 
 libhamsterdb_la_LDFLAGS = -version-info 1:0:0
 
-if ENABLE_JAVA
-libhamsterdb_la_SOURCES += java/java.c
-endif
-
 if ENABLE_ENCRYPTION
 libhamsterdb_la_LDFLAGS += $(top_builddir)/3rdparty/aes/libaes.la
 endif
