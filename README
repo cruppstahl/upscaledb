@@ -1,5 +1,5 @@
 
-hamsterdb 1.0.0rc1                             Tue Jan 08 21:09:12 UTC 2008
+hamsterdb 1.0.0                                Tue Jan 08 21:09:12 UTC 2008
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -99,14 +99,14 @@ http://msdn.microsoft.com/vstudio/express/visualc/default.aspx.
 
 7. Testing and Example Code
 
-Make automatically compiles several example program in the directory
+Make automatically compiles several example programs in the directory
 'samples'. To see hamsterdb in action, just run 'samples/db1' or any
 other sample. (or 'win32/out/samples/db1/db1.exe' on Windows platforms).
 
 8. API Documentation
 
 The header files in 'include/ham' have extensive comments. Also, a doxygen
-script is available; run 'make test' to start doxygen. The generated
+script is available; run 'make doc' to start doxygen. The generated
 documentation is also available on the hamsterdb web page.
 
 9. Other Ways to Compile hamsterdb
