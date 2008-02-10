@@ -1,3 +1,6 @@
+Feb 10, 2008 - chris
+o added a new internal function ham_cursor_get_database
+
 Jan 25, 2008 - chris ---------------------------------------------------
                       release of hamsterdb-1.0.0
 

@@ -280,6 +280,16 @@ ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter);
 HAM_EXPORT ham_status_t
 ham_env_set_device(ham_env_t *env, void *device);
 
+/**
+ * Retrieves the Database handle of a Cursor
+ *
+ * @param cursor A valid Cursor handle
+ *
+ * @return @a The Database handle of @a cursor
+ */
+HAM_EXPORT ham_db_t *
+ham_cursor_get_database(ham_cursor_t *cursor);
+
 
 #ifdef __cplusplus
 } // extern "C"

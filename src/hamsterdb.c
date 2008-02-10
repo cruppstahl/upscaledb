@@ -3450,3 +3450,12 @@ ham_get_context_data(ham_db_t *db)
         return (db_get_context_data(db));
     return (0);
 }
+
+ham_db_t *
+ham_cursor_get_database(ham_cursor_t *cursor)
+{
+    if (cursor)
+        return (cursor_get_db(cursor));
+    else
+        return (0);
+}

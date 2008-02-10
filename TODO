@@ -7,20 +7,6 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-x remove win32 compiler warnings (related to __FUNCTION__)
-
-x need new internal hamster function: add_context_data, get_context_data
-    x unittests
-
-x add documentation fixes
-
-x change the interface of the callback functions (prefix-compare
-    and normal compare); need an additional "db" parameter!
-
-x release 1.0.0!
-
------------------------------------------------------------------------------
-
 x merge changes of 1.0 with the trunk
 
 o define a new release process for stable/unstable releases
