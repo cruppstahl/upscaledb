@@ -17,64 +17,33 @@ x add documentation fixes
 x change the interface of the callback functions (prefix-compare
     and normal compare); need an additional "db" parameter!
 
-o release 1.0.0!
+x release 1.0.0!
 
 -----------------------------------------------------------------------------
 
-o merge changes of 1.0 with the trunk
+x merge changes of 1.0 with the trunk
 
 o define a new release process for stable/unstable releases
 
 o new web page
+    x upload the samples
+    x upload the tutorials
+    x upload all files (download page!)
+    x update download page (1.0!)
+    x update news (fix links and add 1.0!)
+    x update link cloud (1.0!)
+    x upload doxygen-documentation
+    x check all links with a recursive link checker
+    x contact: noch ein "company" und (optionales) "address"-feld?
+    o redesign front-page (new picture)
+    o IE tests
+    o add google analytics code
+    o upload and go live!
+    o add google sitemap (writemaps.com)
 
 o commercial licensing
 
 o java wrapper
-    x package name is de.crupp.hamsterdb (??)
-    x create directory structure - bindings/java/..., src/java
-    x add autoconf stuff 
-        x search jni.h
-        x --enable-java
-        x --with-jdk=...
-    x implementation (synchronized!)
-        x key
-        x record
-        x error
-        x database
-        x cursor
-        x environment
-    x synchronization problem - currently, Cursor and Database have
-        their own mutex; instead, Cursor must use the mutex of its
-        Database!
-    x new class Const for flags etc
-    x get rid of Key and Record and replace them with byte[]-arrays
-    x Environment::getDatabaseNames() is losing an error code!
-    x add header comments/copyright
-    x ham_cursor_move returns 3 parameters, 2 of them are optional - but how?
-    x add unittests for each function and code path
-        x const
-        x error
-        x database
-        x cursor
-        x environment
-    x make sure that throwing exceptions really works!
-    x more robustness in the jni code!! - error checks etc
-    x add 2 samples (db6.java, env3.java)
-    o need Cursor.moveNext/Previous with parameter flags (are ORed to the
-            existing parameter) (then fix in env3.java)
-    o add autoconf build automization
-    o test with valgrind
-    o add win32 build automization
-    o add the full documentation!!
-    o create jar
-
-    o add testing scheme to release process
-        o win32
-        o win64
-        o linux 32bit
-        o linux 64bit
-
-    o extend release process for java
 
 o .NET wrapper
 
