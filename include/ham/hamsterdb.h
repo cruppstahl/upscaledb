@@ -9,7 +9,7 @@
  * See file COPYING.GPL2 and COPYING.GPL3 for License information.
  *
  *
- * \mainpage hamsterdb embeddable database
+ * \mainpage hamsterdb embedded database
  * \brief Include file for hamsterdb
  * \author Christoph Rupp, chris@crupp.de
  * \version 1.0.0

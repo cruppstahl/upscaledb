@@ -21,13 +21,11 @@ o new web page
     x upload doxygen-documentation
     x check all links with a recursive link checker
     x contact: noch ein "company" und (optionales) "address"-feld?
-    o redesign front-page (new picture)
+    x redesign front-page (new picture)
+    x everywhere: "embedded database" instead of "embeddable database"
+    o frontpage: "embedded database" instead of "embeddable database"
     o IE tests
     o add google analytics code
-    o upload and go live!
-    o add google sitemap (writemaps.com)
-
-o commercial licensing
 
 o java wrapper
 
