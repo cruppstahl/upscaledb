@@ -137,7 +137,16 @@ Other compiler- and OS-specific macros are in 'include/ham/types.h'.
 Most likely, these are the only files which have to be touched. Also see item 
 9) for important macros. 
 
-11. Other Copyrights
+11. Contact
+
+Author of hamsterdb is 
+    Christoph Rupp
+    Ridlerstr. 29c
+    80339 Muenchen/Germany
+    email: chris@crupp.de
+    web: http://www.hamsterdb.com
+
+12. Other Copyrights
 
 The AES library in '3rdparty/aes' is (C) Karl Malbrain, malbrain@yahoo.com
 (http://www.geocities.com/malbrain). It has the following license:

@@ -2,6 +2,8 @@
 hamsterdb Win32 build environment              Mon Oct 08 21:53:29 UTC 2007
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
+1. Overview
+
 The Win32 build environment is a Solution file for Microsoft Visual C++ 2005 
 (win32/hamsterdb.sln). It compiles a static and a dynamic library, the samples
 and the unittest. 
@@ -22,3 +24,11 @@ dependency for cppunit.
 To download Microsoft Visual C++ 2005 Express Edition for free, go to
 http://msdn.microsoft.com/vstudio/express/visualc/default.aspx.
 
+2. Contact
+
+Author of hamsterdb is 
+    Christoph Rupp
+    Ridlerstr. 29c
+    80339 Muenchen/Germany
+    email: chris@crupp.de
+    web: http://www.hamsterdb.com
