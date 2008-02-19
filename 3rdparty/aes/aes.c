@@ -28,6 +28,7 @@ REDISTRIBUTION OF THIS SOFTWARE.
 typedef unsigned char uchar;
 #include <string.h>
 #include <memory.h>
+#include "aes.h"
 
 /* AES only supports Nb=4 */
 #define Nb 4            /* number of columns in the state & expanded key */
@@ -341,7 +342,7 @@ static const uchar Rcon[11] = {
 0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
 
 /* produce Nb bytes for each round */
-void aes_expand_key (uchar *key, uchar *expkey)
+void HAM_CALLCONV aes_expand_key (uchar *key, uchar *expkey)
 {
 uchar tmp0, tmp1, tmp2, tmp3, tmp4;
 unsigned idx;
@@ -374,7 +375,7 @@ unsigned idx;
 }
 
 /* encrypt one 128 bit block */
-void aes_encrypt (uchar *in, uchar *expkey, uchar *out)
+void HAM_CALLCONV aes_encrypt (uchar *in, uchar *expkey, uchar *out)
 {
 uchar state[Nb * 4];
 unsigned round;
@@ -394,7 +395,7 @@ unsigned round;
     memcpy (out, state, sizeof(state));
 }
 
-void aes_decrypt (uchar *in, uchar *expkey, uchar *out)
+void HAM_CALLCONV aes_decrypt (uchar *in, uchar *expkey, uchar *out)
 {
 uchar state[Nb * 4];
 unsigned round;

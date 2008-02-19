@@ -68,7 +68,7 @@ my_errhandler(int level, const char *message)
 
 static ham_errhandler_fun g_hand=my_errhandler;
 
-void
+void HAM_CALLCONV
 ham_set_errhandler(ham_errhandler_fun f)
 {
     if (f)

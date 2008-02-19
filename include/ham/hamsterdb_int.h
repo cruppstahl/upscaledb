@@ -25,11 +25,6 @@ extern "C" {
 #include <ham/hamsterdb.h>
 
 
-/**
- * a callback function for ham_dump - dumps a single key to stdout
- */
-typedef void (*ham_dump_cb_t)(const ham_u8_t *key, ham_size_t keysize);
-
 /** 
  * Verifies the whole Database
  * 
@@ -44,7 +39,7 @@ typedef void (*ham_dump_cb_t)(const ham_u8_t *key, ham_size_t keysize);
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INTEGRITY_VIOLATED if the Database is broken
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_check_integrity(ham_db_t *db, void *reserved);
 
 /**
@@ -58,7 +53,7 @@ ham_check_integrity(ham_db_t *db, void *reserved);
  * @param db A valid Database handle
  * @param data The pointer to the context data
  */
-HAM_EXPORT void
+HAM_EXPORT void HAM_CALLCONV
 ham_set_context_data(ham_db_t *db, void *data);
 
 /**
@@ -70,7 +65,7 @@ ham_set_context_data(ham_db_t *db, void *data);
  * @param db A valid Database handle
  * @return The pointer to the context data
  */
-HAM_EXPORT void *
+HAM_EXPORT void * HAM_CALLCONV
 ham_get_context_data(ham_db_t *db);
 
 struct ham_file_filter_t;
@@ -145,7 +140,7 @@ struct ham_file_filter_t
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if @a env or @a filter is NULL
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_add_file_filter(ham_env_t *env, ham_file_filter_t *filter);
 
 /**
@@ -161,7 +156,7 @@ ham_env_add_file_filter(ham_env_t *env, ham_file_filter_t *filter);
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if @a env or @a filter is NULL
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_remove_file_filter(ham_env_t *env, ham_file_filter_t *filter);
 
 struct ham_record_filter_t;
@@ -236,7 +231,7 @@ struct ham_record_filter_t
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if @a db or @a filter is NULL
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_add_record_filter(ham_db_t *db, ham_record_filter_t *filter);
 
 /**
@@ -252,7 +247,7 @@ ham_add_record_filter(ham_db_t *db, ham_record_filter_t *filter);
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if @a db or @a filter is NULL
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter);
 
 /**
@@ -277,7 +272,7 @@ ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter);
  * @return @a HAM_ALREADY_INITIALIZED if this function was already called
  *            for this Environment
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_set_device(ham_env_t *env, void *device);
 
 /**
@@ -287,7 +282,7 @@ ham_env_set_device(ham_env_t *env, void *device);
  *
  * @return @a The Database handle of @a cursor
  */
-HAM_EXPORT ham_db_t *
+HAM_EXPORT ham_db_t * HAM_CALLCONV
 ham_cursor_get_database(ham_cursor_t *cursor);
 
 

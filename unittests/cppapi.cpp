@@ -237,7 +237,7 @@ public:
         try {
             out=db.find(0);
         }
-        catch(ham::error &e) {
+        catch(ham::error &) {
         }
 
         db.close();
@@ -337,7 +337,7 @@ public:
         try {
             db.enable_compression(999);
         }
-        catch (ham::error &e) {
+        catch (ham::error &) {
         }
         
         db.enable_compression(0);
@@ -387,11 +387,11 @@ public:
         env.create(".test");
 
         v=env.get_database_names();
-        CPPUNIT_ASSERT_EQUAL((size_t)0, (size_t)v.size());
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)0, (ham_size_t)v.size());
 
         ham::db db1=env.create_db(1);
         v=env.get_database_names();
-        CPPUNIT_ASSERT_EQUAL((size_t)1, v.size());
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)1, (ham_size_t)v.size());
         CPPUNIT_ASSERT_EQUAL((ham_u16_t)1, v[0]);
         db1.close();
     }

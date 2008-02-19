@@ -151,13 +151,7 @@ typedef struct {
     /** The name of the parameter; all HAM_PARAM_*-constants */
     ham_u32_t name;
 
-    /** The value of the parameter. Pointer values are casted into
-     * @a value like this:
-     * <pre>
-     *   // a string value - cast the pointer to ham_u64_t:
-     *   value=(ham_u64_t)"hello world";
-     * </pre>
-     */
+    /** The value of the parameter. */
     ham_u64_t value;
 
 } ham_parameter_t;
@@ -259,7 +253,7 @@ typedef void (*ham_errhandler_fun)(int level, const char *message);
  * @param f A pointer to the error handler function, or NULL to restore
  *          the default handler
  */
-HAM_EXPORT void
+HAM_EXPORT void HAM_CALLCONV
 ham_set_errhandler(ham_errhandler_fun f);
 
 /**
@@ -269,7 +263,7 @@ ham_set_errhandler(ham_errhandler_fun f);
  *
  * @return Returns a pointer to a descriptive error string
  */
-HAM_EXPORT const char *
+HAM_EXPORT const char * HAM_CALLCONV
 ham_strerror(ham_status_t status);
 
 /**
@@ -279,7 +273,7 @@ ham_strerror(ham_status_t status);
  * @param minor If not NULL, will point to the minor version number
  * @param revision If not NULL, will point to the revision version number
  */
-HAM_EXPORT void
+HAM_EXPORT void HAM_CALLCONV
 ham_get_version(ham_u32_t *major, ham_u32_t *minor,
         ham_u32_t *revision);
 
@@ -290,7 +284,7 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
  *        an empty string "" for non-commercial versions
  * @param product If not NULL, will point to the product name
  */
-HAM_EXPORT void
+HAM_EXPORT void HAM_CALLCONV
 ham_get_license(const char **licensee, const char **product);
 
 /**
@@ -309,7 +303,7 @@ ham_get_license(const char **licensee, const char **product);
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_OUT_OF_MEMORY if memory allocation failed
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_new(ham_env_t **env);
 
 /**
@@ -323,7 +317,7 @@ ham_env_new(ham_env_t **env);
  *
  * @return This function always returns @a HAM_SUCCESS
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_delete(ham_env_t *env);
 
 /**
@@ -348,7 +342,7 @@ ham_env_delete(ham_env_t *env);
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @a HAM_WOULD_BLOCK if another process has locked the file
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_create(ham_env_t *env, const char *filename,
         ham_u32_t flags, ham_u32_t mode);
 
@@ -417,7 +411,7 @@ ham_env_create(ham_env_t *env, const char *filename,
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @a HAM_WOULD_BLOCK if another process has locked the file
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_create_ex(ham_env_t *env, const char *filename,
         ham_u32_t flags, ham_u32_t mode, ham_parameter_t *param);
 
@@ -440,7 +434,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @a HAM_WOULD_BLOCK if another process has locked the file
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
 
 /**
@@ -495,7 +489,7 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @a HAM_WOULD_BLOCK if another process has locked the file
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_open_ex(ham_env_t *env, const char *filename,
         ham_u32_t flags, ham_parameter_t *param);
 
@@ -547,7 +541,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  * @return @a HAM_LIMITS_REACHED if the maximum number of Databases per 
  *              Environment was already created
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_create_db(ham_env_t *env, ham_db_t *db,
         ham_u16_t name, ham_u32_t flags, ham_parameter_t *params);
 
@@ -580,7 +574,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
  *              opened
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_open_db(ham_env_t *env, ham_db_t *db,
         ham_u16_t name, ham_u32_t flags, ham_parameter_t *params);
 
@@ -608,7 +602,7 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
  * @return @a HAM_NOT_READY if the Environment @a env was not initialized
  *              correctly (i.e. not yet opened or created)
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_rename_db(ham_env_t *env, ham_u16_t oldname, 
                 ham_u16_t newname, ham_u32_t flags);
 
@@ -630,7 +624,7 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
  * @return @a HAM_DATABASE_ALREADY_OPEN if a Database with this name is
  *              still open
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
 
 /**
@@ -665,7 +659,7 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
  * @return @a HAM_ALREADY_INITIALIZED if encryption is already enabled
  *              for this Environment
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags);
 
 /**
@@ -690,7 +684,7 @@ ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags);
  * @return @a HAM_LIMITS_REACHED if @a names is not large enough to hold
  *          all Database names
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_get_database_names(ham_env_t *env, ham_u16_t *names, ham_size_t *count);
 
 /**
@@ -719,7 +713,7 @@ ham_env_get_database_names(ham_env_t *env, ham_u16_t *names, ham_size_t *count);
  * @return @a HAM_INV_PARAMETER if @a env is NULL
  * @return @a HAM_ENV_NOT_EMPTY if there are still Databases open
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_close(ham_env_t *env, ham_u32_t flags);
 
 /**
@@ -739,7 +733,7 @@ ham_env_close(ham_env_t *env, ham_u32_t flags);
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_OUT_OF_MEMORY if memory allocation failed
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_new(ham_db_t **db);
 
 /**
@@ -753,7 +747,7 @@ ham_new(ham_db_t **db);
  *
  * @return This function always returns @a HAM_SUCCESS
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_delete(ham_db_t *db);
 
 /**
@@ -778,7 +772,7 @@ ham_delete(ham_db_t *db);
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @a HAM_WOULD_BLOCK if another process has locked the file
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_create(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_u32_t mode);
 
@@ -866,7 +860,7 @@ ham_create(ham_db_t *db, const char *filename,
  *              keys must fit in a page)
  * @return @a HAM_WOULD_BLOCK if another process has locked the file
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_create_ex(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_u32_t mode, ham_parameter_t *param);
 
@@ -889,7 +883,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @a HAM_WOULD_BLOCK if another process has locked the file
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
 
 /**
@@ -946,7 +940,7 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @a HAM_WOULD_BLOCK if another process has locked the file
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_open_ex(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_parameter_t *param);
 
@@ -1013,7 +1007,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
  *         hamsterdb API functions. Use @a ham_strerror to translate
  *         this code to a descriptive string
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_get_error(ham_db_t *db);
 
 /**
@@ -1050,7 +1044,7 @@ typedef int (*ham_prefix_compare_func_t)
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if the @a db parameter is NULL
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
 
 /**
@@ -1085,7 +1079,7 @@ typedef int (*ham_compare_func_t)(ham_db_t *db,
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if one of the parameters is NULL
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
 
 /**
@@ -1117,7 +1111,7 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  * @return @a HAM_NOT_IMPLEMENTED if hamsterdb was compiled without support
  *      for compression
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
 
 /**
@@ -1156,7 +1150,7 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * @return @a HAM_INV_PARAMETER if @a db, @a key or @a record is NULL
  * @return @a HAM_KEY_NOT_FOUND if the @a key does not exist
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags);
 
@@ -1214,7 +1208,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  *              OR if the @a keysize parameter specified for @a ham_create_ex
  *              is smaller than 8
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags);
 
@@ -1257,7 +1251,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
  *              Database
  * @return @a HAM_KEY_NOT_FOUND if @a key was not found
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags);
 
 /**
@@ -1276,7 +1270,7 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags);
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if @a db is NULL
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_flush(ham_db_t *db, ham_u32_t flags);
 
 /**
@@ -1305,7 +1299,7 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if @a db is NULL
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_close(ham_db_t *db, ham_u32_t flags);
 
 /** Flag for @a ham_close, @a ham_env_close */
@@ -1342,7 +1336,7 @@ ham_close(ham_db_t *db, ham_u32_t flags);
  * @return @a HAM_INV_PARAMETER if @a db or @a cursor is NULL
  * @return @a HAM_OUT_OF_MEMORY if the new structure could not be allocated
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags,
         ham_cursor_t **cursor);
 
@@ -1361,7 +1355,7 @@ ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags,
  * @return @a HAM_INV_PARAMETER if @a src or @a dest is NULL
  * @return @a HAM_OUT_OF_MEMORY if the new structure could not be allocated
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
 
 /**
@@ -1416,7 +1410,7 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  *              item, and a move to the previous (or next) item was
  *              requested
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags);
 
@@ -1451,7 +1445,7 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
  * @return @a HAM_INV_PARAMETER if @a cursor or @a record is NULL
  * @return @a HAM_CURSOR_IS_NIL if the Cursor does not point to an item
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags);
 
@@ -1473,7 +1467,7 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  * @return @a HAM_INV_PARAMETER if @a cursor or @a key is NULL
  * @return @a HAM_KEY_NOT_FOUND if the requested key was not found
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
 
 /**
@@ -1545,7 +1539,7 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  *              OR if the @a keysize parameter specified for @a ham_create_ex
  *              is smaller than 8.
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags);
 
@@ -1568,7 +1562,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
  *              Database
  * @return @a HAM_KEY_NOT_FOUND if the key was not found
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
 
 /**
@@ -1586,7 +1580,7 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
  * @return @a HAM_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @a HAM_INV_PARAMETER if @a cursor or @a count is NULL
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_get_duplicate_count(ham_cursor_t *cursor, 
         ham_size_t *count, ham_u32_t flags);
 
@@ -1601,7 +1595,7 @@ ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if @a cursor is NULL
  */
-HAM_EXPORT ham_status_t
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_close(ham_cursor_t *cursor);
 
 /*

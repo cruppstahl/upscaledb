@@ -20,16 +20,18 @@
 extern "C" {
 #endif 
 
+#include "../../include/ham/types.h"
+
 /**
  * encrypt a 16byte block
  */
-extern void 
+extern void HAM_CALLCONV
 aes_encrypt(unsigned char *in, unsigned char *key, unsigned char *out);
 
 /**
  * decrypt a 16byte block
  */
-extern void 
+extern void HAM_CALLCONV
 aes_decrypt(unsigned char *in, unsigned char *key, unsigned char *out);
 
 /*
@@ -41,7 +43,7 @@ aes_decrypt(unsigned char *in, unsigned char *key, unsigned char *out);
  * uchar expanded_key[32];
  * aes_expand_key(key, expanded_key);
  */
-extern void 
+extern void HAM_CALLCONV
 aes_expand_key(unsigned char *key, unsigned char *expkey);
 
 #ifdef __cplusplus

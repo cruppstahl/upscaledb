@@ -78,6 +78,17 @@ extern "C" {
 #   endif
 #endif
 
+/*
+ * The default calling convention for Win32 is stdcall
+ */
+#ifndef HAM_CALLCONV
+#   ifdef _MSC_VER
+#       define HAM_CALLCONV __stdcall
+#   else
+#       define HAM_CALLCONV
+#   endif
+#endif
+
 /**
  * typedefs for 32bit operating systems
  */

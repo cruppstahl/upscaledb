@@ -40,6 +40,12 @@ extern "C" {
 #define ZLIB_VERSION "1.2.3"
 #define ZLIB_VERNUM 0x1230
 
+#include "../../include/ham/types.h"
+#ifdef ZEXPORT
+#   undef ZEXPORT
+#endif
+#define ZEXPORT HAM_CALLCONV
+
 /*
      The 'zlib' compression library provides in-memory compression and
   decompression functions, including integrity checks of the uncompressed

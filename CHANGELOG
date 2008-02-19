@@ -1,3 +1,8 @@
+Feb 19, 2008 - chris
+o the win32 library and DLL now use the __stdcall calling convention; you
+    can change the calling convention in <ham/types.h> or the Makefile -
+    just define HAM_CALLCONV
+
 Feb 10, 2008 - chris
 o added a new internal function ham_cursor_get_database
 

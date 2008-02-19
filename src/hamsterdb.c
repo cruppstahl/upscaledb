@@ -159,7 +159,7 @@ __record_filters_after_find(ham_db_t *db, ham_record_t *record)
     return (st);
 }
 
-const char *
+const char * HAM_CALLCONV
 ham_strerror(ham_status_t result)
 {
     switch (result) {
@@ -463,7 +463,7 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
     return (0);
 }
 
-void
+void HAM_CALLCONV
 ham_get_version(ham_u32_t *major, ham_u32_t *minor,
                 ham_u32_t *revision)
 {
@@ -475,7 +475,7 @@ ham_get_version(ham_u32_t *major, ham_u32_t *minor,
         *revision=HAM_VERSION_REV;
 }
 
-void
+void HAM_CALLCONV
 ham_get_license(const char **licensee, const char **product)
 {
     if (licensee)
@@ -484,7 +484,7 @@ ham_get_license(const char **licensee, const char **product)
         *product=HAM_PRODUCT_NAME;
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_env_new(ham_env_t **env)
 {
     if (!env) {
@@ -504,7 +504,7 @@ ham_env_new(ham_env_t **env)
     return (0);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_env_delete(ham_env_t *env)
 {
     if (!env) {
@@ -536,14 +536,14 @@ ham_env_delete(ham_env_t *env)
     return (0);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_env_create(ham_env_t *env, const char *filename,
         ham_u32_t flags, ham_u32_t mode)
 {
     return (ham_env_create_ex(env, filename, flags, mode, 0));
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_env_create_ex(ham_env_t *env, const char *filename,
         ham_u32_t flags, ham_u32_t mode, ham_parameter_t *param)
 {
@@ -607,7 +607,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     return (HAM_SUCCESS);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_env_create_db(ham_env_t *env, ham_db_t *db,
         ham_u16_t name, ham_u32_t flags, ham_parameter_t *param)
 {
@@ -690,7 +690,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
     return (0);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_env_open_db(ham_env_t *env, ham_db_t *db,
         ham_u16_t name, ham_u32_t flags, ham_parameter_t *params)
 {
@@ -764,13 +764,13 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
     return (0);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags)
 {
     return (ham_env_open_ex(env, filename, flags, 0));
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_env_open_ex(ham_env_t *env, const char *filename,
         ham_u32_t flags, ham_parameter_t *param)
 {
@@ -848,7 +848,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
     return (HAM_SUCCESS);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_env_rename_db(ham_env_t *env, ham_u16_t oldname, 
                 ham_u16_t newname, ham_u32_t flags)
 {
@@ -953,7 +953,7 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
     return (0);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
 {
     ham_db_t *db;
@@ -1044,7 +1044,7 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     return (0);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_env_add_file_filter(ham_env_t *env, ham_file_filter_t *filter)
 {
     ham_file_filter_t *head;
@@ -1086,7 +1086,7 @@ ham_env_add_file_filter(ham_env_t *env, ham_file_filter_t *filter)
     return (0);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_env_remove_file_filter(ham_env_t *env, ham_file_filter_t *filter)
 {
     ham_file_filter_t *head, *prev;
@@ -1123,7 +1123,7 @@ ham_env_remove_file_filter(ham_env_t *env, ham_file_filter_t *filter)
     return (0);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_env_get_database_names(ham_env_t *env, ham_u16_t *names, ham_size_t *count)
 {
     ham_db_t *db;
@@ -1195,7 +1195,7 @@ bail:
     return st;
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_env_close(ham_env_t *env, ham_u32_t flags)
 {
     ham_status_t st;
@@ -1273,7 +1273,7 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     return (HAM_SUCCESS);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_new(ham_db_t **db)
 {
     if (!db) {
@@ -1293,7 +1293,7 @@ ham_new(ham_db_t **db)
     return (0);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_delete(ham_db_t *db)
 {
     if (!db) {
@@ -1316,13 +1316,13 @@ ham_delete(ham_db_t *db)
     return (0);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_open(ham_db_t *db, const char *filename, ham_u32_t flags)
 {
     return (ham_open_ex(db, filename, flags, 0));
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_open_ex(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_parameter_t *param)
 {
@@ -1609,13 +1609,13 @@ ham_open_ex(ham_db_t *db, const char *filename,
     return (HAM_SUCCESS);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_create(ham_db_t *db, const char *filename, ham_u32_t flags, ham_u32_t mode)
 {
     return (ham_create_ex(db, filename, flags, mode, 0));
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_create_ex(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_u32_t mode, ham_parameter_t *param)
 {
@@ -1834,7 +1834,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     return (HAM_SUCCESS);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_get_error(ham_db_t *db)
 {
     if (!db) {
@@ -1845,7 +1845,7 @@ ham_get_error(ham_db_t *db)
     return (db_get_error(db));
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo)
 {
     if (!db) {
@@ -1859,7 +1859,7 @@ ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo)
     return (HAM_SUCCESS);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo)
 {
     if (!db) {
@@ -1874,7 +1874,7 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo)
 }
 
 #ifndef HAM_DISABLE_ENCRYPTION
-static ham_status_t
+static ham_status_t 
 __aes_before_write_cb(ham_env_t *env, ham_file_filter_t *filter, 
         ham_u8_t *page_data, ham_size_t page_size)
 {
@@ -1917,7 +1917,7 @@ __aes_close_cb(ham_env_t *env, ham_file_filter_t *filter)
 }
 #endif /* !HAM_DISABLE_ENCRYPTION */
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags)
 {
 #ifndef HAM_DISABLE_ENCRYPTION
@@ -2143,7 +2143,7 @@ __zlib_close_cb(ham_db_t *db, ham_record_filter_t *filter)
 }
 #endif /* !HAM_DISABLE_COMPRESSION */
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags)
 {
 #ifndef HAM_DISABLE_COMPRESSION
@@ -2184,7 +2184,7 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags)
 #endif
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
 {
@@ -2264,7 +2264,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
     return (ham_txn_commit(&txn, 0));
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
 {
@@ -2447,7 +2447,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
     return (ham_txn_commit(&txn, 0));
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
 {
     ham_txn_t txn;
@@ -2515,7 +2515,7 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
     return (ham_txn_commit(&txn, 0));
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_check_integrity(ham_db_t *db, void *reserved)
 {
 #ifdef HAM_ENABLE_INTERNAL
@@ -2564,7 +2564,7 @@ ham_check_integrity(ham_db_t *db, void *reserved)
 #endif
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_flush(ham_db_t *db, ham_u32_t flags)
 {
     ham_status_t st;
@@ -2614,7 +2614,7 @@ ham_flush(ham_db_t *db, ham_u32_t flags)
     return (HAM_SUCCESS);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_close(ham_db_t *db, ham_u32_t flags)
 {
     ham_status_t st=0;
@@ -2838,7 +2838,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     return (HAM_SUCCESS);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags,
         ham_cursor_t **cursor)
 {
@@ -2859,7 +2859,7 @@ ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags,
     return (bt_cursor_create(db, 0, flags, (ham_bt_cursor_t **)cursor));
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 {
     ham_status_t st;
@@ -2891,7 +2891,7 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
     return (ham_txn_commit(&txn, 0));
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags)
 {
@@ -2951,7 +2951,7 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     return (ham_txn_commit(&txn, 0));
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
@@ -3002,7 +3002,7 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     return (ham_txn_commit(&txn, 0));
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags)
 {
     ham_offset_t recno=0;
@@ -3056,7 +3056,7 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags)
     return (0);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
@@ -3238,7 +3238,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     return (ham_txn_commit(&txn, 0));
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 {
     ham_status_t st;
@@ -3274,7 +3274,7 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     return (ham_txn_commit(&txn, 0));
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_cursor_get_duplicate_count(ham_cursor_t *cursor, 
         ham_size_t *count, ham_u32_t flags)
 {
@@ -3309,7 +3309,7 @@ ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
     return (ham_txn_commit(&txn, 0));
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_cursor_close(ham_cursor_t *cursor)
 {
     ham_status_t st;
@@ -3331,7 +3331,7 @@ ham_cursor_close(ham_cursor_t *cursor)
     return (st);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_add_record_filter(ham_db_t *db, ham_record_filter_t *filter)
 {
     ham_record_filter_t *head;
@@ -3372,7 +3372,7 @@ ham_add_record_filter(ham_db_t *db, ham_record_filter_t *filter)
     return (0);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter)
 {
     ham_record_filter_t *head, *prev;
@@ -3415,7 +3415,7 @@ ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter)
     return (0);
 }
 
-ham_status_t
+ham_status_t HAM_CALLCONV
 ham_env_set_device(ham_env_t *env, void *device)
 {
     if (!env) {
@@ -3436,14 +3436,14 @@ ham_env_set_device(ham_env_t *env, void *device)
     return (0);
 }
 
-void
+void HAM_CALLCONV
 ham_set_context_data(ham_db_t *db, void *data)
 {
     if (db)
         db_set_context_data(db, data);
 }
 
-void *
+void * HAM_CALLCONV
 ham_get_context_data(ham_db_t *db)
 {
     if (db)
@@ -3451,7 +3451,7 @@ ham_get_context_data(ham_db_t *db)
     return (0);
 }
 
-ham_db_t *
+ham_db_t * HAM_CALLCONV
 ham_cursor_get_database(ham_cursor_t *cursor)
 {
     if (cursor)
