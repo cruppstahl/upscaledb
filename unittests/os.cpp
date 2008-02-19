@@ -20,7 +20,7 @@
 #   include <unistd.h>
 #endif
 
-static void
+static void HAM_CALLCONV
 my_errhandler(int level, const char *message)
 {
     (void)message;

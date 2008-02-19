@@ -56,7 +56,7 @@ my_snprintf(char *str, size_t size, const char *format, ...)
     return (s);
 }
 
-static void
+static void HAM_CALLCONV
 my_errhandler(int level, const char *message)
 {
 #ifndef HAM_DEBUG

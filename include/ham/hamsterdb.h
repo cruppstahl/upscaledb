@@ -239,7 +239,8 @@ typedef struct {
  *       <li>3</li> a fatal error message
  *      </ul>
  */
-typedef void (*ham_errhandler_fun)(int level, const char *message);
+typedef void (HAM_CALLCONV *ham_errhandler_fun)
+                    (int level, const char *message);
 
 /**
  * Sets the global error handler
@@ -249,6 +250,9 @@ typedef void (*ham_errhandler_fun)(int level, const char *message);
  *
  * The default error handler prints all messages to stderr. To install a
  * different logging facility, you can provide your own error handler.
+ *
+ * Note that the callback function must have the same calling convention 
+ * as the hamsterdb library.
  *
  * @param f A pointer to the error handler function, or NULL to restore
  *          the default handler
