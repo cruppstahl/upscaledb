@@ -23,8 +23,8 @@ o new web page
     x contact: noch ein "company" und (optionales) "address"-feld?
     x redesign front-page (new picture)
     x everywhere: "embedded database" instead of "embeddable database"
-    o frontpage: "embedded database" instead of "embeddable database"
-    o IE tests
+    x frontpage: "embedded database" instead of "embeddable database"
+    x IE tests
     o add google analytics code
 
 o java wrapper

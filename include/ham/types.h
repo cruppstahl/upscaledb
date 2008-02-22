@@ -79,14 +79,10 @@ extern "C" {
 #endif
 
 /*
- * The default calling convention for Win32 is stdcall
+ * The default calling convention is cdecl
  */
 #ifndef HAM_CALLCONV
-#   ifdef _MSC_VER
-#       define HAM_CALLCONV __stdcall
-#   else
-#       define HAM_CALLCONV
-#   endif
+#   define HAM_CALLCONV
 #endif
 
 /**
