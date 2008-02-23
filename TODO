@@ -39,9 +39,6 @@ o Perl wrapper
 
 -----------------------------------------------------------------------------
 
-java callback-comparison:
-    libdb_java/db_java_wrap.c funktion __dbj_bt_compare
-
 . tests are failing because of a berkeleydb bug:
     --duplicate=1 --use-cursors=1
       o ../../testfiles/1/100.tst - status mismatch
