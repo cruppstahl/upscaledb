@@ -355,7 +355,8 @@ ham_env_create(ham_env_t *env, const char *filename,
  *
  * @param env A valid Environment handle, which was created with @a ham_env_new
  * @param filename The filename of the Environment file. If the file already
- *          exists, it is overwritten. Can be NULL if an In-Memory 
+ *          exists, it is overwritten. Can be NULL for an In-Memory
+ *          Environment.
  * @param flags Optional flags for opening the Environment, combined with
  *        bitwise OR. Possible flags are:
  *      <ul>
@@ -413,6 +414,9 @@ ham_env_create(ham_env_t *env, const char *filename,
  * @return @a HAM_INV_FILE_VERSION if the Environment version is not
  *              compatible with the library version
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
+ * @return @a HAM_INV_PAGESIZE if @a pagesize is not a multiple of 1024
+ * @return @a HAM_INV_KEYSIZE if @a keysize is too large (at least 4
+ *              keys must fit in a page)
  * @return @a HAM_WOULD_BLOCK if another process has locked the file
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
@@ -483,9 +487,7 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *
  * @return @a HAM_SUCCESS upon success.
  * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL, an
- *              invalid combination of flags was specified or if
- *              the Database name is invalid (i.e. 0 or in the reserved
- *              range, see above).
+ *              invalid combination of flags was specified 
  * @return @a HAM_FILE_NOT_FOUND if the file does not exist
  * @return @a HAM_IO_ERROR if the file could not be opened or reading failed
  * @return @a HAM_INV_FILE_VERSION if the Environment version is not
@@ -624,7 +626,7 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
  * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL or if
  *              the new Database name is reserved
  * @return @a HAM_DATABASE_NOT_FOUND if a Database with this @a name
- *              does not exists in this Environment
+ *              does not exist
  * @return @a HAM_DATABASE_ALREADY_OPEN if a Database with this name is
  *              still open
  */
@@ -632,7 +634,7 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
 
 /**
- * Enable AES encryption.
+ * Enables AES encryption
  *
  * This function enables AES encryption for every Database in the Environment.
  * The AES key is cached in the Environment handle. The AES 
@@ -1067,7 +1069,7 @@ typedef int (*ham_compare_func_t)(ham_db_t *db,
  * Sets the comparison function
  *
  * The comparison function compares two index keys. It returns -1 if the
- * first key is smaller, +1 if the second key is smaller or 0 if
+ * first key is smaller, +1 if the second key is smaller or 0 if both
  * keys are equal.
  *
  * If @a foo is NULL, hamsterdb will use the default compare
@@ -1512,7 +1514,7 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  *        <li>@a HAM_OVERWRITE. If the @a key already exists, the record is
  *              overwritten. Otherwise, the key is inserted.
  *        <li>@a HAM_DUPLICATE. If the @a key already exists, a duplicate 
- *              key is inserted. Same as @a HAM_DUPLICATE_INSERT_BEFORE.
+ *              key is inserted. Same as @a HAM_DUPLICATE_INSERT_LAST.
  *        <li>@a HAM_DUPLICATE_INSERT_BEFORE. If the @a key already exists, 
  *              a duplicate key is inserted before the duplicate pointed
  *              to by the Cursor.
@@ -1555,7 +1557,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
  * any item. In case of an error, the Cursor is not modified.
  *
  * If the Database was opened with the flag @a HAM_ENABLE_DUPLICATES,
- * this function erases the duplicate item to which the Cursor refers.
+ * this function erases only the duplicate item to which the Cursor refers.
  *
  * @param cursor A valid Cursor handle
  * @param flags Optional flags for erasing the key; unused, set to 0
@@ -1564,16 +1566,16 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
  * @return @a HAM_INV_PARAMETER if @a cursor is NULL
  * @return @a HAM_DB_READ_ONLY if you tried to erase a key from a read-only
  *              Database
- * @return @a HAM_KEY_NOT_FOUND if the key was not found
+ * @return @a HAM_CURSOR_IS_NIL if the Cursor does not point to an item
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
 
 /**
- * Get the number of duplicate keys
+ * Gets the number of duplicate keys
  *
  * Returns the number of duplicate keys of the item to which the
- * Cursor currently points.
+ * Cursor currently refers.
  * Returns 1 if the key has no duplicates.
  *
  * @param cursor A valid Cursor handle
