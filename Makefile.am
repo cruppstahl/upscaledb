@@ -17,6 +17,9 @@ EXTRA_DIST = documentation/Doxyfile                     \
              tools/*.h                                  \
              unittests/*.h                              \
              unittests/*.hpp                            \
+             unittests/*.cpp                            \
+             unittests/Makefile.in                      \
+             unittests/Makefile.am                      \
              unittests/data/*                           \
              win32                                      \
              win32/README.TXT                           \
