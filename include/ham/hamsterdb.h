@@ -327,6 +327,15 @@ ham_env_delete(ham_env_t *env);
 /**
  * Creates a Database Environment
  *
+ * A Database Environment is a collection of Databases, which are all stored
+ * in one physical file (or in-memory). Per default, up to 16 Databases can be
+ * stored in one file (see @a ham_env_create_ex on how to store even more
+ * Databases). 
+ *
+ * Each Database is identified by a positive 16bit value (except
+ * 0 and values above 0xf000). Databases in an Environment can be created
+ * with @a ham_env_create_db or opened with @a ham_env_open_db.
+ *
  * @param env A valid Environment handle, which was created with @a ham_env_new
  * @param filename The filename of the Environment file. If the file already
  *          exists, it is overwritten. Can be NULL if an In-Memory 
@@ -352,6 +361,15 @@ ham_env_create(ham_env_t *env, const char *filename,
 
 /**
  * Creates a Database Environment - extended version
+ *
+ * A Database Environment is a collection of Databases, which are all stored
+ * in one physical file (or in-memory). Per default, up to 16 Databases can be
+ * stored in one file, but this setting can be overwritten by specifying
+ * the parameter @a HAM_PARAM_MAX_ENV_DATABASES.
+ *
+ * Each Database is identified by a positive 16bit value (except
+ * 0 and values above 0xf000). Databases in an Environment can be created
+ * with @a ham_env_create_db or opened with @a ham_env_open_db.
  *
  * @param env A valid Environment handle, which was created with @a ham_env_new
  * @param filename The filename of the Environment file. If the file already
@@ -426,7 +444,6 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
 /**
  * Opens an existing Database Environment
  *
- * @param env A valid Environment handle
  * @param filename The filename of the Environment file
  * @param flags Optional flags for opening the Environment, combined with
  *        bitwise OR. See the documentation of @a ham_env_open_ex
