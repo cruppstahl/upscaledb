@@ -25,17 +25,31 @@ o new web page
     x everywhere: "embedded database" instead of "embeddable database"
     x frontpage: "embedded database" instead of "embeddable database"
     x IE tests
+    o add licensing stuff
+    o download-page: we now have several products, and they even have
+        dependencies! restructure everything
+        - on a second page, list all releases (incl. older releases - 
+        automatically generated from the filelist, or from an XML file)
+    o online-shop with Paypal integration
     o add google analytics code
 
 o java wrapper
+    o completely automize the build process
 
 o .NET wrapper
+    o add the documentation!!
+    o integrate into main project
+    o completely automize the build process
 
-o PHP wrapper
+-----------------------------------------------------------------------------
 
-o Python wrapper
+. Python wrapper 
+    -> http://docs.python.org/ext/ext.html
+    -> http://www.python.org/doc/faq/extending/
 
-o Perl wrapper
+. Perl wrapper
+
+. PHP wrapper
 
 -----------------------------------------------------------------------------
 
