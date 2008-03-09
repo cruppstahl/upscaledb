@@ -1,3 +1,6 @@
+Mar 09, 2008 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.1
+
 Feb 19, 2008 - chris
 o added a macro HAM_CALLCONV to set the calling convention; per default, 
 	it's empty and therefore CDECL is used

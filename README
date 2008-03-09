@@ -1,5 +1,5 @@
 
-hamsterdb 1.0.0                                Tue Jan 08 21:09:12 UTC 2008
+hamsterdb 1.0.1                                Sun Mar  9 21:19:51 CET 2008
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -21,35 +21,17 @@ New Features
 * none
 
 Bugfixes
-* When inserting with ham_cursor_insert, and the function fails, the
-    cursor became uninitialized
-* When inserting keys, a cursor attached to a page could become detached,
-    but this was not stored correctly in the cursor handle
+* none
 
 Other Changes
-* API change for ham_env_close: if you call ham_env_close and there are still
-    open Databases, the function will no longer fail with HAM_ENV_NOT_EMPTY;
-    instead, the Databases are closed with ham_close; you still have to
-    close the Cursors of each Database, though.
-* API change for ham_close: if you call ham_close and there are still
-    open Cursors, the function will no longer fail with HAM_DB_NOT_EMPTY;
-    instead, the Cursors are invalidated, but you still have to call
-    ham_cursor_close to prevent memory leaks. Alternatively, the flag
-    HAM_AUTO_CLEANUP implicitely calls ham_cursor_close on each function.
-* Calling ham_set_prefix_compare_func with NULL as a function pointer
-    does no longer set the default prefix compare function, but completely
-    disables prefix comparison
-* Most errors now emit ham_trace debug messages, which are also compiled
-    in Release mode; they can be made visible with a custom error handler
-    function
-* Removed the function ham_dump; it was replaced by a command line tool
-    in the previous release and is no longer necessary
+* new API function ham_cursor_get_database
+* added calling convention macros
 
 To see a list of all changes, look in the file CHANGELOG.
 
 3. Roadmap
 
-- moving towards version 1.0
+- Next item on the TODO list: release the Java wrapper
 
 4. Features
 
