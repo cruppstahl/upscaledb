@@ -9,7 +9,10 @@ x a finished TODO item
 
 x merge changes of 1.0 with the trunk
 
-o define a new release process for stable/unstable releases
+x .NET wrapper
+    x add the documentation
+    x completely automize the build process
+    x first release 0.0.1
 
 o new web page
     x upload the samples
@@ -34,10 +37,6 @@ o new web page
     o add google analytics code
 
 o java wrapper
-    o completely automize the build process
-
-o .NET wrapper
-    o add the documentation!!
     o completely automize the build process
 
 -----------------------------------------------------------------------------
