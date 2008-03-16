@@ -265,7 +265,7 @@ ham_set_errhandler(ham_errhandler_fun f);
  *
  * @param status The hamsterdb status code
  *
- * @return Returns a pointer to a descriptive error string
+ * @return A pointer to a descriptive error string
  */
 HAM_EXPORT const char * HAM_CALLCONV
 ham_strerror(ham_status_t status);
@@ -585,7 +585,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
  *            B+Tree index key size, returns @a HAM_INV_KEYSIZE.
  *     </ul>
  *
- * @param params An array of ham_parameter_t structures. Unused, set 
+ * @param params An array of ham_parameter_t structures; unused, set 
  *        to NULL.
  *
  * @return @a HAM_SUCCESS upon success
@@ -612,7 +612,7 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
  *          with this name already exists, the function will fail with 
  *          @a HAM_DATABASE_ALREADY_EXISTS.
  * @param flags Optional flags for renaming the Database, combined with
- *        bitwise OR. Unused, set to 0.
+ *        bitwise OR; unused, set to 0.
  *
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL or if
@@ -633,11 +633,11 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
  * Deletes a Database from an Environment
  *
  * @param env A valid Environment handle
- * @param name The name of the Database, which is deleted. If a Database 
+ * @param name The name of the Database to delete. If a Database 
  *          with this name does not exist, the function will fail with 
  *          @a HAM_DATABASE_NOT_FOUND. If the Database was already opened,
  *          the function will fail with @a HAM_DATABASE_ALREADY_OPEN.
- * @param flags Optional flags for renaming the Database; unused, set to 0.
+ * @param flags Optional flags for deleting the Database; unused, set to 0.
  *
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL or if
@@ -691,11 +691,11 @@ ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags);
  * This function returns the names of all Databases and the number of 
  * Databases in an Environment.
  *
- * The memory in @a names must be allocated by the user. @a count
+ * The memory for @a names must be allocated by the user. @a count
  * must be the size of @a names when calling the function, and will be
  * the number of Databases when the function returns. The function returns
  * @a HAM_LIMITS_REACHED if @a names is not big enough; in this case, the
- * caller has to resize the array and call the function again.
+ * caller should resize the array and call the function again.
  *
  * @param env A valid Environment handle
  * @param names Pointer to an array for the Database names
@@ -1036,12 +1036,12 @@ ham_get_error(ham_db_t *db);
 /**
  * Typedef for a prefix comparison function
  *
- * @remark This function compares two index keys; it returns -1, if lhs
+ * @remark This function compares two index keys. It returns -1 if @a lhs
  * ("left-hand side", the paramter on the left side) is smaller than 
- * rhs ("right-hand side"), 0 if both keys are equal, and 1 if lhs 
- * is larger than rhs.
+ * @a rhs ("right-hand side"), 0 if both keys are equal, and 1 if @a lhs 
+ * is larger than @a rhs.
  *
- * @remark If one of the keys is loaded only partially, but the comparison
+ * @remark If one of the keys is only partially loaded, but the comparison
  * function needs the full key, the return value should be
  * HAM_PREFIX_REQUEST_FULLKEY.
  */
@@ -1056,7 +1056,7 @@ typedef int (*ham_prefix_compare_func_t)
  * Sets the prefix comparison function
  *
  * The prefix comparison function is called when an index uses
- * keys with variable length, and at least one of the two keys is loaded
+ * keys with variable length and at least one of the two keys is loaded
  * only partially.
  *
  * If @a foo is NULL, hamsterdb will not use any prefix comparison.
@@ -1073,10 +1073,10 @@ ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
 /**
  * Typedef for a comparison function
  *
- * @remark This function compares two index keys; it returns -1, if lhs
+ * @remark This function compares two index keys. It returns -1, if @a lhs
  * ("left-hand side", the paramter on the left side) is smaller than 
- * rhs ("right-hand side"), 0 if both keys are equal, and 1 if lhs 
- * is larger than rhs.
+ * @a rhs ("right-hand side"), 0 if both keys are equal, and 1 if @a lhs 
+ * is larger than @a rhs.
  */
 typedef int (*ham_compare_func_t)(ham_db_t *db, 
                                   const ham_u8_t *lhs, ham_size_t lhs_length, 
@@ -1124,7 +1124,7 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  * case, the query-function will return @a HAM_INV_PARAMETER.
  *
  * @param db A valid Database handle
- * @param level The compression level; set 0 for the zlib default, 1 for
+ * @param level The compression level. 0 for the zlib default, 1 for
  *      best speed and 9 for minimum size
  * @param flags Optional flags for the compression; unused, set to 0
  *
@@ -1164,7 +1164,7 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * multiple duplicates, only the first duplicate is returned.
  *
  * @param db A valid Database handle
- * @param reserved A reserved value; set to NULL
+ * @param reserved A reserved value. Set to NULL.
  * @param key The key of the item
  * @param record The record of the item
  * @param flags Optional flags for searching; unused, set to 0
@@ -1203,7 +1203,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  * unsigned integer in host-endian.
  *
  * @param db A valid Database handle
- * @param reserved A reserved value; set to NULL
+ * @param reserved A reserved value. Set to NULL.
  * @param key The key of the new item
  * @param record The record of the new item
  * @param flags Optional flags for inserting. Possible flags are:
@@ -1264,7 +1264,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
  * @a ham_cursor_erase to erase a specific duplicate key.
  *
  * @param db A valid Database handle
- * @param reserved A reserved value; set to NULL
+ * @param reserved A reserved value. Set to NULL.
  * @param key The key to delete
  * @param flags Optional flags for erasing; unused, set to 0
  *
@@ -1344,13 +1344,13 @@ ham_close(ham_db_t *db, ham_u32_t flags);
  * traverse the Database from start to end or vice versa. Cursors
  * can also be used to insert, delete or search Database items.
  *
- * A created Cursor does not point to any item in the Database.
+ * A newly created Cursor does not point to any item in the Database.
  *
  * The application should close all Database Cursors before closing
  * the Database.
  *
  * @param db A valid Database handle
- * @param reserved A reserved value; set to NULL
+ * @param reserved A reserved value. Set to NULL.
  * @param flags Optional flags for creating the Cursor; unused, set to 0
  * @param cursor A pointer to a pointer which is allocated for the
  *          new Cursor handle
@@ -1389,7 +1389,7 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * and/or @a record are valid pointers.
  *
  * If the direction is not specified, the Cursor will not move. Do not
- * specify a direction, if you want to fetch the key and/or record of
+ * specify a direction if you want to fetch the key and/or record of
  * the current item.
  *
  * @param cursor A valid Cursor handle
@@ -1570,14 +1570,14 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
  * Erases the current key
  *
  * Erases a key from the Database. If the erase was
- * successfull, the Cursor is invalidated, and does no longer point to
+ * successful, the Cursor is invalidated and does no longer point to
  * any item. In case of an error, the Cursor is not modified.
  *
  * If the Database was opened with the flag @a HAM_ENABLE_DUPLICATES,
  * this function erases only the duplicate item to which the Cursor refers.
  *
  * @param cursor A valid Cursor handle
- * @param flags Optional flags for erasing the key; unused, set to 0
+ * @param flags Optional flags for erasing the key; unused, set to 0.
  *
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if @a cursor is NULL
