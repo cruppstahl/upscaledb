@@ -15,13 +15,12 @@ o new web page
 
 o java wrapper
 
-o .NET wrapper
-    o strong name!!
-
 o recovery/journalling
-    o design functionality 
-    o design API
-    o write roadmap
+    x design functionality 
+    x design API
+    x write roadmap
+    o implement
+        o identify code which needs logging
 
 -----------------------------------------------------------------------------
 
