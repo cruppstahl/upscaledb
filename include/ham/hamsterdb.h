@@ -217,6 +217,8 @@ typedef struct {
 #define HAM_DATABASE_ALREADY_EXISTS (-201)
 /** Database already open */
 #define HAM_DATABASE_ALREADY_OPEN   (-202)
+/** Invalid log file header */
+#define HAM_LOG_INV_FILE_HEADER     (-300)
 
 /**
  * @}

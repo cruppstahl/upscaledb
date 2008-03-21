@@ -22,6 +22,7 @@ extern "C" {
 
 #include <stdio.h>
 #include <ham/types.h>
+#include <limits.h>
 
 /**
  * read data from a file with mmap
@@ -58,14 +59,22 @@ extern ham_status_t
 os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer, 
         ham_size_t bufferlen);
 
+/**
+ * append data to a file
+ */
+extern ham_status_t
+os_write(ham_fd_t fd, const void *buffer, ham_size_t bufferlen);
+
 #ifdef HAM_OS_POSIX
 #    define HAM_OS_SEEK_SET     SEEK_SET
 #    define HAM_OS_SEEK_END     SEEK_END
 #    define HAM_OS_SEEK_CUR     SEEK_CUR
+#    define HAM_OS_MAX_PATH     PATH_MAX
 #else
 #    define HAM_OS_SEEK_SET     FILE_BEGIN
 #    define HAM_OS_SEEK_END     FILE_END
 #    define HAM_OS_SEEK_CUR     FILE_CURRENT
+#    define HAM_OS_MAX_PATH     MAX_PATH
 #endif
 
 /**

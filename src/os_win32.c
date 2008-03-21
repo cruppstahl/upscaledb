@@ -124,6 +124,15 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
     if (st)
         return (st);
 
+    return (os_write(fd, buffer, bufferlen));
+}
+
+ham_status_t
+os_write(ham_fd_t fd, const void *buffer, ham_size_t bufferlen)
+{
+    ham_status_t st;
+    DWORD written=0;
+
     if (!WriteFile((HANDLE)fd, buffer, bufferlen, &written, 0)) {
         st=(ham_status_t)GetLastError();
         ham_log(("WriteFile failed with OS status %u", st));

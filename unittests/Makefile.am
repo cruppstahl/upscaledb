@@ -8,7 +8,8 @@ noinst_PROGRAMS = test
 
 INCLUDES        = -I$(top_builddir)/include
 
-test_SOURCES    = btree_erase.cpp \
+test_SOURCES    = log.cpp \
+				  btree_erase.cpp \
 				  check.cpp \
                   error.cpp \
                   filter.cpp \

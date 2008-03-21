@@ -183,15 +183,15 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
 #endif
 }
 
-#ifndef HAVE_PWRITE
-static ham_status_t
-my_os_write(ham_fd_t fd, const ham_u8_t *buffer, ham_size_t bufferlen)
+ham_status_t
+os_write(ham_fd_t fd, const void *buffer, ham_size_t bufferlen)
 {
     int w;
     ham_size_t total=0;
+    const char *p=(const char *)buffer;
 
     while (total<bufferlen) {
-        w=write(fd, &buffer[total], bufferlen-total);
+        w=write(fd, p+total, bufferlen-total);
         if (w<0)
             return (HAM_IO_ERROR);
         if (w==0)
@@ -201,7 +201,6 @@ my_os_write(ham_fd_t fd, const ham_u8_t *buffer, ham_size_t bufferlen)
 
     return (total==bufferlen ? HAM_SUCCESS : HAM_IO_ERROR);
 }
-#endif
 
 ham_status_t
 os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer, 
@@ -227,7 +226,7 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
     st=os_seek(fd, addr, HAM_OS_SEEK_SET);
     if (st)
         return (st);
-    st=my_os_write(fd, buffer, bufferlen);
+    st=os_write(fd, buffer, bufferlen);
     return (st);
 #endif
 }

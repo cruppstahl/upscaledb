@@ -13,14 +13,16 @@ o new web page
     o add google analytics code
     o add google sitemap
 
-o java wrapper
-
 o recovery/journalling
     x design functionality 
     x design API
     x write roadmap
     o implement
-        o identify code which needs logging
+        x identify code which needs logging
+        o write logging module - with full unittest coverage!
+
+
+new error code HAM_LOG_INV_FILE_HEADER
 
 -----------------------------------------------------------------------------
 
