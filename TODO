@@ -87,6 +87,7 @@ o recovery/journalling
 . Python wrapper 
     -> http://docs.python.org/ext/ext.html
     -> http://www.python.org/doc/faq/extending/
+    -> http://docs.python.org/dist/dist.html
 
 . Perl wrapper
 
