@@ -20,9 +20,67 @@ o recovery/journalling
     o implement
         x identify code which needs logging
         o write logging module - with full unittest coverage!
+            x when deleting logfiles: truncate to sizeof(header)!
+            x txn must track the logfile it is writing to
+                -> decide in txn_begin
+            x log: count number of open/closed transactions in each file
+                x unittest!
+            x unittest: swap files when having more than 20 transactions
+            x unittest: make sure that the transaction writes to the 
+                correct file
+            x decide when to make a checkpoint
+                x my_log_checkpoint() must call ham_flush
+                x after a checkpoint: clear the older file, swap file 
+                    descriptors
+                    x unittest!
 
+            o implement remaining functions
+                x LOG_ENTRY_TYPE_CHECKPOINT
+                    o unittest!
+                o LOG_ENTRY_TYPE_WRITE
+                    o unittest!
+                o LOG_ENTRY_TYPE_OVERWRITE
+                    o unittest!
+                o LOG_ENTRY_TYPE_FLUSH_PAGE (must not be triggered
+                    when appending a checkpoint)
+                    o unittest!
 
-new error code HAM_LOG_INV_FILE_HEADER
+        o new flag HAM_ENABLE_LOGGING für ham_create und ham_open
+            o don't allow in combination with HAM_IN_MEMORY_DB and
+                HAM_DISABLE_FREELIST_FLUSH and HAM_WRITE_THROUGH
+                o unittests
+            o für db-funktionen
+                o unittests
+            o für env-funktionen
+                o unittests
+            o ham_txn_* must write log-entries (needs
+                refactoring of some unittests)
+
+        o recovery process
+            o when opening the log files: decide which file is "older"
+                -> check the lsn's
+                -> "older" file becomes file[0]
+                    o unittests!
+            o when opening, and logs are not empty: return error
+                HAM_NEED_RECOVERY
+            o new flag HAM_AUTO_RECOVERY - not allowed in combination
+                with HAM_READ_ONLY etc
+            o after recovery, don't forget to clear both files and
+                reset lsn to 1!
+            o when the flag is found: open the main file, open the 
+                log files; avoid the cache, directly write to the file.
+                then close the database, and re-open everything from 
+                scratch
+
+        o ham_flush must insert checkpoint, if possible (-> if the
+            first logfile has no more open transactions)
+
+    o new error code HAM_LOG_INV_FILE_HEADER
+        o add to ham_strerror
+    o add documentation
+
+    o new API function ham_set_checkpoint(), or extend ham_flush()
+        with new flag HAM_SET_CHECKPOINT??
 
 -----------------------------------------------------------------------------
 

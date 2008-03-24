@@ -56,9 +56,6 @@ typedef struct {
     /* the transaction id */
     ham_u64_t _txn_id;
 
-    /* the size of this entry */
-    ham_u64_t _size;
-
     /* the flags of this entry; the lowest 8 bits are the 
      * type of this entry, see below */
     ham_u32_t _flags;
@@ -66,11 +63,13 @@ typedef struct {
     /* a reserved value */
     ham_u32_t _reserved;
 
-    /* the offset of the last checkpoint */
-    ham_offset_t _last_checkpoint;
+    /* the size of the data */
+    ham_u64_t _data_size;
 
     /* the data - this is a raw buffer, which has to be interpreted
-     * according to the type/flags */
+     * according to the type/flags. The data can have additional padding,
+     * the size of a log_entry_t must always be 8byte-aligned to avoid
+     * unaligned access (i.e. on SPARC) */
     ham_u8_t _data[8];
 
 } log_entry_t;
@@ -105,10 +104,10 @@ typedef struct {
 #define log_entry_set_txn_id(l, id)             (l)->_txn_id=id
 
 /* get the size of this entry */
-#define log_entry_get_size(l)                   (l)->_size
+#define log_entry_get_data_size(l)              (l)->_data_size
 
 /* set the size of this entry */
-#define log_entry_set_size(l, s)                (l)->_size=s
+#define log_entry_set_data_size(l, s)           (l)->_data_size=s
 
 /* get the flags of this entry */
 #define log_entry_get_flags(l)                  (l)->_flags
@@ -121,12 +120,6 @@ typedef struct {
 
 /* set the type of this entry */
 #define log_entry_set_type(l, t)                (l)->_flags|=(t)
-
-/* get the offset of the previous checkpoint */
-#define log_entry_get_last_checkpoint(l)        (l)->_last_checkpoint
-
-/* set the offset of the previous checkpoint */
-#define log_entry_set_last_checkpoint(l, cp)    (l)->_last_checkpoint=cp
 
 /* get the data-pointer */
 #define log_entry_get_data(l)                   (&(l)->_data[0])
@@ -142,11 +135,24 @@ typedef struct {
     /* the log flags - unused so far */
     ham_u32_t _flags;
 
-    /* the two file handles */
+    /* the index of the file descriptor we are currently writing to */
+    int _current_fd;
+
+    /* the two file descriptors */
     ham_fd_t _fd[2];
+
+    /* for counting all open transactions in the files */
+    ham_size_t _open_txn[2];
+
+    /* for counting all closed transactions in the files */
+    ham_size_t _closed_txn[2];
 
     /* the last used lsn */
     ham_u64_t _lsn;
+
+    /* when having more than these transactions in one logfile, we 
+     * swap the files */
+    ham_size_t _threshold;
 
 } ham_log_t;
 
@@ -162,11 +168,29 @@ typedef struct {
 /* set the log flags */
 #define log_set_flags(l, f)                     (l)->_flags=f
 
+/* get the index of the current file */
+#define log_get_current_file(l)                 (l)->_current_fd
+
+/* set the index of the current file */
+#define log_set_current_file(l, c)              (l)->_current_fd=c
+
 /* get a file descriptor */
 #define log_get_fd(l, i)                        (l)->_fd[i]
 
 /* set a file descriptor */
 #define log_set_fd(l, i, fd)                    (l)->_fd[i]=fd
+
+/* get the number of open transactions */
+#define log_get_open_txn(l, i)                  (l)->_open_txn[i]
+
+/* set the number of open transactions */
+#define log_set_open_txn(l, i, c)               (l)->_open_txn[i]=c
+
+/* get the number of closed transactions */
+#define log_get_closed_txn(l, i)                (l)->_closed_txn[i]
+
+/* set the number of closed transactions */
+#define log_set_closed_txn(l, i, c)             (l)->_closed_txn[i]=c
 
 /* get the last used lsn */
 #define log_get_lsn(l)                          (l)->_lsn
@@ -174,12 +198,11 @@ typedef struct {
 /* set the last used lsn */
 #define log_set_lsn(l, lsn)                     (l)->_lsn=lsn
 
-/* swap the file descriptors */
-#define log_swap_fds(l)                 do {                                   \
-                                            ham_fd_t tmp=log_get_fd(l, 0);     \
-                                            log_set_fd(l, 0, log_get_fd(l, 1));\
-                                            log_set_fd(l, 1, tmp);             \
-                                        } while(0);
+/* get the threshold */
+#define log_get_threshold(l)                    (l)->_threshold
+
+/* set the threshold */
+#define log_set_threshold(l, t)                 (l)->_threshold=t
 
 /*
  * this function creates a new ham_log_t object
@@ -199,6 +222,50 @@ ham_log_open(ham_db_t *db, const char *dbpath, ham_u32_t flags);
  */
 extern ham_status_t
 ham_log_is_empty(ham_log_t *log, ham_bool_t *isempty);
+
+/*
+ * appends an entry to the log
+ */
+extern ham_status_t
+ham_log_append_entry(ham_log_t *log, int fdidx, log_entry_t *entry, 
+        ham_size_t size);
+
+/*
+ * append a log entry for LOG_ENTRY_TYPE_TXN_BEGIN
+ */
+extern ham_status_t
+ham_log_append_txn_begin(ham_log_t *log, ham_txn_t *txn);
+
+/*
+ * append a log entry for LOG_ENTRY_TYPE_TXN_ABORT
+ */
+extern ham_status_t
+ham_log_append_txn_abort(ham_log_t *log, ham_txn_t *txn);
+
+/*
+ * append a log entry for LOG_ENTRY_TYPE_TXN_COMMIT
+ */
+extern ham_status_t
+ham_log_append_txn_commit(ham_log_t *log, ham_txn_t *txn);
+
+/*
+ * append a log entry for LOG_ENTRY_TYPE_CHECKPOINT
+ */
+extern ham_status_t
+ham_log_append_checkpoint(ham_log_t *log);
+
+/* TODO still missing:
+#define LOG_ENTRY_TYPE_WRITE                    4
+#define LOG_ENTRY_TYPE_OVERWRITE                5
+#define LOG_ENTRY_TYPE_CHECKPOINT               6
+#define LOG_ENTRY_TYPE_FLUSH_PAGE               7
+*/
+
+/*
+ * clears the logfile to zero, removes all entries
+ */
+extern ham_status_t
+ham_log_clear(ham_log_t *log);
 
 /*
  * closes the log, frees all allocated resources

@@ -30,9 +30,24 @@ struct ham_page_t;
 typedef struct 
 {
     /**
+     * the id of this txn
+     */
+    ham_u64_t _id;
+
+    /**
+     * the last used lsn of this transaction
+     */
+    ham_u64_t _last_lsn;
+
+    /**
      * owner of this transaction 
      */
     ham_db_t *_db;
+
+    /**
+     * index of the log file descriptor for this transaction
+     */
+    int _log_desc;
 
     /**
      * a list of pages which are referenced by this transaction
@@ -40,6 +55,31 @@ typedef struct
     struct ham_page_t *_pagelist;
 
 } ham_txn_t;
+
+/**
+ * get the id
+ */
+#define txn_get_id(txn)                         (txn)->_id
+
+/**
+ * set the id
+ */
+#define txn_set_id(txn, id)                     (txn)->_id=id
+
+/**
+ * get the last lsn
+ */
+#define txn_get_last_lsn(txn)                   (txn)->_last_lsn
+
+/**
+ * set the last lsn
+ */
+#define txn_set_last_lsn(txn, lsn)              (txn)->_last_lsn=lsn
+
+/**
+ * set the database pointer
+ */
+#define txn_set_db(txn, db)                     (txn)->_db=db
 
 /**
  * get the database pointer
@@ -50,6 +90,16 @@ typedef struct
  * set the database pointer
  */
 #define txn_set_db(txn, db)                     (txn)->_db=db
+
+/**
+ * get the index of the log file descriptor
+ */
+#define txn_get_log_desc(txn)                   (txn)->_log_desc
+
+/**
+ * set the index of the log file descriptor
+ */
+#define txn_set_log_desc(txn, desc)             (txn)->_log_desc=desc
 
 /**
  * get the page list

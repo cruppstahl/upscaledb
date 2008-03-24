@@ -96,9 +96,14 @@ public:
         CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_get_db(&txn)==m_db);
         CPPUNIT_ASSERT(txn_get_pagelist(&txn)==0);
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(&txn));
+        txn_set_last_lsn(&txn, 0x15);
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x15, txn_get_last_lsn(&txn));
         txn_set_pagelist(&txn, (ham_page_t *)0x13);
         CPPUNIT_ASSERT(txn_get_pagelist(&txn)==(ham_page_t *)0x13);
         txn_set_pagelist(&txn, 0);
+        txn_set_log_desc(&txn, 4);
+        CPPUNIT_ASSERT_EQUAL(4, txn_get_log_desc(&txn));
         CPPUNIT_ASSERT(txn_get_pagelist(&txn)==0);
         CPPUNIT_ASSERT(ham_txn_commit(&txn, 0)==HAM_SUCCESS);
     }

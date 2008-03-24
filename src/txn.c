@@ -95,7 +95,8 @@ ham_txn_begin(ham_txn_t *txn, ham_db_t *db)
     memset(txn, 0, sizeof(*txn));
     txn_set_db(txn, db);
     db_set_txn(db, txn);
-    db_set_txn_id(db, db_get_txn_id(db)+1);
+    txn_set_id(txn, db_get_txn_id(db)+1);
+    db_set_txn_id(db, txn_get_id(txn));
     return (0);
 }
 
