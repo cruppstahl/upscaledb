@@ -16,6 +16,15 @@
 
 #define LOG_DEFAULT_THRESHOLD   64
 
+static ham_size_t 
+my_get_alligned_entry_size(ham_size_t data_size)
+{
+    ham_size_t s=sizeof(log_entry_t)-8+data_size;
+    if (s%8!=0)
+        s=((s/8)*8)+8;
+    return (s);
+}
+
 static ham_status_t
 my_log_clear_file(ham_log_t *log, int idx)
 {
@@ -339,6 +348,84 @@ ham_log_append_checkpoint(ham_log_t *log)
     /* TODO what if the checkpoint is forced from the user, and there is
      * no "newer" file?? */
     st=ham_log_append_entry(log, 1, &entry, sizeof(entry));
+    if (st)
+        return (db_set_error(log_get_db(log), st));
+
+    return (0);
+}
+
+ham_status_t
+ham_log_append_flush_page(ham_log_t *log, ham_page_t *page)
+{
+    ham_status_t st;
+    log_entry_t entry;
+    ham_offset_t o=page_get_self(page);
+    
+    memset(&entry, 0, sizeof(entry));
+    log_entry_set_lsn(&entry, log_get_lsn(log));
+    log_set_lsn(log, log_get_lsn(log)+1);
+    log_entry_set_type(&entry, LOG_ENTRY_TYPE_WRITE);
+    log_entry_set_data_size(&entry, sizeof(ham_offset_t));
+    memcpy(log_entry_get_data(&entry), &o, sizeof(ham_offset_t));
+
+    st=ham_log_append_entry(log, txn_get_log_desc(db_get_txn(log_get_db(log))), 
+            &entry, sizeof(entry));
+    if (st)
+        return (db_set_error(log_get_db(log), st));
+
+    return (0);
+}
+
+ham_status_t
+ham_log_append_write(ham_log_t *log, ham_u8_t *data, ham_size_t size)
+{
+    ham_status_t st;
+    ham_size_t alloc_size=my_get_alligned_entry_size(size);
+    log_entry_t *entry;
+    
+    entry=(log_entry_t *)ham_mem_alloc(log_get_db(log), alloc_size);
+    if (!entry)
+        return (db_set_error(log_get_db(log), HAM_OUT_OF_MEMORY));
+
+    memset(entry, 0, sizeof(*entry));
+    log_entry_set_lsn(entry, log_get_lsn(log));
+    log_set_lsn(log, log_get_lsn(log)+1);
+    log_entry_set_type(entry, LOG_ENTRY_TYPE_WRITE);
+    log_entry_set_data_size(entry, size);
+    memcpy(log_entry_get_data(entry), data, size);
+
+    st=ham_log_append_entry(log, txn_get_log_desc(db_get_txn(log_get_db(log))), 
+            entry, alloc_size);
+    ham_mem_free(log_get_db(log), entry);
+    if (st)
+        return (db_set_error(log_get_db(log), st));
+
+    return (0);
+}
+
+ham_status_t
+ham_log_append_overwrite(ham_log_t *log, ham_u8_t *old_data, 
+        ham_u8_t *new_data, ham_size_t size)
+{
+    ham_status_t st;
+    ham_size_t alloc_size=my_get_alligned_entry_size(size*2);
+    log_entry_t *entry;
+    
+    entry=(log_entry_t *)ham_mem_alloc(log_get_db(log), alloc_size);
+    if (!entry)
+        return (db_set_error(log_get_db(log), HAM_OUT_OF_MEMORY));
+
+    memset(entry, 0, sizeof(*entry));
+    log_entry_set_lsn(entry, log_get_lsn(log));
+    log_set_lsn(log, log_get_lsn(log)+1);
+    log_entry_set_type(entry, LOG_ENTRY_TYPE_OVERWRITE);
+    log_entry_set_data_size(entry, size*2);
+    memcpy(log_entry_get_data(entry), old_data, size);
+    memcpy(log_entry_get_data(entry)+size, new_data, size);
+
+    st=ham_log_append_entry(log, txn_get_log_desc(db_get_txn(log_get_db(log))), 
+            entry, alloc_size);
+    ham_mem_free(log_get_db(log), entry);
     if (st)
         return (db_set_error(log_get_db(log), st));
 

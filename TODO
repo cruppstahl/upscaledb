@@ -37,13 +37,15 @@ o recovery/journalling
             o implement remaining functions
                 x LOG_ENTRY_TYPE_CHECKPOINT
                     o unittest!
-                o LOG_ENTRY_TYPE_WRITE
+                x LOG_ENTRY_TYPE_WRITE
                     o unittest!
-                o LOG_ENTRY_TYPE_OVERWRITE
-                    o unittest!
-                o LOG_ENTRY_TYPE_FLUSH_PAGE (must not be triggered
+                x LOG_ENTRY_TYPE_FLUSH_PAGE (must not be triggered
                     when appending a checkpoint)
                     o unittest!
+                x LOG_ENTRY_TYPE_OVERWRITE
+                    o unittest!
+
+            o fix TODOs in log.h/log.c (and assert the fixes with unittests)
 
         o new flag HAM_ENABLE_LOGGING für ham_create und ham_open
             o don't allow in combination with HAM_IN_MEMORY_DB and
@@ -55,6 +57,8 @@ o recovery/journalling
                 o unittests
             o ham_txn_* must write log-entries (needs
                 refactoring of some unittests)
+
+        o add log-entries to all other operations
 
         o recovery process
             o when opening the log files: decide which file is "older"
@@ -81,6 +85,8 @@ o recovery/journalling
 
     o new API function ham_set_checkpoint(), or extend ham_flush()
         with new flag HAM_SET_CHECKPOINT??
+
+o new API function to retrieve the flags of a database
 
 -----------------------------------------------------------------------------
 

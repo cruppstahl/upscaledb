@@ -254,12 +254,24 @@ ham_log_append_txn_commit(ham_log_t *log, ham_txn_t *txn);
 extern ham_status_t
 ham_log_append_checkpoint(ham_log_t *log);
 
-/* TODO still missing:
-#define LOG_ENTRY_TYPE_WRITE                    4
-#define LOG_ENTRY_TYPE_OVERWRITE                5
-#define LOG_ENTRY_TYPE_CHECKPOINT               6
-#define LOG_ENTRY_TYPE_FLUSH_PAGE               7
-*/
+/*
+ * append a log entry for LOG_ENTRY_TYPE_FLUSH_PAGE
+ */
+extern ham_status_t
+ham_log_append_flush_page(ham_log_t *log, ham_page_t *page);
+
+/*
+ * append a log entry for LOG_ENTRY_TYPE_WRITE
+ */
+extern ham_status_t
+ham_log_append_write(ham_log_t *log, ham_u8_t *data, ham_size_t size);
+
+/*
+ * append a log entry for LOG_ENTRY_TYPE_OVERWRITE
+ */
+extern ham_status_t
+ham_log_append_overwrite(ham_log_t *log, ham_u8_t *old_data, 
+        ham_u8_t *new_data, ham_size_t size);
 
 /*
  * clears the logfile to zero, removes all entries
