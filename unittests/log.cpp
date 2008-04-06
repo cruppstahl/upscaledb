@@ -32,6 +32,10 @@ class LogTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (appendTxnBeginTest);
     CPPUNIT_TEST      (appendTxnAbortTest);
     CPPUNIT_TEST      (appendTxnCommitTest);
+    CPPUNIT_TEST      (appendCheckpointTest);
+    CPPUNIT_TEST      (appendFlushPageTest);
+    CPPUNIT_TEST      (appendWriteTest);
+    CPPUNIT_TEST      (appendOverwriteTest);
     CPPUNIT_TEST      (insertCheckpointTest);
     CPPUNIT_TEST      (insertTwoCheckpointsTest);
     CPPUNIT_TEST      (clearTest);
@@ -267,6 +271,74 @@ public:
         CPPUNIT_ASSERT_EQUAL((ham_size_t)1, log_get_closed_txn(log, 0));
         CPPUNIT_ASSERT_EQUAL((ham_size_t)0, log_get_open_txn(log, 1));
         CPPUNIT_ASSERT_EQUAL((ham_size_t)0, log_get_closed_txn(log, 1));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log));
+    }
+
+    void appendCheckpointTest(void)
+    {
+        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_txn_t txn;
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_append_checkpoint(log));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log));
+    }
+
+    void appendFlushPageTest(void)
+    {
+        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_txn_t txn;
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
+        ham_page_t *page;
+        page=page_new(m_db);
+        CPPUNIT_ASSERT_EQUAL(0, page_alloc(page, db_get_pagesize(m_db)));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_append_flush_page(log, page));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
+
+        CPPUNIT_ASSERT_EQUAL(0, page_free(page));
+        page_delete(page);
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log));
+    }
+
+    void appendWriteTest(void)
+    {
+        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_txn_t txn;
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
+
+        ham_u8_t data[100];
+        for (int i=0; i<100; i++)
+            data[i]=(ham_u8_t)i;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_append_write(log, data, sizeof(data)));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log));
+    }
+
+    void appendOverwriteTest(void)
+    {
+        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_txn_t txn;
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
+
+        ham_u8_t old_data[100], new_data[100];
+        for (int i=0; i<100; i++) {
+            old_data[i]=(ham_u8_t)i;
+            new_data[i]=(ham_u8_t)i+1;
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_append_overwrite(log, 
+                    old_data, new_data, sizeof(old_data)));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log));

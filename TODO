@@ -34,16 +34,16 @@ o recovery/journalling
                     descriptors
                     x unittest!
 
-            o implement remaining functions
+            x implement remaining functions
                 x LOG_ENTRY_TYPE_CHECKPOINT
-                    o unittest!
+                    x unittest!
+                x LOG_ENTRY_TYPE_FLUSH_PAGE
+                    x unittest!
                 x LOG_ENTRY_TYPE_WRITE
-                    o unittest!
-                x LOG_ENTRY_TYPE_FLUSH_PAGE (must not be triggered
-                    when appending a checkpoint)
-                    o unittest!
+                    x unittest!
                 x LOG_ENTRY_TYPE_OVERWRITE
-                    o unittest!
+                    x unittest!
+                x test with valgrind
 
             o fix TODOs in log.h/log.c (and assert the fixes with unittests)
 
