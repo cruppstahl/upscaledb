@@ -61,6 +61,12 @@ my_insert_checkpoint(ham_log_t *log)
      *
      * TODO
      * also make sure that the flush itself does not insert a checkpoint!
+     *
+     * TODO
+     * do we really need checkpoints? if a checkpoint is just a normal
+     * ham_flush(), every page is flushed and writes a
+     * LOG_ENTRY_TYPE_FLUSH_PAGE. in this case, more log-entries are written,
+     * and processing them takes more time. -> ok, better insert checkpoints
      */
     st=ham_flush(log_get_db(log), 0);
     if (st)
@@ -364,7 +370,7 @@ ham_log_append_flush_page(ham_log_t *log, ham_page_t *page)
     memset(&entry, 0, sizeof(entry));
     log_entry_set_lsn(&entry, log_get_lsn(log));
     log_set_lsn(log, log_get_lsn(log)+1);
-    log_entry_set_type(&entry, LOG_ENTRY_TYPE_WRITE);
+    log_entry_set_type(&entry, LOG_ENTRY_TYPE_FLUSH_PAGE);
     log_entry_set_data_size(&entry, sizeof(ham_offset_t));
     memcpy(log_entry_get_data(&entry), &o, sizeof(ham_offset_t));
 
