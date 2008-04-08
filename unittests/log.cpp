@@ -107,6 +107,12 @@ public:
         log_set_flags(&log, 0x13);
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)0x13, log_get_flags(&log));
 
+        log_set_state(&log, 0x88);
+        CPPUNIT_ASSERT_EQUAL((ham_u32_t)0x88, log_get_state(&log));
+
+        log_set_current_fd(&log, 0x89);
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)0x89, log_get_current_fd(&log));
+
         log_set_fd(&log, 0, (ham_fd_t)0x20);
         CPPUNIT_ASSERT_EQUAL((ham_fd_t)0x20, log_get_fd(&log, 0));
         log_set_fd(&log, 1, (ham_fd_t)0x21);

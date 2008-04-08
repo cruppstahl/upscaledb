@@ -45,7 +45,7 @@ o recovery/journalling
                     x unittest!
                 x test with valgrind
 
-            o fix TODOs in log.h/log.c (and assert the fixes with unittests)
+            x fix TODOs in log.h/log.c (and assert the fixes with unittests)
 
         o new flag HAM_ENABLE_LOGGING für ham_create und ham_open
             o don't allow in combination with HAM_IN_MEMORY_DB and

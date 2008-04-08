@@ -56,19 +56,14 @@ my_insert_checkpoint(ham_log_t *log)
     /*
      * first, flush the file; then append the checkpoint
      *
-     * TODO for this flush, we don't need to insert 
-     * LOG_ENTRY_TYPE_FLUSH_PAGE
-     *
-     * TODO
-     * also make sure that the flush itself does not insert a checkpoint!
-     *
-     * TODO
-     * do we really need checkpoints? if a checkpoint is just a normal
-     * ham_flush(), every page is flushed and writes a
-     * LOG_ENTRY_TYPE_FLUSH_PAGE. in this case, more log-entries are written,
-     * and processing them takes more time. -> ok, better insert checkpoints
+     * for this flush, we don't need to insert LOG_ENTRY_TYPE_FLUSH_PAGE;
+     * therefore, set the state of the log accordingly. the page_flush()
+     * routine can then check the state and not write logfile-entries
+     * for each flush
      */
+    log_set_state(log, log_get_state(log)|LOG_STATE_CHECKPOINT);
     st=ham_flush(log_get_db(log), 0);
+    log_set_state(log, log_get_state(log)&~LOG_STATE_CHECKPOINT);
     if (st)
         return (st);
 
@@ -242,7 +237,6 @@ ham_log_append_txn_begin(ham_log_t *log, ham_txn_t *txn)
     if (log_get_open_txn(log, cur)+log_get_closed_txn(log, cur)<
             log_get_threshold(log)) {
         txn_set_log_desc(txn, cur);
-        log_set_open_txn(log, cur, log_get_open_txn(log, cur)+1);
     }
     /*
      * otherwise, if the other file does no longer have open transactions,
@@ -262,7 +256,6 @@ ham_log_append_txn_begin(ham_log_t *log, ham_txn_t *txn)
         log_set_current_file(log, other);
         cur=other;
         txn_set_log_desc(txn, cur);
-        log_set_open_txn(log, cur, log_get_open_txn(log, cur)+1);
     }
     /*
      * otherwise continue writing to the current file, till the other file
@@ -270,13 +263,18 @@ ham_log_append_txn_begin(ham_log_t *log, ham_txn_t *txn)
      */
     else {
         txn_set_log_desc(txn, cur);
-        log_set_open_txn(log, cur, log_get_open_txn(log, cur)+1);
     }
 
     st=ham_log_append_entry(log, cur, &entry, sizeof(entry));
     if (st)
         return (db_set_error(log_get_db(log), st));
+    log_set_open_txn(log, cur, log_get_open_txn(log, cur)+1);
     txn_set_last_lsn(txn, log_entry_get_lsn(&entry));
+
+    /* store the fp-index in the log structure; it's needed so
+     * log_append_checkpoint() can quickly find out which file is 
+     * the newest */
+    log_set_current_fd(log, cur);
 
     return (0);
 }
@@ -351,9 +349,8 @@ ham_log_append_checkpoint(ham_log_t *log)
     log_entry_set_type(&entry, LOG_ENTRY_TYPE_CHECKPOINT);
 
     /* always write the checkpoint to the newer file */
-    /* TODO what if the checkpoint is forced from the user, and there is
-     * no "newer" file?? */
-    st=ham_log_append_entry(log, 1, &entry, sizeof(entry));
+    st=ham_log_append_entry(log, log_get_current_fd(log), 
+            &entry, sizeof(entry));
     if (st)
         return (db_set_error(log_get_db(log), st));
 
@@ -366,6 +363,9 @@ ham_log_append_flush_page(ham_log_t *log, ham_page_t *page)
     ham_status_t st;
     log_entry_t entry;
     ham_offset_t o=page_get_self(page);
+
+    /* make sure that this is never called during a checkpoint! */
+    ham_assert(!(log_get_state(log)&LOG_STATE_CHECKPOINT), (0));
     
     memset(&entry, 0, sizeof(entry));
     log_entry_set_lsn(&entry, log_get_lsn(log));

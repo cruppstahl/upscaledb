@@ -154,6 +154,13 @@ typedef struct {
      * swap the files */
     ham_size_t _threshold;
 
+    /* an internal "state" of the log; used to track whether we're
+     * currently inserting a checkpoint or not */
+    ham_u32_t _state;
+
+    /* which of the _fd are we currently using? */
+    ham_size_t _current;
+
 } ham_log_t;
 
 /* get the database pointer */
@@ -203,6 +210,21 @@ typedef struct {
 
 /* set the threshold */
 #define log_set_threshold(l, t)                 (l)->_threshold=t
+
+/* get the state */
+#define log_get_state(l)                        (l)->_state
+
+/* set the state */
+#define log_set_state(l, s)                     (l)->_state=s
+
+/* get the current fd */
+#define log_get_current_fd(l)                   (l)->_current
+
+/* set the current fd */
+#define log_set_current_fd(l, s)                (l)->_current=s
+
+/* current state: during a CHECKPOINT */
+#define LOG_STATE_CHECKPOINT                    1
 
 /*
  * this function creates a new ham_log_t object
