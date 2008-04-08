@@ -54,7 +54,9 @@ o recovery/journalling
                     x unittests!
             o iterate backwards over the file -> need this for testing!
                 o might have to change the file format for performance 
-                    reasons
+                    reasons; on the other hand, we need to build a list
+                    of open transactions, and therefore we have to walk
+                    through the WHOLE file anyway
                 o test with multiple entries
 
         o new flag HAM_ENABLE_LOGGING für ham_create und ham_open
