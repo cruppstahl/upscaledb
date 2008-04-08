@@ -38,6 +38,8 @@ class LogTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (appendOverwriteTest);
     CPPUNIT_TEST      (insertCheckpointTest);
     CPPUNIT_TEST      (insertTwoCheckpointsTest);
+    CPPUNIT_TEST      (openSwapTest);
+    CPPUNIT_TEST      (openSwapTwiceTest);
     CPPUNIT_TEST      (clearTest);
     CPPUNIT_TEST_SUITE_END();
 
@@ -368,6 +370,64 @@ public:
 
         /* check that the following logs are written to the other file */
         CPPUNIT_ASSERT_EQUAL(1, log_get_current_file(log));
+
+        ham_offset_t fsize;
+        CPPUNIT_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log, 0), &fsize));
+        CPPUNIT_ASSERT_EQUAL((ham_offset_t)sizeof(log_header_t), fsize);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log));
+    }
+
+    void openSwapTest(void)
+    {
+        int i;
+        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        log_set_threshold(log, 5);
+
+        for (i=0; i<=6; i++) {
+            ham_txn_t txn;
+            CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
+            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
+            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
+        }
+
+        /* check that the following logs are written to the other file */
+        CPPUNIT_ASSERT_EQUAL(1, log_get_current_file(log));
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log));
+
+        /* now open the file and check that the file descriptors
+         * were swapped - the "newer" file (file 1) must be empty */
+        log=ham_log_open(m_db, ".test", 0);
+        CPPUNIT_ASSERT(log!=0);
+
+        ham_offset_t fsize;
+        CPPUNIT_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log, 1), &fsize));
+        CPPUNIT_ASSERT_EQUAL((ham_offset_t)sizeof(log_header_t), fsize);
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log));
+    }
+
+    void openSwapTwiceTest(void)
+    {
+        int i;
+        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        log_set_threshold(log, 5);
+
+        for (i=0; i<=10; i++) {
+            ham_txn_t txn;
+            CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
+            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
+            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
+        }
+
+        /* check that the following logs are written to the first file */
+        CPPUNIT_ASSERT_EQUAL(0, log_get_current_file(log));
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log));
+
+        /* now open the file and check that the file descriptors
+         * were swapped twice - the "newer" file (file 0) must be empty */
+        log=ham_log_open(m_db, ".test", 0);
+        CPPUNIT_ASSERT(log!=0);
 
         ham_offset_t fsize;
         CPPUNIT_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log, 0), &fsize));

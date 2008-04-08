@@ -128,6 +128,8 @@ ham_log_open(ham_db_t *db, const char *dbpath, ham_u32_t flags)
 {
     int i;
     log_header_t header;
+    log_entry_t entry;
+    ham_u64_t lsn[2];
     ham_status_t st;
     char filename[HAM_OS_MAX_PATH];
     ham_log_t *log=(ham_log_t *)ham_mem_calloc(db, sizeof(ham_log_t));
@@ -159,8 +161,6 @@ ham_log_open(ham_db_t *db, const char *dbpath, ham_u32_t flags)
 
     /* check the magic in both files */
     memset(&header, 0, sizeof(header));
-    log_header_set_magic(&header, HAM_LOG_HEADER_MAGIC);
-
     for (i=0; i<2; i++) {
         st=os_pread(log_get_fd(log, i), 0, &header, sizeof(header));
         if (st) {
@@ -174,6 +174,37 @@ ham_log_open(ham_db_t *db, const char *dbpath, ham_u32_t flags)
             db_set_error(db, HAM_LOG_INV_FILE_HEADER);
             return (0);
         }
+    }
+
+    /* now read the LSN's of both files; the file with the older
+     * LSN becomes file[0] */
+    for (i=0; i<2; i++) {
+        /* but make sure that the file is large enough! */
+        ham_offset_t size;
+        st=os_get_filesize(log_get_fd(log, i), &size);
+        if (st) {
+            (void)ham_log_close(log);
+            db_set_error(db, st);
+            return (0);
+        }
+
+        if (size>=sizeof(entry)) {
+            st=os_pread(log_get_fd(log, i), 0, &entry, sizeof(entry));
+            if (st) {
+                (void)ham_log_close(log);
+                db_set_error(db, st);
+                return (0);
+            }
+            lsn[i]=log_entry_get_lsn(&entry);
+        }
+        else
+            lsn[i]=0;
+    }
+
+    if (lsn[1]>lsn[0]) {
+        ham_fd_t temp=log_get_fd(log, 0);
+        log_set_fd(log, 0, log_get_fd(log, 1));
+        log_set_fd(log, 1, temp);
     }
 
     return (log);

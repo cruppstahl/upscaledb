@@ -47,6 +47,16 @@ o recovery/journalling
 
             x fix TODOs in log.h/log.c (and assert the fixes with unittests)
 
+        o recovery process
+            x when opening the log files: decide which file is "older"
+                -> check the lsn's
+                -> "older" file becomes file[0]
+                    x unittests!
+            o iterate backwards over the file -> need this for testing!
+                o might have to change the file format for performance 
+                    reasons
+                o test with multiple entries
+
         o new flag HAM_ENABLE_LOGGING für ham_create und ham_open
             o don't allow in combination with HAM_IN_MEMORY_DB and
                 HAM_DISABLE_FREELIST_FLUSH and HAM_WRITE_THROUGH
@@ -55,16 +65,15 @@ o recovery/journalling
                 o unittests
             o für env-funktionen
                 o unittests
-            o ham_txn_* must write log-entries (needs
-                refactoring of some unittests)
 
-        o add log-entries to all other operations
+        o add log-entries to all operations
+            o ham_txn_* (needs refactoring of some unittests)
+            o btree.c: my_fun_create
+            o btree.c: my_fun_flush
+            o see /home/chris/prj/hamsterdb-meta/recovery.txt for further 
+                TODOs
 
         o recovery process
-            o when opening the log files: decide which file is "older"
-                -> check the lsn's
-                -> "older" file becomes file[0]
-                    o unittests!
             o when opening, and logs are not empty: return error
                 HAM_NEED_RECOVERY
             o new flag HAM_AUTO_RECOVERY - not allowed in combination
