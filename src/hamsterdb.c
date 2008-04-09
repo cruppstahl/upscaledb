@@ -614,7 +614,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
     ham_status_t st;
     ham_u16_t keysize;
 
-    if (!env || !db) {
+    if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }

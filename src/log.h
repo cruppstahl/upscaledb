@@ -302,6 +302,31 @@ extern ham_status_t
 ham_log_clear(ham_log_t *log);
 
 /*
+ * an "iterator" structure for traversing the log files
+ */
+typedef struct {
+
+    /* selects the file descriptor */
+    ham_u32_t _fdidx;
+
+    /* the offset in the file of the NEXT entry */
+    ham_offset_t _offset;
+
+} log_iterator_t;
+
+/*
+ * returns the next log entry
+ *
+ * iter must be initialized with zeroes for the first call
+ *
+ * the memory for next is allocated by this function and has to
+ * be freed by the caller
+ *
+ */
+extern ham_status_t
+ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t **next);
+
+/*
  * closes the log, frees all allocated resources
  */
 extern ham_status_t

@@ -484,6 +484,49 @@ ham_log_clear(ham_log_t *log)
 }
 
 ham_status_t
+ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t **next)
+{
+    *next=0;
+
+    /*
+     * if state is 0: start from the beginning
+     */
+    if (!iter->_offset)
+        iter->_offset=sizeof(log_header_t);
+
+    /*
+     * try to read the entry-header from the file
+     */
+
+    /*
+     * if we failed to read because of eof, switch to the other logfile
+     * (and update the iterator);
+     * if we already passed both files, return to the caller
+     */
+
+    /*
+     * read the rest of the entry
+     * TODO if we realloc, make sure we have a "real" realloc implementation
+     * in the release version!
+     */
+
+#if 0
+            st=os_pread(log_get_fd(log, i), 0, &entry, sizeof(entry));
+            if (st) {
+                (void)ham_log_close(log);
+                db_set_error(db, st);
+                return (0);
+            }
+#endif
+
+    /*
+     * update the iterator
+     */
+
+    return (0);
+}
+
+ham_status_t
 ham_log_close(ham_log_t *log)
 {
     ham_status_t st; 
