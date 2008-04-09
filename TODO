@@ -52,20 +52,16 @@ o recovery/journalling
                 -> check the lsn's
                 -> "older" file becomes file[0]
                     x unittests!
-            o iterate backwards over the file -> need this for testing!
-                o might have to change the file format for performance 
-                    reasons; on the other hand, we need to build a list
-                    of open transactions, and therefore we have to walk
-                    through the WHOLE file anyway
+            o iterate forwards over the file(s)
                 o test with multiple entries
 
-        o new flag HAM_ENABLE_LOGGING für ham_create und ham_open
+        o new flag HAM_ENABLE_LOGGING for ham_create und ham_open
             o don't allow in combination with HAM_IN_MEMORY_DB and
                 HAM_DISABLE_FREELIST_FLUSH and HAM_WRITE_THROUGH
                 o unittests
-            o für db-funktionen
+            o for db-funktions
                 o unittests
-            o für env-funktionen
+            o for env-funktions
                 o unittests
 
         o add log-entries to all operations
