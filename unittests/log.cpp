@@ -172,7 +172,7 @@ public:
 
     void negativeCreateTest(void)
     {
-        ham_log_t *log=ham_log_create(m_db, "/.test", 0644, 0);
+        ham_log_t *log=ham_log_create(m_db, "/::asdf", 0644, 0);
         CPPUNIT_ASSERT_EQUAL((ham_log_t *)0, log);
         CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, ham_get_error(m_db));
     }
