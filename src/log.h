@@ -66,12 +66,6 @@ typedef struct {
     /* the size of the data */
     ham_u64_t _data_size;
 
-    /* the data - this is a raw buffer, which has to be interpreted
-     * according to the type/flags. The data can have additional padding,
-     * the size of a log_entry_t must always be 8byte-aligned to avoid
-     * unaligned access (i.e. on SPARC) */
-    ham_u8_t _data[8];
-
 } log_entry_t;
 
 /* 
@@ -120,10 +114,6 @@ typedef struct {
 
 /* set the type of this entry */
 #define log_entry_set_type(l, t)                (l)->_flags|=(t)
-
-/* get the data-pointer */
-#define log_entry_get_data(l)                   (&(l)->_data[0])
-
 
 /*
  * a Log object
@@ -249,8 +239,7 @@ ham_log_is_empty(ham_log_t *log, ham_bool_t *isempty);
  * appends an entry to the log
  */
 extern ham_status_t
-ham_log_append_entry(ham_log_t *log, int fdidx, log_entry_t *entry, 
-        ham_size_t size);
+ham_log_append_entry(ham_log_t *log, int fdidx, void *entry, ham_size_t size);
 
 /*
  * append a log entry for LOG_ENTRY_TYPE_TXN_BEGIN

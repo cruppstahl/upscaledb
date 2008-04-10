@@ -95,8 +95,6 @@ public:
         log_entry_set_type(&e, LOG_ENTRY_TYPE_CHECKPOINT);
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)LOG_ENTRY_TYPE_CHECKPOINT, 
                 log_entry_get_type(&e));
-
-        CPPUNIT_ASSERT(log_entry_get_data(&e)!=0);
     }
 
     void structLogTest(void)
