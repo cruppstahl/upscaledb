@@ -88,6 +88,9 @@ o recovery/journalling
         o ham_flush must insert checkpoint, if possible (-> if the
             first logfile has no more open transactions)
 
+    o currently, checkpoints are written every 20 or so transactions;
+        try to find a better number
+
     o new error code HAM_LOG_INV_FILE_HEADER
         o add to ham_strerror
     o add documentation

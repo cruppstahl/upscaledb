@@ -493,44 +493,76 @@ ham_log_clear(ham_log_t *log)
 }
 
 ham_status_t
-ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t **next)
+ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
+                ham_u8_t **data)
 {
-    *next=0;
+    ham_status_t st;
+
+    *data=0;
 
     /*
-     * if state is 0: start from the beginning
+     * if state is 0: start from the end of the second file
      */
-    if (!iter->_offset)
-        iter->_offset=sizeof(log_header_t);
+    if (!iter->_offset) {
+        iter->_fdidx=1;
+        st=os_get_filesize(log_get_fd(log, iter->_fdidx), &iter->_offset);
+        if (st)
+            return (st);
+    }
+
+    /* 
+     * if the current file is empty: try to continue with the older file
+     */
+    if (iter->_offset<=sizeof(log_header_t)) {
+        if (iter->_fdidx==0) {
+            log_entry_set_lsn(entry, 0);
+            return (0);
+        }
+        iter->_fdidx=0;
+        st=os_get_filesize(log_get_fd(log, iter->_fdidx), &iter->_offset);
+        if (st)
+            return (st);
+    }
+
+    if (iter->_offset<=sizeof(log_header_t)) {
+        log_entry_set_lsn(entry, 0);
+        return (0);
+    }
 
     /*
-     * try to read the entry-header from the file
+     * now read the entry-header from the file
      */
+    iter->_offset-=sizeof(log_header_t);
+
+    st=os_pread(log_get_fd(log, iter->_fdidx), iter->_offset, 
+                    entry, sizeof(*entry));
+    if (st)
+        return (db_set_error(log_get_db(log), st));
 
     /*
-     * if we failed to read because of eof, switch to the other logfile
-     * (and update the iterator);
-     * if we already passed both files, return to the caller
+     * now read the data
      */
+    if (log_entry_get_data_size(entry)) {
+        ham_offset_t pos=iter->_offset-log_entry_get_data_size(entry);
+        if (pos%8!=0)
+            pos=(pos/8)*8;
 
-    /*
-     * read the rest of the entry
-     * TODO if we realloc, make sure we have a "real" realloc implementation
-     * in the release version!
-     */
+        *data=ham_mem_alloc(log_get_db(log), log_entry_get_data_size(entry));
+        if (!*data)
+            return (db_set_error(log_get_db(log), HAM_OUT_OF_MEMORY));
 
-#if 0
-            st=os_pread(log_get_fd(log, i), 0, &entry, sizeof(entry));
-            if (st) {
-                (void)ham_log_close(log);
-                db_set_error(db, st);
-                return (0);
-            }
-#endif
+        st=os_pread(log_get_fd(log, iter->_fdidx), pos, *data, 
+                    log_entry_get_data_size(entry));
+        if (st) {
+            ham_mem_free(log_get_db(log), *data);
+            *data=0;
+            return (db_set_error(log_get_db(log), st));
+        }
 
-    /*
-     * update the iterator
-     */
+        iter->_offset=pos;
+    }
+    else
+        *data=0;
 
     return (0);
 }

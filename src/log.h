@@ -308,12 +308,14 @@ typedef struct {
  *
  * iter must be initialized with zeroes for the first call
  *
- * the memory for next is allocated by this function and has to
- * be freed by the caller
+ * 'data' returns the data of the entry, or NULL if there is no data. 
+ * The memory has to be freed by the caller.
  *
+ * returns SUCCESS and an empty entry (lsn is zero) after the last element.
  */
 extern ham_status_t
-ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t **next);
+ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
+                ham_u8_t **data);
 
 /*
  * closes the log, frees all allocated resources
