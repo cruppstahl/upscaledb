@@ -56,6 +56,12 @@ o recovery/journalling
                 the file format; the header of an entry must be stored
                 AFTER the entry itself
                 o test with multiple entries
+                    o after file swapping
+                    o after second file swapping
+                    o with data
+                    o with data after file swapping
+                    o with just one file
+                    o with empty log
 
         o new flag HAM_ENABLE_LOGGING for ham_create und ham_open
             o don't allow in combination with HAM_IN_MEMORY_DB and
