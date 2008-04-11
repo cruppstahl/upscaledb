@@ -38,11 +38,13 @@ class LogTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (appendOverwriteTest);
     CPPUNIT_TEST      (insertCheckpointTest);
     CPPUNIT_TEST      (insertTwoCheckpointsTest);
-    CPPUNIT_TEST      (openSwapTest);
-    CPPUNIT_TEST      (openSwapTwiceTest);
     CPPUNIT_TEST      (clearTest);
     CPPUNIT_TEST      (iterateOverEmptyLogTest);
     CPPUNIT_TEST      (iterateOverLogOneEntryTest);
+    CPPUNIT_TEST      (iterateOverLogMultipleEntryTest);
+    CPPUNIT_TEST      (iterateOverLogMultipleEntrySwapTest);
+    CPPUNIT_TEST      (iterateOverLogMultipleEntrySwapTwiceTest);
+    CPPUNIT_TEST      (iterateOverLogMultipleEntryWithDataTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -366,72 +368,11 @@ public:
             CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
             CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
             CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
+            CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
         }
 
         /* check that the following logs are written to the other file */
         CPPUNIT_ASSERT_EQUAL(1, log_get_current_file(log));
-
-        ham_offset_t fsize;
-        CPPUNIT_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log, 0), &fsize));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)sizeof(log_header_t), fsize);
-
-        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
-    }
-
-    void openSwapTest(void)
-    {
-        int i;
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
-        log_set_threshold(log, 5);
-
-        for (i=0; i<=6; i++) {
-            ham_txn_t txn;
-            CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
-            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
-            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
-        }
-
-        /* check that the following logs are written to the other file */
-        CPPUNIT_ASSERT_EQUAL(1, log_get_current_file(log));
-        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
-
-        /* now open the file and check that the file descriptors
-         * were swapped - the "newer" file (file 1) must be empty */
-        log=ham_log_open(m_db, ".test", 0);
-        CPPUNIT_ASSERT(log!=0);
-
-        ham_offset_t fsize;
-        CPPUNIT_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log, 1), &fsize));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)sizeof(log_header_t), fsize);
-
-        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
-    }
-
-    void openSwapTwiceTest(void)
-    {
-        int i;
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
-        log_set_threshold(log, 5);
-
-        for (i=0; i<=10; i++) {
-            ham_txn_t txn;
-            CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
-            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
-            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
-        }
-
-        /* check that the following logs are written to the first file */
-        CPPUNIT_ASSERT_EQUAL(0, log_get_current_file(log));
-        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
-
-        /* now open the file and check that the file descriptors
-         * were swapped twice - the "newer" file (file 0) must be empty */
-        log=ham_log_open(m_db, ".test", 0);
-        CPPUNIT_ASSERT(log!=0);
-
-        ham_offset_t fsize;
-        CPPUNIT_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log, 0), &fsize));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)sizeof(log_header_t), fsize);
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
@@ -450,14 +391,11 @@ public:
             CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
             CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
             CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
+            CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
         }
 
-        /* check that the following logs are written to the other file */
+        /* check that the following logs are written to the first file */
         CPPUNIT_ASSERT_EQUAL(0, log_get_current_file(log));
-
-        ham_offset_t fsize;
-        CPPUNIT_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log, 1), &fsize));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)sizeof(log_header_t), fsize);
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
@@ -529,6 +467,214 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
+
+    void iterateOverLogMultipleEntryTest(void)
+    {
+        ham_txn_t txn;
+        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+
+        for (int i=0; i<5; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
+            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
+            CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
+        log=ham_log_open(m_db, ".test", 0);
+        CPPUNIT_ASSERT(log!=0);
+
+        log_iterator_t iter;
+        memset(&iter, 0, sizeof(iter));
+
+        log_entry_t entry;
+        ham_u8_t *data;
+        for (int i=0; i<5; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_log_get_entry(log, &iter, &entry, &data));
+            CPPUNIT_ASSERT_EQUAL((ham_u64_t)5-i, log_entry_get_lsn(&entry));
+            CPPUNIT_ASSERT_EQUAL((ham_u64_t)5-i, log_entry_get_txn_id(&entry));
+            CPPUNIT_ASSERT_EQUAL((ham_u8_t *)0, data);
+            CPPUNIT_ASSERT_EQUAL((ham_u32_t)LOG_ENTRY_TYPE_TXN_BEGIN, 
+                        log_entry_get_type(&entry));
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_get_entry(log, &iter, &entry, &data));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0, log_entry_get_lsn(&entry));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
+    }
+
+    void iterateOverLogMultipleEntrySwapTest(void)
+    {
+        ham_txn_t txn;
+        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        log_set_threshold(log, 5);
+
+        for (int i=0; i<=7; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
+            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
+            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
+            CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
+        log=ham_log_open(m_db, ".test", 0);
+        CPPUNIT_ASSERT(log!=0);
+
+        log_iterator_t iter;
+        memset(&iter, 0, sizeof(iter));
+
+        log_entry_t entry;
+        ham_u8_t *data;
+        int found_txn_begin =0;
+        int found_txn_commit=0;
+        int found_checkpoint=0;
+        while (1) {
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_log_get_entry(log, &iter, &entry, &data));
+
+            if (log_entry_get_lsn(&entry)==0)
+                break;
+            if (LOG_ENTRY_TYPE_TXN_BEGIN==log_entry_get_type(&entry)) {
+                CPPUNIT_ASSERT_EQUAL((ham_u64_t)8-found_txn_begin, 
+                                log_entry_get_txn_id(&entry));
+                CPPUNIT_ASSERT_EQUAL((ham_u8_t *)0, data);
+                found_txn_begin++;
+            }
+            else if (LOG_ENTRY_TYPE_TXN_COMMIT==log_entry_get_type(&entry)) {
+                CPPUNIT_ASSERT_EQUAL((ham_u64_t)8-found_txn_commit, 
+                                log_entry_get_txn_id(&entry));
+                found_txn_commit++;
+            }
+            else if (LOG_ENTRY_TYPE_CHECKPOINT==log_entry_get_type(&entry)) {
+                found_checkpoint++;
+            }
+            else
+                CPPUNIT_ASSERT(!"unknown log_entry_type");
+        }
+        CPPUNIT_ASSERT_EQUAL(8, found_txn_begin);
+        CPPUNIT_ASSERT_EQUAL(8, found_txn_commit);
+        CPPUNIT_ASSERT_EQUAL(1, found_checkpoint);
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_get_entry(log, &iter, &entry, &data));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0, log_entry_get_lsn(&entry));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
+    }
+
+    void iterateOverLogMultipleEntrySwapTwiceTest(void)
+    {
+        ham_txn_t txn;
+        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        log_set_threshold(log, 5);
+
+        for (int i=0; i<=10; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
+            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
+            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
+            CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
+        log=ham_log_open(m_db, ".test", 0);
+        CPPUNIT_ASSERT(log!=0);
+
+        log_iterator_t iter;
+        memset(&iter, 0, sizeof(iter));
+
+        log_entry_t entry;
+        ham_u8_t *data;
+        int found_txn_begin =0;
+        int found_txn_commit=0;
+        int found_checkpoint=0;
+
+        for (int i=24; i>=0; i++) {
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_log_get_entry(log, &iter, &entry, &data));
+
+            if (log_entry_get_lsn(&entry)==0)
+                break;
+
+            if (LOG_ENTRY_TYPE_TXN_BEGIN==log_entry_get_type(&entry)) {
+                CPPUNIT_ASSERT_EQUAL((ham_u64_t)11-found_txn_begin, 
+                                log_entry_get_txn_id(&entry));
+                CPPUNIT_ASSERT_EQUAL((ham_u8_t *)0, data);
+                found_txn_begin++;
+            }
+            else if (LOG_ENTRY_TYPE_TXN_COMMIT==log_entry_get_type(&entry)) {
+                CPPUNIT_ASSERT_EQUAL((ham_u64_t)11-found_txn_commit, 
+                                log_entry_get_txn_id(&entry));
+                found_txn_commit++;
+            }
+            else if (LOG_ENTRY_TYPE_CHECKPOINT==log_entry_get_type(&entry)) {
+                found_checkpoint++;
+            }
+            else
+                CPPUNIT_ASSERT(!"unknown log_entry_type");
+        }
+        CPPUNIT_ASSERT_EQUAL(6, found_txn_begin);
+        CPPUNIT_ASSERT_EQUAL(6, found_txn_commit);
+        CPPUNIT_ASSERT_EQUAL(1, found_checkpoint);
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_get_entry(log, &iter, &entry, &data));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0, log_entry_get_lsn(&entry));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
+    }
+
+    void iterateOverLogMultipleEntryWithDataTest(void)
+    {
+        ham_txn_t txn;
+        ham_u8_t buffer[20];
+        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+
+        for (int i=0; i<5; i++) {
+            memset(buffer, (char)i, sizeof(buffer));
+            CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
+            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
+            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_write(log, buffer, i));
+            CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
+        log=ham_log_open(m_db, ".test", 0);
+        CPPUNIT_ASSERT(log!=0);
+
+        log_iterator_t iter;
+        memset(&iter, 0, sizeof(iter));
+
+        log_entry_t entry;
+        ham_u8_t *data;
+
+        int writes=4;
+
+        while (1) {
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_log_get_entry(log, &iter, &entry, &data));
+            if (log_entry_get_lsn(&entry)==0)
+                break;
+
+            if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_WRITE) {
+                ham_u8_t cmp[20];
+                memset(cmp, (char)writes, sizeof(cmp));
+                CPPUNIT_ASSERT_EQUAL((ham_u64_t)writes, 
+                        log_entry_get_data_size(&entry));
+                CPPUNIT_ASSERT_EQUAL(0, memcmp(data, cmp, 
+                        (int)log_entry_get_data_size(&entry)));
+                writes--;
+            }
+
+            if (data)
+                ham_mem_free(m_db, data);
+        }
+
+        CPPUNIT_ASSERT_EQUAL(-1, writes);
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
+    }
+    
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(LogTest);

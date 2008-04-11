@@ -189,7 +189,8 @@ ham_log_open(ham_db_t *db, const char *dbpath, ham_u32_t flags)
         }
 
         if (size>=sizeof(entry)) {
-            st=os_pread(log_get_fd(log, i), 0, &entry, sizeof(entry));
+            st=os_pread(log_get_fd(log, i), size-sizeof(log_entry_t), 
+                            &entry, sizeof(entry));
             if (st) {
                 (void)ham_log_close(log, HAM_FALSE);
                 db_set_error(db, st);
@@ -201,10 +202,11 @@ ham_log_open(ham_db_t *db, const char *dbpath, ham_u32_t flags)
             lsn[i]=0;
     }
 
-    if (lsn[1]>lsn[0]) {
+    if (lsn[1]<lsn[0]) {
         ham_fd_t temp=log_get_fd(log, 0);
         log_set_fd(log, 0, log_get_fd(log, 1));
         log_set_fd(log, 1, temp);
+        log_set_current_fd(log, 1);
     }
 
     return (log);
@@ -253,8 +255,6 @@ ham_log_append_txn_begin(ham_log_t *log, ham_txn_t *txn)
     int other=cur ? 0 : 1;
 
     memset(&entry, 0, sizeof(entry));
-    log_entry_set_lsn(&entry, log_get_lsn(log));
-    log_set_lsn(log, log_get_lsn(log)+1);
     log_entry_set_prev_lsn(&entry, txn_get_last_lsn(txn));
     log_entry_set_txn_id(&entry, txn_get_id(txn));
     log_entry_set_type(&entry, LOG_ENTRY_TYPE_TXN_BEGIN);
@@ -278,13 +278,13 @@ ham_log_append_txn_begin(ham_log_t *log, ham_txn_t *txn)
         st=my_insert_checkpoint(log);
         if (st)
             return (db_set_error(log_get_db(log), st));
-        /* now clear the first file */
-        st=my_log_clear_file(log, cur);
+        /* now clear the other file */
+        st=my_log_clear_file(log, other);
         if (st)
             return (db_set_error(log_get_db(log), st));
         /* continue writing to the other file */
-        log_set_current_file(log, other);
         cur=other;
+        log_set_current_file(log, cur);
         txn_set_log_desc(txn, cur);
     }
     /*
@@ -294,6 +294,13 @@ ham_log_append_txn_begin(ham_log_t *log, ham_txn_t *txn)
     else {
         txn_set_log_desc(txn, cur);
     }
+
+    /*
+     * now set the lsn (it might have been modified in 
+     * my_insert_checkpoint())
+     */
+    log_entry_set_lsn(&entry, log_get_lsn(log));
+    log_set_lsn(log, log_get_lsn(log)+1);
 
     st=ham_log_append_entry(log, cur, &entry, sizeof(entry));
     if (st)
