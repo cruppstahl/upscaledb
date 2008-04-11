@@ -62,6 +62,29 @@ typedef struct free_cb_context_t
 
 } free_cb_context_t;
 
+static ham_bool_t
+my_check_recovery_flags(ham_u32_t flags)
+{
+    if (flags&HAM_ENABLE_RECOVERY) {
+        if (flags&HAM_IN_MEMORY_DB) {
+            ham_trace(("combination of HAM_ENABLE_RECOVERY and "
+                       "HAM_IN_MEMORY_DB not allowed"));
+            return (HAM_FALSE);
+        }
+        if (flags&HAM_WRITE_THROUGH) {
+            ham_trace(("combination of HAM_ENABLE_RECOVERY and "
+                       "HAM_WRITE_THROUGH not allowed"));
+            return (HAM_FALSE);
+        }
+        if (flags&HAM_DISABLE_FREELIST_FLUSH) {
+            ham_trace(("combination of HAM_ENABLE_RECOVERY and "
+                       "HAM_DISABLE_FREELIST_FLUSH not allowed"));
+            return (HAM_FALSE);
+        }
+    }
+    return (HAM_TRUE);
+}
+
 /*
  * callback function for freeing blobs of an in-memory-database
  */
@@ -361,6 +384,12 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
         ham_trace(("cannot create a file in read-only mode"));
         return (HAM_INV_PARAMETER);
     }
+
+    /*
+     * don't allow recovery in combination with some other flags
+     */
+    if (!my_check_recovery_flags(*flags))
+        return (HAM_INV_PARAMETER);
 
     /*
      * in-memory-db? don't allow cache limits!
@@ -783,17 +812,17 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
         return (HAM_INV_PARAMETER);
     }
 
-    /* 
-     * cannot open an in-memory-db 
-     */
+    /* cannot open an in-memory-db */
     if (flags&HAM_IN_MEMORY_DB) {
         ham_trace(("cannot open an in-memory database"));
         return (HAM_INV_PARAMETER);
     }
 
-    /* 
-     * parse parameters
-     */
+    /* don't allow recovery in combination with some other flags */
+    if (!my_check_recovery_flags(flags))
+        return (HAM_INV_PARAMETER);
+
+    /* parse parameters */
     if (param) {
         for (; param->name; param++) {
             switch (param->name) {
@@ -1354,6 +1383,9 @@ ham_open_ex(ham_db_t *db, const char *filename,
                     "creating a database"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+    /* don't allow recovery in combination with some other flags */
+    if (!my_check_recovery_flags(flags))
+        return (HAM_INV_PARAMETER);
 
     /* parse parameters */
     if (param) {
@@ -1575,6 +1607,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
             ("invalid persistent database flags 0x%x", be_get_flags(backend)));
     ham_assert(!(be_get_flags(backend)&HAM_DISABLE_FREELIST_FLUSH), 
             ("invalid persistent database flags 0x%x", be_get_flags(backend)));
+    ham_assert(!(be_get_flags(backend)&HAM_ENABLE_RECOVERY), 
+            ("invalid persistent database flags 0x%x", be_get_flags(backend)));
     ham_assert(!(be_get_flags(backend)&DB_USE_MMAP), 
             ("invalid persistent database flags 0x%x", be_get_flags(backend)));
 
@@ -1637,7 +1671,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
 
     db_set_error(db, 0);
 
-
     /*
      * check (and modify) the parameters
      */
@@ -1691,6 +1724,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     pflags&=~HAM_WRITE_THROUGH;
     pflags&=~HAM_READ_ONLY;
     pflags&=~HAM_DISABLE_FREELIST_FLUSH;
+    pflags&=~HAM_ENABLE_RECOVERY;
     pflags&=~DB_USE_MMAP;
     db_set_rt_flags(db, flags);
 

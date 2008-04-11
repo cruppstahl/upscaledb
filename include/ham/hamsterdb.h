@@ -406,6 +406,9 @@ ham_env_create(ham_env_t *env, const char *filename,
  *       <li>@a HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
  *            a given file at a given time. 
+ *       <li>@a HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
+ *            Database. Not allowed in combination with @a HAM_IN_MEMORY_DB,
+ *            @a HAM_DISABLE_FREELIST_FLUSH and @a HAM_WRITE_THROUGH.
  *      </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
@@ -495,6 +498,9 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *       <li>@a HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
  *            a given file at a given time.
+ *       <li>@a HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
+ *            Database. Not allowed in combination with @a HAM_IN_MEMORY_DB,
+ *            @a HAM_DISABLE_FREELIST_FLUSH and @a HAM_WRITE_THROUGH.
  *      </ul>
  * @param param An array of ham_parameter_t structures. The following
  *        parameters are available:
@@ -854,6 +860,9 @@ ham_create(ham_db_t *db, const char *filename,
  *       <li>@a HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
  *            a given file at a given time.
+ *       <li>@a HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
+ *            Database. Not allowed in combination with @a HAM_IN_MEMORY_DB,
+ *            @a HAM_DISABLE_FREELIST_FLUSH and @a HAM_WRITE_THROUGH.
  *      </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
@@ -945,6 +954,9 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *       <li>@a HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
  *            a given file at a given time.
+ *       <li>@a HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
+ *            Database. Not allowed in combination with @a HAM_IN_MEMORY_DB,
+ *            @a HAM_DISABLE_FREELIST_FLUSH and @a HAM_WRITE_THROUGH.
  *      </ul>
  *
  * @param param An array of ham_parameter_t structures. The following
@@ -1007,6 +1019,9 @@ ham_open_ex(ham_db_t *db, const char *filename,
 
 /** Flag for @a ham_create, @a ham_create_ex */
 #define HAM_ENABLE_DUPLICATES        0x00004000
+
+/** Flag for @a ham_create_ex, @a ham_env_create_ex */
+#define HAM_ENABLE_RECOVERY          0x00008000
 
 /** Parameter name for @a ham_open_ex, @a ham_create_ex; sets the cache
  * size */

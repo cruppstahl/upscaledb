@@ -90,6 +90,10 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (callocTest);
     CPPUNIT_TEST      (strerrorTest);
     CPPUNIT_TEST      (contextDataTest);
+    CPPUNIT_TEST      (recoveryTest);
+    CPPUNIT_TEST      (recoveryNegativeTest);
+    CPPUNIT_TEST      (recoveryEnvTest);
+    CPPUNIT_TEST      (recoveryEnvNegativeTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -811,6 +815,57 @@ public:
         CPPUNIT_ASSERT_EQUAL((void *)0x13, ham_get_context_data(m_db));
         ham_set_context_data(m_db, 0);
         CPPUNIT_ASSERT_EQUAL((void *)0, ham_get_context_data(m_db));
+    }
+
+    void recoveryTest() {
+        ham_db_t *olddb=m_db;
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", 
+                                HAM_ENABLE_RECOVERY, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(m_db));
+        m_db=olddb;
+    }
+
+    void recoveryNegativeTest() {
+        ham_db_t *olddb=m_db;
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_create(m_db, ".test", 
+                        HAM_ENABLE_RECOVERY|HAM_IN_MEMORY_DB, 0664));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_create(m_db, ".test", 
+                        HAM_ENABLE_RECOVERY|HAM_WRITE_THROUGH, 0664));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_create(m_db, ".test", 
+                        HAM_ENABLE_RECOVERY|HAM_DISABLE_FREELIST_FLUSH, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(m_db));
+        m_db=olddb;
+    }
+
+    void recoveryEnvTest() {
+        ham_env_t *env;
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create(env, ".test", HAM_ENABLE_RECOVERY, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void recoveryEnvNegativeTest() {
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_env_create(env, ".test", 
+                        HAM_ENABLE_RECOVERY|HAM_IN_MEMORY_DB, 0664));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_env_create(env, ".test", 
+                        HAM_ENABLE_RECOVERY|HAM_WRITE_THROUGH, 0664));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_env_create(env, ".test", 
+                        HAM_ENABLE_RECOVERY|HAM_DISABLE_FREELIST_FLUSH, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
 };
