@@ -114,7 +114,7 @@ ham_log_create(ham_db_t *db, const char *dbpath,
     for (i=0; i<2; i++) {
         st=os_write(log_get_fd(log, i), &header, sizeof(header));
         if (st) {
-            (void)ham_log_close(log);
+            (void)ham_log_close(log, HAM_FALSE);
             db_set_error(db, st);
             return (0);
         }
@@ -164,13 +164,13 @@ ham_log_open(ham_db_t *db, const char *dbpath, ham_u32_t flags)
     for (i=0; i<2; i++) {
         st=os_pread(log_get_fd(log, i), 0, &header, sizeof(header));
         if (st) {
-            (void)ham_log_close(log);
+            (void)ham_log_close(log, HAM_FALSE);
             db_set_error(db, st);
             return (0);
         }
         if (log_header_get_magic(&header)!=HAM_LOG_HEADER_MAGIC) {
             ham_trace(("logfile has unknown magic or is corrupt"));
-            (void)ham_log_close(log);
+            (void)ham_log_close(log, HAM_FALSE);
             db_set_error(db, HAM_LOG_INV_FILE_HEADER);
             return (0);
         }
@@ -183,7 +183,7 @@ ham_log_open(ham_db_t *db, const char *dbpath, ham_u32_t flags)
         ham_offset_t size;
         st=os_get_filesize(log_get_fd(log, i), &size);
         if (st) {
-            (void)ham_log_close(log);
+            (void)ham_log_close(log, HAM_FALSE);
             db_set_error(db, st);
             return (0);
         }
@@ -191,7 +191,7 @@ ham_log_open(ham_db_t *db, const char *dbpath, ham_u32_t flags)
         if (size>=sizeof(entry)) {
             st=os_pread(log_get_fd(log, i), 0, &entry, sizeof(entry));
             if (st) {
-                (void)ham_log_close(log);
+                (void)ham_log_close(log, HAM_FALSE);
                 db_set_error(db, st);
                 return (0);
             }
@@ -532,7 +532,7 @@ ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
     /*
      * now read the entry-header from the file
      */
-    iter->_offset-=sizeof(log_header_t);
+    iter->_offset-=sizeof(log_entry_t);
 
     st=os_pread(log_get_fd(log, iter->_fdidx), iter->_offset, 
                     entry, sizeof(*entry));
@@ -568,14 +568,16 @@ ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
 }
 
 ham_status_t
-ham_log_close(ham_log_t *log)
+ham_log_close(ham_log_t *log, ham_bool_t noclear)
 {
     ham_status_t st; 
     int i;
 
-    st=ham_log_clear(log);
-    if (st)
-        return (db_set_error(log_get_db(log), st));
+    if (!noclear) {
+        st=ham_log_clear(log);
+        if (st)
+            return (db_set_error(log_get_db(log), st));
+    }
 
     for (i=0; i<2; i++) {
         if (log_get_fd(log, i)!=HAM_INVALID_FD) {

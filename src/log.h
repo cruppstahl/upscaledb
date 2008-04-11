@@ -321,7 +321,7 @@ ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
  * closes the log, frees all allocated resources
  */
 extern ham_status_t
-ham_log_close(ham_log_t *log);
+ham_log_close(ham_log_t *log, ham_bool_t noclear);
 
 
 #ifdef __cplusplus
