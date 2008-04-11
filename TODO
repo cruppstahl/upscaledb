@@ -79,6 +79,7 @@ o recovery/journalling
                 x unittests
 
         o add log-entries to all operations
+            o need an idea how to test these!
             o ham_txn_*
             o btree.c: my_fun_create
             o btree.c: my_fun_flush
