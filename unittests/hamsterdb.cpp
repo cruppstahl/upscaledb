@@ -854,6 +854,7 @@ public:
     }
 
     void recoveryEnvNegativeTest() {
+        ham_env_t *env;
         CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_env_create(env, ".test", 
