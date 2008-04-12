@@ -22,7 +22,7 @@ o recovery/journalling
     x write roadmap
     o implement
         x identify code which needs logging
-        o write logging module - with full unittest coverage!
+        x write logging module - with full unittest coverage!
             x when deleting logfiles: truncate to sizeof(header)!
             x txn must track the logfile it is writing to
                 -> decide in txn_begin
@@ -58,7 +58,7 @@ o recovery/journalling
             x iterate backwards over the two file(s) - needs changes in
                 the file format; the header of an entry must be stored
                 AFTER the entry itself
-                o test with multiple entries
+                x test with multiple entries
                     x with empty log
                     x with just one entry
                     x with multiple entries
@@ -80,7 +80,18 @@ o recovery/journalling
 
         o add log-entries to all operations
             o need an idea how to test these!
-            o ham_txn_*
+                o need a (undocumented) flag for ham_close which does not 
+                    delete the logfile on close (ham_log_close(log, TRUE))
+                o each unittest creates a vector<log_entry_t> with the
+                    expected logfile entries
+                o it then executes the database commands
+                o and then compares the logfile with the vector
+            o ham_txn_begin
+                o unittest
+            o ham_txn_abort
+                o unittest
+            o ham_txn_commit
+                o unittest
             o btree.c: my_fun_create
             o btree.c: my_fun_flush
             o see /home/chris/prj/hamsterdb-meta/recovery.txt for further 
