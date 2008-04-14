@@ -22,6 +22,7 @@
 #include "mem.h"
 #include "env.h"
 #include "db.h"
+#include "log.h"
 #include "page.h"
 #include "version.h"
 #include "txn.h"
@@ -35,6 +36,7 @@
 #include "keys.h"
 #include "btree.h"
 #include "serial.h"
+#include "log.h"
 
 #ifndef HAM_DISABLE_ENCRYPTION
 #  include "../3rdparty/aes/aes.h"
@@ -632,6 +634,14 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     env_set_keysize(env, keysize);
     env_set_cachesize(env, cachesize);
     env_set_max_databases(env, maxdbs);
+    env_set_file_mode(env, mode);
+    env_set_filename(env, 
+                allocator_alloc(env_get_allocator(env), strlen(filename)+1));
+    if (!env_get_filename(env)) {
+        (void)ham_env_close(env, 0);
+        return (HAM_OUT_OF_MEMORY);
+    }
+    strcpy((char *)env_get_filename(env), filename);
 
     return (HAM_SUCCESS);
 }
@@ -710,6 +720,23 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
     }
 
     /*
+     * create a logging object, if logging is enabled and if it was not
+     * yet created
+     */
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
+            && env_get_log(env)==0) {
+        ham_log_t *log;
+        st=ham_log_create(env_get_allocator(env), 
+                        env_get_filename(env), 
+                        env_get_file_mode(env), 0, &log);
+        if (st) {
+            (void)ham_close(db, 0);
+            return (st);
+        }
+        env_set_log(env, log);
+    }
+
+    /*
      * on success: store the open database in the environment's list of
      * opened databases
      */
@@ -782,6 +809,23 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
         st=HAM_DATABASE_NOT_FOUND;
     if (st)
         return (st);
+
+    /*
+     * create a logging object, if logging is enabled and if it was not
+     * yet created
+     */
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
+            && env_get_log(env)==0) {
+        ham_log_t *log;
+        st=ham_log_create(env_get_allocator(env), 
+                        env_get_filename(env), 
+                        env_get_file_mode(env), 0, &log);
+        if (st) {
+            (void)ham_close(db, 0);
+            return (st);
+        }
+        env_set_log(env, log);
+    }
 
     /*
      * on success: store the open database in the environment's list of
@@ -873,6 +917,14 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
     env_set_cachesize(env, cachesize);
     env_set_rt_flags(env, flags);
     env_set_max_databases(env, maxdbs);
+    env_set_file_mode(env, 0644);
+    env_set_filename(env, 
+                allocator_alloc(env_get_allocator(env), strlen(filename)+1));
+    if (!env_get_filename(env)) {
+        (void)ham_env_close(env, 0);
+        return (HAM_OUT_OF_MEMORY);
+    }
+    strcpy((char *)env_get_filename(env), filename);
 
     return (HAM_SUCCESS);
 }
@@ -1291,8 +1343,25 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     }
     env_set_file_filter(env, 0);
 
+    /*
+     * close the log
+     */
+    if (env_get_log(env)) {
+        (void)ham_log_close(env_get_log(env), (flags&HAM_DONT_CLEAR_LOG));
+        env_set_log(env, 0);
+    }
+
+    /*
+     * close everything else
+     */
+    if (env_get_filename(env)) {
+        allocator_free(env_get_allocator(env), 
+                        (ham_u8_t *)env_get_filename(env));
+        env_get_filename(env)=0;
+    }
+
     /* 
-     * close the memory allocator 
+     * finally, close the memory allocator 
      */
     if (env_get_allocator(env)) {
         env_get_allocator(env)->close(env_get_allocator(env));
@@ -1713,6 +1782,19 @@ ham_create_ex(ham_db_t *db, const char *filename,
     }
     else
         device=db_get_device(db);
+
+    /*
+     * create a logging object, if logging is enabled
+     */
+    if (flags&HAM_ENABLE_RECOVERY) {
+        ham_log_t *log;
+        st=ham_log_create(db_get_allocator(db), filename, mode, 0, &log);
+        if (st) {
+            (void)ham_close(db, 0);
+            return (db_set_error(db, st));
+        }
+        db_set_log(db, log);
+    }
 
     /*
      * set the flags
@@ -2849,6 +2931,14 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         record_head=next;
     }
     db_set_record_filter(db, 0);
+
+    /*
+     * if we're not in an environment: close the log
+     */
+    if (!db_get_env(db) && db_get_log(db)) {
+        (void)ham_log_close(db_get_log(db), (flags&HAM_DONT_CLEAR_LOG));
+        db_set_log(db, 0);
+    }
 
     /*
      * remove this database from the environment

@@ -29,6 +29,7 @@ extern "C" {
 #include "extkeys.h"
 #include "error.h"
 #include "txn.h"
+#include "log.h"
 #include "mem.h"
 #include "device.h"
 #include "env.h"
@@ -184,6 +185,20 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
                                      else (db)->_txn=txn; } while(0)
 
 /*
+ * get the logging object
+ */
+#define db_get_log(db)             (db_get_env(db)                            \
+                                   ? env_get_log(db_get_env(db))              \
+                                   : (db)->_log)
+
+/*
+ * set the logging object
+ */
+#define db_set_log(db, log)        do { if (db_get_env(db))                   \
+                                     env_set_log(db_get_env(db), log);        \
+                                     else (db)->_log=log; } while(0)
+
+/*
  * get the cache for extended keys
  */
 #define db_get_extkey_cache(db)    (db_get_env(db)                            \
@@ -254,6 +269,9 @@ struct ham_db_t
 
     /* the active txn */
     ham_txn_t *_txn;
+
+    /* the log object */
+    ham_log_t *_log;
 
     /* the cache for extended keys */
     extkey_cache_t *_extkey_cache;

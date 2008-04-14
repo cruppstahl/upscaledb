@@ -27,7 +27,7 @@ struct ham_page_t;
 /**
  * a dummy transaction structure
  */
-typedef struct 
+struct ham_txn_t
 {
     /**
      * the id of this txn
@@ -54,7 +54,9 @@ typedef struct
      */
     struct ham_page_t *_pagelist;
 
-} ham_txn_t;
+};
+
+typedef struct ham_txn_t ham_txn_t;
 
 /**
  * get the id

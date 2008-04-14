@@ -1345,6 +1345,9 @@ ham_close(ham_db_t *db, ham_u32_t flags);
 /** Flag for @a ham_close, @a ham_env_close */
 #define HAM_AUTO_CLEANUP            1
 
+/* (Internal) flag for @a ham_close, @a ham_env_close */
+#define HAM_DONT_CLEAR_LOG          2
+
 /**
  * @}
  */

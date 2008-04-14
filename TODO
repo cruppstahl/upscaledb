@@ -78,6 +78,39 @@ o recovery/journalling
             x for env-functions (ham_env_create_ex, ham_env_open_ex)
                 x unittests
 
+        x env: must store filename and filemode
+            x filename must be released!
+            x unittests
+
+        x completely decouple log from db or env
+            x need allocator instead of ham_db_t object for creation
+            x fix everything else
+            x fix unittests
+
+        o if log is enabled, create a log object
+            o ham_create_ex
+                x implement
+                o unittest
+            o ham_open_ex
+                o file must be created if it does not (yet) exist
+                o must fail if logfile is not empty (will need recovery!)
+                o unittest
+            o ham_env_create_ex
+                x implement
+                o unittest
+            o ham_env_open_ex
+                o file must be created if it does not (yet) exist
+                o must fail if logfile is not empty (will need recovery!)
+                o unittest
+
+        o if log is enabled, close the log
+            o ham_close
+                x implement
+                o unittest
+            o ham_env_close
+                x implement
+                o unittest
+
         o add log-entries to all operations
             o need an idea how to test these!
                 o need a (undocumented) flag for ham_close which does not 
@@ -85,6 +118,7 @@ o recovery/journalling
                 o each unittest creates a vector<log_entry_t> with the
                     expected logfile entries
                 o it then executes the database commands
+                x and then reads the logfile to a vector
                 o and then compares the logfile with the vector
             o ham_txn_begin
                 o unittest

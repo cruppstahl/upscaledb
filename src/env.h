@@ -26,6 +26,7 @@ extern "C" {
 #include "cache.h"
 #include "extkeys.h"
 #include "freelist.h"
+#include "log.h"
 
 /*
  * need packing for msvc x64bit
@@ -39,6 +40,12 @@ struct ham_env_t
 {
     /* the current transaction ID */
     ham_u64_t _txn_id;
+
+    /* the filename of the environment file */
+    const char *_filename;
+
+    /* the 'mode' parameter of ham_env_create_ex */
+    ham_u32_t _file_mode;
 
     /* the device (either a file or an in-memory-db) */
     ham_device_t *_device;
@@ -54,6 +61,9 @@ struct ham_env_t
 
     /* the active txn */
     ham_txn_t *_txn;
+
+    /* the log object */
+    ham_log_t *_log;
 
     /* the cache for extended keys */
     extkey_cache_t *_extkey_cache;
@@ -92,6 +102,26 @@ struct ham_env_t
  * set the current transaction ID
  */
 #define env_set_txn_id(env, id)          (env)->_txn_id=id
+
+/*
+ * get the filename
+ */
+#define env_get_filename(env)            (env)->_filename
+
+/*
+ * set the filename
+ */
+#define env_set_filename(env, f)         (env)->_filename=f
+
+/*
+ * get the unix file mode
+ */
+#define env_get_file_mode(env)           (env)->_file_mode
+
+/*
+ * set the unix file mode
+ */
+#define env_set_file_mode(env, m)        (env)->_file_mode=m
 
 /*
  * get the device
@@ -142,6 +172,16 @@ struct ham_env_t
  * set the currently active transaction
  */
 #define env_set_txn(env, txn)            (env)->_txn=txn
+
+/*
+ * get the log object
+ */
+#define env_get_log(env)                 (env)->_log
+
+/*
+ * set the log object
+ */
+#define env_set_log(env, log)            (env)->_log=log
 
 /*
  * get the cache for extended keys
