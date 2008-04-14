@@ -21,7 +21,10 @@ extern "C" {
 #endif 
 
 #include <ham/types.h>
-#include "db.h"
+#include "mem.h"
+
+struct ham_txn_t;
+struct ham_page_t;
 
 /**
  * the header structure of a log file
@@ -119,8 +122,8 @@ typedef struct {
  * a Log object
  */
 typedef struct {
-    /* the currently active database object */
-    ham_db_t *_db;
+    /* the allocator object */
+    mem_allocator_t *_alloc;
 
     /* the log flags - unused so far */
     ham_u32_t _flags;
@@ -153,11 +156,11 @@ typedef struct {
 
 } ham_log_t;
 
-/* get the database pointer */
-#define log_get_db(l)                           (l)->_db
+/* get the allocator */
+#define log_get_allocator(l)                    (l)->_alloc
 
-/* set the database pointer */
-#define log_set_db(l, db)                       (l)->_db=db
+/* set the allocator */
+#define log_set_allocator(l, a)                 (l)->_alloc=a
 
 /* get the log flags */
 #define log_get_flags(l)                        (l)->_flags
@@ -218,16 +221,19 @@ typedef struct {
 
 /*
  * this function creates a new ham_log_t object
+ *
+ * the first parameter 'db' can be NULL
  */
-extern ham_log_t *
-ham_log_create(ham_db_t *db, const char *dbpath, 
-        ham_u32_t mode, ham_u32_t flags);
+extern ham_status_t
+ham_log_create(mem_allocator_t *alloc, const char *dbpath, 
+        ham_u32_t mode, ham_u32_t flags, ham_log_t **log);
 
 /*
  * this function opens an existing log
  */
-extern ham_log_t *
-ham_log_open(ham_db_t *db, const char *dbpath, ham_u32_t flags);
+extern ham_status_t
+ham_log_open(mem_allocator_t *_alloc, const char *dbpath, ham_u32_t flags,
+        ham_log_t **log);
 
 /*
  * returns true if the log is empty
@@ -245,19 +251,19 @@ ham_log_append_entry(ham_log_t *log, int fdidx, void *entry, ham_size_t size);
  * append a log entry for LOG_ENTRY_TYPE_TXN_BEGIN
  */
 extern ham_status_t
-ham_log_append_txn_begin(ham_log_t *log, ham_txn_t *txn);
+ham_log_append_txn_begin(ham_log_t *log, struct ham_txn_t *txn);
 
 /*
  * append a log entry for LOG_ENTRY_TYPE_TXN_ABORT
  */
 extern ham_status_t
-ham_log_append_txn_abort(ham_log_t *log, ham_txn_t *txn);
+ham_log_append_txn_abort(ham_log_t *log, struct ham_txn_t *txn);
 
 /*
  * append a log entry for LOG_ENTRY_TYPE_TXN_COMMIT
  */
 extern ham_status_t
-ham_log_append_txn_commit(ham_log_t *log, ham_txn_t *txn);
+ham_log_append_txn_commit(ham_log_t *log, struct ham_txn_t *txn);
 
 /*
  * append a log entry for LOG_ENTRY_TYPE_CHECKPOINT
@@ -269,20 +275,21 @@ ham_log_append_checkpoint(ham_log_t *log);
  * append a log entry for LOG_ENTRY_TYPE_FLUSH_PAGE
  */
 extern ham_status_t
-ham_log_append_flush_page(ham_log_t *log, ham_page_t *page);
+ham_log_append_flush_page(ham_log_t *log, struct ham_page_t *page);
 
 /*
  * append a log entry for LOG_ENTRY_TYPE_WRITE
  */
 extern ham_status_t
-ham_log_append_write(ham_log_t *log, ham_u8_t *data, ham_size_t size);
+ham_log_append_write(ham_log_t *log, ham_txn_t *txn, 
+                ham_u8_t *data, ham_size_t size);
 
 /*
  * append a log entry for LOG_ENTRY_TYPE_OVERWRITE
  */
 extern ham_status_t
-ham_log_append_overwrite(ham_log_t *log, ham_u8_t *old_data, 
-        ham_u8_t *new_data, ham_size_t size);
+ham_log_append_overwrite(ham_log_t *log, ham_txn_t *txn, 
+        ham_u8_t *old_data, ham_u8_t *new_data, ham_size_t size);
 
 /*
  * clears the logfile to zero, removes all entries

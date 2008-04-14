@@ -11,8 +11,10 @@
  */
 
 #include <string.h>
-#include "log.h"
 #include "os.h"
+#include "db.h"
+#include "txn.h"
+#include "log.h"
 
 #define LOG_DEFAULT_THRESHOLD   64
 
@@ -32,14 +34,14 @@ my_log_clear_file(ham_log_t *log, int idx)
 
     st=os_truncate(log_get_fd(log, idx), sizeof(log_header_t));
     if (st)
-        return (db_set_error(log_get_db(log), st));
+        return (st);
 
     /* after truncate, the file pointer is far beyond the new end of file;
      * reset the file pointer, or the next write will resize the file to
      * the original size */
     st=os_seek(log_get_fd(log, idx), sizeof(log_header_t), HAM_OS_SEEK_SET);
     if (st)
-        return (db_set_error(log_get_db(log), st));
+        return (st);
 
     /* clear the transaction counters */
     log_set_open_txn(log, idx, 0);
@@ -49,7 +51,7 @@ my_log_clear_file(ham_log_t *log, int idx)
 }
 
 static ham_status_t
-my_insert_checkpoint(ham_log_t *log)
+my_insert_checkpoint(ham_log_t *log, ham_db_t *db)
 {
     ham_status_t st;
     
@@ -62,7 +64,7 @@ my_insert_checkpoint(ham_log_t *log)
      * for each flush
      */
     log_set_state(log, log_get_state(log)|LOG_STATE_CHECKPOINT);
-    st=ham_flush(log_get_db(log), 0);
+    st=ham_flush(db, 0);
     log_set_state(log, log_get_state(log)&~LOG_STATE_CHECKPOINT);
     if (st)
         return (st);
@@ -70,21 +72,22 @@ my_insert_checkpoint(ham_log_t *log)
     return (ham_log_append_checkpoint(log));
 }
 
-ham_log_t *
-ham_log_create(ham_db_t *db, const char *dbpath, 
-        ham_u32_t mode, ham_u32_t flags)
+ham_status_t
+ham_log_create(mem_allocator_t *alloc, const char *dbpath, 
+        ham_u32_t mode, ham_u32_t flags, ham_log_t **plog)
 {
     int i;
     log_header_t header;
     ham_status_t st;
     char filename[HAM_OS_MAX_PATH];
-    ham_log_t *log=(ham_log_t *)ham_mem_calloc(db, sizeof(ham_log_t));
-    if (!log) {
-        db_set_error(db, HAM_OUT_OF_MEMORY);
-        return (0);
-    }
+    ham_log_t *log=(ham_log_t *)allocator_alloc(alloc, sizeof(ham_log_t));
+    if (!log)
+        return (HAM_OUT_OF_MEMORY);
+    memset(log, 0, sizeof(ham_log_t));
 
-    log_set_db(log, db);
+    *plog=0;
+
+    log_set_allocator(log, alloc);
     log_set_lsn(log, 1);
     log_set_flags(log, flags);
     log_set_threshold(log, LOG_DEFAULT_THRESHOLD);
@@ -93,18 +96,16 @@ ham_log_create(ham_db_t *db, const char *dbpath,
     snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 0);
     st=os_create(filename, 0, mode, &log_get_fd(log, 0));
     if (st) {
-        ham_mem_free(db, log);
-        db_set_error(db, st);
-        return (0);
+        allocator_free(alloc, log);
+        return (st);
     }
 
     snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 1);
     st=os_create(filename, 0, mode, &log_get_fd(log, 1));
     if (st) {
         os_close(log_get_fd(log, 0), 0);
-        ham_mem_free(db, log);
-        db_set_error(db, st);
-        return (0);
+        allocator_free(alloc, log);
+        return (st);
     }
 
     /* write the magic to both files */
@@ -115,16 +116,17 @@ ham_log_create(ham_db_t *db, const char *dbpath,
         st=os_write(log_get_fd(log, i), &header, sizeof(header));
         if (st) {
             (void)ham_log_close(log, HAM_FALSE);
-            db_set_error(db, st);
-            return (0);
+            return (st);
         }
     }
 
-    return (log);
+    *plog=log;
+    return (st);
 }
 
-ham_log_t *
-ham_log_open(ham_db_t *db, const char *dbpath, ham_u32_t flags)
+ham_status_t
+ham_log_open(mem_allocator_t *alloc, const char *dbpath, ham_u32_t flags,
+        ham_log_t **plog)
 {
     int i;
     log_header_t header;
@@ -132,31 +134,30 @@ ham_log_open(ham_db_t *db, const char *dbpath, ham_u32_t flags)
     ham_u64_t lsn[2];
     ham_status_t st;
     char filename[HAM_OS_MAX_PATH];
-    ham_log_t *log=(ham_log_t *)ham_mem_calloc(db, sizeof(ham_log_t));
-    if (!log) {
-        db_set_error(db, HAM_OUT_OF_MEMORY);
-        return (0);
-    }
+    ham_log_t *log=(ham_log_t *)allocator_alloc(alloc, sizeof(ham_log_t));
+    if (!log)
+        return (HAM_OUT_OF_MEMORY);
+    memset(log, 0, sizeof(ham_log_t));
 
-    log_set_db(log, db);
+    *plog=0;
+
+    log_set_allocator(log, alloc);
     log_set_flags(log, flags);
 
     /* open the two files */
     snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 0);
     st=os_open(filename, 0, &log_get_fd(log, 0));
     if (st) {
-        ham_mem_free(db, log);
-        db_set_error(db, st);
-        return (0);
+        allocator_free(alloc, log);
+        return (st);
     }
 
     snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 1);
     st=os_open(filename, 0, &log_get_fd(log, 1));
     if (st) {
         os_close(log_get_fd(log, 0), 0);
-        ham_mem_free(db, log);
-        db_set_error(db, st);
-        return (0);
+        allocator_free(alloc, log);
+        return (st);
     }
 
     /* check the magic in both files */
@@ -165,14 +166,12 @@ ham_log_open(ham_db_t *db, const char *dbpath, ham_u32_t flags)
         st=os_pread(log_get_fd(log, i), 0, &header, sizeof(header));
         if (st) {
             (void)ham_log_close(log, HAM_FALSE);
-            db_set_error(db, st);
-            return (0);
+            return (st);
         }
         if (log_header_get_magic(&header)!=HAM_LOG_HEADER_MAGIC) {
             ham_trace(("logfile has unknown magic or is corrupt"));
             (void)ham_log_close(log, HAM_FALSE);
-            db_set_error(db, HAM_LOG_INV_FILE_HEADER);
-            return (0);
+            return (HAM_LOG_INV_FILE_HEADER);
         }
     }
 
@@ -184,8 +183,7 @@ ham_log_open(ham_db_t *db, const char *dbpath, ham_u32_t flags)
         st=os_get_filesize(log_get_fd(log, i), &size);
         if (st) {
             (void)ham_log_close(log, HAM_FALSE);
-            db_set_error(db, st);
-            return (0);
+            return (st);
         }
 
         if (size>=sizeof(entry)) {
@@ -193,8 +191,7 @@ ham_log_open(ham_db_t *db, const char *dbpath, ham_u32_t flags)
                             &entry, sizeof(entry));
             if (st) {
                 (void)ham_log_close(log, HAM_FALSE);
-                db_set_error(db, st);
-                return (0);
+                return (st);
             }
             lsn[i]=log_entry_get_lsn(&entry);
         }
@@ -209,7 +206,8 @@ ham_log_open(ham_db_t *db, const char *dbpath, ham_u32_t flags)
         log_set_current_fd(log, 1);
     }
 
-    return (log);
+    *plog=log;
+    return (0);
 }
 
 ham_status_t
@@ -240,14 +238,14 @@ ham_log_append_entry(ham_log_t *log, int fdidx, void *entry, ham_size_t size)
    
     st=os_write(log_get_fd(log, fdidx), entry, size);
     if (st)
-        return (db_set_error(log_get_db(log), st));
+        return (st);
 
     st=os_flush(log_get_fd(log, fdidx));
-    return (db_set_error(log_get_db(log), st));
+    return (st);
 }
 
 ham_status_t
-ham_log_append_txn_begin(ham_log_t *log, ham_txn_t *txn)
+ham_log_append_txn_begin(ham_log_t *log, struct ham_txn_t *txn)
 {
     ham_status_t st;
     log_entry_t entry;
@@ -275,13 +273,13 @@ ham_log_append_txn_begin(ham_log_t *log, ham_txn_t *txn)
      */
     else if (log_get_open_txn(log, other)==0) {
         /* checkpoint! */
-        st=my_insert_checkpoint(log);
+        st=my_insert_checkpoint(log, txn_get_db(txn));
         if (st)
-            return (db_set_error(log_get_db(log), st));
+            return (st);
         /* now clear the other file */
         st=my_log_clear_file(log, other);
         if (st)
-            return (db_set_error(log_get_db(log), st));
+            return (st);
         /* continue writing to the other file */
         cur=other;
         log_set_current_file(log, cur);
@@ -304,7 +302,7 @@ ham_log_append_txn_begin(ham_log_t *log, ham_txn_t *txn)
 
     st=ham_log_append_entry(log, cur, &entry, sizeof(entry));
     if (st)
-        return (db_set_error(log_get_db(log), st));
+        return (st);
     log_set_open_txn(log, cur, log_get_open_txn(log, cur)+1);
     txn_set_last_lsn(txn, log_entry_get_lsn(&entry));
 
@@ -317,7 +315,7 @@ ham_log_append_txn_begin(ham_log_t *log, ham_txn_t *txn)
 }
 
 ham_status_t
-ham_log_append_txn_abort(ham_log_t *log, ham_txn_t *txn)
+ham_log_append_txn_abort(ham_log_t *log, struct ham_txn_t *txn)
 {
     int idx;
     ham_status_t st;
@@ -339,14 +337,14 @@ ham_log_append_txn_abort(ham_log_t *log, ham_txn_t *txn)
 
     st=ham_log_append_entry(log, idx, &entry, sizeof(entry));
     if (st)
-        return (db_set_error(log_get_db(log), st));
+        return (st);
     txn_set_last_lsn(txn, log_entry_get_lsn(&entry));
 
     return (0);
 }
 
 ham_status_t
-ham_log_append_txn_commit(ham_log_t *log, ham_txn_t *txn)
+ham_log_append_txn_commit(ham_log_t *log, struct ham_txn_t *txn)
 {
     int idx;
     ham_status_t st;
@@ -368,7 +366,7 @@ ham_log_append_txn_commit(ham_log_t *log, ham_txn_t *txn)
 
     st=ham_log_append_entry(log, idx, &entry, sizeof(entry));
     if (st)
-        return (db_set_error(log_get_db(log), st));
+        return (st);
     txn_set_last_lsn(txn, log_entry_get_lsn(&entry));
 
     return (0);
@@ -389,13 +387,13 @@ ham_log_append_checkpoint(ham_log_t *log)
     st=ham_log_append_entry(log, log_get_current_fd(log), 
             &entry, sizeof(entry));
     if (st)
-        return (db_set_error(log_get_db(log), st));
+        return (st);
 
     return (0);
 }
 
 ham_status_t
-ham_log_append_flush_page(ham_log_t *log, ham_page_t *page)
+ham_log_append_flush_page(ham_log_t *log, struct ham_page_t *page)
 {
     ham_status_t st;
     ham_u8_t buffer[sizeof(ham_offset_t)+sizeof(log_entry_t)];
@@ -415,25 +413,27 @@ ham_log_append_flush_page(ham_log_t *log, ham_page_t *page)
     log_entry_set_type(entry, LOG_ENTRY_TYPE_FLUSH_PAGE);
     log_entry_set_data_size(entry, sizeof(ham_offset_t));
 
-    st=ham_log_append_entry(log, txn_get_log_desc(db_get_txn(log_get_db(log))), 
+    st=ham_log_append_entry(log, 
+            txn_get_log_desc(db_get_txn(page_get_owner(page))), 
             &buffer[0], sizeof(buffer));
     if (st)
-        return (db_set_error(log_get_db(log), st));
+        return (st);
 
     return (0);
 }
 
 ham_status_t
-ham_log_append_write(ham_log_t *log, ham_u8_t *data, ham_size_t size)
+ham_log_append_write(ham_log_t *log, ham_txn_t *txn, 
+                ham_u8_t *data, ham_size_t size)
 {
     ham_status_t st;
     ham_size_t alloc_size=my_get_alligned_entry_size(size);
     log_entry_t *entry;
     ham_u8_t *alloc_buf;
     
-    alloc_buf=ham_mem_alloc(log_get_db(log), alloc_size);
+    alloc_buf=allocator_alloc(log_get_allocator(log), alloc_size);
     if (!alloc_buf)
-        return (db_set_error(log_get_db(log), HAM_OUT_OF_MEMORY));
+        return (HAM_OUT_OF_MEMORY);
 
     entry=(log_entry_t *)(alloc_buf+alloc_size-sizeof(log_entry_t));
 
@@ -444,17 +444,16 @@ ham_log_append_write(ham_log_t *log, ham_u8_t *data, ham_size_t size)
     log_entry_set_data_size(entry, size);
     memcpy(alloc_buf, data, size);
 
-    st=ham_log_append_entry(log, txn_get_log_desc(db_get_txn(log_get_db(log))), 
-            alloc_buf, alloc_size);
-    ham_mem_free(log_get_db(log), alloc_buf);
+    st=ham_log_append_entry(log, txn_get_log_desc(txn), alloc_buf, alloc_size);
+    allocator_free(log_get_allocator(log), alloc_buf);
     if (st)
-        return (db_set_error(log_get_db(log), st));
+        return (st);
 
     return (0);
 }
 
 ham_status_t
-ham_log_append_overwrite(ham_log_t *log, ham_u8_t *old_data, 
+ham_log_append_overwrite(ham_log_t *log, ham_txn_t *txn, ham_u8_t *old_data, 
         ham_u8_t *new_data, ham_size_t size)
 {
     ham_status_t st;
@@ -462,9 +461,9 @@ ham_log_append_overwrite(ham_log_t *log, ham_u8_t *old_data,
     log_entry_t *entry;
     ham_u8_t *alloc_buf;
     
-    alloc_buf=ham_mem_alloc(log_get_db(log), alloc_size);
+    alloc_buf=allocator_alloc(log_get_allocator(log), alloc_size);
     if (!alloc_buf)
-        return (db_set_error(log_get_db(log), HAM_OUT_OF_MEMORY));
+        return (HAM_OUT_OF_MEMORY);
 
     entry=(log_entry_t *)(alloc_buf+alloc_size-sizeof(log_entry_t));
 
@@ -476,11 +475,10 @@ ham_log_append_overwrite(ham_log_t *log, ham_u8_t *old_data,
     memcpy(alloc_buf, old_data, size);
     memcpy(alloc_buf+size, new_data, size);
 
-    st=ham_log_append_entry(log, txn_get_log_desc(db_get_txn(log_get_db(log))), 
-            alloc_buf, alloc_size);
-    ham_mem_free(log_get_db(log), alloc_buf);
+    st=ham_log_append_entry(log, txn_get_log_desc(txn), alloc_buf, alloc_size);
+    allocator_free(log_get_allocator(log), alloc_buf);
     if (st)
-        return (db_set_error(log_get_db(log), st));
+        return (st);
 
     return (0);
 }
@@ -493,7 +491,7 @@ ham_log_clear(ham_log_t *log)
 
     for (i=0; i<2; i++) {
         if ((st=my_log_clear_file(log, i)))
-            return (db_set_error(log_get_db(log), st));
+            return (st);
     }
 
     return (0);
@@ -544,7 +542,7 @@ ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
     st=os_pread(log_get_fd(log, iter->_fdidx), iter->_offset, 
                     entry, sizeof(*entry));
     if (st)
-        return (db_set_error(log_get_db(log), st));
+        return (st);
 
     /*
      * now read the data
@@ -554,16 +552,17 @@ ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
         if (pos%8!=0)
             pos=(pos/8)*8;
 
-        *data=ham_mem_alloc(log_get_db(log), log_entry_get_data_size(entry));
+        *data=allocator_alloc(log_get_allocator(log), 
+                        log_entry_get_data_size(entry));
         if (!*data)
-            return (db_set_error(log_get_db(log), HAM_OUT_OF_MEMORY));
+            return (HAM_OUT_OF_MEMORY);
 
         st=os_pread(log_get_fd(log, iter->_fdidx), pos, *data, 
                     log_entry_get_data_size(entry));
         if (st) {
-            ham_mem_free(log_get_db(log), *data);
+            allocator_free(log_get_allocator(log), *data);
             *data=0;
-            return (db_set_error(log_get_db(log), st));
+            return (st);
         }
 
         iter->_offset=pos;
@@ -583,18 +582,18 @@ ham_log_close(ham_log_t *log, ham_bool_t noclear)
     if (!noclear) {
         st=ham_log_clear(log);
         if (st)
-            return (db_set_error(log_get_db(log), st));
+            return (st);
     }
 
     for (i=0; i<2; i++) {
         if (log_get_fd(log, i)!=HAM_INVALID_FD) {
             if ((st=os_close(log_get_fd(log, i), 0)))
-                return (db_set_error(log_get_db(log), st));
+                return (st);
             log_set_fd(log, i, HAM_INVALID_FD);
         }
     }
 
-    ham_mem_free(log_get_db(log), log);
+    allocator_free(log_get_allocator(log), log);
     return (0);
 }
 

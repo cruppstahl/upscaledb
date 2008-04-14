@@ -12,10 +12,10 @@
 #include <stdexcept>
 #include <cppunit/extensions/HelperMacros.h>
 #include <ham/hamsterdb.h>
-#include "../src/db.h"
 #include "../src/txn.h"
 #include "../src/log.h"
 #include "../src/os.h"
+#include "../src/db.h"
 #include "memtracker.h"
 #include "os.hpp"
 
@@ -105,8 +105,9 @@ public:
     {
         ham_log_t log;
 
-        log_set_db(&log, m_db);
-        CPPUNIT_ASSERT_EQUAL(m_db, log_get_db(&log));
+        log_set_allocator(&log, (mem_allocator_t *)m_alloc);
+        CPPUNIT_ASSERT_EQUAL((mem_allocator_t *)m_alloc, 
+                        log_get_allocator(&log));
 
         log_set_flags(&log, 0x13);
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)0x13, log_get_flags(&log));
@@ -141,10 +142,12 @@ public:
     void createCloseTest(void)
     {
         ham_bool_t isempty;
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
         CPPUNIT_ASSERT(log!=0);
 
-        CPPUNIT_ASSERT_EQUAL(m_db, log_get_db(log));
         CPPUNIT_ASSERT_EQUAL(0u, log_get_flags(log));
         CPPUNIT_ASSERT_EQUAL((ham_offset_t)1, log_get_lsn(log));
         /* TODO make sure that the two files exist and 
@@ -159,13 +162,17 @@ public:
     void createCloseOpenCloseTest(void)
     {
         ham_bool_t isempty;
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
         CPPUNIT_ASSERT(log!=0);
         CPPUNIT_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         CPPUNIT_ASSERT_EQUAL(1, isempty);
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
 
-        log=ham_log_open(m_db, ".test", 0);
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_open((mem_allocator_t *)m_alloc, ".test", 0, &log));
         CPPUNIT_ASSERT(log!=0);
         CPPUNIT_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         CPPUNIT_ASSERT_EQUAL(1, isempty);
@@ -174,26 +181,32 @@ public:
 
     void negativeCreateTest(void)
     {
-        ham_log_t *log=ham_log_create(m_db, "/::asdf", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        "/::asdf", 0644, 0, &log));
         CPPUNIT_ASSERT_EQUAL((ham_log_t *)0, log);
-        CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, ham_get_error(m_db));
     }
 
     void negativeOpenTest(void)
     {
-        ham_log_t *log=ham_log_open(m_db, "xxx$$test", 0);
-        CPPUNIT_ASSERT_EQUAL((ham_log_t *)0, log);
-        CPPUNIT_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, ham_get_error(m_db));
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, 
+                ham_log_open((mem_allocator_t *)m_alloc, 
+                        "xxx$$test", 0, &log));
 
-        log=ham_log_open(m_db, "data/log-broken-magic", 0);
-        CPPUNIT_ASSERT_EQUAL((ham_log_t *)0, log);
-        CPPUNIT_ASSERT_EQUAL(HAM_LOG_INV_FILE_HEADER, ham_get_error(m_db));
+        CPPUNIT_ASSERT_EQUAL(HAM_LOG_INV_FILE_HEADER, 
+                ham_log_open((mem_allocator_t *)m_alloc, 
+                        "data/log-broken-magic", 0, &log));
     }
 
     void appendTxnBeginTest(void)
     {
         ham_bool_t isempty;
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         CPPUNIT_ASSERT_EQUAL(1, isempty);
 
@@ -223,7 +236,10 @@ public:
     void appendTxnAbortTest(void)
     {
         ham_bool_t isempty;
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         CPPUNIT_ASSERT_EQUAL(1, isempty);
 
@@ -256,7 +272,10 @@ public:
     void appendTxnCommitTest(void)
     {
         ham_bool_t isempty;
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         CPPUNIT_ASSERT_EQUAL(1, isempty);
 
@@ -288,7 +307,10 @@ public:
 
     void appendCheckpointTest(void)
     {
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
         ham_txn_t txn;
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
 
@@ -301,7 +323,10 @@ public:
 
     void appendFlushPageTest(void)
     {
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
         ham_txn_t txn;
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
         ham_page_t *page;
@@ -319,7 +344,10 @@ public:
 
     void appendWriteTest(void)
     {
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
         ham_txn_t txn;
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
 
@@ -327,7 +355,8 @@ public:
         for (int i=0; i<100; i++)
             data[i]=(ham_u8_t)i;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_log_append_write(log, data, sizeof(data)));
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_append_write(log, &txn, 
+                                data, sizeof(data)));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
@@ -336,7 +365,10 @@ public:
 
     void appendOverwriteTest(void)
     {
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
         ham_txn_t txn;
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
 
@@ -346,7 +378,7 @@ public:
             new_data[i]=(ham_u8_t)i+1;
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_log_append_overwrite(log, 
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_append_overwrite(log, &txn, 
                     old_data, new_data, sizeof(old_data)));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
@@ -357,7 +389,10 @@ public:
     void insertCheckpointTest(void)
     {
         int i;
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
         log_set_threshold(log, 5);
         CPPUNIT_ASSERT_EQUAL((ham_size_t)5, log_get_threshold(log));
 
@@ -380,7 +415,10 @@ public:
     void insertTwoCheckpointsTest(void)
     {
         int i;
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
         log_set_threshold(log, 5);
         CPPUNIT_ASSERT_EQUAL((ham_size_t)5, log_get_threshold(log));
 
@@ -403,7 +441,10 @@ public:
     void clearTest(void)
     {
         ham_bool_t isempty;
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         CPPUNIT_ASSERT_EQUAL(1, isempty);
 
@@ -426,7 +467,10 @@ public:
 
     void iterateOverEmptyLogTest(void)
     {
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
 
         log_iterator_t iter;
         memset(&iter, 0, sizeof(iter));
@@ -443,12 +487,17 @@ public:
     void iterateOverLogOneEntryTest(void)
     {
         ham_txn_t txn;
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc,
+                       ".test", 0644, 0, &log));
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
 
-        log=ham_log_open(m_db, ".test", 0);
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_open((mem_allocator_t *)m_alloc, 
+                        ".test", 0, &log));
         CPPUNIT_ASSERT(log!=0);
 
         log_iterator_t iter;
@@ -471,7 +520,10 @@ public:
     void iterateOverLogMultipleEntryTest(void)
     {
         ham_txn_t txn;
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
 
         for (int i=0; i<5; i++) {
             CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
@@ -480,7 +532,9 @@ public:
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
-        log=ham_log_open(m_db, ".test", 0);
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_open((mem_allocator_t *)m_alloc, 
+                        ".test", 0, &log));
         CPPUNIT_ASSERT(log!=0);
 
         log_iterator_t iter;
@@ -508,7 +562,10 @@ public:
     void iterateOverLogMultipleEntrySwapTest(void)
     {
         ham_txn_t txn;
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
         log_set_threshold(log, 5);
 
         for (int i=0; i<=7; i++) {
@@ -519,7 +576,9 @@ public:
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
-        log=ham_log_open(m_db, ".test", 0);
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_open((mem_allocator_t *)m_alloc, 
+                        ".test", 0, &log));
         CPPUNIT_ASSERT(log!=0);
 
         log_iterator_t iter;
@@ -567,7 +626,10 @@ public:
     void iterateOverLogMultipleEntrySwapTwiceTest(void)
     {
         ham_txn_t txn;
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
         log_set_threshold(log, 5);
 
         for (int i=0; i<=10; i++) {
@@ -578,7 +640,9 @@ public:
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
-        log=ham_log_open(m_db, ".test", 0);
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_open((mem_allocator_t *)m_alloc, 
+                        ".test", 0, &log));
         CPPUNIT_ASSERT(log!=0);
 
         log_iterator_t iter;
@@ -629,18 +693,23 @@ public:
     {
         ham_txn_t txn;
         ham_u8_t buffer[20];
-        ham_log_t *log=ham_log_create(m_db, ".test", 0644, 0);
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
 
         for (int i=0; i<5; i++) {
             memset(buffer, (char)i, sizeof(buffer));
             CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
             CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
-            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_write(log, buffer, i));
+            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_write(log, &txn, buffer, i));
             CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
-        log=ham_log_open(m_db, ".test", 0);
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_open((mem_allocator_t *)m_alloc, 
+                        ".test", 0, &log));
         CPPUNIT_ASSERT(log!=0);
 
         log_iterator_t iter;
@@ -677,5 +746,86 @@ public:
     
 };
 
+class LogEntry : public log_entry_t
+{
+public:
+    LogEntry(ham_db_t *db, log_entry_t *entry, ham_u8_t *data)
+    : m_data(data), m_db(db) { 
+        memcpy(&m_entry, entry, sizeof(m_entry));
+    }
+
+    ~LogEntry() { 
+        if (m_data)
+            ham_mem_free(m_db, m_data);
+    }
+
+    ham_u8_t *m_data;
+    log_entry_t m_entry;
+
+private:
+    ham_db_t *m_db;
+};
+
+class LogHighLevelTest : public CppUnit::TestFixture
+{
+    CPPUNIT_TEST_SUITE(LogHighLevelTest);
+    CPPUNIT_TEST_SUITE_END();
+
+protected:
+    ham_db_t *m_db;
+    memtracker_t *m_alloc;
+
+public:
+    typedef std::vector<LogEntry> log_vector_t;
+
+    void setUp()
+    { 
+        (void)os::unlink(".test");
+
+        m_alloc=memtracker_new();
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
+        db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create(m_db, ".test", HAM_ENABLE_RECOVERY, 0644));
+    }
+    
+    void tearDown() 
+    { 
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        ham_delete(m_db);
+        CPPUNIT_ASSERT_EQUAL((unsigned long)0, memtracker_get_leaks(m_alloc));
+    }
+
+    log_vector_t readLog()
+    {
+        log_vector_t vec;
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_open((mem_allocator_t *)m_alloc, ".test", 0, &log));
+        CPPUNIT_ASSERT(log!=0);
+
+        log_iterator_t iter;
+        memset(&iter, 0, sizeof(iter));
+
+        log_entry_t entry;
+        ham_u8_t *data;
+        while (1) {
+            CPPUNIT_ASSERT_EQUAL(0, 
+                            ham_log_get_entry(log, &iter, &entry, &data));
+            if (log_entry_get_lsn(&entry)==0)
+                break;
+            // skip CHECKPOINTs, they are not interesting for our tests
+            if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_CHECKPOINT)
+                continue;
+
+            LogEntry le(m_db, &entry, data);
+            vec.push_back(le);
+        }
+
+        return (vec);
+    }
+};
+
 CPPUNIT_TEST_SUITE_REGISTRATION(LogTest);
+CPPUNIT_TEST_SUITE_REGISTRATION(LogHighLevelTest);
 

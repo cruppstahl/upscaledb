@@ -98,6 +98,16 @@ public:
         CPPUNIT_ASSERT(env_get_device(env)==(ham_device_t *)15);
         env_set_device(env, 0);
 
+        CPPUNIT_ASSERT(env_get_filename(env)==0);
+        env_set_filename(env, "abcdefg");
+        CPPUNIT_ASSERT(0==strcmp(env_get_filename(env), "abcdefg"));
+        env_set_filename(env, 0);
+
+        CPPUNIT_ASSERT(env_get_file_mode(env)==0);
+        env_set_file_mode(env, 12345);
+        CPPUNIT_ASSERT(12345==env_get_file_mode(env));
+        env_set_file_mode(env, 0);
+
         CPPUNIT_ASSERT(env_get_cache(env)==0);
         env_set_cache(env, (ham_cache_t *)16);
         CPPUNIT_ASSERT(env_get_cache(env)==(ham_cache_t *)16);
