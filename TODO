@@ -9,9 +9,7 @@ x a finished TODO item
 
 o new web page
     o add licensing stuff (need license in German, too!)
-    o online-shop with Paypal integration
-        o paypal-bild austauschen
-        o preise prozentuell staffeln
+    o integrate online-shop
     o add google analytics code
     o add google sitemap
     o check roadmap.txt for other TODO items
