@@ -756,6 +756,16 @@ public:
         memcpy(&m_entry, entry, sizeof(m_entry));
     }
 
+    LogEntry(ham_db_t *db, ham_u64_t lsn_id, ham_u64_t txn_id, ham_u8_t type, 
+            ham_u8_t data_size, ham_u8_t *data)
+    : m_data(data), m_db(db) { 
+        memset(&m_entry, 0, sizeof(m_entry));
+        log_entry_set_lsn(&m_entry, lsn_id);
+        log_entry_set_txn_id(&m_entry, txn_id);
+        log_entry_set_type(&m_entry, type);
+        log_entry_set_data_size(&m_entry, data_size);
+    }
+
     ~LogEntry() { 
         if (m_data)
             ham_mem_free(m_db, m_data);
@@ -802,6 +812,27 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         CPPUNIT_ASSERT_EQUAL((unsigned long)0, memtracker_get_leaks(m_alloc));
+    }
+
+    void compareLogs(log_vector_t *lhs, log_vector_t *rhs)
+    {
+        CPPUNIT_ASSERT_EQUAL(lhs->size(), rhs->size());
+
+        log_vector_t::iterator itl=lhs->begin();
+        log_vector_t::iterator itr=rhs->begin(); 
+        for (; itl!=lhs->end(); ++itl, ++itr) {
+            CPPUNIT_ASSERT_EQUAL(0, memcmp(&(*itl).m_entry, 
+                        &(*itr).m_entry, 
+                        sizeof(log_entry_t)));
+            if ((*itl).m_data)
+                CPPUNIT_ASSERT((*itr).m_data!=0);
+            else
+                CPPUNIT_ASSERT((*itr).m_data==0);
+
+            if ((*itl).m_data)
+                CPPUNIT_ASSERT_EQUAL(0, memcmp((*itl).m_data, (*itr).m_data, 
+                        log_entry_get_data_size(&(*itl).m_entry)));
+        }
     }
 
     log_vector_t readLog()

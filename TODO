@@ -113,12 +113,12 @@ o recovery/journalling
 
         o add log-entries to all operations
             o need an idea how to test these!
-                o need a (undocumented) flag for ham_close which does not 
+                x need a (undocumented) flag for ham_close which does not 
                     delete the logfile on close (ham_log_close(log, TRUE))
-                o each unittest creates a vector<log_entry_t> with the
+                x each unittest creates a vector<log_entry_t> with the
                     expected logfile entries
-                o it then executes the database commands
-                x and then reads the logfile to a vector
+                x it then executes the database commands and then reads 
+                    the logfile to a vector
                 o and then compares the logfile with the vector
             o ham_txn_begin
                 o unittest
@@ -133,16 +133,17 @@ o recovery/journalling
                 o extensive unittests and reviews!
 
         o recovery process
-            o when opening, and logs are not empty: return error
-                HAM_NEED_RECOVERY
             o new flag HAM_AUTO_RECOVERY - not allowed in combination
                 with HAM_READ_ONLY etc
+            o new flag HAM_IGNORE_RECOVERY - not allowed in combination
+                with HAM_AUTO_RECOVERY etc
             o after recovery, don't forget to clear both files and
                 reset lsn to 1!
             o when the flag is found: open the main file, open the 
                 log files; avoid the cache, directly write to the file.
                 then close the database, and re-open everything from 
                 scratch
+            o log_entry_t currently has a field "prev_lsn" - really needed?
 
         o ham_flush must insert checkpoint, if possible (-> if the
             first logfile has no more open transactions)
