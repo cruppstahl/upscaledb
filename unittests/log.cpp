@@ -105,6 +105,8 @@ public:
     {
         ham_log_t log;
 
+        CPPUNIT_ASSERT_EQUAL((ham_log_t *)0, db_get_log(m_db));
+
         log_set_allocator(&log, (mem_allocator_t *)m_alloc);
         CPPUNIT_ASSERT_EQUAL((mem_allocator_t *)m_alloc, 
                         log_get_allocator(&log));
@@ -769,6 +771,12 @@ private:
 class LogHighLevelTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(LogHighLevelTest);
+    CPPUNIT_TEST      (createCloseTest);
+    CPPUNIT_TEST      (createCloseEnvTest);
+    CPPUNIT_TEST      (createCloseOpenCloseTest);
+    CPPUNIT_TEST      (createCloseOpenFullLogTest);
+    CPPUNIT_TEST      (createCloseOpenCloseEnvTest);
+    CPPUNIT_TEST      (createCloseOpenFullLogEnvTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -823,6 +831,92 @@ public:
         }
 
         return (vec);
+    }
+
+    void createCloseTest(void)
+    {
+        CPPUNIT_ASSERT(db_get_log(m_db)!=0);
+    }
+
+    void createCloseEnvTest(void)
+    {
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        ham_env_t *env;
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create(env, ".test", HAM_ENABLE_RECOVERY, 0664));
+        CPPUNIT_ASSERT(env_get_log(env)==0);
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, m_db, 333, 0, 0));
+        CPPUNIT_ASSERT(env_get_log(env)!=0);
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT(env_get_log(env)!=0);
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        CPPUNIT_ASSERT(env_get_log(env)==0);
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void createCloseOpenCloseTest(void)
+    {
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT(db_get_log(m_db)==0);
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", HAM_ENABLE_RECOVERY));
+        CPPUNIT_ASSERT(db_get_log(m_db)!=0);
+    }
+
+    void createCloseOpenFullLogTest(void)
+    {
+        ham_txn_t txn;
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_append_txn_begin(db_get_log(m_db), &txn));
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        CPPUNIT_ASSERT_EQUAL(HAM_NEED_RECOVERY,
+                ham_open(m_db, ".test", HAM_ENABLE_RECOVERY));
+        CPPUNIT_ASSERT(db_get_log(m_db)==0);
+    }
+
+    void createCloseOpenCloseEnvTest(void)
+    {
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        ham_env_t *env;
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create(env, ".test", HAM_ENABLE_RECOVERY, 0664));
+        CPPUNIT_ASSERT(env_get_log(env)==0);
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, m_db, 333, 0, 0));
+        CPPUNIT_ASSERT(env_get_log(env)!=0);
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT(env_get_log(env)!=0);
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        CPPUNIT_ASSERT(env_get_log(env)==0);
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_open(env, ".test", HAM_ENABLE_RECOVERY));
+        CPPUNIT_ASSERT(env_get_log(env)!=0);
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void createCloseOpenFullLogEnvTest(void)
+    {
+        ham_txn_t txn;
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_append_txn_begin(db_get_log(m_db), &txn));
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        ham_env_t *env;
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(HAM_NEED_RECOVERY, 
+                ham_env_open(env, ".test", HAM_ENABLE_RECOVERY));
+        CPPUNIT_ASSERT(env_get_log(env)==0);
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 };
 

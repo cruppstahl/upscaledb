@@ -232,7 +232,7 @@ ham_log_create(mem_allocator_t *alloc, const char *dbpath,
  * this function opens an existing log
  */
 extern ham_status_t
-ham_log_open(mem_allocator_t *_alloc, const char *dbpath, ham_u32_t flags,
+ham_log_open(mem_allocator_t *alloc, const char *dbpath, ham_u32_t flags,
         ham_log_t **log);
 
 /*

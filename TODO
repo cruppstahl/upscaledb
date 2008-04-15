@@ -87,29 +87,31 @@ o recovery/journalling
             x fix everything else
             x fix unittests
 
-        o if log is enabled, create a log object
-            o ham_create_ex
-                x implement
-                o unittest
-            o ham_open_ex
-                o file must be created if it does not (yet) exist
-                o must fail if logfile is not empty (will need recovery!)
-                o unittest
-            o ham_env_create_ex
-                x implement
-                o unittest
-            o ham_env_open_ex
-                o file must be created if it does not (yet) exist
-                o must fail if logfile is not empty (will need recovery!)
-                o unittest
+        x need new error code HAM_NEEDS_RECOVERY
 
-        o if log is enabled, close the log
-            o ham_close
+        x if log is enabled, create a log object
+            x ham_create_ex
                 x implement
-                o unittest
-            o ham_env_close
+                x unittest
+            x ham_env_create_ex
                 x implement
-                o unittest
+                x unittest
+            x ham_open_ex
+                x logfile must be created if it does not (yet) exist
+                x must fail if logfile is not empty (will need recovery!)
+                x unittest
+            x ham_env_open_ex
+                x file must be created if it does not (yet) exist
+                x must fail if logfile is not empty (will need recovery!)
+                x unittest
+
+        x if log is enabled, close the log
+            x ham_close
+                x implement
+                x unittest
+            x ham_env_close
+                x implement
+                x unittest
 
         o add log-entries to all operations
             o need an idea how to test these!
@@ -146,6 +148,13 @@ o recovery/journalling
 
         o ham_flush must insert checkpoint, if possible (-> if the
             first logfile has no more open transactions)
+
+    o scenario: created with log, a few inserts; crash (dbfile is ok,
+        but logfile is not empty)
+        then opened *without* log, another few inserts, closed
+        then opened *with* log, log is not empty -> recovery but logfile
+        state is no longer valid! must we store the lsn in the database
+        header?
 
     o currently, checkpoints are written every 20 or so transactions;
         try to find a better number

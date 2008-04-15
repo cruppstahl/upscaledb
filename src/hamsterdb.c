@@ -244,6 +244,8 @@ ham_strerror(ham_status_t result)
             return ("Object was already initialized");
         case HAM_ACCESS_DENIED:
             return ("Encryption key is wrong");
+        case HAM_NEED_RECOVERY:
+            return ("Database needs recovery");
         default:
             return ("Unknown error");
     }
@@ -720,23 +722,6 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
     }
 
     /*
-     * create a logging object, if logging is enabled and if it was not
-     * yet created
-     */
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
-            && env_get_log(env)==0) {
-        ham_log_t *log;
-        st=ham_log_create(env_get_allocator(env), 
-                        env_get_filename(env), 
-                        env_get_file_mode(env), 0, &log);
-        if (st) {
-            (void)ham_close(db, 0);
-            return (st);
-        }
-        env_set_log(env, log);
-    }
-
-    /*
      * on success: store the open database in the environment's list of
      * opened databases
      */
@@ -809,23 +794,6 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
         st=HAM_DATABASE_NOT_FOUND;
     if (st)
         return (st);
-
-    /*
-     * create a logging object, if logging is enabled and if it was not
-     * yet created
-     */
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
-            && env_get_log(env)==0) {
-        ham_log_t *log;
-        st=ham_log_create(env_get_allocator(env), 
-                        env_get_filename(env), 
-                        env_get_file_mode(env), 0, &log);
-        if (st) {
-            (void)ham_close(db, 0);
-            return (st);
-        }
-        env_set_log(env, log);
-    }
 
     /*
      * on success: store the open database in the environment's list of
@@ -925,6 +893,40 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
         return (HAM_OUT_OF_MEMORY);
     }
     strcpy((char *)env_get_filename(env), filename);
+
+    /*
+     * open the logfile and check if we need recovery
+     */
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
+            && env_get_log(env)==0) {
+        ham_log_t *log;
+        st=ham_log_open(env_get_allocator(env), env_get_filename(env), 0, &log);
+        if (!st) { /* success - check if we need recovery */
+            ham_bool_t isempty;
+            st=ham_log_is_empty(log, &isempty);
+            if (st) {
+                (void)ham_env_close(env, 0);
+                return (st);
+            }
+            env_set_log(env, log);
+            if (!isempty) {
+                (void)ham_env_close(env, 0);
+                return (HAM_NEED_RECOVERY);
+            }
+        }
+        else if (st && st==HAM_FILE_NOT_FOUND) {
+            st=ham_log_create(env_get_allocator(env), filename, 0644, 0, &log);
+            if (st) {
+                (void)ham_env_close(env, 0);
+                return (st);
+            }
+            env_set_log(env, log);
+        }
+        else {
+            (void)ham_env_close(env, 0);
+            return (st);
+        }
+    }
 
     return (HAM_SUCCESS);
 }
@@ -1565,6 +1567,40 @@ ham_open_ex(ham_db_t *db, const char *filename,
     db_set_error(db, HAM_SUCCESS);
 
     /*
+     * open the logfile and check if we need recovery - but only if we're
+     * without an environment. Environment recovery is checked in ham_env_open.
+     */
+    if (db_get_env(db)==0 && (flags&HAM_ENABLE_RECOVERY)) {
+        ham_log_t *log;
+        st=ham_log_open(db_get_allocator(db), filename, 0, &log);
+        if (!st) { /* success - check if we need recovery */
+            ham_bool_t isempty;
+            st=ham_log_is_empty(log, &isempty);
+            if (st) {
+                (void)ham_close(db, 0);
+                return (db_set_error(db, st));
+            }
+            db_set_log(db, log);
+            if (!isempty) {
+                (void)ham_close(db, 0);
+                return (db_set_error(db, HAM_NEED_RECOVERY));
+            }
+        }
+        else if (st && st==HAM_FILE_NOT_FOUND) {
+            st=ham_log_create(db_get_allocator(db), filename, 0644, 0, &log);
+            if (st) {
+                (void)ham_close(db, 0);
+                return (db_set_error(db, st));
+            }
+            db_set_log(db, log);
+        }
+        else {
+            (void)ham_close(db, 0);
+            return (st);
+        }
+    }
+
+    /*
      * read the header page
      */
     if (!db_get_header_page(db)) {
@@ -1788,12 +1824,18 @@ ham_create_ex(ham_db_t *db, const char *filename,
      */
     if (flags&HAM_ENABLE_RECOVERY) {
         ham_log_t *log;
-        st=ham_log_create(db_get_allocator(db), filename, mode, 0, &log);
+        st=ham_log_create(db_get_allocator(db), 
+                db_get_env(db) ? env_get_filename(db_get_env(db)) : filename, 
+                db_get_env(db) ? env_get_file_mode(db_get_env(db)) : mode, 
+                0, &log);
         if (st) {
             (void)ham_close(db, 0);
             return (db_set_error(db, st));
         }
-        db_set_log(db, log);
+        if (db_get_env(db))
+            env_set_log(db_get_env(db), log);
+        else
+            db_set_log(db, log);
     }
 
     /*

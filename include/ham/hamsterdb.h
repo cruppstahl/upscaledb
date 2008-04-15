@@ -209,6 +209,8 @@ typedef struct {
 #define HAM_ACCESS_DENIED            (-25)
 /** Object was already initialized */
 #define HAM_ALREADY_INITIALIZED      (-27)
+/** Database needs recovery */
+#define HAM_NEED_RECOVERY            (-28)
 /** Cursor does not point to a valid item */
 #define HAM_CURSOR_IS_NIL           (-100)
 /** Database not found */
