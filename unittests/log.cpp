@@ -756,18 +756,17 @@ public:
         memcpy(&m_entry, entry, sizeof(m_entry));
     }
 
-    LogEntry(ham_db_t *db, ham_u64_t lsn_id, ham_u64_t txn_id, ham_u8_t type, 
+    LogEntry(ham_db_t *db, ham_u64_t txn_id, ham_u8_t type, 
             ham_u8_t data_size, ham_u8_t *data)
     : m_data(data), m_db(db) { 
         memset(&m_entry, 0, sizeof(m_entry));
-        log_entry_set_lsn(&m_entry, lsn_id);
         log_entry_set_txn_id(&m_entry, txn_id);
         log_entry_set_type(&m_entry, type);
         log_entry_set_data_size(&m_entry, data_size);
     }
 
     ~LogEntry() { 
-        if (m_data)
+        if (m_data && m_db)
             ham_mem_free(m_db, m_data);
     }
 
@@ -787,6 +786,9 @@ class LogHighLevelTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (createCloseOpenFullLogTest);
     CPPUNIT_TEST      (createCloseOpenCloseEnvTest);
     CPPUNIT_TEST      (createCloseOpenFullLogEnvTest);
+    CPPUNIT_TEST      (txnBeginAbortTest);
+    CPPUNIT_TEST      (txnBeginCommitTest);
+    CPPUNIT_TEST      (multipleTxnBeginCommitTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -821,9 +823,12 @@ public:
         log_vector_t::iterator itl=lhs->begin();
         log_vector_t::iterator itr=rhs->begin(); 
         for (; itl!=lhs->end(); ++itl, ++itr) {
-            CPPUNIT_ASSERT_EQUAL(0, memcmp(&(*itl).m_entry, 
-                        &(*itr).m_entry, 
-                        sizeof(log_entry_t)));
+            CPPUNIT_ASSERT_EQUAL(log_entry_get_txn_id(&(*itl).m_entry), 
+                    log_entry_get_txn_id(&(*itr).m_entry)); 
+            CPPUNIT_ASSERT_EQUAL(log_entry_get_type(&(*itl).m_entry), 
+                    log_entry_get_type(&(*itr).m_entry)); 
+            CPPUNIT_ASSERT_EQUAL(log_entry_get_data_size(&(*itl).m_entry), 
+                    log_entry_get_data_size(&(*itr).m_entry)); 
             if ((*itl).m_data)
                 CPPUNIT_ASSERT((*itr).m_data!=0);
             else
@@ -861,6 +866,7 @@ public:
             vec.push_back(le);
         }
 
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
         return (vec);
     }
 
@@ -948,6 +954,54 @@ public:
         CPPUNIT_ASSERT(env_get_log(env)==0);
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void txnBeginAbortTest(void)
+    {
+        ham_txn_t txn;
+        ham_u64_t txnid;
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
+        txnid=txn_get_id(&txn);
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        log_vector_t vec=readLog();
+        log_vector_t exp;
+        exp.push_back(LogEntry(0, txnid, LOG_ENTRY_TYPE_TXN_ABORT, 0, 0));
+        exp.push_back(LogEntry(0, txnid, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
+        compareLogs(&exp, &vec);
+    }
+
+    void txnBeginCommitTest(void)
+    {
+        ham_txn_t txn;
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_commit(&txn, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        log_vector_t vec=readLog();
+        log_vector_t exp;
+        exp.push_back(LogEntry(0, 1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0));
+        exp.push_back(LogEntry(0, 1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
+        compareLogs(&exp, &vec);
+    }
+
+    void multipleTxnBeginCommitTest(void)
+    {
+        ham_txn_t txn[3];
+        for (int i=0; i<3; i++)
+            CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], m_db));
+        for (int i=0; i<3; i++)
+            CPPUNIT_ASSERT_EQUAL(0, ham_txn_commit(&txn[i], 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        log_vector_t vec=readLog();
+        log_vector_t exp;
+        for (int i=0; i<3; i++)
+            exp.push_back(LogEntry(0, 3-i, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0));
+        for (int i=0; i<3; i++)
+            exp.push_back(LogEntry(0, 3-i, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
+        compareLogs(&exp, &vec);
     }
 };
 

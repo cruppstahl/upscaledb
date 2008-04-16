@@ -112,22 +112,26 @@ o recovery/journalling
                 x unittest
 
         o add log-entries to all operations
-            o need an idea how to test these!
+            x need an idea how to test these!
                 x need a (undocumented) flag for ham_close which does not 
                     delete the logfile on close (ham_log_close(log, TRUE))
                 x each unittest creates a vector<log_entry_t> with the
                     expected logfile entries
                 x it then executes the database commands and then reads 
                     the logfile to a vector
-                o and then compares the logfile with the vector
-            o ham_txn_begin
-                o unittest
-            o ham_txn_abort
-                o unittest
-            o ham_txn_commit
+                x and then compares the logfile with the vector
+            x ham_txn_begin
+                x unittest
+            x ham_txn_abort
+                x unittest
+            x ham_txn_commit
                 o unittest
             o btree.c: my_fun_create
+                o unittest
             o btree.c: my_fun_flush
+                o unittest
+            o ham_create_ex/ham_env_create_ex (if needed)
+                o unittest
             o see /home/chris/prj/hamsterdb-meta/recovery.txt for further 
                 TODOs
                 o extensive unittests and reviews!
