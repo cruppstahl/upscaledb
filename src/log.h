@@ -66,6 +66,9 @@ typedef struct {
     /* a reserved value */
     ham_u32_t _reserved;
 
+    /* the offset of this operation */
+    ham_offset_t _offset;
+
     /* the size of the data */
     ham_u64_t _data_size;
 
@@ -99,6 +102,12 @@ typedef struct {
 
 /* set the transaction ID */
 #define log_entry_set_txn_id(l, id)             (l)->_txn_id=id
+
+/* get the offset of this entry */
+#define log_entry_get_offset(l)                 (l)->_offset
+
+/* set the offset of this entry */
+#define log_entry_set_offset(l, o)              (l)->_offset=o
 
 /* get the size of this entry */
 #define log_entry_get_data_size(l)              (l)->_data_size
@@ -153,6 +162,10 @@ typedef struct {
 
     /* which of the _fd are we currently using? */
     ham_size_t _current;
+
+    /* a cached data blob which is used for a 2-step overwrite */
+    ham_u8_t *_overwrite_data;
+    ham_size_t _overwrite_size;
 
 } ham_log_t;
 
@@ -215,6 +228,18 @@ typedef struct {
 
 /* set the current fd */
 #define log_set_current_fd(l, s)                (l)->_current=s
+
+/* get the overwrite-data */
+#define log_get_overwrite_data(l)               (l)->_overwrite_data
+
+/* set the overwrite-data */
+#define log_set_overwrite_data(l, d)            (l)->_overwrite_data=d
+
+/* get the overwrite-size */
+#define log_get_overwrite_size(l)               (l)->_overwrite_size
+
+/* set the overwrite-size */
+#define log_set_overwrite_size(l, s)            (l)->_overwrite_size=s
 
 /* current state: during a CHECKPOINT */
 #define LOG_STATE_CHECKPOINT                    1
@@ -281,15 +306,29 @@ ham_log_append_flush_page(ham_log_t *log, struct ham_page_t *page);
  * append a log entry for LOG_ENTRY_TYPE_WRITE
  */
 extern ham_status_t
-ham_log_append_write(ham_log_t *log, ham_txn_t *txn, 
+ham_log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
                 ham_u8_t *data, ham_size_t size);
 
 /*
  * append a log entry for LOG_ENTRY_TYPE_OVERWRITE
  */
 extern ham_status_t
-ham_log_append_overwrite(ham_log_t *log, ham_txn_t *txn, 
-        ham_u8_t *old_data, ham_u8_t *new_data, ham_size_t size);
+ham_log_append_overwrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
+        const ham_u8_t *old_data, const ham_u8_t *new_data, ham_size_t size);
+
+/*
+ * prepare a log entry for LOG_ENTRY_TYPE_OVERWRITE
+ */
+extern ham_status_t
+ham_log_prepare_overwrite(ham_log_t *log, const ham_u8_t *old_data, 
+                ham_size_t size);
+
+/*
+ * finalize a previously prepared log entry for LOG_ENTRY_TYPE_OVERWRITE
+ */
+extern ham_status_t
+ham_log_finalize_overwrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
+                const ham_u8_t *new_data, ham_size_t size);
 
 /*
  * clears the logfile to zero, removes all entries

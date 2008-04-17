@@ -1887,10 +1887,10 @@ ham_create_ex(ham_db_t *db, const char *filename,
         else
             db_set_max_databases(db, DB_MAX_INDICES);
 
-        /* append log entry */
+        /* write the database header to the log */
         if (db_get_log(db)) {
             st=ham_log_append_write(db_get_log(db), 0, 
-                            (ham_u8_t *)db_get_header(db), 
+                            0, (ham_u8_t *)db_get_header(db), 
                             sizeof(db_header_t));
             if (st)
                 return (st);

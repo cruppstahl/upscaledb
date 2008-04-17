@@ -90,6 +90,9 @@ public:
         log_entry_set_txn_id(&e, 0x15);
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x15, log_entry_get_txn_id(&e));
 
+        log_entry_set_offset(&e, 0x22);
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x22, log_entry_get_offset(&e));
+
         log_entry_set_data_size(&e, 0x16);
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x16, log_entry_get_data_size(&e));
 
@@ -358,7 +361,7 @@ public:
             data[i]=(ham_u8_t)i;
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_append_write(log, &txn, 
-                                data, sizeof(data)));
+                                0, data, sizeof(data)));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
@@ -381,7 +384,7 @@ public:
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_append_overwrite(log, &txn, 
-                    old_data, new_data, sizeof(old_data)));
+                    0, old_data, new_data, sizeof(old_data)));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
@@ -704,7 +707,8 @@ public:
             memset(buffer, (char)i, sizeof(buffer));
             CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
             CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
-            CPPUNIT_ASSERT_EQUAL(0, ham_log_append_write(log, &txn, buffer, i));
+            CPPUNIT_ASSERT_EQUAL(0, 
+                            ham_log_append_write(log, &txn, i, buffer, i));
             CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
         }
 
@@ -733,6 +737,8 @@ public:
                 memset(cmp, (char)writes, sizeof(cmp));
                 CPPUNIT_ASSERT_EQUAL((ham_u64_t)writes, 
                         log_entry_get_data_size(&entry));
+                CPPUNIT_ASSERT_EQUAL((ham_u64_t)writes-1, 
+                        log_entry_get_offset(&entry));
                 CPPUNIT_ASSERT_EQUAL(0, memcmp(data, cmp, 
                         (int)log_entry_get_data_size(&entry)));
                 writes--;

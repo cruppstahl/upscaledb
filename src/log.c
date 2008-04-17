@@ -423,7 +423,7 @@ ham_log_append_flush_page(ham_log_t *log, struct ham_page_t *page)
 }
 
 ham_status_t
-ham_log_append_write(ham_log_t *log, ham_txn_t *txn, 
+ham_log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
                 ham_u8_t *data, ham_size_t size)
 {
     ham_status_t st;
@@ -441,6 +441,7 @@ ham_log_append_write(ham_log_t *log, ham_txn_t *txn,
     log_entry_set_lsn(entry, log_get_lsn(log));
     log_set_lsn(log, log_get_lsn(log)+1);
     log_entry_set_type(entry, LOG_ENTRY_TYPE_WRITE);
+    log_entry_set_offset(entry, offset);
     log_entry_set_data_size(entry, size);
     memcpy(alloc_buf, data, size);
 
@@ -455,8 +456,8 @@ ham_log_append_write(ham_log_t *log, ham_txn_t *txn,
 }
 
 ham_status_t
-ham_log_append_overwrite(ham_log_t *log, ham_txn_t *txn, ham_u8_t *old_data, 
-        ham_u8_t *new_data, ham_size_t size)
+ham_log_append_overwrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
+        const ham_u8_t *old_data, const ham_u8_t *new_data, ham_size_t size)
 {
     ham_status_t st;
     ham_size_t alloc_size=my_get_alligned_entry_size(size*2);
@@ -474,6 +475,7 @@ ham_log_append_overwrite(ham_log_t *log, ham_txn_t *txn, ham_u8_t *old_data,
     log_set_lsn(log, log_get_lsn(log)+1);
     log_entry_set_type(entry, LOG_ENTRY_TYPE_OVERWRITE);
     log_entry_set_data_size(entry, size*2);
+    log_entry_set_offset(entry, offset);
     memcpy(alloc_buf, old_data, size);
     memcpy(alloc_buf+size, new_data, size);
 
@@ -573,6 +575,44 @@ ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
         *data=0;
 
     return (0);
+}
+
+ham_status_t
+ham_log_prepare_overwrite(ham_log_t *log, const ham_u8_t *old_data, 
+                ham_size_t size)
+{
+    ham_u8_t *p;
+
+    ham_assert(log_get_overwrite_data(log)==0, (""));
+    ham_assert(log_get_overwrite_size(log)==0, (""));
+
+    p=allocator_alloc(log_get_allocator(log), size);
+    if (!p)
+        return (HAM_OUT_OF_MEMORY);
+    memcpy(p, old_data, size);
+    log_set_overwrite_data(log, p);
+    log_set_overwrite_size(log, size);
+
+    return (0);
+}
+
+ham_status_t
+ham_log_finalize_overwrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
+                const ham_u8_t *new_data, ham_size_t size)
+{
+    ham_status_t st;
+
+    ham_assert(log_get_overwrite_data(log)!=0, (""));
+    ham_assert(log_get_overwrite_size(log)==size, (""));
+
+    st=ham_log_append_overwrite(log, txn, offset, 
+                    log_get_overwrite_data(log), new_data, size);
+
+    allocator_free(log_get_allocator(log), log_get_overwrite_data(log));
+    log_set_overwrite_data(log, 0);
+    log_set_overwrite_size(log, 0);
+
+    return (st);
 }
 
 ham_status_t
