@@ -1887,9 +1887,16 @@ ham_create_ex(ham_db_t *db, const char *filename,
         else
             db_set_max_databases(db, DB_MAX_INDICES);
 
-        /* 
-         * create the freelist - not needed for in-memory-databases
-         */
+        /* append log entry */
+        if (db_get_log(db)) {
+            st=ham_log_append_write(db_get_log(db), 0, 
+                            (ham_u8_t *)db_get_header(db), 
+                            sizeof(db_header_t));
+            if (st)
+                return (st);
+        }
+
+        /* create the freelist - not needed for in-memory-databases */
         if (!(flags&HAM_IN_MEMORY_DB)) {
             st=freel_create(db);
             if (st) {

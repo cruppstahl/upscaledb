@@ -9,7 +9,7 @@ x a finished TODO item
 
 o new web page
     o add licensing stuff (need license in German, too!)
-    o integrate online-shop
+    x integrate online-shop
     o add google analytics code
     o add google sitemap
     o check roadmap.txt for other TODO items
@@ -125,7 +125,7 @@ o recovery/journalling
             x ham_txn_abort
                 x unittest
             x ham_txn_commit
-                o unittest
+                x unittest
             o btree.c: my_fun_create
                 o unittest
             o btree.c: my_fun_flush

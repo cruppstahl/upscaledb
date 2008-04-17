@@ -444,7 +444,9 @@ ham_log_append_write(ham_log_t *log, ham_txn_t *txn,
     log_entry_set_data_size(entry, size);
     memcpy(alloc_buf, data, size);
 
-    st=ham_log_append_entry(log, txn_get_log_desc(txn), alloc_buf, alloc_size);
+    st=ham_log_append_entry(log, 
+                    txn ? txn_get_log_desc(txn) : log_get_current_fd(log), 
+                    alloc_buf, alloc_size);
     allocator_free(log_get_allocator(log), alloc_buf);
     if (st)
         return (st);
