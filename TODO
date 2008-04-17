@@ -130,8 +130,9 @@ o recovery/journalling
                 o unittest
             o btree.c: my_fun_flush
                 o unittest
-            o ham_create_ex/ham_env_create_ex (if needed)
+            o ham_create_ex/ham_env_create_ex
                 o unittest
+
             o see /home/chris/prj/hamsterdb-meta/recovery.txt for further 
                 TODOs
                 o extensive unittests and reviews!

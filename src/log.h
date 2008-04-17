@@ -138,7 +138,7 @@ typedef struct {
     ham_u32_t _flags;
 
     /* the index of the file descriptor we are currently writing to */
-    int _current_fd;
+    ham_size_t _current_fd;
 
     /* the two file descriptors */
     ham_fd_t _fd[2];
@@ -160,9 +160,6 @@ typedef struct {
      * currently inserting a checkpoint or not */
     ham_u32_t _state;
 
-    /* which of the _fd are we currently using? */
-    ham_size_t _current;
-
     /* a cached data blob which is used for a 2-step overwrite */
     ham_u8_t *_overwrite_data;
     ham_size_t _overwrite_size;
@@ -182,10 +179,10 @@ typedef struct {
 #define log_set_flags(l, f)                     (l)->_flags=f
 
 /* get the index of the current file */
-#define log_get_current_file(l)                 (l)->_current_fd
+#define log_get_current_fd(l)                   (l)->_current_fd
 
 /* set the index of the current file */
-#define log_set_current_file(l, c)              (l)->_current_fd=c
+#define log_set_current_fd(l, c)                (l)->_current_fd=c
 
 /* get a file descriptor */
 #define log_get_fd(l, i)                        (l)->_fd[i]
@@ -222,12 +219,6 @@ typedef struct {
 
 /* set the state */
 #define log_set_state(l, s)                     (l)->_state=s
-
-/* get the current fd */
-#define log_get_current_fd(l)                   (l)->_current
-
-/* set the current fd */
-#define log_set_current_fd(l, s)                (l)->_current=s
 
 /* get the overwrite-data */
 #define log_get_overwrite_data(l)               (l)->_overwrite_data

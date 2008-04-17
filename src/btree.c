@@ -127,10 +127,34 @@ my_calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
 static ham_status_t 
 my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
 {
+    ham_status_t st;
     ham_page_t *root;
     ham_size_t maxkeys;
     ham_db_t *db=btree_get_db(be);
     ham_u8_t *indexdata=db_get_indexdata_at(db, db_get_indexdata_offset(db));
+
+    /*
+     * allocate a new root page
+     */
+    root=db_alloc_page(db, PAGE_TYPE_B_ROOT, PAGE_IGNORE_FREELIST);
+    if (!root)
+        return (db_get_error(db));
+    if (db_get_log(db)) {
+        st=ham_log_prepare_overwrite(db_get_log(db),
+                    page_get_raw_payload(root), 
+                    sizeof(btree_node_t)+sizeof(union page_union_t));
+        if (st)
+            return (db_set_error(db, st));
+    }
+    memset(page_get_raw_payload(root), 0, 
+            sizeof(btree_node_t)+sizeof(union page_union_t));
+    if (db_get_log(db)) {
+        st=ham_log_finalize_overwrite(db_get_log(db), 0, page_get_self(root),
+                    page_get_raw_payload(root), 
+                    sizeof(btree_node_t)+sizeof(union page_union_t));
+        if (st)
+            return (db_set_error(db, st));
+    }
 
     /*
      * calculate the maximum number of keys for this page, 
@@ -142,20 +166,17 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     be_set_keysize(be, keysize);
     be_set_flags(be, flags);
 
-    /*
-     * allocate a new root page
-     */
-    root=db_alloc_page(db, PAGE_TYPE_B_ROOT, PAGE_IGNORE_FREELIST);
-    if (!root)
-        return (db_get_error(db));
-    memset(page_get_raw_payload(root), 0, 
-            sizeof(btree_node_t)+sizeof(union page_union_t));
     btree_set_rootpage(be, page_get_self(root));
 
     /*
      * store root address and maxkeys (first two bytes are the
      * database name)
      */
+    if (db_get_log(db)) {
+        st=ham_log_prepare_overwrite(db_get_log(db), indexdata, DB_INDEX_SIZE);
+        if (st)
+            return (db_set_error(db, st));
+    }
     *(ham_u16_t    *)&indexdata[ 2]=ham_h2db16(maxkeys);
     *(ham_u16_t    *)&indexdata[ 4]=ham_h2db16(keysize);
     *(ham_offset_t *)&indexdata[ 8]=ham_h2db_offset(page_get_self(root));
@@ -163,20 +184,10 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     *(ham_offset_t *)&indexdata[20]=ham_h2db_offset(0);
     db_set_dirty(db, 1);
 
-    /* 
-     * update the logfile
-     * TODO not a write, but an overwrite!!
-     */
     if (db_get_log(db)) {
-        ham_status_t st=ham_log_append_write(db_get_log(db), 0, 
-                        indexdata-page_get_payload(db_get_header_page(db)),
-                        indexdata, DB_INDEX_SIZE);
-        if (st)
-            return (db_set_error(db, st));
-        st=ham_log_append_write(db_get_log(db), 0, 
-                        page_get_self(root), /* TODO */
-                        page_get_raw_payload(root), 
-                        sizeof(btree_node_t)+sizeof(union page_union_t));
+        ham_u8_t *p=page_get_payload(db_get_header_page(db));
+        st=ham_log_finalize_overwrite(db_get_log(db), 0, 
+                    (ham_offset_t)(indexdata-p), indexdata, DB_INDEX_SIZE);
         if (st)
             return (db_set_error(db, st));
     }

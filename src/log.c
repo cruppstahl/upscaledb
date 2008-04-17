@@ -249,7 +249,7 @@ ham_log_append_txn_begin(ham_log_t *log, struct ham_txn_t *txn)
 {
     ham_status_t st;
     log_entry_t entry;
-    int cur=log_get_current_file(log);
+    int cur=log_get_current_fd(log);
     int other=cur ? 0 : 1;
 
     memset(&entry, 0, sizeof(entry));
@@ -282,7 +282,7 @@ ham_log_append_txn_begin(ham_log_t *log, struct ham_txn_t *txn)
             return (st);
         /* continue writing to the other file */
         cur=other;
-        log_set_current_file(log, cur);
+        log_set_current_fd(log, cur);
         txn_set_log_desc(txn, cur);
     }
     /*
@@ -479,7 +479,9 @@ ham_log_append_overwrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
     memcpy(alloc_buf, old_data, size);
     memcpy(alloc_buf+size, new_data, size);
 
-    st=ham_log_append_entry(log, txn_get_log_desc(txn), alloc_buf, alloc_size);
+    st=ham_log_append_entry(log, 
+            txn ? txn_get_log_desc(txn) : log_get_current_fd(log), 
+            alloc_buf, alloc_size);
     allocator_free(log_get_allocator(log), alloc_buf);
     if (st)
         return (st);

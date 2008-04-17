@@ -131,9 +131,6 @@ public:
         log_set_lsn(&log, 0x99);
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x99, log_get_lsn(&log));
 
-        log_set_current_file(&log, 7);
-        CPPUNIT_ASSERT_EQUAL(7, log_get_current_file(&log));
-
         for (int i=0; i<2; i++) {
             log_set_open_txn(&log, i, 0x15+i);
             CPPUNIT_ASSERT_EQUAL((ham_size_t)0x15+i, 
@@ -401,7 +398,7 @@ public:
         log_set_threshold(log, 5);
         CPPUNIT_ASSERT_EQUAL((ham_size_t)5, log_get_threshold(log));
 
-        CPPUNIT_ASSERT_EQUAL(0, log_get_current_file(log));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)0, log_get_current_fd(log));
 
         for (i=0; i<=6; i++) {
             ham_txn_t txn;
@@ -412,7 +409,7 @@ public:
         }
 
         /* check that the following logs are written to the other file */
-        CPPUNIT_ASSERT_EQUAL(1, log_get_current_file(log));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)1, log_get_current_fd(log));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
@@ -427,7 +424,7 @@ public:
         log_set_threshold(log, 5);
         CPPUNIT_ASSERT_EQUAL((ham_size_t)5, log_get_threshold(log));
 
-        CPPUNIT_ASSERT_EQUAL(0, log_get_current_file(log));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)0, log_get_current_fd(log));
 
         for (i=0; i<=10; i++) {
             ham_txn_t txn;
@@ -438,7 +435,7 @@ public:
         }
 
         /* check that the following logs are written to the first file */
-        CPPUNIT_ASSERT_EQUAL(0, log_get_current_file(log));
+        CPPUNIT_ASSERT_EQUAL((ham_size_t)0, log_get_current_fd(log));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
@@ -737,7 +734,7 @@ public:
                 memset(cmp, (char)writes, sizeof(cmp));
                 CPPUNIT_ASSERT_EQUAL((ham_u64_t)writes, 
                         log_entry_get_data_size(&entry));
-                CPPUNIT_ASSERT_EQUAL((ham_u64_t)writes-1, 
+                CPPUNIT_ASSERT_EQUAL((ham_u64_t)writes, 
                         log_entry_get_offset(&entry));
                 CPPUNIT_ASSERT_EQUAL(0, memcmp(data, cmp, 
                         (int)log_entry_get_data_size(&entry)));
@@ -757,30 +754,26 @@ public:
 class LogEntry : public log_entry_t
 {
 public:
-    LogEntry(ham_db_t *db, log_entry_t *entry, ham_u8_t *data)
-    : m_data(data), m_db(db) { 
+    LogEntry(log_entry_t *entry, ham_u8_t *data) { 
         memcpy(&m_entry, entry, sizeof(m_entry));
+        if (data)
+            m_data.insert(m_data.begin(), data, 
+                    data+log_entry_get_data_size(entry));
     }
 
-    LogEntry(ham_db_t *db, ham_u64_t txn_id, ham_u8_t type, 
-            ham_u8_t data_size, ham_u8_t *data)
-    : m_data(data), m_db(db) { 
+    LogEntry(ham_u64_t txn_id, ham_u8_t type, ham_offset_t offset,
+            ham_u8_t data_size, ham_u8_t *data) {
         memset(&m_entry, 0, sizeof(m_entry));
         log_entry_set_txn_id(&m_entry, txn_id);
         log_entry_set_type(&m_entry, type);
+        log_entry_set_offset(&m_entry, offset);
         log_entry_set_data_size(&m_entry, data_size);
+        if (data)
+            m_data.insert(m_data.begin(), data, data+data_size);
     }
 
-    ~LogEntry() { 
-        if (m_data && m_db)
-            ham_mem_free(m_db, m_data);
-    }
-
-    ham_u8_t *m_data;
+    std::vector<ham_u8_t> m_data;
     log_entry_t m_entry;
-
-private:
-    ham_db_t *m_db;
 };
 
 class LogHighLevelTest : public CppUnit::TestFixture
@@ -833,16 +826,17 @@ public:
                     log_entry_get_txn_id(&(*itr).m_entry)); 
             CPPUNIT_ASSERT_EQUAL(log_entry_get_type(&(*itl).m_entry), 
                     log_entry_get_type(&(*itr).m_entry)); 
+            CPPUNIT_ASSERT_EQUAL(log_entry_get_offset(&(*itl).m_entry), 
+                    log_entry_get_offset(&(*itr).m_entry)); 
             CPPUNIT_ASSERT_EQUAL(log_entry_get_data_size(&(*itl).m_entry), 
                     log_entry_get_data_size(&(*itr).m_entry)); 
-            if ((*itl).m_data)
-                CPPUNIT_ASSERT((*itr).m_data!=0);
-            else
-                CPPUNIT_ASSERT((*itr).m_data==0);
 
-            if ((*itl).m_data)
-                CPPUNIT_ASSERT_EQUAL(0, memcmp((*itl).m_data, (*itr).m_data, 
-                        log_entry_get_data_size(&(*itl).m_entry)));
+            if ((*itl).m_data.size()) {
+                void *pl=&(*itl).m_data[0];
+                void *pr=&(*itr).m_data[0];
+                CPPUNIT_ASSERT_EQUAL(0, memcmp(pl, pr, 
+                            log_entry_get_data_size(&(*itl).m_entry)));
+            }
         }
     }
 
@@ -868,8 +862,9 @@ public:
             if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_CHECKPOINT)
                 continue;
 
-            LogEntry le(m_db, &entry, data);
-            vec.push_back(le);
+            vec.push_back(LogEntry(&entry, data));
+            if (data)
+                ham_mem_free(m_db, data);
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
@@ -965,16 +960,18 @@ public:
     void txnBeginAbortTest(void)
     {
         ham_txn_t txn;
-        ham_u64_t txnid;
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
-        txnid=txn_get_id(&txn);
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         log_vector_t vec=readLog();
         log_vector_t exp;
-        exp.push_back(LogEntry(0, txnid, LOG_ENTRY_TYPE_TXN_ABORT, 0, 0));
-        exp.push_back(LogEntry(0, txnid, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_ABORT, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 32, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 16384, 56, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
         compareLogs(&exp, &vec);
     }
 
@@ -987,8 +984,8 @@ public:
 
         log_vector_t vec=readLog();
         log_vector_t exp;
-        exp.push_back(LogEntry(0, 1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0));
-        exp.push_back(LogEntry(0, 1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
         compareLogs(&exp, &vec);
     }
 
@@ -1004,9 +1001,9 @@ public:
         log_vector_t vec=readLog();
         log_vector_t exp;
         for (int i=0; i<3; i++)
-            exp.push_back(LogEntry(0, 3-i, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0));
+            exp.push_back(LogEntry(3-i, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
         for (int i=0; i<3; i++)
-            exp.push_back(LogEntry(0, 3-i, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
+            exp.push_back(LogEntry(3-i, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
         compareLogs(&exp, &vec);
     }
 };
