@@ -577,6 +577,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
     ham_status_t st;
     ham_offset_t tellpos=0;
     ham_page_t *page=0;
+    ham_bool_t newpage=0;
 
     /* purge the cache, if necessary */
     st=my_purge_cache(db);
@@ -626,12 +627,48 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
     if (st)
         return (0);
 
+    newpage=1;
+
 done:
     page_set_type(page, type);
     page_set_dirty(page, 0);
 
-    if (flags&PAGE_CLEAR_WITH_ZERO)
+    /*
+     * clear the page with zeroes?
+     */
+    if (flags&PAGE_CLEAR_WITH_ZERO) {
+        if (db_get_log(db) && !newpage) {
+            st=ham_log_prepare_overwrite(db_get_log(db), 
+                        page_get_raw_payload(page), db_get_pagesize(db));
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
+        }
+
         memset(page_get_pers(page), 0, db_get_pagesize(db));
+
+        if (db_get_log(db)) {
+            if (newpage) {
+                st=ham_log_append_write(db_get_log(db), db_get_txn(db),
+                            page_get_self(page), page_get_raw_payload(page), 
+                            db_get_pagesize(db));
+                if (st) {
+                    db_set_error(db, st);
+                    return (0);
+                }
+            }
+            else {
+                st=ham_log_finalize_overwrite(db_get_log(db), db_get_txn(db),
+                            page_get_self(page), page_get_raw_payload(page), 
+                            db_get_pagesize(db));
+                if (st) {
+                    db_set_error(db, st);
+                    return (0);
+                }
+            }
+        }
+    }
 
     if (db_get_txn(db)) {
         st=txn_add_page(db_get_txn(db), page, HAM_FALSE);
@@ -748,7 +785,7 @@ db_flush_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
 
     /* write the page, if it's dirty and if write-through is enabled */
     if ((db_get_rt_flags(db)&HAM_WRITE_THROUGH || flags&HAM_WRITE_THROUGH) && 
-        page_is_dirty(page)) {
+            page_is_dirty(page)) {
         st=page_flush(page);
         if (st)
             return (st);
@@ -806,7 +843,7 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
     if (page_is_dirty(page) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
         st=page_flush(page);
         if (st)
-            return (st);
+            return (db_set_error(db, st));
     }
 
     /*

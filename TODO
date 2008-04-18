@@ -127,9 +127,15 @@ o recovery/journalling
             x btree.c: my_fun_flush
             x hamsterdb.c:ham_create_ex/ham_env_create_ex
             x hamsterdb.c:ham_env_erase_db
+            x db.c:db_flush_page
             o db.c:db_alloc_page
-            o db.c:db_flush_page
-            o freelist.c:__freel_set_bits (brauchen wir das??)
+                o just one thing left to test: if the unused page is actually
+                    taken from the freelist (i.e. reused), it's long entry is
+                    OVERWRITE, not WRITE
+            o freelist.c:__freel_set_bits
+            o freelist.c:__freel_alloc_page
+            o freelist.c:__freel_lazy_create
+            o freelist.c:__freel_mark_free
 
             o see /home/chris/prj/hamsterdb-meta/recovery.txt for further 
                 TODOs

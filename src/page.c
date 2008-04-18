@@ -20,6 +20,7 @@
 #include "freelist.h"
 #include "cursor.h"
 #include "device.h"
+#include "log.h"
 
 #ifdef HAM_DEBUG
 static ham_bool_t
@@ -260,9 +261,15 @@ page_flush(ham_page_t *page)
     if (!page_is_dirty(page))
         return (HAM_SUCCESS);
 
+    if (db_get_log(db)) {
+        st=ham_log_append_flush_page(db_get_log(db), page);
+        if (st)
+            return (db_set_error(db, st));
+    }
+
     st=dev->write_page(dev, page);
     if (st)
-        return (st);
+        return (db_set_error(db, st));
 
     page_set_dirty(page, 0);
     return (HAM_SUCCESS);

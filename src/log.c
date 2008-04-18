@@ -395,27 +395,24 @@ ham_log_append_checkpoint(ham_log_t *log)
 ham_status_t
 ham_log_append_flush_page(ham_log_t *log, struct ham_page_t *page)
 {
+    int fdidx=log_get_current_fd(log);
     ham_status_t st;
-    ham_u8_t buffer[sizeof(ham_offset_t)+sizeof(log_entry_t)];
-    log_entry_t *entry=(log_entry_t *)(buffer+sizeof(ham_offset_t));
-    ham_offset_t o=page_get_self(page);
+    log_entry_t entry;
 
     /* make sure that this is never called during a checkpoint! */
     ham_assert(!(log_get_state(log)&LOG_STATE_CHECKPOINT), (0));
     
-    /* write the page ID _before_ the header */
-    memcpy(&buffer[0], &o, sizeof(ham_offset_t));
-
     /* write the header */
-    memset(entry, 0, sizeof(entry));
-    log_entry_set_lsn(entry, log_get_lsn(log));
+    memset(&entry, 0, sizeof(entry));
+    log_entry_set_lsn(&entry, log_get_lsn(log));
     log_set_lsn(log, log_get_lsn(log)+1);
-    log_entry_set_type(entry, LOG_ENTRY_TYPE_FLUSH_PAGE);
-    log_entry_set_data_size(entry, sizeof(ham_offset_t));
+    log_entry_set_type(&entry, LOG_ENTRY_TYPE_FLUSH_PAGE);
+    log_entry_set_offset(&entry, page_get_self(page));
 
-    st=ham_log_append_entry(log, 
-            txn_get_log_desc(db_get_txn(page_get_owner(page))), 
-            &buffer[0], sizeof(buffer));
+    if (db_get_txn(page_get_owner(page)))
+        fdidx=txn_get_log_desc(db_get_txn(page_get_owner(page))); 
+
+    st=ham_log_append_entry(log, fdidx, &entry, sizeof(entry));
     if (st)
         return (st);
 
