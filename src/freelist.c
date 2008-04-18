@@ -219,7 +219,7 @@ __freel_alloc_page(ham_db_t *db, freelist_cache_t *cache,
             }
 
             /*
-             * allocate a new page, fixed the linked list
+             * allocate a new page, fix the linked list
              */
             page=db_alloc_page(db, PAGE_TYPE_FREELIST, 
                     PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
