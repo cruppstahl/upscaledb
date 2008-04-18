@@ -375,7 +375,7 @@ __freel_lazy_create(ham_db_t *db)
     freelist_entry_t *entry;
     freelist_payload_t *fp=db_get_freelist(db);
     ham_txn_t txn, *old_txn=db_get_txn(db);
-    
+
     ham_assert(db_get_freelist_cache(db)==0, (""));
 
     cache=ham_mem_calloc(db, sizeof(*cache));
@@ -397,11 +397,22 @@ __freel_lazy_create(ham_db_t *db)
     freel_entry_set_max_bits(&entry[0], size*8);
 
     /*
-     * initialize the header page, if we have read/write access
+     * initialize the header page, if necessary
      */
-    if (!(db_get_rt_flags(db)&HAM_READ_ONLY)) {
+    if (!freel_get_start_address(fp)) {
         freel_set_start_address(fp, db_get_pagesize(db));
         freel_set_max_bits(fp, size*8);
+        if (db_get_log(db)) {
+            ham_offset_t o=page_get_self(db_get_header_page(db))+
+                                sizeof(db_header_t)+
+                                db_get_max_databases(db)*DB_INDEX_SIZE;
+            st=ham_log_append_write(db_get_log(db), db_get_txn(db), 
+                    o, (ham_u8_t *)fp, sizeof(freelist_payload_t));
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
+        }
     }
 
     freel_cache_set_count(cache, 1);
