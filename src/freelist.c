@@ -201,6 +201,9 @@ __freel_alloc_page(ham_db_t *db, freelist_cache_t *cache,
      */
     for (i=1; i<freel_cache_get_count(cache); i++) {
         if (!freel_entry_get_page_id(&entries[i])) {
+            ham_status_t st;
+            ham_offset_t log_offset;
+
             /*
              * load the previous page and the payload object; 
              * make the page dirty
@@ -208,6 +211,9 @@ __freel_alloc_page(ham_db_t *db, freelist_cache_t *cache,
             if (i==1) {
                 fp=db_get_freelist(db);
                 db_set_dirty(db, HAM_TRUE);
+                log_offset=page_get_self(db_get_header_page(db))+
+                                sizeof(db_header_t)+
+                                db_get_max_databases(db)*DB_INDEX_SIZE;
             }
             else {
                 page=db_fetch_page(db, 
@@ -216,21 +222,52 @@ __freel_alloc_page(ham_db_t *db, freelist_cache_t *cache,
                     return (0);
                 page_set_dirty(page, HAM_TRUE);
                 fp=page_get_freelist(page);
+                log_offset=page_get_self(page);
             }
 
             /*
-             * allocate a new page, fix the linked list
+             * allocate a new page
              */
             page=db_alloc_page(db, PAGE_TYPE_FREELIST, 
                     PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
             if (!page)
                 return (0);
+
+            /*
+             * fix the linked list
+             */
             freel_set_overflow(fp, page_get_self(page));
 
+            /*
+             * add the log entry (no need for an OVERWRITE, this overflow
+             * field will never be reclaimed)
+             */
+            if (db_get_log(db)) {
+                st=ham_log_append_write(db_get_log(db), db_get_txn(db), 
+                        log_offset, (ham_u8_t *)fp, sizeof(freelist_payload_t));
+                if (st) {
+                    db_set_error(db, st);
+                    return (0);
+                }
+            }
+
+            /*
+             * initialize the new page and write it to the log
+             */
             fp=page_get_freelist(page);
             freel_set_start_address(fp, 
                     freel_entry_get_start_address(&entries[i]));
             freel_set_max_bits(fp, size*8);
+            if (db_get_log(db)) {
+                st=ham_log_append_write(db_get_log(db), db_get_txn(db), 
+                        page_get_self(page), (ham_u8_t *)fp, 
+                        sizeof(freelist_payload_t));
+                if (st) {
+                    db_set_error(db, st);
+                    return (0);
+                }
+            }
+
             page_set_dirty(page, HAM_TRUE);
             ham_assert(freel_entry_get_max_bits(&entries[i])==
                     freel_get_max_bits(fp), (""));
