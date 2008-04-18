@@ -121,17 +121,15 @@ o recovery/journalling
                     the logfile to a vector
                 x and then compares the logfile with the vector
             x ham_txn_begin
-                x unittest
             x ham_txn_abort
-                x unittest
             x ham_txn_commit
-                x unittest
             x btree.c: my_fun_create
-                x unittest
             x btree.c: my_fun_flush
-                x unittest
-            x ham_create_ex/ham_env_create_ex
-                x unittest
+            x hamsterdb.c:ham_create_ex/ham_env_create_ex
+            x hamsterdb.c:ham_env_erase_db
+            o db.c:db_alloc_page
+            o db.c:db_flush_page
+            o freelist.c:__freel_set_bits (brauchen wir das??)
 
             o see /home/chris/prj/hamsterdb-meta/recovery.txt for further 
                 TODOs

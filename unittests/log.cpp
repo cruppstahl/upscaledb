@@ -788,6 +788,7 @@ class LogHighLevelTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (txnBeginAbortTest);
     CPPUNIT_TEST      (txnBeginCommitTest);
     CPPUNIT_TEST      (multipleTxnBeginCommitTest);
+    CPPUNIT_TEST      (createEraseDbTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -1022,6 +1023,40 @@ public:
             exp.push_back(LogEntry(3-i, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
+        compareLogs(&exp, &vec);
+    }
+
+    void createEraseDbTest(void)
+    {
+        ham_size_t pagesize=os_get_pagesize();
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        ham_env_t *env;
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create(env, ".test", HAM_ENABLE_RECOVERY, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create_db(env, m_db, 13, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_erase_db(env, 13, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_DONT_CLEAR_LOG));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+
+        log_vector_t vec=readLog();
+        log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
+        exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112,0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
         compareLogs(&exp, &vec);
     }
