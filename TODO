@@ -129,7 +129,7 @@ o recovery/journalling
             x hamsterdb.c:ham_env_erase_db
             x db.c:db_flush_page
             x freelist.c:__freel_alloc_page
-            o freelist.c:__freel_lazy_create
+            x freelist.c:__freel_lazy_create
             o freelist.c:__freel_mark_free
             o freelist.c:__freel_mark_alloc
             o freelist.c:__freel_set_bits ??
