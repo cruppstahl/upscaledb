@@ -858,6 +858,14 @@ public:
                             ham_log_get_entry(log, &iter, &entry, &data));
             if (log_entry_get_lsn(&entry)==0)
                 break;
+            /*
+            printf("lsn: %d, txn: %d, type: %d, offset: %d, size %d\n",
+                        (int)log_entry_get_lsn(&entry),
+                        (int)log_entry_get_txn_id(&entry),
+                        (int)log_entry_get_type(&entry),
+                        (int)log_entry_get_offset(&entry),
+                        (int)log_entry_get_data_size(&entry));
+                        */
             // skip CHECKPOINTs, they are not interesting for our tests
             if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_CHECKPOINT)
                 continue;
@@ -960,6 +968,7 @@ public:
     void txnBeginAbortTest(void)
     {
         ham_txn_t txn;
+        ham_size_t pagesize=os_get_pagesize();
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -969,8 +978,8 @@ public:
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_ABORT, 0, 0, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 32, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 16384, 56, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
         compareLogs(&exp, &vec);
     }
@@ -978,20 +987,26 @@ public:
     void txnBeginCommitTest(void)
     {
         ham_txn_t txn;
+        ham_size_t pagesize=os_get_pagesize();
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_commit(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         log_vector_t vec=readLog();
         log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
         compareLogs(&exp, &vec);
     }
 
     void multipleTxnBeginCommitTest(void)
     {
         ham_txn_t txn[3];
+        ham_size_t pagesize=os_get_pagesize();
         for (int i=0; i<3; i++)
             CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], m_db));
         for (int i=0; i<3; i++)
@@ -1000,10 +1015,14 @@ public:
 
         log_vector_t vec=readLog();
         log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
         for (int i=0; i<3; i++)
             exp.push_back(LogEntry(3-i, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
         for (int i=0; i<3; i++)
             exp.push_back(LogEntry(3-i, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
         compareLogs(&exp, &vec);
     }
 };
