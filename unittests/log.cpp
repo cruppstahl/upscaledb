@@ -791,10 +791,12 @@ class LogHighLevelTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (multipleTxnBeginCommitTest);
     CPPUNIT_TEST      (createEraseDbTest);
     CPPUNIT_TEST      (allocatePageTest);
+    CPPUNIT_TEST      (allocatePageFromFreelistTest);
     CPPUNIT_TEST      (allocateClearedPageTest);
     CPPUNIT_TEST      (freelistAllocPageTest);
     CPPUNIT_TEST      (freelistAllocSecondPageTest);
     CPPUNIT_TEST      (freelistAllocNoOverflowTest);
+    CPPUNIT_TEST      (negativeFreelistTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -1097,6 +1099,46 @@ public:
         compareLogs(&exp, &vec);
     }
 
+    void allocatePageFromFreelistTest(void)
+    {
+        ham_size_t pagesize=os_get_pagesize();
+        ham_page_t *page=db_alloc_page(m_db, 0, 
+                        PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
+        CPPUNIT_ASSERT(page!=0);
+        CPPUNIT_ASSERT_EQUAL(0, db_free_page(page, DB_MOVE_TO_FREELIST));
+        page=db_alloc_page(m_db, 0, PAGE_CLEAR_WITH_ZERO);
+        CPPUNIT_ASSERT(page!=0);
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        log_vector_t vec=readLog();
+        log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
+        exp.push_back(LogEntry(0, 
+                        LOG_ENTRY_TYPE_OVERWRITE, pagesize*2, pagesize*2, 0));
+        exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(0, 
+                LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
+        exp.push_back(LogEntry(0, 
+                    LOG_ENTRY_TYPE_OVERWRITE, pagesize*2, 128, 0));
+        exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(0, 
+                LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 1044, 1024, 0));
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(0, 
+                LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
+        exp.push_back(LogEntry(0, 
+                        LOG_ENTRY_TYPE_WRITE, pagesize*2, pagesize, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
+        compareLogs(&exp, &vec);
+    }
+
     void allocateClearedPageTest(void)
     {
         ham_size_t pagesize=os_get_pagesize();
@@ -1187,6 +1229,29 @@ public:
                 LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
         exp.push_back(LogEntry(0, 
                 LOG_ENTRY_TYPE_OVERWRITE, 533, 2, 0));
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(0, 
+                LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
+        compareLogs(&exp, &vec);
+    }
+
+    void negativeFreelistTest(void)
+    {
+        ham_size_t pagesize=os_get_pagesize();
+        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, 
+                freel_alloc_area(m_db, DB_CHUNKSIZE));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        log_vector_t vec=readLog();
+        log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_ABORT, 0, 0, 0));
         exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));

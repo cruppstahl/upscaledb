@@ -174,7 +174,7 @@ __freel_search_aligned_bits(ham_db_t *db, freelist_payload_t *fp,
         max-=db_get_pagesize(db)/DB_CHUNKSIZE;
     }
 
-    for (; i<max/size_bits; i+=db_get_pagesize(db)/DB_CHUNKSIZE) {
+    for (; i<max; i+=db_get_pagesize(db)/DB_CHUNKSIZE) {
         if (p[i/8] & 1 << (i%8)) {
             start=i;
             for (j=0; j<size_bits; j++) {

@@ -21,7 +21,8 @@ class FreelistTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(FreelistTest);
     CPPUNIT_TEST      (structureTest);
-    CPPUNIT_TEST      (markAllocTest);
+    CPPUNIT_TEST      (markAllocAlignedTest);
+    CPPUNIT_TEST      (markAllocPageTest);
     CPPUNIT_TEST      (markAllocHighOffsetTest);
     CPPUNIT_TEST      (markAllocRangeTest);
     CPPUNIT_TEST      (markAllocOverflowTest);
@@ -92,7 +93,7 @@ public:
         CPPUNIT_ASSERT(freel_get_overflow(f)==0x12345678ull);
     }
 
-    void markAllocTest(void)
+    void markAllocPageTest(void)
     {
         ham_size_t ps=db_get_pagesize(m_db);
 
@@ -109,6 +110,15 @@ public:
         CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, 
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
         CPPUNIT_ASSERT(db_is_dirty(m_db));
+    }
+
+    void markAllocAlignedTest(void)
+    {
+        ham_size_t ps=db_get_pagesize(m_db);
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                    freel_mark_free(m_db, ps, ps));
+        CPPUNIT_ASSERT_EQUAL((ham_offset_t)ps, freel_alloc_page(m_db));
     }
 
     void markAllocHighOffsetTest(void)

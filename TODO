@@ -132,10 +132,8 @@ o recovery/journalling
             x freelist.c:__freel_lazy_create
             x freelist.c:__freel_alloc_area
             x freelist.c:__freel_mark_free
-            o db.c:db_alloc_page
-                o just one thing left to test: if the unused page is actually
-                    taken from the freelist (i.e. reused), it's long entry is
-                    OVERWRITE, not WRITE
+            x db.c:db_alloc_page
+            x freelist: add negative test (must abort txn)
 
             o insert (without blobs)
 
@@ -177,6 +175,9 @@ o recovery/journalling
         with new flag HAM_SET_CHECKPOINT??
 
 o new API function to retrieve the flags of a database
+
+o more unittests for freel_alloc_page() (pimp
+    freelist.cpp:markAllocAlignedTest)
 
 -----------------------------------------------------------------------------
 
