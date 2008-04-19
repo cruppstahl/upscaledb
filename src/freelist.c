@@ -17,6 +17,14 @@
 #include "freelist.h"
 #include "error.h"
 
+static ham_offset_t
+__freel_get_header_offset(ham_db_t *db)
+{
+    return (page_get_self(db_get_header_page(db))+
+                   sizeof(db_header_t)+
+                          db_get_max_databases(db)*DB_INDEX_SIZE);
+}
+
 static ham_status_t
 __freel_cache_resize(ham_db_t *db, freelist_cache_t *cache, 
         ham_size_t new_count)
@@ -211,9 +219,7 @@ __freel_alloc_page(ham_db_t *db, freelist_cache_t *cache,
             if (i==1) {
                 fp=db_get_freelist(db);
                 db_set_dirty(db, HAM_TRUE);
-                log_offset=page_get_self(db_get_header_page(db))+
-                                sizeof(db_header_t)+
-                                db_get_max_databases(db)*DB_INDEX_SIZE;
+                log_offset=__freel_get_header_offset(db);
             }
             else {
                 page=db_fetch_page(db, 
@@ -308,6 +314,7 @@ __freel_alloc_area(ham_db_t *db, ham_size_t size, ham_bool_t aligned)
          * the request?
          */
         if (freel_entry_get_allocated_bits(entry)>=size/DB_CHUNKSIZE) {
+
             /*
              * yes, load the payload structure
              */
@@ -332,7 +339,26 @@ __freel_alloc_area(ham_db_t *db, ham_size_t size, ham_bool_t aligned)
             else
                 s=__freel_search_bits(db, fp, size/DB_CHUNKSIZE);
             if (s!=-1) {
+                if (db_get_log(db)) {
+                    st=ham_log_prepare_overwrite(db_get_log(db), 
+                            freel_get_bitmap(fp)+s, (size/DB_CHUNKSIZE)/8);
+                    if (st) {
+                        db_set_error(db, st);
+                        return (0);
+                    }
+                }
                 __freel_set_bits(fp, s, size/DB_CHUNKSIZE, HAM_FALSE);
+                if (db_get_log(db)) {
+                    st=ham_log_finalize_overwrite(db_get_log(db), 
+                            db_get_txn(db), 
+                            freel_get_start_address(fp)+(s*DB_CHUNKSIZE),
+                            (ham_u8_t *)freel_get_bitmap(fp)+s, 
+                            (size/DB_CHUNKSIZE)/8);
+                    if (st) {
+                        db_set_error(db, st);
+                        return (0);
+                    }
+                }
                 if (page)
                     page_set_dirty(page, HAM_TRUE);
                 else
@@ -342,9 +368,23 @@ __freel_alloc_area(ham_db_t *db, ham_size_t size, ham_bool_t aligned)
         }
     }
 
+    /*
+     * we found an entry!
+     * update the freelist-structure, write the log and return to caller
+     */
     if (s!=-1) {
         freel_set_allocated_bits(fp, 
                 freel_get_allocated_bits(fp)-size/DB_CHUNKSIZE);
+        if (db_get_log(db)) {
+            st=ham_log_append_write(db_get_log(db), db_get_txn(db), 
+                    page ? page_get_self(page) : __freel_get_header_offset(db),
+                    (ham_u8_t *)fp, sizeof(freelist_payload_t));
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
+        }
+
         freel_entry_set_allocated_bits(entry,
                 freel_get_allocated_bits(fp));
 
@@ -403,11 +443,9 @@ __freel_lazy_create(ham_db_t *db)
         freel_set_start_address(fp, db_get_pagesize(db));
         freel_set_max_bits(fp, size*8);
         if (db_get_log(db)) {
-            ham_offset_t o=page_get_self(db_get_header_page(db))+
-                                sizeof(db_header_t)+
-                                db_get_max_databases(db)*DB_INDEX_SIZE;
             st=ham_log_append_write(db_get_log(db), db_get_txn(db), 
-                    o, (ham_u8_t *)fp, sizeof(freelist_payload_t));
+                    __freel_get_header_offset(db), 
+                    (ham_u8_t *)fp, sizeof(freelist_payload_t));
             if (st) {
                 db_set_error(db, st);
                 return (0);
@@ -566,9 +604,34 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size)
          * set the bits and update the values in the cache and
          * the fp
          */
+        if (db_get_log(db)) {
+            ham_u8_t *p=freel_get_bitmap(fp)+((ham_size_t)(address-
+                        freel_get_start_address(fp))/DB_CHUNKSIZE)/8;
+            st=ham_log_prepare_overwrite(db_get_log(db), p,
+                    size/DB_CHUNKSIZE);
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
+        }
+
         s=__freel_set_bits(fp, 
                 (ham_size_t)(address-freel_get_start_address(fp))/
                     DB_CHUNKSIZE, size/DB_CHUNKSIZE, HAM_TRUE);
+
+        if (db_get_log(db)) {
+            ham_u8_t *p=freel_get_bitmap(fp)+((ham_size_t)(address-
+                        freel_get_start_address(fp))/DB_CHUNKSIZE)/8;
+            ham_offset_t o=(page ? page_get_self(page) 
+                              : __freel_get_header_offset(db))+
+                        (address-freel_get_start_address(fp))/DB_CHUNKSIZE;
+            st=ham_log_finalize_overwrite(db_get_log(db), db_get_txn(db),
+                    o, p, size/DB_CHUNKSIZE);
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
+        }
 
         freel_set_allocated_bits(fp, 
                 freel_get_allocated_bits(fp)+s/DB_CHUNKSIZE);
@@ -579,6 +642,16 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size)
             page_set_dirty(page, HAM_TRUE);
         else
             db_set_dirty(db, HAM_TRUE);
+
+        if (db_get_log(db)) {
+            st=ham_log_append_write(db_get_log(db), db_get_txn(db), 
+                    page ? page_get_self(page) : __freel_get_header_offset(db),
+                    (ham_u8_t *)fp, sizeof(freelist_payload_t));
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
+        }
 
         size-=s;
         address+=s;
