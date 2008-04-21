@@ -582,8 +582,11 @@ ham_log_prepare_overwrite(ham_log_t *log, const ham_u8_t *old_data,
 {
     ham_u8_t *p;
 
-    ham_assert(log_get_overwrite_data(log)==0, (""));
-    ham_assert(log_get_overwrite_size(log)==0, (""));
+    if (log_get_overwrite_data(log)) {
+        allocator_free(log_get_allocator(log), log_get_overwrite_data(log));
+        log_set_overwrite_data(log, 0);
+        log_set_overwrite_size(log, 0);
+    }
 
     p=allocator_alloc(log_get_allocator(log), size);
     if (!p)
@@ -634,6 +637,11 @@ ham_log_close(ham_log_t *log, ham_bool_t noclear)
         }
     }
 
+    if (log_get_overwrite_data(log)) {
+        allocator_free(log_get_allocator(log), log_get_overwrite_data(log));
+        log_set_overwrite_data(log, 0);
+        log_set_overwrite_size(log, 0);
+    }
     allocator_free(log_get_allocator(log), log);
     return (0);
 }

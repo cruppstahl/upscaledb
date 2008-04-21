@@ -279,6 +279,15 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key);
     ((int_key_t *)&((const char *)(node)->_entries)                 \
             [(db_get_keysize(db)+sizeof(int_key_t)-1)*(i)])
 
+/**
+ * get offset of entry #i - add this to page_get_self(page) for
+ * the absolute offset of the key in the file
+ */
+#define btree_node_get_key_offset(page, i)                          \
+    (page_get_self(page)+SIZEOF_PAGE_UNION_HEADER+                  \
+     sizeof(btree_node_t)-sizeof(int_key_t)-1+                    \
+     (sizeof(int_key_t)-1+db_get_keysize(page_get_owner(page)))*(i))
+
 /*
  * get the slot of an element in the page
  */

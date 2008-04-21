@@ -136,6 +136,10 @@ o recovery/journalling
             x freelist: add negative test (must abort txn)
 
             o insert (without blobs)
+                o btree_insert.c:my_insert_nosplit
+                o btree_insert.c:my_insert_split
+                    -> implemented, but not yet tested
+                o btree_insert.c:btree_insert_cursor
 
             o see /home/chris/prj/hamsterdb-meta/recovery.txt for further 
                 TODOs

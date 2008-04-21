@@ -16,6 +16,7 @@
 #include "../src/db.h"
 #include "../src/version.h"
 #include "../src/serial.h"
+#include "../src/btree.h"
 #include "os.hpp"
 
 static int
@@ -94,6 +95,7 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (recoveryNegativeTest);
     CPPUNIT_TEST      (recoveryEnvTest);
     CPPUNIT_TEST      (recoveryEnvNegativeTest);
+    CPPUNIT_TEST      (btreeMacroTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -867,6 +869,22 @@ public:
                         HAM_ENABLE_RECOVERY|HAM_DISABLE_FREELIST_FLUSH, 0664));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void btreeMacroTest(void)
+    {
+        ham_page_t *page=db_alloc_page(m_db, 0, 0);
+        CPPUNIT_ASSERT(page!=0);
+
+        int ks=db_get_keysize(m_db);
+        int off=btree_node_get_key_offset(page, 0);
+        CPPUNIT_ASSERT_EQUAL((int)page_get_self(page)+11+28, off);
+        off=btree_node_get_key_offset(page, 1);
+        CPPUNIT_ASSERT_EQUAL((int)page_get_self(page)+11+28+32, off);
+        off=btree_node_get_key_offset(page, 2);
+        CPPUNIT_ASSERT_EQUAL((int)page_get_self(page)+11+28+64, off);
+
+        db_free_page(page, 0);
     }
 
 };
