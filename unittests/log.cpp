@@ -35,6 +35,7 @@ class LogTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (appendTxnCommitTest);
     CPPUNIT_TEST      (appendCheckpointTest);
     CPPUNIT_TEST      (appendFlushPageTest);
+    CPPUNIT_TEST      (appendPreWriteTest);
     CPPUNIT_TEST      (appendWriteTest);
     CPPUNIT_TEST      (appendOverwriteTest);
     CPPUNIT_TEST      (insertCheckpointTest);
@@ -341,6 +342,27 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, page_free(page));
         page_delete(page);
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
+    }
+
+    void appendPreWriteTest(void)
+    {
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_create((mem_allocator_t *)m_alloc, 
+                        ".test", 0644, 0, &log));
+        ham_txn_t txn;
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db));
+
+        ham_u8_t data[100];
+        for (int i=0; i<100; i++)
+            data[i]=(ham_u8_t)i;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_append_prewrite(log, &txn, 
+                                0, data, sizeof(data)));
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
+
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }

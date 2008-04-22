@@ -80,10 +80,11 @@ typedef struct {
 #define LOG_ENTRY_TYPE_TXN_BEGIN                1
 #define LOG_ENTRY_TYPE_TXN_ABORT                2
 #define LOG_ENTRY_TYPE_TXN_COMMIT               3
-#define LOG_ENTRY_TYPE_WRITE                    4
-#define LOG_ENTRY_TYPE_OVERWRITE                5
-#define LOG_ENTRY_TYPE_CHECKPOINT               6
-#define LOG_ENTRY_TYPE_FLUSH_PAGE               7
+#define LOG_ENTRY_TYPE_PREWRITE                 4
+#define LOG_ENTRY_TYPE_WRITE                    5
+#define LOG_ENTRY_TYPE_OVERWRITE                6
+#define LOG_ENTRY_TYPE_CHECKPOINT               7
+#define LOG_ENTRY_TYPE_FLUSH_PAGE               8
 
 /* get the lsn */
 #define log_entry_get_lsn(l)                    (l)->_lsn
@@ -298,6 +299,13 @@ ham_log_append_flush_page(ham_log_t *log, struct ham_page_t *page);
  */
 extern ham_status_t
 ham_log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
+                ham_u8_t *data, ham_size_t size);
+
+/*
+ * append a log entry for LOG_ENTRY_TYPE_PREWRITE
+ */
+extern ham_status_t
+ham_log_append_prewrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
                 ham_u8_t *data, ham_size_t size);
 
 /*
