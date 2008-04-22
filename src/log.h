@@ -153,6 +153,9 @@ typedef struct {
     /* the last used lsn */
     ham_u64_t _lsn;
 
+    /* the lsn of the previous checkpoint */
+    ham_u64_t _last_cp_lsn;
+
     /* when having more than these transactions in one logfile, we 
      * swap the files */
     ham_size_t _threshold;
@@ -208,6 +211,12 @@ typedef struct {
 
 /* set the last used lsn */
 #define log_set_lsn(l, lsn)                     (l)->_lsn=lsn
+
+/* get the lsn of the last checkpoint */
+#define log_get_last_checkpoint_lsn(l)          (l)->_last_cp_lsn
+
+/* set the lsn of the last checkpoint */
+#define log_set_last_checkpoint_lsn(l, lsn)     (l)->_last_cp_lsn=lsn
 
 /* get the threshold */
 #define log_get_threshold(l)                    (l)->_threshold
@@ -367,6 +376,18 @@ ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
  */
 extern ham_status_t
 ham_log_close(ham_log_t *log, ham_bool_t noclear);
+
+/*
+ * adds a BEFORE-image of a page (if necessary)
+ */
+extern ham_status_t
+ham_log_add_page_before(ham_page_t *page);
+
+/*
+ * adds an AFTER-image of a page
+ */
+extern ham_status_t
+ham_log_add_page_after(ham_page_t *page);
 
 
 #ifdef __cplusplus

@@ -389,6 +389,8 @@ ham_log_append_checkpoint(ham_log_t *log)
     if (st)
         return (st);
 
+    log_set_last_checkpoint_lsn(log, log_get_lsn(log)-1);
+
     return (0);
 }
 
@@ -677,5 +679,47 @@ ham_log_close(ham_log_t *log, ham_bool_t noclear)
     }
     allocator_free(log_get_allocator(log), log);
     return (0);
+}
+
+ham_status_t
+ham_log_add_page_before(ham_page_t *page)
+{
+    ham_status_t st;
+    ham_db_t *db=page_get_owner(page);
+    ham_log_t *log=db_get_log(db);
+
+    if (!log)
+        return (0);
+
+    /*
+     * only write the before-image, if it was not yet written
+     * since the last checkpoint
+     */
+    if (log_get_last_checkpoint_lsn(log)
+            && page_get_before_img_lsn(page)>log_get_last_checkpoint_lsn(log))
+        return (0);
+
+    st=ham_log_append_prewrite(log, db_get_txn(db), 
+                page_get_self(page), (ham_u8_t *)page_get_raw_payload(page),
+                db_get_pagesize(db));
+    if (st) 
+        return (db_set_error(db, st));
+
+    page_set_before_img_lsn(page, log_get_lsn(log)-1);
+    return (0);
+}
+
+ham_status_t
+ham_log_add_page_after(ham_page_t *page)
+{
+    ham_db_t *db=page_get_owner(page);
+    ham_log_t *log=db_get_log(db);
+
+    if (!log)
+        return (0);
+
+    return (ham_log_append_write(log, db_get_txn(db), 
+                page_get_self(page), (ham_u8_t *)page_get_raw_payload(page),
+                db_get_pagesize(db)));
 }
 
