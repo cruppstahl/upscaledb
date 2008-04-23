@@ -876,7 +876,6 @@ public:
         ham_page_t *page=db_alloc_page(m_db, 0, 0);
         CPPUNIT_ASSERT(page!=0);
 
-        int ks=db_get_keysize(m_db);
         int off=btree_node_get_key_offset(page, 0);
         CPPUNIT_ASSERT_EQUAL((int)page_get_self(page)+11+28, off);
         off=btree_node_get_key_offset(page, 1);

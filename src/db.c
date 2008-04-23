@@ -633,41 +633,19 @@ done:
     page_set_type(page, type);
     page_set_dirty(page, 0);
 
+    st=ham_log_add_page_before(page);
+    if (st) 
+        return (0);
+
     /*
      * clear the page with zeroes?
      */
     if (flags&PAGE_CLEAR_WITH_ZERO) {
-        if (db_get_log(db) && !newpage) {
-            st=ham_log_prepare_overwrite(db_get_log(db), 
-                        page_get_raw_payload(page), db_get_pagesize(db));
-            if (st) {
-                db_set_error(db, st);
-                return (0);
-            }
-        }
-
         memset(page_get_pers(page), 0, db_get_pagesize(db));
 
-        if (db_get_log(db)) {
-            if (newpage) {
-                st=ham_log_append_write(db_get_log(db), db_get_txn(db),
-                            page_get_self(page), page_get_raw_payload(page), 
-                            db_get_pagesize(db));
-                if (st) {
-                    db_set_error(db, st);
-                    return (0);
-                }
-            }
-            else {
-                st=ham_log_finalize_overwrite(db_get_log(db), db_get_txn(db),
-                            page_get_self(page), page_get_raw_payload(page), 
-                            db_get_pagesize(db));
-                if (st) {
-                    db_set_error(db, st);
-                    return (0);
-                }
-            }
-        }
+        st=ham_log_add_page_after(page);
+        if (st) 
+            return (0);
     }
 
     if (db_get_txn(db)) {

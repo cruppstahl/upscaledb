@@ -133,6 +133,10 @@ public:
         log_set_lsn(&log, 0x99);
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x99, log_get_lsn(&log));
 
+        log_set_last_checkpoint_lsn(&log, 0x100);
+        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x100, 
+                        log_get_last_checkpoint_lsn(&log));
+
         for (int i=0; i<2; i++) {
             log_set_open_txn(&log, i, 0x15+i);
             CPPUNIT_ASSERT_EQUAL((ham_size_t)0x15+i, 
@@ -1288,5 +1292,5 @@ public:
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(LogTest);
-CPPUNIT_TEST_SUITE_REGISTRATION(LogHighLevelTest);
+//CPPUNIT_TEST_SUITE_REGISTRATION(LogHighLevelTest);
 

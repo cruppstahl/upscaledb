@@ -1115,27 +1115,21 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     /*
      * set database name to 0
      */
-    if (env_get_log(env)) {
-        st=ham_log_prepare_overwrite(env_get_log(env),
-                        db_get_indexdata_at(db, db_get_indexdata_offset(db)),
-                        DB_INDEX_SIZE);
-        if (st) {
-            (void)ham_close(db, 0);
-            (void)ham_delete(db);
-            return (st);
-        }
+    st=ham_log_add_page_before(db_get_header_page(db));
+    if (st) {
+        (void)ham_close(db, 0);
+        (void)ham_delete(db);
+        return (st);
     }
+
     *(ham_u16_t *)db_get_indexdata_at(db, db_get_indexdata_offset(db))=0;
-    if (env_get_log(env)) {
-        ham_u8_t *p=&page_get_payload(db_get_header_page(db))[0];
-        ham_u8_t *i=db_get_indexdata_at(db, db_get_indexdata_offset(db));
-        st=ham_log_finalize_overwrite(env_get_log(env), 0, 
-                        (ham_offset_t)(i-p), i, DB_INDEX_SIZE);
-        if (st) {
-            (void)ham_close(db, 0);
-            (void)ham_delete(db);
-            return (st);
-        }
+
+    st=ham_log_add_page_after_range(db_get_header_page(db), 0, 
+                    SIZEOF_FULL_HEADER(db));
+    if (st) {
+        (void)ham_close(db, 0);
+        (void)ham_delete(db);
+        return (st);
     }
     db_set_dirty(db, HAM_TRUE);
 
@@ -1894,7 +1888,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
             env_set_header_page(db_get_env(db), page);
         else
             db_set_header_page(db, page);
-        page_set_dirty(page, 1);
 
         /* initialize the header */
         db_set_magic(db, 'H', 'A', 'M', '\0');
@@ -1908,15 +1901,14 @@ ham_create_ex(ham_db_t *db, const char *filename,
         else
             db_set_max_databases(db, DB_MAX_INDICES);
 
+        page_set_dirty(page, 1);
+
         /* write the database header to the log */
-        if (db_get_log(db)) {
-            st=ham_log_append_write(db_get_log(db), 0, 
-                            0, (ham_u8_t *)db_get_header(db), 
-                            sizeof(db_header_t));
-            if (st) {
-                (void)ham_close(db, 0);
-                return (db_set_error(db, st));
-            }
+        st=ham_log_add_page_after_range(db_get_header_page(db), 0, 
+                        sizeof(db_header_t));
+        if (st) {
+            (void)ham_close(db, 0);
+            return (db_set_error(db, st));
         }
 
         /* create the freelist - not needed for in-memory-databases */

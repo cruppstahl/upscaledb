@@ -88,6 +88,11 @@ public:
         page=page_new(m_db);
         CPPUNIT_ASSERT(page_alloc(page, db_get_pagesize(m_db))==HAM_SUCCESS);
         CPPUNIT_ASSERT(page_free(page)==HAM_SUCCESS);
+
+        CPPUNIT_ASSERT_EQUAL(0ull, page_get_before_img_lsn(page));
+        page_set_before_img_lsn(page, 0x13ull);
+        CPPUNIT_ASSERT_EQUAL(0x13ull, page_get_before_img_lsn(page));
+
         page_delete(page);
     }
 

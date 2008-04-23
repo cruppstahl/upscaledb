@@ -89,6 +89,9 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
 
 #include "packstop.h"
 
+#define SIZEOF_FULL_HEADER(db)       (sizeof(db_header_t)+                    \
+                                     db_get_max_databases(db)*DB_INDEX_SIZE)
+
 /*
  * set the 'magic' field of a file header
  */

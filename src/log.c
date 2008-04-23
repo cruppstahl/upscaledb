@@ -723,3 +723,20 @@ ham_log_add_page_after(ham_page_t *page)
                 db_get_pagesize(db)));
 }
 
+ham_status_t
+ham_log_add_page_after_range(ham_page_t *page, ham_size_t offset, 
+                ham_size_t length)
+{
+    ham_db_t *db=page_get_owner(page);
+    ham_log_t *log=db_get_log(db);
+
+    if (!log)
+        return (0);
+
+    ham_assert(length<=db_get_pagesize(db), (""));
+
+    return (ham_log_append_write(log, db_get_txn(db), 
+                page_get_self(page)+offset, 
+                (ham_u8_t *)page_get_raw_payload(page),
+                length));
+}

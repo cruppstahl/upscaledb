@@ -17,14 +17,6 @@
 #include "freelist.h"
 #include "error.h"
 
-static ham_offset_t
-__freel_get_header_offset(ham_db_t *db)
-{
-    return (page_get_self(db_get_header_page(db))+
-                   sizeof(db_header_t)+
-                          db_get_max_databases(db)*DB_INDEX_SIZE);
-}
-
 static ham_status_t
 __freel_cache_resize(ham_db_t *db, freelist_cache_t *cache, 
         ham_size_t new_count)
@@ -248,7 +240,12 @@ __freel_alloc_page(ham_db_t *db, freelist_cache_t *cache,
              * add the log entry (no need for a BEFORE-image, this overflow
              * field will never be reclaimed)
              */
-            st=ham_log_add_page_after(prevpage);
+            if (prevpage==db_get_header_page(db))
+                st=ham_log_add_page_after_range(prevpage, 0, 
+                            SIZEOF_FULL_HEADER(db)+sizeof(freelist_payload_t));
+            else
+                st=ham_log_add_page_after_range(prevpage, 0, 
+                            sizeof(freelist_payload_t));
             if (st)
                 return (0);
 
@@ -262,7 +259,8 @@ __freel_alloc_page(ham_db_t *db, freelist_cache_t *cache,
 
             page_set_dirty(page, HAM_TRUE);
 
-            st=ham_log_add_page_after(page);
+            st=ham_log_add_page_after_range(page, 0,
+                            sizeof(freelist_payload_t));
             if (st)
                 return (0);
 
@@ -336,12 +334,6 @@ __freel_alloc_area(ham_db_t *db, ham_size_t size, ham_bool_t aligned)
                 else
                     db_set_dirty(db, HAM_TRUE);
 
-                /* write the changed page to the log */
-                st=ham_log_add_page_before(page 
-                                ? page : db_get_header_page(db));
-                if (st)
-                    return (0);
-
                 break;
             }
         }
@@ -354,14 +346,11 @@ __freel_alloc_area(ham_db_t *db, ham_size_t size, ham_bool_t aligned)
     if (s!=-1) {
         freel_set_allocated_bits(fp, 
                 freel_get_allocated_bits(fp)-size/DB_CHUNKSIZE);
-        if (db_get_log(db)) {
-            st=ham_log_append_write(db_get_log(db), db_get_txn(db), 
-                    page ? page_get_self(page) : __freel_get_header_offset(db),
-                    (ham_u8_t *)fp, sizeof(freelist_payload_t));
-            if (st) {
-                db_set_error(db, st);
-                return (0);
-            }
+
+        st=ham_log_add_page_after(page ? page : db_get_header_page(db));
+        if (st) {
+            db_set_error(db, st);
+            return (0);
         }
 
         freel_entry_set_allocated_bits(entry,
@@ -408,15 +397,11 @@ __freel_lazy_create(ham_db_t *db)
     if (!freel_get_start_address(fp)) {
         freel_set_start_address(fp, db_get_pagesize(db));
         freel_set_max_bits(fp, size*8);
-        if (db_get_log(db)) {
-            st=ham_log_append_write(db_get_log(db), db_get_txn(db), 
-                    __freel_get_header_offset(db), 
-                    (ham_u8_t *)fp, sizeof(freelist_payload_t));
-            if (st) {
-                db_set_error(db, st);
-                return (0);
-            }
-        }
+
+        st=ham_log_add_page_after_range(db_get_header_page(db), 0, 
+                    SIZEOF_FULL_HEADER(db)+sizeof(freelist_payload_t));
+        if (st)
+            return (0);
     }
 
     freel_cache_set_count(cache, 1);

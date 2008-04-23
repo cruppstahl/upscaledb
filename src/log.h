@@ -389,6 +389,13 @@ ham_log_add_page_before(ham_page_t *page);
 extern ham_status_t
 ham_log_add_page_after(ham_page_t *page);
 
+/*
+ * adds an AFTER-image of a part of a page
+ */
+extern ham_status_t
+ham_log_add_page_after_range(ham_page_t *page, ham_size_t offset, 
+                ham_size_t length);
+
 
 #ifdef __cplusplus
 } // extern "C"

@@ -147,26 +147,27 @@ o recovery/journalling
             for now
             x need new BEFORE-image-type
                 x unittest
-            o need to store lsn of last BEFORE-image in the page
+            x need to store lsn of last BEFORE-image in the page
                 x implement
-                o unittest
-            o need to store lsn of last checkpoint in the log
+                x unittest
+            x need to store lsn of last checkpoint in the log
                 x implement
-                o unittest
+                x unittest
 
             o rewrite previous logging usage
                 o db.c
-                    o implement
+                    x implement
                     o unittest
                 o freelist.c
                     x implement
                     o unittest
                 o btree.c
-                    o implement
+                    x implement
                     o unittest
                 o hamsterdb.c
-                    o implement
+                    x implement
                     o unittest
+
                 o btree_insert.c
                     o implement
                     o unittest
