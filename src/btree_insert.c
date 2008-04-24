@@ -181,6 +181,8 @@ btree_insert_cursor(ham_btree_t *be, ham_key_t *key,
         be_set_dirty(be, HAM_TRUE);
         db_set_dirty(db, 1);
         page_set_type(root, PAGE_TYPE_B_INDEX);
+        page_set_dirty(root, HAM_TRUE);
+        page_set_dirty(newroot, HAM_TRUE);
     }
 
     /*
@@ -374,24 +376,8 @@ shift_elements:
             if (st)
                 return (db_set_error(db, st));
 
-            if (db_get_log(db)) {
-                st=ham_log_prepare_overwrite(db_get_log(db), (ham_u8_t *)bte, 
-                    (sizeof(int_key_t)-1+keysize)*(count-slot));
-                if (st)
-                    return (db_set_error(db, st));
-            }
-
             memmove(((char *)bte)+sizeof(int_key_t)-1+keysize, bte,
                     (sizeof(int_key_t)-1+keysize)*(count-slot));
-
-            if (db_get_log(db)) {
-                st=ham_log_finalize_overwrite(db_get_log(db), db_get_txn(db),
-                        btree_node_get_key_offset(page, slot),
-                        (ham_u8_t *)bte, 
-                        (sizeof(int_key_t)-1+keysize)*(count-slot));
-                if (st)
-                    return (db_set_error(db, st));
-            }
         }
     }
 
@@ -404,13 +390,6 @@ shift_elements:
     /*
      * prepare the entry for the logfile
      */
-    if (db_get_log(db)) {
-        st=ham_log_prepare_overwrite(db_get_log(db), (ham_u8_t *)bte, 
-            sizeof(int_key_t)-1+keysize);
-        if (st)
-            return (db_set_error(db, st));
-    }
-
     if (!exists)
         memset(bte, 0, sizeof(int_key_t)-1+keysize);
 
@@ -467,16 +446,8 @@ shift_elements:
     /*
      * if we've overwritten a key: no need to continue, we're done
      */
-    if (exists) {
-        if (db_get_log(db)) {
-            st=ham_log_finalize_overwrite(db_get_log(db), db_get_txn(db),
-                    btree_node_get_key_offset(page, slot),
-                    (ham_u8_t *)bte, sizeof(int_key_t)-1+keysize);
-            if (st)
-                return (db_set_error(db, st));
-        }
+    if (exists)
         return (0);
-    }
 
     /*
      * we insert the extended key, if necessary
@@ -501,34 +472,9 @@ shift_elements:
     }
 
     /*
-     * finalize the logfile entry for this key
-     */
-    if (db_get_log(db)) {
-        st=ham_log_finalize_overwrite(db_get_log(db), db_get_txn(db),
-                btree_node_get_key_offset(page, slot),
-                (ham_u8_t *)bte, sizeof(int_key_t)-1+keysize);
-        if (st)
-            return (db_set_error(db, st));
-    }
-
-    /*
      * write the btree node-header
      */
-    if (db_get_log(db)) {
-        st=ham_log_prepare_overwrite(db_get_log(db), (ham_u8_t *)node, 
-            sizeof(btree_node_t));
-        if (st)
-            return (db_set_error(db, st));
-    }
-
     btree_node_set_count(node, count+1);
-
-    if (db_get_log(db)) {
-        st=ham_log_finalize_overwrite(db_get_log(db), db_get_txn(db),
-                page_get_self(page), (ham_u8_t *)node, sizeof(btree_node_t));
-        if (st)
-            return (db_set_error(db, st));
-    }
 
     return (0);
 }

@@ -201,9 +201,6 @@ __freel_alloc_page(ham_db_t *db, freelist_cache_t *cache,
      */
     for (i=1; i<freel_cache_get_count(cache); i++) {
         if (!freel_entry_get_page_id(&entries[i])) {
-            ham_status_t st;
-            ham_page_t *prevpage=0;
-
             /*
              * load the previous page and the payload object; 
              * make the page dirty
@@ -211,7 +208,6 @@ __freel_alloc_page(ham_db_t *db, freelist_cache_t *cache,
             if (i==1) {
                 fp=db_get_freelist(db);
                 db_set_dirty(db, HAM_TRUE);
-                prevpage=db_get_header_page(db);
             }
             else {
                 page=db_fetch_page(db, 
@@ -220,50 +216,22 @@ __freel_alloc_page(ham_db_t *db, freelist_cache_t *cache,
                     return (0);
                 page_set_dirty(page, HAM_TRUE);
                 fp=page_get_freelist(page);
-                prevpage=page;
             }
 
             /*
-             * allocate a new page
+             * allocate a new page, fixed the linked list
              */
             page=db_alloc_page(db, PAGE_TYPE_FREELIST, 
                     PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
             if (!page)
                 return (0);
-
-            /*
-             * fix the linked list
-             */
             freel_set_overflow(fp, page_get_self(page));
 
-            /*
-             * add the log entry (no need for a BEFORE-image, this overflow
-             * field will never be reclaimed)
-             */
-            if (prevpage==db_get_header_page(db))
-                st=ham_log_add_page_after_range(prevpage, 0, 
-                            SIZEOF_FULL_HEADER(db)+sizeof(freelist_payload_t));
-            else
-                st=ham_log_add_page_after_range(prevpage, 0, 
-                            sizeof(freelist_payload_t));
-            if (st)
-                return (0);
-
-            /*
-             * initialize the new page and write it to the log
-             */
             fp=page_get_freelist(page);
             freel_set_start_address(fp, 
                     freel_entry_get_start_address(&entries[i]));
             freel_set_max_bits(fp, size*8);
-
             page_set_dirty(page, HAM_TRUE);
-
-            st=ham_log_add_page_after_range(page, 0,
-                            sizeof(freelist_payload_t));
-            if (st)
-                return (0);
-
             ham_assert(freel_entry_get_max_bits(&entries[i])==
                     freel_get_max_bits(fp), (""));
             freel_entry_set_page_id(&entries[i], page_get_self(page));
@@ -281,7 +249,6 @@ __freel_alloc_page(ham_db_t *db, freelist_cache_t *cache,
 static ham_offset_t
 __freel_alloc_area(ham_db_t *db, ham_size_t size, ham_bool_t aligned)
 {
-    ham_status_t st;
     ham_size_t i;
     freelist_entry_t *entry;
     freelist_payload_t *fp;
@@ -299,7 +266,6 @@ __freel_alloc_area(ham_db_t *db, ham_size_t size, ham_bool_t aligned)
          * the request?
          */
         if (freel_entry_get_allocated_bits(entry)>=size/DB_CHUNKSIZE) {
-
             /*
              * yes, load the payload structure
              */
@@ -321,38 +287,19 @@ __freel_alloc_area(ham_db_t *db, ham_size_t size, ham_bool_t aligned)
             else
                 s=__freel_search_bits(db, fp, size/DB_CHUNKSIZE);
             if (s!=-1) {
-                /* prepare this page for logging */
-                st=ham_log_add_page_before(page 
-                                ? page : db_get_header_page(db));
-                if (st)
-                    return (0);
-
                 __freel_set_bits(fp, s, size/DB_CHUNKSIZE, HAM_FALSE);
-
                 if (page)
                     page_set_dirty(page, HAM_TRUE);
                 else
                     db_set_dirty(db, HAM_TRUE);
-
                 break;
             }
         }
     }
 
-    /*
-     * we found an entry!
-     * update the freelist-structure, write the log and return to caller
-     */
     if (s!=-1) {
         freel_set_allocated_bits(fp, 
                 freel_get_allocated_bits(fp)-size/DB_CHUNKSIZE);
-
-        st=ham_log_add_page_after(page ? page : db_get_header_page(db));
-        if (st) {
-            db_set_error(db, st);
-            return (0);
-        }
-
         freel_entry_set_allocated_bits(entry,
                 freel_get_allocated_bits(fp));
 
@@ -370,7 +317,7 @@ __freel_lazy_create(ham_db_t *db)
     freelist_cache_t *cache;
     freelist_entry_t *entry;
     freelist_payload_t *fp=db_get_freelist(db);
-
+    
     ham_assert(db_get_freelist_cache(db)==0, (""));
 
     cache=ham_mem_calloc(db, sizeof(*cache));
@@ -392,16 +339,11 @@ __freel_lazy_create(ham_db_t *db)
     freel_entry_set_max_bits(&entry[0], size*8);
 
     /*
-     * initialize the header page, if necessary
+     * initialize the header page, if we have read/write access
      */
-    if (!freel_get_start_address(fp)) {
+    if (!(db_get_rt_flags(db)&HAM_READ_ONLY)) {
         freel_set_start_address(fp, db_get_pagesize(db));
         freel_set_max_bits(fp, size*8);
-
-        st=ham_log_add_page_after_range(db_get_header_page(db), 0, 
-                    SIZEOF_FULL_HEADER(db)+sizeof(freelist_payload_t));
-        if (st)
-            return (0);
     }
 
     freel_cache_set_count(cache, 1);
@@ -440,7 +382,7 @@ __freel_lazy_create(ham_db_t *db)
         entry_pos++;
     }
 
-    return (st);
+    return (0);
 }
 
 ham_status_t
@@ -481,7 +423,6 @@ freel_shutdown(ham_db_t *db)
 ham_status_t
 freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size)
 {
-    ham_status_t st;
     ham_page_t *page=0;
     freelist_cache_t *cache;
     freelist_entry_t *entry;
@@ -529,16 +470,14 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size)
             if (!page)
                 return (db_get_error(db));
             fp=page_get_freelist(page);
-
         }
 
         ham_assert(address>=freel_get_start_address(fp), (0));
 
-        /* prepare this page for logging */
-        st=ham_log_add_page_before(page ? page : db_get_header_page(db));
-        if (st)
-            return (db_set_error(db, st));
-
+        /*
+         * set the bits and update the values in the cache and
+         * the fp
+         */
         s=__freel_set_bits(fp, 
                 (ham_size_t)(address-freel_get_start_address(fp))/
                     DB_CHUNKSIZE, size/DB_CHUNKSIZE, HAM_TRUE);
@@ -553,16 +492,11 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size)
         else
             db_set_dirty(db, HAM_TRUE);
 
-        /* write the after-image to the log */
-        st=ham_log_add_page_after(page ? page : db_get_header_page(db));
-        if (st)
-            return (0);
-
         size-=s;
         address+=s;
     }
 
-    return (st);
+    return (0);
 }
 
 ham_offset_t

@@ -1115,22 +1115,7 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     /*
      * set database name to 0
      */
-    st=ham_log_add_page_before(db_get_header_page(db));
-    if (st) {
-        (void)ham_close(db, 0);
-        (void)ham_delete(db);
-        return (st);
-    }
-
     *(ham_u16_t *)db_get_indexdata_at(db, db_get_indexdata_offset(db))=0;
-
-    st=ham_log_add_page_after_range(db_get_header_page(db), 0, 
-                    SIZEOF_FULL_HEADER(db));
-    if (st) {
-        (void)ham_close(db, 0);
-        (void)ham_delete(db);
-        return (st);
-    }
     db_set_dirty(db, HAM_TRUE);
 
     /*
@@ -1902,14 +1887,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
             db_set_max_databases(db, DB_MAX_INDICES);
 
         page_set_dirty(page, 1);
-
-        /* write the database header to the log */
-        st=ham_log_add_page_after_range(db_get_header_page(db), 0, 
-                        sizeof(db_header_t));
-        if (st) {
-            (void)ham_close(db, 0);
-            return (db_set_error(db, st));
-        }
 
         /* create the freelist - not needed for in-memory-databases */
         if (!(flags&HAM_IN_MEMORY_DB)) {

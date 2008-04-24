@@ -127,7 +127,6 @@ my_calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
 static ham_status_t 
 my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
 {
-    ham_status_t st;
     ham_page_t *root;
     ham_size_t maxkeys;
     ham_db_t *db=btree_get_db(be);
@@ -143,11 +142,6 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     memset(page_get_raw_payload(root), 0, 
             sizeof(btree_node_t)+sizeof(union page_union_t));
 
-    st=ham_log_add_page_after_range(root, 0,
-            sizeof(btree_node_t)+sizeof(union page_union_t));
-    if (st) 
-        return (db_set_error(db, st));
-
     /*
      * calculate the maximum number of keys for this page, 
      * and make sure that this number is even
@@ -160,25 +154,12 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
 
     btree_set_rootpage(be, page_get_self(root));
 
-    /*
-     * store root address and maxkeys (first two bytes are the
-     * database name)
-     */
-    st=ham_log_add_page_before(db_get_header_page(db));
-    if (st) 
-        return (db_set_error(db, st));
-
     *(ham_u16_t    *)&indexdata[ 2]=ham_h2db16(maxkeys);
     *(ham_u16_t    *)&indexdata[ 4]=ham_h2db16(keysize);
     *(ham_offset_t *)&indexdata[ 8]=ham_h2db_offset(page_get_self(root));
     *(ham_u32_t    *)&indexdata[16]=ham_h2db32(flags);
     *(ham_offset_t *)&indexdata[20]=ham_h2db_offset(0);
     db_set_dirty(db, 1);
-
-    st=ham_log_add_page_after_range(db_get_header_page(db), 0, 
-                    SIZEOF_FULL_HEADER(db));
-    if (st) 
-        return (db_set_error(db, st));
 
     return (0);
 }
@@ -213,7 +194,6 @@ my_fun_open(ham_btree_t *be, ham_u32_t flags)
 static ham_status_t
 my_fun_flush(ham_btree_t *be)
 {
-    ham_status_t st;
     ham_db_t *db=btree_get_db(be);
     ham_u8_t *indexdata=db_get_indexdata_at(db, db_get_indexdata_offset(db));
 
@@ -227,10 +207,6 @@ my_fun_flush(ham_btree_t *be)
      * store root address and maxkeys (first two bytes are the
      * database name)
      */
-    st=ham_log_add_page_before(db_get_header_page(db));
-    if (st) 
-        return (db_set_error(db, st));
-
     *(ham_u16_t    *)&indexdata[ 2]=ham_h2db16(btree_get_maxkeys(be));
     *(ham_u16_t    *)&indexdata[ 4]=ham_h2db16(be_get_keysize(be));
     *(ham_offset_t *)&indexdata[ 8]=ham_h2db_offset(btree_get_rootpage(be));
@@ -239,11 +215,6 @@ my_fun_flush(ham_btree_t *be)
 
     db_set_dirty(db, HAM_TRUE);
     be_set_dirty(be, HAM_FALSE);
-
-    st=ham_log_add_page_after_range(db_get_header_page(db), 0, 
-                    SIZEOF_FULL_HEADER(db));
-    if (st) 
-        return (db_set_error(db, st));
 
     return (0);
 }
