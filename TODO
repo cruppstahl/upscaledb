@@ -111,7 +111,7 @@ o recovery/journalling
                 x implement
                 x unittest
 
-        o add log-entries to all operations
+        x add log-entries to all operations
             x need an idea how to test these!
                 x need a (undocumented) flag for ham_close which does not 
                     delete the logfile on close (ham_log_close(log, TRUE))
@@ -142,41 +142,24 @@ o recovery/journalling
             o run tests (esp. acceptance tests)
             o add documentation (flag HAM_DISABLE_FREELIST_FLUSH is obsolete)
 
-        o rewrite logging to be page-based, not range-based - logfiles will
-            become bigger, but is much easier to implement and sufficient
-            for now
-            x need new BEFORE-image-type
-                x unittest
-            x need to store lsn of last BEFORE-image in the page
-                x implement
-                x unittest
-            x need to store lsn of last checkpoint in the log
-                x implement
-                x unittest
-
-            o rewrite previous logging usage
-                o db.c
-                    x implement
-                    o unittest
-                o freelist.c
-                    x implement
-                    o unittest
-                o btree.c
-                    x implement
-                    o unittest
-                o hamsterdb.c
-                    x implement
-                    o unittest
-
-                o btree_insert.c
-                    o implement
-                    o unittest
+        o rewrite logging to be page-based
+            x remove previous logging usage
+                x freelist.c
+                x btree.c
+                x hamsterdb.c
+                x btree_insert.c
             
-            o insert (without blobs)
-                o btree_insert.c:my_insert_nosplit
-                o btree_insert.c:my_insert_split
-                    -> implemented, but not yet tested
-                o btree_insert.c:btree_insert_cursor
+            o pages will be written as before-images before the first
+                access after startup or after a checkpoint
+                x in db.c when allocating a page
+                o in btree_insert.c when modifying a page
+                o in btree_erase.c when modifying a page
+                o in btree_cursor.c when modifying a page
+                o in blob.c when modifying/inserting a page
+            o pages will be written as after-images during ham_txn_commit()
+            o pages will be deleted after ham_txn_abort()
+            o when logging, do not write blobs directly to file; instead,
+                always go through buffered routines
 
             o see /home/chris/prj/hamsterdb-meta/recovery.txt for further 
                 TODOs
