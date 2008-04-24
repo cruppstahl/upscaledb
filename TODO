@@ -142,6 +142,8 @@ o recovery/journalling
             o run tests (esp. acceptance tests)
             o add documentation (flag HAM_DISABLE_FREELIST_FLUSH is obsolete)
 
+        o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
+
         o rewrite logging to be page-based
             x remove previous logging usage
                 x freelist.c
@@ -151,11 +153,16 @@ o recovery/journalling
             
             o pages will be written as before-images before the first
                 access after startup or after a checkpoint
-                x in db.c when allocating a page
+                o in db.c when allocating a page
+                    x implement
+                    o unittests
                 o in btree_insert.c when modifying a page
+                    x implement
+                    o unittests
                 o in btree_erase.c when modifying a page
                 o in btree_cursor.c when modifying a page
                 o in blob.c when modifying/inserting a page
+                o was ist bei txn_free_page - wenn eine page gelöscht wird?
             o pages will be written as after-images during ham_txn_commit()
             o pages will be deleted after ham_txn_abort()
             o when logging, do not write blobs directly to file; instead,

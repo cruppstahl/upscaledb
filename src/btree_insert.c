@@ -147,6 +147,13 @@ btree_insert_cursor(ham_btree_t *be, ham_key_t *key,
         btree_node_t *node;
 
         /*
+         * the root-page will be changed...
+         */
+        st=ham_log_add_page_before(root);
+        if (st)
+            return (st);
+
+        /*
          * allocate a new root page
          */
         newroot=db_alloc_page(db, PAGE_TYPE_B_ROOT, 0); 
@@ -266,6 +273,7 @@ my_insert_in_page(ham_page_t *page, ham_key_t *key,
         ham_offset_t rid, ham_u32_t flags, 
         insert_scratchpad_t *scratchpad)
 {
+    ham_status_t st;
     ham_size_t maxkeys=btree_get_maxkeys(scratchpad->be);
     btree_node_t *node=ham_page_get_btree_node(page);
 
@@ -273,11 +281,18 @@ my_insert_in_page(ham_page_t *page, ham_key_t *key,
             ("invalid result of db_get_maxkeys(): %d", maxkeys));
 
     /*
+     * prepare the page for modifications
+     */
+    st=ham_log_add_page_before(page);
+    if (st)
+        return (st);
+
+    /*
      * if we can insert the new key without splitting the page: 
      * my_insert_nosplit() will do the work for us
      */
     if (btree_node_get_count(node)<maxkeys) {
-        ham_status_t st=my_insert_nosplit(page, key, rid, 
+        st=my_insert_nosplit(page, key, rid, 
                     scratchpad->record, scratchpad->cursor, flags);
         scratchpad->cursor=0; /* don't overwrite cursor if my_insert_nosplit
                                  is called again */
@@ -291,7 +306,7 @@ my_insert_in_page(ham_page_t *page, ham_key_t *key,
     if (btree_node_is_leaf(node)) {
         if (btree_node_search_by_key(page_get_owner(page), page, key)>=0) {
             if ((flags&HAM_OVERWRITE) || (flags&HAM_DUPLICATE)) {
-                ham_status_t st=my_insert_nosplit(page, key, rid, 
+                st=my_insert_nosplit(page, key, rid, 
                         scratchpad->record, scratchpad->cursor, flags);
                 /* don't overwrite cursor if my_insert_nosplit
                    is called again */
@@ -609,6 +624,13 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
         oldsib=db_fetch_page(db, btree_node_get_right(obtp), 0);
     else
         oldsib=0;
+
+    if (oldsib) {
+        st=ham_log_add_page_before(oldsib);
+        if (st)
+            return (st);
+    }
+
     btree_node_set_left (nbtp, page_get_self(page));
     btree_node_set_right(nbtp, btree_node_get_right(obtp));
     btree_node_set_right(obtp, page_get_self(newpage));
