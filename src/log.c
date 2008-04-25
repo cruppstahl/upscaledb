@@ -439,6 +439,8 @@ ham_log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
     memset(entry, 0, sizeof(*entry));
     log_entry_set_lsn(entry, log_get_lsn(log));
     log_set_lsn(log, log_get_lsn(log)+1);
+    if (txn)
+        log_entry_set_txn_id(entry, txn_get_id(txn));
     log_entry_set_type(entry, LOG_ENTRY_TYPE_WRITE);
     log_entry_set_offset(entry, offset);
     log_entry_set_data_size(entry, size);
@@ -472,6 +474,8 @@ ham_log_append_prewrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
     memset(entry, 0, sizeof(*entry));
     log_entry_set_lsn(entry, log_get_lsn(log));
     log_set_lsn(log, log_get_lsn(log)+1);
+    if (txn)
+        log_entry_set_txn_id(entry, txn_get_id(txn));
     log_entry_set_type(entry, LOG_ENTRY_TYPE_PREWRITE);
     log_entry_set_offset(entry, offset);
     log_entry_set_data_size(entry, size);

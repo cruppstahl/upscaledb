@@ -114,8 +114,6 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
     ham_page_t *head, *next;
     ham_db_t *db=txn_get_db(txn);
 
-    db_set_txn(db, 0);
-    
     /*
      * in case of logging: write after-images of all modified pages,
      * then write the transaction boundary
@@ -136,6 +134,8 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
         if (st) 
             return (db_set_error(db, st));
     }
+
+    db_set_txn(db, 0);
 
     /*
      * flush the pages
