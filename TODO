@@ -151,6 +151,9 @@ o recovery/journalling
                 x hamsterdb.c
                 x btree_insert.c
             
+            x pages will be written as after-images during ham_txn_commit()
+                x implement
+                x unittests
             o pages will be written as before-images before the first
                 access after startup or after a checkpoint
                 x in db.c when allocating a page
@@ -170,13 +173,7 @@ o recovery/journalling
                     o unittests
                 x what happens in db_free_page(), when a page is deleted?
                     -> nothing, everything should work as expected
-            o pages will be written as after-images during ham_txn_commit()
-                x implement
-                o unittests
-            o when logging, do not write blobs directly to file; instead,
-                always go through buffered routines
-                x implement
-                o unittests
+                o also write tests with checkpoints!
 
         o recovery process
             o new flag HAM_AUTO_RECOVERY - not allowed in combination
