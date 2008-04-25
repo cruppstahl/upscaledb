@@ -173,7 +173,7 @@ o recovery/journalling
                     o unittests
                 x what happens in db_free_page(), when a page is deleted?
                     -> nothing, everything should work as expected
-                o also write tests with checkpoints!
+                x also write tests with checkpoints!
 
         o recovery process
             o new flag HAM_AUTO_RECOVERY - not allowed in combination

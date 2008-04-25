@@ -821,6 +821,7 @@ class LogHighLevelTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (singleInsertTest);
     CPPUNIT_TEST      (doubleInsertTest);
     CPPUNIT_TEST      (splitInsertTest);
+    CPPUNIT_TEST      (insertAfterCheckpointTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -1178,9 +1179,7 @@ public:
         insert("e", "5");
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
-        printf("-------------\n");
         log_vector_t vec=readLog();
-        printf("-------------\n");
         log_vector_t exp;
 
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
@@ -1207,6 +1206,50 @@ public:
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
+        compareLogs(&exp, &vec);
+    }
+
+    void insertAfterCheckpointTest(void)
+    {
+        ham_size_t ps=os_get_pagesize();
+        log_set_threshold(db_get_log(m_db), 5);
+        insert("a", "1"); insert("b", "2"); insert("c", "3");
+        insert("d", "4"); insert("e", "5"); insert("f", "6");
+        insert("g", "1"); insert("h", "2"); insert("i", "3");
+        insert("j", "4"); insert("k", "5"); insert("l", "6");
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        printf("-------------\n");
+        log_vector_t vec=readLog();
+        printf("-------------\n");
+        log_vector_t exp;
+
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0, 0));
+        exp.push_back(LogEntry(12, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0));
+        exp.push_back(LogEntry(12, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(12, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(11, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0));
+        exp.push_back(LogEntry(11, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(11, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
+        exp.push_back(LogEntry(11, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        // ignored in readLog()
+        // exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_CHECKPOINT, 0, 0));
+        exp.push_back(LogEntry(10, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0));
+        exp.push_back(LogEntry(10, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(10, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(9, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(9, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(9, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(8, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(8, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(8, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(7, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(7, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(7, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(6, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(6, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(6, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
+        exp.push_back(LogEntry(6, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
         compareLogs(&exp, &vec);
     }
 
