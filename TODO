@@ -165,15 +165,28 @@ o recovery/journalling
                 x in btree_erase.c when modifying a page
                     x implement
                     x unittests
-                o in btree_cursor.c when modifying a page
+                x in btree_cursor.c when overwriting a record
                     x implement
-                    o unittests
+                    x unittests
                 o in blob.c when modifying/inserting a page
                     x implement
                     o unittests
                 x what happens in db_free_page(), when a page is deleted?
                     -> nothing, everything should work as expected
                 x also write tests with checkpoints!
+
+                x read-only transactions shouldn't write ANY log entry!
+                    -> will change LogHighLevelTest::cursorOverwriteTest
+
+                x BUG:
+                    ham_cursor_c c; ...
+                    c.move_first();
+                    c.overwrite(); -> will create a new transaction object,
+                        take the coupled page, modify it and set it to dirty,
+                        BUT the page is not part of the txn and therefore
+                        not released!
+                        affects: cursor_overwrite, cursor_erase NOT!!
+                        only if they are coupled!
 
         o recovery process
             o new flag HAM_AUTO_RECOVERY - not allowed in combination

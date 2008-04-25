@@ -1090,7 +1090,7 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
      * also delete all pages and move them to the freelist; if they're 
      * cached, delete them from the cache
      */
-    if ((st=ham_txn_begin(&txn, db))) {
+    if ((st=ham_txn_begin(&txn, db, 0))) {
         (void)ham_close(db, 0);
         (void)ham_delete(db);
         return (st);
@@ -2387,7 +2387,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
     if (!be)
         return (db_set_error(db, HAM_NOT_INITIALIZED));
 
-    if ((st=ham_txn_begin(&txn, db)))
+    if ((st=ham_txn_begin(&txn, db, HAM_TXN_READ_ONLY)))
         return (st);
 
     /*
@@ -2486,7 +2486,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
 
     db_set_error(db, 0);
 
-    if ((st=ham_txn_begin(&txn, db)))
+    if ((st=ham_txn_begin(&txn, db, 0)))
         return (st);
 
     /*
@@ -2649,7 +2649,7 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
         *(ham_offset_t *)key->data=recno;
     }
 
-    if ((st=ham_txn_begin(&txn, db)))
+    if ((st=ham_txn_begin(&txn, db, 0)))
         return (st);
 
     /*
@@ -2700,7 +2700,7 @@ ham_check_integrity(ham_db_t *db, void *reserved)
     be=db_get_backend(db);
     if (!be)
         return (db_set_error(db, HAM_NOT_INITIALIZED));
-    if ((st=ham_txn_begin(&txn, db)))
+    if ((st=ham_txn_begin(&txn, db, HAM_TXN_READ_ONLY)))
         return (st);
 
     /*
@@ -2850,7 +2850,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         ham_txn_t txn;
         free_cb_context_t context;
         context.db=db;
-        if (!ham_txn_begin(&txn, db)) {
+        if (!ham_txn_begin(&txn, db, 0)) {
             (void)be->_fun_enumerate(be, my_free_cb, &context);
             (void)ham_txn_commit(&txn, 0);
         }
@@ -3044,7 +3044,7 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 
     db_set_error(cursor_get_db(src), 0);
 
-    if ((st=ham_txn_begin(&txn, cursor_get_db(src))))
+    if ((st=ham_txn_begin(&txn, cursor_get_db(src), HAM_TXN_READ_ONLY)))
         return (st);
 
     st=bt_cursor_clone((ham_bt_cursor_t *)src, (ham_bt_cursor_t **)dest);
@@ -3089,7 +3089,7 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
 
     db_set_error(db, 0);
 
-    if ((st=ham_txn_begin(&txn, db)))
+    if ((st=ham_txn_begin(&txn, db, 0)))
         return (st);
 
     /*
@@ -3146,7 +3146,7 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
     db_set_error(db, 0);
 
-    if ((st=ham_txn_begin(&txn, db)))
+    if ((st=ham_txn_begin(&txn, db, HAM_TXN_READ_ONLY)))
         return (st);
 
     st=bt_cursor_move((ham_bt_cursor_t *)cursor, key, record, flags);
@@ -3357,7 +3357,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         key->size=sizeof(ham_u64_t);
     }
 
-    if ((st=ham_txn_begin(&txn, db)))
+    if ((st=ham_txn_begin(&txn, db, 0)))
         return (st);
 
     /*
@@ -3426,7 +3426,7 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         return (db_set_error(db, HAM_DB_READ_ONLY));
     }
 
-    if ((st=ham_txn_begin(&txn, db)))
+    if ((st=ham_txn_begin(&txn, db, 0)))
         return (st);
 
     st=bt_cursor_erase((ham_bt_cursor_t *)cursor, flags);
@@ -3462,7 +3462,7 @@ ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
 
     db_set_error(cursor_get_db(cursor), 0);
 
-    if ((st=ham_txn_begin(&txn, cursor_get_db(cursor))))
+    if ((st=ham_txn_begin(&txn, cursor_get_db(cursor), HAM_TXN_READ_ONLY)))
         return (st);
 
     st=bt_cursor_get_duplicate_count((ham_bt_cursor_t *)cursor, count, flags);

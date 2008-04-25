@@ -45,6 +45,11 @@ struct ham_txn_t
     ham_db_t *_db;
 
     /**
+     * flags for this transaction
+     */
+    ham_u32_t _flags;
+
+    /**
      * index of the log file descriptor for this transaction
      */
     int _log_desc;
@@ -92,6 +97,16 @@ typedef struct ham_txn_t ham_txn_t;
  * set the database pointer
  */
 #define txn_set_db(txn, db)                     (txn)->_db=db
+
+/**
+ * get the flags
+ */
+#define txn_get_flags(txn)                      (txn)->_flags
+
+/**
+ * set the flags 
+ */
+#define txn_set_flags(txn, f)                   (txn)->_flags=f
 
 /**
  * get the index of the log file descriptor
@@ -146,7 +161,9 @@ txn_free_page(ham_txn_t *txn, struct ham_page_t *page);
  * @remark flags are defined below
  */
 extern ham_status_t
-ham_txn_begin(ham_txn_t *txn, ham_db_t *db);
+ham_txn_begin(ham_txn_t *txn, ham_db_t *db, ham_u32_t flags);
+
+#define HAM_TXN_READ_ONLY       1
 
 /**
  * commit a transaction

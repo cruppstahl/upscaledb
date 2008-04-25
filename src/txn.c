@@ -91,7 +91,7 @@ txn_get_page(ham_txn_t *txn, ham_offset_t address)
 }
 
 ham_status_t
-ham_txn_begin(ham_txn_t *txn, ham_db_t *db)
+ham_txn_begin(ham_txn_t *txn, ham_db_t *db, ham_u32_t flags)
 {
     ham_status_t st=0;
 
@@ -99,9 +99,10 @@ ham_txn_begin(ham_txn_t *txn, ham_db_t *db)
     txn_set_db(txn, db);
     db_set_txn(db, txn);
     txn_set_id(txn, db_get_txn_id(db)+1);
+    txn_set_flags(txn, flags);
     db_set_txn_id(db, txn_get_id(txn));
 
-    if (db_get_log(db))
+    if (db_get_log(db) && !(flags&HAM_TXN_READ_ONLY))
         st=ham_log_append_txn_begin(db_get_log(db), txn);
 
     return (db_set_error(db, st));
@@ -118,7 +119,7 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
      * in case of logging: write after-images of all modified pages,
      * then write the transaction boundary
      */
-    if (db_get_log(db)) {
+    if (db_get_log(db) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) {
         head=txn_get_pagelist(txn);
         while (head) {
             next=page_get_next(head, PAGE_LIST_TXN);
@@ -189,7 +190,7 @@ ham_txn_abort(ham_txn_t *txn)
     ham_page_t *head, *next;
     ham_db_t *db=txn_get_db(txn);
 
-    if (db_get_log(db)) {
+    if (db_get_log(db) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) {
         st=ham_log_append_txn_abort(db_get_log(db), txn);
         if (st) 
             return (db_set_error(db, st));

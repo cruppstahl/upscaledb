@@ -77,7 +77,7 @@ public:
     {
         ham_txn_t txn;
 
-        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(ham_txn_commit(&txn, 0)==HAM_SUCCESS);
     }
 
@@ -85,7 +85,7 @@ public:
     {
         ham_txn_t txn;
 
-        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(ham_txn_abort(&txn)==HAM_SUCCESS);
     }
 
@@ -93,17 +93,24 @@ public:
     {
         ham_txn_t txn;
 
-        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_get_db(&txn)==m_db);
         CPPUNIT_ASSERT(txn_get_pagelist(&txn)==0);
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(&txn));
+
         txn_set_last_lsn(&txn, 0x15);
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x15, txn_get_last_lsn(&txn));
+
+        txn_set_flags(&txn, 0x99);
+        CPPUNIT_ASSERT_EQUAL((ham_u32_t)0x99, txn_get_flags(&txn));
+
         txn_set_pagelist(&txn, (ham_page_t *)0x13);
         CPPUNIT_ASSERT(txn_get_pagelist(&txn)==(ham_page_t *)0x13);
         txn_set_pagelist(&txn, 0);
+
         txn_set_log_desc(&txn, 4);
         CPPUNIT_ASSERT_EQUAL(4, txn_get_log_desc(&txn));
+
         CPPUNIT_ASSERT(txn_get_pagelist(&txn)==0);
         CPPUNIT_ASSERT(ham_txn_commit(&txn, 0)==HAM_SUCCESS);
     }
@@ -116,7 +123,7 @@ public:
         CPPUNIT_ASSERT((page=page_new(m_db))!=0);
         page_set_self(page, 0x12345);
 
-        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_get_page(&txn, 0x12345)==0);
         CPPUNIT_ASSERT(txn_add_page(&txn, page, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_add_page(&txn, page, 1)==HAM_SUCCESS);
@@ -135,7 +142,7 @@ public:
         CPPUNIT_ASSERT((page=page_new(m_db))!=0);
         page_set_self(page, 0x12345);
 
-        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_get_page(&txn, 0x12345)==0);
         CPPUNIT_ASSERT(txn_add_page(&txn, page, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_add_page(&txn, page, 1)==HAM_SUCCESS);
@@ -156,7 +163,7 @@ public:
         CPPUNIT_ASSERT((page=page_new(m_db))!=0);
         page_set_self(page, 0x12345);
 
-        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_add_page(&txn, page, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_get_page(&txn, page_get_self(page))==page);
         CPPUNIT_ASSERT(txn_remove_page(&txn, page)==HAM_SUCCESS);
