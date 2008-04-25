@@ -1,3 +1,7 @@
+Apr 25, 2008 - chris
+o bugfix: when a cursor is overwritten (ham_cursor_overwrite), the modified
+    page was never released from the cache
+
 Mar 16, 2008 - chris
 o minor documentation fixes (mainly grammar releated) in ham/hamsterdb.h
 

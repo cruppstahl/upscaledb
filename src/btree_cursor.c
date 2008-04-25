@@ -458,7 +458,7 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
             ("uncoupling a cursor which has no coupled page"));
 
     if (local_txn) {
-        st=ham_txn_begin(&txn, db);
+        st=ham_txn_begin(&txn, db, HAM_TXN_READ_ONLY);
         if (st)
             return (st);
     }
@@ -640,7 +640,15 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
         if (st)
             return (st);
     }
-    else if (!(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED))
+    /*
+     * coupled cursor: the coupled page must be stored in the txn!
+     */
+    else if (bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED) {
+        st=txn_add_page(db_get_txn(db), bt_cursor_get_coupled_page(c), 1);
+        if (st)
+            return (st);
+    }
+    else
         return (HAM_CURSOR_IS_NIL);
 
     /*
@@ -680,7 +688,7 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
         return (st);
     }
 
-    page_set_dirty(bt_cursor_get_coupled_page(c), 1);
+    page_set_dirty(page, 1);
     page_release_ref(page);
 
     return (0);
@@ -811,7 +819,7 @@ bt_cursor_find(ham_bt_cursor_t *c, ham_key_t *key, ham_u32_t flags)
     ham_assert(key, ("invalid parameter"));
 
     if (local_txn) {
-        st=ham_txn_begin(&txn, db);
+        st=ham_txn_begin(&txn, db, HAM_TXN_READ_ONLY);
         if (st)
             return (st);
     }
