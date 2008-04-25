@@ -168,12 +168,13 @@ o recovery/journalling
                 x in btree_cursor.c when overwriting a record
                     x implement
                     x unittests
-                o in blob.c when modifying/inserting a page
-                    x implement
-                    o unittests
                 x what happens in db_free_page(), when a page is deleted?
                     -> nothing, everything should work as expected
                 x also write tests with checkpoints!
+                o in blob.c when modifying/inserting a page
+                    x implement
+                    o unittests (make sure that huge blobs are not written
+                        directly to the file!)
 
                 x read-only transactions shouldn't write ANY log entry!
                     -> will change LogHighLevelTest::cursorOverwriteTest
