@@ -139,7 +139,7 @@ o recovery/journalling
 
         o remove transactions from freelist routines
             x implement
-            o run tests (esp. acceptance tests)
+            x run tests (esp. acceptance tests)
             o add documentation (flag HAM_DISABLE_FREELIST_FLUSH is obsolete)
 
         o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
@@ -153,9 +153,9 @@ o recovery/journalling
             
             o pages will be written as before-images before the first
                 access after startup or after a checkpoint
-                o in db.c when allocating a page
+                x in db.c when allocating a page
                     x implement
-                    o unittests
+                    x unittests
                 o in btree_insert.c when modifying a page
                     x implement
                     o unittests

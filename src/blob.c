@@ -658,8 +658,9 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
             alloc_table=1;
     }
 
-    if ((st=ham_log_add_page_before(page)))
-        return (st);
+    if (page)
+        if ((st=ham_log_add_page_before(page)))
+            return (st);
 
     ham_assert(num_entries==1, (""));
 

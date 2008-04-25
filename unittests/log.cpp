@@ -789,7 +789,7 @@ public:
     }
 
     LogEntry(ham_u64_t txn_id, ham_u8_t type, ham_offset_t offset,
-            ham_u64_t data_size, ham_u8_t *data) {
+            ham_u64_t data_size, ham_u8_t *data=0) {
         memset(&m_entry, 0, sizeof(m_entry));
         log_entry_set_txn_id(&m_entry, txn_id);
         log_entry_set_type(&m_entry, type);
@@ -815,14 +815,9 @@ class LogHighLevelTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (txnBeginAbortTest);
     CPPUNIT_TEST      (txnBeginCommitTest);
     CPPUNIT_TEST      (multipleTxnBeginCommitTest);
-    CPPUNIT_TEST      (createEraseDbTest);
     CPPUNIT_TEST      (allocatePageTest);
     CPPUNIT_TEST      (allocatePageFromFreelistTest);
     CPPUNIT_TEST      (allocateClearedPageTest);
-    CPPUNIT_TEST      (freelistAllocPageTest);
-    CPPUNIT_TEST      (freelistAllocSecondPageTest);
-    CPPUNIT_TEST      (freelistAllocNoOverflowTest);
-    CPPUNIT_TEST      (negativeFreelistTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -894,14 +889,12 @@ public:
             if (log_entry_get_lsn(&entry)==0)
                 break;
             
-            /*
             printf("lsn: %d, txn: %d, type: %d, offset: %d, size %d\n",
                         (int)log_entry_get_lsn(&entry),
                         (int)log_entry_get_txn_id(&entry),
                         (int)log_entry_get_type(&entry),
                         (int)log_entry_get_offset(&entry),
                         (int)log_entry_get_data_size(&entry));
-                        */
 
             // skip CHECKPOINTs, they are not interesting for our tests
             if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_CHECKPOINT)
@@ -1012,13 +1005,10 @@ public:
 
         log_vector_t vec=readLog();
         log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_ABORT, 0, 0, 0));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_ABORT, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, pagesize, pagesize));
         compareLogs(&exp, &vec);
     }
 
@@ -1032,13 +1022,10 @@ public:
 
         log_vector_t vec=readLog();
         log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, pagesize, pagesize));
         compareLogs(&exp, &vec);
     }
 
@@ -1055,62 +1042,17 @@ public:
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
         for (int i=0; i<3; i++)
             exp.push_back(LogEntry(3-i, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
         for (int i=0; i<3; i++)
             exp.push_back(LogEntry(3-i, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
-        compareLogs(&exp, &vec);
-    }
-
-    void createEraseDbTest(void)
-    {
-        ham_size_t pagesize=os_get_pagesize();
-
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
-
-        ham_env_t *env;
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, 
-                ham_env_create(env, ".test", HAM_ENABLE_RECOVERY, 0644));
-        CPPUNIT_ASSERT_EQUAL(0, 
-                ham_env_create_db(env, m_db, 13, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, 
-                ham_env_erase_db(env, 13, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_DONT_CLEAR_LOG));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
-
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
-        exp.push_back(LogEntry(0, 
-                    LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
-        exp.push_back(LogEntry(0, 
-                    LOG_ENTRY_TYPE_OVERWRITE, 532, 1024, 0));
-        exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(0, 
-                    LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112,0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, pagesize, pagesize));
         compareLogs(&exp, &vec);
     }
 
     void allocatePageTest(void)
     {
-        ham_size_t pagesize=os_get_pagesize();
+        ham_size_t ps=os_get_pagesize();
         ham_page_t *page=db_alloc_page(m_db, 0, PAGE_IGNORE_FREELIST);
         CPPUNIT_ASSERT(page!=0);
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -1118,16 +1060,14 @@ public:
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
 
     void allocatePageFromFreelistTest(void)
     {
-        ham_size_t pagesize=os_get_pagesize();
+        ham_size_t ps=os_get_pagesize();
         ham_page_t *page=db_alloc_page(m_db, 0, 
                         PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
         CPPUNIT_ASSERT(page!=0);
@@ -1139,35 +1079,17 @@ public:
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(0, 
-                        LOG_ENTRY_TYPE_OVERWRITE, pagesize*2, pagesize*2, 0));
-        exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
-        exp.push_back(LogEntry(0, 
-                LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
-        exp.push_back(LogEntry(0, 
-                    LOG_ENTRY_TYPE_OVERWRITE, pagesize*2, 128, 0));
-        exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
-        exp.push_back(LogEntry(0, 
-                LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 1044, 1024, 0));
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(0, 
-                LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
-        exp.push_back(LogEntry(0, 
-                        LOG_ENTRY_TYPE_WRITE, pagesize*2, pagesize, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
 
     void allocateClearedPageTest(void)
     {
-        ham_size_t pagesize=os_get_pagesize();
+        ham_size_t ps=os_get_pagesize();
         ham_page_t *page=db_alloc_page(m_db, 0, 
                         PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
         CPPUNIT_ASSERT(page!=0);
@@ -1176,121 +1098,14 @@ public:
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(0, 
-                        LOG_ENTRY_TYPE_WRITE, pagesize*2, pagesize, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
-        compareLogs(&exp, &vec);
-    }
-
-    void freelistAllocPageTest(void)
-    {
-        ham_size_t pagesize=os_get_pagesize();
-        ham_offset_t o=db_get_pagesize(m_db)*DB_CHUNKSIZE;
-        CPPUNIT_ASSERT_EQUAL(0, freel_mark_free(m_db, o, DB_CHUNKSIZE));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
-
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
-        exp.push_back(LogEntry(0, 
-                LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
-        exp.push_back(LogEntry(0, 
-                LOG_ENTRY_TYPE_OVERWRITE, pagesize+20, 2, 0));
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(0, 
-                LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
-        compareLogs(&exp, &vec);
-    }
-
-    void freelistAllocSecondPageTest(void)
-    {
-        ham_size_t pagesize=os_get_pagesize();
-        ham_offset_t o=db_get_pagesize(m_db)*DB_CHUNKSIZE;
-        CPPUNIT_ASSERT_EQUAL(0, freel_mark_free(m_db, o*2, DB_CHUNKSIZE));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
-
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
-        exp.push_back(LogEntry(0, 
-                LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
-        exp.push_back(LogEntry(0, 
-                LOG_ENTRY_TYPE_OVERWRITE, pagesize*2+20, 2, 0));
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(0, 
-                LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
-        compareLogs(&exp, &vec);
-    }
-
-    void freelistAllocNoOverflowTest(void)
-    {
-        ham_size_t pagesize=os_get_pagesize();
-        CPPUNIT_ASSERT_EQUAL(0, 
-                freel_mark_free(m_db, pagesize+DB_CHUNKSIZE, DB_CHUNKSIZE));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
-
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
-        exp.push_back(LogEntry(0, 
-                LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
-        exp.push_back(LogEntry(0, 
-                LOG_ENTRY_TYPE_OVERWRITE, 533, 2, 0));
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(0, 
-                LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
-        compareLogs(&exp, &vec);
-    }
-
-    void negativeFreelistTest(void)
-    {
-        ham_size_t pagesize=os_get_pagesize();
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, 
-                freel_alloc_area(m_db, DB_CHUNKSIZE));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
-
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_ABORT, 0, 0, 0));
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
-        exp.push_back(LogEntry(0, 
-                LOG_ENTRY_TYPE_WRITE, 532, sizeof(freelist_payload_t), 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, 20, 64, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_OVERWRITE, pagesize, 112, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 20, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
 
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(LogTest);
-//CPPUNIT_TEST_SUITE_REGISTRATION(LogHighLevelTest);
+CPPUNIT_TEST_SUITE_REGISTRATION(LogHighLevelTest);
 

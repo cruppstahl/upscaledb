@@ -695,8 +695,7 @@ ham_log_add_page_before(ham_page_t *page)
      * only write the before-image, if it was not yet written
      * since the last checkpoint
      */
-    if (log_get_last_checkpoint_lsn(log)
-            && page_get_before_img_lsn(page)>log_get_last_checkpoint_lsn(log))
+    if (page_get_before_img_lsn(page)>log_get_last_checkpoint_lsn(log))
         return (0);
 
     st=ham_log_append_prewrite(log, db_get_txn(db), 
