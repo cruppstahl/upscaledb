@@ -162,9 +162,9 @@ o recovery/journalling
                 x in btree_insert.c when modifying a page
                     x implement
                     x unittests
-                o in btree_erase.c when modifying a page
+                x in btree_erase.c when modifying a page
                     x implement
-                    o unittests
+                    x unittests
                 o in btree_cursor.c when modifying a page
                     x implement
                     o unittests

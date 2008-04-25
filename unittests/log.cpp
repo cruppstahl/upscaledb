@@ -822,6 +822,8 @@ class LogHighLevelTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (doubleInsertTest);
     CPPUNIT_TEST      (splitInsertTest);
     CPPUNIT_TEST      (insertAfterCheckpointTest);
+    CPPUNIT_TEST      (singleEraseTest);
+    CPPUNIT_TEST      (eraseMergeTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -1123,6 +1125,17 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
     }
 
+    void erase(const char *name)
+    {
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+
+        key.data=(void *)name;
+        key.size=strlen(name)+1;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
+    }
+
     void singleInsertTest(void)
     {
         ham_size_t ps=os_get_pagesize();
@@ -1219,9 +1232,7 @@ public:
         insert("j", "4"); insert("k", "5"); insert("l", "6");
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
-        printf("-------------\n");
         log_vector_t vec=readLog();
-        printf("-------------\n");
         log_vector_t exp;
 
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0, 0));
@@ -1253,6 +1264,86 @@ public:
         compareLogs(&exp, &vec);
     }
 
+    void singleEraseTest(void)
+    {
+        ham_size_t ps=os_get_pagesize();
+        insert("a", "b");
+        erase("a");
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        log_vector_t vec=readLog();
+        log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0));
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
+        compareLogs(&exp, &vec);
+    }
+
+    void eraseMergeTest(void)
+    {
+        ham_parameter_t p[]={
+            {HAM_PARAM_PAGESIZE, 1024}, 
+            {HAM_PARAM_KEYSIZE,   200}, 
+            {0, 0}
+        };
+        ham_size_t ps=1024;
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create_ex(m_db, ".test", HAM_ENABLE_RECOVERY, 0644, p));
+        insert("a", "1");
+        insert("b", "2");
+        insert("c", "3");
+        insert("d", "4");
+        insert("e", "5");
+        erase("e");
+        erase("d");
+        erase("c");
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        log_vector_t vec=readLog();
+        log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0, 0));
+        exp.push_back(LogEntry(8, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(8, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(8, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
+        exp.push_back(LogEntry(7, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(7, LOG_ENTRY_TYPE_WRITE, ps*3, ps));
+        exp.push_back(LogEntry(7, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
+        exp.push_back(LogEntry(7, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(7, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
+        exp.push_back(LogEntry(6, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(6, LOG_ENTRY_TYPE_WRITE, ps*3, ps));
+        exp.push_back(LogEntry(6, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
+        exp.push_back(LogEntry(6, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
+        exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
+        exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_WRITE, ps*3, ps));
+        exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_PREWRITE, ps*3, ps));
+        exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
+        exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(4, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(4, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(4, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
+        compareLogs(&exp, &vec);
+    }
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(LogTest);
