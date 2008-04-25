@@ -160,17 +160,23 @@ o recovery/journalling
                     x implement
                     o unittests
                 o in btree_erase.c when modifying a page
+                    x implement
+                    o unittests
                 o in btree_cursor.c when modifying a page
+                    x implement
+                    o unittests
                 o in blob.c when modifying/inserting a page
-                o was ist bei txn_free_page - wenn eine page gelöscht wird?
+                    x implement
+                    o unittests
+                x what happens in db_free_page(), when a page is deleted?
+                    -> nothing, everything should work as expected
             o pages will be written as after-images during ham_txn_commit()
-            o pages will be deleted after ham_txn_abort()
+                x implement
+                o unittests
             o when logging, do not write blobs directly to file; instead,
                 always go through buffered routines
-
-            o see /home/chris/prj/hamsterdb-meta/recovery.txt for further 
-                TODOs
-                o extensive unittests and reviews!
+                x implement
+                o unittests
 
         o recovery process
             o new flag HAM_AUTO_RECOVERY - not allowed in combination

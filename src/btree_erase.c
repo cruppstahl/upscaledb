@@ -489,12 +489,12 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
      * prepare all pages for the log
      */
     if ((st=ham_log_add_page_before(page)))
-        return (st);
+        return (0);
     if ((st=ham_log_add_page_before(sibpage)))
-        return (st);
+        return (0);
     if (ancpage)
         if ((st=ham_log_add_page_before(ancpage)))
-            return (st);
+            return (0);
 
     /*
      * uncouple all cursors
@@ -630,12 +630,12 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
      * prepare all pages for the log
      */
     if ((st=ham_log_add_page_before(page)))
-        return (st);
+        return (0);
     if ((st=ham_log_add_page_before(sibpage)))
-        return (st);
+        return (0);
     if (ancpage)
         if ((st=ham_log_add_page_before(ancpage)))
-            return (st);
+            return (0);
 
     /*
      * uncouple all cursors

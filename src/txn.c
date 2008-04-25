@@ -116,7 +116,22 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
 
     db_set_txn(db, 0);
     
+    /*
+     * in case of logging: write after-images of all modified pages,
+     * then write the transaction boundary
+     */
     if (db_get_log(db)) {
+        head=txn_get_pagelist(txn);
+        while (head) {
+            next=page_get_next(head, PAGE_LIST_TXN);
+            if (page_is_dirty(head)) {
+                st=ham_log_add_page_after(head);
+                if (st) 
+                    return (db_set_error(db, st));
+            }
+            head=next;
+        }
+
         st=ham_log_append_txn_commit(db_get_log(db), txn);
         if (st) 
             return (db_set_error(db, st));

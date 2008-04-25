@@ -52,11 +52,14 @@ __write_chunks(ham_db_t *db, ham_page_t *page,
 
             /*
              * fetch the page from the cache, if it's in the cache
+             * (unless we're logging - in this case always go through
+             * the buffered routines)
              */
             if (!page) {
+                ham_bool_t cacheonly=(my_blob_is_small(db, chunk_size[i]) 
+                                && !db_get_log(db));
                 page=db_fetch_page(db, pageid, 
-                        my_blob_is_small(db, chunk_size[i]) 
-                        ? 0 : DB_ONLY_FROM_CACHE);
+                        cacheonly ? 0 : DB_ONLY_FROM_CACHE);
                 /* blob pages don't have a page header */
                 if (page)
                     page_set_npers_flags(page, 
@@ -74,6 +77,8 @@ __write_chunks(ham_db_t *db, ham_page_t *page,
                         (ham_size_t)(db_get_pagesize(db)-writestart);
                 if (writesize>chunk_size[i])
                     writesize=chunk_size[i];
+                if ((st=ham_log_add_page_before(page)))
+                    return (st);
                 memcpy(&page_get_raw_payload(page)[writestart], chunk_data[i],
                             writesize);
                 page_set_dirty(page, 1);
@@ -87,6 +92,8 @@ __write_chunks(ham_db_t *db, ham_page_t *page,
                 /* limit to the next page boundary */
                 if (s>pageid+db_get_pagesize(db)-addr)
                     s=(ham_size_t)(pageid+db_get_pagesize(db)-addr);
+
+                ham_assert(db_get_log(db)==0, (""));
 
                 st=device->write(db, device, addr, chunk_data[i], s);
                 if (st)
@@ -285,9 +292,10 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
             return (db_get_error(db));
 
         /*
-         * if the blob is small, we load the page through the cache
+         * if the blob is small and logging is disabled: load the 
+         * page through the cache
          */
-        if (my_blob_is_small(db, alloc_size)) {
+        if (my_blob_is_small(db, alloc_size) && !db_get_log(db)) {
             page=db_alloc_page(db, PAGE_TYPE_B_INDEX, PAGE_IGNORE_FREELIST);
             if (!page)
                 return (db_get_error(db));
@@ -310,6 +318,8 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
                 aligned/=db_get_pagesize(db);
                 aligned*=db_get_pagesize(db);
             }
+
+            ham_assert(db_get_log(db)==0, (""));
 
             st=device->alloc(device, aligned, &addr);
             if (st) 
@@ -647,6 +657,9 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
         if (!page && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB))
             alloc_table=1;
     }
+
+    if ((st=ham_log_add_page_before(page)))
+        return (st);
 
     ham_assert(num_entries==1, (""));
 
