@@ -826,6 +826,9 @@ class LogHighLevelTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (singleEraseTest);
     CPPUNIT_TEST      (eraseMergeTest);
     CPPUNIT_TEST      (cursorOverwriteTest);
+    CPPUNIT_TEST      (singleBlobTest);
+    CPPUNIT_TEST      (largeBlobTest);
+    CPPUNIT_TEST      (insertDuplicateTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -843,7 +846,8 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         CPPUNIT_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", HAM_ENABLE_RECOVERY, 0644));
+                ham_create(m_db, ".test", 
+                    HAM_ENABLE_RECOVERY|HAM_ENABLE_DUPLICATES, 0644));
     }
     
     void tearDown() 
@@ -897,12 +901,14 @@ public:
             if (log_entry_get_lsn(&entry)==0)
                 break;
             
+            /*
             printf("lsn: %d, txn: %d, type: %d, offset: %d, size %d\n",
                         (int)log_entry_get_lsn(&entry),
                         (int)log_entry_get_txn_id(&entry),
                         (int)log_entry_get_type(&entry),
                         (int)log_entry_get_offset(&entry),
                         (int)log_entry_get_data_size(&entry));
+                        */
 
             // skip CHECKPOINTs, they are not interesting for our tests
             if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_CHECKPOINT)
@@ -1131,7 +1137,7 @@ public:
         compareLogs(&exp, &vec);
     }
 
-    void insert(const char *name, const char *data)
+    void insert(const char *name, const char *data, ham_u32_t flags=0)
     {
         ham_key_t key;
         ham_record_t rec;
@@ -1143,7 +1149,7 @@ public:
         rec.data=(void *)data;
         rec.size=strlen(data)+1;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, flags));
     }
 
     void erase(const char *name)
@@ -1381,15 +1387,83 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_close(m_db, HAM_DONT_CLEAR_LOG|HAM_AUTO_CLEANUP));
 
-        printf("_-----------\n");
         log_vector_t vec=readLog();
-        printf("_-----------\n");
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0, 0));
         exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
         exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
+        compareLogs(&exp, &vec);
+    }
+
+    void singleBlobTest(void)
+    {
+        ham_size_t ps=os_get_pagesize();
+        insert("a", "1111111110111111111011111111101111111110");
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        log_vector_t vec=readLog();
+        log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*2, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
+        compareLogs(&exp, &vec);
+    }
+
+    void largeBlobTest(void)
+    {
+        ham_size_t ps=os_get_pagesize();
+        char *p=(char *)malloc(ps/4);
+        memset(p, 'a', ps/4);
+        p[ps/4-1]=0;
+        insert("a", p);
+        free(p);
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        log_vector_t vec=readLog();
+        log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*2, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
+        compareLogs(&exp, &vec);
+    }
+
+    void insertDuplicateTest(void)
+    {
+        ham_size_t ps=os_get_pagesize();
+        insert("a", "1");
+        insert("a", "2", HAM_DUPLICATE);
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        log_vector_t vec=readLog();
+        log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*2, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0));
+
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
+        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));

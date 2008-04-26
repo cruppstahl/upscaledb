@@ -295,7 +295,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
          * if the blob is small and logging is disabled: load the 
          * page through the cache
          */
-        if (my_blob_is_small(db, alloc_size) && !db_get_log(db)) {
+        if (my_blob_is_small(db, alloc_size) || db_get_log(db)) {
             page=db_alloc_page(db, PAGE_TYPE_B_INDEX, PAGE_IGNORE_FREELIST);
             if (!page)
                 return (db_get_error(db));

@@ -142,9 +142,7 @@ o recovery/journalling
             x run tests (esp. acceptance tests)
             o add documentation (flag HAM_DISABLE_FREELIST_FLUSH is obsolete)
 
-        o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
-
-        o rewrite logging to be page-based
+        x rewrite logging to be page-based
             x remove previous logging usage
                 x freelist.c
                 x btree.c
@@ -154,7 +152,7 @@ o recovery/journalling
             x pages will be written as after-images during ham_txn_commit()
                 x implement
                 x unittests
-            o pages will be written as before-images before the first
+            x pages will be written as before-images before the first
                 access after startup or after a checkpoint
                 x in db.c when allocating a page
                     x implement
@@ -171,9 +169,9 @@ o recovery/journalling
                 x what happens in db_free_page(), when a page is deleted?
                     -> nothing, everything should work as expected
                 x also write tests with checkpoints!
-                o in blob.c when modifying/inserting a page
+                x in blob.c when modifying/inserting a page
                     x implement
-                    o unittests (make sure that huge blobs are not written
+                    x unittests (make sure that huge blobs are not written
                         directly to the file!)
 
                 x read-only transactions shouldn't write ANY log entry!
@@ -212,15 +210,14 @@ o recovery/journalling
         state is no longer valid! must we store the lsn in the database
         header?
 
-    o currently, checkpoints are written every 20 or so transactions;
-        try to find a better number
-
     o new error code HAM_LOG_INV_FILE_HEADER
         o add to ham_strerror
     o add documentation
 
     o new API function ham_set_checkpoint(), or extend ham_flush()
         with new flag HAM_SET_CHECKPOINT??
+
+o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
 
 o new API function to retrieve the flags of a database
 
