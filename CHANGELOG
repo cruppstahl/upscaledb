@@ -1,3 +1,7 @@
+Apr 26, 2008 - chris
+o The flag HAM_DISABLE_FREELIST_FLUSH is now deprecated; freelist operations
+    are no longer immediately flushed. 
+
 Apr 25, 2008 - chris
 o bugfix: when a cursor is overwritten (ham_cursor_overwrite), the modified
     page was never released from the cache
