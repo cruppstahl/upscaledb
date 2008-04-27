@@ -401,10 +401,7 @@ ham_env_create(ham_env_t *env, const char *filename,
  *            If the flag is not set, the cache is allowed to allocate
  *            more pages than the maximum cache size, but only if it's
  *            necessary and only for a short time.
- *       <li>@a HAM_DISABLE_FREELIST_FLUSH</li> Do not immediately write back
- *            modified freelist pages. Using this flag leads to small
- *            performance improvements, but may prove to be risky
- *            in case of a system crash or program crash.
+ *       <li>@a HAM_DISABLE_FREELIST_FLUSH</li> This flag is deprecated.
  *       <li>@a HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
  *            a given file at a given time. 
@@ -493,10 +490,7 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *            If the flag is not set, the cache is allowed to allocate
  *            more pages than the maximum cache size, but only if it's
  *            necessary and only for a short time.
- *       <li>@a HAM_DISABLE_FREELIST_FLUSH</li> Do not immediately write back
- *            modified freelist pages. Using this flag leads to small
- *            performance improvements, but may prove to be risky
- *            in case of a system crash or program crash.
+ *       <li>@a HAM_DISABLE_FREELIST_FLUSH</li> This flag is deprecated.
  *       <li>@a HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
  *            a given file at a given time.
@@ -855,10 +849,7 @@ ham_create(ham_db_t *db, const char *filename,
  *            If the flag is not set, the cache is allowed to allocate
  *            more pages than the maximum cache size, but only if it's
  *            necessary and only for a short time.
- *       <li>@a HAM_DISABLE_FREELIST_FLUSH</li> Do not immediately write back
- *            modified freelist pages. Using this flag leads to small
- *            performance improvements, but may prove to be risky
- *            in case of a system crash or program crash.
+ *       <li>@a HAM_DISABLE_FREELIST_FLUSH</li> This flag is deprecated.
  *       <li>@a HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
  *            a given file at a given time.
@@ -949,10 +940,7 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *            If the flag is not set, the cache is allowed to allocate
  *            more pages than the maximum cache size, but only if it's
  *            necessary and only for a short time.
- *       <li>@a HAM_DISABLE_FREELIST_FLUSH</li> Do not immediately write back
- *            modified freelist pages. Using this flag leads to small
- *            performance improvements, but may prove to be risky
- *            in case of a system crash or program crash.
+ *       <li>@a HAM_DISABLE_FREELIST_FLUSH</li> This flag is deprecated.
  *       <li>@a HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
  *            a given file at a given time.
@@ -1010,7 +998,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
 /** Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex */
 #define HAM_CACHE_STRICT             0x00000400
 
-/** Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex */
+/* Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex 
+ * (deprecated) */
 #define HAM_DISABLE_FREELIST_FLUSH   0x00000800
 
 /** Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex */

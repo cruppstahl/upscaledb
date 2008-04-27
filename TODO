@@ -137,10 +137,10 @@ o recovery/journalling
 
         ---------------- census! -------------------------------------
 
-        o remove transactions from freelist routines
+        x remove transactions from freelist routines
             x implement
             x run tests (esp. acceptance tests)
-            o add documentation (flag HAM_DISABLE_FREELIST_FLUSH is obsolete)
+            x add documentation (flag HAM_DISABLE_FREELIST_FLUSH is obsolete)
 
         x rewrite logging to be page-based
             x remove previous logging usage
@@ -194,7 +194,7 @@ o recovery/journalling
                 with HAM_AUTO_RECOVERY etc
             o after recovery, don't forget to clear both files and
                 reset lsn to 1!
-            o when the flag is found: open the main file, open the 
+            o when the db is "corrupt": open the main file, open the 
                 log files; avoid the cache, directly write to the file.
                 then close the database, and re-open everything from 
                 scratch
@@ -208,7 +208,7 @@ o recovery/journalling
         then opened *without* log, another few inserts, closed
         then opened *with* log, log is not empty -> recovery but logfile
         state is no longer valid! must we store the lsn in the database
-        header?
+        header? or is this a case of PEBCAC?
 
     o new error code HAM_LOG_INV_FILE_HEADER
         o add to ham_strerror
