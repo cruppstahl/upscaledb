@@ -748,6 +748,25 @@ ham_status_t
 ham_log_recover(ham_log_t *log, ham_device_t *device)
 {
     ham_status_t st;
+    log_txn_entry_t *txn_list=0;
+    ham_size_t txn_list_size=0;
+    log_flush_entry_t *flush_list=0;
+    ham_size_t flush_list_size=0;
+    ham_u64_t last_checkpoint=0;
+
+    /*
+     * walk forward through the log, build the transaction-list
+     * and the page-flush-list
+     */
+    st=ham_log_recover_prepare(log, &txn_list, &txn_list_size,
+            &flush_list, &flush_list_size, &last_checkpoint);
+    if (st)
+        return (st);
+
+    if (txn_list)
+        allocator_free(log_get_allocator(log), txn_list);
+    if (flush_list)
+        allocator_free(log_get_allocator(log), flush_list);
 
     /*
      * clear the log files and set the lsn to 1
@@ -761,5 +780,13 @@ ham_log_recover(ham_log_t *log, ham_device_t *device)
 
     log_set_lsn(log, 1);
     log_set_current_fd(log, 0);
+    return (0);
+}
+
+ham_status_t
+ham_log_recover_prepare(ham_log_t *log, log_txn_entry_t **txn_list, 
+        ham_size_t *txn_list_size, log_flush_entry_t **flush_list,
+        ham_size_t *flush_list_size, ham_u64_t *last_checkpoint)
+{
     return (0);
 }

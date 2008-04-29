@@ -403,6 +403,41 @@ ham_log_add_page_after_range(ham_page_t *page, ham_size_t offset,
 extern ham_status_t
 ham_log_recover(ham_log_t *log, ham_device_t *device);
 
+/*
+ * a PAGE_FLUSH entry; each entry stores the 
+ * page-ID and the lsn of the last flush of this page
+ */
+typedef struct
+{
+    ham_u64_t page_id;
+    ham_u64_t lsn;
+} log_flush_entry_t;
+
+/*
+ * a transaction entry; each entry stores the 
+ * txn-ID and the state of the txn - either committed or not (= aborted)
+ */
+typedef struct
+{
+    ham_u64_t txn_id;
+    int state; 
+} log_txn_entry_t;
+
+#define TXN_STATE_ABORTED       0
+#define TXN_STATE_COMMITTED     1
+
+/*
+ * build a list of all transactions and their state at the moment
+ * of the "crash", and a list of all pages
+ *
+ * actually an internal function, but it's externalized so the unittests
+ * can access it
+ */
+extern ham_status_t
+ham_log_recover_prepare(ham_log_t *log, log_txn_entry_t **txn_list, 
+        ham_size_t *txn_list_size, log_flush_entry_t **flush_list,
+        ham_size_t *flush_list_size, ham_u64_t *last_checkpoint);
+
 
 #ifdef __cplusplus
 } // extern "C"

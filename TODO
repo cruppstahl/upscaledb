@@ -198,11 +198,8 @@ o recovery/journalling
             x after recovery, don't forget to clear both files and
                 reset lsn to 1!
                 x unittests!
-            o when the db is "corrupt": open the main file, open the 
-                log files; avoid the cache, directly write to the file.
-                then close the database, and re-open everything from 
-                scratch
-            o log_entry_t currently has a field "prev_lsn" - really needed?
+            o walk forward through the log and build the transaction list
+                and the flushlist
 
         txnlist=[]
         flushlist=[]
@@ -253,6 +250,8 @@ o recovery/journalling
     o new error code HAM_LOG_INV_FILE_HEADER
         o add to ham_strerror
     o add documentation
+
+o log_entry_t currently has a field "prev_lsn" - really needed?
 
 o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
 
