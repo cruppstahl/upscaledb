@@ -824,6 +824,10 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
         return (HAM_INV_PARAMETER);
     }
 
+    /* flag HAM_AUTO_RECOVERY imples HAM_ENABLE_RECOVERY */
+    if (flags&HAM_AUTO_RECOVERY)
+        flags|=HAM_ENABLE_RECOVERY;
+
     /* cannot open an in-memory-db */
     if (flags&HAM_IN_MEMORY_DB) {
         ham_trace(("cannot open an in-memory database"));
@@ -910,8 +914,17 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
             }
             env_set_log(env, log);
             if (!isempty) {
-                (void)ham_env_close(env, 0);
-                return (HAM_NEED_RECOVERY);
+                if (flags&HAM_AUTO_RECOVERY) {
+                    st=ham_log_recover(log);
+                    if (st) {
+                        (void)ham_env_close(env, 0);
+                        return (st);
+                    }
+                }
+                else {
+                    (void)ham_env_close(env, 0);
+                    return (HAM_NEED_RECOVERY);
+                }
             }
         }
         else if (st && st==HAM_FILE_NOT_FOUND) {
@@ -1442,6 +1455,10 @@ ham_open_ex(ham_db_t *db, const char *filename,
 
     db_set_error(db, 0);
 
+    /* flag HAM_AUTO_RECOVERY imples HAM_ENABLE_RECOVERY */
+    if (flags&HAM_AUTO_RECOVERY)
+        flags|=HAM_ENABLE_RECOVERY;
+
     /* cannot open an in-memory-db */
     if (flags&HAM_IN_MEMORY_DB) {
         ham_trace(("cannot open an in-memory database"));
@@ -1582,8 +1599,17 @@ ham_open_ex(ham_db_t *db, const char *filename,
             }
             db_set_log(db, log);
             if (!isempty) {
-                (void)ham_close(db, 0);
-                return (db_set_error(db, HAM_NEED_RECOVERY));
+                if (flags&HAM_AUTO_RECOVERY) {
+                    st=ham_log_recover(log);
+                    if (st) {
+                        (void)ham_close(db, 0);
+                        return (db_set_error(db, st));
+                    }
+                }
+                else {
+                    (void)ham_close(db, 0);
+                    return (db_set_error(db, HAM_NEED_RECOVERY));
+                }
             }
         }
         else if (st && st==HAM_FILE_NOT_FOUND) {

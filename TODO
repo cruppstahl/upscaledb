@@ -188,12 +188,17 @@ o recovery/journalling
                         only if they are coupled!
 
         o recovery process
-            o new flag HAM_AUTO_RECOVERY - not allowed in combination
+            x new flag HAM_AUTO_RECOVERY - not allowed in combination
                 with HAM_READ_ONLY etc
-            o new flag HAM_IGNORE_RECOVERY - not allowed in combination
-                with HAM_AUTO_RECOVERY etc
+                x implies HAM_ENABLE_RECOVERY
+                x implement for ham_open(_ex), ham_env_open(_ex)
+            o unittests:    
+                o corrupt, w/o AUTO_RECOVERY -> NEED_RECOVERY
+                o corrupt, w AUTO_RECOVERY -> success
+                o corrupt, w AUTO_RECOVERY and broken log -> fail
             o after recovery, don't forget to clear both files and
                 reset lsn to 1!
+                o unittests!
             o when the db is "corrupt": open the main file, open the 
                 log files; avoid the cache, directly write to the file.
                 then close the database, and re-open everything from 
@@ -214,15 +219,21 @@ o recovery/journalling
         o add to ham_strerror
     o add documentation
 
-    o new API function ham_set_checkpoint(), or extend ham_flush()
-        with new flag HAM_SET_CHECKPOINT??
-
 o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
 
 o new API function to retrieve the flags of a database
 
 o more unittests for freel_alloc_page() (pimp
     freelist.cpp:markAllocAlignedTest)
+
+. HAM_AUTO_RECOVERY not allowed at ham_create(_ex), ham_env_create(_ex)
+    o unittests
+
+. new API function ham_set_checkpoint(), or extend ham_flush()
+    with new flag HAM_SET_CHECKPOINT??
+
+. new flag HAM_SKIP_RECOVERY - not allowed in combination
+    with HAM_AUTO_RECOVERY etc
 
 -----------------------------------------------------------------------------
 

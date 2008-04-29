@@ -743,3 +743,9 @@ ham_log_add_page_after_range(ham_page_t *page, ham_size_t offset,
                 (ham_u8_t *)page_get_raw_payload(page),
                 length));
 }
+
+ham_status_t
+ham_log_recover(ham_log_t *log)
+{
+    return (0);
+}
