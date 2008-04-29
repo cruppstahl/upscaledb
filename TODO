@@ -204,15 +204,51 @@ o recovery/journalling
                 scratch
             o log_entry_t currently has a field "prev_lsn" - really needed?
 
-        o ham_flush must insert checkpoint, if possible (-> if the
-            first logfile has no more open transactions)
+        txnlist=[]
+        flushlist=[]
+        checkpoint=0
 
-    o scenario: created with log, a few inserts; crash (dbfile is ok,
-        but logfile is not empty)
-        then opened *without* log, another few inserts, closed
-        then opened *with* log, log is not empty -> recovery but logfile
-        state is no longer valid! must we store the lsn in the database
-        header? or is this a case of PEBCAC?
+        for (i=0; i<log.size; i++)
+            entry e=log[i];
+            if e.type==TXN_BEGIN:
+                txnlist[e.txn_id]=ABORT;
+            if e.type==TXN_COMMIT:
+                txnlist[e.txn_id]=COMMIT;
+            if e.type==TXN_ABORT:
+                txnlist[e.txn_id]=ABORT;
+            if e.type==PAGE_FLUSH:
+                flushlist[e.page_id]=e.lsn
+            if e.type==CHECKPOINT:
+                checkpoint=e.lsn
+
+        for (i=log.size-1; i>=0; i--)
+            entry e=log[i];
+        
+            # this entry belongs to an aborted transaction - 
+            # undo this entry, if the affected page has already been flushed
+            if txnlist[e.txn_id]==ABORT:
+                if flushlist[e.page_id].lsn < e.lsn:
+                    continue
+                if (checkpoint and (flushlist[e.page_id] < checkpoint):
+                    continue
+                
+                # recreate the BEFORE-image of this page; move back to when
+                # this page was written by a committed Transaction OR to
+                # the last BEFORE-image, and write this page to the file
+                page=get_before_image(log, i, e)
+                write_page(page)
+
+            # this entry belongs to a committed transaction - 
+            # redo this entry, if the affected page has not yet been written
+            if txnlist[e.txn_id]==COMMIT:
+                if (e.lsn > flushlist[e.page_id].lsn) or (e.lsn > checkpoint):
+                    continue
+
+                # just write the page
+                page_get_after_image(log, e)
+                write_page(page)
+            
+
 
     o new error code HAM_LOG_INV_FILE_HEADER
         o add to ham_strerror
@@ -220,10 +256,21 @@ o recovery/journalling
 
 o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
 
-o new API function to retrieve the flags of a database
+o new API function to retrieve the flags of a database (ham_get_flags(db))
+    o also for environment? (ham_env_get_flags(env))
+    o unittests
+    o documentation
+    o add to samples/db2.c
 
-o more unittests for freel_alloc_page() (pimp
+. more unittests for freel_alloc_page() (pimp
     freelist.cpp:markAllocAlignedTest)
+
+. scenario: created with log, a few inserts; crash (dbfile is ok,
+    but logfile is not empty)
+    then opened *without* log, another few inserts, closed
+    then opened *with* log, log is not empty -> recovery but logfile
+    state is no longer valid! must we store the lsn in the database
+    header? or is this a case of PEBCAC?
 
 . HAM_AUTO_RECOVERY not allowed at ham_create(_ex), ham_env_create(_ex)
     o unittests
