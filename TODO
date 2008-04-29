@@ -200,6 +200,9 @@ o recovery/journalling
                 x unittests!
             o walk forward through the log and build the transaction list
                 and the flushlist
+            o walk backwards through the log and dump all actions which we
+                would process, so they can be compared by the unittests
+            
 
         txnlist=[]
         flushlist=[]
