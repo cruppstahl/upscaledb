@@ -745,7 +745,21 @@ ham_log_add_page_after_range(ham_page_t *page, ham_size_t offset,
 }
 
 ham_status_t
-ham_log_recover(ham_log_t *log)
+ham_log_recover(ham_log_t *log, ham_device_t *device)
 {
+    ham_status_t st;
+
+    /*
+     * clear the log files and set the lsn to 1
+     */
+    st=ham_log_clear(log);
+    if (st) {
+        ham_log(("unable to clear logfiles; please manually delete the "
+                "log files before re-opening the Database"));
+        return (st);
+    }
+
+    log_set_lsn(log, 1);
+    log_set_current_fd(log, 0);
     return (0);
 }

@@ -192,13 +192,12 @@ o recovery/journalling
                 with HAM_READ_ONLY etc
                 x implies HAM_ENABLE_RECOVERY
                 x implement for ham_open(_ex), ham_env_open(_ex)
-            o unittests:    
-                o corrupt, w/o AUTO_RECOVERY -> NEED_RECOVERY
-                o corrupt, w AUTO_RECOVERY -> success
-                o corrupt, w AUTO_RECOVERY and broken log -> fail
-            o after recovery, don't forget to clear both files and
+            x unittests:    
+                x "corrupt", w/o AUTO_RECOVERY -> NEED_RECOVERY
+                x "corrupt", w AUTO_RECOVERY -> success
+            x after recovery, don't forget to clear both files and
                 reset lsn to 1!
-                o unittests!
+                x unittests!
             o when the db is "corrupt": open the main file, open the 
                 log files; avoid the cache, directly write to the file.
                 then close the database, and re-open everything from 
@@ -234,6 +233,12 @@ o more unittests for freel_alloc_page() (pimp
 
 . new flag HAM_SKIP_RECOVERY - not allowed in combination
     with HAM_AUTO_RECOVERY etc
+
+. unittests should not fail if compiled with NO_COMPRESSION
+
+. unittests should not fail if compiled with NO_ENCRYPTION
+
+. new configure switch --force-lsb-compliancy (ohne pread, pwrite)
 
 -----------------------------------------------------------------------------
 

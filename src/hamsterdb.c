@@ -915,7 +915,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
             env_set_log(env, log);
             if (!isempty) {
                 if (flags&HAM_AUTO_RECOVERY) {
-                    st=ham_log_recover(log);
+                    st=ham_log_recover(log, env_get_device(env));
                     if (st) {
                         (void)ham_env_close(env, 0);
                         return (st);
@@ -1600,7 +1600,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
             db_set_log(db, log);
             if (!isempty) {
                 if (flags&HAM_AUTO_RECOVERY) {
-                    st=ham_log_recover(log);
+                    st=ham_log_recover(log, db_get_device(db));
                     if (st) {
                         (void)ham_close(db, 0);
                         return (db_set_error(db, st));

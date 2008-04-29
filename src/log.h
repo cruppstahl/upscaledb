@@ -22,6 +22,7 @@ extern "C" {
 
 #include <ham/types.h>
 #include "mem.h"
+#include "device.h"
 
 struct ham_txn_t;
 struct ham_page_t;
@@ -400,7 +401,7 @@ ham_log_add_page_after_range(ham_page_t *page, ham_size_t offset,
  * do the recovery
  */
 extern ham_status_t
-ham_log_recover(ham_log_t *log);
+ham_log_recover(ham_log_t *log, ham_device_t *device);
 
 
 #ifdef __cplusplus
