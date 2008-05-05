@@ -21,171 +21,19 @@ o recovery/journalling
     o implement
         x identify code which needs logging
         x write logging module - with full unittest coverage!
-            x when deleting logfiles: truncate to sizeof(header)!
-            x txn must track the logfile it is writing to
-                -> decide in txn_begin
-            x log: count number of open/closed transactions in each file
-                x unittest!
-            x unittest: swap files when having more than 20 transactions
-            x unittest: make sure that the transaction writes to the 
-                correct file
-            x decide when to make a checkpoint
-                x my_log_checkpoint() must call ham_flush
-                x after a checkpoint: clear the older file, swap file 
-                    descriptors
-                    x unittest!
-
-            x implement remaining functions
-                x LOG_ENTRY_TYPE_CHECKPOINT
-                    x unittest!
-                x LOG_ENTRY_TYPE_FLUSH_PAGE
-                    x unittest!
-                x LOG_ENTRY_TYPE_WRITE
-                    x unittest!
-                x LOG_ENTRY_TYPE_OVERWRITE
-                    x unittest!
-                x test with valgrind
-
-            x fix TODOs in log.h/log.c (and assert the fixes with unittests)
-
         x recovery process/logfile iteration
-            x when opening the log files: decide which file is "older"
-                -> check the lsn's
-                -> "older" file becomes file[0]
-                    x unittests!
-            x iterate backwards over the two file(s) - needs changes in
-                the file format; the header of an entry must be stored
-                AFTER the entry itself
-                x test with multiple entries
-                    x with empty log
-                    x with just one entry
-                    x with multiple entries
-                    x after file swapping
-                    x after second file swapping
-                    x with data
-                x when opening logfiles: read the LAST bytes to get the
-                    lsn, don't read from the beginning!
-                    x unittests
-
         x new flag HAM_ENABLE_RECOVERY for ham_create und ham_open
-            x don't allow in combination with HAM_IN_MEMORY_DB and
-                HAM_DISABLE_FREELIST_FLUSH and HAM_WRITE_THROUGH
-            x non-persistent flag!
-            x for db-functions (ham_create_ex, ham_open_ex)
-                x unittests
-            x for env-functions (ham_env_create_ex, ham_env_open_ex)
-                x unittests
-
-        x env: must store filename and filemode
-            x filename must be released!
-            x unittests
-
-        x completely decouple log from db or env
-            x need allocator instead of ham_db_t object for creation
-            x fix everything else
-            x fix unittests
-
         x need new error code HAM_NEEDS_RECOVERY
-
         x if log is enabled, create a log object
-            x ham_create_ex
-                x implement
-                x unittest
-            x ham_env_create_ex
-                x implement
-                x unittest
-            x ham_open_ex
-                x logfile must be created if it does not (yet) exist
-                x must fail if logfile is not empty (will need recovery!)
-                x unittest
-            x ham_env_open_ex
-                x file must be created if it does not (yet) exist
-                x must fail if logfile is not empty (will need recovery!)
-                x unittest
-
         x if log is enabled, close the log
-            x ham_close
-                x implement
-                x unittest
-            x ham_env_close
-                x implement
-                x unittest
-
         x add log-entries to all operations
-            x need an idea how to test these!
-                x need a (undocumented) flag for ham_close which does not 
-                    delete the logfile on close (ham_log_close(log, TRUE))
-                x each unittest creates a vector<log_entry_t> with the
-                    expected logfile entries
-                x it then executes the database commands and then reads 
-                    the logfile to a vector
-                x and then compares the logfile with the vector
-            x ham_txn_begin
-            x ham_txn_abort
-            x ham_txn_commit
-            x btree.c: my_fun_create
-            x btree.c: my_fun_flush
-            x hamsterdb.c:ham_create_ex/ham_env_create_ex
-            x hamsterdb.c:ham_env_erase_db
-            x db.c:db_flush_page
-            x freelist.c:__freel_alloc_page
-            x freelist.c:__freel_lazy_create
-            x freelist.c:__freel_alloc_area
-            x freelist.c:__freel_mark_free
-            x db.c:db_alloc_page
-            x freelist: add negative test (must abort txn)
-
-        ---------------- census! -------------------------------------
-
         x remove transactions from freelist routines
-            x implement
-            x run tests (esp. acceptance tests)
-            x add documentation (flag HAM_DISABLE_FREELIST_FLUSH is obsolete)
-
         x rewrite logging to be page-based
-            x remove previous logging usage
-                x freelist.c
-                x btree.c
-                x hamsterdb.c
-                x btree_insert.c
-            
-            x pages will be written as after-images during ham_txn_commit()
-                x implement
-                x unittests
-            x pages will be written as before-images before the first
-                access after startup or after a checkpoint
-                x in db.c when allocating a page
-                    x implement
-                    x unittests
-                x in btree_insert.c when modifying a page
-                    x implement
-                    x unittests
-                x in btree_erase.c when modifying a page
-                    x implement
-                    x unittests
-                x in btree_cursor.c when overwriting a record
-                    x implement
-                    x unittests
-                x what happens in db_free_page(), when a page is deleted?
-                    -> nothing, everything should work as expected
-                x also write tests with checkpoints!
-                x in blob.c when modifying/inserting a page
-                    x implement
-                    x unittests (make sure that huge blobs are not written
-                        directly to the file!)
 
-                x read-only transactions shouldn't write ANY log entry!
-                    -> will change LogHighLevelTest::cursorOverwriteTest
-
-                x BUG:
-                    ham_cursor_c c; ...
-                    c.move_first();
-                    c.overwrite(); -> will create a new transaction object,
-                        take the coupled page, modify it and set it to dirty,
-                        BUT the page is not part of the txn and therefore
-                        not released!
-                        affects: cursor_overwrite, cursor_erase NOT!!
-                        only if they are coupled!
+        o ham_txn_abort: make sure that deleted pages are no longer deleted,
+            modified pages are discarded, unmodified pages just go back to 
+            the pool
+            o unittests
 
         o recovery process
             x new flag HAM_AUTO_RECOVERY - not allowed in combination
@@ -198,57 +46,9 @@ o recovery/journalling
             x after recovery, don't forget to clear both files and
                 reset lsn to 1!
                 x unittests!
-            o walk forward through the log and build the transaction list
-                and the flushlist
-            o walk backwards through the log and dump all actions which we
-                would process, so they can be compared by the unittests
-            
-
-        txnlist=[]
-        flushlist=[]
-        checkpoint=0
-
-        for (i=0; i<log.size; i++)
-            entry e=log[i];
-            if e.type==TXN_BEGIN:
-                txnlist[e.txn_id]=ABORT;
-            if e.type==TXN_COMMIT:
-                txnlist[e.txn_id]=COMMIT;
-            if e.type==TXN_ABORT:
-                txnlist[e.txn_id]=ABORT;
-            if e.type==PAGE_FLUSH:
-                flushlist[e.page_id]=e.lsn
-            if e.type==CHECKPOINT:
-                checkpoint=e.lsn
-
-        for (i=log.size-1; i>=0; i--)
-            entry e=log[i];
-        
-            # this entry belongs to an aborted transaction - 
-            # undo this entry, if the affected page has already been flushed
-            if txnlist[e.txn_id]==ABORT:
-                if flushlist[e.page_id].lsn < e.lsn:
-                    continue
-                if (checkpoint and (flushlist[e.page_id] < checkpoint):
-                    continue
-                
-                # recreate the BEFORE-image of this page; move back to when
-                # this page was written by a committed Transaction OR to
-                # the last BEFORE-image, and write this page to the file
-                page=get_before_image(log, i, e)
-                write_page(page)
-
-            # this entry belongs to a committed transaction - 
-            # redo this entry, if the affected page has not yet been written
-            if txnlist[e.txn_id]==COMMIT:
-                if (e.lsn > flushlist[e.page_id].lsn) or (e.lsn > checkpoint):
-                    continue
-
-                # just write the page
-                page_get_after_image(log, e)
-                write_page(page)
-            
-
+            o walk backwards through the log and undo all actions which were
+                not committed, but flushed, and redo all actions which were
+                committed, but not flushed
 
     o new error code HAM_LOG_INV_FILE_HEADER
         o add to ham_strerror
@@ -264,8 +64,7 @@ o new API function to retrieve the flags of a database (ham_get_flags(db))
     o documentation
     o add to samples/db2.c
 
-. more unittests for freel_alloc_page() (pimp
-    freelist.cpp:markAllocAlignedTest)
+. more unittests for freel_alloc_page() (pimp freelist.cpp:markAllocAlignedTest)
 
 . scenario: created with log, a few inserts; crash (dbfile is ok,
     but logfile is not empty)
