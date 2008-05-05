@@ -1,3 +1,9 @@
+May 06, 2008 - chris
+o When creating an environment with ham_env_create_ex and a custom
+	page size, the page size was not stored correctly
+o An assert was sometimes triggered when closing a Database which was part
+	of an Environment
+
 Apr 26, 2008 - chris
 o The flag HAM_DISABLE_FREELIST_FLUSH is now deprecated; freelist operations
     are no longer immediately flushed. 

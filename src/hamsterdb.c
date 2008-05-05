@@ -617,6 +617,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
             return (HAM_OUT_OF_MEMORY);
 
         env_set_device(env, device);
+        device_set_pagesize(device, pagesize);
 
         /* 
          * create the file 
@@ -1420,7 +1421,8 @@ ham_delete(ham_db_t *db)
     /* close the allocator */
     if (db_get_allocator(db)) {
         db_get_allocator(db)->close(db_get_allocator(db));
-        db_set_allocator(db, 0);
+        if (!db_get_env(db))
+            db_set_allocator(db, 0);
     }
 
     /* "free" all remaining memory */
