@@ -30,14 +30,10 @@ o recovery/journalling
         x remove transactions from freelist routines
         x rewrite logging to be page-based
 
-        o ham_txn_abort: make sure that deleted pages are no longer deleted,
-            modified pages are discarded, unmodified pages just go back to 
-            the pool
+        o ham_txn_abort: if a page is dirty, walk backwards through the log
+            and fetch the first before-image (or after-image of a committed
+            txn) and overwrite the page
             o unittests
-                o deleted page (not dirty) -> undeleted, still in cache
-                o deleted page (dirty) -> released, removed from cache
-                o page (not dirty) -> still in cache
-                o page (dirty) -> released, removed from cache
 
         o recovery process
             x new flag HAM_AUTO_RECOVERY - not allowed in combination
@@ -58,25 +54,8 @@ o recovery/journalling
         o add to ham_strerror
     o add documentation
 
-o checked in the following diff:
-        --- hamsterdb.c (Revision 1082)
-        +++ hamsterdb.c (Arbeitskopie)
-        @@ -617,6 +617,7 @@
-                 env_set_device(env, device);
-        +        device_set_pagesize(device, pagesize);
-
-        @@ -1420,7 +1421,8 @@
-             /* close the allocator */
-             if (db_get_allocator(db)) {
-                 db_get_allocator(db)->close(db_get_allocator(db));
-        -        db_set_allocator(db, 0);
-        +        if (!db_get_env(db))
-        +            db_set_allocator(db, 0);
-    make intermediate release?
-    o add unittests - ham_env_create_ex with different pagesize; insert
-        database/data, reopen it
-
 o log_entry_t currently has a field "prev_lsn" - really needed?
+    if not, remove it
 
 o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
 
