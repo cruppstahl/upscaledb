@@ -1,19 +1,26 @@
-May 06, 2008 - chris
-o When creating an environment with ham_env_create_ex and a custom
-	page size, the page size was not stored correctly
-o An assert was sometimes triggered when closing a Database which was part
-	of an Environment
 
-Apr 26, 2008 - chris
+May 11, 2008 - chris
 o The flag HAM_DISABLE_FREELIST_FLUSH is now deprecated; freelist operations
     are no longer immediately flushed. 
+
+May 11, 2008 - chris
+o minor documentation fixes (mainly grammar releated) in ham/hamsterdb.h
+
+May 10, 2008 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.2
+
+May 06, 2008 - chris
+o added new API function ham_get_flags()
+
+May 06, 2008 - chris
+o When creating an environment with ham_env_create_ex and a custom
+    page size, the page size was not stored correctly
+o An assert was sometimes triggered when closing a Database which was part
+    of an Environment
 
 Apr 25, 2008 - chris
 o bugfix: when a cursor is overwritten (ham_cursor_overwrite), the modified
     page was never released from the cache
-
-Mar 16, 2008 - chris
-o minor documentation fixes (mainly grammar releated) in ham/hamsterdb.h
 
 Mar 09, 2008 - chris ---------------------------------------------------
                       release of hamsterdb-1.0.1
