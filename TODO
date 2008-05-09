@@ -8,11 +8,14 @@ x a finished TODO item
 -----------------------------------------------------------------------------
 
 o new web page
-    o add licensing stuff (need license in German, too!)
-    x integrate online-shop
+    o frontpage picture: replace "embeddable" with "embedded"
+    o translate license to german
+    o update documentation for C/C++
     o add google analytics code
     o add google sitemap
-    o check roadmap.txt for other TODO items
+
+    o add documentation for Java
+    o add documentation for .NET (chm file)
 
 o recovery/journalling
     x design functionality 

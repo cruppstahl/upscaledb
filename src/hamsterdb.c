@@ -3652,3 +3652,12 @@ ham_cursor_get_database(ham_cursor_t *cursor)
     else
         return (0);
 }
+
+ham_u32_t
+ham_get_flags(ham_db_t *db)
+{
+    if (db)
+        return (db_get_rt_flags(db));
+    else
+        return (0);
+}
