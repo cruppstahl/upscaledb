@@ -638,13 +638,15 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     env_set_cachesize(env, cachesize);
     env_set_max_databases(env, maxdbs);
     env_set_file_mode(env, mode);
-    env_set_filename(env, 
+    if (filename) {
+        env_set_filename(env, 
                 allocator_alloc(env_get_allocator(env), strlen(filename)+1));
-    if (!env_get_filename(env)) {
-        (void)ham_env_close(env, 0);
-        return (HAM_OUT_OF_MEMORY);
+        if (!env_get_filename(env)) {
+            (void)ham_env_close(env, 0);
+            return (HAM_OUT_OF_MEMORY);
+        }
+        strcpy((char *)env_get_filename(env), filename);
     }
-    strcpy((char *)env_get_filename(env), filename);
 
     return (HAM_SUCCESS);
 }
@@ -891,13 +893,15 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
     env_set_rt_flags(env, flags);
     env_set_max_databases(env, maxdbs);
     env_set_file_mode(env, 0644);
-    env_set_filename(env, 
+    if (filename) {
+        env_set_filename(env, 
                 allocator_alloc(env_get_allocator(env), strlen(filename)+1));
-    if (!env_get_filename(env)) {
-        (void)ham_env_close(env, 0);
-        return (HAM_OUT_OF_MEMORY);
+        if (!env_get_filename(env)) {
+            (void)ham_env_close(env, 0);
+            return (HAM_OUT_OF_MEMORY);
+        }
+        strcpy((char *)env_get_filename(env), filename);
     }
-    strcpy((char *)env_get_filename(env), filename);
 
     /*
      * open the logfile and check if we need recovery
