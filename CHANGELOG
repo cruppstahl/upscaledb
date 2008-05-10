@@ -1,12 +1,16 @@
-
 May 11, 2008 - chris
+o Bugfix: when creating an in-memory environment with a NULL-pointer as 
+    filename, this pointer was dereferenced, which resulted in a segmentation
+    fault
+
+May 10, 2008 - chris
 o The flag HAM_DISABLE_FREELIST_FLUSH is now deprecated; freelist operations
     are no longer immediately flushed. 
 
-May 11, 2008 - chris
+May 10, 2008 - chris
 o minor documentation fixes (mainly grammar releated) in ham/hamsterdb.h
 
-May 10, 2008 - chris ---------------------------------------------------
+May 09, 2008 - chris ---------------------------------------------------
                       release of hamsterdb-1.0.2
 
 May 06, 2008 - chris
