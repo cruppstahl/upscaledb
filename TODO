@@ -8,14 +8,18 @@ x a finished TODO item
 -----------------------------------------------------------------------------
 
 o new web page
-    o frontpage picture: replace "embeddable" with "embedded"
-    o translate license to german
-    o update documentation for C/C++
+    x translate license to german
+    x frontpage picture: replace "embeddable" with "embedded"
+    o for the last time: check all links
+
     o add google analytics code
     o add google sitemap
-
+    o update documentation for C/C++
     o add documentation for Java
     o add documentation for .NET (chm file)
+    o add samples for Java
+    o add samples for .NET
+    o add samples for Python
 
 o recovery/journalling
     x design functionality 
@@ -93,11 +97,6 @@ o new API function to retrieve the flags of a database (ham_get_flags(db))
 . new configure switch --force-lsb-compliancy (ohne pread, pwrite)
 
 -----------------------------------------------------------------------------
-
-. Python wrapper 
-    -> http://docs.python.org/ext/ext.html
-    -> http://www.python.org/doc/faq/extending/
-    -> http://docs.python.org/dist/dist.html
 
 . Perl wrapper
 
