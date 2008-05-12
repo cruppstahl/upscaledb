@@ -10,11 +10,15 @@ x a finished TODO item
 o new web page
     x translate license to german
     x frontpage picture: replace "embeddable" with "embedded"
-    o for the last time: check all links
-
-    o add google analytics code
+    x for the last time: check all links
+    -> go online!
+    x update documentation for C/C++
+    x add google analytics code
+    x add blog entry
     o add google sitemap
-    o update documentation for C/C++
+    o add news entry
+
+    o update samples for C/C++ (if necessary)
     o add documentation for Java
     o add documentation for .NET (chm file)
     o add samples for Java
@@ -40,6 +44,18 @@ o recovery/journalling
         o ham_txn_abort: if a page is dirty, walk backwards through the log
             and fetch the first before-image (or after-image of a committed
             txn) and overwrite the page
+
+            for (i=log.size-1; i>=0; i--)
+                entry e=log[i]
+                if (e.type==TXN_COMMIT)
+                    txnlist[e.txnid]=1
+                if (e.type==IMG_BEFORE 
+                        && e.page_id=page_id)
+                    # hit - use this page!
+                if (e.type==IMG_AFTER 
+                        && e.page_id=page_id 
+                        && txnlist[e.txnid]==1)
+                    # hit - use this page!
             o unittests
 
         o recovery process
