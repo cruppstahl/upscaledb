@@ -57,6 +57,19 @@ o recovery/journalling
                         && txnlist[e.txnid]==1)
                     # hit - use this page!
             o unittests
+                o create page; write before-image; modify page, write
+                    after-image; modify again, revoke change; make sure
+                    that the second modification was removed, but the first
+                    modification is persistent
+                o create db; insert key; create txn; modify page with the first
+                    key; abort txn; make sure that the original inserted key
+                    is still valid, but the second modification is not 
+
+            o make sure that a page is never written to disk before it is
+                released from the transaction (assert refcount==0 in 
+                page_flush, and run the full monster.sh test!)
+
+            o enhance test tool and monster.sh to run with recovery enabled
 
         o recovery process
             x new flag HAM_AUTO_RECOVERY - not allowed in combination
