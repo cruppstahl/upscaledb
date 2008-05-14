@@ -84,10 +84,20 @@ o log_entry_t currently has a field "prev_lsn" - really needed?
 o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
 
 o new API function to retrieve the flags of a database (ham_get_flags(db))
-    o also for environment? (ham_env_get_flags(env))
-    o unittests
+    x unittest
     o documentation
     o add to samples/db2.c
+
+o ham_txn_abort: when a txn is committed, a page can remain dirty (if it's
+    not immediately flushed). if the following txn does not modify this
+    page, but fetches it nevertheless, it's still dirty and the changes
+    are revoked. i.e.
+    insert("a", "123")
+    insert("a", "234") -> fails because of duplicate key; but the page is
+        in the txn and dirty, therefore it's undone -> costs performance
+    o store txnid of the transaction which actually dirtied the page
+    o when aborting: only revoke if the current transaction was the one
+        which dirtied the page
 
 . more unittests for freel_alloc_page() (pimp freelist.cpp:markAllocAlignedTest)
 
