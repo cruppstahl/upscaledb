@@ -18,6 +18,7 @@
 
 #define LOG_DEFAULT_THRESHOLD   64
 
+
 static ham_size_t 
 my_get_alligned_entry_size(ham_size_t data_size)
 {
@@ -199,11 +200,10 @@ ham_log_open(mem_allocator_t *alloc, const char *dbpath, ham_u32_t flags,
             lsn[i]=0;
     }
 
-    if (lsn[1]<lsn[0]) {
+    if (lsn[1]>lsn[0]) {
         ham_fd_t temp=log_get_fd(log, 0);
         log_set_fd(log, 0, log_get_fd(log, 1));
         log_set_fd(log, 1, temp);
-        log_set_current_fd(log, 1);
     }
 
     *plog=log;
@@ -232,10 +232,11 @@ ham_log_is_empty(ham_log_t *log, ham_bool_t *isempty)
 }
 
 ham_status_t
-ham_log_append_entry(ham_log_t *log, int fdidx, void *entry, ham_size_t size)
+ham_log_append_entry(ham_log_t *log, int fdidx, log_entry_t *entry, 
+        ham_size_t size)
 {
     ham_status_t st;
-   
+
     st=os_write(log_get_fd(log, fdidx), entry, size);
     if (st)
         return (st);
@@ -448,7 +449,7 @@ ham_log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
 
     st=ham_log_append_entry(log, 
                     txn ? txn_get_log_desc(txn) : log_get_current_fd(log), 
-                    alloc_buf, alloc_size);
+                    (log_entry_t *)alloc_buf, alloc_size);
     allocator_free(log_get_allocator(log), alloc_buf);
     if (st)
         return (st);
@@ -483,7 +484,7 @@ ham_log_append_prewrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
 
     st=ham_log_append_entry(log, 
                     txn ? txn_get_log_desc(txn) : log_get_current_fd(log), 
-                    alloc_buf, alloc_size);
+                    (log_entry_t *)alloc_buf, alloc_size);
     allocator_free(log_get_allocator(log), alloc_buf);
     if (st)
         return (st);
@@ -517,7 +518,7 @@ ham_log_append_overwrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
 
     st=ham_log_append_entry(log, 
             txn ? txn_get_log_desc(txn) : log_get_current_fd(log), 
-            alloc_buf, alloc_size);
+            (log_entry_t *)alloc_buf, alloc_size);
     allocator_free(log_get_allocator(log), alloc_buf);
     if (st)
         return (st);
@@ -548,24 +549,24 @@ ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
     *data=0;
 
     /*
-     * if state is 0: start from the end of the second file
+     * start with the current file
      */
     if (!iter->_offset) {
-        iter->_fdidx=1;
+        iter->_fdstart=iter->_fdidx=log_get_current_fd(log);
         st=os_get_filesize(log_get_fd(log, iter->_fdidx), &iter->_offset);
         if (st)
             return (st);
     }
 
     /* 
-     * if the current file is empty: try to continue with the older file
+     * if the current file is empty: try to continue with the other file
      */
     if (iter->_offset<=sizeof(log_header_t)) {
-        if (iter->_fdidx==0) {
+        if (iter->_fdidx!=iter->_fdstart) {
             log_entry_set_lsn(entry, 0);
             return (0);
         }
-        iter->_fdidx=0;
+        iter->_fdidx=(iter->_fdidx==0 ? 1 : 0);
         st=os_get_filesize(log_get_fd(log, iter->_fdidx), &iter->_offset);
         if (st)
             return (st);
@@ -747,8 +748,8 @@ ham_log_add_page_after_range(ham_page_t *page, ham_size_t offset,
 ham_status_t
 ham_log_recover(ham_log_t *log, ham_device_t *device)
 {
-#if 0
     ham_status_t st;
+#if 0
     log_txn_entry_t *txn_list=0;
     ham_size_t txn_list_size=0;
     log_flush_entry_t *flush_list=0;
@@ -768,6 +769,7 @@ ham_log_recover(ham_log_t *log, ham_device_t *device)
         allocator_free(log_get_allocator(log), txn_list);
     if (flush_list)
         allocator_free(log_get_allocator(log), flush_list);
+#endif
 
     /*
      * clear the log files and set the lsn to 1
@@ -781,14 +783,13 @@ ham_log_recover(ham_log_t *log, ham_device_t *device)
 
     log_set_lsn(log, 1);
     log_set_current_fd(log, 0);
-#endif
     return (0);
 }
 
 ham_status_t
 ham_log_recreate(ham_log_t *log, ham_page_t *page)
 {
-    int i;
+    int i, found=0;
     ham_status_t st=0;
     log_iterator_t iter;
     log_entry_t entry;
@@ -806,11 +807,15 @@ ham_log_recreate(ham_log_t *log, ham_page_t *page)
     while (1) {
         if ((st=ham_log_get_entry(log, &iter, &entry, &data)))
             goto bail;
+        
+        if (log_entry_get_lsn(&entry)==0)
+            break;
 
         /* a before-image */
         if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_PREWRITE
                     && log_entry_get_offset(&entry)==page_get_self(page)) {
             memcpy(page_get_raw_payload(page), data, db_get_pagesize(db));
+            found=1;
             break;
         }
         /* an after-image; currently, only after-images of committed
@@ -818,6 +823,7 @@ ham_log_recreate(ham_log_t *log, ham_page_t *page)
         else if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_WRITE
                     && log_entry_get_offset(&entry)==page_get_self(page)) {
             memcpy(page_get_raw_payload(page), data, db_get_pagesize(db));
+            found=1;
             break;
         }
 
@@ -826,6 +832,8 @@ ham_log_recreate(ham_log_t *log, ham_page_t *page)
             data=0;
         }
     }
+
+    ham_assert(found, (""));
 
     /*
      * done - reset the file pointer to EOF

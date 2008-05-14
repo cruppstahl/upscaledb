@@ -56,8 +56,8 @@ __write_chunks(ham_db_t *db, ham_page_t *page,
              * the buffered routines)
              */
             if (!page) {
-                ham_bool_t cacheonly=(my_blob_is_small(db, chunk_size[i]) 
-                                && !db_get_log(db));
+                ham_bool_t cacheonly=(db_get_log(db)
+                                || my_blob_is_small(db, chunk_size[i])); 
                 page=db_fetch_page(db, pageid, 
                         cacheonly ? 0 : DB_ONLY_FROM_CACHE);
                 /* blob pages don't have a page header */
@@ -292,10 +292,9 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
             return (db_get_error(db));
 
         /*
-         * if the blob is small and logging is disabled: load the 
-         * page through the cache
+         * if the blob is small: load the page through the cache
          */
-        if (my_blob_is_small(db, alloc_size) || db_get_log(db)) {
+        if (my_blob_is_small(db, alloc_size)) {
             page=db_alloc_page(db, PAGE_TYPE_B_INDEX, PAGE_IGNORE_FREELIST);
             if (!page)
                 return (db_get_error(db));
@@ -309,7 +308,8 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
             blob_set_alloc_size(&hdr, alloc_size);
         }
         /*
-         * otherwise use direct IO to allocate the space
+         * otherwise use direct IO to allocate the space (in this case
+         * we can ignore the log since nothing is overwritten)
          */
         else {
             ham_size_t aligned=alloc_size;
@@ -318,8 +318,6 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
                 aligned/=db_get_pagesize(db);
                 aligned*=db_get_pagesize(db);
             }
-
-            ham_assert(db_get_log(db)==0, (""));
 
             st=device->alloc(device, aligned, &addr);
             if (st) 

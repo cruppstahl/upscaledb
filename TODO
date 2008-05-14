@@ -41,35 +41,23 @@ o recovery/journalling
         x remove transactions from freelist routines
         x rewrite logging to be page-based
 
-        o ham_txn_abort: if a page is dirty, walk backwards through the log
+        x ham_txn_abort: if a page is dirty, walk backwards through the log
             and fetch the first before-image (or after-image of a committed
             txn) and overwrite the page
-
-            for (i=log.size-1; i>=0; i--)
-                entry e=log[i]
-                if (e.type==TXN_COMMIT)
-                    txnlist[e.txnid]=1
-                if (e.type==IMG_BEFORE 
-                        && e.page_id=page_id)
-                    # hit - use this page!
-                if (e.type==IMG_AFTER 
-                        && e.page_id=page_id 
-                        && txnlist[e.txnid]==1)
-                    # hit - use this page!
-            o unittests
-                o create page; write before-image; modify page, write
+            x unittests
+                x create page; write before-image; modify page, write
                     after-image; modify again, revoke change; make sure
                     that the second modification was removed, but the first
                     modification is persistent
-                o create db; insert key; create txn; modify page with the first
+                x create db; insert key; create txn; modify page with the first
                     key; abort txn; make sure that the original inserted key
                     is still valid, but the second modification is not 
 
-            o make sure that a page is never written to disk before it is
+            x make sure that a page is never written to disk before it is
                 released from the transaction (assert refcount==0 in 
                 page_flush, and run the full monster.sh test!)
 
-            o enhance test tool and monster.sh to run with recovery enabled
+            x enhance test tool and monster.sh to run with recovery enabled
 
         o recovery process
             x new flag HAM_AUTO_RECOVERY - not allowed in combination

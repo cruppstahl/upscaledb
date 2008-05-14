@@ -261,6 +261,8 @@ page_flush(ham_page_t *page)
     if (!page_is_dirty(page))
         return (HAM_SUCCESS);
 
+    ham_assert(page_get_refcount(page)==0, (""));
+
     if (db_get_log(db) 
             && !(log_get_state(db_get_log(db))&LOG_STATE_CHECKPOINT)) {
         st=ham_log_append_flush_page(db_get_log(db), page);

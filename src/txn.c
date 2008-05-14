@@ -218,7 +218,7 @@ ham_txn_abort(ham_txn_t *txn)
             st=ham_log_recreate(db_get_log(db), head);
             if (st)
                 return (st);
-            page_set_dirty(head, 0);
+            /*page_set_dirty(head, 0);*/
         }
 
         /* page is no longer in use */

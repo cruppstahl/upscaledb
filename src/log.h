@@ -272,7 +272,8 @@ ham_log_is_empty(ham_log_t *log, ham_bool_t *isempty);
  * appends an entry to the log
  */
 extern ham_status_t
-ham_log_append_entry(ham_log_t *log, int fdidx, void *entry, ham_size_t size);
+ham_log_append_entry(ham_log_t *log, int fdidx, log_entry_t *entry, 
+        ham_size_t size);
 
 /*
  * append a log entry for LOG_ENTRY_TYPE_TXN_BEGIN
@@ -352,6 +353,9 @@ typedef struct {
 
     /* selects the file descriptor */
     ham_u32_t _fdidx;
+
+    /* which file descriptor did we start with? */
+    ham_u32_t _fdstart;
 
     /* the offset in the file of the NEXT entry */
     ham_offset_t _offset;

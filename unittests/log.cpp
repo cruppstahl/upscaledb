@@ -16,6 +16,8 @@
 #include "../src/log.h"
 #include "../src/os.h"
 #include "../src/db.h"
+#include "../src/btree.h"
+#include "../src/keys.h"
 #include "../src/freelist.h"
 #include "memtracker.h"
 #include "os.hpp"
@@ -683,7 +685,7 @@ public:
         int found_txn_commit=0;
         int found_checkpoint=0;
 
-        for (int i=24; i>=0; i++) {
+        while (1) {
             CPPUNIT_ASSERT_EQUAL(0, 
                     ham_log_get_entry(log, &iter, &entry, &data));
 
@@ -831,6 +833,8 @@ class LogHighLevelTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (singleBlobTest);
     CPPUNIT_TEST      (largeBlobTest);
     CPPUNIT_TEST      (insertDuplicateTest);
+    CPPUNIT_TEST      (recoverModifiedPageTest);
+    CPPUNIT_TEST      (recoverModifiedPageTest2);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -1526,6 +1530,74 @@ public:
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
+    }
+
+    void recoverModifiedPageTest(void)
+    {
+        ham_txn_t txn;
+        ham_page_t *page;
+
+        /* allocate page, write before-image, modify, commit (= write
+         * after-image */
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        page=db_alloc_page(m_db, 0, 0);
+        CPPUNIT_ASSERT(page!=0);
+        ham_offset_t address=page_get_self(page);
+        ham_u8_t *p=page_get_payload(page);
+        memset(p, 0, db_get_usable_pagesize(m_db));
+        p[0]=1;
+        page_set_dirty(page, 1);
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_add_page_before(page));
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_commit(&txn, 0));
+
+        /* fetch page again, modify, abort -> first modification is still
+         * available, second modification is reverted */
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        page=db_fetch_page(m_db, address, 0);
+        CPPUNIT_ASSERT(page!=0);
+        p=page_get_payload(page);
+        p[0]=2;
+        page_set_dirty(page, 1);
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+
+        /* check modifications */
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        page=db_fetch_page(m_db, address, 0);
+        CPPUNIT_ASSERT(page!=0);
+        p=page_get_payload(page);
+        CPPUNIT_ASSERT_EQUAL((ham_u8_t)1, p[0]);
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_commit(&txn, 0));
+    }
+
+    void recoverModifiedPageTest2(void)
+    {
+        ham_txn_t txn;
+        ham_page_t *page;
+        ham_size_t ps=os_get_pagesize();
+
+        /* insert a key */
+        insert("a", "1");
+
+        /* fetch the page with the key, overwrite it with garbage, then
+         * abort */
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        page=db_fetch_page(m_db, ps, 0);
+        CPPUNIT_ASSERT(page!=0);
+        btree_node_t *node=ham_page_get_btree_node(page);
+        int_key_t *entry=btree_node_get_key(m_db, node, 0);
+        CPPUNIT_ASSERT_EQUAL((ham_u8_t)'a', key_get_key(entry)[0]);
+        key_get_key(entry)[0]='b';
+        page_set_dirty(page, 1);
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+
+        /* now fetch the original key */
+        ham_key_t key;
+        ham_record_t record;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"a";
+        key.size=2; /* zero-terminated "a" */
+        memset(&record, 0, sizeof(record));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &record, 0));
     }
 };
 
