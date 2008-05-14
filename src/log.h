@@ -427,16 +427,10 @@ typedef struct
 #define TXN_STATE_COMMITTED     1
 
 /*
- * build a list of all transactions and their state at the moment
- * of the "crash", and a list of all pages
- *
- * actually an internal function, but it's externalized so the unittests
- * can access it
+ * recreate the page and remove all uncommitted changes 
  */
 extern ham_status_t
-ham_log_recover_prepare(ham_log_t *log, log_txn_entry_t **txn_list, 
-        ham_size_t *txn_list_size, log_flush_entry_t **flush_list,
-        ham_size_t *flush_list_size, ham_u64_t *last_checkpoint);
+ham_log_recreate(ham_log_t *log, ham_page_t *page);
 
 
 #ifdef __cplusplus

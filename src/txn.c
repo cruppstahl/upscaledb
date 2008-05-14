@@ -212,6 +212,15 @@ ham_txn_abort(ham_txn_t *txn)
             page_set_npers_flags(head, 
                     page_get_npers_flags(head)&~PAGE_NPERS_DELETE_PENDING);
 
+        /* if the page is dirty, and RECOVERY is enabled: recreate the
+         * original, unmodified page from the log */
+        if (db_get_log(db) && page_is_dirty(head)) {
+            st=ham_log_recreate(db_get_log(db), head);
+            if (st)
+                return (st);
+            page_set_dirty(head, 0);
+        }
+
         /* page is no longer in use */
         page_release_ref(head);
 

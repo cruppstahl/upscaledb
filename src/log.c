@@ -747,6 +747,7 @@ ham_log_add_page_after_range(ham_page_t *page, ham_size_t offset,
 ham_status_t
 ham_log_recover(ham_log_t *log, ham_device_t *device)
 {
+#if 0
     ham_status_t st;
     log_txn_entry_t *txn_list=0;
     ham_size_t txn_list_size=0;
@@ -757,11 +758,11 @@ ham_log_recover(ham_log_t *log, ham_device_t *device)
     /*
      * walk forward through the log, build the transaction-list
      * and the page-flush-list
+     *
+     * TODO
+     * TODO
+     * TODO
      */
-    st=ham_log_recover_prepare(log, &txn_list, &txn_list_size,
-            &flush_list, &flush_list_size, &last_checkpoint);
-    if (st)
-        return (st);
 
     if (txn_list)
         allocator_free(log_get_allocator(log), txn_list);
@@ -780,13 +781,61 @@ ham_log_recover(ham_log_t *log, ham_device_t *device)
 
     log_set_lsn(log, 1);
     log_set_current_fd(log, 0);
+#endif
     return (0);
 }
 
 ham_status_t
-ham_log_recover_prepare(ham_log_t *log, log_txn_entry_t **txn_list, 
-        ham_size_t *txn_list_size, log_flush_entry_t **flush_list,
-        ham_size_t *flush_list_size, ham_u64_t *last_checkpoint)
+ham_log_recreate(ham_log_t *log, ham_page_t *page)
 {
-    return (0);
+    int i;
+    ham_status_t st=0;
+    log_iterator_t iter;
+    log_entry_t entry;
+    ham_u8_t *data=0;
+    ham_db_t *db=page_get_owner(page);
+
+    memset(&iter, 0, sizeof(iter));
+
+    /*
+     * walk backwards through the log and fetch either
+     *  - the next before-image OR
+     *  - the next after-image of a committed txn
+     * and overwrite the file contents
+     */
+    while (1) {
+        if ((st=ham_log_get_entry(log, &iter, &entry, &data)))
+            goto bail;
+
+        /* a before-image */
+        if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_PREWRITE
+                    && log_entry_get_offset(&entry)==page_get_self(page)) {
+            memcpy(page_get_raw_payload(page), data, db_get_pagesize(db));
+            break;
+        }
+        /* an after-image; currently, only after-images of committed
+         * transactions are written to the log */
+        else if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_WRITE
+                    && log_entry_get_offset(&entry)==page_get_self(page)) {
+            memcpy(page_get_raw_payload(page), data, db_get_pagesize(db));
+            break;
+        }
+
+        if (data) {
+            allocator_free(log_get_allocator(log), data);
+            data=0;
+        }
+    }
+
+    /*
+     * done - reset the file pointer to EOF
+     */
+bail:
+    for (i=0; i<2; i++)
+        (void)os_seek(log_get_fd(log, i), 0, HAM_OS_SEEK_END);
+
+    if (data)
+        allocator_free(log_get_allocator(log), data);
+    
+    return (st);
 }
