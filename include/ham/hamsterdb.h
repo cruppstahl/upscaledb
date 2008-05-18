@@ -406,10 +406,8 @@ ham_env_create(ham_env_t *env, const char *filename,
  *            file. Only one process may hold an exclusive lock for
  *            a given file at a given time. 
  *       <li>@a HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
- *            Database. Will return @a HAM_NEED_RECOVERY, if the Database
- *            is in an inconsistent state. Not allowed in combination 
- *            with @a HAM_IN_MEMORY_DB, @a HAM_DISABLE_FREELIST_FLUSH 
- *            and @a HAM_WRITE_THROUGH.
+ *            Database. Not allowed in combination with @a HAM_IN_MEMORY_DB, 
+ *            @a HAM_DISABLE_FREELIST_FLUSH and @a HAM_WRITE_THROUGH.
  *      </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
@@ -521,6 +519,8 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *              compatible with the library version.
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @a HAM_WOULD_BLOCK if another process has locked the file
+ * @return @a HAM_NEED_RECOVERY if the Database is in an inconsistent state
+ * @return @a HAM_INV_LOG_FILE_HEADER if the logfile is broken
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_open_ex(ham_env_t *env, const char *filename,
@@ -860,10 +860,8 @@ ham_create(ham_db_t *db, const char *filename,
  *            file. Only one process may hold an exclusive lock for
  *            a given file at a given time.
  *       <li>@a HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
- *            Database. Will return @a HAM_NEED_RECOVERY, if the Database
- *            is in an inconsistent state. Not allowed in combination 
- *            with @a HAM_IN_MEMORY_DB, @a HAM_DISABLE_FREELIST_FLUSH 
- *            and @a HAM_WRITE_THROUGH.
+ *            Database. Not allowed in combination with @a HAM_IN_MEMORY_DB, 
+ *            @a HAM_DISABLE_FREELIST_FLUSH and @a HAM_WRITE_THROUGH.
  *      </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
@@ -978,6 +976,8 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *              compatible with the library version
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @a HAM_WOULD_BLOCK if another process has locked the file
+ * @return @a HAM_NEED_RECOVERY if the Database is in an inconsistent state
+ * @return @a HAM_INV_LOG_FILE_HEADER if the logfile is broken
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_open_ex(ham_db_t *db, const char *filename,
