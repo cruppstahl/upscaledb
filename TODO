@@ -96,8 +96,7 @@ o recovery/journalling
     x new error code HAM_LOG_INV_FILE_HEADER
         x add to ham_strerror
 
-o log_entry_t currently has a field "prev_lsn" - really needed?
-    if not, remove it
+x remove log_entry_t::prev_lsn, since it is never used
 
 o ham_txn_abort: when a txn is committed, a page can remain dirty (if it's
     not immediately flushed). if the following txn does not modify this
@@ -105,7 +104,8 @@ o ham_txn_abort: when a txn is committed, a page can remain dirty (if it's
     are revoked. i.e.
     insert("a", "123")
     insert("a", "234") -> fails because of duplicate key; but the page is
-        in the txn and dirty, therefore it's undone -> costs performance
+        in the txn and dirty, therefore it's undone, although for this
+        specific transaction it was not modified -> costs performance
     o store txnid of the transaction which actually dirtied the page
     o when aborting: only revoke if the current transaction was the one
         which dirtied the page
@@ -116,12 +116,13 @@ o when writing directly to the device, page-filters do NOT
 
 o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
 
-o new API function to retrieve the flags of a database (ham_get_flags(db))
+. more unittests for freel_alloc_page() (pimp freelist.cpp:markAllocAlignedTest)
+
+. new API function to retrieve the flags of a database (ham_get_flags(db))
     x unittest
+    o move from hamsterdb_int.h to hamsterdb.h
     o documentation
     o add to samples/db2.c
-
-. more unittests for freel_alloc_page() (pimp freelist.cpp:markAllocAlignedTest)
 
 . scenario: created with log, a few inserts; crash (dbfile is ok,
     but logfile is not empty)
