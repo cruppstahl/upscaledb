@@ -45,6 +45,17 @@ free_impl(mem_allocator_t *self, const char *file, int line, void *ptr)
     free(ptr);
 }
 
+void *
+realloc_impl(mem_allocator_t *self, const char *file, int line, 
+        void *ptr, ham_size_t size)
+{
+    (void)self;
+    (void)file;
+    (void)line;
+
+    return (realloc(ptr, size));
+}
+
 void 
 close_impl(mem_allocator_t *self)
 {
@@ -61,9 +72,10 @@ ham_default_allocator_new(void)
         return (0);
 
     memset(m, 0, sizeof(*m));
-    m->alloc=alloc_impl;
-    m->free =free_impl;
-    m->close=close_impl;
+    m->alloc  =alloc_impl;
+    m->free   =free_impl;
+    m->realloc=realloc_impl;
+    m->close  =close_impl;
      
     return (m);
 }

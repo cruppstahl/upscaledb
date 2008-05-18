@@ -21,6 +21,7 @@ class MemoryTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (trackingTest);
     CPPUNIT_TEST      (trackingTest2);
     CPPUNIT_TEST      (freeNullTest);
+    CPPUNIT_TEST      (reallocTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -81,6 +82,23 @@ public:
         }
 
         CPPUNIT_FAIL("should not be here");
+    }
+
+    void reallocTest(void) {
+        void *p=0;
+        memtracker_t *alloc=memtracker_new();
+
+        p=allocator_realloc((mem_allocator_t *)alloc, p, 15);
+        CPPUNIT_ASSERT(p!=0);
+        allocator_free((mem_allocator_t *)alloc, p);
+        CPPUNIT_ASSERT_EQUAL(0lu, memtracker_get_leaks(alloc));
+
+        p=allocator_realloc((mem_allocator_t *)alloc, 0, 15);
+        CPPUNIT_ASSERT(p!=0);
+        p=allocator_realloc((mem_allocator_t *)alloc, p, 30);
+        CPPUNIT_ASSERT(p!=0);
+        allocator_free((mem_allocator_t *)alloc, p);
+        CPPUNIT_ASSERT_EQUAL(0lu, memtracker_get_leaks(alloc));
     }
 
 };

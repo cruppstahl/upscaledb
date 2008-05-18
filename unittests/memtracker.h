@@ -32,6 +32,7 @@ typedef struct
 {
     alloc_func_t alloc;
     free_func_t  free;
+    realloc_func_t realloc;
     close_func_t close;
 
     memtracker_priv_t *priv;

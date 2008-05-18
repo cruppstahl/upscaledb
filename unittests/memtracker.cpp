@@ -91,6 +91,28 @@ free_impl(mem_allocator_t *self, const char *file, int line, void *ptr)
     free(desc);
 }
 
+void *
+realloc_impl(mem_allocator_t *self, const char *file, int line, 
+        void *ptr, ham_size_t size)
+{
+    void *newptr=allocator_alloc(self, size);
+    memdesc_t *desc;
+
+    if (!newptr)
+        return (0);
+
+    if (!ptr)
+        return (newptr);
+
+    desc=get_descriptor(ptr);
+
+    if (size>(ham_size_t)desc->size)
+        size=desc->size;
+    memcpy(newptr, ptr, size);
+    allocator_free(self, ptr);
+    return (newptr);
+}
+
 void 
 close_impl(mem_allocator_t *self)
 {
@@ -109,6 +131,7 @@ memtracker_new(void)
     memset(&p, 0, sizeof(p));
     m.alloc=alloc_impl;
     m.free =free_impl;
+    m.realloc=realloc_impl;
     m.close=close_impl;
     m.priv=&p;
     return (&m);

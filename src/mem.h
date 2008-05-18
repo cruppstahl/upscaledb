@@ -32,6 +32,8 @@ typedef void *(*alloc_func_t)(mem_allocator_t *self, const char *file,
                    int line, ham_size_t size);
 typedef void  (*free_func_t) (mem_allocator_t *self, const char *file, 
                    int line, void *ptr);
+typedef void *(*realloc_func_t) (mem_allocator_t *self, const char *file, 
+                   int line, void *ptr, ham_size_t size);
 typedef void  (*close_func_t)(mem_allocator_t *self);
 
 /**
@@ -41,6 +43,7 @@ struct mem_allocator_t
 {
     alloc_func_t alloc;
     free_func_t  free;
+    realloc_func_t realloc;
     close_func_t close;
     void *priv;
 };
@@ -78,6 +81,21 @@ ham_default_allocator_new(void);
  * same as above, but with an mem_allocator_t pointer
  */
 #define allocator_free(a, ptr)  (a)->free(a, __FILE__, __LINE__, ptr)
+
+/** 
+ * re-allocate memory 
+ * returns 0 if memory can not be allocated; the default implementation
+ * uses realloc()
+ */
+#define ham_mem_realloc(db, p, size) db_get_allocator(db)->realloc(           \
+                                    db_get_allocator(db), __FILE__, __LINE__, \
+                                        p, size)
+
+/**
+ * same as above, but with an mem_allocator_t pointer
+ */
+#define allocator_realloc(a, p, size)  (a)->realloc(a, __FILE__, __LINE__,    \
+                                        p, size)
 
 /**
  * a calloc function
