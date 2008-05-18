@@ -59,7 +59,7 @@ o recovery/journalling
 
             x enhance test tool and monster.sh to run with recovery enabled
 
-        o recovery process
+        x recovery process
             x new flag HAM_AUTO_RECOVERY - not allowed in combination
                 with HAM_READ_ONLY etc
                 x implies HAM_ENABLE_RECOVERY
@@ -70,23 +70,34 @@ o recovery/journalling
             x after recovery, don't forget to clear both files and
                 reset lsn to 1!
                 x unittests!
-            o walk backwards through the log and undo all actions which were
+            x walk backwards through the log and undo all actions which were
                 not committed, but flushed, and redo all actions which were
                 committed, but not flushed
+                x unittests
+                    x create txn; allocate/modify page; commit txn; 
+                        set page_set_dirty(false) to avoid write to the file;
+                        close and recover -> modification is written to 
+                        the file
+                    x create multiple txn; allocate/modify page; commit txn; 
+                        set page_set_dirty(false) to avoid write to the file;
+                        close and recover -> modification is written to 
+                        the file
+                    x same as previous one, but with checkpoint
+                    x create txn; allocate/modify page; only write after-
+                        images, but not commit-boundary (needs new flag
+                        for ham_txn_commit); close file (changes are written)
+                        recover -> txn is undone
+                    x create multiple txn; allocate/modify page; only write 
+                        after-images, but not commit-boundary (needs new flag
+                        for ham_txn_commit); close file (changes are written)
+                        recover -> txn is undone
+                    x same as previous one, but with checkpoint
 
-    o new error code HAM_LOG_INV_FILE_HEADER
-        o add to ham_strerror
-    o add documentation
+    x new error code HAM_LOG_INV_FILE_HEADER
+        x add to ham_strerror
 
 o log_entry_t currently has a field "prev_lsn" - really needed?
     if not, remove it
-
-o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
-
-o new API function to retrieve the flags of a database (ham_get_flags(db))
-    x unittest
-    o documentation
-    o add to samples/db2.c
 
 o ham_txn_abort: when a txn is committed, a page can remain dirty (if it's
     not immediately flushed). if the following txn does not modify this
@@ -98,6 +109,17 @@ o ham_txn_abort: when a txn is committed, a page can remain dirty (if it's
     o store txnid of the transaction which actually dirtied the page
     o when aborting: only revoke if the current transaction was the one
         which dirtied the page
+
+o when writing directly to the device, page-filters do NOT
+    apply! they must be applied when writing to the logfile
+    (which is not yet implemented)
+
+o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
+
+o new API function to retrieve the flags of a database (ham_get_flags(db))
+    x unittest
+    o documentation
+    o add to samples/db2.c
 
 . more unittests for freel_alloc_page() (pimp freelist.cpp:markAllocAlignedTest)
 

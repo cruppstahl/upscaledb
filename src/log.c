@@ -15,9 +15,76 @@
 #include "db.h"
 #include "txn.h"
 #include "log.h"
+#include "device.h"
 
 #define LOG_DEFAULT_THRESHOLD   64
 
+static ham_status_t 
+__undo(ham_log_t *log, ham_device_t *device, log_iterator_t *iter, 
+        ham_offset_t page_id, ham_u8_t **pdata)
+{
+    int i, found=0;
+    ham_status_t st=0;
+    log_entry_t entry;
+    ham_u8_t *data=0;
+    ham_offset_t fpos[2];
+
+    /* first, backup the current file pointers */
+    for (i=0; i<2; i++) {
+        st=os_tell(log_get_fd(log, i), &fpos[i]);
+        if (st)
+            return (st);
+    }
+
+    /*
+     * walk backwards through the log and fetch either
+     *  - the next before-image OR
+     *  - the next after-image of a committed txn
+     * and overwrite the file contents
+     */
+    while (1) {
+        if ((st=ham_log_get_entry(log, iter, &entry, &data)))
+            goto bail;
+        
+        if (log_entry_get_lsn(&entry)==0)
+            break;
+
+        /* a before-image */
+        if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_PREWRITE
+                    && log_entry_get_offset(&entry)==page_id) {
+            *pdata=data;
+            found=1;
+            break;
+        }
+        /* an after-image; currently, only after-images of committed
+         * transactions are written to the log */
+        else if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_WRITE
+                    && log_entry_get_offset(&entry)==page_id) {
+            *pdata=data;
+            found=1;
+            break;
+        }
+
+        if (data) {
+            allocator_free(log_get_allocator(log), data);
+            data=0;
+        }
+    }
+
+    ham_assert(found, (""));
+
+bail:
+    /*
+     * done - restore the file pointers
+     */
+    for (i=0; i<2; i++)
+        (void)os_seek(log_get_fd(log, i), fpos[i], HAM_OS_SEEK_SET);
+
+    if (st && data)
+        allocator_free(log_get_allocator(log), data);
+    
+    return (st);
+}
 
 static ham_size_t 
 my_get_alligned_entry_size(ham_size_t data_size)
@@ -254,7 +321,6 @@ ham_log_append_txn_begin(ham_log_t *log, struct ham_txn_t *txn)
     int other=cur ? 0 : 1;
 
     memset(&entry, 0, sizeof(entry));
-    log_entry_set_prev_lsn(&entry, txn_get_last_lsn(txn));
     log_entry_set_txn_id(&entry, txn_get_id(txn));
     log_entry_set_type(&entry, LOG_ENTRY_TYPE_TXN_BEGIN);
 
@@ -305,7 +371,6 @@ ham_log_append_txn_begin(ham_log_t *log, struct ham_txn_t *txn)
     if (st)
         return (st);
     log_set_open_txn(log, cur, log_get_open_txn(log, cur)+1);
-    txn_set_last_lsn(txn, log_entry_get_lsn(&entry));
 
     /* store the fp-index in the log structure; it's needed so
      * log_append_checkpoint() can quickly find out which file is 
@@ -325,7 +390,6 @@ ham_log_append_txn_abort(ham_log_t *log, struct ham_txn_t *txn)
     memset(&entry, 0, sizeof(entry));
     log_entry_set_lsn(&entry, log_get_lsn(log));
     log_set_lsn(log, log_get_lsn(log)+1);
-    log_entry_set_prev_lsn(&entry, txn_get_last_lsn(txn));
     log_entry_set_txn_id(&entry, txn_get_id(txn));
     log_entry_set_type(&entry, LOG_ENTRY_TYPE_TXN_ABORT);
 
@@ -339,7 +403,6 @@ ham_log_append_txn_abort(ham_log_t *log, struct ham_txn_t *txn)
     st=ham_log_append_entry(log, idx, &entry, sizeof(entry));
     if (st)
         return (st);
-    txn_set_last_lsn(txn, log_entry_get_lsn(&entry));
 
     return (0);
 }
@@ -354,7 +417,6 @@ ham_log_append_txn_commit(ham_log_t *log, struct ham_txn_t *txn)
     memset(&entry, 0, sizeof(entry));
     log_entry_set_lsn(&entry, log_get_lsn(log));
     log_set_lsn(log, log_get_lsn(log)+1);
-    log_entry_set_prev_lsn(&entry, txn_get_last_lsn(txn));
     log_entry_set_txn_id(&entry, txn_get_id(txn));
     log_entry_set_type(&entry, LOG_ENTRY_TYPE_TXN_COMMIT);
 
@@ -368,7 +430,6 @@ ham_log_append_txn_commit(ham_log_t *log, struct ham_txn_t *txn)
     st=ham_log_append_entry(log, idx, &entry, sizeof(entry));
     if (st)
         return (st);
-    txn_set_last_lsn(txn, log_entry_get_lsn(&entry));
 
     return (0);
 }
@@ -745,31 +806,142 @@ ham_log_add_page_after_range(ham_page_t *page, ham_size_t offset,
                 length));
 }
 
+/*
+ * a PAGE_FLUSH entry; each entry stores the 
+ * page-ID and the lsn of the last flush of this page
+ */
+typedef struct
+{
+    ham_u64_t page_id;
+    ham_u64_t lsn;
+} log_flush_entry_t;
+
 ham_status_t
 ham_log_recover(ham_log_t *log, ham_device_t *device)
 {
-    ham_status_t st;
-#if 0
-    log_txn_entry_t *txn_list=0;
-    ham_size_t txn_list_size=0;
+    ham_status_t st=0;
+    log_entry_t entry;
+    log_iterator_t iter;
+    ham_u8_t *data=0;
+    ham_u64_t *txn_list=0;
     log_flush_entry_t *flush_list=0;
-    ham_size_t flush_list_size=0;
-    ham_u64_t last_checkpoint=0;
+    ham_size_t txn_list_size=0, flush_list_size=0, i;
+    ham_bool_t committed, flushed;
+
+    memset(&iter, 0, sizeof(iter));
 
     /*
-     * walk forward through the log, build the transaction-list
-     * and the page-flush-list
-     *
-     * TODO
-     * TODO
-     * TODO
+     * walk backwards through the log; every action which was not
+     * committed, but flushed, is undone; every action which was 
+     * committed, but not flushed, is redone
      */
+    while (1) {
+        if ((st=ham_log_get_entry(log, &iter, &entry, &data)))
+            goto bail;
+        
+        if (log_entry_get_lsn(&entry)==0)
+            break;
 
+        switch (log_entry_get_type(&entry)) {
+            /* checkpoint: no need to continue */
+            case LOG_ENTRY_TYPE_CHECKPOINT:
+                goto bail;
+            /* commit: store the txn-id */
+            case LOG_ENTRY_TYPE_TXN_COMMIT:
+                txn_list_size++;
+                txn_list=(ham_u64_t *)allocator_realloc(log_get_allocator(log),
+                        txn_list, txn_list_size*sizeof(ham_u64_t));
+                if (!txn_list) {
+                    st=HAM_OUT_OF_MEMORY;
+                    goto bail;
+                }
+                txn_list[txn_list_size-1]=log_entry_get_txn_id(&entry);
+                break;
+            /* an after-image: undo if flushed but not committed, 
+             * redo if committed and not flushed */
+            case LOG_ENTRY_TYPE_WRITE:
+                /* check if this page was flushed */
+                flushed=0;
+                for (i=0; i<flush_list_size; i++) {
+                    if (flush_list[i].page_id==log_entry_get_offset(&entry)
+                            && flush_list[i].lsn>log_entry_get_lsn(&entry)) {
+                        flushed=1;
+                        break;
+                    }
+                }
+                /* check if this txn was committed */
+                committed=0;
+                for (i=0; i<txn_list_size; i++) {
+                    if (txn_list[i]==log_entry_get_txn_id(&entry)) {
+                        committed=1;
+                        break;
+                    }
+                }
+
+                /* flushed and not committed: undo */
+                if (flushed && !committed) {
+                    ham_u8_t *udata;
+                    log_iterator_t uiter=iter;
+                    st=__undo(log, device, &uiter, 
+                            log_entry_get_offset(&entry), &udata);
+                    if (st)
+                        goto bail;
+                    st=device->write_raw(device, log_entry_get_offset(&entry),
+                            udata, device_get_pagesize(device));
+                    allocator_free(log_get_allocator(log), udata);
+                    if (st)
+                        goto bail;
+                    break;
+                }
+                /* not flushed and committed: redo */
+                else if (!flushed && committed) {
+                    st=device->write_raw(device, log_entry_get_offset(&entry),
+                            data, device_get_pagesize(device));
+                    if (st)
+                        goto bail;
+                    /* since we just flushed the page: add page_id and lsn
+                     * to the flush_list 
+                     *
+                     * fall through...
+                     */
+
+                }
+                else
+                    break;
+            /* flush: store the page-id and the lsn*/
+            case LOG_ENTRY_TYPE_FLUSH_PAGE:
+                flush_list_size++;
+                flush_list=(log_flush_entry_t *)allocator_realloc(
+                        log_get_allocator(log), flush_list, 
+                        flush_list_size*sizeof(log_flush_entry_t));
+                if (!flush_list) {
+                    st=HAM_OUT_OF_MEMORY;
+                    goto bail;
+                }
+                flush_list[flush_list_size-1].page_id=
+                    log_entry_get_offset(&entry);
+                flush_list[flush_list_size-1].lsn=
+                    log_entry_get_lsn(&entry);
+                break;
+
+            /* ignore everything else */
+            default:
+                break;
+        }
+
+        if (data) {
+            allocator_free(log_get_allocator(log), data);
+            data=0;
+        }
+    }
+
+bail:
     if (txn_list)
         allocator_free(log_get_allocator(log), txn_list);
     if (flush_list)
         allocator_free(log_get_allocator(log), flush_list);
-#endif
+    if (data)
+        allocator_free(log_get_allocator(log), data);
 
     /*
      * clear the log files and set the lsn to 1
@@ -789,61 +961,18 @@ ham_log_recover(ham_log_t *log, ham_device_t *device)
 ham_status_t
 ham_log_recreate(ham_log_t *log, ham_page_t *page)
 {
-    int i, found=0;
-    ham_status_t st=0;
+    ham_status_t st;
     log_iterator_t iter;
-    log_entry_t entry;
-    ham_u8_t *data=0;
+    ham_u8_t *data;
     ham_db_t *db=page_get_owner(page);
 
     memset(&iter, 0, sizeof(iter));
 
-    /*
-     * walk backwards through the log and fetch either
-     *  - the next before-image OR
-     *  - the next after-image of a committed txn
-     * and overwrite the file contents
-     */
-    while (1) {
-        if ((st=ham_log_get_entry(log, &iter, &entry, &data)))
-            goto bail;
-        
-        if (log_entry_get_lsn(&entry)==0)
-            break;
+    st=__undo(log, db_get_device(db), &iter, page_get_self(page), &data);
+    if (st)
+        return (st);
 
-        /* a before-image */
-        if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_PREWRITE
-                    && log_entry_get_offset(&entry)==page_get_self(page)) {
-            memcpy(page_get_raw_payload(page), data, db_get_pagesize(db));
-            found=1;
-            break;
-        }
-        /* an after-image; currently, only after-images of committed
-         * transactions are written to the log */
-        else if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_WRITE
-                    && log_entry_get_offset(&entry)==page_get_self(page)) {
-            memcpy(page_get_raw_payload(page), data, db_get_pagesize(db));
-            found=1;
-            break;
-        }
-
-        if (data) {
-            allocator_free(log_get_allocator(log), data);
-            data=0;
-        }
-    }
-
-    ham_assert(found, (""));
-
-    /*
-     * done - reset the file pointer to EOF
-     */
-bail:
-    for (i=0; i<2; i++)
-        (void)os_seek(log_get_fd(log, i), 0, HAM_OS_SEEK_END);
-
-    if (data)
-        allocator_free(log_get_allocator(log), data);
-    
-    return (st);
+    memcpy(page_get_raw_payload(page), data, db_get_pagesize(db));
+    allocator_free(log_get_allocator(log), data);
+    return (0);
 }

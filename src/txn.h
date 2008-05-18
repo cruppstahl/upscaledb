@@ -35,11 +35,6 @@ struct ham_txn_t
     ham_u64_t _id;
 
     /**
-     * the last used lsn of this transaction
-     */
-    ham_u64_t _last_lsn;
-
-    /**
      * owner of this transaction 
      */
     ham_db_t *_db;
@@ -72,16 +67,6 @@ typedef struct ham_txn_t ham_txn_t;
  * set the id
  */
 #define txn_set_id(txn, id)                     (txn)->_id=id
-
-/**
- * get the last lsn
- */
-#define txn_get_last_lsn(txn)                   (txn)->_last_lsn
-
-/**
- * set the last lsn
- */
-#define txn_set_last_lsn(txn, lsn)              (txn)->_last_lsn=lsn
 
 /**
  * set the database pointer

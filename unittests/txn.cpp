@@ -98,9 +98,6 @@ public:
         CPPUNIT_ASSERT(txn_get_pagelist(&txn)==0);
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(&txn));
 
-        txn_set_last_lsn(&txn, 0x15);
-        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x15, txn_get_last_lsn(&txn));
-
         txn_set_flags(&txn, 0x99);
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)0x99, txn_get_flags(&txn));
 

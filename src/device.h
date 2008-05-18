@@ -105,9 +105,17 @@ struct ham_device_t {
             ham_offset_t offset, void *buffer, ham_size_t size);
 
     /*
-     * writes to the device; this function does not use mmap
+     * writes to the device; this function does not use mmap,
+     * the data is run through the file filters
      */
     ham_status_t (*write)(ham_db_t *db, ham_device_t *self, 
+            ham_offset_t offset, void *buffer, ham_size_t size);
+
+    /*
+     * writes to the device; this function does not use mmap,
+     * the data is NOT run through the file filters
+     */
+    ham_status_t (*write_raw)(ham_device_t *self, 
             ham_offset_t offset, void *buffer, ham_size_t size);
 
     /*

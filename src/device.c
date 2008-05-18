@@ -271,6 +271,14 @@ __f_write(ham_db_t *db, ham_device_t *self, ham_offset_t offset, void *buffer,
 }
 
 static ham_status_t 
+__f_write_raw(ham_device_t *self, ham_offset_t offset, void *buffer, 
+        ham_size_t size)
+{
+    dev_file_t *t=(dev_file_t *)device_get_private(self);
+    return (os_pwrite(t->fd, offset, buffer, size));
+}
+
+static ham_status_t 
 __f_write_page(ham_device_t *self, ham_page_t *page)
 {
     return (__f_write(page_get_owner(page), self, page_get_self(page), 
@@ -536,6 +544,7 @@ ham_device_new(mem_allocator_t *alloc, ham_bool_t inmemorydb)
         dev->alloc_page   = __f_alloc_page;
         dev->read         = __f_read;
         dev->write        = __f_write;
+        dev->write_raw    = __f_write_raw;
         dev->read_page    = __f_read_page;
         dev->write_page   = __f_write_page;
         dev->free_page    = __f_free_page;

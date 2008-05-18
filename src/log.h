@@ -54,9 +54,6 @@ typedef struct {
     /* the lsn of this entry */
     ham_u64_t _lsn;
 
-    /* the previous lsn of this transaction */
-    ham_u64_t _prev_lsn;
-
     /* the transaction id */
     ham_u64_t _txn_id;
 
@@ -92,12 +89,6 @@ typedef struct {
 
 /* set the lsn */
 #define log_entry_set_lsn(l, lsn)               (l)->_lsn=lsn
-
-/* get the previous lsn of the current transaction */
-#define log_entry_get_prev_lsn(l)               (l)->_prev_lsn
-
-/* set the previous lsn of the current transaction */
-#define log_entry_set_prev_lsn(l, lsn)          (l)->_prev_lsn=lsn
 
 /* get the transaction ID */
 #define log_entry_get_txn_id(l)                 (l)->_txn_id
@@ -406,29 +397,6 @@ ham_log_add_page_after_range(ham_page_t *page, ham_size_t offset,
  */
 extern ham_status_t
 ham_log_recover(ham_log_t *log, ham_device_t *device);
-
-/*
- * a PAGE_FLUSH entry; each entry stores the 
- * page-ID and the lsn of the last flush of this page
- */
-typedef struct
-{
-    ham_u64_t page_id;
-    ham_u64_t lsn;
-} log_flush_entry_t;
-
-/*
- * a transaction entry; each entry stores the 
- * txn-ID and the state of the txn - either committed or not (= aborted)
- */
-typedef struct
-{
-    ham_u64_t txn_id;
-    int state; 
-} log_txn_entry_t;
-
-#define TXN_STATE_ABORTED       0
-#define TXN_STATE_COMMITTED     1
 
 /*
  * recreate the page and remove all uncommitted changes 

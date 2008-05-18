@@ -88,9 +88,6 @@ public:
         log_entry_set_lsn(&e, 0x13);
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x13, log_entry_get_lsn(&e));
 
-        log_entry_set_prev_lsn(&e, 0x14);
-        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x14, log_entry_get_prev_lsn(&e));
-
         log_entry_set_txn_id(&e, 0x15);
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x15, log_entry_get_txn_id(&e));
 
@@ -236,7 +233,6 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         CPPUNIT_ASSERT_EQUAL(0, isempty);
-        CPPUNIT_ASSERT_EQUAL((ham_u64_t)1, txn_get_last_lsn(&txn));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
@@ -258,7 +254,6 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         CPPUNIT_ASSERT_EQUAL(0, isempty);
-        CPPUNIT_ASSERT_EQUAL((ham_u64_t)1, txn_get_last_lsn(&txn));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
         CPPUNIT_ASSERT_EQUAL((ham_size_t)1, log_get_open_txn(log, 0));
         CPPUNIT_ASSERT_EQUAL((ham_size_t)0, log_get_closed_txn(log, 0));
@@ -268,7 +263,6 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_abort(log, &txn));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         CPPUNIT_ASSERT_EQUAL(0, isempty);
-        CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, txn_get_last_lsn(&txn));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)3, log_get_lsn(log));
         CPPUNIT_ASSERT_EQUAL((ham_size_t)0, log_get_open_txn(log, 0));
         CPPUNIT_ASSERT_EQUAL((ham_size_t)1, log_get_closed_txn(log, 0));
@@ -294,7 +288,6 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         CPPUNIT_ASSERT_EQUAL(0, isempty);
-        CPPUNIT_ASSERT_EQUAL((ham_u64_t)1, txn_get_last_lsn(&txn));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
         CPPUNIT_ASSERT_EQUAL((ham_size_t)1, log_get_open_txn(log, 0));
         CPPUNIT_ASSERT_EQUAL((ham_size_t)0, log_get_closed_txn(log, 0));
@@ -304,7 +297,6 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         CPPUNIT_ASSERT_EQUAL(0, isempty);
-        CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, txn_get_last_lsn(&txn));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)3, log_get_lsn(log));
         CPPUNIT_ASSERT_EQUAL((ham_size_t)0, log_get_open_txn(log, 0));
         CPPUNIT_ASSERT_EQUAL((ham_size_t)1, log_get_closed_txn(log, 0));
@@ -485,7 +477,6 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         CPPUNIT_ASSERT_EQUAL(0, isempty);
-        CPPUNIT_ASSERT_EQUAL((ham_u64_t)1, txn_get_last_lsn(&txn));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_clear(log));
@@ -835,6 +826,12 @@ class LogHighLevelTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (insertDuplicateTest);
     CPPUNIT_TEST      (recoverModifiedPageTest);
     CPPUNIT_TEST      (recoverModifiedPageTest2);
+    CPPUNIT_TEST      (redoInsertTest);
+    CPPUNIT_TEST      (redoMultipleInsertsTest);
+    CPPUNIT_TEST      (redoMultipleInsertsCheckpointTest);
+    CPPUNIT_TEST      (undoInsertTest);
+    CPPUNIT_TEST      (undoMultipleInsertsTest);
+    CPPUNIT_TEST      (undoMultipleInsertsCheckpointTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -1211,6 +1208,21 @@ public:
         rec.size=strlen(data)+1;
 
         CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, flags));
+    }
+
+    void find(const char *name, const char *data, ham_status_t result=0)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+
+        key.data=(void *)name;
+        key.size=strlen(name)+1;
+
+        CPPUNIT_ASSERT_EQUAL(result, ham_find(m_db, 0, &key, &rec, 0));
+        if (result==0)
+            CPPUNIT_ASSERT_EQUAL(0, ::strcmp(data, (const char *)rec.data));
     }
 
     void erase(const char *name)
@@ -1598,6 +1610,213 @@ public:
         key.size=2; /* zero-terminated "a" */
         memset(&record, 0, sizeof(record));
         CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &record, 0));
+    }
+
+    void redoInsertTest(void)
+    {
+        ham_page_t *page;
+
+        /* insert a key */
+        insert("x", "2");
+
+        /* now walk through all pages and set them un-dirty, so they
+         * are not written to the file */
+        page=cache_get_totallist(db_get_cache(m_db)); 
+        while (page) {
+            page_set_dirty(page, 0);
+            page=page_get_next(page, PAGE_LIST_CACHED);
+        }
+
+        /* close the database (without deleting the log) */
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+        /* now reopen and recover */
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_open(m_db, ".test", HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
+
+        /* and make sure that the inserted item is found */
+        find("x", "2");
+    }
+
+    void redoMultipleInsertsTest(void)
+    {
+        ham_page_t *page;
+
+        /* insert keys */
+        insert("x", "2");
+        insert("y", "3");
+        insert("z", "4");
+
+        /* now walk through all pages and set them un-dirty, so they
+         * are not written to the file */
+        page=cache_get_totallist(db_get_cache(m_db)); 
+        while (page) {
+            page_set_dirty(page, 0);
+            page=page_get_next(page, PAGE_LIST_CACHED);
+        }
+
+        /* close the database (without deleting the log) */
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+        /* now reopen and recover */
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_open(m_db, ".test", HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
+
+        /* and make sure that the inserted item is found */
+        find("x", "2");
+        find("y", "3");
+        find("z", "4");
+    }
+
+    void redoMultipleInsertsCheckpointTest(void)
+    {
+        ham_page_t *page;
+        log_set_threshold(db_get_log(m_db), 5);
+
+        /* insert keys */
+        insert("1", "1");
+        insert("2", "2");
+        insert("3", "3");
+        insert("4", "4");
+        insert("5", "5");
+        insert("6", "6");
+        insert("7", "7");
+
+        /* now walk through all pages and set them un-dirty, so they
+         * are not written to the file */
+        page=cache_get_totallist(db_get_cache(m_db)); 
+        while (page) {
+            page_set_dirty(page, 0);
+            page=page_get_next(page, PAGE_LIST_CACHED);
+        }
+
+        /* close the database (without deleting the log) */
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+        /* now reopen and recover */
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_open(m_db, ".test", HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
+
+        /* and make sure that the inserted items are found */
+        find("1", "1");
+        find("2", "2");
+        find("3", "3");
+        find("4", "4");
+        find("5", "5");
+        find("6", "6");
+        find("7", "7");
+    }
+
+    void patchLogfile(const char *filename, ham_u64_t txn_id)
+    {
+        int found=0;
+        ham_log_t *log;
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_log_open((mem_allocator_t *)m_alloc, ".test", 0, &log));
+
+        log_iterator_t iter;
+        memset(&iter, 0, sizeof(iter));
+
+        log_entry_t entry;
+        ham_u8_t *data;
+        while (1) {
+            CPPUNIT_ASSERT_EQUAL(0, 
+                    ham_log_get_entry(log, &iter, &entry, &data));
+            if (log_entry_get_lsn(&entry)==0)
+                break;
+            if (data) {
+                allocator_free((mem_allocator_t *)m_alloc, data);
+                data=0;
+            }
+            if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_TXN_COMMIT
+                    && log_entry_get_txn_id(&entry)==txn_id) {
+                log_entry_set_flags(&entry, 0);
+                log_entry_set_type(&entry, LOG_ENTRY_TYPE_TXN_ABORT);
+                CPPUNIT_ASSERT_EQUAL(0, os_pwrite(log_get_fd(log, iter._fdidx),
+                            iter._offset, &entry, sizeof(entry)));
+                found=1;
+                break;
+            }
+        }
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
+        CPPUNIT_ASSERT_EQUAL(1, found);
+    }
+
+    void undoInsertTest(void)
+    {
+        /* insert two keys, we will then undo the second one */
+        insert("x", "2");
+        insert("y", "3");
+        /* close the database (without deleting the log) */
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        /* now walk through the logfile and patch the COMMIT entry of the
+         * second insert (txn-id=2) to ABORT */
+        patchLogfile(".test", 2);
+
+        /* now reopen and recover */
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_open(m_db, ".test", HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
+
+        /* and make sure that the inserted item is found, but not the 
+         * aborted item */
+        find("x", "2");
+        find("y", "3", HAM_KEY_NOT_FOUND);
+    }
+
+    void undoMultipleInsertsTest(void)
+    {
+        /* insert two keys, we will then undo the second one */
+        insert("1", "2");
+        insert("2", "3");
+        insert("3", "4");
+        /* close the database (without deleting the log) */
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        /* now walk through the logfile and patch the COMMIT entry of the
+         * second and third insert (txn-id=2, 3) to ABORT */
+        patchLogfile(".test", 2);
+        patchLogfile(".test", 3);
+
+        /* now reopen and recover */
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_open(m_db, ".test", HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
+
+        /* and make sure that the inserted item is found, but not the 
+         * aborted item */
+        find("1", "2");
+        find("2", "3", HAM_KEY_NOT_FOUND);
+        find("3", "4", HAM_KEY_NOT_FOUND);
+    }
+
+    void undoMultipleInsertsCheckpointTest(void)
+    {
+        log_set_threshold(db_get_log(m_db), 5);
+
+        /* insert two keys, we will then undo the second one */
+        insert("1", "2");
+        insert("2", "3");
+        insert("3", "4");
+        insert("4", "5");
+        insert("5", "6");
+        insert("6", "7");
+        /* close the database (without deleting the log) */
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        /* now walk through the logfile and patch the COMMIT entry of the
+         * last insert (txn-id=7) to ABORT */
+        patchLogfile(".test", 6);
+
+        /* now reopen and recover */
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_open(m_db, ".test", HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
+
+        /* and make sure that the inserted item is found, but not the 
+         * aborted item */
+        find("1", "2");
+        find("2", "3");
+        find("3", "4");
+        find("4", "5");
+        find("5", "6");
+        find("6", "7", HAM_KEY_NOT_FOUND);
     }
 };
 
