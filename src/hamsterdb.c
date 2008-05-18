@@ -246,6 +246,8 @@ ham_strerror(ham_status_t result)
             return ("Encryption key is wrong");
         case HAM_NEED_RECOVERY:
             return ("Database needs recovery");
+        case HAM_LOG_INV_FILE_HEADER:
+            return ("Invalid log file header");
         default:
             return ("Unknown error");
     }
