@@ -188,8 +188,8 @@ btree_insert_cursor(ham_btree_t *be, ham_key_t *key,
         be_set_dirty(be, HAM_TRUE);
         db_set_dirty(db, 1);
         page_set_type(root, PAGE_TYPE_B_INDEX);
-        page_set_dirty(root, HAM_TRUE);
-        page_set_dirty(newroot, HAM_TRUE);
+        page_set_dirty(root);
+        page_set_dirty(newroot);
     }
 
     /*
@@ -426,7 +426,7 @@ shift_elements:
     else
         key_set_ptr(bte, rid);
 
-    page_set_dirty(page, 1);
+    page_set_dirty(page);
     key_set_size(bte, key->size);
 
     /*
@@ -637,10 +637,10 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
     if (oldsib) {
         sbtp=ham_page_get_btree_node(oldsib);
         btree_node_set_left(sbtp, page_get_self(newpage));
-        page_set_dirty(oldsib, 1);
+        page_set_dirty(oldsib);
     }
-    page_set_dirty(newpage, 1);
-    page_set_dirty(page, 1);
+    page_set_dirty(newpage);
+    page_set_dirty(page);
 
     /* 
      * propagate the pivot key to the parent page

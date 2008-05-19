@@ -70,6 +70,9 @@ struct ham_page_t {
          * this page*/
         ham_u32_t _refcount;
 
+        /** the transaction Id which dirtied the page */
+        ham_u64_t _dirty_txn;
+
 #if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
 		/** handle for win32 mmap */
 		HANDLE _win32mmap;
@@ -251,8 +254,10 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 
 /** page->_pers was allocated with malloc, not mmap */
 #define PAGE_NPERS_MALLOC            1
-/**  page is dirty */
+/*  
+ * page is dirty - unused
 #define PAGE_NPERS_DIRTY             2
+ */
 /** page is in use */
 #define PAGE_NPERS_INUSE             4
 /** page will be deleted when committed */
@@ -260,17 +265,36 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /** page has no header */
 #define PAGE_NPERS_NO_HEADER        32
 
-/** 
- * get the dirty-flag
+/**
+ * get the txn-id of the transaction which dirtied the page
  */
-#define page_is_dirty(page)      (page_get_npers_flags(page)&PAGE_NPERS_DIRTY)
+#define page_get_dirty_txn(page)            ((page)->_npers._dirty_txn)
+
+/**
+ * set the txn-id of the transaction which dirtied the page
+ */
+#define page_set_dirty_txn(page, id)        (page)->_npers._dirty_txn=id
 
 /** 
- * set the dirty-flag
+ * is this page dirty?
  */
-#define page_set_dirty(page, d)  page_set_npers_flags(page, \
-            d ? page_get_npers_flags(page)|PAGE_NPERS_DIRTY : \
-            page_get_npers_flags(page)&(~PAGE_NPERS_DIRTY))
+#define page_is_dirty(page)      (page_get_dirty_txn(page)!=0)
+
+/** 
+ * mark the page dirty by the current transaction (if there's no transaction,
+ * just set a dummy-value)
+ */
+#define PAGE_DUMMY_TXN_ID        1
+
+#define page_set_dirty(page)     page_set_dirty_txn(page,                   \
+            (db_get_txn(page_get_owner(page))                               \
+                ?  txn_get_id(db_get_txn(page_get_owner(page)))             \
+                :  PAGE_DUMMY_TXN_ID))
+
+/** 
+ * page is no longer dirty
+ */
+#define page_set_undirty(page)   page_set_dirty_txn(page, 0)
 
 /** 
  * get the reference counter

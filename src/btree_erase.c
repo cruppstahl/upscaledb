@@ -550,8 +550,8 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
      */
     memcpy(bte_lhs, bte_rhs, (sizeof(int_key_t)-1+keysize)*c);
             
-    page_set_dirty(page, 1);
-    page_set_dirty(sibpage, 1);
+    page_set_dirty(page);
+    page_set_dirty(sibpage);
     btree_node_set_count(node, btree_node_get_count(node)+c);
     btree_node_set_count(sibnode, 0);
 
@@ -565,7 +565,7 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             btree_node_t *n=ham_page_get_btree_node(p);
             btree_node_set_right(n, btree_node_get_right(sibnode));
             btree_node_set_left(node, btree_node_get_left(sibnode));
-            page_set_dirty(p, 1);
+            page_set_dirty(p);
         }
         else
             btree_node_set_left(node, 0);
@@ -578,7 +578,7 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
 
             btree_node_set_right(node, btree_node_get_right(sibnode));
             btree_node_set_left(n, btree_node_get_left(sibnode));
-            page_set_dirty(p, 1);
+            page_set_dirty(p);
         }
         else
             btree_node_set_right(node, 0);
@@ -1008,9 +1008,9 @@ cleanup:
     /*
      * mark pages as dirty
      */
-    page_set_dirty(page, 1);
-    page_set_dirty(ancpage, 1);
-    page_set_dirty(sibpage, 1);
+    page_set_dirty(page);
+    page_set_dirty(ancpage);
+    page_set_dirty(sibpage);
 
     scratchpad->mergepage=0;
 
@@ -1124,7 +1124,7 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
 
     key_set_size(lhs, key_get_size(rhs));
 
-    page_set_dirty(page, 1);
+    page_set_dirty(page);
 
     return (HAM_SUCCESS);
 }
@@ -1260,7 +1260,7 @@ free_all:
 
     btree_node_set_count(node, btree_node_get_count(node)-1);
 
-    page_set_dirty(page, 1);
+    page_set_dirty(page);
 
     return (0);
 }

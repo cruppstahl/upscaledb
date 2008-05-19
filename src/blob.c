@@ -81,7 +81,7 @@ __write_chunks(ham_db_t *db, ham_page_t *page,
                     return (st);
                 memcpy(&page_get_raw_payload(page)[writestart], chunk_data[i],
                             writesize);
-                page_set_dirty(page, 1);
+                page_set_dirty(page);
                 addr+=writesize;
                 chunk_data[i]+=writesize;
                 chunk_size[i]-=writesize;
@@ -747,7 +747,7 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
                 0, rid);
     }
     else if (table_id && page) {
-        page_set_dirty(page, 1);
+        page_set_dirty(page);
     }
     else
         ham_assert(!"shouldn't be here", (""));

@@ -562,7 +562,7 @@ struct ham_db_t
 /*
  * set the dirty-flag
  */
-#define db_set_dirty(db, d)            page_set_dirty(db_get_header_page(db), d)
+#define db_set_dirty(db, d)            page_set_dirty(db_get_header_page(db))
 
 /**
  * uncouple all cursors from a page

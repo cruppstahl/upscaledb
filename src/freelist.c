@@ -214,7 +214,7 @@ __freel_alloc_page(ham_db_t *db, freelist_cache_t *cache,
                         freel_entry_get_page_id(&entries[i-1]), 0);
                 if (!page)
                     return (0);
-                page_set_dirty(page, HAM_TRUE);
+                page_set_dirty(page);
                 fp=page_get_freelist(page);
             }
 
@@ -231,7 +231,7 @@ __freel_alloc_page(ham_db_t *db, freelist_cache_t *cache,
             freel_set_start_address(fp, 
                     freel_entry_get_start_address(&entries[i]));
             freel_set_max_bits(fp, size*8);
-            page_set_dirty(page, HAM_TRUE);
+            page_set_dirty(page);
             ham_assert(freel_entry_get_max_bits(&entries[i])==
                     freel_get_max_bits(fp), (""));
             freel_entry_set_page_id(&entries[i], page_get_self(page));
@@ -289,7 +289,7 @@ __freel_alloc_area(ham_db_t *db, ham_size_t size, ham_bool_t aligned)
             if (s!=-1) {
                 __freel_set_bits(fp, s, size/DB_CHUNKSIZE, HAM_FALSE);
                 if (page)
-                    page_set_dirty(page, HAM_TRUE);
+                    page_set_dirty(page);
                 else
                     db_set_dirty(db, HAM_TRUE);
                 break;
@@ -488,7 +488,7 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size)
                 freel_get_allocated_bits(fp));
 
         if (page)
-            page_set_dirty(page, HAM_TRUE);
+            page_set_dirty(page);
         else
             db_set_dirty(db, HAM_TRUE);
 

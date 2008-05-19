@@ -688,7 +688,7 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
         return (st);
     }
 
-    page_set_dirty(page, 1);
+    page_set_dirty(page);
     page_release_ref(page);
 
     return (0);

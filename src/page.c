@@ -274,7 +274,7 @@ page_flush(ham_page_t *page)
     if (st)
         return (db_set_error(db, st));
 
-    page_set_dirty(page, 0);
+    page_set_undirty(page);
     return (HAM_SUCCESS);
 }
 

@@ -98,7 +98,7 @@ o recovery/journalling
 
 x remove log_entry_t::prev_lsn, since it is never used
 
-o ham_txn_abort: when a txn is committed, a page can remain dirty (if it's
+x ham_txn_abort: when a txn is committed, a page can remain dirty (if it's
     not immediately flushed). if the following txn does not modify this
     page, but fetches it nevertheless, it's still dirty and the changes
     are revoked. i.e.
@@ -106,13 +106,13 @@ o ham_txn_abort: when a txn is committed, a page can remain dirty (if it's
     insert("a", "234") -> fails because of duplicate key; but the page is
         in the txn and dirty, therefore it's undone, although for this
         specific transaction it was not modified -> costs performance
-    o store txnid of the transaction which actually dirtied the page
-    o when aborting: only revoke if the current transaction was the one
+    x store txnid of the transaction which actually dirtied the page
+    x when aborting: only revoke if the current transaction was the one
         which dirtied the page
 
 o when writing directly to the device, page-filters do NOT
     apply! they must be applied when writing to the logfile
-    (which is not yet implemented)
+    o unittests
 
 o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
 
@@ -124,6 +124,19 @@ o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
     o documentation
     o add to samples/db2.c
 
+. unittests should not fail if compiled with NO_COMPRESSION
+
+. unittests should not fail if compiled with NO_ENCRYPTION
+
+. need a very simple message-board on hamsterdb.com
+
+. HAM_AUTO_RECOVERY not allowed at ham_create(_ex), ham_env_create(_ex)
+    o unittests
+
+
+
+. new configure switch --force-lsb-compliancy (ohne pread, pwrite)
+
 . scenario: created with log, a few inserts; crash (dbfile is ok,
     but logfile is not empty)
     then opened *without* log, another few inserts, closed
@@ -131,20 +144,11 @@ o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
     state is no longer valid! must we store the lsn in the database
     header? or is this a case of PEBCAC?
 
-. HAM_AUTO_RECOVERY not allowed at ham_create(_ex), ham_env_create(_ex)
-    o unittests
-
 . new API function ham_set_checkpoint(), or extend ham_flush()
     with new flag HAM_SET_CHECKPOINT??
 
 . new flag HAM_SKIP_RECOVERY - not allowed in combination
     with HAM_AUTO_RECOVERY etc
-
-. unittests should not fail if compiled with NO_COMPRESSION
-
-. unittests should not fail if compiled with NO_ENCRYPTION
-
-. new configure switch --force-lsb-compliancy (ohne pread, pwrite)
 
 -----------------------------------------------------------------------------
 

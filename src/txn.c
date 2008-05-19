@@ -117,13 +117,15 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
 
     /*
      * in case of logging: write after-images of all modified pages,
+     * if they were modified by this transaction;
      * then write the transaction boundary
      */
     if (db_get_log(db) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) {
         head=txn_get_pagelist(txn);
         while (head) {
             next=page_get_next(head, PAGE_LIST_TXN);
-            if (page_is_dirty(head)) {
+            if (page_get_dirty_txn(head)==txn_get_id(txn) 
+                    || page_get_dirty_txn(head)==PAGE_DUMMY_TXN_ID) {
                 st=ham_log_add_page_after(head);
                 if (st) 
                     return (db_set_error(db, st));
@@ -155,7 +157,7 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
          */
         if (page_get_npers_flags(head)&PAGE_NPERS_DELETE_PENDING) {
             /* remove page from cache, add it to garbage list */
-            page_set_dirty(head, 0);
+            page_set_undirty(head);
         
             st=db_free_page(head, DB_MOVE_TO_FREELIST);
             if (st)
@@ -218,7 +220,7 @@ ham_txn_abort(ham_txn_t *txn)
             st=ham_log_recreate(db_get_log(db), head);
             if (st)
                 return (st);
-            /*page_set_dirty(head, 0);*/
+            /*page_set_undirty(head); */
         }
 
         /* page is no longer in use */

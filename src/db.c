@@ -564,7 +564,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
     /*
      * free the page; since it's deleted, we don't need to flush it
      */
-    page_set_dirty(page, HAM_FALSE);
+    page_set_undirty(page);
     (void)page_free(page);
     (void)page_delete(page);
 
@@ -631,7 +631,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
 
 done:
     page_set_type(page, type);
-    page_set_dirty(page, 0);
+    page_set_undirty(page);
 
     st=ham_log_add_page_before(page);
     if (st) 

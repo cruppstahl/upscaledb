@@ -1920,7 +1920,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
         else
             db_set_max_databases(db, DB_MAX_INDICES);
 
-        page_set_dirty(page, 1);
+        page_set_dirty(page);
 
         /* create the freelist - not needed for in-memory-databases */
         if (!(flags&HAM_IN_MEMORY_DB)) {
