@@ -125,7 +125,7 @@ public:
         
         CPPUNIT_ASSERT(page_fetch(page, db_get_pagesize(m_db))==HAM_SUCCESS);
         memset(page_get_pers(page), 0x13, ps);
-        page_set_dirty(page, 1);
+        page_set_dirty(page);
         CPPUNIT_ASSERT(page_flush(page)==HAM_SUCCESS);
 
         CPPUNIT_ASSERT(page_is_dirty(page)==0);

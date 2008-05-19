@@ -272,7 +272,7 @@ public:
         p=page_get_raw_payload(page);
         for (int i=0; i<16; i++)
             p[i]=(ham_u8_t)i;
-        page_set_dirty(page, 1);
+        page_set_dirty(page);
         address=page_get_self(page);
         CPPUNIT_ASSERT(db_flush_page(m_db, page, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(db_free_page(page, 0)==HAM_SUCCESS);

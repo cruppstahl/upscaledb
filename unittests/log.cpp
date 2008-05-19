@@ -1419,7 +1419,6 @@ public:
         exp.push_back(LogEntry(7, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(7, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
         exp.push_back(LogEntry(6, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
-        exp.push_back(LogEntry(6, LOG_ENTRY_TYPE_WRITE, ps*3, ps));
         exp.push_back(LogEntry(6, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
         exp.push_back(LogEntry(6, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
         exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
@@ -1558,7 +1557,7 @@ public:
         ham_u8_t *p=page_get_payload(page);
         memset(p, 0, db_get_usable_pagesize(m_db));
         p[0]=1;
-        page_set_dirty(page, 1);
+        page_set_dirty(page);
         CPPUNIT_ASSERT_EQUAL(0, ham_log_add_page_before(page));
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_commit(&txn, 0));
 
@@ -1569,7 +1568,7 @@ public:
         CPPUNIT_ASSERT(page!=0);
         p=page_get_payload(page);
         p[0]=2;
-        page_set_dirty(page, 1);
+        page_set_dirty(page);
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
 
         /* check modifications */
@@ -1599,7 +1598,7 @@ public:
         int_key_t *entry=btree_node_get_key(m_db, node, 0);
         CPPUNIT_ASSERT_EQUAL((ham_u8_t)'a', key_get_key(entry)[0]);
         key_get_key(entry)[0]='b';
-        page_set_dirty(page, 1);
+        page_set_dirty(page);
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
 
         /* now fetch the original key */
@@ -1623,7 +1622,7 @@ public:
          * are not written to the file */
         page=cache_get_totallist(db_get_cache(m_db)); 
         while (page) {
-            page_set_dirty(page, 0);
+            page_set_undirty(page);
             page=page_get_next(page, PAGE_LIST_CACHED);
         }
 
@@ -1650,7 +1649,7 @@ public:
          * are not written to the file */
         page=cache_get_totallist(db_get_cache(m_db)); 
         while (page) {
-            page_set_dirty(page, 0);
+            page_set_undirty(page);
             page=page_get_next(page, PAGE_LIST_CACHED);
         }
 
@@ -1684,7 +1683,7 @@ public:
          * are not written to the file */
         page=cache_get_totallist(db_get_cache(m_db)); 
         while (page) {
-            page_set_dirty(page, 0);
+            page_set_undirty(page);
             page=page_get_next(page, PAGE_LIST_CACHED);
         }
 
