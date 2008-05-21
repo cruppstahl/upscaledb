@@ -15,8 +15,9 @@ o new web page
     x update documentation for C/C++
     x add google analytics code
     x add blog entry
+    x add news entry
+    x add message board
     o add google sitemap
-    o add news entry
 
     o update samples for C/C++ (if necessary)
     o add documentation for Java
@@ -24,6 +25,7 @@ o new web page
     o add samples for Java
     o add samples for .NET
     o add samples for Python
+    o add RSS/Atom feed
 
 o recovery/journalling
     x design functionality 
