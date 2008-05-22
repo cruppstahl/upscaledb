@@ -829,15 +829,15 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
         return (HAM_INV_PARAMETER);
     }
 
-    /* flag HAM_AUTO_RECOVERY imples HAM_ENABLE_RECOVERY */
-    if (flags&HAM_AUTO_RECOVERY)
-        flags|=HAM_ENABLE_RECOVERY;
-
     /* cannot open an in-memory-db */
     if (flags&HAM_IN_MEMORY_DB) {
         ham_trace(("cannot open an in-memory database"));
         return (HAM_INV_PARAMETER);
     }
+
+    /* flag HAM_AUTO_RECOVERY implies HAM_ENABLE_RECOVERY */
+    if (flags&HAM_AUTO_RECOVERY)
+        flags|=HAM_ENABLE_RECOVERY;
 
     /* don't allow recovery in combination with some other flags */
     if (!my_check_recovery_flags(flags))
