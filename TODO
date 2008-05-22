@@ -112,9 +112,9 @@ x ham_txn_abort: when a txn is committed, a page can remain dirty (if it's
     x when aborting: only revoke if the current transaction was the one
         which dirtied the page
 
-o when writing directly to the device, page-filters do NOT
+x when writing directly to the device, page-filters do NOT
     apply! they must be applied when writing to the logfile
-    o unittests
+    x unittests
 
 o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
 
@@ -129,8 +129,6 @@ o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
 . unittests should not fail if compiled with NO_COMPRESSION
 
 . unittests should not fail if compiled with NO_ENCRYPTION
-
-. need a very simple message-board on hamsterdb.com
 
 . HAM_AUTO_RECOVERY not allowed at ham_create(_ex), ham_env_create(_ex)
     o unittests
