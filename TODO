@@ -116,7 +116,7 @@ x when writing directly to the device, page-filters do NOT
     apply! they must be applied when writing to the logfile
     x unittests
 
-o a freelist-test fails (FreelistTest::markAllocOverflow4Test)
+x a freelist-test fails (FreelistTest::markAllocOverflow4Test)
 
 . more unittests for freel_alloc_page() (pimp freelist.cpp:markAllocAlignedTest)
 
