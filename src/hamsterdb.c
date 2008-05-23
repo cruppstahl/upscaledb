@@ -642,7 +642,8 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     env_set_file_mode(env, mode);
     if (filename) {
         env_set_filename(env, 
-                allocator_alloc(env_get_allocator(env), strlen(filename)+1));
+                allocator_alloc(env_get_allocator(env), 
+                    (ham_size_t)strlen(filename)+1));
         if (!env_get_filename(env)) {
             (void)ham_env_close(env, 0);
             return (HAM_OUT_OF_MEMORY);
@@ -897,7 +898,8 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
     env_set_file_mode(env, 0644);
     if (filename) {
         env_set_filename(env, 
-                allocator_alloc(env_get_allocator(env), strlen(filename)+1));
+                allocator_alloc(env_get_allocator(env), 
+                    (ham_size_t)strlen(filename)+1));
         if (!env_get_filename(env)) {
             (void)ham_env_close(env, 0);
             return (HAM_OUT_OF_MEMORY);

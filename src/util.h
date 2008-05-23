@@ -20,9 +20,30 @@
 extern "C" {
 #endif 
 
+#include <stdarg.h>
+
 #include <ham/hamsterdb.h>
 #include "db.h"
 #include "keys.h"
+
+/**
+ * vsnprintf replacement/wrapper
+ * 
+ * uses sprintf on platforms which do not define snprintf
+ */
+extern int
+util_vsnprintf(char *str, size_t size, const char *format, va_list ap);
+
+/**
+ * snprintf replacement/wrapper
+ * 
+ * uses sprintf on platforms which do not define snprintf
+ */
+#ifndef HAM_OS_POSIX
+#define util_snprintf _snprintf
+#else
+#define util_snprintf snprintf
+#endif
 
 /** 
  * copy a key

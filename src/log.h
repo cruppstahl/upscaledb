@@ -27,17 +27,21 @@ extern "C" {
 struct ham_txn_t;
 struct ham_page_t;
 
+#include "packstart.h"
+
 /**
  * the header structure of a log file
  */
-typedef struct {
+typedef HAM_PACK_0 struct HAM_PACK_1 {
     /* the magic */
     ham_u32_t _magic;
 
     /* a reserved field */
     ham_u32_t _reserved;
 
-} log_header_t;
+} HAM_PACK_2 log_header_t;
+
+#include "packstop.h"
 
 #define HAM_LOG_HEADER_MAGIC                  (('h'<<24)|('l'<<16)|('o'<<8)|'g')
 
@@ -47,10 +51,12 @@ typedef struct {
 /* set the log header magic */
 #define log_header_set_magic(l, m)              (l)->_magic=m
 
+#include "packstart.h"
+
 /**
  * a log file entry
  */
-typedef struct {
+typedef HAM_PACK_0 struct HAM_PACK_1 {
     /* the lsn of this entry */
     ham_u64_t _lsn;
 
@@ -70,7 +76,9 @@ typedef struct {
     /* the size of the data */
     ham_u64_t _data_size;
 
-} log_entry_t;
+} HAM_PACK_2 log_entry_t;
+
+#include "packstop.h"
 
 /* 
  * the different types of entries

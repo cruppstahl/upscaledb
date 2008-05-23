@@ -464,6 +464,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\log.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\log.h"
+			>
+		</File>
+		<File
 			RelativePath="..\src\mem.c"
 			>
 		</File>

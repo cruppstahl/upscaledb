@@ -20,6 +20,21 @@
 #include "error.h"
 #include "blob.h"
 
+#if HAM_OS_POSIX
+extern int vsnprintf(char *str, size_t size, const char *format, va_list ap);
+#endif
+
+int
+util_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+{
+#if HAM_OS_POSIX
+    return vsnprintf(str, size, format, ap);
+#else
+    (void)size;
+    return vsprintf(str, format, ap);
+#endif
+}
+
 ham_key_t *
 util_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
 {

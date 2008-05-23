@@ -19,10 +19,7 @@
 
 #include "db.h"
 #include "error.h"
-
-#if HAM_OS_POSIX
-extern int vsnprintf(char *str, size_t size, const char *format, va_list ap);
-#endif
+#include "util.h"
 
 static int         g_level   =0;
 static const char *g_file    =0;
@@ -33,24 +30,13 @@ static const char *g_function=0;
 void (*ham_test_abort)(void);
 
 static int
-my_vsnprintf(char *str, size_t size, const char *format, va_list ap)
-{
-#if HAM_OS_POSIX
-    return vsnprintf(str, size, format, ap);
-#else
-    (void)size;
-    return vsprintf(str, format, ap);
-#endif
-}
-
-static int
 my_snprintf(char *str, size_t size, const char *format, ...)
 {
     int s;
 
     va_list ap;
     va_start(ap, format);
-    s=my_vsnprintf(str, size, format, ap);
+    s=util_vsnprintf(str, size, format, ap);
     va_end(ap);
     
     return (s);
@@ -109,8 +95,8 @@ dbg_log(const char *format, ...)
     va_list ap;
     va_start(ap, format);
 #if HAM_DEBUG
-    s=my_snprintf(buffer,   sizeof(buffer), "%s[%d]: ", g_file, g_line);
-    my_vsnprintf (buffer+s, sizeof(buffer)-s, format, ap);
+    s=my_snprintf (buffer,   sizeof(buffer), "%s[%d]: ", g_file, g_line);
+    util_vsnprintf(buffer+s, sizeof(buffer)-s, format, ap);
 #else
     if (g_function)
         s=my_snprintf(buffer,   sizeof(buffer), "%s: ", g_function);
@@ -139,7 +125,7 @@ dbg_verify_failed(const char *format, ...)
 
     if (format) {
         va_start(ap, format);
-        my_vsnprintf(buffer+s, sizeof(buffer)-s, format, ap);
+        util_vsnprintf(buffer+s, sizeof(buffer)-s, format, ap);
         va_end(ap);
     }
     

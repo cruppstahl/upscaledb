@@ -16,6 +16,7 @@
 #include "txn.h"
 #include "log.h"
 #include "device.h"
+#include "util.h"
 
 #define LOG_DEFAULT_THRESHOLD   64
 
@@ -161,14 +162,14 @@ ham_log_create(mem_allocator_t *alloc, const char *dbpath,
     log_set_threshold(log, LOG_DEFAULT_THRESHOLD);
 
     /* create the two files */
-    snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 0);
+    util_snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 0);
     st=os_create(filename, 0, mode, &log_get_fd(log, 0));
     if (st) {
         allocator_free(alloc, log);
         return (st);
     }
 
-    snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 1);
+    util_snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 1);
     st=os_create(filename, 0, mode, &log_get_fd(log, 1));
     if (st) {
         os_close(log_get_fd(log, 0), 0);
@@ -213,14 +214,14 @@ ham_log_open(mem_allocator_t *alloc, const char *dbpath, ham_u32_t flags,
     log_set_flags(log, flags);
 
     /* open the two files */
-    snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 0);
+    util_snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 0);
     st=os_open(filename, 0, &log_get_fd(log, 0));
     if (st) {
         allocator_free(alloc, log);
         return (st);
     }
 
-    snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 1);
+    util_snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 1);
     st=os_open(filename, 0, &log_get_fd(log, 1));
     if (st) {
         os_close(log_get_fd(log, 0), 0);
@@ -657,12 +658,12 @@ ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
             pos=(pos/8)*8;
 
         *data=allocator_alloc(log_get_allocator(log), 
-                        log_entry_get_data_size(entry));
+                        (ham_size_t)log_entry_get_data_size(entry));
         if (!*data)
             return (HAM_OUT_OF_MEMORY);
 
         st=os_pread(log_get_fd(log, iter->_fdidx), pos, *data, 
-                    log_entry_get_data_size(entry));
+                    (ham_size_t)log_entry_get_data_size(entry));
         if (st) {
             allocator_free(log_get_allocator(log), *data);
             *data=0;

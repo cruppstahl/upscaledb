@@ -395,6 +395,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\unittests\log.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\unittests\main.cpp"
 			>
 		</File>
