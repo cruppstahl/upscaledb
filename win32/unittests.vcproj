@@ -202,7 +202,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../include;../../hamsterdb-alien/inc"
+				AdditionalIncludeDirectories="../include;../../../hamsterdb-alien/inc"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;VISUAL_STUDIO"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -221,7 +221,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../../hamsterdb-alien/libs/win32-msvc8/cppunit.lib"
+				AdditionalDependencies="../../../hamsterdb-alien/libs/win32-msvc8/cppunit.lib"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -344,6 +344,10 @@
 		</File>
 		<File
 			RelativePath="..\unittests\bt_cursor.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\btree_erase.cpp"
 			>
 		</File>
 		<File

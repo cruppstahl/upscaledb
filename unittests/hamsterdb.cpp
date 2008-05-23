@@ -876,11 +876,11 @@ public:
         ham_page_t *page=db_alloc_page(m_db, 0, 0);
         CPPUNIT_ASSERT(page!=0);
 
-        int off=btree_node_get_key_offset(page, 0);
+        int off=(int)btree_node_get_key_offset(page, 0);
         CPPUNIT_ASSERT_EQUAL((int)page_get_self(page)+11+28, off);
-        off=btree_node_get_key_offset(page, 1);
+        off=(int)btree_node_get_key_offset(page, 1);
         CPPUNIT_ASSERT_EQUAL((int)page_get_self(page)+11+28+32, off);
-        off=btree_node_get_key_offset(page, 2);
+        off=(int)btree_node_get_key_offset(page, 2);
         CPPUNIT_ASSERT_EQUAL((int)page_get_self(page)+11+28+64, off);
 
         db_free_page(page, 0);

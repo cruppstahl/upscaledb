@@ -100,7 +100,7 @@ dbg_log(const char *format, ...)
 #else
     if (g_function)
         s=my_snprintf(buffer,   sizeof(buffer), "%s: ", g_function);
-    my_vsnprintf (buffer+s, sizeof(buffer)-s, format, ap);
+    util_vsnprintf (buffer+s, sizeof(buffer)-s, format, ap);
 #endif
     va_end(ap);
 
