@@ -130,6 +130,8 @@ public:
     }
 };
 
+#ifdef HAM_ENABLE_INTERNAL
 CPPUNIT_TEST_SUITE_REGISTRATION(CheckIntegrityTest);
 CPPUNIT_TEST_SUITE_REGISTRATION(InMemoryCheckIntegrityTest);
+#endif
 

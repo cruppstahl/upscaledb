@@ -391,6 +391,7 @@ public:
 
     void aesFilterTest()
     {
+#ifndef HAM_DISABLE_ENCRYPTION
         ham_env_t *env;
         ham_db_t *db;
 
@@ -424,10 +425,12 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+#endif
     }
 
     void aesFilterInMemoryTest()
     {
+#ifndef HAM_DISABLE_ENCRYPTION
         ham_env_t *env;
         ham_db_t *db;
 
@@ -450,10 +453,12 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+#endif
     }
 
     void aesTwiceFilterTest()
     {
+#ifndef HAM_DISABLE_ENCRYPTION
         ham_env_t *env;
         ham_db_t *db;
 
@@ -478,10 +483,12 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+#endif
     }
 
     void negativeAesFilterTest(void)
     {
+#ifndef HAM_DISABLE_ENCRYPTION
         ham_env_t *env=(ham_env_t *)1;
         ham_db_t *db;
         ham_u8_t aeskey[16]={0x13};
@@ -499,10 +506,12 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+#endif
     }
 
     void zlibFilterTest()
     {
+#ifndef HAM_DISABLE_COMPRESSION
         ham_key_t key;
         ham_record_t rec;
         memset(&key, 0, sizeof(key));
@@ -527,10 +536,12 @@ public:
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_find(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+#endif
     }
     
     void zlibFilterEmptyRecordTest(void)
     {
+#ifndef HAM_DISABLE_COMPRESSION
         ham_key_t key;
         ham_record_t rec;
         memset(&key, 0, sizeof(key));
@@ -546,10 +557,12 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+#endif
     }
 
     void zlibEnvFilterTest()
     {
+#ifndef HAM_DISABLE_COMPRESSION
         ham_env_t *env;
         ham_db_t *db[3];
         ham_key_t key;
@@ -593,6 +606,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[0]));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[1]));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[2]));
+#endif
     }
 
 };

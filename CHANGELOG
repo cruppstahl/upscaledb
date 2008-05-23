@@ -1,3 +1,7 @@
+May 24, 2008 - chris
+o Unittests no longer fail when compiled without encryption, compression
+	or internal functions
+
 May 22, 2008 - chris
 o Log files now respect the file filters - i.e. if aes encryption is enabled,
 	the log file is also encrypted

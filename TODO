@@ -118,14 +118,11 @@ x when writing directly to the device, page-filters do NOT
     apply! they must be applied when writing to the logfile
     x unittests
 
-. more unittests for freel_alloc_page() (pimp freelist.cpp:markAllocAlignedTest)
+x unittests should not fail if compiled with HAM_DISABLE_COMPRESSION
 
-. HAM_AUTO_RECOVERY not allowed at ham_create(_ex), ham_env_create(_ex)
-    o unittests
+x unittests should not fail if compiled with HAM_DISABLE_ENCRYPTION
 
-. unittests should not fail if compiled with NO_COMPRESSION
-
-. unittests should not fail if compiled with NO_ENCRYPTION
+x unittests should not fail if compiled without HAM_ENABLE_INTERNAL
 
 . new API function to retrieve the flags of a database (ham_get_flags(db))
     x unittest

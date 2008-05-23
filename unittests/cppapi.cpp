@@ -331,6 +331,7 @@ public:
 
     void compressionTest(void)
     {
+#ifndef HAM_DISABLE_COMPRESSION
         ham::db db;
         db.create(".test");
 
@@ -341,6 +342,7 @@ public:
         }
         
         db.enable_compression(0);
+#endif
     }
 
     void envTest(void)

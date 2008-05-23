@@ -1822,6 +1822,7 @@ public:
 
     void aesFilterTest()
     {
+#ifndef HAM_DISABLE_ENCRYPTION
         /* close m_db, otherwise ham_env_create fails on win32 */
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
@@ -1855,10 +1856,12 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+#endif
     }
 
     void aesFilterRecoverTest()
     {
+#ifndef HAM_DISABLE_ENCRYPTION
         /* close m_db, otherwise ham_env_create fails on win32 */
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
@@ -1893,6 +1896,7 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
         CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+#endif
     }
 };
 
