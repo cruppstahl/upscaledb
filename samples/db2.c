@@ -111,7 +111,7 @@ main(int argc, char **argv)
     if (st)
         error("ham_new", st);
 
-    st=ham_create(dest, dest_path, HAM_ENABLE_DUPLICATES, 0664);
+    st=ham_create(dest, dest_path, ham_get_flags(src), 0664);
     if (st)
         error("ham_create", st);
 

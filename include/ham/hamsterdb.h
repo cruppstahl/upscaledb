@@ -1046,6 +1046,16 @@ ham_open_ex(ham_db_t *db, const char *filename,
 #define HAM_PARAM_MAX_ENV_DATABASES  0x00000103
 
 /**
+ * Returns the flags which were specified when the Database was created
+ * or opened
+ *
+ * @param db A valid Database handle
+ * @return The Database flags
+ */
+HAM_EXPORT ham_u32_t HAM_CALLCONV
+ham_get_flags(ham_db_t *db);
+
+/**
  * Returns the last error code
  *
  * @param db A valid Database handle

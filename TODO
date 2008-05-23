@@ -124,16 +124,19 @@ x unittests should not fail if compiled with HAM_DISABLE_ENCRYPTION
 
 x unittests should not fail if compiled without HAM_ENABLE_INTERNAL
 
-. new API function to retrieve the flags of a database (ham_get_flags(db))
+x new API function to retrieve the flags of a database (ham_get_flags(db))
     x unittest
-    o move from hamsterdb_int.h to hamsterdb.h
-    o documentation
-    o add to samples/db2.c
+    x move from hamsterdb_int.h to hamsterdb.h
+    x add to samples/db2.c
 
+-----------------------------------------------------------------------------
 
+. Perl wrapper
 
+. PHP wrapper
 
 . new configure switch --force-lsb-compliancy (ohne pread, pwrite)
+    o needs support for automated testing!
 
 . scenario: created with log, a few inserts; crash (dbfile is ok,
     but logfile is not empty)
@@ -144,12 +147,6 @@ x unittests should not fail if compiled without HAM_ENABLE_INTERNAL
 
 . new API function ham_set_checkpoint(), or extend ham_flush()
     with new flag HAM_SET_CHECKPOINT??
-
------------------------------------------------------------------------------
-
-. Perl wrapper
-
-. PHP wrapper
 
 -----------------------------------------------------------------------------
 

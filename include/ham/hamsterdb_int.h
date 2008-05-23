@@ -57,16 +57,6 @@ HAM_EXPORT void HAM_CALLCONV
 ham_set_context_data(ham_db_t *db, void *data);
 
 /**
- * Retrieves the flags which were specified when the Database was created
- * or opened
- *
- * @param db A valid Database handle
- * @return The Database flags
- */
-HAM_EXPORT ham_u32_t HAM_CALLCONV
-ham_get_flags(ham_db_t *db);
-
-/**
  * Retrieves a user-provided context pointer
  *
  * This function retrieves a user-provided context pointer. This can be any
