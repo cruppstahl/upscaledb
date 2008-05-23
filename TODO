@@ -112,13 +112,20 @@ x ham_txn_abort: when a txn is committed, a page can remain dirty (if it's
     x when aborting: only revoke if the current transaction was the one
         which dirtied the page
 
+x a freelist-test fails (FreelistTest::markAllocOverflow4Test)
+
 x when writing directly to the device, page-filters do NOT
     apply! they must be applied when writing to the logfile
     x unittests
 
-x a freelist-test fails (FreelistTest::markAllocOverflow4Test)
-
 . more unittests for freel_alloc_page() (pimp freelist.cpp:markAllocAlignedTest)
+
+. HAM_AUTO_RECOVERY not allowed at ham_create(_ex), ham_env_create(_ex)
+    o unittests
+
+. unittests should not fail if compiled with NO_COMPRESSION
+
+. unittests should not fail if compiled with NO_ENCRYPTION
 
 . new API function to retrieve the flags of a database (ham_get_flags(db))
     x unittest
@@ -126,12 +133,6 @@ x a freelist-test fails (FreelistTest::markAllocOverflow4Test)
     o documentation
     o add to samples/db2.c
 
-. unittests should not fail if compiled with NO_COMPRESSION
-
-. unittests should not fail if compiled with NO_ENCRYPTION
-
-. HAM_AUTO_RECOVERY not allowed at ham_create(_ex), ham_env_create(_ex)
-    o unittests
 
 
 
@@ -146,9 +147,6 @@ x a freelist-test fails (FreelistTest::markAllocOverflow4Test)
 
 . new API function ham_set_checkpoint(), or extend ham_flush()
     with new flag HAM_SET_CHECKPOINT??
-
-. new flag HAM_SKIP_RECOVERY - not allowed in combination
-    with HAM_AUTO_RECOVERY etc
 
 -----------------------------------------------------------------------------
 

@@ -1505,6 +1505,9 @@ ham_open_ex(ham_db_t *db, const char *filename,
         return (HAM_INV_PARAMETER);
     }
 
+    if (!filename)
+        filename=env_get_filename(db_get_env(db));
+
     /* 
      * if we do not yet have an allocator: create a new one 
      */

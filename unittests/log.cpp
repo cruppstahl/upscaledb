@@ -833,6 +833,7 @@ class LogHighLevelTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (undoMultipleInsertsTest);
     CPPUNIT_TEST      (undoMultipleInsertsCheckpointTest);
     CPPUNIT_TEST      (aesFilterTest);
+    CPPUNIT_TEST      (aesFilterRecoverTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -1821,6 +1822,9 @@ public:
 
     void aesFilterTest()
     {
+        /* close m_db, otherwise ham_env_create fails on win32 */
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
         ham_env_t *env;
         ham_db_t *db;
 
@@ -1839,9 +1843,42 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, ".test", 
+                    HAM_ENABLE_RECOVERY));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+    }
+
+    void aesFilterRecoverTest()
+    {
+        /* close m_db, otherwise ham_env_create fails on win32 */
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        ham_env_t *env;
+        ham_db_t *db;
+
+        ham_key_t key;
+        ham_record_t rec;
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+        ham_u8_t aeskey[16] ={0x13};
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 
+                    HAM_ENABLE_RECOVERY, 0664));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_DONT_CLEAR_LOG));
 
