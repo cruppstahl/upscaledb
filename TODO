@@ -27,11 +27,11 @@ o new web page
     o add samples for Python
     o add RSS/Atom feed
 
-o recovery/journalling
+x recovery/journalling
     x design functionality 
     x design API
     x write roadmap
-    o implement
+    x implement
         x identify code which needs logging
         x write logging module - with full unittest coverage!
         x recovery process/logfile iteration

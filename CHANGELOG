@@ -1,3 +1,11 @@
+May 22, 2008 - chris
+o Log files now respect the file filters - i.e. if aes encryption is enabled,
+	the log file is also encrypted
+
+May 21, 2008 - chris
+o Finalized the implementation of logging and recovery; can be enabled with
+	HAM_ENABLE_RECOVERY
+
 May 11, 2008 - chris
 o Bugfix: when creating an in-memory environment with a NULL-pointer as 
     filename, this pointer was dereferenced, which resulted in a segmentation
