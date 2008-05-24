@@ -1,5 +1,5 @@
 
-hamsterdb 1.0.1                                Sun Mar  9 21:19:51 CET 2008
+hamsterdb 1.0.3                                Sat May 24 20:06:51 CEST 2008
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -12,26 +12,28 @@ hamsterdb is a database engine written in ANSI C. It supports a B+Tree index
 structure, uses memory mapped I/O (if available), supports cursors and
 variable length keys and can create in-memory databases.
 
-This is the first release candidate for version 1.0. 
-The first stable release will be version 1.0.
+This release implements logging and recovery.
 
 2. Changes
 
 New Features
-* none
+* Logging/Recovery can be enabled with the flag HAM_ENABLE_LOGGING
 
 Bugfixes
-* none
+* Minor grammar changes in the documentation (header file comments)
+* Unittests no longer fail if the library was compiled without support
+    for compression, encryption or internal functions
 
 Other Changes
-* new API function ham_cursor_get_database
-* added calling convention macros
+* API function ham_get_flags() moved from ham/hamsterdb_int.h to
+    ham/hamsterdb.h
 
 To see a list of all changes, look in the file CHANGELOG.
 
 3. Roadmap
 
-- Next item on the TODO list: release the Java wrapper
+- Next item on the TODO list: release the Perl or PHP wrapper
+- Then continue with Transaction support
 
 4. Features
 
@@ -47,14 +49,15 @@ To see a list of all changes, look in the file CHANGELOG.
     architectures (also embedded and SPARC)
 - Endian-independent file format
 - Uses memory mapped I/O for fast disk access (but falls back to read/write if
-  mmap is not available)
+    mmap is not available)
+- Support for logging and recovery
 - Uses 64bit file pointers and supports huge files (>2 GB)
 - Easy to use and well-documented
 - Supports rudimentary live-reorganization by automatically
     merging freelist entries
 - Open source and released under the GPL 2.0 or later
 - Supports AES encryption and zlib compression
-- C++ wrapper
+- Wrappers for C++, Python, Java and .NET
 
 5. Known Issues/Bugs
 

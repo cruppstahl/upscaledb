@@ -1,3 +1,6 @@
+May 25, 2008 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.3
+
 May 24, 2008 - chris
 o Unittests no longer fail when compiled without encryption, compression
 	or internal functions
@@ -10,11 +13,6 @@ o Log files now respect the file filters - i.e. if aes encryption is enabled,
 May 21, 2008 - chris
 o Finalized the implementation of logging and recovery; can be enabled with
 	HAM_ENABLE_RECOVERY
-
-May 11, 2008 - chris
-o Bugfix: when creating an in-memory environment with a NULL-pointer as 
-    filename, this pointer was dereferenced, which resulted in a segmentation
-    fault
 
 May 10, 2008 - chris
 o The flag HAM_DISABLE_FREELIST_FLUSH is now deprecated; freelist operations
