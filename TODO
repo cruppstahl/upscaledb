@@ -8,17 +8,7 @@ x a finished TODO item
 -----------------------------------------------------------------------------
 
 o new web page
-    x translate license to german
-    x frontpage picture: replace "embeddable" with "embedded"
-    x for the last time: check all links
-    -> go online!
-    x update documentation for C/C++
-    x add google analytics code
-    x add blog entry
-    x add news entry
-    x add message board
     o add google sitemap
-
     o update samples for C/C++ (if necessary)
     o add documentation for Java
     o add documentation for .NET (chm file)
@@ -26,108 +16,21 @@ o new web page
     o add samples for .NET
     o add samples for Python
     o add RSS/Atom feed
+    o link-cloud: add link to forum
 
-x recovery/journalling
-    x design functionality 
-    x design API
-    x write roadmap
-    x implement
-        x identify code which needs logging
-        x write logging module - with full unittest coverage!
-        x recovery process/logfile iteration
-        x new flag HAM_ENABLE_RECOVERY for ham_create und ham_open
-        x need new error code HAM_NEEDS_RECOVERY
-        x if log is enabled, create a log object
-        x if log is enabled, close the log
-        x add log-entries to all operations
-        x remove transactions from freelist routines
-        x rewrite logging to be page-based
+o add commercial license to source repositories (all of them!), update README
 
-        x ham_txn_abort: if a page is dirty, walk backwards through the log
-            and fetch the first before-image (or after-image of a committed
-            txn) and overwrite the page
-            x unittests
-                x create page; write before-image; modify page, write
-                    after-image; modify again, revoke change; make sure
-                    that the second modification was removed, but the first
-                    modification is persistent
-                x create db; insert key; create txn; modify page with the first
-                    key; abort txn; make sure that the original inserted key
-                    is still valid, but the second modification is not 
+o tools/tests/test.sh: add to release-process
+    - tricky: currently fails because of invalid database versions, and
+        because on cygwin the pagesize is different
 
-            x make sure that a page is never written to disk before it is
-                released from the transaction (assert refcount==0 in 
-                page_flush, and run the full monster.sh test!)
+o win32: test if prebuilt visual studio-library works in express edition, if 
+    it was built with the professional edition (and vice versa)
+    -> maybe have to change the build process, if it doesn't work
 
-            x enhance test tool and monster.sh to run with recovery enabled
+o win64: need cppunit for hamsterdb-alien
 
-        x recovery process
-            x new flag HAM_AUTO_RECOVERY - not allowed in combination
-                with HAM_READ_ONLY etc
-                x implies HAM_ENABLE_RECOVERY
-                x implement for ham_open(_ex), ham_env_open(_ex)
-            x unittests:    
-                x "corrupt", w/o AUTO_RECOVERY -> NEED_RECOVERY
-                x "corrupt", w AUTO_RECOVERY -> success
-            x after recovery, don't forget to clear both files and
-                reset lsn to 1!
-                x unittests!
-            x walk backwards through the log and undo all actions which were
-                not committed, but flushed, and redo all actions which were
-                committed, but not flushed
-                x unittests
-                    x create txn; allocate/modify page; commit txn; 
-                        set page_set_dirty(false) to avoid write to the file;
-                        close and recover -> modification is written to 
-                        the file
-                    x create multiple txn; allocate/modify page; commit txn; 
-                        set page_set_dirty(false) to avoid write to the file;
-                        close and recover -> modification is written to 
-                        the file
-                    x same as previous one, but with checkpoint
-                    x create txn; allocate/modify page; only write after-
-                        images, but not commit-boundary (needs new flag
-                        for ham_txn_commit); close file (changes are written)
-                        recover -> txn is undone
-                    x create multiple txn; allocate/modify page; only write 
-                        after-images, but not commit-boundary (needs new flag
-                        for ham_txn_commit); close file (changes are written)
-                        recover -> txn is undone
-                    x same as previous one, but with checkpoint
-
-    x new error code HAM_LOG_INV_FILE_HEADER
-        x add to ham_strerror
-
-x remove log_entry_t::prev_lsn, since it is never used
-
-x ham_txn_abort: when a txn is committed, a page can remain dirty (if it's
-    not immediately flushed). if the following txn does not modify this
-    page, but fetches it nevertheless, it's still dirty and the changes
-    are revoked. i.e.
-    insert("a", "123")
-    insert("a", "234") -> fails because of duplicate key; but the page is
-        in the txn and dirty, therefore it's undone, although for this
-        specific transaction it was not modified -> costs performance
-    x store txnid of the transaction which actually dirtied the page
-    x when aborting: only revoke if the current transaction was the one
-        which dirtied the page
-
-x a freelist-test fails (FreelistTest::markAllocOverflow4Test)
-
-x when writing directly to the device, page-filters do NOT
-    apply! they must be applied when writing to the logfile
-    x unittests
-
-x unittests should not fail if compiled with HAM_DISABLE_COMPRESSION
-
-x unittests should not fail if compiled with HAM_DISABLE_ENCRYPTION
-
-x unittests should not fail if compiled without HAM_ENABLE_INTERNAL
-
-x new API function to retrieve the flags of a database (ham_get_flags(db))
-    x unittest
-    x move from hamsterdb_int.h to hamsterdb.h
-    x add to samples/db2.c
+o release-process: enhance automated tests of win32/win64 dll and lib
 
 -----------------------------------------------------------------------------
 
