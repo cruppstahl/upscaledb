@@ -19,6 +19,7 @@ o new web page
     o link-cloud: add link to forum
 
 o add commercial license to source repositories (all of them!), update README
+    and all header file comments
 
 o tools/tests/test.sh: add to release-process
     - tricky: currently fails because of invalid database versions, and
