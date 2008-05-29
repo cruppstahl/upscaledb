@@ -18,7 +18,7 @@ o new web page
     o add RSS/Atom feed
     o add google sitemap
 
-o add commercial license to source repositories (all of them!), update README
+x add commercial license to source repositories (all of them!), update README
     and all header file comments
 
 o tools/tests/test.sh: add to release-process
@@ -32,10 +32,13 @@ o win32: test if prebuilt visual studio-library works in express edition, if
 o win64: need cppunit for hamsterdb-alien
 
 o update Python-Wrapper for logging/recovery
+    o add COPYING.COM
 
 o update .NET-Wrapper for logging/recovery
+    o add COPYING.COM
 
 o update Java-Wrapper for logging/recovery
+    o add COPYING.COM
 
 . release-process: enhance automated tests of win32/win64 dll and lib
 

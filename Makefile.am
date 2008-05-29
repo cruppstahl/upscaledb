@@ -7,7 +7,6 @@ EXTRA_DIST = documentation/Doxyfile                     \
              README                                     \
              COPYING.GPL2                               \
              COPYING.GPL3                               \
-             COPYING.COM                                \
              3rdparty                                   \
              include/ham/hamsterdb.h                    \
              include/ham/hamsterdb_int.h                \
