@@ -1,0 +1,135 @@
+hamsterdb Commercial License
+
+Version 1, May 2008
+(C) Christoph Rupp
+
+I. Introduction
+
+This document is a license agreement ("LICENSE") between You (either 
+an individual or a single entity) and Christoph Rupp ("DEVELOPER") for 
+the "hamsterdb storage" product ("PRODUCT"), which includes computer software, 
+its source code, associated media, printed materials, and "online" or 
+electronic documentation.
+
+The PRODUCT "hamsterdb storage" includes all wrapper libraries (i.e. for Java,
+.NET and Python). However, it does not include additional functionality like
+Database Transactions or Concurrent Access. These functionalities will become
+available as different Products, but they will be part of the same source 
+package. This LICENSE does not allow you the use of these functionalities.
+
+No amendment or modification may be made to this LICENSE except in 
+writing signed by You and DEVELOPER.
+
+This LICENSE is not transferable unless You have been given the explicit 
+permission from DEVELOPER to transfer it. This LICENSE also applies only 
+for the major version of the PRODUCT You have aquired from DEVELOPER, including
+updates and service packs for 18 months after purchase. If You use any 
+later versions than what You have legally aquired from DEVELOPER
+the GPL 2 license terms will take over and effectively render this 
+LICENSE invalid.
+
+When buying this PRODUCT, YOU will receive a special C header file
+'serial.h'. You agree to overwrite the original 'serial.h' file with the
+file You received, and You agree to recompile the hamsterdb sources with the
+new header file. You further agree that you will not modify the new 'serial.h'
+file unless You have the written authorization from the DEVELOPER.
+
+The motivation of this LICENSE is to give You a commercial path to 
+utilizing the PRODUCT aquired from DEVELOPER in closed source 
+applications You are developing or take part in developing. It is 
+also motivated by Your freedom to be able to modify the PRODUCT if 
+You should want to but does not grant You the right to distribute 
+those modifications in any way other than in binary form.
+
+2. License Terms
+
+DEVELOPER grants to You a non-exclusive, non-transferable license to 
+use, copy and modify the PRODUCT only as authorized below. 
+
+The PRODUCT and all of it's source files remain the intellectual property of 
+DEVELOPER.
+
+3. Single Developer
+
+The PRODUCT is licensed per individual developer. You may make copies on 
+more than one computer, as long as the use of the PRODUCT is always by the 
+same developer. 
+
+4. Source Code
+
+You can modify the source files of the PRODUCT as You wish however You may 
+not redistribute those modifications to anyone else other than those 
+that have aquired a commercial license to the same version of the PRODUCT 
+as You have. An exception to this is in compiled binary form which You 
+can distribute Your components as You wish as long as You take precautions 
+to that no other developer will be able to use Your work as a component 
+unless he has aquired a Commercial License for the same version of the 
+PRODUCT that You have made Your modifications upon.
+
+5. Permissions and Prohibited uses
+
+You can create any number of applications based on the version that You 
+have aquired and distribute those applications as You wish without any 
+restrictions. Though if You build components meant for developers or 
+extending by further development then Your users must also aquire a 
+valid license to use the same PRODUCT from DEVELOPER as You have 
+developed Your component with.
+
+Under no circumstances may You use the PRODUCT or its source code as the basis
+for or in connection with a product that contains the same, or substantially 
+the same, functionality as the PRODUCT.
+
+You will not owe the DEVELOPER any royalties for Your distribution of
+the PRODUCT in accordance with this License Agreement.
+
+6. Termination
+
+This License Agreement and Your right to use the PRODUCT and Modifications 
+will terminate immediately without notice if You fail to comply with the 
+terms and conditions of this License Agreement. Upon termination, the 
+GPL 2 license terms will take over and effectively render this License 
+invalid. 
+
+7. Warranties
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, DEVELOPER AND ITS 
+SUPPLIERS DISCLAIM ALL WARRANTIES AND CONDITIONS, EITHER EXPRESS OR 
+IMPLIED, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT, WITH REGARD 
+TO THE SOFTWARE. DEVELOPER DOES NOT GUARANTEE THAT THE OPERATION OF THE 
+SOFTWARE WILL BE UNINTERRUPTED OR ERROR-FREE, AND YOU ACKNOWLEDGE THAT IT 
+IS NOT TECHNICALLY PRACTICABLE FOR DEVELOPER TO DO SO.
+
+8. Liabilities
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL 
+DEVELOPER OR ITS SUPPLIERS BE LIABLE FOR ANY SPECIAL, INCIDENTAL, INDIRECT 
+OR CONSEQUENTIAL DAMAGES WHATSOEVER (INCLUDING, WITHOUT LIMITATION, DAMAGES 
+FOR LOSS OF BUSINESS PROFITS, BUSINESS INTERRUPTION, LOSS OF BUSINESS 
+INFORMATION OR ANY OTHER PECUNIARY LAW) ARISING OUT OF THE USE OF OR 
+INABILITY TO USE THE SOFTWARE, EVEN IF DEVELOPER HAS BEEN ADVISED OF 
+THE POSSIBILITY OF SUCH DAMAGES. 
+
+9. Concluding provisions 
+
+German law applies to the legal relationship between DEVELOPER and You as 
+well as to the respective terms and conditions. Place of jurisdiction for 
+both parties is - in so far as permitted by law - Munich (Germany). If You 
+are a consumer and are not resident in the European Union, Munich is also 
+the place of jurisdiction. In dealings with consumers in the European Union, 
+the law at the residence of the end user may also apply if mandatory provisions 
+under consumer law are concerned. 
+
+You have no right of offset unless the claim is not in dispute or has been 
+determined with legal effect by a court of law. If You are a businessman 
+within the meaning of the Commercial Code or a body under public law, then 
+the place of fulfilment for deliveries and payments and the place of 
+jurisdiction are Munich.
+
+10. Severability
+
+If any part of these Terms of Service is held to be invalid or unenforceable 
+under any applicable statute or rule of law, the unenforceable part shall be 
+given effect to the greatest extent possible and the remainder will remain 
+in full force and effect.
+
