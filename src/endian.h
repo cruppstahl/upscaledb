@@ -6,7 +6,7 @@
  * Free Software Foundation; either version 2 of the License, or 
  * (at your option) any later version.
  *
- * See file COPYING.GPL2 and COPYING.GPL3 for License information.
+ * See files COPYING.* for License information.
  * 
  *
  * this file contains macros for little endian/big endian byte swapping.
