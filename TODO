@@ -21,6 +21,15 @@ o new web page
 x add commercial license to source repositories (all of them!), update README
     and all header file comments
 
+o new Python release
+    x update for logging/recovery
+
+o new .NET release
+    x update for logging/recovery
+
+o new Java release
+    o update for logging/recovery
+
 o tools/tests/test.sh: add to release-process
     - tricky: currently fails because of invalid database versions, and
         because on cygwin the pagesize is different
@@ -30,15 +39,6 @@ o win32: test if prebuilt visual studio-library works in express edition, if
     -> maybe have to change the build process, if it doesn't work
 
 o win64: need cppunit for hamsterdb-alien
-
-o update Python-Wrapper for logging/recovery
-    o add COPYING.COM
-
-o update .NET-Wrapper for logging/recovery
-    o add COPYING.COM
-
-o update Java-Wrapper for logging/recovery
-    o add COPYING.COM
 
 . release-process: enhance automated tests of win32/win64 dll and lib
 
