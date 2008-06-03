@@ -520,7 +520,7 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @a HAM_WOULD_BLOCK if another process has locked the file
  * @return @a HAM_NEED_RECOVERY if the Database is in an inconsistent state
- * @return @a HAM_INV_LOG_FILE_HEADER if the logfile is broken
+ * @return @a HAM_LOG_INV_FILE_HEADER if the logfile is corrupt
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_open_ex(ham_env_t *env, const char *filename,
@@ -977,7 +977,7 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  * @return @a HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @a HAM_WOULD_BLOCK if another process has locked the file
  * @return @a HAM_NEED_RECOVERY if the Database is in an inconsistent state
- * @return @a HAM_INV_LOG_FILE_HEADER if the logfile is broken
+ * @return @a HAM_LOG_INV_FILE_HEADER if the logfile is corrupt
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_open_ex(ham_db_t *db, const char *filename,
