@@ -40,6 +40,21 @@ o win32: test if prebuilt visual studio-library works in express edition, if
 
 o win64: need cppunit for hamsterdb-alien
 
+o "pre-mature" support of ACID transactions with only *one* parallel
+    transaction
+    o make ham_txn_* public (incl. public ham_txn_t *-handle)
+        o documentation
+        o implementation: only if HAM_HAVE_TRANSACTIONS (or similar)
+    o adjust all other functions, which currently have a "reserved" 
+        parameter
+        o documentation
+    o ham_txn_begin: only allow one transaction in parallel, otherwise fail
+        o unittests
+    o how does abort work if logging is disabled? in this case, we need
+        HAM_WRITE_THROUGH in case of commit, and delete the pages in case
+        of abort
+    o many tests with commit/abort, logging etc
+
 . release-process: enhance automated tests of win32/win64 dll and lib
 
 -----------------------------------------------------------------------------
