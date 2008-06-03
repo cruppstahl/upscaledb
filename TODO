@@ -9,7 +9,8 @@ x a finished TODO item
 
 o new web page
     x link-cloud: add link to forum
-    o update samples for C/C++
+    o add google sitemap
+    o update samples for C/C++ (if necessary)
     o add documentation for Java
     o add documentation for .NET (chm file)
     o add samples for Java
@@ -21,18 +22,19 @@ o new web page
 x add commercial license to source repositories (all of them!), update README
     and all header file comments
 
-o new Python release
+x new Python release
     x update for logging/recovery
 
 o new .NET release
     x update for logging/recovery
 
 o new Java release
-    o update for logging/recovery
+    x update for logging/recovery
+    o need win32/win64 binaries
 
 o tools/tests/test.sh: add to release-process
     - tricky: currently fails because of invalid database versions, and
-        because on cygwin the pagesize is different
+        because the pagesize is different on cygwin
 
 o win32: test if prebuilt visual studio-library works in express edition, if 
     it was built with the professional edition (and vice versa)
