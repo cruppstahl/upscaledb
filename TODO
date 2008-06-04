@@ -36,6 +36,10 @@ o new .NET release
     o prepare package and documentation
     o upload to webpage, update freshmeat
 
+o C++ API
+    o why does the assignment operator of db() close the database?
+        doesn't it then close the database handle???
+
 o tools/tests/test.sh: add to release-process
     - tricky: currently fails because of invalid database versions, and
         because the pagesize is different on cygwin
