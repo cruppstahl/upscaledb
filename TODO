@@ -24,13 +24,17 @@ x add commercial license to source repositories (all of them!), update README
 
 x new Python release
     x update for logging/recovery
-
-o new .NET release
-    x update for logging/recovery
+    x upload to webpage, update freshmeat
 
 o new Java release
     x update for logging/recovery
-    o need win32/win64 binaries
+    x need win32/win64 binaries
+    o upload to webpage, update freshmeat
+
+o new .NET release
+    x update for logging/recovery
+    o prepare package and documentation
+    o upload to webpage, update freshmeat
 
 o tools/tests/test.sh: add to release-process
     - tricky: currently fails because of invalid database versions, and
