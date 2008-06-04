@@ -26,27 +26,24 @@ x new Python release
     x update for logging/recovery
     x upload to webpage, update freshmeat
 
-o new Java release
+x new Java release
     x update for logging/recovery
     x need win32/win64 binaries
-    o upload to webpage, update freshmeat
+    x upload to webpage, update freshmeat
 
-o new .NET release
+x new .NET release
     x update for logging/recovery
-    o prepare package and documentation
-    o upload to webpage, update freshmeat
+    x prepare package and documentation
+    x upload to webpage
 
-o C++ API
-    o why does the assignment operator of db() close the database?
-        doesn't it then close the database handle???
+x win32: test if prebuilt visual studio-library works in express edition, if 
+    it was built with the professional edition (and vice versa)
+    -> maybe have to change the build process, if it doesn't work
+    => seems to work
 
 o tools/tests/test.sh: add to release-process
     - tricky: currently fails because of invalid database versions, and
         because the pagesize is different on cygwin
-
-o win32: test if prebuilt visual studio-library works in express edition, if 
-    it was built with the professional edition (and vice versa)
-    -> maybe have to change the build process, if it doesn't work
 
 o win64: need cppunit for hamsterdb-alien
 
