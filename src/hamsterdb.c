@@ -3181,7 +3181,7 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags)
 {
     ham_status_t st;
-    ham_txn_t txn;
+    ham_txn_t local_txn;
     ham_db_t *db;
     ham_record_t temprec;
 
@@ -3209,8 +3209,10 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
 
     db_set_error(db, 0);
 
-    if ((st=txn_begin(&txn, db, 0)))
-        return (st);
+    if (!cursor_get_txn(cursor)) {
+        if ((st=txn_begin(&local_txn, db, 0)))
+            return (st);
+    }
 
     /*
      * run the record-level filters on a temporary record structure - we
@@ -3219,7 +3221,8 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     temprec=*record;
     st=__record_filters_before_insert(db, &temprec);
     if (st) {
-        (void)txn_abort(&txn, 0);
+        if (!cursor_get_txn(cursor))
+            (void)txn_abort(&local_txn, 0);
         return (st);
     }
 
@@ -3229,11 +3232,15 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
         ham_mem_free(db, temprec.data);
 
     if (st) {
-        (void)txn_abort(&txn, 0);
+        if (!cursor_get_txn(cursor))
+            (void)txn_abort(&local_txn, 0);
         return (st);
     }
 
-    return (txn_commit(&txn, 0));
+    if (!cursor_get_txn(cursor))
+        return (txn_commit(&local_txn, 0));
+    else
+        return (st);
 }
 
 ham_status_t HAM_CALLCONV
@@ -3242,7 +3249,7 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 {
     ham_status_t st;
     ham_db_t *db;
-    ham_txn_t txn;
+    ham_txn_t local_txn;
 
     if (!cursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
@@ -3266,12 +3273,15 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
     db_set_error(db, 0);
 
-    if ((st=txn_begin(&txn, db, HAM_TXN_READ_ONLY)))
-        return (st);
+    if (!cursor_get_txn(cursor)) {
+        if ((st=txn_begin(&local_txn, db, HAM_TXN_READ_ONLY)))
+            return (st);
+    }
 
     st=bt_cursor_move((ham_bt_cursor_t *)cursor, key, record, flags);
     if (st) {
-        (void)txn_abort(&txn, 0);
+        if (!cursor_get_txn(cursor))
+            (void)txn_abort(&local_txn, 0);
         return (st);
     }
 
@@ -3280,11 +3290,15 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
      */
     st=__record_filters_after_find(db, record);
     if (st) {
-        (void)txn_abort(&txn, 0);
+        if (!cursor_get_txn(cursor))
+            (void)txn_abort(&local_txn, 0);
         return (st);
     }
 
-    return (txn_commit(&txn, 0));
+    if (!cursor_get_txn(cursor))
+        return (txn_commit(&local_txn, 0));
+    else
+        return (st);
 }
 
 ham_status_t HAM_CALLCONV
@@ -3350,7 +3364,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     ham_backend_t *be;
     ham_u64_t recno;
     ham_record_t temprec;
-    ham_txn_t txn;
+    ham_txn_t local_txn;
 
     if (!cursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
@@ -3477,8 +3491,10 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         key->size=sizeof(ham_u64_t);
     }
 
-    if ((st=txn_begin(&txn, db, 0)))
-        return (st);
+    if (!cursor_get_txn(cursor)) {
+        if ((st=txn_begin(&local_txn, db, 0)))
+            return (st);
+    }
 
     /*
      * run the record-level filters on a temporary record structure - we
@@ -3494,7 +3510,8 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         ham_mem_free(db, temprec.data);
 
     if (st) {
-        (void)txn_abort(&txn, 0);
+        if (!cursor_get_txn(cursor))
+            (void)txn_abort(&local_txn, 0);
         if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
                 key->data=0;
@@ -3520,14 +3537,17 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         }
     }
 
-    return (txn_commit(&txn, 0));
+    if (!cursor_get_txn(cursor))
+        return (txn_commit(&local_txn, 0));
+    else
+        return (st);
 }
 
 ham_status_t HAM_CALLCONV
 ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_txn_t txn;
+    ham_txn_t local_txn;
     ham_db_t *db;
 
     if (!cursor) {
@@ -3546,17 +3566,23 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         return (db_set_error(db, HAM_DB_READ_ONLY));
     }
 
-    if ((st=txn_begin(&txn, db, 0)))
-        return (st);
+    if (!cursor_get_txn(cursor)) {
+        if ((st=txn_begin(&local_txn, db, 0)))
+            return (st);
+    }
 
     st=bt_cursor_erase((ham_bt_cursor_t *)cursor, flags);
 
     if (st) {
-        (void)txn_abort(&txn, 0);
+        if (!cursor_get_txn(cursor))
+            (void)txn_abort(&local_txn, 0);
         return (st);
     }
 
-    return (txn_commit(&txn, 0));
+    if (!cursor_get_txn(cursor))
+        return (txn_commit(&local_txn, 0));
+    else
+        return (st);
 }
 
 ham_status_t HAM_CALLCONV
@@ -3564,7 +3590,7 @@ ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
         ham_size_t *count, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_txn_t txn;
+    ham_txn_t local_txn;
 
     if (!cursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
@@ -3582,16 +3608,23 @@ ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
 
     db_set_error(cursor_get_db(cursor), 0);
 
-    if ((st=txn_begin(&txn, cursor_get_db(cursor), HAM_TXN_READ_ONLY)))
-        return (st);
+    if (!cursor_get_txn(cursor)) {
+        if ((st=txn_begin(&local_txn, cursor_get_db(cursor), 
+                        HAM_TXN_READ_ONLY)))
+            return (st);
+    }
 
     st=bt_cursor_get_duplicate_count((ham_bt_cursor_t *)cursor, count, flags);
     if (st) {
-        (void)txn_abort(&txn, 0);
+        if (!cursor_get_txn(cursor))
+            (void)txn_abort(&local_txn, 0);
         return (st);
     }
 
-    return (txn_commit(&txn, 0));
+    if (!cursor_get_txn(cursor))
+        return (txn_commit(&local_txn, 0));
+    else
+        return (st);
 }
 
 ham_status_t HAM_CALLCONV

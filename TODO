@@ -51,14 +51,17 @@ o "pre-mature" support of ACID transactions with only *one* parallel
         x unittests
     o how does abort work if logging is disabled? in this case, we need
         HAM_WRITE_THROUGH in case of commit, and delete the pages in case
-        of abort
-    o many tests with commit/abort, logging etc
+        of abort; or force logging? that's easier, but inefficient
     o add txn to cursor
+        x ham_cursor_clone: don't create new txn, use existing!
+        x add txn support to all cursor functions
         o don't allow txn to be closed if cursors are in this txn
-        o ham_cursor_clone: don't create new txn, use existing!
-        o unittests
-    o ham_close: default behaviour is AUTO_COMMIT, but also allow
-        AUTO_ABORT
+            (don't forget ham_cursor_clone!)
+    o ham_close: default behaviour is HAM_AUTO_ABORT
+        o implement
+        o test
+        o document
+    o many tests with commit/abort, logging etc
 
 o enhance tutorial with information about transactions
 
@@ -69,6 +72,8 @@ o enhance C++ wrapper
         because the pagesize is different on cygwin
 
 . release-process: enhance automated tests of win32/win64 dll and lib
+
+. ham_close: support HAM_AUTO_COMMIT
 
 -----------------------------------------------------------------------------
 

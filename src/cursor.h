@@ -140,5 +140,15 @@ struct ham_cursor_t
  */
 #define cursor_get_db(c)                (c)->_db
 
+/**
+ * get the transaction handle
+ */
+#define cursor_get_txn(c)               (c)->_txn
+
+/**
+ * set the transaction handle
+ */
+#define cursor_set_txn(c, txn)          (c)->_txn=txn
+
 
 #endif /* HAM_CURSORS_H__ */
