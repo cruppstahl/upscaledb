@@ -47,8 +47,8 @@ o "pre-mature" support of ACID transactions with only *one* parallel
         x change hamsterdb.c routines - except external transaction
             handle (only if HAM_HAS_TRANSACTIONS)
         x make sure all unittests and acceptance tests are still working
-    o ham_txn_begin: only allow one transaction in parallel, otherwise fail
-        o unittests
+    x ham_txn_begin: only allow one transaction in parallel, otherwise fail
+        x unittests
     o how does abort work if logging is disabled? in this case, we need
         HAM_WRITE_THROUGH in case of commit, and delete the pages in case
         of abort
