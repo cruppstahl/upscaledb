@@ -77,23 +77,23 @@ public:
     {
         ham_txn_t txn;
 
-        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(ham_txn_commit(&txn, 0)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_commit(&txn, 0)==HAM_SUCCESS);
     }
 
     void beginAbortTest(void)
     {
         ham_txn_t txn;
 
-        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(ham_txn_abort(&txn)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_abort(&txn, 0)==HAM_SUCCESS);
     }
 
     void structureTest(void)
     {
         ham_txn_t txn;
 
-        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_get_db(&txn)==m_db);
         CPPUNIT_ASSERT(txn_get_pagelist(&txn)==0);
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(&txn));
@@ -109,7 +109,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(4, txn_get_log_desc(&txn));
 
         CPPUNIT_ASSERT(txn_get_pagelist(&txn)==0);
-        CPPUNIT_ASSERT(ham_txn_commit(&txn, 0)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_commit(&txn, 0)==HAM_SUCCESS);
     }
 
     void addPageTest(void)
@@ -120,13 +120,13 @@ public:
         CPPUNIT_ASSERT((page=page_new(m_db))!=0);
         page_set_self(page, 0x12345);
 
-        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_get_page(&txn, 0x12345)==0);
         CPPUNIT_ASSERT(txn_add_page(&txn, page, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_add_page(&txn, page, 1)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_get_page(&txn, 0x12345)==page);
 
-        CPPUNIT_ASSERT(ham_txn_commit(&txn, 0)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_commit(&txn, 0)==HAM_SUCCESS);
 
         page_delete(page);
     }
@@ -139,7 +139,7 @@ public:
         CPPUNIT_ASSERT((page=page_new(m_db))!=0);
         page_set_self(page, 0x12345);
 
-        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_get_page(&txn, 0x12345)==0);
         CPPUNIT_ASSERT(txn_add_page(&txn, page, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_add_page(&txn, page, 1)==HAM_SUCCESS);
@@ -147,7 +147,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, txn_free_page(&txn, page));
         CPPUNIT_ASSERT(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING);
 
-        CPPUNIT_ASSERT(ham_txn_abort(&txn)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_abort(&txn, 0)==HAM_SUCCESS);
 
         page_delete(page);
     }
@@ -160,13 +160,13 @@ public:
         CPPUNIT_ASSERT((page=page_new(m_db))!=0);
         page_set_self(page, 0x12345);
 
-        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_add_page(&txn, page, 0)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_get_page(&txn, page_get_self(page))==page);
         CPPUNIT_ASSERT(txn_remove_page(&txn, page)==HAM_SUCCESS);
         CPPUNIT_ASSERT(txn_get_page(&txn, page_get_self(page))==0);
 
-        CPPUNIT_ASSERT(ham_txn_commit(&txn, 0)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_commit(&txn, 0)==HAM_SUCCESS);
 
         page_delete(page);
     }

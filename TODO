@@ -42,18 +42,25 @@ o win64: need cppunit for hamsterdb-alien
 
 o "pre-mature" support of ACID transactions with only *one* parallel
     transaction
-    o make ham_txn_* public (incl. public ham_txn_t *-handle)
+    x make ham_txn_* public (incl. public ham_txn_t *-handle)
         x change hasp_api.h and documentation
-        o change hamsterdb.c routines - except external transaction
+        x change hamsterdb.c routines - except external transaction
             handle (only if HAM_HAS_TRANSACTIONS)
+        x make sure all unittests and acceptance tests are still working
     o ham_txn_begin: only allow one transaction in parallel, otherwise fail
         o unittests
     o how does abort work if logging is disabled? in this case, we need
         HAM_WRITE_THROUGH in case of commit, and delete the pages in case
         of abort
     o many tests with commit/abort, logging etc
+    o add txn to cursor
+        o don't allow txn to be closed if cursors are in this txn
+        o ham_cursor_clone: don't create new txn, use existing!
+        o unittests
+    o ham_close: default behaviour is AUTO_COMMIT, but also allow
+        AUTO_ABORT
 
-o enhance tutorial with information about the transactions
+o enhance tutorial with information about transactions
 
 o enhance C++ wrapper
 

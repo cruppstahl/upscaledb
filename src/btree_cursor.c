@@ -458,7 +458,7 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
             ("uncoupling a cursor which has no coupled page"));
 
     if (local_txn) {
-        st=ham_txn_begin(&txn, db, HAM_TXN_READ_ONLY);
+        st=txn_begin(&txn, db, HAM_TXN_READ_ONLY);
         if (st)
             return (st);
     }
@@ -476,13 +476,13 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
     key=(ham_key_t *)ham_mem_calloc(db, sizeof(*key));
     if (!key) {
         if (local_txn)
-            (void)ham_txn_abort(&txn);
+            (void)txn_abort(&txn, 0);
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
     }
     key=util_copy_key_int2pub(db, entry, key);
     if (!key) {
         if (local_txn)
-            (void)ham_txn_abort(&txn);
+            (void)txn_abort(&txn, 0);
         return (db_get_error(bt_cursor_get_db(c)));
     }
 
@@ -501,7 +501,7 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
     bt_cursor_set_uncoupled_key(c, key);
 
     if (local_txn)
-        return (ham_txn_commit(&txn, 0));
+        return (txn_commit(&txn, 0));
 
     return (0);
 }
@@ -819,7 +819,7 @@ bt_cursor_find(ham_bt_cursor_t *c, ham_key_t *key, ham_u32_t flags)
     ham_assert(key, ("invalid parameter"));
 
     if (local_txn) {
-        st=ham_txn_begin(&txn, db, HAM_TXN_READ_ONLY);
+        st=txn_begin(&txn, db, HAM_TXN_READ_ONLY);
         if (st)
             return (st);
     }
@@ -827,7 +827,7 @@ bt_cursor_find(ham_bt_cursor_t *c, ham_key_t *key, ham_u32_t flags)
     st=bt_cursor_set_to_nil(c);
     if (st) {
         if (local_txn)
-            (void)ham_txn_abort(&txn);
+            (void)txn_abort(&txn, 0);
         return (st);
     }
 
@@ -835,12 +835,12 @@ bt_cursor_find(ham_bt_cursor_t *c, ham_key_t *key, ham_u32_t flags)
     if (st) {
         /* cursor is now NIL */
         if (local_txn)
-            (void)ham_txn_abort(&txn);
+            (void)txn_abort(&txn, 0);
         return (st);
     }
 
     if (local_txn)
-        return (ham_txn_commit(&txn, 0));
+        return (txn_commit(&txn, 0));
 
     return (0);
 }

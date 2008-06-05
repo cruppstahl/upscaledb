@@ -223,7 +223,7 @@ public:
         CPPUNIT_ASSERT_EQUAL((ham_size_t)0, log_get_closed_txn(log, 1));
 
         ham_txn_t txn;
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
 
         CPPUNIT_ASSERT_EQUAL((ham_size_t)1, log_get_open_txn(log, 0));
@@ -235,7 +235,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, isempty);
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -250,7 +250,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(1, isempty);
 
         ham_txn_t txn;
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         CPPUNIT_ASSERT_EQUAL(0, isempty);
@@ -269,7 +269,7 @@ public:
         CPPUNIT_ASSERT_EQUAL((ham_size_t)0, log_get_open_txn(log, 1));
         CPPUNIT_ASSERT_EQUAL((ham_size_t)0, log_get_closed_txn(log, 1));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -284,7 +284,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(1, isempty);
 
         ham_txn_t txn;
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         CPPUNIT_ASSERT_EQUAL(0, isempty);
@@ -303,7 +303,7 @@ public:
         CPPUNIT_ASSERT_EQUAL((ham_size_t)0, log_get_open_txn(log, 1));
         CPPUNIT_ASSERT_EQUAL((ham_size_t)0, log_get_closed_txn(log, 1));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -314,12 +314,12 @@ public:
                 ham_log_create((mem_allocator_t *)m_alloc, 
                         ".test", 0644, 0, &log));
         ham_txn_t txn;
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_append_checkpoint(log));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -330,7 +330,7 @@ public:
                 ham_log_create((mem_allocator_t *)m_alloc, 
                         ".test", 0644, 0, &log));
         ham_txn_t txn;
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
         ham_page_t *page;
         page=page_new(m_db);
         CPPUNIT_ASSERT_EQUAL(0, page_alloc(page, db_get_pagesize(m_db)));
@@ -340,7 +340,7 @@ public:
 
         CPPUNIT_ASSERT_EQUAL(0, page_free(page));
         page_delete(page);
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -351,7 +351,7 @@ public:
                 ham_log_create((mem_allocator_t *)m_alloc, 
                         ".test", 0644, 0, &log));
         ham_txn_t txn;
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
         ham_u8_t data[100];
         for (int i=0; i<100; i++)
@@ -361,7 +361,7 @@ public:
                                 0, data, sizeof(data)));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -372,7 +372,7 @@ public:
                 ham_log_create((mem_allocator_t *)m_alloc, 
                         ".test", 0644, 0, &log));
         ham_txn_t txn;
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
         ham_u8_t data[100];
         for (int i=0; i<100; i++)
@@ -382,7 +382,7 @@ public:
                                 0, data, sizeof(data)));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -393,7 +393,7 @@ public:
                 ham_log_create((mem_allocator_t *)m_alloc, 
                         ".test", 0644, 0, &log));
         ham_txn_t txn;
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
         ham_u8_t old_data[100], new_data[100];
         for (int i=0; i<100; i++) {
@@ -405,7 +405,7 @@ public:
                     0, old_data, new_data, sizeof(old_data)));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -423,10 +423,10 @@ public:
 
         for (i=0; i<=6; i++) {
             ham_txn_t txn;
-            CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
             CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
-            CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+            CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         }
 
         /* check that the following logs are written to the other file */
@@ -449,10 +449,10 @@ public:
 
         for (i=0; i<=10; i++) {
             ham_txn_t txn;
-            CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
             CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
-            CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+            CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         }
 
         /* check that the following logs are written to the first file */
@@ -472,7 +472,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(1, isempty);
 
         ham_txn_t txn;
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
@@ -483,7 +483,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         CPPUNIT_ASSERT_EQUAL(1, isempty);
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -513,7 +513,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_log_create((mem_allocator_t *)m_alloc,
                        ".test", 0644, 0, &log));
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
 
@@ -535,7 +535,7 @@ public:
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)LOG_ENTRY_TYPE_TXN_BEGIN, 
                         log_entry_get_type(&entry));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -548,9 +548,9 @@ public:
                         ".test", 0644, 0, &log));
 
         for (int i=0; i<5; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
-            CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+            CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
@@ -591,10 +591,10 @@ public:
         log_set_threshold(log, 5);
 
         for (int i=0; i<=7; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
             CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
-            CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+            CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
@@ -655,10 +655,10 @@ public:
         log_set_threshold(log, 5);
 
         for (int i=0; i<=10; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
             CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
-            CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+            CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
@@ -722,11 +722,11 @@ public:
 
         for (int i=0; i<5; i++) {
             memset(buffer, (char)i, sizeof(buffer));
-            CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
             CPPUNIT_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
             CPPUNIT_ASSERT_EQUAL(0, 
                             ham_log_append_write(log, &txn, i, buffer, i));
-            CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+            CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         }
 
         CPPUNIT_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
@@ -962,10 +962,10 @@ public:
     void createCloseOpenFullLogRecoverTest(void)
     {
         ham_txn_t txn;
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_log_append_txn_begin(db_get_log(m_db), &txn));
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         CPPUNIT_ASSERT_EQUAL(0,
@@ -987,10 +987,10 @@ public:
     void createCloseOpenFullLogTest(void)
     {
         ham_txn_t txn;
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_log_append_txn_begin(db_get_log(m_db), &txn));
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         CPPUNIT_ASSERT_EQUAL(HAM_NEED_RECOVERY,
@@ -1024,10 +1024,10 @@ public:
     void createCloseOpenFullLogEnvTest(void)
     {
         ham_txn_t txn;
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_log_append_txn_begin(db_get_log(m_db), &txn));
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         ham_env_t *env;
@@ -1042,10 +1042,10 @@ public:
     void createCloseOpenFullLogEnvRecoverTest(void)
     {
         ham_txn_t txn;
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_log_append_txn_begin(db_get_log(m_db), &txn));
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         ham_env_t *env;
@@ -1073,8 +1073,8 @@ public:
     {
         ham_txn_t txn;
         ham_size_t pagesize=os_get_pagesize();
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         log_vector_t vec=readLog();
@@ -1090,8 +1090,8 @@ public:
     {
         ham_txn_t txn;
         ham_size_t pagesize=os_get_pagesize();
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_commit(&txn, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_commit(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         log_vector_t vec=readLog();
@@ -1108,9 +1108,9 @@ public:
         ham_txn_t txn[3];
         ham_size_t pagesize=os_get_pagesize();
         for (int i=0; i<3; i++)
-            CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], m_db, 0));
+            CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn[i], m_db, 0));
         for (int i=0; i<3; i++)
-            CPPUNIT_ASSERT_EQUAL(0, ham_txn_commit(&txn[i], 0));
+            CPPUNIT_ASSERT_EQUAL(0, txn_commit(&txn[i], 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         log_vector_t vec=readLog();
@@ -1128,10 +1128,10 @@ public:
     {
         ham_txn_t txn;
         ham_size_t pagesize=os_get_pagesize();
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, HAM_TXN_READ_ONLY));
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_commit(&txn, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_commit(&txn, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, HAM_TXN_READ_ONLY));
+        CPPUNIT_ASSERT_EQUAL(0, txn_commit(&txn, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_commit(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         log_vector_t vec=readLog();
@@ -1552,7 +1552,7 @@ public:
 
         /* allocate page, write before-image, modify, commit (= write
          * after-image */
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
         page=db_alloc_page(m_db, 0, 0);
         CPPUNIT_ASSERT(page!=0);
         ham_offset_t address=page_get_self(page);
@@ -1561,25 +1561,25 @@ public:
         p[0]=1;
         page_set_dirty(page);
         CPPUNIT_ASSERT_EQUAL(0, ham_log_add_page_before(page));
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_commit(&txn, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_commit(&txn, 0));
 
         /* fetch page again, modify, abort -> first modification is still
          * available, second modification is reverted */
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
         page=db_fetch_page(m_db, address, 0);
         CPPUNIT_ASSERT(page!=0);
         p=page_get_payload(page);
         p[0]=2;
         page_set_dirty(page);
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
 
         /* check modifications */
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
         page=db_fetch_page(m_db, address, 0);
         CPPUNIT_ASSERT(page!=0);
         p=page_get_payload(page);
         CPPUNIT_ASSERT_EQUAL((ham_u8_t)1, p[0]);
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_commit(&txn, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_commit(&txn, 0));
     }
 
     void recoverModifiedPageTest2(void)
@@ -1593,7 +1593,7 @@ public:
 
         /* fetch the page with the key, overwrite it with garbage, then
          * abort */
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
         page=db_fetch_page(m_db, ps, 0);
         CPPUNIT_ASSERT(page!=0);
         btree_node_t *node=ham_page_get_btree_node(page);
@@ -1601,7 +1601,7 @@ public:
         CPPUNIT_ASSERT_EQUAL((ham_u8_t)'a', key_get_key(entry)[0]);
         key_get_key(entry)[0]='b';
         page_set_dirty(page);
-        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(&txn));
+        CPPUNIT_ASSERT_EQUAL(0, txn_abort(&txn, 0));
 
         /* now fetch the original key */
         ham_key_t key;

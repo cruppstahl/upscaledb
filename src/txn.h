@@ -160,7 +160,7 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags);
  * abort a transaction
  */
 extern ham_status_t
-txn_abort(ham_txn_t *txn);
+txn_abort(ham_txn_t *txn, ham_u32_t flags);
 
 
 #ifdef __cplusplus

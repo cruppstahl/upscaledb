@@ -238,7 +238,7 @@ public:
 
 		blobid=(ham_offset_t *)::malloc(sizeof(ham_offset_t)*loops);
 		CPPUNIT_ASSERT(blobid!=0);
-        CPPUNIT_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
 
         for (int i=0; i<loops; i++) {
             buffer=(ham_u8_t *)::malloc((i+1)*factor);
@@ -270,7 +270,7 @@ public:
         }
 
 		::free(blobid);
-        CPPUNIT_ASSERT(ham_txn_commit(&txn, 0)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(txn_commit(&txn, 0)==HAM_SUCCESS);
     }
 
     void multipleAllocReadFreeTest(void)

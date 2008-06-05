@@ -34,13 +34,13 @@ extern "C" {
  * was built with HAM_ENABLE_INTERNAL (run ./configure --enable-internal).
  *
  * @param db A valid Database handle
- * @param reserved A reserved value; set to NULL
+ * @param txn A Transaction handle, or NULL
  *
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INTEGRITY_VIOLATED if the Database is broken
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_check_integrity(ham_db_t *db, void *reserved);
+ham_check_integrity(ham_db_t *db, ham_txn_t *txn);
 
 /**
  * Set a user-provided context pointer
