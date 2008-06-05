@@ -189,6 +189,10 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
 {
     ham_status_t st;
 
+    /* for hamsterdb 1.0.4 */
+    if (db->_is_txn_open)
+        return (HAM_LIMITS_REACHED);
+
     *txn=(ham_txn_t *)ham_mem_alloc(db, sizeof(**txn));
     if (!(*txn))
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
@@ -199,6 +203,9 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
         *txn=0;
     }
 
+    /* for hamsterdb 1.0.4 */
+    db->_is_txn_open=1;
+
     return (st);
 }
 
@@ -206,17 +213,27 @@ ham_status_t
 ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
 {
     ham_status_t st=txn_commit(txn, flags);
-    if (st==0)
+    if (st==0) {
+        /* for hamsterdb 1.0.4 */
+        (txn_get_db(txn))->_is_txn_open=0;
+
         ham_mem_free(txn_get_db(txn), txn);
+    }
+
     return (st);
 }
 
 ham_status_t
 ham_txn_abort(ham_txn_t *txn, ham_u32_t flags)
 {
-    ham_status_t st=txn_commit(txn, flags);
-    if (st==0)
+    ham_status_t st=txn_abort(txn, flags);
+    if (st==0) {
+        /* for hamsterdb 1.0.4 */
+        (txn_get_db(txn))->_is_txn_open=0;
+
         ham_mem_free(txn_get_db(txn), txn);
+    }
+
     return (st);
 }
 

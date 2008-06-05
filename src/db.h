@@ -297,6 +297,11 @@ struct ham_db_t
 
     /* linked list of all record-level filters */
     ham_record_filter_t *_record_filters;
+
+    /* is currently a transaction open? hamsterdb 1.0.4 only supports
+     * one single active transaction */
+    ham_bool_t _is_txn_open;
+
 };
 
 /*

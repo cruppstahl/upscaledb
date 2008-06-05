@@ -28,6 +28,7 @@ class TxnTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (addPageTest);
     CPPUNIT_TEST      (addPageAbortTest);
     CPPUNIT_TEST      (removePageTest);
+    CPPUNIT_TEST      (onlyOneTxnAllowedTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -169,6 +170,20 @@ public:
         CPPUNIT_ASSERT(txn_commit(&txn, 0)==HAM_SUCCESS);
 
         page_delete(page);
+    }
+
+    void onlyOneTxnAllowedTest(void)
+    {
+        ham_txn_t *txn1, *txn2;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
+                ham_txn_begin(&txn2, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
+                ham_txn_begin(&txn2, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
     }
 
 };
