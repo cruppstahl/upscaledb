@@ -56,8 +56,6 @@ struct ham_txn_t
 
 };
 
-typedef struct ham_txn_t ham_txn_t;
-
 /**
  * get the id
  */
@@ -146,7 +144,7 @@ txn_free_page(ham_txn_t *txn, struct ham_page_t *page);
  * @remark flags are defined below
  */
 extern ham_status_t
-ham_txn_begin(ham_txn_t *txn, ham_db_t *db, ham_u32_t flags);
+txn_begin(ham_txn_t *txn, ham_db_t *db, ham_u32_t flags);
 
 #define HAM_TXN_READ_ONLY       1
 
@@ -154,7 +152,7 @@ ham_txn_begin(ham_txn_t *txn, ham_db_t *db, ham_u32_t flags);
  * commit a transaction
  */
 extern ham_status_t
-ham_txn_commit(ham_txn_t *txn, ham_u32_t flags);
+txn_commit(ham_txn_t *txn, ham_u32_t flags);
 
 #define TXN_FORCE_WRITE         1
 
@@ -162,7 +160,7 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags);
  * abort a transaction
  */
 extern ham_status_t
-ham_txn_abort(ham_txn_t *txn);
+txn_abort(ham_txn_t *txn);
 
 
 #ifdef __cplusplus

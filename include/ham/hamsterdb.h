@@ -789,7 +789,7 @@ typedef struct ham_txn_t ham_txn_t;
  *          (see above)
  */
 extern ham_status_t
-ham_txn_begin(ham_txn_t **txn, ham_u32_t flags);
+ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags);
 
 /** Flag for @a ham_txn_begin */
 #define HAM_TXN_READ_ONLY                                       1

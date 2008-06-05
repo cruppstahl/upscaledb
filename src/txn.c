@@ -91,7 +91,7 @@ txn_get_page(ham_txn_t *txn, ham_offset_t address)
 }
 
 ham_status_t
-ham_txn_begin(ham_txn_t *txn, ham_db_t *db, ham_u32_t flags)
+txn_begin(ham_txn_t *txn, ham_db_t *db, ham_u32_t flags)
 {
     ham_status_t st=0;
 
@@ -109,7 +109,7 @@ ham_txn_begin(ham_txn_t *txn, ham_db_t *db, ham_u32_t flags)
 }
 
 ham_status_t
-ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
+txn_commit(ham_txn_t *txn, ham_u32_t flags)
 {
     ham_status_t st;
     ham_page_t *head, *next;
@@ -186,11 +186,13 @@ commit_next:
 }
 
 ham_status_t
-ham_txn_abort(ham_txn_t *txn)
+txn_abort(ham_txn_t *txn, ham_u32_t flags)
 {
     ham_status_t st;
     ham_page_t *head, *next;
     ham_db_t *db=txn_get_db(txn);
+
+    (void)flags;
 
     if (db_get_log(db) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) {
         st=ham_log_append_txn_abort(db_get_log(db), txn);

@@ -184,6 +184,42 @@ __record_filters_after_find(ham_db_t *db, ham_record_t *record)
     return (st);
 }
 
+ham_status_t
+ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
+{
+    ham_status_t st;
+
+    *txn=(ham_txn_t *)ham_mem_alloc(db, sizeof(**txn));
+    if (!(*txn))
+        return (db_set_error(db, HAM_OUT_OF_MEMORY));
+
+    st=txn_begin(*txn, db, flags);
+    if (st) {
+        ham_mem_free(db, *txn);
+        *txn=0;
+    }
+
+    return (st);
+}
+
+ham_status_t
+ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
+{
+    ham_status_t st=txn_commit(txn, flags);
+    if (st==0)
+        ham_mem_free(txn_get_db(txn), txn);
+    return (st);
+}
+
+ham_status_t
+ham_txn_abort(ham_txn_t *txn, ham_u32_t flags)
+{
+    ham_status_t st=txn_commit(txn, flags);
+    if (st==0)
+        ham_mem_free(txn_get_db(txn), txn);
+    return (st);
+}
+
 const char * HAM_CALLCONV
 ham_strerror(ham_status_t result)
 {
@@ -1121,7 +1157,7 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     st=db_get_backend(db)->_fun_enumerate(db_get_backend(db), 
             my_free_cb, &context);
     if (st) {
-        (void)ham_txn_abort(&txn);
+        (void)ham_txn_abort(&txn, 0);
         (void)ham_close(db, 0);
         (void)ham_delete(db);
         return (st);
@@ -2381,10 +2417,10 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags)
 }
 
 ham_status_t HAM_CALLCONV
-ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
+ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
 {
-    ham_txn_t txn;
+    ham_txn_t local_txn;
     ham_status_t st;
     ham_backend_t *be;
     ham_offset_t recno=0;
@@ -2426,8 +2462,10 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
     if (!be)
         return (db_set_error(db, HAM_NOT_INITIALIZED));
 
-    if ((st=ham_txn_begin(&txn, db, HAM_TXN_READ_ONLY)))
-        return (st);
+    if (!txn) {
+        if ((st=txn_begin(&local_txn, db, HAM_TXN_READ_ONLY)))
+            return (st);
+    }
 
     /*
      * first look up the blob id, then fetch the blob
@@ -2437,7 +2475,8 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
         st=util_read_record(db, record, flags);
 
     if (st) {
-        (void)ham_txn_abort(&txn);
+        if (!txn)
+            (void)txn_abort(&local_txn, 0);
         return (st);
     }
 
@@ -2453,11 +2492,15 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
      */
     st=__record_filters_after_find(db, record);
     if (st) {
-        (void)ham_txn_abort(&txn);
+        if (!txn)
+            (void)txn_abort(&local_txn, 0);
         return (st);
     }
 
-    return (ham_txn_commit(&txn, 0));
+    if (!txn)
+        return (txn_commit(&local_txn, 0));
+    else
+        return (st);
 }
 
 ham_status_t HAM_CALLCONV
@@ -2554,14 +2597,14 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
                 if (!key->data || key->size!=sizeof(ham_u64_t)) {
                     ham_trace(("key->size must be 8, key->data must not "
                                 "be NULL"));
-                    (void)ham_txn_abort(&txn);
+                    (void)ham_txn_abort(&txn, 0);
                     return (HAM_INV_PARAMETER);
                 }
             }
             else {
                 if (key->data || key->size) {
                     ham_trace(("key->size must be 0, key->data must be NULL"));
-                    (void)ham_txn_abort(&txn);
+                    (void)ham_txn_abort(&txn, 0);
                     return (HAM_INV_PARAMETER);
                 }
                 /* 
@@ -2573,7 +2616,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
                     db_set_key_allocdata(db, 
                             ham_mem_alloc(db, sizeof(ham_u64_t)));
                     if (!db_get_key_allocdata(db)) {
-                        (void)ham_txn_abort(&txn);
+                        (void)ham_txn_abort(&txn, 0);
                         db_set_key_allocsize(db, 0);
                         return (db_set_error(db, HAM_OUT_OF_MEMORY));
                     }
@@ -2613,7 +2656,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
         ham_mem_free(db, temprec.data);
 
     if (st) {
-        (void)ham_txn_abort(&txn);
+        (void)ham_txn_abort(&txn, 0);
 
         if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
@@ -2697,7 +2740,7 @@ ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags)
     st=be->_fun_erase(be, key, flags);
 
     if (st) {
-        (void)ham_txn_abort(&txn);
+        (void)ham_txn_abort(&txn, 0);
         return (st);
     }
 
@@ -2748,7 +2791,7 @@ ham_check_integrity(ham_db_t *db, void *reserved)
     st=be->_fun_check_integrity(be);
 
     if (st) {
-        (void)ham_txn_abort(&txn);
+        (void)ham_txn_abort(&txn, 0);
         return (st);
     }
 
@@ -3088,7 +3131,7 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 
     st=bt_cursor_clone((ham_bt_cursor_t *)src, (ham_bt_cursor_t **)dest);
     if (st) {
-        (void)ham_txn_abort(&txn);
+        (void)ham_txn_abort(&txn, 0);
         return (st);
     }
 
@@ -3138,7 +3181,7 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     temprec=*record;
     st=__record_filters_before_insert(db, &temprec);
     if (st) {
-        (void)ham_txn_abort(&txn);
+        (void)ham_txn_abort(&txn, 0);
         return (st);
     }
 
@@ -3148,7 +3191,7 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
         ham_mem_free(db, temprec.data);
 
     if (st) {
-        (void)ham_txn_abort(&txn);
+        (void)ham_txn_abort(&txn, 0);
         return (st);
     }
 
@@ -3190,7 +3233,7 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
     st=bt_cursor_move((ham_bt_cursor_t *)cursor, key, record, flags);
     if (st) {
-        (void)ham_txn_abort(&txn);
+        (void)ham_txn_abort(&txn, 0);
         return (st);
     }
 
@@ -3199,7 +3242,7 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
      */
     st=__record_filters_after_find(db, record);
     if (st) {
-        (void)ham_txn_abort(&txn);
+        (void)ham_txn_abort(&txn, 0);
         return (st);
     }
 
@@ -3413,7 +3456,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         ham_mem_free(db, temprec.data);
 
     if (st) {
-        (void)ham_txn_abort(&txn);
+        (void)ham_txn_abort(&txn, 0);
         if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
                 key->data=0;
@@ -3471,7 +3514,7 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     st=bt_cursor_erase((ham_bt_cursor_t *)cursor, flags);
 
     if (st) {
-        (void)ham_txn_abort(&txn);
+        (void)ham_txn_abort(&txn, 0);
         return (st);
     }
 
@@ -3506,7 +3549,7 @@ ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
 
     st=bt_cursor_get_duplicate_count((ham_bt_cursor_t *)cursor, count, flags);
     if (st) {
-        (void)ham_txn_abort(&txn);
+        (void)ham_txn_abort(&txn, 0);
         return (st);
     }
 
