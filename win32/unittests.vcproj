@@ -144,7 +144,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../../../hamsterdb-alien/libs/win64-msvc8"
+				AdditionalDependencies="../../../hamsterdb-alien/libs/win64-msvc8/cppunitd.lib"
 				LinkIncremental="2"
 				GenerateManifest="true"
 				GenerateDebugInformation="true"
@@ -300,7 +300,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../../../hamsterdb-alien/libs/win64-msvc8"
+				AdditionalDependencies="../../../hamsterdb-alien/libs/win64-msvc8/cppunit.lib"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"

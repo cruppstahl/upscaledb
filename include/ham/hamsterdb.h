@@ -754,8 +754,76 @@ ham_env_close(ham_env_t *env, ham_u32_t flags);
  */
 
 /**
- * @defgroup ham_db hamsterdb Database Functions
+ * @defgroup ham_txn hamsterdb Transaction Functions
  * @{
+ */
+
+/**
+ * The hamsterdb Transaction structure
+ *
+ * This structure is allocated with @a ham_txn_begin and deleted with
+ * @a ham_txn_commit or @a ham_txn_abort.
+ */
+struct ham_txn_t;
+typedef struct ham_txn_t ham_txn_t;
+
+/**
+ * Begin a new Transaction
+ * 
+ * @param db Pointer to a pointer of a Transaction structure
+ * 
+ * @param flags Optional flags for beginning the Transaction, combined with
+ *        bitwise OR. Possible flags are:
+ *      <ul>
+ *       <li>@a HAM_TXN_READ_ONLY</li> This Transaction is read-only and
+ *            will not modify the Database.
+ *      </ul>
+ *
+ * @note Note that as of hamsterdb 1.0.4, it is not possible to create
+ *       multiple Transactions in parallel. This limitation will be removed
+ *       in further versions.
+ *
+ * @return @a HAM_SUCCESS upon success
+ * @return @a HAM_OUT_OF_MEMORY if memory allocation failed
+ * @return @a HAM_LIMITS_REACHED if there's already an open Transaction
+ *          (see above)
+ */
+extern ham_status_t
+ham_txn_begin(ham_txn_t **txn, ham_u32_t flags);
+
+/** Flag for @a ham_txn_begin */
+#define HAM_TXN_READ_ONLY                                       1
+
+/**
+ * Commit a Transaction
+ * 
+ * @param db Pointer to a Transaction structure
+ * 
+ * @param flags Optional flags for committing the Transaction, combined with
+ *        bitwise OR. Unused, set to 0.
+ *
+ * @return @a HAM_SUCCESS upon success
+ * @return @a HAM_IO_ERROR if writing to the file failed
+ */
+extern ham_status_t
+ham_txn_commit(ham_txn_t *txn, ham_u32_t flags);
+
+/**
+ * Abort a Transaction
+ * 
+ * @param db Pointer to a Transaction structure
+ * 
+ * @param flags Optional flags for aborting the Transaction, combined with
+ *        bitwise OR. Unused, set to 0.
+ *
+ * @return @a HAM_SUCCESS upon success
+ * @return @a HAM_IO_ERROR if writing to the Database file or logfile failed
+ */
+extern ham_status_t
+ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
+
+/**
+ * @}
  */
 
 /**
@@ -1198,7 +1266,7 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * multiple duplicates, only the first duplicate is returned.
  *
  * @param db A valid Database handle
- * @param reserved A reserved value. Set to NULL.
+ * @param txn A Transaction handle, or NULL
  * @param key The key of the item
  * @param record The record of the item
  * @param flags Optional flags for searching; unused, set to 0
@@ -1208,7 +1276,7 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * @return @a HAM_KEY_NOT_FOUND if the @a key does not exist
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
+ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags);
 
 /**
@@ -1237,7 +1305,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  * unsigned integer in host-endian.
  *
  * @param db A valid Database handle
- * @param reserved A reserved value. Set to NULL.
+ * @param txn A Transaction handle, or NULL
  * @param key The key of the new item
  * @param record The record of the new item
  * @param flags Optional flags for inserting. Possible flags are:
@@ -1266,7 +1334,7 @@ ham_find(ham_db_t *db, void *reserved, ham_key_t *key,
  *              is smaller than 8
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
+ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags);
 
 /** Flag for @a ham_insert and @a ham_cursor_insert */
@@ -1298,7 +1366,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
  * @a ham_cursor_erase to erase a specific duplicate key.
  *
  * @param db A valid Database handle
- * @param reserved A reserved value. Set to NULL.
+ * @param txn A Transaction handle, or NULL
  * @param key The key to delete
  * @param flags Optional flags for erasing; unused, set to 0
  *
@@ -1309,7 +1377,7 @@ ham_insert(ham_db_t *db, void *reserved, ham_key_t *key,
  * @return @a HAM_KEY_NOT_FOUND if @a key was not found
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_erase(ham_db_t *db, void *reserved, ham_key_t *key, ham_u32_t flags);
+ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
 
 /**
  * Flushes the Database
@@ -1387,7 +1455,7 @@ ham_close(ham_db_t *db, ham_u32_t flags);
  * the Database.
  *
  * @param db A valid Database handle
- * @param reserved A reserved value. Set to NULL.
+ * @param txn A Transaction handle, or NULL
  * @param flags Optional flags for creating the Cursor; unused, set to 0
  * @param cursor A pointer to a pointer which is allocated for the
  *          new Cursor handle
@@ -1397,7 +1465,7 @@ ham_close(ham_db_t *db, ham_u32_t flags);
  * @return @a HAM_OUT_OF_MEMORY if the new structure could not be allocated
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_cursor_create(ham_db_t *db, void *reserved, ham_u32_t flags,
+ham_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
         ham_cursor_t **cursor);
 
 /**
