@@ -57,6 +57,7 @@ o "pre-mature" support of ACID transactions with only *one* parallel
         o document this!
     o add txn to cursor
         x ham_cursor_clone: don't create new txn, use existing!
+        o document behaviour of ham_cursor_clone
         x add txn support to all cursor functions
         o don't allow txn to be closed if cursors are in this txn
             (need list of open transactions of a database/environment) 
