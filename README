@@ -12,7 +12,23 @@ hamsterdb is a database engine written in ANSI C. It supports a B+Tree index
 structure, uses memory mapped I/O (if available), supports cursors and
 variable length keys and can create in-memory databases.
 
-This release implements logging and recovery.
+This release implements the first of several steps towards ACID transactions.
+
+Currently, the following limitations apply:
+
+ - There can only be one Transaction at a time. If one Transaction was 
+    created, and ham_txn_begin is called a second time, the function will
+    fail with HAM_LIMITS_REACHED
+ - Since the function ham_env_erase_db internally creates a Transaction,
+    the previous rule also applies here and ham_env_erase_db can also
+    fail with HAM_LIMITS_REACHED
+ - Currently, when a Transaction is aborted, the log file is used to 
+    undo all changes. Therefore logging is automatically enabled when
+    transactions are used (in other words: HAM_ENABLE_TRANSACTIONS
+    currently implies HAM_ENABLE_RECOVERY).
+ - When closing the Database or Environment (with ham_close or ham_env_close),
+    and a Transaction is still open, then this Transaction will automatically
+    be aborted.
 
 2. Changes
 

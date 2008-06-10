@@ -188,5 +188,67 @@ public:
 
 };
 
+class HighLevelTxnTest : public CppUnit::TestFixture
+{
+    CPPUNIT_TEST_SUITE(HighLevelTxnTest);
+    CPPUNIT_TEST      (noPersistentDatabaseFlagTest);
+    CPPUNIT_TEST      (noPersistentEnvironmentFlagTest);
+    CPPUNIT_TEST_SUITE_END();
+
+protected:
+    ham_db_t *m_db;
+    memtracker_t *m_alloc;
+
+public:
+    void setUp()
+    { 
+        CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
+        db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
+    }
+    
+    void tearDown() 
+    { 
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        ham_delete(m_db);
+        CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
+    }
+
+    void noPersistentDatabaseFlagTest(void)
+    {
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create(m_db, ".test", HAM_ENABLE_TRANSACTIONS, 0));
+        CPPUNIT_ASSERT(HAM_ENABLE_TRANSACTIONS&db_get_rt_flags(m_db));
+        CPPUNIT_ASSERT(HAM_ENABLE_RECOVERY&db_get_rt_flags(m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        CPPUNIT_ASSERT(!(HAM_ENABLE_TRANSACTIONS&db_get_rt_flags(m_db)));
+        CPPUNIT_ASSERT(!(HAM_ENABLE_RECOVERY&db_get_rt_flags(m_db)));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    }
+
+    void noPersistentEnvironmentFlagTest(void)
+    {
+        ham_env_t *env;
+
+        ham_env_new(&env);
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create(env, ".test", HAM_ENABLE_TRANSACTIONS, 0));
+        CPPUNIT_ASSERT(HAM_ENABLE_TRANSACTIONS&env_get_rt_flags(env));
+        CPPUNIT_ASSERT(HAM_ENABLE_RECOVERY&env_get_rt_flags(env));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, ".test", 0));
+        CPPUNIT_ASSERT(!(HAM_ENABLE_TRANSACTIONS&env_get_rt_flags(env)));
+        CPPUNIT_ASSERT(!(HAM_ENABLE_RECOVERY&env_get_rt_flags(env)));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+
+        ham_env_delete(env);
+    }
+};
+
 CPPUNIT_TEST_SUITE_REGISTRATION(TxnTest);
+CPPUNIT_TEST_SUITE_REGISTRATION(HighLevelTxnTest);
 

@@ -49,15 +49,21 @@ o "pre-mature" support of ACID transactions with only *one* parallel
         x make sure all unittests and acceptance tests are still working
     x ham_txn_begin: only allow one transaction in parallel, otherwise fail
         x unittests
-    o how does abort work if logging is disabled? in this case, we need
+    x new (non-persistent) flag HAM_ENABLE_TRANSACTIONS for 
+        x ham_create[_ex]
+        x ham_open[_ex]
+        x ham_env_create[_ex]
+        x ham_env_open[_ex]
+        x unittests that these flags are not persistent
+    x how does abort work if logging is disabled? in this case, we need
         HAM_WRITE_THROUGH in case of commit, and delete the pages in case
         of abort; or force logging? that's easier, but inefficient
-        o first release: restrict to one method (logfile) and 
+        x first release: restrict to one method (logfile) and 
             automatically enable logging
-        o document this!
+        x document this!
     o add txn to cursor
         x ham_cursor_clone: don't create new txn, use existing!
-        o document behaviour of ham_cursor_clone
+        x document behaviour of ham_cursor_clone
         x add txn support to all cursor functions
         o don't allow txn to be closed if cursors are in this txn
             (need list of open transactions of a database/environment) 

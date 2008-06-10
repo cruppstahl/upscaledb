@@ -647,6 +647,12 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     }
 
     /*
+     * 1.0.4: HAM_ENABLE_TRANSACTIONS implies HAM_ENABLE_RECOVERY
+     */
+    if (flags&HAM_ENABLE_TRANSACTIONS)
+        flags|=HAM_ENABLE_RECOVERY;
+
+    /*
      * check (and modify) the parameters
      */
     st=__check_create_parameters(HAM_TRUE, filename, &flags, param, 
@@ -882,6 +888,12 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+
+    /*
+     * 1.0.4: HAM_ENABLE_TRANSACTIONS implies HAM_ENABLE_RECOVERY
+     */
+    if (flags&HAM_ENABLE_TRANSACTIONS)
+        flags|=HAM_ENABLE_RECOVERY;
 
     /* cannot open an in-memory-db */
     if (flags&HAM_IN_MEMORY_DB) {
@@ -1518,6 +1530,12 @@ ham_open_ex(ham_db_t *db, const char *filename,
 
     db_set_error(db, 0);
 
+    /*
+     * 1.0.4: HAM_ENABLE_TRANSACTIONS implies HAM_ENABLE_RECOVERY
+     */
+    if (flags&HAM_ENABLE_TRANSACTIONS)
+        flags|=HAM_ENABLE_RECOVERY;
+
     /* flag HAM_AUTO_RECOVERY imples HAM_ENABLE_RECOVERY */
     if (flags&HAM_AUTO_RECOVERY)
         flags|=HAM_ENABLE_RECOVERY;
@@ -1806,6 +1824,10 @@ ham_open_ex(ham_db_t *db, const char *filename,
             ("invalid persistent database flags 0x%x", be_get_flags(backend)));
     ham_assert(!(be_get_flags(backend)&HAM_ENABLE_RECOVERY), 
             ("invalid persistent database flags 0x%x", be_get_flags(backend)));
+    ham_assert(!(be_get_flags(backend)&HAM_AUTO_RECOVERY), 
+            ("invalid persistent database flags 0x%x", be_get_flags(backend)));
+    ham_assert(!(be_get_flags(backend)&HAM_ENABLE_TRANSACTIONS), 
+            ("invalid persistent database flags 0x%x", be_get_flags(backend)));
     ham_assert(!(be_get_flags(backend)&DB_USE_MMAP), 
             ("invalid persistent database flags 0x%x", be_get_flags(backend)));
 
@@ -1867,6 +1889,12 @@ ham_create_ex(ham_db_t *db, const char *filename,
     }
 
     db_set_error(db, 0);
+
+    /*
+     * 1.0.4: HAM_ENABLE_TRANSACTIONS implies HAM_ENABLE_RECOVERY
+     */
+    if (flags&HAM_ENABLE_TRANSACTIONS)
+        flags|=HAM_ENABLE_RECOVERY;
 
     /*
      * check (and modify) the parameters
@@ -1941,6 +1969,8 @@ ham_create_ex(ham_db_t *db, const char *filename,
     pflags&=~HAM_READ_ONLY;
     pflags&=~HAM_DISABLE_FREELIST_FLUSH;
     pflags&=~HAM_ENABLE_RECOVERY;
+    pflags&=~HAM_AUTO_RECOVERY;
+    pflags&=~HAM_ENABLE_TRANSACTIONS;
     pflags&=~DB_USE_MMAP;
     db_set_rt_flags(db, flags);
 

@@ -408,6 +408,13 @@ ham_env_create(ham_env_t *env, const char *filename,
  *       <li>@a HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
  *            Database. Not allowed in combination with @a HAM_IN_MEMORY_DB, 
  *            @a HAM_DISABLE_FREELIST_FLUSH and @a HAM_WRITE_THROUGH.
+ *       <li>@a HAM_ENABLE_TRANSACTIONS</li> Enables Transactions for this
+ *            Database. 
+ *            <b>Remark</b> Transactions were introduced in hamsterdb 1.0.4,
+ *            but with certain limitations (which will be removed in later
+ *            version). Please read the README file and the Release Notes
+ *            for details.<br />
+ *            This flag imples @a HAM_ENABLE_RECOVERY.
  *      </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
@@ -501,6 +508,13 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *            and @a HAM_WRITE_THROUGH.
  *       <li>@a HAM_AUTO_RECOVERY</li> Automatically recover the Database,
  *            if necessary. This flag implies @a HAM_ENABLE_RECOVERY.
+ *       <li>@a HAM_ENABLE_TRANSACTIONS</li> Enables Transactions for this
+ *            Database. 
+ *            <b>Remark</b> Transactions were introduced in hamsterdb 1.0.4,
+ *            but with certain limitations (which will be removed in later
+ *            version). Please read the README file and the Release Notes
+ *            for details.<br />
+ *            This flag imples @a HAM_ENABLE_RECOVERY.
  *      </ul>
  * @param param An array of ham_parameter_t structures. The following
  *        parameters are available:
@@ -930,6 +944,13 @@ ham_create(ham_db_t *db, const char *filename,
  *       <li>@a HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
  *            Database. Not allowed in combination with @a HAM_IN_MEMORY_DB, 
  *            @a HAM_DISABLE_FREELIST_FLUSH and @a HAM_WRITE_THROUGH.
+ *       <li>@a HAM_ENABLE_TRANSACTIONS</li> Enables Transactions for this
+ *            Database. 
+ *            <b>Remark</b> Transactions were introduced in hamsterdb 1.0.4,
+ *            but with certain limitations (which will be removed in later
+ *            version). Please read the README file and the Release Notes
+ *            for details.<br />
+ *            This flag imples @a HAM_ENABLE_RECOVERY.
  *      </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
@@ -1025,6 +1046,13 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *            and @a HAM_WRITE_THROUGH.
  *       <li>@a HAM_AUTO_RECOVERY</li> Automatically recover the Database,
  *            if necessary. This flag implies @a HAM_ENABLE_RECOVERY.
+ *       <li>@a HAM_ENABLE_TRANSACTIONS</li> Enables Transactions for this
+ *            Database. 
+ *            <b>Remark</b> Transactions were introduced in hamsterdb 1.0.4,
+ *            but with certain limitations (which will be removed in later
+ *            version). Please read the README file and the Release Notes
+ *            for details.<br />
+ *            This flag imples @a HAM_ENABLE_RECOVERY.
  *      </ul>
  *
  * @param param An array of ham_parameter_t structures. The following
@@ -1097,6 +1125,10 @@ ham_open_ex(ham_db_t *db, const char *filename,
 
 /** Flag for @a ham_open_ex, @a ham_env_open_ex */
 #define HAM_AUTO_RECOVERY            0x00010000
+
+/** Flag for @a ham_create_ex, @a ham_open_ex, @a ham_env_create_ex, 
+ * @a ham_env_open_ex */
+#define HAM_ENABLE_TRANSACTIONS      0x00020000
 
 /** Parameter name for @a ham_open_ex, @a ham_create_ex; sets the cache
  * size */
@@ -1474,6 +1506,9 @@ ham_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  * Clones an existing Cursor. The new Cursor will point to
  * exactly the same item as the old Cursor. If the old Cursor did not point
  * to any item, so will the new Cursor.
+ *
+ * If the old Cursor is bound to a Transaction, then the new Cursor will
+ * also be bound to this Transaction.
  *
  * @param src The existing Cursor
  * @param dest A pointer to a pointer, which is allocated for the
