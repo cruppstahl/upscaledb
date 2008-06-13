@@ -59,16 +59,19 @@ o "pre-mature" support of ACID transactions with only *one* parallel
         x first release: restrict to one method (logfile) and 
             automatically enable logging
         x document this!
+
+    o transactions should belong to the environment, not to the database!!
+
     o add cursor to txn
         x ham_cursor_clone: don't create new txn, use existing!
         x document behaviour of ham_cursor_clone
         x add txn support to all cursor functions
         o don't allow txn to be closed if cursors are in this txn
-            (need list of open transactions of a database/environment) 
+            (need list of open transactions of an environment) 
             (don't forget ham_cursor_clone!)
             - a simple reference counter is enough
             o unittests
-    o ham_close: default behaviour is HAM_AUTO_ABORT
+    o ham_env_close: default behaviour is HAM_AUTO_ABORT
         o implement - will need a list of all open transactions
         o test
         x document
