@@ -38,8 +38,6 @@ x win32: test if prebuilt visual studio-library works in express edition, if
     -> maybe have to change the build process, if it doesn't work
     => seems to work
 
-o win64: need cppunit for hamsterdb-alien
-
 o "pre-mature" support of ACID transactions with only *one* parallel
     transaction
     x make ham_txn_* public (incl. public ham_txn_t *-handle)
@@ -71,10 +69,13 @@ o "pre-mature" support of ACID transactions with only *one* parallel
             - a simple reference counter is enough
             o unittests
     o ham_close: default behaviour is HAM_AUTO_ABORT
-        o implement
+        o implement - will need a list of all open transactions
         o test
         x document
-    o many tests with commit/abort, logging etc
+    o ham_env_close: default behaviour is HAM_AUTO_ABORT
+        o implement - will need a list of all open transactions
+        o test
+    o many tests with commit/abort, logging, recovery, auto-abort etc
 
 o enhance acceptance tests - will need new test scripts
     TXN_BEGIN 1  (1 is the txn id)
@@ -90,13 +91,16 @@ o enhance acceptance tests - will need new test scripts
 . ham_close: also support HAM_AUTO_COMMIT
     o test
 
+. ham_env_close: also support HAM_AUTO_COMMIT
+    o test
+
+. win64: need cppunit for hamsterdb-alien
+
 . tools/tests/test.sh: add to release-process
     - tricky: currently fails because of invalid database versions, and
         because the pagesize is different on cygwin
 
 . release-process: enhance automated tests of win32/win64 dll and lib
-
-. ham_close: support HAM_AUTO_COMMIT
 
 -----------------------------------------------------------------------------
 
