@@ -193,6 +193,8 @@ class HighLevelTxnTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(HighLevelTxnTest);
     CPPUNIT_TEST      (noPersistentDatabaseFlagTest);
     CPPUNIT_TEST      (noPersistentEnvironmentFlagTest);
+    CPPUNIT_TEST      (cursorStillOpenTest);
+    CPPUNIT_TEST      (clonedCursorStillOpenTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -246,6 +248,40 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
         ham_env_delete(env);
+    }
+
+    void cursorStillOpenTest(void)
+    {
+        ham_txn_t *txn;
+        ham_cursor_t *cursor;
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create(m_db, ".test", HAM_ENABLE_TRANSACTIONS, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &cursor));
+        CPPUNIT_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_commit(txn, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_abort(txn, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    }
+
+    void clonedCursorStillOpenTest(void)
+    {
+        ham_txn_t *txn;
+        ham_cursor_t *cursor, *clone;
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create(m_db, ".test", HAM_ENABLE_TRANSACTIONS, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &cursor));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_clone(cursor, &clone));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        CPPUNIT_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_commit(txn, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_abort(txn, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(clone));
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 };
 

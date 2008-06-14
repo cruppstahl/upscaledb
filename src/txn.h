@@ -45,6 +45,12 @@ struct ham_txn_t
     ham_u32_t _flags;
 
     /**
+     * reference counter for cursors (how many cursors are
+     * attached to this txn?)
+     */
+    ham_u32_t _cursor_refcount;
+
+    /**
      * index of the log file descriptor for this transaction
      */
     int _log_desc;
@@ -90,6 +96,16 @@ struct ham_txn_t
  * set the flags 
  */
 #define txn_set_flags(txn, f)                   (txn)->_flags=f
+
+/**
+ * get the cursor refcount
+ */
+#define txn_get_cursor_refcount(txn)            (txn)->_cursor_refcount
+
+/**
+ * set the cursor refcount 
+ */
+#define txn_set_cursor_refcount(txn, cfc)       (txn)->_cursor_refcount=cfc
 
 /**
  * get the index of the log file descriptor

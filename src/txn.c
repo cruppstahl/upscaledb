@@ -116,6 +116,15 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
     ham_db_t *db=txn_get_db(txn);
 
     /*
+     * are cursors attached to this txn? if yes, fail
+     */
+    if (txn_get_cursor_refcount(txn)) {
+        ham_trace(("transaction cannot be committed till all attached "
+                    "cursors are closed"));
+        return (db_set_error(db, HAM_CURSOR_STILL_OPEN));
+    }
+
+    /*
      * in case of logging: write after-images of all modified pages,
      * if they were modified by this transaction;
      * then write the transaction boundary
@@ -193,6 +202,15 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
     ham_db_t *db=txn_get_db(txn);
 
     (void)flags;
+
+    /*
+     * are cursors attached to this txn? if yes, fail
+     */
+    if (txn_get_cursor_refcount(txn)) {
+        ham_trace(("transaction cannot be aborted till all attached "
+                    "cursors are closed"));
+        return (db_set_error(db, HAM_CURSOR_STILL_OPEN));
+    }
 
     if (db_get_log(db) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) {
         st=ham_log_append_txn_abort(db_get_log(db), txn);

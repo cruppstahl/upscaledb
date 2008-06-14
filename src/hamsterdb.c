@@ -283,6 +283,8 @@ ham_strerror(ham_status_t result)
             return ("Operation would block");
         case HAM_NOT_READY:
             return ("Object was not initialized correctly");
+        case HAM_CURSOR_STILL_OPEN:
+            return ("Cursor must be closed prior to Transaction abort/commit");
         case HAM_CURSOR_IS_NIL:
             return ("Cursor points to NIL");
         case HAM_DATABASE_NOT_FOUND:
@@ -3157,6 +3159,8 @@ ham_status_t HAM_CALLCONV
 ham_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
         ham_cursor_t **cursor)
 {
+    ham_status_t st;
+    
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
@@ -3171,7 +3175,13 @@ ham_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 
     db_set_error(db, 0);
 
-    return (bt_cursor_create(db, txn, flags, (ham_bt_cursor_t **)cursor));
+    st=bt_cursor_create(db, txn, flags, (ham_bt_cursor_t **)cursor);
+    if (st)
+        return (db_set_error(db, st));
+
+    if (txn)
+        txn_set_cursor_refcount(txn, txn_get_cursor_refcount(txn)+1);
+    return (0);
 }
 
 ham_status_t HAM_CALLCONV
@@ -3202,6 +3212,10 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
         (void)txn_abort(&txn, 0);
         return (st);
     }
+
+    if (cursor_get_txn(src))
+        txn_set_cursor_refcount(cursor_get_txn(src), 
+                txn_get_cursor_refcount(cursor_get_txn(src))+1);
 
     return (txn_commit(&txn, 0));
 }
@@ -3673,8 +3687,12 @@ ham_cursor_close(ham_cursor_t *cursor)
     db_set_error(cursor_get_db(cursor), 0);
 
     st=bt_cursor_close((ham_bt_cursor_t *)cursor);
-    if (!st)
+    if (!st) {
+        if (cursor_get_txn(cursor))
+            txn_set_cursor_refcount(cursor_get_txn(cursor), 
+                    txn_get_cursor_refcount(cursor_get_txn(cursor))-1);
         ham_mem_free(cursor_get_db(cursor), cursor);
+    }
 
     return (st);
 }

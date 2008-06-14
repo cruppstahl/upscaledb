@@ -804,7 +804,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, strcmp("Unknown error", 
                     ham_strerror((ham_status_t)-204)));
         CPPUNIT_ASSERT_EQUAL(0, strcmp("Unknown error", 
-                    ham_strerror((ham_status_t)-29)));
+                    ham_strerror((ham_status_t)-30)));
         CPPUNIT_ASSERT_EQUAL(0, strcmp("Unknown error", 
                     ham_strerror((ham_status_t)1)));
     }

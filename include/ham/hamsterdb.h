@@ -211,6 +211,8 @@ typedef struct {
 #define HAM_ALREADY_INITIALIZED      (-27)
 /** Database needs recovery */
 #define HAM_NEED_RECOVERY            (-28)
+/** Cursor must be closed prior to Transaction abort/commit */
+#define HAM_CURSOR_STILL_OPEN        (-29)
 /** Cursor does not point to a valid item */
 #define HAM_CURSOR_IS_NIL           (-100)
 /** Database not found */
@@ -782,7 +784,7 @@ struct ham_txn_t;
 typedef struct ham_txn_t ham_txn_t;
 
 /**
- * Begin a new Transaction
+ * Begins a new Transaction
  * 
  * @param db Pointer to a pointer of a Transaction structure
  * 
@@ -809,7 +811,11 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags);
 #define HAM_TXN_READ_ONLY                                       1
 
 /**
- * Commit a Transaction
+ * Commits a Transaction
+ *
+ * @remark Note that the function will fail with @a HAM_CURSOR_STILL_OPEN if
+ * a Cursor was attached to this Transaction (with @a ham_cursor_create
+ * or @a ham_cursor_clone), and the Cursor was not closed.
  * 
  * @param db Pointer to a Transaction structure
  * 
@@ -818,12 +824,18 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags);
  *
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_IO_ERROR if writing to the file failed
+ * @return @a HAM_CURSOR_STILL_OPEN if there are Cursors attached to this 
+ *          Transaction
  */
 extern ham_status_t
 ham_txn_commit(ham_txn_t *txn, ham_u32_t flags);
 
 /**
- * Abort a Transaction
+ * Aborts a Transaction
+ *
+ * @remark Note that the function will fail with @a HAM_CURSOR_STILL_OPEN if
+ * a Cursor was attached to this Transaction (with @a ham_cursor_create
+ * or @a ham_cursor_clone), and the Cursor was not closed.
  * 
  * @param db Pointer to a Transaction structure
  * 
@@ -832,6 +844,8 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags);
  *
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_IO_ERROR if writing to the Database file or logfile failed
+ * @return @a HAM_CURSOR_STILL_OPEN if there are Cursors attached to this 
+ *          Transaction
  */
 extern ham_status_t
 ham_txn_abort(ham_txn_t *txn, ham_u32_t flags);
