@@ -71,6 +71,7 @@ o "pre-mature" support of ACID transactions with only *one* parallel
 
     o ham_close: default behaviour is HAM_TXN_AUTO_ABORT
         o will need a list of all open transactions
+            o TODO don't need a list - there's only one txn in parallel!
             x enhance txn.h, db.h
             x ham_txn_begin: add txn to linked list
             o ham_txn_abort/commit: remove txn from linked list
