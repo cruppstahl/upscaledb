@@ -206,6 +206,13 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
     /* for hamsterdb 1.0.4 */
     db->_is_txn_open=1;
 
+    /* add to linked list of transactions */
+    if (db_get_txns(db)) {
+        txn_set_previous(db_get_txns(db), *txn);
+        txn_set_next(*txn, db_get_txns(db));
+    }
+    db_set_txns(db, *txn);
+
     return (st);
 }
 
@@ -216,6 +223,13 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
     if (st==0) {
         /* for hamsterdb 1.0.4 */
         (txn_get_db(txn))->_is_txn_open=0;
+
+        /* TODO remove from linked list of transactions */
+        if (db_get_txns(db)) {
+            txn_set_previous(db_get_txns(db), txn);
+            txn_set_next(txn, db_get_txns(db));
+        }
+        db_set_txns(db, txn);
 
         ham_mem_free(txn_get_db(txn), txn);
     }

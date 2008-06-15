@@ -63,19 +63,21 @@ o "pre-mature" support of ACID transactions with only *one* parallel
         x ham_cursor_clone: don't create new txn, use existing!
         x document behaviour of ham_cursor_clone
         x add txn support to all cursor functions
-        o don't allow txn to be closed if cursors are in this txn
+        x don't allow txn to be closed if cursors are in this txn
             (don't forget ham_cursor_clone!)
             - a simple reference counter is enough
             x implement
             x unittests
 
-    o ham_env_close: default behaviour is HAM_AUTO_ABORT
-        o implement - will need a list of all open transactions
-        o test
-    o ham_close: default behaviour is HAM_AUTO_ABORT
-        o implement - will need a list of all open transactions
+    o ham_close: default behaviour is HAM_TXN_AUTO_ABORT
+        o will need a list of all open transactions
+            x enhance txn.h, db.h
+            x ham_txn_begin: add txn to linked list
+            o ham_txn_abort/commit: remove txn from linked list
+        o all txns are closed when database is closed
         o test
         x document
+
     o many tests with commit/abort, logging, recovery, auto-abort etc
 
 o enhance acceptance tests - will need new test scripts
@@ -89,10 +91,10 @@ o enhance acceptance tests - will need new test scripts
 
 . enhance tutorial with information about transactions
 
-. ham_close: also support HAM_AUTO_COMMIT
+. ham_close: also support HAM_TXN_AUTO_COMMIT
     o test
 
-. ham_env_close: also support HAM_AUTO_COMMIT
+. ham_env_close: also support HAM_TXN_AUTO_COMMIT
     o test
 
 . win64: need cppunit for hamsterdb-alien

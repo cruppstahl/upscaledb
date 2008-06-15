@@ -249,6 +249,9 @@ struct ham_db_t
     /* linked list of all cursors */
     ham_cursor_t *_cursors;
 
+    /* linked list of all transactions */
+    ham_txn_t *_txns;
+
     /* the size of the last allocated data pointer for records */
     ham_size_t _rec_allocsize;
 
@@ -505,6 +508,16 @@ struct ham_db_t
  * set the linked list of all cursors
  */
 #define db_set_cursors(db, c)          (db)->_cursors=c
+
+/*
+ * get the linked list of all transactions
+ */
+#define db_get_txns(db)                (db)->_txns
+
+/*
+ * set the linked list of all transactions
+ */
+#define db_set_txns(db, txn)           (db)->_txns=txn
 
 /*
  * get the size of the last allocated data blob

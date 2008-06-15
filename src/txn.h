@@ -56,6 +56,11 @@ struct ham_txn_t
     int _log_desc;
 
     /**
+     * linked list of all transactions
+     */
+    ham_txn_t *_next, *_previous;
+
+    /**
      * a list of pages which are referenced by this transaction
      */
     struct ham_page_t *_pagelist;
@@ -116,6 +121,26 @@ struct ham_txn_t
  * set the index of the log file descriptor
  */
 #define txn_set_log_desc(txn, desc)             (txn)->_log_desc=desc
+
+/**
+ * get the 'next' pointer of the linked list
+ */
+#define txn_get_next(txn)                       (txn)->_next
+
+/**
+ * set the 'next' pointer of the linked list
+ */
+#define txn_set_next(txn, n)                    (txn)->_next=n
+
+/**
+ * get the 'previous' pointer of the linked list
+ */
+#define txn_get_previous(txn)                   (txn)->_previous
+
+/**
+ * set the 'previous' pointer of the linked list
+ */
+#define txn_set_previous(txn, p)                (txn)->_previous=p
 
 /**
  * get the page list
