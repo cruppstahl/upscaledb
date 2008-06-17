@@ -189,9 +189,16 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
 {
     ham_status_t st;
 
-    /* for hamsterdb 1.0.4 */
-    if (db->_is_txn_open)
+    if (!(db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        ham_trace(("transactions are disabled (see HAM_ENABLE_TRANSACTIONS)"));
+        return (HAM_INV_PARAMETER);
+    }
+
+    /* for hamsterdb 1.0.4 - only support one transaction */
+    if (db_get_txn(db)) {
+        ham_trace(("hamsterdb 1.0.4 supports only one concurrent transaction"));
         return (HAM_LIMITS_REACHED);
+    }
 
     *txn=(ham_txn_t *)ham_mem_alloc(db, sizeof(**txn));
     if (!(*txn))
@@ -203,16 +210,6 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
         *txn=0;
     }
 
-    /* for hamsterdb 1.0.4 */
-    db->_is_txn_open=1;
-
-    /* add to linked list of transactions */
-    if (db_get_txns(db)) {
-        txn_set_previous(db_get_txns(db), *txn);
-        txn_set_next(*txn, db_get_txns(db));
-    }
-    db_set_txns(db, *txn);
-
     return (st);
 }
 
@@ -220,19 +217,8 @@ ham_status_t
 ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
 {
     ham_status_t st=txn_commit(txn, flags);
-    if (st==0) {
-        /* for hamsterdb 1.0.4 */
-        (txn_get_db(txn))->_is_txn_open=0;
-
-        /* TODO remove from linked list of transactions */
-        if (db_get_txns(db)) {
-            txn_set_previous(db_get_txns(db), txn);
-            txn_set_next(txn, db_get_txns(db));
-        }
-        db_set_txns(db, txn);
-
+    if (st==0)
         ham_mem_free(txn_get_db(txn), txn);
-    }
 
     return (st);
 }
@@ -241,12 +227,8 @@ ham_status_t
 ham_txn_abort(ham_txn_t *txn, ham_u32_t flags)
 {
     ham_status_t st=txn_abort(txn, flags);
-    if (st==0) {
-        /* for hamsterdb 1.0.4 */
-        (txn_get_db(txn))->_is_txn_open=0;
-
+    if (st==0) 
         ham_mem_free(txn_get_db(txn), txn);
-    }
 
     return (st);
 }
@@ -1956,9 +1938,10 @@ ham_create_ex(ham_db_t *db, const char *filename,
         device=db_get_device(db);
 
     /*
-     * create a logging object, if logging is enabled
+     * create a logging object, if logging is enabled (and if it was not
+     * yet created)
      */
-    if (flags&HAM_ENABLE_RECOVERY) {
+    if ((flags&HAM_ENABLE_RECOVERY) && !(db_get_log(db))) {
         ham_log_t *log;
         st=ham_log_create(db_get_allocator(db), 
                 db_get_env(db) ? env_get_filename(db_get_env(db)) : filename, 
@@ -2975,6 +2958,25 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     }
 
     /*
+     * if this database has no environment, or if it's the last
+     * database in the environment: delete all environment-members
+     */
+    if (db_get_env(db)==0
+            || env_get_list(db_get_env(db))==0
+            || db_get_next(env_get_list(db_get_env(db)))==0)
+        noenv=HAM_TRUE;
+
+    /*
+     * auto-abort a pending transaction?
+     */
+    if (noenv && db_get_txn(db)) {
+        st=ham_txn_abort(db_get_txn(db), 0);
+        if (st)
+            return (st);
+        db_set_txn(db, 0);
+    }
+
+    /*
      * if we're in an environment: all pages, which have this page
      * as an owner, must transfer their ownership to the
      * next page!
@@ -2997,15 +2999,6 @@ ham_close(ham_db_t *db, ham_u32_t flags)
             head=page_get_next(head, PAGE_LIST_CACHED);
         }
     }
-
-    /*
-     * if this database has no environment, or if it's the last
-     * database in the environment: delete all environment-members
-     */
-    if (db_get_env(db)==0 || 
-        env_get_list(db_get_env(db))==0 ||
-        db_get_next(env_get_list(db_get_env(db)))==0)
-        noenv=HAM_TRUE;
 
     be=db_get_backend(db);
 
@@ -3202,7 +3195,7 @@ ham_status_t HAM_CALLCONV
 ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 {
     ham_status_t st;
-    ham_txn_t txn;
+    ham_txn_t local_txn;
 
     if (!src) {
         ham_trace(("parameter 'src' must not be NULL"));
@@ -3218,12 +3211,15 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 
     db_set_error(cursor_get_db(src), 0);
 
-    if ((st=txn_begin(&txn, cursor_get_db(src), HAM_TXN_READ_ONLY)))
-        return (st);
+    if (!cursor_get_txn(src)) {
+        if ((st=txn_begin(&local_txn, cursor_get_db(src), HAM_TXN_READ_ONLY)))
+            return (st);
+    }
 
     st=bt_cursor_clone((ham_bt_cursor_t *)src, (ham_bt_cursor_t **)dest);
     if (st) {
-        (void)txn_abort(&txn, 0);
+        if (!cursor_get_txn(src))
+            (void)txn_abort(&local_txn, 0);
         return (st);
     }
 
@@ -3231,7 +3227,10 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
         txn_set_cursor_refcount(cursor_get_txn(src), 
                 txn_get_cursor_refcount(cursor_get_txn(src))+1);
 
-    return (txn_commit(&txn, 0));
+    if (!cursor_get_txn(src))
+        return (txn_commit(&local_txn, 0));
+    else
+        return (0);
 }
 
 ham_status_t HAM_CALLCONV

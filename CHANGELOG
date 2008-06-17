@@ -1,3 +1,8 @@
+Jun 16, 2008 - chris
+o Bugfix: when creating several Databases in an Environment, and recovery
+    was enabled, each Database created its own log object and the log
+    was corrupted
+
 Jun 03, 2008 - chris
 o Fixed typo in hamsterdb.h documentation - HAM_INV_LOG_FILE_HEADER is
     actually called HAM_LOG_INV_FILE_HEADER
