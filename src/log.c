@@ -72,7 +72,7 @@ __undo(ham_log_t *log, ham_device_t *device, log_iterator_t *iter,
         }
     }
 
-    ham_assert(found, (""));
+    ham_assert(found, ("failed to undo a log entry"));
 
 bail:
     /*

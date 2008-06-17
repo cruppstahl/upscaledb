@@ -152,6 +152,9 @@ public:
     {
         ham_txn_t *txn1, *txn2;
 
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create(m_db, ".test", HAM_ENABLE_TRANSACTIONS, 0644));
+
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
         CPPUNIT_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
                 ham_txn_begin(&txn2, m_db, 0));
@@ -171,6 +174,10 @@ class HighLevelTxnTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (noPersistentEnvironmentFlagTest);
     CPPUNIT_TEST      (cursorStillOpenTest);
     CPPUNIT_TEST      (clonedCursorStillOpenTest);
+    CPPUNIT_TEST      (autoAbortDatabaseTest);
+    CPPUNIT_TEST      (autoAbortEnvironmentTest);
+    CPPUNIT_TEST      (autoAbortEnvironment2Test);
+    CPPUNIT_TEST      (environmentTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -258,6 +265,151 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(clone));
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    }
+
+    void autoAbortDatabaseTest(void)
+    {
+        ham_txn_t *txn;
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create(m_db, ".test", HAM_ENABLE_TRANSACTIONS, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_open(m_db, ".test", HAM_ENABLE_TRANSACTIONS));
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                        ham_find(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    }
+
+    void autoAbortEnvironmentTest(void)
+    {
+        ham_env_t *env;
+        ham_db_t *db1, *db2;
+        ham_txn_t *txn;
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+
+        ham_env_new(&env);
+        ham_new(&db1);
+        ham_new(&db2);
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create(env, ".test", HAM_ENABLE_TRANSACTIONS, 0644));
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_env_create_db(env, db1, 1, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_env_create_db(env, db2, 2, 0, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, db1, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(db1, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(db1, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db1, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(db2, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(db2, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db2, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_open_db(env, db1, 1, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_open_db(env, db2, 2, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_find(db1, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_find(db2, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+    }
+
+    void autoAbortEnvironment2Test(void)
+    {
+        ham_env_t *env;
+        ham_db_t *db1, *db2;
+        ham_txn_t *txn;
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+
+        ham_env_new(&env);
+        ham_new(&db1);
+        ham_new(&db2);
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create(env, ".test", HAM_ENABLE_TRANSACTIONS, 0644));
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_env_create_db(env, db1, 1, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_env_create_db(env, db2, 2, 0, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, db1, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(db1, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(db1, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db1, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(db2, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(db2, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_open(env, ".test", HAM_ENABLE_TRANSACTIONS));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_open_db(env, db1, 1, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_open_db(env, db2, 2, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_find(db1, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_find(db2, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+    }
+
+    void environmentTest(void)
+    {
+        ham_env_t *env;
+        ham_db_t *db1, *db2;
+        ham_txn_t *txn;
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+
+        ham_env_new(&env);
+        ham_new(&db1);
+        ham_new(&db2);
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_create(env, ".test", HAM_ENABLE_TRANSACTIONS, 0644));
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_env_create_db(env, db1, 1, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0,
+                ham_env_create_db(env, db2, 2, 0, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, db1, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(db1, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(db1, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db1, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(db2, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(db2, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(db2, 0));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_open_db(env, db1, 1, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_env_open_db(env, db2, 2, 0, 0));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_find(db1, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_find(db2, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
     }
 };
 

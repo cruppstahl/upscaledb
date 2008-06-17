@@ -1461,6 +1461,9 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  * This function removes all file-level filters installed 
  * with @a ham_add_file_filter.
  *
+ * This function also aborts all Transactions which were not yet committed,
+ * and therefore renders all Transaction handles invalid.
+ *
  * @param db A valid Database handle
  * @param flags Optional flags for closing the Database. Possible values are:
  *      <ul>

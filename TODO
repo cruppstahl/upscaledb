@@ -68,15 +68,9 @@ o "pre-mature" support of ACID transactions with only *one* parallel
             - a simple reference counter is enough
             x implement
             x unittests
-
-    o ham_close: default behaviour is HAM_TXN_AUTO_ABORT
-        o will need a list of all open transactions
-            o TODO don't need a list - there's only one txn in parallel!
-            x enhance txn.h, db.h
-            x ham_txn_begin: add txn to linked list
-            o ham_txn_abort/commit: remove txn from linked list
-        o all txns are closed when database is closed
-        o test
+    x ham_close: default behaviour is HAM_TXN_AUTO_ABORT
+        x open txn is aborted when (last) database is closed
+        x test
         x document
 
     o many tests with commit/abort, logging, recovery, auto-abort etc
@@ -89,6 +83,8 @@ o enhance acceptance tests - will need new test scripts
     TXN_COMMIT 1
 
 . enhance C++ wrapper
+
+. move transactions to environment, not database
 
 . enhance tutorial with information about transactions
 
@@ -114,16 +110,6 @@ o enhance acceptance tests - will need new test scripts
 
 . new configure switch --force-lsb-compliancy (ohne pread, pwrite)
     o needs support for automated testing!
-
-. scenario: created with log, a few inserts; crash (dbfile is ok,
-    but logfile is not empty)
-    then opened *without* log, another few inserts, closed
-    then opened *with* log, log is not empty -> recovery but logfile
-    state is no longer valid! must we store the lsn in the database
-    header? or is this a case of PEBCAC?
-
-. new API function ham_set_checkpoint(), or extend ham_flush()
-    with new flag HAM_SET_CHECKPOINT??
 
 -----------------------------------------------------------------------------
 
