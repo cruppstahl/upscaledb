@@ -33,43 +33,19 @@ class TxnTest : public CppUnit::TestFixture
 
 protected:
     ham_db_t *m_db;
-    ham_device_t *m_dev;
     memtracker_t *m_alloc;
 
 public:
     void setUp()
     { 
-        ham_page_t *p;
         CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
-        CPPUNIT_ASSERT(0==ham_new(&m_db));
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        CPPUNIT_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
-                        HAM_TRUE))!=0);
-        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
-        db_set_device(m_db, m_dev);
-        p=page_new(m_db);
-        CPPUNIT_ASSERT(0==page_alloc(p, m_dev->get_pagesize(m_dev)));
-        db_set_header_page(m_db, p);
-        db_set_pagesize(m_db, m_dev->get_pagesize(m_dev));
     }
     
     void tearDown() 
     { 
-        if (db_get_header_page(m_db)) {
-            page_free(db_get_header_page(m_db));
-            page_delete(db_get_header_page(m_db));
-            db_set_header_page(m_db, 0);
-        }
-        if (db_get_cache(m_db)) {
-            cache_delete(m_db, db_get_cache(m_db));
-            db_set_cache(m_db, 0);
-        }
-        if (db_get_device(m_db)) {
-            if (db_get_device(m_db)->is_open(db_get_device(m_db)))
-                db_get_device(m_db)->close(db_get_device(m_db));
-            db_get_device(m_db)->destroy(db_get_device(m_db));
-            db_set_device(m_db, 0);
-        }
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
     }
@@ -219,7 +195,7 @@ public:
     void noPersistentDatabaseFlagTest(void)
     {
         CPPUNIT_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", HAM_ENABLE_TRANSACTIONS, 0));
+                ham_create(m_db, ".test", HAM_ENABLE_TRANSACTIONS, 0644));
         CPPUNIT_ASSERT(HAM_ENABLE_TRANSACTIONS&db_get_rt_flags(m_db));
         CPPUNIT_ASSERT(HAM_ENABLE_RECOVERY&db_get_rt_flags(m_db));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -237,7 +213,7 @@ public:
         ham_env_new(&env);
 
         CPPUNIT_ASSERT_EQUAL(0, 
-                ham_env_create(env, ".test", HAM_ENABLE_TRANSACTIONS, 0));
+                ham_env_create(env, ".test", HAM_ENABLE_TRANSACTIONS, 0644));
         CPPUNIT_ASSERT(HAM_ENABLE_TRANSACTIONS&env_get_rt_flags(env));
         CPPUNIT_ASSERT(HAM_ENABLE_RECOVERY&env_get_rt_flags(env));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
@@ -256,7 +232,7 @@ public:
         ham_cursor_t *cursor;
 
         CPPUNIT_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", HAM_ENABLE_TRANSACTIONS, 0));
+                ham_create(m_db, ".test", HAM_ENABLE_TRANSACTIONS, 0644));
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &cursor));
         CPPUNIT_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_commit(txn, 0));
@@ -272,7 +248,7 @@ public:
         ham_cursor_t *cursor, *clone;
 
         CPPUNIT_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", HAM_ENABLE_TRANSACTIONS, 0));
+                ham_create(m_db, ".test", HAM_ENABLE_TRANSACTIONS, 0644));
         CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &cursor));
         CPPUNIT_ASSERT_EQUAL(0, ham_cursor_clone(cursor, &clone));
