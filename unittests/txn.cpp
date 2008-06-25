@@ -410,6 +410,10 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_find(db2, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+
+        ham_delete(db1);
+        ham_delete(db2);
+        ham_env_delete(env);
     }
 };
 
