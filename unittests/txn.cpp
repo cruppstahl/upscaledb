@@ -178,6 +178,7 @@ class HighLevelTxnTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (autoAbortEnvironmentTest);
     CPPUNIT_TEST      (autoAbortEnvironment2Test);
     CPPUNIT_TEST      (environmentTest);
+    CPPUNIT_TEST      (rollbackBigBlobTest);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -414,6 +415,27 @@ public:
         ham_delete(db1);
         ham_delete(db2);
         ham_env_delete(env);
+    }
+
+    void rollbackBigBlobTest(void)
+    {
+        ham_txn_t *txn;
+        ham_key_t key;
+        ham_record_t rec;
+        ham_u8_t buffer[1024*8];
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        rec.data=&buffer[0];
+        rec.size=sizeof(buffer);
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create(m_db, ".test", HAM_ENABLE_TRANSACTIONS, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+
+        CPPUNIT_ASSERT(freel_alloc_area(m_db, sizeof(buffer))); 
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 };
 

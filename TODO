@@ -9,7 +9,6 @@ x a finished TODO item
 
 o new web page
     x link-cloud: add link to forum
-    o add google sitemap
     o update samples for C/C++ (if necessary)
     o add documentation for Java
     o add documentation for .NET (chm file)
@@ -73,7 +72,15 @@ o "pre-mature" support of ACID transactions with only *one* parallel
         x test
         x document
 
-    o many tests with commit/abort, logging, recovery, auto-abort etc
+    x tests with commit/abort, logging, recovery, auto-abort etc
+
+    x nach einem abort/commit sollte das txn-handle invalid werden (crashen)
+
+    o test with big blobs; are they rolled back correctly?
+        begin
+        insert(key, BIGBLOB)
+        abort
+        -> eintrag i.d. freelist??
 
 o enhance acceptance tests - will need new test scripts
     TXN_BEGIN 1  (1 is the txn id)
@@ -82,17 +89,18 @@ o enhance acceptance tests - will need new test scripts
     TXN_ERASE 1 ...
     TXN_COMMIT 1
 
-. enhance C++ wrapper
-
-. move transactions to environment, not database
-
-. enhance tutorial with information about transactions
+. move transactions to environment, not database -- or not? if it works, then
+    leave it as is
 
 . ham_close: also support HAM_TXN_AUTO_COMMIT
     o test
 
 . ham_env_close: also support HAM_TXN_AUTO_COMMIT
     o test
+
+. enhance C++ wrapper
+
+. enhance tutorial with information about transactions
 
 . win64: need cppunit for hamsterdb-alien
 
