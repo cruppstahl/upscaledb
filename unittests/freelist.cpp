@@ -101,7 +101,8 @@ public:
 
         for (int i=0; i<10; i++) {
             CPPUNIT_ASSERT_EQUAL(0, 
-                    freel_mark_free(m_db, ps+i*DB_CHUNKSIZE, DB_CHUNKSIZE));
+                    freel_mark_free(m_db, ps+i*DB_CHUNKSIZE, DB_CHUNKSIZE, 
+                        HAM_FALSE));
         }
 
         for (int i=0; i<10; i++) {
@@ -122,7 +123,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, 
-                    freel_mark_free(m_db, ps, ps));
+                    freel_mark_free(m_db, ps, ps, HAM_FALSE));
         CPPUNIT_ASSERT_EQUAL((ham_offset_t)ps, freel_alloc_page(m_db));
         CPPUNIT_ASSERT_EQUAL(0, txn_commit(&txn, 0));
     }
@@ -134,8 +135,8 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
         for (int i=60; i<70; i++) {
-            CPPUNIT_ASSERT(freel_mark_free(m_db, 
-                        ps+i*DB_CHUNKSIZE, DB_CHUNKSIZE)==HAM_SUCCESS);
+            CPPUNIT_ASSERT_EQUAL(0, freel_mark_free(m_db,
+                        ps+i*DB_CHUNKSIZE, DB_CHUNKSIZE, HAM_FALSE));
         }
 
         for (int i=60; i<70; i++) {
@@ -156,8 +157,8 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
         for (int i=60; i<70; i++) {
-            CPPUNIT_ASSERT(freel_mark_free(m_db, offset, (i+1)*DB_CHUNKSIZE)
-                    ==HAM_SUCCESS);
+            CPPUNIT_ASSERT_EQUAL(0, freel_mark_free(m_db, offset, 
+                        (i+1)*DB_CHUNKSIZE, HAM_FALSE));
             offset+=(i+1)*DB_CHUNKSIZE;
         }
 
@@ -179,7 +180,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, 
-                freel_mark_free(m_db, o, DB_CHUNKSIZE));
+                freel_mark_free(m_db, o, DB_CHUNKSIZE, HAM_FALSE));
         CPPUNIT_ASSERT_EQUAL(0, txn_commit(&txn, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -192,7 +193,7 @@ public:
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
 
         CPPUNIT_ASSERT_EQUAL(0, 
-                freel_mark_free(m_db, o*2, DB_CHUNKSIZE));
+                freel_mark_free(m_db, o*2, DB_CHUNKSIZE, HAM_FALSE));
 
         CPPUNIT_ASSERT_EQUAL(0, txn_commit(&txn, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -213,7 +214,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, 
-                freel_mark_free(m_db, 3*o, DB_CHUNKSIZE));
+                freel_mark_free(m_db, 3*o, DB_CHUNKSIZE, HAM_FALSE));
         CPPUNIT_ASSERT_EQUAL(3*o, 
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
         CPPUNIT_ASSERT(db_is_dirty(m_db));
@@ -227,7 +228,7 @@ public:
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
 
         CPPUNIT_ASSERT_EQUAL(0, 
-                freel_mark_free(m_db, 10*o, DB_CHUNKSIZE));
+                freel_mark_free(m_db, 10*o, DB_CHUNKSIZE, HAM_FALSE));
         CPPUNIT_ASSERT_EQUAL(10*o, 
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
 
@@ -248,7 +249,7 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
         CPPUNIT_ASSERT_EQUAL(0, 
-                freel_mark_free(m_db, o, DB_CHUNKSIZE*3));
+                freel_mark_free(m_db, o, DB_CHUNKSIZE*3, HAM_FALSE));
         CPPUNIT_ASSERT_EQUAL(o, 
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
         CPPUNIT_ASSERT(db_is_dirty(m_db));
@@ -264,7 +265,7 @@ public:
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
 
         CPPUNIT_ASSERT_EQUAL(0, 
-                freel_mark_free(m_db, o, DB_CHUNKSIZE*2));
+                freel_mark_free(m_db, o, DB_CHUNKSIZE*2, HAM_FALSE));
         CPPUNIT_ASSERT_EQUAL(o, 
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
 
@@ -285,8 +286,8 @@ public:
         ham_txn_t txn;
         CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
         // this code snipped crashed in an acceptance test
-        CPPUNIT_ASSERT(freel_mark_free(m_db, 2036736, 
-                    db_get_pagesize(m_db)-1024)==HAM_SUCCESS);
+        CPPUNIT_ASSERT_EQUAL(0, freel_mark_free(m_db, 2036736, 
+                    db_get_pagesize(m_db)-1024, HAM_FALSE));
         CPPUNIT_ASSERT_EQUAL(0, txn_commit(&txn, 0));
     }
 
@@ -296,7 +297,7 @@ public:
         ham_txn_t txn;
         CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
-        CPPUNIT_ASSERT(freel_mark_free(m_db, ps, ps)==HAM_SUCCESS);
+        CPPUNIT_ASSERT(freel_mark_free(m_db, ps, ps, HAM_FALSE)==HAM_SUCCESS);
         CPPUNIT_ASSERT(freel_alloc_page(m_db)==ps);
         CPPUNIT_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==0);
         CPPUNIT_ASSERT_EQUAL(0, txn_commit(&txn, 0));
@@ -308,7 +309,7 @@ public:
         ham_txn_t txn;
         CPPUNIT_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, freel_mark_free(m_db, ps, ps*2));
+        CPPUNIT_ASSERT_EQUAL(0, freel_mark_free(m_db, ps, ps*2, HAM_FALSE));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)ps*1, freel_alloc_page(m_db));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)ps*2, freel_alloc_page(m_db));
         CPPUNIT_ASSERT_EQUAL((ham_u64_t)0, 

@@ -218,8 +218,9 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
 {
     ham_status_t st=txn_commit(txn, flags);
     if (st==0) {
+        ham_db_t *db=txn_get_db(txn);
         memset(txn, 0, sizeof(*txn));
-        ham_mem_free(txn_get_db(txn), txn);
+        ham_mem_free(db, txn);
     }
 
     return (st);
@@ -230,8 +231,9 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags)
 {
     ham_status_t st=txn_abort(txn, flags);
     if (st==0) {
+        ham_db_t *db=txn_get_db(txn);
         memset(txn, 0, sizeof(*txn));
-        ham_mem_free(txn_get_db(txn), txn);
+        ham_mem_free(db, txn);
     }
 
     return (st);

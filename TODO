@@ -76,11 +76,15 @@ o "pre-mature" support of ACID transactions with only *one* parallel
 
     x nach einem abort/commit sollte das txn-handle invalid werden (crashen)
 
-    o test with big blobs; are they rolled back correctly?
+    x test with big blobs; are they rolled back correctly?
         begin
         insert(key, BIGBLOB)
         abort
-        -> eintrag i.d. freelist??
+        -> the allocated page must be moved to the freelist, otherwise it's 
+            lost
+            x test with direct I/O (big blob, ps/2)
+            x test with direct I/O (big blob, ps*2)
+            x test with normal inserts (small blob)
 
 o enhance acceptance tests - will need new test scripts
     TXN_BEGIN 1  (1 is the txn id)
@@ -90,7 +94,7 @@ o enhance acceptance tests - will need new test scripts
     TXN_COMMIT 1
 
 . move transactions to environment, not database -- or not? if it works, then
-    leave it as is
+    maybe leave it as is
 
 . ham_close: also support HAM_TXN_AUTO_COMMIT
     o test
@@ -109,6 +113,10 @@ o enhance acceptance tests - will need new test scripts
         because the pagesize is different on cygwin
 
 . release-process: enhance automated tests of win32/win64 dll and lib
+
+. don't make ham_env_erase_db fail if a txn is in progress
+
+. allow more than one txn in parallel
 
 -----------------------------------------------------------------------------
 

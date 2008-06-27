@@ -229,6 +229,14 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
         page_set_next(head, PAGE_LIST_TXN, 0);
         page_set_previous(head, PAGE_LIST_TXN, 0);
 
+        /* if this page was allocated by this transaction, then we can
+         * move the whole page to the freelist */
+        if (page_get_alloc_txn_id(head)==txn_get_id(txn)) {
+            (void)freel_mark_free(db, page_get_self(head), 
+                    db_get_pagesize(db), HAM_TRUE);
+            goto next_page;
+        }
+
         /* remove the 'delete pending' flag */
         if (page_get_npers_flags(head)&PAGE_NPERS_DELETE_PENDING)
             page_set_npers_flags(head, 
@@ -243,6 +251,7 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
             /*page_set_undirty(head); */
         }
 
+next_page:
         /* page is no longer in use */
         page_release_ref(head);
 

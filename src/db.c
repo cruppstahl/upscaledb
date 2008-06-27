@@ -25,6 +25,7 @@
 #include "extkeys.h"
 #include "cursor.h"
 #include "btree_cursor.h"
+#include "page.h"
 
 
 
@@ -558,7 +559,8 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
      */
     if (flags&DB_MOVE_TO_FREELIST) {
         if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB))
-            (void)freel_mark_free(db, page_get_self(page), db_get_pagesize(db));
+            (void)freel_mark_free(db, page_get_self(page), 
+                    db_get_pagesize(db), HAM_TRUE);
     }
 
     /*
@@ -626,6 +628,9 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
     st=page_alloc(page, db_get_pagesize(db));
     if (st)
         return (0);
+
+    if (db_get_txn(db))
+        page_set_alloc_txn_id(page, txn_get_id(db_get_txn(db)));
 
     newpage=1;
 

@@ -87,6 +87,9 @@ struct ham_page_t {
         /** the lsn of the last BEFORE-image, that was written to the log */
         ham_u64_t _before_img_lsn;
 
+        /** the id of the transaction which allocated the image */
+        ham_u64_t _alloc_txn_id;
+
     } _npers; 
 
     /**
@@ -221,6 +224,16 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
  * set the lsn of the last BEFORE-image that was written to the log 
  */
 #define page_set_before_img_lsn(page, l) (page)->_npers._before_img_lsn=l
+
+/** 
+ * get the id of the txn which allocated this page
+ */
+#define page_get_alloc_txn_id(page)      (page)->_npers._alloc_txn_id
+
+/** 
+ * set the id of the txn which allocated this page
+ */
+#define page_set_alloc_txn_id(page, id)  (page)->_npers._alloc_txn_id=id
 
 /**
  * get persistent page flags

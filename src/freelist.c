@@ -88,8 +88,8 @@ __freel_cache_get_entry(ham_db_t *db, freelist_cache_t *cache,
 }
 
 static ham_size_t
-__freel_set_bits(freelist_payload_t *fp, ham_size_t start_bit, 
-        ham_size_t size_bits, ham_bool_t set)
+__freel_set_bits(freelist_payload_t *fp, ham_bool_t overwrite, 
+        ham_size_t start_bit, ham_size_t size_bits, ham_bool_t set)
 {
     ham_size_t i;
     ham_u8_t *p=freel_get_bitmap(fp);
@@ -101,7 +101,8 @@ __freel_set_bits(freelist_payload_t *fp, ham_size_t start_bit,
 
     if (set) {
         for (i=0; i<size_bits; i++, start_bit++) {
-            ham_assert(!(p[start_bit/8] & 1 << (start_bit%8)), 
+            if (!overwrite)
+                ham_assert(!(p[start_bit/8] & 1 << (start_bit%8)), 
                     ("bit is already set!"));
             p[start_bit>>3] |= 1 << (start_bit%8);
         }
@@ -287,7 +288,7 @@ __freel_alloc_area(ham_db_t *db, ham_size_t size, ham_bool_t aligned)
             else
                 s=__freel_search_bits(db, fp, size/DB_CHUNKSIZE);
             if (s!=-1) {
-                __freel_set_bits(fp, s, size/DB_CHUNKSIZE, HAM_FALSE);
+                __freel_set_bits(fp, 0, s, size/DB_CHUNKSIZE, HAM_FALSE);
                 if (page)
                     page_set_dirty(page);
                 else
@@ -421,7 +422,8 @@ freel_shutdown(ham_db_t *db)
 }
 
 ham_status_t
-freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size)
+freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size, 
+        ham_bool_t overwrite)
 {
     ham_page_t *page=0;
     freelist_cache_t *cache;
@@ -478,7 +480,7 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size)
          * set the bits and update the values in the cache and
          * the fp
          */
-        s=__freel_set_bits(fp, 
+        s=__freel_set_bits(fp, overwrite,
                 (ham_size_t)(address-freel_get_start_address(fp))/
                     DB_CHUNKSIZE, size/DB_CHUNKSIZE, HAM_TRUE);
 

@@ -1,3 +1,8 @@
+Jun 27, 2008 - chris
+o Implemented the first of several milestones with Transaction support;
+    please see the README for details about the limitations, some of them
+    are quite severe
+    
 Jun 16, 2008 - chris
 o Bugfix: when creating several Databases in an Environment, and recovery
     was enabled, each Database created its own log object and the log

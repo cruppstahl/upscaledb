@@ -196,11 +196,15 @@ freel_shutdown(ham_db_t *db);
 /**
  * mark an area in the file as "free"
  *
+ * if 'overwrite' is true, will not assert that the bits are all set to
+ * zero
+ *
  * !! note
  * will assert that address and size are DB_CHUNKSIZE-aligned!
  */
 extern ham_status_t
-freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size);
+freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size,
+        ham_bool_t overwrite);
 
 /**
  * try to allocate an (unaligned) space from the freelist

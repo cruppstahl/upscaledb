@@ -25,8 +25,8 @@
 #define my_blob_is_small(db, size)  (size<(ham_size_t)(db_get_pagesize(db)>>3))
 
 static ham_status_t
-__write_chunks(ham_db_t *db, ham_page_t *page, 
-        ham_offset_t addr, ham_u8_t **chunk_data, ham_size_t *chunk_size, 
+__write_chunks(ham_db_t *db, ham_page_t *page, ham_offset_t addr, 
+        ham_bool_t allocated, ham_u8_t **chunk_data, ham_size_t *chunk_size, 
         ham_size_t chunks)
 {
     ham_size_t i;
@@ -64,6 +64,13 @@ __write_chunks(ham_db_t *db, ham_page_t *page,
                 if (page)
                     page_set_npers_flags(page, 
                         page_get_npers_flags(page)|PAGE_NPERS_NO_HEADER);
+                /* if this page was recently allocated by the parent
+                 * function: set a flag */
+                if (cacheonly 
+                        && allocated 
+                        && addr==page_get_self(page) 
+                        && db_get_txn(db))
+                    page_set_alloc_txn_id(page, txn_get_id(db_get_txn(db)));
             }
 
             /*
@@ -304,7 +311,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
             addr=page_get_self(page);
             /* move the remaining space to the freelist */
             (void)freel_mark_free(db, addr+alloc_size,
-                    db_get_pagesize(db)-alloc_size);
+                    db_get_pagesize(db)-alloc_size, HAM_FALSE);
             blob_set_alloc_size(&hdr, alloc_size);
         }
         /*
@@ -328,7 +335,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
             if (aligned!=alloc_size) {
                 ham_size_t diff=aligned-alloc_size;
                 if (diff>SMALLEST_CHUNK_SIZE) {
-                    (void)freel_mark_free(db, addr+alloc_size, diff);
+                    (void)freel_mark_free(db, addr+alloc_size, diff, HAM_FALSE);
                     blob_set_alloc_size(&hdr, aligned-diff);
                 }
                 else 
@@ -352,7 +359,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
     chunk_data[1]=(ham_u8_t *)data;
     chunk_size[1]=size;
 
-    st=__write_chunks(db, page, addr, chunk_data, chunk_size, 2);
+    st=__write_chunks(db, page, addr, 1, chunk_data, chunk_size, 2);
     if (st)
         return (st);
 
@@ -538,7 +545,7 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
         else
             blob_set_alloc_size(&new_hdr, blob_get_alloc_size(&old_hdr));
 
-        st=__write_chunks(db, page, blob_get_self(&new_hdr),
+        st=__write_chunks(db, page, blob_get_self(&new_hdr), 0,
                 chunk_data, chunk_size, 2);
         if (st)
             return (st);
@@ -547,10 +554,10 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
          * move remaining data to the freelist
          */
         if (blob_get_alloc_size(&old_hdr)!=blob_get_alloc_size(&new_hdr)) {
-            (void)freel_mark_free(db, 
+            (void)freel_mark_free(db,
                   blob_get_self(&new_hdr)+blob_get_alloc_size(&new_hdr), 
                   (ham_size_t)(blob_get_alloc_size(&old_hdr)-
-                    blob_get_alloc_size(&new_hdr)));
+                    blob_get_alloc_size(&new_hdr)), HAM_FALSE);
         }
 
         /*
@@ -566,7 +573,7 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
             return (st);
 
         (void)freel_mark_free(db, old_blobid, 
-                (ham_size_t)blob_get_alloc_size(&old_hdr));
+                (ham_size_t)blob_get_alloc_size(&old_hdr), HAM_FALSE);
     }
 
     return (0);
@@ -610,7 +617,7 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
      * move the blob to the freelist
      */
     (void)freel_mark_free(db, blobid, 
-            (ham_size_t)blob_get_alloc_size(&hdr));
+            (ham_size_t)blob_get_alloc_size(&hdr), HAM_FALSE);
 
     return (0);
 }
