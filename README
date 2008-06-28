@@ -1,5 +1,5 @@
 
-hamsterdb 1.0.3                                Sat May 24 20:06:51 CEST 2008
+hamsterdb 1.0.4                                 Sat Jun 28 17:41:46 CEST 2008
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -29,6 +29,8 @@ Currently, the following limitations apply:
  - When closing the Database or Environment (with ham_close or ham_env_close),
     and a Transaction is still open, then this Transaction will automatically
     be aborted.
+ - The C++ wrapper does not yet implement the Transaction class.
+ - The Transaction API (ham_txn_*) is not stable and subject to change.
 
 2. Changes
 
@@ -36,20 +38,22 @@ New Features
 * Logging/Recovery can be enabled with the flag HAM_ENABLE_LOGGING
 
 Bugfixes
+* When creating several Databases in an Environment, and recovery
+    was enabled, each Database created its own log object and the log
+    was corrupted
 * Minor grammar changes in the documentation (header file comments)
 * Unittests no longer fail if the library was compiled without support
     for compression, encryption or internal functions
 
 Other Changes
-* API function ham_get_flags() moved from ham/hamsterdb_int.h to
-    ham/hamsterdb.h
+- none
 
 To see a list of all changes, look in the file CHANGELOG.
 
 3. Roadmap
 
-- Next item on the TODO list: release the Perl or PHP wrapper
-- Then continue with Transaction support
+- Continue improving the Transaction support
+- Release the Perl or PHP wrapper
 
 4. Features
 

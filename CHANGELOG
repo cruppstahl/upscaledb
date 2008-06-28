@@ -1,3 +1,6 @@
+Jun 28, 2008 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.4
+
 Jun 27, 2008 - chris
 o Implemented the first of several milestones with Transaction support;
     please see the README for details about the limitations, some of them
