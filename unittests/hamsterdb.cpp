@@ -519,7 +519,13 @@ public:
 
     void closeTest(void)
     {
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_close(0, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_close(0, 0));
+
+        ham_db_t db;
+        memset(&db, 0, sizeof(db));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_close(db, HAM_TXN_AUTO_ABORT|HAM_TXN_AUTO_COMMIT));
     }
 
     void closeWithCursorsTest(void)

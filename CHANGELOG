@@ -1,3 +1,7 @@
+o Jul 18, 2008 - chris
+o ham_close now supports the flag HAM_TXN_AUTO_COMMIT
+o ham_env_close now supports the flag HAM_TXN_AUTO_COMMIT
+
 Jun 28, 2008 - chris ---------------------------------------------------
                       release of hamsterdb-1.0.4
 

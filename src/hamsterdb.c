@@ -196,7 +196,7 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
 
     /* for hamsterdb 1.0.4 - only support one transaction */
     if (db_get_txn(db)) {
-        ham_trace(("hamsterdb 1.0.4 supports only one concurrent transaction"));
+        ham_trace(("only one concurrent transaction is supported"));
         return (HAM_LIMITS_REACHED);
     }
 
@@ -1387,7 +1387,7 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
         ham_db_t *db=env_get_list(env);
         while (db) {
             ham_db_t *next=db_get_next(db);
-            st=ham_close(db, flags&HAM_AUTO_CLEANUP ? HAM_AUTO_CLEANUP : 0);
+            st=ham_close(db, flags);
             if (st)
                 return (st);
             db=next;
@@ -2939,6 +2939,10 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+    if ((flags&HAM_TXN_AUTO_ABORT) && (flags&HAM_TXN_AUTO_COMMIT)) {
+        ham_trace(("invalid combination of flags"));
+        return (HAM_INV_PARAMETER);
+    }
 
     if (db_get_env(db))
         __prepare_db(db);
@@ -2973,10 +2977,13 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         noenv=HAM_TRUE;
 
     /*
-     * auto-abort a pending transaction?
+     * auto-abort (or commit) a pending transaction?
      */
     if (noenv && db_get_txn(db)) {
-        st=ham_txn_abort(db_get_txn(db), 0);
+        if (flags&HAM_TXN_AUTO_COMMIT)
+            st=ham_txn_commit(db_get_txn(db), 0);
+        else
+            st=ham_txn_abort(db_get_txn(db), 0);
         if (st)
             return (st);
         db_set_txn(db, 0);

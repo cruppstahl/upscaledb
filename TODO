@@ -8,85 +8,39 @@ x a finished TODO item
 -----------------------------------------------------------------------------
 
 o new web page
-    x link-cloud: add link to forum
-    o update samples for C/C++ (if necessary)
-    o add documentation for Java
-    o add documentation for .NET (chm file)
-    o add samples for Java
-    o add samples for .NET
-    o add samples for Python
-    o add RSS/Atom feed
-    o add google sitemap
+    x update feature list/frontpage/teaser w/ transaction info
+    x update samples for C/C++ (if necessary)
+    x add samples for Java
+    x add samples for .NET
+    x add samples for Python
+    . add documentation for Java
+    . add documentation for .NET (chm file)
+    . add RSS/Atom feed
+    . add Google sitemap
 
-x new Python release
-    x update for logging/recovery
-    x upload to webpage, update freshmeat
+x ham_close: also support HAM_TXN_AUTO_COMMIT
+    x unittest
 
-x new Java release
-    x update for logging/recovery
-    x need win32/win64 binaries
-    x upload to webpage, update freshmeat
+x ham_env_close: also support HAM_TXN_AUTO_COMMIT
+    x test
 
-x new .NET release
-    x update for logging/recovery
-    x prepare package and documentation
-    x upload to webpage
+o enhance C++ wrapper for transactions
 
-x win32: test if prebuilt visual studio-library works in express edition, if 
-    it was built with the professional edition (and vice versa)
-    -> maybe have to change the build process, if it doesn't work
-    => seems to work
+o when checking extended parameters: make sure that max. 0xffff keys fit 
+    in a node (see hamsterdb forum)
+    o unittest
 
-o "pre-mature" support of ACID transactions with only *one* parallel
-    transaction
-    x make ham_txn_* public (incl. public ham_txn_t *-handle)
-        x change hasp_api.h and documentation
-        x change hamsterdb.c routines - except external transaction
-            handle (only if HAM_HAS_TRANSACTIONS)
-        x make sure all unittests and acceptance tests are still working
-    x ham_txn_begin: only allow one transaction in parallel, otherwise fail
-        x unittests
-    x new (non-persistent) flag HAM_ENABLE_TRANSACTIONS for 
-        x ham_create[_ex]
-        x ham_open[_ex]
-        x ham_env_create[_ex]
-        x ham_env_open[_ex]
-        x unittests that these flags are not persistent
-    x how does abort work if logging is disabled? in this case, we need
-        HAM_WRITE_THROUGH in case of commit, and delete the pages in case
-        of abort; or force logging? that's easier, but inefficient
-        x first release: restrict to one method (logfile) and 
-            automatically enable logging
-        x document this!
-    x add cursor to txn
-        x ham_cursor_clone: don't create new txn, use existing!
-        x document behaviour of ham_cursor_clone
-        x add txn support to all cursor functions
-        x don't allow txn to be closed if cursors are in this txn
-            (don't forget ham_cursor_clone!)
-            - a simple reference counter is enough
-            x implement
-            x unittests
-    x ham_close: default behaviour is HAM_TXN_AUTO_ABORT
-        x open txn is aborted when (last) database is closed
-        x test
-        x document
+o enhance tutorial with information about transactions
 
-    x tests with commit/abort, logging, recovery, auto-abort etc
+o tools/tests/test.sh: add to release-process
+    - tricky: currently fails because of invalid database versions, and
+        because the pagesize is different on cygwin
 
-    x nach einem abort/commit sollte das txn-handle invalid werden (crashen)
+. enhance java/python/.NET for transactions
 
-    x test with big blobs; are they rolled back correctly?
-        begin
-        insert(key, BIGBLOB)
-        abort
-        -> the allocated page must be moved to the freelist, otherwise it's 
-            lost
-            x test with direct I/O (big blob, ps/2)
-            x test with direct I/O (big blob, ps*2)
-            x test with normal inserts (small blob)
+. win64: need cppunit for hamsterdb-alien - or use bfc??
 
-o enhance acceptance tests - will need new test scripts
+. enhance acceptance tests - will need new test scripts
     TXN_BEGIN 1  (1 is the txn id)
     TXN_ABORT 1
     TXN_INSERT 1 ...
@@ -95,22 +49,6 @@ o enhance acceptance tests - will need new test scripts
 
 . move transactions to environment, not database -- or not? if it works, then
     maybe leave it as is
-
-. ham_close: also support HAM_TXN_AUTO_COMMIT
-    o test
-
-. ham_env_close: also support HAM_TXN_AUTO_COMMIT
-    o test
-
-. enhance C++ wrapper
-
-. enhance tutorial with information about transactions
-
-. win64: need cppunit for hamsterdb-alien
-
-. tools/tests/test.sh: add to release-process
-    - tricky: currently fails because of invalid database versions, and
-        because the pagesize is different on cygwin
 
 . release-process: enhance automated tests of win32/win64 dll and lib
 

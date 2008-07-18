@@ -175,6 +175,7 @@ class HighLevelTxnTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (cursorStillOpenTest);
     CPPUNIT_TEST      (clonedCursorStillOpenTest);
     CPPUNIT_TEST      (autoAbortDatabaseTest);
+    CPPUNIT_TEST      (autoCommitDatabaseTest);
     CPPUNIT_TEST      (autoAbortEnvironmentTest);
     CPPUNIT_TEST      (autoAbortEnvironment2Test);
     CPPUNIT_TEST      (environmentTest);
@@ -288,6 +289,28 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_open(m_db, ".test", HAM_ENABLE_TRANSACTIONS));
         CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                        ham_find(m_db, 0, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    }
+
+    void autoCommitDatabaseTest(void)
+    {
+        ham_txn_t *txn;
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_create(m_db, ".test", HAM_ENABLE_TRANSACTIONS, 0644));
+        CPPUNIT_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, txn, &key, &rec, 0));
+        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_TXN_AUTO_COMMIT));
+
+        CPPUNIT_ASSERT_EQUAL(0, 
+                ham_open(m_db, ".test", HAM_ENABLE_TRANSACTIONS));
+        CPPUNIT_ASSERT_EQUAL(0, 
                         ham_find(m_db, 0, &key, &rec, 0));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }

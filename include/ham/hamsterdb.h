@@ -751,11 +751,19 @@ ham_env_get_database_names(ham_env_t *env, ham_u16_t *names, ham_size_t *count);
  * If the flag is not specified, the application must close all Database 
  * handles with @a ham_close to prevent memory leaks.
  *
+ * This function also aborts all Transactions which were not yet committed,
+ * and therefore renders all Transaction handles invalid. If the flag
+ * @a HAM_TXN_AUTO_COMMIT is specified, all Transactions will be committed.
+ *
  * @param env A valid Environment handle
  * @param flags Optional flags for closing the handle. Possible flags are:
  *          <ul>
  *            <li>@a HAM_AUTO_CLEANUP. Calls @a ham_close with the flag 
  *                @a HAM_AUTO_CLEANUP on every open Database
+ *            <li>@a HAM_TXN_AUTO_COMMIT. Automatically commit all open 
+ *               Transactions
+ *            <li>@a HAM_TXN_AUTO_ABORT. Automatically abort all open 
+ *               Transactions; this is the default behaviour
  *          </ul>
  *
  * @return @a HAM_SUCCESS upon success
@@ -1462,12 +1470,17 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  * with @a ham_add_file_filter.
  *
  * This function also aborts all Transactions which were not yet committed,
- * and therefore renders all Transaction handles invalid.
+ * and therefore renders all Transaction handles invalid. If the flag
+ * @a HAM_TXN_AUTO_COMMIT is specified, all Transactions will be committed.
  *
  * @param db A valid Database handle
  * @param flags Optional flags for closing the Database. Possible values are:
  *      <ul>
  *       <li>@a HAM_AUTO_CLEANUP. Automatically closes all open Cursors
+ *       <li>@a HAM_TXN_AUTO_COMMIT. Automatically commit all open 
+ *          Transactions
+ *       <li>@a HAM_TXN_AUTO_ABORT. Automatically abort all open 
+ *          Transactions; this is the default behaviour
  *      </ul>
  *
  * @return @a HAM_SUCCESS upon success
@@ -1481,6 +1494,12 @@ ham_close(ham_db_t *db, ham_u32_t flags);
 
 /* (Internal) flag for @a ham_close, @a ham_env_close */
 #define HAM_DONT_CLEAR_LOG          2
+
+/** Automatically abort all open Transactions (the default) */
+#define HAM_TXN_AUTO_ABORT          4
+
+/** Automatically commit all open Transactions */
+#define HAM_TXN_AUTO_COMMIT         8
 
 /**
  * @}
