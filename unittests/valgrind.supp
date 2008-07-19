@@ -1,0 +1,71 @@
+{
+   supp1
+   Memcheck:Param
+   write(buf)
+   fun:write
+   fun:os_write
+   fun:ham_log_append_entry
+   fun:ham_log_append_prewrite
+   fun:_ZN7LogTest18appendPreWriteTestEv
+   fun:_ZN7CppUnit10TestCallerI7LogTestE7runTestEv
+   fun:_ZNK7CppUnit21TestCaseMethodFunctorclEv
+   fun:_ZN7CppUnit16DefaultProtector7protectERKNS_7FunctorERKNS_16ProtectorContextE
+   fun:_ZNK7CppUnit14ProtectorChain14ProtectFunctorclEv
+   fun:_ZN7CppUnit14ProtectorChain7protectERKNS_7FunctorERKNS_16ProtectorContextE
+   fun:_ZN7CppUnit10TestResult7protectERKNS_7FunctorEPNS_4TestERKSs
+   fun:_ZN7CppUnit8TestCase3runEPNS_10TestResultE
+}
+
+{
+   supp2
+   Memcheck:Param
+   write(buf)
+   fun:write
+   fun:os_write
+   fun:ham_log_append_entry
+   fun:ham_log_append_write
+   fun:_ZN7LogTest15appendWriteTestEv
+   fun:_ZN7CppUnit10TestCallerI7LogTestE7runTestEv
+   fun:_ZNK7CppUnit21TestCaseMethodFunctorclEv
+   fun:_ZN7CppUnit16DefaultProtector7protectERKNS_7FunctorERKNS_16ProtectorContextE
+   fun:_ZNK7CppUnit14ProtectorChain14ProtectFunctorclEv
+   fun:_ZN7CppUnit14ProtectorChain7protectERKNS_7FunctorERKNS_16ProtectorContextE
+   fun:_ZN7CppUnit10TestResult7protectERKNS_7FunctorEPNS_4TestERKSs
+   fun:_ZN7CppUnit8TestCase3runEPNS_10TestResultE
+}
+
+{
+   supp3
+   Memcheck:Cond
+   fun:longest_match
+   fun:deflate_slow
+   fun:deflate
+   fun:compress2
+   fun:__zlib_before_insert_cb
+   fun:__record_filters_before_insert
+   fun:ham_insert
+   fun:_ZN10FilterTest14zlibFilterTestEv
+   fun:_ZN7CppUnit10TestCallerI10FilterTestE7runTestEv
+   fun:_ZNK7CppUnit21TestCaseMethodFunctorclEv
+   fun:_ZN7CppUnit16DefaultProtector7protectERKNS_7FunctorERKNS_16ProtectorContextE
+   fun:_ZNK7CppUnit14ProtectorChain14ProtectFunctorclEv
+}
+
+{
+   supp4
+   Memcheck:Param
+   pwrite64(buf)
+   fun:pwrite
+   fun:os_pwrite
+   fun:__f_write
+   fun:__f_write_page
+   fun:page_flush
+   fun:db_write_page_and_delete
+   fun:my_purge_cache
+   fun:db_fetch_page
+   fun:__write_chunks
+   fun:blob_allocate
+   fun:key_insert_extended
+   fun:my_insert_nosplit
+}
+

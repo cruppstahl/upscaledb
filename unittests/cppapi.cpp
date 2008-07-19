@@ -58,6 +58,10 @@ class CppApiTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (envDestructorTest);
     CPPUNIT_TEST      (envGetDatabaseNamesTest);
     CPPUNIT_TEST      (getLicenseTest);
+    CPPUNIT_TEST      (beginAbortTest);
+    CPPUNIT_TEST      (beginCommitTest);
+    CPPUNIT_TEST      (beginCursorAbortTest);
+    CPPUNIT_TEST      (beginCursorCommitTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -410,6 +414,96 @@ public:
         ham::db::get_license(&licensee, &product);
         CPPUNIT_ASSERT(licensee!=0);
         CPPUNIT_ASSERT(product!=0);
+    }
+
+    void beginAbortTest(void)
+    {
+        ham::db db;
+        ham::key k;
+        ham::record r, out;
+        ham::txn txn;
+
+        k.set_data((void *)"12345");
+        k.set_size(6);
+        r.set_data((void *)"12345");
+        r.set_size(6);
+
+        db.create(".test", HAM_ENABLE_TRANSACTIONS);
+        txn=db.begin();
+        db.insert(&txn, &k, &r);
+        txn.abort();
+        try {
+            out=db.find(&k);
+        }
+        catch (ham::error &e) {
+            CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, e.get_errno());
+        }
+    }
+
+    void beginCommitTest(void)
+    {
+        ham::db db;
+        ham::key k;
+        ham::record r, out;
+        ham::txn txn;
+
+        k.set_data((void *)"12345");
+        k.set_size(6);
+        r.set_data((void *)"12345");
+        r.set_size(6);
+
+        db.create(".test", HAM_ENABLE_TRANSACTIONS);
+        txn=db.begin();
+        db.insert(&txn, &k, &r);
+        txn.commit();
+        out=db.find(&k);
+    }
+
+    void beginCursorAbortTest(void)
+    {
+        ham::db db;
+        ham::key k;
+        ham::record r, out;
+        ham::txn txn;
+
+        k.set_data((void *)"12345");
+        k.set_size(6);
+        r.set_data((void *)"12345");
+        r.set_size(6);
+
+        db.create(".test", HAM_ENABLE_TRANSACTIONS);
+        txn=db.begin();
+        ham::cursor c(&db, &txn);
+        c.insert(&k, &r);
+        c.close();
+        txn.abort();
+        try {
+            out=db.find(&k);
+        }
+        catch (ham::error &e) {
+            CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, e.get_errno());
+        }
+    }
+
+    void beginCursorCommitTest(void)
+    {
+        ham::db db;
+        ham::key k;
+        ham::record r, out;
+        ham::txn txn;
+
+        k.set_data((void *)"12345");
+        k.set_size(6);
+        r.set_data((void *)"12345");
+        r.set_size(6);
+
+        db.create(".test", HAM_ENABLE_TRANSACTIONS);
+        txn=db.begin();
+        ham::cursor c(&db, &txn);
+        c.insert(&k, &r);
+        c.close();
+        txn.commit();
+        out=db.find(&k);
     }
 
 };

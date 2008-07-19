@@ -11,7 +11,7 @@
  *
  * \file hamsterdb.hpp
  * \author Christoph Rupp, chris@crupp.de
- * \version 1.0.3
+ * \version 1.0.4
  *
  * This C++ wrapper class is a very tight wrapper around the C API. It does
  * not attempt to be STL compatible. 
@@ -38,6 +38,13 @@
  * The global hamsterdb namespace.
  */
 namespace ham {
+
+/*
+ * forward declarations
+ */
+class txn;
+class db;
+class env;
 
 /**
  * An error class.
@@ -192,6 +199,45 @@ protected:
     ham_record_t m_rec;
 };
 
+
+/**
+ * A Transaction class
+ *
+ * This class wraps structures of type ham_txn_t.
+ */
+class txn {
+public:
+    /** Constructor */
+    txn(ham_txn_t *t=0) : m_txn(t) {
+    }
+
+    /** Abort the Transaction */
+    void abort() {
+        ham_status_t st;
+        st=ham_txn_abort(m_txn, 0);
+        if (st)
+            throw error(st);
+    }
+
+    /** Commit the Transaction */
+    void commit() {
+        ham_status_t st;
+        st=ham_txn_commit(m_txn, 0);
+        if (st)
+            throw error(st);
+    }
+
+    /** Returns a pointer to the internal ham_txn_t structure. */
+    ham_txn_t *get_handle() {
+        return (m_txn);
+    }
+
+protected:
+    ham_txn_t *m_txn;
+    db *m_db;
+};
+
+
 /**
  * A Database class.
  *
@@ -272,6 +318,15 @@ public:
         return (ham_get_error(m_db));
     }
 
+    /** Begin a new Transaction */
+    txn begin() {
+        ham_txn_t *h;
+        ham_status_t st=ham_txn_begin(&h, get_handle(), 0);
+        if (st)
+            throw error(st);
+        return (txn(h));
+    }
+
     /** Sets the prefix comparison function. */
     void set_prefix_compare_func(ham_prefix_compare_func_t foo) {
         ham_status_t st=ham_set_prefix_compare_func(m_db, foo);
@@ -294,26 +349,47 @@ public:
     }
 
     /** Finds a record by looking up the key. */
-    record find(key *k, ham_u32_t flags=0) {
+    record find(txn *t, key *k, ham_u32_t flags=0) {
         record r;
-        ham_status_t st=ham_find(m_db, 0, k ? k->get_handle() : 0,
-                        r.get_handle(), flags);
+        ham_status_t st=ham_find(m_db, 
+                t ? t->get_handle() : 0, 
+                k ? k->get_handle() : 0,
+                r.get_handle(), flags);
         if (st)
             throw error(st);
         return (r);
     }
 
+    /** Finds a record by looking up the key. */
+    record find(key *k, ham_u32_t flags=0) {
+        return (find(0, k, flags));
+    }
+
     /** Inserts a key/record pair. */
-    void insert(key *k, record *r, ham_u32_t flags=0) {
-        ham_status_t st=ham_insert(m_db, 0, k ? k->get_handle() : 0, 
-                        r ? r->get_handle() : 0, flags);
+    void insert(txn *t, key *k, record *r, ham_u32_t flags=0) {
+        ham_status_t st=ham_insert(m_db, 
+                t ? t->get_handle() : 0, 
+                k ? k->get_handle() : 0, 
+                r ? r->get_handle() : 0, flags);
         if (st)
             throw error(st);
     }
 
+    /** Inserts a key/record pair. */
+    void insert(key *k, record *r, ham_u32_t flags=0) {
+        insert(0, k, r, flags);
+    }
+
     /** Erases a key/record pair. */
     void erase(key *k, ham_u32_t flags=0) {
-        ham_status_t st=ham_erase(m_db, 0, k ? k->get_handle() : 0, flags);
+        erase(0, k, flags);
+    }
+
+    /** Erases a key/record pair. */
+    void erase(txn *t, key *k, ham_u32_t flags=0) {
+        ham_status_t st=ham_erase(m_db, 
+                t ? t->get_handle() : 0, 
+                k ? k->get_handle() : 0, flags);
         if (st)
             throw error(st);
     }
@@ -354,6 +430,7 @@ private:
     ham_db_t *m_db;
 };
 
+
 /**
  * A Database Cursor.
  *
@@ -363,9 +440,15 @@ class cursor
 {
 public:
     /** Constructor */
-    cursor(db *db=0, ham_u32_t flags=0)
+    cursor(db *db=0, txn *t=0, ham_u32_t flags=0)
     :   m_cursor(0) {
-        create(db, flags);
+        create(db, t, flags);
+    }
+
+    /** Constructor */
+    cursor(txn *t, db *db=0, ham_u32_t flags=0)
+    :   m_cursor(0) {
+        create(db, t, flags);
     }
 
     /** Destructor - automatically closes the Cursor, if necessary. */
@@ -374,12 +457,13 @@ public:
     }
 
     /** Creates a new Cursor. */
-    void create(db *db, ham_u32_t flags=0) {
+    void create(db *db, txn *t=0, ham_u32_t flags=0) {
         if (m_cursor)
             close();
         if (db) {
-            ham_status_t st=ham_cursor_create(db->get_handle(), 0,
-                            flags, &m_cursor);
+            ham_status_t st=ham_cursor_create(db->get_handle(), 
+                    t ? t->get_handle() : 0, 
+                    flags, &m_cursor);
             if (st)
                 throw error(st);
         }

@@ -1,3 +1,7 @@
+o Jul 19, 2008 - chris
+o The C++ wrapper now supports Transactions (see ham::db::begin(),
+    ham::txn::abort(), ham::txn:commit())
+
 o Jul 18, 2008 - chris
 o ham_close now supports the flag HAM_TXN_AUTO_COMMIT
 o ham_env_close now supports the flag HAM_TXN_AUTO_COMMIT

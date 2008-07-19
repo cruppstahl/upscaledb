@@ -24,7 +24,7 @@ x ham_close: also support HAM_TXN_AUTO_COMMIT
 x ham_env_close: also support HAM_TXN_AUTO_COMMIT
     x test
 
-o enhance C++ wrapper for transactions
+x enhance C++ wrapper for transactions
 
 o when checking extended parameters: make sure that max. 0xffff keys fit 
     in a node (see hamsterdb forum)
@@ -36,9 +36,13 @@ o tools/tests/test.sh: add to release-process
     - tricky: currently fails because of invalid database versions, and
         because the pagesize is different on cygwin
 
-. enhance java/python/.NET for transactions
+o unittests: get rid of cppunit, move to bfc
+    o update configure.in
+    o update win32 project file
+    o update wince project file
+    o update hamsterdb-alien
 
-. win64: need cppunit for hamsterdb-alien - or use bfc??
+. enhance java/python/.NET for transactions
 
 . enhance acceptance tests - will need new test scripts
     TXN_BEGIN 1  (1 is the txn id)
