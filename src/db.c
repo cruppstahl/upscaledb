@@ -458,8 +458,10 @@ db_create_backend(ham_db_t *db, ham_u32_t flags)
 
     /* initialize the backend */
     st=btree_create((ham_btree_t *)be, db, flags);
-    if (st)
+    if (st) {
+        ham_mem_free(db, be);
         return (0);
+    }
 
     return (be);
 }

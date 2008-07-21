@@ -132,6 +132,15 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     ham_db_t *db=btree_get_db(be);
     ham_u8_t *indexdata=db_get_indexdata_at(db, db_get_indexdata_offset(db));
 
+    /* 
+     * prevent overflow - maxkeys only has 16 bit! 
+     */
+    maxkeys=my_calc_maxkeys(db_get_pagesize(db), keysize);
+    if (maxkeys>0xffff) {
+        ham_trace(("keysize/pagesize ration too high"));
+        return (db_set_error(db, HAM_INV_KEYSIZE));
+    }
+
     /*
      * allocate a new root page
      */
@@ -146,7 +155,6 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
      * calculate the maximum number of keys for this page, 
      * and make sure that this number is even
      */
-    maxkeys=my_calc_maxkeys(db_get_pagesize(db), keysize);
     btree_set_maxkeys(be, maxkeys);
     be_set_dirty(be, HAM_TRUE);
     be_set_keysize(be, keysize);

@@ -2089,6 +2089,11 @@ ham_create_ex(ham_db_t *db, const char *filename,
     }
 
     /* 
+     * store the backend in the database
+     */
+    db_set_backend(db, backend);
+
+    /* 
      * initialize the backend
      */
     st=backend->_fun_create(backend, keysize, pflags);
@@ -2097,11 +2102,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
         db_set_error(db, st);
         return (st);
     }
-
-    /* 
-     * store the backend in the database
-     */
-    db_set_backend(db, backend);
 
     /*
      * set the default key compare functions

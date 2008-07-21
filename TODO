@@ -26,9 +26,9 @@ x ham_env_close: also support HAM_TXN_AUTO_COMMIT
 
 x enhance C++ wrapper for transactions
 
-o when checking extended parameters: make sure that max. 0xffff keys fit 
+x when checking extended parameters: make sure that max. 0xffff keys fit 
     in a node (see hamsterdb forum)
-    o unittest
+    x unittest
 
 o enhance tutorial with information about transactions
 

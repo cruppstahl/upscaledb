@@ -59,6 +59,7 @@ class HamsterdbTest : public CppUnit::TestFixture
     CPPUNIT_TEST      (invVersionTest);
     CPPUNIT_TEST      (createTest);
     CPPUNIT_TEST      (createPagesizeTest);
+    CPPUNIT_TEST      (createMaxkeysTooHighTest);
     CPPUNIT_TEST      (createCloseCreateTest);
     CPPUNIT_TEST      (createPagesizeReopenTest);
     CPPUNIT_TEST      (readOnlyTest);
@@ -259,6 +260,22 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, 
                 ham_create_ex(db, ".test", 0, 0644, &ps[0]));
         CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        ham_delete(db);
+    }
+
+    void createMaxkeysTooHighTest(void)
+    {
+        ham_db_t *db;
+
+        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+
+        ham_parameter_t ps[]={{HAM_PARAM_PAGESIZE, 1024*1024*128}, 
+                              {HAM_PARAM_KEYSIZE, 16}, 
+                              {0, 0}};
+
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
+                ham_create_ex(db, ".test", 0, 0644, &ps[0]));
 
         ham_delete(db);
     }
