@@ -1,6 +1,6 @@
 environment
     pagesize:                   16384
-    version:                    0.4.8.0
+    version:                    1.0.4.0
     serialno:                   0
     max databases:              16
 
