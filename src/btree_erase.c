@@ -403,7 +403,7 @@ my_rebalance(ham_page_t *page, ham_offset_t left, ham_offset_t right,
      * too empty, we have to merge them
      */
     if ((!leftpage || fewleft) && (!rightpage || fewright)) {
-        if (lanchor!=page_get_self(parent)) {
+        if (parent && lanchor!=page_get_self(parent)) {
             return (my_merge_pages(page, rightpage, ranchor, scratchpad));
         }
         else {
@@ -415,8 +415,8 @@ my_rebalance(ham_page_t *page, ham_offset_t left, ham_offset_t right,
      * otherwise choose the better of a merge or a shift
      */
     if (leftpage && fewleft && rightpage && !fewright) {
-        if (!(ranchor==page_get_self(parent)) && 
-                (page_get_self(page)==page_get_self(scratchpad->mergepage))) {
+        if (parent && (!(ranchor==page_get_self(parent)) && 
+                (page_get_self(page)==page_get_self(scratchpad->mergepage)))) {
             return (my_merge_pages(leftpage, page, lanchor, scratchpad));
         }
         else {
@@ -428,8 +428,8 @@ my_rebalance(ham_page_t *page, ham_offset_t left, ham_offset_t right,
      * ... still choose the better of a merge or a shift...
      */
     if (leftpage && !fewleft && rightpage && fewright) {
-        if (!(lanchor==page_get_self(parent)) &&
-                (page_get_self(page)==page_get_self(scratchpad->mergepage))) {
+        if (parent && (!(lanchor==page_get_self(parent)) &&
+                (page_get_self(page)==page_get_self(scratchpad->mergepage)))) {
             return (my_merge_pages(page, rightpage, ranchor, scratchpad));
         }
         else {
@@ -452,7 +452,7 @@ my_rebalance(ham_page_t *page, ham_offset_t left, ham_offset_t right,
     /*
      * choose the shift with more local effect
      */
-    if (lanchor==page_get_self(parent)) {
+    if (parent && lanchor==page_get_self(parent)) {
         return (my_shift_pages(leftpage, page, lanchor, scratchpad));
     }
     else {
