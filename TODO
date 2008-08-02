@@ -27,7 +27,7 @@ x when checking extended parameters: make sure that max. 0xffff keys fit
 
 x linux: use O_NOATIME flag (see http://kerneltrap.org/node/14148)
 
-o tools/tests/test.sh: add to release-process
+x tools/tests/test.sh: add to release-process
     - tricky: currently fails because of invalid database versions, and
         because the pagesize is different on cygwin
 
