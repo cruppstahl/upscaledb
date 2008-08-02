@@ -273,6 +273,9 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 {
     ham_status_t st;
     int osflags=O_CREAT|O_RDWR|O_TRUNC;
+#if HAVE_O_NOATIME
+    flags|=O_NOATIME;
+#endif
     (void)flags;
 
     *fd=open(filename, osflags, mode);
@@ -316,6 +319,9 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
         osflags|=O_RDONLY;
     else
         osflags|=O_RDWR;
+#if HAVE_O_NOATIME
+    flags|=O_NOATIME;
+#endif
 
     *fd=open(filename, osflags);
     if (*fd<0) {

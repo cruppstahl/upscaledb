@@ -144,6 +144,24 @@ if test $ac_cv_largefile = yes; then
 fi
 
 #
+# Check for O_NOATIME
+#
+AC_CACHE_CHECK(for support of the O_NOATIME flag,ac_cv_noatime,
+    [AC_TRY_RUN([
+#define _GNU_SOURCE   1 /* for O_NOATIME */
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <fcntl.h>
+int main(void) {
+    int i=(int)O_NOATIME;
+    return 0;
+}],ac_cv_noatime=yes,ac_cv_noatime=no,ac_cv_noatime=no)])
+if test $ac_cv_noatime = yes; then
+    AC_DEFINE(HAVE_O_NOATIME,1,[flag O_NOATIME is supported])
+fi
+
+#
 # Solaris: add a flag
 #
 case $host in 

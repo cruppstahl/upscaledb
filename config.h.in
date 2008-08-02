@@ -30,6 +30,9 @@
 /* flag O_LARGEFILE is supported */
 #undef HAVE_O_LARGEFILE
 
+/* flag O_NOATIME is supported */
+#undef HAVE_O_NOATIME
+
 /* Define to 1 if you have the `pread' function. */
 #undef HAVE_PREAD
 

@@ -25,20 +25,20 @@ x when checking extended parameters: make sure that max. 0xffff keys fit
     in a node (see hamsterdb forum)
     x unittest
 
-o new flag HAM_CACHE_UNLIMITED - do never purge the cache. should bring
-    the performance of in-memory to a file-based database.
-    o does not work with HAM_CACHE_STRICT or a cache size
-
-o linux: use NO_ATIME flag (see email!)
-
-o enhance tutorial with information about transactions
-    o new CI!
+x linux: use O_NOATIME flag (see http://kerneltrap.org/node/14148)
 
 o tools/tests/test.sh: add to release-process
     - tricky: currently fails because of invalid database versions, and
         because the pagesize is different on cygwin
 
-o unittests: get rid of cppunit, move to bfc
+. enhance tutorial with information about transactions
+    o new CI!
+
+. new flag HAM_CACHE_UNLIMITED - do never purge the cache. should bring
+    the performance of in-memory to a file-based database.
+    o does not work with HAM_CACHE_STRICT or a cache size
+
+. unittests: get rid of cppunit, move to bfc
     o update configure.in
     o update win32 project file
     o update wince project file

@@ -1,16 +1,20 @@
 
-o Jul 23, 2008 - chris
+Aug 02, 2008 - chris
+o If available, the flag O_NOATIME is now specified when opening or creating 
+    files
+
+Jul 23, 2008 - chris
 o Fixed potential NULL pointer access and a bug in ham_dump.c 
     (thanks, Zhao Xinjian)
 
-o Jul 21, 2008 - chris
+Jul 21, 2008 - chris
 o Fixed potential buffer overflow (thanks, Tielei Wang)
 
-o Jul 19, 2008 - chris
+Jul 19, 2008 - chris
 o The C++ wrapper now supports Transactions (see ham::db::begin(),
     ham::txn::abort(), ham::txn:commit())
 
-o Jul 18, 2008 - chris
+Jul 18, 2008 - chris
 o ham_close now supports the flag HAM_TXN_AUTO_COMMIT
 o ham_env_close now supports the flag HAM_TXN_AUTO_COMMIT
 
