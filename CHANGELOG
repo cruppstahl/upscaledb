@@ -1,3 +1,8 @@
+
+o Jul 23, 2008 - chris
+o Fixed potential NULL pointer access and a bug in ham_dump.c 
+    (thanks, Zhao Xinjian)
+
 o Jul 21, 2008 - chris
 o Fixed potential buffer overflow (thanks, Tielei Wang)
 

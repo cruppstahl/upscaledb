@@ -7,16 +7,11 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-o new web page
-    x update feature list/frontpage/teaser w/ transaction info
-    x update samples for C/C++ (if necessary)
-    x add samples for Java
-    x add samples for .NET
-    x add samples for Python
-    . add documentation for Java
-    . add documentation for .NET (chm file)
+o hamsterdb.com web page
     . add RSS/Atom feed
     . add Google sitemap
+    . add documentation for Java
+    . add documentation for .NET (chm file)
 
 x ham_close: also support HAM_TXN_AUTO_COMMIT
     x unittest
@@ -30,7 +25,14 @@ x when checking extended parameters: make sure that max. 0xffff keys fit
     in a node (see hamsterdb forum)
     x unittest
 
+o new flag HAM_CACHE_UNLIMITED - do never purge the cache. should bring
+    the performance of in-memory to a file-based database.
+    o does not work with HAM_CACHE_STRICT or a cache size
+
+o linux: use NO_ATIME flag (see email!)
+
 o enhance tutorial with information about transactions
+    o new CI!
 
 o tools/tests/test.sh: add to release-process
     - tricky: currently fails because of invalid database versions, and
@@ -41,6 +43,8 @@ o unittests: get rid of cppunit, move to bfc
     o update win32 project file
     o update wince project file
     o update hamsterdb-alien
+    o finally run tests in win64
+    o finally run tests in wince
 
 . enhance java/python/.NET for transactions
 

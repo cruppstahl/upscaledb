@@ -97,7 +97,10 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
         switch (key_fmt) {
         case FMT_STRING:
             if (((char *)key->data)[key->size]!=0) {
-                zterm=malloc(key->size+1);
+                if (!(zterm=malloc(key->size+1))) {
+                    printf("out of memory\n");
+                    exit(-1);
+                }
                 memcpy(zterm, key->data, key->size);
                 zterm[key->size]=0;
             }
@@ -156,9 +159,12 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
     else {
         switch (rec_fmt) {
         case FMT_STRING:
-            if (((char *)key->data)[key->size]!=0) {
-                zterm=malloc(key->size+1);
-                memcpy(zterm, key->data, key->size);
+            if (((char *)rec->data)[rec->size]!=0) {
+                if (!(zterm=malloc(rec->size+1))) {
+                    printf("out of memory\n");
+                    exit(-1);
+                }
+                memcpy(zterm, rec->data, rec->size);
                 zterm[key->size]=0;
             }
             if (rec->size>(unsigned)max_recsize)
@@ -166,7 +172,7 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
             printf("%s", zterm ? zterm : (const char *)rec->data);
             break;
         case FMT_NUMERIC:
-            switch (key->size) {
+            switch (rec->size) {
             case 1:
                 printf("%c", *(unsigned char *)rec->data);
                 ok=1;
@@ -192,7 +198,7 @@ dump_item(ham_key_t *key, ham_record_t *rec, int key_fmt, int max_keysize,
             break;
         case FMT_BINARY:
             if (rec->size<(unsigned)max_recsize)
-                max_recsize=key->size;
+                max_recsize=rec->size;
             for (i=0; i<max_recsize; i++)
                 printf("%02x ", ((unsigned char *)rec->data)[i]);
             break;
