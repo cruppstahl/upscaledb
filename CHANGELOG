@@ -1,4 +1,8 @@
 
+Aug 03, 2008 - chris
+o On Linux for ARM: disable pread/pwrite; pwrite seems to be buggy, 
+    at least in the maemo.org 4.1 Environment for ATMEL CPU's.
+
 Aug 02, 2008 - chris
 o If available, the flag O_NOATIME is now specified when opening or creating 
     files
