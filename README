@@ -38,6 +38,7 @@ To see a list of all changes, look in the file CHANGELOG.
 
 3. Roadmap
 
+- Add Transaction API to Python, Java and .NET wrapper
 - Release the Perl or PHP wrapper
 
 4. Features
