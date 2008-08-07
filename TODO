@@ -8,6 +8,7 @@ x a finished TODO item
 -----------------------------------------------------------------------------
 
 o hamsterdb.com web page
+    . use same font as tutorial?
     . add RSS/Atom feed
     . add Google sitemap
     . add documentation for Java
@@ -32,7 +33,7 @@ x tools/tests/test.sh: add to release-process
         because the pagesize is different on cygwin
 
 . enhance tutorial with information about transactions
-    o new CI!
+    x new CI!
 
 . new flag HAM_CACHE_UNLIMITED - do never purge the cache. should bring
     the performance of in-memory to a file-based database.
