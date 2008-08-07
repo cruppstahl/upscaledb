@@ -1,5 +1,5 @@
 
-hamsterdb 1.0.4                                 Sat Jun 28 17:41:46 CEST 2008
+hamsterdb 1.0.5                                 Thu Aug  7 19:22:39 CEST 2008
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -12,47 +12,32 @@ hamsterdb is a database engine written in ANSI C. It supports a B+Tree index
 structure, uses memory mapped I/O (if available), supports cursors and
 variable length keys and can create in-memory databases.
 
-This release implements the first of several steps towards ACID transactions.
-
-Currently, the following limitations apply:
-
- - There can only be one Transaction at a time. If one Transaction was 
-    created, and ham_txn_begin is called a second time, the function will
-    fail with HAM_LIMITS_REACHED
- - Since the function ham_env_erase_db internally creates a Transaction,
-    the previous rule also applies here and ham_env_erase_db can also
-    fail with HAM_LIMITS_REACHED
- - Currently, when a Transaction is aborted, the log file is used to 
-    undo all changes. Therefore logging is automatically enabled when
-    transactions are used (in other words: HAM_ENABLE_TRANSACTIONS
-    currently implies HAM_ENABLE_RECOVERY).
- - When closing the Database or Environment (with ham_close or ham_env_close),
-    and a Transaction is still open, then this Transaction will automatically
-    be aborted.
- - The C++ wrapper does not yet implement the Transaction class.
- - The Transaction API (ham_txn_*) is not stable and subject to change.
+This release fixes several minor issues found by static code analysis tools. A
+bug in the command line tool ham_dump was fixed. hamsterdb was ported to the
+maemo.org SDK for ATMEL-based Nokia N810 cell phones. The C++ wrapper 
+now supports the Transaction API. On Linux, the flag O_NOATIME is specified 
+when opening or creating files. When closing the Environment or Database, 
+a pending Transaction can now be auto-committed (HAM_AUTO_COMMIT).
 
 2. Changes
 
 New Features
-* Logging/Recovery can be enabled with the flag HAM_ENABLE_LOGGING
+* None
 
 Bugfixes
-* When creating several Databases in an Environment, and recovery
-    was enabled, each Database created its own log object and the log
-    was corrupted
-* Minor grammar changes in the documentation (header file comments)
-* Unittests no longer fail if the library was compiled without support
-    for compression, encryption or internal functions
+* Several potential issues found with static code analysis were fixed
+* A copy-and-paste bug in ham_dump was fixed
 
 Other Changes
-- none
+* hamsterdb now runs on maemo.org SDK for ATMEL-based Nokia cell phones
+* On Linux the flag O_NOATIME is specified
+* Pending Transactions can be auto-committed
+* The C++ API now supports Transactions
 
 To see a list of all changes, look in the file CHANGELOG.
 
 3. Roadmap
 
-- Continue improving the Transaction support
 - Release the Perl or PHP wrapper
 
 4. Features
@@ -62,6 +47,8 @@ To see a list of all changes, look in the file CHANGELOG.
 - Supports multiple databases in one file
 - Supports record number databases ("auto-increment")
 - Supports duplicate keys
+- Support for logging and recovery
+- Limited support for Transactions
 - Very fast database cursors 
 - Configurable page size, cache size and index key size
 - Portable ANSI-C implementation
@@ -70,7 +57,6 @@ To see a list of all changes, look in the file CHANGELOG.
 - Endian-independent file format
 - Uses memory mapped I/O for fast disk access (but falls back to read/write if
     mmap is not available)
-- Support for logging and recovery
 - Uses 64bit file pointers and supports huge files (>2 GB)
 - Easy to use and well-documented
 - Supports rudimentary live-reorganization by automatically
