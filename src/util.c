@@ -245,11 +245,12 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
      * recno databases: recno is stored in db-endian!
      */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        ham_u64_t recno;
         ham_assert(dest->data!=0, ("this should never happen."));
+        ham_assert(dest->size==sizeof(ham_u64_t), (""));
         if (dest->data==0)
             return (HAM_INTERNAL_ERROR);
-        ham_u64_t recno=*(ham_u64_t *)dest->data;
-        ham_assert(dest->size==sizeof(ham_u64_t), (""));
+        recno=*(ham_u64_t *)dest->data;
         recno=ham_db2h64(recno);
         memcpy(dest->data, &recno, sizeof(ham_u64_t));
     }
