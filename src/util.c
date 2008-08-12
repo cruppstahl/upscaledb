@@ -248,7 +248,7 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
         ham_u64_t recno;
         ham_assert(dest->data!=0, ("this should never happen."));
         ham_assert(dest->size==sizeof(ham_u64_t), (""));
-        if (dest->data==0 || dest->size!=sizeof(ham-u64_t))
+        if (dest->data==0 || dest->size!=sizeof(ham_u64_t))
             return (HAM_INTERNAL_ERROR);
         recno=*(ham_u64_t *)dest->data;
         recno=ham_db2h64(recno);
