@@ -1,5 +1,5 @@
 
-hamsterdb Win32 build environment              Mon Oct 08 21:53:29 UTC 2007
+hamsterdb Win32 build environment              Wed Aug 13 15:54:54 WEST 2008
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 1. Overview
@@ -24,7 +24,17 @@ dependency for cppunit.
 To download Microsoft Visual C++ 2005 Express Edition for free, go to
 http://msdn.microsoft.com/vstudio/express/visualc/default.aspx.
 
-2. Contact
+2. Precompiled Libraries
+
+Precompiled libraries are usually available from http://hamsterdb.com/download.
+
+The precompiled libraries for x86 and x86_64 are built with Microsoft
+Visual Studio 2008. In order to use the executables (i.e. tools), you have 
+to install the Microsoft Visual C++ 2008 Redistributable Package (x86) 
+from here: 
+http://www.microsoft.com/downloads/details.aspx?FamilyID=9B2DA534-3E03-4391-8A4D-074B9F2BC1BF.
+
+3. Contact
 
 Author of hamsterdb is 
     Christoph Rupp
