@@ -14,32 +14,14 @@ o hamsterdb.com web page
     . add documentation for Java
     . add documentation for .NET (chm file)
 
-x ham_close: also support HAM_TXN_AUTO_COMMIT
-    x unittest
-
-x ham_env_close: also support HAM_TXN_AUTO_COMMIT
-    x test
-
-x enhance C++ wrapper for transactions
-
-x when checking extended parameters: make sure that max. 0xffff keys fit 
-    in a node (see hamsterdb forum)
-    x unittest
-
-x linux: use O_NOATIME flag (see http://kerneltrap.org/node/14148)
-
-x tools/tests/test.sh: add to release-process
-    - tricky: currently fails because of invalid database versions, and
-        because the pagesize is different on cygwin
-
-. enhance tutorial with information about transactions
+o enhance tutorial with information about transactions
     x new CI!
 
-. new flag HAM_CACHE_UNLIMITED - do never purge the cache. should bring
+o new flag HAM_CACHE_UNLIMITED - do never purge the cache. should bring
     the performance of in-memory to a file-based database.
     o does not work with HAM_CACHE_STRICT or a cache size
 
-. unittests: get rid of cppunit, move to bfc
+o unittests: get rid of cppunit, move to bfc
     o update configure.in
     o update win32 project file
     o update wince project file
@@ -56,14 +38,11 @@ x tools/tests/test.sh: add to release-process
     TXN_ERASE 1 ...
     TXN_COMMIT 1
 
-. move transactions to environment, not database -- or not? if it works, then
-    maybe leave it as is
-
 . release-process: enhance automated tests of win32/win64 dll and lib
 
 . don't make ham_env_erase_db fail if a txn is in progress
 
-. allow more than one txn in parallel
+. allow more than one txn in parallel (??)
 
 -----------------------------------------------------------------------------
 
