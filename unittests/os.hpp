@@ -16,6 +16,7 @@
 #   include <windows.h>
 #else
 #   include <unistd.h>
+#   include <stdlib.h>
 #endif
 
 #include <ham/types.h>

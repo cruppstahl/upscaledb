@@ -10,6 +10,7 @@
  */
 
 #include <stdexcept>
+#include <cstring>
 #include <vector>
 #include <errno.h>
 #include <cppunit/extensions/HelperMacros.h>

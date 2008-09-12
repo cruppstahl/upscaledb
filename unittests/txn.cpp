@@ -10,6 +10,8 @@
  */
 
 #include <stdexcept>
+#include <cstdlib>
+#include <cstring>
 #include <vector>
 #include <cppunit/extensions/HelperMacros.h>
 #include <ham/hamsterdb.h>

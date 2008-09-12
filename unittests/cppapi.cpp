@@ -97,6 +97,12 @@ public:
         CPPUNIT_ASSERT_EQUAL((ham_size_t)4, k3.get_size());
         CPPUNIT_ASSERT_EQUAL((ham_u32_t)HAM_KEY_USER_ALLOC, k3.get_flags());
 
+        int i=3;
+        ham::key k4;
+        k4.set<int>(i);
+        CPPUNIT_ASSERT_EQUAL((void *)&i, k4.get_data());
+        CPPUNIT_ASSERT_EQUAL(sizeof(int), (size_t)k4.get_size());
+
         k1.set_data(q);
         k1.set_size(2);
         k1.set_flags(0);

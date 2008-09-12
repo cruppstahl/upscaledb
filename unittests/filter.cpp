@@ -10,6 +10,7 @@
  */
 
 #include <stdexcept>
+#include <cstring>
 #include <cppunit/extensions/HelperMacros.h>
 #include <ham/hamsterdb_int.h>
 #include "memtracker.h"
