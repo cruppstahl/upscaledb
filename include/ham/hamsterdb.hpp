@@ -116,6 +116,13 @@ public:
         m_key.size=size;
     }
 
+    /** Template assignment */
+    template <class T>
+    void set(T &t) {
+        set_data(&t);
+        set_size(sizeof(t));
+    }
+
     /** Returns the flags of the key. */
     ham_u32_t get_flags() const {
         return (m_key.flags);
