@@ -42,10 +42,6 @@ o unittests: get rid of cppunit, move to bfc
 
 . release-process: enhance automated tests of win32/win64 dll and lib
 
-. don't make ham_env_erase_db fail if a txn is in progress
-
-. allow more than one txn in parallel (??)
-
 -----------------------------------------------------------------------------
 
 . Perl wrapper
