@@ -42,7 +42,11 @@
 #  include "../3rdparty/aes/aes.h"
 #endif
 #ifndef HAM_DISABLE_COMPRESSION
-#  include "../3rdparty/zlib/zlib.h"
+#  ifdef HAM_USE_SYSTEM_ZLIB
+#    include <zlib.h>
+#  else
+#    include "../3rdparty/zlib/zlib.h"
+#  endif
 #endif
 
 /* private parameter list entry for ham_create_ex */

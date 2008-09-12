@@ -15,6 +15,7 @@ AM_INIT_AUTOMAKE(hamsterdb, 1.0.5)
 AM_CONFIG_HEADER(config.h)
 
 AC_PROG_CC
+AC_PROG_CXX
 AC_PROG_RANLIB
 AC_LIBTOOL_WIN32_DLL
 AC_PROG_LIBTOOL
@@ -105,6 +106,18 @@ if test "$enable_compression" = "no"; then
     settings="$settings (no compression)"
 fi
 AM_CONDITIONAL(ENABLE_COMPRESSION, test "x$enable_compression" != "xno")
+
+#
+# Use system zlib
+#
+AC_ARG_ENABLE(system-zlib,
+    AC_HELP_STRING([--use-system-zlib], 
+                   [Use an already installed zlib]))
+if test "$system_zlib" = "yes"; then
+    CFLAGS="${CFLAGS} -DHAM_USE_SYSTEM_ZLIB"
+    settings="$settings (system-zlib)"
+fi
+AM_CONDITIONAL(SYSTEM_ZLIB, test "x$system_zlib" == "xyes")
 
 #
 # Check for little endian/big endian

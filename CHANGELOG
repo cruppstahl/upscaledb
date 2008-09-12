@@ -1,3 +1,9 @@
+Sep 11, 2008 - chris
+o unittests now compile with gcc 4.3.x and glibc 2.8 (thanks, Tiziano Müller)
+o C++ api now has template function for class key: key.set<T>(T &t)
+    (thanks, Tiziano Müller)
+o added macro AC_PROG_CXX to ./configure (thanks, Tiziano Müller)
+
 Aug 07, 2008 - chris ---------------------------------------------------
                       release of hamsterdb-1.0.5
 

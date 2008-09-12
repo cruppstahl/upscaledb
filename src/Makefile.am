@@ -12,5 +12,9 @@ libhamsterdb_la_LDFLAGS += $(top_builddir)/3rdparty/aes/libaes.la
 endif
 
 if ENABLE_COMPRESSION
+if SYSTEM_ZLIB
+libhamsterdb_la_LDFLAGS += -lz
+else
 libhamsterdb_la_LDFLAGS += $(top_builddir)/3rdparty/zlib/libzlib.la
+endif
 endif
