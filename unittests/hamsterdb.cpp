@@ -232,11 +232,11 @@ public:
                 ham_create(db, ".test.db", 
                     HAM_CACHE_UNLIMITED|HAM_CACHE_STRICT, 0644));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                ham_create_ex(db, ".test.db", 0, HAM_CACHE_STRICT, &cs[0]));
+                ham_create_ex(db, ".test.db", HAM_CACHE_UNLIMITED, 0, &cs[0]));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_open(db, ".test.db", HAM_CACHE_UNLIMITED|HAM_CACHE_STRICT));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                ham_open_ex(db, ".test.db", HAM_CACHE_STRICT, &cs[0]));
+                ham_open_ex(db, ".test.db", HAM_CACHE_UNLIMITED, &cs[0]));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create_ex(db, 0, HAM_IN_MEMORY_DB, 0, &cs[0]));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
