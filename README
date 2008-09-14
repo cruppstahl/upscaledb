@@ -1,5 +1,5 @@
 
-hamsterdb 1.0.5                                 Thu Aug  7 19:22:39 CEST 2008
+hamsterdb 1.0.6                                 Sun Sep 14 20:05:21 CEST 2008
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -9,30 +9,29 @@ Contents:
 1. About
 
 hamsterdb is a database engine written in ANSI C. It supports a B+Tree index
-structure, uses memory mapped I/O (if available), supports cursors and
-variable length keys and can create in-memory databases.
+structure, uses memory mapped I/O (if available), supports fast Cursors and
+variable length keys and can create In-Memory Databases.
 
-This release fixes several minor issues found by static code analysis tools. A
-bug in the command line tool ham_dump was fixed. hamsterdb was ported to the
-maemo.org SDK for ATMEL-based Nokia N810 cell phones. The C++ wrapper 
-now supports the Transaction API. On Linux, the flag O_NOATIME is specified 
-when opening or creating files. When closing the Environment or Database, 
-a pending Transaction can now be auto-committed (HAM_AUTO_COMMIT).
+This release adds a new flag HAM_CACHE_UNLIMITED which uses unlimited
+cache, and is therefore nearly as fast as a pure In-Memory Database. 
+
+Also, the unittests now compile with gcc 4.3.x and glibc 2.8. The C++ API
+has a new function to assign a key with a template parameter. ./configure
+has a new option --enable-system-zlib to link against -lz instead of the
+zlib version which is provided with hamsterdb. Finaly, the tutorial has a
+a new chapter about Transactions.
 
 2. Changes
 
 New Features
-* None
+* The flag HAM_CACHE_UNLIMITED uses unlimited cache
 
 Bugfixes
-* Several potential issues found with static code analysis were fixed
-* A copy-and-paste bug in ham_dump was fixed
+* unittests compile with gcc 4.3.x and glibc 2.8
 
 Other Changes
-* hamsterdb now runs on maemo.org SDK for ATMEL-based Nokia cell phones
-* On Linux the flag O_NOATIME is specified
-* Pending Transactions can be auto-committed
-* The C++ API now supports Transactions
+* new ./configure flag --enable-system-zlib
+* the template function for C++ API to set keys
 
 To see a list of all changes, look in the file CHANGELOG.
 
