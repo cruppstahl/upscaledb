@@ -470,6 +470,17 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
     }
 
     /*
+     * don't allow cache limits with unlimited cache
+     */
+    if ((*flags)&HAM_CACHE_UNLIMITED) {
+        if (cachesize || ((*flags)&HAM_CACHE_STRICT)) {
+            ham_trace(("combination of HAM_CACHE_UNLIMITED and cachesize != 0 "
+                        "or HAM_CACHE_STRICT not allowed"));
+            return (HAM_INV_PARAMETER);
+        }
+    }
+
+    /*
      * in-memory-db? use a default pagesize of 16kb
      */
     if ((*flags)&HAM_IN_MEMORY_DB) {
@@ -928,6 +939,15 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
                 ham_trace(("unknown parameter"));
                 return (HAM_INV_PARAMETER);
             }
+        }
+    }
+
+    /* don't allow cache limits with unlimited cache */
+    if (flags&HAM_CACHE_UNLIMITED) {
+        if (cachesize || (flags&HAM_CACHE_STRICT)) {
+            ham_trace(("combination of HAM_CACHE_UNLIMITED and cachesize != 0 "
+                        "or HAM_CACHE_STRICT not allowed"));
+            return (HAM_INV_PARAMETER);
         }
     }
 
@@ -1581,6 +1601,15 @@ ham_open_ex(ham_db_t *db, const char *filename,
         }
     }
 
+    /* don't allow cache limits with unlimited cache */
+    if (flags&HAM_CACHE_UNLIMITED) {
+        if (cachesize || (flags&HAM_CACHE_STRICT)) {
+            ham_trace(("combination of HAM_CACHE_UNLIMITED and cachesize != 0 "
+                        "or HAM_CACHE_STRICT not allowed"));
+            return (HAM_INV_PARAMETER);
+        }
+    }
+
     if (!db_get_env(db) && !filename) {
         ham_trace(("parameter 'filename' must not be NULL"));
         return (HAM_INV_PARAMETER);
@@ -1822,6 +1851,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
             ("invalid persistent database flags 0x%x", be_get_flags(backend)));
     ham_assert(!(be_get_flags(backend)&HAM_CACHE_STRICT), 
             ("invalid persistent database flags 0x%x", be_get_flags(backend)));
+    ham_assert(!(be_get_flags(backend)&HAM_CACHE_UNLIMITED), 
+            ("invalid persistent database flags 0x%x", be_get_flags(backend)));
     ham_assert(!(be_get_flags(backend)&HAM_DISABLE_MMAP), 
             ("invalid persistent database flags 0x%x", be_get_flags(backend)));
     ham_assert(!(be_get_flags(backend)&HAM_WRITE_THROUGH), 
@@ -1973,6 +2004,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     pflags=flags;
     pflags&=~HAM_DISABLE_VAR_KEYLEN;
     pflags&=~HAM_CACHE_STRICT;
+    pflags&=~HAM_CACHE_UNLIMITED;
     pflags&=~HAM_DISABLE_MMAP;
     pflags&=~HAM_WRITE_THROUGH;
     pflags&=~HAM_READ_ONLY;

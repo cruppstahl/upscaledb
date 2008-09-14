@@ -1,3 +1,6 @@
+Sep 14, 2008 - chris
+o a new flag HAM_CACHE_UNLIMITED uses unlimited cache
+
 Sep 12, 2008 - chris
 o ./configure has a new option --enable-system-zlib which links against the 
     system-wide installed zlib (-lz)

@@ -21,6 +21,8 @@ o new flag HAM_CACHE_UNLIMITED - do never purge the cache. should bring
     the performance of in-memory to a file-based database.
     o does not work with HAM_CACHE_STRICT or a cache size
 
+---- release 1.0.6 ----------------
+
 o device: cache file size; update cached value in device->truncate
 
 o unittests: get rid of cppunit, move to bfc

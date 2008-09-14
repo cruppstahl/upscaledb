@@ -403,6 +403,9 @@ ham_env_create(ham_env_t *env, const char *filename,
  *            If the flag is not set, the cache is allowed to allocate
  *            more pages than the maximum cache size, but only if it's
  *            necessary and only for a short time.
+ *       <li>@a HAM_CACHE_UNLIMITED</li> Do not limit the cache. Nearly as
+ *            fast as an In-Memory Database. Not allowed in combination 
+ *            with @a HAM_CACHE_STRICT or a limited cache size.
  *       <li>@a HAM_DISABLE_FREELIST_FLUSH</li> This flag is deprecated.
  *       <li>@a HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
@@ -499,6 +502,9 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *            If the flag is not set, the cache is allowed to allocate
  *            more pages than the maximum cache size, but only if it's
  *            necessary and only for a short time.
+ *       <li>@a HAM_CACHE_UNLIMITED</li> Do not limit the cache. Nearly as
+ *            fast as an In-Memory Database. Not allowed in combination 
+ *            with @a HAM_CACHE_STRICT or a limited cache size.
  *       <li>@a HAM_DISABLE_FREELIST_FLUSH</li> This flag is deprecated.
  *       <li>@a HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
@@ -959,6 +965,9 @@ ham_create(ham_db_t *db, const char *filename,
  *            If the flag is not set, the cache is allowed to allocate
  *            more pages than the maximum cache size, but only if it's
  *            necessary and only for a short time.
+ *       <li>@a HAM_CACHE_UNLIMITED</li> Do not limit the cache. Nearly as
+ *            fast as an In-Memory Database. Not allowed in combination 
+ *            with @a HAM_CACHE_STRICT or a limited cache size.
  *       <li>@a HAM_DISABLE_FREELIST_FLUSH</li> This flag is deprecated.
  *       <li>@a HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
@@ -1057,6 +1066,9 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *            If the flag is not set, the cache is allowed to allocate
  *            more pages than the maximum cache size, but only if it's
  *            necessary and only for a short time.
+ *       <li>@a HAM_CACHE_UNLIMITED</li> Do not limit the cache. Nearly as
+ *            fast as an In-Memory Database. Not allowed in combination 
+ *            with @a HAM_CACHE_STRICT or a limited cache size.
  *       <li>@a HAM_DISABLE_FREELIST_FLUSH</li> This flag is deprecated.
  *       <li>@a HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
@@ -1151,6 +1163,9 @@ ham_open_ex(ham_db_t *db, const char *filename,
 /** Flag for @a ham_create_ex, @a ham_open_ex, @a ham_env_create_ex, 
  * @a ham_env_open_ex */
 #define HAM_ENABLE_TRANSACTIONS      0x00020000
+
+/** Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex */
+#define HAM_CACHE_UNLIMITED          0x00040000
 
 /** Parameter name for @a ham_open_ex, @a ham_create_ex; sets the cache
  * size */

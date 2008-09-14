@@ -223,11 +223,20 @@ public:
         CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
 
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
-                ham_create(0, "test.db", 0, 0664));
+                ham_create(0, ".test.db", 0, 0664));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create(db, 0, 0, 0664));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create(db, 0, HAM_IN_MEMORY_DB|HAM_CACHE_STRICT, 0));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_create(db, ".test.db", 
+                    HAM_CACHE_UNLIMITED|HAM_CACHE_STRICT, 0644));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_create_ex(db, ".test.db", 0, HAM_CACHE_STRICT, &cs[0]));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_open(db, ".test.db", HAM_CACHE_UNLIMITED|HAM_CACHE_STRICT));
+        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_open_ex(db, ".test.db", HAM_CACHE_STRICT, &cs[0]));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create_ex(db, 0, HAM_IN_MEMORY_DB, 0, &cs[0]));
         CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 

@@ -584,9 +584,13 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
     ham_bool_t newpage=0;
 
     /* purge the cache, if necessary */
-    st=my_purge_cache(db);
-    if (st)
-        return (0);
+    if (db_get_cache(db) 
+            && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
+            && !(db_get_rt_flags(db)&HAM_CACHE_UNLIMITED)) {
+        st=my_purge_cache(db);
+        if (st)
+            return (0);
+    }
 
     /* first, we ask the freelist for a page */
     if (!(flags&PAGE_IGNORE_FREELIST)) {
@@ -688,7 +692,8 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
      */
     if (!(flags&DB_ONLY_FROM_CACHE) 
             && db_get_cache(db) 
-            && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
+            && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
+            && !(db_get_rt_flags(db)&HAM_CACHE_UNLIMITED)) {
         if (cache_too_big(db_get_cache(db))) {
             st=my_purge_cache(db);
             if (st) {
