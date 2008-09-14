@@ -14,7 +14,7 @@ o hamsterdb.com web page
     . add documentation for Java
     . add documentation for .NET (chm file)
 
-o enhance tutorial with information about transactions
+x enhance tutorial with information about transactions
     x new CI!
 
 o new flag HAM_CACHE_UNLIMITED - do never purge the cache. should bring
