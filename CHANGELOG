@@ -1,3 +1,6 @@
+Sep 23, 2008 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.6
+
 Sep 14, 2008 - chris
 o a new flag HAM_CACHE_UNLIMITED uses unlimited cache
 o added a new chapter about Transactions to the tutorial
