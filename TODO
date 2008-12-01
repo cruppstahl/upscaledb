@@ -17,13 +17,11 @@ o hamsterdb.com web page
 x enhance tutorial with information about transactions
     x new CI!
 
-o new flag HAM_CACHE_UNLIMITED - do never purge the cache. should bring
+x new flag HAM_CACHE_UNLIMITED - do never purge the cache. should bring
     the performance of in-memory to a file-based database.
     o does not work with HAM_CACHE_STRICT or a cache size
 
----- release 1.0.6 ----------------
-
-o device: cache file size; update cached value in device->truncate
+x update README file(s) with new address
 
 o unittests: get rid of cppunit, move to bfc
     o update configure.in
@@ -33,7 +31,10 @@ o unittests: get rid of cppunit, move to bfc
     o finally run tests in win64
     o finally run tests in wince
 
-. enhance java/python/.NET for transactions
+o enhance java/python/.NET for transactions
+    o update README file(s) with new address
+
+---- release 1.0.6 ----------------
 
 . enhance acceptance tests - will need new test scripts
     TXN_BEGIN 1  (1 is the txn id)
