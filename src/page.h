@@ -110,7 +110,7 @@ struct ham_page_t {
          */
         struct page_union_header_t {
             /**
-             * flags of this page
+             * flags of this page - currently only used for the page type
              */
             ham_u32_t _flags;
     
@@ -148,12 +148,12 @@ struct ham_page_t {
 /**
  * get the address of this page
  */
-#define page_get_self(page)          (ham_db2h_offset((page)->_npers._self))
+#define page_get_self(page)          ((page)->_npers._self)
 
 /**
  * set the address of this page
  */
-#define page_set_self(page, a)       (page)->_npers._self=ham_h2db_offset(a)
+#define page_set_self(page, a)       (page)->_npers._self=a
 
 /** 
  * get the database object which 0wnz this page 
@@ -338,26 +338,21 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /**
  * set the page-type
  */
-#define page_set_type(page, t)   do { \
-            page_set_pers_flags(page, page_get_pers_flags(page)&0x0fffffff);\
-            page_set_pers_flags(page, page_get_pers_flags(page)|t);         \
-        } while (0)
+#define page_set_type(page, t)   page_set_pers_flags(page, t);
 
 /**
  * get the page-type
  */
-#define page_get_type(page)      (page_get_pers_flags(page)&0xf0000000)
+#define page_get_type(page)      (page_get_pers_flags(page))
 
 /**
  * valid page types
- *
- * page types always have the highest nybble of the persistent flags
  */
-#define PAGE_TYPE_UNKNOWN       0x00000000
-#define PAGE_TYPE_HEADER        0x10000000
-#define PAGE_TYPE_B_ROOT        0x20000000
-#define PAGE_TYPE_B_INDEX       0x30000000
-#define PAGE_TYPE_FREELIST      0x40000000
+#define PAGE_TYPE_UNKNOWN        0
+#define PAGE_TYPE_HEADER         1
+#define PAGE_TYPE_B_ROOT         2
+#define PAGE_TYPE_B_INDEX        3
+#define PAGE_TYPE_FREELIST       4
 
 /**
  * get pointer to persistent payload (after the header!)
