@@ -2339,7 +2339,10 @@ bail:
     return (ham_env_add_file_filter(env, filter));
 #else /* !HAM_DISABLE_ENCRYPTION */
     ham_trace(("hamsterdb was compiled without support for AES encryption"));
-    return (HAM_NOT_IMPLEMENTED);
+    if (db)
+        return (db_set_error(db, HAM_NOT_IMPLEMENTED));
+    else
+        return (HAM_NOT_IMPLEMENTED);
 #endif
 }
 
@@ -2500,7 +2503,10 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags)
     return (ham_add_record_filter(db, filter));
 #else /* !HAM_DISABLE_COMPRESSION */
     ham_trace(("hamsterdb was compiled without support for zlib compression"));
-    return (db_set_error(db, HAM_NOT_IMPLEMENTED));
+    if (db)
+        return (db_set_error(db, HAM_NOT_IMPLEMENTED));
+    else
+        return (HAM_NOT_IMPLEMENTED);
 #endif
 }
 
