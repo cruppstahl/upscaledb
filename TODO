@@ -7,21 +7,18 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-o hamsterdb.com web page
+. hamsterdb.com web page
     . use same font as tutorial?
     . add RSS/Atom feed
     . add Google sitemap
     . add documentation for Java
     . add documentation for .NET (chm file)
 
-x enhance tutorial with information about transactions
-    x new CI!
+o tutorial (and header file as well?) - document that set_compare_func must
+    be PRIOR to ham_env_create/open (throw an error?) -- see email conversation
 
-x new flag HAM_CACHE_UNLIMITED - do never purge the cache. should bring
-    the performance of in-memory to a file-based database.
-    o does not work with HAM_CACHE_STRICT or a cache size
-
-x update README file(s) with new address
+o tutorial (and header file as well?) - default compare is descending, not
+    ascending
 
 o unittests: get rid of cppunit, move to bfc
     o update configure.in
