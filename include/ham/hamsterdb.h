@@ -12,7 +12,7 @@
  * \mainpage hamsterdb embedded database
  * \brief Include file for hamsterdb
  * \author Christoph Rupp, chris@crupp.de
- * \version 1.0.6
+ * \version 1.0.7
  */
 
 #ifndef HAM_HAMSTERDB_H__

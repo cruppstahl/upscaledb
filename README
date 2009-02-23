@@ -1,5 +1,5 @@
 
-hamsterdb 1.0.6                                 Sun Sep 14 20:05:21 CEST 2008
+hamsterdb 1.0.7                                 Mon Feb 23 09:25:08 CET 2009
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -12,33 +12,28 @@ hamsterdb is a database engine written in ANSI C. It supports a B+Tree index
 structure, uses memory mapped I/O (if available), supports fast Cursors and
 variable length keys and can create In-Memory Databases.
 
-This release adds a new flag HAM_CACHE_UNLIMITED which uses unlimited
-cache, and is therefore nearly as fast as a pure In-Memory Database. 
-
-Also, the unittests now compile with gcc 4.3.x and glibc 2.8. The C++ API
-has a new function to assign a key with a template parameter. ./configure
-has a new option --enable-system-zlib to link against -lz instead of the
-zlib version which is provided with hamsterdb. Finaly, the tutorial has a
-a new chapter about Transactions.
+This release fixes a bug on big-endian machines and a small error in
+the tutorial.
 
 2. Changes
 
 New Features
-* The flag HAM_CACHE_UNLIMITED uses unlimited cache
+* none
 
 Bugfixes
-* unittests compile with gcc 4.3.x and glibc 2.8
+* big-endian machines sometimes failed to load databases which were created
+    on little-endian architectures and vice versa
 
 Other Changes
-* new ./configure flag --enable-system-zlib
-* the template function for C++ API to set keys
+* the Tutorial was updated
 
 To see a list of all changes, look in the file CHANGELOG.
 
 3. Roadmap
 
-- Add Transaction API to Python, Java and .NET wrapper
-- Release the Perl or PHP wrapper
+- Currently, most of the development concentrates on hamsterdb2, a
+    multi-threaded, transactional Database engine. There will be bugfix releases
+    for hamsterdb whenever necessary.
 
 4. Features
 
