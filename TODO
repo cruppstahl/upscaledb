@@ -14,13 +14,10 @@ x a finished TODO item
     . add documentation for Java
     . add documentation for .NET (chm file)
 
-o tutorial (and header file as well?) - document that set_compare_func must
-    be PRIOR to ham_env_create/open (throw an error?) -- see email conversation
-
-o tutorial (and header file as well?) - default compare is descending, not
+x tutorial (and header file as well?) - default compare is descending, not
     ascending
 
-o unittests: get rid of cppunit, move to bfc
+. unittests: get rid of cppunit, move to bfc
     o update configure.in
     o update win32 project file
     o update wince project file
