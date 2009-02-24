@@ -348,11 +348,11 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /**
  * valid page types
  */
-#define PAGE_TYPE_UNKNOWN        0
-#define PAGE_TYPE_HEADER         1
-#define PAGE_TYPE_B_ROOT         2
-#define PAGE_TYPE_B_INDEX        3
-#define PAGE_TYPE_FREELIST       4
+#define PAGE_TYPE_UNKNOWN        0x00000000
+#define PAGE_TYPE_HEADER         0x10000000
+#define PAGE_TYPE_B_ROOT         0x20000000
+#define PAGE_TYPE_B_INDEX        0x30000000
+#define PAGE_TYPE_FREELIST       0x40000000
 
 /**
  * get pointer to persistent payload (after the header!)
