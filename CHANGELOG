@@ -1,11 +1,14 @@
-Feb 28, 2008 - chris ---------------------------------------------------
+Mar 01, 2009 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.8
+
+Feb 28, 2009 - chris ---------------------------------------------------
 o fixed bug when shifting internal pages (during SMO of erase); extended
     keys were deleted although they were still referenced
 
-Feb 23, 2008 - chris ---------------------------------------------------
+Feb 23, 2009 - chris ---------------------------------------------------
                       release of hamsterdb-1.0.7
 
-Feb 20, 2008 - chris ---------------------------------------------------
+Feb 20, 2009 - chris ---------------------------------------------------
 o fixed endian conversion bug when opening a Database file, which was created
     on a little-endian system, some page addresses were broken
 

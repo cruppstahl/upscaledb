@@ -1,5 +1,5 @@
 
-hamsterdb 1.0.7                                 Mon Feb 23 09:25:08 CET 2009
+hamsterdb 1.0.8                                 Sat Feb 28 15:59:42 CET 2009
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -21,11 +21,11 @@ New Features
 * none
 
 Bugfixes
-* big-endian machines sometimes failed to load databases which were created
-    on little-endian architectures and vice versa
+* when shifting internal pages (during SMO of erase), extended
+    keys were deleted although they were still referenced
 
 Other Changes
-* the Tutorial was updated
+* none
 
 To see a list of all changes, look in the file CHANGELOG.
 
