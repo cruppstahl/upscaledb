@@ -721,6 +721,8 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             goto cleanup;
         if (intern)
             c--;
+        if (c==0)
+            goto cleanup;
 
         /*
          * internal node: append the anchor key to the page 
@@ -900,6 +902,8 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             goto cleanup;
         if (intern)
             c--;
+        if (c==0)
+            goto cleanup;
 
         /*
          * internal pages: insert the anchor element
@@ -918,6 +922,10 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
 
             bte_lhs=btree_node_get_key(db, sibnode, 0);
             bte_rhs=btree_node_get_key(db, ancnode, slot);
+
+            /* clear the key - we don't want my_replace_key to free
+             * an extended block which is still used by sibnode[1] */
+            memset(bte_lhs, 0, sizeof(*bte_lhs));
 
             st=my_replace_key(sibpage, 0, bte_rhs, 
                     NOFLUSH|(btree_node_is_leaf(node)?0:INTERNAL_KEY));

@@ -1,3 +1,7 @@
+Feb 28, 2008 - chris ---------------------------------------------------
+o fixed bug when shifting internal pages (during SMO of erase); extended
+    keys were deleted although they were still referenced
+
 Feb 23, 2008 - chris ---------------------------------------------------
                       release of hamsterdb-1.0.7
 
