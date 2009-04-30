@@ -123,11 +123,15 @@ Other compiler- and OS-specific macros are in 'include/ham/types.h'.
 Most likely, these are the only files which have to be touched. Also see item 
 9) for important macros. 
 
-11. Commercial Licensing
+11. Licensing
 
 hamsterdb can be licensed on a per-developer basis for closed sourced 
 applications. For more details, see 
 http://hamsterdb.com/licensing and http://hamsterdb.com/store.
+
+hamsterdb is released under GPL2 or later. There are several exceptions for
+other open source licenses (see http://hamsterdb.com/licensing/exceptions
+for legal information and a license list).
 
 12. Contact
 
