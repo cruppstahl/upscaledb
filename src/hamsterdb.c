@@ -3400,11 +3400,13 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     /*
      * run the record-level filters
      */
-    st=__record_filters_after_find(db, record);
-    if (st) {
-        if (!cursor_get_txn(cursor))
-            (void)txn_abort(&local_txn, 0);
-        return (st);
+    if (record) {
+        st=__record_filters_after_find(db, record);
+        if (st) {
+            if (!cursor_get_txn(cursor))
+                (void)txn_abort(&local_txn, 0);
+            return (st);
+        }
     }
 
     if (!cursor_get_txn(cursor))
