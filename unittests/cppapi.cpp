@@ -10,8 +10,11 @@
  */
 
 #include <stdexcept>
-#include <cppunit/extensions/HelperMacros.h>
 #include <ham/hamsterdb.hpp>
+
+#include "bfc-testsuite.hpp"
+
+using namespace bfc;
 
 static int
 my_compare_func(ham_db_t *db,
@@ -43,26 +46,30 @@ my_prefix_compare_func(ham_db_t *db,
     return (0);
 }
 
-class CppApiTest : public CppUnit::TestFixture
+class CppApiTest : public fixture
 {
-    CPPUNIT_TEST_SUITE(CppApiTest);
-    CPPUNIT_TEST      (keyTest);
-    CPPUNIT_TEST      (recordTest);
-	CPPUNIT_TEST      (staticFunctionsTest);
-    CPPUNIT_TEST      (compareTest);
-    CPPUNIT_TEST      (createOpenCloseDbTest);
-    CPPUNIT_TEST      (insertFindEraseTest);
-    CPPUNIT_TEST      (cursorTest);
-    CPPUNIT_TEST      (compressionTest);
-    CPPUNIT_TEST      (envTest);
-    CPPUNIT_TEST      (envDestructorTest);
-    CPPUNIT_TEST      (envGetDatabaseNamesTest);
-    CPPUNIT_TEST      (getLicenseTest);
-    CPPUNIT_TEST      (beginAbortTest);
-    CPPUNIT_TEST      (beginCommitTest);
-    CPPUNIT_TEST      (beginCursorAbortTest);
-    CPPUNIT_TEST      (beginCursorCommitTest);
-    CPPUNIT_TEST_SUITE_END();
+public:
+    CppApiTest()
+        : fixture("CppApiTest")
+    {
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(CppApiTest, keyTest);
+        BFC_REGISTER_TEST(CppApiTest, recordTest);
+	    BFC_REGISTER_TEST(CppApiTest, staticFunctionsTest);
+        BFC_REGISTER_TEST(CppApiTest, compareTest);
+        BFC_REGISTER_TEST(CppApiTest, createOpenCloseDbTest);
+        BFC_REGISTER_TEST(CppApiTest, insertFindEraseTest);
+        BFC_REGISTER_TEST(CppApiTest, cursorTest);
+        BFC_REGISTER_TEST(CppApiTest, compressionTest);
+        BFC_REGISTER_TEST(CppApiTest, envTest);
+        BFC_REGISTER_TEST(CppApiTest, envDestructorTest);
+        BFC_REGISTER_TEST(CppApiTest, envGetDatabaseNamesTest);
+        BFC_REGISTER_TEST(CppApiTest, getLicenseTest);
+        BFC_REGISTER_TEST(CppApiTest, beginAbortTest);
+        BFC_REGISTER_TEST(CppApiTest, beginCommitTest);
+        BFC_REGISTER_TEST(CppApiTest, beginCursorAbortTest);
+        BFC_REGISTER_TEST(CppApiTest, beginCursorCommitTest);
+    }
 
 public:
     void setUp()
@@ -79,36 +86,36 @@ public:
         void *q=(void *)"234";
         ham::key k1, k2(p, 4, HAM_KEY_USER_ALLOC);
 
-        CPPUNIT_ASSERT_EQUAL((void *)0, k1.get_data());
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)0, k1.get_size());
-        CPPUNIT_ASSERT_EQUAL((ham_u32_t)0, k1.get_flags());
+        BFC_ASSERT_EQUAL((void *)0, k1.get_data());
+        BFC_ASSERT_EQUAL((ham_size_t)0, k1.get_size());
+        BFC_ASSERT_EQUAL((ham_u32_t)0, k1.get_flags());
 
-        CPPUNIT_ASSERT_EQUAL(p, k2.get_data());
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)4, k2.get_size());
-        CPPUNIT_ASSERT_EQUAL((ham_u32_t)HAM_KEY_USER_ALLOC, k2.get_flags());
+        BFC_ASSERT_EQUAL(p, k2.get_data());
+        BFC_ASSERT_EQUAL((ham_size_t)4, k2.get_size());
+        BFC_ASSERT_EQUAL((ham_u32_t)HAM_KEY_USER_ALLOC, k2.get_flags());
 
         k1=k2;
-        CPPUNIT_ASSERT_EQUAL(p, k1.get_data());
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)4, k1.get_size());
-        CPPUNIT_ASSERT_EQUAL((ham_u32_t)HAM_KEY_USER_ALLOC, k1.get_flags());
+        BFC_ASSERT_EQUAL(p, k1.get_data());
+        BFC_ASSERT_EQUAL((ham_size_t)4, k1.get_size());
+        BFC_ASSERT_EQUAL((ham_u32_t)HAM_KEY_USER_ALLOC, k1.get_flags());
 
         ham::key k3(k1);
-        CPPUNIT_ASSERT_EQUAL(p, k3.get_data());
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)4, k3.get_size());
-        CPPUNIT_ASSERT_EQUAL((ham_u32_t)HAM_KEY_USER_ALLOC, k3.get_flags());
+        BFC_ASSERT_EQUAL(p, k3.get_data());
+        BFC_ASSERT_EQUAL((ham_size_t)4, k3.get_size());
+        BFC_ASSERT_EQUAL((ham_u32_t)HAM_KEY_USER_ALLOC, k3.get_flags());
 
         int i=3;
         ham::key k4;
         k4.set<int>(i);
-        CPPUNIT_ASSERT_EQUAL((void *)&i, k4.get_data());
-        CPPUNIT_ASSERT_EQUAL(sizeof(int), (size_t)k4.get_size());
+        BFC_ASSERT_EQUAL((void *)&i, k4.get_data());
+        BFC_ASSERT_EQUAL(sizeof(int), (size_t)k4.get_size());
 
         k1.set_data(q);
         k1.set_size(2);
         k1.set_flags(0);
-        CPPUNIT_ASSERT_EQUAL(q, k1.get_data());
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)2, k1.get_size());
-        CPPUNIT_ASSERT_EQUAL((ham_u32_t)0, k1.get_flags());
+        BFC_ASSERT_EQUAL(q, k1.get_data());
+        BFC_ASSERT_EQUAL((ham_size_t)2, k1.get_size());
+        BFC_ASSERT_EQUAL((ham_u32_t)0, k1.get_flags());
     }
 
     void recordTest(void)
@@ -117,36 +124,36 @@ public:
         void *q=(void *)"234";
         ham::record r1, r2(p, 4, HAM_RECORD_USER_ALLOC);
 
-        CPPUNIT_ASSERT_EQUAL((void *)0, r1.get_data());
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)0, r1.get_size());
-        CPPUNIT_ASSERT_EQUAL((ham_u32_t)0, r1.get_flags());
+        BFC_ASSERT_EQUAL((void *)0, r1.get_data());
+        BFC_ASSERT_EQUAL((ham_size_t)0, r1.get_size());
+        BFC_ASSERT_EQUAL((ham_u32_t)0, r1.get_flags());
 
-        CPPUNIT_ASSERT_EQUAL(p, r2.get_data());
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)4, r2.get_size());
-        CPPUNIT_ASSERT_EQUAL((ham_u32_t)HAM_RECORD_USER_ALLOC, r2.get_flags());
+        BFC_ASSERT_EQUAL(p, r2.get_data());
+        BFC_ASSERT_EQUAL((ham_size_t)4, r2.get_size());
+        BFC_ASSERT_EQUAL((ham_u32_t)HAM_RECORD_USER_ALLOC, r2.get_flags());
 
         r1=r2;
-        CPPUNIT_ASSERT_EQUAL(p, r1.get_data());
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)4, r1.get_size());
-        CPPUNIT_ASSERT_EQUAL((ham_u32_t)HAM_RECORD_USER_ALLOC, r1.get_flags());
+        BFC_ASSERT_EQUAL(p, r1.get_data());
+        BFC_ASSERT_EQUAL((ham_size_t)4, r1.get_size());
+        BFC_ASSERT_EQUAL((ham_u32_t)HAM_RECORD_USER_ALLOC, r1.get_flags());
 
         ham::record r3(r1);
-        CPPUNIT_ASSERT_EQUAL(p, r3.get_data());
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)4, r3.get_size());
-        CPPUNIT_ASSERT_EQUAL((ham_u32_t)HAM_RECORD_USER_ALLOC, r3.get_flags());
+        BFC_ASSERT_EQUAL(p, r3.get_data());
+        BFC_ASSERT_EQUAL((ham_size_t)4, r3.get_size());
+        BFC_ASSERT_EQUAL((ham_u32_t)HAM_RECORD_USER_ALLOC, r3.get_flags());
 
         r1.set_data(q);
         r1.set_size(2);
         r1.set_flags(0);
-        CPPUNIT_ASSERT_EQUAL(q, r1.get_data());
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)2, r1.get_size());
-        CPPUNIT_ASSERT_EQUAL((ham_u32_t)0, r1.get_flags());
+        BFC_ASSERT_EQUAL(q, r1.get_data());
+        BFC_ASSERT_EQUAL((ham_size_t)2, r1.get_size());
+        BFC_ASSERT_EQUAL((ham_u32_t)0, r1.get_flags());
     }
 
     void staticFunctionsTest(void)
     {
         ham::db db;
-        CPPUNIT_ASSERT_EQUAL(0, db.get_error());
+        BFC_ASSERT_EQUAL(0, db.get_error());
         db.get_version(0, 0, 0);
     }
 
@@ -218,8 +225,8 @@ public:
         }
 
         out=db.find(&k);
-        CPPUNIT_ASSERT_EQUAL(r.get_size(), out.get_size());
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(r.get_size(), out.get_size());
+        BFC_ASSERT_EQUAL(0,
                         ::memcmp(r.get_data(), out.get_data(), out.get_size()));
         db.erase(&k);
 
@@ -239,8 +246,8 @@ public:
             out=db.find(&k);
         }
         catch(ham::error &e) {
-            CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, e.get_errno());
-            CPPUNIT_ASSERT_EQUAL(std::string("Key not found"), 
+            BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, e.get_errno());
+            BFC_ASSERT_EQUAL(std::string("Key not found"), 
                     std::string(e.get_string()));
         }
 
@@ -298,29 +305,29 @@ public:
         ham::cursor clone=c.clone();
 
         c.move_first(&k2, &r2);
-        CPPUNIT_ASSERT_EQUAL(k.get_size(), k2.get_size());
-        CPPUNIT_ASSERT_EQUAL(r.get_size(), r2.get_size());
+        BFC_ASSERT_EQUAL(k.get_size(), k2.get_size());
+        BFC_ASSERT_EQUAL(r.get_size(), r2.get_size());
 
         c.move_last(&k2, &r2);
-        CPPUNIT_ASSERT_EQUAL(k.get_size(), k2.get_size());
-        CPPUNIT_ASSERT_EQUAL(r.get_size(), r2.get_size());
+        BFC_ASSERT_EQUAL(k.get_size(), k2.get_size());
+        BFC_ASSERT_EQUAL(r.get_size(), r2.get_size());
 
         try {
             c.move_next();
         }
         catch (ham::error &e) {
-            CPPUNIT_ASSERT_EQUAL(e.get_errno(), HAM_KEY_NOT_FOUND);
+            BFC_ASSERT_EQUAL(e.get_errno(), HAM_KEY_NOT_FOUND);
         }
 
         try {
             c.move_previous();
         }
         catch (ham::error &e) {
-            CPPUNIT_ASSERT_EQUAL(e.get_errno(), HAM_KEY_NOT_FOUND);
+            BFC_ASSERT_EQUAL(e.get_errno(), HAM_KEY_NOT_FOUND);
         }
 
         c.find(&k);
-        CPPUNIT_ASSERT_EQUAL((ham_u32_t)1, c.get_duplicate_count());
+        BFC_ASSERT_EQUAL((ham_u32_t)1, c.get_duplicate_count());
 
         c.erase();
         try {
@@ -374,7 +381,7 @@ public:
             env.erase_db(2);
         }
         catch (ham::error &e) {
-            CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN, e.get_errno());
+            BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN, e.get_errno());
         }
         db1.close();
         env.erase_db(2);
@@ -399,12 +406,12 @@ public:
         env.create(".test");
 
         v=env.get_database_names();
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)0, (ham_size_t)v.size());
+        BFC_ASSERT_EQUAL((ham_size_t)0, (ham_size_t)v.size());
 
         ham::db db1=env.create_db(1);
         v=env.get_database_names();
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)1, (ham_size_t)v.size());
-        CPPUNIT_ASSERT_EQUAL((ham_u16_t)1, v[0]);
+        BFC_ASSERT_EQUAL((ham_size_t)1, (ham_size_t)v.size());
+        BFC_ASSERT_EQUAL((ham_u16_t)1, v[0]);
         db1.close();
     }
 
@@ -414,12 +421,12 @@ public:
 
         ham::db::get_license(0, 0);
         ham::db::get_license(&licensee, 0);
-        CPPUNIT_ASSERT(licensee!=0);
+        BFC_ASSERT(licensee!=0);
         ham::db::get_license(0, &product);
-        CPPUNIT_ASSERT(product!=0);
+        BFC_ASSERT(product!=0);
         ham::db::get_license(&licensee, &product);
-        CPPUNIT_ASSERT(licensee!=0);
-        CPPUNIT_ASSERT(product!=0);
+        BFC_ASSERT(licensee!=0);
+        BFC_ASSERT(product!=0);
     }
 
     void beginAbortTest(void)
@@ -442,7 +449,7 @@ public:
             out=db.find(&k);
         }
         catch (ham::error &e) {
-            CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, e.get_errno());
+            BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, e.get_errno());
         }
     }
 
@@ -487,7 +494,7 @@ public:
             out=db.find(&k);
         }
         catch (ham::error &e) {
-            CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, e.get_errno());
+            BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, e.get_errno());
         }
     }
 
@@ -514,5 +521,5 @@ public:
 
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION(CppApiTest);
+BFC_REGISTER_FIXTURE(CppApiTest);
 

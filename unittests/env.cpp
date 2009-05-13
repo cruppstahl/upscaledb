@@ -12,7 +12,6 @@
 #include <stdexcept>
 #include <cstring>
 #include <cstdlib>
-#include <cppunit/extensions/HelperMacros.h>
 #include <ham/hamsterdb_int.h>
 #include "../src/env.h"
 #include "../src/cache.h"
@@ -21,57 +20,61 @@
 #include "../src/db.h"
 #include "memtracker.h"
 
-class EnvTest : public CppUnit::TestFixture
+#include "bfc-testsuite.hpp"
+
+using namespace bfc;
+
+class EnvTest : public fixture
 {
-    CPPUNIT_TEST_SUITE(EnvTest);
-    CPPUNIT_TEST      (structureTest);
-    CPPUNIT_TEST      (newDeleteTest);
-    CPPUNIT_TEST      (createCloseTest);
-    CPPUNIT_TEST      (createCloseOpenCloseTest);
-    CPPUNIT_TEST      (createCloseOpenCloseWithDatabasesTest);
-    CPPUNIT_TEST      (autoCleanupTest);
-    CPPUNIT_TEST      (autoCleanup2Test);
-    CPPUNIT_TEST      (readOnlyTest);
-    CPPUNIT_TEST      (createPagesizeReopenTest);
-    CPPUNIT_TEST      (openFailCloseTest);
-    CPPUNIT_TEST      (openWithKeysizeTest);
-    CPPUNIT_TEST      (createWithKeysizeTest);
-    CPPUNIT_TEST      (createDbWithKeysizeTest);
-    CPPUNIT_TEST      (disableVarkeyTests);
-    CPPUNIT_TEST      (multiDbTest);
-    CPPUNIT_TEST      (multiDbTest2);
-    CPPUNIT_TEST      (multiDbInsertFindTest);
-    CPPUNIT_TEST      (multiDbInsertFindExtendedTest);
-    CPPUNIT_TEST      (multiDbInsertFindExtendedEraseTest);
-    CPPUNIT_TEST      (multiDbInsertCursorTest);
-    CPPUNIT_TEST      (multiDbInsertFindExtendedCloseReopenTest);
-    CPPUNIT_TEST      (renameOpenDatabases);
-    CPPUNIT_TEST      (renameClosedDatabases);
-    CPPUNIT_TEST      (eraseOpenDatabases);
-    CPPUNIT_TEST      (eraseUnknownDatabases);
-    CPPUNIT_TEST      (eraseMultipleDatabases);
-    CPPUNIT_TEST      (endianTestOpenDatabase);
-    CPPUNIT_TEST      (limitsReachedTest);
-    CPPUNIT_TEST      (createEnvOpenDbTest);
-    CPPUNIT_TEST      (createFullEnvOpenDbTest);
-    CPPUNIT_TEST      (createFullEnvOpenSecondDbTest);
-    CPPUNIT_TEST      (getDatabaseNamesTest);
-    CPPUNIT_TEST      (maxDatabasesTest);
-    CPPUNIT_TEST      (maxDatabasesReopenTest);
-    CPPUNIT_TEST      (createOpenEmptyTest);
-    CPPUNIT_TEST      (setDeviceTest);
-    CPPUNIT_TEST_SUITE_END();
+public:
+    EnvTest(ham_u32_t flags=0, const char *name=0)
+    :   fixture(name ? name : "EnvTest"), m_flags(flags)
+    {
+        if (name)
+            return;
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(EnvTest, structureTest);
+        BFC_REGISTER_TEST(EnvTest, newDeleteTest);
+        BFC_REGISTER_TEST(EnvTest, createCloseTest);
+        BFC_REGISTER_TEST(EnvTest, createCloseOpenCloseTest);
+        BFC_REGISTER_TEST(EnvTest, createCloseOpenCloseWithDatabasesTest);
+        BFC_REGISTER_TEST(EnvTest, autoCleanupTest);
+        BFC_REGISTER_TEST(EnvTest, autoCleanup2Test);
+        BFC_REGISTER_TEST(EnvTest, readOnlyTest);
+        BFC_REGISTER_TEST(EnvTest, createPagesizeReopenTest);
+        BFC_REGISTER_TEST(EnvTest, openFailCloseTest);
+        BFC_REGISTER_TEST(EnvTest, openWithKeysizeTest);
+        BFC_REGISTER_TEST(EnvTest, createWithKeysizeTest);
+        BFC_REGISTER_TEST(EnvTest, createDbWithKeysizeTest);
+        BFC_REGISTER_TEST(EnvTest, disableVarkeyTests);
+        BFC_REGISTER_TEST(EnvTest, multiDbTest);
+        BFC_REGISTER_TEST(EnvTest, multiDbTest2);
+        BFC_REGISTER_TEST(EnvTest, multiDbInsertFindTest);
+        BFC_REGISTER_TEST(EnvTest, multiDbInsertFindExtendedTest);
+        BFC_REGISTER_TEST(EnvTest, multiDbInsertFindExtendedEraseTest);
+        BFC_REGISTER_TEST(EnvTest, multiDbInsertCursorTest);
+        BFC_REGISTER_TEST(EnvTest, multiDbInsertFindExtendedCloseReopenTest);
+        BFC_REGISTER_TEST(EnvTest, renameOpenDatabases);
+        BFC_REGISTER_TEST(EnvTest, renameClosedDatabases);
+        BFC_REGISTER_TEST(EnvTest, eraseOpenDatabases);
+        BFC_REGISTER_TEST(EnvTest, eraseUnknownDatabases);
+        BFC_REGISTER_TEST(EnvTest, eraseMultipleDatabases);
+        BFC_REGISTER_TEST(EnvTest, endianTestOpenDatabase);
+        BFC_REGISTER_TEST(EnvTest, limitsReachedTest);
+        BFC_REGISTER_TEST(EnvTest, createEnvOpenDbTest);
+        BFC_REGISTER_TEST(EnvTest, createFullEnvOpenDbTest);
+        BFC_REGISTER_TEST(EnvTest, createFullEnvOpenSecondDbTest);
+        BFC_REGISTER_TEST(EnvTest, getDatabaseNamesTest);
+        BFC_REGISTER_TEST(EnvTest, maxDatabasesTest);
+        BFC_REGISTER_TEST(EnvTest, maxDatabasesReopenTest);
+        BFC_REGISTER_TEST(EnvTest, createOpenEmptyTest);
+        BFC_REGISTER_TEST(EnvTest, setDeviceTest);
+    }
 
 protected:
     ham_u32_t m_flags;
 
-public:
-    EnvTest(ham_u32_t flags=0)
-    :   m_flags(flags)
-    {
-    }
-
-    void setUp()
+    void setup()
     { 
 #if WIN32
         (void)DeleteFileA((LPCSTR)".test");
@@ -80,7 +83,7 @@ public:
 #endif
     }
     
-    void tearDown() 
+    void teardown() 
     { 
     }
 
@@ -88,95 +91,95 @@ public:
     {
         ham_env_t *env;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        CPPUNIT_ASSERT(env_get_txn_id(env)==0);
+        BFC_ASSERT(env_get_txn_id(env)==0);
         env_set_txn_id(env, (ham_u64_t)14);
-        CPPUNIT_ASSERT(env_get_txn_id(env)==(ham_u64_t)14);
+        BFC_ASSERT(env_get_txn_id(env)==(ham_u64_t)14);
         env_set_txn_id(env, 0);
 
-        CPPUNIT_ASSERT(env_get_device(env)==0);
+        BFC_ASSERT(env_get_device(env)==0);
         env_set_device(env, (ham_device_t *)15);
-        CPPUNIT_ASSERT(env_get_device(env)==(ham_device_t *)15);
+        BFC_ASSERT(env_get_device(env)==(ham_device_t *)15);
         env_set_device(env, 0);
 
-        CPPUNIT_ASSERT(env_get_filename(env)==0);
+        BFC_ASSERT(env_get_filename(env)==0);
         env_set_filename(env, "abcdefg");
-        CPPUNIT_ASSERT(0==strcmp(env_get_filename(env), "abcdefg"));
+        BFC_ASSERT(0==strcmp(env_get_filename(env), "abcdefg"));
         env_set_filename(env, 0);
 
-        CPPUNIT_ASSERT(env_get_file_mode(env)==0);
+        BFC_ASSERT(env_get_file_mode(env)==0);
         env_set_file_mode(env, 12345);
-        CPPUNIT_ASSERT(12345==env_get_file_mode(env));
+        BFC_ASSERT(12345==env_get_file_mode(env));
         env_set_file_mode(env, 0);
 
-        CPPUNIT_ASSERT(env_get_cache(env)==0);
+        BFC_ASSERT(env_get_cache(env)==0);
         env_set_cache(env, (ham_cache_t *)16);
-        CPPUNIT_ASSERT(env_get_cache(env)==(ham_cache_t *)16);
+        BFC_ASSERT(env_get_cache(env)==(ham_cache_t *)16);
         env_set_cache(env, 0);
 
-        CPPUNIT_ASSERT(env_get_header_page(env)==0);
+        BFC_ASSERT(env_get_header_page(env)==0);
         env_set_header_page(env, (ham_page_t *)18);
-        CPPUNIT_ASSERT(env_get_header_page(env)==(ham_page_t *)18);
+        BFC_ASSERT(env_get_header_page(env)==(ham_page_t *)18);
         env_set_header_page(env, 0);
 
-        CPPUNIT_ASSERT(env_get_txn(env)==0);
+        BFC_ASSERT(env_get_txn(env)==0);
         env_set_txn(env, (ham_txn_t *)19);
-        CPPUNIT_ASSERT(env_get_txn(env)==(ham_txn_t *)19);
+        BFC_ASSERT(env_get_txn(env)==(ham_txn_t *)19);
         env_set_txn(env, 0);
 
-        CPPUNIT_ASSERT(env_get_extkey_cache(env)==0);
+        BFC_ASSERT(env_get_extkey_cache(env)==0);
         env_set_extkey_cache(env, (extkey_cache_t *)20);
-        CPPUNIT_ASSERT(env_get_extkey_cache(env)==(extkey_cache_t *)20);
+        BFC_ASSERT(env_get_extkey_cache(env)==(extkey_cache_t *)20);
 
-        CPPUNIT_ASSERT(env_get_rt_flags(env)==0);
+        BFC_ASSERT(env_get_rt_flags(env)==0);
         env_set_rt_flags(env, 21);
-        CPPUNIT_ASSERT(env_get_rt_flags(env)==21);
+        BFC_ASSERT(env_get_rt_flags(env)==21);
 
-        CPPUNIT_ASSERT(env_get_list(env)==0);
+        BFC_ASSERT(env_get_list(env)==0);
         env_set_list(env, (ham_db_t *)22);
-        CPPUNIT_ASSERT(env_get_list(env)==(ham_db_t *)22);
+        BFC_ASSERT(env_get_list(env)==(ham_db_t *)22);
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void newDeleteTest(void)
     {
         ham_env_t *env;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_env_new(0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_env_delete(0));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_env_new(0));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_env_delete(0));
     }
 
     void createCloseTest(void)
     {
         ham_env_t *env;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_close(0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void createCloseOpenCloseTest(void)
     {
         ham_env_t *env;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, ".test", 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_open(env, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void createCloseOpenCloseWithDatabasesTest(void)
@@ -184,38 +187,38 @@ public:
         ham_env_t *env;
         ham_db_t *db;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_create_db(0, db, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_create_db(env, 0, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_ALREADY_EXISTS,
+        BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
+        BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_EXISTS,
                 ham_env_create_db(env, db, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_open_db(0, db, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_open_db(env, 0, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_open_db(env, db, 333, 0, (ham_parameter_t *)0x13));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN,
+        BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
+        BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN,
                 ham_env_open_db(env, db, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, ".test", 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_open(env, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
 
     void autoCleanupTest(void)
@@ -224,20 +227,20 @@ public:
         ham_db_t *db[3];
         ham_cursor_t *c[5];
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         for (int i=0; i<3; i++)
-            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
+            BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
         for (int i=0; i<3; i++)
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], i+1, 0, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], i+1, 0, 0));
         for (int i=0; i<5; i++)
-            CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(db[0], 0, 0, &c[i]));
+            BFC_ASSERT_EQUAL(0, ham_cursor_create(db[0], 0, 0, &c[i]));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
         for (int i=0; i<3; i++)
-            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
     }
 
     void autoCleanup2Test(void)
@@ -245,17 +248,17 @@ public:
         ham_env_t *env;
         ham_db_t *db;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db, 1, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 1, 0, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
 
     void readOnlyTest(void)
@@ -268,35 +271,35 @@ public:
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, ".test", HAM_READ_ONLY));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_open(env, ".test", HAM_READ_ONLY));
+        BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
-        CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
+        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
                 ham_env_create_db(env, db, 444, 0, 0));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
                 ham_insert(db, 0, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
                 ham_erase(db, 0, &key, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
                 ham_cursor_overwrite(cursor, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
                 ham_cursor_insert(cursor, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
                 ham_cursor_erase(cursor, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_delete(db);
         ham_env_delete(env);
     }
@@ -306,29 +309,29 @@ public:
         ham_env_t *env;
         ham_parameter_t ps[]={{HAM_PARAM_PAGESIZE,   1024*128}, {0, 0}};
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0,
                 ham_env_create_ex(env, ".test", m_flags, 0644, &ps[0]));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0,
                 ham_env_open(env, ".test", m_flags));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void openFailCloseTest(void)
     {
         ham_env_t *env;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, 
                 ham_env_open(env, "xxxxxx...", 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void openWithKeysizeTest(void)
@@ -339,15 +342,15 @@ public:
            { 0, 0ull }
         };
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_open_ex(0, ".test", m_flags, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_open_ex(env, ".test", m_flags, &parameters[0]));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void createWithKeysizeTest(void)
@@ -360,13 +363,13 @@ public:
            { 0, 0ull }
         };
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_create_ex(env, ".test", m_flags, 0644, &parameters[0]));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void createDbWithKeysizeTest(void)
@@ -385,21 +388,21 @@ public:
            { 0, 0ull }
         };
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0644));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0644));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_env_create_db(env, db, 333, 0, parameters));
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 333, 0, parameters2));
-        CPPUNIT_ASSERT_EQUAL((ham_u16_t)64, db_get_keysize(db));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+        BFC_ASSERT_EQUAL((ham_u16_t)64, db_get_keysize(db));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void disableVarkeyTests(void)
@@ -419,29 +422,29 @@ public:
         rec.size=(ham_u16_t)strlen((char *)rec.data);
 
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0644));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0644));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
 
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 333, HAM_DISABLE_VAR_KEYLEN, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
+        BFC_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
                 ham_insert(db, 0, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
-            CPPUNIT_ASSERT_EQUAL(0, 
+            BFC_ASSERT_EQUAL(0, 
                     ham_env_open_db(env, db, 333, HAM_DISABLE_VAR_KEYLEN, 0));
-            CPPUNIT_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
+            BFC_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
                     ham_insert(db, 0, &key, &rec, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+            BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void multiDbTest(void)
@@ -450,28 +453,28 @@ public:
         ham_env_t *env;
         ham_db_t *db[10];
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
 
         for (i=0; i<10; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
         }
 
         for (i=0; i<10; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void multiDbTest2(void)
@@ -480,28 +483,28 @@ public:
         ham_env_t *env;
         ham_db_t *db[10];
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
 
         for (i=0; i<10; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
         }
 
         for (i=0; i<10; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
         }
 
         for (i=0; i<10; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void multiDbInsertFindTest(void)
@@ -514,12 +517,12 @@ public:
         ham_record_t rec;
         ham_key_t key;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
 
             for (int j=0; j<MAX_ITEMS; j++) {
@@ -531,7 +534,7 @@ public:
                 rec.data=&value;
                 rec.size=sizeof(value);
 
-                CPPUNIT_ASSERT_EQUAL(0, ham_insert(db[i], 0, &key, &rec, 0));
+                BFC_ASSERT_EQUAL(0, ham_insert(db[i], 0, &key, &rec, 0));
             }
         }
 
@@ -543,16 +546,16 @@ public:
                 key.data=(void *)&value;
                 key.size=sizeof(value);
 
-                CPPUNIT_ASSERT_EQUAL(0, ham_find(db[i], 0, &key, &rec, 0));
-                CPPUNIT_ASSERT_EQUAL(value, *(int *)key.data);
-                CPPUNIT_ASSERT_EQUAL((ham_u16_t)sizeof(value), key.size);
+                BFC_ASSERT_EQUAL(0, ham_find(db[i], 0, &key, &rec, 0));
+                BFC_ASSERT_EQUAL(value, *(int *)key.data);
+                BFC_ASSERT_EQUAL((ham_u16_t)sizeof(value), key.size);
             }
         }
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
             for (i=0; i<MAX_DB; i++) {
-                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-                CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
+                BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+                BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                             (ham_u16_t)i+1, 0, 0));
                 for (int j=0; j<MAX_ITEMS; j++) {
                     int value=j*(i+1);
@@ -561,20 +564,20 @@ public:
                     key.data=(void *)&value;
                     key.size=sizeof(value);
     
-                    CPPUNIT_ASSERT_EQUAL(0, ham_find(db[i], 0, &key, &rec, 0));
-                    CPPUNIT_ASSERT_EQUAL(value, *(int *)key.data);
-                    CPPUNIT_ASSERT_EQUAL((ham_u16_t)sizeof(value), key.size);
+                    BFC_ASSERT_EQUAL(0, ham_find(db[i], 0, &key, &rec, 0));
+                    BFC_ASSERT_EQUAL(value, *(int *)key.data);
+                    BFC_ASSERT_EQUAL((ham_u16_t)sizeof(value), key.size);
                 }
             }
         }
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void multiDbInsertFindExtendedTest(void)
@@ -588,12 +591,12 @@ public:
         ham_key_t key;
         char buffer[512];
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
 
             for (int j=0; j<MAX_ITEMS; j++) {
@@ -607,7 +610,7 @@ public:
                 rec.size=sizeof(buffer);
                 sprintf(buffer, "%08x%08x", j, i+1);
 
-                CPPUNIT_ASSERT_EQUAL(0, ham_insert(db[i], 0, &key, &rec, 0));
+                BFC_ASSERT_EQUAL(0, ham_insert(db[i], 0, &key, &rec, 0));
             }
         }
 
@@ -621,16 +624,16 @@ public:
                 key.size=sizeof(buffer);
                 sprintf(buffer, "%08x%08x", j, i+1);
 
-                CPPUNIT_ASSERT_EQUAL(0, ham_find(db[i], 0, &key, &rec, 0));
-                CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(buffer), rec.size);
-                CPPUNIT_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
+                BFC_ASSERT_EQUAL(0, ham_find(db[i], 0, &key, &rec, 0));
+                BFC_ASSERT_EQUAL((ham_size_t)sizeof(buffer), rec.size);
+                BFC_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
             }
         }
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
             for (i=0; i<MAX_DB; i++) {
-                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-                CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
+                BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+                BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                             (ham_u16_t)i+1, 0, 0));
                 for (int j=0; j<MAX_ITEMS; j++) {
                     int value=j*(i+1);
@@ -641,20 +644,20 @@ public:
                     key.size=sizeof(buffer);
                     sprintf(buffer, "%08x%08x", j, i+1);
     
-                    CPPUNIT_ASSERT_EQUAL(0, ham_find(db[i], 0, &key, &rec, 0));
-                    CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(buffer), rec.size);
-                    CPPUNIT_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
+                    BFC_ASSERT_EQUAL(0, ham_find(db[i], 0, &key, &rec, 0));
+                    BFC_ASSERT_EQUAL((ham_size_t)sizeof(buffer), rec.size);
+                    BFC_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
                 }
             }
         }
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void multiDbInsertFindExtendedEraseTest(void)
@@ -668,12 +671,12 @@ public:
         ham_key_t key;
         char buffer[512];
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
 
             for (int j=0; j<MAX_ITEMS; j++) {
@@ -687,7 +690,7 @@ public:
                 rec.size=sizeof(buffer);
                 sprintf(buffer, "%08x%08x", j, i+1);
 
-                CPPUNIT_ASSERT_EQUAL(0, ham_insert(db[i], 0, &key, &rec, 0));
+                BFC_ASSERT_EQUAL(0, ham_insert(db[i], 0, &key, &rec, 0));
             }
         }
 
@@ -701,9 +704,9 @@ public:
                 key.size=sizeof(buffer);
                 sprintf(buffer, "%08x%08x", j, i+1);
 
-                CPPUNIT_ASSERT_EQUAL(0, ham_find(db[i], 0, &key, &rec, 0));
-                CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(buffer), rec.size);
-                CPPUNIT_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
+                BFC_ASSERT_EQUAL(0, ham_find(db[i], 0, &key, &rec, 0));
+                BFC_ASSERT_EQUAL((ham_size_t)sizeof(buffer), rec.size);
+                BFC_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
             }
         }
 
@@ -717,14 +720,14 @@ public:
                 key.size=sizeof(buffer);
                 sprintf(buffer, "%08x%08x", j, i+1);
 
-                CPPUNIT_ASSERT_EQUAL(0, ham_erase(db[i], 0, &key, 0));
+                BFC_ASSERT_EQUAL(0, ham_erase(db[i], 0, &key, 0));
             }
         }
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
             for (i=0; i<MAX_DB; i++) {
-                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-                CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
+                BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+                BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                             (ham_u16_t)i+1, 0, 0));
                 for (int j=0; j<MAX_ITEMS; j++) {
                     int value=j*(i+1);
@@ -736,15 +739,15 @@ public:
                     sprintf(buffer, "%08x%08x", j, i+1);
     
                     if (j&1) { // must exist
-                        CPPUNIT_ASSERT_EQUAL(0, 
+                        BFC_ASSERT_EQUAL(0, 
                                 ham_find(db[i], 0, &key, &rec, 0));
-                        CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(buffer), 
+                        BFC_ASSERT_EQUAL((ham_size_t)sizeof(buffer), 
                                 rec.size);
-                        CPPUNIT_ASSERT_EQUAL(0, 
+                        BFC_ASSERT_EQUAL(0, 
                                 memcmp(buffer, rec.data, rec.size));
                     }
                     else { // was deleted
-                        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                                 ham_find(db[i], 0, &key, &rec, 0));
                     }
                 }
@@ -752,12 +755,12 @@ public:
         }
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void multiDbInsertCursorTest(void)
@@ -772,14 +775,14 @@ public:
         ham_key_t key;
         char buffer[512];
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(db[i], 0, 0, &cursor[i]));
+            BFC_ASSERT_EQUAL(0, ham_cursor_create(db[i], 0, 0, &cursor[i]));
 
             for (int j=0; j<MAX_ITEMS; j++) {
                 memset(&key, 0, sizeof(key));
@@ -790,7 +793,7 @@ public:
                 rec.data=buffer;
                 rec.size=(ham_u16_t)strlen(buffer)+1;
 
-                CPPUNIT_ASSERT_EQUAL(0, ham_cursor_insert(cursor[i], 
+                BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor[i], 
                             &key, &rec, 0));
             }
         }
@@ -799,18 +802,18 @@ public:
             memset(&key, 0, sizeof(key));
             memset(&rec, 0, sizeof(rec));
 
-            CPPUNIT_ASSERT_EQUAL(0, ham_cursor_move(cursor[i], &key, 
+            BFC_ASSERT_EQUAL(0, ham_cursor_move(cursor[i], &key, 
                         &rec, HAM_CURSOR_FIRST));
             sprintf(buffer, "%08x%08x", 0, i+1);
-            CPPUNIT_ASSERT_EQUAL((ham_size_t)strlen(buffer)+1, rec.size);
-            CPPUNIT_ASSERT_EQUAL(0, strcmp(buffer, (char *)rec.data));
+            BFC_ASSERT_EQUAL((ham_size_t)strlen(buffer)+1, rec.size);
+            BFC_ASSERT_EQUAL(0, strcmp(buffer, (char *)rec.data));
 
             for (int j=1; j<MAX_ITEMS; j++) {
-                CPPUNIT_ASSERT_EQUAL(0, ham_cursor_move(cursor[i], &key, 
+                BFC_ASSERT_EQUAL(0, ham_cursor_move(cursor[i], &key, 
                         &rec, HAM_CURSOR_NEXT));
                 sprintf(buffer, "%08x%08x", j, i+1);
-                CPPUNIT_ASSERT_EQUAL((ham_size_t)strlen(buffer)+1, rec.size);
-                CPPUNIT_ASSERT_EQUAL(0, strcmp(buffer, (char *)rec.data));
+                BFC_ASSERT_EQUAL((ham_size_t)strlen(buffer)+1, rec.size);
+                BFC_ASSERT_EQUAL(0, strcmp(buffer, (char *)rec.data));
             }
         }
 
@@ -822,18 +825,18 @@ public:
                 key.data=buffer;
                 key.size=(ham_u16_t)strlen(buffer)+1;
 
-                CPPUNIT_ASSERT_EQUAL(0, ham_cursor_find(cursor[i], &key, 0));
-                CPPUNIT_ASSERT_EQUAL(0, ham_cursor_erase(cursor[i], 0));
+                BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor[i], &key, 0));
+                BFC_ASSERT_EQUAL(0, ham_cursor_erase(cursor[i], 0));
             }
         }
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
             for (i=0; i<MAX_DB; i++) {
-                CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor[i]));
-                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-                CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
+                BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor[i]));
+                BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+                BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                             (ham_u16_t)i+1, 0, 0));
-                CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(db[i], 0, 
+                BFC_ASSERT_EQUAL(0, ham_cursor_create(db[i], 0, 
                             0, &cursor[i]));
                 for (int j=0; j<MAX_ITEMS; j++) {
                     memset(&key, 0, sizeof(key));
@@ -843,17 +846,17 @@ public:
                     key.size=(ham_u16_t)strlen(buffer)+1;
     
                     if (j&1) { // must exist
-                        CPPUNIT_ASSERT_EQUAL(0, 
+                        BFC_ASSERT_EQUAL(0, 
                                 ham_cursor_find(cursor[i], &key, 0));
-                        CPPUNIT_ASSERT_EQUAL(0, 
+                        BFC_ASSERT_EQUAL(0, 
                                 ham_cursor_move(cursor[i], 0, &rec, 0));
-                        CPPUNIT_ASSERT_EQUAL((ham_size_t)strlen(buffer)+1, 
+                        BFC_ASSERT_EQUAL((ham_size_t)strlen(buffer)+1, 
                                 rec.size);
-                        CPPUNIT_ASSERT_EQUAL(0, 
+                        BFC_ASSERT_EQUAL(0, 
                                 strcmp(buffer, (char *)rec.data));
                     }
                     else { // was deleted
-                        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                                 ham_cursor_find(cursor[i], &key, 0));
                     }
                 }
@@ -861,13 +864,13 @@ public:
         }
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor[i]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+            BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor[i]));
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void multiDbInsertFindExtendedCloseReopenTest(void)
@@ -881,12 +884,12 @@ public:
         ham_key_t key;
         char buffer[512];
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
         }
 
@@ -902,17 +905,17 @@ public:
                 rec.size=sizeof(buffer);
                 sprintf(buffer, "%08x%08x", j, i+1);
 
-                CPPUNIT_ASSERT_EQUAL(0, ham_insert(db[i], 0, &key, &rec, 0));
+                BFC_ASSERT_EQUAL(0, ham_insert(db[i], 0, &key, &rec, 0));
             }
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
         }
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, ".test", m_flags));
+            BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_open(env, ".test", m_flags));
 
             for (i=0; i<MAX_DB; i++) {
-                CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
+                BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                             (ham_u16_t)i+1, 0, 0));
                 for (int j=0; j<MAX_ITEMS; j++) {
                     int value=j*(i+1);
@@ -923,23 +926,23 @@ public:
                     key.size=sizeof(buffer);
                     sprintf(buffer, "%08x%08x", j, i+1);
     
-                    CPPUNIT_ASSERT_EQUAL(0, ham_find(db[i], 0, &key, &rec, 0));
-                    CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(buffer), rec.size);
-                    CPPUNIT_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
+                    BFC_ASSERT_EQUAL(0, ham_find(db[i], 0, &key, &rec, 0));
+                    BFC_ASSERT_EQUAL((ham_size_t)sizeof(buffer), rec.size);
+                    BFC_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
                 }
             }
 
             for (i=0; i<MAX_DB; i++) {
-                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
+                BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
             }
         }
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void renameOpenDatabases(void)
@@ -949,53 +952,53 @@ public:
         ham_env_t *env;
         ham_db_t *db[MAX_DB];
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
         }
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_rename_db(0, 1, 2, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_rename_db(env, 0, 2, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_rename_db(env, 1, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_rename_db(env, 1, 0xffff, 0));
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0,
                 ham_env_rename_db(env, 1, 1, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_ALREADY_EXISTS,
+        BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_EXISTS,
                 ham_env_rename_db(env, 1, 5, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND,
+        BFC_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND,
                 ham_env_rename_db(env, 1000, 20, 0));
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_rename_db(env, 
+            BFC_ASSERT_EQUAL(0, ham_env_rename_db(env, 
                         (ham_u16_t)i+1, (ham_u16_t)i+1000, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
         }
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
             for (i=0; i<MAX_DB; i++) {
-                CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
+                BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                             (ham_u16_t)i+1000, 0, 0));
             }
 
             for (i=0; i<MAX_DB; i++) {
-                CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
+                BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
             }
         }
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void renameClosedDatabases(void)
@@ -1005,30 +1008,30 @@ public:
         ham_env_t *env;
         ham_db_t *db[MAX_DB];
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
         }
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_rename_db(env, 
+            BFC_ASSERT_EQUAL(0, ham_env_rename_db(env, 
                         (ham_u16_t)i+1, (ham_u16_t)i+1000, 0));
         }
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db[i], 
                         (ham_u16_t)i+1000, 0, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void eraseOpenDatabases(void)
@@ -1038,35 +1041,37 @@ public:
         ham_env_t *env;
         ham_db_t *db[MAX_DB];
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
         }
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                         ham_env_erase_db(0, (ham_u16_t)i+1, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                         ham_env_erase_db(env, 0, 0));
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN, 
+            BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN, 
                             ham_env_erase_db(env, (ham_u16_t)i+1, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
-            if (m_flags&HAM_IN_MEMORY_DB)
-                CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
+            if (m_flags&HAM_IN_MEMORY_DB) {
+                BFC_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
                         ham_env_erase_db(env, (ham_u16_t)i+1, 0));
-            else
-                CPPUNIT_ASSERT_EQUAL(0, 
+            }
+            else {
+                BFC_ASSERT_EQUAL(0, 
                         ham_env_erase_db(env, (ham_u16_t)i+1, 0));
+            }
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void eraseUnknownDatabases(void)
@@ -1076,26 +1081,26 @@ public:
         ham_env_t *env;
         ham_db_t *db[MAX_DB];
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
         }
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
+            BFC_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
                             ham_env_erase_db(env, (ham_u16_t)i+1000, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-            CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
                             ham_env_erase_db(env, (ham_u16_t)i+1000, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void eraseMultipleDatabases(void)
@@ -1109,12 +1114,12 @@ public:
         ham_key_t key;
         char buffer[512];
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
             for (j=0; j<MAX_ITEMS; j++) {
                 memset(&key, 0, sizeof(key));
@@ -1125,23 +1130,23 @@ public:
                 rec.data=buffer;
                 rec.size=sizeof(buffer);
 
-                CPPUNIT_ASSERT_EQUAL(0, ham_insert(db[i], 0, &key, &rec, 0));
+                BFC_ASSERT_EQUAL(0, ham_insert(db[i], 0, &key, &rec, 0));
             }
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
         }
 
         for (i=0; i<MAX_DB; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_erase_db(env, (ham_u16_t)i+1, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_erase_db(env, (ham_u16_t)i+1, 0));
         }
 
         for (i=0; i<10; i++) {
-            CPPUNIT_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
+            BFC_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
                             ham_env_open_db(env, db[i], (ham_u16_t)i+1, 0, 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void endianTestOpenDatabase(void)
@@ -1149,25 +1154,25 @@ public:
         ham_env_t *env;
         ham_db_t *db;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
 
         // created by running sample env2
 #if HAM_LITTLE_ENDIAN
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, 
+        BFC_ASSERT_EQUAL(0, ham_env_open(env, 
                     "data/env-endian-test-open-database-be.hdb", 0));
 #else
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env, 
+        BFC_ASSERT_EQUAL(0, ham_env_open(env, 
                     "data/env-endian-test-open-database-le.hdb", 0));
 #endif
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 1, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env, db, 2, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 1, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 2, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void limitsReachedTest(void)
@@ -1177,27 +1182,27 @@ public:
         ham_env_t *env;
         ham_db_t *db[MAX_DB];
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
 
         for (i=0; i<MAX_DB-1; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
-        CPPUNIT_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
+        BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
                 ham_env_create_db(env, db[i], (ham_u16_t)i+1, 0, 0));
 
         for (i=0; i<MAX_DB-1; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void createEnvOpenDbTest(void)
@@ -1205,15 +1210,15 @@ public:
         ham_env_t *env;
         ham_db_t *db;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
-        CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, 
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(HAM_IO_ERROR, 
                 ham_open(db, ".test", m_flags));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
     
     void createFullEnvOpenDbTest(void)
@@ -1221,20 +1226,20 @@ public:
         ham_env_t *env;
         ham_db_t *db;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 111, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
 
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 ham_open(db, ".test", m_flags));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
 
     void createFullEnvOpenSecondDbTest(void)
@@ -1242,25 +1247,25 @@ public:
         ham_env_t *env;
         ham_db_t *db;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 111, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 222, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, 
                 ham_env_erase_db(env, 111, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
 
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 ham_open(db, ".test", m_flags));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
 
     void getDatabaseNamesTest(void)
@@ -1270,72 +1275,72 @@ public:
         ham_u16_t names[5];
         ham_size_t names_size=0;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db1));
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db2));
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db3));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_new(&db1));
+        BFC_ASSERT_EQUAL(0, ham_new(&db2));
+        BFC_ASSERT_EQUAL(0, ham_new(&db3));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                         ham_env_get_database_names(0, names, &names_size));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                         ham_env_get_database_names(env, 0, &names_size));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                         ham_env_get_database_names(env, names, 0));
 
         names_size=1;
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0,
                         ham_env_get_database_names(env, names, &names_size));
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)0, names_size);
+        BFC_ASSERT_EQUAL((ham_size_t)0, names_size);
 
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db1, 111, 0, 0));
         names_size=0;
-        CPPUNIT_ASSERT_EQUAL(HAM_LIMITS_REACHED,
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED,
                         ham_env_get_database_names(env, names, &names_size));
 
         names_size=1;
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0,
                         ham_env_get_database_names(env, names, &names_size));
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)1, names_size);
-        CPPUNIT_ASSERT_EQUAL((ham_u16_t)111, names[0]);
+        BFC_ASSERT_EQUAL((ham_size_t)1, names_size);
+        BFC_ASSERT_EQUAL((ham_u16_t)111, names[0]);
 
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db2, 222, 0, 0));
         names_size=1;
-        CPPUNIT_ASSERT_EQUAL(HAM_LIMITS_REACHED,
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED,
                         ham_env_get_database_names(env, names, &names_size));
 
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db3, 333, 0, 0));
         names_size=5;
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0,
                         ham_env_get_database_names(env, names, &names_size));
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)3, names_size);
-        CPPUNIT_ASSERT_EQUAL((ham_u16_t)111, names[0]);
-        CPPUNIT_ASSERT_EQUAL((ham_u16_t)222, names[1]);
-        CPPUNIT_ASSERT_EQUAL((ham_u16_t)333, names[2]);
+        BFC_ASSERT_EQUAL((ham_size_t)3, names_size);
+        BFC_ASSERT_EQUAL((ham_u16_t)111, names[0]);
+        BFC_ASSERT_EQUAL((ham_u16_t)222, names[1]);
+        BFC_ASSERT_EQUAL((ham_u16_t)333, names[2]);
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db2, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db2, 0));
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
-            CPPUNIT_ASSERT_EQUAL(0, 
+            BFC_ASSERT_EQUAL(0, 
                     ham_env_erase_db(env, 222, 0));
             names_size=5;
-            CPPUNIT_ASSERT_EQUAL(0,
+            BFC_ASSERT_EQUAL(0,
                         ham_env_get_database_names(env, names, &names_size));
-            CPPUNIT_ASSERT_EQUAL((ham_size_t)2, names_size);
-            CPPUNIT_ASSERT_EQUAL((ham_u16_t)111, names[0]);
-            CPPUNIT_ASSERT_EQUAL((ham_u16_t)333, names[1]);
+            BFC_ASSERT_EQUAL((ham_size_t)2, names_size);
+            BFC_ASSERT_EQUAL((ham_u16_t)111, names[0]);
+            BFC_ASSERT_EQUAL((ham_u16_t)333, names[1]);
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db1, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db3, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db1));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db2));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db3));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_close(db1, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db3, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(db1));
+        BFC_ASSERT_EQUAL(0, ham_delete(db2));
+        BFC_ASSERT_EQUAL(0, ham_delete(db3));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void maxDatabasesTest(void)
@@ -1343,39 +1348,39 @@ public:
         ham_env_t *env;
         ham_parameter_t ps[]={{HAM_PARAM_MAX_ENV_DATABASES,   0}, {0, 0}};
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
         ps[0].value=0;
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_create_ex(env, ".test", m_flags, 0664, ps));
 
         ps[0].value=5;
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0,
                 ham_env_create_ex(env, ".test", m_flags, 0664, ps));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
         if (os_get_pagesize()==1024*16 || m_flags&HAM_IN_MEMORY_DB) {
             ps[0].value=508;
-            CPPUNIT_ASSERT_EQUAL(0,
+            BFC_ASSERT_EQUAL(0,
                     ham_env_create_ex(env, ".test", m_flags, 0664, ps));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
             ps[0].value=509;
-            CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+            BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                     ham_env_create_ex(env, ".test", m_flags, 0664, ps));
         }
         else if (os_get_pagesize()==1024*64) {
             ps[0].value=2044;
-            CPPUNIT_ASSERT_EQUAL(0,
+            BFC_ASSERT_EQUAL(0,
                     ham_env_create_ex(env, ".test", m_flags, 0664, ps));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
+            BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
             ps[0].value=2045;
-            CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+            BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                     ham_env_create_ex(env, ".test", m_flags, 0664, ps));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void maxDatabasesReopenTest(void)
@@ -1384,24 +1389,24 @@ public:
         ham_db_t *db;
         ham_parameter_t ps[]={{HAM_PARAM_MAX_ENV_DATABASES,  50}, {0, 0}};
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0,
                 ham_env_create_ex(env, ".test", m_flags, 0664, ps));
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0,
                 ham_env_create_db(env, db, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
 
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0,
                 ham_env_open(env, ".test", m_flags));
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0,
                 ham_env_open_db(env, db, 333, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(50u, db_get_max_databases(db));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+        BFC_ASSERT_EQUAL(50u, db_get_max_databases(db));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
 
     void createOpenEmptyTest(void)
@@ -1410,31 +1415,31 @@ public:
         ham_db_t *db[10];
 
         for (int i=0; i<10; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
+            BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
         }
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0,
                 ham_env_create_ex(env, ".test", m_flags, 0664, 0));
         for (int i=0; i<10; i++) {
-            CPPUNIT_ASSERT_EQUAL(0,
+            BFC_ASSERT_EQUAL(0,
                     ham_env_create_db(env, db[i], 333+i, 0, 0));
         }
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
 
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0,
                 ham_env_open(env, ".test", m_flags));
         for (int i=0; i<10; i++) {
-            CPPUNIT_ASSERT_EQUAL(0,
+            BFC_ASSERT_EQUAL(0,
                 ham_env_open_db(env, db[i], 333+i, 0, 0));
         }
         for (int i=0; i<10; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void setDeviceTest(void)
@@ -1442,15 +1447,15 @@ public:
         ham_env_t *env;
         void *dev=(void *)0x13;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_set_device(0, dev));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_set_device(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0,
                 ham_env_set_device(env, dev));
-        CPPUNIT_ASSERT_EQUAL(HAM_ALREADY_INITIALIZED,
+        BFC_ASSERT_EQUAL(HAM_ALREADY_INITIALIZED,
                 ham_env_set_device(env, dev));
 
         free(env); /* don't use ham_env_delete, because it tries to 
@@ -1461,59 +1466,58 @@ public:
 
 class InMemoryEnvTest : public EnvTest
 {
-    CPPUNIT_TEST_SUITE(InMemoryEnvTest);
-    CPPUNIT_TEST      (createCloseTest);
-    CPPUNIT_TEST      (openWithKeysizeTest);
-    CPPUNIT_TEST      (createWithKeysizeTest);
-    CPPUNIT_TEST      (createDbWithKeysizeTest);
-    CPPUNIT_TEST      (disableVarkeyTests);
-    CPPUNIT_TEST      (autoCleanupTest);
-    CPPUNIT_TEST      (autoCleanup2Test);
-    CPPUNIT_TEST      (memoryDbTest);
-    CPPUNIT_TEST      (multiDbInsertFindTest);
-    CPPUNIT_TEST      (multiDbInsertFindExtendedTest);
-    CPPUNIT_TEST      (multiDbInsertFindExtendedEraseTest);
-    CPPUNIT_TEST      (multiDbInsertCursorTest);
-    CPPUNIT_TEST      (multiDbInsertFindExtendedCloseReopenTest);
-    CPPUNIT_TEST      (renameOpenDatabases);
-    CPPUNIT_TEST      (eraseOpenDatabases);
-    CPPUNIT_TEST      (eraseUnknownDatabases);
-    CPPUNIT_TEST      (limitsReachedTest);
-    CPPUNIT_TEST      (getDatabaseNamesTest);
-    CPPUNIT_TEST      (maxDatabasesTest);
-    CPPUNIT_TEST      (setDeviceTest);
-    CPPUNIT_TEST_SUITE_END();
-
 public:
     InMemoryEnvTest()
-    :   EnvTest(HAM_IN_MEMORY_DB)
+        : EnvTest(HAM_IN_MEMORY_DB, "InMemoryEnvTest")
     {
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(InMemoryEnvTest, createCloseTest);
+        BFC_REGISTER_TEST(InMemoryEnvTest, openWithKeysizeTest);
+        BFC_REGISTER_TEST(InMemoryEnvTest, createWithKeysizeTest);
+        BFC_REGISTER_TEST(InMemoryEnvTest, createDbWithKeysizeTest);
+        BFC_REGISTER_TEST(InMemoryEnvTest, disableVarkeyTests);
+        BFC_REGISTER_TEST(InMemoryEnvTest, autoCleanupTest);
+        BFC_REGISTER_TEST(InMemoryEnvTest, autoCleanup2Test);
+        BFC_REGISTER_TEST(InMemoryEnvTest, memoryDbTest);
+        BFC_REGISTER_TEST(InMemoryEnvTest, multiDbInsertFindTest);
+        BFC_REGISTER_TEST(InMemoryEnvTest, multiDbInsertFindExtendedTest);
+        BFC_REGISTER_TEST(InMemoryEnvTest, multiDbInsertFindExtendedEraseTest);
+        BFC_REGISTER_TEST(InMemoryEnvTest, multiDbInsertCursorTest);
+        BFC_REGISTER_TEST(InMemoryEnvTest, multiDbInsertFindExtendedCloseReopenTest);
+        BFC_REGISTER_TEST(InMemoryEnvTest, renameOpenDatabases);
+        BFC_REGISTER_TEST(InMemoryEnvTest, eraseOpenDatabases);
+        BFC_REGISTER_TEST(InMemoryEnvTest, eraseUnknownDatabases);
+        BFC_REGISTER_TEST(InMemoryEnvTest, limitsReachedTest);
+        BFC_REGISTER_TEST(InMemoryEnvTest, getDatabaseNamesTest);
+        BFC_REGISTER_TEST(InMemoryEnvTest, maxDatabasesTest);
+        BFC_REGISTER_TEST(InMemoryEnvTest, setDeviceTest);
     }
 
+public:
     void memoryDbTest(void)
     {
         int i;
         ham_env_t *env;
         ham_db_t *db[10];
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", m_flags, 0664));
 
         for (i=0; i<10; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_new(&db[i]));
-            CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
+            BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
+            BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], 
                         (ham_u16_t)i+1, 0, 0));
         }
 
         for (i=0; i<10; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, ham_close(db[i], 0));
-            CPPUNIT_ASSERT_EQUAL(0, ham_delete(db[i]));
+            BFC_ASSERT_EQUAL(0, ham_close(db[i], 0));
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION(EnvTest);
-CPPUNIT_TEST_SUITE_REGISTRATION(InMemoryEnvTest);
+BFC_REGISTER_FIXTURE(EnvTest);
+BFC_REGISTER_FIXTURE(InMemoryEnvTest);

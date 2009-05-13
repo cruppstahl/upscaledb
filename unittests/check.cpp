@@ -10,19 +10,29 @@
  */
 
 #include <stdexcept>
-#include <cppunit/extensions/HelperMacros.h>
 #include <ham/hamsterdb.h>
 #include "memtracker.h"
 #include "../src/db.h"
 #include "os.hpp"
 
-class CheckIntegrityTest : public CppUnit::TestFixture
+#include "bfc-testsuite.hpp"
+
+using namespace bfc;
+
+class CheckIntegrityTest : public fixture
 {
-    CPPUNIT_TEST_SUITE(CheckIntegrityTest);
-    CPPUNIT_TEST      (emptyDatabaseTest);
-    CPPUNIT_TEST      (smallDatabaseTest);
-    CPPUNIT_TEST      (levelledDatabaseTest);
-    CPPUNIT_TEST_SUITE_END();
+public:
+    CheckIntegrityTest(ham_bool_t inmemorydb=HAM_FALSE, const char *name=0)
+        : fixture(name ? name : "CheckIntegrityTest"),
+            m_inmemory(inmemorydb)
+    {
+        if (name)
+            return;
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(CheckIntegrityTest, emptyDatabaseTest);
+        BFC_REGISTER_TEST(CheckIntegrityTest, smallDatabaseTest);
+        BFC_REGISTER_TEST(CheckIntegrityTest, levelledDatabaseTest);
+    }
 
 protected:
     ham_db_t *m_db;
@@ -30,36 +40,31 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    CheckIntegrityTest(ham_bool_t inmemorydb=HAM_FALSE)
-    :   m_inmemory(inmemorydb)
-    {
-    } 
-
-    void setUp()
+    void setup()
     { 
         os::unlink(".test");
 
-        CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
+        BFC_ASSERT((m_alloc=memtracker_new())!=0);
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", 
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, ".test", 
                     m_inmemory ? HAM_IN_MEMORY_DB : 0,
                     0644));
     }
     
-    void tearDown() 
+    void teardown() 
     { 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
+        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void emptyDatabaseTest()
     {
 #ifdef HAM_ENABLE_INTERNAL
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_check_integrity(0, 0));
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0,
                 ham_check_integrity(m_db, 0));
 #endif
     }
@@ -75,11 +80,11 @@ public:
         for (int i=0; i<5; i++) {
             key.size=sizeof(i);
             key.data=&i;
-            CPPUNIT_ASSERT_EQUAL(0, 
+            BFC_ASSERT_EQUAL(0, 
                     ham_insert(m_db, 0, &key, &rec, 0));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0,
                 ham_check_integrity(m_db, 0));
 #endif
     }
@@ -97,19 +102,19 @@ public:
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_create_ex(m_db, ".test", 
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_create_ex(m_db, ".test", 
                     m_inmemory ? HAM_IN_MEMORY_DB : 0,
                     0644, &params[0]));
 
         for (int i=0; i<100; i++) {
             key.size=sizeof(i);
             key.data=&i;
-            CPPUNIT_ASSERT_EQUAL(0, 
+            BFC_ASSERT_EQUAL(0, 
                     ham_insert(m_db, 0, &key, &rec, 0));
         }
 
-        CPPUNIT_ASSERT_EQUAL(0,
+        BFC_ASSERT_EQUAL(0,
                 ham_check_integrity(m_db, 0));
 #endif
     }
@@ -117,21 +122,20 @@ public:
 
 class InMemoryCheckIntegrityTest : public CheckIntegrityTest
 {
-    CPPUNIT_TEST_SUITE(InMemoryCheckIntegrityTest);
-    CPPUNIT_TEST      (emptyDatabaseTest);
-    CPPUNIT_TEST      (smallDatabaseTest);
-    CPPUNIT_TEST      (levelledDatabaseTest);
-    CPPUNIT_TEST_SUITE_END();
-
 public:
     InMemoryCheckIntegrityTest()
-    :   CheckIntegrityTest(HAM_TRUE)
+    :   CheckIntegrityTest(HAM_TRUE, "InMemoryCheckIntegrityTest")
     {
+        clear_tests(); // don't inherit tests
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(InMemoryCheckIntegrityTest, emptyDatabaseTest);
+        BFC_REGISTER_TEST(InMemoryCheckIntegrityTest, smallDatabaseTest);
+        BFC_REGISTER_TEST(InMemoryCheckIntegrityTest, levelledDatabaseTest);
     }
 };
 
 #ifdef HAM_ENABLE_INTERNAL
-CPPUNIT_TEST_SUITE_REGISTRATION(CheckIntegrityTest);
-CPPUNIT_TEST_SUITE_REGISTRATION(InMemoryCheckIntegrityTest);
+BFC_REGISTER_FIXTURE(CheckIntegrityTest);
+BFC_REGISTER_FIXTURE(InMemoryCheckIntegrityTest);
 #endif
 

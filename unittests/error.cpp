@@ -11,10 +11,14 @@
 
 #include <stdexcept>
 #include <cstring>
-#include <cppunit/extensions/HelperMacros.h>
+#include <cassert>
 #include <ham/hamsterdb_int.h>
 #include "memtracker.h"
 #include "../src/error.h"
+
+#include "bfc-testsuite.hpp"
+
+using namespace bfc;
 
 static void
 my_handler(int level, const char *msg)
@@ -30,7 +34,7 @@ my_handler(int level, const char *msg)
     if (!p)
         return;
     p+=2;
-    CPPUNIT_ASSERT_EQUAL(0, ::strcmp(s[i], p));
+    assert(0==::strcmp(s[i], p));
     i++;
 }
 
@@ -42,19 +46,23 @@ my_abort_handler(void)
     g_aborted=1;
 }
 
-class ErrorTest : public CppUnit::TestFixture
+class ErrorTest : public fixture
 {
-    CPPUNIT_TEST_SUITE(ErrorTest);
-    CPPUNIT_TEST      (errorHandlerTest);
-    CPPUNIT_TEST      (verifyTest);
-    CPPUNIT_TEST_SUITE_END();
+public:
+    ErrorTest()
+        : fixture("ErrorTest")
+    {
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(ErrorTest, errorHandlerTest);
+        BFC_REGISTER_TEST(ErrorTest, verifyTest);
+    }
 
 public:
-    void setUp()
+    void setup()
     { 
     }
     
-    void tearDown() 
+    void teardown() 
     { 
     }
 
@@ -72,19 +80,19 @@ public:
 
         g_aborted=0;
         ham_verify(0, ("ham_verify test 1"));
-        CPPUNIT_ASSERT_EQUAL(1, g_aborted);
+        BFC_ASSERT_EQUAL(1, g_aborted);
         g_aborted=0;
         ham_verify(1, ("ham_verify test 2"));
-        CPPUNIT_ASSERT_EQUAL(0, g_aborted);
+        BFC_ASSERT_EQUAL(0, g_aborted);
         g_aborted=0;
         ham_verify(!"expr", (0));
-        CPPUNIT_ASSERT_EQUAL(1, g_aborted);
+        BFC_ASSERT_EQUAL(1, g_aborted);
         ham_verify(!"expr", ("hello world %d", 42));
-        CPPUNIT_ASSERT_EQUAL(1, g_aborted);
+        BFC_ASSERT_EQUAL(1, g_aborted);
 
         ham_test_abort=0;
     }
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION(ErrorTest);
+BFC_REGISTER_FIXTURE(ErrorTest);
 

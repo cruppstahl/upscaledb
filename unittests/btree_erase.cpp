@@ -11,21 +11,31 @@
 
 #include <stdexcept>
 #include <cstring>
-#include <cppunit/extensions/HelperMacros.h>
 #include <ham/hamsterdb.h>
 #include "memtracker.h"
 #include "../src/db.h"
 #include "../src/version.h"
 #include "os.hpp"
 
-class EraseTest : public CppUnit::TestFixture
+#include "bfc-testsuite.hpp"
+
+using namespace bfc;
+
+class EraseTest : public fixture
 {
-    CPPUNIT_TEST_SUITE(EraseTest);
-    CPPUNIT_TEST      (collapseRootTest);
-    CPPUNIT_TEST      (shiftFromRightTest);
-    CPPUNIT_TEST      (shiftFromLeftTest);
-    CPPUNIT_TEST      (mergeWithLeftTest);
-    CPPUNIT_TEST_SUITE_END();
+public:
+    EraseTest(ham_u32_t flags=0, const char *name=0)
+        : fixture(name ? name : "EraseTest"), 
+        m_db(0), m_flags(flags), m_alloc(0)
+    {
+        if (name)
+            return;
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(EraseTest, collapseRootTest);
+        BFC_REGISTER_TEST(EraseTest, shiftFromRightTest);
+        BFC_REGISTER_TEST(EraseTest, shiftFromLeftTest);
+        BFC_REGISTER_TEST(EraseTest, mergeWithLeftTest);
+    }
 
 protected:
     ham_db_t *m_db;
@@ -33,25 +43,20 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    EraseTest(ham_u32_t flags=0)
-        : m_db(0), m_flags(flags), m_alloc(0)
-    {
-    }
-
-    void setUp()
+    void setup()
     { 
         os::unlink(".test");
-        CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
+        BFC_ASSERT((m_alloc=memtracker_new())!=0);
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0644));
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0644));
     }
     
-    void tearDown() 
+    void teardown() 
     { 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
+        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void prepare(int num_inserts)
@@ -68,8 +73,8 @@ public:
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, ".test", m_flags, 0644, &ps[0]));
 
         for (int i=0; i<num_inserts*10; i+=10) {
@@ -78,7 +83,7 @@ public:
             key.size=sizeof(i);
             rec.size=sizeof(i);
 
-            CPPUNIT_ASSERT_EQUAL(0,
+            BFC_ASSERT_EQUAL(0,
                     ham_insert(m_db, 0, &key, &rec, 0));
         }
     }
@@ -89,14 +94,14 @@ public:
 
         prepare(8);
 
-        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                 ham_erase(m_db, 0, &key, 0));
 
         for (int i=0; i<80; i+=10) {
             key.data=&i;
             key.size=sizeof(i);
 
-            CPPUNIT_ASSERT_EQUAL(0,
+            BFC_ASSERT_EQUAL(0,
                     ham_erase(m_db, 0, &key, 0));
         }
     }
@@ -111,7 +116,7 @@ public:
         key.data=&i;
         key.size=sizeof(i);
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
     }
 
     void shiftFromLeftTest() {
@@ -128,34 +133,34 @@ public:
         key.size=sizeof(i);
         rec.data=&i;
         rec.size=sizeof(i);
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
         i=22;
         key.data=&i;
         key.size=sizeof(i);
         rec.data=&i;
         rec.size=sizeof(i);
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
         i=23;
         key.data=&i;
         key.size=sizeof(i);
         rec.data=&i;
         rec.size=sizeof(i);
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
 
         i=70;
         key.data=&i;
         key.size=sizeof(i);
-        CPPUNIT_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
 
         i=60;
         key.data=&i;
         key.size=sizeof(i);
-        CPPUNIT_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
 
         i=50;
         key.data=&i;
         key.size=sizeof(i);
-        CPPUNIT_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
     }
 
     void mergeWithLeftTest() {
@@ -168,27 +173,28 @@ public:
             key.data=&i;
             key.size=sizeof(i);
 
-            CPPUNIT_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
+            BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
         }
     }
 };
 
 class InMemoryEraseTest : public EraseTest
 {
-    CPPUNIT_TEST_SUITE(EraseTest);
-    CPPUNIT_TEST      (collapseRootTest);
-    CPPUNIT_TEST      (shiftFromRightTest);
-    CPPUNIT_TEST      (shiftFromLeftTest);
-    CPPUNIT_TEST      (mergeWithLeftTest);
-    CPPUNIT_TEST_SUITE_END();
+public:
+    InMemoryEraseTest()
+        : EraseTest(HAM_IN_MEMORY_DB, "InMemoryEraseTest")
+    {
+        clear_tests(); // don't inherit tests
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(InMemoryEraseTest, collapseRootTest);
+        BFC_REGISTER_TEST(InMemoryEraseTest, shiftFromRightTest);
+        BFC_REGISTER_TEST(InMemoryEraseTest, shiftFromLeftTest);
+        BFC_REGISTER_TEST(InMemoryEraseTest, mergeWithLeftTest);
+    }
 
 public:
-    InMemoryEraseTest() 
-        : EraseTest(HAM_IN_MEMORY_DB) 
-    {
-    }
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION(EraseTest);
-CPPUNIT_TEST_SUITE_REGISTRATION(InMemoryEraseTest);
+BFC_REGISTER_FIXTURE(EraseTest);
+BFC_REGISTER_FIXTURE(InMemoryEraseTest);
 

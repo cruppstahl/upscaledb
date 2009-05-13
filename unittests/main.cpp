@@ -13,9 +13,15 @@
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
 
+#include "bfc-testsuite.hpp"
+
 #ifdef VISUAL_STUDIO
 #   include <windows.h>
 #endif
+
+using namespace bfc;
+
+testrunner *testrunner::s_instance=0;
 
 int 
 main(int argc, char **argv)
@@ -45,5 +51,11 @@ main(int argc, char **argv)
     SetCurrentDirectory(L"../unittests");
 #endif
 
-    return runner.run() ? 0 : 1;
+    if (!runner.run())
+        return (1);
+
+    unsigned r=testrunner::get_instance()->run();
+    delete testrunner::get_instance();
+
+    return (r);
 }
