@@ -9,54 +9,57 @@
  * See files COPYING.* for License information.
  */
 
-#include <cppunit/extensions/HelperMacros.h>
 #include "../src/endian.h"
+#include "bfc-testsuite.hpp"
 
-class EndianTest : public CppUnit::TestFixture
+using namespace bfc;
+
+class EndianTest : public fixture
 {
-    CPPUNIT_TEST_SUITE(EndianTest);
-    CPPUNIT_TEST      (byteswap16);
-    CPPUNIT_TEST      (byteswap32);
-    CPPUNIT_TEST      (byteswap64);
-    CPPUNIT_TEST      (byteswapTwice16);
-    CPPUNIT_TEST      (byteswapTwice32);
-    CPPUNIT_TEST      (byteswapTwice64);
-    CPPUNIT_TEST_SUITE_END();
+public:
+    EndianTest()
+    :   fixture("EndianTest")
+    {
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(EndianTest, byteswap16);
+        BFC_REGISTER_TEST(EndianTest, byteswap32);
+        BFC_REGISTER_TEST(EndianTest, byteswap64);
+        BFC_REGISTER_TEST(EndianTest, byteswapTwice16);
+        BFC_REGISTER_TEST(EndianTest, byteswapTwice32);
+        BFC_REGISTER_TEST(EndianTest, byteswapTwice64);
+    }
 
 public:
-    void setUp()    { }
-    void tearDown() { }
-
     void byteswap16() {
-        CPPUNIT_ASSERT_EQUAL(0x3412, 
+        BFC_ASSERT_EQUAL(0x3412, 
                              _ham_byteswap16(0x1234));
-        CPPUNIT_ASSERT_EQUAL(0xafbc, 
+        BFC_ASSERT_EQUAL(0xafbc, 
                              _ham_byteswap16(0xbcaf));
-        CPPUNIT_ASSERT_EQUAL(0x0000, 
+        BFC_ASSERT_EQUAL(0x0000, 
                              _ham_byteswap16(0x0000));
-        CPPUNIT_ASSERT_EQUAL(0xffff, 
+        BFC_ASSERT_EQUAL(0xffff, 
                              _ham_byteswap16(0xffff));
     }
 
     void byteswap32() {
-        CPPUNIT_ASSERT_EQUAL((unsigned int)0x78563412, 
+        BFC_ASSERT_EQUAL((unsigned int)0x78563412, 
                              _ham_byteswap32(0x12345678));
-        CPPUNIT_ASSERT_EQUAL((unsigned int)0xafbc1324, 
+        BFC_ASSERT_EQUAL((unsigned int)0xafbc1324, 
                              _ham_byteswap32(0x2413bcaf));
-        CPPUNIT_ASSERT_EQUAL((unsigned int)0x00000000, 
+        BFC_ASSERT_EQUAL((unsigned int)0x00000000, 
                              _ham_byteswap32(0x00000000));
-        CPPUNIT_ASSERT_EQUAL((unsigned int)0xffffffff, 
+        BFC_ASSERT_EQUAL((unsigned int)0xffffffff, 
                              _ham_byteswap32(0xffffffff));
     }
 
     void byteswap64() {
-        CPPUNIT_ASSERT_EQUAL((unsigned long long)0x3210cba987654321ull, 
+        BFC_ASSERT_EQUAL((unsigned long long)0x3210cba987654321ull, 
                              _ham_byteswap64(0x21436587a9cb1032ull));
-        CPPUNIT_ASSERT_EQUAL((unsigned long long)0xafbc132423abcf09ull, 
+        BFC_ASSERT_EQUAL((unsigned long long)0xafbc132423abcf09ull, 
                              _ham_byteswap64(0x09cfab232413bcafull));
-        CPPUNIT_ASSERT_EQUAL((unsigned long long)0x0000000000000000ull, 
+        BFC_ASSERT_EQUAL((unsigned long long)0x0000000000000000ull, 
                              _ham_byteswap64(0x0000000000000000ull));
-        CPPUNIT_ASSERT_EQUAL((unsigned long long)0xffffffffffffffffull, 
+        BFC_ASSERT_EQUAL((unsigned long long)0xffffffffffffffffull, 
                              _ham_byteswap64(0xffffffffffffffffull));
     }
 
@@ -65,7 +68,7 @@ public:
         for (int i=0; i<4; i++) {
             orig=d[i];
             swapped=_ham_byteswap16(orig);
-            CPPUNIT_ASSERT_EQUAL(orig, 
+            BFC_ASSERT_EQUAL(orig, 
                         (unsigned short)_ham_byteswap16(swapped));
         }
     }
@@ -75,7 +78,7 @@ public:
         for (int i=0; i<4; i++) {
             orig=d[i];
             swapped=_ham_byteswap32(orig);
-            CPPUNIT_ASSERT_EQUAL(orig, 
+            BFC_ASSERT_EQUAL(orig, 
                         (unsigned int)_ham_byteswap32(swapped));
         }
     }
@@ -86,11 +89,11 @@ public:
         for (int i=0; i<4; i++) {
             orig=d[i];
             swapped=_ham_byteswap64(orig);
-            CPPUNIT_ASSERT_EQUAL(orig, 
+            BFC_ASSERT_EQUAL(orig, 
                         (unsigned long long)_ham_byteswap64(swapped));
         }
     }
 
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION(EndianTest);
+BFC_REGISTER_FIXTURE(EndianTest);

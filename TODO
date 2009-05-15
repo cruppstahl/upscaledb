@@ -7,31 +7,22 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-. hamsterdb.com web page
-    . use same font as tutorial?
-    . add RSS/Atom feed
-    . add Google sitemap
-    . add documentation for Java
-    . add documentation for .NET (chm file)
+x tutorial (and header file as well?) - default compare is descending, not
+    ascending
 
 o tutorial (and header file as well?) - document that set_compare_func must
     be PRIOR to ham_env_create/open (throw an error?) -- see email conversation
 
-x tutorial (and header file as well?) - default compare is descending, not
-    ascending
-
-. unittests: get rid of cppunit, move to bfc
-    o update configure.in
+o unittests: get rid of cppunit, move to bfc
+    x update unittests
     o update win32 project file
     o update wince project file
-    o update hamsterdb-alien
+    . update hamsterdb-alien
     o finally run tests in win64
     o finally run tests in wince
 
-o enhance java/python/.NET for transactions
+. enhance java/python/.NET for transactions
     o update README file(s) with new address
-
----- release 1.0.6 ----------------
 
 . enhance acceptance tests - will need new test scripts
     TXN_BEGIN 1  (1 is the txn id)

@@ -1,3 +1,10 @@
+Mar 05, 2009 - chris ---------------------------------------------------
+                      release of hamsterdb-1.0.9
+
+May 13, 2009 - chris 
+o removed the dependency to cppunit (replaced it with my own tiny acceptance
+    test framework)
+
 May 12, 2009 - chris 
 o fixed segmentation fault when using a Cursor to iterate over all keys
     and the record parameter is NULL and compression is enabled, then

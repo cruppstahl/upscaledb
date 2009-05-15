@@ -11,7 +11,6 @@
 
 #include <stdexcept>
 #include <cstring>
-#include <cppunit/extensions/HelperMacros.h>
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
 #include "../src/btree.h"
@@ -20,74 +19,82 @@
 #include "os.hpp"
 #include "memtracker.h"
 
-class KeyTest : public CppUnit::TestFixture
+#include "bfc-testsuite.hpp"
+
+using namespace bfc;
+
+class KeyTest : public fixture
 {
-    CPPUNIT_TEST_SUITE(KeyTest);
-    CPPUNIT_TEST      (structureTest);
-    CPPUNIT_TEST      (extendedRidTest);
-    CPPUNIT_TEST      (endianTest);
-    CPPUNIT_TEST      (getSetExtendedKeyTest);
-    CPPUNIT_TEST      (setRecordTest);
-    CPPUNIT_TEST      (overwriteRecordTest);
-    CPPUNIT_TEST      (duplicateRecordTest);
-    CPPUNIT_TEST      (eraseRecordTest);
-    CPPUNIT_TEST      (eraseDuplicateRecordTest);
-    CPPUNIT_TEST      (eraseAllDuplicateRecordTest);
-    CPPUNIT_TEST_SUITE_END();
+public:
+    KeyTest()
+    :   fixture("KeyTest")
+    {
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(KeyTest, structureTest);
+        BFC_REGISTER_TEST(KeyTest, extendedRidTest);
+        BFC_REGISTER_TEST(KeyTest, endianTest);
+        BFC_REGISTER_TEST(KeyTest, getSetExtendedKeyTest);
+        BFC_REGISTER_TEST(KeyTest, setRecordTest);
+        BFC_REGISTER_TEST(KeyTest, overwriteRecordTest);
+        BFC_REGISTER_TEST(KeyTest, duplicateRecordTest);
+        BFC_REGISTER_TEST(KeyTest, eraseRecordTest);
+        BFC_REGISTER_TEST(KeyTest, eraseDuplicateRecordTest);
+        BFC_REGISTER_TEST(KeyTest, eraseAllDuplicateRecordTest);
+    }
 
 protected:
     ham_db_t *m_db;
     memtracker_t *m_alloc;
 
 public:
-    void setUp()
+    void setup()
     { 
         os::unlink(".test");
 
-        CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
+        BFC_ASSERT((m_alloc=memtracker_new())!=0);
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", 0, 0644));
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, ".test", 0, 0644));
     }
     
-    void tearDown() 
+    void teardown() 
     { 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
+        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void structureTest(void)
     {
         ham_page_t *page=page_new(m_db);
-        CPPUNIT_ASSERT(page!=0);
-        CPPUNIT_ASSERT_EQUAL(0, page_alloc(page, db_get_pagesize(m_db)));
+        BFC_ASSERT(page!=0);
+        BFC_ASSERT_EQUAL(0, page_alloc(page, db_get_pagesize(m_db)));
         btree_node_t *node=ham_page_get_btree_node(page);
         ::memset(node, 0, db_get_usable_pagesize(m_db));
 
         int_key_t *key=btree_node_get_key(m_db, node, 0);
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(key));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(key));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)'\0', *key_get_key(key));
+        BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(key));
+        BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(key));
+        BFC_ASSERT_EQUAL((ham_u8_t)'\0', *key_get_key(key));
 
         key_set_ptr(key, (ham_offset_t)0x12345);
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0x12345, key_get_ptr(key));
+        BFC_ASSERT_EQUAL((ham_offset_t)0x12345, key_get_ptr(key));
 
         key_set_flags(key, (ham_u8_t)0x13);
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)0x13, key_get_flags(key));
+        BFC_ASSERT_EQUAL((ham_u8_t)0x13, key_get_flags(key));
 
         ::strcpy((char *)key_get_key(key), "abc");
-        CPPUNIT_ASSERT_EQUAL(0, ::strcmp((char *)key_get_key(key), "abc"));
+        BFC_ASSERT_EQUAL(0, ::strcmp((char *)key_get_key(key), "abc"));
 
-        CPPUNIT_ASSERT_EQUAL(0, page_free(page));
+        BFC_ASSERT_EQUAL(0, page_free(page));
         page_delete(page);
     }
 
     void extendedRidTest(void)
     {
         ham_page_t *page=page_new(m_db);
-        CPPUNIT_ASSERT(page!=0);
-        CPPUNIT_ASSERT_EQUAL(0, page_alloc(page, db_get_pagesize(m_db)));
+        BFC_ASSERT(page!=0);
+        BFC_ASSERT_EQUAL(0, page_alloc(page, db_get_pagesize(m_db)));
         btree_node_t *node=ham_page_get_btree_node(page);
         ::memset(node, 0, db_get_usable_pagesize(m_db));
 
@@ -95,13 +102,13 @@ public:
 
         int_key_t *key=btree_node_get_key(m_db, node, 0);
         blobid=key_get_extended_rid(m_db, key);
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, blobid);
+        BFC_ASSERT_EQUAL((ham_offset_t)0, blobid);
 
         key_set_extended_rid(m_db, key, (ham_offset_t)0xbaadbeef);
         blobid=key_get_extended_rid(m_db, key);
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0xbaadbeef, blobid);
+        BFC_ASSERT_EQUAL((ham_offset_t)0xbaadbeef, blobid);
 
-        CPPUNIT_ASSERT_EQUAL(0, page_free(page));
+        BFC_ASSERT_EQUAL(0, page_free(page));
         page_delete(page);
     }
     
@@ -120,10 +127,10 @@ public:
 
         int_key_t *key=(int_key_t *)&buffer[0];
 
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0x0123456789abcdefull, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0x0123456789abcdefull, 
                 key_get_ptr(key));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)0xf0, key_get_flags(key));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0xfedcba9876543210ull, 
+        BFC_ASSERT_EQUAL((ham_u8_t)0xf0, key_get_flags(key));
+        BFC_ASSERT_EQUAL((ham_offset_t)0xfedcba9876543210ull, 
                 key_get_extended_rid(m_db, key));
     }
 
@@ -134,7 +141,7 @@ public:
         memset(buffer, 0, sizeof(buffer));
 
         key_set_extended_rid(m_db, key, 0x12345);
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0x12345, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0x12345, 
                 key_get_extended_rid(m_db, key));
     }
 
@@ -145,17 +152,19 @@ public:
         if (!flags)
             memset(key, 0, sizeof(*key));
         memset(&rec, 0, sizeof(rec));
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 key_set_record(m_db, key, &rec, 0, flags, 0));
         if (!(flags&HAM_DUPLICATE))
-            CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(key));
+            BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(key));
         
-        if (!(flags&HAM_DUPLICATE))
-            CPPUNIT_ASSERT_EQUAL((ham_u8_t)KEY_BLOB_SIZE_EMPTY, 
+        if (!(flags&HAM_DUPLICATE)) {
+            BFC_ASSERT_EQUAL((ham_u8_t)KEY_BLOB_SIZE_EMPTY, 
                     key_get_flags(key));
-        else
-            CPPUNIT_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, 
+        }
+        else {
+            BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, 
                     key_get_flags(key));
+        }
     }
 
     void prepareEmpty(int_key_t *key)
@@ -185,21 +194,23 @@ public:
         rec.data=(void *)data;
         rec.size=size;
 
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 key_set_record(m_db, key, &rec, 0, flags, 0));
-        if (!(flags&HAM_DUPLICATE))
-            CPPUNIT_ASSERT_EQUAL((ham_u8_t)KEY_BLOB_SIZE_TINY, 
+        if (!(flags&HAM_DUPLICATE)) {
+            BFC_ASSERT_EQUAL((ham_u8_t)KEY_BLOB_SIZE_TINY, 
                 key_get_flags(key));
-        else
-            CPPUNIT_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, 
+        }
+        else {
+            BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, 
                     key_get_flags(key));
+        }
 
         if (!(flags&HAM_DUPLICATE)) {
             rec2._intflags=key_get_flags(key);
             rec2._rid=key_get_ptr(key);
-            CPPUNIT_ASSERT_EQUAL(0, util_read_record(m_db, &rec2, 0));
-            CPPUNIT_ASSERT_EQUAL(rec.size, rec2.size);
-            CPPUNIT_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
+            BFC_ASSERT_EQUAL(0, util_read_record(m_db, &rec2, 0));
+            BFC_ASSERT_EQUAL(rec.size, rec2.size);
+            BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
         }
     }
 
@@ -229,21 +240,23 @@ public:
         rec.data=(void *)data;
         rec.size=sizeof(ham_offset_t);
 
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 key_set_record(m_db, key, &rec, 0, flags, 0));
-        if (!(flags&HAM_DUPLICATE))
-            CPPUNIT_ASSERT_EQUAL((ham_u8_t)KEY_BLOB_SIZE_SMALL, 
+        if (!(flags&HAM_DUPLICATE)) {
+            BFC_ASSERT_EQUAL((ham_u8_t)KEY_BLOB_SIZE_SMALL, 
                 key_get_flags(key));
-        else
-            CPPUNIT_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, 
+        }
+        else {
+            BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, 
                     key_get_flags(key));
+        }
 
         if (!(flags&HAM_DUPLICATE)) {
             rec2._intflags=key_get_flags(key);
             rec2._rid=key_get_ptr(key);
-            CPPUNIT_ASSERT_EQUAL(0, util_read_record(m_db, &rec2, 0));
-            CPPUNIT_ASSERT_EQUAL(rec.size, rec2.size);
-            CPPUNIT_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
+            BFC_ASSERT_EQUAL(0, util_read_record(m_db, &rec2, 0));
+            BFC_ASSERT_EQUAL(rec.size, rec2.size);
+            BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
         }
     }
 
@@ -274,18 +287,18 @@ public:
         rec.data=(void *)data;
         rec.size=size;
 
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 key_set_record(m_db, key, &rec, 0, flags, 0));
         if (flags&HAM_DUPLICATE)
-            CPPUNIT_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, 
+            BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, 
                     key_get_flags(key));
 
         if (!(flags&HAM_DUPLICATE)) {
             rec2._intflags=key_get_flags(key);
             rec2._rid=key_get_ptr(key);
-            CPPUNIT_ASSERT_EQUAL(0, util_read_record(m_db, &rec2, 0));
-            CPPUNIT_ASSERT_EQUAL(rec.size, rec2.size);
-            CPPUNIT_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
+            BFC_ASSERT_EQUAL(0, util_read_record(m_db, &rec2, 0));
+            BFC_ASSERT_EQUAL(rec.size, rec2.size);
+            BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
         }
     }
 
@@ -380,10 +393,10 @@ public:
     void checkDupe(int_key_t *key, int position, 
             const char *data, ham_size_t size)
     {
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, key_get_flags(key));
+        BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, key_get_flags(key));
 
         dupe_entry_t entry;
-        CPPUNIT_ASSERT_EQUAL(0, blob_duplicate_get(m_db, key_get_ptr(key),
+        BFC_ASSERT_EQUAL(0, blob_duplicate_get(m_db, key_get_ptr(key),
                     (ham_size_t)position, &entry));
 
         ham_record_t rec;
@@ -391,12 +404,14 @@ public:
 
         rec._intflags=dupe_entry_get_flags(&entry);
         rec._rid=dupe_entry_get_rid(&entry);
-        CPPUNIT_ASSERT_EQUAL(0, util_read_record(m_db, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(rec.size, size);
-        if (size)
-            CPPUNIT_ASSERT_EQUAL(0, memcmp(rec.data, data, rec.size));
-        else
-            CPPUNIT_ASSERT_EQUAL((void *)0, rec.data);
+        BFC_ASSERT_EQUAL(0, util_read_record(m_db, &rec, 0));
+        BFC_ASSERT_EQUAL(rec.size, size);
+        if (size) {
+            BFC_ASSERT_EQUAL(0, memcmp(rec.data, data, rec.size));
+        }
+        else {
+            BFC_ASSERT_EQUAL((void *)0, rec.data);
+        }
     }
 
     void duplicateRecordTest(void)
@@ -506,27 +521,27 @@ public:
 
         /* insert empty key, then delete it */
         prepareEmpty(&key);
-        CPPUNIT_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
+        BFC_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
+        BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
+        BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
 
         /* insert tiny key, then delete it */
         prepareTiny(&key, "1234", 4);
-        CPPUNIT_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
+        BFC_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
+        BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
+        BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
 
         /* insert small key, then delete it */
         prepareSmall(&key, "12345678");
-        CPPUNIT_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
+        BFC_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
+        BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
+        BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
 
         /* insert normal key, then delete it */
         prepareNormal(&key, "1234123456785678", 16);
-        CPPUNIT_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
+        BFC_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
+        BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
+        BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
     }
 
     void eraseDuplicateRecordTest(void)
@@ -538,40 +553,40 @@ public:
         duplicateNormal(&key, "abc4567812345678", 16);
         checkDupe(&key, 0, 0, 0);
         checkDupe(&key, 1, "abc4567812345678", 16);
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 key_erase_record(m_db, &key, 0, BLOB_FREE_ALL_DUPES));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
+        BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
+        BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
 
         /* insert tiny key, then a duplicate; delete both */
         prepareTiny(&key, "1234", 4);
         duplicateNormal(&key, "abc4567812345678", 16);
         checkDupe(&key, 0, "1234", 4);
         checkDupe(&key, 1, "abc4567812345678", 16);
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 key_erase_record(m_db, &key, 0, BLOB_FREE_ALL_DUPES));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
+        BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
+        BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
 
         /* insert small key, then a duplicate; delete both */
         prepareSmall(&key, "12345678");
         duplicateNormal(&key, "abc4567812345678", 16);
         checkDupe(&key, 0, "12345678", 8);
         checkDupe(&key, 1, "abc4567812345678", 16);
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 key_erase_record(m_db, &key, 0, BLOB_FREE_ALL_DUPES));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
+        BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
+        BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
 
         /* insert normal key, then a duplicate; delete both */
         prepareNormal(&key, "1234123456785678", 16);
         duplicateNormal(&key, "abc4567812345678", 16);
         checkDupe(&key, 0, "1234123456785678", 16);
         checkDupe(&key, 1, "abc4567812345678", 16);
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 key_erase_record(m_db, &key, 0, BLOB_FREE_ALL_DUPES));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
+        BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
+        BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
     }
 
     void eraseAllDuplicateRecordTest(void)
@@ -583,51 +598,51 @@ public:
         duplicateNormal(&key, "abc4567812345678", 16);
         checkDupe(&key, 0, 0, 0);
         checkDupe(&key, 1, "abc4567812345678", 16);
-        CPPUNIT_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, key_get_flags(&key));
+        BFC_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
+        BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, key_get_flags(&key));
         checkDupe(&key, 0, "abc4567812345678", 16);
-        CPPUNIT_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
+        BFC_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
+        BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
+        BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
 
         /* insert tiny key, then a duplicate; delete both at once */
         prepareTiny(&key, "1234", 4);
         duplicateNormal(&key, "abc4567812345678", 16);
         checkDupe(&key, 0, "1234", 4);
         checkDupe(&key, 1, "abc4567812345678", 16);
-        CPPUNIT_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 1, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, key_get_flags(&key));
+        BFC_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 1, 0));
+        BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, key_get_flags(&key));
         checkDupe(&key, 0, "1234", 4);
-        CPPUNIT_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
+        BFC_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
+        BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
+        BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
 
         /* insert small key, then a duplicate; delete both at once */
         prepareSmall(&key, "12345678");
         duplicateNormal(&key, "abc4567812345678", 16);
         checkDupe(&key, 0, "12345678", 8);
         checkDupe(&key, 1, "abc4567812345678", 16);
-        CPPUNIT_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, key_get_flags(&key));
+        BFC_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
+        BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, key_get_flags(&key));
         checkDupe(&key, 0, "abc4567812345678", 16);
-        CPPUNIT_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
+        BFC_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
+        BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
+        BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
 
         /* insert normal key, then a duplicate; delete both at once */
         prepareNormal(&key, "1234123456785678", 16);
         duplicateNormal(&key, "abc4567812345678", 16);
         checkDupe(&key, 0, "1234123456785678", 16);
         checkDupe(&key, 1, "abc4567812345678", 16);
-        CPPUNIT_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 1, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, key_get_flags(&key));
+        BFC_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 1, 0));
+        BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, key_get_flags(&key));
         checkDupe(&key, 0, "1234123456785678", 16);
-        CPPUNIT_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
+        BFC_ASSERT_EQUAL(0, key_erase_record(m_db, &key, 0, 0));
+        BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
+        BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
     }
 
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION(KeyTest);
+BFC_REGISTER_FIXTURE(KeyTest);
 

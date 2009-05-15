@@ -16,100 +16,106 @@
 #include <iostream>
 #include <ham/hamsterdb.hpp>
 
-#define LOOP 10
+typedef struct
+{
+ char trNumber[20]; // No.
+} KeyTrain;
+
+typedef struct
+{
+ char stNo[3];  // No.
+ char stName[12]; // station name
+ char stDist[6];  // current distance
+ char stATime[6]; // arrive time
+ char stLTime[6]; // leave time
+ char stDays[2];  // which day
+} RecTrainDetails;
+
+#define MAX 7
 
 int 
 run_demo(void)
 {
-    int i;
     ham::db db;            /* hamsterdb database object */
     ham::key key;          /* a key */
     ham::record record;    /* a record */
+    ham::env env;
+    ham::cursor cursor;
 
-    /*
-     * first, create a new database file
-     */
-    db.create("test.db");
+    int i;
+    KeyTrain kTrain, trains[MAX];
+    RecTrainDetails rTrainDetails, traindetails[MAX];
 
-    /*
-     * now we can insert, delete or lookup values in the database
-     *
-     * for our test program, we just insert a few values, then look them 
-     * up, then delete them and try to look them up again (which will fail).
-     */
-    for (i=0; i<LOOP; i++) {
-        key.set_size(sizeof(i));
-        key.set_data(&i);
+    memset(&trains[0], 0, sizeof(trains));
+    memset(&traindetails[0], 0, sizeof(traindetails));
 
-        record.set_size(sizeof(i));
-        record.set_data(&i);
+    strcpy(trains[0].trNumber, "D1");
+    strcpy(trains[1].trNumber, "D1");
+    strcpy(trains[2].trNumber, "T1");
+    strcpy(trains[3].trNumber, "T1");
+    strcpy(trains[4].trNumber, "T1");
+    strcpy(trains[5].trNumber, "T1");
+    strcpy(trains[6].trNumber, "T1");
+    strcpy(traindetails[0].stNo, "1");
+    strcpy(traindetails[0].stName, "XXXX");
+    strcpy(traindetails[0].stDist, "0");
+    strcpy(traindetails[1].stNo, "2");
+    strcpy(traindetails[1].stName, "XXXXXX");
+    strcpy(traindetails[1].stDist, "703");
+    strcpy(traindetails[2].stNo, "1");
+    strcpy(traindetails[2].stName, "XXXXX");
+    strcpy(traindetails[2].stDist, "0");
+    strcpy(traindetails[3].stNo, "2");
+    strcpy(traindetails[3].stName, "XXXXXXXX");
+    strcpy(traindetails[3].stDist, "277");
+    strcpy(traindetails[4].stNo, "3");
+    strcpy(traindetails[4].stName, "XXXXXXX");
+    strcpy(traindetails[4].stDist, "689");
+    strcpy(traindetails[5].stNo, "4");
+    strcpy(traindetails[5].stName, "XX");
+    strcpy(traindetails[5].stDist, "1225");
+    strcpy(traindetails[6].stNo, "5");
+    strcpy(traindetails[6].stName, "XXX");
+    strcpy(traindetails[5].stDist, "1440");
+ 
+    env.create("test.db");
+    db = env.create_db(13, HAM_ENABLE_DUPLICATES);
+    db.enable_compression(9); // compression
+    cursor.create(&db);
 
-        db.insert(&key, &record);
+    for (i=0; i<MAX; i++) {
+        kTrain=trains[i];
+        rTrainDetails=traindetails[i];
+ 
+  key.set_size(sizeof(kTrain));
+  key.set_data(&kTrain);
+  try {
+   // traverse the duplicates
+   cursor.find(&key); // locate first
+   while(1)
+   {
+    cursor.move(0,&record,0); // load current record
+    if (!memcmp(((RecTrainDetails *)record.get_data())->stNo, rTrainDetails.stNo, 3))
+    { // compare
+     printf("already in.\n");
+     break;
     }
-
-    /*
-     * now lookup all values
-     *
-     * for db::find(), we could use the flag HAM_RECORD_USER_ALLOC, if WE
-     * allocate record.data (otherwise the memory is automatically allocated
-     * by hamsterdb)
-     */
-    for (i=0; i<LOOP; i++) {
-        key.set_size(sizeof(i));
-        key.set_data(&i);
-
-        record=db.find(&key);
-
-        /*
-         * check if the value is ok
-         */
-        if (*(int *)record.get_data()!=i) {
-            std::cerr << "db::find() ok, but returned bad value" << std::endl;
-            return (-1);
-        }
-    }
-
-    /*
-     * close the database handle, then re-open it (just to demonstrate how
-     * to open a database file)
-     */
-    db.close();
-    db.open("test.db");
-
-    /*
-     * now erase all values
-     */
-    for (i=0; i<LOOP; i++) {
-        key.set_size(sizeof(i));
-        key.set_data(&i);
-
-        db.erase(&key);
-    }
-
-    /*
-     * once more we try to find all values... every db::find() call must
-     * now fail with HAM_KEY_NOT_FOUND
-     */
-    for (i=0; i<LOOP; i++) {
-        key.set_size(sizeof(i));
-        key.set_data(&i);
-
-        try {
-            record=db.find(&key);
-        }
-        catch (ham::error &e) {
-            if (e.get_errno()!=HAM_KEY_NOT_FOUND) {
-                std::cerr << "db::find() returned error " << e.get_string() 
-                          << std::endl;
-                return (-1);
-            }
-        }
-    }
-
-    /*
-     * we're done! no need to close the database handle, it's done 
-     * automatically
-     */
+    cursor.move(0,&record,HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES); // move to next
+    // cursor.move(0,0,HAM_CURSOR_NEXT|HAM_ONLY_DUPLICATES); 
+    // above will make error when reach the 3rd duplicate entry
+   }
+  }
+  catch (ham::error &e) {
+   if (e.get_errno() == -11) // not found or no duplicates
+   {
+    record.set_size(sizeof(rTrainDetails));
+    record.set_data(&rTrainDetails);
+    db.insert(&key,&record,HAM_DUPLICATE);
+   }
+   else
+    throw(e);
+  }
+ }
 
     std::cout << "success!" << std::endl;
 	return (0);

@@ -10,29 +10,33 @@
  */
 
 #include <stdexcept>
-#include <cppunit/extensions/HelperMacros.h>
 #include "../src/mem.h"
 #include "memtracker.h"
 
-class MemoryTest : public CppUnit::TestFixture
+#include "bfc-testsuite.hpp"
+
+using namespace bfc;
+
+class MemoryTest : public fixture
 {
-    CPPUNIT_TEST_SUITE(MemoryTest);
-    CPPUNIT_TEST      (simpleTest);
-    CPPUNIT_TEST      (trackingTest);
-    CPPUNIT_TEST      (trackingTest2);
-    CPPUNIT_TEST      (freeNullTest);
-    CPPUNIT_TEST      (reallocTest);
-    CPPUNIT_TEST_SUITE_END();
+public:
+    MemoryTest()
+    :   fixture("MemoryTest")
+    {
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(MemoryTest, simpleTest);
+        BFC_REGISTER_TEST(MemoryTest, trackingTest);
+        BFC_REGISTER_TEST(MemoryTest, trackingTest2);
+        BFC_REGISTER_TEST(MemoryTest, freeNullTest);
+        BFC_REGISTER_TEST(MemoryTest, reallocTest);
+    }
 
 public:
-    void setUp()    { }
-    void tearDown() { }
-
     void simpleTest() {
         void *p;
         mem_allocator_t *alloc=ham_default_allocator_new();
         p=alloc->alloc(alloc, __FILE__, __LINE__, 128);
-        CPPUNIT_ASSERT(p);
+        BFC_ASSERT(p);
         alloc->free(alloc, __FILE__, __LINE__, p);
         alloc->close(alloc);
     }
@@ -45,9 +49,9 @@ public:
         void *p;
         memtracker_t *alloc=memtracker_new();
         p=alloc->alloc((mem_allocator_t *)alloc, __FILE__, __LINE__, 128);
-        CPPUNIT_ASSERT(p);
+        BFC_ASSERT(p);
         alloc->free((mem_allocator_t *)alloc, __FILE__, __LINE__, p);
-        CPPUNIT_ASSERT(!memtracker_get_leaks(alloc));
+        BFC_ASSERT(!memtracker_get_leaks(alloc));
         alloc->close((mem_allocator_t *)alloc);
     }
 
@@ -55,17 +59,17 @@ public:
         void *p[3];
         memtracker_t *alloc=memtracker_new();
         p[0]=alloc->alloc((mem_allocator_t *)alloc, __FILE__, __LINE__, 10);
-        CPPUNIT_ASSERT(p[0]);
+        BFC_ASSERT(p[0]);
         p[1]=alloc->alloc((mem_allocator_t *)alloc, __FILE__, __LINE__, 12);
-        CPPUNIT_ASSERT(p[1]);
+        BFC_ASSERT(p[1]);
         p[2]=alloc->alloc((mem_allocator_t *)alloc, __FILE__, __LINE__, 14);
-        CPPUNIT_ASSERT(p[2]);
+        BFC_ASSERT(p[2]);
         alloc->free((mem_allocator_t *)alloc, __FILE__, __LINE__, p[0]);
-        CPPUNIT_ASSERT(memtracker_get_leaks(alloc)==26);
+        BFC_ASSERT(memtracker_get_leaks(alloc)==26);
         alloc->free((mem_allocator_t *)alloc, __FILE__, __LINE__, p[1]);
-        CPPUNIT_ASSERT(memtracker_get_leaks(alloc)==14);
+        BFC_ASSERT(memtracker_get_leaks(alloc)==14);
         alloc->free((mem_allocator_t *)alloc, __FILE__, __LINE__, p[2]);
-        CPPUNIT_ASSERT(memtracker_get_leaks(alloc)==0);
+        BFC_ASSERT(memtracker_get_leaks(alloc)==0);
         alloc->close((mem_allocator_t *)alloc);
     }
 
@@ -76,12 +80,12 @@ public:
             alloc->free((mem_allocator_t *)alloc, __FILE__, __LINE__, p);
         } 
         catch (std::logic_error e) {
-            CPPUNIT_ASSERT(memtracker_get_leaks(alloc)==0);
+            BFC_ASSERT(memtracker_get_leaks(alloc)==0);
             alloc->close((mem_allocator_t *)alloc);
             return;
         }
 
-        CPPUNIT_FAIL("should not be here");
+        BFC_ASSERT(!"should not be here");
     }
 
     void reallocTest(void) {
@@ -89,18 +93,18 @@ public:
         memtracker_t *alloc=memtracker_new();
 
         p=allocator_realloc((mem_allocator_t *)alloc, p, 15);
-        CPPUNIT_ASSERT(p!=0);
+        BFC_ASSERT(p!=0);
         allocator_free((mem_allocator_t *)alloc, p);
-        CPPUNIT_ASSERT_EQUAL(0lu, memtracker_get_leaks(alloc));
+        BFC_ASSERT_EQUAL(0lu, memtracker_get_leaks(alloc));
 
         p=allocator_realloc((mem_allocator_t *)alloc, 0, 15);
-        CPPUNIT_ASSERT(p!=0);
+        BFC_ASSERT(p!=0);
         p=allocator_realloc((mem_allocator_t *)alloc, p, 30);
-        CPPUNIT_ASSERT(p!=0);
+        BFC_ASSERT(p!=0);
         allocator_free((mem_allocator_t *)alloc, p);
-        CPPUNIT_ASSERT_EQUAL(0lu, memtracker_get_leaks(alloc));
+        BFC_ASSERT_EQUAL(0lu, memtracker_get_leaks(alloc));
     }
 
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION(MemoryTest);
+BFC_REGISTER_FIXTURE(MemoryTest);

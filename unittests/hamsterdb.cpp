@@ -11,7 +11,6 @@
 
 #include <stdexcept>
 #include <cstring>
-#include <cppunit/extensions/HelperMacros.h>
 #include <ham/hamsterdb.h>
 #include "memtracker.h"
 #include "../src/db.h"
@@ -19,6 +18,10 @@
 #include "../src/serial.h"
 #include "../src/btree.h"
 #include "os.hpp"
+
+#include "bfc-testsuite.hpp"
+
+using namespace bfc;
 
 static int
 my_compare_func(ham_db_t *db, 
@@ -48,77 +51,81 @@ my_prefix_compare_func(ham_db_t *db,
     return (0);
 }
 
-class HamsterdbTest : public CppUnit::TestFixture
+class HamsterdbTest : public fixture
 {
-    CPPUNIT_TEST_SUITE(HamsterdbTest);
-    CPPUNIT_TEST      (versionTest);
-    CPPUNIT_TEST      (licenseTest);
-    CPPUNIT_TEST      (newTest);
-    CPPUNIT_TEST      (deleteTest);
-    CPPUNIT_TEST      (openTest);
-    CPPUNIT_TEST      (invHeaderTest);
-    CPPUNIT_TEST      (invVersionTest);
-    CPPUNIT_TEST      (createTest);
-    CPPUNIT_TEST      (createPagesizeTest);
-    CPPUNIT_TEST      (createMaxkeysTooHighTest);
-    CPPUNIT_TEST      (createCloseCreateTest);
-    CPPUNIT_TEST      (createPagesizeReopenTest);
-    CPPUNIT_TEST      (readOnlyTest);
-    CPPUNIT_TEST      (invalidPagesizeTest);
-    CPPUNIT_TEST      (getErrorTest);
-    CPPUNIT_TEST      (setPrefixCompareTest);
-    CPPUNIT_TEST      (setCompareTest);
-    CPPUNIT_TEST      (findTest);
-    CPPUNIT_TEST      (insertTest);
-    CPPUNIT_TEST      (insertBigKeyTest);
-    CPPUNIT_TEST      (eraseTest);
-    CPPUNIT_TEST      (flushTest);
-    CPPUNIT_TEST      (flushBackendTest);
-    CPPUNIT_TEST      (closeTest);
-    CPPUNIT_TEST      (closeWithCursorsTest);
-    CPPUNIT_TEST      (closeWithCursorsAutoCleanupTest);
-    CPPUNIT_TEST      (compareTest);
-    CPPUNIT_TEST      (prefixCompareTest);
-    CPPUNIT_TEST      (cursorCreateTest);
-    CPPUNIT_TEST      (cursorCloneTest);
-    CPPUNIT_TEST      (cursorMoveTest);
-    CPPUNIT_TEST      (cursorReplaceTest);
-    CPPUNIT_TEST      (cursorFindTest);
-    CPPUNIT_TEST      (cursorInsertTest);
-    CPPUNIT_TEST      (cursorEraseTest);
-    CPPUNIT_TEST      (cursorCloseTest);
-    CPPUNIT_TEST      (cursorGetErasedItemTest);
-    CPPUNIT_TEST      (replaceKeyTest);
-    CPPUNIT_TEST      (replaceKeyFileTest);
-    CPPUNIT_TEST      (callocTest);
-    CPPUNIT_TEST      (strerrorTest);
-    CPPUNIT_TEST      (contextDataTest);
-    CPPUNIT_TEST      (recoveryTest);
-    CPPUNIT_TEST      (recoveryNegativeTest);
-    CPPUNIT_TEST      (recoveryEnvTest);
-    CPPUNIT_TEST      (recoveryEnvNegativeTest);
-    CPPUNIT_TEST      (btreeMacroTest);
-    CPPUNIT_TEST_SUITE_END();
+public:
+    HamsterdbTest()
+    :   fixture("HamsterdbTest")
+    {
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(HamsterdbTest, versionTest);
+        BFC_REGISTER_TEST(HamsterdbTest, licenseTest);
+        BFC_REGISTER_TEST(HamsterdbTest, newTest);
+        BFC_REGISTER_TEST(HamsterdbTest, deleteTest);
+        BFC_REGISTER_TEST(HamsterdbTest, openTest);
+        BFC_REGISTER_TEST(HamsterdbTest, invHeaderTest);
+        BFC_REGISTER_TEST(HamsterdbTest, invVersionTest);
+        BFC_REGISTER_TEST(HamsterdbTest, createTest);
+        BFC_REGISTER_TEST(HamsterdbTest, createPagesizeTest);
+        BFC_REGISTER_TEST(HamsterdbTest, createMaxkeysTooHighTest);
+        BFC_REGISTER_TEST(HamsterdbTest, createCloseCreateTest);
+        BFC_REGISTER_TEST(HamsterdbTest, createPagesizeReopenTest);
+        BFC_REGISTER_TEST(HamsterdbTest, readOnlyTest);
+        BFC_REGISTER_TEST(HamsterdbTest, invalidPagesizeTest);
+        BFC_REGISTER_TEST(HamsterdbTest, getErrorTest);
+        BFC_REGISTER_TEST(HamsterdbTest, setPrefixCompareTest);
+        BFC_REGISTER_TEST(HamsterdbTest, setCompareTest);
+        BFC_REGISTER_TEST(HamsterdbTest, findTest);
+        BFC_REGISTER_TEST(HamsterdbTest, insertTest);
+        BFC_REGISTER_TEST(HamsterdbTest, insertBigKeyTest);
+        BFC_REGISTER_TEST(HamsterdbTest, eraseTest);
+        BFC_REGISTER_TEST(HamsterdbTest, flushTest);
+        BFC_REGISTER_TEST(HamsterdbTest, flushBackendTest);
+        BFC_REGISTER_TEST(HamsterdbTest, closeTest);
+        BFC_REGISTER_TEST(HamsterdbTest, closeWithCursorsTest);
+        BFC_REGISTER_TEST(HamsterdbTest, closeWithCursorsAutoCleanupTest);
+        BFC_REGISTER_TEST(HamsterdbTest, compareTest);
+        BFC_REGISTER_TEST(HamsterdbTest, prefixCompareTest);
+        BFC_REGISTER_TEST(HamsterdbTest, cursorCreateTest);
+        BFC_REGISTER_TEST(HamsterdbTest, cursorCloneTest);
+        BFC_REGISTER_TEST(HamsterdbTest, cursorMoveTest);
+        BFC_REGISTER_TEST(HamsterdbTest, cursorReplaceTest);
+        BFC_REGISTER_TEST(HamsterdbTest, cursorFindTest);
+        BFC_REGISTER_TEST(HamsterdbTest, cursorInsertTest);
+        BFC_REGISTER_TEST(HamsterdbTest, cursorEraseTest);
+        BFC_REGISTER_TEST(HamsterdbTest, cursorCloseTest);
+        BFC_REGISTER_TEST(HamsterdbTest, cursorGetErasedItemTest);
+        BFC_REGISTER_TEST(HamsterdbTest, replaceKeyTest);
+        BFC_REGISTER_TEST(HamsterdbTest, replaceKeyFileTest);
+        BFC_REGISTER_TEST(HamsterdbTest, callocTest);
+        BFC_REGISTER_TEST(HamsterdbTest, strerrorTest);
+        BFC_REGISTER_TEST(HamsterdbTest, contextDataTest);
+        BFC_REGISTER_TEST(HamsterdbTest, recoveryTest);
+        BFC_REGISTER_TEST(HamsterdbTest, recoveryNegativeTest);
+        BFC_REGISTER_TEST(HamsterdbTest, recoveryEnvTest);
+        BFC_REGISTER_TEST(HamsterdbTest, recoveryEnvNegativeTest);
+        BFC_REGISTER_TEST(HamsterdbTest, btreeMacroTest);
+    }
 
 protected:
     ham_db_t *m_db;
     memtracker_t *m_alloc;
 
 public:
-    void setUp()
+    void setup()
     { 
         os::unlink(".test");
-        CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
+        BFC_ASSERT((m_alloc=memtracker_new())!=0);
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
     }
     
-    void tearDown() 
+    void teardown() 
     { 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
+        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void versionTest(void)
@@ -128,9 +135,9 @@ public:
         ham_get_version(0, 0, 0);
         ham_get_version(&major, &minor, &revision);
 
-        CPPUNIT_ASSERT_EQUAL((ham_u32_t)HAM_VERSION_MAJ, major);
-        CPPUNIT_ASSERT_EQUAL((ham_u32_t)HAM_VERSION_MIN, minor);
-        CPPUNIT_ASSERT_EQUAL((ham_u32_t)HAM_VERSION_REV, revision);
+        BFC_ASSERT_EQUAL((ham_u32_t)HAM_VERSION_MAJ, major);
+        BFC_ASSERT_EQUAL((ham_u32_t)HAM_VERSION_MIN, minor);
+        BFC_ASSERT_EQUAL((ham_u32_t)HAM_VERSION_REV, revision);
     };
 
     void licenseTest(void)
@@ -140,18 +147,18 @@ public:
         ham_get_license(0, 0);
         ham_get_license(&licensee, &product);
 
-        CPPUNIT_ASSERT_EQUAL(0, strcmp(HAM_LICENSEE, licensee));
-        CPPUNIT_ASSERT_EQUAL(0, strcmp(HAM_PRODUCT_NAME, product));
+        BFC_ASSERT_EQUAL(0, strcmp(HAM_LICENSEE, licensee));
+        BFC_ASSERT_EQUAL(0, strcmp(HAM_PRODUCT_NAME, product));
     };
 
     void newTest(void)
     {
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_new(0));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_new(0));
     }
 
     void deleteTest(void)
     {
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_delete(0));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_delete(0));
     }
 
     void openTest(void)
@@ -162,28 +169,28 @@ public:
             { 0, 0 }
         };
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_open(0, "test.db", 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_open(db, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_open(db, 0, HAM_IN_MEMORY_DB));
-        CPPUNIT_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, 
                 ham_open(db, "xxxx...", 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_open(db, "test.db", HAM_IN_MEMORY_DB));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_open(db, "test.db", HAM_ENABLE_DUPLICATES));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_open_ex(db, "test.db", HAM_ENABLE_DUPLICATES, params));
 
 #if WIN32
-        CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, 
+        BFC_ASSERT_EQUAL(HAM_IO_ERROR, 
                 ham_open(db, "c:\\windows", 0));
 #else
-        CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, 
+        BFC_ASSERT_EQUAL(HAM_IO_ERROR, 
                 ham_open(db, "/usr", 0));
 #endif
 
@@ -194,11 +201,11 @@ public:
     {
         ham_db_t *db;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_FILE_HEADER, 
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(HAM_INV_FILE_HEADER, 
                 ham_open(db, "data/inv-file-header.hdb", 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
     }
 
@@ -206,11 +213,11 @@ public:
     {
         ham_db_t *db;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_FILE_VERSION, 
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(HAM_INV_FILE_VERSION, 
                 ham_open(db, "data/inv-file-version.hdb", 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
     }
 
@@ -220,36 +227,36 @@ public:
         ham_parameter_t cs[]={{HAM_PARAM_CACHESIZE, 1024}, {0, 0}};
         ham_parameter_t ps[]={{HAM_PARAM_PAGESIZE,   512}, {0, 0}};
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create(0, ".test.db", 0, 0664));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create(db, 0, 0, 0664));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create(db, 0, HAM_IN_MEMORY_DB|HAM_CACHE_STRICT, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create(db, ".test.db", 
                     HAM_CACHE_UNLIMITED|HAM_CACHE_STRICT, 0644));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create_ex(db, ".test.db", HAM_CACHE_UNLIMITED, 0, &cs[0]));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_open(db, ".test.db", HAM_CACHE_UNLIMITED|HAM_CACHE_STRICT));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_open_ex(db, ".test.db", HAM_CACHE_UNLIMITED, &cs[0]));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create_ex(db, 0, HAM_IN_MEMORY_DB, 0, &cs[0]));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create_ex(db, 0, HAM_IN_MEMORY_DB|HAM_READ_ONLY, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create_ex(db, 0, HAM_READ_ONLY, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PAGESIZE, 
+        BFC_ASSERT_EQUAL(HAM_INV_PAGESIZE, 
                 ham_create_ex(db, ".test", 0, 0, &ps[0]));
 #if WIN32
-        CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, 
+        BFC_ASSERT_EQUAL(HAM_IO_ERROR, 
                 ham_create(db, "c:\\windows", 0, 0664));
 #else
-        CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, 
+        BFC_ASSERT_EQUAL(HAM_IO_ERROR, 
                 ham_create(db, "/home", 0, 0664));
 #endif
         ham_delete(db);
@@ -259,17 +266,17 @@ public:
     {
         ham_db_t *db;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
 
         ham_parameter_t ps[]={{HAM_PARAM_PAGESIZE,   512}, {0, 0}};
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PAGESIZE, 
+        BFC_ASSERT_EQUAL(HAM_INV_PAGESIZE, 
                 ham_create_ex(db, ".test", 0, 0644, &ps[0]));
 
         ps[0].value=1024;
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(db, ".test", 0, 0644, &ps[0]));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         ham_delete(db);
     }
@@ -278,13 +285,13 @@ public:
     {
         ham_db_t *db;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
 
         ham_parameter_t ps[]={{HAM_PARAM_PAGESIZE, 1024*1024*128}, 
                               {HAM_PARAM_KEYSIZE, 16}, 
                               {0, 0}};
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
+        BFC_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
                 ham_create_ex(db, ".test", 0, 0644, &ps[0]));
 
         ham_delete(db);
@@ -294,12 +301,12 @@ public:
     {
         ham_db_t *db;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_create(db, ".test", 0, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_open(db, ".test", 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_create(db, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_open(db, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         ham_delete(db);
     }
@@ -309,13 +316,13 @@ public:
         ham_db_t *db;
         ham_parameter_t ps[]={{HAM_PARAM_PAGESIZE,   1024*128}, {0, 0}};
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_create_ex(db, ".test", 0, 0664, &ps[0]));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_open(db, ".test", 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+        BFC_ASSERT_EQUAL(0, ham_create_ex(db, ".test", 0, 0664, &ps[0]));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_open(db, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
 
     void readOnlyTest(void)
@@ -327,27 +334,27 @@ public:
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_create(db, ".test", 0, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_open(db, ".test", HAM_READ_ONLY));
-        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
+        BFC_ASSERT_EQUAL(0, ham_create(db, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_open(db, ".test", HAM_READ_ONLY));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
                 ham_insert(db, 0, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
                 ham_erase(db, 0, &key, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
                 ham_cursor_overwrite(cursor, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
                 ham_cursor_insert(cursor, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
                 ham_cursor_erase(cursor, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
 
     void invalidPagesizeTest(void)
@@ -359,29 +366,29 @@ public:
             {0, 0}
         };
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
+        BFC_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
                 ham_create_ex(db, ".test", 0, 0664, &p[0]));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
 
     void getErrorTest(void)
     {
-        CPPUNIT_ASSERT_EQUAL(0, ham_get_error(0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_get_error(m_db));
+        BFC_ASSERT_EQUAL(0, ham_get_error(0));
+        BFC_ASSERT_EQUAL(0, ham_get_error(m_db));
     }
 
     void setPrefixCompareTest(void)
     {
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_set_prefix_compare_func(0, 0));
     }
 
     void setCompareTest(void)
     {
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_set_compare_func(0, 0));
     }
 
@@ -392,13 +399,13 @@ public:
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_find(0, 0, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_find(m_db, 0, 0, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_find(m_db, 0, &key, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                 ham_find(m_db, 0, &key, &rec, 0));
     }
 
@@ -409,41 +416,41 @@ public:
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(0, 0, &key, &rec, 0));
         key.flags=0x13;
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(m_db, 0, &key, &rec, 0));
         key.flags=0;
         rec.flags=0x13;
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(m_db, 0, &key, &rec, 0));
         rec.flags=0;
         key.flags=HAM_KEY_USER_ALLOC;
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
         key.flags=0;
         rec.flags=HAM_RECORD_USER_ALLOC;
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
         rec.flags=0;
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE|HAM_DUPLICATE));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(m_db, 0, 0, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(m_db, 0, &key, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE_INSERT_BEFORE));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE_INSERT_AFTER));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE_INSERT_FIRST));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE_INSERT_LAST));
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
     }
 
@@ -454,22 +461,22 @@ public:
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE|HAM_OVERWRITE));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
 
         ham_db_t *db;
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
 
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 ham_create(db, ".test", HAM_ENABLE_DUPLICATES, 0664));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE|HAM_OVERWRITE));
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
 
     void insertBigKeyTest(void)
@@ -483,8 +490,8 @@ public:
         key.size=sizeof(buffer);
         key.data=buffer;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
     }
 
     void eraseTest(void)
@@ -494,17 +501,17 @@ public:
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_erase(0, 0, &key, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_erase(m_db, 0, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                 ham_erase(m_db, 0, &key, 0));
     }
 
     void flushTest(void)
     {
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_flush(0, 0));
     }
 
@@ -521,37 +528,37 @@ public:
         key.data=&value;
         key.size=sizeof(value);
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env1));
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db1));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create(env1, ".test", 0, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_create_db(env1, db1, 111, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(db1, 0, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_flush(db1, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env1));
+        BFC_ASSERT_EQUAL(0, ham_new(&db1));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env1, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_create_db(env1, db1, 111, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(db1, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_flush(db1, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env2));
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db2));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_open(env2, ".test", 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_open_db(env2, db2, 111, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_find(db2, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env2));
+        BFC_ASSERT_EQUAL(0, ham_new(&db2));
+        BFC_ASSERT_EQUAL(0, ham_env_open(env2, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_env_open_db(env2, db2, 111, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_find(db2, 0, &key, &rec, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db1, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db1));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env1, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env1));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db2, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db2));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env2, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env2));
+        BFC_ASSERT_EQUAL(0, ham_close(db1, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(db1));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env1, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env1));
+        BFC_ASSERT_EQUAL(0, ham_close(db2, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(db2));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env2, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env2));
     }
 
     void closeTest(void)
     {
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_close(0, 0));
 
         ham_db_t db;
         memset(&db, 0, sizeof(db));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_close(&db, HAM_TXN_AUTO_ABORT|HAM_TXN_AUTO_COMMIT));
     }
 
@@ -560,11 +567,11 @@ public:
         ham_cursor_t *c[5];
 
         for (int i=0; i<5; i++)
-            CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c[i]));
+            BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c[i]));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         for (int i=0; i<5; i++)
-            CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(c[i]));
+            BFC_ASSERT_EQUAL(0, ham_cursor_close(c[i]));
     }
 
     void closeWithCursorsAutoCleanupTest(void)
@@ -572,42 +579,42 @@ public:
         ham_cursor_t *c[5];
 
         for (int i=0; i<5; i++)
-            CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c[i]));
+            BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c[i]));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, HAM_AUTO_CLEANUP));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_AUTO_CLEANUP));
     }
 
     void compareTest(void)
     {
         ham_compare_func_t f=my_compare_func;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_set_compare_func(m_db, f));
-        CPPUNIT_ASSERT_EQUAL(f, db_get_compare_func(m_db));
+        BFC_ASSERT_EQUAL(0, ham_set_compare_func(m_db, f));
+        BFC_ASSERT_EQUAL(f, db_get_compare_func(m_db));
 
         f=db_default_compare;
-        CPPUNIT_ASSERT_EQUAL(0, ham_set_compare_func(m_db, 0));
-        CPPUNIT_ASSERT(f==db_get_compare_func(m_db));
+        BFC_ASSERT_EQUAL(0, ham_set_compare_func(m_db, 0));
+        BFC_ASSERT(f==db_get_compare_func(m_db));
     }
 
     void prefixCompareTest(void)
     {
         ham_prefix_compare_func_t f=my_prefix_compare_func;
 
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 ham_set_prefix_compare_func(m_db, f));
-        CPPUNIT_ASSERT_EQUAL(f, db_get_prefix_compare_func(m_db));
+        BFC_ASSERT_EQUAL(f, db_get_prefix_compare_func(m_db));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_set_prefix_compare_func(m_db, 0));
-        CPPUNIT_ASSERT(0==db_get_prefix_compare_func(m_db));
+        BFC_ASSERT_EQUAL(0, ham_set_prefix_compare_func(m_db, 0));
+        BFC_ASSERT(0==db_get_prefix_compare_func(m_db));
     }
 
     void cursorCreateTest(void)
     {
         ham_cursor_t *cursor;
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_create(0, 0, 0, &cursor));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_create(m_db, 0, 0, 0));
     }
 
@@ -615,9 +622,9 @@ public:
     {
         ham_cursor_t src, *dest;
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_clone(0, &dest));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_clone(&src, 0));
     }
 
@@ -627,19 +634,19 @@ public:
         ham_key_t key;
         ::memset(&key, 0, sizeof(key));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_move(0, 0, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
+        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
                 ham_cursor_move(cursor, &key, 0, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                 ham_cursor_move(cursor, &key, 0, HAM_CURSOR_FIRST));
-        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                 ham_cursor_move(cursor, &key, 0, HAM_CURSOR_LAST));
-        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                 ham_cursor_move(cursor, &key, 0, HAM_CURSOR_NEXT));
-        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                 ham_cursor_move(cursor, &key, 0, HAM_CURSOR_PREVIOUS));
 
         ham_cursor_close(cursor);
@@ -650,11 +657,11 @@ public:
         ham_cursor_t *cursor;
         ham_record_t *record=0;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_overwrite(0, record, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_overwrite(cursor, 0, 0));
 
         ham_cursor_close(cursor);
@@ -665,11 +672,11 @@ public:
         ham_cursor_t *cursor;
         ham_key_t *key=0;
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_find(0, key, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_find(cursor, 0, 0));
 
         ham_cursor_close(cursor);
@@ -683,27 +690,27 @@ public:
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_insert(0, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_insert(cursor, 0, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_insert(cursor, &key, 0, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
     }
 
     void cursorEraseTest(void)
     {
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_erase(0, 0));
     }
 
     void cursorCloseTest(void)
     {
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_cursor_close(0));
     }
 
@@ -719,24 +726,24 @@ public:
         key.data=&value;
         key.size=sizeof(value);
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&db));
-        CPPUNIT_ASSERT_EQUAL(0, ham_create(db, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_create(db, ".test", 0, 0664));
 
         value=1;
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
         value=2;
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
         value=1;
-        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_erase(db, 0, &key, 0));
-        CPPUNIT_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
+        BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_erase(db, 0, &key, 0));
+        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
                 ham_cursor_move(cursor, &key, 0, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, ham_cursor_close(cursor));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(db));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
 
     void replaceKeyTest(void)
@@ -753,70 +760,70 @@ public:
         rec.data=buffer1;
 
         /* insert a big blob */
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(buffer1), rec.size);
-        CPPUNIT_ASSERT_EQUAL(0, ::memcmp(rec.data, buffer1, sizeof(buffer1)));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL((ham_size_t)sizeof(buffer1), rec.size);
+        BFC_ASSERT_EQUAL(0, ::memcmp(rec.data, buffer1, sizeof(buffer1)));
 
         /* replace with a tiny blob */
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
         rec.size=sizeof(buffer2);
         rec.data=buffer2;
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
-        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(buffer2), rec.size);
-        CPPUNIT_ASSERT_EQUAL(0, ::memcmp(rec.data, buffer2, sizeof(buffer2)));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL((ham_size_t)sizeof(buffer2), rec.size);
+        BFC_ASSERT_EQUAL(0, ::memcmp(rec.data, buffer2, sizeof(buffer2)));
 
         /* replace with a big blob */
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
         rec.size=sizeof(buffer1);
         rec.data=buffer1;
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
-        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(buffer1), rec.size);
-        CPPUNIT_ASSERT_EQUAL(0, ::memcmp(rec.data, buffer1, sizeof(buffer1)));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL((ham_size_t)sizeof(buffer1), rec.size);
+        BFC_ASSERT_EQUAL(0, ::memcmp(rec.data, buffer1, sizeof(buffer1)));
 
         /* replace with a NULL blob */
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
         rec.size=0;
         rec.data=0;
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
-        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)0, rec.size);
-        CPPUNIT_ASSERT(rec.data==0);
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL((ham_size_t)0, rec.size);
+        BFC_ASSERT(rec.data==0);
 
         /* replace with a tiny blob */
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
         rec.size=sizeof(buffer2);
         rec.data=buffer2;
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
-        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)sizeof(buffer2), rec.size);
-        CPPUNIT_ASSERT_EQUAL(0, ::memcmp(rec.data, buffer2, sizeof(buffer2)));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL((ham_size_t)sizeof(buffer2), rec.size);
+        BFC_ASSERT_EQUAL(0, ::memcmp(rec.data, buffer2, sizeof(buffer2)));
 
         /* replace with a NULL blob */
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
         rec.size=0;
         rec.data=0;
-        CPPUNIT_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
-        CPPUNIT_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)0, rec.size);
-        CPPUNIT_ASSERT(rec.data==0);
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL((ham_size_t)0, rec.size);
+        BFC_ASSERT(rec.data==0);
     }
 
     void replaceKeyFileTest(void)
     {
         ham_db_t *olddb=m_db;
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
-        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, ".test", 0, 0664));
         replaceKeyTest();
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(m_db));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(m_db));
         m_db=olddb;
     }
 
@@ -824,7 +831,7 @@ public:
         char *p=(char *)ham_mem_calloc(m_db, 20);
 
         for (int i=0; i<20; i++) {
-            CPPUNIT_ASSERT_EQUAL('\0', p[i]);
+            BFC_ASSERT_EQUAL('\0', p[i]);
         }
 
         ham_mem_free(m_db, p);
@@ -832,13 +839,13 @@ public:
 
     void strerrorTest() {
         for (int i=-203; i<=0; i++) {
-            CPPUNIT_ASSERT(ham_strerror((ham_status_t)i)!=0);
+            BFC_ASSERT(ham_strerror((ham_status_t)i)!=0);
         }
-        CPPUNIT_ASSERT_EQUAL(0, strcmp("Unknown error", 
+        BFC_ASSERT_EQUAL(0, strcmp("Unknown error", 
                     ham_strerror((ham_status_t)-204)));
-        CPPUNIT_ASSERT_EQUAL(0, strcmp("Unknown error", 
+        BFC_ASSERT_EQUAL(0, strcmp("Unknown error", 
                     ham_strerror((ham_status_t)-30)));
-        CPPUNIT_ASSERT_EQUAL(0, strcmp("Unknown error", 
+        BFC_ASSERT_EQUAL(0, strcmp("Unknown error", 
                     ham_strerror((ham_status_t)1)));
     }
 
@@ -846,80 +853,80 @@ public:
         void *ptr=(void *)0x13;
         ham_set_context_data(0, 0);
         ham_set_context_data(m_db, ptr);
-        CPPUNIT_ASSERT_EQUAL((void *)0, ham_get_context_data(0));
-        CPPUNIT_ASSERT_EQUAL((void *)0x13, ham_get_context_data(m_db));
+        BFC_ASSERT_EQUAL((void *)0, ham_get_context_data(0));
+        BFC_ASSERT_EQUAL((void *)0x13, ham_get_context_data(m_db));
         ham_set_context_data(m_db, 0);
-        CPPUNIT_ASSERT_EQUAL((void *)0, ham_get_context_data(m_db));
+        BFC_ASSERT_EQUAL((void *)0, ham_get_context_data(m_db));
     }
 
     void recoveryTest() {
         ham_db_t *olddb=m_db;
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
-        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, ".test", 
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, ".test", 
                                 HAM_ENABLE_RECOVERY, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(m_db));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(m_db));
         m_db=olddb;
     }
 
     void recoveryNegativeTest() {
         ham_db_t *olddb=m_db;
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create(m_db, ".test", 
                         HAM_ENABLE_RECOVERY|HAM_IN_MEMORY_DB, 0664));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create(m_db, ".test", 
                         HAM_ENABLE_RECOVERY|HAM_WRITE_THROUGH, 0664));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create(m_db, ".test", 
                         HAM_ENABLE_RECOVERY|HAM_DISABLE_FREELIST_FLUSH, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_delete(m_db));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(m_db));
         m_db=olddb;
     }
 
     void recoveryEnvTest() {
         ham_env_t *env;
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, ".test", HAM_ENABLE_RECOVERY, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void recoveryEnvNegativeTest() {
         ham_env_t *env;
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_new(&env));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_env_create(env, ".test", 
                         HAM_ENABLE_RECOVERY|HAM_IN_MEMORY_DB, 0664));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_env_create(env, ".test", 
                         HAM_ENABLE_RECOVERY|HAM_WRITE_THROUGH, 0664));
-        CPPUNIT_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_env_create(env, ".test", 
                         HAM_ENABLE_RECOVERY|HAM_DISABLE_FREELIST_FLUSH, 0664));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        CPPUNIT_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void btreeMacroTest(void)
     {
         ham_page_t *page=db_alloc_page(m_db, 0, 0);
-        CPPUNIT_ASSERT(page!=0);
+        BFC_ASSERT(page!=0);
 
         int off=(int)btree_node_get_key_offset(page, 0);
-        CPPUNIT_ASSERT_EQUAL((int)page_get_self(page)+11+28, off);
+        BFC_ASSERT_EQUAL((int)page_get_self(page)+11+28, off);
         off=(int)btree_node_get_key_offset(page, 1);
-        CPPUNIT_ASSERT_EQUAL((int)page_get_self(page)+11+28+32, off);
+        BFC_ASSERT_EQUAL((int)page_get_self(page)+11+28+32, off);
         off=(int)btree_node_get_key_offset(page, 2);
-        CPPUNIT_ASSERT_EQUAL((int)page_get_self(page)+11+28+64, off);
+        BFC_ASSERT_EQUAL((int)page_get_self(page)+11+28+64, off);
 
         db_free_page(page, 0);
     }
 
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION(HamsterdbTest);
+BFC_REGISTER_FIXTURE(HamsterdbTest);
 

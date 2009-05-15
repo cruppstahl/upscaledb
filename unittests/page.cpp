@@ -10,21 +10,32 @@
  */
 
 #include <stdexcept>
-#include <cppunit/extensions/HelperMacros.h>
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
 #include "../src/page.h"
 #include "../src/device.h"
 #include "memtracker.h"
 
-class PageTest : public CppUnit::TestFixture
+#include "bfc-testsuite.hpp"
+
+using namespace bfc;
+
+class PageTest : public fixture
 {
-    CPPUNIT_TEST_SUITE(PageTest);
-    CPPUNIT_TEST      (newDeleteTest);
-    CPPUNIT_TEST      (allocFreeTest);
-    CPPUNIT_TEST      (multipleAllocFreeTest);
-    CPPUNIT_TEST      (fetchFlushTest);
-    CPPUNIT_TEST_SUITE_END();
+public:
+    PageTest(ham_bool_t inmemorydb=HAM_FALSE, ham_bool_t mmap=HAM_TRUE, 
+            const char *name=0)
+    :   fixture(name ? name : "PageTest"), m_inmemory(inmemorydb), 
+        m_usemmap(mmap)
+    {
+        if (name)
+            return;
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(PageTest, newDeleteTest);
+        BFC_REGISTER_TEST(PageTest, allocFreeTest);
+        BFC_REGISTER_TEST(PageTest, multipleAllocFreeTest);
+        BFC_REGISTER_TEST(PageTest, fetchFlushTest);
+    }
 
 protected:
     ham_db_t *m_db;
@@ -34,30 +45,25 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    PageTest(ham_bool_t inmemorydb=HAM_FALSE, ham_bool_t mmap=HAM_TRUE)
-    :   m_inmemory(inmemorydb), m_usemmap(mmap)
-    {
-    } 
-
-    void setUp()
+    void setup()
     { 
         ham_page_t *p;
-        CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
-        CPPUNIT_ASSERT(0==ham_new(&m_db));
+        BFC_ASSERT((m_alloc=memtracker_new())!=0);
+        BFC_ASSERT(0==ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        CPPUNIT_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
+        BFC_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
                         m_inmemory))!=0);
         if (!m_usemmap)
             m_dev->set_flags(m_dev, DEVICE_NO_MMAP);
-        CPPUNIT_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
+        BFC_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
         db_set_device(m_db, m_dev);
         p=page_new(m_db);
-        CPPUNIT_ASSERT(0==page_alloc(p, m_dev->get_pagesize(m_dev)));
+        BFC_ASSERT(0==page_alloc(p, m_dev->get_pagesize(m_dev)));
         db_set_header_page(m_db, p);
         db_set_pagesize(m_db, m_dev->get_pagesize(m_dev));
     }
     
-    void tearDown() 
+    void teardown() 
     { 
         if (db_get_header_page(m_db)) {
             page_free(db_get_header_page(m_db));
@@ -71,14 +77,14 @@ public:
             db_set_device(m_db, 0);
         }
         ham_delete(m_db);
-        CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
+        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void newDeleteTest()
     {
         ham_page_t *page;
         page=page_new(m_db);
-        CPPUNIT_ASSERT(page!=0);
+        BFC_ASSERT(page!=0);
         page_delete(page);
     }
 
@@ -86,12 +92,12 @@ public:
     {
         ham_page_t *page;
         page=page_new(m_db);
-        CPPUNIT_ASSERT(page_alloc(page, db_get_pagesize(m_db))==HAM_SUCCESS);
-        CPPUNIT_ASSERT(page_free(page)==HAM_SUCCESS);
+        BFC_ASSERT(page_alloc(page, db_get_pagesize(m_db))==HAM_SUCCESS);
+        BFC_ASSERT(page_free(page)==HAM_SUCCESS);
 
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0, page_get_before_img_lsn(page));
+        BFC_ASSERT_EQUAL((ham_offset_t)0, page_get_before_img_lsn(page));
         page_set_before_img_lsn(page, 0x13ull);
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0x13, page_get_before_img_lsn(page));
+        BFC_ASSERT_EQUAL((ham_offset_t)0x13, page_get_before_img_lsn(page));
 
         page_delete(page);
     }
@@ -104,10 +110,10 @@ public:
 
         for (i=0; i<10; i++) {
             page=page_new(m_db);
-            CPPUNIT_ASSERT(page_alloc(page, db_get_pagesize(m_db))==0);
+            BFC_ASSERT(page_alloc(page, db_get_pagesize(m_db))==0);
             if (!m_inmemory)
-                CPPUNIT_ASSERT(page_get_self(page)==(i+1)*ps);
-            CPPUNIT_ASSERT(page_free(page)==HAM_SUCCESS);
+                BFC_ASSERT(page_get_self(page)==(i+1)*ps);
+            BFC_ASSERT(page_free(page)==HAM_SUCCESS);
             page_delete(page);
         }
     }
@@ -119,22 +125,22 @@ public:
 
         page=page_new(m_db);
         temp=page_new(m_db);
-        CPPUNIT_ASSERT(page_alloc(page, db_get_pagesize(m_db))==HAM_SUCCESS);
-        CPPUNIT_ASSERT(page_get_self(page)==ps);
-        CPPUNIT_ASSERT(page_free(page)==HAM_SUCCESS);
+        BFC_ASSERT(page_alloc(page, db_get_pagesize(m_db))==HAM_SUCCESS);
+        BFC_ASSERT(page_get_self(page)==ps);
+        BFC_ASSERT(page_free(page)==HAM_SUCCESS);
         
-        CPPUNIT_ASSERT(page_fetch(page, db_get_pagesize(m_db))==HAM_SUCCESS);
+        BFC_ASSERT(page_fetch(page, db_get_pagesize(m_db))==HAM_SUCCESS);
         memset(page_get_pers(page), 0x13, ps);
         page_set_dirty(page);
-        CPPUNIT_ASSERT(page_flush(page)==HAM_SUCCESS);
+        BFC_ASSERT(page_flush(page)==HAM_SUCCESS);
 
-        CPPUNIT_ASSERT(page_is_dirty(page)==0);
+        BFC_ASSERT(page_is_dirty(page)==0);
         page_set_self(temp, ps);
-        CPPUNIT_ASSERT(page_fetch(temp, db_get_pagesize(m_db))==HAM_SUCCESS);
-        CPPUNIT_ASSERT(0==memcmp(page_get_pers(page), page_get_pers(temp), ps));
+        BFC_ASSERT(page_fetch(temp, db_get_pagesize(m_db))==HAM_SUCCESS);
+        BFC_ASSERT(0==memcmp(page_get_pers(page), page_get_pers(temp), ps));
 
-        CPPUNIT_ASSERT(page_free(page)==HAM_SUCCESS);
-        CPPUNIT_ASSERT(page_free(temp)==HAM_SUCCESS);
+        BFC_ASSERT(page_free(page)==HAM_SUCCESS);
+        BFC_ASSERT(page_free(temp)==HAM_SUCCESS);
 
         page_delete(temp);
         page_delete(page);
@@ -144,36 +150,31 @@ public:
 
 class RwPageTest : public PageTest
 {
-    CPPUNIT_TEST_SUITE(RwPageTest);
-    CPPUNIT_TEST      (newDeleteTest);
-    CPPUNIT_TEST      (allocFreeTest);
-    CPPUNIT_TEST      (multipleAllocFreeTest);
-    CPPUNIT_TEST      (fetchFlushTest);
-    CPPUNIT_TEST_SUITE_END();
-
 public:
     RwPageTest()
-    :   PageTest(HAM_FALSE, HAM_FALSE)
+    : PageTest(HAM_FALSE, HAM_FALSE, "RwPageTest")
     {
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(RwPageTest, newDeleteTest);
+        BFC_REGISTER_TEST(RwPageTest, allocFreeTest);
+        BFC_REGISTER_TEST(RwPageTest, multipleAllocFreeTest);
+        BFC_REGISTER_TEST(RwPageTest, fetchFlushTest);
     }
 };
 
 class InMemoryPageTest : public PageTest
 {
-    CPPUNIT_TEST_SUITE(InMemoryPageTest);
-    CPPUNIT_TEST      (newDeleteTest);
-    CPPUNIT_TEST      (allocFreeTest);
-    CPPUNIT_TEST      (multipleAllocFreeTest);
-    CPPUNIT_TEST_SUITE_END();
-
 public:
     InMemoryPageTest()
-    :   PageTest(HAM_TRUE, HAM_FALSE)
+    : PageTest(HAM_TRUE, HAM_FALSE, "InMemoryPageTest")
     {
+        BFC_REGISTER_TEST(InMemoryPageTest, newDeleteTest);
+        BFC_REGISTER_TEST(InMemoryPageTest, allocFreeTest);
+        BFC_REGISTER_TEST(InMemoryPageTest, multipleAllocFreeTest);
     }
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION(PageTest);
-CPPUNIT_TEST_SUITE_REGISTRATION(RwPageTest);
-CPPUNIT_TEST_SUITE_REGISTRATION(InMemoryPageTest);
+BFC_REGISTER_FIXTURE(PageTest);
+BFC_REGISTER_FIXTURE(RwPageTest);
+BFC_REGISTER_FIXTURE(InMemoryPageTest);
 

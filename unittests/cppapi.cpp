@@ -72,14 +72,6 @@ public:
     }
 
 public:
-    void setUp()
-    { 
-    }
-    
-    void tearDown() 
-    { 
-    }
-
     void keyTest(void)
     {
         void *p=(void *)"123";

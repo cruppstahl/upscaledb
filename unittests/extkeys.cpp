@@ -11,67 +11,74 @@
 
 #include <stdexcept>
 #include <cstring>
-#include <cppunit/extensions/HelperMacros.h>
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
 #include "../src/extkeys.h"
 #include "memtracker.h"
 
-class ExtendedKeyTest : public CppUnit::TestFixture
+#include "bfc-testsuite.hpp"
+
+using namespace bfc;
+
+class ExtendedKeyTest : public fixture
 {
-    CPPUNIT_TEST_SUITE(ExtendedKeyTest);
-    CPPUNIT_TEST      (keyStructureTest);
-    CPPUNIT_TEST      (cacheStructureTest);
-    CPPUNIT_TEST      (insertFetchRemoveTest);
-    CPPUNIT_TEST      (negativeFetchTest);
-    CPPUNIT_TEST      (negativeRemoveTest);
-    CPPUNIT_TEST      (bigCacheTest);
-    CPPUNIT_TEST      (purgeTest);
-    CPPUNIT_TEST_SUITE_END();
+public:
+    ExtendedKeyTest()
+    :   fixture("ExtendedKeyTest")
+    {
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(ExtendedKeyTest, keyStructureTest);
+        BFC_REGISTER_TEST(ExtendedKeyTest, cacheStructureTest);
+        BFC_REGISTER_TEST(ExtendedKeyTest, insertFetchRemoveTest);
+        BFC_REGISTER_TEST(ExtendedKeyTest, negativeFetchTest);
+        BFC_REGISTER_TEST(ExtendedKeyTest, negativeRemoveTest);
+        BFC_REGISTER_TEST(ExtendedKeyTest, bigCacheTest);
+        BFC_REGISTER_TEST(ExtendedKeyTest, purgeTest);
+    }
 
 protected:
     ham_db_t *m_db;
     memtracker_t *m_alloc;
 
 public:
-    void setUp()
+    void setup()
     { 
-        CPPUNIT_ASSERT((m_alloc=memtracker_new())!=0);
-        CPPUNIT_ASSERT_EQUAL(0, ham_new(&m_db));
+        BFC_ASSERT((m_alloc=memtracker_new())!=0);
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        CPPUNIT_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
 
         if (!db_get_extkey_cache(m_db))
             db_set_extkey_cache(m_db, extkey_cache_new(m_db));
-        CPPUNIT_ASSERT(db_get_extkey_cache(m_db));
+        BFC_ASSERT(db_get_extkey_cache(m_db));
     }
     
-    void tearDown() 
+    void teardown() 
     { 
-        CPPUNIT_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
-        CPPUNIT_ASSERT(!memtracker_get_leaks(m_alloc));
+        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void keyStructureTest(void)
     {
         extkey_t e;
 
-        CPPUNIT_ASSERT_EQUAL(SIZEOF_EXTKEY_T, sizeof(extkey_t)-1);
+        BFC_ASSERT_EQUAL(SIZEOF_EXTKEY_T, sizeof(extkey_t)-1);
 
         extkey_set_blobid(&e, (ham_offset_t)0x12345);
-        CPPUNIT_ASSERT_EQUAL((ham_offset_t)0x12345, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0x12345, 
                 extkey_get_blobid(&e));
 
         extkey_set_txn_id(&e, (ham_u64_t)0x12345678);
-        CPPUNIT_ASSERT_EQUAL((ham_u64_t)0x12345678, 
+        BFC_ASSERT_EQUAL((ham_u64_t)0x12345678, 
                 extkey_get_txn_id(&e));
 
         extkey_set_next(&e, (extkey_t *)0x13);
-        CPPUNIT_ASSERT_EQUAL((extkey_t *)0x13, extkey_get_next(&e));
+        BFC_ASSERT_EQUAL((extkey_t *)0x13, extkey_get_next(&e));
 
         extkey_set_size(&e, 200);
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)200, extkey_get_size(&e));
+        BFC_ASSERT_EQUAL((ham_size_t)200, extkey_get_size(&e));
     }
 
     void cacheStructureTest(void)
@@ -80,27 +87,27 @@ public:
         extkey_cache_t *c=db_get_extkey_cache(m_db);
 
         extkey_cache_set_db(c, m_db);
-        CPPUNIT_ASSERT_EQUAL(m_db, extkey_cache_get_db(c));
+        BFC_ASSERT_EQUAL(m_db, extkey_cache_get_db(c));
 
         tmp=extkey_cache_get_usedsize(c);
         extkey_cache_set_usedsize(c, 1000);
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)1000, extkey_cache_get_usedsize(c));
+        BFC_ASSERT_EQUAL((ham_size_t)1000, extkey_cache_get_usedsize(c));
         extkey_cache_set_usedsize(c, tmp);
 
         tmp=extkey_cache_get_bucketsize(c);
         extkey_cache_set_bucketsize(c, 500);
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)500, extkey_cache_get_bucketsize(c));
+        BFC_ASSERT_EQUAL((ham_size_t)500, extkey_cache_get_bucketsize(c));
         extkey_cache_set_bucketsize(c, tmp);
 
         for (ham_size_t i=0; i<extkey_cache_get_bucketsize(c); i++) {
             extkey_t *e;
 
             e=extkey_cache_get_bucket(c, i);
-            CPPUNIT_ASSERT_EQUAL((extkey_t *)0, e);
+            BFC_ASSERT_EQUAL((extkey_t *)0, e);
 
             extkey_cache_set_bucket(c, i, (extkey_t *)(i+1));
             e=extkey_cache_get_bucket(c, i);
-            CPPUNIT_ASSERT_EQUAL((extkey_t *)(i+1), e);
+            BFC_ASSERT_EQUAL((extkey_t *)(i+1), e);
 
             extkey_cache_set_bucket(c, i, 0);
         }
@@ -112,15 +119,15 @@ public:
         ham_u8_t *pbuffer, buffer[12]={0};
         ham_size_t size;
 
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 extkey_cache_insert(c, 0x123, sizeof(buffer), buffer));
 
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 extkey_cache_fetch(c, 0x123, &size, &pbuffer));
-        CPPUNIT_ASSERT_EQUAL((ham_size_t)12, size);
-        CPPUNIT_ASSERT(::memcmp(pbuffer, buffer, size)==0);
+        BFC_ASSERT_EQUAL((ham_size_t)12, size);
+        BFC_ASSERT(::memcmp(pbuffer, buffer, size)==0);
 
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 extkey_cache_remove(c, 0x123));
     }
 
@@ -130,17 +137,17 @@ public:
         ham_u8_t *pbuffer, buffer[12]={0};
         ham_size_t size;
 
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 extkey_cache_insert(c, 0x123, sizeof(buffer), buffer));
 
-        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                 extkey_cache_fetch(c, 0x1234, &size, &pbuffer));
-        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                 extkey_cache_fetch(c, 0x12345, &size, &pbuffer));
 
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                 extkey_cache_remove(c, 0x123));
-        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                 extkey_cache_fetch(c, 0x123, &size, &pbuffer));
     }
 
@@ -148,7 +155,7 @@ public:
     {
         extkey_cache_t *c=db_get_extkey_cache(m_db);
 
-        CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                 extkey_cache_remove(c, 0x12345));
     }
 
@@ -159,20 +166,20 @@ public:
         ham_size_t size;
 
         for (ham_size_t i=0; i<extkey_cache_get_bucketsize(c)*4; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, 
+            BFC_ASSERT_EQUAL(0, 
                 extkey_cache_insert(c, (ham_offset_t)i, 
                     sizeof(buffer), buffer));
         }
 
         for (ham_size_t i=0; i<extkey_cache_get_bucketsize(c)*4; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, 
+            BFC_ASSERT_EQUAL(0, 
                 extkey_cache_fetch(c, (ham_offset_t)i, 
                     &size, &pbuffer));
-            CPPUNIT_ASSERT_EQUAL((ham_size_t)12, size);
+            BFC_ASSERT_EQUAL((ham_size_t)12, size);
         }
 
         for (ham_size_t i=0; i<extkey_cache_get_bucketsize(c)*4; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, 
+            BFC_ASSERT_EQUAL(0, 
                 extkey_cache_remove(c, (ham_offset_t)i));
         }
     }
@@ -184,22 +191,22 @@ public:
         ham_size_t size;
 
         for (int i=0; i<20; i++) {
-            CPPUNIT_ASSERT_EQUAL(0, 
+            BFC_ASSERT_EQUAL(0, 
                 extkey_cache_insert(c, (ham_offset_t)i, 
                     sizeof(buffer), buffer));
         }
 
         db_set_txn_id(m_db, db_get_txn_id(m_db)+2000);
 
-        CPPUNIT_ASSERT_EQUAL(0, extkey_cache_purge(c));
+        BFC_ASSERT_EQUAL(0, extkey_cache_purge(c));
 
         for (int i=0; i<20; i++) {
-            CPPUNIT_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+            BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                 extkey_cache_fetch(c, (ham_offset_t)i, 
                     &size, &pbuffer));
         }
     }
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION(ExtendedKeyTest);
+BFC_REGISTER_FIXTURE(ExtendedKeyTest);
 

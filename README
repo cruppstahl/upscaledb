@@ -1,5 +1,5 @@
 
-hamsterdb 1.0.8                                 Sat Feb 28 15:59:42 CET 2009
+hamsterdb 1.0.9                                 Fri Mar 15 20:57:12 CET 2009
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb.
@@ -12,8 +12,9 @@ hamsterdb is a database engine written in ANSI C. It supports a B+Tree index
 structure, uses memory mapped I/O (if available), supports fast Cursors and
 variable length keys and can create In-Memory Databases.
 
-This release fixes a bug on big-endian machines and a small error in
-the tutorial.
+This release fixes a small bug: if compression is enabled and ham_cursor_move
+is called with the second parameter NULL, hamsterdb segfaults. Also, the
+dependency to cppunit was removed.
 
 2. Changes
 
@@ -21,19 +22,18 @@ New Features
 * none
 
 Bugfixes
-* when shifting internal pages (during SMO of erase), extended
-    keys were deleted although they were still referenced
+* fixed segfault with compression and ham_cursor_move(key, NULL...)
 
 Other Changes
-* none
+* removed dependency to cppunit (unittests)
 
 To see a list of all changes, look in the file CHANGELOG.
 
 3. Roadmap
 
 - Currently, most of the development concentrates on hamsterdb2, a
-    multi-threaded, transactional Database engine. There will be bugfix releases
-    for hamsterdb whenever necessary.
+    multi-threaded, transactional Database engine. There will be bugfix 
+    releases for hamsterdb whenever necessary.
 
 4. Features
 

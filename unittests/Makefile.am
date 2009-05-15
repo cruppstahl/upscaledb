@@ -35,7 +35,6 @@ test_SOURCES    = log.cpp \
                   txn.cpp \
                   memtracker.cpp
 
-test_LDADD      = $(top_builddir)/src/libhamsterdb.la \
-                  -lcppunit -ldl
+test_LDADD      = $(top_builddir)/src/libhamsterdb.la -ldl
 
 noinst_BIN      = test

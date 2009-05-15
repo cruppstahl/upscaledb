@@ -9,10 +9,6 @@
  * See files COPYING.* for License information.
  */
 
-#include <cppunit/CompilerOutputter.h>
-#include <cppunit/extensions/TestFactoryRegistry.h>
-#include <cppunit/ui/text/TestRunner.h>
-
 #include "bfc-testsuite.hpp"
 
 #ifdef VISUAL_STUDIO
@@ -29,14 +25,6 @@ main(int argc, char **argv)
     (void)argc;
     (void)argv;
 
-    CppUnit::Test *suite=CppUnit::TestFactoryRegistry::getRegistry().makeTest();
-
-    CppUnit::TextUi::TestRunner runner;
-    runner.addTest(suite);
-
-    runner.setOutputter(new CppUnit::CompilerOutputter(&runner.result(), 
-                    std::cerr));
-
     /*
      * when running in visual studio, the working directory is different
      * from the unix/cygwin environment. this can be changed, but the
@@ -50,9 +38,6 @@ main(int argc, char **argv)
 #ifdef VISUAL_STUDIO
     SetCurrentDirectory(L"../unittests");
 #endif
-
-    if (!runner.run())
-        return (1);
 
     unsigned r=testrunner::get_instance()->run();
     delete testrunner::get_instance();

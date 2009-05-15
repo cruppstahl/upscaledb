@@ -10,10 +10,13 @@
  */
 
 #include <cstring>
-#include <cppunit/extensions/HelperMacros.h>
 #include <ham/hamsterdb.h>
 #include "../src/os.h"
 #include "os.hpp"
+
+#include "bfc-testsuite.hpp"
+
+using namespace bfc;
 
 #if WIN32
 #   include <windows.h>
@@ -27,37 +30,41 @@ my_errhandler(int level, const char *message)
     (void)message;
 }
 
-class OsTest : public CppUnit::TestFixture
+class OsTest : public fixture
 {
-    CPPUNIT_TEST_SUITE(OsTest);
-    CPPUNIT_TEST      (openCloseTest);
-    CPPUNIT_TEST      (openReadOnlyCloseTest);
-    CPPUNIT_TEST      (negativeOpenCloseTest);
-    CPPUNIT_TEST      (createCloseTest);
-    CPPUNIT_TEST      (createCloseOverwriteTest);
-    CPPUNIT_TEST      (closeTest);
-    CPPUNIT_TEST      (openExclusiveTest);
-    CPPUNIT_TEST      (readWriteTest);
-    CPPUNIT_TEST      (pagesizeTest);
+public:
+    OsTest()
+    :   fixture("OsTest")
+    {
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(OsTest, openCloseTest);
+        BFC_REGISTER_TEST(OsTest, openReadOnlyCloseTest);
+        BFC_REGISTER_TEST(OsTest, negativeOpenCloseTest);
+        BFC_REGISTER_TEST(OsTest, createCloseTest);
+        BFC_REGISTER_TEST(OsTest, createCloseOverwriteTest);
+        BFC_REGISTER_TEST(OsTest, closeTest);
+        BFC_REGISTER_TEST(OsTest, openExclusiveTest);
+        BFC_REGISTER_TEST(OsTest, readWriteTest);
+        BFC_REGISTER_TEST(OsTest, pagesizeTest);
 #if HAVE_MMAP
-    CPPUNIT_TEST      (mmapTest);
-    CPPUNIT_TEST      (mmapReadOnlyTest);
-    CPPUNIT_TEST      (multipleMmapTest);
-    CPPUNIT_TEST      (negativeMmapTest);
+        BFC_REGISTER_TEST(OsTest, mmapTest);
+        BFC_REGISTER_TEST(OsTest, mmapReadOnlyTest);
+        BFC_REGISTER_TEST(OsTest, multipleMmapTest);
+        BFC_REGISTER_TEST(OsTest, negativeMmapTest);
 #endif
-    CPPUNIT_TEST      (seekTellTest);
-    CPPUNIT_TEST      (negativeSeekTest);
-    CPPUNIT_TEST      (truncateTest);
-    CPPUNIT_TEST      (largefileTest);
-    CPPUNIT_TEST_SUITE_END();
+        BFC_REGISTER_TEST(OsTest, seekTellTest);
+        BFC_REGISTER_TEST(OsTest, negativeSeekTest);
+        BFC_REGISTER_TEST(OsTest, truncateTest);
+        BFC_REGISTER_TEST(OsTest, largefileTest);
+    }
 
 public:
-    void setUp()    
+    void setup()
     { 
         ham_set_errhandler(my_errhandler);
     }
 
-    void tearDown() 
+    void teardown() 
     { 
         (void)os::unlink(".test");
     }
@@ -68,9 +75,9 @@ public:
         ham_fd_t fd;
 
         st=os_open("Makefile.am", 0, &fd);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
         st=os_close(fd, 0);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
     }
 
     void openReadOnlyCloseTest()
@@ -80,11 +87,11 @@ public:
         const char *p="# XXXXXXXXX ERROR\n";
 
         st=os_open("Makefile.am", HAM_READ_ONLY, &fd);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
         st=os_pwrite(fd, 0, p, (ham_size_t)strlen(p));
-        CPPUNIT_ASSERT(st==HAM_IO_ERROR);
+        BFC_ASSERT(st==HAM_IO_ERROR);
         st=os_close(fd, 0);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
     }
 
     void negativeOpenCloseTest()
@@ -93,7 +100,7 @@ public:
         ham_fd_t fd;
 
         st=os_open("__98324kasdlf.blöd", 0, &fd);
-        CPPUNIT_ASSERT(st==HAM_FILE_NOT_FOUND);
+        BFC_ASSERT(st==HAM_FILE_NOT_FOUND);
     }
 
     void createCloseTest()
@@ -102,9 +109,9 @@ public:
         ham_fd_t fd;
 
         st=os_create(".test", 0, 0664, &fd);
-        CPPUNIT_ASSERT_EQUAL(0, st);
+        BFC_ASSERT_EQUAL(0, st);
         st=os_close(fd, 0);
-        CPPUNIT_ASSERT_EQUAL(0, st);
+        BFC_ASSERT_EQUAL(0, st);
     }
 
     void createCloseOverwriteTest()
@@ -113,15 +120,15 @@ public:
         ham_offset_t filesize;
 
         for (int i=0; i<3; i++) {
-            CPPUNIT_ASSERT(os_create(".test", 0, 0664, &fd)==HAM_SUCCESS);
-            CPPUNIT_ASSERT(os_seek(fd, 0, HAM_OS_SEEK_END)==HAM_SUCCESS);
-            CPPUNIT_ASSERT(os_tell(fd, &filesize)==HAM_SUCCESS);
-            CPPUNIT_ASSERT(filesize==0);
-            CPPUNIT_ASSERT(os_truncate(fd, 1024)==HAM_SUCCESS);
-            CPPUNIT_ASSERT(os_seek(fd, 0, HAM_OS_SEEK_END)==HAM_SUCCESS);
-            CPPUNIT_ASSERT(os_tell(fd, &filesize)==HAM_SUCCESS);
-            CPPUNIT_ASSERT(filesize==1024);
-            CPPUNIT_ASSERT(os_close(fd, 0)==HAM_SUCCESS);
+            BFC_ASSERT(os_create(".test", 0, 0664, &fd)==HAM_SUCCESS);
+            BFC_ASSERT(os_seek(fd, 0, HAM_OS_SEEK_END)==HAM_SUCCESS);
+            BFC_ASSERT(os_tell(fd, &filesize)==HAM_SUCCESS);
+            BFC_ASSERT(filesize==0);
+            BFC_ASSERT(os_truncate(fd, 1024)==HAM_SUCCESS);
+            BFC_ASSERT(os_seek(fd, 0, HAM_OS_SEEK_END)==HAM_SUCCESS);
+            BFC_ASSERT(os_tell(fd, &filesize)==HAM_SUCCESS);
+            BFC_ASSERT(filesize==1024);
+            BFC_ASSERT(os_close(fd, 0)==HAM_SUCCESS);
         }
     }
 
@@ -131,7 +138,7 @@ public:
         ham_status_t st;
 
         st=os_close((ham_fd_t)0x12345, 0);
-        CPPUNIT_ASSERT(st==HAM_IO_ERROR);
+        BFC_ASSERT(st==HAM_IO_ERROR);
 #endif
     }
 
@@ -141,20 +148,20 @@ public:
 #ifndef __CYGWIN__
         ham_fd_t fd, fd2;
 
-        CPPUNIT_ASSERT_EQUAL(0, os_create(".test", 
+        BFC_ASSERT_EQUAL(0, os_create(".test", 
                     HAM_LOCK_EXCLUSIVE, 0664, &fd));
-        CPPUNIT_ASSERT_EQUAL(0, os_close(fd, HAM_LOCK_EXCLUSIVE));
+        BFC_ASSERT_EQUAL(0, os_close(fd, HAM_LOCK_EXCLUSIVE));
         
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, 
                          os_open(".test", HAM_LOCK_EXCLUSIVE, &fd));
-        CPPUNIT_ASSERT_EQUAL(HAM_WOULD_BLOCK, 
+        BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK, 
                 os_open(".test", HAM_LOCK_EXCLUSIVE, &fd2));
-        CPPUNIT_ASSERT_EQUAL(0, os_close(fd, HAM_LOCK_EXCLUSIVE));
-        CPPUNIT_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, os_close(fd, HAM_LOCK_EXCLUSIVE));
+        BFC_ASSERT_EQUAL(0, 
                          os_open(".test", HAM_LOCK_EXCLUSIVE, &fd2));
-        CPPUNIT_ASSERT_EQUAL(0, os_close(fd2, HAM_LOCK_EXCLUSIVE));
-        CPPUNIT_ASSERT_EQUAL(0, os_open(".test", 0, &fd2));
-        CPPUNIT_ASSERT_EQUAL(0, os_close(fd2, 0));
+        BFC_ASSERT_EQUAL(0, os_close(fd2, HAM_LOCK_EXCLUSIVE));
+        BFC_ASSERT_EQUAL(0, os_open(".test", 0, &fd2));
+        BFC_ASSERT_EQUAL(0, os_close(fd2, 0));
 #endif
     }
 
@@ -166,28 +173,28 @@ public:
         char buffer[128], orig[128];
 
         st=os_create(".test", 0, 0664, &fd);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
         for (i=0; i<10; i++) {
             memset(buffer, i, sizeof(buffer));
             st=os_pwrite(fd, i*sizeof(buffer), buffer, sizeof(buffer));
-            CPPUNIT_ASSERT(st==0);
+            BFC_ASSERT(st==0);
         }
         for (i=0; i<10; i++) {
             memset(orig, i, sizeof(orig));
             memset(buffer, 0, sizeof(buffer));
             st=os_pread(fd, i*sizeof(buffer), buffer, sizeof(buffer));
-            CPPUNIT_ASSERT(st==0);
-            CPPUNIT_ASSERT(0==memcmp(buffer, orig, sizeof(buffer)));
+            BFC_ASSERT(st==0);
+            BFC_ASSERT(0==memcmp(buffer, orig, sizeof(buffer)));
         }
         st=os_close(fd, 0);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
     }
 
     void pagesizeTest()
     {
         ham_size_t ps=os_get_pagesize();
-        CPPUNIT_ASSERT(ps!=0);
-        CPPUNIT_ASSERT(ps%1024==0);
+        BFC_ASSERT(ps!=0);
+        BFC_ASSERT(ps%1024==0);
     }
 
     void mmapTest()
@@ -200,22 +207,22 @@ public:
         p1=(ham_u8_t *)malloc(ps);
 
         st=os_create(".test", 0, 0664, &fd);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
         for (i=0; i<10; i++) {
             memset(p1, i, ps);
             st=os_pwrite(fd, i*ps, p1, ps);
-            CPPUNIT_ASSERT(st==0);
+            BFC_ASSERT(st==0);
         }
         for (i=0; i<10; i++) {
             memset(p1, i, ps);
             st=os_mmap(fd, &mmaph, i*ps, ps, 0, &p2);
-            CPPUNIT_ASSERT(st==0);
-            CPPUNIT_ASSERT(0==memcmp(p1, p2, ps));
+            BFC_ASSERT(st==0);
+            BFC_ASSERT(0==memcmp(p1, p2, ps));
             st=os_munmap(&mmaph, p2, ps);
-            CPPUNIT_ASSERT(st==0);
+            BFC_ASSERT(st==0);
         }
         st=os_close(fd, 0);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
         free(p1);
     }
 
@@ -227,22 +234,22 @@ public:
         ham_u8_t *p1, *p2;
         p1=(ham_u8_t *)malloc(ps);
 
-        CPPUNIT_ASSERT_EQUAL(0, os_create(".test", 0, 0664, &fd));
+        BFC_ASSERT_EQUAL(0, os_create(".test", 0, 0664, &fd));
         for (i=0; i<10; i++) {
             memset(p1, i, ps);
-            CPPUNIT_ASSERT_EQUAL(0, os_pwrite(fd, i*ps, p1, ps));
+            BFC_ASSERT_EQUAL(0, os_pwrite(fd, i*ps, p1, ps));
         }
-        CPPUNIT_ASSERT_EQUAL(0, os_close(fd, 0));
+        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
 
-        CPPUNIT_ASSERT_EQUAL(0, os_open(".test", HAM_READ_ONLY, &fd));
+        BFC_ASSERT_EQUAL(0, os_open(".test", HAM_READ_ONLY, &fd));
         for (i=0; i<10; i++) {
             memset(p1, i, ps);
-            CPPUNIT_ASSERT_EQUAL(0, os_mmap(fd, &mmaph, i*ps, ps, 
+            BFC_ASSERT_EQUAL(0, os_mmap(fd, &mmaph, i*ps, ps, 
                     HAM_READ_ONLY, &p2));
-            CPPUNIT_ASSERT_EQUAL(0, memcmp(p1, p2, ps));
-            CPPUNIT_ASSERT_EQUAL(0, os_munmap(&mmaph, p2, ps));
+            BFC_ASSERT_EQUAL(0, memcmp(p1, p2, ps));
+            BFC_ASSERT_EQUAL(0, os_munmap(&mmaph, p2, ps));
         }
-        CPPUNIT_ASSERT_EQUAL(0, os_close(fd, HAM_READ_ONLY));
+        BFC_ASSERT_EQUAL(0, os_close(fd, HAM_READ_ONLY));
         free(p1);
     }
 
@@ -256,14 +263,14 @@ public:
         ham_offset_t addr=0, size;
 
         st=os_create(".test", 0, 0664, &fd);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
         for (i=0; i<5; i++) {
             size=ps*(i+1);
 
             p1=(ham_u8_t *)malloc((size_t)size);
             memset(p1, i, (size_t)size);
             st=os_pwrite(fd, addr, p1, (ham_size_t)size);
-            CPPUNIT_ASSERT(st==0);
+            BFC_ASSERT(st==0);
             free(p1);
             addr+=size;
         }
@@ -275,15 +282,15 @@ public:
             p1=(ham_u8_t *)malloc((size_t)size);
             memset(p1, i, (size_t)size);
             st=os_mmap(fd, &mmaph, addr, (ham_size_t)size, 0, &p2);
-            CPPUNIT_ASSERT(st==0);
-            CPPUNIT_ASSERT(0==memcmp(p1, p2, (size_t)size));
+            BFC_ASSERT(st==0);
+            BFC_ASSERT(0==memcmp(p1, p2, (size_t)size));
             st=os_munmap(&mmaph, p2, (ham_size_t)size);
-            CPPUNIT_ASSERT(st==0);
+            BFC_ASSERT(st==0);
             free(p1);
             addr+=size;
         }
         st=os_close(fd, 0);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
     }
 
     void negativeMmapTest()
@@ -291,14 +298,14 @@ public:
         ham_fd_t fd, mmaph;
         ham_u8_t *page;
 
-        CPPUNIT_ASSERT_EQUAL(0, os_create(".test", 0, 0664, &fd));
+        BFC_ASSERT_EQUAL(0, os_create(".test", 0, 0664, &fd));
         // bad address && page size! - i don't know why this succeeds
         // on MacOS...
 #ifndef __MACH__
-        CPPUNIT_ASSERT_EQUAL(HAM_IO_ERROR, 
+        BFC_ASSERT_EQUAL(HAM_IO_ERROR, 
                 os_mmap(fd, &mmaph, 33, 66, 0, &page));
 #endif
-        CPPUNIT_ASSERT_EQUAL(0, os_close(fd, 0));
+        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
     }
 
     void seekTellTest()
@@ -309,16 +316,16 @@ public:
         ham_offset_t tell;
 
         st=os_create(".test", 0, 0664, &fd);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
         for (i=0; i<10; i++) {
             st=os_seek(fd, i, HAM_OS_SEEK_SET);
-            CPPUNIT_ASSERT(st==0);
+            BFC_ASSERT(st==0);
             st=os_tell(fd, &tell);
-            CPPUNIT_ASSERT(st==0);
-            CPPUNIT_ASSERT(tell==(ham_offset_t)i);
+            BFC_ASSERT(st==0);
+            BFC_ASSERT(tell==(ham_offset_t)i);
         }
         st=os_close(fd, 0);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
     }
 
     void negativeSeekTest()
@@ -326,7 +333,7 @@ public:
         ham_status_t st;
 
         st=os_seek((ham_fd_t)0x12345, 0, HAM_OS_SEEK_SET);
-        CPPUNIT_ASSERT(st==HAM_IO_ERROR);
+        BFC_ASSERT(st==HAM_IO_ERROR);
     }
 
     void truncateTest()
@@ -337,16 +344,16 @@ public:
         ham_offset_t fsize;
 
         st=os_create(".test", 0, 0664, &fd);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
         for (i=0; i<10; i++) {
             st=os_truncate(fd, i*128);
-            CPPUNIT_ASSERT(st==0);
+            BFC_ASSERT(st==0);
             st=os_get_filesize(fd, &fsize);
-            CPPUNIT_ASSERT(st==0);
-            CPPUNIT_ASSERT(fsize==(ham_offset_t)(i*128));
+            BFC_ASSERT(st==0);
+            BFC_ASSERT(fsize==(ham_offset_t)(i*128));
         }
         st=os_close(fd, 0);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
     }
 
     void largefileTest()
@@ -360,25 +367,25 @@ public:
         memset(kb, 0, sizeof(kb));
 
         st=os_create(".test", 0, 0664, &fd);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
         for (i=0; i<4*1024; i++) {
             st=os_pwrite(fd, i*sizeof(kb), kb, sizeof(kb));
-            CPPUNIT_ASSERT(st==0);
+            BFC_ASSERT(st==0);
         }
         st=os_close(fd, 0);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
 
         st=os_open(".test", 0, &fd);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
         st=os_seek(fd, 0, HAM_OS_SEEK_END);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
         st=os_tell(fd, &tell);
-        CPPUNIT_ASSERT(st==0);
-        CPPUNIT_ASSERT(tell==(ham_offset_t)1024*1024*4);
+        BFC_ASSERT(st==0);
+        BFC_ASSERT(tell==(ham_offset_t)1024*1024*4);
         st=os_close(fd, 0);
-        CPPUNIT_ASSERT(st==0);
+        BFC_ASSERT(st==0);
     }
 
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION(OsTest);
+BFC_REGISTER_FIXTURE(OsTest);
