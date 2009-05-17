@@ -24,7 +24,7 @@
 #ifndef BFC_TESTSUITE_HPP__
 #define BFC_TESTSUITE_HPP__
 
-#include <list>
+#include <vector>
 #include <string>
 #include <iostream>
 
@@ -69,9 +69,10 @@ typedef void (fixture::*method)();
                             get_name(), __FUNCTION__, \
                             "assertion failed in expr "#expr" != NULL"); }
 
-struct test
+class test
 {
-    const char *name;
+public:
+    std::string name;
     method foo;
 };
 
@@ -117,13 +118,13 @@ public:
         m_tests.push_back(t);
     }
 
-    std::list<test> &get_tests() {
+    std::vector<test> &get_tests() {
         return m_tests;
     }
 
 private:
     const char *m_name;
-    std::list<test> m_tests;
+    std::vector<test> m_tests;
 };
 
 class testrunner
@@ -153,7 +154,7 @@ public:
 
     // print all errors
     void print_errors() {
-        std::list<error>::iterator it;
+        std::vector<error>::iterator it;
         unsigned i=1;
 
         for (it=m_errors.begin(); it!=m_errors.end(); it++, i++) {
@@ -170,7 +171,7 @@ public:
 
     // run all tests - returns number of errors
     unsigned run() {
-        std::list<fixture *>::iterator it;
+        std::vector<fixture *>::iterator it;
         m_errors.clear();
 
         for (it=m_fixtures.begin(); it!=m_fixtures.end(); it++) {
@@ -178,18 +179,19 @@ public:
         }
 
         print_errors();
-        return (m_errors.size());
+        return ((unsigned)m_errors.size());
     }
 
     // run all tests of a fixture
     void run(fixture *f) {
-        std::list<test>::iterator it;
+        std::vector<test>::iterator it;
 
         for (it=f->get_tests().begin(); it!=f->get_tests().end(); it++) {
             bool success=true;
             try {
                 method m=(*it).foo;
-                printf("starting %s::%s\n", f->get_name(), (*it).name);
+                std::cout << "starting " << f->get_name() << "::" 
+                          << (*it).name << std::endl;
                 f->setup();
                 (f->*m)();
             }
@@ -219,8 +221,8 @@ public:
 
 private:
     static testrunner *s_instance;
-    std::list<fixture *> m_fixtures;
-    std::list<error> m_errors;
+    std::vector<fixture *> m_fixtures;
+    std::vector<error> m_errors;
     unsigned m_success;
 };
 
