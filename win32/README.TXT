@@ -1,5 +1,5 @@
 
-hamsterdb Win32 build environment              Wed Aug 13 15:54:54 WEST 2008
+hamsterdb Win32 build environment              Mon May 18 09:07:36 WEST 2009
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 1. Overview
@@ -15,11 +15,6 @@ The static library is built in 'out/lib[_debug][_x64]/libhamsterdb.lib',
 the dynamic library is in 'out/dll[_debug][_x64]/hamsterdb.dll'. Import
 libraries and pdb files for debug builds are also provided. 
 All libraries can be downloaded separately from the hamsterdb webpage.
-
-The unittests need cppunit, available at
-http://sourceforge.net/projects/cppunit. You will have to modify 
-the unittest properties, and change the include path and library 
-dependency for cppunit.
 
 To download Microsoft Visual C++ 2005 Express Edition for free, go to
 http://msdn.microsoft.com/vstudio/express/visualc/default.aspx.
@@ -38,7 +33,7 @@ http://www.microsoft.com/downloads/details.aspx?FamilyID=9B2DA534-3E03-4391-8A4D
 
 Author of hamsterdb is 
     Christoph Rupp
-    Ridlerstr. 29c
-    80339 Muenchen/Germany
+    Paul-Preuﬂ-Straﬂe 63
+    80995 Muenchen/Germany
     email: chris@crupp.de
     web: http://www.hamsterdb.com
