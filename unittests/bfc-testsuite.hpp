@@ -69,10 +69,9 @@ typedef void (fixture::*method)();
                             get_name(), __FUNCTION__, \
                             "assertion failed in expr "#expr" != NULL"); }
 
-class test
+struct test
 {
-public:
-    std::string name;
+	std::string name;
     method foo;
 };
 
@@ -190,8 +189,8 @@ public:
             bool success=true;
             try {
                 method m=(*it).foo;
-                std::cout << "starting " << f->get_name() << "::" 
-                          << (*it).name << std::endl;
+				std::cout << "starting " << f->get_name() 
+						  << "::" << (*it).name << std::endl;
                 f->setup();
                 (f->*m)();
             }
