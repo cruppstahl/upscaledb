@@ -111,9 +111,17 @@ public:
 
     // register a new test function
     void register_test(const char *name, method foo) {
+		static method *m;
         test t;
         t.name=name;
         t.foo=foo;
+		// UGLY!!
+		// add some random shitty code, otherwise the MSVC compiler
+		// will set t.foo to zero because of optimization
+		// (thanks, Microsoft...)
+		m=&t.foo;
+		if (foo)
+			m++;
         m_tests.push_back(t);
     }
 
@@ -188,7 +196,7 @@ public:
         for (it=f->get_tests().begin(); it!=f->get_tests().end(); it++) {
             bool success=true;
             try {
-                method m=(*it).foo;
+                method m=it->foo;
 				std::cout << "starting " << f->get_name() 
 						  << "::" << (*it).name << std::endl;
                 f->setup();
