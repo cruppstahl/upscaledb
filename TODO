@@ -10,9 +10,6 @@ x a finished TODO item
 x tutorial (and header file as well?) - default compare is descending, not
     ascending
 
-o tutorial (and header file as well?) - document that set_compare_func must
-    be PRIOR to ham_env_create/open (throw an error?) -- see email conversation
-
 o unittests: get rid of cppunit, move to bfc
     x update unittests
     o update win32 project file
@@ -20,6 +17,8 @@ o unittests: get rid of cppunit, move to bfc
     . update hamsterdb-alien
     o finally run tests in win64
     o finally run tests in wince
+    o make sure that all tests are run only once (don't register tests in
+         the constructor of a fixture)
 
 . enhance java/python/.NET for transactions
     o update README file(s) with new address
