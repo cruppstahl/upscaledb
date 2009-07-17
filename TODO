@@ -10,6 +10,8 @@ x a finished TODO item
 x tutorial (and header file as well?) - default compare is descending, not
     ascending
 
+o packstop has include guards??? remove them, run tests
+
 o unittests: get rid of cppunit, move to bfc
     x update unittests
     o update win32 project file
