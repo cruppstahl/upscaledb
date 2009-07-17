@@ -10,7 +10,7 @@
  *
  *
  * \file types.h
- * \brief Portable typedefs for hamsterdb.
+ * \brief Portable typedefs for hamsterdb Embedded Storage.
  * \author Christoph Rupp, chris@crupp.de
  *
  */

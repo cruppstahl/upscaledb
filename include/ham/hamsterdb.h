@@ -9,8 +9,8 @@
  * See files COPYING.* for License information.
  *
  *
- * \mainpage hamsterdb embedded database
- * \brief Include file for hamsterdb
+ * \mainpage hamsterdb Embedded Storage database
+ * \brief Include file for hamsterdb Embedded Storage
  * \author Christoph Rupp, chris@crupp.de
  * \version 1.0.9
  */

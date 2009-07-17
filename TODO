@@ -20,6 +20,9 @@ o unittests: get rid of cppunit, move to bfc
     o make sure that all tests are run only once (don't register tests in
          the constructor of a fixture)
 
+o improve header file documentation - some functions are still (relatively)
+    undocumented
+
 . enhance java/python/.NET for transactions
     o update README file(s) with new address
 
@@ -37,9 +40,6 @@ o unittests: get rid of cppunit, move to bfc
 . Perl wrapper
 
 . PHP wrapper
-
-. new configure switch --force-lsb-compliancy (ohne pread, pwrite)
-    o needs support for automated testing!
 
 -----------------------------------------------------------------------------
 

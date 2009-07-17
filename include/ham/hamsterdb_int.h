@@ -10,7 +10,7 @@
  *
  *
  * \file hamsterdb_int.h
- * \brief Internal hamsterdb functions.
+ * \brief Internal hamsterdb Embedded Storage functions.
  * \author Christoph Rupp, chris@crupp.de
  *
  */

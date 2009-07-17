@@ -1,16 +1,16 @@
 
-hamsterdb 1.0.9                                 Fri Mar 15 20:57:12 CET 2009
+hamsterdb Embedded Storage 1.0.9                   Fri Mar 15 20:57:12 CET 2009
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
-This is the README file of hamsterdb.
+This is the README file of hamsterdb Embedded Storage.
 
 Contents:
 
 1. About
 
-hamsterdb is a database engine written in ANSI C. It supports a B+Tree index
-structure, uses memory mapped I/O (if available), supports fast Cursors and
-variable length keys and can create In-Memory Databases.
+hamsterdb Embedded Storage is a database engine written in ANSI C. It supports 
+a B+Tree index structure, uses memory mapped I/O (if available), supports 
+fast Cursors and variable length keys and can create In-Memory Databases.
 
 This release fixes a small bug: if compression is enabled and ham_cursor_move
 is called with the second parameter NULL, hamsterdb segfaults. Also, the
@@ -31,9 +31,10 @@ To see a list of all changes, look in the file CHANGELOG.
 
 3. Roadmap
 
-- Currently, most of the development concentrates on hamsterdb2, a
-    multi-threaded, transactional Database engine. There will be bugfix 
-    releases for hamsterdb whenever necessary.
+- Currently, most of the development concentrates on hamsterdb Transactional
+    Storage, a multi-threaded, transactional Database engine. There will be 
+    bugfix releases for hamsterdb Embedded Storage whenever necessary. New
+    features are usually added on request.
 
 4. Features
 
@@ -43,7 +44,7 @@ To see a list of all changes, look in the file CHANGELOG.
 - Supports record number databases ("auto-increment")
 - Supports duplicate keys
 - Support for logging and recovery
-- Limited support for Transactions
+- Support for Transactions (only one Transaction at a time, requires logging)
 - Very fast database cursors 
 - Configurable page size, cache size and index key size
 - Portable ANSI-C implementation
@@ -68,7 +69,7 @@ None.
 
 6.1 Linux and Cygwin/Win32
 
-To compile hamsterdb, run ./configure, make, make install.
+To compile hamsterdb Embedded Storage, run ./configure, make, make install.
 
 Run `./configure --help' for more options (i.e. static/dynamic library, 
 build with debugging symbols etc).
@@ -86,8 +87,8 @@ http://msdn.microsoft.com/vstudio/express/visualc/default.aspx.
 7. Testing and Example Code
 
 Make automatically compiles several example programs in the directory
-'samples'. To see hamsterdb in action, just run 'samples/db1' or any
-other sample. (or 'win32/out/samples/db1/db1.exe' on Windows platforms).
+'samples'. To see hamsterdb Embedded Storage in action, just run 'samples/db1' 
+or any other sample. (or 'win32/out/samples/db1/db1.exe' on Windows platforms).
 
 8. API Documentation
 
@@ -95,7 +96,7 @@ The header files in 'include/ham' have extensive comments. Also, a doxygen
 script is available; run 'make doc' to start doxygen. The generated
 documentation is also available on the hamsterdb web page.
 
-9. Other Ways to Compile hamsterdb
+9. Other Ways to Compile hamsterdb Embedded Storage
 
 If you want to compile hamsterdb without using the provided ./configure
 environment, you have to set some preprocessor macros:
@@ -114,28 +115,29 @@ HAM_DISABLE_ENCRYPTION  build without support for AES encryption
 Also, if you compile for windows, you have to compile the file 'src/os_win32.c',
 and ignore the file 'src/os_posix.c'. Vice versa on non-Windows platforms.
 
-10. Porting hamsterdb
+10. Porting hamsterdb Embedded Storage
 
-Porting hamsterdb shouldn't be too difficult. All operating system dependend
-functions are declared in 'src/os.h' and defined in 'src/os_win32.c' or 
-'src/os_posix.c'. 
+Porting hamsterdb Embedded Storage shouldn't be too difficult. All operating 
+system dependend functions are declared in 'src/os.h' and defined 
+in 'src/os_win32.c' or 'src/os_posix.c'. 
 Other compiler- and OS-specific macros are in 'include/ham/types.h'. 
 Most likely, these are the only files which have to be touched. Also see item 
 9) for important macros. 
 
 11. Licensing
 
-hamsterdb can be licensed on a per-developer basis for closed sourced 
-applications. For more details, see 
+hamsterdb Embedded Storage can be licensed on a per-developer basis for 
+closed source applications. For more details, see 
 http://hamsterdb.com/licensing and http://hamsterdb.com/store.
 
-hamsterdb is released under GPL2 or later. There are several exceptions for
-other open source licenses (see http://hamsterdb.com/licensing/exceptions
-for legal information and a license list).
+hamsterdb Embedded Storage is released under GPL2 or later. There are several 
+exceptions for other open source licenses (see 
+http://hamsterdb.com/licensing/exceptions for legal information and a license 
+list).
 
 12. Contact
 
-Author of hamsterdb is 
+Author of hamsterdb Embedded Storage is 
     Christoph Rupp
     Paul-Preuss-Str. 63
     80995 Muenchen/Germany

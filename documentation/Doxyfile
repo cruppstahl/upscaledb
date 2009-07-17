@@ -3,7 +3,7 @@
 #---------------------------------------------------------------------------
 # Project related configuration options
 #---------------------------------------------------------------------------
-PROJECT_NAME           = hamsterdb
+PROJECT_NAME           = hamsterdb Embedded Storage
 PROJECT_NUMBER         = 1.0.9
 OUTPUT_DIRECTORY       = documentation
 CREATE_SUBDIRS         = NO
