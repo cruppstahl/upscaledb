@@ -689,6 +689,8 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
     ham_page_t *page=0;
     ham_status_t st;
 
+    ham_assert(!(address & 0xFFFFFFFF00000000ull), (0));
+
     /* 
      * check if the cache allows us to allocate another page; if not,
      * purge it
@@ -708,8 +710,8 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
 
     if (db_get_txn(db)) {
         page=txn_get_page(db_get_txn(db), address);
-        if (page)
-            return (page);
+		if (page)
+			return (page);
     }
 
     /* 
@@ -725,7 +727,7 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
                     return (0);
                 }
             }
-            return (page);
+			return (page);
         }
     }
 
@@ -744,13 +746,13 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
         return (0);
 
     page_set_self(page, address);
-    st=page_fetch(page, db_get_pagesize(db));
+	st=page_fetch(page, db_get_pagesize(db));
     if (st) {
         (void)page_delete(page);
         return (0);
     }
 
-    if (db_get_txn(db)) {
+	if (db_get_txn(db)) {
         st=txn_add_page(db_get_txn(db), page, HAM_FALSE);
         if (st) {
             db_set_error(db, st);
@@ -759,7 +761,7 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
         }
     }
 
-    if (db_get_cache(db)) {
+	if (db_get_cache(db)) {
         st=cache_put_page(db_get_cache(db), page);
         if (st) {
             db_set_error(db, st);
@@ -768,7 +770,7 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
         }
     }
 
-    return (page);
+	return (page);
 }
 
 ham_status_t
