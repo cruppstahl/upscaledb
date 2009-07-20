@@ -13,12 +13,16 @@
  *
  */
 
+#include "config.h"
+
 #include <string.h>
 #include "db.h"
 #include "error.h"
 #include "btree.h"
 #include "btree_cursor.h"
 #include "keys.h"
+#include "util.h" /* [i_a] */
+
 
 ham_status_t 
 btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor, 
