@@ -10,9 +10,10 @@
  *
  */
 
+#include "config.h"
+
 #include <ham/hamsterdb.h>
 #include <ham/types.h>
-#include "config.h"
 
 #define _GNU_SOURCE   1 /* for O_LARGEFILE */
 #define __USE_XOPEN2K 1 /* for ftruncate() */
