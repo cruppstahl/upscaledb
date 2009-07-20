@@ -9,6 +9,8 @@
  * See files COPYING.* for License information.
  */
 
+#include "../src/config.h"
+
 #include <stdexcept>
 #include <cstring>
 #include <cstdlib>
@@ -46,6 +48,7 @@ public:
         BFC_REGISTER_TEST(EnvTest, openWithKeysizeTest);
         BFC_REGISTER_TEST(EnvTest, createWithKeysizeTest);
         BFC_REGISTER_TEST(EnvTest, createDbWithKeysizeTest);
+		BFC_REGISTER_TEST(EnvTest, createAndOpenMultiDbTest); // ??? bang in Linux, flawless on Windows
         BFC_REGISTER_TEST(EnvTest, disableVarkeyTests);
         BFC_REGISTER_TEST(EnvTest, multiDbTest);
         BFC_REGISTER_TEST(EnvTest, multiDbTest2);
@@ -400,6 +403,89 @@ protected:
         BFC_ASSERT_EQUAL((ham_u16_t)64, db_get_keysize(db));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_delete(db));
+
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+	// check to make sure both create and open_ex support accessing more than DB_MAX_INDICES DBs in one env:
+    void createAndOpenMultiDbTest(void)
+    {
+        ham_env_t *env;
+        ham_db_t *db;
+		int i;
+        ham_key_t key;
+        ham_record_t rec;
+        ham_parameter_t parameters[]={
+           { HAM_PARAM_KEYSIZE,  20 },
+           { 0, 0 }
+        };
+
+        ham_parameter_t parameters2[]={
+           { HAM_PARAM_CACHESIZE,    1024 },
+           { HAM_PARAM_PAGESIZE,   1024*4 },
+           { HAM_PARAM_MAX_ENV_DATABASES,   256 },
+           { 0, 0 }
+        };
+
+        ham_parameter_t parameters3[]={
+           { HAM_PARAM_CACHESIZE,    1024 },
+           { HAM_PARAM_MAX_ENV_DATABASES,   256 },
+           { 0, 0 }
+        };
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        if (m_flags&HAM_IN_MEMORY_DB) {
+	        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_env_create_ex(env, ".test", m_flags, 0644, parameters2));
+			parameters2[1].value = 0; // pagesize := 0
+		}
+		else {
+	        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_env_create_ex(env, ".test", m_flags | HAM_CACHE_UNLIMITED, 0644, parameters2));
+	        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_env_create_ex(env, ".test", m_flags, 0644, parameters2)); // pagesize too small for DB#
+			parameters2[1].value = 65536; // pagesize := 64K
+		}
+        BFC_ASSERT_EQUAL(0, ham_env_create_ex(env, ".test", m_flags, 0644, parameters2));
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+
+		// create DBs
+		for (i = 1; i <= 256; i++)
+		{
+			BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, i, 0, parameters));
+			memset(&key, 0, sizeof(key));
+			memset(&rec, 0, sizeof(rec));
+			key.data = &i;
+			key.size = sizeof(i);
+			rec.data = &i;
+			rec.size = sizeof(i);
+            BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+	        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+		}
+
+        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+			BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+			BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+
+			// open DBs
+
+			BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+			BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_env_open_ex(env, ".test", m_flags, parameters2)); // pagesize param not allowed
+			BFC_ASSERT_EQUAL(0, ham_env_open_ex(env, ".test", m_flags, parameters3));
+		}
+
+		for (i = 1; i <= 256; i++)
+		{
+			BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, i, 0, parameters));
+			memset(&key, 0, sizeof(key));
+			memset(&rec, 0, sizeof(rec));
+			key.data = &i;
+			key.size = sizeof(i);
+            BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
+			BFC_ASSERT_EQUAL(key.data, &i);
+			BFC_ASSERT_EQUAL((rec.data != 0), !0);
+			BFC_ASSERT_EQUAL((rec.data != 0 ? ((int *)rec.data)[0] == i : !0), !0);
+	        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+		}
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
@@ -1472,7 +1558,7 @@ public:
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(InMemoryEnvTest, createCloseTest);
-        BFC_REGISTER_TEST(InMemoryEnvTest, openWithKeysizeTest);
+        //BFC_REGISTER_TEST(InMemoryEnvTest, openWithKeysizeTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, createWithKeysizeTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, createDbWithKeysizeTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, disableVarkeyTests);
