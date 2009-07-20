@@ -52,6 +52,11 @@ typedef HAM_PACK_0 HAM_PACK_1 struct int_key_t
 #include "packstop.h"
 
 /**
+ * get the size of the internal key representation header
+ */
+#define db_get_int_key_header_size()   /*OFFSETOF(int_key_t, _key)*/ sizeof(int_key_t)-1 
+
+/**
  * get the pointer of an btree-entry
  * 
  * !!!
@@ -105,6 +110,10 @@ key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid);
 
 /**
  * set the flags of a key
+ * 
+ * Note that the ham_find/ham_cursor_find/ham_cursor_find_ex flags must 
+ * be defined such that those can peacefully co-exist with these; that's why 
+ * those public flags start at the value 0x1000 (4096).
  */
 #define key_set_flags(bte, f)           (bte)->_flags=f
 #define KEY_BLOB_SIZE_TINY              1
