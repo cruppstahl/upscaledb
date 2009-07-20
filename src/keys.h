@@ -54,7 +54,8 @@ typedef HAM_PACK_0 HAM_PACK_1 struct int_key_t
 /**
  * get the size of the internal key representation header
  */
-#define db_get_int_key_header_size()   /*OFFSETOF(int_key_t, _key)*/ sizeof(int_key_t)-1 
+#define db_get_int_key_header_size()   /* OFFSETOF(int_key_t, _key) */ \
+                                       sizeof(int_key_t)-1
 
 /**
  * get the pointer of an btree-entry
@@ -73,7 +74,7 @@ typedef HAM_PACK_0 HAM_PACK_1 struct int_key_t
  *
  * !!! same problems as with key_get_ptr():
  * if TINY or SMALL is set, the key is actually a char*-pointer;
- * in this case, we must not use endian-conversion!
+ * in this case, we must not use endian-conversion
  */
 #define key_set_ptr(k, p)          (k)->_ptr=(                                 \
                                     ((key_get_flags(k)&KEY_BLOB_SIZE_TINY) ||  \
@@ -111,8 +112,8 @@ key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid);
 /**
  * set the flags of a key
  * 
- * Note that the ham_find/ham_cursor_find/ham_cursor_find_ex flags must 
- * be defined such that those can peacefully co-exist with these; that's why 
+ * Note that the ham_find/ham_cursor_find/ham_cursor_find_ex flags must be 
+ * defined such that those can peacefully co-exist with these; that's why 
  * those public flags start at the value 0x1000 (4096).
  */
 #define key_set_flags(bte, f)           (bte)->_flags=f
@@ -121,6 +122,9 @@ key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid);
 #define KEY_BLOB_SIZE_EMPTY             4
 #define KEY_IS_EXTENDED                 8
 #define KEY_HAS_DUPLICATES             16
+#define KEY_IS_LT                      32
+#define KEY_IS_GT                      64
+#define KEY_IS_APPROXIMATE             (KEY_IS_LT | KEY_IS_GT)
 
 /**
  * get a pointer to the key 
@@ -133,13 +137,9 @@ key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid);
 #define key_set_key(bte, ptr, len)      memcpy(bte->_key, ptr, len)
 
 /**
- * compare an internal key (int_key_t) to a public key (ham_key_t)
- */
-extern int
-key_compare_int_to_pub(ham_page_t *page, ham_u16_t lhs, ham_key_t *rhs);
-
-/**
- * compare a public key (ham_key_t) to an internal key (int_key_t)
+ * compare a public key (ham_key_t, LHS) to an internal key (int_key_t, RHS)
+ *
+ * @return 0 if both keys match, -1 when LHS < RHS key, +1 when LHS > RHS key.
  */
 extern int
 key_compare_pub_to_int(ham_page_t *page, ham_key_t *lhs, ham_u16_t rhs);
