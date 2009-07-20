@@ -10,6 +10,8 @@
  *
  */
 
+#include "config.h"
+
 #include <string.h>
 #include <ham/hamsterdb.h>
 #include "os.h"
@@ -424,9 +426,9 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
     /*
      * sanity check
      */
-    ham_assert(blob_get_self(&hdr)==blobid, 
+	ham_assert(blob_get_self(&hdr)==blobid, 
             ("invalid blobid %llu != %llu", blob_get_self(&hdr), blobid));
-    if (blob_get_self(&hdr)!=blobid)
+	if (blob_get_self(&hdr)!=blobid)
         return (HAM_BLOB_NOT_FOUND);
 
     /* 
@@ -442,7 +444,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
      * second step: resize the blob buffer
      */
     if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-        st=db_resize_allocdata(db, (ham_size_t)blob_get_size(&hdr));
+        st=db_resize_allocdata(db, blob_get_size(&hdr));
         if (st)
             return (st);
         record->data=db_get_record_allocdata(db);
