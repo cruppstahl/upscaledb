@@ -10,6 +10,8 @@
  *
  */
 
+#include "config.h"
+
 #include <string.h>
 #include "device.h"
 #include "error.h"
@@ -148,7 +150,7 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
             buffer=allocator_alloc(device_get_allocator(self), size);
             if (!buffer)
                 return (HAM_OUT_OF_MEMORY);
-            page_set_pers(page, (union page_union_t *)buffer);
+            page_set_pers(page, (ham_perm_page_union_t *)buffer);
             page_set_npers_flags(page, 
                 page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
         }
@@ -173,7 +175,7 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
      * header page - the header page is not filtered)
      */
     if (!head || page_get_self(page)==0) {
-        page_set_pers(page, (union page_union_t *)buffer);
+        page_set_pers(page, (ham_perm_page_union_t *)buffer);
         return (0);
     }
 
@@ -189,7 +191,7 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
         head=head->_next;
     }
 
-    page_set_pers(page, (union page_union_t *)buffer);
+    page_set_pers(page, (ham_perm_page_union_t *)buffer);
     return (0);
 }
 
@@ -400,7 +402,7 @@ __m_alloc_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
     buffer=allocator_alloc(device_get_allocator(self), size);
     if (!buffer)
         return (HAM_OUT_OF_MEMORY);
-    page_set_pers(page, (union page_union_t *)buffer);
+    page_set_pers(page, (ham_perm_page_union_t *)buffer);
     page_set_npers_flags(page, 
         page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
     page_set_self(page, (ham_offset_t)buffer);
