@@ -13,6 +13,8 @@
  *
  */
 
+#include "config.h"
+
 #include <string.h>
 #include "btree_cursor.h"
 #include "btree.h"
@@ -138,7 +140,7 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
         return (HAM_KEY_NOT_FOUND);
 
     /*
-     * if the index+1 is till in the coupled page, just increment the
+     * if the index+1 is still in the coupled page, just increment the
      * index
      */
     if (bt_cursor_get_coupled_index(c)+1<btree_node_get_count(node)) {
