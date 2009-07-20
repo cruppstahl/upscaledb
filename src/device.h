@@ -164,7 +164,7 @@ struct ham_device_t {
 /*
  * currently, the only flag means: do not use mmap but pread
  */
-#define DEVICE_NO_MMAP                     1
+#define DEVICE_NO_MMAP                     HAM_DISABLE_MMAP // [i_a] (1) clashed with HAM_WRITE_THROUGH and went unnoticed as it was.
 
 /*
  * get the allocator of this device
