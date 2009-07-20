@@ -176,49 +176,76 @@ public:
                   << (m_success+m_errors.size()) << " tests" << std::endl;
     }
 
-    // run all tests - returns number of errors
-    unsigned run() {
-        std::vector<fixture *>::iterator it;
-        m_errors.clear();
+	// run all tests (optional fixture and/or test selection) - returns number of errors
+	unsigned run(const char *fixture_name = NULL, const char *test_name = NULL) 
+	{
+		std::vector<fixture *>::iterator it;
+		m_errors.clear();
+		std::string fixname(fixture_name ? fixture_name : "");
 
-        for (it=m_fixtures.begin(); it!=m_fixtures.end(); it++) {
-            run(*it);
-        }
+		for (it=m_fixtures.begin(); it!=m_fixtures.end(); it++) 
+		{
+			if (fixname.size() == 0 || fixname.compare((*it)->get_name()) == 0)
+			{
+				run(*it, test_name);
+			}
+		}
 
-        print_errors();
-        return ((unsigned)m_errors.size());
-    }
+		print_errors();
+		return ((unsigned)m_errors.size());
+	}
 
-    // run all tests of a fixture
-    void run(fixture *f) {
+	// run all tests of a fixture
+    void run(fixture *f, const char *test_name = NULL) 
+	{
         std::vector<test>::iterator it;
+		std::string testname(test_name ? test_name : "");
 
         for (it=f->get_tests().begin(); it!=f->get_tests().end(); it++) {
             bool success=true;
-            try {
-                method m=it->foo;
-				std::cout << "starting " << f->get_name() 
-						  << "::" << (*it).name << std::endl;
-                f->setup();
-                (f->*m)();
-            }
-            catch (error e) {
-                //printf("FAILED!\n");
-                success=false;
-                add_error(&e);
-            }
-            if (success)
-                add_success();
 
-            /* in any case: call the teardown function */
-            try {
-                f->teardown();
-            }
-            catch (error e) {
-                add_error(&e);
-            }
-        }
-    }
+			method m = it->foo;
+			if (testname.size() == 0 || testname.compare(it->name) == 0)
+			{
+				std::cout << "starting " << f->get_name()
+						  << "::" << (*it).name << std::endl;
+				try {
+					// f->setup();
+					exec_testfun(this, f, &fixture::setup, "setup");
+					exec_testfun(this, f, m, (*it).name.c_str());
+				}
+				catch (error e) {
+					//printf("FAILED!\n");
+					success=false;
+					add_error(&e);
+				}
+
+				/* in any case: call the teardown function */
+				try {
+					//f->teardown();
+					exec_testfun(this, f, &fixture::teardown, "teardown");
+				}
+				catch (error e) {
+					success=false;
+					add_error(&e);
+				}
+
+				/* only count a completely flawless run as a success: */
+				if (success)
+					add_success();
+			}
+		}
+	}
+
+	/*
+	This function must be 'static' because otherwise MSVC will complain loudly:
+
+	error C2712: Cannot use __try in functions that require object unwinding
+	*/
+	static void exec_testfun(testrunner *me, fixture *f, method m, const char *funcname)
+	{
+		(f->*m)();
+	}
 
     static testrunner *get_instance()  {
         if (!s_instance)
