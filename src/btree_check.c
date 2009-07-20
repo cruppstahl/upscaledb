@@ -143,7 +143,7 @@ my_verify_level(ham_page_t *parent, ham_page_t *page,
         btree_node_t *cnode =ham_page_get_btree_node(page);
 
         cmp=__key_compare_int_to_int(page, 0,
-					(ham_u16_t)(btree_node_get_count(cnode)-1));
+                    (ham_u16_t)(btree_node_get_count(cnode)-1));
         if (db_get_error(db))
             return (db_get_error(db));
         if (cmp<0) {
@@ -254,7 +254,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
                 btree_node_get_count(sibnode)-1,
                 key_get_flags(sibentry), key_get_key(sibentry), key_get_size(sibentry),
                 0, 
-				key_get_flags(bte), key_get_key(bte), key_get_size(bte));
+                key_get_flags(bte), key_get_key(bte), key_get_size(bte));
         if (db_get_error(db))
             return (db_get_error(db));
         if (cmp>=0) {
@@ -269,21 +269,21 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
         return (0);
 
     for (i=0; i<count-1; i++) {
-		/* 
-		 * if this is an extended key: check for a blob-id
-		 */
-		bte=btree_node_get_key(db, node, i);
-		if (key_get_flags(bte)&KEY_IS_EXTENDED) {
-			ham_offset_t blobid=key_get_extended_rid(db, bte);
-			if (!blobid) {
-				ham_log(("integrity check failed in page 0x%llx: item #%d "
-						"is extended, but has no blob", 
-						page_get_self(page), i));
-				return (HAM_INTEGRITY_VIOLATED);
-			}
-		}
+        /* 
+         * if this is an extended key: check for a blob-id
+         */
+        bte=btree_node_get_key(db, node, i);
+        if (key_get_flags(bte)&KEY_IS_EXTENDED) {
+            ham_offset_t blobid=key_get_extended_rid(db, bte);
+            if (!blobid) {
+                ham_log(("integrity check failed in page 0x%llx: item #%d "
+                        "is extended, but has no blob", 
+                        page_get_self(page), i));
+                return (HAM_INTEGRITY_VIOLATED);
+            }
+        }
         
-		cmp=__key_compare_int_to_int(page, (ham_u16_t)i, (ham_u16_t)(i+1));
+        cmp=__key_compare_int_to_int(page, (ham_u16_t)i, (ham_u16_t)(i+1));
 
         if (db_get_error(db))
             return (db_get_error(db));
