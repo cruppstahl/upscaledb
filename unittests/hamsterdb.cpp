@@ -568,8 +568,8 @@ static int my_compare_func_u32(ham_db_t *db,
 			printf("rec: %d vs. %d, ", r->val1, 100*i);
 			printf("key: %d vs. %d\n", k->val1, 2*i);
 #else
-			BFC_ASSERT_EQUAL(r->val1, 100*i);
-			BFC_ASSERT_EQUAL(k->val1, 2*i);
+			BFC_ASSERT_EQUAL(r->val1, (ham_u32_t)100*i);
+			BFC_ASSERT_EQUAL(k->val1, (ham_u32_t)2*i);
 #endif
 		}
 		BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
