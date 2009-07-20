@@ -10,6 +10,8 @@
  *
  */
 
+#include "config.h"
+
 #include <string.h>
 #include <ham/hamsterdb.h>
 #include "error.h"

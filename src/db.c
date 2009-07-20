@@ -10,6 +10,8 @@
  *
  */
 
+#include "config.h"
+
 #include <string.h>
 #include <ham/hamsterdb.h>
 #include "error.h"
@@ -34,7 +36,8 @@ db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
 {
     ham_status_t st;
     ham_bool_t skipped=HAM_FALSE;
-    ham_cursor_t *n, *c=page_get_cursors(page);
+    ham_cursor_t *n;
+    ham_cursor_t *c=page_get_cursors(page);
 
     while (c) {
         ham_bt_cursor_t *btc=(ham_bt_cursor_t *)c;

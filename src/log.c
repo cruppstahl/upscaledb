@@ -10,6 +10,8 @@
  *
  */
 
+#include "config.h"
+
 #include <string.h>
 #include "os.h"
 #include "db.h"
