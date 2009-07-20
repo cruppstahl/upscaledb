@@ -10,6 +10,8 @@
  *
  */
 
+#include "config.h"
+
 #include <windows.h>
 
 #include <stdio.h>
@@ -20,16 +22,57 @@
 #include "error.h"
 #include "os.h"
 
+
+static const char *DisplayError(char* buf, ham_size_t buflen, DWORD errorcode)
+{
+	buf[0] = 0;
+    FormatMessageA(/* FORMAT_MESSAGE_ALLOCATE_BUFFER | */
+                  FORMAT_MESSAGE_FROM_SYSTEM |
+                  FORMAT_MESSAGE_IGNORE_INSERTS,
+                  NULL, errorcode,
+                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                  (LPSTR)buf, buflen, NULL);
+	buf[buflen-1]=0;
+	return buf;
+}
+
+/*
+MS says:
+
+ Security Alert   
+
+ Using the MultiByteToWideChar function incorrectly can compromise the security 
+ of your application. Calling this function can easily cause a buffer overrun 
+ because the size of the input buffer indicated by lpMultiByteStr equals the 
+ number of bytes in the string, while the size of the output buffer indicated 
+ by lpWideCharStr equals the number of WCHAR values. 
+ 
+ To avoid a buffer overrun, your application must specify a buffer size 
+ appropriate for the data type the buffer receives. For more information, see 
+ Security Considerations: International Features.
+*/
 static void
-__utf8_string(const char *filename, wchar_t *wfilename, int wlen)
+__utf8_string(const char *filename, WCHAR *wfilename, int wlen)
 {
 	MultiByteToWideChar(CP_ACP, 0, filename, -1, wfilename, wlen);
+}
+
+static int calc_wlen4str(const char *str)
+{
+	/*
+	 Since we call MultiByteToWideChar with an input length of -1, the output will
+	 include the wchar NUL sentinel as well, so count it
+	*/
+	size_t len = strlen(str) + 1;
+	return (int)len;
 }
 
 ham_size_t
 os_get_pagesize(void)
 {
-    return (os_get_granularity());
+    SYSTEM_INFO info;
+    GetSystemInfo(&info);
+	return (ham_size_t)info.dwAllocationGranularity /* dwPageSize */;
 }
 
 ham_size_t
@@ -47,50 +90,59 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
 #ifndef UNDER_CE
     ham_status_t st;
     DWORD hsize, fsize=GetFileSize(fd, &hsize);
-    DWORD protect=PAGE_WRITECOPY;
+	DWORD protect=(readonly ? PAGE_READONLY : PAGE_WRITECOPY);
     DWORD access =FILE_MAP_COPY;
+    LARGE_INTEGER i;
+    i.QuadPart=position;
 
     *mmaph=CreateFileMapping(fd, 0, protect, hsize, fsize, 0); 
     if (!*mmaph) {
+		char buf[256];
 	    *buffer=0;
         st=(ham_status_t)GetLastError();
-        ham_log(("CreateFileMapping failed with status %u", st));
+        ham_log(("CreateFileMapping failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
         return (HAM_IO_ERROR);
     }
 
-	*buffer=MapViewOfFile(*mmaph, access, 
-            (unsigned long)(position&0xffffffff00000000),
-			(unsigned long)(position&0x00000000ffffffff), size);
+	*buffer=MapViewOfFile(*mmaph, access, i.HighPart, i.LowPart, size);
     if (!*buffer) {
+		char buf[256];
         st=(ham_status_t)GetLastError();
-        ham_log(("MapViewOfFile failed with status %u", st));
+        ham_log(("MapViewOfFile failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
         return (HAM_IO_ERROR);
     }
-
-#endif /* UNDER_CE */
     return (HAM_SUCCESS);
+#else
+    return (HAM_IO_ERROR);
+#endif /* UNDER_CE */
 }
 
 ham_status_t
 os_munmap(ham_fd_t *mmaph, void *buffer, ham_size_t size)
 {
+#ifndef UNDER_CE
     ham_status_t st;
 
     if (!UnmapViewOfFile(buffer)) {
+		char buf[256];
         st=(ham_status_t)GetLastError();
-        ham_log(("UnMapViewOfFile failed with status %u", st));
+        ham_log(("UnMapViewOfFile failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
         return (HAM_IO_ERROR);
     }
 
     if (!CloseHandle(*mmaph)) {
+		char buf[256];
         st=(ham_status_t)GetLastError();
-        ham_log(("CloseHandle failed with status %u", st));
+        ham_log(("CloseHandle failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
         return (HAM_IO_ERROR);
     }
 
     *mmaph=0;
 
     return (HAM_SUCCESS);
+#else
+    return (HAM_IO_ERROR);
+#endif /* UNDER_CE */
 }
 
 ham_status_t
@@ -105,8 +157,9 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
         return (st);
 
     if (!ReadFile((HANDLE)fd, buffer, bufferlen, &read, 0)) {
+		char buf[256];
         st=(ham_status_t)GetLastError();
-        ham_log(("ReadFile failed with OS status %u", st));
+        ham_log(("ReadFile failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
         return (HAM_IO_ERROR);
     }
 
@@ -118,7 +171,6 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
         ham_size_t bufferlen)
 {
     ham_status_t st;
-    DWORD written=0;
 
     st=os_seek(fd, addr, HAM_OS_SEEK_SET);
     if (st)
@@ -134,8 +186,9 @@ os_write(ham_fd_t fd, const void *buffer, ham_size_t bufferlen)
     DWORD written=0;
 
     if (!WriteFile((HANDLE)fd, buffer, bufferlen, &written, 0)) {
+		char buf[256];
         st=(ham_status_t)GetLastError();
-        ham_log(("WriteFile failed with OS status %u", st));
+        ham_log(("WriteFile failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
         return (HAM_IO_ERROR);
     }
 
@@ -157,7 +210,8 @@ os_seek(ham_fd_t fd, ham_offset_t offset, int whence)
             &i.HighPart, whence);
     if (i.LowPart==INVALID_SET_FILE_POINTER && 
         (st=GetLastError())!=NO_ERROR) {
-        ham_log(("SetFilePointer failed with OS status %u", st));
+		char buf[256];
+        ham_log(("SetFilePointer failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
         return (HAM_IO_ERROR);
     }
 
@@ -175,7 +229,8 @@ os_tell(ham_fd_t fd, ham_offset_t *offset)
             &i.HighPart, HAM_OS_SEEK_CUR);
     if (i.LowPart==INVALID_SET_FILE_POINTER && 
         (st=GetLastError())!=NO_ERROR) {
-        ham_log(("SetFilePointer failed with OS status %u", st));
+		char buf[256];
+        ham_log(("SetFilePointer failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
         return (HAM_IO_ERROR);
     }
 
@@ -183,22 +238,26 @@ os_tell(ham_fd_t fd, ham_offset_t *offset)
     return (0);
 }
 
+#ifndef INVALID_FILE_SIZE
+#   define INVALID_FILE_SIZE   ((DWORD)-1)
+#endif
+
 ham_status_t
 os_get_filesize(ham_fd_t fd, ham_offset_t *size)
 {
-	DWORD upper, lower=GetFileSize(fd, &upper);
+	ham_status_t st;
+    LARGE_INTEGER i;
+    i.QuadPart=0;
+	i.LowPart=GetFileSize(fd, (LPDWORD)&i.HighPart);
 
-	if (lower==(DWORD)-1) {
-        ham_log(("GetFileSize failed with OS status %u", GetLastError()));
+	if (i.LowPart == INVALID_FILE_SIZE && 
+        (st=GetLastError())!=NO_ERROR) {
+		char buf[256];
+        ham_log(("GetFileSize failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
         return (HAM_IO_ERROR);
 	}
 
-#ifdef _WIN32_WCE
-	*size=(((ham_offset_t)upper)<<32)+lower;
-#else
-	/* ugly casts to avoid warnings on MSVC 8 for 64bit */
-	*size=(ham_offset_t)((unsigned long long)upper<<32)+lower;
-#endif
+    *size=(ham_offset_t)i.QuadPart;
     return (0);
 }
 
@@ -212,8 +271,9 @@ os_truncate(ham_fd_t fd, ham_offset_t newsize)
         return (st);
 
     if (!SetEndOfFile((HANDLE)fd)) {
+		char buf[256];
         st=(ham_status_t)GetLastError();
-        ham_log(("SetEndOfFile failed with OS status %u", st));
+        ham_log(("SetEndOfFile failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
         return (HAM_IO_ERROR);
     }
 
@@ -224,32 +284,43 @@ ham_status_t
 os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 {
     ham_status_t st;
-    DWORD osflags=FILE_FLAG_RANDOM_ACCESS;
-    DWORD share  =flags & HAM_LOCK_EXCLUSIVE 
+    DWORD share = ((flags & HAM_LOCK_EXCLUSIVE)
                     ? 0 
-                    : (FILE_SHARE_READ|FILE_SHARE_WRITE);
+                    : (flags & HAM_READ_ONLY)
+					? (FILE_SHARE_READ|FILE_SHARE_WRITE)
+					: FILE_SHARE_READ);
+	DWORD access = ((flags & HAM_READ_ONLY)
+					? GENERIC_READ
+					: (GENERIC_READ|GENERIC_WRITE));
+
 #ifdef UNICODE
-	wchar_t *wfilename=malloc(strlen(filename)*3*sizeof(wchar_t));
+	int fnameWlen = calc_wlen4str(filename);
+	WCHAR *wfilename=malloc(fnameWlen * sizeof(wfilename[0]));
+	if (!wfilename)
+        return (HAM_OUT_OF_MEMORY);
 
 	/* translate ASCII filename to unicode */
-	__utf8_string(filename, wfilename, (int)strlen(filename)*3);
-    *fd=(ham_fd_t)CreateFileW(wfilename, GENERIC_READ|GENERIC_WRITE, 
-                share, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+	__utf8_string(filename, wfilename, fnameWlen);
+    *fd=(ham_fd_t)CreateFileW(wfilename, access, 
+                share, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 	free(wfilename);
 #else
-    *fd=(ham_fd_t)CreateFileA(filename, GENERIC_READ|GENERIC_WRITE, 
-                share, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+    *fd=(ham_fd_t)CreateFileA(filename, access, 
+                share, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 #endif
 
 	if (*fd==INVALID_HANDLE_VALUE) {
+		char buf[256];
 		*fd=HAM_INVALID_FD;
         st=(ham_status_t)GetLastError();
-        /* this function can return errors even when it succeeds... */
+#if 0 // [i_a] yes, it can, but here we're already in the middle of Error County
+		/* this function can return errors even when it succeeds... */
         if (st==ERROR_ALREADY_EXISTS)
             return (0);
-        if (st==ERROR_SHARING_VIOLATION)
+#endif
+		if (st==ERROR_SHARING_VIOLATION)
             return (HAM_WOULD_BLOCK);
-        ham_log(("CreateFile failed with OS status %u", st));
+        ham_log(("CreateFile failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
         return (HAM_IO_ERROR);
     }
 
@@ -262,8 +333,9 @@ os_flush(ham_fd_t fd)
     ham_status_t st;
 
     if (!FlushFileBuffers((HANDLE)fd)) {
+		char buf[256];
         st=(ham_status_t)GetLastError();
-        ham_log(("FlushFileBuffers failed with OS status %u", st));
+        ham_log(("FlushFileBuffers failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
         return (HAM_IO_ERROR);
     }
 
@@ -274,40 +346,44 @@ ham_status_t
 os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 {
     ham_status_t st;
-    DWORD access =0;
-    DWORD share  =flags & HAM_LOCK_EXCLUSIVE 
+    DWORD share = ((flags & HAM_LOCK_EXCLUSIVE)
                     ? 0 
-                    : (FILE_SHARE_READ|FILE_SHARE_WRITE);
-    DWORD dispo  =OPEN_EXISTING;
+                    : (flags & HAM_READ_ONLY)
+					? (FILE_SHARE_READ|FILE_SHARE_WRITE)
+					: FILE_SHARE_READ);
+	DWORD access = ((flags & HAM_READ_ONLY)
+					? GENERIC_READ
+					: (GENERIC_READ|GENERIC_WRITE));
+    DWORD dispo = OPEN_EXISTING;
     DWORD osflags=0;
-#ifdef UNICODE
-    wchar_t *wfilename;
-#endif
 
-    if (flags&HAM_READ_ONLY)
-        access|=GENERIC_READ;
-    else
-        access|=GENERIC_READ|GENERIC_WRITE;
 
 #ifdef UNICODE
-	/* translate ASCII filename to unicode */
-	wfilename=malloc(strlen(filename)*3*sizeof(wchar_t));
-	__utf8_string(filename, wfilename, (int)strlen(filename)*3);
-    *fd=(ham_fd_t)CreateFileW(wfilename, access, share, 0, 
-                        dispo, osflags, 0);
-	free(wfilename);
+	{
+		int fnameWlen = calc_wlen4str(filename);
+		WCHAR *wfilename=malloc(fnameWlen * sizeof(wfilename[0]));
+		if (!wfilename)
+			return (HAM_OUT_OF_MEMORY);
+
+		/* translate ASCII filename to unicode */
+		__utf8_string(filename, wfilename, fnameWlen);
+		*fd=(ham_fd_t)CreateFileW(wfilename, access, share, NULL, 
+							dispo, osflags, 0);
+		free(wfilename);
+	}
 #else
-    *fd=(ham_fd_t)CreateFileA(filename, access, share, 0, 
+    *fd=(ham_fd_t)CreateFileA(filename, access, share, NULL, 
                         dispo, osflags, 0);
 #endif
 
     if (*fd==INVALID_HANDLE_VALUE) {
+		char buf[256];
 		*fd=HAM_INVALID_FD;
         st=(ham_status_t)GetLastError();
-        ham_log(("CreateFile (open) failed with OS status %u", st));
+        ham_log(("CreateFile (open) failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
 		if (st==ERROR_SHARING_VIOLATION)
 			return (HAM_WOULD_BLOCK);
-        return (GetLastError()==ERROR_FILE_NOT_FOUND ? HAM_FILE_NOT_FOUND : HAM_IO_ERROR);
+        return (st==ERROR_FILE_NOT_FOUND ? HAM_FILE_NOT_FOUND : HAM_IO_ERROR);
     }
 
     return (HAM_SUCCESS);
@@ -321,8 +397,9 @@ os_close(ham_fd_t fd, ham_u32_t flags)
     (void)flags;
 
     if (!CloseHandle((HANDLE)fd)) {
+		char buf[256];
         st=(ham_status_t)GetLastError();
-        ham_log(("CloseHandle failed with OS status %u", st));
+        ham_log(("CloseHandle failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
         return (HAM_IO_ERROR);
     }
 
