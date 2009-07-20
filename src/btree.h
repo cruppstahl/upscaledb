@@ -39,7 +39,7 @@ struct HAM_PACK_0 ham_btree_t HAM_PACK_1
     /**
      * the common declaratons of all backends
      */
-    BACKEND_DECLARATIONS(ham_btree_t)
+    BACKEND_DECLARATIONS(ham_btree_t);
 
     /**
      * address of the root-page 
@@ -85,6 +85,11 @@ struct HAM_PACK_0 ham_btree_t HAM_PACK_1
  * a macro for getting the minimum number of keys
  */
 #define btree_get_minkeys(maxkeys)      (maxkeys/2)
+
+/**
+ * defines the maximum number of keys per node
+ */
+#define MAX_KEYS_PER_NODE				0xFFFFU /* max(ham_u16_t) */
 
 
 #include "packstart.h"
@@ -270,7 +275,8 @@ btree_traverse_tree(ham_db_t *db, ham_page_t *page,
  * @return returns the index of the key, or -1 if the key was not found
  */
 extern ham_s32_t 
-btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key);
+btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key, 
+                ham_u32_t flags);
 
 /**
  * get entry #i of a btree node
