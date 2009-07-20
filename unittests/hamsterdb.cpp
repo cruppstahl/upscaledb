@@ -9,6 +9,8 @@
  * See files COPYING.* for License information.
  */
 
+#include "../src/config.h"
+
 #include <stdexcept>
 #include <cstring>
 #include <ham/hamsterdb.h>
@@ -76,6 +78,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, setPrefixCompareTest);
         BFC_REGISTER_TEST(HamsterdbTest, setCompareTest);
         BFC_REGISTER_TEST(HamsterdbTest, findTest);
+        BFC_REGISTER_TEST(HamsterdbTest, nearFindStressTest);
         BFC_REGISTER_TEST(HamsterdbTest, insertTest);
         BFC_REGISTER_TEST(HamsterdbTest, insertBigKeyTest);
         BFC_REGISTER_TEST(HamsterdbTest, eraseTest);
@@ -408,6 +411,174 @@ public:
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                 ham_find(m_db, 0, &key, &rec, 0));
     }
+
+
+static int my_prefix_compare_func_u32(ham_db_t *db, 
+                                  const ham_u8_t *lhs, ham_size_t lhs_length, 
+                                  ham_size_t lhs_real_length,
+                                  const ham_u8_t *rhs, ham_size_t rhs_length,
+                                  ham_size_t rhs_real_length)
+{
+	ham_u32_t *l = (ham_u32_t *)lhs;
+	ham_u32_t *r = (ham_u32_t *)rhs;
+    ham_size_t len = (lhs_length < rhs_length ? lhs_length : rhs_length);
+
+	ham_assert(lhs, (0));
+	ham_assert(rhs, (0));
+
+	len /= 4;
+	while (len > 0)
+	{
+		if (*l < *r)
+			return -1;
+		else if (*l > *r)
+			return +1;
+		len--;
+		l++;
+		r++;
+	}
+    return HAM_PREFIX_REQUEST_FULLKEY;
+}
+
+
+static int my_compare_func_u32(ham_db_t *db, 
+                                  const ham_u8_t *lhs, ham_size_t lhs_length, 
+                                  const ham_u8_t *rhs, ham_size_t rhs_length)
+{
+	ham_u32_t *l = (ham_u32_t *)lhs;
+	ham_u32_t *r = (ham_u32_t *)rhs;
+    ham_size_t len = (lhs_length < rhs_length ? lhs_length : rhs_length);
+
+	ham_assert(lhs, (0));
+	ham_assert(rhs, (0));
+
+	len /= 4;
+	while (len > 0)
+	{
+		if (*l < *r)
+			return -1;
+		else if (*l > *r)
+			return +1;
+		len--;
+		l++;
+		r++;
+	}
+    if (lhs_length<rhs_length)
+	{
+        return (-1);
+    }
+    else if (rhs_length<lhs_length) 
+	{
+        return (+1);
+    }
+    return 0;
+}
+
+
+
+	void nearFindStressTest(void)
+	{
+		const int RECORD_COUNT_PER_DB = 100000;
+		ham_env_t *env;
+		ham_db_t *db;
+        ham_parameter_t ps[]={
+			{HAM_PARAM_PAGESIZE,   64*1024}, /* UNIX == WIN now */
+	        {HAM_PARAM_CACHESIZE,  /*32*16*/ 4*64*1024},
+			{0, 0}
+		};
+		struct my_key_t
+		{
+			ham_u32_t val1;
+			ham_u32_t val2;
+			ham_u32_t val3;
+			ham_u32_t val4;
+		};
+		struct my_rec_t
+		{
+			ham_u32_t val1;
+			ham_u32_t val2[15];
+		};
+
+		ham_key_t key;
+        ham_record_t rec;
+
+		my_key_t my_key;
+		my_rec_t my_rec;
+		
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create_ex(env, ".test", 0 & HAM_DISABLE_MMAP, 0644, ps));
+        
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+		//ham_size_t keycount = 0;
+        BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 1, 0, NULL));
+		//BFC_ASSERT_EQUAL(0, ham_calc_maxkeys_per_page(db, &keycount, sizeof(my_key)));
+		BFC_ASSERT_EQUAL(0, ham_set_prefix_compare_func(db, &my_prefix_compare_func_u32));
+		BFC_ASSERT_EQUAL(0, ham_set_compare_func(db, &my_compare_func_u32));
+        
+		std::cerr << "1K steps: ";
+
+		/* insert the records: key=2*i; rec=100*i */
+		ham_cursor_t *cursor;
+		BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
+		int i;
+		for (i = 0; i < RECORD_COUNT_PER_DB; i++)
+		{
+			::memset(&key, 0, sizeof(key));
+			::memset(&rec, 0, sizeof(rec));
+			::memset(&my_key, 0, sizeof(my_key));
+			::memset(&my_rec, 0, sizeof(my_rec));
+
+			my_rec.val1 = 100 * i;
+			rec.data = &my_rec;
+			rec.size = sizeof(my_rec);
+			rec.flags = HAM_RECORD_USER_ALLOC;
+
+			my_key.val1 = 2 * i;
+			key.data = (void *)&my_key;
+			key.size = sizeof(my_key);
+			key.flags = HAM_KEY_USER_ALLOC;
+
+			BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
+
+			if (i % 1000 == 999) {
+				std::cerr << ".";
+				BFC_ASSERT_EQUAL(0, ham_check_integrity(db, NULL));
+			}
+		}
+		BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+
+		std::cerr << std::endl;
+
+		BFC_ASSERT_EQUAL(0, ham_check_integrity(db, NULL));
+
+		my_rec_t *r;
+		my_key_t *k;
+
+		/* show record collection */
+		BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
+		for (i = 0; i < RECORD_COUNT_PER_DB; i++)
+		{
+			::memset(&key, 0, sizeof(key));
+			::memset(&rec, 0, sizeof(rec));
+			BFC_ASSERT_EQUAL(0, ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
+			BFC_ASSERT_NOTEQUAL((rec.data && key.data), 0);
+			r = (my_rec_t *)rec.data;
+			k = (my_key_t *)key.data;
+#if 01
+			printf("rec: %d vs. %d, ", r->val1, 100*i);
+			printf("key: %d vs. %d\n", k->val1, 2*i);
+#else
+			BFC_ASSERT_EQUAL(r->val1, 100*i);
+			BFC_ASSERT_EQUAL(k->val1, 2*i);
+#endif
+		}
+		BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
+		BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+
+        BFC_ASSERT_EQUAL(0, ham_close(db, HAM_AUTO_CLEANUP));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+	}
 
     void insertTest(void)
     {
