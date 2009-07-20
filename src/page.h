@@ -49,8 +49,8 @@ typedef struct ham_page_t ham_page_t;
  * The page header which is persisted on disc
  *
  * This structure definition is present outside of @a ham_page_t scope to allow
- * compile-time OFFSETOF macros to correctly judge the size, depending on 
- * platform and compiler settings.
+ * compile-time OFFSETOF macros to correctly judge the size, depending 
+ * on platform and compiler settings.
  */
 typedef union {
 
@@ -88,7 +88,6 @@ typedef union {
      * a char pointer
      */
     ham_u8_t _p[1];
-
 } ham_perm_page_union_t;
 
 
