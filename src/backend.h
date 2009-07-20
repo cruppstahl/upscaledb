@@ -49,7 +49,7 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
     /**                                                                 \
      * create and initialize a new backend                              \
      *                                                                  \
-     * @remark this function is called after the ham_db_t structure     \ 
+     * @remark this function is called after the @a ham_db_t structure  \
      * and the file were created                                        \
      *                                                                  \
      * the @a flags are stored in the database; only transfer           \
@@ -102,7 +102,7 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
             ham_u32_t flags);                                           \
                                                                         \
     /**                                                                 \
-     * iterate the whole tree and enumerate every item                  \ 
+     * iterate the whole tree and enumerate every item                  \
      */                                                                 \
     ham_status_t (*_fun_enumerate)(clss *be,                            \
             ham_enumerate_cb_t cb, void *context);                      \
@@ -120,6 +120,12 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
      * @remark this function is called after _fun_close()               \
      */                                                                 \
     void (*_fun_delete)(clss *be);                                      \
+                                                                        \
+    /**                                                                 \
+     * estimate the number of keys per page, given the keysize          \
+     */                                                                 \
+    ham_status_t (*_fun_calc_keycount)(clss *be, ham_size_t *keycount,  \
+                    ham_u16_t keysize);                                 \
                                                                         \
     /**                                                                 \
      * pointer to the database object                                   \
@@ -144,7 +150,7 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
     /**                                                                 \
      * the persistent flags of this backend index                       \
      */                                                                 \
-    ham_u32_t _flags;
+    ham_u32_t _flags
 
 
 /**
@@ -166,7 +172,7 @@ typedef struct ham_backend_t ham_backend_t;
 
 HAM_PACK_0 struct HAM_PACK_1 ham_backend_t
 {
-    BACKEND_DECLARATIONS(ham_backend_t)
+    BACKEND_DECLARATIONS(ham_backend_t);
 } HAM_PACK_2;
 
 #include "packstop.h"
