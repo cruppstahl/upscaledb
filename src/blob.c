@@ -289,8 +289,8 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
      * blobs are CHUNKSIZE-allocated 
      */
     alloc_size=sizeof(blob_t)+size;
-    if (alloc_size%DB_CHUNKSIZE!=0)
-        alloc_size=((alloc_size/DB_CHUNKSIZE)*DB_CHUNKSIZE)+DB_CHUNKSIZE;
+    alloc_size += DB_CHUNKSIZE - 1;
+	alloc_size -= alloc_size % DB_CHUNKSIZE;
 
     /* 
      * check if we have space in the freelist 
@@ -322,11 +322,8 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
          */
         else {
             ham_size_t aligned=alloc_size;
-            if (aligned%db_get_pagesize(db)) {
-                aligned+=db_get_pagesize(db);
-                aligned/=db_get_pagesize(db);
-                aligned*=db_get_pagesize(db);
-            }
+            aligned += db_get_pagesize(db) - 1;
+            aligned -= aligned % db_get_pagesize(db);
 
             st=device->alloc(device, aligned, &addr);
             if (st) 
@@ -426,8 +423,6 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
     /*
      * sanity check
      */
-	ham_assert(blob_get_self(&hdr)==blobid, 
-            ("invalid blobid %llu != %llu", blob_get_self(&hdr), blobid));
 	if (blob_get_self(&hdr)!=blobid)
         return (HAM_BLOB_NOT_FOUND);
 
@@ -505,8 +500,8 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
      * blobs are CHUNKSIZE-allocated 
      */
     alloc_size=sizeof(blob_t)+size;
-    if ((alloc_size%DB_CHUNKSIZE)!=0)
-        alloc_size=((alloc_size/DB_CHUNKSIZE)*DB_CHUNKSIZE)+DB_CHUNKSIZE;
+    alloc_size += DB_CHUNKSIZE - 1;
+	alloc_size -= alloc_size % DB_CHUNKSIZE;
 
     /*
      * first, read the blob header; if the new blob fits into the 
