@@ -427,7 +427,7 @@ bt_cursor_couple(ham_bt_cursor_t *c)
 
     dupe_id=bt_cursor_get_dupe_id(c);
     
-    st=bt_cursor_find(c, &key, 0);
+    st=bt_cursor_find(c, &key, NULL, 0);
 
     bt_cursor_set_dupe_id(c, dupe_id);
 
@@ -443,13 +443,10 @@ bt_cursor_couple(ham_bt_cursor_t *c)
 ham_status_t
 bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
 {
-    ham_status_t st=0;
-    btree_node_t *node;
+	btree_node_t *node;
     int_key_t *entry;
     ham_key_t *key;
     ham_db_t *db=bt_cursor_get_db(c);
-    ham_txn_t txn;
-    ham_bool_t local_txn=db_get_txn(db) ? HAM_FALSE : HAM_TRUE;
 
     if (bt_cursor_get_flags(c)&BT_CURSOR_FLAG_UNCOUPLED)
         return (0);
@@ -458,12 +455,6 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
 
     ham_assert(bt_cursor_get_coupled_page(c)!=0,
             ("uncoupling a cursor which has no coupled page"));
-
-    if (local_txn) {
-        st=txn_begin(&txn, db, HAM_TXN_READ_ONLY);
-        if (st)
-            return (st);
-    }
 
     /*
      * get the btree-entry of this key
@@ -476,17 +467,11 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
      * copy the key
      */
     key=(ham_key_t *)ham_mem_calloc(db, sizeof(*key));
-    if (!key) {
-        if (local_txn)
-            (void)txn_abort(&txn, 0);
-        return (db_set_error(db, HAM_OUT_OF_MEMORY));
-    }
+    if (!key)
+		return (db_set_error(db, HAM_OUT_OF_MEMORY));
     key=util_copy_key_int2pub(db, entry, key);
-    if (!key) {
-        if (local_txn)
-            (void)txn_abort(&txn, 0);
-        return (db_get_error(bt_cursor_get_db(c)));
-    }
+    if (!key)
+		return (db_get_error(bt_cursor_get_db(c)));
 
     /*
      * uncouple the page
@@ -501,9 +486,6 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
     bt_cursor_set_flags(c, bt_cursor_get_flags(c)&(~BT_CURSOR_FLAG_COUPLED));
     bt_cursor_set_flags(c, bt_cursor_get_flags(c)|BT_CURSOR_FLAG_UNCOUPLED);
     bt_cursor_set_uncoupled_key(c, key);
-
-    if (local_txn)
-        return (txn_commit(&txn, 0));
 
     return (0);
 }
@@ -808,41 +790,25 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
 }
 
 ham_status_t
-bt_cursor_find(ham_bt_cursor_t *c, ham_key_t *key, ham_u32_t flags)
+bt_cursor_find(ham_bt_cursor_t *c, ham_key_t *key, ham_record_t *record, 
+            ham_u32_t flags)
 {
     ham_status_t st;
     ham_backend_t *be=db_get_backend(bt_cursor_get_db(c));
-    ham_txn_t txn;
-    ham_db_t *db=cursor_get_db(c);
-    ham_bool_t local_txn=db_get_txn(db) ? HAM_FALSE : HAM_TRUE;
 
     if (!be)
         return (HAM_NOT_INITIALIZED);
     ham_assert(key, ("invalid parameter"));
 
-    if (local_txn) {
-        st=txn_begin(&txn, db, HAM_TXN_READ_ONLY);
-        if (st)
-            return (st);
-    }
-
     st=bt_cursor_set_to_nil(c);
-    if (st) {
-        if (local_txn)
-            (void)txn_abort(&txn, 0);
-        return (st);
-    }
+    if (st)
+		return (st);
 
-    st=btree_find_cursor((ham_btree_t *)be, c, key, 0, flags);
+    st=btree_find_cursor((ham_btree_t *)be, c, key, record, flags);
     if (st) {
         /* cursor is now NIL */
-        if (local_txn)
-            (void)txn_abort(&txn, 0);
-        return (st);
+		return (st);
     }
-
-    if (local_txn)
-        return (txn_commit(&txn, 0));
 
     return (0);
 }
