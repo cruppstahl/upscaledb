@@ -15,9 +15,10 @@
 
 #ifdef HAM_ENABLE_INTERNAL
 
+#include "config.h"
+
 #include <string.h>
 #include <stdio.h>
-#include "config.h"
 #include "db.h"
 #include "error.h"
 #include "keys.h"
@@ -70,9 +71,8 @@ __key_compare_int_to_int(ham_page_t *page,
     r=btree_node_get_key(page_get_owner(page), node, rhs);
 
     return (db_compare_keys(page_get_owner(page), page, 
-                lhs, key_get_flags(l), key_get_key(l), 
-                key_get_size(l), rhs, key_get_flags(r), key_get_key(r), 
-                key_get_size(r)));
+                lhs, key_get_flags(l), key_get_key(l), key_get_size(l), 
+                rhs, key_get_flags(r), key_get_key(r), key_get_size(r)));
 }
 
 ham_status_t 
@@ -252,12 +252,9 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
 
         cmp=db_compare_keys(db, page,
                 btree_node_get_count(sibnode)-1,
-                key_get_flags(sibentry), 
-                key_get_key(sibentry), 
-                key_get_size(sibentry),
-                0, key_get_flags(bte), 
-                key_get_key(bte), 
-                key_get_size(bte));
+                key_get_flags(sibentry), key_get_key(sibentry), key_get_size(sibentry),
+                0, 
+				key_get_flags(bte), key_get_key(bte), key_get_size(bte));
         if (db_get_error(db))
             return (db_get_error(db));
         if (cmp>=0) {
