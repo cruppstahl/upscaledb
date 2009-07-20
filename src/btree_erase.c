@@ -13,6 +13,8 @@
  *
  */
 
+#include "config.h"
+
 #include <string.h>
 #include "db.h"
 #include "error.h"
@@ -548,7 +550,7 @@ my_merge_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
     /*
      * shift items from the sibling to this page
      */
-    memcpy(bte_lhs, bte_rhs, (sizeof(int_key_t)-1+keysize)*c);
+    memcpy(bte_lhs, bte_rhs, (db_get_int_key_header_size()+keysize)*c);
             
     page_set_dirty(page);
     page_set_dirty(sibpage);
@@ -706,7 +708,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             for (i=0; i<(ham_size_t)btree_node_get_count(sibnode)-1; i++) {
                 bte_lhs=btree_node_get_key(db, sibnode, i);
                 bte_rhs=btree_node_get_key(db, sibnode, i+1);
-                memcpy(bte_lhs, bte_rhs, sizeof(int_key_t)-1+keysize);
+                memcpy(bte_lhs, bte_rhs, db_get_int_key_header_size()+keysize);
             }
 
             /*
@@ -750,11 +752,11 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
                 btree_node_get_count(node));
         bte_rhs=btree_node_get_key(db, sibnode, 0);
 
-        memmove(bte_lhs, bte_rhs, (sizeof(int_key_t)-1+keysize)*c);
+        memmove(bte_lhs, bte_rhs, (db_get_int_key_header_size()+keysize)*c);
 
         bte_lhs=btree_node_get_key(db, sibnode, 0);
         bte_rhs=btree_node_get_key(db, sibnode, c);
-        memmove(bte_lhs, bte_rhs, (sizeof(int_key_t)-1+keysize)*
+        memmove(bte_lhs, bte_rhs, (db_get_int_key_header_size()+keysize)*
                 (btree_node_get_count(sibnode)-c));
 
         /*
@@ -788,7 +790,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
              */
             bte_lhs=btree_node_get_key(db, sibnode, 0);
             bte_rhs=btree_node_get_key(db, sibnode, 1);
-            memmove(bte_lhs, bte_rhs, (sizeof(int_key_t)-1+keysize)*
+            memmove(bte_lhs, bte_rhs, (db_get_int_key_header_size()+keysize)*
                     (btree_node_get_count(sibnode)-1));
         }
         /*
@@ -853,7 +855,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             for (i=btree_node_get_count(sibnode); i>0; i--) {
                 bte_lhs=btree_node_get_key(db, sibnode, i);
                 bte_rhs=btree_node_get_key(db, sibnode, i-1);
-                memcpy(bte_lhs, bte_rhs, sizeof(int_key_t)-1+keysize);
+                memcpy(bte_lhs, bte_rhs, db_get_int_key_header_size()+keysize);
             }
 
             /*
@@ -917,7 +919,7 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
             for (i=btree_node_get_count(sibnode); i>0; i--) {
                 bte_lhs=btree_node_get_key(db, sibnode, i);
                 bte_rhs=btree_node_get_key(db, sibnode, i-1);
-                memcpy(bte_lhs, bte_rhs, sizeof(int_key_t)-1+keysize);
+                memcpy(bte_lhs, bte_rhs, db_get_int_key_header_size()+keysize);
             }
 
             bte_lhs=btree_node_get_key(db, sibnode, 0);
@@ -946,12 +948,12 @@ my_shift_pages(ham_page_t *page, ham_page_t *sibpage, ham_offset_t anchor,
          */
         bte_lhs=btree_node_get_key(db, sibnode, c);
         bte_rhs=btree_node_get_key(db, sibnode, 0);
-        memmove(bte_lhs, bte_rhs, (sizeof(int_key_t)-1+keysize)*
+        memmove(bte_lhs, bte_rhs, (db_get_int_key_header_size()+keysize)*
                 btree_node_get_count(sibnode));
 
         bte_lhs=btree_node_get_key(db, sibnode, 0);
         bte_rhs=btree_node_get_key(db, node, s+1);
-        memmove(bte_lhs, bte_rhs, (sizeof(int_key_t)-1+keysize)*c);
+        memmove(bte_lhs, bte_rhs, (db_get_int_key_header_size()+keysize)*c);
 
         btree_node_set_count(node,
                 btree_node_get_count(node)-c);
@@ -1028,7 +1030,7 @@ cleanup:
 static ham_status_t
 my_copy_key(ham_db_t *db, int_key_t *lhs, int_key_t *rhs)
 {
-    memcpy(lhs, rhs, sizeof(int_key_t)-1+db_get_keysize(db));
+    memcpy(lhs, rhs, db_get_int_key_header_size()+db_get_keysize(db));
 
     /*
      * if the key is extended, we copy the extended blob; otherwise, we'd
@@ -1262,7 +1264,7 @@ free_all:
     if (slot!=btree_node_get_count(node)-1) {
         bte_lhs=btree_node_get_key(db, node, slot);
         bte_rhs=btree_node_get_key(db, node, slot+1);
-        memmove(bte_lhs, bte_rhs, ((sizeof(int_key_t)-1+keysize))*
+        memmove(bte_lhs, bte_rhs, ((db_get_int_key_header_size()+keysize))*
                 (btree_node_get_count(node)-slot-1));
     }
 
