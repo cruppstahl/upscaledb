@@ -10,6 +10,8 @@
  *
  */
 
+#include "config.h"
+
 #ifdef HAVE_MALLOC_H
 #  include <malloc.h>
 #else
@@ -17,7 +19,6 @@
 #endif
 #include <string.h>
 #include <ham/hamsterdb.h>
-#include "config.h"
 #include "error.h"
 #include "mem.h"
 #include "env.h"
@@ -435,7 +436,7 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
     }
 
     /*
-     * make sure that the pagesize is aligned to 1024k
+     * make sure that the pagesize is aligned to 1024b
      */
     if (pagesize) {
         if (pagesize%1024) {
@@ -463,8 +464,8 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
      */
     if ((*flags)&HAM_IN_MEMORY_DB) {
         if (((*flags)&HAM_CACHE_STRICT) || cachesize!=0) {
-            ham_trace(("combination of HAM_CACHE_STRICT and cachesize 0 "
-                        "not allowed"));
+            ham_trace(("combination of HAM_IN_MEMORY_DB and HAM_CACHE_STRICT "
+						"or cachesize 0 not allowed"));
             return (HAM_INV_PARAMETER);
         }
     }
@@ -521,18 +522,6 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
     }
 
     /*
-     * make sure that the pagesize is big enough for at least 5 keys;
-     * record number database: need 8 byte
-     */
-    if (keysize) {
-        if (pagesize/keysize<5) {
-            ham_trace(("keysize too small, must be at least %d bytes",
-                        pagesize/6));
-            return (HAM_INV_KEYSIZE);
-        }
-    }
-
-    /*
      * initialize the keysize with a good default value;
      * 32byte is the size of a first level cache line for most modern
      * processors; adjust the keysize, so the keys are aligned to
@@ -542,7 +531,17 @@ __check_create_parameters(ham_bool_t is_env, const char *filename,
         if ((*flags)&HAM_RECORD_NUMBER)
             keysize=sizeof(ham_u64_t);
         else
-            keysize=32-(sizeof(int_key_t)-1);
+            keysize=32-(db_get_int_key_header_size());
+    }
+
+    /*
+     * make sure that the pagesize is big enough for at least 5 keys;
+     * record number database: need 8 byte
+     */
+    if (pagesize/keysize<5) {
+        ham_trace(("pagesize too small, must be at least %d bytes",
+                    keysize*6));
+        return (HAM_INV_KEYSIZE);
     }
 
     /*
@@ -900,7 +899,8 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
         ham_u32_t flags, ham_parameter_t *param)
 {
     ham_status_t st;
-    ham_size_t cachesize=0, maxdbs=DB_MAX_INDICES;
+    ham_size_t cachesize=0;
+    ham_size_t maxdbs=DB_MAX_INDICES;
     ham_device_t *device=0;
 
     if (!env) {
@@ -1521,9 +1521,11 @@ ham_delete(ham_db_t *db)
 
     /* close the allocator */
     if (db_get_allocator(db)) {
-        db_get_allocator(db)->close(db_get_allocator(db));
-        if (!db_get_env(db))
+        if (!db_get_env(db)) // [i_a] otherwise you'd blow away the methods for the ENV ... 
+		{
+			db_get_allocator(db)->close(db_get_allocator(db));
             db_set_allocator(db, 0);
+		}
     }
 
     /* "free" all remaining memory */
@@ -1764,8 +1766,16 @@ ham_open_ex(ham_db_t *db, const char *filename,
             (void)ham_close(db, 0);
             return (st);
         }
-        ham_assert(page_get_type(page)==PAGE_TYPE_HEADER,
-                ("invalid page header type"));
+
+        if (page_get_type(page) != PAGE_TYPE_HEADER) {
+            ham_log(("invalid page header type"));
+            if (page_get_pers(page))
+                (void)page_free(page);
+            (void)page_delete(page);
+			(void)ham_close(db, 0);
+	        db_set_error(db, HAM_INV_FILE_HEADER);
+		    return (HAM_INV_FILE_HEADER);
+		}
 
         if (db_get_env(db))
             env_set_header_page(db_get_env(db), page);
@@ -2339,10 +2349,7 @@ bail:
     return (ham_env_add_file_filter(env, filter));
 #else /* !HAM_DISABLE_ENCRYPTION */
     ham_trace(("hamsterdb was compiled without support for AES encryption"));
-    if (db)
-        return (db_set_error(db, HAM_NOT_IMPLEMENTED));
-    else
-        return (HAM_NOT_IMPLEMENTED);
+    return (HAM_NOT_IMPLEMENTED);
 #endif
 }
 
@@ -3304,7 +3311,13 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
 
     db=cursor_get_db(cursor);
 
-    if (!record) {
+    if (flags) {
+        ham_trace(("function does not support a non-zero flags value; "
+                    "see ham_cursor_insert for an alternative then"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+
+	if (!record) {
         ham_trace(("parameter 'record' must not be NULL"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
