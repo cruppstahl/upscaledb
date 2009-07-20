@@ -10,6 +10,8 @@
  *
  */
 
+#include "config.h"
+
 #include <string.h>
 #include <ham/hamsterdb.h>
 #include "db.h"
@@ -27,8 +29,8 @@ key_compare_int_to_pub(ham_page_t *page, ham_u16_t lhs, ham_key_t *rhs)
     l=btree_node_get_key(page_get_owner(page), node, lhs);
 
     return (db_compare_keys(page_get_owner(page), page, 
-                lhs, key_get_flags(l), key_get_key(l), 
-                key_get_size(l), 0, rhs->_flags, rhs->data, rhs->size));
+                lhs, key_get_flags(l), key_get_key(l), key_get_size(l), 
+                0, rhs->_flags, rhs->data, rhs->size));
 }
 
 int
