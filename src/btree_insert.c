@@ -13,6 +13,8 @@
  *
  */
 
+#include "config.h"
+
 #include <string.h>
 #include "db.h"
 #include "error.h"
@@ -391,8 +393,8 @@ shift_elements:
             if (st)
                 return (db_set_error(db, st));
 
-            memmove(((char *)bte)+sizeof(int_key_t)-1+keysize, bte,
-                    (sizeof(int_key_t)-1+keysize)*(count-slot));
+            memmove(((char *)bte)+db_get_int_key_header_size()+keysize, bte,
+                    (db_get_int_key_header_size()+keysize)*(count-slot));
         }
     }
 
@@ -406,7 +408,7 @@ shift_elements:
      * prepare the entry for the logfile
      */
     if (!exists)
-        memset(bte, 0, sizeof(int_key_t)-1+keysize);
+        memset(bte, 0, db_get_int_key_header_size()+keysize);
 
     /*
      * if we're in the leaf: insert, overwrite or append the blob
@@ -551,13 +553,13 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
      */
     if (btree_node_is_leaf(obtp)) {
         memcpy((char *)nbte,
-               ((char *)obte)+(sizeof(int_key_t)-1+keysize)*pivot, 
-               (sizeof(int_key_t)-1+keysize)*(count-pivot));
+               ((char *)obte)+(db_get_int_key_header_size()+keysize)*pivot, 
+               (db_get_int_key_header_size()+keysize)*(count-pivot));
     }
     else {
         memcpy((char *)nbte,
-               ((char *)obte)+(sizeof(int_key_t)-1+keysize)*(pivot+1), 
-               (sizeof(int_key_t)-1+keysize)*(count-pivot-1));
+               ((char *)obte)+(db_get_int_key_header_size()+keysize)*(pivot+1), 
+               (db_get_int_key_header_size()+keysize)*(count-pivot-1));
     }
     
     /* 
