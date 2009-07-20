@@ -35,7 +35,7 @@ struct ham_bt_cursor_t
     /**
      * the common declaratons of all cursors
      */
-    CURSOR_DECLARATIONS(ham_bt_cursor_t)
+    CURSOR_DECLARATIONS(ham_bt_cursor_t);
 
     /**
      * internal cursor flags
@@ -243,7 +243,8 @@ bt_cursor_overwrite(ham_bt_cursor_t *cu, ham_record_t *record,
  * on this key
  */
 ham_status_t
-bt_cursor_find(ham_bt_cursor_t *cu, ham_key_t *key, ham_u32_t flags);
+bt_cursor_find(ham_bt_cursor_t *cu, ham_key_t *key, ham_record_t *record, 
+                ham_u32_t flags);
 
 /**
  * insert (or update) a key in the index
