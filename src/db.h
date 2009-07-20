@@ -34,7 +34,7 @@ extern "C" {
 #include "device.h"
 #include "env.h"
 
-#define OFFSET_OF(type, member) ((size_t) &((type *)0)->member)
+#define OFFSETOF(type, member) ((size_t) &((type *)0)->member)
 
 /*
  * This is the minimum chunk size; all chunks (pages and blobs) are aligned
@@ -144,9 +144,15 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
 #define db_set_pagesize(db, ps)    db_get_header(db)->_pagesize=ham_h2db32(ps)
 
 /**
+ * get the size of the persistent header of a page
+ */
+#define db_get_persistent_header_size()   (OFFSETOF(ham_perm_page_union_t, _s._payload) /*(sizeof(ham_u32_t)*3)*/ )
+
+/**
  * get the size of the usable persistent payload of a page
  */
-#define db_get_usable_pagesize(db) (db_get_pagesize(db)-(sizeof(ham_u32_t)*3))
+#define db_get_usable_pagesize(db) (db_get_pagesize(db) \
+	- db_get_persistent_header_size())
 
 /*
  * get the maximum number of databases for this file
