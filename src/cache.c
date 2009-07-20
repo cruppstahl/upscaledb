@@ -12,6 +12,8 @@
  *
  */
 
+#include "config.h"
+
 #include <string.h>
 #include "cache.h"
 #include "mem.h"
@@ -125,7 +127,7 @@ cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags)
         page=page_get_next(page, PAGE_LIST_BUCKET);
     }
 
-    if (page && flags==0) {
+    if (page && flags != CACHE_NOREMOVE) {
         cache_set_totallist(cache, 
             page_list_remove(cache_get_totallist(cache), 
             PAGE_LIST_CACHED, page));
@@ -170,6 +172,8 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page)
               page_set_cache_cntr(page, 1000);
               break;
           case PAGE_TYPE_B_INDEX:
+              page_set_cache_cntr(page, 50);
+              break;
           case PAGE_TYPE_FREELIST:
               page_set_cache_cntr(page, 50);
               break;
