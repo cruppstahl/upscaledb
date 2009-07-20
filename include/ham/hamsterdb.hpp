@@ -296,7 +296,7 @@ public:
 
     /** Creates a Database. */
     void create(const char *filename, ham_u32_t flags=0,
-            ham_u32_t mode=0644, ham_parameter_t *param=0) {
+            ham_u32_t mode=0644, const ham_parameter_t *param=0) {
         ham_status_t st;
         if (!m_db) {
             st=ham_new(&m_db);
@@ -309,7 +309,7 @@ public:
 
     /** Opens an existing Database. */
     void open(const char *filename, ham_u32_t flags=0,
-            ham_parameter_t *param=0) {
+            const ham_parameter_t *param=0) {
         ham_status_t st;
         if (!m_db) {
             st=ham_new(&m_db);
@@ -322,6 +322,9 @@ public:
 
     /** Returns the last Database error. */
     ham_status_t get_error() {
+        if (!m_db) {
+			throw error(HAM_NOT_INITIALIZED);
+        }
         return (ham_get_error(m_db));
     }
 
@@ -528,6 +531,14 @@ public:
             throw error(st);
     }
 
+    /** Finds a key. */
+    void find_ex(key *k, record *r, ham_u32_t flags=0) {
+        ham_status_t st=ham_cursor_find_ex(m_cursor, k->get_handle(), 
+                        (r ? r->get_handle() : 0), flags);
+        if (st)
+            throw error(st);
+    }
+
     /** Inserts a key/record pair. */
     void insert(key *k, record *r, ham_u32_t flags=0) {
         ham_status_t st=ham_cursor_insert(m_cursor, k ? k->get_handle() : 0,
@@ -591,7 +602,7 @@ public:
 
     /** Creates a new Environment. */
     void create(const char *filename, ham_u32_t flags=0,
-            ham_u32_t mode=0644, ham_parameter_t *param=0) {
+            ham_u32_t mode=0644, const ham_parameter_t *param=0) {
         ham_status_t st;
         if (!m_env) {
             st=ham_env_new(&m_env);
@@ -604,7 +615,7 @@ public:
 
     /** Opens an existing Environment. */
     void open(const char *filename, ham_u32_t flags=0,
-            ham_parameter_t *param=0) {
+            const ham_parameter_t *param=0) {
         ham_status_t st;
         if (!m_env) {
             st=ham_env_new(&m_env);
@@ -616,7 +627,8 @@ public:
     }
 
     /** Creates a new Database in the Environment. */
-    db create_db(ham_u16_t name, ham_u32_t flags=0, ham_parameter_t *param=0) {
+    db create_db(ham_u16_t name, ham_u32_t flags=0, 
+            const ham_parameter_t *param=0) {
         ham_status_t st;
         ham_db_t *dbh;
 
@@ -633,7 +645,8 @@ public:
     }
 
     /** Opens an existing Database in the Environment. */
-    db open_db(ham_u16_t name, ham_u32_t flags=0, ham_parameter_t *param=0) {
+    db open_db(ham_u16_t name, ham_u32_t flags=0, 
+            const ham_parameter_t *param=0) {
         ham_status_t st;
         ham_db_t *dbh;
 

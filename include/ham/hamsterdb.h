@@ -419,7 +419,7 @@ ham_env_create(ham_env_t *env, const char *filename,
  *            but with certain limitations (which will be removed in later
  *            version). Please read the README file and the Release Notes
  *            for details.<br />
- *            This flag imples @a HAM_ENABLE_RECOVERY.
+ *            This flag implies @a HAM_ENABLE_RECOVERY.
  *      </ul>
  *
  * @param mode File access rights for the new file. This is the @a mode
@@ -455,11 +455,12 @@ ham_env_create(ham_env_t *env, const char *filename,
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_create_ex(ham_env_t *env, const char *filename,
-        ham_u32_t flags, ham_u32_t mode, ham_parameter_t *param);
+        ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param);
 
 /**
  * Opens an existing Database Environment
  *
+ * @param env A valid Environment handle, which was created with @a ham_env_new
  * @param filename The filename of the Environment file
  * @param flags Optional flags for opening the Environment, combined with
  *        bitwise OR. See the documentation of @a ham_env_open_ex
@@ -546,10 +547,25 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_open_ex(ham_env_t *env, const char *filename,
-        ham_u32_t flags, ham_parameter_t *param);
+        ham_u32_t flags, const ham_parameter_t *param);
 
 /**
- * Creates a new Database in a Database Environment.
+ * Retrieve the current value for a given Environment setting
+ *
+ * Only those values requested by the parameter array will be stored.
+ *
+ * @param env A valid Environment handle
+ * @param param An array of ham_parameter_t structures
+ *
+ * @return @a HAM_SUCCESS upon success
+ * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL or
+ *              @a param is NULL
+ */
+HAM_EXPORT ham_status_t HAM_CALLCONV
+ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
+
+/**
+ * Creates a new Database in a Database Environment
  *
  * @param env A valid Environment handle.
  * @param db A valid Database handle, which will point to the created
@@ -598,7 +614,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_create_db(ham_env_t *env, ham_db_t *db,
-        ham_u16_t name, ham_u32_t flags, ham_parameter_t *params);
+        ham_u16_t name, ham_u32_t flags, const ham_parameter_t *params);
 
 /**
  * Opens a Database in a Database Environment
@@ -631,7 +647,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_open_db(ham_env_t *env, ham_db_t *db,
-        ham_u16_t name, ham_u32_t flags, ham_parameter_t *params);
+        ham_u16_t name, ham_u32_t flags, const ham_parameter_t *params);
 
 /**
  * Renames a Database in an Environment.
@@ -800,8 +816,10 @@ typedef struct ham_txn_t ham_txn_t;
 /**
  * Begins a new Transaction
  * 
- * @param db Pointer to a pointer of a Transaction structure
+ * @param txn Pointer to a pointer of a Transaction structure
  * 
+ * @param db A valid Database handle
+ *
  * @param flags Optional flags for beginning the Transaction, combined with
  *        bitwise OR. Possible flags are:
  *      <ul>
@@ -831,7 +849,7 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags);
  * a Cursor was attached to this Transaction (with @a ham_cursor_create
  * or @a ham_cursor_clone), and the Cursor was not closed.
  * 
- * @param db Pointer to a Transaction structure
+ * @param txn Pointer to a Transaction structure
  * 
  * @param flags Optional flags for committing the Transaction, combined with
  *        bitwise OR. Unused, set to 0.
@@ -851,7 +869,7 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags);
  * a Cursor was attached to this Transaction (with @a ham_cursor_create
  * or @a ham_cursor_clone), and the Cursor was not closed.
  * 
- * @param db Pointer to a Transaction structure
+ * @param txn Pointer to a Transaction structure
  * 
  * @param flags Optional flags for aborting the Transaction, combined with
  *        bitwise OR. Unused, set to 0.
@@ -1015,7 +1033,7 @@ ham_create(ham_db_t *db, const char *filename,
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_create_ex(ham_db_t *db, const char *filename,
-        ham_u32_t flags, ham_u32_t mode, ham_parameter_t *param);
+        ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param);
 
 /**
  * Opens an existing Database
@@ -1111,7 +1129,7 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_open_ex(ham_db_t *db, const char *filename,
-        ham_u32_t flags, ham_parameter_t *param);
+        ham_u32_t flags, const ham_parameter_t *param);
 
 /** Flag for @a ham_open, @a ham_open_ex, @a ham_create, @a ham_create_ex */
 #define HAM_WRITE_THROUGH            0x00000001
@@ -1182,15 +1200,62 @@ ham_open_ex(ham_db_t *db, const char *filename,
  * Databases */
 #define HAM_PARAM_MAX_ENV_DATABASES  0x00000103
 
+
 /**
- * Returns the flags which were specified when the Database was created
+ * Retrieve the current value for a given Database setting
+ *
+ * Only those values requested by the parameter array will be stored.
+ *
+ * @param db A valid Database handle
+ * @param param An array of ham_parameter_t structures
+ *
+ * @return @a HAM_SUCCESS upon success
+ * @return @a HAM_INV_PARAMETER if the @a db pointer is NULL or
+ *              @a param is NULL
+ */
+HAM_EXPORT ham_status_t HAM_CALLCONV
+ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
+
+
+/**
+ * Retrieve the flags which were specified when the Database was created
  * or opened
  *
  * @param db A valid Database handle
+ *
  * @return The Database flags
  */
 HAM_EXPORT ham_u32_t HAM_CALLCONV
 ham_get_flags(ham_db_t *db);
+
+
+/**
+ * Returns the kind of key match which produced this key as it was 
+ * returned by one of the @a ham_find(), @a ham_cursor_find() or 
+ * @a ham_cursor_find_ex() functions
+ *
+ * This routine assumes the key was passed back by one of the @a ham_find, 
+ * @a ham_cursor_find or @a ham_cursor_find_ex functions and not used
+ * by any other hamsterdb functions after that.
+ *
+ * As such, this function produces an answer akin to the 'sign' of the
+ * specified key as it was returned by the find operation.
+ *
+ * @param key A valid key
+ *
+ * @return 1 (greater than) or -1 (less than) when the given key is an 
+ *      approximate result / zero (0) otherwise. Specifically:
+ *      <ul>
+ *        <li>+1 when the key is greater than the item searched for (key 
+ *              was a GT match)
+ *        <li>-1 when the key is less than the item searched for (key was 
+ *              a LT match) 
+ *        <li>zero (0) otherwise (key was an EQ (EXACT) match)
+ *      </ul>
+ */
+HAM_EXPORT int HAM_CALLCONV
+ham_key_get_approximate_match_type(ham_key_t *key);
+
 
 /**
  * Returns the last error code
@@ -1208,7 +1273,7 @@ ham_get_error(ham_db_t *db);
  * Typedef for a prefix comparison function
  *
  * @remark This function compares two index keys. It returns -1 if @a lhs
- * ("left-hand side", the paramter on the left side) is smaller than 
+ * ("left-hand side", the parameter on the left side) is smaller than 
  * @a rhs ("right-hand side"), 0 if both keys are equal, and 1 if @a lhs 
  * is larger than @a rhs.
  *
@@ -1245,7 +1310,7 @@ ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
  * Typedef for a comparison function
  *
  * @remark This function compares two index keys. It returns -1, if @a lhs
- * ("left-hand side", the paramter on the left side) is smaller than 
+ * ("left-hand side", the parameter on the left side) is smaller than 
  * @a rhs ("right-hand side"), 0 if both keys are equal, and 1 if @a lhs 
  * is larger than @a rhs.
  */
@@ -1338,11 +1403,21 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * @param txn A Transaction handle, or NULL
  * @param key The key of the item
  * @param record The record of the item
- * @param flags Optional flags for searching; unused, set to 0
+ * @param flags Optional flags for searching; may be set to either
+ *        @a HAM_FIND_EXACT_MATCH (default, 0 (zero)) or a combination of
+ *        @a HAM_FIND_NEAR_LT and/or @a HAM_FIND_NEAR_GT
  *
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if @a db, @a key or @a record is NULL
  * @return @a HAM_KEY_NOT_FOUND if the @a key does not exist
+ * 
+ * @remark When either or both @a HAM_FIND_NEAR_LT and/or @a HAM_FIND_NEAR_GT
+ *        have been specified as flags, the @a key structure will be overwritten
+ *        when an approximate match was found: the @a key and @a record 
+ *        structures will then point at the located @a key and @a record.
+ *        In this case the caller should ensure @a key points at a structure
+ *        which must adhere to the same restrictions and conditions as specified
+ *        for @a ham_cursor_move(...,HAM_CURSOR_NEXT).
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
@@ -1467,6 +1542,27 @@ ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_flush(ham_db_t *db, ham_u32_t flags);
 
+
+/**
+ * Estimates the number of keys stored per page in the Database
+ *
+ * @param db A valid Database handle
+ * @param keycount A reference to a variable which will receive
+ *                 the calculated key count per page
+ * @param keysize The size of the key
+ *
+ * @return @a HAM_SUCCESS upon success
+ * @return @a HAM_INV_PARAMETER if @a db or @a keycount is NULL
+ * @return @a HAM_INV_KEYSIZE if the @a keycount turns out to be huge (i.e.
+ *         larger than 65535); in this case @a keycount still contains a 
+ *         valid value, but this error indicates this keysize won't be
+ *         usable with the given Database.
+ */
+HAM_EXPORT ham_status_t HAM_CALLCONV
+ham_calc_maxkeys_per_page(ham_db_t *db, ham_size_t *keycount, 
+            ham_u16_t keysize);
+
+
 /**
  * Closes the Database
  *
@@ -1515,6 +1611,7 @@ ham_close(ham_db_t *db, ham_u32_t flags);
 
 /** Automatically commit all open Transactions */
 #define HAM_TXN_AUTO_COMMIT         8
+
 
 /**
  * @}
@@ -1673,16 +1770,208 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  * Note that @a ham_cursor_find can not search for duplicate keys. If @a key 
  * has multiple duplicates, only the first duplicate is returned.
  *
+ * Note that key->data will point to temporary data. This pointer
+ * will be invalidated by subsequent hamsterdb API calls. See
+ * a HAM_KEY_USER_ALLOC on how to change this behaviour.
+ *
+ * When either or both @a HAM_FIND_LT_MATCH and/or @a HAM_FIND_GT_MATCH
+ * have been specified as flags, the @a key structure will be overwritten
+ * when an approximate match was found: the @a key and @a record 
+ * structures will then point at the located @a key and @a record.
+ * In this case the caller should ensure @a key points at a structure
+ * which must adhere to the same restrictions and conditions as specified
+ * for @a ham_cursor_move(...,HAM_CURSOR_*).
+ *
+ * Further note that the @a key structure must be non-const at all times as its 
+ * internal flag bits may be written to. This is done for your benefit, as 
+ * you may pass the returned @a key structure to 
+ * @a ham_key_get_approximate_match_type() to retrieve additional info about 
+ * the precise nature of the returned key: the sign value produced 
+ * by @a ham_key_get_approximate_match_type() tells you which kind of match
+ * (equal, less than, greater than) occurred. This is very useful to 
+ * discern between the various possible successful answers produced by the 
+ * combinations of @a HAM_FIND_LT_MATCH, @a HAM_FIND_GT_MATCH and/or 
+ * @a HAM_FIND_EXACT_MATCH.
+ *
  * @param cursor A valid Cursor handle
  * @param key A valid key structure
- * @param flags Optional flags for searching the item; unused, set to 0
+ * @param key A valid @a ham_key_t structure.
+ * @param flags Optional flags for searching, which can be combined with
+ *        bitwise OR. Possible flags are:
+ *      <ul>
+ *        <li>@a HAM_FIND_EXACT_MATCH</li>(default). If the @a key exists, the 
+ *              cursor is adjusted to reference the record. Otherwise, an 
+ *              error is returned. Note that for backwards compatibility 
+ *              the value zero (0) can specified as an alternative when this 
+ *              option is not mixed with any of the others in this list.
+ *        <li>@a HAM_FIND_LT_MATCH</li> Cursor 'find' flag 'Less Than': the 
+ *              cursor is moved to point at the last record which' key 
+ *              is less than the specified key. When such a record cannot 
+ *              be located, an error is returned.
+ *        <li>@a HAM_FIND_GT_MATCH</li> Cursor 'find' flag 'Greater Than': the 
+ *              cursor is moved to point at the first record which' key is 
+ *              larger than the specified key. When such a record cannot be 
+ *              located, an error is returned.
+ *        <li>@a HAM_FIND_LEQ_MATCH</li> Cursor 'find' flag 'Less or EQual': 
+ *              the cursor is moved to point at the record which' key matches 
+ *              the specified key and when such a record is not available 
+ *              the cursor is moved to point at the last record which' key 
+ *              is less than the specified key. When such a record cannot be 
+ *              located, an error is returned.
+ *        <li>@a HAM_FIND_GEQ_MATCH</li> Cursor 'find' flag 'Greater or Equal':
+ *              the cursor is moved to point at the record which' key 
+ *              matches the specified key and when such a record 
+ *              is not available the cursor is moved to point at the first 
+ *              record which' key is larger than the specified key.
+ *              When such a record cannot be located, an error is returned.
+ *        <li>@a HAM_FIND_NEAR_MATCH</li> Cursor 'find' flag 'Any Near Or 
+ *              Equal': the cursor is moved to point at the record which' 
+ *              key matches the specified key and when such a record is 
+ *              not available the cursor is moved to point at either the 
+ *              last record which' key is less than the specified key or 
+ *              the first record which' key is larger than the specified 
+ *              key, whichever of these records is located first.
+ *              When such records cannot be located, an error is returned.
  *
- * @return @a HAM_SUCCESS upon success
- * @return @a HAM_INV_PARAMETER if @a cursor or @a key is NULL
- * @return @a HAM_KEY_NOT_FOUND if the requested key was not found
+ *      <b>Remark</b> Be aware that the returned match will either match the 
+ *      key exactly or is either the first key available above or below the 
+ *      given key when an exact match could not be found; 'find' does NOT 
+ *      spend any effort, in the sense of determining which of both is the 
+ *      'nearest' to the given key, when both a key above and a key below the 
+ *      one given exist; 'find' will simply return the first of both found. 
+ *      As such, this flag is the simplest possible combination of the 
+ *      combined @a HAM_FIND_LEQ_MATCH and @a HAM_FIND_GEQ_MATCH flags.
+ *      </ul>
+ *
+ *      Note that these flags may be bitwise OR-ed to form functional 
+ *      combinations.
+ *
+ *      @a HAM_FIND_LEQ_MATCH, @a HAM_FIND_GEQ_MATCH and 
+ *      @a HAM_FIND_NEAR_MATCH are themselves shorthands created using
+ *      the bitwise OR operation like this:
+ *      <ul>
+ *	      <li>@a HAM_FIND_LEQ_MATCH</li>(HAM_FIND_LT_MATCH | 
+ *	            HAM_FIND_EXACT_MATCH)
+ *        <li>@a HAM_FIND_GEQ_MATCH</li>(HAM_FIND_GT_MATCH | 
+ *              HAM_FIND_EXACT_MATCH)
+ *        <li>@a HAM_FIND_NEAR_MATCH</li>(HAM_FIND_LT_MATCH | 
+ *              HAM_FIND_GT_MATCH | HAM_FIND_EXACT_MATCH)
+ *        <li>The remaining bit-combination (HAM_FIND_LT_MATCH | 
+ *              HAM_FIND_GT_MATCH) has no shorthand, but it will function 
+ *              as expected nevertheless: finding only 'neighbouring' records 
+ *              for the given key.
+ *      </ul>
+ *
+ * @return @a HAM_SUCCESS upon success. Mind the remarks about the 
+ *         @a key flags being adjusted and the useful invocation of 
+ *         @a ham_key_get_approximate_match_type() afterwards.
+ * @return @a HAM_INV_PARAMETER if @a db, @a key or @a record is NULL
+ * @return @a HAM_KEY_NOT_FOUND if no suitable @a key (record) exists
+ * 
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
+
+
+/**
+ * Searches with a key and points the Cursor to the key found, retrieves 
+ * the located record
+ *
+ * Searches for an item in the Database and points the
+ * Cursor to this item. If the item could not be found, the Cursor is
+ * not modified.
+ * If the item was found, the @a record structure will be filled (similar to 
+ * the @a ham_cursor_move() operation).
+ *
+ * Note that @a ham_cursor_find can not search for duplicate keys. If @a key 
+ * has multiple duplicates, only the first duplicate is returned.
+ *
+ * Also note that key->data will point to temporary data. This pointer
+ * will be invalidated by subsequent hamsterdb API calls. See
+ * @a HAM_KEY_USER_ALLOC on how to change this behaviour.
+ *
+ * @param cursor A valid Cursor handle
+ * @param key A valid @a ham_key_t structure.
+ * @param record An optional pointer to a @a ham_record_t structure. If this
+ *      pointer is not NULL, the record of the new item is returned.
+ *      Note that record->data will point to temporary data. This pointer
+ *      will be invalidated by subsequent hamsterdb API calls. See
+ *      @a HAM_RECORD_USER_ALLOC on how to change this behaviour.
+ * @param flags Optional flags for searching; may be set to either
+ *        @a HAM_FIND_EXACT_MATCH (default, 0 (zero)) or a combination of
+ *        @a HAM_FIND_NEAR_LT and/or @a HAM_FIND_NEAR_GT. See the declaration
+ *        of @a ham_cursor_find above for additional details.
+ *
+ * @return @a HAM_SUCCESS upon success
+ * @return @a HAM_INV_PARAMETER if @a db, @a key or @a record is NULL
+ * @return @a HAM_KEY_NOT_FOUND if the @a key does not exist
+ * 
+ * @remark When either or both @a HAM_FIND_NEAR_LT and/or @a HAM_FIND_NEAR_GT
+ *      have been specified as flags, the @a key structure will be overwritten
+ *      when an approximate match was found: the @a key and @a record structures
+ *      will then point at the located @a key and @a record.
+ *      In this case the caller should ensure @a key points at a structure
+ *      which must adhere to the same restrictions and conditions as specified
+ *      for @a ham_cursor_move(...,HAM_CURSOR_NEXT).
+ */
+HAM_EXPORT ham_status_t HAM_CALLCONV
+ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key, 
+            ham_record_t *record, ham_u32_t flags);
+
+/**
+ * Cursor 'find' flag: return an exact match (default).
+ *
+ * Note: For backwards compatibility, you can specify zero (0) as an 
+ * alternative when this flag is used alone.
+ */
+#define HAM_FIND_EXACT_MATCH        0x4000
+
+/**
+ * Cursor 'find' flag 'Less Than': return the nearest match below the 
+ * given key, whether an exact match exists or not.
+ */
+#define HAM_FIND_LT_MATCH           0x1000
+
+/**
+ * Cursor 'find' flag 'Greater Than': return the nearest match above the 
+ * given key, whether an exact match exists or not.
+ */
+#define HAM_FIND_GT_MATCH           0x2000
+
+/**
+ * Cursor 'find' flag 'Less or EQual': return the nearest match below the 
+ * given key, when an exact match does not exist.
+ *
+ * May be combined with @a HAM_FIND_GEQ_MATCH to accept any 'near' key, or 
+ * you can use the @a HAM_FIND_NEAR_MATCH constant as a shorthand for that.
+ */
+#define HAM_FIND_LEQ_MATCH          (HAM_FIND_LT_MATCH | HAM_FIND_EXACT_MATCH)
+
+/**
+ * Cursor 'find' flag 'Greater or Equal': return the nearest match above 
+ * the given key, when an exact match does not exist.
+ *
+ * May be combined with @a HAM_FIND_LEQ_MATCH to accept any 'near' key, 
+ * or you can use the @a HAM_FIND_NEAR_MATCH constant as a shorthand for that.
+ */
+#define HAM_FIND_GEQ_MATCH          (HAM_FIND_GT_MATCH | HAM_FIND_EXACT_MATCH)
+
+/**
+ * Cursor 'find' flag 'Any Near Or Equal': return a match directly below or 
+ * above the given key, when an exact match does not exist.
+ *
+ * Be aware that the returned match will either match the key exactly or 
+ * is either the first key available above or below the given key when an 
+ * exact match could not be found; 'find' does NOT spend any effort, in the 
+ * sense of determining which of both is the 'nearest' to the given key, 
+ * when both a key above and a key below the one given exist; 'find' will 
+ * simply return the first of both found. As such, this flag is the simplest 
+ * possible combination of the combined @a HAM_FIND_LEQ_MATCH and 
+ * @a HAM_FIND_GEQ_MATCH flags.
+ */
+#define HAM_FIND_NEAR_MATCH         (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH    \
+                                        | HAM_FIND_EXACT_MATCH)
+
 
 /**
  * Inserts a Database item and points the Cursor to the inserted item
