@@ -2290,8 +2290,6 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param)
     ham_size_t keycount;
     ham_u32_t cachesize;
     ham_u32_t max_databases;
-    const char *filename;
-    ham_u32_t file_mode;
     ham_cache_t *cache;
     ham_backend_t *be;
     ham_u16_t dbname = 0;
@@ -2314,7 +2312,7 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param)
     {
         ham_u16_t indexdata_offset;
 
-        st = ham_get_env_params(env, param);
+        st = ham_env_get_parameters(env, param);
         if (st)
             return st;
 
@@ -2355,7 +2353,6 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param)
             keysize = 32-(db_get_int_key_header_size());
     }
 
-    //file_mode = db_get_file_mode(db);
     //filename = db_get_filename(db);
 
     if (env)
