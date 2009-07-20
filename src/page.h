@@ -16,10 +16,11 @@
 #ifndef HAM_PAGE_H__
 #define HAM_PAGE_H__
 
+#include "config.h"
+
 #include <ham/hamsterdb.h>
 #include "endian.h"
 #include "cursor.h"
-#include "config.h"
 
 /*
  * indices for page lists
@@ -43,6 +44,53 @@
 
 struct ham_page_t;
 typedef struct ham_page_t ham_page_t;
+
+/**
+ * The page header which is persisted on disc
+ *
+ * This structure definition is present outside of @a ham_page_t scope to allow
+ * compile-time OFFSETOF macros to correctly judge the size, depending on 
+ * platform and compiler settings.
+ */
+typedef union {
+
+    /*
+     * this header is only available if the (non-persistent) flag
+     * NPERS_NO_HEADER is not set! 
+     *
+     * all blob-areas in the file do not have such a header, if they
+     * span page-boundaries
+     *
+     * !!
+     * if this structure is changed, db_get_usable_pagesize has 
+     * to be changed as well!
+     */
+    struct page_union_header_t {
+        /**
+         * flags of this page - currently only used for the page type
+         */
+        ham_u32_t _flags;
+
+        /**
+         * some reserved bytes
+         */
+        ham_u32_t _reserved1;
+        ham_u32_t _reserved2;
+
+        /** 
+         * this is just a blob - the backend (hashdb, btree etc) 
+         * will use it appropriately
+         */
+        ham_u8_t _payload[1];
+    } _s;
+
+    /*
+     * a char pointer
+     */
+    ham_u8_t _p[1];
+
+} ham_perm_page_union_t;
+
 
 /**
  * the page structure
@@ -95,45 +143,7 @@ struct ham_page_t {
     /**
      * from here on everything will be written to disk 
      */
-    union page_union_t {
-
-        /*
-         * this header is only available if the (non-persistent) flag
-         * NPERS_NO_HEADER is not set! 
-         *
-         * all blob-areas in the file do not have such a header, if they
-         * span page-boundaries
-         *
-         * !!
-         * if this structure is changed, db_get_usable_pagesize has 
-         * to be changed as well!
-         */
-        struct page_union_header_t {
-            /**
-             * flags of this page - currently only used for the page type
-             */
-            ham_u32_t _flags;
-    
-            /**
-             * some reserved bytes
-             */
-            ham_u32_t _reserved1;
-            ham_u32_t _reserved2;
-
-            /** 
-             * this is just a blob - the backend (hashdb, btree etc) 
-             * will use it appropriately
-             */
-            ham_u8_t _payload[1];
-        } _s;
-
-        /*
-         * a char pointer
-         */
-        ham_u8_t _p[1];
-
-    } *_pers;
-
+    ham_perm_page_union_t *_pers;
 };
 
 /**
