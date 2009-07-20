@@ -10,6 +10,8 @@
  *
  */
 
+#include "config.h"
+
 #include <string.h>
 #include <ham/hamsterdb.h>
 #include "db.h"
@@ -81,7 +83,7 @@ __freel_cache_get_entry(ham_db_t *db, freelist_cache_t *cache,
             db_set_error(db, st);
             return (0);
         }
-    } while (1);
+    } while (i<freel_cache_get_count(cache));
 
     ham_assert(!"shouldn't be here", (""));
     return (0);
@@ -251,8 +253,8 @@ static ham_offset_t
 __freel_alloc_area(ham_db_t *db, ham_size_t size, ham_bool_t aligned)
 {
     ham_size_t i;
-    freelist_entry_t *entry;
-    freelist_payload_t *fp;
+    freelist_entry_t *entry = NULL;
+    freelist_payload_t *fp = NULL;
     freelist_cache_t *cache=db_get_freelist_cache(db);
     ham_page_t *page=0;
     ham_s32_t s=-1;
@@ -263,7 +265,7 @@ __freel_alloc_area(ham_db_t *db, ham_size_t size, ham_bool_t aligned)
         entry=freel_cache_get_entries(cache)+i;
 
         /*
-         * does theis freelist entry have enough allocated blocks to satisfy
+         * does this freelist entry have enough allocated blocks to satisfy
          * the request?
          */
         if (freel_entry_get_allocated_bits(entry)>=size/DB_CHUNKSIZE) {
@@ -297,6 +299,8 @@ __freel_alloc_area(ham_db_t *db, ham_size_t size, ham_bool_t aligned)
             }
         }
     }
+
+    ham_assert(s != -1 ? fp != NULL : 1, (0));
 
     if (s!=-1) {
         freel_set_allocated_bits(fp, 
@@ -372,13 +376,12 @@ __freel_lazy_create(ham_db_t *db)
             return (db_get_error(db));
 
         fp=page_get_freelist(page);
+        ham_assert(entry_pos<freel_cache_get_count(cache), (0));
         entry=freel_cache_get_entries(cache)+entry_pos;
-        ham_assert(freel_entry_get_start_address(entry)==
-                freel_get_start_address(fp), (""));
-        freel_entry_set_allocated_bits(entry, 
-                freel_get_allocated_bits(fp));
-        freel_entry_set_page_id(entry, 
-                page_get_self(page));
+        ham_assert(freel_entry_get_start_address(entry) 
+                        == freel_get_start_address(fp), (""));
+        freel_entry_set_allocated_bits(entry, freel_get_allocated_bits(fp));
+        freel_entry_set_page_id(entry, page_get_self(page));
 
         entry_pos++;
     }
@@ -456,12 +459,14 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size,
         if (!freel_entry_get_page_id(entry)) {
             if (freel_entry_get_start_address(entry)==db_get_pagesize(db)) {
                 fp=db_get_freelist(db);
+                ham_assert(freel_get_start_address(fp) != 0, (0));
             }
             else {
                 page=__freel_alloc_page(db, cache, entry);
                 if (!page)
                     return (db_get_error(db));
                 fp=page_get_freelist(page);
+                ham_assert(freel_get_start_address(fp) != 0, (0));
             }
         }
         /*
@@ -472,6 +477,16 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size,
             if (!page)
                 return (db_get_error(db));
             fp=page_get_freelist(page);
+			/* sanity checks for the freelist page */
+#ifdef HAM_DEBUG
+			if (freel_get_start_address(fp) == 0) {
+				ham_assert(freel_get_max_bits(fp) == 0, (0));
+				//freel_set_start_address(fp, db_get_pagesize(db));
+				//freel_set_max_bits(fp, size);
+			}
+			else
+				ham_assert(freel_get_start_address(fp) != 0, (0));
+#endif
         }
 
         ham_assert(address>=freel_get_start_address(fp), (0));
