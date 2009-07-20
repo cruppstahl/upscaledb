@@ -21,19 +21,6 @@
 #include "blob.h"
 
 int
-key_compare_int_to_pub(ham_page_t *page, ham_u16_t lhs, ham_key_t *rhs)
-{
-    int_key_t *l;
-    btree_node_t *node=ham_page_get_btree_node(page);
-
-    l=btree_node_get_key(page_get_owner(page), node, lhs);
-
-    return (db_compare_keys(page_get_owner(page), page, 
-                lhs, key_get_flags(l), key_get_key(l), key_get_size(l), 
-                0, rhs->_flags, rhs->data, rhs->size));
-}
-
-int
 key_compare_pub_to_int(ham_page_t *page, ham_key_t *lhs, ham_u16_t rhs)
 {
     int_key_t *r;
@@ -83,7 +70,8 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
     key_set_flags(key, 
             oldflags&~(KEY_BLOB_SIZE_SMALL
                 |KEY_BLOB_SIZE_TINY
-                |KEY_BLOB_SIZE_EMPTY));
+                |KEY_BLOB_SIZE_EMPTY
+                |KEY_IS_APPROXIMATE));
 
     /*
      * no existing key, just create a new key (but not a duplicate)?
@@ -250,7 +238,8 @@ key_erase_record(ham_db_t *db, int_key_t *key,
             if (st)
                 return (st);
             if (flags&BLOB_FREE_ALL_DUPES) {
-                key_set_flags(key, key_get_flags(key)&~KEY_HAS_DUPLICATES);
+                key_set_flags(key, key_get_flags(key)&~(KEY_HAS_DUPLICATES
+				                                       |KEY_IS_APPROXIMATE));
                 key_set_ptr(key, 0);
             }
             else {
@@ -271,7 +260,8 @@ key_erase_record(ham_db_t *db, int_key_t *key,
         key_set_flags(key, key_get_flags(key)&~(KEY_BLOB_SIZE_SMALL
                     | KEY_BLOB_SIZE_TINY
                     | KEY_BLOB_SIZE_EMPTY
-                    | KEY_HAS_DUPLICATES));
+                    | KEY_HAS_DUPLICATES
+                    | KEY_IS_APPROXIMATE));
         key_set_ptr(key, 0);
     }
 
