@@ -71,12 +71,12 @@ struct HAM_PACK_0 ham_btree_t HAM_PACK_1
  */
 #define btree_set_rootpage(be, rp)      (be)->_rootpage=ham_h2db_offset(rp)
 
-/* 
+/** 
  * get maximum number of keys per (internal) node 
  */
 #define btree_get_maxkeys(be)           (ham_db2h16((be)->_maxkeys))
 
-/* 
+/** 
  * set maximum number of keys per (internal) node 
  */
 #define btree_set_maxkeys(be, s)        (be)->_maxkeys=ham_h2db16(s)
@@ -277,7 +277,7 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key);
  */
 #define btree_node_get_key(db, node, i)                             \
     ((int_key_t *)&((const char *)(node)->_entries)                 \
-            [(db_get_keysize(db)+sizeof(int_key_t)-1)*(i)])
+            [(db_get_keysize(db)+db_get_int_key_header_size())*(i)])
 
 /**
  * get offset of entry #i - add this to page_get_self(page) for
@@ -285,8 +285,8 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key);
  */
 #define btree_node_get_key_offset(page, i)                          \
     (page_get_self(page)+SIZEOF_PAGE_UNION_HEADER+                  \
-     sizeof(btree_node_t)-sizeof(int_key_t)-1+                    \
-     (sizeof(int_key_t)-1+db_get_keysize(page_get_owner(page)))*(i))
+     sizeof(btree_node_t)-db_get_int_key_header_size()+                    \
+     (db_get_int_key_header_size()+db_get_keysize(page_get_owner(page)))*(i))
 
 /*
  * get the slot of an element in the page
