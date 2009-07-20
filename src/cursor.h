@@ -51,7 +51,8 @@
      * find a key in the index and positions the cursor                 \
      * on this key                                                      \
      */                                                                 \
-    ham_status_t (*_fun_find)(clss *cu, ham_key_t *key, ham_u32_t flags);\
+    ham_status_t (*_fun_find)(clss *cu, ham_key_t *key,                 \
+                    ham_record_t *record, ham_u32_t flags);             \
                                                                         \
     /**                                                                 \
      * insert (or update) a key in the index                            \
@@ -83,7 +84,7 @@
     /**                                                                 \
      * linked list of cursors which point to the same page              \
      */                                                                 \
-    clss *_next_in_page, *_previous_in_page;
+    clss *_next_in_page, *_previous_in_page
 
 
 /**
@@ -92,7 +93,7 @@
  */
 struct ham_cursor_t
 {
-    CURSOR_DECLARATIONS(ham_cursor_t)
+    CURSOR_DECLARATIONS(ham_cursor_t);
 };
 
 /**
