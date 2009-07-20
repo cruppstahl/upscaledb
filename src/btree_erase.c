@@ -1107,7 +1107,8 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
                 ~(KEY_BLOB_SIZE_TINY
                     |KEY_BLOB_SIZE_SMALL
                     |KEY_BLOB_SIZE_EMPTY
-                    |KEY_HAS_DUPLICATES));
+                    |KEY_HAS_DUPLICATES
+                    |KEY_IS_APPROXIMATE));
 
     /*
      * if this key is extended, we copy the extended blob; otherwise, we'd
