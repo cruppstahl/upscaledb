@@ -13,9 +13,6 @@
  *
  */
 
-#ifndef HAM_PACKSTOP_H__
-#define HAM_PACKSTOP_H__
-
 #if !defined(_NEWGNUC_) && !defined(__WATCOMC__) && !defined(_NEWMSC_)
 #  pragma pack()
 #endif
@@ -25,5 +22,3 @@
 #if defined(_NEWMSC_) && !defined(_WIN32_WCE)
 #  pragma pack(pop)
 #endif
-
-#endif /* HAM_PACKSTOP_H__ */
