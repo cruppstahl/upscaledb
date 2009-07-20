@@ -306,7 +306,8 @@ my_insert_in_page(ham_page_t *page, ham_key_t *key,
      * but BEFORE we split, we check if the key already exists!
      */
     if (btree_node_is_leaf(node)) {
-        if (btree_node_search_by_key(page_get_owner(page), page, key)>=0) {
+        if (btree_node_search_by_key(page_get_owner(page), page, key, 
+                HAM_FIND_EXACT_MATCH)>=0) {
             if ((flags&HAM_OVERWRITE) || (flags&HAM_DUPLICATE)) {
                 st=my_insert_nosplit(page, key, rid, 
                         scratchpad->record, scratchpad->cursor, flags);
@@ -328,7 +329,6 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
         ham_offset_t rid, ham_record_t *record, 
         ham_bt_cursor_t *cursor, ham_u32_t flags)
 {
-    int cmp;
     ham_status_t st;
     ham_size_t count, keysize, new_dupe_id=0;
     int_key_t *bte=0;
@@ -344,7 +344,9 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
     if (btree_node_get_count(node)==0)
         slot=0;
     else {
-        st=btree_get_slot(db, page, key, &slot, &cmp);
+        int cmp;
+
+		st=btree_get_slot(db, page, key, &slot, &cmp);
         if (st)
             return (db_set_error(db, st));
 
@@ -382,7 +384,7 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
          * right
          */
         else {
-            if (cmp<0) {
+            if (cmp>0) {
                 slot++;
                 bte=btree_node_get_key(db, node, slot);
             }
@@ -604,11 +606,11 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
     /*
      * insert the new element
      */
-    cmp=key_compare_int_to_pub(page, pivot, key);
+    cmp=key_compare_pub_to_int(page, key, pivot);
     if (db_get_error(db)) 
         return (db_get_error(db));
 
-    if (cmp<=0)
+    if (cmp>=0)
         st=my_insert_nosplit(newpage, key, rid, 
                 scratchpad->record, scratchpad->cursor, flags|NOFLUSH);
     else
