@@ -13,12 +13,15 @@
  *
  */
 
-#include <string.h>
 #include "config.h"
+
+#include <string.h>
 #include "db.h"
 #include "error.h"
 #include "btree.h"
 #include "keys.h"
+#include "page.h" /* [i_a] */
+
 
 ham_status_t 
 btree_get_slot(ham_db_t *db, ham_page_t *page, 
@@ -96,7 +99,6 @@ bail:
 static ham_size_t
 my_calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
 {
-    union page_union_t u;
     ham_size_t p, k, max;
 
     /* 
@@ -106,15 +108,15 @@ my_calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
     p=pagesize;
 
     /* every btree page has a header where we can't store entries */
-    p-=OFFSET_OF(btree_node_t, _entries);
+    p-=OFFSETOF(btree_node_t, _entries);
 
     /* every page has a header where we can't store entries */
-    p-=sizeof(u._s)-1;
+    p -= db_get_persistent_header_size();
 
     /*
      * compute the size of a key, k. 
      */
-    k=keysize+sizeof(int_key_t)-1;
+    k = keysize + db_get_int_key_header_size();
 
     /* 
      * make sure that MAX is an even number, otherwise we can't calculate
@@ -137,7 +139,7 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
      */
     maxkeys=my_calc_maxkeys(db_get_pagesize(db), keysize);
     if (maxkeys>0xffff) {
-        ham_trace(("keysize/pagesize ration too high"));
+        ham_trace(("keysize/pagesize ratio too high"));
         return (db_set_error(db, HAM_INV_KEYSIZE));
     }
 
@@ -149,7 +151,7 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
         return (db_get_error(db));
 
     memset(page_get_raw_payload(root), 0, 
-            sizeof(btree_node_t)+sizeof(union page_union_t));
+            sizeof(btree_node_t)+sizeof(ham_perm_page_union_t));
 
     /*
      * calculate the maximum number of keys for this page, 
