@@ -9,6 +9,8 @@
  * See files COPYING.* for License information.
  */
 
+#include "../src/config.h"
+
 #include <stdexcept>
 #include <errno.h>
 #include <string.h>

@@ -515,7 +515,7 @@ static int my_compare_func_u32(ham_db_t *db,
 		BFC_ASSERT_EQUAL(0, ham_set_prefix_compare_func(db, &my_prefix_compare_func_u32));
 		BFC_ASSERT_EQUAL(0, ham_set_compare_func(db, &my_compare_func_u32));
         
-		std::cerr << "1K steps: ";
+		//std::cerr << "1K steps: ";
 
 		/* insert the records: key=2*i; rec=100*i */
 		ham_cursor_t *cursor;
@@ -541,13 +541,13 @@ static int my_compare_func_u32(ham_db_t *db,
 			BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
 
 			if (i % 1000 == 999) {
-				//std::cerr << ".";
+				std::cerr << ".";
 				BFC_ASSERT_EQUAL(0, ham_check_integrity(db, NULL));
 			}
 		}
 		BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
 
-		//std::cerr << std::endl;
+		std::cerr << std::endl;
 
 		BFC_ASSERT_EQUAL(0, ham_check_integrity(db, NULL));
 
@@ -568,8 +568,8 @@ static int my_compare_func_u32(ham_db_t *db,
 			printf("rec: %d vs. %d, ", r->val1, 100*i);
 			printf("key: %d vs. %d\n", k->val1, 2*i);
 #else
-			BFC_ASSERT_EQUAL(r->val1, (ham_u32_t)100*i);
-			BFC_ASSERT_EQUAL(k->val1, (ham_u32_t)2*i);
+			BFC_ASSERT_EQUAL(r->val1, 100*i);
+			BFC_ASSERT_EQUAL(k->val1, 2*i);
 #endif
 		}
 		BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));

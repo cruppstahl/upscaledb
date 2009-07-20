@@ -9,6 +9,8 @@
  * See files COPYING.* for License information.
  */
 
+#include "../src/config.h"
+
 #include <stdexcept>
 #include <cstring>
 #include <vector>
@@ -49,7 +51,7 @@ public:
 
 protected:
     ham_db_t *m_db;
-    ham_device_t *m_dev;
+    //ham_device_t *m_dev;
     bool m_inmemory;
     memtracker_t *m_alloc;
 

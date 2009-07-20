@@ -9,7 +9,10 @@
  * See files COPYING.* for License information.
  */
 
+#include "../src/config.h"
+
 #include <stdexcept>
+#include <string.h> // [i_a]
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
 #include "../src/page.h"

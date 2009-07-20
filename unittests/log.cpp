@@ -9,6 +9,8 @@
  * See files COPYING.* for License information.
  */
 
+#include "../src/config.h"
+
 #include <stdexcept>
 #include <cstring>
 #include <vector>
@@ -896,7 +898,7 @@ public:
                 void *pl=&(*itl).m_data[0];
                 void *pr=&(*itr).m_data[0];
                 BFC_ASSERT_EQUAL(0, memcmp(pl, pr, 
-                            log_entry_get_data_size(&(*itl).m_entry)));
+                            (size_t)log_entry_get_data_size(&(*itl).m_entry)));
             }
         }
     }

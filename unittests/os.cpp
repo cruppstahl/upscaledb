@@ -9,6 +9,8 @@
  * See files COPYING.* for License information.
  */
 
+#include "../src/config.h"
+
 #include <cstring>
 #include <ham/hamsterdb.h>
 #include "../src/os.h"

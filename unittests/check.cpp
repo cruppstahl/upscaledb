@@ -9,7 +9,10 @@
  * See files COPYING.* for License information.
  */
 
+#include "../src/config.h"
+
 #include <stdexcept>
+#include <string.h>
 #include <ham/hamsterdb.h>
 #include "memtracker.h"
 #include "../src/db.h"
@@ -74,8 +77,8 @@ public:
 #ifdef HAM_ENABLE_INTERNAL
         ham_key_t key;
         ham_record_t rec;
-        memset(&key, 0, sizeof(key));
-        memset(&rec, 0, sizeof(rec));
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
 
         for (int i=0; i<5; i++) {
             key.size=sizeof(i);
