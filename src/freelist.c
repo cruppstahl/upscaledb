@@ -67,7 +67,10 @@ __freel_cache_get_entry(ham_db_t *db, freelist_cache_t *cache,
         for (; i<freel_cache_get_count(cache); i++) {
             freelist_entry_t *entry=&entries[i];
     
-            ham_assert(!(address<freel_entry_get_start_address(entry)), (""));
+			ham_assert(!(freel_entry_get_page_id(entry)&0xFFFFFFFF00000000ULL),
+                            (0));
+            ham_assert(!(address<freel_entry_get_start_address(entry)), 
+                            (""));
 
             if (address>=freel_entry_get_start_address(entry)
                     && address<freel_entry_get_start_address(entry)+
@@ -203,6 +206,7 @@ __freel_alloc_page(ham_db_t *db, freelist_cache_t *cache,
      * we can skip the first element - it's the root page and always exists
      */
     for (i=1; i<freel_cache_get_count(cache); i++) {
+		ham_assert(!(freel_entry_get_page_id(&entries[i])&0xFFFFFFFF00000000ULL), (0));
         if (!freel_entry_get_page_id(&entries[i])) {
             /*
              * load the previous page and the payload object; 
@@ -213,6 +217,7 @@ __freel_alloc_page(ham_db_t *db, freelist_cache_t *cache,
                 db_set_dirty(db, HAM_TRUE);
             }
             else {
+				ham_assert(!(freel_entry_get_page_id(&entries[i-1])&0xFFFFFFFF00000000ULL), (0));
                 page=db_fetch_page(db, 
                         freel_entry_get_page_id(&entries[i-1]), 0);
                 if (!page)
@@ -238,6 +243,7 @@ __freel_alloc_page(ham_db_t *db, freelist_cache_t *cache,
             ham_assert(freel_entry_get_max_bits(&entries[i])==
                     freel_get_max_bits(fp), (""));
             freel_entry_set_page_id(&entries[i], page_get_self(page));
+			ham_assert(!(freel_entry_get_page_id(&entries[i])&0xFFFFFFFF00000000ULL), (0));
         }
 
         if (&entries[i]==entry)
@@ -268,6 +274,7 @@ __freel_alloc_area(ham_db_t *db, ham_size_t size, ham_bool_t aligned)
          * does this freelist entry have enough allocated blocks to satisfy
          * the request?
          */
+		ham_assert(!(freel_entry_get_page_id(entry)&0xFFFFFFFF00000000ULL), (0));
         if (freel_entry_get_allocated_bits(entry)>=size/DB_CHUNKSIZE) {
             /*
              * yes, load the payload structure
@@ -378,10 +385,13 @@ __freel_lazy_create(ham_db_t *db)
         fp=page_get_freelist(page);
         ham_assert(entry_pos<freel_cache_get_count(cache), (0));
         entry=freel_cache_get_entries(cache)+entry_pos;
-        ham_assert(freel_entry_get_start_address(entry) 
-                        == freel_get_start_address(fp), (""));
-        freel_entry_set_allocated_bits(entry, freel_get_allocated_bits(fp));
-        freel_entry_set_page_id(entry, page_get_self(page));
+        ham_assert(!(freel_entry_get_page_id(entry)&0xFFFFFFFF00000000ULL), (0));
+        ham_assert(freel_entry_get_start_address(entry) == freel_get_start_address(fp), (""));
+        freel_entry_set_allocated_bits(entry, 
+                freel_get_allocated_bits(fp));
+        freel_entry_set_page_id(entry, 
+                page_get_self(page));
+		ham_assert(!(freel_entry_get_page_id(entry)&0xFFFFFFFF00000000ULL), (0));
 
         entry_pos++;
     }
@@ -456,17 +466,19 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size,
         /*
          * allocate a page if necessary
          */
+		ham_assert(!(freel_entry_get_page_id(entry) & 0xFFFFFFFF00000000ull), (0));
         if (!freel_entry_get_page_id(entry)) {
             if (freel_entry_get_start_address(entry)==db_get_pagesize(db)) {
                 fp=db_get_freelist(db);
-                ham_assert(freel_get_start_address(fp) != 0, (0));
+				ham_assert(freel_get_start_address(fp) != 0, (0));
             }
             else {
                 page=__freel_alloc_page(db, cache, entry);
                 if (!page)
                     return (db_get_error(db));
+				ham_assert(!(freel_entry_get_page_id(entry) & 0xFFFFFFFF00000000ull), (0));
                 fp=page_get_freelist(page);
-                ham_assert(freel_get_start_address(fp) != 0, (0));
+				ham_assert(freel_get_start_address(fp) != 0, (0));
             }
         }
         /*
@@ -477,16 +489,6 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size,
             if (!page)
                 return (db_get_error(db));
             fp=page_get_freelist(page);
-			/* sanity checks for the freelist page */
-#ifdef HAM_DEBUG
-			if (freel_get_start_address(fp) == 0) {
-				ham_assert(freel_get_max_bits(fp) == 0, (0));
-				//freel_set_start_address(fp, db_get_pagesize(db));
-				//freel_set_max_bits(fp, size);
-			}
-			else
-				ham_assert(freel_get_start_address(fp) != 0, (0));
-#endif
         }
 
         ham_assert(address>=freel_get_start_address(fp), (0));
