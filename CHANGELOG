@@ -1,4 +1,9 @@
 Jul 20, 2009 - chris 
+o added ham_env_get_parameters, ham_db_get_parameters and
+    functions for approximate matching (all from Ger Hobbelt, 
+    http://www.hobbelt.com, http://www.hebbut.net)
+
+Jul 19, 2009 - chris 
 o added various new asserts, code cleanups, win32 improvements/security
     improvements and new tests (all from Ger Hobbelt, http://www.hobbelt.com,
     http://www.hebbut.net)
