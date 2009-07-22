@@ -182,12 +182,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 #define freel_get_bitmap(fl)             (fl)->_bitmap
 
 /**
- * create a new freelist
- */
-extern ham_status_t
-freel_create(ham_db_t *db);
-
-/**
  * flush and release all freelist pages
  */
 extern ham_status_t

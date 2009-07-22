@@ -400,17 +400,6 @@ __freel_lazy_create(ham_db_t *db)
 }
 
 ham_status_t
-freel_create(ham_db_t *db)
-{
-    (void)db;
-    /*
-     * when freel_create() is called, the db structure is not yet fully 
-     * initialized, therefore the initialization of the freelist is deferred.
-     */
-    return (0);
-}
-
-ham_status_t
 freel_shutdown(ham_db_t *db)
 {
     freelist_cache_t *cache;

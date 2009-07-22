@@ -1722,15 +1722,6 @@ ham_open_ex(ham_db_t *db, const char *filename,
 #else
         device->set_flags(device, flags|HAM_DISABLE_MMAP);
 #endif
-
-        /* 
-         * create the freelist
-         */
-       st=freel_create(db);
-       if (st) {
-           (void)ham_close(db, 0);
-           return (st);
-        }
     }
 
     db_set_error(db, HAM_SUCCESS);
@@ -2088,15 +2079,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
             db_set_max_databases(db, DB_MAX_INDICES);
 
         page_set_dirty(page);
-
-        /* create the freelist - not needed for in-memory-databases */
-        if (!(flags&HAM_IN_MEMORY_DB)) {
-            st=freel_create(db);
-            if (st) {
-                (void)ham_close(db, 0);
-                return (db_set_error(db, st));
-            }
-        }
     }
     /*
      * otherwise, if a header page already exists (which means that we're
