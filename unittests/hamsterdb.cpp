@@ -578,6 +578,7 @@ static int my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(0, ham_close(db, HAM_AUTO_CLEANUP));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+        ham_delete(db);
 	}
 
     void insertTest(void)
@@ -647,7 +648,7 @@ static int my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(0, 
                 ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        BFC_ASSERT_EQUAL(0, ham_delete(db));
+        ham_delete(db);
     }
 
     void insertBigKeyTest(void)

@@ -60,6 +60,10 @@
 /* a reserved database name for the first database in an environment */
 #define FIRST_DATABASE_NAME       (0xf001)
 
+/* a reserved database name for a dummy database which only reads/writes 
+ * the header page */
+#define DUMMY_DATABASE_NAME       (0xf002)
+
 
 typedef struct free_cb_context_t
 {
@@ -659,7 +663,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     ham_size_t pagesize;
     ham_u16_t keysize;
     ham_size_t cachesize, maxdbs;
-    ham_device_t *device=0;
+    ham_db_t *dummydb;
 
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
@@ -689,27 +693,6 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
             return (HAM_OUT_OF_MEMORY);
     }
 
-    /* 
-     * initialize the device 
-     */
-    if (!env_get_device(env)) {
-        device=ham_device_new(env_get_allocator(env), flags&HAM_IN_MEMORY_DB);
-        if (!device)
-            return (HAM_OUT_OF_MEMORY);
-
-        env_set_device(env, device);
-        device_set_pagesize(device, pagesize);
-
-        /* 
-         * create the file 
-         */
-        st=device->create(device, filename, flags, mode);
-        if (st) {
-            (void)ham_env_close(env, 0);
-            return (st);
-        }
-    }
-    
     /*
      * store the parameters
      */
@@ -730,7 +713,24 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
         strcpy((char *)env_get_filename(env), filename);
     }
 
-    return (HAM_SUCCESS);
+    /*
+     * now create a dummy database to create the header page; otherwise
+     * all the settings could get lost
+     *
+     * this dummy database is not written to disk, but creates the header 
+     * page and the device object (= the file). otherwise, if the environment
+     * is created and then immediately closed, all settings would be lost
+     * because no header page is written
+     */
+    st=ham_new(&dummydb);
+    if (st)
+        return (st);
+    st=ham_env_create_db(env, dummydb, DUMMY_DATABASE_NAME, 0, 0);
+    if (!st)
+        ham_close(dummydb, 0);
+    ham_delete(dummydb);
+
+    return (st);
 }
 
 ham_status_t HAM_CALLCONV
@@ -749,7 +749,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
         return (HAM_INV_PARAMETER);
     }
 
-    if (!name || name>=EMPTY_DATABASE_NAME) {
+    if (!name || (name>=EMPTY_DATABASE_NAME && name!=DUMMY_DATABASE_NAME)) {
         ham_trace(("invalid database name"));
         return (HAM_INV_PARAMETER);
     }
@@ -801,14 +801,14 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
         {HAM_PARAM_KEYSIZE,   keysize},
         {HAM_PARAM_DBNAME,    name},
         {0, 0}};
-    st=ham_create_ex(db, 0, flags|env_get_rt_flags(env), 0, full_param);
+    st=ham_create_ex(db, 0, flags|env_get_rt_flags(env), 0644, full_param);
     if (st)
         return (st);
     }
 
     /*
      * on success: store the open database in the environment's list of
-     * opened databases
+     * opened databases - unless it's a dummy database
      */
     db_set_next(db, env_get_list(env));
     env_set_list(env, db);
@@ -840,7 +840,8 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
         ham_trace(("parameter 'name' must not be 0"));
         return (HAM_INV_PARAMETER);
     }
-    if (name!=FIRST_DATABASE_NAME && name>EMPTY_DATABASE_NAME) {
+    if (name!=FIRST_DATABASE_NAME 
+            && (name!=DUMMY_DATABASE_NAME && name>EMPTY_DATABASE_NAME)) {
         ham_trace(("parameter 'name' must be lower than 0xf000"));
         return (HAM_INV_PARAMETER);
     }
@@ -915,10 +916,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
 {
     ham_status_t st;
     ham_size_t cachesize=0;
-#if 0 /* chris @@@ */
-    ham_size_t maxdbs=DB_MAX_INDICES;
-#endif
-    ham_device_t *device=0;
+    ham_db_t *dummydb;
 
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
@@ -952,16 +950,6 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
             case HAM_PARAM_CACHESIZE:
                 cachesize=(ham_size_t)param->value;
                 break;
-#if 0 /* chris @@@ */
-            case HAM_PARAM_MAX_ENV_DATABASES:
-                maxdbs=(ham_u32_t)param->value;
-                if (maxdbs==0) {
-                    ham_trace(("invalid parameter "
-                               "HAM_PARAM_MAX_ENV_DATABASES"));
-                    return (HAM_INV_PARAMETER);
-                }
-                break;
-#endif
             default:
                 ham_trace(("unknown parameter"));
                 return (HAM_INV_PARAMETER);
@@ -987,26 +975,6 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
             return (HAM_OUT_OF_MEMORY);
     }
 
-    /* 
-     * initialize the device 
-     */
-    if (!env_get_device(env)) {
-        device=ham_device_new(env_get_allocator(env), flags&HAM_IN_MEMORY_DB);
-        if (!device)
-            return (HAM_OUT_OF_MEMORY);
-
-        env_set_device(env, device);
-
-        /* 
-         * open the file 
-         */
-        st=device->open(device, filename, flags);
-        if (st) {
-            (void)ham_env_close(env, 0);
-            return (st);
-        }
-    }
-
     /*
      * store the parameters
      */
@@ -1014,9 +982,6 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
     env_set_keysize(env, 0);
     env_set_cachesize(env, cachesize);
     env_set_rt_flags(env, flags);
-#if 0 /* chris @@@ */
-    env_set_max_databases(env, maxdbs);
-#endif
     env_set_file_mode(env, 0644);
     if (filename) {
         env_set_filename(env, 
@@ -1028,6 +993,24 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
         }
         strcpy((char *)env_get_filename(env), filename);
     }
+
+    /*
+     * now open a dummy database to read the header page
+     *
+     * this dummy database is not really opened, it only opens the header 
+     * page and the device object (= the file). otherwise, it would not be
+     * possible to query the database flags/settings after the env is 
+     * open
+     */
+    st=ham_new(&dummydb);
+    if (st)
+        return (st);
+    st=ham_env_open_db(env, dummydb, DUMMY_DATABASE_NAME, 0, 0);
+    if (!st)
+        ham_close(dummydb, 0);
+    ham_delete(dummydb);
+    if (st)
+        return (st);
 
     /*
      * open the logfile and check if we need recovery
@@ -1730,7 +1713,9 @@ ham_open_ex(ham_db_t *db, const char *filename,
      * open the logfile and check if we need recovery - but only if we're
      * without an environment. Environment recovery is checked in ham_env_open.
      */
-    if (db_get_env(db)==0 && (flags&HAM_ENABLE_RECOVERY)) {
+    if (dbname!=DUMMY_DATABASE_NAME
+            && db_get_env(db)==0 
+            && (flags&HAM_ENABLE_RECOVERY)) {
         ham_log_t *log;
         st=ham_log_open(db_get_allocator(db), filename, 0, &log);
         if (!st) { /* success - check if we need recovery */
@@ -1833,6 +1818,14 @@ ham_open_ex(ham_db_t *db, const char *filename,
         db_set_error(db, HAM_INV_FILE_VERSION);
         return (HAM_INV_FILE_VERSION);
     }
+
+    /*
+     * already done? When a new environment is opened, a dummy database
+     * is opened only to read the header page. In this case, we can
+     * return now
+     */
+    if (dbname==DUMMY_DATABASE_NAME)
+        return (0);
 
     /*
      * search for a database with this name
@@ -1995,9 +1988,11 @@ ham_create_ex(ham_db_t *db, const char *filename,
             db_set_device(db, device);
         device->set_flags(device, flags);
         device_set_pagesize(device, pagesize);
-        /* 
-         * create the file 
-         */
+
+        if (!filename && db_get_env(db))
+            filename=env_get_filename(db_get_env(db));
+
+        /* create the file */
         st=device->create(device, filename, flags, mode);
         if (st) {
             (void)ham_close(db, 0);
@@ -2011,7 +2006,9 @@ ham_create_ex(ham_db_t *db, const char *filename,
      * create a logging object, if logging is enabled (and if it was not
      * yet created)
      */
-    if ((flags&HAM_ENABLE_RECOVERY) && !(db_get_log(db))) {
+    if (dbname!=DUMMY_DATABASE_NAME
+            && (flags&HAM_ENABLE_RECOVERY) 
+            && !(db_get_log(db))) {
         ham_log_t *log;
         st=ham_log_create(db_get_allocator(db), 
                 db_get_env(db) ? env_get_filename(db_get_env(db)) : filename, 
@@ -2088,6 +2085,14 @@ ham_create_ex(ham_db_t *db, const char *filename,
     else {
         page_set_owner(db_get_header_page(db), db);
     }
+
+    /*
+     * already done? When a new environment is created, a dummy database
+     * is created only to write the header page. In this case, we can
+     * return now
+     */
+    if (dbname==DUMMY_DATABASE_NAME)
+        return (0);
 
     /*
      * check if this database name is unique

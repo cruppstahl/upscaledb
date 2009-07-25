@@ -48,7 +48,7 @@ public:
         BFC_REGISTER_TEST(EnvTest, openWithKeysizeTest);
         BFC_REGISTER_TEST(EnvTest, createWithKeysizeTest);
         BFC_REGISTER_TEST(EnvTest, createDbWithKeysizeTest);
-		BFC_REGISTER_TEST(EnvTest, createAndOpenMultiDbTest); // ??? bang in Linux, flawless on Windows
+		BFC_REGISTER_TEST(EnvTest, createAndOpenMultiDbTest);
         BFC_REGISTER_TEST(EnvTest, disableVarkeyTests);
         BFC_REGISTER_TEST(EnvTest, multiDbTest);
         BFC_REGISTER_TEST(EnvTest, multiDbTest2);
@@ -207,8 +207,6 @@ protected:
                 ham_env_open_db(0, db, 333, 0, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_open_db(env, 0, 333, 0, 0));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_env_open_db(env, db, 333, 0, (ham_parameter_t *)0x13));
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
         BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN,
                 ham_env_open_db(env, db, 333, 0, 0));
@@ -408,7 +406,8 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
-	// check to make sure both create and open_ex support accessing more than DB_MAX_INDICES DBs in one env:
+	// check to make sure both create and open_ex support accessing 
+    // more than DB_MAX_INDICES DBs in one env:
     void createAndOpenMultiDbTest(void)
     {
         ham_env_t *env;
@@ -430,7 +429,6 @@ protected:
 
         ham_parameter_t parameters3[]={
            { HAM_PARAM_CACHESIZE,    1024 },
-           { HAM_PARAM_MAX_ENV_DATABASES,   256 },
            { 0, 0 }
         };
 
@@ -475,7 +473,7 @@ protected:
 
 		for (i = 1; i <= 256; i++)
 		{
-			BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, i, 0, parameters));
+			BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, i, 0, 0));
 			memset(&key, 0, sizeof(key));
 			memset(&rec, 0, sizeof(rec));
 			key.data = &i;
@@ -489,6 +487,7 @@ protected:
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
 
     void disableVarkeyTests(void)
@@ -1302,8 +1301,9 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(HAM_IO_ERROR, 
-                ham_open(db, ".test", m_flags));
+        BFC_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
+                    ham_open(db, ".test", m_flags));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
     

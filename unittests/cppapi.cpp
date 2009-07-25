@@ -57,7 +57,6 @@ public:
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(CppApiTest, keyTest);
         BFC_REGISTER_TEST(CppApiTest, recordTest);
-	    BFC_REGISTER_TEST(CppApiTest, staticFunctionsTest);
         BFC_REGISTER_TEST(CppApiTest, compareTest);
         BFC_REGISTER_TEST(CppApiTest, createOpenCloseDbTest);
         BFC_REGISTER_TEST(CppApiTest, insertFindEraseTest);
@@ -142,13 +141,6 @@ public:
         BFC_ASSERT_EQUAL(q, r1.get_data());
         BFC_ASSERT_EQUAL((ham_size_t)2, r1.get_size());
         BFC_ASSERT_EQUAL((ham_u32_t)0, r1.get_flags());
-    }
-
-    void staticFunctionsTest(void)
-    {
-        ham::db db;
-        BFC_ASSERT_EQUAL(0, db.get_error());
-        db.get_version(0, 0, 0);
     }
 
     void compareTest(void)

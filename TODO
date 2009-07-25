@@ -10,7 +10,28 @@ x a finished TODO item
 x tutorial (and header file as well?) - default compare is descending, not
     ascending
 
-o packstop has include guards??? remove them, run tests
+x packstop has include guards??? remove them, run tests
+
+x merge changes of Ger Hobbelt
+
+x need CREDITS file with contributors
+
+x freel_create can be removed, it's empty
+
+o some unittests are crashing
+  x env_create: must write the header-page
+  x env_open: must read the header-page
+    -> also check Ger's patch
+
+o ham_xx_get_parameter: the maxkey value is calculated twice, and not correct
+
+o doxygen: make sure that all new functions are shown correctly. 
+
+o doxygen: the online css is super ugly. use the original layout and change the
+    online integration
+
+o make sure that unittests are not executed twice (move registration out of
+    constructor)
 
 o unittests: get rid of cppunit, move to bfc
     x update unittests
@@ -22,8 +43,7 @@ o unittests: get rid of cppunit, move to bfc
     o make sure that all tests are run only once (don't register tests in
          the constructor of a fixture)
 
-o improve header file documentation - some functions are still (relatively)
-    undocumented
+----------
 
 . enhance java/python/.NET for transactions
     o update README file(s) with new address
