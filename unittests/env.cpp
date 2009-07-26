@@ -1446,7 +1446,7 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
         if (os_get_pagesize()==1024*16 || m_flags&HAM_IN_MEMORY_DB) {
-            ps[0].value=508;
+            ps[0].value=506;
             BFC_ASSERT_EQUAL(0,
                     ham_env_create_ex(env, ".test", m_flags, 0664, ps));
             BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
