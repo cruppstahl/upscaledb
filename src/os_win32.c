@@ -320,7 +320,8 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
 #endif
 		if (st==ERROR_SHARING_VIOLATION)
             return (HAM_WOULD_BLOCK);
-        ham_log(("CreateFile failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
+        ham_log(("CreateFile(%s, %x, %x, ...) (create) failed with OS status %u (%s)", 
+			filename, access, share, st, DisplayError(buf, sizeof(buf), st)));
         return (HAM_IO_ERROR);
     }
 
@@ -380,7 +381,9 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
 		char buf[256];
 		*fd=HAM_INVALID_FD;
         st=(ham_status_t)GetLastError();
-        ham_log(("CreateFile (open) failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
+        ham_log(("CreateFile(%s, %x, %x, ...) (open) failed with OS status %u (%s)", 
+			filename, access, share,
+			st, DisplayError(buf, sizeof(buf), st)));
 		if (st==ERROR_SHARING_VIOLATION)
 			return (HAM_WOULD_BLOCK);
         return (st==ERROR_FILE_NOT_FOUND ? HAM_FILE_NOT_FOUND : HAM_IO_ERROR);
