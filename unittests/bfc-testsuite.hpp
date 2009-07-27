@@ -180,8 +180,14 @@ public:
 	*/
 	virtual bool FUT_invoker(testrunner *me, method m, const char *funcname, error &ex)
 	{
-		(this->*m)();
-		return false;
+        try {
+		    (this->*m)();
+        }
+        catch (bfc::error &e) {
+			ex = e;
+            return (true);
+        }
+		return (false);
 	}
 
 	// clear all tests
