@@ -18,7 +18,7 @@
  *
  *  #include "packstart.h"
  *
- *  typedef HAM_PACK_0 HAM_PACK_1 struct example_struct
+ *  typedef HAM_PACK_0 struct HAM_PACK_1 example_struct
  *  {
  *    oef_u16_t var1;
  *    oef_u8_t var2;
