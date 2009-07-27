@@ -1,3 +1,8 @@
+Jul 26, 2009 - chris 
+o the unittest framework "bfc" was improved significantly, allowing new
+    command line options and catching HW and win32-exceptions (all from
+    Ger Hobbelt, http://www.hobbelt.com, http://www.hebbut.net)
+
 Jul 25, 2009 - chris 
 o bugfix: when an Environment is created (or opened), the header page was
     not immediately written (or read); therefore settings were lost, unless

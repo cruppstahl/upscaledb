@@ -18,10 +18,12 @@ x need CREDITS file with contributors
 
 x freel_create can be removed, it's empty
 
-o some unittests are crashing
+x some unittests are crashing
   x env_create: must write the header-page
   x env_open: must read the header-page
     -> also check Ger's patch
+
+o check why bfc swallows the exceptions
 
 o ham_xx_get_parameter: the maxkey value is calculated twice, and not correct
 
