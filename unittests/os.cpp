@@ -68,7 +68,7 @@ public:
 
     void teardown() 
     { 
-        (void)os::unlink(".test");
+        (void)os::unlink(BFC_OPATH(".test"));
     }
 
     void openCloseTest()
@@ -110,7 +110,7 @@ public:
         ham_status_t st;
         ham_fd_t fd;
 
-        st=os_create(".test", 0, 0664, &fd);
+        st=os_create(BFC_OPATH(".test"), 0, 0664, &fd);
         BFC_ASSERT_EQUAL(0, st);
         st=os_close(fd, 0);
         BFC_ASSERT_EQUAL(0, st);
@@ -122,7 +122,7 @@ public:
         ham_offset_t filesize;
 
         for (int i=0; i<3; i++) {
-            BFC_ASSERT(os_create(".test", 0, 0664, &fd)==HAM_SUCCESS);
+            BFC_ASSERT(os_create(BFC_OPATH(".test"), 0, 0664, &fd)==HAM_SUCCESS);
             BFC_ASSERT(os_seek(fd, 0, HAM_OS_SEEK_END)==HAM_SUCCESS);
             BFC_ASSERT(os_tell(fd, &filesize)==HAM_SUCCESS);
             BFC_ASSERT(filesize==0);
@@ -150,19 +150,19 @@ public:
 #ifndef __CYGWIN__
         ham_fd_t fd, fd2;
 
-        BFC_ASSERT_EQUAL(0, os_create(".test", 
+        BFC_ASSERT_EQUAL(0, os_create(BFC_OPATH(".test"), 
                     HAM_LOCK_EXCLUSIVE, 0664, &fd));
         BFC_ASSERT_EQUAL(0, os_close(fd, HAM_LOCK_EXCLUSIVE));
         
         BFC_ASSERT_EQUAL(0, 
-                         os_open(".test", HAM_LOCK_EXCLUSIVE, &fd));
+                         os_open(BFC_OPATH(".test"), HAM_LOCK_EXCLUSIVE, &fd));
         BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK, 
-                os_open(".test", HAM_LOCK_EXCLUSIVE, &fd2));
+                os_open(BFC_OPATH(".test"), HAM_LOCK_EXCLUSIVE, &fd2));
         BFC_ASSERT_EQUAL(0, os_close(fd, HAM_LOCK_EXCLUSIVE));
         BFC_ASSERT_EQUAL(0, 
-                         os_open(".test", HAM_LOCK_EXCLUSIVE, &fd2));
+                         os_open(BFC_OPATH(".test"), HAM_LOCK_EXCLUSIVE, &fd2));
         BFC_ASSERT_EQUAL(0, os_close(fd2, HAM_LOCK_EXCLUSIVE));
-        BFC_ASSERT_EQUAL(0, os_open(".test", 0, &fd2));
+        BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd2));
         BFC_ASSERT_EQUAL(0, os_close(fd2, 0));
 #endif
     }
@@ -174,7 +174,7 @@ public:
         ham_fd_t fd;
         char buffer[128], orig[128];
 
-        st=os_create(".test", 0, 0664, &fd);
+        st=os_create(BFC_OPATH(".test"), 0, 0664, &fd);
         BFC_ASSERT(st==0);
         for (i=0; i<10; i++) {
             memset(buffer, i, sizeof(buffer));
@@ -208,7 +208,7 @@ public:
         ham_u8_t *p1, *p2;
         p1=(ham_u8_t *)malloc(ps);
 
-        st=os_create(".test", 0, 0664, &fd);
+        st=os_create(BFC_OPATH(".test"), 0, 0664, &fd);
         BFC_ASSERT(st==0);
         for (i=0; i<10; i++) {
             memset(p1, i, ps);
@@ -236,14 +236,14 @@ public:
         ham_u8_t *p1, *p2;
         p1=(ham_u8_t *)malloc(ps);
 
-        BFC_ASSERT_EQUAL(0, os_create(".test", 0, 0664, &fd));
+        BFC_ASSERT_EQUAL(0, os_create(BFC_OPATH(".test"), 0, 0664, &fd));
         for (i=0; i<10; i++) {
             memset(p1, i, ps);
             BFC_ASSERT_EQUAL(0, os_pwrite(fd, i*ps, p1, ps));
         }
         BFC_ASSERT_EQUAL(0, os_close(fd, 0));
 
-        BFC_ASSERT_EQUAL(0, os_open(".test", HAM_READ_ONLY, &fd));
+        BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), HAM_READ_ONLY, &fd));
         for (i=0; i<10; i++) {
             memset(p1, i, ps);
             BFC_ASSERT_EQUAL(0, os_mmap(fd, &mmaph, i*ps, ps, 
@@ -264,7 +264,7 @@ public:
         ham_u8_t *p1, *p2;
         ham_offset_t addr=0, size;
 
-        st=os_create(".test", 0, 0664, &fd);
+        st=os_create(BFC_OPATH(".test"), 0, 0664, &fd);
         BFC_ASSERT(st==0);
         for (i=0; i<5; i++) {
             size=ps*(i+1);
@@ -300,7 +300,7 @@ public:
         ham_fd_t fd, mmaph;
         ham_u8_t *page;
 
-        BFC_ASSERT_EQUAL(0, os_create(".test", 0, 0664, &fd));
+        BFC_ASSERT_EQUAL(0, os_create(BFC_OPATH(".test"), 0, 0664, &fd));
         // bad address && page size! - i don't know why this succeeds
         // on MacOS...
 #ifndef __MACH__
@@ -317,7 +317,7 @@ public:
         ham_fd_t fd;
         ham_offset_t tell;
 
-        st=os_create(".test", 0, 0664, &fd);
+        st=os_create(BFC_OPATH(".test"), 0, 0664, &fd);
         BFC_ASSERT(st==0);
         for (i=0; i<10; i++) {
             st=os_seek(fd, i, HAM_OS_SEEK_SET);
@@ -345,7 +345,7 @@ public:
         ham_fd_t fd;
         ham_offset_t fsize;
 
-        st=os_create(".test", 0, 0664, &fd);
+        st=os_create(BFC_OPATH(".test"), 0, 0664, &fd);
         BFC_ASSERT(st==0);
         for (i=0; i<10; i++) {
             st=os_truncate(fd, i*128);
@@ -368,7 +368,7 @@ public:
 
         memset(kb, 0, sizeof(kb));
 
-        st=os_create(".test", 0, 0664, &fd);
+        st=os_create(BFC_OPATH(".test"), 0, 0664, &fd);
         BFC_ASSERT(st==0);
         for (i=0; i<4*1024; i++) {
             st=os_pwrite(fd, i*sizeof(kb), kb, sizeof(kb));
@@ -377,7 +377,7 @@ public:
         st=os_close(fd, 0);
         BFC_ASSERT(st==0);
 
-        st=os_open(".test", 0, &fd);
+        st=os_open(BFC_OPATH(".test"), 0, &fd);
         BFC_ASSERT(st==0);
         st=os_seek(fd, 0, HAM_OS_SEEK_END);
         BFC_ASSERT(st==0);

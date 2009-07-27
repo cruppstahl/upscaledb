@@ -60,7 +60,7 @@ protected:
 public:
     void setup()
     { 
-        (void)os::unlink(".test");
+        (void)os::unlink(BFC_OPATH(".test"));
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
     }
 
@@ -72,17 +72,17 @@ public:
     void createCloseTest(void)
     {
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void createCloseOpenCloseTest(void)
     {
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, ".test", m_flags));
+                ham_open(m_db, BFC_OPATH(".test"), m_flags));
         BFC_ASSERT(db_get_rt_flags(m_db)&HAM_RECORD_NUMBER);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
@@ -104,7 +104,7 @@ public:
         rec.size=sizeof(value);
 
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
 
         for (int i=0; i<5; i++) {
             BFC_ASSERT_EQUAL(0, 
@@ -135,7 +135,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, ".test", m_flags));
+                ham_open(m_db, BFC_OPATH(".test"), m_flags));
 
         for (int i=5; i<10; i++) {
             BFC_ASSERT_EQUAL(0, 
@@ -164,7 +164,7 @@ public:
         rec.size=sizeof(value);
 
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_cursor_create(m_db, 0, 0, &cursor));
 
@@ -177,7 +177,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, ".test", m_flags));
+                ham_open(m_db, BFC_OPATH(".test"), m_flags));
         BFC_ASSERT_EQUAL(0, 
                 ham_cursor_create(m_db, 0, 0, &cursor));
 
@@ -208,7 +208,7 @@ public:
         rec.size=sizeof(value);
 
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
 
         for (int i=0; i<5; i++) {
             BFC_ASSERT_EQUAL(0, 
@@ -236,7 +236,7 @@ public:
         rec.size=sizeof(value);
 
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
 
         for (int i=0; i<500; i++) {
             BFC_ASSERT_EQUAL(0, 
@@ -283,7 +283,7 @@ public:
         rec.size=sizeof(value);
 
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
 
         BFC_ASSERT_EQUAL(0, 
                 ham_cursor_create(m_db, 0, 0, &cursor));
@@ -315,7 +315,7 @@ public:
         rec.size=sizeof(value);
 
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
 
         for (int i=0; i<5; i++) {
             BFC_ASSERT_EQUAL(0, 
@@ -325,7 +325,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, ".test", m_flags));
+                ham_open(m_db, BFC_OPATH(".test"), m_flags));
 
         for (int i=5; i<10; i++) {
             BFC_ASSERT_EQUAL(0, 
@@ -335,7 +335,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, ".test", m_flags));
+                ham_open(m_db, BFC_OPATH(".test"), m_flags));
 
         for (int i=10; i<15; i++) {
             BFC_ASSERT_EQUAL(0, 
@@ -364,7 +364,7 @@ public:
         rec.size=sizeof(value);
 
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_cursor_create(m_db, 0, 0, &cursor));
 
@@ -377,7 +377,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, ".test", m_flags));
+                ham_open(m_db, BFC_OPATH(".test"), m_flags));
         BFC_ASSERT_EQUAL(0, 
                 ham_cursor_create(m_db, 0, 0, &cursor));
 
@@ -390,7 +390,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, ".test", m_flags));
+                ham_open(m_db, BFC_OPATH(".test"), m_flags));
         BFC_ASSERT_EQUAL(0, 
                 ham_cursor_create(m_db, 0, 0, &cursor));
 
@@ -414,7 +414,7 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
 
         key.flags=0;
         key.data=&recno;
@@ -450,7 +450,7 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_cursor_create(m_db, 0, 0, &cursor));
 
@@ -486,12 +486,12 @@ public:
         };
 
         BFC_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
-                ham_create_ex(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 
+                ham_create_ex(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 
                     0664, &p[0]));
 
         p[0].value=9;
         BFC_ASSERT_EQUAL(0, 
-                ham_create_ex(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 
+                ham_create_ex(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 
                     0664, &p[0]));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
@@ -511,7 +511,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, 
-                ham_env_create(env, ".test", m_flags, 0664));
+                ham_env_create(env, BFC_OPATH(".test"), m_flags, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, m_db, 333, HAM_RECORD_NUMBER, 0));
         BFC_ASSERT_EQUAL(0, 
@@ -521,7 +521,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
-            BFC_ASSERT_EQUAL(0, ham_env_open(env, ".test", 0));
+            BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 0));
             BFC_ASSERT_EQUAL(0, 
                     ham_env_open_db(env, m_db, 333, HAM_RECORD_NUMBER, 0));
             BFC_ASSERT_EQUAL(0, 
@@ -544,12 +544,12 @@ public:
         /* generated with `cat ../COPYING.GPL2 | ./db4`; has 2973 entries */
 #if HAM_LITTLE_ENDIAN
         BFC_ASSERT_EQUAL(true, 
-            os::copy("data/recno-endian-test-open-database-be.hdb", ".test"));
+            os::copy("data/recno-endian-test-open-database-be.hdb", BFC_OPATH(".test")));
 #else
         BFC_ASSERT_EQUAL(true, 
-            os::copy("data/recno-endian-test-open-database-le.hdb", ".test"));
+            os::copy("data/recno-endian-test-open-database-le.hdb", BFC_OPATH(".test")));
 #endif
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
 
         BFC_ASSERT_EQUAL(0, 
                 ham_cursor_create(m_db, 0, 0, &cursor));
@@ -604,7 +604,7 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
 
         key.data=&recno;
         key.flags=HAM_KEY_USER_ALLOC;
@@ -645,7 +645,7 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_cursor_create(m_db, 0, 0, &cursor));
 
@@ -680,7 +680,7 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
 
         key.data=&recno;
         key.flags=HAM_KEY_USER_ALLOC;
@@ -694,7 +694,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, ".test", m_flags));
+        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), m_flags));
 
         for (int i=5; i<10; i++) {
             BFC_ASSERT_EQUAL(0, 
@@ -720,7 +720,7 @@ public:
         key.size=sizeof(recno);
 
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, ".test", m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_cursor_create(m_db, 0, 0, &cursor));
         BFC_ASSERT_EQUAL(0, 

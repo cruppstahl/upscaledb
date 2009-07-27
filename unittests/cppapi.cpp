@@ -146,7 +146,7 @@ public:
     void compareTest(void)
     {
         ham::db db;
-        db.create(".test");
+        db.create(BFC_OPATH(".test"));
         db.set_compare_func(my_compare_func);
         db.set_prefix_compare_func(my_prefix_compare_func);
         db.close();
@@ -162,7 +162,7 @@ public:
         catch (ham::error &) {
         }
 
-        db.create(".test");
+        db.create(BFC_OPATH(".test"));
         db.close();
 
         try {
@@ -171,7 +171,7 @@ public:
         catch (ham::error &) {
         }
 
-        db.open(".test");
+        db.open(BFC_OPATH(".test"));
         db=db;
         db.flush();
         tmp=db;
@@ -189,7 +189,7 @@ public:
         r.set_data((void *)"12345");
         r.set_size(6);
 
-        db.create(".test");
+        db.create(BFC_OPATH(".test"));
 
         try {
             db.insert(0, &r);
@@ -246,7 +246,7 @@ public:
         db.close();
         db.close();
         db.close();
-        db.open(".test");
+        db.open(BFC_OPATH(".test"));
     }
 
     void cursorTest(void)
@@ -262,7 +262,7 @@ public:
         ham::key k((void *)"12345", 5), k2;
         ham::record r((void *)"12345", 5), r2;
 
-        db.create(".test");
+        db.create(BFC_OPATH(".test"));
         ham::cursor c(&db);
         c.create(&db); // overwrite
 
@@ -336,7 +336,7 @@ public:
     {
 #ifndef HAM_DISABLE_COMPRESSION
         ham::db db;
-        db.create(".test");
+        db.create(BFC_OPATH(".test"));
 
         try {
             db.enable_compression(999);
@@ -352,11 +352,11 @@ public:
     {
         ham::env env;
 
-        env.create(".test");
+        env.create(BFC_OPATH(".test"));
         env.close();
         env.close();
         env.close();
-        env.open(".test");
+        env.open(BFC_OPATH(".test"));
 
         ham::db db1=env.create_db(1);
         db1.close();
@@ -378,7 +378,7 @@ public:
         ham::db db1;
         ham::env env;
 
-        env.create(".test");
+        env.create(BFC_OPATH(".test"));
         db1=env.create_db(1);
 
         /* let the objects go out of scope */
@@ -389,7 +389,7 @@ public:
         ham::env env;
         std::vector<ham_u16_t> v;
 
-        env.create(".test");
+        env.create(BFC_OPATH(".test"));
 
         v=env.get_database_names();
         BFC_ASSERT_EQUAL((ham_size_t)0, (ham_size_t)v.size());
@@ -427,7 +427,7 @@ public:
         r.set_data((void *)"12345");
         r.set_size(6);
 
-        db.create(".test", HAM_ENABLE_TRANSACTIONS);
+        db.create(BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS);
         txn=db.begin();
         db.insert(&txn, &k, &r);
         txn.abort();
@@ -451,7 +451,7 @@ public:
         r.set_data((void *)"12345");
         r.set_size(6);
 
-        db.create(".test", HAM_ENABLE_TRANSACTIONS);
+        db.create(BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS);
         txn=db.begin();
         db.insert(&txn, &k, &r);
         txn.commit();
@@ -470,7 +470,7 @@ public:
         r.set_data((void *)"12345");
         r.set_size(6);
 
-        db.create(".test", HAM_ENABLE_TRANSACTIONS);
+        db.create(BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS);
         txn=db.begin();
         ham::cursor c(&db, &txn);
         c.insert(&k, &r);
@@ -496,7 +496,7 @@ public:
         r.set_data((void *)"12345");
         r.set_size(6);
 
-        db.create(".test", HAM_ENABLE_TRANSACTIONS);
+        db.create(BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS);
         txn=db.begin();
         ham::cursor c(&db, &txn);
         c.insert(&k, &r);
@@ -504,6 +504,45 @@ public:
         txn.commit();
         out=db.find(&k);
     }
+
+
+
+	/*
+	   Augment the base method: make sure we catch ham::error exceptions 
+	   and convert these to bfc::error instances to assist BFC test error
+	   reporting.
+
+	   This serves as an example of use of the testrunner configuration 
+	   as well, as we use the catch flags to determine if the user wants 
+	   us to catch these exceptions or allow them to fall through to the 
+	   debugger instead.
+     */
+	virtual bool FUT_invoker(testrunner *me, method m, const char *funcname, error &ex)
+	{
+		if (me->catch_exceptions() || me->catch_coredumps())
+		{
+			try 
+			{
+				// invoke the FUT through the baseclass method
+				return fixture::FUT_invoker(me, m, funcname, ex);
+			}
+			catch (ham::error &e)
+			{
+				ex = error(__FILE__, __LINE__, get_name(), funcname, 
+					"HAM C++ exception occurred within the "
+					"Function-Under-Test (%s); error code %d: %s", 
+					funcname, (int)e.get_errno(), e.get_string());
+				return true;
+			}
+			// catch (bfc::error &e) 
+			// ^^ do NOT catch those: allow the BFC test rig to catch 'em!
+		}
+		else
+		{
+			// invoke the FUT through the baseclass method
+			return fixture::FUT_invoker(me, m, funcname, ex);
+		}
+	}
 
 };
 

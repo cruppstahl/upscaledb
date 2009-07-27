@@ -27,7 +27,8 @@ class DeviceTest : public fixture
 {
 public:
     DeviceTest(bool inmemory=false, const char *name=0)
-    : fixture(name ? name : "DeviceTest")
+    : fixture(name ? name : "DeviceTest"), 
+		m_db(0), m_inmemory(inmemory), m_dev(0), m_alloc(0)
     {
         if (name)
             return;
@@ -53,7 +54,7 @@ protected:
 public:
     void setup()
     { 
-        (void)os::unlink(".test");
+        (void)os::unlink(BFC_OPATH(".test"));
 
         ham_page_t *p;
         m_alloc=memtracker_new();
@@ -62,7 +63,7 @@ public:
         BFC_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
                         m_inmemory))!=0);
         db_set_device(m_db, m_dev);
-        BFC_ASSERT_EQUAL(0, m_dev->create(m_dev, ".test", 0, 0644));
+        BFC_ASSERT_EQUAL(0, m_dev->create(m_dev, BFC_OPATH(".test"), 0, 0644));
         p=page_new(m_db);
         BFC_ASSERT_EQUAL(0, page_alloc(p, m_dev->get_pagesize(m_dev)));
         db_set_header_page(m_db, p);
@@ -103,7 +104,7 @@ public:
             BFC_ASSERT(m_dev->is_open(m_dev));
             BFC_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
             BFC_ASSERT(!m_dev->is_open(m_dev));
-            BFC_ASSERT(m_dev->open(m_dev, ".test", 0)==HAM_SUCCESS);
+            BFC_ASSERT(m_dev->open(m_dev, BFC_OPATH(".test"), 0)==HAM_SUCCESS);
             BFC_ASSERT(m_dev->is_open(m_dev));
             BFC_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
             BFC_ASSERT(!m_dev->is_open(m_dev));

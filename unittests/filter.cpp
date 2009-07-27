@@ -126,7 +126,7 @@ public:
     { 
         m_flags=0;
 
-        os::unlink(".test");
+        os::unlink(BFC_OPATH(".test"));
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
@@ -147,7 +147,7 @@ public:
         memset(&filter3, 0, sizeof(filter3));
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), 0, 0664));
 
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_add_file_filter(0, &filter1));
@@ -250,7 +250,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_remove_record_filter(m_db, &filter1));
         BFC_ASSERT(0==db_get_record_filter(m_db));
 
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), m_flags, 0664));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
@@ -270,7 +270,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(env, &filter));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 333, 0, 0));
@@ -288,7 +288,7 @@ public:
         BFC_ASSERT_EQUAL(1, sf.closed);
 
         memset(&sf, 0, sizeof(sf));
-        BFC_ASSERT_EQUAL(0, ham_env_open(env, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(env, &filter));
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
         BFC_ASSERT_EQUAL(0, sf.written);
@@ -327,7 +327,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(env, &filter1));
         BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(env, &filter2));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
@@ -339,7 +339,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
 
-        BFC_ASSERT_EQUAL(0, ham_env_open(env, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(env, &filter1));
         BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(env, &filter2));
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
@@ -365,7 +365,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &filter));
 
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), m_flags, 0664));
 
         ham_key_t key;
         ham_record_t rec;
@@ -383,7 +383,7 @@ public:
 
         memset(&sf, 0, sizeof(sf));
         BFC_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &filter));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(0, sf.written);
         BFC_ASSERT_EQUAL(0, sf.read);
         BFC_ASSERT_EQUAL(0, sf.closed);
@@ -414,7 +414,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
@@ -425,13 +425,13 @@ public:
         BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
 
-        BFC_ASSERT_EQUAL(0, ham_env_open(env, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(HAM_ACCESS_DENIED, 
                 ham_env_enable_encryption(env, aeskey2, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
+		BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+		BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
         BFC_ASSERT_EQUAL(0, ham_delete(db));
@@ -453,7 +453,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, 
-                ham_env_create(env, ".test", HAM_IN_MEMORY_DB, 0664));
+                ham_env_create(env, BFC_OPATH(".test"), HAM_IN_MEMORY_DB, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
@@ -481,7 +481,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey1, 0));
         BFC_ASSERT_EQUAL(HAM_ALREADY_INITIALIZED, 
                 ham_env_enable_encryption(env, aeskey2, 0));
@@ -508,7 +508,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
         BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN, 
                         ham_env_enable_encryption(env, aeskey, 0));
@@ -529,7 +529,7 @@ public:
         rec.data=(void *)"hello world 12345 12345 12345 12345 12345";
         rec.size=(ham_size_t)strlen((char *)rec.data);
 
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), m_flags, 0664));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_enable_compression(0, 0, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
@@ -539,7 +539,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
         rec.flags=HAM_RECORD_USER_ALLOC;
@@ -557,13 +557,13 @@ public:
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
 
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), m_flags, 0664));
         BFC_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(0, ham_enable_compression(m_db, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -588,7 +588,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&db[1]));
         BFC_ASSERT_EQUAL(0, ham_new(&db[2]));
 
-        BFC_ASSERT_EQUAL(0, ham_env_create(env, ".test", 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[0], 333, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[1], 334, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[2], 335, 0, 0));

@@ -32,7 +32,8 @@ class BtreeCursorTest : public fixture
 {
 public:
     BtreeCursorTest(bool inmemory=false, const char *name=0)
-    :   fixture(name ? name : "BtreeCursorTest")
+    :   fixture(name ? name : "BtreeCursorTest"),
+        m_db(0), m_inmemory(inmemory), m_alloc(0)
     {
         if (name)
             return;
@@ -58,12 +59,12 @@ protected:
 public:
     void setup()
     { 
-        os::unlink(".test");
+        os::unlink(BFC_OPATH(".test"));
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, ".test", 
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_DUPLICATES|(m_inmemory?HAM_IN_MEMORY_DB:0),
                     0664));
     }
@@ -137,7 +138,7 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_create_ex(m_db, ".test", 
+        BFC_ASSERT_EQUAL(0, ham_create_ex(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_DUPLICATES|(m_inmemory?HAM_IN_MEMORY_DB:0),
                     0664, &params[0]));
 

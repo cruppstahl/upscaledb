@@ -31,6 +31,8 @@ public:
     :   fixture(name ? name : "BlobTest"),
         m_db(0), m_alloc(0), m_inmemory(inmemory), m_cachesize(cachesize)
     {
+        if (name)
+            return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(BlobTest, structureTest);
         BFC_REGISTER_TEST(BlobTest, dupeStructureTest);
@@ -60,13 +62,13 @@ public:
             { 0, 0 }
         };
 
-        os::unlink(".test");
+        os::unlink(BFC_OPATH(".test"));
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, 
-                ham_create_ex(m_db, ".test", 
+                ham_create_ex(m_db, BFC_OPATH(".test"), 
                     m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644, &params[0]));
     }
     
@@ -301,7 +303,7 @@ class FileBlobTest : public BlobTest
 {
 public:
     FileBlobTest()
-    : BlobTest(HAM_FALSE, 0, "FileBlobTest")
+    : BlobTest(HAM_FALSE, 1024, "FileBlobTest")
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(FileBlobTest, structureTest);
@@ -350,6 +352,8 @@ public:
         BFC_REGISTER_TEST(InMemoryBlobTest, replaceTest);
         BFC_REGISTER_TEST(InMemoryBlobTest, replaceWithBigTest);
         BFC_REGISTER_TEST(InMemoryBlobTest, replaceWithSmallTest);
+        /* negative tests are not necessary, because hamsterdb asserts that
+         * blob-IDs actually exist */
         BFC_REGISTER_TEST(InMemoryBlobTest, multipleAllocReadFreeTest);
         BFC_REGISTER_TEST(InMemoryBlobTest, hugeBlobTest);
         BFC_REGISTER_TEST(InMemoryBlobTest, smallBlobTest);

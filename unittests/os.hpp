@@ -20,17 +20,49 @@
 #endif
 
 #include <ham/types.h>
+#include <../src/error.h>
 
 class os
 {
+protected:
+#ifdef WIN32
+	static const char *DisplayError(char* buf, ham_size_t buflen, DWORD errorcode)
+	{
+		buf[0] = 0;
+		FormatMessageA(/* FORMAT_MESSAGE_ALLOCATE_BUFFER | */
+					  FORMAT_MESSAGE_FROM_SYSTEM |
+					  FORMAT_MESSAGE_IGNORE_INSERTS,
+					  NULL, errorcode,
+					  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+					  (LPSTR)buf, buflen, NULL);
+		buf[buflen-1]=0;
+		return buf;
+	}
+#endif
+
 public:
     /*
      * delete a file
      */
-    static bool unlink(const char *path)
+    static bool unlink(const char *path, bool fail_silently = true)
     {
 #ifdef WIN32
-        return (DeleteFileA((LPCSTR)path)==TRUE);
+        BOOL rv = DeleteFileA((LPCSTR)path);
+	    if (!rv) {
+			if (!fail_silently) {
+				char buf[1024];
+				char buf2[1024];
+				DWORD st;
+				st = GetLastError();
+				_snprintf(buf2, sizeof(buf2), 
+					"DeleteFileA('%s') failed with OS status %u (%s)", 
+					path, st, DisplayError(buf, sizeof(buf), st));
+				buf2[sizeof(buf2)-1] = 0;
+				ham_log(("%s", buf2));
+			}
+			return false;
+		}
+		return true;
 #else
         return (0==::unlink(path));
 #endif
@@ -42,7 +74,20 @@ public:
     static bool copy(const char *src, const char *dest)
     {
 #ifdef WIN32
-        return (CopyFileA((LPCSTR)src, dest, FALSE)==TRUE);
+        BOOL rv = CopyFileA((LPCSTR)src, dest, FALSE);
+	    if (!rv) {
+			char buf[2048];
+			char buf2[1024];
+			DWORD st;
+			st = GetLastError();
+			_snprintf(buf2, sizeof(buf2), 
+				"CopyFileA('%s', '%s') failed with OS status %u (%s)", 
+				src, dest, st, DisplayError(buf, sizeof(buf), st));
+			buf2[sizeof(buf2)-1] = 0;
+			ham_log(("%s", buf2));
+			return false;
+		}
+		return true;
 #else
         char buffer[1024*4];
 

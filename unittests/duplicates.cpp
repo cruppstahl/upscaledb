@@ -195,10 +195,10 @@ protected:
 public:
     void setup()
     { 
-        (void)os::unlink(".test");
+        (void)os::unlink(BFC_OPATH(".test"));
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, ".test", 
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 
                     m_flags|HAM_ENABLE_DUPLICATES, 0664));
 
         m_data.resize(0);
@@ -891,7 +891,7 @@ public:
 
         /* reopen the database */
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, ".test", m_flags));
+        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), m_flags));
         BFC_ASSERT(db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
@@ -1423,12 +1423,12 @@ public:
         /* generated with `cat ../COPYING.GPL2 | ./db5` */
 #if HAM_LITTLE_ENDIAN
         BFC_ASSERT_EQUAL(true, 
-            os::copy("data/dupe-endian-test-open-database-be.hdb", ".test"));
+            os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"), BFC_OPATH(".test")));
 #else
         BFC_ASSERT_EQUAL(true, 
-            os::copy("data/dupe-endian-test-open-database-le.hdb", ".test"));
+            os::copy(BFC_IPATH("data/dupe-endian-test-open-database-le.hdb"), BFC_OPATH(".test")));
 #endif
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
 
         memset(&key, 0, sizeof(key));
         key.data=(void *)"written";
@@ -1757,7 +1757,7 @@ public:
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
             /* reopen the database */
             BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-            BFC_ASSERT_EQUAL(0, ham_open(m_db, ".test", m_flags));
+            BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), m_flags));
             BFC_ASSERT(db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES);
 
             BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
@@ -1783,7 +1783,7 @@ public:
         };
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_create_ex(m_db, ".test", 
+        BFC_ASSERT_EQUAL(0, ham_create_ex(m_db, BFC_OPATH(".test"), 
                     m_flags|HAM_ENABLE_DUPLICATES, 0664, &params[0]));
 
         memset(&key, 0, sizeof(key));

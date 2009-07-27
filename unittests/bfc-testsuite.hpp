@@ -27,11 +27,17 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <stdarg.h>
+
+#if defined(_MSC_VER)
+#include <windows.h>    // __try/__except support API
+#endif
 
 namespace bfc {
 
-// forward declaratios
+// forward declarations
 class fixture;
+class testrunner;
 
 typedef void (fixture::*method)();
 
@@ -69,6 +75,37 @@ typedef void (fixture::*method)();
                             get_name(), __FUNCTION__, \
                             "assertion failed in expr "#expr" != NULL"); }
 
+// for checks within loops: report round # as 'scenario #'
+#define BFC_ASSERT_I(expr, scenario)  \
+                        while ((expr)==0) { \
+                            throw error(__FILE__, __LINE__, \
+                            get_name(), __FUNCTION__, \
+							"assertion failed in expr "#expr " for scenario #%d", int(scenario)); }
+
+#define BFC_ASSERT_EQUAL_I(exp, act, scenario) \
+                        while ((exp)!=(act)) { \
+                            throw error(__FILE__, __LINE__, \
+                            get_name(), __FUNCTION__, \
+							"assertion failed in expr "#exp" == "#act " for scenario #%d", int(scenario)); }
+
+#define BFC_ASSERT_NOTEQUAL_I(exp, act, scenario) \
+                        while ((exp)==(act)) { \
+                            throw error(__FILE__, __LINE__, \
+                            get_name(), __FUNCTION__, \
+							"assertion failed in expr "#exp" != "#act " for scenario #%d", int(scenario)); }
+
+#define BFC_ASSERT_NULL_I(expr, scenario)  \
+                        while ((expr)!=0) { \
+                            throw error(__FILE__, __LINE__, \
+                            get_name(), __FUNCTION__, \
+							"assertion failed in expr "#expr" == NULL for scenario #%d", int(scenario)); }
+
+#define BFC_ASSERT_NOTNULL_I(expr, scenario)  \
+                        while ((expr)==0) { \
+                            throw error(__FILE__, __LINE__, \
+                            get_name(), __FUNCTION__, \
+							"assertion failed in expr "#expr" != NULL for scenario #%d", int(scenario)); }
+
 struct test
 {
 	std::string name;
@@ -77,14 +114,35 @@ struct test
 
 struct error
 {
-    error(const char *f, int l, const char *fix, const char *t, std::string m) 
-    :   file(f), line(l), fixture(fix), test(t), message(m) 
-    { }
+    error(const char *f, int l, const char *fix, const char *t, const char *m, ...) 
+    :   file(f), line(l), fixture(fix), test(t)
+    {
+	va_list a;
+	va_start(a, m);
+	char buf[2048];
+	if (!m) m = "";
+#if 0 // general use, so no direct dependency on hamster:util.h
+	util_vsnprintf(buf, sizeof(buf), m, a);
+#else
+#if defined(HAM_OS_POSIX)
+    vsnprintf(buf, sizeof(buf), m, a);
+#elif defined(HAM_OS_WIN32)
+    _vsnprintf(buf, sizeof(buf), m, a);
+#elif defined(_MSC_VER)
+    _vsnprintf(buf, sizeof(buf), m, a);
+#else
+    vsprintf(buf, m, a); // unsafe
+#endif
+#endif
+	va_end(a);
+	buf[sizeof(buf)-1] = 0;
+	message = buf;
+	}
 
-    const char *file;
+    std::string file;
     int line;
-    const char *fixture;
-    const char *test;
+    std::string fixture;
+    std::string test;
     std::string message;
 };
 
@@ -98,13 +156,35 @@ public:
     virtual ~fixture()
     { }
 
-    const char *get_name()
+    const char *get_name() const
     { return m_name; }
 
     virtual void setup() { }
     virtual void teardown() { }
 
-    // clear all tests
+	/*
+	   Invoke the Function Under Test
+
+	   implement this one when you want to catch custom C++ exceptions;
+	   these must be converted to bfc::error class throwing exceptions 
+	   to work best with BFC.
+	   
+	   If you don't do this, your exceptions may be either caught by the
+	   platform-specific SEH handler or fall through the test rig and
+	   out the other side, losing information on the way, leading to
+	   harder to analyze output.
+
+	   @return
+		Return TRUE when an exception occurred and the bfc::error ex
+	    instance is filled accordingly, FALSE otherwise (~ successful test).
+	*/
+	virtual bool FUT_invoker(testrunner *me, method m, const char *funcname, error &ex)
+	{
+		(this->*m)();
+		return false;
+	}
+
+	// clear all tests
     void clear_tests() {
         m_tests.resize(0);
     }
@@ -136,40 +216,61 @@ private:
 
 class testrunner
 {
-public:
+protected:
     testrunner()
-    : m_success(0)
-    { }
+	: m_success(0),
+	m_catch_coredumps(1),
+	m_catch_exceptions(1),
+	m_outputdir(""),
+	m_inputdir("")
+	{ }
 
     ~testrunner()
     { }
 
-    // register a new test fixture
+public:
+	// register a new test fixture
     void register_fixture(fixture *f) {
         m_fixtures.push_back(f);
     }
 
     // add an error
-    void add_error(error *e) {
+    void add_error(const error *e) {
         m_errors.push_back(*e);
     }
 
     // add a successful run
-    void add_success() {
+    void add_success(void) {
         m_success++;
     }
 
     // print all errors
-    void print_errors() {
+    void print_errors(void) {
         std::vector<error>::iterator it;
         unsigned i=1;
 
         for (it=m_errors.begin(); it!=m_errors.end(); it++, i++) {
-            std::cout << "----- error #" << i << " in " 
-                      << (*it).fixture << "::" << (*it).test << std::endl;
-            std::cout << (*it).file << ":" << (*it).line << " "
-                      << (*it).message << std::endl;
-        }
+#if 0
+			std::cout << "----- error #" << i << " in " 
+                      << it->fixture << "::" << it->test << std::endl;
+            std::cout << it->file << ":" << it->line << " "
+                      << it->message.c_str() << std::endl;
+#else
+            std::cout << "----- error #";
+			std::cout << i;
+			std::cout << " in ";
+			std::cout << (it->fixture.size() > 0  ? it->fixture.c_str() : "???");
+			std::cout << "::";
+			std::cout << (it->test.size() > 0  ? it->test.c_str() : "???");
+			std::cout << std::endl;
+			std::cout << (it->file.size() > 0  ? it->file.c_str() : "???");
+			std::cout << ":";
+			std::cout << it->line;
+			std::cout << " ";
+			std::cout << (it->message.size() > 0 ? it->message.c_str() : "???");
+			std::cout << std::endl;
+#endif
+		}
 
         std::cout << "-----------------------------------------" << std::endl;
         std::cout << "total: " << m_errors.size() << " errors, "
@@ -177,64 +278,153 @@ public:
     }
 
 	// run all tests (optional fixture and/or test selection) - returns number of errors
-	unsigned run(const char *fixture_name = NULL, const char *test_name = NULL) 
+	unsigned int run(const char *fixture_name = NULL, const char *test_name = NULL, 
+			bool print_err_report = true) 
+	{
+		std::string fixname(fixture_name ? fixture_name : "");
+		std::string testname(test_name ? test_name : "");
+		
+		return run(fixname, testname, fixname, testname, true, print_err_report);
+	}
+
+	// run all tests in a given range (start in/exclusive, end inclusive)
+	//
+	// returns number of errors
+	unsigned int run(
+		const std::string &begin_fixture, const std::string &begin_test,
+		const std::string &end_fixture, const std::string &end_test,
+		bool inclusive_begin, bool print_err_report = true)
 	{
 		std::vector<fixture *>::iterator it;
-		m_errors.clear();
-		std::string fixname(fixture_name ? fixture_name : "");
-
-		for (it=m_fixtures.begin(); it!=m_fixtures.end(); it++) 
+		if (print_err_report)
 		{
-			if (fixname.size() == 0 || fixname.compare((*it)->get_name()) == 0)
+			m_errors.clear();
+		}
+		bool f_start = (begin_fixture.size() == 0);
+		bool f_end = false;
+		bool delay = !inclusive_begin;
+		bool t_start = (begin_test.size() == 0);
+		bool t_end = false;
+
+		for (it = m_fixtures.begin(); it != m_fixtures.end() && !f_end; it++)
+		{
+			bool b_match = (begin_fixture.size() == 0 
+							|| begin_fixture.compare((*it)->get_name()) == 0);
+			bool e_match = (end_fixture.size() == 0 
+							|| end_fixture.compare((*it)->get_name()) == 0);
+
+			f_start |= b_match;
+
+			if (f_start && !f_end)
 			{
-				run(*it, test_name);
+				// fixture-wise, we've got a 'GO!'
+				std::vector<test>::iterator it2;
+				fixture *f = (*it);
+
+				for (it2 = f->get_tests().begin(); 
+					it2 != f->get_tests().end() && !t_end; 
+					it2++) 
+				{
+					t_start |= (b_match && begin_test.compare(it2->name) == 0);
+
+					if (t_start && delay)
+					{
+						delay = false;
+					}
+					else if (t_start && (!t_end || !delay))
+					{
+						const test &t = *it2;
+					    run(f, &t);
+					}
+
+					if (t_end)
+					{
+						delay = true;
+					}
+					t_end |= (e_match && end_test.compare(it2->name) == 0);
+				}
 			}
+
+			f_end |= (e_match && end_fixture.size() != 0); // explicit match only
 		}
 
-		print_errors();
-		return ((unsigned)m_errors.size());
+		if (print_err_report)
+		{
+			print_errors();
+		}
+		return ((unsigned int)m_errors.size());
 	}
 
 	// run all tests of a fixture
-    void run(fixture *f, const char *test_name = NULL) 
+    unsigned int run(fixture *f, const char *test_name = NULL, bool print_err_report = true) 
 	{
+		if (print_err_report)
+		{
+			m_errors.clear();
+		}
         std::vector<test>::iterator it;
 		std::string testname(test_name ? test_name : "");
 
-        for (it=f->get_tests().begin(); it!=f->get_tests().end(); it++) {
-            bool success=true;
-
-			method m = it->foo;
+        for (it=f->get_tests().begin(); it!=f->get_tests().end(); it++) 
+		{
 			if (testname.size() == 0 || testname.compare(it->name) == 0)
 			{
-				std::cout << "starting " << f->get_name()
-						  << "::" << (*it).name << std::endl;
-				try {
-					// f->setup();
-					exec_testfun(this, f, &fixture::setup, "setup");
-					exec_testfun(this, f, m, (*it).name.c_str());
-				}
-				catch (error e) {
-					//printf("FAILED!\n");
-					success=false;
-					add_error(&e);
-				}
-
-				/* in any case: call the teardown function */
-				try {
-					//f->teardown();
-					exec_testfun(this, f, &fixture::teardown, "teardown");
-				}
-				catch (error e) {
-					success=false;
-					add_error(&e);
-				}
-
-				/* only count a completely flawless run as a success: */
-				if (success)
-					add_success();
+			    run(f, &(*it));
 			}
 		}
+
+		if (print_err_report)
+		{
+			print_errors();
+		}
+		return ((unsigned int)m_errors.size());
+	}
+
+	// run a single test of a fixture
+    bool run(fixture *f, const test *test) 
+	{
+        bool success=true;
+
+		method m = test->foo;
+		error e(__FILE__, __LINE__, f->get_name(), test->name.c_str(), "");
+		bool threw_ex;
+
+		std::cout << "starting " << f->get_name()
+				  << "::" << test->name << std::endl;
+
+		threw_ex = exec_testfun(this, f, &fixture::setup, "setup", e);
+		if (threw_ex)
+		{
+			//printf("FAILED!\n");
+			success=false;
+			add_error(&e);
+		}
+		else
+		{
+			threw_ex = exec_testfun(this, f, m, test->name.c_str(), e);
+			if (threw_ex)
+			{
+				//printf("FAILED!\n");
+				success=false;
+				add_error(&e);
+			}
+		}
+
+		/* in any case: call the teardown function */
+		threw_ex = exec_testfun(this, f, &fixture::teardown, "teardown", e);
+		if (threw_ex)
+		{
+			//printf("FAILED!\n");
+			success=false;
+			add_error(&e);
+		}
+
+		/* only count a completely flawless run as a success: */
+		if (success)
+		{
+			add_success();
+		}
+		return success;
 	}
 
 	/*
@@ -242,10 +432,13 @@ public:
 
 	error C2712: Cannot use __try in functions that require object unwinding
 	*/
-	static void exec_testfun(testrunner *me, fixture *f, method m, const char *funcname)
-	{
-		(f->*m)();
-	}
+	static bool exec_testfun(testrunner *me, fixture *f, method m, const char *funcname, error &ex);
+	static bool cpp_eh_run(testrunner *me, fixture *f, method m, const char *funcname, error &ex);
+
+#if defined(_MSC_VER)
+	static void cvt_hw_ex_as_cpp_ex(const EXCEPTION_RECORD *e, testrunner *me, const fixture *f, method m, const char *funcname, error &err);
+	static int is_hw_exception(unsigned int code, struct _EXCEPTION_POINTERS *ep, EXCEPTION_RECORD *dst);
+#endif
 
     static testrunner *get_instance()  {
         if (!s_instance)
@@ -253,11 +446,90 @@ public:
         return (s_instance);
     }
 
+    static void delete_instance(void)
+	{
+        if (s_instance)
+            delete s_instance;
+        s_instance = NULL;
+    }
+
+    bool catch_coredumps(int catch_coredumps = -1)
+	{
+		if (catch_coredumps >= 0)
+		{
+			m_catch_coredumps = catch_coredumps;
+		}
+		return m_catch_coredumps;
+	}
+
+    bool catch_exceptions(int catch_exceptions = -1)
+	{
+		if (catch_exceptions >= 0)
+		{
+			m_catch_exceptions = catch_exceptions;
+		}
+		return m_catch_exceptions;
+	}
+
+	const std::string &outputdir(const char *outputdir = NULL)
+	{
+		if (outputdir)
+		{
+			m_outputdir = outputdir;
+#if defined(_MSC_VER)
+			size_t i;
+			for (i = 0; i < m_outputdir.size(); i++)
+			{
+				if (m_outputdir[i] == '\\')
+				{
+					m_outputdir[i] = '/';
+				}
+			}
+#endif
+			if (*outputdir && *(m_outputdir.rbegin()) != '/')
+				m_outputdir += '/';
+		}
+
+		return m_outputdir;
+	}
+
+	const std::string &inputdir(const char *inputdir = NULL)
+	{
+		if (inputdir)
+		{
+			m_inputdir = inputdir;
+#if defined(_MSC_VER)
+			size_t i;
+			for (i = 0; i < m_inputdir.size(); i++)
+			{
+				if (m_inputdir[i] == '\\')
+				{
+					m_inputdir[i] = '/';
+				}
+			}
+#endif
+			if (*inputdir && *(m_inputdir.rbegin()) != '/')
+				m_inputdir += '/';
+		}
+
+		return m_inputdir;
+	}
+
+	static std::string expand_inputpath(const char *relative_filepath);
+	static std::string expand_outputpath(const char *relative_filepath);
+
+#define BFC_IPATH(p)	testrunner::expand_inputpath(p).c_str()
+#define BFC_OPATH(p)	testrunner::expand_outputpath(p).c_str()
+
 private:
     static testrunner *s_instance;
     std::vector<fixture *> m_fixtures;
     std::vector<error> m_errors;
     unsigned m_success;
+	unsigned m_catch_coredumps : 1;
+	unsigned m_catch_exceptions : 1;
+	std::string m_outputdir;
+	std::string m_inputdir;
 };
 
 } // namespace bfc

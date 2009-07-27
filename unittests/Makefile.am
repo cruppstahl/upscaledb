@@ -2,15 +2,16 @@
 #
 # make sure that our modified CFLAGS are also respected by g++
 #
+AM_CXXFLAGS = $(CFLAGS)
 CXXFLAGS = $(CFLAGS)
 
 noinst_PROGRAMS = test
 
-INCLUDES        = -I$(top_builddir)/include
+AM_CPPFLAGS       = -I$(top_builddir)/include
 
 test_SOURCES    = log.cpp \
-				  btree_erase.cpp \
-				  check.cpp \
+                  btree_erase.cpp \
+                  check.cpp \
                   error.cpp \
                   filter.cpp \
                   cppapi.cpp \
@@ -34,6 +35,7 @@ test_SOURCES    = log.cpp \
                   page.cpp \
                   txn.cpp \
                   memtracker.cpp
+test_SOURCES    = hamsterdb.cpp main.cpp memtracker.cpp
 
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la -ldl
 

@@ -27,7 +27,8 @@ class DbTest : public fixture
 {
 public:
     DbTest(bool inmemory=false, const char *name=0)
-    :   fixture(name ? name : "DbTest"), m_inmemory(inmemory)
+    :   fixture(name ? name : "DbTest"),
+        m_db(0), m_inmemory(inmemory), m_dev(0), m_alloc(0)
     {
         if (name)
             return;
@@ -58,7 +59,7 @@ public:
         BFC_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
                         m_inmemory))!=0);
         db_set_device(m_db, m_dev);
-        BFC_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
+        BFC_ASSERT(m_dev->create(m_dev, BFC_OPATH(".test"), 0, 0644)==HAM_SUCCESS);
         p=page_new(m_db);
         BFC_ASSERT(0==page_alloc(p, m_dev->get_pagesize(m_dev)));
         db_set_header_page(m_db, p);

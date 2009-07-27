@@ -54,7 +54,7 @@ public:
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        BFC_ASSERT(ham_create_ex(m_db, ".test", 0, 0644, 
+        BFC_ASSERT(ham_create_ex(m_db, BFC_OPATH(".test"), 0, 0644, 
                         &p[0])==HAM_SUCCESS);
     }
     
@@ -93,7 +93,7 @@ public:
         teardown();
         BFC_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        BFC_ASSERT(ham_open(m_db, ".test", 0)==HAM_SUCCESS);
+        BFC_ASSERT(ham_open(m_db, BFC_OPATH(".test"), 0)==HAM_SUCCESS);
         f=db_get_freelist(m_db);
 
         BFC_ASSERT(freel_get_start_address(f)==0x7878787878787878ull);
@@ -193,7 +193,7 @@ public:
         BFC_ASSERT_EQUAL(0, txn_commit(&txn, 0));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL(o, 
@@ -206,7 +206,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, txn_commit(&txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL(o*2,
@@ -230,7 +230,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, txn_commit(&txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL((ham_offset_t)0, 
@@ -243,7 +243,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, txn_commit(&txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL((ham_offset_t)0, 
@@ -265,7 +265,7 @@ public:
         BFC_ASSERT_EQUAL(0, txn_commit(&txn, 0));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL((ham_offset_t)o+DB_CHUNKSIZE, 
@@ -280,7 +280,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, txn_commit(&txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, ".test", 0));
+        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL(o+DB_CHUNKSIZE, 

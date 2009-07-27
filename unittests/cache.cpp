@@ -57,7 +57,7 @@ public:
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
                         HAM_TRUE))!=0);
-        BFC_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
+        BFC_ASSERT(m_dev->create(m_dev, BFC_OPATH(".test"), 0, 0644)==HAM_SUCCESS);
         db_set_device(m_db, m_dev);
         p=page_new(m_db);
         BFC_ASSERT(0==page_alloc(p, m_dev->get_pagesize(m_dev)));

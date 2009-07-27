@@ -47,11 +47,11 @@ protected:
 public:
     void setup()
     { 
-        os::unlink(".test");
+        os::unlink(BFC_OPATH(".test"));
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, ".test", m_flags, 0644));
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), m_flags, 0644));
     }
     
     void teardown() 
@@ -77,7 +77,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, 
-                ham_create_ex(m_db, ".test", m_flags, 0644, &ps[0]));
+                ham_create_ex(m_db, BFC_OPATH(".test"), m_flags, 0644, &ps[0]));
 
         for (int i=0; i<num_inserts*10; i+=10) {
             key.data=&i;

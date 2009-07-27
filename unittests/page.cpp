@@ -28,8 +28,8 @@ class PageTest : public fixture
 public:
     PageTest(ham_bool_t inmemorydb=HAM_FALSE, ham_bool_t mmap=HAM_TRUE, 
             const char *name=0)
-    :   fixture(name ? name : "PageTest"), m_inmemory(inmemorydb), 
-        m_usemmap(mmap)
+    :   fixture(name ? name : "PageTest"), 
+        m_db(0), m_inmemory(inmemorydb), m_usemmap(mmap), m_dev(0), m_alloc(0)
     {
         if (name)
             return;
@@ -58,7 +58,7 @@ public:
                         m_inmemory))!=0);
         if (!m_usemmap)
             m_dev->set_flags(m_dev, DEVICE_NO_MMAP);
-        BFC_ASSERT(m_dev->create(m_dev, ".test", 0, 0644)==HAM_SUCCESS);
+        BFC_ASSERT(m_dev->create(m_dev, BFC_OPATH(".test"), 0, 0644)==HAM_SUCCESS);
         db_set_device(m_db, m_dev);
         p=page_new(m_db);
         BFC_ASSERT(0==page_alloc(p, m_dev->get_pagesize(m_dev)));
