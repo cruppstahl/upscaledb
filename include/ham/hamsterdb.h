@@ -1200,6 +1200,13 @@ ham_open_ex(ham_db_t *db, const char *filename,
  * Databases */
 #define HAM_PARAM_MAX_ENV_DATABASES  0x00000103
 
+/** Parameter names to query information with @a ham_env_get_parameters
+ * and @a ham_get_parameters */
+#define HAM_PARAM_GET_FLAGS          0x00000200
+#define HAM_PARAM_GET_FILEMODE       0x00000201
+#define HAM_PARAM_GET_FILENAME       0x00000202
+#define HAM_PARAM_GET_KEYS_PER_PAGE  0x00000203
+
 
 /**
  * Retrieve the current value for a given Database setting
