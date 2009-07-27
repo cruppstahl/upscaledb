@@ -1,5 +1,5 @@
 
-INCLUDES = -I../include -I$(top_builddir)/3rdparty/aes
+AM_CPPFLAGS = -I../include -I$(top_builddir)/3rdparty/aes
 
 lib_LTLIBRARIES = libhamsterdb.la
 
