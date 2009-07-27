@@ -25,7 +25,7 @@ extern "C" {
 /**
  * the internal representation of a key
  */
-typedef HAM_PACK_0 HAM_PACK_1 struct int_key_t
+typedef HAM_PACK_0 struct HAM_PACK_1 int_key_t
 {
     /**
      * the pointer of this entry
@@ -54,8 +54,8 @@ typedef HAM_PACK_0 HAM_PACK_1 struct int_key_t
 /**
  * get the size of the internal key representation header
  */
-#define db_get_int_key_header_size()   /* OFFSETOF(int_key_t, _key) */ \
-                                       sizeof(int_key_t)-1
+#define db_get_int_key_header_size()   OFFSETOF(int_key_t, _key)
+                                       /* sizeof(int_key_t)-1 */
 
 /**
  * get the pointer of an btree-entry

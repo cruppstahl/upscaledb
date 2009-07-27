@@ -56,7 +56,7 @@
 #endif
 
 /*
- * the default cache size is 256
+ * the default cache size is 256K
  */
 #define HAM_DEFAULT_CACHESIZE      (1024*256)
 

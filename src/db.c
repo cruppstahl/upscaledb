@@ -689,8 +689,6 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
     ham_page_t *page=0;
     ham_status_t st;
 
-    ham_assert(!(address & 0xFFFFFFFF00000000ull), (0));
-
     /* 
      * check if the cache allows us to allocate another page; if not,
      * purge it

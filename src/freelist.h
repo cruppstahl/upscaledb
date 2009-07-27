@@ -20,6 +20,10 @@
 extern "C" {
 #endif 
 
+typedef ham_u16_t ham_freel_size_t;
+#define ham_db2h_freel_size(v)   ham_db2h16(v)
+#define ham_h2db_freel_size(v)   ham_h2db16(v)
+
 /**
  * an entry in the freelist cache
  */
@@ -31,12 +35,12 @@ typedef struct freelist_entry_t
     /**
      * maximum bits in this page
      */
-    ham_u16_t _max_bits;
+    ham_freel_size_t _max_bits;
 
     /**
      * allocated bits in this page
      */
-    ham_u16_t _allocated_bits;
+    ham_freel_size_t _allocated_bits;
 
     /**
      * the page ID
@@ -115,12 +119,12 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
     /**
      * maximum number of bits for this page
      */
-    ham_u16_t _max_bits;
+    ham_freel_size_t _max_bits;
 
     /**
      * number of already allocated bits in the page 
      */
-    ham_u16_t _allocated_bits;
+    ham_freel_size_t _allocated_bits;
 
     /**
      * the bitmap; the size of the bitmap is _max_bits/8
@@ -130,6 +134,11 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 } HAM_PACK_2 freelist_payload_t;
 
 #include "packstop.h"
+
+/**
+ * get the size of the persistent freelist header
+ */
+#define db_get_freelist_header_size()   (OFFSETOF(freelist_payload_t, _bitmap) /*(sizeof(freelist_payload_t)-1)*/ )
 
 /**
  * get the address of the first bitmap-entry of this page
@@ -144,22 +153,22 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 /**
  * get the maximum number of bits which are handled by this bitmap
  */
-#define freel_get_max_bits(fl)           (ham_db2h16((fl)->_max_bits))
+#define freel_get_max_bits(fl)           (ham_db2h_freel_size((fl)->_max_bits))
 
 /**
  * set the maximum number of bits which are handled by this bitmap
  */
-#define freel_set_max_bits(fl, m)        (fl)->_max_bits=ham_h2db16(m)
+#define freel_set_max_bits(fl, m)        (fl)->_max_bits=ham_h2db_freel_size(m)
 
 /**
  * get the number of currently used bits which are handled by this bitmap
  */
-#define freel_get_allocated_bits(fl)      (ham_db2h16((fl)->_allocated_bits))
+#define freel_get_allocated_bits(fl)      (ham_db2h_freel_size((fl)->_allocated_bits))
 
 /**
  * set the number of currently used bits which are handled by this bitmap
  */
-#define freel_set_allocated_bits(fl, u)   (fl)->_allocated_bits=ham_h2db16(u)
+#define freel_set_allocated_bits(fl, u)   (fl)->_allocated_bits=ham_h2db_freel_size(u)
 
 /**
  * get the address of the next overflow page

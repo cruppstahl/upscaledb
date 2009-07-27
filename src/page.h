@@ -45,6 +45,8 @@
 struct ham_page_t;
 typedef struct ham_page_t ham_page_t;
 
+#include "packstart.h"
+
 /**
  * The page header which is persisted on disc
  *
@@ -52,7 +54,7 @@ typedef struct ham_page_t ham_page_t;
  * compile-time OFFSETOF macros to correctly judge the size, depending 
  * on platform and compiler settings.
  */
-typedef union {
+typedef HAM_PACK_0 union HAM_PACK_1 {
 
     /*
      * this header is only available if the (non-persistent) flag
@@ -65,7 +67,7 @@ typedef union {
      * if this structure is changed, db_get_usable_pagesize has 
      * to be changed as well!
      */
-    struct page_union_header_t {
+    HAM_PACK_0 struct HAM_PACK_1 page_union_header_t {
         /**
          * flags of this page - currently only used for the page type
          */
@@ -82,13 +84,16 @@ typedef union {
          * will use it appropriately
          */
         ham_u8_t _payload[1];
-    } _s;
+    } HAM_PACK_2 _s;
 
     /*
      * a char pointer
      */
     ham_u8_t _p[1];
-} ham_perm_page_union_t;
+
+} HAM_PACK_2 ham_perm_page_union_t;
+
+#include "packstop.h"
 
 
 /**
@@ -146,13 +151,14 @@ struct ham_page_t {
 };
 
 /**
- * the size of struct page_union_t, without the payload byte
+ * the size of struct ham_perm_page_union_t, without the payload byte
  *
  * !!
- * this is not equal to sizeof(struct page_union_t)-1, because of
+ * this is not equal to sizeof(struct ham_perm_page_union_t)-1, because of
  * padding (i.e. on gcc 4.1, 64bit the size would be 15 bytes)
  */
-#define SIZEOF_PAGE_UNION_HEADER        12
+#define SIZEOF_PAGE_UNION_HEADER        OFFSETOF(ham_perm_page_union_t,     \
+                                                _s._payload) /* 12 */
 
 /**
  * get the address of this page

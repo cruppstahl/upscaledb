@@ -31,7 +31,7 @@ extern "C" {
 /*
  * need packing for msvc x64bit
  */
-#include "packstart.h"
+//#include "packstart.h"
 
 /*
  * the environment structure
@@ -91,7 +91,7 @@ struct ham_env_t
     freelist_cache_t *_freelist_cache;
 };
 
-#include "packstop.h"
+//#include "packstop.h"
 
 /*
  * get the current transaction ID

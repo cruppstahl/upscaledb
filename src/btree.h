@@ -34,7 +34,7 @@ typedef struct ham_btree_t ham_btree_t;
 
 #include "packstart.h"
 
-struct HAM_PACK_0 ham_btree_t HAM_PACK_1
+HAM_PACK_0 struct HAM_PACK_1 ham_btree_t 
 {
     /**
      * the common declaratons of all backends
@@ -290,8 +290,9 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key,
  * the absolute offset of the key in the file
  */
 #define btree_node_get_key_offset(page, i)                          \
-    (page_get_self(page)+SIZEOF_PAGE_UNION_HEADER+                  \
-     sizeof(btree_node_t)-db_get_int_key_header_size()+                    \
+     (page_get_self(page)+SIZEOF_PAGE_UNION_HEADER+                 \
+     OFFSETOF(btree_node_t, _entries)                               \
+     /* ^^^ sizeof(int_key_t) WITHOUT THE -1 !!! */ +               \
      (db_get_int_key_header_size()+db_get_keysize(page_get_owner(page)))*(i))
 
 /*

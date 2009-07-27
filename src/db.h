@@ -51,14 +51,14 @@ extern "C" {
 /*
  * the size of an index data
  */
-#define DB_INDEX_SIZE       32
+#define DB_INDEX_SIZE       sizeof(db_indexdata_t) /* 32 */
 
 #include "packstart.h"
 
 /*
  * the persistent database header
  */
-typedef HAM_PACK_0 HAM_PACK_1 struct
+typedef HAM_PACK_0 struct HAM_PACK_1 
 {
     /* magic cookie - always "ham\0" */
     ham_u8_t  _magic[4];
@@ -85,7 +85,7 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
      *      -> see db_get_freelist()
      */
 
-} db_header_t;
+} HAM_PACK_2 db_header_t;
 
 #include "packstop.h"
 
@@ -165,19 +165,71 @@ typedef HAM_PACK_0 HAM_PACK_1 struct
 #define db_set_max_databases(db,s)  db_get_header(db)->_max_databases=        \
                                             ham_h2db32(s)
 
+
+#include "packstart.h"
+
 /*
- * get the private data of the backend; interpretation of the
- * data is up to the backend
+ * the persistent database index header
  */
-#define db_get_indexdata(db)     (&((ham_u8_t *)page_get_payload(             \
-                                        db_get_header_page(db))+              \
-                                          sizeof(db_header_t))[0])
+typedef HAM_PACK_0 union HAM_PACK_1 
+{
+	struct {
+		/* name of the DB: 1..EMPTY_DATABASE_NAME-1 */
+		ham_u16_t _dbname;
+
+		/* maximum keys in an internal page */
+		ham_u16_t _maxkeys;
+
+        /* key size in this page */
+		ham_u16_t _keysize;
+
+		/** address of this page */
+		ham_offset_t _self;
+
+        /* flags for this database */
+		ham_u32_t _flags;
+
+        /* last used record number value */
+		ham_offset_t _recno;
+	} b;
+
+	ham_u8_t _space[32];
+} HAM_PACK_2 db_indexdata_t;
+
+#include "packstop.h"
+
 
 /*
  * get the private data of the backend; interpretation of the
  * data is up to the backend
  */
-#define db_get_indexdata_at(db, i) &db_get_indexdata(db)[i*DB_INDEX_SIZE]
+#define db_get_indexdata_arrptr(db)                         \
+	((db_indexdata_t *)((ham_u8_t *)page_get_payload(       \
+		db_get_header_page(db)) + sizeof(db_header_t)))
+
+/*
+ * get the private data of the backend; interpretation of the
+ * data is up to the backend
+ */
+#define db_get_indexdata_ptr(db, i) (db_get_indexdata_arrptr(db) + (i))
+
+#define index_get_dbname(p)			ham_db2h16((p)->b._dbname)
+#define index_set_dbname(p, n)		(p)->b._dbname = ham_h2db16(n)
+
+#define index_get_max_keys(p)		ham_db2h16((p)->b._maxkeys)
+#define index_set_max_keys(p, n)	(p)->b._maxkeys = ham_h2db16(n)
+
+#define index_get_keysize(p)		ham_db2h16((p)->b._keysize)
+#define index_set_keysize(p, n)		(p)->b._keysize = ham_h2db16(n)
+
+#define index_get_self(p)			ham_db2h_offset((p)->b._self)
+#define index_set_self(p, n)		(p)->b._self = ham_h2db_offset(n)
+
+#define index_get_flags(p)			ham_db2h32((p)->b._flags)
+#define index_set_flags(p, n)		(p)->b._flags = ham_h2db32(n)
+
+#define index_get_recno(p)			ham_db2h_offset((p)->b._recno)
+#define index_set_recno(p, n)		(p)->b._recno = ham_h2db_offset(n)
 
 /*
  * get the currently active transaction
@@ -556,10 +608,9 @@ struct ham_db_t
 /*
  * get the freelist object of the database
  */
-#define db_get_freelist(db)       (freelist_payload_t *)                       \
+#define db_get_freelist(db)       ((freelist_payload_t *)                      \
                                      (page_get_payload(db_get_header_page(db))+\
-                                     sizeof(db_header_t)+                      \
-                                     db_get_max_databases(db)*DB_INDEX_SIZE)
+                                     SIZEOF_FULL_HEADER(db)))
 
 /*
  * get the dirty-flag
