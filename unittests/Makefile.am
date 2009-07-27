@@ -35,7 +35,6 @@ test_SOURCES    = log.cpp \
                   page.cpp \
                   txn.cpp \
                   memtracker.cpp
-test_SOURCES    = hamsterdb.cpp main.cpp memtracker.cpp
 
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la -ldl
 
