@@ -156,6 +156,28 @@ typedef struct {
 
 } ham_parameter_t;
 
+
+/**
+ * @defgroup ham_data_access_modes hamsterdb Data Access Mode Codes
+ * @{
+ */
+
+/** Assume backwards compatible a.k.a. 'classical' behaviour. */
+#define HAM_DAM_CLASSIC                  0
+
+/** Assume sequential insert (and few or no delete) operations. */
+#define HAM_DAM_SEQUENTIAL_INSERT        0x8001
+
+/** Assume random access (a mixed bag of random insert and delete). This
+ * is the default setting for Databases created with versions 
+ * newer than 1.0.9 */
+#define HAM_DAM_RANDOM_WRITE_ACCESS      0x8000
+
+/**
+ * @}
+ */
+
+
 /**
  * @defgroup ham_status_codes hamsterdb Status Codes
  * @{
@@ -239,14 +261,28 @@ typedef struct {
  * @param message The error message
  * @param level The error level:
  *      <ul>
- *       <li>0</li> a debug message
- *       <li>1</li> a normal error message
- *       <li>2</li> reserved
- *       <li>3</li> a fatal error message
+ *       <li>HAM_DEBUG_LEVEL_DEBUG</li> a debug message
+ *       <li>HAM_DEBUG_LEVEL_NORMAL</li> a normal error message
+ *       <li>HAM_DEBUG_LEVEL_FATAL</li> a fatal error message
  *      </ul>
  */
 typedef void (HAM_CALLCONV *ham_errhandler_fun)
                     (int level, const char *message);
+
+/**
+ * a debug message
+ */
+#define HAM_DEBUG_LEVEL_DEBUG       0
+
+/**
+ * a normal error message 
+ */
+#define HAM_DEBUG_LEVEL_NORMAL      1
+
+/** 
+ * a fatal error message 
+ */
+#define HAM_DEBUG_LEVEL_FATAL       3
 
 /**
  * Sets the global error handler
@@ -409,7 +445,8 @@ ham_env_create(ham_env_t *env, const char *filename,
  *       <li>@a HAM_DISABLE_FREELIST_FLUSH</li> This flag is deprecated.
  *       <li>@a HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
- *            a given file at a given time. 
+ *            a given file at a given time. Deprecated - this is now the
+ *            default
  *       <li>@a HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
  *            Database. Not allowed in combination with @a HAM_IN_MEMORY_DB, 
  *            @a HAM_DISABLE_FREELIST_FLUSH and @a HAM_WRITE_THROUGH.
@@ -436,6 +473,15 @@ ham_env_create(ham_env_t *env, const char *filename,
  *            Page sizes must be a multiple of 1024.
  *        <li>HAM_PARAM_MAX_ENV_DATABASES</li> The number of maximum
  *            Databases in this Environment; default value: 16.
+ *        <li>HAM_PARAM_DATA_ACCESS_MODE</li> Gives a hint regarding data 
+ *            access patterns. The default setting optimizes hamsterdb
+ *            for random read/write access (@a HAM_DAM_RANDOM_WRITE_ACCESS).
+ *            Use @a HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
+ *            is automatically set for record number Databases). Use
+ *            @a HAM_DAM_CLASSIC if you want to open this Environment with
+ *            hamsterdb versions <= 1.0.9.
+ *            Data Access Mode hints can be set for individual Databases, too
+ *            (see @a ham_create_ex for details).
  *      </ul>
  *
  * @return @a HAM_SUCCESS upon success
@@ -509,7 +555,8 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *       <li>@a HAM_DISABLE_FREELIST_FLUSH</li> This flag is deprecated.
  *       <li>@a HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
- *            a given file at a given time.
+ *            a given file at a given time. Deprecated - this is now the
+ *            default
  *       <li>@a HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
  *            Database. Will return @a HAM_NEED_RECOVERY, if the Database
  *            is in an inconsistent state. Not allowed in combination 
@@ -555,7 +602,14 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  * Only those values requested by the parameter array will be stored.
  *
  * @param env A valid Environment handle
- * @param param An array of ham_parameter_t structures
+ * @param param An array of ham_parameter_t structures. The following
+ *        parameters are available:
+ *      <ul>
+ *        <li>HAM_PARAM_CACHESIZE</li> The size of the Database cache,
+ *            in bytes. The default size is defined in src/config.h
+ *            as HAM_DEFAULT_CACHESIZE - usually 256kb.
+ *      </ul>
+ *
  *
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if the @a env pointer is NULL or
@@ -1016,6 +1070,15 @@ ham_create(ham_db_t *db, const char *filename,
  *            Page sizes must be a multiple of 1024.
  *        <li>HAM_PARAM_KEYSIZE</li> The size of the keys in the B+Tree
  *            index. The default size is 21 bytes.
+ *        <li>HAM_PARAM_DATA_ACCESS_MODE</li> Gives a hint regarding data 
+ *            access patterns. The default setting optimizes hamsterdb
+ *            for random read/write access (@a HAM_DAM_RANDOM_WRITE_ACCESS).
+ *            Use @a HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
+ *            is automatically set for record number Databases). Use
+ *            @a HAM_DAM_CLASSIC if you want to open this Database with
+ *            hamsterdb versions <= 1.0.9.
+ *            Data Access Mode hints can be set for individual Databases, too
+ *            (see @a ham_create_ex for details).
  *      </ul>
  *
  * @return @a HAM_SUCCESS upon success
@@ -1200,13 +1263,18 @@ ham_open_ex(ham_db_t *db, const char *filename,
  * Databases */
 #define HAM_PARAM_MAX_ENV_DATABASES  0x00000103
 
+/** Parameter name for @a ham_env_create_ex and @a ham_create; set the
+ * expected access mode. Specify zero (0, a.k.a. @a HAM_DAM_CLASSIC) 
+ * to have the database act in a* backwards compatible way.
+ */
+#define HAM_PARAM_DATA_ACCESS_MODE   0x00000104
+
 /** Parameter names to query information with @a ham_env_get_parameters
  * and @a ham_get_parameters */
 #define HAM_PARAM_GET_FLAGS          0x00000200
 #define HAM_PARAM_GET_FILEMODE       0x00000201
 #define HAM_PARAM_GET_FILENAME       0x00000202
 #define HAM_PARAM_GET_KEYS_PER_PAGE  0x00000203
-
 
 /**
  * Retrieve the current value for a given Database setting
@@ -1412,7 +1480,8 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * @param record The record of the item
  * @param flags Optional flags for searching; may be set to either
  *        @a HAM_FIND_EXACT_MATCH (default, 0 (zero)) or a combination of
- *        @a HAM_FIND_NEAR_LT and/or @a HAM_FIND_NEAR_GT
+ *        @a HAM_FIND_NEAR_LT and/or @a HAM_FIND_NEAR_GT. See the declaration
+ *        of @a ham_cursor_find for additional details.
  *
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if @a db, @a key or @a record is NULL
@@ -1777,17 +1846,16 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  * Note that @a ham_cursor_find can not search for duplicate keys. If @a key 
  * has multiple duplicates, only the first duplicate is returned.
  *
- * Note that key->data will point to temporary data. This pointer
- * will be invalidated by subsequent hamsterdb API calls. See
- * a HAM_KEY_USER_ALLOC on how to change this behaviour.
- *
  * When either or both @a HAM_FIND_LT_MATCH and/or @a HAM_FIND_GT_MATCH
  * have been specified as flags, the @a key structure will be overwritten
  * when an approximate match was found: the @a key and @a record 
- * structures will then point at the located @a key and @a record.
+ * structures will then point at the located @a key (and @a record).
  * In this case the caller should ensure @a key points at a structure
  * which must adhere to the same restrictions and conditions as specified
- * for @a ham_cursor_move(...,HAM_CURSOR_*).
+ * for @a ham_cursor_move(...,HAM_CURSOR_*):
+ * key->data will point to temporary data upon return. This pointer
+ * will be invalidated by subsequent hamsterdb API calls. See
+ * @a HAM_KEY_USER_ALLOC on how to change this behaviour.
  *
  * Further note that the @a key structure must be non-const at all times as its 
  * internal flag bits may be written to. This is done for your benefit, as 
@@ -1801,8 +1869,16 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  * @a HAM_FIND_EXACT_MATCH.
  *
  * @param cursor A valid Cursor handle
- * @param key A valid key structure
- * @param key A valid @a ham_key_t structure.
+ * @param key A pointer to a @a ham_key_t structure. If this
+ *      pointer is not NULL, the key of the new item is returned.
+ *      Note that key->data will point to temporary data. This pointer
+ *      will be invalidated by subsequent hamsterdb API calls. See
+ *      @a HAM_KEY_USER_ALLOC on how to change this behaviour.
+ * @param record An optional pointer to a @a ham_record_t structure. If this
+ *      pointer is not NULL, the record of the item found is returned.
+ *      Note that record->data will point to temporary data. This pointer
+ *      will be invalidated by subsequent hamsterdb API calls. See
+ *      @a HAM_RECORD_USER_ALLOC on how to change this behaviour.
  * @param flags Optional flags for searching, which can be combined with
  *        bitwise OR. Possible flags are:
  *      <ul>
