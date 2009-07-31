@@ -322,9 +322,8 @@ public:
 
     /** Returns the last Database error. */
     ham_status_t get_error() {
-        if (!m_db) {
-			throw error(HAM_NOT_INITIALIZED);
-        }
+        if (!m_db)
+			return (HAM_NOT_INITIALIZED);
         return (ham_get_error(m_db));
     }
 
