@@ -22,6 +22,7 @@
 #include "error.h"
 #include "os.h"
 
+#define ALLOW_MULTIPLE_ASYNCHRONOUS_WRITERS
 
 static const char *DisplayError(char* buf, ham_size_t buflen, DWORD errorcode)
 {
@@ -288,7 +289,13 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
                     ? 0 
                     : (flags & HAM_READ_ONLY)
 					? (FILE_SHARE_READ|FILE_SHARE_WRITE)
-					: FILE_SHARE_READ);
+					: 
+#if defined(ALLOW_MULTIPLE_ASYNCHRONOUS_WRITERS)
+				   	  (FILE_SHARE_READ|FILE_SHARE_WRITE) 
+#else
+					  FILE_SHARE_READ 
+#endif
+						  );
 	DWORD access = ((flags & HAM_READ_ONLY)
 					? GENERIC_READ
 					: (GENERIC_READ|GENERIC_WRITE));
@@ -351,7 +358,13 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
                     ? 0 
                     : (flags & HAM_READ_ONLY)
 					? (FILE_SHARE_READ|FILE_SHARE_WRITE)
-					: FILE_SHARE_READ);
+					: 
+#if defined(ALLOW_MULTIPLE_ASYNCHRONOUS_WRITERS)
+				  	  (FILE_SHARE_READ|FILE_SHARE_WRITE)
+#else
+					  FILE_SHARE_READ 
+#endif
+				  );
 	DWORD access = ((flags & HAM_READ_ONLY)
 					? GENERIC_READ
 					: (GENERIC_READ|GENERIC_WRITE));
