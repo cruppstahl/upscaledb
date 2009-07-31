@@ -48,7 +48,7 @@ static void HAM_CALLCONV
 my_errhandler(int level, const char *message)
 {
 #ifndef HAM_DEBUG
-    if (level==DBG_LVL_DEBUG)
+    if (level==HAM_DEBUG_LEVEL_DEBUG)
         return;
 #endif
     fprintf(stderr, "%s\n", message);

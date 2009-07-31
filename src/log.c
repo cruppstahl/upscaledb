@@ -19,6 +19,7 @@
 #include "log.h"
 #include "device.h"
 #include "util.h"
+#include "error.h"
 
 #define LOG_DEFAULT_THRESHOLD   64
 
