@@ -72,8 +72,24 @@ typedef HAM_PACK_0 struct HAM_PACK_1
     /* size of the page */
     ham_u32_t _pagesize;
 
+	/*
+	 * NOTE: formerly, the _max_databases was 32 bits, but since
+	 * nobody would use more than 64K tables/indexes, we have the
+	 * MSW free for repurposing; as we store data in Little Endian
+	 * order, that would be the second WORD.
+     *
+	 * That is now repurposed to recall the probable access mode
+	 * as once set up during ham_create_ex/ham_env_create_db.
+     *
+	 * For reasons of backwards compatibility, the default value
+	 * there would be zero (0).
+     */
+
     /* maximum number of databases for this environment */
-    ham_u32_t _max_databases;
+    ham_u16_t _max_databases;
+
+    /* probable data access mode; 0: classic */
+    ham_u16_t _data_access_mode;
 
     /* 
      * following here: 
@@ -157,13 +173,24 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 /*
  * get the maximum number of databases for this file
  */
-#define db_get_max_databases(db)   ham_db2h32(db_get_header(db)->_max_databases)
+#define db_get_max_databases(db)   ham_db2h16(db_get_header(db)->_max_databases)
 
 /*
  * set the maximum number of databases for this file
  */
 #define db_set_max_databases(db,s)  db_get_header(db)->_max_databases=        \
-                                            ham_h2db32(s)
+                                            ham_h2db16(s)
+
+/*
+ * get the expected data access mode for this file
+ */
+#define db_get_data_access_mode(db)   ham_db2h16(db_get_header(db)->_data_access_mode)
+
+/*
+ * set the expected data access mode for this file
+ */
+#define db_set_data_access_mode(db,s)  db_get_header(db)->_data_access_mode= \
+                                            ham_h2db16(s)
 
 
 #include "packstart.h"
@@ -173,7 +200,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
  */
 typedef HAM_PACK_0 union HAM_PACK_1 
 {
-	struct {
+	HAM_PACK_0 struct HAM_PACK_1 {
 		/* name of the DB: 1..EMPTY_DATABASE_NAME-1 */
 		ham_u16_t _dbname;
 
@@ -183,6 +210,9 @@ typedef HAM_PACK_0 union HAM_PACK_1
         /* key size in this page */
 		ham_u16_t _keysize;
 
+        /* reserved in 1.0.x up to 1.0.9 */
+		ham_u16_t _reserved;
+
 		/** address of this page */
 		ham_offset_t _self;
 
@@ -191,7 +221,10 @@ typedef HAM_PACK_0 union HAM_PACK_1
 
         /* last used record number value */
 		ham_offset_t _recno;
-	} b;
+
+        /* reserved in 1.0.x up to 1.0.9 */
+		ham_u32_t _reserved2;
+	} HAM_PACK_2 b;
 
 	ham_u8_t _space[32];
 } HAM_PACK_2 db_indexdata_t;
@@ -230,6 +263,11 @@ typedef HAM_PACK_0 union HAM_PACK_1
 
 #define index_get_recno(p)			ham_db2h_offset((p)->b._recno)
 #define index_set_recno(p, n)		(p)->b._recno = ham_h2db_offset(n)
+
+#define index_clear_reserved(p)		do {                                      \
+										(p)->b._reserved = 0;                 \
+										(p)->b._reserved2 = 0;                \
+									} while (0)
 
 /*
  * get the currently active transaction

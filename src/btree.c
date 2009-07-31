@@ -156,6 +156,10 @@ my_fun_calc_keycount(ham_btree_t *be, ham_size_t *maxkeys, ham_u16_t keysize)
 			ham_trace(("keysize/pagesize ratio too high"));
 			return (db_set_error(db, HAM_INV_KEYSIZE));
 		}
+		else if (*maxkeys==0) {
+			ham_trace(("keysize too large for the current pagesize"));
+			return (db_set_error(db, HAM_INV_KEYSIZE));
+		}
 	}
 
 	return (0);
@@ -178,6 +182,10 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
         ham_trace(("keysize/pagesize ratio too high"));
         return (db_set_error(db, HAM_INV_KEYSIZE));
     }
+	else if (maxkeys==0) {
+		ham_trace(("keysize too large for the current pagesize"));
+		return (db_set_error(db, HAM_INV_KEYSIZE));
+	}
 
     /*
      * allocate a new root page
@@ -200,6 +208,7 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
 
     btree_set_rootpage(be, page_get_self(root));
 
+    index_clear_reserved(indexdata);
     index_set_max_keys(indexdata, maxkeys);
     index_set_keysize(indexdata, keysize);
     index_set_self(indexdata, page_get_self(root));
@@ -255,6 +264,7 @@ my_fun_flush(ham_btree_t *be)
      * store root address and maxkeys (first two bytes are the
      * database name)
      */
+    index_clear_reserved(indexdata);
     index_set_max_keys(indexdata, btree_get_maxkeys(be));
     index_set_keysize(indexdata, be_get_keysize(be));
     index_set_self(indexdata, btree_get_rootpage(be));
