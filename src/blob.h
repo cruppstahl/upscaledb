@@ -24,8 +24,8 @@ extern "C" {
 #include "page.h"
 #include "keys.h"
 
-#include "packstart.h"
 
+#include "packstart.h"
 
 /**
  * a blob structure (blob_t)
@@ -124,7 +124,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
      */
     ham_offset_t _rid;
 
-} dupe_entry_t;
+} HAM_PACK_2 dupe_entry_t;
 
 #include "packstop.h"
 
@@ -186,7 +186,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
      */
     dupe_entry_t _entries[1];
 
-} dupe_table_t;
+} HAM_PACK_2 dupe_table_t;
 
 #include "packstop.h"
 
