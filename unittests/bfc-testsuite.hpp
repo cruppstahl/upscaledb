@@ -18,24 +18,45 @@
   2. Altered source versions must be plainly marked as such, and must not be
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
- *
  */
+
+/*
+The BFC unit test suite comes as a set of one header file, which you must
+include in each test source file defining tests / test fixtures, plus a 
+few support files, which must be compiled into the test binary.
+
+This is the global header file (bfc-testsuite.hpp).
+
+The support source files are:
+
+    bfc-testsuite.cpp  (implements all BFC core methods; compile-time speedup)
+
+	bfc-signal.c       (implements a portable signal function, used by the BFC kernel)
+
+	bfc_signal.h       (header file which exports the relevant content of bfc_signal.c)
+
+	empty_sample.cpp   (an example BFC test fixture and (nil) test case: Test1
+*/
 
 #ifndef BFC_TESTSUITE_HPP__
 #define BFC_TESTSUITE_HPP__
-
-#include <vector>
-#include <string>
-#include <iostream>
-#include <stdarg.h>
 
 #if defined(_MSC_VER)
 #include <windows.h>    // __try/__except support API
 #endif
 
+#include <vector>
+#include <string>
+#include <iostream>
+#include <stdarg.h>
+#include <signal.h> /* the signal catching / hardware exception catching stuff for UNIX (and a bit for Win32/64 too) */
+#include <setjmp.h>
+
+
 namespace bfc {
 
 // forward declarations
+class error;
 class fixture;
 class testrunner;
 
@@ -47,62 +68,62 @@ typedef void (fixture::*method)();
 
 #define BFC_ASSERT(expr)  \
                         while ((expr)==0) { \
-                            throw error(__FILE__, __LINE__, \
+                            throw bfc::error(__FILE__, __LINE__, \
                             get_name(), __FUNCTION__, \
                             "assertion failed in expr "#expr); }
 
 #define BFC_ASSERT_EQUAL(exp, act) \
                         while ((exp)!=(act)) { \
-                            throw error(__FILE__, __LINE__, \
+                            throw bfc::error(__FILE__, __LINE__, \
                             get_name(), __FUNCTION__, \
                             "assertion failed in expr "#exp" == "#act); }
 
 #define BFC_ASSERT_NOTEQUAL(exp, act) \
                         while ((exp)==(act)) { \
-                            throw error(__FILE__, __LINE__, \
+                            throw bfc::error(__FILE__, __LINE__, \
                             get_name(), __FUNCTION__, \
                             "assertion failed in expr "#exp" != "#act); }
 
 #define BFC_ASSERT_NULL(expr)  \
                         while ((expr)!=0) { \
-                            throw error(__FILE__, __LINE__, \
+                            throw bfc::error(__FILE__, __LINE__, \
                             get_name(), __FUNCTION__, \
                             "assertion failed in expr "#expr" == NULL"); }
 
 #define BFC_ASSERT_NOTNULL(expr)  \
                         while ((expr)==0) { \
-                            throw error(__FILE__, __LINE__, \
+                            throw bfc::error(__FILE__, __LINE__, \
                             get_name(), __FUNCTION__, \
                             "assertion failed in expr "#expr" != NULL"); }
 
 // for checks within loops: report round # as 'scenario #'
 #define BFC_ASSERT_I(expr, scenario)  \
                         while ((expr)==0) { \
-                            throw error(__FILE__, __LINE__, \
+                            throw bfc::error(__FILE__, __LINE__, \
                             get_name(), __FUNCTION__, \
 							"assertion failed in expr "#expr " for scenario #%d", int(scenario)); }
 
 #define BFC_ASSERT_EQUAL_I(exp, act, scenario) \
                         while ((exp)!=(act)) { \
-                            throw error(__FILE__, __LINE__, \
+                            throw bfc::error(__FILE__, __LINE__, \
                             get_name(), __FUNCTION__, \
 							"assertion failed in expr "#exp" == "#act " for scenario #%d", int(scenario)); }
 
 #define BFC_ASSERT_NOTEQUAL_I(exp, act, scenario) \
                         while ((exp)==(act)) { \
-                            throw error(__FILE__, __LINE__, \
+                            throw bfc::error(__FILE__, __LINE__, \
                             get_name(), __FUNCTION__, \
 							"assertion failed in expr "#exp" != "#act " for scenario #%d", int(scenario)); }
 
 #define BFC_ASSERT_NULL_I(expr, scenario)  \
                         while ((expr)!=0) { \
-                            throw error(__FILE__, __LINE__, \
+                            throw bfc::error(__FILE__, __LINE__, \
                             get_name(), __FUNCTION__, \
 							"assertion failed in expr "#expr" == NULL for scenario #%d", int(scenario)); }
 
 #define BFC_ASSERT_NOTNULL_I(expr, scenario)  \
                         while ((expr)==0) { \
-                            throw error(__FILE__, __LINE__, \
+                            throw bfc::error(__FILE__, __LINE__, \
                             get_name(), __FUNCTION__, \
 							"assertion failed in expr "#expr" != NULL for scenario #%d", int(scenario)); }
 
@@ -112,39 +133,56 @@ struct test
     method foo;
 };
 
-struct error
+class error
 {
-    error(const char *f, int l, const char *fix, const char *t, const char *m, ...) 
-    :   file(f), line(l), fixture(fix), test(t)
-    {
-	va_list a;
-	va_start(a, m);
-	char buf[2048];
-	if (!m) m = "";
-#if 0 // general use, so no direct dependency on hamster:util.h
-	util_vsnprintf(buf, sizeof(buf), m, a);
-#else
-#if defined(HAM_OS_POSIX)
-    vsnprintf(buf, sizeof(buf), m, a);
-#elif defined(HAM_OS_WIN32)
-    _vsnprintf(buf, sizeof(buf), m, a);
-#elif defined(_MSC_VER)
-    _vsnprintf(buf, sizeof(buf), m, a);
-#else
-    vsprintf(buf, m, a); // unsafe
-#endif
-#endif
-	va_end(a);
-	buf[sizeof(buf)-1] = 0;
-	message = buf;
-	}
+public:
+    error(const char *f, int l, const char *fix, const char *t, const char *m, ...);
+    error(const char *f, int l, const std::string &fix, const std::string &t, const char *m, ...);
+    error(const std::string &f, int l, const std::string &fix, const std::string &t, const char *m, ...);
+    error(const error &base, const char *m, ...);
+    error(const error &src);
+    ~error();
+    void vfmt_message(const char *msg, va_list args);
+    void fmt_message(const char *msg, ...);
 
+public:
     std::string file;
     int line;
     std::string fixture;
     std::string test;
     std::string message;
 };
+
+
+
+/*
+   State used to signal the (UNIX, [Win32/64]) hardware exception
+   handler setup code where we are in the testing process, as we
+   are pushing and popping custom, BFC-specific signal handlers
+   on/off the signal, ahem, 'stack'.
+
+   On Win32/64, using MSVC, most of this burden is taken up by the
+   MSVC-specific __try/__except mechanism, but UNIX/GCC doesn't have 
+   such a mechanism; there, it's signals galore.
+ */
+typedef enum 
+{
+	// 'major' states:
+	BFC_STATE_NONE             = 0,
+	BFC_STATE_SETUP            = 1,
+	BFC_STATE_FUT_INVOCATION   = 2,
+	BFC_STATE_TEARDOWN         = 3,
+
+	BFC_STATE_MAJOR_STATE_MASK = 0x0FFF,
+
+	// 'minor' states:
+	BFC_STATE_BEFORE           = 0x1000,
+	BFC_STATE_AFTER            = 0x2000,
+
+	BFC_STATE_MINOR_STATE_MASK = 0xF0000
+} bfc_state_t;
+
+
 
 class fixture
 {
@@ -178,16 +216,10 @@ public:
 		Return TRUE when an exception occurred and the bfc::error ex
 	    instance is filled accordingly, FALSE otherwise (~ successful test).
 	*/
-	virtual bool FUT_invoker(testrunner *me, method m, const char *funcname, error &ex)
+	virtual bool FUT_invoker(testrunner *me, method m, const char *funcname, bfc_state_t state, error &ex)
 	{
-        try {
-		    (this->*m)();
-        }
-        catch (bfc::error &e) {
-			ex = e;
-            return (true);
-        }
-		return (false);
+		(this->*m)();
+		return false;
 	}
 
 	// clear all tests
@@ -196,20 +228,7 @@ public:
     }
 
     // register a new test function
-    void register_test(const char *name, method foo) {
-		static method *m;
-        test t;
-        t.name=name;
-        t.foo=foo;
-		// UGLY!!
-		// add some random shitty code, otherwise the MSVC compiler
-		// will set t.foo to zero because of optimization
-		// (thanks, Microsoft...)
-		m=&t.foo;
-		if (foo)
-			m++;
-        m_tests.push_back(t);
-    }
+    void register_test(const char *name, method foo);
 
     std::vector<test> &get_tests() {
         return m_tests;
@@ -220,19 +239,97 @@ private:
     std::vector<test> m_tests;
 };
 
+
+typedef enum
+{
+	BFC_REPORT_IN_OUTER = 1,
+	BFC_REPORT_IN_HERE = 2,
+	BFC_QUIET = 0
+} bfc_error_report_mode_t;
+
+
+extern "C" {
+	/*
+	   WARNING: some systems have 'int' returning signal handlers, others
+	   have 'void' returning signal handlers. Since the ones, which expect
+	   a 'void' return type, will silently ignore the return value
+	   at run-time anyhow, we can keep things simple here and just 
+	   specify 'int'.
+
+	   However, this will cause a set of compiler warnings to appear;
+	   which will be compiler _errors_ when we're compiling the setup
+	   code in C++ mode; hence the forced use of an 'extern "C"'
+	   setup function for this; see the internals in main.cpp...
+
+	   The 'subcode' is in the arg list for the SIGFPE handler.
+
+	   This type must match the type as defined in bfc_signal.h; it is redefined
+	   here for our convenience: now we still only need to #include
+	   this header file in our fixture/test sources.
+     */
+    typedef int (*signal_handler_f)(int signal_code, int sub_code);
+}
+
+
 class testrunner
 {
 protected:
-    testrunner()
-	: m_success(0),
-	m_catch_coredumps(1),
-	m_catch_exceptions(1),
-	m_outputdir(""),
-	m_inputdir("")
-	{ }
+    testrunner();
+    ~testrunner();
 
-    ~testrunner()
-    { }
+protected:
+	/*
+	This function must be 'static' because otherwise MSVC will complain loudly:
+
+	error C2712: Cannot use __try in functions that require object unwinding
+	*/
+	static bool exec_testfun(testrunner *me, fixture *f, method m, const char *funcname, bfc_state_t state, error &ex);
+	static bool cpp_eh_run(testrunner *me, fixture *f, method m, const char *funcname, bfc_state_t state, error &ex);
+
+#if defined(_MSC_VER)
+	static void cvt_hw_ex_as_cpp_ex(const EXCEPTION_RECORD *e, testrunner *me, const fixture *f, method m, const char *funcname, error &err);
+	static int is_hw_exception(unsigned int code, struct _EXCEPTION_POINTERS *ep, EXCEPTION_RECORD *dst);
+#endif
+
+	static const int m_signals_to_catch[];
+
+	// MSVC: #define NSIG 23     /* maximum signal number + 1 */
+	struct bfc_signal_context_t
+	{
+		bfc_signal_context_t();
+		~bfc_signal_context_t();
+
+		struct
+		{
+			signal_handler_f handler;
+		} old_sig_handlers[NSIG + 1]; 
+		/*
+		   ^^^ most systems include signal 0 in the NSIG count, but we should 
+		   dimension this one conservatively.
+
+		   (see also [APitUE, pp. 292])
+		 */
+
+		bool sig_handlers_set;
+
+		testrunner *this_is_me;
+		const fixture *active_fixture;
+		method active_method;
+		std::string active_funcname;
+		jmp_buf signal_return_point;
+
+		// things that may get changed inside the signal handler (~ will change asynchronously):
+		volatile bfc_state_t active_state;
+		volatile bool error_set;
+		volatile bfc_error_report_mode_t print_err_report;
+		/* volatile */ bfc::error current_error;
+	};
+
+	static bfc_signal_context_t m_current_signal_context;
+
+	static bool setup_signal_handlers(testrunner *me, const fixture *f, method m, const char *funcname, bfc_state_t sub_state, error &err);
+	static int BFC_universal_signal_handler(int signal_code, int sub_code);
+	static const char *bfc_sigdescr(int signal_code);
 
 public:
 	// register a new test fixture
@@ -250,48 +347,22 @@ public:
         m_success++;
     }
 
+    /*
+	reset error collection, etc.
+	
+	invoke this before calling a run() method when you don't wish to use
+	the default, built-in reporting (print_err_report == true)
+	*/
+    void init_run(void);
+
     // print all errors
-    void print_errors(void) {
-        std::vector<error>::iterator it;
-        unsigned i=1;
+    void print_errors(bool panic_flush = false);
 
-        for (it=m_errors.begin(); it!=m_errors.end(); it++, i++) {
-#if 0
-			std::cout << "----- error #" << i << " in " 
-                      << it->fixture << "::" << it->test << std::endl;
-            std::cout << it->file << ":" << it->line << " "
-                      << it->message.c_str() << std::endl;
-#else
-            std::cout << "----- error #";
-			std::cout << i;
-			std::cout << " in ";
-			std::cout << (it->fixture.size() > 0  ? it->fixture.c_str() : "???");
-			std::cout << "::";
-			std::cout << (it->test.size() > 0  ? it->test.c_str() : "???");
-			std::cout << std::endl;
-			std::cout << (it->file.size() > 0  ? it->file.c_str() : "???");
-			std::cout << ":";
-			std::cout << it->line;
-			std::cout << " ";
-			std::cout << (it->message.size() > 0 ? it->message.c_str() : "???");
-			std::cout << std::endl;
-#endif
-		}
-
-        std::cout << "-----------------------------------------" << std::endl;
-        std::cout << "total: " << m_errors.size() << " errors, "
-                  << (m_success+m_errors.size()) << " tests" << std::endl;
-    }
-
+	// run all tests - returns number of errors
+	unsigned int run(bool print_err_report = true);
 	// run all tests (optional fixture and/or test selection) - returns number of errors
-	unsigned int run(const char *fixture_name = NULL, const char *test_name = NULL, 
-			bool print_err_report = true) 
-	{
-		std::string fixname(fixture_name ? fixture_name : "");
-		std::string testname(test_name ? test_name : "");
-		
-		return run(fixname, testname, fixname, testname, true, print_err_report);
-	}
+	unsigned int run(const char *fixture_name, const char *test_name = NULL, 
+			bool print_err_report = true);
 
 	// run all tests in a given range (start in/exclusive, end inclusive)
 	//
@@ -299,165 +370,22 @@ public:
 	unsigned int run(
 		const std::string &begin_fixture, const std::string &begin_test,
 		const std::string &end_fixture, const std::string &end_test,
-		bool inclusive_begin, bool print_err_report = true)
-	{
-		std::vector<fixture *>::iterator it;
-		if (print_err_report)
-		{
-			m_errors.clear();
-		}
-		bool f_start = (begin_fixture.size() == 0);
-		bool f_end = false;
-		bool delay = !inclusive_begin;
-		bool t_start = (begin_test.size() == 0);
-		bool t_end = false;
-
-		for (it = m_fixtures.begin(); it != m_fixtures.end() && !f_end; it++)
-		{
-			bool b_match = (begin_fixture.size() == 0 
-							|| begin_fixture.compare((*it)->get_name()) == 0);
-			bool e_match = (end_fixture.size() == 0 
-							|| end_fixture.compare((*it)->get_name()) == 0);
-
-			f_start |= b_match;
-
-			if (f_start && !f_end)
-			{
-				// fixture-wise, we've got a 'GO!'
-				std::vector<test>::iterator it2;
-				fixture *f = (*it);
-
-				for (it2 = f->get_tests().begin(); 
-					it2 != f->get_tests().end() && !t_end; 
-					it2++) 
-				{
-					t_start |= (b_match && begin_test.compare(it2->name) == 0);
-
-					if (t_start && delay)
-					{
-						delay = false;
-					}
-					else if (t_start && (!t_end || !delay))
-					{
-						const test &t = *it2;
-					    run(f, &t);
-					}
-
-					if (t_end)
-					{
-						delay = true;
-					}
-					t_end |= (e_match && end_test.compare(it2->name) == 0);
-				}
-			}
-
-			f_end |= (e_match && end_fixture.size() != 0); // explicit match only
-		}
-
-		if (print_err_report)
-		{
-			print_errors();
-		}
-		return ((unsigned int)m_errors.size());
-	}
+		bool inclusive_begin, bool print_err_report = true);
 
 	// run all tests of a fixture
-    unsigned int run(fixture *f, const char *test_name = NULL, bool print_err_report = true) 
-	{
-		if (print_err_report)
-		{
-			m_errors.clear();
-		}
-        std::vector<test>::iterator it;
-		std::string testname(test_name ? test_name : "");
-
-        for (it=f->get_tests().begin(); it!=f->get_tests().end(); it++) 
-		{
-			if (testname.size() == 0 || testname.compare(it->name) == 0)
-			{
-			    run(f, &(*it));
-			}
-		}
-
-		if (print_err_report)
-		{
-			print_errors();
-		}
-		return ((unsigned int)m_errors.size());
-	}
+    unsigned int run(fixture *f, const char *test_name = NULL, bool print_err_report = true);
 
 	// run a single test of a fixture
-    bool run(fixture *f, const test *test) 
-	{
-        bool success=true;
+    bool run(fixture *f, const test *test, bfc_error_report_mode_t print_err_report = BFC_REPORT_IN_HERE);
 
-		method m = test->foo;
-		error e(__FILE__, __LINE__, f->get_name(), test->name.c_str(), "");
-		bool threw_ex;
+protected:
+	// run a single test of a fixture
+    bool exec_a_single_test(fixture *f, const test *test);
 
-		std::cout << "starting " << f->get_name()
-				  << "::" << test->name << std::endl;
-
-		threw_ex = exec_testfun(this, f, &fixture::setup, "setup", e);
-		if (threw_ex)
-		{
-			//printf("FAILED!\n");
-			success=false;
-			add_error(&e);
-		}
-		else
-		{
-			threw_ex = exec_testfun(this, f, m, test->name.c_str(), e);
-			if (threw_ex)
-			{
-				//printf("FAILED!\n");
-				success=false;
-				add_error(&e);
-			}
-		}
-
-		/* in any case: call the teardown function */
-		threw_ex = exec_testfun(this, f, &fixture::teardown, "teardown", e);
-		if (threw_ex)
-		{
-			//printf("FAILED!\n");
-			success=false;
-			add_error(&e);
-		}
-
-		/* only count a completely flawless run as a success: */
-		if (success)
-		{
-			add_success();
-		}
-		return success;
-	}
-
-	/*
-	This function must be 'static' because otherwise MSVC will complain loudly:
-
-	error C2712: Cannot use __try in functions that require object unwinding
-	*/
-	static bool exec_testfun(testrunner *me, fixture *f, method m, const char *funcname, error &ex);
-	static bool cpp_eh_run(testrunner *me, fixture *f, method m, const char *funcname, error &ex);
-
-#if defined(_MSC_VER)
-	static void cvt_hw_ex_as_cpp_ex(const EXCEPTION_RECORD *e, testrunner *me, const fixture *f, method m, const char *funcname, error &err);
-	static int is_hw_exception(unsigned int code, struct _EXCEPTION_POINTERS *ep, EXCEPTION_RECORD *dst);
-#endif
-
-    static testrunner *get_instance()  {
-        if (!s_instance)
-            s_instance=new testrunner();
-        return (s_instance);
-    }
-
-    static void delete_instance(void)
-	{
-        if (s_instance)
-            delete s_instance;
-        s_instance = NULL;
-    }
+public:
+	// singleton:
+    static testrunner *get_instance();
+    static void delete_instance(void);
 
     bool catch_coredumps(int catch_coredumps = -1)
 	{
@@ -477,55 +405,19 @@ public:
 		return m_catch_exceptions;
 	}
 
-	const std::string &outputdir(const char *outputdir = NULL)
-	{
-		if (outputdir)
-		{
-			m_outputdir = outputdir;
-#if defined(_MSC_VER)
-			size_t i;
-			for (i = 0; i < m_outputdir.size(); i++)
-			{
-				if (m_outputdir[i] == '\\')
-				{
-					m_outputdir[i] = '/';
-				}
-			}
-#endif
-			if (*outputdir && *(m_outputdir.rbegin()) != '/')
-				m_outputdir += '/';
-		}
-
-		return m_outputdir;
-	}
-
-	const std::string &inputdir(const char *inputdir = NULL)
-	{
-		if (inputdir)
-		{
-			m_inputdir = inputdir;
-#if defined(_MSC_VER)
-			size_t i;
-			for (i = 0; i < m_inputdir.size(); i++)
-			{
-				if (m_inputdir[i] == '\\')
-				{
-					m_inputdir[i] = '/';
-				}
-			}
-#endif
-			if (*inputdir && *(m_inputdir.rbegin()) != '/')
-				m_inputdir += '/';
-		}
-
-		return m_inputdir;
-	}
+	const std::string &outputdir(const char *outputdir = NULL);
+	const std::string &inputdir(const char *inputdir = NULL);
 
 	static std::string expand_inputpath(const char *relative_filepath);
 	static std::string expand_outputpath(const char *relative_filepath);
 
 #define BFC_IPATH(p)	testrunner::expand_inputpath(p).c_str()
 #define BFC_OPATH(p)	testrunner::expand_outputpath(p).c_str()
+
+	static const char *get_bfc_case_filename(const char *f);
+	static int get_bfc_case_lineno(int l);
+	static const char *get_bfc_case_fixturename(const char *f);
+	static const char *get_bfc_case_testname(const char *f);
 
 private:
     static testrunner *s_instance;
