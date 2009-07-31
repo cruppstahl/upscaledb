@@ -1,3 +1,14 @@
+Jul 31, 2009 - chris 
+o performance improvements in the freelist code, freelist was abstracted
+    to allow multiple implementations (all from Ger Hobbelt, 
+    http://www.hobbelt.com, http://www.hebbut.net)
+o added "Data Access Mode" to give hints how Databases/Environments are used;
+    hamsterdb can then optimize its internal algorithms/file formats
+    (all from Ger Hobbelt, http://www.hobbelt.com, http://www.hebbut.net)
+o the unittest framework "bfc" was improved significantly, improved
+    signal catching (all from Ger Hobbelt, http://www.hobbelt.com, 
+    http://www.hebbut.net)
+
 Jul 26, 2009 - chris 
 o the unittest framework "bfc" was improved significantly, allowing new
     command line options and catching HW and win32-exceptions (all from

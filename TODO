@@ -23,7 +23,15 @@ x some unittests are crashing
   x env_open: must read the header-page
     -> also check Ger's patch
 
-o check why bfc swallows the exceptions
+x check why bfc swallows the exceptions
+
+o recno: set HAM_DAM_SEQUENTIAL_INSERT for record number databases
+
+o what if an unknown DAM is set? -> fail to load??
+
+o need new framework to install freelist handlers
+    o use the current code for databases created with hamsterdb <= 1.0.9
+    o use the new code for everything else
 
 o ham_xx_get_parameter: the maxkey value is calculated twice, and not correct
 
