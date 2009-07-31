@@ -19,14 +19,17 @@
 #include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
-class ExtendedKeyTest : public fixture
+class ExtendedKeyTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
     ExtendedKeyTest()
-    :   fixture("ExtendedKeyTest")
+    :   hamsterDB_fixture("ExtendedKeyTest")
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(ExtendedKeyTest, keyStructureTest);
@@ -43,8 +46,10 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    void setup()
-    { 
+    virtual void setup() 
+	{ 
+		__super::setup();
+
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
@@ -55,8 +60,10 @@ public:
         BFC_ASSERT(db_get_extkey_cache(m_db));
     }
     
-    void teardown() 
-    { 
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));

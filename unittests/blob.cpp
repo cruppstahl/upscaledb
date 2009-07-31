@@ -20,19 +20,23 @@
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
-class BlobTest : public fixture
+class BlobTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
     BlobTest(ham_bool_t inmemory=HAM_FALSE, ham_size_t cachesize=0, 
-                const char *name=0)
-    :   fixture(name ? name : "BlobTest"),
-        m_db(0), m_alloc(0), m_inmemory(inmemory), m_cachesize(cachesize)
+                ham_size_t pagesize=0, const char *name="BlobTest")
+    :   hamsterDB_fixture(name),
+        m_db(0), m_alloc(0), m_inmemory(inmemory), m_cachesize(cachesize),
+		m_pagesize(pagesize)
     {
-        if (name)
-            return;
+        //if (name)
+        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(BlobTest, structureTest);
         BFC_REGISTER_TEST(BlobTest, dupeStructureTest);
@@ -52,13 +56,17 @@ protected:
     memtracker_t *m_alloc;
     ham_bool_t m_inmemory;
     ham_size_t m_cachesize;
+	ham_size_t m_pagesize;
 
 public:
-    void setup()
-    { 
-        ham_parameter_t params[2]=
+    virtual void setup() 
+	{ 
+		__super::setup();
+
+	    ham_parameter_t params[3]=
         {
             { HAM_PARAM_CACHESIZE, m_cachesize },
+			{ HAM_PARAM_PAGESIZE, (m_pagesize ? m_pagesize : 4096) },	// otherwise, 16-bit limit bugs in freelist will fire on Win32
             { 0, 0 }
         };
 
@@ -72,8 +80,10 @@ public:
                     m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644, &params[0]));
     }
     
-    void teardown() 
-    { 
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
@@ -302,65 +312,71 @@ public:
 class FileBlobTest : public BlobTest
 {
 public:
-    FileBlobTest()
-    : BlobTest(HAM_FALSE, 1024, "FileBlobTest")
+    FileBlobTest(ham_size_t cachesize=1024, 
+                ham_size_t pagesize=0, const char *name="FileBlobTest")
+    : BlobTest(HAM_FALSE, cachesize, pagesize, name)
     {
-        testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(FileBlobTest, structureTest);
-        BFC_REGISTER_TEST(FileBlobTest, allocReadFreeTest);
-        BFC_REGISTER_TEST(FileBlobTest, replaceTest);
-        BFC_REGISTER_TEST(FileBlobTest, replaceWithBigTest);
-        BFC_REGISTER_TEST(FileBlobTest, replaceWithSmallTest);
-        /* negative tests are not necessary, because hamsterdb asserts that
-         * blob-IDs actually exist */
-        BFC_REGISTER_TEST(FileBlobTest, multipleAllocReadFreeTest);
-        BFC_REGISTER_TEST(FileBlobTest, hugeBlobTest);
-        BFC_REGISTER_TEST(FileBlobTest, smallBlobTest);
     }
-
 };
+
+class FileBlobTest64Kpage : public FileBlobTest
+{
+public:
+    FileBlobTest64Kpage(ham_size_t cachesize=64*1024, 
+                ham_size_t pagesize=64*1024, const char *name="FileBlobTest64Kpage")
+    : FileBlobTest(cachesize, pagesize, name)
+    {
+    }
+};
+
 
 class NoCacheBlobTest : public BlobTest
 {
 public:
-    NoCacheBlobTest()
-    : BlobTest(HAM_FALSE, 0, "NoCacheBlobTest")
+    NoCacheBlobTest(ham_size_t cachesize=0, 
+                ham_size_t pagesize=0, const char *name="NoCacheBlobTest")
+    : BlobTest(HAM_FALSE, cachesize, pagesize, name)
     {
-        testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(NoCacheBlobTest, structureTest);
-        BFC_REGISTER_TEST(NoCacheBlobTest, allocReadFreeTest);
-        BFC_REGISTER_TEST(NoCacheBlobTest, replaceTest);
-        BFC_REGISTER_TEST(NoCacheBlobTest, replaceWithBigTest);
-        BFC_REGISTER_TEST(NoCacheBlobTest, replaceWithSmallTest);
-        /* negative tests are not necessary, because hamsterdb asserts that
-         * blob-IDs actually exist */
-        BFC_REGISTER_TEST(NoCacheBlobTest, multipleAllocReadFreeTest);
-        BFC_REGISTER_TEST(NoCacheBlobTest, hugeBlobTest);
-        BFC_REGISTER_TEST(NoCacheBlobTest, smallBlobTest);
     }
 };
+
+class NoCacheBlobTest64Kpage : public NoCacheBlobTest
+{
+public:
+    NoCacheBlobTest64Kpage(ham_size_t cachesize=0, 
+                ham_size_t pagesize=64*1024, const char *name="NoCacheBlobTest64Kpage")
+    : NoCacheBlobTest(cachesize, pagesize, name)
+    {
+    }
+};
+
 
 class InMemoryBlobTest : public BlobTest
 {
 public:
-    InMemoryBlobTest()
-    : BlobTest(HAM_TRUE, 0, "InMemoryBlobTest")
+    InMemoryBlobTest(ham_size_t cachesize=0, 
+                ham_size_t pagesize=0, const char *name="InMemoryBlobTest")
+    : BlobTest(HAM_TRUE, cachesize, pagesize, name)
     {
-        testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(InMemoryBlobTest, structureTest);
-        BFC_REGISTER_TEST(InMemoryBlobTest, allocReadFreeTest);
-        BFC_REGISTER_TEST(InMemoryBlobTest, replaceTest);
-        BFC_REGISTER_TEST(InMemoryBlobTest, replaceWithBigTest);
-        BFC_REGISTER_TEST(InMemoryBlobTest, replaceWithSmallTest);
-        /* negative tests are not necessary, because hamsterdb asserts that
-         * blob-IDs actually exist */
-        BFC_REGISTER_TEST(InMemoryBlobTest, multipleAllocReadFreeTest);
-        BFC_REGISTER_TEST(InMemoryBlobTest, hugeBlobTest);
-        BFC_REGISTER_TEST(InMemoryBlobTest, smallBlobTest);
     }
 };
+
+class InMemoryBlobTest64Kpage : public InMemoryBlobTest
+{
+public:
+    InMemoryBlobTest64Kpage(ham_size_t cachesize=0, 
+                ham_size_t pagesize=64*1024, const char *name="InMemoryBlobTest64Kpage")
+    : InMemoryBlobTest(cachesize, pagesize, name)
+    {
+    }
+};
+
 
 BFC_REGISTER_FIXTURE(FileBlobTest);
 BFC_REGISTER_FIXTURE(NoCacheBlobTest);
 BFC_REGISTER_FIXTURE(InMemoryBlobTest);
 
+/* re-run these tests with the Win32/Win64 pagesize setting as well! */
+BFC_REGISTER_FIXTURE(FileBlobTest64Kpage);
+BFC_REGISTER_FIXTURE(NoCacheBlobTest64Kpage);
+BFC_REGISTER_FIXTURE(InMemoryBlobTest64Kpage);

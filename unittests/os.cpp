@@ -17,6 +17,7 @@
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
@@ -26,17 +27,13 @@ using namespace bfc;
 #   include <unistd.h>
 #endif
 
-static void HAM_CALLCONV
-my_errhandler(int level, const char *message)
+class OsTest : public hamsterDB_fixture
 {
-    (void)message;
-}
+	define_super(hamsterDB_fixture);
 
-class OsTest : public fixture
-{
 public:
     OsTest()
-    :   fixture("OsTest")
+    :   hamsterDB_fixture("OsTest")
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(OsTest, openCloseTest);
@@ -61,13 +58,10 @@ public:
     }
 
 public:
-    void setup()
-    { 
-        ham_set_errhandler(my_errhandler);
-    }
+    virtual void teardown() 
+	{ 
+		__super::teardown();
 
-    void teardown() 
-    { 
         (void)os::unlink(BFC_OPATH(".test"));
     }
 

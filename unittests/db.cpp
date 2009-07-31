@@ -18,21 +18,28 @@
 #include "../src/page.h"
 #include "../src/env.h"
 #include "memtracker.h"
+#include "../src/btree.h"
+#include "../src/blob.h"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
-class DbTest : public fixture
+
+class DbTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
-    DbTest(bool inmemory=false, const char *name=0)
-    :   fixture(name ? name : "DbTest"),
+    DbTest(bool inmemory=false, const char *name="DbTest")
+    :   hamsterDB_fixture(name),
         m_db(0), m_inmemory(inmemory), m_dev(0), m_alloc(0)
     {
-        if (name)
-            return;
+        //if (name)
+        //    return;
         testrunner::get_instance()->register_fixture(this);
+		BFC_REGISTER_TEST(DbTest, checkStructurePackingTest);
         BFC_REGISTER_TEST(DbTest, headerTest);
         BFC_REGISTER_TEST(DbTest, structureTest);
         BFC_REGISTER_TEST(DbTest, envStructureTest);
@@ -50,8 +57,10 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    void setup()
-    { 
+    virtual void setup() 
+	{ 
+		__super::setup();
+
         ham_page_t *p;
         BFC_ASSERT(0==ham_new(&m_db));
         m_alloc=memtracker_new(); //ham_default_allocator_new();
@@ -66,8 +75,10 @@ public:
         db_set_pagesize(m_db, m_dev->get_pagesize(m_dev));
     }
     
-    void teardown() 
-    { 
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         if (db_get_header_page(m_db)) {
             page_free(db_get_header_page(m_db));
             page_delete(db_get_header_page(m_db));
@@ -293,6 +304,82 @@ public:
         */
         BFC_ASSERT(db_free_page(page, 0)==HAM_SUCCESS);
     }
+
+	// using a function to compare the constants is easier for debugging
+	bool compare_sizes(size_t a, size_t b)
+	{
+		return a == b;
+	}
+
+	void checkStructurePackingTest(void)
+    {
+		int i;
+
+		// checks to make sure structure packing by the compiler is still okay
+		// HAM_PACK_0 HAM_PACK_1 HAM_PACK_2 OFFSETOF
+		BFC_ASSERT(compare_sizes(sizeof(ham_backend_t), OFFSETOF(ham_btree_t, _rootpage)));
+		BFC_ASSERT(compare_sizes(sizeof(blob_t), 28));
+		BFC_ASSERT(compare_sizes(sizeof(dupe_entry_t), 16));
+		BFC_ASSERT(compare_sizes(sizeof(dupe_table_t), 8 + sizeof(dupe_entry_t)));
+		BFC_ASSERT(compare_sizes(sizeof(ham_btree_t) - OFFSETOF(ham_btree_t, _rootpage), 8 + 2));
+		BFC_ASSERT(compare_sizes(sizeof(btree_node_t), 28 + sizeof(int_key_t)));
+		BFC_ASSERT(compare_sizes(sizeof(int_key_t), 12));
+		BFC_ASSERT(compare_sizes(sizeof(db_header_t), 20));
+		BFC_ASSERT(compare_sizes(sizeof(db_indexdata_t), 32));
+		db_indexdata_t d;
+		BFC_ASSERT(compare_sizes(sizeof(d.b), 32));
+		BFC_ASSERT(compare_sizes(DB_INDEX_SIZE, 32));
+		BFC_ASSERT(compare_sizes(sizeof(freelist_payload_t), 16 + 13));
+		freelist_payload_t f;
+		BFC_ASSERT(compare_sizes(sizeof(f._s._s16), 5));
+		BFC_ASSERT(compare_sizes(OFFSETOF(freelist_payload_t, _s._s16), 16));
+		BFC_ASSERT(compare_sizes(OFFSETOF(freelist_payload_t, _s._s16._bitmap), 16 + 4));
+		BFC_ASSERT(compare_sizes(db_get_freelist_header_size16(), 16 + 4));
+		BFC_ASSERT(compare_sizes(db_get_freelist_header_size32(), 16 + 12));
+		BFC_ASSERT(compare_sizes(db_get_int_key_header_size(), 11));
+		BFC_ASSERT(compare_sizes(sizeof(log_header_t), 8));
+		BFC_ASSERT(compare_sizes(sizeof(log_entry_t), 40));
+		BFC_ASSERT(compare_sizes(sizeof(ham_perm_page_union_t), 13));
+		ham_perm_page_union_t p;
+		BFC_ASSERT(compare_sizes(sizeof(p._s), 13));
+		BFC_ASSERT(compare_sizes(SIZEOF_PAGE_UNION_HEADER, 12));
+
+		BFC_ASSERT(compare_sizes(OFFSETOF(btree_node_t, _entries), 28));
+		ham_page_t page = {{0}};
+		ham_db_t db = {0};
+		ham_backend_t be = {0};
+
+		page_set_self(&page, 1000);
+		page_set_owner(&page, &db);
+		db_set_backend(&db, &be);
+		be_set_keysize(&be, 666);
+		for (i = 0; i < 5; i++)
+		{
+			BFC_ASSERT_I(compare_sizes(btree_node_get_key_offset(&page, i), 1000+12+28+(i*(11+666))), i);
+		}
+		BFC_ASSERT(compare_sizes(db_get_persistent_header_size(), 12));
+		// make sure the 'header page' is at least as large as your usual header page,
+		// then hack it...
+		struct
+		{
+			ham_perm_page_union_t drit;
+			db_header_t drat;
+		} hdrpage_pers = {{{0}}};
+		ham_page_t hdrpage = {{0}};
+		hdrpage._pers = (ham_perm_page_union_t *)&hdrpage_pers;
+		db_set_header_page(&db, &hdrpage);
+		ham_page_t *hp = db_get_header_page(&db);
+		BFC_ASSERT(hp == (ham_page_t *)&hdrpage);
+		ham_u8_t *pl1 = page_get_payload(hp);
+		BFC_ASSERT(pl1);
+		BFC_ASSERT(compare_sizes(pl1 - (ham_u8_t *)hdrpage._pers, 12));
+		db_header_t *hdrptr = db_get_header(&db);
+		BFC_ASSERT(compare_sizes(((ham_u8_t *)hdrptr) - (ham_u8_t *)hdrpage._pers, 12));
+		db_set_max_databases(&db, 71);
+		BFC_ASSERT(compare_sizes(SIZEOF_FULL_HEADER(&db), 20 + 71 * DB_INDEX_SIZE));
+		BFC_ASSERT(compare_sizes(DB_INDEX_SIZE, 32));
+    }
+
 };
 
 class DbInMemoryTest : public DbTest
@@ -301,12 +388,17 @@ public:
     DbInMemoryTest()
     :   DbTest(true, "DbInMemoryTest")
     {
+        clear_tests(); // don't inherit tests
+        testrunner::get_instance()->register_fixture(this);
+		BFC_REGISTER_TEST(DbInMemoryTest, checkStructurePackingTest);
         BFC_REGISTER_TEST(DbInMemoryTest, headerTest);
         BFC_REGISTER_TEST(DbInMemoryTest, structureTest);
         BFC_REGISTER_TEST(DbInMemoryTest, envStructureTest);
         BFC_REGISTER_TEST(DbInMemoryTest, defaultCompareTest);
         BFC_REGISTER_TEST(DbInMemoryTest, defaultPrefixCompareTest);
         BFC_REGISTER_TEST(DbInMemoryTest, allocPageTest);
+        //BFC_REGISTER_TEST(DbInMemoryTest, fetchPageTest);
+        //BFC_REGISTER_TEST(DbInMemoryTest, flushPageTest);
     }
 };
 

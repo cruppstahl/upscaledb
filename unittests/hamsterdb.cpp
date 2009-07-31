@@ -22,6 +22,7 @@
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
@@ -53,11 +54,13 @@ my_prefix_compare_func(ham_db_t *db,
     return (0);
 }
 
-class HamsterdbTest : public fixture
+class HamsterdbTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
     HamsterdbTest()
-    :   fixture("HamsterdbTest")
+    :   hamsterDB_fixture("HamsterdbTest")
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(HamsterdbTest, versionTest);
@@ -116,8 +119,10 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    void setup()
-    { 
+    virtual void setup() 
+	{ 
+		__super::setup();
+
         os::unlink(BFC_OPATH(".test"));
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
@@ -125,8 +130,10 @@ public:
         BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
     }
     
-    void teardown() 
-    { 
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
@@ -517,7 +524,13 @@ static int my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(0, ham_new(&db));
 		ham_size_t keycount = 0;
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 1, 0, ps2));
+#ifdef HAM_ENABLE_INTERNAL
 		BFC_ASSERT_EQUAL(0, ham_calc_maxkeys_per_page(db, &keycount, sizeof(my_key)));
+		BFC_ASSERT_EQUAL(4852, keycount);
+#else
+		BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, ham_calc_maxkeys_per_page(db, &keycount, sizeof(my_key)));
+#endif
+		keycount = 4852;
 		BFC_ASSERT_EQUAL(0, ham_set_prefix_compare_func(db, &my_prefix_compare_func_u32));
 		BFC_ASSERT_EQUAL(0, ham_set_compare_func(db, &my_compare_func_u32));
         
@@ -546,14 +559,18 @@ static int my_compare_func_u32(ham_db_t *db,
 			key.size = sizeof(my_key);
 			key.flags = HAM_KEY_USER_ALLOC;
 
-			BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
+			BFC_ASSERT_EQUAL_I(0, ham_cursor_insert(cursor, &key, &rec, 0), i);
 
 			if (i % 1000 == 999) {
 				std::cerr << ".";
 				if (i % 10000 == 9999 || i <= 10000)
 				{
 					std::cerr << "+";
-					BFC_ASSERT_EQUAL(0, ham_check_integrity(db, NULL));
+#ifdef HAM_ENABLE_INTERNAL
+					BFC_ASSERT_EQUAL_I(0, ham_check_integrity(db, NULL), i);
+#else
+					BFC_ASSERT_EQUAL_I(HAM_NOT_IMPLEMENTED, ham_check_integrity(db, NULL), i);
+#endif
 				}
 			}
 		}
@@ -561,7 +578,11 @@ static int my_compare_func_u32(ham_db_t *db,
 
 		std::cerr << std::endl;
 
+#ifdef HAM_ENABLE_INTERNAL
 		BFC_ASSERT_EQUAL(0, ham_check_integrity(db, NULL));
+#else
+		BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, ham_check_integrity(db, NULL));
+#endif
 
 		my_rec_t *r;
 		my_key_t *k;
@@ -574,8 +595,8 @@ static int my_compare_func_u32(ham_db_t *db,
 		{
 			::memset(&key, 0, sizeof(key));
 			::memset(&rec, 0, sizeof(rec));
-			BFC_ASSERT_EQUAL(0, ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
-			BFC_ASSERT_NOTEQUAL((rec.data && key.data), 0);
+			BFC_ASSERT_EQUAL_I(0, ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT), i);
+			BFC_ASSERT_NOTEQUAL_I((rec.data && key.data), 0, i);
 			r = (my_rec_t *)rec.data;
 			k = (my_key_t *)key.data;
 #if 0
@@ -590,12 +611,22 @@ static int my_compare_func_u32(ham_db_t *db,
 				if (i % 10000 == 9999 || i <= 10000)
 				{
 					std::cerr << "+";
-					BFC_ASSERT_EQUAL(0, ham_check_integrity(db, NULL));
+#ifdef HAM_ENABLE_INTERNAL
+					BFC_ASSERT_EQUAL_I(0, ham_check_integrity(db, NULL), i);
+#else
+					BFC_ASSERT_EQUAL_I(HAM_NOT_IMPLEMENTED, ham_check_integrity(db, NULL), i);
+#endif
 				}
 			}
 		}
 		BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
 		BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+
+#ifdef HAM_ENABLE_INTERNAL
+		BFC_ASSERT_EQUAL(0, ham_check_integrity(db, NULL));
+#else
+		BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, ham_check_integrity(db, NULL));
+#endif
 
 		std::cerr << std::endl;
 
@@ -777,6 +808,7 @@ static int my_compare_func_u32(ham_db_t *db,
 
 
         BFC_ASSERT_EQUAL(0, ham_close(db, HAM_AUTO_CLEANUP));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
 	}
@@ -801,7 +833,13 @@ static int my_compare_func_u32(ham_db_t *db,
 		ham_size_t keycount = 0;
 		BFC_ASSERT_EQUAL(HAM_NOT_INITIALIZED, ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE));
         BFC_ASSERT_EQUAL(0, ham_create_ex(db, BFC_OPATH(".test"), 0, 0644, &ps[0]));
+#ifdef HAM_ENABLE_INTERNAL
 		BFC_ASSERT_EQUAL(0, ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE));
+		BFC_ASSERT_EQUAL(8, keycount);
+#else
+		BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE));
+#endif
+		keycount = 8;
 		BFC_ASSERT_EQUAL(0, ham_set_prefix_compare_func(db, &my_prefix_compare_func_u32));
 		BFC_ASSERT_EQUAL(0, ham_set_compare_func(db, &my_compare_func_u32));
         
@@ -1062,7 +1100,7 @@ static int my_compare_func_u32(ham_db_t *db,
 			key.size = MY_KEY_SIZE;
 			key.flags = HAM_KEY_USER_ALLOC;
 
-			BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+			BFC_ASSERT_EQUAL_I(0, ham_insert(db, 0, &key, &rec, 0), i);
 		}
 
 		/* show record collection */
@@ -1215,30 +1253,33 @@ static int my_compare_func_u32(ham_db_t *db,
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env1));
         BFC_ASSERT_EQUAL(0, ham_new(&db1));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env2));
+        BFC_ASSERT_EQUAL(0, ham_new(&db2));
+
         BFC_ASSERT_EQUAL(0, ham_env_create(env1, BFC_OPATH(".test"), 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env1, db1, 111, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(db1, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_flush(db1, 0));
 
-        BFC_ASSERT_EQUAL(0, ham_env_new(&env2));
-        BFC_ASSERT_EQUAL(0, ham_new(&db2));
 		/*
 		  Can't have two writers to the DB file...
         -- yes, we can! the test fails on linux, because HAM_LOCK_EXCLUSIVE
         is not set. -- Christoph
         BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK, ham_env_open(env2, BFC_OPATH(".test"), 0));
 	     */
+        BFC_ASSERT_EQUAL(0, ham_env_open(env2, BFC_OPATH(".test"), 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env2, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env1, 0));
+
         BFC_ASSERT_EQUAL(0, ham_env_open(env2, BFC_OPATH(".test"), HAM_READ_ONLY));
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env2, db2, 111, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_find(db2, 0, &key, &rec, 0));
-
-        BFC_ASSERT_EQUAL(0, ham_close(db1, 0));
-        BFC_ASSERT_EQUAL(0, ham_delete(db1));
-        BFC_ASSERT_EQUAL(0, ham_env_close(env1, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_delete(env1));
         BFC_ASSERT_EQUAL(0, ham_close(db2, 0));
-        BFC_ASSERT_EQUAL(0, ham_delete(db2));
         BFC_ASSERT_EQUAL(0, ham_env_close(env2, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_delete(db1));
+        BFC_ASSERT_EQUAL(0, ham_delete(db2));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env1));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env2));
     }
 

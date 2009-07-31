@@ -3,7 +3,6 @@
 # make sure that our modified CFLAGS are also respected by g++
 #
 AM_CXXFLAGS = $(CFLAGS)
-CXXFLAGS = $(CFLAGS)
 
 noinst_PROGRAMS = test
 
@@ -34,7 +33,11 @@ test_SOURCES    = log.cpp \
                   endian.cpp \
                   page.cpp \
                   txn.cpp \
-                  memtracker.cpp
+                  memtracker.cpp \
+                  hamster_fixture.hpp \
+                  empty_sample.cpp \
+                  bfc-testsuite.cpp \
+                  bfc-signal.c
 
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la -ldl
 

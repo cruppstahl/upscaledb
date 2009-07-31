@@ -21,19 +21,23 @@
 #include "../src/freelist.h"
 #include "../src/db.h"
 #include "memtracker.h"
+#include "os.hpp"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
-class EnvTest : public fixture
+class EnvTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
-    EnvTest(ham_u32_t flags=0, const char *name=0)
-    :   fixture(name ? name : "EnvTest"), m_flags(flags)
+    EnvTest(ham_u32_t flags=0, const char *name="EnvTest")
+    :   hamsterDB_fixture(name), m_flags(flags)
     {
-        if (name)
-            return;
+        //if (name)
+        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(EnvTest, structureTest);
         BFC_REGISTER_TEST(EnvTest, newDeleteTest);
@@ -78,19 +82,13 @@ public:
 protected:
     ham_u32_t m_flags;
 
-    void setup()
-    { 
-#if WIN32
-        (void)DeleteFileA((LPCSTR)BFC_OPATH(".test"));
-#else
-        (void)unlink(BFC_OPATH(".test"));
-#endif
+    virtual void setup() 
+	{ 
+		__super::setup();
+
+		os::unlink(BFC_OPATH(".test"));
     }
     
-    void teardown() 
-    { 
-    }
-
     void structureTest()
     {
         ham_env_t *env;
@@ -1354,16 +1352,13 @@ protected:
 		}
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
         for (i=0; i<MAX_DB; i++)
             BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
     void endianTestOpenDatabase(void)
     {
-
-		return; // hack
-
         ham_env_t *env;
         ham_db_t *db;
 
@@ -1371,7 +1366,7 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_new(&db));
 
         // created by running sample env2
-#if HAM_LITTLE_ENDIAN
+#if defined(HAM_LITTLE_ENDIAN)
         BFC_ASSERT_EQUAL(0, ham_env_open(env, 
                     BFC_IPATH("data/env-endian-test-open-database-be.hdb"), 0));
 #else
@@ -1420,8 +1415,6 @@ protected:
 
     void createEnvOpenDbTest(void)
     {
-		return; // hack
-
         ham_env_t *env;
         ham_db_t *db;
 
@@ -1431,7 +1424,7 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
-        BFC_ASSERT_EQUAL(HAM_IO_ERROR, 
+        BFC_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
                 ham_open(db, BFC_OPATH(".test"), m_flags));
         BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
@@ -1689,6 +1682,7 @@ public:
     InMemoryEnvTest()
         : EnvTest(HAM_IN_MEMORY_DB, "InMemoryEnvTest")
     {
+        clear_tests(); // don't inherit tests
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(InMemoryEnvTest, structureTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, newDeleteTest);

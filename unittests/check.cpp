@@ -19,18 +19,21 @@
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
-class CheckIntegrityTest : public fixture
+class CheckIntegrityTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
-    CheckIntegrityTest(ham_bool_t inmemorydb=HAM_FALSE, const char *name=0)
-        : fixture(name ? name : "CheckIntegrityTest"),
+    CheckIntegrityTest(ham_bool_t inmemorydb=HAM_FALSE, const char *name="CheckIntegrityTest")
+        : hamsterDB_fixture(name),
             m_inmemory(inmemorydb)
     {
-        if (name)
-            return;
+        //if (name)
+        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(CheckIntegrityTest, emptyDatabaseTest);
         BFC_REGISTER_TEST(CheckIntegrityTest, smallDatabaseTest);
@@ -43,20 +46,24 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    void setup()
-    { 
-        os::unlink(".test");
+    virtual void setup() 
+	{ 
+		__super::setup();
+
+        os::unlink(BFC_OPATH(".test"));
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, ".test", 
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 
                     m_inmemory ? HAM_IN_MEMORY_DB : 0,
                     0644));
     }
     
-    void teardown() 
-    { 
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
@@ -106,7 +113,7 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_create_ex(m_db, ".test", 
+        BFC_ASSERT_EQUAL(0, ham_create_ex(m_db, BFC_OPATH(".test"), 
                     m_inmemory ? HAM_IN_MEMORY_DB : 0,
                     0644, &params[0]));
 
@@ -129,16 +136,11 @@ public:
     InMemoryCheckIntegrityTest()
     :   CheckIntegrityTest(HAM_TRUE, "InMemoryCheckIntegrityTest")
     {
-        clear_tests(); // don't inherit tests
-        testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(InMemoryCheckIntegrityTest, emptyDatabaseTest);
-        BFC_REGISTER_TEST(InMemoryCheckIntegrityTest, smallDatabaseTest);
-        BFC_REGISTER_TEST(InMemoryCheckIntegrityTest, levelledDatabaseTest);
     }
 };
 
-#ifdef HAM_ENABLE_INTERNAL
+//#ifdef HAM_ENABLE_INTERNAL  // allow empty tests
 BFC_REGISTER_FIXTURE(CheckIntegrityTest);
 BFC_REGISTER_FIXTURE(InMemoryCheckIntegrityTest);
-#endif
+//#endif
 

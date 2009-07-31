@@ -19,16 +19,20 @@
 #include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
-class FreelistTest : public fixture
+class FreelistTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
     FreelistTest()
-    :   fixture("FreelistTest")
+    :   hamsterDB_fixture("FreelistTest")
     {
         testrunner::get_instance()->register_fixture(this);
+		BFC_REGISTER_TEST(FreelistTest, checkStructurePackingTest);
         BFC_REGISTER_TEST(FreelistTest, structureTest);
         BFC_REGISTER_TEST(FreelistTest, markAllocAlignedTest);
         BFC_REGISTER_TEST(FreelistTest, markAllocPageTest);
@@ -47,8 +51,10 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    void setup()
-    { 
+    virtual void setup() 
+	{ 
+		__super::setup();
+
         ham_parameter_t p[]={{HAM_PARAM_PAGESIZE, 4096}, {0, 0}};
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
@@ -58,8 +64,10 @@ public:
                         &p[0])==HAM_SUCCESS);
     }
     
-    void teardown() 
-    { 
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         m_db=0;
@@ -72,19 +80,19 @@ public:
 
         f=db_get_freelist(m_db);
 
-        BFC_ASSERT(freel_get_allocated_bits(f)==0);
-        freel_set_allocated_bits(f, 13);
+        BFC_ASSERT(freel_get_allocated_bits16(f)==0);
+        freel_set_allocated_bits16(f, 13);
 
-        BFC_ASSERT(freel_get_max_bits(f)==0);
-        freel_set_max_bits(f, 0x1234);
+        BFC_ASSERT(freel_get_max_bits16(f)==0);
+        freel_set_max_bits16(f, 0x1234);
 
         BFC_ASSERT(freel_get_overflow(f)==0ull);
         freel_set_overflow(f, 0x12345678ull);
 
         freel_set_start_address(f, 0x7878787878787878ull);
         BFC_ASSERT(freel_get_start_address(f)==0x7878787878787878ull);
-        BFC_ASSERT(freel_get_allocated_bits(f)==13);
-        BFC_ASSERT(freel_get_max_bits(f)==0x1234);
+        BFC_ASSERT(freel_get_allocated_bits16(f)==13);
+        BFC_ASSERT(freel_get_max_bits16(f)==0x1234);
         BFC_ASSERT(freel_get_overflow(f)==0x12345678ull);
 
         db_set_dirty(m_db, 1);
@@ -97,8 +105,8 @@ public:
         f=db_get_freelist(m_db);
 
         BFC_ASSERT(freel_get_start_address(f)==0x7878787878787878ull);
-        BFC_ASSERT(freel_get_allocated_bits(f)==13);
-        BFC_ASSERT(freel_get_max_bits(f)==0x1234);
+        BFC_ASSERT(freel_get_allocated_bits16(f)==13);
+        BFC_ASSERT(freel_get_max_bits16(f)==0x1234);
         BFC_ASSERT(freel_get_overflow(f)==0x12345678ull);
     }
 
@@ -324,6 +332,25 @@ public:
         BFC_ASSERT_EQUAL((ham_u64_t)0, 
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
         BFC_ASSERT_EQUAL(0, txn_commit(&txn, 0));
+    }
+
+	// using a function to compare the constants is easier for debugging
+	bool compare_sizes(size_t a, size_t b)
+	{
+		return a == b;
+	}
+
+	void checkStructurePackingTest(void)
+    {
+		// checks to make sure structure packing by the compiler is still okay
+		// HAM_PACK_0 HAM_PACK_1 HAM_PACK_2 OFFSETOF
+		BFC_ASSERT(compare_sizes(sizeof(freelist_payload_t), 16 + 13));
+		freelist_payload_t f;
+		BFC_ASSERT(compare_sizes(sizeof(f._s._s16), 5));
+		BFC_ASSERT(compare_sizes(OFFSETOF(freelist_payload_t, _s._s16), 16));
+		BFC_ASSERT(compare_sizes(OFFSETOF(freelist_payload_t, _s._s16._bitmap), 16 + 4));
+		BFC_ASSERT(compare_sizes(db_get_freelist_header_size16(), 16 + 4));
+		BFC_ASSERT(compare_sizes(db_get_freelist_header_size32(), 16 + 12));
     }
 
 };

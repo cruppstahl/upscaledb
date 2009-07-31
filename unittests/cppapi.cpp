@@ -15,6 +15,7 @@
 #include <ham/hamsterdb.hpp>
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
@@ -48,15 +49,16 @@ my_prefix_compare_func(ham_db_t *db,
     return (0);
 }
 
-class CppApiTest : public fixture
+class CppApiTest : public hamsterDB_fixture
 {
 public:
     CppApiTest()
-        : fixture("CppApiTest")
+        : hamsterDB_fixture("CppApiTest")
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(CppApiTest, keyTest);
         BFC_REGISTER_TEST(CppApiTest, recordTest);
+	    BFC_REGISTER_TEST(CppApiTest, staticFunctionsTest);
         BFC_REGISTER_TEST(CppApiTest, compareTest);
         BFC_REGISTER_TEST(CppApiTest, createOpenCloseDbTest);
         BFC_REGISTER_TEST(CppApiTest, insertFindEraseTest);
@@ -141,6 +143,19 @@ public:
         BFC_ASSERT_EQUAL(q, r1.get_data());
         BFC_ASSERT_EQUAL((ham_size_t)2, r1.get_size());
         BFC_ASSERT_EQUAL((ham_u32_t)0, r1.get_flags());
+    }
+
+    void staticFunctionsTest(void)
+    {
+        ham::db db;
+		// check for obvious errors
+
+		// get_error() is one of the few methods which should NOT throw an exception itself:
+        BFC_ASSERT_EQUAL(HAM_NOT_INITIALIZED, db.get_error());
+        db.get_version(0, 0, 0);
+        BFC_ASSERT(".get_version() did not throw a tantrum while receiving NULL arguments");
+		db.get_license(0, 0);
+        BFC_ASSERT(".get_license() did not throw a tantrum while receiving NULL arguments");
     }
 
     void compareTest(void)
@@ -517,14 +532,14 @@ public:
 	   us to catch these exceptions or allow them to fall through to the 
 	   debugger instead.
      */
-	virtual bool FUT_invoker(testrunner *me, method m, const char *funcname, error &ex)
+	virtual bool FUT_invoker(testrunner *me, method m, const char *funcname, bfc_state_t state, error &ex)
 	{
 		if (me->catch_exceptions() || me->catch_coredumps())
 		{
 			try 
 			{
 				// invoke the FUT through the baseclass method
-				return fixture::FUT_invoker(me, m, funcname, ex);
+				return fixture::FUT_invoker(me, m, funcname, state, ex);
 			}
 			catch (ham::error &e)
 			{
@@ -540,7 +555,7 @@ public:
 		else
 		{
 			// invoke the FUT through the baseclass method
-			return fixture::FUT_invoker(me, m, funcname, ex);
+			return fixture::FUT_invoker(me, m, funcname, state, ex);
 		}
 	}
 

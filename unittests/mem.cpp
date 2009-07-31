@@ -16,14 +16,15 @@
 #include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
-class MemoryTest : public fixture
+class MemoryTest : public hamsterDB_fixture
 {
 public:
     MemoryTest()
-    :   fixture("MemoryTest")
+    :   hamsterDB_fixture("MemoryTest")
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(MemoryTest, simpleTest);

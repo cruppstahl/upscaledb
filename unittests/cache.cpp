@@ -21,14 +21,17 @@
 #include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
-class CacheTest : public fixture
+class CacheTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
     CacheTest()
-    : fixture("CacheTest")
+    : hamsterDB_fixture("CacheTest")
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(CacheTest, newDeleteTest);
@@ -49,8 +52,10 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    void setup()
-    { 
+    virtual void setup() 
+	{ 
+		__super::setup();
+
         ham_page_t *p;
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT(0==ham_new(&m_db));
@@ -65,8 +70,10 @@ public:
         db_set_pagesize(m_db, m_dev->get_pagesize(m_dev));
     }
     
-    void teardown() 
-    { 
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         if (db_get_header_page(m_db)) {
             page_free(db_get_header_page(m_db));
             page_delete(db_get_header_page(m_db));

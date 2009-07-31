@@ -22,14 +22,17 @@
 #include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
-class KeyTest : public fixture
+class KeyTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
     KeyTest()
-    :   fixture("KeyTest")
+    :   hamsterDB_fixture("KeyTest")
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(KeyTest, structureTest);
@@ -49,18 +52,22 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    void setup()
-    { 
-        os::unlink(".test");
+    virtual void setup() 
+	{ 
+		__super::setup();
+
+        os::unlink(BFC_OPATH(".test"));
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, ".test", 0, 0644));
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 0, 0644));
     }
     
-    void teardown() 
-    { 
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));

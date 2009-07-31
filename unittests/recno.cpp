@@ -21,17 +21,20 @@
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
-class RecNoTest : public fixture
+class RecNoTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
-    RecNoTest(ham_u32_t flags=0, const char *name=0)
-    :   fixture(name ? name : "RecNoTest"), m_flags(flags)
+    RecNoTest(ham_u32_t flags=0, const char *name="RecNoTest")
+    :   hamsterDB_fixture(name), m_flags(flags)
     {
-        if (name)
-            return;
+        //if (name)
+        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(RecNoTest, createCloseTest);
         BFC_REGISTER_TEST(RecNoTest, createCloseOpenCloseTest);
@@ -58,14 +61,18 @@ protected:
     ham_db_t *m_db;
 
 public:
-    void setup()
-    { 
+    virtual void setup() 
+	{ 
+		__super::setup();
+
         (void)os::unlink(BFC_OPATH(".test"));
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
     }
 
-    void teardown()
-    {
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         BFC_ASSERT_EQUAL(0, ham_delete(m_db));
     }
     
@@ -542,7 +549,7 @@ public:
         ham_cursor_t *cursor;
 
         /* generated with `cat ../COPYING.GPL2 | ./db4`; has 2973 entries */
-#if HAM_LITTLE_ENDIAN
+#if defined(HAM_LITTLE_ENDIAN)
         BFC_ASSERT_EQUAL(true, 
             os::copy("data/recno-endian-test-open-database-be.hdb", BFC_OPATH(".test")));
 #else
@@ -753,17 +760,25 @@ public:
     InMemoryRecNoTest()
     :   RecNoTest(HAM_IN_MEMORY_DB, "InMemoryRecNoTest")
     {
+        clear_tests(); // don't inherit tests
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(InMemoryRecNoTest, createCloseTest);
+        //BFC_REGISTER_TEST(InMemoryRecNoTest, createCloseOpenCloseTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, createInsertCloseTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, createInsertManyCloseTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, createInsertCloseCursorTest);
+        //BFC_REGISTER_TEST(InMemoryRecNoTest, createInsertCloseReopenTest);
+        //BFC_REGISTER_TEST(InMemoryRecNoTest, createInsertCloseReopenCursorTest);
+        //BFC_REGISTER_TEST(InMemoryRecNoTest, createInsertCloseReopenTwiceTest);
+        //BFC_REGISTER_TEST(InMemoryRecNoTest, createInsertCloseReopenTwiceCursorTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, insertBadKeyTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, insertBadKeyCursorTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, createBadKeysizeTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, envTest);
+        //BFC_REGISTER_TEST(InMemoryRecNoTest, endianTestOpenDatabase);
         BFC_REGISTER_TEST(InMemoryRecNoTest, overwriteTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, overwriteCursorTest);
+        //BFC_REGISTER_TEST(InMemoryRecNoTest, eraseLastReopenTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, uncoupleTest);
     }
 

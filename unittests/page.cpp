@@ -20,19 +20,22 @@
 #include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
-class PageTest : public fixture
+class PageTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
     PageTest(ham_bool_t inmemorydb=HAM_FALSE, ham_bool_t mmap=HAM_TRUE, 
-            const char *name=0)
-    :   fixture(name ? name : "PageTest"), 
+            const char *name="PageTest")
+    :   hamsterDB_fixture(name), 
         m_db(0), m_inmemory(inmemorydb), m_usemmap(mmap), m_dev(0), m_alloc(0)
     {
-        if (name)
-            return;
+        //if (name)
+        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(PageTest, newDeleteTest);
         BFC_REGISTER_TEST(PageTest, allocFreeTest);
@@ -48,8 +51,10 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    void setup()
-    { 
+    virtual void setup() 
+	{ 
+		__super::setup();
+
         ham_page_t *p;
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT(0==ham_new(&m_db));
@@ -66,8 +71,10 @@ public:
         db_set_pagesize(m_db, m_dev->get_pagesize(m_dev));
     }
     
-    void teardown() 
-    { 
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         if (db_get_header_page(m_db)) {
             page_free(db_get_header_page(m_db));
             page_delete(db_get_header_page(m_db));
@@ -157,11 +164,6 @@ public:
     RwPageTest()
     : PageTest(HAM_FALSE, HAM_FALSE, "RwPageTest")
     {
-        testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(RwPageTest, newDeleteTest);
-        BFC_REGISTER_TEST(RwPageTest, allocFreeTest);
-        BFC_REGISTER_TEST(RwPageTest, multipleAllocFreeTest);
-        BFC_REGISTER_TEST(RwPageTest, fetchFlushTest);
     }
 };
 
@@ -171,6 +173,8 @@ public:
     InMemoryPageTest()
     : PageTest(HAM_TRUE, HAM_FALSE, "InMemoryPageTest")
     {
+        clear_tests(); // don't inherit tests
+        testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(InMemoryPageTest, newDeleteTest);
         BFC_REGISTER_TEST(InMemoryPageTest, allocFreeTest);
         BFC_REGISTER_TEST(InMemoryPageTest, multipleAllocFreeTest);

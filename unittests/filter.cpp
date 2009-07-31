@@ -19,6 +19,7 @@
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
@@ -95,11 +96,13 @@ my_record_close_cb(ham_db_t *, ham_record_filter_t *filter)
     sf->closed++;
 }
 
-class FilterTest : public fixture
+class FilterTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
     FilterTest()
-        : fixture("FilterTest")
+        : hamsterDB_fixture("FilterTest")
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(FilterTest, addRemoveFileTest);
@@ -122,8 +125,10 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    void setup()
-    { 
+    virtual void setup() 
+	{ 
+		__super::setup();
+
         m_flags=0;
 
         os::unlink(BFC_OPATH(".test"));
@@ -132,8 +137,10 @@ public:
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
     }
     
-    void teardown() 
-    { 
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         ham_delete(m_db);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }

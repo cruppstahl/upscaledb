@@ -20,18 +20,21 @@
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
-class EraseTest : public fixture
+class EraseTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
-    EraseTest(ham_u32_t flags=0, const char *name=0)
-        : fixture(name ? name : "EraseTest"), 
+    EraseTest(ham_u32_t flags=0, const char *name="EraseTest")
+        : hamsterDB_fixture(name), 
         m_db(0), m_flags(flags), m_alloc(0)
     {
-        if (name)
-            return;
+        //if (name)
+        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(EraseTest, collapseRootTest);
         BFC_REGISTER_TEST(EraseTest, shiftFromRightTest);
@@ -45,8 +48,10 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    void setup()
-    { 
+    virtual void setup() 
+	{ 
+		__super::setup();
+
         os::unlink(BFC_OPATH(".test"));
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
@@ -54,8 +59,10 @@ public:
         BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), m_flags, 0644));
     }
     
-    void teardown() 
-    { 
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
@@ -186,15 +193,7 @@ public:
     InMemoryEraseTest()
         : EraseTest(HAM_IN_MEMORY_DB, "InMemoryEraseTest")
     {
-        clear_tests(); // don't inherit tests
-        testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(InMemoryEraseTest, collapseRootTest);
-        BFC_REGISTER_TEST(InMemoryEraseTest, shiftFromRightTest);
-        BFC_REGISTER_TEST(InMemoryEraseTest, shiftFromLeftTest);
-        BFC_REGISTER_TEST(InMemoryEraseTest, mergeWithLeftTest);
     }
-
-public:
 };
 
 BFC_REGISTER_FIXTURE(EraseTest);

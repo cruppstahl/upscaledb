@@ -25,18 +25,23 @@
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
-class BtreeCursorTest : public fixture
+class BtreeCursorTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
-    BtreeCursorTest(bool inmemory=false, const char *name=0)
-    :   fixture(name ? name : "BtreeCursorTest"),
-        m_db(0), m_inmemory(inmemory), m_alloc(0)
+    BtreeCursorTest(bool inmemory=false, ham_size_t pagesize=0, 
+					const char *name="BtreeCursorTest")
+    :   hamsterDB_fixture(name),
+        m_db(0), m_inmemory(inmemory), m_alloc(0),
+		m_pagesize(pagesize)
     {
-        if (name)
-            return;
+        //if (name)
+        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(BtreeCursorTest, createCloseTest);
         BFC_REGISTER_TEST(BtreeCursorTest, cloneTest);
@@ -55,22 +60,33 @@ protected:
     //ham_device_t *m_dev;
     bool m_inmemory;
     memtracker_t *m_alloc;
+	ham_size_t m_pagesize;
 
 public:
-    void setup()
-    { 
+    virtual void setup() 
+	{ 
+		__super::setup();
+
+        ham_parameter_t params[]=
+        {
+			{ HAM_PARAM_PAGESIZE, (m_pagesize ? m_pagesize : 4096) },	// otherwise, 16-bit limit bugs in freelist will fire on Win32
+            { 0, 0 }
+        };
+
         os::unlink(BFC_OPATH(".test"));
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 
+        BFC_ASSERT_EQUAL(0, ham_create_ex(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_DUPLICATES|(m_inmemory?HAM_IN_MEMORY_DB:0),
-                    0664));
+                    0664, params));
     }
 
-    void teardown()
-    {
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_delete(m_db));
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
@@ -392,26 +408,37 @@ public:
 
 };
 
+class BtreeCursorTest64Kpage : public BtreeCursorTest
+{
+public:
+    BtreeCursorTest64Kpage(bool inmemory=false, ham_size_t pagesize = 64*1024, const char *name="BtreeCursorTest64Kpage")
+    : BtreeCursorTest(inmemory, pagesize, name)
+    {
+    }
+};
+
 class InMemoryBtreeCursorTest : public BtreeCursorTest
 {
 public:
-    InMemoryBtreeCursorTest(bool inmemory=false)
-    :   BtreeCursorTest(true, "InMemoryBtreeCursorTest")
+    InMemoryBtreeCursorTest(ham_size_t pagesize = 0, const char *name="InMemoryBtreeCursorTest")
+    :   BtreeCursorTest(true, pagesize, name)
     {
-        testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(InMemoryBtreeCursorTest, createCloseTest);
-        BFC_REGISTER_TEST(InMemoryBtreeCursorTest, cloneTest);
-        BFC_REGISTER_TEST(InMemoryBtreeCursorTest, moveTest);
-        BFC_REGISTER_TEST(InMemoryBtreeCursorTest, moveSplitTest);
-        BFC_REGISTER_TEST(InMemoryBtreeCursorTest, overwriteTest);
-        BFC_REGISTER_TEST(InMemoryBtreeCursorTest, structureTest);
-        BFC_REGISTER_TEST(InMemoryBtreeCursorTest, linkedListTest);
-        BFC_REGISTER_TEST(InMemoryBtreeCursorTest, linkedListReverseCloseTest);
-        BFC_REGISTER_TEST(InMemoryBtreeCursorTest, cursorGetErasedItemTest);
-        BFC_REGISTER_TEST(InMemoryBtreeCursorTest, couplingTest);
+    }
+};
+
+class InMemoryBtreeCursorTest64Kpage : public InMemoryBtreeCursorTest
+{
+public:
+    InMemoryBtreeCursorTest64Kpage(ham_size_t pagesize = 64*1024, const char *name="InMemoryBtreeCursorTest64Kpage")
+    : InMemoryBtreeCursorTest(pagesize, name)
+    {
     }
 };
 
 BFC_REGISTER_FIXTURE(BtreeCursorTest);
 BFC_REGISTER_FIXTURE(InMemoryBtreeCursorTest);
+
+BFC_REGISTER_FIXTURE(BtreeCursorTest64Kpage);
+BFC_REGISTER_FIXTURE(InMemoryBtreeCursorTest64Kpage);
+
 

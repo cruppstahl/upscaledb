@@ -20,15 +20,18 @@
 #include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
 
-class UtilTest : public fixture
+class UtilTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
     UtilTest()
-    :   fixture("UtilTest")
+    :   hamsterDB_fixture("UtilTest")
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(UtilTest, copyKeyTest);
@@ -44,8 +47,10 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    void setup()
-    { 
+    virtual void setup() 
+	{ 
+		__super::setup();
+
         ham_parameter_t p[]={{HAM_PARAM_PAGESIZE, 4096}, {0, 0}};
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
@@ -55,8 +60,10 @@ public:
                         &p[0])==HAM_SUCCESS);
     }
     
-    void teardown() 
-    { 
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         m_db=0;

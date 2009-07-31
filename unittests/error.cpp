@@ -17,6 +17,7 @@
 #include "../src/error.h"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
@@ -46,11 +47,13 @@ my_abort_handler(void)
     g_aborted=1;
 }
 
-class ErrorTest : public fixture
+class ErrorTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
     ErrorTest()
-        : fixture("ErrorTest")
+        : hamsterDB_fixture("ErrorTest")
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(ErrorTest, errorHandlerTest);
@@ -58,17 +61,22 @@ public:
     }
 
 public:
-    void setup()
-    { 
-    }
-    
-    void teardown() 
-    { 
-    }
+    virtual void setup() 
+	{ 
+		__super::setup();
+
+        ham_set_errhandler(my_handler);
+	}
+
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
+		ham_set_errhandler(0);
+	}
 
     void errorHandlerTest()
     {
-        ham_set_errhandler(my_handler);
         ham_trace(("hello world"));
         ham_set_errhandler(0);
         ham_log(("testing error handler - hello world\n"));

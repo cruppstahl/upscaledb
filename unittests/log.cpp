@@ -26,14 +26,17 @@
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
-class LogTest : public fixture
+class LogTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
     LogTest()
-        : fixture("LogTest")
+        : hamsterDB_fixture("LogTest")
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(LogTest, structHeaderTest);
@@ -67,8 +70,10 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    void setup()
-    { 
+    virtual void setup() 
+	{ 
+		__super::setup();
+
         (void)os::unlink(BFC_OPATH(".test"));
 
         m_alloc=memtracker_new();
@@ -77,8 +82,10 @@ public:
         BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 0, 0644));
     }
     
-    void teardown() 
-    { 
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         BFC_ASSERT_EQUAL((unsigned long)0, memtracker_get_leaks(m_alloc));
@@ -807,11 +814,13 @@ public:
     log_entry_t m_entry;
 };
 
-class LogHighLevelTest : public fixture
+class LogHighLevelTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
     LogHighLevelTest()
-        : fixture("LogHighLevelTest")
+        : hamsterDB_fixture("LogHighLevelTest")
     {
         clear_tests(); // don't inherit tests
         testrunner::get_instance()->register_fixture(this);
@@ -859,8 +868,10 @@ protected:
 public:
     typedef std::vector<LogEntry> log_vector_t;
 
-    void setup()
-    { 
+    virtual void setup() 
+	{ 
+		__super::setup();
+
         (void)os::unlink(BFC_OPATH(".test"));
 
         m_alloc=memtracker_new();
@@ -871,8 +882,10 @@ public:
                     HAM_ENABLE_RECOVERY|HAM_ENABLE_DUPLICATES, 0644));
     }
     
-    void teardown() 
-    { 
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         BFC_ASSERT_EQUAL((unsigned long)0, memtracker_get_leaks(m_alloc));
@@ -957,7 +970,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY, 0664));
-        BFC_ASSERT(env_get_log(env) != 0);
+        BFC_ASSERT(env_get_log(env) != 0);  /* since the hack/patch to load the first db/page at env create/open, there's a log as well */
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, m_db, 333, 0, 0));
         BFC_ASSERT(env_get_log(env)!=0);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -1022,7 +1035,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY, 0664));
-        BFC_ASSERT(env_get_log(env)!=0);
+        BFC_ASSERT(env_get_log(env)!=0); /* since the hack/patch to load the first db/page at env create/open, there's a log as well */
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, m_db, 333, 0, 0));
         BFC_ASSERT(env_get_log(env)!=0);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));

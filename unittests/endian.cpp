@@ -12,15 +12,17 @@
 #include "../src/config.h"
 
 #include "../src/endian.h"
+
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
-class EndianTest : public fixture
+class EndianTest : public hamsterDB_fixture
 {
 public:
     EndianTest()
-    :   fixture("EndianTest")
+    :   hamsterDB_fixture("EndianTest")
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(EndianTest, byteswap16);

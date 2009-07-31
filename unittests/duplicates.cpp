@@ -25,17 +25,20 @@
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
+#include "hamster_fixture.hpp"
 
 using namespace bfc;
 
-class DupeTest : public fixture
+class DupeTest : public hamsterDB_fixture
 {
+	define_super(hamsterDB_fixture);
+
 public:
-    DupeTest(ham_u32_t flags=0, const char *name=0)
-    :   fixture(name ? name : "DupeTest"), m_flags(flags)
+    DupeTest(ham_u32_t flags=0, const char *name="DupeTest")
+    :   hamsterDB_fixture(name), m_flags(flags)
     {
-        if (name)
-            return;
+        //if (name)
+        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(DupeTest, invalidFlagsTest);
         BFC_REGISTER_TEST(DupeTest, insertDuplicatesTest);
@@ -102,7 +105,7 @@ public:
         BFC_REGISTER_TEST(DupeTest, eraseTinyDuplicatesTest);
 
         /*
-         * inserts a few dplicates, reopens the database; continues inserting
+         * inserts a few duplicates, reopens the database; continues inserting
          */
         BFC_REGISTER_TEST(DupeTest, reopenTest);
 
@@ -193,8 +196,10 @@ protected:
     std::vector<std::string> m_data;
 
 public:
-    void setup()
-    { 
+    virtual void setup() 
+	{ 
+		__super::setup();
+
         (void)os::unlink(BFC_OPATH(".test"));
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
@@ -204,8 +209,10 @@ public:
         m_data.resize(0);
     }
 
-    void teardown()
-    {
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_AUTO_CLEANUP));
         BFC_ASSERT_EQUAL(0, ham_delete(m_db));
     }
@@ -889,9 +896,11 @@ public:
         insertData("111", "3333333333");
         insertData("222", "bbbbbbbbbb");
 
-        /* reopen the database */
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), m_flags));
+        if (!(m_flags&HAM_IN_MEMORY_DB)) {
+			/* reopen the database */
+			BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+			BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), m_flags));
+		}
         BFC_ASSERT(db_get_rt_flags(m_db)&HAM_ENABLE_DUPLICATES);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
@@ -1420,8 +1429,10 @@ public:
         /* close the existing database handle */
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
+        (void)os::unlink(BFC_OPATH(".test"));
+
         /* generated with `cat ../COPYING.GPL2 | ./db5` */
-#if HAM_LITTLE_ENDIAN
+#if defined(HAM_LITTLE_ENDIAN)
         BFC_ASSERT_EQUAL(true, 
             os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"), BFC_OPATH(".test")));
 #else
@@ -1877,41 +1888,7 @@ public:
     InMemoryDupeTest()
         : DupeTest(HAM_IN_MEMORY_DB, "InMemoryDupeTest")
     {
-        testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(InMemoryDupeTest, invalidFlagsTest);
-        //BFC_REGISTER_TEST(InMemoryDupeTest, overwriteDuplicatesTest);
-        //BFC_REGISTER_TEST(InMemoryDupeTest, overwriteVariousDuplicatesTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, insertMoveForwardTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, insertMoveBackwardTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, insertEraseTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, insertTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, insertSkipDuplicatesTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, insertOnlyDuplicatesTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, coupleUncoupleTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, moveToLastDuplicateTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, eraseDuplicateTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, eraseDuplicateUncoupledTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, eraseSecondDuplicateTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, eraseSecondDuplicateUncoupledTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, eraseOtherDuplicateTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, eraseOtherDuplicateUncoupledTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, eraseMiddleDuplicateTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, eraseTinyDuplicatesTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, moveToPreviousDuplicateTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, overwriteTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, overwriteCursorTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, overwriteMultipleCursorTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, eraseCursorTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, insertLastTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, insertFirstTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, insertAfterTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, insertBeforeTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, overwriteVariousSizesTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, getDuplicateCountTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, insertManyManyTest);
-        BFC_REGISTER_TEST(InMemoryDupeTest, cloneTest);
     }
-
 };
 
 BFC_REGISTER_FIXTURE(DupeTest);
