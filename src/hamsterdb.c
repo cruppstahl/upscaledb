@@ -2939,7 +2939,6 @@ ham_key_get_approximate_match_type(ham_key_t *key)
     return (0);
 }
 
-
 ham_status_t HAM_CALLCONV
 ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
@@ -3986,7 +3985,8 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
 
     /*
      * record number: make sure that we have a valid key structure,
-     * and lazy load the last used record number
+     * and lazy load the last used record number.
+     * also specify the flag HAM_HINT_APPEND
      */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         if (flags&HAM_OVERWRITE) {
@@ -4047,6 +4047,11 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         recno=ham_h2db64(recno);
         memcpy(key->data, &recno, sizeof(ham_u64_t));
         key->size=sizeof(ham_u64_t);
+
+        /*
+         * we're appending this key sequentially
+         */
+        flags|=HAM_HINT_APPEND;
     }
 
     if (!cursor_get_txn(cursor)) {

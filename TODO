@@ -25,6 +25,13 @@ x some unittests are crashing
 
 x check why bfc swallows the exceptions
 
+o new append function for ham_cursor_insert: append keys at the "end"
+    of the database
+    x use it for recno
+    o need unittests
+
+o approx. matching: need a sample
+
 o recno: set HAM_DAM_SEQUENTIAL_INSERT for record number databases
 
 o what if an unknown DAM is set? -> fail to load??

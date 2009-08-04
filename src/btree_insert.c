@@ -100,7 +100,7 @@ my_insert_in_page(ham_page_t *page, ham_key_t *key,
 static ham_status_t
 my_insert_nosplit(ham_page_t *page, ham_key_t *key, 
         ham_offset_t rid, ham_record_t *record, 
-        ham_bt_cursor_t *cursor, ham_u32_t flags);
+        ham_bt_cursor_t *cursor, ham_u32_t flags, ham_bool_t force_append);
 
 /*
  * split a page and insert the new element
@@ -110,6 +110,76 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
         ham_offset_t rid, ham_u32_t flags, 
         insert_scratchpad_t *scratchpad);
 
+static ham_status_t
+my_append_key(ham_btree_t *be, ham_key_t *key, 
+        ham_record_t *record, ham_bt_cursor_t *cursor, ham_u32_t flags)
+{
+    int cmp;
+    ham_status_t st=0;
+    ham_page_t *page;
+    btree_node_t *node;
+    ham_db_t *db=bt_cursor_get_db(cursor);
+    int_key_t *entry;
+
+    ham_assert(flags&HAM_HINT_APPEND, ("invalid flags"));
+    ham_assert(bt_cursor_is_nil(cursor)==0, ("cursor must not be nil"));
+
+    /*
+     * couple the cursor, then fetch the page of the cursor
+     */
+    if (bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_UNCOUPLED) {
+        st=bt_cursor_couple(cursor);
+        if (st)
+            return (st);
+    }
+
+    db_set_error(db, 0);
+
+    page=bt_cursor_get_coupled_page(cursor);
+    page_add_ref(page);
+    node=ham_page_get_btree_node(page);
+    ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
+    entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(cursor));
+
+    /*
+     * if the page is already full OR this page is not the right-most page
+     * OR the new key is not the highest key: perform a normal insert
+     */
+    if (btree_node_get_right(node)
+            || btree_node_get_count(node)>=btree_get_maxkeys(be)) {
+        page_release_ref(page);
+        flags &=~ HAM_HINT_APPEND;
+        return (btree_insert_cursor(be, key, record, cursor, flags));
+    }
+
+    cmp=key_compare_pub_to_int(page, key, btree_node_get_count(node));
+    if (db_get_error(db)) {
+        page_release_ref(page);
+        return (db_get_error(db));
+    }
+    if (cmp<=0) {
+        page_release_ref(page);
+        flags &=~ HAM_HINT_APPEND;
+        return (btree_insert_cursor(be, key, record, cursor, flags));
+    }
+
+    /*
+     * the page will be changed - write it to the log (if a log exists)
+     */
+    st=ham_log_add_page_before(page);
+    if (st) {
+        page_release_ref(page);
+        return (st);
+    }
+
+    /*
+     * OK - we're really appending the new key. 
+     */
+    st=my_insert_nosplit(page, key, 0, record, cursor, flags, HAM_TRUE);
+
+    page_release_ref(page);
+    return (st);
+}
 
 ham_status_t
 btree_insert_cursor(ham_btree_t *be, ham_key_t *key, 
@@ -119,6 +189,15 @@ btree_insert_cursor(ham_btree_t *be, ham_key_t *key,
     ham_page_t *root;
     ham_db_t *db=btree_get_db(be);
     insert_scratchpad_t scratchpad;
+
+    /*
+     * append the key? my_append_key() will try to append the key; if it 
+     * fails because the key is NOT the highest key in the database or
+     * because the current page is already full, it will remove the 
+     * HINT_APPEND flag and call btree_insert_cursor() again
+     */
+    if (flags&HAM_HINT_APPEND && !bt_cursor_is_nil(cursor))
+         return (my_append_key(be, key, record, cursor, flags));
 
     /* 
      * initialize the scratchpad 
@@ -171,7 +250,7 @@ btree_insert_cursor(ham_btree_t *be, ham_key_t *key,
         btree_node_set_ptr_left(node, btree_get_rootpage(be));
         st=my_insert_nosplit(newroot, &scratchpad.key, 
                 scratchpad.rid, scratchpad.record, scratchpad.cursor, 
-                flags|NOFLUSH);
+                flags|NOFLUSH, HAM_FALSE);
         scratchpad.cursor=0; /* don't overwrite cursor if my_insert_nosplit
                                 is called again */
         if (st) {
@@ -295,7 +374,7 @@ my_insert_in_page(ham_page_t *page, ham_key_t *key,
      */
     if (btree_node_get_count(node)<maxkeys) {
         st=my_insert_nosplit(page, key, rid, 
-                    scratchpad->record, scratchpad->cursor, flags);
+                    scratchpad->record, scratchpad->cursor, flags, HAM_FALSE);
         scratchpad->cursor=0; /* don't overwrite cursor if my_insert_nosplit
                                  is called again */
         return (st);
@@ -310,7 +389,8 @@ my_insert_in_page(ham_page_t *page, ham_key_t *key,
                 HAM_FIND_EXACT_MATCH)>=0) {
             if ((flags&HAM_OVERWRITE) || (flags&HAM_DUPLICATE)) {
                 st=my_insert_nosplit(page, key, rid, 
-                        scratchpad->record, scratchpad->cursor, flags);
+                        scratchpad->record, scratchpad->cursor, 
+                        flags, HAM_FALSE);
                 /* don't overwrite cursor if my_insert_nosplit
                    is called again */
                 scratchpad->cursor=0; 
@@ -327,7 +407,7 @@ my_insert_in_page(ham_page_t *page, ham_key_t *key,
 static ham_status_t
 my_insert_nosplit(ham_page_t *page, ham_key_t *key, 
         ham_offset_t rid, ham_record_t *record, 
-        ham_bt_cursor_t *cursor, ham_u32_t flags)
+        ham_bt_cursor_t *cursor, ham_u32_t flags, ham_bool_t force_append)
 {
     ham_status_t st;
     ham_size_t count, keysize, new_dupe_id=0;
@@ -341,12 +421,15 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
     count=btree_node_get_count(node);
     keysize=db_get_keysize(db);
 
-    if (btree_node_get_count(node)==0)
+    if (force_append) {
+        slot=count;
+    } 
+    else if (btree_node_get_count(node)==0)
         slot=0;
     else {
         int cmp;
 
-		st=btree_get_slot(db, page, key, &slot, &cmp);
+        st=btree_get_slot(db, page, key, &slot, &cmp);
         if (st)
             return (db_set_error(db, st));
 
@@ -400,14 +483,11 @@ shift_elements:
         }
     }
 
-    /*
-     * if a new key is created or inserted: initialize it with zeroes
-     */
     if (slot==count)
         bte=btree_node_get_key(db, node, slot);
 
     /*
-     * prepare the entry for the logfile
+     * if a new key is created or inserted: initialize it with zeroes
      */
     if (!exists)
         memset(bte, 0, db_get_int_key_header_size()+keysize);
@@ -491,7 +571,7 @@ shift_elements:
     }
 
     /*
-     * write the btree node-header
+     * update the btree node-header
      */
     btree_node_set_count(node, count+1);
 
@@ -612,10 +692,12 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
 
     if (cmp>=0)
         st=my_insert_nosplit(newpage, key, rid, 
-                scratchpad->record, scratchpad->cursor, flags|NOFLUSH);
+                scratchpad->record, scratchpad->cursor, 
+                flags|NOFLUSH, HAM_FALSE);
     else
         st=my_insert_nosplit(page, key, rid, 
-                scratchpad->record, scratchpad->cursor, flags|NOFLUSH);
+                scratchpad->record, scratchpad->cursor,
+                flags|NOFLUSH, HAM_FALSE);
     if (st) 
         return (st);
     scratchpad->cursor=0; /* don't overwrite cursor if my_insert_nosplit

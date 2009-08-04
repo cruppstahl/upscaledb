@@ -1575,6 +1575,9 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 /** Flag for @a ham_cursor_insert */
 #define HAM_DUPLICATE_INSERT_LAST      32
 
+/** Flag for @a ham_cursor_insert */
+#define HAM_HINT_APPEND                64
+
 /**
  * Erases a Database item
  *
@@ -2074,6 +2077,12 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  * specifying @a HAM_DUPLICATE_INSERT_FIRST, @a HAM_DUPLICATE_INSERT_BEFORE
  * or @a HAM_DUPLICATE_INSERT_AFTER.
  *
+ * Specify the flag @a HAM_HINT_APPEND if you insert sequential data 
+ * and the current @a key is higher than any other key in this Database.
+ * In this case hamsterdb will optimize the insert algorithm. hamsterdb will
+ * verify that this key is the highest; if not, it will perform a normal
+ * insert.
+ *
  * After inserting, the Cursor will point to the new item. If inserting
  * the item failed, the Cursor is not modified.
  *
@@ -2107,6 +2116,8 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  *        <li>@a HAM_DUPLICATE_INSERT_LAST. If the @a key already exists, 
  *              a duplicate key is inserted as the last duplicate of 
  *              the current key.
+ *        <li>@a HAM_HINT_APPEND. The @a key is the highest key in the
+ *              Database
  *      </ul>
  *
  * @return @a HAM_SUCCESS upon success
