@@ -112,6 +112,8 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, recoveryEnvTest);
         BFC_REGISTER_TEST(HamsterdbTest, recoveryEnvNegativeTest);
         BFC_REGISTER_TEST(HamsterdbTest, btreeMacroTest);
+        BFC_REGISTER_TEST(HamsterdbTest, cursorInsertAppendTest);
+        BFC_REGISTER_TEST(HamsterdbTest, negativeCursorInsertAppendTest);
     }
 
 protected:
@@ -1662,6 +1664,60 @@ static int my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL((int)page_get_self(page)+12+28+64, off);
 
         db_free_page(page, 0);
+    }
+
+    void cursorInsertAppendTest(void)
+    {
+        ham_cursor_t *cursor;
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+        for (unsigned i=0; i<10000; i++) {
+            key.size=sizeof(i);
+            key.data=(void *)&i;
+            rec.size=sizeof(i);
+            rec.data=(void *)&i;
+            BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 
+                HAM_HINT_APPEND));
+        }
+        for (unsigned i=0; i<10000; i++) {
+            key.size=sizeof(i);
+            key.data=(void *)&i;
+            BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(key.size, rec.size);
+            BFC_ASSERT_EQUAL(0, memcmp(key.data, rec.data, key.size));
+        }
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    }
+
+    void negativeCursorInsertAppendTest(void)
+    {
+        ham_cursor_t *cursor;
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+        for (unsigned i=10; i>0; i--) {
+            key.size=sizeof(i);
+            key.data=(void *)&i;
+            rec.size=sizeof(i);
+            rec.data=(void *)&i;
+            BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 
+                HAM_HINT_APPEND));
+        }
+        for (unsigned i=1; i<=10; i++) {
+            key.size=sizeof(i);
+            key.data=(void *)&i;
+            BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+            BFC_ASSERT_EQUAL(key.size, rec.size);
+            BFC_ASSERT_EQUAL(0, memcmp(key.data, rec.data, key.size));
+        }
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
     }
 
 };
