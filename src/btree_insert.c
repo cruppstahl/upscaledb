@@ -152,7 +152,7 @@ my_append_key(ham_btree_t *be, ham_key_t *key,
         return (btree_insert_cursor(be, key, record, cursor, flags));
     }
 
-    cmp=key_compare_pub_to_int(page, key, btree_node_get_count(node));
+    cmp=key_compare_pub_to_int(page, key, btree_node_get_count(node)-1);
     if (db_get_error(db)) {
         page_release_ref(page);
         return (db_get_error(db));
