@@ -39,7 +39,7 @@
 /*
  * same as above, but as a readable string
  */
-#define HAM_PRODUCT_NAME              "hamsterdb storage"
+#define HAM_PRODUCT_NAME              "hamsterdb embedded storage"
 
 
 #endif /* SERIAL_H__ */
