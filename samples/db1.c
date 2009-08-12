@@ -77,8 +77,8 @@ main(int argc, char **argv)
      * up, then delete them and try to look them up again (which will fail).
      */
     for (i=0; i<LOOP; i++) {
-        key.data="!?_C@_04CMDHNMIB@ficomp?$AA@_db.db";
-        key.size=strlen((char *)key.data)+1;
+        key.data=&i;
+        key.size=sizeof(i);
 
         record.size=key.size;
         record.data=key.data;
@@ -88,7 +88,6 @@ main(int argc, char **argv)
         st=ham_insert(db, 0, &key, &record, 0);
 		if (st!=HAM_SUCCESS)
             error("ham_insert", st);
-break;
     }
 
     /*
@@ -99,16 +98,14 @@ break;
      * by hamsterdb)
      */
     for (i=0; i<LOOP; i++) {
-        key.data="!?_C@_04CMDHNMIB@ficomp?$AA@_db.db";
-        key.size=strlen((char *)key.data)+1;
+        key.data=&i;
+        key.size=sizeof(i);
 
         /* note: the second parameter of ham_find() is reserved; set it to 
          * NULL */
         st=ham_find(db, 0, &key, &record, 0);
         if (st!=HAM_SUCCESS)
             error("ham_find", st);
-printf("record: %s\n", record.data);
-exit(0);
 
         /*
          * check if the value is ok
