@@ -2195,7 +2195,7 @@ ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_close(ham_cursor_t *cursor);
 
-/*
+/**
  * @}
  */
 
