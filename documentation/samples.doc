@@ -1,0 +1,89 @@
+/*
+ * Copyright (C) 2005-2009 Christoph Rupp (chris@crupp.de).
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or 
+ * (at your option) any later version.
+ *
+ * See files COPYING.* for License information.
+ */
+/*! \page samples hamsterdb Sample Applications
+
+<h3>Samples for C/C++</h3>
+
+The samples are part of the hamsterdb Embedded Storage sources; you can 
+find them in the directory <i>samples</i>. For your convenience, they are 
+available for downloading.
+
+<a href="db1_8c-example.html">db1.c</a>
+Simple example of creating a Database, inserting some items, search for these
+items and erase them 
+
+<a href="db2_8c-example.html">db2.c</a>
+Uses a Cursor to copy one Database to another; this can also be used to copy an
+In-Memory Database into a file Database and vice versa
+
+<a href="db3_8c-example.html">db3.c</a>
+Demonstrates how to use hamsterdb Embedded Storage for sorting large amounts of data
+
+<a href="db4_8c-example.html">db4.c</a>
+Demonstrates the use of Record Number Databases; reads a text file from stdin
+and creates a Database entry for every word. Then prints all words in the
+original order.
+
+<a href="db5_8c-example.html">db5.c</a>
+Demonstrates the use of duplicate items; reads a text file from stdin and
+creates a Database entry for every word, even if the word is a duplicate. Then
+prints all words in alphabetical order and prints the line number of each
+occurrence.
+
+<a href="db6_8cpp-example.html">db6.cpp</a>
+Same as db1.c, but written in C++
+
+<a href="env1_8c-example.html">env1.c</a>
+Shows how to use Environments; creates two Databases to manage Customers and
+Orders
+
+<a href="env2_8c-example.html">env2.c</a>
+Shows how to use Environments; creates two Databases to manage Customers and
+Orders, and a third Database with duplicate keys for the 1:n relation.
+
+<a href="env3_8cpp-example.html">env3.cpp</a>
+Same as env2.c, but written in C++
+
+<h3>Samples for Java</h3>
+<a href="http://hamsterdb.com/public/dl/Db1.java">Db1.java</a>
+Simple example of creating a Database, inserting some items, search for these
+items and erase them 
+
+<a href="http://hamsterdb.com/public/dl/Env3.java">Env3.java</a>
+Shows how to use Environments; creates two Databases to manage Customers and
+Orders, and a third Database with duplicate keys for the 1:n relation.
+
+<h3>Samples for C#</h3>
+<a href="http://hamsterdb.com/public/dl/SampleDb1.cs">SampleDb1.cs</a>
+Simple example of creating a Database, inserting some items, search for these
+items and erase them 
+
+<a href="http://hamsterdb.com/public/dl/SampleEnv3.cs">SampleEnv3.cs</a>
+Shows how to use Environments; creates two Databases to manage Customers and
+Orders, and a third Database with duplicate keys for the 1:n relation.
+
+<h3>Samples for Visual Basic.NET</h3>
+<a href="http://hamsterdb.com/public/dl/Module1.vb">Module1.vb</a>
+Simple example of creating a Database, inserting some items, search for these
+items and erase them.
+
+<h3>Samples for Python</h3>
+<a href="http://hamsterdb.com/public/dl/db1.py">db1.py</a>
+Simple example of creating a Database, inserting some items, search for these
+items and erase them 
+
+<a href="http://hamsterdb.com/public/dl/env1.py">env1.py</a>
+Shows how to use Environments; creates two Databases to manage Customers and
+Orders
+
+
+
+*/

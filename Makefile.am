@@ -1,9 +1,27 @@
                 
 SUBDIRS = 3rdparty src include samples tools
 
-EXTRA_DIST = documentation/Doxyfile                     \
-             documentation/tutorial.odt                 \
-             CHANGELOG                                  \
+DOCUMENTATION_FILES = documentation/Doxyfile            \
+             documentation/hamsterdb-main-low.jpg       \
+             documentation/hamsterdb-main.jpg           \
+             documentation/architecture.doc 		\
+             documentation/appendix_gpl2.doc 		\
+             documentation/appendix_gpl3.doc 		\
+             documentation/appendix_gfdl.doc 		\
+             documentation/faq.doc 		\
+             documentation/got_geek.doc 		\
+             documentation/history.doc 		\
+             documentation/index.doc 		\
+             documentation/samples.doc 		\
+             documentation/starting.doc 		\
+             documentation/tuning.doc 		\
+             documentation/trouble.doc 				\
+             documentation/Doxyfile
+             
+
+EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
+             ChangeLog                                  \
+             AUTHORS                                    \
              README                                     \
              COPYING.GPL2                               \
              COPYING.GPL3                               \
@@ -43,7 +61,15 @@ EXTRA_DIST = documentation/Doxyfile                     \
              wince/sample_env2.vcproj 
 
 doc:
+	VERSION=$(VERSION) ;            \
+	export VERSION;                 \
 	doxygen documentation/Doxyfile
+	@cp documentation/*.jpg documentation/html/
+
+html-dist: doc
+	tar cvzf hamsterdb-html-documentation.$(VERSION).tar.gz documentation/html
 
 test:
 	cd unittests && make && ./test
+
+.PHONY: doc test

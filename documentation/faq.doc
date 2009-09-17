@@ -1,0 +1,130 @@
+/*
+ * Copyright (C) 2005-2009 Christoph Rupp (chris@crupp.de).
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or 
+ * (at your option) any later version.
+ *
+ * See files COPYING.* for License information.
+ */
+/*! \page faq Frequently Asked Questions
+
+
+\section faq_001 What's the recommended cache size?
+
+The cache size should be large enough to hold at least the index tree in
+the cache. Currently, there's no way to get the size of the index tree. 
+A command line tool will soon be provided to extract information and 
+statistics about a Database file, and this file will also print the 
+index tree size. However, the default cache size (256kb, declared 
+in src/config.h), is usually enough. 
+
+
+\section faq_002 What's the recommended page size?
+
+It is recommended not to change the page size, unless you have important
+reasons to do so. The default page size is system dependent (Windows: 64kb, 
+Linux: 4kb). If you change the page size, the operating system usually
+cannot access the file through memory mapped I/O, and hamsterdb has to use
+the slower read/write I/O operations. 
+
+If you decide to change the page size, make sure it is a multiple of 1024;
+otherwise, hamsterdb will return an error.
+
+
+\section faq_003 What's the key size? I thought hamsterdb supports variable length keys?
+
+Yes, hamsterdb supports variable length keys. However, a B+Tree structure,
+which is used for managing the data, can only hold fixed length keys. If 
+you insert a key, which is longer than this (fixed) index key length,
+hamsterdb will truncate the key and allocate an overflow area, which is
+large enough to hold the "overlapping" part of the key. 
+
+
+\section faq_004 What's the recommended key size?
+
+When accessing a key, and this key has an overflow-area, hamsterdb will 
+usually access the overflow area as well. Therefore, accessing variable length 
+keys is a tad slower than accessing non-variable keys.
+
+The key size, which you specify when calling ham_create_ex, is this 
+index key size. It's tricky to specify a good index key size. If all your keys
+have the same length, then this index key size should be this length. 
+Otherwise, your index key size should be large enough to hold the majority of 
+the keys. However, if your index key size is too large, then a Database page 
+will be filled up very fast, and a lot of page splits occur. This would be 
+negative for performance. You may have to test with different parameters 
+of key sizes and page sizes, to get the best performance.
+
+
+\section faq_005 Why is the default key size 21 byte?
+
+hamsterdb tries to take advantage of modern processor's caching mechanism.
+Cache lines are usually 32 bytes large. Each Database key has an internal
+overhead of 11 bytes. If the total key size is 32 bytes, and you substract
+the overhead of 11 bytes, the remaining 21 bytes are for the key data.
+
+Benchmarks show that a total key size of 32 bytes result in a (small)
+performance advantage (i.e. compared to a size of 40 or 50 bytes).
+However, if your keys are smaller, a total key size of 16 bytes (which
+means a payload of 5 bytes) would be better, because more keys would fit
+on a Database page, and less page splits would happen.
+
+
+\section faq_006 How can I tune hamsterdb for performance?
+
+When opening (or creating) a Database, the following flags will tune
+hamsterdb for maximum performance:
+
+
+<ul>
+<li>HAM_DISABLE_FREELIST_FLUSH</li> Do not immediately write back 
+    modified freelist pages. Using this flag leads to small 
+    performance improvements, but may prove to be risky 
+    in case of a system crash or program crash.
+<li>HAM_IN_MEMORY_DB</li> Creates an In-Memory Database. No file 
+    will be created, and the Database contents are lost after 
+    the Database is closed. 
+</ul>
+
+
+\section faq_007 How can I tune hamsterdb for stability?
+
+<ul>
+<li>HAM_WRITE_THROUGH</li> Immediately write modified pages 
+    to the disk. This slows down all Database operations, but 
+    could save the Database integrity in case of a system crash. 
+<li>HAM_ENABLE_RECOVERY</li> Writes all modified pages to a binary log file.
+    If the application crashes, hamsterdb will read these log files and
+    recover itself.
+</ul>
+
+
+\section faq_008 How secure is AES encryption?
+
+Usually, AES is very secure. However, if you open an encrypted Database in
+your application, there are several ways of attacking the encryption which
+you should be aware of.
+\n First, a cracker can extract the AES key from your application. Second, he
+can wait till the Database was opened by hamsterdb, and then dump the 
+decoded Database pages from the Database cache.
+
+
+\section faq_009 Is the C++ API compatible to STL?
+
+No, it is not. The ham::cursor class is not compatible to an STL iterator.
+To achieve compatibility would have mean quite an effort of time and 
+additional code. If you would like to have compatibility, please send me a 
+mail.
+
+
+\section faq_010 Is hamsterdb thread-safe? Does it support concurrency?
+
+The hamsterdb library is thread safe, but the handles (ham_db_t, ham_env_t
+etc.) are not. If you want to access a handle from several threads, you
+have to synchronize access with a mutex or a critical section. hamsterdb
+does not support concurrent Database access.
+
+*/
+

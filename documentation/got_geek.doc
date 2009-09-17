@@ -1,0 +1,28 @@
+/*
+ * Copyright (C) 2005-2009 Christoph Rupp (chris@crupp.de).
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or 
+ * (at your option) any later version.
+ *
+ * See files COPYING.* for License information.
+ */
+/*! \page got_geek hamsterdb Internal Implementation Details - The Nitty Gritty
+
+TODO:
+
+\section stats_gathering_techno Statistics Gathering and Hinting Internals
+
+the statistics gathering: how it's done exactly; the thoughts behind
+
+
+
+\section approx_match_techno Approximate Matching and the B+tree
+
+the LT/GT/etc. 'approximate matching' find operations - how it works and what it does when it hits a B+tree edge
+
+
+
+
+*/
