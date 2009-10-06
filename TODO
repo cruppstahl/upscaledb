@@ -25,6 +25,9 @@ x some unittests are crashing
 
 x check why bfc swallows the exceptions
 
+o IMPORTANT!!! - increase libtool version by 1??? also, we have some API
+    incompatibilities when HAM_*_USER_ALLOC is used. are they a problem??
+
 o new append function for ham_cursor_insert: append keys at the "end"
     of the database
     x use it for recno
