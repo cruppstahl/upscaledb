@@ -72,7 +72,8 @@ public:
 
     void copyKeyTest(void)
     {
-        ham_key_t src, dest;
+        ham_key_t src;
+		ham_key_t dest = {0};
 
         src.data=(void *)"hallo welt";
         src.size=(ham_u16_t)::strlen((char *)src.data)+1;
@@ -88,7 +89,8 @@ public:
 
     void copyExtendedKeyTest(void)
     {
-        ham_key_t src, dest;
+        ham_key_t src;
+		ham_key_t dest = {0};
 
         src.data=(void *)"hallo welt, this is an extended key";
         src.size=(ham_u16_t)::strlen((char *)src.data)+1;

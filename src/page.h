@@ -22,6 +22,11 @@
 #include "endian.h"
 #include "cursor.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * indices for page lists
  *
@@ -79,7 +84,7 @@ typedef HAM_PACK_0 union HAM_PACK_1 {
         ham_u32_t _reserved1;
         ham_u32_t _reserved2;
 
-        /** 
+        /**
          * this is just a blob - the backend (hashdb, btree etc) 
          * will use it appropriately
          */
@@ -115,11 +120,25 @@ struct ham_page_t {
         /** non-persistent flags */
         ham_u32_t _flags;
 
-        /** cache counter - used by the cache module */
+        /** cache counter - used by the cache module
+         *
+         * The higher the counter, the more 'important' this page is
+         * believed to be; when searching for pages to re-use, the empty
+         * page with the lowest counter value is re-purposed. Each valid
+         * page use bumps up the page counter by a certain amount, up to
+         * a page-type specific upper bound.
+         *
+         * See also @a cache_put_page(), @a page_increment_cache_cntr()
+         * and their invocations in the code. @a page_new() initialized
+         * the counter for each new page.
+         *
+         * To re
+         */
         ham_u32_t _cache_cntr;
 
-        /** reference-counter counts the number of transactions, which access
-         * this page*/
+        /** reference-counter counts the number of transactions, which
+         * access this page
+         */
         ham_u32_t _refcount;
 
         /** the transaction Id which dirtied the page */
@@ -129,6 +148,8 @@ struct ham_page_t {
 		/** handle for win32 mmap */
 		HANDLE _win32mmap;
 #endif
+		/** pointer to the 'raw' page buffer. ONLY TO BE USED by the DEVICE code! */
+	    ham_u8_t *_raw_pagedata;
 
         /** linked lists of pages - see comments above */
         ham_page_t *_prev[MAX_PAGE_LISTS], *_next[MAX_PAGE_LISTS];
@@ -146,19 +167,34 @@ struct ham_page_t {
 
     /**
      * from here on everything will be written to disk 
+
+	 WARNING: this points at the @e cooked page contents, which are persisted to disk.
+	 When page filters are installed, those will transform this @e cooked data to
+	 @e raw data, which is then written to disk. During this process, page headers and footers
+	 may be added to this 'cooked' data, while the data itself may be transformed (e.g. encrypted)
+	 before it ends up on the disk platters.
+
+	 This filtering process is completely opaque to the hamster; the only part involved
+	 is the ham_device_t device driver, which will take care of all of this.
+
+	 The only thing you see in here, which alludes to the above data processing is the
+	 inclusion of an additional @ref _raw_pagedata reference which points at the @e raw
+	 (memory mapped) data space for this @e cooked page. This reference may be NULL; you may @e never
+	 access it outside the ham_device_t device driver realm.
      */
     ham_perm_page_union_t *_pers;
 };
 
-/**
+/*
  * the size of struct ham_perm_page_union_t, without the payload byte
  *
  * !!
  * this is not equal to sizeof(struct ham_perm_page_union_t)-1, because of
  * padding (i.e. on gcc 4.1, 64bit the size would be 15 bytes)
+ *
+ * (defined in db.h)
  */
-#define SIZEOF_PAGE_UNION_HEADER        OFFSETOF(ham_perm_page_union_t,     \
-                                                _s._payload) /* 12 */
+//#define db_get_persistent_header_size()   (OFFSETOF(ham_perm_page_union_t, _s._payload) /*(sizeof(ham_u32_t)*3)*/ )
 
 /**
  * get the address of this page
@@ -168,7 +204,7 @@ struct ham_page_t {
 /**
  * set the address of this page
  */
-#define page_set_self(page, a)       (page)->_npers._self=a
+#define page_set_self(page, a)       (page)->_npers._self=(a)
 
 /** 
  * get the database object which 0wnz this page 
@@ -178,7 +214,7 @@ struct ham_page_t {
 /** 
  * set the database object which 0wnz this page 
  */
-#define page_set_owner(page, db)     (page)->_npers._owner=db
+#define page_set_owner(page, db)     (page)->_npers._owner=(db)
 
 /** 
  * get the previous page of a linked list
@@ -228,7 +264,7 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /**
  * set linked list of cursors
  */
-#define page_set_cursors(page, c)        (page)->_npers._cursors=c
+#define page_set_cursors(page, c)        (page)->_npers._cursors=(c)
 
 /** 
  * get the lsn of the last BEFORE-image that was written to the log 
@@ -238,7 +274,7 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /** 
  * set the lsn of the last BEFORE-image that was written to the log 
  */
-#define page_set_before_img_lsn(page, l) (page)->_npers._before_img_lsn=l
+#define page_set_before_img_lsn(page, l) (page)->_npers._before_img_lsn=(l)
 
 /** 
  * get the id of the txn which allocated this page
@@ -248,7 +284,7 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /** 
  * set the id of the txn which allocated this page
  */
-#define page_set_alloc_txn_id(page, id)  (page)->_npers._alloc_txn_id=id
+#define page_set_alloc_txn_id(page, id)  (page)->_npers._alloc_txn_id=(id)
 
 /**
  * get persistent page flags
@@ -268,7 +304,7 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /**
  * set non-persistent page flags
  */
-#define page_set_npers_flags(page, f)    (page)->_npers._flags=f
+#define page_set_npers_flags(page, f)    (page)->_npers._flags=(f)
 
 /**
  * get the cache counter
@@ -278,7 +314,8 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /**
  * set the cache counter
  */
-#define page_set_cache_cntr(page, c)     (page)->_npers._cache_cntr=c
+#define page_set_cache_cntr(page, c)     (page)->_npers._cache_cntr=(c)
+
 
 /** page->_pers was allocated with malloc, not mmap */
 #define PAGE_NPERS_MALLOC            1
@@ -301,14 +338,14 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /**
  * set the txn-id of the transaction which dirtied the page
  */
-#define page_set_dirty_txn(page, id)        (page)->_npers._dirty_txn=id
+#define page_set_dirty_txn(page, id)        (page)->_npers._dirty_txn=(id)
 
 /** 
  * is this page dirty?
  */
 #define page_is_dirty(page)      (page_get_dirty_txn(page)!=0)
 
-/** 
+/**
  * mark the page dirty by the current transaction (if there's no transaction,
  * just set a dummy-value)
  */
@@ -332,7 +369,7 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /** 
  * increment the reference counter
  */
-#define page_add_ref(page)      ++(page)->_npers._refcount
+#define page_add_ref(page)      ++((page)->_npers._refcount)
 
 /** 
  * decrement the reference counter
@@ -351,9 +388,19 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 #endif
 
 /**
+ * set the RAW pagedata reference
+ */
+#define page_set_raw_pagedata(page, ref)   (page)->_raw_pagedata=(ref)
+
+/**
+ * get the RAW pagedata reference
+ */
+#define page_get_raw_pagedata(page)      (page)->_raw_pagedata
+
+/**
  * set the page-type
  */
-#define page_set_type(page, t)   page_set_pers_flags(page, t);
+#define page_set_type(page, t)   page_set_pers_flags(page, t)
 
 /**
  * get the page-type
@@ -382,7 +429,7 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /**
  * set pointer to persistent data
  */
-#define page_set_pers(page, p)           (page)->_pers=p
+#define page_set_pers(page, p)           (page)->_pers=(p)
 
 /**
  * get pointer to persistent data
@@ -459,5 +506,8 @@ page_flush(ham_page_t *page);
 extern ham_status_t
 page_free(ham_page_t *page);
 
+#ifdef __cplusplus
+} // extern "C" {
+#endif
 
 #endif /* HAM_PAGE_H__ */

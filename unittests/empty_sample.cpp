@@ -26,13 +26,24 @@ which it does not have the appropriate access. (The thread attempted to read the
 */
 
 
-#include "../src/config.h"
+/* #include "../src/config.h"   -- not really a part of hamster, but of BFC */
 
 #include "bfc-testsuite.hpp"
-#include "hamster_fixture.hpp"
-
 
 using namespace bfc;
+
+
+/*
+__super is MSVC specific, but other compilers can simply offer the same
+using this macro; place at the top of class definition and you're good 
+to go.
+*/
+#if !defined(_MSC_VER) || (_MSC_VER < 1310 /* MSVC.NET 2003 */)
+#define define_super(c) private: typedef c __super
+#else
+#define define_super(c)
+#endif
+
 
 
 

@@ -220,7 +220,9 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
         total+=s;
     }
 
-    return (total==bufferlen ? HAM_SUCCESS : HAM_IO_ERROR);
+    if (total!=bufferlen)
+        return (HAM_IO_ERROR);
+    return (os_seek(fd, addr+total, HAM_OS_SEEK_SET)); // [i_a] october fix by Christoph after I messed up; log shouldn't be using os_pwrite but os_write? TODO / CHECK AGAIN!
 #else
     ham_status_t st;
 

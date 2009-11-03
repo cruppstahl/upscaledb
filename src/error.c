@@ -133,13 +133,17 @@ dbg_verify_failed(const char *format, ...)
     
     g_hand(g_level, buffer);
 
-#ifndef HAM_OS_WINCE
-    if (ham_test_abort)
+    /* [i_a] ALWAYS offer the user-def'able abort 
+     * handler (unittests depend on this) */
+    if (ham_test_abort) {
         ham_test_abort();
-    else
+	}
+    else {
+#ifndef HAM_OS_WINCE
         abort();
 #else
-	ExitProcess(-1);
+		ExitProcess(-1);
 #endif
+	}
 }
 

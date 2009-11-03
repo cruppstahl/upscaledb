@@ -1,4 +1,8 @@
 
 includedir=${prefix}/include/ham
 
-include_HEADERS=hamsterdb.h hamsterdb_int.h types.h hamsterdb.hpp
+include_HEADERS=hamsterdb.h \
+	hamsterdb_int.h \
+	hamsterdb_stats.h \
+	types.h \
+	hamsterdb.hpp

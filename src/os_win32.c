@@ -16,16 +16,23 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <ham/hamsterdb.h>
 #include <ham/types.h>
 
 #include "error.h"
 #include "os.h"
 
+
 #define ALLOW_MULTIPLE_ASYNCHRONOUS_WRITERS
+
+
+
 
 static const char *DisplayError(char* buf, ham_size_t buflen, DWORD errorcode)
 {
+	size_t len;
+
 	buf[0] = 0;
     FormatMessageA(/* FORMAT_MESSAGE_ALLOCATE_BUFFER | */
                   FORMAT_MESSAGE_FROM_SYSTEM |
@@ -34,6 +41,15 @@ static const char *DisplayError(char* buf, ham_size_t buflen, DWORD errorcode)
                   MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                   (LPSTR)buf, buflen, NULL);
 	buf[buflen-1]=0;
+
+	/* strip trailing whitespace\newlines */
+	for (len = strlen(buf); len-- > 0; )
+	{
+		if (!isspace(buf[len]))
+			break;
+		buf[len] = 0;
+	}
+
 	return buf;
 }
 

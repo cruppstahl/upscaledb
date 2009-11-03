@@ -29,6 +29,11 @@
 #include <cstring>
 #include <vector>
 
+#if defined(_MSC_VER)
+#define _CRTDBG_MAP_ALLOC
+#include <crtdbg.h>
+#endif
+
 /**
  * @defgroup ham_cpp hamsterdb C++ API wrapper
  * @{

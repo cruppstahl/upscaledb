@@ -16,11 +16,12 @@
 #ifndef HAM_TXN_H__
 #define HAM_TXN_H__
 
+#include <ham/hamsterdb.h>
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif 
-
-#include <ham/hamsterdb.h>
 
 struct ham_page_t;
 
@@ -51,7 +52,7 @@ struct ham_txn_t
     ham_u32_t _cursor_refcount;
 
     /**
-     * index of the log file descriptor for this transaction
+     * index of the log file descriptor for this transaction [0..1] 
      */
     int _log_desc;
 
@@ -187,7 +188,7 @@ txn_free_page(ham_txn_t *txn, struct ham_page_t *page);
 extern ham_status_t
 txn_begin(ham_txn_t *txn, ham_db_t *db, ham_u32_t flags);
 
-#define HAM_TXN_READ_ONLY       1
+/* #define HAM_TXN_READ_ONLY       1   -- already defined in hamsterdb.h */
 
 /**
  * commit a transaction
@@ -195,7 +196,7 @@ txn_begin(ham_txn_t *txn, ham_db_t *db, ham_u32_t flags);
 extern ham_status_t
 txn_commit(ham_txn_t *txn, ham_u32_t flags);
 
-#define TXN_FORCE_WRITE         1
+/* #define TXN_FORCE_WRITE         1   -- moved to hamsterdb.h */
 
 /**
  * abort a transaction
@@ -203,6 +204,14 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags);
 extern ham_status_t
 txn_abort(ham_txn_t *txn, ham_u32_t flags);
 
+/** 
+internal flags: signal that a transaction ABORT should NOT nuke the page statistics.
+
+This is relevant for find operations where an internal (local) transaction is used
+and the find fails: as this is a read-only operation, aborting or commiting such
+a local transaction does not result in necessary different statistics.
+*/
+#define DO_NOT_NUKE_PAGE_STATS		0x0001 
 
 #ifdef __cplusplus
 } // extern "C"

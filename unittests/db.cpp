@@ -66,13 +66,14 @@ public:
         m_alloc=memtracker_new(); //ham_default_allocator_new();
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
-                        m_inmemory))!=0);
+                        db_get_env(m_db), m_inmemory))!=0);
         db_set_device(m_db, m_dev);
-        BFC_ASSERT(m_dev->create(m_dev, BFC_OPATH(".test"), 0, 0644)==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(0, m_dev->create(m_dev, BFC_OPATH(".test"), 0, 0644));
         p=page_new(m_db);
-        BFC_ASSERT(0==page_alloc(p, m_dev->get_pagesize(m_dev)));
+        BFC_ASSERT(0==page_alloc(p, device_get_pagesize(m_dev)));
         db_set_header_page(m_db, p);
-        db_set_pagesize(m_db, m_dev->get_pagesize(m_dev));
+        db_set_persistent_pagesize(m_db, m_dev->get_pagesize(m_dev));
+        db_set_cooked_pagesize(m_db, device_get_pagesize(m_dev));
     }
     
     virtual void teardown() 
@@ -101,24 +102,27 @@ public:
     void headerTest()
     {
         db_set_magic(m_db, '1', '2', '3', '4');
-        BFC_ASSERT(db_get_magic(m_db, 0)=='1');
-        BFC_ASSERT(db_get_magic(m_db, 1)=='2');
-        BFC_ASSERT(db_get_magic(m_db, 2)=='3');
-        BFC_ASSERT(db_get_magic(m_db, 3)=='4');
+        BFC_ASSERT(db_get_magic(db_get_header(m_db), 0)=='1');
+        BFC_ASSERT(db_get_magic(db_get_header(m_db), 1)=='2');
+        BFC_ASSERT(db_get_magic(db_get_header(m_db), 2)=='3');
+        BFC_ASSERT(db_get_magic(db_get_header(m_db), 3)=='4');
 
         db_set_version(m_db, 1, 2, 3, 4);
-        BFC_ASSERT(db_get_version(m_db, 0)==1);
-        BFC_ASSERT(db_get_version(m_db, 1)==2);
-        BFC_ASSERT(db_get_version(m_db, 2)==3);
-        BFC_ASSERT(db_get_version(m_db, 3)==4);
+        BFC_ASSERT(db_get_version(db_get_header(m_db), 0)==1);
+        BFC_ASSERT(db_get_version(db_get_header(m_db), 1)==2);
+        BFC_ASSERT(db_get_version(db_get_header(m_db), 2)==3);
+        BFC_ASSERT(db_get_version(db_get_header(m_db), 3)==4);
 
         db_set_serialno(m_db, 0x1234);
         BFC_ASSERT(db_get_serialno(m_db)==0x1234);
 
-        ham_size_t ps=db_get_pagesize(m_db);
-        db_set_pagesize(m_db, 1024*64);
-        BFC_ASSERT(db_get_pagesize(m_db)==1024*64);
-        db_set_pagesize(m_db, ps);
+        ham_size_t ps=db_get_cooked_pagesize(m_db); // since 1.1.0 cooked != persistent/raw necessarily
+		ham_size_t raw_ps=db_get_persistent_pagesize(m_db);
+        db_set_persistent_pagesize(m_db, 1024*32);
+		BFC_ASSERT(db_get_cooked_pagesize(m_db)==ps);
+        BFC_ASSERT(db_get_persistent_pagesize(m_db)==1024*32);
+        db_set_cooked_pagesize(m_db, ps);
+		db_set_persistent_pagesize(m_db, raw_ps);
 
         db_set_txn(m_db, (ham_txn_t *)13);
         BFC_ASSERT(db_get_txn(m_db)==(ham_txn_t *)13);
@@ -155,7 +159,7 @@ public:
         BFC_ASSERT(db_get_compare_func(m_db)==(ham_compare_func_t)19);
 
         BFC_ASSERT(!db_is_dirty(m_db));
-        db_set_dirty(m_db, 1);
+        db_set_dirty(m_db);
         BFC_ASSERT(db_is_dirty(m_db));
 
         BFC_ASSERT(db_get_rt_flags(m_db)==0);
@@ -240,16 +244,25 @@ public:
                         (ham_u8_t *)"abc", 3, 3)==HAM_PREFIX_REQUEST_FULLKEY);
         BFC_ASSERT(db_default_prefix_compare(0,
                         (ham_u8_t *)"ab",  2, 2, 
-                        (ham_u8_t *)"abc", 3, 3)==HAM_PREFIX_REQUEST_FULLKEY);
+                        (ham_u8_t *)"abc", 3, 3)==-1); // comparison code has become 'smarter' so can resolve this one without the need for further help
+		BFC_ASSERT(db_default_prefix_compare(0,
+						(ham_u8_t *)"ab",  2, 3, 
+						(ham_u8_t *)"abc", 3, 3)==HAM_PREFIX_REQUEST_FULLKEY);
         BFC_ASSERT(-1==db_default_prefix_compare(0,
                         (ham_u8_t *)"abc", 3, 3,
                         (ham_u8_t *)"bcd", 3, 3));
         BFC_ASSERT(db_default_prefix_compare(0,
                         (ham_u8_t *)"abc", 3, 3,
-                        (ham_u8_t *)0,     0, 0)==HAM_PREFIX_REQUEST_FULLKEY);
+                        (ham_u8_t *)0,     0, 0)==+1); // comparison code has become 'smarter' so can resolve this one without the need for further help
         BFC_ASSERT(db_default_prefix_compare(0,
                         (ham_u8_t *)0,     0, 0,
-                        (ham_u8_t *)"abc", 3, 3)==HAM_PREFIX_REQUEST_FULLKEY);
+                        (ham_u8_t *)"abc", 3, 3)==-1); // comparison code has become 'smarter' so can resolve this one without the need for further help
+		BFC_ASSERT(db_default_prefix_compare(0,
+						(ham_u8_t *)"abc", 3, 3,
+						(ham_u8_t *)0,     0, 3)==HAM_PREFIX_REQUEST_FULLKEY);
+		BFC_ASSERT(db_default_prefix_compare(0,
+						(ham_u8_t *)0,     0, 3,
+						(ham_u8_t *)"abc", 3, 3)==HAM_PREFIX_REQUEST_FULLKEY);
         BFC_ASSERT(db_default_prefix_compare(0,
                         (ham_u8_t *)"abc", 3, 80239, 
                         (ham_u8_t *)"abc", 3, 2)==HAM_PREFIX_REQUEST_FULLKEY);
@@ -329,20 +342,23 @@ public:
 		db_indexdata_t d;
 		BFC_ASSERT(compare_sizes(sizeof(d.b), 32));
 		BFC_ASSERT(compare_sizes(DB_INDEX_SIZE, 32));
-		BFC_ASSERT(compare_sizes(sizeof(freelist_payload_t), 16 + 13));
+		BFC_ASSERT(compare_sizes(sizeof(freelist_payload_t), 16 + 13 + sizeof(freelist_page_statistics_t)));
 		freelist_payload_t f;
 		BFC_ASSERT(compare_sizes(sizeof(f._s._s16), 5));
 		BFC_ASSERT(compare_sizes(OFFSETOF(freelist_payload_t, _s._s16), 16));
 		BFC_ASSERT(compare_sizes(OFFSETOF(freelist_payload_t, _s._s16._bitmap), 16 + 4));
+		BFC_ASSERT(compare_sizes(sizeof(freelist_page_statistics_t), 4*8 + sizeof(freelist_slotsize_stats_t)*HAM_FREELIST_SLOT_SPREAD));
+		BFC_ASSERT(compare_sizes(sizeof(freelist_slotsize_stats_t), 8*4));
+		BFC_ASSERT(compare_sizes(HAM_FREELIST_SLOT_SPREAD, 16-5+1));
 		BFC_ASSERT(compare_sizes(db_get_freelist_header_size16(), 16 + 4));
-		BFC_ASSERT(compare_sizes(db_get_freelist_header_size32(), 16 + 12));
+		BFC_ASSERT(compare_sizes(db_get_freelist_header_size32(), 16 + 12 + sizeof(freelist_page_statistics_t)));
 		BFC_ASSERT(compare_sizes(db_get_int_key_header_size(), 11));
 		BFC_ASSERT(compare_sizes(sizeof(log_header_t), 8));
 		BFC_ASSERT(compare_sizes(sizeof(log_entry_t), 40));
 		BFC_ASSERT(compare_sizes(sizeof(ham_perm_page_union_t), 13));
 		ham_perm_page_union_t p;
 		BFC_ASSERT(compare_sizes(sizeof(p._s), 13));
-		BFC_ASSERT(compare_sizes(SIZEOF_PAGE_UNION_HEADER, 12));
+		BFC_ASSERT(compare_sizes(db_get_persistent_header_size(), 12));
 
 		BFC_ASSERT(compare_sizes(OFFSETOF(btree_node_t, _entries), 28));
 		ham_page_t page = {{0}};

@@ -163,7 +163,7 @@ public:
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
 
-        key.flags|=HAM_KEY_USER_ALLOC;
+        key.flags=HAM_KEY_USER_ALLOC;
         key.data=&recno;
         key.size=sizeof(recno);
 
@@ -207,7 +207,7 @@ public:
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
 
-        key.flags|=HAM_KEY_USER_ALLOC;
+        key.flags=HAM_KEY_USER_ALLOC;
         key.data=&recno;
         key.size=sizeof(recno);
 
@@ -235,7 +235,7 @@ public:
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
 
-        key.flags|=HAM_KEY_USER_ALLOC;
+        key.flags=HAM_KEY_USER_ALLOC;
         key.data=&recno;
         key.size=sizeof(recno);
 
@@ -282,7 +282,7 @@ public:
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
 
-        key.flags|=HAM_KEY_USER_ALLOC;
+        key.flags=HAM_KEY_USER_ALLOC;
         key.data=&recno;
         key.size=sizeof(recno);
 
@@ -314,7 +314,7 @@ public:
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
 
-        key.flags|=HAM_KEY_USER_ALLOC;
+        key.flags=HAM_KEY_USER_ALLOC;
         key.data=&recno;
         key.size=sizeof(recno);
 
@@ -363,7 +363,7 @@ public:
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
 
-        key.flags|=HAM_KEY_USER_ALLOC;
+        key.flags=HAM_KEY_USER_ALLOC;
         key.data=&recno;
         key.size=sizeof(recno);
 
@@ -514,7 +514,7 @@ public:
         memset(&rec, 0, sizeof(rec));
         key.data=&recno;
         key.size=sizeof(recno);
-        key.flags|=HAM_KEY_USER_ALLOC;
+        key.flags=HAM_KEY_USER_ALLOC;
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, 
@@ -722,7 +722,7 @@ public:
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
 
-        key.flags|=HAM_KEY_USER_ALLOC;
+        key.flags=HAM_KEY_USER_ALLOC;
         key.data=&recno;
         key.size=sizeof(recno);
 

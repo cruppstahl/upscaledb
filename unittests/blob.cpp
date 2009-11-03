@@ -77,7 +77,7 @@ public:
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), 
-                    m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644, &params[0]));
+                    (m_inmemory ? HAM_IN_MEMORY_DB : HAM_ENABLE_TRANSACTIONS), 0644, &params[0]));
     }
     
     virtual void teardown() 
@@ -251,45 +251,47 @@ public:
         ham_u8_t *buffer;
         ham_offset_t *blobid;
         ham_record_t record;
-        ham_txn_t txn; /* need a txn object for the blob routines */
+        ham_txn_t *txn = 0; /* need a txn object for the blob routines */
         ::memset(&record, 0, sizeof(record));
         ::memset(&buffer, 0x12, sizeof(buffer));
 
 		blobid=(ham_offset_t *)::malloc(sizeof(ham_offset_t)*loops);
 		BFC_ASSERT(blobid!=0);
-        BFC_ASSERT(txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+        if (!m_inmemory)
+			BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
 
         for (int i=0; i<loops; i++) {
             buffer=(ham_u8_t *)::malloc((i+1)*factor);
-            BFC_ASSERT(buffer!=0);
+            BFC_ASSERT_I(buffer!=0, i);
             ::memset(buffer, (char)i, (i+1)*factor);
 
-            BFC_ASSERT_EQUAL(0, blob_allocate(m_db, buffer, 
-                                (ham_size_t)((i+1)*factor), 0, &blobid[i]));
-            BFC_ASSERT(blobid[i]!=0);
+            BFC_ASSERT_EQUAL_I(0, blob_allocate(m_db, buffer, 
+                                (ham_size_t)((i+1)*factor), 0, &blobid[i]), i);
+            BFC_ASSERT_I(blobid[i]!=0, i);
 
             ::free(buffer);
         }
 
         for (int i=0; i<loops; i++) {
             buffer=(ham_u8_t *)::malloc((i+1)*factor);
-            BFC_ASSERT(buffer!=0);
+            BFC_ASSERT_I(buffer!=0, i);
             ::memset(buffer, (char)i, (i+1)*factor);
 
-            BFC_ASSERT_EQUAL(0, blob_read(m_db, blobid[i], 
-                                &record, 0));
-            BFC_ASSERT_EQUAL(record.size, (ham_size_t)(i+1)*factor);
-            BFC_ASSERT(0==::memcmp(buffer, record.data, record.size));
+            BFC_ASSERT_EQUAL_I(0, blob_read(m_db, blobid[i], 
+                                &record, 0), i);
+            BFC_ASSERT_EQUAL_I(record.size, (ham_size_t)(i+1)*factor, i);
+            BFC_ASSERT_I(0==::memcmp(buffer, record.data, record.size), i);
 
             ::free(buffer);
         }
 
         for (int i=0; i<loops; i++) {
-            BFC_ASSERT_EQUAL(0, blob_free(m_db, blobid[i], 0));
+            BFC_ASSERT_EQUAL_I(0, blob_free(m_db, blobid[i], 0), i);
         }
 
 		::free(blobid);
-        BFC_ASSERT(txn_commit(&txn, 0)==HAM_SUCCESS);
+        if (!m_inmemory)
+	        BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
     }
 
     void multipleAllocReadFreeTest(void)

@@ -23,16 +23,17 @@ extern "C" {
 /**
  * the version numbers
  *
- * @remark a change of the major revision means a significant update with
- * a lot of new features, API changes and an incompatible database format. 
- * the minor revision means that updates were not so significant, but 
- * the database format is no longer compatible. a change of the revision 
+ * @remark a change of the major revision means a significant update
+ * with a lot of new features, API changes and an incompatible database
+ * format.
+ * The minor revision means that updates were not so significant, but
+ * the database format is no longer compatible. a change of the revision
  * means the release is a bugfix with a compatible database format.
  */
 #define HAM_VERSION_MAJ 1
-#define HAM_VERSION_MIN 0
-#define HAM_VERSION_REV 9
-#define HAM_VERSION_STR "1.0.9"
+#define HAM_VERSION_MIN 1
+#define HAM_VERSION_REV 0
+#define HAM_VERSION_STR "1.1.0"
 
 
 #ifdef __cplusplus

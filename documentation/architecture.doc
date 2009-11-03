@@ -29,8 +29,8 @@ when time allows (probably not) add dot grpah to show block digram of api upper 
 
 The following picture shows how source files are processed by doxygen.
 
-image html archoverview.gif "Data flow overview"
-image latex archoverview.eps "Data flow overview" width=14cm
+\image html archoverview.gif "Data flow overview"
+\image latex archoverview.eps "Data flow overview" width=14cm
 
 The following sections explain the steps above in more detail.
 

@@ -15,15 +15,16 @@
 #ifndef HAM_BT_CURSORS_H__
 #define HAM_BT_CURSORS_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 #include "page.h"
 #include "txn.h"
 #include "cursor.h"
 #include "keys.h"
 #include "blob.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif 
 
 /**
  * the cursor structure for a b+tree

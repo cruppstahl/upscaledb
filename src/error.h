@@ -16,11 +16,12 @@
 #ifndef HAM_ERROR_H__
 #define HAM_ERROR_H__
 
+#include <ham/hamsterdb.h>
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif 
-
-#include <ham/hamsterdb.h>
 
 /*
  * function prototypes

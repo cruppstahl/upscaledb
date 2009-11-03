@@ -95,6 +95,20 @@ __f_get_pagesize(ham_device_t *self)
 }
 
 static ham_status_t 
+__f_seek(ham_device_t *self, ham_offset_t offset, int whence)
+{
+    dev_file_t *t=(dev_file_t *)device_get_private(self);
+	return os_seek(t->fd, offset, whence);
+}
+
+static ham_status_t 
+__f_tell(ham_device_t *self, ham_offset_t *offset)
+{
+    dev_file_t *t=(dev_file_t *)device_get_private(self);
+	return (os_tell(t->fd, offset));
+}
+
+static ham_status_t 
 __f_read(ham_db_t *db, ham_device_t *self, ham_offset_t offset, 
         void *buffer, ham_size_t size)
 {
@@ -231,6 +245,16 @@ __f_alloc_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
 }
 
 static ham_status_t 
+__f_get_filesize(ham_device_t *self, ham_offset_t *length)
+{
+    dev_file_t *t=(dev_file_t *)device_get_private(self);
+
+    *length=0;
+
+    return (os_get_filesize(t->fd, length));
+}
+
+static ham_status_t 
 __f_write(ham_db_t *db, ham_device_t *self, ham_offset_t offset, void *buffer, 
             ham_size_t size)
 {
@@ -238,7 +262,7 @@ __f_write(ham_db_t *db, ham_device_t *self, ham_offset_t offset, void *buffer,
     ham_u8_t *tempdata=0;
     ham_status_t st=0;
     ham_file_filter_t *head=0;
-    if (db_get_env(db))
+    if (db && db_get_env(db))
         head=env_get_file_filter(db_get_env(db));
 
     /*
@@ -368,6 +392,20 @@ __m_truncate(ham_device_t *self, ham_offset_t newsize)
     return (HAM_SUCCESS);
 }
 
+static ham_status_t 
+__m_seek(ham_device_t *self, ham_offset_t offset, int whence)
+{
+    ham_assert(!"can't seek an in-memory-device", (0));
+	return (HAM_NOT_IMPLEMENTED);
+}
+
+static ham_status_t 
+__m_tell(ham_device_t *self, ham_offset_t *offset)
+{
+    ham_assert(!"can't seek an in-memory-device", (0));
+	return (HAM_NOT_IMPLEMENTED);
+}
+
 static ham_bool_t 
 __m_is_open(ham_device_t *self)
 {
@@ -411,6 +449,15 @@ __m_alloc_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
 }
 
 static ham_status_t 
+__m_get_filesize(ham_device_t *self, ham_offset_t *size)
+{
+    (void)self;
+    (void)size;
+    ham_assert(!"this operation is not possible for in-memory-databases", (0));
+    return (HAM_NOT_IMPLEMENTED);
+}
+
+static ham_status_t 
 __m_read(ham_db_t *db, ham_device_t *self, ham_offset_t offset, 
         void *buffer, ham_size_t size)
 {
@@ -420,7 +467,7 @@ __m_read(ham_db_t *db, ham_device_t *self, ham_offset_t offset,
     (void)buffer;
     (void)size;
     ham_assert(!"this operation is not possible for in-memory-databases", (0));
-    return (HAM_SUCCESS);
+    return (HAM_NOT_IMPLEMENTED);
 }
 
 
@@ -492,7 +539,7 @@ __get_flags(ham_device_t *self)
 }
 
 ham_device_t *
-ham_device_new(mem_allocator_t *alloc, ham_bool_t inmemorydb)
+ham_device_new(mem_allocator_t *alloc, ham_env_t *env, int devtype)
 {
     ham_device_t *dev=(ham_device_t *)allocator_alloc(alloc, sizeof(*dev));
     if (!dev)
@@ -501,7 +548,7 @@ ham_device_new(mem_allocator_t *alloc, ham_bool_t inmemorydb)
     memset(dev, 0, sizeof(*dev));
     device_set_allocator(dev, alloc);
 
-    if (inmemorydb) {
+	if (devtype==HAM_DEVTYPE_MEMORY) {
         dev_inmem_t *t=(dev_inmem_t *)allocator_alloc(alloc, sizeof(*t));
         if (!t)
             return (0);
@@ -519,6 +566,9 @@ ham_device_new(mem_allocator_t *alloc, ham_bool_t inmemorydb)
         dev->get_flags    = __get_flags;
         dev->alloc        = __m_alloc;
         dev->alloc_page   = __m_alloc_page;
+        dev->get_filesize = __m_get_filesize;
+        dev->seek         = __m_seek;
+        dev->tell         = __m_tell;
         dev->read         = __m_read;
         dev->write        = __m_write;
         dev->read_page    = __m_read_page;
@@ -526,7 +576,7 @@ ham_device_new(mem_allocator_t *alloc, ham_bool_t inmemorydb)
         dev->free_page    = __m_free_page;
         dev->destroy      = __m_destroy;
     }
-    else {
+    else if (devtype==HAM_DEVTYPE_FILE) {
         dev_file_t *t=(dev_file_t *)allocator_alloc(alloc, sizeof(*t));
         if (!t)
             return (0);
@@ -544,6 +594,9 @@ ham_device_new(mem_allocator_t *alloc, ham_bool_t inmemorydb)
         dev->get_flags    = __get_flags;
         dev->alloc        = __f_alloc;
         dev->alloc_page   = __f_alloc_page;
+        dev->get_filesize = __f_get_filesize;
+        dev->seek         = __f_seek;
+        dev->tell         = __f_tell;
         dev->read         = __f_read;
         dev->write        = __f_write;
         dev->write_raw    = __f_write_raw;
@@ -552,6 +605,8 @@ ham_device_new(mem_allocator_t *alloc, ham_bool_t inmemorydb)
         dev->free_page    = __f_free_page;
         dev->destroy      = __f_destroy;
     }
+    else
+        return (0);
 
     /*
      * initialize the pagesize with a default value - this will be

@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <cstring>
 #include <vector>
+#include <sstream>
 #include <ham/hamsterdb.h>
 #include "../src/txn.h"
 #include "../src/log.h"
@@ -79,7 +80,8 @@ public:
         m_alloc=memtracker_new();
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 0, 0644));
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 
+                        HAM_ENABLE_TRANSACTIONS, 0644));
     }
     
     virtual void teardown() 
@@ -127,7 +129,7 @@ public:
     {
         ham_log_t log;
 
-        BFC_ASSERT_EQUAL((ham_log_t *)0, db_get_log(m_db));
+        BFC_ASSERT_NOTNULL(db_get_log(m_db));
 
         log_set_allocator(&log, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL((mem_allocator_t *)m_alloc, 
@@ -140,12 +142,12 @@ public:
         BFC_ASSERT_EQUAL((ham_u32_t)0x88, log_get_state(&log));
 
         log_set_current_fd(&log, 0x89);
-        BFC_ASSERT_EQUAL((ham_size_t)0x89, log_get_current_fd(&log));
+        BFC_ASSERT_EQUAL(0x89, log_get_current_fd(&log));
 
-        log_set_fd(&log, 0, (ham_fd_t)0x20);
-        BFC_ASSERT_EQUAL((ham_fd_t)0x20, log_get_fd(&log, 0));
-        log_set_fd(&log, 1, (ham_fd_t)0x21);
-        BFC_ASSERT_EQUAL((ham_fd_t)0x21, log_get_fd(&log, 1));
+        log_set_fd(&log, 0, 0x20);
+        BFC_ASSERT_EQUAL(0x20, log_get_fd(&log, 0));
+        log_set_fd(&log, 1, 0x21);
+        BFC_ASSERT_EQUAL(0x21, log_get_fd(&log, 1));
 
         log_set_lsn(&log, 0x99);
         BFC_ASSERT_EQUAL((ham_u64_t)0x99, log_get_lsn(&log));
@@ -197,7 +199,8 @@ public:
         BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
 
         BFC_ASSERT_EQUAL(0, 
-                ham_log_open((mem_allocator_t *)m_alloc, BFC_OPATH(".test"), 0, &log));
+                ham_log_open((mem_allocator_t *)m_alloc, 
+                        BFC_OPATH(".test"), 0, &log));
         BFC_ASSERT(log!=0);
         BFC_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(1, isempty);
@@ -217,11 +220,11 @@ public:
     {
         ham_log_t *log;
         BFC_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, 
-                ham_log_open((mem_allocator_t *)m_alloc, 
+                ham_log_open((mem_allocator_t *)m_alloc,
                         "xxx$$test", 0, &log));
 
         BFC_ASSERT_EQUAL(HAM_LOG_INV_FILE_HEADER, 
-                ham_log_open((mem_allocator_t *)m_alloc, 
+                ham_log_open((mem_allocator_t *)m_alloc,
                         "data/log-broken-magic", 0, &log));
     }
 
@@ -230,7 +233,7 @@ public:
         ham_bool_t isempty;
         ham_log_t *log;
         BFC_ASSERT_EQUAL(0, 
-                ham_log_create((mem_allocator_t *)m_alloc, 
+                ham_log_create((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0644, 0, &log));
         BFC_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(1, isempty);
@@ -240,9 +243,9 @@ public:
         BFC_ASSERT_EQUAL((ham_size_t)0, log_get_open_txn(log, 1));
         BFC_ASSERT_EQUAL((ham_size_t)0, log_get_closed_txn(log, 1));
 
-        ham_txn_t txn;
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, txn));
 
         BFC_ASSERT_EQUAL((ham_size_t)1, log_get_open_txn(log, 0));
         BFC_ASSERT_EQUAL((ham_size_t)0, log_get_closed_txn(log, 0));
@@ -253,7 +256,7 @@ public:
         BFC_ASSERT_EQUAL(0, isempty);
         BFC_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -262,14 +265,14 @@ public:
         ham_bool_t isempty;
         ham_log_t *log;
         BFC_ASSERT_EQUAL(0, 
-                ham_log_create((mem_allocator_t *)m_alloc, 
+                ham_log_create((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0644, 0, &log));
         BFC_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(1, isempty);
 
-        ham_txn_t txn;
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, txn));
         BFC_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(0, isempty);
         BFC_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
@@ -278,7 +281,7 @@ public:
         BFC_ASSERT_EQUAL((ham_size_t)0, log_get_open_txn(log, 1));
         BFC_ASSERT_EQUAL((ham_size_t)0, log_get_closed_txn(log, 1));
 
-        BFC_ASSERT_EQUAL(0, ham_log_append_txn_abort(log, &txn));
+        BFC_ASSERT_EQUAL(0, ham_log_append_txn_abort(log, txn));
         BFC_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(0, isempty);
         BFC_ASSERT_EQUAL((ham_u64_t)3, log_get_lsn(log));
@@ -287,7 +290,7 @@ public:
         BFC_ASSERT_EQUAL((ham_size_t)0, log_get_open_txn(log, 1));
         BFC_ASSERT_EQUAL((ham_size_t)0, log_get_closed_txn(log, 1));
 
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -296,14 +299,14 @@ public:
         ham_bool_t isempty;
         ham_log_t *log;
         BFC_ASSERT_EQUAL(0, 
-                ham_log_create((mem_allocator_t *)m_alloc, 
+                ham_log_create((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0644, 0, &log));
         BFC_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(1, isempty);
 
-        ham_txn_t txn;
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, txn));
         BFC_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(0, isempty);
         BFC_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
@@ -312,7 +315,7 @@ public:
         BFC_ASSERT_EQUAL((ham_size_t)0, log_get_open_txn(log, 1));
         BFC_ASSERT_EQUAL((ham_size_t)0, log_get_closed_txn(log, 1));
 
-        BFC_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
+        BFC_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, txn));
         BFC_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(0, isempty);
         BFC_ASSERT_EQUAL((ham_u64_t)3, log_get_lsn(log));
@@ -321,7 +324,7 @@ public:
         BFC_ASSERT_EQUAL((ham_size_t)0, log_get_open_txn(log, 1));
         BFC_ASSERT_EQUAL((ham_size_t)0, log_get_closed_txn(log, 1));
 
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -329,15 +332,15 @@ public:
     {
         ham_log_t *log;
         BFC_ASSERT_EQUAL(0, 
-                ham_log_create((mem_allocator_t *)m_alloc, 
+                ham_log_create((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0644, 0, &log));
-        ham_txn_t txn;
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL(0, ham_log_append_checkpoint(log));
         BFC_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -345,20 +348,20 @@ public:
     {
         ham_log_t *log;
         BFC_ASSERT_EQUAL(0, 
-                ham_log_create((mem_allocator_t *)m_alloc, 
+                ham_log_create((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0644, 0, &log));
-        ham_txn_t txn;
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         ham_page_t *page;
         page=page_new(m_db);
-        BFC_ASSERT_EQUAL(0, page_alloc(page, db_get_pagesize(m_db)));
+        BFC_ASSERT_EQUAL(0, page_alloc(page, db_get_cooked_pagesize(m_db)));
 
         BFC_ASSERT_EQUAL(0, ham_log_append_flush_page(log, page));
         BFC_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
         BFC_ASSERT_EQUAL(0, page_free(page));
         page_delete(page);
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -366,20 +369,20 @@ public:
     {
         ham_log_t *log;
         BFC_ASSERT_EQUAL(0, 
-                ham_log_create((mem_allocator_t *)m_alloc, 
+                ham_log_create((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0644, 0, &log));
-        ham_txn_t txn;
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         ham_u8_t data[100];
         for (int i=0; i<100; i++)
             data[i]=(ham_u8_t)i;
 
-        BFC_ASSERT_EQUAL(0, ham_log_append_prewrite(log, &txn, 
+        BFC_ASSERT_EQUAL(0, ham_log_append_prewrite(log, txn, 
                                 0, data, sizeof(data)));
         BFC_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -387,20 +390,20 @@ public:
     {
         ham_log_t *log;
         BFC_ASSERT_EQUAL(0, 
-                ham_log_create((mem_allocator_t *)m_alloc, 
+                ham_log_create((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0644, 0, &log));
-        ham_txn_t txn;
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         ham_u8_t data[100];
         for (int i=0; i<100; i++)
             data[i]=(ham_u8_t)i;
 
-        BFC_ASSERT_EQUAL(0, ham_log_append_write(log, &txn, 
+        BFC_ASSERT_EQUAL(0, ham_log_append_write(log, txn, 
                                 0, data, sizeof(data)));
         BFC_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -408,10 +411,10 @@ public:
     {
         ham_log_t *log;
         BFC_ASSERT_EQUAL(0, 
-                ham_log_create((mem_allocator_t *)m_alloc, 
+                ham_log_create((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0644, 0, &log));
-        ham_txn_t txn;
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         ham_u8_t old_data[100], new_data[100];
         for (int i=0; i<100; i++) {
@@ -419,11 +422,11 @@ public:
             new_data[i]=(ham_u8_t)i+1;
         }
 
-        BFC_ASSERT_EQUAL(0, ham_log_append_overwrite(log, &txn, 
+        BFC_ASSERT_EQUAL(0, ham_log_append_overwrite(log, txn, 
                     0, old_data, new_data, sizeof(old_data)));
         BFC_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -432,7 +435,7 @@ public:
         int i;
         ham_log_t *log;
         BFC_ASSERT_EQUAL(0, 
-                ham_log_create((mem_allocator_t *)m_alloc, 
+                ham_log_create((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0644, 0, &log));
         log_set_threshold(log, 5);
         BFC_ASSERT_EQUAL((ham_size_t)5, log_get_threshold(log));
@@ -440,11 +443,11 @@ public:
         BFC_ASSERT_EQUAL((ham_size_t)0, log_get_current_fd(log));
 
         for (i=0; i<=6; i++) {
-            ham_txn_t txn;
-            BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
-            BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
-            BFC_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
-            BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+            ham_txn_t *txn;
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, txn));
+            BFC_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, txn));
+            BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         }
 
         /* check that the following logs are written to the other file */
@@ -458,7 +461,7 @@ public:
         int i;
         ham_log_t *log;
         BFC_ASSERT_EQUAL(0, 
-                ham_log_create((mem_allocator_t *)m_alloc, 
+                ham_log_create((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0644, 0, &log));
         log_set_threshold(log, 5);
         BFC_ASSERT_EQUAL((ham_size_t)5, log_get_threshold(log));
@@ -466,11 +469,11 @@ public:
         BFC_ASSERT_EQUAL((ham_size_t)0, log_get_current_fd(log));
 
         for (i=0; i<=10; i++) {
-            ham_txn_t txn;
-            BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
-            BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
-            BFC_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
-            BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+            ham_txn_t *txn;
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, txn));
+            BFC_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, txn));
+            BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         }
 
         /* check that the following logs are written to the first file */
@@ -484,14 +487,14 @@ public:
         ham_bool_t isempty;
         ham_log_t *log;
         BFC_ASSERT_EQUAL(0, 
-                ham_log_create((mem_allocator_t *)m_alloc, 
+                ham_log_create((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0644, 0, &log));
         BFC_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(1, isempty);
 
-        ham_txn_t txn;
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, txn));
 
         BFC_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(0, isempty);
@@ -501,7 +504,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_log_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(1, isempty);
 
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
     }
 
@@ -509,7 +512,7 @@ public:
     {
         ham_log_t *log;
         BFC_ASSERT_EQUAL(0, 
-                ham_log_create((mem_allocator_t *)m_alloc, 
+                ham_log_create((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0644, 0, &log));
 
         log_iterator_t iter;
@@ -526,17 +529,17 @@ public:
 
     void iterateOverLogOneEntryTest(void)
     {
-        ham_txn_t txn;
+        ham_txn_t *txn;
         ham_log_t *log;
         BFC_ASSERT_EQUAL(0, 
                 ham_log_create((mem_allocator_t *)m_alloc,
                        BFC_OPATH(".test"), 0644, 0, &log));
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, txn));
         BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
 
         BFC_ASSERT_EQUAL(0, 
-                ham_log_open((mem_allocator_t *)m_alloc, 
+                ham_log_open((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0, &log));
         BFC_ASSERT(log!=0);
 
@@ -546,35 +549,52 @@ public:
         log_entry_t entry;
         ham_u8_t *data;
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        BFC_ASSERT_EQUAL((ham_u64_t)1, log_entry_get_lsn(&entry));
-        BFC_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(&txn));
+        BFC_ASSERT_EQUAL((ham_u64_t)2, log_entry_get_lsn(&entry));
+        BFC_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(txn));
         BFC_ASSERT_EQUAL((ham_u64_t)1, log_entry_get_txn_id(&entry));
         BFC_ASSERT_EQUAL((ham_u8_t *)0, data);
         BFC_ASSERT_EQUAL((ham_u32_t)LOG_ENTRY_TYPE_TXN_BEGIN, 
                         log_entry_get_type(&entry));
 
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
+    }
+
+    void checkLogEntry(log_entry_t *entry, ham_u64_t lsn, ham_u64_t txn_id, 
+                    ham_u32_t type, ham_u8_t *data)
+    {
+        BFC_ASSERT_EQUAL(lsn, log_entry_get_lsn(entry));
+        BFC_ASSERT_EQUAL(txn_id, log_entry_get_txn_id(entry));
+        if (log_entry_get_data_size(entry)==0) {
+            BFC_ASSERT_NULL(data);
+        }
+        else {
+            BFC_ASSERT_NOTNULL(data);
+            allocator_free((mem_allocator_t *)m_alloc, data);
+        }
+        BFC_ASSERT_EQUAL(type, log_entry_get_type(entry));
     }
 
     void iterateOverLogMultipleEntryTest(void)
     {
-        ham_txn_t txn;
-        ham_log_t *log;
-        BFC_ASSERT_EQUAL(0, 
-                ham_log_create((mem_allocator_t *)m_alloc, 
-                        BFC_OPATH(".test"), 0644, 0, &log));
+        ham_txn_t *txn;
+        ham_log_t *log=db_get_log(m_db);
 
         for (int i=0; i<5; i++) {
-            BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
-            BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
-            BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+            // ham_txn_begin and ham_txn_abort will automatically add a 
+            // log entry
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         }
 
-        BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
         BFC_ASSERT_EQUAL(0, 
-                ham_log_open((mem_allocator_t *)m_alloc, 
+                ham_open(m_db, BFC_OPATH(".test"), 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_log_open((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0, &log));
+        db_set_log(m_db, log);
         BFC_ASSERT(log!=0);
 
         log_iterator_t iter;
@@ -582,180 +602,186 @@ public:
 
         log_entry_t entry;
         ham_u8_t *data;
-        for (int i=0; i<5; i++) {
-            BFC_ASSERT_EQUAL(0, 
-                    ham_log_get_entry(log, &iter, &entry, &data));
-            BFC_ASSERT_EQUAL((ham_u64_t)5-i, log_entry_get_lsn(&entry));
-            BFC_ASSERT_EQUAL((ham_u64_t)5-i, log_entry_get_txn_id(&entry));
-            BFC_ASSERT_EQUAL((ham_u8_t *)0, data);
-            BFC_ASSERT_EQUAL((ham_u32_t)LOG_ENTRY_TYPE_TXN_BEGIN, 
-                        log_entry_get_type(&entry));
-        }
 
-        BFC_ASSERT_EQUAL(0, 
-                ham_log_get_entry(log, &iter, &entry, &data));
-        BFC_ASSERT_EQUAL((ham_u64_t)0, log_entry_get_lsn(&entry));
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 12, 0, LOG_ENTRY_TYPE_FLUSH_PAGE, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 11, 5, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 10, 5, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry,  9, 4, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry,  8, 4, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry,  7, 3, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry,  6, 3, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry,  5, 2, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry,  4, 2, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry,  3, 1, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry,  2, 1, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry,  1, 0, LOG_ENTRY_TYPE_PREWRITE, data);
 
-        BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void iterateOverLogMultipleEntrySwapTest(void)
     {
-        ham_txn_t txn;
-        ham_log_t *log;
-        BFC_ASSERT_EQUAL(0, 
-                ham_log_create((mem_allocator_t *)m_alloc, 
-                        BFC_OPATH(".test"), 0644, 0, &log));
+        ham_txn_t *txn;
+        ham_log_t *log=db_get_log(m_db);
         log_set_threshold(log, 5);
 
         for (int i=0; i<=7; i++) {
-            BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
-            BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
-            BFC_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
-            BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         }
 
-        BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
         BFC_ASSERT_EQUAL(0, 
-                ham_log_open((mem_allocator_t *)m_alloc, 
+                ham_open(m_db, BFC_OPATH(".test"), 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_log_open((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0, &log));
+        db_set_log(m_db, log);
         BFC_ASSERT(log!=0);
 
         log_iterator_t iter;
         memset(&iter, 0, sizeof(iter));
-
         log_entry_t entry;
         ham_u8_t *data;
-        int found_txn_begin =0;
-        int found_txn_commit=0;
-        int found_checkpoint=0;
-        while (1) {
-            BFC_ASSERT_EQUAL(0, 
-                    ham_log_get_entry(log, &iter, &entry, &data));
 
-            if (log_entry_get_lsn(&entry)==0)
-                break;
-            if (LOG_ENTRY_TYPE_TXN_BEGIN==log_entry_get_type(&entry)) {
-                BFC_ASSERT_EQUAL((ham_u64_t)8-found_txn_begin, 
-                                log_entry_get_txn_id(&entry));
-                BFC_ASSERT_EQUAL((ham_u8_t *)0, data);
-                found_txn_begin++;
-            }
-            else if (LOG_ENTRY_TYPE_TXN_COMMIT==log_entry_get_type(&entry)) {
-                BFC_ASSERT_EQUAL((ham_u64_t)8-found_txn_commit, 
-                                log_entry_get_txn_id(&entry));
-                found_txn_commit++;
-            }
-            else if (LOG_ENTRY_TYPE_CHECKPOINT==log_entry_get_type(&entry)) {
-                found_checkpoint++;
-            }
-            else
-                BFC_ASSERT(!"unknown log_entry_type");
-        }
-        BFC_ASSERT_EQUAL(8, found_txn_begin);
-        BFC_ASSERT_EQUAL(8, found_txn_commit);
-        BFC_ASSERT_EQUAL(1, found_checkpoint);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 18, 8, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 17, 8, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 16, 7, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 15, 7, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 14, 6, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 13, 6, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 12, 0, LOG_ENTRY_TYPE_CHECKPOINT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 11, 5, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 10, 5, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 9, 4, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 8, 4, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 7, 3, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 6, 3, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 5, 2, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 4, 2, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 3, 1, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 2, 1, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 1, 0, LOG_ENTRY_TYPE_PREWRITE, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
 
-        BFC_ASSERT_EQUAL(0, 
-                ham_log_get_entry(log, &iter, &entry, &data));
-        BFC_ASSERT_EQUAL((ham_u64_t)0, log_entry_get_lsn(&entry));
-
-        BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void iterateOverLogMultipleEntrySwapTwiceTest(void)
     {
-        ham_txn_t txn;
-        ham_log_t *log;
-        BFC_ASSERT_EQUAL(0, 
-                ham_log_create((mem_allocator_t *)m_alloc, 
-                        BFC_OPATH(".test"), 0644, 0, &log));
+        ham_txn_t *txn;
+        ham_log_t *log=db_get_log(m_db);
         log_set_threshold(log, 5);
 
         for (int i=0; i<=10; i++) {
-            BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
-            BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
-            BFC_ASSERT_EQUAL(0, ham_log_append_txn_commit(log, &txn));
-            BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         }
 
-        BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
         BFC_ASSERT_EQUAL(0, 
-                ham_log_open((mem_allocator_t *)m_alloc, 
+                ham_open(m_db, BFC_OPATH(".test"), 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_log_open((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0, &log));
+        db_set_log(m_db, log);
         BFC_ASSERT(log!=0);
 
         log_iterator_t iter;
         memset(&iter, 0, sizeof(iter));
-
         log_entry_t entry;
         ham_u8_t *data;
-        int found_txn_begin =0;
-        int found_txn_commit=0;
-        int found_checkpoint=0;
 
-        while (1) {
-            BFC_ASSERT_EQUAL(0, 
-                    ham_log_get_entry(log, &iter, &entry, &data));
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 25, 11, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 24, 11, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 23, 0, LOG_ENTRY_TYPE_CHECKPOINT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 22, 10, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 21, 10, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 20, 9, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 19, 9, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 18, 8, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 17, 8, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 16, 7, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 15, 7, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 14, 6, LOG_ENTRY_TYPE_TXN_ABORT, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 13, 6, LOG_ENTRY_TYPE_TXN_BEGIN, data);
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        BFC_ASSERT_EQUAL(0, log_entry_get_lsn(&entry));
 
-            if (log_entry_get_lsn(&entry)==0)
-                break;
-
-            if (LOG_ENTRY_TYPE_TXN_BEGIN==log_entry_get_type(&entry)) {
-                BFC_ASSERT_EQUAL((ham_u64_t)11-found_txn_begin, 
-                                log_entry_get_txn_id(&entry));
-                BFC_ASSERT_EQUAL((ham_u8_t *)0, data);
-                found_txn_begin++;
-            }
-            else if (LOG_ENTRY_TYPE_TXN_COMMIT==log_entry_get_type(&entry)) {
-                BFC_ASSERT_EQUAL((ham_u64_t)11-found_txn_commit, 
-                                log_entry_get_txn_id(&entry));
-                found_txn_commit++;
-            }
-            else if (LOG_ENTRY_TYPE_CHECKPOINT==log_entry_get_type(&entry)) {
-                found_checkpoint++;
-            }
-            else
-                BFC_ASSERT(!"unknown log_entry_type");
-        }
-        BFC_ASSERT_EQUAL(6, found_txn_begin);
-        BFC_ASSERT_EQUAL(6, found_txn_commit);
-        BFC_ASSERT_EQUAL(1, found_checkpoint);
-
-        BFC_ASSERT_EQUAL(0, 
-                ham_log_get_entry(log, &iter, &entry, &data));
-        BFC_ASSERT_EQUAL((ham_u64_t)0, log_entry_get_lsn(&entry));
-
-        BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void iterateOverLogMultipleEntryWithDataTest(void)
     {
-        ham_txn_t txn;
+        ham_txn_t *txn;
         ham_u8_t buffer[20];
-        ham_log_t *log;
-        BFC_ASSERT_EQUAL(0, 
-                ham_log_create((mem_allocator_t *)m_alloc, 
-                        BFC_OPATH(".test"), 0644, 0, &log));
+        ham_log_t *log=db_get_log(m_db);
 
         for (int i=0; i<5; i++) {
             memset(buffer, (char)i, sizeof(buffer));
-            BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
-            BFC_ASSERT_EQUAL(0, ham_log_append_txn_begin(log, &txn));
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
             BFC_ASSERT_EQUAL(0, 
-                            ham_log_append_write(log, &txn, i, buffer, i));
-            BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+                            ham_log_append_write(log, txn, i, buffer, i));
+            BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         }
 
-        BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
         BFC_ASSERT_EQUAL(0, 
-                ham_log_open((mem_allocator_t *)m_alloc, 
+                ham_open(m_db, BFC_OPATH(".test"), 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_log_open((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0, &log));
+        db_set_log(m_db, log);
         BFC_ASSERT(log!=0);
 
         log_iterator_t iter;
         memset(&iter, 0, sizeof(iter));
-
         log_entry_t entry;
         ham_u8_t *data;
 
@@ -784,7 +810,7 @@ public:
         }
 
         BFC_ASSERT_EQUAL(-1, writes);
-        BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
     
 };
@@ -812,6 +838,50 @@ public:
 
     std::vector<ham_u8_t> m_data;
     log_entry_t m_entry;
+
+public:
+	static std::string log_entry_type2str(int type)
+{
+switch (type)
+{
+case LOG_ENTRY_TYPE_TXN_BEGIN                :
+return "LOG_ENTRY_TYPE_TXN_BEGIN";
+
+case LOG_ENTRY_TYPE_TXN_ABORT                :
+return "LOG_ENTRY_TYPE_TXN_ABORT";
+                
+case LOG_ENTRY_TYPE_TXN_COMMIT               :
+return "LOG_ENTRY_TYPE_TXN_COMMIT";
+
+case LOG_ENTRY_TYPE_PREWRITE                 :
+return "LOG_ENTRY_TYPE_PREWRITE";
+
+case LOG_ENTRY_TYPE_WRITE                    :
+return "LOG_ENTRY_TYPE_WRITE";
+
+case LOG_ENTRY_TYPE_OVERWRITE                :
+return "LOG_ENTRY_TYPE_OVERWRITE";
+
+case LOG_ENTRY_TYPE_CHECKPOINT               :
+return "LOG_ENTRY_TYPE_CHECKPOINT";
+
+case LOG_ENTRY_TYPE_FLUSH_PAGE              :
+return "LOG_ENTRY_TYPE_FLUSH_PAGE";
+
+default:
+return "LOG_ENTRY_TYPE_???";
+}
+}
+
+	std::string to_str()
+	{
+		std::ostringstream o(std::ostringstream::out);
+		o << "txn:" << log_entry_get_txn_id(&m_entry);
+		o << ", type:" << log_entry_get_type(&m_entry) << "(" << log_entry_type2str(log_entry_get_type(&m_entry)) << ")";
+		o << ", offset:" << log_entry_get_offset(&m_entry);
+		o << ", datasize:" << log_entry_get_data_size(&m_entry);
+		return o.str();
+	}
 };
 
 class LogHighLevelTest : public hamsterDB_fixture
@@ -844,7 +914,7 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, splitInsertTest);
         BFC_REGISTER_TEST(LogHighLevelTest, insertAfterCheckpointTest);
         BFC_REGISTER_TEST(LogHighLevelTest, singleEraseTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, eraseMergeTest);
+        //BFC_REGISTER_TEST(LogHighLevelTest, eraseMergeTest);
         BFC_REGISTER_TEST(LogHighLevelTest, cursorOverwriteTest);
         BFC_REGISTER_TEST(LogHighLevelTest, singleBlobTest);
         BFC_REGISTER_TEST(LogHighLevelTest, largeBlobTest);
@@ -857,6 +927,7 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, undoInsertTest);
         BFC_REGISTER_TEST(LogHighLevelTest, undoMultipleInsertsTest);
         BFC_REGISTER_TEST(LogHighLevelTest, undoMultipleInsertsCheckpointTest);
+        BFC_REGISTER_TEST(LogHighLevelTest, negativeAesFilterTest);
         BFC_REGISTER_TEST(LogHighLevelTest, aesFilterTest);
         BFC_REGISTER_TEST(LogHighLevelTest, aesFilterRecoverTest);
     }
@@ -879,7 +950,15 @@ public:
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, 
                 ham_create(m_db, BFC_OPATH(".test"), 
-                    HAM_ENABLE_RECOVERY|HAM_ENABLE_DUPLICATES, 0644));
+                        HAM_ENABLE_TRANSACTIONS
+                        | HAM_ENABLE_RECOVERY
+                        | HAM_ENABLE_DUPLICATES, 0644));
+    }
+
+    void open(void)
+    {
+        // open without recovery and transactions (they imply recovery)!
+        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
     }
     
     virtual void teardown() 
@@ -891,29 +970,68 @@ public:
         BFC_ASSERT_EQUAL((unsigned long)0, memtracker_get_leaks(m_alloc));
     }
 
+	class log_assert_monitor: public bfc_assert_monitor
+	{
+	protected:
+		log_vector_t *lhs;
+		log_vector_t *rhs;
+
+	public:
+		log_assert_monitor(log_vector_t *l, log_vector_t *r)
+			: lhs(l), rhs(r)
+		{}
+		virtual ~log_assert_monitor()
+		{}
+
+		virtual void handler(bfc::error &err)
+		{
+			std::ostringstream o(std::ostringstream::out);
+
+			o << std::endl;
+
+			log_vector_t::iterator itl=lhs->begin();
+			log_vector_t::iterator itr=rhs->begin(); 
+			int entry;
+			for (entry = 1; itl != lhs->end(); ++itl, ++itr, entry++)
+			{
+				o << "[" << entry << "]\t" << (*itl).to_str() << std::endl << "    vs.\t" << (*itr).to_str() << std::endl;
+			}
+
+			// augment error message:
+			err.m_message += o.str();
+		}
+	};
+
     void compareLogs(log_vector_t *lhs, log_vector_t *rhs)
     {
         BFC_ASSERT_EQUAL(lhs->size(), rhs->size());
 
+		log_assert_monitor assert_monitor(lhs, rhs);
+		push_assert_monitor(assert_monitor);
+
         log_vector_t::iterator itl=lhs->begin();
         log_vector_t::iterator itr=rhs->begin(); 
-        for (; itl!=lhs->end(); ++itl, ++itr) {
-            BFC_ASSERT_EQUAL(log_entry_get_txn_id(&(*itl).m_entry), 
-                    log_entry_get_txn_id(&(*itr).m_entry)); 
-            BFC_ASSERT_EQUAL(log_entry_get_type(&(*itl).m_entry), 
-                    log_entry_get_type(&(*itr).m_entry)); 
-            BFC_ASSERT_EQUAL(log_entry_get_offset(&(*itl).m_entry), 
-                    log_entry_get_offset(&(*itr).m_entry)); 
-            BFC_ASSERT_EQUAL(log_entry_get_data_size(&(*itl).m_entry), 
-                    log_entry_get_data_size(&(*itr).m_entry)); 
+		int entry;
+        for (entry = 1; itl!=lhs->end(); ++itl, ++itr, entry++) 
+		{
+            BFC_ASSERT_EQUAL_I(log_entry_get_txn_id(&(*itl).m_entry), 
+                    log_entry_get_txn_id(&(*itr).m_entry), entry); 
+            BFC_ASSERT_EQUAL_I(log_entry_get_type(&(*itl).m_entry), 
+                    log_entry_get_type(&(*itr).m_entry), entry); 
+            BFC_ASSERT_EQUAL_I(log_entry_get_offset(&(*itl).m_entry), 
+                    log_entry_get_offset(&(*itr).m_entry), entry); 
+            BFC_ASSERT_EQUAL_I(log_entry_get_data_size(&(*itl).m_entry), 
+                    log_entry_get_data_size(&(*itr).m_entry), entry); 
 
             if ((*itl).m_data.size()) {
                 void *pl=&(*itl).m_data[0];
                 void *pr=&(*itr).m_data[0];
-                BFC_ASSERT_EQUAL(0, memcmp(pl, pr, 
-                            (size_t)log_entry_get_data_size(&(*itl).m_entry)));
+                BFC_ASSERT_EQUAL_I(0, memcmp(pl, pr, 
+                            (size_t)log_entry_get_data_size(&(*itl).m_entry)), entry);
             }
         }
+
+		pop_assert_monitor();
     }
 
     log_vector_t readLog()
@@ -921,7 +1039,8 @@ public:
         log_vector_t vec;
         ham_log_t *log;
         BFC_ASSERT_EQUAL(0, 
-                ham_log_open((mem_allocator_t *)m_alloc, BFC_OPATH(".test"), 0, &log));
+                ham_log_open((mem_allocator_t *)m_alloc, 
+                        BFC_OPATH(".test"), 0, &log));
         BFC_ASSERT(log!=0);
 
         log_iterator_t iter;
@@ -990,11 +1109,9 @@ public:
 
     void createCloseOpenFullLogRecoverTest(void)
     {
-        ham_txn_t txn;
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, 
-                ham_log_append_txn_begin(db_get_log(m_db), &txn));
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         BFC_ASSERT_EQUAL(0,
@@ -1015,11 +1132,9 @@ public:
 
     void createCloseOpenFullLogTest(void)
     {
-        ham_txn_t txn;
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, 
-                ham_log_append_txn_begin(db_get_log(m_db), &txn));
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY,
@@ -1052,11 +1167,11 @@ public:
 
     void createCloseOpenFullLogEnvTest(void)
     {
-        ham_txn_t txn;
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         BFC_ASSERT_EQUAL(0, 
-                ham_log_append_txn_begin(db_get_log(m_db), &txn));
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+                ham_log_append_txn_begin(db_get_log(m_db), txn));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         ham_env_t *env;
@@ -1070,11 +1185,11 @@ public:
 
     void createCloseOpenFullLogEnvRecoverTest(void)
     {
-        ham_txn_t txn;
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         BFC_ASSERT_EQUAL(0, 
-                ham_log_append_txn_begin(db_get_log(m_db), &txn));
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+                ham_log_append_txn_begin(db_get_log(m_db), txn));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         ham_env_t *env;
@@ -1100,12 +1215,13 @@ public:
 
     void txnBeginAbortTest(void)
     {
-        ham_txn_t txn;
+        ham_txn_t *txn;
         ham_size_t pagesize=os_get_pagesize();
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
@@ -1117,12 +1233,13 @@ public:
 
     void txnBeginCommitTest(void)
     {
-        ham_txn_t txn;
+        ham_txn_t *txn;
         ham_size_t pagesize=os_get_pagesize();
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, txn_commit(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
@@ -1134,14 +1251,20 @@ public:
 
     void multipleTxnBeginCommitTest(void)
     {
-        ham_txn_t txn[3];
+        /* 
+         * currently hamsterdb only supports one open transaction,
+         * therefore this test is removed
+         */
+#if 0
+        ham_txn_t *txn[3];
         ham_size_t pagesize=os_get_pagesize();
         for (int i=0; i<3; i++)
-            BFC_ASSERT_EQUAL(0, txn_begin(&txn[i], m_db, 0));
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], m_db, 0));
         for (int i=0; i<3; i++)
-            BFC_ASSERT_EQUAL(0, txn_commit(&txn[i], 0));
+            BFC_ASSERT_EQUAL(0, txn_commit(txn[i], 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
@@ -1151,18 +1274,20 @@ public:
             exp.push_back(LogEntry(3-i, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, pagesize, pagesize));
         compareLogs(&exp, &vec);
+#endif
     }
 
     void multipleTxnReadonlyBeginCommitTest(void)
     {
-        ham_txn_t txn;
+        ham_txn_t *txn;
         ham_size_t pagesize=os_get_pagesize();
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, HAM_TXN_READ_ONLY));
-        BFC_ASSERT_EQUAL(0, txn_commit(&txn, 0));
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, txn_commit(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, HAM_TXN_READ_ONLY));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
@@ -1179,6 +1304,7 @@ public:
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
@@ -1198,6 +1324,7 @@ public:
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
@@ -1217,6 +1344,7 @@ public:
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
@@ -1273,6 +1401,7 @@ public:
         insert("a", "b");
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
@@ -1291,6 +1420,7 @@ public:
         insert("b", "c");
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
@@ -1323,6 +1453,7 @@ public:
         insert("e", "5");
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
 
@@ -1363,6 +1494,7 @@ public:
         insert("j", "4"); insert("k", "5"); insert("l", "6");
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
 
@@ -1402,6 +1534,7 @@ public:
         erase("a");
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
@@ -1426,7 +1559,8 @@ public:
         ham_size_t ps=1024;
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, 
-                ham_create_ex(m_db, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY, 0644, p));
+                ham_create_ex(m_db, BFC_OPATH(".test"), 
+                                HAM_ENABLE_RECOVERY, 0644, p));
         insert("a", "1");
         insert("b", "2");
         insert("c", "3");
@@ -1437,6 +1571,7 @@ public:
         erase("c");
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
@@ -1490,6 +1625,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_close(m_db, HAM_DONT_CLEAR_LOG|HAM_AUTO_CLEANUP));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
@@ -1510,6 +1646,7 @@ public:
         insert("a", "1111111110111111111011111111101111111110");
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
@@ -1534,6 +1671,7 @@ public:
         free(p);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
@@ -1555,6 +1693,7 @@ public:
         insert("a", "2", HAM_DUPLICATE);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        open();
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
@@ -1576,12 +1715,12 @@ public:
 
     void recoverModifiedPageTest(void)
     {
-        ham_txn_t txn;
+        ham_txn_t *txn;
         ham_page_t *page;
 
         /* allocate page, write before-image, modify, commit (= write
          * after-image */
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         page=db_alloc_page(m_db, 0, 0);
         BFC_ASSERT(page!=0);
         ham_offset_t address=page_get_self(page);
@@ -1590,30 +1729,30 @@ public:
         p[0]=1;
         page_set_dirty(page);
         BFC_ASSERT_EQUAL(0, ham_log_add_page_before(page));
-        BFC_ASSERT_EQUAL(0, txn_commit(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
 
         /* fetch page again, modify, abort -> first modification is still
          * available, second modification is reverted */
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         page=db_fetch_page(m_db, address, 0);
         BFC_ASSERT(page!=0);
         p=page_get_payload(page);
         p[0]=2;
         page_set_dirty(page);
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
 
         /* check modifications */
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         page=db_fetch_page(m_db, address, 0);
         BFC_ASSERT(page!=0);
         p=page_get_payload(page);
         BFC_ASSERT_EQUAL((ham_u8_t)1, p[0]);
-        BFC_ASSERT_EQUAL(0, txn_commit(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
     void recoverModifiedPageTest2(void)
     {
-        ham_txn_t txn;
+        ham_txn_t *txn;
         ham_page_t *page;
         ham_size_t ps=os_get_pagesize();
 
@@ -1622,7 +1761,7 @@ public:
 
         /* fetch the page with the key, overwrite it with garbage, then
          * abort */
-        BFC_ASSERT_EQUAL(0, txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         page=db_fetch_page(m_db, ps, 0);
         BFC_ASSERT(page!=0);
         btree_node_t *node=ham_page_get_btree_node(page);
@@ -1630,7 +1769,7 @@ public:
         BFC_ASSERT_EQUAL((ham_u8_t)'a', key_get_key(entry)[0]);
         key_get_key(entry)[0]='b';
         page_set_dirty(page);
-        BFC_ASSERT_EQUAL(0, txn_abort(&txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
 
         /* now fetch the original key */
         ham_key_t key;
@@ -1736,10 +1875,20 @@ public:
 
     void patchLogfile(const char *filename, ham_u64_t txn_id)
     {
+		// m_db.device must be setup as ham_log_open() requires it to fetch the raw pagesize;
+		if (!db_get_device(m_db)) 
+		{
+			BFC_ASSERT(db_get_env(m_db) == NULL);
+			db_set_device(m_db, ham_device_new((mem_allocator_t *)m_alloc, db_get_env(m_db), HAM_DEVTYPE_FILE));
+			BFC_ASSERT(db_get_device(m_db) != NULL);
+			// no need to open the device...
+		}
+
         int found=0;
         ham_log_t *log;
         BFC_ASSERT_EQUAL(0, 
-                ham_log_open((mem_allocator_t *)m_alloc, BFC_OPATH(".test"), 0, &log));
+                ham_log_open((mem_allocator_t *)m_alloc, 
+                        BFC_OPATH(".test"), 0, &log));
 
         log_iterator_t iter;
         memset(&iter, 0, sizeof(iter));
@@ -1768,6 +1917,19 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
         BFC_ASSERT_EQUAL(1, found);
+
+		// clean up the device allocated above...
+		if (!db_get_env(m_db) && db_get_device(m_db)) 
+		{
+			ham_device_t *device = db_get_device(m_db);
+
+			if (device->is_open(device)) {
+				(void)device->flush(device);
+				(void)device->close(device);
+			}
+			(void)device->destroy(device);
+			db_set_device(m_db, 0);
+		}
     }
 
     void undoInsertTest(void)
@@ -1849,10 +2011,29 @@ public:
         find("6", "7", HAM_KEY_NOT_FOUND);
     }
 
+    void negativeAesFilterTest()
+    {
+#ifndef HAM_DISABLE_ENCRYPTION
+        /* close m_db, otherwise ham_env_create fails */
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        ham_env_t *env;
+        ham_u8_t aeskey[16] ={0x13};
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), 
+                    0, 0664));
+        BFC_ASSERT_EQUAL(HAM_ALREADY_INITIALIZED, 
+                    ham_env_enable_encryption(env, aeskey, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+#endif
+    }
+
     void aesFilterTest()
     {
 #ifndef HAM_DISABLE_ENCRYPTION
-        /* close m_db, otherwise ham_env_create fails on win32 */
+        /* close m_db, otherwise ham_env_create fails */
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
         ham_env_t *env;
@@ -1866,18 +2047,18 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
         BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), 
                     HAM_ENABLE_RECOVERY, 0664));
-        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
+        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
         BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 
                     HAM_ENABLE_RECOVERY));
-        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
@@ -1905,20 +2086,20 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
         BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), 
                     HAM_ENABLE_RECOVERY, 0664));
-        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_DONT_CLEAR_LOG));
 
+        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
         BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY, 
                 ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_open(env, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
-        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
@@ -1929,6 +2110,6 @@ public:
     }
 };
 
-BFC_REGISTER_FIXTURE(LogTest);
+//BFC_REGISTER_FIXTURE(LogTest);
 BFC_REGISTER_FIXTURE(LogHighLevelTest);
 

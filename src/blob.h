@@ -16,14 +16,14 @@
 #ifndef HAM_BLOB_H__
 #define HAM_BLOB_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 #include <ham/hamsterdb.h>
 #include "page.h"
 #include "keys.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif 
 
 #include "packstart.h"
 
@@ -109,17 +109,18 @@ typedef HAM_PACK_0 struct HAM_PACK_1
  */
 typedef HAM_PACK_0 struct HAM_PACK_1 
 {
-    /*
+    /**
      * reserved, for padding
      */
     ham_u8_t _padding[7];
 
-    /*
-     * the flags - same as KEY_TINY, KEY_SMALL, KEY_NULL
+    /**
+     * the flags - same as @ref KEY_BLOB_SIZE_SMALL,
+	 *             @ref KEY_BLOB_SIZE_TINY and @ref KEY_BLOB_SIZE_EMPTY
      */
     ham_u8_t _flags;
 
-    /*
+    /**
      * the record id (unless it's TINY, SMALL or NULL)
      */
     ham_offset_t _rid;
@@ -136,7 +137,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 /*
  * set the flags of a duplicate entry
  */
-#define dupe_entry_set_flags(e, f)      (e)->_flags=f
+#define dupe_entry_set_flags(e, f)      (e)->_flags=(f)
 
 /*
  * get the record id of a duplicate entry
@@ -161,7 +162,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 #define dupe_entry_set_rid(e, r)                                              \
          (e)->_rid=(((dupe_entry_get_flags(e)&KEY_BLOB_SIZE_TINY)             \
                     || (dupe_entry_get_flags(e)&KEY_BLOB_SIZE_SMALL))         \
-                     ? r                                                      \
+                     ? (r)                                                    \
                        : ham_h2db_offset(r))
 
 #include "packstart.h"
@@ -171,17 +172,17 @@ typedef HAM_PACK_0 struct HAM_PACK_1
  */
 typedef HAM_PACK_0 struct HAM_PACK_1 
 {
-    /*
+    /**
      * the number of duplicates (used entries in this table)
      */
     ham_u32_t _count;
 
-    /*
+    /**
      * the capacity of entries in this table
      */
     ham_u32_t _capacity;
 
-    /*
+    /**
      * a dynamic array of duplicate entries
      */
     dupe_entry_t _entries[1];
@@ -190,27 +191,27 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 
 #include "packstop.h"
 
-/*
+/**
  * get the number of duplicates
  */
 #define dupe_table_get_count(t)         (ham_db2h32((t)->_count))
 
-/*
+/**
  * set the number of duplicates
  */
 #define dupe_table_set_count(t, c)      (t)->_count=ham_h2db32(c)
 
-/*
+/**
  * get the maximum number of duplicates
  */
 #define dupe_table_get_capacity(t)      (ham_db2h32((t)->_capacity))
 
-/*
+/**
  * set the maximum number of duplicates
  */
 #define dupe_table_set_capacity(t, c)   (t)->_capacity=ham_h2db32(c)
 
-/*
+/**
  * get a pointer to a duplicate entry #i
  */
 #define dupe_table_get_entry(t, i)      (&(t)->_entries[i])
@@ -279,14 +280,14 @@ blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
 #define BLOB_FREE_ALL_DUPES   1
 
 
-/*
+/**
  * get the number of duplicates
  */
 extern ham_status_t
 blob_duplicate_get_count(ham_db_t *db, ham_offset_t table_id,
         ham_size_t *count, dupe_entry_t *entry);
 
-/*
+/**
  * get a duplicate
  */
 extern ham_status_t 

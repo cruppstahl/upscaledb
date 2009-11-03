@@ -423,7 +423,11 @@ bt_cursor_couple(ham_bt_cursor_t *c)
     memset(&key, 0, sizeof(key));
 
     if (!util_copy_key(db, bt_cursor_get_uncoupled_key(c), &key))
+	{
+		if (key.data)
+			ham_mem_free(db, key.data);
         return (db_get_error(db));
+	}
 
     dupe_id=bt_cursor_get_dupe_id(c);
     
@@ -469,9 +473,13 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
     key=(ham_key_t *)ham_mem_calloc(db, sizeof(*key));
     if (!key)
 		return (db_set_error(db, HAM_OUT_OF_MEMORY));
-    key=util_copy_key_int2pub(db, entry, key);
-    if (!key)
+    if (!util_copy_key_int2pub(db, entry, key))
+	{
+		if (key->data)
+			ham_mem_free(db, key->data);
+        ham_mem_free(db, key);
 		return (db_get_error(bt_cursor_get_db(c)));
+	}
 
     /*
      * uncouple the page
@@ -554,10 +562,11 @@ bt_cursor_clone(ham_bt_cursor_t *old, ham_bt_cursor_t **newc)
          page_add_cursor(page, (ham_cursor_t *)c);
          bt_cursor_set_coupled_page(c, page);
     }
-    /*
-     * if the old cursor is uncoupled: copy the key
-     */
-    else if (bt_cursor_get_flags(old)&BT_CURSOR_FLAG_UNCOUPLED) {
+    else if (bt_cursor_get_flags(old)&BT_CURSOR_FLAG_UNCOUPLED) 
+	{
+		/*
+		 * if the old cursor is uncoupled: copy the key
+		 */
         ham_key_t *key;
 
         key=(ham_key_t *)ham_mem_calloc(db, sizeof(*key));
@@ -565,7 +574,8 @@ bt_cursor_clone(ham_bt_cursor_t *old, ham_bt_cursor_t **newc)
             return (db_set_error(db, HAM_OUT_OF_MEMORY));
 
         if (!util_copy_key(bt_cursor_get_db(c), 
-                bt_cursor_get_uncoupled_key(old), key)) {
+                bt_cursor_get_uncoupled_key(old), key)) 
+		{
             if (key->data)
                 ham_mem_free(db, key->data);
             ham_mem_free(db, key);

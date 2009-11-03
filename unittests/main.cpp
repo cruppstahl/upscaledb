@@ -164,9 +164,13 @@ main(int argc, char **argv)
     i |= _CRTDBG_LEAK_CHECK_DF;
 
     // Clear the upper 16 bits and OR in the desired freqency
-    //i = (i & 0x0000FFFF) | _CRTDBG_CHECK_EVERY_16_DF;
+#if 0
+	i = (i & 0x0000FFFF) | _CRTDBG_CHECK_EVERY_1024_DF;
+#endif
 
-    i |= _CRTDBG_CHECK_ALWAYS_DF;
+#if 01
+	i |= _CRTDBG_CHECK_ALWAYS_DF;
+#endif
 
     // Set the new bits
     _CrtSetDbgFlag(i);

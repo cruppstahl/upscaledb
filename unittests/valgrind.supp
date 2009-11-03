@@ -41,8 +41,8 @@
    fun:deflate_slow
    fun:deflate
    fun:compress2
-   fun:__zlib_before_insert_cb
-   fun:__record_filters_before_insert
+   fun:__zlib_before_write_cb
+   fun:__record_filters_before_write
    fun:ham_insert
    fun:_ZN10FilterTest14zlibFilterTestEv
    fun:_ZN7CppUnit10TestCallerI10FilterTestE7runTestEv

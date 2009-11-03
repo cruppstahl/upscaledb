@@ -15,17 +15,25 @@
 #ifndef HAM_BACKEND_H__
 #define HAM_BACKEND_H__
 
+#include <ham/hamsterdb.h>
+#include <ham/hamsterdb_int.h>
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif 
 
-#include <ham/hamsterdb.h>
-#include <ham/hamsterdb_int.h>
+typedef enum
+{
+	CB_CONTINUE = 0, /* continue with the traversal */
+	CB_DO_NOT_DESCEND, /* do not not descend another level (or descend from page to key traversal) */
+	CB_STOP			 /* stop the traversal entirely */
+} ham_cb_status_t;
 
 /**
  * a callback function for enumeration 
  */
-typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2, 
+typedef ham_cb_status_t (*ham_enumerate_cb_t)(int event, void *param1, void *param2, 
         void *context);
 
 /** descend one level; param1 is an integer value with the new level */
@@ -110,7 +118,8 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
     /**                                                                 \
      * verify the whole tree                                            \
      *                                                                  \
-     * @remark this function is available in DEBUG-mode only            \
+     * @remark this function is only available when						\
+     * hamsterdb is compiled with HAM_ENABLE_INTERNAL turned on.        \
      */                                                                 \
     ham_status_t (*_fun_check_integrity)(clss *be);                     \
                                                                         \
@@ -123,9 +132,12 @@ typedef void (*ham_enumerate_cb_t)(int event, void *param1, void *param2,
                                                                         \
     /**                                                                 \
      * estimate the number of keys per page, given the keysize          \
+     *                                                                  \
+     * @remark this function is only available when						\
+     * hamsterdb is compiled with HAM_ENABLE_INTERNAL turned on.        \
      */                                                                 \
-    ham_status_t (*_fun_calc_keycount)(clss *be, ham_size_t *keycount,  \
-                    ham_u16_t keysize);                                 \
+    ham_status_t (*_fun_calc_keycount_per_page)(clss *be,               \
+	              ham_size_t *keycount, ham_u16_t keysize);             \
                                                                         \
     /**                                                                 \
      * pointer to the database object                                   \
@@ -185,7 +197,7 @@ HAM_PACK_0 struct HAM_PACK_1 ham_backend_t
 /*
  * set the keysize
  */
-#define be_set_keysize(be, ks)              (be)->_keysize=ks
+#define be_set_keysize(be, ks)              (be)->_keysize=(ks)
 
 /*
  * get the flags
@@ -195,7 +207,7 @@ HAM_PACK_0 struct HAM_PACK_1 ham_backend_t
 /*
  * set the flags
  */
-#define be_set_flags(be, f)                 (be)->_flags=f
+#define be_set_flags(be, f)                 (be)->_flags=(f)
 
 /*
  * get the last used record number
@@ -205,7 +217,7 @@ HAM_PACK_0 struct HAM_PACK_1 ham_backend_t
 /*
  * set the last used record number
  */
-#define be_set_recno(be, rn)                (be)->_recno=rn
+#define be_set_recno(be, rn)                (be)->_recno=(rn)
 
 /*
  * get the dirty-flag
@@ -215,7 +227,7 @@ HAM_PACK_0 struct HAM_PACK_1 ham_backend_t
 /*
  * set the dirty-flag
  */
-#define be_set_dirty(be, d)                 (be)->_dirty=d
+#define be_set_dirty(be, d)                 (be)->_dirty=(d)
 
 
 #ifdef __cplusplus

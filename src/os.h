@@ -16,13 +16,14 @@
 #ifndef HAM_OS_H__
 #define HAM_OS_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 #include <stdio.h>
 #include <ham/types.h>
 #include <limits.h>
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif 
 
 /**
  * read data from a file with mmap

@@ -16,6 +16,9 @@
 #ifndef HAM_KEY_H__
 #define HAM_KEY_H__
 
+#include <ham/types.h>
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif 
@@ -24,6 +27,8 @@ extern "C" {
 
 /**
  * the internal representation of a key
+ Note: the names of the fields have changed in 1.1.0 to ensure the compiler barfs on misuse 
+ of some macros, e.g. key_get_flags(): here flags are 8-bit, while ham_key_t flags are 32-bit!
  */
 typedef HAM_PACK_0 struct HAM_PACK_1 int_key_t
 {
@@ -40,7 +45,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 int_key_t
     /**
      * flags
      */
-    ham_u8_t _flags;
+    ham_u8_t _flags8;
 
     /**
      * the key
@@ -105,9 +110,9 @@ extern void
 key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid);
 
 /**
- * get the flags of a key
+ * get the (persisted) flags of a key
  */
-#define key_get_flags(bte)              (bte)->_flags
+#define key_get_flags(bte)         (bte)->_flags8
 
 /**
  * set the flags of a key
@@ -116,15 +121,20 @@ key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid);
  * defined such that those can peacefully co-exist with these; that's why 
  * those public flags start at the value 0x1000 (4096).
  */
-#define key_set_flags(bte, f)           (bte)->_flags=f
-#define KEY_BLOB_SIZE_TINY              1
-#define KEY_BLOB_SIZE_SMALL             2
-#define KEY_BLOB_SIZE_EMPTY             4
-#define KEY_IS_EXTENDED                 8
-#define KEY_HAS_DUPLICATES             16
-#define KEY_IS_LT                      32
-#define KEY_IS_GT                      64
-#define KEY_IS_APPROXIMATE             (KEY_IS_LT | KEY_IS_GT)
+#define key_set_flags(bte, f)      (bte)->_flags8=(f)
+
+/**
+persisted int_key_t flags; also used with ham_key_t._flags 
+
+NOTE: persisted flags must fit within a ham_u8_t (1 byte) --> mask: 0x000000FF
+*/
+#define KEY_BLOB_SIZE_TINY             0x01  /* size < 8; len encoded at byte[7] of key->ptr */
+#define KEY_BLOB_SIZE_SMALL            0x02	 /* size == 8; encoded in key->ptr */
+#define KEY_BLOB_SIZE_EMPTY            0x04	 /* size == 0; key->ptr == 0 */
+#define KEY_IS_EXTENDED                0x08
+#define KEY_HAS_DUPLICATES             0x10
+#define KEY_IS_DELETED                 0x20
+
 
 /**
  * get a pointer to the key 
@@ -136,13 +146,43 @@ key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid);
  */
 #define key_set_key(bte, ptr, len)      memcpy(bte->_key, ptr, len)
 
+/*
+ham_key_t support internals:
+*/
+
+/* 
+flags used with the ham_key_t INTERNAL USE field _flags.
+
+Note: these flags should NOT overlap with the persisted flags for int_key_t
+
+As these flags NEVER will be persisted, they should be located outside
+the range of a ham_u16_t, i.e. outside the mask 0x0000FFFF.
+*/
+#define KEY_IS_LT                      0x00010000
+#define KEY_IS_GT                      0x00020000
+#define KEY_IS_APPROXIMATE             (KEY_IS_LT | KEY_IS_GT)
+
+/**
+ * get the (non-persisted) flags of a key
+ */
+#define ham_key_get_intflags(key)         (key)->_flags
+
+/**
+ * set the flags of a key
+ *
+ * Note that the ham_find/ham_cursor_find/ham_cursor_find_ex flags must
+ * be defined such that those can peacefully co-exist with these; that's
+ * why those public flags start at the value 0x1000 (4096).
+ */
+#define ham_key_set_intflags(key, f)      (key)->_flags=(f)
+
 /**
  * compare a public key (ham_key_t, LHS) to an internal key (int_key_t, RHS)
  *
  * @return 0 if both keys match, -1 when LHS < RHS key, +1 when LHS > RHS key.
  */
 extern int
-key_compare_pub_to_int(ham_page_t *page, ham_key_t *lhs, ham_u16_t rhs);
+key_compare_pub_to_int(ham_db_t *db, ham_page_t *page, ham_key_t *lhs, ham_u16_t rhs);
 
 /**
  * insert an extended key
@@ -160,7 +200,8 @@ key_insert_extended(ham_db_t *db, ham_page_t *page, ham_key_t *key);
  * - HAM_DUPLICATE_INSERT_BEFORE
  * - HAM_DUPLICATE_INSERT_AFTER
  * - HAM_DUPLICATE_INSERT_FIRST
- * - HAM_DUPLICATE_INSERT_LAST or HAM_DUPLICATE
+ * - HAM_DUPLICATE_INSERT_LAST 
+ * - HAM_DUPLICATE
  *
  * a previously existing blob will be deleted if necessary
  */

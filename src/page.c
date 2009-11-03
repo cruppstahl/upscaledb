@@ -211,8 +211,11 @@ page_new(ham_db_t *db)
     }
 
     page_set_owner(page, db);
-    /* temporarily initialize the cache counter, just to be on the safe side */
-    page_set_cache_cntr(page, 20);
+    /*
+	initialize the cache counter, 
+	see also cache_increment_page_counter() 
+	*/
+	page_set_cache_cntr(page, (db_get_cache(db) ? db_get_cache(db)->_timeslot++ : 0));
 
     return (page);
 }

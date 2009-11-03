@@ -300,7 +300,7 @@ public:
         ham_record_t rec, rec2;
 #define MAX 10
         unsigned sizes[MAX]={0, 1, 2, 3, 4, 5, 936, 5, 100, 50};
-        char *data;
+        char *data=0;
         ham_cursor_t *cursor;
         ham_size_t count;
 

@@ -16,17 +16,17 @@
 #ifndef HAM_ENV_H__
 #define HAM_ENV_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <ham/hamsterdb.h>
+#include "freelist.h"
 #include "mem.h"
 #include "device.h"
 #include "cache.h"
 #include "extkeys.h"
-#include "freelist.h"
 #include "log.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * need packing for msvc x64bit
@@ -79,17 +79,28 @@ struct ham_env_t
      * parameters, which are accepted by env_create_ex, and stored for the 
      * first env_create_db
      */
-    ham_size_t _pagesize;
+    ham_size_t _raw_pagesize;
     ham_size_t _cachesize;
     ham_u16_t  _keysize;
     ham_u16_t  _max_databases;
     ham_u16_t  _data_access_mode;
+
+	/* Derived parameters */
+    ham_size_t _cooked_pagesize;
 
     /* linked list of all file-level filters */
     ham_file_filter_t *_file_filters;
 
     /* the freelist cache */
     freelist_cache_t *_freelist_cache;
+
+	/**
+	 * some freelist algorithm specific run-time data
+	 *
+	 * This is done as a union as it will reduce code complexity
+	 * significantly in the common freelist processing areas.
+	 */
+	ham_runtime_statistics_globdata_t _perf_data;
 };
 
 //#include "packstop.h"
@@ -102,7 +113,7 @@ struct ham_env_t
 /*
  * set the current transaction ID
  */
-#define env_set_txn_id(env, id)          (env)->_txn_id=id
+#define env_set_txn_id(env, id)          (env)->_txn_id=(id)
 
 /*
  * get the filename
@@ -112,7 +123,7 @@ struct ham_env_t
 /*
  * set the filename
  */
-#define env_set_filename(env, f)         (env)->_filename=f
+#define env_set_filename(env, f)         (env)->_filename=(f)
 
 /*
  * get the unix file mode
@@ -122,7 +133,7 @@ struct ham_env_t
 /*
  * set the unix file mode
  */
-#define env_set_file_mode(env, m)        (env)->_file_mode=m
+#define env_set_file_mode(env, m)        (env)->_file_mode=(m)
 
 /*
  * get the device
@@ -152,7 +163,7 @@ struct ham_env_t
 /*
  * set the cache pointer
  */
-#define env_set_cache(env, c)            (env)->_cache=c
+#define env_set_cache(env, c)            (env)->_cache=(c)
 
 /*
  * get the header page
@@ -172,7 +183,7 @@ struct ham_env_t
 /*
  * set the currently active transaction
  */
-#define env_set_txn(env, txn)            (env)->_txn=txn
+#define env_set_txn(env, txn)            (env)->_txn=(txn)
 
 /*
  * get the log object
@@ -182,7 +193,7 @@ struct ham_env_t
 /*
  * set the log object
  */
-#define env_set_log(env, log)            (env)->_log=log
+#define env_set_log(env, log)            (env)->_log=(log)
 
 /*
  * get the cache for extended keys
@@ -192,7 +203,7 @@ struct ham_env_t
 /*
  * set the cache for extended keys
  */
-#define env_set_extkey_cache(env, c)     (env)->_extkey_cache=c
+#define env_set_extkey_cache(env, c)     (env)->_extkey_cache=(c)
 
 /*
  * get the runtime-flags
@@ -212,12 +223,13 @@ struct ham_env_t
 /* 
  * set the linked list of all open databases
  */
-#define env_set_list(env, db)            (env)->_next=db
+#define env_set_list(env, db)            (env)->_next=(db)
 
 /*
  * get the parameter list
  */
-#define env_get_pagesize(env)            (env)->_pagesize
+#define env_get_raw_pagesize(env)        (env)->_raw_pagesize
+#define env_get_cooked_pagesize(env)     (env)->_cooked_pagesize
 #define env_get_keysize(env)             (env)->_keysize
 #define env_get_cachesize(env)           (env)->_cachesize
 #define env_get_max_databases(env)       (env)->_max_databases
@@ -226,11 +238,14 @@ struct ham_env_t
 /*
  * set the parameter list
  */
-#define env_set_pagesize(env, ps)        (env)->_pagesize =ps
-#define env_set_keysize(env, ks)         (env)->_keysize  =ks
-#define env_set_cachesize(env, cs)       (env)->_cachesize=cs
-#define env_set_max_databases(env, md)   (env)->_max_databases=md
-#define env_set_data_access_mode(env, md) (env)->_data_access_mode=md
+#define env_set_raw_pagesize(env, ps)    (env)->_raw_pagesize=(ps)
+#define env_set_cooked_pagesize(env, ps) (env)->_cooked_pagesize=(ps)
+#define env_set_keysize(env, ks)         (env)->_keysize=(ks)
+#define env_set_cachesize(env, cs)       (env)->_cachesize=(cs)
+#define env_set_max_databases(env, md)   (env)->_max_databases=(md)
+#define env_set_data_access_mode(env, md) (env)->_data_access_mode=(md)
+
+#define env_set_data_access_mode_masked(env, or_mask, and_mask) (env)->_data_access_mode=(((env)->_data_access_mode & (and_mask)) | (or_mask))
 
 /*
  * get the linked list of all file-level filters
@@ -240,7 +255,7 @@ struct ham_env_t
 /*
  * set the linked list of all file-level filters
  */
-#define env_set_file_filter(env, f)      (env)->_file_filters=f
+#define env_set_file_filter(env, f)      (env)->_file_filters=(f)
 
 /*
  * get the freelist cache
@@ -250,7 +265,12 @@ struct ham_env_t
 /*
  * set the freelist cache
  */
-#define env_set_freelist_cache(env, c)   (env)->_freelist_cache=c
+#define env_set_freelist_cache(env, c)   (env)->_freelist_cache=(c)
+
+/*
+ * get a reference to the DB FILE (global) statistics
+ */
+#define env_get_global_perf_data(env)    &(env)->_perf_data
 
 
 #ifdef __cplusplus

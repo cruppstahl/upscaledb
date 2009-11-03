@@ -60,15 +60,16 @@ public:
         BFC_ASSERT(0==ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
-                        m_inmemory))!=0);
+                        db_get_env(m_db), m_inmemory))!=0);
         if (!m_usemmap)
             m_dev->set_flags(m_dev, DEVICE_NO_MMAP);
-        BFC_ASSERT(m_dev->create(m_dev, BFC_OPATH(".test"), 0, 0644)==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(0, m_dev->create(m_dev, BFC_OPATH(".test"), 0, 0644));
         db_set_device(m_db, m_dev);
         p=page_new(m_db);
-        BFC_ASSERT(0==page_alloc(p, m_dev->get_pagesize(m_dev)));
+        BFC_ASSERT(0==page_alloc(p, device_get_pagesize(m_dev)));
         db_set_header_page(m_db, p);
-        db_set_pagesize(m_db, m_dev->get_pagesize(m_dev));
+        db_set_persistent_pagesize(m_db, m_dev->get_pagesize(m_dev));
+        db_set_cooked_pagesize(m_db, device_get_pagesize(m_dev));
     }
     
     virtual void teardown() 
@@ -102,7 +103,7 @@ public:
     {
         ham_page_t *page;
         page=page_new(m_db);
-        BFC_ASSERT(page_alloc(page, db_get_pagesize(m_db))==HAM_SUCCESS);
+        BFC_ASSERT(page_alloc(page, db_get_cooked_pagesize(m_db))==HAM_SUCCESS);
         BFC_ASSERT(page_free(page)==HAM_SUCCESS);
 
         BFC_ASSERT_EQUAL((ham_offset_t)0, page_get_before_img_lsn(page));
@@ -120,7 +121,7 @@ public:
 
         for (i=0; i<10; i++) {
             page=page_new(m_db);
-            BFC_ASSERT(page_alloc(page, db_get_pagesize(m_db))==0);
+            BFC_ASSERT(page_alloc(page, db_get_cooked_pagesize(m_db))==0);
             if (!m_inmemory)
                 BFC_ASSERT(page_get_self(page)==(i+1)*ps);
             BFC_ASSERT(page_free(page)==HAM_SUCCESS);
@@ -135,18 +136,18 @@ public:
 
         page=page_new(m_db);
         temp=page_new(m_db);
-        BFC_ASSERT(page_alloc(page, db_get_pagesize(m_db))==HAM_SUCCESS);
+        BFC_ASSERT(page_alloc(page, db_get_cooked_pagesize(m_db))==HAM_SUCCESS);
         BFC_ASSERT(page_get_self(page)==ps);
         BFC_ASSERT(page_free(page)==HAM_SUCCESS);
         
-        BFC_ASSERT(page_fetch(page, db_get_pagesize(m_db))==HAM_SUCCESS);
+        BFC_ASSERT(page_fetch(page, db_get_cooked_pagesize(m_db))==HAM_SUCCESS);
         memset(page_get_pers(page), 0x13, ps);
         page_set_dirty(page);
         BFC_ASSERT(page_flush(page)==HAM_SUCCESS);
 
         BFC_ASSERT(page_is_dirty(page)==0);
         page_set_self(temp, ps);
-        BFC_ASSERT(page_fetch(temp, db_get_pagesize(m_db))==HAM_SUCCESS);
+        BFC_ASSERT(page_fetch(temp, db_get_cooked_pagesize(m_db))==HAM_SUCCESS);
         BFC_ASSERT(0==memcmp(page_get_pers(page), page_get_pers(temp), ps));
 
         BFC_ASSERT(page_free(page)==HAM_SUCCESS);

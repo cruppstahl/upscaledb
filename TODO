@@ -10,8 +10,6 @@ x a finished TODO item
 x tutorial (and header file as well?) - default compare is descending, not
     ascending
 
-x packstop has include guards??? remove them, run tests
-
 x merge changes of Ger Hobbelt
 
 x need CREDITS file with contributors
@@ -25,6 +23,9 @@ x some unittests are crashing
 
 x check why bfc swallows the exceptions
 
+<<<<<<< .mine
+x check ham_get_key_count - implementation/function name
+=======
 o IMPORTANT!!! - increase libtool version by 1??? also, we have some API
     incompatibilities when HAM_*_USER_ALLOC is used. are they a problem??
 
@@ -33,9 +34,49 @@ o new append function for ham_cursor_insert: append keys at the "end"
     x use it for recno
     o need unittests
 
-o approx. matching: need a sample
+----- merge
+o LOCK_EXCLUSIVE is new default? -> document!
+o ham_get_flags deprecated (replaced by ham_get_parameters)!!
+o garbagelist ist draussen! kann aus page.h gelöscht werden!? Was passiert
+    mit den "unnötigen" pages?
+o device-filters: currently don't work in logging - remove the new code
+    completely? Or leave as much as we can?
+o document: AES does not affect the logfile!
+o changelist: AES also encrypts header page! (does it??)
+o how do we change from AES to AES-CBC in the future? How to recognize
+    new encryption modes?
+o __check_create_parameters: hat komisches RETURN macro - noch nötig??
+o remove raw_pagesize/cooked_pagesize
+o EnvTest::createAndOpenMultiDbTest: disabled; der letzte (256.) 
+    ham_env_create_db erzeugt valgrind-fehler (bis zum crash)
 
-o recno: set HAM_DAM_SEQUENTIAL_INSERT for record number databases
+o documentation
+o samples
+o tools
+o win32 environment
+----
+
+o DAM - really be backwards compatible?? or upgrade the files to 1.1.0?
+    o make sure that HAM_DAM_ENFORCE_PRE110_FORMAT cannot be set from user
+        (only automatically by loading a file from 1.0.9)
+
+o backwards compatibility problems
+    o AES has to be enabled *before* env is created
+    o KEY_USER_ALLOC needs to have key->size set
+        db.c:db_get_extended_key()
+    o device-stuff: remove new filters??
+
+o bei in-memory-db direkt auf den record zugreifen (und dann auch
+    überschreiben!) - neues flag für ham_find/ham_cursor_move
+    o unittests
+
+o packstop has include guards??? remove them, run tests
+    x implement
+    o make sure that databases from 1.0.9 are still working in 1.1.0
+
+o db6.cpp is old, replace it with the original
+
+o approx. matching: need a sample
 
 o what if an unknown DAM is set? -> fail to load??
 

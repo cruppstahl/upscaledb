@@ -41,7 +41,6 @@ public:
         BFC_REGISTER_TEST(CacheTest, putGetReplaceTest);
         BFC_REGISTER_TEST(CacheTest, multiplePutTest);
         BFC_REGISTER_TEST(CacheTest, negativeGetTest);
-        BFC_REGISTER_TEST(CacheTest, garbageTest);
         BFC_REGISTER_TEST(CacheTest, unusedTest);
         BFC_REGISTER_TEST(CacheTest, overflowTest);
     }
@@ -61,13 +60,14 @@ public:
         BFC_ASSERT(0==ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
-                        HAM_TRUE))!=0);
-        BFC_ASSERT(m_dev->create(m_dev, BFC_OPATH(".test"), 0, 0644)==HAM_SUCCESS);
+                        db_get_env(m_db), HAM_DEVTYPE_MEMORY))!=0);
+        BFC_ASSERT_EQUAL(0, m_dev->create(m_dev, BFC_OPATH(".test"), 0, 0644));
         db_set_device(m_db, m_dev);
         p=page_new(m_db);
-        BFC_ASSERT(0==page_alloc(p, m_dev->get_pagesize(m_dev)));
+        BFC_ASSERT(0==page_alloc(p, device_get_pagesize(m_dev)));
         db_set_header_page(m_db, p);
-        db_set_pagesize(m_db, m_dev->get_pagesize(m_dev));
+        db_set_persistent_pagesize(m_db, m_dev->get_pagesize(m_dev));
+        db_set_cooked_pagesize(m_db, device_get_pagesize(m_dev));
     }
     
     virtual void teardown() 
@@ -135,8 +135,11 @@ public:
         page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
         page_set_self(page, 0x123ull);
         BFC_ASSERT(cache_put_page(cache, page)==HAM_SUCCESS);
-        BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==page);
+        BFC_ASSERT(cache_get_cur_elements(cache)==1);
+        BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==page); // page flag 'CACHE_NOREMOVE' is not set, so get will POP!
+        BFC_ASSERT(cache_get_cur_elements(cache)==0);
         BFC_ASSERT(cache_remove_page(cache, page)==HAM_SUCCESS);
+        BFC_ASSERT(cache_get_cur_elements(cache)==0);		  // and before 1.1.0, this count would be -1 instead of 0
         BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==0);
         cache_delete(m_db, cache);
         page_delete(page);
@@ -154,10 +157,15 @@ public:
         page_set_npers_flags(page2, PAGE_NPERS_NO_HEADER);
         page_set_self(page2, 0x456ull);
         BFC_ASSERT(cache_put_page(cache, page1)==HAM_SUCCESS);
+        BFC_ASSERT(cache_get_cur_elements(cache)==1);
         BFC_ASSERT(cache_remove_page(cache, page1)==HAM_SUCCESS);
+        BFC_ASSERT(cache_get_cur_elements(cache)==0);
         BFC_ASSERT(cache_put_page(cache, page2)==HAM_SUCCESS);
+        BFC_ASSERT(cache_get_cur_elements(cache)==1);
         BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==0);
+        BFC_ASSERT(cache_get_cur_elements(cache)==1); // failed to grab, no POPping therefor ;-)
         BFC_ASSERT(cache_get_page(cache, 0x456ull, 0)==page2);
+        BFC_ASSERT(cache_get_cur_elements(cache)==0); // POP from cache as NODELETE wasn't set.
         cache_delete(m_db, cache);
         page_delete(page1);
         page_delete(page2);
@@ -194,24 +202,6 @@ public:
             BFC_ASSERT(cache_get_page(cache, i*1024*13, 0)==0);
         }
         cache_delete(m_db, cache);
-    }
-    
-    void garbageTest(void)
-    {
-        ham_page_t *page;
-        ham_cache_t *cache=cache_new(m_db, 15);
-        BFC_ASSERT(cache!=0);
-        page=page_new(m_db);
-        page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
-        page_set_self(page, 0x123ull);
-        BFC_ASSERT(cache_put_page(cache, page)==HAM_SUCCESS);
-        BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==page);
-        BFC_ASSERT(cache_move_to_garbage(cache, page)==HAM_SUCCESS);
-        BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==0);
-        BFC_ASSERT(cache_get_unused_page(cache)==page);
-        BFC_ASSERT(cache_get_unused_page(cache)==0);
-        cache_delete(m_db, cache);
-        page_delete(page);
     }
     
     void unusedTest(void)

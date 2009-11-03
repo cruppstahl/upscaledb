@@ -9,10 +9,9 @@
  * See files COPYING.* for License information.
  */
 
-#include "../src/config.h"
+/* #include "../src/config.h"    - not an integral part of hamster but rather the, ah, 'platform independent' BFC */
 
 #include <stdexcept>
-#include <ham/hamsterdb.hpp>
 
 #include "bfc-testsuite.hpp"
 
@@ -22,8 +21,8 @@
 #endif
 #include <signal.h> /* the signal catching / hardware exception catching stuff for UNIX (and a bit for Win32/64 too) */
 #include <errno.h>
-
-#include "../src/error.h"
+#include <string.h>
+#include <assert.h>
 
 #include "bfc-signal.h"
 
@@ -150,8 +149,8 @@ int testrunner::BFC_universal_signal_handler(int signal_code, int sub_code)
 {
 	bool may_throw = (!m_current_signal_context.error_set && m_current_signal_context.sig_handlers_set);
 
-	ham_assert(m_current_signal_context.sig_handlers_set, (0));
-	ham_assert(m_current_signal_context.this_is_me == testrunner::get_instance(), (0));
+	assert(m_current_signal_context.sig_handlers_set);
+	assert(m_current_signal_context.this_is_me == testrunner::get_instance());
 
 	// when we get here, something went pear shaped in the test. Throw an 
 	// appropriate bfc:error to signal this!
@@ -165,9 +164,9 @@ int testrunner::BFC_universal_signal_handler(int signal_code, int sub_code)
 	{
 		bfc::error ex(__FILE__,
 			__LINE__,
-			m_current_signal_context.current_error.fixture,
-			m_current_signal_context.current_error.test,
-			"the signal %d (%s) was raised", 
+			m_current_signal_context.current_error.m_fixture_name,
+			m_current_signal_context.current_error.m_test,
+			"SIGNAL RAISED: signal %d (%s)",
 			signal_code, bfc_sigdescr(signal_code));
 
 		m_current_signal_context.current_error = ex;
@@ -185,13 +184,14 @@ int testrunner::BFC_universal_signal_handler(int signal_code, int sub_code)
 		sigprocmask(SIG_UNBLOCK, &n, &o); // we don't mind receiving another signal now.
 #endif
 
-#if 0
-		std::cerr << "the signal " << signal_code << " (" << bfc_sigdescr(signal_code) << ") was raised: " << may_throw << std::endl;
+#if 10
+		std::cerr << "GENERAL FAILURE: " << m_current_signal_context.current_error.m_message.c_str() << may_throw << std::endl;
 #endif
 	
 		longjmp(m_current_signal_context.signal_return_point, 2);
-
+#if 0
 		throw ex;
+#endif
 	}
 
 #if defined(SIG_UNBLOCK) && !defined(OS_HAS_NO_SIGPROCMASK)
@@ -298,11 +298,11 @@ bool testrunner::setup_signal_handlers(testrunner *me, const fixture *f, method 
 {
 	bool threw_ex = false;
 
-	ham_assert(m_current_signal_context.this_is_me == me, (0));
-	ham_assert(m_current_signal_context.active_fixture == f, (0));
+	assert(m_current_signal_context.this_is_me == me);
+	assert(m_current_signal_context.active_fixture == f);
 #if 0
-	ham_assert(m_current_signal_context.active_method == m, (0));
-	ham_assert(m_current_signal_context.active_funcname.compare(funcname ? funcname : "") == 0, (0));
+	assert(m_current_signal_context.active_method == m);
+	assert(m_current_signal_context.active_funcname.compare(funcname ? funcname : "") == 0);
 #endif
 	m_current_signal_context.active_method = m;
 	m_current_signal_context.active_funcname = (funcname ? funcname : "");
@@ -318,9 +318,8 @@ bool testrunner::setup_signal_handlers(testrunner *me, const fixture *f, method 
 
 		for (int i = 0; m_signals_to_catch[i] != 0; i++)
 		{
-			ham_assert(i < int(sizeof(m_current_signal_context.old_sig_handlers) 
-							/ sizeof(m_current_signal_context.old_sig_handlers[0])), 
-					   (0)); 
+			assert(i < int(sizeof(m_current_signal_context.old_sig_handlers) 
+							/ sizeof(m_current_signal_context.old_sig_handlers[0]))); 
 			m_current_signal_context.old_sig_handlers[i].handler = bfc_signal(m_signals_to_catch[i], BFC_universal_signal_handler);
 			if (m_current_signal_context.old_sig_handlers[i].handler == (signal_handler_f)SIG_ERR)
 			{
@@ -340,9 +339,8 @@ bool testrunner::setup_signal_handlers(testrunner *me, const fixture *f, method 
 		// make sure we're decommisioning any custom signal handler as we are leaving FUT invocation scope!
 		for (int i = 0; m_signals_to_catch[i] != 0; i++)
 		{
-			ham_assert(i < int(sizeof(m_current_signal_context.old_sig_handlers) 
-							/ sizeof(m_current_signal_context.old_sig_handlers[0])), 
-					   (0)); 
+			assert(i < int(sizeof(m_current_signal_context.old_sig_handlers) 
+							/ sizeof(m_current_signal_context.old_sig_handlers[0]))); 
 			// restore originalm signal handler:
 			if (bfc_signal(m_signals_to_catch[i], m_current_signal_context.old_sig_handlers[i].handler) == (signal_handler_f)SIG_ERR)
 			{
@@ -388,56 +386,56 @@ testrunner::cpp_eh_run(testrunner *me, fixture *f, method m,
 		// <stdexcept exception types are caught here as well: */
 		catch (std::domain_error &e)
 		{
-			ex.message = "std::domain_error exception: ";
-			ex.message += e.what();
+			ex.m_message = "std::domain_error exception: ";
+			ex.m_message += e.what();
 			return true;
 		}
 		catch (std::invalid_argument &e)
 		{
-			ex.message = "std::invalid_argument exception: ";
-			ex.message += e.what();
+			ex.m_message = "std::invalid_argument exception: ";
+			ex.m_message += e.what();
 			return true;
 		}
 		catch (std::length_error &e)
 		{
-			ex.message = "std::length_error exception: ";
-			ex.message += e.what();
+			ex.m_message = "std::length_error exception: ";
+			ex.m_message += e.what();
 			return true;
 		}
 		catch (std::out_of_range &e)
 		{
-			ex.message = "std::out_of_range exception: ";
-			ex.message += e.what();
+			ex.m_message = "std::out_of_range exception: ";
+			ex.m_message += e.what();
 			return true;
 		}
 		catch (std::logic_error &e)
 		{
-			ex.message = "std::logic_error exception: ";
-			ex.message += e.what();
+			ex.m_message = "std::logic_error exception: ";
+			ex.m_message += e.what();
 			return true;
 		}
 		catch (std::overflow_error &e)
 		{
-			ex.message = "std::overflow_error exception: ";
-			ex.message += e.what();
+			ex.m_message = "std::overflow_error exception: ";
+			ex.m_message += e.what();
 			return true;
 		}
 		catch (std::underflow_error &e)
 		{
-			ex.message = "std::underflow_error exception: ";
-			ex.message += e.what();
+			ex.m_message = "std::underflow_error exception: ";
+			ex.m_message += e.what();
 			return true;
 		}
 		catch (std::range_error &e)
 		{
-			ex.message = "std::range_error exception: ";
-			ex.message += e.what();
+			ex.m_message = "std::range_error exception: ";
+			ex.m_message += e.what();
 			return true;
 		}
 		catch (std::runtime_error &e)
 		{
-			ex.message = "std::runtime_error exception: ";
-			ex.message += e.what();
+			ex.m_message = "std::runtime_error exception: ";
+			ex.m_message += e.what();
 			return true;
 		}
 	}
@@ -487,6 +485,9 @@ testrunner::exec_testfun(testrunner *me, fixture *f, method m,
 						GetExceptionInformation(), &er))
 				{
 					cvt_hw_ex_as_cpp_ex(&er, me, f, m, funcname, ex);
+					
+					std::cout << ex.m_message << std::endl;
+					
 					threw_ex = true;
 				}	
 #else
@@ -510,11 +511,11 @@ testrunner::exec_testfun(testrunner *me, fixture *f, method m,
 	}
 	else
 	{
-		ham_assert(m_current_signal_context.this_is_me == me, (0));
-		ham_assert(m_current_signal_context.active_fixture == f, (0));
+		assert(m_current_signal_context.this_is_me == me);
+		assert(m_current_signal_context.active_fixture == f);
 #if 0
-		ham_assert(m_current_signal_context.active_method == m, (0));
-		ham_assert(m_current_signal_context.active_funcname.compare(funcname ? funcname : "") == 0, (0));
+		assert(m_current_signal_context.active_method == m);
+		assert(m_current_signal_context.active_funcname.compare(funcname ? funcname : "") == 0);
 #endif
 		m_current_signal_context.active_method = m;
 		m_current_signal_context.active_funcname = (funcname ? funcname : "");
@@ -890,7 +891,7 @@ const char *testrunner::get_bfc_case_filename(const char *f)
 
 	if (m_current_signal_context.this_is_me) // signals there's valid data in there
 	{
-		f = m_current_signal_context.current_error.file.c_str();
+		f = m_current_signal_context.current_error.m_file.c_str();
 		if (f && *f && *f != '?')
 			return f;
 	}
@@ -905,7 +906,7 @@ int testrunner::get_bfc_case_lineno(int l)
 
 	if (m_current_signal_context.this_is_me) // signals there's valid data in there
 	{
-		l = m_current_signal_context.current_error.line;
+		l = m_current_signal_context.current_error.m_line;
 		if (l > 0)
 			return l;
 	}
@@ -952,8 +953,8 @@ const char *testrunner::get_bfc_case_testname(const char *f)
 #define BFC_MK_CASN(t)		testrunner::get_bfc_case_testname(t)
 
 error::error(const char *f, int l, const char *fix, const char *t, const char *m, ...) 
-: file(BFC_MK_FNAM(f)), line(BFC_MK_LINE(l)), 
-	fixture(BFC_MK_FIXN(fix)), test(BFC_MK_CASN(t))
+: m_file(BFC_MK_FNAM(f)), m_line(BFC_MK_LINE(l)), 
+	m_fixture_name(BFC_MK_FIXN(fix)), m_test(BFC_MK_CASN(t))
 {
 	va_list a;
 	va_start(a, m);
@@ -962,8 +963,8 @@ error::error(const char *f, int l, const char *fix, const char *t, const char *m
 }
 
 error::error(const char *f, int l, const std::string &fix, const std::string &t, const char *m, ...)
-: file(BFC_MK_FNAM(f)), line(BFC_MK_LINE(l)), 
-	fixture(BFC_MK_FIXN(fix.c_str())), test(BFC_MK_CASN(t.c_str()))
+: m_file(BFC_MK_FNAM(f)), m_line(BFC_MK_LINE(l)), 
+	m_fixture_name(BFC_MK_FIXN(fix.c_str())), m_test(BFC_MK_CASN(t.c_str()))
 {
 	va_list a;
 	va_start(a, m);
@@ -972,8 +973,8 @@ error::error(const char *f, int l, const std::string &fix, const std::string &t,
 }
 
 error::error(const std::string &f, int l, const std::string &fix, const std::string &t, const char *m, ...)
-    : file(BFC_MK_FNAM(f.c_str())), line(BFC_MK_LINE(l)), 
-	fixture(BFC_MK_FIXN(fix.c_str())), test(BFC_MK_CASN(t.c_str()))
+    : m_file(BFC_MK_FNAM(f.c_str())), m_line(BFC_MK_LINE(l)), 
+	m_fixture_name(BFC_MK_FIXN(fix.c_str())), m_test(BFC_MK_CASN(t.c_str()))
 {
 	va_list a;
 	va_start(a, m);
@@ -982,13 +983,20 @@ error::error(const std::string &f, int l, const std::string &fix, const std::str
 }
 
 error::error(const error &base, const char *m, ...)
-    : file(BFC_MK_FNAM(base.file.c_str())), line(BFC_MK_LINE(base.line)), 
-	fixture(BFC_MK_FIXN(base.fixture.c_str())), test(BFC_MK_CASN(base.test.c_str()))
+    : m_file(BFC_MK_FNAM(base.m_file.c_str())), m_line(BFC_MK_LINE(base.m_line)), 
+	m_fixture_name(BFC_MK_FIXN(base.m_fixture_name.c_str())), m_test(BFC_MK_CASN(base.m_test.c_str()))
 {
 	va_list a;
 	va_start(a, m);
 	vfmt_message(m, a);
 	va_end(a);
+}
+
+error::error(const char *f, int l, fixture &fix, const char *t, const char *m, va_list args)
+    : m_file(BFC_MK_FNAM(f)), m_line(BFC_MK_LINE(l)), 
+	m_fixture_name(BFC_MK_FIXN(fix.get_name())), m_test(BFC_MK_CASN(t))
+{
+	vfmt_message(m, args);
 }
 
 #undef BFC_MK_FNAM
@@ -1002,11 +1010,11 @@ error::error(const error &src)
 {
 	if (this != &src)
 	{
-		file = src.file.c_str();
-		line = src.line;
-		fixture = src.fixture.c_str();
-		test = src.test.c_str();
-		message = src.message.c_str();
+		m_file = src.m_file.c_str();
+		m_line = src.m_line;
+		m_fixture_name = src.m_fixture_name.c_str();
+		m_test = src.m_test.c_str();
+		m_message = src.m_message.c_str();
 	}
 }
 
@@ -1017,19 +1025,19 @@ error::~error()
 void error::vfmt_message(const char *msg, va_list args)
 {
 	char buf[2048];
+	
 	if (!msg) 
 	{
-		msg = "";
+		*buf = 0;
 	}
 	else
 	{
 #if 0 // general use, so no direct dependency on hamster:util.h
 		util_vsnprintf(buf, sizeof(buf), msg, args);
 #else
-#if defined(HAM_OS_POSIX)
+#if defined __USE_BSD || defined __USE_ISOC99 || defined __USE_UNIX98 \
+		|| defined __USE_POSIX || defined __USE_POSIX2
 	    	vsnprintf(buf, sizeof(buf), msg, args);
-#elif defined(HAM_OS_WIN32)
-    		_vsnprintf(buf, sizeof(buf), msg, args);
 #elif defined(_MSC_VER)
     		_vsnprintf(buf, sizeof(buf), msg, args);
 #else
@@ -1039,7 +1047,7 @@ void error::vfmt_message(const char *msg, va_list args)
 #endif
 		buf[sizeof(buf)-1] = 0;
 	}
-	message = buf;
+	m_message = buf;
 }
 
 void error::fmt_message(const char *msg, ...)
@@ -1073,6 +1081,48 @@ void fixture::register_test(const char *name, method foo) {
 	if (foo)
 		m++;
     m_tests.push_back(t);
+}
+
+void fixture::throw_bfc_error(const char *file, int line, const char *function, const char *message, ...)
+{
+	va_list args;
+	va_start(args, message);
+	bfc::error e(file, line, *this, function, message, args);
+	va_end(args);
+
+	// before we throw this error, we traverse the list of registered assertion monitors:
+	// they may want to add / edit this error report
+	assert_monitor_stack_t::iterator it = m_assert_monitors.begin();
+	assert_monitor_stack_t::iterator itend = m_assert_monitors.end();
+	while (it != itend)
+	{
+		(*it)->handler(e);
+		it++;
+	}
+
+	// now remove all monitors from the queue:
+	m_assert_monitors.clear();
+
+	throw e;
+}
+
+void fixture::push_assert_monitor(bfc_assert_monitor &handler)
+{
+	// make sure the monitor has not yet been registered:
+	assert_monitor_stack_t::iterator it = m_assert_monitors.begin();
+	assert_monitor_stack_t::iterator itend = m_assert_monitors.end();
+	while (it != itend)
+	{
+		if ((*it) == &handler)
+			return;
+	}
+
+	m_assert_monitors.push_back(&handler);
+}
+
+void fixture::pop_assert_monitor(void)
+{
+	m_assert_monitors.pop_back();
 }
 
 
@@ -1120,16 +1170,17 @@ void testrunner::print_errors(bool panic_flush) {
             std::cout << "----- error #";
 			std::cout << i;
 			std::cout << " in ";
-			std::cout << (it->fixture.size() > 0  ? it->fixture.c_str() : "???");
+			std::cout << (it->m_fixture_name.size() > 0  ? it->m_fixture_name.c_str() : "???");
 			std::cout << "::";
-			std::cout << (it->test.size() > 0  ? it->test.c_str() : "???");
+			std::cout << (it->m_test.size() > 0  ? it->m_test.c_str() : "???");
 			std::cout << std::endl;
-			std::cout << (it->file.size() > 0  ? it->file.c_str() : "???");
+			std::cout << (it->m_file.size() > 0  ? it->m_file.c_str() : "???");
 			std::cout << ":";
-			std::cout << it->line;
+			std::cout << it->m_line;
 			std::cout << " ";
-			std::cout << (it->message.size() > 0 ? it->message.c_str() : "???");
-			std::cout << std::endl;
+			std::cout << (it->m_message.size() > 0 ? it->m_message.c_str() : "???");
+			if (it->m_message.size() == 0 || !strchr("\r\n", *(it->m_message.rbegin())))
+				std::cout << std::endl;
 #endif
 			if (panic_flush)
 			{
@@ -1296,7 +1347,7 @@ bool testrunner::run(fixture *f, const test *test, bfc_error_report_mode_t print
 				*/
 				bfc::error e(ex, "UNEXPECTED exception caught "
 					"(this hints at a bug in the BFC framework itself!): %s", 
-					ex.message.c_str());
+					ex.m_message.c_str());
 				//printf("FAILED!\n");
 				success = false;
 				add_error(&e);
@@ -1339,7 +1390,18 @@ bool testrunner::exec_a_single_test(fixture *f, const test *test)
 		threw_ex = exec_testfun(this, f, &fixture::setup, "setup", BFC_STATE_SETUP, e);
 		if (threw_ex)
 		{
-			//printf("FAILED!\n");
+			if (e.m_test != "setup")
+			{
+				// failure probably happened in a subroutine called from setup(); 
+				// make sure both the origin and this test name are present in the 
+				// error info then!
+				std::string msg = e.m_message;
+				e.m_message = "failure in ";
+				e.m_message += e.m_test;
+				e.m_message += "(): ";
+				e.m_message += msg;
+				e.m_test = "setup";
+			}
 			add_error(&e);
 		}
 		else
@@ -1347,7 +1409,18 @@ bool testrunner::exec_a_single_test(fixture *f, const test *test)
 			threw_ex = exec_testfun(this, f, m, test->name.c_str(), BFC_STATE_FUT_INVOCATION, e);
 			if (threw_ex)
 			{
-				//printf("FAILED!\n");
+				if (e.m_test != test->name)
+				{
+					// failure probably happened in a subroutine called from setup(); 
+					// make sure both the origin and this test name are present in the 
+					// error info then!
+					std::string msg = e.m_message;
+					e.m_message = "failure in ";
+					e.m_message += e.m_test;
+					e.m_message += "(): ";
+					e.m_message += msg;
+					e.m_test = test->name;
+				}
 				add_error(&e);
 			}
 		}
@@ -1356,7 +1429,18 @@ bool testrunner::exec_a_single_test(fixture *f, const test *test)
 		bool threw_ex_after = exec_testfun(this, f, &fixture::teardown, "teardown", BFC_STATE_TEARDOWN, e);
 		if (threw_ex_after)
 		{
-			//printf("FAILED!\n");
+			if (e.m_test != "teardown")
+			{
+				// failure probably happened in a subroutine called from setup(); 
+				// make sure both the origin and this test name are present in the 
+				// error info then!
+				std::string msg = e.m_message;
+				e.m_message = "failure in ";
+				e.m_message += e.m_test;
+				e.m_message += "(): ";
+				e.m_message += msg;
+				e.m_test = "teardown";
+			}
 			add_error(&e);
 		}
 		threw_ex |= threw_ex_after;
@@ -1430,15 +1514,15 @@ const std::string &testrunner::inputdir(const char *inputdir)
 
 
 testrunner::bfc_signal_context_t::bfc_signal_context_t()
-	: 	sig_handlers_set(false),
-		this_is_me(NULL),
+	: 	this_is_me(NULL),
 		active_fixture(NULL),
 		active_method(0),
 		//active_funcname(""),
 		active_state(BFC_STATE_NONE),
-		error_set(false),
 		print_err_report(BFC_QUIET),
-		current_error(__FILE__, __LINE__, "???", "???", "")
+		current_error(__FILE__, __LINE__, "???", "???", ""),
+		error_set(false),
+        sig_handlers_set(false)
 {
 	for (int i = 0; 
 		i < int(sizeof(old_sig_handlers) / sizeof(old_sig_handlers[0])); 

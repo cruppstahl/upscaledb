@@ -16,10 +16,13 @@
 #ifndef HAM_FREELIST_H__
 #define HAM_FREELIST_H__
 
+#include "statistics.h"
+
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif 
-
 
 /**
  * an entry in the freelist cache
@@ -44,32 +47,57 @@ typedef struct freelist_entry_t
      */
     ham_offset_t _page_id;
 
+	/**
+	 * some freelist algorithm specific run-time data
+	 *
+	 * This is done as a union as it will reduce code complexity
+	 * significantly in the common freelist processing areas.
+	 */
+	runtime_statistics_pagedata_t _perf_data;
+
 } freelist_entry_t;
 
 /* get the start address of a freelist cache entry */
 #define freel_entry_get_start_address(f)                (f)->_start_address
 
 /* set the start address of a freelist cache entry */
-#define freel_entry_set_start_address(f, s)             (f)->_start_address=s
+#define freel_entry_set_start_address(f, s)             (f)->_start_address=(s)
 
 /* get max number of bits in the cache entry */
 #define freel_entry_get_max_bits(f)                     (f)->_max_bits
 
 /* set max number of bits in the cache entry */
-#define freel_entry_set_max_bits(f, m)                  (f)->_max_bits=m
+#define freel_entry_set_max_bits(f, m)                  (f)->_max_bits=(m)
 
 /* get number of allocated bits in the cache entry */
 #define freel_entry_get_allocated_bits(f)               (f)->_allocated_bits
 
 /* set number of allocated bits in the cache entry */
-#define freel_entry_set_allocated_bits(f, b)            (f)->_allocated_bits=b
+#define freel_entry_set_allocated_bits(f, b)            (f)->_allocated_bits=(b)
 
 /* get the page ID of this freelist entry */
 #define freel_entry_get_page_id(f)                      (f)->_page_id
 
 /* set the page ID of this freelist entry */
-#define freel_entry_set_page_id(f, id)                  (f)->_page_id=id
+#define freel_entry_set_page_id(f, id)                  (f)->_page_id=(id)
 
+/* get the access performance data of this freelist entry */
+#define freel_entry_get_perf_data(f)                    (f)->_perf_data
+
+/* set the access performance data of this freelist entry */
+#define freel_entry_set_perf_data(f, id)                (f)->_perf_data=(id)
+
+/* get the statistics of this freelist entry */
+#define freel_entry_get_statistics(f)                   &(f)->_perf_data._persisted_stats
+
+/* check if the statistics have changed since we last flushed them */
+#define freel_entry_statistics_is_dirty(f)              (f)->_perf_data._dirty
+
+/* signal the statistics of this freelist entry as changed */
+#define freel_entry_statistics_set_dirty(f)             (f)->_perf_data._dirty = HAM_TRUE
+
+/* signal the statistics of this freelist entry as changed */
+#define freel_entry_statistics_reset_dirty(f)           (f)->_perf_data._dirty = HAM_FALSE
 
 /**
  * the freelist class structure - these functions and members are "inherited"
@@ -80,13 +108,19 @@ typedef struct freelist_entry_t
      * create and initialize a new class instance                       \
      */                                                                 \
     ham_status_t                                                        \
-	(*_constructor)(clss *be, ham_db_t *db, ham_u16_t mode);            \
+	(*_constructor)(clss *be, ham_db_t *db, ham_u16_t mgt_submode);     \
                                                                         \
 	/**                                                                 \
-	 * flush and release all freelist pages                             \
+	 * release all freelist pages (and their statistics)                \
 	 */                                                                 \
 	ham_status_t                                                        \
 	(*_destructor)(ham_db_t *db);                                       \
+                                                                        \
+	/**                                                                 \
+	 * flush all freelist page statistics                               \
+	 */                                                                 \
+	ham_status_t                                                        \
+	(*_flush_stats)(ham_db_t *db);                                      \
                                                                         \
 	/**                                                                 \
 	 * mark an area in the file as "free"                               \
@@ -111,14 +145,30 @@ typedef struct freelist_entry_t
 	 */                                                                 \
 	ham_offset_t                                                        \
 	(*_alloc_area)(ham_db_t *db, ham_size_t size, ham_bool_t aligned);  \
+	                                                                    \
+	/**																	\
+	 check whether the given block is properly marked as allocated.		\
+	*/																	\
+	ham_bool_t															\
+	(*_check_area_is_allocated)(ham_db_t *db,							\
+								ham_offset_t address, ham_size_t size);	\
                                                                         \
-	/**                                                                 \
-	 * the freelist processing algorithm used here: 1..X signify        \
-	 * different algorithms; 0 == old style (backwards compatible)      \
-	 */                                                                 \
-	ham_u16_t _mgt_mode
+	/**																	\
+	 * setup / initialize the proper performance data for this			\
+	 * freelist page.													\
+	 *																	\
+	 * Yes, this data will (very probably) be lost once the page is		\
+	 * removed from the in-memory cache, unless the currently active	\
+	 * freelist algorithm persists this data to disc.					\
+	 */																	\
+	ham_status_t														\
+	(*_init_perf_data)(clss *be, ham_db_t *db,							\
+						freelist_entry_t *entry,						\
+						struct freelist_payload_t *payload)
 
 
+/* forward reference */
+struct freelist_payload_t;
 
 
 /**
@@ -127,26 +177,27 @@ typedef struct freelist_entry_t
 typedef struct freelist_cache_t
 {
     /** the number of cached elements */
-    ham_size_t _count;
+    ham_u32_t _count;
 
     /** the cached freelist entries */
     freelist_entry_t *_entries;
 
 	/** class methods which handle all things freelist */
 	FREELIST_DECLARATIONS(struct freelist_cache_t);
+
 } freelist_cache_t;
 
 /* get the number of freelist cache elements */
 #define freel_cache_get_count(f)                        (f)->_count
 
 /* set the number of freelist cache elements */
-#define freel_cache_set_count(f, c)                     (f)->_count=c
+#define freel_cache_set_count(f, c)                     (f)->_count=(c)
 
 /* get the cached freelist entries */
 #define freel_cache_get_entries(f)                      (f)->_entries
 
 /* set the cached freelist entries */
-#define freel_cache_set_entries(f, e)                   (f)->_entries=e
+#define freel_cache_set_entries(f, e)                   (f)->_entries=(e)
 
 
 #include "packstart.h"
@@ -200,11 +251,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 			 */
 			ham_u16_t _zero;
 
-			/**
-			 * the freelist processing algorithm used here: 1..X signify 
-			 * different algorithms.
-			 */
-			ham_u16_t _mgt_mode;
+			ham_u16_t _reserved;
 
 			/**
 			 * maximum number of bits for this page
@@ -216,10 +263,30 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 			 */
 			ham_u32_t _allocated_bits;
 
+            /**
+             * The persisted statistics.
+             *
+             * Note that a copy is held in the nonpermanent section of
+             * each freelist entry; after all, it's ludicrous to keep
+             * the cache clogged with freelist pages which our
+             * statistics show are useless given our usage patterns
+             * (determined at run-time; this is meant to help many-insert, few-delete usage
+             * patterns the most, while many-delete usage patterns will
+             * benefit most from a good cache page aging system (see
+             * elsewhere in the code) as that will ensure relevant
+             * freelist pages stay in the cache for as long as we need
+             * them. Meanwhile, we've complicated things a little here
+             * as we need to flush statistics to the persistent page
+             * memory when flushing a cached page.
+             *
+             *  TODO: A callback will be provided for that.
+             */
+			freelist_page_statistics_t _statistics;
+
 			/**
 			 * the algorithm-specific payload starts here.
 			 */
-			ham_u8_t _payload[1];
+			ham_u8_t _bitmap[1];
 		} HAM_PACK_2 _s32;
 	} HAM_PACK_2 _s;
 } HAM_PACK_2 freelist_payload_t;
@@ -234,7 +301,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 /**
  * get the size of the persistent freelist header (new style)
  */
-#define db_get_freelist_header_size32()   (OFFSETOF(freelist_payload_t, _s._s32._payload))
+#define db_get_freelist_header_size32()   (OFFSETOF(freelist_payload_t, _s._s32._bitmap))
 
 /**
  * get the address of the first bitmap-entry of this page
@@ -257,6 +324,16 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 #define freel_set_max_bits16(fl, m)        (fl)->_s._s16._max_bits=ham_h2db16(m)
 
 /**
+ * get the maximum number of bits which are handled by this bitmap
+ */
+#define freel_get_max_bits32(fl)           (ham_db2h32((fl)->_s._s32._max_bits))
+
+/**
+ * set the maximum number of bits which are handled by this bitmap
+ */
+#define freel_set_max_bits32(fl, m)        (fl)->_s._s32._max_bits=ham_h2db32(m)
+
+/**
  * get the number of currently used bits which are handled by this bitmap
  */
 #define freel_get_allocated_bits16(fl)      (ham_db2h16((fl)->_s._s16._allocated_bits))
@@ -265,6 +342,18 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
  * set the number of currently used bits which are handled by this bitmap
  */
 #define freel_set_allocated_bits16(fl, u)   (fl)->_s._s16._allocated_bits=ham_h2db16(u)
+
+/**
+ * get the number of currently used bits which are handled by this
+ * bitmap
+ */
+#define freel_get_allocated_bits32(fl)      (ham_db2h32((fl)->_s._s32._allocated_bits))
+
+/**
+ * set the number of currently used bits which are handled by this
+ * bitmap
+ */
+#define freel_set_allocated_bits32(fl, u)   (fl)->_s._s32._allocated_bits=ham_h2db32(u)
 
 /**
  * get the address of the next overflow page
@@ -285,6 +374,16 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
  * get the bitmap of the freelist
  */
 #define freel_get_bitmap16(fl)             (fl)->_s._s16._bitmap
+
+/**
+ * get the bitmap of the freelist
+ */
+#define freel_get_bitmap32(fl)             (fl)->_s._s32._bitmap
+
+/**
+ * get the v1.1.0+ persisted entry performance statistics
+ */
+#define freel_get_statistics32(fl)         &((fl)->_s._s32._statistics)
 
 
 /**
@@ -324,6 +423,13 @@ freel_alloc_area(ham_db_t *db, ham_size_t size);
  */
 extern ham_offset_t
 freel_alloc_page(ham_db_t *db);
+
+
+/**
+Validate whether the given zone has been properly marked as allocated.
+*/
+extern ham_bool_t
+freel_check_area_is_allocated(ham_db_t *db, ham_offset_t address, ham_size_t size);
 
 
 #ifdef __cplusplus

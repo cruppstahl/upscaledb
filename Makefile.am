@@ -1,5 +1,7 @@
-                
-SUBDIRS = 3rdparty src include samples tools
+ACLOCAL_AMFLAGS	= -I m4
+
+
+SUBDIRS = 3rdparty src include samples tools unittests
 
 DOCUMENTATION_FILES = documentation/Doxyfile            \
              documentation/hamsterdb-main-low.jpg       \
@@ -23,12 +25,11 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              ChangeLog                                  \
              AUTHORS                                    \
              README                                     \
+             CREDITS                                     \
              COPYING.GPL2                               \
              COPYING.GPL3                               \
              3rdparty                                   \
-             include/ham/hamsterdb.h                    \
-             include/ham/hamsterdb_int.h                \
-             include/ham/types.h                        \
+             m4/ax_*.m4                            \
              build/scripts/*                            \
              src/*.c src/*.h src/Makefile.am            \
              src/Makefile.in                            \
@@ -56,6 +57,8 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              wince/hamsterdb.sln                        \
              wince/lib.vcproj                           \
              wince/dll.vcproj                           \
+             wince/3rdparty_aes.vcproj                 \
+             wince/3rdparty_zlib.vcproj                 \
              wince/sample_db1.vcproj                    \
              wince/sample_env1.vcproj                   \
              wince/sample_env2.vcproj 

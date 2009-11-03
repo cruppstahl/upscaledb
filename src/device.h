@@ -63,7 +63,7 @@ struct ham_device_t {
     /*
      * returns true if the device is open
      */
-    ham_bool_t (*is_open)(ham_device_t *self);
+    ham_status_t (*is_open)(ham_device_t *self);
 
     /*
      * get the default pagesize
@@ -128,6 +128,21 @@ struct ham_device_t {
      * writes a page to the device
      */
     ham_status_t (*write_page)(ham_device_t *self, ham_page_t *page);
+
+	/**
+	 * seek position in a file
+	 */
+	ham_status_t (*seek)(ham_device_t *self, ham_offset_t offset, int whence);
+
+	/**
+	 * tell the position in a file
+	 */
+	ham_status_t (*tell)(ham_device_t *self, ham_offset_t *offset);
+
+	/**
+	 * get the size of the file
+	 */
+	ham_status_t (*get_filesize)(ham_device_t *self, ham_offset_t *size);
 
     /*
      * frees a page
@@ -210,7 +225,11 @@ struct ham_device_t {
  * create a new device structure; either for in-memory or file-based
  */
 extern ham_device_t *
-ham_device_new(mem_allocator_t *alloc, ham_bool_t inmemorydb);
+ham_device_new(mem_allocator_t *alloc, ham_env_t *env, int devtype);
+
+#define HAM_DEVTYPE_FILE     0
+#define HAM_DEVTYPE_MEMORY   1
+#define HAM_DEVTYPE_CUSTOM   2
 
 
 #ifdef __cplusplus

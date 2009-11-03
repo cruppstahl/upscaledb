@@ -21,12 +21,11 @@
 #include "page.h"
 #include "error.h"
 
-#define BUCKET_SIZE     359
 
 #define my_calc_hash(cache, o)                                              \
-    (cache_get_max_elements(cache)==0                                       \
+    ((ham_size_t)(cache_get_max_elements(cache)==0                          \
         ? 0                                                                 \
-        : (((o)%(cache_get_bucketsize(cache)))))
+        : (((o)%(cache_get_bucketsize(cache))))))
 
 ham_cache_t *
 cache_new(ham_db_t *db, ham_size_t max_elements)
@@ -34,9 +33,8 @@ cache_new(ham_db_t *db, ham_size_t max_elements)
     ham_cache_t *cache;
     ham_size_t mem, buckets;
 
-    buckets=BUCKET_SIZE;
-    if (!buckets)
-        buckets=1;
+    buckets=CACHE_CACHE_BUCKET_SIZE;
+    ham_assert(buckets, (0));
     mem=sizeof(ham_cache_t)+(buckets-1)*sizeof(void *);
 
     cache=ham_mem_calloc(db, mem);
@@ -44,8 +42,12 @@ cache_new(ham_db_t *db, ham_size_t max_elements)
         db_set_error(db, HAM_OUT_OF_MEMORY);
         return (0);
     }
+	if (max_elements == 0 || max_elements > CACHE_MAX_ELEM)
+		max_elements = CACHE_MAX_ELEM;
     cache_set_max_elements(cache, max_elements);
     cache_set_bucketsize(cache, buckets);
+	cache->_timeslot = 777; /* a reasonable start value; value is related 
+                * to the increments applied to active cache pages */
     return (cache);
 }
 
@@ -55,10 +57,63 @@ cache_delete(ham_db_t *db, ham_cache_t *cache)
     ham_mem_free(db, cache);
 }
 
+/**
+ * Apparently we've hit a high water mark in the counting business and
+ * now it's time to cut down those counts to create a bit of fresh
+ * headroom.
+ *
+ * As higher counters represent something akin to a heady mix of young
+ * and famous (stardom gets you higher numbers) we're going to do
+ * something to age them all, while maintaining their relative ranking:
+ *
+ * Instead of subtracting a certain amount Z, which would positively
+ * benefit the high & mighty (as their distance from the lower life
+ * increases disproportionally then), we DIVIDE all counts by a certain
+ * number M, so that all counters are scaled down to generate lots of
+ * headroom while keeping the picking order as it is.
+ *
+ * We happen to know that the high water mark is something close to
+ * 2^31 - 1K (the largest step up for any page), so we decide to divide
+ * by 2^16 - that still leaves us an optimistic resolution of 1:2^16,
+ * which is fine.
+ */
+void
+cache_reduce_page_counts(ham_cache_t *cache)
+{
+    ham_page_t *page;
+
+	if (!cache)
+		return;
+
+	page = cache_get_totallist(cache);
+	while (page)
+	{ 
+        /* act on ALL pages, including the reference-counted ones.  */
+        ham_u32_t count = page_get_cache_cntr(page);
+
+		/* now scale by applying division: */
+		count >>= 16;
+		page_set_cache_cntr(page, count);
+
+		/* and the next one, please, James. */
+		page = page_get_next(page, PAGE_LIST_CACHED);		
+	}
+
+    /* and cut down the timeslot value as well: */
+    /*
+     * to make sure the division by 2^16 keeps the timing counter
+     * non-zero, we mix in a little value...
+     */
+    cache->_timeslot+=(1<<16)-1;
+    cache->_timeslot>>=16;
+}
+
 ham_page_t * 
 cache_get_unused_page(ham_cache_t *cache)
 {
-    ham_page_t *page, *head, *min=0;
+    ham_page_t *page;
+	ham_page_t *head;
+	ham_page_t *min = 0;
     ham_size_t hash;
 
     page=cache_get_garbagelist(cache);
@@ -68,48 +123,81 @@ cache_get_unused_page(ham_cache_t *cache)
         cache_set_garbagelist(cache, 
                 page_list_remove(cache_get_garbagelist(cache), 
                     PAGE_LIST_GARBAGE, page));
-        cache_set_cur_elements(cache, 
+
+		cache_push_history(page, -2);
+
+		cache_set_cur_elements(cache, 
                 cache_get_cur_elements(cache)-1);
         return (page);
     }
 
-    head=page=cache_get_totallist(cache);
+    head=cache_get_totallist(cache);
     if (!head)
-        return (0);
+		return (0);
 
+    /*
+     * Oh, this was all so unfair! <grin>
+     *
+     * As pages are added at the HEAD and NEXT for page P points to the
+     * next older item (i.e. the previously added item to the linked
+     * list), it means ->NEXT means
+     * 'older'.
+     *
+     * While, in finding the oldest, re-usable page, we should /start/
+     * with the oldest and gradually progress towards the 'younger',
+     * i.e. traverse the link list in reverse, by traversing the ->PREV chain 
+     * instead of the usual ->NEXT chain!
+     *
+     * And our 'proper' starting point then would be the
+     * /oldest/ fella in the chain, and that would've beem HEAD->PREV
+     * if we'd had cyclic double linked lists here; alas, we have NOT,
+     * so we just travel down the ->NEXT path and pick the oldest geezer we can
+     * find; after all that's one traversal with the same result as first
+     * traveling all the way down to the endstop, and then reversing
+     * through ->PREV... If only our cyclic LL patch hadn't caused such
+     * weird bugs  :-(
+     */
+	page = head;
     do {
         /* only handle unused pages */
         if (page_get_refcount(page)==0) {
             if (page_get_cache_cntr(page)==0) {
                 min=page;
-                goto found_page;
+                //goto found_page;
             }
             else {
                 if (!min)
                     min=page;
                 else
-                    if (page_get_cache_cntr(page)<page_get_cache_cntr(min))
+                    if (page_get_cache_cntr(page) <= page_get_cache_cntr(min)) 
+                            /* oldest! */
                         min=page;
             }
-            page_set_cache_cntr(page, page_get_cache_cntr(page)-1);
         }
         page=page_get_next(page, PAGE_LIST_CACHED);
+		ham_assert(page != head, (0));
     } while (page && page!=head);
     
     if (!min)
         return (0);
 
-found_page:
-    hash=(ham_size_t)my_calc_hash(cache, page_get_self(min));
+    hash=my_calc_hash(cache, page_get_self(min));
 
+	ham_assert(page_is_in_list(cache_get_totallist(cache), min, 
+                    PAGE_LIST_CACHED), (0));
     cache_set_totallist(cache, 
             page_list_remove(cache_get_totallist(cache), 
             PAGE_LIST_CACHED, min));
+	ham_assert(page_is_in_list(cache_get_bucket(cache, hash), min, 
+                    PAGE_LIST_BUCKET), (0));
+    cache_set_bucket(cache, hash, 
+            page_list_remove(cache_get_bucket(cache, 
+            hash), PAGE_LIST_BUCKET, min));
+
+	cache_push_history(min, -3);
+
     cache_set_cur_elements(cache, 
             cache_get_cur_elements(cache)-1);
-    cache_get_bucket(cache, hash)=
-            page_list_remove(cache_get_bucket(cache, 
-            hash), PAGE_LIST_BUCKET, min);
 
     return (min);
 }
@@ -117,8 +205,8 @@ found_page:
 ham_page_t *
 cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags)
 {
-    ham_page_t *page=0;
-    ham_size_t hash=(ham_size_t)my_calc_hash(cache, address);
+    ham_page_t *page;
+    ham_size_t hash=my_calc_hash(cache, address);
 
     page=cache_get_bucket(cache, hash);
     while (page) {
@@ -128,14 +216,22 @@ cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags)
     }
 
     if (page && flags != CACHE_NOREMOVE) {
-        cache_set_totallist(cache, 
-            page_list_remove(cache_get_totallist(cache), 
-            PAGE_LIST_CACHED, page));
-        cache_set_cur_elements(cache, 
-            cache_get_cur_elements(cache)-1);
-        cache_get_bucket(cache, hash)=
-            page_list_remove(cache_get_bucket(cache, 
-            hash), PAGE_LIST_BUCKET, page);
+		if (page_is_in_list(cache_get_totallist(cache), page, PAGE_LIST_CACHED))
+		{
+			cache_set_totallist(cache, 
+				page_list_remove(cache_get_totallist(cache), 
+				PAGE_LIST_CACHED, page));
+		}
+		ham_assert(page_is_in_list(cache_get_bucket(cache, hash), page, 
+                PAGE_LIST_BUCKET), (0));
+		cache_set_bucket(cache, hash,
+			page_list_remove(cache_get_bucket(cache, 
+			hash), PAGE_LIST_BUCKET, page));
+
+		cache_push_history(page, -4);
+
+		cache_set_cur_elements(cache, 
+			cache_get_cur_elements(cache)-1);
     }
 
     return (page);
@@ -144,44 +240,29 @@ cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags)
 ham_status_t 
 cache_put_page(ham_cache_t *cache, ham_page_t *page)
 {
-    ham_size_t hash=(ham_size_t)my_calc_hash(cache, page_get_self(page));
+    ham_size_t hash=my_calc_hash(cache, page_get_self(page));
+	ham_bool_t new_page = HAM_TRUE;
 
     if (page_is_in_list(cache_get_totallist(cache), page, PAGE_LIST_CACHED)) {
         cache_set_totallist(cache, 
                 page_list_remove(cache_get_totallist(cache), 
                 PAGE_LIST_CACHED, page));
-        cache_set_cur_elements(cache, 
+
+		new_page = HAM_FALSE;
+
+		cache_set_cur_elements(cache, 
                 cache_get_cur_elements(cache)-1);
     }
+	ham_assert(!page_is_in_list(cache_get_totallist(cache), page, 
+                PAGE_LIST_CACHED), (0));
     cache_set_totallist(cache, 
             page_list_insert(cache_get_totallist(cache), 
             PAGE_LIST_CACHED, page));
-    cache_set_cur_elements(cache, 
-            cache_get_cur_elements(cache)+1);
 
-    /* initialize the cache counter with sane values */
-    if (page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER) {
-          page_set_cache_cntr(page, 10);
-    }
-    else {
-        switch (page_get_type(page)) {
-          case PAGE_TYPE_HEADER:
-              page_set_cache_cntr(page, 1000);
-              break;
-          case PAGE_TYPE_B_ROOT:
-              page_set_cache_cntr(page, 1000);
-              break;
-          case PAGE_TYPE_B_INDEX:
-              page_set_cache_cntr(page, 50);
-              break;
-          case PAGE_TYPE_FREELIST:
-              page_set_cache_cntr(page, 50);
-              break;
-          default:
-              /* ignore all other pages (most likely they're blobs) */
-              break;
-        }
-    }
+	cache_push_history(page, new_page ? +2 : 0);
+
+	cache_set_cur_elements(cache, 
+            cache_get_cur_elements(cache)+1);
 
     /*
      * insert it in the cache bucket
@@ -189,55 +270,76 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page)
      * to avoid inserting the page twice, we first remove it from the 
      * bucket
      */
-    cache_get_bucket(cache, hash)=page_list_remove(cache_get_bucket(cache, 
-                hash), PAGE_LIST_BUCKET, page);
+	if (page_is_in_list(cache_get_bucket(cache, hash), page, PAGE_LIST_BUCKET))
+	{
+		cache_set_bucket(cache, hash, page_list_remove(cache_get_bucket(cache, 
+					hash), PAGE_LIST_BUCKET, page));
+	}
+	ham_assert(!page_is_in_list(cache_get_bucket(cache, hash), page, 
+                PAGE_LIST_BUCKET), (0));
     cache_get_bucket(cache, hash)=page_list_insert(cache_get_bucket(cache, 
                 hash), PAGE_LIST_BUCKET, page);
 
     return (0);
 }
 
+/*
+ * in order to improve cache activity for access patterns such as
+ * AAB.AAB. where a fetch at the '.' would rate both pages A and B as
+ * high, we use a increment-counter approach which will cause page A to
+ * be rated higher than page B over time as A is accessed/needed more
+ * often.
+ *
+ * Note that page_new() initialized every fresh page with a counter
+ * value of 10, so that will be our starting point for our increment.
+ * The increment steps are symbolic for the
+ * relative importance assigned to each page type; we list a
+ * counter-upper-bound for each too to prevent counter overflow for
+ * oft-used pages, while the upper-bound also limits the maximum
+ * 'importance' a page can achieve within the total set of cached pages:
+ * the incremental scheme is mainly meant to allow the cache to detect
+ * usage differences between pages of identical/similar type, while the
+ * overall importance of each page type should remain a major factor.
+ */
+void
+cache_update_page_access_counter(ham_page_t *page, ham_cache_t *cache)
+{
+    page_set_cache_cntr(page, cache->_timeslot++);
+}
+
 ham_status_t 
 cache_remove_page(ham_cache_t *cache, ham_page_t *page)
 {
-    ham_size_t hash;
-    
-    if (page_get_self(page)) {
-        hash=(ham_size_t)my_calc_hash(cache, page_get_self(page));
-        cache_get_bucket(cache, hash)=page_list_remove(cache_get_bucket(cache, 
-                hash), PAGE_LIST_BUCKET, page);
+	ham_bool_t removed = HAM_FALSE;
+
+    if (page_get_self(page)) 
+	{
+	    ham_size_t hash=my_calc_hash(cache, page_get_self(page));
+		if (page_is_in_list(cache_get_bucket(cache, hash), page, 
+                PAGE_LIST_BUCKET)) {
+			cache_set_bucket(cache, hash, 
+                    page_list_remove(cache_get_bucket(cache, hash), 
+                    PAGE_LIST_BUCKET, page));
+		}
     }
 
     if (page_is_in_list(cache_get_totallist(cache), page, PAGE_LIST_CACHED)) {
         cache_set_totallist(cache, page_list_remove(cache_get_totallist(cache), 
                 PAGE_LIST_CACHED, page));
-        cache_set_cur_elements(cache, 
-                cache_get_cur_elements(cache)-1);
+		removed = HAM_TRUE;
     }
-    cache_get_garbagelist(cache)=page_list_remove(cache_get_garbagelist(cache), 
-                PAGE_LIST_GARBAGE, page);
+    if (page_is_in_list(cache_get_garbagelist(cache), page, PAGE_LIST_GARBAGE)){
+		cache_set_garbagelist(cache, 
+                    page_list_remove(cache_get_garbagelist(cache), 
+					PAGE_LIST_GARBAGE, page));
+		removed = HAM_TRUE;
+	}
+	if (removed) {
+		cache_push_history(page, -1);
 
-    return (0);
-}
-
-ham_status_t
-cache_move_to_garbage(ham_cache_t *cache, ham_page_t *page)
-{
-    ham_size_t hash=(ham_size_t)my_calc_hash(cache, page_get_self(page));
-
-    ham_assert(page_get_refcount(page)==0, 
-            ("page 0x%lx is in use", page_get_self(page)));
-    ham_assert(page_is_dirty(page)==0, 
-            ("page 0x%lx is dirty", page_get_self(page)));
-
-    if (page_is_in_list(cache_get_totallist(cache), page, PAGE_LIST_CACHED)) {
-        cache_set_totallist(cache, page_list_remove(cache_get_totallist(cache), 
-                PAGE_LIST_CACHED, page));
-    }
-    cache_get_bucket(cache, hash)=page_list_remove(cache_get_bucket(cache, 
-                hash), PAGE_LIST_BUCKET, page);
-    cache_get_garbagelist(cache)=page_list_insert(cache_get_garbagelist(cache), 
-                PAGE_LIST_GARBAGE, page);
+		cache_set_cur_elements(cache, 
+				cache_get_cur_elements(cache)-1);
+	}
 
     return (0);
 }

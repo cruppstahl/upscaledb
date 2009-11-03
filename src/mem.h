@@ -16,11 +16,12 @@
 #ifndef HAM_MEM_H__
 #define HAM_MEM_H__
 
+#include <ham/types.h>
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif 
-
-#include <ham/types.h>
 
 /**
  * typedefs for allocator function pointers

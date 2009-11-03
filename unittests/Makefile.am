@@ -3,12 +3,16 @@
 # make sure that our modified CFLAGS are also respected by g++
 #
 AM_CXXFLAGS = $(CFLAGS)
+CXXFLAGS = $(CFLAGS)
 
-noinst_PROGRAMS = test
+EXTRA_DIST = valgrind.supp
+
+noinst_PROGRAMS = test bfc_sample
 
 AM_CPPFLAGS       = -I$(top_builddir)/include
 
 test_SOURCES    = log.cpp \
+                  api110.cpp \
                   btree_erase.cpp \
                   check.cpp \
                   error.cpp \
@@ -34,11 +38,37 @@ test_SOURCES    = log.cpp \
                   page.cpp \
                   txn.cpp \
                   memtracker.cpp \
-                  hamster_fixture.hpp \
+                  memtracker.h \
                   empty_sample.cpp \
                   bfc-testsuite.cpp \
+                  bfc-testsuite.hpp \
+		  os.hpp \
+		  hamster_fixture.hpp \
+                  bfc-signal.h \
                   bfc-signal.c
 
+test_SOURCES    = env.cpp \
+                  main.cpp \
+                  memtracker.cpp \
+                  memtracker.h \
+                  bfc-testsuite.cpp \
+                  bfc-testsuite.hpp \
+		  os.hpp \
+		  hamster_fixture.hpp \
+                  bfc-signal.h \
+                  bfc-signal.c
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la -ldl
 
-noinst_BIN      = test
+
+bfc_sample_SOURCES  = bfc-sample.cpp \
+                  empty_sample.cpp \
+                  bfc-testsuite.cpp \
+                  bfc-testsuite.hpp \
+		  os.hpp \
+                  bfc-signal.h \
+                  bfc-signal.c
+
+bfc_sample_LDADD = -ldl
+
+noinst_BIN      = test bfc_sample
+

@@ -57,6 +57,7 @@ public:
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
+		db_set_rt_flags(m_db, HAM_ENABLE_TRANSACTIONS);
     }
     
     virtual void teardown() 
@@ -70,105 +71,106 @@ public:
 
     void beginCommitTest(void)
     {
-        ham_txn_t txn;
+        ham_txn_t *txn;
 
-        BFC_ASSERT(txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
-        BFC_ASSERT(txn_commit(&txn, 0)==HAM_SUCCESS);
+        BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+        BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
     }
 
     void beginAbortTest(void)
     {
-        ham_txn_t txn;
+        ham_txn_t *txn;
 
-        BFC_ASSERT(txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
-        BFC_ASSERT(txn_abort(&txn, 0)==HAM_SUCCESS);
+        BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+        BFC_ASSERT(ham_txn_abort(txn, 0)==HAM_SUCCESS);
     }
 
     void structureTest(void)
     {
-        ham_txn_t txn;
+        ham_txn_t *txn;
 
-        BFC_ASSERT(txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
-        BFC_ASSERT(txn_get_db(&txn)==m_db);
-        BFC_ASSERT(txn_get_pagelist(&txn)==0);
-        BFC_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(&txn));
+        BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+        BFC_ASSERT(txn_get_db(txn)==m_db);
+        BFC_ASSERT(txn_get_pagelist(txn)==0);
+        BFC_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(txn));
 
-        txn_set_flags(&txn, 0x99);
-        BFC_ASSERT_EQUAL((ham_u32_t)0x99, txn_get_flags(&txn));
+        txn_set_flags(txn, 0x99);
+        BFC_ASSERT_EQUAL((ham_u32_t)0x99, txn_get_flags(txn));
 
-        txn_set_pagelist(&txn, (ham_page_t *)0x13);
-        BFC_ASSERT(txn_get_pagelist(&txn)==(ham_page_t *)0x13);
-        txn_set_pagelist(&txn, 0);
+        txn_set_pagelist(txn, (ham_page_t *)0x13);
+        BFC_ASSERT(txn_get_pagelist(txn)==(ham_page_t *)0x13);
+        txn_set_pagelist(txn, 0);
 
-        txn_set_log_desc(&txn, 4);
-        BFC_ASSERT_EQUAL(4, txn_get_log_desc(&txn));
+        txn_set_log_desc(txn, 4);
+        BFC_ASSERT_EQUAL(4, txn_get_log_desc(txn));
 
-        BFC_ASSERT(txn_get_pagelist(&txn)==0);
-        BFC_ASSERT(txn_commit(&txn, 0)==HAM_SUCCESS);
+        BFC_ASSERT(txn_get_pagelist(txn)==0);
+        BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
     }
 
     void addPageTest(void)
     {
-        ham_txn_t txn;
+        ham_txn_t *txn;
         ham_page_t *page;
 
         BFC_ASSERT((page=page_new(m_db))!=0);
         page_set_self(page, 0x12345);
 
-        BFC_ASSERT(txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
-        BFC_ASSERT(txn_get_page(&txn, 0x12345)==0);
-        BFC_ASSERT(txn_add_page(&txn, page, 0)==HAM_SUCCESS);
-        BFC_ASSERT(txn_add_page(&txn, page, 1)==HAM_SUCCESS);
-        BFC_ASSERT(txn_get_page(&txn, 0x12345)==page);
+        BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+        BFC_ASSERT(txn_get_page(txn, 0x12345)==0);
+        BFC_ASSERT(txn_add_page(txn, page, 0)==HAM_SUCCESS);
+        BFC_ASSERT(txn_add_page(txn, page, 1)==HAM_SUCCESS);
+        BFC_ASSERT(txn_get_page(txn, 0x12345)==page);
 
-        BFC_ASSERT(txn_commit(&txn, 0)==HAM_SUCCESS);
+        BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
 
         page_delete(page);
     }
 
     void addPageAbortTest(void)
     {
-        ham_txn_t txn;
+        ham_txn_t *txn;
         ham_page_t *page;
 
         BFC_ASSERT((page=page_new(m_db))!=0);
         page_set_self(page, 0x12345);
 
-        BFC_ASSERT(txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
-        BFC_ASSERT(txn_get_page(&txn, 0x12345)==0);
-        BFC_ASSERT(txn_add_page(&txn, page, 0)==HAM_SUCCESS);
-        BFC_ASSERT(txn_add_page(&txn, page, 1)==HAM_SUCCESS);
-        BFC_ASSERT(txn_get_page(&txn, 0x12345)==page);
-        BFC_ASSERT_EQUAL(0, txn_free_page(&txn, page));
-        BFC_ASSERT(page_get_npers_flags(page)&PAGE_NPERS_DELETE_PENDING);
+        BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+        BFC_ASSERT(txn_get_page(txn, 0x12345)==0);
+        BFC_ASSERT(txn_add_page(txn, page, 0)==HAM_SUCCESS);
+        BFC_ASSERT(txn_add_page(txn, page, 1)==HAM_SUCCESS);
+        BFC_ASSERT(txn_get_page(txn, 0x12345)==page);
+        BFC_ASSERT_EQUAL(0, txn_free_page(txn, page));
+        BFC_ASSERT(page_get_npers_flags(page) & PAGE_NPERS_DELETE_PENDING);
 
-        BFC_ASSERT(txn_abort(&txn, 0)==HAM_SUCCESS);
+        BFC_ASSERT(ham_txn_abort(txn, 0)==HAM_SUCCESS);
 
         page_delete(page);
     }
 
     void removePageTest(void)
     {
-        ham_txn_t txn;
+        ham_txn_t *txn;
         ham_page_t *page;
 
         BFC_ASSERT((page=page_new(m_db))!=0);
         page_set_self(page, 0x12345);
 
-        BFC_ASSERT(txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
-        BFC_ASSERT(txn_add_page(&txn, page, 0)==HAM_SUCCESS);
-        BFC_ASSERT(txn_get_page(&txn, page_get_self(page))==page);
-        BFC_ASSERT(txn_remove_page(&txn, page)==HAM_SUCCESS);
-        BFC_ASSERT(txn_get_page(&txn, page_get_self(page))==0);
+        BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+        BFC_ASSERT(txn_add_page(txn, page, 0)==HAM_SUCCESS);
+        BFC_ASSERT(txn_get_page(txn, page_get_self(page))==page);
+        BFC_ASSERT(txn_remove_page(txn, page)==HAM_SUCCESS);
+        BFC_ASSERT(txn_get_page(txn, page_get_self(page))==0);
 
-        BFC_ASSERT(txn_commit(&txn, 0)==HAM_SUCCESS);
+        BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
 
         page_delete(page);
     }
 
     void onlyOneTxnAllowedTest(void)
     {
-        ham_txn_t *txn1, *txn2;
+        ham_txn_t *txn1;
+		ham_txn_t *txn2;
 
         BFC_ASSERT_EQUAL(0, 
                 ham_create(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS, 0644));

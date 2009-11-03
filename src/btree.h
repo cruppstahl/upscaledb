@@ -19,6 +19,7 @@
 #include "keys.h"
 #include "btree_cursor.h"
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif 
@@ -103,6 +104,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1 btree_node_t
     /**
      * flags of this node - flags are always the first member
      * of every page - regardless of the backend
+	 *
+	 * Currently unused
      */
     ham_u16_t _flags;
 
@@ -290,7 +293,7 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key,
  * the absolute offset of the key in the file
  */
 #define btree_node_get_key_offset(page, i)                          \
-     (page_get_self(page)+SIZEOF_PAGE_UNION_HEADER+                 \
+     (page_get_self(page)+db_get_persistent_header_size()+          \
      OFFSETOF(btree_node_t, _entries)                               \
      /* ^^^ sizeof(int_key_t) WITHOUT THE -1 !!! */ +               \
      (db_get_int_key_header_size()+db_get_keysize(page_get_owner(page)))*(i))
@@ -301,6 +304,9 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key,
 extern ham_status_t 
 btree_get_slot(ham_db_t *db, ham_page_t *page, 
         ham_key_t *key, ham_s32_t *slot, int *cmp);
+
+extern ham_size_t
+btree_calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize);
 
 #ifdef __cplusplus
 } // extern "C"

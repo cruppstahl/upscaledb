@@ -21,7 +21,7 @@
 
 using namespace bfc;
 
-static void
+static void HAM_CALLCONV 
 my_handler(int level, const char *msg)
 {
     static int i=0;

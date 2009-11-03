@@ -77,7 +77,7 @@ public:
     {
         ham_page_t *page=page_new(m_db);
         BFC_ASSERT(page!=0);
-        BFC_ASSERT_EQUAL(0, page_alloc(page, db_get_pagesize(m_db)));
+        BFC_ASSERT_EQUAL(0, page_alloc(page, db_get_cooked_pagesize(m_db)));
         btree_node_t *node=ham_page_get_btree_node(page);
         ::memset(node, 0, db_get_usable_pagesize(m_db));
 
@@ -103,7 +103,7 @@ public:
     {
         ham_page_t *page=page_new(m_db);
         BFC_ASSERT(page!=0);
-        BFC_ASSERT_EQUAL(0, page_alloc(page, db_get_pagesize(m_db)));
+        BFC_ASSERT_EQUAL(0, page_alloc(page, db_get_cooked_pagesize(m_db)));
         btree_node_t *node=ham_page_get_btree_node(page);
         ::memset(node, 0, db_get_usable_pagesize(m_db));
 

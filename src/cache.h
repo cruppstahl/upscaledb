@@ -15,17 +15,23 @@
 #ifndef HAM_CACHE_H__
 #define HAM_CACHE_H__
 
+#include <ham/hamsterdb.h>
+#include "page.h"
+
+	
 #ifdef __cplusplus
 extern "C" {
 #endif 
 
-#include <ham/hamsterdb.h>
-#include "page.h"
+/* CACHE_CACHE_BUCKET_SIZE should be a prime number or similar, as it is used in a MODULO hash scheme */
+#define CACHE_CACHE_BUCKET_SIZE     359
+#define CACHE_MAX_ELEM              256 /* a power of 2 *below* CACHE_CACHE_BUCKET_SIZE */
+
 
 /**
  * a cache manager object
  */
-typedef struct
+typedef struct ham_cache_t
 {
     /** the maximum number of cached elements */
     ham_size_t _max_elements;
@@ -41,6 +47,12 @@ typedef struct
 
     /** linked list of unused pages */
     ham_page_t *_garbagelist;
+
+	/** 
+	 * a 'timer' counter used to set/check the age of cache entries:
+	 * higher values represent newer / more important entries.
+	 */
+	ham_u32_t _timeslot;
 
     /** the buckets - a linked list of ham_page_t pointers */
     ham_page_t *_buckets[1];
@@ -108,6 +120,31 @@ typedef struct
 #define cache_set_bucket(cm, i, p)             (cm)->_buckets[i]=p
 
 /**
+ * increment the cache counter, while watching a global high water mark;
+ * once we hit that, we decrement all counters equally, so this remains
+ * a equal opportunity design for page aging.
+ */
+extern void
+cache_reduce_page_counts(ham_cache_t *cache);
+
+static __inline void 
+page_increment_cache_cntr(ham_page_t *page, ham_u32_t count, ham_cache_t *cache)
+{															
+	ham_u32_t _c_v = page_get_cache_cntr(page);								
+	ham_u32_t _u_c = (count);     							
+	if (_c_v >=	0xFFFFFFFFU - 1024 - _u_c					
+		|| (cache)->_timeslot >= 0xFFFFFFFFU - 1024)        
+	{														
+		cache_reduce_page_counts(cache);					
+		_c_v = page_get_cache_cntr(page);
+	}														
+	_c_v += _u_c;											
+	if (_c_v < (cache)->_timeslot)							
+		_c_v = (cache)->_timeslot;							
+	page_set_cache_cntr(page, _c_v);										
+}
+
+/**
  * initialize a cache manager object
  */
 extern ham_cache_t *
@@ -150,6 +187,13 @@ cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags);
  */
 extern ham_status_t 
 cache_put_page(ham_cache_t *cache, ham_page_t *page);
+
+/**
+ * update the 'access counter' for a page in the cache.
+ * (The page is assumed to exist in the cache!)
+ */
+extern void
+cache_update_page_access_counter(ham_page_t *page, ham_cache_t *cache);
 
 /**
  * remove a page from the cache

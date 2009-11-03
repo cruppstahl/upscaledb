@@ -21,16 +21,26 @@
 #include "blob.h"
 
 int
-key_compare_pub_to_int(ham_page_t *page, ham_key_t *lhs, ham_u16_t rhs)
+key_compare_pub_to_int(ham_db_t *db, ham_page_t *page, ham_key_t *lhs, ham_u16_t rhs_int)
 {
     int_key_t *r;
     btree_node_t *node=ham_page_get_btree_node(page);
+	ham_key_t rhs;
+	int cmp;
+	ham_status_t st;
 
-    r=btree_node_get_key(page_get_owner(page), node, rhs);
+    r=btree_node_get_key(page_get_owner(page), node, rhs_int);
 
-    return (db_compare_keys(page_get_owner(page), page, 
-                0, lhs->_flags, lhs->data, lhs->size, 
-                rhs, key_get_flags(r), key_get_key(r), key_get_size(r)));
+	st = db_prepare_ham_key_for_compare(db, r, &rhs);
+	if (st)
+		return 0;
+
+	cmp = db_compare_keys(db, lhs, &rhs);
+
+	db_release_ham_key_after_compare(db, &rhs);
+	/* ensures key is always released; errors will be detected by caller */
+
+	return cmp;
 }
 
 ham_offset_t
@@ -52,8 +62,12 @@ key_insert_extended(ham_db_t *db, ham_page_t *page,
     }
 
     if (db_get_extkey_cache(db)) 
-        (void)extkey_cache_insert(db_get_extkey_cache(db), blobid, 
+	{
+        st = extkey_cache_insert(db_get_extkey_cache(db), blobid, 
                 key->size, key->data);
+		if (st)
+			return 0;
+	}
 
     return (blobid);
 }
@@ -64,22 +78,23 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
                 ham_size_t *new_position)
 {
     ham_status_t st;
-    ham_offset_t rid=0, ptr=key_get_ptr(key);
-    ham_u32_t oldflags=key_get_flags(key);
+    ham_offset_t rid = 0;
+	ham_offset_t ptr = key_get_ptr(key);
+    ham_u8_t oldflags = key_get_flags(key);
 
     key_set_flags(key, 
             oldflags&~(KEY_BLOB_SIZE_SMALL
                 |KEY_BLOB_SIZE_TINY
-                |KEY_BLOB_SIZE_EMPTY
-                |KEY_IS_APPROXIMATE));
+                |KEY_BLOB_SIZE_EMPTY));
 
     /*
      * no existing key, just create a new key (but not a duplicate)?
      */
     if (!ptr
-            && !(oldflags&KEY_BLOB_SIZE_SMALL)
-            && !(oldflags&KEY_BLOB_SIZE_TINY)
-            && !(oldflags&KEY_BLOB_SIZE_EMPTY)) {
+            && !(oldflags&(KEY_BLOB_SIZE_SMALL
+						  |KEY_BLOB_SIZE_TINY
+						  |KEY_BLOB_SIZE_EMPTY))) 
+	{
         if (record->size<=sizeof(ham_offset_t)) {
             if (record->data)
                 memcpy(&rid, record->data, record->size);
@@ -101,19 +116,25 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             key_set_ptr(key, rid);
         }
     }
-    /*
-     * an existing key, which is overwritten with a big record?
-     */
     else if (!(oldflags&KEY_HAS_DUPLICATES)
             && record->size>sizeof(ham_offset_t) 
-            && !(flags&HAM_DUPLICATE) 
-            && !(flags&HAM_DUPLICATE_INSERT_BEFORE)
-            && !(flags&HAM_DUPLICATE_INSERT_AFTER)
-            && !(flags&HAM_DUPLICATE_INSERT_FIRST)
-            && !(flags&HAM_DUPLICATE_INSERT_LAST)) {
-        if ((oldflags&KEY_BLOB_SIZE_SMALL)
-                || (oldflags&KEY_BLOB_SIZE_TINY)
-                || (oldflags&KEY_BLOB_SIZE_EMPTY)) {
+            && !(flags&(HAM_DUPLICATE
+						|HAM_DUPLICATE_INSERT_BEFORE
+						|HAM_DUPLICATE_INSERT_AFTER
+						|HAM_DUPLICATE_INSERT_FIRST
+						|HAM_DUPLICATE_INSERT_LAST))) 
+	{
+		/*
+		 * an existing key, which is overwritten with a big record
+
+		 Note that the case where old record is EMPTY (!ptr) or
+		 SMALL (size = 8, but content = 00000000 --> !ptr) are caught here
+		 and in the next branch, as they should.
+		 */
+        if (oldflags&(KEY_BLOB_SIZE_SMALL
+					 |KEY_BLOB_SIZE_TINY
+					 |KEY_BLOB_SIZE_EMPTY))
+		{
             rid=0;
             st=blob_allocate(db, record->data, record->size, 0, &rid);
             if (st)
@@ -129,20 +150,22 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             key_set_ptr(key, rid);
         }
     }
-    /*
-     * an existing key which is overwritten with a small record?
-     */
     else if (!(oldflags&KEY_HAS_DUPLICATES)
             && record->size<=sizeof(ham_offset_t) 
-            && !(flags&HAM_DUPLICATE) 
-            && !(flags&HAM_DUPLICATE_INSERT_BEFORE)
-            && !(flags&HAM_DUPLICATE_INSERT_AFTER)
-            && !(flags&HAM_DUPLICATE_INSERT_FIRST)
-            && !(flags&HAM_DUPLICATE_INSERT_LAST)) {
-        if (!((oldflags&KEY_BLOB_SIZE_SMALL)
-                || (oldflags&KEY_BLOB_SIZE_TINY)
-                || (oldflags&KEY_BLOB_SIZE_EMPTY))) {
-            st=blob_free(db, ptr, BLOB_FREE_ALL_DUPES);
+            && !(flags&(HAM_DUPLICATE
+						|HAM_DUPLICATE_INSERT_BEFORE
+						|HAM_DUPLICATE_INSERT_AFTER
+						|HAM_DUPLICATE_INSERT_FIRST
+						|HAM_DUPLICATE_INSERT_LAST)))
+	{
+		/*
+		 * an existing key which is overwritten with a small record
+		 */
+        if (!(oldflags&(KEY_BLOB_SIZE_SMALL
+					   |KEY_BLOB_SIZE_TINY
+					   |KEY_BLOB_SIZE_EMPTY)))
+		{
+            st=blob_free(db, ptr, 0);
             if (st)
                 return (db_set_error(db, st));
         }
@@ -159,23 +182,32 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_SMALL);
         key_set_ptr(key, rid);
     }
-    /*
-     * a duplicate of an existing key? - always insert it at the end of
-     * the duplicate list
-     *
-     * (or create a duplicate list, if it does not yet exist)
-     */
-    else {
+    else 
+	{
+		/*
+		 * a duplicate of an existing key - always insert it at the end of
+		 * the duplicate list (unless the DUPLICATE flags say otherwise OR
+		 * when we have a duplicate-record comparison function for
+		 * ordered insertion of duplicate records)
+		 *
+		 * create a duplicate list, if it does not yet exist
+		 */
         dupe_entry_t entries[2];
         int i=0;
-        ham_assert((flags&HAM_DUPLICATE) 
-                || (flags&HAM_DUPLICATE_INSERT_BEFORE)
-                || (flags&HAM_DUPLICATE_INSERT_AFTER)
-                || (flags&HAM_DUPLICATE_INSERT_FIRST)
-                || (flags&HAM_DUPLICATE_INSERT_LAST)
-                || (flags&HAM_OVERWRITE), (""));
+        ham_assert((flags&(HAM_DUPLICATE
+						  |HAM_DUPLICATE_INSERT_BEFORE
+						  |HAM_DUPLICATE_INSERT_AFTER
+						  |HAM_DUPLICATE_INSERT_FIRST
+						  |HAM_DUPLICATE_INSERT_LAST
+						  |HAM_OVERWRITE)), (""));
         memset(entries, 0, sizeof(entries));
-        if (!(oldflags&KEY_HAS_DUPLICATES)) {
+        if (!(oldflags&KEY_HAS_DUPLICATES)) 
+		{
+			ham_assert((flags&(HAM_DUPLICATE
+							  |HAM_DUPLICATE_INSERT_BEFORE
+							  |HAM_DUPLICATE_INSERT_AFTER
+							  |HAM_DUPLICATE_INSERT_FIRST
+							  |HAM_DUPLICATE_INSERT_LAST)), (""));
             dupe_entry_set_flags(&entries[i], 
                         oldflags&(KEY_BLOB_SIZE_SMALL
                                 |KEY_BLOB_SIZE_TINY
@@ -183,7 +215,8 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             dupe_entry_set_rid(&entries[i], ptr);
             i++;
         }
-        if (record->size<=sizeof(ham_offset_t)) {
+        if (record->size<=sizeof(ham_offset_t)) 
+		{
             if (record->data)
                 memcpy(&rid, record->data, record->size);
             if (record->size==0)
@@ -197,7 +230,8 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
                 dupe_entry_set_flags(&entries[i], KEY_BLOB_SIZE_SMALL);
             dupe_entry_set_rid(&entries[i], rid);
         }
-        else {
+        else 
+		{
             st=blob_allocate(db, record->data, record->size, 0, &rid);
             if (st)
                 return (db_set_error(db, st));
@@ -211,7 +245,19 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
                 i==2 ? 0 : ptr, position,
                 flags, &entries[0], i, &rid, new_position);
         if (st)
+		{
+			/* don't leak memory through the blob allocation above */
+            ham_assert((!(dupe_entry_get_flags(&entries[i-1]) & (KEY_BLOB_SIZE_SMALL
+													|KEY_BLOB_SIZE_TINY
+													|KEY_BLOB_SIZE_EMPTY)))
+						== (record->size>sizeof(ham_offset_t)), (0));
+
+	        if (record->size > sizeof(ham_offset_t)) 
+			{
+				blob_free(db, dupe_entry_get_rid(&entries[i-1]), 0);
+			}
             return (db_set_error(db, st));
+		}
 
         key_set_flags(key, key_get_flags(key)|KEY_HAS_DUPLICATES);
         if (rid)
@@ -228,9 +274,9 @@ key_erase_record(ham_db_t *db, int_key_t *key,
     ham_status_t st;
     ham_offset_t rid;
 
-    if (!((key_get_flags(key)&KEY_BLOB_SIZE_SMALL)
-            || (key_get_flags(key)&KEY_BLOB_SIZE_TINY)
-            || (key_get_flags(key)&KEY_BLOB_SIZE_EMPTY))) {
+    if (!(key_get_flags(key)&(KEY_BLOB_SIZE_SMALL
+						|KEY_BLOB_SIZE_TINY
+						|KEY_BLOB_SIZE_EMPTY))) {
         if (key_get_flags(key)&KEY_HAS_DUPLICATES) {
             /* delete one (or all) duplicates */
             st=blob_duplicate_erase(db, key_get_ptr(key), dupe_id, flags,
@@ -238,8 +284,7 @@ key_erase_record(ham_db_t *db, int_key_t *key,
             if (st)
                 return (st);
             if (flags&BLOB_FREE_ALL_DUPES) {
-                key_set_flags(key, key_get_flags(key)&~(KEY_HAS_DUPLICATES
-				                                       |KEY_IS_APPROXIMATE));
+                key_set_flags(key, key_get_flags(key)&~(KEY_HAS_DUPLICATES));
                 key_set_ptr(key, 0);
             }
             else {
@@ -260,8 +305,7 @@ key_erase_record(ham_db_t *db, int_key_t *key,
         key_set_flags(key, key_get_flags(key)&~(KEY_BLOB_SIZE_SMALL
                     | KEY_BLOB_SIZE_TINY
                     | KEY_BLOB_SIZE_EMPTY
-                    | KEY_HAS_DUPLICATES
-                    | KEY_IS_APPROXIMATE));
+                    | KEY_HAS_DUPLICATES));
         key_set_ptr(key, 0);
     }
 

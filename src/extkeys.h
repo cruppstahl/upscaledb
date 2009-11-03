@@ -16,11 +16,12 @@
 #ifndef HAM_EXTKEYS_H__
 #define HAM_EXTKEYS_H__
 
+#include <ham/types.h>
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif 
-
-#include <ham/types.h>
 
 struct ham_db_t;
 

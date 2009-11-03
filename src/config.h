@@ -56,9 +56,9 @@
 #endif
 
 /*
- * the default cache size is 256K
+ * the default cache size is 256K, that is: 64 pages.
  */
-#define HAM_DEFAULT_CACHESIZE      (1024*256)
+#define HAM_DEFAULT_CACHESIZE      (64)
 
 
 #endif /* CONFIG_H__ */

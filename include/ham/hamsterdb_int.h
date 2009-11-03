@@ -18,15 +18,38 @@
 #ifndef HAM_HAMSTERDB_INT_H__
 #define HAM_HAMSTERDB_INT_H__
 
+#include <ham/hamsterdb.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif 
 
-#include <ham/hamsterdb.h>
-
+/**
+ * @defgroup ham_status_codes hamsterdb Enhanced API
+ * @{
+ */
 
 /** 
- * Verifies the whole Database
+ * A reserved Database name for those Databases, who are created without
+ * an Environment (and therefore do not have a name).
+ *
+ * Note that this value also serves as the upper bound for allowed 
+ * user specified Database names as passed to @a ham_env_create_db 
+ * or @a ham_env_open_db.
+ */
+#define HAM_EMPTY_DATABASE_NAME       (0xf000)
+
+/** A reserved Database name for the first Database in an Environment */
+#define HAM_FIRST_DATABASE_NAME       (0xf001)
+
+/** 
+ * A reserved Database name for a dummy Database which only reads/writes 
+ * the header page 
+ */
+#define HAM_DUMMY_DATABASE_NAME       (0xf002)
+
+/** 
+ * Verifies the integrity of the Database
  * 
  * This function is only interesting if you want to debug hamsterdb.
  *
@@ -36,11 +59,34 @@ extern "C" {
  * @param db A valid Database handle
  * @param txn A Transaction handle, or NULL
  *
- * @return @a HAM_SUCCESS upon success
- * @return @a HAM_INTEGRITY_VIOLATED if the Database is broken
+ * @return @ref HAM_SUCCESS upon success
+ * @return @ref HAM_INTEGRITY_VIOLATED if the Database is broken
+ * @return @ref HAM_NOT_IMPLEMENTED if hamsterdb was built without 
+ *              internal functions. 
+ *
+ * @sa HAM_ENABLE_INTERNAL
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_check_integrity(ham_db_t *db, ham_txn_t *txn);
+
+/**
+ * Estimates the number of keys stored per page in the Database
+ *
+ * @param db A valid Database handle
+ * @param keycount A reference to a variable which will receive
+ *                 the calculated key count per page
+ * @param keysize The size of the key
+ *
+ * @return @ref HAM_SUCCESS upon success
+ * @return @ref HAM_INV_PARAMETER if @a db or @a keycount is NULL
+ * @return @ref HAM_INV_KEYSIZE if the @a keycount turns out to be huge (i.e.
+ *         larger than 65535); in this case @a keycount still contains a 
+ *         valid value, but this error indicates this keysize won't be
+ *         usable with the given Database.
+ */
+HAM_EXPORT ham_status_t HAM_CALLCONV
+ham_calc_maxkeys_per_page(ham_db_t *db, ham_size_t *keycount, 
+            ham_u16_t keysize);
 
 /**
  * Set a user-provided context pointer
@@ -63,6 +109,7 @@ ham_set_context_data(ham_db_t *db, void *data);
  * arbitrary pointer which was previously stored with @a ham_set_context_data.
  *
  * @param db A valid Database handle
+ *
  * @return The pointer to the context data
  */
 HAM_EXPORT void * HAM_CALLCONV
@@ -203,7 +250,7 @@ struct ham_record_filter_t
     void *userdata;
 
     /** The function which is called before the record is inserted */
-    ham_record_filter_before_insert_cb_t before_insert_cb;
+    ham_record_filter_before_insert_cb_t before_write_cb;
 
     /** The function which is called after the record is read from disk */
     ham_record_filter_after_read_cb_t after_read_cb;
@@ -284,6 +331,10 @@ ham_env_set_device(ham_env_t *env, void *device);
  */
 HAM_EXPORT ham_db_t * HAM_CALLCONV
 ham_cursor_get_database(ham_cursor_t *cursor);
+
+/**
+ * @}
+ */
 
 
 #ifdef __cplusplus

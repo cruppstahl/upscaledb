@@ -21,7 +21,9 @@
 #include "cache.h"
 #include "blob.h"
 
-#define EXTKEY_CACHE_BUCKETSIZE         179
+/* EXTKEY_CACHE_BUCKETSIZE should be a prime number or similar, as it is
+ * used in a MODULO hash scheme */
+#define EXTKEY_CACHE_BUCKETSIZE         179	
 #define EXTKEY_MAX_AGE                    5
 
 extkey_cache_t *
@@ -74,15 +76,15 @@ extkey_cache_destroy(extkey_cache_t *cache)
 }
 
 #define my_calc_hash(cache, o)                                              \
-    (extkey_cache_get_bucketsize(cache)==0                                  \
+    ((ham_size_t)(extkey_cache_get_bucketsize(cache)==0                     \
         ? 0                                                                 \
-        : (((o)%(cache_get_bucketsize(cache)))))
+        : (((o)%(cache_get_bucketsize(cache))))))
 
 ham_status_t
 extkey_cache_insert(extkey_cache_t *cache, ham_offset_t blobid, 
             ham_size_t size, const ham_u8_t *data)
 {
-    ham_size_t h=(ham_size_t)my_calc_hash(cache, blobid);
+    ham_size_t h=my_calc_hash(cache, blobid);
     extkey_t *e;
     ham_db_t *db=extkey_cache_get_db(cache);
 
@@ -99,7 +101,7 @@ extkey_cache_insert(extkey_cache_t *cache, ham_offset_t blobid,
 
     e=(extkey_t *)ham_mem_alloc(db, SIZEOF_EXTKEY_T+size);
     if (!e)
-        return (HAM_OUT_OF_MEMORY);
+        return db_set_error(db, HAM_OUT_OF_MEMORY);
     extkey_set_blobid(e, blobid);
     extkey_set_txn_id(e, db_get_txn_id(db));
     extkey_set_next(e, extkey_cache_get_bucket(cache, h));
@@ -115,7 +117,7 @@ extkey_cache_insert(extkey_cache_t *cache, ham_offset_t blobid,
 ham_status_t
 extkey_cache_remove(extkey_cache_t *cache, ham_offset_t blobid)
 {
-    ham_size_t h=(ham_size_t)my_calc_hash(cache, blobid);
+    ham_size_t h=my_calc_hash(cache, blobid);
     extkey_t *e, *prev=0;
 
     e=extkey_cache_get_bucket(cache, h);
@@ -145,7 +147,7 @@ ham_status_t
 extkey_cache_fetch(extkey_cache_t *cache, ham_offset_t blobid, 
             ham_size_t *size, ham_u8_t **data)
 {
-    ham_size_t h=(ham_size_t)my_calc_hash(cache, blobid);
+    ham_size_t h=my_calc_hash(cache, blobid);
     extkey_t *e;
 
     e=extkey_cache_get_bucket(cache, h);

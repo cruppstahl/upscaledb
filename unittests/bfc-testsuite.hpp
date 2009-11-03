@@ -46,6 +46,7 @@ The support source files are:
 #endif
 
 #include <vector>
+#include <deque>
 #include <string>
 #include <iostream>
 #include <stdarg.h>
@@ -67,64 +68,64 @@ typedef void (fixture::*method)();
 #define BFC_REGISTER_FIXTURE(fix)     static fix __the_fixture##fix
 
 #define BFC_ASSERT(expr)  \
-                        while ((expr)==0) { \
-                            throw bfc::error(__FILE__, __LINE__, \
-                            get_name(), __FUNCTION__, \
+                        if ((expr)==0) { \
+                            throw_bfc_error(__FILE__, __LINE__, \
+                            __FUNCTION__, \
                             "assertion failed in expr "#expr); }
 
 #define BFC_ASSERT_EQUAL(exp, act) \
-                        while ((exp)!=(act)) { \
-                            throw bfc::error(__FILE__, __LINE__, \
-                            get_name(), __FUNCTION__, \
+                        if ((exp)!=(act)) { \
+                            throw_bfc_error(__FILE__, __LINE__, \
+                            __FUNCTION__, \
                             "assertion failed in expr "#exp" == "#act); }
 
 #define BFC_ASSERT_NOTEQUAL(exp, act) \
-                        while ((exp)==(act)) { \
-                            throw bfc::error(__FILE__, __LINE__, \
-                            get_name(), __FUNCTION__, \
+                        if ((exp)==(act)) { \
+                            throw_bfc_error(__FILE__, __LINE__, \
+                            __FUNCTION__, \
                             "assertion failed in expr "#exp" != "#act); }
 
 #define BFC_ASSERT_NULL(expr)  \
-                        while ((expr)!=0) { \
-                            throw bfc::error(__FILE__, __LINE__, \
-                            get_name(), __FUNCTION__, \
+                        if ((expr)!=0) { \
+                            throw_bfc_error(__FILE__, __LINE__, \
+                            __FUNCTION__, \
                             "assertion failed in expr "#expr" == NULL"); }
 
 #define BFC_ASSERT_NOTNULL(expr)  \
-                        while ((expr)==0) { \
-                            throw bfc::error(__FILE__, __LINE__, \
-                            get_name(), __FUNCTION__, \
+                        if ((expr)==0) { \
+                            throw_bfc_error(__FILE__, __LINE__, \
+                            __FUNCTION__, \
                             "assertion failed in expr "#expr" != NULL"); }
 
 // for checks within loops: report round # as 'scenario #'
 #define BFC_ASSERT_I(expr, scenario)  \
-                        while ((expr)==0) { \
-                            throw bfc::error(__FILE__, __LINE__, \
-                            get_name(), __FUNCTION__, \
+                        if ((expr)==0) { \
+                            throw_bfc_error(__FILE__, __LINE__, \
+                            __FUNCTION__, \
 							"assertion failed in expr "#expr " for scenario #%d", int(scenario)); }
 
 #define BFC_ASSERT_EQUAL_I(exp, act, scenario) \
-                        while ((exp)!=(act)) { \
-                            throw bfc::error(__FILE__, __LINE__, \
-                            get_name(), __FUNCTION__, \
+                        if ((exp)!=(act)) { \
+                            throw_bfc_error(__FILE__, __LINE__, \
+                            __FUNCTION__, \
 							"assertion failed in expr "#exp" == "#act " for scenario #%d", int(scenario)); }
 
 #define BFC_ASSERT_NOTEQUAL_I(exp, act, scenario) \
-                        while ((exp)==(act)) { \
-                            throw bfc::error(__FILE__, __LINE__, \
-                            get_name(), __FUNCTION__, \
+                        if ((exp)==(act)) { \
+                            throw_bfc_error(__FILE__, __LINE__, \
+                            __FUNCTION__, \
 							"assertion failed in expr "#exp" != "#act " for scenario #%d", int(scenario)); }
 
 #define BFC_ASSERT_NULL_I(expr, scenario)  \
-                        while ((expr)!=0) { \
-                            throw bfc::error(__FILE__, __LINE__, \
-                            get_name(), __FUNCTION__, \
+                        if ((expr)!=0) { \
+                            throw_bfc_error(__FILE__, __LINE__, \
+                            __FUNCTION__, \
 							"assertion failed in expr "#expr" == NULL for scenario #%d", int(scenario)); }
 
 #define BFC_ASSERT_NOTNULL_I(expr, scenario)  \
-                        while ((expr)==0) { \
-                            throw bfc::error(__FILE__, __LINE__, \
-                            get_name(), __FUNCTION__, \
+                        if ((expr)==0) { \
+                            throw_bfc_error(__FILE__, __LINE__, \
+                            __FUNCTION__, \
 							"assertion failed in expr "#expr" != NULL for scenario #%d", int(scenario)); }
 
 struct test
@@ -140,17 +141,18 @@ public:
     error(const char *f, int l, const std::string &fix, const std::string &t, const char *m, ...);
     error(const std::string &f, int l, const std::string &fix, const std::string &t, const char *m, ...);
     error(const error &base, const char *m, ...);
+    error(const char *f, int l, fixture &fix, const char *t, const char *m, va_list args);
     error(const error &src);
     ~error();
     void vfmt_message(const char *msg, va_list args);
     void fmt_message(const char *msg, ...);
 
 public:
-    std::string file;
-    int line;
-    std::string fixture;
-    std::string test;
-    std::string message;
+    std::string m_file;
+    int m_line;
+    std::string m_fixture_name;
+    std::string m_test;
+    std::string m_message;
 };
 
 
@@ -183,6 +185,29 @@ typedef enum
 } bfc_state_t;
 
 
+/**
+ functor/callback class which can be registered with BFC to be invoked when a
+ unittest assertion (@ref BFC_ASSERT et al) fires.
+
+ @note Once an assertion has fired and this functor/callback has been invoked,
+ it will be removed from the BFC assertion monitor stack; this is done so that monitors instantiated in local scoped
+ storage (i.e. instantiated in the stack) are never invoked after the stack is
+ unwound and the instance becomes invalid. Such a scenario could otherwise
+ happen when @ref BFC_ASSERT checks are part of the @ref teardown() process
+ and any of those assertions fire while the stack-instantiated monitors have not
+ been popped off the stack, because @ref teardown() was invoked after the unittest
+ it cleans up after had fired an assertion itself.
+
+ This implies that monitors must re-registered in @ref teardown() when you wish to have
+ them active in there when they have been invoked by a previous @ref BFC_ASSERT in the
+ unittest method proper.
+*/
+class bfc_assert_monitor
+{
+public:
+	virtual void handler(bfc::error &err) = 0;
+	virtual ~bfc_assert_monitor() {};
+};
 
 class fixture
 {
@@ -200,7 +225,7 @@ public:
     virtual void setup() { }
     virtual void teardown() { }
 
-	/*
+	/**
 	   Invoke the Function Under Test
 
 	   implement this one when you want to catch custom C++ exceptions;
@@ -222,6 +247,8 @@ public:
 		return false;
 	}
 
+	virtual void throw_bfc_error(const char *file, int line, const char *function, const char *message, ...);
+
 	// clear all tests
     void clear_tests() {
         m_tests.resize(0);
@@ -235,8 +262,26 @@ public:
     }
 
 private:
+typedef std::deque<bfc_assert_monitor *> assert_monitor_stack_t;
+
+protected:
+	/**
+	 Adds a assertion monitor to the queue.
+
+	 @note As monitors are removed immediately after they have been invoked
+	 when a @ref BFC_ASSERT fired (see also the notes for @ref bfc_assert_monitor)
+	 you must re-register them after they've been invoked and you wish them to
+	 remain 'active'. To reduce BFC user code complexity, the need to check whether
+	 a given monitor has already been registered or not is not the responsibility
+	 of the BFC user but is handled in this method instead.
+	*/
+	void push_assert_monitor(bfc_assert_monitor &handler);
+	void pop_assert_monitor(void);
+
+private:
     const char *m_name;
     std::vector<test> m_tests;
+	assert_monitor_stack_t m_assert_monitors;
 };
 
 
@@ -310,8 +355,6 @@ protected:
 		   (see also [APitUE, pp. 292])
 		 */
 
-		bool sig_handlers_set;
-
 		testrunner *this_is_me;
 		const fixture *active_fixture;
 		method active_method;
@@ -320,9 +363,12 @@ protected:
 
 		// things that may get changed inside the signal handler (~ will change asynchronously):
 		volatile bfc_state_t active_state;
-		volatile bool error_set;
 		volatile bfc_error_report_mode_t print_err_report;
 		/* volatile */ bfc::error current_error;
+		volatile bool error_set;
+
+
+		bool sig_handlers_set;
 	};
 
 	static bfc_signal_context_t m_current_signal_context;
@@ -347,26 +393,34 @@ public:
         m_success++;
     }
 
-    /*
+    /**
 	reset error collection, etc.
 	
-	invoke this before calling a run() method when you don't wish to use
-	the default, built-in reporting (print_err_report == true)
+	invoke this before calling a @ref run() method when you don't wish to use
+	the default, built-in reporting (@a print_err_report == true)
 	*/
     void init_run(void);
 
-    // print all errors
+	/**
+	print an error report listing all errors.
+	*/
     void print_errors(bool panic_flush = false);
 
-	// run all tests - returns number of errors
+	/**
+ run all tests - returns number of errors 
+*/
 	unsigned int run(bool print_err_report = true);
-	// run all tests (optional fixture and/or test selection) - returns number of errors
+	/**
+ run all tests (optional fixture and/or test selection) - returns number of errors
+*/
 	unsigned int run(const char *fixture_name, const char *test_name = NULL, 
 			bool print_err_report = true);
 
-	// run all tests in a given range (start in/exclusive, end inclusive)
-	//
-	// returns number of errors
+	/**
+ run all tests in a given range (start in/exclusive, end inclusive)
+	
+@return number of errors
+*/
 	unsigned int run(
 		const std::string &begin_fixture, const std::string &begin_test,
 		const std::string &end_fixture, const std::string &end_test,
