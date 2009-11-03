@@ -1,0 +1,228 @@
+/*
+ * Copyright (C) 2005-2009 Christoph Rupp (chris@crupp.de).
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or 
+ * (at your option) any later version.
+ *
+ * See files COPYING.* for License information.
+
+
+NOTE: I wanted all pages to appear on the 'Related Pages' tab, and then it turns out that \subpage does not do that, while \ref does. Maybe I FUBARed, I don't know. This is a quick hack to show a case in point anyway.
+
+ */
+/*! \mainpage BFC - Unittest Framework
+
+\if logo_on
+\htmlonly
+<div style="center">
+<img src="bfc-logo.jpg" alt="BFC Unittest Framework:
+	Simple to use, fast and versatile. Runs 
+	directly in the application that uses it, and does not 
+	need a separate database server. With support 
+	for transactions, variable length keys, database cursors and 
+	in-memory databases." style="padding-bottom: 1em;">
+<br>
+Version: $(VERSION)
+</div>
+\endhtmlonly
+\endif
+
+<h2>Overview</h2>
+
+hamsterdb Embedded Storage is a lightweight embedded database engine. It is in development for
+more than three years and concentrates on ease of use, high performance,
+stability and portability.
+
+See \ref features for more &raquo;
+
+<h3>Ease of Use</h3>
+
+The hamsterdb Embedded Storage API is simple and self-documenting. Extensive documentation, \ref faq "FAQ"
+and a \ref starting tutorial are provided. The interface is similar to other widely-used
+database engines.
+
+<h3>High Performance</h3>
+
+Fast algorithms and data structures guarantee high performance for all
+scenarios. The implementation of these algorithms minimizes disk access and
+operating system calls (i.e. memory allocations). Data structures try to take
+advantage of modern CPU caches. Memory mapped file operations are preferred to
+the slower read/write I/O.
+
+<h3>Stability and Maturity</h3>
+
+hamsterdb Embedded Storage has hundreds of unittests with a test coverage of over 90%. Each
+release is tested with thousands of acceptance tests in many different 
+configurations, tested on up to six different hardware architectures and 
+operating systems. 
+
+<h3>Portability</h3>
+
+Written in plain ANSI-C, hamsterdb Embedded Storage runs on many architectures:
+Intel-compatible (x86, x64), PowerPC, SPARC, ARM, RISC and others. Tested
+operating systems include Microsoft Windows, Microsoft Windows CE, Linux,
+SunOS and other Unices. The file format is endian-independent.
+
+See \ref platforms for more &raquo;</a>
+
+<h3>Fair Licensing</h3>
+
+hamsterdb Embedded Storage follows the "quid pro quo" rule. hamsterdb is released under two
+licenses: the Open Source GPL license and a proprietary, commercial
+closed-source alternative. 
+
+See \ref licensing for more &raquo;</a>
+
+<h2>Sections</h2>
+
+\n This manual is divided into three parts, each of which is divided into several 
+sections.
+
+The first part forms a user manual:
+<ul>
+<li>Section \ref install discusses how to 
+      <a href="http://www.hamsterdb.com/download">download</a>, compile and install
+                     hamsterdb for your platform.
+<li>Section \ref starting tells you how to generate your first hamsterdb application
+                     quickly. 
+<li>Section \ref tuning explains how you can customize your hamsterdb usage and 
+                 invocation to get an even faster run-time performance from hamsterdb.
+<li>Section \ref faq "FAQ" gives answers to frequently asked questions. 
+<li>Section \ref trouble "Troubleshooting" tells you what to do when you have problems.
+<li>\ref appendix_gpl2 
+<li>\ref appendix_gpl3
+<li>\ref appendix_gnu_free_doc_license
+</ul>
+
+The second part forms a reference manual:
+
+<ul>
+<li>Section \ref features presents an overview of what hamsterdb can do.
+<li>Section \ref platforms shows the list of supported platforms and any platform-specific
+                 build particulars where applicable.
+<li>Section \ref history shows what has changed during the development 
+                 of hamsterdb and what is in store for future releases.
+<li>Section \ref api shows an overview of the hamsterdb API.
+</ul>
+
+The third part provides internal architectural and library implementation information 
+for those developers who have a technology itch they need to scratch. This part is targeted
+at those people who have special needs and need (or want) to extend the hamsterdb library
+itself.
+
+<ul>
+<li>Section \ref arch gives a global overview of how hamsterdb is internally
+    structured.
+<li>Section \ref got_geek is a collection of implementation details for those who really
+                 feel the need for knowledge of the nitty gritty of hamsterdb internals.
+</ul>
+
+\remark When you just wish to \e use hamsterdb, reading this third part of the manual 
+would very probably be overkill.
+	   
+
+
+
+
+
+
+
+
+
+
+\n<h2>Doxygen license</h2>
+\addindex license
+\addindex GPL
+
+Copyright &copy; 1997-2008 by 
+<a href="mailto:dimitri@stack.nl">Dimitri van Heesch</a>.<p>
+
+Permission to use, copy, modify, and distribute this software and its
+documentation under the terms of the GNU General Public License is hereby 
+granted. No representations are made about the suitability of this software 
+for any purpose. It is provided "as is" without express or implied warranty.
+See the 
+<a href="http://www.gnu.org/licenses/old-licenses/gpl-2.0.html">
+GNU General Public License</a>
+for more details.
+<p>
+Documents produced by doxygen are derivative works derived from the
+input used in their production; they are not affected by this license.
+
+<h2>User examples</h2>
+
+Doxygen supports a number of \ref output "output formats" where HTML is the
+most popular one. I've gathered 
+\htmlonly
+<a href="http://www.doxygen.org/results.html">some nice examples</a> 
+\endhtmlonly
+\latexonly
+some nice examples (see {\tt http://www.doxygen.org/results.html})
+\endlatexonly
+of real-life projects using doxygen.
+
+These are part of a larger
+\htmlonly
+<a href="http://www.doxygen.org/projects.html">list of projects</a> 
+that use doxygen.
+\endhtmlonly
+\latexonly
+list of projects that use doxygen (see {\tt http://www.doxygen.org/projects.html}).
+\endlatexonly
+If you know other projects, let me know and I'll add them. 
+
+<h2>Future work</h2>
+Although doxygen is used successfully by a lot of people already, 
+there is always room for improvement. Therefore, I have compiled a 
+\htmlonly
+<a href="http://www.doxygen.org/todo.html">todo/wish list</a>
+\endhtmlonly 
+\latexonly
+todo/wish list (see {\tt http://www.doxygen.org/todo.html})
+\endlatexonly
+of possible and/or requested enhancements. 
+
+
+
+
+
+
+<h2>Acknowledgements</h2>
+\addindex acknowledgements
+Thanks go to:
+<ul>
+<li>\addindex Doc++
+    Malte Z&ouml;ckler and Roland Wunderling, authors of DOC++.
+    The first version of doxygen borrowed some code of an old version of DOC++. 
+    Although I have rewritten practically all code since then, DOC++ has still 
+    given me a good start in writing doxygen.
+<li>All people at Qt Software, for creating a beautiful GUI Toolkit
+    (which is very useful as a Windows/Unix platform abstraction layer :-)
+<li>Kevin McBride for maintaining the subversion reporsitory for doxygen.
+<li>My brother Frank
+    for rendering the logos.
+<li>Harm van der Heijden for adding HTML help support.
+<li>Wouter Slegers of 
+    <a href="http://www.yourcreativesolutions.nl">Your Creative Solutions</a> 
+    for registering the www.doxygen.org domain.
+<li>Parker Waechter for adding the RTF output generator.
+<li>Joerg Baumann, for adding conditional documentation blocks, 
+    PDF links, and the configuration generator.
+<li>Matthias Andree for providing a .spec script for building rpms from the
+    sources.
+<li>Tim Mensch for adding the todo command.
+<li>Christian Hammond for redesigning the web-site.
+<li>Ken Wong for providing the HTML tree view code.
+<li>Talin for adding support for C# style comments with XML markup.
+<li>Petr Prikryl for coordinating the internationalisation support.
+    All language maintainers for providing translations into many languages.
+<li>The band <a href="http://www.porcupinetree.com">Porcupine Tree</a> for 
+    providing hours of great music to listen to while coding.
+<li>many, many others for suggestions, patches and bug reports.
+</ul>
+
+
+*/
+
