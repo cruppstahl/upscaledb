@@ -35,6 +35,7 @@ o new append function for ham_cursor_insert: append keys at the "end"
     o need unittests
 
 ----- merge
+o src/fraction.* - nötig??
 o LOCK_EXCLUSIVE is new default? -> document!
 o ham_get_flags deprecated (replaced by ham_get_parameters)!!
 o garbagelist ist draussen! kann aus page.h gelöscht werden!? Was passiert
