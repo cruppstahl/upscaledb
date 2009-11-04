@@ -476,8 +476,9 @@ protected:
 
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_open_ex(0, BFC_OPATH(".test"), m_flags, 0));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_env_open_ex(env, BFC_OPATH(".test"), m_flags, &parameters[0]));
+        BFC_ASSERT_EQUAL(HAM_FILE_NOT_FOUND,
+                ham_env_open_ex(env, BFC_OPATH(".test"), m_flags, 
+                        &parameters[0]));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
@@ -581,8 +582,8 @@ protected:
 		{
 	        BFC_ASSERT_EQUAL_I(0, ham_new(&db[i]), i);
 
-fprintf(stderr, "creating db %u\n", i);
-			BFC_ASSERT_EQUAL_I(0, ham_env_create_db(env, db[i], i+1, 0, parameters), i);
+			BFC_ASSERT_EQUAL_I(0, 
+                    ham_env_create_db(env, db[i], i+1, 0, parameters), i);
 			memset(&key, 0, sizeof(key));
 			memset(&rec, 0, sizeof(rec));
 			key.data = &i;
@@ -602,16 +603,24 @@ fprintf(stderr, "creating db %u\n", i);
 			// open DBs
 
 			BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-			BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_env_open_ex(env, BFC_OPATH(".test"), m_flags, parameters2)); // pagesize param not allowed
-			BFC_ASSERT_EQUAL(0, ham_env_open_ex(env, BFC_OPATH(".test"), m_flags, parameters3));
+            // pagesize param not allowed
+			BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_env_open_ex(env, BFC_OPATH(".test"), m_flags, parameters2));
+			BFC_ASSERT_EQUAL(0, 
+                ham_env_open_ex(env, BFC_OPATH(".test"), m_flags, parameters3));
+            // keysize param not allowed
+		    BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_env_open_db(env, db[0], 1, 0, parameters));
     	}
+        else
+		    BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN, 
+                ham_env_open_db(env, db[0], 1, 0, parameters));
 
-		BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, ham_env_open_db(env, db[0], 1, 0, parameters));
 		for (i = 0; i < MAX; i++)
 		{
 			if (!(m_flags&HAM_IN_MEMORY_DB)) {
-fprintf(stderr, "open db %u\n", i);
-				BFC_ASSERT_EQUAL_I(0, ham_env_open_db(env, db[i], i+1, 0, parameters3), i);
+				BFC_ASSERT_EQUAL_I(0, 
+                        ham_env_open_db(env, db[i], i+1, 0, parameters3), i);
 			}
 			memset(&key, 0, sizeof(key));
 			memset(&rec, 0, sizeof(rec));
@@ -1604,7 +1613,7 @@ fprintf(stderr, "open db %u\n", i);
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
         if (os_get_pagesize()==1024*16 || m_flags&HAM_IN_MEMORY_DB) {
-            ps[0].value=506;
+            ps[0].value=493;
             BFC_ASSERT_EQUAL(0,
                     ham_env_create_ex(env, BFC_OPATH(".test"), m_flags, 0664, ps));
             BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
