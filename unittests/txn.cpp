@@ -491,7 +491,8 @@ public:
         rec.size=sizeof(buffer);
 
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS, 0644));
+                ham_create(m_db, BFC_OPATH(".test"), 
+                            HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
