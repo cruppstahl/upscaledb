@@ -2021,10 +2021,10 @@ public:
         ham_u8_t aeskey[16] ={0x13};
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(HAM_NOT_INITIALIZED, 
+                    ham_env_enable_encryption(env, aeskey, 0));
         BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), 
                     0, 0664));
-        BFC_ASSERT_EQUAL(HAM_ALREADY_INITIALIZED, 
-                    ham_env_enable_encryption(env, aeskey, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 #endif
@@ -2097,9 +2097,9 @@ public:
 
         BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY, 
                 ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
-        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_open(env, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
+        BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
