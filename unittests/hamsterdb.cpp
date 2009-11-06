@@ -1627,7 +1627,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(0, strcmp("Unknown error", 
                     ham_strerror((ham_status_t)-204)));
         BFC_ASSERT_EQUAL(0, strcmp("Unknown error", 
-                    ham_strerror((ham_status_t)-30)));
+                    ham_strerror((ham_status_t)-35)));
         BFC_ASSERT_EQUAL(0, strcmp("Unknown error", 
                     ham_strerror((ham_status_t)1)));
     }
