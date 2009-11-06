@@ -3359,7 +3359,9 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
     ham_parameter_t *p=param;
     if (p) {
         for (; p->name; p++)
-            p->value=0;
+            /* statistics require a pointer to ham_statistics_t */
+            if (p->name!=HAM_PARAM_GET_STATISTICS)
+                p->value=0;
     }
 
     return __ham_get_parameters(env, 0, param);
@@ -3372,7 +3374,9 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param)
     ham_parameter_t *p=param;
     if (p) {
         for (; p->name; p++)
-            p->value=0;
+            /* statistics require a pointer to ham_statistics_t */
+            if (p->name!=HAM_PARAM_GET_STATISTICS)
+                p->value=0;
     }
 
     return __ham_get_parameters((db ? db_get_env(db) : NULL), db, param);
