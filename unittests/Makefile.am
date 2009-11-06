@@ -2,14 +2,14 @@
 #
 # make sure that our modified CFLAGS are also respected by g++
 #
-AM_CXXFLAGS = $(CFLAGS)
-CXXFLAGS = $(CFLAGS)
+AM_CXXFLAGS     = $(CFLAGS)
+CXXFLAGS        = $(CFLAGS)
 
-EXTRA_DIST = valgrind.supp
+EXTRA_DIST      = valgrind.supp
 
 noinst_PROGRAMS = test bfc_sample
 
-AM_CPPFLAGS       = -I$(top_builddir)/include
+AM_CPPFLAGS     = -I$(top_builddir)/include
 
 test_SOURCES    = log.cpp \
                   api110.cpp \
@@ -42,21 +42,11 @@ test_SOURCES    = log.cpp \
                   empty_sample.cpp \
                   bfc-testsuite.cpp \
                   bfc-testsuite.hpp \
-		  os.hpp \
-		  hamster_fixture.hpp \
+		          os.hpp \
+		          hamster_fixture.hpp \
                   bfc-signal.h \
                   bfc-signal.c
 
-test_SOURCES    = env.cpp \
-                  main.cpp \
-                  memtracker.cpp \
-                  memtracker.h \
-                  bfc-testsuite.cpp \
-                  bfc-testsuite.hpp \
-		  os.hpp \
-		  hamster_fixture.hpp \
-                  bfc-signal.h \
-                  bfc-signal.c
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la -ldl
 
 

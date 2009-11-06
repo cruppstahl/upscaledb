@@ -3499,6 +3499,11 @@ ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags)
     device=env_get_device(env);
 
     alloc=env_get_allocator(env);
+    if (!alloc) {
+        ham_trace(("called ham_env_enable_encryption before "
+                   "ham_env_create/open"));
+        return (HAM_NOT_INITIALIZED);
+    }
 
     /*
      * make sure that we don't already have AES filtering

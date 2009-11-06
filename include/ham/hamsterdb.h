@@ -876,10 +876,12 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
  * The encryption has no effect on In-Memory Environments, but the function
  * will return @ref HAM_SUCCESS.
  *
+ * Log files are not encrypted.
+ *
  * The encryption will be active till @ref ham_env_close is called. If the 
  * Environment handle is reused after calling @ref ham_env_close, the 
  * encryption is no longer active. @ref ham_env_enable_encryption should 
- * be called immediately <b>before</b> @ref ham_env_create[_ex] or 
+ * be called immediately <b>after</b> @ref ham_env_create[_ex] or 
  * @ref ham_env_open[_ex].
  *
  * @param env A valid Environment handle

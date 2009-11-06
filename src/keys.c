@@ -37,8 +37,8 @@ key_compare_pub_to_int(ham_db_t *db, ham_page_t *page, ham_key_t *lhs, ham_u16_t
 
 	cmp = db_compare_keys(db, lhs, &rhs);
 
-	db_release_ham_key_after_compare(db, &rhs);
-	/* ensures key is always released; errors will be detected by caller */
+	if (rhs.data && rhs._flags & KEY_IS_EXTENDED)
+		ham_mem_free(db, rhs.data);
 
 	return cmp;
 }
