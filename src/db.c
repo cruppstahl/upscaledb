@@ -242,8 +242,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
     ham_record_t record;
     ham_u8_t *ptr;
 
-    ham_assert(key_flags&KEY_IS_EXTENDED,
-            ("key is not extended"));
+    ham_assert(key_flags&KEY_IS_EXTENDED, ("key is not extended"));
 
     if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
         /*
@@ -264,8 +263,8 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
         }
     }
 
-	/* almost the same as: blobid = key_get_extended_rid(db, key); */
-	memcpy(&blobid, key_data+(db_get_keysize(db)-sizeof(ham_offset_t)), 
+    /* almost the same as: blobid = key_get_extended_rid(db, key); */
+    memcpy(&blobid, key_data+(db_get_keysize(db)-sizeof(ham_offset_t)), 
             sizeof(blobid));
     blobid=ham_db2h_offset(blobid);
 
@@ -326,6 +325,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
 
     ext_key->size = key_length;
     ham_mem_free(db, record.data);
+
     return (0);
 }
 
