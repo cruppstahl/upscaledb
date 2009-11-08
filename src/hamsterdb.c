@@ -1131,10 +1131,16 @@ default_case:
      * in-memory-db? don't allow cache limits!
      */
     if (flags&HAM_IN_MEMORY_DB) {
-        if ((flags&HAM_CACHE_STRICT) /* || cachesize!=0 */) {
+        if (flags&HAM_CACHE_STRICT) {
             ham_trace(("combination of HAM_IN_MEMORY_DB and HAM_CACHE_STRICT "
                         "not allowed"));
             flags &= ~HAM_CACHE_STRICT;
+            RETURN(HAM_INV_PARAMETER);
+        }
+        if (cachesize!=0) {
+            ham_trace(("combination of HAM_IN_MEMORY_DB and cachesize != 0 "
+                        "not allowed"));
+            cachesize = 0;
             RETURN(HAM_INV_PARAMETER);
         }
     }
