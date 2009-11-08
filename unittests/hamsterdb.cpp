@@ -83,7 +83,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, setCompareTest);
         BFC_REGISTER_TEST(HamsterdbTest, findTest);
         BFC_REGISTER_TEST(HamsterdbTest, nearFindTest);
-        BFC_REGISTER_TEST(HamsterdbTest, nearFindStressTest);
+        //BFC_REGISTER_TEST(HamsterdbTest, nearFindStressTest);
         BFC_REGISTER_TEST(HamsterdbTest, insertTest);
         BFC_REGISTER_TEST(HamsterdbTest, insertBigKeyTest);
         BFC_REGISTER_TEST(HamsterdbTest, eraseTest);
@@ -882,22 +882,29 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         ham_size_t keycount = 0;
-        BFC_ASSERT_EQUAL(HAM_NOT_INITIALIZED, ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE));
-        BFC_ASSERT_EQUAL(0, ham_create_ex(db, BFC_OPATH(".test"), 0, 0644, &ps[0]));
+        BFC_ASSERT_EQUAL(HAM_NOT_INITIALIZED, 
+                ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create_ex(db, BFC_OPATH(".test"), 0, 0644, &ps[0]));
 #ifdef HAM_ENABLE_INTERNAL
-        BFC_ASSERT_EQUAL(0, ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE));
+        BFC_ASSERT_EQUAL(0, 
+                ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE));
         BFC_ASSERT_EQUAL(8, keycount);
 #else
-        BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE));
+        BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, 
+                ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE));
 #endif
         keycount = 8;
-        BFC_ASSERT_EQUAL(0, ham_set_prefix_compare_func(db, &my_prefix_compare_func_u32));
-        BFC_ASSERT_EQUAL(0, ham_set_compare_func(db, &my_compare_func_u32));
+        BFC_ASSERT_EQUAL(0, 
+                ham_set_prefix_compare_func(db, &my_prefix_compare_func_u32));
+        BFC_ASSERT_EQUAL(0, 
+                ham_set_compare_func(db, &my_compare_func_u32));
         
         ham_key_t key;
         ham_record_t rec;
         const int vals[] =
-        { 1, 7, 3, 2, 9, 55, 42, 660, 14, 11, 37, 99, 123, 111, 459, 52, 66, 77, 88, 915, 31415, 12719 };
+        { 1, 7, 3, 2, 9, 55, 42, 660, 14, 11, 37, 99, 
+          123, 111, 459, 52, 66, 77, 88, 915, 31415, 12719 };
 
         ::memset(&key, 0, sizeof(key));
         ::memset(&rec, 0, sizeof(rec));
@@ -907,14 +914,17 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         key.size = MY_KEY_SIZE;
         key.flags = HAM_KEY_USER_ALLOC;
         
-#if 01
         /* empty DB: LT/GT must turn up error */
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_find(db, 0, &key, &rec, HAM_FIND_EXACT_MATCH));
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_find(db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_find(db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_find(db, 0, &key, &rec, HAM_FIND_LT_MATCH));
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_find(db, 0, &key, &rec, HAM_FIND_GT_MATCH));
-#endif
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_find(db, 0, &key, &rec, HAM_FIND_EXACT_MATCH));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_find(db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_find(db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_find(db, 0, &key, &rec, HAM_FIND_LT_MATCH));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_find(db, 0, &key, &rec, HAM_FIND_GT_MATCH));
 
         int fill = 0;
         my_rec_t my_rec = {1000, "hello world!"};
@@ -926,7 +936,8 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
         BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
         
-        /* one record in DB: LT/GT must turn up that one for the right key values */
+        /* one record in DB: LT/GT must turn up that one for the 
+         * right key values */
         ::memset(&rec, 0, sizeof(rec));
         BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, HAM_FIND_EXACT_MATCH));
         BFC_ASSERT_NOTEQUAL((rec.data && key.data), 0);
@@ -936,6 +947,9 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(k->key_val1, (ham_u32_t)vals[fill-1]);
         
         ::memset(&rec, 0, sizeof(rec));
+        key.data = &my_key;
+        key.size = MY_KEY_SIZE;
+        key.flags = HAM_KEY_USER_ALLOC;
         BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, HAM_FIND_NEAR_MATCH));
         BFC_ASSERT_NOTEQUAL((rec.data && key.data), 0);
         r = (my_rec_t *)rec.data;
@@ -946,6 +960,9 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         
         ::memset(&rec, 0, sizeof(rec));
         my_key.key_val1 = vals[fill-1] - 1;
+        key.data = &my_key;
+        key.size = MY_KEY_SIZE;
+        key.flags = HAM_KEY_USER_ALLOC;
         BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, HAM_FIND_NEAR_MATCH));
         BFC_ASSERT_NOTEQUAL((rec.data && key.data), 0);
         r = (my_rec_t *)rec.data;
@@ -955,7 +972,10 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(ham_key_get_approximate_match_type(&key), 1);
         
         ::memset(&rec, 0, sizeof(rec));
-        my_key.key_val1 = vals[fill-1] + 1;
+        my_key.key_val1 = vals[fill-1] + 2;
+        key.data = &my_key;
+        key.size = MY_KEY_SIZE;
+        key.flags = HAM_KEY_USER_ALLOC;
         BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, HAM_FIND_NEAR_MATCH));
         BFC_ASSERT_NOTEQUAL((rec.data && key.data), 0);
         r = (my_rec_t *)rec.data;
@@ -994,23 +1014,21 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         {
             ::memset(&key, 0, sizeof(key));
             ::memset(&rec, 0, sizeof(rec));
-            BFC_ASSERT_EQUAL(0, ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
             BFC_ASSERT_NOTEQUAL((rec.data && key.data), 0);
             r = (my_rec_t *)rec.data;
             k = (my_key_t *)key.data;
-#if 0
-            printf("rec: %d, ", r->rec_val1);
-            printf("key: %d vs. %d\n", k->key_val1, verify_vals1[i]);
-#else
             BFC_ASSERT_NOTEQUAL(r->rec_val1, 0);
             BFC_ASSERT_EQUAL(k->key_val1, (ham_u32_t)verify_vals1[i]);
-#endif
         }
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
 
 
-        /* three records in DB {1, 3, 7}: LT/GT should pick the 'proper' one each time */
+        /* three records in DB {1, 3, 7}: LT/GT should pick the 
+         * 'proper' one each time */
         struct search_res_t
         {
             int rv;
@@ -1028,9 +1046,13 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         const search_res_t srch_res_any1[] = { 
             { 0, 1, 1, 1000}, 
             { 0, 1, 0, 1000}, 
-            { 0, 1, -1, 1000}, /* {2, ...} would've been OK too, but we just happen to know the 'near' internals... */
+            { 0, 1, -1, 1000}, /* {2, ...} would've been OK too, but 
+                                  we just happen to know the 'near' 
+                                  internals... */
             { 0, 3, 0, 2001},
-            { 0, 3, -1, 2001}, /* be reminded: this is NOT really 'nearest' search, just a kind of 'next-door neighbour search' ... with favorite neighbours ;-) */
+            { 0, 3, -1, 2001}, /* be reminded: this is NOT really 'nearest' 
+                                  search, just a kind of 'next-door neighbour 
+                                  search' ... with favorite neighbours ;-) */
             { 0, 3, -1, 2001},
             { 0, 3, -1, 2001},
             { 0, 7, 0, 2000},
@@ -1098,7 +1120,8 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
             { HAM_FIND_GEQ_MATCH, srch_res_geq1, "HAM_FIND_GEQ_MATCH '>='" },
             { HAM_FIND_GT_MATCH, srch_res_gt1, "HAM_FIND_GT_MATCH '>'" },
             { HAM_FIND_EXACT_MATCH, srch_res_eq1, "HAM_FIND_EXACT_MATCH '='" },
-            { 0 /* syn for HAM_FIND_EXACT_MATCH */, srch_res_eq1, "zero default (0) '='" },
+            { 0 /* = HAM_FIND_EXACT_MATCH */, srch_res_eq1, 
+                "zero default (0) '='" },
         };
         unsigned int j;
 
@@ -1109,9 +1132,10 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
             for (i = 0; i < sizeof(srch_vals1)/sizeof(srch_vals1[0]); i++)
             {
                 // announce which test case is checked now; just reporting 
-                // file+line+func isn't good enough here when things go pear shaped
-                // for a specific case...
-                std::cout << "Test: category: " << srch_cats[j].descr << ", case: " << i << std::endl;
+                // file+line+func isn't good enough here when things go pear 
+                // shaped for a specific case...
+                std::cout << "Test: category: " << srch_cats[j].descr 
+                          << ", case: " << i << std::endl;
 
                 ::memset(&key, 0, sizeof(key));
                 ::memset(&rec, 0, sizeof(rec));
@@ -1123,21 +1147,18 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
                 //BFC_ASSERT_NOTEQUAL((rec.data && key.data), 0);
                 r = (my_rec_t *)rec.data;
                 k = (my_key_t *)key.data;
-#if 0
-                printf("RV: %d vs. %d, ", rv, res[i].rv);
-                printf("rec: %d vs. %d, ", (r ? r->rec_val1 : 666), res[i].recval);
-                printf("key: %d vs. %d, ", (k ? k->key_val1 : 666), res[i].keyval);
-                printf("sign: %d vs. %d\n", ham_key_get_approximate_match_type(&key), res[i].sign);
-#else
                 BFC_ASSERT_EQUAL(rv, res[i].rv);
-                BFC_ASSERT_EQUAL((r ? r->rec_val1 : 666), (ham_u32_t)res[i].recval);
-                BFC_ASSERT_EQUAL((k ? k->key_val1 : 666), (ham_u32_t)res[i].keyval);
-                BFC_ASSERT_EQUAL(ham_key_get_approximate_match_type(&key), res[i].sign);
-#endif
+                BFC_ASSERT_EQUAL((r ? r->rec_val1 : 666), 
+                        (ham_u32_t)res[i].recval);
+                BFC_ASSERT_EQUAL((k ? k->key_val1 : 666), 
+                        (ham_u32_t)res[i].keyval);
+                BFC_ASSERT_EQUAL(ham_key_get_approximate_match_type(&key), 
+                        res[i].sign);
             }
         }
 
-        /* add more records: fill one page; then in the next round overflow by one, and then on to three pages, etc. */
+        /* add more records: fill one page; then in the next 
+         * round overflow by one, and then on to three pages, etc. */
         for (i = 0; i < keycount - 3+1; i++)
         {
             my_rec.rec_val1 = 3000 + i;
@@ -1161,23 +1182,18 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         {
             ::memset(&key, 0, sizeof(key));
             ::memset(&rec, 0, sizeof(rec));
-            BFC_ASSERT_EQUAL(0, ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
             BFC_ASSERT_NOTEQUAL((rec.data && key.data), 0);
             r = (my_rec_t *)rec.data;
             k = (my_key_t *)key.data;
-#if 0
-            printf("rec: %d, ", r->rec_val1);
-            printf("key: %d vs. %d\n", k->key_val1, verify_vals2[i]);
-#else
             BFC_ASSERT_NOTEQUAL(r->rec_val1, 0);
             BFC_ASSERT_EQUAL(k->key_val1, (ham_u32_t)verify_vals2[i]);
-#endif
         }
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         
-        //int rv = ham_find(db, 0, &key, &rec, HAM_FIND_NEAR_MATCH);
-
         BFC_ASSERT_EQUAL(0, ham_close(db, HAM_AUTO_CLEANUP));
         BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
@@ -1303,24 +1319,24 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env1));
         BFC_ASSERT_EQUAL(0, ham_new(&db1));
-        BFC_ASSERT_EQUAL(0, ham_env_create(env1, BFC_OPATH(".test"), 0, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(env1, BFC_OPATH(".test"), 
+                    HAM_LOCK_EXCLUSIVE, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env1, db1, 111, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(db1, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_flush(db1, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env2));
         BFC_ASSERT_EQUAL(0, ham_new(&db2));
-        /*
-          Can't have two writers to the DB file...
-        -- yes, we can! the test fails on linux, because HAM_LOCK_EXCLUSIVE
-        is not set. -- Christoph
-        */
-        BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK, ham_env_open(env2, BFC_OPATH(".test"), HAM_LOCK_EXCLUSIVE));
+
+        BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK, 
+                ham_env_open(env2, BFC_OPATH(".test"), HAM_LOCK_EXCLUSIVE));
         BFC_ASSERT_EQUAL(0, ham_env_close(env2, 0));
         BFC_ASSERT_EQUAL(0, ham_env_open(env2, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env1, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env2, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_open(env2, BFC_OPATH(".test"), HAM_READ_ONLY));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_open(env2, BFC_OPATH(".test"), HAM_READ_ONLY));
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env2, db2, 111, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_find(db2, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db2, 0));
