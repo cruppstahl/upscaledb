@@ -83,7 +83,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, setCompareTest);
         BFC_REGISTER_TEST(HamsterdbTest, findTest);
         BFC_REGISTER_TEST(HamsterdbTest, nearFindTest);
-        //BFC_REGISTER_TEST(HamsterdbTest, nearFindStressTest);
+        BFC_REGISTER_TEST(HamsterdbTest, nearFindStressTest);
         BFC_REGISTER_TEST(HamsterdbTest, insertTest);
         BFC_REGISTER_TEST(HamsterdbTest, insertBigKeyTest);
         BFC_REGISTER_TEST(HamsterdbTest, eraseTest);
