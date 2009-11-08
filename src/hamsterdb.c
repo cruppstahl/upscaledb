@@ -1075,8 +1075,10 @@ default_case:
 
     if ((env && !db) || (!env && db)) {
         if (!filename && !(flags&HAM_IN_MEMORY_DB)) {
-            ham_trace(("filename is missing"));
-            RETURN(HAM_INV_PARAMETER);
+            if (!patching_params_and_dont_fail) {
+                ham_trace(("filename is missing"));
+                RETURN(HAM_INV_PARAMETER);
+            }
         }
     }
 
@@ -1091,10 +1093,12 @@ default_case:
         dbname = HAM_FIRST_DATABASE_NAME;
         RETURN(HAM_INV_PARAMETER);
     }
-    if (pdbname && !dbname) {
-        ham_trace(("invalid database name 0x%04x", (unsigned)dbname));
+    if (db && (pdbname && !dbname)) {
         dbname = HAM_FIRST_DATABASE_NAME;
-        RETURN(HAM_INV_PARAMETER);
+        if (!patching_params_and_dont_fail) {
+            ham_trace(("invalid database name 0x%04x", (unsigned)dbname));
+            RETURN(HAM_INV_PARAMETER);
+        }
     }
 
     /*
