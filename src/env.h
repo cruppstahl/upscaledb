@@ -79,14 +79,11 @@ struct ham_env_t
      * parameters, which are accepted by env_create_ex, and stored for the 
      * first env_create_db
      */
-    ham_size_t _raw_pagesize;
+    ham_size_t _pagesize;
     ham_size_t _cachesize;
     ham_u16_t  _keysize;
     ham_u16_t  _max_databases;
     ham_u16_t  _data_access_mode;
-
-	/* Derived parameters */
-    ham_size_t _cooked_pagesize;
 
     /* linked list of all file-level filters */
     ham_file_filter_t *_file_filters;
@@ -228,8 +225,7 @@ struct ham_env_t
 /*
  * get the parameter list
  */
-#define env_get_raw_pagesize(env)        (env)->_raw_pagesize
-#define env_get_cooked_pagesize(env)     (env)->_cooked_pagesize
+#define env_get_pagesize(env)            (env)->_pagesize
 #define env_get_keysize(env)             (env)->_keysize
 #define env_get_cachesize(env)           (env)->_cachesize
 #define env_get_max_databases(env)       (env)->_max_databases
@@ -238,8 +234,7 @@ struct ham_env_t
 /*
  * set the parameter list
  */
-#define env_set_raw_pagesize(env, ps)    (env)->_raw_pagesize=(ps)
-#define env_set_cooked_pagesize(env, ps) (env)->_cooked_pagesize=(ps)
+#define env_set_pagesize(env, ps)        (env)->_pagesize=(ps)
 #define env_set_keysize(env, ks)         (env)->_keysize=(ks)
 #define env_set_cachesize(env, cs)       (env)->_cachesize=(cs)
 #define env_set_max_databases(env, md)   (env)->_max_databases=(md)

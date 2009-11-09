@@ -1367,7 +1367,7 @@ db_get_freelist_entry_hints(freelist_hints_t *dst, ham_db_t *db, freelist_entry_
         /* take alignment into account as well! */
         if (dst->aligned)
         {
-            ham_u32_t alignment = db_get_cooked_pagesize(db) / DB_CHUNKSIZE;
+            ham_u32_t alignment = db_get_pagesize(db) / DB_CHUNKSIZE;
             dst->startpos += alignment - 1;
             dst->startpos -= dst->startpos % alignment;
         }

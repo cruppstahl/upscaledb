@@ -151,7 +151,7 @@ my_fun_calc_keycount_per_page(ham_btree_t *be, ham_size_t *maxkeys, ham_u16_t ke
 		/* 
 		 * prevent overflow - maxkeys only has 16 bit! 
 		 */
-		*maxkeys=btree_calc_maxkeys(db_get_cooked_pagesize(db), keysize);
+		*maxkeys=btree_calc_maxkeys(db_get_pagesize(db), keysize);
 		if (*maxkeys>MAX_KEYS_PER_NODE) {
 			ham_trace(("keysize/pagesize ratio too high"));
 			return (db_set_error(db, HAM_INV_KEYSIZE));
@@ -177,7 +177,7 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     /* 
      * prevent overflow - maxkeys only has 16 bit! 
      */
-    maxkeys=btree_calc_maxkeys(db_get_cooked_pagesize(db), keysize);
+    maxkeys=btree_calc_maxkeys(db_get_pagesize(db), keysize);
     if (maxkeys>MAX_KEYS_PER_NODE) {
         ham_trace(("keysize/pagesize ratio too high"));
         return (db_set_error(db, HAM_INV_KEYSIZE));

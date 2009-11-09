@@ -25,7 +25,7 @@
 #define SMALLEST_CHUNK_SIZE  (sizeof(ham_offset_t)+sizeof(blob_t)+1)
 
 /** about 8 blobs or more fit into a single page? */
-#define my_blob_is_small(db, size)  (size<(ham_size_t)(db_get_cooked_pagesize(db)>>3))      
+#define my_blob_is_small(db, size)  (size<(ham_size_t)(db_get_pagesize(db)>>3))      
 
 static ham_status_t
 __write_chunks(ham_db_t *db, ham_page_t *page, ham_offset_t addr, 
@@ -37,7 +37,7 @@ __write_chunks(ham_db_t *db, ham_page_t *page, ham_offset_t addr,
     ham_status_t st;
     ham_offset_t pageid;
     ham_device_t *device=db_get_device(db);
-    ham_size_t pagesize = db_get_cooked_pagesize(db);
+    ham_size_t pagesize = db_get_pagesize(db);
 
     ham_assert(freshly_created ? allocated : 1, (0));
 
@@ -199,7 +199,7 @@ __read_chunk(ham_db_t *db, ham_page_t *page, ham_page_t **fpage,
          * get the page-ID from this chunk
          */
         ham_offset_t pageid;
-        pageid = addr - (addr % db_get_cooked_pagesize(db));
+        pageid = addr - (addr % db_get_pagesize(db));
 
         if (page) {
             if (page_get_self(page)!=pageid)
@@ -228,7 +228,7 @@ __read_chunk(ham_db_t *db, ham_page_t *page, ham_page_t **fpage,
             ham_size_t readstart=
                     (ham_size_t)(addr-page_get_self(page));
             ham_size_t readsize =
-                    (ham_size_t)(db_get_cooked_pagesize(db)-readstart);
+                    (ham_size_t)(db_get_pagesize(db)-readstart);
             if (readsize>size)
                 readsize=size;
             memcpy(data, &page_get_raw_payload(page)[readstart], readsize);
@@ -237,11 +237,11 @@ __read_chunk(ham_db_t *db, ham_page_t *page, ham_page_t **fpage,
             size-=readsize;
         }
         else {
-            ham_size_t s=(size<db_get_cooked_pagesize(db) 
-                    ? size : db_get_cooked_pagesize(db));
+            ham_size_t s=(size<db_get_pagesize(db) 
+                    ? size : db_get_pagesize(db));
             /* limit to the next page boundary */
-            if (s>pageid+db_get_cooked_pagesize(db)-addr)
-                s=(ham_size_t)(pageid+db_get_cooked_pagesize(db)-addr);
+            if (s>pageid+db_get_pagesize(db)-addr)
+                s=(ham_size_t)(pageid+db_get_pagesize(db)-addr);
 
             st=device->read(db, device, addr, data, s);
             if (st) 
@@ -389,7 +389,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
             addr=page_get_self(page);
             /* move the remaining space to the freelist */
             (void)freel_mark_free(db, addr+alloc_size,
-                    db_get_cooked_pagesize(db)-alloc_size, HAM_FALSE);
+                    db_get_pagesize(db)-alloc_size, HAM_FALSE);
             blob_set_alloc_size(&hdr, alloc_size);
         }
         else 
@@ -399,8 +399,8 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
              * we can ignore the log since nothing is overwritten)
              */
             ham_size_t aligned=alloc_size;
-            aligned += db_get_cooked_pagesize(db) - 1;
-            aligned -= aligned % db_get_cooked_pagesize(db);
+            aligned += db_get_pagesize(db) - 1;
+            aligned -= aligned % db_get_pagesize(db);
 
             st=device->alloc(device, aligned, &addr);
             if (st) 

@@ -851,8 +851,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
         ham_trace(("cannot create a file in read-only mode"));
         RETURN(HAM_INV_PARAMETER);
     }
-    if (create && env && db && (env_get_rt_flags(env) & HAM_READ_ONLY)) 
-    {
+    if (create && env && db && (env_get_rt_flags(env) & HAM_READ_ONLY)) {
         ham_trace(("cannot create database in read-only mode"));
         RETURN(HAM_DB_READ_ONLY);
     }
@@ -1170,7 +1169,7 @@ default_case:
         if (!dbs)
             dbs = env_get_max_databases(env);
         if (!pagesize)
-            pagesize = env_get_raw_pagesize(env);
+            pagesize = env_get_pagesize(env);
     }
 
     if (!pagesize && device)
@@ -1459,7 +1458,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
      * store the parameters
      */
     env_set_rt_flags(env, flags);
-    env_set_cooked_pagesize(env, pagesize);
+    env_set_pagesize(env, pagesize);
     env_set_keysize(env, keysize);
     env_set_cachesize(env, cachesize);
     env_set_max_databases(env, maxdbs);
@@ -1477,10 +1476,10 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     }
 
     /* 
-     * it's the only way to communicate the raw_pagesize to the call 
+     * it's the only way to communicate the pagesize to the call 
      * which will actually persist this info to disc! (ham_env_create_db()) 
      */
-    env_set_raw_pagesize(env, pagesize);
+    env_set_pagesize(env, pagesize);
 
     /* reset all performance data */
     stats_init_globdata(env, env_get_global_perf_data(env));
@@ -1550,7 +1549,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
      */
     {
     ham_parameter_t full_param[]={
-        //{HAM_PARAM_PAGESIZE,  env_get_raw_pagesize(env)},
+        //{HAM_PARAM_PAGESIZE,  env_get_pagesize(env)},
         {HAM_PARAM_CACHESIZE, cachesize},
         {HAM_PARAM_KEYSIZE,   keysize},
         {HAM_PARAM_DBNAME,    name},
@@ -1574,7 +1573,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
     if (st)
         return (st);
     }
-    ham_assert(db_get_cooked_pagesize(db) == device_get_pagesize(env_get_device(env)), (0));
+    ham_assert(db_get_pagesize(db) == device_get_pagesize(env_get_device(env)), (0));
 
     /*
      * on success: store the open database in the environment's list of
@@ -1724,8 +1723,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
     /*
      * store the parameters
      */
-    env_set_raw_pagesize(env, 0);
-    env_set_cooked_pagesize(env, 0);
+    env_set_pagesize(env, 0);
     env_set_keysize(env, 0);
     env_set_cachesize(env, cachesize);
     env_set_rt_flags(env, flags);
@@ -1767,8 +1765,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
      */
     st=ham_env_open_db(env, dummydb, HAM_DUMMY_DATABASE_NAME, 0, 0);
     if (!st) {
-        env_set_raw_pagesize(env, db_get_persistent_pagesize(dummydb));
-        env_set_cooked_pagesize(env, db_get_persistent_pagesize(dummydb));
+        env_set_pagesize(env, db_get_persistent_pagesize(dummydb));
         ham_close(dummydb, 0);
     }
     ham_delete(dummydb);
@@ -2500,8 +2497,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
 
             pagesize = db_get_persistent_pagesize(db);
             device_set_pagesize(device, pagesize);
-            db_set_cooked_pagesize(db, pagesize);
-            //db_set_persistent_pagesize(db);
+            db_set_pagesize(db, pagesize);
 
             /*
              * can we use mmap?
@@ -2715,11 +2711,9 @@ fail_with_fake_cleansing:
         /* store the pagesize */
         /* store the data access mode */
         /* store the DEFAULT key size */
-        if (db_get_env(db)) 
-        {
+        if (db_get_env(db)) {
             env_set_max_databases(db_get_env(db), db_get_max_databases(db));
-            //env_set_raw_pagesize(db_get_env(db), pagesize);
-            env_set_cooked_pagesize(db_get_env(db), pagesize);
+            env_set_pagesize(db_get_env(db), pagesize);
             ham_assert(env_get_keysize(db_get_env(db)) == 0, (0));
         }
     }
@@ -2938,7 +2932,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
 
         device->set_flags(device, flags);
         device_set_pagesize(device, pagesize);
-        db_set_cooked_pagesize(db, pagesize);
+        db_set_pagesize(db, pagesize);
 
         if (!filename && db_get_env(db))
             filename=env_get_filename(db_get_env(db));
@@ -2954,13 +2948,13 @@ ham_create_ex(ham_db_t *db, const char *filename,
     {
         device=db_get_device(db);
         ham_assert(device_get_pagesize(device), (0));
-        ham_assert(db_get_cooked_pagesize(db) == device_get_pagesize(device), (0));
+        ham_assert(db_get_pagesize(db) == device_get_pagesize(device), (0));
     }
-    ham_assert(db_get_cooked_pagesize(db) == device_get_pagesize(device), (0));
+    ham_assert(db_get_pagesize(db) == device_get_pagesize(device), (0));
     if (db_get_env(db))
     {
         ham_assert(device == env_get_device(db_get_env(db)), (0));
-        ham_assert(db_get_cooked_pagesize(db) == device_get_pagesize(env_get_device(db_get_env(db))), (0));
+        ham_assert(db_get_pagesize(db) == device_get_pagesize(env_get_device(db_get_env(db))), (0));
     }
 
     /*
@@ -3057,7 +3051,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     }
 
     if (db_get_env(db)) {
-        ham_assert(db_get_cooked_pagesize(db) == device_get_pagesize(env_get_device(db_get_env(db))), (0));
+        ham_assert(db_get_pagesize(db) == device_get_pagesize(env_get_device(db_get_env(db))), (0));
     }
 
     /*
@@ -3550,7 +3544,7 @@ ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags)
     if (db) {
         struct page_union_header_t *uh;
 
-        st=device->read(db, device, db_get_cooked_pagesize(db),
+        st=device->read(db, device, db_get_pagesize(db),
                 buffer, sizeof(buffer));
         if (st==0) {
             st=__aes_after_read_cb(env, filter, buffer, sizeof(buffer));

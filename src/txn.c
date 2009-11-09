@@ -43,7 +43,7 @@ txn_add_page(ham_txn_t *txn, ham_page_t *page, ham_bool_t ignore_if_inserted)
      */
     page_add_ref(page);
 
-	ham_assert(!page_is_in_list(txn_get_pagelist(txn), page, PAGE_LIST_TXN), (0));
+    ham_assert(!page_is_in_list(txn_get_pagelist(txn), page, PAGE_LIST_TXN), (0));
     txn_set_pagelist(txn, page_list_insert(txn_get_pagelist(txn), 
             PAGE_LIST_TXN, page));
 
@@ -65,7 +65,7 @@ txn_free_page(ham_txn_t *txn, ham_page_t *page)
 ham_status_t
 txn_remove_page(ham_txn_t *txn, struct ham_page_t *page)
 {
-	ham_assert(page_is_in_list(txn_get_pagelist(txn), page, PAGE_LIST_TXN), (0));
+    ham_assert(page_is_in_list(txn_get_pagelist(txn), page, PAGE_LIST_TXN), (0));
     txn_set_pagelist(txn, page_list_remove(txn_get_pagelist(txn), 
             PAGE_LIST_TXN, page));
 
@@ -158,10 +158,10 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
      * then write the transaction boundary
      */
     if (db_get_log(db) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) 
-	{
+    {
         ham_page_t *head=txn_get_pagelist(txn);
         while (head) {
-			ham_page_t *next;
+            ham_page_t *next;
 
             next=page_get_next(head, PAGE_LIST_TXN);
             if (page_get_dirty_txn(head)==txn_get_id(txn) 
@@ -187,11 +187,11 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
      * txn_get_pagelist(txn) should be kept up to date and correctly
      * formatted while we call db_free_page() et al.
      */
-	while (txn_get_pagelist(txn))
-	{
-		ham_page_t *head = txn_get_pagelist(txn);
-		
-		txn_get_pagelist(txn) = page_list_remove(head, PAGE_LIST_TXN, head);
+    while (txn_get_pagelist(txn))
+    {
+        ham_page_t *head = txn_get_pagelist(txn);
+        
+        txn_get_pagelist(txn) = page_list_remove(head, PAGE_LIST_TXN, head);
 
         /* page is no longer in use */
         page_release_ref(head);
@@ -207,19 +207,19 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
             if (st)
                 return (st);
         }
-		else
-		{
-			/* flush the page */
-			st=db_flush_page(db, head, 
-					flags & HAM_TXN_FORCE_WRITE ? HAM_WRITE_THROUGH : 0);
-			if (st) {
-				page_add_ref(head);
-				/* failure: re-insert into transaction list! */
-				txn_get_pagelist(txn) = page_list_insert(txn_get_pagelist(txn),
+        else
+        {
+            /* flush the page */
+            st=db_flush_page(db, head, 
+                    flags & HAM_TXN_FORCE_WRITE ? HAM_WRITE_THROUGH : 0);
+            if (st) {
+                page_add_ref(head);
+                /* failure: re-insert into transaction list! */
+                txn_get_pagelist(txn) = page_list_insert(txn_get_pagelist(txn),
                             PAGE_LIST_TXN, head);
-				return (st);
-			}
-		}
+                return (st);
+            }
+        }
     }
 
     txn_set_pagelist(txn, 0);
@@ -252,18 +252,18 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
 
     /*
      * delete all modified pages
-	 *
-	 * keep txn_get_pagelist(txn) intact during every round, so no 
+     *
+     * keep txn_get_pagelist(txn) intact during every round, so no 
      * local var for this one.
      */
     while (txn_get_pagelist(txn)) 
-	{
-	    ham_page_t *head = txn_get_pagelist(txn);
+    {
+        ham_page_t *head = txn_get_pagelist(txn);
 
-		if (!(flags & DO_NOT_NUKE_PAGE_STATS))
-		{
-			/* 
-			 * nuke critical statistics, such as tracked outer bounds; imagine,
+        if (!(flags & DO_NOT_NUKE_PAGE_STATS))
+        {
+            /* 
+             * nuke critical statistics, such as tracked outer bounds; imagine,
              * for example, a failing erase transaction which, through erasing 
              * the top-most key, lowers the actual upper bound, after which 
              * the transaction fails at some later point in life. Now if we 
@@ -278,37 +278,36 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
              * anyhow. All we loose then is a few subsequent operations, which 
              * might have been hinted if we had played a smarter game of 
              * statistics 'reversal'. Soit.
-			 */
-			stats_page_is_nuked(db, head, HAM_FALSE); 
-		}
+             */
+            stats_page_is_nuked(db, head, HAM_FALSE); 
+        }
 
-		ham_assert(page_is_in_list(txn_get_pagelist(txn), head, PAGE_LIST_TXN),
+        ham_assert(page_is_in_list(txn_get_pagelist(txn), head, PAGE_LIST_TXN),
                              (0));
-		txn_get_pagelist(txn) = page_list_remove(head, PAGE_LIST_TXN, head);
+        txn_get_pagelist(txn) = page_list_remove(head, PAGE_LIST_TXN, head);
 
         /* if this page was allocated by this transaction, then we can
          * move the whole page to the freelist */
-        if (page_get_alloc_txn_id(head)==txn_get_id(txn)) 
-		{
+        if (page_get_alloc_txn_id(head)==txn_get_id(txn)) {
             (void)freel_mark_free(db, page_get_self(head), 
-                    db_get_cooked_pagesize(db), HAM_TRUE);
+                    db_get_pagesize(db), HAM_TRUE);
         }
-		else
-		{
-			/* remove the 'delete pending' flag */
-			page_set_npers_flags(head, 
-					page_get_npers_flags(head)&~PAGE_NPERS_DELETE_PENDING);
+        else
+        {
+            /* remove the 'delete pending' flag */
+            page_set_npers_flags(head, 
+                    page_get_npers_flags(head)&~PAGE_NPERS_DELETE_PENDING);
 
             /* if the page is dirty, and RECOVERY is enabled: recreate
              * the original, unmodified page from the log */
-			if (db_get_log(db) && page_is_dirty(head)) 
-			{
-				st=ham_log_recreate(db_get_log(db), head);
-				if (st)
-					return (st);
-				/*page_set_undirty(head); */
-			}
-		}
+            if (db_get_log(db) && page_is_dirty(head)) 
+            {
+                st=ham_log_recreate(db_get_log(db), head);
+                if (st)
+                    return (st);
+                /*page_set_undirty(head); */
+            }
+        }
 
         /* page is no longer in use */
         page_release_ref(head);

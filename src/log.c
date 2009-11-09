@@ -759,7 +759,7 @@ ham_log_add_page_before(ham_page_t *page)
     ham_log_t *log=db_get_log(db);
     ham_file_filter_t *head=0;
     ham_u8_t *p;
-    ham_size_t size=db_get_cooked_pagesize(db);
+    ham_size_t size=db_get_pagesize(db);
     if (db_get_env(db))
         head=env_get_file_filter(db_get_env(db));
 
@@ -817,7 +817,7 @@ ham_log_add_page_after(ham_page_t *page)
     ham_log_t *log=db_get_log(db);
     ham_file_filter_t *head=0;
     ham_u8_t *p;
-    ham_size_t size=db_get_cooked_pagesize(db);
+    ham_size_t size=db_get_pagesize(db);
     if (db_get_env(db))
         head=env_get_file_filter(db_get_env(db));
 
@@ -830,7 +830,7 @@ ham_log_add_page_after(ham_page_t *page)
      */
     if (head && page_get_self(page)!=0) {
         p=(ham_u8_t *)allocator_alloc(log_get_allocator(log), 
-                db_get_cooked_pagesize(db));
+                db_get_pagesize(db));
         if (!p)
             return (db_set_error(db, HAM_OUT_OF_MEMORY));
         memcpy(p, page_get_raw_payload(page), size);
@@ -1023,7 +1023,7 @@ ham_log_recreate(ham_log_t *log, ham_page_t *page)
     if (st)
         return (st);
 
-    memcpy(page_get_raw_payload(page), data, db_get_cooked_pagesize(db));
+    memcpy(page_get_raw_payload(page), data, db_get_pagesize(db));
     allocator_free(log_get_allocator(log), data);
     return (0);
 }

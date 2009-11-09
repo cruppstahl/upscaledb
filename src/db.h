@@ -427,16 +427,16 @@ struct ham_db_t
 /*
  * get the page size
  */
-#define db_get_cooked_pagesize(db)  (db_get_env(db)                          \
-                                    ? env_get_cooked_pagesize(db_get_env(db))\
+#define db_get_pagesize(db)         (db_get_env(db)                          \
+                                    ? env_get_pagesize(db_get_env(db))       \
                                     : (db)->_pagesize)
 
 /*
  * set the page size
  */
-#define db_set_cooked_pagesize(db, ps)  do {                                 \
+#define db_set_pagesize(db, ps) do {                                         \
                                     if (db_get_env(db))                      \
-                                        env_set_cooked_pagesize(db_get_env(db),ps); \
+                                        env_set_pagesize(db_get_env(db), ps);\
                                     else                                     \
                                         (db)->_pagesize = (ps);              \
                                 } while (0)                                             
@@ -444,7 +444,7 @@ struct ham_db_t
 /**
  * get the size of the usable persistent payload of a page
  */
-#define db_get_usable_pagesize(db) (db_get_cooked_pagesize(db) \
+#define db_get_usable_pagesize(db) (db_get_pagesize(db)                      \
     - db_get_persistent_header_size())
 
 /*

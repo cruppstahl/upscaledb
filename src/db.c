@@ -570,7 +570,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
     if (flags&DB_MOVE_TO_FREELIST) {
         if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB))
             (void)freel_mark_free(db, page_get_self(page), 
-                    db_get_cooked_pagesize(db), HAM_TRUE);
+                    db_get_pagesize(db), HAM_TRUE);
     }
 
     /*
@@ -606,7 +606,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
     if (!(flags&PAGE_IGNORE_FREELIST)) {
         tellpos=freel_alloc_page(db);
         if (tellpos) {
-            ham_assert(tellpos%db_get_cooked_pagesize(db)==0,
+            ham_assert(tellpos%db_get_pagesize(db)==0,
                     ("page id %llu is not aligned", tellpos));
             /* try to fetch the page from the txn */
             if (db_get_txn(db)) {
@@ -628,7 +628,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
                 return (0);
             page_set_self(page, tellpos);
             /* fetch the page from disk */
-            st=page_fetch(page, db_get_cooked_pagesize(db));
+            st=page_fetch(page, db_get_pagesize(db));
             if (st) {
                 page_delete(page);
                 return (0);
@@ -647,7 +647,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
             return (0);
     }
 
-    st=page_alloc(page, db_get_cooked_pagesize(db));
+    st=page_alloc(page, db_get_pagesize(db));
     if (st)
         return (0);
 
@@ -682,7 +682,7 @@ done:
      * clear the page with zeroes?
      */
     if (flags&PAGE_CLEAR_WITH_ZERO) {
-        memset(page_get_pers(page), 0, db_get_cooked_pagesize(db));
+        memset(page_get_pers(page), 0, db_get_pagesize(db));
 
         st=ham_log_add_page_after(page);
         if (st) 
@@ -778,7 +778,7 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
         return (0);
 
     page_set_self(page, address);
-    st=page_fetch(page, db_get_cooked_pagesize(db));
+    st=page_fetch(page, db_get_pagesize(db));
     if (st) {
         (void)page_delete(page);
         return (0);
