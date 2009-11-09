@@ -202,6 +202,7 @@ ham_env_add_file_filter(ham_env_t *env, ham_file_filter_t *filter);
  *
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if @a env or @a filter is NULL
+ * @return @a HAM_FILTER_NOT_FOUND if @a filter was not registered
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_remove_file_filter(ham_env_t *env, ham_file_filter_t *filter);
@@ -293,6 +294,7 @@ ham_add_record_filter(ham_db_t *db, ham_record_filter_t *filter);
  *
  * @return @a HAM_SUCCESS upon success
  * @return @a HAM_INV_PARAMETER if @a db or @a filter is NULL
+ * @return @a HAM_FILTER_NOT_FOUND if @a filter was not registered
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter);

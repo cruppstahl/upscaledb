@@ -505,12 +505,8 @@ ham_strerror(ham_status_t result)
             return ("Object was not initialized correctly");
         case HAM_CURSOR_STILL_OPEN:
             return ("Cursor must be closed prior to Transaction abort/commit");
-        case HAM_INVALID_PAGEFILTER_PAGESIZE:
-            return "A page filter detected an alternative raw pagesize has been used to create the database";
-        case HAM_INVALID_PAGEFILTER_DESIGN:
-            return "The page filters quarelled unnecessarily about the right physical/raw pagesize. This hints at one (or more) page filters having a design (page layout) bug.";
-        case HAM_FILTER_NOT_FOUND_IN_CHAIN:
-            return "Filter was not part of the filter chain";
+        case HAM_FILTER_NOT_FOUND:
+            return ("Record filter or file filter not found");
         case HAM_CURSOR_IS_NIL:
             return ("Cursor points to NIL");
         case HAM_DATABASE_NOT_FOUND:
@@ -2105,20 +2101,16 @@ ham_env_remove_file_filter(ham_env_t *env, ham_file_filter_t *filter)
 
     head=env_get_file_filter(env);
 
-    if (head == filter)
-    {
-        if (head->_next)
-        {
+    if (head == filter) {
+        if (head->_next) {
             ham_assert(head->_prev != head, (0));
             head->_next->_prev = head->_prev;
         }
         env_set_file_filter(env, head->_next);
         return 0;
     }
-    else if (head)
-    {
-        if (head->_prev == filter) 
-        {
+    else if (head) {
+        if (head->_prev == filter) {
             head->_prev = head->_prev->_prev;
         }
         for (;;)
@@ -2126,9 +2118,8 @@ ham_env_remove_file_filter(ham_env_t *env, ham_file_filter_t *filter)
             prev = head;
             head = head->_next;
             if (!head)
-                return HAM_FILTER_NOT_FOUND_IN_CHAIN;
-            if (head == filter) 
-            {
+                return (HAM_FILTER_NOT_FOUND);
+            if (head == filter) {
                 prev->_next = head->_next;
                 if (head->_next)
                     head->_next->_prev = prev;
@@ -2137,9 +2128,7 @@ ham_env_remove_file_filter(ham_env_t *env, ham_file_filter_t *filter)
         }
     }
     else
-    {
-        return HAM_FILTER_NOT_FOUND_IN_CHAIN;
-    }
+        return (HAM_FILTER_NOT_FOUND);
 
     filter->_next = 0;
     filter->_prev = 0;
@@ -5293,29 +5282,23 @@ ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter)
 
     head=db_get_record_filter(db);
 
-    if (head == filter)
-    {
-        if (head->_next)
-        {
+    if (head == filter) {
+        if (head->_next) {
             ham_assert(head->_prev != head, (0));
             head->_next->_prev = head->_prev;
         }
         db_set_record_filter(db, head->_next);
     }
-    else if (head)
-    {
-        if (head->_prev == filter) 
-        {
+    else if (head) {
+        if (head->_prev == filter) {
             head->_prev = head->_prev->_prev;
         }
-        for (;;)
-        {
+        for (;;) {
             prev = head;
             head = head->_next;
             if (!head)
-                return HAM_FILTER_NOT_FOUND_IN_CHAIN;
-            if (head == filter) 
-            {
+                return (HAM_FILTER_NOT_FOUND);
+            if (head == filter) {
                 prev->_next = head->_next;
                 if (head->_next)
                     head->_next->_prev = prev;
@@ -5324,9 +5307,7 @@ ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter)
         }
     }
     else
-    {
-        return HAM_FILTER_NOT_FOUND_IN_CHAIN;
-    }
+        return (HAM_FILTER_NOT_FOUND);
 
     filter->_prev = 0;
     filter->_next = 0;

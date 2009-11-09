@@ -55,8 +55,9 @@ o remove raw_pagesize/cooked_pagesize
 o EnvTest::createAndOpenMultiDbTest: disabled; the last (256.) call of 
     ham_env_create_db creates valgrind errors (-> even crashes)
 o review public interface and documentation of approx. matching
-o check HAM_INVALID_PAGEFILTER_PAGESIZE - still needed?
-o check HAM_INVALID_PAGEFILTER_DESIGN - still needed?
+x check HAM_INVALID_PAGEFILTER_PAGESIZE - still needed?
+x check HAM_INVALID_PAGEFILTER_DESIGN - still needed?
+o check HAM_FILTER_NOT_FOUND_IN_CHAIN - still needed?
 
 o documentation
 o samples

@@ -286,12 +286,8 @@ typedef struct {
 #define HAM_NEED_RECOVERY            (-28)
 /** Cursor must be closed prior to Transaction abort/commit */
 #define HAM_CURSOR_STILL_OPEN        (-29)
-/** Page filter received wrong page size */
-#define HAM_INVALID_PAGEFILTER_PAGESIZE         (-32)
-/** Several page filters are incompatible */
-#define HAM_INVALID_PAGEFILTER_DESIGN           (-33)
-/** Filter was not part of the record/page filter chain */
-#define HAM_FILTER_NOT_FOUND_IN_CHAIN           (-34)
+/** Record filter or file filter not found */
+#define HAM_FILTER_NOT_FOUND         (-30)
 /** Cursor does not point to a valid item */
 #define HAM_CURSOR_IS_NIL           (-100)
 /** Database not found */
