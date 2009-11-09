@@ -36,17 +36,22 @@ x device-filters: currently don't work in logging - remove the new code
     completely? Or leave as much as we can? -> removed
 x ham_get_flags deprecated (replaced by ham_get_parameters)!! -> document
 x LOCK_EXCLUSIVE is new default? -> document!
+x document: AES does not affect the logfile!
+x changelist: AES also encrypts header page! (does it??) - no, doesn't!
+x backwards compatibility problems - all of them were removed
+    x AES has to be enabled *before* env is created
+    x KEY_USER_ALLOC needs to have key->size set
+        db.c:db_get_extended_key()
+    x device-stuff: remove new filters??
+x how do we change from AES to AES-CBC in the future? How to recognize
+    new encryption modes? -> header page is not encrypted! can store flags...
 
 o garbagelist was removed - kann be removed from page.h? what happens with
     deleted pages?
-o document: AES does not affect the logfile!
-o changelist: AES also encrypts header page! (does it??)
-o how do we change from AES to AES-CBC in the future? How to recognize
-    new encryption modes?
-o __check_create_parameters: hat komisches RETURN macro - noch nötig??
+o __check_create_parameters: is the RETURN macro still necessary?
 o remove raw_pagesize/cooked_pagesize
-o EnvTest::createAndOpenMultiDbTest: disabled; der letzte (256.) 
-    ham_env_create_db erzeugt valgrind-fehler (bis zum crash)
+o EnvTest::createAndOpenMultiDbTest: disabled; the last (256.) call of 
+    ham_env_create_db creates valgrind errors (-> even crashes)
 
 o documentation
 o samples
@@ -61,12 +66,6 @@ o DAM - really be backwards compatible?? or upgrade the files to 1.1.0?
     o make sure that HAM_DAM_ENFORCE_PRE110_FORMAT cannot be set from user
         (only automatically by loading a file from 1.0.9)
 
-o backwards compatibility problems
-    o AES has to be enabled *before* env is created
-    o KEY_USER_ALLOC needs to have key->size set
-        db.c:db_get_extended_key()
-    o device-stuff: remove new filters??
-
 o bei in-memory-db direkt auf den record zugreifen (und dann auch
     überschreiben!) - neues flag für ham_find/ham_cursor_move
     o unittests
@@ -80,12 +79,6 @@ o db6.cpp is old, replace it with the original
 o approx. matching: need a sample
 
 o what if an unknown DAM is set? -> fail to load??
-
-o need new framework to install freelist handlers
-    o use the current code for databases created with hamsterdb <= 1.0.9
-    o use the new code for everything else
-
-o ham_xx_get_parameter: the maxkey value is calculated twice, and not correct
 
 o doxygen: make sure that all new functions are shown correctly. 
 
@@ -107,7 +100,7 @@ o unittests: get rid of cppunit, move to bfc
 
 ----------
 
-. enhance java/python/.NET for transactions
+. enhance java/python/.NET for transactions and approx matching
     o update README file(s) with new address
 
 . enhance acceptance tests - will need new test scripts
