@@ -116,7 +116,7 @@ public:
 
     void markAllocPageTest(void)
     {
-        ham_size_t ps=db_get_cooked_pagesize(m_db);
+        ham_size_t ps=db_get_pagesize(m_db);
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
@@ -139,7 +139,7 @@ public:
 
     void markAllocAlignedTest(void)
     {
-        ham_size_t ps=db_get_cooked_pagesize(m_db);
+        ham_size_t ps=db_get_pagesize(m_db);
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
@@ -151,7 +151,7 @@ public:
 
     void markAllocHighOffsetTest(void)
     {
-        ham_size_t ps=db_get_cooked_pagesize(m_db);
+        ham_size_t ps=db_get_pagesize(m_db);
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
@@ -172,7 +172,7 @@ public:
 
     void markAllocRangeTest(void)
     {
-        ham_size_t ps=db_get_cooked_pagesize(m_db);
+        ham_size_t ps=db_get_pagesize(m_db);
         ham_offset_t offset=ps;
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
@@ -339,13 +339,13 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         // this code snipped crashed in an acceptance test
         BFC_ASSERT_EQUAL(0, freel_mark_free(m_db, 2036736, 
-                    db_get_cooked_pagesize(m_db)-1024, HAM_FALSE));
+                    db_get_pagesize(m_db)-1024, HAM_FALSE));
         BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
     }
 
     void markAllocAlignTest(void)
     {
-        ham_size_t ps=db_get_cooked_pagesize(m_db);
+        ham_size_t ps=db_get_pagesize(m_db);
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
@@ -357,7 +357,7 @@ public:
 
     void markAllocAlignMultipleTest(void)
     {
-        ham_size_t ps=db_get_cooked_pagesize(m_db);
+        ham_size_t ps=db_get_pagesize(m_db);
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 

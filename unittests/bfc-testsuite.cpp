@@ -1036,7 +1036,8 @@ void error::vfmt_message(const char *msg, va_list args)
 		util_vsnprintf(buf, sizeof(buf), msg, args);
 #else
 #if defined __USE_BSD || defined __USE_ISOC99 || defined __USE_UNIX98 \
-		|| defined __USE_POSIX || defined __USE_POSIX2
+		|| defined __USE_POSIX || defined __USE_POSIX2 \
+		|| defined __CYGWIN32__
 	    	vsnprintf(buf, sizeof(buf), msg, args);
 #elif defined(_MSC_VER)
     		_vsnprintf(buf, sizeof(buf), msg, args);

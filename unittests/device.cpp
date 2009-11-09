@@ -73,7 +73,7 @@ public:
         BFC_ASSERT_EQUAL(0, page_alloc(p, device_get_pagesize(m_dev)));
         db_set_header_page(m_db, p);
         db_set_persistent_pagesize(m_db, m_dev->get_pagesize(m_dev));
-        db_set_cooked_pagesize(m_db, device_get_pagesize(m_dev));
+        db_set_pagesize(m_db, device_get_pagesize(m_dev));
     }
     
     virtual void teardown() 
@@ -139,7 +139,7 @@ public:
         BFC_ASSERT(m_dev->is_open(m_dev));
         for (i=0; i<10; i++) {
             BFC_ASSERT(m_dev->alloc(m_dev, 1024, &address)==HAM_SUCCESS);
-            BFC_ASSERT(address==db_get_cooked_pagesize(m_db)+1024*i);
+            BFC_ASSERT(address==db_get_pagesize(m_db)+1024*i);
         }
         BFC_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
     }
@@ -152,7 +152,7 @@ public:
 
         BFC_ASSERT(m_dev->is_open(m_dev));
         BFC_ASSERT(m_dev->alloc_page(m_dev, &page, 
-                    db_get_cooked_pagesize(m_db))==HAM_SUCCESS);
+                    db_get_pagesize(m_db))==HAM_SUCCESS);
         BFC_ASSERT(page_get_pers(&page)!=0);
         BFC_ASSERT(m_dev->free_page(m_dev, &page)==HAM_SUCCESS);
         BFC_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
@@ -179,7 +179,7 @@ public:
             page_set_owner(&pages[i], m_db);
             page_set_self(&pages[i], i*ps);
             BFC_ASSERT(m_dev->read_page(m_dev, &pages[i], 
-                        db_get_cooked_pagesize(m_db))==HAM_SUCCESS);
+                        db_get_pagesize(m_db))==HAM_SUCCESS);
         }
         for (i=0; i<10; i++)
             memset(page_get_pers(&pages[i]), i, ps);
@@ -192,7 +192,7 @@ public:
             BFC_ASSERT(m_dev->free_page(m_dev, &pages[i])==HAM_SUCCESS);
 
             BFC_ASSERT(m_dev->read_page(m_dev, &pages[i], 
-                        db_get_cooked_pagesize(m_db))==HAM_SUCCESS);
+                        db_get_pagesize(m_db))==HAM_SUCCESS);
             buffer=(ham_u8_t *)page_get_pers(&pages[i]);
             BFC_ASSERT(memcmp(buffer, temp, ps)==0);
         }

@@ -354,7 +354,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         ham_page_t *page;
         page=page_new(m_db);
-        BFC_ASSERT_EQUAL(0, page_alloc(page, db_get_cooked_pagesize(m_db)));
+        BFC_ASSERT_EQUAL(0, page_alloc(page, db_get_pagesize(m_db)));
 
         BFC_ASSERT_EQUAL(0, ham_log_append_flush_page(log, page));
         BFC_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));

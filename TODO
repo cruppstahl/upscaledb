@@ -47,38 +47,41 @@ x how do we change from AES to AES-CBC in the future? How to recognize
     new encryption modes? -> header page is not encrypted! can store flags...
 x remove all code and references of HAM_KEYSIZE_TOO_SMALL
 x remove all code and references of HAM_RECORDSIZE_TOO_SMALL
-
-o garbagelist was removed - kann be removed from page.h? what happens with
-    deleted pages?
-o __check_create_parameters: is the RETURN macro still necessary?
-o remove raw_pagesize/cooked_pagesize
-o EnvTest::createAndOpenMultiDbTest: disabled; the last (256.) call of 
-    ham_env_create_db creates valgrind errors (-> even crashes)
-o review public interface and documentation of approx. matching
+x review public interface and documentation of approx. matching
 x check HAM_INVALID_PAGEFILTER_PAGESIZE - still needed?
 x check HAM_INVALID_PAGEFILTER_DESIGN - still needed?
-o check HAM_FILTER_NOT_FOUND_IN_CHAIN - still needed?
+x check HAM_FILTER_NOT_FOUND_IN_CHAIN - still needed?
+x garbagelist was removed - kann be removed from page.h? what happens with
+    deleted pages? - no, not removed, still needed
+x remove raw_pagesize/cooked_pagesize - we do not distinguish!
+x __check_create_parameters: is the RETURN macro still necessary? - yes
 
 o documentation
 o samples
 o tools
-o win32 environment
+o win32 build environment
+
+o EnvTest::createAndOpenMultiDbTest: disabled; the last (256.) call of 
+    ham_env_create_db creates valgrind errors (-> even crashes)
+o DAM - really be backwards compatible?? or upgrade the files to 1.1.0?
+    o make sure that HAM_DAM_ENFORCE_PRE110_FORMAT cannot be set from user
+        (only automatically by loading a file from 1.0.9)
+
 ----
 
 o IMPORTANT!!! - increase libtool version by 1??? also, we have some API
     incompatibilities when HAM_*_USER_ALLOC is used. are they a problem??
 
-o DAM - really be backwards compatible?? or upgrade the files to 1.1.0?
-    o make sure that HAM_DAM_ENFORCE_PRE110_FORMAT cannot be set from user
-        (only automatically by loading a file from 1.0.9)
-
-o bei in-memory-db direkt auf den record zugreifen (und dann auch
-    überschreiben!) - neues flag für ham_find/ham_cursor_move
+o in-memory-db could access directly the record (and then overwrite it)
+    -> needs new flag for ham_find/ham_cursor_move
     o unittests
 
 o packstop has include guards??? remove them, run tests
     x implement
     o make sure that databases from 1.0.9 are still working in 1.1.0
+
+o do lots of testing with databases from 1.0.9 - must be loaded/modified 
+    flawlessly (add unittests!)
 
 o db6.cpp is old, replace it with the original
 

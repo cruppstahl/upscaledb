@@ -67,12 +67,11 @@ public:
         BFC_ASSERT(0==page_alloc(p, device_get_pagesize(m_dev)));
         db_set_header_page(m_db, p);
         db_set_persistent_pagesize(m_db, m_dev->get_pagesize(m_dev));
-        db_set_cooked_pagesize(m_db, device_get_pagesize(m_dev));
+        db_set_pagesize(m_db, device_get_pagesize(m_dev));
     }
     
-    virtual void teardown() 
-	{ 
-		__super::teardown();
+    virtual void teardown() { 
+        __super::teardown();
 
         if (db_get_header_page(m_db)) {
             page_free(db_get_header_page(m_db));

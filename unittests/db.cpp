@@ -73,7 +73,7 @@ public:
         BFC_ASSERT(0==page_alloc(p, device_get_pagesize(m_dev)));
         db_set_header_page(m_db, p);
         db_set_persistent_pagesize(m_db, m_dev->get_pagesize(m_dev));
-        db_set_cooked_pagesize(m_db, device_get_pagesize(m_dev));
+        db_set_pagesize(m_db, device_get_pagesize(m_dev));
     }
     
     virtual void teardown() 
@@ -116,13 +116,12 @@ public:
         db_set_serialno(m_db, 0x1234);
         BFC_ASSERT(db_get_serialno(m_db)==0x1234);
 
-        ham_size_t ps=db_get_cooked_pagesize(m_db); // since 1.1.0 cooked != persistent/raw necessarily
-		ham_size_t raw_ps=db_get_persistent_pagesize(m_db);
+        ham_size_t ps=db_get_pagesize(m_db); 
         db_set_persistent_pagesize(m_db, 1024*32);
-		BFC_ASSERT(db_get_cooked_pagesize(m_db)==ps);
+        BFC_ASSERT(db_get_pagesize(m_db)==ps);
         BFC_ASSERT(db_get_persistent_pagesize(m_db)==1024*32);
-        db_set_cooked_pagesize(m_db, ps);
-		db_set_persistent_pagesize(m_db, raw_ps);
+        db_set_pagesize(m_db, ps);
+        db_set_persistent_pagesize(m_db, ps);
 
         db_set_txn(m_db, (ham_txn_t *)13);
         BFC_ASSERT(db_get_txn(m_db)==(ham_txn_t *)13);
