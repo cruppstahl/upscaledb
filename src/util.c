@@ -148,8 +148,7 @@ util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
     /*
      * if this key has duplicates: fetch the duplicate entry
      */
-    if (record->_intflags&KEY_HAS_DUPLICATES) 
-    {
+    if (record->_intflags&KEY_HAS_DUPLICATES) {
         dupe_entry_t entry;
         ham_status_t st=blob_duplicate_get(db, record->_rid, 0, &entry);
         if (st)
@@ -163,54 +162,39 @@ util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
      * no blob available, but the data is stored in the record's
      * offset.
      */
-    if (record->_intflags&KEY_BLOB_SIZE_TINY) 
-    {
+    if (record->_intflags&KEY_BLOB_SIZE_TINY) {
         /* the highest byte of the record id is the size of the blob */
         char *p=(char *)&record->_rid;
         blobsize = p[sizeof(ham_offset_t)-1];
         noblob=HAM_TRUE;
     }
-    else if (record->_intflags&KEY_BLOB_SIZE_SMALL) 
-    {
+    else if (record->_intflags&KEY_BLOB_SIZE_SMALL) {
         /* record size is sizeof(ham_offset_t) */
         blobsize = sizeof(ham_offset_t);
         noblob=HAM_TRUE;
     }
-    else if (record->_intflags&KEY_BLOB_SIZE_EMPTY) 
-    {
+    else if (record->_intflags&KEY_BLOB_SIZE_EMPTY) {
         /* record size is 0 */
         blobsize = 0;
         noblob=HAM_TRUE;
     }
-    else
-    {
+    else {
         /* set to a dummy value, so the second if-branch is executed */
         blobsize = 0xffffffff;
     }
 
-    if (noblob && blobsize > 0) 
-    {
-        if (!(record->flags & HAM_RECORD_USER_ALLOC)) 
-        {
+    if (noblob && blobsize > 0) {
+        if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
             st=db_resize_allocdata(db, blobsize);
             if (st)
                 return (st);
             record->data = db_get_record_allocdata(db);
         }
-        else
-        {
-            if (record->size < blobsize)
-            {
-                record->size = blobsize;
-                return db_set_error(db, HAM_RECORDSIZE_TOO_SMALL);
-            }
-        }
 
         memcpy(record->data, &record->_rid, blobsize);
         record->size = blobsize;
     }
-    else if (!noblob && blobsize != 0) 
-    {
+    else if (!noblob && blobsize != 0) {
         return (blob_read(db, record->_rid, record, flags));
     }
 
@@ -223,23 +207,19 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
     /*
      * extended key: copy the whole key
      */
-    if (key_get_flags(source)&KEY_IS_EXTENDED) 
-    {
+    if (key_get_flags(source)&KEY_IS_EXTENDED) {
         ham_u16_t keysize = key_get_size(source);
         ham_status_t st=db_get_extended_key(db, key_get_key(source),
                     keysize, key_get_flags(source),
                     dest);
-        if (st) 
-        {
-            if (!(dest->flags & HAM_KEY_USER_ALLOC))
-            {
+        if (st) {
+            if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
                 /*
-                key data can be allocated in db_get_extended_key():
-                prevent that heap memory leak
-                */
+                 * key data can be allocated in db_get_extended_key():
+                 * prevent that heap memory leak
+                 */
                 if (dest->data
-                    && db_get_key_allocdata(db) != dest->data)
-                {
+                    	&& db_get_key_allocdata(db) != dest->data) {
                     ham_mem_free(db, dest->data);
                 }
                 dest->data=0;
@@ -253,27 +233,22 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
         ham_assert(keysize == dest->size, (0));
         ham_assert(keysize ? dest->data != 0 : 1, (0));
 
-        if (dest->flags & HAM_KEY_USER_ALLOC) 
-        {
+        if (dest->flags & HAM_KEY_USER_ALLOC) {
             ham_assert(dest->size == keysize, (0));
         }
-        else
-        {
-            if (keysize) 
-            {
+        else {
+            if (keysize) {
                 if (db_get_key_allocdata(db))
                     ham_mem_free(db, db_get_key_allocdata(db));
                 db_set_key_allocdata(db, dest->data);
                 db_set_key_allocsize(db, keysize);
             }
-            else 
-            {
+            else {
                 dest->data=0;
             }
         }
     }
-    else 
-    {
+    else {
         /*
          * otherwise (non-extended key)...
          */

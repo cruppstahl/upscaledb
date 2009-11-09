@@ -45,6 +45,8 @@ x backwards compatibility problems - all of them were removed
     x device-stuff: remove new filters??
 x how do we change from AES to AES-CBC in the future? How to recognize
     new encryption modes? -> header page is not encrypted! can store flags...
+x remove all code and references of HAM_KEYSIZE_TOO_SMALL
+x remove all code and references of HAM_RECORDSIZE_TOO_SMALL
 
 o garbagelist was removed - kann be removed from page.h? what happens with
     deleted pages?
@@ -53,8 +55,6 @@ o remove raw_pagesize/cooked_pagesize
 o EnvTest::createAndOpenMultiDbTest: disabled; the last (256.) call of 
     ham_env_create_db creates valgrind errors (-> even crashes)
 o review public interface and documentation of approx. matching
-x remove all code and references of HAM_KEYSIZE_TOO_SMALL
-o remove all code and references of HAM_RECORDSIZE_TOO_SMALL
 o check HAM_INVALID_PAGEFILTER_PAGESIZE - still needed?
 o check HAM_INVALID_PAGEFILTER_DESIGN - still needed?
 

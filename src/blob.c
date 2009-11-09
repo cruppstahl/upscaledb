@@ -25,21 +25,21 @@
 #define SMALLEST_CHUNK_SIZE  (sizeof(ham_offset_t)+sizeof(blob_t)+1)
 
 /** about 8 blobs or more fit into a single page? */
-#define my_blob_is_small(db, size)  (size<(ham_size_t)(db_get_cooked_pagesize(db)>>3))	  
+#define my_blob_is_small(db, size)  (size<(ham_size_t)(db_get_cooked_pagesize(db)>>3))      
 
 static ham_status_t
 __write_chunks(ham_db_t *db, ham_page_t *page, ham_offset_t addr, 
         ham_bool_t allocated, ham_bool_t freshly_created, 
-		ham_u8_t **chunk_data, ham_size_t *chunk_size, 
+        ham_u8_t **chunk_data, ham_size_t *chunk_size, 
         ham_size_t chunks)
 {
     ham_size_t i;
     ham_status_t st;
     ham_offset_t pageid;
     ham_device_t *device=db_get_device(db);
-	ham_size_t pagesize = db_get_cooked_pagesize(db);
+    ham_size_t pagesize = db_get_cooked_pagesize(db);
 
-	ham_assert(freshly_created ? allocated : 1, (0));
+    ham_assert(freshly_created ? allocated : 1, (0));
 
     /*
      * for each chunk...
@@ -49,7 +49,7 @@ __write_chunks(ham_db_t *db, ham_page_t *page, ham_offset_t addr,
             /*
              * get the page-ID from this chunk
              */
-			pageid = addr - (addr % pagesize);
+            pageid = addr - (addr % pagesize);
 
             /*
              * is this the current page?
@@ -63,18 +63,18 @@ __write_chunks(ham_db_t *db, ham_page_t *page, ham_offset_t addr,
              * the buffered routines)
              */
             if (!page) {
-				/*
-				 * keep pages in cache when they are located at the 'edges' of 
+                /*
+                 * keep pages in cache when they are located at the 'edges' of 
                  * the blob, as they MAY be accessed for different data.
-				 * Of course, when a blob is small, there's only one (partial) 
+                 * Of course, when a blob is small, there's only one (partial) 
                  * page accessed anyhow, so that one should end up in cache 
                  * then.
                  *
                  * When transaction logging is turned on, it's the same story, 
                  * really. We _could_ keep all those pages in cache now,
-				 * but this would be thrashing the cache with blob data that's 
+                 * but this would be thrashing the cache with blob data that's 
                  * accessed once only and for transaction abort (or commit)
-				 * the amount of effort does not change.
+                 * the amount of effort does not change.
                  *
                  * THOUGHT:
                  *
@@ -86,13 +86,13 @@ __write_chunks(ham_db_t *db, ham_page_t *page, ham_offset_t addr,
                  *
                  * Elaboration: As this would have been free space before, the 
                  * actual content does not matter, so it's not required to add
-				 * the FULL pages written by the blob write action here to the 
+                 * the FULL pages written by the blob write action here to the 
                  * transaction log: even on transaction abort, that lingering 
-				 * data is marked as 'bogus'/free as it was before anyhow.
-				 *
-				 * And then, assuming a longer running transaction, where this 
+                 * data is marked as 'bogus'/free as it was before anyhow.
+                 *
+                 * And then, assuming a longer running transaction, where this 
                  * page was freed during a previous action WITHIN
-				 * the transaction, well, than the transaction log should 
+                 * the transaction, well, than the transaction log should 
                  * already carry this page's previous content as instructed 
                  * by the erase operation. HOWEVER, the erase operation would 
                  * not have a particular NEED to edit this page, as an erase op 
@@ -103,7 +103,7 @@ __write_chunks(ham_db_t *db, ham_page_t *page, ham_offset_t addr,
                  *
                  * Which means we'll have to log the previous content of these 
                  * pages to the transaction log anyhow. UNLESS, that is, when
-				 * WE allocated these pages in the first place: then there 
+                 * WE allocated these pages in the first place: then there 
                  * cannot be any 'pre-transaction' state of these pages 
                  * except that of 'not existing', i.e. 'free'. In which case, 
                  * their actual content doesn't matter! (freshly_created)
@@ -117,33 +117,33 @@ __write_chunks(ham_db_t *db, ham_page_t *page, ham_offset_t addr,
                  *
                  * Just as long as we can prevent this section from thrashing 
                  * the page cache, thank you very much...
-				 */
+                 */
                 ham_bool_t at_blob_edge = (my_blob_is_small(db, chunk_size[i])
-						|| (addr % pagesize) != 0 
-						|| chunk_size[i] < pagesize);
+                        || (addr % pagesize) != 0 
+                        || chunk_size[i] < pagesize);
                 ham_bool_t cacheonly = (!at_blob_edge 
-									&& (!db_get_log(db)
-										|| freshly_created));
+                                    && (!db_get_log(db)
+                                        || freshly_created));
 
-				page=db_fetch_page(db, pageid, 
-						cacheonly ? DB_ONLY_FROM_CACHE : 
-						at_blob_edge ? 0 : DB_NEW_PAGE_DOESNT_THRASH_CACHE);
+                page=db_fetch_page(db, pageid, 
+                        cacheonly ? DB_ONLY_FROM_CACHE : 
+                        at_blob_edge ? 0 : DB_NEW_PAGE_DOESNT_THRASH_CACHE);
                 /* blob pages don't have a page header */
                 if (page)
-				{
+                {
                     page_set_npers_flags(page, 
                         page_get_npers_flags(page)|PAGE_NPERS_NO_HEADER);
-					/* if this page was recently allocated by the parent
-					 * function: set a flag */
-					if (cacheonly 
-							&& allocated 
-							&& addr==page_get_self(page) 
-							&& db_get_txn(db))
-						page_set_alloc_txn_id(page, txn_get_id(db_get_txn(db)));
-				}
-				else if (db_get_error(db)) {
-					return db_get_error(db);
-				}
+                    /* if this page was recently allocated by the parent
+                     * function: set a flag */
+                    if (cacheonly 
+                            && allocated 
+                            && addr==page_get_self(page) 
+                            && db_get_txn(db))
+                        page_set_alloc_txn_id(page, txn_get_id(db_get_txn(db)));
+                }
+                else if (db_get_error(db)) {
+                    return db_get_error(db);
+                }
             }
 
             /*
@@ -172,7 +172,7 @@ __write_chunks(ham_db_t *db, ham_page_t *page, ham_offset_t addr,
                 if (s > pageid+pagesize-addr)
                     s = (ham_size_t)(pageid+pagesize-addr);
 
-				ham_assert(db_get_log(db) ? freshly_created : 1, (""));
+                ham_assert(db_get_log(db) ? freshly_created : 1, (""));
 
                 st=device->write(db, device, addr, chunk_data[i], s);
                 if (st)
@@ -198,8 +198,8 @@ __read_chunk(ham_db_t *db, ham_page_t *page, ham_page_t **fpage,
         /*
          * get the page-ID from this chunk
          */
-	    ham_offset_t pageid;
-		pageid = addr - (addr % db_get_cooked_pagesize(db));
+        ham_offset_t pageid;
+        pageid = addr - (addr % db_get_cooked_pagesize(db));
 
         if (page) {
             if (page_get_self(page)!=pageid)
@@ -286,7 +286,7 @@ __get_duplicate_table(ham_db_t *db, ham_offset_t table_id, ham_page_t **page)
      */
     if (page_get_self(hdrpage)+db_get_usable_pagesize(db)>=
             table_id+blob_get_size(&hdr)) 
-	{
+    {
         ham_u8_t *p=page_get_raw_payload(hdrpage);
         /* yes, table is in the page */
         *page=hdrpage;
@@ -326,9 +326,9 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
     blob_t hdr;
     ham_u8_t *chunk_data[2];
     ham_size_t alloc_size;
-	ham_size_t chunk_size[2];
+    ham_size_t chunk_size[2];
     ham_device_t *device=db_get_device(db);
-	ham_bool_t freshly_created = HAM_FALSE;
+    ham_bool_t freshly_created = HAM_FALSE;
    
     *blobid=0;
 
@@ -337,7 +337,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
      * buffer, in which the blob (with the blob-header) is stored
      */
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) 
-	{
+    {
         blob_t *hdr;
         ham_u8_t *p=(ham_u8_t *)ham_mem_alloc(db, size+sizeof(blob_t));
         if (!p) {
@@ -364,14 +364,14 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
      */
     alloc_size=sizeof(blob_t)+size;
     alloc_size += DB_CHUNKSIZE - 1;
-	alloc_size -= alloc_size % DB_CHUNKSIZE;
+    alloc_size -= alloc_size % DB_CHUNKSIZE;
 
     /* 
      * check if we have space in the freelist 
      */
     addr=freel_alloc_area(db, alloc_size);
     if (!addr) 
-	{
+    {
         if (db_get_error(db))
             return (db_get_error(db));
 
@@ -379,7 +379,7 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
          * if the blob is small: load the page through the cache
          */
         if (my_blob_is_small(db, alloc_size)) 
-		{
+        {
             page=db_alloc_page(db, PAGE_TYPE_B_INDEX, PAGE_IGNORE_FREELIST);
             if (!page)
                 return (db_get_error(db));
@@ -393,11 +393,11 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
             blob_set_alloc_size(&hdr, alloc_size);
         }
         else 
-		{
-			/*
-			 * otherwise use direct IO to allocate the space (in this case
-			 * we can ignore the log since nothing is overwritten)
-			 */
+        {
+            /*
+             * otherwise use direct IO to allocate the space (in this case
+             * we can ignore the log since nothing is overwritten)
+             */
             ham_size_t aligned=alloc_size;
             aligned += db_get_cooked_pagesize(db) - 1;
             aligned -= aligned % db_get_cooked_pagesize(db);
@@ -416,16 +416,16 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
                 }
                 else {
                     blob_set_alloc_size(&hdr, aligned);
-				}
+                }
             }
-			freshly_created = HAM_TRUE;
+            freshly_created = HAM_TRUE;
         }
 
-		ham_assert(freel_check_area_is_allocated(db, addr, alloc_size), (0));
+        ham_assert(freel_check_area_is_allocated(db, addr, alloc_size), (0));
     }
-	else {
+    else {
         blob_set_alloc_size(&hdr, alloc_size);
-	}
+    }
 
     blob_set_size(&hdr, size);
     blob_set_self(&hdr, addr);
@@ -454,7 +454,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
     ham_status_t st;
     ham_page_t *page;
     blob_t hdr;
-	ham_size_t blobsize;
+    ham_size_t blobsize;
 
     blobsize = 0;
 
@@ -462,44 +462,34 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
      * in-memory-database: the blobid is actually a pointer to the memory
      * buffer, in which the blob is stored
      */
-    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) 
-	{
+    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
         blob_t *hdr=(blob_t *)blobid;
         ham_u8_t *data=((ham_u8_t *)blobid)+sizeof(blob_t);
 
         /* when the database is closing, the header is already deleted */
         if (!hdr)
-		{
-			record->size = 0;
+        {
+            record->size = 0;
             return (0);
-		}
+        }
 
-		blobsize = (ham_size_t)blob_get_size(hdr);
+        blobsize = (ham_size_t)blob_get_size(hdr);
         if (!blobsize) {
             /* empty blob? */
             record->data = 0;
-			record->size = 0;
+            record->size = 0;
         }
         else {
             /* resize buffer, if necessary */
-            if (!(record->flags & HAM_RECORD_USER_ALLOC)) 
-			{
+            if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
                 st=db_resize_allocdata(db, blobsize);
                 if (st)
                     return (st);
                 record->data = db_get_record_allocdata(db);
             }
-			else
-			{
-				if (record->size < blobsize)
-				{
-					record->size = blobsize;
-					return db_set_error(db, HAM_RECORDSIZE_TOO_SMALL);
-				}
-			}
             /* and copy the data */
             memcpy(record->data, data, blobsize);
-			record->size = blobsize;
+            record->size = blobsize;
         }
 
         return (0);
@@ -519,44 +509,40 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
     /*
      * sanity check
      */
-	if (blob_get_self(&hdr)!=blobid)
+    if (blob_get_self(&hdr)!=blobid)
         return (HAM_BLOB_NOT_FOUND);
 
     /* 
      * empty blob? 
      */
     blobsize = (ham_size_t)blob_get_size(&hdr);
-    if (!blobsize) 
-	{
+    if (!blobsize) {
         record->data = 0;
-		record->size = 0;
+        record->size = 0;
         return (0);
     }
 
     /*
      * second step: resize the blob buffer
      */
-    if (!(record->flags & HAM_RECORD_USER_ALLOC)) 
-	{
+    if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
         st=db_resize_allocdata(db, blobsize);
         if (st)
             return (st);
         record->data = db_get_record_allocdata(db);
     }
-	else
-	{
-		if (record->size < blobsize)
-		{
-			record->size = blobsize;
+    else {
+        if (record->size < blobsize) {
+            record->size = blobsize;
             return db_set_error(db, HAM_RECORDSIZE_TOO_SMALL);
-		}
-	}
+        }
+    }
 
     /*
      * third step: read the blob data
      */
     st=__read_chunk(db, page, 0, blobid+sizeof(blob_t), record->data, 
-					blobsize);
+                    blobsize);
     if (st)
         return (st);
 
@@ -573,7 +559,7 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
     ham_status_t st;
     ham_size_t alloc_size;
     blob_t old_hdr;
-	blob_t new_hdr;
+    blob_t new_hdr;
     ham_page_t *page;
 
     /*
@@ -582,7 +568,7 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
      * the data)
      */
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB) 
-	{
+    {
         blob_t *nhdr, *phdr=(blob_t *)old_blobid;
 
         if (blob_get_size(phdr)==size) {
@@ -610,7 +596,7 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
      */
     alloc_size=sizeof(blob_t)+size;
     alloc_size += DB_CHUNKSIZE - 1;
-	alloc_size -= alloc_size % DB_CHUNKSIZE;
+    alloc_size -= alloc_size % DB_CHUNKSIZE;
 
     /*
      * first, read the blob header; if the new blob fits into the 
@@ -638,14 +624,14 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
      * space?
      */
     if (alloc_size<=blob_get_alloc_size(&old_hdr)) 
-	{
+    {
         ham_u8_t *chunk_data[2];
         ham_size_t chunk_size[2];
 
-		chunk_data[0]=(ham_u8_t *)&new_hdr;
-		chunk_size[0]=sizeof(new_hdr);
-		chunk_data[1]=data;
-		chunk_size[1]=size;
+        chunk_data[0]=(ham_u8_t *)&new_hdr;
+        chunk_size[0]=sizeof(new_hdr);
+        chunk_data[1]=data;
+        chunk_size[1]=size;
 
         /* 
          * setup the new blob header
@@ -659,7 +645,7 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
             blob_set_alloc_size(&new_hdr, blob_get_alloc_size(&old_hdr));
 
         st=__write_chunks(db, page, blob_get_self(&new_hdr), HAM_FALSE,
-				HAM_FALSE, chunk_data, chunk_size, 2);
+                HAM_FALSE, chunk_data, chunk_size, 2);
         if (st)
             return (st);
 
@@ -681,10 +667,10 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
         return (0);
     }
     else {
-		/* 
-		when the new data is larger, allocate a fresh space for it and discard the old;
-		'overwrite' has become (delete + insert) now.
-		*/
+        /* 
+        when the new data is larger, allocate a fresh space for it and discard the old;
+        'overwrite' has become (delete + insert) now.
+        */
         st=blob_allocate(db, data, size, flags, new_blobid);
         if (st)
             return (st);
@@ -740,7 +726,7 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
 }
 
 ham_status_t
-blob_duplicate_insert(ham_db_t *db,	ham_offset_t table_id, 
+blob_duplicate_insert(ham_db_t *db,    ham_offset_t table_id, 
         ham_size_t position, ham_u32_t flags, 
         dupe_entry_t *entries, ham_size_t num_entries, 
         ham_offset_t *rid, ham_size_t *new_position)
@@ -755,7 +741,7 @@ blob_duplicate_insert(ham_db_t *db,	ham_offset_t table_id,
      * the first entry
      */
     if (!table_id) 
-	{
+    {
         ham_assert(num_entries==2, (""));
         /* allocates space for 8 (!) entries */
         table=ham_mem_calloc(db, sizeof(dupe_table_t)+7*sizeof(dupe_entry_t));
@@ -771,10 +757,10 @@ blob_duplicate_insert(ham_db_t *db,	ham_offset_t table_id,
         alloc_table=1;
     }
     else 
-	{
-		/*
-		 * otherwise load the existing table 
-		 */
+    {
+        /*
+         * otherwise load the existing table 
+         */
         table=__get_duplicate_table(db, table_id, &page);
         if (!table)
             return (db_get_error(db));
@@ -793,7 +779,7 @@ blob_duplicate_insert(ham_db_t *db,	ham_offset_t table_id,
      */ 
     if (!(flags & HAM_OVERWRITE)
             && dupe_table_get_count(table)+1>=dupe_table_get_capacity(table)) 
-	{
+    {
         dupe_table_t *old=table;
         ham_size_t new_cap=dupe_table_get_capacity(table);
 
@@ -821,50 +807,50 @@ blob_duplicate_insert(ham_db_t *db,	ham_offset_t table_id,
      * insert (or overwrite) the entry at the requested position
      */
     if (flags&HAM_OVERWRITE) 
-	{
+    {
         dupe_entry_t *e=dupe_table_get_entry(table, position);
 
         if (!(dupe_entry_get_flags(e)&(KEY_BLOB_SIZE_SMALL
-									|KEY_BLOB_SIZE_TINY
-									|KEY_BLOB_SIZE_EMPTY)))
-		{
+                                    |KEY_BLOB_SIZE_TINY
+                                    |KEY_BLOB_SIZE_EMPTY)))
+        {
             (void)blob_free(db, dupe_entry_get_rid(e), 0);
-		}
+        }
 
         memcpy(dupe_table_get_entry(table, position), 
                         &entries[0], sizeof(entries[0]));
     }
     else 
-	{
+    {
         if (flags&HAM_DUPLICATE_INSERT_BEFORE) 
-		{
+        {
             /* do nothing, insert at the current position */
         }
         else if (flags&HAM_DUPLICATE_INSERT_AFTER) 
-		{
+        {
             position++;
             if (position > dupe_table_get_count(table))
                 position=dupe_table_get_count(table);
         }
         else if (flags&HAM_DUPLICATE_INSERT_FIRST) 
-		{
+        {
             position=0;
         }
         else if (flags&HAM_DUPLICATE_INSERT_LAST) 
-		{
+        {
             position=dupe_table_get_count(table);
         }
-		else
-		{
-			position=dupe_table_get_count(table);
-		}
+        else
+        {
+            position=dupe_table_get_count(table);
+        }
 
         if (position != dupe_table_get_count(table))
-		{
+        {
             memmove(dupe_table_get_entry(table, position+1), 
                 dupe_table_get_entry(table, position), 
                 sizeof(entries[0])*(dupe_table_get_count(table)-position));
-		}
+        }
 
         memcpy(dupe_table_get_entry(table, position), 
                 &entries[0], sizeof(entries[0]));
@@ -876,21 +862,21 @@ blob_duplicate_insert(ham_db_t *db,	ham_offset_t table_id,
      * write the table back to disk and return the blobid of the table
      */
     if ((table_id && !page) || resize) 
-	{
+    {
         st=blob_overwrite(db, table_id, (ham_u8_t *)table,
                 sizeof(dupe_table_t)
                     +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t),
                 0, rid);
     }
     else if (!table_id) 
-	{
+    {
         st=blob_allocate(db, (ham_u8_t *)table,
                 sizeof(dupe_table_t)
                     +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t),
                 0, rid);
     }
     else if (table_id && page) 
-	{
+    {
         page_set_dirty(page);
     }
     else
@@ -941,18 +927,14 @@ blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
      * free the whole duplicate table
      */
     if (flags&BLOB_FREE_ALL_DUPES
-            || (position==0 && dupe_table_get_count(table)==1)) 
-	{
-        for (i=0; i<dupe_table_get_count(table); i++) 
-		{
+            || (position==0 && dupe_table_get_count(table)==1)) {
+        for (i=0; i<dupe_table_get_count(table); i++) {
             dupe_entry_t *e=dupe_table_get_entry(table, i);
             if (!(dupe_entry_get_flags(e)&(KEY_BLOB_SIZE_SMALL
-										|KEY_BLOB_SIZE_TINY
-										|KEY_BLOB_SIZE_EMPTY)))
-			{
+                                        |KEY_BLOB_SIZE_TINY
+                                        |KEY_BLOB_SIZE_EMPTY))) {
                 st=blob_free(db, dupe_entry_get_rid(e), 0);
-                if (st) 
-				{
+                if (st) {
                     ham_mem_free(db, table);
                     return (st);
                 }
@@ -970,16 +952,13 @@ blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
 
         return (0);
     }
-    else 
-	{
+    else {
         dupe_entry_t *e=dupe_table_get_entry(table, position);
         if (!(dupe_entry_get_flags(e)&(KEY_BLOB_SIZE_SMALL
-									|KEY_BLOB_SIZE_TINY
-									|KEY_BLOB_SIZE_EMPTY))) 
-		{
+                                    |KEY_BLOB_SIZE_TINY
+                                    |KEY_BLOB_SIZE_EMPTY))) {
             st=blob_free(db, dupe_entry_get_rid(e), 0);
-            if (st) 
-			{
+            if (st) {
                 ham_mem_free(db, table);
                 return (st);
             }
