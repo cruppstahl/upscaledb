@@ -287,9 +287,9 @@ typedef struct ham_runtime_statistics_globdata_t
  * @sa ham_statistics_t
  * @sa ham_runtime_statistics_opdbdata_t
  */
-#define HAM_OPERATION_STATS_FIND        0
-#define HAM_OPERATION_STATS_INSERT        1
-#define HAM_OPERATION_STATS_ERASE        2
+#define HAM_OPERATION_STATS_FIND           0
+#define HAM_OPERATION_STATS_INSERT         1
+#define HAM_OPERATION_STATS_ERASE          2
 
 /** The number of operations defined for the statistics gathering process */
 #define HAM_OPERATION_STATS_MAX            3
@@ -521,7 +521,7 @@ typedef struct ham_statistics_t
  * @sa ham_env_get_parameters
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_clean_statistics_datarec(ham_statistics_t *s);
+ham_clean_statistics_datarec(ham_statistics_t *stats);
 
 
 #ifdef __cplusplus
