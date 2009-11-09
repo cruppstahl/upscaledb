@@ -140,13 +140,6 @@ typedef struct
 /** Flag for @ref ham_key_t (only really useful in combination with 
  * @ref ham_cursor_move, @ref ham_cursor_find, @ref ham_cursor_find_ex 
  * and @ref ham_find) 
- *  
- * @note
- * When any of these functions returns either @ref HAM_SUCCESS or 
- * @ref HAM_KEYSIZE_TOO_SMALL, the key size field will be set to the actual 
- * keysize. The latter is done to help the hamsterdb user to subsequently 
- * allocate a suitably sized data space when [s]he wishes to keep using 
- * the @ref HAM_KEY_USER_ALLOC flag.
  */
 #define HAM_KEY_USER_ALLOC      1
 
@@ -302,8 +295,6 @@ typedef struct {
 #define HAM_CURSOR_STILL_OPEN        (-29)
 /** User-allocated record size too small */
 #define HAM_RECORDSIZE_TOO_SMALL     (-30)
-/** User-allocated key size too small */
-#define HAM_KEYSIZE_TOO_SMALL        (-31)
 /** Page filter received wrong page size */
 #define HAM_INVALID_PAGEFILTER_PAGESIZE         (-32)
 /** Several page filters are incompatible */
@@ -1745,9 +1736,6 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if @a db, @a key or @a record is NULL
  * @return @ref HAM_KEY_NOT_FOUND if the @a key does not exist
- * @return @ref HAM_KEYSIZE_TOO_SMALL if the user-specified key size is not 
- *        large enough to store the entire key. Note also that 
- *        @ref HAM_RECORD_NUMBER Databases require a fixed key size of 8.
  * @return @ref HAM_RECORDSIZE_TOO_SMALL if the user-specified record size 
  *        is not large enough to store the entire record.
  * 
@@ -2186,9 +2174,6 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * @return @ref HAM_KEY_NOT_FOUND if @a cursor points to the first (or last)
  *              item, and a move to the previous (or next) item was
  *              requested
- * @return @ref HAM_KEYSIZE_TOO_SMALL if the user-specified key size is not 
- *              large enough to store the entire key. Note also that 
- *              @ref HAM_RECORD_NUMBER Databases require a fixed key size of 8.
  * @return @ref HAM_RECORDSIZE_TOO_SMALL if the user-specified record size 
  *              is not large enough to store the entire record.
  *
@@ -2346,9 +2331,6 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  * @return @ref HAM_INV_PARAMETER if @a db, @a key or @a record is NULL
  * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref HAM_KEY_NOT_FOUND if no suitable @a key (record) exists
- * @return @ref HAM_KEYSIZE_TOO_SMALL if the user-specified key size is not 
- *         large enough to store the entire key. Note also that 
- *         @ref HAM_RECORD_NUMBER Databases require a fixed key size of 8.
  *
  * @sa HAM_KEY_USER_ALLOC
  * @sa ham_key_t
@@ -2475,9 +2457,6 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  * @return @ref HAM_INV_PARAMETER if @a db, @a key or @a record is NULL
  * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref HAM_KEY_NOT_FOUND if no suitable @a key (record) exists
- * @return @ref HAM_KEYSIZE_TOO_SMALL if the user-specified key size is not 
- *         large enough to store the entire key. Note also that 
- *         @ref HAM_RECORD_NUMBER Databases require a fixed key size of 8.
  * @return @ref HAM_RECORDSIZE_TOO_SMALL if the user-specified record size 
  *         is not large enough to store the entire record.
  *

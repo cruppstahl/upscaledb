@@ -507,8 +507,6 @@ ham_strerror(ham_status_t result)
             return ("Cursor must be closed prior to Transaction abort/commit");
         case HAM_RECORDSIZE_TOO_SMALL     :
             return "User-allocated record size too small"; 
-        case HAM_KEYSIZE_TOO_SMALL        :
-            return "User-allocated key size too small";
         case HAM_INVALID_PAGEFILTER_PAGESIZE:
             return "A page filter detected an alternative raw pagesize has been used to create the database";
         case HAM_INVALID_PAGEFILTER_DESIGN:
