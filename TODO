@@ -62,10 +62,11 @@ x update cpp API!
     x ham_get_key_count
     x ham_get_parameters
     x ham_env_get_parameters
+x ham_clean_statistics_datarec is a public function - are there other public
+    functions? review interfaces
 
-o documentation
-o samples
 o tools
+o samples
 o win32 build environment
 
 o EnvTest::createAndOpenMultiDbTest: disabled; the last (256.) call of 
@@ -74,13 +75,13 @@ o DAM - really be backwards compatible?? or upgrade the files to 1.1.0?
     o review DAM related code in hamsterdb.h and src/
     o make sure that HAM_DAM_ENFORCE_PRE110_FORMAT cannot be set from user
         (only automatically by loading a file from 1.0.9)
-o ham_clean_statistics_datarec is a public function - are there other public
-    functions? review interfaces
 
 ----
 
 o IMPORTANT!!! - increase libtool version by 1??? also, we have some API
     incompatibilities when HAM_*_USER_ALLOC is used. are they a problem??
+
+o add/fix testing of the tools to the release process
 
 o in-memory-db could access directly the record (and then overwrite it)
     -> needs new flag for ham_find/ham_cursor_move
@@ -115,10 +116,14 @@ o unittests: get rid of cppunit, move to bfc
     o make sure that all tests are run only once (don't register tests in
          the constructor of a fixture)
 
+. ham_get_parameter: could return VERSION of the database
+
 ----------
 
 . enhance java/python/.NET for transactions and approx matching
     o update README file(s) with new address
+    o python: we now have a ham_get_key_count() function and do not need the
+        slow iteration code anymore
 
 . enhance acceptance tests - will need new test scripts
     TXN_BEGIN 1  (1 is the txn id)
