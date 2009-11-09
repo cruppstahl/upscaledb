@@ -42,11 +42,11 @@ cache_new(ham_db_t *db, ham_size_t max_elements)
         db_set_error(db, HAM_OUT_OF_MEMORY);
         return (0);
     }
-	if (max_elements == 0 || max_elements > CACHE_MAX_ELEM)
-		max_elements = CACHE_MAX_ELEM;
+    if (max_elements == 0 || max_elements > CACHE_MAX_ELEM)
+        max_elements = CACHE_MAX_ELEM;
     cache_set_max_elements(cache, max_elements);
     cache_set_bucketsize(cache, buckets);
-	cache->_timeslot = 777; /* a reasonable start value; value is related 
+    cache->_timeslot = 777; /* a reasonable start value; value is related 
                 * to the increments applied to active cache pages */
     return (cache);
 }
@@ -82,22 +82,22 @@ cache_reduce_page_counts(ham_cache_t *cache)
 {
     ham_page_t *page;
 
-	if (!cache)
-		return;
+    if (!cache)
+        return;
 
-	page = cache_get_totallist(cache);
-	while (page)
-	{ 
+    page = cache_get_totallist(cache);
+    while (page)
+    { 
         /* act on ALL pages, including the reference-counted ones.  */
         ham_u32_t count = page_get_cache_cntr(page);
 
-		/* now scale by applying division: */
-		count >>= 16;
-		page_set_cache_cntr(page, count);
+        /* now scale by applying division: */
+        count >>= 16;
+        page_set_cache_cntr(page, count);
 
-		/* and the next one, please, James. */
-		page = page_get_next(page, PAGE_LIST_CACHED);		
-	}
+        /* and the next one, please, James. */
+        page = page_get_next(page, PAGE_LIST_CACHED);        
+    }
 
     /* and cut down the timeslot value as well: */
     /*
@@ -112,8 +112,8 @@ ham_page_t *
 cache_get_unused_page(ham_cache_t *cache)
 {
     ham_page_t *page;
-	ham_page_t *head;
-	ham_page_t *min = 0;
+    ham_page_t *head;
+    ham_page_t *min = 0;
     ham_size_t hash;
 
     page=cache_get_garbagelist(cache);
@@ -124,16 +124,16 @@ cache_get_unused_page(ham_cache_t *cache)
                 page_list_remove(cache_get_garbagelist(cache), 
                     PAGE_LIST_GARBAGE, page));
 
-		cache_push_history(page, -2);
+        cache_push_history(page, -2);
 
-		cache_set_cur_elements(cache, 
+        cache_set_cur_elements(cache, 
                 cache_get_cur_elements(cache)-1);
         return (page);
     }
 
     head=cache_get_totallist(cache);
     if (!head)
-		return (0);
+        return (0);
 
     /*
      * Oh, this was all so unfair! <grin>
@@ -157,7 +157,7 @@ cache_get_unused_page(ham_cache_t *cache)
      * through ->PREV... If only our cyclic LL patch hadn't caused such
      * weird bugs  :-(
      */
-	page = head;
+    page = head;
     do {
         /* only handle unused pages */
         if (page_get_refcount(page)==0) {
@@ -175,7 +175,7 @@ cache_get_unused_page(ham_cache_t *cache)
             }
         }
         page=page_get_next(page, PAGE_LIST_CACHED);
-		ham_assert(page != head, (0));
+        ham_assert(page != head, (0));
     } while (page && page!=head);
     
     if (!min)
@@ -183,18 +183,18 @@ cache_get_unused_page(ham_cache_t *cache)
 
     hash=my_calc_hash(cache, page_get_self(min));
 
-	ham_assert(page_is_in_list(cache_get_totallist(cache), min, 
+    ham_assert(page_is_in_list(cache_get_totallist(cache), min, 
                     PAGE_LIST_CACHED), (0));
     cache_set_totallist(cache, 
             page_list_remove(cache_get_totallist(cache), 
             PAGE_LIST_CACHED, min));
-	ham_assert(page_is_in_list(cache_get_bucket(cache, hash), min, 
+    ham_assert(page_is_in_list(cache_get_bucket(cache, hash), min, 
                     PAGE_LIST_BUCKET), (0));
     cache_set_bucket(cache, hash, 
             page_list_remove(cache_get_bucket(cache, 
             hash), PAGE_LIST_BUCKET, min));
 
-	cache_push_history(min, -3);
+    cache_push_history(min, -3);
 
     cache_set_cur_elements(cache, 
             cache_get_cur_elements(cache)-1);
@@ -216,22 +216,22 @@ cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags)
     }
 
     if (page && flags != CACHE_NOREMOVE) {
-		if (page_is_in_list(cache_get_totallist(cache), page, PAGE_LIST_CACHED))
-		{
-			cache_set_totallist(cache, 
-				page_list_remove(cache_get_totallist(cache), 
-				PAGE_LIST_CACHED, page));
-		}
-		ham_assert(page_is_in_list(cache_get_bucket(cache, hash), page, 
+        if (page_is_in_list(cache_get_totallist(cache), page, PAGE_LIST_CACHED))
+        {
+            cache_set_totallist(cache, 
+                page_list_remove(cache_get_totallist(cache), 
+                PAGE_LIST_CACHED, page));
+        }
+        ham_assert(page_is_in_list(cache_get_bucket(cache, hash), page, 
                 PAGE_LIST_BUCKET), (0));
-		cache_set_bucket(cache, hash,
-			page_list_remove(cache_get_bucket(cache, 
-			hash), PAGE_LIST_BUCKET, page));
+        cache_set_bucket(cache, hash,
+            page_list_remove(cache_get_bucket(cache, 
+            hash), PAGE_LIST_BUCKET, page));
 
-		cache_push_history(page, -4);
+        cache_push_history(page, -4);
 
-		cache_set_cur_elements(cache, 
-			cache_get_cur_elements(cache)-1);
+        cache_set_cur_elements(cache, 
+            cache_get_cur_elements(cache)-1);
     }
 
     return (page);
@@ -241,27 +241,27 @@ ham_status_t
 cache_put_page(ham_cache_t *cache, ham_page_t *page)
 {
     ham_size_t hash=my_calc_hash(cache, page_get_self(page));
-	ham_bool_t new_page = HAM_TRUE;
+    ham_bool_t new_page = HAM_TRUE;
 
     if (page_is_in_list(cache_get_totallist(cache), page, PAGE_LIST_CACHED)) {
         cache_set_totallist(cache, 
                 page_list_remove(cache_get_totallist(cache), 
                 PAGE_LIST_CACHED, page));
 
-		new_page = HAM_FALSE;
+        new_page = HAM_FALSE;
 
-		cache_set_cur_elements(cache, 
+        cache_set_cur_elements(cache, 
                 cache_get_cur_elements(cache)-1);
     }
-	ham_assert(!page_is_in_list(cache_get_totallist(cache), page, 
+    ham_assert(!page_is_in_list(cache_get_totallist(cache), page, 
                 PAGE_LIST_CACHED), (0));
     cache_set_totallist(cache, 
             page_list_insert(cache_get_totallist(cache), 
             PAGE_LIST_CACHED, page));
 
-	cache_push_history(page, new_page ? +2 : 0);
+    cache_push_history(page, new_page ? +2 : 0);
 
-	cache_set_cur_elements(cache, 
+    cache_set_cur_elements(cache, 
             cache_get_cur_elements(cache)+1);
 
     /*
@@ -270,12 +270,12 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page)
      * to avoid inserting the page twice, we first remove it from the 
      * bucket
      */
-	if (page_is_in_list(cache_get_bucket(cache, hash), page, PAGE_LIST_BUCKET))
-	{
-		cache_set_bucket(cache, hash, page_list_remove(cache_get_bucket(cache, 
-					hash), PAGE_LIST_BUCKET, page));
-	}
-	ham_assert(!page_is_in_list(cache_get_bucket(cache, hash), page, 
+    if (page_is_in_list(cache_get_bucket(cache, hash), page, PAGE_LIST_BUCKET))
+    {
+        cache_set_bucket(cache, hash, page_list_remove(cache_get_bucket(cache, 
+                    hash), PAGE_LIST_BUCKET, page));
+    }
+    ham_assert(!page_is_in_list(cache_get_bucket(cache, hash), page, 
                 PAGE_LIST_BUCKET), (0));
     cache_get_bucket(cache, hash)=page_list_insert(cache_get_bucket(cache, 
                 hash), PAGE_LIST_BUCKET, page);
@@ -310,36 +310,36 @@ cache_update_page_access_counter(ham_page_t *page, ham_cache_t *cache)
 ham_status_t 
 cache_remove_page(ham_cache_t *cache, ham_page_t *page)
 {
-	ham_bool_t removed = HAM_FALSE;
+    ham_bool_t removed = HAM_FALSE;
 
     if (page_get_self(page)) 
-	{
-	    ham_size_t hash=my_calc_hash(cache, page_get_self(page));
-		if (page_is_in_list(cache_get_bucket(cache, hash), page, 
+    {
+        ham_size_t hash=my_calc_hash(cache, page_get_self(page));
+        if (page_is_in_list(cache_get_bucket(cache, hash), page, 
                 PAGE_LIST_BUCKET)) {
-			cache_set_bucket(cache, hash, 
+            cache_set_bucket(cache, hash, 
                     page_list_remove(cache_get_bucket(cache, hash), 
                     PAGE_LIST_BUCKET, page));
-		}
+        }
     }
 
     if (page_is_in_list(cache_get_totallist(cache), page, PAGE_LIST_CACHED)) {
         cache_set_totallist(cache, page_list_remove(cache_get_totallist(cache), 
                 PAGE_LIST_CACHED, page));
-		removed = HAM_TRUE;
+        removed = HAM_TRUE;
     }
     if (page_is_in_list(cache_get_garbagelist(cache), page, PAGE_LIST_GARBAGE)){
-		cache_set_garbagelist(cache, 
+        cache_set_garbagelist(cache, 
                     page_list_remove(cache_get_garbagelist(cache), 
-					PAGE_LIST_GARBAGE, page));
-		removed = HAM_TRUE;
-	}
-	if (removed) {
-		cache_push_history(page, -1);
+                    PAGE_LIST_GARBAGE, page));
+        removed = HAM_TRUE;
+    }
+    if (removed) {
+        cache_push_history(page, -1);
 
-		cache_set_cur_elements(cache, 
-				cache_get_cur_elements(cache)-1);
-	}
+        cache_set_cur_elements(cache, 
+                cache_get_cur_elements(cache)-1);
+    }
 
     return (0);
 }

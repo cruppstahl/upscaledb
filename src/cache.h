@@ -48,11 +48,11 @@ typedef struct ham_cache_t
     /** linked list of unused pages */
     ham_page_t *_garbagelist;
 
-	/** 
-	 * a 'timer' counter used to set/check the age of cache entries:
-	 * higher values represent newer / more important entries.
-	 */
-	ham_u32_t _timeslot;
+    /** 
+     * a 'timer' counter used to set/check the age of cache entries:
+     * higher values represent newer / more important entries.
+     */
+    ham_u32_t _timeslot;
 
     /** the buckets - a linked list of ham_page_t pointers */
     ham_page_t *_buckets[1];

@@ -2488,8 +2488,8 @@ cache_history_t *cache_history_locate_entry(ham_page_t *page, int state)
     return ref;
 }
 
-static
-ham_page_t *cache_get_live_page(ham_cache_t *cache, ham_offset_t addr, char *af, int aflen)
+static ham_page_t *
+cache_get_live_page(ham_cache_t *cache, ham_offset_t addr, char *af, int aflen)
 {
     ham_page_t *head;
 
