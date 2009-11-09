@@ -143,6 +143,12 @@ public:
         return (&m_key);
     }
 
+    /** Returns 'sign' of Approximate Match */
+    int get_approximate_match_type() {
+        return (ham_key_get_approximate_match_type(&m_key));
+    }
+
+
 private:
     ham_key_t m_key;
 };
@@ -411,6 +417,22 @@ public:
     /** Flushes the Database to disk. */
     void flush(ham_u32_t flags=0) {
         ham_status_t st=ham_flush(m_db, flags);
+        if (st)
+            throw error(st);
+    }
+
+    /** Returns number of items in the Database. */
+    ham_u64_t get_key_count(ham_txn_t *txn=0, ham_u32_t flags=0) {
+        ham_u64_t count=0;
+        ham_status_t st=ham_get_key_count(m_db, txn, flags, &count);
+        if (st)
+            throw error(st);
+        return (count);
+    }
+
+    /** Retrieves Database parameters. */
+    void get_parameters(ham_parameter_t *param) {
+        ham_status_t st=ham_get_parameters(m_db, param);
         if (st)
             throw error(st);
     }
@@ -693,6 +715,13 @@ public:
         if (st)
             throw error(st);
         m_env=0;
+    }
+
+    /** Retrieves Environment parameters. */
+    void get_parameters(ham_parameter_t *param) {
+        ham_status_t st=ham_env_get_parameters(m_env, param);
+        if (st)
+            throw error(st);
     }
 
     /** Enable AES encryption. */
