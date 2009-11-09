@@ -2,6 +2,7 @@
 November 9, 2009 - chris
 o ham_get_flags is now deprecated - it was replaced by ham_get_parameters
     and ham_env_get_parameters
+o the flag HAM_LOCK_EXCLUSIVE is now enabled by default
 
 Jul 31, 2009 - chris 
 o performance improvements in the freelist code, freelist was abstracted

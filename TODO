@@ -35,8 +35,8 @@ x src/fraction.* - remove if they're not necessary?
 x device-filters: currently don't work in logging - remove the new code
     completely? Or leave as much as we can? -> removed
 x ham_get_flags deprecated (replaced by ham_get_parameters)!! -> document
+x LOCK_EXCLUSIVE is new default? -> document!
 
-o LOCK_EXCLUSIVE is new default? -> document!
 o garbagelist was removed - kann be removed from page.h? what happens with
     deleted pages?
 o document: AES does not affect the logfile!

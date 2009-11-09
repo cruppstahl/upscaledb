@@ -1175,7 +1175,8 @@ ham_create(ham_db_t *db, const char *filename,
  *       <li>@ref HAM_DISABLE_FREELIST_FLUSH </li> This flag is deprecated.
  *       <li>@ref HAM_LOCK_EXCLUSIVE </li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
- *            a given file at a given time.
+ *            a given file at a given time. Deprecated - this is now the
+ *            default
  *       <li>@ref HAM_ENABLE_RECOVERY </li> Enables logging/recovery for this
  *            Database. Not allowed in combination with @ref HAM_IN_MEMORY_DB, 
  *            @ref HAM_DISABLE_FREELIST_FLUSH and @ref HAM_WRITE_THROUGH.
@@ -1289,7 +1290,8 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *       <li>@ref HAM_DISABLE_FREELIST_FLUSH </li> This flag is deprecated.
  *       <li>@ref HAM_LOCK_EXCLUSIVE </li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
- *            a given file at a given time.
+ *            a given file at a given time. Deprecated - this is now the
+ *            default
  *       <li>@ref HAM_ENABLE_RECOVERY </li> Enables logging/recovery for this
  *            Database. Will return @ref HAM_NEED_RECOVERY, if the Database
  *            is in an inconsistent state. Not allowed in combination 

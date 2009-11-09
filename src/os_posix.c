@@ -32,7 +32,7 @@
 #include "os.h"
 
 static ham_status_t
-my_lock_exclusive(int fd, ham_bool_t lock)
+__lock_exclusive(int fd, ham_bool_t lock)
 {
 #if HAM_SOLARIS
     /*
@@ -289,13 +289,11 @@ os_create(const char *filename, ham_u32_t flags, ham_u32_t mode, ham_fd_t *fd)
     }
 
     /*
-     * exclusive locking?
+     * lock the file - this is default behaviour since 1.1.0
      */
-    if (flags&HAM_LOCK_EXCLUSIVE) {
-        st=my_lock_exclusive(*fd, HAM_TRUE);
-        if (st)
-            return (st);
-    }
+    st=__lock_exclusive(*fd, HAM_TRUE);
+    if (st)
+        return (st);
 
     /*
      * enable O_LARGEFILE support
@@ -334,13 +332,11 @@ os_open(const char *filename, ham_u32_t flags, ham_fd_t *fd)
     }
 
     /*
-     * exclusive locking?
+     * lock the file - this is default behaviour since 1.1.0
      */
-    if (flags&HAM_LOCK_EXCLUSIVE) {
-        st=my_lock_exclusive(*fd, HAM_TRUE);
-        if (st)
-            return (st);
-    }
+    st=__lock_exclusive(*fd, HAM_TRUE);
+    if (st)
+        return (st);
 
     /*
      * enable O_LARGEFILE support
@@ -356,13 +352,11 @@ os_close(ham_fd_t fd, ham_u32_t flags)
     ham_status_t st;
 
     /*
-     * unlock the file?
+     * unlock the file - this is default behaviour since 1.1.0
      */
-    if (flags&HAM_LOCK_EXCLUSIVE) {
-        st=my_lock_exclusive(fd, HAM_FALSE);
-        if (st)
-            return (st);
-    }
+    st=__lock_exclusive(fd, HAM_FALSE);
+    if (st)
+        return (st);
 
     if (close(fd)==-1)
         return (HAM_IO_ERROR);
