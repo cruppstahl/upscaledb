@@ -531,12 +531,6 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
             return (st);
         record->data = db_get_record_allocdata(db);
     }
-    else {
-        if (record->size < blobsize) {
-            record->size = blobsize;
-            return db_set_error(db, HAM_RECORDSIZE_TOO_SMALL);
-        }
-    }
 
     /*
      * third step: read the blob data

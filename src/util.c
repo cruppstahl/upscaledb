@@ -60,7 +60,7 @@ util_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
         /* the extended flag is set later, when this key is inserted */
         dest->_flags = source->_flags & ~KEY_IS_EXTENDED;
     }
-    else if (key.size) {
+    else if (source->size) {
         if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
             if (!dest->data) {
                 ham_mem_free(db, dest->data);

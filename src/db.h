@@ -76,17 +76,17 @@ typedef HAM_PACK_0 struct HAM_PACK_1
     /* size of the page */
     ham_u32_t _pagesize;
 
-	/*
-	 * NOTE: formerly, the _max_databases was 32 bits, but since
-	 * nobody would use more than 64K tables/indexes, we have the
-	 * MSW free for repurposing; as we store data in Little Endian
-	 * order, that would be the second WORD.
+    /*
+     * NOTE: formerly, the _max_databases was 32 bits, but since
+     * nobody would use more than 64K tables/indexes, we have the
+     * MSW free for repurposing; as we store data in Little Endian
+     * order, that would be the second WORD.
      *
-	 * That is now repurposed to recall the probable access mode
-	 * as once set up during ham_create_ex/ham_env_create_db.
+     * That is now repurposed to recall the probable access mode
+     * as once set up during ham_create_ex/ham_env_create_db.
      *
-	 * For reasons of backwards compatibility, the default value
-	 * there would be zero (0).
+     * For reasons of backwards compatibility, the default value
+     * there would be zero (0).
      */
 
     /* maximum number of databases for this environment */
@@ -204,33 +204,33 @@ typedef HAM_PACK_0 struct HAM_PACK_1
  */
 typedef HAM_PACK_0 union HAM_PACK_1 
 {
-	HAM_PACK_0 struct HAM_PACK_1 {
-		/* name of the DB: 1..HAM_EMPTY_DATABASE_NAME-1 */
-		ham_u16_t _dbname;
+    HAM_PACK_0 struct HAM_PACK_1 {
+        /* name of the DB: 1..HAM_EMPTY_DATABASE_NAME-1 */
+        ham_u16_t _dbname;
 
-		/* maximum keys in an internal page */
-		ham_u16_t _maxkeys;
+        /* maximum keys in an internal page */
+        ham_u16_t _maxkeys;
 
         /* key size in this page */
-		ham_u16_t _keysize;
+        ham_u16_t _keysize;
 
         /* reserved in 1.0.x up to 1.0.9 */
-	    ham_u16_t  _data_access_mode;
-	
-		/* address of this page */
-		ham_offset_t _self;
+        ham_u16_t  _data_access_mode;
+    
+        /* address of this page */
+        ham_offset_t _self;
 
         /* flags for this database */
-		ham_u32_t _flags;
+        ham_u32_t _flags;
 
         /* last used record number value */
-		ham_offset_t _recno;
+        ham_offset_t _recno;
 
         /* reserved in 1.0.x up to 1.0.9 */
-		ham_u32_t _reserved;
-	} HAM_PACK_2 b;
+        ham_u32_t _reserved;
+    } HAM_PACK_2 b;
 
-	ham_u8_t _space[32];
+    ham_u8_t _space[32];
 } HAM_PACK_2 db_indexdata_t;
 
 #include "packstop.h"
@@ -241,8 +241,8 @@ typedef HAM_PACK_0 union HAM_PACK_1
  * data is up to the backend
  */
 #define db_get_indexdata_arrptr(db)                         \
-	((db_indexdata_t *)((ham_u8_t *)page_get_payload(       \
-		db_get_header_page(db)) + sizeof(db_header_t)))
+    ((db_indexdata_t *)((ham_u8_t *)page_get_payload(       \
+        db_get_header_page(db)) + sizeof(db_header_t)))
 
 /*
  * get the private data of the backend; interpretation of the
@@ -250,28 +250,28 @@ typedef HAM_PACK_0 union HAM_PACK_1
  */
 #define db_get_indexdata_ptr(db, i) (db_get_indexdata_arrptr(db) + (i))
 
-#define index_get_dbname(p)			ham_db2h16((p)->b._dbname)
-#define index_set_dbname(p, n)		(p)->b._dbname = ham_h2db16(n)
+#define index_get_dbname(p)            ham_db2h16((p)->b._dbname)
+#define index_set_dbname(p, n)        (p)->b._dbname = ham_h2db16(n)
 
-#define index_get_max_keys(p)		ham_db2h16((p)->b._maxkeys)
-#define index_set_max_keys(p, n)	(p)->b._maxkeys = ham_h2db16(n)
+#define index_get_max_keys(p)        ham_db2h16((p)->b._maxkeys)
+#define index_set_max_keys(p, n)    (p)->b._maxkeys = ham_h2db16(n)
 
-#define index_get_keysize(p)		ham_db2h16((p)->b._keysize)
-#define index_set_keysize(p, n)		(p)->b._keysize = ham_h2db16(n)
+#define index_get_keysize(p)        ham_db2h16((p)->b._keysize)
+#define index_set_keysize(p, n)        (p)->b._keysize = ham_h2db16(n)
 
-#define index_get_self(p)			ham_db2h_offset((p)->b._self)
-#define index_set_self(p, n)		(p)->b._self = ham_h2db_offset(n)
+#define index_get_self(p)            ham_db2h_offset((p)->b._self)
+#define index_set_self(p, n)        (p)->b._self = ham_h2db_offset(n)
 
-#define index_get_flags(p)			ham_db2h32((p)->b._flags)
-#define index_set_flags(p, n)		(p)->b._flags = ham_h2db32(n)
+#define index_get_flags(p)            ham_db2h32((p)->b._flags)
+#define index_set_flags(p, n)        (p)->b._flags = ham_h2db32(n)
 
-#define index_get_recno(p)			ham_db2h_offset((p)->b._recno)
-#define index_set_recno(p, n)		(p)->b._recno = ham_h2db_offset(n)
+#define index_get_recno(p)            ham_db2h_offset((p)->b._recno)
+#define index_set_recno(p, n)        (p)->b._recno = ham_h2db_offset(n)
 
-#define index_get_data_access_mode(p)		ham_db2h16((p)->b._data_access_mode)
-#define index_set_data_access_mode(p, n)	(p)->b._data_access_mode = ham_h2db16(n)
+#define index_get_data_access_mode(p)        ham_db2h16((p)->b._data_access_mode)
+#define index_set_data_access_mode(p, n)    (p)->b._data_access_mode = ham_h2db16(n)
 
-#define index_clear_reserved(p)		(p)->b._reserved = 0
+#define index_clear_reserved(p)        (p)->b._reserved = 0
 
 /*
  * get the currently active transaction
@@ -398,15 +398,17 @@ struct ham_db_t
     /* linked list of all record-level filters */
     ham_record_filter_t *_record_filters;
 
+    /* current data access mode (DAM) */
     ham_u16_t  _data_access_mode;
 
-	ham_size_t _cooked_pagesize;
+    /* the pagesize */
+    ham_size_t _pagesize;
 
-	/** some freelist algorithm specific run-time data */
-	ham_runtime_statistics_globdata_t _global_perf_data;
+    /** some freelist algorithm specific run-time data */
+    ham_runtime_statistics_globdata_t _global_perf_data;
 
-	/** some database specific run-time data */
-	ham_runtime_statistics_dbdata_t _db_perf_data;
+    /** some database specific run-time data */
+    ham_runtime_statistics_dbdata_t _db_perf_data;
 };
 
 /*
@@ -427,23 +429,23 @@ struct ham_db_t
  */
 #define db_get_cooked_pagesize(db)  (db_get_env(db)                          \
                                     ? env_get_cooked_pagesize(db_get_env(db))\
-                                    : (db)->_cooked_pagesize)
+                                    : (db)->_pagesize)
 
 /*
  * set the page size
  */
-#define db_set_cooked_pagesize(db, ps)  do {                                         \
-									if (db_get_env(db))								 \
-										env_set_cooked_pagesize(db_get_env(db), ps); \
-									else											 \
-										(db)->_cooked_pagesize = (ps);				 \
-								} while (0)											 
+#define db_set_cooked_pagesize(db, ps)  do {                                 \
+                                    if (db_get_env(db))                      \
+                                        env_set_cooked_pagesize(db_get_env(db),ps); \
+                                    else                                     \
+                                        (db)->_pagesize = (ps);              \
+                                } while (0)                                             
  
 /**
  * get the size of the usable persistent payload of a page
  */
 #define db_get_usable_pagesize(db) (db_get_cooked_pagesize(db) \
-	- db_get_persistent_header_size())
+    - db_get_persistent_header_size())
 
 /*
  * get the current transaction ID
@@ -689,8 +691,8 @@ struct ham_db_t
 /*
  * check if a given data access mode / mode-set has been set
  */
-#define db_is_mgt_mode_set(mode_collective, mask)				\
-	(((mode_collective) & (mask)) == (mask))
+#define db_is_mgt_mode_set(mode_collective, mask)                \
+    (((mode_collective) & (mask)) == (mask))
 
 /*
  * get a reference to the DB FILE (global) statistics
@@ -825,7 +827,7 @@ db_create_backend(ham_db_t *db, ham_u32_t flags);
 extern ham_page_t *
 db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags);
 
-#define DB_ONLY_FROM_CACHE				0x0002
+#define DB_ONLY_FROM_CACHE                0x0002
 
 /**
  * Register new pages in the cache, but give them an 'old' age upon first creation, so they
@@ -834,7 +836,7 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags);
  * This is a hacky way to ensure code simplicity while blob I/O does not thrash the cache but
  * meanwhile still gets added to the activity log in a proper fashion.
  */
-#define DB_NEW_PAGE_DOESNT_THRASH_CACHE	0x0004
+#define DB_NEW_PAGE_DOESNT_THRASH_CACHE    0x0004
 
 /**
  * flush a page
