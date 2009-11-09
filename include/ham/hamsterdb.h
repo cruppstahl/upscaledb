@@ -1980,8 +1980,6 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  * improve the execution speed of this operation significantly.
  *
  * @param db A valid Database handle
- * @param keycount A reference to a variable which will receive
- *                 the calculated key count per page
  * @param txn A Transaction handle, or NULL
  * @param flags Optional flags:
  *       <ul>
@@ -1989,14 +1987,16 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  *       <li> @ref HAM_HINT_UBER_FAST_ACCESS improves execution speed at the 
  *            expense of accuracy: the count produced is a rough estimate
  *       </ul>
+ * @param keycount A reference to a variable which will receive
+ *                 the calculated key count per page
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if @a db or @a keycount is NULL or when 
  *         @a flags contains an invalid flag set
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_get_key_count(ham_db_t *db, ham_txn_t *txn, 
-            ham_offset_t *keycount, ham_u32_t flags);
+ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
+            ham_offset_t *keycount);
 
 /**
  * Closes the Database

@@ -5443,23 +5443,21 @@ my_calc_keys_cb(int event, void *param1, void *param2, void *context)
 }
 
 ham_status_t HAM_CALLCONV
-ham_get_key_count(ham_db_t *db, ham_txn_t *txn, 
-            ham_offset_t *keycount, ham_u32_t flags)
+ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
+            ham_offset_t *keycount)
 {
     ham_txn_t local_txn;
     ham_status_t st;
     ham_backend_t *be;
     calckeys_context_t ctx = {db, flags, 0, HAM_FALSE};
 
-    if (!keycount) 
-    {
+    if (!keycount) {
         ham_trace(("parameter 'keycount' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
     *keycount = 0;
 
-    if (!db) 
-    {
+    if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
@@ -5469,18 +5467,16 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn,
 
     db_set_error(db, 0);
 
-    if (flags & ~(HAM_SKIP_DUPLICATES | HAM_HINT_UBER_FAST_ACCESS))
-    {
+    if (flags & ~(HAM_SKIP_DUPLICATES | HAM_HINT_UBER_FAST_ACCESS)) {
         ham_trace(("parameter 'flag' contains unsupported flag bits: %08x", 
-                    flags & ~(HAM_SKIP_DUPLICATES | HAM_HINT_UBER_FAST_ACCESS)));
+                  flags & ~(HAM_SKIP_DUPLICATES | HAM_HINT_UBER_FAST_ACCESS)));
         return (HAM_INV_PARAMETER);
     }
 
     be = db_get_backend(db);
     if (!be)
         return (db_set_error(db, HAM_NOT_INITIALIZED));
-    if (!txn) 
-    {
+    if (!txn) {
         if ((st = txn_begin(&local_txn, db, HAM_TXN_READ_ONLY)))
             return (st);
     }
@@ -5490,8 +5486,7 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn,
      */
     st = be->_fun_enumerate(be, my_calc_keys_cb, &ctx);
 
-    if (st) 
-    {
+    if (st) {
         if (!txn)
             (void)txn_abort(&local_txn, 0);
         return (st);
@@ -5505,21 +5500,19 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn,
         return (st);
 }
 
-
 ham_status_t HAM_CALLCONV
 ham_clean_statistics_datarec(ham_statistics_t *s)
 {
-    if (!s) 
-    {
+    if (!s) {
         ham_trace(("parameter 's' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
 
     if (s->_free_func)
-    {
         s->_free_func(s);
-    }
-    ham_assert(s->_free_func == 0, ("the cleanup function must eradicate itself from the struct"));
+
+    ham_assert(s->_free_func == 0, 
+        ("the cleanup function must eradicate itself from the struct"));
 
     return (0);
 }

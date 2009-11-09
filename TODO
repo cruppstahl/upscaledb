@@ -30,6 +30,8 @@ x new append function for ham_cursor_insert: append keys at the "end"
     x use it for recno
     x need unittests
 
+x db6.cpp is old, replace it with the original
+
 ----- merge
 x src/fraction.* - remove if they're not necessary?
 x device-filters: currently don't work in logging - remove the new code
@@ -55,6 +57,11 @@ x garbagelist was removed - kann be removed from page.h? what happens with
     deleted pages? - no, not removed, still needed
 x remove raw_pagesize/cooked_pagesize - we do not distinguish!
 x __check_create_parameters: is the RETURN macro still necessary? - yes
+x update cpp API!
+    x ham_key_get_approximate_match_type
+    x ham_get_key_count
+    x ham_get_parameters
+    x ham_env_get_parameters
 
 o documentation
 o samples
@@ -64,8 +71,11 @@ o win32 build environment
 o EnvTest::createAndOpenMultiDbTest: disabled; the last (256.) call of 
     ham_env_create_db creates valgrind errors (-> even crashes)
 o DAM - really be backwards compatible?? or upgrade the files to 1.1.0?
+    o review DAM related code in hamsterdb.h and src/
     o make sure that HAM_DAM_ENFORCE_PRE110_FORMAT cannot be set from user
         (only automatically by loading a file from 1.0.9)
+o ham_clean_statistics_datarec is a public function - are there other public
+    functions? review interfaces
 
 ----
 
@@ -82,8 +92,6 @@ o packstop has include guards??? remove them, run tests
 
 o do lots of testing with databases from 1.0.9 - must be loaded/modified 
     flawlessly (add unittests!)
-
-o db6.cpp is old, replace it with the original
 
 o approx. matching: need a sample
 

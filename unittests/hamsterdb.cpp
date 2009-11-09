@@ -1828,15 +1828,15 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
         count = 0;
         BFC_ASSERT_EQUAL(0, 
-                ham_get_key_count(m_db, 0, &count, HAM_HINT_UBER_FAST_ACCESS));
+                ham_get_key_count(m_db, 0, HAM_HINT_UBER_FAST_ACCESS, &count));
         BFC_ASSERT_EQUAL(4000, count);
 
         BFC_ASSERT_EQUAL(0, 
-                ham_get_key_count(m_db, 0, &count, HAM_SKIP_DUPLICATES));
+                ham_get_key_count(m_db, 0, HAM_SKIP_DUPLICATES, &count));
         BFC_ASSERT_EQUAL(4000, count);
 
         BFC_ASSERT_EQUAL(0, 
-                ham_get_key_count(m_db, 0, &count, 0));
+                ham_get_key_count(m_db, 0, 0, &count));
         BFC_ASSERT_EQUAL(4000+10, count);
     }
 

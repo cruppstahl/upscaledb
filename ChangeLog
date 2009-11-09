@@ -1,8 +1,11 @@
 
 November 9, 2009 - chris
+o C++ API now has all the new functions
 o ham_get_flags is now deprecated - it was replaced by ham_get_parameters
     and ham_env_get_parameters
 o the flag HAM_LOCK_EXCLUSIVE is now enabled by default
+o the new function ham_get_key_count() returns number of all keys in the 
+    Database
 
 Jul 31, 2009 - chris 
 o performance improvements in the freelist code, freelist was abstracted
