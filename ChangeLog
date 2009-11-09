@@ -1,3 +1,8 @@
+
+November 9, 2009 - chris
+o ham_get_flags is now deprecated - it was replaced by ham_get_parameters
+    and ham_env_get_parameters
+
 Jul 31, 2009 - chris 
 o performance improvements in the freelist code, freelist was abstracted
     to allow multiple implementations (all from Ger Hobbelt, 

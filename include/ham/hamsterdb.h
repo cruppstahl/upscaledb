@@ -1553,6 +1553,9 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
  * @param db A valid Database handle
  *
  * @return The Database flags
+ *
+ * @deprecated This function was replaced by @ref ham_get_parameters
+ * and @ref ham_env_get_parameters
  */
 HAM_EXPORT ham_u32_t HAM_CALLCONV
 ham_get_flags(ham_db_t *db);
