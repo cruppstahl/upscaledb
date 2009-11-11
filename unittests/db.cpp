@@ -108,10 +108,10 @@ public:
         BFC_ASSERT(db_get_magic(db_get_header(m_db), 3)=='4');
 
         db_set_version(m_db, 1, 2, 3, 4);
-        BFC_ASSERT(db_get_version(db_get_header(m_db), 0)==1);
-        BFC_ASSERT(db_get_version(db_get_header(m_db), 1)==2);
-        BFC_ASSERT(db_get_version(db_get_header(m_db), 2)==3);
-        BFC_ASSERT(db_get_version(db_get_header(m_db), 3)==4);
+        BFC_ASSERT(db_get_version((m_db), 0)==1);
+        BFC_ASSERT(db_get_version((m_db), 1)==2);
+        BFC_ASSERT(db_get_version((m_db), 2)==3);
+        BFC_ASSERT(db_get_version((m_db), 3)==4);
 
         db_set_serialno(m_db, 0x1234);
         BFC_ASSERT(db_get_serialno(m_db)==0x1234);

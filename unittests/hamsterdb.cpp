@@ -1328,11 +1328,12 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env2));
         BFC_ASSERT_EQUAL(0, ham_new(&db2));
-
+        /* Exclusive locking is now the default */
         BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK, 
                 ham_env_open(env2, BFC_OPATH(".test"), HAM_LOCK_EXCLUSIVE));
         BFC_ASSERT_EQUAL(0, ham_env_close(env2, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_open(env2, BFC_OPATH(".test"), 0));
+        BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK, 
+                ham_env_open(env2, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env1, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env2, 0));
         BFC_ASSERT_EQUAL(0, 

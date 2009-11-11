@@ -488,16 +488,25 @@ protected:
     {
         ham_env_t *env;
         ham_parameter_t parameters[]={
-           { HAM_PARAM_CACHESIZE,  (ham_u64_t)1024 },
            { HAM_PARAM_PAGESIZE, (ham_u64_t)1024*4 },
            { HAM_PARAM_KEYSIZE,      (ham_u64_t)20 },
+           { HAM_PARAM_CACHESIZE,  (ham_u64_t)1024 },
            { 0, 0ull }
         };
 
+        // in-memory db does not allow the cachesize parameter
+        if (m_flags&HAM_IN_MEMORY_DB) {
+            parameters[2].name=0;
+            parameters[2].value=0;
+        }
+
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        BFC_ASSERT_EQUAL(0, // it's okay to spec keysize for the ENV: it's used as the default keysize for all DBs within the ENV
-                ham_env_create_ex(env, BFC_OPATH(".test"), m_flags, 0644, &parameters[0]));
+        // it's okay to spec keysize for the ENV: it's used as the 
+        // default keysize for all DBs within the ENV
+        BFC_ASSERT_EQUAL(0,
+                ham_env_create_ex(env, BFC_OPATH(".test"), m_flags, 
+                        0644, &parameters[0]));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
@@ -1734,10 +1743,7 @@ public:
         BFC_REGISTER_TEST(InMemoryEnvTest, createCloseTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, createCloseOpenCloseTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, createCloseOpenCloseWithDatabasesTest);
-        //BFC_REGISTER_TEST(InMemoryEnvTest, readOnlyTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, createPagesizeReopenTest);
-        //BFC_REGISTER_TEST(InMemoryEnvTest, openFailCloseTest);
-        //BFC_REGISTER_TEST(InMemoryEnvTest, openWithKeysizeTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, createWithKeysizeTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, createDbWithKeysizeTest);
 		BFC_REGISTER_TEST(InMemoryEnvTest, createAndOpenMultiDbTest);
