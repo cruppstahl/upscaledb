@@ -1065,8 +1065,8 @@ default_case:
     }
 
     if ((env && !db) || (!env && db)) {
-        if (!filename && !(flags&HAM_IN_MEMORY_DB)) {
-            if (!patching_params_and_dont_fail) {
+        if (!patching_params_and_dont_fail) {
+            if (!filename && !(flags&HAM_IN_MEMORY_DB)) {
                 ham_trace(("filename is missing"));
                 RETURN(HAM_INV_PARAMETER);
             }
@@ -1084,6 +1084,7 @@ default_case:
         dbname = HAM_FIRST_DATABASE_NAME;
         RETURN(HAM_INV_PARAMETER);
     }
+
     if (db && (pdbname && !dbname)) {
         dbname = HAM_FIRST_DATABASE_NAME;
         if (!patching_params_and_dont_fail) {
@@ -1550,7 +1551,6 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
     {
     ham_parameter_t full_param[]={
         //{HAM_PARAM_PAGESIZE,  env_get_pagesize(env)},
-        {HAM_PARAM_CACHESIZE, cachesize},
         {HAM_PARAM_KEYSIZE,   keysize},
         {HAM_PARAM_DBNAME,    name},
         {HAM_PARAM_DATA_ACCESS_MODE, dam},
@@ -2546,13 +2546,13 @@ ham_open_ex(ham_db_t *db, const char *filename,
         /* 
          * check the database version
          */
-        if (db_get_version(hdr, 0)!=HAM_VERSION_MAJ ||
-            db_get_version(hdr, 1)!=HAM_VERSION_MIN) {
+        if (dbheader_get_version(hdr, 0)!=HAM_VERSION_MAJ ||
+                dbheader_get_version(hdr, 1)!=HAM_VERSION_MIN) {
             /* before we yak about a bad DB, see if this feller is 
              * a 'backwards compatible' one (1.0.x - 1.0.9) */
-            if (db_get_version(hdr, 0) == 1 &&
-                db_get_version(hdr, 1) == 0 &&
-                db_get_version(hdr, 2) <= 9) {
+            if (dbheader_get_version(hdr, 0) == 1 &&
+                dbheader_get_version(hdr, 1) == 0 &&
+                dbheader_get_version(hdr, 2) <= 9) {
                 persisted_dam = HAM_DAM_ENFORCE_PRE110_FORMAT;
                 ham_log(("old v1.0.x DB file version"));
             }

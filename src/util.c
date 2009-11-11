@@ -62,13 +62,12 @@ util_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
     }
     else if (source->size) {
         if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-            if (!dest->data) {
+            if (dest->data)
                 ham_mem_free(db, dest->data);
-                dest->data = (ham_u8_t *)ham_mem_alloc(db, source->size);
-                if (!dest->data) {
-                    db_set_error(db, HAM_OUT_OF_MEMORY);
-                    return 0;
-                }
+            dest->data = (ham_u8_t *)ham_mem_alloc(db, source->size);
+            if (!dest->data) {
+                db_set_error(db, HAM_OUT_OF_MEMORY);
+                return 0;
             }
         }
         memcpy(dest->data, source->data, source->size);

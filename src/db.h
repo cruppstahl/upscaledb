@@ -136,7 +136,12 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 /*
  * get byte #i of the 'version'-header
  */
-#define db_get_version(db, i)      ((db_get_header(db))->_version[i])
+#define dbheader_get_version(hdr, i)      ((hdr)->_version[i])
+
+/*
+ * get byte #i of the 'version'-header
+ */
+#define db_get_version(db, i)      (dbheader_get_version(db_get_header(db), i))
 
 /*
  * get the serial number
