@@ -56,7 +56,8 @@ __lock_exclusive(int fd, ham_bool_t lock)
         /* it seems that linux does not only return EWOULDBLOCK, as stated
          * in the documentation (flock(2)), but also other errors... */
         if (errno)
-            return (HAM_WOULD_BLOCK);
+            if (lock)
+                return (HAM_WOULD_BLOCK);
         return (HAM_IO_ERROR);
     }
 
