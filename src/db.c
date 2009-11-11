@@ -357,7 +357,7 @@ db_prepare_ham_key_for_compare(ham_db_t *db, int_key_t *src, ham_key_t *dest)
 void
 db_release_ham_key_after_compare(ham_db_t *db, ham_key_t *key)
 {
-    if (key->data && !(key->flags & HAM_KEY_USER_ALLOC)) {
+    if (key->data && key->_flags&KEY_IS_EXTENDED) {
         ham_mem_free(db, key->data);
         key->data = 0;
     }
