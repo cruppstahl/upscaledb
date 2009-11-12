@@ -134,7 +134,7 @@ public:
         BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
         BFC_ASSERT(db_is_dirty(m_db));
-        BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
     void markAllocAlignedTest(void)
@@ -146,7 +146,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                     freel_mark_free(m_db, ps, ps, HAM_FALSE));
         BFC_ASSERT_EQUAL((ham_offset_t)ps, freel_alloc_page(m_db));
-        BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
     void markAllocHighOffsetTest(void)
@@ -167,7 +167,7 @@ public:
 
         BFC_ASSERT(0==freel_alloc_area(m_db, DB_CHUNKSIZE));
         BFC_ASSERT(db_is_dirty(m_db));
-        BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
     void markAllocRangeTest(void)
@@ -191,7 +191,7 @@ public:
 
         BFC_ASSERT(0==freel_alloc_area(m_db, DB_CHUNKSIZE));
         BFC_ASSERT(db_is_dirty(m_db));
-        BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
     void markAllocOverflowTest(void)
@@ -202,7 +202,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                 freel_mark_free(m_db, o, DB_CHUNKSIZE, HAM_FALSE));
-        BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"),  HAM_ENABLE_TRANSACTIONS));
@@ -216,16 +216,17 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 freel_mark_free(m_db, o*2, DB_CHUNKSIZE, HAM_FALSE));
 
-        BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL(o*2,
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
         BFC_ASSERT_EQUAL((ham_offset_t)0,
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
-        BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
     void markAllocOverflow2Test(void)
@@ -250,9 +251,10 @@ public:
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
         BFC_ASSERT(db_is_dirty(m_db));
 
-        BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"),  HAM_ENABLE_TRANSACTIONS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL((ham_offset_t)0, 
@@ -263,14 +265,15 @@ public:
         BFC_ASSERT_EQUAL(10*o, 
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
 
-        BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
-        BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
     void markAllocOverflow4Test(void)
@@ -305,10 +308,11 @@ public:
         BFC_ASSERT_EQUAL(o, 
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
         BFC_ASSERT(db_is_dirty(m_db));
-        BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"),  HAM_ENABLE_TRANSACTIONS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(m_db, BFC_OPATH(".test"),  HAM_ENABLE_TRANSACTIONS));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL((ham_offset_t)o+DB_CHUNKSIZE, 
@@ -321,7 +325,7 @@ public:
         BFC_ASSERT_EQUAL(o, 
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
 
-        BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
@@ -330,7 +334,7 @@ public:
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
         BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
-        BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
     void markAllocOverflow3Test(void)
@@ -340,7 +344,7 @@ public:
         // this code snipped crashed in an acceptance test
         BFC_ASSERT_EQUAL(0, freel_mark_free(m_db, 2036736, 
                     db_get_pagesize(m_db)-1024, HAM_FALSE));
-        BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
     void markAllocAlignTest(void)
@@ -352,7 +356,7 @@ public:
         BFC_ASSERT(freel_mark_free(m_db, ps, ps, HAM_FALSE)==HAM_SUCCESS);
         BFC_ASSERT(freel_alloc_page(m_db)==ps);
         BFC_ASSERT(freel_alloc_area(m_db, DB_CHUNKSIZE)==0);
-        BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
     void markAllocAlignMultipleTest(void)
@@ -366,7 +370,7 @@ public:
         BFC_ASSERT_EQUAL((ham_u64_t)ps*2, freel_alloc_page(m_db));
         BFC_ASSERT_EQUAL((ham_u64_t)0, 
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
-        BFC_ASSERT_EQUAL(0, txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
 	// using a function to compare the constants is easier for debugging
