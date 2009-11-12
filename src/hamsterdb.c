@@ -2567,17 +2567,15 @@ ham_open_ex(ham_db_t *db, const char *filename,
              * see if we can locate the database in the list; if 
              * not, ride with settings for the first
              */
-            db_indexdata_t *idx = db_get_indexdata_ptr(db, 0);
             int i;
+            db_indexdata_t *idx=db_get_indexdata_ptr(db, 0);
 
-            for (i = 0; i < db_get_max_databases(db); i++) 
-            {
+            for (i=0; i<db_get_max_databases(db); i++) {
                 int name = index_get_dbname(db_get_indexdata_ptr(db, i));
-                if (name==0 || name > HAM_EMPTY_DATABASE_NAME)
+                if (name==0 || name>HAM_EMPTY_DATABASE_NAME)
                     continue;
 
-                if (name == dbname)
-                {
+                if (name==dbname) {
                     idx = db_get_indexdata_ptr(db, i);
                     break;
                 }
@@ -2741,21 +2739,22 @@ fail_with_fake_cleansing:
      */
     ham_assert(db_get_max_databases(db) > 0, (0));
     ham_assert(0 != db_get_header_page(db), (0));
-    ham_assert(!db_get_env(db) ? 1 : !!env_get_header_page(db_get_env(db)), (0));
+    ham_assert(!db_get_env(db) 
+            ? 1 
+            : !!env_get_header_page(db_get_env(db)), (0));
+
     for (dbi=0; dbi<db_get_max_databases(db); dbi++) 
     {
         ham_u16_t name = index_get_dbname(db_get_indexdata_ptr(db, dbi));
         if (!name)
             continue;
-        if (dbname == HAM_FIRST_DATABASE_NAME 
-            || dbname == name) 
-        {
+        if (dbname==HAM_FIRST_DATABASE_NAME || dbname==name) {
             db_set_indexdata_offset(db, dbi);
             break;
         }
     }
-    if (dbi==db_get_max_databases(db)) 
-    {
+
+    if (dbi==db_get_max_databases(db)) {
         (void)ham_close(db, 0);
         return (db_set_error(db, HAM_DATABASE_NOT_FOUND));
     }
@@ -3070,9 +3069,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
         ham_u16_t name = index_get_dbname(db_get_indexdata_ptr(db, i));
         if (!name)
             continue;
-        if (name==dbname
-            || dbname == HAM_FIRST_DATABASE_NAME) 
-        {
+        if (name==dbname || dbname==HAM_FIRST_DATABASE_NAME) {
             (void)ham_close(db, 0);
             return (db_set_error(db, HAM_DATABASE_ALREADY_EXISTS));
         }
@@ -3276,42 +3273,39 @@ __ham_get_parameters(ham_env_t *env, ham_db_t *db, ham_parameter_t *param)
             param->value = (ham_u64_t)filename;
             break;
         case HAM_PARAM_DBNAME:
-            /* only set this one when the 'db' is initialized properly already */
+            /* only set this when the 'db' is initialized properly already */
             if (db
-                && db_get_header_page(db) 
-                && page_get_pers(db_get_header_page(db)))
-            {
-                db_indexdata_t *indexdata = db_get_indexdata_ptr(db, db_get_indexdata_offset(db));
+                    && db_get_header_page(db) 
+                    && page_get_pers(db_get_header_page(db))) {
+                db_indexdata_t *indexdata = db_get_indexdata_ptr(db, 
+                        db_get_indexdata_offset(db));
                 ham_assert(indexdata, (0));
                 dbname = index_get_dbname(indexdata);
 
                 param->value = dbname;
             }
-            else if (param->value == 0 && dbname != HAM_EMPTY_DATABASE_NAME && (env || db))
-            {
+            else if (param->value == 0 
+                    && dbname != HAM_EMPTY_DATABASE_NAME 
+                    && (env || db)) {
                 param->value = dbname;
             }
             break;
         case HAM_PARAM_GET_KEYS_PER_PAGE:
-            if (db && db_get_backend(db))
-            {
+            if (db && db_get_backend(db)) {
                 ham_backend_t *be = db_get_backend(db);
 
                 st = be->_fun_calc_keycount_per_page(be, &keycount, keysize);
                 if (st)
                     return st;
             }
-            else
-            {
+            else {
                 /* approximation of btree->_fun_calc_keycount_per_page() */
                 keycount = btree_calc_maxkeys(pagesize, keysize);
-                if (keycount > MAX_KEYS_PER_NODE) 
-                {
+                if (keycount > MAX_KEYS_PER_NODE) {
                     ham_trace(("keysize/pagesize ratio too high"));
                     //return (db_set_error(db, HAM_INV_KEYSIZE));
                 }
-                else if (keycount == 0) 
-                {
+                else if (keycount == 0) {
                     ham_trace(("keysize too large for the current pagesize"));
                     //return (db_set_error(db, HAM_INV_KEYSIZE));
                 }
@@ -3319,15 +3313,14 @@ __ham_get_parameters(ham_env_t *env, ham_db_t *db, ham_parameter_t *param)
             param->value = keycount;
             break;
         case HAM_PARAM_GET_STATISTICS:
-            if (!param->value) 
-            {
-                ham_trace(("the value for parameter 'HAM_PARAM_GET_STATISTICS' must not "
-                            "be NULL and reference a ham_statistics_t data structure "
-                            "before invoking ham_[env_]get_parameters"));
-                return HAM_INV_PARAMETER;
+            if (!param->value) {
+                ham_trace(("the value for parameter 'HAM_PARAM_GET_STATISTICS' "
+                            "must not be NULL and reference a ham_statistics_t "
+                            "data structure before invoking "
+                            "ham_[env_]get_parameters"));
+                return (HAM_INV_PARAMETER);
             }
-            else
-            {
+            else {
                 st = stats_fill_ham_statistics_t(env, db, 
                         (ham_statistics_t *)param->value);
                 if (st)

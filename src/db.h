@@ -253,30 +253,30 @@ typedef HAM_PACK_0 union HAM_PACK_1
  * get the private data of the backend; interpretation of the
  * data is up to the backend
  */
-#define db_get_indexdata_ptr(db, i) (db_get_indexdata_arrptr(db) + (i))
+#define db_get_indexdata_ptr(db, i)       (db_get_indexdata_arrptr(db) + (i))
 
-#define index_get_dbname(p)            ham_db2h16((p)->b._dbname)
-#define index_set_dbname(p, n)        (p)->b._dbname = ham_h2db16(n)
+#define index_get_dbname(p)               ham_db2h16((p)->b._dbname)
+#define index_set_dbname(p, n)            (p)->b._dbname = ham_h2db16(n)
 
-#define index_get_max_keys(p)        ham_db2h16((p)->b._maxkeys)
-#define index_set_max_keys(p, n)    (p)->b._maxkeys = ham_h2db16(n)
+#define index_get_max_keys(p)             ham_db2h16((p)->b._maxkeys)
+#define index_set_max_keys(p, n)          (p)->b._maxkeys = ham_h2db16(n)
 
-#define index_get_keysize(p)        ham_db2h16((p)->b._keysize)
-#define index_set_keysize(p, n)        (p)->b._keysize = ham_h2db16(n)
+#define index_get_keysize(p)              ham_db2h16((p)->b._keysize)
+#define index_set_keysize(p, n)           (p)->b._keysize = ham_h2db16(n)
 
-#define index_get_self(p)            ham_db2h_offset((p)->b._self)
-#define index_set_self(p, n)        (p)->b._self = ham_h2db_offset(n)
+#define index_get_self(p)                 ham_db2h_offset((p)->b._self)
+#define index_set_self(p, n)              (p)->b._self=ham_h2db_offset(n)
 
-#define index_get_flags(p)            ham_db2h32((p)->b._flags)
-#define index_set_flags(p, n)        (p)->b._flags = ham_h2db32(n)
+#define index_get_flags(p)                ham_db2h32((p)->b._flags)
+#define index_set_flags(p, n)             (p)->b._flags = ham_h2db32(n)
 
-#define index_get_recno(p)            ham_db2h_offset((p)->b._recno)
-#define index_set_recno(p, n)        (p)->b._recno = ham_h2db_offset(n)
+#define index_get_recno(p)                ham_db2h_offset((p)->b._recno)
+#define index_set_recno(p, n)             (p)->b._recno=ham_h2db_offset(n)
 
-#define index_get_data_access_mode(p)        ham_db2h16((p)->b._data_access_mode)
-#define index_set_data_access_mode(p, n)    (p)->b._data_access_mode = ham_h2db16(n)
+#define index_get_data_access_mode(p)     ham_db2h16((p)->b._data_access_mode)
+#define index_set_data_access_mode(p, n)  (p)->b._data_access_mode=ham_h2db16(n)
 
-#define index_clear_reserved(p)        (p)->b._reserved = 0
+#define index_clear_reserved(p)           (p)->b._reserved = 0
 
 /*
  * get the currently active transaction
