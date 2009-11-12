@@ -2571,12 +2571,12 @@ ham_open_ex(ham_db_t *db, const char *filename,
             db_indexdata_t *idx=db_get_indexdata_ptr(db, 0);
 
             for (i=0; i<db_get_max_databases(db); i++) {
-                int name = index_get_dbname(db_get_indexdata_ptr(db, i));
+                int name=index_get_dbname(db_get_indexdata_ptr(db, i));
                 if (name==0 || name>HAM_EMPTY_DATABASE_NAME)
                     continue;
 
                 if (name==dbname) {
-                    idx = db_get_indexdata_ptr(db, i);
+                    idx=db_get_indexdata_ptr(db, i);
                     break;
                 }
             }
@@ -2587,7 +2587,9 @@ ham_open_ex(ham_db_t *db, const char *filename,
 
         if (!hdrpage_faked && db_get_env(db)) 
         {
-            ham_assert((persisted_dam & HAM_DAM_ENFORCE_PRE110_FORMAT) == (env_get_data_access_mode(db_get_env(db)) & HAM_DAM_ENFORCE_PRE110_FORMAT), (0));
+            ham_assert((persisted_dam & HAM_DAM_ENFORCE_PRE110_FORMAT) 
+                    == (env_get_data_access_mode(db_get_env(db)) 
+                        & HAM_DAM_ENFORCE_PRE110_FORMAT), (0));
         }
 
         st = 0;
@@ -2595,16 +2597,15 @@ ham_open_ex(ham_db_t *db, const char *filename,
 fail_with_fake_cleansing:
 
         /* undo the headerpage fake first! */
-        if (hdrpage_faked)
-        {
+        if (hdrpage_faked) {
             if (db_get_env(db))
                 env_set_header_page(db_get_env(db), 0);
             else
                 db_set_header_page(db, 0);
         }
+
         /* exit when an error was signaled */
-        if (st)
-        {
+        if (st) {
             (void)ham_close(db, 0);
             return (db_set_error(db, st));
         }
