@@ -64,13 +64,15 @@ x update cpp API!
     x ham_env_get_parameters
 x ham_clean_statistics_datarec is a public function - are there other public
     functions? review interfaces
+x EnvTest::createAndOpenMultiDbTest: disabled; the last (256.) call of 
+    ham_env_create_db creates valgrind errors (-> even crashes)
+
+====> unittests/x shows invalid memcpy in db_get_extended_key!
 
 o tools
 o samples
 o win32 build environment
 
-o EnvTest::createAndOpenMultiDbTest: disabled; the last (256.) call of 
-    ham_env_create_db creates valgrind errors (-> even crashes)
 o DAM - really be backwards compatible?? or upgrade the files to 1.1.0?
     o review DAM related code in hamsterdb.h and src/
     o make sure that HAM_DAM_ENFORCE_PRE110_FORMAT cannot be set from user

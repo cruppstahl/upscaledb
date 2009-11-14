@@ -953,6 +953,10 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                 goto default_case;
 
             case HAM_PARAM_KEYSIZE:
+                if (!create) {
+                    ham_trace(("invalid parameter HAM_PARAM_KEYSIZE"));
+                    RETURN(HAM_INV_PARAMETER);
+                }
                 if (pkeysize) {
                     keysize=(ham_u16_t)param->value;
                     if (flags & HAM_RECORD_NUMBER) {
@@ -2450,11 +2454,6 @@ ham_open_ex(ham_db_t *db, const char *filename,
      *
      * read 512 byte and extract the "real" page size, then read 
      * the real page. (but i really don't like this)
-
-     EDIT v1.1.0 - the code has been rewritten to use the regular macros, so size/format changes
-                   will always propagate to this section; it still is a little wicked, but that
-                   issue will remain forever as this is format detection code, contrasting with 
-                   the rest of the hamster which just /knows/ the storage format.
      */
     {
         db_header_t *hdr;
@@ -2491,7 +2490,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
                 goto fail_with_fake_cleansing;
 
             hdr = db_get_header(db);
-            ham_assert(hdr == (db_header_t *)(hdrbuf + db_get_persistent_header_size()), (0));
+            ham_assert(hdr == (db_header_t *)(hdrbuf + 
+                        db_get_persistent_header_size()), (0));
 
             pagesize = db_get_persistent_pagesize(db);
             device_set_pagesize(device, pagesize);
@@ -2560,35 +2560,6 @@ ham_open_ex(ham_db_t *db, const char *filename,
                 goto fail_with_fake_cleansing;
             }
         }
-        else {
-            /*
-             * see if we can locate the database in the list; if 
-             * not, ride with settings for the first
-             */
-            int i;
-            db_indexdata_t *idx=db_get_indexdata_ptr(db, 0);
-
-            for (i=0; i<db_get_max_databases(db); i++) {
-                int name=index_get_dbname(db_get_indexdata_ptr(db, i));
-                if (name==0 || name>HAM_EMPTY_DATABASE_NAME)
-                    continue;
-
-                if (name==dbname) {
-                    idx=db_get_indexdata_ptr(db, i);
-                    break;
-                }
-            }
-
-            persisted_dam = index_get_data_access_mode(idx);
-            ham_assert(!(persisted_dam & HAM_DAM_ENFORCE_PRE110_FORMAT), (0));
-        }
-
-        if (!hdrpage_faked && db_get_env(db)) 
-        {
-            ham_assert((persisted_dam & HAM_DAM_ENFORCE_PRE110_FORMAT) 
-                    == (env_get_data_access_mode(db_get_env(db)) 
-                        & HAM_DAM_ENFORCE_PRE110_FORMAT), (0));
-        }
 
         st = 0;
 
@@ -2608,16 +2579,6 @@ fail_with_fake_cleansing:
             return (db_set_error(db, st));
         }
     }
-
-    /*
-     * set up the ENV+DB DAM
-     * 
-     * set up our preferred DAM, as it was set up at the time of DB creation
-     */
-    st = __mix_DAM(&dam, db_get_env(db), db, &persisted_dam, HAM_FALSE, 
-                    !db_get_header_page(db));
-    if (st)
-        return (db_set_error(db, st));
 
     db_set_error(db, HAM_SUCCESS);
 
@@ -2719,10 +2680,11 @@ fail_with_fake_cleansing:
      * in an environment), we transfer the ownership of the header 
      * page to this database
      */
-    else 
-    {
+    else {
         page_set_owner(db_get_header_page(db), db);
-        ham_assert(!db_get_env(db) ? 1 : !!env_get_header_page(db_get_env(db)), (0));
+        ham_assert(!db_get_env(db) 
+                    ? 1 
+                    : !!env_get_header_page(db_get_env(db)), (0));
     }
 
     /*
@@ -2742,13 +2704,15 @@ fail_with_fake_cleansing:
             ? 1 
             : !!env_get_header_page(db_get_env(db)), (0));
 
-    for (dbi=0; dbi<db_get_max_databases(db); dbi++) 
-    {
-        ham_u16_t name = index_get_dbname(db_get_indexdata_ptr(db, dbi));
+    for (dbi=0; dbi<db_get_max_databases(db); dbi++) {
+        db_indexdata_t *idx=db_get_indexdata_ptr(db, dbi);
+        ham_u16_t name = index_get_dbname(idx);
         if (!name)
             continue;
         if (dbname==HAM_FIRST_DATABASE_NAME || dbname==name) {
             db_set_indexdata_offset(db, dbi);
+            if (persisted_dam!=HAM_DAM_DEFAULT)
+                persisted_dam = index_get_data_access_mode(idx);
             break;
         }
     }
@@ -2757,6 +2721,15 @@ fail_with_fake_cleansing:
         (void)ham_close(db, 0);
         return (db_set_error(db, HAM_DATABASE_NOT_FOUND));
     }
+
+    /*
+     * set up our preferred DAM, as it was set up at the time of DB creation
+     */
+    st = __mix_DAM(&dam, db_get_env(db), db, &persisted_dam, HAM_FALSE, 
+                    !db_get_header_page(db));
+    if (st)
+        return (db_set_error(db, st));
+
 
     /* 
      * create the backend
