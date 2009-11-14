@@ -116,6 +116,10 @@ o unittests: get rid of cppunit, move to bfc
     o make sure that all tests are run only once (don't register tests in
          the constructor of a fixture)
 
+. HighLevelTxnTest::rollbackHugeBlobTest is inactive because huge blobs are
+    directly written to disk instead of going through the cache -> in case of
+    a txn_abort, these blobs are not reallocated
+
 . ham_get_parameter: could return VERSION of the database
 
 ----------

@@ -1776,12 +1776,10 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
      * open the logfile and check if we need recovery
      */
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
-            && env_get_log(env)==0) 
-    {
+            && env_get_log(env)==0) {
         ham_log_t *log;
         st=ham_log_open(env_get_allocator(env), env_get_filename(env), 0, &log);
-        if (!st) 
-        { 
+        if (!st) { 
             /* success - check if we need recovery */
             ham_bool_t isempty;
             st=ham_log_is_empty(log, &isempty);

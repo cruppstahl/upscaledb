@@ -24,8 +24,17 @@
 
 #define SMALLEST_CHUNK_SIZE  (sizeof(ham_offset_t)+sizeof(blob_t)+1)
 
-/** about 8 blobs or more fit into a single page? */
-#define my_blob_is_small(db, size)  (size<(ham_size_t)(db_get_pagesize(db)>>3))      
+/* 
+ * if the blob is small enough (or if logging is enabled) then go through
+ * the cache. otherwise use direct I/O
+ */
+static ham_bool_t
+__blob_from_cache(ham_db_t *db, ham_size_t size)
+{
+    if (db_get_log(db))
+        return (size<(db_get_usable_pagesize(db)));  
+    return (size<(ham_size_t)(db_get_pagesize(db)>>3));
+}
 
 static ham_status_t
 __write_chunks(ham_db_t *db, ham_page_t *page, ham_offset_t addr, 
@@ -118,7 +127,7 @@ __write_chunks(ham_db_t *db, ham_page_t *page, ham_offset_t addr,
                  * Just as long as we can prevent this section from thrashing 
                  * the page cache, thank you very much...
                  */
-                ham_bool_t at_blob_edge = (my_blob_is_small(db, chunk_size[i])
+                ham_bool_t at_blob_edge = (__blob_from_cache(db, chunk_size[i])
                         || (addr % pagesize) != 0 
                         || chunk_size[i] < pagesize);
                 ham_bool_t cacheonly = (!at_blob_edge 
@@ -213,7 +222,7 @@ __read_chunk(ham_db_t *db, ham_page_t *page, ham_page_t **fpage,
          */
         if (!page) {
             page=db_fetch_page(db, pageid, 
-                    my_blob_is_small(db, size) ? 0 : DB_ONLY_FROM_CACHE);
+                    __blob_from_cache(db, size) ? 0 : DB_ONLY_FROM_CACHE);
             /* blob pages don't have a page header */
             if (page)
                 page_set_npers_flags(page, 
@@ -376,10 +385,10 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
             return (db_get_error(db));
 
         /*
-         * if the blob is small: load the page through the cache
+         * if the blob is small AND if logging is disabled: load the page 
+         * through the cache
          */
-        if (my_blob_is_small(db, alloc_size)) 
-        {
+        if (__blob_from_cache(db, alloc_size)) {
             page=db_alloc_page(db, PAGE_TYPE_B_INDEX, PAGE_IGNORE_FREELIST);
             if (!page)
                 return (db_get_error(db));
@@ -392,11 +401,9 @@ blob_allocate(ham_db_t *db, ham_u8_t *data, ham_size_t size,
                     db_get_pagesize(db)-alloc_size, HAM_FALSE);
             blob_set_alloc_size(&hdr, alloc_size);
         }
-        else 
-        {
+        else {
             /*
-             * otherwise use direct IO to allocate the space (in this case
-             * we can ignore the log since nothing is overwritten)
+             * otherwise use direct IO to allocate the space
              */
             ham_size_t aligned=alloc_size;
             aligned += db_get_pagesize(db) - 1;
