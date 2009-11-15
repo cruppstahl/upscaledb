@@ -173,9 +173,7 @@ typedef struct {
  *
  * @remark The Data Access Mode is persisted in the Database file on a
  * per Database basis. This means different Databases within the same 
- * Environment can have different Data Access Modes. The only requirement
- * here is that either all or none of them have the 
- * @ref HAM_DAM_ENFORCE_PRE110_FORMAT backwards compatibility flag set.
+ * Environment can have different Data Access Modes.
  *
  * @sa ham_create_ex
  * @sa ham_env_create_ex
@@ -201,7 +199,12 @@ typedef struct {
 */
 #define HAM_DAM_RANDOM_WRITE_ACCESS      0x0001
 
-/** Assume sequential insert (and few or no delete) operations. */
+/** 
+ * Assume sequential insert (and few or no delete) operations. 
+ *
+ * Note: RECNO-based Databases will start in the implicit 
+ * @ref HAM_DAM_SEQUENTIAL_INSERT mode instead.
+ */
 #define HAM_DAM_SEQUENTIAL_INSERT        0x0002
 
 /** 
@@ -216,12 +219,7 @@ typedef struct {
  */
 #define HAM_DAM_FAST_INSERT              0x0004
 
-/** 
- * Enforce the use of the backwards compatible Database format.
- * Can be mixed with all but the @ref HAM_DAM_DEFAULT flag.
- *
- * Note: will be set implicitly when opening an old Database file.
- */
+/* internal use only - will be set implicitly when opening a file from 1.0.x */ 
 #define HAM_DAM_ENFORCE_PRE110_FORMAT    0x8000
 
 /**
@@ -555,9 +553,7 @@ ham_env_create(ham_env_t *env, const char *filename,
  *            access patterns. The default setting optimizes hamsterdb
  *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE_ACCESS).
  *            Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
- *            is automatically set for record number Databases). Use
- *            @ref HAM_DAM_DEFAULT if you want to open this Environment with
- *            hamsterdb versions <= 1.0.9.
+ *            is automatically set for record number Databases).
  *            Data Access Mode hints can be set for individual Databases, too
  *            (see also @ref ham_create_ex) but are applied globally to all
  *            Databases within a single Environment.
@@ -1187,9 +1183,7 @@ ham_create(ham_db_t *db, const char *filename,
  *            access patterns. The default setting optimizes hamsterdb
  *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE_ACCESS).
  *            Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
- *            is automatically set for record number Databases). Use
- *            @ref HAM_DAM_DEFAULT if you want to open this Database with
- *            hamsterdb versions <= 1.0.9.
+ *            is automatically set for record number Databases).
  *            For more information about available DAM (Data Access Mode)
  *            flags, see @ref ham_data_access_modes.
  *      </ul>
