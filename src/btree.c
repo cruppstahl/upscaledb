@@ -258,8 +258,7 @@ my_fun_open(ham_btree_t *be, ham_u32_t flags)
    /* header has been inspected before already; we know if we got to be
     * backwards compat, so we can set it up */
 	dam = db_get_data_access_mode(db);
-	if (!db_is_mgt_mode_set(dam, HAM_DAM_ENFORCE_PRE110_FORMAT))
-	{
+	if (!db_is_mgt_mode_set(dam, HAM_DAM_ENFORCE_PRE110_FORMAT)) {
 		/* we can only load the setting from the DB in 1.1.0+ mode */
 		dam = index_get_data_access_mode(indexdata);
 	}
