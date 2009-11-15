@@ -53,14 +53,14 @@
 #define freel_set_allocated_bitsXX(fl, u)  freel_set_allocated_bits16(fl, u)
 #define freel_get_bitmapXX(fl)             freel_get_bitmap16(fl)
 
-#define __freel_lazy_createXX                __freel_lazy_create16
+#define __freel_lazy_createXX               __freel_lazy_create16
 #define __freel_destructorXX                __freel_destructor16
 #define __freel_alloc_areaXX                __freel_alloc_area16
-#define __freel_mark_freeXX                    __freel_mark_free16
-#define __freel_check_area_is_allocatedXX    __freel_check_area_is_allocated16
+#define __freel_mark_freeXX                 __freel_mark_free16
+#define __freel_check_area_is_allocatedXX   __freel_check_area_is_allocated16
 #define __freel_init_perf_dataXX            __freel_init_perf_data16
 
-typedef ham_u16_t                            ham_uXX_t;
+typedef ham_u16_t                           ham_uXX_t;
 
 #define __freel_alloc_pageXX                __freel_alloc_page16
 
@@ -87,14 +87,14 @@ typedef ham_u16_t                            ham_uXX_t;
 #define freel_set_allocated_bitsXX(fl, u)  freel_set_allocated_bits32(fl, u)
 #define freel_get_bitmapXX(fl)             freel_get_bitmap32(fl)
 
-#define __freel_lazy_createXX                __freel_lazy_create32
+#define __freel_lazy_createXX               __freel_lazy_create32
 #define __freel_destructorXX                __freel_destructor32
 #define __freel_alloc_areaXX                __freel_alloc_area32
-#define __freel_mark_freeXX                    __freel_mark_free32
-#define __freel_check_area_is_allocatedXX    __freel_check_area_is_allocated32
+#define __freel_mark_freeXX                 __freel_mark_free32
+#define __freel_check_area_is_allocatedXX   __freel_check_area_is_allocated32
 #define __freel_init_perf_dataXX            __freel_init_perf_data32
 
-typedef ham_u32_t                            ham_uXX_t;
+typedef ham_u32_t                           ham_uXX_t;
 
 #define __freel_alloc_pageXX                __freel_alloc_page32
 

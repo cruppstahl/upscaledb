@@ -23,27 +23,14 @@
 
 using namespace bfc;
 
-class FreelistTest : public hamsterDB_fixture
+class FreelistBaseTest : public hamsterDB_fixture
 {
 	define_super(hamsterDB_fixture);
 
 public:
-    FreelistTest()
-    :   hamsterDB_fixture("FreelistTest")
+    FreelistBaseTest(const char *name)
+    :   hamsterDB_fixture(name)
     {
-        testrunner::get_instance()->register_fixture(this);
-		BFC_REGISTER_TEST(FreelistTest, checkStructurePackingTest);
-        BFC_REGISTER_TEST(FreelistTest, structureTest);
-        BFC_REGISTER_TEST(FreelistTest, markAllocAlignedTest);
-        BFC_REGISTER_TEST(FreelistTest, markAllocPageTest);
-        BFC_REGISTER_TEST(FreelistTest, markAllocHighOffsetTest);
-        BFC_REGISTER_TEST(FreelistTest, markAllocRangeTest);
-        BFC_REGISTER_TEST(FreelistTest, markAllocOverflowTest);
-        BFC_REGISTER_TEST(FreelistTest, markAllocOverflow2Test);
-        BFC_REGISTER_TEST(FreelistTest, markAllocOverflow3Test);
-        BFC_REGISTER_TEST(FreelistTest, markAllocOverflow4Test);
-        BFC_REGISTER_TEST(FreelistTest, markAllocAlignTest);
-        BFC_REGISTER_TEST(FreelistTest, markAllocAlignMultipleTest);
     }
 
 protected:
@@ -58,10 +45,11 @@ public:
         ham_parameter_t p[]={{HAM_PARAM_PAGESIZE, 4096}, {0, 0}};
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
-        BFC_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        BFC_ASSERT(ham_create_ex(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS, 0644, 
-                        &p[0])==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(0, 
+                ham_create_ex(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS, 0644, &p[0]));
     }
     
     virtual void teardown() 
@@ -205,7 +193,8 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"),  HAM_ENABLE_TRANSACTIONS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL(o, 
@@ -238,9 +227,9 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 freel_mark_free(m_db, 3*o, DB_CHUNKSIZE, HAM_FALSE));
 		/*
-		The hinters must be disabled for this test to succeed; at least
-		they need to be instructed to kick in late.
-		*/
+		 * The hinters must be disabled for this test to succeed; at least
+		 * they need to be instructed to kick in late.
+		 */
 		db_set_data_access_mode(m_db, 
 				db_get_data_access_mode(m_db) & 
 						~(HAM_DAM_SEQUENTIAL_INSERT
@@ -285,25 +274,27 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 freel_mark_free(m_db, o, DB_CHUNKSIZE*3, HAM_FALSE));
 		/*
-		The hinters must be disabled for this test to succeed; at least
-		they need to be instructed to kick in late.
-		*/
+		 * The hinters must be disabled for this test to succeed; at least
+		 * they need to be instructed to kick in late.
+		 */
 		db_set_data_access_mode(m_db, 
 				db_get_data_access_mode(m_db) & 
 						~(HAM_DAM_SEQUENTIAL_INSERT
 						 | HAM_DAM_RANDOM_WRITE_ACCESS
 						 | HAM_DAM_FAST_INSERT));
 		/*
-		and since we'll be having about 33027 freelist entries in the list, the hinters 
-		will make a ruckus anyhow; the only way to get a hit on the alloc is either
-		through luck (which would take multiple rounds as the hinters will drive
-		the free space search using SRNG technology, but it _is_ deterministic, so
-		we could test for that; however, I'm lazy so I'll just set a special 'impossible mode'
-		to disable the hinters entirely.
-		*/
+		 * and since we'll be having about 33027 freelist entries in the list, 
+         * the hinters will make a ruckus anyhow; the only way to get a hit 
+         * on the alloc is either through luck (which would take multiple 
+         * rounds as the hinters will drive the free space search using 
+         * SRNG technology, but it _is_ deterministic, so we could test for 
+         * that; however, I'm lazy so I'll just set a special 'impossible mode'
+		 * to disable the hinters entirely.
+		 */
 		db_set_data_access_mode(m_db, 
 				db_get_data_access_mode(m_db) 
-						| HAM_DAM_RANDOM_WRITE_ACCESS | HAM_DAM_SEQUENTIAL_INSERT);
+						| HAM_DAM_RANDOM_WRITE_ACCESS 
+                        | HAM_DAM_SEQUENTIAL_INSERT);
 
         BFC_ASSERT_EQUAL(o, 
                 freel_alloc_area(m_db, DB_CHUNKSIZE));
@@ -312,7 +303,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, BFC_OPATH(".test"),  HAM_ENABLE_TRANSACTIONS));
+                ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL((ham_offset_t)o+DB_CHUNKSIZE, 
@@ -327,7 +318,8 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL(o+DB_CHUNKSIZE, 
@@ -341,7 +333,7 @@ public:
     {
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        // this code snipped crashed in an acceptance test
+        // this code snippet crashed in an acceptance test
         BFC_ASSERT_EQUAL(0, freel_mark_free(m_db, 2036736, 
                     db_get_pagesize(m_db)-1024, HAM_FALSE));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
@@ -382,19 +374,82 @@ public:
 	void checkStructurePackingTest(void)
     {
 		// checks to make sure structure packing by the compiler is still okay
-		BFC_ASSERT(compare_sizes(sizeof(freelist_payload_t), 16 + 13 + sizeof(freelist_page_statistics_t)));
+		BFC_ASSERT(compare_sizes(sizeof(freelist_payload_t), 
+                16 + 13 + sizeof(freelist_page_statistics_t)));
 		freelist_payload_t f;
 		BFC_ASSERT(compare_sizes(sizeof(f._s._s16), 5));
 		BFC_ASSERT(compare_sizes(OFFSETOF(freelist_payload_t, _s._s16), 16));
-		BFC_ASSERT(compare_sizes(OFFSETOF(freelist_payload_t, _s._s16._bitmap), 16 + 4));
+		BFC_ASSERT(compare_sizes(OFFSETOF(freelist_payload_t, _s._s16._bitmap),
+                16 + 4));
 		BFC_ASSERT(compare_sizes(db_get_freelist_header_size16(), 16 + 4));
-		BFC_ASSERT(compare_sizes(db_get_freelist_header_size32(), 16 + 12 + sizeof(freelist_page_statistics_t)));
-		BFC_ASSERT(compare_sizes(sizeof(freelist_page_statistics_t), 8*4 + sizeof(freelist_slotsize_stats_t)*HAM_FREELIST_SLOT_SPREAD));
+		BFC_ASSERT(compare_sizes(db_get_freelist_header_size32(), 
+                16 + 12 + sizeof(freelist_page_statistics_t)));
+		BFC_ASSERT(compare_sizes(sizeof(freelist_page_statistics_t), 
+                8*4 + sizeof(freelist_slotsize_stats_t)
+                        *HAM_FREELIST_SLOT_SPREAD));
 		BFC_ASSERT(compare_sizes(sizeof(freelist_slotsize_stats_t), 8*4));
 		BFC_ASSERT(compare_sizes(HAM_FREELIST_SLOT_SPREAD, 16-5+1));
     }
 
 };
 
-BFC_REGISTER_FIXTURE(FreelistTest);
+class FreelistV1Test : public FreelistBaseTest
+{
+	define_super(FreelistBaseTest);
+
+public:
+    FreelistV1Test()
+    :   FreelistBaseTest("FreelistV1Test")
+    {
+        testrunner::get_instance()->register_fixture(this);
+		BFC_REGISTER_TEST(FreelistV1Test, checkStructurePackingTest);
+        BFC_REGISTER_TEST(FreelistV1Test, structureTest);
+        BFC_REGISTER_TEST(FreelistV1Test, markAllocAlignedTest);
+        BFC_REGISTER_TEST(FreelistV1Test, markAllocPageTest);
+        BFC_REGISTER_TEST(FreelistV1Test, markAllocHighOffsetTest);
+        BFC_REGISTER_TEST(FreelistV1Test, markAllocRangeTest);
+        BFC_REGISTER_TEST(FreelistV1Test, markAllocOverflowTest);
+        BFC_REGISTER_TEST(FreelistV1Test, markAllocOverflow2Test);
+        BFC_REGISTER_TEST(FreelistV1Test, markAllocOverflow3Test);
+        BFC_REGISTER_TEST(FreelistV1Test, markAllocOverflow4Test);
+        BFC_REGISTER_TEST(FreelistV1Test, markAllocAlignTest);
+        BFC_REGISTER_TEST(FreelistV1Test, markAllocAlignMultipleTest);
+    }
+
+    virtual void setup() 
+	{ 
+		__super::setup();
+        db_set_data_access_mode(m_db, 
+                db_get_data_access_mode(m_db)|HAM_DAM_ENFORCE_PRE110_FORMAT); 
+    }
+
+};
+
+class FreelistV2Test : public FreelistBaseTest
+{
+	define_super(FreelistBaseTest);
+
+public:
+    FreelistV2Test()
+    :   FreelistBaseTest("FreelistV2Test")
+    {
+        testrunner::get_instance()->register_fixture(this);
+		BFC_REGISTER_TEST(FreelistV2Test, checkStructurePackingTest);
+        BFC_REGISTER_TEST(FreelistV2Test, structureTest);
+        BFC_REGISTER_TEST(FreelistV2Test, markAllocAlignedTest);
+        BFC_REGISTER_TEST(FreelistV2Test, markAllocPageTest);
+        BFC_REGISTER_TEST(FreelistV2Test, markAllocHighOffsetTest);
+        BFC_REGISTER_TEST(FreelistV2Test, markAllocRangeTest);
+        BFC_REGISTER_TEST(FreelistV2Test, markAllocOverflowTest);
+        BFC_REGISTER_TEST(FreelistV2Test, markAllocOverflow2Test);
+        BFC_REGISTER_TEST(FreelistV2Test, markAllocOverflow3Test);
+        BFC_REGISTER_TEST(FreelistV2Test, markAllocOverflow4Test);
+        BFC_REGISTER_TEST(FreelistV2Test, markAllocAlignTest);
+        BFC_REGISTER_TEST(FreelistV2Test, markAllocAlignMultipleTest);
+    }
+
+};
+
+BFC_REGISTER_FIXTURE(FreelistV1Test);
+BFC_REGISTER_FIXTURE(FreelistV2Test);
 

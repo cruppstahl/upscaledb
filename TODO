@@ -66,12 +66,12 @@ x ham_clean_statistics_datarec is a public function - are there other public
     functions? review interfaces
 x EnvTest::createAndOpenMultiDbTest: disabled; the last (256.) call of 
     ham_env_create_db creates valgrind errors (-> even crashes)
+x freelist16: is this tested in the unittests?
 
 o tools
 o samples
 o win32 build environment??
 o freelist.c: has __inline keyword - not portable!
-o freelist16: is this tested in the unittests?
 
 o DAM - really be backwards compatible?? or upgrade the files to 1.1.0?
     o review DAM related code in hamsterdb.h and src/

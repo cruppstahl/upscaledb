@@ -270,16 +270,16 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
              * each freelist entry; after all, it's ludicrous to keep
              * the cache clogged with freelist pages which our
              * statistics show are useless given our usage patterns
-             * (determined at run-time; this is meant to help many-insert, few-delete usage
-             * patterns the most, while many-delete usage patterns will
-             * benefit most from a good cache page aging system (see
-             * elsewhere in the code) as that will ensure relevant
+             * (determined at run-time; this is meant to help many-insert, 
+             * few-delete usage patterns the most, while many-delete usage 
+             * patterns will benefit most from a good cache page aging system 
+             * (see elsewhere in the code) as that will ensure relevant
              * freelist pages stay in the cache for as long as we need
              * them. Meanwhile, we've complicated things a little here
              * as we need to flush statistics to the persistent page
              * memory when flushing a cached page.
              *
-             *  TODO: A callback will be provided for that.
+             * TODO: A callback will be provided for that.
              */
 			freelist_page_statistics_t _statistics;
 
@@ -306,64 +306,64 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 /**
  * get the address of the first bitmap-entry of this page
  */
-#define freel_get_start_address(fl)      (ham_db2h64((fl)->_start_address))
+#define freel_get_start_address(fl)       (ham_db2h64((fl)->_start_address))
 
 /**
  * set the start-address
  */
-#define freel_set_start_address(fl, s)   (fl)->_start_address=ham_h2db64(s)
+#define freel_set_start_address(fl, s)    (fl)->_start_address=ham_h2db64(s)
 
 /**
  * get the maximum number of bits which are handled by this bitmap
  */
-#define freel_get_max_bits16(fl)           (ham_db2h16((fl)->_s._s16._max_bits))
+#define freel_get_max_bits16(fl)          (ham_db2h16((fl)->_s._s16._max_bits))
 
 /**
  * set the maximum number of bits which are handled by this bitmap
  */
-#define freel_set_max_bits16(fl, m)        (fl)->_s._s16._max_bits=ham_h2db16(m)
+#define freel_set_max_bits16(fl, m)       (fl)->_s._s16._max_bits=ham_h2db16(m)
 
 /**
  * get the maximum number of bits which are handled by this bitmap
  */
-#define freel_get_max_bits32(fl)           (ham_db2h32((fl)->_s._s32._max_bits))
+#define freel_get_max_bits32(fl)          (ham_db2h32((fl)->_s._s32._max_bits))
 
 /**
  * set the maximum number of bits which are handled by this bitmap
  */
-#define freel_set_max_bits32(fl, m)        (fl)->_s._s32._max_bits=ham_h2db32(m)
+#define freel_set_max_bits32(fl, m)       (fl)->_s._s32._max_bits=ham_h2db32(m)
 
 /**
  * get the number of currently used bits which are handled by this bitmap
  */
-#define freel_get_allocated_bits16(fl)      (ham_db2h16((fl)->_s._s16._allocated_bits))
+#define freel_get_allocated_bits16(fl)    (ham_db2h16((fl)->_s._s16._allocated_bits))
 
 /**
  * set the number of currently used bits which are handled by this bitmap
  */
-#define freel_set_allocated_bits16(fl, u)   (fl)->_s._s16._allocated_bits=ham_h2db16(u)
+#define freel_set_allocated_bits16(fl, u) (fl)->_s._s16._allocated_bits=ham_h2db16(u)
 
 /**
  * get the number of currently used bits which are handled by this
  * bitmap
  */
-#define freel_get_allocated_bits32(fl)      (ham_db2h32((fl)->_s._s32._allocated_bits))
+#define freel_get_allocated_bits32(fl)    (ham_db2h32((fl)->_s._s32._allocated_bits))
 
 /**
  * set the number of currently used bits which are handled by this
  * bitmap
  */
-#define freel_set_allocated_bits32(fl, u)   (fl)->_s._s32._allocated_bits=ham_h2db32(u)
+#define freel_set_allocated_bits32(fl, u) (fl)->_s._s32._allocated_bits=ham_h2db32(u)
 
 /**
  * get the address of the next overflow page
  */
-#define freel_get_overflow(fl)           (ham_db2h_offset((fl)->_overflow))
+#define freel_get_overflow(fl)            (ham_db2h_offset((fl)->_overflow))
 
 /**
  * set the address of the next overflow page
  */
-#define freel_set_overflow(fl, o)        (fl)->_overflow=ham_h2db_offset(o)
+#define freel_set_overflow(fl, o)         (fl)->_overflow=ham_h2db_offset(o)
 
 /**
  * get a freelist_payload_t from a ham_page_t
@@ -373,18 +373,17 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 /**
  * get the bitmap of the freelist
  */
-#define freel_get_bitmap16(fl)             (fl)->_s._s16._bitmap
+#define freel_get_bitmap16(fl)            (fl)->_s._s16._bitmap
 
 /**
  * get the bitmap of the freelist
  */
-#define freel_get_bitmap32(fl)             (fl)->_s._s32._bitmap
+#define freel_get_bitmap32(fl)            (fl)->_s._s32._bitmap
 
 /**
  * get the v1.1.0+ persisted entry performance statistics
  */
-#define freel_get_statistics32(fl)         &((fl)->_s._s32._statistics)
-
+#define freel_get_statistics32(fl)        &((fl)->_s._s32._statistics)
 
 /**
  * flush and release all freelist pages
@@ -424,12 +423,12 @@ freel_alloc_area(ham_db_t *db, ham_size_t size);
 extern ham_offset_t
 freel_alloc_page(ham_db_t *db);
 
-
 /**
-Validate whether the given zone has been properly marked as allocated.
-*/
+ * Validate whether the given zone has been properly marked as allocated.
+ */
 extern ham_bool_t
-freel_check_area_is_allocated(ham_db_t *db, ham_offset_t address, ham_size_t size);
+freel_check_area_is_allocated(ham_db_t *db, ham_offset_t address, 
+            ham_size_t size);
 
 
 #ifdef __cplusplus
