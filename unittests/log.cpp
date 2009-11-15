@@ -2027,6 +2027,7 @@ public:
                     0, 0664));
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
 #endif
     }
 
