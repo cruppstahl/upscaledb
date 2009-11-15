@@ -317,8 +317,8 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
             return (db_set_error(db, HAM_OUT_OF_MEMORY));
         }
     }
-    memcpy(ext_key->data, key_data, db_get_keysize(db)-sizeof(ham_offset_t));
-    memcpy(ext_key->data+(db_get_keysize(db)-sizeof(ham_offset_t)),
+    memmove(ext_key->data, key_data, db_get_keysize(db)-sizeof(ham_offset_t));
+    memcpy (ext_key->data+(db_get_keysize(db)-sizeof(ham_offset_t)),
                record.data, record.size);
 
     /* insert the FULL key in the cache */
