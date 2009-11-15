@@ -625,7 +625,7 @@ protected:
     	}
         else
 		    BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN, 
-                ham_env_open_db(env, db[0], 1, 0, parameters));
+                ham_env_open_db(env, db[0], 1, 0, 0));
 
 		for (i = 0; i < MAX; i++)
 		{
