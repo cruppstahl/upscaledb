@@ -14,8 +14,6 @@
 
 #include "freelist.c"
 
-
-
 ham_status_t
 __freel_flush_stats32(ham_db_t *db)
 {
@@ -23,10 +21,9 @@ __freel_flush_stats32(ham_db_t *db)
     ham_assert(db_get_freelist_cache(db), (0));
 
 	/*
-	do not update the statistics in a READ ONLY database!
-	*/
-    if (!(db_get_rt_flags(db) & HAM_READ_ONLY)) 
-	{
+	 * do not update the statistics in a READ ONLY database!
+	 */
+    if (!(db_get_rt_flags(db) & HAM_READ_ONLY)) {
 		freelist_cache_t *cache;
 		freelist_entry_t *entries;
 
@@ -44,27 +41,25 @@ __freel_flush_stats32(ham_db_t *db)
 			*/
 			ham_size_t i;
 			
-			for (i = freel_cache_get_count(cache); i-- > 0; )
-			{
+			for (i = freel_cache_get_count(cache); i-- > 0; ) {
 				freelist_entry_t *entry = entries + i;
 
-				if (freel_entry_statistics_is_dirty(entry))
-				{
+				if (freel_entry_statistics_is_dirty(entry)) {
 					freelist_payload_t *fp;
 					freelist_page_statistics_t *pers_stats;
 
-					if (!freel_entry_get_page_id(entry))
-					{
+					if (!freel_entry_get_page_id(entry)) {
 						/* header page */
 						fp = db_get_freelist(db);
 						db_set_dirty(db);
 					}
-					else 
-					{
+					else {
 						/*
-						 * otherwise just fetch the page from the cache or the disk
+						 * otherwise just fetch the page from the cache or the 
+                         * disk
 						 */
-						ham_page_t *page = db_fetch_page(db, freel_entry_get_page_id(entry), 0);
+						ham_page_t *page = db_fetch_page(db, 
+                                freel_entry_get_page_id(entry), 0);
 						if (!page)
 							return (db_get_error(db));
 						fp = page_get_freelist(page);
@@ -76,8 +71,10 @@ __freel_flush_stats32(ham_db_t *db)
 
 					pers_stats = freel_get_statistics32(fp);
 
-					ham_assert(sizeof(*pers_stats) == sizeof(*freel_entry_get_statistics(entry)), (0));
-					memcpy(pers_stats, freel_entry_get_statistics(entry), sizeof(*pers_stats));
+					ham_assert(sizeof(*pers_stats) == 
+                            sizeof(*freel_entry_get_statistics(entry)), (0));
+					memcpy(pers_stats, freel_entry_get_statistics(entry), 
+                            sizeof(*pers_stats));
 
 					/* and we're done persisting/flushing this entry */
 					freel_entry_statistics_reset_dirty(entry);
