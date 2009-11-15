@@ -3415,20 +3415,18 @@ __aes_close_cb(ham_env_t *env, ham_file_filter_t *filter)
     mem_allocator_t *alloc=env_get_allocator(env);
 
     ham_assert(alloc, (0));
-#if 0
-    if (filter) 
-    {
-        if (filter->userdata)
-        {
+
+    if (filter) {
+        if (filter->userdata) {
             /*
-            destroy the secret key in RAM (free() won't do that, so NIL the key space first! 
-            */
+             * destroy the secret key in RAM (free() won't do that, 
+             * so NIL the key space first! 
+             */
             memset(filter->userdata, 0, sizeof(ham_u8_t)*16);
             allocator_free(alloc, filter->userdata);
         }
         allocator_free(alloc, filter);
     }
-#endif
 }
 #endif /* !HAM_DISABLE_ENCRYPTION */
 
