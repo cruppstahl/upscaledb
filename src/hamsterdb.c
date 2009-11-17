@@ -577,66 +577,76 @@ __prepare_db(ham_db_t *db)
 }
 
 /**
-'mix' the DAM (Data Access Mode) flags and cross-validate them where necessary:
-the PRE110 flag is 'global' in the sense that upon creation the first database within an environment
-dictates the format: it is 'global' for all subsequent databases created in that environmen/file.
-
-Then, when an environment or database is OPENED, the PRE110 flag is dictated by the file format:
-you cannot have PRE110 format database tables in 'modern' files, and vice versa.
-
-DAM access modes such as 'fast', 'sequential' and 'random access' are per-database specific and 
-'overridable' in that upon opening an existing database, the DAM stored in the file header is 'advisory only':
-when the user has specified a non-default DAM setting, that parameter will win over the previously stored
-DAM setup: yes, you can thus create a file in SEQUENTIAL+FAST mode, then open it at a later date in RANDOM_ACCESS
-mode and everything will be perfectly fine.
-
-When an environment (or better put: the database FILE) is first created, the DAM will be taken from the user 
-specified parameter. The environment DAM setting determines the file format. 
-
-When a database is created within one (environment) then, of course, the only DAM available is the DAM specified for that
-database by the user.
-
-When different DAM parameter values are specified for different databases, that is perfectly okay. When databases
-are created or opened and the file (on open) or the environment has a non-default DAM configured while the current
-database create/open only lists a 'default' DAM (a.k.a. 'don't know/care'), then the 'advisory' DAM from the file
-(on open) is taken. When this is 'default', the environment DAM is used.
-
-
-Which translates to a DAM order of precedence for any DAM flags apart from PRE110:
-
-ENV at create time: env user DAM
-
-DB at create time:  db user DAM :: env DAM
-
-ENV at open time: env user DAM :: 1st database DAM in file
-
-DB at open time: db user DAM :: database DAM in file :: env DAM
-
-where '::' orders the sources from high to low precedence.
-
-
-For PRE110 the precedence is a little awkward:
-
-ENV at create time: user specified PRE110 for env
-
-DB at create time:  env PRE110 (a file has already been created by ENV before!)
-
-ENV at open time: file PRE110
-
-DB at open time: file PRE110
-
-
-When is a FAULT reported?
-
-Only when the PRE110 user specified setting for an ENV or DB is set, while the already existing file format dictates otherwise.
-
-Hence, it is 'a safe bet' to never specify the PRE110 flag on ENV or DB open as it's value will be taken from the
-database file anyhow.
-
-The same applies to DB create when that DB is sitting inside an ENV -- as the ENV create/open will already have determined
-the PRE110 status, but one MUST specify the PRE110 flag when creating a DB wirthout an ENV and the user wants to have a backwards compatible database file: in this case the
-database FILE is created during the DB CREATE execution.
-*/
+ * 'mix' the DAM (Data Access Mode) flags and cross-validate them where 
+ * necessary: the PRE110 flag is 'global' in the sense that upon creation 
+ * the first database within an environment dictates the format: it is 
+ * 'global' for all subsequent databases created in that environmen/file.
+ * 
+ * Then, when an environment or database is OPENED, the PRE110 flag is 
+ * dictated by the file format:
+ * you cannot have PRE110 format database tables in 'modern' files, and vice 
+ * versa.
+ * 
+ * DAM access modes such as 'fast', 'sequential' and 'random access' are 
+ * per-database specific and 'overridable' in that upon opening an existing 
+ * database, the DAM stored in the file header is 'advisory only':
+ * when the user has specified a non-default DAM setting, that parameter 
+ * will win over the previously stored DAM setup: yes, you can thus create 
+ * a file in SEQUENTIAL+FAST mode, then open it at a later date in 
+ * RANDOM_ACCESS mode and everything will be perfectly fine.
+ *
+ * When an environment (or better put: the database FILE) is first created, 
+ * the DAM will be taken from the user specified parameter. The environment 
+ * DAM setting determines the file format. 
+ *
+ * When a database is created within one (environment) then, of course, the 
+ * only DAM available is the DAM specified for that database by the user.
+ *
+ * When different DAM parameter values are specified for different databases, 
+ * that is perfectly okay. When databases are created or opened and the file 
+ * (on open) or the environment has a non-default DAM configured while the 
+ * current database create/open only lists a 'default' DAM (a.k.a. 
+ * 'don't know/care'), then the 'advisory' DAM from the file (on open) 
+ * is taken. When this is 'default', the environment DAM is used.
+ *
+ * Which translates to a DAM order of precedence for any DAM flags apart 
+ * from PRE110: 
+ *
+ * ENV at create time: env user DAM
+ *
+ * DB at create time: db user DAM :: env DAM
+ *
+ * ENV at open time: env user DAM :: 1st database DAM in file
+ *
+ * DB at open time: db user DAM :: database DAM in file :: env DAM
+ *
+ * where '::' orders the sources from high to low precedence.
+ *
+ * For PRE110 the precedence is a little awkward:
+ *
+ * ENV at create time: user specified PRE110 for env
+ *
+ * DB at create time:  env PRE110 (a file has already been created by ENV 
+ *      before!)
+ *
+ * ENV at open time: file PRE110
+ *
+ * DB at open time: file PRE110
+ *
+ * When is a FAULT reported?
+ *
+ * Only when the PRE110 user specified setting for an ENV or DB is set, 
+ * while the already existing file format dictates otherwise.
+ *
+ * Hence, it is 'a safe bet' to never specify the PRE110 flag on ENV 
+ * or DB open as it's value will be taken from the database file anyhow.
+ *
+ * The same applies to DB create when that DB is sitting inside an ENV 
+ * -- as the ENV create/open will already have determined the PRE110 status, 
+ * but one MUST specify the PRE110 flag when creating a DB wirthout an ENV 
+ * and the user wants to have a backwards compatible database file: in this 
+ * case the database FILE is created during the DB CREATE execution.
+ */
 static ham_status_t
 __mix_DAM(ham_u16_t *user_specified_dam, 
           ham_env_t *env, ham_db_t *db, 
@@ -2729,7 +2739,6 @@ fail_with_fake_cleansing:
                     !db_get_header_page(db));
     if (st)
         return (db_set_error(db, st));
-
 
     /* 
      * create the backend
