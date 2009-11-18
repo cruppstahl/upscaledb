@@ -2562,7 +2562,6 @@ ham_open_ex(ham_db_t *db, const char *filename,
                 dbheader_get_version(hdr, 1) == 0 &&
                 dbheader_get_version(hdr, 2) <= 9) {
                 persisted_dam = HAM_DAM_ENFORCE_PRE110_FORMAT;
-                ham_log(("old v1.0.x DB file version"));
             }
             else {
                 ham_log(("invalid file version"));
