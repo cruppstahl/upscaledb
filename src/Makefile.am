@@ -31,7 +31,7 @@ libhamsterdb_la_SOURCES = log.c \
 			btree_cursor.c \
 			device.c
 
-libhamsterdb_la_LDFLAGS = -version-info 1:0:1
+libhamsterdb_la_LDFLAGS = -version-info 1:1:1
 
 if ENABLE_ENCRYPTION
 libhamsterdb_la_LDFLAGS += $(top_builddir)/3rdparty/aes/libaes.la
