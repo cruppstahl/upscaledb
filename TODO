@@ -67,21 +67,24 @@ x ham_clean_statistics_datarec is a public function - are there other public
 x EnvTest::createAndOpenMultiDbTest: disabled; the last (256.) call of 
     ham_env_create_db creates valgrind errors (-> even crashes)
 x freelist16: is this tested in the unittests?
+x freelist.c: has __inline keyword - not portable!
 
 o tools
 o samples
 o win32 build environment??
-o freelist.c: has __inline keyword - not portable!
 
 o DAM - really be backwards compatible?? or upgrade the files to 1.1.0?
+    x review freelist code
     o review DAM related code in hamsterdb.h and src/
-    o review freelist code
     o limit allowed DAM combinations - otherwise we have to test too much!
+        o unittests
     o make sure that HAM_DAM_ENFORCE_PRE110_FORMAT cannot be set from user
         (only automatically by loading a file from 1.0.9)
+        o unittests
+    o what if an unknown DAM is set? -> fail to load??
+    o ham_info: print the DAM (but only if it's persistent!)
     o enhance acceptance tests - need to support DAMs
     o enhance monster.sh
-    o ham_info: print the DAM
 
 HAM_DAM_RANDOM_WRITE_ACCESS
 HAM_DAM_SEQUENTIAL_INSERT
@@ -91,15 +94,14 @@ HAM_DAM_ENFORCE_PRE110_FORMAT
 
 ----
 
-o IMPORTANT!!! - increase libtool version by 1??? also, we have some API
+o approx. matching: need a sample
+
+x IMPORTANT!!! - increase libtool version by 1??? also, we have some API
     incompatibilities when HAM_*_USER_ALLOC is used. are they a problem??
     -> incompatibilities were removed; increment version nevertheless??
+    --> no, only increment revision
 
 o add/fix testing of the tools to the release process
-
-o in-memory-db could access directly the record (and then overwrite it)
-    -> needs new flag for ham_find/ham_cursor_move
-    o unittests
 
 o packstop has include guards??? remove them, run tests
     x implement
@@ -107,10 +109,6 @@ o packstop has include guards??? remove them, run tests
 
 o do lots of testing with databases from 1.0.9 - must be loaded/modified 
     flawlessly (add unittests!)
-
-o approx. matching: need a sample
-
-o what if an unknown DAM is set? -> fail to load??
 
 o doxygen: make sure that all new functions are shown correctly. 
 
@@ -120,7 +118,11 @@ o doxygen: the online css is super ugly. use the original layout and change the
 o make sure that unittests are not executed twice (move registration out of
     constructor)
 
-o unittests: get rid of cppunit, move to bfc
+. in-memory-db could access directly the record (and then overwrite it)
+    -> needs new flag for ham_find/ham_cursor_move
+    o unittests
+
+. unittests: get rid of cppunit, move to bfc
     x update unittests
     o update win32 project file
     o update wince project file
