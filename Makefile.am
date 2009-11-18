@@ -6,18 +6,18 @@ SUBDIRS = 3rdparty src include samples tools unittests
 DOCUMENTATION_FILES = documentation/Doxyfile            \
              documentation/hamsterdb-main-low.jpg       \
              documentation/hamsterdb-main.jpg           \
-             documentation/architecture.doc 		\
-             documentation/appendix_gpl2.doc 		\
-             documentation/appendix_gpl3.doc 		\
-             documentation/appendix_gfdl.doc 		\
-             documentation/faq.doc 		\
-             documentation/got_geek.doc 		\
-             documentation/history.doc 		\
-             documentation/index.doc 		\
-             documentation/samples.doc 		\
-             documentation/starting.doc 		\
-             documentation/tuning.doc 		\
-             documentation/trouble.doc 				\
+             documentation/architecture.doc 		    \
+             documentation/appendix_gpl2.doc 		    \
+             documentation/appendix_gpl3.doc 		    \
+             documentation/appendix_gfdl.doc 		    \
+             documentation/faq.doc 		                \
+             documentation/got_geek.doc 		        \
+             documentation/history.doc 		            \
+             documentation/index.doc 		            \
+             documentation/samples.doc 		            \
+             documentation/starting.doc 		        \
+             documentation/tuning.doc 		            \
+             documentation/trouble.doc 				    \
              documentation/Doxyfile
              
 
@@ -25,11 +25,10 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              ChangeLog                                  \
              AUTHORS                                    \
              README                                     \
-             CREDITS                                     \
+             CREDITS                                    \
              COPYING.GPL2                               \
              COPYING.GPL3                               \
              3rdparty                                   \
-             m4/ax_*.m4                            \
              build/scripts/*                            \
              src/*.c src/*.h src/Makefile.am            \
              src/Makefile.in                            \
