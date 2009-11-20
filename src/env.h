@@ -83,7 +83,6 @@ struct ham_env_t
     ham_size_t _cachesize;
     ham_u16_t  _keysize;
     ham_u16_t  _max_databases;
-    ham_u16_t  _data_access_mode;
 
     /* linked list of all file-level filters */
     ham_file_filter_t *_file_filters;
@@ -229,7 +228,6 @@ struct ham_env_t
 #define env_get_keysize(env)             (env)->_keysize
 #define env_get_cachesize(env)           (env)->_cachesize
 #define env_get_max_databases(env)       (env)->_max_databases
-#define env_get_data_access_mode(env)    (env)->_data_access_mode
 
 /*
  * set the parameter list
@@ -238,9 +236,7 @@ struct ham_env_t
 #define env_set_keysize(env, ks)         (env)->_keysize=(ks)
 #define env_set_cachesize(env, cs)       (env)->_cachesize=(cs)
 #define env_set_max_databases(env, md)   (env)->_max_databases=(md)
-#define env_set_data_access_mode(env, md) (env)->_data_access_mode=(md)
 
-#define env_set_data_access_mode_masked(env, or_mask, and_mask) (env)->_data_access_mode=(((env)->_data_access_mode & (and_mask)) | (or_mask))
 
 /*
  * get the linked list of all file-level filters

@@ -576,225 +576,6 @@ __prepare_db(ham_db_t *db)
         txn_set_db(env_get_txn(env), db);
 }
 
-/**
- * 'mix' the DAM (Data Access Mode) flags and cross-validate them where 
- * necessary: the PRE110 flag is 'global' in the sense that upon creation 
- * the first database within an environment dictates the format: it is 
- * 'global' for all subsequent databases created in that environmen/file.
- * 
- * Then, when an environment or database is OPENED, the PRE110 flag is 
- * dictated by the file format:
- * you cannot have PRE110 format database tables in 'modern' files, and vice 
- * versa.
- * 
- * DAM access modes such as 'fast', 'sequential' and 'random access' are 
- * per-database specific and 'overridable' in that upon opening an existing 
- * database, the DAM stored in the file header is 'advisory only':
- * when the user has specified a non-default DAM setting, that parameter 
- * will win over the previously stored DAM setup: yes, you can thus create 
- * a file in SEQUENTIAL+FAST mode, then open it at a later date in 
- * RANDOM_ACCESS mode and everything will be perfectly fine.
- *
- * When an environment (or better put: the database FILE) is first created, 
- * the DAM will be taken from the user specified parameter. The environment 
- * DAM setting determines the file format. 
- *
- * When a database is created within one (environment) then, of course, the 
- * only DAM available is the DAM specified for that database by the user.
- *
- * When different DAM parameter values are specified for different databases, 
- * that is perfectly okay. When databases are created or opened and the file 
- * (on open) or the environment has a non-default DAM configured while the 
- * current database create/open only lists a 'default' DAM (a.k.a. 
- * 'don't know/care'), then the 'advisory' DAM from the file (on open) 
- * is taken. When this is 'default', the environment DAM is used.
- *
- * Which translates to a DAM order of precedence for any DAM flags apart 
- * from PRE110: 
- *
- * ENV at create time: env user DAM
- *
- * DB at create time: db user DAM :: env DAM
- *
- * ENV at open time: env user DAM :: 1st database DAM in file
- *
- * DB at open time: db user DAM :: database DAM in file :: env DAM
- *
- * where '::' orders the sources from high to low precedence.
- *
- * For PRE110 the precedence is a little awkward:
- *
- * ENV at create time: user specified PRE110 for env
- *
- * DB at create time:  env PRE110 (a file has already been created by ENV 
- *      before!)
- *
- * ENV at open time: file PRE110
- *
- * DB at open time: file PRE110
- *
- * When is a FAULT reported?
- *
- * Only when the PRE110 user specified setting for an ENV or DB is set, 
- * while the already existing file format dictates otherwise.
- *
- * Hence, it is 'a safe bet' to never specify the PRE110 flag on ENV 
- * or DB open as it's value will be taken from the database file anyhow.
- *
- * The same applies to DB create when that DB is sitting inside an ENV 
- * -- as the ENV create/open will already have determined the PRE110 status, 
- * but one MUST specify the PRE110 flag when creating a DB wirthout an ENV 
- * and the user wants to have a backwards compatible database file: in this 
- * case the database FILE is created during the DB CREATE execution.
- */
-static ham_status_t
-__mix_DAM(ham_u16_t *user_specified_dam, 
-          ham_env_t *env, ham_db_t *db, 
-          ham_u16_t *persisted_dam, 
-          ham_bool_t create, ham_bool_t first_db)
-{
-    ham_u16_t dam = HAM_DAM_DEFAULT;
-    ham_u16_t env_dam;
-    ham_u16_t db_dam;
-    ham_bool_t pre110 = HAM_FALSE;
-
-    if (user_specified_dam)
-        dam = *user_specified_dam;
-
-    /* adjust our DAM default to ensure either all or none of the databases use pre v1.1.0 format */
-    if (create)
-    {
-        ham_assert(!persisted_dam, (0));
-
-        if (db_is_mgt_mode_set(dam, HAM_DAM_ENFORCE_PRE110_FORMAT))
-        {
-            pre110 = HAM_TRUE;
-        }
-        if (env && (!db || first_db)
-            && db_is_mgt_mode_set(env_get_data_access_mode(env), HAM_DAM_ENFORCE_PRE110_FORMAT))
-        {
-            pre110 = HAM_TRUE;
-            /* make sure the first DB follows suite at CREATE time */
-            if (db)
-            {
-                db_set_data_access_mode_masked(db, HAM_DAM_ENFORCE_PRE110_FORMAT, ~HAM_DAM_ENFORCE_PRE110_FORMAT);
-            }
-        }
-        if (db && first_db && !env
-            && db_is_mgt_mode_set(db_get_data_access_mode(db), HAM_DAM_ENFORCE_PRE110_FORMAT))
-        {
-            pre110 = HAM_TRUE;
-        }
-    }
-    else
-    {
-        ham_assert(persisted_dam, (0));
-
-        if (db_is_mgt_mode_set(*persisted_dam, HAM_DAM_ENFORCE_PRE110_FORMAT))
-        {
-            pre110 = HAM_TRUE;
-        }
-        if (env
-            && db_is_mgt_mode_set(env_get_data_access_mode(env), HAM_DAM_ENFORCE_PRE110_FORMAT) != pre110
-            && ((db && db_get_backend(db)) || !first_db))
-        {
-            ham_log(("cannot open a 'backwards compatible' file as a NON-backwards compatible ENVIRONMENT (or vice versa)"));
-            return HAM_INV_PARAMETER;
-        }
-    }
-    if (db 
-        && db_is_mgt_mode_set(db_get_data_access_mode(db), HAM_DAM_ENFORCE_PRE110_FORMAT) != pre110
-        && db_get_backend(db))
-    {
-        ham_log(("cannot create a 'backwards compatible' database in a NON-backwards compatible ENVIRONMENT (or vice versa)"));
-        return HAM_INV_PARAMETER;
-    }
-
-    dam &= ~HAM_DAM_ENFORCE_PRE110_FORMAT;
-
-    /* env: user > env > db.1 > persisted.1 */
-    env_dam = dam;
-    if (env_dam == HAM_DAM_DEFAULT
-        && env)
-    {
-        env_dam = (env_get_data_access_mode(env) & ~HAM_DAM_ENFORCE_PRE110_FORMAT);
-    }
-    if (env_dam == HAM_DAM_DEFAULT
-        && db && first_db)
-    {
-        env_dam = (db_get_data_access_mode(db) & ~HAM_DAM_ENFORCE_PRE110_FORMAT);
-    }
-    if (env_dam == HAM_DAM_DEFAULT
-        && persisted_dam && first_db)
-    {
-        env_dam = (*persisted_dam & ~HAM_DAM_ENFORCE_PRE110_FORMAT);
-    }
-    /* set the proper pre110 mode as well: */
-    if (pre110)
-    {
-        env_dam |= HAM_DAM_ENFORCE_PRE110_FORMAT;
-    }
-    if (env)
-    {
-        /* overwrite existing DAM setting! */
-        env_set_data_access_mode(env, env_dam);
-    }
-
-    /* db: user > db > persisted > env */
-    db_dam = dam;
-    if (db_dam == HAM_DAM_DEFAULT
-        && db)
-    {
-        db_dam = (db_get_data_access_mode(db) & ~HAM_DAM_ENFORCE_PRE110_FORMAT);
-    }
-    if (db_dam == HAM_DAM_DEFAULT
-        && persisted_dam)
-    {
-        db_dam = (*persisted_dam & ~HAM_DAM_ENFORCE_PRE110_FORMAT);
-    }
-    if (db_dam == HAM_DAM_DEFAULT
-        && env)
-    {
-        db_dam = (env_get_data_access_mode(env) & ~HAM_DAM_ENFORCE_PRE110_FORMAT);
-    }
-    /* adjust our DAM when no preference was specified */
-    if (!(db_dam & (HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_RANDOM_WRITE_ACCESS))
-        && db && (db_get_rt_flags(db) & HAM_RECORD_NUMBER))
-    {
-        /* recno DB always gets SEQ mode, unless we overrode specifically */
-        db_dam |= HAM_DAM_SEQUENTIAL_INSERT;
-    }
-    /* set the proper pre110 mode as well: */
-    if (pre110)
-    {
-        db_dam |= HAM_DAM_ENFORCE_PRE110_FORMAT;
-    }
-    if (db)
-    {
-        /* overwrite existing DAM setting! */
-        db_set_data_access_mode(db, db_dam);
-    }
-
-    if (env)
-    {
-        dam = env_dam;
-    }
-    if (db)
-    {
-        dam = db_dam;
-    }
-    if (pre110)
-    {
-        dam |= HAM_DAM_ENFORCE_PRE110_FORMAT;
-    }
-    if (user_specified_dam)
-    {
-        *user_specified_dam = dam;
-    }
-    return 0;
-}
-
-
 
 static ham_status_t 
 __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename, 
@@ -988,6 +769,13 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                 goto default_case;
 
             case HAM_PARAM_DATA_ACCESS_MODE:
+                /* not allowed for Environments, only for Databases */
+                if (env) {
+                    ham_trace(("invalid parameter "
+                               "HAM_PARAM_DATA_ACCESS_MODE"));
+                    dam=0;
+                    RETURN(HAM_INV_PARAMETER);
+                }
                 if (pdata_access_mode) {
                     switch (param->value) {
                     case HAM_DAM_DEFAULT:
@@ -1009,8 +797,9 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                         break;
 
                     default:
-                        ham_trace(("invalid value $%04x specified for parameter "
-                                   "HAM_PARAM_DATA_ACCESS_MODE", (unsigned)param->value));
+                        ham_trace(("invalid value $%04x specified for parameter"
+                                   " HAM_PARAM_DATA_ACCESS_MODE", 
+                                   (unsigned)param->value));
                         dam=HAM_DAM_DEFAULT;
                         RETURN(HAM_INV_PARAMETER);
                     }
@@ -1434,7 +1223,6 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     ham_u16_t keysize = 0;
     ham_size_t cachesize = 0;
     ham_u16_t maxdbs = 0;
-    ham_u16_t dam = 0;
     ham_db_t *dummydb;
 
     if (!env) {
@@ -1448,17 +1236,10 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
      * check (and modify) the parameters
      */
     st=__check_create_parameters(env, 0, filename, &flags, param, 
-            &pagesize, &keysize, &cachesize, 0, &maxdbs, &dam, HAM_TRUE,
+            &pagesize, &keysize, &cachesize, 0, &maxdbs, 0, HAM_TRUE,
             HAM_FALSE);
     if (st)
         return (st);
-
-    /* adjust our DAM when no preference was specified */
-    if (!(dam & (HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_RANDOM_WRITE_ACCESS))) {
-        dam |= (ham_u16_t)((flags & HAM_RECORD_NUMBER)
-                           ? HAM_DAM_SEQUENTIAL_INSERT 
-                           : HAM_DAM_RANDOM_WRITE_ACCESS);
-    }
 
     /* 
      * if we do not yet have an allocator: create a new one 
@@ -1477,7 +1258,6 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     env_set_keysize(env, keysize);
     env_set_cachesize(env, cachesize);
     env_set_max_databases(env, maxdbs);
-    env_set_data_access_mode(env, dam);
     env_set_file_mode(env, mode);
     if (filename) {
         env_set_filename(env, 
@@ -1564,16 +1344,14 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
      */
     {
     ham_parameter_t full_param[]={
-        //{HAM_PARAM_PAGESIZE,  env_get_pagesize(env)},
         {HAM_PARAM_KEYSIZE,   keysize},
         {HAM_PARAM_DBNAME,    name},
         {HAM_PARAM_DATA_ACCESS_MODE, dam},
         {0, 0}};
-    //flags |= (env_get_rt_flags(env)
     /*
-    strip off flags which are for the ENV only, and which were mixed in inside
-    __check_create_parameters()
-    */
+     * strip off flags which are for the ENV only, and which were mixed 
+     * in inside __check_create_parameters()
+     */
     flags &= ~(HAM_WRITE_THROUGH 
                 |HAM_DISABLE_MMAP 
                 |HAM_DISABLE_FREELIST_FLUSH
@@ -1587,7 +1365,8 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
     if (st)
         return (st);
     }
-    ham_assert(db_get_pagesize(db) == device_get_pagesize(env_get_device(env)), (0));
+    ham_assert(db_get_pagesize(db) == 
+               device_get_pagesize(env_get_device(env)), (0));
 
     /*
      * on success: store the open database in the environment's list of
@@ -1627,11 +1406,6 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
         return (HAM_INV_PARAMETER);
     }
 
-#if 0
-    cachesize = env_get_cachesize(env);
-    dam = env_get_data_access_mode(env);
-#endif
-
     db_set_rt_flags(db, 0);
 
     /* parse parameters */
@@ -1666,11 +1440,10 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
         {HAM_PARAM_DBNAME,    name},
         {HAM_PARAM_DATA_ACCESS_MODE, dam},
         {0, 0}};
-    //flags |= (env_get_rt_flags(env)
     /*
-    strip off flags which are for the ENV only, and which were mixed in inside
-    __check_create_parameters()
-    */
+     * strip off flags which are for the ENV only, and which were mixed 
+     * in inside __check_create_parameters()
+     */
     flags &= ~(HAM_WRITE_THROUGH 
                 |HAM_DISABLE_MMAP 
                 |HAM_DISABLE_FREELIST_FLUSH
@@ -1710,7 +1483,6 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
     ham_status_t st;
     ham_size_t cachesize=0;
     ham_db_t *dummydb;
-    ham_u16_t dam = HAM_DAM_DEFAULT;
 
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
@@ -1721,7 +1493,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
 
     /* parse parameters */
     st=__check_create_parameters(env, 0, filename, &flags, param, 
-            0, 0, &cachesize, 0, 0, &dam, HAM_FALSE, HAM_FALSE);
+            0, 0, &cachesize, 0, 0, 0, HAM_FALSE, HAM_FALSE);
     if (st)
         return (st);
 
@@ -2389,7 +2161,6 @@ ham_open_ex(ham_db_t *db, const char *filename,
     ham_page_t *page;
     ham_device_t *device;
     ham_u16_t dam = HAM_DAM_DEFAULT;
-    ham_u16_t persisted_dam = HAM_DAM_DEFAULT;
 
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
@@ -2544,15 +2315,10 @@ ham_open_ex(ham_db_t *db, const char *filename,
             hdr = db_get_header(db);
         }
 
-        /*
-         * 'persisted_dam' should always be set up properly for PRE110 
-         * detection in __mix_DAM(), also when this is the second or 
-         * higher database within the environment which is being opened, 
-         * hence we ALWAYS gawk at the header here.
-         */
-
         /* 
          * check the database version
+         *
+         * if this Database is from 1.0.x: force the PRE110-DAM
          */
         if (dbheader_get_version(hdr, 0)!=HAM_VERSION_MAJ ||
                 dbheader_get_version(hdr, 1)!=HAM_VERSION_MIN) {
@@ -2561,7 +2327,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
             if (dbheader_get_version(hdr, 0) == 1 &&
                 dbheader_get_version(hdr, 1) == 0 &&
                 dbheader_get_version(hdr, 2) <= 9) {
-                persisted_dam = HAM_DAM_ENFORCE_PRE110_FORMAT;
+                dam |= HAM_DAM_ENFORCE_PRE110_FORMAT;
             }
             else {
                 ham_log(("invalid file version"));
@@ -2571,6 +2337,9 @@ ham_open_ex(ham_db_t *db, const char *filename,
         }
 
         st = 0;
+
+        /* finally store the data access mode */
+        db_set_data_access_mode(db, dam);
 
 fail_with_fake_cleansing:
 
@@ -2720,8 +2489,6 @@ fail_with_fake_cleansing:
             continue;
         if (dbname==HAM_FIRST_DATABASE_NAME || dbname==name) {
             db_set_indexdata_offset(db, dbi);
-            if (persisted_dam!=HAM_DAM_DEFAULT)
-                persisted_dam = index_get_data_access_mode(idx);
             break;
         }
     }
@@ -2730,14 +2497,6 @@ fail_with_fake_cleansing:
         (void)ham_close(db, 0);
         return (db_set_error(db, HAM_DATABASE_NOT_FOUND));
     }
-
-    /*
-     * set up our preferred DAM, as it was set up at the time of DB creation
-     */
-    st = __mix_DAM(&dam, db_get_env(db), db, &persisted_dam, HAM_FALSE, 
-                    !db_get_header_page(db));
-    if (st)
-        return (db_set_error(db, st));
 
     /* 
      * create the backend
@@ -2874,14 +2633,6 @@ ham_create_ex(ham_db_t *db, const char *filename,
     if (st)
         return (db_set_error(db, st));
 
-    /*
-    set up the ENV+DB DAM
-    */
-    st = __mix_DAM(&dam, db_get_env(db), db, NULL, HAM_TRUE, 
-                !db_get_header_page(db));
-    if (st)
-        return (db_set_error(db, st));
-
     /* 
      * if we do not yet have an allocator: create a new one 
      */
@@ -2994,17 +2745,8 @@ ham_create_ex(ham_db_t *db, const char *filename,
 
         /* initialize the header */
         db_set_magic(db, 'H', 'A', 'M', '\0');
-        if (db_is_mgt_mode_set(db_get_data_access_mode(db), HAM_DAM_ENFORCE_PRE110_FORMAT))
-        {
-            /* fake a v1.0.9 DB file format */
-            db_set_version(db, 1, 0, 9, 0);
-            db_set_pers_data_access_mode(db, 0); /* MUST be ZERO to be truely backwards compatible! */
-        }
-        else
-        {
-            db_set_version(db, HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV, 0);
-            db_set_pers_data_access_mode(db, db_get_data_access_mode(db));
-        }
+        db_set_version(db, HAM_VERSION_MAJ, HAM_VERSION_MIN, HAM_VERSION_REV, 0);
+        db_set_data_access_mode(db, dam);
         db_set_serialno(db, HAM_SERIALNO);
         db_set_error(db, HAM_SUCCESS);
         db_set_persistent_pagesize(db, pagesize);
@@ -3194,15 +2936,6 @@ __ham_get_parameters(ham_env_t *env, ham_db_t *db, ham_parameter_t *param)
         return st;
 
     nil_param_values(param);
-
-    /*
-     * set up the ENV+DB DAM
-     * 
-     * set up our preferred DAM, as if it was set up at the time of DB creation
-     */
-    st = __mix_DAM(&dam, env, db, 0, HAM_TRUE, db && !db_get_header_page(db));
-    if (st)
-        return st;
 
     /*
      * And cooked pagesize should not surpass the space we can occupy in a 

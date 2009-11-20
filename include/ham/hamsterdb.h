@@ -185,6 +185,8 @@ typedef struct {
  * than 1.0.9 will assume @ref HAM_DAM_RANDOM_WRITE_ACCESS, unless
  * the Database is RECNO-based, in which case 
  * @ref HAM_DAM_SEQUENTIAL_INSERT is assumed.
+ *
+ * This flag is non persistent.
  */
 #define HAM_DAM_DEFAULT                  0
 
@@ -196,6 +198,8 @@ typedef struct {
  *
  * Note: RECNO-based Databases will start in the implicit 
  * @ref HAM_DAM_SEQUENTIAL_INSERT mode instead.
+ *
+ * This flag is non persistent.
 */
 #define HAM_DAM_RANDOM_WRITE_ACCESS      0x0001
 
@@ -204,6 +208,8 @@ typedef struct {
  *
  * Note: RECNO-based Databases will start in the implicit 
  * @ref HAM_DAM_SEQUENTIAL_INSERT mode instead.
+ *
+ * This flag is non persistent.
  */
 #define HAM_DAM_SEQUENTIAL_INSERT        0x0002
 
@@ -216,6 +222,8 @@ typedef struct {
  * get the most brutal 'insert' operation performance possible, in
  * exchange for a slightly faster growing file, as available space
  * due to previously deleted records is mostly ignored.
+ *
+ * This flag is non persistent.
  */
 #define HAM_DAM_FAST_INSERT              0x0004
 
@@ -549,16 +557,6 @@ ham_env_create(ham_env_t *env, const char *filename,
  *            Page sizes must be a multiple of 1024.
  *        <li>@ref HAM_PARAM_MAX_ENV_DATABASES </li> The number of maximum
  *            Databases in this Environment; default value: 16.
- *        <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data 
- *            access patterns. The default setting optimizes hamsterdb
- *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE_ACCESS).
- *            Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
- *            is automatically set for record number Databases).
- *            Data Access Mode hints can be set for individual Databases, too
- *            (see also @ref ham_create_ex) but are applied globally to all
- *            Databases within a single Environment.
- *            For more information about available DAM (Data Access Mode)
- *            flags, see @ref ham_data_access_modes.
  *        </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -662,6 +660,16 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *            as @a HAM_DEFAULT_CACHESIZE - usually 64 pages, i.e. 256kb on 
  *            UNIX where 4K pages are usual (or 4Mb on Win32/Win64 where 64K 
  *            pages are usual).
+ *        <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data 
+ *            access patterns. The default setting optimizes hamsterdb
+ *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE_ACCESS).
+ *            Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
+ *            is automatically set for record number Databases).
+ *            Data Access Mode hints can be set for individual Databases, too
+ *            (see also @ref ham_create_ex) but are applied globally to all
+ *            Databases within a single Environment.
+ *            For more information about available DAM (Data Access Mode)
+ *            flags, see @ref ham_data_access_modes. The DAM is not persistent.
  *      </ul>
  *
  * @return @ref HAM_SUCCESS upon success.
@@ -741,6 +749,16 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *      <ul>
  *        <li>@ref HAM_PARAM_KEYSIZE </li> The size of the keys in the B+Tree
  *            index. The default size is 21 bytes.
+ *        <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data 
+ *            access patterns. The default setting optimizes hamsterdb
+ *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE_ACCESS).
+ *            Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
+ *            is automatically set for record number Databases).
+ *            Data Access Mode hints can be set for individual Databases, too
+ *            (see also @ref ham_create_ex) but are applied globally to all
+ *            Databases within a single Environment.
+ *            For more information about available DAM (Data Access Mode)
+ *            flags, see @ref ham_data_access_modes. The DAM is not persistent.
  *      </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -1185,7 +1203,7 @@ ham_create(ham_db_t *db, const char *filename,
  *            Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
  *            is automatically set for record number Databases).
  *            For more information about available DAM (Data Access Mode)
- *            flags, see @ref ham_data_access_modes.
+ *            flags, see @ref ham_data_access_modes. The DAM is not persistent.
  *      </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -1288,6 +1306,16 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *            as @a HAM_DEFAULT_CACHESIZE - usually 64 pages, i.e. 256kb on 
  *            UNIX where 4K pages are usual (or 4Mb on Win32/Win64 where 
  *            64K pages are usual).
+ *        <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data 
+ *            access patterns. The default setting optimizes hamsterdb
+ *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE_ACCESS).
+ *            Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
+ *            is automatically set for record number Databases).
+ *            Data Access Mode hints can be set for individual Databases, too
+ *            (see also @ref ham_create_ex) but are applied globally to all
+ *            Databases within a single Environment.
+ *            For more information about available DAM (Data Access Mode)
+ *            flags, see @ref ham_data_access_modes. The DAM is not persistent.
  *      </ul>
  *
  * @return @ref HAM_SUCCESS upon success
