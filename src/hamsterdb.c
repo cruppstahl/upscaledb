@@ -770,14 +770,16 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
 
             case HAM_PARAM_DATA_ACCESS_MODE:
                 /* not allowed for Environments, only for Databases */
-                if (env) {
+                if (!db) {
                     ham_trace(("invalid parameter "
                                "HAM_PARAM_DATA_ACCESS_MODE"));
                     dam=0;
                     RETURN(HAM_INV_PARAMETER);
                 }
-                if (pdata_access_mode) {
+                if (pdata_access_mode) { 
                     switch (param->value) {
+                    case 0: /* ignore 0 */
+                        break;
                     case HAM_DAM_SEQUENTIAL_INSERT:
                     case HAM_DAM_RANDOM_WRITE_ACCESS:
                     case HAM_DAM_FAST_INSERT:
@@ -1353,7 +1355,6 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
     ham_parameter_t full_param[]={
         {HAM_PARAM_KEYSIZE,   keysize},
         {HAM_PARAM_DBNAME,    name},
-        {HAM_PARAM_DATA_ACCESS_MODE, dam},
         {0, 0}};
     /*
      * strip off flags which are for the ENV only, and which were mixed 

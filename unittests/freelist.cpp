@@ -38,18 +38,29 @@ protected:
     memtracker_t *m_alloc;
 
 public:
+    virtual ham_parameter_t *get_create_params() 
+	{ 
+        static ham_parameter_t p[]={
+            {HAM_PARAM_PAGESIZE, 4096}, 
+            {0, 0}};
+        return (&p[0]);
+    }
+
+    virtual ham_parameter_t *get_open_params() 
+	{ 
+        return (0);
+    }
+
     virtual void setup() 
 	{ 
 		__super::setup();
-
-        ham_parameter_t p[]={{HAM_PARAM_PAGESIZE, 4096}, {0, 0}};
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), 
-                    HAM_ENABLE_TRANSACTIONS, 0644, &p[0]));
+                    HAM_ENABLE_TRANSACTIONS, 0644, get_create_params()));
     }
     
     virtual void teardown() 
@@ -93,7 +104,8 @@ public:
 
         BFC_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        BFC_ASSERT(ham_open(m_db, BFC_OPATH(".test"), 0)==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(0,
+                ham_open_ex(m_db, BFC_OPATH(".test"), 0, get_open_params()));
         f=db_get_freelist(m_db);
 
         BFC_ASSERT(freel_get_start_address(f)==0x7878787878787878ull);
@@ -193,8 +205,9 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
+        BFC_ASSERT_EQUAL(0,
+                ham_open_ex(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS, get_open_params()));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL(o, 
@@ -207,8 +220,9 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
+        BFC_ASSERT_EQUAL(0,
+                ham_open_ex(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS, get_open_params()));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL(o*2,
@@ -242,8 +256,14 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
+        BFC_ASSERT_EQUAL(0,
+                ham_open_ex(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS, get_open_params()));
+		db_set_data_access_mode(m_db, 
+				db_get_data_access_mode(m_db) & 
+						~(HAM_DAM_SEQUENTIAL_INSERT
+						 | HAM_DAM_RANDOM_WRITE_ACCESS
+						 | HAM_DAM_FAST_INSERT));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL((ham_offset_t)0, 
@@ -256,8 +276,9 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
+        BFC_ASSERT_EQUAL(0,
+                ham_open_ex(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS, get_open_params()));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL((ham_offset_t)0, 
@@ -302,8 +323,21 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
+        BFC_ASSERT_EQUAL(0,
+                ham_open_ex(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS, get_open_params()));
+
+        /* set DAM - see above */
+		db_set_data_access_mode(m_db, 
+				db_get_data_access_mode(m_db) & 
+						~(HAM_DAM_SEQUENTIAL_INSERT
+						 | HAM_DAM_RANDOM_WRITE_ACCESS
+						 | HAM_DAM_FAST_INSERT));
+		db_set_data_access_mode(m_db, 
+				db_get_data_access_mode(m_db) 
+						| HAM_DAM_RANDOM_WRITE_ACCESS 
+                        | HAM_DAM_SEQUENTIAL_INSERT);
+
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL((ham_offset_t)o+DB_CHUNKSIZE, 
@@ -318,8 +352,19 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS));
+        BFC_ASSERT_EQUAL(0,
+                ham_open_ex(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS, get_open_params()));
+        /* set DAM - see above */
+		db_set_data_access_mode(m_db, 
+				db_get_data_access_mode(m_db) & 
+						~(HAM_DAM_SEQUENTIAL_INSERT
+						 | HAM_DAM_RANDOM_WRITE_ACCESS
+						 | HAM_DAM_FAST_INSERT));
+		db_set_data_access_mode(m_db, 
+				db_get_data_access_mode(m_db) 
+						| HAM_DAM_RANDOM_WRITE_ACCESS 
+                        | HAM_DAM_SEQUENTIAL_INSERT);
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL(o+DB_CHUNKSIZE, 
@@ -416,11 +461,21 @@ public:
         BFC_REGISTER_TEST(FreelistV1Test, markAllocAlignMultipleTest);
     }
 
-    virtual void setup() 
+    virtual ham_parameter_t *get_create_params() 
 	{ 
-		__super::setup();
-        db_set_data_access_mode(m_db, 
-                db_get_data_access_mode(m_db)|HAM_DAM_ENFORCE_PRE110_FORMAT); 
+        static ham_parameter_t p[]={
+            {HAM_PARAM_PAGESIZE, 4096}, 
+            {HAM_PARAM_DATA_ACCESS_MODE, HAM_DAM_ENFORCE_PRE110_FORMAT},
+            {0, 0}};
+        return (&p[0]);
+    }
+
+    virtual ham_parameter_t *get_open_params() 
+	{ 
+        static ham_parameter_t p[]={
+            {HAM_PARAM_DATA_ACCESS_MODE, HAM_DAM_ENFORCE_PRE110_FORMAT},
+            {0, 0}};
+        return (&p[0]);
     }
 
 };
