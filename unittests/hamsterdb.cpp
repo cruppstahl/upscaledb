@@ -413,6 +413,10 @@ public:
     void setPre110DamTest(void)
     {
         ham_db_t *db;
+        ham_parameter_t p[]={
+            {HAM_PARAM_DATA_ACCESS_MODE, HAM_DAM_ENFORCE_PRE110_FORMAT}, 
+            {0, 0}
+        };
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, 
@@ -420,6 +424,14 @@ public:
                     BFC_IPATH("data/recno-endian-test-open-database-be.hdb"),
                         0));
         BFC_ASSERT(HAM_DAM_ENFORCE_PRE110_FORMAT&db_get_data_access_mode(db));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_create_ex(db, BFC_OPATH(".test"), 0, 0664, &p[0]));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_open_ex(db, BFC_OPATH(".test"), 0, &p[0]));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
     }

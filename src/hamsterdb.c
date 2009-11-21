@@ -776,6 +776,11 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                     dam=0;
                     RETURN(HAM_INV_PARAMETER);
                 }
+                if (param->value&HAM_DAM_ENFORCE_PRE110_FORMAT) {
+                    ham_trace(("Data access mode HAM_DAM_ENFORCE_PRE110_FORMAT "
+                                "must not be specified"));
+                    RETURN(HAM_INV_PARAMETER);
+                }
                 if (pdata_access_mode) { 
                     switch (param->value) {
                     case 0: /* ignore 0 */
@@ -783,8 +788,6 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                     case HAM_DAM_SEQUENTIAL_INSERT:
                     case HAM_DAM_RANDOM_WRITE:
                     case HAM_DAM_FAST_INSERT:
-                    case HAM_DAM_ENFORCE_PRE110_FORMAT:
-
                     /* and all more-or-less viable permutations thereof ... */
                     case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
                     case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_ENFORCE_PRE110_FORMAT:

@@ -91,9 +91,9 @@ o DAM - really be backwards compatible?? or upgrade the files to 1.1.0?
     x rename HAM_DAM_RANDOM_WRITE_ACCESS to HAM_DAM_RANDOM_WRITE
     x what if an unknown DAM is set? -> fail to load!
         x unittest
-    o make sure that HAM_DAM_ENFORCE_PRE110_FORMAT cannot be set from user
+    x make sure that HAM_DAM_ENFORCE_PRE110_FORMAT cannot be set from user
         (only automatically by loading a file from 1.0.9)
-        o unittests
+        x unittests
     o enhance acceptance tests - need to support DAMs
     o enhance monster.sh with all possible DAM combinations (limit them!)
     o make sure that 1.0.9 is not able to open databases generated with 1.1.0
