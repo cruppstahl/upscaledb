@@ -591,7 +591,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
     ham_size_t cachesize=0;
     ham_bool_t no_mmap=HAM_FALSE;
     ham_u16_t dbs=0;
-    ham_u16_t dam=HAM_DAM_DEFAULT;
+    ham_u16_t dam=0;
     ham_u32_t flags = 0;
     ham_bool_t set_abs_max_dbs = HAM_FALSE;
     ham_device_t *device = NULL;
@@ -778,7 +778,6 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                 }
                 if (pdata_access_mode) {
                     switch (param->value) {
-                    case HAM_DAM_DEFAULT:
                     case HAM_DAM_SEQUENTIAL_INSERT:
                     case HAM_DAM_RANDOM_WRITE_ACCESS:
                     case HAM_DAM_FAST_INSERT:
@@ -800,7 +799,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                         ham_trace(("invalid value $%04x specified for parameter"
                                    " HAM_PARAM_DATA_ACCESS_MODE", 
                                    (unsigned)param->value));
-                        dam=HAM_DAM_DEFAULT;
+                        dam=0;
                         RETURN(HAM_INV_PARAMETER);
                     }
                     break;
@@ -867,6 +866,10 @@ default_case:
         }
     }
 
+    dam=(flags & HAM_RECORD_NUMBER)
+         ? HAM_DAM_SEQUENTIAL_INSERT 
+         : HAM_DAM_RANDOM_WRITE_ACCESS;
+
     if ((env && !db) || (!env && db)) {
         if (!patching_params_and_dont_fail) {
             if (!filename && !(flags&HAM_IN_MEMORY_DB)) {
@@ -876,16 +879,23 @@ default_case:
         }
     }
 
-    if (pdbname 
-        && dbname != HAM_FIRST_DATABASE_NAME 
-        && dbname != HAM_DUMMY_DATABASE_NAME 
-        && (patching_params_and_dont_fail 
-            ? dbname > HAM_EMPTY_DATABASE_NAME
-            : dbname >= HAM_EMPTY_DATABASE_NAME)) {
-        ham_trace(("parameter 'name' (0x%04x) must be lower than 0xf000", 
-                    (unsigned)dbname));
-        dbname = HAM_FIRST_DATABASE_NAME;
-        RETURN(HAM_INV_PARAMETER);
+    if (pdbname) {
+        if (create && (dbname==0 || dbname>HAM_DUMMY_DATABASE_NAME)) {
+            if (!patching_params_and_dont_fail) {
+                ham_trace(("parameter 'name' (0x%04x) must be lower than "
+                    "0xf000", (unsigned)dbname));
+                RETURN(HAM_INV_PARAMETER);
+            }
+            dbname = HAM_FIRST_DATABASE_NAME;
+        }
+        else if (!create && (dbname==0 || dbname>HAM_DUMMY_DATABASE_NAME)) {
+            if (!patching_params_and_dont_fail) {
+                ham_trace(("parameter 'name' (0x%04x) must be lower than "
+                    "0xf000", (unsigned)dbname));
+                RETURN(HAM_INV_PARAMETER);
+            }
+            dbname = HAM_FIRST_DATABASE_NAME;
+        }
     }
 
     if (db && (pdbname && !dbname)) {
@@ -1116,9 +1126,6 @@ default_case:
         *ppagesize = pagesize;
     if (pdbname)
         *pdbname = dbname;
-#if defined(HAM_FORCE_PRE_V110_ONLY_BINARY)
-    dam |= HAM_DAM_ENFORCE_PRE110_FORMAT;
-#endif
     if (pdata_access_mode)
         *pdata_access_mode = dam;
     if (pmaxdbs)
@@ -2160,7 +2167,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     ham_size_t pagesize=0;
     ham_page_t *page;
     ham_device_t *device;
-    ham_u16_t dam = HAM_DAM_DEFAULT;
+    ham_u16_t dam = 0;
 
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
@@ -2339,6 +2346,12 @@ ham_open_ex(ham_db_t *db, const char *filename,
         st = 0;
 
         /* finally store the data access mode */
+        if (!dam) {
+            if (db_get_rt_flags(db)&HAM_RECORD_NUMBER)
+                dam=HAM_DAM_SEQUENTIAL_INSERT;
+            else
+                dam=HAM_DAM_RANDOM_WRITE_ACCESS;
+        }
         db_set_data_access_mode(db, dam);
 
 fail_with_fake_cleansing:
@@ -2606,7 +2619,9 @@ ham_create_ex(ham_db_t *db, const char *filename,
     ham_page_t *page;
     ham_u32_t pflags;
     ham_device_t *device;
-    ham_u16_t dam = HAM_DAM_DEFAULT;
+    ham_u16_t dam=(flags & HAM_RECORD_NUMBER)
+                    ? HAM_DAM_SEQUENTIAL_INSERT 
+                    : HAM_DAM_RANDOM_WRITE_ACCESS;
 
     ham_size_t pagesize = 0;
     ham_u16_t keysize = 0;

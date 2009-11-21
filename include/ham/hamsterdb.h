@@ -181,20 +181,10 @@ typedef struct {
  */
 
 /** 
- * Assume 'default' behaviour: Databases created with versions newer
- * than 1.0.9 will assume @ref HAM_DAM_RANDOM_WRITE_ACCESS, unless
- * the Database is RECNO-based, in which case 
- * @ref HAM_DAM_SEQUENTIAL_INSERT is assumed.
- *
- * This flag is non persistent.
- */
-#define HAM_DAM_DEFAULT                  0
-
-/** 
  * Assume random access (a mixed bag of random insert and delete). 
  *
- * This is the default setting for Databases created with versions 
- * newer than 1.0.9
+ * This is the default setting for (non-RECNO) Databases created with versions 
+ * newer than 1.0.9.
  *
  * Note: RECNO-based Databases will start in the implicit 
  * @ref HAM_DAM_SEQUENTIAL_INSERT mode instead.
@@ -206,8 +196,8 @@ typedef struct {
 /** 
  * Assume sequential insert (and few or no delete) operations. 
  *
- * Note: RECNO-based Databases will start in the implicit 
- * @ref HAM_DAM_SEQUENTIAL_INSERT mode instead.
+ * This is the default setting for RECNO based Databases created with versions 
+ * newer than 1.0.9.
  *
  * This flag is non persistent.
  */
