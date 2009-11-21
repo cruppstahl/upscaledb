@@ -79,6 +79,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, readOnlyTest);
         BFC_REGISTER_TEST(HamsterdbTest, invalidPagesizeTest);
         BFC_REGISTER_TEST(HamsterdbTest, invalidDamInEnvTest);
+        BFC_REGISTER_TEST(HamsterdbTest, setPre110DamTest);
         BFC_REGISTER_TEST(HamsterdbTest, getErrorTest);
         BFC_REGISTER_TEST(HamsterdbTest, setPrefixCompareTest);
         BFC_REGISTER_TEST(HamsterdbTest, setCompareTest);
@@ -407,6 +408,20 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
+    void setPre110DamTest(void)
+    {
+        ham_db_t *db;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(db, 
+                    BFC_IPATH("data/recno-endian-test-open-database-be.hdb"),
+                        0));
+        BFC_ASSERT(HAM_DAM_ENFORCE_PRE110_FORMAT&db_get_data_access_mode(db));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
+
     void getErrorTest(void)
     {
         BFC_ASSERT_EQUAL(0, ham_get_error(0));
@@ -508,11 +523,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
     void nearFindStressTest(void)
     {
-#if defined(HAM_DEBUG)
         const int RECORD_COUNT_PER_DB = 200000;
-#else
-        const int RECORD_COUNT_PER_DB = 5; // 0000000;
-#endif
         ham_env_t *env;
         ham_db_t *db;
         time_t t[5];
@@ -530,17 +541,9 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         };
         ham_parameter_t ps[]={
             {HAM_PARAM_PAGESIZE,   2*64*1024}, /* UNIX == WIN now */
-#if 01
             {HAM_PARAM_CACHESIZE,    32},
-#else
-            {HAM_PARAM_CACHESIZE,     32*64*1024},
-#endif
-            // {HAM_PARAM_KEYSIZE,    sizeof(my_key_t)},
-#if 01
-            {HAM_PARAM_DATA_ACCESS_MODE, HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT },
-#else
-            {HAM_PARAM_DATA_ACCESS_MODE, HAM_DAM_DEFAULT },
-#endif
+            {HAM_PARAM_DATA_ACCESS_MODE, 
+                HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT },
             {0, 0}
         };
         ham_parameter_t ps2[]={
@@ -557,20 +560,26 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         time(&t[0]);
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0, ham_env_create_ex(env, BFC_OPATH(".test"), 0 & HAM_DISABLE_MMAP, 0644, ps));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_ex(env, BFC_OPATH(".test"), 
+                    HAM_DISABLE_MMAP, 0644, ps));
         
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         ham_size_t keycount = 0;
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 1, 0, ps2));
 #ifdef HAM_ENABLE_INTERNAL
-        BFC_ASSERT_EQUAL(0, ham_calc_maxkeys_per_page(db, &keycount, sizeof(my_key)));
+        BFC_ASSERT_EQUAL(0, 
+                ham_calc_maxkeys_per_page(db, &keycount, sizeof(my_key)));
         BFC_ASSERT_EQUAL(/* 2424 */ 4852, keycount);
 #else
-        BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, ham_calc_maxkeys_per_page(db, &keycount, sizeof(my_key)));
+        BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, 
+                ham_calc_maxkeys_per_page(db, &keycount, sizeof(my_key)));
 #endif
         keycount = 4852; /* for 128K pagesize */
-        BFC_ASSERT_EQUAL(0, ham_set_prefix_compare_func(db, &my_prefix_compare_func_u32));
-        BFC_ASSERT_EQUAL(0, ham_set_compare_func(db, &my_compare_func_u32));
+        BFC_ASSERT_EQUAL(0, 
+                ham_set_prefix_compare_func(db, &my_prefix_compare_func_u32));
+        BFC_ASSERT_EQUAL(0, 
+                ham_set_compare_func(db, &my_compare_func_u32));
         
         std::cerr << "1K inserts: ";
 
