@@ -174,7 +174,7 @@ ham_create_flags2str(char *buf, size_t buflen, ham_u32_t flags)
     {
         if (buf && buflen > 13 && buflen > strlen(buf) + 13 + 1 + 9)
         {
-            util_snprintf(buf, buflen, "%sHAM_FLAGS(reserved:$%x)", (*buf ? "|" : ""), (unsigned int)flags);
+            util_snprintf(buf, buflen, "%sHAM_FLAGS(reserved: 0x%x)", (*buf ? "|" : ""), (unsigned int)flags);
         }
         else
         {
@@ -224,7 +224,7 @@ ham_param2str(char *buf, size_t buflen, ham_u32_t name)
 
     default:
         if (buf && buflen > 13) {
-            util_snprintf(buf, buflen, "HAM_PARAM($%x)", (unsigned int)name);
+            util_snprintf(buf, buflen, "HAM_PARAM(0x%x)", (unsigned int)name);
             return buf;
         }
         break;
@@ -770,7 +770,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
 
             case HAM_PARAM_DATA_ACCESS_MODE:
                 /* not allowed for Environments, only for Databases */
-                if (!db) {
+                if (!db && !patching_params_and_dont_fail) {
                     ham_trace(("invalid parameter "
                                "HAM_PARAM_DATA_ACCESS_MODE"));
                     dam=0;
@@ -781,28 +781,31 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                     case 0: /* ignore 0 */
                         break;
                     case HAM_DAM_SEQUENTIAL_INSERT:
-                    case HAM_DAM_RANDOM_WRITE_ACCESS:
+                    case HAM_DAM_RANDOM_WRITE:
                     case HAM_DAM_FAST_INSERT:
                     case HAM_DAM_ENFORCE_PRE110_FORMAT:
 
                     /* and all more-or-less viable permutations thereof ... */
                     case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
                     case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_ENFORCE_PRE110_FORMAT:
-                    case HAM_DAM_RANDOM_WRITE_ACCESS | HAM_DAM_FAST_INSERT:
-                    case HAM_DAM_RANDOM_WRITE_ACCESS | HAM_DAM_ENFORCE_PRE110_FORMAT:
+                    case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
+                    case HAM_DAM_RANDOM_WRITE | HAM_DAM_ENFORCE_PRE110_FORMAT:
                     case HAM_DAM_FAST_INSERT | HAM_DAM_ENFORCE_PRE110_FORMAT:
                     
                     case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT | HAM_DAM_ENFORCE_PRE110_FORMAT:
-                    case HAM_DAM_RANDOM_WRITE_ACCESS | HAM_DAM_FAST_INSERT | HAM_DAM_ENFORCE_PRE110_FORMAT:
+                    case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT | HAM_DAM_ENFORCE_PRE110_FORMAT:
                         dam=(ham_u16_t)param->value;
                         break;
 
                     default:
-                        ham_trace(("invalid value $%04x specified for parameter"
-                                   " HAM_PARAM_DATA_ACCESS_MODE", 
-                                   (unsigned)param->value));
-                        dam=0;
-                        RETURN(HAM_INV_PARAMETER);
+                        if (!patching_params_and_dont_fail) {
+                            ham_trace(("invalid value 0x%04x specified for "
+                                    "parameter HAM_PARAM_DATA_ACCESS_MODE", 
+                                    (unsigned)param->value));
+                            RETURN(HAM_INV_PARAMETER);
+                        }
+                        else
+                            dam=0;
                     }
                     break;
                 }
@@ -868,9 +871,16 @@ default_case:
         }
     }
 
-    dam=(flags & HAM_RECORD_NUMBER)
-         ? HAM_DAM_SEQUENTIAL_INSERT 
-         : HAM_DAM_RANDOM_WRITE_ACCESS;
+    /*
+     * when creating a database we can calculate the DAM depending on the
+     * create flags; when opening a database, the recno-flag is persistent
+     * and not yet loaded, therefore it's handled by the caller
+     */
+    if (!dam && create) {
+        dam=(flags & HAM_RECORD_NUMBER)
+            ? HAM_DAM_SEQUENTIAL_INSERT 
+            : HAM_DAM_RANDOM_WRITE;
+    }
 
     if ((env && !db) || (!env && db)) {
         if (!patching_params_and_dont_fail) {
@@ -2327,6 +2337,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
          * check the database version
          *
          * if this Database is from 1.0.x: force the PRE110-DAM
+         * TODO this is done again some lines below; remove this and
+         * replace it with a function __is_supported_version()
          */
         if (dbheader_get_version(hdr, 0)!=HAM_VERSION_MAJ ||
                 dbheader_get_version(hdr, 1)!=HAM_VERSION_MIN) {
@@ -2345,15 +2357,6 @@ ham_open_ex(ham_db_t *db, const char *filename,
         }
 
         st = 0;
-
-        /* finally store the data access mode */
-        if (!dam) {
-            if (db_get_rt_flags(db)&HAM_RECORD_NUMBER)
-                dam=HAM_DAM_SEQUENTIAL_INSERT;
-            else
-                dam=HAM_DAM_RANDOM_WRITE_ACCESS;
-        }
-        db_set_data_access_mode(db, dam);
 
 fail_with_fake_cleansing:
 
@@ -2441,8 +2444,7 @@ fail_with_fake_cleansing:
             (void)ham_close(db, 0);
             return (st);
         }
-        if (page_get_type(page) != PAGE_TYPE_HEADER) 
-        {
+        if (page_get_type(page) != PAGE_TYPE_HEADER) {
             ham_log(("invalid page header type"));
             if (page_get_pers(page))
                 (void)page_free(page);
@@ -2573,10 +2575,24 @@ fail_with_fake_cleansing:
             ("invalid persistent database flags 0x%x", be_get_flags(backend)));
 
     /* 
+     * finally calculate and store the data access mode 
+     */
+    if (db_get_version(db, 0) == 1 &&
+        db_get_version(db, 1) == 0 &&
+        db_get_version(db, 2) <= 9) {
+        dam |= HAM_DAM_ENFORCE_PRE110_FORMAT;
+    }
+    if (!dam) {
+        dam=(db_get_rt_flags(db)&HAM_RECORD_NUMBER)
+            ? HAM_DAM_SEQUENTIAL_INSERT 
+            : HAM_DAM_RANDOM_WRITE;
+    }
+    db_set_data_access_mode(db, dam);
+
+    /* 
      * initialize the cache
      */
-    if (!db_get_cache(db)) 
-    {
+    if (!db_get_cache(db)) {
         /* cachesize is specified in PAGES */
         ham_assert(cachesize, (0));
         cache=cache_new(db, cachesize);
@@ -2622,7 +2638,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     ham_device_t *device;
     ham_u16_t dam=(flags & HAM_RECORD_NUMBER)
                     ? HAM_DAM_SEQUENTIAL_INSERT 
-                    : HAM_DAM_RANDOM_WRITE_ACCESS;
+                    : HAM_DAM_RANDOM_WRITE;
 
     ham_size_t pagesize = 0;
     ham_u16_t keysize = 0;

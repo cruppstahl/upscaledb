@@ -892,12 +892,12 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
          * but at offset [end-size]
          */
         switch (hints->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
-                            | HAM_DAM_RANDOM_WRITE_ACCESS
+                            | HAM_DAM_RANDOM_WRITE
                             | HAM_DAM_FAST_INSERT))
         {
         default:
         case HAM_DAM_SEQUENTIAL_INSERT:
-        case HAM_DAM_RANDOM_WRITE_ACCESS:
+        case HAM_DAM_RANDOM_WRITE:
             /*
              *  we know which start positions are viable; we only
              * inspect those.
@@ -930,7 +930,7 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
 
         case HAM_DAM_FAST_INSERT:
         case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
-        case HAM_DAM_RANDOM_WRITE_ACCESS | HAM_DAM_FAST_INSERT: {
+        case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT: {
                 /* l & r: INCLUSIVE + EXCLUSIVE boundary */
                 ham_u32_t l = bm_l;
                 ham_u32_t r = bm_r;
@@ -1176,14 +1176,14 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
              * offset [end], but at offset [end-size]
              */
             switch (hints->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
-                                | HAM_DAM_RANDOM_WRITE_ACCESS
+                                | HAM_DAM_RANDOM_WRITE
                                 | HAM_DAM_FAST_INSERT))
             {
             default:
             case HAM_DAM_SEQUENTIAL_INSERT:
-            case HAM_DAM_RANDOM_WRITE_ACCESS:
+            case HAM_DAM_RANDOM_WRITE:
             case HAM_DAM_FAST_INSERT:
-            case HAM_DAM_RANDOM_WRITE_ACCESS | HAM_DAM_FAST_INSERT:
+            case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
                 /*
                  *  we know which END positions are viable; we only
                  * inspect those.
@@ -1569,14 +1569,14 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
              * offset [end], but at offset [end-size]
              */
             switch (hints->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
-                                | HAM_DAM_RANDOM_WRITE_ACCESS
+                                | HAM_DAM_RANDOM_WRITE
                                 | HAM_DAM_FAST_INSERT))
             {
             default:
             case HAM_DAM_SEQUENTIAL_INSERT:
-            case HAM_DAM_RANDOM_WRITE_ACCESS:
+            case HAM_DAM_RANDOM_WRITE:
             case HAM_DAM_FAST_INSERT:
-            case HAM_DAM_RANDOM_WRITE_ACCESS | HAM_DAM_FAST_INSERT:
+            case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
                 /*
                  *  we know which END positions are viable; we only
                  * inspect those.
@@ -1956,14 +1956,14 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
              * mode...
              */
             switch (hints->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
-                                       | HAM_DAM_RANDOM_WRITE_ACCESS
+                                       | HAM_DAM_RANDOM_WRITE
                                        | HAM_DAM_FAST_INSERT))
             {
             default:
             case HAM_DAM_SEQUENTIAL_INSERT:
-            case HAM_DAM_RANDOM_WRITE_ACCESS:
+            case HAM_DAM_RANDOM_WRITE:
             case HAM_DAM_FAST_INSERT:
-            case HAM_DAM_RANDOM_WRITE_ACCESS | HAM_DAM_FAST_INSERT:
+            case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
                 /*
                  *  we know which END positions are viable; we only
                  * inspect those.
@@ -2392,14 +2392,14 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
              * mode...
              */
             switch (hints->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
-                                | HAM_DAM_RANDOM_WRITE_ACCESS
+                                | HAM_DAM_RANDOM_WRITE
                                 | HAM_DAM_FAST_INSERT))
             {
             default:
             case HAM_DAM_SEQUENTIAL_INSERT:
-            case HAM_DAM_RANDOM_WRITE_ACCESS:
+            case HAM_DAM_RANDOM_WRITE:
             case HAM_DAM_FAST_INSERT:
-            case HAM_DAM_RANDOM_WRITE_ACCESS | HAM_DAM_FAST_INSERT:
+            case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
                 /*
                  * we know we'll have check each bit, pardon, byte in
                  * there. BM is no help, au contraire mon ami, so we sit

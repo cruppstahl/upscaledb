@@ -83,14 +83,14 @@ o DAM - really be backwards compatible?? or upgrade the files to 1.1.0?
         x update documentation in hamsterdb.h
         x disallow in environment
             x unittests
-        o automatically set PRE110 when opening databases/Environments from 
-            1.0.9 (how to recognize this?)
-            o unittests
-        o recno-databases always use sequential DAM per default
-            o unittest
-    o rename HAM_DAM_RANDOM_WRITE_ACCESS to HAM_DAM_RANDOM_WRITE
-    o what if an unknown DAM is set? -> fail to load!
-        o unittest
+        x automatically set PRE110 when opening databases/Environments from 
+            1.0.9 (how to recognize this -> Database format)
+            x unittests
+        x recno-databases always use sequential DAM per default
+            x unittest
+    x rename HAM_DAM_RANDOM_WRITE_ACCESS to HAM_DAM_RANDOM_WRITE
+    x what if an unknown DAM is set? -> fail to load!
+        x unittest
     o make sure that HAM_DAM_ENFORCE_PRE110_FORMAT cannot be set from user
         (only automatically by loading a file from 1.0.9)
         o unittests
@@ -131,6 +131,8 @@ o make sure that unittests are not executed twice (move registration out of
 . in-memory-db could access directly the record (and then overwrite it)
     -> needs new flag for ham_find/ham_cursor_move
     o unittests
+
+. ham_get_parameter should return DAM
 
 . unittests: get rid of cppunit, move to bfc
     x update unittests

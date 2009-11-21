@@ -80,6 +80,8 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, invalidPagesizeTest);
         BFC_REGISTER_TEST(HamsterdbTest, invalidDamInEnvTest);
         BFC_REGISTER_TEST(HamsterdbTest, setPre110DamTest);
+        BFC_REGISTER_TEST(HamsterdbTest, recnoUsesSequentialDamTest);
+        BFC_REGISTER_TEST(HamsterdbTest, unknownDamTest);
         BFC_REGISTER_TEST(HamsterdbTest, getErrorTest);
         BFC_REGISTER_TEST(HamsterdbTest, setPrefixCompareTest);
         BFC_REGISTER_TEST(HamsterdbTest, setCompareTest);
@@ -395,7 +397,7 @@ public:
     {
         ham_env_t *env;
         ham_parameter_t p[]={
-            {HAM_PARAM_DATA_ACCESS_MODE, HAM_DAM_RANDOM_WRITE_ACCESS}, 
+            {HAM_PARAM_DATA_ACCESS_MODE, HAM_DAM_RANDOM_WRITE}, 
             {0, 0}
         };
 
@@ -418,6 +420,42 @@ public:
                     BFC_IPATH("data/recno-endian-test-open-database-be.hdb"),
                         0));
         BFC_ASSERT(HAM_DAM_ENFORCE_PRE110_FORMAT&db_get_data_access_mode(db));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
+
+    void recnoUsesSequentialDamTest(void)
+    {
+        ham_db_t *db;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(db, BFC_OPATH(".test"), HAM_RECORD_NUMBER, 0664));
+        BFC_ASSERT(HAM_DAM_SEQUENTIAL_INSERT&db_get_data_access_mode(db));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(db, BFC_OPATH(".test"), 0));
+        BFC_ASSERT(HAM_DAM_SEQUENTIAL_INSERT&db_get_data_access_mode(db));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
+
+    void unknownDamTest(void)
+    {
+        ham_db_t *db;
+        ham_parameter_t p[]={
+            {HAM_PARAM_DATA_ACCESS_MODE, 99}, 
+            {0, 0}
+        };
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_create_ex(db, BFC_OPATH(".test"), 0, 0664, &p[0]));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_open_ex(db, BFC_OPATH(".test"), 0, &p[0]));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
     }
@@ -519,8 +557,6 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
     return 0;
 }
 
-
-
     void nearFindStressTest(void)
     {
         const int RECORD_COUNT_PER_DB = 200000;
@@ -542,8 +578,6 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         ham_parameter_t ps[]={
             {HAM_PARAM_PAGESIZE,   2*64*1024}, /* UNIX == WIN now */
             {HAM_PARAM_CACHESIZE,    32},
-            {HAM_PARAM_DATA_ACCESS_MODE, 
-                HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT },
             {0, 0}
         };
         ham_parameter_t ps2[]={

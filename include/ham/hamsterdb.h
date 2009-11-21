@@ -191,7 +191,7 @@ typedef struct {
  *
  * This flag is non persistent.
 */
-#define HAM_DAM_RANDOM_WRITE_ACCESS      0x0001
+#define HAM_DAM_RANDOM_WRITE            0x0001
 
 /** 
  * Assume sequential insert (and few or no delete) operations. 
@@ -741,7 +741,7 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *            index. The default size is 21 bytes.
  *        <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data 
  *            access patterns. The default setting optimizes hamsterdb
- *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE_ACCESS).
+ *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE).
  *            Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
  *            is automatically set for record number Databases).
  *            Data Access Mode hints can be set for individual Databases, too
@@ -1189,7 +1189,7 @@ ham_create(ham_db_t *db, const char *filename,
  *            index. The default size is 21 bytes.
  *        <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data 
  *            access patterns. The default setting optimizes hamsterdb
- *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE_ACCESS).
+ *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE).
  *            Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
  *            is automatically set for record number Databases).
  *            For more information about available DAM (Data Access Mode)
@@ -1298,7 +1298,7 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *            64K pages are usual).
  *        <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data 
  *            access patterns. The default setting optimizes hamsterdb
- *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE_ACCESS).
+ *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE).
  *            Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
  *            is automatically set for record number Databases).
  *            Data Access Mode hints can be set for individual Databases, too

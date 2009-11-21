@@ -172,7 +172,6 @@ public:
 			{HAM_PARAM_GET_FILENAME, 0},
 			{HAM_PARAM_GET_KEYS_PER_PAGE, 0},
 			{HAM_PARAM_GET_STATISTICS, (ham_offset_t)&stats},
-			{HAM_PARAM_DATA_ACCESS_MODE, 0},
 			{0,0}
 		};
 
@@ -215,8 +214,6 @@ public:
 		BFC_ASSERT_EQUAL(0, get_param_value(params, HAM_PARAM_GET_FILENAME));
 		BFC_ASSERT_EQUAL((ham_offset_t)&stats, 
                 get_param_value(params, HAM_PARAM_GET_STATISTICS));
-		BFC_ASSERT_EQUAL(0, 
-                get_param_value(params, HAM_PARAM_DATA_ACCESS_MODE));
 
         /* now the same again but with an 'env' handle */
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
@@ -255,8 +252,6 @@ public:
 		BFC_ASSERT_EQUAL(0, get_param_value(params, HAM_PARAM_GET_FILENAME));
 		BFC_ASSERT_EQUAL((ham_offset_t)&stats, 
                 get_param_value(params, HAM_PARAM_GET_STATISTICS));
-		BFC_ASSERT_EQUAL(0, 
-                get_param_value(params, HAM_PARAM_DATA_ACCESS_MODE));
 
 		ham_env_delete(env);
 	}
@@ -277,7 +272,6 @@ public:
 			{HAM_PARAM_GET_FILENAME, 0},
 			{HAM_PARAM_GET_KEYS_PER_PAGE, 0},
 			{HAM_PARAM_GET_STATISTICS, (ham_offset_t)&stats},
-			{HAM_PARAM_DATA_ACCESS_MODE, 0},
 			{0,0}
 		};
 		ham_parameter_t params1[] =
@@ -292,7 +286,6 @@ public:
 			{HAM_PARAM_GET_FILENAME, 0},
 			{HAM_PARAM_GET_KEYS_PER_PAGE, 0},
 			{HAM_PARAM_GET_STATISTICS, (ham_offset_t)&stats},
-			{HAM_PARAM_DATA_ACCESS_MODE, 0},
 			{0,0}
 		};
 
@@ -333,8 +326,6 @@ public:
 		BFC_ASSERT_EQUAL(0, get_param_value(params, HAM_PARAM_GET_FILENAME));
 		BFC_ASSERT_EQUAL((ham_offset_t)&stats, 
                 get_param_value(params, HAM_PARAM_GET_STATISTICS));
-		BFC_ASSERT_EQUAL(0, 
-                get_param_value(params, HAM_PARAM_DATA_ACCESS_MODE));
 
 		ham_new(&db);
 
@@ -376,8 +367,6 @@ public:
 		BFC_ASSERT_EQUAL(0, get_param_value(params, HAM_PARAM_GET_FILENAME));
 		BFC_ASSERT_EQUAL((ham_offset_t)&stats, 
                 get_param_value(params, HAM_PARAM_GET_STATISTICS));
-		BFC_ASSERT_EQUAL(0, 
-                get_param_value(params, HAM_PARAM_DATA_ACCESS_MODE));
 
 		ham_delete(db);
 	}

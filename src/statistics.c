@@ -934,13 +934,13 @@ db_get_global_freelist_hints(freelist_global_hints_t *dst, ham_db_t *db)
      * rather low.
      */
     switch (dst->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
-                            | HAM_DAM_RANDOM_WRITE_ACCESS
+                            | HAM_DAM_RANDOM_WRITE
                             | HAM_DAM_FAST_INSERT))
     {
         /* SEQ+RANDOM_ACCESS: impossible mode; nasty trick for testing to help Overflow4 unittest pass: disables global hinting, but does do reverse scan for a bit of speed */
-    case HAM_DAM_RANDOM_WRITE_ACCESS | HAM_DAM_SEQUENTIAL_INSERT:
+    case HAM_DAM_RANDOM_WRITE | HAM_DAM_SEQUENTIAL_INSERT:
         dst->max_rounds = freel_cache_get_count(cache);
-        dst->mgt_mode &= ~HAM_DAM_RANDOM_WRITE_ACCESS;
+        dst->mgt_mode &= ~HAM_DAM_RANDOM_WRITE;
         if (0)
         {
     default:
@@ -963,13 +963,13 @@ db_get_global_freelist_hints(freelist_global_hints_t *dst, ham_db_t *db)
          *  for 'UBER/FAST' modes: a limit of 3 freelist pages tops.
          */
     case HAM_DAM_SEQUENTIAL_INSERT:
-    case HAM_DAM_RANDOM_WRITE_ACCESS:
+    case HAM_DAM_RANDOM_WRITE:
             dst->max_rounds = 8;
         }
         if (0)
         {
     case HAM_DAM_FAST_INSERT:
-    case HAM_DAM_RANDOM_WRITE_ACCESS | HAM_DAM_FAST_INSERT:
+    case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
     case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
             dst->max_rounds = 3;
         }
@@ -1248,12 +1248,12 @@ db_get_freelist_entry_hints(freelist_hints_t *dst, ham_db_t *db, freelist_entry_
          * finding a match is still rather low.
          */
         switch (dst->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
-                                | HAM_DAM_RANDOM_WRITE_ACCESS
+                                | HAM_DAM_RANDOM_WRITE
                                 | HAM_DAM_FAST_INSERT))
         {
         default:
         case HAM_DAM_SEQUENTIAL_INSERT:
-        case HAM_DAM_RANDOM_WRITE_ACCESS:
+        case HAM_DAM_RANDOM_WRITE:
             /* 
             we're good as we are; no fancy footwork here. 
             */
@@ -1279,7 +1279,7 @@ db_get_freelist_entry_hints(freelist_hints_t *dst, ham_db_t *db, freelist_entry_
          * free page will be added to the database.
          */
         case HAM_DAM_FAST_INSERT:
-        case HAM_DAM_RANDOM_WRITE_ACCESS | HAM_DAM_FAST_INSERT:
+        case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
             {
                 /*
                  * calculate ratio; the +1 in the divisor is to prevent
@@ -1315,7 +1315,7 @@ db_get_freelist_entry_hints(freelist_hints_t *dst, ham_db_t *db, freelist_entry_
                  */
                 if (promille > 500)
                 {
-                    dst->mgt_mode &= ~(HAM_DAM_RANDOM_WRITE_ACCESS | HAM_DAM_FAST_INSERT);
+                    dst->mgt_mode &= ~(HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT);
                     dst->mgt_mode |= HAM_DAM_SEQUENTIAL_INSERT;
                 }
                 /*
@@ -1332,7 +1332,7 @@ db_get_freelist_entry_hints(freelist_hints_t *dst, ham_db_t *db, freelist_entry_
                  */
                 if (promille > 900 || cost_ratio > 900)
                 {
-                    dst->mgt_mode &= ~(HAM_DAM_RANDOM_WRITE_ACCESS | HAM_DAM_FAST_INSERT);
+                    dst->mgt_mode &= ~(HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT);
                     dst->mgt_mode |= HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT;
 
                     /*

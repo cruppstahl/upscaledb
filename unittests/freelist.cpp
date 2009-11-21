@@ -247,7 +247,7 @@ public:
 		db_set_data_access_mode(m_db, 
 				db_get_data_access_mode(m_db) & 
 						~(HAM_DAM_SEQUENTIAL_INSERT
-						 | HAM_DAM_RANDOM_WRITE_ACCESS
+						 | HAM_DAM_RANDOM_WRITE
 						 | HAM_DAM_FAST_INSERT));
 
         BFC_ASSERT_EQUAL(3*o, 
@@ -262,7 +262,7 @@ public:
 		db_set_data_access_mode(m_db, 
 				db_get_data_access_mode(m_db) & 
 						~(HAM_DAM_SEQUENTIAL_INSERT
-						 | HAM_DAM_RANDOM_WRITE_ACCESS
+						 | HAM_DAM_RANDOM_WRITE
 						 | HAM_DAM_FAST_INSERT));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
@@ -301,7 +301,7 @@ public:
 		db_set_data_access_mode(m_db, 
 				db_get_data_access_mode(m_db) & 
 						~(HAM_DAM_SEQUENTIAL_INSERT
-						 | HAM_DAM_RANDOM_WRITE_ACCESS
+						 | HAM_DAM_RANDOM_WRITE
 						 | HAM_DAM_FAST_INSERT));
 		/*
 		 * and since we'll be having about 33027 freelist entries in the list, 
@@ -314,7 +314,7 @@ public:
 		 */
 		db_set_data_access_mode(m_db, 
 				db_get_data_access_mode(m_db) 
-						| HAM_DAM_RANDOM_WRITE_ACCESS 
+						| HAM_DAM_RANDOM_WRITE 
                         | HAM_DAM_SEQUENTIAL_INSERT);
 
         BFC_ASSERT_EQUAL(o, 
@@ -331,11 +331,11 @@ public:
 		db_set_data_access_mode(m_db, 
 				db_get_data_access_mode(m_db) & 
 						~(HAM_DAM_SEQUENTIAL_INSERT
-						 | HAM_DAM_RANDOM_WRITE_ACCESS
+						 | HAM_DAM_RANDOM_WRITE
 						 | HAM_DAM_FAST_INSERT));
 		db_set_data_access_mode(m_db, 
 				db_get_data_access_mode(m_db) 
-						| HAM_DAM_RANDOM_WRITE_ACCESS 
+						| HAM_DAM_RANDOM_WRITE 
                         | HAM_DAM_SEQUENTIAL_INSERT);
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
@@ -359,11 +359,11 @@ public:
 		db_set_data_access_mode(m_db, 
 				db_get_data_access_mode(m_db) & 
 						~(HAM_DAM_SEQUENTIAL_INSERT
-						 | HAM_DAM_RANDOM_WRITE_ACCESS
+						 | HAM_DAM_RANDOM_WRITE
 						 | HAM_DAM_FAST_INSERT));
 		db_set_data_access_mode(m_db, 
 				db_get_data_access_mode(m_db) 
-						| HAM_DAM_RANDOM_WRITE_ACCESS 
+						| HAM_DAM_RANDOM_WRITE 
                         | HAM_DAM_SEQUENTIAL_INSERT);
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
