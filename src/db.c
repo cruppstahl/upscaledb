@@ -589,8 +589,11 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
     ham_status_t st;
     ham_offset_t tellpos=0;
     ham_page_t *page=0;
-    ham_assert(0 == (flags & ~(PAGE_IGNORE_FREELIST | PAGE_CLEAR_WITH_ZERO)), (0));
-    /* freel_alloc_page() can set an error and we want to detect that unambiguously */
+    ham_assert(0 == (flags & ~(PAGE_IGNORE_FREELIST 
+                        | PAGE_CLEAR_WITH_ZERO)), (0));
+
+    /* freel_alloc_page() can set an error and we want to detect 
+     * that unambiguously */
     ham_assert(db_get_error(db) == 0, (0)); 
 
     /* purge the cache, if necessary */
@@ -621,8 +624,9 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
                     goto done;
             }
             /* allocate a new page structure */
-            ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB) ? 1 : !!db_get_cache(db), 
-                        ("in-memory DBs MUST have a cache"));
+            ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB) 
+                    ? 1 
+                    : !!db_get_cache(db), ("in-memory DBs MUST have a cache"));
             page=page_new(db);
             if (!page)
                 return (0);
@@ -636,9 +640,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
             goto done;
         }
         else if (db_get_error(db)) 
-        {
             return (0);
-        }
     }
 
     if (!page) {
@@ -655,16 +657,17 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
         page_set_alloc_txn_id(page, txn_get_id(db_get_txn(db)));
 
     /* 
-    update statistics for the freelist: we'll need to mark this one 
-    down as allocated, so the statistics are up-to-date.
-
-    This is done further below.
-    */
+     * update statistics for the freelist: we'll need to mark this one 
+     * down as allocated, so the statistics are up-to-date.
+     *
+     * This is done further below.
+     */
 
 done:
-    ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB) ? 1 : !!db_get_cache(db), ("in-memory DBs MUST have a cache"));
-    if (db_get_cache(db) && (page_get_type(page) != type))
-    {
+    ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB) 
+            ? 1 
+            : !!db_get_cache(db), ("in-memory DBs MUST have a cache"));
+    if (db_get_cache(db) && (page_get_type(page) != type)) {
         /*
          * As we re-purpose a page, we will reset its pagecounter as
          * well to signal its first use as the new type assigned here.
@@ -717,7 +720,8 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
 {
     ham_page_t *page=0;
     ham_status_t st;
-    ham_assert(0 == (flags & ~(DB_NEW_PAGE_DOESNT_THRASH_CACHE | DB_ONLY_FROM_CACHE)), (0));
+    ham_assert(0 == (flags & ~(DB_NEW_PAGE_DOESNT_THRASH_CACHE 
+                                | DB_ONLY_FROM_CACHE)), (0));
 
     /* 
      * check if the cache allows us to allocate another page; if not,
@@ -766,12 +770,12 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
         return (0);
 
 #if HAM_DEBUG
-    if (db_get_cache(db)) {
-        ham_assert(cache_get_page(db_get_cache(db), address, 0)==0,
-                (""));
-    }
+    if (db_get_cache(db))
+        ham_assert(cache_get_page(db_get_cache(db), address, 0)==0, (""));
 #endif
-    ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB) ? 1 : !!db_get_cache(db), ("in-memory DBs MUST have a cache"));
+    ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB) 
+            ? 1 
+            : !!db_get_cache(db), ("in-memory DBs MUST have a cache"));
 
     page=page_new(db);
     if (!page)
@@ -800,13 +804,11 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
             (void)page_delete(page);
             return (0);
         }
-        if (flags & DB_NEW_PAGE_DOESNT_THRASH_CACHE)
-        {
+        if (flags & DB_NEW_PAGE_DOESNT_THRASH_CACHE) {
             /* give it an 'antique' age so this one will get flushed pronto */
             page_set_cache_cntr(page, 1 /* cache->_timeslot - 1000 */ );
         }
-        else
-        {
+        else {
             cache_update_page_access_counter(page, db_get_cache(db));
         }
     }

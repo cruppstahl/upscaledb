@@ -832,7 +832,7 @@ void
 db_get_global_freelist_hints(freelist_global_hints_t *dst, ham_db_t *db)
 {
     freelist_cache_t *cache = db_get_freelist_cache(db);
-    ham_runtime_statistics_globdata_t *globalstats = db_get_global_perf_data(db);
+    ham_runtime_statistics_globdata_t *globalstats=db_get_global_perf_data(db);
 
     ham_u32_t offset;
     ham_u16_t bucket = ham_bitcount2bucket_index(dst->size_bits);
@@ -841,63 +841,61 @@ db_get_global_freelist_hints(freelist_global_hints_t *dst, ham_db_t *db)
     ham_assert(dst->skip_init_offset == 0, (0));
     ham_assert(dst->skip_step == 1, (0));
 
+#if 0 /* disabled printing of statistics */
     {
         static int c = 0;
         c++;
-        if (c % 100000 == 999)
-        {
+        if (c % 100000 == 999) {
             /* 
-            what is our ratio fail vs. search? 
-
-            Since we know search >= fail, we'll calculate the
-            reciprocal in integer arithmetic, as that one will be >= 1.0
-            */
-            if (globalstats->fail_count)
-            {
+             * what is our ratio fail vs. search? 
+             *
+             * Since we know search >= fail, we'll calculate the
+             * reciprocal in integer arithmetic, as that one will be >= 1.0
+             */
+            if (globalstats->fail_count) {
                 ham_u64_t fail_reciprocal_ratio = globalstats->search_count;
                 fail_reciprocal_ratio *= 1000;
                 fail_reciprocal_ratio /= globalstats->fail_count;
 
-                ham_trace(("GLOBAL FAIL/SEARCH ratio: %f", 1000.0/fail_reciprocal_ratio));
+                ham_trace(("GLOBAL FAIL/SEARCH ratio: %f", 
+                            1000.0/fail_reciprocal_ratio));
             }
             /*
-            and how about our scan cost per scan? and per good scan?
-            */
-            if (globalstats->scan_count[bucket])
-            {
+             * and how about our scan cost per scan? and per good scan?
+             */
+            if (globalstats->scan_count[bucket]) {
                 ham_u64_t cost_per_scan = globalstats->scan_cost[bucket];
                 cost_per_scan *= 1000;
                 cost_per_scan /= globalstats->scan_count[bucket];
 
-                ham_trace(("GLOBAL COST/SCAN ratio: %f", cost_per_scan/1000.0));
+                ham_trace(("GLOBAL COST/SCAN ratio: %f", 
+                            cost_per_scan/1000.0));
             }
-            if (globalstats->ok_scan_count[bucket])
-            {
+            if (globalstats->ok_scan_count[bucket]) {
                 ham_u64_t ok_cost_per_scan = globalstats->ok_scan_cost[bucket];
                 ok_cost_per_scan *= 1000;
                 ok_cost_per_scan /= globalstats->ok_scan_count[bucket];
 
-                ham_trace(("GLOBAL 'OK' COST/SCAN ratio: %f", ok_cost_per_scan/1000.0));
+                ham_trace(("GLOBAL 'OK' COST/SCAN ratio: %f", 
+                            ok_cost_per_scan/1000.0));
             }
             if (globalstats->erase_query_count
-                + globalstats->insert_query_count)
-            {
+                    + globalstats->insert_query_count) {
                 ham_u64_t trials_per_query = 0;
                 int i;
                 
                 for (i = 0; i < HAM_FREELIST_SLOT_SPREAD; i++)
-                {
                     trials_per_query += globalstats->scan_count[i];
-                }
                 trials_per_query *= 1000;
                 trials_per_query /= globalstats->erase_query_count
                                     + globalstats->insert_query_count;
 
-                ham_trace(("GLOBAL TRIALS/QUERY (INSERT + DELETE) ratio: %f", trials_per_query/1000.0));
+                ham_trace(("GLOBAL TRIALS/QUERY (INSERT + DELETE) ratio: %f", 
+                            trials_per_query/1000.0));
             }
         }
     }
-
+#endif
 
     /*
      * improve our start position, when we know there's nothing to be
@@ -905,16 +903,16 @@ db_get_global_freelist_hints(freelist_global_hints_t *dst, ham_db_t *db)
      */
     offset = globalstats->first_page_with_free_space[bucket];
     if (dst->start_entry < offset)
-    {
         dst->start_entry = offset;
-    }
 
     /*
-    if we are looking for space for a 'huge blob', i.e. a size which spans multiple
-    pages, we should let the caller know: round up the number of full pages that we'll
-    need for this one.
-    */
-    dst->page_span_width = (dst->size_bits + dst->freelist_pagesize_bits - 1) / dst->freelist_pagesize_bits;
+     * if we are looking for space for a 'huge blob', i.e. a size which 
+     * spans multiple pages, we should let the caller know: round up the 
+     * number of full pages that we'll need for this one.
+     */
+    dst->page_span_width = 
+        (dst->size_bits + dst->freelist_pagesize_bits - 1) 
+            / dst->freelist_pagesize_bits;
     ham_assert(dst->page_span_width >= 1, (0));
 
     /*
@@ -937,15 +935,18 @@ db_get_global_freelist_hints(freelist_global_hints_t *dst, ham_db_t *db)
                             | HAM_DAM_RANDOM_WRITE
                             | HAM_DAM_FAST_INSERT))
     {
-        /* SEQ+RANDOM_ACCESS: impossible mode; nasty trick for testing to help Overflow4 unittest pass: disables global hinting, but does do reverse scan for a bit of speed */
+        /* SEQ+RANDOM_ACCESS: impossible mode; nasty trick for testing 
+         * to help Overflow4 unittest pass: disables global hinting, 
+         * but does do reverse scan for a bit of speed */
     case HAM_DAM_RANDOM_WRITE | HAM_DAM_SEQUENTIAL_INSERT:
         dst->max_rounds = freel_cache_get_count(cache);
         dst->mgt_mode &= ~HAM_DAM_RANDOM_WRITE;
         if (0)
         {
     default:
-            // dst->max_rounds = freel_cache_get_count(cache);
-            dst->max_rounds = 32; /* speed up 'classic' for LARGE databases anyhow! */
+            /* dst->max_rounds = freel_cache_get_count(cache); */
+            dst->max_rounds = 32; /* speed up 'classic' for LARGE 
+                                     databases anyhow! */
         }
         if (0)
         {
@@ -973,12 +974,10 @@ db_get_global_freelist_hints(freelist_global_hints_t *dst, ham_db_t *db)
     case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
             dst->max_rounds = 3;
         }
-        if (dst->max_rounds >= freel_cache_get_count(cache))
-        {
+        if (dst->max_rounds >= freel_cache_get_count(cache)) {
             dst->max_rounds = freel_cache_get_count(cache);
         }
-        else
-        {
+        else {
             /*
              *  and to facilitate an 'even distribution' of the freelist
              * entries being scanned, we hint the scanner should use a
@@ -1003,12 +1002,12 @@ db_get_global_freelist_hints(freelist_global_hints_t *dst, ham_db_t *db)
              *  (Incidentally, we say 'multiplier', but we use it really
              * as an adder, which is perfectly fine as any (A+B) MOD C
              * operation will have a cycle of B when the B is mutual
-             * prime to C assuming a constant A; this also means that, as we apply this
-             * operation multiple times in sequence, the resulting
+             * prime to C assuming a constant A; this also means that, as we 
+             * apply this operation multiple times in sequence, the resulting
              * numbers have a cycle of B and will therefore deliver a
              * rather flat distribution over C when B is suitably large
-             * compared to C. (That last bit is not mandatory, but it generally makes
-             * for a more semi-random skipping pattern.)
+             * compared to C. (That last bit is not mandatory, but it generally 
+             * makes for a more semi-random skipping pattern.)
              */
             dst->skip_step=295075153;
             /*
@@ -1029,32 +1028,32 @@ db_get_global_freelist_hints(freelist_global_hints_t *dst, ham_db_t *db)
     }
 
     /*
-    To accomodate multi-freelist-entry spanning 'huge blob' free space searches,
-    we set up the init and step here to match that of a Boyer-Moore search method.
-
-    Yes, this means this code has intimate knowledge of the 'huge blob free space search'
-    caller, i.e. the algorithm used when 
-    
-      dst->page_span_width > 1
-
-    and I agree it's nasty, but this way the outer call's code is more straight-forward
-    in handling both the regular, BM-assisted full scan of the freelist AND the faster
-    'skipping' mode(s) possible here (e.g. the UBER-FAST search mode where only part of 
-    the freelist will be sampled for each request).
-    */
-    if (dst->skip_step < dst->page_span_width)
-    {
+     * To accomodate multi-freelist-entry spanning 'huge blob' free space 
+     * searches, we set up the init and step here to match that of a 
+     * Boyer-Moore search method.
+     *
+     * Yes, this means this code has intimate knowledge of the 'huge blob free 
+     * space search' caller, i.e. the algorithm used when 
+     * 
+     *   dst->page_span_width > 1
+     * 
+     * and I agree it's nasty, but this way the outer call's code is more 
+     * straight-forward in handling both the regular, BM-assisted full scan 
+     * of the freelist AND the faster 'skipping' mode(s) possible here (e.g. 
+     * the UBER-FAST search mode where only part of the freelist will be 
+     * sampled for each request).
+     */
+    if (dst->skip_step < dst->page_span_width) {
         /*
-        set up for BM: init = 1 step ahead minus 1, as we check the LAST entry instead
-        of the FIRST, and skip=span so we jump over the freelist according to the BM plan:
-        no hit on the sample means the next possible spot will include sample current+span.
-        */
+         * set up for BM: init = 1 step ahead minus 1, as we check the LAST 
+         * entry instead of the FIRST, and skip=span so we jump over the 
+         * freelist according to the BM plan: no hit on the sample means the 
+         * next possible spot will include sample current+span.
+         */
         dst->skip_init_offset = dst->page_span_width - 1;
         dst->skip_step = dst->page_span_width;
     }
 }
-
-
 
 /*
  * This call assumes the 'dst' hint values have already been filled
@@ -1062,9 +1061,9 @@ db_get_global_freelist_hints(freelist_global_hints_t *dst, ham_db_t *db)
  * where it deems necessary.
  */
 void
-db_get_freelist_entry_hints(freelist_hints_t *dst, ham_db_t *db, freelist_entry_t *entry)
+db_get_freelist_entry_hints(freelist_hints_t *dst, ham_db_t *db, 
+        freelist_entry_t *entry)
 {
-    ham_runtime_statistics_globdata_t *globalstats = db_get_global_perf_data(db);
     freelist_page_statistics_t *entrystats = freel_entry_get_statistics(entry);
 
     ham_u32_t offset;
@@ -1082,19 +1081,19 @@ db_get_freelist_entry_hints(freelist_hints_t *dst, ham_db_t *db, freelist_entry_
      * bigger boys out there.
      */
 
+#if 0 /* disabled printing of statistics */
     {
-        static int c = 0;
-        c++;
-    if (c % 100000 == 999)
-    {
+    static int c = 0;
+    ham_runtime_statistics_globdata_t *globalstats=db_get_global_perf_data(db);
+    c++;
+    if (c % 100000 == 999) {
         /* 
-        what is our ratio fail vs. search? 
-
-        Since we know search >= fail, we'll calculate the
-        reciprocal in integer arithmetic, as that one will be >= 1.0
-        */
-        if (globalstats->fail_count)
-        {
+         * what is our ratio fail vs. search? 
+         *
+         * Since we know search >= fail, we'll calculate the
+         * reciprocal in integer arithmetic, as that one will be >= 1.0
+         */
+        if (globalstats->fail_count) {
             ham_u64_t fail_reciprocal_ratio = globalstats->search_count;
             fail_reciprocal_ratio *= 1000;
             fail_reciprocal_ratio /= globalstats->fail_count;
@@ -1102,18 +1101,16 @@ db_get_freelist_entry_hints(freelist_hints_t *dst, ham_db_t *db, freelist_entry_
             ham_trace(("FAIL/SEARCH ratio: %f", 1000.0/fail_reciprocal_ratio));
         }
         /*
-        and how about our scan cost per scan? and per good scan?
-        */
-        if (globalstats->scan_count[bucket])
-        {
+         * and how about our scan cost per scan? and per good scan?
+         */
+        if (globalstats->scan_count[bucket]) {
             ham_u64_t cost_per_scan = globalstats->scan_cost[bucket];
             cost_per_scan *= 1000;
             cost_per_scan /= globalstats->scan_count[bucket];
 
             ham_trace(("COST/SCAN ratio: %f", cost_per_scan/1000.0));
         }
-        if (globalstats->ok_scan_count[bucket])
-        {
+        if (globalstats->ok_scan_count[bucket]) {
             ham_u64_t ok_cost_per_scan = globalstats->ok_scan_cost[bucket];
             ok_cost_per_scan *= 1000;
             ok_cost_per_scan /= globalstats->ok_scan_count[bucket];
@@ -1121,61 +1118,61 @@ db_get_freelist_entry_hints(freelist_hints_t *dst, ham_db_t *db, freelist_entry_
             ham_trace(("'OK' COST/SCAN ratio: %f", ok_cost_per_scan/1000.0));
         }
         if (globalstats->erase_query_count
-            + globalstats->insert_query_count)
-        {
+            + globalstats->insert_query_count) {
             ham_u64_t trials_per_query = 0;
             int i;
             
             for (i = 0; i < HAM_FREELIST_SLOT_SPREAD; i++)
-            {
                 trials_per_query += globalstats->scan_count[i];
-            }
             trials_per_query *= 1000;
             trials_per_query /= globalstats->erase_query_count
                                 + globalstats->insert_query_count;
 
-            ham_trace(("TRIALS/QUERY (INSERT + DELETE) ratio: %f", trials_per_query/1000.0));
+            ham_trace(("TRIALS/QUERY (INSERT + DELETE) ratio: %f", 
+                        trials_per_query/1000.0));
         }
 
-
         /* 
-        what is our FREELIST PAGE's ratio fail vs. search? 
-
-        Since we know search >= fail, we'll calculate the
-        reciprocal in integer arithmetic, as that one will be >= 1.0
-        */
-        if (entrystats->fail_count)
-        {
+         * what is our FREELIST PAGE's ratio fail vs. search? 
+         *
+         * Since we know search >= fail, we'll calculate the
+         * reciprocal in integer arithmetic, as that one will be >= 1.0
+         */
+        if (entrystats->fail_count) {
             ham_u64_t fail_reciprocal_ratio = entrystats->search_count;
             fail_reciprocal_ratio *= 1000;
             fail_reciprocal_ratio /= entrystats->fail_count;
 
-            ham_trace(("PAGE FAIL/SEARCH ratio: %f", 1000.0/fail_reciprocal_ratio));
+            ham_trace(("PAGE FAIL/SEARCH ratio: %f", 
+                        1000.0/fail_reciprocal_ratio));
         }
         /*
-        and how about our scan cost per scan? and per good scan?
-        */
-        if (entrystats->per_size[bucket].scan_count)
-        {
+         * and how about our scan cost per scan? and per good scan?
+         */
+        if (entrystats->per_size[bucket].scan_count) {
             ham_u64_t cost_per_scan = entrystats->per_size[bucket].scan_cost;
             cost_per_scan *= 1000;
             cost_per_scan /= entrystats->per_size[bucket].scan_count;
 
             ham_trace(("PAGE COST/SCAN ratio: %f", cost_per_scan/1000.0));
         }
-        if (entrystats->per_size[bucket].ok_scan_count)
-        {
-            ham_u64_t ok_cost_per_scan = entrystats->per_size[bucket].ok_scan_cost;
+        if (entrystats->per_size[bucket].ok_scan_count) {
+            ham_u64_t ok_cost_per_scan = 
+                entrystats->per_size[bucket].ok_scan_cost;
             ok_cost_per_scan *= 1000;
             ok_cost_per_scan /= entrystats->per_size[bucket].ok_scan_count;
 
-            ham_trace(("PAGE 'OK' COST/SCAN ratio: %f", ok_cost_per_scan/1000.0));
+            ham_trace(("PAGE 'OK' COST/SCAN ratio: %f",
+                       ok_cost_per_scan/1000.0));
         }
     }
     }
+#endif
 
-    ham_assert(entrystats->last_start >= entrystats->per_size[bucket].first_start, (0));
-    ham_assert(entrystats->persisted_bits >= entrystats->last_start, (0));
+    ham_assert(entrystats->last_start 
+            >= entrystats->per_size[bucket].first_start, (0));
+    ham_assert(entrystats->persisted_bits 
+            >= entrystats->last_start, (0));
 
     /*
      * improve our start position, when we know there's nothing to be
@@ -1183,13 +1180,10 @@ db_get_freelist_entry_hints(freelist_hints_t *dst, ham_db_t *db, freelist_entry_
      */
     offset = entrystats->per_size[bucket].first_start;
     if (dst->startpos < offset)
-    {
         dst->startpos = offset;
-    }
 
     offset = entrystats->persisted_bits;
-    if (offset == 0)
-    {
+    if (offset == 0) {
         /*
          * we need to init this one; take the allocated_bits size as a
          * heuristically sound (ahem) probe_step value and backtrack
@@ -1225,9 +1219,7 @@ db_get_freelist_entry_hints(freelist_hints_t *dst, ham_db_t *db, freelist_entry_
         free slots
         */
         if (dst->endpos > offset)
-        {
             dst->endpos = offset;
-        }
 
         /*
          * NOW that we have the range and everything to things we are
@@ -1291,10 +1283,12 @@ db_get_freelist_entry_hints(freelist_hints_t *dst, ham_db_t *db, freelist_entry_
                 ham_bool_t fast_seq_mode = HAM_FALSE;
 
                 promille = entrystats->per_size[bucket].epic_fail_midrange;
-                promille = (promille * 1000) / (1 + promille + entrystats->per_size[bucket].epic_win_midrange);
+                promille = (promille * 1000) / (1 + promille 
+                        + entrystats->per_size[bucket].epic_win_midrange);
                 
                 cost_ratio = entrystats->per_size[bucket].ok_scan_cost;
-                cost_ratio = (cost_ratio  * 1000) / (1 + entrystats->per_size[bucket].scan_cost);
+                cost_ratio = (cost_ratio  * 1000) 
+                    / (1 + entrystats->per_size[bucket].scan_cost);
 
                 /*
                  * at 50% of searches FAILing, we switch over to
@@ -1313,9 +1307,9 @@ db_get_freelist_entry_hints(freelist_hints_t *dst, ham_db_t *db, freelist_entry_
                  *
                  * Still, it's a gain, and it's adaptive ;-)
                  */
-                if (promille > 500)
-                {
-                    dst->mgt_mode &= ~(HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT);
+                if (promille > 500) {
+                    dst->mgt_mode &= ~(HAM_DAM_RANDOM_WRITE 
+                            | HAM_DAM_FAST_INSERT);
                     dst->mgt_mode |= HAM_DAM_SEQUENTIAL_INSERT;
                 }
                 /*
@@ -1330,10 +1324,11 @@ db_get_freelist_entry_hints(freelist_hints_t *dst, ham_db_t *db, freelist_entry_
                  * OR When our FAIL cost ratio is surpassing 90%, we'll
                  * change to SEQ+FAST as well.
                  */
-                if (promille > 900 || cost_ratio > 900)
-                {
-                    dst->mgt_mode &= ~(HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT);
-                    dst->mgt_mode |= HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT;
+                if (promille > 900 || cost_ratio > 900) {
+                    dst->mgt_mode &= ~(HAM_DAM_RANDOM_WRITE 
+                            | HAM_DAM_FAST_INSERT);
+                    dst->mgt_mode |= HAM_DAM_SEQUENTIAL_INSERT 
+                        | HAM_DAM_FAST_INSERT;
 
                     /*
                      *  and when we do this, we should act as we do for
@@ -1358,43 +1353,18 @@ db_get_freelist_entry_hints(freelist_hints_t *dst, ham_db_t *db, freelist_entry_
              */
             offset = entrystats->last_start;
             if (dst->startpos < offset)
-            {
                 dst->startpos = offset;
-            }
             break;
         }
 
         /* take alignment into account as well! */
-        if (dst->aligned)
-        {
+        if (dst->aligned) {
             ham_u32_t alignment = db_get_pagesize(db) / DB_CHUNKSIZE;
             dst->startpos += alignment - 1;
             dst->startpos -= dst->startpos % alignment;
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 static void 
 rescale_db_stats(ham_runtime_statistics_dbdata_t *dbstats)
