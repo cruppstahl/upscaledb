@@ -28,13 +28,15 @@ class FreelistBaseTest : public hamsterDB_fixture
 	define_super(hamsterDB_fixture);
 
 public:
-    FreelistBaseTest(const char *name)
+    FreelistBaseTest(const char *name, unsigned pagesize=4096)
     :   hamsterDB_fixture(name)
     {
+        m_pagesize=pagesize;
     }
 
 protected:
     ham_db_t *m_db;
+    ham_u32_t m_pagesize;
     memtracker_t *m_alloc;
 
 public:
@@ -48,7 +50,7 @@ public:
 	{ 
 		__super::setup();
         ham_parameter_t p[]={
-            {HAM_PARAM_PAGESIZE, 4096}, 
+            {HAM_PARAM_PAGESIZE, m_pagesize}, 
             {0, 0}};
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
@@ -486,6 +488,31 @@ public:
     }
 };
 
+class FreelistV2Pagesize3072Test : public FreelistBaseTest
+{
+	define_super(FreelistBaseTest);
+
+public:
+    FreelistV2Pagesize3072Test()
+    :   FreelistBaseTest("FreelistV2Pagesize3072Test", 3072)
+    {
+        testrunner::get_instance()->register_fixture(this);
+		BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, checkStructurePackingTest);
+        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, structureTest);
+        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocAlignedTest);
+        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocPageTest);
+        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocHighOffsetTest);
+        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocRangeTest);
+        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocOverflowTest);
+        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocOverflow2Test);
+        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocOverflow3Test);
+        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocOverflow4Test);
+        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocAlignTest);
+        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocAlignMultipleTest);
+    }
+};
+
 BFC_REGISTER_FIXTURE(FreelistV1Test);
 BFC_REGISTER_FIXTURE(FreelistV2Test);
+BFC_REGISTER_FIXTURE(FreelistV2Pagesize3072Test);
 
