@@ -37,6 +37,18 @@ x IMPORTANT!!! - increase libtool version by 1??? also, we have some API
     -> incompatibilities were removed; increment version nevertheless??
     --> no, only increment revision
 
+x packstop has include guards??? remove them, run tests
+    x implement
+    x make sure that databases from 1.0.9 are still working in 1.1.0
+
+x do lots of testing with databases from 1.0.9 - must be loaded/modified 
+    flawlessly (add tests!)
+    x make sure that 1.0.9 is able to open databases generated with 1.1.0 iff
+        the DAM is specified correctly (??? - need to set the database version
+        to 1.0.9??) - no, this DAM can not be specified by the user
+    x make sure that 1.0.9 is not able to open databases generated with 1.1.0
+    x make sure that databases from 1.0.9 are still working in 1.1.0
+
 ----- merge
 x src/fraction.* - remove if they're not necessary?
 x device-filters: currently don't work in logging - remove the new code
@@ -74,12 +86,12 @@ x EnvTest::createAndOpenMultiDbTest: disabled; the last (256.) call of
 x freelist16: is this tested in the unittests?
 x freelist.c: has __inline keyword - not portable!
 
-o DAM - really be backwards compatible?? or upgrade the files to 1.1.0?
+x DAM - really be backwards compatible?? or upgrade the files to 1.1.0?
     x review freelist code
     x review DAM related code in hamsterdb.h and src/
     x ham_info: print the DAM (but only if it's persistent!) -> it's not!
     x remove defined(HAM_FORCE_PRE_V110_ONLY_BINARY)
-    o dam is not persistent, only in DB open/create
+    x dam is not persistent, only in DB open/create
         x update documentation in hamsterdb.h
         x disallow in environment
             x unittests
@@ -103,6 +115,8 @@ o valgrind shows some memory access errors
 
 o tools
     o ham_info db1.db doesn't work -> hamsterdb.c:1055
+===> Problem: in db1.db wird eine Datenbank mit namen 0xf001 
+    (FIRST_DATABASE_NAME) angelegt statt EMPTY_DATABASE_NAME (0xf000)
     o tests of the tools don't work
     o add more tests with database files from 1.1.0
     o tests must be integrated in release.sh
@@ -112,11 +126,12 @@ o win32 build environment??
 
 ----
 
-o approx. matching: need a sample
+o doxygen: make sure that all new functions are shown correctly. 
 
-o add/fix testing of the tools to the release process
+o doxygen: the online css is super ugly. use the original layout and change the
+    online integration
 
-o consequently store database files from every supported version on 
+. consequently store database files from every supported version on 
     every supported platform:
     1.0.9
         win32-msvc8
@@ -132,25 +147,10 @@ o consequently store database files from every supported version on
             1, 46, 220, 53, ext_061
     o include performance data
 
-o packstop has include guards??? remove them, run tests
-    x implement
-    o make sure that databases from 1.0.9 are still working in 1.1.0
-
-o do lots of testing with databases from 1.0.9 - must be loaded/modified 
-    flawlessly (add unittests!)
-    o make sure that 1.0.9 is not able to open databases generated with 1.1.0
-    o make sure that 1.0.9 is able to open databases generated with 1.1.0 iff
-        the DAM is specified correctly (??? - need to set the database version
-        to 1.0.9??)
-    o make sure that databases from 1.0.9 are still working in 1.1.0
-
-o doxygen: make sure that all new functions are shown correctly. 
-
-o doxygen: the online css is super ugly. use the original layout and change the
-    online integration
-
-o make sure that unittests are not executed twice (move registration out of
+. make sure that unittests are not executed twice (move registration out of
     constructor)
+
+. approx. matching: need a sample
 
 . in-memory-db could access directly the record (and then overwrite it)
     -> needs new flag for ham_find/ham_cursor_move
