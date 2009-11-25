@@ -790,13 +790,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                     case HAM_DAM_FAST_INSERT:
                     /* and all more-or-less viable permutations thereof ... */
                     case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
-                    case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_ENFORCE_PRE110_FORMAT:
                     case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
-                    case HAM_DAM_RANDOM_WRITE | HAM_DAM_ENFORCE_PRE110_FORMAT:
-                    case HAM_DAM_FAST_INSERT | HAM_DAM_ENFORCE_PRE110_FORMAT:
-                    
-                    case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT | HAM_DAM_ENFORCE_PRE110_FORMAT:
-                    case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT | HAM_DAM_ENFORCE_PRE110_FORMAT:
                         dam=(ham_u16_t)param->value;
                         break;
 
