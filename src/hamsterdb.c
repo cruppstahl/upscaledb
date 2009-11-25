@@ -1985,7 +1985,7 @@ ham_env_get_database_names(ham_env_t *env, ham_u16_t *names, ham_size_t *count)
     ham_assert(db_get_max_databases(db) > 0, (0));
     for (i=0; i<db_get_max_databases(db); i++) {
         name = index_get_dbname(db_get_indexdata_ptr(db, i));
-        if (name==0 || name>HAM_EMPTY_DATABASE_NAME)
+        if (name==0)
             continue;
 
         if (*count>=max_names) {
