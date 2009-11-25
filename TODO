@@ -109,20 +109,17 @@ x DAM - really be backwards compatible?? or upgrade the files to 1.1.0?
     x enhance acceptance tests - need to support DAMs
     x enhance monster.sh with all possible DAM combinations (limit them!)
 
+x tools
+    x ham_info db1.db doesn't work -> hamsterdb.c:1055
+    x tests of the tools don't work
+    x tests must be integrated in release.sh
+
 o acceptance tests/unittests (freelist.cpp) fail with pagesize=3072
 
 o valgrind shows some memory access errors
 
-o tools
-    o ham_info db1.db doesn't work -> hamsterdb.c:1055
-===> Problem: in db1.db wird eine Datenbank mit namen 0xf001 
-    (FIRST_DATABASE_NAME) angelegt statt EMPTY_DATABASE_NAME (0xf000)
-    o tests of the tools don't work
-    o add more tests with database files from 1.1.0
-    o tests must be integrated in release.sh
-
-o samples
-o win32 build environment??
+o samples - need work??
+o win32 build environment - need work??
 
 ----
 
@@ -130,6 +127,11 @@ o doxygen: make sure that all new functions are shown correctly.
 
 o doxygen: the online css is super ugly. use the original layout and change the
     online integration
+
+. unittest:
+    create database (not in Env!) and make sure that the database
+    name is 0xf000 (EMPTY_DATABASE_NAME)
+    o EMPTY_DATABASE_NAME is a stupid name - better use DEFAULT_DATABASE_NAME
 
 . consequently store database files from every supported version on 
     every supported platform:
