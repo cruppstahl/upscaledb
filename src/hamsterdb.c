@@ -840,7 +840,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                         if ((!dbname && !patching_params_and_dont_fail)
                             || (dbname != HAM_FIRST_DATABASE_NAME 
                                 && dbname != HAM_DUMMY_DATABASE_NAME 
-                                && dbname >= HAM_EMPTY_DATABASE_NAME)) 
+                                && dbname > HAM_EMPTY_DATABASE_NAME)) 
                         {
                             ham_trace(("parameter 'HAM_PARAM_DBNAME' value (0x%04x) must be non-zero and lower than 0xf000", (unsigned)dbname));
                             dbname = HAM_FIRST_DATABASE_NAME;
@@ -2639,7 +2639,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
 
     ham_size_t pagesize = 0;
     ham_u16_t keysize = 0;
-    ham_u16_t dbname = HAM_FIRST_DATABASE_NAME /* was: 0 */;
+    ham_u16_t dbname = HAM_EMPTY_DATABASE_NAME;
     ham_u16_t dbi;
     ham_size_t i;
     ham_size_t cachesize = 0;
