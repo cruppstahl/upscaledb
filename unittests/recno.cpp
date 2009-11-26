@@ -493,13 +493,13 @@ public:
         };
 
         BFC_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
-                ham_create_ex(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 
-                    0664, &p[0]));
+                ham_create_ex(m_db, BFC_OPATH(".test"), 
+                        m_flags|HAM_RECORD_NUMBER, 0664, &p[0]));
 
         p[0].value=9;
         BFC_ASSERT_EQUAL(0, 
-                ham_create_ex(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 
-                    0664, &p[0]));
+                ham_create_ex(m_db, BFC_OPATH(".test"), 
+                        m_flags|HAM_RECORD_NUMBER, 0664, &p[0]));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 

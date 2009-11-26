@@ -667,11 +667,14 @@ done:
     ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB) 
             ? 1 
             : !!db_get_cache(db), ("in-memory DBs MUST have a cache"));
-    if (db_get_cache(db) && (page_get_type(page) != type)) {
-        /*
-         * As we re-purpose a page, we will reset its pagecounter as
-         * well to signal its first use as the new type assigned here.
-         */
+    /*
+     * As we re-purpose a page, we will reset its pagecounter as
+     * well to signal its first use as the new type assigned here.
+     *
+     * only do this if the page is reused - otherwise page_get_type()
+     * accesses uninitialized memory, and valgrind complains
+     */
+    if (tellpos && db_get_cache(db) && (page_get_type(page) != type)) {
         page_set_cache_cntr(page, db_get_cache(db)->_timeslot++);
     }
     page_set_type(page, type);
