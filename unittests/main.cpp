@@ -30,7 +30,7 @@ using namespace bfc;
 
 
 #if (defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(WIN64)) \
-	&& defined(_DEBUG)
+    && defined(_DEBUG)
 
 _CrtMemState crm_memdbg_state_snapshot1;
 int trigger_memdump = 0;
@@ -76,7 +76,7 @@ crm_dbg_report_function(int report_type, char *usermsg, int *retval)
     case _CRT_ASSERT:
         fwrite(usermsg, 1, strlen(usermsg), stderr);
         fflush(stderr);
-		break;
+        break;
     }
     return TRUE;
 }
@@ -103,13 +103,13 @@ crm_report_mem_analysis(void)
         /* difference detected: dump objects since start. */
         _RPT0(_CRT_WARN, "============== Detected memory leaks! ====================\n");
 
-	    _CrtMemState diff;
-		if (_CrtMemDifference(&diff, &crm_memdbg_state_snapshot1, &msNow))
-		{
-	        //_CrtMemDumpAllObjectsSince(&crm_memdbg_state_snapshot1);
+        _CrtMemState diff;
+        if (_CrtMemDifference(&diff, &crm_memdbg_state_snapshot1, &msNow))
+        {
+            //_CrtMemDumpAllObjectsSince(&crm_memdbg_state_snapshot1);
 
-			_CrtMemDumpStatistics(&diff);
-		}
+            _CrtMemDumpStatistics(&diff);
+        }
     }
 }
 
@@ -151,7 +151,7 @@ main(int argc, char **argv)
     // Get the current bits
     int i = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
 
-	i |= _CRTDBG_ALLOC_MEM_DF;
+    i |= _CRTDBG_ALLOC_MEM_DF;
 
     // Set the debug-heap flag so that freed blocks are kept on the
     // linked list, to catch any inadvertent use of freed memory
@@ -165,11 +165,11 @@ main(int argc, char **argv)
 
     // Clear the upper 16 bits and OR in the desired freqency
 #if 0
-	i = (i & 0x0000FFFF) | _CRTDBG_CHECK_EVERY_1024_DF;
+    i = (i & 0x0000FFFF) | _CRTDBG_CHECK_EVERY_1024_DF;
 #endif
 
 #if 01
-	i |= _CRTDBG_CHECK_ALWAYS_DF;
+    i |= _CRTDBG_CHECK_ALWAYS_DF;
 #endif
 
     // Set the new bits
@@ -189,100 +189,107 @@ main(int argc, char **argv)
      *
      * therefore, at runtime, if we're compiling under visual studio, set
      * the working directory manually.
+     *
+     * You can overwrite the path to the unittest directory, depending
+     * on your Visual Studio settings, by specifying a UNITTEST_DIRECTORY
+     * macro
      */
 #ifdef VISUAL_STUDIO
-#if 0 // [i_a] given my own build env, this directory changes as well
-    SetCurrentDirectoryA("../unittests"); /* [i_a] */
+#ifdef UNITTEST_DIRECTORY
+    SetCurrentDirectoryA(UNITTEST_DIRECTORY);
 #else
-	// .\win32\msvc2008\bin\Win32_MSVC2008.Debug -> .\unittests
-    SetCurrentDirectoryA("../../../../unittests"); /* [i_a] */
+    SetCurrentDirectoryA("../unittests");
 #endif
 #endif
 
-	// set up the testrunner rig:
+    // set up the testrunner rig:
 #if 0 // turn this on (--> #if 01) to assist with debugging testcases: 
     // exceptions, etc. will pass through to your debugger
-	testrunner::get_instance()->catch_coredumps(0);
-	testrunner::get_instance()->catch_exceptions(0);
+    testrunner::get_instance()->catch_coredumps(0);
+    testrunner::get_instance()->catch_exceptions(0);
 #else
-	testrunner::get_instance()->catch_coredumps(0);
-	testrunner::get_instance()->catch_exceptions(1);
-#endif
-#if (defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(WIN64))
-	testrunner::get_instance()->outputdir("m:/");
-	testrunner::get_instance()->inputdir("./");
+    testrunner::get_instance()->catch_coredumps(0);
+    testrunner::get_instance()->catch_exceptions(1);
 #endif
 
-	// as we wish to print all collected errors at the very end, we act
-	// as if we don't want the default built-in reporting, hence we MUST
-	// call init_run() here.
-	testrunner::get_instance()->init_run();
-	unsigned int r;
-	if (argc > 1)
-	{
-		std::string lead_fixture;
-		std::string lead_test;
-		bool lead = false;
-		bool inclusive_begin = true;
+    /*
+     * You can overwrite the input- and output directory of the testfiles
+     */
+#if (0)
+    testrunner::get_instance()->outputdir("./");
+    testrunner::get_instance()->inputdir("./");
+#endif
 
-		r = 0;
-		for (int i = 1; i <= argc; i++)
-		{
-			std::string fixture_name;
-			if (i < argc)
-			{
-				fixture_name = argv[i];
-			}
+    // as we wish to print all collected errors at the very end, we act
+    // as if we don't want the default built-in reporting, hence we MUST
+    // call init_run() here.
+    testrunner::get_instance()->init_run();
+    unsigned int r;
+    if (argc > 1)
+    {
+        std::string lead_fixture;
+        std::string lead_test;
+        bool lead = false;
+        bool inclusive_begin = true;
 
-			if (fixture_name == "*")
-			{
-				// lead or tail or chain?
-				lead = true;
-			}
-			else
-			{
-				size_t pos = fixture_name.find(':');
-				std::string test_name;
-				if (pos != std::string::npos)
-				{
-					test_name = fixture_name.substr(pos + 1);
-					fixture_name = fixture_name.substr(0, pos);
-					while ((pos = test_name.find(':')) != std::string::npos)
-					{
-						test_name.erase(pos, 1);
-					}
-				}
+        r = 0;
+        for (int i = 1; i <= argc; i++)
+        {
+            std::string fixture_name;
+            if (i < argc)
+            {
+                fixture_name = argv[i];
+            }
 
-				if (!lead && (i < argc)
-					&& (i+1 >= argc || std::string(argv[i+1]) != "*"))
-				{
-					// single case:
-					r = testrunner::get_instance()->run(
-							fixture_name.c_str(), test_name.c_str(),
-							false);
-					inclusive_begin = true;
-				}
-				else if (lead)
-				{
-					r = testrunner::get_instance()->run(
-							lead_fixture, lead_test,
-							fixture_name, test_name,
-							inclusive_begin,
-							false);
-					inclusive_begin = false;
-				}
-				lead_fixture = fixture_name;
-				lead_test = test_name;
-				lead = false;
-			}
-		}
-	}
-	else
-	{
-		r = testrunner::get_instance()->run(false);
-	}
-	testrunner::get_instance()->print_errors();
-	testrunner::delete_instance();
+            if (fixture_name == "*")
+            {
+                // lead or tail or chain?
+                lead = true;
+            }
+            else
+            {
+                size_t pos = fixture_name.find(':');
+                std::string test_name;
+                if (pos != std::string::npos)
+                {
+                    test_name = fixture_name.substr(pos + 1);
+                    fixture_name = fixture_name.substr(0, pos);
+                    while ((pos = test_name.find(':')) != std::string::npos)
+                    {
+                        test_name.erase(pos, 1);
+                    }
+                }
+
+                if (!lead && (i < argc)
+                    && (i+1 >= argc || std::string(argv[i+1]) != "*"))
+                {
+                    // single case:
+                    r = testrunner::get_instance()->run(
+                            fixture_name.c_str(), test_name.c_str(),
+                            false);
+                    inclusive_begin = true;
+                }
+                else if (lead)
+                {
+                    r = testrunner::get_instance()->run(
+                            lead_fixture, lead_test,
+                            fixture_name, test_name,
+                            inclusive_begin,
+                            false);
+                    inclusive_begin = false;
+                }
+                lead_fixture = fixture_name;
+                lead_test = test_name;
+                lead = false;
+            }
+        }
+    }
+    else
+    {
+        r = testrunner::get_instance()->run(false);
+    }
+    testrunner::get_instance()->print_errors();
+    testrunner::delete_instance();
 
     return (r);
 }
