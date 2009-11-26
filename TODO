@@ -114,11 +114,12 @@ x tools
     x tests of the tools don't work
     x tests must be integrated in release.sh
 
+x samples - need work?? - no
+
 o acceptance tests/unittests (freelist.cpp) fail with pagesize=3072
 
 o valgrind shows some memory access errors
 
-o samples - need work??
 o win32 build environment - need work??
 
 ----
