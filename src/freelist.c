@@ -526,7 +526,7 @@ employed at both the QWORD and BIT search levels.
      us some free space faster.
      
    # The above can be enhanced even further by 
-     letting HamsterDB gather our access statistics
+     letting hamsterdb gather our access statistics
      (~ count the number of inserts and deletes
      during a run) to arrive at an automated choice
      for this mechanism over others available;
