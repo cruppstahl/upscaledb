@@ -23,11 +23,7 @@
 
 #include "../src/error.h"
 
-
 using namespace bfc;
-
-
-
 
 #if (defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(WIN64)) \
     && defined(_DEBUG)
@@ -149,35 +145,31 @@ main(int argc, char **argv)
     atexit(crm_report_mem_analysis);
 
     // Get the current bits
+#if 0
     int i = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
 
     i |= _CRTDBG_ALLOC_MEM_DF;
 
     // Set the debug-heap flag so that freed blocks are kept on the
     // linked list, to catch any inadvertent use of freed memory
-#if 0
     i |= _CRTDBG_DELAY_FREE_MEM_DF;
-#endif
 
     // Set the debug-heap flag so that memory leaks are reported when
     // the process terminates. Then, exit.
     i |= _CRTDBG_LEAK_CHECK_DF;
 
     // Clear the upper 16 bits and OR in the desired freqency
-#if 0
     i = (i & 0x0000FFFF) | _CRTDBG_CHECK_EVERY_1024_DF;
-#endif
 
-#if 01
-    i |= _CRTDBG_CHECK_ALWAYS_DF;
-#endif
+	i |= _CRTDBG_CHECK_ALWAYS_DF;
 
     // Set the new bits
     _CrtSetDbgFlag(i);
+#endif
 
-      // set a malloc marker we can use it in the leak dump at the end of 
-      // the program:
-//    (void)_calloc_dbg(1, 1, _CLIENT_BLOCK, __FILE__, __LINE__);
+    // set a malloc marker we can use it in the leak dump at the end of 
+    // the program:
+// (void)_calloc_dbg(1, 1, _CLIENT_BLOCK, __FILE__, __LINE__);
 #endif
 
     /*

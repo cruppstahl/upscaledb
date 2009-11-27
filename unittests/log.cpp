@@ -144,10 +144,10 @@ public:
         log_set_current_fd(&log, 0x89);
         BFC_ASSERT_EQUAL(0x89, log_get_current_fd(&log));
 
-        log_set_fd(&log, 0, 0x20);
-        BFC_ASSERT_EQUAL(0x20, log_get_fd(&log, 0));
-        log_set_fd(&log, 1, 0x21);
-        BFC_ASSERT_EQUAL(0x21, log_get_fd(&log, 1));
+        log_set_fd(&log, 0, (ham_fd_t)0x20);
+        BFC_ASSERT_EQUAL((ham_fd_t)0x20, log_get_fd(&log, 0));
+        log_set_fd(&log, 1, (ham_fd_t)0x21);
+        BFC_ASSERT_EQUAL((ham_fd_t)0x21, log_get_fd(&log, 1));
 
         log_set_lsn(&log, 0x99);
         BFC_ASSERT_EQUAL((ham_u64_t)0x99, log_get_lsn(&log));
@@ -1362,9 +1362,9 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         key.data=(void *)name;
-        key.size=strlen(name)+1;
+        key.size=(ham_u16_t)strlen(name)+1;
         rec.data=(void *)data;
-        rec.size=strlen(data)+1;
+        rec.size=(ham_u16_t)strlen(data)+1;
 
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, flags));
     }
@@ -1377,7 +1377,7 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         key.data=(void *)name;
-        key.size=strlen(name)+1;
+        key.size=(ham_u16_t)strlen(name)+1;
 
         BFC_ASSERT_EQUAL(result, ham_find(m_db, 0, &key, &rec, 0));
         if (result==0)
@@ -1390,7 +1390,7 @@ public:
         memset(&key, 0, sizeof(key));
 
         key.data=(void *)name;
-        key.size=strlen(name)+1;
+        key.size=(ham_u16_t)strlen(name)+1;
 
         BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
     }
