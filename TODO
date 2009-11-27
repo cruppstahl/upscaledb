@@ -120,9 +120,34 @@ x samples - need work?? - no
 
 o acceptance tests/unittests (freelist.cpp) fail with pagesize=3072
 
-o win32 build environment - need work??
+o valgrind shows some memory access errors
+
+o win32 build environment - needs updates
+    o dll/lib need statistics.c, hamsterdb_stats.h, freelist_v2.c
+    o unittests needs hamster_fixture.hpp,  bfc_signal.c, bfc_testsuite.cpp
+    o unittests: PP-makros: WIN32;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE;_CONSOLE;VISUAL_STUDIO
+
+o wince build environment - needs updates
 
 ----
+
+o consequently store database files from every supported version on 
+    every supported platform:
+    1.0.9
+        win32-msvc8
+        win64-msvc8
+        linux32-ubuntu-x86
+        macos-ppc-86
+        etc
+        -> uname -p + '_' + uname -s + '_' + <compiler>
+        --> write a perl script which creates the name!
+    o define which tests are stored
+    o one script generates those files
+    o another script compares against files in EACH subdirectory
+        (FULLCHECK, then do a few hundred operations of all kinds - dupes,
+         overwrites, insert, find, erase, extkeys etc)
+            1, 46, 220, 53, ext_061
+    o include performance data
 
 o doxygen: make sure that all new functions are shown correctly. 
 
@@ -133,22 +158,6 @@ o doxygen: the online css is super ugly. use the original layout and change the
     create database (not in Env!) and make sure that the database
     name is 0xf000 (EMPTY_DATABASE_NAME)
     o EMPTY_DATABASE_NAME is a stupid name - better use DEFAULT_DATABASE_NAME
-
-. consequently store database files from every supported version on 
-    every supported platform:
-    1.0.9
-        win32-msvc8
-        win64-msvc8
-        linux32-ubuntu-x86
-        macos-ppc-86
-        etc
-    o define which tests are stored
-    o one script generates those files
-    o another script compares against files in EACH subdirectory
-        (FULLCHECK, then do a few hundred operations of all kinds - dupes,
-         overwrites, insert, find, erase, extkeys etc)
-            1, 46, 220, 53, ext_061
-    o include performance data
 
 . make sure that unittests are not executed twice (move registration out of
     constructor)
