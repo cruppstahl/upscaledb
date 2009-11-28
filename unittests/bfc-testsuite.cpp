@@ -1204,7 +1204,7 @@ unsigned int testrunner::run(bool print_err_report)
 		std::string fixname("");
 		std::string testname("");
 		
-		return run(fixname, testname, fixname, testname, true, print_err_report);
+		return run(fixname, testname, fixname, testname, true, false, print_err_report);
 	}
 
 // run all tests (optional fixture and/or test selection) - returns number of errors
@@ -1214,7 +1214,7 @@ unsigned int testrunner::run(const char *fixture_name, const char *test_name,
 		std::string fixname(fixture_name ? fixture_name : "");
 		std::string testname(test_name ? test_name : "");
 		
-		return run(fixname, testname, fixname, testname, true, print_err_report);
+		return run(fixname, testname, fixname, testname, true, true, print_err_report);
 	}
 
 // run all tests in a given range (start in/exclusive, end inclusive)
@@ -1223,7 +1223,9 @@ unsigned int testrunner::run(const char *fixture_name, const char *test_name,
 unsigned int testrunner::run(
 		const std::string &begin_fixture, const std::string &begin_test,
 		const std::string &end_fixture, const std::string &end_test,
-		bool inclusive_begin, bool print_err_report)
+		bool inclusive_begin, 
+		bool is_not_a_series, 
+		bool print_err_report)
 	{
 		std::vector<fixture *>::iterator it;
 		if (print_err_report)
@@ -1242,6 +1244,17 @@ unsigned int testrunner::run(
 							|| begin_fixture.compare((*it)->get_name()) == 0);
 			bool e_match = (end_fixture.size() == 0 
 							|| end_fixture.compare((*it)->get_name()) == 0);
+			/* 
+			is_not_a_series: do not treat start-end as a single to-from range of tests.
+
+			Instead, only tests in fixtures which contain matching start or end tests
+			are executed.
+			*/
+			if (is_not_a_series)
+			{
+				t_start = (begin_test.size() == 0);
+				t_end = false;
+			}
 
 			f_start |= b_match;
 

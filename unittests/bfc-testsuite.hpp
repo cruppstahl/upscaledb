@@ -424,7 +424,9 @@ public:
 	unsigned int run(
 		const std::string &begin_fixture, const std::string &begin_test,
 		const std::string &end_fixture, const std::string &end_test,
-		bool inclusive_begin, bool print_err_report = true);
+		bool inclusive_begin, 
+		bool is_not_a_series = false,
+		bool print_err_report = true);
 
 	// run all tests of a fixture
     unsigned int run(fixture *f, const char *test_name = NULL, bool print_err_report = true);
