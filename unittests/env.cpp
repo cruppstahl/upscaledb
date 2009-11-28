@@ -1367,7 +1367,7 @@ protected:
         ham_key_t key;
         char buffer[512];
         ham_parameter_t ps[]={
-			{HAM_PARAM_PAGESIZE,   1024*5}, 
+			{HAM_PARAM_PAGESIZE,   1024*6}, 
 			{0, 0}
 		};
         ham_parameter_t ps2[]={

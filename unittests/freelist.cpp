@@ -488,31 +488,6 @@ public:
     }
 };
 
-class FreelistV2Pagesize3072Test : public FreelistBaseTest
-{
-	define_super(FreelistBaseTest);
-
-public:
-    FreelistV2Pagesize3072Test()
-    :   FreelistBaseTest("FreelistV2Pagesize3072Test", 3072)
-    {
-        testrunner::get_instance()->register_fixture(this);
-		BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, checkStructurePackingTest);
-        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, structureTest);
-        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocAlignedTest);
-        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocPageTest);
-        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocHighOffsetTest);
-        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocRangeTest);
-        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocOverflowTest);
-        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocOverflow2Test);
-        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocOverflow3Test);
-        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocOverflow4Test);
-        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocAlignTest);
-        BFC_REGISTER_TEST(FreelistV2Pagesize3072Test, markAllocAlignMultipleTest);
-    }
-};
-
 BFC_REGISTER_FIXTURE(FreelistV1Test);
 BFC_REGISTER_FIXTURE(FreelistV2Test);
-BFC_REGISTER_FIXTURE(FreelistV2Pagesize3072Test);
 

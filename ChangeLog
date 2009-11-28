@@ -1,4 +1,8 @@
 
+November 28, 2009 - chris
+o Disallowed pagesizes which are not aligned to 2k (with exception of 1k); 
+    allowed pagesizes are now 1k, 2k, 4k, 6k, 8k etc
+
 November 9, 2009 - chris
 o C++ API now has all the new functions
 o ham_get_flags is now deprecated - it was replaced by ham_get_parameters

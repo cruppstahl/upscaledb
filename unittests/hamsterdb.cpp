@@ -390,6 +390,25 @@ public:
         BFC_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
                 ham_create_ex(db, BFC_OPATH(".test"), 0, 0664, &p[0]));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        p[1].value=15;
+
+        // only pagesize of 1k, 2k, multiples of 2k are allowed
+        p[0].value=1024;
+        BFC_ASSERT_EQUAL(0, 
+                ham_create_ex(db, BFC_OPATH(".test"), 0, 0664, &p[0]));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        p[0].value=2048;
+        BFC_ASSERT_EQUAL(0, 
+                ham_create_ex(db, BFC_OPATH(".test"), 0, 0664, &p[0]));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        p[0].value=4096;
+        BFC_ASSERT_EQUAL(0, 
+                ham_create_ex(db, BFC_OPATH(".test"), 0, 0664, &p[0]));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        p[0].value=1024*3;
+        BFC_ASSERT_EQUAL(HAM_INV_PAGESIZE, 
+                ham_create_ex(db, BFC_OPATH(".test"), 0, 0664, &p[0]));
         BFC_ASSERT_EQUAL(0, ham_delete(db));
     }
 

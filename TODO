@@ -190,6 +190,8 @@ o doxygen: the online css is super ugly. use the original layout and change the
 
 . ham_get_parameter: could return VERSION of the database
 
+. need tool to upgrade databases from 1.0.x to 1.1.x!
+
 ----------
 
 . enhance java/python/.NET for transactions and approx matching

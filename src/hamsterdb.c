@@ -763,6 +763,14 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                 break;
             case HAM_PARAM_PAGESIZE:
                 if (ppagesize) {
+                    if (!patching_params_and_dont_fail) {
+                        if (param->value!=1024 && param->value%2048!=0) {
+                            ham_trace(("invalid pagesize - must be 1024 or "
+                                    "a multiple of 2048"));
+                            pagesize=0;
+                            RETURN(HAM_INV_PAGESIZE);
+                        }
+                    }
                     pagesize=(ham_size_t)param->value;
                     break;
                 }

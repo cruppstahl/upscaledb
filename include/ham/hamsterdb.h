@@ -234,7 +234,7 @@ typedef struct {
 #define HAM_SUCCESS                  (  0)
 /** Invalid key size */
 #define HAM_INV_KEYSIZE              ( -3)
-/** Invalid page size (must be a multiple of 1024) */
+/** Invalid page size (must be 1024 or a multiple of 2048) */
 #define HAM_INV_PAGESIZE             ( -4)
 /** Memory allocation failed - out of memory */
 #define HAM_OUT_OF_MEMORY            ( -6)
@@ -544,7 +544,7 @@ ham_env_create(ham_env_t *env, const char *filename,
  *        <li>@ref HAM_PARAM_PAGESIZE </li> The size of a file page, in
  *            bytes. It is recommended not to change the default size. The
  *            default size depends on hardware and operating system.
- *            Page sizes must be a multiple of 1024.
+ *            Page sizes must be 1024 or a multiple of 2048.
  *        <li>@ref HAM_PARAM_MAX_ENV_DATABASES </li> The number of maximum
  *            Databases in this Environment; default value: 16.
  *        </ul>
@@ -560,7 +560,8 @@ ham_env_create(ham_env_t *env, const char *filename,
  * @return @ref HAM_INV_FILE_VERSION if the Environment version is not
  *              compatible with the library version
  * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
- * @return @ref HAM_INV_PAGESIZE if @a pagesize is not a multiple of 1024
+ * @return @ref HAM_INV_PAGESIZE if @a pagesize is not 1024 or 
+ *              a multiple of 2048
  * @return @ref HAM_INV_KEYSIZE if @a keysize is too large (at least 4
  *              keys must fit in a page)
  * @return @ref HAM_WOULD_BLOCK if another process has locked the file
@@ -1184,7 +1185,7 @@ ham_create(ham_db_t *db, const char *filename,
  *        <li>@ref HAM_PARAM_PAGESIZE </li> The size of a file page, in
  *            bytes. It is recommended not to change the default size. The
  *            default size depends on hardware and operating system.
- *            Page sizes must be a multiple of 1024.
+ *            Page sizes must be 1024 or a multiple of 2048.
  *        <li>@ref HAM_PARAM_KEYSIZE </li> The size of the keys in the B+Tree
  *            index. The default size is 21 bytes.
  *        <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data 
@@ -1204,7 +1205,8 @@ ham_create(ham_db_t *db, const char *filename,
  * @return @ref HAM_INV_FILE_VERSION if the Database version is not
  *              compatible with the library version
  * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
- * @return @ref HAM_INV_PAGESIZE if @a pagesize is not a multiple of 1024
+ * @return @ref HAM_INV_PAGESIZE if @a pagesize is not 1024 or 
+ *              a multiple of 2048
  * @return @ref HAM_INV_KEYSIZE if @a keysize is too large (at least 4
  *              keys must fit in a page)
  * @return @ref HAM_WOULD_BLOCK if another process has locked the file
