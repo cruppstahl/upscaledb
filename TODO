@@ -120,7 +120,9 @@ x samples - need work?? - no
 
 x valgrind shows some memory access errors
 
-o acceptance tests/unittests (freelist.cpp) fail with pagesize=3072
+x acceptance tests/unittests (freelist.cpp) fail with pagesize=3072
+
+o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst
 
 o win32 build environment - needs updates
     o dll/lib need statistics.c, hamsterdb_stats.h, freelist_v2.c
@@ -153,6 +155,12 @@ o doxygen: make sure that all new functions are shown correctly.
 
 o doxygen: the online css is super ugly. use the original layout and change the
     online integration
+
+. doxygen: the generated html files should be part of the tarball
+
+. win32: check Ger's solution - he can handle multiple msvc versions
+
+. sort duplicate keys - Ger has patches
 
 . unittest:
     create database (not in Env!) and make sure that the database
