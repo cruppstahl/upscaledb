@@ -338,6 +338,8 @@ ham_cursor_get_database(ham_cursor_t *cursor);
  * @}
  */
 
+/* internal flag - do not use!! */
+#define HAM_DAM_FAST_INSERT              0x0004
 
 #ifdef __cplusplus
 } // extern "C"

@@ -203,20 +203,6 @@ typedef struct {
  */
 #define HAM_DAM_SEQUENTIAL_INSERT        0x0002
 
-/** 
- * Suggest a faster allocation scheme, which will leave a few
- * gaps in the store, i.e. this mode exchanges raw insert speed for 
- * a slightly larger Database file.
- *
- * May be combined with the @ref HAM_DAM_SEQUENTIAL_INSERT flag to
- * get the most brutal 'insert' operation performance possible, in
- * exchange for a slightly faster growing file, as available space
- * due to previously deleted records is mostly ignored.
- *
- * This flag is non persistent.
- */
-#define HAM_DAM_FAST_INSERT              0x0004
-
 /* internal use only - will be set implicitly when opening a file from 1.0.x */ 
 #define HAM_DAM_ENFORCE_PRE110_FORMAT    0x8000
 

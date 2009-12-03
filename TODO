@@ -122,8 +122,6 @@ x valgrind shows some memory access errors
 
 x acceptance tests/unittests (freelist.cpp) fail with pagesize=3072
 
-o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst
-
 o win32 build environment - needs updates
     o dll/lib need statistics.c, hamsterdb_stats.h, freelist_v2.c
     o unittests needs hamster_fixture.hpp,  bfc_signal.c, bfc_testsuite.cpp
@@ -131,7 +129,9 @@ o win32 build environment - needs updates
 
 o wince build environment - needs updates
 
-----
+o doxygen: make sure that all new functions are shown correctly. 
+
+---- release!
 
 o consequently store database files from every supported version on 
     every supported platform:
@@ -150,8 +150,6 @@ o consequently store database files from every supported version on
          overwrites, insert, find, erase, extkeys etc)
             1, 46, 220, 53, ext_061
     o include performance data
-
-o doxygen: make sure that all new functions are shown correctly. 
 
 o doxygen: the online css is super ugly. use the original layout and change the
     online integration
@@ -199,6 +197,11 @@ o doxygen: the online css is super ugly. use the original layout and change the
 . ham_get_parameter: could return VERSION of the database
 
 . need tool to upgrade databases from 1.0.x to 1.1.x!
+
+. re-enable HAM_DAM_FAST_INSERT
+    o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
+        -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
+    o re-enable tests in monster.sh
 
 ----------
 
