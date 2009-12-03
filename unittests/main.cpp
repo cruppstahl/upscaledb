@@ -191,7 +191,7 @@ main(int argc, char **argv)
 #ifdef VISUAL_STUDIO
 #ifdef UNITTEST_PATH 
     SetCurrentDirectoryA(UNITTEST_PATH);
-else
+#else
     SetCurrentDirectoryA("../unittests");
 #endif
 #endif
