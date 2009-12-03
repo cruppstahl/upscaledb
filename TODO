@@ -151,6 +151,9 @@ o consequently store database files from every supported version on
             1, 46, 220, 53, ext_061
     o include performance data
 
+o update/include documentation/architecture.doc and got_geek.doc, trouble.doc
+    and tuning.doc
+
 o doxygen: the online css is super ugly. use the original layout and change the
     online integration
 

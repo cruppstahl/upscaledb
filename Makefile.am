@@ -4,20 +4,15 @@ ACLOCAL_AMFLAGS	= -I m4
 SUBDIRS = 3rdparty src include samples tools unittests
 
 DOCUMENTATION_FILES = documentation/Doxyfile            \
-             documentation/hamsterdb-main-low.jpg       \
              documentation/hamsterdb-main.jpg           \
-             documentation/architecture.doc 		    \
              documentation/appendix_gpl2.doc 		    \
              documentation/appendix_gpl3.doc 		    \
              documentation/appendix_gfdl.doc 		    \
              documentation/faq.doc 		                \
-             documentation/got_geek.doc 		        \
              documentation/history.doc 		            \
              documentation/index.doc 		            \
              documentation/samples.doc 		            \
              documentation/starting.doc 		        \
-             documentation/tuning.doc 		            \
-             documentation/trouble.doc 				    \
              documentation/Doxyfile
              
 
