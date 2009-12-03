@@ -24,6 +24,8 @@ Ger Hobbelt (http://www.hobbelt.com, http://www.hebbut.net):
 - A new function ham_get_key_count() returns the number of keys
 - several bugfixes
 
+This version of hamsterdb can read all files of previous versions (1.0.x), 
+but not vice versa - older versions cannot open files from 1.1.0.
 
 2. Changes
 
