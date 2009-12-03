@@ -119,6 +119,7 @@ crm_report_mem_analysis(void)
 int 
 main(int argc, char **argv)
 {
+#if 0
 #if (defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(WIN64)) \
         && defined(_DEBUG)
     /*
@@ -155,9 +156,7 @@ main(int argc, char **argv)
 
     // Set the debug-heap flag so that freed blocks are kept on the
     // linked list, to catch any inadvertent use of freed memory
-#if 0
     i |= _CRTDBG_DELAY_FREE_MEM_DF;
-#endif
 
     // Set the debug-heap flag so that memory leaks are reported when
     // the process terminates. Then, exit.
@@ -166,19 +165,18 @@ main(int argc, char **argv)
     // Clear the upper 16 bits and OR in the desired freqency
 #if 0
 	i = (i & 0x0000FFFF) | _CRTDBG_CHECK_EVERY_1024_DF;
-#endif
-
-#if 01
-	i |= _CRTDBG_CHECK_ALWAYS_DF;
+#else
+    i |= _CRTDBG_CHECK_ALWAYS_DF;
 #endif
 
     // Set the new bits
     _CrtSetDbgFlag(i);
 
-      // set a malloc marker we can use it in the leak dump at the end of 
-      // the program:
+    // set a malloc marker we can use it in the leak dump at the end of 
+    // the program:
 //    (void)_calloc_dbg(1, 1, _CLIENT_BLOCK, __FILE__, __LINE__);
 #endif
+#endif // #if 0
 
     /*
      * when running in visual studio, the working directory is different
@@ -191,11 +189,10 @@ main(int argc, char **argv)
      * the working directory manually.
      */
 #ifdef VISUAL_STUDIO
-#if 0 // [i_a] given my own build env, this directory changes as well
-    SetCurrentDirectoryA("../unittests"); /* [i_a] */
-#else
-	// .\win32\msvc2008\bin\Win32_MSVC2008.Debug -> .\unittests
-    SetCurrentDirectoryA("../../../../unittests"); /* [i_a] */
+#ifdef UNITTEST_PATH 
+    SetCurrentDirectoryA(UNITTEST_PATH);
+else
+    SetCurrentDirectoryA("../unittests");
 #endif
 #endif
 
@@ -209,7 +206,7 @@ main(int argc, char **argv)
 	testrunner::get_instance()->catch_exceptions(1);
 #endif
 #if (defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(WIN64))
-	testrunner::get_instance()->outputdir("m:/");
+	testrunner::get_instance()->outputdir("./");
 	testrunner::get_instance()->inputdir("./");
 #endif
 

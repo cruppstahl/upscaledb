@@ -413,10 +413,10 @@ stats_fill_ham_statistics_t(ham_env_t *env, ham_db_t *db, ham_statistics_t *dst)
 #if HAM_DEBUG
 extern void 
 cache_report_history(ham_db_t *db);
+#endif
 
 extern void 
 cache_check_history(ham_db_t *db, struct ham_page_t *page, int state);
-#endif
 
 /**
 internal monitoring:

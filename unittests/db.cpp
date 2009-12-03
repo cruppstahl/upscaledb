@@ -370,7 +370,9 @@ public:
 		be_set_keysize(&be, 666);
 		for (i = 0; i < 5; i++)
 		{
-			BFC_ASSERT_I(compare_sizes(btree_node_get_key_offset(&page, i), 1000+12+28+(i*(11+666))), i);
+			BFC_ASSERT_I(compare_sizes(
+                (ham_size_t)btree_node_get_key_offset(&page, i), 
+                (ham_size_t)1000+12+28+(i*(11+666))), i);
 		}
 		BFC_ASSERT(compare_sizes(db_get_persistent_header_size(), 12));
 		// make sure the 'header page' is at least as large as your usual header page,

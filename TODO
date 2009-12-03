@@ -122,10 +122,10 @@ x valgrind shows some memory access errors
 
 x acceptance tests/unittests (freelist.cpp) fail with pagesize=3072
 
-o win32 build environment - needs updates
-    o dll/lib need statistics.c, hamsterdb_stats.h, freelist_v2.c
-    o unittests needs hamster_fixture.hpp,  bfc_signal.c, bfc_testsuite.cpp
-    o unittests: PP-makros: WIN32;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE;_CONSOLE;VISUAL_STUDIO
+x win32 build environment - needs updates
+    x dll/lib need statistics.c, hamsterdb_stats.h, freelist_v2.c
+    x unittests needs hamster_fixture.hpp,  bfc_signal.c, bfc_testsuite.cpp
+    x unittests: PP-makros: WIN32;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE;_CONSOLE;VISUAL_STUDIO
 
 o wince build environment - needs updates
 
