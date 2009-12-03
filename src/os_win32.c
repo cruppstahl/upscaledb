@@ -27,6 +27,9 @@
 static const char *
 DisplayError(char* buf, ham_size_t buflen, DWORD errorcode)
 {
+#ifdef UNDER_CE /* TODO not yet implemented for Windows CE - unicode! */
+    return ("");
+#else
     size_t len;
 
     buf[0] = 0;
@@ -46,6 +49,7 @@ DisplayError(char* buf, ham_size_t buflen, DWORD errorcode)
     }
 
     return buf;
+#endif
 }
 
 /*

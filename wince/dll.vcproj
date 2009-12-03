@@ -1307,6 +1307,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\freelist_v2.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\freelist_v2.h"
+			>
+		</File>
+		<File
 			RelativePath="..\src\hamsterdb.c"
 			>
 		</File>
@@ -1316,6 +1324,10 @@
 		</File>
 		<File
 			RelativePath="..\include\ham\hamsterdb_int.h"
+			>
+		</File>
+		<File
+			RelativePath="..\include\ham\hamsterdb_stats.h"
 			>
 		</File>
 		<File
@@ -1364,6 +1376,14 @@
 		</File>
 		<File
 			RelativePath="..\src\page.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\statistics.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\statistics.h"
 			>
 		</File>
 		<File

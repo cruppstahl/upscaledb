@@ -2318,7 +2318,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
             }
             flags&=~HAM_DISABLE_MMAP; /* don't store this flag */
 #else
-            device->set_flags(db, device, flags|HAM_DISABLE_MMAP);
+            device->set_flags(device, flags|HAM_DISABLE_MMAP);
 #endif
 
             /* 

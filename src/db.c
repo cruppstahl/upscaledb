@@ -477,7 +477,7 @@ my_purge_cache(ham_db_t *db)
      * first, try to delete unused pages from the cache
      */
     if (db_get_cache(db) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
-#if defined(HAM_DEBUG)
+#if defined(HAM_DEBUG) && defined(HAM_ENABLE_INTERNAL)
         if (cache_too_big(db_get_cache(db)))
         {
             (void)cache_check_integrity(db_get_cache(db));

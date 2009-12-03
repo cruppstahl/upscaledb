@@ -24,7 +24,7 @@
 #include "error.h"
 #include "db.h"
 
-#if defined(_MSC_VER) && defined(HAM_DEBUG)
+#if defined(_MSC_VER) && defined(HAM_DEBUG) && !defined(UNDER_CE)
 #   define _CRTDBG_MAP_ALLOC
 #   include <crtdbg.h>
 #endif
