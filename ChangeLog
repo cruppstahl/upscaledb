@@ -1,9 +1,11 @@
+Dec 03, 2009 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.0
 
-November 28, 2009 - chris
+Nov 28, 2009 - chris
 o Disallowed pagesizes which are not aligned to 2k (with exception of 1k); 
     allowed pagesizes are now 1k, 2k, 4k, 6k, 8k etc
 
-November 9, 2009 - chris
+Nov 9, 2009 - chris
 o C++ API now has all the new functions
 o ham_get_flags is now deprecated - it was replaced by ham_get_parameters
     and ham_env_get_parameters
@@ -18,9 +20,6 @@ o performance improvements in the freelist code, freelist was abstracted
 o added "Data Access Mode" to give hints how Databases/Environments are used;
     hamsterdb can then optimize its internal algorithms/file formats
     (all from Ger Hobbelt, http://www.hobbelt.com, http://www.hebbut.net)
-o the unittest framework "bfc" was improved significantly, improved
-    signal catching (all from Ger Hobbelt, http://www.hobbelt.com, 
-    http://www.hebbut.net)
 
 Jul 26, 2009 - chris 
 o the unittest framework "bfc" was improved significantly, allowing new
@@ -41,6 +40,8 @@ Jul 19, 2009 - chris
 o added various new asserts, code cleanups, win32 improvements/security
     improvements and new tests (all from Ger Hobbelt, http://www.hobbelt.com,
     http://www.hebbut.net)
+o added Approximate Matching - ham_find/ham_cursor_find can now return
+	the nearest neighbour if the key is not found
 
 Mar 05, 2009 - chris ---------------------------------------------------
                       release of hamsterdb-1.0.9
