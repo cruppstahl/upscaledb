@@ -7,131 +7,10 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-x tutorial (and header file as well?) - default compare is descending, not
-    ascending
+x doxygen: make sure that all new functions are shown correctly. 
 
-x merge changes of Ger Hobbelt
-
-x need CREDITS file with contributors
-
-x freel_create can be removed, it's empty
-
-x some unittests are crashing
-  x env_create: must write the header-page
-  x env_open: must read the header-page
-    -> also check Ger's patch
-
-x check why bfc swallows the exceptions
-
-x check ham_get_key_count - implementation/function name
-
-x new append function for ham_cursor_insert: append keys at the "end"
-    of the database
-    x use it for recno
-    x need unittests
-
-x db6.cpp is old, replace it with the original
-
-x IMPORTANT!!! - increase libtool version by 1??? also, we have some API
-    incompatibilities when HAM_*_USER_ALLOC is used. are they a problem??
-    -> incompatibilities were removed; increment version nevertheless??
-    --> no, only increment revision
-
-x packstop has include guards??? remove them, run tests
-    x implement
-    x make sure that databases from 1.0.9 are still working in 1.1.0
-
-x do lots of testing with databases from 1.0.9 - must be loaded/modified 
-    flawlessly (add tests!)
-    x make sure that 1.0.9 is able to open databases generated with 1.1.0 iff
-        the DAM is specified correctly (??? - need to set the database version
-        to 1.0.9??) - no, this DAM can not be specified by the user
-    x make sure that 1.0.9 is not able to open databases generated with 1.1.0
-    x make sure that databases from 1.0.9 are still working in 1.1.0
-
------ merge
-x src/fraction.* - remove if they're not necessary?
-x device-filters: currently don't work in logging - remove the new code
-    completely? Or leave as much as we can? -> removed
-x ham_get_flags deprecated (replaced by ham_get_parameters)!! -> document
-x LOCK_EXCLUSIVE is new default? -> document!
-x document: AES does not affect the logfile!
-x changelist: AES also encrypts header page! (does it??) - no, doesn't!
-x backwards compatibility problems - all of them were removed
-    x AES has to be enabled *before* env is created
-    x KEY_USER_ALLOC needs to have key->size set
-        db.c:db_get_extended_key()
-    x device-stuff: remove new filters??
-x how do we change from AES to AES-CBC in the future? How to recognize
-    new encryption modes? -> header page is not encrypted! can store flags...
-x remove all code and references of HAM_KEYSIZE_TOO_SMALL
-x remove all code and references of HAM_RECORDSIZE_TOO_SMALL
-x review public interface and documentation of approx. matching
-x check HAM_INVALID_PAGEFILTER_PAGESIZE - still needed?
-x check HAM_INVALID_PAGEFILTER_DESIGN - still needed?
-x check HAM_FILTER_NOT_FOUND_IN_CHAIN - still needed?
-x garbagelist was removed - kann be removed from page.h? what happens with
-    deleted pages? - no, not removed, still needed
-x remove raw_pagesize/cooked_pagesize - we do not distinguish!
-x __check_create_parameters: is the RETURN macro still necessary? - yes
-x update cpp API!
-    x ham_key_get_approximate_match_type
-    x ham_get_key_count
-    x ham_get_parameters
-    x ham_env_get_parameters
-x ham_clean_statistics_datarec is a public function - are there other public
-    functions? review interfaces
-x EnvTest::createAndOpenMultiDbTest: disabled; the last (256.) call of 
-    ham_env_create_db creates valgrind errors (-> even crashes)
-x freelist16: is this tested in the unittests?
-x freelist.c: has __inline keyword - not portable!
-
-x DAM - really be backwards compatible?? or upgrade the files to 1.1.0?
-    x review freelist code
-    x review DAM related code in hamsterdb.h and src/
-    x ham_info: print the DAM (but only if it's persistent!) -> it's not!
-    x remove defined(HAM_FORCE_PRE_V110_ONLY_BINARY)
-    x dam is not persistent, only in DB open/create
-        x update documentation in hamsterdb.h
-        x disallow in environment
-            x unittests
-        x automatically set PRE110 when opening databases/Environments from 
-            1.0.9 (how to recognize this -> Database format)
-            x unittests
-        x recno-databases always use sequential DAM per default
-            x unittest
-    x rename HAM_DAM_RANDOM_WRITE_ACCESS to HAM_DAM_RANDOM_WRITE
-    x what if an unknown DAM is set? -> fail to load!
-        x unittest
-    x make sure that HAM_DAM_ENFORCE_PRE110_FORMAT cannot be set from user
-        (only automatically by loading a file from 1.0.9)
-        x unittests
-    x enhance acceptance tests - need to support DAMs
-    x enhance monster.sh with all possible DAM combinations (limit them!)
-
-x tools
-    x ham_info db1.db doesn't work -> hamsterdb.c:1055
-    x tests of the tools don't work
-    x tests must be integrated in release.sh
-
-x valgrind shows some memory access errors
-
-x samples - need work?? - no
-
-x valgrind shows some memory access errors
-
-x acceptance tests/unittests (freelist.cpp) fail with pagesize=3072
-
-x win32 build environment - needs updates
-    x dll/lib need statistics.c, hamsterdb_stats.h, freelist_v2.c
-    x unittests needs hamster_fixture.hpp,  bfc_signal.c, bfc_testsuite.cpp
-    x unittests: PP-makros: WIN32;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE;_CONSOLE;VISUAL_STUDIO
-
-x wince build environment - needs updates
-
-o doxygen: make sure that all new functions are shown correctly. 
-
----- release!
+x doxygen: the online css is super ugly. use the original layout and change the
+    online integration
 
 o consequently store database files from every supported version on 
     every supported platform:
@@ -151,60 +30,44 @@ o consequently store database files from every supported version on
             1, 46, 220, 53, ext_061
     o include performance data
 
-o update/include documentation/architecture.doc and got_geek.doc, trouble.doc
-    and tuning.doc
+o doxygen: the generated html files should be part of the tarball
 
-o doxygen: the online css is super ugly. use the original layout and change the
-    online integration
-
-. doxygen: the generated html files should be part of the tarball
-
-. win32: check Ger's solution - he can handle multiple msvc versions
-
-. sort duplicate keys - Ger has patches
-
-. unittest:
+o unittest:
     create database (not in Env!) and make sure that the database
     name is 0xf000 (EMPTY_DATABASE_NAME)
     o EMPTY_DATABASE_NAME is a stupid name - better use DEFAULT_DATABASE_NAME
 
-. make sure that unittests are not executed twice (move registration out of
-    constructor)
+o approx. matching: need a sample
 
-. approx. matching: need a sample
-
-. in-memory-db could access directly the record (and then overwrite it)
+o in-memory-db could access directly the record (and then overwrite it)
     -> needs new flag for ham_find/ham_cursor_move
     o unittests
 
-. ham_get_parameter should return DAM
+o ham_get_parameter should return DAM
 
-. unittests: get rid of cppunit, move to bfc
-    x update unittests
-    o update win32 project file
-    o update wince project file
-    . update hamsterdb-alien
-    o finally run tests in win64
-    o finally run tests in wince
-    o make sure that all tests are run only once (don't register tests in
-         the constructor of a fixture)
-
-. code cleanup: HAM_DUMMY_DATABASE_NAME and other reserved names are not
+o code cleanup: HAM_DUMMY_DATABASE_NAME and other reserved names are not
     allowed to be used from the users; but HAM_FIRST_DATABASE_NAME is
     allowed!
+
+o need tool to upgrade databases from 1.0.x to 1.1.x!
+
+o re-enable HAM_DAM_FAST_INSERT
+    o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
+        -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
+    o re-enable tests in monster.sh
+
+. sort duplicate keys - Ger has patches
+
+. make sure that unittests are not executed twice (move registration out of
+    constructor)
+
+. ham_get_parameter: could return VERSION of the database
 
 . HighLevelTxnTest::rollbackHugeBlobTest is inactive because huge blobs are
     directly written to disk instead of going through the cache -> in case of
     a txn_abort, these blobs are not reallocated
 
-. ham_get_parameter: could return VERSION of the database
-
-. need tool to upgrade databases from 1.0.x to 1.1.x!
-
-. re-enable HAM_DAM_FAST_INSERT
-    o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
-        -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
-    o re-enable tests in monster.sh
+. win32: check Ger's solution - he can handle multiple msvc versions
 
 ----------
 
