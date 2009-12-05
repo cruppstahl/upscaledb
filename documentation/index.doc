@@ -58,22 +58,13 @@ The second part forms a reference manual:
 <li>The <a href="modules.html">Modules</a> page is the entry point for the hamsterdb C/C++ API reference.
 <li>Section \ref samples shows the hamsterdb Samples for C/C++, Python, .NET, Java and other supported languages.
 <li>Section \ref starting tells you how to generate your first hamsterdb application quickly. 
-<li>Section \ref tuning explains how you can customize your hamsterdb usage and invocation to get an even faster run-time performance from hamsterdb.
 <li>Section \ref faq "FAQ" gives answers to frequently asked questions. 
-<li>Section \ref trouble "Troubleshooting" tells you what to do when you have problems.
 </ul>
 
 The third part provides internal architectural and library implementation information 
 for those developers who have a technology itch they need to scratch. This part is targeted
 at those people who have special needs and need (or want) to extend the hamsterdb library
 itself.
-
-<ul>
-<li>Section \ref arch gives a global overview of how hamsterdb is internally
-    structured.
-<li>Section \ref got_geek is a collection of implementation details for those who really
-                 feel the need for knowledge of the nitty gritty of hamsterdb internals.
-</ul>
 
 \remark When you just wish to \e use hamsterdb, reading this third part of the manual 
 would very probably be overkill.
