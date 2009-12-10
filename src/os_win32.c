@@ -27,8 +27,48 @@
 static const char *
 DisplayError(char* buf, ham_size_t buflen, DWORD errorcode)
 {
-#ifdef UNDER_CE /* TODO not yet implemented for Windows CE - unicode! */
-    return ("");
+#ifdef UNDER_CE /* TODO not yet tested */
+    ham_size_t len;
+    WCHAR tmpbuf[1024];
+    LPCWSTR s = tmpbuf;
+    char *dst = buf;
+
+    buf[0] = 0;
+    FormatMessageW(/* FORMAT_MESSAGE_ALLOCATE_BUFFER | */
+                  FORMAT_MESSAGE_FROM_SYSTEM |
+                  FORMAT_MESSAGE_IGNORE_INSERTS,
+                  NULL, errorcode,
+                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                  tmpbuf, 1024, NULL);
+    /* safely convert wide character string to multibyte character string */
+    for (len = buflen - MB_CUR_MAX; len > 0; )
+    {
+        int cl = *s++;
+        if (!cl)
+        {
+            *dst = 0;
+            break;
+        }
+        cl = wctomb(dst, cl);
+        if (cl == (size_t)-1)
+        {
+            *dst = "?";
+            cl = 1;
+        }
+        dst += cl;
+        len -= cl;
+    }
+    *dst = 0;
+    assert(dst < buf + buflen);
+
+    /* strip trailing whitespace\newlines */
+    for (len = strlen(buf); len-- > 0; ) {
+        if (!isspace(buf[len]))
+            break;
+        buf[len] = 0;
+    }
+
+    return buf;
 #else
     size_t len;
 
