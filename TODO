@@ -30,6 +30,10 @@ o consequently store database files from every supported version on
             1, 46, 220, 53, ext_061
     o include performance data
 
+o Ger sent new statistics.c with minor fixes - it's on crupp.de:~
+    o merge
+    o run monster.sh
+
 o doxygen: the generated html files should be part of the tarball
 
 o unittest:
@@ -42,6 +46,7 @@ o approx. matching: need a sample
 o in-memory-db could access directly the record (and then overwrite it)
     -> needs new flag for ham_find/ham_cursor_move
     o unittests
+    o can we add this to monster.sh?
 
 o ham_get_parameter should return DAM
 
