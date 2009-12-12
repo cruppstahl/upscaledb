@@ -21,17 +21,22 @@ o consequently store database files from every supported version on
         macos-ppc-86
         etc
         -> uname -p + '_' + uname -s + '_' + <compiler>
-        --> write a perl script which creates the name!
-    o define which tests are stored
-    o one script generates those files
-    o another script compares against files in EACH subdirectory
+    x write/use a perl script which creates the name!
+    x define which tests are stored
+    x one script generates those files
+    x also copy `test` and the used libraries (and at least link test 
+            statically!)
+    x another script compares against files in EACH subdirectory
         (FULLCHECK, then do a few hundred operations of all kinds - dupes,
          overwrites, insert, find, erase, extkeys etc)
             1, 46, 220, 53, ext_061
-    o include performance data
+    x include performance data when generating the files
+    o generate files for 1.0.9
+    o generate files for 1.1.0, run compare tests (warning - current HEAD
+        is no longer 1.1.0 - make sure that we test the right sources!)
 
 o Ger sent new statistics.c with minor fixes - it's on crupp.de:~
-    o merge
+    o merge - but doesn't work yet! Wait for new fixes...
     o run monster.sh
 
 o doxygen: the generated html files should be part of the tarball
@@ -50,9 +55,26 @@ o in-memory-db could access directly the record (and then overwrite it)
 
 o ham_get_parameter should return DAM
 
+o compression is not a persistent flag - should it be? if not, then 
+    document it!
+
 o code cleanup: HAM_DUMMY_DATABASE_NAME and other reserved names are not
     allowed to be used from the users; but HAM_FIRST_DATABASE_NAME is
     allowed!
+
+o make sure that unittests are not executed twice (move registration out of
+    constructor)
+
+o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
+    create a private environment handle if it was not supplied
+    o don't forget to close/delete the handle!
+    o clean up db.h/db.c code
+    o move code from ham_create[_ex] into ham_env_create_db?
+    o move code from ham_open[_ex] into ham_env_open_db?
+
+o in-memory-db could access directly the record (and then overwrite it)
+    -> needs new flag for ham_find/ham_cursor_move
+    o unittests
 
 o need tool to upgrade databases from 1.0.x to 1.1.x!
 
@@ -62,9 +84,6 @@ o re-enable HAM_DAM_FAST_INSERT
     o re-enable tests in monster.sh
 
 . sort duplicate keys - Ger has patches
-
-. make sure that unittests are not executed twice (move registration out of
-    constructor)
 
 . ham_get_parameter: could return VERSION of the database
 

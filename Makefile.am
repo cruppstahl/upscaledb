@@ -13,6 +13,7 @@ DOCUMENTATION_FILES = documentation/Doxyfile            \
              documentation/index.doc 		            \
              documentation/samples.doc 		            \
              documentation/starting.doc 		        \
+             documentation/html         		        \
              documentation/Doxyfile
              
 
