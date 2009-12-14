@@ -86,6 +86,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, setPrefixCompareTest);
         BFC_REGISTER_TEST(HamsterdbTest, setCompareTest);
         BFC_REGISTER_TEST(HamsterdbTest, findTest);
+        BFC_REGISTER_TEST(HamsterdbTest, findEmptyRecordTest);
         BFC_REGISTER_TEST(HamsterdbTest, nearFindTest);
         BFC_REGISTER_TEST(HamsterdbTest, nearFindStressTest);
         BFC_REGISTER_TEST(HamsterdbTest, insertTest);
@@ -524,6 +525,34 @@ public:
                 ham_find(m_db, 0, &key, 0, 0));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                 ham_find(m_db, 0, &key, &rec, 0));
+    }
+
+    void findEmptyRecordTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key, &rec, 0));
+
+        ham_cursor_t *cursor;
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_create(m_db, 0, 0, &cursor));
+
+        rec.data=(void *)"123";
+        rec.size=12345;
+        rec.flags=HAM_RECORD_USER_ALLOC;
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
+
+        BFC_ASSERT_EQUAL(0, key.size);
+        BFC_ASSERT_EQUAL(0, key.data);
+        BFC_ASSERT_EQUAL(0, rec.size);
+        BFC_ASSERT_EQUAL(0, rec.data);
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
     }
 
 

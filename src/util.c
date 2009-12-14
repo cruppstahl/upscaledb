@@ -178,11 +178,15 @@ util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
         noblob=HAM_TRUE;
     }
     else {
-        /* set to a dummy value, so the second if-branch is executed */
+        /* set to a dummy value, so the third if-branch is executed */
         blobsize = 0xffffffff;
     }
 
-    if (noblob && blobsize > 0) {
+    if (noblob && blobsize == 0) {
+        record->size = 0;
+        record->data = 0;
+    }
+    else if (noblob && blobsize > 0) {
         if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
             st=db_resize_allocdata(db, blobsize);
             if (st)

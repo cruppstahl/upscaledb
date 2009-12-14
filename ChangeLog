@@ -1,4 +1,7 @@
 Dec 14, 2009 - chris
+o fixed bug in ham_find - if record was empty, but record->size was set 
+    by the caller, then the record->size value was not overwritten
+    with zero
 o fixed compilation error if HAM_DISABLE_ENCRYPTION was set
 o fixed ham_check_integrity - sometimes returned errors although the
     database was fine
