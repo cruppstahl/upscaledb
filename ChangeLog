@@ -1,3 +1,6 @@
+Dec 14, 2009 - chris
+o fixed compilation error if HAM_DISABLE_ENCRYPTION was set
+
 Dec 12, 2009 - chris
 o html documentation is now part of the tarball
 

@@ -12,6 +12,8 @@ x doxygen: make sure that all new functions are shown correctly.
 x doxygen: the online css is super ugly. use the original layout and change the
     online integration
 
+x doxygen: the generated html files should be part of the tarball
+
 o consequently store database files from every supported version on 
     every supported platform:
     1.0.9
@@ -39,21 +41,17 @@ o Ger sent new statistics.c with minor fixes - it's on crupp.de:~
     o merge - but doesn't work yet! Wait for new fixes...
     o run monster.sh
 
-o doxygen: the generated html files should be part of the tarball
+o Ger has some more updates, esp. in unittests (merge stuff from his
+    mails)
 
 o unittest:
     create database (not in Env!) and make sure that the database
     name is 0xf000 (EMPTY_DATABASE_NAME)
     o EMPTY_DATABASE_NAME is a stupid name - better use DEFAULT_DATABASE_NAME
 
-o approx. matching: need a sample
-
-o in-memory-db could access directly the record (and then overwrite it)
-    -> needs new flag for ham_find/ham_cursor_move
-    o unittests
-    o can we add this to monster.sh?
-
 o ham_get_parameter should return DAM
+
+o approx. matching: need a sample
 
 o compression is not a persistent flag - should it be? if not, then 
     document it!
@@ -65,16 +63,17 @@ o code cleanup: HAM_DUMMY_DATABASE_NAME and other reserved names are not
 o make sure that unittests are not executed twice (move registration out of
     constructor)
 
+o in-memory-db could access directly the record (and then overwrite it)
+    -> needs new flag for ham_find/ham_cursor_move
+    o unittests
+    o can we add this to monster.sh?
+
 o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     create a private environment handle if it was not supplied
     o don't forget to close/delete the handle!
     o clean up db.h/db.c code
     o move code from ham_create[_ex] into ham_env_create_db?
     o move code from ham_open[_ex] into ham_env_open_db?
-
-o in-memory-db could access directly the record (and then overwrite it)
-    -> needs new flag for ham_find/ham_cursor_move
-    o unittests
 
 o need tool to upgrade databases from 1.0.x to 1.1.x!
 

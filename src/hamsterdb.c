@@ -3315,10 +3315,7 @@ bail:
     return (ham_env_add_file_filter(env, filter));
 #else /* !HAM_DISABLE_ENCRYPTION */
     ham_trace(("hamsterdb was compiled without support for AES encryption"));
-    if (db)
-        return (db_set_error(db, HAM_NOT_IMPLEMENTED));
-    else
-        return (HAM_NOT_IMPLEMENTED);
+    return (HAM_NOT_IMPLEMENTED);
 #endif
 }
 
