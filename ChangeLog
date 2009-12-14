@@ -1,5 +1,7 @@
 Dec 14, 2009 - chris
 o fixed compilation error if HAM_DISABLE_ENCRYPTION was set
+o fixed ham_check_integrity - sometimes returned errors although the
+    database was fine
 
 Dec 12, 2009 - chris
 o html documentation is now part of the tarball

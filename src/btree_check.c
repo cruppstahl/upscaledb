@@ -238,15 +238,12 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
         && !(db_get_rt_flags(db)&HAM_RECORD_NUMBER)) 
 	{
         ham_bool_t isfew;
-        if (btree_node_get_ptr_left(node))
-            isfew=btree_node_get_count(node)<btree_get_minkeys(maxkeys)-1;
-        else
-            isfew=btree_node_get_count(node)<btree_get_minkeys(maxkeys);
+        isfew=btree_node_get_count(node)<btree_get_minkeys(maxkeys)-1;
         if (isfew) {
             ham_log(("integrity check failed in page 0x%llx: not enough keys "
                     " (need %d, got %d)\n", page_get_self(page),
                     btree_get_minkeys(maxkeys), btree_node_get_count(node)));
-            return db_set_error(db, HAM_INTEGRITY_VIOLATED);
+            return (db_set_error(db, HAM_INTEGRITY_VIOLATED));
         }
     }
 
