@@ -14,6 +14,9 @@ x doxygen: the online css is super ugly. use the original layout and change the
 
 x doxygen: the generated html files should be part of the tarball
 
+x Ger has some more updates, esp. in unittests (merge stuff from his
+    mails)
+
 o consequently store database files from every supported version on 
     every supported platform:
     1.0.9
@@ -33,16 +36,17 @@ o consequently store database files from every supported version on
          overwrites, insert, find, erase, extkeys etc)
             1, 46, 220, 53, ext_061
     x include performance data when generating the files
-    o generate files for 1.0.9
-    o generate files for 1.1.0, run compare tests (warning - current HEAD
-        is no longer 1.1.0 - make sure that we test the right sources!)
+    x generate files for 1.0.9
+    x generate files for 1.1.0 on linux, run compare tests (warning - 
+        current HEAD is no longer 1.1.0 - make sure that we test the 
+        right sources!)
+    o generate files for 1.1.0 on win32, run compare tests (warning - 
+        current HEAD is no longer 1.1.0 - make sure that we test the 
+        right sources!)
 
 o Ger sent new statistics.c with minor fixes - it's on crupp.de:~
     o merge - but doesn't work yet! Wait for new fixes...
     o run monster.sh
-
-o Ger has some more updates, esp. in unittests (merge stuff from his
-    mails)
 
 o unittest:
     create database (not in Env!) and make sure that the database
@@ -50,8 +54,6 @@ o unittest:
     o EMPTY_DATABASE_NAME is a stupid name - better use DEFAULT_DATABASE_NAME
 
 o ham_get_parameter should return DAM
-
-o approx. matching: need a sample
 
 o compression is not a persistent flag - should it be? if not, then 
     document it!
@@ -81,6 +83,8 @@ o re-enable HAM_DAM_FAST_INSERT
     o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
         -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
     o re-enable tests in monster.sh
+
+. approx. matching: need a sample
 
 . sort duplicate keys - Ger has patches
 

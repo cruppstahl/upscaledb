@@ -248,8 +248,7 @@ public:
         }
         catch(ham::error &e) {
             BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, e.get_errno());
-            BFC_ASSERT_EQUAL(std::string("Key not found"), 
-                    std::string(e.get_string()));
+            BFC_ASSERT_EQUAL(0, strcmp("Key not found", e.get_string()));
         }
 
         try {

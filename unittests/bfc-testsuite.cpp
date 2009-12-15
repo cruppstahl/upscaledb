@@ -1161,13 +1161,25 @@ void testrunner::print_errors(bool panic_flush) {
         std::vector<error>::iterator it;
         unsigned i=1;
 
-        for (it=m_errors.begin(); it!=m_errors.end(); it++, i++) {
-#if 0
-			std::cout << "----- error #" << i << " in " 
-                      << it->fixture << "::" << it->test << std::endl;
-            std::cout << it->file << ":" << it->line << " "
-                      << it->message.c_str() << std::endl;
-#else
+        for (it=m_errors.begin(); it!=m_errors.end(); it++, i++) 
+		{
+#if (defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(WIN64))
+			char buf[2048];
+
+			_snprintf(buf, sizeof(buf), "%s(%u) : error T%04u: %s::%s : %s%s", 
+				(it->m_file.size() > 0  ? it->m_file.c_str() : "???"),
+				it->m_line,
+				i,
+				(it->m_fixture_name.size() > 0  ? it->m_fixture_name.c_str() : "???"),
+				(it->m_test.size() > 0  ? it->m_test.c_str() : "???"),
+				(it->m_message.size() > 0 ? it->m_message.c_str() : "???"),
+				(it->m_message.size() == 0 || !strchr("\r\n", *(it->m_message.rbegin()))
+				? "\n"
+				: ""));
+			buf[sizeof(buf)-1] = 0;
+			OutputDebugStringA(buf);
+#endif
+
             std::cout << "----- error #";
 			std::cout << i;
 			std::cout << " in ";
@@ -1182,7 +1194,7 @@ void testrunner::print_errors(bool panic_flush) {
 			std::cout << (it->m_message.size() > 0 ? it->m_message.c_str() : "???");
 			if (it->m_message.size() == 0 || !strchr("\r\n", *(it->m_message.rbegin())))
 				std::cout << std::endl;
-#endif
+
 			if (panic_flush)
 			{
 				std::flush(std::cout);

@@ -548,9 +548,9 @@ public:
                 ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
 
         BFC_ASSERT_EQUAL(0, key.size);
-        BFC_ASSERT_EQUAL(0, key.data);
+        BFC_ASSERT_EQUAL((void *)0, key.data);
         BFC_ASSERT_EQUAL(0, rec.size);
-        BFC_ASSERT_EQUAL(0, rec.data);
+        BFC_ASSERT_EQUAL((void *)0, rec.data);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
     }
@@ -619,7 +619,11 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
     void nearFindStressTest(void)
     {
+#if defined(HAM_DEBUG)
         const int RECORD_COUNT_PER_DB = 200000;
+#else
+        const int RECORD_COUNT_PER_DB = 5; // 0000000;
+#endif
         ham_env_t *env;
         ham_db_t *db;
         time_t t[5];
@@ -637,7 +641,12 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         };
         ham_parameter_t ps[]={
             {HAM_PARAM_PAGESIZE,   2*64*1024}, /* UNIX == WIN now */
+#if 01
             {HAM_PARAM_CACHESIZE,    32},
+#else
+            {HAM_PARAM_CACHESIZE,     32*64*1024},
+#endif
+            // {HAM_PARAM_KEYSIZE,    sizeof(my_key_t)},
             {0, 0}
         };
         ham_parameter_t ps2[]={
@@ -741,8 +750,8 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
             ::memset(&key, 0, sizeof(key));
             ::memset(&rec, 0, sizeof(rec));
             BFC_ASSERT_EQUAL_I(0, ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT), i);
-            BFC_ASSERT_NOTEQUAL_I(key.data, 0, i);
-            BFC_ASSERT_NOTEQUAL_I(rec.data, 0, i);
+            BFC_ASSERT_NOTEQUAL_I(key.data, (void *)0, i);
+            BFC_ASSERT_NOTEQUAL_I(rec.data, (void *)0, i);
             r = (my_rec_t *)rec.data;
             k = (my_key_t *)key.data;
 #if 0
