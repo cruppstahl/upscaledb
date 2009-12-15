@@ -44,24 +44,19 @@ x consequently store database files from every supported version on
         current HEAD is no longer 1.1.0 - make sure that we test the 
         right sources!)
 
-o Ger sent new statistics.c with minor fixes - it's on crupp.de:~
-    o merge - but doesn't work yet! Wait for new fixes...
-    o run monster.sh
-
 x unittest:
     create database (not in Env!) and make sure that the database
     name is 0xf000 (EMPTY_DATABASE_NAME)
     x EMPTY_DATABASE_NAME is a stupid name - better use DEFAULT_DATABASE_NAME
 
-o HAM_HINT_UBER_FAST_ACCESS is not covered in monster.sh!!
+x compression is not a persistent flag - should it be? if not, then 
+    document it!
 
-o all tests in the Hamsterdb suite run in-memory - can we modify
-    this to let them run file-based, too?
+o Ger sent new statistics.c with minor fixes - it's on crupp.de:~
+    o merge - but doesn't work yet! Wait for new fixes...
+    o run monster.sh
 
 o ham_get_parameter should return DAM
-
-o compression is not a persistent flag - should it be? if not, then 
-    document it!
 
 o code cleanup: HAM_DUMMY_DATABASE_NAME and other reserved names are not
     allowed to be used from the users; but HAM_FIRST_DATABASE_NAME is
@@ -74,6 +69,8 @@ o in-memory-db could access directly the record (and then overwrite it)
     -> needs new flag for ham_find/ham_cursor_move
     o unittests
     o can we add this to monster.sh?
+
+o acceptance tests do not cover HAM_HINT_*
 
 o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     create a private environment handle if it was not supplied

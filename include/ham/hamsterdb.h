@@ -1661,7 +1661,8 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
  * The compression will be active till @ref ham_close is called. If the Database
  * handle is reused after calling @ref ham_close, the compression is no longer
  * active. @ref ham_enable_compression should be called immediately after
- * @ref ham_create[_ex] or @ref ham_open[_ex].
+ * @ref ham_create[_ex] or @ref ham_open[_ex]. When opening the Database,
+ * the compression has to be enabled again.
  *
  * Note that zlib usually has an overhead and often is not effective if the
  * records are small (i.e. < 128byte), but this highly depends
