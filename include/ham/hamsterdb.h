@@ -1468,7 +1468,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
  * When the Database is not related to an Environment, the 'dbname' @ref i
  * HAM_FIRST_DATABASE_NAME is used for the Database.
 */
-#define HAM_PARAM_DBNAME                0x00000203
+#define HAM_PARAM_DBNAME                  0x00000203
 
 /**
  * Retrieve the actual number of keys per page; this number depends on the 
@@ -1479,6 +1479,11 @@ ham_open_ex(ham_db_t *db, const char *filename,
  * ball park value for this one.
  */
 #define HAM_PARAM_GET_KEYS_PER_PAGE        0x00000204
+
+/**
+ * Retrieve the Data Access mode for the Database
+ */
+#define HAM_PARAM_GET_DAM                  0x00000205
 
 /**
  * Retrieve a @ref ham_statistics_t structure with the current statistics.

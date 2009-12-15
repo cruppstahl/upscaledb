@@ -52,11 +52,11 @@ x unittest:
 x compression is not a persistent flag - should it be? if not, then 
     document it!
 
+x ham_get_parameter should return DAM
+
 o Ger sent new statistics.c with minor fixes - it's on crupp.de:~
     o merge - but doesn't work yet! Wait for new fixes...
     o run monster.sh
-
-o ham_get_parameter should return DAM
 
 o code cleanup: HAM_DUMMY_DATABASE_NAME and other reserved names are not
     allowed to be used from the users; but HAM_FIRST_DATABASE_NAME is

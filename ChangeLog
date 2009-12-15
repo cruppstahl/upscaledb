@@ -1,4 +1,5 @@
 Dec 15, 2009 - chris
+o ham_get_parameter now returns the Data Access Mode (DAM)
 o renamed HAM_EMPTY_DATABASE_NAME to HAM_DEFAULT_DATABASE_NAME
 
 Dec 14, 2009 - chris

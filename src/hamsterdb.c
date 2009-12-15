@@ -207,6 +207,9 @@ ham_param2str(char *buf, size_t buflen, ham_u32_t name)
     case HAM_PARAM_GET_FLAGS          :
         return "HAM_PARAM_GET_FLAGS";
 
+    case HAM_PARAM_GET_DAM            :
+        return "HAM_PARAM_GET_DAM";
+
     case HAM_PARAM_GET_FILEMODE       :
         return "HAM_PARAM_GET_FILEMODE";
 
@@ -859,6 +862,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                 }
                 goto default_case;
 
+            case HAM_PARAM_GET_DAM:
             case HAM_PARAM_GET_FLAGS:
             case HAM_PARAM_GET_FILEMODE:
             case HAM_PARAM_GET_FILENAME:
@@ -3011,6 +3015,9 @@ __ham_get_parameters(ham_env_t *env, ham_db_t *db, ham_parameter_t *param)
             break;
         case HAM_PARAM_GET_FLAGS:
             param->value = flags;
+            break;
+        case HAM_PARAM_GET_DAM:
+            param->value = db ? db_get_data_access_mode(db) : 0;
             break;
         case HAM_PARAM_GET_FILEMODE:
             if (env)
