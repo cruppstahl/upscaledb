@@ -587,7 +587,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
 {
     ham_size_t pagesize=0;
     ham_u16_t keysize=0;
-    ham_u16_t dbname=HAM_EMPTY_DATABASE_NAME;
+    ham_u16_t dbname=HAM_DEFAULT_DATABASE_NAME;
     ham_size_t cachesize=0;
     ham_bool_t no_mmap=HAM_FALSE;
     ham_u16_t dbs=0;
@@ -818,7 +818,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
 
             case HAM_PARAM_MAX_ENV_DATABASES:
                 if (pmaxdbs) {
-                    if (param->value==0 || param->value >= HAM_EMPTY_DATABASE_NAME) {
+                    if (param->value==0 || param->value >= HAM_DEFAULT_DATABASE_NAME) {
                         if (param->value==0 && !patching_params_and_dont_fail) {
                             ham_trace(("invalid value %u for parameter "
                                        "HAM_PARAM_MAX_ENV_DATABASES",
@@ -842,13 +842,13 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
 
             case HAM_PARAM_DBNAME:
                 if (pdbname) {
-                    if (dbname == HAM_EMPTY_DATABASE_NAME || dbname == HAM_FIRST_DATABASE_NAME) {
+                    if (dbname == HAM_DEFAULT_DATABASE_NAME || dbname == HAM_FIRST_DATABASE_NAME) {
                         dbname=(ham_u16_t)param->value;
 
                         if ((!dbname && !patching_params_and_dont_fail)
                             || (dbname != HAM_FIRST_DATABASE_NAME 
                                 && dbname != HAM_DUMMY_DATABASE_NAME 
-                                && dbname > HAM_EMPTY_DATABASE_NAME)) 
+                                && dbname > HAM_DEFAULT_DATABASE_NAME)) 
                         {
                             ham_trace(("parameter 'HAM_PARAM_DBNAME' value (0x%04x) must be non-zero and lower than 0xf000", (unsigned)dbname));
                             dbname = HAM_FIRST_DATABASE_NAME;
@@ -1105,8 +1105,8 @@ default_case:
             dbs = (env ? env_get_max_databases(env) : 1);
         }
         else if (set_abs_max_dbs) {
-            if (l >= HAM_EMPTY_DATABASE_NAME)
-                l = HAM_EMPTY_DATABASE_NAME - 1;
+            if (l >= HAM_DEFAULT_DATABASE_NAME)
+                l = HAM_DEFAULT_DATABASE_NAME - 1;
             dbs = (ham_u16_t)l;
         }
         else if (dbs == 0) {
@@ -1342,7 +1342,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
         return (HAM_INV_PARAMETER);
     }
 
-    if (!name || (name>=HAM_EMPTY_DATABASE_NAME 
+    if (!name || (name>=HAM_DEFAULT_DATABASE_NAME 
             && name!=HAM_DUMMY_DATABASE_NAME)) {
         ham_trace(("invalid database name"));
         return (HAM_INV_PARAMETER);
@@ -1424,7 +1424,7 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
         return (HAM_INV_PARAMETER);
     }
     if (name!=HAM_FIRST_DATABASE_NAME 
-          && (name!=HAM_DUMMY_DATABASE_NAME && name>HAM_EMPTY_DATABASE_NAME)) {
+          && (name!=HAM_DUMMY_DATABASE_NAME && name>HAM_DEFAULT_DATABASE_NAME)) {
         ham_trace(("parameter 'name' must be lower than 0xf000"));
         return (HAM_INV_PARAMETER);
     }
@@ -1661,7 +1661,7 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
         ham_trace(("parameter 'newname' must not be 0"));
         return (HAM_INV_PARAMETER);
     }
-    if (newname>=HAM_EMPTY_DATABASE_NAME) {
+    if (newname>=HAM_DEFAULT_DATABASE_NAME) {
         ham_trace(("parameter 'newname' must be lower than 0xf000"));
         return (HAM_INV_PARAMETER);
     }
@@ -2647,7 +2647,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
 
     ham_size_t pagesize = 0;
     ham_u16_t keysize = 0;
-    ham_u16_t dbname = HAM_EMPTY_DATABASE_NAME;
+    ham_u16_t dbname = HAM_DEFAULT_DATABASE_NAME;
     ham_u16_t dbi;
     ham_size_t i;
     ham_size_t cachesize = 0;
@@ -3035,7 +3035,7 @@ __ham_get_parameters(ham_env_t *env, ham_db_t *db, ham_parameter_t *param)
                 param->value = dbname;
             }
             else if (param->value == 0 
-                    && dbname != HAM_EMPTY_DATABASE_NAME 
+                    && dbname != HAM_DEFAULT_DATABASE_NAME 
                     && (env || db)) {
                 param->value = dbname;
             }

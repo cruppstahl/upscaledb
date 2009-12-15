@@ -37,9 +37,12 @@ extern "C" {
  * user specified Database names as passed to @a ham_env_create_db 
  * or @a ham_env_open_db.
  */
-#define HAM_EMPTY_DATABASE_NAME       (0xf000)
+#define HAM_DEFAULT_DATABASE_NAME     (0xf000)
 
-/** A reserved Database name for the first Database in an Environment */
+/** 
+ * A reserved Database name which automatically picks the first Database 
+ * in an Environment 
+ */
 #define HAM_FIRST_DATABASE_NAME       (0xf001)
 
 /** 

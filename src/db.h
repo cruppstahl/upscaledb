@@ -199,7 +199,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 typedef HAM_PACK_0 union HAM_PACK_1 
 {
     HAM_PACK_0 struct HAM_PACK_1 {
-        /* name of the DB: 1..HAM_EMPTY_DATABASE_NAME-1 */
+        /* name of the DB: 1..HAM_DEFAULT_DATABASE_NAME-1 */
         ham_u16_t _dbname;
 
         /* maximum keys in an internal page */

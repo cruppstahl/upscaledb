@@ -17,7 +17,7 @@ x doxygen: the generated html files should be part of the tarball
 x Ger has some more updates, esp. in unittests (merge stuff from his
     mails)
 
-o consequently store database files from every supported version on 
+x consequently store database files from every supported version on 
     every supported platform:
     1.0.9
         win32-msvc8
@@ -40,7 +40,7 @@ o consequently store database files from every supported version on
     x generate files for 1.1.0 on linux, run compare tests (warning - 
         current HEAD is no longer 1.1.0 - make sure that we test the 
         right sources!)
-    o generate files for 1.1.0 on win32, run compare tests (warning - 
+    x generate files for 1.1.0 on win32, run compare tests (warning - 
         current HEAD is no longer 1.1.0 - make sure that we test the 
         right sources!)
 
@@ -48,10 +48,15 @@ o Ger sent new statistics.c with minor fixes - it's on crupp.de:~
     o merge - but doesn't work yet! Wait for new fixes...
     o run monster.sh
 
-o unittest:
+x unittest:
     create database (not in Env!) and make sure that the database
     name is 0xf000 (EMPTY_DATABASE_NAME)
-    o EMPTY_DATABASE_NAME is a stupid name - better use DEFAULT_DATABASE_NAME
+    x EMPTY_DATABASE_NAME is a stupid name - better use DEFAULT_DATABASE_NAME
+
+o HAM_HINT_UBER_FAST_ACCESS is not covered in monster.sh!!
+
+o all tests in the Hamsterdb suite run in-memory - can we modify
+    this to let them run file-based, too?
 
 o ham_get_parameter should return DAM
 

@@ -73,7 +73,6 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, invVersionTest);
         BFC_REGISTER_TEST(HamsterdbTest, createTest);
         BFC_REGISTER_TEST(HamsterdbTest, createPagesizeTest);
-        BFC_REGISTER_TEST(HamsterdbTest, createMaxkeysTooHighTest);
         BFC_REGISTER_TEST(HamsterdbTest, createCloseCreateTest);
         BFC_REGISTER_TEST(HamsterdbTest, createPagesizeReopenTest);
         BFC_REGISTER_TEST(HamsterdbTest, readOnlyTest);
@@ -121,6 +120,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, cursorInsertAppendTest);
         BFC_REGISTER_TEST(HamsterdbTest, negativeCursorInsertAppendTest);
         BFC_REGISTER_TEST(HamsterdbTest, recordCountTest);
+        BFC_REGISTER_TEST(HamsterdbTest, createDbOpenEnvTest);
     }
 
 protected:
@@ -297,22 +297,6 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(db, BFC_OPATH(".test"), 0, 0644, &ps[0]));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-
-        ham_delete(db);
-    }
-
-    void createMaxkeysTooHighTest(void)
-    {
-        ham_db_t *db;
-
-        BFC_ASSERT_EQUAL(0, ham_new(&db));
-
-        ham_parameter_t ps[]={{HAM_PARAM_PAGESIZE, 1024*1024*128}, 
-                              {HAM_PARAM_KEYSIZE, 16}, 
-                              {0, 0}};
-
-        BFC_ASSERT_EQUAL(HAM_INV_KEYSIZE, 
-                ham_create_ex(db, BFC_OPATH(".test"), 0, 0644, &ps[0]));
 
         ham_delete(db);
     }
@@ -1969,6 +1953,24 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(0, 
                 ham_get_key_count(m_db, 0, 0, &count));
         BFC_ASSERT_EQUAL(4000+10, count);
+    }
+
+    void createDbOpenEnvTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(m_db, BFC_OPATH(".test"), 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        ham_env_t *env;
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_open(env, BFC_OPATH(".test"), 0));
+        BFC_ASSERT_EQUAL(0, ham_env_open_db(env, m_db, 
+                HAM_DEFAULT_DATABASE_NAME, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
 
 };
