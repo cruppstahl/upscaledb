@@ -26,14 +26,14 @@ using namespace bfc;
 
 class BlobTest : public hamsterDB_fixture
 {
-	define_super(hamsterDB_fixture);
+    define_super(hamsterDB_fixture);
 
 public:
     BlobTest(ham_bool_t inmemory=HAM_FALSE, ham_size_t cachesize=0, 
                 ham_size_t pagesize=0, const char *name="BlobTest")
     :   hamsterDB_fixture(name),
         m_db(0), m_alloc(0), m_inmemory(inmemory), m_cachesize(cachesize),
-		m_pagesize(pagesize)
+        m_pagesize(pagesize)
     {
         //if (name)
         //    return;
@@ -56,17 +56,17 @@ protected:
     memtracker_t *m_alloc;
     ham_bool_t m_inmemory;
     ham_size_t m_cachesize;
-	ham_size_t m_pagesize;
+    ham_size_t m_pagesize;
 
 public:
     virtual void setup() 
-	{ 
-		__super::setup();
+    { 
+        __super::setup();
 
-	    ham_parameter_t params[3]=
+        ham_parameter_t params[3]=
         {
             { HAM_PARAM_CACHESIZE, m_cachesize },
-			{ HAM_PARAM_PAGESIZE, (m_pagesize ? m_pagesize : 4096) },	// otherwise, 16-bit limit bugs in freelist will fire on Win32
+            { HAM_PARAM_PAGESIZE, (m_pagesize ? m_pagesize : 4096) },    // otherwise, 16-bit limit bugs in freelist will fire on Win32
             { 0, 0 }
         };
 
@@ -81,8 +81,8 @@ public:
     }
     
     virtual void teardown() 
-	{ 
-		__super::teardown();
+    { 
+        __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
@@ -255,10 +255,10 @@ public:
         ::memset(&record, 0, sizeof(record));
         ::memset(&buffer, 0x12, sizeof(buffer));
 
-		blobid=(ham_offset_t *)::malloc(sizeof(ham_offset_t)*loops);
-		BFC_ASSERT(blobid!=0);
+        blobid=(ham_offset_t *)::malloc(sizeof(ham_offset_t)*loops);
+        BFC_ASSERT(blobid!=0);
         if (!m_inmemory)
-			BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
+            BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
 
         for (int i=0; i<loops; i++) {
             buffer=(ham_u8_t *)::malloc((i+1)*factor);
@@ -289,9 +289,9 @@ public:
             BFC_ASSERT_EQUAL_I(0, blob_free(m_db, blobid[i], 0), i);
         }
 
-		::free(blobid);
+        ::free(blobid);
         if (!m_inmemory)
-	        BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
+            BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
     }
 
     void multipleAllocReadFreeTest(void)
