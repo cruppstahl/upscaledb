@@ -68,11 +68,13 @@ o code cleanup: HAM_DEFAULT_DATABASE_NAME and other reserved names are not
     o Hamsterdb::checkDatabaseNameTest()
 
 o acceptance tests do not cover HAM_HINT_*
+    o add to source
+    o add to monster.sh
 
 o in-memory-db could access directly the record (and then overwrite it)
     -> needs new flag for ham_find/ham_cursor_move
     o unittests
-    o can we add this to monster.sh?
+    o can we add this to monster.sh? - yes, have to!
 
 o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     create a private environment handle if it was not supplied
