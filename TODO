@@ -54,6 +54,10 @@ x compression is not a persistent flag - should it be? if not, then
 
 x ham_get_parameter should return DAM
 
+x make sure that unittests are not executed twice (move registration out of
+    constructor)
+    x LogTest is disabled - why? reenable it!
+
 o Ger sent new statistics.c with minor fixes - it's on crupp.de:~
     o merge - but doesn't work yet! Wait for new fixes...
     o run monster.sh
@@ -62,9 +66,6 @@ o code cleanup: HAM_DEFAULT_DATABASE_NAME and other reserved names are not
     allowed to be used from the users; but HAM_FIRST_DATABASE_NAME is
     allowed!
     o Hamsterdb::checkDatabaseNameTest()
-
-o make sure that unittests are not executed twice (move registration out of
-    constructor)
 
 o acceptance tests do not cover HAM_HINT_*
 

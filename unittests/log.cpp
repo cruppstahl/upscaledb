@@ -527,7 +527,7 @@ public:
         log_entry_t entry;
         ham_u8_t *data;
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
-        BFC_ASSERT_EQUAL((ham_u64_t)2, log_entry_get_lsn(&entry));
+        BFC_ASSERT_EQUAL((ham_u64_t)1, log_entry_get_lsn(&entry));
         BFC_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(txn));
         BFC_ASSERT_EQUAL((ham_u64_t)1, log_entry_get_txn_id(&entry));
         BFC_ASSERT_EQUAL((ham_u8_t *)0, data);
@@ -2089,6 +2089,6 @@ public:
     }
 };
 
-//BFC_REGISTER_FIXTURE(LogTest);
+BFC_REGISTER_FIXTURE(LogTest);
 BFC_REGISTER_FIXTURE(LogHighLevelTest);
 
