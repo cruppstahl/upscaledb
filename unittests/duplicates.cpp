@@ -37,8 +37,6 @@ public:
     DupeTest(ham_u32_t flags=0, const char *name="DupeTest")
     :   hamsterDB_fixture(name), m_flags(flags)
     {
-        //if (name)
-        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(DupeTest, invalidFlagsTest);
         BFC_REGISTER_TEST(DupeTest, insertDuplicatesTest);

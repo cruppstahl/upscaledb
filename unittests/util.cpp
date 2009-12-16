@@ -27,7 +27,7 @@ using namespace bfc;
 
 class UtilTest : public hamsterDB_fixture
 {
-	define_super(hamsterDB_fixture);
+    define_super(hamsterDB_fixture);
 
 public:
     UtilTest()
@@ -48,8 +48,8 @@ protected:
 
 public:
     virtual void setup() 
-	{ 
-		__super::setup();
+    { 
+        __super::setup();
 
         ham_parameter_t p[]={{HAM_PARAM_PAGESIZE, 4096}, {0, 0}};
 
@@ -61,8 +61,8 @@ public:
     }
     
     virtual void teardown() 
-	{ 
-		__super::teardown();
+    { 
+        __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
@@ -73,7 +73,7 @@ public:
     void copyKeyTest(void)
     {
         ham_key_t src;
-		ham_key_t dest = {0};
+        ham_key_t dest = {0};
 
         src.data=(void *)"hallo welt";
         src.size=(ham_u16_t)::strlen((char *)src.data)+1;
@@ -90,7 +90,7 @@ public:
     void copyExtendedKeyTest(void)
     {
         ham_key_t src;
-		ham_key_t dest = {0};
+        ham_key_t dest = {0};
 
         src.data=(void *)"hallo welt, this is an extended key";
         src.size=(ham_u16_t)::strlen((char *)src.data)+1;
@@ -108,8 +108,8 @@ public:
     {
         int_key_t src;
         ham_key_t dest;
-		memset(&src, 0, sizeof(src));
-		memset(&dest, 0, sizeof(dest));
+        memset(&src, 0, sizeof(src));
+        memset(&dest, 0, sizeof(dest));
 
         key_set_ptr(&src, 0x12345);
         key_set_size(&src, 0);
@@ -124,9 +124,9 @@ public:
     void copyKeyInt2PubTinyTest(void)
     {
         int_key_t src;
-		ham_key_t dest;
-		memset(&src, 0, sizeof(src));
-		memset(&dest, 0, sizeof(dest));
+        ham_key_t dest;
+        memset(&src, 0, sizeof(src));
+        memset(&dest, 0, sizeof(dest));
 
         key_set_ptr(&src, 0x12345);
         key_set_size(&src, 1);

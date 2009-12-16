@@ -36,8 +36,6 @@ public:
     EnvTest(ham_u32_t flags=0, const char *name="EnvTest")
     :   hamsterDB_fixture(name), m_flags(flags)
     {
-        //if (name)
-        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(EnvTest, structureTest);
         BFC_REGISTER_TEST(EnvTest, newDeleteTest);
@@ -1755,7 +1753,6 @@ public:
         BFC_REGISTER_TEST(InMemoryEnvTest, autoCleanupTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, autoCleanup2Test);
         BFC_REGISTER_TEST(InMemoryEnvTest, memoryDbTest);
-        //BFC_REGISTER_TEST(InMemoryEnvTest, multiDbTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, multiDbTest2);
         BFC_REGISTER_TEST(InMemoryEnvTest, multiDbInsertFindTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, multiDbInsertFindExtendedTest);
@@ -1763,15 +1760,10 @@ public:
         BFC_REGISTER_TEST(InMemoryEnvTest, multiDbInsertCursorTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, multiDbInsertFindExtendedCloseReopenTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, renameOpenDatabases);
-        //BFC_REGISTER_TEST(InMemoryEnvTest, renameClosedDatabases);
         BFC_REGISTER_TEST(InMemoryEnvTest, eraseOpenDatabases);
         BFC_REGISTER_TEST(InMemoryEnvTest, eraseUnknownDatabases);
         BFC_REGISTER_TEST(InMemoryEnvTest, eraseMultipleDatabases);
-        //BFC_REGISTER_TEST(InMemoryEnvTest, endianTestOpenDatabase);
         BFC_REGISTER_TEST(InMemoryEnvTest, limitsReachedTest);
-        //BFC_REGISTER_TEST(InMemoryEnvTest, createEnvOpenDbTest);
-        //BFC_REGISTER_TEST(InMemoryEnvTest, createFullEnvOpenDbTest);
-        //BFC_REGISTER_TEST(InMemoryEnvTest, createFullEnvOpenSecondDbTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, getDatabaseNamesTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, maxDatabasesTest);
         BFC_REGISTER_TEST(InMemoryEnvTest, maxDatabasesReopenTest);

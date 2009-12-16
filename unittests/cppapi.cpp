@@ -58,7 +58,7 @@ public:
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(CppApiTest, keyTest);
         BFC_REGISTER_TEST(CppApiTest, recordTest);
-	    BFC_REGISTER_TEST(CppApiTest, staticFunctionsTest);
+        BFC_REGISTER_TEST(CppApiTest, staticFunctionsTest);
         BFC_REGISTER_TEST(CppApiTest, compareTest);
         BFC_REGISTER_TEST(CppApiTest, createOpenCloseDbTest);
         BFC_REGISTER_TEST(CppApiTest, insertFindEraseTest);
@@ -148,13 +148,13 @@ public:
     void staticFunctionsTest(void)
     {
         ham::db db;
-		// check for obvious errors
+        // check for obvious errors
 
-		// get_error() is one of the few methods which should NOT throw an exception itself:
+        // get_error() is one of the few methods which should NOT throw an exception itself:
         BFC_ASSERT_EQUAL(HAM_NOT_INITIALIZED, db.get_error());
         db.get_version(0, 0, 0);
         BFC_ASSERT(".get_version() did not throw a tantrum while receiving NULL arguments");
-		db.get_license(0, 0);
+        db.get_license(0, 0);
         BFC_ASSERT(".get_license() did not throw a tantrum while receiving NULL arguments");
     }
 
@@ -519,44 +519,43 @@ public:
         out=db.find(&k);
     }
 
-
-
-	/*
-	   Augment the base method: make sure we catch ham::error exceptions 
-	   and convert these to bfc::error instances to assist BFC test error
-	   reporting.
-
-	   This serves as an example of use of the testrunner configuration 
-	   as well, as we use the catch flags to determine if the user wants 
-	   us to catch these exceptions or allow them to fall through to the 
-	   debugger instead.
+    /*
+     * Augment the base method: make sure we catch ham::error exceptions 
+     * and convert these to bfc::error instances to assist BFC test error
+     * reporting.
+     *
+     * This serves as an example of use of the testrunner configuration 
+     * as well, as we use the catch flags to determine if the user wants 
+     * us to catch these exceptions or allow them to fall through to the 
+     * debugger instead.
      */
-	virtual bool FUT_invoker(testrunner *me, method m, const char *funcname, bfc_state_t state, error &ex)
-	{
-		if (me->catch_exceptions() || me->catch_coredumps())
-		{
-			try 
-			{
-				// invoke the FUT through the baseclass method
-				return fixture::FUT_invoker(me, m, funcname, state, ex);
-			}
-			catch (ham::error &e)
-			{
-				ex = error(__FILE__, __LINE__, get_name(), funcname, 
-					"HAM C++ exception occurred within the "
-					"Function-Under-Test (%s); error code %d: %s", 
-					funcname, (int)e.get_errno(), e.get_string());
-				return true;
-			}
-			// catch (bfc::error &e) 
-			// ^^ do NOT catch those: allow the BFC test rig to catch 'em!
-		}
-		else
-		{
-			// invoke the FUT through the baseclass method
-			return fixture::FUT_invoker(me, m, funcname, state, ex);
-		}
-	}
+    virtual bool FUT_invoker(testrunner *me, method m, const char *funcname, 
+            bfc_state_t state, error &ex)
+    {
+        if (me->catch_exceptions() || me->catch_coredumps())
+        {
+            try 
+            {
+                // invoke the FUT through the baseclass method
+                return fixture::FUT_invoker(me, m, funcname, state, ex);
+            }
+            catch (ham::error &e)
+            {
+                ex = error(__FILE__, __LINE__, get_name(), funcname, 
+                    "HAM C++ exception occurred within the "
+                    "Function-Under-Test (%s); error code %d: %s", 
+                    funcname, (int)e.get_errno(), e.get_string());
+                return true;
+            }
+            // catch (bfc::error &e) 
+            // ^^ do NOT catch those: allow the BFC test rig to catch 'em!
+        }
+        else
+        {
+            // invoke the FUT through the baseclass method
+            return fixture::FUT_invoker(me, m, funcname, state, ex);
+        }
+    }
 
 };
 

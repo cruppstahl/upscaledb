@@ -28,7 +28,7 @@ using namespace bfc;
 
 class KeyTest : public hamsterDB_fixture
 {
-	define_super(hamsterDB_fixture);
+    define_super(hamsterDB_fixture);
 
 public:
     KeyTest()
@@ -53,8 +53,8 @@ protected:
 
 public:
     virtual void setup() 
-	{ 
-		__super::setup();
+    { 
+        __super::setup();
 
         os::unlink(BFC_OPATH(".test"));
 
@@ -65,8 +65,8 @@ public:
     }
     
     virtual void teardown() 
-	{ 
-		__super::teardown();
+    { 
+        __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);

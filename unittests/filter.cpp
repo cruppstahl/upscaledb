@@ -699,5 +699,7 @@ public:
 
 };
 
+// deactivated because the unittests test a functionality that was not
+// implemented
 //BFC_REGISTER_FIXTURE(FilterTest);
 

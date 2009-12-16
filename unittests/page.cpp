@@ -34,8 +34,6 @@ public:
     :   hamsterDB_fixture(name), 
         m_db(0), m_inmemory(inmemorydb), m_usemmap(mmap), m_dev(0), m_alloc(0)
     {
-        //if (name)
-        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(PageTest, newDeleteTest);
         BFC_REGISTER_TEST(PageTest, allocFreeTest);
@@ -165,6 +163,7 @@ public:
     RwPageTest()
     : PageTest(HAM_FALSE, HAM_FALSE, "RwPageTest")
     {
+        /* constructor will register all tests from parent page */
     }
 };
 

@@ -33,8 +33,6 @@ public:
         : hamsterDB_fixture(name), 
         m_db(0), m_flags(flags), m_alloc(0)
     {
-        //if (name)
-        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(EraseTest, collapseRootTest);
         BFC_REGISTER_TEST(EraseTest, shiftFromRightTest);

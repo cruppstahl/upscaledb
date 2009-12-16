@@ -27,14 +27,12 @@ using namespace bfc;
 
 class RecNoTest : public hamsterDB_fixture
 {
-	define_super(hamsterDB_fixture);
+    define_super(hamsterDB_fixture);
 
 public:
     RecNoTest(ham_u32_t flags=0, const char *name="RecNoTest")
     :   hamsterDB_fixture(name), m_flags(flags)
     {
-        //if (name)
-        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(RecNoTest, createCloseTest);
         BFC_REGISTER_TEST(RecNoTest, createCloseOpenCloseTest);
@@ -62,16 +60,16 @@ protected:
 
 public:
     virtual void setup() 
-	{ 
-		__super::setup();
+    { 
+        __super::setup();
 
         (void)os::unlink(BFC_OPATH(".test"));
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
     }
 
     virtual void teardown() 
-	{ 
-		__super::teardown();
+    { 
+        __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_delete(m_db));
     }
@@ -763,22 +761,15 @@ public:
         clear_tests(); // don't inherit tests
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(InMemoryRecNoTest, createCloseTest);
-        //BFC_REGISTER_TEST(InMemoryRecNoTest, createCloseOpenCloseTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, createInsertCloseTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, createInsertManyCloseTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, createInsertCloseCursorTest);
-        //BFC_REGISTER_TEST(InMemoryRecNoTest, createInsertCloseReopenTest);
-        //BFC_REGISTER_TEST(InMemoryRecNoTest, createInsertCloseReopenCursorTest);
-        //BFC_REGISTER_TEST(InMemoryRecNoTest, createInsertCloseReopenTwiceTest);
-        //BFC_REGISTER_TEST(InMemoryRecNoTest, createInsertCloseReopenTwiceCursorTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, insertBadKeyTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, insertBadKeyCursorTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, createBadKeysizeTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, envTest);
-        //BFC_REGISTER_TEST(InMemoryRecNoTest, endianTestOpenDatabase);
         BFC_REGISTER_TEST(InMemoryRecNoTest, overwriteTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, overwriteCursorTest);
-        //BFC_REGISTER_TEST(InMemoryRecNoTest, eraseLastReopenTest);
         BFC_REGISTER_TEST(InMemoryRecNoTest, uncoupleTest);
     }
 

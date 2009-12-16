@@ -29,7 +29,7 @@ using namespace bfc;
 
 class OsTest : public hamsterDB_fixture
 {
-	define_super(hamsterDB_fixture);
+    define_super(hamsterDB_fixture);
 
 public:
     OsTest()
@@ -59,8 +59,8 @@ public:
 
 public:
     virtual void teardown() 
-	{ 
-		__super::teardown();
+    { 
+        __super::teardown();
 
         (void)os::unlink(BFC_OPATH(".test"));
     }

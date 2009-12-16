@@ -31,7 +31,7 @@ using namespace bfc;
 
 class APIv110Test : public hamsterDB_fixture
 {
-	define_super(hamsterDB_fixture);
+    define_super(hamsterDB_fixture);
 
 public:
     APIv110Test()
@@ -52,8 +52,8 @@ protected:
 
 public:
     virtual void setup()
-	{ 
-		__super::setup();
+    { 
+        __super::setup();
 
         os::unlink(BFC_OPATH(".test"));
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
@@ -66,8 +66,8 @@ public:
     }
     
     virtual void teardown() 
-	{ 
-		__super::teardown();
+    { 
+        __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_AUTO_CLEANUP));
         ham_delete(m_db);
@@ -97,7 +97,7 @@ public:
                     HAM_ENABLE_TRANSACTIONS, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-	    // can we cope with dual ham_close(), BTW? if not, we b0rk in teardown()
+        // can we cope with dual ham_close(), BTW? if not, we b0rk in teardown()
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     };
 
@@ -107,14 +107,14 @@ public:
         os::unlink(BFC_OPATH(".test"));
 
         BFC_ASSERT_EQUAL(true, 
-			os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"), 
+            os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"), 
                 BFC_OPATH(".test")));
         BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         os::unlink(BFC_OPATH(".test"));
 
-		BFC_ASSERT_EQUAL(true, 
+        BFC_ASSERT_EQUAL(true, 
             os::copy(BFC_IPATH("data/dupe-endian-test-open-database-le.hdb"), 
                 BFC_OPATH(".test")));
         BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
@@ -122,270 +122,270 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         os::unlink(BFC_OPATH(".test"));
 
-		/* now the same, environment-based */
+        /* now the same, environment-based */
         BFC_ASSERT_EQUAL(true, 
-			os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"), 
+            os::copy(BFC_IPATH("data/dupe-endian-test-open-database-be.hdb"), 
                 BFC_OPATH(".test")));
         BFC_ASSERT_EQUAL(0, ham_env_open(m_env, BFC_OPATH(".test"), 0));
 
-		ham_db_t *m_db2;
+        ham_db_t *m_db2;
         BFC_ASSERT_EQUAL(0, ham_new(&m_db2)); 
         // first and only DB in there seems to be db # 0xF000, 
         // which is an illegal number
         BFC_ASSERT_EQUAL(0, 
                 ham_env_open_db(m_env, m_db2, HAM_FIRST_DATABASE_NAME /* 1 */, 
                     0, 0));
-		
+        
         BFC_ASSERT_EQUAL(0, ham_close(m_db2, 0));
         ham_delete(m_db2);
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
         os::unlink(BFC_OPATH(".test"));
 
-		BFC_ASSERT_EQUAL(true, 
+        BFC_ASSERT_EQUAL(true, 
             os::copy(BFC_IPATH("data/dupe-endian-test-open-database-le.hdb"), 
                 BFC_OPATH(".test")));
         BFC_ASSERT_EQUAL(0, ham_env_open(m_env, BFC_OPATH(".test"), 0));
-	}
+    }
 
     ham_offset_t get_param_value(ham_parameter_t *param, ham_u16_t name)
     {
         for (; param->name; param++) {
-		    if (param->name == name)
-			    return param->value;
+            if (param->name == name)
+                return param->value;
         }
-	    return (ham_offset_t)-1;
+        return (ham_offset_t)-1;
     }
 
     void getEnvParamsTest(void)
     {
-		ham_env_t *env;
-		ham_statistics_t stats = {0};
-		ham_parameter_t params0[] =
-		{
-			{HAM_PARAM_CACHESIZE, 0},
-			{HAM_PARAM_KEYSIZE, 0},
-			{HAM_PARAM_PAGESIZE, 0},
-			{HAM_PARAM_MAX_ENV_DATABASES, 0},
-			//{HAM_PARAM_DBNAME, 0},
-			{HAM_PARAM_GET_FLAGS, 0},
-			{HAM_PARAM_GET_FILEMODE, 0},
-			{HAM_PARAM_GET_FILENAME, 0},
-			{HAM_PARAM_GET_KEYS_PER_PAGE, 0},
-			{HAM_PARAM_GET_STATISTICS, (ham_offset_t)&stats},
-			{0,0}
-		};
+        ham_env_t *env;
+        ham_statistics_t stats = {0};
+        ham_parameter_t params0[] =
+        {
+            {HAM_PARAM_CACHESIZE, 0},
+            {HAM_PARAM_KEYSIZE, 0},
+            {HAM_PARAM_PAGESIZE, 0},
+            {HAM_PARAM_MAX_ENV_DATABASES, 0},
+            //{HAM_PARAM_DBNAME, 0},
+            {HAM_PARAM_GET_FLAGS, 0},
+            {HAM_PARAM_GET_FILEMODE, 0},
+            {HAM_PARAM_GET_FILENAME, 0},
+            {HAM_PARAM_GET_KEYS_PER_PAGE, 0},
+            {HAM_PARAM_GET_STATISTICS, (ham_offset_t)&stats},
+            {0,0}
+        };
 
-		ham_size_t sollwert_pagesize = os_get_pagesize();
-		ham_size_t sollwert_cachesize = HAM_DEFAULT_CACHESIZE;
-		ham_size_t sollwert_keysize = 21;
-		ham_parameter_t *params = params0;
+        ham_size_t sollwert_pagesize = os_get_pagesize();
+        ham_size_t sollwert_cachesize = HAM_DEFAULT_CACHESIZE;
+        ham_size_t sollwert_keysize = 21;
+        ham_parameter_t *params = params0;
 
-		BFC_ASSERT_EQUAL(0, ham_env_get_parameters(NULL, params));
+        BFC_ASSERT_EQUAL(0, ham_env_get_parameters(NULL, params));
 
-		BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_global_stats);
-		BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_db_stats);
-		BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_freelist_stats);
-		BFC_ASSERT_EQUAL(sollwert_cachesize, 
+        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_global_stats);
+        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_db_stats);
+        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_freelist_stats);
+        BFC_ASSERT_EQUAL(sollwert_cachesize, 
                 get_param_value(params, HAM_PARAM_CACHESIZE));
-		BFC_ASSERT_EQUAL(sollwert_keysize, 
+        BFC_ASSERT_EQUAL(sollwert_keysize, 
                 get_param_value(params, HAM_PARAM_KEYSIZE));
-		BFC_ASSERT_EQUAL(sollwert_pagesize, 
+        BFC_ASSERT_EQUAL(sollwert_pagesize, 
                 get_param_value(params, HAM_PARAM_PAGESIZE));
         switch (sollwert_pagesize) {
             case 64*1024:
-		        BFC_ASSERT_EQUAL((ham_offset_t)2029, 
+                BFC_ASSERT_EQUAL((ham_offset_t)2029, 
                         get_param_value(params, HAM_PARAM_MAX_ENV_DATABASES));
-		        BFC_ASSERT_EQUAL((ham_offset_t)2046, 
+                BFC_ASSERT_EQUAL((ham_offset_t)2046, 
                         get_param_value(params, HAM_PARAM_GET_KEYS_PER_PAGE));
                 break;
             case 16*1024:
-		        BFC_ASSERT_EQUAL((ham_offset_t)493, 
+                BFC_ASSERT_EQUAL((ham_offset_t)493, 
                         get_param_value(params, HAM_PARAM_MAX_ENV_DATABASES));
-		        BFC_ASSERT_EQUAL((ham_offset_t)510, 
+                BFC_ASSERT_EQUAL((ham_offset_t)510, 
                         get_param_value(params, HAM_PARAM_GET_KEYS_PER_PAGE));
                 break;
             default:
-		        BFC_ASSERT(!"unknown pagesize");
+                BFC_ASSERT(!"unknown pagesize");
         }
-		BFC_ASSERT_EQUAL((ham_offset_t)-1, 
+        BFC_ASSERT_EQUAL((ham_offset_t)-1, 
                 get_param_value(params, HAM_PARAM_DBNAME)); // illegal search
-		BFC_ASSERT_EQUAL((ham_offset_t)0, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 get_param_value(params, HAM_PARAM_GET_FLAGS));
-		BFC_ASSERT_EQUAL((ham_offset_t)0, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 get_param_value(params, HAM_PARAM_GET_FILEMODE));
-		BFC_ASSERT_EQUAL((ham_offset_t)0, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 get_param_value(params, HAM_PARAM_GET_FILENAME));
-		BFC_ASSERT_EQUAL((ham_offset_t)&stats, 
+        BFC_ASSERT_EQUAL((ham_offset_t)&stats, 
                 get_param_value(params, HAM_PARAM_GET_STATISTICS));
 
         /* now the same again but with an 'env' handle */
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-		BFC_ASSERT_EQUAL(0, ham_env_get_parameters(NULL, params));
+        BFC_ASSERT_EQUAL(0, ham_env_get_parameters(NULL, params));
 
-		BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_global_stats);
-		BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_db_stats);
-		BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_freelist_stats);
-		BFC_ASSERT_EQUAL(sollwert_cachesize, 
+        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_global_stats);
+        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_db_stats);
+        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_freelist_stats);
+        BFC_ASSERT_EQUAL(sollwert_cachesize, 
                 get_param_value(params, HAM_PARAM_CACHESIZE));
-		BFC_ASSERT_EQUAL(sollwert_keysize, 
+        BFC_ASSERT_EQUAL(sollwert_keysize, 
                 get_param_value(params, HAM_PARAM_KEYSIZE));
-		BFC_ASSERT_EQUAL(sollwert_pagesize, 
+        BFC_ASSERT_EQUAL(sollwert_pagesize, 
                 get_param_value(params, HAM_PARAM_PAGESIZE));
         switch (sollwert_pagesize) {
             case 64*1024:
-		        BFC_ASSERT_EQUAL((ham_offset_t)2029, 
+                BFC_ASSERT_EQUAL((ham_offset_t)2029, 
                         get_param_value(params, HAM_PARAM_MAX_ENV_DATABASES));
-		        BFC_ASSERT_EQUAL((ham_offset_t)2046, 
+                BFC_ASSERT_EQUAL((ham_offset_t)2046, 
                         get_param_value(params, HAM_PARAM_GET_KEYS_PER_PAGE));
                 break;
             case 16*1024:
-		        BFC_ASSERT_EQUAL((ham_offset_t)493, 
+                BFC_ASSERT_EQUAL((ham_offset_t)493, 
                         get_param_value(params, HAM_PARAM_MAX_ENV_DATABASES));
-		        BFC_ASSERT_EQUAL((ham_offset_t)510, 
+                BFC_ASSERT_EQUAL((ham_offset_t)510, 
                         get_param_value(params, HAM_PARAM_GET_KEYS_PER_PAGE));
                 break;
             default:
-		        BFC_ASSERT(!"unknown pagesize");
+                BFC_ASSERT(!"unknown pagesize");
         }
-		BFC_ASSERT_EQUAL((ham_offset_t)-1, 
+        BFC_ASSERT_EQUAL((ham_offset_t)-1, 
                 get_param_value(params, HAM_PARAM_DBNAME)); // illegal search
-		BFC_ASSERT_EQUAL((ham_offset_t)0, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 get_param_value(params, HAM_PARAM_GET_FLAGS));
-		BFC_ASSERT_EQUAL((ham_offset_t)0, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 get_param_value(params, HAM_PARAM_GET_FILEMODE));
-		BFC_ASSERT_EQUAL((ham_offset_t)0, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 get_param_value(params, HAM_PARAM_GET_FILENAME));
-		BFC_ASSERT_EQUAL((ham_offset_t)&stats, 
+        BFC_ASSERT_EQUAL((ham_offset_t)&stats, 
                 get_param_value(params, HAM_PARAM_GET_STATISTICS));
 
-		ham_env_delete(env);
-	}
+        ham_env_delete(env);
+    }
 
     void getDbParamsTest(void)
     {
-		ham_db_t *db;
-		ham_statistics_t stats = {0};
-		ham_parameter_t params0[] =
-		{
-			{HAM_PARAM_CACHESIZE, 0},
-			{HAM_PARAM_KEYSIZE, 0},
-			{HAM_PARAM_PAGESIZE, 0},
-			{HAM_PARAM_MAX_ENV_DATABASES, 0},
-			{HAM_PARAM_DBNAME, 0},
-			{HAM_PARAM_GET_FLAGS, 0},
-			{HAM_PARAM_GET_FILEMODE, 0},
-			{HAM_PARAM_GET_FILENAME, 0},
-			{HAM_PARAM_GET_KEYS_PER_PAGE, 0},
-			{HAM_PARAM_GET_DAM, 0},
-			{HAM_PARAM_GET_STATISTICS, (ham_offset_t)&stats},
-			{0,0}
-		};
-		ham_parameter_t params1[] =
-		{
-			{HAM_PARAM_CACHESIZE, 0},
-			{HAM_PARAM_KEYSIZE, 0},
-			{HAM_PARAM_PAGESIZE, 0},
-			{HAM_PARAM_MAX_ENV_DATABASES, 0},
-			{HAM_PARAM_DBNAME, 0},
-			{HAM_PARAM_GET_FLAGS, 0},
-			{HAM_PARAM_GET_FILEMODE, 0},
-			{HAM_PARAM_GET_FILENAME, 0},
-			{HAM_PARAM_GET_KEYS_PER_PAGE, 0},
-			{HAM_PARAM_GET_STATISTICS, (ham_offset_t)&stats},
-			{0,0}
-		};
+        ham_db_t *db;
+        ham_statistics_t stats = {0};
+        ham_parameter_t params0[] =
+        {
+            {HAM_PARAM_CACHESIZE, 0},
+            {HAM_PARAM_KEYSIZE, 0},
+            {HAM_PARAM_PAGESIZE, 0},
+            {HAM_PARAM_MAX_ENV_DATABASES, 0},
+            {HAM_PARAM_DBNAME, 0},
+            {HAM_PARAM_GET_FLAGS, 0},
+            {HAM_PARAM_GET_FILEMODE, 0},
+            {HAM_PARAM_GET_FILENAME, 0},
+            {HAM_PARAM_GET_KEYS_PER_PAGE, 0},
+            {HAM_PARAM_GET_DAM, 0},
+            {HAM_PARAM_GET_STATISTICS, (ham_offset_t)&stats},
+            {0,0}
+        };
+        ham_parameter_t params1[] =
+        {
+            {HAM_PARAM_CACHESIZE, 0},
+            {HAM_PARAM_KEYSIZE, 0},
+            {HAM_PARAM_PAGESIZE, 0},
+            {HAM_PARAM_MAX_ENV_DATABASES, 0},
+            {HAM_PARAM_DBNAME, 0},
+            {HAM_PARAM_GET_FLAGS, 0},
+            {HAM_PARAM_GET_FILEMODE, 0},
+            {HAM_PARAM_GET_FILENAME, 0},
+            {HAM_PARAM_GET_KEYS_PER_PAGE, 0},
+            {HAM_PARAM_GET_STATISTICS, (ham_offset_t)&stats},
+            {0,0}
+        };
 
-		ham_size_t sollwert_pagesize = os_get_pagesize();
-		ham_size_t sollwert_cachesize = HAM_DEFAULT_CACHESIZE;
-		ham_size_t sollwert_keysize = 21;
-		ham_parameter_t *params = params0;
+        ham_size_t sollwert_pagesize = os_get_pagesize();
+        ham_size_t sollwert_cachesize = HAM_DEFAULT_CACHESIZE;
+        ham_size_t sollwert_keysize = 21;
+        ham_parameter_t *params = params0;
 
-		BFC_ASSERT_EQUAL(0, ham_get_parameters(NULL, params));
-		BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_global_stats);
-		BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_db_stats);
-		BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_freelist_stats);
-		BFC_ASSERT_EQUAL(sollwert_cachesize, 
+        BFC_ASSERT_EQUAL(0, ham_get_parameters(NULL, params));
+        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_global_stats);
+        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_db_stats);
+        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_freelist_stats);
+        BFC_ASSERT_EQUAL(sollwert_cachesize, 
                 get_param_value(params, HAM_PARAM_CACHESIZE));
-		BFC_ASSERT_EQUAL(sollwert_keysize, 
+        BFC_ASSERT_EQUAL(sollwert_keysize, 
                 get_param_value(params, HAM_PARAM_KEYSIZE));
-		BFC_ASSERT_EQUAL(sollwert_pagesize, 
+        BFC_ASSERT_EQUAL(sollwert_pagesize, 
                 get_param_value(params, HAM_PARAM_PAGESIZE));
-		BFC_ASSERT_EQUAL((ham_offset_t)0, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 get_param_value(params, HAM_PARAM_GET_DAM));
         switch (sollwert_pagesize) {
             case 64*1024:
-		        BFC_ASSERT_EQUAL((ham_offset_t)2029,
+                BFC_ASSERT_EQUAL((ham_offset_t)2029,
                         get_param_value(params, HAM_PARAM_MAX_ENV_DATABASES));
-		        BFC_ASSERT_EQUAL((ham_offset_t)2046,
+                BFC_ASSERT_EQUAL((ham_offset_t)2046,
                         get_param_value(params, HAM_PARAM_GET_KEYS_PER_PAGE));
                 break;
             case 16*1024:
-		        BFC_ASSERT_EQUAL((ham_offset_t)493,
+                BFC_ASSERT_EQUAL((ham_offset_t)493,
                         get_param_value(params, HAM_PARAM_MAX_ENV_DATABASES));
-		        BFC_ASSERT_EQUAL((ham_offset_t)510,
+                BFC_ASSERT_EQUAL((ham_offset_t)510,
                         get_param_value(params, HAM_PARAM_GET_KEYS_PER_PAGE));
                 break;
             default:
-		        BFC_ASSERT(!"unknown pagesize");
+                BFC_ASSERT(!"unknown pagesize");
         }
-		BFC_ASSERT_EQUAL((ham_offset_t)0, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 get_param_value(params, HAM_PARAM_DBNAME));
-		BFC_ASSERT_EQUAL((ham_offset_t)0, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 get_param_value(params, HAM_PARAM_GET_FLAGS));
-		BFC_ASSERT_EQUAL((ham_offset_t)0, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 get_param_value(params, HAM_PARAM_GET_FILEMODE));
-		BFC_ASSERT_EQUAL((ham_offset_t)0, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 get_param_value(params, HAM_PARAM_GET_FILENAME));
-		BFC_ASSERT_EQUAL((ham_offset_t)&stats, 
+        BFC_ASSERT_EQUAL((ham_offset_t)&stats, 
                 get_param_value(params, HAM_PARAM_GET_STATISTICS));
 
-		ham_new(&db);
+        ham_new(&db);
 
-		sollwert_pagesize = os_get_pagesize();
-		sollwert_cachesize = HAM_DEFAULT_CACHESIZE;
-		sollwert_keysize = 21;
-		params = params1;
+        sollwert_pagesize = os_get_pagesize();
+        sollwert_cachesize = HAM_DEFAULT_CACHESIZE;
+        sollwert_keysize = 21;
+        params = params1;
 
-		BFC_ASSERT_EQUAL(0, ham_get_parameters(db, params));
-		BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_global_stats);
-		BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_db_stats);
-		BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_freelist_stats);
-		BFC_ASSERT_EQUAL(sollwert_cachesize, 
+        BFC_ASSERT_EQUAL(0, ham_get_parameters(db, params));
+        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_global_stats);
+        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_db_stats);
+        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_freelist_stats);
+        BFC_ASSERT_EQUAL(sollwert_cachesize, 
                 get_param_value(params, HAM_PARAM_CACHESIZE));
-		BFC_ASSERT_EQUAL(sollwert_keysize, 
+        BFC_ASSERT_EQUAL(sollwert_keysize, 
                 get_param_value(params, HAM_PARAM_KEYSIZE));
-		BFC_ASSERT_EQUAL(sollwert_pagesize, 
+        BFC_ASSERT_EQUAL(sollwert_pagesize, 
                 get_param_value(params, HAM_PARAM_PAGESIZE));
         switch (sollwert_pagesize) {
             case 64*1024:
-		        BFC_ASSERT_EQUAL((ham_offset_t)2029,
+                BFC_ASSERT_EQUAL((ham_offset_t)2029,
                         get_param_value(params, HAM_PARAM_MAX_ENV_DATABASES));
-		        BFC_ASSERT_EQUAL((ham_offset_t)2046,
+                BFC_ASSERT_EQUAL((ham_offset_t)2046,
                         get_param_value(params, HAM_PARAM_GET_KEYS_PER_PAGE));
                 break;
             case 16*1024:
-		        BFC_ASSERT_EQUAL((ham_offset_t)493,
+                BFC_ASSERT_EQUAL((ham_offset_t)493,
                         get_param_value(params, HAM_PARAM_MAX_ENV_DATABASES));
-		        BFC_ASSERT_EQUAL((ham_offset_t)510,
+                BFC_ASSERT_EQUAL((ham_offset_t)510,
                         get_param_value(params, HAM_PARAM_GET_KEYS_PER_PAGE));
                 break;
             default:
-		        BFC_ASSERT(!"unknown pagesize");
+                BFC_ASSERT(!"unknown pagesize");
         }
-		BFC_ASSERT_EQUAL((ham_offset_t)HAM_FIRST_DATABASE_NAME, 
+        BFC_ASSERT_EQUAL((ham_offset_t)HAM_FIRST_DATABASE_NAME, 
                 get_param_value(params, HAM_PARAM_DBNAME));
-		BFC_ASSERT_EQUAL((ham_offset_t)0, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 get_param_value(params, HAM_PARAM_GET_FLAGS));
-		BFC_ASSERT_EQUAL((ham_offset_t)0, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 get_param_value(params, HAM_PARAM_GET_FILEMODE));
-		BFC_ASSERT_EQUAL((ham_offset_t)0, 
+        BFC_ASSERT_EQUAL((ham_offset_t)0, 
                 get_param_value(params, HAM_PARAM_GET_FILENAME));
-		BFC_ASSERT_EQUAL((ham_offset_t)&stats, 
+        BFC_ASSERT_EQUAL((ham_offset_t)&stats, 
                 get_param_value(params, HAM_PARAM_GET_STATISTICS));
 
-		ham_delete(db);
-	}
+        ham_delete(db);
+    }
 };
 
 

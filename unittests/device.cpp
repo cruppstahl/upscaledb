@@ -26,15 +26,13 @@ using namespace bfc;
 
 class DeviceTest : public hamsterDB_fixture
 {
-	define_super(hamsterDB_fixture);
+    define_super(hamsterDB_fixture);
 
 public:
     DeviceTest(bool inmemory=false, const char *name="DeviceTest")
     : hamsterDB_fixture(name), 
-		m_db(0), m_inmemory(inmemory), m_dev(0), m_alloc(0)
+        m_db(0), m_inmemory(inmemory), m_dev(0), m_alloc(0)
     {
-        //if (name)
-        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(DeviceTest, newDeleteTest);
         BFC_REGISTER_TEST(DeviceTest, createCloseTest);
@@ -56,8 +54,8 @@ protected:
 
 public:
     virtual void setup() 
-	{ 
-		__super::setup();
+    { 
+        __super::setup();
 
         (void)os::unlink(BFC_OPATH(".test"));
 
@@ -77,8 +75,8 @@ public:
     }
     
     virtual void teardown() 
-	{ 
-		__super::teardown();
+    { 
+        __super::teardown();
 
         if (db_get_header_page(m_db)) {
             page_free(db_get_header_page(m_db));
@@ -121,7 +119,7 @@ public:
 
     void pagesizeTest()
     {
-		ham_size_t cps;
+        ham_size_t cps;
         ham_size_t ps=m_dev->get_pagesize(m_dev);
         BFC_ASSERT(ps!=0);
         BFC_ASSERT(ps%1024==0);
@@ -290,12 +288,8 @@ public:
         BFC_REGISTER_TEST(InMemoryDeviceTest, createCloseTest);
         BFC_REGISTER_TEST(InMemoryDeviceTest, openCloseTest);
         BFC_REGISTER_TEST(InMemoryDeviceTest, pagesizeTest);
-        //BFC_REGISTER_TEST(InMemoryDeviceTest, allocTest);
         BFC_REGISTER_TEST(InMemoryDeviceTest, allocFreeTest);
         BFC_REGISTER_TEST(InMemoryDeviceTest, flushTest);
-        //BFC_REGISTER_TEST(InMemoryDeviceTest, mmapUnmapTest);
-        //BFC_REGISTER_TEST(InMemoryDeviceTest, readWriteTest);
-        //BFC_REGISTER_TEST(InMemoryDeviceTest, readWritePageTest);
     }
 
 };

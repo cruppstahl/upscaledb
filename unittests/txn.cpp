@@ -29,7 +29,7 @@ using namespace bfc;
 
 class TxnTest : public hamsterDB_fixture
 {
-	define_super(hamsterDB_fixture);
+    define_super(hamsterDB_fixture);
 
 public:
     TxnTest()
@@ -51,18 +51,18 @@ protected:
 
 public:
     virtual void setup() 
-	{ 
-		__super::setup();
+    { 
+        __super::setup();
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-		db_set_rt_flags(m_db, HAM_ENABLE_TRANSACTIONS);
+        db_set_rt_flags(m_db, HAM_ENABLE_TRANSACTIONS);
     }
     
     virtual void teardown() 
-	{ 
-		__super::teardown();
+    { 
+        __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
@@ -170,7 +170,7 @@ public:
     void onlyOneTxnAllowedTest(void)
     {
         ham_txn_t *txn1;
-		ham_txn_t *txn2;
+        ham_txn_t *txn2;
 
         BFC_ASSERT_EQUAL(0, 
                 ham_create(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS, 0644));
@@ -189,7 +189,7 @@ public:
 
 class HighLevelTxnTest : public hamsterDB_fixture
 {
-	define_super(hamsterDB_fixture);
+    define_super(hamsterDB_fixture);
 
 public:
     HighLevelTxnTest()
@@ -217,8 +217,8 @@ protected:
 
 public:
     virtual void setup() 
-	{ 
-		__super::setup();
+    { 
+        __super::setup();
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
@@ -226,8 +226,8 @@ public:
     }
     
     virtual void teardown() 
-	{ 
-		__super::teardown();
+    { 
+        __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
@@ -237,7 +237,8 @@ public:
     void noPersistentDatabaseFlagTest(void)
     {
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS, 0644));
+                ham_create(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT(HAM_ENABLE_TRANSACTIONS&db_get_rt_flags(m_db));
         BFC_ASSERT(HAM_ENABLE_RECOVERY&db_get_rt_flags(m_db));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));

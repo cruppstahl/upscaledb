@@ -32,8 +32,6 @@ public:
         : hamsterDB_fixture(name),
             m_inmemory(inmemorydb)
     {
-        //if (name)
-        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(CheckIntegrityTest, emptyDatabaseTest);
         BFC_REGISTER_TEST(CheckIntegrityTest, smallDatabaseTest);
@@ -139,8 +137,6 @@ public:
     }
 };
 
-//#ifdef HAM_ENABLE_INTERNAL  // allow empty tests
 BFC_REGISTER_FIXTURE(CheckIntegrityTest);
 BFC_REGISTER_FIXTURE(InMemoryCheckIntegrityTest);
-//#endif
 

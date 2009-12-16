@@ -16,10 +16,11 @@
 #include "bfc-testsuite.hpp"
 
 #ifdef VISUAL_STUDIO
-#include <windows.h>
-#include <crtdbg.h>
+#   include <windows.h>
+#   include <crtdbg.h>
 #endif
-#include <signal.h> /* the signal catching / hardware exception catching stuff for UNIX (and a bit for Win32/64 too) */
+#include <signal.h> /* the signal catching / hardware exception 
+                     * catching stuff for UNIX (and a bit for Win32/64 too) */
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
@@ -32,8 +33,6 @@ using namespace bfc;
 testrunner *testrunner::s_instance=0;
 
 testrunner::bfc_signal_context_t testrunner::m_current_signal_context;
-
-
 
 
 

@@ -35,8 +35,6 @@ public:
         m_db(0), m_alloc(0), m_inmemory(inmemory), m_cachesize(cachesize),
         m_pagesize(pagesize)
     {
-        //if (name)
-        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(BlobTest, structureTest);
         BFC_REGISTER_TEST(BlobTest, dupeStructureTest);
@@ -66,7 +64,9 @@ public:
         ham_parameter_t params[3]=
         {
             { HAM_PARAM_CACHESIZE, m_cachesize },
-            { HAM_PARAM_PAGESIZE, (m_pagesize ? m_pagesize : 4096) },    // otherwise, 16-bit limit bugs in freelist will fire on Win32
+            // set pagesize, otherwise 16-bit limit bugs in freelist 
+            // will fire on Win32
+            { HAM_PARAM_PAGESIZE, (m_pagesize ? m_pagesize : 4096) },
             { 0, 0 }
         };
 
@@ -77,7 +77,8 @@ public:
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), 
-                    (m_inmemory ? HAM_IN_MEMORY_DB : HAM_ENABLE_TRANSACTIONS), 0644, &params[0]));
+                    (m_inmemory ? HAM_IN_MEMORY_DB : HAM_ENABLE_TRANSACTIONS), 
+                        0644, &params[0]));
     }
     
     virtual void teardown() 
@@ -345,8 +346,8 @@ public:
 class NoCacheBlobTest64Kpage : public NoCacheBlobTest
 {
 public:
-    NoCacheBlobTest64Kpage(ham_size_t cachesize=0, 
-                ham_size_t pagesize=64*1024, const char *name="NoCacheBlobTest64Kpage")
+    NoCacheBlobTest64Kpage(ham_size_t cachesize=0, ham_size_t pagesize=64*1024, 
+           const char *name="NoCacheBlobTest64Kpage")
     : NoCacheBlobTest(cachesize, pagesize, name)
     {
     }
@@ -356,8 +357,8 @@ public:
 class InMemoryBlobTest : public BlobTest
 {
 public:
-    InMemoryBlobTest(ham_size_t cachesize=0, 
-                ham_size_t pagesize=0, const char *name="InMemoryBlobTest")
+    InMemoryBlobTest(ham_size_t cachesize=0, ham_size_t pagesize=0,  
+            const char *name="InMemoryBlobTest")
     : BlobTest(HAM_TRUE, cachesize, pagesize, name)
     {
     }
@@ -366,8 +367,8 @@ public:
 class InMemoryBlobTest64Kpage : public InMemoryBlobTest
 {
 public:
-    InMemoryBlobTest64Kpage(ham_size_t cachesize=0, 
-                ham_size_t pagesize=64*1024, const char *name="InMemoryBlobTest64Kpage")
+    InMemoryBlobTest64Kpage(ham_size_t cachesize=0, ham_size_t pagesize=64*1024,
+            const char *name="InMemoryBlobTest64Kpage")
     : InMemoryBlobTest(cachesize, pagesize, name)
     {
     }

@@ -31,17 +31,15 @@ using namespace bfc;
 
 class BtreeCursorTest : public hamsterDB_fixture
 {
-	define_super(hamsterDB_fixture);
+    define_super(hamsterDB_fixture);
 
 public:
     BtreeCursorTest(bool inmemory=false, ham_size_t pagesize=0, 
-					const char *name="BtreeCursorTest")
+                    const char *name="BtreeCursorTest")
     :   hamsterDB_fixture(name),
         m_db(0), m_inmemory(inmemory), m_alloc(0),
-		m_pagesize(pagesize)
+        m_pagesize(pagesize)
     {
-        //if (name)
-        //    return;
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(BtreeCursorTest, createCloseTest);
         BFC_REGISTER_TEST(BtreeCursorTest, cloneTest);
@@ -60,16 +58,18 @@ protected:
     //ham_device_t *m_dev;
     bool m_inmemory;
     memtracker_t *m_alloc;
-	ham_size_t m_pagesize;
+    ham_size_t m_pagesize;
 
 public:
     virtual void setup() 
-	{ 
-		__super::setup();
+    { 
+        __super::setup();
 
         ham_parameter_t params[]=
         {
-			{ HAM_PARAM_PAGESIZE, (m_pagesize ? m_pagesize : 4096) },	// otherwise, 16-bit limit bugs in freelist will fire on Win32
+            // set pagesize, otherwise 16-bit limit bugs in freelist 
+            // will fire on Win32
+            { HAM_PARAM_PAGESIZE, (m_pagesize ? m_pagesize : 4096) },
             { 0, 0 }
         };
 
@@ -84,8 +84,8 @@ public:
     }
 
     virtual void teardown() 
-	{ 
-		__super::teardown();
+    { 
+        __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_delete(m_db));
@@ -411,7 +411,8 @@ public:
 class BtreeCursorTest64Kpage : public BtreeCursorTest
 {
 public:
-    BtreeCursorTest64Kpage(bool inmemory=false, ham_size_t pagesize = 64*1024, const char *name="BtreeCursorTest64Kpage")
+    BtreeCursorTest64Kpage(bool inmemory=false, ham_size_t pagesize = 64*1024, 
+            const char *name="BtreeCursorTest64Kpage")
     : BtreeCursorTest(inmemory, pagesize, name)
     {
     }
@@ -420,7 +421,8 @@ public:
 class InMemoryBtreeCursorTest : public BtreeCursorTest
 {
 public:
-    InMemoryBtreeCursorTest(ham_size_t pagesize = 0, const char *name="InMemoryBtreeCursorTest")
+    InMemoryBtreeCursorTest(ham_size_t pagesize = 0, 
+            const char *name="InMemoryBtreeCursorTest")
     :   BtreeCursorTest(true, pagesize, name)
     {
     }
@@ -429,7 +431,8 @@ public:
 class InMemoryBtreeCursorTest64Kpage : public InMemoryBtreeCursorTest
 {
 public:
-    InMemoryBtreeCursorTest64Kpage(ham_size_t pagesize = 64*1024, const char *name="InMemoryBtreeCursorTest64Kpage")
+    InMemoryBtreeCursorTest64Kpage(ham_size_t pagesize = 64*1024, 
+            const char *name="InMemoryBtreeCursorTest64Kpage")
     : InMemoryBtreeCursorTest(pagesize, name)
     {
     }
