@@ -3510,6 +3510,21 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         ham_trace(("parameter 'record' must not be NULL"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+    if ((flags&HAM_HINT_SEQUENTIAL) && (flags&HAM_HINT_RANDOM_ACCESS)) {
+        ham_trace(("flags HAM_HINT_SEQUENTIAL and HAM_HINT_RANDOM_ACCESS "
+                   "are mutually exclusive"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if (flags&HAM_HINT_PREPEND) {
+        ham_trace(("flags HAM_HINT_PREPEND is only allowed in "
+                   "ham_cursor_insert"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if (flags&HAM_HINT_APPEND) {
+        ham_trace(("flags HAM_HINT_APPEND is only allowed in "
+                   "ham_cursor_insert"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
     if (!__prepare_key(key) || !__prepare_record(record))
         return (db_set_error(db, HAM_INV_PARAMETER));
 
@@ -3612,6 +3627,21 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     }
     if (!record) {
         ham_trace(("parameter 'record' must not be NULL"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_HINT_SEQUENTIAL) && (flags&HAM_HINT_RANDOM_ACCESS)) {
+        ham_trace(("flags HAM_HINT_SEQUENTIAL and HAM_HINT_RANDOM_ACCESS "
+                   "are mutually exclusive"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if (flags&HAM_HINT_APPEND) {
+        ham_trace(("flags HAM_HINT_APPEND is only allowed in "
+                   "ham_cursor_insert"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if (flags&HAM_HINT_PREPEND) {
+        ham_trace(("flags HAM_HINT_PREPEND is only allowed in "
+                   "ham_cursor_insert"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if (!__prepare_key(key) || !__prepare_record(record))
@@ -3803,6 +3833,21 @@ ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     }
     if (!key) {
         ham_trace(("parameter 'key' must not be NULL"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_HINT_SEQUENTIAL) && (flags&HAM_HINT_RANDOM_ACCESS)) {
+        ham_trace(("flags HAM_HINT_SEQUENTIAL and HAM_HINT_RANDOM_ACCESS "
+                   "are mutually exclusive"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if (flags&HAM_HINT_PREPEND) {
+        ham_trace(("flags HAM_HINT_PREPEND is only allowed in "
+                   "ham_cursor_insert"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if (flags&HAM_HINT_APPEND) {
+        ham_trace(("flags HAM_HINT_APPEND is only allowed in "
+                   "ham_cursor_insert"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if (!__prepare_key(key))
@@ -4549,14 +4594,29 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
         ham_trace(("parameter 'cursor' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+    if ((flags&HAM_HINT_SEQUENTIAL) && (flags&HAM_HINT_RANDOM_ACCESS)) {
+        ham_trace(("flags HAM_HINT_SEQUENTIAL and HAM_HINT_RANDOM_ACCESS "
+                   "are mutually exclusive"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
 
     db=cursor_get_db(cursor);
 
-    if (flags & ~(HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH | 
+    if ((flags&~HAM_HINTS_MASK) & ~(HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH | 
                 HAM_FIND_EXACT_MATCH)) {
         ham_trace(("flag values besides any combination of "
                    "HAM_FIND_LT_MATCH, HAM_FIND_GT_MATCH and "
                    "HAM_FIND_EXACT_MATCH are not allowed"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if (flags&HAM_HINT_PREPEND) {
+        ham_trace(("flags HAM_HINT_PREPEND is only allowed in "
+                   "ham_cursor_insert"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if (flags&HAM_HINT_APPEND) {
+        ham_trace(("flags HAM_HINT_APPEND is only allowed in "
+                   "ham_cursor_insert"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
 
@@ -4666,6 +4726,16 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     }
     if (!record) {
         ham_trace(("parameter 'record' must not be NULL"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_HINT_SEQUENTIAL) && (flags&HAM_HINT_RANDOM_ACCESS)) {
+        ham_trace(("flags HAM_HINT_SEQUENTIAL and HAM_HINT_RANDOM_ACCESS "
+                   "are mutually exclusive"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_HINT_APPEND) && (flags&HAM_HINT_PREPEND)) {
+        ham_trace(("flags HAM_HINT_APPEND and HAM_HINT_PREPEND "
+                   "are mutually exclusive"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if (!__prepare_key(key) || !__prepare_record(record))
@@ -4859,6 +4929,21 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     if (db_get_rt_flags(db)&HAM_READ_ONLY) {
         ham_trace(("cannot erase from a read-only database"));
         return (db_set_error(db, HAM_DB_READ_ONLY));
+    }
+    if ((flags&HAM_HINT_SEQUENTIAL) && (flags&HAM_HINT_RANDOM_ACCESS)) {
+        ham_trace(("flags HAM_HINT_SEQUENTIAL and HAM_HINT_RANDOM_ACCESS "
+                   "are mutually exclusive"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if (flags&HAM_HINT_PREPEND) {
+        ham_trace(("flags HAM_HINT_PREPEND is only allowed in "
+                   "ham_cursor_insert"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if (flags&HAM_HINT_APPEND) {
+        ham_trace(("flags HAM_HINT_APPEND is only allowed in "
+                   "ham_cursor_insert"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
     }
 
     if (!cursor_get_txn(cursor)) {

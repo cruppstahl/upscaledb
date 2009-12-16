@@ -724,7 +724,8 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
 {
     ham_page_t *page=0;
     ham_status_t st;
-    ham_assert(0 == (flags & ~(DB_NEW_PAGE_DOESNT_THRASH_CACHE 
+    ham_assert(0 == ((flags&~HAM_HINTS_MASK) 
+                        & ~(DB_NEW_PAGE_DOESNT_THRASH_CACHE 
                                 | DB_ONLY_FROM_CACHE)), (0));
 
     /* 

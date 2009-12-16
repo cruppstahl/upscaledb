@@ -122,6 +122,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, recordCountTest);
         BFC_REGISTER_TEST(HamsterdbTest, createDbOpenEnvTest);
         BFC_REGISTER_TEST(HamsterdbTest, checkDatabaseNameTest);
+        BFC_REGISTER_TEST(HamsterdbTest, hintingTest);
     }
 
 protected:
@@ -2003,6 +2004,220 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
                         HAM_DUMMY_DATABASE_NAME+1, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void hintingTest(void)
+    {
+        ham_cursor_t *cursor;
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+
+        /* HAM_HINT_SEQUENTIAL: not allowed with HAM_HINT_RANDOM_ACCESS;
+         * allowed for insert/erase/find */
+        BFC_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key, &rec, 
+                    HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, 
+                    HAM_HINT_SEQUENTIAL|HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_erase(m_db, 0, &key,
+                    HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_erase(m_db, 0, &key,
+                    HAM_HINT_SEQUENTIAL|HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_insert(cursor, &key, &rec, 
+                    HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_insert(cursor, &key, &rec, 
+                    HAM_HINT_SEQUENTIAL|HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_find(m_db, 0, &key, &rec, 
+                    HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_find(m_db, 0, &key, &rec, 
+                    HAM_HINT_SEQUENTIAL|HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_find(cursor, &key,
+                    HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_find(cursor, &key,
+                    HAM_HINT_SEQUENTIAL|HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_find_ex(cursor, &key, &rec,
+                    HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_find_ex(cursor, &key, &rec,
+                    HAM_HINT_SEQUENTIAL|HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_erase(cursor, 
+                    HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_erase(cursor, 
+                    HAM_HINT_SEQUENTIAL|HAM_HINT_RANDOM_ACCESS));
+
+        /* HAM_HINT_RANDOM_ACCESS: not allowed with HAM_HINT_SEQUENTIAL;
+         * allowed for insert/erase/find */
+        BFC_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key, &rec, 
+                    HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, 
+                    HAM_HINT_RANDOM_ACCESS|HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(0, 
+                ham_erase(m_db, 0, &key,
+                    HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_erase(m_db, 0, &key,
+                    HAM_HINT_RANDOM_ACCESS|HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_insert(cursor, &key, &rec, 
+                    HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_insert(cursor, &key, &rec, 
+                    HAM_HINT_RANDOM_ACCESS|HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(0, 
+                ham_find(m_db, 0, &key, &rec, 
+                    HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_find(m_db, 0, &key, &rec, 
+                    HAM_HINT_RANDOM_ACCESS|HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_find(cursor, &key,
+                    HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_find(cursor, &key,
+                    HAM_HINT_RANDOM_ACCESS|HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_find_ex(cursor, &key, &rec,
+                    HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_find_ex(cursor, &key, &rec,
+                    HAM_HINT_RANDOM_ACCESS|HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_erase(cursor, 
+                    HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_erase(cursor, 
+                    HAM_HINT_RANDOM_ACCESS|HAM_HINT_SEQUENTIAL));
+
+        /* HAM_HINT_UBER_FAST_ACCESS: allowed in combination with 
+         * HAM_HINT_RANDOM_ACCESS and HAM_HINT_SEQUENTIAL */
+        BFC_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key, &rec, 
+                    HAM_HINT_UBER_FAST_ACCESS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_find(m_db, 0, &key, &rec, 
+                    HAM_HINT_UBER_FAST_ACCESS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_erase(m_db, 0, &key,
+                    HAM_HINT_UBER_FAST_ACCESS));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key, &rec, 
+                    HAM_HINT_UBER_FAST_ACCESS|HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_find(m_db, 0, &key, &rec, 
+                    HAM_HINT_UBER_FAST_ACCESS|HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_erase(m_db, 0, &key,
+                    HAM_HINT_UBER_FAST_ACCESS|HAM_HINT_RANDOM_ACCESS));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key, &rec, 
+                    HAM_HINT_UBER_FAST_ACCESS|HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(0, 
+                ham_find(m_db, 0, &key, &rec, 
+                    HAM_HINT_UBER_FAST_ACCESS|HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(0, 
+                ham_erase(m_db, 0, &key,
+                    HAM_HINT_UBER_FAST_ACCESS|HAM_HINT_SEQUENTIAL));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_insert(cursor, &key, &rec, 
+                    HAM_HINT_UBER_FAST_ACCESS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_find(cursor, &key,
+                    HAM_HINT_UBER_FAST_ACCESS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_erase(cursor, 
+                    HAM_HINT_UBER_FAST_ACCESS));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_insert(cursor, &key, &rec, 
+                    HAM_HINT_UBER_FAST_ACCESS|HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_find(cursor, &key,
+                    HAM_HINT_UBER_FAST_ACCESS|HAM_HINT_RANDOM_ACCESS));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_erase(cursor, 
+                    HAM_HINT_UBER_FAST_ACCESS|HAM_HINT_RANDOM_ACCESS));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_insert(cursor, &key, &rec, 
+                    HAM_HINT_UBER_FAST_ACCESS|HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_find(cursor, &key,
+                    HAM_HINT_UBER_FAST_ACCESS|HAM_HINT_SEQUENTIAL));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_erase(cursor, 
+                    HAM_HINT_UBER_FAST_ACCESS|HAM_HINT_SEQUENTIAL));
+
+        /* HAM_HINT_APPEND is *only* allowed in
+         * ham_cursor_insert; not allowed in combination with
+         * HAM_HINT_PREPEND */
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, 
+                    HAM_HINT_APPEND));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_insert(m_db, 0, &key, &rec, 
+                    HAM_HINT_PREPEND));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_insert(cursor, &key, &rec, 
+                    HAM_HINT_APPEND));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_insert(cursor, &key, &rec, 
+                    HAM_HINT_APPEND|HAM_HINT_PREPEND));
+
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_erase(m_db, 0, &key,
+                    HAM_HINT_APPEND));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_erase(m_db, 0, &key,
+                    HAM_HINT_PREPEND));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_erase(cursor,
+                    HAM_HINT_APPEND));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_erase(cursor,
+                    HAM_HINT_PREPEND));
+
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_find(cursor, &key,
+                    HAM_HINT_APPEND));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_find(cursor, &key,
+                    HAM_HINT_PREPEND));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_find_ex(cursor, &key, &rec,
+                    HAM_HINT_APPEND));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_find_ex(cursor, &key, &rec,
+                    HAM_HINT_PREPEND));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_find(m_db, 0, &key, &rec,
+                    HAM_HINT_APPEND));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_find(m_db, 0, &key, &rec,
+                    HAM_HINT_PREPEND));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
     }
 
 };

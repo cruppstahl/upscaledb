@@ -68,7 +68,9 @@ o Ger sent new statistics.c with minor fixes - it's on crupp.de:~
     o be careful - i think it's already merged...
     o run monster.sh
 
-o acceptance tests do not cover HAM_HINT_*
+o tests do not cover HAM_HINT_*
+    x also need unittests to check the parameters
+    x make sure that HINT flags are documented in the functions
     o add to source
     o add to monster.sh
 

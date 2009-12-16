@@ -1,3 +1,7 @@
+Dec 16, 2009 - chris
+o improved tests of HAM_HINTS_* flags and fixed some bugs in the
+    process - mainly asserts which failed because the flags were unexpected
+
 Dec 15, 2009 - chris
 o ham_get_parameter now returns the Data Access Mode (DAM)
 o renamed HAM_EMPTY_DATABASE_NAME to HAM_DEFAULT_DATABASE_NAME

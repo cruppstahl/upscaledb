@@ -1923,7 +1923,7 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
     ham_assert(hints->force_prepend == HAM_FALSE, (0));
     ham_assert(hints->try_fast_track == HAM_FALSE, (0));
 
-    if (hints->flags & HAM_HINT_APPEND)
+    if ((hints->flags & HAM_HINT_APPEND) && (hints->cursor))
     {
         if (!bt_cursor_is_nil(hints->cursor))
         {
@@ -1949,7 +1949,7 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
             }
         }
     }
-    else if (hints->flags & HAM_HINT_PREPEND)
+    else if ((hints->flags & HAM_HINT_PREPEND) && (hints->cursor))
     {
         if (!bt_cursor_is_nil(hints->cursor))
         {
