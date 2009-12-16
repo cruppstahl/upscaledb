@@ -166,19 +166,25 @@ my_append_key(ham_btree_t *be, ham_key_t *key,
         return my_insert_cursor(be, key, record, cursor, hints);
     }
 
-	hints->cost++;
-    cmp=key_compare_pub_to_int(db, page, key, btree_node_get_count(node)-1);
-    if (db_get_error(db)) 
-	{
-        page_release_ref(page);
-        return (db_get_error(db));
-    }
-    if (cmp <= 0) 
-	{
-        page_release_ref(page);
-		hints->force_append = HAM_FALSE;
-		hints->force_prepend = HAM_FALSE;
-        return my_insert_cursor(be, key, record, cursor, hints);
+    /*
+     * if the page is not empty: check if we append the key at the end,
+     * or if it's actually inserted in the middle
+     */
+    if (btree_node_get_count(node)!=0) {
+	    hints->cost++;
+        cmp=key_compare_pub_to_int(db, page, key, btree_node_get_count(node)-1);
+        if (db_get_error(db)) 
+	    {
+            page_release_ref(page);
+            return (db_get_error(db));
+        }
+        if (cmp <= 0) 
+	    {
+            page_release_ref(page);
+		    hints->force_append = HAM_FALSE;
+		    hints->force_prepend = HAM_FALSE;
+            return my_insert_cursor(be, key, record, cursor, hints);
+        }
     }
 
 	/*

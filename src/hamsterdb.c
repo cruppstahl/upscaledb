@@ -4587,17 +4587,12 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
 {
     ham_offset_t recno=0;
     ham_status_t st;
-    ham_db_t *db;
+    ham_db_t *db=0;
     ham_txn_t local_txn;
 
     if (!cursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
         return (HAM_INV_PARAMETER);
-    }
-    if ((flags&HAM_HINT_SEQUENTIAL) && (flags&HAM_HINT_RANDOM_ACCESS)) {
-        ham_trace(("flags HAM_HINT_SEQUENTIAL and HAM_HINT_RANDOM_ACCESS "
-                   "are mutually exclusive"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
     }
 
     db=cursor_get_db(cursor);
@@ -4617,6 +4612,11 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
     if (flags&HAM_HINT_APPEND) {
         ham_trace(("flags HAM_HINT_APPEND is only allowed in "
                    "ham_cursor_insert"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_HINT_SEQUENTIAL) && (flags&HAM_HINT_RANDOM_ACCESS)) {
+        ham_trace(("flags HAM_HINT_SEQUENTIAL and HAM_HINT_RANDOM_ACCESS "
+                   "are mutually exclusive"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
 
