@@ -58,14 +58,15 @@ x make sure that unittests are not executed twice (move registration out of
     constructor)
     x LogTest is disabled - why? reenable it!
 
-o Ger sent new statistics.c with minor fixes - it's on crupp.de:~
-    o merge - but doesn't work yet! Wait for new fixes...
-    o run monster.sh
-
-o code cleanup: HAM_DEFAULT_DATABASE_NAME and other reserved names are not
+x code cleanup: HAM_DEFAULT_DATABASE_NAME and other reserved names are not
     allowed to be used from the users; but HAM_FIRST_DATABASE_NAME is
     allowed!
-    o Hamsterdb::checkDatabaseNameTest()
+    x Hamsterdb::checkDatabaseNameTest()
+
+o Ger sent new statistics.c with minor fixes - it's on crupp.de:~
+    o merge - but doesn't work yet! Wait for new fixes...
+    o be careful - i think it's already merged...
+    o run monster.sh
 
 o acceptance tests do not cover HAM_HINT_*
     o add to source

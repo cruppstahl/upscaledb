@@ -121,6 +121,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, negativeCursorInsertAppendTest);
         BFC_REGISTER_TEST(HamsterdbTest, recordCountTest);
         BFC_REGISTER_TEST(HamsterdbTest, createDbOpenEnvTest);
+        BFC_REGISTER_TEST(HamsterdbTest, checkDatabaseNameTest);
     }
 
 protected:
@@ -531,9 +532,9 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
 
-        BFC_ASSERT_EQUAL(0, key.size);
+        BFC_ASSERT_EQUAL((ham_u16_t)0, key.size);
         BFC_ASSERT_EQUAL((void *)0, key.data);
-        BFC_ASSERT_EQUAL(0, rec.size);
+        BFC_ASSERT_EQUAL((ham_size_t)0, rec.size);
         BFC_ASSERT_EQUAL((void *)0, rec.data);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
@@ -657,7 +658,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 #ifdef HAM_ENABLE_INTERNAL
         BFC_ASSERT_EQUAL(0, 
                 ham_calc_maxkeys_per_page(db, &keycount, sizeof(my_key)));
-        BFC_ASSERT_EQUAL(/* 2424 */ 4852, keycount);
+        BFC_ASSERT_EQUAL(/* 2424 */ (unsigned)4852, keycount);
 #else
         BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, 
                 ham_calc_maxkeys_per_page(db, &keycount, sizeof(my_key)));
@@ -1003,7 +1004,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 #ifdef HAM_ENABLE_INTERNAL
         BFC_ASSERT_EQUAL(0, 
                 ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE));
-        BFC_ASSERT_EQUAL(8, keycount);
+        BFC_ASSERT_EQUAL((unsigned)8, keycount);
 #else
         BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, 
                 ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE));
@@ -1057,8 +1058,8 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_NOTEQUAL((rec.data && key.data), 0);
         my_rec_t *r = (my_rec_t *)rec.data;
         my_key_t *k = (my_key_t *)key.data;
-        BFC_ASSERT_EQUAL(r->rec_val1, 1000);
-        BFC_ASSERT_EQUAL(k->key_val1, (ham_u32_t)vals[fill-1]);
+        BFC_ASSERT_EQUAL((unsigned)r->rec_val1, (unsigned)1000);
+        BFC_ASSERT_EQUAL((unsigned)k->key_val1, (ham_u32_t)vals[fill-1]);
         
         ::memset(&rec, 0, sizeof(rec));
         key.data = &my_key;
@@ -1068,7 +1069,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_NOTEQUAL((rec.data && key.data), 0);
         r = (my_rec_t *)rec.data;
         k = (my_key_t *)key.data;
-        BFC_ASSERT_EQUAL(r->rec_val1, 1000);
+        BFC_ASSERT_EQUAL(r->rec_val1, (unsigned)1000);
         BFC_ASSERT_EQUAL(k->key_val1, (ham_u32_t)vals[fill-1]);
         BFC_ASSERT_EQUAL(ham_key_get_approximate_match_type(&key), 0);
         
@@ -1081,7 +1082,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_NOTEQUAL((rec.data && key.data), 0);
         r = (my_rec_t *)rec.data;
         k = (my_key_t *)key.data;
-        BFC_ASSERT_EQUAL(r->rec_val1, 1000);
+        BFC_ASSERT_EQUAL(r->rec_val1, (unsigned)1000);
         BFC_ASSERT_EQUAL(k->key_val1, (ham_u32_t)vals[fill-1]);
         BFC_ASSERT_EQUAL(ham_key_get_approximate_match_type(&key), 1);
         
@@ -1094,7 +1095,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_NOTEQUAL((rec.data && key.data), 0);
         r = (my_rec_t *)rec.data;
         k = (my_key_t *)key.data;
-        BFC_ASSERT_EQUAL(r->rec_val1, 1000);
+        BFC_ASSERT_EQUAL(r->rec_val1, (unsigned)1000);
         BFC_ASSERT_EQUAL(k->key_val1, (ham_u32_t)vals[fill-1]);
         BFC_ASSERT_EQUAL(ham_key_get_approximate_match_type(&key), -1);
 
@@ -1133,7 +1134,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
             BFC_ASSERT_NOTEQUAL((rec.data && key.data), 0);
             r = (my_rec_t *)rec.data;
             k = (my_key_t *)key.data;
-            BFC_ASSERT_NOTEQUAL(r->rec_val1, 0);
+            BFC_ASSERT_NOTEQUAL(r->rec_val1, (unsigned)0);
             BFC_ASSERT_EQUAL(k->key_val1, (ham_u32_t)verify_vals1[i]);
         }
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
@@ -1301,7 +1302,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
             BFC_ASSERT_NOTEQUAL((rec.data && key.data), 0);
             r = (my_rec_t *)rec.data;
             k = (my_key_t *)key.data;
-            BFC_ASSERT_NOTEQUAL(r->rec_val1, 0);
+            BFC_ASSERT_NOTEQUAL(r->rec_val1, (unsigned)0);
             BFC_ASSERT_EQUAL(k->key_val1, (ham_u32_t)verify_vals2[i]);
         }
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
@@ -1867,7 +1868,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
             key.size=sizeof(i);
             key.data=(void *)&i;
             BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
-            BFC_ASSERT_EQUAL(key.size, rec.size);
+            BFC_ASSERT_EQUAL((unsigned)key.size, rec.size);
             BFC_ASSERT_EQUAL(0, memcmp(key.data, rec.data, key.size));
         }
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
@@ -1894,7 +1895,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
             key.size=sizeof(i);
             key.data=(void *)&i;
             BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
-            BFC_ASSERT_EQUAL(key.size, rec.size);
+            BFC_ASSERT_EQUAL((unsigned)key.size, rec.size);
             BFC_ASSERT_EQUAL(0, memcmp(key.data, rec.data, key.size));
         }
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
@@ -1944,15 +1945,15 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         count = 0;
         BFC_ASSERT_EQUAL(0, 
                 ham_get_key_count(m_db, 0, HAM_HINT_UBER_FAST_ACCESS, &count));
-        BFC_ASSERT_EQUAL(4000, count);
+        BFC_ASSERT_EQUAL((unsigned)4000, count);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_get_key_count(m_db, 0, HAM_SKIP_DUPLICATES, &count));
-        BFC_ASSERT_EQUAL(4000, count);
+        BFC_ASSERT_EQUAL((unsigned)4000, count);
 
         BFC_ASSERT_EQUAL(0, 
                 ham_get_key_count(m_db, 0, 0, &count));
-        BFC_ASSERT_EQUAL(4000+10, count);
+        BFC_ASSERT_EQUAL((unsigned)4000+10, count);
     }
 
     void createDbOpenEnvTest(void)
@@ -1969,6 +1970,37 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env, m_db, 
                 HAM_DEFAULT_DATABASE_NAME, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void checkDatabaseNameTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(m_db, BFC_OPATH(".test"), 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        ham_env_t *env;
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_open(env, BFC_OPATH(".test"), 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_open_db(env, m_db, 
+                        HAM_FIRST_DATABASE_NAME, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_open_db(env, m_db, 
+                        0xff00, 0, 0));
+        /* right now it's allowed to create the DUMMY_DATABASE from scratch
+         * - that's not really a problem...
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_env_open_db(env, m_db, 
+                        HAM_DUMMY_DATABASE_NAME, 0, 0));
+         */
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_env_open_db(env, m_db, 
+                        HAM_DUMMY_DATABASE_NAME+1, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
