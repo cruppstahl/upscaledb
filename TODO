@@ -63,16 +63,12 @@ x code cleanup: HAM_DEFAULT_DATABASE_NAME and other reserved names are not
     allowed!
     x Hamsterdb::checkDatabaseNameTest()
 
-o Ger sent new statistics.c with minor fixes - it's on crupp.de:~
-    o merge - but doesn't work yet! Wait for new fixes...
-    o be careful - i think it's already merged...
-    o run monster.sh
-
 o tests do not cover HAM_HINT_*
     x also need unittests to check the parameters
     x make sure that HINT flags are documented in the functions
-    o add to source
+    x add to source
     o add to monster.sh
+    o fix the bugs :-/
 
 o in-memory-db could access directly the record (and then overwrite it)
     -> needs new flag for ham_find/ham_cursor_move
@@ -92,6 +88,11 @@ o re-enable HAM_DAM_FAST_INSERT
     o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
         -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
     o re-enable tests in monster.sh
+
+. Ger sent new statistics.c with minor fixes - it's on crupp.de:~
+    o merge - but doesn't work yet! Wait for new fixes...
+    x be careful - i think it's already merged... - no it isn't!
+    o run monster.sh
 
 . approx. matching: need a sample
 
