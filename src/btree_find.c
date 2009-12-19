@@ -415,7 +415,7 @@ btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor,
         ham_status_t st;
         record->_intflags=key_get_flags(entry);
         record->_rid=key_get_ptr(entry);
-        st=util_read_record(db, record, 0);
+        st=util_read_record(db, record, flags&HAM_DIRECT_ACCESS);
         if (st) 
         {
             page_release_ref(page);

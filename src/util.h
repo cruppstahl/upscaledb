@@ -78,6 +78,8 @@ util_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest);
 
 /**
  * read a record 
+ *
+ * flags: either 0 or HAM_DIRECT_ACCESS
  */
 extern ham_status_t
 util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags);

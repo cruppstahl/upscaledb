@@ -474,8 +474,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
         ham_u8_t *data=((ham_u8_t *)blobid)+sizeof(blob_t);
 
         /* when the database is closing, the header is already deleted */
-        if (!hdr)
-        {
+        if (!hdr) {
             record->size = 0;
             return (0);
         }
@@ -487,16 +486,22 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
             record->size = 0;
         }
         else {
-            /* resize buffer, if necessary */
-            if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-                st=db_resize_allocdata(db, blobsize);
-                if (st)
-                    return (st);
-                record->data = db_get_record_allocdata(db);
+            if (flags&HAM_DIRECT_ACCESS) {
+                record->size = blobsize;
+                record->data=data;
             }
-            /* and copy the data */
-            memcpy(record->data, data, blobsize);
-            record->size = blobsize;
+            else {
+                /* resize buffer, if necessary */
+                if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
+                    st=db_resize_allocdata(db, blobsize);
+                    if (st)
+                        return (st);
+                    record->data = db_get_record_allocdata(db);
+                }
+                /* and copy the data */
+                memcpy(record->data, data, blobsize);
+                record->size = blobsize;
+            }
         }
 
         return (0);

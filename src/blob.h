@@ -229,6 +229,8 @@ blob_allocate(ham_db_t *db, ham_u8_t *data,
  * read a blob
  *
  * stores the data in @a record
+ *
+ * flags: either 0 or HAM_DIRECT_ACCESS
  */
 extern ham_status_t
 blob_read(ham_db_t *db, ham_offset_t blobid, 

@@ -75,7 +75,12 @@ x tests do not cover HAM_HINT_*
 o in-memory-db could access directly the record (and then overwrite it)
     -> needs new flag for ham_find/ham_cursor_move
     o unittests
-    o can we add this to monster.sh? - yes, have to!
+        o ham_find
+        o ham_cursor_find_ex
+        o ham_cursor_move
+        o in all 3 functions: only In-Memory, otherwise INV_PARAMETER!
+        o test with recno
+    o add to monster.sh
 
 o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     create a private environment handle if it was not supplied
@@ -95,6 +100,9 @@ o re-enable HAM_DAM_FAST_INSERT
     o merge - but doesn't work yet! Wait for new fixes...
     x be careful - i think it's already merged... - no it isn't!
     o run monster.sh
+
+. reorg. the HINT flags - they're now in hamsterdb_int.h and still used
+    internally -> have them completely replaced by the DAM?
 
 . approx. matching: need a sample
 

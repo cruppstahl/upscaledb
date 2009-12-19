@@ -555,6 +555,8 @@ __prepare_record(ham_record_t *record)
         ham_trace(("record->size != 0, but record->data is NULL"));
         return (0);
     }
+    if (record->flags&HAM_DIRECT_ACCESS)
+        record->flags&=~HAM_DIRECT_ACCESS;
     if (record->flags!=0 && record->flags!=HAM_RECORD_USER_ALLOC) {
         ham_trace(("invalid flag in record->flags"));
         return (0);
@@ -3520,6 +3522,11 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
                    "ham_cursor_insert"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+    if ((flags&HAM_DIRECT_ACCESS) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
+        ham_trace(("flags HAM_DIRECT_ACCESS is only allowed in "
+                   "In-Memory Databases"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
     if (!__prepare_key(key) || !__prepare_record(record))
         return (db_set_error(db, HAM_INV_PARAMETER));
 
@@ -3550,8 +3557,7 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
             return (st);
     }
 
-    if (db_get_freelist_cache(db) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB))
-    {
+    if (db_get_freelist_cache(db) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
         db_update_global_stats_find_query(db, key->size);
     }
 
@@ -4520,6 +4526,11 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     "HAM_SKIP_DUPLICATES not allowed"));
         return (HAM_INV_PARAMETER);
     }
+    if ((flags&HAM_DIRECT_ACCESS) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
+        ham_trace(("flags HAM_DIRECT_ACCESS is only allowed in "
+                   "In-Memory Databases"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
     if (key && !__prepare_key(key))
         return (db_set_error(db, HAM_INV_PARAMETER));
     if (record && !__prepare_record(record))
@@ -4597,6 +4608,11 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
     if (flags&HAM_HINT_APPEND) {
         ham_trace(("flags HAM_HINT_APPEND is only allowed in "
                    "ham_cursor_insert"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_DIRECT_ACCESS) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
+        ham_trace(("flags HAM_DIRECT_ACCESS is only allowed in "
+                   "In-Memory Databases"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
 

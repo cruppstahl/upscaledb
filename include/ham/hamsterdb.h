@@ -1721,13 +1721,52 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * @param txn A Transaction handle, or NULL
  * @param key The key of the item
  * @param record The record of the item
- * @param flags Optional flags for searching; may be set to either
- *        @ref HAM_FIND_EXACT_MATCH (default, 0 (zero)) or a combination of
- *        @ref HAM_FIND_LT_MATCH and/or @ref HAM_FIND_GT_MATCH. See the 
- *        declaration of @ref ham_cursor_find for additional details.
+ * @param flags Optional flags for searching, which can be combined with
+ *        bitwise OR. Possible flags are:
+ *      <ul>
+ *        <li>@ref HAM_FIND_EXACT_MATCH </li> (default). If the @a key exists,
+ *              the cursor is adjusted to reference the record. Otherwise, an 
+ *              error is returned. Note that for backwards compatibility 
+ *              the value zero (0) can specified as an alternative when this 
+ *              option is not mixed with any of the others in this list.
+ *        <li>@ref HAM_FIND_LT_MATCH </li> Cursor 'find' flag 'Less Than': the 
+ *              cursor is moved to point at the last record which' key 
+ *              is less than the specified key. When such a record cannot 
+ *              be located, an error is returned.
+ *        <li>@ref HAM_FIND_GT_MATCH </li> Cursor 'find' flag 'Greater Than': 
+ *              the cursor is moved to point at the first record which' key is 
+ *              larger than the specified key. When such a record cannot be 
+ *              located, an error is returned.
+ *        <li>@ref HAM_FIND_LEQ_MATCH </li> Cursor 'find' flag 'Less or EQual': 
+ *              the cursor is moved to point at the record which' key matches 
+ *              the specified key and when such a record is not available 
+ *              the cursor is moved to point at the last record which' key 
+ *              is less than the specified key. When such a record cannot be 
+ *              located, an error is returned.
+ *        <li>@ref HAM_FIND_GEQ_MATCH </li> Cursor 'find' flag 'Greater or 
+ *              Equal': the cursor is moved to point at the record which' key 
+ *              matches the specified key and when such a record 
+ *              is not available the cursor is moved to point at the first 
+ *              record which' key is larger than the specified key.
+ *              When such a record cannot be located, an error is returned.
+ *        <li>@ref HAM_FIND_NEAR_MATCH </li> Cursor 'find' flag 'Any Near Or 
+ *              Equal': the cursor is moved to point at the record which' 
+ *              key matches the specified key and when such a record is 
+ *              not available the cursor is moved to point at either the 
+ *              last record which' key is less than the specified key or 
+ *              the first record which' key is larger than the specified 
+ *              key, whichever of these records is located first.
+ *              When such records cannot be located, an error is returned.
+ *        <li>@ref HAM_DIRECT_ACCESS </li> Only for In-Memory Databases!
+ *              Returns a direct pointer to the data blob stored by the
+ *              hamsterdb engine. This pointer must not be resized or freed,
+ *              but the data in this memory can be modified.
+ *      </ul>
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if @a db, @a key or @a record is NULL
+ * @return @ref HAM_INV_PARAMETER if @a HAM_DIRECT_ACCESS is specified,
+ *          but the Database is not an In-Memory Database.
  * @return @ref HAM_KEY_NOT_FOUND if the @a key does not exist
  * 
  * @remark When either or both @ref HAM_FIND_LT_MATCH and/or @ref 
@@ -1835,6 +1874,9 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 
 /** Flag for @ref ham_cursor_insert */
 #define HAM_DUPLICATE_INSERT_LAST       0x0020
+
+/** Flag for @ref ham_find, @ref ham_cursor_find_ex, @ref ham_cursor_move */
+#define HAM_DIRECT_ACCESS               0x0040
 
 /**
  * @defgroup ham_hinting_flags hamsterdb Hinting Flags for Find, Insert, 
@@ -2122,6 +2164,10 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  *          <li>@ref HAM_ONLY_DUPLICATES </li> only move through duplicate keys
  *              of the current key. Not allowed in combination with 
  *              @ref HAM_SKIP_DUPLICATES.
+ *        <li>@ref HAM_DIRECT_ACCESS </li> Only for In-Memory Databases!
+ *              Returns a direct pointer to the data blob stored by the
+ *              hamsterdb engine. This pointer must not be resized or freed,
+ *              but the data in this memory can be modified.
  *     </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -2132,6 +2178,8 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * @return @ref HAM_KEY_NOT_FOUND if @a cursor points to the first (or last)
  *              item, and a move to the previous (or next) item was
  *              requested
+ * @return @ref HAM_INV_PARAMETER if @a HAM_DIRECT_ACCESS is specified,
+ *              but the Database is not an In-Memory Database.
  *
  * @sa HAM_RECORD_USER_ALLOC
  * @sa HAM_KEY_USER_ALLOC
@@ -2251,6 +2299,10 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  *              the first record which' key is larger than the specified 
  *              key, whichever of these records is located first.
  *              When such records cannot be located, an error is returned.
+ *        <li>@ref HAM_DIRECT_ACCESS </li> Only for In-Memory Databases!
+ *              Returns a direct pointer to the data blob stored by the
+ *              hamsterdb engine. This pointer must not be resized or freed,
+ *              but the data in this memory can be modified.
  *      </ul>
  *
  * <b>Remark</b> 
@@ -2287,6 +2339,8 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  * @return @ref HAM_INV_PARAMETER if @a db, @a key or @a record is NULL
  * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref HAM_KEY_NOT_FOUND if no suitable @a key (record) exists
+ * @return @ref HAM_INV_PARAMETER if @a HAM_DIRECT_ACCESS is specified,
+ *              but the Database is not an In-Memory Database.
  *
  * @sa HAM_KEY_USER_ALLOC
  * @sa ham_key_t
@@ -2377,6 +2431,10 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  *              the first record which' key is larger than the specified 
  *              key, whichever of these records is located first.
  *              When such records cannot be located, an error is returned.
+ *        <li>@ref HAM_DIRECT_ACCESS </li> Only for In-Memory Databases!
+ *              Returns a direct pointer to the data blob stored by the
+ *              hamsterdb engine. This pointer must not be resized or freed,
+ *              but the data in this memory can be modified.
  *      </ul>
  *
  * <b>Remark</b> 
@@ -2413,6 +2471,8 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  * @return @ref HAM_INV_PARAMETER if @a db, @a key or @a record is NULL
  * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref HAM_KEY_NOT_FOUND if no suitable @a key (record) exists
+ * @return @ref HAM_INV_PARAMETER if @a HAM_DIRECT_ACCESS is specified,
+ *              but the Database is not an In-Memory Database.
  *
  * @sa HAM_KEY_USER_ALLOC
  * @sa ham_key_t
