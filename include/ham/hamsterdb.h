@@ -1714,6 +1714,11 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * @a record.flags to @ref HAM_RECORD_USER_ALLOC. Make sure that the allocated
  * buffer is large enough.
  *
+ * When specifying @ref HAM_DIRECT_ACCESS, the @a data pointer will point
+ * directly to the record that is stored in hamsterdb; the data can be modified,
+ * but the pointer must not be reallocated of freed. The flag @ref 
+ * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases.
+ *
  * @ref ham_find can not search for duplicate keys. If @a key has
  * multiple duplicates, only the first duplicate is returned.
  *
@@ -2131,6 +2136,11 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * specify a direction if you want to fetch the key and/or record of
  * the current item.
  *
+ * When specifying @ref HAM_DIRECT_ACCESS, the @a data pointer will point
+ * directly to the record that is stored in hamsterdb; the data can be modified,
+ * but the pointer must not be reallocated of freed. The flag @ref 
+ * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases.
+ *
  * @param cursor A valid Cursor handle
  * @param key An optional pointer to a @ref ham_key_t structure. If this
  *      pointer is not NULL, the key of the new item is returned.
@@ -2234,6 +2244,11 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  *
  * Note that @ref ham_cursor_find can not search for duplicate keys. If @a key 
  * has multiple duplicates, only the first duplicate is returned.
+ *
+ * When specifying @ref HAM_DIRECT_ACCESS, the @a data pointer will point
+ * directly to the record that is stored in hamsterdb; the data can be modified,
+ * but the pointer must not be reallocated of freed. The flag @ref 
+ * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases.
  *
  * When either or both @ref HAM_FIND_LT_MATCH and/or @ref HAM_FIND_GT_MATCH
  * have been specified as flags, the @a key structure will be overwritten
@@ -2361,6 +2376,11 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  *
  * Note that @ref ham_cursor_find can not search for duplicate keys. If @a key 
  * has multiple duplicates, only the first duplicate is returned.
+ *
+ * When specifying @ref HAM_DIRECT_ACCESS, the @a data pointer will point
+ * directly to the record that is stored in hamsterdb; the data can be modified,
+ * but the pointer must not be reallocated of freed. The flag @ref 
+ * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases.
  *
  * When either or both @ref HAM_FIND_LT_MATCH and/or @ref HAM_FIND_GT_MATCH
  * have been specified as flags, the @a key structure will be overwritten

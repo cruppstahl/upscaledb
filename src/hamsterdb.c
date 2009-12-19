@@ -4593,11 +4593,9 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
 
     db=cursor_get_db(cursor);
 
-    if ((flags&~HAM_HINTS_MASK) & ~(HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH | 
-                HAM_FIND_EXACT_MATCH)) {
-        ham_trace(("flag values besides any combination of "
-                   "HAM_FIND_LT_MATCH, HAM_FIND_GT_MATCH and "
-                   "HAM_FIND_EXACT_MATCH are not allowed"));
+    if ((flags&HAM_DIRECT_ACCESS) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
+        ham_trace(("flags HAM_DIRECT_ACCESS is only allowed in "
+                   "In-Memory Databases"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if (flags&HAM_HINT_PREPEND) {
@@ -4608,11 +4606,6 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
     if (flags&HAM_HINT_APPEND) {
         ham_trace(("flags HAM_HINT_APPEND is only allowed in "
                    "ham_cursor_insert"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
-    }
-    if ((flags&HAM_DIRECT_ACCESS) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
-        ham_trace(("flags HAM_DIRECT_ACCESS is only allowed in "
-                   "In-Memory Databases"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
 

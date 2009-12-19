@@ -486,7 +486,8 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
             record->size = 0;
         }
         else {
-            if (flags&HAM_DIRECT_ACCESS) {
+            if ((flags&HAM_DIRECT_ACCESS) 
+                    && !(record->flags&HAM_RECORD_USER_ALLOC)) {
                 record->size = blobsize;
                 record->data=data;
             }

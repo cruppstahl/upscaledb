@@ -123,6 +123,8 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, createDbOpenEnvTest);
         BFC_REGISTER_TEST(HamsterdbTest, checkDatabaseNameTest);
         BFC_REGISTER_TEST(HamsterdbTest, hintingTest);
+        BFC_REGISTER_TEST(HamsterdbTest, directAccessTest);
+        BFC_REGISTER_TEST(HamsterdbTest, negativeDirectAccessTest);
     }
 
 protected:
@@ -2066,6 +2068,71 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
                     HAM_HINT_PREPEND));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    }
+
+    void directAccessTest(void)
+    {
+        ham_cursor_t *cursor;
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        rec.size=6;
+        rec.data=(void *)"hello";
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_find(m_db, 0, &key, &rec,
+                    HAM_DIRECT_ACCESS));
+        BFC_ASSERT_EQUAL((unsigned)6, rec.size);
+        BFC_ASSERT_EQUAL(0, strcmp("hello", (char *)rec.data));
+
+        ::memset(&rec, 0, sizeof(rec));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_find_ex(cursor, &key, &rec,
+                    HAM_DIRECT_ACCESS));
+        BFC_ASSERT_EQUAL((unsigned)6, rec.size);
+        BFC_ASSERT_EQUAL(0, strcmp("hello", (char *)rec.data));
+
+        ::memset(&rec, 0, sizeof(rec));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_move(cursor, &key, &rec, HAM_DIRECT_ACCESS));
+        BFC_ASSERT_EQUAL((unsigned)6, rec.size);
+        BFC_ASSERT_EQUAL(0, strcmp("hello", (char *)rec.data));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    }
+
+    void negativeDirectAccessTest(void)
+    {
+        ham_cursor_t *cursor;
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        rec.size=6;
+        rec.data=(void *)"hello";
+
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(m_db, BFC_OPATH(".test"), 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_find(m_db, 0, &key, &rec,
+                    HAM_DIRECT_ACCESS));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_find_ex(cursor, &key, &rec,
+                    HAM_DIRECT_ACCESS));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_move(cursor, &key, &rec,
+                    HAM_DIRECT_ACCESS));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
 };

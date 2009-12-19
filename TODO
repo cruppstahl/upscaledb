@@ -72,15 +72,16 @@ x tests do not cover HAM_HINT_*
     x cleanup the interface - remove everything but APPEND,PREPEND; only 
         for ham_cursor_insert!
 
-o in-memory-db could access directly the record (and then overwrite it)
+x in-memory-db could access directly the record (and then overwrite it)
     -> needs new flag for ham_find/ham_cursor_move
-    o unittests
-        o ham_find
-        o ham_cursor_find_ex
-        o ham_cursor_move
-        o in all 3 functions: only In-Memory, otherwise INV_PARAMETER!
-        o test with recno
-    o add to monster.sh
+    x unittests
+        x ham_find
+        x ham_cursor_find_ex
+        x ham_cursor_move
+        x in all 3 functions: only In-Memory, otherwise INV_PARAMETER!
+    x don't do this if HAM_RECORD_USER_ALLOC is set!
+    x add to monster.sh
+    x improve documentation
 
 o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     create a private environment handle if it was not supplied
