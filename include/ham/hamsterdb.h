@@ -1725,23 +1725,6 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  *        @ref HAM_FIND_EXACT_MATCH (default, 0 (zero)) or a combination of
  *        @ref HAM_FIND_LT_MATCH and/or @ref HAM_FIND_GT_MATCH. See the 
  *        declaration of @ref ham_cursor_find for additional details.
- *      <ul>
- *        <li>@ref HAM_HINT_SEQUENTIAL. Hints the hamsterdb engine that 
- *              access is in sequential order, or at least that this 
- *              operation uses a key that is very close to the previously 
- *              used one for the same operation (find, insert, erase).
- *              This is the default setting for record number Databases.
- *        <li>@ref HAM_HINT_RANDOM_ACCESS. Hints the hamsterdb engine that 
- *              access is in random order.
- *              This is the default setting for record number Databases.
- *        <li>@ref HAM_HINT_UBER_FAST_ACCESS. Hints the hamsterdb engine 
- *              that maximum possible execution speed is requested. The 
- *              engine is granted permission to employ optimizations and 
- *              shortcuts that may or may not adversely impact subsequent 
- *              operations which do not have this flag set. A known side 
- *              effect is that the Database file will grow faster (and 
- *              shrink less) than when this flag is not used.
- *      </ul>
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if @a db, @a key or @a record is NULL
@@ -1801,21 +1784,6 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  *        <li>@ref HAM_DUPLICATE. If the @a key already exists, a duplicate 
  *              key is inserted. The key is inserted before the already
  *              existing key.
- *        <li>@ref HAM_HINT_SEQUENTIAL. Hints the hamsterdb engine that 
- *              access is in sequential order, or at least that this 
- *              operation uses a key that is very close to the previously 
- *              used one for the same operation (find, insert, erase).
- *              This is the default setting for record number Databases.
- *        <li>@ref HAM_HINT_RANDOM_ACCESS. Hints the hamsterdb engine that 
- *              access is in random order.
- *              This is the default setting for record number Databases.
- *        <li>@ref HAM_HINT_UBER_FAST_ACCESS. Hints the hamsterdb engine 
- *              that maximum possible execution speed is requested. The 
- *              engine is granted permission to employ optimizations and 
- *              shortcuts that may or may not adversely impact subsequent 
- *              operations which do not have this flag set. A known side 
- *              effect is that the Database file will grow faster (and 
- *              shrink less) than when this flag is not used.
  *      </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -1889,53 +1857,6 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  */
 
 /** 
- * Flag for @ref ham_cursor_insert, @ref ham_insert,
- * @ref ham_cursor_erase, @ref ham_erase, @ref ham_find,
- * @ref ham_cursor_find and @ref ham_cursor_find_ex
- *
- * Mutually exclusive with flag @ref HAM_HINT_RANDOM_ACCESS.
- *
- * Hints the hamsterdb engine that access is in sequential order, or at least
- * that this operation uses a key that is very close to the previously 
- * used one for the same operation (find, insert, erase). This is the
- * default setting for record number Databases.
- */
-#define HAM_HINT_SEQUENTIAL           0x00010000
-
-/** 
- * Flag for @ref ham_cursor_insert, @ref ham_insert,
- * @ref ham_cursor_erase, @ref ham_erase, @ref ham_find,
- * @ref ham_cursor_find and @ref ham_cursor_find_ex
- *
- * Mutually exclusive with flag @ref HAM_HINT_SEQUENTIAL.
- *
- * Hints the hamsterdb engine that access is in random order. This
- * is the default setting for non-record number Databases.
- */
-#define HAM_HINT_RANDOM_ACCESS        0x00020000
-
-/** 
- * Flag for @ref ham_cursor_insert, @ref ham_insert,
- * @ref ham_cursor_erase, @ref ham_erase, @ref ham_find,
- * @ref ham_cursor_find and @ref ham_cursor_find_ex
- *
- * Can be used in conjuction with either @ref HAM_HINT_SEQUENTIAL
- * or @ref HAM_HINT_RANDOM_ACCESS.
- *
- * Hints the hamsterdb engine that maximum possible
- * execution speed is requested. The engine is granted permission
- * to employ optimizations and shortcuts that may or may not 
- * adversely impact subsequent operations which do not have this
- * flag set. A known side effect is that the Database file will
- * grow faster (and shrink less) than when this flag is not used.
- *
- * @remark This flag can also be passed to @ref ham_get_key_count 
- * to when all you need is a quick estimate instead of an exact 
- * number.
- */
-#define HAM_HINT_UBER_FAST_ACCESS     0x00040000
-
-/** 
  * Flag for @ref ham_cursor_insert
  *
  * Mutually exclusive with flag @ref HAM_HINT_PREPEND.
@@ -1986,25 +1907,7 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  * @param db A valid Database handle
  * @param txn A Transaction handle, or NULL
  * @param key The key to delete
- * @param flags Optional flags for erasing the item, combined with
- *        bitwise OR. Possible flags are:
- *      <ul>
- *        <li>@ref HAM_HINT_SEQUENTIAL. Hints the hamsterdb engine that 
- *              access is in sequential order, or at least that this 
- *              operation uses a key that is very close to the previously 
- *              used one for the same operation (find, insert, erase).
- *              This is the default setting for record number Databases.
- *        <li>@ref HAM_HINT_RANDOM_ACCESS. Hints the hamsterdb engine that 
- *              access is in random order.
- *              This is the default setting for record number Databases.
- *        <li>@ref HAM_HINT_UBER_FAST_ACCESS. Hints the hamsterdb engine 
- *              that maximum possible execution speed is requested. The 
- *              engine is granted permission to employ optimizations and 
- *              shortcuts that may or may not adversely impact subsequent 
- *              operations which do not have this flag set. A known side 
- *              effect is that the Database file will grow faster (and 
- *              shrink less) than when this flag is not used.
- *      </ul>
+ * @param flags Unused, set to 0
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if @a db or @a key is NULL
@@ -2039,17 +1942,18 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  *
  * You can specify the @ref HAM_SKIP_DUPLICATES if you do now want
  * to include any duplicates in the count; if all you're after is 
- * a quick estimate, you can specify the @ref HAM_HINT_UBER_FAST_ACCESS
- * flag (which implies @ref HAM_SKIP_DUPLICATES ), which will
- * improve the execution speed of this operation significantly.
+ * a quick estimate, you can specify the flag @ref HAM_FAST_ESTIMATE
+ * (which implies @ref HAM_SKIP_DUPLICATES), which will improve the 
+ * execution speed of this operation significantly.
  *
  * @param db A valid Database handle
  * @param txn A Transaction handle, or NULL
  * @param flags Optional flags:
  *       <ul>
- *       <li> @ref HAM_SKIP_DUPLICATES excludes any duplicates from the count
- *       <li> @ref HAM_HINT_UBER_FAST_ACCESS improves execution speed at the 
- *            expense of accuracy: the count produced is a rough estimate
+ *         <li>@ref HAM_SKIP_DUPLICATES. Excludes any duplicates from 
+ *             the count
+ *         <li>@ref HAM_FAST_ESTIMATE. Excludes any duplicates from 
+ *             the count
  *       </ul>
  * @param keycount A reference to a variable which will receive
  *                 the calculated key count per page
@@ -2061,6 +1965,11 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
             ham_offset_t *keycount);
+
+/**
+ * Flag for qref ham_get_key_count
+ */
+#define HAM_FAST_ESTIMATE           0x0001
 
 /**
  * Closes the Database
@@ -2370,21 +2279,6 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  *              @ref HAM_FIND_GT_MATCH) has no shorthand, but it will function 
  *              as expected nevertheless: finding only 'neighbouring' records 
  *              for the given key.
- *        <li>@ref HAM_HINT_SEQUENTIAL. Hints the hamsterdb engine that 
- *              access is in sequential order, or at least that this 
- *              operation uses a key that is very close to the previously 
- *              used one for the same operation (find, insert, erase).
- *              This is the default setting for record number Databases.
- *        <li>@ref HAM_HINT_RANDOM_ACCESS. Hints the hamsterdb engine that 
- *              access is in random order.
- *              This is the default setting for record number Databases.
- *        <li>@ref HAM_HINT_UBER_FAST_ACCESS. Hints the hamsterdb engine 
- *              that maximum possible execution speed is requested. The 
- *              engine is granted permission to employ optimizations and 
- *              shortcuts that may or may not adversely impact subsequent 
- *              operations which do not have this flag set. A known side 
- *              effect is that the Database file will grow faster (and 
- *              shrink less) than when this flag is not used.
  *      </ul>
  *
  * @return @ref HAM_SUCCESS upon success. Mind the remarks about the 
@@ -2605,6 +2499,12 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  * and the current @a key is higher than any other key in this Database.
  * In this case hamsterdb will optimize the insert algorithm. hamsterdb will
  * verify that this key is the highest; if not, it will perform a normal
+ * insert. This is the default for Record Number Databases.
+ *
+ * Specify the flag @ref HAM_HINT_PREPEND if you insert sequential data 
+ * and the current @a key is lower than any other key in this Database.
+ * In this case hamsterdb will optimize the insert algorithm. hamsterdb will
+ * verify that this key is the lowest; if not, it will perform a normal
  * insert.
  *
  * After inserting, the Cursor will point to the new item. If inserting
@@ -2640,21 +2540,6 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  *        <li>@ref HAM_DUPLICATE_INSERT_LAST. If the @a key already exists, 
  *              a duplicate key is inserted as the last duplicate of 
  *              the current key.
- *        <li>@ref HAM_HINT_SEQUENTIAL. Hints the hamsterdb engine that 
- *              access is in sequential order, or at least that this 
- *              operation uses a key that is very close to the previously 
- *              used one for the same operation (find, insert, erase).
- *              This is the default setting for record number Databases.
- *        <li>@ref HAM_HINT_RANDOM_ACCESS. Hints the hamsterdb engine that 
- *              access is in random order.
- *              This is the default setting for record number Databases.
- *        <li>@ref HAM_HINT_UBER_FAST_ACCESS. Hints the hamsterdb engine 
- *              that maximum possible execution speed is requested. The 
- *              engine is granted permission to employ optimizations and 
- *              shortcuts that may or may not adversely impact subsequent 
- *              operations which do not have this flag set. A known side 
- *              effect is that the Database file will grow faster (and 
- *              shrink less) than when this flag is not used.
  *        <li>@ref HAM_HINT_APPEND. Hints the hamsterdb engine that the 
  *              current key will compare as @e larger than any key already 
  *              existing in the Database. The hamsterdb engine will verify 
@@ -2662,6 +2547,7 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  *              to a regular insert operation as if this flag was not 
  *              specified. The incurred cost then is only one additional key 
  *              comparison. Mutually exclusive with flag @ref HAM_HINT_PREPEND.
+ *              This is the default for Record Number Databases.
  *        <li>@ref HAM_HINT_PREPEND. Hints the hamsterdb engine that the 
  *              current key will compare as @e lower than any key already 
  *              existing in the Database. The hamsterdb engine will verify 
@@ -2705,25 +2591,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
  * this function erases only the duplicate item to which the Cursor refers.
  *
  * @param cursor A valid Cursor handle
- * @param flags Optional flags for erasing the item, combined with
- *        bitwise OR. Possible flags are:
- *      <ul>
- *        <li>@ref HAM_HINT_SEQUENTIAL. Hints the hamsterdb engine that 
- *              access is in sequential order, or at least that this 
- *              operation uses a key that is very close to the previously 
- *              used one for the same operation (find, insert, erase).
- *              This is the default setting for record number Databases.
- *        <li>@ref HAM_HINT_RANDOM_ACCESS. Hints the hamsterdb engine that 
- *              access is in random order.
- *              This is the default setting for record number Databases.
- *        <li>@ref HAM_HINT_UBER_FAST_ACCESS. Hints the hamsterdb engine 
- *              that maximum possible execution speed is requested. The 
- *              engine is granted permission to employ optimizations and 
- *              shortcuts that may or may not adversely impact subsequent 
- *              operations which do not have this flag set. A known side 
- *              effect is that the Database file will grow faster (and 
- *              shrink less) than when this flag is not used.
- *      </ul>
+ * @param flags Unused, set to 0
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if @a cursor is NULL

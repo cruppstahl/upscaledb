@@ -1,3 +1,10 @@
+Dec 19, 2009 - chris
+o the flag HAM_HINT_UBER_FAST_ACCESS for ham_get_key_count was 
+	renamed to HAM_FAST_ESTIMATE
+o removed HAM_HINT_SEQUENTIAL and HAM_HINT_RANDOM_WRITE and 
+	HAM_HINT_UBER_FAST_ACCESS - they have the same use as the DAM flags; 
+	sorry for the inconvenience. If you used them, just remove them
+
 Dec 16, 2009 - chris
 o improved tests of HAM_HINTS_* flags and fixed some bugs in the
     process - mainly asserts which failed because the flags were unexpected

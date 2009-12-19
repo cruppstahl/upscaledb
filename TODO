@@ -63,12 +63,14 @@ x code cleanup: HAM_DEFAULT_DATABASE_NAME and other reserved names are not
     allowed!
     x Hamsterdb::checkDatabaseNameTest()
 
-o tests do not cover HAM_HINT_*
+x tests do not cover HAM_HINT_*
     x also need unittests to check the parameters
     x make sure that HINT flags are documented in the functions
     x add to source
-    o add to monster.sh
-    o fix the bugs :-/
+    x fix the bugs :-/
+    x add to monster.sh
+    x cleanup the interface - remove everything but APPEND,PREPEND; only 
+        for ham_cursor_insert!
 
 o in-memory-db could access directly the record (and then overwrite it)
     -> needs new flag for ham_find/ham_cursor_move

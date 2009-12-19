@@ -3510,11 +3510,6 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         ham_trace(("parameter 'record' must not be NULL"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_HINT_SEQUENTIAL) && (flags&HAM_HINT_RANDOM_ACCESS)) {
-        ham_trace(("flags HAM_HINT_SEQUENTIAL and HAM_HINT_RANDOM_ACCESS "
-                   "are mutually exclusive"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
-    }
     if (flags&HAM_HINT_PREPEND) {
         ham_trace(("flags HAM_HINT_PREPEND is only allowed in "
                    "ham_cursor_insert"));
@@ -3627,11 +3622,6 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     }
     if (!record) {
         ham_trace(("parameter 'record' must not be NULL"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
-    }
-    if ((flags&HAM_HINT_SEQUENTIAL) && (flags&HAM_HINT_RANDOM_ACCESS)) {
-        ham_trace(("flags HAM_HINT_SEQUENTIAL and HAM_HINT_RANDOM_ACCESS "
-                   "are mutually exclusive"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if (flags&HAM_HINT_APPEND) {
@@ -3833,11 +3823,6 @@ ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     }
     if (!key) {
         ham_trace(("parameter 'key' must not be NULL"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
-    }
-    if ((flags&HAM_HINT_SEQUENTIAL) && (flags&HAM_HINT_RANDOM_ACCESS)) {
-        ham_trace(("flags HAM_HINT_SEQUENTIAL and HAM_HINT_RANDOM_ACCESS "
-                   "are mutually exclusive"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if (flags&HAM_HINT_PREPEND) {
@@ -4614,11 +4599,6 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
                    "ham_cursor_insert"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_HINT_SEQUENTIAL) && (flags&HAM_HINT_RANDOM_ACCESS)) {
-        ham_trace(("flags HAM_HINT_SEQUENTIAL and HAM_HINT_RANDOM_ACCESS "
-                   "are mutually exclusive"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
-    }
 
     if (!cursor_get_txn(cursor)) {
         if ((st=txn_begin(&local_txn, db, 0)))
@@ -4728,11 +4708,6 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         ham_trace(("parameter 'record' must not be NULL"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_HINT_SEQUENTIAL) && (flags&HAM_HINT_RANDOM_ACCESS)) {
-        ham_trace(("flags HAM_HINT_SEQUENTIAL and HAM_HINT_RANDOM_ACCESS "
-                   "are mutually exclusive"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
-    }
     if ((flags&HAM_HINT_APPEND) && (flags&HAM_HINT_PREPEND)) {
         ham_trace(("flags HAM_HINT_APPEND and HAM_HINT_PREPEND "
                    "are mutually exclusive"));
@@ -4782,7 +4757,7 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     /*
      * record number: make sure that we have a valid key structure,
      * and lazy load the last used record number.
-     * also specify the flag HAM_HINT_SEQUENTIAL (implicit)
+     * also specify the flag HAM_HINT_APPEND (implicit)
      */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         if (flags&HAM_OVERWRITE) {
@@ -4862,8 +4837,8 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     temprec=*record;
     st=__record_filters_before_write(db, &temprec);
 
-    if (!st && db_get_freelist_cache(db) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB))
-    {
+    if (!st && db_get_freelist_cache(db) 
+            && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
         db_update_global_stats_insert_query(db, key->size, temprec.size);
     }
 
@@ -4929,11 +4904,6 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     if (db_get_rt_flags(db)&HAM_READ_ONLY) {
         ham_trace(("cannot erase from a read-only database"));
         return (db_set_error(db, HAM_DB_READ_ONLY));
-    }
-    if ((flags&HAM_HINT_SEQUENTIAL) && (flags&HAM_HINT_RANDOM_ACCESS)) {
-        ham_trace(("flags HAM_HINT_SEQUENTIAL and HAM_HINT_RANDOM_ACCESS "
-                   "are mutually exclusive"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if (flags&HAM_HINT_PREPEND) {
         ham_trace(("flags HAM_HINT_PREPEND is only allowed in "
@@ -5234,30 +5204,28 @@ my_calc_keys_cb(int event, void *param1, void *param2, void *context)
         key = (int_key_t *)param1;
         count2 = *(ham_size_t *)param2;
 
-        if (c->is_leaf)
-        {
+        if (c->is_leaf) {
             ham_size_t dupcount = 1;
 
             if (!(c->flags & HAM_SKIP_DUPLICATES)
-                && (key_get_flags(key) & KEY_HAS_DUPLICATES))
-            {
-                ham_status_t st = blob_duplicate_get_count(c->db, key_get_ptr(key), &dupcount, 0);
+                    && (key_get_flags(key) & KEY_HAS_DUPLICATES)) {
+                ham_status_t st = blob_duplicate_get_count(c->db, 
+                        key_get_ptr(key), &dupcount, 0);
                 if (st)
                     return CB_STOP;
                 c->total_count += dupcount;
             }
-            else
-            {
+            else {
                 c->total_count++;
             }
 
-            if (c->flags & HAM_HINT_UBER_FAST_ACCESS)
-            {
+            if (c->flags & HAM_FAST_ESTIMATE) {
                 /* 
-                fast mode: just grab the keys-per-page value and call it a day for this page.
-
-                Assume all keys in this page have the same number of dupes (=1 if no dupes)
-                */
+                 * fast mode: just grab the keys-per-page value and 
+                 * call it a day for this page.
+                 * Assume all keys in this page have the same number 
+                 * of dupes (=1 if no dupes)
+                 */
                 c->total_count += (count2 - 1) * dupcount;
                 return CB_DO_NOT_DESCEND;
             }
@@ -5297,9 +5265,9 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 
     db_set_error(db, 0);
 
-    if (flags & ~(HAM_SKIP_DUPLICATES | HAM_HINT_UBER_FAST_ACCESS)) {
+    if (flags & ~(HAM_SKIP_DUPLICATES | HAM_FAST_ESTIMATE)) {
         ham_trace(("parameter 'flag' contains unsupported flag bits: %08x", 
-                  flags & ~(HAM_SKIP_DUPLICATES | HAM_HINT_UBER_FAST_ACCESS)));
+                  flags & ~(HAM_SKIP_DUPLICATES | HAM_FAST_ESTIMATE)));
         return (HAM_INV_PARAMETER);
     }
 

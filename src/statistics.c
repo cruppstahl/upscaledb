@@ -13,7 +13,7 @@
 #include "config.h"
 
 #include <string.h>
-#include <ham/hamsterdb.h>
+#include <ham/hamsterdb_int.h>
 #include <ham/hamsterdb_stats.h>
 #include "db.h"
 #include "endian.h"
@@ -1940,12 +1940,21 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
             {
                 ham_page_t *page = bt_cursor_get_coupled_page(hints->cursor);
                 btree_node_t *node = ham_page_get_btree_node(page);
-                ham_assert(btree_node_is_leaf(node), ("cursor points to internal node"));
-                ham_assert(!btree_node_get_right(node), ("cursor points to leaf node which is NOT the uppermost/last one"));
-
-                hints->leaf_page_addr = page_get_self(page);
-                hints->force_append = HAM_TRUE;
-                hints->try_fast_track = HAM_TRUE;
+                ham_assert(btree_node_is_leaf(node), 
+                            ("cursor points to internal node"));
+                /*
+                 * if cursor is not coupled to the LAST (right-most) leaf
+                 * in the Database, it does not make sense to append
+                 */
+                if (btree_node_get_right(node)) {
+                    hints->force_append = HAM_FALSE;
+                    hints->try_fast_track = HAM_FALSE;
+                }
+                else {
+                    hints->leaf_page_addr = page_get_self(page);
+                    hints->force_append = HAM_TRUE;
+                    hints->try_fast_track = HAM_TRUE;
+                }
             }
         }
     }
@@ -1966,12 +1975,21 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
             {
                 ham_page_t *page = bt_cursor_get_coupled_page(hints->cursor);
                 btree_node_t *node = ham_page_get_btree_node(page);
-                ham_assert(btree_node_is_leaf(node), ("cursor points to internal node"));
-                ham_assert(!btree_node_get_left(node), ("cursor points to leaf node which is NOT the lowest/first one"));
-
-                hints->leaf_page_addr = page_get_self(page);
-                hints->force_prepend = HAM_TRUE;
-                hints->try_fast_track = HAM_TRUE;
+                ham_assert(btree_node_is_leaf(node), 
+                        ("cursor points to internal node"));
+                /*
+                 * if cursor is not coupled to the FIRST (left-most) leaf
+                 * in the Database, it does not make sense to prepend
+                 */
+                if (btree_node_get_left(node)) {
+                    hints->force_prepend = HAM_FALSE;
+                    hints->try_fast_track = HAM_FALSE;
+                }
+                else {
+                    hints->leaf_page_addr = page_get_self(page);
+                    hints->force_prepend = HAM_TRUE;
+                    hints->try_fast_track = HAM_TRUE;
+                }
             }
         }
     }
