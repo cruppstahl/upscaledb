@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 1.1.0                   Thu Dec  3 11:17:36 CET 2009
+hamsterdb Embedded Storage 1.1.1                   Sun Dec 20 14:34:15 CET 2009
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -12,49 +12,41 @@ hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
 a B+Tree index structure, uses memory mapped I/O (if available), supports 
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-This release offers MANY impovements, many based on contributions from
-Ger Hobbelt (http://www.hobbelt.com, http://www.hebbut.net):
-- Approximate Matching - ham_find/ham_cursor_find can now return
-    the nearest neighbour if the key is not found
-- Major performance improvements, esp. in freelist management
-- Data Access Modes optimize runtime behaviour for performance depending
-    on your Database characteristics
-- New functions to get runtime information (ham_env_get_parameter,
-  ham_get_parameter)
-- A new function ham_get_key_count() returns the number of keys
-- several bugfixes
+This release offers a couple of minor bugfixes, mainly checks for invalid
+flags, but also a few asserts, which fired in DEBUG builds. 
+ham_check_integrity() no longer wrongly reports broken databases.
 
-This version of hamsterdb can read all files of previous versions (1.0.x), 
-but not vice versa - older versions cannot open files from 1.1.0.
+A few flags (HAM_HINT_RANDOM_ACCESS, HAM_HINT_READ_WRITE,
+HAM_HINT_UBER_FAST_ACCESS) were removed because they were redundant. Also,
+the interface of ham_get_key_count() was slightly changed because the flag
+HAM_HINT_UBER_FAST_ACCESS was renamed to HAM_FAST_ESTIMATE. Sorry for the
+inconvenience.
+
+A new feature was added - users of In-Memory Databases can now directly access
+a pointer to the stored record data by specifying the flag HAM_DIRECT_ACCES
+to ham_find, ham_cursor_find[_ex] and ham_cursor_move. Thus they can overwrite
+the record data without calling ham_insert or ham_cursor_overwrite.
 
 2. Changes
 
 New Features
-* Approximate Matching - ham_find/ham_cursor_find can now return
-    the nearest neighbour if the key is not found
-* Data Access Modes optimize runtime behaviour for performance depending
-    on your Database characteristics
-* New functions to get runtime information (ham_env_get_parameter,
-  ham_get_parameter)
-* A new function ham_get_key_count() returns the number of keys
+* Flag HAM_DIRECT_ACCESS allows direct access to stored records for In-Memory
+    Databases
 
 Bugfixes
-* Freelist pages are now fully utilized
-* Security improvements for Win32 mmap code
-* When an Environment is created (or opened), the header page was
-    not immediately written (or read); therefore settings were lost, unless
-    a database was created (or opened) - fixed
+* Several asserts were removed (only DEBUG builds)
+* ham_check_integrity() no longer wrongly reports broken Databases
 
 Other Changes
-* Major performance wins, esp. in freelist code
+* A few interface changes because some flags were removed
 
 To see a list of all changes, look in the file ChangeLog.
 
 3. Roadmap
 
-- improving DAM code
 - internal code cleanups
-- allow direct access to in-memory records
+- allow sorting of duplicate keys
+- improve documentation (tutorial)
 
 4. Features
 
