@@ -753,10 +753,10 @@ protected:
 
     virtual void ditch_all_caught_values(void)
     {
+        for (unsigned i=0; i<_caught_values_size; i++)
+            delete _caught_values[i];
         if (_caught_values)
-        {
             free((void *)_caught_values);
-        }
         _caught_values = NULL;
         _caught_values_size = 0;
     }

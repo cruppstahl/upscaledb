@@ -48,7 +48,6 @@ protected:
     ham_db_t *m_db;
     ham_env_t *m_env;
     memtracker_t *m_alloc;
-    memtracker_t *m_alloc2;
 
 public:
     virtual void setup()
@@ -57,9 +56,7 @@ public:
 
         os::unlink(BFC_OPATH(".test"));
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
-        BFC_ASSERT((m_alloc2=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator(m_env, (mem_allocator_t *)m_alloc2);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
@@ -74,7 +71,6 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
         ham_env_delete(m_env);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
-        BFC_ASSERT(!memtracker_get_leaks(m_alloc2));
     }
 
     void transactionTest(void)
