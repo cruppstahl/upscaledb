@@ -7,92 +7,21 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-x doxygen: make sure that all new functions are shown correctly. 
-
-x doxygen: the online css is super ugly. use the original layout and change the
-    online integration
-
-x doxygen: the generated html files should be part of the tarball
-
-x Ger has some more updates, esp. in unittests (merge stuff from his
-    mails)
-
-x consequently store database files from every supported version on 
-    every supported platform:
-    1.0.9
-        win32-msvc8
-        win64-msvc8
-        linux32-ubuntu-x86
-        macos-ppc-86
-        etc
-        -> uname -p + '_' + uname -s + '_' + <compiler>
-    x write/use a perl script which creates the name!
-    x define which tests are stored
-    x one script generates those files
-    x also copy `test` and the used libraries (and at least link test 
-            statically!)
-    x another script compares against files in EACH subdirectory
-        (FULLCHECK, then do a few hundred operations of all kinds - dupes,
-         overwrites, insert, find, erase, extkeys etc)
-            1, 46, 220, 53, ext_061
-    x include performance data when generating the files
-    x generate files for 1.0.9
-    x generate files for 1.1.0 on linux, run compare tests (warning - 
-        current HEAD is no longer 1.1.0 - make sure that we test the 
-        right sources!)
-    x generate files for 1.1.0 on win32, run compare tests (warning - 
-        current HEAD is no longer 1.1.0 - make sure that we test the 
-        right sources!)
-
-x unittest:
-    create database (not in Env!) and make sure that the database
-    name is 0xf000 (EMPTY_DATABASE_NAME)
-    x EMPTY_DATABASE_NAME is a stupid name - better use DEFAULT_DATABASE_NAME
-
-x compression is not a persistent flag - should it be? if not, then 
-    document it!
-
-x ham_get_parameter should return DAM
-
-x make sure that unittests are not executed twice (move registration out of
-    constructor)
-    x LogTest is disabled - why? reenable it!
-
-x code cleanup: HAM_DEFAULT_DATABASE_NAME and other reserved names are not
-    allowed to be used from the users; but HAM_FIRST_DATABASE_NAME is
-    allowed!
-    x Hamsterdb::checkDatabaseNameTest()
-
-x tests do not cover HAM_HINT_*
-    x also need unittests to check the parameters
-    x make sure that HINT flags are documented in the functions
-    x add to source
-    x fix the bugs :-/
-    x add to monster.sh
-    x cleanup the interface - remove everything but APPEND,PREPEND; only 
-        for ham_cursor_insert!
-
-x in-memory-db could access directly the record (and then overwrite it)
-    -> needs new flag for ham_find/ham_cursor_move
-    x unittests
-        x ham_find
-        x ham_cursor_find_ex
-        x ham_cursor_move
-        x in all 3 functions: only In-Memory, otherwise INV_PARAMETER!
-    x don't do this if HAM_RECORD_USER_ALLOC is set!
-    x add to monster.sh
-    x improve documentation
-
 o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     create a private environment handle if it was not supplied
     o don't forget to close/delete the handle!
     o clean up db.h/db.c code
     o move code from ham_create[_ex] into ham_env_create_db?
     o move code from ham_open[_ex] into ham_env_open_db?
+    o move code from ham_close into ham_env_close?
 
 o need tool to upgrade databases from 1.0.x to 1.1.x!
 
-o re-enable HAM_DAM_FAST_INSERT
+o sort duplicate keys - Ger has patches
+
+o ham_get_parameter: could return VERSION of the database
+
+. re-enable HAM_DAM_FAST_INSERT
     o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
         -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
     o re-enable tests in monster.sh
@@ -106,10 +35,6 @@ o re-enable HAM_DAM_FAST_INSERT
     internally -> have them completely replaced by the DAM?
 
 . approx. matching: need a sample
-
-. sort duplicate keys - Ger has patches
-
-. ham_get_parameter: could return VERSION of the database
 
 . HighLevelTxnTest::rollbackHugeBlobTest is inactive because huge blobs are
     directly written to disk instead of going through the cache -> in case of
