@@ -166,8 +166,8 @@ public:
         log_set_state(&log, 0x88);
         BFC_ASSERT_EQUAL((ham_u32_t)0x88, log_get_state(&log));
 
-        log_set_current_fd(&log, 0x89);
-        BFC_ASSERT_EQUAL((ham_fd_t)0x89, log_get_current_fd(&log));
+        log_set_current_fd(&log, 1);
+        BFC_ASSERT_EQUAL(1, log_get_current_fd(&log));
 
         log_set_fd(&log, 0, (ham_fd_t)0x20);
         BFC_ASSERT_EQUAL((ham_fd_t)0x20, log_get_fd(&log, 0));
@@ -982,7 +982,7 @@ public:
 
     void compareLogs(log_vector_t *lhs, log_vector_t *rhs)
     {
-        BFC_ASSERT_EQUAL(lhs->size(), rhs->size());
+        BFC_ASSERT_EQUAL((unsigned)lhs->size(), (unsigned)rhs->size());
 
         log_assert_monitor assert_monitor(lhs, rhs);
         push_assert_monitor(assert_monitor);
