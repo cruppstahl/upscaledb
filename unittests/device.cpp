@@ -59,36 +59,20 @@ public:
 
         (void)os::unlink(BFC_OPATH(".test"));
 
-        ham_page_t *p;
         m_alloc=memtracker_new();
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        BFC_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
-                        db_get_env(m_db), m_inmemory))!=0);
-        db_set_device(m_db, m_dev);
-        BFC_ASSERT_EQUAL(0, m_dev->create(m_dev, BFC_OPATH(".test"), 0, 0644));
-        p=page_new(m_db);
-        BFC_ASSERT_EQUAL(0, page_alloc(p, device_get_pagesize(m_dev)));
-        db_set_header_page(m_db, p);
-        db_set_persistent_pagesize(m_db, m_dev->get_pagesize(m_dev));
-        db_set_pagesize(m_db, device_get_pagesize(m_dev));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(m_db, BFC_OPATH(".test"), 
+                        m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644));
+        m_dev=db_get_device(m_db);
     }
     
     virtual void teardown() 
     { 
         __super::teardown();
 
-        if (db_get_header_page(m_db)) {
-            page_free(db_get_header_page(m_db));
-            page_delete(db_get_header_page(m_db));
-            db_set_header_page(m_db, 0);
-        }
-        if (db_get_device(m_db)) {
-            if (db_get_device(m_db)->is_open(db_get_device(m_db)))
-                db_get_device(m_db)->close(db_get_device(m_db));
-            db_get_device(m_db)->destroy(db_get_device(m_db));
-            db_set_device(m_db, 0);
-        }
+        ham_close(m_db, 0);
         ham_delete(m_db);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
@@ -245,7 +229,7 @@ public:
         BFC_ASSERT(m_dev->is_open(m_dev));
         BFC_ASSERT(m_dev->truncate(m_dev, ps*2)==HAM_SUCCESS);
         for (i=0; i<2; i++) {
-            BFC_ASSERT((pages[i]=page_new(m_db)));
+            BFC_ASSERT((pages[i]=page_new(m_db, 0)));
             page_set_self(pages[i], ps*i);
             BFC_ASSERT_EQUAL(0,
                     m_dev->read_page(m_dev, pages[i], 0));
@@ -262,7 +246,7 @@ public:
         for (i=0; i<2; i++) {
             char temp[1024];
             memset(temp, i+1, sizeof(temp));
-            BFC_ASSERT((pages[i]=page_new(m_db)));
+            BFC_ASSERT((pages[i]=page_new(m_db, 0)));
             page_set_self(pages[i], ps*i);
             BFC_ASSERT_EQUAL(0, 
                     m_dev->read_page(m_dev, pages[i], ps));

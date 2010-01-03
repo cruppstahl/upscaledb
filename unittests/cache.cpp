@@ -47,7 +47,7 @@ public:
 
 protected:
     ham_db_t *m_db;
-    ham_device_t *m_dev;
+    ham_env_t *m_env;
     memtracker_t *m_alloc;
 
 public:
@@ -55,49 +55,40 @@ public:
 	{ 
 		__super::setup();
 
-        ham_page_t *p;
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
-        BFC_ASSERT(0==ham_new(&m_db));
+        m_alloc=memtracker_new();
+        BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        BFC_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
-                        db_get_env(m_db), HAM_DEVTYPE_MEMORY))!=0);
-        BFC_ASSERT_EQUAL(0, m_dev->create(m_dev, BFC_OPATH(".test"), 0, 0644));
-        db_set_device(m_db, m_dev);
-        p=page_new(m_db);
-        BFC_ASSERT(0==page_alloc(p, device_get_pagesize(m_dev)));
-        db_set_header_page(m_db, p);
-        db_set_persistent_pagesize(m_db, m_dev->get_pagesize(m_dev));
-        db_set_pagesize(m_db, device_get_pagesize(m_dev));
+        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(m_env, BFC_OPATH(".test"), 
+                        HAM_ENABLE_TRANSACTIONS
+                        | HAM_ENABLE_RECOVERY, 0644));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_db(m_env, m_db, 13, 
+                        HAM_ENABLE_DUPLICATES, 0));
     }
     
     virtual void teardown() { 
         __super::teardown();
 
-        if (db_get_header_page(m_db)) {
-            page_free(db_get_header_page(m_db));
-            page_delete(db_get_header_page(m_db));
-            db_set_header_page(m_db, 0);
-        }
-        if (db_get_device(m_db)) {
-            if (db_get_device(m_db)->is_open(db_get_device(m_db)))
-                db_get_device(m_db)->close(db_get_device(m_db));
-            db_get_device(m_db)->destroy(db_get_device(m_db));
-            db_set_device(m_db, 0);
-        }
+        ham_env_close(m_env, 0);
+        ham_close(m_db, 0);
         ham_delete(m_db);
+        ham_env_delete(m_env);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
     void newDeleteTest(void)
     {
-        ham_cache_t *cache=cache_new(m_db, 15);
+        ham_cache_t *cache=cache_new(m_env, 15);
         BFC_ASSERT(cache!=0);
-        cache_delete(m_db, cache);
+        cache_delete(m_env, cache);
     }
 
     void structureTest(void)
     {
-        ham_cache_t *cache=cache_new(m_db, 15);
+        ham_cache_t *cache=cache_new(m_env, 15);
         BFC_ASSERT(cache!=0);
         BFC_ASSERT(cache_get_max_elements(cache)==15);
         cache_set_cur_elements(cache, 12);
@@ -108,29 +99,29 @@ public:
         BFC_ASSERT(cache_get_unused_page(cache)==0);
         BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==0);
         BFC_ASSERT(cache_too_big(cache)==0);
-        cache_delete(m_db, cache);
+        cache_delete(m_env, cache);
     }
     
     void putGetTest(void)
     {
         ham_page_t *page;
-        ham_cache_t *cache=cache_new(m_db, 15);
+        ham_cache_t *cache=cache_new(m_env, 15);
         BFC_ASSERT(cache!=0);
-        page=page_new(m_db);
+        page=page_new(m_db, 0);
         page_set_self(page, 0x123ull);
         page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
         BFC_ASSERT(cache_put_page(cache, page)==HAM_SUCCESS);
         BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==page);
-        cache_delete(m_db, cache);
+        cache_delete(m_env, cache);
         page_delete(page);
     }
 
     void putGetRemoveGetTest(void)
     {
         ham_page_t *page;
-        ham_cache_t *cache=cache_new(m_db, 15);
+        ham_cache_t *cache=cache_new(m_env, 15);
         BFC_ASSERT(cache!=0);
-        page=page_new(m_db);
+        page=page_new(m_db, 0);
         page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
         page_set_self(page, 0x123ull);
         BFC_ASSERT(cache_put_page(cache, page)==HAM_SUCCESS);
@@ -140,19 +131,19 @@ public:
         BFC_ASSERT(cache_remove_page(cache, page)==HAM_SUCCESS);
         BFC_ASSERT(cache_get_cur_elements(cache)==0);		  // and before 1.1.0, this count would be -1 instead of 0
         BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==0);
-        cache_delete(m_db, cache);
+        cache_delete(m_env, cache);
         page_delete(page);
     }
     
     void putGetReplaceTest(void)
     {
         ham_page_t *page1, *page2;
-        ham_cache_t *cache=cache_new(m_db, 15);
+        ham_cache_t *cache=cache_new(m_env, 15);
         BFC_ASSERT(cache!=0);
-        page1=page_new(m_db);
+        page1=page_new(m_db, 0);
         page_set_npers_flags(page1, PAGE_NPERS_NO_HEADER);
         page_set_self(page1, 0x123ull);
-        page2=page_new(m_db);
+        page2=page_new(m_db, 0);
         page_set_npers_flags(page2, PAGE_NPERS_NO_HEADER);
         page_set_self(page2, 0x456ull);
         BFC_ASSERT(cache_put_page(cache, page1)==HAM_SUCCESS);
@@ -165,7 +156,7 @@ public:
         BFC_ASSERT(cache_get_cur_elements(cache)==1); // failed to grab, no POPping therefor ;-)
         BFC_ASSERT(cache_get_page(cache, 0x456ull, 0)==page2);
         BFC_ASSERT(cache_get_cur_elements(cache)==0); // POP from cache as NODELETE wasn't set.
-        cache_delete(m_db, cache);
+        cache_delete(m_env, cache);
         page_delete(page1);
         page_delete(page2);
     }
@@ -173,10 +164,10 @@ public:
     void multiplePutTest(void)
     {
         ham_page_t *page[20];
-        ham_cache_t *cache=cache_new(m_db, 15);
+        ham_cache_t *cache=cache_new(m_env, 15);
 
         for (int i=0; i<20; i++) {
-            page[i]=page_new(m_db);
+            page[i]=page_new(m_db, 0);
             page_set_npers_flags(page[i], PAGE_NPERS_NO_HEADER);
             page_set_self(page[i], i*1024);
             BFC_ASSERT(cache_put_page(cache, page[i])==HAM_SUCCESS);
@@ -191,28 +182,28 @@ public:
             BFC_ASSERT(cache_get_page(cache, i*1024, 0)==0);
             page_delete(page[i]);
         }
-        cache_delete(m_db, cache);
+        cache_delete(m_env, cache);
     }
     
     void negativeGetTest(void)
     {
-        ham_cache_t *cache=cache_new(m_db, 15);
+        ham_cache_t *cache=cache_new(m_env, 15);
         for (int i=0; i<20; i++) {
             BFC_ASSERT(cache_get_page(cache, i*1024*13, 0)==0);
         }
-        cache_delete(m_db, cache);
+        cache_delete(m_env, cache);
     }
     
     void unusedTest(void)
     {
         ham_page_t *page1, *page2;
-        ham_cache_t *cache=cache_new(m_db, 15);
+        ham_cache_t *cache=cache_new(m_env, 15);
         BFC_ASSERT(cache!=0);
-        page1=page_new(m_db);
+        page1=page_new(m_db, 0);
         page_set_npers_flags(page1, PAGE_NPERS_NO_HEADER);
         page_set_self(page1, 0x123ull);
         page_add_ref(page1);
-        page2=page_new(m_db);
+        page2=page_new(m_db, 0);
         page_set_npers_flags(page2, PAGE_NPERS_NO_HEADER);
         page_set_self(page2, 0x456ull);
         BFC_ASSERT(cache_put_page(cache, page1)==HAM_SUCCESS);
@@ -222,7 +213,7 @@ public:
         BFC_ASSERT(cache_get_unused_page(cache)==0);
         BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==page1);
         BFC_ASSERT(cache_get_page(cache, 0x456ull, 0)==0);
-        cache_delete(m_db, cache);
+        cache_delete(m_env, cache);
         page_release_ref(page1);
         page_delete(page1);
         page_delete(page2);
@@ -230,11 +221,11 @@ public:
     
     void overflowTest(void)
     {
-        ham_cache_t *cache=cache_new(m_db, 15);
+        ham_cache_t *cache=cache_new(m_env, 15);
         std::vector<ham_page_t *> v;
 
         for (unsigned int i=0; i<cache_get_max_elements(cache)+10; i++) {
-            ham_page_t *p=page_new(m_db);
+            ham_page_t *p=page_new(m_db, 0);
             page_set_npers_flags(p, PAGE_NPERS_NO_HEADER);
             page_set_self(p, i*1024);
             v.push_back(p);
@@ -260,7 +251,7 @@ public:
         }
 
         BFC_ASSERT(!cache_too_big(cache));
-        cache_delete(m_db, cache);
+        cache_delete(m_env, cache);
     }
 };
 

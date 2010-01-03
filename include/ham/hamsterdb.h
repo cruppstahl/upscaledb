@@ -478,41 +478,40 @@ ham_env_create(ham_env_t *env, const char *filename,
  * @param flags Optional flags for opening the Environment, combined with
  *          bitwise OR. Possible flags are:
  *      <ul>
- *       <li>@ref HAM_WRITE_THROUGH </li> Immediately write modified pages to 
+ *       <li>@ref HAM_WRITE_THROUGH</li> Immediately write modified pages to 
  *            the disk. This slows down all Database operations, but may
  *            save the Database integrity in case of a system crash.
- *       <li>@ref HAM_IN_MEMORY_DB </li> Creates an In-Memory Environment. No 
+ *       <li>@ref HAM_IN_MEMORY_DB</li> Creates an In-Memory Environment. No 
  *            file will be created, and the Database contents are lost after
  *            the Environment is closed. The @a filename parameter can
  *            be NULL. Do <b>NOT</b> use in combination with
  *            @ref HAM_CACHE_STRICT and do <b>NOT</b> specify @a cachesize
  *            other than 0.
- *       <li>@ref HAM_DISABLE_MMAP </li> Do not use memory mapped files for I/O.
+ *       <li>@ref HAM_DISABLE_MMAP</li> Do not use memory mapped files for I/O.
  *            By default, hamsterdb checks if it can use mmap,
  *            since mmap is faster than read/write. For performance
  *            reasons, this flag should not be used.
- *       <li>@ref HAM_CACHE_STRICT </li> Do not allow the cache to grow larger
+ *       <li>@ref HAM_CACHE_STRICT</li> Do not allow the cache to grow larger
  *            than @a cachesize. If a Database operation needs to resize the
  *            cache, it will return @ref HAM_CACHE_FULL.
  *            If the flag is not set, the cache is allowed to allocate
  *            more pages than the maximum cache size, but only if it's
  *            necessary and only for a short time.
- *       <li>@ref HAM_CACHE_UNLIMITED </li> Do not limit the cache. Nearly as
+ *       <li>@ref HAM_CACHE_UNLIMITED</li> Do not limit the cache. Nearly as
  *            fast as an In-Memory Database. Not allowed in combination 
  *            with @ref HAM_CACHE_STRICT or a limited cache size.
- *       <li>@ref HAM_DISABLE_FREELIST_FLUSH </li> This flag is deprecated.
- *       <li>@ref HAM_LOCK_EXCLUSIVE </li> Place an exclusive lock on the
+ *       <li>@ref HAM_DISABLE_FREELIST_FLUSH</li> This flag is deprecated.
+ *       <li>@ref HAM_LOCK_EXCLUSIVE</li> Place an exclusive lock on the
  *            file. Only one process may hold an exclusive lock for
  *            a given file at a given time. Deprecated - this is now the
  *            default
- *       <li>@ref HAM_ENABLE_RECOVERY </li> Enables logging/recovery for this
+ *       <li>@ref HAM_ENABLE_RECOVERY</li> Enables logging/recovery for this
  *            Database. Not allowed in combination with @ref HAM_IN_MEMORY_DB, 
  *            @ref HAM_DISABLE_FREELIST_FLUSH and @ref HAM_WRITE_THROUGH.
- *       <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
+ *       <li>@ref HAM_ENABLE_TRANSACTIONS</li> Enables Transactions for this
  *            Database. 
  *            <b>Remark</b> Transactions were introduced in hamsterdb 1.0.4,
- *            but with certain limitations (which will be removed in later
- *            version). Please read the README file and the Release Notes
+ *            but with certain limitations. Please read the README file 
  *            for details.<br>
  *            This flag implies @ref HAM_ENABLE_RECOVERY.
  *      </ul>
@@ -522,16 +521,16 @@ ham_env_create(ham_env_t *env, const char *filename,
  * @param param An array of ham_parameter_t structures. The following
  *          parameters are available:
  *        <ul>
- *        <li>@ref HAM_PARAM_CACHESIZE </li> The size of the Database cache,
+ *        <li>@ref HAM_PARAM_CACHESIZE</li> The size of the Database cache,
  *            in bytes. The default size is defined in src/config.h
  *            as @a HAM_DEFAULT_CACHESIZE - usually 64 pages, i.e. 256kb on 
  *            UNIX where 4K pages are usual (or 4Mb on Win32/Win64 where 
  *            64K pages are usual).
- *        <li>@ref HAM_PARAM_PAGESIZE </li> The size of a file page, in
+ *        <li>@ref HAM_PARAM_PAGESIZE</li> The size of a file page, in
  *            bytes. It is recommended not to change the default size. The
  *            default size depends on hardware and operating system.
  *            Page sizes must be 1024 or a multiple of 2048.
- *        <li>@ref HAM_PARAM_MAX_ENV_DATABASES </li> The number of maximum
+ *        <li>@ref HAM_PARAM_MAX_ENV_DATABASES</li> The number of maximum
  *            Databases in this Environment; default value: 16.
  *        </ul>
  *
@@ -1270,8 +1269,7 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *       <li>@ref HAM_ENABLE_TRANSACTIONS </li> Enables Transactions for this
  *            Database. 
  *            <b>Remark</b> Transactions were introduced in hamsterdb 1.0.4,
- *            but with certain limitations (which will be removed in later
- *            version). Please read the README file and the Release Notes
+ *            but with certain limitations. Please read the README file
  *            for details.<br>
  *            This flag imples @ref HAM_ENABLE_RECOVERY.
  *      </ul>
@@ -1394,6 +1392,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
  * @ref ham_create_ex.
  * This flag is non persistent. */
 #define HAM_CACHE_UNLIMITED          0x00040000
+
+/* reserved: DB_ENV_IS_PRIVATE (not persistent)      0x00080000 */
 
 /**
  * @}

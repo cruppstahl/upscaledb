@@ -124,7 +124,7 @@ __f_read(ham_db_t *db, ham_device_t *self, ham_offset_t offset,
      * we're done unless there are file filters (or if we're reading the
      * header page - the header page is not filtered)
      */
-    if (db_get_env(db))
+    if (db && db_get_env(db))
         head=env_get_file_filter(db_get_env(db));
     if (!head || offset==0)
         return (0);
@@ -153,7 +153,7 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
     ham_db_t *db=page_get_owner(page);
     ham_file_filter_t *head=0;
     
-    if (db_get_env(db))
+    if (db && db_get_env(db))
         head=env_get_file_filter(db_get_env(db));
 
     if (!size)
@@ -294,6 +294,14 @@ __f_write(ham_db_t *db, ham_device_t *self, ham_offset_t offset, void *buffer,
 
     ham_mem_free(db, tempdata);
     return (st);
+}
+
+static ham_status_t 
+__f_read_raw(ham_device_t *self, ham_offset_t offset, void *buffer, 
+        ham_size_t size)
+{
+    dev_file_t *t=(dev_file_t *)device_get_private(self);
+    return (os_pread(t->fd, offset, buffer, size));
 }
 
 static ham_status_t 
@@ -599,6 +607,7 @@ ham_device_new(mem_allocator_t *alloc, ham_env_t *env, int devtype)
         dev->tell         = __f_tell;
         dev->read         = __f_read;
         dev->write        = __f_write;
+        dev->read_raw     = __f_read_raw;
         dev->write_raw    = __f_write_raw;
         dev->read_page    = __f_read_page;
         dev->write_page   = __f_write_page;

@@ -17,9 +17,9 @@
 #include <string.h>
 #include "cache.h"
 #include "mem.h"
-#include "db.h"
 #include "page.h"
 #include "error.h"
+#include "env.h"
 
 
 #define my_calc_hash(cache, o)                                              \
@@ -28,20 +28,18 @@
         : (((o)%(cache_get_bucketsize(cache))))))
 
 ham_cache_t *
-cache_new(ham_db_t *db, ham_size_t max_elements)
+cache_new(ham_env_t *env, ham_size_t max_elements)
 {
     ham_cache_t *cache;
     ham_size_t mem, buckets;
 
-    buckets=CACHE_CACHE_BUCKET_SIZE;
+    buckets=CACHE_BUCKET_SIZE;
     ham_assert(buckets, (0));
     mem=sizeof(ham_cache_t)+(buckets-1)*sizeof(void *);
 
-    cache=ham_mem_calloc(db, mem);
-    if (!cache) {
-        db_set_error(db, HAM_OUT_OF_MEMORY);
+    cache=ham_mem_calloc_env(env, mem);
+    if (!cache)
         return (0);
-    }
     if (max_elements == 0 || max_elements > CACHE_MAX_ELEM)
         max_elements = CACHE_MAX_ELEM;
     cache_set_max_elements(cache, max_elements);
@@ -52,9 +50,9 @@ cache_new(ham_db_t *db, ham_size_t max_elements)
 }
 
 void
-cache_delete(ham_db_t *db, ham_cache_t *cache)
+cache_delete(ham_env_t *env, ham_cache_t *cache)
 {
-    ham_mem_free(db, cache);
+    allocator_free(env_get_allocator(env), cache);
 }
 
 /**

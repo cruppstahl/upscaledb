@@ -628,7 +628,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
             ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB) 
                     ? 1 
                     : !!db_get_cache(db), ("in-memory DBs MUST have a cache"));
-            page=page_new(db);
+            page=page_new(db, db_get_allocator(db));
             if (!page)
                 return (0);
             page_set_self(page, tellpos);
@@ -645,7 +645,7 @@ db_alloc_page(ham_db_t *db, ham_u32_t type, ham_u32_t flags)
     }
 
     if (!page) {
-        page=page_new(db);
+        page=page_new(db, db_get_allocator(db));
         if (!page)
             return (0);
     }
@@ -782,7 +782,7 @@ db_fetch_page(ham_db_t *db, ham_offset_t address, ham_u32_t flags)
             ? 1 
             : !!db_get_cache(db), ("in-memory DBs MUST have a cache"));
 
-    page=page_new(db);
+    page=page_new(db, db_get_allocator(db));
     if (!page)
         return (0);
 
@@ -848,16 +848,16 @@ db_flush_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags)
 }
 
 ham_status_t
-db_flush_all(ham_db_t *db, ham_u32_t flags)
+db_flush_all(ham_cache_t *cache, ham_u32_t flags)
 {
     ham_page_t *head;
 
     ham_assert(0 == (flags & ~DB_FLUSH_NODELETE), (0));
 
-    if (!db_get_cache(db)) 
+    if (!cache)
         return (0);
 
-    head=cache_get_totallist(db_get_cache(db)); 
+    head=cache_get_totallist(cache);
     while (head) {
         ham_page_t *next=page_get_next(head, PAGE_LIST_CACHED);
 
@@ -868,13 +868,12 @@ db_flush_all(ham_db_t *db, ham_u32_t flags)
         if (!(flags&DB_FLUSH_NODELETE)) {
             ham_assert(page_get_refcount(head)==0, 
                 ("page is in use, but database is closing"));
-            cache_set_totallist(db_get_cache(db), 
-                page_list_remove(cache_get_totallist(db_get_cache(db)), 
-                PAGE_LIST_CACHED, head));
+            cache_set_totallist(cache,
+                page_list_remove(cache_get_totallist(cache), 
+                    PAGE_LIST_CACHED, head));
             cache_push_history(head, -6);
             
-            cache_set_cur_elements(db_get_cache(db), 
-                cache_get_cur_elements(db_get_cache(db))-1);
+            cache_set_cur_elements(cache, cache_get_cur_elements(cache)-1);
         }
 
         (void)db_write_page_and_delete(head, flags);

@@ -82,7 +82,6 @@ struct ham_env_t
     ham_size_t _pagesize;
     ham_size_t _cachesize;
     ham_u16_t  _keysize;
-    ham_u16_t  _max_databases;
 
     /* linked list of all file-level filters */
     ham_file_filter_t *_file_filters;
@@ -167,9 +166,38 @@ struct ham_env_t
 #define env_get_header_page(env)         (env)->_hdrpage
 
 /*
+ * get a pointer to the header data
+ */
+#define env_get_header(env)              ((db_header_t *)(page_get_payload(\
+                                          env_get_header_page(env))))
+
+/*
  * set the header page
  */
 #define env_set_header_page(env, h)      (env)->_hdrpage=(h)
+
+/*
+ * set the dirty-flag - this is the same as db_set_dirty()
+ */
+#define env_set_dirty(env)              page_set_dirty(env_get_header_page(env))
+
+/*
+ * get the private data of the backend; interpretation of the
+ * data is up to the backend
+ *
+ * this is the same as db_get_indexdata_arrptr()
+ */
+#define env_get_indexdata_arrptr(env)                                         \
+    ((db_indexdata_t *)((ham_u8_t *)page_get_payload(                         \
+        env_get_header_page(env)) + sizeof(db_header_t)))
+
+/*
+ * get the private data of the backend; interpretation of the
+ * data is up to the backend
+ *
+ * this is the same as db_get_indexdata_ptr()
+ */
+#define env_get_indexdata_ptr(env, i)      (env_get_indexdata_arrptr(env) + (i))
 
 /*
  * get the currently active transaction
@@ -227,7 +255,6 @@ struct ham_env_t
 #define env_get_pagesize(env)            (env)->_pagesize
 #define env_get_keysize(env)             (env)->_keysize
 #define env_get_cachesize(env)           (env)->_cachesize
-#define env_get_max_databases(env)       (env)->_max_databases
 
 /*
  * set the parameter list
@@ -235,8 +262,59 @@ struct ham_env_t
 #define env_set_pagesize(env, ps)        (env)->_pagesize=(ps)
 #define env_set_keysize(env, ks)         (env)->_keysize=(ks)
 #define env_set_cachesize(env, cs)       (env)->_cachesize=(cs)
-#define env_set_max_databases(env, md)   (env)->_max_databases=(md)
 
+/*
+ * get the maximum number of databases for this file
+ */
+#define env_get_max_databases(env)       ham_db2h16(env_get_header(env)->_max_databases)
+
+/*
+ * set the maximum number of databases for this file
+ */
+#define env_set_max_databases(env,s)     env_get_header(env)->_max_databases=  \
+                                            ham_h2db16(s)
+
+/*
+ * get the page size
+ */
+#define env_get_persistent_pagesize(env) (ham_db2h32(env_get_header(env)->_pagesize))
+
+/*
+ * set the 'magic' field of a file header
+ */
+#define env_set_magic(env, a,b,c,d)  { env_get_header(env)->_magic[0]=a; \
+                                     env_get_header(env)->_magic[1]=b; \
+                                     env_get_header(env)->_magic[2]=c; \
+                                     env_get_header(env)->_magic[3]=d; }
+
+/*
+ * set the version of a file header
+ */
+#define env_set_version(env,a,b,c,d) { env_get_header(env)->_version[0]=a; \
+                                     env_get_header(env)->_version[1]=b; \
+                                     env_get_header(env)->_version[2]=c; \
+                                     env_get_header(env)->_version[3]=d; }
+
+
+/*
+ * get byte #i of the 'version'-header
+ */
+#define env_get_version(env, i)   (dbheader_get_version(env_get_header(env), i))
+
+/*
+ * get the serial number
+ */
+#define env_get_serialno(env)       (ham_db2h32(env_get_header(env)->_serialno))
+
+/*
+ * set the serial number
+ */
+#define env_set_serialno(env, n)    env_get_header(env)->_serialno=ham_h2db32(n)
+
+/*
+ * set the page size
+ */
+#define env_set_persistent_pagesize(env, ps)    env_get_header(env)->_pagesize=ham_h2db32(ps)
 
 /*
  * get the linked list of all file-level filters

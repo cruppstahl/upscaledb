@@ -23,9 +23,10 @@
 extern "C" {
 #endif 
 
-/* CACHE_CACHE_BUCKET_SIZE should be a prime number or similar, as it is used in a MODULO hash scheme */
-#define CACHE_CACHE_BUCKET_SIZE     359
-#define CACHE_MAX_ELEM              256 /* a power of 2 *below* CACHE_CACHE_BUCKET_SIZE */
+/* CACHE_BUCKET_SIZE should be a prime number or similar, as it is used in 
+ * a MODULO hash scheme */
+#define CACHE_BUCKET_SIZE     359
+#define CACHE_MAX_ELEM        256 /* a power of 2 *below* CACHE_BUCKET_SIZE */
 
 
 /**
@@ -148,7 +149,7 @@ page_increment_cache_cntr(ham_page_t *page, ham_u32_t count, ham_cache_t *cache)
  * initialize a cache manager object
  */
 extern ham_cache_t *
-cache_new(ham_db_t *db, ham_size_t max_elements);
+cache_new(ham_env_t *env, ham_size_t max_elements);
 
 /**
  * close and destroy a cache manager object
@@ -156,7 +157,7 @@ cache_new(ham_db_t *db, ham_size_t max_elements);
  * @remark this will NOT flush the cache!
  */
 extern void
-cache_delete(ham_db_t *db, ham_cache_t *cache);
+cache_delete(ham_env_t *env, ham_cache_t *cache);
 
 /**
  * get an unused page (or an unreferenced page, if no unused page

@@ -167,7 +167,7 @@ public:
         BFC_ASSERT_EQUAL((ham_u32_t)0x88, log_get_state(&log));
 
         log_set_current_fd(&log, 1);
-        BFC_ASSERT_EQUAL(1, log_get_current_fd(&log));
+        BFC_ASSERT_EQUAL((unsigned)1, log_get_current_fd(&log));
 
         log_set_fd(&log, 0, (ham_fd_t)0x20);
         BFC_ASSERT_EQUAL((ham_fd_t)0x20, log_get_fd(&log, 0));
@@ -355,7 +355,7 @@ public:
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         ham_page_t *page;
-        page=page_new(m_db);
+        page=page_new(m_db, 0);
         BFC_ASSERT_EQUAL(0, page_alloc(page, db_get_pagesize(m_db)));
 
         BFC_ASSERT_EQUAL(0, ham_log_append_flush_page(log, page));

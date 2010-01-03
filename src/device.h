@@ -112,6 +112,13 @@ struct ham_device_t {
             ham_offset_t offset, void *buffer, ham_size_t size);
 
     /*
+     * reads from the device; this function does not use mmap,
+     * the data is NOT run through the file filters
+     */
+    ham_status_t (*read_raw)(ham_device_t *self, 
+            ham_offset_t offset, void *buffer, ham_size_t size);
+
+    /*
      * writes to the device; this function does not use mmap,
      * the data is NOT run through the file filters
      */

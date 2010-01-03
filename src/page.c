@@ -200,22 +200,31 @@ page_remove_cursor(ham_page_t *page, ham_cursor_t *cursor)
 }
 
 ham_page_t *
-page_new(ham_db_t *db)
+page_new(ham_db_t *db, mem_allocator_t *alloc)
 {
     ham_page_t *page;
 
-    page=(ham_page_t *)ham_mem_calloc(db, sizeof(ham_page_t));
-    if (!page) {
-        db_set_error(db, HAM_OUT_OF_MEMORY);
-        return (0);
-    }
+    if (!alloc)
+        alloc=db_get_allocator(db);
 
-    page_set_owner(page, db);
-    /*
-	initialize the cache counter, 
-	see also cache_increment_page_counter() 
-	*/
-	page_set_cache_cntr(page, (db_get_cache(db) ? db_get_cache(db)->_timeslot++ : 0));
+    page=(ham_page_t *)allocator_alloc(alloc, sizeof(ham_page_t));
+    if (!page)
+        return (0);
+    memset(page, 0, sizeof(ham_page_t));
+
+    page_set_allocator(page, alloc);
+
+    if (db) {
+        page_set_owner(page, db);
+        page_set_device(page, db_get_device(db));
+
+        /*
+	     * initialize the cache counter, 
+	     * see also cache_increment_page_counter() 
+	     */
+	    page_set_cache_cntr(page, 
+            (db_get_cache(db) ? db_get_cache(db)->_timeslot++ : 0));
+    }
 
     return (page);
 }
@@ -223,37 +232,28 @@ page_new(ham_db_t *db)
 void
 page_delete(ham_page_t *page)
 {
-    ham_db_t *db=page_get_owner(page);
-
     ham_assert(page!=0, (0));
     ham_assert(page_get_refcount(page)==0, (0));
     ham_assert(page_get_pers(page)==0, (0));
     ham_assert(page_get_cursors(page)==0, (0));
 
-    ham_mem_free(db, page);
+    allocator_free(page_get_allocator(page), page);
 }
 
 ham_status_t
 page_alloc(ham_page_t *page, ham_size_t size)
 {
-    ham_status_t st;
-    ham_db_t *db=page_get_owner(page);
-    ham_device_t *dev=db_get_device(db);
+    ham_device_t *dev=page_get_device(page);
 
-	st=dev->alloc_page(dev, page, size);
-    if (st)
-        return (db_set_error(db, st));
-
-    return (HAM_SUCCESS);
+	return (dev->alloc_page(dev, page, size));
 }
 
 ham_status_t
 page_fetch(ham_page_t *page, ham_size_t size)
 {
-    ham_db_t *db=page_get_owner(page);
-    ham_device_t *dev=db_get_device(db);
+    ham_device_t *dev=page_get_device(page);
 
-    return (db_set_error(db, dev->read_page(dev, page, size)));
+	return (dev->read_page(dev, page, size));
 }
 
 ham_status_t
@@ -261,14 +261,15 @@ page_flush(ham_page_t *page)
 {
     ham_status_t st;
     ham_db_t *db=page_get_owner(page);
-    ham_device_t *dev=db_get_device(db);
+    ham_device_t *dev=page_get_device(page);
 
     if (!page_is_dirty(page))
         return (HAM_SUCCESS);
 
     ham_assert(page_get_refcount(page)==0, (""));
 
-    if (db_get_log(db) 
+    if (db
+            && db_get_log(db) 
             && !(log_get_state(db_get_log(db))&LOG_STATE_CHECKPOINT)) {
         st=ham_log_append_flush_page(db_get_log(db), page);
         if (st)
@@ -286,8 +287,7 @@ page_flush(ham_page_t *page)
 ham_status_t
 page_free(ham_page_t *page)
 {
-    ham_db_t *db=page_get_owner(page);
-    ham_device_t *dev=db_get_device(db);
+    ham_device_t *dev=page_get_device(page);
 
     ham_assert(page_get_cursors(page)==0, (0));
 

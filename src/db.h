@@ -269,9 +269,7 @@ typedef HAM_PACK_0 union HAM_PACK_1
 /*
  * get the currently active transaction
  */
-#define db_get_txn(db)             (db_get_env(db)                            \
-                                   ? env_get_txn(db_get_env(db))              \
-                                   : (db)->_txn)
+#define db_get_txn(db)             (env_get_txn(db_get_env(db)))
 
 /*
  * set the currently active transaction
@@ -407,9 +405,7 @@ struct ham_db_t
 /*
  * get the header page
  */
-#define db_get_header_page(db)         (db_get_env(db)                        \
-                                       ? env_get_header_page(db_get_env(db))  \
-                                       : (db)->_hdrpage)
+#define db_get_header_page(db)         (env_get_header_page(db_get_env(db)))
 
 /*
  * set the header page - not allowed when we have an environment!
@@ -523,9 +519,7 @@ struct ham_db_t
 /*
  * get the cache pointer
  */
-#define db_get_cache(db)               (db_get_env(db)                        \
-                                       ? env_get_cache(db_get_env(db))        \
-                                       : (db)->_cache)
+#define db_get_cache(db)               (env_get_cache(db_get_env(db)))
 
 /*
  * set the cache pointer - not allowed in an environment
@@ -844,7 +838,7 @@ db_flush_page(ham_db_t *db, ham_page_t *page, ham_u32_t flags);
  * be cleared
  */
 extern ham_status_t
-db_flush_all(ham_db_t *db, ham_u32_t flags);
+db_flush_all(ham_cache_t *cache, ham_u32_t flags);
 
 #define DB_FLUSH_NODELETE       1
 
@@ -900,6 +894,12 @@ db_resize_allocdata(ham_db_t *db, ham_size_t size);
  * an internal database flag - use mmap instead of read(2)
  */
 #define DB_USE_MMAP                  0x00000100
+
+/**
+ * an internal database flag - env handle is private
+ */
+#define DB_ENV_IS_PRIVATE            0x00080000
+
 
 #ifdef __cplusplus
 } // extern "C" {

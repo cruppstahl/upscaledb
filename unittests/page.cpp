@@ -51,40 +51,28 @@ protected:
 public:
     virtual void setup() 
 	{ 
+        ham_u32_t flags=0;
+
 		__super::setup();
 
-        ham_page_t *p;
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
-        BFC_ASSERT(0==ham_new(&m_db));
-        db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        BFC_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
-                        db_get_env(m_db), m_inmemory))!=0);
+        if (m_inmemory)
+            flags|=HAM_IN_MEMORY_DB;
         if (!m_usemmap)
-            m_dev->set_flags(m_dev, DEVICE_NO_MMAP);
-        BFC_ASSERT_EQUAL(0, m_dev->create(m_dev, BFC_OPATH(".test"), 0, 0644));
-        db_set_device(m_db, m_dev);
-        p=page_new(m_db);
-        BFC_ASSERT(0==page_alloc(p, device_get_pagesize(m_dev)));
-        db_set_header_page(m_db, p);
-        db_set_persistent_pagesize(m_db, m_dev->get_pagesize(m_dev));
-        db_set_pagesize(m_db, device_get_pagesize(m_dev));
+            flags|=HAM_DISABLE_MMAP;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
+        BFC_ASSERT((m_alloc=memtracker_new())!=0);
+        db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
+        BFC_ASSERT_EQUAL(0, 
+                ham_create_ex(m_db, BFC_OPATH(".test"), 
+                                flags, 0644, 0));
     }
     
     virtual void teardown() 
 	{ 
 		__super::teardown();
 
-        if (db_get_header_page(m_db)) {
-            page_free(db_get_header_page(m_db));
-            page_delete(db_get_header_page(m_db));
-            db_set_header_page(m_db, 0);
-        }
-        if (db_get_device(m_db)) {
-            if (db_get_device(m_db)->is_open(db_get_device(m_db)))
-                db_get_device(m_db)->close(db_get_device(m_db));
-            db_get_device(m_db)->destroy(db_get_device(m_db));
-            db_set_device(m_db, 0);
-        }
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
@@ -92,7 +80,7 @@ public:
     void newDeleteTest()
     {
         ham_page_t *page;
-        page=page_new(m_db);
+        page=page_new(m_db, 0);
         BFC_ASSERT(page!=0);
         page_delete(page);
     }
@@ -100,7 +88,7 @@ public:
     void allocFreeTest()
     {
         ham_page_t *page;
-        page=page_new(m_db);
+        page=page_new(m_db, 0);
         BFC_ASSERT(page_alloc(page, db_get_pagesize(m_db))==HAM_SUCCESS);
         BFC_ASSERT(page_free(page)==HAM_SUCCESS);
 
@@ -118,7 +106,7 @@ public:
         ham_size_t ps=os_get_pagesize();
 
         for (i=0; i<10; i++) {
-            page=page_new(m_db);
+            page=page_new(m_db, 0);
             BFC_ASSERT(page_alloc(page, db_get_pagesize(m_db))==0);
             if (!m_inmemory)
                 BFC_ASSERT(page_get_self(page)==(i+1)*ps);
@@ -132,8 +120,8 @@ public:
         ham_page_t *page, *temp;
         ham_size_t ps=os_get_pagesize();
 
-        page=page_new(m_db);
-        temp=page_new(m_db);
+        page=page_new(m_db, 0);
+        temp=page_new(m_db, 0);
         BFC_ASSERT(page_alloc(page, db_get_pagesize(m_db))==HAM_SUCCESS);
         BFC_ASSERT(page_get_self(page)==ps);
         BFC_ASSERT(page_free(page)==HAM_SUCCESS);

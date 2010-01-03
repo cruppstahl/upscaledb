@@ -47,6 +47,7 @@ public:
 
 protected:
     ham_db_t *m_db;
+    ham_env_t *m_env;
     memtracker_t *m_alloc;
 
 public:
@@ -55,9 +56,18 @@ public:
         __super::setup();
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
+
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        db_set_rt_flags(m_db, HAM_ENABLE_TRANSACTIONS);
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
+        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(m_env, BFC_OPATH(".test"), 
+                    HAM_ENABLE_RECOVERY|HAM_ENABLE_TRANSACTIONS, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_db(m_env, m_db, 13, 0, 0));
     }
     
     virtual void teardown() 
@@ -65,7 +75,9 @@ public:
         __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
         ham_delete(m_db);
+        ham_env_delete(m_env);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
@@ -113,7 +125,7 @@ public:
         ham_txn_t *txn;
         ham_page_t *page;
 
-        BFC_ASSERT((page=page_new(m_db))!=0);
+        BFC_ASSERT((page=page_new(m_db, 0))!=0);
         page_set_self(page, 0x12345);
 
         BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
@@ -124,7 +136,7 @@ public:
 
         BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
 
-        page_delete(page);
+        // page_delete(page); - will be deleted in ham_close()
     }
 
     void addPageAbortTest(void)
@@ -132,7 +144,7 @@ public:
         ham_txn_t *txn;
         ham_page_t *page;
 
-        BFC_ASSERT((page=page_new(m_db))!=0);
+        BFC_ASSERT((page=page_new(m_db, 0))!=0);
         page_set_self(page, 0x12345);
 
         BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
@@ -145,7 +157,7 @@ public:
 
         BFC_ASSERT(ham_txn_abort(txn, 0)==HAM_SUCCESS);
 
-        page_delete(page);
+        // page_delete(page); - will be deleted in ham_close()
     }
 
     void removePageTest(void)
@@ -153,7 +165,7 @@ public:
         ham_txn_t *txn;
         ham_page_t *page;
 
-        BFC_ASSERT((page=page_new(m_db))!=0);
+        BFC_ASSERT((page=page_new(m_db, 0))!=0);
         page_set_self(page, 0x12345);
 
         BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
@@ -164,16 +176,13 @@ public:
 
         BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
 
-        page_delete(page);
+        // page_delete(page); - will be deleted in ham_close()
     }
 
     void onlyOneTxnAllowedTest(void)
     {
         ham_txn_t *txn1;
         ham_txn_t *txn2;
-
-        BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS, 0644));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
         BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
@@ -241,11 +250,13 @@ public:
                     HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT(HAM_ENABLE_TRANSACTIONS&db_get_rt_flags(m_db));
         BFC_ASSERT(HAM_ENABLE_RECOVERY&db_get_rt_flags(m_db));
+        BFC_ASSERT(DB_ENV_IS_PRIVATE&db_get_rt_flags(m_db));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
         BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
         BFC_ASSERT(!(HAM_ENABLE_TRANSACTIONS&db_get_rt_flags(m_db)));
         BFC_ASSERT(!(HAM_ENABLE_RECOVERY&db_get_rt_flags(m_db)));
+        BFC_ASSERT(DB_ENV_IS_PRIVATE&db_get_rt_flags(m_db));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
@@ -254,9 +265,9 @@ public:
         ham_env_t *env;
 
         ham_env_new(&env);
-
         BFC_ASSERT_EQUAL(0, 
-                ham_env_create(env, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS, 0644));
+                ham_env_create(env, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT(HAM_ENABLE_TRANSACTIONS&env_get_rt_flags(env));
         BFC_ASSERT(HAM_ENABLE_RECOVERY&env_get_rt_flags(env));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
@@ -312,7 +323,8 @@ public:
         ::memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS, 0644));
+                ham_create(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_find(m_db, txn, &key, &rec, 0));
@@ -362,7 +374,8 @@ public:
         ham_new(&db2);
 
         BFC_ASSERT_EQUAL(0, 
-                ham_env_create(env, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS, 0644));
+                ham_env_create(env, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(0,
                 ham_env_create_db(env, db1, 1, 0, 0));
         BFC_ASSERT_EQUAL(0,
@@ -406,7 +419,8 @@ public:
         ham_new(&db2);
 
         BFC_ASSERT_EQUAL(0, 
-                ham_env_create(env, BFC_OPATH(".test"), HAM_ENABLE_TRANSACTIONS, 0644));
+                ham_env_create(env, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS, 0644));
         BFC_ASSERT_EQUAL(0,
                 ham_env_create_db(env, db1, 1, 0, 0));
         BFC_ASSERT_EQUAL(0,

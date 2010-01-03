@@ -34,7 +34,7 @@ class DbTest : public hamsterDB_fixture
 public:
     DbTest(bool inmemory=false, const char *name="DbTest")
     :   hamsterDB_fixture(name),
-        m_db(0), m_inmemory(inmemory), m_dev(0), m_alloc(0)
+        m_db(0), m_env(0), m_inmemory(inmemory), m_alloc(0)
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(DbTest, checkStructurePackingTest);
@@ -50,8 +50,8 @@ public:
 
 protected:
     ham_db_t *m_db;
+    ham_env_t *m_env;
     ham_bool_t m_inmemory;
-    ham_device_t *m_dev;
     memtracker_t *m_alloc;
 
 public:
@@ -59,41 +59,27 @@ public:
     { 
         __super::setup();
 
-        ham_page_t *p;
-        BFC_ASSERT(0==ham_new(&m_db));
-        m_alloc=memtracker_new(); //ham_default_allocator_new();
+        m_alloc=memtracker_new();
+        BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        BFC_ASSERT((m_dev=ham_device_new((mem_allocator_t *)m_alloc, 
-                        db_get_env(m_db), m_inmemory))!=0);
-        db_set_device(m_db, m_dev);
-        BFC_ASSERT_EQUAL(0, m_dev->create(m_dev, BFC_OPATH(".test"), 0, 0644));
-        p=page_new(m_db);
-        BFC_ASSERT(0==page_alloc(p, device_get_pagesize(m_dev)));
-        db_set_header_page(m_db, p);
-        db_set_persistent_pagesize(m_db, m_dev->get_pagesize(m_dev));
-        db_set_pagesize(m_db, device_get_pagesize(m_dev));
+        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(m_env, BFC_OPATH(".test"), 
+                        (m_inmemory ? HAM_IN_MEMORY_DB : 0), 0644));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_db(m_env, m_db, 13, 
+                        HAM_ENABLE_DUPLICATES, 0));
     }
     
     virtual void teardown() 
     { 
         __super::teardown();
 
-        if (db_get_header_page(m_db)) {
-            page_free(db_get_header_page(m_db));
-            page_delete(db_get_header_page(m_db));
-            db_set_header_page(m_db, 0);
-        }
-        if (db_get_cache(m_db)) {
-            cache_delete(m_db, db_get_cache(m_db));
-            db_set_cache(m_db, 0);
-        }
-        if (db_get_device(m_db)) {
-            if (db_get_device(m_db)->is_open(db_get_device(m_db)))
-                db_get_device(m_db)->close(db_get_device(m_db));
-            db_get_device(m_db)->destroy(db_get_device(m_db));
-            db_set_device(m_db, 0);
-        }
+        ham_env_close(m_env, 0);
+        ham_close(m_db, 0);
         ham_delete(m_db);
+        ham_env_delete(m_env);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
@@ -123,9 +109,7 @@ public:
 
         db_set_txn(m_db, (ham_txn_t *)13);
         BFC_ASSERT(db_get_txn(m_db)==(ham_txn_t *)13);
-
-        db_set_extkey_cache(m_db, (extkey_cache_t *)14);
-        BFC_ASSERT(db_get_extkey_cache(m_db)==(extkey_cache_t *)14);
+        db_set_txn(m_db, (ham_txn_t *)0);
     }
 
     void structureTest()
@@ -163,10 +147,7 @@ public:
         db_set_rt_flags(m_db, 20);
         BFC_ASSERT(db_get_rt_flags(m_db)==20);
 
-        BFC_ASSERT(db_get_env(m_db)==0);
-        db_set_env(m_db, (ham_env_t *)30);
-        BFC_ASSERT(db_get_env(m_db)==(ham_env_t *)30);
-        db_set_env(m_db, 0);
+        BFC_ASSERT(db_get_env(m_db)!=0);
 
         BFC_ASSERT(db_get_next(m_db)==0);
         db_set_next(m_db, (ham_db_t *)40);
@@ -189,25 +170,15 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         env_set_txn_id(env, 0x12345ull);
+        env_set_file_mode(env, 0666);
         env_set_device(env, (ham_device_t *)0x13);
         env_set_cache(env, (ham_cache_t *)0x14);
         env_set_txn(env, (ham_txn_t *)0x16);
         env_set_extkey_cache(env, (extkey_cache_t *)0x17);
         env_set_rt_flags(env, 0x18);
-        env_set_header_page(env, (ham_page_t *)0x19);
-        env_set_list(env, m_db);
 
-        db_set_env(m_db, env);
-
-        BFC_ASSERT_EQUAL((ham_page_t *)0x19, 
-                db_get_header_page(m_db));
-
-        BFC_ASSERT_EQUAL((ham_cache_t *)0x14, 
-                db_get_cache(m_db));
-
-        BFC_ASSERT_EQUAL((ham_u32_t)0x18, db_get_rt_flags(m_db));
-
-        BFC_ASSERT_EQUAL(env, db_get_env(m_db));
+        BFC_ASSERT_EQUAL((ham_cache_t *)0x14, env_get_cache(env));
+        /* TODO test other stuff! */
 
         env_set_device(env, 0);
         env_set_cache(env, 0);
@@ -216,7 +187,7 @@ public:
         env_set_rt_flags(env, 0x18);
         env_set_header_page(env, 0);
         env_set_list(env, 0);
-        db_set_env(m_db, 0);
+        env_set_header_page(env, (ham_page_t *)0);
         ham_env_delete(env);
     }
 
@@ -271,7 +242,6 @@ public:
         BFC_ASSERT((page=db_alloc_page(m_db, 0, PAGE_IGNORE_FREELIST))!=0);
         BFC_ASSERT(page_get_owner(page)==m_db);
         BFC_ASSERT(db_free_page(page, 0)==HAM_SUCCESS);
-        BFC_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
     }
 
     void fetchPageTest(void)
@@ -282,7 +252,6 @@ public:
         BFC_ASSERT((p2=db_fetch_page(m_db, page_get_self(p1), 0))!=0);
         BFC_ASSERT(page_get_self(p2)==page_get_self(p1));
         BFC_ASSERT(db_free_page(p1, 0)==HAM_SUCCESS);
-        BFC_ASSERT(db_free_page(p2, 0)==HAM_SUCCESS);
     }
 
     void flushPageTest(void)
@@ -290,10 +259,6 @@ public:
         ham_page_t *page;
         ham_offset_t address;
         ham_u8_t *p;
-
-        ham_cache_t *cache=cache_new(m_db, 15);
-        BFC_ASSERT(cache!=0);
-        db_set_cache(m_db, cache);
 
         BFC_ASSERT((page=db_alloc_page(m_db, 0, PAGE_IGNORE_FREELIST))!=0);
         BFC_ASSERT(page_get_owner(page)==m_db);
@@ -382,16 +347,12 @@ public:
         } hdrpage_pers = {{{0}}};
         ham_page_t hdrpage = {{0}};
         hdrpage._pers = (ham_perm_page_union_t *)&hdrpage_pers;
-        db_set_header_page(&db, &hdrpage);
-        ham_page_t *hp = db_get_header_page(&db);
-        BFC_ASSERT(hp == (ham_page_t *)&hdrpage);
+        ham_page_t *hp = &hdrpage;
         ham_u8_t *pl1 = page_get_payload(hp);
         BFC_ASSERT(pl1);
         BFC_ASSERT(compare_sizes(pl1 - (ham_u8_t *)hdrpage._pers, 12));
-        db_header_t *hdrptr = db_get_header(&db);
+        db_header_t *hdrptr = (db_header_t *)(page_get_payload(&hdrpage));
         BFC_ASSERT(compare_sizes(((ham_u8_t *)hdrptr) - (ham_u8_t *)hdrpage._pers, 12));
-        db_set_max_databases(&db, 71);
-        BFC_ASSERT(compare_sizes(SIZEOF_FULL_HEADER(&db), 20 + 71 * DB_INDEX_SIZE));
         BFC_ASSERT(compare_sizes(DB_INDEX_SIZE, 32));
     }
 

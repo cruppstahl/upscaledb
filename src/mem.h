@@ -104,6 +104,9 @@ ham_default_allocator_new(void);
 struct ham_db_t;
 extern void *ham_mem_calloc(struct ham_db_t *db, ham_size_t size);
 
+struct ham_env_t;
+extern void *ham_mem_calloc_env(struct ham_env_t *env, ham_size_t size);
+
 
 #ifdef __cplusplus
 } // extern "C"

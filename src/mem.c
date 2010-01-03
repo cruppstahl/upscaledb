@@ -118,3 +118,16 @@ ham_mem_calloc(ham_db_t *db, ham_size_t size)
     return (p);
 }
 
+void *
+ham_mem_calloc_env(ham_env_t *env, ham_size_t size)
+{
+    void *p;
+
+    p=allocator_alloc(env_get_allocator(env), size);
+    if (!p)
+        return (0);
+
+    memset(p, 0, size);
+    return (p);
+}
+

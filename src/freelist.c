@@ -63,25 +63,25 @@
 #define freel_set_allocated_bitsXX(fl, u)  freel_set_allocated_bits16(fl, u)
 #define freel_get_bitmapXX(fl)             freel_get_bitmap16(fl)
 
-#define __freel_lazy_createXX				__freel_lazy_create16
-#define __freel_destructorXX				__freel_destructor16
-#define __freel_alloc_areaXX				__freel_alloc_area16
-#define __freel_mark_freeXX					__freel_mark_free16
-#define __freel_check_area_is_allocatedXX	__freel_check_area_is_allocated16
-#define __freel_init_perf_dataXX			__freel_init_perf_data16
+#define __freel_lazy_createXX                __freel_lazy_create16
+#define __freel_destructorXX                __freel_destructor16
+#define __freel_alloc_areaXX                __freel_alloc_area16
+#define __freel_mark_freeXX                    __freel_mark_free16
+#define __freel_check_area_is_allocatedXX    __freel_check_area_is_allocated16
+#define __freel_init_perf_dataXX            __freel_init_perf_data16
 
-typedef ham_u16_t							ham_uXX_t;
+typedef ham_u16_t                            ham_uXX_t;
 
-#define __freel_alloc_pageXX				__freel_alloc_page16
+#define __freel_alloc_pageXX                __freel_alloc_page16
 
-#define __freel_get_freelist_entry_maxspan(db, cache)										__freel_get_freelist_entry_maxspan16(db, cache)
-#define __freel_cache_resize(db, cache, new_count)											__freel_cache_resize16(db, cache, new_count)
-#define __freel_cache_get_entry(db, cache, address)											__freel_cache_get_entry16(db, cache, address)
-#define __freel_set_bits(db, entry, fp, overwrite, start_bit, size_bits, set, mgt_mode)		__freel_set_bits16(db, entry, fp, overwrite, start_bit, size_bits, set, mgt_mode)
-#define __freel_search_bits_ex(db, entry, f, size_bits, hints)								__freel_search_bits_ex16(db, entry, f, size_bits, hints)
-#define __freel_locate_sufficient_free_space(dst, hints, db, cache, start_index)			__freel_locate_sufficient_free_space16(dst, hints, db, cache, start_index)
+#define __freel_get_freelist_entry_maxspan(db, cache)                                        __freel_get_freelist_entry_maxspan16(db, cache)
+#define __freel_cache_resize(db, cache, new_count)                                            __freel_cache_resize16(db, cache, new_count)
+#define __freel_cache_get_entry(db, cache, address)                                            __freel_cache_get_entry16(db, cache, address)
+#define __freel_set_bits(db, entry, fp, overwrite, start_bit, size_bits, set, mgt_mode)        __freel_set_bits16(db, entry, fp, overwrite, start_bit, size_bits, set, mgt_mode)
+#define __freel_search_bits_ex(db, entry, f, size_bits, hints)                                __freel_search_bits_ex16(db, entry, f, size_bits, hints)
+#define __freel_locate_sufficient_free_space(dst, hints, db, cache, start_index)            __freel_locate_sufficient_free_space16(dst, hints, db, cache, start_index)
 
-#define ham_assert_DAM(db)		ham_assert(db_is_mgt_mode_set(db_get_data_access_mode(db), HAM_DAM_ENFORCE_PRE110_FORMAT), (0))
+#define ham_assert_DAM(db)        ham_assert(db_is_mgt_mode_set(db_get_data_access_mode(db), HAM_DAM_ENFORCE_PRE110_FORMAT), (0))
 
 #else
 
@@ -92,25 +92,25 @@ typedef ham_u16_t							ham_uXX_t;
 #define freel_set_allocated_bitsXX(fl, u)  freel_set_allocated_bits32(fl, u)
 #define freel_get_bitmapXX(fl)             freel_get_bitmap32(fl)
 
-#define __freel_lazy_createXX				__freel_lazy_create32
-#define __freel_destructorXX				__freel_destructor32
-#define __freel_alloc_areaXX				__freel_alloc_area32
-#define __freel_mark_freeXX					__freel_mark_free32
-#define __freel_check_area_is_allocatedXX	__freel_check_area_is_allocated32
-#define __freel_init_perf_dataXX			__freel_init_perf_data32
+#define __freel_lazy_createXX                __freel_lazy_create32
+#define __freel_destructorXX                __freel_destructor32
+#define __freel_alloc_areaXX                __freel_alloc_area32
+#define __freel_mark_freeXX                    __freel_mark_free32
+#define __freel_check_area_is_allocatedXX    __freel_check_area_is_allocated32
+#define __freel_init_perf_dataXX            __freel_init_perf_data32
 
-typedef ham_u32_t							ham_uXX_t;
+typedef ham_u32_t                            ham_uXX_t;
 
-#define __freel_alloc_pageXX				__freel_alloc_page32
+#define __freel_alloc_pageXX                __freel_alloc_page32
 
-#define __freel_get_freelist_entry_maxspan(db, cache)										__freel_get_freelist_entry_maxspan32(db, cache)
-#define __freel_cache_resize(db, cache, new_count)											__freel_cache_resize32(db, cache, new_count)
-#define __freel_cache_get_entry(db, cache, address)											__freel_cache_get_entry32(db, cache, address)
-#define __freel_set_bits(db, entry, fp, overwrite, start_bit, size_bits, set, mgt_mode)		__freel_set_bits32(db, entry, fp, overwrite, start_bit, size_bits, set, mgt_mode)
-#define __freel_search_bits_ex(db, entry, f, size_bits, hints)								__freel_search_bits_ex32(db, entry, f, size_bits, hints)
-#define __freel_locate_sufficient_free_space(dst, hints, db, cache, start_index)			__freel_locate_sufficient_free_space32(dst, hints, db, cache, start_index)
+#define __freel_get_freelist_entry_maxspan(db, cache)                                        __freel_get_freelist_entry_maxspan32(db, cache)
+#define __freel_cache_resize(db, cache, new_count)                                            __freel_cache_resize32(db, cache, new_count)
+#define __freel_cache_get_entry(db, cache, address)                                            __freel_cache_get_entry32(db, cache, address)
+#define __freel_set_bits(db, entry, fp, overwrite, start_bit, size_bits, set, mgt_mode)        __freel_set_bits32(db, entry, fp, overwrite, start_bit, size_bits, set, mgt_mode)
+#define __freel_search_bits_ex(db, entry, f, size_bits, hints)                                __freel_search_bits_ex32(db, entry, f, size_bits, hints)
+#define __freel_locate_sufficient_free_space(dst, hints, db, cache, start_index)            __freel_locate_sufficient_free_space32(dst, hints, db, cache, start_index)
 
-#define ham_assert_DAM(db)		ham_assert(!db_is_mgt_mode_set(db_get_data_access_mode(db), HAM_DAM_ENFORCE_PRE110_FORMAT), (0))
+#define ham_assert_DAM(db)        ham_assert(!db_is_mgt_mode_set(db_get_data_access_mode(db), HAM_DAM_ENFORCE_PRE110_FORMAT), (0))
 
 #endif
 
@@ -159,22 +159,22 @@ have this span, which is a little less than DB_CHUNKSIZE * db_get_pagesize(db)
 static ham_size_t 
 __freel_get_freelist_entry_maxspan(ham_db_t *db, freelist_cache_t *cache)
 {
-	ham_uXX_t ret;
+    ham_uXX_t ret;
     ham_size_t size = db_get_usable_pagesize(db) - db_get_freelist_header_sizeXX();
-	ham_assert((size % sizeof(ham_u64_t)) == 0, ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) due to the scan algorithm"));
-	size -= size % sizeof(ham_u64_t);
+    ham_assert((size % sizeof(ham_u64_t)) == 0, ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) due to the scan algorithm"));
+    size -= size % sizeof(ham_u64_t);
 
-	ham_assert(size < (1ULL << 8*sizeof(((freelist_entry_t *)0)->_max_bits)), ("size must fit in the _max_bits type"));
-	ham_assert(size*8 < (1ULL << 8*sizeof(((freelist_entry_t *)0)->_max_bits)), ("size must fit in the _max_bits type"));
+    ham_assert(size < (1ULL << 8*sizeof(((freelist_entry_t *)0)->_max_bits)), ("size must fit in the _max_bits type"));
+    ham_assert(size*8 < (1ULL << 8*sizeof(((freelist_entry_t *)0)->_max_bits)), ("size must fit in the _max_bits type"));
 #if !defined(FORCE_UNITTEST_PASS)
-	ham_assert(size < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _max_bits type"));
-	ham_assert(size*8 < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _max_bits type"));
-	ham_assert(size < (1ULL << 8*sizeof(freel_get_max_bitsXX(((freelist_payload_t *)0)))), ("size must fit in the persistent _max_bits type"));
-	ham_assert(size*8 < (1ULL << 8*sizeof(freel_get_max_bitsXX(((freelist_payload_t *)0)))), ("size must fit in the persistent _max_bits type"));
+    ham_assert(size < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _max_bits type"));
+    ham_assert(size*8 < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _max_bits type"));
+    ham_assert(size < (1ULL << 8*sizeof(freel_get_max_bitsXX(((freelist_payload_t *)0)))), ("size must fit in the persistent _max_bits type"));
+    ham_assert(size*8 < (1ULL << 8*sizeof(freel_get_max_bitsXX(((freelist_payload_t *)0)))), ("size must fit in the persistent _max_bits type"));
 #endif
-	ret = (ham_uXX_t)(size*8);	/* this step is very important for pre-v1.1.0 databases as those have an integer overflow issue right here. */
+    ret = (ham_uXX_t)(size*8);    /* this step is very important for pre-v1.1.0 databases as those have an integer overflow issue right here. */
 
-	return (ham_size_t)ret;
+    return (ham_size_t)ret;
 }
 
 
@@ -205,9 +205,9 @@ __freel_cache_resize(ham_db_t *db, freelist_cache_t *cache,
         freel_entry_set_start_address(entry, 
                 freel_entry_get_start_address(&entries[i-1])+
                     freel_entry_get_max_bits(&entries[i-1])*DB_CHUNKSIZE);
-		ham_assert(size_bits < (1ULL << 8*sizeof(entry->_max_bits)), ("size must fit in the _max_bits type"));
+        ham_assert(size_bits < (1ULL << 8*sizeof(entry->_max_bits)), ("size must fit in the _max_bits type"));
 #if !defined(FORCE_UNITTEST_PASS)
-		ham_assert(size_bits < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _max_bits type"));
+        ham_assert(size_bits < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _max_bits type"));
 #endif
         freel_entry_set_max_bits(entry, (ham_uXX_t)(size_bits));
 
@@ -289,11 +289,11 @@ __freel_set_bits(ham_db_t *db, freelist_entry_t *entry,
 {
     ham_size_t i;
     ham_u8_t *p=freel_get_bitmapXX(fp);
-	ham_u64_t *p64=(ham_u64_t *)p;
+    ham_u64_t *p64=(ham_u64_t *)p;
 
-	ham_size_t qw_offset = start_bit & (64 - 1);
-	ham_size_t qw_start = (start_bit + 64 - 1) >> 6;	 /* ROUNDUP(S DIV 64) */
-	ham_size_t qw_end;
+    ham_size_t qw_offset = start_bit & (64 - 1);
+    ham_size_t qw_start = (start_bit + 64 - 1) >> 6;     /* ROUNDUP(S DIV 64) */
+    ham_size_t qw_end;
 
 //#if !defined(FORCE_UNITTEST_PASS) || 01
     ham_assert(start_bit<freel_get_max_bitsXX(fp), (""));
@@ -302,57 +302,57 @@ __freel_set_bits(ham_db_t *db, freelist_entry_t *entry,
     if (start_bit+size_bits>freel_get_max_bitsXX(fp))
         size_bits=freel_get_max_bitsXX(fp)-start_bit;
 
-	qw_end = (start_bit + size_bits) >> 6;    /* one past the last full QWORD */
+    qw_end = (start_bit + size_bits) >> 6;    /* one past the last full QWORD */
 
     db_update_freelist_stats_edit(db, entry, fp, start_bit, size_bits, set, mgt_mode);
 
     if (set) {
-		/*
-		Note: bits which are set here, may have been already SET before: this 
-		particular event happens when page space is freed during a transaction
-		rollback, where space might or might not yet be freed, but MUST be 
-		ensured to be freed after a record insert failure.
-		*/
-		if (qw_end <= qw_start)
-		{
-			for (i=0; i<size_bits; i++, start_bit++) 
-			{
-				p[start_bit>>3] |= 1 << (start_bit&(8-1));
-			}
-		}
-		else
-		{
-			ham_size_t n = size_bits;
+        /*
+        Note: bits which are set here, may have been already SET before: this 
+        particular event happens when page space is freed during a transaction
+        rollback, where space might or might not yet be freed, but MUST be 
+        ensured to be freed after a record insert failure.
+        */
+        if (qw_end <= qw_start)
+        {
+            for (i=0; i<size_bits; i++, start_bit++) 
+            {
+                p[start_bit>>3] |= 1 << (start_bit&(8-1));
+            }
+        }
+        else
+        {
+            ham_size_t n = size_bits;
 
-			p64 += qw_start;
-			
-			if (qw_offset)
-			{
-				p = (ham_u8_t *)&p64[-1];
+            p64 += qw_start;
+            
+            if (qw_offset)
+            {
+                p = (ham_u8_t *)&p64[-1];
 
-				for (i = qw_offset; i < 64; i++) 
-				{
-					p[i>>3] |= 1 << (i&(8-1));
-				}
-				
-				n -= 64 - qw_offset;
-			}
+                for (i = qw_offset; i < 64; i++) 
+                {
+                    p[i>>3] |= 1 << (i&(8-1));
+                }
+                
+                n -= 64 - qw_offset;
+            }
 
-			qw_end -= qw_start;
-			for (i = 0; i < qw_end; i++) 
-			{
-				p64[i] = 0xFFFFFFFFFFFFFFFFULL;
-			}
+            qw_end -= qw_start;
+            for (i = 0; i < qw_end; i++) 
+            {
+                p64[i] = 0xFFFFFFFFFFFFFFFFULL;
+            }
 
-			p = (ham_u8_t *)&p64[qw_end];
+            p = (ham_u8_t *)&p64[qw_end];
 
-			n -= qw_end << 6;
+            n -= qw_end << 6;
 
-			for (i = 0; i < n; i++) 
-			{
-				p[i>>3] |= 1 << (i&(8-1));
-			}
-		}
+            for (i = 0; i < n; i++) 
+            {
+                p[i>>3] |= 1 << (i&(8-1));
+            }
+        }
     }
     else {
 #ifdef HAM_DEBUG
@@ -362,46 +362,46 @@ __freel_set_bits(ham_db_t *db, freelist_entry_t *entry,
         }
 #endif
 
-		if (qw_end <= qw_start)
-		{
-			for (i=0; i<size_bits; i++, start_bit++) 
-			{
-				p[start_bit>>3] &= ~(1 << (start_bit&(8-1)));
-			}
-		}
-		else
-		{
-			ham_size_t n = size_bits;
+        if (qw_end <= qw_start)
+        {
+            for (i=0; i<size_bits; i++, start_bit++) 
+            {
+                p[start_bit>>3] &= ~(1 << (start_bit&(8-1)));
+            }
+        }
+        else
+        {
+            ham_size_t n = size_bits;
 
-			p64 += qw_start;
+            p64 += qw_start;
 
-			if (qw_offset)
-			{
-				p = (ham_u8_t *)&p64[-1];
+            if (qw_offset)
+            {
+                p = (ham_u8_t *)&p64[-1];
 
-				for (i = qw_offset; i < 64; i++) 
-				{
-					p[i>>3] &= ~(1 << (i&(8-1)));
-				}
+                for (i = qw_offset; i < 64; i++) 
+                {
+                    p[i>>3] &= ~(1 << (i&(8-1)));
+                }
 
-				n -= 64 - qw_offset;
-			}
+                n -= 64 - qw_offset;
+            }
 
-			qw_end -= qw_start;
-			for (i = 0; i < qw_end; i++) 
-			{
-				p64[i] = 0;
-			}
+            qw_end -= qw_start;
+            for (i = 0; i < qw_end; i++) 
+            {
+                p64[i] = 0;
+            }
 
-			p = (ham_u8_t *)&p64[qw_end];
+            p = (ham_u8_t *)&p64[qw_end];
 
-			n -= qw_end << 6;
+            n -= qw_end << 6;
 
-			for (i = 0; i < n; i++) 
-			{
-				p[i>>3] &= ~(1 << (i&(8-1)));
-			}
-		}
+            for (i = 0; i < n; i++) 
+            {
+                p[i>>3] &= ~(1 << (i&(8-1)));
+            }
+        }
     }
 
     return size_bits;
@@ -760,7 +760,7 @@ __freel_set_bits(ham_db_t *db, freelist_entry_t *entry,
 static __inline ham_u32_t 
 BITSCAN_MSBit(ham_u64_t v, ham_u32_t pos)
 {
-	register ham_s64_t value = (ham_s64_t)v;
+    register ham_s64_t value = (ham_s64_t)v;
 
     /*
      * test top bit by checking two's complement sign.
@@ -769,17 +769,17 @@ BITSCAN_MSBit(ham_u64_t v, ham_u32_t pos)
      * rounds inside the BM freelist bitarray scans.
      */
     while (value < 0)
-	{
+    {
         pos--;
-		value <<= 1;
-	}
-	return pos;
+        value <<= 1;
+    }
+    return pos;
 }
 
 static __inline ham_u32_t 
 BITSCAN_MSBit8(ham_u8_t v, ham_u32_t pos)
 {
-	register ham_s8_t value = (ham_s8_t)v;
+    register ham_s8_t value = (ham_s8_t)v;
 
     /*
      * test top bit by checking two's complement sign.
@@ -788,11 +788,11 @@ BITSCAN_MSBit8(ham_u8_t v, ham_u32_t pos)
      * rounds inside the BM freelist bitarray scans.
      */
     while (value < 0)
-	{
+    {
         pos--;
-		value <<= 1;
-	}
-	return pos;
+        value <<= 1;
+    }
+    return pos;
 }
 
 /*
@@ -802,7 +802,7 @@ BITSCAN_MSBit8(ham_u8_t v, ham_u32_t pos)
 static __inline ham_u32_t 
 BITSCAN_LSBit(ham_u64_t v, ham_u32_t pos)
 {
-	register ham_u64_t value = v;
+    register ham_u64_t value = v;
 
     /*
      * test bottom bit.
@@ -811,16 +811,16 @@ BITSCAN_LSBit(ham_u64_t v, ham_u32_t pos)
      * rounds inside the BM freelist bitarray scans.
      */
     while (value & 0x01)
-	{
+    {
         pos++;
-		value >>= 1;
-	}
-	return pos;
+        value >>= 1;
+    }
+    return pos;
 }
 static __inline ham_u32_t 
 BITSCAN_LSBit8(ham_u8_t v, ham_u32_t pos)
 {
-	register ham_u8_t value = v;
+    register ham_u8_t value = v;
 
     /*
      * test bottom bit.
@@ -829,11 +829,11 @@ BITSCAN_LSBit8(ham_u8_t v, ham_u32_t pos)
      * rounds inside the BM freelist bitarray scans.
      */
     while (value & 0x01)
-	{
+    {
         pos++;
-		value >>= 1;
-	}
-	return pos;
+        value >>= 1;
+    }
+    return pos;
 }
 
 
@@ -841,29 +841,29 @@ BITSCAN_LSBit8(ham_u8_t v, ham_u32_t pos)
 
 static ham_s32_t
 __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
-					freelist_payload_t *f, ham_size_t size_bits,
-					freelist_hints_t *hints)
+                    freelist_payload_t *f, ham_size_t size_bits,
+                    freelist_hints_t *hints)
 {
-	ham_u32_t end;
+    ham_u32_t end;
     ham_u64_t *p64=(ham_u64_t *)freel_get_bitmapXX(f);
-	ham_u32_t start;
-	ham_u32_t min_slice_width;
+    ham_u32_t start;
+    ham_u32_t min_slice_width;
 
-	ham_assert(hints->cost == 1, (0));
-	start = hints->startpos;
-	end = hints->endpos;
-	min_slice_width = hints->skip_distance;
-	//mgt_mode = hints->mgt_mode;
+    ham_assert(hints->cost == 1, (0));
+    start = hints->startpos;
+    end = hints->endpos;
+    min_slice_width = hints->skip_distance;
+    //mgt_mode = hints->mgt_mode;
 
     /* as freelist pages are created, they should span a multiple of
      * 64(=QWORD bits) DB_CHUNKS! */
-	ham_assert(end <= freel_get_max_bitsXX(f), (0));
-	ham_assert(freel_get_max_bitsXX(f) % 64 == 0, (0));
+    ham_assert(end <= freel_get_max_bitsXX(f), (0));
+    ham_assert(freel_get_max_bitsXX(f) % 64 == 0, (0));
 
-	/* sanity checks */
-	ham_assert(end > start, (0));
-	ham_assert(min_slice_width > 0, (0));
-	ham_assert(freel_get_max_bitsXX(f) >= freel_get_allocated_bitsXX(f), (0));
+    /* sanity checks */
+    ham_assert(end > start, (0));
+    ham_assert(min_slice_width > 0, (0));
+    ham_assert(freel_get_max_bitsXX(f) >= freel_get_allocated_bitsXX(f), (0));
 
     /*
      * start-of-scan speedups:
@@ -888,33 +888,33 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
      * larger than this number.
      */
 
-	ham_assert(size_bits <= freel_get_max_bitsXX(f), (0));
+    ham_assert(size_bits <= freel_get_max_bitsXX(f), (0));
 
-	/* #2 */
-	ham_assert(size_bits <= freel_entry_get_allocated_bits(entry), (0));
-	ham_assert(size_bits <= freel_get_allocated_bitsXX(f), (0));
+    /* #2 */
+    ham_assert(size_bits <= freel_entry_get_allocated_bits(entry), (0));
+    ham_assert(size_bits <= freel_get_allocated_bitsXX(f), (0));
 
-	/* #3: get a hint where to start searching for free space: DONE ALREADY */
+    /* #3: get a hint where to start searching for free space: DONE ALREADY */
 
     /*
      * make sure the starting point is a valid sample spot. Also, it's
      * no use to go looking when we won't have a chance for a hit
      * anyway.
      */
-	if (start + size_bits > end)
-	{
-		db_update_freelist_stats_fail(db, entry, f, hints);
-		return (-1);
-	}
+    if (start + size_bits > end)
+    {
+        db_update_freelist_stats_fail(db, entry, f, hints);
+        return (-1);
+    }
 
-	/* determine the first aligned starting point: */
-	if (hints->aligned)
-	{
-		ham_u32_t chunked_pagesize = db_get_pagesize(db) / DB_CHUNKSIZE;
-		ham_u32_t offset = (ham_u32_t)(freel_get_start_address(f) / DB_CHUNKSIZE);
-		offset %= chunked_pagesize;
-		offset = chunked_pagesize - offset;
-		offset %= chunked_pagesize;
+    /* determine the first aligned starting point: */
+    if (hints->aligned)
+    {
+        ham_u32_t chunked_pagesize = db_get_pagesize(db) / DB_CHUNKSIZE;
+        ham_u32_t offset = (ham_u32_t)(freel_get_start_address(f) / DB_CHUNKSIZE);
+        offset %= chunked_pagesize;
+        offset = chunked_pagesize - offset;
+        offset %= chunked_pagesize;
 
         /*
          * now calculate the aligned start position
@@ -922,17 +922,17 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
          * as freelist pages are created, they should span a multiple
          * of 64 DB_CHUNKS!
          */
-		if (start < offset)
-		{
-			start = offset;
-		}
-		else
-		{
-			start -= offset;
-			start += chunked_pagesize - 1;
-			start -= start % chunked_pagesize;
-			start += offset;
-		}
+        if (start < offset)
+        {
+            start = offset;
+        }
+        else
+        {
+            start -= offset;
+            start += chunked_pagesize - 1;
+            start -= start % chunked_pagesize;
+            start += offset;
+        }
 
         /*
          * align 'end' as well: no use scanning further than that one.
@@ -959,35 +959,35 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
          * that's done as well, we shift 'end' back up by offset,
          * putting it back where it should be.
          */
-		ham_assert(end >= offset, (0));
-		end -= offset;
-		end -= end % chunked_pagesize; /* round DOWN to boundary */
-		end += offset;
+        ham_assert(end >= offset, (0));
+        end -= offset;
+        end -= end % chunked_pagesize; /* round DOWN to boundary */
+        end += offset;
 
         /*
          * adjust minimum step size also: it's no use scanning the
          * non-aligned spots after all
          */
-		min_slice_width += chunked_pagesize - 1;
-		min_slice_width -= min_slice_width % chunked_pagesize;
+        min_slice_width += chunked_pagesize - 1;
+        min_slice_width -= min_slice_width % chunked_pagesize;
 
         /*
          * make sure the starting point is a valid sample spot:
          * since we aligned start & end, they may now be identical:
          * no space here then...
          */
-		ham_assert(start <= end, (0));
+        ham_assert(start <= end, (0));
         /*
          * Also, it's no use to go looking when we won't have a chance
          * for a hit anyway.
          */
-		if (start + size_bits > end)
-		{
-			db_update_freelist_stats_fail(db, entry, f, hints);
-			return (-1);
-		}
-	}
-	ham_assert(start < end, (0));
+        if (start + size_bits > end)
+        {
+            db_update_freelist_stats_fail(db, entry, f, hints);
+            return (-1);
+        }
+    }
+    ham_assert(start < end, (0));
 
     /*
      * in order to cut down on the number of overlapping tests, we
@@ -1012,610 +1012,610 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
      * and as 'min_slice_width' is a rounded-up value, we'd better
      * check with the original: 'size_bits'
      */
-	if (hints->aligned)
-	{
-		if (start % 64 == 0 && end % 64 == 0)
-		{
-			/*
-			The alignment is a QWORD(64)*CHUNKSIZE(32) multiple (= 2K),
-			so we'll be able to scan the freelist using QWORDs only, which is fastest.
-			*/
+    if (hints->aligned)
+    {
+        if (start % 64 == 0 && end % 64 == 0)
+        {
+            /*
+            The alignment is a QWORD(64)*CHUNKSIZE(32) multiple (= 2K),
+            so we'll be able to scan the freelist using QWORDs only, which is fastest.
+            */
 
-			/* probing START positions */
-			ham_u32_t bm_l = start / 64;
-			ham_u32_t min_slice_width64 = (min_slice_width + 64 - 1) / 64;
-			ham_u32_t bm_r = end / 64 - min_slice_width64 + 1; /* EXCLUSIVE upper bound */
+            /* probing START positions */
+            ham_u32_t bm_l = start / 64;
+            ham_u32_t min_slice_width64 = (min_slice_width + 64 - 1) / 64;
+            ham_u32_t bm_r = end / 64 - min_slice_width64 + 1; /* EXCLUSIVE upper bound */
 
-			/*
-			 * 'mgt_mode' determines how we do our initial BM skip loop
-			 * scan:
-			 * do we use a bsearch to find the first probably free slot or
-			 * not?
-			 *
-			 * perform the bsearch on a QWORD level only.
-			 *
-			 * reduced the scan space to end-size+1: since BM scans using a
-			 * skiploop, the last sample should not occur at offset [end],
-			 * but at offset [end-size]
-			 */
-			switch (hints->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
-								| HAM_DAM_RANDOM_WRITE
-								| HAM_DAM_FAST_INSERT))
-			{
-			default:
-			case HAM_DAM_SEQUENTIAL_INSERT:
-			case HAM_DAM_RANDOM_WRITE:
-				/*
-				 * we know which start positions are viable; we only
-				 * inspect those.
-				 *
-				 * Besides, we assume ALIGNED searches require 1 all-1s
-				 * qword at least; this improves our skipscan here.
-				 */
-				for (;;)
-				{
-					hints->cost++;
+            /*
+             * 'mgt_mode' determines how we do our initial BM skip loop
+             * scan:
+             * do we use a bsearch to find the first probably free slot or
+             * not?
+             *
+             * perform the bsearch on a QWORD level only.
+             *
+             * reduced the scan space to end-size+1: since BM scans using a
+             * skiploop, the last sample should not occur at offset [end],
+             * but at offset [end-size]
+             */
+            switch (hints->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
+                                | HAM_DAM_RANDOM_WRITE
+                                | HAM_DAM_FAST_INSERT))
+            {
+            default:
+            case HAM_DAM_SEQUENTIAL_INSERT:
+            case HAM_DAM_RANDOM_WRITE:
+                /*
+                 * we know which start positions are viable; we only
+                 * inspect those.
+                 *
+                 * Besides, we assume ALIGNED searches require 1 all-1s
+                 * qword at least; this improves our skipscan here.
+                 */
+                for (;;)
+                {
+                    hints->cost++;
 
-					if (p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL)
-					{
-						/*
-						 * BM: a hit: see if we have a sufficiently large
-						 * free zone here
-						 */
-						break;
-					}
-					else
-					{
-						/* BM: a miss: skip to next opportunity sequentially */
-						bm_l += min_slice_width64;
-						if (bm_l >= bm_r)
-						{
-							/* report our failure to find a free slot */
-							db_update_freelist_stats_fail(db, entry, f, hints);
-							return (-1);
-						}
-					}
-				}
-				break;
+                    if (p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL)
+                    {
+                        /*
+                         * BM: a hit: see if we have a sufficiently large
+                         * free zone here
+                         */
+                        break;
+                    }
+                    else
+                    {
+                        /* BM: a miss: skip to next opportunity sequentially */
+                        bm_l += min_slice_width64;
+                        if (bm_l >= bm_r)
+                        {
+                            /* report our failure to find a free slot */
+                            db_update_freelist_stats_fail(db, entry, f, hints);
+                            return (-1);
+                        }
+                    }
+                }
+                break;
 
-			case HAM_DAM_FAST_INSERT:
-			case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
-			case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
-				{
-					/* l & r: INCLUSIVE + EXCLUSIVE boundary */
-					ham_u32_t l = bm_l;
-					ham_u32_t r = bm_r;
+            case HAM_DAM_FAST_INSERT:
+            case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
+            case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
+                {
+                    /* l & r: INCLUSIVE + EXCLUSIVE boundary */
+                    ham_u32_t l = bm_l;
+                    ham_u32_t r = bm_r;
 
-					/*
-					 * bsearch: we're looking for the lowest '1' position;
-					 * assume the search space is ordered in ASCENDING
-					 * order.
-					 *
-					 * It does not worry us the range is NOT sorted: the
-					 * bsearch will APPROXIMATE finding the lowest free slot
-					 * position and that is good enough for us today.
-					 */
-					for(;;)
-					{
-						ham_u32_t m = (l+r+1) / 2;
+                    /*
+                     * bsearch: we're looking for the lowest '1' position;
+                     * assume the search space is ordered in ASCENDING
+                     * order.
+                     *
+                     * It does not worry us the range is NOT sorted: the
+                     * bsearch will APPROXIMATE finding the lowest free slot
+                     * position and that is good enough for us today.
+                     */
+                    for(;;)
+                    {
+                        ham_u32_t m = (l+r+1) / 2;
 
-						hints->cost++;
-			
-						if (p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL)
-						{
-							/* a hit; search lower range: */
-							if (m == l)
-							{
-								/* report our lowest position now: 'l' */
-								break;
-							}
-							/* since we decrement by min_slice_width64 instead of 1, we need to take a bit of care here */
-							if (m < l + min_slice_width64)
-							{
-								r = l;
-								if (p64[l] == 0xFFFFFFFFFFFFFFFFULL)
-								{
-									/* a hit; report our lowest position now: 'l' */
-									break;
-								}
-								else
-								{
-									/* not a hit; report our previous hit: m */
-									l = m;
-									break;
-								}
-							}
-							else
-							{
-								r = m - min_slice_width64;
-							}
-						}
-						else
-						{
-							/* no hit; search upper range: */
-							if (m == r || m + min_slice_width64 > r)
-							{
-								/*
-								 * we MAY have a previous hit pending...
-								 * reconstruct the last HIT [m] index:
-								 */
-								r += min_slice_width64;
-								if (r < bm_r)
-								{
-									l = r;
-									ham_assert(p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL, (0));
-									break;
-								}
-								/* report our definite failure to locate a slot: */
-								db_update_freelist_stats_fail(db, entry, f, hints);
-								return (-1);
-							}
-							l = m + min_slice_width64;
-						}
-					}
-				}
-				break;
-			}
+                        hints->cost++;
+            
+                        if (p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL)
+                        {
+                            /* a hit; search lower range: */
+                            if (m == l)
+                            {
+                                /* report our lowest position now: 'l' */
+                                break;
+                            }
+                            /* since we decrement by min_slice_width64 instead of 1, we need to take a bit of care here */
+                            if (m < l + min_slice_width64)
+                            {
+                                r = l;
+                                if (p64[l] == 0xFFFFFFFFFFFFFFFFULL)
+                                {
+                                    /* a hit; report our lowest position now: 'l' */
+                                    break;
+                                }
+                                else
+                                {
+                                    /* not a hit; report our previous hit: m */
+                                    l = m;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                r = m - min_slice_width64;
+                            }
+                        }
+                        else
+                        {
+                            /* no hit; search upper range: */
+                            if (m == r || m + min_slice_width64 > r)
+                            {
+                                /*
+                                 * we MAY have a previous hit pending...
+                                 * reconstruct the last HIT [m] index:
+                                 */
+                                r += min_slice_width64;
+                                if (r < bm_r)
+                                {
+                                    l = r;
+                                    ham_assert(p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL, (0));
+                                    break;
+                                }
+                                /* report our definite failure to locate a slot: */
+                                db_update_freelist_stats_fail(db, entry, f, hints);
+                                return (-1);
+                            }
+                            l = m + min_slice_width64;
+                        }
+                    }
+                }
+                break;
+            }
 
-			/* BM search with a startup twist already done */
-			for (;;)
-			{
-				ham_assert(p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL, (0));
+            /* BM search with a startup twist already done */
+            for (;;)
+            {
+                ham_assert(p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL, (0));
 
-				hints->cost++;
+                hints->cost++;
 
-				/*
-				 * We also assume such aligned scans require all-1s qwords
-				 * EXCLUSIVELY, i.e. no dangling bit tail for these, my
-				 * friend. Just all-1s qwords all the way.
-				 *
-				 * we already know we're at the STARTING spot of this one:
-				 * in our case it's just a forward scan, maybe with a
-				 * little guard check, is all we're gonna need.
-				 *
-				 * However, since we happen to know the SIZE we're looking
-				 * for is rather large, we perform a PRE-SCAN by binary
-				 * searching the forward
-				 * range (no need to scan backwards: we've been there in a
-				 * previous round if there was anything interesting in
-				 * there).
-				 *
-				 * To help the multi-level guard check succeed, we have to
-				 * assume a few things:
-				 *
-				 * we know the START. It is fixed. So all we need to do is
-				 * to find a '0' bit in the pre-scan of the SIZE range and
-				 * we can be assured the current zone is toast.
-				 *
-				 * We assume in this locality: the '0' bit in there is most
-				 * probably located near the start of the range, if any.
-				 *
-				 * the guard check only remotely looks like a bsearch: it
-				 * starts at START and then divides the space in 2 on every
-				 * round, until the END marker is hit. Any '0' bit in the
-				 * inspected qwords will trigger a FAIL for this zone.
-				 */
-				if (min_slice_width64 > SIMPLE_SCAN_THRESHOLD)
-				{
-					ham_u32_t l = bm_l + 1; /* we have checked the START qword already */
-					ham_u32_t r = l + min_slice_width64 - 1; /* EXCLUSIVE upper bound */
-					while (l < r)
-					{
-						hints->cost++;
+                /*
+                 * We also assume such aligned scans require all-1s qwords
+                 * EXCLUSIVELY, i.e. no dangling bit tail for these, my
+                 * friend. Just all-1s qwords all the way.
+                 *
+                 * we already know we're at the STARTING spot of this one:
+                 * in our case it's just a forward scan, maybe with a
+                 * little guard check, is all we're gonna need.
+                 *
+                 * However, since we happen to know the SIZE we're looking
+                 * for is rather large, we perform a PRE-SCAN by binary
+                 * searching the forward
+                 * range (no need to scan backwards: we've been there in a
+                 * previous round if there was anything interesting in
+                 * there).
+                 *
+                 * To help the multi-level guard check succeed, we have to
+                 * assume a few things:
+                 *
+                 * we know the START. It is fixed. So all we need to do is
+                 * to find a '0' bit in the pre-scan of the SIZE range and
+                 * we can be assured the current zone is toast.
+                 *
+                 * We assume in this locality: the '0' bit in there is most
+                 * probably located near the start of the range, if any.
+                 *
+                 * the guard check only remotely looks like a bsearch: it
+                 * starts at START and then divides the space in 2 on every
+                 * round, until the END marker is hit. Any '0' bit in the
+                 * inspected qwords will trigger a FAIL for this zone.
+                 */
+                if (min_slice_width64 > SIMPLE_SCAN_THRESHOLD)
+                {
+                    ham_u32_t l = bm_l + 1; /* we have checked the START qword already */
+                    ham_u32_t r = l + min_slice_width64 - 1; /* EXCLUSIVE upper bound */
+                    while (l < r)
+                    {
+                        hints->cost++;
 
-						if (p64[l] != 0xFFFFFFFFFFFFFFFFULL)
-							break;
-						/* make sure we get at l==r at some point: */
-						l = (l + r + 1) / 2;
-					}
-					if (l == r)
-					{
-						/*
-						 * all guard checks have passed.
-						 *
-						 * WARNING: note that due to the way the guard
-						 * check loop was coded, we are now SURE the initial
-						 * QWORD
-						 * _and_ last QWORD are all-1s at least, so we
-						 * don't have to linear-scan those again.
-						 */
+                        if (p64[l] != 0xFFFFFFFFFFFFFFFFULL)
+                            break;
+                        /* make sure we get at l==r at some point: */
+                        l = (l + r + 1) / 2;
+                    }
+                    if (l == r)
+                    {
+                        /*
+                         * all guard checks have passed.
+                         *
+                         * WARNING: note that due to the way the guard
+                         * check loop was coded, we are now SURE the initial
+                         * QWORD
+                         * _and_ last QWORD are all-1s at least, so we
+                         * don't have to linear-scan those again.
+                         */
 
-						/* linear forward validation scan */
-						r--; /* topmost all-1s qword of the acceptable range + 1 */
-						l = bm_l + 1; /* skip first qword */
+                        /* linear forward validation scan */
+                        r--; /* topmost all-1s qword of the acceptable range + 1 */
+                        l = bm_l + 1; /* skip first qword */
 
-						for ( ; l < r; l++)
-						{
-							hints->cost++;
+                        for ( ; l < r; l++)
+                        {
+                            hints->cost++;
 
-							if (p64[l] != 0xFFFFFFFFFFFFFFFFULL)
-								break;
-						}
-						if (r == l)
-						{
-							/* a perfect hit: report this one as a match! */
-							db_update_freelist_stats(db, entry, f, bm_l * 64, hints);
-							return bm_l * 64;
-						}
-					}
-				}
-				else
-				{
-					/*
-					 * simple scan only: tiny range
-					 *
-					 * Nevertheless, we also have checked our first QWORD,
-					 * so we can skip that one
-					 */
-					ham_u32_t l = bm_l + 1; /* we have checked the START qword already */
-					ham_u32_t r = l + min_slice_width64 - 1; /* EXCLUSIVE upper bound */
+                            if (p64[l] != 0xFFFFFFFFFFFFFFFFULL)
+                                break;
+                        }
+                        if (r == l)
+                        {
+                            /* a perfect hit: report this one as a match! */
+                            db_update_freelist_stats(db, entry, f, bm_l * 64, hints);
+                            return bm_l * 64;
+                        }
+                    }
+                }
+                else
+                {
+                    /*
+                     * simple scan only: tiny range
+                     *
+                     * Nevertheless, we also have checked our first QWORD,
+                     * so we can skip that one
+                     */
+                    ham_u32_t l = bm_l + 1; /* we have checked the START qword already */
+                    ham_u32_t r = l + min_slice_width64 - 1; /* EXCLUSIVE upper bound */
 
-					/* linear forward validation scan */
-					for ( ; l < r; l++)
-					{
-						hints->cost++;
+                    /* linear forward validation scan */
+                    for ( ; l < r; l++)
+                    {
+                        hints->cost++;
 
-						if (p64[l] != 0xFFFFFFFFFFFFFFFFULL)
-							break;
-					}
-					if (r == l)
-					{
-						/* a perfect hit: report this one as a match! */
-						db_update_freelist_stats(db, entry, f, bm_l * 64, hints);
-						return bm_l * 64;
-					}
-				}
+                        if (p64[l] != 0xFFFFFFFFFFFFFFFFULL)
+                            break;
+                    }
+                    if (r == l)
+                    {
+                        /* a perfect hit: report this one as a match! */
+                        db_update_freelist_stats(db, entry, f, bm_l * 64, hints);
+                        return bm_l * 64;
+                    }
+                }
 
-				/*
-				 * when we get here, we've failed the inner sequence
-				 * validation of an aligned search; all we can do now is try
-				 * again at the next aligned scan location.
-				 *
-				 * This is the simplest post-backtrack skip of the bunch,
-				 * Sunday/Hume-wise, but nothing improves upon this (unless
-				 * we were scanning a size span in there which would've been
-				 * larger than the skip step here, and that NEVER happens
-				 * thanks to our prep work at the start of this function.
-				 */
-				bm_l += min_slice_width64;
+                /*
+                 * when we get here, we've failed the inner sequence
+                 * validation of an aligned search; all we can do now is try
+                 * again at the next aligned scan location.
+                 *
+                 * This is the simplest post-backtrack skip of the bunch,
+                 * Sunday/Hume-wise, but nothing improves upon this (unless
+                 * we were scanning a size span in there which would've been
+                 * larger than the skip step here, and that NEVER happens
+                 * thanks to our prep work at the start of this function.
+                 */
+                bm_l += min_slice_width64;
 
-				/*
-				 * we know which start positions are viable; we only
-				 * inspect those.
-				 *
-				 * Besides, we assume ALIGNED searches require 1 all-1s
-				 * qword at least; this improves our skipscan here.
-				 */
-				for (;;)
-				{
-					hints->cost++;
+                /*
+                 * we know which start positions are viable; we only
+                 * inspect those.
+                 *
+                 * Besides, we assume ALIGNED searches require 1 all-1s
+                 * qword at least; this improves our skipscan here.
+                 */
+                for (;;)
+                {
+                    hints->cost++;
 
-					if (p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL)
-					{
-						/*
-						 * BM: a hit: see if we have a sufficiently large
-						 * free zone here
-						 */
-						break;
-					}
-					else
-					{
-						/* BM: a miss: skip to next opportunity sequentially */
-						bm_l += min_slice_width64;
-						if (bm_l >= bm_r)
-						{
-							/* report our failure to find a free slot */
-							db_update_freelist_stats_fail(db, entry, f, hints);
-							return (-1);
-						}
-					}
-				}
-			}
-		}
-		else
-		{
-			/*
-			The alignment is NOT a QWORD(64)*CHUNKSIZE(32) multiple (= 2K),
-			so we'll have to contend ourselves with a BYTE-based scan instead,
-			which would mean our minimum allowed alignment would be 
-			BYTE(8)*CHUNKSIZE(32) == 256 bytes alignment.
-			*/
-			ham_u8_t *p8=(ham_u8_t *)p64;
+                    if (p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL)
+                    {
+                        /*
+                         * BM: a hit: see if we have a sufficiently large
+                         * free zone here
+                         */
+                        break;
+                    }
+                    else
+                    {
+                        /* BM: a miss: skip to next opportunity sequentially */
+                        bm_l += min_slice_width64;
+                        if (bm_l >= bm_r)
+                        {
+                            /* report our failure to find a free slot */
+                            db_update_freelist_stats_fail(db, entry, f, hints);
+                            return (-1);
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            /*
+            The alignment is NOT a QWORD(64)*CHUNKSIZE(32) multiple (= 2K),
+            so we'll have to contend ourselves with a BYTE-based scan instead,
+            which would mean our minimum allowed alignment would be 
+            BYTE(8)*CHUNKSIZE(32) == 256 bytes alignment.
+            */
+            ham_u8_t *p8=(ham_u8_t *)p64;
 
-			/* probing START positions */
-			ham_u32_t bm_l = start / 8;
-			ham_u32_t min_slice_width8 = (min_slice_width + 8 - 1) / 8;
-			ham_u32_t bm_r = end / 8 - min_slice_width8 + 1; /* EXCLUSIVE upper bound */
+            /* probing START positions */
+            ham_u32_t bm_l = start / 8;
+            ham_u32_t min_slice_width8 = (min_slice_width + 8 - 1) / 8;
+            ham_u32_t bm_r = end / 8 - min_slice_width8 + 1; /* EXCLUSIVE upper bound */
 
-			/*
-			* 'mgt_mode' determines how we do our initial BM skip loop
-			* scan:
-			* do we use a bsearch to find the first probably free slot or
-			* not?
-			*
-			* perform the bsearch on a BYTE level only.
-			*
-			* reduced the scan space to end-size+1: since BM scans using a
-			* skiploop, the last sample should not occur at offset [end],
-			* but at offset [end-size]
-			*/
-			switch (hints->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
-				| HAM_DAM_RANDOM_WRITE
-				| HAM_DAM_FAST_INSERT))
-			{
-			default:
-			case HAM_DAM_SEQUENTIAL_INSERT:
-			case HAM_DAM_RANDOM_WRITE:
-				/*
-				* we know which start positions are viable; we only
-				* inspect those.
-				*
-				* Besides, we assume ALIGNED searches require 1 all-1s
-				* byte at least; this improves our skipscan here.
-				*/
-				for (;;)
-				{
-					hints->cost++;
+            /*
+            * 'mgt_mode' determines how we do our initial BM skip loop
+            * scan:
+            * do we use a bsearch to find the first probably free slot or
+            * not?
+            *
+            * perform the bsearch on a BYTE level only.
+            *
+            * reduced the scan space to end-size+1: since BM scans using a
+            * skiploop, the last sample should not occur at offset [end],
+            * but at offset [end-size]
+            */
+            switch (hints->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
+                | HAM_DAM_RANDOM_WRITE
+                | HAM_DAM_FAST_INSERT))
+            {
+            default:
+            case HAM_DAM_SEQUENTIAL_INSERT:
+            case HAM_DAM_RANDOM_WRITE:
+                /*
+                * we know which start positions are viable; we only
+                * inspect those.
+                *
+                * Besides, we assume ALIGNED searches require 1 all-1s
+                * byte at least; this improves our skipscan here.
+                */
+                for (;;)
+                {
+                    hints->cost++;
 
-					if (p8[bm_l] == 0xFFU)
-					{
-						/*
-						* BM: a hit: see if we have a sufficiently large
-						* free zone here
-						*/
-						break;
-					}
-					else
-					{
-						/* BM: a miss: skip to next opportunity sequentially */
-						bm_l += min_slice_width8;
-						if (bm_l >= bm_r)
-						{
-							/* report our failure to find a free slot */
-							db_update_freelist_stats_fail(db, entry, f, hints);
-							return (-1);
-						}
-					}
-				}
-				break;
+                    if (p8[bm_l] == 0xFFU)
+                    {
+                        /*
+                        * BM: a hit: see if we have a sufficiently large
+                        * free zone here
+                        */
+                        break;
+                    }
+                    else
+                    {
+                        /* BM: a miss: skip to next opportunity sequentially */
+                        bm_l += min_slice_width8;
+                        if (bm_l >= bm_r)
+                        {
+                            /* report our failure to find a free slot */
+                            db_update_freelist_stats_fail(db, entry, f, hints);
+                            return (-1);
+                        }
+                    }
+                }
+                break;
 
-			case HAM_DAM_FAST_INSERT:
-			case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
-			case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
-				{
-					/* l & r: INCLUSIVE + EXCLUSIVE boundary */
-					ham_u32_t l = bm_l;
-					ham_u32_t r = bm_r;
+            case HAM_DAM_FAST_INSERT:
+            case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
+            case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
+                {
+                    /* l & r: INCLUSIVE + EXCLUSIVE boundary */
+                    ham_u32_t l = bm_l;
+                    ham_u32_t r = bm_r;
 
-					/*
-					* bsearch: we're looking for the lowest '1' position;
-					* assume the search space is ordered in ASCENDING
-					* order.
-					*
-					* It does not worry us the range is NOT sorted: the
-					* bsearch will APPROXIMATE finding the lowest free slot
-					* position and that is good enough for us today.
-					*/
-					for(;;)
-					{
-						ham_u32_t m = (l+r+1) / 2;
+                    /*
+                    * bsearch: we're looking for the lowest '1' position;
+                    * assume the search space is ordered in ASCENDING
+                    * order.
+                    *
+                    * It does not worry us the range is NOT sorted: the
+                    * bsearch will APPROXIMATE finding the lowest free slot
+                    * position and that is good enough for us today.
+                    */
+                    for(;;)
+                    {
+                        ham_u32_t m = (l+r+1) / 2;
 
-						hints->cost++;
+                        hints->cost++;
 
-						if (p8[bm_l] == 0xFFU)
-						{
-							/* a hit; search lower range: */
-							if (m == l)
-							{
-								/* report our lowest position now: 'l' */
-								break;
-							}
-							/* since we decrement by min_slice_width8 instead of 1, we need to take a bit of care here */
-							if (m < l + min_slice_width8)
-							{
-								r = l;
-								if (p8[l] == 0xFFU)
-								{
-									/* a hit; report our lowest position now: 'l' */
-									break;
-								}
-								else
-								{
-									/* not a hit; report our previous hit: m */
-									l = m;
-									break;
-								}
-							}
-							else
-							{
-								r = m - min_slice_width8;
-							}
-						}
-						else
-						{
-							/* no hit; search upper range: */
-							if (m == r || m + min_slice_width8 > r)
-							{
-								/*
-								* we MAY have a previous hit pending...
-								* reconstruct the last HIT [m] index:
-								*/
-								r += min_slice_width8;
-								if (r < bm_r)
-								{
-									l = r;
-									ham_assert(p8[bm_l] == 0xFFU, (0));
-									break;
-								}
-								/* report our definite failure to locate a slot: */
-								db_update_freelist_stats_fail(db, entry, f, hints);
-								return (-1);
-							}
-							l = m + min_slice_width8;
-						}
-					}
-				}
-				break;
-			}
+                        if (p8[bm_l] == 0xFFU)
+                        {
+                            /* a hit; search lower range: */
+                            if (m == l)
+                            {
+                                /* report our lowest position now: 'l' */
+                                break;
+                            }
+                            /* since we decrement by min_slice_width8 instead of 1, we need to take a bit of care here */
+                            if (m < l + min_slice_width8)
+                            {
+                                r = l;
+                                if (p8[l] == 0xFFU)
+                                {
+                                    /* a hit; report our lowest position now: 'l' */
+                                    break;
+                                }
+                                else
+                                {
+                                    /* not a hit; report our previous hit: m */
+                                    l = m;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                r = m - min_slice_width8;
+                            }
+                        }
+                        else
+                        {
+                            /* no hit; search upper range: */
+                            if (m == r || m + min_slice_width8 > r)
+                            {
+                                /*
+                                * we MAY have a previous hit pending...
+                                * reconstruct the last HIT [m] index:
+                                */
+                                r += min_slice_width8;
+                                if (r < bm_r)
+                                {
+                                    l = r;
+                                    ham_assert(p8[bm_l] == 0xFFU, (0));
+                                    break;
+                                }
+                                /* report our definite failure to locate a slot: */
+                                db_update_freelist_stats_fail(db, entry, f, hints);
+                                return (-1);
+                            }
+                            l = m + min_slice_width8;
+                        }
+                    }
+                }
+                break;
+            }
 
-			/* BM search with a startup twist already done */
-			for (;;)
-			{
-				ham_assert(p8[bm_l] == 0xFFU, (0));
+            /* BM search with a startup twist already done */
+            for (;;)
+            {
+                ham_assert(p8[bm_l] == 0xFFU, (0));
 
-				hints->cost++;
+                hints->cost++;
 
-				/*
-				* We also assume such aligned scans require all-1s bytes
-				* EXCLUSIVELY, i.e. no dangling bit tail for these, my
-				* friend. Just all-1s bytes all the way.
-				*
-				* we already know we're at the STARTING spot of this one:
-				* in our case it's just a forward scan, maybe with a
-				* little guard check, is all we're gonna need.
-				*
-				* However, since we happen to know the SIZE we're looking
-				* for is rather large, we perform a PRE-SCAN by binary
-				* searching the forward
-				* range (no need to scan backwards: we've been there in a
-				* previous round if there was anything interesting in
-				* there).
-				*
-				* To help the multi-level guard check succeed, we have to
-				* assume a few things:
-				*
-				* we know the START. It is fixed. So all we need to do is
-				* to find a '0' bit in the pre-scan of the SIZE range and
-				* we can be assured the current zone is toast.
-				*
-				* We assume in this locality: the '0' bit in there is most
-				* probably located near the start of the range, if any.
-				*
-				* the guard check only remotely looks like a bsearch: it
-				* starts at START and then divides the space in 2 on every
-				* round, until the END marker is hit. Any '0' bit in the
-				* inspected bytes will trigger a FAIL for this zone.
-				*/
-				if (min_slice_width8 > SIMPLE_SCAN_THRESHOLD)
-				{
-					ham_u32_t l = bm_l + 1; /* we have checked the START byte already */
-					ham_u32_t r = l + min_slice_width8 - 1; /* EXCLUSIVE upper bound */
-					while (l < r)
-					{
-						hints->cost++;
+                /*
+                * We also assume such aligned scans require all-1s bytes
+                * EXCLUSIVELY, i.e. no dangling bit tail for these, my
+                * friend. Just all-1s bytes all the way.
+                *
+                * we already know we're at the STARTING spot of this one:
+                * in our case it's just a forward scan, maybe with a
+                * little guard check, is all we're gonna need.
+                *
+                * However, since we happen to know the SIZE we're looking
+                * for is rather large, we perform a PRE-SCAN by binary
+                * searching the forward
+                * range (no need to scan backwards: we've been there in a
+                * previous round if there was anything interesting in
+                * there).
+                *
+                * To help the multi-level guard check succeed, we have to
+                * assume a few things:
+                *
+                * we know the START. It is fixed. So all we need to do is
+                * to find a '0' bit in the pre-scan of the SIZE range and
+                * we can be assured the current zone is toast.
+                *
+                * We assume in this locality: the '0' bit in there is most
+                * probably located near the start of the range, if any.
+                *
+                * the guard check only remotely looks like a bsearch: it
+                * starts at START and then divides the space in 2 on every
+                * round, until the END marker is hit. Any '0' bit in the
+                * inspected bytes will trigger a FAIL for this zone.
+                */
+                if (min_slice_width8 > SIMPLE_SCAN_THRESHOLD)
+                {
+                    ham_u32_t l = bm_l + 1; /* we have checked the START byte already */
+                    ham_u32_t r = l + min_slice_width8 - 1; /* EXCLUSIVE upper bound */
+                    while (l < r)
+                    {
+                        hints->cost++;
 
-						if (p8[l] != 0xFFU)
-							break;
-						/* make sure we get at l==r at some point: */
-						l = (l + r + 1) / 2;
-					}
-					if (l == r)
-					{
-						/*
-						* all guard checks have passed.
-						*
-						* WARNING: note that due to the way the guard
-						* check loop was coded, we are now SURE the initial
-						* BYTE
-						* _and_ last BYTE are all-1s at least, so we
-						* don't have to linear-scan those again.
-						*/
+                        if (p8[l] != 0xFFU)
+                            break;
+                        /* make sure we get at l==r at some point: */
+                        l = (l + r + 1) / 2;
+                    }
+                    if (l == r)
+                    {
+                        /*
+                        * all guard checks have passed.
+                        *
+                        * WARNING: note that due to the way the guard
+                        * check loop was coded, we are now SURE the initial
+                        * BYTE
+                        * _and_ last BYTE are all-1s at least, so we
+                        * don't have to linear-scan those again.
+                        */
 
-						/* linear forward validation scan */
-						r--; /* topmost all-1s byte of the acceptable range + 1 */
-						l = bm_l + 1; /* skip first byte */
+                        /* linear forward validation scan */
+                        r--; /* topmost all-1s byte of the acceptable range + 1 */
+                        l = bm_l + 1; /* skip first byte */
 
-						for ( ; l < r; l++)
-						{
-							hints->cost++;
+                        for ( ; l < r; l++)
+                        {
+                            hints->cost++;
 
-							if (p8[l] != 0xFFU)
-								break;
-						}
-						if (r == l)
-						{
-							/* a perfect hit: report this one as a match! */
-							db_update_freelist_stats(db, entry, f, bm_l * 8, hints);
-							return bm_l * 8;
-						}
-					}
-				}
-				else
-				{
-					/*
-					* simple scan only: tiny range
-					*
-					* Nevertheless, we also have checked our first BYTE,
-					* so we can skip that one
-					*/
-					ham_u32_t l = bm_l + 1; /* we have checked the START byte already */
-					ham_u32_t r = l + min_slice_width8 - 1; /* EXCLUSIVE upper bound */
+                            if (p8[l] != 0xFFU)
+                                break;
+                        }
+                        if (r == l)
+                        {
+                            /* a perfect hit: report this one as a match! */
+                            db_update_freelist_stats(db, entry, f, bm_l * 8, hints);
+                            return bm_l * 8;
+                        }
+                    }
+                }
+                else
+                {
+                    /*
+                    * simple scan only: tiny range
+                    *
+                    * Nevertheless, we also have checked our first BYTE,
+                    * so we can skip that one
+                    */
+                    ham_u32_t l = bm_l + 1; /* we have checked the START byte already */
+                    ham_u32_t r = l + min_slice_width8 - 1; /* EXCLUSIVE upper bound */
 
-					/* linear forward validation scan */
-					for ( ; l < r; l++)
-					{
-						hints->cost++;
+                    /* linear forward validation scan */
+                    for ( ; l < r; l++)
+                    {
+                        hints->cost++;
 
-						if (p8[l] != 0xFFU)
-							break;
-					}
-					if (r == l)
-					{
-						/* a perfect hit: report this one as a match! */
-						db_update_freelist_stats(db, entry, f, bm_l * 8, hints);
-						return bm_l * 8;
-					}
-				}
+                        if (p8[l] != 0xFFU)
+                            break;
+                    }
+                    if (r == l)
+                    {
+                        /* a perfect hit: report this one as a match! */
+                        db_update_freelist_stats(db, entry, f, bm_l * 8, hints);
+                        return bm_l * 8;
+                    }
+                }
 
-				/*
-				* when we get here, we've failed the inner sequence
-				* validation of an aligned search; all we can do now is try
-				* again at the next aligned scan location.
-				*
-				* This is the simplest post-backtrack skip of the bunch,
-				* Sunday/Hume-wise, but nothing improves upon this (unless
-				* we were scanning a size span in there which would've been
-				* larger than the skip step here, and that NEVER happens
-				* thanks to our prep work at the start of this function.
-				*/
-				bm_l += min_slice_width8;
+                /*
+                * when we get here, we've failed the inner sequence
+                * validation of an aligned search; all we can do now is try
+                * again at the next aligned scan location.
+                *
+                * This is the simplest post-backtrack skip of the bunch,
+                * Sunday/Hume-wise, but nothing improves upon this (unless
+                * we were scanning a size span in there which would've been
+                * larger than the skip step here, and that NEVER happens
+                * thanks to our prep work at the start of this function.
+                */
+                bm_l += min_slice_width8;
 
-				/*
-				* we know which start positions are viable; we only
-				* inspect those.
-				*
-				* Besides, we assume ALIGNED searches require 1 all-1s
-				* byte at least; this improves our skipscan here.
-				*/
-				for (;;)
-				{
-					hints->cost++;
+                /*
+                * we know which start positions are viable; we only
+                * inspect those.
+                *
+                * Besides, we assume ALIGNED searches require 1 all-1s
+                * byte at least; this improves our skipscan here.
+                */
+                for (;;)
+                {
+                    hints->cost++;
 
-					if (p8[bm_l] == 0xFFU)
-					{
-						/*
-						* BM: a hit: see if we have a sufficiently large
-						* free zone here
-						*/
-						break;
-					}
-					else
-					{
-						/* BM: a miss: skip to next opportunity sequentially */
-						bm_l += min_slice_width8;
-						if (bm_l >= bm_r)
-						{
-							/* report our failure to find a free slot */
-							db_update_freelist_stats_fail(db, entry, f, hints);
-							return (-1);
-						}
-					}
-				}
-			}
-		}
-	}
-	else
-	{
+                    if (p8[bm_l] == 0xFFU)
+                    {
+                        /*
+                        * BM: a hit: see if we have a sufficiently large
+                        * free zone here
+                        */
+                        break;
+                    }
+                    else
+                    {
+                        /* BM: a miss: skip to next opportunity sequentially */
+                        bm_l += min_slice_width8;
+                        if (bm_l >= bm_r)
+                        {
+                            /* report our failure to find a free slot */
+                            db_update_freelist_stats_fail(db, entry, f, hints);
+                            return (-1);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
         /*
          * UNALIGNED search:
          *
@@ -1630,14 +1630,14 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
          *
          * (3) a search for sizes even tinier than that
          */
-		if (size_bits >= 2 * 64)
-		{
-			/* l & r: INCLUSIVE + EXCLUSIVE boundary; probe END markers */
-			ham_u32_t min_slice_width64 = min_slice_width / 64; /* roundDOWN */
-			ham_u32_t bm_l = start / 64;
-			ham_u32_t bm_r = (end + 64 - 1) / 64;
-			ham_u32_t lb = bm_l;
-			bm_l += min_slice_width64 - 1; /* first END marker to probe */
+        if (size_bits >= 2 * 64)
+        {
+            /* l & r: INCLUSIVE + EXCLUSIVE boundary; probe END markers */
+            ham_u32_t min_slice_width64 = min_slice_width / 64; /* roundDOWN */
+            ham_u32_t bm_l = start / 64;
+            ham_u32_t bm_r = (end + 64 - 1) / 64;
+            ham_u32_t lb = bm_l;
+            bm_l += min_slice_width64 - 1; /* first END marker to probe */
 
             /*
              * 'mgt_mode' determines how we do our initial BM skip loop
@@ -1651,15 +1651,15 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
              * using a skiploop, the last sample should not occur at
              * offset [end], but at offset [end-size]
              */
-			switch (hints->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
-								| HAM_DAM_RANDOM_WRITE
-								| HAM_DAM_FAST_INSERT))
-			{
-			default:
-			case HAM_DAM_SEQUENTIAL_INSERT:
-			case HAM_DAM_RANDOM_WRITE:
-			case HAM_DAM_FAST_INSERT:
-			case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
+            switch (hints->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
+                                | HAM_DAM_RANDOM_WRITE
+                                | HAM_DAM_FAST_INSERT))
+            {
+            default:
+            case HAM_DAM_SEQUENTIAL_INSERT:
+            case HAM_DAM_RANDOM_WRITE:
+            case HAM_DAM_FAST_INSERT:
+            case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
                 /*
                  * we know which END positions are viable; we only
                  * inspect those.
@@ -1668,9 +1668,9 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                  * all-1s qword at least; this improves our skipscan
                  * here.
                  */
-				for (;;)
-				{
-					hints->cost++;
+                for (;;)
+                {
+                    hints->cost++;
 
                     if (p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL)
                     {
@@ -1679,26 +1679,26 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                          * large free zone here.
                          */
                         break;
-					}
-					else
-					{
-						/* BM: a miss: skip to next opportunity sequentially */
-						bm_l += min_slice_width64;
-						if (bm_l >= bm_r)
-						{
-							/* report our failure to find a free slot */
-							db_update_freelist_stats_fail(db, entry, f, hints);
-							return (-1);
-						}
-					}
-				}
-				break;
+                    }
+                    else
+                    {
+                        /* BM: a miss: skip to next opportunity sequentially */
+                        bm_l += min_slice_width64;
+                        if (bm_l >= bm_r)
+                        {
+                            /* report our failure to find a free slot */
+                            db_update_freelist_stats_fail(db, entry, f, hints);
+                            return (-1);
+                        }
+                    }
+                }
+                break;
 
-			case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
-				{
-					/* l & r: INCLUSIVE + EXCLUSIVE boundary */
-					ham_u32_t l = bm_l;
-					ham_u32_t r = bm_r;
+            case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
+                {
+                    /* l & r: INCLUSIVE + EXCLUSIVE boundary */
+                    ham_u32_t l = bm_l;
+                    ham_u32_t r = bm_r;
 
                     /*
                      * bsearch: we're looking for the lowest '1'
@@ -1713,44 +1713,44 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                      */
                     for (;;)
                     {
-						ham_u32_t m = (l+r+1) / 2;
+                        ham_u32_t m = (l+r+1) / 2;
 
-						hints->cost++;
+                        hints->cost++;
 
-						if (p64[m] == 0xFFFFFFFFFFFFFFFFULL)
-						{
-							/* a hit; search lower range: */
-							if (m == l)
-							{
-								/* report our lowest position now: 'l' */
-								break;
-							}
+                        if (p64[m] == 0xFFFFFFFFFFFFFFFFULL)
+                        {
+                            /* a hit; search lower range: */
+                            if (m == l)
+                            {
+                                /* report our lowest position now: 'l' */
+                                break;
+                            }
                             /* since we decrement by min_slice_width64 
                              * instead of 1, we need to take a bit of 
                              * care here */
-							if (m < l + min_slice_width64)
-							{
-								r = l;
-								if (p64[l] == 0xFFFFFFFFFFFFFFFFULL)
-								{
-									/* a hit; report our lowest position now: 'l' */
-									break;
-								}
-								else
-								{
-									/* not a hit; report our previous hit: m */
-									l = m;
-									break;
-								}
-							}
-							else
-							{
-								r = m - min_slice_width64;
-							}
-						}
-						else
-						{
-							/* no hit; search upper range: */
+                            if (m < l + min_slice_width64)
+                            {
+                                r = l;
+                                if (p64[l] == 0xFFFFFFFFFFFFFFFFULL)
+                                {
+                                    /* a hit; report our lowest position now: 'l' */
+                                    break;
+                                }
+                                else
+                                {
+                                    /* not a hit; report our previous hit: m */
+                                    l = m;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                r = m - min_slice_width64;
+                            }
+                        }
+                        else
+                        {
+                            /* no hit; search upper range: */
                             if (m == r || m + min_slice_width64 > r)
                             {
                                 /*
@@ -1758,38 +1758,38 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                                  * pending...
                                  * reconstruct the last HIT [m] index:
                                  */
-								r += min_slice_width64;
-								if (r < bm_r)
-								{
-									l = r;
-									ham_assert(p64[l] == 0xFFFFFFFFFFFFFFFFULL, (0));
-									break;
-								}
-								/* report our definite failure to locate a slot: */
-								db_update_freelist_stats_fail(db, entry, f, hints);
-								return (-1);
-							}
-							l = m + min_slice_width64;
-						}
-					}
+                                r += min_slice_width64;
+                                if (r < bm_r)
+                                {
+                                    l = r;
+                                    ham_assert(p64[l] == 0xFFFFFFFFFFFFFFFFULL, (0));
+                                    break;
+                                }
+                                /* report our definite failure to locate a slot: */
+                                db_update_freelist_stats_fail(db, entry, f, hints);
+                                return (-1);
+                            }
+                            l = m + min_slice_width64;
+                        }
+                    }
 
-					bm_l = l;
-				}
-				break;
-			}
+                    bm_l = l;
+                }
+                break;
+            }
 
-			/* BM search with a startup twist already done */
+            /* BM search with a startup twist already done */
             for (;;) {
                 /* -1 because we have checked the END qword already */
                 register ham_u32_t r = bm_l - 1; 
                 /* +l: INCLUSIVE lower bound */
                 register ham_u32_t l = bm_l - min_slice_width64 + 1; 
 
-				ham_assert(bm_l > 0, (0));
-				ham_assert(bm_l >= min_slice_width64 - 1, (0));
-				ham_assert(p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL, (0));
+                ham_assert(bm_l > 0, (0));
+                ham_assert(bm_l >= min_slice_width64 - 1, (0));
+                ham_assert(p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL, (0));
 
-				hints->cost++;
+                hints->cost++;
 
                 /*
                  * compare comment in aligned search code
@@ -1804,26 +1804,26 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                  * past the current probe to see if the entire requested
                  * range is available at this locality.
                  */
-				if (min_slice_width64 > SIMPLE_SCAN_THRESHOLD)
-				{
-					ham_u32_t d = 1;
-					for (;;)
-					{
-						hints->cost++;
-	
-						if (p64[r] != 0xFFFFFFFFFFFFFFFFULL)
-						{
-							l = r + 1; /* lowest PROBABLY okay probe location */
-							break;
-						}
-						if (r < l + d)
-						{
-							/* l == lowest PROBABLY okay probe location */
-							break;
-						}
-						r -= d;
-						d <<= 1; /* increase step size by a power of 2; inverted divide and conquer */
-					}
+                if (min_slice_width64 > SIMPLE_SCAN_THRESHOLD)
+                {
+                    ham_u32_t d = 1;
+                    for (;;)
+                    {
+                        hints->cost++;
+    
+                        if (p64[r] != 0xFFFFFFFFFFFFFFFFULL)
+                        {
+                            l = r + 1; /* lowest PROBABLY okay probe location */
+                            break;
+                        }
+                        if (r < l + d)
+                        {
+                            /* l == lowest PROBABLY okay probe location */
+                            break;
+                        }
+                        r -= d;
+                        d <<= 1; /* increase step size by a power of 2; inverted divide and conquer */
+                    }
                     /*
                      * the guard check adjusted our expected lower
                      * bound in 'l'.
@@ -1849,35 +1849,35 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                      * least 1 all-1s qword
                      */
 #if 0
-					r = bm_l - 1; /* we have checked the END qword already */
-					l = bm_l - min_slice_width64 + 1; /* INCLUSIVE lower bound */
+                    r = bm_l - 1; /* we have checked the END qword already */
+                    l = bm_l - min_slice_width64 + 1; /* INCLUSIVE lower bound */
 #endif
-					/*
-					REV linear validation scan follows...
-					*/
-				}
+                    /*
+                    REV linear validation scan follows...
+                    */
+                }
 
                 /*
                  * REV linear validation scan:
                  */
-				ham_assert(bm_l > 0, (0));
-				for (r = bm_l - 1; r > l; r--)
-				{
-					hints->cost++;
+                ham_assert(bm_l > 0, (0));
+                for (r = bm_l - 1; r > l; r--)
+                {
+                    hints->cost++;
 
-					if (p64[r] != 0xFFFFFFFFFFFFFFFFULL)
-					{
-						l = r + 1; /* lowest (last) okay probe location */
-						break;
-					}
-				}
-				/* fringe case check: the lowest QWORD... */
-				if (r == l && p64[r] != 0xFFFFFFFFFFFFFFFFULL)
-				{
-					l = r + 1; /* lowest (last) okay probe location */
-				}
+                    if (p64[r] != 0xFFFFFFFFFFFFFFFFULL)
+                    {
+                        l = r + 1; /* lowest (last) okay probe location */
+                        break;
+                    }
+                }
+                /* fringe case check: the lowest QWORD... */
+                if (r == l && p64[r] != 0xFFFFFFFFFFFFFFFFULL)
+                {
+                    l = r + 1; /* lowest (last) okay probe location */
+                }
 
-				/* do we need more 'good space' FWD? */
+                /* do we need more 'good space' FWD? */
                 if ((++bm_l - l) * 64 < size_bits)
                 {
                     /*
@@ -1889,21 +1889,21 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                      * more qword FWD in here, anyway, as we use it to
                      * adjust the next skip on failure anyway.
                      */
-					r = bm_l + min_slice_width64;
-					if (r > bm_r)
-					{
-						r = bm_r;
-					}
-					for ( ; r > bm_l; bm_l++)
-					{
-						hints->cost++;
+                    r = bm_l + min_slice_width64;
+                    if (r > bm_r)
+                    {
+                        r = bm_r;
+                    }
+                    for ( ; r > bm_l; bm_l++)
+                    {
+                        hints->cost++;
 
-						if (p64[bm_l] != 0xFFFFFFFFFFFFFFFFULL)
-						{
-							break;
-						}
-					}
-				}
+                        if (p64[bm_l] != 0xFFFFFFFFFFFFFFFFULL)
+                        {
+                            break;
+                        }
+                    }
+                }
 
                 /*
                  * 'bm_l' now points +1 PAST the position for the LAST
@@ -1928,18 +1928,18 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                      * check if the top bit has been set ya ken: two's
                      * complement sign check, right on!
                      */
-					ham_u32_t lpos = BITSCAN_MSBit(ham_db2h64(p64[l-1]), l * 64);
-					ham_assert(l > 0, (0));
+                    ham_u32_t lpos = BITSCAN_MSBit(ham_db2h64(p64[l-1]), l * 64);
+                    ham_assert(l > 0, (0));
 
-					/* do we have enough free space now? */
-					ham_assert(bm_l > 0, (0));
-					ham_assert((bm_l - 1) * 64 >= lpos, (0));
-					if (size_bits <= (bm_l - 1) * 64 - lpos)
-					{
-						/* yeah! */
-						db_update_freelist_stats(db, entry, f, lpos, hints);
-						return lpos;
-					}
+                    /* do we have enough free space now? */
+                    ham_assert(bm_l > 0, (0));
+                    ham_assert((bm_l - 1) * 64 >= lpos, (0));
+                    if (size_bits <= (bm_l - 1) * 64 - lpos)
+                    {
+                        /* yeah! */
+                        db_update_freelist_stats(db, entry, f, lpos, hints);
+                        return lpos;
+                    }
 
                     /*
                      * second, we still ain't got enough space, so we
@@ -1950,17 +1950,17 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                      * need those few extra bits in there to accomplish
                      * our goal.
                      */
-					if (bm_l >= bm_r)
-					{
-						/* upper bound hit: we won't be able to report a match. */
-						db_update_freelist_stats_fail(db, entry, f, hints);
-						return (-1);
-					}
-					else /* if (size_bits <= bm_l * 64 - lpos) */
-					{
-						ham_u32_t rpos = BITSCAN_LSBit(ham_db2h64(p64[bm_l]), bm_l * 64);
-						ham_assert(bm_l > 0, (0));
-						ham_assert(rpos >= lpos, (0));
+                    if (bm_l >= bm_r)
+                    {
+                        /* upper bound hit: we won't be able to report a match. */
+                        db_update_freelist_stats_fail(db, entry, f, hints);
+                        return (-1);
+                    }
+                    else /* if (size_bits <= bm_l * 64 - lpos) */
+                    {
+                        ham_u32_t rpos = BITSCAN_LSBit(ham_db2h64(p64[bm_l]), bm_l * 64);
+                        ham_assert(bm_l > 0, (0));
+                        ham_assert(rpos >= lpos, (0));
                         /*
                          * Special assumption! When the 'end' is NOT on
                          * a qword boundary, we assume the entire qword
@@ -1971,28 +1971,28 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                          * conservative, we _do_ limit rpos to 'end' as
                          * the stats hinter gave it to us.
                          */
-						if (rpos > end)
-							rpos = end;
-						ham_assert(rpos >= lpos, (0));
+                        if (rpos > end)
+                            rpos = end;
+                        ham_assert(rpos >= lpos, (0));
 
-						/* again: do we have enough free space now? */
-						if (size_bits <= rpos - lpos)
-						{
-							/* yeah! */
-							db_update_freelist_stats(db, entry, f, lpos, hints);
-							return lpos;
-						}
-					}
-				}
-				else
-				{
-					/* do we have enough free space now? */
-					if (size_bits <= (bm_l - l) * 64)
-					{
-						/* yeah! */
-						db_update_freelist_stats(db, entry, f, l * 64, hints);
-						return l * 64;
-					}
+                        /* again: do we have enough free space now? */
+                        if (size_bits <= rpos - lpos)
+                        {
+                            /* yeah! */
+                            db_update_freelist_stats(db, entry, f, lpos, hints);
+                            return lpos;
+                        }
+                    }
+                }
+                else
+                {
+                    /* do we have enough free space now? */
+                    if (size_bits <= (bm_l - l) * 64)
+                    {
+                        /* yeah! */
+                        db_update_freelist_stats(db, entry, f, l * 64, hints);
+                        return l * 64;
+                    }
 
                     /*
                      * second, we still ain't got enough space, so we
@@ -2003,18 +2003,18 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                      * need those few extra bits in there to accomplish
                      * our goal.
                      */
-					if (bm_l >= bm_r)
-					{
-						/* upper bound hit: we won't be able to report a match. */
-						db_update_freelist_stats_fail(db, entry, f, hints);
-						return (-1);
-					}
-					else /* if (size_bits <= (bm_l - l) * 64) */
-					{
+                    if (bm_l >= bm_r)
+                    {
+                        /* upper bound hit: we won't be able to report a match. */
+                        db_update_freelist_stats_fail(db, entry, f, hints);
+                        return (-1);
+                    }
+                    else /* if (size_bits <= (bm_l - l) * 64) */
+                    {
                         ham_u32_t rpos = BITSCAN_LSBit(ham_db2h64(p64[bm_l]), 
                                 bm_l * 64);
-						ham_assert(bm_l > 0, (0));
-						ham_assert(rpos >= l * 64, (0));
+                        ham_assert(bm_l > 0, (0));
+                        ham_assert(rpos >= l * 64, (0));
                         /*
                          * Special assumption! When the 'end' is NOT on
                          * a qword boundary, we assume the entire qword
@@ -2025,31 +2025,31 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                          * conservative, we _do_ limit rpos to 'end' as
                          * the stats hinter gave it to us.
                          */
-						if (rpos > end)
-							rpos = end;
-						ham_assert(rpos >= l * 64, (0));
+                        if (rpos > end)
+                            rpos = end;
+                        ham_assert(rpos >= l * 64, (0));
 
-						/* again: do we have enough free space now? */
-						ham_assert(rpos >= l * 64, (0));
-						if (size_bits <= rpos - l * 64)
-						{
-							/* yeah! */
-							db_update_freelist_stats(db, entry, f, l * 64, hints);
-							return l * 64;
-						}
-					}
-				}
+                        /* again: do we have enough free space now? */
+                        ham_assert(rpos >= l * 64, (0));
+                        if (size_bits <= rpos - l * 64)
+                        {
+                            /* yeah! */
+                            db_update_freelist_stats(db, entry, f, l * 64, hints);
+                            return l * 64;
+                        }
+                    }
+                }
 
                 /*
                  * otherwise, we can determine the new skip value: our
                  * next probe should be here:
                  */
-				bm_l += min_slice_width64;
+                bm_l += min_slice_width64;
 
-				/* BM skipscan */
-				for (;;)
-				{
-					hints->cost++;
+                /* BM skipscan */
+                for (;;)
+                {
+                    hints->cost++;
 
                     if (p64[bm_l] == 0xFFFFFFFFFFFFFFFFULL)
                     {
@@ -2057,33 +2057,33 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                          * BM: a hit: see if we have a sufficiently
                          * large free zone here.
                          */
-						break;
-					}
-					else
-					{
-						/* BM: a miss: skip to next opportunity sequentially */
-						bm_l += min_slice_width64;
-						if (bm_l >= bm_r)
-						{
-							/* report our failure to find a free slot */
-							db_update_freelist_stats_fail(db, entry, f, hints);
-							return (-1);
-						}
-					}
-				}
-			}
-		}
-		else if (size_bits >= 2 * 8)
-		{
-			ham_u8_t *p8=(ham_u8_t *)p64;
+                        break;
+                    }
+                    else
+                    {
+                        /* BM: a miss: skip to next opportunity sequentially */
+                        bm_l += min_slice_width64;
+                        if (bm_l >= bm_r)
+                        {
+                            /* report our failure to find a free slot */
+                            db_update_freelist_stats_fail(db, entry, f, hints);
+                            return (-1);
+                        }
+                    }
+                }
+            }
+        }
+        else if (size_bits >= 2 * 8)
+        {
+            ham_u8_t *p8=(ham_u8_t *)p64;
 
-			/* l & r: INCLUSIVE + EXCLUSIVE boundary; probe END markers */
-			ham_u32_t min_slice_width8 = min_slice_width / 8; /* roundDOWN */
-			ham_u32_t bm_l = start / 8;
-			ham_u32_t bm_r = (end + 8 - 1) / 8;
-			ham_u32_t lb = bm_l;
-			ham_assert(min_slice_width8 > 0, (0));
-			bm_l += min_slice_width8 - 1; /* first END marker to probe */
+            /* l & r: INCLUSIVE + EXCLUSIVE boundary; probe END markers */
+            ham_u32_t min_slice_width8 = min_slice_width / 8; /* roundDOWN */
+            ham_u32_t bm_l = start / 8;
+            ham_u32_t bm_r = (end + 8 - 1) / 8;
+            ham_u32_t lb = bm_l;
+            ham_assert(min_slice_width8 > 0, (0));
+            bm_l += min_slice_width8 - 1; /* first END marker to probe */
 
             /*
              * 'mgt_mode' determines how we do our initial BM skip loop
@@ -2097,15 +2097,15 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
              * using a skiploop, the last sample should not occur at
              * offset [end], but at offset [end-size]
              */
-			switch (hints->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
-								| HAM_DAM_RANDOM_WRITE
-								| HAM_DAM_FAST_INSERT))
-			{
-			default:
-			case HAM_DAM_SEQUENTIAL_INSERT:
-			case HAM_DAM_RANDOM_WRITE:
-			case HAM_DAM_FAST_INSERT:
-			case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
+            switch (hints->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
+                                | HAM_DAM_RANDOM_WRITE
+                                | HAM_DAM_FAST_INSERT))
+            {
+            default:
+            case HAM_DAM_SEQUENTIAL_INSERT:
+            case HAM_DAM_RANDOM_WRITE:
+            case HAM_DAM_FAST_INSERT:
+            case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
                 /*
                  * we know which END positions are viable; we only
                  * inspect those.
@@ -2114,9 +2114,9 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                  * all-1s BYTE at least; this improves our skipscan
                  * here.
                  */
-				for (;;)
-				{
-					hints->cost++;
+                for (;;)
+                {
+                    hints->cost++;
 
                     if (p8[bm_l] == 0xFFU)
                     {
@@ -2124,27 +2124,27 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                          * BM: a hit: see if we have a sufficiently
                          * large free zone here.
                          */
-						break;
-					}
-					else
-					{
-						/* BM: a miss: skip to next opportunity sequentially */
-						bm_l += min_slice_width8;
-						if (bm_l >= bm_r)
-						{
-							/* report our failure to find a free slot */
-							db_update_freelist_stats_fail(db, entry, f, hints);
-							return (-1);
-						}
-					}
-				}
-				break;
+                        break;
+                    }
+                    else
+                    {
+                        /* BM: a miss: skip to next opportunity sequentially */
+                        bm_l += min_slice_width8;
+                        if (bm_l >= bm_r)
+                        {
+                            /* report our failure to find a free slot */
+                            db_update_freelist_stats_fail(db, entry, f, hints);
+                            return (-1);
+                        }
+                    }
+                }
+                break;
 
-			case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
-				{
-					/* l & r: INCLUSIVE + EXCLUSIVE boundary */
-					ham_u32_t l = bm_l;
-					ham_u32_t r = bm_r;
+            case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
+                {
+                    /* l & r: INCLUSIVE + EXCLUSIVE boundary */
+                    ham_u32_t l = bm_l;
+                    ham_u32_t r = bm_r;
 
                     /*
                      * bsearch: we're looking for the lowest '1'
@@ -2159,81 +2159,81 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                      */
                     for (;;)
                     {
-						ham_u32_t m = (l+r+1) / 2;
+                        ham_u32_t m = (l+r+1) / 2;
 
-						hints->cost++;
-	
-						if (p8[m] == 0xFFU)
-						{
-							/* a hit; search lower range: */
-							if (m == l)
-							{
-								/* report our lowest position now: 'l' */
-								break;
-							}
+                        hints->cost++;
+    
+                        if (p8[m] == 0xFFU)
+                        {
+                            /* a hit; search lower range: */
+                            if (m == l)
+                            {
+                                /* report our lowest position now: 'l' */
+                                break;
+                            }
                             /* since we decrement by min_slice_width8
                              * instead of 1, we need to take a bit of
                              * care here */
-							if (m < l + min_slice_width8)
-							{
-								r = l;
-								if (p8[l] == 0xFF)
-								{
-									/* a hit; report our lowest position now: 'l' */
-									break;
-								}
-								else
-								{
-									/* not a hit; report our previous hit: m */
-									l = m;
-									break;
-								}
-							}
-							else
-							{
-								r = m - min_slice_width8;
-							}
-						}
-						else
-						{
-							/* no hit; search upper range: */
-							if (m == r || m + min_slice_width8 > r)
-							{
+                            if (m < l + min_slice_width8)
+                            {
+                                r = l;
+                                if (p8[l] == 0xFF)
+                                {
+                                    /* a hit; report our lowest position now: 'l' */
+                                    break;
+                                }
+                                else
+                                {
+                                    /* not a hit; report our previous hit: m */
+                                    l = m;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                r = m - min_slice_width8;
+                            }
+                        }
+                        else
+                        {
+                            /* no hit; search upper range: */
+                            if (m == r || m + min_slice_width8 > r)
+                            {
                                 /*
                                  * we MAY have a previous hit
                                  * pending...
                                  * reconstruct the last HIT [m] index:
                                  */
-								r += min_slice_width8;
-								if (r < bm_r)
-								{
-									l = r;
-									ham_assert(p8[l] == 0xFFU, (0));
-									break;
-								}
-								/* report our definite failure to locate a slot: */
-								db_update_freelist_stats_fail(db, entry, f, hints);
-								return (-1);
-							}
-							l = m + min_slice_width8;
-						}
-					}
+                                r += min_slice_width8;
+                                if (r < bm_r)
+                                {
+                                    l = r;
+                                    ham_assert(p8[l] == 0xFFU, (0));
+                                    break;
+                                }
+                                /* report our definite failure to locate a slot: */
+                                db_update_freelist_stats_fail(db, entry, f, hints);
+                                return (-1);
+                            }
+                            l = m + min_slice_width8;
+                        }
+                    }
 
-					bm_l = l;
-				}
-				break;
-			}
+                    bm_l = l;
+                }
+                break;
+            }
 
-			/* BM search with a startup twist already done */
+            /* BM search with a startup twist already done */
             for (;;) {
                 /* -1 because we have checked the END byte already */
                 register ham_u32_t r = bm_l - 1; 
                 /* +1 because INCLUSIVE lower bound */
                 register ham_u32_t l = bm_l - min_slice_width8 + 1; 
 
-				ham_assert(bm_l > 0, (0));
-				ham_assert(bm_l >= min_slice_width8 - 1, (0));
-				ham_assert(p8[bm_l] == 0xFFU, (0));
+                ham_assert(bm_l > 0, (0));
+                ham_assert(bm_l >= min_slice_width8 - 1, (0));
+                ham_assert(p8[bm_l] == 0xFFU, (0));
 
                 /*
                  * compare comment in aligned search code
@@ -2248,26 +2248,26 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                  * past the current probe to see if the entire requested
                  * range is available at this locality.
                  */
-				if (min_slice_width8 > SIMPLE_SCAN_THRESHOLD)
-				{
-					ham_u32_t d = 1;
-					for (;;)
-					{
-						hints->cost++;
+                if (min_slice_width8 > SIMPLE_SCAN_THRESHOLD)
+                {
+                    ham_u32_t d = 1;
+                    for (;;)
+                    {
+                        hints->cost++;
 
-						if (p8[r] != 0xFFU)
-						{
-							l = r + 1; /* lowest PROBABLY okay probe location */
-							break;
-						}
-						if (r < l + d)
-						{
-							/* l == lowest PROBABLY okay probe location */
-							break;
-						}
-						r -= d;
-						d <<= 1; /* increase step size by a power of 2; inverted divide and conquer */
-					}
+                        if (p8[r] != 0xFFU)
+                        {
+                            l = r + 1; /* lowest PROBABLY okay probe location */
+                            break;
+                        }
+                        if (r < l + d)
+                        {
+                            /* l == lowest PROBABLY okay probe location */
+                            break;
+                        }
+                        r -= d;
+                        d <<= 1; /* increase step size by a power of 2; inverted divide and conquer */
+                    }
                     /*
                      * the guard check adjusted our expected lower
                      * bound in 'l'.
@@ -2293,35 +2293,35 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                      * least 1 all-1s byte
                      */
 #if 0
-					r = bm_l - 1; /* we have checked the END byte already */
-					l = bm_l - min_slice_width8 + 1; /* INCLUSIVE lower bound */
+                    r = bm_l - 1; /* we have checked the END byte already */
+                    l = bm_l - min_slice_width8 + 1; /* INCLUSIVE lower bound */
 #endif
-					/*
-					REV linear validation scan follows...
-					*/
-				}
+                    /*
+                    REV linear validation scan follows...
+                    */
+                }
 
-				/*
-				REV linear validation scan:
-				*/
-				ham_assert(bm_l > 0, (0));
-				for (r = bm_l - 1; r > l; r--)
-				{
-					hints->cost++;
+                /*
+                REV linear validation scan:
+                */
+                ham_assert(bm_l > 0, (0));
+                for (r = bm_l - 1; r > l; r--)
+                {
+                    hints->cost++;
 
-					if (p8[r] != 0xFFU)
-					{
-						l = r + 1; /* lowest (last) okay probe location */
-						break;
-					}
-				}
-				/* fringe case check: the lowest BYTE... */
-				if (r == l && p8[r] != 0xFFU)
-				{
-					l = r + 1; /* lowest (last) okay probe location */
-				}
+                    if (p8[r] != 0xFFU)
+                    {
+                        l = r + 1; /* lowest (last) okay probe location */
+                        break;
+                    }
+                }
+                /* fringe case check: the lowest BYTE... */
+                if (r == l && p8[r] != 0xFFU)
+                {
+                    l = r + 1; /* lowest (last) okay probe location */
+                }
 
-				/* do we need more 'good space' FWD? */
+                /* do we need more 'good space' FWD? */
                 if ((++bm_l - l) * 8 < size_bits)
                 {
                     /*
@@ -2333,21 +2333,21 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                      * more byte FWD in here, anyway, as we use it to
                      * adjust the next skip on failure anyway.
                      */
-					r = bm_l + min_slice_width8;
-					if (r > bm_r)
-					{
-						r = bm_r;
-					}
-					for ( ; r > bm_l; bm_l++)
-					{
-						hints->cost++;
+                    r = bm_l + min_slice_width8;
+                    if (r > bm_r)
+                    {
+                        r = bm_r;
+                    }
+                    for ( ; r > bm_l; bm_l++)
+                    {
+                        hints->cost++;
 
-						if (p8[bm_l] != 0xFFU)
-						{
-							break;
-						}
-					}
-				}
+                        if (p8[bm_l] != 0xFFU)
+                        {
+                            break;
+                        }
+                    }
+                }
 
                 /*
                  * 'bm_l' now points +1 PAST the position for the LAST
@@ -2372,71 +2372,18 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                      * been set ya ken: two's complement sign check,
                      * right on!
                      */
-					ham_u32_t lpos = BITSCAN_MSBit8(p8[l-1], l * 8);
-					ham_assert(l > 0, (0));
-					ham_assert(bm_l > 0, (0));
-					ham_assert((bm_l - 1) * 8 >= lpos, (0));
+                    ham_u32_t lpos = BITSCAN_MSBit8(p8[l-1], l * 8);
+                    ham_assert(l > 0, (0));
+                    ham_assert(bm_l > 0, (0));
+                    ham_assert((bm_l - 1) * 8 >= lpos, (0));
 
-					/* do we have enough free space now? */
-					if (size_bits <= (bm_l - 1) * 8 - lpos)
-					{
-						/* yeah! */
-						db_update_freelist_stats(db, entry, f, lpos, hints);
-						return lpos;
-					}
-
-                    /*
-                     * second, we still ain't got enough space, so we
-                     * MUST count the tail bits at [bm_l] -- at least if
-                     * we haven't hit the upper bound yet.
-                     *
-                     * But only do the (expensive) bitscan when we just
-                     * need those few extra bits in there to accomplish
-                     * our goal.
-                     */
-					if (bm_l >= bm_r)
-					{
-						/* upper bound hit: we won't be able to report a match. */
-						db_update_freelist_stats_fail(db, entry, f, hints);
-						return (-1);
-					}
-					else /* if (size_bits <= bm_l * 8 - lpos) */
-					{
-						ham_u32_t rpos = BITSCAN_LSBit8(p8[bm_l], bm_l * 8);
-						ham_assert(bm_l > 0, (0));
-						ham_assert(rpos >= lpos, (0));
-                        /*
-                         * Special assumption! When the 'end' is NOT on
-                         * a qword boundary, we assume the entire qword
-                         * is still filled correctly, which means: any
-                         * bits in there BEYOND 'end'
-                         * are still correct 0s and 1s. At least we
-                         * assume they are all _accessible_; as we are
-                         * conservative, we _do_ limit rpos to 'end' as
-                         * the stats hinter gave it to us.
-                         */
-						if (rpos > end)
-							rpos = end;
-						ham_assert(rpos >= lpos, (0));
-
-						/* again: do we have enough free space now? */
-						if (size_bits <= rpos - lpos)
-						{
-							/* yeah! */
-							db_update_freelist_stats(db, entry, f, lpos, hints);
-							return lpos;
-						}
-					}
-				}
-				else
-				{
-					/* do we have enough free space now? */
-					if (size_bits <= (bm_l - l) * 8)
-					{
-						/* yeah! */
-						db_update_freelist_stats(db, entry, f, l * 8, hints);
-						return l * 8;
-					}
+                    /* do we have enough free space now? */
+                    if (size_bits <= (bm_l - 1) * 8 - lpos)
+                    {
+                        /* yeah! */
+                        db_update_freelist_stats(db, entry, f, lpos, hints);
+                        return lpos;
+                    }
 
                     /*
                      * second, we still ain't got enough space, so we
@@ -2447,17 +2394,17 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                      * need those few extra bits in there to accomplish
                      * our goal.
                      */
-					if (bm_l >= bm_r)
-					{
-						/* upper bound hit: we won't be able to report a match. */
-						db_update_freelist_stats_fail(db, entry, f, hints);
-						return (-1);
-					}
-					else /* if (size_bits <= (bm_l - l) * 8) */
-					{
-						ham_u32_t rpos = BITSCAN_LSBit8(p8[bm_l], bm_l * 8);
-						ham_assert(bm_l > 0, (0));
-						ham_assert(rpos >= l * 8, (0));
+                    if (bm_l >= bm_r)
+                    {
+                        /* upper bound hit: we won't be able to report a match. */
+                        db_update_freelist_stats_fail(db, entry, f, hints);
+                        return (-1);
+                    }
+                    else /* if (size_bits <= bm_l * 8 - lpos) */
+                    {
+                        ham_u32_t rpos = BITSCAN_LSBit8(p8[bm_l], bm_l * 8);
+                        ham_assert(bm_l > 0, (0));
+                        ham_assert(rpos >= lpos, (0));
                         /*
                          * Special assumption! When the 'end' is NOT on
                          * a qword boundary, we assume the entire qword
@@ -2468,30 +2415,83 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                          * conservative, we _do_ limit rpos to 'end' as
                          * the stats hinter gave it to us.
                          */
-						if (rpos > end)
-							rpos = end;
-						ham_assert(rpos >= l * 8, (0));
+                        if (rpos > end)
+                            rpos = end;
+                        ham_assert(rpos >= lpos, (0));
 
-						/* again: do we have enough free space now? */
-						if (size_bits <= rpos - l * 8)
-						{
-							/* yeah! */
-							db_update_freelist_stats(db, entry, f, l * 8, hints);
-							return l * 8;
-						}
-					}
-				}
+                        /* again: do we have enough free space now? */
+                        if (size_bits <= rpos - lpos)
+                        {
+                            /* yeah! */
+                            db_update_freelist_stats(db, entry, f, lpos, hints);
+                            return lpos;
+                        }
+                    }
+                }
+                else
+                {
+                    /* do we have enough free space now? */
+                    if (size_bits <= (bm_l - l) * 8)
+                    {
+                        /* yeah! */
+                        db_update_freelist_stats(db, entry, f, l * 8, hints);
+                        return l * 8;
+                    }
+
+                    /*
+                     * second, we still ain't got enough space, so we
+                     * MUST count the tail bits at [bm_l] -- at least if
+                     * we haven't hit the upper bound yet.
+                     *
+                     * But only do the (expensive) bitscan when we just
+                     * need those few extra bits in there to accomplish
+                     * our goal.
+                     */
+                    if (bm_l >= bm_r)
+                    {
+                        /* upper bound hit: we won't be able to report a match. */
+                        db_update_freelist_stats_fail(db, entry, f, hints);
+                        return (-1);
+                    }
+                    else /* if (size_bits <= (bm_l - l) * 8) */
+                    {
+                        ham_u32_t rpos = BITSCAN_LSBit8(p8[bm_l], bm_l * 8);
+                        ham_assert(bm_l > 0, (0));
+                        ham_assert(rpos >= l * 8, (0));
+                        /*
+                         * Special assumption! When the 'end' is NOT on
+                         * a qword boundary, we assume the entire qword
+                         * is still filled correctly, which means: any
+                         * bits in there BEYOND 'end'
+                         * are still correct 0s and 1s. At least we
+                         * assume they are all _accessible_; as we are
+                         * conservative, we _do_ limit rpos to 'end' as
+                         * the stats hinter gave it to us.
+                         */
+                        if (rpos > end)
+                            rpos = end;
+                        ham_assert(rpos >= l * 8, (0));
+
+                        /* again: do we have enough free space now? */
+                        if (size_bits <= rpos - l * 8)
+                        {
+                            /* yeah! */
+                            db_update_freelist_stats(db, entry, f, l * 8, hints);
+                            return l * 8;
+                        }
+                    }
+                }
 
                 /*
                  * otherwise, we can determine the new skip value: our
                  * next probe should be here:
                  */
-				bm_l += min_slice_width8;
+                bm_l += min_slice_width8;
 
-				/* BM skipscan */
-				for (;;)
-				{
-					hints->cost++;
+                /* BM skipscan */
+                for (;;)
+                {
+                    hints->cost++;
 
                     if (p8[bm_l] == 0xFFU)
                     {
@@ -2500,30 +2500,30 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                          * large free zone here.
                          */
                         break;
-					}
-					else
-					{
-						/* BM: a miss: skip to next opportunity sequentially */
-						bm_l += min_slice_width8;
-						if (bm_l >= bm_r)
-						{
-							/* report our failure to find a free slot */
-							db_update_freelist_stats_fail(db, entry, f, hints);
-							return (-1);
-						}
-					}
-				}
-			}
-		}
-		else if (size_bits > 1)
-		{
-			ham_u8_t *p=(ham_u8_t *)p64;
+                    }
+                    else
+                    {
+                        /* BM: a miss: skip to next opportunity sequentially */
+                        bm_l += min_slice_width8;
+                        if (bm_l >= bm_r)
+                        {
+                            /* report our failure to find a free slot */
+                            db_update_freelist_stats_fail(db, entry, f, hints);
+                            return (-1);
+                        }
+                    }
+                }
+            }
+        }
+        else if (size_bits > 1)
+        {
+            ham_u8_t *p=(ham_u8_t *)p64;
 
-			/* l & r: INCLUSIVE + EXCLUSIVE boundary; probe END markers */
-			ham_u32_t bm_l = start;
-			ham_u32_t bm_r = end;
-			ham_assert(min_slice_width > 0, (0));
-			bm_l += min_slice_width - 1; /* first END marker to probe */
+            /* l & r: INCLUSIVE + EXCLUSIVE boundary; probe END markers */
+            ham_u32_t bm_l = start;
+            ham_u32_t bm_r = end;
+            ham_assert(min_slice_width > 0, (0));
+            bm_l += min_slice_width - 1; /* first END marker to probe */
 
             /*
              * 'mgt_mode' determines how we do our initial BM skip loop
@@ -2569,14 +2569,14 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                          * byte level, as we assume 0-bytes come in
                          * clusters:
                          */
-						ham_u32_t ub = (bm_r >> 3); /* EXCLUSIVE bound */
-						bm_l >>= 3;
-						if (min_slice_width <= 8)
-						{
-							for (bm_l++; bm_l < ub && !p[bm_l]; bm_l++)
-							{
-								hints->cost++;
-							}
+                        ham_u32_t ub = (bm_r >> 3); /* EXCLUSIVE bound */
+                        bm_l >>= 3;
+                        if (min_slice_width <= 8)
+                        {
+                            for (bm_l++; bm_l < ub && !p[bm_l]; bm_l++)
+                            {
+                                hints->cost++;
+                            }
                         }
                         else
                         {
@@ -2585,20 +2585,20 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                              * skip bytes in the scanner and still be
                              * down with it.
                              */
-							ham_assert(min_slice_width < 16, (0));
-							for (bm_l += 2; bm_l < ub && !p[bm_l]; bm_l += 2)
-							{
-								hints->cost++;
-							}
-						}
-						
+                            ham_assert(min_slice_width < 16, (0));
+                            for (bm_l += 2; bm_l < ub && !p[bm_l]; bm_l += 2)
+                            {
+                                hints->cost++;
+                            }
+                        }
+                        
                         /*
                          * BM: a miss: skip to next opportunity
                          * sequentially:
                          * first roundUP bm_l to the start of the next
                          * byte:
                          */
-						bm_l <<= 3;
+                        bm_l <<= 3;
 
                         /*
                          * as bm_l now points to the bit just PAST the
@@ -2606,44 +2606,44 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                          * be a '1', so compensate for that by reducing
                          * the next part of the skip:
                          */
-						bm_l += min_slice_width - 1;
-						if (bm_l >= bm_r)
-						{
-							/* report our failure to find a free slot */
-							db_update_freelist_stats_fail(db, entry, f, hints);
-							return (-1);
-						}
-						continue;
-					}
+                        bm_l += min_slice_width - 1;
+                        if (bm_l >= bm_r)
+                        {
+                            /* report our failure to find a free slot */
+                            db_update_freelist_stats_fail(db, entry, f, hints);
+                            return (-1);
+                        }
+                        continue;
+                    }
 
-					/* the regular BM scanloop */
-					if (p[bm_l >> 3] & (1 << (bm_l & 0x07)))
-					{
+                    /* the regular BM scanloop */
+                    if (p[bm_l >> 3] & (1 << (bm_l & 0x07)))
+                    {
                         /*
                          * BM: a hit: see if we have a sufficiently
                          * large free zone here.
                          */
                         break;
-					}
-					else
-					{
-						/* BM: a miss: skip to next opportunity sequentially */
-						bm_l += min_slice_width;
-						if (bm_l >= bm_r)
-						{
-							/* report our failure to find a free slot */
-							db_update_freelist_stats_fail(db, entry, f, hints);
-							return (-1);
-						}
-					}
-				}
-				break;
+                    }
+                    else
+                    {
+                        /* BM: a miss: skip to next opportunity sequentially */
+                        bm_l += min_slice_width;
+                        if (bm_l >= bm_r)
+                        {
+                            /* report our failure to find a free slot */
+                            db_update_freelist_stats_fail(db, entry, f, hints);
+                            return (-1);
+                        }
+                    }
+                }
+                break;
 
-			case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
-				{
-					/* l & r: INCLUSIVE + EXCLUSIVE boundary */
-					ham_u32_t l = bm_l;
-					ham_u32_t r = bm_r;
+            case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
+                {
+                    /* l & r: INCLUSIVE + EXCLUSIVE boundary */
+                    ham_u32_t l = bm_l;
+                    ham_u32_t r = bm_r;
 
                     /*
                      * bsearch: we're looking for the lowest '1'
@@ -2658,82 +2658,82 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                      */
                     for (;;)
                     {
-						ham_u32_t m = (l+r+1) / 2;
+                        ham_u32_t m = (l+r+1) / 2;
 
-						hints->cost++;
+                        hints->cost++;
 
-						if (p[m >> 3] & (1 << (m & 0x07)))
-						{
-							/* a hit; search lower range: */
-							if (m == l)
-							{
-								/* report our lowest position now: 'l' */
-								break;
-							}
+                        if (p[m >> 3] & (1 << (m & 0x07)))
+                        {
+                            /* a hit; search lower range: */
+                            if (m == l)
+                            {
+                                /* report our lowest position now: 'l' */
+                                break;
+                            }
                             /* since we decrement by min_slice_width 
                              * instead of 1, we need to take a bit of care 
                              * here */
-							if (m < l + min_slice_width)
-							{
-								r = l;
-								if (p[l >> 3] & (1 << (l & 0x07)))
-								{
-									/* a hit; report our lowest position now: 'l' */
-									break;
-								}
-								else
-								{
-									/* not a hit; report our previous hit: m */
-									l = m;
-									break;
-								}
-							}
-							else
-							{
-								r = m - min_slice_width;
-							}
-						}
-						else
-						{
-							/* no hit; search upper range: */
-							if (m == r || m + min_slice_width > r)
-							{
-								/* 
-								we MAY have a previous hit pending... 
-								reconstruct the last HIT [m] index:
-								*/
-								r += min_slice_width;
-								if (r < bm_r)
-								{
-									l = r;
-									ham_assert(p[l >> 3] & (1 << (l & 0x07)), (0));
-									break;
-								}
-								/* report our definite failure to locate a slot: */
-								db_update_freelist_stats_fail(db, entry, f, hints);
-								return (-1);
-							}
-							l = m + min_slice_width;
-						}
-					}
+                            if (m < l + min_slice_width)
+                            {
+                                r = l;
+                                if (p[l >> 3] & (1 << (l & 0x07)))
+                                {
+                                    /* a hit; report our lowest position now: 'l' */
+                                    break;
+                                }
+                                else
+                                {
+                                    /* not a hit; report our previous hit: m */
+                                    l = m;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                r = m - min_slice_width;
+                            }
+                        }
+                        else
+                        {
+                            /* no hit; search upper range: */
+                            if (m == r || m + min_slice_width > r)
+                            {
+                                /* 
+                                we MAY have a previous hit pending... 
+                                reconstruct the last HIT [m] index:
+                                */
+                                r += min_slice_width;
+                                if (r < bm_r)
+                                {
+                                    l = r;
+                                    ham_assert(p[l >> 3] & (1 << (l & 0x07)), (0));
+                                    break;
+                                }
+                                /* report our definite failure to locate a slot: */
+                                db_update_freelist_stats_fail(db, entry, f, hints);
+                                return (-1);
+                            }
+                            l = m + min_slice_width;
+                        }
+                    }
 
-					bm_l = l;
-				}
-				break;
-			}
+                    bm_l = l;
+                }
+                break;
+            }
 
-			/* BM search with a startup twist already done */
+            /* BM search with a startup twist already done */
             for (;;) {
                 /* -1 because we have checked the END BIT already */
                 register ham_u32_t r = bm_l - 1; 
                 /* +1 because INCLUSIVE lower bound */
                 register ham_u32_t l = bm_l - min_slice_width + 1; 
 
-				ham_assert(bm_l > 0, (0));
-				ham_assert(bm_l >= min_slice_width - 1, (0));
-				ham_assert(p[bm_l >> 3] & (1 << (bm_l & 0x07)), (0));
+                ham_assert(bm_l > 0, (0));
+                ham_assert(bm_l >= min_slice_width - 1, (0));
+                ham_assert(p[bm_l >> 3] & (1 << (bm_l & 0x07)), (0));
 
-				hints->cost++;
+                hints->cost++;
 
                 /*
                  * compare comment in aligned search code
@@ -2748,26 +2748,26 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                  * past the current probe to see if the entire requested
                  * range is available at this locality.
                  */
-				if (min_slice_width > SIMPLE_SCAN_THRESHOLD)
-				{
-					ham_u32_t d = 1;
-					for (;;)
-					{
-						hints->cost++;
+                if (min_slice_width > SIMPLE_SCAN_THRESHOLD)
+                {
+                    ham_u32_t d = 1;
+                    for (;;)
+                    {
+                        hints->cost++;
 
-						if (!(p[r >> 3] & (1 << (r & 0x07))))
-						{
-							l = r + 1; /* lowest PROBABLY okay probe location */
-							break;
-						}
-						if (r < l + d)
-						{
-							/* l == lowest PROBABLY okay probe location */
-							break;
-						}
-						r -= d;
-						d <<= 1; /* increase step size by a power of 2; inverted divide and conquer */
-					}
+                        if (!(p[r >> 3] & (1 << (r & 0x07))))
+                        {
+                            l = r + 1; /* lowest PROBABLY okay probe location */
+                            break;
+                        }
+                        if (r < l + d)
+                        {
+                            /* l == lowest PROBABLY okay probe location */
+                            break;
+                        }
+                        r -= d;
+                        d <<= 1; /* increase step size by a power of 2; inverted divide and conquer */
+                    }
                     /*
                      * the guard check adjusted our expected lower
                      * bound in 'l'.
@@ -2793,55 +2793,55 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                      * least 1 all-1s BIT
                      */
 #if 0
-					r = bm_l - 1; /* we have checked the END bit already */
-					l = bm_l - min_slice_width + 1; /* INCLUSIVE lower bound */
+                    r = bm_l - 1; /* we have checked the END bit already */
+                    l = bm_l - min_slice_width + 1; /* INCLUSIVE lower bound */
 #endif
                     /*
                      * REV linear validation scan follows...
                      */
-				}
+                }
 
                 /*
                  * REV linear validation scan:
                  */
-				ham_assert(bm_l > 0, (0));
-				for (r = bm_l - 1; r > l; r--)
-				{
-					hints->cost++;
+                ham_assert(bm_l > 0, (0));
+                for (r = bm_l - 1; r > l; r--)
+                {
+                    hints->cost++;
 
-					if (!(p[r >> 3] & (1 << (r & 0x07))))
-					{
-						l = r + 1; /* lowest (last) okay probe location */
-						break;
-					}
-				}
-				/* fringe case check: the lowest BIT... */
-				if (r == l && !(p[r >> 3] & (1 << (r & 0x07))))
-				{
-					l = r + 1; /* lowest (last) okay probe location */
-				}
+                    if (!(p[r >> 3] & (1 << (r & 0x07))))
+                    {
+                        l = r + 1; /* lowest (last) okay probe location */
+                        break;
+                    }
+                }
+                /* fringe case check: the lowest BIT... */
+                if (r == l && !(p[r >> 3] & (1 << (r & 0x07))))
+                {
+                    l = r + 1; /* lowest (last) okay probe location */
+                }
 
-				/* do we need more 'good space' FWD? */
+                /* do we need more 'good space' FWD? */
                 if ((++bm_l - l) < size_bits)
                 {
                     /*
                      * FWD linear validation scan:
                      */
-					r = bm_l + min_slice_width - 1;
-					if (r > bm_r)
-					{
-						r = bm_r;
-					}
-					for ( ; r > bm_l; bm_l++)
-					{
-						hints->cost++;
+                    r = bm_l + min_slice_width - 1;
+                    if (r > bm_r)
+                    {
+                        r = bm_r;
+                    }
+                    for ( ; r > bm_l; bm_l++)
+                    {
+                        hints->cost++;
 
-						if (!(p[bm_l >> 3] & (1 << (bm_l & 0x07))))
-						{
-							break;
-						}
-					}
-				}
+                        if (!(p[bm_l >> 3] & (1 << (bm_l & 0x07))))
+                        {
+                            break;
+                        }
+                    }
+                }
 
                 /*
                  * 'bm_l' now points +1 PAST the position for the LAST
@@ -2852,40 +2852,40 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                  * 'l' points at the lowest '1' bit.
                  */
 
-				/* do we have enough free space now? */
-				if (size_bits <= (bm_l - l))
-				{
-					/* yeah! */
-					db_update_freelist_stats(db, entry, f, l, hints);
-					return l;
-				}
+                /* do we have enough free space now? */
+                if (size_bits <= (bm_l - l))
+                {
+                    /* yeah! */
+                    db_update_freelist_stats(db, entry, f, l, hints);
+                    return l;
+                }
 
                 /*
                  * second, we still ain't got enough space, but we
                  * already counted all the tail bits at [bm_l] -- if we
                  * haven't hit the upper bound already.
                  */
-				if (bm_l >= bm_r)
-				{
-					/* upper bound hit: we won't be able to report a match. */
-					db_update_freelist_stats_fail(db, entry, f, hints);
-					return (-1);
-				}
+                if (bm_l >= bm_r)
+                {
+                    /* upper bound hit: we won't be able to report a match. */
+                    db_update_freelist_stats_fail(db, entry, f, hints);
+                    return (-1);
+                }
 
                 /*
                  * otherwise, we can determine the new skip value: our
                  * next probe should be here:
                  */
-				bm_l += min_slice_width;
+                bm_l += min_slice_width;
 
-				/* BM skipscan */
-				for (;;)
-				{
-					hints->cost++;
+                /* BM skipscan */
+                for (;;)
+                {
+                    hints->cost++;
 
-					/*
-					the 'byte level front scanner':
-					*/
+                    /*
+                    the 'byte level front scanner':
+                    */
                     if (!p[bm_l >> 3])
                     {
                         /*
@@ -2894,20 +2894,20 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                          * byte level, as we assume 0-bytes come in
                          * clusters:
                          */
-						ham_u32_t ub = (bm_r >> 3); /* EXCLUSIVE bound */
-						bm_l >>= 3; 
-						for (bm_l++; bm_l < ub && !p[bm_l]; bm_l++)
-						{
-							hints->cost++;
-						}
-						
+                        ham_u32_t ub = (bm_r >> 3); /* EXCLUSIVE bound */
+                        bm_l >>= 3; 
+                        for (bm_l++; bm_l < ub && !p[bm_l]; bm_l++)
+                        {
+                            hints->cost++;
+                        }
+                        
                         /*
                          * BM: a miss: skip to next opportunity
                          * sequentially:
                          * first roundUP bm_l to the start of the next
                          * byte:
                          */
-						bm_l <<= 3;
+                        bm_l <<= 3;
 
                         /*
                          * as bm_l now points to the bit just PAST the
@@ -2915,15 +2915,15 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                          * be a '1', so compensate for that by reducing
                          * the next part of the skip:
                          */
-						bm_l += min_slice_width - 1;
-						if (bm_l >= bm_r)
-						{
-							/* report our failure to find a free slot */
-							db_update_freelist_stats_fail(db, entry, f, hints);
-							return (-1);
-						}
-						continue;
-					}
+                        bm_l += min_slice_width - 1;
+                        if (bm_l >= bm_r)
+                        {
+                            /* report our failure to find a free slot */
+                            db_update_freelist_stats_fail(db, entry, f, hints);
+                            return (-1);
+                        }
+                        continue;
+                    }
 
                     if (p[bm_l >> 3] & (1 << (bm_l & 0x07)))
                     {
@@ -2932,29 +2932,29 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                          * large free zone here.
                          */
                         break;
-					}
-					else
-					{
-						/* BM: a miss: skip to next opportunity sequentially */
-						bm_l += min_slice_width;
-						if (bm_l >= bm_r)
-						{
-							/* report our failure to find a free slot */
-							db_update_freelist_stats_fail(db, entry, f, hints);
-							return (-1);
-						}
-					}
-				}
-			}
-		}
-		else /* if (size_bits == 1) */
-		{
-			ham_u8_t *p=(ham_u8_t *)p64;
+                    }
+                    else
+                    {
+                        /* BM: a miss: skip to next opportunity sequentially */
+                        bm_l += min_slice_width;
+                        if (bm_l >= bm_r)
+                        {
+                            /* report our failure to find a free slot */
+                            db_update_freelist_stats_fail(db, entry, f, hints);
+                            return (-1);
+                        }
+                    }
+                }
+            }
+        }
+        else /* if (size_bits == 1) */
+        {
+            ham_u8_t *p=(ham_u8_t *)p64;
 
-			/* l & r: INCLUSIVE + EXCLUSIVE boundary; probe END markers */
-			ham_u32_t bm_l = start;
-			ham_u32_t bm_r = end;
-			ham_assert(min_slice_width > 0, (0));
+            /* l & r: INCLUSIVE + EXCLUSIVE boundary; probe END markers */
+            ham_u32_t bm_l = start;
+            ham_u32_t bm_r = end;
+            ham_assert(min_slice_width > 0, (0));
 
             /*
              * We can do some special things for single-bit slot
@@ -3019,7 +3019,7 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
              * where-to-start-looking-next index offset.
              */
 
-			/* bm_l == first END marker to probe (size == 1) */
+            /* bm_l == first END marker to probe (size == 1) */
 
             /*
              * 'mgt_mode' determines how we do our initial BM skip loop
@@ -3036,15 +3036,15 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
              * we introduce a special byte-level front scanner in this
              * mode...
              */
-			switch (hints->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
-								| HAM_DAM_RANDOM_WRITE
-								| HAM_DAM_FAST_INSERT))
-			{
-			default:
-			case HAM_DAM_SEQUENTIAL_INSERT:
-			case HAM_DAM_RANDOM_WRITE:
-			case HAM_DAM_FAST_INSERT:
-			case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
+            switch (hints->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
+                                | HAM_DAM_RANDOM_WRITE
+                                | HAM_DAM_FAST_INSERT))
+            {
+            default:
+            case HAM_DAM_SEQUENTIAL_INSERT:
+            case HAM_DAM_RANDOM_WRITE:
+            case HAM_DAM_FAST_INSERT:
+            case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
                 /*
                  * we know we'll have check each bit, pardon, byte in
                  * there. BM is no help, au contraire mon ami, so we sit
@@ -3064,74 +3064,74 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                  * integers at odd-address boundaries (several of the
                  * CPUs in the MC68K series, for example).
                  */
-				if (min_slice_width <= 16)
-				{
-					/* the usual; just step on it */
-					ham_u32_t l = (bm_l >> 3);
-					ham_u32_t r = ((bm_r + 8 - 1) >> 3);
-					ham_u8_t *e = p + r;
-					p += l;
+                if (min_slice_width <= 16)
+                {
+                    /* the usual; just step on it */
+                    ham_u32_t l = (bm_l >> 3);
+                    ham_u32_t r = ((bm_r + 8 - 1) >> 3);
+                    ham_u8_t *e = p + r;
+                    p += l;
 
-					ham_assert(r > l, (0));
+                    ham_assert(r > l, (0));
                     /* cost is low as this is a cheap loop anyway */
                     hints->cost += (r - l + 8 - 1) / 8; 
 
-					switch ((r - l)  & 0x07)
-					{
-					case 0:
-						while (p != e)
-						{
-						if (*p++) break;
-					case 7:
-						if (*p++) break;
-					case 6:
-						if (*p++) break;
-					case 5:
-						if (*p++) break;
-					case 4:
-						if (*p++) break;
-					case 3:
-						if (*p++) break;
-					case 2:
-						if (*p++) break;
-					case 1:
-						if (*p++) break;
-						}
-						break;
-					}
-					p--; /* correct p */
-					ham_assert(p < e, (0));
-					if (!p[0])
-					{
-						/* we struck end of loop without a hit! 
-						report our failure to find a free slot */
-						db_update_freelist_stats_fail(db, entry, f, hints);
-						return (-1);
-					}
+                    switch ((r - l)  & 0x07)
+                    {
+                    case 0:
+                        while (p != e)
+                        {
+                        if (*p++) break;
+                    case 7:
+                        if (*p++) break;
+                    case 6:
+                        if (*p++) break;
+                    case 5:
+                        if (*p++) break;
+                    case 4:
+                        if (*p++) break;
+                    case 3:
+                        if (*p++) break;
+                    case 2:
+                        if (*p++) break;
+                    case 1:
+                        if (*p++) break;
+                        }
+                        break;
+                    }
+                    p--; /* correct p */
+                    ham_assert(p < e, (0));
+                    if (!p[0])
+                    {
+                        /* we struck end of loop without a hit! 
+                        report our failure to find a free slot */
+                        db_update_freelist_stats_fail(db, entry, f, hints);
+                        return (-1);
+                    }
 
-					/*
-					now we have the byte with the free bit slot;
-					see which bit it is:
-					*/
-					l = 8 * (ham_u32_t)(p - ((ham_u8_t *)p64)); /* ADD: the number of all-0 bytes we traversed + START offset */
+                    /*
+                    now we have the byte with the free bit slot;
+                    see which bit it is:
+                    */
+                    l = 8 * (ham_u32_t)(p - ((ham_u8_t *)p64)); /* ADD: the number of all-0 bytes we traversed + START offset */
 
-					ham_assert(p[0], (0)); /* we are sure we will hit a match in here! */
+                    ham_assert(p[0], (0)); /* we are sure we will hit a match in here! */
 
-					for (r = 0;; r++)
-					{
-						ham_assert(r < 8, (0)); /* we are sure we will hit a match in here! */
-						if (p[0] & (1 << r))
-						{
-							l += r; /* lowest (last) okay probe location */
-							break;
-						}
-					}
+                    for (r = 0;; r++)
+                    {
+                        ham_assert(r < 8, (0)); /* we are sure we will hit a match in here! */
+                        if (p[0] & (1 << r))
+                        {
+                            l += r; /* lowest (last) okay probe location */
+                            break;
+                        }
+                    }
 
-					ham_assert(bm_l <= l, (0));
-					ham_assert(size_bits == 1, (0));
-					/* found a slot! */
-					db_update_freelist_stats(db, entry, f, l, hints);
-					return l;
+                    ham_assert(bm_l <= l, (0));
+                    ham_assert(size_bits == 1, (0));
+                    /* found a slot! */
+                    db_update_freelist_stats(db, entry, f, l, hints);
+                    return l;
                 }
                 else
                 {
@@ -3142,19 +3142,19 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                      * run, which is another, though less accurate, way
                      * to save time in here...
                      */
-					ham_u32_t l = (bm_l >> 3);
-					ham_u32_t r = ((bm_r + 8 - 1) >> 3);
-					ham_u8_t *e = p + r;
-					ham_u32_t step = (min_slice_width >> 3);
+                    ham_u32_t l = (bm_l >> 3);
+                    ham_u32_t r = ((bm_r + 8 - 1) >> 3);
+                    ham_u8_t *e = p + r;
+                    ham_u32_t step = (min_slice_width >> 3);
 
-					p += l;
+                    p += l;
 
-					ham_assert(r > l, (0));
+                    ham_assert(r > l, (0));
                     /* cost is low as this is a cheap loop anyway */
                     hints->cost += (r - l + 8 - 1) / step; 
 
-					for (; !*p && p < e; p += step)
-						;
+                    for (; !*p && p < e; p += step)
+                        ;
                     if (p >= e)
                     {
                         /*
@@ -3162,41 +3162,41 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                          *
                          * report our failure to find a free slot
                          */
-						db_update_freelist_stats_fail(db, entry, f, hints);
-						return (-1);
-					}
+                        db_update_freelist_stats_fail(db, entry, f, hints);
+                        return (-1);
+                    }
 
-					/*
-					now we have the byte with the free bit slot;
-					see which bit it is:
-					*/
-					l = 8 * (ham_u32_t)(p - ((ham_u8_t *)p64)); /* ADD: the number of all-0 bytes we traversed + START offset */
+                    /*
+                    now we have the byte with the free bit slot;
+                    see which bit it is:
+                    */
+                    l = 8 * (ham_u32_t)(p - ((ham_u8_t *)p64)); /* ADD: the number of all-0 bytes we traversed + START offset */
 
-					ham_assert(p[0], (0)); /* we are sure we will hit a match in here! */
+                    ham_assert(p[0], (0)); /* we are sure we will hit a match in here! */
 
-					for (r = 0;; r++)
-					{
-						ham_assert(r < 8, (0)); /* we are sure we will hit a match in here! */
-						if (p[0] & (1 << r))
-						{
-							l += r; /* lowest (last) okay probe location */
-							break;
-						}
-					}
+                    for (r = 0;; r++)
+                    {
+                        ham_assert(r < 8, (0)); /* we are sure we will hit a match in here! */
+                        if (p[0] & (1 << r))
+                        {
+                            l += r; /* lowest (last) okay probe location */
+                            break;
+                        }
+                    }
 
-					ham_assert(bm_l <= l, (0));
-					ham_assert(size_bits == 1, (0));
-					/* found a slot! */
-					db_update_freelist_stats(db, entry, f, l, hints);
-					return l;
-				}
-				// should never get here 
+                    ham_assert(bm_l <= l, (0));
+                    ham_assert(size_bits == 1, (0));
+                    /* found a slot! */
+                    db_update_freelist_stats(db, entry, f, l, hints);
+                    return l;
+                }
+                // should never get here 
 
-			case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
-				{
-					/* l & r: INCLUSIVE + EXCLUSIVE boundary */
-					ham_u32_t l = bm_l;
-					ham_u32_t r = bm_r;
+            case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
+                {
+                    /* l & r: INCLUSIVE + EXCLUSIVE boundary */
+                    ham_u32_t l = bm_l;
+                    ham_u32_t r = bm_r;
 
                     /*
                      * bsearch: we're looking for the lowest '1'
@@ -3211,75 +3211,75 @@ __freel_search_bits_ex(ham_db_t *db, freelist_entry_t *entry,
                      */
                     for (;;)
                     {
-						ham_u32_t m = (l+r+1) / 2;
+                        ham_u32_t m = (l+r+1) / 2;
 
-						hints->cost++;
+                        hints->cost++;
 
-						if (p[m >> 3] & (1 << (m & 0x07)))
-						{
-							/* a hit; search lower range: */
-							if (m == l)
-							{
-								/* report our lowest position now: 'l' */
-								break;
-							}
+                        if (p[m >> 3] & (1 << (m & 0x07)))
+                        {
+                            /* a hit; search lower range: */
+                            if (m == l)
+                            {
+                                /* report our lowest position now: 'l' */
+                                break;
+                            }
                             /* since we decrement by min_slice_width 
                              * instead of 1, we need to take a bit of 
                              * care here */
-							if (m < l + min_slice_width)
-							{
-								r = l;
-								if (p[l >> 3] & (1 << (l & 0x07)))
-								{
-									/* a hit; report our lowest position now: 'l' */
-									break;
-								}
-								else
-								{
-									/* not a hit; report our previous hit: m */
-									l = m;
-									break;
-								}
-							}
-							else
-							{
-								r = m - min_slice_width;
-							}
-						}
-						else
-						{
-							/* no hit; search upper range: */
-							if (m == r || m + min_slice_width > r)
-							{
-								/* 
-								we MAY have a previous hit pending... 
-								reconstruct the last HIT [m] index:
-								*/
-								r += min_slice_width;
-								if (r < bm_r)
-								{
-									l = r;
-									ham_assert(p[l >> 3] & (1 << (l & 0x07)), (0));
-									break;
-								}
-								/* report our definite failure to locate a slot: */
-								db_update_freelist_stats_fail(db, entry, f, hints);
-								return (-1);
-							}
-							l = m + min_slice_width;
-						}
-					}
+                            if (m < l + min_slice_width)
+                            {
+                                r = l;
+                                if (p[l >> 3] & (1 << (l & 0x07)))
+                                {
+                                    /* a hit; report our lowest position now: 'l' */
+                                    break;
+                                }
+                                else
+                                {
+                                    /* not a hit; report our previous hit: m */
+                                    l = m;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                r = m - min_slice_width;
+                            }
+                        }
+                        else
+                        {
+                            /* no hit; search upper range: */
+                            if (m == r || m + min_slice_width > r)
+                            {
+                                /* 
+                                we MAY have a previous hit pending... 
+                                reconstruct the last HIT [m] index:
+                                */
+                                r += min_slice_width;
+                                if (r < bm_r)
+                                {
+                                    l = r;
+                                    ham_assert(p[l >> 3] & (1 << (l & 0x07)), (0));
+                                    break;
+                                }
+                                /* report our definite failure to locate a slot: */
+                                db_update_freelist_stats_fail(db, entry, f, hints);
+                                return (-1);
+                            }
+                            l = m + min_slice_width;
+                        }
+                    }
 
-					ham_assert(bm_l <= l, (0));
-					ham_assert(size_bits == 1, (0));
-					/* found a slot! */
-					db_update_freelist_stats(db, entry, f, l, hints);
-					return l;
-				}
-				// should never get here 
-			}
-		}
-	}
+                    ham_assert(bm_l <= l, (0));
+                    ham_assert(size_bits == 1, (0));
+                    /* found a slot! */
+                    db_update_freelist_stats(db, entry, f, l, hints);
+                    return l;
+                }
+                // should never get here 
+            }
+        }
+    }
 }
 
 
@@ -3311,12 +3311,12 @@ __freel_alloc_pageXX(ham_db_t *db, freelist_cache_t *cache,
      * we can skip the first element - it's the root page and always exists
      */
     for (i=1; ; i++) 
-	{
-		ham_assert(i < freel_cache_get_count(cache), (0));
+    {
+        ham_assert(i < freel_cache_get_count(cache), (0));
 
         if (!freel_entry_get_page_id(&entries[i])) 
-		{
-			ham_status_t st;
+        {
+            ham_status_t st;
 
             /*
              * load the previous page and the payload object; 
@@ -3331,7 +3331,7 @@ __freel_alloc_pageXX(ham_db_t *db, freelist_cache_t *cache,
                         freel_entry_get_page_id(&entries[i-1]), 0);
                 if (!page)
                     return (0);
-                page_set_dirty(page);
+                page_set_dirty_txn(page, 1);
                 fp=page_get_freelist(page);
             }
 
@@ -3348,20 +3348,20 @@ __freel_alloc_pageXX(ham_db_t *db, freelist_cache_t *cache,
             freel_set_start_address(fp, 
                     freel_entry_get_start_address(&entries[i]));
 #if !defined(FORCE_UNITTEST_PASS)
-			ham_assert(size_bits < (1ULL << 8*sizeof(freel_get_max_bitsXX(fp))), ("size must fit in the _max_bits type"));
+            ham_assert(size_bits < (1ULL << 8*sizeof(freel_get_max_bitsXX(fp))), ("size must fit in the _max_bits type"));
 #endif
-			freel_set_max_bitsXX(fp, (ham_uXX_t)(size_bits));
-            page_set_dirty(page);
+            freel_set_max_bitsXX(fp, (ham_uXX_t)(size_bits));
+            page_set_dirty_txn(page, 1);
             ham_assert(freel_entry_get_max_bits(&entries[i])==
                     freel_get_max_bitsXX(fp), (""));
             freel_entry_set_page_id(&entries[i], page_get_self(page));
 
-			ham_assert(cache->_init_perf_data, (0));
-			st = cache->_init_perf_data(cache, db, &entries[i], fp);
-			if (st) {
-				db_set_error(db, st);
-				return (0);
-			}
+            ham_assert(cache->_init_perf_data, (0));
+            st = cache->_init_perf_data(cache, db, &entries[i], fp);
+            if (st) {
+                db_set_error(db, st);
+                return (0);
+            }
         }
 
         if (&entries[i]==entry)
@@ -3388,49 +3388,49 @@ __freel_alloc_pageXX(ham_db_t *db, freelist_cache_t *cache,
  */
 static ham_s32_t
 __freel_locate_sufficient_free_space(freelist_hints_t *dst,
-		freelist_global_hints_t *hints,
-		ham_db_t *db, freelist_cache_t *cache, 
-		ham_s32_t start_index)
+        freelist_global_hints_t *hints,
+        ham_db_t *db, freelist_cache_t *cache, 
+        ham_s32_t start_index)
 {
     freelist_entry_t *entry;
 
-	if (hints->max_rounds == 0
+    if (hints->max_rounds == 0
         || freel_cache_get_count(cache) < 
                 hints->start_entry + hints->page_span_width) {
-		/* it's the end of the road for this one */
-		return -1;
-	}
+        /* it's the end of the road for this one */
+        return -1;
+    }
 
-	ham_assert(hints->max_rounds <= freel_cache_get_count(cache), (0));
+    ham_assert(hints->max_rounds <= freel_cache_get_count(cache), (0));
 
-	for (;; hints->max_rounds--)
-	{
-		if (hints->max_rounds == 0)
-		{
-			/* it's the end of the road for this one */
-			return -1;
-		}
+    for (;; hints->max_rounds--)
+    {
+        if (hints->max_rounds == 0)
+        {
+            /* it's the end of the road for this one */
+            return -1;
+        }
 
-		if (db_is_mgt_mode_set(hints->mgt_mode, HAM_DAM_SEQUENTIAL_INSERT))
-		{
-			if (db_is_mgt_mode_set(hints->mgt_mode, HAM_DAM_FAST_INSERT))
-			{
+        if (db_is_mgt_mode_set(hints->mgt_mode, HAM_DAM_SEQUENTIAL_INSERT))
+        {
+            if (db_is_mgt_mode_set(hints->mgt_mode, HAM_DAM_FAST_INSERT))
+            {
                 /*
                  * SEQUENTIAL+FAST: go for the jugular:
                  *
                  * only scan the very last freelist page and ignore all
                  * the others!
                  */
-				if (start_index == -1)
-				{
-					/* first round: position ourselves at the end of the list: */
-					start_index = freel_cache_get_count(cache) - hints->page_span_width;
-				}
-				else
-				{
-					/* we're done: QUIT */
-					return -1;
-				}
+                if (start_index == -1)
+                {
+                    /* first round: position ourselves at the end of the list: */
+                    start_index = freel_cache_get_count(cache) - hints->page_span_width;
+                }
+                else
+                {
+                    /* we're done: QUIT */
+                    return -1;
+                }
             }
             else
             {
@@ -3456,20 +3456,20 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
                  * the free space available in the current DB file,
                  * before we go off and require the DB file to be expanded.
                  */
-				if (start_index == -1)
-				{
-					/* first round: position ourselves at the end of the list: */
-					start_index = freel_cache_get_count(cache) - hints->page_span_width;
-				}
-				else
-				{
-					start_index -= hints->skip_init_offset;
-					ham_assert(start_index >= 0, (0));
+                if (start_index == -1)
+                {
+                    /* first round: position ourselves at the end of the list: */
+                    start_index = freel_cache_get_count(cache) - hints->page_span_width;
+                }
+                else
+                {
+                    start_index -= hints->skip_init_offset;
+                    ham_assert(start_index >= 0, (0));
                     /* only apply the init_offset at the first increment 
                      * cycle to break repetitiveness */
-					hints->skip_init_offset = 0;
+                    hints->skip_init_offset = 0;
 
-					start_index -= hints->skip_step;
+                    start_index -= hints->skip_step;
                     /*
                      * We don't have to be a very good SRNG here, so
                      * the 32-bit int wrap around and the case where the
@@ -3482,10 +3482,10 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
                          * list will ever get in this millenium ;-) */
                         start_index += 295075153; 
                     }
-					start_index %= (freel_cache_get_count(cache) - hints->start_entry - hints->page_span_width + 1);
-					start_index += hints->start_entry;
-				}
-			}
+                    start_index %= (freel_cache_get_count(cache) - hints->start_entry - hints->page_span_width + 1);
+                    start_index += hints->start_entry;
+                }
+            }
         }
         else
         {
@@ -3509,19 +3509,19 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
              * convervative style of SEQUENTIAL above, as it will scan
              * freelist pages in reverse order.
              */
-			if (hints->skip_init_offset)
-			{
-				start_index += hints->skip_init_offset; 
-				ham_assert(start_index >= 0, (0));
+            if (hints->skip_init_offset)
+            {
+                start_index += hints->skip_init_offset; 
+                ham_assert(start_index >= 0, (0));
                 /* only apply the init_offset at the first increment 
                  * cycle to break repetitiveness */
-				hints->skip_init_offset = 0;
-			}
-			else
-			{
-				start_index += hints->skip_step;
-				ham_assert(start_index >= 0, (0));
-			}
+                hints->skip_init_offset = 0;
+            }
+            else
+            {
+                start_index += hints->skip_step;
+                ham_assert(start_index >= 0, (0));
+            }
 
             /*
              * We don't have to be a very good SRNG here, so the 32-bit
@@ -3529,45 +3529,45 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
              * the 'start_index' limit are resolved in an (overly) simple
              * way:
              */
-			start_index %= (freel_cache_get_count(cache) - hints->start_entry - hints->page_span_width + 1);
-			start_index += hints->start_entry;
-		}
+            start_index %= (freel_cache_get_count(cache) - hints->start_entry - hints->page_span_width + 1);
+            start_index += hints->start_entry;
+        }
 
-		ham_assert(start_index < (ham_s32_t)freel_cache_get_count(cache), (0));
-		ham_assert(start_index >= (ham_s32_t)hints->start_entry, (0));
-		entry = freel_cache_get_entries(cache) + start_index;
+        ham_assert(start_index < (ham_s32_t)freel_cache_get_count(cache), (0));
+        ham_assert(start_index >= (ham_s32_t)hints->start_entry, (0));
+        entry = freel_cache_get_entries(cache) + start_index;
 
-		ham_assert(freel_entry_get_allocated_bits(entry) <= freel_entry_get_max_bits(entry), (0));
+        ham_assert(freel_entry_get_allocated_bits(entry) <= freel_entry_get_max_bits(entry), (0));
 
-		/* 
-		the regular check: no way if there's not enough in there, lump sum 
-		*/
-		if (hints->page_span_width > 1)
-		{
-			/*		
-			handle this a little differently for 'huge blobs' which span multiple freelist entries: there,
-			we'll be looking at _at least_ SPAN-1 'fully allocated AND free' freelist entries, instead
-			of simply the possibility the requested number of free bits may be available.
+        /* 
+        the regular check: no way if there's not enough in there, lump sum 
+        */
+        if (hints->page_span_width > 1)
+        {
+            /*        
+            handle this a little differently for 'huge blobs' which span multiple freelist entries: there,
+            we'll be looking at _at least_ SPAN-1 'fully allocated AND free' freelist entries, instead
+            of simply the possibility the requested number of free bits may be available.
 
-			To keep it simple, we only check the first freelist entry here and leave the rest to the
-			outer search/alloc routine.
-			*/
-			if (freel_entry_get_allocated_bits(entry) != freel_entry_get_max_bits(entry))
-			{
-				continue;
-			}
-		}
-		else
-		{
-			/* 
-			regular requests do not overflow beyond the freelist entry boundary, i.e.
-			must fit in the current freelist entry page in their entirety.
-			*/
-			if (freel_entry_get_allocated_bits(entry) < hints->size_bits) 
-			{
-				continue;
-			}
-		}
+            To keep it simple, we only check the first freelist entry here and leave the rest to the
+            outer search/alloc routine.
+            */
+            if (freel_entry_get_allocated_bits(entry) != freel_entry_get_max_bits(entry))
+            {
+                continue;
+            }
+        }
+        else
+        {
+            /* 
+            regular requests do not overflow beyond the freelist entry boundary, i.e.
+            must fit in the current freelist entry page in their entirety.
+            */
+            if (freel_entry_get_allocated_bits(entry) < hints->size_bits) 
+            {
+                continue;
+            }
+        }
 
         /*
          * check our statistics as well: do we have a sufficiently
@@ -3602,56 +3602,56 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
          * an (optimistic) estimate. Our current mgt_mode will take it
          * from there...
          */
-		//if (entrystats->persisted_bits > 0)
-		dst->startpos = 0;
-		dst->endpos = freel_entry_get_max_bits(entry);
-		dst->skip_distance = hints->size_bits;
-		dst->mgt_mode = hints->mgt_mode;
-		dst->aligned = hints->aligned;
-		dst->size_bits = hints->size_bits;
-		dst->freelist_pagesize_bits = hints->freelist_pagesize_bits;
-		dst->page_span_width = hints->page_span_width;
+        //if (entrystats->persisted_bits > 0)
+        dst->startpos = 0;
+        dst->endpos = freel_entry_get_max_bits(entry);
+        dst->skip_distance = hints->size_bits;
+        dst->mgt_mode = hints->mgt_mode;
+        dst->aligned = hints->aligned;
+        dst->size_bits = hints->size_bits;
+        dst->freelist_pagesize_bits = hints->freelist_pagesize_bits;
+        dst->page_span_width = hints->page_span_width;
 
-		dst->cost = 1;
+        dst->cost = 1;
 
-		if (hints->page_span_width > 1)
-		{
-			/*
-			with multi-entry spanning searches, there's no requirement for per-page hinting,
-			so we don't do it.
+        if (hints->page_span_width > 1)
+        {
+            /*
+            with multi-entry spanning searches, there's no requirement for per-page hinting,
+            so we don't do it.
 
-			However, we like our storage to be db page aligned, thank you very much ;-)
-			*/
-			dst->aligned = HAM_TRUE;
-		}
-		else
-		{
-			db_get_freelist_entry_hints(dst, db, entry);
+            However, we like our storage to be db page aligned, thank you very much ;-)
+            */
+            dst->aligned = HAM_TRUE;
+        }
+        else
+        {
+            db_get_freelist_entry_hints(dst, db, entry);
 
-			if (dst->startpos + dst->size_bits > dst->endpos)
-			{
-				/* forget it: not enough space in there anyway! */
-				continue;
-			}
-		}
+            if (dst->startpos + dst->size_bits > dst->endpos)
+            {
+                /* forget it: not enough space in there anyway! */
+                continue;
+            }
+        }
 
-		/* we've done all we could to pick a good freelist page; now it's up to the caller */
-		break;
-	}
+        /* we've done all we could to pick a good freelist page; now it's up to the caller */
+        break;
+    }
 
-	/* always count call as ONE round, at least: that's minus 1 for the successful trial outside */
-	hints->max_rounds--; 
+    /* always count call as ONE round, at least: that's minus 1 for the successful trial outside */
+    hints->max_rounds--; 
 
 #if defined(HAM_DEBUG)
-	ham_assert(start_index >= 0, (0));
-	ham_assert(start_index < (ham_s32_t)freel_cache_get_count(cache), (0));
-	ham_assert(start_index >= (ham_s32_t)hints->start_entry, (0));
-	entry = freel_cache_get_entries(cache) + start_index;
-	ham_assert(hints->page_span_width <= 1 ? freel_entry_get_allocated_bits(entry) >= hints->size_bits : HAM_TRUE, (0));
-	ham_assert(hints->page_span_width > 1 ? freel_entry_get_allocated_bits(entry) == freel_entry_get_max_bits(entry) : HAM_TRUE, (0));
+    ham_assert(start_index >= 0, (0));
+    ham_assert(start_index < (ham_s32_t)freel_cache_get_count(cache), (0));
+    ham_assert(start_index >= (ham_s32_t)hints->start_entry, (0));
+    entry = freel_cache_get_entries(cache) + start_index;
+    ham_assert(hints->page_span_width <= 1 ? freel_entry_get_allocated_bits(entry) >= hints->size_bits : HAM_TRUE, (0));
+    ham_assert(hints->page_span_width > 1 ? freel_entry_get_allocated_bits(entry) == freel_entry_get_max_bits(entry) : HAM_TRUE, (0));
 #endif
 
-	return start_index;
+    return start_index;
 }
 
 
@@ -3664,281 +3664,281 @@ __freel_alloc_areaXX(ham_db_t *db, ham_size_t size, ham_bool_t aligned)
     freelist_cache_t *cache=db_get_freelist_cache(db);
     ham_page_t *page=0;
     ham_s32_t s=-1;
-	ham_u16_t mgt_mode = db_get_data_access_mode(db);
-	freelist_global_hints_t global_hints = 
-	{ 
-		0, 
-		1, 
-		0, 
-		freel_cache_get_count(cache), 
-		mgt_mode, 
-		0, /* span_width will be set by the hinter */
-		aligned, 
-		size/DB_CHUNKSIZE,
-		__freel_get_freelist_entry_maxspan(db, cache)
-	};
-	freelist_hints_t hints = {0};
+    ham_u16_t mgt_mode = db_get_data_access_mode(db);
+    freelist_global_hints_t global_hints = 
+    { 
+        0, 
+        1, 
+        0, 
+        freel_cache_get_count(cache), 
+        mgt_mode, 
+        0, /* span_width will be set by the hinter */
+        aligned, 
+        size/DB_CHUNKSIZE,
+        __freel_get_freelist_entry_maxspan(db, cache)
+    };
+    freelist_hints_t hints = {0};
 
-	ham_assert_DAM(db);
+    ham_assert_DAM(db);
 
-	db_get_global_freelist_hints(&global_hints, db);
+    db_get_global_freelist_hints(&global_hints, db);
 
     ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB), (0));
     ham_assert(db_get_freelist_cache(db), (0));
 
     ham_assert(size%DB_CHUNKSIZE==0, (0));
 
-	ham_assert(global_hints.page_span_width >= 1, (0));
-	/*
-	 * __freel_locate_sufficient_free_space() is used to calculate the
-	 * next freelist entry page to probe; as a side-effect it also
-	 * delivers the hints for this entry - no use calculating those a
-	 * second time for use in __freel_search_bits_ex() -- faster to pass
-	 * them along.
-	 */
-	for (i = -1;
-		0 <= (i = __freel_locate_sufficient_free_space(&hints, &global_hints, db, cache, i));
-		)
-	{
-		ham_assert(i < (ham_s32_t)freel_cache_get_count(cache), (0));
+    ham_assert(global_hints.page_span_width >= 1, (0));
+    /*
+     * __freel_locate_sufficient_free_space() is used to calculate the
+     * next freelist entry page to probe; as a side-effect it also
+     * delivers the hints for this entry - no use calculating those a
+     * second time for use in __freel_search_bits_ex() -- faster to pass
+     * them along.
+     */
+    for (i = -1;
+        0 <= (i = __freel_locate_sufficient_free_space(&hints, &global_hints, db, cache, i));
+        )
+    {
+        ham_assert(i < (ham_s32_t)freel_cache_get_count(cache), (0));
 
-		entry = freel_cache_get_entries(cache) + i;
-	        
-		/*
-		when we look for a free slot for a multipage spanning blob ('huge blob'), we
-		could, of course, play nice, and check every bit of freelist, but that takes
-		time.
+        entry = freel_cache_get_entries(cache) + i;
+            
+        /*
+        when we look for a free slot for a multipage spanning blob ('huge blob'), we
+        could, of course, play nice, and check every bit of freelist, but that takes
+        time.
 
-		The faster approach employed here is to look for a sufficiently large sequence
-		of /completely free/ freelist pages; the worst case space utilization of this
-		speedup is >50% as the worst case is looking for a chunk of space as large as
-		one freelist page (~ DB_CHUNKSIZE db pages) + 1 byte, in which case the 
-		second freelist page will not be checked against a subsequent huge size request
-		as it is not 'completely free' any longer, thus effectively occupying 2 freelist
-		page spans where 1 (and a bit) would have sufficed, resulting in a worst case space utilization
-		of a little more than 50%. 
-		
-		I can live with that.
-		*/
-		if (global_hints.page_span_width > 1)
-		{
-			/*
-			we must employ a different freelist alloc system for requests spanning multiple
-			freelist pages as the regular __freel_search_bits_ex() is not able to cope with such
-			requests.
+        The faster approach employed here is to look for a sufficiently large sequence
+        of /completely free/ freelist pages; the worst case space utilization of this
+        speedup is >50% as the worst case is looking for a chunk of space as large as
+        one freelist page (~ DB_CHUNKSIZE db pages) + 1 byte, in which case the 
+        second freelist page will not be checked against a subsequent huge size request
+        as it is not 'completely free' any longer, thus effectively occupying 2 freelist
+        page spans where 1 (and a bit) would have sufficed, resulting in a worst case space utilization
+        of a little more than 50%. 
+        
+        I can live with that.
+        */
+        if (global_hints.page_span_width > 1)
+        {
+            /*
+            we must employ a different freelist alloc system for requests spanning multiple
+            freelist pages as the regular __freel_search_bits_ex() is not able to cope with such
+            requests.
 
-			hamsterdb versions prior to 1.1.0 would simply call that function and fail every time,
-			resulting in a behaviour where 'huge blobs' could be added or overwritten in the database,
-			but erased huge blobs' space would never be re-used for subsequently inserted 'huge blobs',
-			thus resulting in an ever growing database file when hamsterdb would be subjected to a
-			insert+erase use pattern for huge blobs.
+            hamsterdb versions prior to 1.1.0 would simply call that function and fail every time,
+            resulting in a behaviour where 'huge blobs' could be added or overwritten in the database,
+            but erased huge blobs' space would never be re-used for subsequently inserted 'huge blobs',
+            thus resulting in an ever growing database file when hamsterdb would be subjected to a
+            insert+erase use pattern for huge blobs.
 
-			Note that the multipage spanning search employs a Boyer-Moore search mechanism, which is
-			(at least partly) built into the __freel_locate_sufficient_free_space() function;
-			all that's left for us here is to scan _backwards_ conform BM to see if we have a sufficiently
-			large sequence of completely freed freelist entries.
-			*/
-			ham_size_t pagecount_sought = hints.page_span_width;
-			ham_size_t start_idx;
-			ham_size_t end_idx;
-			ham_size_t available = freel_entry_get_allocated_bits(entry);
+            Note that the multipage spanning search employs a Boyer-Moore search mechanism, which is
+            (at least partly) built into the __freel_locate_sufficient_free_space() function;
+            all that's left for us here is to scan _backwards_ conform BM to see if we have a sufficiently
+            large sequence of completely freed freelist entries.
+            */
+            ham_size_t pagecount_sought = hints.page_span_width;
+            ham_size_t start_idx;
+            ham_size_t end_idx;
+            ham_size_t available = freel_entry_get_allocated_bits(entry);
 
-			ham_assert(freel_entry_get_allocated_bits(entry) <= freel_entry_get_max_bits(entry), (0));
-			ham_assert(i >= (ham_s32_t)hints.page_span_width, (0));
-			/*
-			entry points at A freelist entry in the possible sequence, scan back and forth 
-			to discover our actual sequence length. Scan back first, then forward when we need a
-			tail.
-			*/
-			for (start_idx = 0; ++start_idx < pagecount_sought; )
-			{
-				ham_assert(i >= (ham_s32_t)start_idx, (0));
-				ham_assert(i - start_idx >= global_hints.start_entry, (0));
-				if (freel_entry_get_allocated_bits(entry - start_idx) 
-					!= freel_entry_get_max_bits(entry - start_idx))
-				{
-					break;
-				}
-				available += freel_entry_get_allocated_bits(entry - start_idx);
-			}
-			start_idx--;
+            ham_assert(freel_entry_get_allocated_bits(entry) <= freel_entry_get_max_bits(entry), (0));
+            ham_assert(i >= (ham_s32_t)hints.page_span_width, (0));
+            /*
+            entry points at A freelist entry in the possible sequence, scan back and forth 
+            to discover our actual sequence length. Scan back first, then forward when we need a
+            tail.
+            */
+            for (start_idx = 0; ++start_idx < pagecount_sought; )
+            {
+                ham_assert(i >= (ham_s32_t)start_idx, (0));
+                ham_assert(i - start_idx >= global_hints.start_entry, (0));
+                if (freel_entry_get_allocated_bits(entry - start_idx) 
+                    != freel_entry_get_max_bits(entry - start_idx))
+                {
+                    break;
+                }
+                available += freel_entry_get_allocated_bits(entry - start_idx);
+            }
+            start_idx--;
 
-			/* 
-			now see if we need (and have) a sufficiently large tail;
-			we can't simply say 
-			
-				pagecount_sought -= start_idx;
+            /* 
+            now see if we need (and have) a sufficiently large tail;
+            we can't simply say 
+            
+                pagecount_sought -= start_idx;
 
-			because our very first freelist entry in the sequence may have less maxbits than the others
-			(as it may be the header page!) so we need to properly calculate the number of freelist 
-			entries that we need more:
-			*/
-			ham_assert(hints.size_bits + hints.freelist_pagesize_bits - 1 >= available, (0));
-			pagecount_sought = hints.size_bits - available;
-			/* round up: */
-			pagecount_sought += hints.freelist_pagesize_bits - 1;
-			pagecount_sought /= hints.freelist_pagesize_bits;
-			for (end_idx = 1; 
-				end_idx < pagecount_sought
-				&& i + end_idx < freel_cache_get_count(cache)
-				&& (freel_entry_get_allocated_bits(entry + end_idx) 
-					!= freel_entry_get_max_bits(entry + end_idx));
-				end_idx++)
-			{
-				available += freel_entry_get_allocated_bits(entry + end_idx);
-			}
-			end_idx--;
+            because our very first freelist entry in the sequence may have less maxbits than the others
+            (as it may be the header page!) so we need to properly calculate the number of freelist 
+            entries that we need more:
+            */
+            ham_assert(hints.size_bits + hints.freelist_pagesize_bits - 1 >= available, (0));
+            pagecount_sought = hints.size_bits - available;
+            /* round up: */
+            pagecount_sought += hints.freelist_pagesize_bits - 1;
+            pagecount_sought /= hints.freelist_pagesize_bits;
+            for (end_idx = 1; 
+                end_idx < pagecount_sought
+                && i + end_idx < freel_cache_get_count(cache)
+                && (freel_entry_get_allocated_bits(entry + end_idx) 
+                    != freel_entry_get_max_bits(entry + end_idx));
+                end_idx++)
+            {
+                available += freel_entry_get_allocated_bits(entry + end_idx);
+            }
+            end_idx--;
 
-			/*
-			we can move i forward to the first non-suitable entry and BM-skip from there,
-			HOWEVER, we have two BM modes in here really: one that scans forward (DAM:RANDOM_ACCESS)
-			and one that scans backwards (DAM:SEQUENTIAL) and moving 'i' _up_ would harm the latter.
+            /*
+            we can move i forward to the first non-suitable entry and BM-skip from there,
+            HOWEVER, we have two BM modes in here really: one that scans forward (DAM:RANDOM_ACCESS)
+            and one that scans backwards (DAM:SEQUENTIAL) and moving 'i' _up_ would harm the latter.
 
-			The way out of this is to add end_idx+1 as a skip_offset instead and let 
-			__freel_locate_sufficient_free_space() handle it from there.
-			*/
-			global_hints.skip_init_offset = end_idx + 1;
+            The way out of this is to add end_idx+1 as a skip_offset instead and let 
+            __freel_locate_sufficient_free_space() handle it from there.
+            */
+            global_hints.skip_init_offset = end_idx + 1;
 
-			if (available < hints.size_bits)
-			{
-				/* register the NO HIT */
-				db_update_freelist_globalhints_no_hit(db, entry, &hints);
-			}
-			else
-			{
-				ham_size_t len;
-				ham_offset_t addr = 0;
+            if (available < hints.size_bits)
+            {
+                /* register the NO HIT */
+                db_update_freelist_globalhints_no_hit(db, entry, &hints);
+            }
+            else
+            {
+                ham_size_t len;
+                ham_offset_t addr = 0;
 
-				/* we have a hit! */
-				i -= start_idx;
-				end_idx += start_idx; 
-				
-				start_idx = 0;
-				for (len = hints.size_bits; len > 0; i++, start_idx++)
-				{
-					ham_size_t fl;
+                /* we have a hit! */
+                i -= start_idx;
+                end_idx += start_idx; 
+                
+                start_idx = 0;
+                for (len = hints.size_bits; len > 0; i++, start_idx++)
+                {
+                    ham_size_t fl;
 
-					ham_assert(i < (ham_s32_t)freel_cache_get_count(cache), (0));
+                    ham_assert(i < (ham_s32_t)freel_cache_get_count(cache), (0));
 
-					entry = freel_cache_get_entries(cache) + i;
-					if (i == 0)
-					{
-						page = 0;
-						fp = db_get_freelist(db);
-					}
-					else
-					{
-						page = db_fetch_page(db, freel_entry_get_page_id(entry), 0);
-						if (!page)
-							return (0);
-						fp=page_get_freelist(page);
-					}
-					ham_assert(freel_entry_get_allocated_bits(entry) == freel_entry_get_max_bits(entry), (0));
-					ham_assert(freel_get_allocated_bitsXX(fp) == freel_get_max_bitsXX(fp), (0));
+                    entry = freel_cache_get_entries(cache) + i;
+                    if (i == 0)
+                    {
+                        page = 0;
+                        fp = db_get_freelist(db);
+                    }
+                    else
+                    {
+                        page = db_fetch_page(db, freel_entry_get_page_id(entry), 0);
+                        if (!page)
+                            return (0);
+                        fp=page_get_freelist(page);
+                    }
+                    ham_assert(freel_entry_get_allocated_bits(entry) == freel_entry_get_max_bits(entry), (0));
+                    ham_assert(freel_get_allocated_bitsXX(fp) == freel_get_max_bitsXX(fp), (0));
 
-					if (start_idx == 0)
-					{
-				        addr = freel_get_start_address(fp);
-					}
+                    if (start_idx == 0)
+                    {
+                        addr = freel_get_start_address(fp);
+                    }
 
-					if (len >= freel_entry_get_allocated_bits(entry))
-					{
-						fl = freel_entry_get_allocated_bits(entry);
-					}
-					else
-					{
-						fl = len;
-					}
-					__freel_set_bits(db, entry, fp, HAM_FALSE, 0, fl, HAM_FALSE, hints.mgt_mode);
-					freel_set_allocated_bitsXX(fp, (ham_uXX_t)(freel_get_allocated_bitsXX(fp) - fl));
-			        freel_entry_set_allocated_bits(entry, freel_get_allocated_bitsXX(fp));
-					len -= fl;
+                    if (len >= freel_entry_get_allocated_bits(entry))
+                    {
+                        fl = freel_entry_get_allocated_bits(entry);
+                    }
+                    else
+                    {
+                        fl = len;
+                    }
+                    __freel_set_bits(db, entry, fp, HAM_FALSE, 0, fl, HAM_FALSE, hints.mgt_mode);
+                    freel_set_allocated_bitsXX(fp, (ham_uXX_t)(freel_get_allocated_bitsXX(fp) - fl));
+                    freel_entry_set_allocated_bits(entry, freel_get_allocated_bitsXX(fp));
+                    len -= fl;
 
-					if (page)
-						page_set_dirty(page);
-					else
-						db_set_dirty(db);
-				}
+                    if (page)
+                        page_set_dirty_txn(page, 1);
+                    else
+                        db_set_dirty(db);
+                }
 
-				ham_assert(addr != 0, (0));
-		        return addr;
-			}
-		}
-		else
-		{
-			/*
-			and this is the 'regular' free slot search, where we are looking for sizes which fit into a
-			single freelist entry page in their entirety.
+                ham_assert(addr != 0, (0));
+                return addr;
+            }
+        }
+        else
+        {
+            /*
+            and this is the 'regular' free slot search, where we are looking for sizes which fit into a
+            single freelist entry page in their entirety.
 
-			Here we take the shortcut of not looking for edge solutions spanning two 
-			freelist entries (start in one, last few chunks in the next); this optimization costs
-			little in space utilization losses and gains us a lot in execution speed. This particular
-			optimization was already present in pre-v1.1.0 hamsterdb, BTW.
-			*/
-			ham_assert(freel_entry_get_allocated_bits(entry) >= size/DB_CHUNKSIZE, (0));
-			ham_assert(hints.startpos + hints.size_bits <= hints.endpos, (0));
+            Here we take the shortcut of not looking for edge solutions spanning two 
+            freelist entries (start in one, last few chunks in the next); this optimization costs
+            little in space utilization losses and gains us a lot in execution speed. This particular
+            optimization was already present in pre-v1.1.0 hamsterdb, BTW.
+            */
+            ham_assert(freel_entry_get_allocated_bits(entry) >= size/DB_CHUNKSIZE, (0));
+            ham_assert(hints.startpos + hints.size_bits <= hints.endpos, (0));
 
-			/*
-			 * yes, load the payload structure
-			 */
-			if (i == 0)
-			{
-				fp = db_get_freelist(db);
-			}
-			else
-			{
-				page = db_fetch_page(db, freel_entry_get_page_id(entry), 0);
-				if (!page)
-					return (0);
-				fp=page_get_freelist(page);
-			}
+            /*
+             * yes, load the payload structure
+             */
+            if (i == 0)
+            {
+                fp = db_get_freelist(db);
+            }
+            else
+            {
+                page = db_fetch_page(db, freel_entry_get_page_id(entry), 0);
+                if (!page)
+                    return (0);
+                fp=page_get_freelist(page);
+            }
 
-			/*
-			 * now try to allocate from this payload
-			 */
+            /*
+             * now try to allocate from this payload
+             */
 #if 0  // turn the old ones on to see it all slow down... ;-)
-			if (aligned)
-				s=__freel_search_aligned_bits(db, entry, fp, size/DB_CHUNKSIZE);
-			else
-				s=__freel_search_bits(db, entry, fp, size/DB_CHUNKSIZE);
+            if (aligned)
+                s=__freel_search_aligned_bits(db, entry, fp, size/DB_CHUNKSIZE);
+            else
+                s=__freel_search_bits(db, entry, fp, size/DB_CHUNKSIZE);
 #else
-			ham_assert(db_is_mgt_mode_set(db_get_data_access_mode(db), HAM_DAM_ENFORCE_PRE110_FORMAT)
-				? (fp->_s._s32._zero != 0)
-				: (fp->_s._s32._zero == 0), (0));
-			s = __freel_search_bits_ex(db, entry, fp, size/DB_CHUNKSIZE, &hints);
+            ham_assert(db_is_mgt_mode_set(db_get_data_access_mode(db), HAM_DAM_ENFORCE_PRE110_FORMAT)
+                ? (fp->_s._s32._zero != 0)
+                : (fp->_s._s32._zero == 0), (0));
+            s = __freel_search_bits_ex(db, entry, fp, size/DB_CHUNKSIZE, &hints);
 #endif
-			if (s != -1)
-			{
-				__freel_set_bits(db, entry, fp, HAM_FALSE, s, size/DB_CHUNKSIZE, HAM_FALSE, hints.mgt_mode);
-				if (page)
-					page_set_dirty(page);
-				else
-					db_set_dirty(db);
-				break;
-			}
-			else
-			{
-				/* register the NO HIT */
-				db_update_freelist_globalhints_no_hit(db, entry, &hints);
-			}
-		}
+            if (s != -1)
+            {
+                __freel_set_bits(db, entry, fp, HAM_FALSE, s, size/DB_CHUNKSIZE, HAM_FALSE, hints.mgt_mode);
+                if (page)
+                    page_set_dirty_txn(page, 1);
+                else
+                    db_set_dirty(db);
+                break;
+            }
+            else
+            {
+                /* register the NO HIT */
+                db_update_freelist_globalhints_no_hit(db, entry, &hints);
+            }
+        }
     }
 
     ham_assert(s != -1 ? fp != NULL : 1, (0));
 
     if (s != -1)
     {
-		ham_assert((freel_get_allocated_bitsXX(fp) - size/DB_CHUNKSIZE) <
-					(1ULL << 8*sizeof(freel_get_allocated_bitsXX(fp))), 
-				("size must fit in the _allocated_bits type"));
+        ham_assert((freel_get_allocated_bitsXX(fp) - size/DB_CHUNKSIZE) <
+                    (1ULL << 8*sizeof(freel_get_allocated_bitsXX(fp))), 
+                ("size must fit in the _allocated_bits type"));
         freel_set_allocated_bitsXX(fp, 
                 (ham_uXX_t)(freel_get_allocated_bitsXX(fp) - size/DB_CHUNKSIZE));
-		ham_assert(freel_get_allocated_bitsXX(fp) <
-					(1ULL << 8*sizeof(entry->_allocated_bits)), 
-				("size must fit in the _allocated_bits type"));
-		ham_assert(freel_get_allocated_bitsXX(fp) < 
-					(1ULL << 8*sizeof(ham_uXX_t)), 
-				("size must fit in the persistent _allocated_bits type"));
+        ham_assert(freel_get_allocated_bitsXX(fp) <
+                    (1ULL << 8*sizeof(entry->_allocated_bits)), 
+                ("size must fit in the _allocated_bits type"));
+        ham_assert(freel_get_allocated_bitsXX(fp) < 
+                    (1ULL << 8*sizeof(ham_uXX_t)), 
+                ("size must fit in the persistent _allocated_bits type"));
         freel_entry_set_allocated_bits(entry,
                 freel_get_allocated_bitsXX(fp));
 
@@ -3954,12 +3954,12 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_db_t *db, ham_u16_t mgt_mode)
 {
     ham_status_t st;
     ham_size_t size;
-	ham_size_t entry_pos;
+    ham_size_t entry_pos;
     freelist_entry_t *entry;
     freelist_payload_t *fp=db_get_freelist(db);
     
-	ham_assert_DAM(db);
-	ham_assert(db_get_freelist_cache(db) == 0, (""));
+    ham_assert_DAM(db);
+    ham_assert(db_get_freelist_cache(db) == 0, (""));
     ham_assert(cache != 0, (""));
     ham_assert(!freel_cache_get_entries(cache), (""));
 
@@ -3972,43 +3972,43 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_db_t *db, ham_u16_t mgt_mode)
      */
     freel_entry_set_start_address(&entry[0], db_get_pagesize(db));
 #if 0
-	size=db_get_usable_pagesize(db)-
+    size=db_get_usable_pagesize(db)-
         ((char *)db_get_freelist(db)-
             (char *)page_get_payload(db_get_header_page(db)));
 #else
-	size = db_get_usable_pagesize(db);
-	size -= SIZEOF_FULL_HEADER(db);
+    size = db_get_usable_pagesize(db);
+    size -= SIZEOF_FULL_HEADER(db);
 #endif
     size -= db_get_freelist_header_sizeXX();
-	size -= size % sizeof(ham_u64_t);
-	ham_assert((size % sizeof(ham_u64_t)) == 0, ("freelist entry bitarray == 0 MOD sizeof(ham_u64_t) due to the scan algorithm"));
-	ham_assert(size < (1ULL << 8*sizeof(entry->_max_bits)), ("size must fit in the _max_bits type"));
-	ham_assert(size*8 < (1ULL << 8*sizeof(entry->_max_bits)), ("size must fit in the _max_bits type"));
+    size -= size % sizeof(ham_u64_t);
+    ham_assert((size % sizeof(ham_u64_t)) == 0, ("freelist entry bitarray == 0 MOD sizeof(ham_u64_t) due to the scan algorithm"));
+    ham_assert(size < (1ULL << 8*sizeof(entry->_max_bits)), ("size must fit in the _max_bits type"));
+    ham_assert(size*8 < (1ULL << 8*sizeof(entry->_max_bits)), ("size must fit in the _max_bits type"));
 #if !defined(FORCE_UNITTEST_PASS)
-	ham_assert(size < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _max_bits type"));
-	ham_assert(size*8 < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _max_bits type"));
+    ham_assert(size < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _max_bits type"));
+    ham_assert(size*8 < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _max_bits type"));
 #endif
-	freel_entry_set_max_bits(&entry[0], (ham_uXX_t)(size*8));
+    freel_entry_set_max_bits(&entry[0], (ham_uXX_t)(size*8));
 
     /*
      * initialize the header page, if we have read/write access
      */
     if (!(db_get_rt_flags(db)&HAM_READ_ONLY)) 
-	{
+    {
         freel_set_start_address(fp, db_get_pagesize(db));
-		ham_assert((size*8 % sizeof(ham_u64_t)) == 0, ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) due to the scan algorithm"));
+        ham_assert((size*8 % sizeof(ham_u64_t)) == 0, ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) due to the scan algorithm"));
 #if !defined(FORCE_UNITTEST_PASS)
-		ham_assert(size < (1ULL << 8*sizeof(freel_get_max_bitsXX(fp))), ("size must fit in the _max_bits type"));
-		ham_assert(size*8 < (1ULL << 8*sizeof(freel_get_max_bitsXX(fp))), ("size must fit in the _max_bits type"));
+        ham_assert(size < (1ULL << 8*sizeof(freel_get_max_bitsXX(fp))), ("size must fit in the _max_bits type"));
+        ham_assert(size*8 < (1ULL << 8*sizeof(freel_get_max_bitsXX(fp))), ("size must fit in the _max_bits type"));
 #endif
-		freel_set_max_bitsXX(fp, (ham_uXX_t)(size*8));
+        freel_set_max_bitsXX(fp, (ham_uXX_t)(size*8));
     }
 
-	ham_assert(cache->_init_perf_data, (0));
-	st = cache->_init_perf_data(cache, db, entry, fp);
-	if (st) {
-		return (db_set_error(db, st));
-	}
+    ham_assert(cache->_init_perf_data, (0));
+    st = cache->_init_perf_data(cache, db, entry, fp);
+    if (st) {
+        return (db_set_error(db, st));
+    }
 
     freel_cache_set_count(cache, 1);
     freel_cache_set_entries(cache, entry);
@@ -4017,13 +4017,13 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_db_t *db, ham_u16_t mgt_mode)
         env_set_freelist_cache(db_get_env(db), cache);
     else
         db_set_freelist_cache(db, cache);
-	ham_assert(db_get_freelist_cache(db) != 0, (""));
+    ham_assert(db_get_freelist_cache(db) != 0, (""));
 
     /*
      * now load all other freelist pages
      */
     for (entry_pos = 1;; entry_pos++) 
-	{
+    {
         ham_page_t *page;
         if (!freel_get_overflow(fp))
             break;
@@ -4040,17 +4040,17 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_db_t *db, ham_u16_t mgt_mode)
         ham_assert(entry_pos<freel_cache_get_count(cache), (0));
         entry=freel_cache_get_entries(cache)+entry_pos;
         ham_assert(freel_entry_get_start_address(entry) == freel_get_start_address(fp), (""));
-		ham_assert(freel_get_allocated_bitsXX(fp) < (1ULL << 8*sizeof(entry->_allocated_bits)), ("size must fit in the _allocated_bits type"));
-		ham_assert(freel_get_allocated_bitsXX(fp) < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _allocated_bits type"));
+        ham_assert(freel_get_allocated_bitsXX(fp) < (1ULL << 8*sizeof(entry->_allocated_bits)), ("size must fit in the _allocated_bits type"));
+        ham_assert(freel_get_allocated_bitsXX(fp) < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _allocated_bits type"));
         freel_entry_set_allocated_bits(entry, freel_get_allocated_bitsXX(fp));
         freel_entry_set_page_id(entry, page_get_self(page));
 
-		ham_assert(cache->_init_perf_data, (0));
-		st = cache->_init_perf_data(cache, db, entry, fp);
-		if (st) {
-			db_set_error(db, st);
-			return (0);
-		}
+        ham_assert(cache->_init_perf_data, (0));
+        st = cache->_init_perf_data(cache, db, entry, fp);
+        if (st) {
+            db_set_error(db, st);
+            return (0);
+        }
     }
 
     return (0);
@@ -4066,28 +4066,28 @@ nothing to persist, really.
 ham_status_t
 __freel_flush_stats16(ham_db_t *db)
 {
-	freelist_cache_t *cache;
-	freelist_entry_t *entries;
+    freelist_cache_t *cache;
+    freelist_entry_t *entries;
 
     ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB), (0));
     ham_assert(db_get_freelist_cache(db), (0));
 
-	cache=db_get_freelist_cache(db);
-	ham_assert(cache, (0));
+    cache=db_get_freelist_cache(db);
+    ham_assert(cache, (0));
 
-	entries = freel_cache_get_entries(cache);
+    entries = freel_cache_get_entries(cache);
 
-	if (entries && freel_cache_get_count(cache) > 0)
-	{
-		ham_size_t i;
-		
-		for (i = freel_cache_get_count(cache); i-- > 0; )
-		{
-			freel_entry_statistics_reset_dirty(entries + i);
-		}
-	}
+    if (entries && freel_cache_get_count(cache) > 0)
+    {
+        ham_size_t i;
+        
+        for (i = freel_cache_get_count(cache); i-- > 0; )
+        {
+            freel_entry_statistics_reset_dirty(entries + i);
+        }
+    }
 
-	return (0);
+    return (0);
 }
 
 #endif
@@ -4096,23 +4096,23 @@ __freel_flush_stats16(ham_db_t *db)
 ham_status_t
 __freel_destructorXX(ham_db_t *db)
 {
-	freelist_cache_t *cache;
-	freelist_entry_t *entries;
+    freelist_cache_t *cache;
+    freelist_entry_t *entries;
 
-	ham_assert_DAM(db);
+    ham_assert_DAM(db);
     ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB), (0));
     ham_assert(db_get_freelist_cache(db), (0));
 
-	cache=db_get_freelist_cache(db);
-	ham_assert(cache, (0));
+    cache=db_get_freelist_cache(db);
+    ham_assert(cache, (0));
 
-	entries = freel_cache_get_entries(cache);
-	if (entries)
+    entries = freel_cache_get_entries(cache);
+    if (entries)
         ham_mem_free(db, entries);
 
-	memset(cache, 0, sizeof(*cache));
+    memset(cache, 0, sizeof(*cache));
 
-	return (0);
+    return (0);
 }
 
 
@@ -4126,21 +4126,21 @@ __freel_mark_freeXX(ham_db_t *db, ham_offset_t address, ham_size_t size,
     freelist_payload_t *fp;
     ham_size_t s;
 
-	ham_assert_DAM(db);
+    ham_assert_DAM(db);
     ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB), (0));
     ham_assert(db_get_freelist_cache(db), (0));
 
     ham_assert(size%DB_CHUNKSIZE==0, (0));
     ham_assert(address%DB_CHUNKSIZE==0, (0));
 
-	cache = db_get_freelist_cache(db);
+    cache = db_get_freelist_cache(db);
     ham_assert(cache, (0));
 
     /*
      * split the chunk if it doesn't fit in one freelist page
      */
     while (size) 
-	{
+    {
         /*
          * get the cache entry of this address
          */
@@ -4152,14 +4152,14 @@ __freel_mark_freeXX(ham_db_t *db, ham_offset_t address, ham_size_t size,
         if (!freel_entry_get_page_id(entry)) {
             if (freel_entry_get_start_address(entry)==db_get_pagesize(db)) {
                 fp=db_get_freelist(db);
-				ham_assert(freel_get_start_address(fp) != 0, (0));
+                ham_assert(freel_get_start_address(fp) != 0, (0));
             }
             else {
                 page=__freel_alloc_pageXX(db, cache, entry);
                 if (!page)
                     return (db_get_error(db));
                 fp=page_get_freelist(page);
-				ham_assert(freel_get_start_address(fp) != 0, (0));
+                ham_assert(freel_get_start_address(fp) != 0, (0));
             }
         }
         /*
@@ -4170,7 +4170,7 @@ __freel_mark_freeXX(ham_db_t *db, ham_offset_t address, ham_size_t size,
             if (!page)
                 return (db_get_error(db));
             fp=page_get_freelist(page);
-			ham_assert(freel_get_start_address(fp) != 0, (0));
+            ham_assert(freel_get_start_address(fp) != 0, (0));
         }
 
         ham_assert(address>=freel_get_start_address(fp), (0));
@@ -4179,26 +4179,26 @@ __freel_mark_freeXX(ham_db_t *db, ham_offset_t address, ham_size_t size,
          * set the bits and update the values in the cache and
          * the fp
          */
-		ham_assert(db_is_mgt_mode_set(db_get_data_access_mode(db), HAM_DAM_ENFORCE_PRE110_FORMAT)
-			? (fp->_s._s32._zero != 0)
-			: (fp->_s._s32._zero == 0), (0));
+        ham_assert(db_is_mgt_mode_set(db_get_data_access_mode(db), HAM_DAM_ENFORCE_PRE110_FORMAT)
+            ? (fp->_s._s32._zero != 0)
+            : (fp->_s._s32._zero == 0), (0));
         s = __freel_set_bits(db, entry, fp, overwrite,
                 (ham_size_t)(address-freel_get_start_address(fp))
-						/ DB_CHUNKSIZE, 
-				size/DB_CHUNKSIZE, 
-				HAM_TRUE, db_get_data_access_mode(db));
+                        / DB_CHUNKSIZE, 
+                size/DB_CHUNKSIZE, 
+                HAM_TRUE, db_get_data_access_mode(db));
 
-		ham_assert(freel_get_allocated_bitsXX(fp)+s < (1ULL << 8*sizeof(entry->_allocated_bits)), ("size must fit in the _allocated_bits type"));
-		ham_assert(freel_get_allocated_bitsXX(fp)+s < (1ULL << 8*sizeof(ham_uXX_t)), ("size %u (= %u + %u) must fit in the persistent _allocated_bits type (%u)", (unsigned int)(freel_get_allocated_bitsXX(fp)+s/DB_CHUNKSIZE), (unsigned int)freel_get_allocated_bitsXX(fp), (unsigned int)(s/DB_CHUNKSIZE), (unsigned int)(1ULL << 8*sizeof(ham_uXX_t))));
+        ham_assert(freel_get_allocated_bitsXX(fp)+s < (1ULL << 8*sizeof(entry->_allocated_bits)), ("size must fit in the _allocated_bits type"));
+        ham_assert(freel_get_allocated_bitsXX(fp)+s < (1ULL << 8*sizeof(ham_uXX_t)), ("size %u (= %u + %u) must fit in the persistent _allocated_bits type (%u)", (unsigned int)(freel_get_allocated_bitsXX(fp)+s/DB_CHUNKSIZE), (unsigned int)freel_get_allocated_bitsXX(fp), (unsigned int)(s/DB_CHUNKSIZE), (unsigned int)(1ULL << 8*sizeof(ham_uXX_t))));
         freel_set_allocated_bitsXX(fp, 
                 (ham_uXX_t)(freel_get_allocated_bitsXX(fp)+s));
         freel_entry_set_allocated_bits(entry, 
                 freel_get_allocated_bitsXX(fp));
 
         if (page)
-            page_set_dirty(page);
+            page_set_dirty_txn(page, 1);
         else
-            db_set_dirty(db);
+            page_set_dirty_txn(db_get_header_page(db), PAGE_DUMMY_TXN_ID);
 
         size -= s * DB_CHUNKSIZE;
         address += s * DB_CHUNKSIZE;
@@ -4211,84 +4211,84 @@ __freel_mark_freeXX(ham_db_t *db, ham_offset_t address, ham_size_t size,
 ham_bool_t
 __freel_check_area_is_allocatedXX(ham_db_t *db, ham_offset_t address, ham_size_t size)
 {
-	ham_page_t *page=0;
-	freelist_cache_t *cache;
-	freelist_entry_t *entry;
-	freelist_payload_t *fp;
-	ham_size_t s;
+    ham_page_t *page=0;
+    freelist_cache_t *cache;
+    freelist_entry_t *entry;
+    freelist_payload_t *fp;
+    ham_size_t s;
 
-	ham_assert_DAM(db);
-	ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB), (0));
-	ham_assert(db_get_freelist_cache(db), (0));
+    ham_assert_DAM(db);
+    ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB), (0));
+    ham_assert(db_get_freelist_cache(db), (0));
 
-	ham_assert(size%DB_CHUNKSIZE==0, (0));
-	ham_assert(address%DB_CHUNKSIZE==0, (0));
+    ham_assert(size%DB_CHUNKSIZE==0, (0));
+    ham_assert(address%DB_CHUNKSIZE==0, (0));
 
-	cache = db_get_freelist_cache(db);
-	ham_assert(cache, (0));
+    cache = db_get_freelist_cache(db);
+    ham_assert(cache, (0));
 
-	/*
-	* split the chunk if it doesn't fit in one freelist page
-	*/
-	while (size) 
-	{
-		/*
-		* get the cache entry of this address
-		*/
-		entry=__freel_cache_get_entry(db, cache, address);
+    /*
+    * split the chunk if it doesn't fit in one freelist page
+    */
+    while (size) 
+    {
+        /*
+        * get the cache entry of this address
+        */
+        entry=__freel_cache_get_entry(db, cache, address);
 
-		/*
-		* allocate a page if necessary
-		*/
-		if (!freel_entry_get_page_id(entry)) {
-			if (freel_entry_get_start_address(entry)==db_get_pagesize(db)) {
-				fp=db_get_freelist(db);
-				ham_assert(freel_get_start_address(fp) != 0, (0));
-			}
-			else {
-				page=__freel_alloc_pageXX(db, cache, entry);
-				if (!page)
-					return (db_get_error(db));
-				fp=page_get_freelist(page);
-				ham_assert(freel_get_start_address(fp) != 0, (0));
-			}
-		}
-		/*
-		* otherwise just fetch the page from the cache or the disk
-		*/
-		else {
-			page=db_fetch_page(db, freel_entry_get_page_id(entry), 0);
-			if (!page)
-				return (db_get_error(db));
-			fp=page_get_freelist(page);
-			ham_assert(freel_get_start_address(fp) != 0, (0));
-		}
+        /*
+        * allocate a page if necessary
+        */
+        if (!freel_entry_get_page_id(entry)) {
+            if (freel_entry_get_start_address(entry)==db_get_pagesize(db)) {
+                fp=db_get_freelist(db);
+                ham_assert(freel_get_start_address(fp) != 0, (0));
+            }
+            else {
+                page=__freel_alloc_pageXX(db, cache, entry);
+                if (!page)
+                    return (db_get_error(db));
+                fp=page_get_freelist(page);
+                ham_assert(freel_get_start_address(fp) != 0, (0));
+            }
+        }
+        /*
+        * otherwise just fetch the page from the cache or the disk
+        */
+        else {
+            page=db_fetch_page(db, freel_entry_get_page_id(entry), 0);
+            if (!page)
+                return (db_get_error(db));
+            fp=page_get_freelist(page);
+            ham_assert(freel_get_start_address(fp) != 0, (0));
+        }
 
-		ham_assert(address>=freel_get_start_address(fp), (0));
+        ham_assert(address>=freel_get_start_address(fp), (0));
 
-		/*
-		* check the bits
-		*/
-		ham_assert(db_is_mgt_mode_set(db_get_data_access_mode(db), HAM_DAM_ENFORCE_PRE110_FORMAT)
-			? (fp->_s._s32._zero != 0)
-			: (fp->_s._s32._zero == 0), (0));
+        /*
+        * check the bits
+        */
+        ham_assert(db_is_mgt_mode_set(db_get_data_access_mode(db), HAM_DAM_ENFORCE_PRE110_FORMAT)
+            ? (fp->_s._s32._zero != 0)
+            : (fp->_s._s32._zero == 0), (0));
 
-		s=size;
-		
-		//__freel_set_bits(db, entry, fp, overwrite,
-		//	(ham_size_t)(address-freel_get_start_address(fp))
-		//	/ DB_CHUNKSIZE, 
-		//	size/DB_CHUNKSIZE, 
-		//	HAM_TRUE, db_get_data_access_mode(db));
+        s=size;
+        
+        //__freel_set_bits(db, entry, fp, overwrite,
+        //    (ham_size_t)(address-freel_get_start_address(fp))
+        //    / DB_CHUNKSIZE, 
+        //    size/DB_CHUNKSIZE, 
+        //    HAM_TRUE, db_get_data_access_mode(db));
 
-		//ham_assert(freel_get_allocated_bitsXX(fp)+s/DB_CHUNKSIZE < (1ULL << 8*sizeof(entry->_allocated_bits)), ("size must fit in the _allocated_bits type"));
-		//ham_assert(freel_get_allocated_bitsXX(fp)+s/DB_CHUNKSIZE < (1ULL << 8*sizeof(ham_uXX_t)), ("size %u (= %u + %u) must fit in the persistent _allocated_bits type (%u)", (unsigned int)(freel_get_allocated_bitsXX(fp)+s/DB_CHUNKSIZE), (unsigned int)freel_get_allocated_bitsXX(fp), (unsigned int)(s/DB_CHUNKSIZE), (unsigned int)(1ULL << 8*sizeof(ham_uXX_t))));
+        //ham_assert(freel_get_allocated_bitsXX(fp)+s/DB_CHUNKSIZE < (1ULL << 8*sizeof(entry->_allocated_bits)), ("size must fit in the _allocated_bits type"));
+        //ham_assert(freel_get_allocated_bitsXX(fp)+s/DB_CHUNKSIZE < (1ULL << 8*sizeof(ham_uXX_t)), ("size %u (= %u + %u) must fit in the persistent _allocated_bits type (%u)", (unsigned int)(freel_get_allocated_bitsXX(fp)+s/DB_CHUNKSIZE), (unsigned int)freel_get_allocated_bitsXX(fp), (unsigned int)(s/DB_CHUNKSIZE), (unsigned int)(1ULL << 8*sizeof(ham_uXX_t))));
 
-		size-=s;
-		address+=s;
-	}
+        size-=s;
+        address+=s;
+    }
 
-	return HAM_TRUE;
+    return HAM_TRUE;
 }
 
 /**
@@ -4299,28 +4299,28 @@ __freel_check_area_is_allocatedXX(ham_db_t *db, ham_offset_t address, ham_size_t
  * removed from the in-memory cache, unless the currently active
  * freelist algorithm persists this data to disc.
  */
-ham_status_t														
+ham_status_t                                                        
 __freel_init_perf_dataXX(freelist_cache_t *cache, ham_db_t *db, 
-		freelist_entry_t *entry, freelist_payload_t *fp)
+        freelist_entry_t *entry, freelist_payload_t *fp)
 {
-	freelist_page_statistics_t *entrystats = freel_entry_get_statistics(entry);
+    freelist_page_statistics_t *entrystats = freel_entry_get_statistics(entry);
 
-	ham_assert_DAM(db);
+    ham_assert_DAM(db);
 
-	/* we can assume all freelist FP data has been zeroed before we came in here */
+    /* we can assume all freelist FP data has been zeroed before we came in here */
 
-	if (fp && entrystats->persisted_bits == 0)
-	{
-		ham_status_t st;
-		ham_offset_t filesize;
-		ham_device_t *dev;
+    if (fp && entrystats->persisted_bits == 0)
+    {
+        ham_status_t st;
+        ham_offset_t filesize;
+        ham_device_t *dev;
 
-		/* we don't have this page's freelist registered yet */
+        /* we don't have this page's freelist registered yet */
 #if 0
-		if (fp->_overflow)
-		{
-			entrystats->persisted_bits = fp->_s._s16._max_bits;
-		}
+        if (fp->_overflow)
+        {
+            entrystats->persisted_bits = fp->_s._s16._max_bits;
+        }
 #endif
 
         /*
@@ -4333,35 +4333,35 @@ __freel_init_perf_dataXX(freelist_cache_t *cache, ham_db_t *db,
          * would be and consequently how many chunks are in this
          * [section of the] freelist.
          */
-		dev = db_get_device(db);
-		ham_assert(dev, (0));
-		st = db_get_device(db)->get_filesize(db_get_device(db), &filesize);
-		if (st)
-			return st;
+        dev = db_get_device(db);
+        ham_assert(dev, (0));
+        st = db_get_device(db)->get_filesize(db_get_device(db), &filesize);
+        if (st)
+            return st;
 
-		ham_assert(filesize > 0, (0));
-		if (filesize > fp->_start_address)
-		{
-			filesize -= fp->_start_address; 
-			filesize /= DB_CHUNKSIZE;
+        ham_assert(filesize > 0, (0));
+        if (filesize > fp->_start_address)
+        {
+            filesize -= fp->_start_address; 
+            filesize /= DB_CHUNKSIZE;
             if (filesize > fp->_s._s16._max_bits) {
                 /* can happen when something (blob/test) causes an 
                  * allocation of multiple pages at once */
                 filesize = fp->_s._s16._max_bits; 
             }
-		}
-		else
-		{
-			/* overflow */
-			filesize = 0;
-		}
+        }
+        else
+        {
+            /* overflow */
+            filesize = 0;
+        }
 
-		entrystats->persisted_bits = (ham_u32_t)filesize;
-	}
+        entrystats->persisted_bits = (ham_u32_t)filesize;
+    }
 
-	return 0;
+    return 0;
 }
-																	
+                                                                    
 /* ------------------------------------------------ */
 
 #if !defined(IMPLEMENT_MODERN_FREELIST32)
@@ -4378,40 +4378,40 @@ __freel_constructor(ham_db_t *db)
     if (!cache)
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
 
-	ham_assert(db_get_header_page(db), (0));
-	ham_assert(db_get_header(db), (0));
-	//ham_assert(db_get_data_access_mode(db) == 0, (0));
+    ham_assert(db_get_header_page(db), (0));
+    ham_assert(db_get_header(db), (0));
+    //ham_assert(db_get_data_access_mode(db) == 0, (0));
 
 #if 0
-	cache->_mgt_mode = db_get_data_access_mode(db);
-	cache->_mgt_mode |= HAM_DAM_ENFORCE_PRE110_FORMAT;
+    cache->_mgt_mode = db_get_data_access_mode(db);
+    cache->_mgt_mode |= HAM_DAM_ENFORCE_PRE110_FORMAT;
 #endif
 
-	if (db_is_mgt_mode_set(db_get_data_access_mode(db), HAM_DAM_ENFORCE_PRE110_FORMAT))
-	{
-		cache->_constructor = __freel_lazy_create16;
-		cache->_destructor = __freel_destructor16;
-		cache->_flush_stats = __freel_flush_stats16;
-		cache->_alloc_area = __freel_alloc_area16;
-		cache->_mark_free = __freel_mark_free16;
-		cache->_check_area_is_allocated = __freel_check_area_is_allocated16;
-		cache->_init_perf_data = __freel_init_perf_data16;
-	}
-	else
-	{
-		cache->_constructor = __freel_lazy_create32;
-		cache->_destructor = __freel_destructor32;
-		cache->_flush_stats = __freel_flush_stats32;
-		cache->_alloc_area = __freel_alloc_area32;
-		cache->_mark_free = __freel_mark_free32;
-		cache->_check_area_is_allocated = __freel_check_area_is_allocated32;
-		cache->_init_perf_data = __freel_init_perf_data32;
-	}
+    if (db_is_mgt_mode_set(db_get_data_access_mode(db), HAM_DAM_ENFORCE_PRE110_FORMAT))
+    {
+        cache->_constructor = __freel_lazy_create16;
+        cache->_destructor = __freel_destructor16;
+        cache->_flush_stats = __freel_flush_stats16;
+        cache->_alloc_area = __freel_alloc_area16;
+        cache->_mark_free = __freel_mark_free16;
+        cache->_check_area_is_allocated = __freel_check_area_is_allocated16;
+        cache->_init_perf_data = __freel_init_perf_data16;
+    }
+    else
+    {
+        cache->_constructor = __freel_lazy_create32;
+        cache->_destructor = __freel_destructor32;
+        cache->_flush_stats = __freel_flush_stats32;
+        cache->_alloc_area = __freel_alloc_area32;
+        cache->_mark_free = __freel_mark_free32;
+        cache->_check_area_is_allocated = __freel_check_area_is_allocated32;
+        cache->_init_perf_data = __freel_init_perf_data32;
+    }
 
-	st = cache->_constructor(cache, db, db_get_data_access_mode(db));
+    st = cache->_constructor(cache, db, db_get_data_access_mode(db));
 
-	ham_assert(st ? 1 : db_get_freelist_cache(db)!=0, (""));
-	ham_assert(st ? 1 : db_get_freelist_cache(db)->_alloc_area != 0, (""));
+    ham_assert(st ? 1 : db_get_freelist_cache(db)!=0, (""));
+    ham_assert(st ? 1 : db_get_freelist_cache(db)->_alloc_area != 0, (""));
 
     return (st);
 }
@@ -4420,7 +4420,7 @@ ham_status_t
 freel_shutdown(ham_db_t *db)
 {
     freelist_cache_t *cache;
-	ham_status_t st;
+    ham_status_t st;
 
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
         return (0);
@@ -4429,11 +4429,11 @@ freel_shutdown(ham_db_t *db)
     if (!cache)
         return (0);
 
-	ham_assert(cache->_flush_stats, (0));
-	st = cache->_flush_stats(db);
+    ham_assert(cache->_flush_stats, (0));
+    st = cache->_flush_stats(db);
 
-	ham_assert(cache->_destructor, (0));
-	st = cache->_destructor(db);
+    ham_assert(cache->_destructor, (0));
+    st = cache->_destructor(db);
 
     ham_mem_free(db, cache);
     if (db_get_env(db))
@@ -4449,7 +4449,7 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size,
         ham_bool_t overwrite)
 {
     freelist_cache_t *cache;
-	ham_status_t st;
+    ham_status_t st;
 
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
         return (0);
@@ -4457,17 +4457,17 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size,
     ham_assert(size%DB_CHUNKSIZE==0, (0));
     ham_assert(address%DB_CHUNKSIZE==0, (0));
 
-	if (!db_get_freelist_cache(db))
-	{
+    if (!db_get_freelist_cache(db))
+    {
         st = __freel_constructor(db);
-		if (st)
-			return db_set_error(db, st);
-	}
+        if (st)
+            return db_set_error(db, st);
+    }
     cache=db_get_freelist_cache(db);
 
-	ham_assert(cache, (0));
-	ham_assert(cache->_mark_free, (0));
-	st = cache->_mark_free(db, address, size, overwrite);
+    ham_assert(cache, (0));
+    ham_assert(cache->_mark_free, (0));
+    st = cache->_mark_free(db, address, size, overwrite);
 
     return (st);
 }
@@ -4475,29 +4475,29 @@ freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size,
 ham_bool_t
 freel_check_area_is_allocated(ham_db_t *db, ham_offset_t address, ham_size_t size)
 {
-	freelist_cache_t *cache;
-	ham_status_t st;
-	ham_bool_t rv;
+    freelist_cache_t *cache;
+    ham_status_t st;
+    ham_bool_t rv;
 
-	if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
-		return HAM_TRUE;
+    if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
+        return HAM_TRUE;
 
-	ham_assert(size%DB_CHUNKSIZE==0, (0));
-	ham_assert(address%DB_CHUNKSIZE==0, (0));
+    ham_assert(size%DB_CHUNKSIZE==0, (0));
+    ham_assert(address%DB_CHUNKSIZE==0, (0));
 
-	if (!db_get_freelist_cache(db))
-	{
-		st = __freel_constructor(db);
-		if (st)
-			return HAM_FALSE;
-	}
-	cache=db_get_freelist_cache(db);
+    if (!db_get_freelist_cache(db))
+    {
+        st = __freel_constructor(db);
+        if (st)
+            return HAM_FALSE;
+    }
+    cache=db_get_freelist_cache(db);
 
-	ham_assert(cache, (0));
-	ham_assert(cache->_check_area_is_allocated, (0));
-	rv = cache->_check_area_is_allocated(db, address, size);
+    ham_assert(cache, (0));
+    ham_assert(cache->_check_area_is_allocated, (0));
+    rv = cache->_check_area_is_allocated(db, address, size);
 
-	return rv;
+    return rv;
 }
 
 
@@ -4505,52 +4505,52 @@ ham_offset_t
 freel_alloc_area(ham_db_t *db, ham_size_t size)
 {
     freelist_cache_t *cache;
-	ham_offset_t offset;
+    ham_offset_t offset;
 
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
         return (0);
 
     if (!db_get_freelist_cache(db))
-	{
+    {
         ham_status_t st = __freel_constructor(db);
-		if (st)
-		{
-			db_set_error(db, st);
-			return 0;
-		}
-	}
+        if (st)
+        {
+            db_set_error(db, st);
+            return 0;
+        }
+    }
     cache=db_get_freelist_cache(db);
 
-	ham_assert(cache, (0));
-	ham_assert(cache->_alloc_area, (0));
+    ham_assert(cache, (0));
+    ham_assert(cache->_alloc_area, (0));
     offset = cache->_alloc_area(db, size, HAM_FALSE);
-	return (offset);
+    return (offset);
 }
 
 ham_offset_t
 freel_alloc_page(ham_db_t *db)
 {
     freelist_cache_t *cache;
-	ham_offset_t offset;
+    ham_offset_t offset;
 
     if (db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
         return (0);
 
     if (!db_get_freelist_cache(db))
-	{
+    {
         ham_status_t st = __freel_constructor(db);
-		if (st)
-		{
-			db_set_error(db, st);
-			return 0;
-		}
-	}
+        if (st)
+        {
+            db_set_error(db, st);
+            return 0;
+        }
+    }
     cache=db_get_freelist_cache(db);
 
-	ham_assert(cache, (0));
-	ham_assert(cache->_alloc_area, (0));
-	offset = cache->_alloc_area(db, db_get_pagesize(db), HAM_TRUE);
-	return (offset);
+    ham_assert(cache, (0));
+    ham_assert(cache->_alloc_area, (0));
+    offset = cache->_alloc_area(db, db_get_pagesize(db), HAM_TRUE);
+    return (offset);
 }
 
 

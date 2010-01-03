@@ -114,8 +114,14 @@ struct ham_page_t {
         /** address of this page */
         ham_offset_t _self;
 
+        /** the allocator */
+        struct mem_allocator_t *_alloc;
+
         /** reference to the database object */
         ham_db_t *_owner;
+
+        /** the device of this page */
+        struct ham_device_t *_device;
 
         /** non-persistent flags */
         ham_u32_t _flags;
@@ -255,6 +261,26 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 #else
 #   define page_set_next(page, which, p)     (page)->_npers._next[(which)]=(p)
 #endif /* HAM_DEBUG */
+
+/**
+ * get memory allocator
+ */
+#define page_get_allocator(page)             (page)->_npers._alloc
+
+/**
+ * set memory allocator
+ */
+#define page_set_allocator(page, a)          (page)->_npers._alloc=a
+
+/**
+ * get the device of this page
+ */
+#define page_get_device(page)                (page)->_npers._device
+
+/**
+ * set the device of this page
+ */
+#define page_set_device(page, d)             (page)->_npers._device=d
 
 /**
  * get linked list of cursors
@@ -472,9 +498,11 @@ page_remove_cursor(ham_page_t *page, ham_cursor_t *cursor);
 
 /**
  * create a new page structure
+ *
+ * db can be NULL
  */
 extern ham_page_t *
-page_new(ham_db_t *db);
+page_new(ham_db_t *db, struct mem_allocator_t *alloc);
 
 /**
  * delete a page structure
