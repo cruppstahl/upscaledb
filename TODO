@@ -7,6 +7,9 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
+----- error #34 in LogTest::iterateOverLogMultipleEntryTest
+ --> the last flush is missing - why? was it the header page?
+
 o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     create a private environment handle if it was not supplied
     x ham_create_ex now calls ham_env_create_ex
@@ -15,13 +18,16 @@ o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     x move code from ham_create[_ex] into ham_env_create_db
     x move code from ham_open[_ex] into ham_env_open_db
     x don't forget to close/delete the handle!
+
     o txn: implies logfile - check if it's really created (and if the
         ENABLE_RECOVERY flag is set)!
 
     o env.h has some variables which are stored in the db header (i.e. 
         keysize, pagesize), but they are just in a non-persistent field
+        also, they still show up in db.h as macros and fields of ham_db_t
 
-    o ham_env_open: needs to store PRE_110-DAM in Databases!
+    o ham_env_open: needs to store PRE_110-DAM in Databases! -> unittest
+        (might already be there & work)
     o clean up 'noenv' usage in ham_close/ham_env_close
     o clean up db.h/db.c and other code
     o hamsterdb: "transfer the ownership of the header page to this
@@ -30,14 +36,17 @@ o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     o many unittests set allocator in ham_db_t - disable this macro, 
         only set in ham_env_t! (or change the macro)
 
+o even In-Memory Dbs need a cache now - always set cache size to 0, otherwise
+    we waste memory
+
 o improve documentation/tutorial about
     o approx. matching
     o hinting flags
     o DAMs
 
-o need tool to upgrade databases from 1.0.x to 1.1.x!
-
 o sort duplicate keys - Ger has patches
+
+o need tool to upgrade databases from 1.0.x to 1.1.x!
 
 o ham_get_parameter: could return VERSION of the database
 

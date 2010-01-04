@@ -116,51 +116,58 @@ public:
     {
         BFC_ASSERT(db_get_header_page(m_db)!=0);
 
-        BFC_ASSERT(db_get_error(m_db)==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(0, db_get_error(m_db));
         db_set_error(m_db, HAM_IO_ERROR);
-        BFC_ASSERT(db_get_error(m_db)==HAM_IO_ERROR);
+        BFC_ASSERT_EQUAL(HAM_IO_ERROR, db_get_error(m_db));
 
-        BFC_ASSERT(db_get_backend(m_db)==0);
+        BFC_ASSERT_NOTNULL(db_get_backend(m_db));// already initialized
+        ham_backend_t *oldbe=db_get_backend(m_db);
         db_set_backend(m_db, (ham_backend_t *)15);
-        BFC_ASSERT(db_get_backend(m_db)==(ham_backend_t *)15);
-        db_set_backend(m_db, 0);
+        BFC_ASSERT_EQUAL((ham_backend_t *)15, db_get_backend(m_db));
+        db_set_backend(m_db, oldbe);
 
-        BFC_ASSERT(db_get_cache(m_db)==0);
-        db_set_cache(m_db, (ham_cache_t *)16);
-        BFC_ASSERT(db_get_cache(m_db)==(ham_cache_t *)16);
-        db_set_cache(m_db, 0);
+        BFC_ASSERT_NOTNULL(db_get_cache(m_db));
 
-        BFC_ASSERT(db_get_prefix_compare_func(m_db)==0);
+        BFC_ASSERT(0!=db_get_prefix_compare_func(m_db));
+        ham_prefix_compare_func_t oldfoo=db_get_prefix_compare_func(m_db);
         db_set_prefix_compare_func(m_db, (ham_prefix_compare_func_t)18);
-        BFC_ASSERT(db_get_prefix_compare_func(m_db)==
-                    (ham_prefix_compare_func_t)18);
+        BFC_ASSERT_EQUAL((ham_prefix_compare_func_t)18, 
+                db_get_prefix_compare_func(m_db));
+        db_set_prefix_compare_func(m_db, oldfoo);
 
-        BFC_ASSERT(db_get_compare_func(m_db)==0);
+        ham_compare_func_t oldfoo2=db_get_compare_func(m_db);
+        BFC_ASSERT(0!=db_get_compare_func(m_db));
         db_set_compare_func(m_db, (ham_compare_func_t)19);
-        BFC_ASSERT(db_get_compare_func(m_db)==(ham_compare_func_t)19);
+        BFC_ASSERT_EQUAL((ham_compare_func_t)19, db_get_compare_func(m_db));
+        db_set_compare_func(m_db, oldfoo2);
 
+        BFC_ASSERT(db_is_dirty(m_db));
+        page_set_undirty(db_get_header_page(m_db));
         BFC_ASSERT(!db_is_dirty(m_db));
         db_set_dirty(m_db);
         BFC_ASSERT(db_is_dirty(m_db));
 
-        BFC_ASSERT(db_get_rt_flags(m_db)==0);
+        ham_u32_t oldflags=db_get_rt_flags(m_db);
+        BFC_ASSERT(0!=db_get_rt_flags(m_db));
         db_set_rt_flags(m_db, 20);
-        BFC_ASSERT(db_get_rt_flags(m_db)==20);
+        BFC_ASSERT_EQUAL(20u, db_get_rt_flags(m_db));
+        db_set_rt_flags(m_db, oldflags);
 
         BFC_ASSERT(db_get_env(m_db)!=0);
 
-        BFC_ASSERT(db_get_next(m_db)==0);
+        BFC_ASSERT_EQUAL((void *)0, db_get_next(m_db));
         db_set_next(m_db, (ham_db_t *)40);
-        BFC_ASSERT(db_get_next(m_db)==(ham_db_t *)40);
+        BFC_ASSERT_EQUAL((ham_db_t *)40, db_get_next(m_db));
+        db_set_next(m_db, (ham_db_t *)0);
 
-        BFC_ASSERT(db_get_record_allocsize(m_db)==0);
+        BFC_ASSERT_EQUAL(0u, db_get_record_allocsize(m_db));
         db_set_record_allocsize(m_db, 21);
-        BFC_ASSERT(db_get_record_allocsize(m_db)==21);
+        BFC_ASSERT_EQUAL(21u, db_get_record_allocsize(m_db));
         db_set_record_allocsize(m_db, 0);
 
-        BFC_ASSERT(db_get_record_allocdata(m_db)==0);
+        BFC_ASSERT_EQUAL((void *)0, db_get_record_allocdata(m_db));
         db_set_record_allocdata(m_db, (void *)22);
-        BFC_ASSERT(db_get_record_allocdata(m_db)==(void *)22);
+        BFC_ASSERT_EQUAL((void *)22, db_get_record_allocdata(m_db));
         db_set_record_allocdata(m_db, 0);
     }
 

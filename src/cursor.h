@@ -19,6 +19,7 @@
 #include <ham/hamsterdb.h>
 #include <ham/hamsterdb_int.h>
 #include "txn.h"
+#include "mem.h"
 
 /**
  * the cursor structure - these functions and members are "inherited"
@@ -67,9 +68,14 @@
     ham_status_t (*_fun_erase)(clss *cu, ham_u32_t flags);              \
                                                                         \
     /**                                                                 \
-     * pointer to the database object                                   \
+     * pointer to the Database object                                   \
      */                                                                 \
     ham_db_t *_db;                                                      \
+                                                                        \
+    /**                                                                 \
+     * pointer to the memory allocator                                  \
+     */                                                                 \
+    mem_allocator_t *_allocator;                                        \
                                                                         \
     /**                                                                 \
      * pointer to the transaction object (not yet used)                 \
@@ -140,6 +146,16 @@ struct ham_cursor_t
  * get the database pointer
  */
 #define cursor_get_db(c)                (c)->_db
+
+/**
+ * get the memory allocator
+ */
+#define cursor_get_allocator(c)         (c)->_allocator
+
+/**
+ * set the memory allocator
+ */
+#define cursor_set_allocator(c, a)      (c)->_allocator=a
 
 /**
  * get the transaction handle

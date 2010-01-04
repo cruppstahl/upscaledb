@@ -12,7 +12,7 @@
 #include "../src/config.h"
 
 #include <stdexcept>
-#include <string.h> // [i_a]
+#include <string.h>
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
 #include "../src/page.h"
@@ -107,10 +107,12 @@ public:
 
         for (i=0; i<10; i++) {
             page=page_new(m_db, 0);
-            BFC_ASSERT(page_alloc(page, db_get_pagesize(m_db))==0);
+            BFC_ASSERT_EQUAL(0, page_alloc(page, db_get_pagesize(m_db)));
+            /* i+2 since we need 1 page for the header page and one page
+             * for the root page */
             if (!m_inmemory)
-                BFC_ASSERT(page_get_self(page)==(i+1)*ps);
-            BFC_ASSERT(page_free(page)==HAM_SUCCESS);
+                BFC_ASSERT_EQUAL((i+2)*ps, page_get_self(page));
+            BFC_ASSERT_EQUAL(0, page_free(page));
             page_delete(page);
         }
     }
@@ -122,22 +124,23 @@ public:
 
         page=page_new(m_db, 0);
         temp=page_new(m_db, 0);
-        BFC_ASSERT(page_alloc(page, db_get_pagesize(m_db))==HAM_SUCCESS);
-        BFC_ASSERT(page_get_self(page)==ps);
-        BFC_ASSERT(page_free(page)==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(0, page_alloc(page, db_get_pagesize(m_db)));
+        BFC_ASSERT_EQUAL(ps*2, page_get_self(page));
+        BFC_ASSERT_EQUAL(0, page_free(page));
         
-        BFC_ASSERT(page_fetch(page, db_get_pagesize(m_db))==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(0, page_fetch(page, db_get_pagesize(m_db)));
         memset(page_get_pers(page), 0x13, ps);
         page_set_dirty(page);
-        BFC_ASSERT(page_flush(page)==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(0, page_flush(page));
 
-        BFC_ASSERT(page_is_dirty(page)==0);
-        page_set_self(temp, ps);
-        BFC_ASSERT(page_fetch(temp, db_get_pagesize(m_db))==HAM_SUCCESS);
-        BFC_ASSERT(0==memcmp(page_get_pers(page), page_get_pers(temp), ps));
+        BFC_ASSERT_EQUAL(0, page_is_dirty(page));
+        page_set_self(temp, ps*2);
+        BFC_ASSERT_EQUAL(0, page_fetch(temp, db_get_pagesize(m_db)));
+        BFC_ASSERT_EQUAL(0, 
+                memcmp(page_get_pers(page), page_get_pers(temp), ps));
 
-        BFC_ASSERT(page_free(page)==HAM_SUCCESS);
-        BFC_ASSERT(page_free(temp)==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(0, page_free(page));
+        BFC_ASSERT_EQUAL(0, page_free(temp));
 
         page_delete(temp);
         page_delete(page);

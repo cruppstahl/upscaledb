@@ -110,7 +110,8 @@ public:
         cps=device_get_pagesize(m_dev);
         BFC_ASSERT(cps!=0);
         BFC_ASSERT(cps % DB_CHUNKSIZE == 0);
-        BFC_ASSERT(cps == ps);
+        if (!m_inmemory)
+            BFC_ASSERT_EQUAL(cps, ps);
     }
 
     void allocTest()
@@ -120,8 +121,8 @@ public:
 
         BFC_ASSERT(m_dev->is_open(m_dev));
         for (i=0; i<10; i++) {
-            BFC_ASSERT(m_dev->alloc(m_dev, 1024, &address)==HAM_SUCCESS);
-            BFC_ASSERT(address==db_get_pagesize(m_db)+1024*i);
+            BFC_ASSERT_EQUAL(0, m_dev->alloc(m_dev, 1024, &address));
+            BFC_ASSERT_EQUAL((db_get_pagesize(m_db)*2)+1024*i, address);
         }
         BFC_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
     }

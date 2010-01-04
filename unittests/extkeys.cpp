@@ -55,9 +55,9 @@ public:
         db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
 
-        if (!db_get_extkey_cache(m_db))
-            db_set_extkey_cache(m_db, extkey_cache_new(m_db));
-        BFC_ASSERT(db_get_extkey_cache(m_db));
+        extkey_cache_t *c=extkey_cache_new(m_db);
+        BFC_ASSERT(c!=0);
+        env_set_extkey_cache(db_get_env(m_db), c);
     }
     
     virtual void teardown() 

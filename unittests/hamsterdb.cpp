@@ -268,7 +268,7 @@ public:
                 ham_open(db, ".test.db", HAM_CACHE_UNLIMITED|HAM_CACHE_STRICT));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_open_ex(db, ".test.db", HAM_CACHE_UNLIMITED, &cs[0]));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_create_ex(db, 0, HAM_IN_MEMORY_DB, 0, &cs[0]));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_create_ex(db, 0, HAM_IN_MEMORY_DB|HAM_READ_ONLY, 0, 0));
@@ -1487,9 +1487,10 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         for (int i=0; i<5; i++)
             BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c[i]));
 
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_close(m_db, 0));
         for (int i=0; i<5; i++)
             BFC_ASSERT_EQUAL(0, ham_cursor_close(c[i]));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void closeWithCursorsAutoCleanupTest(void)

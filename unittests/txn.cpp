@@ -157,7 +157,7 @@ public:
 
         BFC_ASSERT(ham_txn_abort(txn, 0)==HAM_SUCCESS);
 
-        // page_delete(page); - will be deleted in ham_close()
+        page_delete(page);
     }
 
     void removePageTest(void)
@@ -176,7 +176,7 @@ public:
 
         BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
 
-        // page_delete(page); - will be deleted in ham_close()
+        page_delete(page);
     }
 
     void onlyOneTxnAllowedTest(void)

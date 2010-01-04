@@ -2052,6 +2052,8 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if @a db is NULL
+ * @return @ref HAM_CURSOR_STILL_OPEN if not all Cursors of this Database
+ *      were closed, and @ref HAM_AUTO_CLEANUP was not specified
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_close(ham_db_t *db, ham_u32_t flags);
