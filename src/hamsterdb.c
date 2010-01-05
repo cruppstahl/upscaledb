@@ -2455,7 +2455,7 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     /* 
      * flush all pages, get rid of the cache 
      */
-    if (env_get_cache(env) && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
+    if (env_get_cache(env)) {
         (void)db_flush_all(env_get_cache(env), 0);
         cache_delete(env, env_get_cache(env));
         env_set_cache(env, 0);
@@ -4000,6 +4000,33 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     stats_flush_dbdata(db, db_get_db_perf_data(db), noenv);
 
     /*
+     * if we're not in read-only mode, and not an in-memory-database,
+     * and the dirty-flag is true: flush the page-header to disk
+     */
+    if (db_get_env(db)
+            && db_get_header_page(db)
+            && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)
+            && !(db_get_rt_flags(db)&HAM_READ_ONLY)) {
+        st=page_flush(db_get_header_page(db));
+        if (st)
+            return (st);
+    }
+
+    /*
+     * in-memory-database: free all allocated blobs
+     */
+    be=db_get_backend(db);
+    if (be && db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
+        ham_txn_t txn;
+        free_cb_context_t context;
+        context.db=db;
+        if (!txn_begin(&txn, db, 0)) {
+            (void)be->_fun_enumerate(be, my_free_cb, &context);
+            (void)txn_commit(&txn, 0);
+        }
+    }
+
+    /*
      * if we're in an environment: all pages, which have this page
      * as an owner, must transfer their ownership to the
      * next database!
@@ -4026,8 +4053,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
      * open Database - flush all open pages; we HAVE to flush/free them
      * because their owner is no longer valid */
     else if (env 
-            && env_get_cache(env) 
-            && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
+            && env_get_cache(env)) {
         ham_cache_t *cache=env_get_cache(env);
         (void)db_flush_all(cache, 0);
         /* 
@@ -4041,21 +4067,6 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         cache_delete(env, cache);
         cache=cache_new(env, env_get_cachesize(env));
         env_set_cache(env, cache);
-    }
-
-    be=db_get_backend(db);
-
-    /*
-     * in-memory-database: free all allocated blobs
-     */
-    if (be && db_get_rt_flags(db)&HAM_IN_MEMORY_DB) {
-        ham_txn_t txn;
-        free_cb_context_t context;
-        context.db=db;
-        if (!txn_begin(&txn, db, 0)) {
-            (void)be->_fun_enumerate(be, my_free_cb, &context);
-            (void)txn_commit(&txn, 0);
-        }
     }
 
     /*

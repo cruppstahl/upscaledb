@@ -7,9 +7,6 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
------ error #34 in LogTest::iterateOverLogMultipleEntryTest
- --> the last flush is missing - why? was it the header page?
-
 o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     create a private environment handle if it was not supplied
     x ham_create_ex now calls ham_env_create_ex
@@ -35,6 +32,8 @@ o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     o documentation: ham_env_open_db accepts DAM parameters (unittest!)
     o many unittests set allocator in ham_db_t - disable this macro, 
         only set in ham_env_t! (or change the macro)
+    o allocators are not stored - see log.cpp (replace allocator_free
+        with ham_mem_free - crash!)
 
 o even In-Memory Dbs need a cache now - always set cache size to 0, otherwise
     we waste memory

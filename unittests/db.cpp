@@ -147,11 +147,7 @@ public:
         db_set_dirty(m_db);
         BFC_ASSERT(db_is_dirty(m_db));
 
-        ham_u32_t oldflags=db_get_rt_flags(m_db);
         BFC_ASSERT(0!=db_get_rt_flags(m_db));
-        db_set_rt_flags(m_db, 20);
-        BFC_ASSERT_EQUAL(20u, db_get_rt_flags(m_db));
-        db_set_rt_flags(m_db, oldflags);
 
         BFC_ASSERT(db_get_env(m_db)!=0);
 
