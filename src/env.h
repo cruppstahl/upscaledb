@@ -290,13 +290,17 @@ struct ham_env_t
                                      env_get_header(env)->_magic[3]=d; }
 
 /*
+ * get byte #i of the 'magic'-header
+ */
+#define env_get_magic(hdr, i)        ((hdr)->_magic[i])
+
+/*
  * set the version of a file header
  */
 #define env_set_version(env,a,b,c,d) { env_get_header(env)->_version[0]=a; \
                                      env_get_header(env)->_version[1]=b; \
                                      env_get_header(env)->_version[2]=c; \
                                      env_get_header(env)->_version[3]=d; }
-
 
 /*
  * get byte #i of the 'version'-header

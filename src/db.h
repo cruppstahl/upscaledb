@@ -92,7 +92,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
     /* maximum number of databases for this environment */
     ham_u16_t _max_databases;
 
-    /* probable data access mode; 0: classic */
+    /* the data access mode; 0: classic */
     ham_u16_t _data_access_mode;
 
     /* 
@@ -113,45 +113,9 @@ typedef HAM_PACK_0 struct HAM_PACK_1
                                      db_get_max_databases(db)*sizeof(db_indexdata_t))
 
 /*
- * set the 'magic' field of a file header
- */
-#define db_set_magic(db, a,b,c,d)  { db_get_header(db)->_magic[0]=a; \
-                                     db_get_header(db)->_magic[1]=b; \
-                                     db_get_header(db)->_magic[2]=c; \
-                                     db_get_header(db)->_magic[3]=d; }
-
-/*
- * get byte #i of the 'magic'-header
- */
-#define db_get_magic(hdr, i)        ((hdr)->_magic[i])
-
-/*
- * set the version of a file header
- */
-#define db_set_version(db,a,b,c,d) { db_get_header(db)->_version[0]=a; \
-                                     db_get_header(db)->_version[1]=b; \
-                                     db_get_header(db)->_version[2]=c; \
-                                     db_get_header(db)->_version[3]=d; }
-
-/*
  * get byte #i of the 'version'-header
  */
 #define dbheader_get_version(hdr, i)      ((hdr)->_version[i])
-
-/*
- * get byte #i of the 'version'-header
- */
-#define db_get_version(db, i)      (dbheader_get_version(db_get_header(db), i))
-
-/*
- * get the serial number
- */
-#define db_get_serialno(db)        (ham_db2h32(db_get_header(db)->_serialno))
-
-/*
- * set the serial number
- */
-#define db_set_serialno(db, n)     db_get_header(db)->_serialno=ham_h2db32(n)
 
 /*
  * get the key size
@@ -165,7 +129,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
  *
  * !!
  * this is not equal to sizeof(struct ham_perm_page_union_t)-1, because of
- * padding (i.e. on gcc 4.1, 64bit the size would be 15 bytes)
+ * padding (i.e. on gcc 4.1/64bit the size would be 15 bytes)
  */
 #define db_get_persistent_header_size()   (OFFSETOF(ham_perm_page_union_t, _s._payload) /*(sizeof(ham_u32_t)*3)*/ /* 12 */ )
 
@@ -173,12 +137,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1
  * get the maximum number of databases for this file
  */
 #define db_get_max_databases(db)   ham_db2h16(db_get_header(db)->_max_databases)
-
-/*
- * set the maximum number of databases for this file
- */
-#define db_set_max_databases(db,s)  db_get_header(db)->_max_databases=        \
-                                            ham_h2db16(s)
 
 
 #include "packstart.h"

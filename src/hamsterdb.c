@@ -1909,10 +1909,10 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
         /* 
          * check the file magic
          */
-        if (db_get_magic(hdr, 0)!='H' ||
-                db_get_magic(hdr, 1)!='A' ||
-                db_get_magic(hdr, 2)!='M' ||
-                db_get_magic(hdr, 3)!='\0') {
+        if (env_get_magic(hdr, 0)!='H' ||
+                env_get_magic(hdr, 1)!='A' ||
+                env_get_magic(hdr, 2)!='M' ||
+                env_get_magic(hdr, 3)!='\0') {
             ham_log(("invalid file type"));
             st = HAM_INV_FILE_HEADER;
             goto fail_with_fake_cleansing;
@@ -2364,8 +2364,8 @@ ham_env_get_database_names(ham_env_t *env, ham_u16_t *names, ham_size_t *count)
     /*
      * copy each database name in the array
      */
-    ham_assert(db_get_max_databases(db) > 0, (0));
-    for (i=0; i<db_get_max_databases(db); i++) {
+    ham_assert(env_get_max_databases(env) > 0, (0));
+    for (i=0; i<env_get_max_databases(env); i++) {
         name = index_get_dbname(db_get_indexdata_ptr(db, i));
         if (name==0)
             continue;
@@ -2824,7 +2824,7 @@ __ham_get_parameters(ham_env_t *env, ham_db_t *db, ham_parameter_t *param)
             ham_cache_t *cache = db_get_cache(db);
             cachesize = cache_get_max_elements(cache);
         }
-        max_databases = 1; //db_get_max_databases(db);
+        max_databases = 1; //env_get_max_databases(env);
     }
 
     st = __check_create_parameters(env, db, filename, &flags, param, 
