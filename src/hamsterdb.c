@@ -992,7 +992,7 @@ default_case:
      */
     if (env)
         device = env_get_device(env);
-    if (!device && db)
+    if (!device && db && db_get_env(db))
         device = db_get_device(db);
 
     /*
@@ -1104,6 +1104,7 @@ default_case:
             dbs = env_get_max_databases(env);
         }
         else if (db
+            && db_get_env(db)
             && db_get_device(db)
             && db_get_device(db)->is_open(db_get_device(db))) {
             dbs = (env ? env_get_max_databases(env) : 1);
@@ -2545,16 +2546,6 @@ ham_delete(ham_db_t *db)
     /* trash all DB performance data */
     stats_trash_dbdata(db, db_get_db_perf_data(db));
 
-    /* close the allocator */
-    if (db_get_allocator(db)) 
-    {
-        if (!db_get_env(db)) // [i_a] otherwise you'd blow away the methods for the ENV ... 
-        {
-            db_get_allocator(db)->close(db_get_allocator(db));
-            db_set_allocator(db, 0);
-        }
-    }
-
     /* "free" all remaining memory */
     memset(db, 0, sizeof(*db));
     free(db);
@@ -2816,7 +2807,7 @@ __ham_get_parameters(ham_env_t *env, ham_db_t *db, ham_parameter_t *param)
     }
     if (db) {
         ham_assert(env == db_get_env(db), (0));
-        flags = db_get_rt_flags(db);
+        flags = db_get_env(db) ? db_get_rt_flags(db) : 0;
         if (db_get_backend(db)) {
             keysize = db_get_keysize(db);
         }
@@ -4076,8 +4067,11 @@ ham_close(ham_db_t *db, ham_u32_t flags)
 
     /*
      * flush the freelist
+     *
+     * TODO when ham_close is called twice, the env pointer is no longer
+     * available and freel_shutdown crashes
      */
-    if (noenv) {
+    if (noenv && db_get_env(db)) {
         st=freel_shutdown(db);
         if (st) {
             /* trash all DB performance data */
@@ -4089,12 +4083,9 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     /*
      * free the cache for extended keys
      */
-    if (noenv && db_get_extkey_cache(db)) {
+    if (noenv && db_get_env(db) && db_get_extkey_cache(db)) {
         extkey_cache_destroy(db_get_extkey_cache(db));
-        if (db_get_env(db))
-            env_set_extkey_cache(db_get_env(db), 0);
-        else
-            db_set_extkey_cache(db, 0);
+        env_set_extkey_cache(db_get_env(db), 0);
     }
 
     /* close the backend */

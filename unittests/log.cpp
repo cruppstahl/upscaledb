@@ -1857,10 +1857,11 @@ public:
     {
         // m_db.device must be setup as ham_log_open() requires it 
         // to fetch the raw pagesize;
-        if (!db_get_device(m_db)) 
+        if (db_get_env(m_db) && !db_get_device(m_db)) 
         {
-            BFC_ASSERT(db_get_env(m_db) == NULL);
-            db_set_device(m_db, ham_device_new((mem_allocator_t *)m_alloc, 
+            BFC_ASSERT(db_get_env(m_db) != NULL);
+            env_set_device(db_get_env(m_db), 
+                    ham_device_new((mem_allocator_t *)m_alloc, 
                         db_get_env(m_db), HAM_DEVTYPE_FILE));
             BFC_ASSERT(db_get_device(m_db) != NULL);
             // no need to open the device...
@@ -1901,8 +1902,7 @@ public:
         BFC_ASSERT_EQUAL(1, found);
 
         // clean up the device allocated above...
-        if (!db_get_env(m_db) && db_get_device(m_db)) 
-        {
+        if (db_get_env(m_db) && db_get_device(m_db)) {
             ham_device_t *device = db_get_device(m_db);
 
             if (device->is_open(device)) {
@@ -1910,7 +1910,7 @@ public:
                 (void)device->close(device);
             }
             (void)device->destroy(device);
-            db_set_device(m_db, 0);
+            env_set_device(db_get_env(m_db), 0);
         }
     }
 

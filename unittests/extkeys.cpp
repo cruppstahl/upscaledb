@@ -205,7 +205,7 @@ public:
                     sizeof(buffer), buffer));
         }
 
-        db_set_txn_id(m_db, db_get_txn_id(m_db)+2000);
+        env_set_txn_id(db_get_env(m_db), db_get_txn_id(m_db)+2000);
 
         BFC_ASSERT_EQUAL(0, extkey_cache_purge(c));
 

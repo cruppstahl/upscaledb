@@ -4013,10 +4013,7 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_db_t *db, ham_u16_t mgt_mode)
     freel_cache_set_count(cache, 1);
     freel_cache_set_entries(cache, entry);
 
-    if (db_get_env(db))
-        env_set_freelist_cache(db_get_env(db), cache);
-    else
-        db_set_freelist_cache(db, cache);
+    env_set_freelist_cache(db_get_env(db), cache);
     ham_assert(db_get_freelist_cache(db) != 0, (""));
 
     /*
@@ -4436,10 +4433,7 @@ freel_shutdown(ham_db_t *db)
     st = cache->_destructor(db);
 
     ham_mem_free(db, cache);
-    if (db_get_env(db))
-        env_set_freelist_cache(db_get_env(db), 0);
-    else
-        db_set_freelist_cache(db, 0);
+    env_set_freelist_cache(db_get_env(db), 0);
 
     return (st);
 }

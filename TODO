@@ -18,8 +18,8 @@ o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     x valgrind shows memory leaks
     x txn: implies logfile - check if it's really created (and if the
         ENABLE_RECOVERY flag is set)!
+    x clean up db.h/db.c and other code
 
-    o clean up db.h/db.c and other code
     o env.h has some variables which are stored in the db header (i.e. 
         keysize, pagesize), but they are just in a non-persistent field
         also, they still show up in db.h as macros and fields of ham_db_t
@@ -31,9 +31,8 @@ o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
             -> do we need two things - payload and object??
         o db_is_dirty -> env_is_dirty
         o db_set_dirty -> env_set_dirty
+        o db_set_allocator -> env_set_allocator
 
-    o many unittests set allocator in ham_db_t - disable this macro, 
-        only set in ham_env_t! (or change the macro)
     o allocators are not stored - see log.cpp (replace allocator_free
         with ham_mem_free - crash!)
 
@@ -43,11 +42,12 @@ o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     o clean up 'noenv' usage in ham_close/ham_env_close
 
 o who/what is the "owner" of a page?
-    o valgrind shows errors in EnvTest::eraseMultipleDatabases
-    o add new test: EnvTest::eraseMultipleDatabases, but reopen the Env before
-        erasing the Databases!
     o hamsterdb: "transfer the ownership of the header page to this
-        Database" (also in ham_close): why? can we clean this up?
+        Database" (also in ham_close): why? can we clean this up? do we need
+        an owner?
+    o valgrind shows errors in EnvTest::eraseMultipleDatabases
+    x add new test: EnvTest::eraseMultipleDatabases, but reopen the Env before
+        erasing the Databases!
 
 o which members of env/db can be overwritten by users and therefore have to
     be closed (or not) in ham_close/ham_env_close?

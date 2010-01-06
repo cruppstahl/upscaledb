@@ -254,10 +254,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
          */
         if (!db_get_extkey_cache(db)) {
             extkey_cache_t *c=extkey_cache_new(db);
-            if (db_get_env(db))
-                env_set_extkey_cache(db_get_env(db), c);
-            else
-                db_set_extkey_cache(db, c);
+            env_set_extkey_cache(db_get_env(db), c);
             if (!db_get_extkey_cache(db))
                 return (db_get_error(db));
         }
@@ -895,7 +892,9 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
      * write page to disk if it's dirty (and if we don't have 
      * an IN-MEMORY DB)
      */
-    if (page_is_dirty(page) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
+    if (page_is_dirty(page) 
+            && db_get_env(db) 
+            && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
         st=page_flush(page);
         if (st)
             return (db_set_error(db, st));

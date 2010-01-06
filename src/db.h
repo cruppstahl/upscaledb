@@ -213,30 +213,6 @@ typedef HAM_PACK_0 union HAM_PACK_1
 #define index_clear_reserved(p)           { (p)->b._reserved1 = 0;            \
                                             (p)->b._reserved2 = 0; }
 
-
-/*
- * get the currently active transaction
- */
-#define db_get_txn(db)                    (env_get_txn(db_get_env(db)))
-
-/*
- * get the logging object
- */
-#define db_get_log(db)                    (env_get_log(db_get_env(db)))
-
-/*
- * get the cache for extended keys
- */
-#define db_get_extkey_cache(db)    (db_get_env(db)                            \
-                                   ? env_get_extkey_cache(db_get_env(db))     \
-                                   : (db)->_extkey_cache)
-
-/*
- * set the cache for extended keys
- */
-#define db_set_extkey_cache(db, c) do {ham_assert(db_get_env(db)==0, (""));   \
-                                       (db)->_extkey_cache=(c); } while (0)
-
 /*
  * the database structure
  */
@@ -262,12 +238,6 @@ struct ham_db_t
 
     /* the memory allocator */
     mem_allocator_t *_allocator;
-
-    /* the device (either a file or an in-memory-db) */
-    ham_device_t *_device;
-
-    /* the cache */
-    ham_cache_t *_cache;
 
     /* linked list of all cursors */
     ham_cursor_t *_cursors;
@@ -324,9 +294,6 @@ struct ham_db_t
     /* current data access mode (DAM) */
     ham_u16_t  _data_access_mode;
 
-    /* the pagesize */
-    ham_size_t _pagesize;
-
     /** some freelist algorithm specific run-time data */
     ham_runtime_statistics_globdata_t _global_perf_data;
 
@@ -335,87 +302,85 @@ struct ham_db_t
 };
 
 /*
- * get the header page
+ * get the currently active transaction
  */
-#define db_get_header_page(db)         (env_get_header_page(db_get_env(db)))
+#define db_get_txn(db)                    (env_get_txn(db_get_env(db)))
 
 /*
- * set the header page - not allowed when we have an environment!
+ * get the logging object
  */
-#define db_set_header_page(db, h)    do { ham_assert(db_get_env(db)==0, (""));\
-                                       (db)->_hdrpage=(h); } while (0)
+#define db_get_log(db)                    (env_get_log(db_get_env(db)))
+
+/*
+ * get the cache for extended keys
+ */
+#define db_get_extkey_cache(db)           (env_get_extkey_cache(db_get_env(db)))
+
+/*
+ * get the header page
+ */
+#define db_get_header_page(db)            (env_get_header_page(db_get_env(db)))
 
 /*
  * get the page size
  */
-#define db_get_pagesize(db)         (env_get_pagesize(db_get_env(db)))
+#define db_get_pagesize(db)               (env_get_pagesize(db_get_env(db)))
 
 /**
  * get the size of the usable persistent payload of a page
  */
-#define db_get_usable_pagesize(db) (db_get_pagesize(db)                      \
-    - db_get_persistent_header_size())
+#define db_get_usable_pagesize(db)        (db_get_pagesize(db)                 \
+                                            - db_get_persistent_header_size())
 
 /*
  * get the current transaction ID
  */
-#define db_get_txn_id(db)              (db_get_env(db)                        \
-                                       ? env_get_txn_id(db_get_env(db))       \
-                                       : (db)->_txn_id)
-
-/*
- * set the current transaction ID
- */
-#define db_set_txn_id(db, id)          do { if (db_get_env(db))               \
-                                         env_set_txn_id(db_get_env(db), id);  \
-                                         else (db)->_txn_id=(id); } while(0)
+#define db_get_txn_id(db)                 (env_get_txn_id(db_get_env(db)))
 
 /*
  * get the last recno value
  */
-#define db_get_recno(db)               (db)->_recno
+#define db_get_recno(db)                  (db)->_recno
 
 /*
  * set the last recno value
  */
-#define db_set_recno(db, r)            (db)->_recno=(r)
+#define db_set_recno(db, r)               (db)->_recno=(r)
 
 /*
  * get the last error code
  */
-#define db_get_error(db)               (db)->_error
+#define db_get_error(db)                  (db)->_error
 
 /*
  * set the last error code
  */
-#define db_set_error(db, e)            (db)->_error=(e)
+#define db_set_error(db, e)               (db)->_error=(e)
 
 /*
  * get the user-provided context pointer
  */
-#define db_get_context_data(db)        (db)->_context
+#define db_get_context_data(db)           (db)->_context
 
 /*
  * set the user-provided context pointer
  */
-#define db_set_context_data(db, ctxt)  (db)->_context=(ctxt)
+#define db_set_context_data(db, ctxt)     (db)->_context=(ctxt)
 
 /*
  * get the backend pointer
  */
-#define db_get_backend(db)             (db)->_backend
+#define db_get_backend(db)                (db)->_backend
 
 /*
  * set the backend pointer
  */
-#define db_set_backend(db, be)         (db)->_backend=(be)
+#define db_set_backend(db, be)            (db)->_backend=(be)
 
 /*
  * get the memory allocator
  */
-#define db_get_allocator(db)           (db_get_env(db)                        \
-                                       ? env_get_allocator(db_get_env(db))    \
-                                       : (db)->_allocator)
+#define db_get_allocator(db)              (env_get_allocator(db_get_env(db)))
 
 /*
  * set the memory allocator
@@ -426,26 +391,12 @@ struct ham_db_t
 /*
  * get the device
  */
-#define db_get_device(db)              (db_get_env(db)                        \
-                                       ? env_get_device(db_get_env(db))       \
-                                       : (db)->_device)
-
-/*
- * set the device - not allowed in an environment
- */
-#define db_set_device(db, d)         do { ham_assert(db_get_env(db)==0, (""));\
-                                       (db)->_device=(d); } while (0)
+#define db_get_device(db)                 (env_get_device(db_get_env(db)))
 
 /*
  * get the cache pointer
  */
-#define db_get_cache(db)               (env_get_cache(db_get_env(db)))
-
-/*
- * set the cache pointer - not allowed in an environment
- */
-#define db_set_cache(db, c)          do { ham_assert(db_get_env(db)==0, (""));\
-                                       (db)->_cache=(c); } while(0)
+#define db_get_cache(db)                  (env_get_cache(db_get_env(db)))
 
 /*
  * get the prefix comparison function
@@ -468,12 +419,10 @@ struct ham_db_t
 #define db_set_compare_func(db, f)     (db)->_compfoo=(f)
 
 /*
- * get the runtime-flags - if this database has an environment, the flags
- * are "mixed"
+ * get the runtime-flags - the flags are "mixed" with the flags from the Env
  */
-#define db_get_rt_flags(db)            (db_get_env(db)                        \
-                           ? env_get_rt_flags(db_get_env(db))|(db)->_rt_flags \
-                           : (db)->_rt_flags)
+#define db_get_rt_flags(db)            (env_get_rt_flags(db_get_env(db))      \
+                                            | (db)->_rt_flags)
 
 /*
  * set the runtime-flags - NOT setting environment flags!
@@ -513,15 +462,7 @@ struct ham_db_t
 /*
  * get the freelist cache pointer
  */
-#define db_get_freelist_cache(db)      (db_get_env(db)                        \
-                                     ? env_get_freelist_cache(db_get_env(db)) \
-                                     : (db)->_freelist_cache)
-
-/*
- * set the freelist cache pointer
- */
-#define db_set_freelist_cache(db, p) do { ham_assert(db_get_env(db)==0, (""));\
-                                       (db)->_freelist_cache=p; } while(0)
+#define db_get_freelist_cache(db)      (env_get_freelist_cache(db_get_env(db)))
 
 /*
  * get the linked list of all record-level filters
@@ -604,9 +545,7 @@ struct ham_db_t
 /*
  * get a reference to the DB FILE (global) statistics
  */
-#define db_get_global_perf_data(db)  (db_get_env(db)                           \
-                                     ? env_get_global_perf_data(db_get_env(db))\
-                                     : &(db)->_global_perf_data)
+#define db_get_global_perf_data(db)  (env_get_global_perf_data(db_get_env(db)))
 
 /*
  * get a reference to the per-database statistics
@@ -629,7 +568,7 @@ struct ham_db_t
 /*
  * get the dirty-flag
  */
-#define db_is_dirty(db)                page_is_dirty(db_get_header_page(db))
+#define db_is_dirty(db)             page_is_dirty(db_get_header_page(db))
 
 /*
  * set the dirty-flag
