@@ -100,12 +100,6 @@ public:
         db_set_serialno(m_db, 0x1234);
         BFC_ASSERT(db_get_serialno(m_db)==0x1234);
 
-        ham_size_t ps=db_get_pagesize(m_db); 
-        db_set_persistent_pagesize(m_db, 1024*32);
-        BFC_ASSERT(db_get_pagesize(m_db)==ps);
-        BFC_ASSERT(db_get_persistent_pagesize(m_db)==1024*32);
-        db_set_persistent_pagesize(m_db, ps);
-
         db_set_txn(m_db, (ham_txn_t *)13);
         BFC_ASSERT(db_get_txn(m_db)==(ham_txn_t *)13);
         db_set_txn(m_db, (ham_txn_t *)0);

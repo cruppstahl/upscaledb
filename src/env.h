@@ -70,13 +70,11 @@ struct ham_env_t
     /* a linked list of all open databases */
     ham_db_t *_next;
 
-    /*
-     * parameters, which are accepted by env_create_ex, and stored for the 
-     * first env_create_db
-     */
+    /* the pagesize which was specified when the env was created */
     ham_size_t _pagesize;
+
+    /* the cachesize which was specified when the env was created/opened */
     ham_size_t _cachesize;
-    ham_u16_t  _keysize;
 
     /* linked list of all file-level filters */
     ham_file_filter_t *_file_filters;
@@ -243,17 +241,23 @@ struct ham_env_t
 #define env_set_list(env, db)            (env)->_next=(db)
 
 /*
- * get the parameter list
+ * get the pagesize as specified in ham_env_create_ex
  */
 #define env_get_pagesize(env)            (env)->_pagesize
-#define env_get_keysize(env)             (env)->_keysize
+
+/*
+ * set the pagesize as specified in ham_env_create_ex
+ */
+#define env_set_pagesize(env, ps)        (env)->_pagesize=(ps)
+
+/*
+ * get the cachesize as specified in ham_env_create_ex/ham_env_open_ex
+ */
 #define env_get_cachesize(env)           (env)->_cachesize
 
 /*
- * set the parameter list
+ * set the cachesize as specified in ham_env_create_ex/ham_env_open_ex
  */
-#define env_set_pagesize(env, ps)        (env)->_pagesize=(ps)
-#define env_set_keysize(env, ks)         (env)->_keysize=(ks)
 #define env_set_cachesize(env, cs)       (env)->_cachesize=(cs)
 
 /*
@@ -271,6 +275,11 @@ struct ham_env_t
  * get the page size
  */
 #define env_get_persistent_pagesize(env) (ham_db2h32(env_get_header(env)->_pagesize))
+
+/*
+ * set the page size
+ */
+#define env_set_persistent_pagesize(env, ps)    env_get_header(env)->_pagesize=ham_h2db32(ps)
 
 /*
  * set the 'magic' field of a file header
@@ -303,11 +312,6 @@ struct ham_env_t
  * set the serial number
  */
 #define env_set_serialno(env, n)    env_get_header(env)->_serialno=ham_h2db32(n)
-
-/*
- * set the page size
- */
-#define env_set_persistent_pagesize(env, ps)    env_get_header(env)->_pagesize=ham_h2db32(ps)
 
 /*
  * get the linked list of all file-level filters

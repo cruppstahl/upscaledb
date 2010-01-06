@@ -999,8 +999,6 @@ default_case:
      * inherit defaults from ENV for DB
      */
     if (env) {
-        if (!keysize)
-            keysize = env_get_keysize(env);
         if (!cachesize)
             cachesize = env_get_cachesize(env);
         if (!dbs && env->_hdrpage)
@@ -1359,9 +1357,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
                 HAM_VERSION_REV, 0);
         env_set_serialno(env, HAM_SERIALNO);
         env_set_persistent_pagesize(env, pagesize);
-        env_set_keysize(env, keysize);
         env_set_max_databases(env, maxdbs);
-        ham_assert(env_get_keysize(env) > 0, (0));
         ham_assert(env_get_max_databases(env) > 0, (0));
 
         /* the Environment is still not set up completely, and 
@@ -1803,7 +1799,6 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
      * store the parameters
      */
     env_set_pagesize(env, 0);
-    env_set_keysize(env, 0);
     env_set_cachesize(env, cachesize);
     env_set_rt_flags(env, flags);
     env_set_file_mode(env, 0644);
