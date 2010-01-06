@@ -15,28 +15,39 @@ o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     x move code from ham_create[_ex] into ham_env_create_db
     x move code from ham_open[_ex] into ham_env_open_db
     x don't forget to close/delete the handle!
-
-    o txn: implies logfile - check if it's really created (and if the
+    x valgrind shows memory leaks
+    x txn: implies logfile - check if it's really created (and if the
         ENABLE_RECOVERY flag is set)!
 
+    o clean up db.h/db.c and other code
     o env.h has some variables which are stored in the db header (i.e. 
         keysize, pagesize), but they are just in a non-persistent field
         also, they still show up in db.h as macros and fields of ham_db_t
 
-    o ham_env_open: needs to store PRE_110-DAM in Databases! -> unittest
-        (might already be there & work)
-    o clean up 'noenv' usage in ham_close/ham_env_close
-    o clean up db.h/db.c and other code
-    o hamsterdb: "transfer the ownership of the header page to this
-        Database" (also in ham_close): why? can we clean this up?
-    o documentation: ham_env_open_db accepts DAM parameters (unittest!)
     o many unittests set allocator in ham_db_t - disable this macro, 
         only set in ham_env_t! (or change the macro)
     o allocators are not stored - see log.cpp (replace allocator_free
         with ham_mem_free - crash!)
 
-o even In-Memory Dbs need a cache now - always set cache size to 0, otherwise
-    we waste memory
+    o ham_env_open: needs to store PRE_110-DAM in Databases! -> unittest
+        (might already be there & work)
+    o documentation: ham_env_open_db accepts DAM parameters (unittest!)
+    o clean up 'noenv' usage in ham_close/ham_env_close
+
+o who/what is the "owner" of a page?
+    o valgrind shows errors in EnvTest::eraseMultipleDatabases
+    o add new test: EnvTest::eraseMultipleDatabases, but reopen the Env before
+        erasing the Databases!
+    o hamsterdb: "transfer the ownership of the header page to this
+        Database" (also in ham_close): why? can we clean this up?
+
+o which members of env/db can be overwritten by users and therefore have to
+    be closed (or not) in ham_close/ham_env_close?
+    o make a list
+    o verify these with unittests
+    o check Ger's latest sources
+
+o merge env_is_active/db_is_active from Ger's latest sources
 
 o improve documentation/tutorial about
     o approx. matching
@@ -50,6 +61,9 @@ o need tool to upgrade databases from 1.0.x to 1.1.x!
 o ham_get_parameter: could return VERSION of the database
 
 o approx. matching: need a sample
+
+. even In-Memory Dbs need a cache now - always set cache size to 0, otherwise
+    we waste memory
 
 . re-enable HAM_DAM_FAST_INSERT
     o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 

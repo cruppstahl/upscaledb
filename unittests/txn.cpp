@@ -36,6 +36,7 @@ public:
     : hamsterDB_fixture("TxnTest")
     {
         testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(TxnTest, checkIfLogCreatedTest);
         BFC_REGISTER_TEST(TxnTest, beginCommitTest);
         BFC_REGISTER_TEST(TxnTest, beginAbortTest);
         BFC_REGISTER_TEST(TxnTest, structureTest);
@@ -79,6 +80,12 @@ public:
         ham_delete(m_db);
         ham_env_delete(m_env);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
+    }
+
+    void checkIfLogCreatedTest(void)
+    {
+        BFC_ASSERT(db_get_log(m_db)!=0);
+        BFC_ASSERT(db_get_rt_flags(m_db)&HAM_ENABLE_RECOVERY);
     }
 
     void beginCommitTest(void)

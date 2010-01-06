@@ -65,6 +65,7 @@ public:
         BFC_REGISTER_TEST(EnvTest, eraseOpenDatabases);
         BFC_REGISTER_TEST(EnvTest, eraseUnknownDatabases);
         BFC_REGISTER_TEST(EnvTest, eraseMultipleDatabases);
+        BFC_REGISTER_TEST(EnvTest, eraseMultipleDatabasesReopenEnv);
         BFC_REGISTER_TEST(EnvTest, endianTestOpenDatabase);
         BFC_REGISTER_TEST(EnvTest, limitsReachedTest);
         BFC_REGISTER_TEST(EnvTest, createEnvOpenDbTest);
@@ -1414,6 +1415,63 @@ protected:
             BFC_ASSERT_EQUAL(((m_flags&HAM_IN_MEMORY_DB) 
                                 ? HAM_INV_PARAMETER 
                                 : HAM_DATABASE_NOT_FOUND), 
+                            ham_env_open_db(env, db[i], (ham_u16_t)i+1, 0, 0));
+        }
+
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        for (i=0; i<MAX_DB; i++)
+            BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void eraseMultipleDatabasesReopenEnv(void)
+    {
+        int i, j;
+        const int MAX_DB=13;
+        const int MAX_ITEMS=300;
+        ham_env_t *env;
+        ham_db_t *db[MAX_DB];
+        ham_record_t rec;
+        ham_key_t key;
+        char buffer[512];
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+            ham_env_create_ex(env, BFC_OPATH(".test"), m_flags, 0664, 0));
+
+        for (i=0; i<MAX_DB; i++) {
+            BFC_ASSERT_EQUAL_I(0, ham_new(&db[i]), i);
+            BFC_ASSERT_EQUAL_I(0, 
+                ham_env_create_db(env, db[i], (ham_u16_t)i+1, 0, 0), i);
+            for (j=0; j<MAX_ITEMS; j++) {
+                memset(&key, 0, sizeof(key));
+                memset(&rec, 0, sizeof(rec));
+                memset(buffer, 0, sizeof(buffer));
+                sprintf(buffer, "%08x%08x", j, i+1);
+                key.data=buffer;
+                key.size=sizeof(buffer);
+                key.flags = HAM_KEY_USER_ALLOC;
+                rec.data=buffer;
+                rec.size=sizeof(buffer);
+                rec.flags = HAM_RECORD_USER_ALLOC;
+
+                BFC_ASSERT_EQUAL_I(0, 
+                    ham_insert(db[i], 0, &key, &rec, 0), j+i*MAX_ITEMS);
+            }
+            BFC_ASSERT_EQUAL_I(0, ham_close(db[i], 0), i);
+        }
+
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, 
+            ham_env_open(env, BFC_OPATH(".test"), m_flags));
+
+        for (i=0; i<MAX_DB; i++) {
+            BFC_ASSERT_EQUAL(0, 
+                ham_env_erase_db(env, (ham_u16_t)i+1, 0));
+        }
+
+        for (i=0; i<10; i++) {
+            BFC_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND,
                             ham_env_open_db(env, db[i], (ham_u16_t)i+1, 0, 0));
         }
 

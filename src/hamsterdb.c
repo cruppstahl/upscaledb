@@ -1222,7 +1222,7 @@ ham_env_delete(ham_env_t *env)
     }
 
     /* 
-     * close the allocator
+     * close the device
      */
     if (env_get_device(env)) {
         ham_device_t *device = env_get_device(env);

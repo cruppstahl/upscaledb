@@ -72,8 +72,8 @@ public:
     { 
         __super::teardown();
 
-        ham_close(m_db, 0);
-        ham_delete(m_db);
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(m_db));
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
@@ -83,21 +83,27 @@ public:
 
     void createCloseTest()
     {
-        BFC_ASSERT(m_dev->is_open(m_dev));
-        BFC_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
-        BFC_ASSERT(!m_dev->is_open(m_dev));
+        BFC_ASSERT_EQUAL(1, m_dev->is_open(m_dev));
+        if (!m_inmemory) {
+            BFC_ASSERT_EQUAL(0, m_dev->close(m_dev));
+            BFC_ASSERT_EQUAL(0, m_dev->is_open(m_dev));
+            BFC_ASSERT_EQUAL(0, m_dev->open(m_dev, BFC_OPATH(".test"), 0));
+            BFC_ASSERT_EQUAL(1, m_dev->is_open(m_dev));
+        }
     }
 
     void openCloseTest()
     {
         if (!m_inmemory) {
-            BFC_ASSERT(m_dev->is_open(m_dev));
-            BFC_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
-            BFC_ASSERT(!m_dev->is_open(m_dev));
-            BFC_ASSERT(m_dev->open(m_dev, BFC_OPATH(".test"), 0)==HAM_SUCCESS);
-            BFC_ASSERT(m_dev->is_open(m_dev));
-            BFC_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
-            BFC_ASSERT(!m_dev->is_open(m_dev));
+            BFC_ASSERT_EQUAL(1, m_dev->is_open(m_dev));
+            BFC_ASSERT_EQUAL(0, m_dev->close(m_dev));
+            BFC_ASSERT_EQUAL(0, m_dev->is_open(m_dev));
+            BFC_ASSERT_EQUAL(0, m_dev->open(m_dev, BFC_OPATH(".test"), 0));
+            BFC_ASSERT_EQUAL(1, m_dev->is_open(m_dev));
+            BFC_ASSERT_EQUAL(0, m_dev->close(m_dev));
+            BFC_ASSERT_EQUAL(0, m_dev->is_open(m_dev));
+            BFC_ASSERT_EQUAL(0, m_dev->open(m_dev, BFC_OPATH(".test"), 0));
+            BFC_ASSERT_EQUAL(1, m_dev->is_open(m_dev));
         }
     }
 
@@ -119,12 +125,11 @@ public:
         int i;
         ham_offset_t address;
 
-        BFC_ASSERT(m_dev->is_open(m_dev));
+        BFC_ASSERT_EQUAL(1, m_dev->is_open(m_dev));
         for (i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, m_dev->alloc(m_dev, 1024, &address));
             BFC_ASSERT_EQUAL((db_get_pagesize(m_db)*2)+1024*i, address);
         }
-        BFC_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
     }
 
     void allocFreeTest()
@@ -133,19 +138,18 @@ public:
         memset(&page, 0, sizeof(page));
         page_set_owner(&page, m_db);
 
-        BFC_ASSERT(m_dev->is_open(m_dev));
-        BFC_ASSERT(m_dev->alloc_page(m_dev, &page, 
-                    db_get_pagesize(m_db))==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(1, m_dev->is_open(m_dev));
+        BFC_ASSERT_EQUAL(0, m_dev->alloc_page(m_dev, &page, 
+                    db_get_pagesize(m_db)));
         BFC_ASSERT(page_get_pers(&page)!=0);
-        BFC_ASSERT(m_dev->free_page(m_dev, &page)==HAM_SUCCESS);
-        BFC_ASSERT(m_dev->close(m_dev)==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(0, m_dev->free_page(m_dev, &page));
     }
 
     void flushTest()
     {
-        BFC_ASSERT(m_dev->is_open(m_dev));
-        BFC_ASSERT(m_dev->flush(m_dev)==HAM_SUCCESS);
-        BFC_ASSERT(m_dev->is_open(m_dev));
+        BFC_ASSERT_EQUAL(1, m_dev->is_open(m_dev));
+        BFC_ASSERT_EQUAL(0, m_dev->flush(m_dev));
+        BFC_ASSERT_EQUAL(1, m_dev->is_open(m_dev));
     }
 
     void mmapUnmapTest()
@@ -155,34 +159,33 @@ public:
         ham_size_t ps=device_get_pagesize(m_dev);
         ham_u8_t *temp=(ham_u8_t *)malloc(ps);
 
-        BFC_ASSERT(m_dev->is_open(m_dev));
-        BFC_ASSERT(m_dev->truncate(m_dev, ps*10)==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(1, m_dev->is_open(m_dev));
+        BFC_ASSERT_EQUAL(0, m_dev->truncate(m_dev, ps*10));
         for (i=0; i<10; i++) {
             memset(&pages[i], 0, sizeof(ham_page_t));
             page_set_owner(&pages[i], m_db);
             page_set_self(&pages[i], i*ps);
-            BFC_ASSERT(m_dev->read_page(m_dev, &pages[i], 
-                        db_get_pagesize(m_db))==HAM_SUCCESS);
+            BFC_ASSERT_EQUAL(0, m_dev->read_page(m_dev, &pages[i], 
+                        db_get_pagesize(m_db)));
         }
         for (i=0; i<10; i++)
             memset(page_get_pers(&pages[i]), i, ps);
         for (i=0; i<10; i++) {
-            BFC_ASSERT(m_dev->write_page(m_dev, &pages[i])==HAM_SUCCESS);
+            BFC_ASSERT_EQUAL(0, m_dev->write_page(m_dev, &pages[i]));
         }
         for (i=0; i<10; i++) {
             ham_u8_t *buffer;
             memset(temp, i, ps);
-            BFC_ASSERT(m_dev->free_page(m_dev, &pages[i])==HAM_SUCCESS);
+            BFC_ASSERT_EQUAL(0, m_dev->free_page(m_dev, &pages[i]));
 
-            BFC_ASSERT(m_dev->read_page(m_dev, &pages[i], 
-                        db_get_pagesize(m_db))==HAM_SUCCESS);
+            BFC_ASSERT_EQUAL(0, m_dev->read_page(m_dev, &pages[i], 
+                        db_get_pagesize(m_db)));
             buffer=(ham_u8_t *)page_get_pers(&pages[i]);
-            BFC_ASSERT(memcmp(buffer, temp, ps)==0);
+            BFC_ASSERT_EQUAL(0, memcmp(buffer, temp, ps));
         }
         for (i=0; i<10; i++) {
-            BFC_ASSERT(m_dev->free_page(m_dev, &pages[i])==HAM_SUCCESS);
+            BFC_ASSERT_EQUAL(0, m_dev->free_page(m_dev, &pages[i]));
         }
-        m_dev->close(m_dev);
         free(temp);
     }
 
@@ -195,8 +198,8 @@ public:
 
         m_dev->set_flags(m_dev, DEVICE_NO_MMAP);
 
-        BFC_ASSERT(m_dev->is_open(m_dev));
-        BFC_ASSERT(m_dev->truncate(m_dev, ps*10)==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(1, m_dev->is_open(m_dev));
+        BFC_ASSERT_EQUAL(0, m_dev->truncate(m_dev, ps*10));
         for (i=0; i<10; i++) {
             buffer[i]=(ham_u8_t *)malloc(ps);
             BFC_ASSERT_EQUAL(0,
@@ -212,10 +215,9 @@ public:
             BFC_ASSERT_EQUAL(0, 
                     m_dev->read(m_db, m_dev, i*ps, buffer[i], ps));
             memset(temp, i, ps);
-            BFC_ASSERT(memcmp(buffer[i], temp, ps)==0);
+            BFC_ASSERT_EQUAL(0, memcmp(buffer[i], temp, ps));
             free(buffer[i]);
         }
-        m_dev->close(m_dev);
         free(temp);
     }
 
@@ -227,8 +229,8 @@ public:
 
         m_dev->set_flags(m_dev, HAM_DISABLE_MMAP);
 
-        BFC_ASSERT(m_dev->is_open(m_dev));
-        BFC_ASSERT(m_dev->truncate(m_dev, ps*2)==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(1, m_dev->is_open(m_dev));
+        BFC_ASSERT_EQUAL(0, m_dev->truncate(m_dev, ps*2));
         for (i=0; i<2; i++) {
             BFC_ASSERT((pages[i]=page_new(m_db, 0)));
             page_set_self(pages[i], ps*i);
@@ -256,7 +258,6 @@ public:
             BFC_ASSERT_EQUAL(0, page_free(pages[i]));
             page_delete(pages[i]);
         }
-        m_dev->close(m_dev);
     }
 
 };
