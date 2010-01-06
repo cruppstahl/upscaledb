@@ -97,8 +97,8 @@ public:
         BFC_ASSERT(env_get_version(m_env, 2)==3);
         BFC_ASSERT(env_get_version(m_env, 3)==4);
 
-        db_set_serialno(m_db, 0x1234);
-        BFC_ASSERT(db_get_serialno(m_db)==0x1234);
+        env_set_serialno(m_env, 0x1234);
+        BFC_ASSERT(env_get_serialno(m_env)==0x1234);
 
         db_set_txn(m_db, (ham_txn_t *)13);
         BFC_ASSERT(db_get_txn(m_db)==(ham_txn_t *)13);
