@@ -158,16 +158,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1
  */
 #define db_get_keysize(db)         be_get_keysize(db_get_backend(db))
 
-/*
- * get the page size
- */
-#define db_get_persistent_pagesize(db)        (ham_db2h32(db_get_header(db)->_pagesize))
-
-/*
- * set the page size
- */
-#define db_set_persistent_pagesize(db, ps)    db_get_header(db)->_pagesize=ham_h2db32(ps)
-
 /**
  * get the size of the persistent header of a page
  *
@@ -416,20 +406,8 @@ struct ham_db_t
 /*
  * get the page size
  */
-#define db_get_pagesize(db)         (db_get_env(db)                          \
-                                    ? env_get_pagesize(db_get_env(db))       \
-                                    : (db)->_pagesize)
+#define db_get_pagesize(db)         (env_get_pagesize(db_get_env(db)))
 
-/*
- * set the page size
- */
-#define db_set_pagesize(db, ps) do {                                         \
-                                    if (db_get_env(db))                      \
-                                        env_set_pagesize(db_get_env(db), ps);\
-                                    else                                     \
-                                        (db)->_pagesize = (ps);              \
-                                } while (0)                                             
- 
 /**
  * get the size of the usable persistent payload of a page
  */

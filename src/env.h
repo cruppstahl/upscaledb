@@ -29,11 +29,6 @@ extern "C" {
 #endif
 
 /*
- * need packing for msvc x64bit
- */
-//#include "packstart.h"
-
-/*
  * the environment structure
  */
 struct ham_env_t
@@ -68,7 +63,7 @@ struct ham_env_t
     /* the cache for extended keys */
     extkey_cache_t *_extkey_cache;
 
-    /* the database flags - a combination of the persistent flags
+    /* the Environment flags - a combination of the persistent flags
      * and runtime flags */
     ham_u32_t _rt_flags;
 
@@ -97,8 +92,6 @@ struct ham_env_t
 	 */
 	ham_runtime_statistics_globdata_t _perf_data;
 };
-
-//#include "packstop.h"
 
 /*
  * get the current transaction ID

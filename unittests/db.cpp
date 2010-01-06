@@ -104,7 +104,6 @@ public:
         db_set_persistent_pagesize(m_db, 1024*32);
         BFC_ASSERT(db_get_pagesize(m_db)==ps);
         BFC_ASSERT(db_get_persistent_pagesize(m_db)==1024*32);
-        db_set_pagesize(m_db, ps);
         db_set_persistent_pagesize(m_db, ps);
 
         db_set_txn(m_db, (ham_txn_t *)13);

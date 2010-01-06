@@ -23,6 +23,8 @@ o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     o env.h has some variables which are stored in the db header (i.e. 
         keysize, pagesize), but they are just in a non-persistent field
         also, they still show up in db.h as macros and fields of ham_db_t
+        o merge db/env_get_pagesize with env_get_persistent_pagesize
+        o merge db/env_set_pagesize with env_set_persistent_pagesize
 
     o many unittests set allocator in ham_db_t - disable this macro, 
         only set in ham_env_t! (or change the macro)
