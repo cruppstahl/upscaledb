@@ -452,6 +452,7 @@ ham_env_delete(ham_env_t *env);
  *              compatible with the library version
  * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @ref HAM_WOULD_BLOCK if another process has locked the file
+ * @return @ref HAM_ENVIRONMENT_ALREADY_OPEN if @a env is already in use
  *
  * @sa ham_env_create_ex 
  */
@@ -552,6 +553,7 @@ ham_env_create(ham_env_t *env, const char *filename,
  * @return @ref HAM_INV_KEYSIZE if @a keysize is too large (at least 4
  *              keys must fit in a page)
  * @return @ref HAM_WOULD_BLOCK if another process has locked the file
+ * @return @ref HAM_ENVIRONMENT_ALREADY_OPEN if @a env is already in use
  *
  * @sa ham_create_ex
  * @sa ham_data_access_modes
@@ -579,6 +581,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
  *              compatible with the library version
  * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @ref HAM_WOULD_BLOCK if another process has locked the file
+ * @return @ref HAM_ENVIRONMENT_ALREADY_OPEN if @a env is already in use
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
@@ -661,6 +664,7 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  * @return @ref HAM_WOULD_BLOCK if another process has locked the file
  * @return @ref HAM_NEED_RECOVERY if the Database is in an inconsistent state
  * @return @ref HAM_LOG_INV_FILE_HEADER if the logfile is corrupt
+ * @return @ref HAM_ENVIRONMENT_ALREADY_OPEN if @a env is already in use
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_open_ex(ham_env_t *env, const char *filename,
@@ -747,6 +751,7 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @ref HAM_LIMITS_REACHED if the maximum number of Databases per 
  *              Environment was already created
+ * @return @ref HAM_DATABASE_ALREADY_OPEN if @a db is already in use
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_create_db(ham_env_t *env, ham_db_t *db,
@@ -792,6 +797,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
  * @return @ref HAM_DATABASE_ALREADY_OPEN if this Database was already
  *              opened
  * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
+ * @return @ref HAM_DATABASE_ALREADY_OPEN if @a db is already in use
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_open_db(ham_env_t *env, ham_db_t *db,
@@ -1098,6 +1104,7 @@ ham_delete(ham_db_t *db);
  *              compatible with the library version
  * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @ref HAM_WOULD_BLOCK if another process has locked the file
+ * @return @ref HAM_DATABASE_ALREADY_OPEN if @a db is already in use
  *
  * @sa ham_create_ex
  */
@@ -1209,6 +1216,7 @@ ham_create(ham_db_t *db, const char *filename,
  * @return @ref HAM_INV_KEYSIZE if @a keysize is too large (at least 4
  *              keys must fit in a page)
  * @return @ref HAM_WOULD_BLOCK if another process has locked the file
+ * @return @ref HAM_DATABASE_ALREADY_OPEN if @a db is already in use
  *
  * @sa ham_data_access_modes
  */
@@ -1234,6 +1242,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
  *              compatible with the library version
  * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @ref HAM_WOULD_BLOCK if another process has locked the file
+ * @return @ref HAM_DATABASE_ALREADY_OPEN if @a db is already in use
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
@@ -1319,6 +1328,7 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  * @return @ref HAM_WOULD_BLOCK if another process has locked the file
  * @return @ref HAM_NEED_RECOVERY if the Database is in an inconsistent state
  * @return @ref HAM_LOG_INV_FILE_HEADER if the logfile is corrupt
+ * @return @ref HAM_DATABASE_ALREADY_OPEN if @a db is already in use
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_open_ex(ham_db_t *db, const char *filename,

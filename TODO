@@ -23,11 +23,11 @@ x make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
         (might already be there & work)
     x documentation: ham_env_open_db accepts DAM parameters (unittest!)
 
-o merge env_is_active/db_is_active from Ger's latest sources
+x merge env_is_active/db_is_active from Ger's latest sources
     x implement, fix unittests
     x needs unittest for structures (db/env)
     x needs unittests for each function that modifies the flag
-    o needs documentation in header file (new error code!)
+    x needs documentation in header file (new error code!)
 
 o sort duplicate keys - Ger has patches
     o merge code

@@ -1,4 +1,6 @@
 Jan 06, 2010 - chris
+o added safety checks to prevent reuse of a ham_db_t or ham_env_t 
+	structure which is already in use
 o the implementation of ham_create[_ex] and ham_open[_ex] was rewritten:
 	both functions now create their private Environment handle. This 
 	simplifies lots of code.
