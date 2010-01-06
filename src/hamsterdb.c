@@ -3424,17 +3424,17 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if (flags&HAM_HINT_PREPEND) {
-        ham_trace(("flags HAM_HINT_PREPEND is only allowed in "
+        ham_trace(("flag HAM_HINT_PREPEND is only allowed in "
                     "ham_cursor_insert"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if (flags&HAM_HINT_APPEND) {
-        ham_trace(("flags HAM_HINT_APPEND is only allowed in "
+        ham_trace(("flag HAM_HINT_APPEND is only allowed in "
                     "ham_cursor_insert"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if ((flags&HAM_DIRECT_ACCESS) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
-        ham_trace(("flags HAM_DIRECT_ACCESS is only allowed in "
+        ham_trace(("flag HAM_DIRECT_ACCESS is only allowed in "
                     "In-Memory Databases"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
@@ -4394,7 +4394,7 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         return (HAM_INV_PARAMETER);
     }
     if ((flags&HAM_DIRECT_ACCESS) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
-        ham_trace(("flags HAM_DIRECT_ACCESS is only allowed in "
+        ham_trace(("flag HAM_DIRECT_ACCESS is only allowed in "
                    "In-Memory Databases"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
@@ -4461,17 +4461,17 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
     db=cursor_get_db(cursor);
 
     if ((flags&HAM_DIRECT_ACCESS) && !(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
-        ham_trace(("flags HAM_DIRECT_ACCESS is only allowed in "
+        ham_trace(("flag HAM_DIRECT_ACCESS is only allowed in "
                    "In-Memory Databases"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if (flags&HAM_HINT_PREPEND) {
-        ham_trace(("flags HAM_HINT_PREPEND is only allowed in "
+        ham_trace(("flag HAM_HINT_PREPEND is only allowed in "
                    "ham_cursor_insert"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if (flags&HAM_HINT_APPEND) {
-        ham_trace(("flags HAM_HINT_APPEND is only allowed in "
+        ham_trace(("flag HAM_HINT_APPEND is only allowed in "
                    "ham_cursor_insert"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
