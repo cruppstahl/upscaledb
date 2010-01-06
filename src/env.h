@@ -76,6 +76,11 @@ struct ham_env_t
     /* the cachesize which was specified when the env was created/opened */
     ham_size_t _cachesize;
 
+    /* non-zero after this item has been opened/created.
+     * Indicates whether this db is 'active', i.e. between 
+     * a create/open and matching close API call. */
+    ham_bool_t _is_active;
+
     /* linked list of all file-level filters */
     ham_file_filter_t *_file_filters;
 
@@ -316,6 +321,18 @@ struct ham_env_t
  * set the serial number
  */
 #define env_set_serialno(env, n)    env_get_header(env)->_serialno=ham_h2db32(n)
+
+/**
+ * check whether this environment has been opened/created.
+ */
+#define env_is_active(env)          (env)->_is_active
+
+/**
+ * set the 'active' flag of the environment: a non-zero value 
+ * for @a s sets the @a env to 'active', zero(0) sets the @a env 
+ * to 'inactive' (closed)
+ */
+#define env_set_active(env,s)       (env)->_is_active=!!(s)
 
 /*
  * get the linked list of all file-level filters

@@ -23,7 +23,25 @@ x make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
         (might already be there & work)
     x documentation: ham_env_open_db accepts DAM parameters (unittest!)
 
-o env.h has some variables which are stored in the db header (i.e. 
+o merge env_is_active/db_is_active from Ger's latest sources
+    o needs unittest for structures (db/env)
+    o needs unittests for each function that modifies the flag
+    o needs documentation in header file (new error code!)
+
+o improve documentation/tutorial about
+    o approx. matching
+    o hinting flags
+    o DAMs
+
+o sort duplicate keys - Ger has patches
+
+o need tool to upgrade databases from 1.0.x to 1.1.x!
+
+o ham_get_parameter: could return VERSION of the database
+
+o approx. matching: need a sample
+
+. env.h has some variables which are stored in the db header (i.e. 
     keysize, pagesize), but they are just in a non-persistent field
     also, they still show up in db.h as macros and fields of ham_db_t
     o merge db/env_get_pagesize with env_get_persistent_pagesize
@@ -38,11 +56,11 @@ o env.h has some variables which are stored in the db header (i.e.
         o allocators are not stored - see log.cpp (replace allocator_free
             with ham_mem_free - crash!)
 
-o ham_close/ham_env_close: can we move more stuff from ham_close
+. ham_close/ham_env_close: can we move more stuff from ham_close
     to ham_env_close? 
     o clean up 'noenv' usage in ham_close
 
-o who/what is the "owner" of a page?
+. who/what is the "owner" of a page?
     o hamsterdb: "transfer the ownership of the header page to this
         Database" (also in ham_close): why? can we clean this up? do we need
         an owner?
@@ -50,26 +68,11 @@ o who/what is the "owner" of a page?
     x add new test: EnvTest::eraseMultipleDatabases, but reopen the Env before
         erasing the Databases!
 
-o which members of env/db can be overwritten by users and therefore have to
+. which members of env/db can be overwritten by users and therefore have to
     be closed (or not) in ham_close/ham_env_close?
     o make a list
     o verify these with unittests
     o check Ger's latest sources
-
-o merge env_is_active/db_is_active from Ger's latest sources
-
-o improve documentation/tutorial about
-    o approx. matching
-    o hinting flags
-    o DAMs
-
-o sort duplicate keys - Ger has patches
-
-o need tool to upgrade databases from 1.0.x to 1.1.x!
-
-o ham_get_parameter: could return VERSION of the database
-
-o approx. matching: need a sample
 
 . even In-Memory Dbs need a cache now - always set cache size to 0, otherwise
     we waste memory

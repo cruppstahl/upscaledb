@@ -190,19 +190,21 @@ protected:
     void createCloseOpenCloseWithDatabasesTest(void)
     {
         ham_env_t *env;
-        ham_db_t *db;
+        ham_db_t *db, *db2;
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_new(&db2));
 
-        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(env, BFC_OPATH(".test"), m_flags, 0664));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_create_db(0, db, 333, 0, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_create_db(env, 0, 333, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
         BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_EXISTS,
-                ham_env_create_db(env, db, 333, 0, 0));
+                ham_env_create_db(env, db2, 333, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
@@ -237,7 +239,7 @@ protected:
     void createCloseEmptyOpenCloseWithDatabasesTest(void)
     {
         ham_env_t *env;
-        ham_db_t *db[128];
+        ham_db_t *db[128], *dbx;
         int i;
         const ham_parameter_t parameters[]={
            { HAM_PARAM_CACHESIZE,  18 },
@@ -268,6 +270,7 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         for (i = 0; i < 128; i++)
             BFC_ASSERT_EQUAL_I(0, ham_new(&db[i]), i);
+        BFC_ASSERT_EQUAL(0, ham_new(&dbx));
 
         BFC_ASSERT_EQUAL(0, 
             ham_env_create_ex(env, BFC_OPATH(".test"), 
@@ -314,7 +317,8 @@ protected:
             BFC_ASSERT_EQUAL_I(0, 
                     ham_env_create_db(env, db[i], i + 100, 0, 0), i);
             BFC_ASSERT_EQUAL_I(HAM_DATABASE_ALREADY_EXISTS, 
-                    ham_env_create_db(env, db[i], i + 100, 0, 0), i);
+                    ham_env_create_db(env, dbx, i + 100, 0, 0), i);
+            BFC_ASSERT_EQUAL_I(0, ham_close(db[i], 0), i);
             BFC_ASSERT_EQUAL_I(0, 
                     ham_env_open_db(env, db[i], i + 100, 0, 0), i);
 
@@ -337,6 +341,7 @@ protected:
             BFC_ASSERT_I(ps2[3].value == 128, i);
         }
 
+        BFC_ASSERT_EQUAL(0, ham_delete(dbx));
         for (i = 0; i < 128; i++)
             BFC_ASSERT_EQUAL_I(0, ham_close(db[i], 0), i);
 
@@ -389,7 +394,7 @@ protected:
 
     void readOnlyTest(void)
     {
-        ham_db_t *db;
+        ham_db_t *db, *db2;
         ham_env_t *env;
         ham_key_t key;
         ham_record_t rec;
@@ -398,6 +403,7 @@ protected:
         ::memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_new(&db2));
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
         BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), 0, 0664));
@@ -409,8 +415,10 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
-        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+        BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_OPEN, 
                 ham_env_create_db(env, db, 444, 0, 0));
+        BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
+                ham_env_create_db(env, db2, 444, 0, 0));
 
         BFC_ASSERT_EQUAL(HAM_DB_READ_ONLY, 
                 ham_insert(db, 0, &key, &rec, 0));
@@ -427,6 +435,7 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_delete(db);
+        ham_delete(db2);
         ham_env_delete(env);
     }
 

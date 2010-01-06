@@ -517,7 +517,11 @@ ham_strerror(ham_status_t result)
         case HAM_DATABASE_ALREADY_EXISTS:
             return ("Database name already exists");
         case HAM_DATABASE_ALREADY_OPEN:
-            return ("Database already open");
+            return ("Database already open, or: Database handle "
+                    "already initialized");
+        case HAM_ENVIRONMENT_ALREADY_OPEN:
+            return ("Environment already open, or: Environment handle "
+                    "already initialized");
         case HAM_LIMITS_REACHED:
             return ("Database limits reached");
         case HAM_ALREADY_INITIALIZED:
@@ -998,7 +1002,7 @@ default_case:
     /*
      * inherit defaults from ENV for DB
      */
-    if (env) {
+    if (env && env_is_active(env)) {
         if (!cachesize)
             cachesize = env_get_cachesize(env);
         if (!dbs && env->_hdrpage)
@@ -1260,6 +1264,14 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
         return (HAM_INV_PARAMETER);
     }
 
+    /*
+     * make sure that this environment is not yet open/created
+     */
+    if (env_is_active(env)) {
+        ham_trace(("parameter 'env' is already initialized"));
+        return (HAM_ENVIRONMENT_ALREADY_OPEN);
+    }
+
     env_set_rt_flags(env, 0);
 
     /*
@@ -1397,6 +1409,8 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
         env_set_cache(env, cache);
     }
 
+    env_set_active(env, HAM_TRUE);
+
     return (st);
 }
 
@@ -1422,6 +1436,14 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
         return (HAM_INV_PARAMETER);
     }
 
+    /*
+     * make sure that this database is not yet open/created
+     */
+    if (db_is_active(db)) {
+        ham_trace(("parameter 'db' is already initialized"));
+        return (HAM_DATABASE_ALREADY_OPEN);
+    }
+
     if (!dbname || (dbname>HAM_DEFAULT_DATABASE_NAME 
             && dbname!=HAM_DUMMY_DATABASE_NAME)) {
         ham_trace(("invalid database name"));
@@ -1429,6 +1451,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
     }
 
     db_set_rt_flags(db, 0);
+    db_set_allocator(db, env_get_allocator(env));
 
     /* 
      * parse parameters
@@ -1571,6 +1594,8 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
     db_set_next(db, env_get_list(env));
     env_set_list(env, db);
 
+    db_set_active(db, HAM_TRUE);
+
     return (HAM_SUCCESS);
 }
 
@@ -1608,7 +1633,16 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
         return (HAM_INV_PARAMETER);
     }
 
+    /*
+     * make sure that this database is not yet open/created
+     */
+    if (db_is_active(db)) {
+        ham_trace(("parameter 'db' is already initialized"));
+        return (HAM_DATABASE_ALREADY_OPEN);
+    }
+
     db_set_rt_flags(db, 0);
+    db_set_allocator(db, env_get_allocator(env));
 
     /* parse parameters */
     st=__check_create_parameters(env, db, 0, &flags, param, 
@@ -1755,6 +1789,8 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
     db_set_next(db, env_get_list(env));
     env_set_list(env, db);
 
+    db_set_active(db, HAM_TRUE);
+
     return (0);
 }
 
@@ -1777,6 +1813,14 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
+    }
+
+    /*
+     * make sure that this environment is not yet open/created
+     */
+    if (env_is_active(env)) {
+        ham_trace(("parameter 'env' is already initialized"));
+        return (HAM_ENVIRONMENT_ALREADY_OPEN);
     }
 
     env_set_rt_flags(env, 0);
@@ -2049,6 +2093,8 @@ fail_with_fake_cleansing:
         }
         env_set_cache(env, cache);
     }
+
+    env_set_active(env, HAM_TRUE);
 
     return (HAM_SUCCESS);
 }
@@ -2509,6 +2555,8 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
         env_set_allocator(env, 0);
     }
 
+    env_set_active(env, HAM_FALSE);
+
     return (HAM_SUCCESS);
 }
 
@@ -2574,6 +2622,14 @@ ham_open_ex(ham_db_t *db, const char *filename,
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
+    }
+
+    /*
+     * make sure that this database is not yet open/created
+     */
+    if (db_is_active(db)) {
+        ham_trace(("parameter 'db' is already initialized"));
+        return (HAM_DATABASE_ALREADY_OPEN);
     }
 
     /* parse parameters */
@@ -2649,13 +2705,13 @@ bail:
     return (st);
 }
 
-    ham_status_t HAM_CALLCONV
+ham_status_t HAM_CALLCONV
 ham_create(ham_db_t *db, const char *filename, ham_u32_t flags, ham_u32_t mode)
 {
     return (ham_create_ex(db, filename, flags, mode, 0));
 }
 
-    ham_status_t HAM_CALLCONV
+ham_status_t HAM_CALLCONV
 ham_create_ex(ham_db_t *db, const char *filename,
         ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
 {
@@ -2676,6 +2732,14 @@ ham_create_ex(ham_db_t *db, const char *filename,
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
+    }
+
+    /*
+     * make sure that this database is not yet open/created
+     */
+    if (db_is_active(db)) {
+        ham_trace(("parameter 'db' is already initialized"));
+        return (HAM_DATABASE_ALREADY_OPEN);
     }
 
     /*
@@ -4153,6 +4217,8 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         }
         db_set_env(db, 0);
     }
+
+    db_set_active(db, HAM_FALSE);
 
     return (HAM_SUCCESS);
 }

@@ -227,6 +227,11 @@ struct ham_db_t
     /* the last error code */
     ham_status_t _error;
 
+    /* non-zero after this item has been opened/created.
+     * Indicates whether this db is 'active', i.e. between 
+     * a create/open and matching close API call. */
+    ham_bool_t _is_active;
+
     /* a custom error handler */
     ham_errhandler_fun _errh;
 
@@ -380,13 +385,12 @@ struct ham_db_t
 /*
  * get the memory allocator
  */
-#define db_get_allocator(db)              (env_get_allocator(db_get_env(db)))
+#define db_get_allocator(db)              (db)->_allocator
 
 /*
  * set the memory allocator
  */
-#define db_set_allocator(db, a)      do { ham_assert(db_get_env(db)==0, (""));\
-                                       (db)->_allocator=(a); } while (0)
+#define db_set_allocator(db, a)           (db)->_allocator=(a);
 
 /*
  * get the device
@@ -541,6 +545,18 @@ struct ham_db_t
  */
 #define db_is_mgt_mode_set(mode_collective, mask)                \
     (((mode_collective) & (mask)) == (mask))
+
+/**
+ * check whether this database has been opened/created.
+ */
+#define db_is_active(db)             (db)->_is_active
+
+/**
+ * set the 'active' flag of the database: a non-zero value 
+ * for @a s sets the @a db to 'active', zero(0) sets the @a db 
+ * to 'inactive' (closed)
+ */
+#define db_set_active(db,s)          (db)->_is_active=!!(s)
 
 /*
  * get a reference to the DB FILE (global) statistics

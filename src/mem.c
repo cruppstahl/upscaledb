@@ -76,34 +76,20 @@ realloc_impl(mem_allocator_t *self, const char *file, int line,
 void 
 close_impl(mem_allocator_t *self)
 {
-#if defined(_CRTDBG_MAP_ALLOC)
-    _free_dbg(self, _NORMAL_BLOCK);
-#else
-    free(self);
-#endif
 }
 
 mem_allocator_t *
 ham_default_allocator_new(void)
 {
-    mem_allocator_t *m;
+    static mem_allocator_t m;
 
-    m=(mem_allocator_t *)
-#if defined(_CRTDBG_MAP_ALLOC)
-                    _malloc_dbg(sizeof(*m), _NORMAL_BLOCK, __FILE__, __LINE__);
-#else
-                    malloc(sizeof(*m));
-#endif
-    if (!m)
-        return (0);
-
-    memset(m, 0, sizeof(*m));
-    m->alloc  =alloc_impl;
-    m->free   =free_impl;
-    m->realloc=realloc_impl;
-    m->close  =close_impl;
+    m.alloc  =alloc_impl;
+    m.free   =free_impl;
+    m.realloc=realloc_impl;
+    m.close  =close_impl;
+    m.priv   =0;
      
-    return (m);
+    return (&m);
 }
 
 void *
