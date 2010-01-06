@@ -100,9 +100,10 @@ public:
         env_set_serialno(m_env, 0x1234);
         BFC_ASSERT(env_get_serialno(m_env)==0x1234);
 
-        db_set_txn(m_db, (ham_txn_t *)13);
+        env_set_txn(m_env, (ham_txn_t *)13);
+        BFC_ASSERT(env_get_txn(m_env)==(ham_txn_t *)13);
         BFC_ASSERT(db_get_txn(m_db)==(ham_txn_t *)13);
-        db_set_txn(m_db, (ham_txn_t *)0);
+        env_set_txn(m_env, (ham_txn_t *)0);
     }
 
     void structureTest()

@@ -269,6 +269,7 @@ page_flush(ham_page_t *page)
     ham_assert(page_get_refcount(page)==0, (""));
 
     if (db
+            && db_get_env(db) 
             && db_get_log(db) 
             && !(log_get_state(db_get_log(db))&LOG_STATE_CHECKPOINT)) {
         st=ham_log_append_flush_page(db_get_log(db), page);

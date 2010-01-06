@@ -217,28 +217,12 @@ typedef HAM_PACK_0 union HAM_PACK_1
 /*
  * get the currently active transaction
  */
-#define db_get_txn(db)             (env_get_txn(db_get_env(db)))
-
-/*
- * set the currently active transaction
- */
-#define db_set_txn(db, txn)        do { if (db_get_env(db))                   \
-                                     env_set_txn(db_get_env(db), txn);        \
-                                     else (db)->_txn=txn; } while(0)
+#define db_get_txn(db)                    (env_get_txn(db_get_env(db)))
 
 /*
  * get the logging object
  */
-#define db_get_log(db)             (db_get_env(db)                            \
-                                   ? env_get_log(db_get_env(db))              \
-                                   : (db)->_log)
-
-/*
- * set the logging object
- */
-#define db_set_log(db, log)        do { if (db_get_env(db))                   \
-                                     env_set_log(db_get_env(db), log);        \
-                                     else (db)->_log=log; } while(0)
+#define db_get_log(db)                    (env_get_log(db_get_env(db)))
 
 /*
  * get the cache for extended keys
@@ -620,8 +604,8 @@ struct ham_db_t
 /*
  * get a reference to the DB FILE (global) statistics
  */
-#define db_get_global_perf_data(db)  (db_get_env(db)                            \
-                                     ? env_get_global_perf_data(db_get_env(db)) \
+#define db_get_global_perf_data(db)  (db_get_env(db)                           \
+                                     ? env_get_global_perf_data(db_get_env(db))\
                                      : &(db)->_global_perf_data)
 
 /*

@@ -3986,7 +3986,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
             stats_trash_dbdata(db, db_get_db_perf_data(db));
             return (st);
         }
-        db_set_txn(db, 0);
+        env_set_txn(db_get_env(db), 0);
     }
 
     /* 
@@ -4131,14 +4131,6 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         record_head=next;
     }
     db_set_record_filter(db, 0);
-
-    /*
-     * if we're not in an environment: close the log
-     */
-    if (!db_get_env(db) && db_get_log(db)) {
-        (void)ham_log_close(db_get_log(db), (flags&HAM_DONT_CLEAR_LOG));
-        db_set_log(db, 0);
-    }
 
     /* 
      * trash all DB performance data 

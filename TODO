@@ -26,6 +26,12 @@ o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
         o merge db/env_get_pagesize with env_get_persistent_pagesize
         o merge db/env_set_pagesize with env_set_persistent_pagesize
 
+        o db_get_freelist -> env_get_freelist_payload: returns payload!
+        o db_get_freelist_cache -> env_get_freelist: returns object!
+            -> do we need two things - payload and object??
+        o db_is_dirty -> env_is_dirty
+        o db_set_dirty -> env_set_dirty
+
     o many unittests set allocator in ham_db_t - disable this macro, 
         only set in ham_env_t! (or change the macro)
     o allocators are not stored - see log.cpp (replace allocator_free

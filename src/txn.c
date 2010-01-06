@@ -126,10 +126,10 @@ txn_begin(ham_txn_t *txn, ham_db_t *db, ham_u32_t flags)
 
     memset(txn, 0, sizeof(*txn));
     txn_set_db(txn, db);
-    db_set_txn(db, txn);
     txn_set_id(txn, db_get_txn_id(db)+1);
     txn_set_flags(txn, flags);
-    db_set_txn_id(db, txn_get_id(txn));
+    env_set_txn(db_get_env(db), txn);
+    env_set_txn_id(db_get_env(db), txn_get_id(txn));
 
     if (db_get_log(db) && !(flags&HAM_TXN_READ_ONLY))
         st=ham_log_append_txn_begin(db_get_log(db), txn);
@@ -178,7 +178,7 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
             return (db_set_error(db, st));
     }
 
-    db_set_txn(db, 0);
+    env_set_txn(db_get_env(db), 0);
 
     /*
      * flush the pages
@@ -248,7 +248,7 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
             return (db_set_error(db, st));
     }
 
-    db_set_txn(db, 0);
+    env_set_txn(db_get_env(db), 0);
 
     /*
      * delete all modified pages

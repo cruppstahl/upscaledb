@@ -96,6 +96,7 @@ public:
     ham_log_t *disconnect_log_and_create_new_log(void)
     {
         ham_log_t *log;
+        ham_env_t *env=db_get_env(m_db);
 
         BFC_ASSERT_EQUAL(HAM_WOULD_BLOCK, 
             ham_log_create((mem_allocator_t *)m_alloc,
@@ -108,8 +109,8 @@ public:
          * the teardown() code, which will try to close the db->log 
          * all over AGAIN! 
          */
-        log = db_get_log(m_db);
-        db_set_log(m_db, NULL);
+        log = env_get_log(env);
+        env_set_log(env, NULL);
         BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_FALSE));
         BFC_ASSERT_EQUAL(0, 
             ham_log_create((mem_allocator_t *)m_alloc,
@@ -572,7 +573,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_log_open((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0, &log));
-        db_set_log(m_db, log);
+        env_set_log(db_get_env(m_db), log);
         BFC_ASSERT(log!=0);
 
         log_iterator_t iter;
@@ -627,7 +628,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_log_open((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0, &log));
-        db_set_log(m_db, log);
+        env_set_log(db_get_env(m_db), log);
         BFC_ASSERT(log!=0);
 
         log_iterator_t iter;
@@ -694,7 +695,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_log_open((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0, &log));
-        db_set_log(m_db, log);
+        env_set_log(db_get_env(m_db), log);
         BFC_ASSERT(log!=0);
 
         log_iterator_t iter;
@@ -755,7 +756,7 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_log_open((mem_allocator_t *)m_alloc,
                         BFC_OPATH(".test"), 0, &log));
-        db_set_log(m_db, log);
+        env_set_log(db_get_env(m_db), log);
         BFC_ASSERT(log!=0);
 
         log_iterator_t iter;
@@ -1082,8 +1083,8 @@ public:
     void createCloseOpenCloseTest(void)
     {
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT(db_get_log(m_db)==0);
-        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
         BFC_ASSERT(db_get_log(m_db)!=0);
     }
 
@@ -1119,7 +1120,6 @@ public:
 
         BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY,
                 ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
-        BFC_ASSERT(db_get_log(m_db)==0);
     }
 
     void createCloseOpenCloseEnvTest(void)
