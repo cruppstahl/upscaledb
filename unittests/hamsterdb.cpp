@@ -294,13 +294,17 @@ public:
 
         ham_parameter_t ps[]={{HAM_PARAM_PAGESIZE,   512}, {0, 0}};
 
+        BFC_ASSERT_EQUAL(HAM_FALSE, db_is_active(db));
         BFC_ASSERT_EQUAL(HAM_INV_PAGESIZE, 
                 ham_create_ex(db, BFC_OPATH(".test"), 0, 0644, &ps[0]));
+        BFC_ASSERT_EQUAL(HAM_FALSE, db_is_active(db));
 
         ps[0].value=1024;
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(db, BFC_OPATH(".test"), 0, 0644, &ps[0]));
+        BFC_ASSERT_EQUAL(HAM_TRUE, db_is_active(db));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(HAM_FALSE, db_is_active(db));
 
         ham_delete(db);
     }
@@ -311,10 +315,15 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
 
+        BFC_ASSERT_EQUAL(HAM_FALSE, db_is_active(db));
         BFC_ASSERT_EQUAL(0, ham_create(db, BFC_OPATH(".test"), 0, 0664));
+        BFC_ASSERT_EQUAL(HAM_TRUE, db_is_active(db));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(HAM_FALSE, db_is_active(db));
         BFC_ASSERT_EQUAL(0, ham_open(db, BFC_OPATH(".test"), 0));
+        BFC_ASSERT_EQUAL(HAM_TRUE, db_is_active(db));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(HAM_FALSE, db_is_active(db));
 
         ham_delete(db);
     }

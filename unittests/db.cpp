@@ -159,6 +159,12 @@ public:
         db_set_record_allocdata(m_db, (void *)22);
         BFC_ASSERT_EQUAL((void *)22, db_get_record_allocdata(m_db));
         db_set_record_allocdata(m_db, 0);
+
+        BFC_ASSERT_EQUAL(HAM_TRUE, db_is_active(m_db));
+        db_set_active(m_db, HAM_FALSE);
+        BFC_ASSERT_EQUAL(HAM_FALSE, db_is_active(m_db));
+        db_set_active(m_db, HAM_TRUE);
+        BFC_ASSERT_EQUAL(HAM_TRUE, db_is_active(m_db));
     }
 
     void envStructureTest()
@@ -176,6 +182,12 @@ public:
 
         BFC_ASSERT_EQUAL((ham_cache_t *)0x14, env_get_cache(env));
         /* TODO test other stuff! */
+
+        BFC_ASSERT_EQUAL(HAM_FALSE, env_is_active(env));
+        env_set_active(env, HAM_TRUE);
+        BFC_ASSERT_EQUAL(HAM_TRUE, env_is_active(env));
+        env_set_active(env, HAM_FALSE);
+        BFC_ASSERT_EQUAL(HAM_FALSE, env_is_active(env));
 
         env_set_device(env, 0);
         env_set_cache(env, 0);
