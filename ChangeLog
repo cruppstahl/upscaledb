@@ -1,3 +1,8 @@
+Jan 06, 2010 - chris
+o the implementation of ham_create[_ex] and ham_open[_ex] was rewritten:
+	both functions now create their private Environment handle. This 
+	simplifies lots of code.
+
 Dec 23, 2009 - chris ---------------------------------------------------
                       release of hamsterdb-1.1.1
 

@@ -7,7 +7,7 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
+x make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     create a private environment handle if it was not supplied
     x ham_create_ex now calls ham_env_create_ex
     x review, then continue with ham_open_ex
@@ -19,27 +19,28 @@ o make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
     x txn: implies logfile - check if it's really created (and if the
         ENABLE_RECOVERY flag is set)!
     x clean up db.h/db.c and other code
-
-    o env.h has some variables which are stored in the db header (i.e. 
-        keysize, pagesize), but they are just in a non-persistent field
-        also, they still show up in db.h as macros and fields of ham_db_t
-        o merge db/env_get_pagesize with env_get_persistent_pagesize
-        o merge db/env_set_pagesize with env_set_persistent_pagesize
-
-        o db_get_freelist -> env_get_freelist_payload: returns payload!
-        o db_get_freelist_cache -> env_get_freelist: returns object!
-            -> do we need two things - payload and object??
-        o db_is_dirty -> env_is_dirty
-        o db_set_dirty -> env_set_dirty
-        o db_set_allocator -> env_set_allocator
-
-    o allocators are not stored - see log.cpp (replace allocator_free
-        with ham_mem_free - crash!)
-
-    o ham_env_open: needs to store PRE_110-DAM in Databases! -> unittest
+    x ham_env_open: needs to store PRE_110-DAM in Databases! -> unittest
         (might already be there & work)
-    o documentation: ham_env_open_db accepts DAM parameters (unittest!)
-    o clean up 'noenv' usage in ham_close/ham_env_close
+    x documentation: ham_env_open_db accepts DAM parameters (unittest!)
+
+o env.h has some variables which are stored in the db header (i.e. 
+    keysize, pagesize), but they are just in a non-persistent field
+    also, they still show up in db.h as macros and fields of ham_db_t
+    o merge db/env_get_pagesize with env_get_persistent_pagesize
+    o merge db/env_set_pagesize with env_set_persistent_pagesize
+
+    o db_get_freelist -> env_get_freelist_payload: returns payload!
+    o db_get_freelist_cache -> env_get_freelist: returns object!
+        -> do we need two things - payload and object??
+    o db_is_dirty -> env_is_dirty
+    o db_set_dirty -> env_set_dirty
+    o db_set_allocator -> env_set_allocator
+        o allocators are not stored - see log.cpp (replace allocator_free
+            with ham_mem_free - crash!)
+
+o ham_close/ham_env_close: can we move more stuff from ham_close
+    to ham_env_close? 
+    o clean up 'noenv' usage in ham_close
 
 o who/what is the "owner" of a page?
     o hamsterdb: "transfer the ownership of the header page to this

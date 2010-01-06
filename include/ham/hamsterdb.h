@@ -767,8 +767,20 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
  *            B+Tree index key size, returns @ref HAM_INV_KEYSIZE.
  *     </ul>
  *
- * @param params An array of ham_parameter_t structures; unused, set 
- *        to NULL.
+ * @param param An array of ham_parameter_t structures. The following
+ *          parameters are available:
+ *      <ul>
+ *        <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data 
+ *            access patterns. The default setting optimizes hamsterdb
+ *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE_ACCESS).
+ *            Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
+ *            is automatically set for record number Databases).
+ *            Data Access Mode hints can be set for individual Databases, too
+ *            (see also @ref ham_create_ex) but are applied globally to all
+ *            Databases within a single Environment.
+ *            For more information about available DAM (Data Access Mode)
+ *            flags, see @ref ham_data_access_modes. The DAM is not persistent.
+ *      </ul>
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if the @a env pointer is NULL or an

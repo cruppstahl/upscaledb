@@ -2512,7 +2512,7 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     return (HAM_SUCCESS);
 }
 
-    ham_status_t HAM_CALLCONV
+ham_status_t HAM_CALLCONV
 ham_new(ham_db_t **db)
 {
     if (!db) {
@@ -4038,8 +4038,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     /* otherwise - if we're in an Environment, and there's no other
      * open Database - flush all open pages; we HAVE to flush/free them
      * because their owner is no longer valid */
-    else if (env 
-            && env_get_cache(env)) {
+    else if (env && env_get_cache(env)) {
         ham_cache_t *cache=env_get_cache(env);
         (void)db_flush_all(cache, 0);
         /* 
