@@ -36,6 +36,14 @@ o sort duplicate keys - Ger has patches
     o add documentation (header file)
     o add documentation (tutorial)
 
+o bugreport from Austin:
+    If I just use '--enable-debug', then my test passes but your suite fails 
+    with:
+    ----- error #1 in HamsterdbTest::nearFindTest
+    hamsterdb.cpp:1013 assertion failed in expr HAM_NOT_INITIALIZED !=
+    ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE); actual values:
+    '-7' == '-20'
+
 o improve documentation/tutorial/faq about
     o approx. matching
     o hinting flags
