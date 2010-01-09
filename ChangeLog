@@ -1,3 +1,7 @@
+Jan 09, 2010 - chris
+o bugfix in unittest - HamsterdbTest::nearFindTest fails if internal
+    functions are disabled (thanks, Austin!)
+
 Jan 06, 2010 - chris
 o added safety checks to prevent reuse of a ham_db_t or ham_env_t 
 	structure which is already in use
