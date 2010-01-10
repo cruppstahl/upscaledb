@@ -45,6 +45,9 @@ The support source files are:
 #include <windows.h>    // __try/__except support API
 #endif
 
+#include <string.h>
+#include <cstdio>
+#include <cstdlib>
 #include <vector>
 #include <deque>
 #include <string>
