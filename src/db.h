@@ -260,10 +260,13 @@ struct ham_db_t
     void *_key_allocdata;
 
     /* the prefix-comparison function */
-    ham_prefix_compare_func_t _prefixcompfoo;
+    ham_prefix_compare_func_t _prefix_func;
 
     /* the comparison function */
-    ham_compare_func_t _compfoo;
+    ham_compare_func_t _cmp_func;
+
+    /* the duplicate comparison function */
+    ham_duplicate_compare_func_t _dupe_func;
 
     /* the file header page */
     ham_page_t *_hdrpage;
@@ -405,22 +408,32 @@ struct ham_db_t
 /*
  * get the prefix comparison function
  */
-#define db_get_prefix_compare_func(db) (db)->_prefixcompfoo
+#define db_get_prefix_compare_func(db) (db)->_prefix_func
 
 /*
  * set the prefix comparison function
  */
-#define db_set_prefix_compare_func(db, f) (db)->_prefixcompfoo=(f)
+#define db_set_prefix_compare_func(db, f) (db)->_prefix_func=(f)
 
 /*
- * get the default comparison function
+ * get the key comparison function
  */
-#define db_get_compare_func(db)        (db)->_compfoo
+#define db_get_compare_func(db)        (db)->_cmp_func
 
 /*
- * set the default comparison function
+ * set the key comparison function
  */
-#define db_set_compare_func(db, f)     (db)->_compfoo=(f)
+#define db_set_compare_func(db, f)     (db)->_cmp_func=(f)
+
+/*
+ * set the duplicate comparison function
+ */
+#define db_set_duplicate_compare_func(db, f) (db)->_dupe_func=(f)
+
+/*
+ * get the duplicate comparison function
+ */
+#define db_get_duplicate_compare_func(db)    (db)->_dupe_func
 
 /*
  * get the runtime-flags - the flags are "mixed" with the flags from the Env

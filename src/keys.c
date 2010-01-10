@@ -127,15 +127,14 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
     {
         /*
          * an existing key, which is overwritten with a big record
-
-         Note that the case where old record is EMPTY (!ptr) or
-         SMALL (size = 8, but content = 00000000 --> !ptr) are caught here
-         and in the next branch, as they should.
+         *
+         * Note that the case where old record is EMPTY (!ptr) or
+         * SMALL (size = 8, but content = 00000000 --> !ptr) are caught here
+         * and in the next branch, as they should.
          */
         if (oldflags&(KEY_BLOB_SIZE_SMALL
                      |KEY_BLOB_SIZE_TINY
-                     |KEY_BLOB_SIZE_EMPTY))
-        {
+                     |KEY_BLOB_SIZE_EMPTY)) {
             rid=0;
             st=blob_allocate(db, record->data, record->size, 0, &rid);
             if (st)
@@ -157,15 +156,13 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
                         |HAM_DUPLICATE_INSERT_BEFORE
                         |HAM_DUPLICATE_INSERT_AFTER
                         |HAM_DUPLICATE_INSERT_FIRST
-                        |HAM_DUPLICATE_INSERT_LAST)))
-    {
+                        |HAM_DUPLICATE_INSERT_LAST))) {
         /*
          * an existing key which is overwritten with a small record
          */
         if (!(oldflags&(KEY_BLOB_SIZE_SMALL
                        |KEY_BLOB_SIZE_TINY
-                       |KEY_BLOB_SIZE_EMPTY)))
-        {
+                       |KEY_BLOB_SIZE_EMPTY))) {
             st=blob_free(db, ptr, 0);
             if (st)
                 return (db_set_error(db, st));
@@ -183,8 +180,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             key_set_flags(key, key_get_flags(key)|KEY_BLOB_SIZE_SMALL);
         key_set_ptr(key, rid);
     }
-    else 
-    {
+    else {
         /*
          * a duplicate of an existing key - always insert it at the end of
          * the duplicate list (unless the DUPLICATE flags say otherwise OR
@@ -243,18 +239,17 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
 
         rid=0;
         st=blob_duplicate_insert(db, 
-                i==2 ? 0 : ptr, position,
+                (i==2 ? 0 : ptr), record, position,
                 flags, &entries[0], i, &rid, new_position);
-        if (st)
-        {
+        if (st) {
             /* don't leak memory through the blob allocation above */
-            ham_assert((!(dupe_entry_get_flags(&entries[i-1]) & (KEY_BLOB_SIZE_SMALL
-                                                    |KEY_BLOB_SIZE_TINY
-                                                    |KEY_BLOB_SIZE_EMPTY)))
+            ham_assert((!(dupe_entry_get_flags(&entries[i-1]) 
+                            & (KEY_BLOB_SIZE_SMALL
+                               | KEY_BLOB_SIZE_TINY
+                               | KEY_BLOB_SIZE_EMPTY)))
                         == (record->size>sizeof(ham_offset_t)), (0));
 
-            if (record->size > sizeof(ham_offset_t)) 
-            {
+            if (record->size > sizeof(ham_offset_t)) {
                 blob_free(db, dupe_entry_get_rid(&entries[i-1]), 0);
             }
             return (db_set_error(db, st));

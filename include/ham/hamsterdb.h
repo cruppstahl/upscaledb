@@ -716,6 +716,10 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *            B+Tree index key size, returns @ref HAM_INV_KEYSIZE.
  *       <li>@ref HAM_ENABLE_DUPLICATES </li> Enable duplicate keys for this
  *            Database. By default, duplicate keys are disabled.
+ *       <li>@ref HAM_SORT_DUPLICATES </li> Sort duplicate keys for this
+ *            Database. Only allowed in combination with 
+ *            @ref HAM_ENABLE_DUPLICATES. A compare function can be set with 
+ *            @ref ham_set_duplicate_compare_func. This flag is not persistent.
  *       <li>@ref HAM_RECORD_NUMBER </li> Creates an "auto-increment" Database.
  *            Keys in Record Number Databases are automatically assigned an 
  *            incrementing 64bit value. If key->data is not NULL
@@ -772,6 +776,10 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
  *       <li>@ref HAM_DISABLE_VAR_KEYLEN </li> Do not allow the use of variable
  *            length keys. Inserting a key, which is larger than the
  *            B+Tree index key size, returns @ref HAM_INV_KEYSIZE.
+ *       <li>@ref HAM_SORT_DUPLICATES </li> Sort duplicate keys for this
+ *            Database. Only allowed if the Database was created with the flag
+ *            @ref HAM_ENABLE_DUPLICATES. A compare function can be set with 
+ *            @ref ham_set_duplicate_compare_func. This flag is not persistent.
  *     </ul>
  *
  * @param param An array of ham_parameter_t structures. The following
@@ -1148,6 +1156,10 @@ ham_create(ham_db_t *db, const char *filename,
  *            hamsterdb.
  *       <li>@ref HAM_ENABLE_DUPLICATES </li> Enable duplicate keys for this
  *            Database. By default, duplicate keys are disabled.
+ *       <li>@ref HAM_SORT_DUPLICATES </li> Sort duplicate keys for this
+ *            Database. Only allowed in combination with 
+ *            @ref HAM_ENABLE_DUPLICATES. A compare function can be set with 
+ *            @ref ham_set_duplicate_compare_func. This flag is not persistent.
  *       <li>@ref HAM_DISABLE_MMAP </li> Do not use memory mapped files for I/O.
  *            By default, hamsterdb checks if it can use mmap,
  *            since mmap is faster than read/write. For performance
@@ -1231,7 +1243,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
  * @param filename The filename of the Database file
  * @param flags Optional flags for opening the Database, combined with
  *        bitwise OR. See the documentation of @ref ham_open_ex
- *        for the allowed flags
+ *        for the allowed flags.
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if the @a db pointer is NULL or an
@@ -1295,6 +1307,10 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *            but with certain limitations. Please read the README file
  *            for details.<br>
  *            This flag imples @ref HAM_ENABLE_RECOVERY.
+ *       <li>@ref HAM_SORT_DUPLICATES </li> Sort duplicate keys for this
+ *            Database. Only allowed if the Database was created with the flag
+ *            @ref HAM_ENABLE_DUPLICATES. A compare function can be set with 
+ *            @ref ham_set_duplicate_compare_func. This flag is not persistent.
  *      </ul>
  *
  * @param param An array of ham_parameter_t structures. The following
@@ -1418,6 +1434,11 @@ ham_open_ex(ham_db_t *db, const char *filename,
 #define HAM_CACHE_UNLIMITED          0x00040000
 
 /* reserved: DB_ENV_IS_PRIVATE (not persistent)      0x00080000 */
+
+/** Flag for @ref ham_create, @ref ham_create_ex, @ref ham_env_create_db,
+ * @ref ham_open, @ref ham_open_ex, @ref ham_env_open_db
+ * This flag is non persistent. */
+#define HAM_SORT_DUPLICATES          0x00100000
 
 /**
  * @}
@@ -1646,7 +1667,7 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo);
 
 /**
- * Typedef for a comparison function
+ * Typedef for a key comparison function
  *
  * @remark This function compares two index keys. It returns -1, if @a lhs
  * ("left-hand side", the parameter on the left side) is smaller than 
@@ -1681,6 +1702,47 @@ typedef int HAM_CALLCONV (*ham_compare_func_t)(ham_db_t *db,
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo);
+
+/**
+ * Typedef for a record comparison function
+ *
+ * @remark This function compares two records. It returns -1, if @a lhs
+ * ("left-hand side", the parameter on the left side) is smaller than 
+ * @a rhs ("right-hand side"), 0 if both keys are equal, and 1 if @a lhs 
+ * is larger than @a rhs.
+ *
+ * @remark As hamsterdb allows zero-length records, it may happen that
+ * either @a lhs_length or @a rhs_length, or both are zero. In this case
+ * the related data pointers (@a rhs, @a lhs) <b>may</b> be NULL.
+ */
+typedef int HAM_CALLCONV (*ham_duplicate_compare_func_t)(ham_db_t *db, 
+                                  const ham_u8_t *lhs, ham_size_t lhs_length, 
+                                  const ham_u8_t *rhs, ham_size_t rhs_length);
+
+/**
+ * Sets the duplicate comparison function
+ *
+ * The comparison function compares two records which share the same key. 
+ * It returns -1 if the first record is smaller, +1 if the second record is 
+ * smaller or 0 if both records are equal.
+ *
+ * If @a foo is NULL, hamsterdb will use the default compare
+ * function (which is based on memcmp(3)).
+ *
+ * To enable this function, the flag @ref HAM_SORT_DUPLICATES has to be
+ * specified when creating or opening a Database.
+ *
+ * @param db A valid Database handle
+ * @param foo A pointer to the compare function
+ *
+ * @return @ref HAM_SUCCESS upon success
+ * @return @ref HAM_INV_PARAMETER if one of the parameters is NULL
+ *
+ * @sa HAM_ENABLE_DUPLICATES 
+ * @sa HAM_SORT_DUPLICATES 
+ */
+HAM_EXPORT ham_status_t HAM_CALLCONV
+ham_set_duplicate_compare_func(ham_db_t *db, ham_duplicate_compare_func_t foo);
 
 /**
  * Enables zlib compression for all inserted records
@@ -1830,8 +1892,9 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  * If you wish to insert a duplicate key specify the flag @ref HAM_DUPLICATE. 
  * (Note that the Database has to be created with @ref HAM_ENABLE_DUPLICATES
  * in order to use duplicate keys.)
- * The duplicate key is inserted after all other duplicate keys (see
- * @ref HAM_DUPLICATE_INSERT_LAST).
+ * If no duplicate sorting is enabled (see @ref HAM_SORT_DUPLICATES), the 
+ * duplicate key is inserted after all other duplicate keys (see
+ * @ref HAM_DUPLICATE_INSERT_LAST). Otherwise it is inserted in sorted order.
  *
  * Record Number Databases (created with @ref HAM_RECORD_NUMBER) expect 
  * either an empty @a key (with a size of 0 and data pointing to NULL),
@@ -1848,10 +1911,12 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  * @param flags Optional flags for inserting. Possible flags are:
  *      <ul>
  *        <li>@ref HAM_OVERWRITE. If the @a key already exists, the record is
- *              overwritten. Otherwise, the key is inserted.
+ *              overwritten. Otherwise, the key is inserted. Flag is not
+ *              allowed in combination with @ref HAM_DUPLICATE.
  *        <li>@ref HAM_DUPLICATE. If the @a key already exists, a duplicate 
  *              key is inserted. The key is inserted before the already
- *              existing key.
+ *              existing key, or according to the sort order. Flag is not
+ *              allowed in combination with @ref HAM_OVERWRITE.
  *      </ul>
  *
  * @return @ref HAM_SUCCESS upon success
@@ -2248,6 +2313,10 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
  * Overwrites the current record
  *
  * This function overwrites the record of the current item.
+ * 
+ * The use of this function is not allowed if the item has duplicate keys
+ * and the duplicate sorting is enabled (see @ref HAM_SORT_DUPLICATES).
+ * In this case, @ref HAM_INV_PARAMETER is returned.
  *
  * @param cursor A valid Cursor handle
  * @param record A valid record structure
@@ -2255,6 +2324,9 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if @a cursor or @a record is NULL
+ * @return @ref HAM_INV_PARAMETER if @a cursor points to an item with
+ *          duplicates and duplicate sorting is enabled
+ * @return @ref HAM_INV_PARAMETER if duplicate sorting is enabled
  * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
@@ -2591,7 +2663,8 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  * is returned. 
  *
  * If you wish to overwrite an existing entry specify the 
- * flag @ref HAM_OVERWRITE. 
+ * flag @ref HAM_OVERWRITE. The use of this flag is not allowed in combination
+ * with @ref HAM_DUPLICATE.
  *
  * If you wish to insert a duplicate key specify the flag @ref HAM_DUPLICATE. 
  * (Note that the Database has to be created with @ref HAM_ENABLE_DUPLICATES, 
@@ -2600,6 +2673,12 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  * (see @ref HAM_DUPLICATE_INSERT_LAST). This behaviour can be overwritten by
  * specifying @ref HAM_DUPLICATE_INSERT_FIRST, @ref HAM_DUPLICATE_INSERT_BEFORE
  * or @ref HAM_DUPLICATE_INSERT_AFTER.
+ *
+ * However, if a sort order is specified (see @ref HAM_SORT_DUPLICATES) then
+ * the key is inserted in sorted order. In this case, the use of @ref 
+ * HAM_DUPLICATE_INSERT_FIRST, @ref HAM_DUPLICATE_INSERT_LAST, @ref
+ * HAM_DUPLICATE_INSERT_BEFORE and @ref HAM_DUPLICATE_INSERT_AFTER is
+ * not allowed and will return @ref HAM_INV_PARAMETER.
  *
  * Specify the flag @ref HAM_HINT_APPEND if you insert sequential data 
  * and the current @a key is higher than any other key in this Database.
@@ -2631,21 +2710,23 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  *        bitwise OR. Possible flags are:
  *      <ul>
  *        <li>@ref HAM_OVERWRITE. If the @a key already exists, the record is
- *              overwritten. Otherwise, the key is inserted.
+ *              overwritten. Otherwise, the key is inserted. Not allowed in
+ *              combination with @ref HAM_DUPLICATE.
  *        <li>@ref HAM_DUPLICATE. If the @a key already exists, a duplicate 
- *              key is inserted. Same as @ref HAM_DUPLICATE_INSERT_LAST.
+ *              key is inserted. Same as @ref HAM_DUPLICATE_INSERT_LAST. Not 
+ *              allowed in combination with @ref HAM_DUPLICATE.
  *        <li>@ref HAM_DUPLICATE_INSERT_BEFORE. If the @a key already exists, 
  *              a duplicate key is inserted before the duplicate pointed
- *              to by the Cursor.
+ *              to by the Cursor. Not allowed if duplicate sorting is enabled.
  *        <li>@ref HAM_DUPLICATE_INSERT_AFTER. If the @a key already exists, 
  *              a duplicate key is inserted after the duplicate pointed
- *              to by the Cursor.
+ *              to by the Cursor. Not allowed if duplicate sorting is enabled.
  *        <li>@ref HAM_DUPLICATE_INSERT_FIRST. If the @a key already exists, 
  *              a duplicate key is inserted as the first duplicate of 
- *              the current key.
+ *              the current key. Not allowed if duplicate sorting is enabled.
  *        <li>@ref HAM_DUPLICATE_INSERT_LAST. If the @a key already exists, 
  *              a duplicate key is inserted as the last duplicate of 
- *              the current key.
+ *              the current key. Not allowed if duplicate sorting is enabled.
  *        <li>@ref HAM_HINT_APPEND. Hints the hamsterdb engine that the 
  *              current key will compare as @e larger than any key already 
  *              existing in the Database. The hamsterdb engine will verify 
@@ -2667,6 +2748,9 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  * @return @ref HAM_INV_PARAMETER if @a key or @a record is NULL
  * @return @ref HAM_INV_PARAMETER if the Database is a Record Number Database
  *              and the key is invalid (see above)
+ * @return @ref HAM_INV_PARAMETER if duplicate sorting is enabled (with
+ *              @ref HAM_SORT_DUPLICATES) but one of HAM_DUPLICATE_INSERT_*
+ *              was specified
  * @return @ref HAM_INV_PARAMETER if the flags @ref HAM_OVERWRITE <b>and</b>
  *              @ref HAM_DUPLICATE were specified, or if @ref HAM_DUPLICATE
  *              was specified, but the Database was not created with 
@@ -2681,6 +2765,8 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
  *
  * @sa HAM_DISABLE_VAR_KEYLEN
+ * @sa HAM_SORT_DUPLICATES
+ * @sa ham_set_duplicate_compare_func
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,

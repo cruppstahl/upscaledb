@@ -29,20 +29,43 @@ x merge env_is_active/db_is_active from Ger's latest sources
     x needs unittests for each function that modifies the flag
     x needs documentation in header file (new error code!)
 
-o sort duplicate keys - Ger has patches
-    o merge code
-    o add unittests
-    o add to monster test
-    o add documentation (header file)
-    o add documentation (tutorial)
-
-o bugreport from Austin:
+x bugreport from Austin:
     If I just use '--enable-debug', then my test passes but your suite fails 
     with:
     ----- error #1 in HamsterdbTest::nearFindTest
     hamsterdb.cpp:1013 assertion failed in expr HAM_NOT_INITIALIZED !=
     ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE); actual values:
     '-7' == '-20'
+
+o sort duplicate keys - Ger has patches
+    o merge code
+        x public interface: 
+            x typedef for comparison function
+            x API to set this comparison function
+                x unittest
+            x flag to enable duplicate sorting (HAM_SORT_DUPLICATES)
+            x on create: allow HAM_SORT_DUPLICATES only in combination 
+                with HAM_ENABLE_DUPLICATES!
+                x unittest
+            x unittest: flag is disallowed in Environment!
+            x on open: allow HAM_SORT_DUPLICATES only in combination 
+                with duplicates!
+                x unittest
+            x disallow HAM_DUPLICATE_INSERT_* if duplicate sorting is enabled
+                x unittest
+            x disallow cursor_overwrite if duplicate sorting is enabled
+                x unittest
+        x implement - can use a stripped-down version of Ger's code which
+            just returns the position, and the continue as before
+    o add unittests
+    o add to monster test
+    o add documentation (header file)
+    o add documentation (tutorial)
+
+o documentation right now includes internal APIs, too
+    o move to separate target
+    o public/default docs have only public documentation
+    o change online documentation, too
 
 o improve documentation/tutorial/faq about
     o approx. matching
@@ -54,6 +77,12 @@ o need tool to upgrade databases from 1.0.x to 1.1.x!
 o ham_get_parameter: could return VERSION of the database
 
 o approx. matching: need a sample
+
+o Ger: 
+    o got rid of the cyclic dependencies
+    o doxygen: look at tweak_html.bat 
+    o backend separation was improved
+    o check Changelog for more details
 
 . env.h has some variables which are stored in the db header (i.e. 
     keysize, pagesize), but they are just in a non-persistent field
@@ -87,9 +116,6 @@ o approx. matching: need a sample
     o make a list
     o verify these with unittests
     o check Ger's latest sources
-
-. even In-Memory Dbs need a cache now - always set cache size to 0, otherwise
-    we waste memory
 
 . re-enable HAM_DAM_FAST_INSERT
     o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 

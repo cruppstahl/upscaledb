@@ -732,9 +732,131 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
     return (0);
 }
 
+static ham_size_t
+__get_sorted_position(ham_db_t *db, dupe_table_t *table, ham_record_t *record,
+                ham_u32_t flags)
+{
+    ham_duplicate_compare_func_t foo = db_get_duplicate_compare_func(db);
+    ham_size_t l, r, m;
+    int cmp;
+    dupe_entry_t *e;
+    ham_record_t item_record;
+    ham_offset_t blob_ptr;
+    ham_u16_t dam;
+    ham_status_t st=0;
+
+    /*
+     * Use a slightly adapted form of binary search: as we already have our 
+     * initial position (as was stored in the cursor), we take that as our
+     * first 'median' value and go from there.
+     */
+    l = 0;
+    r = dupe_table_get_count(table) - 1; /* get_count() is 1 too many! */
+
+    /*
+     * Maybe Wrong Idea: sequential access/insert doesn't mean the RECORD 
+     * values are sequential too! They MAY be, but don't have to!
+     *
+     * For now, we assume they are also sequential when you're storing records
+     * in duplicate-key tables (probably a secondary index table for another
+     * table, this one).
+     */
+    dam = db_get_data_access_mode(db);
+    if (dam & HAM_DAM_SEQUENTIAL_INSERT) {
+        /* assume the insertion point sits at the end of the dupe table */
+        m = r;
+    }
+    else if (dam & HAM_DAM_FAST_INSERT) {
+        /*
+         * can't really say how to speed these buggers up, apart from maybe
+         * assuming the insertion point is at the previously known position.
+         */
+        m = dupe_table_get_count(table);
+        if (m > r)
+            m = r;
+        /* 
+         * as this is only a split point, we check which side is shortest 
+         * and adjust the split point to the other side, so the reduction 
+         * can be quickened when all assumptions match.
+         */
+        if (r - m > m - l) {
+            m++;
+        }
+        else if (m > 0) {
+            m--;
+        }
+    }
+    else {
+        m = (l + r) / 2;
+    }
+    ham_assert(m <= r, (0));
+    ham_assert(r >= 1, (0));
+        
+    while (l <= r) {
+        e = dupe_table_get_entry(table, m);
+        blob_ptr = dupe_entry_get_rid(e);
+
+        memset(&item_record, 0, sizeof(item_record));
+        item_record._intflags = dupe_entry_get_flags(e)&(KEY_BLOB_SIZE_SMALL
+                                                        |KEY_BLOB_SIZE_TINY
+                                                        |KEY_BLOB_SIZE_EMPTY);
+        if (item_record._intflags == 0) {
+            st = blob_read(db, blob_ptr, &item_record, flags);
+            if (st)
+                return (st);
+        }
+        else {
+            item_record.data = (ham_u8_t *)&blob_ptr;
+            if (item_record._intflags & KEY_BLOB_SIZE_TINY) {
+                item_record.size=((ham_u8_t *)&blob_ptr)[sizeof(ham_offset_t)-1];
+            }
+            else if (item_record._intflags & KEY_BLOB_SIZE_SMALL) {
+                item_record.size = 8;
+            }
+            else {
+                ham_assert(item_record._intflags & KEY_BLOB_SIZE_EMPTY, (0));
+                item_record.size = 0;
+            }
+        }
+
+        cmp = foo(db, record->data, record->size, 
+                        item_record.data, item_record.size);
+        if (l == r) {
+            if (cmp >= 0) {
+                /* write GEQ record value in NEXT slot */
+                m++;
+            }
+            else /* if (cmp < 0) */ {
+                ham_assert(m == r, (0));
+            }
+            break;
+        }
+        else if (cmp == 0) {
+            /* write equal record value in NEXT slot */
+            m++;
+            break;
+        }
+        else if (cmp < 0) {
+            r = m - 1;
+        }
+        else {
+            /* write GE record value in NEXT slot, when we have nothing 
+             * left to search */
+            m++;
+            l = m;
+        }
+        m = (l + r) / 2;
+    }
+
+    /* now 'm' points at the insertion point in the table */
+    if (m >= dupe_table_get_count(table) - 1)
+        return (dupe_table_get_count(table) - 1);
+    return (m);
+}
+
 ham_status_t
-blob_duplicate_insert(ham_db_t *db,    ham_offset_t table_id, 
-        ham_size_t position, ham_u32_t flags, 
+blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id, 
+        ham_record_t *record, ham_size_t position, ham_u32_t flags, 
         dupe_entry_t *entries, ham_size_t num_entries, 
         ham_offset_t *rid, ham_size_t *new_position)
 {
@@ -747,8 +869,7 @@ blob_duplicate_insert(ham_db_t *db,    ham_offset_t table_id,
      * create a new duplicate table if none existed, and insert
      * the first entry
      */
-    if (!table_id) 
-    {
+    if (!table_id) {
         ham_assert(num_entries==2, (""));
         /* allocates space for 8 (!) entries */
         table=ham_mem_calloc(db, sizeof(dupe_table_t)+7*sizeof(dupe_entry_t));
@@ -763,8 +884,7 @@ blob_duplicate_insert(ham_db_t *db,    ham_offset_t table_id,
         num_entries--;
         alloc_table=1;
     }
-    else 
-    {
+    else {
         /*
          * otherwise load the existing table 
          */
@@ -785,8 +905,7 @@ blob_duplicate_insert(ham_db_t *db,    ham_offset_t table_id,
      * resize the table, if necessary
      */ 
     if (!(flags & HAM_OVERWRITE)
-            && dupe_table_get_count(table)+1>=dupe_table_get_capacity(table)) 
-    {
+            && dupe_table_get_count(table)+1>=dupe_table_get_capacity(table)) {
         dupe_table_t *old=table;
         ham_size_t new_cap=dupe_table_get_capacity(table);
 
@@ -811,49 +930,45 @@ blob_duplicate_insert(ham_db_t *db,    ham_offset_t table_id,
     }
 
     /*
-     * insert (or overwrite) the entry at the requested position
+     * insert sorted, unsorted or overwrite the entry at the requested position
      */
-    if (flags&HAM_OVERWRITE) 
-    {
+    if (db_get_rt_flags(db)&HAM_SORT_DUPLICATES) {
+        page_add_ref(page);
+        position=__get_sorted_position(db, table, record, flags);
+        page_release_ref(page);
+    }
+    else if (flags&HAM_OVERWRITE) {
         dupe_entry_t *e=dupe_table_get_entry(table, position);
 
         if (!(dupe_entry_get_flags(e)&(KEY_BLOB_SIZE_SMALL
                                     |KEY_BLOB_SIZE_TINY
-                                    |KEY_BLOB_SIZE_EMPTY)))
-        {
+                                    |KEY_BLOB_SIZE_EMPTY))) {
             (void)blob_free(db, dupe_entry_get_rid(e), 0);
         }
 
         memcpy(dupe_table_get_entry(table, position), 
                         &entries[0], sizeof(entries[0]));
     }
-    else 
-    {
-        if (flags&HAM_DUPLICATE_INSERT_BEFORE) 
-        {
+    else {
+        if (flags&HAM_DUPLICATE_INSERT_BEFORE) {
             /* do nothing, insert at the current position */
         }
-        else if (flags&HAM_DUPLICATE_INSERT_AFTER) 
-        {
+        else if (flags&HAM_DUPLICATE_INSERT_AFTER) {
             position++;
             if (position > dupe_table_get_count(table))
                 position=dupe_table_get_count(table);
         }
-        else if (flags&HAM_DUPLICATE_INSERT_FIRST) 
-        {
+        else if (flags&HAM_DUPLICATE_INSERT_FIRST) {
             position=0;
         }
-        else if (flags&HAM_DUPLICATE_INSERT_LAST) 
-        {
+        else if (flags&HAM_DUPLICATE_INSERT_LAST) {
             position=dupe_table_get_count(table);
         }
-        else
-        {
+        else {
             position=dupe_table_get_count(table);
         }
 
-        if (position != dupe_table_get_count(table))
-        {
+        if (position != dupe_table_get_count(table)) {
             memmove(dupe_table_get_entry(table, position+1), 
                 dupe_table_get_entry(table, position), 
                 sizeof(entries[0])*(dupe_table_get_count(table)-position));
@@ -868,22 +983,19 @@ blob_duplicate_insert(ham_db_t *db,    ham_offset_t table_id,
     /*
      * write the table back to disk and return the blobid of the table
      */
-    if ((table_id && !page) || resize) 
-    {
+    if ((table_id && !page) || resize) {
         st=blob_overwrite(db, table_id, (ham_u8_t *)table,
                 sizeof(dupe_table_t)
                     +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t),
                 0, rid);
     }
-    else if (!table_id) 
-    {
+    else if (!table_id) {
         st=blob_allocate(db, (ham_u8_t *)table,
                 sizeof(dupe_table_t)
                     +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t),
                 0, rid);
     }
-    else if (table_id && page) 
-    {
+    else if (table_id && page) {
         page_set_dirty(page);
     }
     else

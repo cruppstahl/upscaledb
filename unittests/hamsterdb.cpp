@@ -84,6 +84,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, getErrorTest);
         BFC_REGISTER_TEST(HamsterdbTest, setPrefixCompareTest);
         BFC_REGISTER_TEST(HamsterdbTest, setCompareTest);
+        BFC_REGISTER_TEST(HamsterdbTest, setDuplicateCompareTest);
         BFC_REGISTER_TEST(HamsterdbTest, findTest);
         BFC_REGISTER_TEST(HamsterdbTest, findEmptyRecordTest);
         BFC_REGISTER_TEST(HamsterdbTest, nearFindTest);
@@ -505,6 +506,12 @@ public:
     {
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_set_compare_func(0, 0));
+    }
+
+    void setDuplicateCompareTest(void)
+    {
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_set_duplicate_compare_func(0, 0));
     }
 
     void findTest(void)
@@ -1009,8 +1016,10 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         ham_size_t keycount = 0;
+#ifdef HAM_ENABLE_INTERNAL
         BFC_ASSERT_EQUAL(HAM_NOT_INITIALIZED, 
                 ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE));
+#endif
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(db, BFC_OPATH(".test"), 0, 0644, &ps[0]));
 #ifdef HAM_ENABLE_INTERNAL

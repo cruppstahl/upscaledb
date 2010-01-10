@@ -39,6 +39,7 @@ public:
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(DupeTest, invalidFlagsTest);
+        BFC_REGISTER_TEST(DupeTest, invalidSortFlagsTest);
         BFC_REGISTER_TEST(DupeTest, insertDuplicatesTest);
         BFC_REGISTER_TEST(DupeTest, overwriteDuplicatesTest);
         BFC_REGISTER_TEST(DupeTest, overwriteVariousDuplicatesTest);
@@ -1376,6 +1377,105 @@ public:
                         HAM_SKIP_DUPLICATES|HAM_ONLY_DUPLICATES));
         
         ham_cursor_close(c);
+    }
+
+    void invalidSortFlagsTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        /* create w/o dupes, open with sorting -> fail */
+        BFC_ASSERT_EQUAL(0, 
+            ham_create(m_db, BFC_OPATH(".test"), m_flags, 0664));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+            ham_open(m_db, BFC_OPATH(".test"), 
+                    m_flags|HAM_SORT_DUPLICATES));
+
+        /* sort without enable_dupes -> fail */
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+            ham_create(m_db, BFC_OPATH(".test"), 
+                    m_flags|HAM_SORT_DUPLICATES, 0664));
+        BFC_ASSERT_EQUAL(0, 
+            ham_create(m_db, BFC_OPATH(".test"), 
+                    m_flags|HAM_SORT_DUPLICATES|HAM_ENABLE_DUPLICATES, 0664));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        /* open w/ sorting -> ok */
+        BFC_ASSERT_EQUAL(0, 
+            ham_open(m_db, BFC_OPATH(".test"), 
+                    m_flags|HAM_SORT_DUPLICATES));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        ham_env_t *env;
+        ham_db_t *db;
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_env_create(env, BFC_OPATH(".test"), 
+                    m_flags|HAM_SORT_DUPLICATES, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(env, BFC_OPATH(".test"), 
+                    m_flags, 0664));
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_env_create_db(env, db, 13, HAM_SORT_DUPLICATES, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_db(env, db, 13, 
+                        HAM_ENABLE_DUPLICATES|HAM_SORT_DUPLICATES, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_open_db(env, db, 13, 
+                        HAM_SORT_DUPLICATES, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_db(env, db, 14, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_env_open_db(env, db, 14, 
+                        HAM_SORT_DUPLICATES, 0));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
+
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_env_open(env, BFC_OPATH(".test"), 
+                    m_flags|HAM_SORT_DUPLICATES));
+
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+
+        /* make sure that HAM_DUPLICATE_INSERT_* is not allowed if
+         * sorting is enabled */
+        ham_cursor_t *c;
+        ham_key_t key;
+        ham_record_t rec;
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+        BFC_ASSERT_EQUAL(0, 
+            ham_create(m_db, BFC_OPATH(".test"), 
+                    m_flags|HAM_SORT_DUPLICATES|HAM_ENABLE_DUPLICATES, 0664));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_insert(c, &key, &rec, 
+                        HAM_DUPLICATE_INSERT_FIRST));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_insert(c, &key, &rec, 
+                        HAM_DUPLICATE_INSERT_LAST));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_insert(c, &key, &rec, 
+                        HAM_DUPLICATE_INSERT_BEFORE));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_insert(c, &key, &rec, 
+                        HAM_DUPLICATE_INSERT_AFTER));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_insert(c, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_overwrite(c, &rec, 0));
+        
+        ham_cursor_close(c);
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void overwriteTest(void)

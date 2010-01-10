@@ -149,6 +149,11 @@ ham_create_flags2str(char *buf, size_t buflen, ham_u32_t flags)
         flags &= ~HAM_ENABLE_DUPLICATES        ;
         buf = my_strncat_ex(buf, buflen, NULL, "HAM_ENABLE_DUPLICATES");
     }
+    if (flags & HAM_SORT_DUPLICATES        )
+    {
+        flags &= ~HAM_SORT_DUPLICATES        ;
+        buf = my_strncat_ex(buf, buflen, NULL, "HAM_SORT_DUPLICATES");
+    }
     if (flags & HAM_ENABLE_RECOVERY          )
     {
         flags &= ~HAM_ENABLE_RECOVERY          ;
@@ -667,6 +672,18 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
     }
 
     /*
+     * when creating a Database, HAM_SORT_DUPLICATES is only allowed in
+     * combination with HAM_ENABLE_DUPLICATES
+     */
+    if (create && (flags & HAM_SORT_DUPLICATES)) {
+        if (!(flags & HAM_ENABLE_DUPLICATES)) {
+            ham_trace(("flag HAM_SORT_DUPLICATES only allowed in combination "
+                        "with HAM_ENABLE_DUPLICATES"));
+            RETURN(HAM_INV_PARAMETER);
+        }
+    }
+
+    /*
      * DB create: only a few flags are allowed
      */
     if (db && (flags & ~((!create ? HAM_READ_ONLY : 0)
@@ -683,6 +700,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                         |HAM_USE_BTREE
                         |HAM_DISABLE_VAR_KEYLEN
                         |HAM_RECORD_NUMBER
+                        |HAM_SORT_DUPLICATES
                         |(create ? HAM_ENABLE_DUPLICATES : 0))))
     {
         char msgbuf[2048];
@@ -1485,6 +1503,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
              |HAM_ENABLE_RECOVERY
              |HAM_AUTO_RECOVERY
              |HAM_ENABLE_TRANSACTIONS
+             |HAM_SORT_DUPLICATES
              |DB_USE_MMAP
              |DB_ENV_IS_PRIVATE);
 
@@ -1559,6 +1578,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
         ham_set_compare_func(db, db_default_compare);
         ham_set_prefix_compare_func(db, db_default_prefix_compare);
     }
+    ham_set_duplicate_compare_func(db, db_default_compare);
     db_set_dirty(db);
 
     /* 
@@ -1586,6 +1606,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
         ham_set_compare_func(db, db_default_compare);
         ham_set_prefix_compare_func(db, db_default_prefix_compare);
     }
+    ham_set_duplicate_compare_func(db, db_default_compare);
 
     /*
      * on success: store the open database in the environment's list of
@@ -1731,8 +1752,11 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
              |HAM_ENABLE_RECOVERY
              |HAM_AUTO_RECOVERY
              |HAM_ENABLE_TRANSACTIONS
+             |HAM_SORT_DUPLICATES
              |DB_USE_MMAP);
     db_set_rt_flags(db, flags|be_get_flags(backend));
+    ham_assert(!(be_get_flags(backend)&HAM_SORT_DUPLICATES), 
+            ("invalid persistent database flags 0x%x", be_get_flags(backend)));
     ham_assert(!(be_get_flags(backend)&HAM_DISABLE_VAR_KEYLEN), 
             ("invalid persistent database flags 0x%x", be_get_flags(backend)));
     ham_assert(!(be_get_flags(backend)&HAM_CACHE_STRICT), 
@@ -1755,6 +1779,18 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
             ("invalid persistent database flags 0x%x", be_get_flags(backend)));
     ham_assert(!(be_get_flags(backend)&DB_USE_MMAP), 
             ("invalid persistent database flags 0x%x", be_get_flags(backend)));
+
+    /*
+     * the SORT_DUPLICATES flag is only allowed if duplicates were enabled
+     */
+    if (db_get_rt_flags(db)&HAM_SORT_DUPLICATES) {
+        if (!(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)) {
+            ham_trace(("invalid flag HAM_SORT_DUPLICATES - duplicates were not "
+                       "enabled when the Database was created"));
+            (void)ham_close(db, 0);
+            return (db_set_error(db, HAM_INV_PARAMETER));
+        }
+    }
 
     /* 
      * finally calculate and store the data access mode 
@@ -1781,6 +1817,7 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
         ham_set_compare_func(db, db_default_compare);
         ham_set_prefix_compare_func(db, db_default_prefix_compare);
     }
+    ham_set_duplicate_compare_func(db, db_default_compare);
 
     /*
      * on success: store the open database in the environment's list of
@@ -1821,6 +1858,15 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
     if (env_is_active(env)) {
         ham_trace(("parameter 'env' is already initialized"));
         return (HAM_ENVIRONMENT_ALREADY_OPEN);
+    }
+
+    /*
+     * check for invalid flags
+     */
+    if (flags&HAM_SORT_DUPLICATES) {
+        ham_trace(("flag HAM_SORT_DUPLICATES only allowed when creating/"
+                   "opening Databases, not Environments"));
+        return (HAM_INV_PARAMETER);
     }
 
     env_set_rt_flags(env, 0);
@@ -2616,6 +2662,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
     ham_size_t cachesize=0;
     ham_u16_t dam = 0;
     ham_env_t *env;
+    ham_u32_t env_flags;
     ham_parameter_t env_param[8]={{0, 0}};
     ham_parameter_t db_param[8]={{0, 0}};
 
@@ -2647,12 +2694,13 @@ ham_open_ex(ham_db_t *db, const char *filename,
     env_param[0].name=HAM_PARAM_CACHESIZE;
     env_param[0].value=cachesize;
     env_param[1].name=0;
+    env_flags=flags & ~(HAM_ENABLE_DUPLICATES|HAM_SORT_DUPLICATES);
 
     st=ham_env_new(&env);
     if (st)
         goto bail;
 
-    st=ham_env_open_ex(env, filename, flags, &env_param[0]);
+    st=ham_env_open_ex(env, filename, env_flags, &env_param[0]);
     if (st)
         goto bail;
 
@@ -2726,6 +2774,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     ham_u16_t dbname = HAM_DEFAULT_DATABASE_NAME;
     ham_size_t cachesize = 0;
     ham_env_t *env=0;
+    ham_u32_t env_flags;
     ham_parameter_t env_param[8]={{0, 0}};
     ham_parameter_t db_param[5]={{0, 0}};
 
@@ -2764,6 +2813,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     env_param[2].name=HAM_PARAM_MAX_ENV_DATABASES;
     env_param[2].value=maxdbs;
     env_param[3].name=0;
+    env_flags=flags & ~(HAM_ENABLE_DUPLICATES|HAM_SORT_DUPLICATES);
 
     /*
      * create a new Environment
@@ -2772,7 +2822,7 @@ ham_create_ex(ham_db_t *db, const char *filename,
     if (st)
         goto bail;
 
-    st=ham_env_create_ex(env, filename, flags, mode, env_param);
+    st=ham_env_create_ex(env, filename, env_flags, mode, env_param);
     if (st)
         goto bail;
 
@@ -2827,7 +2877,7 @@ bail:
     return (db_set_error(db, st));
 }
 
-    static void 
+static void 
 nil_param_values(ham_parameter_t *param)
 {
     for (; param->name; param++) 
@@ -2839,7 +2889,7 @@ nil_param_values(ham_parameter_t *param)
     }
 }
 
-    static ham_status_t
+static ham_status_t
 __ham_get_parameters(ham_env_t *env, ham_db_t *db, ham_parameter_t *param)
 {
     ham_u32_t flags = 0;
@@ -2984,10 +3034,11 @@ __ham_get_parameters(ham_env_t *env, ham_db_t *db, ham_parameter_t *param)
                 break;
             case HAM_PARAM_GET_STATISTICS:
                 if (!param->value) {
-                    ham_trace(("the value for parameter 'HAM_PARAM_GET_STATISTICS' "
-                                "must not be NULL and reference a ham_statistics_t "
-                                "data structure before invoking "
-                                "ham_[env_]get_parameters"));
+                    ham_trace(("the value for parameter "
+                               "'HAM_PARAM_GET_STATISTICS' must not be NULL "
+                               "and reference a ham_statistics_t data "
+                               "structure before invoking "
+                               "ham_[env_]get_parameters"));
                     return (HAM_INV_PARAMETER);
                 }
                 else {
@@ -3004,8 +3055,7 @@ __ham_get_parameters(ham_env_t *env, ham_db_t *db, ham_parameter_t *param)
     return HAM_SUCCESS;
 }
 
-
-    HAM_EXPORT ham_status_t HAM_CALLCONV
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
 {
     ham_parameter_t *p=param;
@@ -3016,11 +3066,10 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
                 p->value=0;
     }
 
-    return __ham_get_parameters(env, 0, param);
+    return (__ham_get_parameters(env, 0, param));
 }
 
-
-    HAM_EXPORT ham_status_t HAM_CALLCONV
+HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_get_parameters(ham_db_t *db, ham_parameter_t *param)
 {
     ham_parameter_t *p=param;
@@ -3031,11 +3080,10 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param)
                 p->value=0;
     }
 
-    return __ham_get_parameters((db ? db_get_env(db) : NULL), db, param);
+    return (__ham_get_parameters((db ? db_get_env(db) : NULL), db, param));
 }
 
-
-    ham_status_t HAM_CALLCONV
+ham_status_t HAM_CALLCONV
 ham_get_error(ham_db_t *db)
 {
     if (!db) {
@@ -3046,7 +3094,7 @@ ham_get_error(ham_db_t *db)
     return (db_get_error(db));
 }
 
-    ham_status_t HAM_CALLCONV
+ham_status_t HAM_CALLCONV
 ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo)
 {
     if (!db) {
@@ -3060,7 +3108,7 @@ ham_set_prefix_compare_func(ham_db_t *db, ham_prefix_compare_func_t foo)
     return (HAM_SUCCESS);
 }
 
-    ham_status_t HAM_CALLCONV
+ham_status_t HAM_CALLCONV
 ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo)
 {
     if (!db) {
@@ -3074,8 +3122,22 @@ ham_set_compare_func(ham_db_t *db, ham_compare_func_t foo)
     return (HAM_SUCCESS);
 }
 
+ham_status_t HAM_CALLCONV
+ham_set_duplicate_compare_func(ham_db_t *db, ham_duplicate_compare_func_t foo)
+{
+    if (!db) {
+        ham_trace(("parameter 'db' must not be NULL"));
+        return (HAM_INV_PARAMETER);
+    }
+
+    db_set_error(db, 0);
+    db_set_duplicate_compare_func(db, foo ? foo : db_default_compare);
+
+    return (HAM_SUCCESS);
+}
+
 #ifndef HAM_DISABLE_ENCRYPTION
-    static ham_status_t 
+static ham_status_t 
 __aes_before_write_cb(ham_env_t *env, ham_file_filter_t *filter, 
         ham_u8_t *page_data, ham_size_t page_size)
 {
@@ -3519,7 +3581,7 @@ ham_key_get_approximate_match_type(ham_key_t *key)
     return (0);
 }
 
-    ham_status_t HAM_CALLCONV
+ham_status_t HAM_CALLCONV
 ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
 {
@@ -3873,8 +3935,7 @@ ham_check_integrity(ham_db_t *db, ham_txn_t *txn)
 #endif /* ifdef HAM_ENABLE_INTERNAL */
 }
 
-
-    ham_status_t HAM_CALLCONV
+ham_status_t HAM_CALLCONV
 ham_calc_maxkeys_per_page(ham_db_t *db, ham_size_t *keycount, ham_u16_t keysize)
 {
 #ifdef HAM_ENABLE_INTERNAL
@@ -4326,13 +4387,18 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
         ham_trace(("parameter 'record' must not be NULL"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
-    if (!__prepare_record(record))
-        return (db_set_error(db, HAM_INV_PARAMETER));
-
     if (db_get_rt_flags(cursor_get_db(cursor))&HAM_READ_ONLY) {
         ham_trace(("cannot overwrite in a read-only database"));
         return (db_set_error(db, HAM_DB_READ_ONLY));
     }
+    if (db_get_rt_flags(db)&HAM_SORT_DUPLICATES) {
+        ham_trace(("function ham_cursor_overwrite is not allowed if "
+                    "duplicate sorting is enabled"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+
+    if (!__prepare_record(record))
+        return (db_set_error(db, HAM_INV_PARAMETER));
 
     if (db_get_env(db))
         __prepare_db(db);
@@ -4622,13 +4688,20 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     }
 
     /*
-     * set flag HAM_DUPLICATE if one of DUPLICATE_INSERT* is set
+     * set flag HAM_DUPLICATE if one of DUPLICATE_INSERT* is set, but do
+     * not allow these flags if duplicate sorting is enabled
      */
     if (flags&(HAM_DUPLICATE_INSERT_AFTER
                 |HAM_DUPLICATE_INSERT_BEFORE
                 |HAM_DUPLICATE_INSERT_LAST
-                |HAM_DUPLICATE_INSERT_FIRST))
+                |HAM_DUPLICATE_INSERT_FIRST)) {
+        if (db_get_rt_flags(db)&HAM_SORT_DUPLICATES) {
+            ham_trace(("flag HAM_DUPLICATE_INSERT_* is not allowed if "
+                        "duplicate sorting is enabled"));
+            return (db_set_error(db, HAM_INV_PARAMETER));
+        }
         flags|=HAM_DUPLICATE;
+    }
 
     /*
      * record number: make sure that we have a valid key structure,
