@@ -61,7 +61,7 @@ extern void (*ham_test_abort)(void);
                                 dbg_unlock();                                  \
                              }
 #else /* !HAM_DEBUG */
-#   define ham_assert(e, f)     
+#   define ham_assert(e, f)  (void)0 
 #endif /* HAM_DEBUG */
 
 /**
