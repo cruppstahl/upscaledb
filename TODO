@@ -62,10 +62,18 @@ o sort duplicate keys - Ger has patches
     o add documentation (header file)
     o add documentation (tutorial)
 
+o Ger: 
+    o got rid of the cyclic dependencies
+    o doxygen: look at tweak_html.bat 
+    o backend separation was improved
+    o check Changelog for more details
+    o merge Db/Env changes
+
 o documentation right now includes internal APIs, too
     o move to separate target
     o public/default docs have only public documentation
     o change online documentation, too
+    o Ger's newest tarball has improved documentation
 
 o improve documentation/tutorial/faq about
     o approx. matching
@@ -77,12 +85,6 @@ o need tool to upgrade databases from 1.0.x to 1.1.x!
 o ham_get_parameter: could return VERSION of the database
 
 o approx. matching: need a sample
-
-o Ger: 
-    o got rid of the cyclic dependencies
-    o doxygen: look at tweak_html.bat 
-    o backend separation was improved
-    o check Changelog for more details
 
 . env.h has some variables which are stored in the db header (i.e. 
     keysize, pagesize), but they are just in a non-persistent field
