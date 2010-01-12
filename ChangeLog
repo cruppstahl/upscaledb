@@ -1,7 +1,3 @@
-Jan 11, 2010 - chris
-o bugfix in error.h - ham_assert macro was broken for release builds
-    (thanks, Ger! That was a big one...)
-
 Jan 09, 2010 - chris
 o bugfix in unittest - HamsterdbTest::nearFindTest fails if internal
     functions are disabled (thanks, Austin!)
