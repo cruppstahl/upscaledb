@@ -15,6 +15,7 @@
 #include <errno.h>
 #include <string.h>
 #include <vector>
+#include <algorithm>
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
 #include "../src/blob.h"
@@ -28,6 +29,23 @@
 #include "hamster_fixture.hpp"
 
 using namespace bfc;
+
+static int
+__compare_numbers(ham_db_t *db, 
+                  const ham_u8_t *lhs, ham_size_t lhs_length,
+                  const ham_u8_t *rhs, ham_size_t rhs_length)
+{
+    ham_u32_t ulhs=*(ham_u32_t *)lhs;
+    ham_u32_t urhs=*(ham_u32_t *)rhs;
+
+    (void)db;
+
+    if (ulhs<urhs)
+        return -1;
+    if (ulhs==urhs)
+        return 0;
+    return 1;
+}
 
 class DupeTest : public hamsterDB_fixture
 {
@@ -1989,5 +2007,115 @@ public:
     }
 };
 
+class SortedDupeTest : public hamsterDB_fixture
+{
+	define_super(hamsterDB_fixture);
+
+public:
+    SortedDupeTest(ham_u32_t flags=0, const char *name="SortedDupeTest")
+    :   hamsterDB_fixture(name), m_flags(flags)
+    {
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(SortedDupeTest, simpleInsertTest);
+        BFC_REGISTER_TEST(SortedDupeTest, anotherSimpleInsertTest);
+    }
+
+protected:
+    ham_u32_t m_flags;
+    ham_db_t *m_db;
+    std::vector<ham_u32_t> m_data;
+
+public:
+    virtual void setup() 
+	{ 
+		__super::setup();
+
+        (void)os::unlink(BFC_OPATH(".test"));
+
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 
+                    m_flags|HAM_ENABLE_DUPLICATES|HAM_SORT_DUPLICATES, 0664));
+
+        m_data.resize(0);
+    }
+
+    virtual void teardown() 
+	{ 
+		__super::teardown();
+
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_AUTO_CLEANUP));
+        BFC_ASSERT_EQUAL(0, ham_delete(m_db));
+    }
+    
+    void insertDuplicate(ham_u32_t value)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        rec.data=&value;
+        rec.size=sizeof(value);
+
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
+
+        m_data.push_back(value);
+        std::sort(m_data.begin(), m_data.end());
+    }
+
+    void checkDuplicates(void)
+    {
+        ham_cursor_t *c;
+        ham_key_t key;
+        ham_record_t rec;
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+
+        for (std::vector<ham_u32_t>::iterator it=m_data.begin();
+                it!=m_data.end(); it++) {
+            ::memset(&key, 0, sizeof(key));
+            ::memset(&rec, 0, sizeof(rec));
+            BFC_ASSERT_EQUAL(0, 
+                        ham_cursor_move(c, &key, &rec, HAM_CURSOR_NEXT));
+            BFC_ASSERT_EQUAL(*it, *(ham_u32_t *)rec.data);
+        }
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    }
+
+    void simpleInsertTest(void)
+    {
+        insertDuplicate(1);
+        checkDuplicates();
+        insertDuplicate(2);
+        checkDuplicates();
+        insertDuplicate(3);
+        checkDuplicates();
+    }
+
+    void anotherSimpleInsertTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, 
+            ham_set_duplicate_compare_func(m_db, __compare_numbers));
+
+        insertDuplicate(10);
+        insertDuplicate(20);
+        insertDuplicate(30);
+        checkDuplicates();
+        insertDuplicate(3);
+        insertDuplicate(2);
+        insertDuplicate(1);
+        checkDuplicates();
+        insertDuplicate(35);
+        insertDuplicate(34);
+        insertDuplicate(33);
+        checkDuplicates();
+        insertDuplicate(22);
+        insertDuplicate(23);
+        insertDuplicate(24);
+        checkDuplicates();
+    }
+
+};
 BFC_REGISTER_FIXTURE(DupeTest);
 BFC_REGISTER_FIXTURE(InMemoryDupeTest);
+BFC_REGISTER_FIXTURE(SortedDupeTest);

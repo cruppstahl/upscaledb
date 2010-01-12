@@ -741,7 +741,6 @@ __get_sorted_position(ham_db_t *db, dupe_table_t *table, ham_record_t *record,
     int cmp;
     dupe_entry_t *e;
     ham_record_t item_record;
-    ham_offset_t blob_ptr;
     ham_u16_t dam;
     ham_status_t st=0;
 
@@ -790,34 +789,21 @@ __get_sorted_position(ham_db_t *db, dupe_table_t *table, ham_record_t *record,
         m = (l + r) / 2;
     }
     ham_assert(m <= r, (0));
-    ham_assert(r >= 1, (0));
+    //ham_assert(r >= 1, (0));
         
     while (l <= r) {
+        ham_assert(m<dupe_table_get_count(table), (""));
+
         e = dupe_table_get_entry(table, m);
-        blob_ptr = dupe_entry_get_rid(e);
 
         memset(&item_record, 0, sizeof(item_record));
+        item_record._rid=dupe_entry_get_rid(e);
         item_record._intflags = dupe_entry_get_flags(e)&(KEY_BLOB_SIZE_SMALL
-                                                        |KEY_BLOB_SIZE_TINY
-                                                        |KEY_BLOB_SIZE_EMPTY);
-        if (item_record._intflags == 0) {
-            st = blob_read(db, blob_ptr, &item_record, flags);
-            if (st)
-                return (st);
-        }
-        else {
-            item_record.data = (ham_u8_t *)&blob_ptr;
-            if (item_record._intflags & KEY_BLOB_SIZE_TINY) {
-                item_record.size=((ham_u8_t *)&blob_ptr)[sizeof(ham_offset_t)-1];
-            }
-            else if (item_record._intflags & KEY_BLOB_SIZE_SMALL) {
-                item_record.size = 8;
-            }
-            else {
-                ham_assert(item_record._intflags & KEY_BLOB_SIZE_EMPTY, (0));
-                item_record.size = 0;
-            }
-        }
+                                                         |KEY_BLOB_SIZE_TINY
+                                                         |KEY_BLOB_SIZE_EMPTY);
+        st=util_read_record(db, &item_record, flags);
+        if (st)
+            return (st);
 
         cmp = foo(db, record->data, record->size, 
                         item_record.data, item_record.size);
@@ -837,6 +823,8 @@ __get_sorted_position(ham_db_t *db, dupe_table_t *table, ham_record_t *record,
             break;
         }
         else if (cmp < 0) {
+            if (m == 0) /* new item will be smallest item in the list */
+                break;
             r = m - 1;
         }
         else {
@@ -849,8 +837,6 @@ __get_sorted_position(ham_db_t *db, dupe_table_t *table, ham_record_t *record,
     }
 
     /* now 'm' points at the insertion point in the table */
-    if (m >= dupe_table_get_count(table) - 1)
-        return (dupe_table_get_count(table) - 1);
     return (m);
 }
 
@@ -932,12 +918,7 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
     /*
      * insert sorted, unsorted or overwrite the entry at the requested position
      */
-    if (db_get_rt_flags(db)&HAM_SORT_DUPLICATES) {
-        page_add_ref(page);
-        position=__get_sorted_position(db, table, record, flags);
-        page_release_ref(page);
-    }
-    else if (flags&HAM_OVERWRITE) {
+    if (flags&HAM_OVERWRITE) {
         dupe_entry_t *e=dupe_table_get_entry(table, position);
 
         if (!(dupe_entry_get_flags(e)&(KEY_BLOB_SIZE_SMALL
@@ -950,7 +931,14 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
                         &entries[0], sizeof(entries[0]));
     }
     else {
-        if (flags&HAM_DUPLICATE_INSERT_BEFORE) {
+        if (db_get_rt_flags(db)&HAM_SORT_DUPLICATES) {
+            if (page)
+                page_add_ref(page);
+            position=__get_sorted_position(db, table, record, flags);
+            if (page)
+                page_release_ref(page);
+        }
+        else if (flags&HAM_DUPLICATE_INSERT_BEFORE) {
             /* do nothing, insert at the current position */
         }
         else if (flags&HAM_DUPLICATE_INSERT_AFTER) {
