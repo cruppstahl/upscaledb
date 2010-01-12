@@ -62,6 +62,9 @@ o sort duplicate keys - Ger has patches
     o add documentation (header file)
     o add documentation (tutorial)
 
+o test with gcc 4.4.1 on 64bit - freelist.c seems to crash (does it also
+    crash with 4.4.2?)
+
 o Ger: 
     o got rid of the cyclic dependencies
     o doxygen: look at tweak_html.bat 
