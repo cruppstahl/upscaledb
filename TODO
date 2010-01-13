@@ -57,9 +57,9 @@ o sort duplicate keys - Ger has patches
                 x unittest
         x implement - can use a stripped-down version of Ger's code which
             just returns the position, and the continue as before
-    o add unittests
+    x add unittests
     o add to monster test
-    o add documentation (header file)
+    x add documentation (header file)
     o add documentation (tutorial)
 
 o test with gcc 4.4.1 on 64bit - freelist.c seems to crash (does it also

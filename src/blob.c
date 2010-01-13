@@ -807,6 +807,11 @@ __get_sorted_position(ham_db_t *db, dupe_table_t *table, ham_record_t *record,
 
         cmp = foo(db, record->data, record->size, 
                         item_record.data, item_record.size);
+        /* item is lower than the left-most item of our range */
+        if (m == l) {
+            if (cmp < 0)
+                break;
+        }
         if (l == r) {
             if (cmp >= 0) {
                 /* write GEQ record value in NEXT slot */
