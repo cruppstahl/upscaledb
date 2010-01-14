@@ -21,6 +21,7 @@
 #include "freelist.h"
 #include "mem.h"
 #include "page.h"
+#include "util.h"
 
 #define SMALLEST_CHUNK_SIZE  (sizeof(ham_offset_t)+sizeof(blob_t)+1)
 
@@ -719,7 +720,7 @@ blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
      * sanity check
      */
     ham_assert(blob_get_self(&hdr)==blobid, 
-            ("invalid blobid %llu != %llu", blob_get_self(&hdr), blobid);)
+            ("invalid blobid %llu != %llu", blob_get_self(&hdr), blobid));
     if (blob_get_self(&hdr)!=blobid)
         return (HAM_BLOB_NOT_FOUND);
 
