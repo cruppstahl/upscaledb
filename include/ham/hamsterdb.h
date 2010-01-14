@@ -1732,6 +1732,10 @@ typedef int HAM_CALLCONV (*ham_duplicate_compare_func_t)(ham_db_t *db,
  * To enable this function, the flag @ref HAM_SORT_DUPLICATES has to be
  * specified when creating or opening a Database.
  *
+ * Sorting duplicate keys comes with a small performance penalty compared
+ * to unsorted duplicates, since the records of other duplicates have to be
+ * fetched for the comparison.
+ *
  * @param db A valid Database handle
  * @param foo A pointer to the compare function
  *
