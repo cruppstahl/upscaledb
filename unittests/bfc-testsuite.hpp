@@ -21,22 +21,24 @@
  */
 
 /*
-The BFC unit test suite comes as a set of one header file, which you must
-include in each test source file defining tests / test fixtures, plus a 
-few support files, which must be compiled into the test binary.
-
-This is the global header file (bfc-testsuite.hpp).
-
-The support source files are:
-
-    bfc-testsuite.cpp  (implements all BFC core methods; compile-time speedup)
-
-    bfc-signal.c       (implements a portable signal function, used by the BFC kernel)
-
-    bfc_signal.h       (header file which exports the relevant content of bfc_signal.c)
-
-    empty_sample.cpp   (an example BFC test fixture and (nil) test case: Test1
-*/
+ * The BFC unit test suite comes as a set of one header file, which you must
+ * include in each test source file defining tests / test fixtures, plus a 
+ * few support files, which must be compiled into the test binary.
+ * 
+ * This is the global header file (bfc-testsuite.hpp).
+ * 
+ * The support source files are:
+ * 
+ *   bfc-testsuite.cpp  (implements all BFC core methods; compile-time speedup)
+ * 
+ *   bfc-signal.c       (implements a portable signal function, 
+ *                       used by the BFC kernel)
+ * 
+ *   bfc_signal.h       (header file which exports the relevant content 
+ *                       of bfc_signal.c)
+ * 
+ *   empty_sample.cpp   (an example BFC test fixture and (nil) test case: Test1
+ */
 
 #ifndef BFC_TESTSUITE_HPP__
 #define BFC_TESTSUITE_HPP__
@@ -55,6 +57,9 @@ The support source files are:
 #include <stdarg.h>
 #include <signal.h> /* the signal catching / hardware exception catching stuff for UNIX (and a bit for Win32/64 too) */
 #include <setjmp.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 
 namespace bfc {
