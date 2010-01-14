@@ -496,7 +496,7 @@ ham_log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
     log_entry_t *entry;
     ham_u8_t *alloc_buf;
     
-    alloc_buf=allocator_alloc(log_get_allocator(log), alloc_size);
+    alloc_buf=(ham_u8_t *)allocator_alloc(log_get_allocator(log), alloc_size);
     if (!alloc_buf)
         return (HAM_OUT_OF_MEMORY);
 
@@ -531,7 +531,7 @@ ham_log_append_prewrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
     log_entry_t *entry;
     ham_u8_t *alloc_buf;
     
-    alloc_buf=allocator_alloc(log_get_allocator(log), alloc_size);
+    alloc_buf=(ham_u8_t *)allocator_alloc(log_get_allocator(log), alloc_size);
     if (!alloc_buf)
         return (HAM_OUT_OF_MEMORY);
 
@@ -566,7 +566,7 @@ ham_log_append_overwrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
     log_entry_t *entry;
     ham_u8_t *alloc_buf;
     
-    alloc_buf=allocator_alloc(log_get_allocator(log), alloc_size);
+    alloc_buf=(ham_u8_t *)allocator_alloc(log_get_allocator(log), alloc_size);
     if (!alloc_buf)
         return (HAM_OUT_OF_MEMORY);
 
@@ -660,7 +660,7 @@ ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
         if (pos%8!=0)
             pos=(pos/8)*8;
 
-        *data=allocator_alloc(log_get_allocator(log), 
+        *data=(ham_u8_t *)allocator_alloc(log_get_allocator(log), 
                         (ham_size_t)log_entry_get_data_size(entry));
         if (!*data)
             return (HAM_OUT_OF_MEMORY);
@@ -693,7 +693,7 @@ ham_log_prepare_overwrite(ham_log_t *log, const ham_u8_t *old_data,
         log_set_overwrite_size(log, 0);
     }
 
-    p=allocator_alloc(log_get_allocator(log), size);
+    p=(ham_u8_t *)allocator_alloc(log_get_allocator(log), size);
     if (!p)
         return (HAM_OUT_OF_MEMORY);
     memcpy(p, old_data, size);
