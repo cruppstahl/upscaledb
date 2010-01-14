@@ -1,10 +1,14 @@
+Jan 14, 2010 - chris
+o fixed compiler problems with g++ 4.4.x in the unittests (some header files
+    were missing)
+
 Jan 09, 2010 - chris
 o bugfix in unittest - HamsterdbTest::nearFindTest fails if internal
     functions are disabled (thanks, Austin!)
 
 Jan 06, 2010 - chris
 o added safety checks to prevent reuse of a ham_db_t or ham_env_t 
-	structure which is already in use
+	structure which is already in use (thanks, Ger!)
 o the implementation of ham_create[_ex] and ham_open[_ex] was rewritten:
 	both functions now create their private Environment handle. This 
 	simplifies lots of code.
