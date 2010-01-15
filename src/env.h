@@ -267,8 +267,11 @@ struct ham_env_t
 
 /*
  * get the maximum number of databases for this file
+ *
+ * implemented as a function - a macro would break gcc aliasing rules
  */
-#define env_get_max_databases(env)       ham_db2h16(env_get_header(env)->_max_databases)
+extern ham_u16_t
+env_get_max_databases(ham_env_t *env);
 
 /*
  * set the maximum number of databases for this file
@@ -289,38 +292,49 @@ struct ham_env_t
 /*
  * set the 'magic' field of a file header
  */
-#define env_set_magic(env, a,b,c,d)  { env_get_header(env)->_magic[0]=a; \
-                                     env_get_header(env)->_magic[1]=b; \
-                                     env_get_header(env)->_magic[2]=c; \
-                                     env_get_header(env)->_magic[3]=d; }
+#define env_set_magic(env, a,b,c,d)  { db_header_t *_hdr=env_get_header(env);  \
+                                       _hdr->_magic[0]=a; \
+                                       _hdr->_magic[1]=b; \
+                                       _hdr->_magic[2]=c; \
+                                       _hdr->_magic[3]=d; }
 
 /*
  * get byte #i of the 'magic'-header
  */
-#define env_get_magic(hdr, i)        ((hdr)->_magic[i])
+#define env_get_magic(hdr, i)        (hdr)->_magic[i]
 
 /*
  * set the version of a file header
  */
-#define env_set_version(env,a,b,c,d) { env_get_header(env)->_version[0]=a; \
-                                     env_get_header(env)->_version[1]=b; \
-                                     env_get_header(env)->_version[2]=c; \
-                                     env_get_header(env)->_version[3]=d; }
+#define env_set_version(env,a,b,c,d) { db_header_t *_hdr=env_get_header(env);  \
+                                        _hdr->_version[0]=a; \
+                                        _hdr->_version[1]=b; \
+                                        _hdr->_version[2]=c; \
+                                        _hdr->_version[3]=d; }
 
 /*
  * get byte #i of the 'version'-header
+ *
+ * implemented as a function - a macro would break gcc aliasing rules
  */
-#define env_get_version(env, i)   (dbheader_get_version(env_get_header(env), i))
+extern ham_u8_t
+env_get_version(ham_env_t *env, ham_size_t idx);
 
 /*
  * get the serial number
+ *
+ * implemented as a function - a macro would break gcc aliasing rules
  */
-#define env_get_serialno(env)       (ham_db2h32(env_get_header(env)->_serialno))
+extern ham_u32_t
+env_get_serialno(ham_env_t *env);
 
 /*
  * set the serial number
+ *
+ * implemented as a function - a macro would break gcc aliasing rules
  */
-#define env_set_serialno(env, n)    env_get_header(env)->_serialno=ham_h2db32(n)
+extern void
+env_set_serialno(ham_env_t *env, ham_u32_t n);
 
 /**
  * check whether this environment has been opened/created.

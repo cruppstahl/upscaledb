@@ -1,3 +1,7 @@
+Jan 15, 2010 - chris
+o fixed crash on Linux 64bit/gcc 4.4.1 caused by some statements which broke
+    compiler optimization
+
 Jan 14, 2010 - chris
 o fixed compiler problems with g++ 4.4.x in the unittests (some header files
     were missing)

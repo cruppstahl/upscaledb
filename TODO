@@ -62,7 +62,7 @@ o sort duplicate keys - Ger has patches
     x add documentation (header file)
     o add documentation (tutorial)
 
-o test with gcc 4.4.1 on 64bit - freelist.c seems to crash (does it also
+x test with gcc 4.4.1 on 64bit - freelist.c seems to crash (does it also
     crash with 4.4.2?)
 
 o Ger: 

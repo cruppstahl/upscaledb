@@ -86,10 +86,11 @@ public:
     void headerTest()
     {
         env_set_magic(m_env, '1', '2', '3', '4');
-        BFC_ASSERT(env_get_magic(env_get_header(m_env), 0)=='1');
-        BFC_ASSERT(env_get_magic(env_get_header(m_env), 1)=='2');
-        BFC_ASSERT(env_get_magic(env_get_header(m_env), 2)=='3');
-        BFC_ASSERT(env_get_magic(env_get_header(m_env), 3)=='4');
+        db_header_t *hdr=env_get_header(m_env);
+        BFC_ASSERT(env_get_magic(hdr, 0)=='1');
+        BFC_ASSERT(env_get_magic(hdr, 1)=='2');
+        BFC_ASSERT(env_get_magic(hdr, 2)=='3');
+        BFC_ASSERT(env_get_magic(hdr, 3)=='4');
 
         env_set_version(m_env, 1, 2, 3, 4);
         BFC_ASSERT(env_get_version(m_env, 0)==1);

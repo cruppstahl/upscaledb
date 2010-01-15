@@ -16,6 +16,7 @@ libhamsterdb_la_SOURCES = log.c \
 			btree_insert.c \
 			cache.c \
 			db.c \
+			env.c \
 			error.c \
 			extkeys.c \
 			freelist.c \

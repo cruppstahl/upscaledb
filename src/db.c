@@ -32,8 +32,23 @@
 #include "page.h"
 #include "statistics.h"
 
+ham_size_t
+db_get_header_size(ham_db_t *db)
+{
+    db_header_t *hdr=(db_header_t *)(page_get_payload(db_get_header_page(db)));
+    ham_size_t s=sizeof(db_header_t);
+    s+=sizeof(db_indexdata_t);
+    s+=ham_db2h16(hdr->_max_databases);
+    return (s);
+}
 
-
+freelist_payload_t *
+db_get_freelist(ham_db_t *db)
+{
+    ham_u8_t *p=&page_get_payload(db_get_header_page(db))[0];
+    p+=db_get_header_size(db);
+    return ((freelist_payload_t *)p);
+}
 
 ham_status_t
 db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)

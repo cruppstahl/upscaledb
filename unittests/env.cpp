@@ -1801,7 +1801,7 @@ protected:
             BFC_ASSERT_EQUAL(0,
                     ham_env_open_db(env, db, 333, 0, 0));
         }
-        BFC_ASSERT_EQUAL(50, db_get_max_databases(db));
+        BFC_ASSERT_EQUAL(50, env_get_max_databases(env));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));

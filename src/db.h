@@ -109,9 +109,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 
 #include "packstop.h"
 
-#define SIZEOF_FULL_HEADER(db)       (sizeof(db_header_t)+                    \
-                                     db_get_max_databases(db)*sizeof(db_indexdata_t))
-
 /*
  * get byte #i of the 'version'-header
  */
@@ -588,11 +585,20 @@ struct ham_db_t
                                           db_get_header_page(db))))
 
 /*
- * get the freelist object of the database
+ * get the size of the database header
+ *
+ * implemented as a function - a macro would break gcc aliasing rules
  */
-#define db_get_freelist(db)       ((freelist_payload_t *)                      \
-                                     (page_get_payload(db_get_header_page(db))+\
-                                     SIZEOF_FULL_HEADER(db)))
+extern ham_size_t
+db_get_header_size(ham_db_t *db);
+
+/*
+ * get the freelist object of the database
+ *
+ * implemented as a function - a macro would break gcc aliasing rules
+ */
+extern freelist_payload_t *
+db_get_freelist(ham_db_t *db);
 
 /*
  * get the dirty-flag

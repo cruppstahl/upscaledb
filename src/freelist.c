@@ -3977,7 +3977,7 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_db_t *db, ham_u16_t mgt_mode)
             (char *)page_get_payload(db_get_header_page(db)));
 #else
     size = db_get_usable_pagesize(db);
-    size -= SIZEOF_FULL_HEADER(db);
+    size -= db_get_header_size(db);
 #endif
     size -= db_get_freelist_header_sizeXX();
     size -= size % sizeof(ham_u64_t);
