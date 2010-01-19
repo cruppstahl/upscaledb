@@ -1,3 +1,7 @@
+Jan 19, 2010 - chris
+o duplicate keys can now be sorted. The default sort order is based on 
+    memcmp(), but can be overwritten with ham_set_duplicate_compare_func.
+
 Jan 15, 2010 - chris
 o fixed crash on Linux 64bit/gcc 4.4.1 caused by some statements which broke
     compiler optimization

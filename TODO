@@ -37,8 +37,8 @@ x bugreport from Austin:
     ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE); actual values:
     '-7' == '-20'
 
-o sort duplicate keys - Ger has patches
-    o merge code
+x sort duplicate keys - Ger has patches
+    x merge code
         x public interface: 
             x typedef for comparison function
             x API to set this comparison function
@@ -58,9 +58,8 @@ o sort duplicate keys - Ger has patches
         x implement - can use a stripped-down version of Ger's code which
             just returns the position, and the continue as before
     x add unittests
-    o add to monster test
+    x add to monster test
     x add documentation (header file)
-    o add documentation (tutorial)
 
 x test with gcc 4.4.1 on 64bit - freelist.c seems to crash (does it also
     crash with 4.4.2?)
@@ -77,6 +76,7 @@ o documentation right now includes internal APIs, too
     o public/default docs have only public documentation
     o change online documentation, too
     o Ger's newest tarball has improved documentation
+    o add documentation for sorting duplicate keys
 
 o improve documentation/tutorial/faq about
     o approx. matching
