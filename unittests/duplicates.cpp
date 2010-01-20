@@ -1920,6 +1920,7 @@ public:
         BFC_REGISTER_TEST(SortedDupeTest, simpleInsertTest);
         BFC_REGISTER_TEST(SortedDupeTest, anotherSimpleInsertTest);
         BFC_REGISTER_TEST(SortedDupeTest, andAnotherSimpleInsertTest);
+        BFC_REGISTER_TEST(SortedDupeTest, identicalRecordsTest);
     }
 
 protected:
@@ -2159,6 +2160,26 @@ public:
         checkDuplicates();
     }
 
+    /*
+     * berkeleydb does not support duplicate keys with identical records,
+     * therefore this item is not covered in the acceptance tests. 
+     *
+     * that's why it's tested here.
+     */
+    void identicalRecordsTest(void)
+    {
+        int i;
+        for (i=0; i<10; i++) {
+            insertDuplicate(1);
+            checkDuplicates();
+        }
+
+        for (i=0; i<10; i++) {
+            insertDuplicate(2);
+            checkDuplicates();
+        }
+    }
+
 };
 
 class InMemorySortedDupeTest : public SortedDupeTest
@@ -2172,6 +2193,7 @@ public:
         BFC_REGISTER_TEST(InMemorySortedDupeTest, simpleInsertTest);
         BFC_REGISTER_TEST(InMemorySortedDupeTest, anotherSimpleInsertTest);
         BFC_REGISTER_TEST(InMemorySortedDupeTest, andAnotherSimpleInsertTest);
+        BFC_REGISTER_TEST(InMemorySortedDupeTest, identicalRecordsTest);
     }
 };
 
