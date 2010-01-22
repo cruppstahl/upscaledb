@@ -61,6 +61,9 @@ x sort duplicate keys - Ger has patches
     x add to monster test
     x add documentation (header file)
 
+x check use of ham_assert macro - i.e. with
+    grep 'ham_assert([^;]*$' src/*.[ch] -A10 -n | less
+
 x test with gcc 4.4.1 on 64bit - freelist.c seems to crash (does it also
     crash with 4.4.2?)
 
@@ -76,9 +79,9 @@ o documentation right now includes internal APIs, too
     o public/default docs have only public documentation
     o change online documentation, too
     o Ger's newest tarball has improved documentation
-    o add documentation for sorting duplicate keys
 
 o improve documentation/tutorial/faq about
+    o add documentation for sorting duplicate keys
     o approx. matching
     o hinting flags
     o DAMs
