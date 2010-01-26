@@ -80,6 +80,21 @@ o documentation right now includes internal APIs, too
     o change online documentation, too
     o Ger's newest tarball has improved documentation
 
+o webpage changes
+    o change font for texts and headers
+    o merge "legal" and "impressum"
+    o the header page image is too large
+    o remove about/roadmap, it's never up to date
+    o improve font/readability of license texts
+    o copyright in footer must be 2010
+    o about/overview: "Stability and Maturity" needs new text
+    o cell phone number is not up to date
+    o frontpage: Feature List + Latest News (include Links in latest news!)
+    o add NoSQL/Key Value store keywords
+    o sitemap: pulldown with jquery
+    o show licensing options on frontpage
+    o download: don't list in html source, move stuff to external XML file
+
 o improve documentation/tutorial/faq about
     o add documentation for sorting duplicate keys
     o approx. matching
