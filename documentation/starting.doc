@@ -18,7 +18,7 @@ chris@hamsterdb.com
 
 A Tutorial Book for hamsterdb Embedded Storage.
 
-Copyright &copy; 2007-2009 Christoph Rupp
+Copyright &copy; 2007-2010 Christoph Rupp
 
 \section tut_preamble Preamble
 
@@ -100,6 +100,7 @@ Documentation License&quot;.
 	<li>\ref tut_Replacing_Duplicate_Keys		Replacing Duplicate Keys	
 	<li>\ref tut_Get_the_Number_of_Duplicate_Keys		Get the Number of Duplicate Keys	
 	<li>\ref tut_Deleting_Duplicate_Keys		Deleting Duplicate Keys	
+	<li>\ref tut_Duplicate_Keys_order   		Sort order of Duplicate Keys	
 	</ul>
 <li>\ref tut_Working_with_Transactions	Working with Transactions	
 	<ul>
@@ -135,7 +136,7 @@ relational functions or other features provided by SQL.
 \subsection tut_Material_Covered    Material Covered
 
 This
-document applies to hamsterdb Embedded Storage version 1.0.0. The
+document applies to hamsterdb Embedded Storage version 1.1.*. The
 author will update the tutorial whenever the API changes. However,
 the hamsterdb Embedded Storage API is very stable and so this
 tutorial should also apply to future versions of hamsterdb Embedded
@@ -1410,7 +1411,6 @@ if (st != HAM_SUCCESS) {
 ham_env_delete(env);
 \endcode
 
-
 \section tut_Working_with_Duplicate_Keys    Working with Duplicate Keys
 
 Starting with version 0.4.6, hamsterdb supports
@@ -1420,12 +1420,7 @@ i.e. one customer ID has multiple order IDs. The sample
 <I>samples/env2.c</I> demonstrates how to use duplicate keys to map
 orders to customers. 
 
-
-
 The following section gives an overview on the usage of duplicate keys.
-
-
-
 
 \subsection tut_Enabling_Duplicate_Keys    Enabling Duplicate Keys
 
@@ -1579,13 +1574,39 @@ In this case, \ref ham_erase and \ref ham_cursor_erase
 behave differently. \ref ham_erase deletes the key and all duplicate records 
 at once. \ref ham_cursor_erase only deletes the duplicate to which it points. 
 
-
 \code
 if ((st=ham_cursor_erase(cursor, 0))!=HAM_SUCCESS)
     ; // handle error
 \endcode
 
+\subsection tut_Duplicate_Keys_order   		Sort order of Duplicate Keys	
 
+Per default, when a new duplicate key is inserted, it will appended after
+all other duplicates of the same key. 
+
+This behaviour can be overwritten by setting the flag @ref HAM_SORT_DUPLICATES
+in combination with @ref HAM_ENABLE_DUPLICATES when creating or opening
+the Database. The default sort order will be based on memcpy(2) and can
+be overwritten by installing a callback function which compares two records 
+of the duplicate key. 
+
+Such a compare function can be installed using the function @ref 
+ham_set_duplicate_compare_func.
+
+Here's the function declaration and the typedef declaration for a compare
+function. 
+
+\code
+typedef int HAM_CALLCONV (*ham_duplicate_compare_func_t)(ham_db_t *db, 
+                                  const ham_u8_t *lhs, ham_size_t lhs_length, 
+                                  const ham_u8_t *rhs, ham_size_t rhs_length);
+
+ham_status_t
+(ham_db_t *db, ham_duplicate_compare_func_t foo);
+\endcode
+
+Sorting the duplicates comes with a small performance penalty compared 
+to sequential inserts. 
 
 \section tut_Working_with_Transactions    Working with Transactions
 
