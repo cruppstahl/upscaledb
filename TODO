@@ -105,6 +105,11 @@ o improve documentation/tutorial/faq about
     o approx. matching
     o hinting flags
     o DAMs
+    o can move documentation and tutorial to confluence?
+        http://www.atlassian.com/software/confluence/ - free for use
+
+o embed database version in filename for windows libraries - 
+    hamsterdb-1.1.{dll|lib}
 
 o need tool to upgrade databases from 1.0.x to 1.1.x!
 
