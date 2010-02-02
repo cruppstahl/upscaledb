@@ -100,6 +100,12 @@ o webpage changes
     o sitemap: pulldown with jquery
     o download: don't list in html source, move stuff to external XML file
 
+o add automatic code coverage using gconv
+    o http://www.manpagez.com/man/1/gcov/
+    o http://gcc.gnu.org/onlinedocs/gcc/Gcov.html
+    o http://aleccolocco.blogspot.com/2009/08/sqlite-lesson-in-low-defect-software.html (section "Test Coverage with GCC")
+    o track coverage results, publish online
+
 o improve documentation/tutorial/faq about
     x add documentation for sorting duplicate keys
     x approx. matching
@@ -112,6 +118,13 @@ o improve documentation/tutorial/faq about
         - faq
         - troubleshooting
         - samples
+
+o evaluate if we can use bamboo for building and testing on multiple
+    platforms
+    o http://www.atlassian.com/software/bamboo/features/elastic.jsp#remote
+    o install server
+    o setup several agents (win32, win64, linux x86, linux x86_64, ...) and
+        run either all or only some of the tests, including valgrind!
 
 o embed database version in filename for windows libraries - 
     hamsterdb-1.1.{dll|lib}
