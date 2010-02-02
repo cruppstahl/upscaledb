@@ -111,6 +111,7 @@ Documentation License&quot;.
 	<li>\ref tut_Committing_a_Transaction		Committing a Transaction	
 	<li>\ref tut_Aborting_a_Transaction		Aborting a Transaction	
 	</ul>
+<li>\ref tut_Approximate_Matching    Approximate Matching
 <li>\ref tut_The_CPP_API	The C++ API	
 <li>\ref tut_Troubleshooting	Troubleshooting	
 </ul>
@@ -1789,8 +1790,61 @@ As mentioned above, the abort will fail with \ref HAM_CURSOR_STILL_OPEN
 if there are still Cursors attached to this Transaction.
 
 
+\section tut_Approximate_Matching    Approximate Matching
 
+Starting with version 1.1.0, hamsterdb offers a functionality called 
+"Approximate Matching". It allows you to look up values even if you do not
+know their key!
 
+Imagine an embedded system with a sensor attached. In irregular intervals,
+the sensor returns a value which will then be stored in the database. Sometimes
+it returns a value every second, in other moments it returns just one value per
+minute.
+
+hamsterdb is storing those values and uses the current timestamp as a key.
+
+Further imagine that the application now wants to check the sensor value
+at about 12:00 o'clock. Note the "about" - chances are low that there's a key
+with the 12:00 o'clock timestamp. The application needs hamsterdb to retrieve
+a value which was stored at 12:00 o'clock or <b>very close</b> to it!
+
+Approximate Matching gives that functionality. You can ask hamsterdb to
+retrieve values which match a key exactly or which are lower or greater than
+this key, but still very close to it. 
+
+You can do this by specifying a combination of the following flags to 
+\ref ham_find or \ref ham_cursor_find:
+
+<ul>
+ <li>@ref HAM_FIND_EXACT_MATCH </li>. This is the default setting. 
+     If the @a key exists, the record of this key will be returned.
+ <li>@ref HAM_FIND_LT_MATCH </li> 'find' flag 'Less Than': retrieves 
+     the last record with a key which is less than the specified key.
+ <li>@ref HAM_FIND_GT_MATCH </li> 'find' flag 'Greater Than': retrieves
+     the first record with a key which is greater than the specified key.
+ <li>@ref HAM_FIND_LEQ_MATCH </li> 'find' flag 'Less or EQual': retrieves
+     the last record with a key which is less or equal than the specified key.
+ <li>@ref HAM_FIND_GEQ_MATCH </li> 'find' flag 'Greater or Equal': retrieves
+     the first record with a key which is greater or equal than the 
+     specified key.
+ <li>@ref HAM_FIND_NEAR_MATCH </li> 'find' flag 'Any Near Or 
+     Equal': retrieves the record which' key matches the specified key and 
+     when such a key is not available hamsterdb will retrieve either the 
+     last record which' key is less than the specified key or 
+     the first record which' key is larger than the specified 
+     key, whichever of these records is located first.
+</ul>
+
+Here's a short example snippet to search for a key or a "very close" key:
+
+\code
+memset(&record, 0, sizeof(record));
+memset(&key, 0, sizeof(key));
+/* fill key */
+
+if ((st=ham_find(db, NULL, &key, &record, HAM_FIND_NEAR_MATCH))!=HAM_SUCCESS) {
+    // ...
+\endcode
 
 \section tut_The_CPP_API    The C++ API
 

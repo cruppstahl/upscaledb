@@ -101,12 +101,17 @@ o webpage changes
     o download: don't list in html source, move stuff to external XML file
 
 o improve documentation/tutorial/faq about
-    o add documentation for sorting duplicate keys
-    o approx. matching
+    x add documentation for sorting duplicate keys
+    x approx. matching
     o hinting flags
     o DAMs
     o can move documentation and tutorial to confluence?
         http://www.atlassian.com/software/confluence/ - free for use
+        - tutorial
+        - internal documentation
+        - faq
+        - troubleshooting
+        - samples
 
 o embed database version in filename for windows libraries - 
     hamsterdb-1.1.{dll|lib}
