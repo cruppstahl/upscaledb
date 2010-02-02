@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -13,14 +13,17 @@
 #include "config.h"
 
 #include <string.h>
-#include <ham/hamsterdb.h>
+#include <stdio.h>
 
-#include "util.h"
-#include "mem.h"
-#include "db.h"
-#include "keys.h"
-#include "error.h"
 #include "blob.h"
+#include "db.h"
+#include "env.h"
+#include "error.h"
+#include "keys.h"
+#include "mem.h"
+#include "util.h"
+
+
 
 #if HAM_OS_POSIX
 extern int vsnprintf(char *str, size_t size, const char *format, va_list ap);
@@ -39,7 +42,8 @@ util_vsnprintf(char *str, size_t size, const char *format, va_list ap)
 #endif
 }
 
-ham_key_t *
+
+ham_status_t
 util_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
 {
     //memset(dest, 0, sizeof(*dest));
@@ -51,8 +55,7 @@ util_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
         ham_status_t st=db_get_extended_key(db, source->data,
                     source->size, source->_flags, dest);
         if (st) {
-            db_set_error(db, st);
-            return (0);
+            return st;
         }
         ham_assert(dest->data!=0, ("invalid extended key"));
         /* dest->size is set by db_get_extended_key() */
@@ -60,35 +63,41 @@ util_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
         /* the extended flag is set later, when this key is inserted */
         dest->_flags = source->_flags & ~KEY_IS_EXTENDED;
     }
-    else if (source->size) {
-        if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-            if (dest->data)
-                ham_mem_free(db, dest->data);
-            dest->data = (ham_u8_t *)ham_mem_alloc(db, source->size);
-            if (!dest->data) {
-                db_set_error(db, HAM_OUT_OF_MEMORY);
-                return 0;
-            }
-        }
+    else if (source->size) 
+	{
+        if (!(dest->flags & HAM_KEY_USER_ALLOC)) 
+		{
+			if (!dest->data || dest->size < source->size)
+			{
+				if (dest->data)
+					allocator_free(env_get_allocator(db_get_env(db)), dest->data);
+				dest->data = (ham_u8_t *)allocator_alloc(env_get_allocator(db_get_env(db)), source->size);
+				if (!dest->data) 
+				{
+					return HAM_OUT_OF_MEMORY;
+				}
+			}
+		}
         memcpy(dest->data, source->data, source->size);
         dest->size=source->size;
         dest->_flags=source->_flags;
     }
-    else { 
+    else 
+	{ 
         /* key.size is 0 */
         if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
             if (dest->data)
-                ham_mem_free(db, dest->data);
+                allocator_free(env_get_allocator(db_get_env(db)), dest->data);
             dest->data=0;
         }
         dest->size=0;
         dest->_flags=source->_flags;
     }
 
-    return (dest);
+    return HAM_SUCCESS;
 }
 
-ham_key_t *
+ham_status_t
 util_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest)
 {
     /*
@@ -100,32 +109,38 @@ util_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest)
                     key_get_size(source), key_get_flags(source),
                     dest);
         if (st) {
-            db_set_error(db, st);
-            return (0);
+            return st;
         }
         ham_assert(dest->data!=0, ("invalid extended key"));
         /* dest->size is set by db_get_extended_key() */
         ham_assert(dest->size == key_get_size(source), (0)); 
     }
-    else if (key_get_size(source)) {
-        if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-            if (dest->data)
-                ham_mem_free(db, dest->data);
-            dest->data = (ham_u8_t *)ham_mem_alloc(db, key_get_size(source));
-            if (!dest->data) {
-                db_set_error(db, HAM_OUT_OF_MEMORY);
-                return 0;
-            }
-        }
+    else if (key_get_size(source)) 
+	{
+        if (!(dest->flags & HAM_KEY_USER_ALLOC)) 
+		{
+			if (!dest->data || dest->size < key_get_size(source))
+			{
+				if (dest->data)
+					allocator_free(env_get_allocator(db_get_env(db)), dest->data);
+				dest->data = (ham_u8_t *)allocator_alloc(env_get_allocator(db_get_env(db)), key_get_size(source));
+				if (!dest->data) 
+				{
+					return HAM_OUT_OF_MEMORY;
+				}
+			}
+		}
 
         memcpy(dest->data, key_get_key(source), key_get_size(source));
         dest->size=key_get_size(source);
     }
-    else {
+    else 
+	{
         /* key.size is 0 */
-        if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
+        if (!(dest->flags & HAM_KEY_USER_ALLOC)) 
+		{
             if (dest->data)
-                ham_mem_free(db, dest->data);
+                allocator_free(env_get_allocator(db_get_env(db)), dest->data);
             dest->data=0;
         }
         dest->size=0;
@@ -134,7 +149,7 @@ util_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest)
 
     dest->flags=0;
 
-    return (dest);
+    return HAM_SUCCESS;
 }
 
 ham_status_t
@@ -149,9 +164,9 @@ util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
      */
     if (record->_intflags&KEY_HAS_DUPLICATES) {
         dupe_entry_t entry;
-        ham_status_t st=blob_duplicate_get(db, record->_rid, 0, &entry);
+        ham_status_t st=blob_duplicate_get(db_get_env(db), record->_rid, 0, &entry);
         if (st)
-            return (db_set_error(db, st));
+            return st;
         record->_intflags=dupe_entry_get_flags(&entry);
         record->_rid     =dupe_entry_get_rid(&entry);
     }
@@ -201,7 +216,7 @@ util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
         return (blob_read(db, record->_rid, record, flags));
     }
 
-    return (0);
+    return HAM_SUCCESS;
 }
 
 ham_status_t
@@ -223,11 +238,11 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
                  */
                 if (dest->data
                     	&& db_get_key_allocdata(db) != dest->data) {
-                    ham_mem_free(db, dest->data);
+                    allocator_free(env_get_allocator(db_get_env(db)), dest->data);
                 }
                 dest->data=0;
             }
-            return db_set_error(db, st);
+            return st;
         }
         ham_assert(dest->data != 0, ("invalid extended key"));
 
@@ -242,7 +257,7 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
         else {
             if (keysize) {
                 if (db_get_key_allocdata(db))
-                    ham_mem_free(db, db_get_key_allocdata(db));
+                    allocator_free(env_get_allocator(db_get_env(db)), db_get_key_allocdata(db));
                 db_set_key_allocdata(db, dest->data);
                 db_set_key_allocsize(db, keysize);
             }
@@ -265,12 +280,12 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
             else {
                 if (keysize > db_get_key_allocsize(db)) {
                     if (db_get_key_allocdata(db))
-                        ham_mem_free(db, db_get_key_allocdata(db));
-                    db_set_key_allocdata(db, ham_mem_alloc(db, keysize));
+                        allocator_free(env_get_allocator(db_get_env(db)), db_get_key_allocdata(db));
+                    db_set_key_allocdata(db, allocator_alloc(env_get_allocator(db_get_env(db)), keysize));
                     if (!db_get_key_allocdata(db)) {
                         db_set_key_allocsize(db, 0);
                         dest->data = NULL;
-                        return (db_set_error(db, HAM_OUT_OF_MEMORY));
+                        return HAM_OUT_OF_MEMORY;
                     }
                     else {
                         db_set_key_allocsize(db, keysize);
@@ -299,7 +314,7 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
     {
         ham_u64_t recno;
         ham_assert(dest->data!=0, ("this should never happen."));
-        ham_assert(dest->size==sizeof(ham_u64_t), (""));
+        ham_assert(dest->size==sizeof(ham_u64_t), (0));
         if (dest->data==0 || dest->size!=sizeof(ham_u64_t))
             return (HAM_INTERNAL_ERROR);
         recno=*(ham_u64_t *)dest->data;
@@ -307,5 +322,5 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
         memcpy(dest->data, &recno, sizeof(ham_u64_t));
     }
 
-    return (0);
+    return HAM_SUCCESS;
 }

@@ -21,6 +21,7 @@
 #include "../src/page.h"
 #include "../src/error.h"
 #include "../src/btree.h"
+#include "../src/env.h"
 #include "memtracker.h"
 #include "os.hpp"
 
@@ -55,7 +56,7 @@ public:
 
 protected:
     ham_db_t *m_db;
-    //ham_device_t *m_dev;
+    ham_env_t *m_env;
     bool m_inmemory;
     memtracker_t *m_alloc;
     ham_size_t m_pagesize;
@@ -77,10 +78,12 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
-        db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
+        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, ham_create_ex(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_DUPLICATES|(m_inmemory?HAM_IN_MEMORY_DB:0),
                     0664, params));
+
+        m_env=db_get_env(m_db);
     }
 
     virtual void teardown() 
@@ -107,7 +110,7 @@ public:
 
         BFC_ASSERT(ham_cursor_create(m_db, 0, 0, (ham_cursor_t **)&cursor)==0);
         BFC_ASSERT(cursor!=0);
-        BFC_ASSERT(bt_cursor_clone(cursor, &clone)==0);
+        BFC_ASSERT(cursor->_fun_clone(cursor, &clone)==0);
         BFC_ASSERT(clone!=0);
         BFC_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)clone));
         BFC_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)cursor));
@@ -131,7 +134,9 @@ public:
         BFC_ASSERT_EQUAL(0, ham_cursor_overwrite(cursor, &rec, 0));
 
         ham_btree_t *be=(ham_btree_t *)db_get_backend(m_db);
-        ham_page_t *page=db_fetch_page(m_db, btree_get_rootpage(be), 0);
+        ham_page_t *page;
+        BFC_ASSERT_EQUAL(0, 
+                db_fetch_page(&page, m_env, m_db, btree_get_rootpage(be), 0));
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
 
@@ -154,9 +159,11 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_create_ex(m_db, BFC_OPATH(".test"), 
-                    HAM_ENABLE_DUPLICATES|(m_inmemory?HAM_IN_MEMORY_DB:0),
-                    0664, &params[0]));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create_ex(m_db, BFC_OPATH(".test"), 
+                        (m_inmemory ? HAM_IN_MEMORY_DB : 0),
+                        0664, &params[0]));
+        m_env=db_get_env(m_db);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor2));
@@ -266,7 +273,7 @@ public:
                             db_get_cursors(m_db));
         }
 
-        BFC_ASSERT_EQUAL(0, bt_cursor_clone(cursor[0], &clone));
+        BFC_ASSERT(cursor[0]->_fun_clone(cursor[0], &clone)==0);
         BFC_ASSERT(clone!=0);
         BFC_ASSERT_EQUAL((ham_cursor_t *)clone, db_get_cursors(m_db));
 
@@ -293,7 +300,7 @@ public:
                             db_get_cursors(m_db));
         }
 
-        BFC_ASSERT_EQUAL(0, bt_cursor_clone(cursor[0], &clone));
+        BFC_ASSERT(cursor[0]->_fun_clone(cursor[0], &clone)==0);
         BFC_ASSERT(clone!=0);
         BFC_ASSERT_EQUAL((ham_cursor_t *)clone, db_get_cursors(m_db));
 

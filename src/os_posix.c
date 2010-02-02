@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -11,9 +11,6 @@
  */
 
 #include "config.h"
-
-#include <ham/hamsterdb.h>
-#include <ham/types.h>
 
 #define _GNU_SOURCE   1 /* for O_LARGEFILE */
 #define __USE_XOPEN2K 1 /* for ftruncate() */
@@ -28,8 +25,10 @@
 #include <sys/file.h>
 #include <fcntl.h>
 #include <unistd.h>
+
 #include "error.h"
 #include "os.h"
+
 
 static ham_status_t
 __lock_exclusive(int fd, ham_bool_t lock)
@@ -95,7 +94,7 @@ os_get_granularity(void)
 
 ham_status_t
 os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
-		ham_size_t size, ham_bool_t readonly, ham_u8_t **buffer)
+		ham_offset_t size, ham_bool_t readonly, ham_u8_t **buffer)
 {
     (void)mmaph;    /* only used on win32-platforms */
     (void)readonly; /* only used on win32-platforms */
@@ -115,7 +114,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
 }
 
 ham_status_t
-os_munmap(ham_fd_t *mmaph, void *buffer, ham_size_t size)
+os_munmap(ham_fd_t *mmaph, void *buffer, ham_offset_t size)
 {
     int r;
     (void)mmaph; /* only used on win32-platforms */
@@ -135,7 +134,7 @@ os_munmap(ham_fd_t *mmaph, void *buffer, ham_size_t size)
 
 #ifndef HAVE_PREAD
 static ham_status_t
-my_os_read(ham_fd_t fd, ham_u8_t *buffer, ham_size_t bufferlen)
+my_os_read(ham_fd_t fd, ham_u8_t *buffer, ham_offset_t bufferlen)
 {
     int r;
     ham_size_t total=0;
@@ -155,11 +154,11 @@ my_os_read(ham_fd_t fd, ham_u8_t *buffer, ham_size_t bufferlen)
 
 ham_status_t
 os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer, 
-        ham_size_t bufferlen)
+        ham_offset_t bufferlen)
 {
 #if HAVE_PREAD
     int r;
-    ham_size_t total=0;
+    ham_offset_t total=0;
 
     while (total<bufferlen) {
         r=pread(fd, buffer+total, bufferlen-total, addr+total);
@@ -186,10 +185,10 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
 }
 
 ham_status_t
-os_write(ham_fd_t fd, const void *buffer, ham_size_t bufferlen)
+os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen)
 {
     int w;
-    ham_size_t total=0;
+    ham_offset_t total=0;
     const char *p=(const char *)buffer;
 
     while (total<bufferlen) {
@@ -206,11 +205,11 @@ os_write(ham_fd_t fd, const void *buffer, ham_size_t bufferlen)
 
 ham_status_t
 os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer, 
-        ham_size_t bufferlen)
+        ham_offset_t bufferlen)
 {
 #if HAVE_PWRITE
     ssize_t s;
-    ham_size_t total=0;
+    ham_offset_t total=0;
 
     while (total<bufferlen) {
         s=pwrite(fd, buffer, bufferlen, addr+total);

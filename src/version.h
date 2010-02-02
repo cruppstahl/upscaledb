@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,9 +7,10 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- *
- * this file contains the version of hamster
+ */
+
+/**
+ * @brief this file contains the version of hamster
  *
  */
 
@@ -32,8 +33,8 @@ extern "C" {
  */
 #define HAM_VERSION_MAJ 1
 #define HAM_VERSION_MIN 1
-#define HAM_VERSION_REV 1
-#define HAM_VERSION_STR "1.1.1"
+#define HAM_VERSION_REV 2
+#define HAM_VERSION_STR "1.1.2"
 
 
 #ifdef __cplusplus

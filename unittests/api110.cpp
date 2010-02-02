@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <cstring>
 #include <time.h>
+
 #include <ham/hamsterdb.h>
 #include "memtracker.h"
 #include "../src/db.h"
@@ -21,8 +22,8 @@
 #include "../src/serial.h"
 #include "../src/btree.h"
 #include "../src/statistics.h"
+#include "../src/os.h"
 #include "os.hpp"
-
 #include "bfc-testsuite.hpp"
 #include "hamster_fixture.hpp"
 
@@ -58,7 +59,7 @@ public:
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
+        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
     }
     
@@ -87,7 +88,7 @@ public:
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
 
         BFC_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
-        db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
+        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(HAM_SUCCESS, 
                 ham_create(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_TRANSACTIONS, 0));

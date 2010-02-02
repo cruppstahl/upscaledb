@@ -69,10 +69,37 @@ x test with gcc 4.4.1 on 64bit - freelist.c seems to crash (does it also
 
 o Ger: 
     o got rid of the cyclic dependencies
+        o db_fetch_page: interface changed
+        o db_set_error: only in hamsterdb.c!!
+        o btree_get_db() -> be_get_db()
+        o ham_flush: deprecate, replace w. ham_env_flush?
+        o ham_log_append_overwrite: unused?
+        o ham_log_prepare_overwrite: unused?
+        o hamsterdb: __prepare_db is empty -> remove!
+        o set default compare functions: has to check if recno or not!
+        o hamsterdb.c: check every backend function against NULL - return
+            NOT_IMPLEMENTED if it's NULL
+        o remove extkey_cache_purge?
+        o page_new: page->_owner is not set!
+        o unittest for env_set_active - it's set in 3 places!
+    o hamsterdb_{stats|int}.h - add comment that these interfaces
+        are NOT stable!
+    o review the page ownership - db_fetch_page() should only get 'db' as
+        parameter, not env; instead, add env_fetch_page()
+    o LogTests have lots of failures when calling flock()
+    o HamsterdbTest::nearFindStressTest is broken!
+    o EnvTest::eraseMultipleDatabases is broken!
+    o EnvTest::eraseMultipleDatabasesReopenEnv is broken!
+    o Tools are broken
+    o review interface of ham_calc_maxkeys_per_page - move to hamsterdb_int.h?
+    o check all calls to db_get_device() - it's now in the env
     o doxygen: look at tweak_html.bat 
     o backend separation was improved
     o check Changelog for more details
     o merge Db/Env changes
+    o rename db_header_t to env_header_t
+    o remove all warnings on 32bit linux (copy pointer to ham_u64_t)
+    o unittests: db_set_allocator was disabled - fix it!
     o uncrustify?
 
 o documentation right now includes internal APIs, too
@@ -80,6 +107,13 @@ o documentation right now includes internal APIs, too
     o public/default docs have only public documentation
     o change online documentation, too
     o Ger's newest tarball has improved documentation
+
+o reevaluate default cache size - should we just grab 1 MB?
+    o setting strict cache size - is this tested?
+    o setting cache size - is this tested?
+    o are extkeys and other mallocs also part of it? maybe reduce memory
+        consumption in the allocator, and make the other flags
+        deprecated?
 
 o webpage changes
     o change font for texts and headers - good pages are
@@ -133,7 +167,9 @@ o need tool to upgrade databases from 1.0.x to 1.1.x!
 
 o ham_get_parameter: could return VERSION of the database
 
-o approx. matching: need a sample
+. approx. matching: need a sample
+
+. Ger: can specify an initial file size
 
 . env.h has some variables which are stored in the db header (i.e. 
     keysize, pagesize), but they are just in a non-persistent field

@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,9 +7,10 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- * 
- *
- * this file has error logging routines and a strerror() replacement
+ */
+
+/**
+ * @brief this file has error logging routines and a strerror() replacement
  *
  */
 
@@ -33,7 +34,7 @@ extern void dbg_prepare(int level, const char *file, int line,
 extern void dbg_log(const char *format, ...);
 extern void dbg_verify_failed(const char *format, ...);
 
-/*
+/**
  * a hook for unittests
  */
 extern void (*ham_test_abort)(void);
@@ -65,7 +66,7 @@ extern void (*ham_test_abort)(void);
 #endif /* HAM_DEBUG */
 
 /**
- * log() and verify() are available in every build
+ * ham_log() and ham_verify() are available in every build
  */
 #define ham_trace(f)         do {                                              \
                                 dbg_lock();                                    \

@@ -18,6 +18,7 @@
 #include "../src/page.h"
 #include "../src/cache.h"
 #include "../src/error.h"
+#include "../src/env.h"
 #include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
@@ -58,8 +59,8 @@ public:
         m_alloc=memtracker_new();
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
+        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
+        //env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
                         HAM_ENABLE_TRANSACTIONS
@@ -98,7 +99,7 @@ public:
         BFC_ASSERT(cache_get_totallist(cache)==0);
         BFC_ASSERT(cache_get_unused_page(cache)==0);
         BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==0);
-        BFC_ASSERT(cache_too_big(cache)==0);
+        BFC_ASSERT(cache_too_big(cache, 0)==0);
         cache_delete(m_env, cache);
     }
     
@@ -107,7 +108,7 @@ public:
         ham_page_t *page;
         ham_cache_t *cache=cache_new(m_env, 15);
         BFC_ASSERT(cache!=0);
-        page=page_new(m_db, 0);
+        page=page_new(m_env);
         page_set_self(page, 0x123ull);
         page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
         BFC_ASSERT(cache_put_page(cache, page)==HAM_SUCCESS);
@@ -121,7 +122,7 @@ public:
         ham_page_t *page;
         ham_cache_t *cache=cache_new(m_env, 15);
         BFC_ASSERT(cache!=0);
-        page=page_new(m_db, 0);
+        page=page_new(m_env);
         page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
         page_set_self(page, 0x123ull);
         BFC_ASSERT(cache_put_page(cache, page)==HAM_SUCCESS);
@@ -140,10 +141,10 @@ public:
         ham_page_t *page1, *page2;
         ham_cache_t *cache=cache_new(m_env, 15);
         BFC_ASSERT(cache!=0);
-        page1=page_new(m_db, 0);
+        page1=page_new(m_env);
         page_set_npers_flags(page1, PAGE_NPERS_NO_HEADER);
         page_set_self(page1, 0x123ull);
-        page2=page_new(m_db, 0);
+        page2=page_new(m_env);
         page_set_npers_flags(page2, PAGE_NPERS_NO_HEADER);
         page_set_self(page2, 0x456ull);
         BFC_ASSERT(cache_put_page(cache, page1)==HAM_SUCCESS);
@@ -167,7 +168,7 @@ public:
         ham_cache_t *cache=cache_new(m_env, 15);
 
         for (int i=0; i<20; i++) {
-            page[i]=page_new(m_db, 0);
+            page[i]=page_new(m_env);
             page_set_npers_flags(page[i], PAGE_NPERS_NO_HEADER);
             page_set_self(page[i], i*1024);
             BFC_ASSERT(cache_put_page(cache, page[i])==HAM_SUCCESS);
@@ -199,11 +200,11 @@ public:
         ham_page_t *page1, *page2;
         ham_cache_t *cache=cache_new(m_env, 15);
         BFC_ASSERT(cache!=0);
-        page1=page_new(m_db, 0);
+        page1=page_new(m_env);
         page_set_npers_flags(page1, PAGE_NPERS_NO_HEADER);
         page_set_self(page1, 0x123ull);
         page_add_ref(page1);
-        page2=page_new(m_db, 0);
+        page2=page_new(m_env);
         page_set_npers_flags(page2, PAGE_NPERS_NO_HEADER);
         page_set_self(page2, 0x456ull);
         BFC_ASSERT(cache_put_page(cache, page1)==HAM_SUCCESS);
@@ -225,7 +226,7 @@ public:
         std::vector<ham_page_t *> v;
 
         for (unsigned int i=0; i<cache_get_max_elements(cache)+10; i++) {
-            ham_page_t *p=page_new(m_db, 0);
+            ham_page_t *p=page_new(m_env);
             page_set_npers_flags(p, PAGE_NPERS_NO_HEADER);
             page_set_self(p, i*1024);
             v.push_back(p);
@@ -234,7 +235,7 @@ public:
 
         for (unsigned int i=0; i<=10; i++) {
             ham_page_t *p;
-            BFC_ASSERT(cache_too_big(cache));
+            BFC_ASSERT(cache_too_big(cache, 0));
             p=v.back();
             v.pop_back();
             BFC_ASSERT(cache_remove_page(cache, p)==HAM_SUCCESS);
@@ -245,12 +246,12 @@ public:
             ham_page_t *p;
             p=v.back();
             v.pop_back();
-            BFC_ASSERT(!cache_too_big(cache));
+            BFC_ASSERT(!cache_too_big(cache, 0));
             BFC_ASSERT(cache_remove_page(cache, p)==HAM_SUCCESS);
             page_delete(p);
         }
 
-        BFC_ASSERT(!cache_too_big(cache));
+        BFC_ASSERT(!cache_too_big(cache, 0));
         cache_delete(m_env, cache);
     }
 };

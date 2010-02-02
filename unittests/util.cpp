@@ -17,6 +17,8 @@
 #include "../src/db.h"
 #include "../src/page.h"
 #include "../src/util.h"
+#include "../src/env.h"
+#include "../src/keys.h"
 #include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
@@ -44,6 +46,7 @@ public:
 
 protected:
     ham_db_t *m_db;
+    ham_env_t *m_env;
     memtracker_t *m_alloc;
 
 public:
@@ -55,9 +58,11 @@ public:
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
-        db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
+        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT(ham_create_ex(m_db, 0, HAM_IN_MEMORY_DB, 0644, 
                         &p[0])==HAM_SUCCESS);
+
+        m_env=db_get_env(m_db);
     }
     
     virtual void teardown() 
@@ -84,7 +89,7 @@ public:
         BFC_ASSERT(dest.size==src.size);
         BFC_ASSERT(!::strcmp((char *)dest.data, (char *)src.data));
 
-        ham_mem_free(m_db, dest.data);
+        allocator_free(env_get_allocator(m_env), dest.data);
     }
 
     void copyExtendedKeyTest(void)
@@ -101,7 +106,7 @@ public:
         BFC_ASSERT(dest.size==src.size);
         BFC_ASSERT(!::strcmp((char *)dest.data, (char *)src.data));
 
-        ham_mem_free(m_db, dest.data);
+        allocator_free(env_get_allocator(m_env), dest.data);
     }
 
     void copyKeyInt2PubEmptyTest(void)
@@ -136,7 +141,7 @@ public:
         BFC_ASSERT(util_copy_key_int2pub(m_db, &src, &dest));
         BFC_ASSERT(1==dest.size);
         BFC_ASSERT('a'==((char *)dest.data)[0]);
-        ham_mem_free(m_db, dest.data);
+        allocator_free(env_get_allocator(m_env), dest.data);
     }
 
     void copyKeyInt2PubSmallTest(void)
@@ -154,7 +159,7 @@ public:
         BFC_ASSERT(util_copy_key_int2pub(m_db, src, &dest));
         BFC_ASSERT(dest.size==(ham_size_t)key_get_size(src));
         BFC_ASSERT(!::strcmp((char *)dest.data, (char *)src->_key));
-        ham_mem_free(m_db, dest.data);
+        allocator_free(env_get_allocator(m_env), dest.data);
     }
 
     void copyKeyInt2PubFullTest(void)
@@ -173,7 +178,7 @@ public:
         BFC_ASSERT(dest.size==(ham_size_t)key_get_size(src));
         BFC_ASSERT(!::strcmp((char *)dest.data, (char *)src->_key));
 
-        ham_mem_free(m_db, dest.data);
+        allocator_free(env_get_allocator(m_env), dest.data);
     }
 
 };

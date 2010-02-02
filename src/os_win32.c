@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -13,12 +13,9 @@
 #include "config.h"
 
 #include <windows.h>
-
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <ham/hamsterdb.h>
-#include <ham/types.h>
 
 #include "error.h"
 #include "os.h"
@@ -143,7 +140,7 @@ os_get_granularity(void)
 
 ham_status_t
 os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position, 
-        ham_size_t size, ham_bool_t readonly, ham_u8_t **buffer)
+        ham_offset_t size, ham_bool_t readonly, ham_u8_t **buffer)
 {
 #ifndef UNDER_CE
     ham_status_t st;
@@ -162,10 +159,13 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
         return (HAM_IO_ERROR);
     }
 
-    *buffer=MapViewOfFile(*mmaph, access, i.HighPart, i.LowPart, size);
+    *buffer=MapViewOfFile(*mmaph, access, i.HighPart, i.LowPart, (SIZE_T)size);
     if (!*buffer) {
         char buf[256];
         st=(ham_status_t)GetLastError();
+		/* make sure to release the mapping */
+		(void)CloseHandle(*mmaph);
+	    *mmaph=0;
         ham_log(("MapViewOfFile failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
         return (HAM_IO_ERROR);
     }
@@ -176,7 +176,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
 }
 
 ham_status_t
-os_munmap(ham_fd_t *mmaph, void *buffer, ham_size_t size)
+os_munmap(ham_fd_t *mmaph, void *buffer, ham_offset_t size)
 {
 #ifndef UNDER_CE
     ham_status_t st;
@@ -205,7 +205,7 @@ os_munmap(ham_fd_t *mmaph, void *buffer, ham_size_t size)
 
 ham_status_t
 os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
-        ham_size_t bufferlen)
+        ham_offset_t bufferlen)
 {
     ham_status_t st;
     DWORD read=0;
@@ -214,7 +214,7 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
     if (st)
         return (st);
 
-    if (!ReadFile((HANDLE)fd, buffer, bufferlen, &read, 0)) {
+    if (!ReadFile((HANDLE)fd, buffer, (DWORD)bufferlen, &read, 0)) {
         char buf[256];
         st=(ham_status_t)GetLastError();
         ham_log(("ReadFile failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
@@ -226,7 +226,7 @@ os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer,
 
 ham_status_t
 os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
-        ham_size_t bufferlen)
+        ham_offset_t bufferlen)
 {
     ham_status_t st;
 
@@ -238,12 +238,12 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
 }
 
 ham_status_t
-os_write(ham_fd_t fd, const void *buffer, ham_size_t bufferlen)
+os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen)
 {
     ham_status_t st;
     DWORD written=0;
 
-    if (!WriteFile((HANDLE)fd, buffer, bufferlen, &written, 0)) {
+    if (!WriteFile((HANDLE)fd, buffer, (DWORD)bufferlen, &written, 0)) {
         char buf[256];
         st=(ham_status_t)GetLastError();
         ham_log(("WriteFile failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));

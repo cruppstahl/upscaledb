@@ -20,14 +20,10 @@
 #  include <stdlib.h>
 #endif
 
-#include "mem.h"
-#include "error.h"
 #include "db.h"
+#include "error.h"
+#include "mem.h"
 
-#if defined(_MSC_VER) && defined(HAM_DEBUG) && !defined(UNDER_CE)
-#   define _CRTDBG_MAP_ALLOC
-#   include <crtdbg.h>
-#endif
 
 void *
 alloc_impl(mem_allocator_t *self, const char *file, int line, ham_u32_t size)
@@ -44,76 +40,65 @@ alloc_impl(mem_allocator_t *self, const char *file, int line, ham_u32_t size)
 }
 
 void 
-free_impl(mem_allocator_t *self, const char *file, int line, void *ptr)
+free_impl(mem_allocator_t *self, const char *file, int line, const void *ptr)
 {
     (void)self;
     (void)file;
     (void)line;
 
-    ham_assert(ptr, ("freeing NULL pointer in line %s:%d", file, line));
+    ham_assert(ptr, ("freeing NULL pointer in line %s:%d", file, line)) 
 #if defined(_CRTDBG_MAP_ALLOC)
-    _free_dbg(ptr, _NORMAL_BLOCK);
+    _free_dbg((void *)ptr, _NORMAL_BLOCK);
 #else
-    free(ptr);
+    free((void *)ptr);
 #endif
 }
 
 void *
 realloc_impl(mem_allocator_t *self, const char *file, int line, 
-        void *ptr, ham_size_t size)
+        const void *ptr, ham_size_t size)
 {
     (void)self;
     (void)file;
     (void)line;
 
 #if defined(_CRTDBG_MAP_ALLOC)
-    return (_realloc_dbg(ptr, size, _NORMAL_BLOCK, file, line));
+    return (_realloc_dbg((void *)ptr, size, _NORMAL_BLOCK, file, line));
 #else
-    return (realloc(ptr, size));
+    return (realloc((void *)ptr, size));
 #endif
 }
 
 void 
 close_impl(mem_allocator_t *self)
 {
+#if defined(_CRTDBG_MAP_ALLOC)
+    _free_dbg(self, _NORMAL_BLOCK);
+#else
+    free(self);
+#endif
 }
 
 mem_allocator_t *
-ham_default_allocator_new(void)
+_ham_default_allocator_new(const char *fname, const int lineno)
 {
-    static mem_allocator_t m;
+    mem_allocator_t *m;
 
-    m.alloc  =alloc_impl;
-    m.free   =free_impl;
-    m.realloc=realloc_impl;
-    m.close  =close_impl;
-    m.priv   =0;
+    m=(mem_allocator_t *)
+#if defined(_CRTDBG_MAP_ALLOC)
+                    _malloc_dbg(sizeof(*m), _NORMAL_BLOCK, fname, lineno);
+#else
+                    malloc(sizeof(*m));
+#endif
+    if (!m)
+        return (0);
+
+    memset(m, 0, sizeof(*m));
+    m->alloc  =alloc_impl;
+    m->free   =free_impl;
+    m->realloc=realloc_impl;
+    m->close  =close_impl;
      
-    return (&m);
-}
-
-void *
-ham_mem_calloc(ham_db_t *db, ham_size_t size)
-{
-    void *p;
-
-    if (!(p=ham_mem_alloc(db, size)))
-        return (0);
-
-    memset(p, 0, size);
-    return (p);
-}
-
-void *
-ham_mem_calloc_env(ham_env_t *env, ham_size_t size)
-{
-    void *p;
-
-    p=allocator_alloc(env_get_allocator(env), size);
-    if (!p)
-        return (0);
-
-    memset(p, 0, size);
-    return (p);
+    return (m);
 }
 

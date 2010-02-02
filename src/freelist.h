@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,17 +7,18 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- *
- * freelist structures, functions and macros
+ */
+
+/**
+ * @brief freelist structures, functions and macros
  *
  */
 
 #ifndef HAM_FREELIST_H__
 #define HAM_FREELIST_H__
 
-#include "statistics.h"
-
+#include "internal_fwd_decl.h"
+#include "freelist_statistics.h"
 
 
 #ifdef __cplusplus
@@ -27,7 +28,7 @@ extern "C" {
 /**
  * an entry in the freelist cache
  */
-typedef struct freelist_entry_t
+struct freelist_entry_t
 {
     /** the start address of this freelist page */
     ham_offset_t _start_address;
@@ -54,49 +55,49 @@ typedef struct freelist_entry_t
 	 * significantly in the common freelist processing areas.
 	 */
 	runtime_statistics_pagedata_t _perf_data;
+};
 
-} freelist_entry_t;
 
-/* get the start address of a freelist cache entry */
+/** get the start address of a freelist cache entry */
 #define freel_entry_get_start_address(f)                (f)->_start_address
 
-/* set the start address of a freelist cache entry */
+/** set the start address of a freelist cache entry */
 #define freel_entry_set_start_address(f, s)             (f)->_start_address=(s)
 
-/* get max number of bits in the cache entry */
+/** get max number of bits in the cache entry */
 #define freel_entry_get_max_bits(f)                     (f)->_max_bits
 
-/* set max number of bits in the cache entry */
+/** set max number of bits in the cache entry */
 #define freel_entry_set_max_bits(f, m)                  (f)->_max_bits=(m)
 
-/* get number of allocated bits in the cache entry */
+/** get number of allocated bits in the cache entry */
 #define freel_entry_get_allocated_bits(f)               (f)->_allocated_bits
 
-/* set number of allocated bits in the cache entry */
+/** set number of allocated bits in the cache entry */
 #define freel_entry_set_allocated_bits(f, b)            (f)->_allocated_bits=(b)
 
-/* get the page ID of this freelist entry */
+/** get the page ID of this freelist entry */
 #define freel_entry_get_page_id(f)                      (f)->_page_id
 
-/* set the page ID of this freelist entry */
+/** set the page ID of this freelist entry */
 #define freel_entry_set_page_id(f, id)                  (f)->_page_id=(id)
 
-/* get the access performance data of this freelist entry */
+/** get the access performance data of this freelist entry */
 #define freel_entry_get_perf_data(f)                    (f)->_perf_data
 
-/* set the access performance data of this freelist entry */
+/** set the access performance data of this freelist entry */
 #define freel_entry_set_perf_data(f, id)                (f)->_perf_data=(id)
 
-/* get the statistics of this freelist entry */
+/** get the statistics of this freelist entry */
 #define freel_entry_get_statistics(f)                   &(f)->_perf_data._persisted_stats
 
-/* check if the statistics have changed since we last flushed them */
+/** check if the statistics have changed since we last flushed them */
 #define freel_entry_statistics_is_dirty(f)              (f)->_perf_data._dirty
 
-/* signal the statistics of this freelist entry as changed */
+/** signal the statistics of this freelist entry as changed */
 #define freel_entry_statistics_set_dirty(f)             (f)->_perf_data._dirty = HAM_TRUE
 
-/* signal the statistics of this freelist entry as changed */
+/** signal the statistics of this freelist entry as changed */
 #define freel_entry_statistics_reset_dirty(f)           (f)->_perf_data._dirty = HAM_FALSE
 
 /**
@@ -108,19 +109,19 @@ typedef struct freelist_entry_t
      * create and initialize a new class instance                       \
      */                                                                 \
     ham_status_t                                                        \
-	(*_constructor)(clss *be, ham_db_t *db, ham_u16_t mgt_submode);     \
+	(*_constructor)(clss *be, ham_device_t *dev, ham_env_t *env);       \
                                                                         \
 	/**                                                                 \
 	 * release all freelist pages (and their statistics)                \
 	 */                                                                 \
 	ham_status_t                                                        \
-	(*_destructor)(ham_db_t *db);                                       \
+	(*_destructor)(ham_device_t *dev, ham_env_t *env);                  \
                                                                         \
 	/**                                                                 \
 	 * flush all freelist page statistics                               \
 	 */                                                                 \
 	ham_status_t                                                        \
-	(*_flush_stats)(ham_db_t *db);                                      \
+	(*_flush_stats)(ham_device_t *dev, ham_env_t *env);                 \
                                                                         \
 	/**                                                                 \
 	 * mark an area in the file as "free"                               \
@@ -128,29 +129,46 @@ typedef struct freelist_entry_t
 	 * if 'overwrite' is true, will not assert that the bits are all    \
      * set to zero                                                      \
 	 *                                                                  \
-	 * !! note                                                          \
+	 * @note                                                            \
 	 * will assert that address and size are DB_CHUNKSIZE-aligned!      \
 	 */                                                                 \
 	ham_status_t                                                        \
-	(*_mark_free)(ham_db_t *db, ham_offset_t address, ham_size_t size,  \
+	(*_mark_free)(ham_device_t *dev, ham_env_t *env, ham_db_t *db,      \
+            ham_offset_t address, ham_size_t size,                      \
 			ham_bool_t overwrite);                                      \
                                                                         \
 	/**                                                                 \
-	 * try to allocate (unaligned/aligned) space from the freelist      \
-	 *                                                                  \
-	 * returns 0 on failure                                             \
-	 *                                                                  \
-	 * !! note                                                          \
-	 * will assert that size is DB_CHUNKSIZE-aligned!                   \
+	 * try to allocate (possibly aligned) space from the freelist,      \
+	 * where the allocated space should be positioned at or beyond		\
+	 * the given address.												\
+	 *																	\
+	 * returns 0 on failure												\
+	 *																	\
+	 * @note															\
+	 * will assert that size is DB_CHUNKSIZE-aligned!					\
+	 *																	\
+	 * @note															\
+	 * The lower_bound_address is assumed to be on a DB_CHUNKSIZE		\
+	 * boundary at least. @a aligned space will end up at a             \
+     * @ref DB_PAGESIZE_MIN_REQD_ALIGNMENT bytes boundary.              \
+	 * Regardless, the lower address bound check will be performed		\
+	 * on a DB_CHUNKSIZE boundary level anyhow.							\
 	 */                                                                 \
-	ham_offset_t                                                        \
-	(*_alloc_area)(ham_db_t *db, ham_size_t size, ham_bool_t aligned);  \
-	                                                                    \
+	ham_status_t                                                        \
+	(*_alloc_area)(ham_offset_t *addr_ref, ham_device_t *dev,			\
+			   ham_env_t *env, ham_db_t *db, ham_size_t size,           \
+               ham_bool_t aligned, ham_offset_t lower_bound_address);   \
+                                                                        \
 	/**																	\
-	 check whether the given block is properly marked as allocated.		\
+	 check whether the given block is administrated in the freelist.    \
+     If it isn't yet, make it so.                                 		\
+																		\
+     @return one of @ref ham_status_codes on error, @ref HAM_SUCCESS	\
+	         when the given storage area is within the scope of the		\
+			 freelist.													\
 	*/																	\
-	ham_bool_t															\
-	(*_check_area_is_allocated)(ham_db_t *db,							\
+	ham_status_t                                                        \
+	(*_check_area_is_allocated)(ham_device_t *dev, ham_env_t *env,		\
 								ham_offset_t address, ham_size_t size);	\
                                                                         \
 	/**																	\
@@ -162,19 +180,17 @@ typedef struct freelist_entry_t
 	 * freelist algorithm persists this data to disc.					\
 	 */																	\
 	ham_status_t														\
-	(*_init_perf_data)(clss *be, ham_db_t *db,							\
+	(*_init_perf_data)(clss *be, ham_device_t *dev, ham_env_t *env,		\
 						freelist_entry_t *entry,						\
-						struct freelist_payload_t *payload)
+						freelist_payload_t *payload)
 
 
-/* forward reference */
-struct freelist_payload_t;
 
 
 /**
  * the freelist structure is a table to track the deleted pages and blobs
  */
-typedef struct freelist_cache_t
+struct freelist_cache_t
 {
     /** the number of cached elements */
     ham_u32_t _count;
@@ -184,19 +200,19 @@ typedef struct freelist_cache_t
 
 	/** class methods which handle all things freelist */
 	FREELIST_DECLARATIONS(struct freelist_cache_t);
+};
 
-} freelist_cache_t;
 
-/* get the number of freelist cache elements */
+/** get the number of freelist cache elements */
 #define freel_cache_get_count(f)                        (f)->_count
 
-/* set the number of freelist cache elements */
+/** set the number of freelist cache elements */
 #define freel_cache_set_count(f, c)                     (f)->_count=(c)
 
-/* get the cached freelist entries */
+/** get the cached freelist entries */
 #define freel_cache_get_entries(f)                      (f)->_entries
 
-/* set the cached freelist entries */
+/** set the cached freelist entries */
 #define freel_cache_set_entries(f, e)                   (f)->_entries=(e)
 
 
@@ -205,7 +221,7 @@ typedef struct freelist_cache_t
 /**
  * a freelist-payload; it spans the persistent part of a ham_page_t
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
+HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 {
     /**
      * "real" address of the first bit
@@ -219,7 +235,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 
 	HAM_PACK_0 union HAM_PACK_1 
 	{
-		/*
+		/**
 		 * This structure represents the backwards compatible v1.0.9 freelist
 		 * payload layout, which can cope with up to 65535 chunks per page.
 		 */
@@ -289,7 +305,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 			ham_u8_t _bitmap[1];
 		} HAM_PACK_2 _s32;
 	} HAM_PACK_2 _s;
-} HAM_PACK_2 freelist_payload_t;
+} HAM_PACK_2;
 
 #include "packstop.h"
 
@@ -386,10 +402,24 @@ typedef HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
 #define freel_get_statistics32(fl)        &((fl)->_s._s32._statistics)
 
 /**
+ * Initialize a v1.1.0+ compatible freelist management object
+ */
+extern ham_status_t
+freel_constructor_prepare32(freelist_cache_t **cache_ref, ham_device_t *dev, 
+                ham_env_t *env);
+
+/**
+ * Initialize a v1.0.x compatible freelist management object
+ */
+extern ham_status_t
+freel_constructor_prepare16(freelist_cache_t **cache_ref, ham_device_t *dev, 
+                ham_env_t *env);
+
+/**
  * flush and release all freelist pages
  */
 extern ham_status_t
-freel_shutdown(ham_db_t *db);
+freel_shutdown(ham_env_t *env);
 
 /**
  * mark an area in the file as "free"
@@ -397,38 +427,69 @@ freel_shutdown(ham_db_t *db);
  * if 'overwrite' is true, will not assert that the bits are all set to
  * zero
  *
- * !! note
+ * @note
  * will assert that address and size are DB_CHUNKSIZE-aligned!
+ * @a db can be NULL
  */
 extern ham_status_t
-freel_mark_free(ham_db_t *db, ham_offset_t address, ham_size_t size,
-        ham_bool_t overwrite);
+freel_mark_free(ham_env_t *env, ham_db_t *db, 
+            ham_offset_t address, ham_size_t size, ham_bool_t overwrite);
 
 /**
  * try to allocate an (unaligned) space from the freelist
  *
  * returns 0 on failure
  *
- * !! note
+ * @note
  * will assert that size is DB_CHUNKSIZE-aligned!
  */
-extern ham_offset_t
-freel_alloc_area(ham_db_t *db, ham_size_t size);
+extern ham_status_t
+freel_alloc_area(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db, 
+            ham_size_t size);
+
+/**
+ * Try to allocate (possibly aligned) space from the freelist,
+ * where the allocated space should be positioned at or beyond
+ * the given address.
+ *
+ * returns 0 on failure
+ *
+ * @note
+ * will assert that size is DB_CHUNKSIZE-aligned!
+ *
+ * @note															
+ * The lower_bound_address is assumed to be on a DB_CHUNKSIZE		
+ * boundary at least. @a aligned space will end up at a             
+ * @ref DB_PAGESIZE_MIN_REQD_ALIGNMENT bytes boundary.              
+ * Regardless, the lower address bound check will be performed		
+ * on a DB_CHUNKSIZE boundary level anyhow.							
+ */
+extern ham_status_t
+freel_alloc_area_ex(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db,
+                ham_size_t size, ham_bool_t aligned, 
+                ham_offset_t lower_bound_address);
 
 /**
  * try to allocate an (aligned) page from the freelist
  *
+ * @a db can be NULL!
+ *
  * returns 0 on failure
  */
-extern ham_offset_t
-freel_alloc_page(ham_db_t *db);
+extern ham_status_t
+freel_alloc_page(ham_offset_t *addr_ref, ham_env_t *env, ham_db_t *db);
 
-/**
- * Validate whether the given zone has been properly marked as allocated.
+/**																	
+ * check whether the given block is administrated in the freelist.
+ * If it isn't yet, make it so.                                 		
+ * 
+ * @return one of @ref ham_status_codes on error, @ref HAM_SUCCESS	
+ *   when the given storage area is within the scope of the		
+ *   freelist.													
  */
-extern ham_bool_t
-freel_check_area_is_allocated(ham_db_t *db, ham_offset_t address, 
-            ham_size_t size);
+extern ham_status_t
+freel_check_area_is_allocated(ham_env_t *env, ham_db_t *db, 
+                ham_offset_t address, ham_size_t size);
 
 
 #ifdef __cplusplus

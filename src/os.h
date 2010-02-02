@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,17 +7,19 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- *
- * operating-system specific functions (mostly I/O stuff)
+ */
+
+/**
+ * @brief operating-system specific functions (mostly I/O stuff)
  *
  */
 
 #ifndef HAM_OS_H__
 #define HAM_OS_H__
 
-#include <stdio.h>
 #include <ham/types.h>
+
+#include <stdio.h>
 #include <limits.h>
 
 
@@ -36,7 +38,7 @@ extern "C" {
  */
 extern ham_status_t
 os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position, 
-		ham_size_t size, ham_bool_t readonly, ham_u8_t **buffer);
+		ham_offset_t size, ham_bool_t readonly, ham_u8_t **buffer);
 
 /**
  * unmap a buffer 
@@ -44,27 +46,27 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
  * @remark win32 needs a second handle for CreateFileMapping
  */
 extern ham_status_t
-os_munmap(ham_fd_t *mmaph, void *buffer, ham_size_t size);
+os_munmap(ham_fd_t *mmaph, void *buffer, ham_offset_t size);
 
 /**
  * read data from a file
  */
 extern ham_status_t
 os_pread(ham_fd_t fd, ham_offset_t addr, void *buffer, 
-        ham_size_t bufferlen);
+        ham_offset_t bufferlen);
 
 /**
  * write data to a file
  */
 extern ham_status_t
 os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer, 
-        ham_size_t bufferlen);
+        ham_offset_t bufferlen);
 
 /**
  * append data to a file
  */
 extern ham_status_t
-os_write(ham_fd_t fd, const void *buffer, ham_size_t bufferlen);
+os_write(ham_fd_t fd, const void *buffer, ham_offset_t bufferlen);
 
 #ifdef HAM_OS_POSIX
 #    define HAM_OS_SEEK_SET     SEEK_SET

@@ -18,6 +18,8 @@
 #include "../src/btree.h"
 #include "../src/keys.h"
 #include "../src/util.h"
+#include "../src/page.h"
+#include "../src/env.h"
 #include "os.hpp"
 #include "memtracker.h"
 
@@ -49,6 +51,7 @@ public:
 
 protected:
     ham_db_t *m_db;
+    ham_env_t *m_env;
     memtracker_t *m_alloc;
 
 public:
@@ -60,8 +63,10 @@ public:
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
+        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 0, 0644));
+
+        m_env=db_get_env(m_db);
     }
     
     virtual void teardown() 
@@ -75,11 +80,11 @@ public:
 
     void structureTest(void)
     {
-        ham_page_t *page=page_new(m_db, 0);
+        ham_page_t *page=page_new(m_env);
         BFC_ASSERT(page!=0);
-        BFC_ASSERT_EQUAL(0, page_alloc(page, db_get_pagesize(m_db)));
+        BFC_ASSERT_EQUAL(0, page_alloc(page, env_get_pagesize(m_env)));
         btree_node_t *node=ham_page_get_btree_node(page);
-        ::memset(node, 0, db_get_usable_pagesize(m_db));
+        ::memset(node, 0, env_get_usable_pagesize(m_env));
 
         int_key_t *key=btree_node_get_key(m_db, node, 0);
         BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(key));
@@ -101,11 +106,11 @@ public:
 
     void extendedRidTest(void)
     {
-        ham_page_t *page=page_new(m_db, 0);
+        ham_page_t *page=page_new(m_env);
         BFC_ASSERT(page!=0);
-        BFC_ASSERT_EQUAL(0, page_alloc(page, db_get_pagesize(m_db)));
+        BFC_ASSERT_EQUAL(0, page_alloc(page, env_get_pagesize(m_env)));
         btree_node_t *node=ham_page_get_btree_node(page);
-        ::memset(node, 0, db_get_usable_pagesize(m_db));
+        ::memset(node, 0, env_get_usable_pagesize(m_env));
 
         ham_offset_t blobid;
 
@@ -405,7 +410,7 @@ public:
         BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, key_get_flags(key));
 
         dupe_entry_t entry;
-        BFC_ASSERT_EQUAL(0, blob_duplicate_get(m_db, key_get_ptr(key),
+        BFC_ASSERT_EQUAL(0, blob_duplicate_get(m_env, key_get_ptr(key),
                     (ham_size_t)position, &entry));
 
         ham_record_t rec;

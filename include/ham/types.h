@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,11 +7,12 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- *
- * \file types.h
- * \brief Portable typedefs for hamsterdb Embedded Storage.
- * \author Christoph Rupp, chris@crupp.de
+ */
+
+/**
+ * @file types.h
+ * @brief Portable typedefs for hamsterdb Embedded Storage.
+ * @author Christoph Rupp, chris@crupp.de
  *
  */
 
@@ -62,9 +63,27 @@ extern "C" {
 /*
  * windows.h is needed for for HANDLE
  */
-#ifdef HAM_OS_WIN32
+#if defined(HAM_OS_WIN32)
 #   define WIN32_MEAN_AND_LEAN
 #   include <windows.h>
+#endif
+
+#if defined(_MSC_VER) && defined(HAM_OS_WIN32)
+
+/* make sure crtdbg.h is loaded before malloc.h */
+#if (defined(WIN32) || defined(__WIN32)) && !defined(UNDER_CE)
+#if defined(DEBUG) || defined(_DEBUG)
+#ifndef _CRTDBG_MAP_ALLOC
+#define _CRTDBG_MAP_ALLOC 1
+#endif
+#endif
+//#if _MSC_VER >= 1400 && _MSC_VER < 1500 /* bloody MSVC2005 b0rks on crtdbg.h otherwise! */
+//#include <stdlib.h>
+//#endif
+#include <crtdbg.h>
+#include <malloc.h> 
+#endif
+
 #endif
 
 /*
@@ -178,6 +197,12 @@ typedef ham_u64_t          ham_offset_t;
  * the endian-macros in src/endian.h (ham_db2h_size/ham_h2db_size)
  */
 typedef ham_u32_t          ham_size_t;
+
+/**
+ * maximum values which can be stored in the related ham_[type]_t type:
+ */
+#define HAM_MAX_U32			(~(ham_u32_t)0)
+#define HAM_MAX_SIZE_T      (~(ham_size_t)0)
 
 
 #ifdef __cplusplus

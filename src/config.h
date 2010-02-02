@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,15 +7,16 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- * 
- *
+ */
+
+/**
  * this file describes the configuration of hamster - serial number, 
  * enabled features etc. 
  *
  */
 
-#ifndef CONFIG_H__
-#define CONFIG_H__
+#ifndef __HAM_CONFIG_H__
+#define __HAM_CONFIG_H__
 
 #include <ham/types.h>
 
@@ -25,7 +26,7 @@
 #ifdef HAVE_CONFIG_H
 #   include "../config.h"
 #else
-#	if UNDER_CE
+#	ifdef UNDER_CE
 #		define HAVE_MMAP                0
 #		define HAVE_UNMMAP              0
 #	else
@@ -42,6 +43,9 @@
 #if (!defined(HAM_DEBUG))
 #   if (defined(_DEBUG) || defined(DEBUG))
 #       define HAM_DEBUG 1
+#		if !defined(HAM_LEAN_AND_MEAN_FOR_PROFILING)
+//#           define HAM_LEAN_AND_MEAN_FOR_PROFILING 1
+#       endif
 #   endif
 #endif
 
@@ -61,4 +65,4 @@
 #define HAM_DEFAULT_CACHESIZE      (64)
 
 
-#endif /* CONFIG_H__ */
+#endif /* __HAM_CONFIG_H__ */

@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,11 +7,12 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- *
- * \file hamsterdb.hpp
- * \author Christoph Rupp, chris@crupp.de
- * \version 1.1.0
+ */
+
+/**
+ * @file hamsterdb.hpp
+ * @author Christoph Rupp, chris@crupp.de
+ * @version 1.1.1
  *
  * This C++ wrapper class is a very tight wrapper around the C API. It does
  * not attempt to be STL compatible. 
@@ -25,11 +26,12 @@
 #ifndef HAM_HAMSTERDB_HPP__
 #define HAM_HAMSTERDB_HPP__
 
+#include <ham/hamsterdb.h>
 #include <ham/hamsterdb_int.h>
 #include <cstring>
 #include <vector>
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && defined(_DEBUG) && !defined(_CRTDBG_MAP_ALLOC) && !defined(UNDER_CE)
 #define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
 #endif
@@ -87,8 +89,10 @@ public:
     key(void *data=0, ham_size_t size=0, ham_u32_t flags=0) {
         memset(&m_key, 0, sizeof(m_key));
         m_key.data=data;
-        m_key.size=size;
+        m_key.size=(ham_u16_t)size;
         m_key.flags=flags;
+		if (m_key.size != size) // check for overflow
+            throw error(HAM_INV_KEYSIZE);
     }
 
     /** Copy constructor. */
@@ -96,8 +100,13 @@ public:
     }
 
     /** Assignment operator. */
-    key &operator=(const key &other) {
-        m_key=other.m_key;
+    key &operator=(const key &other) 
+	{
+		/* TODO -- [i_a] copy key data; same for record; depends on USER_ALLOC flags, etc. */
+		if (&other != this)
+		{
+			m_key=other.m_key;
+		}
         return (*this);
     }
 
@@ -118,7 +127,9 @@ public:
 
     /** Sets the size of the key. */
     void set_size(ham_size_t size) {
-        m_key.size=size;
+        m_key.size=(ham_u16_t)size;
+		if (m_key.size != size)
+            throw error(HAM_INV_KEYSIZE);
     }
 
     /** Template assignment */
@@ -314,7 +325,8 @@ public:
             if (st)
                 throw error(st);
         }
-        if ((st=ham_create_ex(m_db, filename, flags, mode, param)))
+        st=ham_create_ex(m_db, filename, flags, mode, param);
+        if (st)
             throw error(st);
     }
 
@@ -327,7 +339,8 @@ public:
             if (st)
                 throw error(st);
         }
-        if ((st=ham_open_ex(m_db, filename, flags, param)))
+        st=ham_open_ex(m_db, filename, flags, param);
+        if (st)
             throw error(st);
     }
 
@@ -635,7 +648,8 @@ public:
             if (st)
                 throw error(st);
         }
-        if ((st=ham_env_create_ex(m_env, filename, flags, mode, param)))
+        st=ham_env_create_ex(m_env, filename, flags, mode, param);
+        if (st)
             throw error(st);
     }
 
@@ -648,7 +662,8 @@ public:
             if (st)
                 throw error(st);
         }
-        if ((st=ham_env_open_ex(m_env, filename, flags, param)))
+        st=ham_env_open_ex(m_env, filename, flags, param);
+        if (st)
             throw error(st);
     }
 
@@ -737,7 +752,7 @@ public:
         ham_status_t st;
         std::vector<ham_u16_t> v(count);
 
-        do {
+        for(;;) {
             st=ham_env_get_database_names(m_env, &v[0], &count);
             if (!st)
                 break;
@@ -745,7 +760,7 @@ public:
                 throw error(st);
             count+=16;
             v.resize(count);
-        } while (1);
+        }
 
         v.resize(count);
         return (v);

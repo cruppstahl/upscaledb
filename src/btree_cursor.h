@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,19 +7,20 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- * btree cursors
+ */
+
+/**
+ * @brief btree cursors
  *
  */
 
 #ifndef HAM_BT_CURSORS_H__
 #define HAM_BT_CURSORS_H__
 
-#include "page.h"
-#include "txn.h"
-#include "cursor.h"
-#include "keys.h"
+#include "internal_fwd_decl.h"
+
 #include "blob.h"
+#include "cursor.h"
 
 
 #ifdef __cplusplus
@@ -34,7 +35,7 @@ typedef struct ham_bt_cursor_t ham_bt_cursor_t;
 struct ham_bt_cursor_t
 {
     /**
-     * the common declaratons of all cursors
+     * the common declarations of all cursors
      */
     CURSOR_DECLARATIONS(ham_bt_cursor_t);
 
@@ -103,7 +104,7 @@ struct ham_bt_cursor_t
 /**
  * set the database pointer
  */
-#define bt_cursor_set_db(cu, db)            (cu)->_db=db
+#define bt_cursor_set_db(cu, db)            (cu)->_db=(db)
 
 /**
  * get the txn pointer
@@ -113,7 +114,17 @@ struct ham_bt_cursor_t
 /**
  * set the txn pointer
  */
-#define bt_cursor_set_txn(cu, txn)          (cu)->_txn=txn
+#define bt_cursor_set_txn(cu, txn)          (cu)->_txn=(txn)
+
+/**
+* get the allocator
+*/
+#define bt_cursor_get_allocator(cu)         (cu)->_allocator
+
+/**
+* set the allocator
+*/
+#define bt_cursor_set_allocator(cu, a)      (cu)->_allocator=(a)
 
 /**
  * get the flags
@@ -123,11 +134,11 @@ struct ham_bt_cursor_t
 /**
  * set the flags
  */
-#define bt_cursor_set_flags(cu, f)          (cu)->_flags=f
+#define bt_cursor_set_flags(cu, f)          (cu)->_flags=(f)
 
 /**
- * is the cursor pointing to "NULL"? this is the case when the
- * cursor is neither coupled nor uncoupled
+ * Is the cursor pointing to "NULL"? This is the case when the
+ * cursor is neither coupled nor uncoupled.
  */
 #define bt_cursor_is_nil(cu)                               \
                 (!((cu)->_flags&BT_CURSOR_FLAG_COUPLED) && \
@@ -201,8 +212,8 @@ ham_status_t
 bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags);
 
 /**
- * flag for bt_cursor_uncouple: uncouple from the page, but do not
- * call page_remove_cursor()
+ * flag for @ref bt_cursor_uncouple: uncouple from the page, but do not
+ * call @ref page_remove_cursor()
  */
 #define BT_CURSOR_UNCOUPLE_NO_REMOVE        1
 
@@ -214,65 +225,18 @@ bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
             ham_bt_cursor_t **cu);
 
 /**
- * clone an existing cursor
- */
-ham_status_t
-bt_cursor_clone(ham_bt_cursor_t *cu, ham_bt_cursor_t **newit);
-
-/**
- * close an existing cursor
- */
-ham_status_t
-bt_cursor_close(ham_bt_cursor_t *cu);
-
-/**
- * set the cursor to the first item in the database
- */
-ham_status_t
-bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags);
-
-/**
- * overwrite the record of this cursor
- */
-ham_status_t
-bt_cursor_overwrite(ham_bt_cursor_t *cu, ham_record_t *record,
-            ham_u32_t flags);
-
-/**
- * find a key in the index and positions the cursor
- * on this key
- */
-ham_status_t
-bt_cursor_find(ham_bt_cursor_t *cu, ham_key_t *key, ham_record_t *record, 
-                ham_u32_t flags);
-
-/**
- * insert (or update) a key in the index
- */
-ham_status_t
-bt_cursor_insert(ham_bt_cursor_t *cu, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags);
-
-/**
- * erases the key from the index; afterwards, the cursor points to NIL
- */
-ham_status_t
-bt_cursor_erase(ham_bt_cursor_t *cu, ham_u32_t flags);
-
-/**
  * returns true if a cursor points to this key, otherwise false
  */
 ham_bool_t 
 bt_cursor_points_to(ham_bt_cursor_t *cursor, int_key_t *key);
 
-/*
- * get number of duplicates of this key
+/**
+ * uncouple all cursors from a page
+ *
+ * @remark this is called whenever the page is deleted or becoming invalid
  */
 ham_status_t
-bt_cursor_get_duplicate_count(ham_bt_cursor_t *cursor, 
-                ham_size_t *count, ham_u32_t flags);
-
+bt_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
 
 #ifdef __cplusplus
 } // extern "C"

@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,20 +7,20 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- *
- * an object which handles a database page 
+ */
+
+/**
+ * @brief an object which handles a database page 
  *
  */
 
 #ifndef HAM_PAGE_H__
 #define HAM_PAGE_H__
 
-#include "config.h"
+#include "internal_fwd_decl.h"
 
-#include <ham/hamsterdb.h>
 #include "endian.h"
-#include "cursor.h"
+#include "error.h"
 
 
 #ifdef __cplusplus
@@ -47,19 +47,17 @@ extern "C" {
 /* array limit */
 #define MAX_PAGE_LISTS             4
 
-struct ham_page_t;
-typedef struct ham_page_t ham_page_t;
-
 #include "packstart.h"
 
 /**
  * The page header which is persisted on disc
  *
- * This structure definition is present outside of @a ham_page_t scope to allow
+ * This structure definition is present outside of @ref ham_page_t scope to allow
  * compile-time OFFSETOF macros to correctly judge the size, depending 
  * on platform and compiler settings.
  */
-typedef HAM_PACK_0 union HAM_PACK_1 {
+typedef HAM_PACK_0 union HAM_PACK_1 ham_perm_page_union_t
+{
 
     /*
      * this header is only available if the (non-persistent) flag
@@ -75,6 +73,7 @@ typedef HAM_PACK_0 union HAM_PACK_1 {
     HAM_PACK_0 struct HAM_PACK_1 page_union_header_t {
         /**
          * flags of this page - currently only used for the page type
+		 @sa page_type_codes
          */
         ham_u32_t _flags;
 
@@ -99,6 +98,17 @@ typedef HAM_PACK_0 union HAM_PACK_1 {
 } HAM_PACK_2 ham_perm_page_union_t;
 
 #include "packstop.h"
+
+/**
+* get the size of the persistent header of a page
+*
+* equals the size of struct ham_perm_page_union_t, without the payload byte
+*
+* @note
+* this is not equal to sizeof(struct ham_perm_page_union_t)-1, because of
+* padding (i.e. on gcc 4.1/64bit the size would be 15 bytes)
+*/
+#define page_get_persistent_header_size()   (OFFSETOF(ham_perm_page_union_t, _s._payload) /*(sizeof(ham_u32_t)*3)*/ /* 12 */ )
 
 
 /**
@@ -134,11 +144,9 @@ struct ham_page_t {
          * page use bumps up the page counter by a certain amount, up to
          * a page-type specific upper bound.
          *
-         * See also @a cache_put_page(), @a page_increment_cache_cntr()
-         * and their invocations in the code. @a page_new() initialized
+         * See also @ref cache_put_page()
+         * and its invocations in the code. @ref page_new() initialized
          * the counter for each new page.
-         *
-         * To re
          */
         ham_u32_t _cache_cntr;
 
@@ -173,20 +181,6 @@ struct ham_page_t {
 
     /**
      * from here on everything will be written to disk 
-
-	 WARNING: this points at the @e cooked page contents, which are persisted to disk.
-	 When page filters are installed, those will transform this @e cooked data to
-	 @e raw data, which is then written to disk. During this process, page headers and footers
-	 may be added to this 'cooked' data, while the data itself may be transformed (e.g. encrypted)
-	 before it ends up on the disk platters.
-
-	 This filtering process is completely opaque to the hamster; the only part involved
-	 is the ham_device_t device driver, which will take care of all of this.
-
-	 The only thing you see in here, which alludes to the above data processing is the
-	 inclusion of an additional @ref _raw_pagedata reference which points at the @e raw
-	 (memory mapped) data space for this @e cooked page. This reference may be NULL; you may @e never
-	 access it outside the ham_device_t device driver realm.
      */
     ham_perm_page_union_t *_pers;
 };
@@ -200,7 +194,7 @@ struct ham_page_t {
  *
  * (defined in db.h)
  */
-//#define db_get_persistent_header_size()   (OFFSETOF(ham_perm_page_union_t, _s._payload) /*(sizeof(ham_u32_t)*3)*/ )
+//#define page_get_persistent_header_size()   (OFFSETOF(ham_perm_page_union_t, _s._payload) /*(sizeof(ham_u32_t)*3)*/ )
 
 /**
  * get the address of this page
@@ -377,10 +371,10 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
  */
 #define PAGE_DUMMY_TXN_ID        1
 
-#define page_set_dirty(page)     page_set_dirty_txn(page,                   \
-            (db_get_txn(page_get_owner(page))                               \
-                ?  txn_get_id(db_get_txn(page_get_owner(page)))             \
-                :  PAGE_DUMMY_TXN_ID))
+#define page_set_dirty(page, env)											\
+	page_set_dirty_txn(page, ((env) && env_get_txn(env)						\
+			? txn_get_id(env_get_txn(env))									\
+            : PAGE_DUMMY_TXN_ID))
 
 /** 
  * page is no longer dirty
@@ -434,13 +428,34 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 #define page_get_type(page)      (page_get_pers_flags(page))
 
 /**
- * valid page types
+ * @defgroup page_type_codes valid page types
+ * @{
+
+ Each database page is tagged with a type code; these are all known/supported page type codes.
+
+ @note When ELBLOBs (Extremely Large BLOBs) are stored in the database, that is BLOBs which
+       span multiple pages apiece, only their initial page will have a valid type code;
+	   subsequent pages of the ELBLOB will store the data as-is, so as to provide one continuous
+	   storage space per ELBLOB.
+
+@sa ham_perm_page_union_t::page_union_header_t::_flags
  */
-#define PAGE_TYPE_UNKNOWN        0x00000000
-#define PAGE_TYPE_HEADER         0x10000000
-#define PAGE_TYPE_B_ROOT         0x20000000
-#define PAGE_TYPE_B_INDEX        0x30000000
-#define PAGE_TYPE_FREELIST       0x40000000
+/** unidentified db page type */
+#define PAGE_TYPE_UNKNOWN        0x00000000	 
+/** the db header page: this is the very first page in the database/environment */
+#define PAGE_TYPE_HEADER         0x10000000	 
+/** the db B+tree root page */
+#define PAGE_TYPE_B_ROOT         0x20000000	 
+/** a B+tree node page, i.e. a page which is part of the database index */
+#define PAGE_TYPE_B_INDEX        0x30000000	 
+/** a freelist management page */
+#define PAGE_TYPE_FREELIST       0x40000000	 
+/** a page which stores (the front part of) a BLOB. */
+#define PAGE_TYPE_BLOB           0x50000000	 
+
+/**
+ * @}
+ */
 
 /**
  * get pointer to persistent payload (after the header!)
@@ -499,10 +514,13 @@ page_remove_cursor(ham_page_t *page, ham_cursor_t *cursor);
 /**
  * create a new page structure
  *
- * db can be NULL
+ * @return a pointer to a new @ref ham_page_t instance.
+ *
+ * @return NULL when an error occurred. The error is
+ *         implied to be @ref HAM_OUT_OF_MEMORY;
  */
 extern ham_page_t *
-page_new(ham_db_t *db, struct mem_allocator_t *alloc);
+page_new(ham_env_t *env);
 
 /**
  * delete a page structure

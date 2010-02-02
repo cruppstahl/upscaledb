@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,23 +7,24 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- *
- * transactions
+ */
+
+/**
+ * @brief transactions
  *
  */
 
 #ifndef HAM_TXN_H__
 #define HAM_TXN_H__
 
-#include <ham/hamsterdb.h>
+#include "internal_fwd_decl.h"
+
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif 
 
-struct ham_page_t;
 
 /**
  * a dummy transaction structure
@@ -38,7 +39,7 @@ struct ham_txn_t
     /**
      * owner of this transaction 
      */
-    ham_db_t *_db;
+    ham_env_t *_env;
 
     /**
      * flags for this transaction
@@ -64,7 +65,7 @@ struct ham_txn_t
     /**
      * a list of pages which are referenced by this transaction
      */
-    struct ham_page_t *_pagelist;
+    ham_page_t *_pagelist;
 
 };
 
@@ -76,22 +77,17 @@ struct ham_txn_t
 /**
  * set the id
  */
-#define txn_set_id(txn, id)                     (txn)->_id=id
+#define txn_set_id(txn, id)                     (txn)->_id=(id)
 
 /**
- * set the database pointer
+ * get the environment pointer
  */
-#define txn_set_db(txn, db)                     (txn)->_db=db
+#define txn_get_env(txn)                         (txn)->_env
 
 /**
- * get the database pointer
- */
-#define txn_get_db(txn)                         (txn)->_db
-
-/**
- * set the database pointer
- */
-#define txn_set_db(txn, db)                     (txn)->_db=db
+* set the environment pointer
+*/
+#define txn_set_env(txn, env)                     (txn)->_env=(env)
 
 /**
  * get the flags
@@ -101,7 +97,7 @@ struct ham_txn_t
 /**
  * set the flags 
  */
-#define txn_set_flags(txn, f)                   (txn)->_flags=f
+#define txn_set_flags(txn, f)                   (txn)->_flags=(f)
 
 /**
  * get the cursor refcount
@@ -111,7 +107,7 @@ struct ham_txn_t
 /**
  * set the cursor refcount 
  */
-#define txn_set_cursor_refcount(txn, cfc)       (txn)->_cursor_refcount=cfc
+#define txn_set_cursor_refcount(txn, cfc)       (txn)->_cursor_refcount=(cfc)
 
 /**
  * get the index of the log file descriptor
@@ -121,7 +117,7 @@ struct ham_txn_t
 /**
  * set the index of the log file descriptor
  */
-#define txn_set_log_desc(txn, desc)             (txn)->_log_desc=desc
+#define txn_set_log_desc(txn, desc)             (txn)->_log_desc=(desc)
 
 /**
  * get the 'next' pointer of the linked list
@@ -131,7 +127,7 @@ struct ham_txn_t
 /**
  * set the 'next' pointer of the linked list
  */
-#define txn_set_next(txn, n)                    (txn)->_next=n
+#define txn_set_next(txn, n)                    (txn)->_next=(n)
 
 /**
  * get the 'previous' pointer of the linked list
@@ -141,7 +137,7 @@ struct ham_txn_t
 /**
  * set the 'previous' pointer of the linked list
  */
-#define txn_set_previous(txn, p)                (txn)->_previous=p
+#define txn_set_previous(txn, p)                (txn)->_previous=(p)
 
 /**
  * get the page list
@@ -151,26 +147,26 @@ struct ham_txn_t
 /**
  * set the page list
  */
-#define txn_set_pagelist(txn, pl)                (txn)->_pagelist=pl
+#define txn_set_pagelist(txn, pl)                (txn)->_pagelist=(pl)
 
 /**
  * add a page to the transaction's pagelist
  */
 extern ham_status_t
-txn_add_page(ham_txn_t *txn, struct ham_page_t *page, 
+txn_add_page(ham_txn_t *txn, ham_page_t *page, 
         ham_bool_t ignore_if_inserted);
 
 /**
  * remove a page from the transaction's pagelist
  */
 extern ham_status_t
-txn_remove_page(ham_txn_t *txn, struct ham_page_t *page);
+txn_remove_page(ham_txn_t *txn, ham_page_t *page);
 
 /**
  * get a page from the transaction's pagelist; returns 0 if the page
  * is not in the list
  */
-extern struct ham_page_t *
+extern ham_page_t *
 txn_get_page(ham_txn_t *txn, ham_offset_t address);
 
 /**
@@ -178,7 +174,7 @@ txn_get_page(ham_txn_t *txn, ham_offset_t address);
  * it will be deleted when the transaction is committed
  */
 extern ham_status_t
-txn_free_page(ham_txn_t *txn, struct ham_page_t *page);
+txn_free_page(ham_txn_t *txn, ham_page_t *page);
 
 /**
  * start a transaction
@@ -186,7 +182,7 @@ txn_free_page(ham_txn_t *txn, struct ham_page_t *page);
  * @remark flags are defined below
  */
 extern ham_status_t
-txn_begin(ham_txn_t *txn, ham_db_t *db, ham_u32_t flags);
+txn_begin(ham_txn_t *txn, ham_env_t *env, ham_u32_t flags);
 
 /* #define HAM_TXN_READ_ONLY       1   -- already defined in hamsterdb.h */
 

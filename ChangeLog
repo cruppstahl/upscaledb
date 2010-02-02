@@ -1,3 +1,10 @@
+Feb 01, 2010 - chris
+o Bugfix: if multiple databases in an Environment are open, and just one 
+    Database is closed, then the pages of this Database were not flushed
+    correctly
+o Bugfix: if multiple databases in an Environment are open, an open Transaction
+    was not immediately closed on the first call of ham_close
+
 Jan 19, 2010 - chris
 o duplicate keys can now be sorted. The default sort order is based on 
     memcmp(), but can be overwritten with ham_set_duplicate_compare_func.

@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,8 +7,10 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- * functions for reading/writing/allocating blobs (memory chunks of
+ */
+
+/**
+ * @brief functions for reading/writing/allocating blobs (memory chunks of
  * arbitrary size)
  *
  */
@@ -16,9 +18,9 @@
 #ifndef HAM_BLOB_H__
 #define HAM_BLOB_H__
 
-#include <ham/hamsterdb.h>
-#include "page.h"
-#include "keys.h"
+#include "internal_fwd_decl.h"
+
+#include "endian.h"
 
 
 #ifdef __cplusplus
@@ -33,13 +35,13 @@ extern "C" {
  * every blob has a blob_t header; it holds flags and some other 
  * administrative information
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 
+typedef HAM_PACK_0 struct HAM_PACK_1 blob_t
 {
     /**
      * the blob ID - which is the absolute address/offset of this 
      * blob_t structure in the file
      */
-    ham_offset_t _blobid;
+    ham_u64_t _blobid;
 
     /**
      * the allocated size of the blob; this is the size, which is used
@@ -107,7 +109,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 /**
  * a structure for a duplicate - used in a duplicate table
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 
+typedef HAM_PACK_0 struct HAM_PACK_1 dupe_entry_t
 {
     /**
      * reserved, for padding
@@ -123,7 +125,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
     /**
      * the record id (unless it's TINY, SMALL or NULL)
      */
-    ham_offset_t _rid;
+    ham_u64_t _rid;
 
 } HAM_PACK_2 dupe_entry_t;
 
@@ -170,7 +172,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 /**
  * a structure for duplicates (dupe_table_t)
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 
+typedef HAM_PACK_0 struct HAM_PACK_1 dupe_table_t
 {
     /**
      * the number of duplicates (used entries in this table)
@@ -212,7 +214,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 #define dupe_table_set_capacity(t, c)   (t)->_capacity=ham_h2db32(c)
 
 /**
- * get a pointer to a duplicate entry #i
+ * get a pointer to a duplicate entry @a i
  */
 #define dupe_table_get_entry(t, i)      (&(t)->_entries[i])
 
@@ -222,7 +224,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
  * returns the blob-id (the start address of the blob header) in @a blobid
  */
 extern ham_status_t
-blob_allocate(ham_db_t *db, ham_u8_t *data, 
+blob_allocate(ham_env_t *env, ham_db_t *db, ham_u8_t *data, 
         ham_size_t size, ham_u32_t flags, ham_offset_t *blobid);
 
 /**
@@ -243,7 +245,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
  * returns the blob-id (the start address of the blob header) in @a blobid
  */
 extern ham_status_t
-blob_overwrite(ham_db_t *db, ham_offset_t old_blobid, 
+blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid, 
         ham_u8_t *data, ham_size_t size, ham_u32_t flags, 
         ham_offset_t *new_blobid);
 
@@ -251,7 +253,7 @@ blob_overwrite(ham_db_t *db, ham_offset_t old_blobid,
  * delete an existing blob
  */
 extern ham_status_t
-blob_free(ham_db_t *db, ham_offset_t blobid, ham_u32_t flags);
+blob_free(ham_env_t *env, ham_db_t *db, ham_offset_t blobid, ham_u32_t flags);
 
 /**
  * create a duplicate table and insert all entries in the duplicate
@@ -286,14 +288,14 @@ blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
  * get the number of duplicates
  */
 extern ham_status_t
-blob_duplicate_get_count(ham_db_t *db, ham_offset_t table_id,
+blob_duplicate_get_count(ham_env_t *env, ham_offset_t table_id,
         ham_size_t *count, dupe_entry_t *entry);
 
 /**
  * get a duplicate
  */
 extern ham_status_t 
-blob_duplicate_get(ham_db_t *db, ham_offset_t table_id,
+blob_duplicate_get(ham_env_t *env, ham_offset_t table_id,
         ham_size_t position, dupe_entry_t *entry);
 
 

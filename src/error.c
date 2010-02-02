@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -21,6 +21,7 @@
 
 #include "db.h"
 #include "error.h"
+#include "mem.h"
 #include "util.h"
 
 static int         g_level   =0;
@@ -118,8 +119,6 @@ dbg_verify_failed(const char *format, ...)
 
     if (!g_expr)
         g_expr="(none)";
-    if (!format)
-        format="(none)";
 
     s=my_snprintf(buffer, sizeof(buffer), 
             "ASSERT FAILED in file %s, line %d:\n\t\"%s\"\n", 

@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -13,16 +13,18 @@
 #include "config.h"
 
 #include <string.h>
-#include <ham/hamsterdb.h>
-#include "error.h"
+
+#include "cache.h"
+#include "cursor.h"
 #include "db.h"
-#include "page.h"
+#include "device.h"
+#include "env.h"
+#include "error.h"
+#include "freelist.h"
+#include "log.h"
 #include "mem.h"
 #include "os.h"
-#include "freelist.h"
-#include "cursor.h"
-#include "device.h"
-#include "log.h"
+#include "page.h"
 
 #ifdef HAM_DEBUG
 static ham_bool_t
@@ -200,31 +202,31 @@ page_remove_cursor(ham_page_t *page, ham_cursor_t *cursor)
 }
 
 ham_page_t *
-page_new(ham_db_t *db, mem_allocator_t *alloc)
+page_new(ham_env_t *env)
 {
     ham_page_t *page;
+	mem_allocator_t *alloc=env_get_allocator(env);
 
-    if (!alloc)
-        alloc=db_get_allocator(db);
-
-    page=(ham_page_t *)allocator_alloc(alloc, sizeof(ham_page_t));
-    if (!page)
+    page=(ham_page_t *)allocator_alloc(alloc, sizeof(*page));
+    if (!page) {
+        //db_set_error(db, HAM_OUT_OF_MEMORY);
         return (0);
-    memset(page, 0, sizeof(ham_page_t));
+    }
+    memset(page, 0, sizeof(*page));
 
     page_set_allocator(page, alloc);
 
-    if (db) {
-        page_set_owner(page, db);
-        page_set_device(page, db_get_device(db));
+    //page_set_owner(page, db); 
+	// TODO ^^^ make sure the backend takes care of this...
 
-        /*
-	     * initialize the cache counter, 
-	     * see also cache_increment_page_counter() 
-	     */
-	    page_set_cache_cntr(page, 
-            (db_get_cache(db) ? db_get_cache(db)->_timeslot++ : 0));
-    }
+    page_set_device(page, env_get_device(env));
+
+    /*
+     * initialize the cache counter, 
+     * see also cache_increment_page_counter() 
+     */
+    page_set_cache_cntr(page, 
+        (env_get_cache(env) ? env_get_cache(env)->_timeslot++ : 0));
 
     return (page);
 }
@@ -245,6 +247,7 @@ page_alloc(ham_page_t *page, ham_size_t size)
 {
     ham_device_t *dev=page_get_device(page);
 
+	ham_assert(dev, (0));
 	return (dev->alloc_page(dev, page, size));
 }
 
@@ -253,6 +256,7 @@ page_fetch(ham_page_t *page, ham_size_t size)
 {
     ham_device_t *dev=page_get_device(page);
 
+	ham_assert(dev, (0));
 	return (dev->read_page(dev, page, size));
 }
 
@@ -260,26 +264,40 @@ ham_status_t
 page_flush(ham_page_t *page)
 {
     ham_status_t st;
-    ham_db_t *db=page_get_owner(page);
+    ham_env_t *env;
     ham_device_t *dev=page_get_device(page);
 
     if (!page_is_dirty(page))
         return (HAM_SUCCESS);
 
-    ham_assert(page_get_refcount(page)==0, (""));
+	ham_assert(dev, (0));
+	env = device_get_env(dev);
+	ham_assert(env, (0));
+	ham_assert(page_get_owner(page) ? env == db_get_env(page_get_owner(page)) : 1, (0));
 
-    if (db
-            && db_get_env(db) 
-            && db_get_log(db) 
-            && !(log_get_state(db_get_log(db))&LOG_STATE_CHECKPOINT)) {
-        st=ham_log_append_flush_page(db_get_log(db), page);
+    ham_assert(page_get_refcount(page)==0, (0));
+
+	/* 
+	as we are about to write a modified page to disc, we MUST flush 
+	the log before we do write the page in order to assure crash 
+	recovery:
+
+	as this page belongs to us, it may well be a page which was modified
+	in the pending transaction and any such edits should be REWINDable
+	after a crash when that page has just been written.
+	*/
+    if (env
+        && env_get_log(env) 
+        && !(log_get_state(env_get_log(env))&LOG_STATE_CHECKPOINT)) 
+	{
+        st=ham_log_append_flush_page(env_get_log(env), page);
         if (st)
-            return (db_set_error(db, st));
+            return (st);
     }
 
     st=dev->write_page(dev, page);
     if (st)
-        return (db_set_error(db, st));
+        return (st);
 
     page_set_undirty(page);
     return (HAM_SUCCESS);
@@ -290,6 +308,7 @@ page_free(ham_page_t *page)
 {
     ham_device_t *dev=page_get_device(page);
 
+	ham_assert(dev, (0));
     ham_assert(page_get_cursors(page)==0, (0));
 
     return (dev->free_page(dev, page));

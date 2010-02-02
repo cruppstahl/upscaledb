@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -9,9 +9,9 @@
  * See files COPYING.* for License information.
  *
  *
- * \file hamsterdb_int.h
- * \brief Internal hamsterdb Embedded Storage functions.
- * \author Christoph Rupp, chris@crupp.de
+ * @file hamsterdb_int.h
+ * @brief Internal hamsterdb Embedded Storage functions.
+ * @author Christoph Rupp, chris@crupp.de
  *
  */
 
@@ -25,7 +25,12 @@ extern "C" {
 #endif 
 
 /**
- * @defgroup ham_status_codes hamsterdb Enhanced API
+ * @defgroup ham_extended_api hamsterdb Enhanced API
+ * @{
+ */
+
+/**
+ * @defgroup ham_special_db_names Special Database Names
  * @{
  */
 
@@ -50,6 +55,11 @@ extern "C" {
  * the header page 
  */
 #define HAM_DUMMY_DATABASE_NAME       (0xf002)
+
+/**
+@}
+*/
+
 
 /** 
  * Verifies the integrity of the Database
@@ -324,8 +334,10 @@ ham_remove_record_filter(ham_db_t *db, ham_record_filter_t *filter);
  * @return @a HAM_ALREADY_INITIALIZED if this function was already called
  *            for this Environment
  */
+struct ham_device_t;
+typedef struct ham_device_t ham_device_t;
 HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_set_device(ham_env_t *env, void *device);
+ham_env_set_device(ham_env_t *env, ham_device_t *device);
 
 /**
  * Retrieves the Database handle of a Cursor

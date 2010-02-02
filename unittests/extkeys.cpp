@@ -16,6 +16,7 @@
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
 #include "../src/extkeys.h"
+#include "../src/env.h"
 #include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
@@ -52,12 +53,12 @@ public:
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
+        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
 
         extkey_cache_t *c=extkey_cache_new(m_db);
         BFC_ASSERT(c!=0);
-        env_set_extkey_cache(db_get_env(m_db), c);
+        db_set_extkey_cache(m_db, c);
     }
     
     virtual void teardown() 
@@ -205,7 +206,8 @@ public:
                     sizeof(buffer), buffer));
         }
 
-        env_set_txn_id(db_get_env(m_db), db_get_txn_id(m_db)+2000);
+        ham_env_t *env=db_get_env(m_db);
+        env_set_txn_id(env, env_get_txn_id(env)+2000);
 
         BFC_ASSERT_EQUAL(0, extkey_cache_purge(c));
 

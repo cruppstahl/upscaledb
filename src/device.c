@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -13,13 +13,14 @@
 #include "config.h"
 
 #include <string.h>
+
+#include "db.h"
 #include "device.h"
 #include "error.h"
-#include "os.h"
 #include "mem.h"
+#include "os.h"
 #include "page.h"
-#include "error.h"
-#include "db.h"
+#include "env.h"
 
 typedef struct 
 {
@@ -90,8 +91,16 @@ __f_is_open(ham_device_t *self)
 static ham_size_t 
 __f_get_pagesize(ham_device_t *self)
 {
-    (void)self;
-    return (os_get_pagesize());
+    if (!self->_pagesize)
+        self->_pagesize=os_get_pagesize();
+    return (self->_pagesize);
+}
+
+static ham_status_t 
+__f_set_pagesize(ham_device_t *self, ham_size_t pagesize)
+{
+    self->_pagesize=pagesize;
+    return (0);
 }
 
 static ham_status_t 
@@ -109,23 +118,23 @@ __f_tell(ham_device_t *self, ham_offset_t *offset)
 }
 
 static ham_status_t 
-__f_read(ham_db_t *db, ham_device_t *self, ham_offset_t offset, 
-        void *buffer, ham_size_t size)
+__f_read(ham_device_t *self, ham_offset_t offset, 
+        void *buffer, ham_offset_t size)
 {
     dev_file_t *t=(dev_file_t *)device_get_private(self);
+    ham_env_t *env=device_get_env(self);
     ham_file_filter_t *head=0;
     ham_status_t st;
 
     st=os_pread(t->fd, offset, buffer, size);
     if (st)
-        return (db_set_error(db, st));
+        return (st);
 
     /*
      * we're done unless there are file filters (or if we're reading the
      * header page - the header page is not filtered)
      */
-    if (db && db_get_env(db))
-        head=env_get_file_filter(db_get_env(db));
+    head=env_get_file_filter(env);
     if (!head || offset==0)
         return (0);
 
@@ -134,9 +143,9 @@ __f_read(ham_db_t *db, ham_device_t *self, ham_offset_t offset,
      */
     while (head) {
         if (head->after_read_cb) {
-            st=head->after_read_cb(db_get_env(db), head, buffer, size);
+            st=head->after_read_cb(env, head, buffer, size);
             if (st)
-                return (db_set_error(db, st));
+                return (st);
         }
         head=head->_next;
     }
@@ -145,7 +154,7 @@ __f_read(ham_db_t *db, ham_device_t *self, ham_offset_t offset,
 }
 
 static ham_status_t
-__f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
+__f_read_page(ham_device_t *self, ham_page_t *page, ham_offset_t size)
 {
     ham_u8_t *buffer;
     ham_status_t st;
@@ -157,7 +166,7 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
         head=env_get_file_filter(db_get_env(db));
 
     if (!size)
-        size=device_get_pagesize(self);
+        size=self->get_pagesize(self);
 
     if (device_get_flags(self)&HAM_DISABLE_MMAP) {
 		if (page_get_pers(page)==0) {
@@ -171,7 +180,7 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
         else
             ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_MALLOC), (0));
 
-        return (__f_read(db, self, page_get_self(page), 
+        return (__f_read(self, page_get_self(page), 
                     page_get_pers(page), size));
     }
 
@@ -226,11 +235,14 @@ __f_alloc(ham_device_t *self, ham_size_t size, ham_offset_t *address)
 }
 
 static ham_status_t 
-__f_alloc_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
+__f_alloc_page(ham_device_t *self, ham_page_t *page, ham_offset_t size)
 {
     ham_status_t st;
     ham_offset_t pos;
     dev_file_t *t=(dev_file_t *)device_get_private(self);
+
+    if (!size)
+        size=self->get_pagesize(self);
 
     st=os_get_filesize(t->fd, &pos);
     if (st)
@@ -255,34 +267,34 @@ __f_get_filesize(ham_device_t *self, ham_offset_t *length)
 }
 
 static ham_status_t 
-__f_write(ham_db_t *db, ham_device_t *self, ham_offset_t offset, void *buffer, 
-            ham_size_t size)
+__f_write(ham_device_t *self, ham_offset_t offset, void *buffer, 
+            ham_offset_t size)
 {
     dev_file_t *t=(dev_file_t *)device_get_private(self);
     ham_u8_t *tempdata=0;
     ham_status_t st=0;
+    ham_env_t *env=device_get_env(self);
     ham_file_filter_t *head=0;
-    if (db && db_get_env(db))
-        head=env_get_file_filter(db_get_env(db));
 
     /*
      * run page through page-level filters, but not for the 
      * root-page!
      */
+    head=env_get_file_filter(env);
     if (!head || offset==0)
         return (os_pwrite(t->fd, offset, buffer, size));
 
     /*
      * don't modify the data in-place!
      */
-    tempdata=ham_mem_alloc(db, size);
+    tempdata=(ham_u8_t *)allocator_alloc(env_get_allocator(env), size);
     if (!tempdata)
-        return (db_set_error(db, HAM_OUT_OF_MEMORY));
+        return (HAM_OUT_OF_MEMORY);
     memcpy(tempdata, buffer, size);
 
     while (head) {
         if (head->before_write_cb) {
-            st=head->before_write_cb(db_get_env(db), head, tempdata, size);
+            st=head->before_write_cb(env, head, tempdata, size);
             if (st) 
                 break;
         }
@@ -292,31 +304,15 @@ __f_write(ham_db_t *db, ham_device_t *self, ham_offset_t offset, void *buffer,
     if (!st)
         st=os_pwrite(t->fd, offset, tempdata, size);
 
-    ham_mem_free(db, tempdata);
+    allocator_free(env_get_allocator(env), tempdata);
     return (st);
-}
-
-static ham_status_t 
-__f_read_raw(ham_device_t *self, ham_offset_t offset, void *buffer, 
-        ham_size_t size)
-{
-    dev_file_t *t=(dev_file_t *)device_get_private(self);
-    return (os_pread(t->fd, offset, buffer, size));
-}
-
-static ham_status_t 
-__f_write_raw(ham_device_t *self, ham_offset_t offset, void *buffer, 
-        ham_size_t size)
-{
-    dev_file_t *t=(dev_file_t *)device_get_private(self);
-    return (os_pwrite(t->fd, offset, buffer, size));
 }
 
 static ham_status_t 
 __f_write_page(ham_device_t *self, ham_page_t *page)
 {
-    return (__f_write(page_get_owner(page), self, page_get_self(page), 
-                page_get_pers(page), device_get_pagesize(self)));
+    return (__f_write(self, page_get_self(page), 
+                page_get_pers(page), self->get_pagesize(self)));
 }
 
 static ham_status_t 
@@ -332,7 +328,7 @@ __f_free_page(ham_device_t *self, ham_page_t *page)
         }
         else {
             st=os_munmap(page_get_mmap_handle_ptr(page), 
-                    page_get_pers(page), device_get_pagesize(self));
+                    page_get_pers(page), self->get_pagesize(self));
             if (st)
                 return (st);
         }
@@ -424,8 +420,9 @@ __m_is_open(ham_device_t *self)
 static ham_size_t 
 __m_get_pagesize(ham_device_t *self)
 {
-    (void)self;
-    return (1024*4);
+    if (!self->_pagesize)
+        return (1024*4);
+    return (self->_pagesize);
 }
 
 static ham_status_t 
@@ -439,11 +436,14 @@ __m_alloc(ham_device_t *self, ham_size_t size, ham_offset_t *address)
 }
 
 static ham_status_t 
-__m_alloc_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
+__m_alloc_page(ham_device_t *self, ham_page_t *page, ham_offset_t size)
 {
     ham_u8_t *buffer;
 
     ham_assert(page_get_pers(page)==0, (0));
+
+    if (!size)
+        size=self->get_pagesize(self);
 
     buffer=allocator_alloc(device_get_allocator(self), size);
     if (!buffer)
@@ -466,10 +466,9 @@ __m_get_filesize(ham_device_t *self, ham_offset_t *size)
 }
 
 static ham_status_t 
-__m_read(ham_db_t *db, ham_device_t *self, ham_offset_t offset, 
-        void *buffer, ham_size_t size)
+__m_read(ham_device_t *self, ham_offset_t offset, 
+        void *buffer, ham_offset_t size)
 {
-    (void)db;
     (void)self;
     (void)offset;
     (void)buffer;
@@ -480,10 +479,9 @@ __m_read(ham_db_t *db, ham_device_t *self, ham_offset_t offset,
 
 
 static ham_status_t 
-__m_write(ham_db_t *db, ham_device_t *self, ham_offset_t offset, void *buffer, 
-            ham_size_t size)
+__m_write(ham_device_t *self, ham_offset_t offset, void *buffer, 
+            ham_offset_t size)
 {
-    (void)db;
     (void)self;
     (void)offset;
     (void)buffer;
@@ -493,7 +491,7 @@ __m_write(ham_db_t *db, ham_device_t *self, ham_offset_t offset, void *buffer,
 }
 
 static ham_status_t
-__m_read_page(ham_device_t *self, ham_page_t *page, ham_size_t size)
+__m_read_page(ham_device_t *self, ham_page_t *page, ham_offset_t size)
 {
     (void)self;
     (void)page;
@@ -555,6 +553,7 @@ ham_device_new(mem_allocator_t *alloc, ham_env_t *env, int devtype)
 
     memset(dev, 0, sizeof(*dev));
     device_set_allocator(dev, alloc);
+    device_set_env(dev, env);
 
 	if (devtype==HAM_DEVTYPE_MEMORY) {
         dev_inmem_t *t=(dev_inmem_t *)allocator_alloc(alloc, sizeof(*t));
@@ -570,6 +569,7 @@ ham_device_new(mem_allocator_t *alloc, ham_env_t *env, int devtype)
         dev->truncate     = __m_truncate;
         dev->is_open      = __m_is_open;
         dev->get_pagesize = __m_get_pagesize;
+        dev->set_pagesize = __f_set_pagesize; /* works for file and inmem */
         dev->set_flags    = __set_flags;
         dev->get_flags    = __get_flags;
         dev->alloc        = __m_alloc;
@@ -598,6 +598,7 @@ ham_device_new(mem_allocator_t *alloc, ham_env_t *env, int devtype)
         dev->truncate     = __f_truncate;
         dev->is_open      = __f_is_open;
         dev->get_pagesize = __f_get_pagesize;
+        dev->set_pagesize = __f_set_pagesize;
         dev->set_flags    = __set_flags;
         dev->get_flags    = __get_flags;
         dev->alloc        = __f_alloc;
@@ -607,8 +608,6 @@ ham_device_new(mem_allocator_t *alloc, ham_env_t *env, int devtype)
         dev->tell         = __f_tell;
         dev->read         = __f_read;
         dev->write        = __f_write;
-        dev->read_raw     = __f_read_raw;
-        dev->write_raw    = __f_write_raw;
         dev->read_page    = __f_read_page;
         dev->write_page   = __f_write_page;
         dev->free_page    = __f_free_page;
@@ -622,7 +621,7 @@ ham_device_new(mem_allocator_t *alloc, ham_env_t *env, int devtype)
      * overwritten i.e. by ham_open, ham_create when the pagesize 
      * of the file is known
      */
-    device_set_pagesize(dev, dev->get_pagesize(dev));
+    dev->set_pagesize(dev, dev->get_pagesize(dev));
 
     return (dev);
 }

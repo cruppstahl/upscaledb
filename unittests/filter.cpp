@@ -16,6 +16,7 @@
 #include <ham/hamsterdb_int.h>
 #include "memtracker.h"
 #include "../src/db.h"
+#include "../src/env.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
@@ -207,10 +208,10 @@ public:
         os::unlink(BFC_OPATH(".test"));
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
+        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT((m_alloc2=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator(m_env, (mem_allocator_t *)m_alloc2);
+        //env_set_allocator(m_env, (mem_allocator_t *)m_alloc2);
     }
     
     virtual void teardown() 

@@ -16,6 +16,7 @@
 #include <string.h>
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
+#include "../src/env.h"
 #include "../src/btree.h"
 #include "memtracker.h"
 #include "os.hpp"
@@ -84,7 +85,8 @@ public:
     void createCloseOpenCloseTest(void)
     {
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), 
+                        m_flags|HAM_RECORD_NUMBER, 0664));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), m_flags));
@@ -609,7 +611,8 @@ public:
         memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, 
-                ham_create(m_db, BFC_OPATH(".test"), m_flags|HAM_RECORD_NUMBER, 0664));
+                ham_create(m_db, BFC_OPATH(".test"), 
+                        m_flags|HAM_RECORD_NUMBER, 0664));
 
         key.data=&recno;
         key.flags=HAM_KEY_USER_ALLOC;
@@ -738,7 +741,9 @@ public:
         }
 
         ham_btree_t *be=(ham_btree_t *)db_get_backend(m_db);
-        ham_page_t *page=db_fetch_page(m_db, btree_get_rootpage(be), 0);
+        ham_page_t *page;
+        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, db_get_env(m_db), m_db,
+                btree_get_rootpage(be), 0));
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, db_uncouple_all_cursors(page, 0));
 

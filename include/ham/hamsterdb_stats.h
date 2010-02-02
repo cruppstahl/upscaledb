@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,12 +7,13 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- *
- * \file hamsterdb_stats.h
- * \brief Internal hamsterdb Embedded Storage statistics gathering and 
- * hinting functions.
- * \author Ger Hobbelt, ger@hobbelt.com
+ */
+
+/**
+ * @file hamsterdb_stats.h
+ * @brief Internal hamsterdb Embedded Storage statistics gathering and 
+ *        hinting functions.
+ * @author Ger Hobbelt, ger@hobbelt.com
  *
  */
 
@@ -26,6 +27,7 @@ extern "C" {
 #endif 
 
 struct ham_statistics_t;
+typedef struct ham_statistics_t ham_statistics_t;
 
 
 /**
@@ -33,10 +35,10 @@ struct ham_statistics_t;
  * function.
  *
  * @sa HAM_PARAM_GET_STATISTICS
- * @sa HAM_statistics_t
+ * @sa ham_statistics_t
  * @sa ham_clean_statistics_datarec
  */
-typedef void ham_free_statistics_func_t(struct ham_statistics_t *self);
+typedef void ham_free_statistics_func_t(ham_statistics_t *self);
 
 /**
  * The upper bound value which will trigger a statistics data rescale operation
@@ -111,7 +113,7 @@ typedef struct ham_freelist_slotsize_stats_t
  */
 typedef struct ham_freelist_page_statistics_t
 {
-    ham_freelist_slotsize_stats_t per_size[HAM_FREELIST_SLOT_SPREAD]; 
+	ham_freelist_slotsize_stats_t per_size[HAM_FREELIST_SLOT_SPREAD]; 
 
     /**
      * (bit) offset which tells us which free slot is the EVER LAST
@@ -180,7 +182,7 @@ typedef struct ham_runtime_statistics_globdata_t
     ham_u32_t first_page_with_free_space[HAM_FREELIST_SLOT_SPREAD];
 
     /**
-     *  Note: counter/statistics value overflow management:
+     * Note: counter/statistics value overflow management:
      *
      * As the 'cost' numbers will be the fastest growing numbers of
      * them all, it is sufficient to check cost against a suitable
@@ -189,7 +191,7 @@ typedef struct ham_runtime_statistics_globdata_t
      *
      * Of course, we could have done without the rescaling by using
      * 64-bit integers for all statistics elements, but 64-bit
-     * integers are not native to all platforms and incurr a (minor)
+     * integers are not native to all platforms and incur a (minor)
      * run-time penalty when used. It is felt that slower machines,
      * which are often 32-bit only, benefit from a compare plus
      * once-in-a-while rescale, as this overhead can be amortized
@@ -204,7 +206,7 @@ typedef struct ham_runtime_statistics_globdata_t
      * gathered thus far.
      *
      * I believe a rescale by a factor of 256 (2^8) is quite safe
-     * when the high water mark is near the maxint (2^32) edge, even
+     * when the high water mark is near the MAXINT (2^32) edge, even
      * when the cost number can be 100 times as large as the other
      * numbers in some regular use cases. Meanwhile, a division by
      * 256 will reduce the collected numeric values so much that
@@ -236,7 +238,7 @@ typedef struct ham_runtime_statistics_globdata_t
      * all use cases, that is.
      *
      * A quick analysis shows this to be probably true, even for
-     * fringe cases (a mathematical proff would be nicer here, but
+     * fringe cases (a mathematical proof would be nicer here, but
      * alas):
      * let's assume worst case, where we have a lot of trials
      * (testing each freelist page entry in a very long freelist,
@@ -270,7 +272,7 @@ typedef struct ham_runtime_statistics_globdata_t
      *
      * To be on the safe side of it all, we accumulate all costs in
      * a special statistics counter, which is specifically designed
-     * to be used for the high water mark minotring and subsequent
+     * to be used for the high water mark monitoring and subsequent
      * decision to rescale: rescale_monitor.
      */
     ham_u32_t rescale_monitor;
@@ -432,14 +434,14 @@ typedef struct ham_runtime_statistics_dbdata_t
  * or deleted, whichever of these comes first in your application run-time flow.
  *
  * The easiest way to invoke this @ref ham_clean_statistics_datarec function 
- * (when it is set), is to use the provided @ref ham_free_statistics() macro.
+ * (when it is set) is to use the provided @ref ham_clean_statistics_datarec() function.
  *
  * @sa HAM_PARAM_GET_STATISTICS
  * @sa ham_clean_statistics_datarec
  * @sa ham_get_parameters
  * @sa ham_env_get_parameters
  */
-typedef struct ham_statistics_t
+struct ham_statistics_t
 {
     /** Number of freelist pages (and statistics records) known to hamsterdb */
     ham_size_t freelist_record_count;
@@ -495,7 +497,7 @@ typedef struct ham_statistics_t
      */
     void *_free_func_internal_arg;
 
-} ham_statistics_t;
+};
 
 /**
  * Invoke the optional @ref ham_statistics_t content cleanup function. 
@@ -503,17 +505,17 @@ typedef struct ham_statistics_t
  * This function will check whether the @ref ham_statistics_t free/cleanup 
  * callback has been set or not before invoking it.
  *
- * @param s A pointer to a valid @ref ham_statistics_t data structure. 'Valid' 
- * means you must call this @ref ham_free_statistics() macro @e after having 
+ * @param stats A pointer to a valid @ref ham_statistics_t data structure. 'Valid' 
+ * means you must call this @ref ham_clean_statistics_datarec() function @e after having 
  * called @ref ham_env_get_parameters or @ref ham_get_parameters with 
  * a @ref HAM_PARAM_GET_STATISTICS @ref ham_parameter_t entry which had this 
- * @ref ham_statistics_t reference @a s attached and @e before either the 
+ * @ref ham_statistics_t reference @a stats attached and @e before either the 
  * related @ref ham_db_t or @ref ham_env_t handles are closed (@ref 
  * ham_env_close/@ref ham_close) or deleted (@ref ham_env_delete/@ref 
  * ham_delete).
  *
  * @return @ref HAM_SUCCESS upon success
- * @return @ref HAM_INV_PARAMETER if the @a s pointer is NULL
+ * @return @ref HAM_INV_PARAMETER if the @a stats pointer is NULL
  *
  * @sa HAM_PARAM_GET_STATISTICS
  * @sa ham_clean_statistics_datarec

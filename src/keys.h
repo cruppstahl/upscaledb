@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,16 +7,17 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- *
- * key handling
+ */
+
+/**
+ * @brief key handling
  *
  */
 
 #ifndef HAM_KEY_H__
 #define HAM_KEY_H__
 
-#include <ham/types.h>
+#include "internal_fwd_decl.h"
 
 
 #ifdef __cplusplus
@@ -27,15 +28,17 @@ extern "C" {
 
 /**
  * the internal representation of a key
- Note: the names of the fields have changed in 1.1.0 to ensure the compiler barfs on misuse 
- of some macros, e.g. key_get_flags(): here flags are 8-bit, while ham_key_t flags are 32-bit!
+ *
+ * Note: the names of the fields have changed in 1.1.0 to ensure the compiler 
+ * barfs on misuse of some macros, e.g. key_get_flags(): here flags are 8-bit, 
+ * while ham_key_t flags are 32-bit!
  */
-typedef HAM_PACK_0 struct HAM_PACK_1 int_key_t
+HAM_PACK_0 struct HAM_PACK_1 int_key_t
 {
     /**
      * the pointer of this entry
      */
-    ham_offset_t _ptr;
+    ham_u64_t _ptr;
 
     /**
      * the size of this entry
@@ -52,7 +55,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 int_key_t
      */
     ham_u8_t _key[1];
 
-} HAM_PACK_2 int_key_t;
+} HAM_PACK_2;
 
 #include "packstop.h"
 
@@ -179,7 +182,15 @@ the range of a ham_u16_t, i.e. outside the mask 0x0000FFFF.
 /**
  * compare a public key (ham_key_t, LHS) to an internal key (int_key_t, RHS)
  *
- * @return 0 if both keys match, -1 when LHS < RHS key, +1 when LHS > RHS key.
+ * @return -1, 0, +1 or higher positive values are the result of a successful 
+ *         key comparison (0 if both keys match, -1 when LHS < RHS key, +1 
+ *         when LHS > RHS key).
+ *
+ * @return values less than -1 are @ref ham_status_t error codes and indicate 
+ *         a failed comparison execution: these are listed in 
+ *         @ref ham_status_codes .
+ *
+ * @sa ham_status_codes 
  */
 extern int
 key_compare_pub_to_int(ham_db_t *db, ham_page_t *page, ham_key_t *lhs, ham_u16_t rhs);
@@ -187,10 +198,10 @@ key_compare_pub_to_int(ham_db_t *db, ham_page_t *page, ham_key_t *lhs, ham_u16_t
 /**
  * insert an extended key
  *
- * returns the blob-id of this key
+ * @return the blob-id of this key in @a rid_ref
  */
-extern ham_offset_t
-key_insert_extended(ham_db_t *db, ham_page_t *page, ham_key_t *key);
+extern ham_status_t
+key_insert_extended(ham_offset_t *rid_ref, ham_db_t *db, ham_page_t *page, ham_key_t *key);
 
 /**
  * inserts and sets a record

@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,8 +7,9 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- * 
- *
+ */
+
+/**
  * this file contains macros for little endian/big endian byte swapping.
  * the database is always in little-endian. 
  *
@@ -20,6 +21,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif 
+
 
 /** 
  * byte swapping macros - we use little endian

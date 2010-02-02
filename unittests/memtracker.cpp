@@ -23,7 +23,7 @@
 #define OFFSETOF(type, member) ((size_t) &((type *)0)->member)
 
 static memdesc_t *
-get_descriptor(void *p)
+get_descriptor(const void *p)
 {
     return ((memdesc_t *)((char *)p-OFFSETOF(memdesc_t, data)));
 }
@@ -68,7 +68,7 @@ alloc_impl(mem_allocator_t *self, const char *file, int line, ham_u32_t size)
 }
 
 void 
-free_impl(mem_allocator_t *self, const char *file, int line, void *ptr)
+free_impl(mem_allocator_t *self, const char *file, int line, const void *ptr)
 {
     memtracker_t *mt=(memtracker_t *)self;
     memtracker_priv_t *priv=(memtracker_priv_t *)mt->priv;
@@ -97,7 +97,7 @@ free_impl(mem_allocator_t *self, const char *file, int line, void *ptr)
 
 void *
 realloc_impl(mem_allocator_t *self, const char *file, int line, 
-        void *ptr, ham_size_t size)
+        const void *ptr, ham_size_t size)
 {
     void *newptr=allocator_alloc(self, size);
     memdesc_t *desc;

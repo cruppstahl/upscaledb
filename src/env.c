@@ -26,7 +26,7 @@ ham_u8_t
 env_get_version(ham_env_t *env, ham_size_t idx)
 {
     db_header_t *hdr=(db_header_t*)(page_get_payload(env_get_header_page(env)));
-    return (dbheader_get_version(hdr, idx));
+    return (envheader_get_version(hdr, idx));
 }
 
 ham_u32_t

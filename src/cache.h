@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,32 +7,33 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- * the cache manager
+ */
+
+/**
+ * @brief the cache manager
  *
  */
 
 #ifndef HAM_CACHE_H__
 #define HAM_CACHE_H__
 
-#include <ham/hamsterdb.h>
-#include "page.h"
+#include "internal_fwd_decl.h"
 
 	
 #ifdef __cplusplus
 extern "C" {
 #endif 
 
-/* CACHE_BUCKET_SIZE should be a prime number or similar, as it is used in 
+/** CACHE_BUCKET_SIZE should be a prime number or similar, as it is used in 
  * a MODULO hash scheme */
 #define CACHE_BUCKET_SIZE     359
-#define CACHE_MAX_ELEM        256 /* a power of 2 *below* CACHE_BUCKET_SIZE */
+#define CACHE_MAX_ELEM        256 /**< a power of 2 *below* CACHE_BUCKET_SIZE */
 
 
 /**
  * a cache manager object
  */
-typedef struct ham_cache_t
+struct ham_cache_t
 {
     /** the maximum number of cached elements */
     ham_size_t _max_elements;
@@ -58,7 +59,7 @@ typedef struct ham_cache_t
     /** the buckets - a linked list of ham_page_t pointers */
     ham_page_t *_buckets[1];
 
-} ham_cache_t;
+};
 
 /*
  * get the maximum number of elements
@@ -128,6 +129,7 @@ typedef struct ham_cache_t
 extern void
 cache_reduce_page_counts(ham_cache_t *cache);
 
+#if 0
 static __inline void 
 page_increment_cache_cntr(ham_page_t *page, ham_u32_t count, ham_cache_t *cache)
 {															
@@ -144,6 +146,7 @@ page_increment_cache_cntr(ham_page_t *page, ham_u32_t count, ham_cache_t *cache)
 		_c_v = (cache)->_timeslot;							
 	page_set_cache_cntr(page, _c_v);										
 }
+#endif
 
 /**
  * initialize a cache manager object
@@ -194,7 +197,7 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page);
  * (The page is assumed to exist in the cache!)
  */
 extern void
-cache_update_page_access_counter(ham_page_t *page, ham_cache_t *cache);
+cache_update_page_access_counter(ham_page_t *page, ham_cache_t *cache, ham_u32_t extra_bump);
 
 /**
  * remove a page from the cache
@@ -203,24 +206,16 @@ extern ham_status_t
 cache_remove_page(ham_cache_t *cache, ham_page_t *page);
 
 /**
- * move a page from the regular cache to the garbage bin
- */
-extern ham_status_t
-cache_move_to_garbage(ham_cache_t *cache, ham_page_t *page);
-
-/**
  * returns true if the caller should purge the cache
  */
 extern ham_bool_t 
-cache_too_big(ham_cache_t *cache);
+cache_too_big(ham_cache_t *cache, ham_bool_t check_against_lowwatermark);
 
 /**
  * check the cache integrity
  */
-#ifdef HAM_ENABLE_INTERNAL
 extern ham_status_t
 cache_check_integrity(ham_cache_t *cache);
-#endif
 
 
 #ifdef __cplusplus

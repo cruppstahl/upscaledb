@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,9 +7,10 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- *
- * btree verification
+ */
+
+/**
+ * @brief btree verification
  *
  */
 
@@ -19,30 +20,34 @@
 
 #include <string.h>
 #include <stdio.h>
+
+#include "btree.h"
 #include "db.h"
+#include "env.h"
 #include "error.h"
 #include "keys.h"
-#include "btree.h"
+#include "mem.h"
+#include "page.h"
 
-/*
+/**
  * the check_scratchpad_t structure helps us to propagate return values
  * from the bottom of the tree to the root.
  */
 typedef struct
 {
-    /*
+    /**
      * the backend pointer
      */
     ham_btree_t *be;
 
-    /*
+    /**   
      * the flags of the ham_check_integrity()-call
      */
     ham_u32_t flags;
 
 } check_scratchpad_t;
 
-/*
+/**
  * verify a whole level in the tree - start with "page" and traverse
  * the linked list of all the siblings
  */
@@ -50,15 +55,25 @@ static ham_status_t
 my_verify_level(ham_page_t *parent, ham_page_t *page, 
         ham_u32_t level, check_scratchpad_t *scratchpad);
 
-/*
+/**
  * verify a single page
  */
 static ham_status_t
 my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page, 
         ham_u32_t level, ham_u32_t count, check_scratchpad_t *scratchpad);
     
-/*
+/**
  * compare two internal keys
+ *
+ * @return -1, 0, +1 or higher positive values are the result of a successful 
+ *         key comparison (0 if both keys match, -1 when LHS < RHS key, +1 
+ *         when LHS > RHS key).
+ *
+ * @return values less than -1 are @ref ham_status_t error codes and indicate 
+ *         a failed comparison execution: these are listed in 
+ *         @ref ham_status_codes .
+ *
+ * @sa ham_status_codes 
  */
 static int
 __key_compare_int_to_int(ham_db_t *db, ham_page_t *page, 
@@ -77,10 +92,16 @@ __key_compare_int_to_int(ham_db_t *db, ham_page_t *page,
 
 	st = db_prepare_ham_key_for_compare(db, l, &lhs);
 	if (st)
-		return 0;
+	{
+		ham_assert(st < -1, (0));
+		return st;
+	}
 	st = db_prepare_ham_key_for_compare(db, r, &rhs);
 	if (st)
-		return 0;
+	{
+		ham_assert(st < -1, (0));
+		return st;
+	}
 
 	cmp = db_compare_keys(page_get_owner(page), &lhs, &rhs);
 
@@ -91,6 +112,14 @@ __key_compare_int_to_int(ham_db_t *db, ham_page_t *page,
 	return cmp;
 }
 
+/**                                                                 
+ * verify the whole tree                                            
+ *                                                                  
+ * @remark this function is only available when						
+ * hamsterdb is compiled with HAM_ENABLE_INTERNAL turned on.        
+ *
+ * @note This is a B+-tree 'backend' method.
+ */                                                                 
 ham_status_t 
 btree_check_integrity(ham_btree_t *be)
 {
@@ -99,7 +128,7 @@ btree_check_integrity(ham_btree_t *be)
     btree_node_t *node;
     ham_status_t st=0;
     ham_offset_t ptr_left;
-    ham_db_t *db=btree_get_db(be);
+    ham_db_t *db=be_get_db(be);
     check_scratchpad_t scratchpad;
 
     ham_assert(btree_get_rootpage(be)!=0, ("invalid root page"));
@@ -108,9 +137,10 @@ btree_check_integrity(ham_btree_t *be)
     scratchpad.flags=0;
 
     /* get the root page of the tree */
-    page=db_fetch_page(db, btree_get_rootpage(be), 0);
+    st=db_fetch_page(&page, db_get_env(db), db, btree_get_rootpage(be), 0);
+	ham_assert(st ? !page : 1, (0));
     if (!page)
-        return (db_get_error(db));
+		return st ? st : HAM_INTERNAL_ERROR;
 
     /* while we found a page... */
     while (page) {
@@ -129,7 +159,10 @@ btree_check_integrity(ham_btree_t *be)
          * follow the pointer to the smallest child
          */
         if (ptr_left) {
-            page=db_fetch_page(db, ptr_left, 0);
+            st=db_fetch_page(&page, db_get_env(db), db, ptr_left, 0);
+			ham_assert(st ? !page : 1, (0));
+			if (st)
+				return st;
         }
         else
             page=0;
@@ -160,8 +193,8 @@ my_verify_level(ham_page_t *parent, ham_page_t *page,
 
         cmp=__key_compare_int_to_int(db, page, 0,
                     (ham_u16_t)(btree_node_get_count(cnode)-1));
-        if (db_get_error(db))
-            return (db_get_error(db));
+        if (cmp < -1)
+            return (ham_status_t)cmp;
         if (cmp<0) {
             ham_log(("integrity check failed in page 0x%llx: parent item #0 "
                     "< item #%d\n", page_get_self(page), 
@@ -183,7 +216,11 @@ my_verify_level(ham_page_t *parent, ham_page_t *page,
          */
         node=ham_page_get_btree_node(page);
         if (btree_node_get_right(node)) {
-            child=db_fetch_page(db, btree_node_get_right(node), 0);
+            st=db_fetch_page(&child, db_get_env(db), db, 
+                        btree_node_get_right(node), 0);
+			ham_assert(st ? !child : 1, (0));
+			if (st)
+				return st;
         }
         else
             child=0;
@@ -223,7 +260,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
 
         ham_log(("integrity check failed in page 0x%llx: empty page!\n",
                 page_get_self(page)));
-        return db_set_error(db, HAM_INTEGRITY_VIOLATED);
+        return HAM_INTEGRITY_VIOLATED;
     }
 
     /*
@@ -243,7 +280,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
             ham_log(("integrity check failed in page 0x%llx: not enough keys "
                     " (need %d, got %d)\n", page_get_self(page),
                     btree_get_minkeys(maxkeys), btree_node_get_count(node)));
-            return (db_set_error(db, HAM_INTEGRITY_VIOLATED));
+            return HAM_INTEGRITY_VIOLATED;
         }
     }
 
@@ -264,7 +301,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
             ham_log(("integrity check failed in page 0x%llx: item #0 "
                     "has flags, but it's not a leaf page", 
                     page_get_self(page), i));
-            return db_set_error(db, HAM_INTEGRITY_VIOLATED);
+            return HAM_INTEGRITY_VIOLATED;
         }
 		else
 		{
@@ -274,26 +311,26 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
 
 			st = db_prepare_ham_key_for_compare(db, sibentry, &lhs);
 			if (st)
-				return db_set_error(db, st);
+				return st;
 			st = db_prepare_ham_key_for_compare(db, bte, &rhs);
 			if (st)
-				return db_set_error(db, st);
+				return st;
 
 			cmp = db_compare_keys(db, &lhs, &rhs);
 
 			db_release_ham_key_after_compare(db, &lhs);
 			db_release_ham_key_after_compare(db, &rhs);
 			/* error is detected, but ensure keys are always released */
+			if (cmp < -1)
+				return (ham_status_t)cmp;
 		}
 
-        if (db_get_error(db))
-            return (db_get_error(db));
         if (cmp >= 0) 
 		{
             ham_log(("integrity check failed in page 0x%llx: item #0 "
                     "< left sibling item #%d\n", page_get_self(page), 
                     btree_node_get_count(sibnode)-1));
-            return db_set_error(db, HAM_INTEGRITY_VIOLATED);
+            return HAM_INTEGRITY_VIOLATED;
         }
     }
 
@@ -311,18 +348,18 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
                 ham_log(("integrity check failed in page 0x%llx: item #%d "
                         "is extended, but has no blob", 
                         page_get_self(page), i));
-                return db_set_error(db, HAM_INTEGRITY_VIOLATED);
+                return HAM_INTEGRITY_VIOLATED;
             }
         }
         
         cmp=__key_compare_int_to_int(db, page, (ham_u16_t)i, (ham_u16_t)(i+1));
 
-        if (db_get_error(db))
-            return (db_get_error(db));
+        if (cmp < -1)
+            return (ham_status_t)cmp;
         if (cmp>=0) {
             ham_log(("integrity check failed in page 0x%llx: item #%d "
                     "< item #%d", page_get_self(page), i, i+1));
-            return db_set_error(db, HAM_INTEGRITY_VIOLATED);
+            return HAM_INTEGRITY_VIOLATED;
         }
     }
 

@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,12 +7,13 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- *
- * \mainpage hamsterdb Embedded Storage Database
- * \brief Include file for hamsterdb Embedded Storage
- * \author Christoph Rupp, chris@crupp.de
- * \version 1.1.1
+ */
+
+/**
+ * @file hamsterdb.h
+ * @brief Include file for hamsterdb Embedded Storage
+ * @author Christoph Rupp, chris@crupp.de
+ * @version 1.1.1
  */
 
 #ifndef HAM_HAMSTERDB_H__
@@ -643,7 +644,7 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *            pages are usual).
  *        <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data 
  *            access patterns. The default setting optimizes hamsterdb
- *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE_ACCESS).
+ *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE).
  *            Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
  *            is automatically set for record number Databases).
  *            Data Access Mode hints can be set for individual Databases, too
@@ -787,7 +788,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
  *      <ul>
  *        <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data 
  *            access patterns. The default setting optimizes hamsterdb
- *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE_ACCESS).
+ *            for random read/write access (@ref HAM_DAM_RANDOM_WRITE).
  *            Use @ref HAM_DAM_SEQUENTIAL_INSERT for sequential inserts (this
  *            is automatically set for record number Databases).
  *            Data Access Mode hints can be set for individual Databases, too
@@ -2047,7 +2048,7 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  * @param db A valid Database handle
  * @param txn A Transaction handle, or NULL
  * @param key The key to delete
- * @param flags Unused, set to 0
+ * @param flags Optional flags for erasing; unused, set to 0
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if @a db or @a key is NULL
@@ -2059,21 +2060,39 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
 
 /**
- * Flushes the Database
+ * Flushes the Environment
  *
- * This function flushes the Database cache and writes the whole file
- * to disk. If this Database was opened in an Environment, all other
- * Databases of this Environment are flushed as well.
+ * This function flushes the Environment caches and writes the whole file
+ * to disk. All Databases of this Environment are flushed as well.
  *
  * Since In-Memory Databases do not have a file on disk, the
  * function will have no effect and will return @ref HAM_SUCCESS.
  *
- * @param db A valid Database handle
+ * @param env A valid Environment handle
  * @param flags Optional flags for flushing; unused, set to 0
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if @a db is NULL
  */
+HAM_EXPORT ham_status_t HAM_CALLCONV
+ham_env_flush(ham_env_t *env, ham_u32_t flags);
+
+/**
+* Flushes the Database
+*
+* This function flushes the Database cache and writes the whole file
+* to disk. If this Database was opened in an Environment, all other
+* Databases of this Environment are flushed as well.
+*
+* Since In-Memory Databases do not have a file on disk, the
+* function will have no effect and will return @ref HAM_SUCCESS.
+*
+* @param db A valid Database handle
+* @param flags Optional flags for flushing; unused, set to 0
+*
+* @return @ref HAM_SUCCESS upon success
+* @return @ref HAM_INV_PARAMETER if @a db is NULL
+*/
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_flush(ham_db_t *db, ham_u32_t flags);
 

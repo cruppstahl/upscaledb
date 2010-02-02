@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,19 +7,23 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- * implementation of the cache manager
+ */
+
+/**
+ * @brief implementation of the cache manager
  *
  */
 
 #include "config.h"
 
 #include <string.h>
+
 #include "cache.h"
+#include "env.h"
+#include "error.h"
 #include "mem.h"
 #include "page.h"
-#include "error.h"
-#include "env.h"
+#include "statistics.h"
 
 
 #define my_calc_hash(cache, o)                                              \
@@ -37,9 +41,11 @@ cache_new(ham_env_t *env, ham_size_t max_elements)
     ham_assert(buckets, (0));
     mem=sizeof(ham_cache_t)+(buckets-1)*sizeof(void *);
 
-    cache=ham_mem_calloc_env(env, mem);
-    if (!cache)
+    cache=allocator_calloc(env_get_allocator(env), mem);
+    if (!cache) {
+        //env_set_error(env, HAM_OUT_OF_MEMORY);
         return (0);
+    }
     if (max_elements == 0 || max_elements > CACHE_MAX_ELEM)
         max_elements = CACHE_MAX_ELEM;
     cache_set_max_elements(cache, max_elements);
@@ -166,11 +172,29 @@ cache_get_unused_page(ham_cache_t *cache)
             else {
                 if (!min)
                     min=page;
-                else
-                    if (page_get_cache_cntr(page) <= page_get_cache_cntr(min)) 
-                            /* oldest! */
-                        min=page;
+                else if (page_get_cache_cntr(page) <= page_get_cache_cntr(min)) 
+                {
+                    /* oldest! */
+                    min=page;
+                }
             }
+#if 0
+            /*
+             * This is not an equal opportunity scheme!
+             *
+             * Pages at the front of the list will be decremented
+             * continuously (once every round) and have therefor a far
+             * larger chance of getting 'unused'/re-used than pages at
+             * the end of the chain, as those almost never will get
+             * their counters decremented.
+             *
+             * Instead, we have an alternative mechanism, where we
+             * always count UP, UNTIL... we hit a global high water mark
+             * --> decrement ALL pages by the same amount, so that we
+             * have some headroom again.
+             */
+            page_decrement_cache_cntr(page, 1);
+#endif
         }
         page=page_get_next(page, PAGE_LIST_CACHED);
         ham_assert(page != head, (0));
@@ -257,7 +281,7 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page)
             page_list_insert(cache_get_totallist(cache), 
             PAGE_LIST_CACHED, page));
 
-    cache_push_history(page, new_page ? +2 : 0);
+    cache_push_history(page, new_page ? +10 : 0);
 
     cache_set_cur_elements(cache, 
             cache_get_cur_elements(cache)+1);
@@ -287,22 +311,16 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page)
  * high, we use a increment-counter approach which will cause page A to
  * be rated higher than page B over time as A is accessed/needed more
  * often.
- *
- * Note that page_new() initialized every fresh page with a counter
- * value of 10, so that will be our starting point for our increment.
- * The increment steps are symbolic for the
- * relative importance assigned to each page type; we list a
- * counter-upper-bound for each too to prevent counter overflow for
- * oft-used pages, while the upper-bound also limits the maximum
- * 'importance' a page can achieve within the total set of cached pages:
- * the incremental scheme is mainly meant to allow the cache to detect
- * usage differences between pages of identical/similar type, while the
- * overall importance of each page type should remain a major factor.
  */
 void
-cache_update_page_access_counter(ham_page_t *page, ham_cache_t *cache)
+cache_update_page_access_counter(ham_page_t *page, ham_cache_t *cache, ham_u32_t extra_bump)
 {
-    page_set_cache_cntr(page, cache->_timeslot++);
+	if (cache->_timeslot > 0xFFFFFFFFU - 1024 - extra_bump)
+	{
+		cache_reduce_page_counts(cache);
+	}
+	cache->_timeslot++;
+    page_set_cache_cntr(page, cache->_timeslot + extra_bump);
 }
 
 ham_status_t 
@@ -343,7 +361,7 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page)
 }
 
 ham_bool_t 
-cache_too_big(ham_cache_t *cache)
+cache_too_big(ham_cache_t *cache, ham_bool_t check_against_lowwatermark)
 {
     if (cache_get_cur_elements(cache)>=cache_get_max_elements(cache)) 
         return (HAM_TRUE);
@@ -351,10 +369,10 @@ cache_too_big(ham_cache_t *cache)
     return (HAM_FALSE);
 }
 
-#ifdef HAM_ENABLE_INTERNAL
 ham_status_t
 cache_check_integrity(ham_cache_t *cache)
 {
+#ifdef HAM_ENABLE_INTERNAL
     ham_size_t elements=0;
     ham_page_t *head;
 
@@ -377,7 +395,6 @@ cache_check_integrity(ham_cache_t *cache)
         return (HAM_INTEGRITY_VIOLATED);
     }
 
+#endif
     return (0);
 }
-#endif /* HAM_ENABLE_INTERNAL */
-

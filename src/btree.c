@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,20 +7,26 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- *
- * implementation of btree.h
+ */
+
+/**
+ * @brief implementation of btree.h
  *
  */
 
 #include "config.h"
 
 #include <string.h>
-#include "db.h"
-#include "error.h"
+
 #include "btree.h"
+#include "db.h"
+#include "env.h"
+#include "error.h"
+#include "extkeys.h"
 #include "keys.h"
-#include "page.h" /* [i_a] */
+#include "mem.h"
+#include "page.h"
+#include "txn.h"
 
 
 /**
@@ -46,8 +52,8 @@ btree_get_slot(ham_db_t *db, ham_page_t *page,
      */
     if (r==0) {
         cmp=key_compare_pub_to_int(db, page, key, 0);
-        if (db_get_error(db))
-            return (db_get_error(db));
+        if (cmp < -1)
+            return (ham_status_t)cmp;
         *slot=cmp<0 ? -1 : 0;
         goto bail;
     }
@@ -69,8 +75,8 @@ btree_get_slot(ham_db_t *db, ham_page_t *page,
         
         /* compare it against the key */
         cmp=key_compare_pub_to_int(db, page, key, (ham_u16_t)i);
-        if (db_get_error(db))
-            return (db_get_error(db));
+        if (cmp < -1)
+            return (ham_status_t)cmp;
 
         /* found it? */
         if (cmp==0) {
@@ -122,7 +128,7 @@ btree_calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
     p-=OFFSETOF(btree_node_t, _entries);
 
     /* every page has a header where we can't store entries */
-    p -= db_get_persistent_header_size();
+    p -= page_get_persistent_header_size();
 
     /*
      * compute the size of a key, k. 
@@ -137,10 +143,18 @@ btree_calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize)
     return (max&1 ? max-1 : max);
 }
 
+/**                                                                 
+ * estimate the number of keys per page, given the keysize          
+ *                                                                  
+ * @remark this function is only available when						
+ * hamsterdb is compiled with HAM_ENABLE_INTERNAL turned on.        
+
+ @note This is a B+-tree 'backend' method.
+ */                                                                 
 static ham_status_t
 my_fun_calc_keycount_per_page(ham_btree_t *be, ham_size_t *maxkeys, ham_u16_t keysize)
 {
-    ham_db_t *db=btree_get_db(be);
+    ham_db_t *db=be_get_db(be);
 
     if (keysize == 0)
     {
@@ -151,48 +165,70 @@ my_fun_calc_keycount_per_page(ham_btree_t *be, ham_size_t *maxkeys, ham_u16_t ke
         /* 
          * prevent overflow - maxkeys only has 16 bit! 
          */
-        *maxkeys=btree_calc_maxkeys(db_get_pagesize(db), keysize);
+		*maxkeys=btree_calc_maxkeys(env_get_pagesize(db_get_env(db)), keysize);
         if (*maxkeys>MAX_KEYS_PER_NODE) {
             ham_trace(("keysize/pagesize ratio too high"));
-            return (db_set_error(db, HAM_INV_KEYSIZE));
+            return HAM_INV_KEYSIZE;
         }
         else if (*maxkeys==0) {
             ham_trace(("keysize too large for the current pagesize"));
-            return (db_set_error(db, HAM_INV_KEYSIZE));
+            return HAM_INV_KEYSIZE;
         }
     }
 
     return (0);
 }
 
+/**                                                                 
+ * create and initialize a new backend                              
+ *                                                                  
+ * @remark this function is called after the @a ham_db_t structure  
+ * and the file were created                                        
+ *                                                                  
+ * the @a flags are stored in the database; only transfer           
+ * the persistent flags!                                            
+
+ @note This is a B+-tree 'backend' method.
+ */                                                                 
 static ham_status_t 
 my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
 {
+	ham_status_t st;
     ham_page_t *root;
     ham_size_t maxkeys;
-    ham_db_t *db=btree_get_db(be);
-    db_indexdata_t *indexdata=db_get_indexdata_ptr(db, 
+    ham_db_t *db=be_get_db(be);
+    db_indexdata_t *indexdata=env_get_indexdata_ptr(db_get_env(db), 
                                 db_get_indexdata_offset(db));
+	if (be_is_active(be))
+	{
+        ham_trace(("backend has alread been initialized before!"));
+        /* HAM_INTERNAL_ERROR -- not really, when keeping custom 
+         * backends in mind */
+        return HAM_ALREADY_INITIALIZED; 
+    }
 
     /* 
      * prevent overflow - maxkeys only has 16 bit! 
      */
-    maxkeys=btree_calc_maxkeys(db_get_pagesize(db), keysize);
+    maxkeys=btree_calc_maxkeys(env_get_pagesize(db_get_env(db)), keysize);
     if (maxkeys>MAX_KEYS_PER_NODE) {
         ham_trace(("keysize/pagesize ratio too high"));
-        return (db_set_error(db, HAM_INV_KEYSIZE));
+        return HAM_INV_KEYSIZE;
     }
     else if (maxkeys==0) {
         ham_trace(("keysize too large for the current pagesize"));
-        return (db_set_error(db, HAM_INV_KEYSIZE));
+        return HAM_INV_KEYSIZE;
     }
 
     /*
      * allocate a new root page
      */
-    root=db_alloc_page(db, PAGE_TYPE_B_ROOT, PAGE_IGNORE_FREELIST);
+    st=db_alloc_page(&root, db_get_env(db), db, 
+                        PAGE_TYPE_B_ROOT, PAGE_IGNORE_FREELIST);
+	ham_assert(st ? root == NULL : 1, (0));
+	ham_assert(!st ? root != NULL : 1, (0));
     if (!root)
-        return (db_get_error(db));
+		return st ? st : HAM_INTERNAL_ERROR;
 
     memset(page_get_raw_payload(root), 0, 
             sizeof(btree_node_t)+sizeof(ham_perm_page_union_t));
@@ -214,12 +250,23 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     index_set_self(indexdata, page_get_self(root));
     index_set_flags(indexdata, flags);
     index_set_recno(indexdata, 0);
+    index_clear_reserved(indexdata);
 
-    db_set_dirty(db);
+	env_set_dirty(db_get_env(db));
+
+    be_set_active(be, HAM_TRUE);
 
     return (0);
 }
 
+/**                                                                 
+ * open and initialize a backend                                    
+ *                                                                  
+ * @remark this function is called after the ham_db_structure       
+ * was allocated and the file was opened                            
+
+ @note This is a B+-tree 'backend' method.
+ */                                                                 
 static ham_status_t 
 my_fun_open(ham_btree_t *be, ham_u32_t flags)
 {
@@ -227,8 +274,8 @@ my_fun_open(ham_btree_t *be, ham_u32_t flags)
     ham_offset_t recno;
     ham_u16_t maxkeys;
     ham_u16_t keysize;
-    ham_db_t *db=btree_get_db(be);
-    db_indexdata_t *indexdata=db_get_indexdata_ptr(db, 
+    ham_db_t *db=be_get_db(be);
+    db_indexdata_t *indexdata=env_get_indexdata_ptr(db_get_env(db), 
                                     db_get_indexdata_offset(db));
 
     /*
@@ -247,64 +294,193 @@ my_fun_open(ham_btree_t *be, ham_u32_t flags)
     be_set_flags(be, flags);
     be_set_recno(be, recno);
 
-    /* this value was bogus in pre-1.1.0, so tread VERY carefully
-     *here... */
-    ham_assert(db_get_header(db), (0));
+	be_set_active(be, HAM_TRUE);
 
-    return (0);
+	return (0);
 }
 
+/**                                                                 
+ * flush the backend                                                
+ *                                                                  
+ * @remark this function is called during ham_flush                 
+
+ @note This is a B+-tree 'backend' method.
+ */                                                                 
 static ham_status_t
 my_fun_flush(ham_btree_t *be)
 {
-    ham_db_t *db=btree_get_db(be);
-    db_indexdata_t *indexdata=db_get_indexdata_ptr(db, 
+    ham_db_t *db=be_get_db(be);
+    db_indexdata_t *indexdata=env_get_indexdata_ptr(db_get_env(db), 
                         db_get_indexdata_offset(db));
 
     /*
-     * nothing todo if the backend was not touched
-     */
+     * nothing to do if the backend was not touched
+	 */
     if (!be_is_dirty(be))
         return (0);
 
-    /*
-     * store root address and maxkeys (first two bytes are the
-     * database name)
-     */
-    index_clear_reserved(indexdata);
-    index_set_max_keys(indexdata, btree_get_maxkeys(be));
+	index_set_max_keys(indexdata, btree_get_maxkeys(be));
     index_set_keysize(indexdata, be_get_keysize(be));
     index_set_self(indexdata, btree_get_rootpage(be));
     index_set_flags(indexdata, be_get_flags(be));
     index_set_recno(indexdata, be_get_recno(be));
+    index_clear_reserved(indexdata);
 
-    db_set_dirty(db);
+    env_set_dirty(db_get_env(db));
     be_set_dirty(be, HAM_FALSE);
 
     return (0);
 }
 
+/**                                                                 
+ * close the backend                                                
+ *                                                                  
+ * @remark this function is called before the file is closed        
+
+ @note This is a B+-tree 'backend' method.
+ */                                                                 
 static ham_status_t
 my_fun_close(ham_btree_t *be)
 {
+	ham_status_t st;
+
     /*
      * just flush the backend info if it's dirty
      */
-    return (my_fun_flush(be));
+    st = my_fun_flush(be);
+
+	/* even when an error occurred, the backend has now been de-activated */
+	be_set_active(be, HAM_FALSE);
+
+	return st;
 }
 
-static void
+/**                                                                 
+ * free all allocated resources                                     
+ *                                                                  
+ * @remark this function is called after _fun_close()               
+
+ @note This is a B+-tree 'backend' method.
+ */                                                                 
+static ham_status_t
 my_fun_delete(ham_btree_t *be)
 {
     /*
      * nothing to do
      */
+	return HAM_SUCCESS;
+}
+
+/**																	
+ Create a new cursor instance.										
+
+ @note This is a B+-tree 'backend' method.
+*/																	
+static ham_status_t 
+my_fun_cursor_create(ham_btree_t *be, ham_db_t *db, ham_txn_t *txn, ham_u32_t flags, ham_cursor_t **cu)
+{
+	return bt_cursor_create(db, txn, flags, (ham_bt_cursor_t **)cu);
+}
+																	
+
+/**																	
+ * uncouple all cursors from a page									
+ *																	
+ * @remark this is called whenever the page is deleted or			
+ * becoming invalid													
+
+ @note This is a B+-tree 'backend' method.
+ */																	
+static ham_status_t
+my_fun_uncouple_all_cursors(ham_btree_t *be, ham_page_t *page, ham_size_t start)
+{
+	return (bt_uncouple_all_cursors(page, start));
+}
+
+/**																	
+Close (and free) all cursors related to this database table.		
+
+ @note This is a B+-tree 'backend' method.
+*/																	
+static ham_status_t 
+my_fun_close_cursors(ham_btree_t *be, ham_u32_t flags)
+{
+	ham_db_t *db=be_get_db(be);
+
+	ham_assert(db, (0));
+	return (btree_close_cursors(db, flags));
+}
+
+
+/**																	
+* Remove all extended keys for the given @a page from the			
+* extended key cache.												
+*/																	
+static ham_status_t
+my_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
+{
+	ham_db_t *db=be_get_db(be);
+	
+	ham_assert(page_get_owner(page) == db, (0));
+	
+	ham_assert(0 == (flags & ~DB_MOVE_TO_FREELIST), (0));
+
+	/*
+	* if this page has a header, and it's either a B-Tree root page or 
+	* a B-Tree index page: remove all extended keys from the cache, 
+	* and/or free their blobs
+	*
+	* TODO move this to the backend!
+	*/
+	if (page_get_pers(page) && 
+		(!(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER)) &&
+		(page_get_type(page)==PAGE_TYPE_B_ROOT ||
+		page_get_type(page)==PAGE_TYPE_B_INDEX)) 
+	{
+		ham_size_t i;
+		ham_offset_t blobid;
+		int_key_t *bte;
+		btree_node_t *node=ham_page_get_btree_node(page);
+		extkey_cache_t *c;
+
+		ham_assert(db, ("Must be set as page owner when this is a Btree page"));
+		c=db_get_extkey_cache(db);
+
+		for (i=0; i<btree_node_get_count(node); i++) 
+		{
+			bte=btree_node_get_key(db, node, i);
+			if (key_get_flags(bte)&KEY_IS_EXTENDED) 
+			{
+				blobid=key_get_extended_rid(db, bte);
+				if (env_get_rt_flags(db_get_env(db))&HAM_IN_MEMORY_DB) 
+				{
+					/* delete the blobid to prevent that it's freed twice */
+					*(ham_offset_t *)(key_get_key(bte)+
+						(db_get_keysize(db)-sizeof(ham_offset_t)))=0;
+				}
+				(void)key_erase_record(db, bte, 0, BLOB_FREE_ALL_DUPES);
+				(void)extkey_cache_remove(c, blobid);
+			}
+		}
+	}
+
+	return (HAM_SUCCESS);
 }
 
 ham_status_t
-btree_create(ham_btree_t *btree, ham_db_t *db, ham_u32_t flags)
+btree_create(ham_backend_t **backend_ref, ham_db_t *db, ham_u32_t flags)
 {
-    memset(btree, 0, sizeof(ham_btree_t));
+	ham_btree_t *btree;
+
+	*backend_ref = 0;
+
+	btree = (ham_btree_t *)allocator_calloc(env_get_allocator(db_get_env(db)), sizeof(*btree));
+	if (!btree)
+	{
+		return HAM_OUT_OF_MEMORY;
+	}
+
+	/* initialize the backend */
     btree->_db=db;
     btree->_fun_create=my_fun_create;
     btree->_fun_open=my_fun_open;
@@ -322,12 +498,18 @@ btree_create(ham_btree_t *btree, ham_db_t *db, ham_u32_t flags)
     btree->_fun_check_integrity=0;
     btree->_fun_calc_keycount_per_page=0;
 #endif
-    return (0);
+	btree->_fun_cursor_create = my_fun_cursor_create;
+	btree->_fun_close_cursors = my_fun_close_cursors;
+	btree->_fun_uncouple_all_cursors=my_fun_uncouple_all_cursors;
+	btree->_fun_free_page_extkeys=my_fun_free_page_extkeys;
+
+    *backend_ref = (ham_backend_t *)btree;
+	return HAM_SUCCESS;
 }
 
-ham_page_t *
-btree_traverse_tree(ham_db_t *db, ham_page_t *page, 
-        ham_key_t *key, ham_s32_t *idxptr)
+ham_status_t
+btree_traverse_tree(ham_page_t **page_ref, ham_s32_t *idxptr, 
+					ham_db_t *db, ham_page_t *page, ham_key_t *key)
 {
     ham_status_t st;
     ham_s32_t slot;
@@ -343,19 +525,30 @@ btree_traverse_tree(ham_db_t *db, ham_page_t *page,
 
     st=btree_get_slot(db, page, key, &slot, 0);
     if (st)
-        return (0);
+	{
+		*page_ref = 0;
+		return st;
+	}
 
     if (idxptr)
         *idxptr=slot;
 
     if (slot==-1)
-        return (db_fetch_page(db, btree_node_get_ptr_left(node), 0));
-    else {
+	{
+        st = db_fetch_page(page_ref, db_get_env(db), db, 
+                    btree_node_get_ptr_left(node), 0);
+		ham_assert(st ? !*page_ref : 1, (0));
+		return st;
+	}
+    else 
+	{
         bte=btree_node_get_key(db, node, slot);
         ham_assert(key_get_flags(bte)==0 || 
                 key_get_flags(bte)==KEY_IS_EXTENDED,
                 ("invalid key flags 0x%x", key_get_flags(bte)));
-        return (db_fetch_page(db, key_get_ptr(bte), 0));
+        st = db_fetch_page(page_ref, db_get_env(db), db, key_get_ptr(bte), 0);
+		ham_assert(st ? !*page_ref : 1, (0));
+		return st;
     }
 }
 
@@ -368,8 +561,6 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key,
     ham_status_t st;
     btree_node_t *node=ham_page_get_btree_node(page);
 
-    db_set_error(db, 0);
-
     /* ensure the approx flag is NOT set by anyone yet */
     ham_key_set_intflags(key, ham_key_get_intflags(key) & ~KEY_IS_APPROXIMATE);
 
@@ -378,8 +569,8 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key,
 
     st=btree_get_slot(db, page, key, &slot, &cmp);
     if (st) {
-        db_set_error(db, st);
-        return (-1);
+		ham_assert(st < -1, (0));
+        return st;
     }
 
     /*
@@ -606,7 +797,45 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key,
     if (cmp)
         return (-1);
 
+	ham_assert(slot >= -1, (0));
     return (slot);
 }
 
+/**
+ Always make sure the db cursor set is released, no matter what happens.
+*/
+ham_status_t 
+btree_close_cursors(ham_db_t *db, ham_u32_t flags)
+{
+	ham_status_t st = HAM_SUCCESS;
+	ham_status_t st2 = HAM_SUCCESS;
+
+	/*
+	* auto-cleanup cursors?
+	*/
+	if (db_get_cursors(db)) {
+		ham_bt_cursor_t *c=(ham_bt_cursor_t *)db_get_cursors(db);
+		while (c) {
+			ham_bt_cursor_t *next=(ham_bt_cursor_t *)cursor_get_next(c);
+			if (flags&HAM_AUTO_CLEANUP)
+			{
+				st=ham_cursor_close((ham_cursor_t *)c);
+			}
+			else
+			{
+				//st=bt_cursor_close(c);
+				st=c->_fun_close(c);
+			}
+			if (st)
+			{
+				if (st2 == 0) st2 = st;
+				/* continue to try to close the other cursors, though */
+			}
+			c=next;
+		}
+		db_set_cursors(db, 0);
+	}
+	
+	return st2;
+}
 

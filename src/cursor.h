@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,19 +7,24 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- *
- *
- * a base-"class" for cursors
+ */
+
+/**
+ * @brief a base-"class" for cursors
  *
  */
 
 #ifndef HAM_CURSORS_H__
 #define HAM_CURSORS_H__
 
-#include <ham/hamsterdb.h>
-#include <ham/hamsterdb_int.h>
-#include "txn.h"
-#include "mem.h"
+#include "internal_fwd_decl.h"
+
+#include "error.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif 
 
 /**
  * the cursor structure - these functions and members are "inherited"
@@ -67,6 +72,12 @@
      */                                                                 \
     ham_status_t (*_fun_erase)(clss *cu, ham_u32_t flags);              \
                                                                         \
+	/**																	\
+	 * Count the number of records stored with the referenced key.		\
+	 */																	\
+	ham_status_t (*_fun_get_duplicate_count)(ham_cursor_t *cursor,		\
+			ham_size_t *count, ham_u32_t flags);						\
+																		\
     /**                                                                 \
      * pointer to the Database object                                   \
      */                                                                 \
@@ -110,7 +121,7 @@ struct ham_cursor_t
 /**
  * set the 'next' pointer of the linked list
  */
-#define cursor_set_next(c, n)             (c)->_next=n
+#define cursor_set_next(c, n)             (c)->_next=(n)
 
 /**
  * get the 'previous' pointer of the linked list
@@ -120,7 +131,7 @@ struct ham_cursor_t
 /**
  * set the 'previous' pointer of the linked list
  */
-#define cursor_set_previous(c, p)         (c)->_previous=p
+#define cursor_set_previous(c, p)         (c)->_previous=(p)
 
 /**
  * get the 'next' pointer of the linked list
@@ -130,7 +141,12 @@ struct ham_cursor_t
 /**
  * set the 'next' pointer of the linked list
  */
-#define cursor_set_next_in_page(c, n) { if (n) ham_assert(c->_previous_in_page!=n, ("")); (c)->_next_in_page=n; }
+#define cursor_set_next_in_page(c, n)										\
+	{																		\
+		if (n)																\
+			ham_assert((c)->_previous_in_page!=(n), (0));					\
+		(c)->_next_in_page=(n);												\
+	}
 
 /**
  * get the 'previous' pointer of the linked list
@@ -140,7 +156,12 @@ struct ham_cursor_t
 /**
  * set the 'previous' pointer of the linked list
  */
-#define cursor_set_previous_in_page(c, p) {if (p) ham_assert(c->_next_in_page!=p, ("")); (c)->_previous_in_page=p; }
+#define cursor_set_previous_in_page(c, p)									\
+	{																		\
+		if (p)																\
+			ham_assert((c)->_next_in_page!=(p), (0));						\
+		(c)->_previous_in_page=(p);											\
+	}
 
 /**
  * get the database pointer
@@ -155,7 +176,7 @@ struct ham_cursor_t
 /**
  * set the memory allocator
  */
-#define cursor_set_allocator(c, a)      (c)->_allocator=a
+#define cursor_set_allocator(c, a)      (c)->_allocator=(a)
 
 /**
  * get the transaction handle
@@ -165,7 +186,11 @@ struct ham_cursor_t
 /**
  * set the transaction handle
  */
-#define cursor_set_txn(c, txn)          (c)->_txn=txn
+#define cursor_set_txn(c, txn)          (c)->_txn=(txn)
 
+
+#ifdef __cplusplus
+} // extern "C"
+#endif 
 
 #endif /* HAM_CURSORS_H__ */

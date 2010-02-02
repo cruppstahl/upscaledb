@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -13,12 +13,18 @@
 #include "config.h"
 
 #include <string.h>
-#include "txn.h"
+
 #include "db.h"
+#include "env.h"
 #include "error.h"
 #include "freelist.h"
-#include "mem.h"
 #include "log.h"
+#include "mem.h"
+#include "page.h"
+#include "statistics.h"
+#include "txn.h"
+
+
 
 ham_status_t
 txn_add_page(ham_txn_t *txn, ham_page_t *page, ham_bool_t ignore_if_inserted)
@@ -100,7 +106,7 @@ BIG FAT WARNING:
 This routine should NEVER be used like this:
 
   ham_txn_t txn;
-  txn_begin(&txn, db, 0);
+  txn_begin(&txn, env, 0);
   ...
   txn_commit/abort(&txn);
 
@@ -120,28 +126,28 @@ to pass /through/ the hamsterdb layer itself, or a core dump at ham_close/ham_en
 will be your share.
 */
 ham_status_t
-txn_begin(ham_txn_t *txn, ham_db_t *db, ham_u32_t flags)
+txn_begin(ham_txn_t *txn, ham_env_t *env, ham_u32_t flags)
 {
     ham_status_t st=0;
 
     memset(txn, 0, sizeof(*txn));
-    txn_set_db(txn, db);
-    txn_set_id(txn, db_get_txn_id(db)+1);
+    txn_set_env(txn, env);
+    txn_set_id(txn, env_get_txn_id(env)+1);
     txn_set_flags(txn, flags);
-    env_set_txn(db_get_env(db), txn);
-    env_set_txn_id(db_get_env(db), txn_get_id(txn));
+    env_set_txn(env, txn);
+    env_set_txn_id(env, txn_get_id(txn));
 
-    if (db_get_log(db) && !(flags&HAM_TXN_READ_ONLY))
-        st=ham_log_append_txn_begin(db_get_log(db), txn);
+    if (env_get_log(env) && !(flags&HAM_TXN_READ_ONLY))
+        st=ham_log_append_txn_begin(env_get_log(env), txn);
 
-    return (db_set_error(db, st));
+    return st;
 }
 
 ham_status_t
 txn_commit(ham_txn_t *txn, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_db_t *db=txn_get_db(txn);
+    ham_env_t *env=txn_get_env(txn);
 
     /*
      * are cursors attached to this txn? if yes, fail
@@ -149,7 +155,7 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
     if (txn_get_cursor_refcount(txn)) {
         ham_trace(("transaction cannot be committed till all attached "
                     "cursors are closed"));
-        return (db_set_error(db, HAM_CURSOR_STILL_OPEN));
+        return HAM_CURSOR_STILL_OPEN;
     }
 
     /*
@@ -157,7 +163,7 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
      * if they were modified by this transaction;
      * then write the transaction boundary
      */
-    if (db_get_log(db) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) 
+    if (env_get_log(env) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) 
     {
         ham_page_t *head=txn_get_pagelist(txn);
         while (head) {
@@ -168,17 +174,17 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
                     || page_get_dirty_txn(head)==PAGE_DUMMY_TXN_ID) {
                 st=ham_log_add_page_after(head);
                 if (st) 
-                    return (db_set_error(db, st));
+                    return st;
             }
             head=next;
         }
 
-        st=ham_log_append_txn_commit(db_get_log(db), txn);
+        st=ham_log_append_txn_commit(env_get_log(env), txn);
         if (st) 
-            return (db_set_error(db, st));
+            return st;
     }
 
-    env_set_txn(db_get_env(db), 0);
+    env_set_txn(env, 0);
 
     /*
      * flush the pages
@@ -210,7 +216,7 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
         else
         {
             /* flush the page */
-            st=db_flush_page(db, head, 
+            st=db_flush_page(env, head, 
                     flags & HAM_TXN_FORCE_WRITE ? HAM_WRITE_THROUGH : 0);
             if (st) {
                 page_add_ref(head);
@@ -224,14 +230,14 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
 
     txn_set_pagelist(txn, 0);
 
-    return (0);
+    return HAM_SUCCESS;
 }
 
 ham_status_t
 txn_abort(ham_txn_t *txn, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_db_t *db=txn_get_db(txn);
+    ham_env_t *env=txn_get_env(txn);
 
     /*
      * are cursors attached to this txn? if yes, fail
@@ -239,16 +245,16 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
     if (txn_get_cursor_refcount(txn)) {
         ham_trace(("transaction cannot be aborted till all attached "
                     "cursors are closed"));
-        return (db_set_error(db, HAM_CURSOR_STILL_OPEN));
+        return HAM_CURSOR_STILL_OPEN;
     }
 
-    if (db_get_log(db) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) {
-        st=ham_log_append_txn_abort(db_get_log(db), txn);
+    if (env_get_log(env) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) {
+        st=ham_log_append_txn_abort(env_get_log(env), txn);
         if (st) 
-            return (db_set_error(db, st));
+            return st;
     }
 
-    env_set_txn(db_get_env(db), 0);
+    env_set_txn(env, 0);
 
     /*
      * delete all modified pages
@@ -279,7 +285,16 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
              * might have been hinted if we had played a smarter game of 
              * statistics 'reversal'. Soit.
              */
-            stats_page_is_nuked(db, head, HAM_FALSE); 
+			ham_db_t *db = page_get_owner(head);
+
+			/*
+			only need to do this for index pages anyhow, and those are the ones
+			which have their 'ownership' set.
+			*/
+			if (db)
+			{
+				stats_page_is_nuked(db, head, HAM_FALSE); 
+			}
         }
 
         ham_assert(page_is_in_list(txn_get_pagelist(txn), head, PAGE_LIST_TXN),
@@ -289,8 +304,8 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
         /* if this page was allocated by this transaction, then we can
          * move the whole page to the freelist */
         if (page_get_alloc_txn_id(head)==txn_get_id(txn)) {
-            (void)freel_mark_free(db, page_get_self(head), 
-                    db_get_pagesize(db), HAM_TRUE);
+            (void)freel_mark_free(env, 0, page_get_self(head), 
+                    env_get_pagesize(env), HAM_TRUE);
         }
         else
         {
@@ -300,9 +315,9 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
 
             /* if the page is dirty, and RECOVERY is enabled: recreate
              * the original, unmodified page from the log */
-            if (db_get_log(db) && page_is_dirty(head)) 
+            if (env_get_log(env) && page_is_dirty(head)) 
             {
-                st=ham_log_recreate(db_get_log(db), head);
+                st=ham_log_recreate(env_get_log(env), head);
                 if (st)
                     return (st);
                 /*page_set_undirty(head); */
@@ -313,7 +328,7 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
         page_release_ref(head);
     }
 
-    ham_assert(txn_get_pagelist(txn)==0, (""));
+    ham_assert(txn_get_pagelist(txn)==0, (0));
 
     return (0);
 }

@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -7,28 +7,27 @@
  * (at your option) any later version.
  *
  * See files COPYING.* for License information.
- * 
- *
- * extended key cache
+ */
+
+/**
+ * @brief extended key cache
  *
  */
 
 #ifndef HAM_EXTKEYS_H__
 #define HAM_EXTKEYS_H__
 
-#include <ham/types.h>
+#include "internal_fwd_decl.h"
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif 
 
-struct ham_db_t;
-
 /**
  * an extended key
  */
-typedef struct extkey_t
+struct extkey_t
 {
     /** the blobid of this key */
     ham_offset_t _blobid;
@@ -38,7 +37,7 @@ typedef struct extkey_t
     ham_u64_t _txn_id;
 
     /** pointer to the next key in the linked list */
-    struct extkey_t *_next;
+    extkey_t *_next;
 
     /** the size of the extended key */
     ham_size_t _size;
@@ -46,7 +45,7 @@ typedef struct extkey_t
     /** the key data */
     ham_u8_t _data[1];
 
-} extkey_t;
+};
 
 /**
  * the size of an extkey_t, without the data byte
@@ -101,10 +100,10 @@ typedef struct extkey_t
 /**
  * a cache for extended keys
  */
-typedef struct
+struct extkey_cache_t
 {
     /** the owner of the cache */
-    struct ham_db_t *_db;
+    ham_db_t *_db;
 
     /** the used size, in byte */
     ham_size_t _usedsize;
@@ -115,7 +114,7 @@ typedef struct
     /** the buckets - a linked list of extkey_t pointers */
     extkey_t *_buckets[1];
 
-} extkey_cache_t;
+};
 
 /**
  * get the owner of the cache
@@ -161,7 +160,7 @@ typedef struct
  * create a new extended key-cache
  */
 extern extkey_cache_t *
-extkey_cache_new(struct ham_db_t *db);
+extkey_cache_new(ham_db_t *db);
 
 /**
  * destroy the cache; does NOT delete the cache buckets!

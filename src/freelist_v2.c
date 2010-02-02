@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+/*
+ * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,30 +15,31 @@
 #include "freelist.c"
 
 ham_status_t
-__freel_flush_stats32(ham_db_t *db)
+__freel_flush_stats32(ham_device_t *dev, ham_env_t *env)
 {
-    ham_assert(!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB), (0));
-    ham_assert(db_get_freelist_cache(db), (0));
+	ham_status_t st;
+
+    ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB), (0));
+    ham_assert(device_get_freelist_cache(dev), (0));
 
 	/*
 	 * do not update the statistics in a READ ONLY database!
 	 */
-    if (!(db_get_rt_flags(db) & HAM_READ_ONLY)) {
+    if (!(env_get_rt_flags(env) & HAM_READ_ONLY)) {
 		freelist_cache_t *cache;
 		freelist_entry_t *entries;
 
-		cache=db_get_freelist_cache(db);
+		cache=device_get_freelist_cache(dev);
 		ham_assert(cache, (0));
 
 		entries = freel_cache_get_entries(cache);
 
-		if (entries && freel_cache_get_count(cache) > 0
-			&& !db_is_mgt_mode_set(db_get_data_access_mode(db), 
-									HAM_DAM_ENFORCE_PRE110_FORMAT))
-		{
+		if (entries && freel_cache_get_count(cache) > 0) {
 			/*
-			only persist the statistics when we're using a v1.1.0+ format DB 
-			*/
+			 * only persist the statistics when we're using a v1.1.0+ format DB 
+             *
+             * if freelist_v2 is used, the file is always 1.1.+ format.
+			 */
 			ham_size_t i;
 			
 			for (i = freel_cache_get_count(cache); i-- > 0; ) {
@@ -50,21 +51,23 @@ __freel_flush_stats32(ham_db_t *db)
 
 					if (!freel_entry_get_page_id(entry)) {
 						/* header page */
-						fp = db_get_freelist(db);
-						db_set_dirty(db);
+						fp = env_get_freelist(env);
+						env_set_dirty(env);
 					}
 					else {
 						/*
 						 * otherwise just fetch the page from the cache or the 
                          * disk
 						 */
-						ham_page_t *page = db_fetch_page(db, 
+						ham_page_t *page;
+						
+						st = db_fetch_page(&page, env, 0,
                                 freel_entry_get_page_id(entry), 0);
 						if (!page)
-							return (db_get_error(db));
+							return st ? st : HAM_INTERNAL_ERROR;
 						fp = page_get_freelist(page);
 						ham_assert(freel_get_start_address(fp) != 0, (0));
-						page_set_dirty(page);
+						page_set_dirty(page, env);
 					}
 
 					ham_assert(fp->_s._s32._zero == 0, (0));
