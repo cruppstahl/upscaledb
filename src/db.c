@@ -627,7 +627,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
     if (flags&DB_MOVE_TO_FREELIST) {
         if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB))
             (void)freel_mark_free(env, 0, page_get_self(page), 
-                    env_get_rt_flags(env), HAM_TRUE);
+                    env_get_pagesize(env), HAM_TRUE);
     }
 
     /*
@@ -672,7 +672,7 @@ db_alloc_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         st=freel_alloc_page(&tellpos, env, db);
 		ham_assert(st ? !tellpos : 1, (0));
         if (tellpos) {
-            ham_assert(tellpos%env_get_rt_flags(env)==0,
+            ham_assert(tellpos%env_get_pagesize(env)==0,
                     ("page id %llu is not aligned", tellpos));
             /* try to fetch the page from the txn */
             if (env_get_txn(env)) {
