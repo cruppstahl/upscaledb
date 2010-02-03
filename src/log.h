@@ -93,16 +93,22 @@ typedef HAM_PACK_0 struct HAM_PACK_1 log_entry_t
 #define LOG_ENTRY_TYPE_TXN_COMMIT               3 
 /** save the original page data, before it is modified */
 #define LOG_ENTRY_TYPE_PREWRITE                 4 
-/** save the new, modified page data. The page is not yet written to disk; that will only happen once a @ref LOG_ENTRY_TYPE_FLUSH_PAGE happens. */
+/** save the new, modified page data. The page is not yet written to disk; 
+ * that will only happen once a @ref LOG_ENTRY_TYPE_FLUSH_PAGE happens. */
 #define LOG_ENTRY_TYPE_WRITE                    5 
 /** set a checkpoint: a point where we will be sure the entire database is flushed to disk */
 #define LOG_ENTRY_TYPE_CHECKPOINT               7 
-/** mark a page being flushed from the page cache; as this will be a modified page (otherwise the explicit flush would not occur), we can be sure to find a @ref LOG_ENTRY_TYPE_WRITE entry in the log history and, maybe, a @ref LOG_ENTRY_TYPE_PREWRITE before that (new pages obtained by expanding the database file are generally not 'prewritten' as they will contain arbitrary garbage before first use. */
+/** mark a page being flushed from the page cache; as this will be a 
+ * modified page (otherwise the explicit flush would not occur), we can be 
+ * sure to find a @ref LOG_ENTRY_TYPE_WRITE entry in the log history and, 
+ * maybe, a @ref LOG_ENTRY_TYPE_PREWRITE before that (new pages obtained 
+ * by expanding the database file are generally not 'prewritten' as they will 
+ * contain arbitrary garbage before first use. */
 #define LOG_ENTRY_TYPE_FLUSH_PAGE               8 
 
 /**
-* @}
-*/
+ * @}
+ */
 
 /* get the lsn */
 #define log_entry_get_lsn(l)                    (l)->_lsn
