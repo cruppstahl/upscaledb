@@ -364,6 +364,7 @@ public:
         ham_page_t *page;
         page=page_new(m_env);
         BFC_ASSERT_EQUAL(0, page_alloc(page, env_get_pagesize(m_env)));
+        page_set_dirty(page, m_env);
 
         BFC_ASSERT_EQUAL(0, ham_log_append_flush_page(log, page));
         BFC_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
@@ -569,6 +570,8 @@ public:
         log_entry_t entry;
         ham_u8_t *data;
 
+        BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
+        checkLogEntry(&entry, 13, 0, LOG_ENTRY_TYPE_FLUSH_PAGE, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
         checkLogEntry(&entry, 12, 0, LOG_ENTRY_TYPE_FLUSH_PAGE, data);
         BFC_ASSERT_EQUAL(0, ham_log_get_entry(log, &iter, &entry, &data));
@@ -1197,6 +1200,7 @@ public:
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_ABORT, 0, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, pagesize, pagesize));
@@ -1214,6 +1218,7 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
@@ -1263,6 +1268,7 @@ public:
         log_vector_t vec=readLog();
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
         exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0));
         exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, pagesize, pagesize));
@@ -1282,6 +1288,7 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
@@ -1306,6 +1313,7 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
@@ -1328,6 +1336,7 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
@@ -1385,6 +1394,7 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
@@ -1404,6 +1414,7 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
@@ -1439,6 +1450,7 @@ public:
         log_vector_t vec=readLog();
         log_vector_t exp;
 
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*3, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*2, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0, 0));
@@ -1519,6 +1531,7 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
@@ -1556,6 +1569,7 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(8, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
@@ -1610,6 +1624,7 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
@@ -1631,6 +1646,7 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*2, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
@@ -1656,6 +1672,7 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*2, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
@@ -1678,6 +1695,7 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*2, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
@@ -1809,7 +1827,8 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
         /* now reopen and recover */
         BFC_ASSERT_EQUAL(0,
-                ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
+                ham_open(m_db, BFC_OPATH(".test"), 
+                            HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
 
         /* and make sure that the inserted item is found */
         find("x", "2");
@@ -1843,7 +1862,8 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
         /* now reopen and recover */
         BFC_ASSERT_EQUAL(0,
-                ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
+                ham_open(m_db, BFC_OPATH(".test"), 
+                            HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
 
         /* and make sure that the inserted items are found */
         find("1", "1");
@@ -1857,15 +1877,11 @@ public:
 
     void patchLogfile(const char *filename, ham_u64_t txn_id)
     {
-        // m_db.device must be setup as ham_log_open() requires it 
-        // to fetch the raw pagesize;
-        if (!env_get_device(m_env)) {
-            BFC_ASSERT(m_env != NULL);
-            env_set_device(m_env, 
-                    ham_device_new((mem_allocator_t *)m_alloc, 
-                        m_env, HAM_DEVTYPE_FILE));
-            BFC_ASSERT(env_get_device(m_env) != NULL);
-            // no need to open the device...
+        bool created=false;
+
+        if (!m_env) {
+            BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
+            created=true;
         }
 
         int found=0;
@@ -1902,16 +1918,10 @@ public:
         BFC_ASSERT_EQUAL(0, ham_log_close(log, HAM_TRUE));
         BFC_ASSERT_EQUAL(1, found);
 
-        // clean up the device allocated above...
-        if (env_get_device(m_env)) {
-            ham_device_t *device = env_get_device(m_env);
-
-            if (device->is_open(device)) {
-                (void)device->flush(device);
-                (void)device->close(device);
-            }
-            (void)device->destroy(device);
-            env_set_device(m_env, 0);
+        // clean up 
+        if (created) {
+            ham_env_delete(m_env);
+            m_env=0;
         }
     }
 
@@ -1922,6 +1932,7 @@ public:
         insert("y", "3");
         /* close the database (without deleting the log) */
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+        m_env=0;
 
         /* now walk through the logfile and patch the COMMIT entry of the
          * second insert (txn-id=2) to ABORT */
@@ -1929,7 +1940,9 @@ public:
 
         /* now reopen and recover */
         BFC_ASSERT_EQUAL(0,
-                ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
+                ham_open(m_db, BFC_OPATH(".test"), 
+                        HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
+        m_env=db_get_env(m_db);
 
         /* and make sure that the inserted item is found, but not the 
          * aborted item */
@@ -1945,6 +1958,7 @@ public:
         insert("3", "4");
         /* close the database (without deleting the log) */
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+        m_env=0;
 
         /* now walk through the logfile and patch the COMMIT entry of the
          * second and third insert (txn-id=2, 3) to ABORT */
@@ -1953,7 +1967,9 @@ public:
 
         /* now reopen and recover */
         BFC_ASSERT_EQUAL(0,
-                ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
+                ham_open(m_db, BFC_OPATH(".test"), 
+                        HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
+        m_env=db_get_env(m_db);
 
         /* and make sure that the inserted item is found, but not the 
          * aborted item */
@@ -1975,6 +1991,7 @@ public:
         insert("6", "7");
         /* close the database (without deleting the log) */
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+        m_env=0;
 
         /* now walk through the logfile and patch the COMMIT entry of the
          * last insert (txn-id=7) to ABORT */
@@ -1982,7 +1999,9 @@ public:
 
         /* now reopen and recover */
         BFC_ASSERT_EQUAL(0,
-                ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
+                ham_open(m_db, BFC_OPATH(".test"), 
+                        HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
+        m_env=db_get_env(m_db);
 
         /* and make sure that the inserted item is found, but not the 
          * aborted item */

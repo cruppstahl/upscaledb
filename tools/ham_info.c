@@ -16,6 +16,7 @@
 
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
+#include "../src/env.h"
 #include "../src/backend.h"
 #include "../src/btree.h"
 
@@ -75,7 +76,7 @@ print_environment(ham_env_t *env)
         error("ham_env_open_db", st);
 
     printf("environment\n");
-    printf("    pagesize:                   %u\n", db_get_pagesize(db));
+    printf("    pagesize:                   %u\n", env_get_pagesize(env));
     printf("    version:                    %u.%u.%u.%u\n", 
             env_get_version(env, 0),
             env_get_version(env, 1),

@@ -90,7 +90,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, findTest);
         BFC_REGISTER_TEST(HamsterdbTest, findEmptyRecordTest);
         BFC_REGISTER_TEST(HamsterdbTest, nearFindTest);
-        //BFC_REGISTER_TEST(HamsterdbTest, nearFindStressTest);
+        BFC_REGISTER_TEST(HamsterdbTest, nearFindStressTest);
         BFC_REGISTER_TEST(HamsterdbTest, insertTest);
         BFC_REGISTER_TEST(HamsterdbTest, insertBigKeyTest);
         BFC_REGISTER_TEST(HamsterdbTest, eraseTest);
@@ -629,7 +629,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
     void nearFindStressTest(void)
     {
 #if defined(HAM_DEBUG)
-        const int RECORD_COUNT_PER_DB = 26687;//200000;
+        const int RECORD_COUNT_PER_DB = 200000; // 26687
 #else
         const int RECORD_COUNT_PER_DB = 5; // 0000000;
 #endif
@@ -712,23 +712,8 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
             key.data = (void *)&my_key;
             key.size = sizeof(my_key);
             key.flags = HAM_KEY_USER_ALLOC;
-if (i==26686)
-    printf("hit\n");
+ 
             BFC_ASSERT_EQUAL_I(0, ham_cursor_insert(cursor, &key, &rec, 0), i);
-
-            if (i>6) {
-                ham_record_t tmprec;
-                memset(&tmprec, 0, sizeof(tmprec));
-            my_key.val1 = 12;
-            key.data = (void *)&my_key;
-            key.size = sizeof(my_key);
-            key.flags = HAM_KEY_USER_ALLOC;
-                //BFC_ASSERT_EQUAL(0, 
-                            //blob_read(m_db, 262720, &tmprec, 0));
-        BFC_ASSERT_EQUAL_I(0, 
-                ham_find(db, 0, &key, &tmprec, 0), i);
-            }
-
 
             if (i % 1000 == 999) {
                 std::cerr << ".";
@@ -760,34 +745,25 @@ if (i==26686)
         {
             ::memset(&key, 0, sizeof(key));
             ::memset(&rec, 0, sizeof(rec));
-            BFC_ASSERT_EQUAL_I(0, ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT), i);
+            BFC_ASSERT_EQUAL_I(0, 
+                    ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT), i);
             BFC_ASSERT_NOTEQUAL_I(key.data, (void *)0, i);
             BFC_ASSERT_NOTEQUAL_I(rec.data, (void *)0, i);
             r = (my_rec_t *)rec.data;
             k = (my_key_t *)key.data;
-#if 0
-            printf("rec: %d vs. %d, ", r->val1, 100*i);
-            printf("key: %d vs. %d\n", k->val1, 2*i);
-#else
             BFC_ASSERT_EQUAL(r->val1, 100*i);
             BFC_ASSERT_EQUAL(k->val1, 2*i);
-#endif
+
             if (i % 1000 == 999) {
                 std::cerr << ".";
                 if (i % 10000 == 9999 || i <= 10000)
                 {
                     std::cerr << "+";
-#if 0
-#ifdef HAM_ENABLE_INTERNAL
-                    BFC_ASSERT_EQUAL_I(0, ham_check_integrity(db, NULL), i);
-#else
-                    BFC_ASSERT_EQUAL_I(HAM_NOT_IMPLEMENTED, ham_check_integrity(db, NULL), i);
-#endif
-#endif
                 }
             }
         }
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
 
         time(&t[2]);

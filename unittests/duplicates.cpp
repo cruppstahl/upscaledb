@@ -1993,7 +1993,8 @@ public:
 
         /* create w/o dupes, open with sorting -> fail */
         BFC_ASSERT_EQUAL(0, 
-            ham_create(m_db, BFC_OPATH(".test"), m_flags, 0664));
+            ham_create(m_db, BFC_OPATH(".test"), 
+                    m_flags&~HAM_ENABLE_DUPLICATES, 0664));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
             ham_open(m_db, BFC_OPATH(".test"), 

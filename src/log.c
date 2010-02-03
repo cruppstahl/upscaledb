@@ -204,8 +204,8 @@ ham_log_create(mem_allocator_t *alloc, ham_env_t *env, const char *dbpath,
 }
 
 ham_status_t
-ham_log_open(mem_allocator_t *alloc, ham_env_t *env, const char *dbpath, ham_u32_t flags,
-        ham_log_t **plog)
+ham_log_open(mem_allocator_t *alloc, ham_env_t *env, const char *dbpath, 
+        ham_u32_t flags, ham_log_t **plog)
 {
     int i;
     log_header_t header;

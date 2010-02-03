@@ -207,11 +207,11 @@ protected:
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(env, BFC_OPATH(".test"), m_flags, 0664));
         BFC_ASSERT_EQUAL(0u, db_is_active(db));
-        //BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                //ham_env_create_db(0, db, 333, 0, 0));
-        //BFC_ASSERT_EQUAL(0u, db_is_active(db));
-        //BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                //ham_env_create_db(env, 0, 333, 0, 0));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_create_db(0, db, 333, 0, 0));
+        BFC_ASSERT_EQUAL(0u, db_is_active(db));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_env_create_db(env, 0, 333, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
         BFC_ASSERT_EQUAL(1u, db_is_active(db));
         BFC_ASSERT_EQUAL(HAM_DATABASE_ALREADY_EXISTS,

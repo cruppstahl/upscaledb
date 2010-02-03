@@ -64,7 +64,7 @@ util_vsnprintf(char *str, size_t size, const char *format, va_list ap);
  * This routine can cope with HAM_KEY_USER_ALLOC-ated 'dest'-inations.
  * 
  * @note
- * When a NULL reference is returned (an error occurred) the 'dest->data' 
+ * When an error is returned the 'dest->data' 
  * pointer is either NULL or still pointing at allocated space (when 
  * HAM_KEY_USER_ALLOC was not set).
  */
