@@ -81,7 +81,6 @@ o Ger:
         is called AFTERWARDS??? 
     o EnvTest::eraseMultipleDatabases is broken!
     o EnvTest::eraseMultipleDatabasesReopenEnv is broken!
-    o review interface of ham_calc_maxkeys_per_page - move to hamsterdb_int.h?
     o doxygen: look at tweak_html.bat 
 
     o merge 1000 other changes
