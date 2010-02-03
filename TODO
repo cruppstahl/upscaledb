@@ -74,13 +74,13 @@ o Ger:
     x backend separation was improved
     x check Changelog for more details
     x merge Db/Env changes
+    x hamsterdb_{stats|int}.h - add comment that these interfaces
+        are NOT stable!
     o LogHighLevelTest::aesFilterTest fails - a design problem? it loads 
         the root page of the first database, but ham_env_enable_encryption
         is called AFTERWARDS??? 
     o EnvTest::eraseMultipleDatabases is broken!
     o EnvTest::eraseMultipleDatabasesReopenEnv is broken!
-    o hamsterdb_{stats|int}.h - add comment that these interfaces
-        are NOT stable!
     o review interface of ham_calc_maxkeys_per_page - move to hamsterdb_int.h?
     o doxygen: look at tweak_html.bat 
 

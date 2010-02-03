@@ -1,3 +1,8 @@
+Feb 03, 2010 - chris
+o Added comment in hamsterdb_int.h and hamsterdb_stats.h - these files describe
+    internal interfaces! unlike hamsterdb.h they are never stable and can
+    be changed with every new version.
+
 Feb 01, 2010 - chris
 o Bugfix: if multiple databases in an Environment are open, and just one 
     Database is closed, then the pages of this Database were not flushed
