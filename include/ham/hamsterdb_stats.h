@@ -15,6 +15,10 @@
  *        hinting functions.
  * @author Ger Hobbelt, ger@hobbelt.com
  *
+ * Please be aware that the interfaces in this file are mostly for internal
+ * use. Unlike those in hamsterdb.h they are not stable and can be changed
+ * with every new version.
+ *
  */
 
 #ifndef HAM_HAMSTERDB_STATS_H__

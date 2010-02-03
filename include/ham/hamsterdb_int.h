@@ -13,6 +13,10 @@
  * @brief Internal hamsterdb Embedded Storage functions.
  * @author Christoph Rupp, chris@crupp.de
  *
+ * Please be aware that the interfaces in this file are mostly for internal
+ * use. Unlike those in hamsterdb.h they are not stable and can be changed
+ * with every new version.
+ *
  */
 
 #ifndef HAM_HAMSTERDB_INT_H__
