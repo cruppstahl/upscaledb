@@ -120,23 +120,24 @@ o reevaluate default cache size - should we just grab 1 MB?
         deprecated?
 
 o webpage changes
-    o change font for texts and headers - good pages are
-        http://www.purenetworks.com/
-        http://www.omegathemes.com/tf/smartages/#
-    o merge "legal" and "impressum"
-    o remove about/roadmap, it's never up to date
-    o improve font/readability of license texts
-    o copyright in footer must be 2010
-    o about/overview: "Stability and Maturity" needs new text
-    o cell phone number is not up to date
-    o add NoSQL/Key Value store keywords
+    http://www.purenetworks.com/
+    http://www.omegathemes.com/tf/smartages/#
+    x merge "legal" and "impressum"
+    x copyright in footer must be 2010
+    x remove about/roadmap, it's never up to date
+    x about/overview: "Stability and Maturity" needs new text
+    x cell phone number is not up to date
+    x add NoSQL/Key Value store keywords
+    x improve font/readability of license texts
     o frontpage: Feature List + Latest News (include Links in latest news!)
     o the header page image is too large
-    o show licensing options on frontpage
+    o show licensing options on frontpage (include exceptions!)
     o frontpage: have multiple images (scrolling in background) with more
         text info?
     o sitemap: pulldown with jquery
     o download: don't list in html source, move stuff to external XML file
+        or database
+    o download: need download gates to track in analytics as goals
 
 o add automatic code coverage using gconv
     o http://www.manpagez.com/man/1/gcov/
