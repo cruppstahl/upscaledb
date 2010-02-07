@@ -1637,7 +1637,6 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
      * create the backend
      */
     be = db_get_backend(db);
-    ham_assert(be == NULL, ("Should be like this, until we implement custom backends!"));
     if (be == NULL)
     {
         st=db_create_backend(&be, db, flags);
@@ -1819,9 +1818,7 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
      * create the backend
      */
     be = db_get_backend(db);
-    ham_assert(be == NULL, ("Should be like this, until we implement custom backends!"));
-    if (be == NULL)
-    {
+    if (be == NULL) {
         st=db_create_backend(&be, db, flags);
         ham_assert(st ? be == NULL : 1, (0));
         if (!be) {
@@ -1840,9 +1837,8 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
      */
     st=be->_fun_open(be, flags);
     if (st) {
-        db_set_error(db, st);
         (void)ham_close(db, 0);
-        return (st);
+        return (db_set_error(db, st));
     }
 
     ham_assert(be_is_active(be) != 0, (0));
@@ -1887,6 +1883,18 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
             ("invalid persistent database flags 0x%x", be_get_flags(be)));
     ham_assert(!(be_get_flags(be)&DB_USE_MMAP), 
             ("invalid persistent database flags 0x%x", be_get_flags(be)));
+
+    /*
+     * SORT_DUPLICATES is only allowed if the Database was created
+     * with ENABLE_DUPLICATES!
+     */
+    if ((flags&HAM_SORT_DUPLICATES) 
+            && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)) {
+        ham_trace(("flag HAM_SORT_DUPLICATES set but duplicates are not "
+                   "enabled for this Database"));
+        (void)ham_close(db, 0);
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
 
     /* 
      * finally calculate and store the data access mode 
@@ -2606,8 +2614,8 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     }
 
     /*
-    when all transactions have been properly closed... 
-    */
+     * when all transactions have been properly closed... 
+     */
     if (!env_get_txn(env))
     {
         /* flush/persist all performance data which we want to persist */
@@ -2616,7 +2624,8 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     else if (env_is_active(env))
     {
         //st2 = HAM_TRANSACTION_STILL_OPEN;
-        ham_assert(!"Should never get here; the db close loop aove should've taken care of all TXNs", (0));
+        ham_assert(!"Should never get here; the db close loop above "
+                    "should've taken care of all TXNs", (0));
     }
 
     /*
@@ -2630,6 +2639,15 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
             && (!(env_get_rt_flags(env)&HAM_READ_ONLY))) {
         st=page_flush(env_get_header_page(env));
         if (!st2) st2 = st;
+    }
+
+    /*
+     * flush the freelist
+     */
+    st=freel_shutdown(env);
+    if (st)
+    {
+        if (st2 == 0) st2 = st;
     }
 
     /*
@@ -4503,31 +4521,6 @@ ham_assert(0, (0));
         allocator_free(env_get_allocator(env), db_get_key_allocdata(db));
         db_set_key_allocdata(db, 0);
         db_set_key_allocsize(db, 0);
-    }
-
-    /*
-     * flush the freelist
-     *
-     * TODO when ham_close is called twice, the env pointer is no longer
-     * available and freel_shutdown crashes
-     */
-    if (noenv && env) {
-        st=freel_shutdown(env);
-        if (st)
-        {
-            if (st2 == 0) st2 = st;
-        }
-    }
-
-    /*
-     * flush all pages
-     */
-    if (noenv) {
-        st=db_flush_all(env_get_cache(env), 0);
-        if (st)
-        {
-            if (st2 == 0) st2 = st;
-        }
     }
 
     /*

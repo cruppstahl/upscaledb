@@ -134,9 +134,12 @@ public:
     {
         ham_txn_t *txn;
         ham_page_t *page;
+        ham_perm_page_union_t pers;
+        memset(&pers, 0, sizeof(pers));
 
         BFC_ASSERT((page=page_new(m_env))!=0);
         page_set_self(page, 0x12345);
+        page_set_pers(page, &pers);
 
         BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
         BFC_ASSERT(txn_get_page(txn, 0x12345)==0);
@@ -146,6 +149,7 @@ public:
 
         BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
 
+        page_set_pers(page, 0);
         // page_delete(page); - will be deleted in ham_close()
     }
 

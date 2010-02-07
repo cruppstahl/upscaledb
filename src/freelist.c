@@ -4667,9 +4667,14 @@ freel_shutdown(ham_env_t *env)
     if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
         return (0);
 
+    /* 
+     * if there's no device then most likely we're closing an Environment
+     * which was not fully initialized - that's ok, no need to return
+     * an error
+     */
 	dev = env_get_device(env);
     if (!dev)
-        return (HAM_INTERNAL_ERROR);
+        return (0);
 
     cache=device_get_freelist_cache(dev);
     if (!cache)

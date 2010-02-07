@@ -68,8 +68,8 @@ public:
         BFC_REGISTER_TEST(EnvTest, renameClosedDatabases);
         BFC_REGISTER_TEST(EnvTest, eraseOpenDatabases);
         BFC_REGISTER_TEST(EnvTest, eraseUnknownDatabases);
-        //BFC_REGISTER_TEST(EnvTest, eraseMultipleDatabases);
-        //BFC_REGISTER_TEST(EnvTest, eraseMultipleDatabasesReopenEnv);
+        BFC_REGISTER_TEST(EnvTest, eraseMultipleDatabases);
+        BFC_REGISTER_TEST(EnvTest, eraseMultipleDatabasesReopenEnv);
         BFC_REGISTER_TEST(EnvTest, endianTestOpenDatabase);
         BFC_REGISTER_TEST(EnvTest, limitsReachedTest);
         BFC_REGISTER_TEST(EnvTest, createEnvOpenDbTest);

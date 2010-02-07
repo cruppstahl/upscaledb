@@ -116,7 +116,7 @@ _allocator_realloc(mem_allocator_t *a, const char *fname,
 
 /**
  * a calloc function
-*/
+ */
 #define allocator_calloc(a, size) _allocator_calloc(a, __FILE__, __LINE__, size)
 
 static __inline void *

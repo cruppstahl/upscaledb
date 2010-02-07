@@ -76,12 +76,12 @@ o Ger:
     x merge Db/Env changes
     x hamsterdb_{stats|int}.h - add comment that these interfaces
         are NOT stable!
+    x EnvTest::eraseMultipleDatabases is broken!
+    x EnvTest::eraseMultipleDatabasesReopenEnv is broken!
     o LogHighLevelTest::aesFilterTest fails - a design problem? it loads 
         the root page of the first database, but ham_env_enable_encryption
         is called AFTERWARDS??? 
-    o EnvTest::eraseMultipleDatabases is broken!
-    o EnvTest::eraseMultipleDatabasesReopenEnv is broken!
-    o doxygen: look at tweak_html.bat 
+    o check with valgrind!
 
     o merge 1000 other changes
         o db_fetch_page: interface changed
@@ -111,6 +111,7 @@ o documentation right now includes internal APIs, too
     o public/default docs have only public documentation
     o change online documentation, too
     o Ger's newest tarball has improved documentation
+    o Ger: look at tweak_html.bat 
 
 o reevaluate default cache size - should we just grab 1 MB?
     o setting strict cache size - is this tested?

@@ -73,7 +73,7 @@ typedef HAM_PACK_0 union HAM_PACK_1 ham_perm_page_union_t
     HAM_PACK_0 struct HAM_PACK_1 page_union_header_t {
         /**
          * flags of this page - currently only used for the page type
-		 @sa page_type_codes
+         @sa page_type_codes
          */
         ham_u32_t _flags;
 
@@ -159,11 +159,9 @@ struct ham_page_t {
         ham_u64_t _dirty_txn;
 
 #if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
-		/** handle for win32 mmap */
-		HANDLE _win32mmap;
+        /** handle for win32 mmap */
+        HANDLE _win32mmap;
 #endif
-		/** pointer to the 'raw' page buffer. ONLY TO BE USED by the DEVICE code! */
-	    ham_u8_t *_raw_pagedata;
 
         /** linked lists of pages - see comments above */
         ham_page_t *_prev[MAX_PAGE_LISTS], *_next[MAX_PAGE_LISTS];
@@ -336,19 +334,14 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
  */
 #define page_set_cache_cntr(page, c)     (page)->_npers._cache_cntr=(c)
 
-
 /** page->_pers was allocated with malloc, not mmap */
 #define PAGE_NPERS_MALLOC            1
-/*  
- * page is dirty - unused
-#define PAGE_NPERS_DIRTY             2
- */
-/** page is in use */
-#define PAGE_NPERS_INUSE             4
+
 /** page will be deleted when committed */
-#define PAGE_NPERS_DELETE_PENDING   16
+#define PAGE_NPERS_DELETE_PENDING    2
+
 /** page has no header */
-#define PAGE_NPERS_NO_HEADER        32
+#define PAGE_NPERS_NO_HEADER         4
 
 /**
  * get the txn-id of the transaction which dirtied the page
@@ -371,9 +364,9 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
  */
 #define PAGE_DUMMY_TXN_ID        1
 
-#define page_set_dirty(page, env)											\
-	page_set_dirty_txn(page, ((env) && env_get_txn(env)						\
-			? txn_get_id(env_get_txn(env))									\
+#define page_set_dirty(page, env)                                            \
+    page_set_dirty_txn(page, ((env) && env_get_txn(env)                        \
+            ? txn_get_id(env_get_txn(env))                                    \
             : PAGE_DUMMY_TXN_ID))
 
 /** 
@@ -402,20 +395,10 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /**
  * win32: get a pointer to the mmap handle
  */
-#   define page_get_mmap_handle_ptr(p)		&((p)->_npers._win32mmap)
+#   define page_get_mmap_handle_ptr(p)        &((p)->_npers._win32mmap)
 #else
-#   define page_get_mmap_handle_ptr(p)		0
+#   define page_get_mmap_handle_ptr(p)        0
 #endif
-
-/**
- * set the RAW pagedata reference
- */
-#define page_set_raw_pagedata(page, ref)   (page)->_raw_pagedata=(ref)
-
-/**
- * get the RAW pagedata reference
- */
-#define page_get_raw_pagedata(page)      (page)->_raw_pagedata
 
 /**
  * set the page-type
@@ -430,28 +413,34 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /**
  * @defgroup page_type_codes valid page types
  * @{
-
- Each database page is tagged with a type code; these are all known/supported page type codes.
-
- @note When ELBLOBs (Extremely Large BLOBs) are stored in the database, that is BLOBs which
-       span multiple pages apiece, only their initial page will have a valid type code;
-	   subsequent pages of the ELBLOB will store the data as-is, so as to provide one continuous
-	   storage space per ELBLOB.
-
-@sa ham_perm_page_union_t::page_union_header_t::_flags
+ * Each database page is tagged with a type code; these are all 
+ * known/supported page type codes.
+ * 
+ * @note When ELBLOBs (Extremely Large BLOBs) are stored in the database, 
+ * that is BLOBs which span multiple pages apiece, only their initial page 
+ * will have a valid type code; subsequent pages of the ELBLOB will store 
+ * the data as-is, so as to provide one continuous storage space per ELBLOB.
+ * 
+ * @sa ham_perm_page_union_t::page_union_header_t::_flags
  */
+
 /** unidentified db page type */
-#define PAGE_TYPE_UNKNOWN        0x00000000	 
-/** the db header page: this is the very first page in the database/environment */
-#define PAGE_TYPE_HEADER         0x10000000	 
+#define PAGE_TYPE_UNKNOWN        0x00000000     
+
+/** the db header page: this is the first page in the database/environment */
+#define PAGE_TYPE_HEADER         0x10000000     
+
 /** the db B+tree root page */
-#define PAGE_TYPE_B_ROOT         0x20000000	 
+#define PAGE_TYPE_B_ROOT         0x20000000     
+
 /** a B+tree node page, i.e. a page which is part of the database index */
-#define PAGE_TYPE_B_INDEX        0x30000000	 
+#define PAGE_TYPE_B_INDEX        0x30000000     
+
 /** a freelist management page */
-#define PAGE_TYPE_FREELIST       0x40000000	 
+#define PAGE_TYPE_FREELIST       0x40000000     
+
 /** a page which stores (the front part of) a BLOB. */
-#define PAGE_TYPE_BLOB           0x50000000	 
+#define PAGE_TYPE_BLOB           0x50000000     
 
 /**
  * @}

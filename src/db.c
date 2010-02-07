@@ -953,8 +953,11 @@ db_fetch_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         if (page) {
             cache_check_history(env, page, 1);
             *page_ref = page;
-            page_set_owner(page, db);
-			return HAM_SUCCESS;
+            ham_assert(page_get_pers(page), (""));
+            if (db) {
+                ham_assert(page_get_owner(page)==db, (""));
+            }
+			return (HAM_SUCCESS);
         }
     }
 
@@ -972,6 +975,8 @@ db_fetch_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             }
             cache_check_history(env, page, 2);
             *page_ref = page;
+            ham_assert(page_get_pers(page), (""));
+            ham_assert(db ? page_get_owner(page)==db : 1, (""));
 			return HAM_SUCCESS;
         }
     }
@@ -999,6 +1004,7 @@ db_fetch_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         return st;
     }
 
+    ham_assert(page_get_pers(page), (""));
     page_set_owner(page, db);
 
     if (env_get_txn(env)) {

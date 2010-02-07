@@ -31,11 +31,11 @@ extern "C" {
 */
 
 /** continue with the traversal */
-#define CB_CONTINUE			0 
+#define CB_CONTINUE            0 
 /** do not not descend another level (or descend from page to key traversal) */
-#define CB_DO_NOT_DESCEND	1 
+#define CB_DO_NOT_DESCEND    1 
 /** stop the traversal entirely */
-#define CB_STOP				2 
+#define CB_STOP                2 
 
 /**
  * @}
@@ -150,7 +150,7 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1, void *param2
     /**                                                                 \
      * verify the whole tree                                            \
      *                                                                  \
-     * @remark this function is only available when						\
+     * @remark this function is only available when                     \
      * hamsterdb is compiled with HAM_ENABLE_INTERNAL turned on.        \
      */                                                                 \
     ham_status_t (*_fun_check_integrity)(clss *be);                     \
@@ -165,40 +165,40 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1, void *param2
     /**                                                                 \
      * estimate the number of keys per page, given the keysize          \
      *                                                                  \
-     * @remark this function is only available when						\
+     * @remark this function is only available when                     \
      * hamsterdb is compiled with HAM_ENABLE_INTERNAL turned on.        \
      */                                                                 \
     ham_status_t (*_fun_calc_keycount_per_page)(clss *be,               \
-	              ham_size_t *keycount, ham_u16_t keysize);             \
+                  ham_size_t *keycount, ham_u16_t keysize);             \
                                                                         \
-	/**																	\
-	 Create a new cursor instance.										\
-	*/																	\
-	ham_status_t (*_fun_cursor_create)(clss *be,						\
-				ham_db_t *db, ham_txn_t *txn,							\
-				ham_u32_t flags, ham_cursor_t **cu);					\
-																		\
-	/**																	\
-	Close (and free) all cursors related to this database table.		\
-	*/																	\
-	ham_status_t (*_fun_close_cursors)(clss *be, ham_u32_t flags);		\
-																		\
-	/**																	\
-	 * uncouple all cursors from a page									\
-	 *																	\
-	 * @remark this is called whenever the page is deleted or			\
-	 * becoming invalid													\
-	 */																	\
-	ham_status_t (*_fun_uncouple_all_cursors)(clss *be,					\
-				ham_page_t *page, ham_size_t start);					\
-																	    \
-	/**																	\
-	 * Remove all extended keys for the given @a page from the			\
-	 * extended key cache.												\
-	 */																	\
-	ham_status_t (*_fun_free_page_extkeys)(clss *be,					\
-				ham_page_t *page, ham_u32_t flags);						\
-																		\
+    /**                                                                 \
+     * Create a new cursor instance.                                    \
+     */                                                                 \
+    ham_status_t (*_fun_cursor_create)(clss *be,                        \
+                ham_db_t *db, ham_txn_t *txn,                           \
+                ham_u32_t flags, ham_cursor_t **cu);                    \
+                                                                        \
+    /**                                                                 \
+     * Close (and free) all cursors related to this database table.     \
+     */                                                                 \
+    ham_status_t (*_fun_close_cursors)(clss *be, ham_u32_t flags);      \
+                                                                        \
+    /**                                                                 \
+     * uncouple all cursors from a page                                 \
+     *                                                                  \
+     * @remark this is called whenever the page is deleted or           \
+     * becoming invalid                                                 \
+     */                                                                 \
+    ham_status_t (*_fun_uncouple_all_cursors)(clss *be,                 \
+                ham_page_t *page, ham_size_t start);                    \
+                                                                        \
+    /**                                                                 \
+     * Remove all extended keys for the given @a page from the          \
+     * extended key cache.                                              \
+     */                                                                 \
+    ham_status_t (*_fun_free_page_extkeys)(clss *be,                    \
+                ham_page_t *page, ham_u32_t flags);                     \
+                                                                        \
     /**                                                                 \
      * pointer to the database object                                   \
      */                                                                 \
@@ -217,12 +217,12 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1, void *param2
     /**                                                                 \
      * flag if this backend has to be written to disk                   \
      */                                                                 \
-	unsigned _dirty: 1;                                                 \
+    unsigned _dirty: 1;                                                 \
                                                                         \
     /**                                                                 \
      * flag if this backend has been fully initialized                  \
      */                                                                 \
-	unsigned _is_active: 1;												\
+    unsigned _is_active: 1;                                             \
                                                                         \
     /**                                                                 \
      * the persistent flags of this backend index                       \
@@ -246,7 +246,7 @@ typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1, void *param2
 */
 HAM_PACK_0 struct HAM_PACK_1 ham_backend_t
 {
-	BACKEND_DECLARATIONS(ham_backend_t);
+    BACKEND_DECLARATIONS(ham_backend_t);
 } HAM_PACK_2;
 
 #include "packstop.h"
@@ -254,7 +254,7 @@ HAM_PACK_0 struct HAM_PACK_1 ham_backend_t
 /**
  * convenience macro to get the database pointer of a ham_backend_t-structure
  */
-#define be_get_db(be)						(be)->_db
+#define be_get_db(be)                        (be)->_db
 
 /**
  * get the keysize
