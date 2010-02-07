@@ -1,3 +1,8 @@
+Feb 07, 2010 - chris
+o Added documentation target; there's now one target for public documentation,
+    one for internal and one for BFC (unittest framework) - thanks, Ger
+o Finished a lot of refactoring - some from Ger, some from me
+
 Feb 03, 2010 - chris
 o Added comment in hamsterdb_int.h and hamsterdb_stats.h - these files describe
     internal interfaces! unlike hamsterdb.h they are never stable and can

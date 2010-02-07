@@ -67,6 +67,11 @@ x check use of ham_assert macro - i.e. with
 x test with gcc 4.4.1 on 64bit - freelist.c seems to crash (does it also
     crash with 4.4.2?)
 
+x documentation right now includes internal APIs, too
+    x move to separate target
+    x public/default docs have only public documentation
+    x Ger's newest tarball has improved documentation
+
 o Ger: 
     x get rid of the cyclic dependencies
     x HamsterdbTest::nearFindStressTest is broken!
@@ -106,13 +111,6 @@ o Ger:
     o remove all warnings on 32bit linux (copy pointer to ham_u64_t)
     o unittests: db_set_allocator was disabled - fix it!
     o uncrustify?
-
-o documentation right now includes internal APIs, too
-    o move to separate target
-    o public/default docs have only public documentation
-    o change online documentation, too
-    o Ger's newest tarball has improved documentation
-    o Ger: look at tweak_html.bat 
 
 o reevaluate default cache size - should we just grab 1 MB?
     o setting strict cache size - is this tested?

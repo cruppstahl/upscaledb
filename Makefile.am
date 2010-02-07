@@ -3,7 +3,7 @@ ACLOCAL_AMFLAGS	= -I m4
 
 SUBDIRS = 3rdparty src include samples tools unittests
 
-DOCUMENTATION_FILES = documentation/Doxyfile            \
+DOCUMENTATION_FILES = documentation/Doxyfile*           \
              documentation/hamsterdb-main.jpg           \
              documentation/appendix_gpl2.doc 		    \
              documentation/appendix_gpl3.doc 		    \
@@ -13,8 +13,7 @@ DOCUMENTATION_FILES = documentation/Doxyfile            \
              documentation/index.doc 		            \
              documentation/samples.doc 		            \
              documentation/starting.doc 		        \
-             documentation/html         		        \
-             documentation/Doxyfile
+             documentation/html
              
 
 EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
@@ -64,10 +63,21 @@ doc:
 	doxygen documentation/Doxyfile
 	@cp documentation/*.jpg documentation/html/
 
+internal_doc:
+	VERSION=$(VERSION) ;            \
+	export VERSION;                 \
+	doxygen documentation/Doxyfile.int
+	@cp documentation/*.jpg documentation/html/
+
+bfc_doc:
+	VERSION=$(VERSION) ;            \
+	export VERSION;                 \
+	doxygen documentation/Doxyfile.bfc
+
 html-dist: doc
 	tar cvzf hamsterdb-html-documentation.$(VERSION).tar.gz documentation/html
 
 test:
 	cd unittests && make && ./test
 
-.PHONY: doc test
+.PHONY: doc internal_doc bfc_doc html-dist test
