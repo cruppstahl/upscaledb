@@ -86,22 +86,22 @@ db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
 ham_status_t
 db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
 {
-	ham_cursor_t *c = page_get_cursors(page);
+    ham_cursor_t *c = page_get_cursors(page);
 
-	if (c)
-	{
-		ham_db_t *db = cursor_get_db(c);
-		if (db)
-		{
-			ham_backend_t *be = db_get_backend(db);
-			
-			if (be)
-			{
-				return (*be->_fun_uncouple_all_cursors)(be, page, start);
-			}
-		}
-	}
-	return HAM_SUCCESS;
+    if (c)
+    {
+        ham_db_t *db = cursor_get_db(c);
+        if (db)
+        {
+            ham_backend_t *be = db_get_backend(db);
+            
+            if (be)
+            {
+                return (*be->_fun_uncouple_all_cursors)(be, page, start);
+            }
+        }
+    }
+    return HAM_SUCCESS;
 }
 
 
@@ -269,14 +269,12 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
     ham_size_t temp;
     ham_record_t record;
     ham_u8_t *ptr;
-	ham_env_t *env = db_get_env(db);
-
-	//ext_key->data = 0;
+    ham_env_t *env = db_get_env(db);
+    mem_allocator_t *alloc=env_get_allocator(env);
 
     ham_assert(key_flags&KEY_IS_EXTENDED, ("key is not extended"));
 
-    if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) 
-	{
+    if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
         /*
          * make sure that we have an extended key-cache
          *
@@ -286,7 +284,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
          */
         if (!db_get_extkey_cache(db)) {
             extkey_cache_t *c=extkey_cache_new(db);
-			db_set_extkey_cache(db, c);
+            db_set_extkey_cache(db, c);
             if (!c)
                 return HAM_OUT_OF_MEMORY;
         }
@@ -305,23 +303,20 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
             ham_assert(temp==key_length, ("invalid key length"));
 
             if (!(ext_key->flags&HAM_KEY_USER_ALLOC)) {
-				if (!ext_key->data || ext_key->size < key_length)
-				{
-					if (ext_key->data)
-						allocator_free(env_get_allocator(env), ext_key->data);
-					ext_key->data = (ham_u8_t *)allocator_alloc(env_get_allocator(env), key_length);
-					if (!ext_key->data) 
-					{
-						return HAM_OUT_OF_MEMORY;
-					}
-				}
-			}
+                if (!ext_key->data || ext_key->size < key_length) {
+                    if (ext_key->data)
+                        allocator_free(alloc, ext_key->data);
+                    ext_key->data = (ham_u8_t *)allocator_alloc(alloc, 
+                                            key_length);
+                    if (!ext_key->data) 
+                        return HAM_OUT_OF_MEMORY;
+                }
+            }
             memcpy(ext_key->data, ptr, key_length);
             ext_key->size=(ham_u16_t)key_length;
             return (0);
         }
-		else if (st!=HAM_KEY_NOT_FOUND) 
-		{
+        else if (st!=HAM_KEY_NOT_FOUND) {
             return st;
         }
     }
@@ -330,63 +325,45 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
      * not cached - fetch from disk;
      * we allocate the memory here to avoid that the global record
      * pointer is overwritten
-	 Note that the key is fetched in two parts: we already have the front part of 
-	 the key in key_data and now we only need to fetch the blob remainder, which size
-	 is: key_length - (db_get_keysize(db)-sizeof(ham_offset_t))
-
-	 To prevent another round of memcpy and heap allocation here, we simply allocate
-	 sufficient space for the entire key as it should be passed back through (*ext_key)
-	 and adjust the pointer into that memory space for the faked record-based blob_read()
-	 below.
+     * 
+     * Note that the key is fetched in two parts: we already have the front 
+     * part of the key in key_data and now we only need to fetch the blob 
+     * remainder, which size is: 
+     *    key_length - (db_get_keysize(db)-sizeof(ham_offset_t))
+     *
+     * To prevent another round of memcpy and heap allocation here, we 
+     * simply allocate sufficient space for the entire key as it should be 
+     * passed back through (*ext_key) and adjust the pointer into that 
+     * memory space for the faked record-based blob_read() below.
      */
-	if (!(ext_key->flags & HAM_KEY_USER_ALLOC))
-	{
-		if (!ext_key->data || ext_key->size < key_length)
-		{
-			if (ext_key->data)
-				allocator_free(env_get_allocator(env), ext_key->data);
-			ext_key->data = (ham_u8_t *)allocator_alloc(env_get_allocator(env), key_length);
-			if (!ext_key->data) 
-			{
-				return HAM_OUT_OF_MEMORY;
-			}
-		}
-	}
+    if (!(ext_key->flags & HAM_KEY_USER_ALLOC)) {
+        if (!ext_key->data || ext_key->size < key_length) {
+            if (ext_key->data)
+                allocator_free(alloc, ext_key->data);
+            ext_key->data = (ham_u8_t *)allocator_alloc(alloc, key_length);
+            if (!ext_key->data)
+                return HAM_OUT_OF_MEMORY;
+        }
+    }
 
-	memmove(ext_key->data, key_data, db_get_keysize(db)-sizeof(ham_offset_t));
+    memmove(ext_key->data, key_data, db_get_keysize(db)-sizeof(ham_offset_t));
 
-	memset(&record, 0, sizeof(record));
+    memset(&record, 0, sizeof(record));
     record.data=(((ham_u8_t *)ext_key->data) + 
                     db_get_keysize(db)-sizeof(ham_offset_t));
-	record.size = key_length - (db_get_keysize(db)-sizeof(ham_offset_t));
+    record.size = key_length - (db_get_keysize(db)-sizeof(ham_offset_t));
     record.flags = HAM_RECORD_USER_ALLOC;
 
     st=blob_read(db, blobid, &record, 0);
-    if (st) {
+    if (st)
         return st;
-    }
 
-#if 0
-    if (!(ext_key->flags&HAM_KEY_USER_ALLOC)) {
-        ext_key->data=(ham_u8_t *)ham_mem_alloc(db, key_length);
-        if (!ext_key->data) {
-            ham_mem_free(db, record.data);
-            return (HAM_OUT_OF_MEMORY);
-        }
-    }
-    memmove(((char *)ext_key->data), key_data, 
-               db_get_keysize(db)-sizeof(ham_offset_t));
-    memcpy (((char *)ext_key->data)+(db_get_keysize(db)-sizeof(ham_offset_t)),
-               record.data, record.size);
-#endif
-
-    /* insert the FULL key in the cache */
-    if (db_get_extkey_cache(db)) 
-	{
+    /* insert the FULL key in the extkey-cache */
+    if (db_get_extkey_cache(db)) {
         st = extkey_cache_insert(db_get_extkey_cache(db),
                 blobid, key_length, ext_key->data);
-		if (st)
-			return st;
+        if (st)
+            return st;
     }
 
     ext_key->size = (ham_u16_t)key_length;
@@ -410,7 +387,7 @@ db_prepare_ham_key_for_compare(ham_db_t *db, int_key_t *src, ham_key_t *dest)
         }
         memcpy(p, dest->data, db_get_keysize(db));
         dest->data = p;
-		dest->flags = 0; /* [i_a] important; discard any USER_ALLOC present due to the copy from src */
+        dest->flags = 0; /* [i_a] important; discard any USER_ALLOC present due to the copy from src */
     }
 
     return (0);
@@ -419,9 +396,9 @@ db_prepare_ham_key_for_compare(ham_db_t *db, int_key_t *src, ham_key_t *dest)
 void
 db_release_ham_key_after_compare(ham_db_t *db, ham_key_t *key)
 {
-	// if (key->data && key->_flags&KEY_IS_EXTENDED) {
+    // if (key->data && key->_flags&KEY_IS_EXTENDED) {
     if (key->data && !(key->flags & HAM_KEY_USER_ALLOC)) /* [i_a] check the right flag for free() */
-	{
+    {
         allocator_free(env_get_allocator(db_get_env(db)), key->data);
         key->data = 0;
     }
@@ -482,10 +459,10 @@ db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
                     lhs->size, lhs->_flags,
                     lhs);
             if (st)
-			{
-				ham_assert(st < -1, (0));
+            {
+                ham_assert(st < -1, (0));
                 return st;
-			}
+            }
         }
 
         /*
@@ -496,10 +473,10 @@ db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
                     rhs->size, rhs->_flags,
                     rhs);
             if (st)
-			{
-				ham_assert(st < -1, (0));
+            {
+                ham_assert(st < -1, (0));
                 return st;
-			}
+            }
         }
 
         /*
@@ -514,7 +491,7 @@ db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
 ham_status_t
 db_create_backend(ham_backend_t **backend_ref, ham_db_t *db, ham_u32_t flags)
 {
-	*backend_ref = 0;
+    *backend_ref = 0;
 
     /*
      * the default backend is the BTREE
@@ -534,7 +511,7 @@ my_purge_cache(ham_env_t *env)
      * first, try to delete unused pages from the cache
      */
     if (env_get_cache(env) && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-		ham_bool_t lowwater = HAM_FALSE;
+        ham_bool_t lowwater = HAM_FALSE;
 
 #if defined(HAM_DEBUG) && defined(HAM_ENABLE_INTERNAL) && !defined(HAM_LEAN_AND_MEAN_FOR_PROFILING)
         if (cache_too_big(env_get_cache(env), HAM_FALSE))
@@ -543,7 +520,7 @@ my_purge_cache(ham_env_t *env)
         }
 #endif
         while (cache_too_big(env_get_cache(env), lowwater)) {
-			lowwater = HAM_TRUE;
+            lowwater = HAM_TRUE;
 
             page=cache_get_unused_page(env_get_cache(env));
             if (!page) {
@@ -561,7 +538,7 @@ my_purge_cache(ham_env_t *env)
     }
 
 #if 0
-	/*
+    /*
      * then free unused extended keys. We don't do this too often to 
      * avoid a thrashing of the cache, and freeing unused extkeys
      * is more expensive (performance-wise) than freeing unused pages.
@@ -583,8 +560,8 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
 {
     ham_status_t st;
     ham_env_t *env=device_get_env(page_get_device(page));
-	
-	ham_assert(page_get_owner(page) 
+    
+    ham_assert(page_get_owner(page) 
                 ? device_get_env(page_get_device(page)) 
                         == db_get_env(page_get_owner(page)) 
                 : 1, (0));
@@ -610,16 +587,16 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
         (!(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER)) &&
          (page_get_type(page)==PAGE_TYPE_B_ROOT ||
           page_get_type(page)==PAGE_TYPE_B_INDEX)) 
-	{
-		ham_backend_t *be;
-		
-		ham_assert(page_get_owner(page), ("Must be set as page owner when this is a Btree page"));
-		be = db_get_backend(page_get_owner(page));
-		ham_assert(be, (0));
-		
-		st = be->_fun_free_page_extkeys(be, page, flags);
-		if (st)
-			return (st);
+    {
+        ham_backend_t *be;
+        
+        ham_assert(page_get_owner(page), ("Must be set as page owner when this is a Btree page"));
+        be = db_get_backend(page_get_owner(page));
+        ham_assert(be, (0));
+        
+        st = be->_fun_free_page_extkeys(be, page, flags);
+        if (st)
+            return (st);
     }
 
     /*
@@ -647,15 +624,15 @@ db_alloc_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 {
     ham_status_t st;
     ham_offset_t tellpos=0;
-	ham_page_t *page = NULL;
+    ham_page_t *page = NULL;
 
-	*page_ref = 0;
+    *page_ref = 0;
     ham_assert(0 == (flags & ~(PAGE_IGNORE_FREELIST 
                         | PAGE_CLEAR_WITH_ZERO
-						| PAGE_DONT_LOG_CONTENT
-						| DB_NEW_PAGE_DOES_THRASH_CACHE)), (0));
-	ham_assert(env_get_cache(env) != 0, 
-			("This code will not realize the requested page may already exist "
+                        | PAGE_DONT_LOG_CONTENT
+                        | DB_NEW_PAGE_DOES_THRASH_CACHE)), (0));
+    ham_assert(env_get_cache(env) != 0, 
+            ("This code will not realize the requested page may already exist "
              "through a previous call to this function or db_fetch_page() "
              "unless page caching is available!"));
 
@@ -671,7 +648,7 @@ db_alloc_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     /* first, we ask the freelist for a page */
     if (!(flags&PAGE_IGNORE_FREELIST)) {
         st=freel_alloc_page(&tellpos, env, db);
-		ham_assert(st ? !tellpos : 1, (0));
+        ham_assert(st ? !tellpos : 1, (0));
         if (tellpos) {
             ham_assert(tellpos%env_get_pagesize(env)==0,
                     ("page id %llu is not aligned", tellpos));
@@ -705,7 +682,7 @@ db_alloc_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             goto done;
         }
         else if (st) 
-		{
+        {
             return st;
         }
     }
@@ -716,7 +693,7 @@ db_alloc_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             return HAM_OUT_OF_MEMORY;
     }
 
-	ham_assert(tellpos == 0, (0));
+    ham_assert(tellpos == 0, (0));
     st=page_alloc(page);
     if (st)
         return st;
@@ -736,14 +713,14 @@ done:
             ? 1 
             : !!env_get_cache(env), ("in-memory DBs MUST have a cache"));
 
-	/* 
-	 * disable page content logging ONLY when the page is 
-	 * completely new (contains bogus 'before' data) 
-	 */
-	if (tellpos == 0) /* [i_a] BUG! */
-	{
-		flags &= ~PAGE_DONT_LOG_CONTENT;
-	}
+    /* 
+     * disable page content logging ONLY when the page is 
+     * completely new (contains bogus 'before' data) 
+     */
+    if (tellpos == 0) /* [i_a] BUG! */
+    {
+        flags &= ~PAGE_DONT_LOG_CONTENT;
+    }
 
     /*
      * As we re-purpose a page, we will reset its pagecounter as
@@ -755,75 +732,75 @@ done:
     if (tellpos && env_get_cache(env) && (page_get_type(page) != type)) {
 #if 0 // this is done at the end of this call...
         //page_set_cache_cntr(page, env_get_cache(env)->_timeslot++);
-		cache_update_page_access_counter(newroot, env_get_cache(env)); /* bump up */
+        cache_update_page_access_counter(newroot, env_get_cache(env)); /* bump up */
 #endif
     }
     page_set_type(page, type);
     page_set_owner(page, db);
     page_set_undirty(page);
 
-	/*
-	CONCERN / TO BE CHECKED
+    /*
+    CONCERN / TO BE CHECKED
 
-	logging or no logging, when a new page is appended to the file
-	and the txn fails, that page is not removed from the file through
-	the OS, yet freelist is rolled back, resulting in a 'gap' page
-	which would seem allocated for ever as the freelist didn't mark
-	it as used (max_bits), while subsequent page adds will append
-	new pages.
+    logging or no logging, when a new page is appended to the file
+    and the txn fails, that page is not removed from the file through
+    the OS, yet freelist is rolled back, resulting in a 'gap' page
+    which would seem allocated for ever as the freelist didn't mark
+    it as used (max_bits), while subsequent page adds will append
+    new pages.
 
-	EDIT v1.1.2: this is resolved by adding database file size changes
-	             to the log: aborting transactions should now abort
-				 correctly by also truncating the database filesize
-				 to the previously known filesize.
+    EDIT v1.1.2: this is resolved by adding database file size changes
+                 to the log: aborting transactions should now abort
+                 correctly by also truncating the database filesize
+                 to the previously known filesize.
 
-				 This, of course, means trouble for partitioning schemes,
-				 where the database has multiple 'growth fronts': which
-				 one should we truncate?
+                 This, of course, means trouble for partitioning schemes,
+                 where the database has multiple 'growth fronts': which
+                 one should we truncate?
 
-				 Answer: this is resolved in the simplest possible way:
-				 new pages are flagged as such and each page is 'rewound'
-				 by calling the 'shrink' device method, which will thus
-				 have access to the appropriate 'rid' and any underlying
-				 partitioners can take care of the routing of the resize
-				 request.
+                 Answer: this is resolved in the simplest possible way:
+                 new pages are flagged as such and each page is 'rewound'
+                 by calling the 'shrink' device method, which will thus
+                 have access to the appropriate 'rid' and any underlying
+                 partitioners can take care of the routing of the resize
+                 request.
 
-				 The alternative solution: keeping the file size as is,
-				 while the transaction within which it occurred, would
-				 cause insurmountable trouble when the freelist is expanded
-				 but at the same time the freelist needs to grow itself to
-				 contain this expansion: the allocation of the freelist
-				 page MAY collide with other freelist bit edits in the
-				 same freelist page, so logging would not work as is. Then,
-				 the option would be to 'recreate' this particular freelist
-				 page allocation, but such 'regeneration' cannot be guaranteed
-				 to match the original action as the transaction is rewound
-				 and the freelist allocation will end up in another place.
+                 The alternative solution: keeping the file size as is,
+                 while the transaction within which it occurred, would
+                 cause insurmountable trouble when the freelist is expanded
+                 but at the same time the freelist needs to grow itself to
+                 contain this expansion: the allocation of the freelist
+                 page MAY collide with other freelist bit edits in the
+                 same freelist page, so logging would not work as is. Then,
+                 the option would be to 'recreate' this particular freelist
+                 page allocation, but such 'regeneration' cannot be guaranteed
+                 to match the original action as the transaction is rewound
+                 and the freelist allocation will end up in another place.
 
-				 Guaranteed fault scenario for regeneration: TXN START >
-				 ERASE PAGE-SIZE BLOB (marks freelist section as 'free') >
-				 EXPAND DB BY SEVERAL PAGES: needs to expand freelist >
-				 FREELIST ALLOCS PAGE in location where the erased BLOB was.
+                 Guaranteed fault scenario for regeneration: TXN START >
+                 ERASE PAGE-SIZE BLOB (marks freelist section as 'free') >
+                 EXPAND DB BY SEVERAL PAGES: needs to expand freelist >
+                 FREELIST ALLOCS PAGE in location where the erased BLOB was.
 
-				 Which is perfectly Okay when transaction commits, but txn 
-				 abort means the BLOB will exist again and the freelist
-				 allocation CANNOT happen at the same spot. Subsequent
-				 committing transactions would then see a b0rked freelist
-				 image after regeneration-on-txn-abort.
+                 Which is perfectly Okay when transaction commits, but txn 
+                 abort means the BLOB will exist again and the freelist
+                 allocation CANNOT happen at the same spot. Subsequent
+                 committing transactions would then see a b0rked freelist
+                 image after regeneration-on-txn-abort.
 
 
-				 WRONG! immediately after ABORT the freelist CAN be regenerated,
-				 as long as those results are applied to the REWOUND database
-				 AND these new edits are LOGGED after the ABORT TXN using 
-				 a 'derived' transaction which is COMMITTED: that TXN will only
-				 contain the filesize and freelist edits then!
-	*/
-	if (!(flags & PAGE_DONT_LOG_CONTENT) && (env && env_get_log(env)))
-	{
-		st=ham_log_add_page_before(page);
-		if (st) 
-			return st;
-	}
+                 WRONG! immediately after ABORT the freelist CAN be regenerated,
+                 as long as those results are applied to the REWOUND database
+                 AND these new edits are LOGGED after the ABORT TXN using 
+                 a 'derived' transaction which is COMMITTED: that TXN will only
+                 contain the filesize and freelist edits then!
+    */
+    if (!(flags & PAGE_DONT_LOG_CONTENT) && (env && env_get_log(env)))
+    {
+        st=ham_log_add_page_before(page);
+        if (st) 
+            return st;
+    }
 
     /*
      * clear the page with zeroes?
@@ -845,8 +822,8 @@ done:
     }
 
     if (env_get_cache(env)) 
-	{
-		unsigned int bump = 0;
+    {
+        unsigned int bump = 0;
 
         st=cache_put_page(env_get_cache(env), page);
         if (st) {
@@ -854,61 +831,61 @@ done:
             /* TODO memleak? */
         }
 #if 0
-		/*
-		Some quick measurements indicate that this (and the btree lines which
-		do the same: bumping the cache age of the given page) is deteriorating
-		performance:
+        /*
+        Some quick measurements indicate that this (and the btree lines which
+        do the same: bumping the cache age of the given page) is deteriorating
+        performance:
 
-		with this it's ~ 17K refetches (reloads of previously cached pages);
-		without it's ~ 16K refetches, which means the dumb version without the
-		weights reloads less database pages.
+        with this it's ~ 17K refetches (reloads of previously cached pages);
+        without it's ~ 16K refetches, which means the dumb version without the
+        weights reloads less database pages.
 
-		All in all, the conclusion is simple:
+        All in all, the conclusion is simple:
 
-		Stick with the simplest cache aging system, unless we can come up with something
-		truely fantastic to cut down disc I/O (which is particularly important when the
-		database file is located on a remote storage disc (SAN).
+        Stick with the simplest cache aging system, unless we can come up with something
+        truely fantastic to cut down disc I/O (which is particularly important when the
+        database file is located on a remote storage disc (SAN).
 
-		And the simplest system is... 
-		
-		Count every access as one age point, i.e. age 
-		all pages with each cache access by 1 and dicard the oldest bugger.
-		
-		Don't bother with high/low watermarks in purging either as that didn't help
-		neither.
-		*/
-		switch (type)
-		{
-		default:
-		case PAGE_TYPE_UNKNOWN:
-		case PAGE_TYPE_HEADER:
-			break;
+        And the simplest system is... 
+        
+        Count every access as one age point, i.e. age 
+        all pages with each cache access by 1 and dicard the oldest bugger.
+        
+        Don't bother with high/low watermarks in purging either as that didn't help
+        neither.
+        */
+        switch (type)
+        {
+        default:
+        case PAGE_TYPE_UNKNOWN:
+        case PAGE_TYPE_HEADER:
+            break;
 
-		case PAGE_TYPE_B_ROOT:
-		case PAGE_TYPE_B_INDEX:
-			bump = (cache_get_max_elements(env_get_cache(env)) + 32 - 1) / 32;
-			if (bump > 4)
-				bump = 4;
-			break;
+        case PAGE_TYPE_B_ROOT:
+        case PAGE_TYPE_B_INDEX:
+            bump = (cache_get_max_elements(env_get_cache(env)) + 32 - 1) / 32;
+            if (bump > 4)
+                bump = 4;
+            break;
 
-		case PAGE_TYPE_FREELIST:
-			bump = (cache_get_max_elements(env_get_cache(env)) + 8 - 1) / 8;
-			break;
-		}
+        case PAGE_TYPE_FREELIST:
+            bump = (cache_get_max_elements(env_get_cache(env)) + 8 - 1) / 8;
+            break;
+        }
 #endif
         if (flags & DB_NEW_PAGE_DOES_THRASH_CACHE) {
             /* give it an 'antique' age so this one will get flushed pronto */
             page_set_cache_cntr(page, 1 /* cache->_timeslot - 1000 */ );
         }
         else {
-			cache_update_page_access_counter(page, env_get_cache(env), bump);
+            cache_update_page_access_counter(page, env_get_cache(env), bump);
         }
     }
 
     cache_check_history(env, page, -99);
 
     *page_ref = page;
-	return HAM_SUCCESS;
+    return HAM_SUCCESS;
 }
 
 ham_status_t
@@ -924,16 +901,16 @@ db_fetch_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
             ? 1 
             : !!env_get_cache(env), ("in-memory DBs MUST have a cache"));
-	ham_assert((env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
+    ham_assert((env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
             ? 1 
             : env_get_cache(env) != 0, 
-			("This code will not realize the requested page may already exist through"
-			 " a previous call to this function or db_alloc_page() unless page caching"
-			 " is available!"));
+            ("This code will not realize the requested page may already exist through"
+             " a previous call to this function or db_alloc_page() unless page caching"
+             " is available!"));
 
-	*page_ref = 0;
+    *page_ref = 0;
 
-	/* 
+    /* 
      * check if the cache allows us to allocate another page; if not,
      * purge it
      */
@@ -958,7 +935,7 @@ db_fetch_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             if (db) {
                 ham_assert(page_get_owner(page)==db, (""));
             }
-			return (HAM_SUCCESS);
+            return (HAM_SUCCESS);
         }
     }
 
@@ -978,7 +955,7 @@ db_fetch_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             *page_ref = page;
             ham_assert(page_get_pers(page), (""));
             ham_assert(db ? page_get_owner(page)==db : 1, (""));
-			return HAM_SUCCESS;
+            return HAM_SUCCESS;
         }
     }
 
@@ -1000,7 +977,7 @@ db_fetch_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 
     page_set_owner(page, db);
     page_set_self(page, address);
-	st=page_fetch(page);
+    st=page_fetch(page);
     if (st) {
         (void)page_delete(page);
         return st;
@@ -1034,7 +1011,7 @@ db_fetch_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     cache_check_history(env, page, 3);
 
     *page_ref = page;
-	return HAM_SUCCESS;
+    return HAM_SUCCESS;
 }
 
 ham_status_t
@@ -1044,8 +1021,8 @@ db_flush_page(ham_env_t *env, ham_page_t *page, ham_u32_t flags)
 
     /* write the page, if it's dirty and if write-through is enabled */
     if ((env_get_rt_flags(env)&HAM_WRITE_THROUGH || flags&HAM_WRITE_THROUGH ||
-		 !env_get_cache(env)) && page_is_dirty(page)) 
-	{
+         !env_get_cache(env)) && page_is_dirty(page)) 
+    {
         st=page_flush(page);
         if (st)
             return (st);
@@ -1105,13 +1082,13 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
     ham_status_t st;
     ham_env_t *env=device_get_env(page_get_device(page));
     
-	ham_assert(0 == (flags & ~DB_FLUSH_NODELETE), (0));
+    ham_assert(0 == (flags & ~DB_FLUSH_NODELETE), (0));
 
     /*
      * write page to disk if it's dirty (and if we don't have 
      * an IN-MEMORY DB)
      */
-	ham_assert(env, (0));
+    ham_assert(env, (0));
     if (page_is_dirty(page) 
             && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
         st=page_flush(page);

@@ -222,8 +222,11 @@ util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
 ham_status_t
 util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
 {
+    mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
+
     /*
-     * extended key: copy the whole key
+     * extended key: copy the whole key, not just the
+     * overflow region!
      */
     if (key_get_flags(source)&KEY_IS_EXTENDED) {
         ham_u16_t keysize = key_get_size(source);
@@ -236,10 +239,8 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
                  * key data can be allocated in db_get_extended_key():
                  * prevent that heap memory leak
                  */
-                if (dest->data
-                    	&& db_get_key_allocdata(db) != dest->data) {
-                    allocator_free(env_get_allocator(db_get_env(db)), dest->data);
-                }
+                if (dest->data && (db_get_key_allocdata(db)!=dest->data))
+                    allocator_free(alloc, dest->data);
                 dest->data=0;
             }
             return st;
@@ -257,7 +258,7 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
         else {
             if (keysize) {
                 if (db_get_key_allocdata(db))
-                    allocator_free(env_get_allocator(db_get_env(db)), db_get_key_allocdata(db));
+                    allocator_free(alloc, db_get_key_allocdata(db));
                 db_set_key_allocdata(db, dest->data);
                 db_set_key_allocsize(db, keysize);
             }
@@ -280,8 +281,8 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
             else {
                 if (keysize > db_get_key_allocsize(db)) {
                     if (db_get_key_allocdata(db))
-                        allocator_free(env_get_allocator(db_get_env(db)), db_get_key_allocdata(db));
-                    db_set_key_allocdata(db, allocator_alloc(env_get_allocator(db_get_env(db)), keysize));
+                        allocator_free(alloc, db_get_key_allocdata(db));
+                    db_set_key_allocdata(db, allocator_alloc(alloc, keysize));
                     if (!db_get_key_allocdata(db)) {
                         db_set_key_allocsize(db, 0);
                         dest->data = NULL;
@@ -324,3 +325,4 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
 
     return HAM_SUCCESS;
 }
+

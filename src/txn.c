@@ -25,7 +25,6 @@
 #include "txn.h"
 
 
-
 ham_status_t
 txn_add_page(ham_txn_t *txn, ham_page_t *page, ham_bool_t ignore_if_inserted)
 {
