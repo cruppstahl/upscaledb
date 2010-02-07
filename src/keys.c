@@ -125,7 +125,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
         else {
             st=blob_allocate(env, db, record->data, record->size, 0, &rid);
             if (st)
-                return (db_set_error(db, st));
+                return (st);
             key_set_ptr(key, rid);
         }
     }
@@ -150,7 +150,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             rid=0;
             st=blob_allocate(env, db, record->data, record->size, 0, &rid);
             if (st)
-                return (db_set_error(db, st));
+                return (st);
             if (rid)
                 key_set_ptr(key, rid);
         }
@@ -158,7 +158,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             st=blob_overwrite(env, db, ptr, record->data, 
                     record->size, 0, &rid);
             if (st)
-                return (db_set_error(db, st));
+                return (st);
             key_set_ptr(key, rid);
         }
     }
@@ -245,7 +245,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
         {
             st=blob_allocate(env, db, record->data, record->size, 0, &rid);
             if (st)
-                return (db_set_error(db, st));
+                return (st);
             dupe_entry_set_flags(&entries[i], 0);
             dupe_entry_set_rid(&entries[i], rid);
         }

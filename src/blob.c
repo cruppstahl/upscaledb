@@ -955,7 +955,7 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
         table=allocator_calloc(env_get_allocator(env), sizeof(dupe_table_t)+
                         (new_cap-1)*sizeof(dupe_entry_t));
         if (!table)
-            return (db_set_error(db, HAM_OUT_OF_MEMORY));
+            return (HAM_OUT_OF_MEMORY);
         dupe_table_set_capacity(table, new_cap);
         dupe_table_set_count(table, dupe_table_get_count(old));
         memcpy(dupe_table_get_entry(table, 0), dupe_table_get_entry(old, 0),

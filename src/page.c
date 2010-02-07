@@ -208,16 +208,11 @@ page_new(ham_env_t *env)
 	mem_allocator_t *alloc=env_get_allocator(env);
 
     page=(ham_page_t *)allocator_alloc(alloc, sizeof(*page));
-    if (!page) {
-        //db_set_error(db, HAM_OUT_OF_MEMORY);
+    if (!page)
         return (0);
-    }
     memset(page, 0, sizeof(*page));
 
     page_set_allocator(page, alloc);
-
-    //page_set_owner(page, db); 
-	// TODO ^^^ make sure the backend takes care of this...
 
     page_set_device(page, env_get_device(env));
 
@@ -243,21 +238,21 @@ page_delete(ham_page_t *page)
 }
 
 ham_status_t
-page_alloc(ham_page_t *page, ham_size_t size)
+page_alloc(ham_page_t *page)
 {
     ham_device_t *dev=page_get_device(page);
 
 	ham_assert(dev, (0));
-	return (dev->alloc_page(dev, page, size));
+	return (dev->alloc_page(dev, page));
 }
 
 ham_status_t
-page_fetch(ham_page_t *page, ham_size_t size)
+page_fetch(ham_page_t *page)
 {
     ham_device_t *dev=page_get_device(page);
 
 	ham_assert(dev, (0));
-	return (dev->read_page(dev, page, size));
+	return (dev->read_page(dev, page));
 }
 
 ham_status_t

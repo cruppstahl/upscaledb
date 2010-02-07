@@ -93,8 +93,8 @@ public:
     {
         ham_page_t *page;
         page=page_new(m_env);
-        BFC_ASSERT(page_alloc(page, env_get_pagesize(m_env))==HAM_SUCCESS);
-        BFC_ASSERT(page_free(page)==HAM_SUCCESS);
+        BFC_ASSERT_EQUAL(0, page_alloc(page));
+        BFC_ASSERT_EQUAL(0, page_free(page));
 
         BFC_ASSERT_EQUAL((ham_offset_t)0, page_get_before_img_lsn(page));
         page_set_before_img_lsn(page, 0x13ull);
@@ -111,7 +111,7 @@ public:
 
         for (i=0; i<10; i++) {
             page=page_new(m_env);
-            BFC_ASSERT_EQUAL(0, page_alloc(page, env_get_pagesize(m_env)));
+            BFC_ASSERT_EQUAL(0, page_alloc(page));
             /* i+2 since we need 1 page for the header page and one page
              * for the root page */
             if (!m_inmemory)
@@ -128,18 +128,18 @@ public:
 
         page=page_new(m_env);
         temp=page_new(m_env);
-        BFC_ASSERT_EQUAL(0, page_alloc(page, env_get_pagesize(m_env)));
+        BFC_ASSERT_EQUAL(0, page_alloc(page));
         BFC_ASSERT_EQUAL(ps*2, page_get_self(page));
         BFC_ASSERT_EQUAL(0, page_free(page));
         
-        BFC_ASSERT_EQUAL(0, page_fetch(page, env_get_pagesize(m_env)));
+        BFC_ASSERT_EQUAL(0, page_fetch(page));
         memset(page_get_pers(page), 0x13, ps);
         page_set_dirty(page, m_env);
         BFC_ASSERT_EQUAL(0, page_flush(page));
 
         BFC_ASSERT_EQUAL(0, page_is_dirty(page));
         page_set_self(temp, ps*2);
-        BFC_ASSERT_EQUAL(0, page_fetch(temp, env_get_pagesize(m_env)));
+        BFC_ASSERT_EQUAL(0, page_fetch(temp));
         BFC_ASSERT_EQUAL(0, 
                 memcmp(page_get_pers(page), page_get_pers(temp), ps));
 

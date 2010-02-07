@@ -154,19 +154,17 @@ __f_read(ham_device_t *self, ham_offset_t offset,
 }
 
 static ham_status_t
-__f_read_page(ham_device_t *self, ham_page_t *page, ham_offset_t size)
+__f_read_page(ham_device_t *self, ham_page_t *page)
 {
     ham_u8_t *buffer;
     ham_status_t st;
     dev_file_t *t=(dev_file_t *)device_get_private(self);
     ham_db_t *db=page_get_owner(page);
     ham_file_filter_t *head=0;
+    ham_size_t size=self->get_pagesize(self);
     
     if (db && db_get_env(db))
         head=env_get_file_filter(db_get_env(db));
-
-    if (!size)
-        size=self->get_pagesize(self);
 
     if (device_get_flags(self)&HAM_DISABLE_MMAP) {
 		if (page_get_pers(page)==0) {
@@ -209,7 +207,7 @@ __f_read_page(ham_device_t *self, ham_page_t *page, ham_offset_t size)
         if (head->after_read_cb) {
             st=head->after_read_cb(db_get_env(db), head, buffer, size);
             if (st)
-                return (db_set_error(db, st));
+                return (st);
         }
         head=head->_next;
     }
@@ -235,14 +233,12 @@ __f_alloc(ham_device_t *self, ham_size_t size, ham_offset_t *address)
 }
 
 static ham_status_t 
-__f_alloc_page(ham_device_t *self, ham_page_t *page, ham_offset_t size)
+__f_alloc_page(ham_device_t *self, ham_page_t *page)
 {
     ham_status_t st;
     ham_offset_t pos;
     dev_file_t *t=(dev_file_t *)device_get_private(self);
-
-    if (!size)
-        size=self->get_pagesize(self);
+    ham_size_t size=self->get_pagesize(self);
 
     st=os_get_filesize(t->fd, &pos);
     if (st)
@@ -253,7 +249,7 @@ __f_alloc_page(ham_device_t *self, ham_page_t *page, ham_offset_t size)
         return (st);
 
     page_set_self(page, pos);
-    return (__f_read_page(self, page, size));
+    return (__f_read_page(self, page));
 }
 
 static ham_status_t 
@@ -436,14 +432,12 @@ __m_alloc(ham_device_t *self, ham_size_t size, ham_offset_t *address)
 }
 
 static ham_status_t 
-__m_alloc_page(ham_device_t *self, ham_page_t *page, ham_offset_t size)
+__m_alloc_page(ham_device_t *self, ham_page_t *page)
 {
     ham_u8_t *buffer;
+    ham_size_t size=self->get_pagesize(self);
 
     ham_assert(page_get_pers(page)==0, (0));
-
-    if (!size)
-        size=self->get_pagesize(self);
 
     buffer=allocator_alloc(device_get_allocator(self), size);
     if (!buffer)
@@ -491,7 +485,7 @@ __m_write(ham_device_t *self, ham_offset_t offset, void *buffer,
 }
 
 static ham_status_t
-__m_read_page(ham_device_t *self, ham_page_t *page, ham_offset_t size)
+__m_read_page(ham_device_t *self, ham_page_t *page)
 {
     (void)self;
     (void)page;

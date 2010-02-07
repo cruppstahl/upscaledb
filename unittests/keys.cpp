@@ -82,7 +82,7 @@ public:
     {
         ham_page_t *page=page_new(m_env);
         BFC_ASSERT(page!=0);
-        BFC_ASSERT_EQUAL(0, page_alloc(page, env_get_pagesize(m_env)));
+        BFC_ASSERT_EQUAL(0, page_alloc(page));
         btree_node_t *node=ham_page_get_btree_node(page);
         ::memset(node, 0, env_get_usable_pagesize(m_env));
 
@@ -108,7 +108,7 @@ public:
     {
         ham_page_t *page=page_new(m_env);
         BFC_ASSERT(page!=0);
-        BFC_ASSERT_EQUAL(0, page_alloc(page, env_get_pagesize(m_env)));
+        BFC_ASSERT_EQUAL(0, page_alloc(page));
         btree_node_t *node=ham_page_get_btree_node(page);
         ::memset(node, 0, env_get_usable_pagesize(m_env));
 

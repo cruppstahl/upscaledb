@@ -62,12 +62,6 @@ HAM_PACK_0 struct HAM_PACK_1 ham_btree_t
 
 #include "packstop.h"
 
-
-/**
- * convenience macro to get the database pointer of a ham_btree_t-structure
- */
-#define btree_get_db(be)                (be)->_db
-
 /**
  * get the address of the root node
  */

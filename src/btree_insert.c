@@ -543,7 +543,6 @@ my_insert_recursive(ham_page_t *page, ham_key_t *key,
          * every other return value is unexpected and shouldn't happen
          */
         default:
-            db_set_error(db, st);
             break;
     }
 
@@ -665,7 +664,7 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
 		hints->cost++;
 		st=btree_get_slot(db, page, key, &slot, &cmp);
         if (st)
-            return (db_set_error(db, st));
+            return (st);
 
         /* insert the new key at the beginning? */
         if (slot == -1) 
@@ -724,7 +723,7 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
 			/* uncouple all cursors & shift any elements following [slot] */
 			st=bt_uncouple_all_cursors(page, slot);
 			if (st)
-				return (db_set_error(db, st));
+				return (st);
 
 			hints->cost += stats_memmove_cost((db_get_int_key_header_size()+keysize)*(count-slot));
 			memmove(((char *)bte)+db_get_int_key_header_size()+keysize, bte,
@@ -752,7 +751,7 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
                             : 0, 
                         hints->flags, &new_dupe_id);
         if (st)
-            return (db_set_error(db, st));
+            return (st);
 		
 		hints->processed_leaf_page = page;
 		hints->processed_slot = slot;
@@ -780,7 +779,7 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
     if (cursor) 
 	{
         if ((st=bt_cursor_set_to_nil(cursor)))
-            return (db_set_error(db, st));
+            return (st);
 
         ham_assert(!(bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_UNCOUPLED), 
                 ("coupling an uncoupled cursor, but need a nil-cursor"));
@@ -899,7 +898,7 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
      */
     st=bt_uncouple_all_cursors(page, pivot);
     if (st)
-        return (db_set_error(db, st));
+        return (st);
 
     /*
      * if we split a leaf, we'll insert the pivot element in the leaf

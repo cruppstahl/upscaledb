@@ -182,7 +182,7 @@ btree_erase_cursor(ham_btree_t *be, ham_key_t *key,
     if (hints.key_is_out_of_bounds)
     {
         stats_update_erase_fail_oob(db, &hints);
-        return (db_set_error(db, HAM_KEY_NOT_FOUND));
+        return (HAM_KEY_NOT_FOUND);
     }
 
     if (hints.try_fast_track)
@@ -207,8 +207,6 @@ btree_erase_cursor(ham_btree_t *be, ham_key_t *key,
         stats_update_erase_fail(db, &hints);
         return st ? st : HAM_INTERNAL_ERROR;
     }
-
-    db_set_error(db, 0);
 
     /* 
      * ... and start the recursion 
@@ -418,7 +416,6 @@ my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left, h
         }
         if (!newme) 
         {
-            db_set_error(db, HAM_KEY_NOT_FOUND);
             scratchpad->mergepage=0;
             return HAM_KEY_NOT_FOUND;
         }
@@ -1436,7 +1433,7 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
 
             st=key_erase_record(db, bte, 0, BLOB_FREE_ALL_DUPES);
             if (st)
-                return (db_set_error(db, st));
+                return (st);
 
 free_all:
             c=(ham_bt_cursor_t *)db_get_cursors(db);

@@ -41,8 +41,6 @@ btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor,
     ham_db_t *db=be_get_db(be);
     find_hints_t hints = {flags, flags, 0, HAM_FALSE, HAM_FALSE, 1};
 
-    db_set_error(db, 0);
-
     btree_find_get_hints(&hints, db, key);
 
     if (hints.key_is_out_of_bounds) {

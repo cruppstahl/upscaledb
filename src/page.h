@@ -505,8 +505,7 @@ page_remove_cursor(ham_page_t *page, ham_cursor_t *cursor);
  *
  * @return a pointer to a new @ref ham_page_t instance.
  *
- * @return NULL when an error occurred. The error is
- *         implied to be @ref HAM_OUT_OF_MEMORY;
+ * @return NULL if out of memory
  */
 extern ham_page_t *
 page_new(ham_env_t *env);
@@ -521,13 +520,13 @@ page_delete(ham_page_t *page);
  * allocate a new page from the device
  */
 extern ham_status_t
-page_alloc(ham_page_t *page, ham_size_t size);
+page_alloc(ham_page_t *page);
 
 /**
  * fetch a page from the device
  */
 extern ham_status_t
-page_fetch(ham_page_t *page, ham_size_t size);
+page_fetch(ham_page_t *page);
 
 /**
  * write a page to the device

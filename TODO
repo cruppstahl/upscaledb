@@ -85,17 +85,16 @@ o Ger:
 
     o merge 1000 other changes
         x page_new: page->_owner is not set!
-        o check all calls to db_get_device() - it's now in the env
-        o db_set_error: only in hamsterdb.c!!
-        o btree_get_db() -> be_get_db()
-        o page_fetch: second parameter is pagesize; needed?
+        x check all calls to db_get_device() - it's now in the env
+        x db_set_error: only in hamsterdb.c!!
+        x btree_get_db() -> be_get_db()
+        x page_fetch: second parameter is pagesize; needed?
+        x hamsterdb: __prepare_db is empty -> remove!
         o new function to get the Environment of a Database
             ham_env_t *ham_get_env(ham_db_t *)
         o ham_flush: deprecate, replace w. ham_env_flush?
         o ham_log_append_overwrite: unused?
         o ham_log_prepare_overwrite: unused?
-        o hamsterdb: __prepare_db is empty -> remove!
-        o set default compare functions: has to check if recno or not!
         o hamsterdb.c: check every backend function against NULL - return
             NOT_IMPLEMENTED if it's NULL
         o remove extkey_cache_purge?

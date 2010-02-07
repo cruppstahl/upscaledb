@@ -353,10 +353,11 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
 		}
 	}
 
-	memcpy(ext_key->data, key_data, db_get_keysize(db)-sizeof(ham_offset_t));
+	memmove(ext_key->data, key_data, db_get_keysize(db)-sizeof(ham_offset_t));
 
 	memset(&record, 0, sizeof(record));
-    record.data=(((ham_u8_t *)ext_key->data) + db_get_keysize(db)-sizeof(ham_offset_t));
+    record.data=(((ham_u8_t *)ext_key->data) + 
+                    db_get_keysize(db)-sizeof(ham_offset_t));
 	record.size = key_length - (db_get_keysize(db)-sizeof(ham_offset_t));
     record.flags = HAM_RECORD_USER_ALLOC;
 
@@ -370,7 +371,7 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
         ext_key->data=(ham_u8_t *)ham_mem_alloc(db, key_length);
         if (!ext_key->data) {
             ham_mem_free(db, record.data);
-            return (db_set_error(db, HAM_OUT_OF_MEMORY));
+            return (HAM_OUT_OF_MEMORY);
         }
     }
     memmove(((char *)ext_key->data), key_data, 
@@ -696,7 +697,7 @@ db_alloc_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
                 return HAM_OUT_OF_MEMORY;
             page_set_self(page, tellpos);
             /* fetch the page from disk */
-            st=page_fetch(page, 0);
+            st=page_fetch(page);
             if (st) {
                 page_delete(page);
                 return st;
@@ -716,7 +717,7 @@ db_alloc_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     }
 
 	ham_assert(tellpos == 0, (0));
-    st=page_alloc(page, 0);
+    st=page_alloc(page);
     if (st)
         return st;
 
@@ -999,7 +1000,7 @@ db_fetch_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 
     page_set_owner(page, db);
     page_set_self(page, address);
-	st=page_fetch(page, 0);
+	st=page_fetch(page);
     if (st) {
         (void)page_delete(page);
         return st;

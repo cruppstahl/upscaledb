@@ -363,7 +363,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         ham_page_t *page;
         page=page_new(m_env);
-        BFC_ASSERT_EQUAL(0, page_alloc(page, env_get_pagesize(m_env)));
+        BFC_ASSERT_EQUAL(0, page_alloc(page));
         page_set_dirty(page, m_env);
 
         BFC_ASSERT_EQUAL(0, ham_log_append_flush_page(log, page));
@@ -1079,6 +1079,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
+        m_env=db_get_env(m_db);
         BFC_ASSERT(env_get_log(m_env)!=0);
     }
 

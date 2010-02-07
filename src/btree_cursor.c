@@ -117,8 +117,6 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     else if (!(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED))
         return (HAM_CURSOR_IS_NIL);
 
-    db_set_error(db, 0);
-
     page=bt_cursor_get_coupled_page(c);
     node=ham_page_get_btree_node(page);
     entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
@@ -209,9 +207,6 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     }
     else if (!(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED))
         return (HAM_CURSOR_IS_NIL);
-
-
-    db_set_error(db, 0);
 
     page=bt_cursor_get_coupled_page(c);
     node=ham_page_get_btree_node(page);
@@ -318,8 +313,6 @@ my_move_last(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     st=bt_cursor_set_to_nil(c);
     if (st)
         return (st);
-
-    db_set_error(db, 0);
 
     /*
      * get the root page

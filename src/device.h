@@ -92,8 +92,7 @@ struct ham_device_t {
     /**
      * reads a page from the device; this function CAN use mmap
      */
-    ham_status_t (*read_page)(ham_device_t *self, ham_page_t *page,
-            ham_offset_t size);
+    ham_status_t (*read_page)(ham_device_t *self, ham_page_t *page);
 
     /**
      * writes a page to the device
@@ -132,15 +131,14 @@ struct ham_device_t {
      * @e can use mmap.
      *
      * @note
-     * The caller is responsible for flushing the page; the @ref free_page function will 
-     * assert that the page is not dirty.
+     * The caller is responsible for flushing the page; the @ref free_page 
+     * function will assert that the page is not dirty.
 	 *
-	 * @warning @ref alloc_page and @ref free_page are @e significantly different
-	 *          from the @ref request_space and @ref release_space methods which
-	 *          address the device-specific freelist manager instead.
+	 * @warning @ref alloc_page and @ref free_page are @e significantly 
+     *    different from the @ref request_space and @ref release_space 
+     *    methods which address the device-specific freelist manager instead.
      */
-    ham_status_t (*alloc_page)(ham_device_t *self, ham_page_t *page, 
-            ham_offset_t size);
+    ham_status_t (*alloc_page)(ham_device_t *self, ham_page_t *page);
 
     /**
      * frees a page on the device; plays counterpoint to @ref alloc_page.
