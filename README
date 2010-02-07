@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 1.1.1                   Sun Dec 20 14:34:15 CET 2009
+hamsterdb Embedded Storage 1.1.2                   Sun Feb  7 21:38:31 CET 2010
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -12,33 +12,27 @@ hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
 a B+Tree index structure, uses memory mapped I/O (if available), supports 
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-This release offers a couple of minor bugfixes, mainly checks for invalid
-flags, but also a few asserts, which fired in DEBUG builds. 
-ham_check_integrity() no longer wrongly reports broken databases.
-
-A few flags (HAM_HINT_RANDOM_ACCESS, HAM_HINT_READ_WRITE,
-HAM_HINT_UBER_FAST_ACCESS) were removed because they were redundant. Also,
-the interface of ham_get_key_count() was slightly changed because the flag
-HAM_HINT_UBER_FAST_ACCESS was renamed to HAM_FAST_ESTIMATE. Sorry for the
-inconvenience.
-
-A new feature was added - users of In-Memory Databases can now directly access
-a pointer to the stored record data by specifying the flag HAM_DIRECT_ACCES
-to ham_find, ham_cursor_find[_ex] and ham_cursor_move. Thus they can overwrite
-the record data without calling ham_insert or ham_cursor_overwrite.
+This release fixed a few bugs and refactored lots of code. Additionally,
+a new feature was introduced: duplicate keys can now be sorted.
 
 2. Changes
 
 New Features
-* Flag HAM_DIRECT_ACCESS allows direct access to stored records for In-Memory
-    Databases
+* Duplicate keys can now be sorted (see ham_set_duplicate_compare_func and
+    HAM_SORT_DUPLICATES)
 
 Bugfixes
-* Several asserts were removed (only DEBUG builds)
-* ham_check_integrity() no longer wrongly reports broken Databases
+* If multiple Databases in an Environment are open, an open
+    Transaction was not immediately closed when the first Database
+    was closed (with ham_close)
+* If multiple Databases in an Environment are open, and just one
+    Database was closed, then the pages of this Database were not flushed
+    correctly
+* Fixed crash on Linux 64bit/gcc 4.4 with compiler optimization
 
 Other Changes
-* A few interface changes because some flags were removed
+* The documentation is now reduced to public interfaces; internal
+    documentation is only built when requested
 
 To see a list of all changes, look in the file ChangeLog.
 

@@ -1,3 +1,6 @@
+Feb 10, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.2
+
 Feb 07, 2010 - chris
 o Added documentation target; there's now one target for public documentation,
     one for internal and one for BFC (unittest framework) - thanks, Ger
