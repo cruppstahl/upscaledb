@@ -997,6 +997,7 @@ db_fetch_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     if (!page)
         return HAM_OUT_OF_MEMORY;
 
+    page_set_owner(page, db);
     page_set_self(page, address);
 	st=page_fetch(page, 0);
     if (st) {
@@ -1005,7 +1006,6 @@ db_fetch_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     }
 
     ham_assert(page_get_pers(page), (""));
-    page_set_owner(page, db);
 
     if (env_get_txn(env)) {
         st=txn_add_page(env_get_txn(env), page, HAM_FALSE);

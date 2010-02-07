@@ -78,16 +78,19 @@ o Ger:
         are NOT stable!
     x EnvTest::eraseMultipleDatabases is broken!
     x EnvTest::eraseMultipleDatabasesReopenEnv is broken!
-    o LogHighLevelTest::aesFilterTest fails - a design problem? it loads 
+    x LogHighLevelTest::aesFilterTest fails - a design problem? it loads 
         the root page of the first database, but ham_env_enable_encryption
         is called AFTERWARDS??? 
     o check with valgrind!
 
     o merge 1000 other changes
-        o db_fetch_page: interface changed
+        x page_new: page->_owner is not set!
         o check all calls to db_get_device() - it's now in the env
         o db_set_error: only in hamsterdb.c!!
         o btree_get_db() -> be_get_db()
+        o page_fetch: second parameter is pagesize; needed?
+        o new function to get the Environment of a Database
+            ham_env_t *ham_get_env(ham_db_t *)
         o ham_flush: deprecate, replace w. ham_env_flush?
         o ham_log_append_overwrite: unused?
         o ham_log_prepare_overwrite: unused?
@@ -96,7 +99,6 @@ o Ger:
         o hamsterdb.c: check every backend function against NULL - return
             NOT_IMPLEMENTED if it's NULL
         o remove extkey_cache_purge?
-        o page_new: page->_owner is not set!
         o unittest for env_set_active - it's set in 3 places!
     o review the page ownership - db_fetch_page() should only get 'db' as
         parameter, not env; instead, add env_fetch_page()

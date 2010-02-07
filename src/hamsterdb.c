@@ -3330,7 +3330,7 @@ __aes_before_write_cb(ham_env_t *env, ham_file_filter_t *filter,
     return (HAM_SUCCESS);
 }
 
-    static ham_status_t
+static ham_status_t
 __aes_after_read_cb(ham_env_t *env, ham_file_filter_t *filter, 
         ham_u8_t *page_data, ham_size_t page_size)
 {
