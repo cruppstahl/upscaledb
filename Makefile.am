@@ -67,7 +67,7 @@ internal_doc:
 	VERSION=$(VERSION) ;            \
 	export VERSION;                 \
 	doxygen documentation/Doxyfile.int
-	@cp documentation/*.jpg documentation/html/
+	@cp documentation/*.jpg documentation/internal/html/
 
 bfc_doc:
 	VERSION=$(VERSION) ;            \

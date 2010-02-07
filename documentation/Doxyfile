@@ -585,22 +585,7 @@ WARN_LOGFILE           =
 # with spaces.
 
 INPUT                  = include/ham \
-                         src \
-                         documentation/architecture.doc \
-                         documentation/appendix_gpl2.doc \
-                         documentation/appendix_gpl3.doc \
-                         documentation/appendix_gfdl.doc \
-                         documentation/faq.doc \
-                         documentation/features.doc \
-                         documentation/got_geek.doc \
-                         documentation/history.doc \
-                         documentation/index.doc \
-                         documentation/licensing.doc \
-                         documentation/platforms.doc \
-                         documentation/samples.doc \
-                         documentation/starting.doc \
-                         documentation/tuning.doc \
-                         documentation/trouble.doc
+                         documentation/*.doc
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is
