@@ -33,12 +33,13 @@ Bugfixes
 Other Changes
 * The documentation is now reduced to public interfaces; internal
     documentation is only built when requested
+* A lot of refactoring and code improvements
 
 To see a list of all changes, look in the file ChangeLog.
 
 3. Roadmap
 
-- internal code cleanups
+- continue internal code cleanups
 - allow sorting of duplicate keys
 - improve documentation (tutorial)
 
