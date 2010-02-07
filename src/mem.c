@@ -46,7 +46,7 @@ free_impl(mem_allocator_t *self, const char *file, int line, const void *ptr)
     (void)file;
     (void)line;
 
-    ham_assert(ptr, ("freeing NULL pointer in line %s:%d", file, line)) 
+    ham_assert(ptr, ("freeing NULL pointer in line %s:%d", file, line));
 #if defined(_CRTDBG_MAP_ALLOC)
     _free_dbg((void *)ptr, _NORMAL_BLOCK);
 #else
