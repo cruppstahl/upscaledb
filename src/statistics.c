@@ -652,24 +652,11 @@ void stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, ham_key_t *ke
                 dbdata->lower_bound_index = 0;
                 dbdata->lower_bound_page_address = page_get_self(page);
 
-#if 0
-                /* 
-                util_copy_key_int2pub() is constructed in such the way
-                that is allows reuse of previously allocated space, which
-                cuts down statistics gathering costs significantly as the
-                number of free/malloc operations for this overhead are 
-                cut down to a bare minimum.
-
-                After all, it's all about speed and any time spent in 
-                statistics gathering code that's not really needed is
-                a total loss.
-                */
                 if (dbdata->lower_bound.data) {
                     allocator_free(env_get_allocator(env), dbdata->lower_bound.data);
                     dbdata->lower_bound.data=0;
                     dbdata->lower_bound.size=0;
                 }
-#endif
 
                 st = util_copy_key_int2pub(db, 
                     btree_node_get_key(db, node, dbdata->lower_bound_index),
@@ -725,24 +712,11 @@ void stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, ham_key_t *ke
                 dbdata->upper_bound_index = btree_node_get_count(node) - 1;
                 dbdata->upper_bound_page_address = page_get_self(page);
 
-#if 0
-                /* 
-                util_copy_key_int2pub() is constructed in such the way
-                that is allows reuse of previously allocated space, which
-                cuts down statistics gathering costs significantly as the
-                number of free/malloc operations for this overhead are 
-                cut down to a bare minimum.
-
-                After all, it's all about speed and any time spent in 
-                statistics gathering code that's not really needed is
-                a total loss.
-                */
                 if (dbdata->upper_bound.data) {
                     allocator_free(env_get_allocator(env), dbdata->upper_bound.data);
                     dbdata->upper_bound.data=0;
                     dbdata->upper_bound.size=0;
                 }
-#endif
 
                 st = util_copy_key_int2pub(db, 
                     btree_node_get_key(db, node, dbdata->upper_bound_index),

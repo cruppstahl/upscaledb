@@ -121,7 +121,11 @@ o Ger:
     o unittests: db_set_allocator was disabled - fix it!
     o uncrustify?
 
-o reevaluate default cache size - should we just grab 1 MB?
+o rename windows-DLL/LIB to hamsterdb-1.1.2 (include version in filename!)
+    o also for Windows CE
+    o automate this in release-process.sh
+
+o reevaluate default cache size - should we just grab 1 or 2 MB?
     o setting strict cache size - is this tested?
     o setting cache size - is this tested?
     o are extkeys and other mallocs also part of it? maybe reduce memory
@@ -138,9 +142,9 @@ o webpage changes
     x cell phone number is not up to date
     x add NoSQL/Key Value store keywords
     x improve font/readability of license texts
+    x show licensing options on frontpage (include exceptions!)
     o frontpage: Feature List + Latest News (include Links in latest news!)
     o the header page image is too large
-    o show licensing options on frontpage (include exceptions!)
     o frontpage: have multiple images (scrolling in background) with more
         text info?
     o sitemap: pulldown with jquery

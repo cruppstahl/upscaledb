@@ -100,6 +100,8 @@ util_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
 ham_status_t
 util_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest)
 {
+    mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
+
     /*
      * extended key: copy the whole key
      */
@@ -115,32 +117,26 @@ util_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest)
         /* dest->size is set by db_get_extended_key() */
         ham_assert(dest->size == key_get_size(source), (0)); 
     }
-    else if (key_get_size(source)) 
-	{
-        if (!(dest->flags & HAM_KEY_USER_ALLOC)) 
-		{
-			if (!dest->data || dest->size < key_get_size(source))
-			{
+    else if (key_get_size(source)) {
+        if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
+			if (!dest->data || dest->size < key_get_size(source)) {
 				if (dest->data)
-					allocator_free(env_get_allocator(db_get_env(db)), dest->data);
-				dest->data = (ham_u8_t *)allocator_alloc(env_get_allocator(db_get_env(db)), key_get_size(source));
+					allocator_free(alloc, dest->data);
+				dest->data = (ham_u8_t *)allocator_alloc(alloc, 
+                            key_get_size(source));
 				if (!dest->data) 
-				{
 					return HAM_OUT_OF_MEMORY;
-				}
 			}
 		}
 
         memcpy(dest->data, key_get_key(source), key_get_size(source));
         dest->size=key_get_size(source);
     }
-    else 
-	{
+    else {
         /* key.size is 0 */
-        if (!(dest->flags & HAM_KEY_USER_ALLOC)) 
-		{
+        if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
             if (dest->data)
-                allocator_free(env_get_allocator(db_get_env(db)), dest->data);
+                allocator_free(alloc, dest->data);
             dest->data=0;
         }
         dest->size=0;

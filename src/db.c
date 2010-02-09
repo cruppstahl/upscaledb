@@ -274,14 +274,14 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
 
     ham_assert(key_flags&KEY_IS_EXTENDED, ("key is not extended"));
 
+    /*
+     * make sure that we have an extended key-cache
+     *
+     * in in-memory-db, the extkey-cache doesn't lead to performance
+     * advantages; it only duplicates the data and wastes memory.
+     * therefore we don't use it.
+     */
     if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-        /*
-         * make sure that we have an extended key-cache
-         *
-         * in in-memory-db, the extkey-cache doesn't lead to performance
-         * advantages; it only duplicates the data and wastes memory.
-         * therefore we don't use it.
-         */
         if (!db_get_extkey_cache(db)) {
             extkey_cache_t *c=extkey_cache_new(db);
             db_set_extkey_cache(db, c);
@@ -303,14 +303,9 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
             ham_assert(temp==key_length, ("invalid key length"));
 
             if (!(ext_key->flags&HAM_KEY_USER_ALLOC)) {
-                if (!ext_key->data || ext_key->size < key_length) {
-                    if (ext_key->data)
-                        allocator_free(alloc, ext_key->data);
-                    ext_key->data = (ham_u8_t *)allocator_alloc(alloc, 
-                                            key_length);
-                    if (!ext_key->data) 
-                        return HAM_OUT_OF_MEMORY;
-                }
+                ext_key->data = (ham_u8_t *)allocator_alloc(alloc, key_length);
+                if (!ext_key->data) 
+                    return HAM_OUT_OF_MEMORY;
             }
             memcpy(ext_key->data, ptr, key_length);
             ext_key->size=(ham_u16_t)key_length;
@@ -337,17 +332,16 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
      * memory space for the faked record-based blob_read() below.
      */
     if (!(ext_key->flags & HAM_KEY_USER_ALLOC)) {
-        if (!ext_key->data || ext_key->size < key_length) {
-            if (ext_key->data)
-                allocator_free(alloc, ext_key->data);
-            ext_key->data = (ham_u8_t *)allocator_alloc(alloc, key_length);
-            if (!ext_key->data)
-                return HAM_OUT_OF_MEMORY;
-        }
+        ext_key->data = (ham_u8_t *)allocator_alloc(alloc, key_length);
+        if (!ext_key->data)
+            return HAM_OUT_OF_MEMORY;
     }
 
     memmove(ext_key->data, key_data, db_get_keysize(db)-sizeof(ham_offset_t));
 
+    /*
+     * now read the remainder of the key
+     */
     memset(&record, 0, sizeof(record));
     record.data=(((ham_u8_t *)ext_key->data) + 
                     db_get_keysize(db)-sizeof(ham_offset_t));
@@ -358,7 +352,9 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
     if (st)
         return st;
 
-    /* insert the FULL key in the extkey-cache */
+    /* 
+     * insert the FULL key in the extkey-cache 
+     */
     if (db_get_extkey_cache(db)) {
         st = extkey_cache_insert(db_get_extkey_cache(db),
                 blobid, key_length, ext_key->data);
@@ -387,7 +383,10 @@ db_prepare_ham_key_for_compare(ham_db_t *db, int_key_t *src, ham_key_t *dest)
         }
         memcpy(p, dest->data, db_get_keysize(db));
         dest->data = p;
-        dest->flags = 0; /* [i_a] important; discard any USER_ALLOC present due to the copy from src */
+        /*
+         * set a flag that this memory has to be freed by hamsterdb
+         */
+        dest->_flags |= KEY_IS_ALLOCATED;
     }
 
     return (0);
@@ -396,11 +395,10 @@ db_prepare_ham_key_for_compare(ham_db_t *db, int_key_t *src, ham_key_t *dest)
 void
 db_release_ham_key_after_compare(ham_db_t *db, ham_key_t *key)
 {
-    // if (key->data && key->_flags&KEY_IS_EXTENDED) {
-    if (key->data && !(key->flags & HAM_KEY_USER_ALLOC)) /* [i_a] check the right flag for free() */
-    {
+    if (key->data && (key->_flags & KEY_IS_ALLOCATED)) {
         allocator_free(env_get_allocator(db_get_env(db)), key->data);
         key->data = 0;
+        key->size = 0;
     }
 }
 
@@ -414,7 +412,8 @@ db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
     db_set_error(db, 0);
 
     /*
-     * need prefix compare?
+     * need prefix compare? if no key is extended we can just call the
+     * normal compare function
      */
     if (!(lhs->_flags&KEY_IS_EXTENDED) && !(rhs->_flags&KEY_IS_EXTENDED)) {
         /*

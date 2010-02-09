@@ -136,7 +136,7 @@ NOTE: persisted flags must fit within a ham_u8_t (1 byte) --> mask: 0x000000FF
 #define KEY_BLOB_SIZE_EMPTY            0x04	 /* size == 0; key->ptr == 0 */
 #define KEY_IS_EXTENDED                0x08
 #define KEY_HAS_DUPLICATES             0x10
-#define KEY_IS_DELETED                 0x20
+#define KEY_IS_ALLOCATED               0x20  /* memory allocated in hamsterdb */
 
 
 /**
