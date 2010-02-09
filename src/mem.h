@@ -19,6 +19,8 @@
 
 #include "internal_fwd_decl.h"
 
+#include <string.h>
+
 
 #ifdef __cplusplus
 extern "C" {
