@@ -127,10 +127,11 @@ key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid);
 #define key_set_flags(bte, f)      (bte)->_flags8=(f)
 
 /**
-persisted int_key_t flags; also used with ham_key_t._flags 
-
-NOTE: persisted flags must fit within a ham_u8_t (1 byte) --> mask: 0x000000FF
-*/
+ * persisted int_key_t flags; also used with ham_key_t._flags 
+ * 
+ * NOTE: persisted flags must fit within a ham_u8_t (1 byte) --> mask: 
+ *  0x000000FF
+ */
 #define KEY_BLOB_SIZE_TINY             0x01  /* size < 8; len encoded at byte[7] of key->ptr */
 #define KEY_BLOB_SIZE_SMALL            0x02	 /* size == 8; encoded in key->ptr */
 #define KEY_BLOB_SIZE_EMPTY            0x04	 /* size == 0; key->ptr == 0 */
