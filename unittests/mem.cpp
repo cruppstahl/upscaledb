@@ -40,6 +40,9 @@ public:
         mem_allocator_t *alloc=ham_default_allocator_new();
         p=alloc->alloc(alloc, __FILE__, __LINE__, 128);
         BFC_ASSERT(p);
+		/* yuck! MSVC defines free() as a macro, therefore the next line
+		 * would fail to compile */
+#undef free
         alloc->free(alloc, __FILE__, __LINE__, p);
         alloc->close(alloc);
     }
