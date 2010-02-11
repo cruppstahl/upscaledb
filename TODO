@@ -75,6 +75,7 @@ x documentation right now includes internal APIs, too
 o still some problems with strict aliasing:
     db.cpp:98: warning: dereferencing type-punned pointer will break
         strict-aliasing rules
+    now gcc uses -O2 - but -O3 would be better. check what's wrong...
 
 o Ger: 
     x get rid of the cyclic dependencies

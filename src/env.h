@@ -257,9 +257,11 @@ struct ham_env_t
 
 /**
  * get a pointer to the header data
+ *
+ * implemented as a function - a macro would break strict aliasing rules
  */
-#define env_get_header(env)													\
-	            ((db_header_t *)(page_get_payload(env_get_header_page(env))))
+extern db_header_t *
+env_get_header(ham_env_t *env);
 
 /**
  * set the header page

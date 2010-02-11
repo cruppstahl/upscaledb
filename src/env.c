@@ -42,3 +42,9 @@ env_set_serialno(ham_env_t *env, ham_u32_t n)
     db_header_t *hdr=(db_header_t*)(page_get_payload(env_get_header_page(env)));
     hdr->_serialno=ham_h2db32(n);
 }
+
+db_header_t *
+env_get_header(ham_env_t *env)
+{
+    return ((db_header_t*)(page_get_payload(env_get_header_page(env))));
+}
