@@ -72,14 +72,9 @@ x documentation right now includes internal APIs, too
     x public/default docs have only public documentation
     x Ger's newest tarball has improved documentation
 
-===> ham_info crashes when tested with extkeys
-        o refactor db_get_extended_key: make sure that it does not free
-            memory which it didn't allocate!
-            if (!KEY_USER_ALLOC) {
-                assert(ext_key->data==0);
-                assert(ext_key->size==0);
-            }
-
+o still some problems with strict aliasing:
+    db.cpp:98: warning: dereferencing type-punned pointer will break
+        strict-aliasing rules
 
 o Ger: 
     x get rid of the cyclic dependencies
