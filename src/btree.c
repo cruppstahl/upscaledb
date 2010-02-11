@@ -413,9 +413,9 @@ my_fun_close_cursors(ham_btree_t *be, ham_u32_t flags)
 
 
 /**                                                                    
-* Remove all extended keys for the given @a page from the            
-* extended key cache.                                                
-*/                                                                    
+ * Remove all extended keys for the given @a page from the            
+ * extended key cache.                                                
+ */                                                                    
 static ham_status_t
 my_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
 {
@@ -426,16 +426,14 @@ my_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
     ham_assert(0 == (flags & ~DB_MOVE_TO_FREELIST), (0));
 
     /*
-    * if this page has a header, and it's either a B-Tree root page or 
-    * a B-Tree index page: remove all extended keys from the cache, 
-    * and/or free their blobs
-    *
-    * TODO move this to the backend!
-    */
-    if (page_get_pers(page) && 
-        (!(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER)) &&
-        (page_get_type(page)==PAGE_TYPE_B_ROOT ||
-        page_get_type(page)==PAGE_TYPE_B_INDEX)) 
+     * if this page has a header, and it's either a B-Tree root page or 
+     * a B-Tree index page: remove all extended keys from the cache, 
+     * and/or free their blobs
+     */
+    if (page_get_pers(page) 
+            && (!(page_get_npers_flags(page)&PAGE_NPERS_NO_HEADER))
+            && (page_get_type(page)==PAGE_TYPE_B_ROOT 
+                || page_get_type(page)==PAGE_TYPE_B_INDEX)) 
     {
         ham_size_t i;
         ham_offset_t blobid;
@@ -444,6 +442,7 @@ my_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
         extkey_cache_t *c;
 
         ham_assert(db, ("Must be set as page owner when this is a Btree page"));
+        ham_assert(db=page_get_owner(page), (""));
         c=db_get_extkey_cache(db);
 
         for (i=0; i<btree_node_get_count(node); i++) 
@@ -458,8 +457,9 @@ my_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
                     *(ham_offset_t *)(key_get_key(bte)+
                         (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
                 }
-                (void)key_erase_record(db, bte, 0, BLOB_FREE_ALL_DUPES);
-                (void)extkey_cache_remove(c, blobid);
+                //(void)key_erase_record(db, bte, 0, BLOB_FREE_ALL_DUPES);
+                if (c)
+                    (void)extkey_cache_remove(c, blobid);
             }
         }
     }
