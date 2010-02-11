@@ -2651,8 +2651,10 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
      */
     if (dev) {
         if (dev->is_open(dev)) {
-            st = dev->flush(dev);
-            if (!st2) st2 = st;
+			if (!(env_get_rt_flags(env)&HAM_READ_ONLY)) {
+				st = dev->flush(dev);
+				if (!st2) st2 = st;
+			}
             st = dev->close(dev);
             if (!st2) st2 = st;
         }
