@@ -1785,6 +1785,7 @@ cache_get_live_page(ham_cache_t *cache, ham_offset_t addr, char *af, int aflen)
 
 
 
+#if 0
 static void cache_report_history(ham_env_t *env)
 {
     ham_cache_t *cache = env_get_cache(env);
@@ -1942,6 +1943,7 @@ static void cache_report_history(ham_env_t *env)
         printf("\n\n");
     }
 }
+#endif
 
 /*
 state:
@@ -1996,6 +1998,7 @@ void cache_check_history(ham_env_t *env, ham_page_t *page, int state)
         ref->alloc++;
     }
 
+#if 0
     {
         static int c = 0;
 
@@ -2005,6 +2008,7 @@ void cache_check_history(ham_env_t *env, ham_page_t *page, int state)
             cache_report_history(env);
         }
     }
+#endif
 }
 
 #endif
