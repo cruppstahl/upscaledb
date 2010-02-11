@@ -367,6 +367,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\env.c"
+			>
+		</File>
+		<File
 			RelativePath="..\src\env.h"
 			>
 		</File>
@@ -395,6 +399,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\freelist_statistics.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\freelist_statistics.h"
+			>
+		</File>
+		<File
 			RelativePath="..\src\freelist_v2.c"
 			>
 		</File>
@@ -416,6 +428,10 @@
 		</File>
 		<File
 			RelativePath="..\include\ham\hamsterdb_stats.h"
+			>
+		</File>
+		<File
+			RelativePath="..\src\internal_fwd_decl.h"
 			>
 		</File>
 		<File
