@@ -1592,6 +1592,22 @@ HAM_EXPORT ham_u32_t HAM_CALLCONV
 ham_get_flags(ham_db_t *db);
 
 /**
+ * Retrieve the Environment handle of a Database
+ *
+ * Every Database belongs to an Environment, even if it was created with
+ * ham_create[_ex] or ham_open[_ex].
+ *
+ * Therefore this function always returns a valid handle, if the Database
+ * handle was also valid and initialized (otherwise it returns NULL).
+ *
+ * @param db A valid Database handle
+ *
+ * @return The Environment handle
+ */
+HAM_EXPORT ham_env_t *HAM_CALLCONV
+ham_get_env(ham_db_t *db);
+
+/**
  * Returns the kind of key match which produced this key as it was 
  * returned by one of the @ref ham_find(), @ref ham_cursor_find() or 
  * @ref ham_cursor_find_ex() functions

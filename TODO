@@ -7,100 +7,13 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-x make environment pointer obligatory - ham_create[_ex] and ham_open[_ex]
-    create a private environment handle if it was not supplied
-    x ham_create_ex now calls ham_env_create_ex
-    x review, then continue with ham_open_ex
-    x then continue with ham_env_open_db (needs code which i deleted :( )
-    x move code from ham_create[_ex] into ham_env_create_db
-    x move code from ham_open[_ex] into ham_env_open_db
-    x don't forget to close/delete the handle!
-    x valgrind shows memory leaks
-    x txn: implies logfile - check if it's really created (and if the
-        ENABLE_RECOVERY flag is set)!
-    x clean up db.h/db.c and other code
-    x ham_env_open: needs to store PRE_110-DAM in Databases! -> unittest
-        (might already be there & work)
-    x documentation: ham_env_open_db accepts DAM parameters (unittest!)
-
-x merge env_is_active/db_is_active from Ger's latest sources
-    x implement, fix unittests
-    x needs unittest for structures (db/env)
-    x needs unittests for each function that modifies the flag
-    x needs documentation in header file (new error code!)
-
-x bugreport from Austin:
-    If I just use '--enable-debug', then my test passes but your suite fails 
-    with:
-    ----- error #1 in HamsterdbTest::nearFindTest
-    hamsterdb.cpp:1013 assertion failed in expr HAM_NOT_INITIALIZED !=
-    ham_calc_maxkeys_per_page(db, &keycount, MY_KEY_SIZE); actual values:
-    '-7' == '-20'
-
-x sort duplicate keys - Ger has patches
-    x merge code
-        x public interface: 
-            x typedef for comparison function
-            x API to set this comparison function
-                x unittest
-            x flag to enable duplicate sorting (HAM_SORT_DUPLICATES)
-            x on create: allow HAM_SORT_DUPLICATES only in combination 
-                with HAM_ENABLE_DUPLICATES!
-                x unittest
-            x unittest: flag is disallowed in Environment!
-            x on open: allow HAM_SORT_DUPLICATES only in combination 
-                with duplicates!
-                x unittest
-            x disallow HAM_DUPLICATE_INSERT_* if duplicate sorting is enabled
-                x unittest
-            x disallow cursor_overwrite if duplicate sorting is enabled
-                x unittest
-        x implement - can use a stripped-down version of Ger's code which
-            just returns the position, and the continue as before
-    x add unittests
-    x add to monster test
-    x add documentation (header file)
-
-x check use of ham_assert macro - i.e. with
-    grep 'ham_assert([^;]*$' src/*.[ch] -A10 -n | less
-
-x test with gcc 4.4.1 on 64bit - freelist.c seems to crash (does it also
-    crash with 4.4.2?)
-
-x documentation right now includes internal APIs, too
-    x move to separate target
-    x public/default docs have only public documentation
-    x Ger's newest tarball has improved documentation
-
 o still some problems with strict aliasing:
     db.cpp:98: warning: dereferencing type-punned pointer will break
         strict-aliasing rules
     now gcc uses -O2 - but -O3 would be better. check what's wrong...
 
-o Ger: 
-    x get rid of the cyclic dependencies
-    x HamsterdbTest::nearFindStressTest is broken!
-    x Tools are broken
-    x backend separation was improved
-    x check Changelog for more details
-    x merge Db/Env changes
-    x hamsterdb_{stats|int}.h - add comment that these interfaces
-        are NOT stable!
-    x EnvTest::eraseMultipleDatabases is broken!
-    x EnvTest::eraseMultipleDatabasesReopenEnv is broken!
-    x LogHighLevelTest::aesFilterTest fails - a design problem? it loads 
-        the root page of the first database, but ham_env_enable_encryption
-        is called AFTERWARDS??? 
-    o check with valgrind!
-
-    o merge 1000 other changes
-        x page_new: page->_owner is not set!
-        x check all calls to db_get_device() - it's now in the env
-        x db_set_error: only in hamsterdb.c!!
-        x btree_get_db() -> be_get_db()
-        x page_fetch: second parameter is pagesize; needed?
-        x hamsterdb: __prepare_db is empty -> remove!
-        o new function to get the Environment of a Database
+o Ger: merge 1000 other changes
+        x new public function to get the Environment of a Database
             ham_env_t *ham_get_env(ham_db_t *)
         o ham_flush: deprecate, replace w. ham_env_flush?
         o ham_log_append_overwrite: unused?
@@ -132,21 +45,10 @@ o webpage changes
     http://www.purenetworks.com/
     http://www.omegathemes.com/tf/smartages/#
     http://eucalyptus.com/
-    x merge "legal" and "impressum"
-    x copyright in footer must be 2010
-    x remove about/roadmap, it's never up to date
-    x about/overview: "Stability and Maturity" needs new text
-    x cell phone number is not up to date
-    x add NoSQL/Key Value store keywords
-    x improve font/readability of license texts
-    x show licensing options on frontpage (include exceptions!)
-    o frontpage: Feature List + Latest News (include Links in latest news!)
-    o the header page image is too large
+    x the header page image is too large
     o frontpage: have multiple images (scrolling in background) with more
         text info?
     o sitemap: pulldown with jquery
-    o download: don't list in html source, move stuff to external XML file
-        or database
     o download: need download gates to track in analytics as goals
 
 o add automatic code coverage using gconv
@@ -156,17 +58,12 @@ o add automatic code coverage using gconv
     o track coverage results, publish online
 
 o improve documentation/tutorial/faq about
-    x add documentation for sorting duplicate keys
-    x approx. matching
+    o move documentation and tutorial to confluence
     o hinting flags
     o DAMs
-    o can move documentation and tutorial to confluence?
-        http://www.atlassian.com/software/confluence/ - free for use
-        - tutorial
-        - internal documentation
-        - faq
-        - troubleshooting
-        - samples
+
+o support partial reading/writing of records
+    details at http://www.oracle.com/technology/documentation/berkeley-db/db/api_reference/C/dbt.html
 
 o evaluate if we can use bamboo for building and testing on multiple
     platforms
@@ -174,9 +71,6 @@ o evaluate if we can use bamboo for building and testing on multiple
     o install server
     o setup several agents (win32, win64, linux x86, linux x86_64, ...) and
         run either all or only some of the tests, including valgrind!
-
-o embed database version in filename for windows libraries - 
-    hamsterdb-1.1.{dll|lib}
 
 o need tool to upgrade databases from 1.0.x to 1.1.x!
 

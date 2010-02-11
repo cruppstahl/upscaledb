@@ -5461,6 +5461,14 @@ ham_get_flags(ham_db_t *db)
         return (0);
 }
 
+ham_env_t *
+ham_get_env(ham_db_t *db)
+{
+    if (!db || !db_is_active(db))
+        return (0);
+    return (db_get_env(db));
+}
+
 typedef struct
 {
     ham_db_t *db;               /* [in] */

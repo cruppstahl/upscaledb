@@ -1,3 +1,7 @@
+Feb 11, 2010 - chris
+o Added a new function to get the Environment handle of a Database
+    (ham_get_env)
+
 Feb 10, 2010 - chris ---------------------------------------------------
                       release of hamsterdb-1.1.2
 

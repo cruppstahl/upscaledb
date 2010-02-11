@@ -71,6 +71,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, newTest);
         BFC_REGISTER_TEST(HamsterdbTest, deleteTest);
         BFC_REGISTER_TEST(HamsterdbTest, openTest);
+        BFC_REGISTER_TEST(HamsterdbTest, getEnvTest);
         BFC_REGISTER_TEST(HamsterdbTest, invHeaderTest);
         BFC_REGISTER_TEST(HamsterdbTest, invVersionTest);
         BFC_REGISTER_TEST(HamsterdbTest, createTest);
@@ -223,6 +224,20 @@ public:
         BFC_ASSERT_EQUAL(HAM_IO_ERROR, 
                 ham_open(db, "/usr", 0));
 #endif
+
+        ham_delete(db);
+    }
+
+    void getEnvTest(void)
+    {
+        ham_db_t *db=0;
+        BFC_ASSERT_EQUAL((ham_env_t *)0, ham_get_env(db));
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL((ham_env_t *)0, ham_get_env(db));
+
+        // m_db is already initialized
+        BFC_ASSERT(NULL!=ham_get_env(m_db));
 
         ham_delete(db);
     }
