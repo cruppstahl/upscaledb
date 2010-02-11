@@ -7,21 +7,15 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-o still some problems with strict aliasing:
-    db.cpp:98: warning: dereferencing type-punned pointer will break
-        strict-aliasing rules
-    now gcc uses -O2 - but -O3 would be better. check what's wrong...
-
 o Ger: merge 1000 other changes
-        x new public function to get the Environment of a Database
-            ham_env_t *ham_get_env(ham_db_t *)
-        o ham_flush: deprecate, replace w. ham_env_flush?
-        o ham_log_append_overwrite: unused?
-        o ham_log_prepare_overwrite: unused?
-        o hamsterdb.c: check every backend function against NULL - return
-            NOT_IMPLEMENTED if it's NULL
-        o remove extkey_cache_purge?
-        o unittest for env_set_active - it's set in 3 places!
+    x new public function to get the Environment of a Database
+        ham_env_t *ham_get_env(ham_db_t *)
+    x ham_log_append_overwrite: unused?
+    x ham_log_prepare_overwrite: unused?
+    x unittest for env_set_active - it's set in 3 places!
+    x hamsterdb.c: check every backend function against NULL - return
+        NOT_IMPLEMENTED if it's NULL
+    o ham_flush: deprecate, replace w. ham_env_flush? it's already implemented
     o review the page ownership - db_fetch_page() should only get 'db' as
         parameter, not env; instead, add env_fetch_page()
     o LogTests have lots of failures when calling flock()
@@ -29,6 +23,11 @@ o Ger: merge 1000 other changes
     o remove all warnings on 32bit linux (copy pointer to ham_u64_t)
     o unittests: db_set_allocator was disabled - fix it!
     o uncrustify?
+
+o still some problems with strict aliasing:
+    db.cpp:98: warning: dereferencing type-punned pointer will break
+        strict-aliasing rules
+    now gcc uses -O2 - but -O3 would be better. check what's wrong...
 
 o rename windows-DLL/LIB to hamsterdb-1.1.2 (include version in filename!)
     o also for Windows CE
@@ -40,6 +39,7 @@ o reevaluate default cache size - should we just grab 1 or 2 MB?
     o are extkeys and other mallocs also part of it? maybe reduce memory
         consumption in the allocator, and make the other flags
         deprecated?
+        o remove extkey_cache_purge?
 
 o webpage changes
     http://www.purenetworks.com/
@@ -65,6 +65,12 @@ o improve documentation/tutorial/faq about
 o support partial reading/writing of records
     details at http://www.oracle.com/technology/documentation/berkeley-db/db/api_reference/C/dbt.html
 
+o update the Java API 
+
+o update the .NET API 
+
+o update the Python API 
+
 o evaluate if we can use bamboo for building and testing on multiple
     platforms
     o http://www.atlassian.com/software/bamboo/features/elastic.jsp#remote
@@ -80,48 +86,10 @@ o ham_get_parameter: could return VERSION of the database
 
 . Ger: can specify an initial file size
 
-. env.h has some variables which are stored in the db header (i.e. 
-    keysize, pagesize), but they are just in a non-persistent field
-    also, they still show up in db.h as macros and fields of ham_db_t
-    o merge db/env_get_pagesize with env_get_persistent_pagesize
-    o merge db/env_set_pagesize with env_set_persistent_pagesize
-
-    o db_get_freelist -> env_get_freelist_payload: returns payload!
-    o db_get_freelist_cache -> env_get_freelist: returns object!
-        -> do we need two things - payload and object??
-    o db_is_dirty -> env_is_dirty
-    o db_set_dirty -> env_set_dirty
-    o db_set_allocator -> env_set_allocator
-        o allocators are not stored - see log.cpp (replace allocator_free
-            with ham_mem_free - crash!)
-
-. ham_close/ham_env_close: can we move more stuff from ham_close
-    to ham_env_close? 
-    o clean up 'noenv' usage in ham_close
-
-. who/what is the "owner" of a page?
-    o hamsterdb: "transfer the ownership of the header page to this
-        Database" (also in ham_close): why? can we clean this up? do we need
-        an owner?
-    o valgrind shows errors in EnvTest::eraseMultipleDatabases
-    x add new test: EnvTest::eraseMultipleDatabases, but reopen the Env before
-        erasing the Databases!
-
-. which members of env/db can be overwritten by users and therefore have to
-    be closed (or not) in ham_close/ham_env_close?
-    o make a list
-    o verify these with unittests
-    o check Ger's latest sources
-
 . re-enable HAM_DAM_FAST_INSERT
     o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
         -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
     o re-enable tests in monster.sh
-
-. Ger sent new statistics.c with minor fixes - it's on crupp.de:~
-    o merge - but doesn't work yet! Wait for new fixes...
-    x be careful - i think it's already merged... - no it isn't!
-    o run monster.sh
 
 . reorg. the HINT flags - they're now in hamsterdb_int.h and still used
     internally -> have them completely replaced by the DAM?

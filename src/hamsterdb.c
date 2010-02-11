@@ -1624,8 +1624,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
      * create the backend
      */
     be = db_get_backend(db);
-    if (be == NULL)
-    {
+    if (be == NULL) {
         st=db_create_backend(&be, db, flags);
         ham_assert(st ? be == NULL : 1, (0));
         if (!be) {
@@ -2359,6 +2358,9 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     be=db_get_backend(db);
     if (!be || !be_is_active(be))
         return HAM_INTERNAL_ERROR;
+
+    if (!be->_fun_enumerate)
+        return HAM_NOT_IMPLEMENTED;
 
     st=be->_fun_enumerate(be, my_free_cb, &context);
     if (st) {
@@ -3154,6 +3156,8 @@ __ham_get_parameters(ham_env_t *env, ham_db_t *db, ham_parameter_t *param)
                 if (db && db_get_backend(db)) {
                     ham_backend_t *be = db_get_backend(db);
 
+                    if (!be->_fun_calc_keycount_per_page)
+                        return HAM_NOT_IMPLEMENTED;
                     st = be->_fun_calc_keycount_per_page(be, &keycount, keysize);
                     if (st)
                         return st;
@@ -3680,6 +3684,9 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     if (!be || !be_is_active(be))
         return (db_set_error(db, HAM_NOT_INITIALIZED));
 
+    if (!be->_fun_find)
+        return HAM_NOT_IMPLEMENTED;
+
     if (!txn) {
         st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
         if (st)
@@ -3779,6 +3786,8 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     be=db_get_backend(db);
     if (!be || !be_is_active(be))
         return (db_set_error(db, HAM_NOT_INITIALIZED));
+    if (!be->_fun_insert)
+        return HAM_NOT_IMPLEMENTED;
 
     if (db_get_rt_flags(db)&HAM_READ_ONLY) {
         ham_trace(("cannot insert to a read-only database"));
@@ -3987,6 +3996,8 @@ ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     be=db_get_backend(db);
     if (!be || !be_is_active(be))
         return (db_set_error(db, HAM_NOT_INITIALIZED));
+    if (!be->_fun_erase)
+        return HAM_NOT_IMPLEMENTED;
     if (db_get_rt_flags(db)&HAM_READ_ONLY) {
         ham_trace(("cannot erase from a read-only database"));
         return (db_set_error(db, HAM_DB_READ_ONLY));
@@ -4064,6 +4075,9 @@ ham_check_integrity(ham_db_t *db, ham_txn_t *txn)
     be=db_get_backend(db);
     if (!be)
         return (db_set_error(db, HAM_NOT_INITIALIZED));
+    if (!be->_fun_check_integrity)
+        return (db_set_error(db, HAM_NOT_IMPLEMENTED));
+
     if (!txn) {
         if ((st=txn_begin(&local_txn, db_get_env(db), HAM_TXN_READ_ONLY)))
             return (db_set_error(db, st));
@@ -4116,8 +4130,7 @@ ham_calc_maxkeys_per_page(ham_db_t *db, ham_size_t *keycount, ham_u16_t keysize)
     be=db_get_backend(db);
     if (!be)
         return (db_set_error(db, HAM_NOT_INITIALIZED));
-    if (!be->_fun_calc_keycount_per_page)
-    {
+    if (!be->_fun_calc_keycount_per_page) {
         ham_trace(("hamsterdb was compiled without support for internal "
                     "functions"));
         return (db_set_error(db, HAM_NOT_IMPLEMENTED));
@@ -4174,6 +4187,8 @@ ham_env_flush(ham_env_t *env, ham_u32_t flags)
 
         if (!be || !be_is_active(be))
             return HAM_NOT_INITIALIZED;
+        if (!be->_fun_flush)
+            return (HAM_NOT_IMPLEMENTED);
         st = be->_fun_flush(be);
         if (st)
             return st;
@@ -4233,6 +4248,8 @@ ham_flush(ham_db_t *db, ham_u32_t flags)
     be=db_get_backend(db);
     if (!be || !be_is_active(be))
         return (db_set_error(db, HAM_NOT_INITIALIZED));
+    if (!be->_fun_flush)
+        return (HAM_NOT_IMPLEMENTED);
 
     dev = env_get_device(env);
     if (!dev)
@@ -4338,7 +4355,8 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         /*
          * auto-cleanup cursors?
          */
-        st2 = be->_fun_close_cursors(be, flags);
+        if (be->_fun_close_cursors)
+            st2 = be->_fun_close_cursors(be, flags);
         /* error or not, continue closing the database! */
     }
     else if (db_get_cursors(db))
@@ -4605,6 +4623,8 @@ ham_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     be=db_get_backend(db);
     if (!be || !be_is_active(be))
         return (db_set_error(db, HAM_NOT_INITIALIZED));
+    if (!be->_fun_cursor_create)
+        return (db_set_error(db, HAM_NOT_IMPLEMENTED));
 
     st=be->_fun_cursor_create(be, db, txn, flags, cursor);
     if (st)
@@ -5583,6 +5603,9 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     be = db_get_backend(db);
     if (!be || !be_is_active(be))
         return (db_set_error(db, HAM_NOT_INITIALIZED));
+    if (!be->_fun_enumerate)
+        return (db_set_error(db, HAM_NOT_IMPLEMENTED));
+
     if (!txn) {
         st = txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
         if (st)
