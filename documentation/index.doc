@@ -58,7 +58,8 @@ The second part forms a reference manual:
 <li>The <a href="modules.html">Modules</a> page is the entry point for the hamsterdb C/C++ API reference.
 <li>The hamsterdb Samples for C/C++, Python, .NET, Java and other supported languages are now online <a href="http://hamsterdb.com/confluence/display/ham/Samples" />here</a>.
 <li>Section \ref starting tells you how to generate your first hamsterdb application quickly. 
-<li>Section \ref faq "FAQ" gives answers to frequently asked questions. 
+<li>Section \ref faq "FAQ" 
+<li>The FAQ gives answers to frequently asked questions. You can find questions and answers online <a href="http://hamsterdb.com/confluence/display/ham/FAQ" />here</a>.
 </ul>
 
 The third part provides internal architectural and library implementation information 
