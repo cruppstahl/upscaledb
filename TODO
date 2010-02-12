@@ -58,9 +58,13 @@ o add automatic code coverage using gconv
     o track coverage results, publish online
 
 o improve documentation/tutorial/faq about
-    o move documentation and tutorial to confluence
-    o hinting flags
-    o DAMs
+    o move some of the documentation and tutorial to confluence
+        o tutorial (remove from doxygen)
+        o samples (remove from doxygen)
+        o faq (remove from doxygen)
+        o internal documentation (remove from doxygen)
+    o tutorial/faq: add hinting flags
+    o tutorial/faq: add DAMs
 
 o support partial reading/writing of records
     details at http://www.oracle.com/technology/documentation/berkeley-db/db/api_reference/C/dbt.html
