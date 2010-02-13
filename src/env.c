@@ -18,33 +18,33 @@
 ham_u16_t
 env_get_max_databases(ham_env_t *env)
 {
-    db_header_t *hdr=(db_header_t*)(page_get_payload(env_get_header_page(env)));
+    env_header_t *hdr=(env_header_t*)(page_get_payload(env_get_header_page(env)));
     return (ham_db2h16(hdr->_max_databases));
 }
 
 ham_u8_t
 env_get_version(ham_env_t *env, ham_size_t idx)
 {
-    db_header_t *hdr=(db_header_t*)(page_get_payload(env_get_header_page(env)));
+    env_header_t *hdr=(env_header_t*)(page_get_payload(env_get_header_page(env)));
     return (envheader_get_version(hdr, idx));
 }
 
 ham_u32_t
 env_get_serialno(ham_env_t *env)
 {
-    db_header_t *hdr=(db_header_t*)(page_get_payload(env_get_header_page(env)));
+    env_header_t *hdr=(env_header_t*)(page_get_payload(env_get_header_page(env)));
     return (ham_db2h32(hdr->_serialno));
 }
 
 void
 env_set_serialno(ham_env_t *env, ham_u32_t n)
 {
-    db_header_t *hdr=(db_header_t*)(page_get_payload(env_get_header_page(env)));
+    env_header_t *hdr=(env_header_t*)(page_get_payload(env_get_header_page(env)));
     hdr->_serialno=ham_h2db32(n);
 }
 
-db_header_t *
+env_header_t *
 env_get_header(ham_env_t *env)
 {
-    return ((db_header_t*)(page_get_payload(env_get_header_page(env))));
+    return ((env_header_t*)(page_get_payload(env_get_header_page(env))));
 }

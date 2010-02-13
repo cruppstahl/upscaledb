@@ -97,7 +97,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 	*      -> see env_get_freelist()
 	*/
 
-} HAM_PACK_2 db_header_t;
+} HAM_PACK_2 env_header_t;
 
 #include "packstop.h"
 
@@ -260,7 +260,7 @@ struct ham_env_t
  *
  * implemented as a function - a macro would break strict aliasing rules
  */
-extern db_header_t *
+extern env_header_t *
 env_get_header(ham_env_t *env);
 
 /**
@@ -290,7 +290,7 @@ env_get_header(ham_env_t *env);
  */
 #define env_get_indexdata_arrptr(env)                                         \
     ((db_indexdata_t *)((ham_u8_t *)page_get_payload(                         \
-        env_get_header_page(env)) + sizeof(db_header_t)))
+        env_get_header_page(env)) + sizeof(env_header_t)))
 
 /**
  * Get the private data of the specified database stored at index @a i; interpretation of the
@@ -451,7 +451,7 @@ extern void
 env_set_serialno(ham_env_t *env, ham_u32_t n);
 
 #define SIZEOF_FULL_HEADER(env)												\
-	(sizeof(db_header_t)+													\
+	(sizeof(env_header_t)+													\
 	 env_get_max_databases(env)*sizeof(db_indexdata_t))
 
 /**

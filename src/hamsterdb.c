@@ -1143,7 +1143,7 @@ default_case:
      * leave at least 128 bytes for the freelist and the other header data
      */
     {
-        ham_size_t l = pagesize - sizeof(db_header_t)
+        ham_size_t l = pagesize - sizeof(env_header_t)
                 - db_get_freelist_header_size32() - 128;
 
         l /= sizeof(db_indexdata_t);
@@ -2030,7 +2030,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
      */
     {
         ham_page_t *page=0;
-        db_header_t *hdr;
+        env_header_t *hdr;
         ham_u8_t hdrbuf[512];
         ham_page_t fakepage = {{0}};
         ham_bool_t hdrpage_faked = HAM_FALSE;
@@ -2060,7 +2060,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
             goto fail_with_fake_cleansing;
 
         hdr = env_get_header(env);
-        ham_assert(hdr == (db_header_t *)(hdrbuf + 
+        ham_assert(hdr == (env_header_t *)(hdrbuf + 
                     page_get_persistent_header_size()), (0));
 
         pagesize = env_get_persistent_pagesize(env);

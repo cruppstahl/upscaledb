@@ -89,7 +89,7 @@ public:
     void headerTest()
     {
         env_set_magic(m_env, '1', '2', '3', '4');
-        db_header_t *hdr=env_get_header(m_env);
+        env_header_t *hdr=env_get_header(m_env);
         BFC_ASSERT(env_get_magic(hdr, 0)=='1');
         BFC_ASSERT(env_get_magic(hdr, 1)=='2');
         BFC_ASSERT(env_get_magic(hdr, 2)=='3');
@@ -318,7 +318,7 @@ public:
                 _rootpage), 8 + 2));
         BFC_ASSERT(compare_sizes(sizeof(btree_node_t), 28 + sizeof(int_key_t)));
         BFC_ASSERT(compare_sizes(sizeof(int_key_t), 12));
-        BFC_ASSERT(compare_sizes(sizeof(db_header_t), 20));
+        BFC_ASSERT(compare_sizes(sizeof(env_header_t), 20));
         BFC_ASSERT(compare_sizes(sizeof(db_indexdata_t), 32));
         db_indexdata_t d;
         BFC_ASSERT(compare_sizes(sizeof(d.b), 32));
@@ -367,7 +367,7 @@ public:
         struct
         {
             ham_perm_page_union_t drit;
-            db_header_t drat;
+            env_header_t drat;
         } hdrpage_pers = {{{0}}};
         ham_page_t hdrpage = {{0}};
         hdrpage._pers = (ham_perm_page_union_t *)&hdrpage_pers;
@@ -375,7 +375,7 @@ public:
         ham_u8_t *pl1 = page_get_payload(hp);
         BFC_ASSERT(pl1);
         BFC_ASSERT(compare_sizes(pl1 - (ham_u8_t *)hdrpage._pers, 12));
-        db_header_t *hdrptr = (db_header_t *)(page_get_payload(&hdrpage));
+        env_header_t *hdrptr = (env_header_t *)(page_get_payload(&hdrpage));
         BFC_ASSERT(compare_sizes(((ham_u8_t *)hdrptr) - (ham_u8_t *)hdrpage._pers, 12));
         BFC_ASSERT(compare_sizes(DB_INDEX_SIZE, 32));
     }
