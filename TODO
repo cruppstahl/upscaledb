@@ -23,6 +23,64 @@ o Ger: merge 1000 other changes
     o remove all warnings on 32bit linux (copy pointer to ham_u64_t)
     o unittests: db_set_allocator was disabled - fix it!
     o uncrustify?
+    o db_prepare_ham_key_for_compare: needed? can be merged with
+        compare_pub_to_int?
+
+o hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
+--overwrite=1 --reopen=1
+    -->==4434== Invalid read of size 1
+==4434==    at 0x41FF64: __freel_alloc_area32 (freelist.c:2576)
+==4434==    by 0x421072: freel_alloc_area_ex (freelist.c:4807)
+==4434==    by 0x416918: blob_allocate (blob.c:414)
+==4434==    by 0x416D8F: blob_overwrite (blob.c:721)
+==4434==    by 0x410D6A: key_set_record (keys.c:158)
+==4434==    by 0x41B60E: my_insert_nosplit (btree_insert.c:748)
+==4434==    by 0x41BD92: my_insert_in_page (btree_insert.c:604)
+==4434==    by 0x41C03C: T.76 (btree_insert.c:503)
+==4434==    by 0x41BFE3: T.76 (btree_insert.c:517)
+==4434==    by 0x41C112: my_insert_cursor (btree_insert.c:351)
+==4434==    by 0x41C487: btree_insert_cursor (btree_insert.c:458)
+==4434==    by 0x40A02D: ham_insert (hamsterdb.c:3909)
+==4434==  Address 0x632b5a1 is 1 bytes after a block of size 1,024 alloc'd
+==4434==    at 0x4C25153: malloc (vg_replace_malloc.c:195)
+==4434==    by 0x413B3C: __f_read_page (device.c:171)
+==4434==    by 0x41D0C4: db_fetch_page (db.c:979)
+==4434==    by 0x41F292: __freel_mark_free32 (freelist.c:4359)
+==4434==    by 0x416D05: blob_overwrite (blob.c:703)
+==4434==    by 0x410D6A: key_set_record (keys.c:158)
+==4434==    by 0x41B60E: my_insert_nosplit (btree_insert.c:748)
+==4434==    by 0x41BD92: my_insert_in_page (btree_insert.c:604)
+==4434==    by 0x41C03C: T.76 (btree_insert.c:503)
+==4434==    by 0x41BFE3: T.76 (btree_insert.c:517)
+==4434==    by 0x41C112: my_insert_cursor (btree_insert.c:351)
+==4434==    by 0x41C487: btree_insert_cursor (btree_insert.c:458)
+==4434== 
+==4434== Invalid read of size 1
+==4434==    at 0x41FF64: __freel_alloc_area32 (freelist.c:2576)
+==4434==    by 0x421072: freel_alloc_area_ex (freelist.c:4807)
+==4434==    by 0x416918: blob_allocate (blob.c:414)
+==4434==    by 0x410BB0: key_set_record (keys.c:126)
+==4434==    by 0x41B60E: my_insert_nosplit (btree_insert.c:748)
+==4434==    by 0x41BD92: my_insert_in_page (btree_insert.c:604)
+==4434==    by 0x41C03C: T.76 (btree_insert.c:503)
+==4434==    by 0x41BFE3: T.76 (btree_insert.c:517)
+==4434==    by 0x41C112: my_insert_cursor (btree_insert.c:351)
+==4434==    by 0x41C487: btree_insert_cursor (btree_insert.c:458)
+==4434==    by 0x40A02D: ham_insert (hamsterdb.c:3909)
+==4434==    by 0x4054F2: hamsterdb::insert(ham_key_t*, ham_record_t*) (hamsterdb.cpp:277)
+==4434==  Address 0x69cb8b1 is 1 bytes after a block of size 1,024 alloc'd
+==4434==    at 0x4C25153: malloc (vg_replace_malloc.c:195)
+==4434==    by 0x413B3C: __f_read_page (device.c:171)
+==4434==    by 0x41D0C4: db_fetch_page (db.c:979)
+==4434==    by 0x41F292: __freel_mark_free32 (freelist.c:4359)
+==4434==    by 0x416DB4: blob_overwrite (blob.c:725)
+==4434==    by 0x410D6A: key_set_record (keys.c:158)
+==4434==    by 0x41B60E: my_insert_nosplit (btree_insert.c:748)
+==4434==    by 0x41BD92: my_insert_in_page (btree_insert.c:604)
+==4434==    by 0x41C03C: T.76 (btree_insert.c:503)
+==4434==    by 0x41BFE3: T.76 (btree_insert.c:517)
+==4434==    by 0x41C112: my_insert_cursor (btree_insert.c:351)
+==4434==    by 0x41C487: btree_insert_cursor (btree_insert.c:458)
 
 o still some problems with strict aliasing:
     db.cpp:98: warning: dereferencing type-punned pointer will break
@@ -30,8 +88,8 @@ o still some problems with strict aliasing:
     now gcc uses -O2 - but -O3 would be better. check what's wrong...
 
 o rename windows-DLL/LIB to hamsterdb-1.1.2 (include version in filename!)
-    o also for Windows CE
-    o automate this in release-process.sh
+    o only win32, not wince
+    o document this in release-process.txt (create a sed command)
 
 o reevaluate default cache size - should we just grab 1 or 2 MB?
     o setting strict cache size - is this tested?
@@ -50,6 +108,8 @@ o webpage changes
         text info?
     o sitemap: pulldown with jquery
     o download: need download gates to track in analytics as goals
+
+o hamsterdb-tests: also test with pagesize of 128kb
 
 o add automatic code coverage using gconv
     o http://www.manpagez.com/man/1/gcov/

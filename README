@@ -49,7 +49,7 @@ To see a list of all changes, look in the file ChangeLog.
 - Can run as an in-memory database
 - Supports multiple databases in one file
 - Supports record number databases ("auto-increment")
-- Supports duplicate keys
+- Supports duplicate keys (with sorting)
 - Support for logging and recovery
 - Support for Transactions (only one Transaction at a time, requires logging)
 - Very fast database cursors 
