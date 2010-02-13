@@ -250,7 +250,7 @@ public:
     {
         ham_page_t *page;
         BFC_ASSERT_EQUAL(0,
-                db_alloc_page(&page, m_env, m_db, 0, PAGE_IGNORE_FREELIST));
+                db_alloc_page(&page, m_db, 0, PAGE_IGNORE_FREELIST));
         BFC_ASSERT_EQUAL(m_db, page_get_owner(page));
         BFC_ASSERT_EQUAL(0, db_free_page(page, 0));
     }
@@ -259,10 +259,10 @@ public:
     {
         ham_page_t *p1, *p2;
         BFC_ASSERT_EQUAL(0,
-                db_alloc_page(&p1, m_env, m_db, 0, PAGE_IGNORE_FREELIST));
+                db_alloc_page(&p1, m_db, 0, PAGE_IGNORE_FREELIST));
         BFC_ASSERT_EQUAL(m_db, page_get_owner(p1));
         BFC_ASSERT_EQUAL(0,
-                db_fetch_page(&p2, m_env, m_db, page_get_self(p1), 0));
+                db_fetch_page(&p2, m_db, page_get_self(p1), 0));
         BFC_ASSERT_EQUAL(page_get_self(p2), page_get_self(p1));
         BFC_ASSERT_EQUAL(0, db_free_page(p1, 0));
     }
@@ -274,7 +274,7 @@ public:
         ham_u8_t *p;
 
         BFC_ASSERT_EQUAL(0,
-                db_alloc_page(&page, m_env, m_db, 0, PAGE_IGNORE_FREELIST));
+                db_alloc_page(&page, m_db, 0, PAGE_IGNORE_FREELIST));
 
         BFC_ASSERT(page_get_owner(page)==m_db);
         p=page_get_raw_payload(page);
@@ -285,7 +285,7 @@ public:
         BFC_ASSERT_EQUAL(0, db_flush_page(m_env, page, 0));
         BFC_ASSERT_EQUAL(0, db_free_page(page, 0));
 
-        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_env, m_db, address, 0));
+        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_db, address, 0));
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(address, page_get_self(page));
         p=page_get_raw_payload(page);

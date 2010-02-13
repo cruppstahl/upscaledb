@@ -200,7 +200,7 @@ btree_erase_cursor(ham_btree_t *be, ham_key_t *key,
         stats_update_erase_fail(db, &hints);
         return HAM_KEY_NOT_FOUND;
     }
-    st=db_fetch_page(&root, env, db, rootaddr, flags);
+    st=db_fetch_page(&root, db, rootaddr, flags);
     ham_assert(st ? !root : 1, (0));
     if (!root)
     {
@@ -267,7 +267,6 @@ my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left, h
     ham_page_t *child;
     ham_page_t *tempp=0;
     ham_db_t *db=page_get_owner(page);
-    ham_env_t *env = db_get_env(db);
     btree_node_t *node=ham_page_get_btree_node(page);
     ham_size_t maxkeys=btree_get_maxkeys(scratchpad->be);
 
@@ -329,7 +328,7 @@ my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left, h
             else {
                 int_key_t *bte; 
                 btree_node_t *n;
-                st=db_fetch_page(&tempp, env, db, left, 0);
+                st=db_fetch_page(&tempp, db, left, 0);
                 if (!tempp)
                     return st ? st : HAM_INTERNAL_ERROR;
                 n=ham_page_get_btree_node(tempp);
@@ -355,7 +354,7 @@ my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left, h
             else {
                 int_key_t *bte; 
                 btree_node_t *n;
-                st=db_fetch_page(&tempp, env, db, right, 0);
+                st=db_fetch_page(&tempp, db, right, 0);
                 ham_assert(st ? !tempp : 1, (0));
                 if (!tempp)
                     return st ? st : HAM_INTERNAL_ERROR;
@@ -498,8 +497,8 @@ my_rebalance(ham_page_t **newpage_ref, ham_page_t *page, ham_offset_t left, ham_
      */
     if (left)
     {
-        st = db_fetch_page(&leftpage, device_get_env(page_get_device(page)), 
-                        page_get_owner(page), btree_node_get_left(node), 0);
+        st = db_fetch_page(&leftpage, page_get_owner(page), 
+                        btree_node_get_left(node), 0);
         if (st)
             return st;
         if (leftpage) {
@@ -509,8 +508,8 @@ my_rebalance(ham_page_t **newpage_ref, ham_page_t *page, ham_offset_t left, ham_
     }
     if (right)
     {
-        st = db_fetch_page(&rightpage, device_get_env(page_get_device(page)), 
-                        page_get_owner(page), btree_node_get_right(node), 0);
+        st = db_fetch_page(&rightpage, page_get_owner(page), 
+                        btree_node_get_right(node), 0);
         if (st)
             return st;
         if (rightpage) {
@@ -528,7 +527,6 @@ my_rebalance(ham_page_t **newpage_ref, ham_page_t *page, ham_offset_t left, ham_
         else 
         {
             return (db_fetch_page(newpage_ref, 
-                        device_get_env(page_get_device(page)), 
                         page_get_owner(page),
                         btree_node_get_ptr_left(node), 0));
         }
@@ -623,7 +621,7 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
     sibnode=ham_page_get_btree_node(sibpage);
 
     if (anchor) {
-        st=db_fetch_page(&ancpage, env, page_get_owner(page), anchor, 0);
+        st=db_fetch_page(&ancpage, page_get_owner(page), anchor, 0);
         ham_assert(st ? !ancpage : 1, (0));
         if (!ancpage)
             return st ? st : HAM_INTERNAL_ERROR;
@@ -727,7 +725,7 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
             ham_page_t *p;
             btree_node_t *n;
 
-            st=db_fetch_page(&p, env, page_get_owner(page),
+            st=db_fetch_page(&p, page_get_owner(page),
                     btree_node_get_left(sibnode), 0);
             if (!p)
                 return st ? st : HAM_INTERNAL_ERROR;
@@ -744,7 +742,7 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
             ham_page_t *p;
             btree_node_t *n;
             
-            st=db_fetch_page(&p, env, page_get_owner(page),
+            st=db_fetch_page(&p, page_get_owner(page),
                     btree_node_get_right(sibnode), 0);
             if (!p)
                 return st ? st : HAM_INTERNAL_ERROR;
@@ -801,7 +799,7 @@ my_shift_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage, 
     sibnode=ham_page_get_btree_node(sibpage);
     keysize=db_get_keysize(db);
     intern =!btree_node_is_leaf(node);
-    st=db_fetch_page(&ancpage, env, db, anchor, 0);
+    st=db_fetch_page(&ancpage, db, anchor, 0);
     if (!ancpage)
         return st ? st : HAM_INTERNAL_ERROR;
     ancnode=ham_page_get_btree_node(ancpage);

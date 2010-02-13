@@ -57,8 +57,7 @@ btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor,
          * page should still sit in the cache, or we're using old info, which 
          * should be discarded.
          */
-        st = db_fetch_page(&page, db_get_env(db), db, 
-                        hints.leaf_page_addr, DB_ONLY_FROM_CACHE);
+        st = db_fetch_page(&page, db, hints.leaf_page_addr, DB_ONLY_FROM_CACHE);
 		ham_assert(st ? !page : 1, (0));
 		if (st)
 			return st;
@@ -97,7 +96,7 @@ btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor,
         }
 
         /* load the root page */
-        st=db_fetch_page(&page, db_get_env(db), db, btree_get_rootpage(be), 0);
+        st=db_fetch_page(&page, db, btree_get_rootpage(be), 0);
 		ham_assert(st ? !page : 1, (0));
         if (!page) {
             ham_assert(st, (0));
@@ -180,8 +179,7 @@ btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor,
                     }
 
                     hints.cost++;
-                    st = db_fetch_page(&page, db_get_env(db), db,
-                                btree_node_get_left(node), 0);
+                    st = db_fetch_page(&page, db, btree_node_get_left(node), 0);
 					ham_assert(st ? !page : 1, (0));
                     if (!page) {
                         ham_assert(st, (0));
@@ -216,7 +214,7 @@ btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor,
                     }
 
                     hints.cost++;
-                    st = db_fetch_page(&page, db_get_env(db), db, 
+                    st = db_fetch_page(&page, db, 
                                     btree_node_get_right(node), 0);
                     if (!page) {
                         ham_assert(st, (0));
@@ -296,7 +294,7 @@ btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor,
                                 }
 
                                 hints.cost++;
-                                st = db_fetch_page(&page, db_get_env(db), db,
+                                st = db_fetch_page(&page, db,
                                                 btree_node_get_right(node), 0);
                                 if (!page)
                                 {
@@ -321,7 +319,7 @@ btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor,
                     else
                     {
                         hints.cost++;
-                        st = db_fetch_page(&page, db_get_env(db), db,
+                        st = db_fetch_page(&page, db,
                                         btree_node_get_left(node), 0);
                         if (!page)
                         {
@@ -361,7 +359,7 @@ btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor,
                     }
 
                     hints.cost++;
-                    st = db_fetch_page(&page, db_get_env(db), db, 
+                    st = db_fetch_page(&page, db, 
                                 btree_node_get_right(node), 0);
                     if (!page)
                     {

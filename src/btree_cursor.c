@@ -42,7 +42,6 @@ my_move_first(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     ham_page_t *page;
     btree_node_t *node;
     ham_db_t *db=cursor_get_db(c);
-    ham_env_t *env = db_get_env(db);
 
     /*
      * get a NIL cursor
@@ -56,7 +55,7 @@ my_move_first(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
      */
     if (!btree_get_rootpage(be))
         return HAM_KEY_NOT_FOUND;
-    st=db_fetch_page(&page, env, db, btree_get_rootpage(be), 0);
+    st=db_fetch_page(&page, db, btree_get_rootpage(be), 0);
     ham_assert(st ? !page : 1, (0));
     if (!page)
     {
@@ -76,7 +75,7 @@ my_move_first(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
         if (btree_node_is_leaf(node))
             break;
 
-        st=db_fetch_page(&page, env, db, btree_node_get_ptr_left(node), 0);
+        st=db_fetch_page(&page, db, btree_node_get_ptr_left(node), 0);
         ham_assert(st ? !page : 1, (0));
         if (!page) {
             return st ? st : HAM_KEY_NOT_FOUND;
@@ -168,7 +167,7 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     page_remove_cursor(page, (ham_cursor_t *)c);
     bt_cursor_set_flags(c, bt_cursor_get_flags(c)&(~BT_CURSOR_FLAG_COUPLED));
 
-    st=db_fetch_page(&page, env, db, btree_node_get_right(node), 0);
+    st=db_fetch_page(&page, db, btree_node_get_right(node), 0);
     ham_assert(st ? !page : 1, (0));
     if (!page)
         return st ? st : HAM_INTERNAL_ERROR;
@@ -261,7 +260,7 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
         bt_cursor_set_flags(c, 
                 bt_cursor_get_flags(c)&(~BT_CURSOR_FLAG_COUPLED));
 
-        st=db_fetch_page(&page, env, db, btree_node_get_left(node), 0);
+        st=db_fetch_page(&page, db, btree_node_get_left(node), 0);
         if (!page)
             return st ? st : HAM_INTERNAL_ERROR;
         node=ham_page_get_btree_node(page);
@@ -319,7 +318,7 @@ my_move_last(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
      */
     if (!btree_get_rootpage(be))
         return HAM_KEY_NOT_FOUND;
-    st=db_fetch_page(&page, env, db, btree_get_rootpage(be), 0);
+    st=db_fetch_page(&page, db, btree_get_rootpage(be), 0);
     ham_assert(st ? !page : 1, (0));
     if (!page)
         return st ? st : HAM_INTERNAL_ERROR;
@@ -341,7 +340,7 @@ my_move_last(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
 
         key=btree_node_get_key(db, node, btree_node_get_count(node)-1);
 
-        st=db_fetch_page(&page, env, db, key_get_ptr(key), 0);
+        st=db_fetch_page(&page, db, key_get_ptr(key), 0);
         ham_assert(st ? !page : 1, (0));
         if (!page) {
             return st ? st : HAM_KEY_NOT_FOUND;

@@ -618,7 +618,7 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
 }
 
 ham_status_t
-db_alloc_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db, 
+db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db, 
                 ham_u32_t type, ham_u32_t flags)
 {
     ham_status_t st;
@@ -888,7 +888,14 @@ done:
 }
 
 ham_status_t
-db_fetch_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
+db_alloc_page(ham_page_t **page_ref, ham_db_t *db, 
+                ham_u32_t type, ham_u32_t flags)
+{
+    return (db_alloc_page_impl(page_ref, db_get_env(db), db, type, flags));
+}
+
+ham_status_t
+db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
                 ham_offset_t address, ham_u32_t flags)
 {
     ham_page_t *page=0;
@@ -1011,6 +1018,13 @@ db_fetch_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 
     *page_ref = page;
     return HAM_SUCCESS;
+}
+
+ham_status_t
+db_fetch_page(ham_page_t **page_ref, ham_db_t *db,
+                ham_offset_t address, ham_u32_t flags)
+{
+    return (db_fetch_page_impl(page_ref, db_get_env(db), db, address, flags));
 }
 
 ham_status_t

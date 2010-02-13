@@ -3459,7 +3459,7 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, ham_env_t *env, f
                 env_set_dirty(env);
             }
             else {
-                st=db_fetch_page(&prev_page, env, 0,
+                st=env_fetch_page(&prev_page, env, 
                         freel_entry_get_page_id(&entries[i-1]), 0);
                 if (!prev_page)
 					return st ? st : HAM_INTERNAL_ERROR;
@@ -3472,7 +3472,7 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, ham_env_t *env, f
             /*
              * allocate a new page, fixed the linked list
              */
-            st=db_alloc_page(&page, env, 0, PAGE_TYPE_FREELIST, 
+            st=env_alloc_page(&page, env, PAGE_TYPE_FREELIST, 
                     PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
             if (!page)
 			{
@@ -4006,7 +4006,8 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
 					}
 					else
 					{
-						st = db_fetch_page(&page, env, 0, freel_entry_get_page_id(entry), 0);
+						st = env_fetch_page(&page, env,
+                                     freel_entry_get_page_id(entry), 0);
 						ham_assert(st ? page == NULL : 1, (0));
 						if (!page)
 							return st ? st : HAM_INTERNAL_ERROR;
@@ -4067,7 +4068,7 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
 			}
 			else
 			{
-				st = db_fetch_page(&page, env, 0, freel_entry_get_page_id(entry), 0);
+				st = env_fetch_page(&page, env, freel_entry_get_page_id(entry), 0);
 				if (!page)
 					return st ? st : HAM_INTERNAL_ERROR;
 				fp=page_get_freelist(page);
@@ -4207,7 +4208,7 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
         if (st)
             return st;
 
-        st=db_fetch_page(&page, env, 0, freel_get_overflow(fp), 0);
+        st=env_fetch_page(&page, env, freel_get_overflow(fp), 0);
         if (!page)
 			return st ? st : HAM_INTERNAL_ERROR;
 
@@ -4356,7 +4357,7 @@ __freel_mark_freeXX(ham_device_t *dev, ham_env_t *env, ham_db_t *db,
          * otherwise just fetch the page from the cache or the disk
          */
         else {
-            st=db_fetch_page(&page, env, 0, freel_entry_get_page_id(entry), 0);
+            st=env_fetch_page(&page, env, freel_entry_get_page_id(entry), 0);
             if (!page)
 				return st ? st : HAM_INTERNAL_ERROR;
             fp=page_get_freelist(page);
@@ -4464,7 +4465,7 @@ __freel_check_area_is_allocatedXX(ham_device_t *dev, ham_env_t *env, ham_offset_
 		* otherwise just fetch the page from the cache or the disk
 		*/
 		else {
-			st=db_fetch_page(&page, env, 0, freel_entry_get_page_id(entry), 0);
+			st=env_fetch_page(&page, env, freel_entry_get_page_id(entry), 0);
 			if (!page)
 			{
 				ham_assert(st != 0, (0));

@@ -717,7 +717,7 @@ public:
         insertData("333", "cccccccccc");
 
         ham_btree_t *be=(ham_btree_t *)db_get_backend(m_db);
-        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, db_get_env(m_db), m_db,
+        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_db,
                 btree_get_rootpage(be), 0));
         BFC_ASSERT(page!=0);
 

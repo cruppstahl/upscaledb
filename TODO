@@ -16,13 +16,14 @@ o Ger: merge 1000 other changes
     x hamsterdb.c: check every backend function against NULL - return
         NOT_IMPLEMENTED if it's NULL
     x rename db_header_t to env_header_t
-    o ham_flush: deprecate, replace w. ham_env_flush? it's already implemented
-    o review the page ownership - db_fetch_page() should only get 'db' as
+    x LogTests have lots of failures when calling flock() -- ok
+    x review the page ownership - db_fetch_page() should only get 'db' as
         parameter, not env; instead, add env_fetch_page()
-    o LogTests have lots of failures when calling flock()
+    x review the page ownership - db_alloc_page() should only get 'db' as
+        parameter, not env; instead, add env_alloc_page()
+    o ham_flush: deprecate, replace w. ham_env_flush? it's already implemented
     o remove all warnings on 32bit linux (copy pointer to ham_u64_t)
     o unittests: db_set_allocator was disabled - fix it!
-    o uncrustify?
     o db_prepare_ham_key_for_compare: needed? can be merged with
         compare_pub_to_int?
 

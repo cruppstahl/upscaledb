@@ -1281,8 +1281,7 @@ public:
         ham_page_t *page;
         ham_size_t ps=os_get_pagesize();
         BFC_ASSERT_EQUAL(0, 
-                db_alloc_page(&page, m_env, m_db, 0,
-                        PAGE_IGNORE_FREELIST));
+                db_alloc_page(&page, m_db, 0, PAGE_IGNORE_FREELIST));
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
@@ -1301,13 +1300,12 @@ public:
         ham_size_t ps=os_get_pagesize();
         ham_page_t *page;
         BFC_ASSERT_EQUAL(0, 
-                db_alloc_page(&page, m_env, m_db, 0, 
+                db_alloc_page(&page, m_db, 0, 
                         PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO));
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, db_free_page(page, DB_MOVE_TO_FREELIST));
         BFC_ASSERT_EQUAL(0, 
-                db_alloc_page(&page, m_env, m_db, 0, 
-                        PAGE_CLEAR_WITH_ZERO));
+                db_alloc_page(&page, m_db, 0, PAGE_CLEAR_WITH_ZERO));
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
@@ -1329,7 +1327,7 @@ public:
         ham_size_t ps=os_get_pagesize();
         ham_page_t *page;
         BFC_ASSERT_EQUAL(0, 
-                db_alloc_page(&page, m_env, m_db, 0, 
+                db_alloc_page(&page, m_db, 0, 
                         PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO));
         BFC_ASSERT(page!=0);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -1721,8 +1719,7 @@ public:
         /* allocate page, write before-image, modify, commit (= write
          * after-image */
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, 
-                db_alloc_page(&page, m_env, m_db, 0, 0));
+        BFC_ASSERT_EQUAL(0, db_alloc_page(&page, m_db, 0, 0));
         BFC_ASSERT(page!=0);
         ham_offset_t address=page_get_self(page);
         ham_u8_t *p=page_get_payload(page);
@@ -1735,7 +1732,7 @@ public:
         /* fetch page again, modify, abort -> first modification is still
          * available, second modification is reverted */
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_env, 0, address, 0));
+        BFC_ASSERT_EQUAL(0, env_fetch_page(&page, m_env, address, 0));
         BFC_ASSERT(page!=0);
         p=page_get_payload(page);
         p[0]=2;
@@ -1744,7 +1741,7 @@ public:
 
         /* check modifications */
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_env, 0, address, 0));
+        BFC_ASSERT_EQUAL(0, env_fetch_page(&page, m_env, address, 0));
         BFC_ASSERT(page!=0);
         p=page_get_payload(page);
         BFC_ASSERT_EQUAL((ham_u8_t)1, p[0]);
@@ -1763,7 +1760,7 @@ public:
         /* fetch the page with the key, overwrite it with garbage, then
          * abort */
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_env, 0, ps, 0));
+        BFC_ASSERT_EQUAL(0, env_fetch_page(&page, m_env, ps, 0));
         BFC_ASSERT(page!=0);
         btree_node_t *node=ham_page_get_btree_node(page);
         int_key_t *entry=btree_node_get_key(m_db, node, 0);

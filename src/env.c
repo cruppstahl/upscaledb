@@ -48,3 +48,17 @@ env_get_header(ham_env_t *env)
 {
     return ((env_header_t*)(page_get_payload(env_get_header_page(env))));
 }
+
+ham_status_t
+env_fetch_page(ham_page_t **page_ref, ham_env_t *env, 
+        ham_offset_t address, ham_u32_t flags)
+{
+    return (db_fetch_page_impl(page_ref, env, 0, address, flags));
+}
+
+ham_status_t
+env_alloc_page(ham_page_t **page_ref, ham_env_t *env,
+                ham_u32_t type, ham_u32_t flags)
+{
+    return (db_alloc_page_impl(page_ref, env, 0, type, flags));
+}

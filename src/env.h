@@ -515,6 +515,26 @@ env_set_serialno(ham_env_t *env, ham_u32_t n);
  */
 #define env_get_global_perf_data(env)    &(env)->_perf_data
 
+/**
+ * fetch a page.
+ *
+ * This is like db_fetch_page, but only for those cases when there's
+ * no Database handle
+ */
+extern ham_status_t
+env_fetch_page(ham_page_t **page_ref, ham_env_t *env, 
+        ham_offset_t address, ham_u32_t flags);
+
+/**
+ * allocate a page.
+ *
+ * This is like db_alloc_page, but only for those cases when there's
+ * no Database handle
+ */
+extern ham_status_t
+env_alloc_page(ham_page_t **page_ref, ham_env_t *env,
+                ham_u32_t type, ham_u32_t flags);
+
 
 #ifdef __cplusplus
 } // extern "C" {

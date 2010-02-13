@@ -148,7 +148,7 @@ my_append_key(ham_btree_t *be, ham_key_t *key,
      * should still sit in the cache, or we're using old info, which should be 
      * discarded.
 	 */
-	st = db_fetch_page(&page, db_get_env(db), db, hints->leaf_page_addr, DB_ONLY_FROM_CACHE);
+	st = db_fetch_page(&page, db, hints->leaf_page_addr, DB_ONLY_FROM_CACHE);
 	ham_assert(st ? !page : 1, (0));
 	if (st)
 		return st;
@@ -340,7 +340,7 @@ my_insert_cursor(ham_btree_t *be, ham_key_t *key,
      * get the root-page...
      */
     ham_assert(btree_get_rootpage(be)!=0, ("btree has no root page"));
-    st=db_fetch_page(&root, env, db, btree_get_rootpage(be), 0);
+    st=db_fetch_page(&root, db, btree_get_rootpage(be), 0);
 	ham_assert(st ? root == NULL : 1, (0));
 	if (st)
 		return st;
@@ -368,7 +368,7 @@ my_insert_cursor(ham_btree_t *be, ham_key_t *key,
         /*
          * allocate a new root page
          */
-        st=db_alloc_page(&newroot, env, db, PAGE_TYPE_B_ROOT, 0); 
+        st=db_alloc_page(&newroot, db, PAGE_TYPE_B_ROOT, 0); 
 		ham_assert(st ? newroot == NULL : 1, (0));
         if (st)
             return (st);
@@ -860,7 +860,7 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
      * allocate a new page
      */
 	hints->cost++;
-    st=db_alloc_page(&newpage, env, db, PAGE_TYPE_B_INDEX, 0); 
+    st=db_alloc_page(&newpage, db, PAGE_TYPE_B_INDEX, 0); 
 	ham_assert(st ? page == NULL : 1, (0));
 	ham_assert(!st ? page  != NULL : 1, (0));
     if (st)
@@ -989,7 +989,7 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
      */
     if (btree_node_get_right(obtp)) 
 	{
-        st=db_fetch_page(&oldsib, env, db, btree_node_get_right(obtp), 0);
+        st=db_fetch_page(&oldsib, db, btree_node_get_right(obtp), 0);
 		if (st)
 			goto fail_dramatically;
 	}

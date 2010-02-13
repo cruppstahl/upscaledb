@@ -574,56 +574,64 @@ db_create_backend(ham_backend_t **backend_ref, ham_db_t *db, ham_u32_t flags);
 /**
  * fetch a page.
  *
- * @param page_ref call-by-reference variable which will be set to point to the retrieved
- *        @ref ham_page_t instance.
+ * @param page_ref call-by-reference variable which will be set to 
+ *      point to the retrieved @ref ham_page_t instance.
+ * @param db the database handle - if it's not available then please
+ *      use env_fetch_page()
+ * @param address the storage address (a.k.a. 'RID') where the page is 
+ *      located in the device store (file, memory, ...). 
+ * @param flags An optional, bit-wise combined set of the 
+ *      @ref db_fetch_page_flags flag collection.
  *
- * @param env the environment handle
- *
- * @param address the storage address (a.k.a. 'RID') where the page is located in the 
- *        device store (file, memory, ...). 
- *
- * @param flags An optional, bit-wise combined set of the @ref db_fetch_page_flags 
- *        flag collection.
- *
- * @return the retrieved page in @a *page_ref and HAM_SUCCESS as a function return value.
- *
- * @return a NULL value in @a *page_ref and HAM_SUCCESS when the page could not be 
- *         retrieved because the set conditions were not be met (see @ref DB_ONLY_FROM_CACHE) 
- *
+ * @return the retrieved page in @a *page_ref and HAM_SUCCESS as a 
+ *      function return value.
+ * @return a NULL value in @a *page_ref and HAM_SUCCESS when the page 
+ *      could not be retrieved because the set conditions were not be 
+ *      met (see @ref DB_ONLY_FROM_CACHE) 
  * @return one of the @ref ham_status_codes error codes as an error occurred.
  */
 extern ham_status_t
-db_fetch_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db, ham_offset_t address, ham_u32_t flags);
+db_fetch_page(ham_page_t **page_ref, ham_db_t *db, 
+        ham_offset_t address, ham_u32_t flags);
+
+/*
+ * this is an internal function. do not use it unless you know what you're
+ * doing.
+ */
+extern ham_status_t
+db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db, 
+        ham_offset_t address, ham_u32_t flags);
 
 /**
-* @defgroup db_fetch_page_flags @ref db_fetch_page Flags
-* @{
-*
-* These flags can be bitwise-OR mixed with the @ref HAM_HINTS_MASK flags, i.e. the hint bits
-* as listed in @ref ham_hinting_flags . 
-*
-*@sa ham_hinting_flags 
-*/
+ * @defgroup db_fetch_page_flags @ref db_fetch_page Flags
+ * @{
+ *
+ * These flags can be bitwise-OR mixed with the @ref HAM_HINTS_MASK flags, 
+ * i.e. the hint bits as listed in @ref ham_hinting_flags
+ *
+ * @sa ham_hinting_flags 
+ */
 
 /**
- * Force @ref db_fetch_page to only return a valid @ref ham_page_t instance reference when 
- * it is still stored in the cache, otherwise a NULL pointer will be returned instead
- * (and no error code)!
-*/
+ * Force @ref db_fetch_page to only return a valid @ref ham_page_t instance 
+ * reference when it is still stored in the cache, otherwise a NULL pointer 
+ * will be returned instead (and no error code)!
+ */
 #define DB_ONLY_FROM_CACHE                0x0002
 
 /**
- * Register new pages in the cache, but give them an 'old' age upon first creation, so they
- * are flushed before anything else.
+ * Register new pages in the cache, but give them an 'old' age upon first 
+ * creation, so they are flushed before anything else.
  *
- * This is a hacky way to ensure code simplicity while blob I/O does not thrash the cache but
- * meanwhile still gets added to the activity log in a proper fashion.
+ * This is a hacky way to ensure code simplicity while blob I/O does not 
+ * thrash the cache but meanwhile still gets added to the activity log in 
+ * a proper fashion.
  */
 #define DB_NEW_PAGE_DOES_THRASH_CACHE    0x0004
 
 /**
-* @}
-*/
+ * @}
+ */
 
 
 /**
@@ -649,12 +657,10 @@ db_flush_all(ham_cache_t *cache, ham_u32_t flags);
  *
  * @param page_ref call-by-reference result: will store the @ref ham_page_t 
  *        instance reference.
- *
- * @param env the environment
- *
+ * @param db the database; if the database handle is not available, you
+ *        can use env_alloc_page
  * @param type the page type of the new page. See @ref page_type_codes for
  *        a list of supported types.
- *
  * @param flags optional allocation request flags. @a flags can be a mix
  *        of the following bits:
  *        - PAGE_IGNORE_FREELIST        ignores all freelist-operations
@@ -667,7 +673,15 @@ db_flush_all(ham_cache_t *cache, ham_u32_t flags);
  * space (due to the alignment) is added to the freelist.
  */
 extern ham_status_t
-db_alloc_page(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db, 
+db_alloc_page(ham_page_t **page_ref, ham_db_t *db, 
+                ham_u32_t type, ham_u32_t flags);
+
+/*
+ * this is an internal function. do not use it unless you know what you're
+ * doing.
+ */
+extern ham_status_t
+db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db, 
                 ham_u32_t type, ham_u32_t flags);
 
 #define PAGE_IGNORE_FREELIST          8

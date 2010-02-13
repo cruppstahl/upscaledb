@@ -1849,7 +1849,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
     void btreeMacroTest(void)
     {
         ham_page_t *page;
-        BFC_ASSERT_EQUAL(0, db_alloc_page(&page, m_env, m_db, 0, 0));
+        BFC_ASSERT_EQUAL(0, db_alloc_page(&page, m_db, 0, 0));
         BFC_ASSERT(page!=0);
 
         int off=(int)btree_node_get_key_offset(page, 0);

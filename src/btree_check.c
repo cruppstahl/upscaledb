@@ -137,7 +137,7 @@ btree_check_integrity(ham_btree_t *be)
     scratchpad.flags=0;
 
     /* get the root page of the tree */
-    st=db_fetch_page(&page, db_get_env(db), db, btree_get_rootpage(be), 0);
+    st=db_fetch_page(&page, db, btree_get_rootpage(be), 0);
 	ham_assert(st ? !page : 1, (0));
     if (!page)
 		return st ? st : HAM_INTERNAL_ERROR;
@@ -159,7 +159,7 @@ btree_check_integrity(ham_btree_t *be)
          * follow the pointer to the smallest child
          */
         if (ptr_left) {
-            st=db_fetch_page(&page, db_get_env(db), db, ptr_left, 0);
+            st=db_fetch_page(&page, db, ptr_left, 0);
 			ham_assert(st ? !page : 1, (0));
 			if (st)
 				return st;
@@ -216,8 +216,7 @@ my_verify_level(ham_page_t *parent, ham_page_t *page,
          */
         node=ham_page_get_btree_node(page);
         if (btree_node_get_right(node)) {
-            st=db_fetch_page(&child, db_get_env(db), db, 
-                        btree_node_get_right(node), 0);
+            st=db_fetch_page(&child, db, btree_node_get_right(node), 0);
 			ham_assert(st ? !child : 1, (0));
 			if (st)
 				return st;

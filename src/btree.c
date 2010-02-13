@@ -223,8 +223,7 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     /*
      * allocate a new root page
      */
-    st=db_alloc_page(&root, db_get_env(db), db, 
-                        PAGE_TYPE_B_ROOT, PAGE_IGNORE_FREELIST);
+    st=db_alloc_page(&root, db, PAGE_TYPE_B_ROOT, PAGE_IGNORE_FREELIST);
     ham_assert(st ? root == NULL : 1, (0));
     ham_assert(!st ? root != NULL : 1, (0));
     if (!root)
@@ -535,8 +534,7 @@ btree_traverse_tree(ham_page_t **page_ref, ham_s32_t *idxptr,
 
     if (slot==-1)
     {
-        st = db_fetch_page(page_ref, db_get_env(db), db, 
-                    btree_node_get_ptr_left(node), 0);
+        st = db_fetch_page(page_ref, db, btree_node_get_ptr_left(node), 0);
         ham_assert(st ? !*page_ref : 1, (0));
         return st;
     }
@@ -546,7 +544,7 @@ btree_traverse_tree(ham_page_t **page_ref, ham_s32_t *idxptr,
         ham_assert(key_get_flags(bte)==0 || 
                 key_get_flags(bte)==KEY_IS_EXTENDED,
                 ("invalid key flags 0x%x", key_get_flags(bte)));
-        st = db_fetch_page(page_ref, db_get_env(db), db, key_get_ptr(bte), 0);
+        st = db_fetch_page(page_ref, db, key_get_ptr(bte), 0);
         ham_assert(st ? !*page_ref : 1, (0));
         return st;
     }

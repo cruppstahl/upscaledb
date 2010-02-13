@@ -56,14 +56,13 @@ btree_enumerate(ham_btree_t *be, ham_enumerate_cb_t cb, void *context)
     btree_node_t *node;
     ham_status_t st;
     ham_db_t *db=be_get_db(be);
-    ham_env_t *env = db_get_env(db);
     ham_status_t cb_st = CB_CONTINUE;
 
     ham_assert(btree_get_rootpage(be)!=0, ("invalid root page"));
     ham_assert(cb!=0, ("invalid parameter"));
 
     /* get the root page of the tree */
-    st = db_fetch_page(&page, env, db, btree_get_rootpage(be), 0);
+    st = db_fetch_page(&page, db, btree_get_rootpage(be), 0);
     ham_assert(st ? !page : 1, (0));
     if (!page)
         return st ? st : HAM_INTERNAL_ERROR;
@@ -111,7 +110,7 @@ btree_enumerate(ham_btree_t *be, ham_enumerate_cb_t cb, void *context)
          */
         if (ptr_left)
         {
-            st = db_fetch_page(&page, env, db, ptr_left, 0);
+            st = db_fetch_page(&page, db, ptr_left, 0);
             ham_assert(st ? !page : 1, (0));
             if (st)
                 return st;
@@ -149,8 +148,8 @@ _enumerate_level(ham_btree_t *be, ham_page_t *page, ham_u32_t level,
         node=ham_page_get_btree_node(page);
         if (btree_node_get_right(node))
         {
-            st=db_fetch_page(&page, device_get_env(page_get_device(page)), 
-                    be_get_db(be), btree_node_get_right(node), 0);
+            st=db_fetch_page(&page, be_get_db(be), 
+                    btree_node_get_right(node), 0);
             ham_assert(st ? !page : 1, (0));
             if (st)
                 return st;

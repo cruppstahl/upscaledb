@@ -61,7 +61,7 @@ __freel_flush_stats32(ham_device_t *dev, ham_env_t *env)
 						 */
 						ham_page_t *page;
 						
-						st = db_fetch_page(&page, env, 0,
+						st = env_fetch_page(&page, env,
                                 freel_entry_get_page_id(entry), 0);
 						if (!page)
 							return st ? st : HAM_INTERNAL_ERROR;

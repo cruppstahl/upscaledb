@@ -151,7 +151,7 @@ __write_chunks(ham_env_t *env, ham_page_t *page, ham_offset_t addr,
                                         || freshly_created));
 				//ham_assert(db_get_txn(db) ? !!env_get_log(env) : 1, (0));
 
-                st=db_fetch_page(&page, env, 0, pageid, 
+                st=env_fetch_page(&page, env, pageid, 
                         cacheonly ? DB_ONLY_FROM_CACHE : 
                         at_blob_edge ? 0 : DB_NEW_PAGE_DOES_THRASH_CACHE);
 				ham_assert(st ? !page : 1, (0));
@@ -239,7 +239,7 @@ __read_chunk(ham_env_t *env, ham_page_t *page, ham_page_t **fpage,
          * chunk is small
          */
         if (!page) {
-            st=db_fetch_page(&page, env, 0, pageid, 
+            st=env_fetch_page(&page, env, pageid, 
                     __blob_from_cache(env, size) ? 0 : DB_ONLY_FROM_CACHE);
 			ham_assert(st ? !page : 1, (0));
             /* blob pages don't have a page header */
@@ -422,7 +422,7 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_u8_t *data, ham_size_t size,
          * through the cache
          */
         if (__blob_from_cache(env, alloc_size)) {
-            st = db_alloc_page(&page, env, db, PAGE_TYPE_BLOB, 
+            st = db_alloc_page(&page, db, PAGE_TYPE_BLOB, 
                         PAGE_IGNORE_FREELIST);
 			ham_assert(st ? page == NULL : 1, (0));
 			ham_assert(!st ? page  != NULL : 1, (0));
