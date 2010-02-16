@@ -77,6 +77,14 @@ bfc_doc:
 html-dist: doc
 	tar cvzf hamsterdb-html-documentation.$(VERSION).tar.gz documentation/html
 
+update_version:
+	VERSION=$(VERSION) ;            \
+	export VERSION;                 \
+	sed 's/hamsterdb-[0-9]*.[0-9]*.[0-9]*.dll/hamsterdb-$(VERSION).dll/' win32/dll.vcproj > win32/_dll.vcproj
+	mv win32/_dll.vcproj win32/dll.vcproj
+	sed 's/libhamsterdb-[0-9]*.[0-9]*.[0-9]*.lib/libhamsterdb-$(VERSION).lib/' win32/lib.vcproj > win32/_lib.vcproj
+	mv win32/_lib.vcproj win32/lib.vcproj
+
 test:
 	cd unittests && make && ./test
 
