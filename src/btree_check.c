@@ -65,7 +65,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
 /**                                                                 
  * verify the whole tree                                            
  *                                                                  
- * @remark this function is only available when						
+ * @remark this function is only available when                        
  * hamsterdb is compiled with HAM_ENABLE_INTERNAL turned on.        
  *
  * @note This is a B+-tree 'backend' method.
@@ -88,9 +88,9 @@ btree_check_integrity(ham_btree_t *be)
 
     /* get the root page of the tree */
     st=db_fetch_page(&page, db, btree_get_rootpage(be), 0);
-	ham_assert(st ? !page : 1, (0));
+    ham_assert(st ? !page : 1, (0));
     if (!page)
-		return st ? st : HAM_INTERNAL_ERROR;
+        return st ? st : HAM_INTERNAL_ERROR;
 
     /* while we found a page... */
     while (page) {
@@ -110,9 +110,9 @@ btree_check_integrity(ham_btree_t *be)
          */
         if (ptr_left) {
             st=db_fetch_page(&page, db, ptr_left, 0);
-			ham_assert(st ? !page : 1, (0));
-			if (st)
-				return st;
+            ham_assert(st ? !page : 1, (0));
+            if (st)
+                return st;
         }
         else
             page=0;
@@ -167,9 +167,9 @@ my_verify_level(ham_page_t *parent, ham_page_t *page,
         node=ham_page_get_btree_node(page);
         if (btree_node_get_right(node)) {
             st=db_fetch_page(&child, db, btree_node_get_right(node), 0);
-			ham_assert(st ? !child : 1, (0));
-			if (st)
-				return st;
+            ham_assert(st ? !child : 1, (0));
+            if (st)
+                return st;
         }
         else
             child=0;
@@ -189,8 +189,8 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
 {
     int cmp;
     ham_size_t i=0;
-	ham_size_t count;
-	ham_size_t maxkeys;
+    ham_size_t count;
+    ham_size_t maxkeys;
     ham_db_t *db=page_get_owner(page);
     int_key_t *bte;
     btree_node_t *node=ham_page_get_btree_node(page);
@@ -222,7 +222,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
     if ((btree_node_get_left(node)!=0 
         || btree_node_get_right(node)!=0)
         && !(db_get_rt_flags(db)&HAM_RECORD_NUMBER)) 
-	{
+    {
         ham_bool_t isfew;
         isfew=btree_node_get_count(node)<btree_get_minkeys(maxkeys)-1;
         if (isfew) {
@@ -239,27 +239,43 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
      */
     if (leftsib) {
         btree_node_t *sibnode=ham_page_get_btree_node(leftsib);
+        int_key_t *sibentry=btree_node_get_key(db, sibnode, 
+                btree_node_get_count(sibnode)-1);
 
         bte=btree_node_get_key(db, node, 0);
 
         if ((key_get_flags(bte)!=0 && key_get_flags(bte)!=KEY_IS_EXTENDED) 
                 && !btree_node_is_leaf(node)) 
-		{
+        {
             ham_log(("integrity check failed in page 0x%llx: item #0 "
                     "has flags, but it's not a leaf page", 
                     page_get_self(page), i));
             return HAM_INTEGRITY_VIOLATED;
         }
-		else
-		{
-			cmp = key_compare_int_to_int(db, page, 
-                btree_node_get_count(sibnode)-1, 0);
-			if (cmp < -1)
-				return (ham_status_t)cmp;
-		}
+        else
+        {
+            ham_status_t st;
+            ham_key_t lhs;
+            ham_key_t rhs;
+
+            st = db_prepare_ham_key_for_compare(db, sibentry, &lhs);
+            if (st)
+                return st;
+            st = db_prepare_ham_key_for_compare(db, bte, &rhs);
+            if (st)
+                return st;
+
+            cmp = db_compare_keys(db, &lhs, &rhs);
+
+            db_release_ham_key_after_compare(db, &lhs);
+            db_release_ham_key_after_compare(db, &rhs);
+            /* error is detected, but ensure keys are always released */
+            if (cmp < -1)
+                return (ham_status_t)cmp;
+        }
 
         if (cmp >= 0) 
-		{
+        {
             ham_log(("integrity check failed in page 0x%llx: item #0 "
                     "< left sibling item #%d\n", page_get_self(page), 
                     btree_node_get_count(sibnode)-1));
