@@ -63,7 +63,6 @@ public:
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_TRANSACTIONS, 0644, &p[0]));
@@ -108,7 +107,6 @@ public:
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
 
         BFC_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
-        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, open(0));
         f=env_get_freelist(m_env);
 

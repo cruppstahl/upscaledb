@@ -65,8 +65,7 @@ public:
         m_alloc=memtracker_new();
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
-        //env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
+        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
                         (m_inmemory ? HAM_IN_MEMORY_DB : 0), 0644));

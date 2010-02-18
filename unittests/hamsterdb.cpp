@@ -144,7 +144,6 @@ public:
         os::unlink(BFC_OPATH(".test"));
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
 
         m_env=db_get_env(m_db);

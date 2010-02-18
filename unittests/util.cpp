@@ -58,7 +58,6 @@ public:
 
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
-        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT(ham_create_ex(m_db, 0, HAM_IN_MEMORY_DB, 0644, 
                         &p[0])==HAM_SUCCESS);
 

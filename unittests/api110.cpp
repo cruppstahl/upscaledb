@@ -18,6 +18,7 @@
 #include <ham/hamsterdb.h>
 #include "memtracker.h"
 #include "../src/db.h"
+#include "../src/env.h"
 #include "../src/version.h"
 #include "../src/serial.h"
 #include "../src/btree.h"
@@ -58,8 +59,9 @@ public:
         os::unlink(BFC_OPATH(".test"));
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
+        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
+
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(0, ham_create(m_db, 0, HAM_IN_MEMORY_DB, 0));
     }
     
@@ -88,7 +90,6 @@ public:
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
 
         BFC_ASSERT(ham_new(&m_db)==HAM_SUCCESS);
-        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc);
         BFC_ASSERT_EQUAL(HAM_SUCCESS, 
                 ham_create(m_db, BFC_OPATH(".test"), 
                     HAM_ENABLE_TRANSACTIONS, 0));

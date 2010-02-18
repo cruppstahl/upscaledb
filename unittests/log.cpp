@@ -83,7 +83,6 @@ public:
 
         m_alloc=memtracker_new();
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-        //db_set_allocator(m_db, (mem_allocator_t *)m_alloc); - TODO
         BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 
                         HAM_ENABLE_TRANSACTIONS, 0644));
     
