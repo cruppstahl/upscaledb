@@ -47,10 +47,47 @@ key_compare_pub_to_int(ham_db_t *db, ham_page_t *page,
 
     cmp=db_compare_keys(db, lhs, &rhs);
 
-	db_release_ham_key_after_compare(db, &rhs);
-	/* ensures key is always released; errors will be detected by caller */
+    db_release_ham_key_after_compare(db, &rhs);
+    /* ensures key is always released; errors will be detected by caller */
 
     return (cmp);
+}
+
+int
+key_compare_int_to_int(ham_db_t *db, ham_page_t *page, 
+        ham_u16_t lhs_int, ham_u16_t rhs_int)
+{
+    int_key_t *l;
+	int_key_t *r;
+    btree_node_t *node = ham_page_get_btree_node(page);
+	ham_key_t lhs;
+	ham_key_t rhs;
+	int cmp;
+	ham_status_t st;
+
+    l=btree_node_get_key(page_get_owner(page), node, lhs_int);
+    r=btree_node_get_key(page_get_owner(page), node, rhs_int);
+
+	st = db_prepare_ham_key_for_compare(db, l, &lhs);
+	if (st)
+	{
+		ham_assert(st < -1, (0));
+		return st;
+	}
+	st = db_prepare_ham_key_for_compare(db, r, &rhs);
+	if (st)
+	{
+		ham_assert(st < -1, (0));
+		return st;
+	}
+
+	cmp = db_compare_keys(page_get_owner(page), &lhs, &rhs);
+
+	db_release_ham_key_after_compare(db, &lhs);
+	db_release_ham_key_after_compare(db, &rhs);
+	/* ensures keys are always released; errors will be detected by caller */
+
+	return cmp;
 }
 
 ham_status_t
@@ -62,13 +99,13 @@ key_insert_extended(ham_offset_t *rid_ref, ham_db_t *db, ham_page_t *page,
     ham_status_t st;
 
     ham_assert(key->size>db_get_keysize(db), ("invalid keysize"));
-    
-	*rid_ref = 0;
+
+    *rid_ref = 0;
 
     if ((st=blob_allocate(db_get_env(db), db,
-                data_ptr +(db_get_keysize(db)-sizeof(ham_offset_t)), 
-                key->size-(db_get_keysize(db)-sizeof(ham_offset_t)), 
-                0, &blobid))) {
+                    data_ptr +(db_get_keysize(db)-sizeof(ham_offset_t)), 
+                    key->size-(db_get_keysize(db)-sizeof(ham_offset_t)), 
+                    0, &blobid))) {
         return st;
     }
 
@@ -81,16 +118,16 @@ key_insert_extended(ham_offset_t *rid_ref, ham_db_t *db, ham_page_t *page,
     }
 
     *rid_ref = blobid;
-	return HAM_SUCCESS;
+    return HAM_SUCCESS;
 }
 
-ham_status_t
+    ham_status_t
 key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record, 
-                ham_size_t position, ham_u32_t flags, 
-                ham_size_t *new_position)
+        ham_size_t position, ham_u32_t flags, 
+        ham_size_t *new_position)
 {
     ham_status_t st;
-	ham_env_t *env = db_get_env(db);
+    ham_env_t *env = db_get_env(db);
     ham_offset_t rid = 0;
     ham_offset_t ptr = key_get_ptr(key);
     ham_u8_t oldflags = key_get_flags(key);
@@ -105,8 +142,8 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
      */
     if (!ptr
             && !(oldflags&(KEY_BLOB_SIZE_SMALL
-                          |KEY_BLOB_SIZE_TINY
-                          |KEY_BLOB_SIZE_EMPTY))) 
+                    |KEY_BLOB_SIZE_TINY
+                    |KEY_BLOB_SIZE_EMPTY))) 
     {
         if (record->size<=sizeof(ham_offset_t)) {
             if (record->data)
@@ -132,10 +169,10 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
     else if (!(oldflags&KEY_HAS_DUPLICATES)
             && record->size>sizeof(ham_offset_t) 
             && !(flags&(HAM_DUPLICATE
-                        |HAM_DUPLICATE_INSERT_BEFORE
-                        |HAM_DUPLICATE_INSERT_AFTER
-                        |HAM_DUPLICATE_INSERT_FIRST
-                        |HAM_DUPLICATE_INSERT_LAST))) 
+                    |HAM_DUPLICATE_INSERT_BEFORE
+                    |HAM_DUPLICATE_INSERT_AFTER
+                    |HAM_DUPLICATE_INSERT_FIRST
+                    |HAM_DUPLICATE_INSERT_LAST))) 
     {
         /*
          * an existing key, which is overwritten with a big record
@@ -144,8 +181,8 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
          and in the next branch, as they should.
          */
         if (oldflags&(KEY_BLOB_SIZE_SMALL
-                     |KEY_BLOB_SIZE_TINY
-                     |KEY_BLOB_SIZE_EMPTY))
+                    |KEY_BLOB_SIZE_TINY
+                    |KEY_BLOB_SIZE_EMPTY))
         {
             rid=0;
             st=blob_allocate(env, db, record->data, record->size, 0, &rid);
@@ -165,16 +202,16 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
     else if (!(oldflags&KEY_HAS_DUPLICATES)
             && record->size<=sizeof(ham_offset_t) 
             && !(flags&(HAM_DUPLICATE
-                        |HAM_DUPLICATE_INSERT_BEFORE
-                        |HAM_DUPLICATE_INSERT_AFTER
-                        |HAM_DUPLICATE_INSERT_FIRST
-                        |HAM_DUPLICATE_INSERT_LAST))) {
+                    |HAM_DUPLICATE_INSERT_BEFORE
+                    |HAM_DUPLICATE_INSERT_AFTER
+                    |HAM_DUPLICATE_INSERT_FIRST
+                    |HAM_DUPLICATE_INSERT_LAST))) {
         /*
          * an existing key which is overwritten with a small record
          */
         if (!(oldflags&(KEY_BLOB_SIZE_SMALL
-                       |KEY_BLOB_SIZE_TINY
-                       |KEY_BLOB_SIZE_EMPTY)))
+                        |KEY_BLOB_SIZE_TINY
+                        |KEY_BLOB_SIZE_EMPTY)))
         {
             st=blob_free(env, db, ptr, 0);
             if (st)
@@ -206,23 +243,23 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
         dupe_entry_t entries[2];
         int i=0;
         ham_assert((flags&(HAM_DUPLICATE
-                          |HAM_DUPLICATE_INSERT_BEFORE
-                          |HAM_DUPLICATE_INSERT_AFTER
-                          |HAM_DUPLICATE_INSERT_FIRST
-                          |HAM_DUPLICATE_INSERT_LAST
-                          |HAM_OVERWRITE)), (""));
+                        |HAM_DUPLICATE_INSERT_BEFORE
+                        |HAM_DUPLICATE_INSERT_AFTER
+                        |HAM_DUPLICATE_INSERT_FIRST
+                        |HAM_DUPLICATE_INSERT_LAST
+                        |HAM_OVERWRITE)), (""));
         memset(entries, 0, sizeof(entries));
         if (!(oldflags&KEY_HAS_DUPLICATES)) 
         {
             ham_assert((flags&(HAM_DUPLICATE
-                              |HAM_DUPLICATE_INSERT_BEFORE
-                              |HAM_DUPLICATE_INSERT_AFTER
-                              |HAM_DUPLICATE_INSERT_FIRST
-                              |HAM_DUPLICATE_INSERT_LAST)), (""));
+                            |HAM_DUPLICATE_INSERT_BEFORE
+                            |HAM_DUPLICATE_INSERT_AFTER
+                            |HAM_DUPLICATE_INSERT_FIRST
+                            |HAM_DUPLICATE_INSERT_LAST)), (""));
             dupe_entry_set_flags(&entries[i], 
-                        oldflags&(KEY_BLOB_SIZE_SMALL
-                                |KEY_BLOB_SIZE_TINY
-                                |KEY_BLOB_SIZE_EMPTY));
+                    oldflags&(KEY_BLOB_SIZE_SMALL
+                        |KEY_BLOB_SIZE_TINY
+                        |KEY_BLOB_SIZE_EMPTY));
             dupe_entry_set_rid(&entries[i], ptr);
             i++;
         }
@@ -259,9 +296,9 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             /* don't leak memory through the blob allocation above */
             ham_assert((!(dupe_entry_get_flags(&entries[i-1]) 
                             & (KEY_BLOB_SIZE_SMALL
-                               | KEY_BLOB_SIZE_TINY
-                               | KEY_BLOB_SIZE_EMPTY)))
-                        == (record->size>sizeof(ham_offset_t)), (0));
+                                | KEY_BLOB_SIZE_TINY
+                                | KEY_BLOB_SIZE_EMPTY)))
+                    == (record->size>sizeof(ham_offset_t)), (0));
 
             if (record->size > sizeof(ham_offset_t)) 
             {
@@ -278,16 +315,16 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
     return (0);
 }
 
-ham_status_t
+    ham_status_t
 key_erase_record(ham_db_t *db, int_key_t *key, 
-                ham_size_t dupe_id, ham_u32_t flags)
+        ham_size_t dupe_id, ham_u32_t flags)
 {
     ham_status_t st;
     ham_offset_t rid;
 
     if (!(key_get_flags(key)&(KEY_BLOB_SIZE_SMALL
-                        |KEY_BLOB_SIZE_TINY
-                        |KEY_BLOB_SIZE_EMPTY))) {
+                    |KEY_BLOB_SIZE_TINY
+                    |KEY_BLOB_SIZE_EMPTY))) {
         if (key_get_flags(key)&KEY_HAS_DUPLICATES) {
             /* delete one (or all) duplicates */
             st=blob_duplicate_erase(db, key_get_ptr(key), dupe_id, flags,
@@ -323,7 +360,7 @@ key_erase_record(ham_db_t *db, int_key_t *key,
     return (0);
 }
 
-ham_offset_t
+    ham_offset_t
 key_get_extended_rid(ham_db_t *db, int_key_t *key)
 {
     ham_offset_t rid;
@@ -332,7 +369,7 @@ key_get_extended_rid(ham_db_t *db, int_key_t *key)
     return (ham_db2h_offset(rid));
 }
 
-void
+    void
 key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid)
 {
     rid=ham_h2db_offset(rid);

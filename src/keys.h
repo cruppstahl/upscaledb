@@ -194,7 +194,25 @@ the range of a ham_u16_t, i.e. outside the mask 0x0000FFFF.
  * @sa ham_status_codes 
  */
 extern int
-key_compare_pub_to_int(ham_db_t *db, ham_page_t *page, ham_key_t *lhs, ham_u16_t rhs);
+key_compare_pub_to_int(ham_db_t *db, ham_page_t *page, 
+                ham_key_t *lhs, ham_u16_t rhs);
+
+/**
+ * compare two internal keys
+ *
+ * @return -1, 0, +1 or higher positive values are the result of a successful 
+ *         key comparison (0 if both keys match, -1 when LHS < RHS key, +1 
+ *         when LHS > RHS key).
+ *
+ * @return values less than -1 are @ref ham_status_t error codes and indicate 
+ *         a failed comparison execution: these are listed in 
+ *         @ref ham_status_codes .
+ *
+ * @sa ham_status_codes 
+ */
+extern int
+key_compare_int_to_int(ham_db_t *db, ham_page_t *page, 
+        ham_u16_t lhs_int, ham_u16_t rhs_int);
 
 /**
  * insert an extended key
@@ -202,7 +220,8 @@ key_compare_pub_to_int(ham_db_t *db, ham_page_t *page, ham_key_t *lhs, ham_u16_t
  * @return the blob-id of this key in @a rid_ref
  */
 extern ham_status_t
-key_insert_extended(ham_offset_t *rid_ref, ham_db_t *db, ham_page_t *page, ham_key_t *key);
+key_insert_extended(ham_offset_t *rid_ref, ham_db_t *db, 
+                ham_page_t *page, ham_key_t *key);
 
 /**
  * inserts and sets a record

@@ -1747,6 +1747,7 @@ db_fetch_page() --> 1, 2, 3 (1,2 = from cache, 3 = from device)
     return &cache_history[pos];
 }
 
+#if 0
 static ham_page_t *
 cache_get_live_page(ham_cache_t *cache, ham_offset_t addr, char *af, int aflen)
 {
@@ -1782,10 +1783,6 @@ cache_get_live_page(ham_cache_t *cache, ham_offset_t addr, char *af, int aflen)
     return NULL;
 }
 
-
-
-
-#if 0
 static void cache_report_history(ham_env_t *env)
 {
     ham_cache_t *cache = env_get_cache(env);

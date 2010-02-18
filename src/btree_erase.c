@@ -380,36 +380,20 @@ my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left, h
     {
         /*
          * otherwise (page is a leaf) delete the key...
-         */
-
-        /*
-         * check if this entry really exists
+         *
+         * first, check if this entry really exists
          */
         newme=0;
         if (slot!=-1) 
         {
-            int cmp;
-            int_key_t *bte;
-            ham_key_t rhs;
-
-            bte=btree_node_get_key(db, node, slot);
-
-            st = db_prepare_ham_key_for_compare(db, bte, &rhs);
-            if (st)
-                return 0;
-
-            cmp=db_compare_keys(db, scratchpad->key, &rhs);
-
-            db_release_ham_key_after_compare(db, &rhs);
+            int cmp=key_compare_pub_to_int(db, page, scratchpad->key, slot);
             if (cmp < -1)
                 return (ham_status_t)cmp;
             
-            if (cmp==0)
-            {
+            if (cmp==0) {
                 newme=page;
             }
-            else 
-            {
+            else {
                 return HAM_KEY_NOT_FOUND;
             }
         }

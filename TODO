@@ -25,11 +25,11 @@ o Ger: merge 1000 other changes
         parameter, not env; instead, add env_fetch_page()
     x review the page ownership - db_alloc_page() should only get 'db' as
         parameter, not env; instead, add env_alloc_page()
+    x unittests: db_set_allocator was disabled - fix it!
+    x db_prepare_ham_key_for_compare: needed? can be merged with
+        compare_pub_to_int?
     o ham_flush: deprecate, replace w. ham_env_flush? it's already implemented
     o remove all warnings on 32bit linux (copy pointer to ham_u64_t)
-    o unittests: db_set_allocator was disabled - fix it!
-    o db_prepare_ham_key_for_compare: needed? can be merged with
-        compare_pub_to_int?
 
 o hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
 --overwrite=1 --reopen=1

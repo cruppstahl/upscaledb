@@ -62,56 +62,6 @@ static ham_status_t
 my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page, 
         ham_u32_t level, ham_u32_t count, check_scratchpad_t *scratchpad);
     
-/**
- * compare two internal keys
- *
- * @return -1, 0, +1 or higher positive values are the result of a successful 
- *         key comparison (0 if both keys match, -1 when LHS < RHS key, +1 
- *         when LHS > RHS key).
- *
- * @return values less than -1 are @ref ham_status_t error codes and indicate 
- *         a failed comparison execution: these are listed in 
- *         @ref ham_status_codes .
- *
- * @sa ham_status_codes 
- */
-static int
-__key_compare_int_to_int(ham_db_t *db, ham_page_t *page, 
-        ham_u16_t lhs_int, ham_u16_t rhs_int)
-{
-    int_key_t *l;
-	int_key_t *r;
-    btree_node_t *node = ham_page_get_btree_node(page);
-	ham_key_t lhs;
-	ham_key_t rhs;
-	int cmp;
-	ham_status_t st;
-
-    l=btree_node_get_key(page_get_owner(page), node, lhs_int);
-    r=btree_node_get_key(page_get_owner(page), node, rhs_int);
-
-	st = db_prepare_ham_key_for_compare(db, l, &lhs);
-	if (st)
-	{
-		ham_assert(st < -1, (0));
-		return st;
-	}
-	st = db_prepare_ham_key_for_compare(db, r, &rhs);
-	if (st)
-	{
-		ham_assert(st < -1, (0));
-		return st;
-	}
-
-	cmp = db_compare_keys(page_get_owner(page), &lhs, &rhs);
-
-	db_release_ham_key_after_compare(db, &lhs);
-	db_release_ham_key_after_compare(db, &rhs);
-	/* ensures keys are always released; errors will be detected by caller */
-
-	return cmp;
-}
-
 /**                                                                 
  * verify the whole tree                                            
  *                                                                  
@@ -191,7 +141,7 @@ my_verify_level(ham_page_t *parent, ham_page_t *page,
     if (parent && btree_node_get_left(node)) {
         btree_node_t *cnode =ham_page_get_btree_node(page);
 
-        cmp=__key_compare_int_to_int(db, page, 0,
+        cmp=key_compare_int_to_int(db, page, 0,
                     (ham_u16_t)(btree_node_get_count(cnode)-1));
         if (cmp < -1)
             return (ham_status_t)cmp;
@@ -290,12 +240,10 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
     if (leftsib) {
         btree_node_t *sibnode=ham_page_get_btree_node(leftsib);
 
-        int_key_t *sibentry=btree_node_get_key(db, sibnode, 
-                btree_node_get_count(sibnode)-1);
         bte=btree_node_get_key(db, node, 0);
 
-        if ((key_get_flags(bte)!=0 && key_get_flags(bte)!=KEY_IS_EXTENDED) && 
-            !btree_node_is_leaf(node)) 
+        if ((key_get_flags(bte)!=0 && key_get_flags(bte)!=KEY_IS_EXTENDED) 
+                && !btree_node_is_leaf(node)) 
 		{
             ham_log(("integrity check failed in page 0x%llx: item #0 "
                     "has flags, but it's not a leaf page", 
@@ -304,22 +252,8 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
         }
 		else
 		{
-			ham_status_t st;
-			ham_key_t lhs;
-			ham_key_t rhs;
-
-			st = db_prepare_ham_key_for_compare(db, sibentry, &lhs);
-			if (st)
-				return st;
-			st = db_prepare_ham_key_for_compare(db, bte, &rhs);
-			if (st)
-				return st;
-
-			cmp = db_compare_keys(db, &lhs, &rhs);
-
-			db_release_ham_key_after_compare(db, &lhs);
-			db_release_ham_key_after_compare(db, &rhs);
-			/* error is detected, but ensure keys are always released */
+			cmp = key_compare_int_to_int(db, page, 
+                btree_node_get_count(sibnode)-1, 0);
 			if (cmp < -1)
 				return (ham_status_t)cmp;
 		}
@@ -351,7 +285,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
             }
         }
         
-        cmp=__key_compare_int_to_int(db, page, (ham_u16_t)i, (ham_u16_t)(i+1));
+        cmp=key_compare_int_to_int(db, page, (ham_u16_t)i, (ham_u16_t)(i+1));
 
         if (cmp < -1)
             return (ham_status_t)cmp;
