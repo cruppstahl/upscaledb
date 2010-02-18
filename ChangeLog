@@ -1,3 +1,7 @@
+Feb 16, 2010 - chris
+o Windows library and dll are now renamed to libhamsterdb-<version>.lib and
+    hamsterdb-<version>.dll
+
 Feb 11, 2010 - chris
 o Added a new function to get the Environment handle of a Database
     (ham_get_env)

@@ -7,6 +7,10 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
+x rename windows-DLL/LIB to hamsterdb-1.1.2 (include version in filename!)
+    x only win32, not wince
+    x document this in release-process.txt (create a sed command)
+
 o Ger: merge 1000 other changes
     x new public function to get the Environment of a Database
         ham_env_t *ham_get_env(ham_db_t *)
@@ -87,10 +91,6 @@ o still some problems with strict aliasing:
     db.cpp:98: warning: dereferencing type-punned pointer will break
         strict-aliasing rules
     now gcc uses -O2 - but -O3 would be better. check what's wrong...
-
-o rename windows-DLL/LIB to hamsterdb-1.1.2 (include version in filename!)
-    o only win32, not wince
-    o document this in release-process.txt (create a sed command)
 
 o reevaluate default cache size - should we just grab 1 or 2 MB?
     o setting strict cache size - is this tested?
