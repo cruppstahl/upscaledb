@@ -445,7 +445,7 @@ __m_alloc_page(ham_device_t *self, ham_page_t *page)
     page_set_pers(page, (ham_perm_page_union_t *)buffer);
     page_set_npers_flags(page, 
         page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
-    page_set_self(page, (ham_offset_t)buffer);
+    page_set_self(page, PTR_TO_U64(buffer));
 
     return (HAM_SUCCESS);
 }

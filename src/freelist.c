@@ -198,14 +198,6 @@ __freel_get_freelist_entry_maxspan(ham_device_t *dev, ham_env_t *env, freelist_c
 	ham_assert((size % sizeof(ham_u64_t)) == 0, ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) due to the scan algorithm"));
 	size -= size % sizeof(ham_u64_t);
 
-	ham_assert(size < (1ULL << 8*sizeof(((freelist_entry_t *)0)->_max_bits)), ("size must fit in the _max_bits type"));
-	ham_assert(size*8 < (1ULL << 8*sizeof(((freelist_entry_t *)0)->_max_bits)), ("size must fit in the _max_bits type"));
-#if !defined(FORCE_UNITTEST_PASS)
-	ham_assert(size < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _max_bits type"));
-	ham_assert(size*8 < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _max_bits type"));
-	ham_assert(size < (1ULL << 8*sizeof(freel_get_max_bitsXX(((freelist_payload_t *)0)))), ("size must fit in the persistent _max_bits type"));
-	ham_assert(size*8 < (1ULL << 8*sizeof(freel_get_max_bitsXX(((freelist_payload_t *)0)))), ("size must fit in the persistent _max_bits type"));
-#endif
 	ret = (ham_uXX_t)(size*8);	/* this step is very important for pre-v1.1.0 databases as those have an integer overflow issue right here. */
 
 	return (ham_size_t)ret;
@@ -239,10 +231,6 @@ __freel_cache_resize(ham_device_t *dev, ham_env_t *env, freelist_cache_t *cache,
         freel_entry_set_start_address(entry, 
                 freel_entry_get_start_address(&entries[i-1])+
                     freel_entry_get_max_bits(&entries[i-1])*DB_CHUNKSIZE);
-		ham_assert(size_bits < (1ULL << 8*sizeof(entry->_max_bits)), ("size must fit in the _max_bits type"));
-#if !defined(FORCE_UNITTEST_PASS)
-		ham_assert(size_bits < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _max_bits type"));
-#endif
         freel_entry_set_max_bits(entry, (ham_uXX_t)(size_bits));
 
         ham_assert(cache->_init_perf_data, (0));
@@ -3493,9 +3481,6 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, ham_env_t *env, f
             fp=page_get_freelist(page);
             freel_set_start_address(fp, 
                     freel_entry_get_start_address(&entries[i]));
-#if !defined(FORCE_UNITTEST_PASS)
-			ham_assert(size_bits < (1ULL << 8*sizeof(freel_get_max_bitsXX(fp))), ("size must fit in the _max_bits type"));
-#endif
 			freel_set_max_bitsXX(fp, (ham_uXX_t)(size_bits));
             page_set_dirty_txn(page, 1);
             ham_assert(freel_entry_get_max_bits(&entries[i])==
@@ -4109,17 +4094,8 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
 
     if (s != -1)
     {
-		ham_assert((freel_get_allocated_bitsXX(fp) - size/DB_CHUNKSIZE) <
-					(1ULL << 8*sizeof(freel_get_allocated_bitsXX(fp))), 
-				("size must fit in the _allocated_bits type"));
         freel_set_allocated_bitsXX(fp, 
                 (ham_uXX_t)(freel_get_allocated_bitsXX(fp) - size/DB_CHUNKSIZE));
-		ham_assert(freel_get_allocated_bitsXX(fp) <
-					(1ULL << 8*sizeof(entry->_allocated_bits)), 
-				("size must fit in the _allocated_bits type"));
-		ham_assert(freel_get_allocated_bitsXX(fp) < 
-					(1ULL << 8*sizeof(ham_uXX_t)), 
-				("size must fit in the persistent _allocated_bits type"));
         freel_entry_set_allocated_bits(entry,
                 freel_get_allocated_bitsXX(fp));
 
@@ -4160,12 +4136,6 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
 	size -= size % sizeof(ham_u64_t);
 
 	ham_assert((size % sizeof(ham_u64_t)) == 0, ("freelist entry bitarray == 0 MOD sizeof(ham_u64_t) due to the scan algorithm"));
-	ham_assert(size < (1ULL << 8*sizeof(entry->_max_bits)), ("size must fit in the _max_bits type"));
-	ham_assert(size*8 < (1ULL << 8*sizeof(entry->_max_bits)), ("size must fit in the _max_bits type"));
-#if !defined(FORCE_UNITTEST_PASS)
-	ham_assert(size < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _max_bits type"));
-	ham_assert(size*8 < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _max_bits type"));
-#endif
 	freel_entry_set_max_bits(&entry[0], (ham_uXX_t)(size*8));
 
     /*
@@ -4175,10 +4145,6 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
 	{
         freel_set_start_address(fp, env_get_pagesize(env));
 		ham_assert((size*8 % sizeof(ham_u64_t)) == 0, ("freelist bitarray size must be == 0 MOD sizeof(ham_u64_t) due to the scan algorithm"));
-#if !defined(FORCE_UNITTEST_PASS)
-		ham_assert(size < (1ULL << 8*sizeof(freel_get_max_bitsXX(fp))), ("size must fit in the _max_bits type"));
-		ham_assert(size*8 < (1ULL << 8*sizeof(freel_get_max_bitsXX(fp))), ("size must fit in the _max_bits type"));
-#endif
 		freel_set_max_bitsXX(fp, (ham_uXX_t)(size*8));
     }
 
@@ -4216,8 +4182,6 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
         ham_assert(entry_pos<freel_cache_get_count(cache), (0));
         entry=freel_cache_get_entries(cache)+entry_pos;
         ham_assert(freel_entry_get_start_address(entry) == freel_get_start_address(fp), (0));
-		ham_assert(freel_get_allocated_bitsXX(fp) < (1ULL << 8*sizeof(entry->_allocated_bits)), ("size must fit in the _allocated_bits type"));
-		ham_assert(freel_get_allocated_bitsXX(fp) < (1ULL << 8*sizeof(ham_uXX_t)), ("size must fit in the persistent _allocated_bits type"));
         freel_entry_set_allocated_bits(entry, freel_get_allocated_bitsXX(fp));
         freel_entry_set_page_id(entry, page_get_self(page));
 
@@ -4383,14 +4347,6 @@ __freel_mark_freeXX(ham_device_t *dev, ham_env_t *env, ham_db_t *db,
 				size/DB_CHUNKSIZE, 
 				HAM_TRUE, &hints);
 
-		ham_assert(freel_get_allocated_bitsXX(fp)+s < (1ULL << 8*sizeof(entry->_allocated_bits)), 
-				("size must fit in the _allocated_bits type"));
-		ham_assert(freel_get_allocated_bitsXX(fp)+s < (1ULL << 8*sizeof(ham_uXX_t)), 
-				("size %u (= %u + %u) must fit in the persistent _allocated_bits type (%u bits)", 
-				(unsigned int)(freel_get_allocated_bitsXX(fp)+s/DB_CHUNKSIZE), 
-				(unsigned int)freel_get_allocated_bitsXX(fp), 
-				(unsigned int)(s/DB_CHUNKSIZE), 
-				(unsigned int)8*sizeof(ham_uXX_t)));
         freel_set_allocated_bitsXX(fp, 
                 (ham_uXX_t)(freel_get_allocated_bitsXX(fp)+s));
         freel_entry_set_allocated_bits(entry, 

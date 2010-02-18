@@ -28,8 +28,8 @@ o Ger: merge 1000 other changes
     x unittests: db_set_allocator was disabled - fix it!
     x db_prepare_ham_key_for_compare: needed? can be merged with
         compare_pub_to_int?
+    x remove all warnings on 32bit linux (copy pointer to ham_u64_t)
     o ham_flush: deprecate, replace w. ham_env_flush? it's already implemented
-    o remove all warnings on 32bit linux (copy pointer to ham_u64_t)
 
 o hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
 --overwrite=1 --reopen=1

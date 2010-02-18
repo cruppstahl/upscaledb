@@ -3131,7 +3131,7 @@ __ham_get_parameters(ham_env_t *env, ham_db_t *db, ham_parameter_t *param)
             case HAM_PARAM_GET_FILENAME:
                 if (env)
                     filename = env_get_filename(env);
-                param->value = (ham_u64_t)filename;
+                param->value = PTR_TO_U64(filename);
                 break;
             case HAM_PARAM_DBNAME:
                 /* only set this when the 'db' is initialized properly already */
@@ -3187,7 +3187,7 @@ __ham_get_parameters(ham_env_t *env, ham_db_t *db, ham_parameter_t *param)
                 }
                 else {
                     st = stats_fill_ham_statistics_t(env, db, 
-                            (ham_statistics_t *)param->value);
+                            (ham_statistics_t *)U64_TO_PTR(param->value));
                     if (st)
                         return st;
                 }

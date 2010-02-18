@@ -31,6 +31,18 @@ extern "C" {
 #endif
 
 /**
+ * a macro to cast pointers to u64 and vice versa to avoid compiler
+ * warnings if the sizes of ptr and u64 are not equal
+ */
+#ifdef HAM_32BIT
+#   define U64_TO_PTR(p)  (ham_u8_t *)(int)p
+#   define PTR_TO_U64(p)  (ham_offset_t)(int)p
+#else
+#   define U64_TO_PTR(p)  p
+#   define PTR_TO_U64(p)  p
+#endif
+
+/**
  * the maximum number of indices (if this file is an environment with 
  * multiple indices)
  */

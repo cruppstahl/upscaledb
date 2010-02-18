@@ -297,9 +297,8 @@ __get_duplicate_table(dupe_table_t **table_ref, ham_page_t **page, ham_env_t *en
     dupe_table_t *table;
 
 	*page = 0;
-
     if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB) {
-        ham_u8_t *p=(ham_u8_t *)table_id;
+        ham_u8_t *p=U64_TO_PTR(table_id); 
         *table_ref = (dupe_table_t *)(p+sizeof(hdr));
 		return HAM_SUCCESS;
     }
@@ -391,11 +390,11 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_u8_t *data, ham_size_t size,
         /* initialize the header */
         hdr=(blob_t *)p;
         memset(hdr, 0, sizeof(*hdr));
-        blob_set_self(hdr, (ham_offset_t)p);
+        blob_set_self(hdr, PTR_TO_U64(p));
         blob_set_alloc_size(hdr, size+sizeof(blob_t));
         blob_set_size(hdr, size);
 
-        *blobid=(ham_offset_t)p;
+        *blobid=PTR_TO_U64(p);
         return (0);
     }
 
@@ -510,8 +509,8 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
      */
     if (env_get_rt_flags(db_get_env(db))&HAM_IN_MEMORY_DB) 
 	{
-        blob_t *hdr=(blob_t *)blobid;
-        ham_u8_t *data=((ham_u8_t *)blobid)+sizeof(blob_t);
+        blob_t *hdr=(blob_t *)U64_TO_PTR(blobid);
+        ham_u8_t *data=(U64_TO_PTR(blobid))+sizeof(blob_t);
 
         /* when the database is closing, the header is already deleted */
         if (!hdr) {
@@ -616,18 +615,18 @@ blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid,
      */
     if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
     {
-        blob_t *nhdr, *phdr=(blob_t *)old_blobid;
+        blob_t *nhdr, *phdr=(blob_t *)U64_TO_PTR(old_blobid);
 
         if (blob_get_size(phdr)==size) {
             ham_u8_t *p=(ham_u8_t *)phdr;
             memmove(p+sizeof(blob_t), data, size);
-            *new_blobid=(ham_offset_t)phdr;
+            *new_blobid=PTR_TO_U64(phdr);
         }
         else {
             st=blob_allocate(env, db, data, size, flags, new_blobid);
             if (st)
                 return (st);
-            nhdr=(blob_t *)*new_blobid;
+            nhdr=(blob_t *)U64_TO_PTR(*new_blobid);
             blob_set_flags(nhdr, blob_get_flags(phdr));
 
             allocator_free(env_get_allocator(env), phdr);
@@ -740,7 +739,7 @@ blob_free(ham_env_t *env, ham_db_t *db, ham_offset_t blobid, ham_u32_t flags)
      * buffer, in which the blob is stored
      */
     if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB) {
-        allocator_free(env_get_allocator(env), (blob_t *)blobid);
+        allocator_free(env_get_allocator(env), U64_TO_PTR(blobid));
         return (0);
     }
 
