@@ -19,6 +19,7 @@
 #include "../src/cache.h"
 #include "../src/error.h"
 #include "../src/env.h"
+#include "../src/os.h"
 #include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
@@ -44,6 +45,7 @@ public:
         BFC_REGISTER_TEST(CacheTest, negativeGetTest);
         BFC_REGISTER_TEST(CacheTest, unusedTest);
         BFC_REGISTER_TEST(CacheTest, overflowTest);
+        BFC_REGISTER_TEST(CacheTest, strictTest);
     }
 
 protected:
@@ -283,6 +285,39 @@ public:
 
         BFC_ASSERT(!cache_too_big(cache, 0));
         cache_delete(m_env, cache);
+    }
+
+    void strictTest(void)
+    {
+        ham_env_close(m_env, 0);
+        ham_close(m_db, 0);
+
+        ham_page_t *p[1000];
+        ham_db_t *db;
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_create(db, ".test", HAM_CACHE_STRICT, 0));
+        ham_env_t *env=db_get_env(db);
+        ham_cache_t *cache=env_get_cache(env);
+
+        BFC_ASSERT(cache_get_max_elements(cache)*env_get_pagesize(env)
+                    <= 64*os_get_pagesize());
+
+        unsigned int i;
+        for (i=0; i<cache_get_max_elements(cache); i++) {
+            BFC_ASSERT_EQUAL(0, db_alloc_page(&p[i], db, 0, 0));
+            page_add_ref(p[i]);
+        }
+
+        BFC_ASSERT_EQUAL(HAM_CACHE_FULL, db_alloc_page(&p[i], db, 0, 0));
+
+        for (i=0; i<cache_get_max_elements(cache); i++) {
+            page_release_ref(p[i]);
+        }
+
+        BFC_ASSERT_EQUAL(0, db_alloc_page(&p[i], db, 0, 0));
+
+        ham_close(db, 0);
+        ham_delete(db);
     }
 };
 

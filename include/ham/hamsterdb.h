@@ -527,8 +527,8 @@ ham_env_create(ham_env_t *env, const char *filename,
  *        <ul>
  *        <li>@ref HAM_PARAM_CACHESIZE</li> The size of the Database cache,
  *            in bytes. The default size is defined in src/config.h
- *            as @a HAM_DEFAULT_CACHESIZE - usually 64 pages, i.e. 256kb on 
- *            UNIX where 4K pages are usual (or 4Mb on Win32/Win64 where 
+ *            as @a HAM_DEFAULT_CACHESIZE - usually 64 pages, i.e. 1MB on 
+ *            UNIX where 16K pages are usual (or 4MB on Win32/Win64 where 
  *            64K pages are usual).
  *        <li>@ref HAM_PARAM_PAGESIZE</li> The size of a file page, in
  *            bytes. It is recommended not to change the default size. The
@@ -639,8 +639,8 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  *      <ul>
  *        <li>@ref HAM_PARAM_CACHESIZE </li> The size of the Database cache,
  *            in bytes. The default size is defined in src/config.h
- *            as @a HAM_DEFAULT_CACHESIZE - usually 64 pages, i.e. 256kb on 
- *            UNIX where 4K pages are usual (or 4Mb on Win32/Win64 where 64K 
+ *            as @a HAM_DEFAULT_CACHESIZE - usually 64 pages, i.e. 1MB on 
+ *            UNIX where 16K pages are usual (or 4MB on Win32/Win64 where 64K 
  *            pages are usual).
  *        <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data 
  *            access patterns. The default setting optimizes hamsterdb
@@ -682,8 +682,8 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  *      <ul>
  *        <li>@ref HAM_PARAM_CACHESIZE </li> The size of the Database cache,
  *            in bytes. The default size is defined in src/config.h
- *            as @a HAM_DEFAULT_CACHESIZE - usually 64 pages, i.e. 256kb on 
- *            UNIX where 4K pages are usual (or 4Mb on Win32/Win64 where 64K 
+ *            as @a HAM_DEFAULT_CACHESIZE - usually 64 pages, i.e. 1MB on 
+ *            UNIX where 16K pages are usual (or 4MB on Win32/Win64 where 64K 
  *            pages are usual).
  *      </ul>
  *
@@ -1198,8 +1198,8 @@ ham_create(ham_db_t *db, const char *filename,
  *      <ul>
  *        <li>@ref HAM_PARAM_CACHESIZE </li> The size of the Database cache,
  *            in bytes. The default size is defined in src/config.h
- *            as @a HAM_DEFAULT_CACHESIZE - usually 64 pages, i.e. 256kb on 
- *            UNIX where 4K pages are usual (or 4Mb on Win32/Win64 where 64K 
+ *            as @a HAM_DEFAULT_CACHESIZE - usually 64 pages, i.e. 1MB on 
+ *            UNIX where 16K pages are usual (or 4MB on Win32/Win64 where 64K 
  *            pages are usual).
  *        <li>@ref HAM_PARAM_PAGESIZE </li> The size of a file page, in
  *            bytes. It is recommended not to change the default size. The
@@ -1319,8 +1319,8 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *      <ul>
  *        <li>@ref HAM_PARAM_CACHESIZE </li> The size of the Database cache,
  *            in bytes. The default size is defined in src/config.h
- *            as @a HAM_DEFAULT_CACHESIZE - usually 64 pages, i.e. 256kb on 
- *            UNIX where 4K pages are usual (or 4Mb on Win32/Win64 where 
+ *            as @a HAM_DEFAULT_CACHESIZE - usually 64 pages, i.e. 1MB on 
+ *            UNIX where 16K pages are usual (or 4MB on Win32/Win64 where 
  *            64K pages are usual).
  *        <li>@ref HAM_PARAM_DATA_ACCESS_MODE </li> Gives a hint regarding data 
  *            access patterns. The default setting optimizes hamsterdb

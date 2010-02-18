@@ -11,7 +11,7 @@ x rename windows-DLL/LIB to hamsterdb-1.1.2 (include version in filename!)
     x only win32, not wince
     x document this in release-process.txt (create a sed command)
 
-o Ger: merge 1000 other changes
+x Ger: merge 1000 other changes
     x new public function to get the Environment of a Database
         ham_env_t *ham_get_env(ham_db_t *)
     x ham_log_append_overwrite: unused?
@@ -29,7 +29,8 @@ o Ger: merge 1000 other changes
     x db_prepare_ham_key_for_compare: needed? can be merged with
         compare_pub_to_int?
     x remove all warnings on 32bit linux (copy pointer to ham_u64_t)
-    o ham_flush: deprecate, replace w. ham_env_flush? it's already implemented
+
+x hamsterdb-tests: also test with pagesize of 128kb
 
 o hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
 --overwrite=1 --reopen=1
@@ -92,31 +93,29 @@ o still some problems with strict aliasing:
         strict-aliasing rules
     now gcc uses -O2 - but -O3 would be better. check what's wrong...
 
+o ham_flush: deprecate, replace w. ham_env_flush? it's already implemented
+    o need unittests!
+
 o reevaluate default cache size - should we just grab 1 or 2 MB?
-    o setting strict cache size - is this tested?
-    o setting cache size - is this tested?
-    o are extkeys and other mallocs also part of it? maybe reduce memory
-        consumption in the allocator, and make the other flags
-        deprecated?
-        o remove extkey_cache_purge?
-
-o webpage changes
-    http://www.purenetworks.com/
-    http://www.omegathemes.com/tf/smartages/#
-    http://eucalyptus.com/
-    x the header page image is too large
-    o frontpage: have multiple images (scrolling in background) with more
-        text info? http://malsup.com/jquery/cycle/basic.html
-    o sitemap: pulldown with jquery
-    o download: need download gates to track in analytics as goals
-
-o hamsterdb-tests: also test with pagesize of 128kb
+    o 1 MB should be ok - do some benchmarks
+    x setting strict cache size - is this tested? -- no!
+    o setting cache size - is this tested? -- no!
+    o are extkeys and other mallocs also part of it? 
 
 o add automatic code coverage using gconv
     o http://www.manpagez.com/man/1/gcov/
     o http://gcc.gnu.org/onlinedocs/gcc/Gcov.html
     o http://aleccolocco.blogspot.com/2009/08/sqlite-lesson-in-low-defect-software.html (section "Test Coverage with GCC")
     o track coverage results, publish online
+
+o support partial reading/writing of records
+    details at http://www.oracle.com/technology/documentation/berkeley-db/db/api_reference/C/dbt.html
+
+o update the Java API 
+
+o update the .NET API 
+
+o update the Python API 
 
 o improve documentation/tutorial/faq about
     o move some of the documentation and tutorial to confluence
@@ -127,14 +126,15 @@ o improve documentation/tutorial/faq about
     o tutorial/faq: add hinting flags
     o tutorial/faq: add DAMs
 
-o support partial reading/writing of records
-    details at http://www.oracle.com/technology/documentation/berkeley-db/db/api_reference/C/dbt.html
-
-o update the Java API 
-
-o update the .NET API 
-
-o update the Python API 
+o webpage changes
+    http://www.purenetworks.com/
+    http://www.omegathemes.com/tf/smartages/#
+    http://eucalyptus.com/
+    x the header page image is too large
+    o frontpage: have multiple images (scrolling in background) with more
+        text info? http://malsup.com/jquery/cycle/basic.html
+    o sitemap: pulldown with jquery
+    o download: need download gates to track in analytics as goals
 
 o evaluate if we can use bamboo for building and testing on multiple
     platforms
