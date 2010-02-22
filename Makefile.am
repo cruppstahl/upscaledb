@@ -5,14 +5,7 @@ SUBDIRS = 3rdparty src include samples tools unittests
 
 DOCUMENTATION_FILES = documentation/Doxyfile*           \
              documentation/hamsterdb-main.jpg           \
-             documentation/appendix_gpl2.doc 		    \
-             documentation/appendix_gpl3.doc 		    \
-             documentation/appendix_gfdl.doc 		    \
-             documentation/faq.doc 		                \
-             documentation/history.doc 		            \
-             documentation/index.doc 		            \
-             documentation/samples.doc 		            \
-             documentation/starting.doc 		        \
+             documentation/*.doc	              	    \
              documentation/html
              
 

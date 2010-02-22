@@ -349,7 +349,6 @@ __freel_set_bits(ham_device_t *dev, ham_env_t *env, freelist_entry_t *entry,
 {
     ham_size_t i;
     ham_u8_t *p=freel_get_bitmapXX(fp);
-	ham_u64_t *p64=(ham_u64_t *)p;
 
 	ham_size_t qw_offset = start_bit & (64 - 1);
 	ham_size_t qw_start = (start_bit + 64 - 1) >> 6;	 /* ROUNDUP(S DIV 64) */
@@ -383,7 +382,7 @@ __freel_set_bits(ham_device_t *dev, ham_env_t *env, freelist_entry_t *entry,
 		else
 		{
 			ham_size_t n = size_bits;
-
+	        ham_u64_t *p64=(ham_u64_t *)freel_get_bitmapXX(fp);
 			p64 += qw_start;
 			
 			if (qw_offset)
@@ -432,7 +431,7 @@ __freel_set_bits(ham_device_t *dev, ham_env_t *env, freelist_entry_t *entry,
 		else
 		{
 			ham_size_t n = size_bits;
-
+	        ham_u64_t *p64=(ham_u64_t *)freel_get_bitmapXX(fp);
 			p64 += qw_start;
 
 			if (qw_offset)

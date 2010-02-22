@@ -7,10 +7,6 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-x rename windows-DLL/LIB to hamsterdb-1.1.2 (include version in filename!)
-    x only win32, not wince
-    x document this in release-process.txt (create a sed command)
-
 x Ger: merge 1000 other changes
     x new public function to get the Environment of a Database
         ham_env_t *ham_get_env(ham_db_t *)
@@ -30,7 +26,17 @@ x Ger: merge 1000 other changes
         compare_pub_to_int?
     x remove all warnings on 32bit linux (copy pointer to ham_u64_t)
 
+x rename windows-DLL/LIB to hamsterdb-1.1.2 (include version in filename!)
+    x only win32, not wince (dll.vcproj, lib.vcproj seems to be enough)
+    x document this in release-process.txt (create a sed command)
+
 x hamsterdb-tests: also test with pagesize of 128kb
+
+x reevaluate default cache size - should we just grab 1 or 2 MB?
+    x 1 MB should be ok - do some benchmarks
+    x setting strict cache size - is this tested? -- no!
+    x setting cache size - is this tested? -- no!
+    x are extkeys and other mallocs also part of it? - no!
 
 o hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
 --overwrite=1 --reopen=1
@@ -92,24 +98,23 @@ o still some problems with strict aliasing:
     db.cpp:98: warning: dereferencing type-punned pointer will break
         strict-aliasing rules
     now gcc uses -O2 - but -O3 would be better. check what's wrong...
-
-o ham_flush: deprecate, replace w. ham_env_flush? it's already implemented
-    o need unittests!
-
-o reevaluate default cache size - should we just grab 1 or 2 MB?
-    o 1 MB should be ok - do some benchmarks
-    x setting strict cache size - is this tested? -- no!
-    o setting cache size - is this tested? -- no!
-    o are extkeys and other mallocs also part of it? 
+    x ask on mailing list -> -fno-tree-vectorize works
 
 o add automatic code coverage using gconv
-    o http://www.manpagez.com/man/1/gcov/
-    o http://gcc.gnu.org/onlinedocs/gcc/Gcov.html
-    o http://aleccolocco.blogspot.com/2009/08/sqlite-lesson-in-low-defect-software.html (section "Test Coverage with GCC")
+    http://www.manpagez.com/man/1/gcov/
+    http://gcc.gnu.org/onlinedocs/gcc/Gcov.html
+    http://aleccolocco.blogspot.com/2009/08/sqlite-lesson-in-low-defect-software.html (section "Test Coverage with GCC")
     o track coverage results, publish online
+    o gui tools: http://code.google.com/p/trucov/,
+                 http://sourceforge.net/projects/ggcov/files/ 
 
 o support partial reading/writing of records
     details at http://www.oracle.com/technology/documentation/berkeley-db/db/api_reference/C/dbt.html
+    o write an initial blob which starts at offset > 0 
+        write(offset=100, size=200)
+    o write a blob which starts at offset 0
+        write(offset=0, size=200)
+    o append to a blob 
 
 o update the Java API 
 
@@ -126,7 +131,25 @@ o improve documentation/tutorial/faq about
     o tutorial/faq: add hinting flags
     o tutorial/faq: add DAMs
 
-o webpage changes
+o remove HAM_DAM_FAST_INSERT
+    o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
+        -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
+    o re-enable tests in monster.sh
+
+. ham_flush: deprecate, replace w. ham_env_flush? it's already implemented
+    o need unittests!
+
+. create abstraction layer for local Environments/Databases and remote
+    Environments/Databases
+    o move every local function to local.c
+
+. network-server (use apr, protocol buffers)
+
+. network-client (use apr, protocol buffers)
+
+. pure java network client
+
+. webpage changes
     http://www.purenetworks.com/
     http://www.omegathemes.com/tf/smartages/#
     http://eucalyptus.com/
@@ -136,7 +159,7 @@ o webpage changes
     o sitemap: pulldown with jquery
     o download: need download gates to track in analytics as goals
 
-o evaluate if we can use bamboo for building and testing on multiple
+. evaluate if we can use bamboo for building and testing on multiple
     platforms
     o http://www.atlassian.com/software/bamboo/features/elastic.jsp#remote
     o install server
@@ -145,22 +168,15 @@ o evaluate if we can use bamboo for building and testing on multiple
 
 o need tool to upgrade databases from 1.0.x to 1.1.x!
 
-o ham_get_parameter: could return VERSION of the database
+. ham_get_parameter: could return VERSION of the database
 
 . approx. matching: need a sample
 
 . Ger: can specify an initial file size
 
-. re-enable HAM_DAM_FAST_INSERT
-    o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
-        -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
-    o re-enable tests in monster.sh
-
 . reorg. the HINT flags - they're now in hamsterdb_int.h and still used
     internally -> have them completely replaced by the DAM?
     are they needed? what are the performance advantages?
-
-. approx. matching: need a sample
 
 . HighLevelTxnTest::rollbackHugeBlobTest is inactive because huge blobs are
     directly written to disk instead of going through the cache -> in case of

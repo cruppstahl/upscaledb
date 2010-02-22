@@ -5,6 +5,8 @@ lib_LTLIBRARIES = libhamsterdb.la
 
 EXTRA_DIST = os_win32.c
 
+freelist.c:
+	blah
 
 libhamsterdb_la_SOURCES = log.c \
 			blob.c \
