@@ -99,14 +99,8 @@ o still some problems with strict aliasing:
         strict-aliasing rules
     now gcc uses -O2 - but -O3 would be better. check what's wrong...
     x ask on mailing list -> -fno-tree-vectorize works
-
-o add automatic code coverage using gconv
-    http://www.manpagez.com/man/1/gcov/
-    http://gcc.gnu.org/onlinedocs/gcc/Gcov.html
-    http://aleccolocco.blogspot.com/2009/08/sqlite-lesson-in-low-defect-software.html (section "Test Coverage with GCC")
-    o track coverage results, publish online
-    o gui tools: http://code.google.com/p/trucov/,
-                 http://sourceforge.net/projects/ggcov/files/ 
+    o test on ubuntu 8
+    o test with non-gcc compiler (faked)
 
 o support partial reading/writing of records
     details at http://www.oracle.com/technology/documentation/berkeley-db/db/api_reference/C/dbt.html
@@ -115,26 +109,38 @@ o support partial reading/writing of records
     o write a blob which starts at offset 0
         write(offset=0, size=200)
     o append to a blob 
+    o same about reading
 
-o update the Java API 
+. update the Java API 
 
-o update the .NET API 
+. update the .NET API 
 
-o update the Python API 
+. update the Python API 
 
-o improve documentation/tutorial/faq about
-    o move some of the documentation and tutorial to confluence
+. improve documentation/tutorial/faq about
+    o confluence is too slow on this server :( Need something else...
+    o move some of the documentation and tutorial to a Wiki
         o tutorial (remove from doxygen)
         o samples (remove from doxygen)
         o faq (remove from doxygen)
-        o internal documentation (remove from doxygen)
+        o internal developer documentation (remove from doxygen)
     o tutorial/faq: add hinting flags
     o tutorial/faq: add DAMs
 
-o remove HAM_DAM_FAST_INSERT
+. add automatic code coverage using gconv
+    http://www.manpagez.com/man/1/gcov/
+    http://gcc.gnu.org/onlinedocs/gcc/Gcov.html
+    http://aleccolocco.blogspot.com/2009/08/sqlite-lesson-in-low-defect-software.html (section "Test Coverage with GCC")
+    o track coverage results, publish online
+    o gui tools: http://code.google.com/p/trucov/,
+                 http://sourceforge.net/projects/ggcov/files/ 
+
+o remove HAM_DAM_FAST_INSERT -- or get it working!?
     o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
         -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
     o re-enable tests in monster.sh
+
+o remove HAM_HINT_UBER_FAST_ACCESS, HAM_HINT_RANDOM_ACCESS, HAM_HINT_SEQUENTIAL
 
 . ham_flush: deprecate, replace w. ham_env_flush? it's already implemented
     o need unittests!
