@@ -46,6 +46,10 @@ public:
         BFC_REGISTER_TEST(CacheTest, unusedTest);
         BFC_REGISTER_TEST(CacheTest, overflowTest);
         BFC_REGISTER_TEST(CacheTest, strictTest);
+        BFC_REGISTER_TEST(CacheTest, setSizeEnvCreateTest);
+        BFC_REGISTER_TEST(CacheTest, setSizeEnvOpenTest);
+        BFC_REGISTER_TEST(CacheTest, setSizeDbCreateTest);
+        BFC_REGISTER_TEST(CacheTest, setSizeDbOpenTest);
     }
 
 protected:
@@ -292,15 +296,15 @@ public:
         ham_env_close(m_env, 0);
         ham_close(m_db, 0);
 
-        ham_page_t *p[1000];
+        ham_page_t *p[1024];
         ham_db_t *db;
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, ham_create(db, ".test", HAM_CACHE_STRICT, 0));
         ham_env_t *env=db_get_env(db);
         ham_cache_t *cache=env_get_cache(env);
 
-        BFC_ASSERT(cache_get_max_elements(cache)*env_get_pagesize(env)
-                    <= 64*os_get_pagesize());
+        BFC_ASSERT_EQUAL(cache_get_max_elements(cache)*env_get_pagesize(env),
+                    64*os_get_pagesize());
 
         unsigned int i;
         for (i=0; i<cache_get_max_elements(cache); i++) {
@@ -317,6 +321,85 @@ public:
         BFC_ASSERT_EQUAL(0, db_alloc_page(&p[i], db, 0, 0));
 
         ham_close(db, 0);
+        ham_delete(db);
+    }
+
+    void setSizeEnvCreateTest(void)
+    {
+        ham_env_t *env;
+        ham_parameter_t param[]={
+            {HAM_PARAM_CACHESIZE, 100}, 
+            {HAM_PARAM_PAGESIZE,  1024}, 
+            {0, 0}};
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_ex(env, ".test.db", 0, 0, &param[0]));
+        ham_cache_t *cache=env_get_cache(env);
+
+        BFC_ASSERT_EQUAL(100u, cache_get_max_elements(cache));
+
+        ham_env_close(env, 0);
+        ham_env_delete(env);
+    }
+
+    void setSizeEnvOpenTest(void)
+    {
+        ham_env_t *env;
+        ham_parameter_t param[]={
+            {HAM_PARAM_CACHESIZE, 100}, 
+            {0, 0}};
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_ex(env, ".test.db", 0, 0, &param[0]));
+        ham_env_close(env, 0);
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_open_ex(env, ".test.db", 0, &param[0]));
+        ham_cache_t *cache=env_get_cache(env);
+
+        BFC_ASSERT_EQUAL(100u, cache_get_max_elements(cache));
+
+        ham_env_close(env, 0);
+        ham_env_delete(env);
+    }
+
+    void setSizeDbCreateTest(void)
+    {
+        ham_db_t *db;
+        ham_parameter_t param[]={
+            {HAM_PARAM_CACHESIZE, 100}, 
+            {HAM_PARAM_PAGESIZE,  1024}, 
+            {0, 0}};
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_create_ex(db, ".test.db", 0, 0, &param[0]));
+        ham_env_t *env=db_get_env(db);
+        ham_cache_t *cache=env_get_cache(env);
+
+        BFC_ASSERT_EQUAL(100u, cache_get_max_elements(cache));
+
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
+
+    void setSizeDbOpenTest(void)
+    {
+        ham_db_t *db;
+        ham_parameter_t param[]={
+            {HAM_PARAM_CACHESIZE, 100}, 
+            {0, 0}};
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_create_ex(db, ".test.db", 0, 0, &param[0]));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_open_ex(db, ".test.db", 0, &param[0]));
+        ham_env_t *env=db_get_env(db);
+        ham_cache_t *cache=env_get_cache(env);
+
+        BFC_ASSERT_EQUAL(100u, cache_get_max_elements(cache));
+
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
     }
 };
