@@ -1439,31 +1439,6 @@ stats_fill_ham_statistics_t(ham_env_t *env, ham_db_t *db, ham_statistics_t *dst)
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if HAM_DEBUG
 
 

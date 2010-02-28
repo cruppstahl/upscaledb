@@ -26,8 +26,8 @@ extern "C" {
 
 /** CACHE_BUCKET_SIZE should be a prime number or similar, as it is used in 
  * a MODULO hash scheme */
-#define CACHE_BUCKET_SIZE     359
-#define CACHE_MAX_ELEM        256 /**< a power of 2 *below* CACHE_BUCKET_SIZE */
+#define CACHE_BUCKET_SIZE    1031
+#define CACHE_MAX_ELEM       1024 /**< a power of 2 *below* CACHE_BUCKET_SIZE */
 
 
 /**

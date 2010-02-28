@@ -272,17 +272,8 @@ protected:
         ham_parameter_t ps[]={
            { HAM_PARAM_CACHESIZE,0},
            { HAM_PARAM_PAGESIZE, 0},
-           { HAM_PARAM_KEYSIZE,  0},
            { HAM_PARAM_MAX_ENV_DATABASES, 0},
            { 0, 0 }
-        };
-        // test whether the bogus values will be overwritten
-        ham_parameter_t ps2[]={
-            { HAM_PARAM_CACHESIZE,7},
-            { HAM_PARAM_PAGESIZE, 11},
-            { HAM_PARAM_KEYSIZE,  13},
-            { HAM_PARAM_MAX_ENV_DATABASES, 17},
-            { 0, 0 }
         };
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
@@ -296,13 +287,7 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_get_parameters(env, ps));
         BFC_ASSERT(ps[0].value == 18); 
         BFC_ASSERT(ps[1].value == 64*1024);
-        BFC_ASSERT(ps[2].value == 21);
-        BFC_ASSERT(ps[3].value == 128 /* 2029 */ );
-        BFC_ASSERT_EQUAL(0, ham_env_get_parameters(env, ps2));
-        BFC_ASSERT(ps2[0].value == 18); 
-        BFC_ASSERT(ps2[1].value == 64*1024);
-        BFC_ASSERT(ps2[2].value == 21);
-        BFC_ASSERT(ps2[3].value == 128);
+        BFC_ASSERT(ps[2].value == 128 /* 2029 */ );
 
         /* close and re-open the ENV */
         if (!(m_flags&HAM_IN_MEMORY_DB)) {
@@ -315,17 +300,9 @@ protected:
         }
 
         BFC_ASSERT_EQUAL(0, ham_env_get_parameters(env, ps));
-        BFC_ASSERT(ps[0].value == 18); // no cache yet
-        BFC_ASSERT(ps[1].value == 64*1024);
-        BFC_ASSERT(ps[2].value == 21);
-        BFC_ASSERT(ps[3].value == 128 /* 2029 */ );
-        ps2[1].value = 11;
-        ps2[3].value = 17;
-        BFC_ASSERT_EQUAL(0, ham_env_get_parameters(env, ps2));
-        BFC_ASSERT(ps2[0].value == 18); 
-        BFC_ASSERT(ps2[1].value == 64*1024);
-        BFC_ASSERT(ps2[2].value == 21);
-        BFC_ASSERT(ps2[3].value == 128);
+        BFC_ASSERT_EQUAL(18u, ps[0].value);
+        BFC_ASSERT_EQUAL(1024*64u, ps[1].value);
+        BFC_ASSERT_EQUAL(128u, ps[2].value);
 
         /* now create 128 DBs; we said we would, anyway, when creating the 
          * ENV ! */
@@ -342,21 +319,10 @@ protected:
 
             for (j = 0; ps[j].name; j++)
                 ps[j].value = 0;
-            BFC_ASSERT_EQUAL_I(0, ham_get_parameters(db[i], ps), i);
-            BFC_ASSERT_I(ps[0].value == 18, i); // rounded up when cache 
-                                                // was actually created
-            BFC_ASSERT_I(ps[1].value == 1024*64, i);
-            BFC_ASSERT_I(ps[2].value == 21, i);
-            BFC_ASSERT_I(ps[3].value == 128 /* 2029 */ , i);
-            ps2[0].value = 7;
-            ps2[1].value = 11;
-            ps2[2].value = 13;
-            ps2[3].value = 17;
-            BFC_ASSERT_EQUAL_I(0, ham_get_parameters(db[i], ps2), i);
-            BFC_ASSERT_I(ps2[0].value == 18, i); 
-            BFC_ASSERT_I(ps2[1].value == 1024*64, i);
-            BFC_ASSERT_I(ps2[2].value == 21, i);
-            BFC_ASSERT_I(ps2[3].value == 128, i);
+            BFC_ASSERT_EQUAL(0, ham_get_parameters(db[i], ps));
+            BFC_ASSERT_EQUAL(18u, ps[0].value);
+            BFC_ASSERT_EQUAL(1024*64u, ps[1].value);
+            BFC_ASSERT_EQUAL(128u, ps[2].value);
         }
 
         BFC_ASSERT_EQUAL(0, ham_delete(dbx));

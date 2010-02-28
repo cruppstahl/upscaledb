@@ -196,7 +196,7 @@ struct ham_db_t
     ham_record_filter_t *_record_filters;
 
     /** current data access mode (DAM) */
-    ham_u16_t  _data_access_mode;
+    ham_u16_t _data_access_mode;
 
     /** non-zero after this istem has been opened/created */
     unsigned _is_active: 1;
@@ -400,16 +400,16 @@ struct ham_db_t
 #define db_set_data_access_mode(db,s)  (db)->_data_access_mode=(s)
 
 /**
-Mix a set of flag bits into the data access mode, according to the rule
-
-<pre>
-DAM(new) = (DAM & and_mask) | or_mask
-</pre>
-
-This is a quick qay to set or unset particular DAM bits.
-
-@sa ham_data_access_modes
-*/
+ * Mix a set of flag bits into the data access mode, according to the rule
+ * 
+ * <pre>
+ * DAM(new) = (DAM & and_mask) | or_mask
+ * </pre>
+ * 
+ * This is a quick qay to set or unset particular DAM bits.
+ * 
+ * @sa ham_data_access_modes
+ */
 #define db_set_data_access_mode_masked(db, or_mask, and_mask)				\
 	(db)->_data_access_mode=(((db)->_data_access_mode & (and_mask))			\
 							 | (or_mask))
@@ -436,6 +436,12 @@ This is a quick qay to set or unset particular DAM bits.
  * get a reference to the per-database statistics
  */
 #define db_get_db_perf_data(db)      &(db)->_db_perf_data
+
+/**
+ * get the database name
+ */
+extern ham_u16_t
+db_get_dbname(ham_db_t *db);
 
 /**
  * uncouple all cursors from a page

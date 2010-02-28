@@ -1,3 +1,11 @@
+Feb 27, 2010 - chris
+o Bugfix - ham_get_parameter failed if database was opened read-only
+    (thanks, Austin)
+
+Feb 18, 2010 - chris
+o Bugfix - if a cachesize was specified then it was not propagated correctly
+    and ignored
+
 Feb 16, 2010 - chris
 o Windows library and dll are now renamed to libhamsterdb-<version>.lib and
     hamsterdb-<version>.dll

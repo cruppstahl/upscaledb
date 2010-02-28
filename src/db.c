@@ -35,77 +35,41 @@
 #include "txn.h"
 #include "version.h"
 
-#if 0 /* B+tree dependent; moved to btree_cursor.c */
-
-ham_status_t
-db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
-{
-    ham_status_t st;
-    ham_bool_t skipped=HAM_FALSE;
-    ham_cursor_t *n;
-    ham_cursor_t *c=page_get_cursors(page);
-
-    while (c) {
-        ham_bt_cursor_t *btc=(ham_bt_cursor_t *)c;
-        n=cursor_get_next_in_page(c);
-
-        /*
-         * ignore all cursors which are already uncoupled
-         */
-        if (bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) {
-            /*
-             * skip this cursor if its position is < start
-             */
-            if (bt_cursor_get_coupled_index(btc)<start) {
-                c=n;
-                skipped=HAM_TRUE;
-                continue;
-            }
-
-            /*
-             * otherwise: uncouple it
-             */
-            st=bt_cursor_uncouple((ham_bt_cursor_t *)c, 0);
-            if (st)
-                return (st);
-            cursor_set_next_in_page(c, 0);
-            cursor_set_previous_in_page(c, 0);
-        }
-
-        c=n;
-    }
-
-    if (!skipped)
-        page_set_cursors(page, 0);
-
-    return (0);
-}
-
-#else
-
 ham_status_t
 db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
 {
     ham_cursor_t *c = page_get_cursors(page);
 
-    if (c)
-    {
+    if (c) {
         ham_db_t *db = cursor_get_db(c);
-        if (db)
-        {
+        if (db) {
             ham_backend_t *be = db_get_backend(db);
             
-            if (be)
-            {
+            if (be) {
                 return (*be->_fun_uncouple_all_cursors)(be, page, start);
             }
         }
     }
+
     return HAM_SUCCESS;
 }
 
+ham_u16_t
+db_get_dbname(ham_db_t *db)
+{
+    ham_assert(db!=0, (""));
+    ham_assert(db_get_env(db), (""));
 
-#endif
+    ham_env_t *env=db_get_env(db);
+
+    if (env_get_header_page(env) && page_get_pers(env_get_header_page(env))) {
+        db_indexdata_t *idx=env_get_indexdata_ptr(env, 
+            db_get_indexdata_offset(db));
+        return (index_get_dbname(idx));
+    }
+    
+    return (0);
+}
 
 int HAM_CALLCONV 
 db_default_prefix_compare(ham_db_t *db, 

@@ -148,8 +148,8 @@ typedef struct
  *
  * <pre>
  *   ham_parameter_t parameters[]={
- *      { HAM_PARAM_CACHESIZE, 4*4096 },
- *      { HAM_PARAM_PAGESIZE, 4096 },
+ *      { HAM_PARAM_CACHESIZE, 100 }, // set cache for 100 database pages
+ *      { HAM_PARAM_PAGESIZE, 4096 }, // set pagesize to 4 kb
  *      { 0, NULL }
  *   };
  * </pre>
@@ -557,7 +557,8 @@ ham_env_create(ham_env_t *env, const char *filename,
  * @return @ref HAM_ENVIRONMENT_ALREADY_OPEN if @a env is already in use
  *
  * @sa ham_create_ex
- * @sa ham_data_access_modes
+ * @sa ham_env_close
+ * @sa ham_env_open_ex
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_create_ex(ham_env_t *env, const char *filename,
