@@ -138,11 +138,15 @@ o hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
 
 o support partial reading/writing of records
     details at http://www.oracle.com/technology/documentation/berkeley-db/db/api_reference/C/dbt.html
-    o new flag HAM_PARTIAL
-    o new fields in ham_record_t
-    o documentation in header file
-    o documentation in tutorial
-    o increment libtool version!
+    x new flag HAM_PARTIAL
+    x new fields in ham_record_t
+    x documentation in header file
+      x find
+      x cursor_find_ex
+      o cursor_move
+      x insert
+      x cursor_insert
+    x increment libtool version!
     o disallow if duplicate sorting is enabled
         o for ham_insert
             o unittest
@@ -154,6 +158,19 @@ o support partial reading/writing of records
         write(offset=0, size=200) (no gap at beginning)
     o append to a blob 
     o same about reading
+    o add extensive unittests
+      o find
+      o find_ex
+      o cursor_move
+      o insert
+      o cursor_insert
+    o add to monster tests and monster.sh
+    o documentation in tutorial
+
+o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES
+    o documentation
+    o unittest
+    o remove from monster.sh!
 
 . update the Java API 
 
@@ -255,33 +272,8 @@ o need tool to upgrade databases from 1.0.x to 1.1.x!
 
 . win32: check Ger's solution - he can handle multiple msvc versions
 
-----------
-
-. enhance java/python/.NET for transactions and approx matching
-    o update README file(s) with new address
-    o python: we now have a ham_get_key_count() function and do not need the
-        slow iteration code anymore
-
-. enhance acceptance tests - will need new test scripts
-    TXN_BEGIN 1  (1 is the txn id)
-    TXN_ABORT 1
-    TXN_INSERT 1 ...
-    TXN_ERASE 1 ...
-    TXN_COMMIT 1
-
-. release-process: enhance automated tests of win32/win64 dll and lib
-
------------------------------------------------------------------------------
-
 . Perl wrapper
 
 . PHP wrapper
 
------------------------------------------------------------------------------
-
-. tests are failing because of a berkeleydb bug:
-    --duplicate=1 --use-cursors=1
-      o ../../testfiles/1/100.tst - status mismatch
-      o ../../testfiles/1/202.tst - status mismatch
-      o ../../testfiles/1/220.tst - status mismatch
 
