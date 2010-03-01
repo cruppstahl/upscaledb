@@ -25,6 +25,7 @@ test_SOURCES    = log.cpp \
                   blob.cpp \
                   extkeys.cpp \
                   keys.cpp \
+                  partial.cpp \
                   bt_cursor.cpp \
                   util.cpp \
                   device.cpp \

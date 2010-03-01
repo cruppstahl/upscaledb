@@ -3668,6 +3668,12 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
                     "ham_cursor_insert"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+    if ((flags&HAM_PARTIAL) && (db_get_rt_flags(db)&HAM_SORT_DUPLICATES)) {
+        ham_trace(("flag HAM_PARTIAL is not allowed if duplicates "
+                    "are sorted"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+
     if (!__prepare_key(key) || !__prepare_record(record))
         return (db_set_error(db, HAM_INV_PARAMETER));
 
@@ -4899,6 +4905,11 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     if ((flags&HAM_DUPLICATE) && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)) {
         ham_trace(("database does not support duplicate keys "
                     "(see HAM_ENABLE_DUPLICATES)"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_PARTIAL) && (db_get_rt_flags(db)&HAM_SORT_DUPLICATES)) {
+        ham_trace(("flag HAM_PARTIAL is not allowed if duplicates "
+                    "are sorted"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
 

@@ -143,21 +143,32 @@ o support partial reading/writing of records
     x documentation in header file
       x find
       x cursor_find_ex
-      o cursor_move
+      x cursor_move
       x insert
       x cursor_insert
     x increment libtool version!
-    o disallow if duplicate sorting is enabled
-        o for ham_insert
-            o unittest
-        o for ham_cursor_insert
-            o unittest
-    o write an initial blob which starts at offset > 0 
-        write(offset=100, size=200) (leave empty gap at beginning)
-    o write a blob which starts at offset 0
-        write(offset=0, size=200) (no gap at beginning)
-    o append to a blob 
-    o same about reading
+    x disallow if duplicate sorting is enabled
+        x for ham_insert
+            x unittest
+        x for ham_cursor_insert
+            x unittest
+    o implement test-driven; create unittests directly on blob_* functions!
+        o write poffset=0, psize=50, size=50 (no gaps)
+        o write poffset=0, psize=50, size=100 (gap at end)
+        o write poffset=0, psize=100, size=50 (limit to 50)
+        o write poffset=50, psize=50, size=100 (gap at beginning)
+        o write poffset=50, psize=50, size=200 (gap at beginning+end)
+        o overwrite an existing blob - make sure that gaps are not filled with 0
+            o write poffset=0, psize=50, size=50 (no gaps)
+            o write poffset=0, psize=50, size=100 (gap at end)
+            o write poffset=0, psize=100, size=50 (limit to 50)
+            o write poffset=50, psize=50, size=100 (gap at beginning)
+            o write poffset=50, psize=50, size=200 (gap at beginning+end)
+        o shrink records
+        o grow records
+        o repeat all tests with big sizes
+        o same about reading
+        o repeat everything with in-memory blobs
     o add extensive unittests
       o find
       o find_ex
