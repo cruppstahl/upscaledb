@@ -124,12 +124,29 @@ o hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
 
 o support partial reading/writing of records
     details at http://www.oracle.com/technology/documentation/berkeley-db/db/api_reference/C/dbt.html
+    o new flag HAM_PARTIAL
+    o new fields in ham_record_t
+    o increment libtool version!
+    o documentation in header file
+    o documentation in tutorial (re-enable tutorial as long as we don't
+        have a wiki!)
+    o disallow if duplicate sorting is enabled
+        o for ham_insert
+            o unittest
+        o for ham_cursor_insert
+            o unittest
     o write an initial blob which starts at offset > 0 
-        write(offset=100, size=200)
+        write(offset=100, size=200) (leave empty gap at beginning)
     o write a blob which starts at offset 0
-        write(offset=0, size=200)
+        write(offset=0, size=200) (no gap at beginning)
     o append to a blob 
     o same about reading
+
+o caching
+    o why is the max. number of pages limited?
+    o can we replace this with a soft limit? or completely remove the limit?
+    o what about HAM_CACHE_UNLIMITED - does it cache ALL pages? 
+    o is HAM_CACHE_UNLIMITED monster-tested?    
 
 o test freelist behaviour
     - create a new Database => hdr file and root page is allocated
