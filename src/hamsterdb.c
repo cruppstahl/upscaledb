@@ -2597,7 +2597,7 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
      */
     if (env_get_cache(env)) {
         (void)db_flush_all(env_get_cache(env), 0);
-        cache_delete(env, env_get_cache(env));
+        cache_delete(env_get_cache(env));
         env_set_cache(env, 0);
     }
 

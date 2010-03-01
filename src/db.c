@@ -474,16 +474,13 @@ my_purge_cache(ham_env_t *env)
      * first, try to delete unused pages from the cache
      */
     if (env_get_cache(env) && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-        ham_bool_t lowwater = HAM_FALSE;
 
 #if defined(HAM_DEBUG) && defined(HAM_ENABLE_INTERNAL) && !defined(HAM_LEAN_AND_MEAN_FOR_PROFILING)
-        if (cache_too_big(env_get_cache(env), HAM_FALSE))
-        {
+        if (cache_too_big(env_get_cache(env))) {
             (void)cache_check_integrity(env_get_cache(env));
         }
 #endif
-        while (cache_too_big(env_get_cache(env), lowwater)) {
-            lowwater = HAM_TRUE;
+        while (cache_too_big(env_get_cache(env))) {
 
             page=cache_get_unused_page(env_get_cache(env));
             if (!page) {
@@ -499,21 +496,6 @@ my_purge_cache(ham_env_t *env)
                 return st;
         }
     }
-
-#if 0
-    /*
-     * then free unused extended keys. We don't do this too often to 
-     * avoid a thrashing of the cache, and freeing unused extkeys
-     * is more expensive (performance-wise) than freeing unused pages.
-     */
-    if (db_get_extkey_cache(db)) {
-        if (env_get_txn_id(env) % 10 == 0) {
-            st=extkey_cache_purge(db_get_extkey_cache(db));
-            if (st)
-                return st;
-        }
-    }
-#endif
 
     return (HAM_SUCCESS);
 }
@@ -888,7 +870,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             && env_get_cache(env) 
             && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
             && !(env_get_rt_flags(env)&HAM_CACHE_UNLIMITED)) {
-        if (cache_too_big(env_get_cache(env), HAM_FALSE)) {
+        if (cache_too_big(env_get_cache(env))) {
             st=my_purge_cache(env);
             if (st) {
                 return st;

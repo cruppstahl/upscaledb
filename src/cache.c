@@ -26,29 +26,24 @@
 #include "statistics.h"
 
 
-#define my_calc_hash(cache, o)                                              \
-    ((ham_size_t)(cache_get_max_elements(cache)==0                          \
-        ? 0                                                                 \
-        : (((o)%(cache_get_bucketsize(cache))))))
+#define __calc_hash(cache, o)      ((o)%(cache_get_bucketsize(cache)))
 
 ham_cache_t *
-cache_new(ham_env_t *env, ham_size_t max_elements)
+cache_new(ham_env_t *env, ham_size_t max_size)
 {
     ham_cache_t *cache;
     ham_size_t mem, buckets;
 
     buckets=CACHE_BUCKET_SIZE;
     ham_assert(buckets, (0));
+    ham_assert(max_size, (0));
     mem=sizeof(ham_cache_t)+(buckets-1)*sizeof(void *);
 
     cache=allocator_calloc(env_get_allocator(env), mem);
-    if (!cache) {
-        //env_set_error(env, HAM_OUT_OF_MEMORY);
+    if (!cache)
         return (0);
-    }
-    if (max_elements == 0 || max_elements > CACHE_MAX_ELEM)
-        max_elements = CACHE_MAX_ELEM;
-    cache_set_max_elements(cache, max_elements);
+    cache_set_env(cache, env);
+    cache_set_capacity(cache, max_size);
     cache_set_bucketsize(cache, buckets);
     cache->_timeslot = 777; /* a reasonable start value; value is related 
                 * to the increments applied to active cache pages */
@@ -56,9 +51,9 @@ cache_new(ham_env_t *env, ham_size_t max_elements)
 }
 
 void
-cache_delete(ham_env_t *env, ham_cache_t *cache)
+cache_delete(ham_cache_t *cache)
 {
-    allocator_free(env_get_allocator(env), cache);
+    allocator_free(env_get_allocator(cache_get_env(cache)), cache);
 }
 
 /**
@@ -203,7 +198,7 @@ cache_get_unused_page(ham_cache_t *cache)
     if (!min)
         return (0);
 
-    hash=my_calc_hash(cache, page_get_self(min));
+    hash=__calc_hash(cache, page_get_self(min));
 
     ham_assert(page_is_in_list(cache_get_totallist(cache), min, 
                     PAGE_LIST_CACHED), (0));
@@ -228,7 +223,7 @@ ham_page_t *
 cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags)
 {
     ham_page_t *page;
-    ham_size_t hash=my_calc_hash(cache, address);
+    ham_size_t hash=__calc_hash(cache, address);
 
     page=cache_get_bucket(cache, hash);
     while (page) {
@@ -262,7 +257,7 @@ cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags)
 ham_status_t 
 cache_put_page(ham_cache_t *cache, ham_page_t *page)
 {
-    ham_size_t hash=my_calc_hash(cache, page_get_self(page));
+    ham_size_t hash=__calc_hash(cache, page_get_self(page));
     ham_bool_t new_page = HAM_TRUE;
 
     ham_assert(page_get_pers(page), (""));
@@ -332,7 +327,7 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page)
 
     if (page_get_self(page)) 
     {
-        ham_size_t hash=my_calc_hash(cache, page_get_self(page));
+        ham_size_t hash=__calc_hash(cache, page_get_self(page));
         if (page_is_in_list(cache_get_bucket(cache, hash), page, 
                 PAGE_LIST_BUCKET)) {
             cache_set_bucket(cache, hash, 
@@ -363,9 +358,10 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page)
 }
 
 ham_bool_t 
-cache_too_big(ham_cache_t *cache, ham_bool_t check_against_lowwatermark)
+cache_too_big(ham_cache_t *cache)
 {
-    if (cache_get_cur_elements(cache)>=cache_get_max_elements(cache)) 
+    if (cache_get_cur_elements(cache)*env_get_pagesize(cache_get_env(cache))
+            >cache_get_capacity(cache)) 
         return (HAM_TRUE);
 
     return (HAM_FALSE);

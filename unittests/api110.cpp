@@ -214,7 +214,7 @@ public:
         };
         ham_parameter_t set_params[] =
         {
-            {HAM_PARAM_CACHESIZE, 15},
+            {HAM_PARAM_CACHESIZE, 1024*32},
             {HAM_PARAM_PAGESIZE, 1024*64},
             {HAM_PARAM_MAX_ENV_DATABASES, 32},
             {0,0}
@@ -227,7 +227,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_get_parameters(env, params));
 
-        BFC_ASSERT_EQUAL(15u, 
+        BFC_ASSERT_EQUAL(1024*32u, 
                 get_param_value(params, HAM_PARAM_CACHESIZE));
         BFC_ASSERT_EQUAL(1024*64u, 
                 get_param_value(params, HAM_PARAM_PAGESIZE));
@@ -263,7 +263,7 @@ public:
         };
         ham_parameter_t set_params[] =
         {
-            {HAM_PARAM_CACHESIZE, 15},
+            {HAM_PARAM_CACHESIZE, 1024*32},
             {HAM_PARAM_PAGESIZE, 1024*64},
             {HAM_PARAM_MAX_ENV_DATABASES, 32},
             {0,0}
@@ -371,7 +371,7 @@ public:
 
         ham_parameter_t set_params[] =
         {
-            {HAM_PARAM_CACHESIZE, 15},
+            {HAM_PARAM_CACHESIZE, 1024*32},
             {HAM_PARAM_KEYSIZE, 16},
             {HAM_PARAM_PAGESIZE, 1024},
             {HAM_PARAM_DATA_ACCESS_MODE, HAM_DAM_SEQUENTIAL_INSERT}, 
@@ -384,7 +384,7 @@ public:
                         HAM_CACHE_STRICT, 0644, &set_params[0]));
 
         BFC_ASSERT_EQUAL(0, ham_get_parameters(db, params));
-        BFC_ASSERT_EQUAL(15u, 
+        BFC_ASSERT_EQUAL(1024*32u, 
                 get_param_value(params, HAM_PARAM_CACHESIZE));
         BFC_ASSERT_EQUAL(16u, 
                 get_param_value(params, HAM_PARAM_KEYSIZE));
@@ -433,7 +433,7 @@ public:
 
         ham_parameter_t set_params[] =
         {
-            {HAM_PARAM_CACHESIZE, 15},
+            {HAM_PARAM_CACHESIZE, 1024*32},
             {HAM_PARAM_KEYSIZE, 16},
             {HAM_PARAM_PAGESIZE, 1024},
             {HAM_PARAM_DATA_ACCESS_MODE, HAM_DAM_RANDOM_WRITE}, 

@@ -60,10 +60,9 @@
 #endif
 
 /*
- * the default cache size is 1MB for Unix and 4MB for Windows,
- * that is: 64 pages.
+ * the default cache size is 2 MB
  */
-#define HAM_DEFAULT_CACHESIZE      64
+#define HAM_DEFAULT_CACHESIZE      (2*1024*1024)
 
 
 #endif /* __HAM_CONFIG_H__ */

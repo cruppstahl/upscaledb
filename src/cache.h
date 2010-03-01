@@ -27,7 +27,6 @@ extern "C" {
 /** CACHE_BUCKET_SIZE should be a prime number or similar, as it is used in 
  * a MODULO hash scheme */
 #define CACHE_BUCKET_SIZE    1031
-#define CACHE_MAX_ELEM       1024 /**< a power of 2 *below* CACHE_BUCKET_SIZE */
 
 
 /**
@@ -35,8 +34,11 @@ extern "C" {
  */
 struct ham_cache_t
 {
-    /** the maximum number of cached elements */
-    ham_size_t _max_elements;
+    /** the current Environment */
+    ham_env_t *_env;
+
+    /** the capacity (in bytes) */
+    ham_size_t _capacity;
 
     /** the current number of cached elements */
     ham_size_t _cur_elements;
@@ -62,14 +64,24 @@ struct ham_cache_t
 };
 
 /*
- * get the maximum number of elements
+ * get the current Environment
  */
-#define cache_get_max_elements(cm)             (cm)->_max_elements
+#define cache_get_env(cm)                      (cm)->_env
 
 /*
- * set the maximum number of elements
+ * set the current Environment
  */
-#define cache_set_max_elements(cm, s)          (cm)->_max_elements=(s)
+#define cache_set_env(cm, e)                   (cm)->_env=(e)
+
+/*
+ * get the capacity (in bytes)
+ */
+#define cache_get_capacity(cm)                 (cm)->_capacity
+
+/*
+ * set the capacity (in bytes)
+ */
+#define cache_set_capacity(cm, c)              (cm)->_capacity=(c)
 
 /*
  * get the current number of elements
@@ -129,30 +141,13 @@ struct ham_cache_t
 extern void
 cache_reduce_page_counts(ham_cache_t *cache);
 
-#if 0
-static __inline void 
-page_increment_cache_cntr(ham_page_t *page, ham_u32_t count, ham_cache_t *cache)
-{															
-	ham_u32_t _c_v = page_get_cache_cntr(page);								
-	ham_u32_t _u_c = (count);     							
-	if (_c_v >=	0xFFFFFFFFU - 1024 - _u_c					
-		|| (cache)->_timeslot >= 0xFFFFFFFFU - 1024)        
-	{														
-		cache_reduce_page_counts(cache);					
-		_c_v = page_get_cache_cntr(page);
-	}														
-	_c_v += _u_c;											
-	if (_c_v < (cache)->_timeslot)							
-		_c_v = (cache)->_timeslot;							
-	page_set_cache_cntr(page, _c_v);										
-}
-#endif
-
 /**
  * initialize a cache manager object
+ *
+ * max_size is in bytes!
  */
 extern ham_cache_t *
-cache_new(ham_env_t *env, ham_size_t max_elements);
+cache_new(ham_env_t *env, ham_size_t max_size);
 
 /**
  * close and destroy a cache manager object
@@ -160,7 +155,7 @@ cache_new(ham_env_t *env, ham_size_t max_elements);
  * @remark this will NOT flush the cache!
  */
 extern void
-cache_delete(ham_env_t *env, ham_cache_t *cache);
+cache_delete(ham_cache_t *cache);
 
 /**
  * get an unused page (or an unreferenced page, if no unused page
@@ -209,7 +204,7 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page);
  * returns true if the caller should purge the cache
  */
 extern ham_bool_t 
-cache_too_big(ham_cache_t *cache, ham_bool_t check_against_lowwatermark);
+cache_too_big(ham_cache_t *cache);
 
 /**
  * check the cache integrity

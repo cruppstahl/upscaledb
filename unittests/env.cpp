@@ -260,13 +260,13 @@ protected:
         ham_db_t *db[128], *dbx;
         int i;
         const ham_parameter_t parameters[]={
-           { HAM_PARAM_CACHESIZE,  18 },
+           { HAM_PARAM_CACHESIZE,  128*1024 },
            { HAM_PARAM_PAGESIZE, 64*1024 },
            { HAM_PARAM_MAX_ENV_DATABASES, 128 },
            { 0, 0 }
         };
         const ham_parameter_t parameters2[]={
-           { HAM_PARAM_CACHESIZE,  18 },
+           { HAM_PARAM_CACHESIZE,  128*1024 },
            { 0, 0 }
         };
         ham_parameter_t ps[]={
@@ -285,7 +285,7 @@ protected:
             ham_env_create_ex(env, BFC_OPATH(".test"), 
                 m_flags, 0664, parameters));
         BFC_ASSERT_EQUAL(0, ham_env_get_parameters(env, ps));
-        BFC_ASSERT(ps[0].value == 18); 
+        BFC_ASSERT(ps[0].value == 128*1024); 
         BFC_ASSERT(ps[1].value == 64*1024);
         BFC_ASSERT(ps[2].value == 128 /* 2029 */ );
 
@@ -300,7 +300,7 @@ protected:
         }
 
         BFC_ASSERT_EQUAL(0, ham_env_get_parameters(env, ps));
-        BFC_ASSERT_EQUAL(18u, ps[0].value);
+        BFC_ASSERT_EQUAL(128*1024u, ps[0].value);
         BFC_ASSERT_EQUAL(1024*64u, ps[1].value);
         BFC_ASSERT_EQUAL(128u, ps[2].value);
 
@@ -320,7 +320,7 @@ protected:
             for (j = 0; ps[j].name; j++)
                 ps[j].value = 0;
             BFC_ASSERT_EQUAL(0, ham_get_parameters(db[i], ps));
-            BFC_ASSERT_EQUAL(18u, ps[0].value);
+            BFC_ASSERT_EQUAL(128*1024u, ps[0].value);
             BFC_ASSERT_EQUAL(1024*64u, ps[1].value);
             BFC_ASSERT_EQUAL(128u, ps[2].value);
         }
@@ -476,7 +476,7 @@ protected:
         ham_parameter_t parameters[]={
            { HAM_PARAM_PAGESIZE, (ham_u64_t)1024*4 },
            { HAM_PARAM_KEYSIZE,      (ham_u64_t)20 },
-           { HAM_PARAM_CACHESIZE,  (ham_u64_t)1024 },
+           { HAM_PARAM_CACHESIZE,  (ham_u64_t)1024*128 },
            { 0, 0ull }
         };
 
@@ -503,7 +503,7 @@ protected:
         ham_env_t *env;
         ham_db_t *db;
         ham_parameter_t parameters[]={
-           { HAM_PARAM_CACHESIZE,  (ham_u64_t)1024 },
+           { HAM_PARAM_CACHESIZE,  (ham_u64_t)1024*128 },
            { HAM_PARAM_PAGESIZE, (ham_u64_t)1024*4 },
            { HAM_PARAM_KEYSIZE,      (ham_u64_t)20 },
            { 0, 0ull }
@@ -547,14 +547,14 @@ protected:
         };
 
         ham_parameter_t parameters2[]={
-           { HAM_PARAM_CACHESIZE,    1024 },
+           { HAM_PARAM_CACHESIZE,    1024*128 },
            { HAM_PARAM_PAGESIZE,   1024*4 },
            { HAM_PARAM_MAX_ENV_DATABASES, MAX },
            { 0, 0 }
         };
 
         ham_parameter_t parameters3[]={
-           { HAM_PARAM_CACHESIZE,    1024 },
+           { HAM_PARAM_CACHESIZE,    1024*128 },
            { 0, 0 }
         };
 
