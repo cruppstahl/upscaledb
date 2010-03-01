@@ -148,7 +148,7 @@ typedef struct
  *
  * <pre>
  *   ham_parameter_t parameters[]={
- *      { HAM_PARAM_CACHESIZE, 100 }, // set cache for 100 database pages
+ *      { HAM_PARAM_CACHESIZE, 2*1024*1024 }, // set cache size to 2 mb
  *      { HAM_PARAM_PAGESIZE, 4096 }, // set pagesize to 4 kb
  *      { 0, NULL }
  *   };

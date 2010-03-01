@@ -145,11 +145,11 @@ o support partial reading/writing of records
 o caching
     x is HAM_CACHE_UNLIMITED monster-tested? yes!
     x what about HAM_CACHE_UNLIMITED - does it cache ALL pages? yes!
-    o why is the max. number of pages limited? -- it's not, but we have
-        to distinguish between max buckets and max capacity!?
-    o CAREFUL! unittests use HAM_PARAM_CACHESIZE to specify number of pages,
+    x CAREFUL! unittests use HAM_PARAM_CACHESIZE to specify number of pages,
         not cachesize in bytes!
-    o make sure that HAM_DEFAULT_CACHESIZE triggers size in bytes!
+    x cache: distinguish between max. buckets and the cachesize itself
+    x make sure that HAM_DEFAULT_CACHESIZE triggers size in bytes!
+    o fail if user's cachesize is < pagesize?
 
 o test freelist behaviour
     - create a new Database => hdr file and root page is allocated
