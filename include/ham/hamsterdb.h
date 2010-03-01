@@ -1916,10 +1916,14 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  *
  * You can write only portions of the record by specifying the flag 
  * @ref HAM_PARTIAL. In this case, hamsterdb will write <b>partial_size</b>
- * bytes of the record data at offset <b>partial_offset</b>. If necessary, the
- * record data will grow. Gaps will be filled with null-bytes. Using @ref
- * HAM_PARTIAL is not allowed in combination with sorted duplicates
- * (@ref HAM_SORT_DUPLICATES).
+ * bytes of the record data at offset <b>partial_offset</b>. The full record
+ * size will always be given in <b>record->size</b>! If 
+ * partial_size+partial_offset exceed record->size then partial_size will
+ * be limited. To shrink or grow the record, adjust record->size. 
+ * @ref HAM_PARTIAL automatically overwrites existing records.
+ * Gaps will be filled with null-bytes if the record did not yet exist. 
+ * Using @ref HAM_PARTIAL is not allowed in combination with sorted 
+ * duplicates (@ref HAM_SORT_DUPLICATES).
  *
  * If you wish to insert a duplicate key specify the flag @ref HAM_DUPLICATE. 
  * (Note that the Database has to be created with @ref HAM_ENABLE_DUPLICATES
@@ -2288,12 +2292,16 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * but the pointer must not be reallocated of freed. The flag @ref 
  * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases.
  *
- * You can read only portions of the record by specifying the flag 
- * @ref HAM_PARTIAL. In this case, hamsterdb will read 
- * <b>record->partial_size</b> bytes of the record data at offset 
- * <b>record->partial_offset</b>. If necessary, the record data will 
- * be limited to the original record size. The number of actually read
- * bytes is returned in <b>record->size</b>. 
+ * You can write only portions of the record by specifying the flag 
+ * @ref HAM_PARTIAL. In this case, hamsterdb will write <b>partial_size</b>
+ * bytes of the record data at offset <b>partial_offset</b>. The full record
+ * size will always be given in <b>record->size</b>! If 
+ * partial_size+partial_offset exceed record->size then partial_size will
+ * be limited. To shrink or grow the record, adjust record->size. 
+ * @ref HAM_PARTIAL automatically overwrites existing records.
+ * Gaps will be filled with null-bytes if the record did not yet exist. 
+ * Using @ref HAM_PARTIAL is not allowed in combination with sorted 
+ * duplicates (@ref HAM_SORT_DUPLICATES).
  *
  * @param cursor A valid Cursor handle
  * @param key An optional pointer to a @ref ham_key_t structure. If this
@@ -2747,9 +2755,9 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  * You can write only portions of the record by specifying the flag 
  * @ref HAM_PARTIAL. In this case, hamsterdb will write <b>partial_size</b>
  * bytes of the record data at offset <b>partial_offset</b>. If necessary, the
- * record data will grow. Gaps will be filled with null-bytes. Using @ref
- * HAM_PARTIAL is not allowed in combination with sorted duplicates
- * (@ref HAM_SORT_DUPLICATES).
+ * record data will grow. Gaps will be filled with null-bytes, if the record
+ * did not yet exist. Using @ref HAM_PARTIAL is not allowed in combination 
+ * with sorted duplicates (@ref HAM_SORT_DUPLICATES).
  *
  * However, if a sort order is specified (see @ref HAM_SORT_DUPLICATES) then
  * the key is inserted in sorted order. In this case, the use of @ref 
