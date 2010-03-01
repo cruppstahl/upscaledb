@@ -76,6 +76,10 @@ x caching
     x fail if user's cachesize is < pagesize? - no, rather not...
     x make sure that the tutorial is correct
 
+x test freelist behaviour
+    x create a new Database => hdr file and root page is allocated - ok
+    x are these two pages marked as "allocated" in the freelist? - yes
+
 o hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
 --overwrite=1 --reopen=1
     -->==4434== Invalid read of size 1
@@ -136,10 +140,9 @@ o support partial reading/writing of records
     details at http://www.oracle.com/technology/documentation/berkeley-db/db/api_reference/C/dbt.html
     o new flag HAM_PARTIAL
     o new fields in ham_record_t
-    o increment libtool version!
     o documentation in header file
-    o documentation in tutorial (re-enable tutorial as long as we don't
-        have a wiki!)
+    o documentation in tutorial
+    o increment libtool version!
     o disallow if duplicate sorting is enabled
         o for ham_insert
             o unittest
@@ -151,10 +154,6 @@ o support partial reading/writing of records
         write(offset=0, size=200) (no gap at beginning)
     o append to a blob 
     o same about reading
-
-o test freelist behaviour
-    - create a new Database => hdr file and root page is allocated
-    - are these two pages marked as "allocated" in the freelist?
 
 . update the Java API 
 
@@ -221,6 +220,15 @@ o need tool to upgrade databases from 1.0.x to 1.1.x!
 
 . ham_get_parameter: could return VERSION of the database
 
+. idea for freelist:
+    don't use a bitmap but use buckets for entries which are of a certain size:
+        - one bucket for  [0, 31]
+        - one bucket for  [32, 63]
+        etc
+        - resize dynamically
+        - buckets have overflow areas
+        - buckets are unsorted, but compressed with RLE
+
 . approx. matching: need a sample
 
 . Ger: can specify an initial file size
@@ -228,6 +236,18 @@ o need tool to upgrade databases from 1.0.x to 1.1.x!
 . reorg. the HINT flags - they're now in hamsterdb_int.h and still used
     internally -> have them completely replaced by the DAM?
     are they needed? what are the performance advantages?
+
+. how can we merge our ACID transactions/recovery prototype?
+    - simplify insert algorithm
+    - STRONGLY simplify erase algorithm
+    - get rid of the physical logfile
+    - use a logical logfile with the current txn implementation
+    ----------
+    - move limited txn implementation to rb-trees in memory
+    ----------
+    - add the full ACID stuff
+
+. merge threadsafe code
 
 . HighLevelTxnTest::rollbackHugeBlobTest is inactive because huge blobs are
     directly written to disk instead of going through the cache -> in case of
