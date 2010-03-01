@@ -66,6 +66,16 @@ x create unittests for ALL cachesize getters/setters and check
     x ham_env_open_ex
     x ham_open_ex
 
+x caching
+    x is HAM_CACHE_UNLIMITED monster-tested? yes!
+    x what about HAM_CACHE_UNLIMITED - does it cache ALL pages? yes!
+    x CAREFUL! unittests use HAM_PARAM_CACHESIZE to specify number of pages,
+        not cachesize in bytes!
+    x cache: distinguish between max. buckets and the cachesize itself
+    x make sure that HAM_DEFAULT_CACHESIZE triggers size in bytes!
+    x fail if user's cachesize is < pagesize? - no, rather not...
+    x make sure that the tutorial is correct
+
 o hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
 --overwrite=1 --reopen=1
     -->==4434== Invalid read of size 1
@@ -141,15 +151,6 @@ o support partial reading/writing of records
         write(offset=0, size=200) (no gap at beginning)
     o append to a blob 
     o same about reading
-
-o caching
-    x is HAM_CACHE_UNLIMITED monster-tested? yes!
-    x what about HAM_CACHE_UNLIMITED - does it cache ALL pages? yes!
-    x CAREFUL! unittests use HAM_PARAM_CACHESIZE to specify number of pages,
-        not cachesize in bytes!
-    x cache: distinguish between max. buckets and the cachesize itself
-    x make sure that HAM_DEFAULT_CACHESIZE triggers size in bytes!
-    o fail if user's cachesize is < pagesize?
 
 o test freelist behaviour
     - create a new Database => hdr file and root page is allocated
