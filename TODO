@@ -233,9 +233,13 @@ o remove HAM_HINT_UBER_FAST_ACCESS, HAM_HINT_RANDOM_ACCESS, HAM_HINT_SEQUENTIAL
     http://eucalyptus.com/
     x the header page image is too large
     o frontpage: have multiple images (scrolling in background) with more
-        text info? http://malsup.com/jquery/cycle/basic.html
+        text info? 
+        http://malsup.com/jquery/cycle/basic.html
+        http://www.sohtanaka.com/web-design/examples/image-slider/
+        http://www.slidedeck.com/
     o sitemap: pulldown with jquery
     o download: need download gates to track in analytics as goals
+    o rss feed
 
 . evaluate if we can use bamboo for building and testing on multiple
     platforms
