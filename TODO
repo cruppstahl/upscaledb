@@ -186,8 +186,8 @@ o support partial reading/writing of records
                 -> other sizes!
         o write poffset=0, psize=100, size=50 (shrink to 50)
             -> other sizes!
-        o same about reading
         o repeat everything with in-memory blobs
+        o same about reading
     o add to monster tests and monster.sh
     o documentation in tutorial
 

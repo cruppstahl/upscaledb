@@ -384,6 +384,10 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
     if (flags&HAM_PARTIAL) {
         if (record->partial_offset+record->partial_size==record->size)
             flags&=~HAM_PARTIAL;
+
+        if (record->partial_offset>0) {
+            ham_assert(!"partial_offset not yet supported", (""));
+        }
     }
 
     /*

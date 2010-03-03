@@ -66,6 +66,9 @@ public:
 
         /* write at offset 0, partial size 500001, record size 1000001 (gap at end) */
         BFC_REGISTER_TEST(PartialRecordTest, insertGapsAtEndTestSuperbigPlus1);
+
+        /* write at offset 50, partial size 50, record size 100 (gap at beginning) */
+        BFC_REGISTER_TEST(PartialRecordTest, insertGapsAtBeginningTestSmall);
     }
 
 protected:
@@ -194,7 +197,7 @@ public:
         /* verify the key */
         memset(&buffer[partial_size], 0, record_size-partial_size);
         memset(&rec, 0, sizeof(rec));
-        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, HAM_PARTIAL));
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
 
         BFC_ASSERT_EQUAL(record_size, rec.size);
         BFC_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
@@ -239,6 +242,40 @@ public:
     void insertGapsAtEndTestSuperbigPlus1(void)
     {
         insertGapsAtEndTest(500001, 1000001);
+    }
+
+    void insertGapsAtBeginningTest(unsigned partial_offset, 
+                    unsigned partial_size, unsigned record_size)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_u8_t *buffer=(ham_u8_t *)malloc(record_size);
+
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+
+        /* fill the buffer with a pattern */
+        fillBuffer(&buffer[0], 0, record_size);
+
+        rec.partial_offset=partial_offset;
+        rec.partial_size=partial_size;
+        rec.size=record_size;
+        rec.data=buffer;
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+
+        /* verify the key */
+        memset(&buffer[partial_offset], 0, partial_size);
+        memset(&rec, 0, sizeof(rec));
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+
+        BFC_ASSERT_EQUAL(record_size, rec.size);
+        BFC_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
+        free(buffer);
+    }
+
+    void insertGapsAtBeginningTestSmall(void)
+    {
+        insertGapsAtBeginningTest(50, 50, 100);
     }
 
 };
