@@ -169,26 +169,25 @@ o support partial reading/writing of records
         x write poffset=0, psize=500kb+1, size=1000kb+1 (gap at end)
         x write poffset=0, psize=5000kb, size=10000kb (gap at end)
         x write poffset=0, psize=5000kb+1, size=10000kb+1 (gap at end)
-        o write poffset=0, psize=100, size=50 (limit to 50)
         o write poffset=50, psize=50, size=100 (gap at beginning)
+            -> other sizes!
         o write poffset=50, psize=50, size=200 (gap at beginning+end)
+            -> other sizes!
         o overwrite an existing blob - make sure that gaps are not filled with 0
             o write poffset=0, psize=50, size=50 (no gaps)
+                -> other sizes!
             o write poffset=0, psize=50, size=100 (gap at end)
+                -> other sizes!
             o write poffset=0, psize=100, size=50 (limit to 50)
+                -> other sizes!
             o write poffset=50, psize=50, size=100 (gap at beginning)
+                -> other sizes!
             o write poffset=50, psize=50, size=200 (gap at beginning+end)
-        o shrink records
-        o grow records
-        o repeat all tests with big sizes
+                -> other sizes!
+        o write poffset=0, psize=100, size=50 (shrink to 50)
+            -> other sizes!
         o same about reading
         o repeat everything with in-memory blobs
-    o add extensive unittests
-      o find
-      o find_ex
-      o cursor_move
-      o insert
-      o cursor_insert
     o add to monster tests and monster.sh
     o documentation in tutorial
 
