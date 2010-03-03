@@ -42,16 +42,16 @@ __blob_from_cache(ham_env_t *env, ham_size_t size)
 }
 
 /**
-write a series of data chunks to storage at file offset 'addr'.
-
-The chunks are assumed to be stored in sequential order, adjacent
-to each other, i.e. as one long data strip.
-
-Writing is performed on a per-page basis, where special conditions
-will decide whether or not the write operation is performed
-through the page cache or directly to device; such is determined 
-on a per-page basis.
-*/
+ * write a series of data chunks to storage at file offset 'addr'.
+ * 
+ * The chunks are assumed to be stored in sequential order, adjacent
+ * to each other, i.e. as one long data strip.
+ * 
+ * Writing is performed on a per-page basis, where special conditions
+ * will decide whether or not the write operation is performed
+ * through the page cache or directly to device; such is determined 
+ * on a per-page basis.
+ */
 static ham_status_t
 __write_chunks(ham_env_t *env, ham_page_t *page, ham_offset_t addr, 
         ham_bool_t allocated, ham_bool_t freshly_created, 
@@ -350,16 +350,16 @@ __get_duplicate_table(dupe_table_t **table_ref, ham_page_t **page, ham_env_t *en
 }
 
 /**
-Allocate space in storage for and write the content references by 'data'
-(and length 'size') to storage.
-
-Conditions will apply whether the data is written through cache or direct
-to device.
-
-The content is, of course, prefixed by a BLOB header.
-*/
+ * Allocate space in storage for and write the content references by 'data'
+ * (and length 'size') to storage.
+ * 
+ * Conditions will apply whether the data is written through cache or direct
+ * to device.
+ * 
+ * The content is, of course, prefixed by a BLOB header.
+ */
 ham_status_t
-blob_allocate(ham_env_t *env, ham_db_t *db, ham_u8_t *data, ham_size_t size, 
+blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
         ham_u32_t flags, ham_offset_t *blobid)
 {
     ham_status_t st;
@@ -375,24 +375,37 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_u8_t *data, ham_size_t size,
     *blobid=0;
 
     /*
+     * PARTIAL WRITE
+     * 
+     * if offset+partial_size equals the full record size, then we won't 
+     * have any gaps. In this case we just write the full record and ignore
+     * the partial parameters.
+     */
+    if (flags&HAM_PARTIAL) {
+        if (record->partial_offset+record->partial_size==record->size)
+            flags&=~HAM_PARTIAL;
+    }
+
+    /*
      * in-memory-database: the blobid is actually a pointer to the memory
      * buffer, in which the blob (with the blob-header) is stored
      */
     if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
     {
         blob_t *hdr;
-        ham_u8_t *p=(ham_u8_t *)allocator_alloc(env_get_allocator(env), size+sizeof(blob_t));
+        ham_u8_t *p=(ham_u8_t *)allocator_alloc(env_get_allocator(env), 
+                                    record->size+sizeof(blob_t));
         if (!p) {
             return HAM_OUT_OF_MEMORY;
         }
-        memcpy(p+sizeof(blob_t), data, size);
+        memcpy(p+sizeof(blob_t), record->data, record->size);
 
         /* initialize the header */
         hdr=(blob_t *)p;
         memset(hdr, 0, sizeof(*hdr));
         blob_set_self(hdr, PTR_TO_U64(p));
-        blob_set_alloc_size(hdr, size+sizeof(blob_t));
-        blob_set_size(hdr, size);
+        blob_set_alloc_size(hdr, record->size+sizeof(blob_t));
+        blob_set_size(hdr, record->size);
 
         *blobid=PTR_TO_U64(p);
         return (0);
@@ -403,7 +416,7 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_u8_t *data, ham_size_t size,
     /*
      * blobs are CHUNKSIZE-allocated 
      */
-    alloc_size=sizeof(blob_t)+size;
+    alloc_size=sizeof(blob_t)+record->size;
     alloc_size += DB_CHUNKSIZE - 1;
     alloc_size -= alloc_size % DB_CHUNKSIZE;
 
@@ -472,7 +485,7 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_u8_t *data, ham_size_t size,
         blob_set_alloc_size(&hdr, alloc_size);
     }
 
-    blob_set_size(&hdr, size);
+    blob_set_size(&hdr, record->size);
     blob_set_self(&hdr, addr);
 
     /* 
@@ -480,14 +493,77 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_u8_t *data, ham_size_t size,
      */
     chunk_data[0]=(ham_u8_t *)&hdr;
     chunk_size[0]=sizeof(hdr);
-    chunk_data[1]=(ham_u8_t *)data;
-    chunk_size[1]=size;
+    chunk_data[1]=(ham_u8_t *)record->data + 
+                                ((flags&HAM_PARTIAL) 
+                                        ? record->partial_offset 
+                                        : 0);
+    chunk_size[1]=(flags&HAM_PARTIAL) 
+                        ? record->partial_size 
+                        : record->size;
 
-    st=__write_chunks(env, page, addr, HAM_TRUE, freshly_created, chunk_data, chunk_size, 2);
+    st=__write_chunks(env, page, addr, HAM_TRUE, freshly_created, 
+                        chunk_data, chunk_size, 2);
     if (st)
         return (st);
-
     *blobid=addr;
+
+    /*
+     * PARTIAL WRITES:
+     *
+     * if we have gaps at the end of the blob: just append more chunks to
+     * fill these gaps. Since they can be pretty large we split them into
+     * smaller chunks if necessary.
+     */
+    if (flags&HAM_PARTIAL) {
+        if (record->partial_offset+record->partial_size < record->size) {
+            ham_u8_t *ptr;
+            ham_size_t gapsize=record->size
+                            - (record->partial_offset+record->partial_size);
+
+            /* adjust file pointer to point immediately AFTER the two chunks */
+            addr+=sizeof(hdr)+(record->partial_offset+record->partial_size);
+
+            /* now fill the gap; if the gap is bigger than a pagesize we'll
+             * split the gap into smaller chunks 
+             *
+             * we split this loop in two - the outer loop will allocate the
+             * memory buffer, thus saving some allocations
+             */
+            while (gapsize>env_get_pagesize(env)) {
+                ham_u8_t *ptr=allocator_calloc(env_get_allocator(env), 
+                                            env_get_pagesize(env));
+                if (!ptr)
+                    return (HAM_OUT_OF_MEMORY);
+                while (gapsize>env_get_pagesize(env)) {
+                    chunk_data[0]=ptr;
+                    chunk_size[0]=env_get_pagesize(env);
+                    st=__write_chunks(env, page, addr, HAM_TRUE, 
+                            freshly_created, chunk_data, chunk_size, 1);
+                    if (st)
+                        break;
+                    gapsize-=env_get_pagesize(env);
+                    addr+=env_get_pagesize(env);
+                }
+                allocator_free(env_get_allocator(env), ptr);
+                if (st)
+                    return (st);
+            }
+            
+            /* now write the remainder, which is less than a pagesize */
+            ham_assert(gapsize<env_get_pagesize(env), (""));
+
+            chunk_size[0]=gapsize;
+            ptr=chunk_data[0]=allocator_calloc(env_get_allocator(env), gapsize);
+            if (!ptr)
+                return (HAM_OUT_OF_MEMORY);
+
+            st=__write_chunks(env, page, addr, HAM_TRUE, freshly_created, 
+                        chunk_data, chunk_size, 1);
+            allocator_free(env_get_allocator(env), ptr);
+            if (st)
+                return (st);
+        }
+    }
 
     return (0);
 }
@@ -599,8 +675,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
 
 ham_status_t
 blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid, 
-        ham_u8_t *data, ham_size_t size, ham_u32_t flags, 
-        ham_offset_t *new_blobid)
+        ham_record_t *record, ham_u32_t flags, ham_offset_t *new_blobid)
 {
     ham_status_t st;
     ham_size_t alloc_size;
@@ -617,13 +692,13 @@ blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid,
     {
         blob_t *nhdr, *phdr=(blob_t *)U64_TO_PTR(old_blobid);
 
-        if (blob_get_size(phdr)==size) {
+        if (blob_get_size(phdr)==record->size) {
             ham_u8_t *p=(ham_u8_t *)phdr;
-            memmove(p+sizeof(blob_t), data, size);
+            memmove(p+sizeof(blob_t), record->data, record->size);
             *new_blobid=PTR_TO_U64(phdr);
         }
         else {
-            st=blob_allocate(env, db, data, size, flags, new_blobid);
+            st=blob_allocate(env, db, record, flags, new_blobid);
             if (st)
                 return (st);
             nhdr=(blob_t *)U64_TO_PTR(*new_blobid);
@@ -632,7 +707,7 @@ blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid,
             allocator_free(env_get_allocator(env), phdr);
         }
 
-        return HAM_SUCCESS;
+        return (HAM_SUCCESS);
     }
 
     ham_assert(old_blobid%DB_CHUNKSIZE==0, (0));
@@ -640,7 +715,7 @@ blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid,
     /*
      * blobs are CHUNKSIZE-allocated 
      */
-    alloc_size=sizeof(blob_t)+size;
+    alloc_size=sizeof(blob_t)+record->size;
     alloc_size += DB_CHUNKSIZE - 1;
     alloc_size -= alloc_size % DB_CHUNKSIZE;
 
@@ -676,14 +751,14 @@ blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid,
 
         chunk_data[0]=(ham_u8_t *)&new_hdr;
         chunk_size[0]=sizeof(new_hdr);
-        chunk_data[1]=data;
-        chunk_size[1]=size;
+        chunk_data[1]=record->data;
+        chunk_size[1]=record->size;
 
         /* 
          * setup the new blob header
          */
         blob_set_self(&new_hdr, blob_get_self(&old_hdr));
-        blob_set_size(&new_hdr, size);
+        blob_set_size(&new_hdr, record->size);
         blob_set_flags(&new_hdr, blob_get_flags(&old_hdr));
         if (blob_get_alloc_size(&old_hdr)-alloc_size>SMALLEST_CHUNK_SIZE)
             blob_set_alloc_size(&new_hdr, alloc_size);
@@ -710,14 +785,15 @@ blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid,
          */
         *new_blobid=blob_get_self(&new_hdr);
 
-        return HAM_SUCCESS;
+        return (HAM_SUCCESS);
     }
     else {
         /* 
-        when the new data is larger, allocate a fresh space for it and discard the old;
-        'overwrite' has become (delete + insert) now.
-        */
-        st=blob_allocate(env, db, data, size, flags, new_blobid);
+         * when the new data is larger, allocate a fresh space for it 
+         * and discard the old;
+         'overwrite' has become (delete + insert) now.
+         */
+        st=blob_allocate(env, db, record, flags, new_blobid);
         if (st)
             return (st);
 
@@ -725,7 +801,7 @@ blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid,
                 (ham_size_t)blob_get_alloc_size(&old_hdr), HAM_FALSE);
     }
 
-    return HAM_SUCCESS;
+    return (HAM_SUCCESS);
 }
 
 ham_status_t
@@ -1024,17 +1100,19 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
      */
     if ((table_id && !page) || resize) 
     {
-        st=blob_overwrite(env, db, table_id, (ham_u8_t *)table,
-                sizeof(dupe_table_t)
-                    +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t),
-                0, rid);
+        ham_record_t rec={0};
+        rec.data=(ham_u8_t *)table;
+        rec.size=sizeof(dupe_table_t)
+                    +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t);
+        st=blob_overwrite(env, db, table_id, &rec, 0, rid);
     }
     else if (!table_id) 
     {
-        st=blob_allocate(env, db, (ham_u8_t *)table,
-                sizeof(dupe_table_t)
-                    +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t),
-                0, rid);
+        ham_record_t rec={0};
+        rec.data=(ham_u8_t *)table;
+        rec.size=sizeof(dupe_table_t)
+                    +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t);
+        st=blob_allocate(env, db, &rec, 0, rid);
     }
     else if (table_id && page) 
     {
@@ -1117,6 +1195,7 @@ blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
         return (0);
     }
     else {
+        ham_record_t rec={0};
         dupe_entry_t *e=dupe_table_get_entry(table, position);
         if (!(dupe_entry_get_flags(e)&(KEY_BLOB_SIZE_SMALL
                                     |KEY_BLOB_SIZE_TINY
@@ -1131,10 +1210,10 @@ blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
             ((dupe_table_get_count(table)-position)-1)*sizeof(dupe_entry_t));
         dupe_table_set_count(table, dupe_table_get_count(table)-1);
 
-        st=blob_overwrite(env, db, table_id, (ham_u8_t *)table,
-                sizeof(dupe_table_t)
-                    +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t),
-                0, &rid);
+        rec.data=(ham_u8_t *)table;
+        rec.size=sizeof(dupe_table_t)
+                    +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t);
+        st=blob_overwrite(env, db, table_id, &rec, 0, &rid);
         if (st) {
             allocator_free(env_get_allocator(env), table);
             return (st);

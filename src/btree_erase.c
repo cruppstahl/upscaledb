@@ -1228,8 +1228,7 @@ my_copy_key(ham_db_t *db, int_key_t *lhs, int_key_t *rhs)
         if (st)
             return (st);
 
-        st=blob_allocate(db_get_env(db), db, record.data, 
-                record.size, 0, &lhsblobid);
+        st=blob_allocate(db_get_env(db), db, &record, 0, &lhsblobid);
         if (st)
             return (st);
         key_set_extended_rid(db, lhs, lhsblobid);
@@ -1307,8 +1306,7 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
         if (st)
             return (st);
 
-        st=blob_allocate(db_get_env(db), db, record.data, 
-                record.size, 0, &lhsblobid);
+        st=blob_allocate(db_get_env(db), db, &record, 0, &lhsblobid);
         if (st)
             return (st);
         key_set_extended_rid(db, lhs, lhsblobid);

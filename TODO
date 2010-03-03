@@ -138,6 +138,11 @@ o hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
 
 o make sure that in-memory Environments NEVER create/use the freelist!
     o unittest!
+    o refactor the freelist and try to get rid of the crash at SafeNet
+    o remove HAM_DAM_FAST_INSERT -- or get it working!?
+        o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
+            -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
+        o re-enable tests in monster.sh
 
 o support partial reading/writing of records
     details at http://www.oracle.com/technology/documentation/berkeley-db/db/api_reference/C/dbt.html
@@ -156,8 +161,14 @@ o support partial reading/writing of records
         x for ham_cursor_insert
             x unittest
     o implement test-driven; create unittests directly on blob_* functions!
-        o write poffset=0, psize=50, size=50 (no gaps)
-        o write poffset=0, psize=50, size=100 (gap at end)
+        x write poffset=0, psize=50, size=50 (no gaps)
+        x write poffset=0, psize=50, size=100 (gap at end)
+        x write poffset=0, psize=50kb, size=100kb (gap at end)
+        x write poffset=0, psize=50kb+1, size=100kb+1 (gap at end)
+        x write poffset=0, psize=500kb, size=1000kb (gap at end)
+        x write poffset=0, psize=500kb+1, size=1000kb+1 (gap at end)
+        x write poffset=0, psize=5000kb, size=10000kb (gap at end)
+        x write poffset=0, psize=5000kb+1, size=10000kb+1 (gap at end)
         o write poffset=0, psize=100, size=50 (limit to 50)
         o write poffset=50, psize=50, size=100 (gap at beginning)
         o write poffset=50, psize=50, size=200 (gap at beginning+end)
@@ -209,11 +220,6 @@ o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES
     o track coverage results, publish online
     o gui tools: http://code.google.com/p/trucov/,
                  http://sourceforge.net/projects/ggcov/files/ 
-
-o remove HAM_DAM_FAST_INSERT -- or get it working!?
-    o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
-        -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
-    o re-enable tests in monster.sh
 
 o remove HAM_HINT_UBER_FAST_ACCESS, HAM_HINT_RANDOM_ACCESS, HAM_HINT_SEQUENTIAL
 

@@ -142,8 +142,9 @@ public:
         ::memset(&record, 0, sizeof(record));
         ::memset(&buffer, 0x12, sizeof(buffer));
 
-        BFC_ASSERT_EQUAL(0, blob_allocate(m_env, m_db, buffer, 
-                                (ham_size_t)sizeof(buffer), 0, &blobid));
+        record.size=sizeof(buffer);
+        record.data=buffer;
+        BFC_ASSERT_EQUAL(0, blob_allocate(m_env, m_db, &record, 0, &blobid));
         BFC_ASSERT(blobid!=0);
 
         BFC_ASSERT_EQUAL(0, blob_read(m_db, blobid, &record, 0));
@@ -162,16 +163,19 @@ public:
         ::memset(&buffer,  0x12, sizeof(buffer));
         ::memset(&buffer2, 0x15, sizeof(buffer2));
 
-        BFC_ASSERT_EQUAL(0, blob_allocate(m_env, m_db, buffer, 
-                                (ham_size_t)sizeof(buffer), 0, &blobid));
+        record.size=sizeof(buffer);
+        record.data=buffer;
+        BFC_ASSERT_EQUAL(0, blob_allocate(m_env, m_db, &record, 0, &blobid));
         BFC_ASSERT(blobid!=0);
 
         BFC_ASSERT_EQUAL(0, blob_read(m_db, blobid, &record, 0));
         BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
         BFC_ASSERT(0==::memcmp(buffer, record.data, record.size));
 
-        BFC_ASSERT_EQUAL(0, blob_overwrite(m_env, m_db, blobid, buffer2, 
-                    sizeof(buffer2), 0, &blobid2));
+        record.size=sizeof(buffer2);
+        record.data=buffer2;
+        BFC_ASSERT_EQUAL(0, blob_overwrite(m_env, m_db, blobid, &record,
+                    0, &blobid2));
         BFC_ASSERT(blobid2!=0);
 
         BFC_ASSERT_EQUAL(0, blob_read(m_db, blobid2, 
@@ -191,8 +195,9 @@ public:
         ::memset(&buffer,  0x12, sizeof(buffer));
         ::memset(&buffer2, 0x15, sizeof(buffer2));
 
-        BFC_ASSERT_EQUAL(0, blob_allocate(m_env, m_db, buffer, 
-                                (ham_size_t)sizeof(buffer), 0, &blobid));
+        record.data=buffer;
+        record.size=sizeof(buffer);
+        BFC_ASSERT_EQUAL(0, blob_allocate(m_env, m_db, &record, 0, &blobid));
         BFC_ASSERT(blobid!=0);
 
         BFC_ASSERT_EQUAL(0, blob_read(m_db, blobid, 
@@ -200,8 +205,10 @@ public:
         BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
         BFC_ASSERT(0==::memcmp(buffer, record.data, record.size));
 
-        BFC_ASSERT_EQUAL(0, blob_overwrite(m_env, m_db, blobid, buffer2, 
-                    sizeof(buffer2), 0, &blobid2));
+        record.size=sizeof(buffer2);
+        record.data=buffer2;
+        BFC_ASSERT_EQUAL(0, blob_overwrite(m_env, m_db, blobid, &record,
+                    0, &blobid2));
         BFC_ASSERT(blobid2!=0);
 
         BFC_ASSERT_EQUAL(0, blob_read(m_db, blobid2, 
@@ -221,8 +228,9 @@ public:
         ::memset(&buffer,  0x12, sizeof(buffer));
         ::memset(&buffer2, 0x15, sizeof(buffer2));
 
-        BFC_ASSERT_EQUAL(0, blob_allocate(m_env, m_db, buffer, 
-                                (ham_size_t)sizeof(buffer), 0, &blobid));
+        record.data=buffer;
+        record.size=sizeof(buffer);
+        BFC_ASSERT_EQUAL(0, blob_allocate(m_env, m_db, &record, 0, &blobid));
         BFC_ASSERT(blobid!=0);
 
         BFC_ASSERT_EQUAL(0, blob_read(m_db, blobid, 
@@ -230,8 +238,10 @@ public:
         BFC_ASSERT_EQUAL(record.size, (ham_size_t)sizeof(buffer));
         BFC_ASSERT(0==::memcmp(buffer, record.data, record.size));
 
-        BFC_ASSERT_EQUAL(0, blob_overwrite(m_env, m_db, blobid, buffer2, 
-                    sizeof(buffer2), 0, &blobid2));
+        record.size=sizeof(buffer2);
+        record.data=buffer2;
+        BFC_ASSERT_EQUAL(0, blob_overwrite(m_env, m_db, blobid, &record,
+                    0, &blobid2));
         BFC_ASSERT(blobid2!=0);
 
         BFC_ASSERT_EQUAL(0, blob_read(m_db, blobid2, 
@@ -275,8 +285,11 @@ public:
             BFC_ASSERT_I(buffer!=0, i);
             ::memset(buffer, (char)i, (i+1)*factor);
 
-            BFC_ASSERT_EQUAL_I(0, blob_allocate(m_env, m_db, buffer, 
-                                (ham_size_t)((i+1)*factor), 0, &blobid[i]), i);
+            ham_record_t rec={0};
+            rec.data=buffer;
+            rec.size=(ham_size_t)((i+1)*factor);
+            BFC_ASSERT_EQUAL(0, 
+                        blob_allocate(m_env, m_db, &rec, 0, &blobid[i]));
             BFC_ASSERT_I(blobid[i]!=0, i);
 
             ::free(buffer);

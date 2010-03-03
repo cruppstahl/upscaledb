@@ -224,8 +224,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_table_t
  * returns the blob-id (the start address of the blob header) in @a blobid
  */
 extern ham_status_t
-blob_allocate(ham_env_t *env, ham_db_t *db, ham_u8_t *data, 
-        ham_size_t size, ham_u32_t flags, ham_offset_t *blobid);
+blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
+        ham_u32_t flags, ham_offset_t *blobid);
 
 /**
  * read a blob
@@ -246,8 +246,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
  */
 extern ham_status_t
 blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid, 
-        ham_u8_t *data, ham_size_t size, ham_u32_t flags, 
-        ham_offset_t *new_blobid);
+        ham_record_t *record, ham_u32_t flags, ham_offset_t *new_blobid);
 
 /**
  * delete an existing blob

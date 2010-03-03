@@ -97,20 +97,19 @@ key_insert_extended(ham_offset_t *rid_ref, ham_db_t *db, ham_page_t *page,
     ham_offset_t blobid;
     ham_u8_t *data_ptr=(ham_u8_t *)key->data;
     ham_status_t st;
+    ham_record_t rec={0};
 
     ham_assert(key->size>db_get_keysize(db), ("invalid keysize"));
 
     *rid_ref = 0;
 
-    if ((st=blob_allocate(db_get_env(db), db,
-                    data_ptr +(db_get_keysize(db)-sizeof(ham_offset_t)), 
-                    key->size-(db_get_keysize(db)-sizeof(ham_offset_t)), 
-                    0, &blobid))) {
-        return st;
-    }
+    rec.data=data_ptr +(db_get_keysize(db)-sizeof(ham_offset_t));
+    rec.size=key->size-(db_get_keysize(db)-sizeof(ham_offset_t)); 
 
-    if (db_get_extkey_cache(db)) 
-    {
+    if ((st=blob_allocate(db_get_env(db), db, &rec, 0, &blobid)))
+        return st;
+
+    if (db_get_extkey_cache(db)) {
         st = extkey_cache_insert(db_get_extkey_cache(db), blobid, 
                 key->size, key->data);
         if (st)
@@ -121,10 +120,9 @@ key_insert_extended(ham_offset_t *rid_ref, ham_db_t *db, ham_page_t *page,
     return HAM_SUCCESS;
 }
 
-    ham_status_t
+ham_status_t
 key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record, 
-        ham_size_t position, ham_u32_t flags, 
-        ham_size_t *new_position)
+        ham_size_t position, ham_u32_t flags, ham_size_t *new_position)
 {
     ham_status_t st;
     ham_env_t *env = db_get_env(db);
@@ -160,7 +158,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
             key_set_ptr(key, rid);
         }
         else {
-            st=blob_allocate(env, db, record->data, record->size, 0, &rid);
+            st=blob_allocate(env, db, record, flags, &rid);
             if (st)
                 return (st);
             key_set_ptr(key, rid);
@@ -185,15 +183,14 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
                     |KEY_BLOB_SIZE_EMPTY))
         {
             rid=0;
-            st=blob_allocate(env, db, record->data, record->size, 0, &rid);
+            st=blob_allocate(env, db, record, flags, &rid);
             if (st)
                 return (st);
             if (rid)
                 key_set_ptr(key, rid);
         }
         else {
-            st=blob_overwrite(env, db, ptr, record->data, 
-                    record->size, 0, &rid);
+            st=blob_overwrite(env, db, ptr, record, 0, &rid);
             if (st)
                 return (st);
             key_set_ptr(key, rid);
@@ -280,7 +277,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
         }
         else 
         {
-            st=blob_allocate(env, db, record->data, record->size, 0, &rid);
+            st=blob_allocate(env, db, record, flags, &rid);
             if (st)
                 return (st);
             dupe_entry_set_flags(&entries[i], 0);
