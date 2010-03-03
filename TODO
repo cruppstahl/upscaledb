@@ -136,6 +136,9 @@ o hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
 ==4434==    by 0x41C112: my_insert_cursor (btree_insert.c:351)
 ==4434==    by 0x41C487: btree_insert_cursor (btree_insert.c:458)
 
+o make sure that in-memory Environments NEVER create/use the freelist!
+    o unittest!
+
 o support partial reading/writing of records
     details at http://www.oracle.com/technology/documentation/berkeley-db/db/api_reference/C/dbt.html
     x new flag HAM_PARTIAL
