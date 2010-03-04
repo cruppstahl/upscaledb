@@ -138,7 +138,8 @@ o hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
 
 o make sure that in-memory Environments NEVER create/use the freelist!
     o unittest!
-    o refactor the freelist and try to get rid of the crash at SafeNet
+    o refactor the freelist and try to get rid of the crash at work
+    o fix the valgrind issue above
     o remove HAM_DAM_FAST_INSERT -- or get it working!?
         o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
             -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
@@ -202,29 +203,6 @@ o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES
 
 . update the Python API 
 
-. improve documentation/tutorial/faq about
-    o confluence is too slow on this server :( Need something else...
-    o move some of the documentation and tutorial to a Wiki
-        o tutorial (remove from doxygen)
-        o samples (remove from doxygen)
-        o faq (remove from doxygen)
-        o internal developer documentation (remove from doxygen)
-    o tutorial/faq: add hinting flags
-    o tutorial/faq: add DAMs
-
-. add automatic code coverage using gconv
-    http://www.manpagez.com/man/1/gcov/
-    http://gcc.gnu.org/onlinedocs/gcc/Gcov.html
-    http://aleccolocco.blogspot.com/2009/08/sqlite-lesson-in-low-defect-software.html (section "Test Coverage with GCC")
-    o track coverage results, publish online
-    o gui tools: http://code.google.com/p/trucov/,
-                 http://sourceforge.net/projects/ggcov/files/ 
-
-o remove HAM_HINT_UBER_FAST_ACCESS, HAM_HINT_RANDOM_ACCESS, HAM_HINT_SEQUENTIAL
-
-. ham_flush: deprecate, replace w. ham_env_flush? it's already implemented
-    o need unittests!
-
 . create abstraction layer for local Environments/Databases and remote
     Environments/Databases
     o move every local function to local.c
@@ -249,6 +227,29 @@ o remove HAM_HINT_UBER_FAST_ACCESS, HAM_HINT_RANDOM_ACCESS, HAM_HINT_SEQUENTIAL
     o download: need download gates to track in analytics as goals
     o rss feed
 
+. improve documentation/tutorial/faq about
+    o confluence is too slow on this server :( Need something else...
+    o move some of the documentation and tutorial to a Wiki
+        o tutorial (remove from doxygen)
+        o samples (remove from doxygen)
+        o faq (remove from doxygen)
+        o internal developer documentation (remove from doxygen)
+    o tutorial/faq: add hinting flags
+    o tutorial/faq: add DAMs
+
+. add automatic code coverage using gconv
+    http://www.manpagez.com/man/1/gcov/
+    http://gcc.gnu.org/onlinedocs/gcc/Gcov.html
+    http://aleccolocco.blogspot.com/2009/08/sqlite-lesson-in-low-defect-software.html (section "Test Coverage with GCC")
+    o track coverage results, publish online
+    o gui tools: http://code.google.com/p/trucov/,
+                 http://sourceforge.net/projects/ggcov/files/ 
+
+. remove HAM_HINT_UBER_FAST_ACCESS, HAM_HINT_RANDOM_ACCESS, HAM_HINT_SEQUENTIAL
+
+. ham_flush: deprecate, replace w. ham_env_flush? it's already implemented
+    o need unittests!
+
 . evaluate if we can use bamboo for building and testing on multiple
     platforms
     o http://www.atlassian.com/software/bamboo/features/elastic.jsp#remote
@@ -272,10 +273,6 @@ o need tool to upgrade databases from 1.0.x to 1.1.x!
 . approx. matching: need a sample
 
 . Ger: can specify an initial file size
-
-. reorg. the HINT flags - they're now in hamsterdb_int.h and still used
-    internally -> have them completely replaced by the DAM?
-    are they needed? what are the performance advantages?
 
 . how can we merge our ACID transactions/recovery prototype?
     - simplify insert algorithm
