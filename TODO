@@ -189,6 +189,8 @@ o support partial reading/writing of records
             -> other sizes!
         o repeat everything with in-memory blobs
         o same about reading
+    o use invalid sizes: offset > size, size=0, size=100&partial_size=0, 
+            partial_size=0, ...
     o add to monster tests and monster.sh
     o documentation in tutorial
 

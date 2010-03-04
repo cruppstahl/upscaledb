@@ -264,10 +264,11 @@ public:
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
 
         /* verify the key */
-        memset(&buffer[partial_offset], 0, partial_size);
         memset(&rec, 0, sizeof(rec));
         BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
 
+        memset(&buffer[0], 0, record_size);
+        fillBuffer(&buffer[partial_offset], 0, record_size-partial_offset);
         BFC_ASSERT_EQUAL(record_size, rec.size);
         BFC_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
         free(buffer);

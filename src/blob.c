@@ -382,20 +382,16 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
      * the partial parameters.
      */
     if (flags&HAM_PARTIAL) {
-        if (record->partial_offset+record->partial_size==record->size)
+        if (record->partial_offset==0 
+                && record->partial_offset+record->partial_size==record->size)
             flags&=~HAM_PARTIAL;
-
-        if (record->partial_offset>0) {
-            ham_assert(!"partial_offset not yet supported", (""));
-        }
     }
 
     /*
      * in-memory-database: the blobid is actually a pointer to the memory
      * buffer, in which the blob (with the blob-header) is stored
      */
-    if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
-    {
+    if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB) {
         blob_t *hdr;
         ham_u8_t *p=(ham_u8_t *)allocator_alloc(env_get_allocator(env), 
                                     record->size+sizeof(blob_t));
@@ -492,24 +488,95 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
     blob_set_size(&hdr, record->size);
     blob_set_self(&hdr, addr);
 
-    /* 
-     * write header and data 
+    /*
+     * PARTIAL WRITE
+     *
+     * are there gaps at the beginning? If yes, then we'll fill with zeros
      */
-    chunk_data[0]=(ham_u8_t *)&hdr;
-    chunk_size[0]=sizeof(hdr);
-    chunk_data[1]=(ham_u8_t *)record->data + 
-                                ((flags&HAM_PARTIAL) 
-                                        ? record->partial_offset 
-                                        : 0);
-    chunk_size[1]=(flags&HAM_PARTIAL) 
+    if ((flags&HAM_PARTIAL) && (record->partial_offset)) {
+        ham_u8_t *ptr;
+        ham_size_t gapsize=record->partial_offset;
+
+        ptr=allocator_calloc(env_get_allocator(env), 
+                                    gapsize > env_get_pagesize(env)
+                                        ? env_get_pagesize(env)
+                                        : gapsize);
+        if (!ptr)
+            return (HAM_OUT_OF_MEMORY);
+
+        /* 
+         * first: write the header
+         */
+        chunk_data[0]=(ham_u8_t *)&hdr;
+        chunk_size[0]=sizeof(hdr);
+        st=__write_chunks(env, page, addr, HAM_TRUE, freshly_created, 
+                        chunk_data, chunk_size, 1);
+        if (st)
+            return (st);
+
+        addr+=sizeof(hdr);
+
+        /* now fill the gap; if the gap is bigger than a pagesize we'll
+         * split the gap into smaller chunks 
+         */
+        while (gapsize>=env_get_pagesize(env)) {
+            chunk_data[0]=ptr;
+            chunk_size[0]=env_get_pagesize(env);
+            st=__write_chunks(env, page, addr, HAM_TRUE, 
+                    freshly_created, chunk_data, chunk_size, 1);
+            if (st)
+                break;
+            gapsize-=env_get_pagesize(env);
+            addr+=env_get_pagesize(env);
+        }
+
+        /* fill the remaining gap */
+        if (gapsize) {
+            chunk_data[0]=ptr;
+            chunk_size[0]=gapsize;
+
+            st=__write_chunks(env, page, addr, HAM_TRUE, freshly_created, 
+                            chunk_data, chunk_size, 1);
+            if (st)
+                return (st);
+            addr+=gapsize;
+        }
+
+        allocator_free(env_get_allocator(env), ptr);
+
+        /* now write the "real" data */
+        chunk_data[0]=(ham_u8_t *)record->data;
+        chunk_size[0]=record->partial_size;
+
+        st=__write_chunks(env, page, addr, HAM_TRUE, freshly_created, 
+                        chunk_data, chunk_size, 1);
+        if (st)
+            return (st);
+        addr+=record->partial_size;
+    }
+    else {
+        /* 
+         * not writing partially: write header and data, then we're done
+         */
+        chunk_data[0]=(ham_u8_t *)&hdr;
+        chunk_size[0]=sizeof(hdr);
+        chunk_data[1]=(ham_u8_t *)record->data;
+        chunk_size[1]=(flags&HAM_PARTIAL) 
                         ? record->partial_size 
                         : record->size;
 
-    st=__write_chunks(env, page, addr, HAM_TRUE, freshly_created, 
+        st=__write_chunks(env, page, addr, HAM_TRUE, freshly_created, 
                         chunk_data, chunk_size, 2);
-    if (st)
-        return (st);
-    *blobid=addr;
+        if (st)
+            return (st);
+        addr+=sizeof(hdr)+
+            ((flags&HAM_PARTIAL) ? record->partial_size : record->size);
+    }
+
+    /*
+     * store the blobid; it will be returned to the caller
+     */
+    *blobid=blob_get_self(&hdr);
 
     /*
      * PARTIAL WRITES:
@@ -523,9 +590,6 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
             ham_u8_t *ptr;
             ham_size_t gapsize=record->size
                             - (record->partial_offset+record->partial_size);
-
-            /* adjust file pointer to point immediately AFTER the two chunks */
-            addr+=sizeof(hdr)+(record->partial_offset+record->partial_size);
 
             /* now fill the gap; if the gap is bigger than a pagesize we'll
              * split the gap into smaller chunks 
