@@ -249,6 +249,24 @@ public:
     {
         insertGaps(500001, 500001, 2000001);
     }
+
+    void insertGapsTestPagesize(void)
+    {
+        ham_size_t ps=env_get_pagesize(m_env);
+        insertGaps(ps, ps, ps*2);
+    }
+
+    void insertGapsTestPagesize2(void)
+    {
+        ham_size_t ps=env_get_pagesize(m_env);
+        insertGaps(ps*2, ps*2, ps*4);
+    }
+
+    void insertGapsTestPagesize4(void)
+    {
+        ham_size_t ps=env_get_pagesize(m_env);
+        insertGaps(ps*4, ps*4, ps*8);
+    }
 };
 
 class PartialRecordTest : public BasePartialRecordTest
@@ -345,6 +363,18 @@ public:
         /* write at offset 500001, partial size 500001, record size 2000001 
          * (gap at beginning AND end) */
         BFC_REGISTER_TEST(PartialRecordTest, insertGapsTestSuperbigPlus1);
+
+        /* write at offset PS, partial size PS, record size 2*PS 
+         * (gap at beginning AND end) */
+        BFC_REGISTER_TEST(PartialRecordTest, insertGapsTestPagesize);
+
+        /* write at offset PS*2, partial size PS*2, record size 4*PS 
+         * (gap at beginning AND end) */
+        BFC_REGISTER_TEST(PartialRecordTest, insertGapsTestPagesize2);
+
+        /* write at offset PS*4, partial size PS*4, record size 8*PS 
+         * (gap at beginning AND end) */
+        BFC_REGISTER_TEST(PartialRecordTest, insertGapsTestPagesize4);
     }
 
 public:
@@ -486,6 +516,18 @@ public:
         /* write at offset 500001, partial size 500001, record size 2000001 
          * (gap at beginning AND end) */
         BFC_REGISTER_TEST(OverwritePartialRecordTest, insertGapsTestSuperbigPlus1);
+
+        /* write at offset PS, partial size PS, record size 2*PS 
+         * (gap at beginning AND end) */
+        BFC_REGISTER_TEST(OverwritePartialRecordTest, insertGapsTestPagesize);
+
+        /* write at offset PS*2, partial size PS*2, record size 4*PS 
+         * (gap at beginning AND end) */
+        BFC_REGISTER_TEST(OverwritePartialRecordTest, insertGapsTestPagesize2);
+
+        /* write at offset PS*4, partial size PS*4, record size 8*PS 
+         * (gap at beginning AND end) */
+        BFC_REGISTER_TEST(OverwritePartialRecordTest, insertGapsTestPagesize4);
     }
 
 protected:
@@ -539,5 +581,319 @@ public:
 
 };
 
+class ShrinkPartialRecordTest : public BasePartialRecordTest
+{
+    define_super(BasePartialRecordTest);
+
+public:
+    ShrinkPartialRecordTest()
+    :   BasePartialRecordTest("ShrinkPartialRecordTest")
+    {
+        testrunner::get_instance()->register_fixture(this);
+        /* write at offset 0, partial size 50, record size 50 (no gaps) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, simpleInsertTest);
+
+        /* write at offset 0, partial size 50, record size 100 (gap at end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsAtEndTestSmall);
+
+        /* write at offset 0, partial size 500, record size 1000 (gap at end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsAtEndTestBig);
+
+        /* write at offset 0, partial size 5000, record size 10000 (gap at end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsAtEndTestBigger);
+
+        /* write at offset 0, partial size 5001, record size 10001 (gap at end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsAtEndTestBiggerPlus1);
+
+        /* write at offset 0, partial size 50000, record size 100000 (gap at end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsAtEndTestBiggest);
+
+        /* write at offset 0, partial size 50001, record size 100001 (gap at end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsAtEndTestBiggestPlus1);
+
+        /* write at offset 0, partial size 500000, record size 1000000 (gap at end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsAtEndTestSuperbig);
+
+        /* write at offset 0, partial size 500001, record size 1000001 (gap at end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsAtEndTestSuperbigPlus1);
+
+        /* write at offset 50, partial size 50, record size 100 (gap at beginning) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsAtBeginningSmall);
+
+        /* write at offset 500, partial size 500, record size 1000 (gap at beginning) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsAtBeginningBig);
+
+        /* write at offset 5000, partial size 5000, record size 10000 (gap at beginning) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsAtBeginningBigger);
+
+        /* write at offset 5001, partial size 5001, record size 10001 (gap at beginning) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsAtBeginningBiggerPlus1);
+
+        /* write at offset 50000, partial size 50000, record size 100000 (gap at beginning) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsAtBeginningBiggest);
+
+        /* write at offset 50001, partial size 50001, record size 100001 (gap at beginning) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsAtBeginningBiggestPlus1);
+
+        /* write at offset 500000, partial size 500000, record size 1000000 (gap at beginning) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsAtBeginningSuperbig);
+
+        /* write at offset 500001, partial size 500001, record size 1000001 (gap at beginning) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsAtBeginningSuperbigPlus1);
+
+        /* write at offset 50, partial size 50, record size 200 (gap at
+         * beginning AND end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsTestSmall);
+
+        /* write at offset 500, partial size 500, record size 2000 (gap at
+         * beginning AND end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsTestBig);
+
+        /* write at offset 5000, partial size 5000, record size 20000 (gap at
+         * beginning AND end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsTestBigger);
+
+        /* write at offset 5001, partial size 5001, record size 20001 (gap at
+         * beginning AND end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsTestBiggerPlus1);
+
+        /* write at offset 50000, partial size 50000, record size 200000 (gap at
+         * beginning AND end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsTestBiggest);
+
+        /* write at offset 50001, partial size 50001, record size 200001 (gap at
+         * beginning AND end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsTestBiggestPlus1);
+
+        /* write at offset 500000, partial size 500000, record size 2000000 
+         * (gap at beginning AND end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsTestSuperbig);
+
+        /* write at offset 500001, partial size 500001, record size 2000001 
+         * (gap at beginning AND end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsTestSuperbigPlus1);
+
+        /* write at offset PS, partial size PS, record size 2*PS 
+         * (gap at beginning AND end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsTestPagesize);
+
+        /* write at offset PS*2, partial size PS*2, record size 4*PS 
+         * (gap at beginning AND end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsTestPagesize2);
+
+        /* write at offset PS*4, partial size PS*4, record size 8*PS 
+         * (gap at beginning AND end) */
+        BFC_REGISTER_TEST(ShrinkPartialRecordTest, insertGapsTestPagesize4);
+    }
+
+protected:
+
+public:
+    void fillBufferReverse(ham_u8_t *ptr, ham_size_t size)
+    {
+        for (ham_size_t i=0; i<size; i++)
+            ptr[i]=(ham_u8_t)(0xff-i);
+    }
+
+    virtual void insertGaps(unsigned partial_offset, 
+                    unsigned partial_size, unsigned record_size)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_u8_t *buffer=(ham_u8_t *)malloc(record_size*2);
+
+        BFC_ASSERT(partial_offset+partial_size<=record_size);
+
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+
+        /* first: insert a record with a unique pattern and insert this record
+         * this record will be TWICE as big as the one to overwrite*/
+        fillBufferReverse(&buffer[0], record_size*2);
+        rec.size=record_size*2;
+        rec.data=buffer;
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+
+        /* then fill the buffer with another pattern and insert the partial
+         * record */
+        fillBuffer(&buffer[0], 0, record_size);
+
+        rec.partial_offset=partial_offset;
+        rec.partial_size=partial_size;
+        rec.size=record_size;
+        rec.data=buffer;
+        BFC_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL|HAM_OVERWRITE));
+
+        /* verify the key */
+        memset(&rec, 0, sizeof(rec));
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+
+        fillBufferReverse(&buffer[0], record_size);
+        fillBuffer(&buffer[partial_offset], 0, partial_size);
+        BFC_ASSERT_EQUAL(record_size, rec.size);
+        BFC_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
+        free(buffer);
+    }
+};
+
+class GrowPartialRecordTest : public BasePartialRecordTest
+{
+    define_super(BasePartialRecordTest);
+
+public:
+    GrowPartialRecordTest()
+    :   BasePartialRecordTest("GrowPartialRecordTest")
+    {
+        testrunner::get_instance()->register_fixture(this);
+        /* write at offset 0, partial size 50, record size 50 (no gaps) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, simpleInsertTest);
+
+        /* write at offset 0, partial size 50, record size 100 (gap at end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsAtEndTestSmall);
+
+        /* write at offset 0, partial size 500, record size 1000 (gap at end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsAtEndTestBig);
+
+        /* write at offset 0, partial size 5000, record size 10000 (gap at end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsAtEndTestBigger);
+
+        /* write at offset 0, partial size 5001, record size 10001 (gap at end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsAtEndTestBiggerPlus1);
+
+        /* write at offset 0, partial size 50000, record size 100000 (gap at end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsAtEndTestBiggest);
+
+        /* write at offset 0, partial size 50001, record size 100001 (gap at end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsAtEndTestBiggestPlus1);
+
+        /* write at offset 0, partial size 500000, record size 1000000 (gap at end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsAtEndTestSuperbig);
+
+        /* write at offset 0, partial size 500001, record size 1000001 (gap at end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsAtEndTestSuperbigPlus1);
+
+        /* write at offset 50, partial size 50, record size 100 (gap at beginning) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsAtBeginningSmall);
+
+        /* write at offset 500, partial size 500, record size 1000 (gap at beginning) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsAtBeginningBig);
+
+        /* write at offset 5000, partial size 5000, record size 10000 (gap at beginning) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsAtBeginningBigger);
+
+        /* write at offset 5001, partial size 5001, record size 10001 (gap at beginning) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsAtBeginningBiggerPlus1);
+
+        /* write at offset 50000, partial size 50000, record size 100000 (gap at beginning) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsAtBeginningBiggest);
+
+        /* write at offset 50001, partial size 50001, record size 100001 (gap at beginning) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsAtBeginningBiggestPlus1);
+
+        /* write at offset 500000, partial size 500000, record size 1000000 (gap at beginning) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsAtBeginningSuperbig);
+
+        /* write at offset 500001, partial size 500001, record size 1000001 (gap at beginning) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsAtBeginningSuperbigPlus1);
+
+        /* write at offset 50, partial size 50, record size 200 (gap at
+         * beginning AND end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsTestSmall);
+
+        /* write at offset 500, partial size 500, record size 2000 (gap at
+         * beginning AND end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsTestBig);
+
+        /* write at offset 5000, partial size 5000, record size 20000 (gap at
+         * beginning AND end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsTestBigger);
+
+        /* write at offset 5001, partial size 5001, record size 20001 (gap at
+         * beginning AND end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsTestBiggerPlus1);
+
+        /* write at offset 50000, partial size 50000, record size 200000 (gap at
+         * beginning AND end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsTestBiggest);
+
+        /* write at offset 50001, partial size 50001, record size 200001 (gap at
+         * beginning AND end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsTestBiggestPlus1);
+
+        /* write at offset 500000, partial size 500000, record size 2000000 
+         * (gap at beginning AND end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsTestSuperbig);
+
+        /* write at offset 500001, partial size 500001, record size 2000001 
+         * (gap at beginning AND end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsTestSuperbigPlus1);
+
+        /* write at offset PS, partial size PS, record size 2*PS 
+         * (gap at beginning AND end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsTestPagesize);
+
+        /* write at offset PS*2, partial size PS*2, record size 4*PS 
+         * (gap at beginning AND end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsTestPagesize2);
+
+        /* write at offset PS*4, partial size PS*4, record size 8*PS 
+         * (gap at beginning AND end) */
+        BFC_REGISTER_TEST(GrowPartialRecordTest, insertGapsTestPagesize4);
+    }
+
+protected:
+
+public:
+    void fillBufferReverse(ham_u8_t *ptr, ham_size_t size)
+    {
+        for (ham_size_t i=0; i<size; i++)
+            ptr[i]=(ham_u8_t)(0xff-i);
+    }
+
+    virtual void insertGaps(unsigned partial_offset, 
+                    unsigned partial_size, unsigned record_size)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_u8_t *buffer=(ham_u8_t *)malloc(record_size);
+
+        BFC_ASSERT(partial_offset+partial_size<=record_size);
+
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+
+        /* first: insert a record with a unique pattern and insert this record.
+         * this record will be SMALLER then the one which overwrites */
+        fillBufferReverse(&buffer[0], record_size);
+        rec.size=record_size/2;
+        rec.data=buffer;
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+
+        /* then fill the buffer with another pattern and insert the partial
+         * record */
+        fillBuffer(&buffer[0], 0, record_size);
+
+        rec.partial_offset=partial_offset;
+        rec.partial_size=partial_size;
+        rec.size=record_size;
+        rec.data=buffer;
+        BFC_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL|HAM_OVERWRITE));
+
+        /* verify the key */
+        memset(&rec, 0, sizeof(rec));
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
+
+        fillBufferReverse(&buffer[0], record_size);
+        fillBuffer(&buffer[partial_offset], 0, partial_size);
+        BFC_ASSERT_EQUAL(record_size, rec.size);
+        BFC_ASSERT_EQUAL(0, memcmp(buffer, rec.data, rec.size));
+        free(buffer);
+    }
+};
+
 BFC_REGISTER_FIXTURE(PartialRecordTest);
 BFC_REGISTER_FIXTURE(OverwritePartialRecordTest);
+BFC_REGISTER_FIXTURE(ShrinkPartialRecordTest);
+BFC_REGISTER_FIXTURE(GrowPartialRecordTest);

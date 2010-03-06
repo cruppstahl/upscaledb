@@ -117,15 +117,16 @@ o support partial reading/writing of records
                 x other sizes!
             x write poffset=50, psize=50, size=200 (gap at beginning+end)
                 x other sizes!
-        o overwrite/shrink poffset=0, psize=100, size=50 (shrink to 50)
+        x add tests to write/overwrite with multiple of pagesizes!
+        x overwrite/shrink poffset=0, psize=100, size=50 (shrink to 50)
+            x other sizes!
+            x other tests?
+        o overwrite/grow poffset=0, psize=100, size=50 (shrink to 50)
             o other sizes!
             o other tests?
-        o overwrite/resize poffset=0, psize=100, size=50 (shrink to 50)
-            o other sizes!
-            o other tests?
+        o test everything with different page sizes
         o repeat everything with in-memory blobs
         o same about reading
-        o test everything with different page sizes
     o use invalid sizes: offset > size, size=0, size=100&partial_size=0, 
             partial_size=0, ...
     o add to monster tests and monster.sh
