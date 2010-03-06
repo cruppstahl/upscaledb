@@ -357,6 +357,8 @@ __get_duplicate_table(dupe_table_t **table_ref, ham_page_t **page, ham_env_t *en
  * to device.
  * 
  * The content is, of course, prefixed by a BLOB header.
+ * 
+ * Partial writes are handled in this function.
  */
 ham_status_t
 blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
@@ -398,7 +400,6 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
         if (!p) {
             return HAM_OUT_OF_MEMORY;
         }
-        memcpy(p+sizeof(blob_t), record->data, record->size);
 
         /* initialize the header */
         hdr=(blob_t *)p;
@@ -406,6 +407,21 @@ blob_allocate(ham_env_t *env, ham_db_t *db, ham_record_t *record,
         blob_set_self(hdr, (ham_offset_t)PTR_TO_U64(p));
         blob_set_alloc_size(hdr, record->size+sizeof(blob_t));
         blob_set_size(hdr, record->size);
+
+        /* do we have gaps? if yes, fill them with zeroes */
+        if (flags&HAM_PARTIAL) {
+            ham_u8_t *s=p+sizeof(blob_t);
+            if (record->partial_offset)
+                memset(s, 0, record->partial_offset);
+            memcpy(s+record->partial_offset,
+                    record->data, record->partial_size);
+            if (record->partial_offset+record->partial_size<record->size)
+                memset(s+record->partial_offset+record->partial_size, 0, 
+                    record->size-(record->partial_offset+record->partial_size));
+        }
+        else {
+            memcpy(p+sizeof(blob_t), record->data, record->size);
+        }
 
         *blobid=(ham_offset_t)PTR_TO_U64(p);
         return (0);
@@ -651,8 +667,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
      * in-memory-database: the blobid is actually a pointer to the memory
      * buffer, in which the blob is stored
      */
-    if (env_get_rt_flags(db_get_env(db))&HAM_IN_MEMORY_DB) 
-	{
+    if (env_get_rt_flags(db_get_env(db))&HAM_IN_MEMORY_DB) {
         blob_t *hdr=(blob_t *)U64_TO_PTR(blobid);
         ham_u8_t *data=(ham_u8_t *)(U64_TO_PTR(blobid))+sizeof(blob_t);
 
@@ -663,16 +678,30 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
         }
 
         blobsize = (ham_size_t)blob_get_size(hdr);
+
+        if (flags&HAM_PARTIAL) {
+            if (record->partial_size+record->partial_offset>blobsize) {
+                ham_trace(("partial offset+size is greater than the total "
+                            "record size"));
+                return (db_set_error(db, HAM_INV_PARAMETER));
+            }
+            blobsize = record->partial_size;
+        }
+
         if (!blobsize) {
             /* empty blob? */
             record->data = 0;
             record->size = 0;
         }
         else {
+            ham_u8_t *d=data;
+            if (flags&HAM_PARTIAL)
+                d+=record->partial_offset;
+
             if ((flags&HAM_DIRECT_ACCESS) 
                     && !(record->flags&HAM_RECORD_USER_ALLOC)) {
-                record->size = blobsize;
-                record->data=data;
+                record->size=blobsize;
+                record->data=d;
             }
             else {
                 /* resize buffer, if necessary */
@@ -683,7 +712,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
                     record->data = db_get_record_allocdata(db);
                 }
                 /* and copy the data */
-                memcpy(record->data, data, blobsize);
+                memcpy(record->data, d, blobsize);
                 record->size = blobsize;
             }
         }
@@ -696,7 +725,8 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
     /*
      * first step: read the blob header 
      */
-    st=__read_chunk(db_get_env(db), 0, &page, blobid, (ham_u8_t *)&hdr, sizeof(hdr));
+    st=__read_chunk(db_get_env(db), 0, &page, blobid, 
+                    (ham_u8_t *)&hdr, sizeof(hdr));
     if (st)
         return (st);
 
@@ -708,10 +738,20 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
     if (blob_get_self(&hdr)!=blobid)
         return (HAM_BLOB_NOT_FOUND);
 
+    blobsize = (ham_size_t)blob_get_size(&hdr);
+
+    if (flags&HAM_PARTIAL) {
+        if (record->partial_size+record->partial_offset>blobsize) {
+            ham_trace(("partial offset+size is greater than the total "
+                        "record size"));
+            return (db_set_error(db, HAM_INV_PARAMETER));
+        }
+        blobsize = record->partial_size;
+    }
+
     /* 
      * empty blob? 
      */
-    blobsize = (ham_size_t)blob_get_size(&hdr);
     if (!blobsize) {
         record->data = 0;
         record->size = 0;
@@ -731,8 +771,11 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
     /*
      * third step: read the blob data
      */
-    st=__read_chunk(db_get_env(db), page, 0, blobid+sizeof(blob_t), record->data, 
-                    blobsize);
+    st=__read_chunk(db_get_env(db), page, 0, 
+                    blobid+sizeof(blob_t)+(flags&HAM_PARTIAL 
+                            ? record->partial_offset 
+                            : 0),
+                    record->data, blobsize);
     if (st)
         return (st);
 
@@ -775,7 +818,10 @@ blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid,
 
         if (blob_get_size(phdr)==record->size) {
             ham_u8_t *p=(ham_u8_t *)phdr;
-            memmove(p+sizeof(blob_t), record->data, record->size);
+            if (flags&HAM_PARTIAL) {
+                memmove(p+sizeof(blob_t)+record->partial_offset, 
+                        record->data, record->partial_size);
+            }
             *new_blobid=(ham_offset_t)PTR_TO_U64(phdr);
         }
         else {

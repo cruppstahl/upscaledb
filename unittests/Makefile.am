@@ -48,6 +48,7 @@ test_SOURCES    = log.cpp \
                   bfc-signal.h \
                   bfc-signal.c
 
+test_SOURCES    = partial.cpp main.cpp memtracker.cpp bfc-testsuite.cpp bfc-signal.c
 test_LDADD      = $(top_builddir)/src/libhamsterdb.la -ldl
 
 bfc_sample_SOURCES = bfc-sample.cpp \

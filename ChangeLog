@@ -1,3 +1,9 @@
+Mar 07, 2010 - chris
+o Implemented partial read/write - records can now be read or written 
+    partially (see flag HAM_PARTIAL for ham_find, ham_insert and others)
+    This new feature caused a change to ham_record_t, thus making the ABI
+    of hamsterdb incompatible to older versions
+
 Feb 27, 2010 - chris
 o Bugfix - ham_get_parameter failed if database was opened read-only
     (thanks, Austin)

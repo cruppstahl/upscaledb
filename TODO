@@ -96,7 +96,7 @@ o support partial reading/writing of records
             x unittest
         x for ham_cursor_insert
             x unittest
-    o implement test-driven; create unittests directly on blob_* functions!
+    x implement test-driven; create unittests directly on blob_* functions!
         x write poffset=0, psize=50, size=50 (no gaps)
         x write poffset=0, psize=50, size=100 (gap at end)
         x write poffset=0, psize=50kb, size=100kb (gap at end)
@@ -121,14 +121,25 @@ o support partial reading/writing of records
         x overwrite/shrink poffset=0, psize=100, size=50 (shrink to 50)
             x other sizes!
             x other tests?
-        o overwrite/grow poffset=0, psize=100, size=50 (shrink to 50)
-            o other sizes!
-            o other tests?
-        o test everything with different page sizes
-        o repeat everything with in-memory blobs
-        o same about reading
-    o use invalid sizes: offset > size, size=0, size=100&partial_size=0, 
+        x overwrite/grow poffset=0, psize=100, size=50 (shrink to 50)
+            x other sizes!
+            x other tests?
+        x test everything with different page sizes
+        x repeat everything with in-memory blobs
+        x same about reading
+            x read with gap at end
+            x read with gap at beginning
+            x read with gap at beginning + end
+            x everything for different pagesizes
+            x everything for in-memory
+            x everything for in-memory + direct access
+    x use invalid sizes: offset > size, size=0, size=100&partial_size=0, 
             partial_size=0, ...
+        x for writing
+            x poffset>size
+            x psize>size
+            x poffset+psize>size
+        x and everyting for reading
     o add to monster tests and monster.sh
     o documentation in tutorial
 
