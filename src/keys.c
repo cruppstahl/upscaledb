@@ -190,7 +190,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
                 key_set_ptr(key, rid);
         }
         else {
-            st=blob_overwrite(env, db, ptr, record, 0, &rid);
+            st=blob_overwrite(env, db, ptr, record, flags, &rid);
             if (st)
                 return (st);
             key_set_ptr(key, rid);

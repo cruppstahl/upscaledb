@@ -752,6 +752,19 @@ blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid,
     ham_page_t *page;
 
     /*
+     * PARTIAL WRITE
+     * 
+     * if offset+partial_size equals the full record size, then we won't 
+     * have any gaps. In this case we just write the full record and ignore
+     * the partial parameters.
+     */
+    if (flags&HAM_PARTIAL) {
+        if (record->partial_offset==0 
+                && record->partial_offset+record->partial_size==record->size)
+            flags&=~HAM_PARTIAL;
+    }
+
+    /*
      * inmemory-databases: free the old blob, 
      * allocate a new blob (but if both sizes are equal, just overwrite
      * the data)
@@ -817,11 +830,6 @@ blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid,
         ham_u8_t *chunk_data[2];
         ham_size_t chunk_size[2];
 
-        chunk_data[0]=(ham_u8_t *)&new_hdr;
-        chunk_size[0]=sizeof(new_hdr);
-        chunk_data[1]=record->data;
-        chunk_size[1]=record->size;
-
         /* 
          * setup the new blob header
          */
@@ -833,10 +841,43 @@ blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid,
         else
             blob_set_alloc_size(&new_hdr, blob_get_alloc_size(&old_hdr));
 
-        st=__write_chunks(env, page, blob_get_self(&new_hdr), HAM_FALSE,
-                HAM_FALSE, chunk_data, chunk_size, 2);
-        if (st)
-            return (st);
+        /*
+         * PARTIAL WRITE
+         *
+         * if we have a gap at the beginning, then we have to write the
+         * blob header and the blob data in two steps; otherwise we can
+         * write both immediately
+         */
+        if ((flags&HAM_PARTIAL) && (record->partial_offset)) {
+            chunk_data[0]=(ham_u8_t *)&new_hdr;
+            chunk_size[0]=sizeof(new_hdr);
+            st=__write_chunks(env, page, blob_get_self(&new_hdr), HAM_FALSE,
+                    HAM_FALSE, chunk_data, chunk_size, 1);
+            if (st)
+                return (st);
+
+            chunk_data[0]=record->data;
+            chunk_size[0]=record->partial_size;
+            st=__write_chunks(env, page, 
+                    blob_get_self(&new_hdr)+sizeof(new_hdr)
+                            +record->partial_offset, 
+                    HAM_FALSE, HAM_FALSE, chunk_data, chunk_size, 1);
+            if (st)
+                return (st);
+        }
+        else {
+            chunk_data[0]=(ham_u8_t *)&new_hdr;
+            chunk_size[0]=sizeof(new_hdr);
+            chunk_data[1]=record->data;
+            chunk_size[1]=(flags&HAM_PARTIAL) 
+                                ? record->partial_size 
+                                : record->size;
+
+            st=__write_chunks(env, page, blob_get_self(&new_hdr), HAM_FALSE,
+                    HAM_FALSE, chunk_data, chunk_size, 2);
+            if (st)
+                return (st);
+        }
 
         /*
          * move remaining data to the freelist
