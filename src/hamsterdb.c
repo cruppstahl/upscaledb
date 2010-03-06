@@ -3003,7 +3003,9 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
                 p->value=env ? env_get_file_mode(env) : 0;
                 break;
             case HAM_PARAM_GET_FILENAME:
-                p->value=env ? (PTR_TO_U64(env_get_filename(env))) : 0;
+                p->value=env 
+                        ? (ham_u64_t)(PTR_TO_U64(env_get_filename(env))) 
+                        : 0;
                 break;
             case HAM_PARAM_GET_STATISTICS:
                 if (!p->value) {
@@ -3064,7 +3066,7 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param)
                 break;
             case HAM_PARAM_GET_FILENAME:
                 p->value=(db && db_get_env(db)) 
-                            ? PTR_TO_U64(env_get_filename(db_get_env(db)))
+                            ? (ham_u64_t)PTR_TO_U64(env_get_filename(env))
                             : 0;
                 break;
             case HAM_PARAM_DBNAME:
