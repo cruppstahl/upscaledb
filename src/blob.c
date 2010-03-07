@@ -1045,26 +1045,6 @@ __get_sorted_position(ham_db_t *db, dupe_table_t *table, ham_record_t *record,
         /* assume the insertion point sits at the end of the dupe table */
         m = r;
     }
-    else if (dam & HAM_DAM_FAST_INSERT) {
-        /*
-         * can't really say how to speed these buggers up, apart from maybe
-         * assuming the insertion point is at the previously known position.
-         */
-        m = dupe_table_get_count(table);
-        if (m > r)
-            m = r;
-        /* 
-         * as this is only a split point, we check which side is shortest 
-         * and adjust the split point to the other side, so the reduction 
-         * can be quickened when all assumptions match.
-         */
-        if (r - m > m - l) {
-            m++;
-        }
-        else if (m > 0) {
-            m--;
-        }
-    }
     else {
         m = (l + r) / 2;
     }

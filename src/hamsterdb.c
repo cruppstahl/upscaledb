@@ -842,13 +842,8 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                         break;
                     case HAM_DAM_SEQUENTIAL_INSERT:
                     case HAM_DAM_RANDOM_WRITE:
-                    case HAM_DAM_FAST_INSERT:
-                    /* and all more-or-less viable permutations thereof ... */
-                    case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
-                    case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
                         dam=(ham_u16_t)param->value;
                         break;
-
                     default:
                         ham_trace(("invalid value 0x%04x specified for "
                                 "parameter HAM_PARAM_DATA_ACCESS_MODE", 

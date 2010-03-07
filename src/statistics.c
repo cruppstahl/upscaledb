@@ -801,10 +801,6 @@ btree_find_get_hints(find_hints_t *hints, ham_db_t *db, ham_key_t *key)
             case HAM_DAM_SEQUENTIAL_INSERT:
                 flags = HAM_HINT_SEQUENTIAL;
                 break;
-
-            case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
-                flags = HAM_HINT_SEQUENTIAL | HAM_HINT_UBER_FAST_ACCESS;
-                break;
             }
         }
 
@@ -1114,10 +1110,6 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
 
             case HAM_DAM_SEQUENTIAL_INSERT:
                 hints->flags |= HAM_HINT_SEQUENTIAL;
-                break;
-
-            case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
-                hints->flags |= HAM_HINT_SEQUENTIAL | HAM_HINT_UBER_FAST_ACCESS;
                 break;
             }
         }

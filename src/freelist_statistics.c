@@ -925,8 +925,7 @@ db_get_global_freelist_hints(freelist_global_hints_t *dst, ham_device_t *dev, ha
      * rather low.
      */
     switch (dst->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
-                            | HAM_DAM_RANDOM_WRITE
-                            | HAM_DAM_FAST_INSERT))
+                            | HAM_DAM_RANDOM_WRITE))
     {
         /* SEQ+RANDOM_ACCESS: impossible mode; nasty trick for testing 
          * to help Overflow4 unittest pass: disables global hinting, 
@@ -960,13 +959,6 @@ db_get_global_freelist_hints(freelist_global_hints_t *dst, ham_device_t *dev, ha
     case HAM_DAM_SEQUENTIAL_INSERT:
     case HAM_DAM_RANDOM_WRITE:
             dst->max_rounds = 8;
-        }
-        if (0)
-        {
-    case HAM_DAM_FAST_INSERT:
-    case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
-    case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
-            dst->max_rounds = 3;
         }
         if (dst->max_rounds >= freel_cache_get_count(cache)) {
             /* dst->max_rounds = freel_cache_get_count(cache); */
@@ -1227,147 +1219,9 @@ db_get_freelist_entry_hints(freelist_hints_t *dst, ham_device_t *dev, ham_env_t 
         reduce the search range to span only the really available
         free slots
         */
-        if (dst->endpos > offset)
-		{
+        if (dst->endpos > offset) {
             dst->endpos = offset;
 		}
-
-        /*
-         * NOW that we have the range and everything to things we are
-         * certain about, we can further improve things by introducing a
-         * bit of heuristics a.k.a. statistical mumbojumbo:
-         *
-         * when we're in UBER/FAST mode and SEQUENTIAL to boot, we only
-         * wish to look at the last chunk of free space and ignore the
-         * rest.
-         *
-         * When we're in UBER/FAST mode, CLASSIC style, we don't feel
-         * like wading through an entire freelist every time when we
-         * know already that utilization is such that our chances at
-         * finding a match are low, which means we'd rather turn this
-         * thing into SEQUENTIAL mode, maybe even SEQUENTIAL+UBER/FAST,
-         * for as long as the utilization is such that our chance at
-         * finding a match is still rather low.
-         */
-        switch (dst->mgt_mode & (HAM_DAM_SEQUENTIAL_INSERT
-                                | HAM_DAM_RANDOM_WRITE
-                                | HAM_DAM_FAST_INSERT))
-        {
-        default:
-        case HAM_DAM_SEQUENTIAL_INSERT:
-        case HAM_DAM_RANDOM_WRITE:
-            /* 
-            we're good as we are; no fancy footwork here. 
-            */
-            break;
-            
-        /*
-         * here's where we get fancy:
-         *
-         * 1) basic FAST_INSERT will be treated like
-         * RANDOM_ACCESS+FAST_INSERT:
-         *
-         * we'll get fed up with scanning the entire freelist when our
-         * fail/success ratio, i.e. our utilization indices are through
-         * the roof, metaphorically speaking. Right then, we simply say
-         * we'd like to act as if we were in SEQUENTIAL, with possibly a
-         * FAST thrown in there, mode.
-         *
-         * 2) SEQUENTAL + FAST gets special treatment in that the start
-         * offset will be moved all the way up to the last free zone in
-         * this freelist:
-         * that's where the trailing free  space is and either it's big
-         * enough for us to score a hit, or it's too small and another
-         * free page will be added to the database.
-         */
-        case HAM_DAM_FAST_INSERT:
-        case HAM_DAM_RANDOM_WRITE | HAM_DAM_FAST_INSERT:
-            {
-                /*
-                 * calculate ratio; the +1 in the divisor is to prevent
-                 * division-by-zero;
-                 * it effect is otherwise negligible
-                 */
-                ham_u64_t cost_ratio; 
-                ham_u64_t promille;
-                ham_bool_t fast_seq_mode = HAM_FALSE;
-
-                promille = entrystats->per_size[bucket].epic_fail_midrange;
-                promille = (promille * 1000) / (1 + promille 
-                        + entrystats->per_size[bucket].epic_win_midrange);
-                
-                cost_ratio = entrystats->per_size[bucket].ok_scan_cost;
-                cost_ratio = (cost_ratio  * 1000) 
-                    / (1 + entrystats->per_size[bucket].scan_cost);
-
-                /*
-                 * at 50% of searches FAILing, we switch over to
-                 * SEQUENTIAL mode:
-                 * we may not gain from it directly, but we MAY gain
-                 * from this as the search order now reverses so we MAY
-                 * hit suitable free slots earlier.
-                 *
-                 * WHEN we get that gain, we won't get it permanently,
-                 * because as fail % goes down, we'll switch back to the
-                 * original 'regular'
-                 * mode, which may cost us again; so the expectation
-                 * here is that, in case of luck, we'll float around
-                 * this 50% number here, causing an effective gain of
-                 * less than a factor of 2 then.
-                 *
-                 * Still, it's a gain, and it's adaptive ;-)
-                 */
-                if (promille > 500) {
-                    dst->mgt_mode &= ~(HAM_DAM_RANDOM_WRITE 
-                            | HAM_DAM_FAST_INSERT);
-                    dst->mgt_mode |= HAM_DAM_SEQUENTIAL_INSERT;
-                }
-                /*
-                 * if we don't get any better though, there's to be a
-                 * more harsh approach: SEQUENTIAL+FAST when fail rates
-                 * went up to 90% !!!
-                 *
-                 * This implies we'll accept about 10% 'gaps' in our
-                 * database file.
-                 *
-                 *
-                 * OR When our FAIL cost ratio is surpassing 90%, we'll
-                 * change to SEQ+FAST as well.
-                 */
-                if (promille > 900 || cost_ratio > 900) {
-                    dst->mgt_mode &= ~(HAM_DAM_RANDOM_WRITE 
-                            | HAM_DAM_FAST_INSERT);
-                    dst->mgt_mode |= HAM_DAM_SEQUENTIAL_INSERT 
-                        | HAM_DAM_FAST_INSERT;
-
-                    /*
-                     * and when we do this, we should act as we do for
-                     * SEQ+FAST, so we fall through to the next case:
-                     */
-                    fast_seq_mode = HAM_TRUE;
-                }
-
-                if (!fast_seq_mode)
-                    break;
-            }
-            /* FALL THROUGH! */
-
-        case HAM_DAM_SEQUENTIAL_INSERT | HAM_DAM_FAST_INSERT:
-            /*
-             * we're clearly in a hurry to get to the end of the
-             * universe. Restaurant appointment there, perchance? ;-)
-             *
-             * Okay, help is on the way: we'll bump the start offset to
-             * point at the very last - and ascertained - chunk of free
-             * slots in this freelist
-             */
-            offset = entrystats->last_start;
-            if (dst->startpos < offset)
-			{
-                dst->startpos = offset;
-			}
-            break;
-        }
 
         /* take alignment into account as well! */
         if (dst->aligned) {

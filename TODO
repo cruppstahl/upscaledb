@@ -155,70 +155,23 @@ x partial read: do not fail if offset+psize>size - instead, limit psize
         x tutorial
         x hamsterdb.h
 
-o hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
+x hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
 --overwrite=1 --reopen=1
     -->==4434== Invalid read of size 1
-==4434==    at 0x41FF64: __freel_alloc_area32 (freelist.c:2576)
-==4434==    by 0x421072: freel_alloc_area_ex (freelist.c:4807)
-==4434==    by 0x416918: blob_allocate (blob.c:414)
-==4434==    by 0x416D8F: blob_overwrite (blob.c:721)
-==4434==    by 0x410D6A: key_set_record (keys.c:158)
-==4434==    by 0x41B60E: my_insert_nosplit (btree_insert.c:748)
-==4434==    by 0x41BD92: my_insert_in_page (btree_insert.c:604)
-==4434==    by 0x41C03C: T.76 (btree_insert.c:503)
-==4434==    by 0x41BFE3: T.76 (btree_insert.c:517)
-==4434==    by 0x41C112: my_insert_cursor (btree_insert.c:351)
-==4434==    by 0x41C487: btree_insert_cursor (btree_insert.c:458)
-==4434==    by 0x40A02D: ham_insert (hamsterdb.c:3909)
-==4434==  Address 0x632b5a1 is 1 bytes after a block of size 1,024 alloc'd
-==4434==    at 0x4C25153: malloc (vg_replace_malloc.c:195)
-==4434==    by 0x413B3C: __f_read_page (device.c:171)
-==4434==    by 0x41D0C4: db_fetch_page (db.c:979)
-==4434==    by 0x41F292: __freel_mark_free32 (freelist.c:4359)
-==4434==    by 0x416D05: blob_overwrite (blob.c:703)
-==4434==    by 0x410D6A: key_set_record (keys.c:158)
-==4434==    by 0x41B60E: my_insert_nosplit (btree_insert.c:748)
-==4434==    by 0x41BD92: my_insert_in_page (btree_insert.c:604)
-==4434==    by 0x41C03C: T.76 (btree_insert.c:503)
-==4434==    by 0x41BFE3: T.76 (btree_insert.c:517)
-==4434==    by 0x41C112: my_insert_cursor (btree_insert.c:351)
-==4434==    by 0x41C487: btree_insert_cursor (btree_insert.c:458)
-==4434== 
-==4434== Invalid read of size 1
-==4434==    at 0x41FF64: __freel_alloc_area32 (freelist.c:2576)
-==4434==    by 0x421072: freel_alloc_area_ex (freelist.c:4807)
-==4434==    by 0x416918: blob_allocate (blob.c:414)
-==4434==    by 0x410BB0: key_set_record (keys.c:126)
-==4434==    by 0x41B60E: my_insert_nosplit (btree_insert.c:748)
-==4434==    by 0x41BD92: my_insert_in_page (btree_insert.c:604)
-==4434==    by 0x41C03C: T.76 (btree_insert.c:503)
-==4434==    by 0x41BFE3: T.76 (btree_insert.c:517)
-==4434==    by 0x41C112: my_insert_cursor (btree_insert.c:351)
-==4434==    by 0x41C487: btree_insert_cursor (btree_insert.c:458)
-==4434==    by 0x40A02D: ham_insert (hamsterdb.c:3909)
-==4434==    by 0x4054F2: hamsterdb::insert(ham_key_t*, ham_record_t*) (hamsterdb.cpp:277)
-==4434==  Address 0x69cb8b1 is 1 bytes after a block of size 1,024 alloc'd
-==4434==    at 0x4C25153: malloc (vg_replace_malloc.c:195)
-==4434==    by 0x413B3C: __f_read_page (device.c:171)
-==4434==    by 0x41D0C4: db_fetch_page (db.c:979)
-==4434==    by 0x41F292: __freel_mark_free32 (freelist.c:4359)
-==4434==    by 0x416DB4: blob_overwrite (blob.c:725)
-==4434==    by 0x410D6A: key_set_record (keys.c:158)
-==4434==    by 0x41B60E: my_insert_nosplit (btree_insert.c:748)
-==4434==    by 0x41BD92: my_insert_in_page (btree_insert.c:604)
-==4434==    by 0x41C03C: T.76 (btree_insert.c:503)
-==4434==    by 0x41BFE3: T.76 (btree_insert.c:517)
-==4434==    by 0x41C112: my_insert_cursor (btree_insert.c:351)
-==4434==    by 0x41C487: btree_insert_cursor (btree_insert.c:458)
+    ==4434==    at 0x41FF64: __freel_alloc_area32 (freelist.c:2576)
+    ==4434==    by 0x421072: freel_alloc_area_ex (freelist.c:4807)
+    ==4434==    by 0x416918: blob_allocate (blob.c:414)
+    ==4434==    by 0x416D8F: blob_overwrite (blob.c:721)
 
 o make sure that in-memory Environments NEVER create/use the freelist!
+    x fix the valgrind issue above
+    x remove HAM_DAM_FAST_INSERT
+        x acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
+            -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
+        x remove from header file
+        x remove from tutorial -- anyway it's not mentioned!
     o unittest!
     o refactor the freelist and try to get rid of the crash at work
-    o fix the valgrind issue above
-    o remove HAM_DAM_FAST_INSERT -- or get it working!?
-        o acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
-            -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
-        o re-enable tests in monster.sh
 
 o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES
     o documentation

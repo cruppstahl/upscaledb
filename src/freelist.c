@@ -2886,29 +2886,8 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
             return -1;
         }
 
-        if (db_is_mgt_mode_set(hints->mgt_mode, HAM_DAM_SEQUENTIAL_INSERT))
-        {
-            if (db_is_mgt_mode_set(hints->mgt_mode, HAM_DAM_FAST_INSERT))
-            {
-                /*
-                 * SEQUENTIAL+FAST: go for the jugular:
-                 *
-                 * only scan the very last freelist page and ignore all
-                 * the others!
-                 */
-                if (start_index == -1)
-                {
-                    /* first round: position ourselves at the end of the list: */
-                    start_index = freel_cache_get_count(cache) - hints->page_span_width;
-                }
-                else
-                {
-                    /* we're done: QUIT */
-                    return -1;
-                }
-            }
-            else
-            {
+        if (db_is_mgt_mode_set(hints->mgt_mode, HAM_DAM_SEQUENTIAL_INSERT)) {
+            if (1) {
                 /*
                  * SEQUENTIAL:
                  *
@@ -2962,8 +2941,7 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
                 }
             }
         }
-        else
-        {
+        else {
             /*
              * 'regular' modes: does this freelist entry have enough
              * allocated blocks to satisfy the request?
@@ -3012,53 +2990,59 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
         ham_assert(start_index >= (ham_s32_t)hints->start_entry, (0));
         entry = freel_cache_get_entries(cache) + start_index;
 
-        ham_assert(freel_entry_get_allocated_bits(entry) <= freel_entry_get_max_bits(entry), (0));
+        ham_assert(freel_entry_get_allocated_bits(entry) 
+                        <= freel_entry_get_max_bits(entry), (0));
 
         /* 
-        the regular check: no way if there's not enough in there, lump sum 
-        */
-        if (hints->page_span_width > 1)
-        {
+         * the regular check: no way if there's not enough in there, lump sum 
+         */
+        if (hints->page_span_width > 1) {
             /*        
-            handle this a little differently for 'huge blobs' which span multiple freelist entries: there,
-            we'll be looking at _at least_ SPAN-2 'fully allocated AND free' freelist entries,
-            that is: left edge (freelist entry), right edge entry and zero or more 'full sized 
-            freelist entries' in between.
-            
-            Checking for these 'completely free' entries is much easier (and faster) than plodding
-            through their free bits to see whether the requested number of free bits may be available.
-
-            To keep it simple, we only check the first freelist entry here and leave the rest to the
-            outer search/alloc routine.
-
-            NOTE: we 'shortcut' the SPAN-2 theoretical layout by aligning such EXTREMELY HUGE BLOBS
-                  on a /freelist entry/ size boundary, i.e. we consider such blobs to start at a
-                  fully free freelist entry; consequently (thanks to this alignment, introduced
-                  as a search optimization) such blobs take up SPAN-1 freelist entries: no left edge,
-                  SPAN-1 full entries, right edge (i.e. partial) freelist entry.
-
-                  This shortcut has a side effect: these extremely huge blobs make the database
-                  storage space grow faster than absolutely necessary when space efficiency would've
-                  been a prime concern: as we 'align' such blobs to a freelist entry, we have a
-                  worst-case fill rate of slighty over 50%: 1span+1chunk wide blobs will 'span'
-                  2 entries and is the smallest 'huge blob' which will trigger this shortcut,
-                  resulting in it being search-aligned to a fully free freelist entry every time,
-                  meaning that we'll have a 'left over' of 1 /almost/ fully free freelist entry
-                  per 'huge blob' --> fill ratio = (1+.0000000001)/2 > 50%
-            */
-            if (freel_entry_get_allocated_bits(entry) != freel_entry_get_max_bits(entry))
-            {
+             * handle this a little differently for 'huge blobs' which span 
+             * multiple freelist entries: there, we'll be looking at _at 
+             * least_ SPAN-2 'fully allocated AND free' freelist entries,
+             * that is: left edge (freelist entry), right edge entry and 
+             * zero or more 'full sized freelist entries' in between.
+             *
+             * Checking for these 'completely free' entries is much easier 
+             * (and faster) than plodding through their free bits to see 
+             * whether the requested number of free bits may be available.
+             *
+             * To keep it simple, we only check the first freelist entry 
+             * here and leave the rest to the outer search/alloc routine.
+             *
+             * NOTE: we 'shortcut' the SPAN-2 theoretical layout by aligning 
+             * such EXTREMELY HUGE BLOBS on a /freelist entry/ size boundary, 
+             * i.e. we consider such blobs to start at a fully free freelist 
+             * entry; consequently (thanks to this alignment, introduced
+             * as a search optimization) such blobs take up SPAN-1 freelist 
+             * entries: no left edge, SPAN-1 full entries, right edge (i.e. 
+             * partial) freelist entry.
+             *
+             * This shortcut has a side effect: these extremely huge blobs 
+             * make the database storage space grow faster than absolutely 
+             * necessary when space efficiency would've been a prime concern: 
+             * as we 'align' such blobs to a freelist entry, we have a
+             * worst-case fill rate of slighty over 50%: 1span+1chunk wide 
+             * blobs will 'span' 2 entries and is the smallest 'huge blob' 
+             * which will trigger this shortcut, resulting in it being 
+             * search-aligned to a fully free freelist entry every time,
+             * meaning that we'll have a 'left over' of 1 /almost/ fully 
+             * free freelist entry per 'huge blob' --> fill 
+             * ratio = (1+.0000000001)/2 > 50%
+             */
+            if (freel_entry_get_allocated_bits(entry) 
+                    != freel_entry_get_max_bits(entry)) {
                 continue;
             }
         }
-        else
-        {
+        else {
             /* 
-            regular requests do not overflow beyond the freelist entry boundary, i.e.
-            must fit in the current freelist entry page in their entirety.
-            */
-            if (freel_entry_get_allocated_bits(entry) < hints->size_bits) 
-            {
+             * regular requests do not overflow beyond the freelist entry 
+             * boundary, i.e. must fit in the current freelist entry page 
+             * in their entirety.
+             */
+            if (freel_entry_get_allocated_bits(entry) < hints->size_bits) {
                 continue;
             }
         }
@@ -3096,12 +3080,12 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
          * an (optimistic) estimate. Our current mgt_mode will take it
          * from there...
          */
-        //if (entrystats->persisted_bits > 0)
         dst->startpos = 0;
-        if (freel_entry_get_start_address(entry) < hints->lower_bound_address)
-        {
-            ham_assert(HAM_MAX_U32 >= ((hints->lower_bound_address - freel_entry_get_start_address(entry)) / DB_CHUNKSIZE), (0));
-            dst->startpos = (ham_u32_t)((hints->lower_bound_address - freel_entry_get_start_address(entry)) / DB_CHUNKSIZE);
+        if (freel_entry_get_start_address(entry) < hints->lower_bound_address) {
+            ham_assert(HAM_MAX_U32 >= ((hints->lower_bound_address 
+                - freel_entry_get_start_address(entry)) / DB_CHUNKSIZE), (0));
+            dst->startpos = (ham_u32_t)((hints->lower_bound_address 
+                - freel_entry_get_start_address(entry)) / DB_CHUNKSIZE);
         }
         dst->endpos = freel_entry_get_max_bits(entry);
         dst->skip_distance = hints->size_bits;
@@ -3114,32 +3098,32 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
 
         dst->cost = 1;
 
-        if (hints->page_span_width > 1)
-        {
+        if (hints->page_span_width > 1) {
             /*
-            with multi-entry spanning searches, there's no requirement for per-page hinting,
-            so we don't do it.
-
-            However, we like our storage to be db page aligned, thank you very much ;-)
-            */
+             * with multi-entry spanning searches, there's no requirement 
+             * for per-page hinting, so we don't do it.
+             *
+             * However, we like our storage to be db page aligned, thank 
+             * you very much ;-)
+             */
             dst->aligned = HAM_TRUE;
         }
-        else
-        {
+        else {
             db_get_freelist_entry_hints(dst, dev, env, entry);
 
-            if (dst->startpos + dst->size_bits > dst->endpos)
-            {
+            if (dst->startpos + dst->size_bits > dst->endpos) {
                 /* forget it: not enough space in there anyway! */
                 continue;
             }
         }
 
-        /* we've done all we could to pick a good freelist page; now it's up to the caller */
+        /* we've done all we could to pick a good freelist page; now 
+         * it's up to the caller */
         break;
     }
 
-    /* always count call as ONE round, at least: that's minus 1 for the successful trial outside */
+    /* always count call as ONE round, at least: that's minus 1 for 
+     * the successful trial outside */
     hints->max_rounds--; 
 
 #if defined(HAM_DEBUG)
@@ -3147,8 +3131,13 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
     ham_assert(start_index < (ham_s32_t)freel_cache_get_count(cache), (0));
     ham_assert(start_index >= (ham_s32_t)hints->start_entry, (0));
     entry = freel_cache_get_entries(cache) + start_index;
-    ham_assert(hints->page_span_width <= 1 ? freel_entry_get_allocated_bits(entry) >= hints->size_bits : HAM_TRUE, (0));
-    ham_assert(hints->page_span_width > 1 ? freel_entry_get_allocated_bits(entry) == freel_entry_get_max_bits(entry) : HAM_TRUE, (0));
+    ham_assert(hints->page_span_width <= 1 
+                ? freel_entry_get_allocated_bits(entry) >= hints->size_bits 
+                : HAM_TRUE, (0));
+    ham_assert(hints->page_span_width > 1 
+                ? freel_entry_get_allocated_bits(entry) 
+                        == freel_entry_get_max_bits(entry) 
+                : HAM_TRUE, (0));
 #endif
 
     return start_index;
@@ -3202,7 +3191,8 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
      * them along.
      */
     for (i = -1;
-        0 <= (i = __freel_locate_sufficient_free_space(&hints, &global_hints, dev, env, cache, i));
+        0 <= (i = __freel_locate_sufficient_free_space(&hints, 
+                            &global_hints, dev, env, cache, i));
         )
     {
         ham_assert(i < (ham_s32_t)freel_cache_get_count(cache), (0));
@@ -3210,58 +3200,63 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
         entry = freel_cache_get_entries(cache) + i;
             
         /*
-        when we look for a free slot for a multipage spanning blob ('huge blob'), we
-        could, of course, play nice, and check every bit of freelist, but that takes
-        time.
-
-        The faster approach employed here is to look for a sufficiently large sequence
-        of /completely free/ freelist pages; the worst case space utilization of this
-        speedup is >50% as the worst case is looking for a chunk of space as large as
-        one freelist page (~ DB_CHUNKSIZE db pages) + 1 byte, in which case the 
-        second freelist page will not be checked against a subsequent huge size request
-        as it is not 'completely free' any longer, thus effectively occupying 2 freelist
-        page spans where 1 (and a bit) would have sufficed, resulting in a worst case space utilization
-        of a little more than 50%. 
-        
-        I can live with that.
-        */
-        if (global_hints.page_span_width > 1)
-        {
+         * when we look for a free slot for a multipage spanning blob 
+         * ('huge blob'), we could, of course, play nice, and check every 
+         * bit of freelist, but that takes time.
+         *
+         * The faster approach employed here is to look for a sufficiently 
+         * large sequence of /completely free/ freelist pages; the worst 
+         * case space utilization of this speedup is >50% as the worst case 
+         * is looking for a chunk of space as large as one freelist page 
+         * (~ DB_CHUNKSIZE db pages) + 1 byte, in which case the second 
+         * freelist page will not be checked against a subsequent huge size 
+         * request as it is not 'completely free' any longer, thus effectively 
+         * occupying 2 freelist page spans where 1 (and a bit) would have 
+         * sufficed, resulting in a worst case space utilization of a little 
+         * more than 50%. 
+         *
+         * I can live with that.
+         */
+        if (global_hints.page_span_width > 1) {
             /*
-            we must employ a different freelist alloc system for requests spanning multiple
-            freelist pages as the regular __freel_search_bits_ex() is not able to cope with such
-            requests.
-
-            hamsterdb versions prior to 1.1.0 would simply call that function and fail every time,
-            resulting in a behaviour where 'huge blobs' could be added or overwritten in the database,
-            but erased huge blobs' space would never be re-used for subsequently inserted 'huge blobs',
-            thus resulting in an ever growing database file when hamsterdb would be subjected to a
-            insert+erase use pattern for huge blobs.
-
-            Note that the multipage spanning search employs a Boyer-Moore search mechanism, which is
-            (at least partly) built into the __freel_locate_sufficient_free_space() function;
-            all that's left for us here is to scan _backwards_ conform BM to see if we have a sufficiently
-            large sequence of completely freed freelist entries.
-            */
+             * we must employ a different freelist alloc system for requests 
+             * spanning multiple freelist pages as the regular 
+             * __freel_search_bits_ex() is not able to cope with such
+             * requests.
+             * 
+             * hamsterdb versions prior to 1.1.0 would simply call that 
+             * function and fail every time, resulting in a behaviour where 
+             * 'huge blobs' could be added or overwritten in the database,
+             * but erased huge blobs' space would never be re-used for 
+             * subsequently inserted 'huge blobs', thus resulting in an ever 
+             * growing database file when hamsterdb would be subjected to a
+             * insert+erase use pattern for huge blobs.
+             *
+             * Note that the multipage spanning search employs a Boyer-Moore 
+             * search mechanism, which is (at least partly) built into the 
+             * __freel_locate_sufficient_free_space() function;
+             * all that's left for us here is to scan _backwards_ conform 
+             * BM to see if we have a sufficiently large sequence of 
+             * completely freed freelist entries.
+             */
             ham_size_t pagecount_sought = hints.page_span_width;
             ham_size_t start_idx;
             ham_size_t end_idx;
             ham_size_t available = freel_entry_get_allocated_bits(entry);
 
-            ham_assert(freel_entry_get_allocated_bits(entry) <= freel_entry_get_max_bits(entry), (0));
+            ham_assert(freel_entry_get_allocated_bits(entry) 
+                        <= freel_entry_get_max_bits(entry), (0));
             ham_assert(i >= (ham_s32_t)hints.page_span_width, (0));
             /*
-            entry points at a freelist entry in the possible sequence, scan back and forth 
-            to discover our actual sequence length. Scan back first, then forward when we need a
-            tail.
-            */
-            for (start_idx = 0; ++start_idx < pagecount_sought; )
-            {
+             * entry points at a freelist entry in the possible sequence, scan 
+             * back and forth to discover our actual sequence length. Scan 
+             * back first, then forward when we need a tail.
+             */
+            for (start_idx = 0; ++start_idx < pagecount_sought; ) {
                 ham_assert(i >= (ham_s32_t)start_idx, (0));
                 ham_assert(i - start_idx >= global_hints.start_entry, (0));
                 if (freel_entry_get_allocated_bits(entry - start_idx) 
-                    != freel_entry_get_max_bits(entry - start_idx))
-                {
+                        != freel_entry_get_max_bits(entry - start_idx)) {
                     break;
                 }
                 available += freel_entry_get_allocated_bits(entry - start_idx);
@@ -3269,48 +3264,50 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
             start_idx--;
 
             /* 
-            now see if we need (and have) a sufficiently large tail;
-            we can't simply say 
-            
-                pagecount_sought -= start_idx;
-
-            because our very first freelist entry in the sequence may have less maxbits than the others
-            (as it may be the header page!) so we need to properly calculate the number of freelist 
-            entries that we need more:
-            */
-            ham_assert(hints.size_bits + hints.freelist_pagesize_bits - 1 >= available, (0));
+             * now see if we need (and have) a sufficiently large tail;
+             * we can't simply say 
+             * 
+             *      pagecount_sought -= start_idx;
+             *
+             * because our very first freelist entry in the sequence may have 
+             * less maxbits than the others (as it may be the header page!) 
+             * so we need to properly calculate the number of freelist 
+             * entries that we need more:
+             */
+            ham_assert(hints.size_bits + hints.freelist_pagesize_bits - 1 
+                            >= available, (0));
             pagecount_sought = hints.size_bits - available;
             /* round up: */
             pagecount_sought += hints.freelist_pagesize_bits - 1;
             pagecount_sought /= hints.freelist_pagesize_bits;
             for (end_idx = 1; 
-                end_idx < pagecount_sought
-                && i + end_idx < freel_cache_get_count(cache)
-                && (freel_entry_get_allocated_bits(entry + end_idx) 
-                    != freel_entry_get_max_bits(entry + end_idx));
-                end_idx++)
-            {
+                    end_idx < pagecount_sought
+                    && i + end_idx < freel_cache_get_count(cache)
+                    && (freel_entry_get_allocated_bits(entry + end_idx) 
+                        != freel_entry_get_max_bits(entry + end_idx));
+                    end_idx++) {
                 available += freel_entry_get_allocated_bits(entry + end_idx);
             }
             end_idx--;
 
             /*
-            we can move i forward to the first non-suitable entry and BM-skip from there,
-            HOWEVER, we have two BM modes in here really: one that scans forward (DAM:RANDOM_ACCESS)
-            and one that scans backwards (DAM:SEQUENTIAL) and moving 'i' _up_ would harm the latter.
-
-            The way out of this is to add end_idx+1 as a skip_offset instead and let 
-            __freel_locate_sufficient_free_space() handle it from there.
-            */
+             * we can move i forward to the first non-suitable entry and 
+             * BM-skip from there, HOWEVER, we have two BM modes in here 
+             * really: one that scans forward (DAM:RANDOM_ACCESS)
+             * and one that scans backwards (DAM:SEQUENTIAL) and moving 'i' 
+             * _up_ would harm the latter.
+             *
+             * The way out of this is to add end_idx+1 as a skip_offset 
+             * instead and let __freel_locate_sufficient_free_space() 
+             * handle it from there.
+             */
             global_hints.skip_init_offset = end_idx + 1;
 
-            if (available < hints.size_bits)
-            {
+            if (available < hints.size_bits) {
                 /* register the NO HIT */
                 db_update_freelist_globalhints_no_hit(dev, env, entry, &hints);
             }
-            else
-            {
+            else {
                 ham_size_t len;
                 ham_offset_t addr = 0;
 
@@ -3319,20 +3316,17 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
                 end_idx += start_idx; 
                 
                 start_idx = 0;
-                for (len = hints.size_bits; len > 0; i++, start_idx++)
-                {
+                for (len = hints.size_bits; len > 0; i++, start_idx++) {
                     ham_size_t fl;
 
-                    ham_assert(i < (ham_s32_t)freel_cache_get_count(cache), (0));
+                    ham_assert(i < (ham_s32_t)freel_cache_get_count(cache),(0));
 
                     entry = freel_cache_get_entries(cache) + i;
-                    if (i == 0)
-                    {
+                    if (i == 0) {
                         page = 0;
                         fp = env_get_freelist(env);
                     }
-                    else
-                    {
+                    else {
                         st = env_fetch_page(&page, env,
                                      freel_entry_get_page_id(entry), 0);
                         ham_assert(st ? page == NULL : 1, (0));
@@ -3340,25 +3334,27 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
                             return st ? st : HAM_INTERNAL_ERROR;
                         fp=page_get_freelist(page);
                     }
-                    ham_assert(freel_entry_get_allocated_bits(entry) == freel_entry_get_max_bits(entry), (0));
-                    ham_assert(freel_get_allocated_bitsXX(fp) == freel_get_max_bitsXX(fp), (0));
+                    ham_assert(freel_entry_get_allocated_bits(entry) 
+                                == freel_entry_get_max_bits(entry), (0));
+                    ham_assert(freel_get_allocated_bitsXX(fp) 
+                                == freel_get_max_bitsXX(fp), (0));
 
-                    if (start_idx == 0)
-                    {
+                    if (start_idx == 0) {
                         addr = freel_get_start_address(fp);
                     }
 
-                    if (len >= freel_entry_get_allocated_bits(entry))
-                    {
+                    if (len >= freel_entry_get_allocated_bits(entry)) {
                         fl = freel_entry_get_allocated_bits(entry);
                     }
-                    else
-                    {
+                    else {
                         fl = len;
                     }
-                    __freel_set_bits(dev, env, entry, fp, HAM_FALSE, 0, fl, HAM_FALSE, &hints);
-                    freel_set_allocated_bitsXX(fp, (ham_uXX_t)(freel_get_allocated_bitsXX(fp) - fl));
-                    freel_entry_set_allocated_bits(entry, freel_get_allocated_bitsXX(fp));
+                    __freel_set_bits(dev, env, entry, fp, 
+                              HAM_FALSE, 0, fl, HAM_FALSE, &hints);
+                    freel_set_allocated_bitsXX(fp, 
+                              (ham_uXX_t)(freel_get_allocated_bitsXX(fp) - fl));
+                    freel_entry_set_allocated_bits(entry, 
+                              freel_get_allocated_bitsXX(fp));
                     len -= fl;
 
                     if (page)
@@ -3375,27 +3371,31 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
         else
         {
             /*
-            and this is the 'regular' free slot search, where we are looking for sizes which fit into a
-            single freelist entry page in their entirety.
-
-            Here we take the shortcut of not looking for edge solutions spanning two 
-            freelist entries (start in one, last few chunks in the next); this optimization costs
-            little in space utilization losses and gains us a lot in execution speed. This particular
-            optimization was already present in pre-v1.1.0 hamsterdb, BTW.
-            */
-            ham_assert(freel_entry_get_allocated_bits(entry) >= size/DB_CHUNKSIZE, (0));
-            ham_assert(hints.startpos + hints.size_bits <= hints.endpos, (0));
+             * and this is the 'regular' free slot search, where we are 
+             * looking for sizes which fit into a single freelist entry page 
+             * in their entirety.
+             *
+             * Here we take the shortcut of not looking for edge solutions 
+             * spanning two freelist entries (start in one, last few chunks 
+             * in the next); this optimization costs little in space 
+             * utilization losses and gains us a lot in execution speed. 
+             * This particular optimization was already present in pre-v1.1.0 
+             * hamsterdb, BTW.
+             */
+            ham_assert(freel_entry_get_allocated_bits(entry) 
+                        >= size/DB_CHUNKSIZE, (0));
+            ham_assert(hints.startpos + hints.size_bits 
+                        <= hints.endpos, (0));
 
             /*
              * yes, load the payload structure
              */
-            if (i == 0)
-            {
+            if (i == 0) {
                 fp = env_get_freelist(env);
             }
-            else
-            {
-                st = env_fetch_page(&page, env, freel_entry_get_page_id(entry), 0);
+            else {
+                st = env_fetch_page(&page, env, 
+                            freel_entry_get_page_id(entry), 0);
                 if (!page)
                     return st ? st : HAM_INTERNAL_ERROR;
                 fp=page_get_freelist(page);
@@ -3404,20 +3404,15 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
             /*
              * now try to allocate from this payload
              */
-#if 0  // turn the old ones on to see it all slow down... ;-)
-            if (aligned)
-                s=__freel_search_aligned_bits(dev, env, entry, fp, size/DB_CHUNKSIZE);
-            else
-                s=__freel_search_bits(dev, env, entry, fp, size/DB_CHUNKSIZE);
-#else
             ham_assert(env_is_legacy(env)
                 ? (fp->_s._s32._zero != 0)
                 : (fp->_s._s32._zero == 0), (0));
-            s = __freel_search_bits_ex(dev, env, entry, fp, size/DB_CHUNKSIZE, &hints);
-#endif
+            s = __freel_search_bits_ex(dev, env, entry, fp, 
+                            size/DB_CHUNKSIZE, &hints);
             if (s != -1)
             {
-                __freel_set_bits(dev, env, entry, fp, HAM_FALSE, s, size/DB_CHUNKSIZE, HAM_FALSE, &hints);
+                __freel_set_bits(dev, env, entry, fp, HAM_FALSE, 
+                            s, size/DB_CHUNKSIZE, HAM_FALSE, &hints);
                 if (page)
                     page_set_dirty(page, env);
                 else
@@ -3437,7 +3432,7 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
     if (s != -1)
     {
         freel_set_allocated_bitsXX(fp, 
-                (ham_uXX_t)(freel_get_allocated_bitsXX(fp) - size/DB_CHUNKSIZE));
+                (ham_uXX_t)(freel_get_allocated_bitsXX(fp)-size/DB_CHUNKSIZE));
         freel_entry_set_allocated_bits(entry,
                 freel_get_allocated_bitsXX(fp));
 
@@ -3448,7 +3443,6 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
     *addr_ref = 0;
     return HAM_SUCCESS;
 }
-
 
 ham_status_t
 __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev, 
@@ -3541,9 +3535,9 @@ __freel_lazy_createXX(freelist_cache_t *cache, ham_device_t *dev,
 #if !defined(IMPLEMENT_MODERN_FREELIST32)
 
 /*
-the old format does not support persisted statistics, so there's
-nothing to persist, really.
-*/
+ * the old format does not support persisted statistics, so there's
+ * nothing to persist, really.
+ */
 ham_status_t
 __freel_flush_stats16(ham_device_t *dev, ham_env_t *env)
 {
