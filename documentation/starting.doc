@@ -834,13 +834,19 @@ record size will always be given in <i>record->size</i>. When a record is
 overwritten (see @ref HAM_OVERWRITE) with a different record->size, the 
 record will grow or shrink.
 
+When writing with an invalid combination (the sum of partial_offset 
++ partial_size exceeds the total record size), hamsterdb will return 
+@ref HAM_INV_PARAMETER.
+
 When reading a partial record, hamsterdb will read <i>record->partial_size</i>
 bytes of the record data starting at offset <i>record->partial_offset</i>. The
 data will be stored in <i>record->data</i>. The size of the retrieved data
 is stored in <i>record->size</i>.
 
-In case of invalid combinations (i.e. partial_offset + partial_size exceed
-the total record size) hamsterdb will return @ref HAM_INV_PARAMETER.
+When reading a part of a record, and the partial_offset exceeds the total 
+record size, hamsterdb will return @ref HAM_INV_PARAMETER. If the sum of 
+partial_offset + partial_size exceeds the total record size, hamsterdb
+will limit the partial_size and return the read size in <i>record->size</i>.
 
 \section tut_Working_with_Database_Cursors    Working with Database Cursors
 

@@ -797,7 +797,7 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
             record->_intflags=key_get_flags(entry);
             record->_rid=key_get_ptr(entry);
         }
-        st=util_read_record(db, record, flags&HAM_DIRECT_ACCESS);
+        st=util_read_record(db, record, flags);
         if (st) {
             page_release_ref(page);
             return (st);

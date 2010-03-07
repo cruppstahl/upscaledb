@@ -680,12 +680,15 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
         blobsize = (ham_size_t)blob_get_size(hdr);
 
         if (flags&HAM_PARTIAL) {
-            if (record->partial_size+record->partial_offset>blobsize) {
-                ham_trace(("partial offset+size is greater than the total "
+            if (record->partial_offset>blobsize) {
+                ham_trace(("partial offset is greater than the total "
                             "record size"));
                 return (db_set_error(db, HAM_INV_PARAMETER));
             }
-            blobsize = record->partial_size;
+            if (record->partial_offset+record->partial_size>blobsize)
+                blobsize=blobsize-record->partial_offset;
+            else
+                blobsize=record->partial_size;
         }
 
         if (!blobsize) {
@@ -741,12 +744,15 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
     blobsize = (ham_size_t)blob_get_size(&hdr);
 
     if (flags&HAM_PARTIAL) {
-        if (record->partial_size+record->partial_offset>blobsize) {
+        if (record->partial_offset>blobsize) {
             ham_trace(("partial offset+size is greater than the total "
                         "record size"));
             return (db_set_error(db, HAM_INV_PARAMETER));
         }
-        blobsize = record->partial_size;
+        if (record->partial_offset+record->partial_size>blobsize)
+            blobsize=blobsize-record->partial_offset;
+        else
+            blobsize=record->partial_size;
     }
 
     /* 

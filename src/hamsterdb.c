@@ -4686,12 +4686,7 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                    "In-Memory Databases"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_PARTIAL) 
-            && (record->partial_size+record->partial_offset>record->size)) {
-        ham_trace(("partial offset+size is greater than the total "
-                    "record size"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
-    }
+
     if (key && !__prepare_key(key))
         return (db_set_error(db, HAM_INV_PARAMETER));
     if (record && !__prepare_record(record))

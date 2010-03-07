@@ -1509,21 +1509,22 @@ public:
     }
 };
 
-class InvalidTests : public hamsterDB_fixture
+class MiscPartialTests : public hamsterDB_fixture
 {
     define_super(hamsterDB_fixture);
 
 public:
-    InvalidTests(const char *name="InvalidTests", bool inmemory=false,
+    MiscPartialTests(const char *name="MiscPartialTests", bool inmemory=false,
             ham_u32_t find_flags=0)
     :   hamsterDB_fixture(name), m_inmemory(inmemory), 
             m_find_flags(find_flags)
     {
         testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(InvalidTests, negativeInsertTest);
-        BFC_REGISTER_TEST(InvalidTests, negativeCursorInsertTest);
-        BFC_REGISTER_TEST(InvalidTests, invalidInsertParametersTest);
-        BFC_REGISTER_TEST(InvalidTests, invalidFindParametersTest);
+        BFC_REGISTER_TEST(MiscPartialTests, negativeInsertTest);
+        BFC_REGISTER_TEST(MiscPartialTests, negativeCursorInsertTest);
+        BFC_REGISTER_TEST(MiscPartialTests, invalidInsertParametersTest);
+        BFC_REGISTER_TEST(MiscPartialTests, invalidFindParametersTest);
+        BFC_REGISTER_TEST(MiscPartialTests, reduceSizeTest);
     }
 
     ham_db_t *m_db;
@@ -1671,48 +1672,71 @@ public:
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_cursor_move(c, &key, &rec, HAM_PARTIAL|m_find_flags));
 
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    }
+
+    void reduceSizeTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ham_u8_t buffer[500];
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+
+        ham_cursor_t *c;
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+
+        rec.data=(void *)&buffer[0];
+        rec.size=sizeof(buffer);
+        BFC_ASSERT_EQUAL(0,
+                ham_insert(m_db, 0, &key, &rec, 0));
+
         /* partial_offset + partial_size > size */
         rec.partial_offset=100;
         rec.partial_size=450;
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(0,
                 ham_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
+        BFC_ASSERT_EQUAL(400u, rec.size);
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_find(c, &key, 0));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(c, &key, &rec, HAM_PARTIAL|m_find_flags));
+        BFC_ASSERT_EQUAL(400u, rec.size);
 
         /* partial_size > size */
         rec.partial_offset=0;
         rec.partial_size=600;
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(0,
                 ham_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
+        BFC_ASSERT_EQUAL(500u, rec.size);
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_find(c, &key, 0));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+        BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(c, &key, &rec, HAM_PARTIAL|m_find_flags));
+        BFC_ASSERT_EQUAL(500u, rec.size);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
 };
 
-class InMemoryInvalidTests : public InvalidTests
+class InMemoryMiscPartialTests : public MiscPartialTests
 {
-    define_super(InvalidTests);
+    define_super(MiscPartialTests);
 
 public:
-    InMemoryInvalidTests()
-    :   InvalidTests("InMemoryInvalidTests", true)
+    InMemoryMiscPartialTests()
+    :   MiscPartialTests("InMemoryMiscPartialTests", true)
     {
     }
 };
 
-class DirectAccessInvalidTests : public InvalidTests
+class DirectAccessMiscPartialTests : public MiscPartialTests
 {
-    define_super(InvalidTests);
+    define_super(MiscPartialTests);
 
 public:
-    DirectAccessInvalidTests()
-    :   InvalidTests("DirectAccessInvalidTests", true, HAM_DIRECT_ACCESS)
+    DirectAccessMiscPartialTests()
+    :   MiscPartialTests("DirectAccessMiscPartialTests", true, HAM_DIRECT_ACCESS)
     {
     }
 };
@@ -1756,7 +1780,7 @@ BFC_REGISTER_FIXTURE(DirectAccessPartialReadTest4096k);
 BFC_REGISTER_FIXTURE(DirectAccessPartialReadTest16384k);
 BFC_REGISTER_FIXTURE(DirectAccessPartialReadTest65536k);
 
-BFC_REGISTER_FIXTURE(InvalidTests);
-BFC_REGISTER_FIXTURE(InMemoryInvalidTests);
-BFC_REGISTER_FIXTURE(DirectAccessInvalidTests);
+BFC_REGISTER_FIXTURE(MiscPartialTests);
+BFC_REGISTER_FIXTURE(InMemoryMiscPartialTests);
+BFC_REGISTER_FIXTURE(DirectAccessMiscPartialTests);
 

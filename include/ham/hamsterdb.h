@@ -1965,6 +1965,9 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  *              @ref HAM_DUPLICATE were specified, or if @ref HAM_DUPLICATE
  *              was specified, but the Database was not created with 
  *              flag @ref HAM_ENABLE_DUPLICATES.
+ * @return @ref HAM_INV_PARAMETER if @ref HAM_PARTIAL is specified and
+ *              record->partial_offset+record->partial_size exceeds the
+ *              record->size
  * @return @ref HAM_DB_READ_ONLY if you tried to insert a key in a read-only
  *              Database
  * @return @ref HAM_INV_KEYSIZE if the key size is larger than the @a keysize
@@ -2352,6 +2355,9 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  *              requested
  * @return @ref HAM_INV_PARAMETER if @a HAM_DIRECT_ACCESS is specified,
  *              but the Database is not an In-Memory Database.
+ * @return @ref HAM_INV_PARAMETER if @ref HAM_PARTIAL is specified and
+ *              record->partial_offset+record->partial_size exceeds the
+ *              record->size
  *
  * @sa HAM_RECORD_USER_ALLOC
  * @sa HAM_KEY_USER_ALLOC

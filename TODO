@@ -149,8 +149,8 @@ x support partial reading/writing of records
 
 o partial read: do not fail if offset+psize>size - instead, limit psize
     (and return the fixed size in record->size)
-    o fix unittests
-    o create new unittests
+    x fix unittests
+    x create new unittests
     o change documentation 
         o tutorial
         o hamsterdb.h
