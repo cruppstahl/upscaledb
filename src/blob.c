@@ -822,6 +822,9 @@ blob_overwrite(ham_env_t *env, ham_db_t *db, ham_offset_t old_blobid,
                 memmove(p+sizeof(blob_t)+record->partial_offset, 
                         record->data, record->partial_size);
             }
+            else {
+                memmove(p+sizeof(blob_t), record->data, record->size);
+            }
             *new_blobid=(ham_offset_t)PTR_TO_U64(phdr);
         }
         else {

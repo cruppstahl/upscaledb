@@ -80,7 +80,7 @@ x test freelist behaviour
     x create a new Database => hdr file and root page is allocated - ok
     x are these two pages marked as "allocated" in the freelist? - yes
 
-o support partial reading/writing of records
+x support partial reading/writing of records
     details at http://www.oracle.com/technology/documentation/berkeley-db/db/api_reference/C/dbt.html
     x new flag HAM_PARTIAL
     x new fields in ham_record_t
@@ -140,8 +140,23 @@ o support partial reading/writing of records
             x psize>size
             x poffset+psize>size
         x and everyting for reading
-    o add to monster tests and monster.sh
-    o documentation in tutorial
+            x for ham_find
+            x for ham_cursor_move
+            x in-memory
+            x in-memory w/ direct access
+    x add to monster tests and monster.sh -- no! tests are good enough
+    x documentation in tutorial
+
+o partial read: do not fail if offset+psize>size - instead, limit psize
+    (and return the fixed size in record->size)
+    o fix unittests
+    o create new unittests?
+    o change documentation 
+        o tutorial
+        o hamsterdb.h
+
+o blob_overwrite/duplicate table handling: in some cases we can use
+    HAM_DIRECT_ACCESS to speed up things
 
 o hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
 --overwrite=1 --reopen=1

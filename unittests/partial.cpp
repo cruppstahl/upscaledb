@@ -1514,8 +1514,10 @@ class InvalidTests : public hamsterDB_fixture
     define_super(hamsterDB_fixture);
 
 public:
-    InvalidTests()
-    :   hamsterDB_fixture("InvalidTests")
+    InvalidTests(const char *name="InvalidTests", bool inmemory=false,
+            ham_u32_t find_flags=0)
+    :   hamsterDB_fixture(name), m_inmemory(inmemory), 
+            m_find_flags(find_flags)
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(InvalidTests, negativeInsertTest);
@@ -1527,6 +1529,8 @@ public:
     ham_db_t *m_db;
     ham_env_t *m_env;
     memtracker_t *m_alloc;
+    bool m_inmemory;
+    ham_u32_t m_find_flags;
 
     virtual void setup() 
     { 
@@ -1535,7 +1539,8 @@ public:
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT_EQUAL(0, 
-                ham_create_ex(m_db, BFC_OPATH(".test"), 0, 0644, 0));
+                ham_create_ex(m_db, BFC_OPATH(".test"), 
+                        m_inmemory ? HAM_IN_MEMORY_DB : 0, 0644, 0));
         m_env=db_get_env(m_db);
     }
     
@@ -1559,7 +1564,10 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(db, BFC_OPATH(".test.db"), 
-                        HAM_SORT_DUPLICATES|HAM_ENABLE_DUPLICATES, 0644, 0));
+                        HAM_SORT_DUPLICATES
+                            |HAM_ENABLE_DUPLICATES
+                            |(m_inmemory ? HAM_IN_MEMORY_DB : 0), 
+                        0644, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_insert(db, 0, &key, &rec, HAM_PARTIAL));
         BFC_ASSERT_EQUAL(0, 
@@ -1579,7 +1587,10 @@ public:
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create_ex(db, BFC_OPATH(".test.db"), 
-                        HAM_SORT_DUPLICATES|HAM_ENABLE_DUPLICATES, 0644, 0));
+                        HAM_SORT_DUPLICATES
+                            |HAM_ENABLE_DUPLICATES
+                            |(m_inmemory ? HAM_IN_MEMORY_DB : 0), 
+                        0644, 0));
 
         ham_cursor_t *c;
         BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &c));
@@ -1654,37 +1665,57 @@ public:
         rec.partial_offset=600;
         rec.partial_size=50;
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_find(m_db, 0, &key, &rec, HAM_PARTIAL));
+                ham_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_find(c, &key, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_cursor_move(c, &key, &rec, HAM_PARTIAL));
+                ham_cursor_move(c, &key, &rec, HAM_PARTIAL|m_find_flags));
 
         /* partial_offset + partial_size > size */
         rec.partial_offset=100;
         rec.partial_size=450;
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_find(m_db, 0, &key, &rec, HAM_PARTIAL));
+                ham_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_find(c, &key, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_cursor_move(c, &key, &rec, HAM_PARTIAL));
+                ham_cursor_move(c, &key, &rec, HAM_PARTIAL|m_find_flags));
 
         /* partial_size > size */
         rec.partial_offset=0;
         rec.partial_size=600;
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_find(m_db, 0, &key, &rec, HAM_PARTIAL));
+                ham_find(m_db, 0, &key, &rec, HAM_PARTIAL|m_find_flags));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_find(c, &key, 0));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                ham_cursor_move(c, &key, &rec, HAM_PARTIAL));
+                ham_cursor_move(c, &key, &rec, HAM_PARTIAL|m_find_flags));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
-
 };
 
+class InMemoryInvalidTests : public InvalidTests
+{
+    define_super(InvalidTests);
+
+public:
+    InMemoryInvalidTests()
+    :   InvalidTests("InMemoryInvalidTests", true)
+    {
+    }
+};
+
+class DirectAccessInvalidTests : public InvalidTests
+{
+    define_super(InvalidTests);
+
+public:
+    DirectAccessInvalidTests()
+    :   InvalidTests("DirectAccessInvalidTests", true, HAM_DIRECT_ACCESS)
+    {
+    }
+};
 
 BFC_REGISTER_FIXTURE(PartialWriteTest1024k);
 BFC_REGISTER_FIXTURE(PartialWriteTest2048k);
@@ -1726,4 +1757,6 @@ BFC_REGISTER_FIXTURE(DirectAccessPartialReadTest16384k);
 BFC_REGISTER_FIXTURE(DirectAccessPartialReadTest65536k);
 
 BFC_REGISTER_FIXTURE(InvalidTests);
+BFC_REGISTER_FIXTURE(InMemoryInvalidTests);
+BFC_REGISTER_FIXTURE(DirectAccessInvalidTests);
 
