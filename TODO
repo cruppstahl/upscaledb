@@ -147,13 +147,13 @@ x support partial reading/writing of records
     x add to monster tests and monster.sh -- no! tests are good enough
     x documentation in tutorial
 
-o partial read: do not fail if offset+psize>size - instead, limit psize
+x partial read: do not fail if offset+psize>size - instead, limit psize
     (and return the fixed size in record->size)
     x fix unittests
     x create new unittests
-    o change documentation 
-        o tutorial
-        o hamsterdb.h
+    x change documentation 
+        x tutorial
+        x hamsterdb.h
 
 o hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
 --overwrite=1 --reopen=1
