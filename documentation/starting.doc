@@ -67,6 +67,7 @@ Documentation License&quot;.
 <li>\ref tut_Inserting_Database_Items	Inserting Database Items	
 <li>\ref tut_Deleting_Database_Items	Deleting Database Items	
 <li>\ref tut_Looking_up_Database_Items	Looking up Database Items	
+<li>\ref tut_Working_with_Partial_Access	Working with Partial Access
 <li>\ref tut_Working_with_Database_Cursors	Working with Database Cursors	
 	<ul>
 	<li>\ref tut_Creating_a_Database_Cursor		Creating a Database Cursor	
@@ -813,6 +814,33 @@ record.data=malloc(6);
 if ((st=ham_find(db, NULL, &key, &record, 0))!=HAM_SUCCESS) {
     // ...
 \endcode
+
+\section tut_Working_with_Partial_Access	Working with Partial Access
+
+(Implemented in version 1.1.3)<br />
+In some scenarios, inserting or looking up a record in one single
+operation may be difficult - i.e. if the record is too huge for the system 
+limitations. For such cases, hamsterdb offers "Partial Access" to a record.
+
+With Partial Access, records can be read or written in several smaller steps.
+If the flag @ref HAM_PARTIAL is specified in @ref ham_insert or @ref ham_find
+(or one of the corresponding cursor functions), then hamsterdb will 
+evaluate the fields <i>record->partial_offset</i> and
+<i>record->partial_size</i>.
+
+When writing a partial record, hamsterdb will write <i>record->partial_size</i>
+bytes of the record data at offset <i>record->partial_offset</i>. The full 
+record size will always be given in <i>record->size</i>. When a record is 
+overwritten (see @ref HAM_OVERWRITE) with a different record->size, the 
+record will grow or shrink.
+
+When reading a partial record, hamsterdb will read <i>record->partial_size</i>
+bytes of the record data starting at offset <i>record->partial_offset</i>. The
+data will be stored in <i>record->data</i>. The size of the retrieved data
+is stored in <i>record->size</i>.
+
+In case of invalid combinations (i.e. partial_offset + partial_size exceed
+the total record size) hamsterdb will return @ref HAM_INV_PARAMETER.
 
 \section tut_Working_with_Database_Cursors    Working with Database Cursors
 
