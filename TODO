@@ -178,6 +178,9 @@ o win32: fix compilation/linkage with MSVCRT (do not link libc into hamsterdb)
     o 1.1.3 has other compiler issues
     o including crtdbg.h (include/ham/types.h) causes many other problems
 
+o statistics.c: has big code about cach history which is only used in debug
+    mode - check why; can we remove/refactor it?
+
 o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES
     o documentation
     o unittest
