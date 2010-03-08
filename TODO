@@ -173,6 +173,11 @@ o make sure that in-memory Environments NEVER create/use the freelist!
     o unittest!
     o refactor the freelist and try to get rid of the crash at work
 
+o win32: fix compilation/linkage with MSVCRT (do not link libc into hamsterdb)
+    http://old.nabble.com/problem-using-Windows-Hamster-DB-td27816861.html
+    o 1.1.3 has other compiler issues
+    o including crtdbg.h (include/ham/types.h) causes many other problems
+
 o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES
     o documentation
     o unittest
