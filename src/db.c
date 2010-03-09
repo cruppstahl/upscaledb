@@ -57,10 +57,12 @@ db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
 ham_u16_t
 db_get_dbname(ham_db_t *db)
 {
-    ham_assert(db!=0, (""));
+    ham_env_t *env;
+	
+	ham_assert(db!=0, (""));
     ham_assert(db_get_env(db), (""));
 
-    ham_env_t *env=db_get_env(db);
+    env=db_get_env(db);
 
     if (env_get_header_page(env) && page_get_pers(env_get_header_page(env))) {
         db_indexdata_t *idx=env_get_indexdata_ptr(env, 

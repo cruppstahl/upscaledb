@@ -39,9 +39,6 @@ static void cache_init_history(void);
 #define cache_init_history() /**/
 #endif
 
-
-
-
 /*
  *  TODO statistics gatherer/hinter:
  *
@@ -141,8 +138,7 @@ static void cache_init_history(void);
  * Returned value range: 0..64
  */
 static __inline ham_u16_t ham_log2(ham_u64_t v)
-{
-    
+{  
     // which would be faster? Duff style unrolled loop or (CPU cached) loop?
 #if 0
 
@@ -260,20 +256,11 @@ static __inline ham_u16_t ham_bitcount2bucket_index(ham_size_t size)
  * converting a bucket index number to the maximum possible size for
  * that bucket.
  */
-static __inline ham_size_t ham_bucket_index2bitcount(ham_u16_t bucket)
+static __inline ham_size_t 
+ham_bucket_index2bitcount(ham_u16_t bucket)
 {
     return (1U << (bucket * 1)) - 1;
 }
-
-
-
-
-
-
-
-
-
-
 
 void
 db_update_global_stats_find_query(ham_db_t *db, ham_size_t key_size)
@@ -295,7 +282,6 @@ db_update_global_stats_find_query(ham_db_t *db, ham_size_t key_size)
     }
 }
 
-
 void
 db_update_global_stats_insert_query(ham_db_t *db, ham_size_t key_size, ham_size_t record_size)
 {
@@ -316,7 +302,6 @@ db_update_global_stats_insert_query(ham_db_t *db, ham_size_t key_size, ham_size_
     }
 }
 
-
 void
 db_update_global_stats_erase_query(ham_db_t *db, ham_size_t key_size)
 {
@@ -336,32 +321,6 @@ db_update_global_stats_erase_query(ham_db_t *db, ham_size_t key_size)
         opstats->query_count++;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 static void 
 rescale_db_stats(ham_runtime_statistics_dbdata_t *dbstats)
@@ -409,11 +368,11 @@ rescale_db_stats(ham_runtime_statistics_dbdata_t *dbstats)
     rescale_256(opstats->query_count);
 }
 
-
 /**
-update statistics following a followed up out-of-bound hint 
-*/
-void stats_update_fail_oob(int op, ham_db_t *db, ham_size_t cost, ham_bool_t try_fast_track)
+ * update statistics following a followed up out-of-bound hint 
+ */
+void 
+stats_update_fail_oob(int op, ham_db_t *db, ham_size_t cost, ham_bool_t try_fast_track)
 {
     //ham_runtime_statistics_globdata_t *globalstats = db_get_global_perf_data(db);
     //ham_runtime_statistics_dbdata_t *dbstats = db_get_db_perf_data(db);
@@ -425,18 +384,10 @@ void stats_update_fail_oob(int op, ham_db_t *db, ham_size_t cost, ham_bool_t try
 
     //opstats->btree_last_page_addr = 0; -- keep page from previous match around!
     opstats->btree_last_page_sq_hits = 0; /* reset */
-
-    // this is a different type of hinting: don't count it
-#if 0
-    if (try_fast_track)
-    {
-        opstats->btree_hinting_fail_count++;
-        opstats->btree_hinting_count++;
-    }
-#endif
 }
 
-void stats_update_fail(int op, ham_db_t *db, ham_size_t cost, ham_bool_t try_fast_track)
+void 
+stats_update_fail(int op, ham_db_t *db, ham_size_t cost, ham_bool_t try_fast_track)
 {
     //ham_runtime_statistics_globdata_t *globalstats = db_get_global_perf_data(db);
     ham_runtime_statistics_dbdata_t *dbstats = db_get_db_perf_data(db);
@@ -447,11 +398,10 @@ void stats_update_fail(int op, ham_db_t *db, ham_size_t cost, ham_bool_t try_fas
                 || op == HAM_OPERATION_STATS_ERASE, (0));
 
     /*
-    Again, cost is the fastest riser, so we check that one against a high water mark
-    to decide whether to rescale or not
-    */
-    if (dbstats->rescale_tracker >= HAM_STATISTICS_HIGH_WATER_MARK - cost)
-    {
+     * Again, cost is the fastest riser, so we check that one against a high water mark
+     * to decide whether to rescale or not
+     */
+    if (dbstats->rescale_tracker >= HAM_STATISTICS_HIGH_WATER_MARK - cost) {
         rescale_db_stats(dbstats);
     }
     dbstats->rescale_tracker += cost;
@@ -471,7 +421,8 @@ void stats_update_fail(int op, ham_db_t *db, ham_size_t cost, ham_bool_t try_fas
     }
 }
 
-void stats_update(int op, ham_db_t *db, ham_page_t *page, ham_size_t cost, ham_bool_t try_fast_track)
+void 
+stats_update(int op, ham_db_t *db, ham_page_t *page, ham_size_t cost, ham_bool_t try_fast_track)
 {
     ham_runtime_statistics_dbdata_t *dbstats = db_get_db_perf_data(db);
     ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, op);
@@ -482,9 +433,9 @@ void stats_update(int op, ham_db_t *db, ham_page_t *page, ham_size_t cost, ham_b
     ham_assert(page, (0));
 
     /*
-    Again, cost is the fastest riser, so we check that one against a high water mark
-    to decide whether to rescale or not
-    */
+     * Again, cost is the fastest riser, so we check that one against a high water mark
+     * to decide whether to rescale or not
+     */
     if (dbstats->rescale_tracker >= HAM_STATISTICS_HIGH_WATER_MARK - cost)
     {
         rescale_db_stats(dbstats);
@@ -497,8 +448,8 @@ void stats_update(int op, ham_db_t *db, ham_page_t *page, ham_size_t cost, ham_b
     //opstats->btree_fail_cost += cost;
 
     /*
-    when we got a hint, account for it's success/failure
-    */
+     * when we got a hint, account for it's success/failure
+     */
     if (try_fast_track)
     {
         if (opstats->btree_last_page_addr != page_get_self(page))
@@ -520,15 +471,16 @@ void stats_update(int op, ham_db_t *db, ham_page_t *page, ham_size_t cost, ham_b
 }
 
 /*
-when the last hit leaf node is split or shrunk, blow it away for all operations!
-
-Also blow away a page when a transaction aborts which has modified this page. We'd rather
-reconstruct our critical statistics then carry the wrong bounds, etc. around.
-
-This is done to prevent the hinter from hinting/pointing at an (by now)
-INVALID btree node later on!
-*/
-void stats_page_is_nuked(ham_db_t *db, struct ham_page_t *page, ham_bool_t split)
+ * when the last hit leaf node is split or shrunk, blow it away for all operations!
+ *
+ * Also blow away a page when a transaction aborts which has modified this page. We'd rather
+ * reconstruct our critical statistics then carry the wrong bounds, etc. around.
+ *
+ * This is done to prevent the hinter from hinting/pointing at an (by now)
+ * INVALID btree node later on!
+ */
+void 
+stats_page_is_nuked(ham_db_t *db, struct ham_page_t *page, ham_bool_t split)
 {
     ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
     ham_env_t *env = db_get_env(db);
@@ -561,7 +513,8 @@ void stats_page_is_nuked(ham_db_t *db, struct ham_page_t *page, ham_bool_t split
         dbdata->lower_bound_page_address = 0;
         dbdata->lower_bound_set = HAM_FALSE;
     }
-    if (dbdata->upper_bound_page_address == page_get_self(page))
+
+	if (dbdata->upper_bound_page_address == page_get_self(page))
     {
         if (dbdata->upper_bound.data)
         {
@@ -575,8 +528,8 @@ void stats_page_is_nuked(ham_db_t *db, struct ham_page_t *page, ham_bool_t split
     }
 }
 
-
-void stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, ham_key_t *key, ham_u32_t find_flags, ham_s32_t slot)
+void 
+stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, ham_key_t *key, ham_u32_t find_flags, ham_s32_t slot)
 {
     ham_status_t st;
     ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
@@ -739,11 +692,6 @@ void stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, ham_key_t *ke
     }
 }
 
-
-
-
-
-
 /*
  * NOTE:
  * 
@@ -757,8 +705,6 @@ void stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, ham_key_t *ke
  * it's really useful to have complex leaf-node tracking in here to improve 
  * hinting in such mixed use cases.
  */
-
-
 void 
 btree_find_get_hints(find_hints_t *hints, ham_db_t *db, ham_key_t *key)
 {
@@ -982,9 +928,6 @@ btree_find_get_hints(find_hints_t *hints, ham_db_t *db, ham_key_t *key)
         }
     }
 }
-
-
-
 
 void 
 btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
@@ -1245,7 +1188,6 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
     */
 }
 
-
 void 
 btree_erase_get_hints(erase_hints_t *hints, ham_db_t *db, ham_key_t *key)
 {
@@ -1306,13 +1248,6 @@ btree_erase_get_hints(erase_hints_t *hints, ham_db_t *db, ham_key_t *key)
         }
     }
 }
-
-
-
-
-
-
-
 
 void
 stats_init_globdata(ham_env_t *env, ham_runtime_statistics_globdata_t *globdata)
@@ -1433,9 +1368,7 @@ stats_fill_ham_statistics_t(ham_env_t *env, ham_db_t *db, ham_statistics_t *dst)
 
 #if HAM_DEBUG
 
-
 #define CACHE_HISTORY_SIZE    512
-
 
 typedef struct
 {
@@ -1470,7 +1403,6 @@ unsigned int history_start_position = 0;
 unsigned int history_fill = 0;
 ham_u64_t age_id = 0;            
 
-
 static void 
 cache_init_history(void)
 {
@@ -1479,7 +1411,6 @@ cache_init_history(void)
     history_fill = 0;
     age_id = 0;
 }
-
 
 static cache_history_t *
 cache_history_locate_entry(ham_page_t *page, int state)
@@ -1543,7 +1474,7 @@ cache_history_locate_entry(ham_page_t *page, int state)
             /* remove node from the list? */
             if (l + 1 != history_fill)
             {
-                ham_assert(l < history_fill, (0));
+                ham_assert((unsigned)l < history_fill, (0));
 
                 /* move everyone -1 */
                 memmove(&cache_history[l], &cache_history[l + 1], (history_fill - (l + 1)) * sizeof(cache_history[0]));

@@ -34,7 +34,7 @@ extern "C" {
  * a macro to cast pointers to u64 and vice versa to avoid compiler
  * warnings if the sizes of ptr and u64 are not equal
  */
-#ifdef HAM_32BIT
+#if defined(HAM_32BIT) && (!defined(_MSC_VER))
 #   define U64_TO_PTR(p)  (ham_u8_t *)(int)p
 #   define PTR_TO_U64(p)  (ham_offset_t)(int)p
 #else

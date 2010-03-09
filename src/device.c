@@ -143,7 +143,7 @@ __f_read(ham_device_t *self, ham_offset_t offset,
      */
     while (head) {
         if (head->after_read_cb) {
-            st=head->after_read_cb(env, head, buffer, size);
+            st=head->after_read_cb(env, head, buffer, (ham_size_t)size);
             if (st)
                 return (st);
         }
@@ -283,14 +283,15 @@ __f_write(ham_device_t *self, ham_offset_t offset, void *buffer,
     /*
      * don't modify the data in-place!
      */
-    tempdata=(ham_u8_t *)allocator_alloc(env_get_allocator(env), size);
+    tempdata=(ham_u8_t *)allocator_alloc(env_get_allocator(env), 
+                               (ham_size_t)size);
     if (!tempdata)
         return (HAM_OUT_OF_MEMORY);
     memcpy(tempdata, buffer, size);
 
     while (head) {
         if (head->before_write_cb) {
-            st=head->before_write_cb(env, head, tempdata, size);
+            st=head->before_write_cb(env, head, tempdata, (ham_size_t)size);
             if (st) 
                 break;
         }
@@ -445,7 +446,7 @@ __m_alloc_page(ham_device_t *self, ham_page_t *page)
     page_set_pers(page, (ham_perm_page_union_t *)buffer);
     page_set_npers_flags(page, 
         page_get_npers_flags(page)|PAGE_NPERS_MALLOC);
-    page_set_self(page, PTR_TO_U64(buffer));
+    page_set_self(page, (ham_offset_t)PTR_TO_U64(buffer));
 
     return (HAM_SUCCESS);
 }
