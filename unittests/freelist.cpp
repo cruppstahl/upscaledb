@@ -264,8 +264,7 @@ public:
         db_set_data_access_mode(m_db, 
                 db_get_data_access_mode(m_db) & 
                         ~(HAM_DAM_SEQUENTIAL_INSERT
-                         | HAM_DAM_RANDOM_WRITE
-                         | HAM_DAM_FAST_INSERT));
+                         | HAM_DAM_RANDOM_WRITE));
 
         ham_offset_t addr;
         BFC_ASSERT_EQUAL(0,
@@ -279,8 +278,7 @@ public:
         db_set_data_access_mode(m_db, 
                 db_get_data_access_mode(m_db) & 
                         ~(HAM_DAM_SEQUENTIAL_INSERT
-                         | HAM_DAM_RANDOM_WRITE
-                         | HAM_DAM_FAST_INSERT));
+                         | HAM_DAM_RANDOM_WRITE));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
         BFC_ASSERT_EQUAL(0,
@@ -319,8 +317,7 @@ public:
         db_set_data_access_mode(m_db, 
                 db_get_data_access_mode(m_db) & 
                         ~(HAM_DAM_SEQUENTIAL_INSERT
-                         | HAM_DAM_RANDOM_WRITE
-                         | HAM_DAM_FAST_INSERT));
+                         | HAM_DAM_RANDOM_WRITE));
         /*
          * and since we'll be having about 33027 freelist entries in the list, 
          * the hinters will make a ruckus anyhow; the only way to get a hit 
@@ -349,8 +346,7 @@ public:
         db_set_data_access_mode(m_db, 
                 db_get_data_access_mode(m_db) & 
                         ~(HAM_DAM_SEQUENTIAL_INSERT
-                         | HAM_DAM_RANDOM_WRITE
-                         | HAM_DAM_FAST_INSERT));
+                         | HAM_DAM_RANDOM_WRITE));
         db_set_data_access_mode(m_db, 
                 db_get_data_access_mode(m_db) 
                         | HAM_DAM_RANDOM_WRITE 
@@ -378,8 +374,7 @@ public:
         db_set_data_access_mode(m_db, 
                 db_get_data_access_mode(m_db) & 
                         ~(HAM_DAM_SEQUENTIAL_INSERT
-                         | HAM_DAM_RANDOM_WRITE
-                         | HAM_DAM_FAST_INSERT));
+                         | HAM_DAM_RANDOM_WRITE));
         db_set_data_access_mode(m_db, 
                 db_get_data_access_mode(m_db) 
                         | HAM_DAM_RANDOM_WRITE 

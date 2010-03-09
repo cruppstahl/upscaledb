@@ -237,7 +237,7 @@ public:
                 get_param_value(params, HAM_PARAM_GET_FLAGS));
         BFC_ASSERT_EQUAL((ham_offset_t)0664, 
                 get_param_value(params, HAM_PARAM_GET_FILEMODE));
-        BFC_ASSERT_EQUAL(0, strcmp(".test", 
+        BFC_ASSERT_EQUAL(0, strcmp(BFC_OPATH(".test"),
                 (char *)get_param_value(params, HAM_PARAM_GET_FILENAME)));
         BFC_ASSERT_EQUAL((ham_offset_t)&stats, 
                 get_param_value(params, HAM_PARAM_GET_STATISTICS));
@@ -289,7 +289,7 @@ public:
                 get_param_value(params, HAM_PARAM_GET_FLAGS));
         BFC_ASSERT_EQUAL((ham_offset_t)0644, 
                 get_param_value(params, HAM_PARAM_GET_FILEMODE));
-        BFC_ASSERT_EQUAL(0, strcmp(".test", 
+        BFC_ASSERT_EQUAL(0, strcmp(BFC_OPATH(".test"), 
                 (char *)get_param_value(params, HAM_PARAM_GET_FILENAME)));
         BFC_ASSERT_EQUAL((ham_offset_t)&stats, 
                 get_param_value(params, HAM_PARAM_GET_STATISTICS));
