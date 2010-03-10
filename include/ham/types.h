@@ -68,22 +68,22 @@ extern "C" {
 #   include <windows.h>
 #endif
 
+/*
+ * improve memory debugging on WIN32 by using crtdbg.h (only MSVC
+ * compiler and debug builds!)
+ *
+ * make sure crtdbg.h is loaded before malloc.h!
+ */ 
 #if defined(_MSC_VER) && defined(HAM_OS_WIN32)
-
-/* make sure crtdbg.h is loaded before malloc.h */
-#if (defined(WIN32) || defined(__WIN32)) && !defined(UNDER_CE)
-#if defined(DEBUG) || defined(_DEBUG)
-#ifndef _CRTDBG_MAP_ALLOC
-#define _CRTDBG_MAP_ALLOC 1
-#endif
-#endif
-//#if _MSC_VER >= 1400 && _MSC_VER < 1500 /* bloody MSVC2005 b0rks on crtdbg.h otherwise! */
-//#include <stdlib.h>
-//#endif
-#include <crtdbg.h>
-#include <malloc.h> 
-#endif
-
+#   if (defined(WIN32) || defined(__WIN32)) && !defined(UNDER_CE)
+#      if defined(DEBUG) || defined(_DEBUG)
+#         ifndef _CRTDBG_MAP_ALLOC
+#            define _CRTDBG_MAP_ALLOC 1
+#         endif
+#      endif
+#      include <crtdbg.h>
+#      include <malloc.h> 
+#   endif
 #endif
 
 /*
