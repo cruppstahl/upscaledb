@@ -1,3 +1,6 @@
+Mar 10, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.3
+
 Mar 10, 2010 - chris
 o Bugfix - fixed an invalid read of 3 bytes in the freelist
 
