@@ -371,6 +371,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\unittests\check.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\unittests\cppapi.cpp"
 			>
 		</File>
@@ -392,6 +396,10 @@
 		</File>
 		<File
 			RelativePath="..\unittests\env.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\unittests\error.cpp"
 			>
 		</File>
 		<File

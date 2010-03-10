@@ -1283,6 +1283,9 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\env.c"
+			>
+		<File
 			RelativePath="..\src\error.c"
 			>
 		</File>

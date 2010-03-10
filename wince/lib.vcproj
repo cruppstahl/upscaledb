@@ -1158,6 +1158,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\env.c"
+			>
+		</File>
+		<File
 			RelativePath="..\src\error.c"
 			>
 		</File>
