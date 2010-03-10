@@ -1,8 +1,12 @@
+Mar 10, 2010 - chris
+o Bugfix - fixed an invalid read of 3 bytes in the freelist
+
 Mar 07, 2010 - chris
 o Implemented partial read/write - records can now be read or written 
     partially (see flag HAM_PARTIAL for ham_find, ham_insert and others)
     This new feature caused a change to ham_record_t, thus making the ABI
-    of hamsterdb incompatible to older versions
+    of hamsterdb incompatible to older versions. This feature is test-covered
+    by nearly 900 unittests.
 
 Feb 27, 2010 - chris
 o Bugfix - ham_get_parameter failed if database was opened read-only
@@ -10,7 +14,8 @@ o Bugfix - ham_get_parameter failed if database was opened read-only
 
 Feb 18, 2010 - chris
 o Bugfix - if a cachesize was specified then it was not propagated correctly
-    and ignored
+    and ignored; this bugfix caused serious performance improvements compared
+    to 1.1.2!
 
 Feb 16, 2010 - chris
 o Windows library and dll are now renamed to libhamsterdb-<version>.lib and

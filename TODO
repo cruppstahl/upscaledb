@@ -177,7 +177,7 @@ x some freelist cleanups needed
         x remove from header file
         x remove from tutorial -- anyway it's not mentioned!
 
-o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES
+o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES???
     o documentation
     o unittest
     o remove from monster.sh!
