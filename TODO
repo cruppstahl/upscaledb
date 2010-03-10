@@ -177,14 +177,14 @@ x some freelist cleanups needed
         x remove from header file
         x remove from tutorial -- anyway it's not mentioned!
 
-o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES???
-    o documentation
-    o unittest
-    o remove from monster.sh!
-
 o update windows versions
     o MSVC Solutions need some love (files are missing)
     o WinCE: create new project for unittests, run in emulator
+
+. disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES???
+    o documentation
+    o unittest
+    o remove from monster.sh!
 
 . statistics.c: has big code about cach history which is only used in debug
     mode - check why; can we remove/refactor it?
