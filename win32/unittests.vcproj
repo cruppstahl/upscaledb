@@ -447,6 +447,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\unittests\partial.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\unittests\recno.cpp"
 			>
 		</File>
