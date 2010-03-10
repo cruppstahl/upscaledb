@@ -169,20 +169,22 @@ x win32: fix compilation/linkage with MSVCRT (do not link libc into hamsterdb)
     x 1.1.3 has other compiler issues
     x including crtdbg.h (include/ham/types.h) causes many other problems
 
-o make sure that in-memory Environments NEVER create/use the freelist!
+x some freelist cleanups needed
     x fix the valgrind issue above
     x remove HAM_DAM_FAST_INSERT
         x acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
             -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
         x remove from header file
         x remove from tutorial -- anyway it's not mentioned!
-    o unittest!
-    o refactor the freelist and try to get rid of the crash at work
 
 o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES
     o documentation
     o unittest
     o remove from monster.sh!
+
+o update windows versions
+    o MSVC Solutions need some love (files are missing)
+    o WinCE: create new project for unittests, run in emulator
 
 . statistics.c: has big code about cach history which is only used in debug
     mode - check why; can we remove/refactor it?
