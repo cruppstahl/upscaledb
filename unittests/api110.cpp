@@ -178,9 +178,9 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_get_parameters(NULL, params));
 
-        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_global_stats);
-        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_db_stats);
-        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_freelist_stats);
+        BFC_ASSERT_EQUAL(1u, stats.dont_collect_global_stats);
+        BFC_ASSERT_EQUAL(1u, stats.dont_collect_db_stats);
+        BFC_ASSERT_EQUAL(1u, stats.dont_collect_freelist_stats);
         BFC_ASSERT_EQUAL(sollwert_cachesize, 
                 get_param_value(params, HAM_PARAM_CACHESIZE));
         BFC_ASSERT_EQUAL(sollwert_pagesize, 
@@ -322,9 +322,9 @@ public:
         ham_size_t sollwert_keysize = 21;
 
         BFC_ASSERT_EQUAL(0, ham_get_parameters(NULL, params));
-        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_global_stats);
-        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_db_stats);
-        BFC_ASSERT_EQUAL(HAM_TRUE, stats.dont_collect_freelist_stats);
+        BFC_ASSERT_EQUAL(1u, stats.dont_collect_global_stats);
+        BFC_ASSERT_EQUAL(1u, stats.dont_collect_db_stats);
+        BFC_ASSERT_EQUAL(1u, stats.dont_collect_freelist_stats);
         BFC_ASSERT_EQUAL(sollwert_cachesize, 
                 get_param_value(params, HAM_PARAM_CACHESIZE));
         BFC_ASSERT_EQUAL(sollwert_keysize, 

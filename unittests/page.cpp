@@ -136,7 +136,7 @@ public:
         page_set_dirty(page, m_env);
         BFC_ASSERT_EQUAL(0, page_flush(page));
 
-        BFC_ASSERT_EQUAL(0, page_is_dirty(page));
+        BFC_ASSERT_EQUAL(false, page_is_dirty(page));
         page_set_self(temp, ps*2);
         BFC_ASSERT_EQUAL(0, page_fetch(temp));
         BFC_ASSERT_EQUAL(0, 
