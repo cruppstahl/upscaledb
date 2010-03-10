@@ -176,14 +176,18 @@ typedef struct {
  *
  * which can be passed in the @ref HAM_PARAM_DATA_ACCESS_MODE parameter
  * when creating a new Database (see @ref ham_create_ex) or
- * Environment (see @ref ham_env_create_ex).
+ * opening an existing Database (see @ref ham_open_ex).
  *
- * @remark The Data Access Mode is persisted in the Database file on a
+ * @remark The Data Access Mode describes the typical application behaviour
+ * (i.e. if data is only inserted sequentially) and allows hamsterdb to 
+ * optimize its routines for this behaviour.
+ *
+ * @remark The Data Access Mode is not persisted in the Database.
  * per Database basis. This means different Databases within the same 
  * Environment can have different Data Access Modes.
  *
  * @sa ham_create_ex
- * @sa ham_env_create_ex
+ * @sa ham_open_ex
  * @sa ham_hinting_flags 
  */
 
@@ -863,6 +867,24 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags);
 
 /**
+ * Flushes the Environment
+ *
+ * This function flushes the Environment caches and writes the whole file
+ * to disk. All Databases of this Environment are flushed as well.
+ *
+ * Since In-Memory Databases do not have a file on disk, the
+ * function will have no effect and will return @ref HAM_SUCCESS.
+ *
+ * @param env A valid Environment handle
+ * @param flags Optional flags for flushing; unused, set to 0
+ *
+ * @return @ref HAM_SUCCESS upon success
+ * @return @ref HAM_INV_PARAMETER if @a db is NULL
+ */
+HAM_EXPORT ham_status_t HAM_CALLCONV
+ham_env_flush(ham_env_t *env, ham_u32_t flags);
+
+/**
  * Enables AES encryption
  *
  * This function enables AES encryption for every Database in the Environment.
@@ -1466,7 +1488,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
  * Databases */
 #define HAM_PARAM_MAX_ENV_DATABASES  0x00000103
 
-/** Parameter name for @ref ham_env_create_ex and @ref ham_create; set the
+/** Parameter name for @ref ham_create_ex, @ref ham_open_ex; set the
  * expected access mode.
  */
 #define HAM_PARAM_DATA_ACCESS_MODE   0x00000104
@@ -2100,39 +2122,21 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
 
 /**
- * Flushes the Environment
+ * Flushes the Database
  *
- * This function flushes the Environment caches and writes the whole file
- * to disk. All Databases of this Environment are flushed as well.
+ * This function flushes the Database cache and writes the whole file
+ * to disk. If this Database was opened in an Environment, all other
+ * Databases of this Environment are flushed as well.
  *
  * Since In-Memory Databases do not have a file on disk, the
  * function will have no effect and will return @ref HAM_SUCCESS.
  *
- * @param env A valid Environment handle
+ * @param db A valid Database handle
  * @param flags Optional flags for flushing; unused, set to 0
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if @a db is NULL
  */
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_flush(ham_env_t *env, ham_u32_t flags);
-
-/**
-* Flushes the Database
-*
-* This function flushes the Database cache and writes the whole file
-* to disk. If this Database was opened in an Environment, all other
-* Databases of this Environment are flushed as well.
-*
-* Since In-Memory Databases do not have a file on disk, the
-* function will have no effect and will return @ref HAM_SUCCESS.
-*
-* @param db A valid Database handle
-* @param flags Optional flags for flushing; unused, set to 0
-*
-* @return @ref HAM_SUCCESS upon success
-* @return @ref HAM_INV_PARAMETER if @a db is NULL
-*/
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_flush(ham_db_t *db, ham_u32_t flags);
 
