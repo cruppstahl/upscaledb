@@ -1079,16 +1079,16 @@ db_resize_allocdata(ham_db_t *db, ham_size_t size)
 {
     if (size==0) {
         if (db_get_record_allocdata(db))
-            allocator_free(env_get_allocator(db_get_env(db)), db_get_record_allocdata(db));
+            allocator_free(env_get_allocator(db_get_env(db)), 
+                    db_get_record_allocdata(db));
         db_set_record_allocdata(db, 0);
         db_set_record_allocsize(db, 0);
     }
     else if (size>db_get_record_allocsize(db)) {
-        void *newdata=allocator_alloc(env_get_allocator(db_get_env(db)), size);
+        void *newdata=allocator_realloc(env_get_allocator(db_get_env(db)), 
+                db_get_record_allocdata(db), size);
         if (!newdata) 
             return (HAM_OUT_OF_MEMORY);
-        if (db_get_record_allocdata(db))
-            allocator_free(env_get_allocator(db_get_env(db)), db_get_record_allocdata(db));
         db_set_record_allocdata(db, newdata);
         db_set_record_allocsize(db, size);
     }
