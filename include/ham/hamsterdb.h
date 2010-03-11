@@ -1401,8 +1401,7 @@ ham_open_ex(ham_db_t *db, const char *filename,
 #define HAM_DISABLE_VAR_KEYLEN       0x00000040
 
 /** Flag for @ref ham_create, @ref ham_create_ex.
- * This flag is 'persisted' (though not for long: 
- * In-memory Databases are discarded on close anyhow. */
+ * This flag is non persistent. */
 #define HAM_IN_MEMORY_DB             0x00000080
 
 /* reserved: DB_USE_MMAP (not persistent)      0x00000100 */
@@ -1560,15 +1559,6 @@ ham_open_ex(ham_db_t *db, const char *filename,
  * becoming unstable and exhibiting unreliable and downright faulty 
  * behaviour over time. This includes, but is not limited to, core dumps or 
  * comparable system crashes.
- * 
- * If you do not feel entirely qualified to use this particular section of 
- * the hamsterdb API, refrain from using @ref HAM_PARAM_GET_STATISTICS and 
- * @ref ham_statistics_t and consult a professional for assitance if your
- * application needs access to this kind of 'core data'.
- * 
- * hamsterdb is, to the best of my knowledge, the @e only Database engine 
- * which makes this degree of power available to the user. With using that 
- * power comes a responsibility. Cave canem.
  * 
  * @sa ham_statistics_t
  * @sa ham_get_parameters
@@ -2170,7 +2160,7 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
             ham_offset_t *keycount);
 
 /**
- * Flag for qref ham_get_key_count
+ * Flag for @ref ham_get_key_count
  */
 #define HAM_FAST_ESTIMATE           0x0001
 
