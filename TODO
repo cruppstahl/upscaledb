@@ -181,19 +181,21 @@ o update windows versions
     o MSVC Solutions need some love (files are missing)
     o WinCE: create new project for unittests, run in emulator
 
-. disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES???
-    o documentation
-    o unittest
-    o remove from monster.sh!
-
-. statistics.c: has big code about cach history which is only used in debug
-    mode - check why; can we remove/refactor it?
-
 . update the Java API 
 
 . update the .NET API 
 
 . update the Python API 
+
+. disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES???
+    o documentation
+    o unittest
+    o remove from monster.sh!
+
+. run profiling for duplicate tests - can things be improved?
+
+. statistics.c: has big code about cach history which is only used in debug
+    mode - check why; can we remove/refactor it?
 
 . create abstraction layer for local Environments/Databases and remote
     Environments/Databases
