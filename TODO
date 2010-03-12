@@ -181,6 +181,13 @@ o update windows versions
     o MSVC Solutions need some love (files are missing)
     o WinCE: create new project for unittests, run in emulator
 
+. there are some inconsistencies in the header file
+    o HAM_PARAM_DBNAME -> HAM_PARAM_GET_DATABASE_NAME
+    o HAM_PARAM_GET_DAM -> HAM_PARAM_GET_DATA_ACCESS_MODE
+    o sort the functions and the constants - list constants AFTER
+        the first function that they're used for; really have separate
+        doxygen sections for each of the groups??
+
 . update the Java API 
 
 . update the .NET API 
