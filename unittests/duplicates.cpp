@@ -12,7 +12,6 @@
 #include "../src/config.h"
 
 #include <stdexcept>
-#include <errno.h>
 #include <string.h>
 #include <vector>
 #include <algorithm>

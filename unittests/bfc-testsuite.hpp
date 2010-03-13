@@ -55,7 +55,11 @@
 #include <string>
 #include <iostream>
 #include <stdarg.h>
-#include <signal.h> /* the signal catching / hardware exception catching stuff for UNIX (and a bit for Win32/64 too) */
+#ifndef UNDER_CE
+/* the signal catching / hardware exception catching stuff 
+ * for UNIX (and a bit for Win32/64 too) */
+#   include <signal.h> 
+#endif
 #include <setjmp.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -922,7 +926,11 @@ protected:
         struct
         {
             signal_handler_f handler;
+#ifdef UNDER_CE
+        } old_sig_handlers[1]; 
+#else
         } old_sig_handlers[NSIG + 1]; 
+#endif
         /*
            ^^^ most systems include signal 0 in the NSIG count, but we should 
            dimension this one conservatively.

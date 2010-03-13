@@ -177,9 +177,14 @@ x some freelist cleanups needed
         x remove from header file
         x remove from tutorial -- anyway it's not mentioned!
 
-o update windows versions
-    o MSVC Solutions need some love (files are missing)
-    o WinCE: create new project for unittests, run in emulator
+x update windows versions
+    x MSVC Solutions need some love (files are missing)
+
+. update the Java API 
+
+. update the .NET API 
+
+. update the Python API 
 
 . there are some inconsistencies in the header file
     o HAM_PARAM_DBNAME -> HAM_PARAM_GET_DATABASE_NAME
@@ -188,18 +193,10 @@ o update windows versions
         the first function that they're used for; really have separate
         doxygen sections for each of the groups??
 
-. update the Java API 
-
-. update the .NET API 
-
-. update the Python API 
-
 . disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES???
     o documentation
     o unittest
     o remove from monster.sh!
-
-. run profiling for duplicate tests - can things be improved?
 
 . statistics.c: has big code about cach history which is only used in debug
     mode - check why; can we remove/refactor it?
@@ -214,8 +211,12 @@ o update windows versions
 
 . pure java network client
 
-. blob_overwrite/duplicate table handling: in some cases we can use
-    HAM_DIRECT_ACCESS to speed up things
+. WinCE: create and run Unittests project
+    http://msexchangeteam.com/archive/2004/02/23/78930.aspx
+
+. run profiling for duplicate tests - can things be improved?
+    o blob_overwrite/duplicate table handling: in some cases we can use
+        HAM_DIRECT_ACCESS to speed up things (at least for in-memory)
 
 . webpage changes
     http://www.purenetworks.com/
@@ -252,7 +253,7 @@ o update windows versions
 . remove HAM_HINT_UBER_FAST_ACCESS, HAM_HINT_RANDOM_ACCESS, HAM_HINT_SEQUENTIAL
 
 . ham_flush: deprecate, replace w. ham_env_flush? it's already implemented
-    o need unittests!
+    o need unittests!?
 
 . evaluate if we can use bamboo for building and testing on multiple
     platforms

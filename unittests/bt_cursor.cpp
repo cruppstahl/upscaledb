@@ -14,7 +14,6 @@
 #include <stdexcept>
 #include <cstring>
 #include <vector>
-#include <errno.h>
 #include <ham/hamsterdb.h>
 #include "../src/btree_cursor.h"
 #include "../src/db.h"

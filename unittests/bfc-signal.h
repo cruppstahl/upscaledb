@@ -24,7 +24,11 @@
 #ifndef BFC_SIGNAL_H__
 #define BFC_SIGNAL_H__
 
-#include <signal.h> /* the signal catching / hardware exception catching stuff for UNIX (and a bit for Win32/64 too) */
+/* the signal catching / hardware exception catching 
+ * stuff for UNIX (and a bit for Win32/64 too) */
+#ifndef UNDER_CE
+#   include <signal.h>
+#endif
 
 #ifdef  __cplusplus
 extern "C"

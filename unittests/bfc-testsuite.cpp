@@ -15,13 +15,15 @@
 
 #include "bfc-testsuite.hpp"
 
-#ifdef VISUAL_STUDIO
+#if defined(VISUAL_STUDIO) && !defined(UNDER_CE)
 #   include <windows.h>
 #   include <crtdbg.h>
 #endif
-#include <signal.h> /* the signal catching / hardware exception 
-                     * catching stuff for UNIX (and a bit for Win32/64 too) */
-#include <errno.h>
+#ifndef UNDER_CE
+#   include <signal.h> /* the signal catching / hardware exception 
+                        * catching stuff for UNIX (and a bit for Win32/64 too) */
+#   include <errno.h>
+#endif
 #include <string.h>
 #include <assert.h>
 
@@ -103,7 +105,9 @@ const int testrunner::m_signals_to_catch[] =
 #if defined(SIGINT)
 	// SIGINT,
 #endif
+#if defined(SIGILL)
 	SIGILL,
+#endif
 #if defined(SIGEMT)
 	SIGEMT,
 #endif
@@ -119,14 +123,18 @@ const int testrunner::m_signals_to_catch[] =
 #if defined(SIGPIPE)
 	//SIGPIPE,
 #endif
+#if defined (SIGSEGV)
 	SIGSEGV,
+#endif
 #if defined(SIGTERM)
 	SIGTERM,
 #endif
 #if defined(SIGBREAK)
 	// SIGBREAK, /* Ctrl-Break sequence */
 #endif
+#if defined(SIGABRT)
 	SIGABRT,
+#endif
 #if defined(SIGABRT_COMPAT)
 	SIGABRT_COMPAT, // MSVC: /* SIGABRT compatible with other platforms, same as SIGABRT -- but not the same value! */
 #endif
@@ -139,7 +147,9 @@ const int testrunner::m_signals_to_catch[] =
 #if defined(SIGXFSZ)
 	SIGXFSZ, /* UNIX: file size limit exceeded */
 #endif
+#if defined(SIGFPE)
 	SIGFPE, /* floating point exception; MSVC: must call _fpreset() */
+#endif
 
 	0 // sentinel
 };
@@ -182,14 +192,13 @@ int testrunner::BFC_universal_signal_handler(int signal_code, int sub_code)
 		sigaddset(&n, signal_code);
 		sigprocmask(SIG_UNBLOCK, &n, &o); // we don't mind receiving another signal now.
 #endif
-
-#if 10
-		std::cerr << "GENERAL FAILURE: " << m_current_signal_context.current_error.m_message.c_str() << may_throw << std::endl;
-#endif
-	
+		std::cerr << "GENERAL FAILURE: " 
+                  << m_current_signal_context.current_error.m_message.c_str() 
+                  << may_throw << std::endl;
+#ifdef UNDER_CE
+        exit(-1);
+#else
 		longjmp(m_current_signal_context.signal_return_point, 2);
-#if 0
-		throw ex;
 #endif
 	}
 
@@ -215,8 +224,10 @@ const char *testrunner::bfc_sigdescr(int signal_code)
 	case SIGINT:
 		return "SIGINT";
 #endif
+#if defined(SIGILL)
 	case SIGILL:
 		return "SIGILL";
+#endif
 #if defined(SIGEMT)
 	case SIGEMT:
 		return "SIGEMT";
@@ -239,8 +250,10 @@ const char *testrunner::bfc_sigdescr(int signal_code)
 	case SIGPIPE:
 		return "SIGPIPE";
 #endif
+#if defined(SIGSEGV)
 	case SIGSEGV:
 		return "SIGSEGV";
+#endif
 #if defined(SIGTERM)
 	case SIGTERM:
 		return "SIGTERM";
@@ -249,8 +262,10 @@ const char *testrunner::bfc_sigdescr(int signal_code)
 	case SIGBREAK:
 		return "SIGBREAK";
 #endif
+#if defined(SIGABRT)
 	case SIGABRT:
 		return "SIGABRT";
+#endif
 #if defined(SIGABRT_COMPAT)
 	case SIGABRT_COMPAT:
 		return "SIGABRT_COMPAT";
@@ -267,11 +282,10 @@ const char *testrunner::bfc_sigdescr(int signal_code)
 	case SIGXFSZ:
 		return "SIGXFSZ";
 #endif
+#if defined(SIGFPE)
 	case SIGFPE:
 		return "SIGFPE";
-
-	default:
-		break;
+#endif
 	}
 	return "(unidentified)";
 }
@@ -296,14 +310,11 @@ extern "C"
 bool testrunner::setup_signal_handlers(testrunner *me, const fixture *f, method m, const char *funcname, bfc_state_t sub_state, error &err)
 {
 	bool threw_ex = false;
-
+#ifndef UNDER_CE
 	assert(m_current_signal_context.this_is_me == me);
 	assert(m_current_signal_context.active_fixture == f);
-#if 0
-	assert(m_current_signal_context.active_method == m);
-	assert(m_current_signal_context.active_funcname.compare(funcname ? funcname : "") == 0);
-#endif
-	m_current_signal_context.active_method = m;
+
+    m_current_signal_context.active_method = m;
 	m_current_signal_context.active_funcname = (funcname ? funcname : "");
 	m_current_signal_context.active_state = sub_state;
 	//m_current_signal_context.print_err_report = BFC_QUIET;
@@ -353,6 +364,7 @@ bool testrunner::setup_signal_handlers(testrunner *me, const fixture *f, method 
 		}
 		m_current_signal_context.sig_handlers_set = false;
 	}
+#endif // ifndef UNDER_CE
 
 	return threw_ex;
 }
@@ -458,13 +470,13 @@ testrunner::exec_testfun(testrunner *me, fixture *f, method m,
 	if (me->m_catch_coredumps)
 	{
 		/*
-		We know that using setjmp()/longjmp() (or sigsetjmp()/siglongjmp())
-		destroys our C++ stack unwinding, so we WILL loose quite a few
-		C++ destructors and related cleanup in the methods invoked from here,
-		but this is a desperate measure in a desperate time.
-		All we want is get a somewhat decent error report out there before
-		we go belly-up all the way.
-		*/
+ 		 * We know that using setjmp()/longjmp() (or sigsetjmp()/siglongjmp())
+		 * destroys our C++ stack unwinding, so we WILL loose quite a few
+		 * C++ destructors and related cleanup in the methods invoked from here,
+		 * but this is a desperate measure in a desperate time.
+		 * All we want is get a somewhat decent error report out there before
+		 * we go belly-up all the way.
+		 */
 		if (!setjmp(m_current_signal_context.signal_return_point))
 		{
 			threw_ex = setup_signal_handlers(me, f, m, funcname, 
@@ -473,7 +485,7 @@ testrunner::exec_testfun(testrunner *me, fixture *f, method m,
 
 			if (!threw_ex)
 			{
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(UNDER_CE)
 				EXCEPTION_RECORD er;
 
 				__try
@@ -512,10 +524,7 @@ testrunner::exec_testfun(testrunner *me, fixture *f, method m,
 	{
 		assert(m_current_signal_context.this_is_me == me);
 		assert(m_current_signal_context.active_fixture == f);
-#if 0
-		assert(m_current_signal_context.active_method == m);
-		assert(m_current_signal_context.active_funcname.compare(funcname ? funcname : "") == 0);
-#endif
+
 		m_current_signal_context.active_method = m;
 		m_current_signal_context.active_funcname = (funcname ? funcname : "");
 		m_current_signal_context.active_state = state;
@@ -722,15 +731,17 @@ testrunner::cvt_hw_ex_as_cpp_ex(const EXCEPTION_RECORD *e, testrunner *me,
 		msg =  "EXCEPTION_INVALID_HANDLE";
 		break;
 
-#if defined(STATUS_POSSIBLE_DEADLOCK)
+#if defined(EXCEPTION_POSSIBLE_DEADLOCK)
 	case EXCEPTION_POSSIBLE_DEADLOCK:
 		msg =  "EXCEPTION_POSSIBLE_DEADLOCK";
 		break;
 #endif
 
+#if defined(CONTROL_C_EXIT)
 	case CONTROL_C_EXIT:
 		msg = "CTRL+C is input.";
 		break;
+#endif
 
 	case DBG_CONTROL_C:
 		msg = "CTRL+C is input to this console process that handles CTRL+C signals and is being debugged.";
@@ -794,12 +805,13 @@ int testrunner::is_hw_exception(unsigned int code, struct _EXCEPTION_POINTERS *e
 	case EXCEPTION_INVALID_DISPOSITION:
 	case EXCEPTION_GUARD_PAGE:
 	case EXCEPTION_INVALID_HANDLE:
-#if defined(STATUS_POSSIBLE_DEADLOCK)
+#if defined(EXCEPTION_POSSIBLE_DEADLOCK)
 	case EXCEPTION_POSSIBLE_DEADLOCK:
 #endif
 		return EXCEPTION_EXECUTE_HANDLER;
-
+#if defined(CONTROL_C_EXIT)
 	case CONTROL_C_EXIT:
+#endif
 	case DBG_CONTROL_C:
 		return EXCEPTION_CONTINUE_SEARCH;
 
@@ -1176,7 +1188,15 @@ void testrunner::print_errors(bool panic_flush) {
 				? "\n"
 				: ""));
 			buf[sizeof(buf)-1] = 0;
+
+#   if UNDER_CE
+            wchar_t wbuf[1024*2];
+	        MultiByteToWideChar(CP_ACP, 0, buf, -1, wbuf, 
+                    sizeof(wbuf)/sizeof(wchar_t));
+            OutputDebugStringW(wbuf);
+#   else
 			OutputDebugStringA(buf);
+#   endif
 #endif
 
             std::cout << "----- error #";
@@ -1531,13 +1551,6 @@ const std::string &testrunner::inputdir(const char *inputdir)
 		return m_inputdir;
 	}
 
-
-
-
-
-
-
-
 testrunner::bfc_signal_context_t::bfc_signal_context_t()
 	: 	this_is_me(NULL),
 		active_fixture(NULL),
@@ -1553,7 +1566,11 @@ testrunner::bfc_signal_context_t::bfc_signal_context_t()
 		i < int(sizeof(old_sig_handlers) / sizeof(old_sig_handlers[0])); 
 		i++)
 	{
-		old_sig_handlers[i].handler = (signal_handler_f)SIG_DFL;
+#ifdef UNDER_CE
+        old_sig_handlers[i].handler = (signal_handler_f)0;
+#else
+        old_sig_handlers[i].handler = (signal_handler_f)SIG_DFL;
+#endif
 	}
 
 	//memset(&signal_return_point, 0, sizeof(signal_return_point));

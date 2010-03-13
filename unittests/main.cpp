@@ -16,7 +16,7 @@
 
 #include "bfc-testsuite.hpp"
 
-#ifdef VISUAL_STUDIO
+#if defined(VISUAL_STUDIO) && !defined(UNDER_CE)
 #include <windows.h>
 #include <crtdbg.h>
 #endif
@@ -28,7 +28,7 @@ using namespace bfc;
 
 
 #if (defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(WIN64)) \
-	&& defined(_DEBUG)
+	&& defined(_DEBUG) && !defined(UNDER_CE)
 
 _CrtMemState crm_memdbg_state_snapshot1;
 int trigger_memdump = 0;
@@ -190,7 +190,9 @@ main(int argc, char **argv)
 #ifdef UNITTEST_PATH 
     SetCurrentDirectoryA(UNITTEST_PATH);
 #else
+#   ifndef UNDER_CE
     SetCurrentDirectoryA("../unittests");
+#   endif
 #endif
 #endif
 
@@ -204,8 +206,13 @@ main(int argc, char **argv)
 	testrunner::get_instance()->catch_exceptions(1);
 #endif
 #if (defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(WIN64))
+#   if defined(UNDER_CE)
+	testrunner::get_instance()->outputdir("../unittests/");
+	testrunner::get_instance()->inputdir("../unittests/");
+#   else
 	testrunner::get_instance()->outputdir("./");
 	testrunner::get_instance()->inputdir("./");
+#   endif
 #endif
 
 	// as we wish to print all collected errors at the very end, we act
@@ -283,4 +290,10 @@ main(int argc, char **argv)
     return (r);
 }
 
-
+#if UNDER_CE
+int 
+_tmain(int argc, _TCHAR* argv[])
+{
+	return (main(0, 0));
+}
+#endif

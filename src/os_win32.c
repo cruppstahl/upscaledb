@@ -14,8 +14,10 @@
 
 #include <windows.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include "error.h"
 #include "os.h"
@@ -46,10 +48,10 @@ DisplayError(char* buf, ham_size_t buflen, DWORD errorcode)
             *dst = 0;
             break;
         }
-        cl = wctomb(dst, cl);
+        cl = wcstombs(dst, (const wchar_t *)cl, buflen);
         if (cl == (size_t)-1)
         {
-            *dst = "?";
+            *dst = '?';
             cl = 1;
         }
         dst += cl;

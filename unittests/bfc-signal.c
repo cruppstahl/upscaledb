@@ -103,7 +103,11 @@ bfc_signal(int code, signal_handler_f handler)
 #pragma warning(disable: 4113)
 #endif
 
+#if defined(UNDER_CE)
+    return 0;
+#else
 	return (signal_handler_f)signal(code, handler);
+#endif
 
 #if defined(_MSC_VER)
 #pragma warning(pop)
