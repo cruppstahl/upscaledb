@@ -184,6 +184,10 @@ o Windows: are the file mapping routines really ok? does the file mapping
     handle have to be created over the whole file size? does it have to be
     created with every mmap call??
 
+o documentation on http://hamsterdb.com/public/scripts/html_www/modules.html:
+    hamsterdb Cursor Functions is a child of hamsterdb Database Functions - but
+    it should be on the same level!
+
 . update the Java API 
 
 . update the .NET API 
