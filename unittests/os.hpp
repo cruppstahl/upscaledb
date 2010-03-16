@@ -32,7 +32,7 @@ protected:
         strcpy(buf, "((WinCE: DisplayError() not implemented))");
 #else
 		buf[0] = 0;
-		FormatMessageW(/* FORMAT_MESSAGE_ALLOCATE_BUFFER | */
+		FormatMessageA(/* FORMAT_MESSAGE_ALLOCATE_BUFFER | */
 					  FORMAT_MESSAGE_FROM_SYSTEM |
 					  FORMAT_MESSAGE_IGNORE_INSERTS,
 					  NULL, errorcode,
