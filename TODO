@@ -180,6 +180,10 @@ x some freelist cleanups needed
 x update windows versions
     x MSVC Solutions need some love (files are missing)
 
+o Windows: are the file mapping routines really ok? does the file mapping
+    handle have to be created over the whole file size? does it have to be
+    created with every mmap call??
+
 . update the Java API 
 
 . update the .NET API 
