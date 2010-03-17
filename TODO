@@ -8,185 +8,41 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-x Ger: merge 1000 other changes
-    x new public function to get the Environment of a Database
-        ham_env_t *ham_get_env(ham_db_t *)
-    x ham_log_append_overwrite: unused?
-    x ham_log_prepare_overwrite: unused?
-    x unittest for env_set_active - it's set in 3 places!
-    x hamsterdb.c: check every backend function against NULL - return
-        NOT_IMPLEMENTED if it's NULL
-    x rename db_header_t to env_header_t
-    x LogTests have lots of failures when calling flock() -- ok
-    x review the page ownership - db_fetch_page() should only get 'db' as
-        parameter, not env; instead, add env_fetch_page()
-    x review the page ownership - db_alloc_page() should only get 'db' as
-        parameter, not env; instead, add env_alloc_page()
-    x unittests: db_set_allocator was disabled - fix it!
-    x db_prepare_ham_key_for_compare: needed? can be merged with
-        compare_pub_to_int?
-    x remove all warnings on 32bit linux (copy pointer to ham_u64_t)
-
-x rename windows-DLL/LIB to hamsterdb-1.1.2 (include version in filename!)
-    x only win32, not wince (dll.vcproj, lib.vcproj seems to be enough)
-    x document this in release-process.txt (create a sed command)
-
-x hamsterdb-tests: also test with pagesize of 128kb
-
-x reevaluate default cache size - should we just grab 1 or 2 MB?
-    x 1 MB should be ok - do some benchmarks
-    x setting strict cache size - is this tested? -- no!
-    x setting cache size - is this tested? -- no!
-    x are extkeys and other mallocs also part of it? - no... but i think
-        that's ok
-
-x still some problems with strict aliasing:
-    db.cpp:98: warning: dereferencing type-punned pointer will break
-        strict-aliasing rules
-    now gcc uses -O2 - but -O3 would be better. check what's wrong...
-    x ask on mailing list -> -fno-tree-vectorize works
-    x test on ubuntu 8
-    x test with non-gcc compiler (faked)
-
-x Bugfix - ham_get_parameter failed if database was opened read-only
-    (thanks, Austin)
-
-x rewrite ham_get_parameter and ham_env_get_parameter
-    x implement
-    x unittest for ham_get_parameter(NULL, ...)
-    x unittest for ham_get_parameter(db, ...) // initialized
-    x unittest for ham_get_parameter(db, ...) // initialized, RO
-    x unittest for ham_env_get_parameter(NULL, ...)
-    x unittest for ham_env_get_parameter(env, ...) // initialized
-    x unittest for ham_env_get_parameter(env, ...) // initialized, RO
-
-x create unittests for ALL cachesize getters/setters and check
-    env_get_cachesize AND ham_get_parameter AND ham_env_get_parameter!
-    x ham_env_create_ex
-    x ham_create_ex
-    x ham_env_open_ex
-    x ham_open_ex
-
-x caching
-    x is HAM_CACHE_UNLIMITED monster-tested? yes!
-    x what about HAM_CACHE_UNLIMITED - does it cache ALL pages? yes!
-    x CAREFUL! unittests use HAM_PARAM_CACHESIZE to specify number of pages,
-        not cachesize in bytes!
-    x cache: distinguish between max. buckets and the cachesize itself
-    x make sure that HAM_DEFAULT_CACHESIZE triggers size in bytes!
-    x fail if user's cachesize is < pagesize? - no, rather not...
-    x make sure that the tutorial is correct
-
-x test freelist behaviour
-    x create a new Database => hdr file and root page is allocated - ok
-    x are these two pages marked as "allocated" in the freelist? - yes
-
-x support partial reading/writing of records
-    details at http://www.oracle.com/technology/documentation/berkeley-db/db/api_reference/C/dbt.html
-    x new flag HAM_PARTIAL
-    x new fields in ham_record_t
-    x documentation in header file
-      x find
-      x cursor_find_ex
-      x cursor_move
-      x insert
-      x cursor_insert
-    x increment libtool version!
-    x disallow if duplicate sorting is enabled
-        x for ham_insert
-            x unittest
-        x for ham_cursor_insert
-            x unittest
-    x implement test-driven; create unittests directly on blob_* functions!
-        x write poffset=0, psize=50, size=50 (no gaps)
-        x write poffset=0, psize=50, size=100 (gap at end)
-        x write poffset=0, psize=50kb, size=100kb (gap at end)
-        x write poffset=0, psize=50kb+1, size=100kb+1 (gap at end)
-        x write poffset=0, psize=500kb, size=1000kb (gap at end)
-        x write poffset=0, psize=500kb+1, size=1000kb+1 (gap at end)
-        x write poffset=0, psize=5000kb, size=10000kb (gap at end)
-        x write poffset=0, psize=5000kb+1, size=10000kb+1 (gap at end)
-        x write poffset=50, psize=50, size=100 (gap at beginning)
-            x other sizes!
-        x write poffset=50, psize=50, size=200 (gap at beginning+end)
-            x other sizes!
-        x overwrite an existing blob - make sure that gaps are not filled with 0
-            x write poffset=0, psize=50, size=50 (no gaps)
-            x write poffset=0, psize=50, size=100 (gap at end)
-                x other sizes!
-            x write poffset=50, psize=50, size=100 (gap at beginning)
-                x other sizes!
-            x write poffset=50, psize=50, size=200 (gap at beginning+end)
-                x other sizes!
-        x add tests to write/overwrite with multiple of pagesizes!
-        x overwrite/shrink poffset=0, psize=100, size=50 (shrink to 50)
-            x other sizes!
-            x other tests?
-        x overwrite/grow poffset=0, psize=100, size=50 (shrink to 50)
-            x other sizes!
-            x other tests?
-        x test everything with different page sizes
-        x repeat everything with in-memory blobs
-        x same about reading
-            x read with gap at end
-            x read with gap at beginning
-            x read with gap at beginning + end
-            x everything for different pagesizes
-            x everything for in-memory
-            x everything for in-memory + direct access
-    x use invalid sizes: offset > size, size=0, size=100&partial_size=0, 
-            partial_size=0, ...
-        x for writing
-            x poffset>size
-            x psize>size
-            x poffset+psize>size
-        x and everyting for reading
-            x for ham_find
-            x for ham_cursor_move
-            x in-memory
-            x in-memory w/ direct access
-    x add to monster tests and monster.sh -- no! tests are good enough
-    x documentation in tutorial
-
-x partial read: do not fail if offset+psize>size - instead, limit psize
-    (and return the fixed size in record->size)
-    x fix unittests
-    x create new unittests
-    x change documentation 
-        x tutorial
-        x hamsterdb.h
-
-x hamsterdb-tests: valgrind ./test ../../testfiles/1/220.tst --pagesize=1024
---overwrite=1 --reopen=1
-    -->==4434== Invalid read of size 1
-    ==4434==    at 0x41FF64: __freel_alloc_area32 (freelist.c:2576)
-    ==4434==    by 0x421072: freel_alloc_area_ex (freelist.c:4807)
-    ==4434==    by 0x416918: blob_allocate (blob.c:414)
-    ==4434==    by 0x416D8F: blob_overwrite (blob.c:721)
-
-x win32: fix compilation/linkage with MSVCRT (do not link libc into hamsterdb)
-    http://old.nabble.com/problem-using-Windows-Hamster-DB-td27816861.html
-    x 1.1.3 has other compiler issues
-    x including crtdbg.h (include/ham/types.h) causes many other problems
-
-x some freelist cleanups needed
-    x fix the valgrind issue above
-    x remove HAM_DAM_FAST_INSERT
-        x acceptance tests fail, i.e. ./test --keysize=680 --duplicate=1 
-            -dam HAM_DAM_FAST_INSERT ../../testfiles/1/190.tst (and others)
-        x remove from header file
-        x remove from tutorial -- anyway it's not mentioned!
-
-x update windows versions
-    x MSVC Solutions need some love (files are missing)
+o documentation on http://hamsterdb.com/public/scripts/html_www/modules.html:
+    hamsterdb Cursor Functions is a child of hamsterdb Database Functions - but
+    o the filesize of hamsterdb is HUGE (more than 3 times higher than bdb).
+        are these pages part of the freelist? extend ham_info to dump 
+        information about freelist/used memory ratio
+    it should be on the same level!
 
 o Windows: are the file mapping routines really ok? does the file mapping
     handle have to be created over the whole file size? does it have to be
     created with every mmap call??
+    o CreateFileMapping: file size can be 0 (will then use the full file size)
+    o get a decent profiler
+        o win32: evaluate performance with FILE_FLAG_NO_BUFFERING 
+    	o get rid of copy-on-write! but then we also don't need to pwrite()??
+    o test with big file sizes on 32bit Windows - does it fail?
+        http://support.microsoft.com/kb/177415
+    o unix: in read-only files only map for reading, not for writing
+    o why is the file size so huge? we do not store blobs (all records are
+        < 8 bytes) -> the freelist is never needed!
+        --> it's not the freelist; index pages are split very early and
+            therefore are not fully occupied
 
-o documentation on http://hamsterdb.com/public/scripts/html_www/modules.html:
-    hamsterdb Cursor Functions is a child of hamsterdb Database Functions - but
-    it should be on the same level!
+o can we extend the statistic module to find out if a Database is sequential,
+    and then decide to have late page splits when inserting keys?
+    o clean up inserts and use routines from hamsterdb v2 (split when 
+        descending)
+
+. idea for freelist: we do not have to mark ALL pages in the freelist!
+    o use RLE storage for free pages (pages always have the same size, and
+        their offset is irrelevant)
+    o index pages that are in use do not need to be stored in the freelist
+    o use bitmap ONLY for blob pages!
+    o need lookup mechanism to map a page ID to a freelist page
+        o use a dynamic, sorted table
+        o for 256 blob-pages we will have to allocate 1 additional freelist page
 
 . update the Java API 
 
@@ -273,15 +129,6 @@ o documentation on http://hamsterdb.com/public/scripts/html_www/modules.html:
 o need tool to upgrade databases from 1.0.x to 1.1.x!
 
 . ham_get_parameter: could return VERSION of the database
-
-. idea for freelist:
-    don't use a bitmap but use buckets for entries which are of a certain size:
-        - one bucket for  [0, 31]
-        - one bucket for  [32, 63]
-        etc
-        - resize dynamically
-        - buckets have overflow areas
-        - buckets are unsorted, but compressed with RLE
 
 . approx. matching: need a sample
 
