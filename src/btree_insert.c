@@ -17,6 +17,7 @@
 
 #include <string.h>
 
+#include "internal_fwd_decl.h"
 #include "blob.h"
 #include "btree.h"
 #include "btree_cursor.h"
@@ -850,7 +851,8 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
 	ham_u16_t pivot;
 
 	ham_assert(page_get_owner(page), (0));
-	ham_assert(device_get_env(page_get_device(page)) == db_get_env(page_get_owner(page)), (0));
+	ham_assert(device_get_env(page_get_device(page)) 
+            == db_get_env(page_get_owner(page)), (0));
 
 	ham_assert(hints->force_append == HAM_FALSE, (0));
 
@@ -882,14 +884,20 @@ my_insert_split(ham_page_t *page, ham_key_t *key,
     obte=btree_node_get_key(db, obtp, 0);
     count=btree_node_get_count(obtp);
 
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER && count>8)
-	{
+    /*
+     * for databases with sequential access (this includes recno databases):
+     * do not split in the middle, but at the very end of the page
+     *
+     * TODO how can we discover automatically if an insert is sequential??
+     * can we use the "histogram" info from statistics? 
+     */
+    if ((db_get_data_access_mode(db)&HAM_DAM_SEQUENTIAL_INSERT) && count>8) {
 		ham_assert(count - 4 < 1U << (sizeof(pivot) * 8), (0));
-        pivot=count-4;
+        pivot=count-2;
 	}
     else
 	{
-		ham_assert(count/2 < 1U << (sizeof(pivot) * 8), (0));
+		//ham_assert(count/2 < 1U << (sizeof(pivot) * 8), (0));
         pivot=count/2;
 	}
 
