@@ -129,6 +129,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, hintingTest);
         BFC_REGISTER_TEST(HamsterdbTest, directAccessTest);
         BFC_REGISTER_TEST(HamsterdbTest, negativeDirectAccessTest);
+        BFC_REGISTER_TEST(HamsterdbTest, unlimitedCacheTest);
     }
 
 protected:
@@ -2152,6 +2153,26 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
+    void unlimitedCacheTest(void)
+    {
+        ham_db_t *db;
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        rec.size=6;
+        rec.data=(void *)"hello";
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_create(db, ".test.db", HAM_CACHE_UNLIMITED, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_open(db, ".test.db", HAM_CACHE_UNLIMITED));
+        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
 };
 
 BFC_REGISTER_FIXTURE(HamsterdbTest);
