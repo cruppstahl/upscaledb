@@ -2220,6 +2220,9 @@ ham_close(ham_db_t *db, ham_u32_t flags);
  * @}
  */
 
+/**
+ * @}
+ */
 
 /**
  * @defgroup ham_cursor hamsterdb Cursor Functions
