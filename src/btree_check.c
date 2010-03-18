@@ -52,14 +52,14 @@ typedef struct
  * the linked list of all the siblings
  */
 static ham_status_t 
-my_verify_level(ham_page_t *parent, ham_page_t *page, 
+__verify_level(ham_page_t *parent, ham_page_t *page, 
         ham_u32_t level, check_scratchpad_t *scratchpad);
 
 /**
  * verify a single page
  */
 static ham_status_t
-my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page, 
+__verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page, 
         ham_u32_t level, ham_u32_t count, check_scratchpad_t *scratchpad);
     
 /**                                                                 
@@ -90,7 +90,7 @@ btree_check_integrity(ham_btree_t *be)
     st=db_fetch_page(&page, db, btree_get_rootpage(be), 0);
     ham_assert(st ? !page : 1, (0));
     if (!page)
-        return st ? st : HAM_INTERNAL_ERROR;
+        return (st ? st : HAM_INTERNAL_ERROR);
 
     /* while we found a page... */
     while (page) {
@@ -100,7 +100,7 @@ btree_check_integrity(ham_btree_t *be)
         /*
          * verify the page and all its siblings
          */
-        st=my_verify_level(parent, page, level, &scratchpad);
+        st=__verify_level(parent, page, level, &scratchpad);
         if (st)
             break;
         parent=page;
@@ -112,7 +112,7 @@ btree_check_integrity(ham_btree_t *be)
             st=db_fetch_page(&page, db, ptr_left, 0);
             ham_assert(st ? !page : 1, (0));
             if (st)
-                return st;
+                return (st);
         }
         else
             page=0;
@@ -124,7 +124,7 @@ btree_check_integrity(ham_btree_t *be)
 }
 
 static ham_status_t 
-my_verify_level(ham_page_t *parent, ham_page_t *page, 
+__verify_level(ham_page_t *parent, ham_page_t *page, 
         ham_u32_t level, check_scratchpad_t *scratchpad)
 {
     int cmp;
@@ -157,7 +157,7 @@ my_verify_level(ham_page_t *parent, ham_page_t *page,
         /*
          * verify the page
          */
-        st=my_verify_page(parent, leftsib, page, level, count, scratchpad);
+        st=__verify_page(parent, leftsib, page, level, count, scratchpad);
         if (st)
             break;
 
@@ -184,7 +184,7 @@ my_verify_level(ham_page_t *parent, ham_page_t *page,
 }
 
 static ham_status_t
-my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page, 
+__verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page, 
         ham_u32_t level, ham_u32_t sibcount, check_scratchpad_t *scratchpad)
 {
     int cmp;
@@ -209,29 +209,15 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
 
         ham_log(("integrity check failed in page 0x%llx: empty page!\n",
                 page_get_self(page)));
-        return HAM_INTEGRITY_VIOLATED;
+        return (HAM_INTEGRITY_VIOLATED);
     }
 
     /*
-     * check if we've at least "minkeys" entries in this node.
-     * a root page can have ANY number of keys, and we relax the "minkeys"
-     * for internal pages.
-     *
-     * !! recno databases have relaxed SMO rules
+     * previous hamsterdb versions verified that at least "minkeys" keys
+     * are in the page. newer hamsterdb versions relaxed these rules and 
+     * performed late splits and maybe will even avoid merges if pages 
+     * underflow. 
      */
-    if ((btree_node_get_left(node)!=0 
-        || btree_node_get_right(node)!=0)
-        && !(db_get_rt_flags(db)&HAM_RECORD_NUMBER)) 
-    {
-        ham_bool_t isfew;
-        isfew=btree_node_get_count(node)<btree_get_minkeys(maxkeys)-1;
-        if (isfew) {
-            ham_log(("integrity check failed in page 0x%llx: not enough keys "
-                    " (need %d, got %d)\n", page_get_self(page),
-                    btree_get_minkeys(maxkeys), btree_node_get_count(node)));
-            return HAM_INTEGRITY_VIOLATED;
-        }
-    }
 
     /*
      * check if the largest item of the left sibling is smaller than
@@ -250,20 +236,19 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
             ham_log(("integrity check failed in page 0x%llx: item #0 "
                     "has flags, but it's not a leaf page", 
                     page_get_self(page), i));
-            return HAM_INTEGRITY_VIOLATED;
+            return (HAM_INTEGRITY_VIOLATED);
         }
-        else
-        {
+        else {
             ham_status_t st;
             ham_key_t lhs;
             ham_key_t rhs;
 
             st = db_prepare_ham_key_for_compare(db, sibentry, &lhs);
             if (st)
-                return st;
+                return (st);
             st = db_prepare_ham_key_for_compare(db, bte, &rhs);
             if (st)
-                return st;
+                return (st);
 
             cmp = db_compare_keys(db, &lhs, &rhs);
 
@@ -271,15 +256,14 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
             db_release_ham_key_after_compare(db, &rhs);
             /* error is detected, but ensure keys are always released */
             if (cmp < -1)
-                return (ham_status_t)cmp;
+                return ((ham_status_t)cmp);
         }
 
-        if (cmp >= 0) 
-        {
+        if (cmp >= 0) {
             ham_log(("integrity check failed in page 0x%llx: item #0 "
                     "< left sibling item #%d\n", page_get_self(page), 
                     btree_node_get_count(sibnode)-1));
-            return HAM_INTEGRITY_VIOLATED;
+            return (HAM_INTEGRITY_VIOLATED);
         }
     }
 
@@ -297,7 +281,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
                 ham_log(("integrity check failed in page 0x%llx: item #%d "
                         "is extended, but has no blob", 
                         page_get_self(page), i));
-                return HAM_INTEGRITY_VIOLATED;
+                return (HAM_INTEGRITY_VIOLATED);
             }
         }
         
@@ -308,7 +292,7 @@ my_verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
         if (cmp>=0) {
             ham_log(("integrity check failed in page 0x%llx: item #%d "
                     "< item #%d", page_get_self(page), i, i+1));
-            return HAM_INTEGRITY_VIOLATED;
+            return (HAM_INTEGRITY_VIOLATED);
         }
     }
 

@@ -32,13 +32,15 @@ o statistics.c: has big code about cach history which is only used in debug
 
 o can we extend the statistic module to find out if a Database is sequential,
     and then decide to have late page splits when inserting keys?
-    o clean up inserts and use routines from hamsterdb v2 (split when 
-        descending)
+    x make sure that ham_check_integrity does not find false positives
     o try to find better pivot values
         x also make sure that my_insert_split is only called if the merge
             makes sense - it's ok
         x also for optimized cursor-inserts with HAM_HINT_APPEND - no, it's ok
-    o make sure that ham_check_integrity does not find false positives
+        o what if HAM_DAM_SEQUENTIAL_INSERT is not specified? can we 
+            optimize the pivot value?
+            o unittest!
+        o unittest for SEQUENTIAL INSERT and late splitting
 
 o update the Java API 
 
