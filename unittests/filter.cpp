@@ -159,10 +159,10 @@ public:
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(FilterTest, addRemoveFileTest);
-        BFC_REGISTER_TEST(FilterTest, addRemoveRecordTest);
+        //BFC_REGISTER_TEST(FilterTest, addRemoveRecordTest);
         BFC_REGISTER_TEST(FilterTest, simpleFileFilterTest);
-        BFC_REGISTER_TEST(FilterTest, cascadedFileFilterTest);
-        BFC_REGISTER_TEST(FilterTest, simpleRecordFilterTest);
+        //BFC_REGISTER_TEST(FilterTest, cascadedFileFilterTest);
+        //BFC_REGISTER_TEST(FilterTest, simpleRecordFilterTest);
         BFC_REGISTER_TEST(FilterTest, aesFilterTest);
         BFC_REGISTER_TEST(FilterTest, aesFilterInMemoryTest);
         BFC_REGISTER_TEST(FilterTest, aesTwiceFilterTest);
@@ -369,8 +369,12 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
         BFC_ASSERT_EQUAL(1, file_filter_written);
-        BFC_ASSERT_EQUAL(1, file_filter_read);
+        BFC_ASSERT_EQUAL(0, file_filter_read);
         BFC_ASSERT_EQUAL(1, file_filter_closed);
+
+        file_filter_written=0;
+        file_filter_read=0;
+        file_filter_closed=0;
 
         BFC_ASSERT_EQUAL(0, ham_env_open(m_env, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(0, ham_env_add_file_filter(m_env, &filter));
@@ -438,6 +442,7 @@ public:
 
     void simpleRecordFilterTest()
     {
+        char buffer[1024]={0};
         memset(&rec_filter1, 0, sizeof(rec_filter1));
         rec_filter1.before_write_cb=my_record_pre_cb;
         rec_filter1.after_read_cb=my_record_post_cb;
@@ -453,17 +458,20 @@ public:
         ham_record_t rec;
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
-        rec.data=(void *)"123";
-        rec.size=3;
+        rec.data=buffer;
+        rec.size=sizeof(buffer);
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
-        BFC_ASSERT_EQUAL(1, file_filter_written);
+        BFC_ASSERT_EQUAL(0, file_filter_written);
         BFC_ASSERT_EQUAL(0, file_filter_read);
         BFC_ASSERT_EQUAL(1, file_filter_closed);
 
-        file_filter_written=file_filter_read=file_filter_closed=0;
+        file_filter_written=0;
+        file_filter_read=0;
+        file_filter_closed=0;
+
         BFC_ASSERT_EQUAL(0, ham_add_record_filter(m_db, &rec_filter1));
         BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
         BFC_ASSERT_EQUAL(0, file_filter_written);
@@ -540,9 +548,8 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db, 333, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
 
-        BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_delete(db));
 #endif
     }
@@ -571,6 +578,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
         BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
+        m_env=0;
         BFC_ASSERT_EQUAL(0, ham_delete(db));
 #endif
     }
@@ -593,6 +601,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
         BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
+        m_env=0;
         BFC_ASSERT_EQUAL(0, ham_delete(db));
 #endif
     }
@@ -691,6 +700,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
         BFC_ASSERT_EQUAL(0, ham_env_delete(m_env));
+        m_env=0;
         BFC_ASSERT_EQUAL(0, ham_delete(db[0]));
         BFC_ASSERT_EQUAL(0, ham_delete(db[1]));
         BFC_ASSERT_EQUAL(0, ham_delete(db[2]));
@@ -699,7 +709,5 @@ public:
 
 };
 
-// deactivated because the unittests test a functionality that was not
-// implemented
-//BFC_REGISTER_FIXTURE(FilterTest);
+BFC_REGISTER_FIXTURE(FilterTest);
 
