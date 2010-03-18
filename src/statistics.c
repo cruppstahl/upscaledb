@@ -1872,12 +1872,11 @@ void cache_push_history(ham_page_t *page, int state)
     }
 }
 
-
 /*
-state:
-db_alloc_page() -> -99
-db_fetch_page() --> 1, 2, 3 (1,2 = from cache, 3 = from device)
-*/
+ * state:
+ * db_alloc_page() -> -99
+ * db_fetch_page() --> 1, 2, 3 (1,2 = from cache, 3 = from device)
+ */
 void cache_check_history(ham_env_t *env, ham_page_t *page, int state)
 {
     cache_history_t *ref = cache_history_locate_entry(page, state);

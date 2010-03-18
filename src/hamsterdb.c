@@ -4979,9 +4979,11 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
                  */
                 if (sizeof(ham_u64_t)>db_get_key_allocsize(db)) {
                     if (db_get_key_allocdata(db))
-                        allocator_free(env_get_allocator(env), db_get_key_allocdata(db));
+                        allocator_free(env_get_allocator(env), 
+                                        db_get_key_allocdata(db));
                     db_set_key_allocdata(db, 
-                            allocator_alloc(env_get_allocator(env), sizeof(ham_u64_t)));
+                            allocator_alloc(env_get_allocator(env), 
+                                            sizeof(ham_u64_t)));
                     if (!db_get_key_allocdata(db)) {
                         db_set_key_allocsize(db, 0);
                         return (db_set_error(db, HAM_OUT_OF_MEMORY));

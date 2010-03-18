@@ -10,9 +10,6 @@ x a finished TODO item
 
 x documentation on http://hamsterdb.com/public/scripts/html_www/modules.html:
     hamsterdb Cursor Functions is a child of hamsterdb Database Functions - but
-    o the filesize of hamsterdb is HUGE (more than 3 times higher than bdb).
-        are these pages part of the freelist? extend ham_info to dump 
-        information about freelist/used memory ratio
     it should be on the same level!
 
 o Windows: are the file mapping routines really ok? does the file mapping
@@ -28,19 +25,20 @@ o Windows: are the file mapping routines really ok? does the file mapping
     x why is the file size so huge? we do not store blobs (all records are
         < 8 bytes) -> the freelist is never needed!
         --> it's not the freelist; index pages are split very early and
-            therefore are not fully occupied
+            therefore are only 50% full
+
+o statistics.c: has big code about cach history which is only used in debug
+    mode - check what this is - is it needed?
 
 o can we extend the statistic module to find out if a Database is sequential,
     and then decide to have late page splits when inserting keys?
     o clean up inserts and use routines from hamsterdb v2 (split when 
         descending)
     o try to find better pivot values
-        o also make sure that my_insert_split is only called if the merge
-            makes sense
-        o also for optimized cursor-inserts with HAM_HINT_APPEND
+        x also make sure that my_insert_split is only called if the merge
+            makes sense - it's ok
+        x also for optimized cursor-inserts with HAM_HINT_APPEND - no, it's ok
     o make sure that ham_check_integrity does not find false positives
-
-o FilterTest is deactivated! huh??
 
 o update the Java API 
 
@@ -60,9 +58,6 @@ o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES???
     o unittest
     o remove from monster.sh!
 
-o statistics.c: has big code about cach history which is only used in debug
-    mode - check why; can we remove/refactor it?
-
 o create abstraction layer for local Environments/Databases and remote
     Environments/Databases
     o move every local function to local.c
@@ -75,6 +70,8 @@ o network-client (use apr, protocol buffers)
 
 . WinCE: create and run Unittests project
     http://msexchangeteam.com/archive/2004/02/23/78930.aspx
+
+. some tests in filter.cpp are deactivated - fix them
 
 . run profiling for duplicate tests - can things be improved?
     o blob_overwrite/duplicate table handling: in some cases we can use

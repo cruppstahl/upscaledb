@@ -840,8 +840,8 @@ bt_cursor_find(ham_bt_cursor_t *c, ham_key_t *key, ham_record_t *record,
 
 /**                                                                 
  * insert (or update) a key in the index                            
-
- @note This is a B+-tree cursor 'backend' method.
+ *
+ * @note This is a B+-tree cursor 'backend' method.
  */                                                                 
 static ham_status_t
 bt_cursor_insert(ham_bt_cursor_t *c, ham_key_t *key,
@@ -868,8 +868,8 @@ bt_cursor_insert(ham_bt_cursor_t *c, ham_key_t *key,
 
 /**                                                                 
  * erases the key from the index; afterwards, the cursor points to NIL
-
- @note This is a B+-tree cursor 'backend' method.
+ *
+ * @note This is a B+-tree cursor 'backend' method.
  */                                                                 
 static ham_status_t
 bt_cursor_erase(ham_bt_cursor_t *c, ham_u32_t flags)

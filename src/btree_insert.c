@@ -123,10 +123,9 @@ my_insert_cursor(ham_btree_t *be, ham_key_t *key,
         ham_record_t *record, ham_bt_cursor_t *cursor, insert_hints_t *hints);
 
 
-
 static ham_status_t
-my_append_key(ham_btree_t *be, ham_key_t *key, 
-        ham_record_t *record, ham_bt_cursor_t *cursor, insert_hints_t *hints)
+my_append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record, 
+                ham_bt_cursor_t *cursor, insert_hints_t *hints)
 {
     ham_status_t st=0;
     ham_page_t *page;
@@ -134,8 +133,7 @@ my_append_key(ham_btree_t *be, ham_key_t *key,
     ham_db_t *db;
 
 #ifdef HAM_DEBUG
-	if (cursor && !bt_cursor_is_nil(cursor))
-	{
+	if (cursor && !bt_cursor_is_nil(cursor)) {
 		ham_assert(be_get_db(be) == bt_cursor_get_db(cursor), (0));
 	}
 #endif
@@ -150,14 +148,12 @@ my_append_key(ham_btree_t *be, ham_key_t *key,
      * discarded.
 	 */
 	st = db_fetch_page(&page, db, hints->leaf_page_addr, DB_ONLY_FROM_CACHE);
-	ham_assert(st ? !page : 1, (0));
 	if (st)
 		return st;
-	if (!page)
-	{
+	if (!page) {
 		hints->force_append = HAM_FALSE;
 		hints->force_prepend = HAM_FALSE;
-        return my_insert_cursor(be, key, record, cursor, hints);
+        return (my_insert_cursor(be, key, record, cursor, hints));
     }
 
     page_add_ref(page);
@@ -170,128 +166,122 @@ my_append_key(ham_btree_t *be, ham_key_t *key,
      * OR the new key is not the highest key: perform a normal insert
      */
     if ((hints->force_append && btree_node_get_right(node))
-		|| (hints->force_prepend && btree_node_get_left(node))
-        || btree_node_get_count(node) >= btree_get_maxkeys(be)) 
-	{
+		    || (hints->force_prepend && btree_node_get_left(node))
+            || btree_node_get_count(node) >= btree_get_maxkeys(be)) {
         page_release_ref(page);
 		hints->force_append = HAM_FALSE;
 		hints->force_prepend = HAM_FALSE;
-        return my_insert_cursor(be, key, record, cursor, hints);
+        return (my_insert_cursor(be, key, record, cursor, hints));
     }
 
     /*
      * if the page is not empty: check if we append the key at the end / start
 	 * (depending on force_append/force_prepend),
 	 * or if it's actually inserted in the middle (when neither force_append 
-	 * or force_prepend is specified: that'd be SEQUENTIAL insertion hinting somewhere 
-	 * in the middle of the total key range.
+	 * or force_prepend is specified: that'd be SEQUENTIAL insertion 
+     * hinting somewhere in the middle of the total key range.
      */
-    if (btree_node_get_count(node)!=0) 
-	{
+    if (btree_node_get_count(node)!=0) {
 		int cmp_hi;
 		int cmp_lo;
 
 	    hints->cost++;
-		if (!hints->force_prepend)
-		{
-			cmp_hi = key_compare_pub_to_int(db, page, key, btree_node_get_count(node)-1);
-			if (cmp_hi < -1) 
-			{
+		if (!hints->force_prepend) {
+			cmp_hi = key_compare_pub_to_int(db, page, key, 
+                                btree_node_get_count(node)-1);
+            /* key is in the middle */
+			if (cmp_hi < -1) {
 				page_release_ref(page);
 				return (ham_status_t)cmp_hi;
 			}
-			if (cmp_hi > 0)
-			{
-				if (btree_node_get_right(node))
-				{
-					/* not at top end of the btree, so we can't do the fast track */
+            /* key is at the end */
+			if (cmp_hi > 0) {
+				if (btree_node_get_right(node)) {
+					/* not at top end of the btree, so we can't do the 
+                     * fast track */
 					page_release_ref(page);
 					//hints->flags &= ~HAM_HINT_APPEND;
 					hints->force_append = HAM_FALSE;
 					hints->force_prepend = HAM_FALSE;
-					return my_insert_cursor(be, key, record, cursor, hints);
+					return (my_insert_cursor(be, key, record, cursor, hints));
 				}
 
 				hints->force_append = HAM_TRUE;
 				hints->force_prepend = HAM_FALSE;
 			}
 		}
-		else
-		{
-			/* not bigger than the right-most node while we were trying to APPEND */
+		else { /* hints->force_prepend is true */
+			/* not bigger than the right-most node while we 
+             * were trying to APPEND */
 			cmp_hi = -1;
 		}
 
-		if (!hints->force_append)
-		{
+		if (!hints->force_append) {
 			cmp_lo = key_compare_pub_to_int(db, page, key, 0);
-			if (cmp_lo < -1) 
-			{
+            /* in the middle range */
+			if (cmp_lo < -1) {
 				page_release_ref(page);
-				return (ham_status_t)cmp_lo;
+				return ((ham_status_t)cmp_lo);
 			}
-			if (cmp_lo < 0)
-			{
-				if (btree_node_get_left(node))
-				{
-					/* not at bottom end of the btree, so we can't do the fast track */
+            /* key is at the start of page */
+			if (cmp_lo < 0) {
+				if (btree_node_get_left(node)) {
+					/* not at bottom end of the btree, so we can't 
+                     * do the fast track */
 					page_release_ref(page);
 					//hints->flags &= ~HAM_HINT_PREPEND;
 					hints->force_append = HAM_FALSE;
 					hints->force_prepend = HAM_FALSE;
-					return my_insert_cursor(be, key, record, cursor, hints);
+					return (my_insert_cursor(be, key, record, cursor, hints));
 				}
 
 				hints->force_append = HAM_FALSE;
 				hints->force_prepend = HAM_TRUE;
 			}
 		}
-		else
-		{
-			/* not smaller than the left-most node while we were trying to PREPEND */
+		else { /* hints->force_prepend is true */
+			/* not smaller than the left-most node while we were 
+             * trying to PREPEND */
 			cmp_lo = +1;
 		}
 
-		if (cmp_lo >= 0 && cmp_hi <= 0)
-		{
+        /* handle inserts in the middle range */
+		if (cmp_lo >= 0 && cmp_hi <= 0) {
 			/*
-			Depending on where we are in the btree, the current key either
-			is going to end up in the middle of the given node/page,
-			OR the given key is out of range of the given leaf node.
-			*/
-			if (hints->force_append || hints->force_prepend)
-			{
+			 * Depending on where we are in the btree, the current key either
+			 * is going to end up in the middle of the given node/page,
+			 * OR the given key is out of range of the given leaf node.
+			 */
+			if (hints->force_append || hints->force_prepend) {
 				/*
-				when prepend or append is FORCED, we are expected to 
-				add keys ONLY at the beginning or end of the btree
-				key range. Clearly the current key does not fit that
-				criterium.
-				*/
+				 * when prepend or append is FORCED, we are expected to 
+				 * add keys ONLY at the beginning or end of the btree
+				 * key range. Clearly the current key does not fit that
+				 * criterium.
+				 */
 				page_release_ref(page);
 				//hints->flags &= ~HAM_HINT_PREPEND;
 				hints->force_append = HAM_FALSE;
 				hints->force_prepend = HAM_FALSE;
-				return my_insert_cursor(be, key, record, cursor, hints);
+				return (my_insert_cursor(be, key, record, cursor, hints));
 			}
 
 			/* 
-			we discovered that the key must be inserted in the middle 
-			of the current leaf.
-
-			It does not matter whether the current leaf is at the start or
-			end of the btree range; as we need to add the key in the middle
-			of the current leaf, that info alone is enough to continue with
-			the fast track insert operation.
-			*/
+			 * we discovered that the key must be inserted in the middle 
+			 * of the current leaf.
+             * 
+			 * It does not matter whether the current leaf is at the start or
+			 * end of the btree range; as we need to add the key in the middle
+			 * of the current leaf, that info alone is enough to continue with
+			 * the fast track insert operation.
+			 */
 			ham_assert(!hints->force_prepend && !hints->force_append, (0));
 		}
 
 		ham_assert((hints->force_prepend + hints->force_append) < 2, 
 				("Either APPEND or PREPEND flag MAY be set, but not both"));
     }
-	else
-	{
-		/* empty page: force insertion in slot 0 */
+	else { /* empty page: force insertion in slot 0 */
 		hints->force_append = HAM_FALSE;
 		hints->force_prepend = HAM_TRUE;
 	}
@@ -306,7 +296,7 @@ my_append_key(ham_btree_t *be, ham_key_t *key,
     }
 
     /*
-     * OK - we're really appending the new key.
+     * OK - we're really appending/prepending the new key.
      */
 	ham_assert(hints->force_append || hints->force_prepend, (0));
     st=my_insert_nosplit(page, key, 0, record, cursor, hints);
@@ -314,7 +304,6 @@ my_append_key(ham_btree_t *be, ham_key_t *key,
     page_release_ref(page);
     return (st);
 }
-
 
 static ham_status_t
 my_insert_cursor(ham_btree_t *be, ham_key_t *key, 
@@ -591,33 +580,24 @@ my_insert_in_page(ham_page_t *page, ham_key_t *key,
 		ham_s32_t idx;
 
 		hints->cost++;
-		idx = btree_node_search_by_key(page_get_owner(page), page, key, HAM_FIND_EXACT_MATCH);
-        if (idx >= 0) 
-		{
-			ham_assert((hints->flags & (HAM_DUPLICATE_INSERT_BEFORE
-									|HAM_DUPLICATE_INSERT_AFTER
-									|HAM_DUPLICATE_INSERT_FIRST
-									|HAM_DUPLICATE_INSERT_LAST)) 
-						? (hints->flags & HAM_DUPLICATE)
-						: 1, (0)); 
-            if (hints->flags & (HAM_OVERWRITE | HAM_DUPLICATE))
-			{
-                st=my_insert_nosplit(page, key, rid, 
-                        scratchpad->record, scratchpad->cursor, 
-                        hints);
-                /* don't overwrite cursor if my_insert_nosplit
-                   is called again */
-                scratchpad->cursor=0; 
-                return (st);
-            }
-            else
+		idx = btree_node_search_by_key(page_get_owner(page), page, key, 
+                            HAM_FIND_EXACT_MATCH);
+        /* key exists! */
+        if (idx>=0) {
+		    ham_assert((hints->flags & (HAM_DUPLICATE_INSERT_BEFORE
+								|HAM_DUPLICATE_INSERT_AFTER
+								|HAM_DUPLICATE_INSERT_FIRST
+								|HAM_DUPLICATE_INSERT_LAST)) 
+					? (hints->flags & HAM_DUPLICATE)
+					: 1, (0)); 
+            if (!(hints->flags & (HAM_OVERWRITE | HAM_DUPLICATE))) 
                 return (HAM_DUPLICATE_KEY);
+            st=my_insert_nosplit(page, key, rid, 
+                    scratchpad->record, scratchpad->cursor, hints);
+            /* don't overwrite cursor if my_insert_nosplit is called again */
+            scratchpad->cursor=0; 
+            return (st);
         }
-		else if (idx < -1)
-		{
-			ham_assert(!"this shouldn't ever happen, right?", (0));
-			return (ham_status_t)idx;
-		}
     }
 
     return (my_insert_split(page, key, rid, scratchpad, hints));
@@ -717,8 +697,6 @@ my_insert_nosplit(ham_page_t *page, ham_key_t *key,
 
 	if (!exists)
 	{
-		ham_assert(count < btree_get_maxkeys((ham_btree_t *)db_get_backend(db)), (0));
-
 		if (count > slot)
 		{
 			/* uncouple all cursors & shift any elements following [slot] */
