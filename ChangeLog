@@ -1,3 +1,10 @@
+Mar 18, 2010 - chris
+o Optimization - if HAM_DAM_SEQUENTIAL_INSERT is set then btree nodes will
+    not be split in the middle, but at the end of the node. hamsterdb will
+    also auto-recognize if an insert is sequential (at the "right end" of 
+    the index). This leads to MUCH smaller files and therefore higher
+    performance (thanks, Simon)
+
 Mar 10, 2010 - chris ---------------------------------------------------
                       release of hamsterdb-1.1.3
 
