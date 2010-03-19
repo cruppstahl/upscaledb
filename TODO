@@ -25,9 +25,20 @@ x can we extend the statistic module to find out if a Database is sequential,
             x unittest!
         x unittest for SEQUENTIAL INSERT and late splitting
 
+x some warnings on the laptop (32bit, linux)
+    bt_cursor.cpp:100: warning: dereferencing type-punned pointer will break strict-aliasing rules
+    bt_cursor.cpp:109: warning: dereferencing type-punned pointer will break strict-aliasing rules
+    bt_cursor.cpp:236: warning: dereferencing type-punned pointer will break strict-aliasing rules
+    bt_cursor.cpp:267: warning: dereferencing type-punned pointer will break strict-aliasing rules
+    bt_cursor.cpp:294: warning: dereferencing type-punned pointer will break strict-aliasing rules
+
 o Windows: are the file mapping routines really ok? does the file mapping
     handle have to be created over the whole file size? does it have to be
     created with every mmap call??
+    x why is the file size so huge? we do not store blobs (all records are
+        < 8 bytes) -> the freelist is never needed!
+        --> it's not the freelist; index pages are split very early and
+            therefore are only 50% full
     o CreateFileMapping: file size can be 0 (will then use the full file size)
     o get a decent profiler
         o win32: evaluate performance with FILE_FLAG_NO_BUFFERING 
@@ -35,10 +46,16 @@ o Windows: are the file mapping routines really ok? does the file mapping
     o test with big file sizes on 32bit Windows - does it fail?
         http://support.microsoft.com/kb/177415
     o unix: in read-only files only map for reading, not for writing
-    x why is the file size so huge? we do not store blobs (all records are
-        < 8 bytes) -> the freelist is never needed!
-        --> it's not the freelist; index pages are split very early and
-            therefore are only 50% full
+
+o do some benchmarks with the collatz sequence
+    x select a different pivot element to reduce page sizes - no effect
+    o do more profiling - why is the monster test of the same sequence
+        a lot faster than collatz.c?? is it because create/open/close
+        are not included in the benchmark?
+    o how does bdb select the pivot key when splitting?
+    o if both (bdb,hdb) have the same amount of caching: how is performance?
+        -> does that mean bad performance is caused by inefficient caching?
+        o which caching-algorithms are used in bdb?
 
 o statistics.c: has big code about cach history which is only used in debug
     mode - check what this is - is it needed?

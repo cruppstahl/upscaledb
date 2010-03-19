@@ -96,8 +96,10 @@ public:
     void createCloseTest(void)
     {
         ham_bt_cursor_t *cursor;
+        ham_cursor_t *c;
 
-        BFC_ASSERT(ham_cursor_create(m_db, 0, 0, (ham_cursor_t **)&cursor)==0);
+        BFC_ASSERT(ham_cursor_create(m_db, 0, 0, &c)==0);
+        cursor=(ham_bt_cursor_t *)c;
         BFC_ASSERT(cursor!=0);
         BFC_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)cursor));
     }
@@ -105,8 +107,10 @@ public:
     void cloneTest(void)
     {
         ham_bt_cursor_t *cursor, *clone;
+        ham_cursor_t *c;
 
-        BFC_ASSERT(ham_cursor_create(m_db, 0, 0, (ham_cursor_t **)&cursor)==0);
+        BFC_ASSERT(ham_cursor_create(m_db, 0, 0, &c)==0);
+        cursor=(ham_bt_cursor_t *)c;
         BFC_ASSERT(cursor!=0);
         BFC_ASSERT(cursor->_fun_clone(cursor, &clone)==0);
         BFC_ASSERT(clone!=0);
@@ -232,8 +236,10 @@ public:
     void structureTest(void)
     {
         ham_bt_cursor_t *cursor;
+        ham_cursor_t *c;
 
-        BFC_ASSERT(ham_cursor_create(m_db, 0, 0, (ham_cursor_t **)&cursor)==0);
+        BFC_ASSERT(ham_cursor_create(m_db, 0, 0, &c)==0);
+        cursor=(ham_bt_cursor_t *)c;
         BFC_ASSERT(cursor!=0);
 
         BFC_ASSERT(bt_cursor_get_db(cursor)==m_db);
@@ -264,8 +270,9 @@ public:
         BFC_ASSERT_EQUAL((ham_cursor_t *)0, db_get_cursors(m_db));
 
         for (int i=0; i<5; i++) {
-            BFC_ASSERT_EQUAL(0, 
-                    ham_cursor_create(m_db, 0, 0, (ham_cursor_t **)&cursor[i]));
+            ham_cursor_t *c;
+            BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+            cursor[i]=(ham_bt_cursor_t *)c;
             BFC_ASSERT(cursor[i]!=0);
             BFC_ASSERT_EQUAL((ham_cursor_t *)cursor[i], 
                             db_get_cursors(m_db));
@@ -291,8 +298,9 @@ public:
         BFC_ASSERT_EQUAL((ham_cursor_t *)0, db_get_cursors(m_db));
 
         for (int i=0; i<5; i++) {
-            BFC_ASSERT_EQUAL(0, 
-                    ham_cursor_create(m_db, 0, 0, (ham_cursor_t **)&cursor[i]));
+            ham_cursor_t *c;
+            BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+            cursor[i]=(ham_bt_cursor_t *)c;
             BFC_ASSERT(cursor[i]!=0);
             BFC_ASSERT_EQUAL((ham_cursor_t *)cursor[i], 
                             db_get_cursors(m_db));
