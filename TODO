@@ -46,6 +46,15 @@ o Windows: are the file mapping routines really ok? does the file mapping
     o test with big file sizes on 32bit Windows - does it fail?
         http://support.microsoft.com/kb/177415
     o unix: in read-only files only map for reading, not for writing
+    o look up the API to extract the info from the OS about
+    the amount of available *physical* RAM (those numbers you get to see in the
+    taskmanager) and min/max mix that with the cachesize setting as specced by
+    the user, then divvy up that space in, say, 128 chunks or less, where a
+    chunk is at least 1 page, and then store that chunksize so you can calculate
+    addresses in O(1) to array indices into an array of, say, twice that size
+    (overflow allowance) where the array stores view handles, start addresses
+    and the number of pages currently 'used' by the hamster per view, so we know
+    when to release a view.
 
 o do some benchmarks with the collatz sequence
     x select a different pivot element to reduce page sizes - no effect
