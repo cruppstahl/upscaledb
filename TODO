@@ -55,16 +55,20 @@ o Windows: are the file mapping routines really ok? does the file mapping
     (overflow allowance) where the array stores view handles, start addresses
     and the number of pages currently 'used' by the hamster per view, so we know
     when to release a view.
+    o use FlushViewOfFile instead of writing file?
+    o or (simpler): look up amount of available pool memory; then limit the
+    caching to a reasonable size, and print a warning (only 32bit windows!)
+
+o why is t allowed to have multiple (temp.) transactions??
+    txn=db.begin()
+    db.insert(a, b) -> should fail!
+    o add unittests
 
 o do some benchmarks with the collatz sequence
     x select a different pivot element to reduce page sizes - no effect
     o do more profiling - why is the monster test of the same sequence
         a lot faster than collatz.c?? is it because create/open/close
         are not included in the benchmark?
-    o how does bdb select the pivot key when splitting?
-    o if both (bdb,hdb) have the same amount of caching: how is performance?
-        -> does that mean bad performance is caused by inefficient caching?
-        o which caching-algorithms are used in bdb?
 
 o statistics.c: has big code about cach history which is only used in debug
     mode - check what this is - is it needed?
