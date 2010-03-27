@@ -262,17 +262,19 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
     env_set_txn(env, 0);
 
     /*
-     * delete all modified pages
+     * undo all operations from this transaction
+     * 
+     * this includes allocated pages (they're moved to the freelist), 
+     * deleted pages (they're un-deleted) and other modifications (will
+     * re-create the original page from the logfile)
      *
      * keep txn_get_pagelist(txn) intact during every round, so no 
      * local var for this one.
      */
-    while (txn_get_pagelist(txn)) 
-    {
+    while (txn_get_pagelist(txn)) {
         ham_page_t *head = txn_get_pagelist(txn);
 
-        if (!(flags & DO_NOT_NUKE_PAGE_STATS))
-        {
+        if (!(flags & DO_NOT_NUKE_PAGE_STATS)) {
             /* 
              * nuke critical statistics, such as tracked outer bounds; imagine,
              * for example, a failing erase transaction which, through erasing 
@@ -293,11 +295,10 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
 			ham_db_t *db = page_get_owner(head);
 
 			/*
-			only need to do this for index pages anyhow, and those are the ones
-			which have their 'ownership' set.
-			*/
-			if (db)
-			{
+			 * only need to do this for index pages anyhow, and those are the 
+             * ones which have their 'ownership' set.
+			 */
+			if (db) {
 				stats_page_is_nuked(db, head, HAM_FALSE); 
 			}
         }
@@ -312,16 +313,14 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
             (void)freel_mark_free(env, 0, page_get_self(head), 
                     env_get_pagesize(env), HAM_TRUE);
         }
-        else
-        {
+        else {
             /* remove the 'delete pending' flag */
             page_set_npers_flags(head, 
                     page_get_npers_flags(head)&~PAGE_NPERS_DELETE_PENDING);
 
             /* if the page is dirty, and RECOVERY is enabled: recreate
              * the original, unmodified page from the log */
-            if (env_get_log(env) && page_is_dirty(head)) 
-            {
+            if (env_get_log(env) && page_is_dirty(head)) {
                 st=ham_log_recreate(env_get_log(env), head);
                 if (st)
                     return (st);
