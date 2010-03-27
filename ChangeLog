@@ -1,3 +1,7 @@
+Mar 27, 2010 - chris
+o Bugfix - it was allowed to create temp. Transactions while a non-temp.
+	Transaction was still active
+
 Mar 18, 2010 - chris
 o Optimization - if HAM_DAM_SEQUENTIAL_INSERT is set then btree nodes will
     not be split in the middle, but at the end of the node. hamsterdb will

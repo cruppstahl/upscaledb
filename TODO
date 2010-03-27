@@ -32,6 +32,11 @@ x some warnings on the laptop (32bit, linux)
     bt_cursor.cpp:267: warning: dereferencing type-punned pointer will break strict-aliasing rules
     bt_cursor.cpp:294: warning: dereferencing type-punned pointer will break strict-aliasing rules
 
+x why is t allowed to have multiple (temp.) transactions??
+    txn=db.begin()
+    db.insert(a, b) -> should fail!
+    x add unittests
+
 o Windows: are the file mapping routines really ok? does the file mapping
     handle have to be created over the whole file size? does it have to be
     created with every mmap call??
@@ -58,17 +63,6 @@ o Windows: are the file mapping routines really ok? does the file mapping
     o use FlushViewOfFile instead of writing file?
     o or (simpler): look up amount of available pool memory; then limit the
     caching to a reasonable size, and print a warning (only 32bit windows!)
-
-o why is t allowed to have multiple (temp.) transactions??
-    txn=db.begin()
-    db.insert(a, b) -> should fail!
-    o add unittests
-
-o do some benchmarks with the collatz sequence
-    x select a different pivot element to reduce page sizes - no effect
-    o do more profiling - why is the monster test of the same sequence
-        a lot faster than collatz.c?? is it because create/open/close
-        are not included in the benchmark?
 
 o statistics.c: has big code about cach history which is only used in debug
     mode - check what this is - is it needed?

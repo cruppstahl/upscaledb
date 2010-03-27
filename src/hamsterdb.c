@@ -434,12 +434,6 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
 
-    /* for hamsterdb 1.0.4 - only support one transaction */
-    if (env_get_txn(env)) {
-        ham_trace(("only one concurrent transaction is supported"));
-        return (db_set_error(db, HAM_LIMITS_REACHED));
-    }
-
     *txn=(ham_txn_t *)allocator_alloc(env_get_allocator(env), sizeof(**txn));
     if (!(*txn))
         return (db_set_error(db, HAM_OUT_OF_MEMORY));
@@ -2277,18 +2271,6 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
         return (HAM_DATABASE_NOT_FOUND);
 
     /*
-     * temporarily load the database
-     */
-    st=ham_new(&db);
-    if (st)
-        return (st);
-    st=ham_env_open_db(env, db, name, 0, 0);
-    if (st) {
-        (void)ham_delete(db);
-        return (st);
-    }
-
-    /*
      * delete all blobs and extended keys, also from the cache and
      * the extkey_cache
      *
@@ -2296,12 +2278,22 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
      * cached, delete them from the cache
      */
     st=txn_begin(&txn, env, 0);
+    if (st)
+        return (st);
+    
+    /*
+     * temporarily load the database
+     */
+    st=ham_new(&db);
+    if (st)
+        return (st);
+    st=ham_env_open_db(env, db, name, 0, 0);
     if (st) {
-        (void)ham_close(db, 0);
+        (void)txn_abort(&txn, 0);
         (void)ham_delete(db);
         return (st);
     }
-    
+
     context.db=db;
     be=db_get_backend(db);
     if (!be || !be_is_active(be))

@@ -129,6 +129,12 @@ txn_begin(ham_txn_t *txn, ham_env_t *env, ham_u32_t flags)
 {
     ham_status_t st=0;
 
+    /* for hamsterdb 1.0.4 - only support one transaction */
+    if (env_get_txn(env)) {
+        ham_trace(("only one concurrent transaction is supported"));
+        return (HAM_LIMITS_REACHED);
+    }
+
     memset(txn, 0, sizeof(*txn));
     txn_set_env(txn, env);
     txn_set_id(txn, env_get_txn_id(env)+1);

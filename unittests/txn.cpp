@@ -47,6 +47,13 @@ public:
         BFC_REGISTER_TEST(TxnTest, addPageAbortTest);
         BFC_REGISTER_TEST(TxnTest, removePageTest);
         BFC_REGISTER_TEST(TxnTest, onlyOneTxnAllowedTest);
+        BFC_REGISTER_TEST(TxnTest, insertLimitsReachedTest);
+        BFC_REGISTER_TEST(TxnTest, findLimitsReachedTest);
+        BFC_REGISTER_TEST(TxnTest, eraseLimitsReachedTest);
+        BFC_REGISTER_TEST(TxnTest, checkIntegrityLimitsReachedTest);
+        BFC_REGISTER_TEST(TxnTest, getKeyCountLimitsReachedTest);
+        BFC_REGISTER_TEST(TxnTest, eraseDbLimitsReachedTest);
+        BFC_REGISTER_TEST(TxnTest, cursorLimitsReachedTest);
     }
 
 protected:
@@ -205,6 +212,140 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
+
+    void insertLimitsReachedTest(void)
+    {
+        ham_txn_t *txn;
+        ham_key_t key;
+        ham_record_t rec;
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
+                ham_insert(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_insert(m_db, 0, &key, &rec, 0));
+    }
+
+    void findLimitsReachedTest(void)
+    {
+        ham_txn_t *txn;
+        ham_key_t key;
+        ham_record_t rec;
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
+                ham_find(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_find(m_db, 0, &key, &rec, 0));
+    }
+
+    void eraseLimitsReachedTest(void)
+    {
+        ham_txn_t *txn;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
+                ham_erase(m_db, 0, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_erase(m_db, 0, &key, 0));
+    }
+
+    void checkIntegrityLimitsReachedTest(void)
+    {
+        ham_txn_t *txn;
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+#ifdef HAM_ENABLE_INTERNAL
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
+                ham_check_integrity(m_db, 0));
+#endif
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+#ifdef HAM_ENABLE_INTERNAL
+        BFC_ASSERT_EQUAL(0, 
+                ham_check_integrity(m_db, 0));
+#endif
+    }
+
+    void getKeyCountLimitsReachedTest(void)
+    {
+        ham_txn_t *txn;
+        ham_offset_t o;
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
+                ham_get_key_count(m_db, 0, 0, &o));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_get_key_count(m_db, 0, 0, &o));
+    }
+
+    void eraseDbLimitsReachedTest(void)
+    {
+        ham_txn_t *txn;
+        ham_db_t *db;
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0,
+                ham_env_create_db(m_env, db, 123, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
+                ham_env_erase_db(m_env, 123, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void cursorLimitsReachedTest(void)
+    {
+        ham_txn_t *txn;
+        ham_cursor_t *c, *clone;
+        ham_key_t key;
+        ham_record_t rec;
+        memset(&key, 0, sizeof(key));
+        memset(&rec, 0, sizeof(rec));
+
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
+                ham_cursor_find(c, &key, 0));
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
+                ham_cursor_move(c, 0, 0, HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
+                ham_cursor_insert(c, &key, &rec, 0));
+
+        /* for the following tests (i.e. for ham_cursor_overwrite(), the
+         * cursor must point to a valid key. therefore close the txn,
+         * move the cursor and then re-create the txn */
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_find(c, &key, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
+                ham_cursor_overwrite(c, &rec, 0));
+        ham_size_t count=0;
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
+                ham_cursor_get_duplicate_count(c, &count, 0));
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
+                ham_cursor_clone(c, &clone));
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, 
+                ham_cursor_erase(c, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
 };
