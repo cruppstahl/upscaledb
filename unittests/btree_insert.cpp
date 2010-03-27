@@ -220,15 +220,5 @@ public:
 
 };
 
-class InMemoryBtreeInsertTest : public BtreeInsertTest
-{
-public:
-    InMemoryBtreeInsertTest()
-        : BtreeInsertTest(HAM_IN_MEMORY_DB, "InMemoryBtreeInsertTest")
-    {
-    }
-};
-
 BFC_REGISTER_FIXTURE(BtreeInsertTest);
-BFC_REGISTER_FIXTURE(InMemoryBtreeInsertTest);
 

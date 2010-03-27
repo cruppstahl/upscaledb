@@ -2251,6 +2251,12 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
         return (HAM_INV_PARAMETER);
     }
 
+    /* for hamsterdb 1.0.4 - only support one transaction */
+    if (env_get_txn(env)) {
+        ham_trace(("only one concurrent transaction is supported"));
+        return (HAM_LIMITS_REACHED);
+    }
+
     /*
      * check if this database is still open
      */
@@ -2271,17 +2277,6 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
         return (HAM_DATABASE_NOT_FOUND);
 
     /*
-     * delete all blobs and extended keys, also from the cache and
-     * the extkey_cache
-     *
-     * also delete all pages and move them to the freelist; if they're 
-     * cached, delete them from the cache
-     */
-    st=txn_begin(&txn, env, 0);
-    if (st)
-        return (st);
-    
-    /*
      * temporarily load the database
      */
     st=ham_new(&db);
@@ -2289,11 +2284,24 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
         return (st);
     st=ham_env_open_db(env, db, name, 0, 0);
     if (st) {
-        (void)txn_abort(&txn, 0);
         (void)ham_delete(db);
         return (st);
     }
 
+    /*
+     * delete all blobs and extended keys, also from the cache and
+     * the extkey_cache
+     *
+     * also delete all pages and move them to the freelist; if they're 
+     * cached, delete them from the cache
+     */
+    st=txn_begin(&txn, env, 0);
+    if (st) {
+        (void)ham_close(db, 0);
+        (void)ham_delete(db);
+        return (st);
+    }
+    
     context.db=db;
     be=db_get_backend(db);
     if (!be || !be_is_active(be))
@@ -3725,6 +3733,8 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         if (flags&HAM_OVERWRITE) {
             if (key->size!=sizeof(ham_u64_t) || !key->data) {
+                if (!txn)
+                    (void)txn_abort(&local_txn, 0);
                 ham_trace(("key->size must be 8, key->data must not be NULL"));
                 return (db_set_error(db, HAM_INV_PARAMETER));
             }
@@ -3761,9 +3771,11 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
                  */
                 if (sizeof(ham_u64_t)>db_get_key_allocsize(db)) {
                     if (db_get_key_allocdata(db))
-                        allocator_free(env_get_allocator(env), db_get_key_allocdata(db));
+                        allocator_free(env_get_allocator(env), 
+                                db_get_key_allocdata(db));
                     db_set_key_allocdata(db, 
-                            allocator_alloc(env_get_allocator(env), sizeof(ham_u64_t)));
+                            allocator_alloc(env_get_allocator(env), 
+                                sizeof(ham_u64_t)));
                     if (!db_get_key_allocdata(db)) {
                         if (!txn)
                             (void)txn_abort(&local_txn, 0);

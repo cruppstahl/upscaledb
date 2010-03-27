@@ -96,11 +96,14 @@ ham_status_t
 os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
 		ham_offset_t size, ham_bool_t readonly, ham_u8_t **buffer)
 {
+    int prot=PROT_READ;
+    if (!readonly)
+        prot|=PROT_WRITE;
+
     (void)mmaph;    /* only used on win32-platforms */
-    (void)readonly; /* only used on win32-platforms */
 
 #if HAVE_MMAP
-    *buffer=mmap(0, size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, position);
+    *buffer=mmap(0, size, prot, MAP_PRIVATE, fd, position);
     if (*buffer==(void *)-1) {
         *buffer=0;
         ham_log(("mmap failed with status %d (%s)", errno, strerror(errno)));

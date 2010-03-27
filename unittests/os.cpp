@@ -47,6 +47,7 @@ public:
         BFC_REGISTER_TEST(OsTest, pagesizeTest);
 #if HAVE_MMAP
         BFC_REGISTER_TEST(OsTest, mmapTest);
+        BFC_REGISTER_TEST(OsTest, mmapAbortTest);
         BFC_REGISTER_TEST(OsTest, mmapReadOnlyTest);
         BFC_REGISTER_TEST(OsTest, multipleMmapTest);
         BFC_REGISTER_TEST(OsTest, negativeMmapTest);
@@ -220,6 +221,31 @@ public:
         st=os_close(fd, 0);
         BFC_ASSERT(st==0);
         free(p1);
+    }
+
+    void mmapAbortTest()
+    {
+        ham_fd_t fd, mmaph;
+        ham_size_t ps=os_get_pagesize();
+        ham_u8_t *page, *mapped;
+        page=(ham_u8_t *)malloc(ps);
+
+        BFC_ASSERT_EQUAL(0, os_create(BFC_OPATH(".test"), 0, 0664, &fd));
+        memset(page, 0x13, ps);
+        BFC_ASSERT_EQUAL(0, os_pwrite(fd, 0, page, ps));
+
+        BFC_ASSERT_EQUAL(0, os_mmap(fd, &mmaph, 0, ps, 0, &mapped));
+        /* modify the page */
+        memset(mapped, 0x42, ps);
+        /* unmap */
+        BFC_ASSERT_EQUAL(0, os_munmap(&mmaph, mapped, ps));
+        /* read again */
+        memset(page, 0, ps);
+        BFC_ASSERT_EQUAL(0, os_pread(fd, 0, page, ps));
+        /* compare */
+        BFC_ASSERT_EQUAL(0x13, page[0]);
+
+        free(page);
     }
 
     void mmapReadOnlyTest()

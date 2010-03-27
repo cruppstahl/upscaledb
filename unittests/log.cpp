@@ -1576,7 +1576,9 @@ public:
         exp.push_back(LogEntry(8, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(8, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
         exp.push_back(LogEntry(7, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(7, LOG_ENTRY_TYPE_WRITE, ps*3, ps));
         exp.push_back(LogEntry(7, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
+        exp.push_back(LogEntry(7, LOG_ENTRY_TYPE_WRITE, ps*1, ps));
         exp.push_back(LogEntry(7, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0));
         exp.push_back(LogEntry(6, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
         exp.push_back(LogEntry(6, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
