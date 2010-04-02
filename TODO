@@ -37,6 +37,9 @@ x why is t allowed to have multiple (temp.) transactions??
     db.insert(a, b) -> should fail!
     x add unittests
 
+x statistics.c: has big code about cach history which is only used in debug
+    mode - remove it
+
 o Windows: are the file mapping routines really ok? does the file mapping
     handle have to be created over the whole file size? does it have to be
     created with every mmap call??
@@ -58,9 +61,11 @@ o Windows: are the file mapping routines really ok? does the file mapping
         use COW?
     o look up amount of available pool memory; then limit the
         caching to a reasonable size, and print a warning (only 32bit windows!)
+        -> no, doesn't work because we do not know how much memory is used
+            in the application itself; therefore: if this error appears then
+            just fallback to read/write
 
-o statistics.c: has big code about cach history which is only used in debug
-    mode - check what this is - is it needed?
+o fix freelist page overflow when searching for bits (See mail from Stefan)
 
 o update the Java API 
 
@@ -80,13 +85,13 @@ o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES???
     o unittest
     o remove from monster.sh!
 
-o create abstraction layer for local Environments/Databases and remote
+. create abstraction layer for local Environments/Databases and remote
     Environments/Databases
     o move every local function to local.c
 
-o network-server (use apr, protocol buffers)
+. network-server (use apr, protocol buffers)
 
-o network-client (use apr, protocol buffers)
+. network-client (use apr, protocol buffers)
 
 . pure java network client
 
@@ -98,15 +103,6 @@ o network-client (use apr, protocol buffers)
 . run profiling for duplicate tests - can things be improved?
     o blob_overwrite/duplicate table handling: in some cases we can use
         HAM_DIRECT_ACCESS to speed up things (at least for in-memory)
-
-. idea for freelist: we do not have to mark ALL pages in the freelist!
-    o use RLE storage for free pages (pages always have the same size, and
-        their offset is irrelevant)
-    o index pages that are in use do not need to be stored in the freelist
-    o use bitmap ONLY for blob pages!
-    o need lookup mechanism to map a page ID to a freelist page
-        o use a dynamic, sorted table
-        o for 256 blob-pages we will have to allocate 1 additional freelist page
 
 . webpage changes
     http://www.purenetworks.com/

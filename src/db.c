@@ -491,8 +491,6 @@ my_purge_cache(ham_env_t *env)
                 else
                     break;
             }
-            cache_push_history(page, -100);
-
             st=db_write_page_and_delete(page, 0);
             if (st)
                 return st;
@@ -829,8 +827,6 @@ done:
         }
     }
 
-    cache_check_history(env, page, -99);
-
     *page_ref = page;
     return HAM_SUCCESS;
 }
@@ -883,7 +879,6 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     if (env_get_txn(env)) {
         page=txn_get_page(env_get_txn(env), address);
         if (page) {
-            cache_check_history(env, page, 1);
             *page_ref = page;
             ham_assert(page_get_pers(page), (""));
             if (db) {
@@ -905,7 +900,6 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
                     return st;
                 }
             }
-            cache_check_history(env, page, 2);
             *page_ref = page;
             ham_assert(page_get_pers(page), (""));
             ham_assert(db ? page_get_owner(page)==db : 1, (""));
@@ -961,8 +955,6 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             cache_update_page_access_counter(page, env_get_cache(env), 0);
         }
     }
-
-    cache_check_history(env, page, 3);
 
     *page_ref = page;
     return HAM_SUCCESS;
@@ -1024,8 +1016,6 @@ db_flush_all(ham_cache_t *cache, ham_u32_t flags)
             cache_set_totallist(cache,
                 page_list_remove(cache_get_totallist(cache), 
                     PAGE_LIST_CACHED, head));
-            cache_push_history(head, -6);
-            
             cache_set_cur_elements(cache, cache_get_cur_elements(cache)-1);
         }
 

@@ -145,21 +145,6 @@ stats_trash_dbdata(ham_db_t *db, ham_runtime_statistics_dbdata_t *dbdata);
 extern ham_status_t
 stats_fill_ham_statistics_t(ham_env_t *env, ham_db_t *db, ham_statistics_t *dst);
 
-#if HAM_DEBUG
-
-extern void 
-cache_check_history(ham_env_t *env, struct ham_page_t *page, int state);
-
-/**
- * internal monitoring:
- */
-extern void 
-cache_push_history(struct ham_page_t *page, int state);
-#else
-#define cache_check_history(env, page, state) (void)0
-#define cache_push_history(page, state)       (void)0
-#endif
-
 
 #ifdef __cplusplus
 } // extern "C"

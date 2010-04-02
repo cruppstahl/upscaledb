@@ -123,8 +123,6 @@ cache_get_unused_page(ham_cache_t *cache)
                 page_list_remove(cache_get_garbagelist(cache), 
                     PAGE_LIST_GARBAGE, page));
 
-        cache_push_history(page, -2);
-
         cache_set_cur_elements(cache, 
                 cache_get_cur_elements(cache)-1);
         return (page);
@@ -211,8 +209,6 @@ cache_get_unused_page(ham_cache_t *cache)
             page_list_remove(cache_get_bucket(cache, 
             hash), PAGE_LIST_BUCKET, min));
 
-    cache_push_history(min, -3);
-
     cache_set_cur_elements(cache, 
             cache_get_cur_elements(cache)-1);
 
@@ -245,8 +241,6 @@ cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags)
             page_list_remove(cache_get_bucket(cache, 
             hash), PAGE_LIST_BUCKET, page));
 
-        cache_push_history(page, -4);
-
         cache_set_cur_elements(cache, 
             cache_get_cur_elements(cache)-1);
     }
@@ -277,8 +271,6 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page)
     cache_set_totallist(cache, 
             page_list_insert(cache_get_totallist(cache), 
             PAGE_LIST_CACHED, page));
-
-    cache_push_history(page, new_page ? +10 : 0);
 
     cache_set_cur_elements(cache, 
             cache_get_cur_elements(cache)+1);
@@ -348,8 +340,6 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page)
         removed = HAM_TRUE;
     }
     if (removed) {
-        cache_push_history(page, -1);
-
         cache_set_cur_elements(cache, 
                 cache_get_cur_elements(cache)-1);
     }
