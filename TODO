@@ -54,24 +54,34 @@ o Windows: are the file mapping routines really ok? does the file mapping
         - modify the page
         - unmap/delete the page -> flushed? it must not be flushed (unless
             it's flushed explicitely)
+    x test with big file sizes on 32bit Windows - does it fail?
+        http://support.microsoft.com/kb/177415 - yes
+    x use FlushViewOfFile instead of writing file? - won't work because we
+        use COW
     o CreateFileMapping: file size can be 0 (will then use the full file size)
-    o test with big file sizes on 32bit Windows - does it fail?
-        http://support.microsoft.com/kb/177415
-    o use FlushViewOfFile instead of writing file? - won't work because we
-        use COW?
     o look up amount of available pool memory; then limit the
         caching to a reasonable size, and print a warning (only 32bit windows!)
         -> no, doesn't work because we do not know how much memory is used
             in the application itself; therefore: if this error appears then
             just fallback to read/write
+    o for now we use 64k as mmap minimum pagesize - but that's not true.
+        what is the real size??
+        SYSTEM_INFO sSysInfo;         // Useful information about the system
+        GetSystemInfo(&sSysInfo);     // Initialize the structure.
+        printf ("This computer has page size %d.\n", sSysInfo.dwPageSize);
+        dwPageSize = sSysInfo.dwPageSize;
+    o add FAQ text about cache size vs mmap performance
+         http://lists.freebsd.org/pipermail/freebsd-questions/2004-June/050371.html        
+
+o read hashing documents from Ger
+
+o also look at Ger's sources
 
 o fix freelist page overflow when searching for bits (See mail from Stefan)
 
 o update the Java API 
 
 o update the .NET API 
-
-o update the Python API 
 
 o there are some inconsistencies in the header file
     o HAM_PARAM_DBNAME -> HAM_PARAM_GET_DATABASE_NAME
@@ -85,6 +95,8 @@ o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES???
     o unittest
     o remove from monster.sh!
 
+o update the Python API 
+
 . create abstraction layer for local Environments/Databases and remote
     Environments/Databases
     o move every local function to local.c
@@ -97,6 +109,7 @@ o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES???
 
 . WinCE: create and run Unittests project
     http://msexchangeteam.com/archive/2004/02/23/78930.aspx
+    o also, we could use mmap (which is currently disabled)
 
 . some tests in filter.cpp are deactivated - fix them
 
