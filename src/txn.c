@@ -218,8 +218,7 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
             if (st)
                 return (st);
         }
-        else
-        {
+        else if (flags & HAM_TXN_FORCE_WRITE) {
             /* flush the page */
             st=db_flush_page(env, head, 
                     flags & HAM_TXN_FORCE_WRITE ? HAM_WRITE_THROUGH : 0);

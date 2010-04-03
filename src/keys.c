@@ -31,7 +31,7 @@ key_compare_pub_to_int(ham_db_t *db, ham_page_t *page,
 {
     int_key_t *r;
     btree_node_t *node=ham_page_get_btree_node(page);
-    ham_key_t rhs;
+    ham_key_t rhs={0};
     int cmp;
     ham_status_t st;
 

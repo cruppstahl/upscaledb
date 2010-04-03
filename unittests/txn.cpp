@@ -156,7 +156,7 @@ public:
         BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
 
         page_set_pers(page, 0);
-        // page_delete(page); - will be deleted in ham_close()
+        allocator_free(env_get_allocator(m_env), page);
     }
 
     void addPageAbortTest(void)

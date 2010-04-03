@@ -26,7 +26,7 @@ extern "C" {
 
 /** CACHE_BUCKET_SIZE should be a prime number or similar, as it is used in 
  * a MODULO hash scheme */
-#define CACHE_BUCKET_SIZE    1031
+#define CACHE_BUCKET_SIZE    10317
 
 
 /**

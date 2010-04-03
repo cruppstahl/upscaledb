@@ -333,39 +333,36 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
     return (0);
 }
 
-ham_status_t 
+extern ham_status_t 
 db_prepare_ham_key_for_compare(ham_db_t *db, int_key_t *src, ham_key_t *dest)
 {
-    dest->size = key_get_size(src);
-    dest->data = key_get_key(src);
-    dest->flags = HAM_KEY_USER_ALLOC;
-    dest->_flags = key_get_flags(src);
+    void *p;
 
-    if (dest->_flags & KEY_IS_EXTENDED) {
-        void *p = allocator_alloc(env_get_allocator(db_get_env(db)), dest->size);
-        if (!p) {
-            dest->data = 0;
-            return HAM_OUT_OF_MEMORY;
-        }
-        memcpy(p, dest->data, db_get_keysize(db));
-        dest->data = p;
-        /*
-         * set a flag that this memory has to be freed by hamsterdb
-         */
-        dest->_flags |= KEY_IS_ALLOCATED;
+    if (!(key_get_flags(src) & KEY_IS_EXTENDED)) {
+        dest->size = key_get_size(src);
+        dest->data = key_get_key(src);
+        dest->flags = HAM_KEY_USER_ALLOC;
+        dest->_flags = key_get_flags(src);
+        return (0);
     }
+
+    dest->size = key_get_size(src);
+
+    p = allocator_alloc(env_get_allocator(db_get_env(db)), dest->size);
+    if (!p) {
+        dest->data = 0;
+        return HAM_OUT_OF_MEMORY;
+    }
+
+    memcpy(p, key_get_key(src), db_get_keysize(db));
+    dest->data = p;
+
+    /* set a flag that this memory has to be freed by hamsterdb */
+    dest->_flags |= KEY_IS_ALLOCATED;
+    dest->_flags |= KEY_IS_EXTENDED;
+    dest->flags  |= HAM_KEY_USER_ALLOC;
 
     return (0);
-}
-
-void
-db_release_ham_key_after_compare(ham_db_t *db, ham_key_t *key)
-{
-    if (key->data && (key->_flags & KEY_IS_ALLOCATED)) {
-        allocator_free(env_get_allocator(db_get_env(db)), key->data);
-        key->data = 0;
-        key->size = 0;
-    }
 }
 
 int
@@ -973,9 +970,10 @@ db_flush_page(ham_env_t *env, ham_page_t *page, ham_u32_t flags)
     ham_status_t st;
 
     /* write the page, if it's dirty and if write-through is enabled */
-    if ((env_get_rt_flags(env)&HAM_WRITE_THROUGH || flags&HAM_WRITE_THROUGH ||
-         !env_get_cache(env)) && page_is_dirty(page)) 
-    {
+    if ((env_get_rt_flags(env)&HAM_WRITE_THROUGH 
+            || flags&HAM_WRITE_THROUGH 
+            || !env_get_cache(env)) 
+            && page_is_dirty(page)) {
         st=page_flush(page);
         if (st)
             return (st);

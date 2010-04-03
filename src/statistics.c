@@ -30,15 +30,6 @@
 #include "statistics.h"
 #include "util.h"
 
-
-
- 
-#if HAM_DEBUG
-static void cache_init_history(void);
-#else
-#define cache_init_history() /**/
-#endif
-
 /*
  *  TODO statistics gatherer/hinter:
  *
@@ -1259,7 +1250,6 @@ void
 stats_init_globdata(ham_env_t *env, ham_runtime_statistics_globdata_t *globdata)
 {
     memset(globdata, 0, sizeof(*globdata));
-    cache_init_history();
 }
 
 void

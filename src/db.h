@@ -570,7 +570,7 @@ db_compare_keys(ham_db_t *db, ham_key_t *lsh, ham_key_t *rhs);
  * in such a way that @ref db_compare_keys can use the data and optionally
  * call @ref db_get_extended_key on this key to obtain all key data, when this
  * is an extended key.
- *
+ * 
  * Used in conjunction with @ref db_release_ham_key_after_compare
  */
 extern ham_status_t 
@@ -579,9 +579,13 @@ db_prepare_ham_key_for_compare(ham_db_t *db, int_key_t *src, ham_key_t *dest);
 /**
  * @sa db_prepare_ham_key_for_compare
  */
-extern void
-db_release_ham_key_after_compare(ham_db_t *db, ham_key_t *key);
-
+#define db_release_ham_key_after_compare(db, key)                              \
+    while ((key)->data && ((key)->_flags & KEY_IS_ALLOCATED)) {                \
+        allocator_free(env_get_allocator(db_get_env((db))), (key)->data);      \
+        (key)->data = 0;                                                       \
+        (key)->size = 0;                                                       \
+        break;                                                                 \
+    }
 
 /**
  * create a backend object according to the database flags.
