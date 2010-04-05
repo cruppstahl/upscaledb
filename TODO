@@ -73,22 +73,11 @@ o Windows: are the file mapping routines really ok? does the file mapping
     o add FAQ text about cache size vs mmap performance
          http://lists.freebsd.org/pipermail/freebsd-questions/2004-June/050371.html        
 
-<<<<<<< .mine
-===================
-    
-    java-wrapper
-        -> prefixCompareTest fails
-        was triggered by change in keys.c/db.c -> run unittests, review
+o documentation for ham_Get_parameters, ham_env_get_parameters is not
+    sufficient
+    -> need list of all parameters that are available
 
-===================
-
-o why is t allowed to have multiple (temp.) transactions??
-    txn=db.begin()
-    db.insert(a, b) -> should fail!
-    o add unittests
-=======
 o read hashing documents from Ger
->>>>>>> .r1599
 
 o also look at Ger's sources
 
