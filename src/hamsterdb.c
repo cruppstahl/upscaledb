@@ -3008,7 +3008,7 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
                                "'HAM_PARAM_GET_STATISTICS' must not be NULL "
                                "and reference a ham_statistics_t data "
                                "structure before invoking "
-                               "ham_[env_]get_parameters"));
+                               "ham_get_parameters"));
                     return (HAM_INV_PARAMETER);
                 }
                 else {
