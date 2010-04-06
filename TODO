@@ -106,6 +106,7 @@ o update the Python API
     o move every local function to local.c
 
 . network-server (use apr, protocol buffers)
+    i.e. use mongoose?
 
 . network-client (use apr, protocol buffers)
 
