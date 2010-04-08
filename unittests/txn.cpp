@@ -371,6 +371,8 @@ public:
         // huge blobs are not reused if a txn is aborted @@@
         // BFC_REGISTER_TEST(HighLevelTxnTest, rollbackHugeBlobTest);
         BFC_REGISTER_TEST(HighLevelTxnTest, rollbackNormalBlobTest);
+        BFC_REGISTER_TEST(HighLevelTxnTest, insertFindCommitTest);
+        BFC_REGISTER_TEST(HighLevelTxnTest, insertFindEraseTest);
     }
 
 protected:
@@ -662,6 +664,57 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 freel_alloc_area(&o, m_env, m_db, sizeof(buffer)));
         BFC_ASSERT_NOTNULL(o);
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    }
+
+    void insertFindCommitTest(void)
+    {
+        ham_txn_t *txn;
+        ham_key_t key;
+        ham_record_t rec, rec2;
+        ham_u8_t buffer[64];
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        ::memset(&rec2, 0, sizeof(rec));
+        rec.data=&buffer[0];
+        rec.size=sizeof(buffer);
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS, 0644));
+        m_env=db_get_env(m_db);
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, txn, &key, &rec2, 0));
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, ham_find(m_db, 0, &key, &rec2, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec2, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    }
+
+    void insertFindEraseTest(void)
+    {
+        ham_txn_t *txn;
+        ham_key_t key;
+        ham_record_t rec;
+        ham_u8_t buffer[64];
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        rec.data=&buffer[0];
+        rec.size=sizeof(buffer);
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS, 0644));
+        m_env=db_get_env(m_db);
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, txn, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, ham_erase(m_db, 0, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
+
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 };

@@ -44,6 +44,9 @@ x read hashing documents from Ger
 
 x update the Java API 
 
+x .NET unittests InsertFindCommit and others failing
+    -- no, just with 1.1.3, not with 1.1.4!
+
 o Windows: are the file mapping routines really ok? does the file mapping
     handle have to be created over the whole file size? does it have to be
     created with every mmap call??
@@ -81,33 +84,6 @@ o documentation for ham_get_parameters, ham_env_get_parameters is not
     sufficient
     -> need list of all parameters that are available
 
-o .NET unittests InsertFindCommit and others failing
-     >>>    Transaction t=db.Begin();
-            db.Insert(t, k, r);
-            db.Find(t, k);
-            try {
-                db.Find(k);
-            }
-            catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_KEY_NOT_FOUND, e.ErrorCode);
-                // but must be LIMITS_REACHED!!!
-            }
-            t.Commit();
-            db.Find(k);
-
-     >>>    Transaction t=db.Begin();
-            db.Insert(t, k, r);
-            db.Find(t, k);
-            try {
-                db.Erase(k);
-            }
-            catch (DatabaseException e) {
-                Assert.AreEqual(HamConst.HAM_KEY_NOT_FOUND, e.ErrorCode);
-                // but must be LIMITS_REACHED!!!
-            }
-            t.Commit();
-            db.Erase(k); // fails - why??
-
 o update the .NET API 
 
 o there are some inconsistencies in the header file
@@ -133,6 +109,16 @@ o update the Python API
     o move every local function to local.c
 
 . network-server (use apr, protocol buffers)
+    > Maybe you could consider taking one of those tiny portable httpd apps out
+    > there and jack hamsterdb into it's back, so you get to talk 'hamster over
+    > HTTP[S]' for low cost? Several high perf, low feature count httpd
+    > microservers out there. Haiwatha pops up as a name, but there's several of
+    > those buggers around, including ones that have been specifically designed
+    > for multithreaded high I/O bandwidth (async I/O on Win32/64 !! ). hamsterdb
+    > is single-thread right now, but it's gonna be multithreaded one day anyhow.
+    > And taking such a mini server would save quite a bit of tuning and dev work.
+    > Sometimes copy&use is best.
+
     i.e. use mongoose?
 
 . network-client (use apr, protocol buffers)
