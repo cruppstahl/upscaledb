@@ -40,6 +40,10 @@ x why is t allowed to have multiple (temp.) transactions??
 x statistics.c: has big code about cach history which is only used in debug
     mode - remove it
 
+x read hashing documents from Ger
+
+x update the Java API 
+
 o Windows: are the file mapping routines really ok? does the file mapping
     handle have to be created over the whole file size? does it have to be
     created with every mmap call??
@@ -73,17 +77,36 @@ o Windows: are the file mapping routines really ok? does the file mapping
     o add FAQ text about cache size vs mmap performance
          http://lists.freebsd.org/pipermail/freebsd-questions/2004-June/050371.html        
 
-o documentation for ham_Get_parameters, ham_env_get_parameters is not
+o documentation for ham_get_parameters, ham_env_get_parameters is not
     sufficient
     -> need list of all parameters that are available
 
-o read hashing documents from Ger
+o .NET unittests InsertFindCommit and others failing
+     >>>    Transaction t=db.Begin();
+            db.Insert(t, k, r);
+            db.Find(t, k);
+            try {
+                db.Find(k);
+            }
+            catch (DatabaseException e) {
+                Assert.AreEqual(HamConst.HAM_KEY_NOT_FOUND, e.ErrorCode);
+                // but must be LIMITS_REACHED!!!
+            }
+            t.Commit();
+            db.Find(k);
 
-o also look at Ger's sources
-
-o fix freelist page overflow when searching for bits (See mail from Stefan)
-
-o update the Java API 
+     >>>    Transaction t=db.Begin();
+            db.Insert(t, k, r);
+            db.Find(t, k);
+            try {
+                db.Erase(k);
+            }
+            catch (DatabaseException e) {
+                Assert.AreEqual(HamConst.HAM_KEY_NOT_FOUND, e.ErrorCode);
+                // but must be LIMITS_REACHED!!!
+            }
+            t.Commit();
+            db.Erase(k); // fails - why??
 
 o update the .NET API 
 
@@ -95,9 +118,13 @@ o there are some inconsistencies in the header file
         doxygen sections for each of the groups??
 
 o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES???
-    o documentation
-    o unittest
-    o remove from monster.sh!
+    --> no, but add FAT warning to header file!
+
+o fix freelist page overflow when searching for bits (See mail from Stefan)
+
+
+
+o also look at Ger's sources
 
 o update the Python API 
 
