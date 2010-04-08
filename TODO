@@ -65,20 +65,14 @@ o Windows: are the file mapping routines really ok? does the file mapping
         http://support.microsoft.com/kb/177415 - yes
     x use FlushViewOfFile instead of writing file? - won't work because we
         use COW
-    o CreateFileMapping: file size can be 0 (will then use the full file size)
+    x CreateFileMapping: file size can be 0 (will then use the full file size)
+    x for now we use 64k as mmap minimum pagesize - but that's not true.
+        what is the real size?? -- no, 64k is the right one.
     o look up amount of available pool memory; then limit the
         caching to a reasonable size, and print a warning (only 32bit windows!)
         -> no, doesn't work because we do not know how much memory is used
             in the application itself; therefore: if this error appears then
             just fallback to read/write
-    o for now we use 64k as mmap minimum pagesize - but that's not true.
-        what is the real size??
-        SYSTEM_INFO sSysInfo;         // Useful information about the system
-        GetSystemInfo(&sSysInfo);     // Initialize the structure.
-        printf ("This computer has page size %d.\n", sSysInfo.dwPageSize);
-        dwPageSize = sSysInfo.dwPageSize;
-    o add FAQ text about cache size vs mmap performance
-         http://lists.freebsd.org/pipermail/freebsd-questions/2004-June/050371.html        
 
 o documentation for ham_get_parameters, ham_env_get_parameters is not
     sufficient

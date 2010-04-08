@@ -166,7 +166,27 @@ __f_read_page(ham_device_t *self, ham_page_t *page)
     if (db && db_get_env(db))
         head=env_get_file_filter(db_get_env(db));
 
-    if (device_get_flags(self)&HAM_DISABLE_MMAP) {
+    /*
+     * first, try to mmap the file (if mmap is available/enabled). 
+     *
+     * however, in some scenarios on win32, mmap can fail because resources
+     * are exceeded (non-paged memory pool).
+     * in such a case, the os_mmap function will return HAM_LIMITS_REACHED
+     * and we force a fallback to read/write.
+     */
+    if (!(device_get_flags(self)&HAM_DISABLE_MMAP)) {
+        st=os_mmap(t->fd, page_get_mmap_handle_ptr(page), 
+                page_get_self(page), size, 
+                device_get_flags(self)&HAM_READ_ONLY, &buffer);
+        if (st && st!=HAM_LIMITS_REACHED)
+            return (st);
+        if (st==HAM_LIMITS_REACHED) {
+            device_set_flags(self, device_get_flags(self)|HAM_DISABLE_MMAP);
+            goto fallback_rw;
+        }
+    }
+    else {
+fallback_rw:
 		if (page_get_pers(page)==0) {
             buffer=allocator_alloc(device_get_allocator(self), size);
             if (!buffer)
@@ -178,18 +198,11 @@ __f_read_page(ham_device_t *self, ham_page_t *page)
         else
             ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_MALLOC), (0));
 
-        return (__f_read(self, page_get_self(page), 
-                    page_get_pers(page), size));
+        st=__f_read(self, page_get_self(page), 
+                    page_get_pers(page), size);
+        if (st)
+            return (st);
     }
-
-    ham_assert(page_get_pers(page)==0, (""));
-    ham_assert(!(page_get_npers_flags(page)&PAGE_NPERS_MALLOC), (""));
-
-    st=os_mmap(t->fd, page_get_mmap_handle_ptr(page), 
-            page_get_self(page), size, 
-            device_get_flags(self)&HAM_READ_ONLY, &buffer);
-    if (st)
-        return (st);
 
     /*
      * we're done unless there are file filters (or if we're reading the

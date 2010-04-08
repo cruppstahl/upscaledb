@@ -124,12 +124,17 @@ calc_wlen4str(const char *str)
     return (int)len;
 }
 
+/*
+ * The typical pagesize of win32 is 4kb - described in info.dwPageSize.
+ * However, pages have to be aligned to dwAllocationGranularity (64k),
+ * therefore we're also forced to use this as a pagesize.
+ */
 ham_size_t
 os_get_pagesize(void)
 {
     SYSTEM_INFO info;
     GetSystemInfo(&info);
-    return (ham_size_t)info.dwAllocationGranularity /* dwPageSize */;
+    return (ham_size_t)info.dwAllocationGranularity;
 }
 
 ham_size_t
@@ -146,18 +151,20 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
 {
 #ifndef UNDER_CE
     ham_status_t st;
-    DWORD hsize, fsize=GetFileSize(fd, &hsize);
     DWORD protect=(readonly ? PAGE_READONLY : PAGE_WRITECOPY);
     DWORD access =FILE_MAP_COPY;
     LARGE_INTEGER i;
     i.QuadPart=position;
 
-    *mmaph=CreateFileMapping(fd, 0, protect, hsize, fsize, 0); 
+    *mmaph=CreateFileMapping(fd, 0, protect, 0, 0, 0); 
     if (!*mmaph) {
         char buf[256];
         *buffer=0;
         st=(ham_status_t)GetLastError();
-        ham_log(("CreateFileMapping failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
+        ham_log(("CreateFileMapping failed with OS status %u (%s)", 
+                st, DisplayError(buf, sizeof(buf), st)));
+        if (st==1816) /* not enough resources - fallback to r/w */
+            return (HAM_LIMITS_REACHED);
         return (HAM_IO_ERROR);
     }
 
@@ -168,7 +175,10 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
 		/* make sure to release the mapping */
 		(void)CloseHandle(*mmaph);
 	    *mmaph=0;
-        ham_log(("MapViewOfFile failed with OS status %u (%s)", st, DisplayError(buf, sizeof(buf), st)));
+        ham_log(("MapViewOfFile failed with OS status %u (%s)", 
+                st, DisplayError(buf, sizeof(buf), st)));
+        if (st==1816) /* not enough resources - fallback to r/w */
+            return (HAM_LIMITS_REACHED);
         return (HAM_IO_ERROR);
     }
     return (HAM_SUCCESS);
