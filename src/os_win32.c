@@ -172,9 +172,9 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
     if (!*buffer) {
         char buf[256];
         st=(ham_status_t)GetLastError();
-		/* make sure to release the mapping */
-		(void)CloseHandle(*mmaph);
-	    *mmaph=0;
+        /* make sure to release the mapping */
+        (void)CloseHandle(*mmaph);
+        *mmaph=0;
         ham_log(("MapViewOfFile failed with OS status %u (%s)", 
                 st, DisplayError(buf, sizeof(buf), st)));
         if (st==1816) /* not enough resources - fallback to r/w */
