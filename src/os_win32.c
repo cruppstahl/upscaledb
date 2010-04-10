@@ -163,7 +163,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
         st=(ham_status_t)GetLastError();
         ham_log(("CreateFileMapping failed with OS status %u (%s)", 
                 st, DisplayError(buf, sizeof(buf), st)));
-        if (st==1816) /* not enough resources - fallback to r/w */
+        if (st==ERROR_NOT_ENOUGH_QUOTA) /* not enough resources - fallback to r/w */
             return (HAM_LIMITS_REACHED);
         return (HAM_IO_ERROR);
     }
@@ -177,7 +177,7 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
         *mmaph=0;
         ham_log(("MapViewOfFile failed with OS status %u (%s)", 
                 st, DisplayError(buf, sizeof(buf), st)));
-        if (st==1816) /* not enough resources - fallback to r/w */
+        if (st==ERROR_NOT_ENOUGH_QUOTA) /* not enough resources - fallback to r/w */
             return (HAM_LIMITS_REACHED);
         return (HAM_IO_ERROR);
     }

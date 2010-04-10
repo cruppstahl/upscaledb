@@ -35,6 +35,9 @@
 #include "txn.h"
 #include "version.h"
 
+
+#define PURGE_THRESHOLD  500000
+
 ham_status_t
 db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
 {
@@ -479,8 +482,8 @@ my_purge_cache(ham_env_t *env)
             (void)cache_check_integrity(env_get_cache(env));
         }
 #endif
-        while (cache_too_big(env_get_cache(env))) {
 
+        while (cache_too_big(env_get_cache(env))) {
             page=cache_get_unused_page(env_get_cache(env));
             if (!page) {
                 if (env_get_rt_flags(env)&HAM_CACHE_STRICT) 
@@ -578,13 +581,21 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
              "through a previous call to this function or db_fetch_page() "
              "unless page caching is available!"));
 
-    /* purge the cache, if necessary */
+    /* purge the cache, if necessary. if cache is unlimited, then we purge very
+     * very rarely (but we nevertheless purge to avoid OUT OF MEMORY conditions
+     * which can happen on Win32 */
     if (env_get_cache(env) 
-            && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
-            && !(env_get_rt_flags(env)&HAM_CACHE_UNLIMITED)) {
-        st=my_purge_cache(env);
-        if (st)
-            return st;
+            && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
+        ham_bool_t purge=HAM_TRUE;
+        if (env_get_rt_flags(env)&HAM_CACHE_UNLIMITED) {
+            if (cache_get_cur_elements(env_get_cache(env))%PURGE_THRESHOLD!=0)
+                purge=HAM_FALSE;
+        }
+        if (purge) {
+            st=my_purge_cache(env);
+            if (st)
+                return st;
+        }
     }
 
     /* first, we ask the freelist for a page */
@@ -857,19 +868,21 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 
     *page_ref = 0;
 
-    /* 
-     * check if the cache allows us to allocate another page; if not,
-     * purge it
-     */
+    /* purge the cache, if necessary. if cache is unlimited, then we purge very
+     * very rarely (but we nevertheless purge to avoid OUT OF MEMORY conditions
+     * which can happen on Win32 */
     if (!(flags&DB_ONLY_FROM_CACHE) 
             && env_get_cache(env) 
-            && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
-            && !(env_get_rt_flags(env)&HAM_CACHE_UNLIMITED)) {
-        if (cache_too_big(env_get_cache(env))) {
+            && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
+        ham_bool_t purge=HAM_TRUE;
+        if (env_get_rt_flags(env)&HAM_CACHE_UNLIMITED) {
+            if (cache_get_cur_elements(env_get_cache(env))%PURGE_THRESHOLD!=0)
+                purge=HAM_FALSE;
+        }
+        if (purge) {
             st=my_purge_cache(env);
-            if (st) {
+            if (st)
                 return st;
-            }
         }
     }
 
