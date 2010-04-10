@@ -216,8 +216,8 @@ ham_param2str(char *buf, size_t buflen, ham_u32_t name)
     case HAM_PARAM_GET_FLAGS          :
         return "HAM_PARAM_GET_FLAGS";
 
-    case HAM_PARAM_GET_DAM            :
-        return "HAM_PARAM_GET_DAM";
+    case HAM_PARAM_GET_DATA_ACCESS_MODE:
+        return "HAM_PARAM_GET_DATA_ACCESS_MODE";
 
     case HAM_PARAM_GET_FILEMODE       :
         return "HAM_PARAM_GET_FILEMODE";
@@ -225,8 +225,8 @@ ham_param2str(char *buf, size_t buflen, ham_u32_t name)
     case HAM_PARAM_GET_FILENAME       :
         return "HAM_PARAM_GET_FILENAME";
 
-    case HAM_PARAM_DBNAME                :
-        return "HAM_PARAM_DBNAME";
+    case HAM_PARAM_GET_DATABASE_NAME  :
+        return "HAM_PARAM_GET_DATABASE_NAME";
 
     case HAM_PARAM_GET_KEYS_PER_PAGE  :
         return "HAM_PARAM_GET_KEYS_PER_PAGE";
@@ -865,7 +865,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                 }
                 goto default_case;
 
-            case HAM_PARAM_DBNAME:
+            case HAM_PARAM_GET_DATABASE_NAME:
                 if (pdbname) {
                     if (dbname == HAM_DEFAULT_DATABASE_NAME || dbname == HAM_FIRST_DATABASE_NAME) {
                         dbname=(ham_u16_t)param->value;
@@ -875,7 +875,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                                 && dbname != HAM_DUMMY_DATABASE_NAME 
                                 && dbname > HAM_DEFAULT_DATABASE_NAME)) 
                         {
-                            ham_trace(("parameter 'HAM_PARAM_DBNAME' value (0x%04x) must be non-zero and lower than 0xf000", (unsigned)dbname));
+                            ham_trace(("parameter 'HAM_PARAM_GET_DATABASE_NAME' value (0x%04x) must be non-zero and lower than 0xf000", (unsigned)dbname));
                             dbname = HAM_FIRST_DATABASE_NAME;
                             return (HAM_INV_PARAMETER);
                         }
@@ -884,7 +884,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                 }
                 goto default_case;
 
-            case HAM_PARAM_GET_DAM:
+            case HAM_PARAM_GET_DATA_ACCESS_MODE:
             case HAM_PARAM_GET_FLAGS:
             case HAM_PARAM_GET_FILEMODE:
             case HAM_PARAM_GET_FILENAME:
@@ -3064,7 +3064,7 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param)
                             ? (ham_u64_t)PTR_TO_U64(env_get_filename(env))
                             : 0;
                 break;
-            case HAM_PARAM_DBNAME:
+            case HAM_PARAM_GET_DATABASE_NAME:
                 p->value=(db && db_get_env(db)) 
                             ? (ham_offset_t)db_get_dbname(db)
                             : 0;
@@ -3083,7 +3083,7 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param)
                     p->value=count;
                 }
                 break;
-            case HAM_PARAM_GET_DAM:
+            case HAM_PARAM_GET_DATA_ACCESS_MODE:
                 p->value=db ? db_get_data_access_mode(db) : 0;
                 break;
             case HAM_PARAM_GET_STATISTICS:

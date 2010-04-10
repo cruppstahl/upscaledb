@@ -36,7 +36,7 @@
 #include "version.h"
 
 
-#define PURGE_THRESHOLD  500000
+#define PURGE_THRESHOLD  (500 * 1024 * 1024) /* 500 mb */
 
 ham_status_t
 db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
@@ -583,14 +583,18 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 
     /* purge the cache, if necessary. if cache is unlimited, then we purge very
      * very rarely (but we nevertheless purge to avoid OUT OF MEMORY conditions
-     * which can happen on Win32 */
+     * which can happen on Win32) */
     if (env_get_cache(env) 
             && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
         ham_bool_t purge=HAM_TRUE;
+#if defined(WIN32) && defined(HAM_32BIT)
         if (env_get_rt_flags(env)&HAM_CACHE_UNLIMITED) {
-            if (cache_get_cur_elements(env_get_cache(env))%PURGE_THRESHOLD!=0)
+            ham_cache_t *cache=env_get_cache(env);
+            if (cache_get_cur_elements(cache)*env_get_pagesize(env) 
+                    > PURGE_THRESHOLD)
                 purge=HAM_FALSE;
         }
+#endif
         if (purge) {
             st=my_purge_cache(env);
             if (st)
@@ -870,15 +874,19 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 
     /* purge the cache, if necessary. if cache is unlimited, then we purge very
      * very rarely (but we nevertheless purge to avoid OUT OF MEMORY conditions
-     * which can happen on Win32 */
+     * which can happen on Win32) */
     if (!(flags&DB_ONLY_FROM_CACHE) 
             && env_get_cache(env) 
             && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
         ham_bool_t purge=HAM_TRUE;
+#if defined(WIN32) && defined(HAM_32BIT)
         if (env_get_rt_flags(env)&HAM_CACHE_UNLIMITED) {
-            if (cache_get_cur_elements(env_get_cache(env))%PURGE_THRESHOLD!=0)
+            ham_cache_t *cache=env_get_cache(env);
+            if (cache_get_cur_elements(cache)*env_get_pagesize(env) 
+                    > PURGE_THRESHOLD)
                 purge=HAM_FALSE;
         }
+#endif
         if (purge) {
             st=my_purge_cache(env);
             if (st)

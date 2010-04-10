@@ -1,4 +1,8 @@
 Apr 10, 2010 - chris
+o The documentation in the header file was improved and some constants
+    were renamed/deprecated
+
+Apr 10, 2010 - chris
 o Bugfix - win32 only: with very big databases and unlimited cache, resources
     were exceeded and mmap failed. in this case we'll now fall back to 
     read/write (thanks, Simon)^

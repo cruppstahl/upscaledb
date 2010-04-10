@@ -312,7 +312,7 @@ public:
             {HAM_PARAM_GET_FILEMODE, 0},
             {HAM_PARAM_GET_FILENAME, 0},
             {HAM_PARAM_GET_KEYS_PER_PAGE, 0},
-            {HAM_PARAM_GET_DAM, 0},
+            {HAM_PARAM_GET_DATA_ACCESS_MODE, 0},
             {HAM_PARAM_GET_STATISTICS, (ham_offset_t)&stats},
             {0,0}
         };
@@ -332,7 +332,7 @@ public:
         BFC_ASSERT_EQUAL(sollwert_pagesize, 
                 get_param_value(params, HAM_PARAM_PAGESIZE));
         BFC_ASSERT_EQUAL((ham_offset_t)0, 
-                get_param_value(params, HAM_PARAM_GET_DAM));
+                get_param_value(params, HAM_PARAM_GET_DATA_ACCESS_MODE));
         BFC_ASSERT_EQUAL((ham_offset_t)DB_MAX_INDICES,
                 get_param_value(params, HAM_PARAM_MAX_ENV_DATABASES));
         BFC_ASSERT_EQUAL((ham_offset_t)0,
@@ -364,7 +364,7 @@ public:
             {HAM_PARAM_GET_FILEMODE, 0},
             {HAM_PARAM_GET_FILENAME, 0},
             {HAM_PARAM_GET_KEYS_PER_PAGE, 0},
-            {HAM_PARAM_GET_DAM, 0},
+            {HAM_PARAM_GET_DATA_ACCESS_MODE, 0},
             {HAM_PARAM_GET_STATISTICS, (ham_offset_t)&stats},
             {0,0}
         };
@@ -391,7 +391,7 @@ public:
         BFC_ASSERT_EQUAL(1024u, 
                 get_param_value(params, HAM_PARAM_PAGESIZE));
         BFC_ASSERT_EQUAL((ham_offset_t)HAM_DAM_SEQUENTIAL_INSERT, 
-                get_param_value(params, HAM_PARAM_GET_DAM));
+                get_param_value(params, HAM_PARAM_GET_DATA_ACCESS_MODE));
         BFC_ASSERT_EQUAL((ham_offset_t)13,
                 get_param_value(params, HAM_PARAM_MAX_ENV_DATABASES));
         BFC_ASSERT_EQUAL((ham_offset_t)36,
@@ -426,7 +426,7 @@ public:
             {HAM_PARAM_GET_FILEMODE, 0},
             {HAM_PARAM_GET_FILENAME, 0},
             {HAM_PARAM_GET_KEYS_PER_PAGE, 0},
-            {HAM_PARAM_GET_DAM, 0},
+            {HAM_PARAM_GET_DATA_ACCESS_MODE, 0},
             {HAM_PARAM_GET_STATISTICS, (ham_offset_t)&stats},
             {0,0}
         };
@@ -457,7 +457,7 @@ public:
         BFC_ASSERT_EQUAL(1024u, 
                 get_param_value(params, HAM_PARAM_PAGESIZE));
         BFC_ASSERT_EQUAL((ham_offset_t)HAM_DAM_RANDOM_WRITE, 
-                get_param_value(params, HAM_PARAM_GET_DAM));
+                get_param_value(params, HAM_PARAM_GET_DATA_ACCESS_MODE));
         BFC_ASSERT_EQUAL((ham_offset_t)13,
                 get_param_value(params, HAM_PARAM_MAX_ENV_DATABASES));
         BFC_ASSERT_EQUAL((ham_offset_t)36,

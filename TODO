@@ -74,16 +74,14 @@ x Windows: are the file mapping routines really ok? does the file mapping
             in the application itself; therefore: if this error appears then
             just fallback to read/write
 
-o documentation for ham_get_parameters, ham_env_get_parameters is not
+x documentation for ham_get_parameters, ham_env_get_parameters is not
     sufficient
     -> need list of all parameters that are available
 
-o update the .NET API 
-
-o there are some inconsistencies in the header file
-    o HAM_PARAM_DBNAME -> HAM_PARAM_GET_DATABASE_NAME
-    o HAM_PARAM_GET_DAM -> HAM_PARAM_GET_DATA_ACCESS_MODE
-    o sort the functions and the constants - list constants AFTER
+x there are some inconsistencies in the header file
+    x HAM_PARAM_DBNAME -> HAM_PARAM_GET_DATABASE_NAME
+    x HAM_PARAM_GET_DAM -> HAM_PARAM_GET_DATA_ACCESS_MODE
+    x sort the functions and the constants - list constants AFTER
         the first function that they're used for; really have separate
         doxygen sections for each of the groups??
 
@@ -91,6 +89,9 @@ o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES???
     --> no, but add FAT warning to header file!
 
 o fix freelist page overflow when searching for bits (See mail from Stefan)
+
+
+o update the .NET API 
 
 
 
