@@ -1567,6 +1567,10 @@ typedef int HAM_CALLCONV (*ham_duplicate_compare_func_t)(ham_db_t *db,
  * to unsorted duplicates, since the records of other duplicates have to be
  * fetched for the comparison.
  *
+ * <b>Warning</b> If duplicate sorting is enabled, and records are retrieved
+ * with @ref HAM_DIRECT_ACCESS, the records must not be modified or the sort
+ * order might get lost.
+ *
  * @param db A valid Database handle
  * @param foo A pointer to the compare function
  *

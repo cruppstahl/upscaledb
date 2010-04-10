@@ -85,7 +85,7 @@ x there are some inconsistencies in the header file
         the first function that they're used for; really have separate
         doxygen sections for each of the groups??
 
-o disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES???
+x disallow use of HAM_DIRECT_ACCESS with HAM_SORT_DUPLICATES???
     --> no, but add FAT warning to header file!
 
 o fix freelist page overflow when searching for bits (See mail from Stefan)
