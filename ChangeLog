@@ -1,3 +1,8 @@
+Apr 10, 2010 - chris
+o Bugfix - win32 only: with very big databases and unlimited cache, resources
+    were exceeded and mmap failed. in this case we'll now fall back to 
+    read/write (thanks, Simon)^
+
 Mar 27, 2010 - chris
 o Bugfix - it was allowed to create temp. Transactions while a non-temp.
 	Transaction was still active

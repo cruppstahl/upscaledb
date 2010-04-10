@@ -47,7 +47,7 @@ x update the Java API
 x .NET unittests InsertFindCommit and others failing
     -- no, just with 1.1.3, not with 1.1.4!
 
-o Windows: are the file mapping routines really ok? does the file mapping
+x Windows: are the file mapping routines really ok? does the file mapping
     handle have to be created over the whole file size? does it have to be
     created with every mmap call??
     x why is the file size so huge? we do not store blobs (all records are
@@ -68,7 +68,7 @@ o Windows: are the file mapping routines really ok? does the file mapping
     x CreateFileMapping: file size can be 0 (will then use the full file size)
     x for now we use 64k as mmap minimum pagesize - but that's not true.
         what is the real size?? -- no, 64k is the right one.
-    o look up amount of available pool memory; then limit the
+    x look up amount of available pool memory; then limit the
         caching to a reasonable size, and print a warning (only 32bit windows!)
         -> no, doesn't work because we do not know how much memory is used
             in the application itself; therefore: if this error appears then
