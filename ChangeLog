@@ -1,3 +1,6 @@
+Apr 13, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.4
+
 Apr 10, 2010 - chris
 o The documentation in the header file was improved and some constants
     were renamed/deprecated
@@ -5,7 +8,7 @@ o The documentation in the header file was improved and some constants
 Apr 10, 2010 - chris
 o Bugfix - win32 only: with very big databases and unlimited cache, resources
     were exceeded and mmap failed. in this case we'll now fall back to 
-    read/write (thanks, Simon)^
+    read/write (thanks, Simon)
 
 Mar 27, 2010 - chris
 o Bugfix - it was allowed to create temp. Transactions while a non-temp.

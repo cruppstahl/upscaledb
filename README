@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 1.1.3                   Wed Mar 10 20:34:11 CET 2010
+hamsterdb Embedded Storage 1.1.4                   Tue Apr 13 20:21:13 CEST 2010
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -12,35 +12,28 @@ hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
 a B+Tree index structure, uses memory mapped I/O (if available), supports 
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-This release fixes a few bugs and adds a new feature: records can now be read
-and written partially (see flag HAM_PARTIAL).
-
-The ABI of hamsterdb is not backwards-compatible (but the API and the file
-format is). 
+This release fixes a few bugs and has minor performance improvements.
 
 2. Changes
 
 New Features
-* Implemented partial read/write - records can now be read or written 
-    partially (see flag HAM_PARTIAL for ham_find, ham_insert and others)
-    This new feature caused a change to ham_record_t, thus making the ABI
-    of hamsterdb incompatible to older versions. This feature is test-covered
-    by nearly 900 unittests.
-* Added a new function to get the Environment handle of a Database
-    (ham_get_env)
+* none
 
 Bugfixes
-* Bugfix - fixed an invalid read of 3 bytes in the freelist
-* Bugfix - ham_get_parameter failed if database was opened read-only
-    (thanks, Austin)
-* Bugfix - if a cachesize was specified then it was not propagated correctly
-    and ignored; this bugfix caused serious performance improvements compared
-    to 1.1.2!
+* Bugfix - win32 only: with very big databases and unlimited cache, resources
+    were exceeded and mmap failed. in this case we'll now fall back to 
+    read/write (thanks, Simon)
+o Bugfix - it was allowed to create temp. Transactions while a non-temp.
+	Transaction was still active
 
 Other Changes
-* Windows library and dll are now renamed to libhamsterdb-<version>.lib and
-    hamsterdb-<version>.dll
-* Ongoing refactoring and code improvements
+* Optimization - if HAM_DAM_SEQUENTIAL_INSERT is set then btree nodes will
+    not be split in the middle, but at the end of the node. hamsterdb will
+    also auto-recognize if an insert is sequential (at the "right end" of 
+    the index). This leads to MUCH smaller files and therefore higher
+    performance (thanks, Simon)
+* The documentation in the header file was improved and some constants
+    were renamed/deprecated
 
 To see a list of all changes, look in the file ChangeLog.
 
