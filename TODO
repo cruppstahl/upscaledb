@@ -93,6 +93,19 @@ o fix freelist page overflow when searching for bits (See mail from Stefan)
 
 o update the .NET API 
 
+o documentation in hamsterdb.h
+    o ham_insert: does not list HAM_HINT_APPEND/PREPEND,
+        no mentioning of sorted duplicates
+    o ham_txn_begin: has no comments, just parameters
+    o ham_open_ex: dito
+    o ham_create_ex: dito
+    o ham_open, ham_create, ham_env_open, ham_env_create: should be 
+            deprecated???
+
+o test the following:
+        db=ham_create()
+        env=ham_get_env(db)
+        ham_env_close(env) ???
 
 
 o also look at Ger's sources
