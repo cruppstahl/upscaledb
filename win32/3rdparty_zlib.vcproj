@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8,00"
+	Version="9,00"
 	Name="3rdparty_zlib"
 	ProjectGUID="{AB39816E-52C4-44CE-B8DD-604DCA380173}"
 	RootNamespace="My3rdparty_zlib"
 	Keyword="Win32Proj"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
