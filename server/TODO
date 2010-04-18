@@ -11,6 +11,9 @@ o first step:
     o multithreaded, one thread per Environment
     o open environments/databases are used through url /envname/ (/dbname/)
     o implement with google protocol buffers
+    o unix daemon or windows service!
+    o windows service: command line switches -install, -start, 
+        -stop, -uninstall!
 
 o client
     o need configure switch to disable the remote client
