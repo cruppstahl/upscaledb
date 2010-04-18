@@ -1,0 +1,26 @@
+
+o first step:
+    o need configure switch to disable the server
+    o use APR and mongoose
+        o add both to 3rdparty
+    o configuration file: no default path; is set by command line parameter
+        o use the json parser from hamsterdb2 (add to 3rdparty)
+        o use to specify the port
+        o use to specify available databases/Environments and their url
+        o every! configuration option can be used programmatically!
+    o multithreaded, one thread per Environment
+    o open environments/databases are used through url /envname/ (/dbname/)
+    o implement with google protocol buffers
+
+o client
+    o need configure switch to disable the remote client
+        o add test to release.sh
+    o need configure switch to disable the local client
+        o add test to release.sh
+    o abstract env functions into "class" (like backend)
+    o separate local code into local_env.c
+    o separate remote code into remote_env.c
+    o if file starts with "http://" or "shttp://" then switch to remote client
+
+o need win32 project for the server
+. also allow json for the protocol
