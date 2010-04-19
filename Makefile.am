@@ -2,6 +2,9 @@ ACLOCAL_AMFLAGS	= -I m4
 
 
 SUBDIRS = 3rdparty src include samples tools unittests
+if ENABLE_SERVER
+SUBDIRS += server
+endif
 
 DOCUMENTATION_FILES = documentation/Doxyfile*           \
              documentation/hamsterdb-main.jpg           \
@@ -27,6 +30,7 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              unittests/Makefile.in                      \
              unittests/Makefile.am                      \
              unittests/data/*                           \
+             server                                     \
              win32                                      \
              win32/README.TXT                           \
              win32/hamsterdb.sln                        \

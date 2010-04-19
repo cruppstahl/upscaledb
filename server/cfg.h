@@ -24,6 +24,8 @@ extern "C" {
 
 #include <stdio.h>
 
+#include <ham/types.h>
+
 /*
  * initialize the config module
  *
@@ -37,36 +39,28 @@ cfg_init(void);
 /*
  * merge the configuration strings with those of a file handle
  *
- * note that keys are merged - only *existing* keys are overwritten.
- * if a key does not exist, the key will be ignored and a warning will
- * be printed.
+ * lower/upper case of the key is ignored
+ *
+ * @return true on success, false on failure
+ */
+extern ham_bool_t 
+cfg_read_file(FILE *f);
+
+/*
+ * merge the configuration strings with those of a string buffer
  *
  * lower/upper case of the key is ignored
  *
  * @return true on success, false on failure
  */
 extern ham_bool_t 
-cfg_merge(FILE *f);
+cfg_read_string(const char *str);
 
 /*
- * extract a configuration value - will return NULL if the value is not
- * available
- *
- * lower/upper case of the key is ignored
+ * release memory and clean up
  */
-extern const char *
-cfg_get(const char *key);
-
-/*
- * overwrite an existing configuration value
- *
- * only existing values can be overwritten! lower/upper case of the key 
- * is ignored.
- *
- * @return true on success, false on failure
- */
-extern const char *
-cfg_put(const char *key, const char *value);
+extern void
+cfg_close(void);
 
 
 #ifdef __cplusplus

@@ -1,10 +1,11 @@
 
 o first step:
-    o need configure switch to disable the server
-    o use APR and mongoose
-        o add both to 3rdparty
+    x need configure switch to disable the server
+    o need 3rdparty stuff
+        x add json to 3rdparty
+        o add mongoose to 3rdparty
+        o add APR to 3rdparty
     o configuration file: no default path; is set by command line parameter
-        o use the json parser from hamsterdb2 (add to 3rdparty)
         o use to specify the port
         o use to specify available databases/Environments and their url
         o every! configuration option can be used programmatically!

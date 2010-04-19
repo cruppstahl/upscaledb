@@ -13,3 +13,4 @@ SUBDIRS += zlib
 endif
 endif
 
+SUBDIRS += json
