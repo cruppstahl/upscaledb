@@ -8,6 +8,10 @@ o first step:
         o use to specify the port
         o use to specify available databases/Environments and their url
         o every! configuration option can be used programmatically!
+        o default is read from built-in json string
+            o all other sources are "merged" and ONLY overwrite, but do NOT
+                add new strings!
+            o unknown strings are ignored (print warning!)
     o multithreaded, one thread per Environment
     o open environments/databases are used through url /envname/ (/dbname/)
     o implement with google protocol buffers
