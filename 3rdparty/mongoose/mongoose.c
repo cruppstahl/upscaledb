@@ -202,7 +202,7 @@ typedef int SOCKET;
 #define	MAX_CGI_ENVIR_VARS	64
 #define	MAX_REQUEST_SIZE	8192
 #define	MAX_LISTENING_SOCKETS	10
-#define	MAX_CALLBACKS		20
+#define	MAX_CALLBACKS		128
 #define	ARRAY_SIZE(array)	(sizeof(array) / sizeof(array[0]))
 #define	UNKNOWN_CONTENT_LENGTH	((uint64_t) ~0)
 #define	DEBUG_MGS_PREFIX	"*** Mongoose debug *** "
