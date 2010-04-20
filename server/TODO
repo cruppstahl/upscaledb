@@ -3,9 +3,17 @@ o first step:
     x need configure switch to disable the server
     o need 3rdparty stuff
         x add json to 3rdparty
-        o add mongoose to 3rdparty
-        o add APR to 3rdparty
-    o configuration file: no default path; is set by command line parameter
+        x add mongoose to 3rdparty
+        o add APR to 3rdparty (or use libcurl?)
+    x define/implement public API
+        x implemented
+        x need mutex/critsec to protect use of environment!
+    x open environments/databases are used through url /envname/ (/dbname/)
+    o unix daemon (also running in foreground)
+    o implement with google protocol buffers
+    . windows service: command line switches -install, -start, 
+        -stop, -uninstall!
+    . configuration file: no default path; is set by command line parameter
         o use to specify the port
         o use to specify available databases/Environments and their url
         o every! configuration option can be used programmatically!
@@ -13,12 +21,8 @@ o first step:
             o all other sources are "merged" and ONLY overwrite, but do NOT
                 add new strings!
             o unknown strings are ignored (print warning!)
-    o multithreaded, one thread per Environment
-    o open environments/databases are used through url /envname/ (/dbname/)
-    o implement with google protocol buffers
-    o unix daemon or windows service!
-    o windows service: command line switches -install, -start, 
-        -stop, -uninstall!
+    . install a callback for authentication (and offer a predefined
+        callback for SSL?)
 
 o client
     o need configure switch to disable the remote client
