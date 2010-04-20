@@ -1,15 +1,14 @@
 
 o first step:
     x need configure switch to disable the server
-    o need 3rdparty stuff
+    x need 3rdparty stuff
         x add json to 3rdparty
         x add mongoose to 3rdparty
-        o add APR to 3rdparty (or use libcurl?)
     x define/implement public API
         x implemented
         x need mutex/critsec to protect use of environment!
     x open environments/databases are used through url /envname/ (/dbname/)
-    o unix daemon (also running in foreground)
+    o unix daemon (also running in foreground!)
     o implement with google protocol buffers
     . windows service: command line switches -install, -start, 
         -stop, -uninstall!
@@ -25,6 +24,8 @@ o first step:
         callback for SSL?)
 
 o client
+    o need 3rdparty stuff
+        o add APR to 3rdparty (or use libcurl?)
     o need configure switch to disable the remote client
         o add test to release.sh
     o need configure switch to disable the local client
