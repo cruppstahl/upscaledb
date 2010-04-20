@@ -13,4 +13,4 @@ SUBDIRS += zlib
 endif
 endif
 
-SUBDIRS += json
+SUBDIRS += json mongoose
