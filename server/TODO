@@ -1,5 +1,5 @@
 
-o first step:
+o server: first step
     x need configure switch to disable the server
     x need 3rdparty stuff
         x add json to 3rdparty
@@ -8,8 +8,73 @@ o first step:
         x implemented
         x need mutex/critsec to protect use of environment!
     x open environments/databases are used through url /envname/ (/dbname/)
-    o unix daemon (also running in foreground!)
+
+o client/server communication
+    o need 3rdparty stuff
+        o add APR to 3rdparty (or use libcurl?)
+    o check if a filename is remote (= starts with "http://")
     o implement with google protocol buffers
+        o ham_env_get_parameters
+        o ham_env_get_database_names
+        o ham_env_rename_db
+        o ham_env_erase_db
+        o ham_env_enable_encryption
+        o ham_env_enable_compression
+        o ham_env_flush
+        o ham_env_create_db
+        o ham_env_open_db
+        o ham_get_parameters
+        o ham_find
+        o ham_insert
+        o ham_erase
+        o ham_check_integrity
+        o ham_calc_maxkeys_per_page
+        o ham_flush
+        o ham_get_key_count
+        o ham_close
+        o ham_txn_begin
+        o ham_txn_commit
+        o ham_txn_abort
+        o ham_cursor_clone
+        o ham_cursor_overwrite
+        o ham_cursor_move
+        o ham_cursor_find
+        o ham_cursor_find_ex
+        o ham_cursor_insert
+        o ham_cursor_erase
+        o ham_cursor_get_duplicate_count
+        o ham_cursor_close
+        - ham_get_version
+        - ham_get_license
+        - ham_env_new
+        - ham_env_delete
+        - ham_env_create_ex
+        - ham_env_open_ex
+        - ham_env_add_file_filter
+        - ham_env_remove_file_filter
+        - ham_env_close
+        - ham_new (??)
+        - ham_delete (??)
+        - ham_create_ex
+        - ham_open_ex
+        - ham_get_error
+        - ham_set_prefix_compare_func (--> server!)
+        - ham_set_duplicate_compare_fun (--> server!)
+        - ham_set_compare_fun (--> server!)
+        - ham_key_get_approximate_match_type
+        - ham_add_record_filter
+        - ham_remove_record_filter
+        - ham_env_set_device
+        - ham_set_context_data
+        - ham_get_context_data
+        - ham_env_set_context_data
+        - ham_env_get_context_data
+        - ham_cursor_get_database
+        - ham_get_env
+        - ham_clean_statistics_datarec
+
+o server: second step
+    o unix daemon (also running in foreground!)
     . windows service: command line switches -install, -start, 
         -stop, -uninstall!
     . configuration file: no default path; is set by command line parameter
@@ -24,8 +89,6 @@ o first step:
         callback for SSL?)
 
 o client
-    o need 3rdparty stuff
-        o add APR to 3rdparty (or use libcurl?)
     o need configure switch to disable the remote client
         o add test to release.sh
     o need configure switch to disable the local client
