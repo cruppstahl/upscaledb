@@ -14,6 +14,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 #include "blob.h"
 #include "db.h"
@@ -23,11 +24,6 @@
 #include "mem.h"
 #include "util.h"
 
-
-
-#if HAM_OS_POSIX
-extern int vsnprintf(char *str, size_t size, const char *format, va_list ap);
-#endif
 
 int
 util_vsnprintf(char *str, size_t size, const char *format, va_list ap)
