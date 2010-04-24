@@ -1448,6 +1448,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
  * This flag is non persistent. */
 #define HAM_SORT_DUPLICATES          0x00100000
 
+/* reserved: DB_IS_REMOTE     (not persistent)       0x00200000 */
+
 /**
  * Returns the last error code
  *

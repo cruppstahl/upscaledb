@@ -35,28 +35,30 @@ extern "C" {
 #define OFFSETOF(type, member) ((size_t) &((type *)0)->member)
 
 /**
-* This is the minimum chunk size; all chunks (pages and blobs) are aligned
-* to this size. 
-*
-* WARNING: pages (and 'aligned' huge blobs) are aligned to a DB_PAGESIZE_MIN_REQD_ALIGNMENT
-*          boundary, that is, any 'aligned=true' freelist allocations will
-*          produce blocks which are aligned to a 8*32 == 256 bytes boundary.
-*/
+ * This is the minimum chunk size; all chunks (pages and blobs) are aligned
+ * to this size. 
+ *
+ * WARNING: pages (and 'aligned' huge blobs) are aligned to 
+ * a DB_PAGESIZE_MIN_REQD_ALIGNMENT boundary, that is, any 'aligned=true' 
+ * freelist allocations will produce blocks which are aligned to a 
+ * 8*32 == 256 bytes boundary.
+ */
 #define DB_CHUNKSIZE        32
 
 /**
-The minimum required database page alignment: since the freelist scanner works
-on a byte-boundary basis for aligned storage, all aligned storage must/align
-to an 8-bits times 1 DB_CHUNKSIZE-per-bit boundary. Which for a 32 bytes chunksize
-means your pagesize minimum required alignment/size is 8*32 = 256 bytes.
-*/
+ * The minimum required database page alignment: since the freelist scanner 
+ * works on a byte-boundary basis for aligned storage, all aligned storage 
+ * must/align to an 8-bits times 1 DB_CHUNKSIZE-per-bit boundary. Which for a 
+ * 32 bytes chunksize means your pagesize minimum required alignment/size 
+ * is 8*32 = 256 bytes.
+ */
 #define DB_PAGESIZE_MIN_REQD_ALIGNMENT		(8 * DB_CHUNKSIZE)
 
 #include "packstart.h"
 
 /**
-* the persistent database header
-*/
+ * the persistent database header
+ */
 typedef HAM_PACK_0 struct HAM_PACK_1 
 {
 	/** magic cookie - always "ham\0" */
@@ -88,14 +90,14 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 	ham_u16_t _reserved1;
 
 	/* 
-	* following here: 
-	*
-	* 1. the private data of the index backend(s) 
-	*      -> see env_get_indexdata()
-	*
-	* 2. the freelist data
-	*      -> see env_get_freelist()
-	*/
+	 * following here: 
+	 *
+	 * 1. the private data of the index backend(s) 
+	 *      -> see env_get_indexdata()
+	 *
+	 * 2. the freelist data
+	 *      -> see env_get_freelist()
+	 */
 
 } HAM_PACK_2 env_header_t;
 
@@ -150,6 +152,10 @@ struct ham_env_t
     /** the cachesize which was specified when the env was created/opened */
     ham_size_t _cachesize;
 
+    /** the max. number of databases which was specified when the env 
+     * was created */
+	ham_u16_t _max_databases;
+
 	/** 
      * non-zero after this item has been opened/created.
 	 * Indicates whether this environment is 'active', i.e. between 
@@ -173,9 +179,32 @@ struct ham_env_t
 	 */
 	ham_runtime_statistics_globdata_t _perf_data;
 
+    /*
+     * following here: function pointers which implement access to 
+     * local or remote databases. they are initialized in ham_env_create_ex
+     * and ham_env_open_ex after the ham_env_t handle was initialized and
+     * an allocator was created.
+     *
+     * @see env_initialize_local
+     * @see env_initialize_remote
+     */
+
+    /**
+     * initialize and create a new Environment
+     */
+    ham_status_t (*_fun_create)(ham_env_t *env, const char *filename,
+            ham_u32_t flags, ham_u32_t mode,
+            const ham_parameter_t *param);
+
+    /**
+     * initialize and open a new Environment
+     */
+    ham_status_t (*_fun_open)(ham_env_t *env, const char *filename,
+            ham_u32_t flags, const ham_parameter_t *param);
+
 	/**
-	* destroy the environment object, free all memory
-	*/
+	 * destroy the environment object, free all memory
+	 */
 	ham_status_t (*destroy)(ham_env_t *self);
 };
 
@@ -279,8 +308,8 @@ env_get_header(ham_env_t *env);
 #define env_is_dirty(env)                page_is_dirty(env_get_header_page(env))
 
 /**
- * Get a reference to the array of database-specific private data; interpretation of the
- * data is up to the backends.
+ * Get a reference to the array of database-specific private data; 
+ * interpretation of the data is up to the backends.
  *
  * @return a pointer to the persisted @ref db_indexdata_t data array. 
  *
@@ -293,13 +322,14 @@ env_get_header(ham_env_t *env);
         env_get_header_page(env)) + sizeof(env_header_t)))
 
 /**
- * Get the private data of the specified database stored at index @a i; interpretation of the
- * data is up to the backend.
+ * Get the private data of the specified database stored at index @a i; 
+ * interpretation of the data is up to the backend.
  *
- * @return a pointer to the persisted @ref db_indexdata_t data for the given database.
+ * @return a pointer to the persisted @ref db_indexdata_t data for the 
+ * given database.
  *
- * @note Use @ref db_get_indexdata_offset to retrieve the @a i index value for your
- *       database.
+ * @note Use @ref db_get_indexdata_offset to retrieve the @a i index value 
+ * for your database.
  */
 #define env_get_indexdata_ptr(env, i)      (env_get_indexdata_arrptr(env) + (i))
 
@@ -377,18 +407,31 @@ extern ham_u16_t
 env_get_max_databases(ham_env_t *env);
 
 /**
-* set the keysize
-*/
+ * set the keysize
+ */
 #define env_set_keysize(env, ks)         (env)->_keysize=(ks)
 
 /**
-* set the maximum number of databases for this file
-*/
-#define env_set_max_databases(env, md)   (env_get_header(env)->_max_databases=(md))
+ * set the maximum number of databases for this file (cached, not written
+ * to header file)
+ */
+#define env_set_max_databases_cached(env, md)  (env)->_max_databases=(md)
 
 /**
- * get the page size
+ * get the maximum number of databases for this file (cached, not read
+ * from header file)
  */
+#define env_get_max_databases_cached(env)       (env)->_max_databases
+
+/**
+ * set the maximum number of databases for this file
+ */
+#define env_set_max_databases(env, md)                                      \
+    (env_get_header(env)->_max_databases=(md))
+
+/**
+  * get the page size
+  */
 #define env_get_persistent_pagesize(env)									\
 	(ham_db2h32(env_get_header(env)->_pagesize))
 
@@ -422,8 +465,8 @@ env_get_max_databases(ham_env_t *env);
       env_get_header(env)->_version[3]=d; }
 
 /*
-* get byte @a i of the 'version'-header
-*/
+ * get byte @a i of the 'version'-header
+ */
 #define envheader_get_version(hdr, i)      ((hdr)->_version[i])
 
 /**
@@ -497,16 +540,16 @@ env_set_serialno(ham_env_t *env, ham_u32_t n);
 #define env_set_freelist_cache(env, c)   (env)->_freelist_cache=(c)
 
 /**
-* get the freelist object of the database
-*/
+ * get the freelist object of the database
+ */
 #define env_get_freelist(env)												\
 	((freelist_payload_t *)													\
      (page_get_payload(env_get_header_page(env))+							\
 	  SIZEOF_FULL_HEADER(env)))
 
 /**
-* get the size of the usable persistent payload of a page
-*/
+ * get the size of the usable persistent payload of a page
+ */
 #define env_get_usable_pagesize(env)										\
 	(env_get_pagesize(env) - page_get_persistent_header_size())
 
@@ -534,6 +577,12 @@ env_fetch_page(ham_page_t **page_ref, ham_env_t *env,
 extern ham_status_t
 env_alloc_page(ham_page_t **page_ref, ham_env_t *env,
                 ham_u32_t type, ham_u32_t flags);
+
+/*
+ * create a env_backend_t structure for accessing local files
+ */
+extern ham_status_t
+env_initialize_local(ham_env_t *env);
 
 
 #ifdef __cplusplus

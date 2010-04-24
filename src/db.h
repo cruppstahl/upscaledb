@@ -207,10 +207,10 @@ struct ham_db_t
     /** some database specific run-time data */
     ham_runtime_statistics_dbdata_t _db_perf_data;
 
-	/**
-	* destroy the database object, free all memory
-	*/
-	ham_status_t (*destroy)(ham_db_t *self);
+    /**
+    * destroy the database object, free all memory
+    */
+    ham_status_t (*destroy)(ham_db_t *self);
 };
 
 /**
@@ -410,9 +410,9 @@ struct ham_db_t
  * 
  * @sa ham_data_access_modes
  */
-#define db_set_data_access_mode_masked(db, or_mask, and_mask)				\
-	(db)->_data_access_mode=(((db)->_data_access_mode & (and_mask))			\
-							 | (or_mask))
+#define db_set_data_access_mode_masked(db, or_mask, and_mask)                \
+    (db)->_data_access_mode=(((db)->_data_access_mode & (and_mask))            \
+                             | (or_mask))
 
 /**
  * check if a given data access mode / mode-set has been set
@@ -708,7 +708,7 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 
 #define PAGE_IGNORE_FREELIST          8
 #define PAGE_CLEAR_WITH_ZERO         16
-#define PAGE_DONT_LOG_CONTENT		 32
+#define PAGE_DONT_LOG_CONTENT         32
 
 /**
  * Free a page.
@@ -753,42 +753,49 @@ db_resize_allocdata(ham_db_t *db, ham_size_t size);
 #define DB_USE_MMAP                  0x00000100
 
 /**
-* An internal database flag - env handle is private to the @ref ham_db_t instance
-*/
+ * An internal database flag - env handle is private to 
+ * the @ref ham_db_t instance
+ */
 #define DB_ENV_IS_PRIVATE            0x00080000
+
+/**
+ * An internal database flag - env handle is remote
+ */
+#define DB_IS_REMOTE                 0x00200000
+
 /**
  * @}
  */
 
 /**
-Ensure that the environment occupies a minimum number of pages.
-
-This is useful with various storage devices to prevent / reduce
-fragmentation.
-
-@param env the environment reference.
-
-@param minimum_page_count The desired minimum number of storage pages 
-       available to the environment/database.
-
-process: 
-
-<ol>
-<li> detect how many pages we already have in the environment
-
-<li> calculate how many pages we should have
-
-<li> when this is more than what we've got so far, tell
-   the device driver to allocate the remainder and mark
-   them all as 'free'.
-</ol>
-
-@remark Caveat:
-        The required size may be so large that it does not
-        fit in the current freelist, so one or more of
-		the allocated 'free' pages will be used for the
-		extended freelist.
-*/
+ * Ensure that the environment occupies a minimum number of pages.
+ * 
+ * This is useful with various storage devices to prevent / reduce
+ * fragmentation.
+ * 
+ * @param env the environment reference.
+ * 
+ * @param minimum_page_count The desired minimum number of storage pages 
+        * available to the environment/database.
+ * 
+ * process: 
+ * 
+ * <ol>
+ * <li> detect how many pages we already have in the environment
+ * 
+ * <li> calculate how many pages we should have
+ * 
+ * <li> when this is more than what we've got so far, tell
+ *      the device driver to allocate the remainder and mark
+ *      them all as 'free'.
+ * </ol>
+ * 
+ * @remark Caveat:
+ *    The required size may be so large that it does not
+ *    fit in the current freelist, so one or more of
+ *    the allocated 'free' pages will be used for the
+ *    extended freelist.
+ */
 extern ham_status_t
 env_reserve_space(ham_env_t *env, ham_offset_t minimum_page_count);
 
