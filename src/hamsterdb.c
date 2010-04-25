@@ -1229,33 +1229,36 @@ ham_env_delete(ham_env_t *env)
     stats_trash_globdata(env, env_get_global_perf_data(env));
 
     /* 
-     * close the device
+     * close the device if it still exists
      */
     if (env_get_device(env)) {
         ham_device_t *device = env_get_device(env);
         if (device->is_open(device)) {
             st = device->flush(device);
-            if (!st2) st2 = st;
+            if (!st2) 
+                st2 = st;
             st = device->close(device);
-            if (!st2) st2 = st;
+            if (!st2) 
+                st2 = st;
         }
         st = device->destroy(device);
-        if (!st2) st2 = st;
+        if (!st2) 
+            st2 = st;
         env_set_device(env, 0);
     }
 
     /*
-    * close the allocator
-    */
+     * close the allocator
+     */
     if (env_get_allocator(env)) {
         env_get_allocator(env)->close(env_get_allocator(env));
         env_set_allocator(env, 0);
     }
 
-    if (env->destroy)
-    {
+    if (env->destroy) {
         st = env->destroy(env);
-        if (!st2) st2 = st;
+        if (!st2) 
+            st2 = st;
     }
 
     return st2;
