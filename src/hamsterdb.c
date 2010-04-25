@@ -61,6 +61,78 @@ typedef struct free_cb_context_t
 
 } free_cb_context_t;
 
+/*
+ * callback function for freeing blobs of an in-memory-database
+ */
+static ham_status_t
+my_free_cb(int event, void *param1, void *param2, void *context)
+{
+    ham_status_t st;
+    int_key_t *key;
+    free_cb_context_t *c;
+
+    c=(free_cb_context_t *)context;
+
+    switch (event) {
+    case ENUM_EVENT_DESCEND:
+        break;
+
+    case ENUM_EVENT_PAGE_START:
+        c->is_leaf=*(ham_bool_t *)param2;
+        break;
+
+    case ENUM_EVENT_PAGE_STOP:
+        /*
+         * if this callback function is called from ham_env_erase_db:
+         * move the page to the freelist
+         */
+        if (!(env_get_rt_flags(db_get_env(c->db))&HAM_IN_MEMORY_DB)) 
+        {
+            ham_page_t *page=(ham_page_t *)param1;
+            st = txn_free_page(env_get_txn(db_get_env(c->db)), page);
+            if (st)
+                return st;
+        }
+        break;
+
+    case ENUM_EVENT_ITEM:
+        key=(int_key_t *)param1;
+
+        if (key_get_flags(key)&KEY_IS_EXTENDED) 
+        {
+            ham_offset_t blobid=key_get_extended_rid(c->db, key);
+            /*
+             * delete the extended key
+             */
+            st = extkey_remove(c->db, blobid);
+            if (st)
+                return st;
+        }
+
+        if (key_get_flags(key)&(KEY_BLOB_SIZE_TINY
+                            |KEY_BLOB_SIZE_SMALL
+                            |KEY_BLOB_SIZE_EMPTY))
+            break;
+
+        /*
+         * if we're in the leaf page, delete the blob
+         */
+        if (c->is_leaf)
+        {
+            st = key_erase_record(c->db, key, 0, BLOB_FREE_ALL_DUPES);
+            if (st)
+                return st;
+        }
+        break;
+
+    default:
+        ham_assert(!"unknown callback event", (0));
+        return CB_STOP;
+    }
+
+    return CB_CONTINUE;
+}
+
 static char *
 my_strncat_ex(char *buf, size_t buflen, const char *interject, const char *src)
 {
@@ -266,78 +338,6 @@ __check_recovery_flags(ham_u32_t flags)
         }
     }
     return (HAM_TRUE);
-}
-
-/*
- * callback function for freeing blobs of an in-memory-database
- */
-static ham_status_t
-my_free_cb(int event, void *param1, void *param2, void *context)
-{
-    ham_status_t st;
-    int_key_t *key;
-    free_cb_context_t *c;
-
-    c=(free_cb_context_t *)context;
-
-    switch (event) {
-    case ENUM_EVENT_DESCEND:
-        break;
-
-    case ENUM_EVENT_PAGE_START:
-        c->is_leaf=*(ham_bool_t *)param2;
-        break;
-
-    case ENUM_EVENT_PAGE_STOP:
-        /*
-         * if this callback function is called from ham_env_erase_db:
-         * move the page to the freelist
-         */
-        if (!(env_get_rt_flags(db_get_env(c->db))&HAM_IN_MEMORY_DB)) 
-        {
-            ham_page_t *page=(ham_page_t *)param1;
-            st = txn_free_page(env_get_txn(db_get_env(c->db)), page);
-            if (st)
-                return st;
-        }
-        break;
-
-    case ENUM_EVENT_ITEM:
-        key=(int_key_t *)param1;
-
-        if (key_get_flags(key)&KEY_IS_EXTENDED) 
-        {
-            ham_offset_t blobid=key_get_extended_rid(c->db, key);
-            /*
-             * delete the extended key
-             */
-            st = extkey_remove(c->db, blobid);
-            if (st)
-                return st;
-        }
-
-        if (key_get_flags(key)&(KEY_BLOB_SIZE_TINY
-                            |KEY_BLOB_SIZE_SMALL
-                            |KEY_BLOB_SIZE_EMPTY))
-            break;
-
-        /*
-         * if we're in the leaf page, delete the blob
-         */
-        if (c->is_leaf)
-        {
-            st = key_erase_record(c->db, key, 0, BLOB_FREE_ALL_DUPES);
-            if (st)
-                return st;
-        }
-        break;
-
-    default:
-        ham_assert(!"unknown callback event", (0));
-        return CB_STOP;
-    }
-
-    return CB_CONTINUE;
 }
 
 static ham_status_t
@@ -1863,9 +1863,6 @@ ham_status_t HAM_CALLCONV
 ham_env_rename_db(ham_env_t *env, ham_u16_t oldname, 
                 ham_u16_t newname, ham_u32_t flags)
 {
-    ham_u16_t dbi;
-    ham_u16_t slot;
-
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
@@ -1884,54 +1881,20 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
     }
 
     /*
-     * make sure that the environment was either created or opened, and 
-     * a valid device exists
-     */
-    if (!env_get_device(env))
-        return (HAM_NOT_READY);
-
-    /*
      * no need to do anything if oldname==newname
      */
     if (oldname==newname)
         return (0);
 
     /*
-     * check if a database with the new name already exists; also search 
-     * for the database with the old name
+     * rename the database
      */
-    slot=env_get_max_databases(env);
-    ham_assert(env_get_max_databases(env) > 0, (0));
-    for (dbi=0; dbi<env_get_max_databases(env); dbi++) {
-        ham_u16_t name=index_get_dbname(env_get_indexdata_ptr(env, dbi));
-        if (name==newname)
-            return (HAM_DATABASE_ALREADY_EXISTS);
-        if (name==oldname)
-            slot=dbi;
-    }
-
-    if (slot==env_get_max_databases(env))
-        return (HAM_DATABASE_NOT_FOUND);
-
-    /*
-     * replace the database name with the new name
-     */
-    index_set_dbname(env_get_indexdata_ptr(env, slot), newname);
-
-    env_set_dirty(env);
-    
-    return (0);
+    return (env->_fun_rename_db(env, oldname, newname, flags));
 }
 
 ham_status_t HAM_CALLCONV
 ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
 {
-    ham_db_t *db;
-    ham_status_t st;
-    free_cb_context_t context;
-    ham_txn_t txn;
-    ham_backend_t *be;
-
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
@@ -1941,100 +1904,10 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
         return (HAM_INV_PARAMETER);
     }
 
-    /* for hamsterdb 1.0.4 - only support one transaction */
-    if (env_get_txn(env)) {
-        ham_trace(("only one concurrent transaction is supported"));
-        return (HAM_LIMITS_REACHED);
-    }
-
     /*
-     * check if this database is still open
+     * erase the database
      */
-    db=env_get_list(env);
-    while (db) {
-        ham_u16_t dbname=index_get_dbname(env_get_indexdata_ptr(env,
-                            db_get_indexdata_offset(db)));
-        if (dbname==name)
-            return (HAM_DATABASE_ALREADY_OPEN);
-        db=db_get_next(db);
-    }
-
-    /*
-     * if it's an in-memory environment: no need to go on, if the 
-     * database was closed, it does no longer exist
-     */
-    if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
-        return (HAM_DATABASE_NOT_FOUND);
-
-    /*
-     * temporarily load the database
-     */
-    st=ham_new(&db);
-    if (st)
-        return (st);
-    st=ham_env_open_db(env, db, name, 0, 0);
-    if (st) {
-        (void)ham_delete(db);
-        return (st);
-    }
-
-    /*
-     * delete all blobs and extended keys, also from the cache and
-     * the extkey_cache
-     *
-     * also delete all pages and move them to the freelist; if they're 
-     * cached, delete them from the cache
-     */
-    st=txn_begin(&txn, env, 0);
-    if (st) {
-        (void)ham_close(db, 0);
-        (void)ham_delete(db);
-        return (st);
-    }
-    
-    context.db=db;
-    be=db_get_backend(db);
-    if (!be || !be_is_active(be))
-        return HAM_INTERNAL_ERROR;
-
-    if (!be->_fun_enumerate)
-        return HAM_NOT_IMPLEMENTED;
-
-    st=be->_fun_enumerate(be, my_free_cb, &context);
-    if (st) {
-        (void)txn_abort(&txn, 0);
-        (void)ham_close(db, 0);
-        (void)ham_delete(db);
-        return (st);
-    }
-
-    st=txn_commit(&txn, 0);
-    if (st) {
-        (void)ham_close(db, 0);
-        (void)ham_delete(db);
-        return (st);
-    }
-
-    /*
-     * set database name to 0 and set the header page to dirty
-     */
-    index_set_dbname(env_get_indexdata_ptr(env, 
-                        db_get_indexdata_offset(db)), 0);
-    page_set_dirty_txn(env_get_header_page(env), 1);
-
-    /*
-     * TODO
-     * 
-     * log??? before + after image of header page???
-     */
-
-    /*
-     * clean up and return
-     */
-    (void)ham_close(db, 0);
-    (void)ham_delete(db);
-
-    return (0);
+    return (env->_fun_erase_db(env, name, flags));
 }
 
 ham_status_t HAM_CALLCONV
@@ -2045,6 +1918,11 @@ ham_env_add_file_filter(ham_env_t *env, ham_file_filter_t *filter)
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
+    }
+    if (env_get_rt_flags(env)&DB_IS_REMOTE) {
+        ham_trace(("ham_env_add_file_filter is not supported by remote "
+                "servers"));
+        return (HAM_NOT_IMPLEMENTED);
     }
     if (!filter) {
         ham_trace(("parameter 'filter' must not be NULL"));
@@ -2104,6 +1982,11 @@ ham_env_remove_file_filter(ham_env_t *env, ham_file_filter_t *filter)
         ham_trace(("parameter 'filter' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+    if (env_get_rt_flags(env)&DB_IS_REMOTE) {
+        ham_trace(("ham_env_add_file_filter is not supported by remote "
+                "servers"));
+        return (HAM_NOT_IMPLEMENTED);
+    }
 
     head=env_get_file_filter(env);
 
@@ -2145,11 +2028,6 @@ ham_env_remove_file_filter(ham_env_t *env, ham_file_filter_t *filter)
 ham_status_t HAM_CALLCONV
 ham_env_get_database_names(ham_env_t *env, ham_u16_t *names, ham_size_t *count)
 {
-    ham_u16_t name;
-    ham_size_t i=0;
-    ham_size_t max_names;
-    ham_status_t st=0;
-
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
@@ -2163,29 +2041,33 @@ ham_env_get_database_names(ham_env_t *env, ham_u16_t *names, ham_size_t *count)
         return (HAM_INV_PARAMETER);
     }
 
-    max_names=*count;
-    *count=0;
-
     /*
-     * copy each database name in the array
+     * get all database names
      */
-    ham_assert(env_get_max_databases(env) > 0, (0));
-    for (i=0; i<env_get_max_databases(env); i++) {
-        name = index_get_dbname(env_get_indexdata_ptr(env, i));
-        if (name==0)
-            continue;
+    return (env->_fun_get_database_names(env, names, count));
+}
 
-        if (*count>=max_names) {
-            st=HAM_LIMITS_REACHED;
-            goto bail;
-        }
+HAM_EXPORT ham_status_t HAM_CALLCONV
+ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
+{
+    /*
+     * get the parameters
+     */
+    return (env->_fun_get_parameters(env, param));
+}
 
-        names[(*count)++]=name;
+ham_status_t HAM_CALLCONV
+ham_env_flush(ham_env_t *env, ham_u32_t flags)
+{
+    if (!env) {
+        ham_trace(("parameter 'env' must not be NULL"));
+        return HAM_INV_PARAMETER;
     }
 
-bail:
-
-    return st;
+    /*
+     * flush the Environment
+     */
+    return (env->_fun_flush(env, flags));
 }
 
 ham_status_t HAM_CALLCONV
@@ -2193,16 +2075,11 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
 {
     ham_status_t st;
     ham_status_t st2 = HAM_SUCCESS;
-    ham_device_t *dev;
-    ham_file_filter_t *file_head;
 
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-
-    /* flush/persist all performance data which we want to persist */
-    stats_flush_globdata(env, env_get_global_perf_data(env));
 
     /*
      * close all databases?
@@ -2234,119 +2111,9 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     }
 
     /*
-     * if we're not in read-only mode, and not an in-memory-database,
-     * and the dirty-flag is true: flush the page-header to disk
+     * close the environment
      */
-    if (env_get_header_page(env)
-            && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
-            && env_get_device(env)
-            && env_get_device(env)->is_open(env_get_device(env))
-            && (!(env_get_rt_flags(env)&HAM_READ_ONLY))) {
-        st=page_flush(env_get_header_page(env));
-        if (!st2) st2 = st;
-    }
-
-    /*
-     * flush the freelist
-     */
-    st=freel_shutdown(env);
-    if (st)
-    {
-        if (st2 == 0) st2 = st;
-    }
-
-    /*
-     * close the header page
-     *
-     * !!
-     * the last database, which was closed, has set the owner of the 
-     * page to 0, which means that we can't call page_free, page_delete
-     * etc. We have to use the device-routines.
-     */
-    dev=env_get_device(env);
-    if (env_get_header_page(env)) 
-    {
-        ham_page_t *page=env_get_header_page(env);
-        ham_assert(dev, (0));
-        if (page_get_pers(page))
-        {
-            st = dev->free_page(dev, page);
-            if (!st2) st2 = st;
-        }
-        allocator_free(env_get_allocator(env), page);
-        env_set_header_page(env, 0);
-    }
-
-    /* 
-     * flush all pages, get rid of the cache 
-     */
-    if (env_get_cache(env)) {
-        (void)db_flush_all(env_get_cache(env), 0);
-        cache_delete(env_get_cache(env));
-        env_set_cache(env, 0);
-    }
-
-    /* 
-     * close the device
-     */
-    if (dev) {
-        if (dev->is_open(dev)) {
-			if (!(env_get_rt_flags(env)&HAM_READ_ONLY)) {
-				st = dev->flush(dev);
-				if (!st2) st2 = st;
-			}
-            st = dev->close(dev);
-            if (!st2) st2 = st;
-        }
-        st = dev->destroy(dev);
-        if (!st2) st2 = st;
-        env_set_device(env, 0);
-    }
-
-    /*
-     * close all file-level filters
-     */
-    file_head=env_get_file_filter(env);
-    while (file_head) {
-        ham_file_filter_t *next=file_head->_next;
-        if (file_head->close_cb)
-            file_head->close_cb(env, file_head);
-        file_head=next;
-    }
-    env_set_file_filter(env, 0);
-
-    /*
-     * close the log
-     */
-    if (env_get_log(env)) {
-        st = ham_log_close(env_get_log(env), (flags&HAM_DONT_CLEAR_LOG));
-        if (!st2) st2 = st;
-        env_set_log(env, 0);
-    }
-
-    /*
-     * close everything else
-     */
-    if (env_get_filename(env)) {
-        allocator_free(env_get_allocator(env), 
-                (ham_u8_t *)env_get_filename(env));
-        env_set_filename(env, 0);
-    }
-
-    /* delete all performance data */
-    stats_trash_globdata(env, env_get_global_perf_data(env));
-
-    /* 
-     * finally, close the memory allocator 
-     */
-    if (env_get_allocator(env)) {
-        env_get_allocator(env)->close(env_get_allocator(env));
-        env_set_allocator(env, 0);
-    }
-
-    env_set_active(env, HAM_FALSE);
-
-    return st2;
+    return (env->_fun_close(env, flags));
 }
 
 static ham_status_t 
@@ -2406,7 +2173,8 @@ ham_delete(ham_db_t *db)
     if (db_is_active(db)) 
     {
         st = ham_close(db, 0);
-        if (!st2) st2 = st;
+        if (!st2) 
+            st2 = st;
     }
 
     /*
@@ -2420,7 +2188,8 @@ ham_delete(ham_db_t *db)
     if (db->destroy)
     {
         st = db->destroy(db);
-        if (!st2) st2 = st;
+        if (!st2) 
+            st2 = st;
     }
 
     return st2;
@@ -2661,61 +2430,6 @@ bail:
     }
 
     return (db_set_error(db, st));
-}
-
-HAM_EXPORT ham_status_t HAM_CALLCONV
-ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
-{
-    ham_parameter_t *p=param;
-    if (p) {
-        for (; p->name; p++) {
-            switch (p->name) {
-            case HAM_PARAM_CACHESIZE:
-                p->value=env ? env_get_cachesize(env) : HAM_DEFAULT_CACHESIZE;
-                break;
-            case HAM_PARAM_PAGESIZE:
-                p->value=env ? env_get_pagesize(env) : os_get_pagesize();
-                break;
-            case HAM_PARAM_MAX_ENV_DATABASES:
-                p->value=env 
-                        ? env_get_max_databases(env) 
-                        : DB_MAX_INDICES;
-                break;
-            case HAM_PARAM_GET_FLAGS:
-                p->value=env ? env_get_rt_flags(env) : 0;
-                break;
-            case HAM_PARAM_GET_FILEMODE:
-                p->value=env ? env_get_file_mode(env) : 0;
-                break;
-            case HAM_PARAM_GET_FILENAME:
-                p->value=env 
-                        ? (ham_u64_t)(PTR_TO_U64(env_get_filename(env))) 
-                        : 0;
-                break;
-            case HAM_PARAM_GET_STATISTICS:
-                if (!p->value) {
-                    ham_trace(("the value for parameter "
-                               "'HAM_PARAM_GET_STATISTICS' must not be NULL "
-                               "and reference a ham_statistics_t data "
-                               "structure before invoking "
-                               "ham_get_parameters"));
-                    return (HAM_INV_PARAMETER);
-                }
-                else {
-                    ham_status_t st = stats_fill_ham_statistics_t(env, 0, 
-                            (ham_statistics_t *)U64_TO_PTR(p->value));
-                    if (st)
-                        return st;
-                }
-                break;
-            default:
-                ham_trace(("unknown parameter %d", (int)p->name));
-                return (HAM_INV_PARAMETER);
-            }
-        }
-    }
-
-    return (0);
 }
 
 HAM_EXPORT ham_status_t HAM_CALLCONV
@@ -3742,69 +3456,6 @@ ham_calc_maxkeys_per_page(ham_db_t *db, ham_size_t *keycount, ham_u16_t keysize)
     else
         return (HAM_NOT_IMPLEMENTED);
 #endif /* ifdef HAM_ENABLE_INTERNAL */
-}
-
-ham_status_t HAM_CALLCONV
-ham_env_flush(ham_env_t *env, ham_u32_t flags)
-{
-    ham_status_t st;
-    ham_db_t *db;
-    ham_device_t *dev;
-
-    (void)flags;
-
-    if (!env) {
-        ham_trace(("parameter 'env' must not be NULL"));
-        return HAM_INV_PARAMETER;
-    }
-
-    /*
-     * never flush an in-memory-database
-     */
-    if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
-        return (0);
-
-    dev = env_get_device(env);
-    if (!dev)
-        return HAM_NOT_INITIALIZED;
-
-    /*
-     * flush the open backends
-     */
-    db = env_get_list(env);
-    while (db) 
-    {
-        ham_backend_t *be=db_get_backend(db);
-
-        if (!be || !be_is_active(be))
-            return HAM_NOT_INITIALIZED;
-        if (!be->_fun_flush)
-            return (HAM_NOT_IMPLEMENTED);
-        st = be->_fun_flush(be);
-        if (st)
-            return st;
-        db = db_get_next(db);
-    }
-
-    /*
-     * update the header page, if necessary
-     */
-    if (env_is_dirty(env)) 
-    {
-        st=page_flush(env_get_header_page(env));
-        if (st)
-            return st;
-    }
-
-    st=db_flush_all(env_get_cache(env), DB_FLUSH_NODELETE);
-    if (st)
-        return st;
-
-    st=dev->flush(dev);
-    if (st)
-        return st;
-
-    return (HAM_SUCCESS);
 }
 
 ham_status_t HAM_CALLCONV

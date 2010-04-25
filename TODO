@@ -28,6 +28,16 @@ o client/server communication
 
     dann die abstraktion noch verbessern - viele member in "env.h" sind
     nur für das lokale backend nötig, nicht für das remote-backend
+    x ham_env_create_ex
+    x ham_env_open_ex
+    x ham_env_rename_db
+    x ham_env_erase_db
+    x ham_env_get_database_names
+    x ham_env_get_parameters
+    x ham_env_flush
+    x ham_env_close
+
+    o my_free_cb ist in env.c und hamsterdb.c!
 ==============
     o need 3rdparty stuff
         o add APR to 3rdparty (or use libcurl?)

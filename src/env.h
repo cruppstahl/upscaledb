@@ -202,6 +202,39 @@ struct ham_env_t
     ham_status_t (*_fun_open)(ham_env_t *env, const char *filename,
             ham_u32_t flags, const ham_parameter_t *param);
 
+    /**
+     * rename a database in the Environment
+     */
+    ham_status_t (*_fun_rename_db)(ham_env_t *env, ham_u16_t oldname, 
+            ham_u16_t newname, ham_u32_t flags);
+
+    /**
+     * erase a database from the Environment
+     */
+    ham_status_t (*_fun_erase_db)(ham_env_t *env, ham_u16_t name, 
+            ham_u32_t flags);
+
+    /**
+     * get all database names
+     */
+    ham_status_t (*_fun_get_database_names)(ham_env_t *env, 
+            ham_u16_t *names, ham_size_t *count);
+
+    /**
+     * get environment parameters
+     */
+    ham_status_t (*_fun_get_parameters)(ham_env_t *env, ham_parameter_t *param);
+
+    /**
+     * flush the environment
+     */
+    ham_status_t (*_fun_flush)(ham_env_t *env, ham_u32_t flags);
+
+    /**
+     * close the Environment
+     */
+    ham_status_t (*_fun_close)(ham_env_t *env, ham_u32_t flags);
+
 	/**
 	 * destroy the environment object, free all memory
 	 */
