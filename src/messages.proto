@@ -1,0 +1,27 @@
+
+
+package ham;
+
+
+message Connect {
+    required int64 id = 1;
+    required string path = 2;
+}
+
+message ConnectReply {
+    required int64 id = 1;
+    required int32 status = 2;
+}
+
+message Rename {
+    required int64 id = 1;
+    required int32 oldname = 2;
+    required int32 newname = 3;
+    required int32 flags = 4;
+}
+
+message RenameReply {
+    required int64 id = 1;
+    required int32 status = 2;
+};
+

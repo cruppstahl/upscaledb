@@ -39,15 +39,15 @@ o client/server communication
 
     o my_free_cb ist in env.c und hamsterdb.c!
 ==============
-    o need 3rdparty stuff
-        o add APR to 3rdparty (or use libcurl?)
-    o need configure switch to disable the remote client
-        o add test to release.sh
+    x separate local code into env.c
+    x configure.in: check for protocol buffer - if not available: build without
+            remote access!
+    x configure.in: check for libcurl - if not available: build without
+            remote access!
+    x need configure switch to disable the remote client
     o need configure switch to disable the local client
-        o add test to release.sh
-    o separate local code into local_env.c
-    o separate remote code into remote_env.c
     o if file starts with "http://" then switch to remote client
+    o separate remote code into remote_env.c
     o implement with google protocol buffers
         o ham_env_get_parameters
         o ham_env_get_database_names
@@ -107,6 +107,8 @@ o client/server communication
         - ham_cursor_get_database
         - ham_get_env
         - ham_clean_statistics_datarec
+
+    o add tests for --disable-remote and --disable-local to release.sh
 
 o fix freelist page overflow when searching for bits (See mail from Stefan)
 

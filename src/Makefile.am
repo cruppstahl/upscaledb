@@ -3,7 +3,7 @@ AM_CPPFLAGS = -I../include -I$(top_builddir)/3rdparty/aes
 
 lib_LTLIBRARIES = libhamsterdb.la
 
-EXTRA_DIST = os_win32.c
+EXTRA_DIST = os_win32.c messages.pb-c.*
 
 libhamsterdb_la_SOURCES = log.c \
 			blob.c \
@@ -46,4 +46,10 @@ libhamsterdb_la_LDFLAGS += $(top_builddir)/3rdparty/zlib/libzlib.la
 endif
 endif
 
+if ENABLE_SERVER
+libhamsterdb_la_SOURCES += messages.pb-c.c
+endif
+
+proto:	messages.proto
+	protoc-c messages.proto --c_out=.
 
