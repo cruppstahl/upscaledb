@@ -45,9 +45,8 @@ o client/server communication
     x configure.in: check for libcurl - if not available: build without
             remote access!
     x need configure switch to disable the remote client
-    o need configure switch to disable the local client
-    o if file starts with "http://" then switch to remote client
-    o separate remote code into remote_env.c
+    x if file starts with "http://" then switch to remote client
+    o separate remote code into remote.c
     o implement with google protocol buffers
         o ham_env_get_parameters
         o ham_env_get_database_names
@@ -108,6 +107,7 @@ o client/server communication
         - ham_get_env
         - ham_clean_statistics_datarec
 
+    o need configure switch to disable the local client
     o add tests for --disable-remote and --disable-local to release.sh
 
 o fix freelist page overflow when searching for bits (See mail from Stefan)

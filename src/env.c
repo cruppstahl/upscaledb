@@ -852,26 +852,22 @@ _local_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
         for (; p->name; p++) {
             switch (p->name) {
             case HAM_PARAM_CACHESIZE:
-                p->value=env ? env_get_cachesize(env) : HAM_DEFAULT_CACHESIZE;
+                p->value=env_get_cachesize(env);
                 break;
             case HAM_PARAM_PAGESIZE:
-                p->value=env ? env_get_pagesize(env) : os_get_pagesize();
+                p->value=env_get_pagesize(env);
                 break;
             case HAM_PARAM_MAX_ENV_DATABASES:
-                p->value=env 
-                        ? env_get_max_databases(env) 
-                        : DB_MAX_INDICES;
+                p->value=env_get_max_databases(env);
                 break;
             case HAM_PARAM_GET_FLAGS:
-                p->value=env ? env_get_rt_flags(env) : 0;
+                p->value=env_get_rt_flags(env);
                 break;
             case HAM_PARAM_GET_FILEMODE:
-                p->value=env ? env_get_file_mode(env) : 0;
+                p->value=env_get_file_mode(env);
                 break;
             case HAM_PARAM_GET_FILENAME:
-                p->value=env 
-                        ? (ham_u64_t)(PTR_TO_U64(env_get_filename(env))) 
-                        : 0;
+                p->value=(ham_u64_t)(PTR_TO_U64(env_get_filename(env)));
                 break;
             case HAM_PARAM_GET_STATISTICS:
                 if (!p->value) {

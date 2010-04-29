@@ -617,6 +617,12 @@ env_alloc_page(ham_page_t **page_ref, ham_env_t *env,
 extern ham_status_t
 env_initialize_local(ham_env_t *env);
 
+/*
+ * create a env_backend_t structure for accessing remote server
+ */
+extern ham_status_t
+env_initialize_remote(ham_env_t *env);
+
 
 #ifdef __cplusplus
 } // extern "C" {

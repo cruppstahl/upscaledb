@@ -62,6 +62,17 @@ typedef struct free_cb_context_t
 } free_cb_context_t;
 
 /*
+ * return true if the filename is for a local file
+ */
+static ham_bool_t
+__filename_is_local(const char *filename)
+{
+    if (filename && strstr(filename, "http://")==filename)
+        return (HAM_FALSE);
+    return (HAM_TRUE);
+}
+
+/*
  * callback function for freeing blobs of an in-memory-database
  */
 static ham_status_t
@@ -1341,7 +1352,12 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     /*
      * initialize function pointers
      */
-    st=env_initialize_local(env);
+    if (__filename_is_local(filename)) {
+        st=env_initialize_local(env);
+    }
+    else {
+        st=env_initialize_remote(env);
+    }
     if (st)
         return (st);
 
@@ -1843,7 +1859,12 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
     /*
      * initialize function pointers
      */
-    st=env_initialize_local(env);
+    if (__filename_is_local(filename)) {
+        st=env_initialize_local(env);
+    }
+    else {
+        st=env_initialize_remote(env);
+    }
     if (st)
         return (st);
 
@@ -1879,6 +1900,10 @@ ham_env_rename_db(ham_env_t *env, ham_u16_t oldname,
         ham_trace(("parameter 'newname' must be lower than 0xf000"));
         return (HAM_INV_PARAMETER);
     }
+    if (!env->_fun_rename_db) {
+        ham_trace(("Environment was not initialized"));
+        return (HAM_NOT_INITIALIZED);
+    }
 
     /*
      * no need to do anything if oldname==newname
@@ -1902,6 +1927,10 @@ ham_env_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     if (!name) {
         ham_trace(("parameter 'name' must not be 0"));
         return (HAM_INV_PARAMETER);
+    }
+    if (!env->_fun_erase_db) {
+        ham_trace(("Environment was not initialized"));
+        return (HAM_NOT_INITIALIZED);
     }
 
     /*
@@ -2040,6 +2069,10 @@ ham_env_get_database_names(ham_env_t *env, ham_u16_t *names, ham_size_t *count)
         ham_trace(("parameter 'count' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+    if (!env->_fun_get_database_names) {
+        ham_trace(("Environment was not initialized"));
+        return (HAM_NOT_INITIALIZED);
+    }
 
     /*
      * get all database names
@@ -2050,6 +2083,19 @@ ham_env_get_database_names(ham_env_t *env, ham_u16_t *names, ham_size_t *count)
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
 {
+    if (!env) {
+        ham_trace(("parameter 'env' must not be NULL"));
+        return HAM_INV_PARAMETER;
+    }
+    if (!param) {
+        ham_trace(("parameter 'param' must not be NULL"));
+        return HAM_INV_PARAMETER;
+    }
+    if (!env->_fun_get_parameters) {
+        ham_trace(("Environment was not initialized"));
+        return (HAM_NOT_INITIALIZED);
+    }
+
     /*
      * get the parameters
      */
@@ -2062,6 +2108,10 @@ ham_env_flush(ham_env_t *env, ham_u32_t flags)
     if (!env) {
         ham_trace(("parameter 'env' must not be NULL"));
         return HAM_INV_PARAMETER;
+    }
+    if (!env->_fun_flush) {
+        ham_trace(("Environment was not initialized"));
+        return (HAM_NOT_INITIALIZED);
     }
 
     /*
@@ -2080,6 +2130,12 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
         ham_trace(("parameter 'env' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+
+    /*
+     * it's ok to close an uninitialized Environment
+     */
+    if (!env->_fun_close)
+        return (0);
 
     /*
      * close all databases?
@@ -2436,45 +2492,48 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_get_parameters(ham_db_t *db, ham_parameter_t *param)
 {
     ham_parameter_t *p=param;
-    ham_env_t *env=db ? db_get_env(db) : 0;
+    ham_env_t *env;
+
+    if (!db) {
+        ham_trace(("parameter 'db' must not be NULL"));
+        return HAM_INV_PARAMETER;
+    }
+    if (!param) {
+        ham_trace(("parameter 'param' must not be NULL"));
+        return HAM_INV_PARAMETER;
+    }
+
+    env=db_get_env(db);
 
     if (p) {
         for (; p->name; p++) {
             switch (p->name) {
             case HAM_PARAM_CACHESIZE:
-                p->value=env ? env_get_cachesize(env) : HAM_DEFAULT_CACHESIZE;
+                p->value=env_get_cachesize(env);
                 break;
             case HAM_PARAM_PAGESIZE:
-                p->value=env ? env_get_pagesize(env) : os_get_pagesize();
+                p->value=env_get_pagesize(env);
                 break;
             case HAM_PARAM_KEYSIZE:
-                p->value=(db && db_get_backend(db)) ? db_get_keysize(db) : 21;
+                p->value=db_get_backend(db) ? db_get_keysize(db) : 21;
                 break;
             case HAM_PARAM_MAX_ENV_DATABASES:
-                p->value=env 
-                        ? env_get_max_databases(env) 
-                        : DB_MAX_INDICES;
+                p->value=env_get_max_databases(env);
                 break;
             case HAM_PARAM_GET_FLAGS:
-                p->value=(db && env) ? db_get_rt_flags(db) : 0;
+                p->value=db_get_rt_flags(db);
                 break;
             case HAM_PARAM_GET_FILEMODE:
-                p->value=(db && db_get_env(db)) 
-                            ? env_get_file_mode(db_get_env(db))
-                            : 0;
+                p->value=env_get_file_mode(db_get_env(db));
                 break;
             case HAM_PARAM_GET_FILENAME:
-                p->value=(db && db_get_env(db)) 
-                            ? (ham_u64_t)PTR_TO_U64(env_get_filename(env))
-                            : 0;
+                p->value=(ham_u64_t)PTR_TO_U64(env_get_filename(env));
                 break;
             case HAM_PARAM_GET_DATABASE_NAME:
-                p->value=(db && db_get_env(db)) 
-                            ? (ham_offset_t)db_get_dbname(db)
-                            : 0;
+                p->value=(ham_offset_t)db_get_dbname(db);
                 break;
             case HAM_PARAM_GET_KEYS_PER_PAGE:
-                if (db && db_get_backend(db)) {
+                if (db_get_backend(db)) {
                     ham_size_t count=0, size=db_get_keysize(db);
                     ham_backend_t *be = db_get_backend(db);
                     ham_status_t st;
@@ -2488,7 +2547,7 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param)
                 }
                 break;
             case HAM_PARAM_GET_DATA_ACCESS_MODE:
-                p->value=db ? db_get_data_access_mode(db) : 0;
+                p->value=db_get_data_access_mode(db);
                 break;
             case HAM_PARAM_GET_STATISTICS:
                 if (!p->value) {

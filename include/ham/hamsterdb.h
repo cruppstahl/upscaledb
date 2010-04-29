@@ -667,8 +667,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
 /**
  * Retrieve the current value for a given Environment setting
  *
- * Only those values requested by the parameter array will be stored. If
- * the @a env handle is NULL, the default parameters will be returned.
+ * Only those values requested by the parameter array will be stored.
  *
  * The following parameters are supported:
  *      <ul>
@@ -687,7 +686,7 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  *              structure with the current statistics
  *      </ul>
  *
- * @param env A valid Environment handle; can be NULL
+ * @param env A valid Environment handle
  * @param param An array of ham_parameter_t structures
  *
  * @return @ref HAM_SUCCESS upon success
@@ -1954,8 +1953,7 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 /**
  * Retrieve the current value for a given Database setting
  *
- * Only those values requested by the parameter array will be stored. If
- * the @a db handle is NULL, the default parameters will be returned.
+ * Only those values requested by the parameter array will be stored.
  *
  * The following parameters are supported:
  *      <ul>
@@ -1979,7 +1977,7 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  *              structure with the current statistics
  *      </ul>
  *
- * @param db A valid Database handle; can be NULL
+ * @param db A valid Database handle
  * @param param An array of ham_parameter_t structures
  *
  * @return @ref HAM_SUCCESS upon success

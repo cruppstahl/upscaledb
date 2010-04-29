@@ -30,6 +30,7 @@ libhamsterdb_la_SOURCES = log.c \
 			txn.c \
 			util.c \
 			btree_cursor.c \
+			remote.c \
 			device.c
 
 libhamsterdb_la_LDFLAGS = -version-info 2:0:0
@@ -46,8 +47,10 @@ libhamsterdb_la_LDFLAGS += $(top_builddir)/3rdparty/zlib/libzlib.la
 endif
 endif
 
-if ENABLE_SERVER
+if ENABLE_REMOTE
 libhamsterdb_la_SOURCES += messages.pb-c.c
+libhamsterdb_la_LDFLAGS += -lprotobuf-c
+CFLAGS += -DHAM_ENABLE_REMOTE
 endif
 
 proto:	messages.proto

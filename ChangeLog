@@ -1,3 +1,8 @@
+Apr 29, 2010 - chris
+o ham_env_get_parameters and ham_get_parameters do no longer accept
+    NULL pointers as the first parameter; instead, they will fail with
+    HAM_INV_PARAMETER
+
 Apr 22, 2010 - chris
 o Fixed compilation for MacOSX SnowLeopard (thanks, Olisa)
 
