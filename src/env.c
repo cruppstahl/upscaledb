@@ -176,10 +176,9 @@ _local_fun_create(ham_env_t *env, const char *filename,
     ham_assert(!env_get_header_page(env), (0));
 
     /* 
-     * initialize the device, if it does not yet exist
+     * initialize the device if it does not yet exist
      */
-    if (!env_get_device(env)) 
-    {
+    if (!env_get_device(env)) {
         device=ham_device_new(env_get_allocator(env), env, 
                         ((flags&HAM_IN_MEMORY_DB) 
                             ? HAM_DEVTYPE_MEMORY 
@@ -296,15 +295,20 @@ _local_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags,
     stats_init_globdata(env, env_get_global_perf_data(env));
 
     /* 
-     * initialize/open the device
+     * initialize the device if it does not yet exist
      */
-    device=ham_device_new(env_get_allocator(env), env,
+    if (!env_get_device(env)) {
+        device=ham_device_new(env_get_allocator(env), env,
                 ((flags&HAM_IN_MEMORY_DB) 
                     ? HAM_DEVTYPE_MEMORY 
                     : HAM_DEVTYPE_FILE));
-    if (!device)
-        return (HAM_OUT_OF_MEMORY);
-    env_set_device(env, device);
+        if (!device)
+            return (HAM_OUT_OF_MEMORY);
+        env_set_device(env, device);
+    }
+    else {
+        device=env_get_device(env);
+    }
 
     /* 
      * open the file 
@@ -781,11 +785,11 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
      */
     if (dev) {
         if (dev->is_open(dev)) {
-			if (!(env_get_rt_flags(env)&HAM_READ_ONLY)) {
-				st = dev->flush(dev);
-				if (!st2) 
+            if (!(env_get_rt_flags(env)&HAM_READ_ONLY)) {
+                st = dev->flush(dev);
+                if (!st2) 
                     st2 = st;
-			}
+            }
             st = dev->close(dev);
             if (!st2) 
                 st2 = st;
