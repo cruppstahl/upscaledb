@@ -48,7 +48,7 @@ hamserver_init(hamserver_config_t *config, hamserver_t **srv);
  * @return true on success, false on failure
  */
 extern ham_bool_t 
-hamserver_add_environment(hamserver_t *srv, ham_env_t *env, const char *urlname);
+hamserver_add_env(hamserver_t *srv, ham_env_t *env, const char *urlname);
 
 /*
  * Release memory and clean up

@@ -20,7 +20,7 @@ int main(void)
 
     cfg.port=8080;
     hamserver_init(&cfg, &srv);
-    hamserver_add_environment(srv, env, "/test.db");
+    hamserver_add_env(srv, env, "/test.db");
     
     while (1)
         getchar();

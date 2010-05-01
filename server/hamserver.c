@@ -95,7 +95,7 @@ hamserver_init(hamserver_config_t *config, hamserver_t **psrv)
 }
 
 ham_bool_t 
-hamserver_add_environment(hamserver_t *srv, ham_env_t *env, const char *urlname)
+hamserver_add_env(hamserver_t *srv, ham_env_t *env, const char *urlname)
 {
     int i;
 

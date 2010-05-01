@@ -49,7 +49,7 @@ endif
 
 if ENABLE_REMOTE
 libhamsterdb_la_SOURCES += messages.pb-c.c
-libhamsterdb_la_LDFLAGS += -lprotobuf-c
+libhamsterdb_la_LDFLAGS += -lprotobuf-c -lcurl
 CFLAGS += -DHAM_ENABLE_REMOTE
 endif
 

@@ -775,14 +775,6 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
     if (env)
         flags |= env_get_rt_flags(env);
 
-    /*
-     * is it a remote file?
-     */
-    if (filename) {
-        if (strstr(filename, "http://")==filename)
-            flags |= DB_IS_REMOTE;
-    }
-
     /* 
      * parse parameters 
      */
@@ -1346,8 +1338,6 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
         }
         strcpy((char *)env_get_filename(env), filename);
     }
-
-    ham_assert(!(flags&DB_IS_REMOTE), (""));
 
     /*
      * initialize function pointers
@@ -2169,7 +2159,12 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     /*
      * close the environment
      */
-    return (env->_fun_close(env, flags));
+    st=env->_fun_close(env, flags);
+    if (st)
+        return (st);
+
+    env_set_active(env, HAM_FALSE);
+    return (0);
 }
 
 static ham_status_t 

@@ -130,6 +130,9 @@ struct ham_env_t
     /** the memory allocator */
     mem_allocator_t *_alloc;
 
+    /** libcurl remote handle */
+    void *_curl;
+
     /** the file header page */
     ham_page_t *_hdrpage;
 
@@ -311,6 +314,16 @@ struct ham_env_t
  * set the cache pointer
  */
 #define env_set_cache(env, c)            (env)->_cache=(c)
+
+/**
+ * get the curl handle
+ */
+#define env_get_curl(env)                (env)->_curl
+
+/**
+ * set the curl handle
+ */
+#define env_set_curl(env, c)             (env)->_curl=(c)
 
 /**
  * get the header page

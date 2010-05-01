@@ -21,8 +21,6 @@
 
 #include <curl/curl.h>
 
-#define env_set_curl(env, c)    env_set_device(env, (ham_device_t *)c)
-
 static ham_status_t 
 _remote_fun_create(ham_env_t *env, const char *filename,
             ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
@@ -34,7 +32,7 @@ _remote_fun_create(ham_env_t *env, const char *filename,
 
     env_set_curl(env, handle);
 
-    return (0);
+    return (HAM_NOT_IMPLEMENTED);
 }
 
 static ham_status_t 
@@ -48,45 +46,45 @@ _remote_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags,
 
     env_set_curl(env, handle);
 
-    return (0);
+    return (HAM_NOT_IMPLEMENTED);
 }
 
 static ham_status_t
 _remote_fun_rename_db(ham_env_t *env, ham_u16_t oldname, 
                 ham_u16_t newname, ham_u32_t flags)
 {
-    return (0);
+    return (HAM_NOT_IMPLEMENTED);
 }
 
 static ham_status_t
 _remote_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
 {
-    return (0);
+    return (HAM_NOT_IMPLEMENTED);
 }
 
 static ham_status_t
 _remote_fun_get_database_names(ham_env_t *env, ham_u16_t *names, 
             ham_size_t *count)
 {
-    return (0);
+    return (HAM_NOT_IMPLEMENTED);
 }
 
 static ham_status_t
 _remote_fun_close(ham_env_t *env, ham_u32_t flags)
 {
-    return (0);
+    return (HAM_NOT_IMPLEMENTED);
 }
 
 static ham_status_t 
 _remote_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
 {
-    return (0);
+    return (HAM_NOT_IMPLEMENTED);
 }
 
 static ham_status_t
 _remote_fun_flush(ham_env_t *env, ham_u32_t flags)
 {
-    return (0);
+    return (HAM_NOT_IMPLEMENTED);
 }
 
 #endif /* HAM_ENABLE_REMOTE */

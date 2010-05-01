@@ -842,8 +842,6 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
         env_set_allocator(env, 0);
     }
 
-    env_set_active(env, HAM_FALSE);
-
     return st2;
 }
 

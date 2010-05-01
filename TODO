@@ -46,66 +46,125 @@ o client/server communication
             remote access!
     x need configure switch to disable the remote client
     x if file starts with "http://" then switch to remote client
-    o separate remote code into remote.c
+    x separate remote code into remote.c
     o implement with google protocol buffers
+        o ham_env_create_ex
+        o ham_env_close
+            o unittest
+        o ham_env_open_ex
+            o unittest
         o ham_env_get_parameters
+            o unittest
         o ham_env_get_database_names
+            o unittest
         o ham_env_rename_db
+            o unittest
         o ham_env_erase_db
+            o unittest
         o ham_env_enable_encryption
+            o unittest
         o ham_env_enable_compression
+            o unittest
         o ham_env_flush
+            o unittest
         o ham_env_create_db
+            o unittest
         o ham_env_open_db
+            o unittest
         o ham_get_parameters
+            o unittest
         o ham_find
+            o unittest
         o ham_insert
+            o unittest
         o ham_erase
+            o unittest
         o ham_check_integrity
+            o unittest
         o ham_calc_maxkeys_per_page
+            o unittest
         o ham_flush
+            o unittest
         o ham_get_key_count
+            o unittest
         o ham_close
+            o unittest
         o ham_txn_begin
+            o unittest
         o ham_txn_commit
+            o unittest
         o ham_txn_abort
+            o unittest
         o ham_cursor_clone
+            o unittest
         o ham_cursor_overwrite
+            o unittest
         o ham_cursor_move
+            o unittest
         o ham_cursor_find
+            o unittest
         o ham_cursor_find_ex
+            o unittest
         o ham_cursor_insert
+            o unittest
         o ham_cursor_erase
+            o unittest
         o ham_cursor_get_duplicate_count
+            o unittest
         o ham_cursor_close
+            o unittest
         - ham_get_version
+            o unittest
         - ham_get_license
+            o unittest
         - ham_env_new
+            o unittest
         - ham_env_delete
-        - ham_env_create_ex
-        - ham_env_open_ex
+            o unittest
         - ham_env_add_file_filter
+            o unittest
         - ham_env_remove_file_filter
+            o unittest
         - ham_env_close
+            o unittest
         - ham_new (??)
+            o unittest
         - ham_delete (??)
+            o unittest
         - ham_create_ex
+            o unittest
         - ham_open_ex
+            o unittest
         - ham_get_error
+            o unittest
         - ham_set_prefix_compare_func (--> server!)
+            o unittest
         - ham_set_duplicate_compare_fun (--> server!)
+            o unittest
         - ham_set_compare_fun (--> server!)
+            o unittest
         - ham_key_get_approximate_match_type
+            o unittest
         - ham_add_record_filter
+            o unittest
         - ham_remove_record_filter
+            o unittest
         - ham_env_set_device
+            o unittest
         - ham_set_context_data
+            o unittest
         - ham_get_context_data
+            o unittest
         - ham_env_set_context_data
+            o unittest
         - ham_env_get_context_data
+            o unittest
         - ham_cursor_get_database
+            o unittest
         - ham_get_env
+            o unittest
         - ham_clean_statistics_datarec
+            o unittest
 
     o need configure switch to disable the local client
     o add tests for --disable-remote and --disable-local to release.sh
