@@ -50,7 +50,7 @@ protected:
     void setup(void)
     {
         hamserver_config_t config;
-        config.port=8686;
+        config.port=8989;
         BFC_ASSERT_EQUAL(HAM_TRUE, 
                 hamserver_init(&config, &m_srv));
 
@@ -59,7 +59,7 @@ protected:
                 ham_env_create(m_srvenv, "test.db", 0, 0664));
 
         BFC_ASSERT_EQUAL(HAM_TRUE, 
-                hamserver_add_env(m_srv, m_srvenv, "/test"));
+                hamserver_add_env(m_srv, m_srvenv, "/test.db"));
     }
 
     void teardown(void)
@@ -75,7 +75,7 @@ protected:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(HAM_NETWORK_ERROR, 
                 ham_env_create(env, "http://localhost:77/test.db", 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
@@ -88,7 +88,7 @@ protected:
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(HAM_NETWORK_ERROR, 
                 ham_env_create(env, "http://localhost:8989/xxxtest.db", 0, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
@@ -103,7 +103,7 @@ protected:
         BFC_ASSERT_EQUAL(0u, env_is_active(env));
 
         BFC_ASSERT_EQUAL(0, 
-                ham_env_create(env, "http://localhost:8989/test.db", 0, 0664));
+                ham_env_create(env, "http://localhost:8080/test.db", 0, 0664));
         BFC_ASSERT_EQUAL(1u, env_is_active(env));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_close(0, 0));

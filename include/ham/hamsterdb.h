@@ -293,6 +293,8 @@ typedef struct {
 #define HAM_ENVIRONMENT_ALREADY_OPEN   (-203)
 /** Invalid log file header */
 #define HAM_LOG_INV_FILE_HEADER     (-300)
+/** Remote I/O error/Network error */
+#define HAM_NETWORK_ERROR           (-400)
 
 /**
  * @}

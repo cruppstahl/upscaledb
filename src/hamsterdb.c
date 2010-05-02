@@ -570,6 +570,8 @@ ham_strerror(ham_status_t result)
             return ("Database needs recovery");
         case HAM_LOG_INV_FILE_HEADER:
             return ("Invalid log file header");
+        case HAM_NETWORK_ERROR:
+            return ("Remote I/O error/Network error");
         default:
             return ("Unknown error");
     }
