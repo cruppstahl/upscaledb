@@ -18,6 +18,7 @@
 #include <mongoose/mongoose.h>
 
 #include "hamserver.h"
+#include "messages-pb.c.h"
 #include "os.h"
 
 /* max. number of open hamsterdb Environments - if you change this, also change
@@ -46,31 +47,54 @@ static void
 request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
                 void *user_data)
 {
+    Ham__Wrapper *wrapper;
     struct env_t *env=(struct env_t *)user_data;
-    os_critsec_enter(&env->cs);
 	int	i;
+
+    os_critsec_enter(&env->cs);
+
+    ham__wrapper__unpack(&wrapper, ri->post_data_len, ri->post_data);
+    wrapper=ham__wrapper__unpack(0, ri->post_data_len, ri->post_data);
+    if (!wrapper) {
+        /* TODO send error */
+        goto bail;   
+    }
+
+    switch (wrapper->type) {
+    case HAM__WRAPPER__TYPE__CONNECT_REQUEST:
+    case HAM__WRAPPER__TYPE__RENAME_REQUEST:
+    default:
+        /* TODO send error */
+        goto bail;   
+    }
 
 	mg_printf(conn, "%s", standard_reply);
 
-	mg_printf(conn, "Method: [%s]\n", ri->request_method);
-	mg_printf(conn, "URI: [%s]\n", ri->uri);
-	mg_printf(conn, "HTTP version: [%d.%d]\n", ri->http_version_major, 
+#if 0
+	printf("Method: [%s]\n", ri->request_method);
+	printf("URI: [%s]\n", ri->uri);
+	printf("HTTP version: [%d.%d]\n", ri->http_version_major, 
             ri->http_version_minor);
 
 	for (i = 0; i < ri->num_headers; i++)
-		mg_printf(conn, "HTTP header [%s]: [%s]\n",
+		printf("HTTP header [%s]: [%s]\n",
 			 ri->http_headers[i].name,
 			 ri->http_headers[i].value);
 
-	mg_printf(conn, "Query string: [%s]\n",
+	printf("Query string: [%s]\n",
 			ri->query_string ? ri->query_string: "");
-	mg_printf(conn, "POST data: [%.*s]\n",
+	printf("POST data: [%.*s]\n",
 			ri->post_data_len, ri->post_data);
-	mg_printf(conn, "Remote IP: [%lu]\n", ri->remote_ip);
-	mg_printf(conn, "Remote port: [%d]\n", ri->remote_port);
-	mg_printf(conn, "Remote user: [%s]\n",
+	printf("Remote IP: [%lu]\n", ri->remote_ip);
+	printf("Remote port: [%d]\n", ri->remote_port);
+	printf("Remote user: [%s]\n",
 			ri->remote_user ? ri->remote_user : "");
-	mg_printf(conn, "Hamsterdb url: [%s]\n", env->urlname);
+	printf("Hamsterdb url: [%s]\n", env->urlname);
+#endif
+
+bail:
+    if (wrapper)
+        ham__wrapper__free_unpacked(wrapper, 0);
 
     os_critsec_leave(&env->cs);
 }

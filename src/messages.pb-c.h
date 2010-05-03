@@ -8,25 +8,46 @@
 PROTOBUF_C_BEGIN_DECLS
 
 
-typedef struct _Ham__Connect Ham__Connect;
+typedef struct _Ham__Wrapper Ham__Wrapper;
+typedef struct _Ham__ConnectRequest Ham__ConnectRequest;
 typedef struct _Ham__ConnectReply Ham__ConnectReply;
-typedef struct _Ham__Rename Ham__Rename;
+typedef struct _Ham__RenameRequest Ham__RenameRequest;
 typedef struct _Ham__RenameReply Ham__RenameReply;
 
 
 /* --- enums --- */
 
+typedef enum _Ham__Wrapper__Type {
+  HAM__WRAPPER__TYPE__CONNECT_REQUEST = 10,
+  HAM__WRAPPER__TYPE__CONNECT_REPLY = 11,
+  HAM__WRAPPER__TYPE__RENAME_REQUEST = 20,
+  HAM__WRAPPER__TYPE__RENAME_REPLY = 21
+} Ham__Wrapper__Type;
 
 /* --- messages --- */
 
-struct  _Ham__Connect
+struct  _Ham__Wrapper
+{
+  ProtobufCMessage base;
+  Ham__Wrapper__Type type;
+  Ham__ConnectRequest *connect_request;
+  Ham__ConnectReply *connect_reply;
+  Ham__RenameRequest *rename_request;
+  Ham__RenameReply *rename_reply;
+};
+#define HAM__WRAPPER__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__wrapper__descriptor) \
+    , 0, NULL, NULL, NULL, NULL }
+
+
+struct  _Ham__ConnectRequest
 {
   ProtobufCMessage base;
   int64_t id;
   char *path;
 };
-#define HAM__CONNECT__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&ham__connect__descriptor) \
+#define HAM__CONNECT_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__connect_request__descriptor) \
     , 0, NULL }
 
 
@@ -41,7 +62,7 @@ struct  _Ham__ConnectReply
     , 0, 0 }
 
 
-struct  _Ham__Rename
+struct  _Ham__RenameRequest
 {
   ProtobufCMessage base;
   int64_t id;
@@ -49,8 +70,8 @@ struct  _Ham__Rename
   int32_t newname;
   int32_t flags;
 };
-#define HAM__RENAME__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&ham__rename__descriptor) \
+#define HAM__RENAME_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__rename_request__descriptor) \
     , 0, 0, 0, 0 }
 
 
@@ -65,24 +86,43 @@ struct  _Ham__RenameReply
     , 0, 0 }
 
 
-/* Ham__Connect methods */
-void   ham__connect__init
-                     (Ham__Connect         *message);
-size_t ham__connect__get_packed_size
-                     (const Ham__Connect   *message);
-size_t ham__connect__pack
-                     (const Ham__Connect   *message,
+/* Ham__Wrapper methods */
+void   ham__wrapper__init
+                     (Ham__Wrapper         *message);
+size_t ham__wrapper__get_packed_size
+                     (const Ham__Wrapper   *message);
+size_t ham__wrapper__pack
+                     (const Ham__Wrapper   *message,
                       uint8_t             *out);
-size_t ham__connect__pack_to_buffer
-                     (const Ham__Connect   *message,
+size_t ham__wrapper__pack_to_buffer
+                     (const Ham__Wrapper   *message,
                       ProtobufCBuffer     *buffer);
-Ham__Connect *
-       ham__connect__unpack
+Ham__Wrapper *
+       ham__wrapper__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data);
-void   ham__connect__free_unpacked
-                     (Ham__Connect *message,
+void   ham__wrapper__free_unpacked
+                     (Ham__Wrapper *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__ConnectRequest methods */
+void   ham__connect_request__init
+                     (Ham__ConnectRequest         *message);
+size_t ham__connect_request__get_packed_size
+                     (const Ham__ConnectRequest   *message);
+size_t ham__connect_request__pack
+                     (const Ham__ConnectRequest   *message,
+                      uint8_t             *out);
+size_t ham__connect_request__pack_to_buffer
+                     (const Ham__ConnectRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__ConnectRequest *
+       ham__connect_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__connect_request__free_unpacked
+                     (Ham__ConnectRequest *message,
                       ProtobufCAllocator *allocator);
 /* Ham__ConnectReply methods */
 void   ham__connect_reply__init
@@ -103,24 +143,24 @@ Ham__ConnectReply *
 void   ham__connect_reply__free_unpacked
                      (Ham__ConnectReply *message,
                       ProtobufCAllocator *allocator);
-/* Ham__Rename methods */
-void   ham__rename__init
-                     (Ham__Rename         *message);
-size_t ham__rename__get_packed_size
-                     (const Ham__Rename   *message);
-size_t ham__rename__pack
-                     (const Ham__Rename   *message,
+/* Ham__RenameRequest methods */
+void   ham__rename_request__init
+                     (Ham__RenameRequest         *message);
+size_t ham__rename_request__get_packed_size
+                     (const Ham__RenameRequest   *message);
+size_t ham__rename_request__pack
+                     (const Ham__RenameRequest   *message,
                       uint8_t             *out);
-size_t ham__rename__pack_to_buffer
-                     (const Ham__Rename   *message,
+size_t ham__rename_request__pack_to_buffer
+                     (const Ham__RenameRequest   *message,
                       ProtobufCBuffer     *buffer);
-Ham__Rename *
-       ham__rename__unpack
+Ham__RenameRequest *
+       ham__rename_request__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data);
-void   ham__rename__free_unpacked
-                     (Ham__Rename *message,
+void   ham__rename_request__free_unpacked
+                     (Ham__RenameRequest *message,
                       ProtobufCAllocator *allocator);
 /* Ham__RenameReply methods */
 void   ham__rename_reply__init
@@ -143,14 +183,17 @@ void   ham__rename_reply__free_unpacked
                       ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
-typedef void (*Ham__Connect_Closure)
-                 (const Ham__Connect *message,
+typedef void (*Ham__Wrapper_Closure)
+                 (const Ham__Wrapper *message,
+                  void *closure_data);
+typedef void (*Ham__ConnectRequest_Closure)
+                 (const Ham__ConnectRequest *message,
                   void *closure_data);
 typedef void (*Ham__ConnectReply_Closure)
                  (const Ham__ConnectReply *message,
                   void *closure_data);
-typedef void (*Ham__Rename_Closure)
-                 (const Ham__Rename *message,
+typedef void (*Ham__RenameRequest_Closure)
+                 (const Ham__RenameRequest *message,
                   void *closure_data);
 typedef void (*Ham__RenameReply_Closure)
                  (const Ham__RenameReply *message,
@@ -161,9 +204,11 @@ typedef void (*Ham__RenameReply_Closure)
 
 /* --- descriptors --- */
 
-extern const ProtobufCMessageDescriptor ham__connect__descriptor;
+extern const ProtobufCMessageDescriptor ham__wrapper__descriptor;
+extern const ProtobufCEnumDescriptor    ham__wrapper__type__descriptor;
+extern const ProtobufCMessageDescriptor ham__connect_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__connect_reply__descriptor;
-extern const ProtobufCMessageDescriptor ham__rename__descriptor;
+extern const ProtobufCMessageDescriptor ham__rename_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__rename_reply__descriptor;
 
 PROTOBUF_C_END_DECLS

@@ -16,6 +16,7 @@
 
 #include "db.h"
 #include "env.h"
+#include "mem.h"
 #include "messages.pb-c.h"
 
 #if HAM_ENABLE_REMOTE
@@ -67,19 +68,25 @@ static ham_status_t
 _remote_fun_create(ham_env_t *env, const char *filename,
             ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
 {
-    Ham__Connect msg;
+    Ham__ConnectRequest msg;
+    Ham__Wrapper wrapper;
     CURLcode cc;
     CURL *handle=curl_easy_init();
-    ham_u8_t packed_data[128]; /* TODO not enough! */
     char header[128];
     curl_buffer_t buf={0};
     struct curl_slist *slist=0;
 
-    ham__connect__init(&msg);
+    ham__wrapper__init(&wrapper);
+    ham__connect_request__init(&msg);
     msg.id=1;
     msg.path=(char *)filename;
-    buf.packed_size=ham__connect__pack(&msg, &packed_data[0]);
-    buf.packed_data=&packed_data[0];
+    wrapper.type=HAM__WRAPPER__TYPE__CONNECT_REQUEST;
+    wrapper.connect_request=&msg;
+
+    buf.packed_size=ham__wrapper__get_packed_size(&wrapper);
+    buf.packed_data=allocator_alloc(env_get_allocator(env), buf.packed_size);
+    if (!buf.packed_data)
+        return (HAM_OUT_OF_MEMORY);
 
     sprintf(header, "Content-Length: %u", buf.packed_size);
     slist=curl_slist_append(slist, header);
@@ -97,6 +104,9 @@ _remote_fun_create(ham_env_t *env, const char *filename,
     SETOPT(handle, CURLOPT_HTTPHEADER, slist);
 
     cc=curl_easy_perform(handle);
+
+    allocator_free(env_get_allocator(env), buf.packed_data);
+
     if (cc) {
         ham_trace(("network transmission failed: %s", curl_easy_strerror(cc)));
         return (HAM_NETWORK_ERROR);
@@ -112,6 +122,7 @@ static ham_status_t
 _remote_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags, 
         const ham_parameter_t *param)
 {
+#if 0
     Ham__Connect msg;
     CURLcode cc;
     CURL *handle=curl_easy_init();
@@ -142,6 +153,7 @@ _remote_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags,
 
     env_set_curl(env, handle);
 
+#endif
     return (0);
 }
 

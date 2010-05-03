@@ -2,8 +2,23 @@
 
 package ham;
 
+message Wrapper {
+    enum Type { 
+            CONNECT_REQUEST = 10;
+            CONNECT_REPLY   = 11;
+            RENAME_REQUEST  = 20;
+            RENAME_REPLY    = 21;
+    }
 
-message Connect {
+    required Type type = 1;
+
+    optional ConnectRequest connect_request = 10;
+    optional ConnectReply connect_reply     = 11;
+    optional RenameRequest rename_request   = 20;
+    optional RenameReply rename_reply       = 21;
+}
+
+message ConnectRequest {
     required int64 id = 1;
     required string path = 2;
 }
@@ -13,7 +28,7 @@ message ConnectReply {
     required int32 status = 2;
 }
 
-message Rename {
+message RenameRequest {
     required int64 id = 1;
     required int32 oldname = 2;
     required int32 newname = 3;
