@@ -47,10 +47,11 @@ o client/server communication
     x need configure switch to disable the remote client
     x if file starts with "http://" then switch to remote client
     x separate remote code into remote.c
+    o what about logging? we have at least to log errors
     o implement with google protocol buffers
-        o ham_env_create_ex
-        o ham_env_close
-            o unittest
+        x ham_env_create_ex
+        x ham_env_close
+            x unittest 
         o ham_env_open_ex
             o unittest
         o ham_env_get_parameters
@@ -165,6 +166,7 @@ o client/server communication
             o unittest
         - ham_clean_statistics_datarec
             o unittest
+        o call curl_global_cleanup() (not threadsafe!!)
 
     o need configure switch to disable the local client
     o add tests for --disable-remote and --disable-local to release.sh

@@ -822,26 +822,6 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
         env_set_log(env, 0);
     }
 
-    /*
-     * close everything else
-     */
-    if (env_get_filename(env)) {
-        allocator_free(env_get_allocator(env), 
-                (ham_u8_t *)env_get_filename(env));
-        env_set_filename(env, 0);
-    }
-
-    /* delete all performance data */
-    stats_trash_globdata(env, env_get_global_perf_data(env));
-
-    /* 
-     * finally, close the memory allocator 
-     */
-    if (env_get_allocator(env)) {
-        env_get_allocator(env)->close(env_get_allocator(env));
-        env_set_allocator(env, 0);
-    }
-
     return st2;
 }
 

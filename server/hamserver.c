@@ -18,7 +18,7 @@
 #include <mongoose/mongoose.h>
 
 #include "hamserver.h"
-#include "messages-pb.c.h"
+#include "messages.pb-c.h"
 #include "os.h"
 
 /* max. number of open hamsterdb Environments - if you change this, also change
@@ -49,21 +49,26 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
 {
     Ham__Wrapper *wrapper;
     struct env_t *env=(struct env_t *)user_data;
-	int	i;
 
     os_critsec_enter(&env->cs);
 
-    ham__wrapper__unpack(&wrapper, ri->post_data_len, ri->post_data);
-    wrapper=ham__wrapper__unpack(0, ri->post_data_len, ri->post_data);
+    wrapper=ham__wrapper__unpack(0, ri->post_data_len, 
+            (ham_u8_t *)ri->post_data);
     if (!wrapper) {
+        printf("failed to unpack wrapper (%d bytes)\n", ri->post_data_len);
         /* TODO send error */
         goto bail;   
     }
 
     switch (wrapper->type) {
     case HAM__WRAPPER__TYPE__CONNECT_REQUEST:
+        printf("connect request\n");
+        break;
     case HAM__WRAPPER__TYPE__RENAME_REQUEST:
+        printf("rename request\n");
+        break;
     default:
+        printf("unknown request\n");
         /* TODO send error */
         goto bail;   
     }

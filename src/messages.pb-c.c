@@ -332,8 +332,7 @@ const ProtobufCMessageDescriptor ham__wrapper__descriptor =
   ham__wrapper__field_descriptors,
   ham__wrapper__field_indices_by_name,
   3,  ham__wrapper__number_ranges,
-  (ProtobufCMessageInit) ham__wrapper__init,
-  NULL,NULL,NULL    /* reserved[123] */
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
 };
 static const ProtobufCFieldDescriptor ham__connect_request__field_descriptors[2] =
 {
@@ -381,8 +380,7 @@ const ProtobufCMessageDescriptor ham__connect_request__descriptor =
   ham__connect_request__field_descriptors,
   ham__connect_request__field_indices_by_name,
   1,  ham__connect_request__number_ranges,
-  (ProtobufCMessageInit) ham__connect_request__init,
-  NULL,NULL,NULL    /* reserved[123] */
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
 };
 static const ProtobufCFieldDescriptor ham__connect_reply__field_descriptors[2] =
 {
@@ -430,8 +428,7 @@ const ProtobufCMessageDescriptor ham__connect_reply__descriptor =
   ham__connect_reply__field_descriptors,
   ham__connect_reply__field_indices_by_name,
   1,  ham__connect_reply__number_ranges,
-  (ProtobufCMessageInit) ham__connect_reply__init,
-  NULL,NULL,NULL    /* reserved[123] */
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
 };
 static const ProtobufCFieldDescriptor ham__rename_request__field_descriptors[4] =
 {
@@ -503,8 +500,7 @@ const ProtobufCMessageDescriptor ham__rename_request__descriptor =
   ham__rename_request__field_descriptors,
   ham__rename_request__field_indices_by_name,
   1,  ham__rename_request__number_ranges,
-  (ProtobufCMessageInit) ham__rename_request__init,
-  NULL,NULL,NULL    /* reserved[123] */
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
 };
 static const ProtobufCFieldDescriptor ham__rename_reply__field_descriptors[2] =
 {
@@ -552,6 +548,5 @@ const ProtobufCMessageDescriptor ham__rename_reply__descriptor =
   ham__rename_reply__field_descriptors,
   ham__rename_reply__field_indices_by_name,
   1,  ham__rename_reply__number_ranges,
-  (ProtobufCMessageInit) ham__rename_reply__init,
-  NULL,NULL,NULL    /* reserved[123] */
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
 };

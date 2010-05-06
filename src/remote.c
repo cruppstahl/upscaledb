@@ -72,6 +72,7 @@ _remote_fun_create(ham_env_t *env, const char *filename,
     Ham__Wrapper wrapper;
     CURLcode cc;
     CURL *handle=curl_easy_init();
+    long response=0;
     char header[128];
     curl_buffer_t buf={0};
     struct curl_slist *slist=0;
@@ -87,6 +88,7 @@ _remote_fun_create(ham_env_t *env, const char *filename,
     buf.packed_data=allocator_alloc(env_get_allocator(env), buf.packed_size);
     if (!buf.packed_data)
         return (HAM_OUT_OF_MEMORY);
+    ham__wrapper__pack(&wrapper, buf.packed_data);
 
     sprintf(header, "Content-Length: %u", buf.packed_size);
     slist=curl_slist_append(slist, header);
@@ -106,13 +108,24 @@ _remote_fun_create(ham_env_t *env, const char *filename,
     cc=curl_easy_perform(handle);
 
     allocator_free(env_get_allocator(env), buf.packed_data);
+    curl_slist_free_all(slist);
 
     if (cc) {
         ham_trace(("network transmission failed: %s", curl_easy_strerror(cc)));
         return (HAM_NETWORK_ERROR);
     }
 
-    curl_slist_free_all(slist);
+    cc=curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response);
+    if (cc) {
+        ham_trace(("network transmission failed: %s", curl_easy_strerror(cc)));
+        return (HAM_NETWORK_ERROR);
+    }
+
+    if (response!=200) {
+        ham_trace(("server returned error %u", response));
+        return (HAM_NETWORK_ERROR);
+    }
+
     env_set_curl(env, handle);
 
     return (0);
