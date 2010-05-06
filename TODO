@@ -167,6 +167,8 @@ o client/server communication
         - ham_clean_statistics_datarec
             o unittest
         o call curl_global_cleanup() (not threadsafe!!)
+    o messages-pb.c must be created dynamically because it depends on 
+        the google protocol version
 
     o need configure switch to disable the local client
     o add tests for --disable-remote and --disable-local to release.sh
