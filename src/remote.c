@@ -64,31 +64,20 @@ __readfunc(char *buffer, size_t size, size_t nmemb, void *ptr)
                         return (HAM_INTERNAL_ERROR);                          \
                     }
 
-static ham_status_t 
-_remote_fun_create(ham_env_t *env, const char *filename,
-            ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
+static ham_status_t
+_perform_request(ham_env_t *env, CURL *handle, Ham__Wrapper *wrapper)
 {
-    Ham__ConnectRequest msg;
-    Ham__Wrapper wrapper;
     CURLcode cc;
-    CURL *handle=curl_easy_init();
     long response=0;
     char header[128];
     curl_buffer_t buf={0};
     struct curl_slist *slist=0;
 
-    ham__wrapper__init(&wrapper);
-    ham__connect_request__init(&msg);
-    msg.id=1;
-    msg.path=(char *)filename;
-    wrapper.type=HAM__WRAPPER__TYPE__CONNECT_REQUEST;
-    wrapper.connect_request=&msg;
-
-    buf.packed_size=ham__wrapper__get_packed_size(&wrapper);
+    buf.packed_size=ham__wrapper__get_packed_size(wrapper);
     buf.packed_data=allocator_alloc(env_get_allocator(env), buf.packed_size);
     if (!buf.packed_data)
         return (HAM_OUT_OF_MEMORY);
-    ham__wrapper__pack(&wrapper, buf.packed_data);
+    ham__wrapper__pack(wrapper, buf.packed_data);
 
     sprintf(header, "Content-Length: %u", buf.packed_size);
     slist=curl_slist_append(slist, header);
@@ -96,7 +85,7 @@ _remote_fun_create(ham_env_t *env, const char *filename,
     slist=curl_slist_append(slist, "Expect:");
 
     SETOPT(handle, CURLOPT_VERBOSE, 1);
-    SETOPT(handle, CURLOPT_URL, filename);
+    SETOPT(handle, CURLOPT_URL, env_get_filename(env));
     SETOPT(handle, CURLOPT_READFUNCTION, __readfunc);
     SETOPT(handle, CURLOPT_READDATA, &buf);
     SETOPT(handle, CURLOPT_UPLOAD, 1);
@@ -126,6 +115,29 @@ _remote_fun_create(ham_env_t *env, const char *filename,
         return (HAM_NETWORK_ERROR);
     }
 
+    return (0);
+}
+
+static ham_status_t 
+_remote_fun_create(ham_env_t *env, const char *filename,
+            ham_u32_t flags, ham_u32_t mode, const ham_parameter_t *param)
+{
+    ham_status_t st;
+    Ham__ConnectRequest msg;
+    Ham__Wrapper wrapper;
+    CURL *handle=curl_easy_init();
+
+    ham__wrapper__init(&wrapper);
+    ham__connect_request__init(&msg);
+    msg.id=1;
+    msg.path=(char *)filename;
+    wrapper.type=HAM__WRAPPER__TYPE__CONNECT_REQUEST;
+    wrapper.connect_request=&msg;
+
+    st=_perform_request(env, handle, &wrapper);
+    if (st)
+        return (st);
+
     env_set_curl(env, handle);
 
     return (0);
@@ -135,38 +147,24 @@ static ham_status_t
 _remote_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags, 
         const ham_parameter_t *param)
 {
-#if 0
-    Ham__Connect msg;
-    CURLcode cc;
+    ham_status_t st;
+    Ham__ConnectRequest msg;
+    Ham__Wrapper wrapper;
     CURL *handle=curl_easy_init();
-    ham_size_t packed_size;
-    ham_u8_t packed_data[128];
 
-    ham__connect__init(&msg);
+    ham__wrapper__init(&wrapper);
+    ham__connect_request__init(&msg);
     msg.id=1;
     msg.path=(char *)filename;
+    wrapper.type=HAM__WRAPPER__TYPE__CONNECT_REQUEST;
+    wrapper.connect_request=&msg;
 
-    packed_size=ham__connect__pack(&msg, packed_data);
-
-    SETOPT(handle, CURLOPT_VERBOSE, 1);
-    SETOPT(handle, CURLOPT_URL, filename);
-    SETOPT(handle, CURLOPT_READFUNCTION, __readfunc);
-    SETOPT(handle, CURLOPT_READDATA, &msg);
-    SETOPT(handle, CURLOPT_UPLOAD, 1);
-    SETOPT(handle, CURLOPT_PUT, 1);
-    SETOPT(handle, CURLOPT_WRITEFUNCTION, __writefunc);
-    SETOPT(handle, CURLOPT_WRITEDATA, &msg);
-    SETOPT(handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
-
-    cc=curl_easy_perform(handle);
-    if (cc) {
-        ham_trace(("network transmission failed: %s", curl_easy_strerror(cc)));
-        return (HAM_NETWORK_ERROR);
-    }
+    st=_perform_request(env, handle, &wrapper);
+    if (st)
+        return (st);
 
     env_set_curl(env, handle);
 
-#endif
     return (0);
 }
 
@@ -206,7 +204,47 @@ _remote_fun_close(ham_env_t *env, ham_u32_t flags)
 static ham_status_t 
 _remote_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
 {
-    return (HAM_NOT_IMPLEMENTED);
+    ham_status_t st;
+    Ham__EnvGetParametersRequest msg;
+    Ham__Wrapper wrapper;
+    ham_size_t i=0, num_names=0;
+    ham_u32_t *names;
+    ham_parameter_t *p;
+    
+    /* count number of parameters */
+    p=param;
+    if (p) {
+        for (; p->name; p++) {
+            num_names++;
+        }
+    }
+
+    /* allocate a memory and copy the parameter names */
+    names=(ham_u32_t *)allocator_alloc(env_get_allocator(env), 
+            num_names*sizeof(ham_u32_t));
+    if (!names)
+        return (HAM_OUT_OF_MEMORY);
+    p=param;
+    if (p) {
+        for (; p->name; p++) {
+            names[i]=p->name;
+            i++;
+        }
+    }
+
+    ham__wrapper__init(&wrapper);
+    ham__env_get_parameters_request__init(&msg);
+    msg.id=1;
+    msg.names=(int *)&names[0];
+    msg.n_names=num_names;
+    wrapper.type=HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REQUEST;
+    wrapper.env_get_parameters_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper);
+    if (st)
+        return (st);
+
+    return (0);
 }
 
 static ham_status_t

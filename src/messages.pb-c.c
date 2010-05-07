@@ -130,6 +130,92 @@ void   ham__connect_reply__free_unpacked
   PROTOBUF_C_ASSERT (message->base.descriptor == &ham__connect_reply__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
+void   ham__env_get_parameters_request__init
+                     (Ham__EnvGetParametersRequest         *message)
+{
+  static Ham__EnvGetParametersRequest init_value = HAM__ENV_GET_PARAMETERS_REQUEST__INIT;
+  *message = init_value;
+}
+size_t ham__env_get_parameters_request__get_packed_size
+                     (const Ham__EnvGetParametersRequest *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_get_parameters_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__env_get_parameters_request__pack
+                     (const Ham__EnvGetParametersRequest *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_get_parameters_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__env_get_parameters_request__pack_to_buffer
+                     (const Ham__EnvGetParametersRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_get_parameters_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__EnvGetParametersRequest *
+       ham__env_get_parameters_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__EnvGetParametersRequest *)
+     protobuf_c_message_unpack (&ham__env_get_parameters_request__descriptor,
+                                allocator, len, data);
+}
+void   ham__env_get_parameters_request__free_unpacked
+                     (Ham__EnvGetParametersRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_get_parameters_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__env_get_parameters_reply__init
+                     (Ham__EnvGetParametersReply         *message)
+{
+  static Ham__EnvGetParametersReply init_value = HAM__ENV_GET_PARAMETERS_REPLY__INIT;
+  *message = init_value;
+}
+size_t ham__env_get_parameters_reply__get_packed_size
+                     (const Ham__EnvGetParametersReply *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_get_parameters_reply__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__env_get_parameters_reply__pack
+                     (const Ham__EnvGetParametersReply *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_get_parameters_reply__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__env_get_parameters_reply__pack_to_buffer
+                     (const Ham__EnvGetParametersReply *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_get_parameters_reply__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__EnvGetParametersReply *
+       ham__env_get_parameters_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__EnvGetParametersReply *)
+     protobuf_c_message_unpack (&ham__env_get_parameters_reply__descriptor,
+                                allocator, len, data);
+}
+void   ham__env_get_parameters_reply__free_unpacked
+                     (Ham__EnvGetParametersReply *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_get_parameters_reply__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
 void   ham__rename_request__init
                      (Ham__RenameRequest         *message)
 {
@@ -216,20 +302,24 @@ void   ham__rename_reply__free_unpacked
   PROTOBUF_C_ASSERT (message->base.descriptor == &ham__rename_reply__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[4] =
+const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[6] =
 {
   { "CONNECT_REQUEST", "HAM__WRAPPER__TYPE__CONNECT_REQUEST", 10 },
   { "CONNECT_REPLY", "HAM__WRAPPER__TYPE__CONNECT_REPLY", 11 },
   { "RENAME_REQUEST", "HAM__WRAPPER__TYPE__RENAME_REQUEST", 20 },
   { "RENAME_REPLY", "HAM__WRAPPER__TYPE__RENAME_REPLY", 21 },
+  { "ENV_GET_PARAMETERS_REQUEST", "HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REQUEST", 30 },
+  { "ENV_GET_PARAMETERS_REPLY", "HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REPLY", 31 },
 };
 static const ProtobufCIntRange ham__wrapper__type__value_ranges[] = {
-{10, 0},{20, 2},{0, 4}
+{10, 0},{20, 2},{30, 4},{0, 6}
 };
-const ProtobufCEnumValueIndex ham__wrapper__type__enum_values_by_name[4] =
+const ProtobufCEnumValueIndex ham__wrapper__type__enum_values_by_name[6] =
 {
   { "CONNECT_REPLY", 1 },
   { "CONNECT_REQUEST", 0 },
+  { "ENV_GET_PARAMETERS_REPLY", 5 },
+  { "ENV_GET_PARAMETERS_REQUEST", 4 },
   { "RENAME_REPLY", 3 },
   { "RENAME_REQUEST", 2 },
 };
@@ -240,15 +330,15 @@ const ProtobufCEnumDescriptor ham__wrapper__type__descriptor =
   "Type",
   "Ham__Wrapper__Type",
   "ham",
-  4,
+  6,
   ham__wrapper__type__enum_values_by_number,
-  4,
+  6,
   ham__wrapper__type__enum_values_by_name,
-  2,
+  3,
   ham__wrapper__type__value_ranges,
   NULL,NULL,NULL,NULL   /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[5] =
+static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[7] =
 {
   {
     "type",
@@ -305,20 +395,45 @@ static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[5] =
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
+  {
+    "env_get_parameters_request",
+    31,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, env_get_parameters_request),
+    &ham__env_get_parameters_request__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "env_get_parameters_reply",
+    32,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, env_get_parameters_reply),
+    &ham__env_get_parameters_reply__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
 };
 static const unsigned ham__wrapper__field_indices_by_name[] = {
   2,   /* field[2] = connect_reply */
   1,   /* field[1] = connect_request */
+  6,   /* field[6] = env_get_parameters_reply */
+  5,   /* field[5] = env_get_parameters_request */
   4,   /* field[4] = rename_reply */
   3,   /* field[3] = rename_request */
   0,   /* field[0] = type */
 };
-static const ProtobufCIntRange ham__wrapper__number_ranges[3 + 1] =
+static const ProtobufCIntRange ham__wrapper__number_ranges[4 + 1] =
 {
   { 1, 0 },
   { 10, 1 },
   { 20, 3 },
-  { 0, 5 }
+  { 31, 5 },
+  { 0, 7 }
 };
 const ProtobufCMessageDescriptor ham__wrapper__descriptor =
 {
@@ -328,10 +443,10 @@ const ProtobufCMessageDescriptor ham__wrapper__descriptor =
   "Ham__Wrapper",
   "ham",
   sizeof(Ham__Wrapper),
-  5,
+  7,
   ham__wrapper__field_descriptors,
   ham__wrapper__field_indices_by_name,
-  3,  ham__wrapper__number_ranges,
+  4,  ham__wrapper__number_ranges,
   NULL,NULL,NULL,NULL    /* reserved[1234] */
 };
 static const ProtobufCFieldDescriptor ham__connect_request__field_descriptors[2] =
@@ -428,6 +543,162 @@ const ProtobufCMessageDescriptor ham__connect_reply__descriptor =
   ham__connect_reply__field_descriptors,
   ham__connect_reply__field_indices_by_name,
   1,  ham__connect_reply__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__env_get_parameters_request__field_descriptors[2] =
+{
+  {
+    "id",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_INT64,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersRequest, id),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "names",
+    2,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_INT32,
+    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersRequest, n_names),
+    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersRequest, names),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__env_get_parameters_request__field_indices_by_name[] = {
+  0,   /* field[0] = id */
+  1,   /* field[1] = names */
+};
+static const ProtobufCIntRange ham__env_get_parameters_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor ham__env_get_parameters_request__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.EnvGetParametersRequest",
+  "EnvGetParametersRequest",
+  "Ham__EnvGetParametersRequest",
+  "ham",
+  sizeof(Ham__EnvGetParametersRequest),
+  2,
+  ham__env_get_parameters_request__field_descriptors,
+  ham__env_get_parameters_request__field_indices_by_name,
+  1,  ham__env_get_parameters_request__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descriptors[7] =
+{
+  {
+    "id",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_INT64,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, id),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "cachesize",
+    2,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_INT32,
+    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, has_cachesize),
+    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, cachesize),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "pagesize",
+    3,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_INT32,
+    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, has_pagesize),
+    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, pagesize),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "max_env_databases",
+    4,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_INT32,
+    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, has_max_env_databases),
+    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, max_env_databases),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "flags",
+    5,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_INT32,
+    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, has_flags),
+    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "filemode",
+    6,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_INT32,
+    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, has_filemode),
+    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, filemode),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "filename",
+    7,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, filename),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__env_get_parameters_reply__field_indices_by_name[] = {
+  1,   /* field[1] = cachesize */
+  5,   /* field[5] = filemode */
+  6,   /* field[6] = filename */
+  4,   /* field[4] = flags */
+  0,   /* field[0] = id */
+  3,   /* field[3] = max_env_databases */
+  2,   /* field[2] = pagesize */
+};
+static const ProtobufCIntRange ham__env_get_parameters_reply__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 7 }
+};
+const ProtobufCMessageDescriptor ham__env_get_parameters_reply__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.EnvGetParametersReply",
+  "EnvGetParametersReply",
+  "Ham__EnvGetParametersReply",
+  "ham",
+  sizeof(Ham__EnvGetParametersReply),
+  7,
+  ham__env_get_parameters_reply__field_descriptors,
+  ham__env_get_parameters_reply__field_indices_by_name,
+  1,  ham__env_get_parameters_reply__number_ranges,
   NULL,NULL,NULL,NULL    /* reserved[1234] */
 };
 static const ProtobufCFieldDescriptor ham__rename_request__field_descriptors[4] =

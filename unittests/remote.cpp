@@ -25,6 +25,8 @@
 
 using namespace bfc;
 
+#define SERVER_URL "http://localhost:8080/test.db"
+
 class RemoteTest : public hamsterDB_fixture
 {
     define_super(hamsterDB_fixture);
@@ -38,6 +40,7 @@ public:
         BFC_REGISTER_TEST(RemoteTest, invalidPathTest);
         BFC_REGISTER_TEST(RemoteTest, createCloseTest);
         BFC_REGISTER_TEST(RemoteTest, createCloseOpenCloseTest);
+        BFC_REGISTER_TEST(RemoteTest, getEnvParamsTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanupTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanup2Test);
         BFC_REGISTER_TEST(RemoteTest, getDatabaseNamesTest);
@@ -103,7 +106,7 @@ protected:
         BFC_ASSERT_EQUAL(0u, env_is_active(env));
 
         BFC_ASSERT_EQUAL(0, 
-                ham_env_create(env, "http://localhost:8080/test.db", 0, 0664));
+                ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(1u, env_is_active(env));
         BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
                 ham_env_close(0, 0));
@@ -121,17 +124,48 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
 
         BFC_ASSERT_EQUAL(0, 
-                ham_env_create(env, "http://localhost:8989/test.db", 0, 0664));
+                ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         
         BFC_ASSERT_EQUAL(0u, env_is_active(env));
         BFC_ASSERT_EQUAL(0,
-            ham_env_open(env, "http://localhost:8989/test.db", 0));
+            ham_env_open(env, SERVER_URL, 0));
         BFC_ASSERT_EQUAL(1u, env_is_active(env));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0u, env_is_active(env));
 
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void getEnvParamsTest(void)
+    {
+        ham_env_t *env;
+        ham_parameter_t params[] =
+        {
+            {HAM_PARAM_CACHESIZE, 0},
+            {HAM_PARAM_PAGESIZE, 0},
+            {HAM_PARAM_MAX_ENV_DATABASES, 0},
+            {HAM_PARAM_GET_FLAGS, 0},
+            {HAM_PARAM_GET_FILEMODE, 0},
+            {HAM_PARAM_GET_FILENAME, 0},
+            {0,0}
+        };
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(env, SERVER_URL, 0, 0664));
+
+        BFC_ASSERT_EQUAL(0, ham_env_get_parameters(env, params));
+
+        BFC_ASSERT_EQUAL(1024*32u, params[0].value);
+        BFC_ASSERT_EQUAL(1024*64u, params[1].value);
+        BFC_ASSERT_EQUAL((ham_offset_t)32, params[2].value);
+        BFC_ASSERT_EQUAL(0u, params[3].value);
+        BFC_ASSERT_EQUAL((ham_offset_t)0664, params[4].value);
+        BFC_ASSERT_EQUAL(0, strcmp(SERVER_URL, (char *)params[5].value));
+
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        ham_env_delete(env);
     }
 
     void autoCleanupTest(void)

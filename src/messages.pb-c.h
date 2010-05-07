@@ -11,6 +11,8 @@ PROTOBUF_C_BEGIN_DECLS
 typedef struct _Ham__Wrapper Ham__Wrapper;
 typedef struct _Ham__ConnectRequest Ham__ConnectRequest;
 typedef struct _Ham__ConnectReply Ham__ConnectReply;
+typedef struct _Ham__EnvGetParametersRequest Ham__EnvGetParametersRequest;
+typedef struct _Ham__EnvGetParametersReply Ham__EnvGetParametersReply;
 typedef struct _Ham__RenameRequest Ham__RenameRequest;
 typedef struct _Ham__RenameReply Ham__RenameReply;
 
@@ -21,7 +23,9 @@ typedef enum _Ham__Wrapper__Type {
   HAM__WRAPPER__TYPE__CONNECT_REQUEST = 10,
   HAM__WRAPPER__TYPE__CONNECT_REPLY = 11,
   HAM__WRAPPER__TYPE__RENAME_REQUEST = 20,
-  HAM__WRAPPER__TYPE__RENAME_REPLY = 21
+  HAM__WRAPPER__TYPE__RENAME_REPLY = 21,
+  HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REQUEST = 30,
+  HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REPLY = 31
 } Ham__Wrapper__Type;
 
 /* --- messages --- */
@@ -34,10 +38,12 @@ struct  _Ham__Wrapper
   Ham__ConnectReply *connect_reply;
   Ham__RenameRequest *rename_request;
   Ham__RenameReply *rename_reply;
+  Ham__EnvGetParametersRequest *env_get_parameters_request;
+  Ham__EnvGetParametersReply *env_get_parameters_reply;
 };
 #define HAM__WRAPPER__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__wrapper__descriptor) \
-    , 0, NULL, NULL, NULL, NULL }
+    , 0, NULL, NULL, NULL, NULL, NULL, NULL }
 
 
 struct  _Ham__ConnectRequest
@@ -60,6 +66,39 @@ struct  _Ham__ConnectReply
 #define HAM__CONNECT_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__connect_reply__descriptor) \
     , 0, 0 }
+
+
+struct  _Ham__EnvGetParametersRequest
+{
+  ProtobufCMessage base;
+  int64_t id;
+  size_t n_names;
+  int32_t *names;
+};
+#define HAM__ENV_GET_PARAMETERS_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__env_get_parameters_request__descriptor) \
+    , 0, 0,NULL }
+
+
+struct  _Ham__EnvGetParametersReply
+{
+  ProtobufCMessage base;
+  int64_t id;
+  protobuf_c_boolean has_cachesize;
+  int32_t cachesize;
+  protobuf_c_boolean has_pagesize;
+  int32_t pagesize;
+  protobuf_c_boolean has_max_env_databases;
+  int32_t max_env_databases;
+  protobuf_c_boolean has_flags;
+  int32_t flags;
+  protobuf_c_boolean has_filemode;
+  int32_t filemode;
+  char *filename;
+};
+#define HAM__ENV_GET_PARAMETERS_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__env_get_parameters_reply__descriptor) \
+    , 0, 0,0, 0,0, 0,0, 0,0, 0,0, NULL }
 
 
 struct  _Ham__RenameRequest
@@ -143,6 +182,44 @@ Ham__ConnectReply *
 void   ham__connect_reply__free_unpacked
                      (Ham__ConnectReply *message,
                       ProtobufCAllocator *allocator);
+/* Ham__EnvGetParametersRequest methods */
+void   ham__env_get_parameters_request__init
+                     (Ham__EnvGetParametersRequest         *message);
+size_t ham__env_get_parameters_request__get_packed_size
+                     (const Ham__EnvGetParametersRequest   *message);
+size_t ham__env_get_parameters_request__pack
+                     (const Ham__EnvGetParametersRequest   *message,
+                      uint8_t             *out);
+size_t ham__env_get_parameters_request__pack_to_buffer
+                     (const Ham__EnvGetParametersRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__EnvGetParametersRequest *
+       ham__env_get_parameters_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__env_get_parameters_request__free_unpacked
+                     (Ham__EnvGetParametersRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__EnvGetParametersReply methods */
+void   ham__env_get_parameters_reply__init
+                     (Ham__EnvGetParametersReply         *message);
+size_t ham__env_get_parameters_reply__get_packed_size
+                     (const Ham__EnvGetParametersReply   *message);
+size_t ham__env_get_parameters_reply__pack
+                     (const Ham__EnvGetParametersReply   *message,
+                      uint8_t             *out);
+size_t ham__env_get_parameters_reply__pack_to_buffer
+                     (const Ham__EnvGetParametersReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__EnvGetParametersReply *
+       ham__env_get_parameters_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__env_get_parameters_reply__free_unpacked
+                     (Ham__EnvGetParametersReply *message,
+                      ProtobufCAllocator *allocator);
 /* Ham__RenameRequest methods */
 void   ham__rename_request__init
                      (Ham__RenameRequest         *message);
@@ -192,6 +269,12 @@ typedef void (*Ham__ConnectRequest_Closure)
 typedef void (*Ham__ConnectReply_Closure)
                  (const Ham__ConnectReply *message,
                   void *closure_data);
+typedef void (*Ham__EnvGetParametersRequest_Closure)
+                 (const Ham__EnvGetParametersRequest *message,
+                  void *closure_data);
+typedef void (*Ham__EnvGetParametersReply_Closure)
+                 (const Ham__EnvGetParametersReply *message,
+                  void *closure_data);
 typedef void (*Ham__RenameRequest_Closure)
                  (const Ham__RenameRequest *message,
                   void *closure_data);
@@ -208,6 +291,8 @@ extern const ProtobufCMessageDescriptor ham__wrapper__descriptor;
 extern const ProtobufCEnumDescriptor    ham__wrapper__type__descriptor;
 extern const ProtobufCMessageDescriptor ham__connect_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__connect_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__env_get_parameters_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__env_get_parameters_reply__descriptor;
 extern const ProtobufCMessageDescriptor ham__rename_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__rename_reply__descriptor;
 

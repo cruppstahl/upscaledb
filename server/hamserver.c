@@ -67,6 +67,9 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
     case HAM__WRAPPER__TYPE__RENAME_REQUEST:
         printf("rename request\n");
         break;
+    case HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REQUEST:
+        printf("env_get_parameters request\n");
+        break;
     default:
         printf("unknown request\n");
         /* TODO send error */
