@@ -84,6 +84,7 @@ struct  _Ham__EnvGetParametersReply
 {
   ProtobufCMessage base;
   int64_t id;
+  int32_t status;
   protobuf_c_boolean has_cachesize;
   int32_t cachesize;
   protobuf_c_boolean has_pagesize;
@@ -98,7 +99,7 @@ struct  _Ham__EnvGetParametersReply
 };
 #define HAM__ENV_GET_PARAMETERS_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__env_get_parameters_reply__descriptor) \
-    , 0, 0,0, 0,0, 0,0, 0,0, 0,0, NULL }
+    , 0, 0, 0,0, 0,0, 0,0, 0,0, 0,0, NULL }
 
 
 struct  _Ham__RenameRequest

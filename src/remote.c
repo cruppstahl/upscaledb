@@ -29,14 +29,17 @@ typedef struct curl_buffer_t
     ham_size_t packed_size;
     ham_u8_t *packed_data;
     ham_size_t offset;
+    Ham__Wrapper *wrapper;
 } curl_buffer_t;
 
 static size_t
 __writefunc(void *buffer, size_t size, size_t nmemb, void *ptr)
 {
     curl_buffer_t *buf=(curl_buffer_t *)ptr;
-    (void)buf;
-    printf("XXX writing %d/%d bytes\n", size, nmemb);
+
+    buf->wrapper=ham__wrapper__unpack(0, nmemb*size, (ham_u8_t *)buffer);
+    if (!buf->wrapper)
+        return 0;
     return size*nmemb;
 }
 
@@ -51,7 +54,6 @@ __readfunc(char *buffer, size_t size, size_t nmemb, void *ptr)
 
     ham_assert(buf->offset==0, (""));
 
-    printf("XXX reading %d/%d\n", size, nmemb);
     memcpy(buffer, buf->packed_data, buf->packed_size);
     buf->offset=buf->packed_size;
     return (buf->packed_size);
@@ -65,13 +67,16 @@ __readfunc(char *buffer, size_t size, size_t nmemb, void *ptr)
                     }
 
 static ham_status_t
-_perform_request(ham_env_t *env, CURL *handle, Ham__Wrapper *wrapper)
+_perform_request(ham_env_t *env, CURL *handle, Ham__Wrapper *wrapper,
+                Ham__Wrapper **reply)
 {
     CURLcode cc;
     long response=0;
     char header[128];
     curl_buffer_t buf={0};
     struct curl_slist *slist=0;
+
+    *reply=0;
 
     buf.packed_size=ham__wrapper__get_packed_size(wrapper);
     buf.packed_data=allocator_alloc(env_get_allocator(env), buf.packed_size);
@@ -115,6 +120,8 @@ _perform_request(ham_env_t *env, CURL *handle, Ham__Wrapper *wrapper)
         return (HAM_NETWORK_ERROR);
     }
 
+    *reply=buf.wrapper;
+
     return (0);
 }
 
@@ -124,7 +131,7 @@ _remote_fun_create(ham_env_t *env, const char *filename,
 {
     ham_status_t st;
     Ham__ConnectRequest msg;
-    Ham__Wrapper wrapper;
+    Ham__Wrapper wrapper, *reply;
     CURL *handle=curl_easy_init();
 
     ham__wrapper__init(&wrapper);
@@ -134,13 +141,22 @@ _remote_fun_create(ham_env_t *env, const char *filename,
     wrapper.type=HAM__WRAPPER__TYPE__CONNECT_REQUEST;
     wrapper.connect_request=&msg;
 
-    st=_perform_request(env, handle, &wrapper);
-    if (st)
+    st=_perform_request(env, handle, &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
         return (st);
+    }
 
-    env_set_curl(env, handle);
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->connect_reply!=0, (""));
+    st=reply->connect_reply->status;
+    ham__wrapper__free_unpacked(reply, 0);
 
-    return (0);
+    if (st==0)
+        env_set_curl(env, handle);
+
+    return (st);
 }
 
 static ham_status_t 
@@ -149,7 +165,7 @@ _remote_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags,
 {
     ham_status_t st;
     Ham__ConnectRequest msg;
-    Ham__Wrapper wrapper;
+    Ham__Wrapper wrapper, *reply;
     CURL *handle=curl_easy_init();
 
     ham__wrapper__init(&wrapper);
@@ -159,13 +175,22 @@ _remote_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags,
     wrapper.type=HAM__WRAPPER__TYPE__CONNECT_REQUEST;
     wrapper.connect_request=&msg;
 
-    st=_perform_request(env, handle, &wrapper);
-    if (st)
+    st=_perform_request(env, handle, &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
         return (st);
+    }
 
-    env_set_curl(env, handle);
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->connect_reply!=0, (""));
+    st=reply->connect_reply->status;
+    ham__wrapper__free_unpacked(reply, 0);
 
-    return (0);
+    if (st==0)
+        env_set_curl(env, handle);
+
+    return (st);
 }
 
 static ham_status_t
@@ -206,7 +231,7 @@ _remote_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
 {
     ham_status_t st;
     Ham__EnvGetParametersRequest msg;
-    Ham__Wrapper wrapper;
+    Ham__Wrapper wrapper, *reply;
     ham_size_t i=0, num_names=0;
     ham_u32_t *names;
     ham_parameter_t *p;
@@ -240,11 +265,19 @@ _remote_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
     wrapper.type=HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REQUEST;
     wrapper.env_get_parameters_request=&msg;
 
-    st=_perform_request(env, env_get_curl(env), &wrapper);
-    if (st)
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
         return (st);
+    }
 
-    return (0);
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->connect_reply!=0, (""));
+    st=reply->connect_reply->status;
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
 }
 
 static ham_status_t

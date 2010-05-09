@@ -20,6 +20,9 @@
 #include "hamserver.h"
 #include "messages.pb-c.h"
 #include "os.h"
+#include "error.h"
+#include "mem.h"
+#include "env.h"
 
 /* max. number of open hamsterdb Environments - if you change this, also change
  * MAX_CALLBACKS in 3rdparty/mongoose/mongoose.c! */
@@ -44,6 +47,68 @@ struct hamserver_t
 };
 
 static void
+send_wrapper(ham_env_t *env, struct mg_connection *conn, Ham__Wrapper *wrapper)
+{
+    ham_u8_t *data;
+    ham_size_t data_size;
+
+    data_size=ham__wrapper__get_packed_size(wrapper);
+    data=(ham_u8_t *)allocator_alloc(env_get_allocator(env), data_size);
+    if (!data_size) {
+        /* TODO send error */
+        return;
+    }
+    ham__wrapper__pack(wrapper, data);
+
+    printf("type %u: sending %d bytes\n", wrapper->type, data_size);
+	mg_printf(conn, "%s", standard_reply);
+    mg_write(conn, data, data_size);
+
+    allocator_free(env_get_allocator(env), data);
+}
+
+static void
+handle_connect(ham_env_t *env, struct mg_connection *conn, 
+                const struct mg_request_info *ri, Ham__ConnectRequest *request)
+{
+    Ham__ConnectReply reply;
+    Ham__Wrapper wrapper;
+
+    ham_assert(request!=0, (""));
+
+    ham__connect_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.id=request->id;
+    reply.status=0;
+    wrapper.connect_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__CONNECT_REPLY;
+
+    send_wrapper(env, conn, &wrapper);
+}
+
+static void
+handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__EnvGetParametersRequest *request)
+{
+    Ham__EnvGetParametersReply reply;
+    Ham__Wrapper wrapper;
+
+    ham_assert(request!=0, (""));
+
+    ham__env_get_parameters_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.id=request->id;
+    reply.status=0;
+    wrapper.env_get_parameters_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REPLY;
+
+    TODO continue with filling "reply"...
+
+    send_wrapper(env, conn, &wrapper);
+}
+
+static void
 request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
                 void *user_data)
 {
@@ -62,21 +127,22 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
 
     switch (wrapper->type) {
     case HAM__WRAPPER__TYPE__CONNECT_REQUEST:
-        printf("connect request\n");
-        break;
-    case HAM__WRAPPER__TYPE__RENAME_REQUEST:
-        printf("rename request\n");
+        ham_trace(("connect request"));
+        handle_connect(env->env, conn, ri, wrapper->connect_request);
         break;
     case HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REQUEST:
-        printf("env_get_parameters request\n");
+        ham_trace(("env_get_parameters request"));
+        handle_env_get_parameters(env->env, conn, ri, 
+                    wrapper->env_get_parameters_request);
+        break;
+    case HAM__WRAPPER__TYPE__RENAME_REQUEST:
+        ham_trace(("rename request"));
         break;
     default:
-        printf("unknown request\n");
         /* TODO send error */
+        ham_trace(("unknown request"));
         goto bail;   
     }
-
-	mg_printf(conn, "%s", standard_reply);
 
 #if 0
 	printf("Method: [%s]\n", ri->request_method);

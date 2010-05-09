@@ -39,12 +39,13 @@ message EnvGetParametersRequest {
 
 message EnvGetParametersReply {
     required int64 id = 1;
-    optional int32 cachesize = 2;
-    optional int32 pagesize = 3;
-    optional int32 max_env_databases = 4;
-    optional int32 flags = 5;
-    optional int32 filemode = 6;
-    optional string filename = 7;
+    required int32 status = 2;
+    optional int32 cachesize = 3;
+    optional int32 pagesize = 4;
+    optional int32 max_env_databases = 5;
+    optional int32 flags = 6;
+    optional int32 filemode = 7;
+    optional string filename = 8;
 };
 
 message RenameRequest {

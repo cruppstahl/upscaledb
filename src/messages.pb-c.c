@@ -447,7 +447,8 @@ const ProtobufCMessageDescriptor ham__wrapper__descriptor =
   ham__wrapper__field_descriptors,
   ham__wrapper__field_indices_by_name,
   4,  ham__wrapper__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__wrapper__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__connect_request__field_descriptors[2] =
 {
@@ -495,7 +496,8 @@ const ProtobufCMessageDescriptor ham__connect_request__descriptor =
   ham__connect_request__field_descriptors,
   ham__connect_request__field_indices_by_name,
   1,  ham__connect_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__connect_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__connect_reply__field_descriptors[2] =
 {
@@ -543,7 +545,8 @@ const ProtobufCMessageDescriptor ham__connect_reply__descriptor =
   ham__connect_reply__field_descriptors,
   ham__connect_reply__field_indices_by_name,
   1,  ham__connect_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__connect_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__env_get_parameters_request__field_descriptors[2] =
 {
@@ -591,9 +594,10 @@ const ProtobufCMessageDescriptor ham__env_get_parameters_request__descriptor =
   ham__env_get_parameters_request__field_descriptors,
   ham__env_get_parameters_request__field_indices_by_name,
   1,  ham__env_get_parameters_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__env_get_parameters_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descriptors[7] =
+static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descriptors[8] =
 {
   {
     "id",
@@ -607,8 +611,19 @@ static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descr
     NULL,NULL    /* reserved1, reserved2 */
   },
   {
-    "cachesize",
+    "status",
     2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, status),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "cachesize",
+    3,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_INT32,
     PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, has_cachesize),
@@ -619,7 +634,7 @@ static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descr
   },
   {
     "pagesize",
-    3,
+    4,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_INT32,
     PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, has_pagesize),
@@ -630,7 +645,7 @@ static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descr
   },
   {
     "max_env_databases",
-    4,
+    5,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_INT32,
     PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, has_max_env_databases),
@@ -641,7 +656,7 @@ static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descr
   },
   {
     "flags",
-    5,
+    6,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_INT32,
     PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, has_flags),
@@ -652,7 +667,7 @@ static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descr
   },
   {
     "filemode",
-    6,
+    7,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_INT32,
     PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, has_filemode),
@@ -663,7 +678,7 @@ static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descr
   },
   {
     "filename",
-    7,
+    8,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
@@ -674,18 +689,19 @@ static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descr
   },
 };
 static const unsigned ham__env_get_parameters_reply__field_indices_by_name[] = {
-  1,   /* field[1] = cachesize */
-  5,   /* field[5] = filemode */
-  6,   /* field[6] = filename */
-  4,   /* field[4] = flags */
+  2,   /* field[2] = cachesize */
+  6,   /* field[6] = filemode */
+  7,   /* field[7] = filename */
+  5,   /* field[5] = flags */
   0,   /* field[0] = id */
-  3,   /* field[3] = max_env_databases */
-  2,   /* field[2] = pagesize */
+  4,   /* field[4] = max_env_databases */
+  3,   /* field[3] = pagesize */
+  1,   /* field[1] = status */
 };
 static const ProtobufCIntRange ham__env_get_parameters_reply__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 7 }
+  { 0, 8 }
 };
 const ProtobufCMessageDescriptor ham__env_get_parameters_reply__descriptor =
 {
@@ -695,11 +711,12 @@ const ProtobufCMessageDescriptor ham__env_get_parameters_reply__descriptor =
   "Ham__EnvGetParametersReply",
   "ham",
   sizeof(Ham__EnvGetParametersReply),
-  7,
+  8,
   ham__env_get_parameters_reply__field_descriptors,
   ham__env_get_parameters_reply__field_indices_by_name,
   1,  ham__env_get_parameters_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__env_get_parameters_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__rename_request__field_descriptors[4] =
 {
@@ -771,7 +788,8 @@ const ProtobufCMessageDescriptor ham__rename_request__descriptor =
   ham__rename_request__field_descriptors,
   ham__rename_request__field_indices_by_name,
   1,  ham__rename_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__rename_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__rename_reply__field_descriptors[2] =
 {
@@ -819,5 +837,6 @@ const ProtobufCMessageDescriptor ham__rename_reply__descriptor =
   ham__rename_reply__field_descriptors,
   ham__rename_reply__field_indices_by_name,
   1,  ham__rename_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__rename_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
