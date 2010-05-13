@@ -229,6 +229,7 @@ _remote_fun_close(ham_env_t *env, ham_u32_t flags)
 static ham_status_t 
 _remote_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
 {
+    static char filename[1024];
     ham_status_t st;
     Ham__EnvGetParametersRequest msg;
     Ham__Wrapper wrapper, *reply;
@@ -273,11 +274,53 @@ _remote_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
     }
 
     ham_assert(reply!=0, (""));
-    ham_assert(reply->connect_reply!=0, (""));
-    st=reply->connect_reply->status;
+    ham_assert(reply->env_get_parameters_reply!=0, (""));
+    st=reply->env_get_parameters_reply->status;
+    if (st) {
+        ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    p=param;
+    while (p && p->name) {
+        switch (p->name) {
+        case HAM_PARAM_CACHESIZE:
+            ham_assert(reply->env_get_parameters_reply->has_cachesize, (""));
+            p->value=reply->env_get_parameters_reply->cachesize;
+            break;
+        case HAM_PARAM_PAGESIZE:
+            ham_assert(reply->env_get_parameters_reply->has_pagesize, (""));
+            p->value=reply->env_get_parameters_reply->pagesize;
+            break;
+        case HAM_PARAM_MAX_ENV_DATABASES:
+            ham_assert(reply->env_get_parameters_reply->has_max_env_databases, 
+                        (""));
+            p->value=reply->env_get_parameters_reply->max_env_databases;
+            break;
+        case HAM_PARAM_GET_FLAGS:
+            ham_assert(reply->env_get_parameters_reply->has_flags, (""));
+            p->value=reply->env_get_parameters_reply->flags;
+            break;
+        case HAM_PARAM_GET_FILEMODE:
+            ham_assert(reply->env_get_parameters_reply->has_filemode, (""));
+            p->value=reply->env_get_parameters_reply->filemode;
+            break;
+        case HAM_PARAM_GET_FILENAME:
+            ham_assert(reply->env_get_parameters_reply->filename, (""));
+            strncpy(filename, reply->env_get_parameters_reply->filename, 
+                        sizeof(filename));
+            p->value=PTR_TO_U64(&filename[0]);
+            break;
+        default:
+            ham_trace(("unknown parameter %d", (int)p->name));
+            break;
+        }
+        p++;
+    }
+
     ham__wrapper__free_unpacked(reply, 0);
 
-    return (st);
+    return (0);
 }
 
 static ham_status_t

@@ -175,6 +175,8 @@ o client/server communication
 
 o fix freelist page overflow when searching for bits (See mail from Stefan)
 
+o HAM_PARAM_GET_STATISTICS -> hamsterdb_int.h!
+
 o server: second step
     o unix daemon (also running in foreground!)
     . windows service: command line switches -install, -start, 

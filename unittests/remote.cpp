@@ -157,12 +157,12 @@ protected:
 
         BFC_ASSERT_EQUAL(0, ham_env_get_parameters(env, params));
 
-        BFC_ASSERT_EQUAL(1024*32u, params[0].value);
-        BFC_ASSERT_EQUAL(1024*64u, params[1].value);
-        BFC_ASSERT_EQUAL((ham_offset_t)32, params[2].value);
-        BFC_ASSERT_EQUAL(0u, params[3].value);
-        BFC_ASSERT_EQUAL((ham_offset_t)0664, params[4].value);
-        BFC_ASSERT_EQUAL(0, strcmp(SERVER_URL, (char *)params[5].value));
+        BFC_ASSERT_EQUAL((unsigned)HAM_DEFAULT_CACHESIZE, params[0].value);
+        BFC_ASSERT_EQUAL(1024*16u, params[1].value);
+        BFC_ASSERT_EQUAL((ham_offset_t)16, params[2].value);
+        BFC_ASSERT_EQUAL(640u, params[3].value);
+        BFC_ASSERT_EQUAL((ham_offset_t)420, params[4].value);
+        BFC_ASSERT_EQUAL(0, strcmp("test.db", (char *)params[5].value));
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_env_delete(env);

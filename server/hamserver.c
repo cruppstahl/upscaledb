@@ -93,6 +93,8 @@ handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
 {
     Ham__EnvGetParametersReply reply;
     Ham__Wrapper wrapper;
+    ham_size_t i;
+    ham_parameter_t params[100]; /* 100 should be enough... */
 
     ham_assert(request!=0, (""));
 
@@ -103,7 +105,49 @@ handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
     wrapper.env_get_parameters_reply=&reply;
     wrapper.type=HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REPLY;
 
-    TODO continue with filling "reply"...
+    /* initialize the ham_parameters_t array */
+    memset(&params[0], 0, sizeof(params));
+    for (i=0; i<request->n_names && i<100; i++)
+        params[i].name=request->names[i];
+
+    /* and request the parameters from the Environment */
+    reply.status=ham_env_get_parameters(env, &params[0]);
+    if (reply.status) {
+        send_wrapper(env, conn, &wrapper);
+        return;
+    }
+
+    /* initialize the reply package */
+    for (i=0; i<request->n_names; i++) {
+        switch (params[i].name) {
+        case HAM_PARAM_CACHESIZE:
+            reply.cachesize=(int)params[i].value;
+            reply.has_cachesize=1;
+            break;
+        case HAM_PARAM_PAGESIZE:
+            reply.pagesize=(int)params[i].value;
+            reply.has_pagesize=1;
+            break;
+        case HAM_PARAM_MAX_ENV_DATABASES:
+            reply.max_env_databases=(int)params[i].value;
+            reply.has_max_env_databases=1;
+            break;
+        case HAM_PARAM_GET_FLAGS:
+            reply.flags=(int)params[i].value;
+            reply.has_flags=1;
+            break;
+        case HAM_PARAM_GET_FILEMODE:
+            reply.filemode=(int)params[i].value;
+            reply.has_filemode=1;
+            break;
+        case HAM_PARAM_GET_FILENAME:
+            reply.filename=(char *)(U64_TO_PTR(params[i].value));
+            break;
+        default:
+            ham_trace(("unsupported parameter %u", (unsigned)params[i].name));
+            break;
+        }
+    }
 
     send_wrapper(env, conn, &wrapper);
 }
