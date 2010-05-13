@@ -210,7 +210,42 @@ static ham_status_t
 _remote_fun_get_database_names(ham_env_t *env, ham_u16_t *names, 
             ham_size_t *count)
 {
-    return (HAM_NOT_IMPLEMENTED);
+    ham_status_t st;
+    ham_size_t i;
+    Ham__EnvGetDatabaseNamesRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    
+    ham__wrapper__init(&wrapper);
+    ham__env_get_database_names_request__init(&msg);
+    msg.id=1;
+    wrapper.type=HAM__WRAPPER__TYPE__ENV_GET_DATABASE_NAMES_REQUEST;
+    wrapper.env_get_database_names_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->env_get_database_names_reply!=0, (""));
+    st=reply->env_get_database_names_reply->status;
+    if (st) {
+        ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    /* copy the retrieved names */
+    for (i=0; i<reply->env_get_database_names_reply->n_names && i<*count; i++) {
+        names[i]=reply->env_get_database_names_reply->names[i];
+    }
+
+    *count=i;
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (0);
 }
 
 static ham_status_t

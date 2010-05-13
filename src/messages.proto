@@ -10,6 +10,8 @@ message Wrapper {
             RENAME_REPLY    = 21;
             ENV_GET_PARAMETERS_REQUEST = 30;
             ENV_GET_PARAMETERS_REPLY = 31;
+            ENV_GET_DATABASE_NAMES_REQUEST = 40;
+            ENV_GET_DATABASE_NAMES_REPLY = 41;
     }
 
     required Type type = 1;
@@ -20,43 +22,55 @@ message Wrapper {
     optional RenameReply rename_reply       = 21;
     optional EnvGetParametersRequest env_get_parameters_request = 31;
     optional EnvGetParametersReply env_get_parameters_reply = 32;
+    optional EnvGetDatabaseNamesRequest env_get_database_names_request = 41;
+    optional EnvGetDatabaseNamesReply env_get_database_names_reply = 42;
 }
 
 message ConnectRequest {
-    required int64 id = 1;
+    required uint64 id = 1;
     required string path = 2;
 }
 
 message ConnectReply {
-    required int64 id = 1;
-    required int32 status = 2;
+    required uint64 id = 1;
+    required sint32 status = 2;
 }
 
 message EnvGetParametersRequest {
-    required int64 id = 1;
-    repeated int32 names = 2;
+    required uint64 id = 1;
+    repeated uint32 names = 2;
 }
 
 message EnvGetParametersReply {
-    required int64 id = 1;
-    required int32 status = 2;
-    optional int32 cachesize = 3;
-    optional int32 pagesize = 4;
-    optional int32 max_env_databases = 5;
-    optional int32 flags = 6;
-    optional int32 filemode = 7;
+    required uint64 id = 1;
+    required sint32 status = 2;
+    optional uint32 cachesize = 3;
+    optional uint32 pagesize = 4;
+    optional uint32 max_env_databases = 5;
+    optional uint32 flags = 6;
+    optional uint32 filemode = 7;
     optional string filename = 8;
 };
 
+message EnvGetDatabaseNamesRequest {
+    required uint64 id = 1;
+}
+
+message EnvGetDatabaseNamesReply {
+    required uint64 id = 1;
+    required sint32 status = 2;
+    repeated uint32 names = 3;
+}
+
 message RenameRequest {
-    required int64 id = 1;
-    required int32 oldname = 2;
-    required int32 newname = 3;
-    required int32 flags = 4;
+    required uint64 id = 1;
+    required uint32 oldname = 2;
+    required uint32 newname = 3;
+    required uint32 flags = 4;
 }
 
 message RenameReply {
-    required int64 id = 1;
-    required int32 status = 2;
+    required uint64 id = 1;
+    required sint32 status = 2;
 };
 

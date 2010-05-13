@@ -153,6 +153,46 @@ handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
 }
 
 static void
+handle_env_get_database_names(ham_env_t *env, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__EnvGetDatabaseNamesRequest *request)
+{
+    Ham__EnvGetDatabaseNamesReply reply;
+    Ham__Wrapper wrapper;
+    ham_size_t i, num_names=1024;
+    ham_u16_t names[1024]; /* should be enough */
+
+    ham_assert(request!=0, (""));
+
+    ham__env_get_database_names_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.id=request->id;
+    reply.status=0;
+    wrapper.env_get_database_names_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__ENV_GET_DATABASE_NAMES_REPLY;
+
+    /* request the database names from the Environment */
+    reply.status=ham_env_get_database_names(env, &names[0], &num_names);
+    if (reply.status==0) {
+        reply.n_names=num_names;
+        reply.names=(unsigned *)allocator_alloc(env_get_allocator(env), 
+                reply.n_names*sizeof(int));
+        if (!reply.names) {
+            /* TODO send error */
+            return;
+        }
+        for (i=0; i<num_names; i++)
+            reply.names[i]=names[i];
+    }
+
+    send_wrapper(env, conn, &wrapper);
+
+    if (reply.names)
+        allocator_free(env_get_allocator(env), reply.names);
+    reply.names=0;
+}
+
+static void
 request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
                 void *user_data)
 {
@@ -178,6 +218,11 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
         ham_trace(("env_get_parameters request"));
         handle_env_get_parameters(env->env, conn, ri, 
                     wrapper->env_get_parameters_request);
+        break;
+    case HAM__WRAPPER__TYPE__ENV_GET_DATABASE_NAMES_REQUEST:
+        ham_trace(("env_get_database_names request"));
+        handle_env_get_database_names(env->env, conn, ri, 
+                    wrapper->env_get_database_names_request);
         break;
     case HAM__WRAPPER__TYPE__RENAME_REQUEST:
         ham_trace(("rename request"));

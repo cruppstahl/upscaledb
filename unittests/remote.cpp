@@ -41,9 +41,9 @@ public:
         BFC_REGISTER_TEST(RemoteTest, createCloseTest);
         BFC_REGISTER_TEST(RemoteTest, createCloseOpenCloseTest);
         BFC_REGISTER_TEST(RemoteTest, getEnvParamsTest);
+        BFC_REGISTER_TEST(RemoteTest, getDatabaseNamesTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanupTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanup2Test);
-        BFC_REGISTER_TEST(RemoteTest, getDatabaseNamesTest);
     }
 
 protected:
@@ -168,6 +168,27 @@ protected:
         ham_env_delete(env);
     }
 
+    void getDatabaseNamesTest(void)
+    {
+        ham_env_t *env;
+        ham_u16_t names[15];
+        ham_size_t max_names=15;
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(env, SERVER_URL, 0, 0664));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_get_database_names(env, &names[0], &max_names));
+
+        //BFC_ASSERT_EQUAL(HAM_DEFAULT_DATABASE_NAME, names[0]);
+        BFC_ASSERT_EQUAL(13, names[0]);
+        BFC_ASSERT_EQUAL(1u, max_names);
+
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        ham_env_delete(env);
+    }
+
     void autoCleanupTest(void)
     {
 #if 0
@@ -209,81 +230,6 @@ protected:
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_delete(db));
-#endif
-    }
-
-    void getDatabaseNamesTest(void)
-    {
-#if 0
-        ham_env_t *env;
-        ham_db_t *db1, *db2, *db3;
-        ham_u16_t names[5];
-        ham_size_t names_size=0;
-
-        BFC_ASSERT_EQUAL(0, ham_new(&db1));
-        BFC_ASSERT_EQUAL(0, ham_new(&db2));
-        BFC_ASSERT_EQUAL(0, ham_new(&db3));
-        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-
-        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), 0, 0664));
-
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                        ham_env_get_database_names(0, names, &names_size));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                        ham_env_get_database_names(env, 0, &names_size));
-        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
-                        ham_env_get_database_names(env, names, 0));
-
-        names_size=1;
-        BFC_ASSERT_EQUAL(0,
-                        ham_env_get_database_names(env, names, &names_size));
-        BFC_ASSERT_EQUAL((ham_size_t)0, names_size);
-
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_create_db(env, db1, 111, 0, 0));
-        names_size=0;
-        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED,
-                        ham_env_get_database_names(env, names, &names_size));
-
-        names_size=1;
-        BFC_ASSERT_EQUAL(0,
-                        ham_env_get_database_names(env, names, &names_size));
-        BFC_ASSERT_EQUAL((ham_size_t)1, names_size);
-        BFC_ASSERT_EQUAL((ham_u16_t)111, names[0]);
-
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_create_db(env, db2, 222, 0, 0));
-        names_size=1;
-        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED,
-                        ham_env_get_database_names(env, names, &names_size));
-
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_create_db(env, db3, 333, 0, 0));
-        names_size=5;
-        BFC_ASSERT_EQUAL(0,
-                        ham_env_get_database_names(env, names, &names_size));
-        BFC_ASSERT_EQUAL((ham_size_t)3, names_size);
-        BFC_ASSERT_EQUAL((ham_u16_t)111, names[0]);
-        BFC_ASSERT_EQUAL((ham_u16_t)222, names[1]);
-        BFC_ASSERT_EQUAL((ham_u16_t)333, names[2]);
-
-        BFC_ASSERT_EQUAL(0, ham_close(db2, 0));
-        BFC_ASSERT_EQUAL(0, 
-                ham_env_erase_db(env, 222, 0));
-        names_size=5;
-        BFC_ASSERT_EQUAL(0,
-                    ham_env_get_database_names(env, names, &names_size));
-        BFC_ASSERT_EQUAL((ham_size_t)2, names_size);
-        BFC_ASSERT_EQUAL((ham_u16_t)111, names[0]);
-        BFC_ASSERT_EQUAL((ham_u16_t)333, names[1]);
-
-        BFC_ASSERT_EQUAL(0, ham_close(db1, 0));
-        BFC_ASSERT_EQUAL(0, ham_close(db3, 0));
-        BFC_ASSERT_EQUAL(0, ham_delete(db1));
-        BFC_ASSERT_EQUAL(0, ham_delete(db2));
-        BFC_ASSERT_EQUAL(0, ham_delete(db3));
-        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
-        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
 #endif
     }
 
