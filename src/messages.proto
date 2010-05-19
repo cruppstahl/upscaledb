@@ -6,8 +6,8 @@ message Wrapper {
     enum Type { 
             CONNECT_REQUEST = 10;
             CONNECT_REPLY   = 11;
-            RENAME_REQUEST  = 20;
-            RENAME_REPLY    = 21;
+            ENV_RENAME_REQUEST  = 20;
+            ENV_RENAME_REPLY    = 21;
             ENV_GET_PARAMETERS_REQUEST = 30;
             ENV_GET_PARAMETERS_REPLY = 31;
             ENV_GET_DATABASE_NAMES_REQUEST = 40;
@@ -20,8 +20,8 @@ message Wrapper {
 
     optional ConnectRequest connect_request = 10;
     optional ConnectReply connect_reply     = 11;
-    optional RenameRequest rename_request   = 20;
-    optional RenameReply rename_reply       = 21;
+    optional EnvRenameRequest env_rename_request   = 20;
+    optional EnvRenameReply env_rename_reply       = 21;
     optional EnvGetParametersRequest env_get_parameters_request = 31;
     optional EnvGetParametersReply env_get_parameters_reply = 32;
     optional EnvGetDatabaseNamesRequest env_get_database_names_request = 41;
@@ -66,14 +66,14 @@ message EnvGetDatabaseNamesReply {
     repeated uint32 names = 3;
 }
 
-message RenameRequest {
+message EnvRenameRequest {
     required uint64 id = 1;
     required uint32 oldname = 2;
     required uint32 newname = 3;
     required uint32 flags = 4;
 }
 
-message RenameReply {
+message EnvRenameReply {
     required uint64 id = 1;
     required sint32 status = 2;
 };

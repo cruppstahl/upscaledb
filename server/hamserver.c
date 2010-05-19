@@ -216,6 +216,30 @@ handle_env_flush(ham_env_t *env, struct mg_connection *conn,
 }
 
 static void
+handle_env_rename(ham_env_t *env, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__EnvRenameRequest *request)
+{
+    Ham__EnvRenameReply reply;
+    Ham__Wrapper wrapper;
+
+    ham_assert(request!=0, (""));
+
+    ham__env_rename_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.id=request->id;
+    reply.status=0;
+    wrapper.env_rename_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__ENV_RENAME_REPLY;
+
+    /* request the database names from the Environment */
+    reply.status=ham_env_rename_db(env, request->oldname, request->newname,
+                            request->flags);
+
+    send_wrapper(env, conn, &wrapper);
+}
+
+static void
 request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
                 void *user_data)
 {
@@ -251,8 +275,9 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
         ham_trace(("env_flush request"));
         handle_env_flush(env->env, conn, ri, wrapper->env_flush_request);
         break;
-    case HAM__WRAPPER__TYPE__RENAME_REQUEST:
-        ham_trace(("rename request"));
+    case HAM__WRAPPER__TYPE__ENV_RENAME_REQUEST:
+        ham_trace(("env_rename request"));
+        handle_env_rename(env->env, conn, ri, wrapper->env_rename_request);
         break;
     default:
         /* TODO send error */

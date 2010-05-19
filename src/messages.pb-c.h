@@ -15,8 +15,8 @@ typedef struct _Ham__EnvGetParametersRequest Ham__EnvGetParametersRequest;
 typedef struct _Ham__EnvGetParametersReply Ham__EnvGetParametersReply;
 typedef struct _Ham__EnvGetDatabaseNamesRequest Ham__EnvGetDatabaseNamesRequest;
 typedef struct _Ham__EnvGetDatabaseNamesReply Ham__EnvGetDatabaseNamesReply;
-typedef struct _Ham__RenameRequest Ham__RenameRequest;
-typedef struct _Ham__RenameReply Ham__RenameReply;
+typedef struct _Ham__EnvRenameRequest Ham__EnvRenameRequest;
+typedef struct _Ham__EnvRenameReply Ham__EnvRenameReply;
 typedef struct _Ham__EnvFlushRequest Ham__EnvFlushRequest;
 typedef struct _Ham__EnvFlushReply Ham__EnvFlushReply;
 
@@ -26,8 +26,8 @@ typedef struct _Ham__EnvFlushReply Ham__EnvFlushReply;
 typedef enum _Ham__Wrapper__Type {
   HAM__WRAPPER__TYPE__CONNECT_REQUEST = 10,
   HAM__WRAPPER__TYPE__CONNECT_REPLY = 11,
-  HAM__WRAPPER__TYPE__RENAME_REQUEST = 20,
-  HAM__WRAPPER__TYPE__RENAME_REPLY = 21,
+  HAM__WRAPPER__TYPE__ENV_RENAME_REQUEST = 20,
+  HAM__WRAPPER__TYPE__ENV_RENAME_REPLY = 21,
   HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REQUEST = 30,
   HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REPLY = 31,
   HAM__WRAPPER__TYPE__ENV_GET_DATABASE_NAMES_REQUEST = 40,
@@ -44,8 +44,8 @@ struct  _Ham__Wrapper
   Ham__Wrapper__Type type;
   Ham__ConnectRequest *connect_request;
   Ham__ConnectReply *connect_reply;
-  Ham__RenameRequest *rename_request;
-  Ham__RenameReply *rename_reply;
+  Ham__EnvRenameRequest *env_rename_request;
+  Ham__EnvRenameReply *env_rename_reply;
   Ham__EnvGetParametersRequest *env_get_parameters_request;
   Ham__EnvGetParametersReply *env_get_parameters_reply;
   Ham__EnvGetDatabaseNamesRequest *env_get_database_names_request;
@@ -137,7 +137,7 @@ struct  _Ham__EnvGetDatabaseNamesReply
     , 0, 0, 0,NULL }
 
 
-struct  _Ham__RenameRequest
+struct  _Ham__EnvRenameRequest
 {
   ProtobufCMessage base;
   uint64_t id;
@@ -145,19 +145,19 @@ struct  _Ham__RenameRequest
   uint32_t newname;
   uint32_t flags;
 };
-#define HAM__RENAME_REQUEST__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&ham__rename_request__descriptor) \
+#define HAM__ENV_RENAME_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__env_rename_request__descriptor) \
     , 0, 0, 0, 0 }
 
 
-struct  _Ham__RenameReply
+struct  _Ham__EnvRenameReply
 {
   ProtobufCMessage base;
   uint64_t id;
   int32_t status;
 };
-#define HAM__RENAME_REPLY__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&ham__rename_reply__descriptor) \
+#define HAM__ENV_RENAME_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__env_rename_reply__descriptor) \
     , 0, 0 }
 
 
@@ -316,43 +316,43 @@ Ham__EnvGetDatabaseNamesReply *
 void   ham__env_get_database_names_reply__free_unpacked
                      (Ham__EnvGetDatabaseNamesReply *message,
                       ProtobufCAllocator *allocator);
-/* Ham__RenameRequest methods */
-void   ham__rename_request__init
-                     (Ham__RenameRequest         *message);
-size_t ham__rename_request__get_packed_size
-                     (const Ham__RenameRequest   *message);
-size_t ham__rename_request__pack
-                     (const Ham__RenameRequest   *message,
+/* Ham__EnvRenameRequest methods */
+void   ham__env_rename_request__init
+                     (Ham__EnvRenameRequest         *message);
+size_t ham__env_rename_request__get_packed_size
+                     (const Ham__EnvRenameRequest   *message);
+size_t ham__env_rename_request__pack
+                     (const Ham__EnvRenameRequest   *message,
                       uint8_t             *out);
-size_t ham__rename_request__pack_to_buffer
-                     (const Ham__RenameRequest   *message,
+size_t ham__env_rename_request__pack_to_buffer
+                     (const Ham__EnvRenameRequest   *message,
                       ProtobufCBuffer     *buffer);
-Ham__RenameRequest *
-       ham__rename_request__unpack
+Ham__EnvRenameRequest *
+       ham__env_rename_request__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data);
-void   ham__rename_request__free_unpacked
-                     (Ham__RenameRequest *message,
+void   ham__env_rename_request__free_unpacked
+                     (Ham__EnvRenameRequest *message,
                       ProtobufCAllocator *allocator);
-/* Ham__RenameReply methods */
-void   ham__rename_reply__init
-                     (Ham__RenameReply         *message);
-size_t ham__rename_reply__get_packed_size
-                     (const Ham__RenameReply   *message);
-size_t ham__rename_reply__pack
-                     (const Ham__RenameReply   *message,
+/* Ham__EnvRenameReply methods */
+void   ham__env_rename_reply__init
+                     (Ham__EnvRenameReply         *message);
+size_t ham__env_rename_reply__get_packed_size
+                     (const Ham__EnvRenameReply   *message);
+size_t ham__env_rename_reply__pack
+                     (const Ham__EnvRenameReply   *message,
                       uint8_t             *out);
-size_t ham__rename_reply__pack_to_buffer
-                     (const Ham__RenameReply   *message,
+size_t ham__env_rename_reply__pack_to_buffer
+                     (const Ham__EnvRenameReply   *message,
                       ProtobufCBuffer     *buffer);
-Ham__RenameReply *
-       ham__rename_reply__unpack
+Ham__EnvRenameReply *
+       ham__env_rename_reply__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data);
-void   ham__rename_reply__free_unpacked
-                     (Ham__RenameReply *message,
+void   ham__env_rename_reply__free_unpacked
+                     (Ham__EnvRenameReply *message,
                       ProtobufCAllocator *allocator);
 /* Ham__EnvFlushRequest methods */
 void   ham__env_flush_request__init
@@ -415,11 +415,11 @@ typedef void (*Ham__EnvGetDatabaseNamesRequest_Closure)
 typedef void (*Ham__EnvGetDatabaseNamesReply_Closure)
                  (const Ham__EnvGetDatabaseNamesReply *message,
                   void *closure_data);
-typedef void (*Ham__RenameRequest_Closure)
-                 (const Ham__RenameRequest *message,
+typedef void (*Ham__EnvRenameRequest_Closure)
+                 (const Ham__EnvRenameRequest *message,
                   void *closure_data);
-typedef void (*Ham__RenameReply_Closure)
-                 (const Ham__RenameReply *message,
+typedef void (*Ham__EnvRenameReply_Closure)
+                 (const Ham__EnvRenameReply *message,
                   void *closure_data);
 typedef void (*Ham__EnvFlushRequest_Closure)
                  (const Ham__EnvFlushRequest *message,
@@ -441,8 +441,8 @@ extern const ProtobufCMessageDescriptor ham__env_get_parameters_request__descrip
 extern const ProtobufCMessageDescriptor ham__env_get_parameters_reply__descriptor;
 extern const ProtobufCMessageDescriptor ham__env_get_database_names_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__env_get_database_names_reply__descriptor;
-extern const ProtobufCMessageDescriptor ham__rename_request__descriptor;
-extern const ProtobufCMessageDescriptor ham__rename_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__env_rename_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__env_rename_reply__descriptor;
 extern const ProtobufCMessageDescriptor ham__env_flush_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__env_flush_reply__descriptor;
 

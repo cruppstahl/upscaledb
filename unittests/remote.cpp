@@ -43,6 +43,7 @@ public:
         BFC_REGISTER_TEST(RemoteTest, getEnvParamsTest);
         BFC_REGISTER_TEST(RemoteTest, getDatabaseNamesTest);
         BFC_REGISTER_TEST(RemoteTest, envFlushTest);
+        BFC_REGISTER_TEST(RemoteTest, renameDbTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanupTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanup2Test);
     }
@@ -199,6 +200,30 @@ protected:
                 ham_env_create(env, SERVER_URL, 0, 0664));
 
         BFC_ASSERT_EQUAL(0, ham_env_flush(env, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        ham_env_delete(env);
+    }
+
+    void renameDbTest(void)
+    {
+        ham_env_t *env;
+        ham_u16_t names[15];
+        ham_size_t max_names=15;
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(env, SERVER_URL, 0, 0664));
+
+        BFC_ASSERT_EQUAL(0, ham_env_rename_db(env, 13, 15, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_get_database_names(env, &names[0], &max_names));
+        BFC_ASSERT_EQUAL(15, names[0]);
+        BFC_ASSERT_EQUAL(1u, max_names);
+
+        BFC_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
+                    ham_env_rename_db(env, 14, 16, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_rename_db(env, 15, 13, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_env_delete(env);

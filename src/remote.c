@@ -197,7 +197,33 @@ static ham_status_t
 _remote_fun_rename_db(ham_env_t *env, ham_u16_t oldname, 
                 ham_u16_t newname, ham_u32_t flags)
 {
-    return (HAM_NOT_IMPLEMENTED);
+    ham_status_t st;
+    Ham__EnvRenameRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    
+    ham__wrapper__init(&wrapper);
+    ham__env_rename_request__init(&msg);
+    msg.id=1;
+    msg.oldname=oldname;
+    msg.newname=newname;
+    msg.flags=flags;
+    wrapper.type=HAM__WRAPPER__TYPE__ENV_RENAME_REQUEST;
+    wrapper.env_rename_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->env_rename_reply!=0, (""));
+    st=reply->env_rename_reply->status;
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
 }
 
 static ham_status_t
@@ -382,14 +408,10 @@ _remote_fun_flush(ham_env_t *env, ham_u32_t flags)
     ham_assert(reply!=0, (""));
     ham_assert(reply->env_flush_reply!=0, (""));
     st=reply->env_flush_reply->status;
-    if (st) {
-        ham__wrapper__free_unpacked(reply, 0);
-        return (st);
-    }
 
     ham__wrapper__free_unpacked(reply, 0);
 
-    return (0);
+    return (st);
 }
 
 #endif /* HAM_ENABLE_REMOTE */

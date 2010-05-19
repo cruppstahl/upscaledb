@@ -302,90 +302,90 @@ void   ham__env_get_database_names_reply__free_unpacked
   PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_get_database_names_reply__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-void   ham__rename_request__init
-                     (Ham__RenameRequest         *message)
+void   ham__env_rename_request__init
+                     (Ham__EnvRenameRequest         *message)
 {
-  static Ham__RenameRequest init_value = HAM__RENAME_REQUEST__INIT;
+  static Ham__EnvRenameRequest init_value = HAM__ENV_RENAME_REQUEST__INIT;
   *message = init_value;
 }
-size_t ham__rename_request__get_packed_size
-                     (const Ham__RenameRequest *message)
+size_t ham__env_rename_request__get_packed_size
+                     (const Ham__EnvRenameRequest *message)
 {
-  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__rename_request__descriptor);
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_rename_request__descriptor);
   return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
 }
-size_t ham__rename_request__pack
-                     (const Ham__RenameRequest *message,
+size_t ham__env_rename_request__pack
+                     (const Ham__EnvRenameRequest *message,
                       uint8_t       *out)
 {
-  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__rename_request__descriptor);
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_rename_request__descriptor);
   return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
 }
-size_t ham__rename_request__pack_to_buffer
-                     (const Ham__RenameRequest *message,
+size_t ham__env_rename_request__pack_to_buffer
+                     (const Ham__EnvRenameRequest *message,
                       ProtobufCBuffer *buffer)
 {
-  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__rename_request__descriptor);
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_rename_request__descriptor);
   return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
 }
-Ham__RenameRequest *
-       ham__rename_request__unpack
+Ham__EnvRenameRequest *
+       ham__env_rename_request__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data)
 {
-  return (Ham__RenameRequest *)
-     protobuf_c_message_unpack (&ham__rename_request__descriptor,
+  return (Ham__EnvRenameRequest *)
+     protobuf_c_message_unpack (&ham__env_rename_request__descriptor,
                                 allocator, len, data);
 }
-void   ham__rename_request__free_unpacked
-                     (Ham__RenameRequest *message,
+void   ham__env_rename_request__free_unpacked
+                     (Ham__EnvRenameRequest *message,
                       ProtobufCAllocator *allocator)
 {
-  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__rename_request__descriptor);
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_rename_request__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-void   ham__rename_reply__init
-                     (Ham__RenameReply         *message)
+void   ham__env_rename_reply__init
+                     (Ham__EnvRenameReply         *message)
 {
-  static Ham__RenameReply init_value = HAM__RENAME_REPLY__INIT;
+  static Ham__EnvRenameReply init_value = HAM__ENV_RENAME_REPLY__INIT;
   *message = init_value;
 }
-size_t ham__rename_reply__get_packed_size
-                     (const Ham__RenameReply *message)
+size_t ham__env_rename_reply__get_packed_size
+                     (const Ham__EnvRenameReply *message)
 {
-  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__rename_reply__descriptor);
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_rename_reply__descriptor);
   return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
 }
-size_t ham__rename_reply__pack
-                     (const Ham__RenameReply *message,
+size_t ham__env_rename_reply__pack
+                     (const Ham__EnvRenameReply *message,
                       uint8_t       *out)
 {
-  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__rename_reply__descriptor);
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_rename_reply__descriptor);
   return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
 }
-size_t ham__rename_reply__pack_to_buffer
-                     (const Ham__RenameReply *message,
+size_t ham__env_rename_reply__pack_to_buffer
+                     (const Ham__EnvRenameReply *message,
                       ProtobufCBuffer *buffer)
 {
-  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__rename_reply__descriptor);
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_rename_reply__descriptor);
   return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
 }
-Ham__RenameReply *
-       ham__rename_reply__unpack
+Ham__EnvRenameReply *
+       ham__env_rename_reply__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data)
 {
-  return (Ham__RenameReply *)
-     protobuf_c_message_unpack (&ham__rename_reply__descriptor,
+  return (Ham__EnvRenameReply *)
+     protobuf_c_message_unpack (&ham__env_rename_reply__descriptor,
                                 allocator, len, data);
 }
-void   ham__rename_reply__free_unpacked
-                     (Ham__RenameReply *message,
+void   ham__env_rename_reply__free_unpacked
+                     (Ham__EnvRenameReply *message,
                       ProtobufCAllocator *allocator)
 {
-  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__rename_reply__descriptor);
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_rename_reply__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
 void   ham__env_flush_request__init
@@ -478,8 +478,8 @@ const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[10] =
 {
   { "CONNECT_REQUEST", "HAM__WRAPPER__TYPE__CONNECT_REQUEST", 10 },
   { "CONNECT_REPLY", "HAM__WRAPPER__TYPE__CONNECT_REPLY", 11 },
-  { "RENAME_REQUEST", "HAM__WRAPPER__TYPE__RENAME_REQUEST", 20 },
-  { "RENAME_REPLY", "HAM__WRAPPER__TYPE__RENAME_REPLY", 21 },
+  { "ENV_RENAME_REQUEST", "HAM__WRAPPER__TYPE__ENV_RENAME_REQUEST", 20 },
+  { "ENV_RENAME_REPLY", "HAM__WRAPPER__TYPE__ENV_RENAME_REPLY", 21 },
   { "ENV_GET_PARAMETERS_REQUEST", "HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REQUEST", 30 },
   { "ENV_GET_PARAMETERS_REPLY", "HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REPLY", 31 },
   { "ENV_GET_DATABASE_NAMES_REQUEST", "HAM__WRAPPER__TYPE__ENV_GET_DATABASE_NAMES_REQUEST", 40 },
@@ -500,8 +500,8 @@ const ProtobufCEnumValueIndex ham__wrapper__type__enum_values_by_name[10] =
   { "ENV_GET_DATABASE_NAMES_REQUEST", 6 },
   { "ENV_GET_PARAMETERS_REPLY", 5 },
   { "ENV_GET_PARAMETERS_REQUEST", 4 },
-  { "RENAME_REPLY", 3 },
-  { "RENAME_REQUEST", 2 },
+  { "ENV_RENAME_REPLY", 3 },
+  { "ENV_RENAME_REQUEST", 2 },
 };
 const ProtobufCEnumDescriptor ham__wrapper__type__descriptor =
 {
@@ -554,24 +554,24 @@ static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[11] =
     NULL,NULL    /* reserved1, reserved2 */
   },
   {
-    "rename_request",
+    "env_rename_request",
     20,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_MESSAGE,
     0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__Wrapper, rename_request),
-    &ham__rename_request__descriptor,
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, env_rename_request),
+    &ham__env_rename_request__descriptor,
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
   {
-    "rename_reply",
+    "env_rename_reply",
     21,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_MESSAGE,
     0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__Wrapper, rename_reply),
-    &ham__rename_reply__descriptor,
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, env_rename_reply),
+    &ham__env_rename_reply__descriptor,
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
@@ -651,8 +651,8 @@ static const unsigned ham__wrapper__field_indices_by_name[] = {
   7,   /* field[7] = env_get_database_names_request */
   6,   /* field[6] = env_get_parameters_reply */
   5,   /* field[5] = env_get_parameters_request */
-  4,   /* field[4] = rename_reply */
-  3,   /* field[3] = rename_request */
+  4,   /* field[4] = env_rename_reply */
+  3,   /* field[3] = env_rename_request */
   0,   /* field[0] = type */
 };
 static const ProtobufCIntRange ham__wrapper__number_ranges[6 + 1] =
@@ -1046,7 +1046,7 @@ const ProtobufCMessageDescriptor ham__env_get_database_names_reply__descriptor =
   (ProtobufCMessageInit) ham__env_get_database_names_reply__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor ham__rename_request__field_descriptors[4] =
+static const ProtobufCFieldDescriptor ham__env_rename_request__field_descriptors[4] =
 {
   {
     "id",
@@ -1054,7 +1054,7 @@ static const ProtobufCFieldDescriptor ham__rename_request__field_descriptors[4] 
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT64,
     0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__RenameRequest, id),
+    PROTOBUF_C_OFFSETOF(Ham__EnvRenameRequest, id),
     NULL,
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
@@ -1065,7 +1065,7 @@ static const ProtobufCFieldDescriptor ham__rename_request__field_descriptors[4] 
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT32,
     0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__RenameRequest, oldname),
+    PROTOBUF_C_OFFSETOF(Ham__EnvRenameRequest, oldname),
     NULL,
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
@@ -1076,7 +1076,7 @@ static const ProtobufCFieldDescriptor ham__rename_request__field_descriptors[4] 
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT32,
     0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__RenameRequest, newname),
+    PROTOBUF_C_OFFSETOF(Ham__EnvRenameRequest, newname),
     NULL,
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
@@ -1087,39 +1087,39 @@ static const ProtobufCFieldDescriptor ham__rename_request__field_descriptors[4] 
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT32,
     0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__RenameRequest, flags),
+    PROTOBUF_C_OFFSETOF(Ham__EnvRenameRequest, flags),
     NULL,
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
 };
-static const unsigned ham__rename_request__field_indices_by_name[] = {
+static const unsigned ham__env_rename_request__field_indices_by_name[] = {
   3,   /* field[3] = flags */
   0,   /* field[0] = id */
   2,   /* field[2] = newname */
   1,   /* field[1] = oldname */
 };
-static const ProtobufCIntRange ham__rename_request__number_ranges[1 + 1] =
+static const ProtobufCIntRange ham__env_rename_request__number_ranges[1 + 1] =
 {
   { 1, 0 },
   { 0, 4 }
 };
-const ProtobufCMessageDescriptor ham__rename_request__descriptor =
+const ProtobufCMessageDescriptor ham__env_rename_request__descriptor =
 {
   PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
-  "ham.RenameRequest",
-  "RenameRequest",
-  "Ham__RenameRequest",
+  "ham.EnvRenameRequest",
+  "EnvRenameRequest",
+  "Ham__EnvRenameRequest",
   "ham",
-  sizeof(Ham__RenameRequest),
+  sizeof(Ham__EnvRenameRequest),
   4,
-  ham__rename_request__field_descriptors,
-  ham__rename_request__field_indices_by_name,
-  1,  ham__rename_request__number_ranges,
-  (ProtobufCMessageInit) ham__rename_request__init,
+  ham__env_rename_request__field_descriptors,
+  ham__env_rename_request__field_indices_by_name,
+  1,  ham__env_rename_request__number_ranges,
+  (ProtobufCMessageInit) ham__env_rename_request__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor ham__rename_reply__field_descriptors[2] =
+static const ProtobufCFieldDescriptor ham__env_rename_reply__field_descriptors[2] =
 {
   {
     "id",
@@ -1127,7 +1127,7 @@ static const ProtobufCFieldDescriptor ham__rename_reply__field_descriptors[2] =
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT64,
     0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__RenameReply, id),
+    PROTOBUF_C_OFFSETOF(Ham__EnvRenameReply, id),
     NULL,
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
@@ -1138,34 +1138,34 @@ static const ProtobufCFieldDescriptor ham__rename_reply__field_descriptors[2] =
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_SINT32,
     0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__RenameReply, status),
+    PROTOBUF_C_OFFSETOF(Ham__EnvRenameReply, status),
     NULL,
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
 };
-static const unsigned ham__rename_reply__field_indices_by_name[] = {
+static const unsigned ham__env_rename_reply__field_indices_by_name[] = {
   0,   /* field[0] = id */
   1,   /* field[1] = status */
 };
-static const ProtobufCIntRange ham__rename_reply__number_ranges[1 + 1] =
+static const ProtobufCIntRange ham__env_rename_reply__number_ranges[1 + 1] =
 {
   { 1, 0 },
   { 0, 2 }
 };
-const ProtobufCMessageDescriptor ham__rename_reply__descriptor =
+const ProtobufCMessageDescriptor ham__env_rename_reply__descriptor =
 {
   PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
-  "ham.RenameReply",
-  "RenameReply",
-  "Ham__RenameReply",
+  "ham.EnvRenameReply",
+  "EnvRenameReply",
+  "Ham__EnvRenameReply",
   "ham",
-  sizeof(Ham__RenameReply),
+  sizeof(Ham__EnvRenameReply),
   2,
-  ham__rename_reply__field_descriptors,
-  ham__rename_reply__field_indices_by_name,
-  1,  ham__rename_reply__number_ranges,
-  (ProtobufCMessageInit) ham__rename_reply__init,
+  ham__env_rename_reply__field_descriptors,
+  ham__env_rename_reply__field_indices_by_name,
+  1,  ham__env_rename_reply__number_ranges,
+  (ProtobufCMessageInit) ham__env_rename_reply__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__env_flush_request__field_descriptors[2] =
