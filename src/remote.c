@@ -428,6 +428,8 @@ env_initialize_remote(ham_env_t *env)
     env->_fun_get_parameters     =_remote_fun_get_parameters;
     env->_fun_flush              =_remote_fun_flush;
     env->_fun_close              =_remote_fun_close;
+
+    env_set_rt_flags(env, env_get_rt_flags(env)|DB_IS_REMOTE);
 #else
     return (HAM_NOT_IMPLEMENTED);
 #endif

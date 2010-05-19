@@ -62,10 +62,8 @@ o client/server communication
             x unittest
         x ham_env_rename_db
             x unittest
-        o ham_env_enable_encryption
-            o unittest
-        o ham_env_enable_compression
-            o unittest
+        x ham_env_enable_encryption
+            x unittest
         o ham_env_create_db
             o unittest
         o ham_env_open_db
@@ -74,6 +72,8 @@ o client/server communication
             o unittest
 
         o ham_get_parameters
+            o unittest
+        o ham_enable_compression
             o unittest
         o ham_find
             o unittest

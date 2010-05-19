@@ -2719,6 +2719,11 @@ ham_env_enable_encryption(ham_env_t *env, ham_u8_t key[16], ham_u32_t flags)
         ham_trace(("cannot enable encryption if databases are already open"));
         return (HAM_DATABASE_ALREADY_OPEN);
     }
+    if (env_get_rt_flags(env)&DB_IS_REMOTE) {
+        ham_trace(("ham_env_enable_encryption is not supported by remote "
+                "servers"));
+        return (HAM_NOT_IMPLEMENTED);
+    }
     if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
         return (0);
 
@@ -2951,6 +2956,11 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags)
         ham_trace(("parameter 'db' must be linked to a valid (implicit or "
                    "explicit) environment"));
         return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if (env_get_rt_flags(env)&DB_IS_REMOTE) {
+        ham_trace(("ham_enable_compression is not supported by remote "
+                "servers"));
+        return (HAM_NOT_IMPLEMENTED);
     }
     if (level>9) {
         ham_trace(("parameter 'level' must be lower than or equal to 9"));
