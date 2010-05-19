@@ -58,6 +58,8 @@ o client/server communication
             x unittest
         x ham_env_get_database_names
             x unittest
+        x ham_env_flush
+            x unittest
         o ham_env_rename_db
             o unittest
         o ham_env_erase_db
@@ -65,8 +67,6 @@ o client/server communication
         o ham_env_enable_encryption
             o unittest
         o ham_env_enable_compression
-            o unittest
-        o ham_env_flush
             o unittest
         o ham_env_create_db
             o unittest
@@ -172,6 +172,10 @@ o client/server communication
 
     o need configure switch to disable the local client
     o add tests for --disable-remote and --disable-local to release.sh
+
+o mongoose: 
+    o make sure connections are not closed immediately (keep-alive)
+    o add license to readme!
 
 o fix freelist page overflow when searching for bits (See mail from Stefan)
 

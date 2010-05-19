@@ -12,6 +12,8 @@ message Wrapper {
             ENV_GET_PARAMETERS_REPLY = 31;
             ENV_GET_DATABASE_NAMES_REQUEST = 40;
             ENV_GET_DATABASE_NAMES_REPLY = 41;
+            ENV_FLUSH_REQUEST = 50;
+            ENV_FLUSH_REPLY = 51;
     }
 
     required Type type = 1;
@@ -24,6 +26,8 @@ message Wrapper {
     optional EnvGetParametersReply env_get_parameters_reply = 32;
     optional EnvGetDatabaseNamesRequest env_get_database_names_request = 41;
     optional EnvGetDatabaseNamesReply env_get_database_names_reply = 42;
+    optional EnvFlushRequest env_flush_request = 51;
+    optional EnvFlushReply env_flush_reply = 52;
 }
 
 message ConnectRequest {
@@ -70,6 +74,16 @@ message RenameRequest {
 }
 
 message RenameReply {
+    required uint64 id = 1;
+    required sint32 status = 2;
+};
+
+message EnvFlushRequest {
+    required uint64 id = 1;
+    required uint32 flags = 2;
+}
+
+message EnvFlushReply {
     required uint64 id = 1;
     required sint32 status = 2;
 };

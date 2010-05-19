@@ -42,6 +42,7 @@ public:
         BFC_REGISTER_TEST(RemoteTest, createCloseOpenCloseTest);
         BFC_REGISTER_TEST(RemoteTest, getEnvParamsTest);
         BFC_REGISTER_TEST(RemoteTest, getDatabaseNamesTest);
+        BFC_REGISTER_TEST(RemoteTest, envFlushTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanupTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanup2Test);
     }
@@ -184,6 +185,20 @@ protected:
         //BFC_ASSERT_EQUAL(HAM_DEFAULT_DATABASE_NAME, names[0]);
         BFC_ASSERT_EQUAL(13, names[0]);
         BFC_ASSERT_EQUAL(1u, max_names);
+
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        ham_env_delete(env);
+    }
+
+    void envFlushTest(void)
+    {
+        ham_env_t *env;
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(env, SERVER_URL, 0, 0664));
+
+        BFC_ASSERT_EQUAL(0, ham_env_flush(env, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_env_delete(env);
