@@ -64,6 +64,7 @@ o client/server communication
             x unittest
         x ham_env_enable_encryption
             x unittest
+
         o ham_env_create_db
             o unittest
         o ham_env_open_db
