@@ -136,7 +136,6 @@ _remote_fun_create(ham_env_t *env, const char *filename,
 
     ham__wrapper__init(&wrapper);
     ham__connect_request__init(&msg);
-    msg.id=1;
     msg.path=(char *)filename;
     wrapper.type=HAM__WRAPPER__TYPE__CONNECT_REQUEST;
     wrapper.connect_request=&msg;
@@ -170,7 +169,6 @@ _remote_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags,
 
     ham__wrapper__init(&wrapper);
     ham__connect_request__init(&msg);
-    msg.id=1;
     msg.path=(char *)filename;
     wrapper.type=HAM__WRAPPER__TYPE__CONNECT_REQUEST;
     wrapper.connect_request=&msg;
@@ -203,7 +201,6 @@ _remote_fun_rename_db(ham_env_t *env, ham_u16_t oldname,
     
     ham__wrapper__init(&wrapper);
     ham__env_rename_request__init(&msg);
-    msg.id=1;
     msg.oldname=oldname;
     msg.newname=newname;
     msg.flags=flags;
@@ -243,7 +240,6 @@ _remote_fun_get_database_names(ham_env_t *env, ham_u16_t *names,
     
     ham__wrapper__init(&wrapper);
     ham__env_get_database_names_request__init(&msg);
-    msg.id=1;
     wrapper.type=HAM__WRAPPER__TYPE__ENV_GET_DATABASE_NAMES_REQUEST;
     wrapper.env_get_database_names_request=&msg;
 
@@ -268,6 +264,144 @@ _remote_fun_get_database_names(ham_env_t *env, ham_u16_t *names,
     }
 
     *count=i;
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (0);
+}
+
+static ham_status_t 
+_remote_fun_create_db(ham_env_t *env, ham_db_t *db, 
+        ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)
+{
+    ham_status_t st;
+    Ham__EnvCreateDbRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    ham_size_t i=0, num_params=0;
+    ham_u32_t *names;
+    ham_u64_t *values;
+    const ham_parameter_t *p;
+    
+    /* count number of parameters */
+    p=param;
+    if (p) {
+        for (; p->name; p++) {
+            num_params++;
+        }
+    }
+
+    /* allocate a memory and copy the parameter names */
+    names=(ham_u32_t *)allocator_alloc(env_get_allocator(env), 
+            num_params*sizeof(ham_u32_t));
+    values=(ham_u64_t *)allocator_alloc(env_get_allocator(env), 
+            num_params*sizeof(ham_u64_t));
+    if (!names || !values)
+        return (HAM_OUT_OF_MEMORY);
+    p=param;
+    if (p) {
+        for (; p->name; p++) {
+            names[i]=p->name;
+            values[i]=p->value;
+            i++;
+        }
+    }
+
+    ham__wrapper__init(&wrapper);
+    ham__env_create_db_request__init(&msg);
+    msg.dbname=dbname;
+    msg.flags=flags;
+    msg.param_names=(unsigned *)&names[0];
+    msg.n_param_names=num_params;
+    msg.param_values=(unsigned long long*)&values[0];
+    msg.n_param_values=num_params;
+    wrapper.type=HAM__WRAPPER__TYPE__ENV_CREATE_DB_REQUEST;
+    wrapper.env_create_db_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->env_create_db_reply!=0, (""));
+    st=reply->env_create_db_reply->status;
+    if (st) {
+        ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    db_set_remote_handle(db, reply->env_create_db_reply->db_handle);
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (0);
+}
+
+static ham_status_t 
+_remote_fun_open_db(ham_env_t *env, ham_db_t *db, 
+        ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)
+{
+    ham_status_t st;
+    Ham__EnvOpenDbRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    ham_size_t i=0, num_params=0;
+    ham_u32_t *names;
+    ham_u64_t *values;
+    const ham_parameter_t *p;
+    
+    /* count number of parameters */
+    p=param;
+    if (p) {
+        for (; p->name; p++) {
+            num_params++;
+        }
+    }
+
+    /* allocate a memory and copy the parameter names */
+    names=(ham_u32_t *)allocator_alloc(env_get_allocator(env), 
+            num_params*sizeof(ham_u32_t));
+    values=(ham_u64_t *)allocator_alloc(env_get_allocator(env), 
+            num_params*sizeof(ham_u64_t));
+    if (!names || !values)
+        return (HAM_OUT_OF_MEMORY);
+    p=param;
+    if (p) {
+        for (; p->name; p++) {
+            names[i]=p->name;
+            values[i]=p->value;
+            i++;
+        }
+    }
+
+    ham__wrapper__init(&wrapper);
+    ham__env_open_db_request__init(&msg);
+    msg.dbname=dbname;
+    msg.flags=flags;
+    msg.param_names=(unsigned *)&names[0];
+    msg.n_param_names=num_params;
+    msg.param_values=(unsigned long long*)&values[0];
+    msg.n_param_values=num_params;
+    wrapper.type=HAM__WRAPPER__TYPE__ENV_OPEN_DB_REQUEST;
+    wrapper.env_open_db_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->env_open_db_reply!=0, (""));
+    st=reply->env_open_db_reply->status;
+    if (st) {
+        ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    db_set_remote_handle(db, reply->env_open_db_reply->db_handle);
 
     ham__wrapper__free_unpacked(reply, 0);
 
@@ -321,7 +455,6 @@ _remote_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
 
     ham__wrapper__init(&wrapper);
     ham__env_get_parameters_request__init(&msg);
-    msg.id=1;
     msg.names=(unsigned *)&names[0];
     msg.n_names=num_names;
     wrapper.type=HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REQUEST;
@@ -393,7 +526,6 @@ _remote_fun_flush(ham_env_t *env, ham_u32_t flags)
     
     ham__wrapper__init(&wrapper);
     ham__env_flush_request__init(&msg);
-    msg.id=1;
     msg.flags=flags;
     wrapper.type=HAM__WRAPPER__TYPE__ENV_FLUSH_REQUEST;
     wrapper.env_flush_request=&msg;
@@ -427,6 +559,8 @@ env_initialize_remote(ham_env_t *env)
     env->_fun_get_database_names =_remote_fun_get_database_names;
     env->_fun_get_parameters     =_remote_fun_get_parameters;
     env->_fun_flush              =_remote_fun_flush;
+    env->_fun_create_db          =_remote_fun_create_db;
+    env->_fun_open_db            =_remote_fun_open_db;
     env->_fun_close              =_remote_fun_close;
 
     env_set_rt_flags(env, env_get_rt_flags(env)|DB_IS_REMOTE);

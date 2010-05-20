@@ -207,6 +207,11 @@ struct ham_db_t
     /** some database specific run-time data */
     ham_runtime_statistics_dbdata_t _db_perf_data;
 
+#if HAM_ENABLE_REMOTE
+    /** the remote database handle */
+    ham_u64_t _remote_handle;
+#endif
+
     /**
     * destroy the database object, free all memory
     */
@@ -436,6 +441,16 @@ struct ham_db_t
  * get a reference to the per-database statistics
  */
 #define db_get_db_perf_data(db)      &(db)->_db_perf_data
+
+/**
+ * get the remote database handle
+ */
+#define db_get_remote_handle(db)        (db)->_remote_handle
+
+/**
+ * set the remote database handle
+ */
+#define db_set_remote_handle(db, h)     (db)->_remote_handle=(h)
 
 /**
  * get the database name

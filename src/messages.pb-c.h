@@ -19,6 +19,10 @@ typedef struct _Ham__EnvRenameRequest Ham__EnvRenameRequest;
 typedef struct _Ham__EnvRenameReply Ham__EnvRenameReply;
 typedef struct _Ham__EnvFlushRequest Ham__EnvFlushRequest;
 typedef struct _Ham__EnvFlushReply Ham__EnvFlushReply;
+typedef struct _Ham__EnvCreateDbRequest Ham__EnvCreateDbRequest;
+typedef struct _Ham__EnvCreateDbReply Ham__EnvCreateDbReply;
+typedef struct _Ham__EnvOpenDbRequest Ham__EnvOpenDbRequest;
+typedef struct _Ham__EnvOpenDbReply Ham__EnvOpenDbReply;
 
 
 /* --- enums --- */
@@ -33,7 +37,11 @@ typedef enum _Ham__Wrapper__Type {
   HAM__WRAPPER__TYPE__ENV_GET_DATABASE_NAMES_REQUEST = 40,
   HAM__WRAPPER__TYPE__ENV_GET_DATABASE_NAMES_REPLY = 41,
   HAM__WRAPPER__TYPE__ENV_FLUSH_REQUEST = 50,
-  HAM__WRAPPER__TYPE__ENV_FLUSH_REPLY = 51
+  HAM__WRAPPER__TYPE__ENV_FLUSH_REPLY = 51,
+  HAM__WRAPPER__TYPE__ENV_CREATE_DB_REQUEST = 60,
+  HAM__WRAPPER__TYPE__ENV_CREATE_DB_REPLY = 61,
+  HAM__WRAPPER__TYPE__ENV_OPEN_DB_REQUEST = 70,
+  HAM__WRAPPER__TYPE__ENV_OPEN_DB_REPLY = 71
 } Ham__Wrapper__Type;
 
 /* --- messages --- */
@@ -52,50 +60,50 @@ struct  _Ham__Wrapper
   Ham__EnvGetDatabaseNamesReply *env_get_database_names_reply;
   Ham__EnvFlushRequest *env_flush_request;
   Ham__EnvFlushReply *env_flush_reply;
+  Ham__EnvCreateDbRequest *env_create_db_request;
+  Ham__EnvCreateDbReply *env_create_db_reply;
+  Ham__EnvOpenDbRequest *env_open_db_request;
+  Ham__EnvOpenDbReply *env_open_db_reply;
 };
 #define HAM__WRAPPER__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__wrapper__descriptor) \
-    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
+    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 
 
 struct  _Ham__ConnectRequest
 {
   ProtobufCMessage base;
-  uint64_t id;
   char *path;
 };
 #define HAM__CONNECT_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__connect_request__descriptor) \
-    , 0, NULL }
+    , NULL }
 
 
 struct  _Ham__ConnectReply
 {
   ProtobufCMessage base;
-  uint64_t id;
   int32_t status;
 };
 #define HAM__CONNECT_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__connect_reply__descriptor) \
-    , 0, 0 }
+    , 0 }
 
 
 struct  _Ham__EnvGetParametersRequest
 {
   ProtobufCMessage base;
-  uint64_t id;
   size_t n_names;
   uint32_t *names;
 };
 #define HAM__ENV_GET_PARAMETERS_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__env_get_parameters_request__descriptor) \
-    , 0, 0,NULL }
+    , 0,NULL }
 
 
 struct  _Ham__EnvGetParametersReply
 {
   ProtobufCMessage base;
-  uint64_t id;
   int32_t status;
   protobuf_c_boolean has_cachesize;
   uint32_t cachesize;
@@ -111,75 +119,121 @@ struct  _Ham__EnvGetParametersReply
 };
 #define HAM__ENV_GET_PARAMETERS_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__env_get_parameters_reply__descriptor) \
-    , 0, 0, 0,0, 0,0, 0,0, 0,0, 0,0, NULL }
+    , 0, 0,0, 0,0, 0,0, 0,0, 0,0, NULL }
 
 
 struct  _Ham__EnvGetDatabaseNamesRequest
 {
   ProtobufCMessage base;
-  uint64_t id;
 };
 #define HAM__ENV_GET_DATABASE_NAMES_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__env_get_database_names_request__descriptor) \
-    , 0 }
+     }
 
 
 struct  _Ham__EnvGetDatabaseNamesReply
 {
   ProtobufCMessage base;
-  uint64_t id;
   int32_t status;
   size_t n_names;
   uint32_t *names;
 };
 #define HAM__ENV_GET_DATABASE_NAMES_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__env_get_database_names_reply__descriptor) \
-    , 0, 0, 0,NULL }
+    , 0, 0,NULL }
 
 
 struct  _Ham__EnvRenameRequest
 {
   ProtobufCMessage base;
-  uint64_t id;
   uint32_t oldname;
   uint32_t newname;
   uint32_t flags;
 };
 #define HAM__ENV_RENAME_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__env_rename_request__descriptor) \
-    , 0, 0, 0, 0 }
+    , 0, 0, 0 }
 
 
 struct  _Ham__EnvRenameReply
 {
   ProtobufCMessage base;
-  uint64_t id;
   int32_t status;
 };
 #define HAM__ENV_RENAME_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__env_rename_reply__descriptor) \
-    , 0, 0 }
+    , 0 }
 
 
 struct  _Ham__EnvFlushRequest
 {
   ProtobufCMessage base;
-  uint64_t id;
   uint32_t flags;
 };
 #define HAM__ENV_FLUSH_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__env_flush_request__descriptor) \
-    , 0, 0 }
+    , 0 }
 
 
 struct  _Ham__EnvFlushReply
 {
   ProtobufCMessage base;
-  uint64_t id;
   int32_t status;
 };
 #define HAM__ENV_FLUSH_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__env_flush_reply__descriptor) \
+    , 0 }
+
+
+struct  _Ham__EnvCreateDbRequest
+{
+  ProtobufCMessage base;
+  uint32_t dbname;
+  uint32_t flags;
+  size_t n_param_names;
+  uint32_t *param_names;
+  size_t n_param_values;
+  uint64_t *param_values;
+};
+#define HAM__ENV_CREATE_DB_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__env_create_db_request__descriptor) \
+    , 0, 0, 0,NULL, 0,NULL }
+
+
+struct  _Ham__EnvCreateDbReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+  uint32_t db_handle;
+};
+#define HAM__ENV_CREATE_DB_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__env_create_db_reply__descriptor) \
+    , 0, 0 }
+
+
+struct  _Ham__EnvOpenDbRequest
+{
+  ProtobufCMessage base;
+  uint32_t dbname;
+  uint32_t flags;
+  size_t n_param_names;
+  uint32_t *param_names;
+  size_t n_param_values;
+  uint64_t *param_values;
+};
+#define HAM__ENV_OPEN_DB_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__env_open_db_request__descriptor) \
+    , 0, 0, 0,NULL, 0,NULL }
+
+
+struct  _Ham__EnvOpenDbReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+  uint32_t db_handle;
+};
+#define HAM__ENV_OPEN_DB_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__env_open_db_reply__descriptor) \
     , 0, 0 }
 
 
@@ -392,6 +446,82 @@ Ham__EnvFlushReply *
 void   ham__env_flush_reply__free_unpacked
                      (Ham__EnvFlushReply *message,
                       ProtobufCAllocator *allocator);
+/* Ham__EnvCreateDbRequest methods */
+void   ham__env_create_db_request__init
+                     (Ham__EnvCreateDbRequest         *message);
+size_t ham__env_create_db_request__get_packed_size
+                     (const Ham__EnvCreateDbRequest   *message);
+size_t ham__env_create_db_request__pack
+                     (const Ham__EnvCreateDbRequest   *message,
+                      uint8_t             *out);
+size_t ham__env_create_db_request__pack_to_buffer
+                     (const Ham__EnvCreateDbRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__EnvCreateDbRequest *
+       ham__env_create_db_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__env_create_db_request__free_unpacked
+                     (Ham__EnvCreateDbRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__EnvCreateDbReply methods */
+void   ham__env_create_db_reply__init
+                     (Ham__EnvCreateDbReply         *message);
+size_t ham__env_create_db_reply__get_packed_size
+                     (const Ham__EnvCreateDbReply   *message);
+size_t ham__env_create_db_reply__pack
+                     (const Ham__EnvCreateDbReply   *message,
+                      uint8_t             *out);
+size_t ham__env_create_db_reply__pack_to_buffer
+                     (const Ham__EnvCreateDbReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__EnvCreateDbReply *
+       ham__env_create_db_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__env_create_db_reply__free_unpacked
+                     (Ham__EnvCreateDbReply *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__EnvOpenDbRequest methods */
+void   ham__env_open_db_request__init
+                     (Ham__EnvOpenDbRequest         *message);
+size_t ham__env_open_db_request__get_packed_size
+                     (const Ham__EnvOpenDbRequest   *message);
+size_t ham__env_open_db_request__pack
+                     (const Ham__EnvOpenDbRequest   *message,
+                      uint8_t             *out);
+size_t ham__env_open_db_request__pack_to_buffer
+                     (const Ham__EnvOpenDbRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__EnvOpenDbRequest *
+       ham__env_open_db_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__env_open_db_request__free_unpacked
+                     (Ham__EnvOpenDbRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__EnvOpenDbReply methods */
+void   ham__env_open_db_reply__init
+                     (Ham__EnvOpenDbReply         *message);
+size_t ham__env_open_db_reply__get_packed_size
+                     (const Ham__EnvOpenDbReply   *message);
+size_t ham__env_open_db_reply__pack
+                     (const Ham__EnvOpenDbReply   *message,
+                      uint8_t             *out);
+size_t ham__env_open_db_reply__pack_to_buffer
+                     (const Ham__EnvOpenDbReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__EnvOpenDbReply *
+       ham__env_open_db_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__env_open_db_reply__free_unpacked
+                     (Ham__EnvOpenDbReply *message,
+                      ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
 typedef void (*Ham__Wrapper_Closure)
@@ -427,6 +557,18 @@ typedef void (*Ham__EnvFlushRequest_Closure)
 typedef void (*Ham__EnvFlushReply_Closure)
                  (const Ham__EnvFlushReply *message,
                   void *closure_data);
+typedef void (*Ham__EnvCreateDbRequest_Closure)
+                 (const Ham__EnvCreateDbRequest *message,
+                  void *closure_data);
+typedef void (*Ham__EnvCreateDbReply_Closure)
+                 (const Ham__EnvCreateDbReply *message,
+                  void *closure_data);
+typedef void (*Ham__EnvOpenDbRequest_Closure)
+                 (const Ham__EnvOpenDbRequest *message,
+                  void *closure_data);
+typedef void (*Ham__EnvOpenDbReply_Closure)
+                 (const Ham__EnvOpenDbReply *message,
+                  void *closure_data);
 
 /* --- services --- */
 
@@ -445,6 +587,10 @@ extern const ProtobufCMessageDescriptor ham__env_rename_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__env_rename_reply__descriptor;
 extern const ProtobufCMessageDescriptor ham__env_flush_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__env_flush_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__env_create_db_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__env_create_db_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__env_open_db_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__env_open_db_reply__descriptor;
 
 PROTOBUF_C_END_DECLS
 

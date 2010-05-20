@@ -474,7 +474,179 @@ void   ham__env_flush_reply__free_unpacked
   PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_flush_reply__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[10] =
+void   ham__env_create_db_request__init
+                     (Ham__EnvCreateDbRequest         *message)
+{
+  static Ham__EnvCreateDbRequest init_value = HAM__ENV_CREATE_DB_REQUEST__INIT;
+  *message = init_value;
+}
+size_t ham__env_create_db_request__get_packed_size
+                     (const Ham__EnvCreateDbRequest *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_create_db_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__env_create_db_request__pack
+                     (const Ham__EnvCreateDbRequest *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_create_db_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__env_create_db_request__pack_to_buffer
+                     (const Ham__EnvCreateDbRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_create_db_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__EnvCreateDbRequest *
+       ham__env_create_db_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__EnvCreateDbRequest *)
+     protobuf_c_message_unpack (&ham__env_create_db_request__descriptor,
+                                allocator, len, data);
+}
+void   ham__env_create_db_request__free_unpacked
+                     (Ham__EnvCreateDbRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_create_db_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__env_create_db_reply__init
+                     (Ham__EnvCreateDbReply         *message)
+{
+  static Ham__EnvCreateDbReply init_value = HAM__ENV_CREATE_DB_REPLY__INIT;
+  *message = init_value;
+}
+size_t ham__env_create_db_reply__get_packed_size
+                     (const Ham__EnvCreateDbReply *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_create_db_reply__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__env_create_db_reply__pack
+                     (const Ham__EnvCreateDbReply *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_create_db_reply__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__env_create_db_reply__pack_to_buffer
+                     (const Ham__EnvCreateDbReply *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_create_db_reply__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__EnvCreateDbReply *
+       ham__env_create_db_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__EnvCreateDbReply *)
+     protobuf_c_message_unpack (&ham__env_create_db_reply__descriptor,
+                                allocator, len, data);
+}
+void   ham__env_create_db_reply__free_unpacked
+                     (Ham__EnvCreateDbReply *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_create_db_reply__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__env_open_db_request__init
+                     (Ham__EnvOpenDbRequest         *message)
+{
+  static Ham__EnvOpenDbRequest init_value = HAM__ENV_OPEN_DB_REQUEST__INIT;
+  *message = init_value;
+}
+size_t ham__env_open_db_request__get_packed_size
+                     (const Ham__EnvOpenDbRequest *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_open_db_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__env_open_db_request__pack
+                     (const Ham__EnvOpenDbRequest *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_open_db_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__env_open_db_request__pack_to_buffer
+                     (const Ham__EnvOpenDbRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_open_db_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__EnvOpenDbRequest *
+       ham__env_open_db_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__EnvOpenDbRequest *)
+     protobuf_c_message_unpack (&ham__env_open_db_request__descriptor,
+                                allocator, len, data);
+}
+void   ham__env_open_db_request__free_unpacked
+                     (Ham__EnvOpenDbRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_open_db_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__env_open_db_reply__init
+                     (Ham__EnvOpenDbReply         *message)
+{
+  static Ham__EnvOpenDbReply init_value = HAM__ENV_OPEN_DB_REPLY__INIT;
+  *message = init_value;
+}
+size_t ham__env_open_db_reply__get_packed_size
+                     (const Ham__EnvOpenDbReply *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_open_db_reply__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__env_open_db_reply__pack
+                     (const Ham__EnvOpenDbReply *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_open_db_reply__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__env_open_db_reply__pack_to_buffer
+                     (const Ham__EnvOpenDbReply *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_open_db_reply__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__EnvOpenDbReply *
+       ham__env_open_db_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__EnvOpenDbReply *)
+     protobuf_c_message_unpack (&ham__env_open_db_reply__descriptor,
+                                allocator, len, data);
+}
+void   ham__env_open_db_reply__free_unpacked
+                     (Ham__EnvOpenDbReply *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_open_db_reply__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[14] =
 {
   { "CONNECT_REQUEST", "HAM__WRAPPER__TYPE__CONNECT_REQUEST", 10 },
   { "CONNECT_REPLY", "HAM__WRAPPER__TYPE__CONNECT_REPLY", 11 },
@@ -486,20 +658,28 @@ const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[10] =
   { "ENV_GET_DATABASE_NAMES_REPLY", "HAM__WRAPPER__TYPE__ENV_GET_DATABASE_NAMES_REPLY", 41 },
   { "ENV_FLUSH_REQUEST", "HAM__WRAPPER__TYPE__ENV_FLUSH_REQUEST", 50 },
   { "ENV_FLUSH_REPLY", "HAM__WRAPPER__TYPE__ENV_FLUSH_REPLY", 51 },
+  { "ENV_CREATE_DB_REQUEST", "HAM__WRAPPER__TYPE__ENV_CREATE_DB_REQUEST", 60 },
+  { "ENV_CREATE_DB_REPLY", "HAM__WRAPPER__TYPE__ENV_CREATE_DB_REPLY", 61 },
+  { "ENV_OPEN_DB_REQUEST", "HAM__WRAPPER__TYPE__ENV_OPEN_DB_REQUEST", 70 },
+  { "ENV_OPEN_DB_REPLY", "HAM__WRAPPER__TYPE__ENV_OPEN_DB_REPLY", 71 },
 };
 static const ProtobufCIntRange ham__wrapper__type__value_ranges[] = {
-{10, 0},{20, 2},{30, 4},{40, 6},{50, 8},{0, 10}
+{10, 0},{20, 2},{30, 4},{40, 6},{50, 8},{60, 10},{70, 12},{0, 14}
 };
-const ProtobufCEnumValueIndex ham__wrapper__type__enum_values_by_name[10] =
+const ProtobufCEnumValueIndex ham__wrapper__type__enum_values_by_name[14] =
 {
   { "CONNECT_REPLY", 1 },
   { "CONNECT_REQUEST", 0 },
+  { "ENV_CREATE_DB_REPLY", 11 },
+  { "ENV_CREATE_DB_REQUEST", 10 },
   { "ENV_FLUSH_REPLY", 9 },
   { "ENV_FLUSH_REQUEST", 8 },
   { "ENV_GET_DATABASE_NAMES_REPLY", 7 },
   { "ENV_GET_DATABASE_NAMES_REQUEST", 6 },
   { "ENV_GET_PARAMETERS_REPLY", 5 },
   { "ENV_GET_PARAMETERS_REQUEST", 4 },
+  { "ENV_OPEN_DB_REPLY", 13 },
+  { "ENV_OPEN_DB_REQUEST", 12 },
   { "ENV_RENAME_REPLY", 3 },
   { "ENV_RENAME_REQUEST", 2 },
 };
@@ -510,15 +690,15 @@ const ProtobufCEnumDescriptor ham__wrapper__type__descriptor =
   "Type",
   "Ham__Wrapper__Type",
   "ham",
-  10,
+  14,
   ham__wrapper__type__enum_values_by_number,
-  10,
+  14,
   ham__wrapper__type__enum_values_by_name,
-  5,
+  7,
   ham__wrapper__type__value_ranges,
   NULL,NULL,NULL,NULL   /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[11] =
+static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[15] =
 {
   {
     "type",
@@ -641,21 +821,69 @@ static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[11] =
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
+  {
+    "env_create_db_request",
+    61,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, env_create_db_request),
+    &ham__env_create_db_request__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "env_create_db_reply",
+    62,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, env_create_db_reply),
+    &ham__env_create_db_reply__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "env_open_db_request",
+    71,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, env_open_db_request),
+    &ham__env_open_db_request__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "env_open_db_reply",
+    72,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, env_open_db_reply),
+    &ham__env_open_db_reply__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
 };
 static const unsigned ham__wrapper__field_indices_by_name[] = {
   2,   /* field[2] = connect_reply */
   1,   /* field[1] = connect_request */
+  12,   /* field[12] = env_create_db_reply */
+  11,   /* field[11] = env_create_db_request */
   10,   /* field[10] = env_flush_reply */
   9,   /* field[9] = env_flush_request */
   8,   /* field[8] = env_get_database_names_reply */
   7,   /* field[7] = env_get_database_names_request */
   6,   /* field[6] = env_get_parameters_reply */
   5,   /* field[5] = env_get_parameters_request */
+  14,   /* field[14] = env_open_db_reply */
+  13,   /* field[13] = env_open_db_request */
   4,   /* field[4] = env_rename_reply */
   3,   /* field[3] = env_rename_request */
   0,   /* field[0] = type */
 };
-static const ProtobufCIntRange ham__wrapper__number_ranges[6 + 1] =
+static const ProtobufCIntRange ham__wrapper__number_ranges[8 + 1] =
 {
   { 1, 0 },
   { 10, 1 },
@@ -663,7 +891,9 @@ static const ProtobufCIntRange ham__wrapper__number_ranges[6 + 1] =
   { 31, 5 },
   { 41, 7 },
   { 51, 9 },
-  { 0, 11 }
+  { 61, 11 },
+  { 71, 13 },
+  { 0, 15 }
 };
 const ProtobufCMessageDescriptor ham__wrapper__descriptor =
 {
@@ -673,29 +903,18 @@ const ProtobufCMessageDescriptor ham__wrapper__descriptor =
   "Ham__Wrapper",
   "ham",
   sizeof(Ham__Wrapper),
-  11,
+  15,
   ham__wrapper__field_descriptors,
   ham__wrapper__field_indices_by_name,
-  6,  ham__wrapper__number_ranges,
+  8,  ham__wrapper__number_ranges,
   (ProtobufCMessageInit) ham__wrapper__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor ham__connect_request__field_descriptors[2] =
+static const ProtobufCFieldDescriptor ham__connect_request__field_descriptors[1] =
 {
   {
-    "id",
-    1,
-    PROTOBUF_C_LABEL_REQUIRED,
-    PROTOBUF_C_TYPE_UINT64,
-    0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__ConnectRequest, id),
-    NULL,
-    NULL,
-    NULL,NULL    /* reserved1, reserved2 */
-  },
-  {
     "path",
-    2,
+    1,
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
@@ -706,13 +925,12 @@ static const ProtobufCFieldDescriptor ham__connect_request__field_descriptors[2]
   },
 };
 static const unsigned ham__connect_request__field_indices_by_name[] = {
-  0,   /* field[0] = id */
-  1,   /* field[1] = path */
+  0,   /* field[0] = path */
 };
 static const ProtobufCIntRange ham__connect_request__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 1 }
 };
 const ProtobufCMessageDescriptor ham__connect_request__descriptor =
 {
@@ -722,29 +940,18 @@ const ProtobufCMessageDescriptor ham__connect_request__descriptor =
   "Ham__ConnectRequest",
   "ham",
   sizeof(Ham__ConnectRequest),
-  2,
+  1,
   ham__connect_request__field_descriptors,
   ham__connect_request__field_indices_by_name,
   1,  ham__connect_request__number_ranges,
   (ProtobufCMessageInit) ham__connect_request__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor ham__connect_reply__field_descriptors[2] =
+static const ProtobufCFieldDescriptor ham__connect_reply__field_descriptors[1] =
 {
   {
-    "id",
-    1,
-    PROTOBUF_C_LABEL_REQUIRED,
-    PROTOBUF_C_TYPE_UINT64,
-    0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__ConnectReply, id),
-    NULL,
-    NULL,
-    NULL,NULL    /* reserved1, reserved2 */
-  },
-  {
     "status",
-    2,
+    1,
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_SINT32,
     0,   /* quantifier_offset */
@@ -755,13 +962,12 @@ static const ProtobufCFieldDescriptor ham__connect_reply__field_descriptors[2] =
   },
 };
 static const unsigned ham__connect_reply__field_indices_by_name[] = {
-  0,   /* field[0] = id */
-  1,   /* field[1] = status */
+  0,   /* field[0] = status */
 };
 static const ProtobufCIntRange ham__connect_reply__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 1 }
 };
 const ProtobufCMessageDescriptor ham__connect_reply__descriptor =
 {
@@ -771,29 +977,18 @@ const ProtobufCMessageDescriptor ham__connect_reply__descriptor =
   "Ham__ConnectReply",
   "ham",
   sizeof(Ham__ConnectReply),
-  2,
+  1,
   ham__connect_reply__field_descriptors,
   ham__connect_reply__field_indices_by_name,
   1,  ham__connect_reply__number_ranges,
   (ProtobufCMessageInit) ham__connect_reply__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor ham__env_get_parameters_request__field_descriptors[2] =
+static const ProtobufCFieldDescriptor ham__env_get_parameters_request__field_descriptors[1] =
 {
   {
-    "id",
-    1,
-    PROTOBUF_C_LABEL_REQUIRED,
-    PROTOBUF_C_TYPE_UINT64,
-    0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersRequest, id),
-    NULL,
-    NULL,
-    NULL,NULL    /* reserved1, reserved2 */
-  },
-  {
     "names",
-    2,
+    1,
     PROTOBUF_C_LABEL_REPEATED,
     PROTOBUF_C_TYPE_UINT32,
     PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersRequest, n_names),
@@ -804,13 +999,12 @@ static const ProtobufCFieldDescriptor ham__env_get_parameters_request__field_des
   },
 };
 static const unsigned ham__env_get_parameters_request__field_indices_by_name[] = {
-  0,   /* field[0] = id */
-  1,   /* field[1] = names */
+  0,   /* field[0] = names */
 };
 static const ProtobufCIntRange ham__env_get_parameters_request__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 1 }
 };
 const ProtobufCMessageDescriptor ham__env_get_parameters_request__descriptor =
 {
@@ -820,29 +1014,18 @@ const ProtobufCMessageDescriptor ham__env_get_parameters_request__descriptor =
   "Ham__EnvGetParametersRequest",
   "ham",
   sizeof(Ham__EnvGetParametersRequest),
-  2,
+  1,
   ham__env_get_parameters_request__field_descriptors,
   ham__env_get_parameters_request__field_indices_by_name,
   1,  ham__env_get_parameters_request__number_ranges,
   (ProtobufCMessageInit) ham__env_get_parameters_request__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descriptors[8] =
+static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descriptors[7] =
 {
   {
-    "id",
-    1,
-    PROTOBUF_C_LABEL_REQUIRED,
-    PROTOBUF_C_TYPE_UINT64,
-    0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, id),
-    NULL,
-    NULL,
-    NULL,NULL    /* reserved1, reserved2 */
-  },
-  {
     "status",
-    2,
+    1,
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_SINT32,
     0,   /* quantifier_offset */
@@ -853,7 +1036,7 @@ static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descr
   },
   {
     "cachesize",
-    3,
+    2,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_UINT32,
     PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, has_cachesize),
@@ -864,7 +1047,7 @@ static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descr
   },
   {
     "pagesize",
-    4,
+    3,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_UINT32,
     PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, has_pagesize),
@@ -875,7 +1058,7 @@ static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descr
   },
   {
     "max_env_databases",
-    5,
+    4,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_UINT32,
     PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, has_max_env_databases),
@@ -886,7 +1069,7 @@ static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descr
   },
   {
     "flags",
-    6,
+    5,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_UINT32,
     PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, has_flags),
@@ -897,7 +1080,7 @@ static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descr
   },
   {
     "filemode",
-    7,
+    6,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_UINT32,
     PROTOBUF_C_OFFSETOF(Ham__EnvGetParametersReply, has_filemode),
@@ -908,7 +1091,7 @@ static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descr
   },
   {
     "filename",
-    8,
+    7,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
@@ -919,19 +1102,18 @@ static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descr
   },
 };
 static const unsigned ham__env_get_parameters_reply__field_indices_by_name[] = {
-  2,   /* field[2] = cachesize */
-  6,   /* field[6] = filemode */
-  7,   /* field[7] = filename */
-  5,   /* field[5] = flags */
-  0,   /* field[0] = id */
-  4,   /* field[4] = max_env_databases */
-  3,   /* field[3] = pagesize */
-  1,   /* field[1] = status */
+  1,   /* field[1] = cachesize */
+  5,   /* field[5] = filemode */
+  6,   /* field[6] = filename */
+  4,   /* field[4] = flags */
+  3,   /* field[3] = max_env_databases */
+  2,   /* field[2] = pagesize */
+  0,   /* field[0] = status */
 };
 static const ProtobufCIntRange ham__env_get_parameters_reply__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 8 }
+  { 0, 7 }
 };
 const ProtobufCMessageDescriptor ham__env_get_parameters_reply__descriptor =
 {
@@ -941,35 +1123,19 @@ const ProtobufCMessageDescriptor ham__env_get_parameters_reply__descriptor =
   "Ham__EnvGetParametersReply",
   "ham",
   sizeof(Ham__EnvGetParametersReply),
-  8,
+  7,
   ham__env_get_parameters_reply__field_descriptors,
   ham__env_get_parameters_reply__field_indices_by_name,
   1,  ham__env_get_parameters_reply__number_ranges,
   (ProtobufCMessageInit) ham__env_get_parameters_reply__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor ham__env_get_database_names_request__field_descriptors[1] =
+static const ProtobufCFieldDescriptor ham__env_get_database_names_request__field_descriptors[0] =
 {
-  {
-    "id",
-    1,
-    PROTOBUF_C_LABEL_REQUIRED,
-    PROTOBUF_C_TYPE_UINT64,
-    0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__EnvGetDatabaseNamesRequest, id),
-    NULL,
-    NULL,
-    NULL,NULL    /* reserved1, reserved2 */
-  },
 };
 static const unsigned ham__env_get_database_names_request__field_indices_by_name[] = {
-  0,   /* field[0] = id */
 };
-static const ProtobufCIntRange ham__env_get_database_names_request__number_ranges[1 + 1] =
-{
-  { 1, 0 },
-  { 0, 1 }
-};
+#define ham__env_get_database_names_request__number_ranges NULL
 const ProtobufCMessageDescriptor ham__env_get_database_names_request__descriptor =
 {
   PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
@@ -978,29 +1144,18 @@ const ProtobufCMessageDescriptor ham__env_get_database_names_request__descriptor
   "Ham__EnvGetDatabaseNamesRequest",
   "ham",
   sizeof(Ham__EnvGetDatabaseNamesRequest),
-  1,
+  0,
   ham__env_get_database_names_request__field_descriptors,
   ham__env_get_database_names_request__field_indices_by_name,
-  1,  ham__env_get_database_names_request__number_ranges,
+  0,  ham__env_get_database_names_request__number_ranges,
   (ProtobufCMessageInit) ham__env_get_database_names_request__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor ham__env_get_database_names_reply__field_descriptors[3] =
+static const ProtobufCFieldDescriptor ham__env_get_database_names_reply__field_descriptors[2] =
 {
   {
-    "id",
-    1,
-    PROTOBUF_C_LABEL_REQUIRED,
-    PROTOBUF_C_TYPE_UINT64,
-    0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__EnvGetDatabaseNamesReply, id),
-    NULL,
-    NULL,
-    NULL,NULL    /* reserved1, reserved2 */
-  },
-  {
     "status",
-    2,
+    1,
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_SINT32,
     0,   /* quantifier_offset */
@@ -1011,7 +1166,7 @@ static const ProtobufCFieldDescriptor ham__env_get_database_names_reply__field_d
   },
   {
     "names",
-    3,
+    2,
     PROTOBUF_C_LABEL_REPEATED,
     PROTOBUF_C_TYPE_UINT32,
     PROTOBUF_C_OFFSETOF(Ham__EnvGetDatabaseNamesReply, n_names),
@@ -1022,14 +1177,13 @@ static const ProtobufCFieldDescriptor ham__env_get_database_names_reply__field_d
   },
 };
 static const unsigned ham__env_get_database_names_reply__field_indices_by_name[] = {
-  0,   /* field[0] = id */
-  2,   /* field[2] = names */
-  1,   /* field[1] = status */
+  1,   /* field[1] = names */
+  0,   /* field[0] = status */
 };
 static const ProtobufCIntRange ham__env_get_database_names_reply__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 3 }
+  { 0, 2 }
 };
 const ProtobufCMessageDescriptor ham__env_get_database_names_reply__descriptor =
 {
@@ -1039,29 +1193,18 @@ const ProtobufCMessageDescriptor ham__env_get_database_names_reply__descriptor =
   "Ham__EnvGetDatabaseNamesReply",
   "ham",
   sizeof(Ham__EnvGetDatabaseNamesReply),
-  3,
+  2,
   ham__env_get_database_names_reply__field_descriptors,
   ham__env_get_database_names_reply__field_indices_by_name,
   1,  ham__env_get_database_names_reply__number_ranges,
   (ProtobufCMessageInit) ham__env_get_database_names_reply__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor ham__env_rename_request__field_descriptors[4] =
+static const ProtobufCFieldDescriptor ham__env_rename_request__field_descriptors[3] =
 {
   {
-    "id",
-    1,
-    PROTOBUF_C_LABEL_REQUIRED,
-    PROTOBUF_C_TYPE_UINT64,
-    0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__EnvRenameRequest, id),
-    NULL,
-    NULL,
-    NULL,NULL    /* reserved1, reserved2 */
-  },
-  {
     "oldname",
-    2,
+    1,
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT32,
     0,   /* quantifier_offset */
@@ -1072,7 +1215,7 @@ static const ProtobufCFieldDescriptor ham__env_rename_request__field_descriptors
   },
   {
     "newname",
-    3,
+    2,
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT32,
     0,   /* quantifier_offset */
@@ -1083,7 +1226,7 @@ static const ProtobufCFieldDescriptor ham__env_rename_request__field_descriptors
   },
   {
     "flags",
-    4,
+    3,
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT32,
     0,   /* quantifier_offset */
@@ -1094,15 +1237,14 @@ static const ProtobufCFieldDescriptor ham__env_rename_request__field_descriptors
   },
 };
 static const unsigned ham__env_rename_request__field_indices_by_name[] = {
-  3,   /* field[3] = flags */
-  0,   /* field[0] = id */
-  2,   /* field[2] = newname */
-  1,   /* field[1] = oldname */
+  2,   /* field[2] = flags */
+  1,   /* field[1] = newname */
+  0,   /* field[0] = oldname */
 };
 static const ProtobufCIntRange ham__env_rename_request__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 4 }
+  { 0, 3 }
 };
 const ProtobufCMessageDescriptor ham__env_rename_request__descriptor =
 {
@@ -1112,29 +1254,18 @@ const ProtobufCMessageDescriptor ham__env_rename_request__descriptor =
   "Ham__EnvRenameRequest",
   "ham",
   sizeof(Ham__EnvRenameRequest),
-  4,
+  3,
   ham__env_rename_request__field_descriptors,
   ham__env_rename_request__field_indices_by_name,
   1,  ham__env_rename_request__number_ranges,
   (ProtobufCMessageInit) ham__env_rename_request__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor ham__env_rename_reply__field_descriptors[2] =
+static const ProtobufCFieldDescriptor ham__env_rename_reply__field_descriptors[1] =
 {
   {
-    "id",
-    1,
-    PROTOBUF_C_LABEL_REQUIRED,
-    PROTOBUF_C_TYPE_UINT64,
-    0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__EnvRenameReply, id),
-    NULL,
-    NULL,
-    NULL,NULL    /* reserved1, reserved2 */
-  },
-  {
     "status",
-    2,
+    1,
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_SINT32,
     0,   /* quantifier_offset */
@@ -1145,13 +1276,12 @@ static const ProtobufCFieldDescriptor ham__env_rename_reply__field_descriptors[2
   },
 };
 static const unsigned ham__env_rename_reply__field_indices_by_name[] = {
-  0,   /* field[0] = id */
-  1,   /* field[1] = status */
+  0,   /* field[0] = status */
 };
 static const ProtobufCIntRange ham__env_rename_reply__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 1 }
 };
 const ProtobufCMessageDescriptor ham__env_rename_reply__descriptor =
 {
@@ -1161,29 +1291,18 @@ const ProtobufCMessageDescriptor ham__env_rename_reply__descriptor =
   "Ham__EnvRenameReply",
   "ham",
   sizeof(Ham__EnvRenameReply),
-  2,
+  1,
   ham__env_rename_reply__field_descriptors,
   ham__env_rename_reply__field_indices_by_name,
   1,  ham__env_rename_reply__number_ranges,
   (ProtobufCMessageInit) ham__env_rename_reply__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor ham__env_flush_request__field_descriptors[2] =
+static const ProtobufCFieldDescriptor ham__env_flush_request__field_descriptors[1] =
 {
   {
-    "id",
-    1,
-    PROTOBUF_C_LABEL_REQUIRED,
-    PROTOBUF_C_TYPE_UINT64,
-    0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__EnvFlushRequest, id),
-    NULL,
-    NULL,
-    NULL,NULL    /* reserved1, reserved2 */
-  },
-  {
     "flags",
-    2,
+    1,
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT32,
     0,   /* quantifier_offset */
@@ -1194,13 +1313,12 @@ static const ProtobufCFieldDescriptor ham__env_flush_request__field_descriptors[
   },
 };
 static const unsigned ham__env_flush_request__field_indices_by_name[] = {
-  1,   /* field[1] = flags */
-  0,   /* field[0] = id */
+  0,   /* field[0] = flags */
 };
 static const ProtobufCIntRange ham__env_flush_request__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 1 }
 };
 const ProtobufCMessageDescriptor ham__env_flush_request__descriptor =
 {
@@ -1210,29 +1328,18 @@ const ProtobufCMessageDescriptor ham__env_flush_request__descriptor =
   "Ham__EnvFlushRequest",
   "ham",
   sizeof(Ham__EnvFlushRequest),
-  2,
+  1,
   ham__env_flush_request__field_descriptors,
   ham__env_flush_request__field_indices_by_name,
   1,  ham__env_flush_request__number_ranges,
   (ProtobufCMessageInit) ham__env_flush_request__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor ham__env_flush_reply__field_descriptors[2] =
+static const ProtobufCFieldDescriptor ham__env_flush_reply__field_descriptors[1] =
 {
   {
-    "id",
-    1,
-    PROTOBUF_C_LABEL_REQUIRED,
-    PROTOBUF_C_TYPE_UINT64,
-    0,   /* quantifier_offset */
-    PROTOBUF_C_OFFSETOF(Ham__EnvFlushReply, id),
-    NULL,
-    NULL,
-    NULL,NULL    /* reserved1, reserved2 */
-  },
-  {
     "status",
-    2,
+    1,
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_SINT32,
     0,   /* quantifier_offset */
@@ -1243,13 +1350,12 @@ static const ProtobufCFieldDescriptor ham__env_flush_reply__field_descriptors[2]
   },
 };
 static const unsigned ham__env_flush_reply__field_indices_by_name[] = {
-  0,   /* field[0] = id */
-  1,   /* field[1] = status */
+  0,   /* field[0] = status */
 };
 static const ProtobufCIntRange ham__env_flush_reply__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 1 }
 };
 const ProtobufCMessageDescriptor ham__env_flush_reply__descriptor =
 {
@@ -1259,10 +1365,254 @@ const ProtobufCMessageDescriptor ham__env_flush_reply__descriptor =
   "Ham__EnvFlushReply",
   "ham",
   sizeof(Ham__EnvFlushReply),
-  2,
+  1,
   ham__env_flush_reply__field_descriptors,
   ham__env_flush_reply__field_indices_by_name,
   1,  ham__env_flush_reply__number_ranges,
   (ProtobufCMessageInit) ham__env_flush_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor ham__env_create_db_request__field_descriptors[4] =
+{
+  {
+    "dbname",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__EnvCreateDbRequest, dbname),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "flags",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__EnvCreateDbRequest, flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "param_names",
+    3,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_UINT32,
+    PROTOBUF_C_OFFSETOF(Ham__EnvCreateDbRequest, n_param_names),
+    PROTOBUF_C_OFFSETOF(Ham__EnvCreateDbRequest, param_names),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "param_values",
+    4,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_UINT64,
+    PROTOBUF_C_OFFSETOF(Ham__EnvCreateDbRequest, n_param_values),
+    PROTOBUF_C_OFFSETOF(Ham__EnvCreateDbRequest, param_values),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__env_create_db_request__field_indices_by_name[] = {
+  0,   /* field[0] = dbname */
+  1,   /* field[1] = flags */
+  2,   /* field[2] = param_names */
+  3,   /* field[3] = param_values */
+};
+static const ProtobufCIntRange ham__env_create_db_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 4 }
+};
+const ProtobufCMessageDescriptor ham__env_create_db_request__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.EnvCreateDbRequest",
+  "EnvCreateDbRequest",
+  "Ham__EnvCreateDbRequest",
+  "ham",
+  sizeof(Ham__EnvCreateDbRequest),
+  4,
+  ham__env_create_db_request__field_descriptors,
+  ham__env_create_db_request__field_indices_by_name,
+  1,  ham__env_create_db_request__number_ranges,
+  (ProtobufCMessageInit) ham__env_create_db_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor ham__env_create_db_reply__field_descriptors[2] =
+{
+  {
+    "status",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_SINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__EnvCreateDbReply, status),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "db_handle",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__EnvCreateDbReply, db_handle),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__env_create_db_reply__field_indices_by_name[] = {
+  1,   /* field[1] = db_handle */
+  0,   /* field[0] = status */
+};
+static const ProtobufCIntRange ham__env_create_db_reply__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor ham__env_create_db_reply__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.EnvCreateDbReply",
+  "EnvCreateDbReply",
+  "Ham__EnvCreateDbReply",
+  "ham",
+  sizeof(Ham__EnvCreateDbReply),
+  2,
+  ham__env_create_db_reply__field_descriptors,
+  ham__env_create_db_reply__field_indices_by_name,
+  1,  ham__env_create_db_reply__number_ranges,
+  (ProtobufCMessageInit) ham__env_create_db_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor ham__env_open_db_request__field_descriptors[4] =
+{
+  {
+    "dbname",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__EnvOpenDbRequest, dbname),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "flags",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__EnvOpenDbRequest, flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "param_names",
+    3,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_UINT32,
+    PROTOBUF_C_OFFSETOF(Ham__EnvOpenDbRequest, n_param_names),
+    PROTOBUF_C_OFFSETOF(Ham__EnvOpenDbRequest, param_names),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "param_values",
+    4,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_UINT64,
+    PROTOBUF_C_OFFSETOF(Ham__EnvOpenDbRequest, n_param_values),
+    PROTOBUF_C_OFFSETOF(Ham__EnvOpenDbRequest, param_values),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__env_open_db_request__field_indices_by_name[] = {
+  0,   /* field[0] = dbname */
+  1,   /* field[1] = flags */
+  2,   /* field[2] = param_names */
+  3,   /* field[3] = param_values */
+};
+static const ProtobufCIntRange ham__env_open_db_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 4 }
+};
+const ProtobufCMessageDescriptor ham__env_open_db_request__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.EnvOpenDbRequest",
+  "EnvOpenDbRequest",
+  "Ham__EnvOpenDbRequest",
+  "ham",
+  sizeof(Ham__EnvOpenDbRequest),
+  4,
+  ham__env_open_db_request__field_descriptors,
+  ham__env_open_db_request__field_indices_by_name,
+  1,  ham__env_open_db_request__number_ranges,
+  (ProtobufCMessageInit) ham__env_open_db_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor ham__env_open_db_reply__field_descriptors[2] =
+{
+  {
+    "status",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_SINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__EnvOpenDbReply, status),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "db_handle",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__EnvOpenDbReply, db_handle),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__env_open_db_reply__field_indices_by_name[] = {
+  1,   /* field[1] = db_handle */
+  0,   /* field[0] = status */
+};
+static const ProtobufCIntRange ham__env_open_db_reply__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor ham__env_open_db_reply__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.EnvOpenDbReply",
+  "EnvOpenDbReply",
+  "Ham__EnvOpenDbReply",
+  "ham",
+  sizeof(Ham__EnvOpenDbReply),
+  2,
+  ham__env_open_db_reply__field_descriptors,
+  ham__env_open_db_reply__field_indices_by_name,
+  1,  ham__env_open_db_reply__number_ranges,
+  (ProtobufCMessageInit) ham__env_open_db_reply__init,
   NULL,NULL,NULL    /* reserved[123] */
 };

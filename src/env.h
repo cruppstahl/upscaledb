@@ -130,8 +130,10 @@ struct ham_env_t
     /** the memory allocator */
     mem_allocator_t *_alloc;
 
+#if HAM_ENABLE_REMOTE
     /** libcurl remote handle */
     void *_curl;
+#endif
 
     /** the file header page */
     ham_page_t *_hdrpage;
@@ -232,6 +234,18 @@ struct ham_env_t
      * flush the environment
      */
     ham_status_t (*_fun_flush)(ham_env_t *env, ham_u32_t flags);
+
+    /**
+     * create a database in the environment
+     */
+    ham_status_t (*_fun_create_db)(ham_env_t *env, ham_db_t *db, 
+        ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param);
+
+    /**
+     * open a database in the environment
+     */
+    ham_status_t (*_fun_open_db)(ham_env_t *env, ham_db_t *db, 
+        ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param);
 
     /**
      * close the Environment

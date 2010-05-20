@@ -64,16 +64,18 @@ o client/server communication
             x unittest
         x ham_env_enable_encryption
             x unittest
-
-        o ham_env_create_db
-            o unittest
-        o ham_env_open_db
-            o unittest
+        x ham_env_create_db
+            x unittest
         o ham_env_erase_db
             o unittest
 
         o ham_get_parameters
             o unittest
+        o ham_close
+            o unittest
+        o ham_env_open_db
+            x unittest
+            o unittest w/ extended params
         o ham_enable_compression
             o unittest
         o ham_find
@@ -89,8 +91,6 @@ o client/server communication
         o ham_flush
             o unittest
         o ham_get_key_count
-            o unittest
-        o ham_close
             o unittest
         o ham_txn_begin
             o unittest
@@ -171,9 +171,17 @@ o client/server communication
         o call curl_global_cleanup() (not threadsafe!!)
     o messages-pb.c must be created dynamically because it depends on 
         the google protocol version
+    o check_create_parameters -> move to env.c??
 
     o need configure switch to disable the local client
+        -> also clean up db.h, env.h...
+
+    o unittest: ham_env_create_db w/ extended params
+
     o add tests for --disable-remote and --disable-local to release.sh
+
+    o how is the daemon safely shut down? -> before exiting, we have to
+        close the environment!
 
 o mongoose: 
     o make sure connections are not closed immediately (keep-alive)

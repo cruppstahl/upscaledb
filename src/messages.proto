@@ -14,6 +14,10 @@ message Wrapper {
             ENV_GET_DATABASE_NAMES_REPLY = 41;
             ENV_FLUSH_REQUEST = 50;
             ENV_FLUSH_REPLY = 51;
+            ENV_CREATE_DB_REQUEST = 60;
+            ENV_CREATE_DB_REPLY = 61;
+            ENV_OPEN_DB_REQUEST = 70;
+            ENV_OPEN_DB_REPLY = 71;
     }
 
     required Type type = 1;
@@ -28,63 +32,81 @@ message Wrapper {
     optional EnvGetDatabaseNamesReply env_get_database_names_reply = 42;
     optional EnvFlushRequest env_flush_request = 51;
     optional EnvFlushReply env_flush_reply = 52;
+    optional EnvCreateDbRequest env_create_db_request = 61;
+    optional EnvCreateDbReply env_create_db_reply = 62;
+    optional EnvOpenDbRequest env_open_db_request = 71;
+    optional EnvOpenDbReply env_open_db_reply = 72;
 }
 
 message ConnectRequest {
-    required uint64 id = 1;
-    required string path = 2;
+    required string path = 1;
 }
 
 message ConnectReply {
-    required uint64 id = 1;
-    required sint32 status = 2;
+    required sint32 status = 1;
 }
 
 message EnvGetParametersRequest {
-    required uint64 id = 1;
-    repeated uint32 names = 2;
+    repeated uint32 names = 1;
 }
 
 message EnvGetParametersReply {
-    required uint64 id = 1;
-    required sint32 status = 2;
-    optional uint32 cachesize = 3;
-    optional uint32 pagesize = 4;
-    optional uint32 max_env_databases = 5;
-    optional uint32 flags = 6;
-    optional uint32 filemode = 7;
-    optional string filename = 8;
+    required sint32 status = 1;
+    optional uint32 cachesize = 2;
+    optional uint32 pagesize = 3;
+    optional uint32 max_env_databases = 4;
+    optional uint32 flags = 5;
+    optional uint32 filemode = 6;
+    optional string filename = 7;
 };
 
 message EnvGetDatabaseNamesRequest {
-    required uint64 id = 1;
 }
 
 message EnvGetDatabaseNamesReply {
-    required uint64 id = 1;
-    required sint32 status = 2;
-    repeated uint32 names = 3;
+    required sint32 status = 1;
+    repeated uint32 names = 2;
 }
 
 message EnvRenameRequest {
-    required uint64 id = 1;
-    required uint32 oldname = 2;
-    required uint32 newname = 3;
-    required uint32 flags = 4;
+    required uint32 oldname = 1;
+    required uint32 newname = 2;
+    required uint32 flags = 3;
 }
 
 message EnvRenameReply {
-    required uint64 id = 1;
-    required sint32 status = 2;
+    required sint32 status = 1;
 };
 
 message EnvFlushRequest {
-    required uint64 id = 1;
-    required uint32 flags = 2;
+    required uint32 flags = 1;
 }
 
 message EnvFlushReply {
-    required uint64 id = 1;
-    required sint32 status = 2;
+    required sint32 status = 1;
+};
+
+message EnvCreateDbRequest {
+    required uint32 dbname = 1;
+    required uint32 flags = 2;
+    repeated uint32 param_names = 3;
+    repeated uint64 param_values = 4;
+}
+
+message EnvCreateDbReply {
+    required sint32 status = 1;
+    required uint32 db_handle = 2;
+};
+
+message EnvOpenDbRequest {
+    required uint32 dbname = 1;
+    required uint32 flags = 2;
+    repeated uint32 param_names = 3;
+    repeated uint64 param_values = 4;
+}
+
+message EnvOpenDbReply {
+    required sint32 status = 1;
+    required uint32 db_handle = 2;
 };
 

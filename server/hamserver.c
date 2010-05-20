@@ -27,6 +27,7 @@
 /* max. number of open hamsterdb Environments - if you change this, also change
  * MAX_CALLBACKS in 3rdparty/mongoose/mongoose.c! */
 #define MAX_ENVIRONMENTS    128
+#define MAX_DATABASES       512
 
 static const char *standard_reply =	"HTTP/1.1 200 OK\r\n"
                                     "Content-Type: text/plain\r\n"
@@ -43,8 +44,34 @@ struct hamserver_t
         ham_env_t *env;
         os_critsec_t cs;
         char *urlname;
+        ham_db_t **dbs;
+        ham_u32_t dbs_ctr;
+        ham_u32_t dbs_size;
     } environments[MAX_ENVIRONMENTS];
 };
+
+static ham_u64_t
+__store_db(struct env_t *envh, ham_u16_t dbname, ham_db_t *db)
+{
+    unsigned i;
+    for (i=0; i<envh->dbs_size; i++) {
+        if (envh->dbs[i]==0) {
+            break;
+        }
+    }
+
+    if (i==envh->dbs_size) {
+        envh->dbs_size+=10;
+        envh->dbs=(ham_db_t **)realloc(envh->dbs, 
+                        sizeof(void *)*envh->dbs_size);
+        if (!envh->dbs)
+            exit(-1); /* TODO not so nice... */
+    }
+
+    envh->dbs[i]=db;
+
+    return ((++envh->dbs_ctr)<<31)|i;
+}
 
 static void
 send_wrapper(ham_env_t *env, struct mg_connection *conn, Ham__Wrapper *wrapper)
@@ -78,7 +105,6 @@ handle_connect(ham_env_t *env, struct mg_connection *conn,
 
     ham__connect_reply__init(&reply);
     ham__wrapper__init(&wrapper);
-    reply.id=request->id;
     reply.status=0;
     wrapper.connect_reply=&reply;
     wrapper.type=HAM__WRAPPER__TYPE__CONNECT_REPLY;
@@ -100,7 +126,6 @@ handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
 
     ham__env_get_parameters_reply__init(&reply);
     ham__wrapper__init(&wrapper);
-    reply.id=request->id;
     reply.status=0;
     wrapper.env_get_parameters_reply=&reply;
     wrapper.type=HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REPLY;
@@ -166,7 +191,6 @@ handle_env_get_database_names(ham_env_t *env, struct mg_connection *conn,
 
     ham__env_get_database_names_reply__init(&reply);
     ham__wrapper__init(&wrapper);
-    reply.id=request->id;
     reply.status=0;
     wrapper.env_get_database_names_reply=&reply;
     wrapper.type=HAM__WRAPPER__TYPE__ENV_GET_DATABASE_NAMES_REPLY;
@@ -204,7 +228,6 @@ handle_env_flush(ham_env_t *env, struct mg_connection *conn,
 
     ham__env_flush_reply__init(&reply);
     ham__wrapper__init(&wrapper);
-    reply.id=request->id;
     reply.status=0;
     wrapper.env_flush_reply=&reply;
     wrapper.type=HAM__WRAPPER__TYPE__ENV_FLUSH_REPLY;
@@ -227,7 +250,6 @@ handle_env_rename(ham_env_t *env, struct mg_connection *conn,
 
     ham__env_rename_reply__init(&reply);
     ham__wrapper__init(&wrapper);
-    reply.id=request->id;
     reply.status=0;
     wrapper.env_rename_reply=&reply;
     wrapper.type=HAM__WRAPPER__TYPE__ENV_RENAME_REPLY;
@@ -235,6 +257,82 @@ handle_env_rename(ham_env_t *env, struct mg_connection *conn,
     /* request the database names from the Environment */
     reply.status=ham_env_rename_db(env, request->oldname, request->newname,
                             request->flags);
+
+    send_wrapper(env, conn, &wrapper);
+}
+
+static void
+handle_env_create_db(struct env_t *envh, ham_env_t *env, 
+                struct mg_connection *conn, const struct mg_request_info *ri,
+                Ham__EnvCreateDbRequest *request)
+{
+    ham_db_t *db;
+    Ham__EnvCreateDbReply reply;
+    Ham__Wrapper wrapper;
+    ham_parameter_t params[100]={{0, 0}};
+
+    ham_assert(request!=0, (""));
+
+    ham__env_create_db_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.env_create_db_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__ENV_CREATE_DB_REPLY;
+
+    /* convert parameters */
+    ham_assert(request->n_param_values==request->n_param_names, (""));
+    ham_assert(request->n_param_values<100, (""));
+
+    /* create the database */
+    ham_new(&db);
+    reply.status=ham_env_create_db(env, db, request->dbname, request->flags,
+                            &params[0]);
+
+    if (reply.status==0) {
+        /* allocate a new database handle in the Env wrapper structure */
+        reply.db_handle=__store_db(envh, request->dbname, db);
+    }
+    else {
+        ham_delete(db);
+    }
+
+    send_wrapper(env, conn, &wrapper);
+}
+
+static void
+handle_env_open_db(struct env_t *envh, ham_env_t *env, 
+                struct mg_connection *conn, const struct mg_request_info *ri,
+                Ham__EnvOpenDbRequest *request)
+{
+    ham_db_t *db;
+    Ham__EnvOpenDbReply reply;
+    Ham__Wrapper wrapper;
+    ham_parameter_t params[100]={{0, 0}};
+
+    ham_assert(request!=0, (""));
+
+    ham__env_open_db_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.env_open_db_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__ENV_OPEN_DB_REPLY;
+
+    /* convert parameters */
+    ham_assert(request->n_param_values==request->n_param_names, (""));
+    ham_assert(request->n_param_values<100, (""));
+
+    /* open the database */
+    ham_new(&db);
+    reply.status=ham_env_open_db(env, db, request->dbname, request->flags,
+                            &params[0]);
+
+    if (reply.status==0) {
+        /* allocate a new database handle in the Env wrapper structure */
+        reply.db_handle=__store_db(envh, request->dbname, db);
+    }
+    else {
+        ham_delete(db);
+    }
 
     send_wrapper(env, conn, &wrapper);
 }
@@ -278,6 +376,16 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
     case HAM__WRAPPER__TYPE__ENV_RENAME_REQUEST:
         ham_trace(("env_rename request"));
         handle_env_rename(env->env, conn, ri, wrapper->env_rename_request);
+        break;
+    case HAM__WRAPPER__TYPE__ENV_CREATE_DB_REQUEST:
+        ham_trace(("env_create_db request"));
+        handle_env_create_db(env, env->env, conn, ri, 
+                            wrapper->env_create_db_request);
+        break;
+    case HAM__WRAPPER__TYPE__ENV_OPEN_DB_REQUEST:
+        ham_trace(("env_open_db request"));
+        handle_env_open_db(env, env->env, conn, ri, 
+                            wrapper->env_open_db_request);
         break;
     default:
         /* TODO send error */
