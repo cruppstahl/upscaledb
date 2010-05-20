@@ -47,6 +47,7 @@ public:
         BFC_REGISTER_TEST(RemoteTest, enableEncryptionTest);
         BFC_REGISTER_TEST(RemoteTest, createDbTest);
         BFC_REGISTER_TEST(RemoteTest, openDbTest);
+        BFC_REGISTER_TEST(RemoteTest, eraseDbTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanupTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanup2Test);
     }
@@ -292,6 +293,35 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_env_delete(env);
         ham_delete(db);
+    }
+
+    void eraseDbTest(void)
+    {
+        ham_env_t *env;
+        ham_u16_t names[15];
+        ham_size_t max_names=15;
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(env, SERVER_URL, 0, 0664));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_get_database_names(env, &names[0], &max_names));
+        BFC_ASSERT_EQUAL(14, names[0]);
+        BFC_ASSERT_EQUAL(13, names[1]);
+        BFC_ASSERT_EQUAL(2u, max_names);
+
+        BFC_ASSERT_EQUAL(0, ham_env_erase_db(env, 14, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_get_database_names(env, &names[0], &max_names));
+        BFC_ASSERT_EQUAL(13, names[0]);
+        BFC_ASSERT_EQUAL(1u, max_names);
+
+        BFC_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
+                ham_env_erase_db(env, 14, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        ham_env_delete(env);
     }
 
     void autoCleanupTest(void)

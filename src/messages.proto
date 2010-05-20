@@ -18,6 +18,8 @@ message Wrapper {
             ENV_CREATE_DB_REPLY = 61;
             ENV_OPEN_DB_REQUEST = 70;
             ENV_OPEN_DB_REPLY = 71;
+            ENV_ERASE_DB_REQUEST = 80;
+            ENV_ERASE_DB_REPLY = 81;
     }
 
     required Type type = 1;
@@ -26,16 +28,18 @@ message Wrapper {
     optional ConnectReply connect_reply     = 11;
     optional EnvRenameRequest env_rename_request   = 20;
     optional EnvRenameReply env_rename_reply       = 21;
-    optional EnvGetParametersRequest env_get_parameters_request = 31;
-    optional EnvGetParametersReply env_get_parameters_reply = 32;
-    optional EnvGetDatabaseNamesRequest env_get_database_names_request = 41;
-    optional EnvGetDatabaseNamesReply env_get_database_names_reply = 42;
-    optional EnvFlushRequest env_flush_request = 51;
-    optional EnvFlushReply env_flush_reply = 52;
-    optional EnvCreateDbRequest env_create_db_request = 61;
-    optional EnvCreateDbReply env_create_db_reply = 62;
-    optional EnvOpenDbRequest env_open_db_request = 71;
-    optional EnvOpenDbReply env_open_db_reply = 72;
+    optional EnvGetParametersRequest env_get_parameters_request = 30;
+    optional EnvGetParametersReply env_get_parameters_reply = 31;
+    optional EnvGetDatabaseNamesRequest env_get_database_names_request = 40;
+    optional EnvGetDatabaseNamesReply env_get_database_names_reply = 41;
+    optional EnvFlushRequest env_flush_request = 50;
+    optional EnvFlushReply env_flush_reply = 51;
+    optional EnvCreateDbRequest env_create_db_request = 60;
+    optional EnvCreateDbReply env_create_db_reply = 61;
+    optional EnvOpenDbRequest env_open_db_request = 70;
+    optional EnvOpenDbReply env_open_db_reply = 71;
+    optional EnvEraseDbRequest env_erase_db_request = 80;
+    optional EnvEraseDbReply env_erase_db_reply = 81;
 }
 
 message ConnectRequest {
@@ -108,5 +112,14 @@ message EnvOpenDbRequest {
 message EnvOpenDbReply {
     required sint32 status = 1;
     required uint32 db_handle = 2;
+};
+
+message EnvEraseDbRequest {
+    required uint32 name = 1;
+    required uint32 flags = 2;
+}
+
+message EnvEraseDbReply {
+    required sint32 status = 1;
 };
 

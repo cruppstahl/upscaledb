@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <ham/hamsterdb.h>
 
 #include "hamserver.h"
@@ -20,6 +21,13 @@ int main(void)
     }
 
     ham_new(&db);
+    st=ham_env_create_db(env, db, 14, 0, 0);
+    if (st) {
+        printf("ham_env_create_db: %d\n", st);
+        exit(-1);
+    }
+    ham_close(db, 0);
+
     st=ham_env_create_db(env, db, 13, 0, 0);
     if (st) {
         printf("ham_env_create_db: %d\n", st);

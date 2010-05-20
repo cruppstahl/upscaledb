@@ -338,6 +338,27 @@ handle_env_open_db(struct env_t *envh, ham_env_t *env,
 }
 
 static void
+handle_env_erase_db(ham_env_t *env, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__EnvEraseDbRequest *request)
+{
+    Ham__EnvEraseDbReply reply;
+    Ham__Wrapper wrapper;
+
+    ham_assert(request!=0, (""));
+
+    ham__env_erase_db_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.env_erase_db_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__ENV_ERASE_DB_REPLY;
+
+    reply.status=ham_env_erase_db(env, request->name, request->flags);
+
+    send_wrapper(env, conn, &wrapper);
+}
+
+static void
 request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
                 void *user_data)
 {
@@ -386,6 +407,10 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
         ham_trace(("env_open_db request"));
         handle_env_open_db(env, env->env, conn, ri, 
                             wrapper->env_open_db_request);
+        break;
+    case HAM__WRAPPER__TYPE__ENV_ERASE_DB_REQUEST:
+        ham_trace(("env_erase_db request"));
+        handle_env_erase_db(env->env, conn, ri, wrapper->env_erase_db_request);
         break;
     default:
         /* TODO send error */

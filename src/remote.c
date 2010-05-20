@@ -226,7 +226,31 @@ _remote_fun_rename_db(ham_env_t *env, ham_u16_t oldname,
 static ham_status_t
 _remote_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
 {
-    return (HAM_NOT_IMPLEMENTED);
+    ham_status_t st;
+    Ham__EnvEraseDbRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    
+    ham__wrapper__init(&wrapper);
+    ham__env_erase_db_request__init(&msg);
+    msg.name=name;
+    msg.flags=flags;
+    wrapper.type=HAM__WRAPPER__TYPE__ENV_ERASE_DB_REQUEST;
+    wrapper.env_erase_db_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->env_erase_db_reply!=0, (""));
+    st=reply->env_erase_db_reply->status;
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
 }
 
 static ham_status_t
