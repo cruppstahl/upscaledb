@@ -38,6 +38,87 @@
 
 #define PURGE_THRESHOLD  (500 * 1024 * 1024) /* 500 mb */
 
+
+typedef struct free_cb_context_t
+{
+    ham_db_t *db;
+    ham_bool_t is_leaf;
+
+} free_cb_context_t;
+
+/*
+ * callback function for freeing blobs of an in-memory-database
+ */
+static ham_status_t
+my_free_cb(int event, void *param1, void *param2, void *context)
+{
+    ham_status_t st;
+    int_key_t *key;
+    free_cb_context_t *c;
+
+    c=(free_cb_context_t *)context;
+
+    switch (event) {
+    case ENUM_EVENT_DESCEND:
+        break;
+
+    case ENUM_EVENT_PAGE_START:
+        c->is_leaf=*(ham_bool_t *)param2;
+        break;
+
+    case ENUM_EVENT_PAGE_STOP:
+        /*
+         * if this callback function is called from ham_env_erase_db:
+         * move the page to the freelist
+         */
+        if (!(env_get_rt_flags(db_get_env(c->db))&HAM_IN_MEMORY_DB)) 
+        {
+            ham_page_t *page=(ham_page_t *)param1;
+            st = txn_free_page(env_get_txn(db_get_env(c->db)), page);
+            if (st)
+                return st;
+        }
+        break;
+
+    case ENUM_EVENT_ITEM:
+        key=(int_key_t *)param1;
+
+        if (key_get_flags(key)&KEY_IS_EXTENDED) 
+        {
+            ham_offset_t blobid=key_get_extended_rid(c->db, key);
+            /*
+             * delete the extended key
+             */
+            st = extkey_remove(c->db, blobid);
+            if (st)
+                return st;
+        }
+
+        if (key_get_flags(key)&(KEY_BLOB_SIZE_TINY
+                            |KEY_BLOB_SIZE_SMALL
+                            |KEY_BLOB_SIZE_EMPTY))
+            break;
+
+        /*
+         * if we're in the leaf page, delete the blob
+         */
+        if (c->is_leaf)
+        {
+            st = key_erase_record(c->db, key, 0, BLOB_FREE_ALL_DUPES);
+            if (st)
+                return st;
+        }
+        break;
+
+    default:
+        ham_assert(!"unknown callback event", (0));
+        return CB_STOP;
+    }
+
+    return CB_CONTINUE;
+}
+
+
 ham_status_t
 db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
 {
@@ -1104,3 +1185,286 @@ db_resize_allocdata(ham_db_t *db, ham_size_t size)
 
     return (0);
 }
+
+static ham_status_t
+_local_fun_close(ham_db_t *db, ham_u32_t flags)
+{
+    ham_env_t *env=db_get_env(db);
+    ham_status_t st = HAM_SUCCESS;
+    ham_status_t st2 = HAM_SUCCESS;
+    ham_backend_t *be;
+    ham_bool_t noenv=HAM_FALSE;
+    ham_db_t *newowner=0;
+    ham_record_filter_t *record_head;
+
+    /*
+     * if this Database is the last database in the environment: 
+     * delete all environment-members
+     */
+    if (env) {
+        ham_bool_t has_other=HAM_FALSE;
+        ham_db_t *n=env_get_list(env);
+        while (n) {
+            if (n!=db) {
+                has_other=HAM_TRUE;
+                break;
+            }
+            n=db_get_next(n);
+        }
+        if (!has_other)
+            noenv=HAM_TRUE;
+    }
+
+    /*
+     * immediately abort or commit a pending txn - we have to do
+     * this right here to decrement the page's refcount
+     */
+    if (env && env_get_txn(env)) {
+        if (flags&HAM_TXN_AUTO_COMMIT)
+            st=ham_txn_commit(env_get_txn(env), 0);
+        else
+            st=ham_txn_abort(env_get_txn(env), 0);
+        if (st)
+        {
+            if (st2 == 0) st2 = st;
+        }
+        env_set_txn(env, 0);
+    }
+
+    be=db_get_backend(db);
+    if (!be || !be_is_active(be))
+    {
+        /* christoph-- i think it's ok if a database is closed twice 
+         * st2 = HAM_NOT_INITIALIZED; */
+    }
+    else if (flags&HAM_AUTO_CLEANUP)
+    {
+        /*
+         * auto-cleanup cursors?
+         */
+        if (be->_fun_close_cursors)
+            st2 = be->_fun_close_cursors(be, flags);
+        /* error or not, continue closing the database! */
+    }
+    else if (db_get_cursors(db))
+    {
+        return (db_set_error(db, HAM_CURSOR_STILL_OPEN));
+    }
+
+    /*
+     * auto-abort (or commit) a pending transaction?
+     */
+    if (noenv && env && env_get_txn(env)) 
+    {
+        /*
+        abort transaction when a cursor failure happened: when such a thing
+        happened, we're not in a fully controlled state any more so
+        'auto-committing' would be extremely dangerous then.
+        */
+        if (flags&HAM_TXN_AUTO_COMMIT && st2 == 0)
+            st=ham_txn_commit(env_get_txn(env), 0);
+        else
+            st=ham_txn_abort(env_get_txn(env), 0);
+        if (st)
+        {
+            if (st2 == 0) st2 = st;
+        }
+        env_set_txn(env, 0);
+    }
+
+    /* 
+     * flush all DB performance data 
+     */
+    if (st2 == HAM_SUCCESS)
+    {
+        stats_flush_dbdata(db, db_get_db_perf_data(db), noenv);
+    }
+    else
+    {
+        /* trash all DB performance data */
+        stats_trash_dbdata(db, db_get_db_perf_data(db));
+    }
+
+    /*
+     * if we're not in read-only mode, and not an in-memory-database,
+     * and the dirty-flag is true: flush the page-header to disk
+     */
+    if (env
+            && env_get_header_page(env) 
+            && noenv
+            && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
+            && env_get_device(env) 
+            && env_get_device(env)->is_open(env_get_device(env)) 
+            && (!(db_get_rt_flags(db)&HAM_READ_ONLY))) {
+        /* flush the database header, if it's dirty */
+        if (env_is_dirty(env)) {
+            st=page_flush(env_get_header_page(env));
+            if (st)
+            {
+                if (st2 == 0) st2 = st;
+            }
+        }
+    }
+
+    /*
+     * in-memory-database: free all allocated blobs
+     */
+    if (be && be_is_active(be) && env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
+    {
+        ham_txn_t txn;
+        free_cb_context_t context;
+        context.db=db;
+        st = txn_begin(&txn, env, 0);
+        if (st) 
+        {
+            if (st2 == 0) st2 = st;
+        }
+        else
+        {
+            (void)be->_fun_enumerate(be, my_free_cb, &context);
+            (void)txn_commit(&txn, 0);
+        }
+    }
+
+    /*
+     * immediately flush all pages of this database
+     */
+    if (env && env_get_cache(env)) {
+        ham_page_t *n, *head=cache_get_totallist(env_get_cache(env)); 
+        while (head) {
+            n=page_get_next(head, PAGE_LIST_CACHED);
+            if (page_get_owner(head)==db) {
+                if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) 
+                    (void)db_flush_page(env, head, HAM_WRITE_THROUGH);
+                (void)db_free_page(head, 0);
+            }
+            head=n;
+        }
+    }
+
+    /*
+     * free cached memory
+     */
+    (void)db_resize_allocdata(db, 0);
+    if (db_get_key_allocdata(db)) {
+        allocator_free(env_get_allocator(env), db_get_key_allocdata(db));
+        db_set_key_allocdata(db, 0);
+        db_set_key_allocsize(db, 0);
+    }
+
+    /*
+     * free the cache for extended keys
+     */
+    if (db_get_extkey_cache(db)) 
+    {
+        extkey_cache_destroy(db_get_extkey_cache(db));
+        db_set_extkey_cache(db, 0);
+    }
+
+    /* close the backend */
+    if (be && be_is_active(be)) 
+    {
+        st=be->_fun_close(be);
+        if (st)
+        {
+            if (st2 == 0) st2 = st;
+        }
+        else
+        {
+            ham_assert(!be_is_active(be), (0));
+        }
+    }
+    if (be)
+    {
+        ham_assert(!be_is_active(be), (0));
+
+        st = be->_fun_delete(be);
+        if (st2 == 0)
+            st2 = st;
+
+        /*
+         * TODO
+         * this free() should move into the backend destructor 
+         */
+        allocator_free(env_get_allocator(env), be);
+        db_set_backend(db, 0);
+    }
+
+    /*
+     * environment: move the ownership to another database.
+     * it's possible that there's no other page, then set the 
+     * ownership to 0
+     */
+    if (env) {
+        ham_db_t *head=env_get_list(env);
+        while (head) {
+            if (head!=db) {
+                newowner=head;
+                break;
+            }
+            head=db_get_next(head);
+        }
+    }
+    if (env && env_get_header_page(env)) 
+    {
+        ham_assert(env_get_header_page(env), (0));
+        page_set_owner(env_get_header_page(env), newowner);
+    }
+
+    /*
+     * close all record-level filters
+     */
+    record_head=db_get_record_filter(db);
+    while (record_head) {
+        ham_record_filter_t *next=record_head->_next;
+
+        if (record_head->close_cb)
+            record_head->close_cb(db, record_head);
+        record_head=next;
+    }
+    db_set_record_filter(db, 0);
+
+    /* 
+     * trash all DB performance data 
+     *
+     * This must happen before the DB is removed from the ENV as the ENV 
+     * (when it exists) provides the required allocator.
+     */
+    stats_trash_dbdata(db, db_get_db_perf_data(db));
+
+    /*
+     * remove this database from the environment
+     */
+    if (env) 
+    {
+        ham_db_t *prev=0;
+        ham_db_t *head=env_get_list(env);
+        while (head) {
+            if (head==db) {
+                if (!prev)
+                    env_set_list(db_get_env(db), db_get_next(db));
+                else
+                    db_set_next(prev, db_get_next(db));
+                break;
+            }
+            prev=head;
+            head=db_get_next(head);
+        }
+        if (db_get_rt_flags(db)&DB_ENV_IS_PRIVATE) {
+            (void)ham_env_close(db_get_env(db), flags);
+            ham_env_delete(db_get_env(db));
+        }
+        db_set_env(db, 0);
+    }
+
+    return (db_set_error(db, st2));
+}
+
+ham_status_t
+db_initialize_local(ham_db_t *db)
+{
+    db->_fun_close=_local_fun_close;
+ 
+    return (0);
+}
+

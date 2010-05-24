@@ -283,12 +283,10 @@ protected:
         BFC_ASSERT_EQUAL(0x80000000u, db_get_remote_handle(db));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
-    /* TODO re-enable this when ham_close is handled remotely 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_open_db(env, db, 22, 0, 0));
-        BFC_ASSERT_EQUAL(0x80010001u, db_get_remote_handle(db));
+        BFC_ASSERT_EQUAL(0x100000000ull, db_get_remote_handle(db));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-    */
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_env_delete(env);

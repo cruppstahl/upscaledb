@@ -25,6 +25,8 @@ typedef struct _Ham__EnvOpenDbRequest Ham__EnvOpenDbRequest;
 typedef struct _Ham__EnvOpenDbReply Ham__EnvOpenDbReply;
 typedef struct _Ham__EnvEraseDbRequest Ham__EnvEraseDbRequest;
 typedef struct _Ham__EnvEraseDbReply Ham__EnvEraseDbReply;
+typedef struct _Ham__DbCloseRequest Ham__DbCloseRequest;
+typedef struct _Ham__DbCloseReply Ham__DbCloseReply;
 
 
 /* --- enums --- */
@@ -45,7 +47,9 @@ typedef enum _Ham__Wrapper__Type {
   HAM__WRAPPER__TYPE__ENV_OPEN_DB_REQUEST = 70,
   HAM__WRAPPER__TYPE__ENV_OPEN_DB_REPLY = 71,
   HAM__WRAPPER__TYPE__ENV_ERASE_DB_REQUEST = 80,
-  HAM__WRAPPER__TYPE__ENV_ERASE_DB_REPLY = 81
+  HAM__WRAPPER__TYPE__ENV_ERASE_DB_REPLY = 81,
+  HAM__WRAPPER__TYPE__DB_CLOSE_REQUEST = 90,
+  HAM__WRAPPER__TYPE__DB_CLOSE_REPLY = 91
 } Ham__Wrapper__Type;
 
 /* --- messages --- */
@@ -70,10 +74,12 @@ struct  _Ham__Wrapper
   Ham__EnvOpenDbReply *env_open_db_reply;
   Ham__EnvEraseDbRequest *env_erase_db_request;
   Ham__EnvEraseDbReply *env_erase_db_reply;
+  Ham__DbCloseRequest *db_close_request;
+  Ham__DbCloseReply *db_close_reply;
 };
 #define HAM__WRAPPER__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__wrapper__descriptor) \
-    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
+    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 
 
 struct  _Ham__ConnectRequest
@@ -210,7 +216,7 @@ struct  _Ham__EnvCreateDbReply
 {
   ProtobufCMessage base;
   int32_t status;
-  uint32_t db_handle;
+  uint64_t db_handle;
 };
 #define HAM__ENV_CREATE_DB_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__env_create_db_reply__descriptor) \
@@ -236,7 +242,7 @@ struct  _Ham__EnvOpenDbReply
 {
   ProtobufCMessage base;
   int32_t status;
-  uint32_t db_handle;
+  uint64_t db_handle;
 };
 #define HAM__ENV_OPEN_DB_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__env_open_db_reply__descriptor) \
@@ -261,6 +267,27 @@ struct  _Ham__EnvEraseDbReply
 };
 #define HAM__ENV_ERASE_DB_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__env_erase_db_reply__descriptor) \
+    , 0 }
+
+
+struct  _Ham__DbCloseRequest
+{
+  ProtobufCMessage base;
+  uint64_t db_handle;
+  uint32_t flags;
+};
+#define HAM__DB_CLOSE_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__db_close_request__descriptor) \
+    , 0, 0 }
+
+
+struct  _Ham__DbCloseReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+};
+#define HAM__DB_CLOSE_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__db_close_reply__descriptor) \
     , 0 }
 
 
@@ -587,6 +614,44 @@ Ham__EnvEraseDbReply *
 void   ham__env_erase_db_reply__free_unpacked
                      (Ham__EnvEraseDbReply *message,
                       ProtobufCAllocator *allocator);
+/* Ham__DbCloseRequest methods */
+void   ham__db_close_request__init
+                     (Ham__DbCloseRequest         *message);
+size_t ham__db_close_request__get_packed_size
+                     (const Ham__DbCloseRequest   *message);
+size_t ham__db_close_request__pack
+                     (const Ham__DbCloseRequest   *message,
+                      uint8_t             *out);
+size_t ham__db_close_request__pack_to_buffer
+                     (const Ham__DbCloseRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__DbCloseRequest *
+       ham__db_close_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__db_close_request__free_unpacked
+                     (Ham__DbCloseRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__DbCloseReply methods */
+void   ham__db_close_reply__init
+                     (Ham__DbCloseReply         *message);
+size_t ham__db_close_reply__get_packed_size
+                     (const Ham__DbCloseReply   *message);
+size_t ham__db_close_reply__pack
+                     (const Ham__DbCloseReply   *message,
+                      uint8_t             *out);
+size_t ham__db_close_reply__pack_to_buffer
+                     (const Ham__DbCloseReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__DbCloseReply *
+       ham__db_close_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__db_close_reply__free_unpacked
+                     (Ham__DbCloseReply *message,
+                      ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
 typedef void (*Ham__Wrapper_Closure)
@@ -640,6 +705,12 @@ typedef void (*Ham__EnvEraseDbRequest_Closure)
 typedef void (*Ham__EnvEraseDbReply_Closure)
                  (const Ham__EnvEraseDbReply *message,
                   void *closure_data);
+typedef void (*Ham__DbCloseRequest_Closure)
+                 (const Ham__DbCloseRequest *message,
+                  void *closure_data);
+typedef void (*Ham__DbCloseReply_Closure)
+                 (const Ham__DbCloseReply *message,
+                  void *closure_data);
 
 /* --- services --- */
 
@@ -664,6 +735,8 @@ extern const ProtobufCMessageDescriptor ham__env_open_db_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__env_open_db_reply__descriptor;
 extern const ProtobufCMessageDescriptor ham__env_erase_db_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__env_erase_db_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__db_close_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__db_close_reply__descriptor;
 
 PROTOBUF_C_END_DECLS
 

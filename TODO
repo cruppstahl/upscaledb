@@ -68,10 +68,10 @@ o client/server communication
             x unittest
         x ham_env_erase_db
             x unittest
+        x ham_close (needs to delete cached db handle in the server!)
+            x unittest
 
         o ham_get_parameters
-            o unittest
-        o ham_close (needs to delete cached db handle in the server!)
             o unittest
         o ham_env_open_db
             x unittest

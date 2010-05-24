@@ -213,9 +213,14 @@ struct ham_db_t
 #endif
 
     /**
+     * close the Database
+     */
+    ham_status_t (*_fun_close)(ham_db_t *db, ham_u32_t flags);
+
+    /**
     * destroy the database object, free all memory
     */
-    ham_status_t (*destroy)(ham_db_t *self);
+    ham_status_t (*_fun_destroy)(ham_db_t *self);
 };
 
 /**
@@ -813,6 +818,18 @@ db_resize_allocdata(ham_db_t *db, ham_size_t size);
  */
 extern ham_status_t
 env_reserve_space(ham_env_t *env, ham_offset_t minimum_page_count);
+
+/*
+ * initialize the ham_db_t structure for accessing local files
+ */
+extern ham_status_t
+db_initialize_local(ham_db_t *db);
+
+/*
+ * initialize the ham_db_t structure for accessing a remote server
+ */
+extern ham_status_t
+db_initialize_remote(ham_db_t *db);
 
 
 #ifdef __cplusplus

@@ -44,33 +44,53 @@ struct hamserver_t
         ham_env_t *env;
         os_critsec_t cs;
         char *urlname;
-        ham_db_t **dbs;
-        ham_u32_t dbs_ctr;
-        ham_u32_t dbs_size;
+        ham_db_t **handles;
+        ham_u32_t handles_ctr;
+        ham_u32_t handles_size;
     } environments[MAX_ENVIRONMENTS];
 };
 
 static ham_u64_t
-__store_db(struct env_t *envh, ham_u16_t dbname, ham_db_t *db)
+__store_handle(struct env_t *envh, void *ptr)
 {
     unsigned i;
-    for (i=0; i<envh->dbs_size; i++) {
-        if (envh->dbs[i]==0) {
+    ham_u64_t ret;
+
+    for (i=0; i<envh->handles_size; i++) {
+        if (envh->handles[i]==0) {
             break;
         }
     }
 
-    if (i==envh->dbs_size) {
-        envh->dbs_size+=10;
-        envh->dbs=(ham_db_t **)realloc(envh->dbs, 
-                        sizeof(void *)*envh->dbs_size);
-        if (!envh->dbs)
+    if (i==envh->handles_size) {
+        envh->handles_size+=10;
+        envh->handles=(ham_db_t **)realloc(envh->handles, 
+                        sizeof(void *)*envh->handles_size);
+        if (!envh->handles)
             exit(-1); /* TODO not so nice... */
     }
 
-    envh->dbs[i]=db;
+    envh->handles[i]=ptr;
 
-    return ((++envh->dbs_ctr)<<31)|i;
+    ret=++envh->handles_ctr;
+    ret=ret<<31;
+    return (ret|i);
+}
+
+static void *
+__get_handle(struct env_t *envh, ham_u64_t handle)
+{
+    /* TODO also verify upper 32bits! */
+
+    return (envh->handles[handle&0xffffffff]);
+}
+
+static void
+__remove_handle(struct env_t *envh, ham_u64_t handle)
+{
+    /* TODO also verify upper 32bits! */
+
+    envh->handles[handle&0xffffffff]=0;
 }
 
 static void
@@ -290,7 +310,7 @@ handle_env_create_db(struct env_t *envh, ham_env_t *env,
 
     if (reply.status==0) {
         /* allocate a new database handle in the Env wrapper structure */
-        reply.db_handle=__store_db(envh, request->dbname, db);
+        reply.db_handle=__store_handle(envh, db);
     }
     else {
         ham_delete(db);
@@ -328,7 +348,7 @@ handle_env_open_db(struct env_t *envh, ham_env_t *env,
 
     if (reply.status==0) {
         /* allocate a new database handle in the Env wrapper structure */
-        reply.db_handle=__store_db(envh, request->dbname, db);
+        reply.db_handle=__store_handle(envh, db);
     }
     else {
         ham_delete(db);
@@ -354,6 +374,38 @@ handle_env_erase_db(ham_env_t *env, struct mg_connection *conn,
     wrapper.type=HAM__WRAPPER__TYPE__ENV_ERASE_DB_REPLY;
 
     reply.status=ham_env_erase_db(env, request->name, request->flags);
+
+    send_wrapper(env, conn, &wrapper);
+}
+
+static void
+handle_db_close(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__DbCloseRequest *request)
+{
+    Ham__DbCloseReply reply;
+    Ham__Wrapper wrapper;
+    ham_db_t *db;
+    ham_env_t *env=envh->env;
+
+    ham_assert(request!=0, (""));
+
+    ham__db_close_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.db_close_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__DB_CLOSE_REPLY;
+
+    db=__get_handle(envh, request->db_handle);
+    if (!db) {
+        reply.status=HAM_INV_PARAMETER;
+    }
+    else {
+        reply.status=ham_close(db, request->flags);
+    }
+
+    if (reply.status==0)
+        __remove_handle(envh, request->db_handle);
 
     send_wrapper(env, conn, &wrapper);
 }
@@ -411,6 +463,10 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
     case HAM__WRAPPER__TYPE__ENV_ERASE_DB_REQUEST:
         ham_trace(("env_erase_db request"));
         handle_env_erase_db(env->env, conn, ri, wrapper->env_erase_db_request);
+        break;
+    case HAM__WRAPPER__TYPE__DB_CLOSE_REQUEST:
+        ham_trace(("db_close request"));
+        handle_db_close(env, conn, ri, wrapper->db_close_request);
         break;
     default:
         /* TODO send error */

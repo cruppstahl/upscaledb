@@ -732,7 +732,93 @@ void   ham__env_erase_db_reply__free_unpacked
   PROTOBUF_C_ASSERT (message->base.descriptor == &ham__env_erase_db_reply__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[16] =
+void   ham__db_close_request__init
+                     (Ham__DbCloseRequest         *message)
+{
+  static Ham__DbCloseRequest init_value = HAM__DB_CLOSE_REQUEST__INIT;
+  *message = init_value;
+}
+size_t ham__db_close_request__get_packed_size
+                     (const Ham__DbCloseRequest *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_close_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__db_close_request__pack
+                     (const Ham__DbCloseRequest *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_close_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__db_close_request__pack_to_buffer
+                     (const Ham__DbCloseRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_close_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__DbCloseRequest *
+       ham__db_close_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__DbCloseRequest *)
+     protobuf_c_message_unpack (&ham__db_close_request__descriptor,
+                                allocator, len, data);
+}
+void   ham__db_close_request__free_unpacked
+                     (Ham__DbCloseRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_close_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__db_close_reply__init
+                     (Ham__DbCloseReply         *message)
+{
+  static Ham__DbCloseReply init_value = HAM__DB_CLOSE_REPLY__INIT;
+  *message = init_value;
+}
+size_t ham__db_close_reply__get_packed_size
+                     (const Ham__DbCloseReply *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_close_reply__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__db_close_reply__pack
+                     (const Ham__DbCloseReply *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_close_reply__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__db_close_reply__pack_to_buffer
+                     (const Ham__DbCloseReply *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_close_reply__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__DbCloseReply *
+       ham__db_close_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__DbCloseReply *)
+     protobuf_c_message_unpack (&ham__db_close_reply__descriptor,
+                                allocator, len, data);
+}
+void   ham__db_close_reply__free_unpacked
+                     (Ham__DbCloseReply *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_close_reply__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[18] =
 {
   { "CONNECT_REQUEST", "HAM__WRAPPER__TYPE__CONNECT_REQUEST", 10 },
   { "CONNECT_REPLY", "HAM__WRAPPER__TYPE__CONNECT_REPLY", 11 },
@@ -750,14 +836,18 @@ const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[16] =
   { "ENV_OPEN_DB_REPLY", "HAM__WRAPPER__TYPE__ENV_OPEN_DB_REPLY", 71 },
   { "ENV_ERASE_DB_REQUEST", "HAM__WRAPPER__TYPE__ENV_ERASE_DB_REQUEST", 80 },
   { "ENV_ERASE_DB_REPLY", "HAM__WRAPPER__TYPE__ENV_ERASE_DB_REPLY", 81 },
+  { "DB_CLOSE_REQUEST", "HAM__WRAPPER__TYPE__DB_CLOSE_REQUEST", 90 },
+  { "DB_CLOSE_REPLY", "HAM__WRAPPER__TYPE__DB_CLOSE_REPLY", 91 },
 };
 static const ProtobufCIntRange ham__wrapper__type__value_ranges[] = {
-{10, 0},{20, 2},{30, 4},{40, 6},{50, 8},{60, 10},{70, 12},{80, 14},{0, 16}
+{10, 0},{20, 2},{30, 4},{40, 6},{50, 8},{60, 10},{70, 12},{80, 14},{90, 16},{0, 18}
 };
-const ProtobufCEnumValueIndex ham__wrapper__type__enum_values_by_name[16] =
+const ProtobufCEnumValueIndex ham__wrapper__type__enum_values_by_name[18] =
 {
   { "CONNECT_REPLY", 1 },
   { "CONNECT_REQUEST", 0 },
+  { "DB_CLOSE_REPLY", 17 },
+  { "DB_CLOSE_REQUEST", 16 },
   { "ENV_CREATE_DB_REPLY", 11 },
   { "ENV_CREATE_DB_REQUEST", 10 },
   { "ENV_ERASE_DB_REPLY", 15 },
@@ -780,15 +870,15 @@ const ProtobufCEnumDescriptor ham__wrapper__type__descriptor =
   "Type",
   "Ham__Wrapper__Type",
   "ham",
-  16,
+  18,
   ham__wrapper__type__enum_values_by_number,
-  16,
+  18,
   ham__wrapper__type__enum_values_by_name,
-  8,
+  9,
   ham__wrapper__type__value_ranges,
   NULL,NULL,NULL,NULL   /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[17] =
+static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[19] =
 {
   {
     "type",
@@ -977,10 +1067,34 @@ static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[17] =
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
+  {
+    "db_close_request",
+    90,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, db_close_request),
+    &ham__db_close_request__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "db_close_reply",
+    91,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, db_close_reply),
+    &ham__db_close_reply__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
 };
 static const unsigned ham__wrapper__field_indices_by_name[] = {
   2,   /* field[2] = connect_reply */
   1,   /* field[1] = connect_request */
+  18,   /* field[18] = db_close_reply */
+  17,   /* field[17] = db_close_request */
   12,   /* field[12] = env_create_db_reply */
   11,   /* field[11] = env_create_db_request */
   16,   /* field[16] = env_erase_db_reply */
@@ -997,7 +1111,7 @@ static const unsigned ham__wrapper__field_indices_by_name[] = {
   3,   /* field[3] = env_rename_request */
   0,   /* field[0] = type */
 };
-static const ProtobufCIntRange ham__wrapper__number_ranges[9 + 1] =
+static const ProtobufCIntRange ham__wrapper__number_ranges[10 + 1] =
 {
   { 1, 0 },
   { 10, 1 },
@@ -1008,7 +1122,8 @@ static const ProtobufCIntRange ham__wrapper__number_ranges[9 + 1] =
   { 60, 11 },
   { 70, 13 },
   { 80, 15 },
-  { 0, 17 }
+  { 90, 17 },
+  { 0, 19 }
 };
 const ProtobufCMessageDescriptor ham__wrapper__descriptor =
 {
@@ -1018,10 +1133,10 @@ const ProtobufCMessageDescriptor ham__wrapper__descriptor =
   "Ham__Wrapper",
   "ham",
   sizeof(Ham__Wrapper),
-  17,
+  19,
   ham__wrapper__field_descriptors,
   ham__wrapper__field_indices_by_name,
-  9,  ham__wrapper__number_ranges,
+  10,  ham__wrapper__number_ranges,
   (ProtobufCMessageInit) ham__wrapper__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
@@ -1577,7 +1692,7 @@ static const ProtobufCFieldDescriptor ham__env_create_db_reply__field_descriptor
     "db_handle",
     2,
     PROTOBUF_C_LABEL_REQUIRED,
-    PROTOBUF_C_TYPE_UINT32,
+    PROTOBUF_C_TYPE_UINT64,
     0,   /* quantifier_offset */
     PROTOBUF_C_OFFSETOF(Ham__EnvCreateDbReply, db_handle),
     NULL,
@@ -1699,7 +1814,7 @@ static const ProtobufCFieldDescriptor ham__env_open_db_reply__field_descriptors[
     "db_handle",
     2,
     PROTOBUF_C_LABEL_REQUIRED,
-    PROTOBUF_C_TYPE_UINT32,
+    PROTOBUF_C_TYPE_UINT64,
     0,   /* quantifier_offset */
     PROTOBUF_C_OFFSETOF(Ham__EnvOpenDbReply, db_handle),
     NULL,
@@ -1815,5 +1930,91 @@ const ProtobufCMessageDescriptor ham__env_erase_db_reply__descriptor =
   ham__env_erase_db_reply__field_indices_by_name,
   1,  ham__env_erase_db_reply__number_ranges,
   (ProtobufCMessageInit) ham__env_erase_db_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor ham__db_close_request__field_descriptors[2] =
+{
+  {
+    "db_handle",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbCloseRequest, db_handle),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "flags",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbCloseRequest, flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__db_close_request__field_indices_by_name[] = {
+  0,   /* field[0] = db_handle */
+  1,   /* field[1] = flags */
+};
+static const ProtobufCIntRange ham__db_close_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor ham__db_close_request__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.DbCloseRequest",
+  "DbCloseRequest",
+  "Ham__DbCloseRequest",
+  "ham",
+  sizeof(Ham__DbCloseRequest),
+  2,
+  ham__db_close_request__field_descriptors,
+  ham__db_close_request__field_indices_by_name,
+  1,  ham__db_close_request__number_ranges,
+  (ProtobufCMessageInit) ham__db_close_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor ham__db_close_reply__field_descriptors[1] =
+{
+  {
+    "status",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_SINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbCloseReply, status),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__db_close_reply__field_indices_by_name[] = {
+  0,   /* field[0] = status */
+};
+static const ProtobufCIntRange ham__db_close_reply__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor ham__db_close_reply__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.DbCloseReply",
+  "DbCloseReply",
+  "Ham__DbCloseReply",
+  "ham",
+  sizeof(Ham__DbCloseReply),
+  1,
+  ham__db_close_reply__field_descriptors,
+  ham__db_close_reply__field_indices_by_name,
+  1,  ham__db_close_reply__number_ranges,
+  (ProtobufCMessageInit) ham__db_close_reply__init,
   NULL,NULL,NULL    /* reserved[123] */
 };

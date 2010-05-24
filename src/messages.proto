@@ -20,6 +20,8 @@ message Wrapper {
             ENV_OPEN_DB_REPLY = 71;
             ENV_ERASE_DB_REQUEST = 80;
             ENV_ERASE_DB_REPLY = 81;
+            DB_CLOSE_REQUEST = 90;
+            DB_CLOSE_REPLY = 91;
     }
 
     required Type type = 1;
@@ -40,6 +42,8 @@ message Wrapper {
     optional EnvOpenDbReply env_open_db_reply = 71;
     optional EnvEraseDbRequest env_erase_db_request = 80;
     optional EnvEraseDbReply env_erase_db_reply = 81;
+    optional DbCloseRequest db_close_request = 90;
+    optional DbCloseReply db_close_reply = 91;
 }
 
 message ConnectRequest {
@@ -99,7 +103,7 @@ message EnvCreateDbRequest {
 
 message EnvCreateDbReply {
     required sint32 status = 1;
-    required uint32 db_handle = 2;
+    required uint64 db_handle = 2;
 };
 
 message EnvOpenDbRequest {
@@ -111,7 +115,7 @@ message EnvOpenDbRequest {
 
 message EnvOpenDbReply {
     required sint32 status = 1;
-    required uint32 db_handle = 2;
+    required uint64 db_handle = 2;
 };
 
 message EnvEraseDbRequest {
@@ -120,6 +124,15 @@ message EnvEraseDbRequest {
 }
 
 message EnvEraseDbReply {
+    required sint32 status = 1;
+};
+
+message DbCloseRequest {
+    required uint64 db_handle = 1;
+    required uint32 flags = 2;
+}
+
+message DbCloseReply {
     required sint32 status = 1;
 };
 

@@ -358,9 +358,17 @@ _remote_fun_create_db(ham_env_t *env, ham_db_t *db,
 
     db_set_remote_handle(db, reply->env_create_db_reply->db_handle);
 
+    /*
+     * store the env pointer in the database
+     */
+    db_set_env(db, env);
+
     ham__wrapper__free_unpacked(reply, 0);
 
-    return (0);
+    /*
+     * initialize the remaining function pointers in ham_db_t
+     */
+    return (db_initialize_remote(db));
 }
 
 static ham_status_t 
@@ -425,15 +433,23 @@ _remote_fun_open_db(ham_env_t *env, ham_db_t *db,
         return (st);
     }
 
+    /*
+     * store the env pointer in the database
+     */
+    db_set_env(db, env);
+
     db_set_remote_handle(db, reply->env_open_db_reply->db_handle);
 
     ham__wrapper__free_unpacked(reply, 0);
 
-    return (0);
+    /*
+     * initialize the remaining function pointers in ham_db_t
+     */
+    return (db_initialize_remote(db));
 }
 
 static ham_status_t
-_remote_fun_close(ham_env_t *env, ham_u32_t flags)
+_remote_fun_env_close(ham_env_t *env, ham_u32_t flags)
 {
     (void)flags;
 
@@ -585,7 +601,7 @@ env_initialize_remote(ham_env_t *env)
     env->_fun_flush              =_remote_fun_flush;
     env->_fun_create_db          =_remote_fun_create_db;
     env->_fun_open_db            =_remote_fun_open_db;
-    env->_fun_close              =_remote_fun_close;
+    env->_fun_close              =_remote_fun_env_close;
 
     env_set_rt_flags(env, env_get_rt_flags(env)|DB_IS_REMOTE);
 #else
@@ -595,3 +611,51 @@ env_initialize_remote(ham_env_t *env)
     return (0);
 }
 
+static ham_status_t
+_remote_fun_close(ham_db_t *db, ham_u32_t flags)
+{
+    /* TODO check for cursors/auto-cleanup */
+    /* TODO check for transactions/auto-commit|abort */
+
+    ham_status_t st;
+    ham_env_t *env=db_get_env(db);
+    Ham__DbCloseRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    
+    ham__wrapper__init(&wrapper);
+    ham__db_close_request__init(&msg);
+    msg.db_handle=db_get_remote_handle(db);
+    msg.flags=flags;
+    wrapper.type=HAM__WRAPPER__TYPE__DB_CLOSE_REQUEST;
+    wrapper.db_close_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->db_close_reply!=0, (""));
+    st=reply->db_close_reply->status;
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    if (st==0)
+        db_set_remote_handle(db, 0);
+
+    return (st);
+}
+
+ham_status_t
+db_initialize_remote(ham_db_t *db)
+{
+#if HAM_ENABLE_REMOTE
+    db->_fun_close=_remote_fun_close;
+
+    return (0);
+#else
+    return (HAM_NOT_IMPLEMENTED);
+#endif
+}

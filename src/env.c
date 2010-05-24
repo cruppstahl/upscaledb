@@ -1054,6 +1054,15 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
     ham_assert(be_is_active(be) != 0, (0));
 
     /*
+     * initialize the remaining function pointers in ham_db_t
+     */
+    st=db_initialize_local(db);
+    if (st) {
+        (void)ham_close(db, 0);
+        return (db_set_error(db, st));
+    }
+
+    /*
      * set the default key compare functions
      */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
@@ -1205,6 +1214,16 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
     }
 
     ham_assert(be_is_active(be) != 0, (0));
+
+    /*
+     * initialize the remaining function pointers in ham_db_t
+     */
+    st=db_initialize_local(db);
+    if (st) {
+        (void)ham_close(db, 0);
+        return (db_set_error(db, st));
+    }
+
     /* 
      * set the database flags; strip off the persistent flags that may have been
      * set by the caller, before mixing in the persistent flags as obtained 
