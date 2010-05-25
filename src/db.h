@@ -213,6 +213,11 @@ struct ham_db_t
 #endif
 
     /**
+     * get Database parameters
+     */
+    ham_status_t (*_fun_get_parameters)(ham_db_t *db, ham_parameter_t *param);
+
+    /**
      * close the Database
      */
     ham_status_t (*_fun_close)(ham_db_t *db, ham_u32_t flags);

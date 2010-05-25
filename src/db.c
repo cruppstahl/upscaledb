@@ -1460,11 +1460,90 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     return (db_set_error(db, st2));
 }
 
+static ham_status_t
+_local_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
+{
+    ham_parameter_t *p=param;
+    ham_env_t *env;
+
+    env=db_get_env(db);
+
+    if (p) {
+        for (; p->name; p++) {
+            switch (p->name) {
+            case HAM_PARAM_CACHESIZE:
+                p->value=env_get_cachesize(env);
+                break;
+            case HAM_PARAM_PAGESIZE:
+                p->value=env_get_pagesize(env);
+                break;
+            case HAM_PARAM_KEYSIZE:
+                p->value=db_get_backend(db) ? db_get_keysize(db) : 21;
+                break;
+            case HAM_PARAM_MAX_ENV_DATABASES:
+                p->value=env_get_max_databases(env);
+                break;
+            case HAM_PARAM_GET_FLAGS:
+                p->value=db_get_rt_flags(db);
+                break;
+            case HAM_PARAM_GET_FILEMODE:
+                p->value=env_get_file_mode(db_get_env(db));
+                break;
+            case HAM_PARAM_GET_FILENAME:
+                p->value=(ham_u64_t)PTR_TO_U64(env_get_filename(env));
+                break;
+            case HAM_PARAM_GET_DATABASE_NAME:
+                p->value=(ham_offset_t)db_get_dbname(db);
+                break;
+            case HAM_PARAM_GET_KEYS_PER_PAGE:
+                if (db_get_backend(db)) {
+                    ham_size_t count=0, size=db_get_keysize(db);
+                    ham_backend_t *be = db_get_backend(db);
+                    ham_status_t st;
+
+                    if (!be->_fun_calc_keycount_per_page)
+                        return (HAM_NOT_IMPLEMENTED);
+                    st = be->_fun_calc_keycount_per_page(be, &count, size);
+                    if (st)
+                        return st;
+                    p->value=count;
+                }
+                break;
+            case HAM_PARAM_GET_DATA_ACCESS_MODE:
+                p->value=db_get_data_access_mode(db);
+                break;
+            case HAM_PARAM_GET_STATISTICS:
+                if (!p->value) {
+                    ham_trace(("the value for parameter "
+                               "'HAM_PARAM_GET_STATISTICS' must not be NULL "
+                               "and reference a ham_statistics_t data "
+                               "structure before invoking "
+                               "ham_[env_]get_parameters"));
+                    return (HAM_INV_PARAMETER);
+                }
+                else {
+                    ham_status_t st = stats_fill_ham_statistics_t(
+                            env, db, (ham_statistics_t *)U64_TO_PTR(p->value));
+                    if (st)
+                        return st;
+                }
+                break;
+            default:
+                ham_trace(("unknown parameter %d", (int)p->name));
+                return (HAM_INV_PARAMETER);
+            }
+        }
+    }
+
+    return (0);
+}
+
 ham_status_t
 db_initialize_local(ham_db_t *db)
 {
-    db->_fun_close=_local_fun_close;
- 
+    db->_fun_close         =_local_fun_close;
+    db->_fun_get_parameters=_local_fun_get_parameters;
+
     return (0);
 }
 

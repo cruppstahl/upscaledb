@@ -48,6 +48,7 @@ public:
         BFC_REGISTER_TEST(RemoteTest, createDbTest);
         BFC_REGISTER_TEST(RemoteTest, openDbTest);
         BFC_REGISTER_TEST(RemoteTest, eraseDbTest);
+        BFC_REGISTER_TEST(RemoteTest, getDbParamsTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanupTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanup2Test);
     }
@@ -320,6 +321,37 @@ protected:
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_env_delete(env);
+    }
+
+    void getDbParamsTest(void)
+    {
+        ham_db_t *db;
+        ham_parameter_t params[] =
+        {
+            {HAM_PARAM_CACHESIZE, 0},
+            {HAM_PARAM_PAGESIZE, 0},
+            {HAM_PARAM_MAX_ENV_DATABASES, 0},
+            {HAM_PARAM_GET_FLAGS, 0},
+            {HAM_PARAM_GET_FILEMODE, 0},
+            {HAM_PARAM_GET_FILENAME, 0},
+            {0,0}
+        };
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(db, SERVER_URL, 0, 0664));
+
+        BFC_ASSERT_EQUAL(0, ham_get_parameters(db, params));
+
+        BFC_ASSERT_EQUAL((unsigned)HAM_DEFAULT_CACHESIZE, params[0].value);
+        BFC_ASSERT_EQUAL(1024*16u, params[1].value);
+        BFC_ASSERT_EQUAL((ham_offset_t)16, params[2].value);
+        BFC_ASSERT_EQUAL(0u, params[3].value);
+        BFC_ASSERT_EQUAL((ham_offset_t)420, params[4].value);
+        BFC_ASSERT_EQUAL(0, strcmp("test.db", (char *)params[5].value));
+
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
     }
 
     void autoCleanupTest(void)

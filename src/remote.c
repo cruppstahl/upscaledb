@@ -462,7 +462,7 @@ _remote_fun_env_close(ham_env_t *env, ham_u32_t flags)
 }
 
 static ham_status_t 
-_remote_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
+_remote_fun_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
 {
     static char filename[1024];
     ham_status_t st;
@@ -597,7 +597,7 @@ env_initialize_remote(ham_env_t *env)
     env->_fun_rename_db          =_remote_fun_rename_db;
     env->_fun_erase_db           =_remote_fun_erase_db;
     env->_fun_get_database_names =_remote_fun_get_database_names;
-    env->_fun_get_parameters     =_remote_fun_get_parameters;
+    env->_fun_get_parameters     =_remote_fun_env_get_parameters;
     env->_fun_flush              =_remote_fun_flush;
     env->_fun_create_db          =_remote_fun_create_db;
     env->_fun_open_db            =_remote_fun_open_db;
@@ -648,11 +648,111 @@ _remote_fun_close(ham_db_t *db, ham_u32_t flags)
     return (st);
 }
 
+static ham_status_t
+_remote_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
+{
+    static char filename[1024];
+    ham_status_t st;
+    ham_env_t *env=db_get_env(db);
+    Ham__DbGetParametersRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    ham_size_t i, num_names=0;
+    ham_u32_t *names;
+    ham_parameter_t *p;
+    
+    /* count number of parameters */
+    p=param;
+    if (p) {
+        for (; p->name; p++) {
+            num_names++;
+        }
+    }
+
+    /* allocate a memory and copy the parameter names */
+    names=(ham_u32_t *)allocator_alloc(env_get_allocator(env), 
+            num_names*sizeof(ham_u32_t));
+    if (!names)
+        return (HAM_OUT_OF_MEMORY);
+    p=param;
+    if (p) {
+        for (; p->name; p++) {
+            names[i]=p->name;
+            i++;
+        }
+    }
+
+    ham__wrapper__init(&wrapper);
+    ham__db_get_parameters_request__init(&msg);
+    msg.db_handle=db_get_remote_handle(db);
+    msg.names=(unsigned *)&names[0];
+    msg.n_names=num_names;
+    wrapper.type=HAM__WRAPPER__TYPE__DB_GET_PARAMETERS_REQUEST;
+    wrapper.db_get_parameters_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->db_get_parameters_reply!=0, (""));
+    st=reply->db_get_parameters_reply->status;
+    if (st) {
+        ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    p=param;
+    while (p && p->name) {
+        switch (p->name) {
+        case HAM_PARAM_CACHESIZE:
+            ham_assert(reply->db_get_parameters_reply->has_cachesize, (""));
+            p->value=reply->db_get_parameters_reply->cachesize;
+            break;
+        case HAM_PARAM_PAGESIZE:
+            ham_assert(reply->db_get_parameters_reply->has_pagesize, (""));
+            p->value=reply->db_get_parameters_reply->pagesize;
+            break;
+        case HAM_PARAM_MAX_ENV_DATABASES:
+            ham_assert(reply->db_get_parameters_reply->has_max_env_databases, 
+                        (""));
+            p->value=reply->db_get_parameters_reply->max_env_databases;
+            break;
+        case HAM_PARAM_GET_FLAGS:
+            ham_assert(reply->db_get_parameters_reply->has_flags, (""));
+            p->value=reply->db_get_parameters_reply->flags;
+            break;
+        case HAM_PARAM_GET_FILEMODE:
+            ham_assert(reply->db_get_parameters_reply->has_filemode, (""));
+            p->value=reply->db_get_parameters_reply->filemode;
+            break;
+        case HAM_PARAM_GET_FILENAME:
+            ham_assert(reply->db_get_parameters_reply->filename, (""));
+            strncpy(filename, reply->db_get_parameters_reply->filename, 
+                        sizeof(filename));
+            p->value=PTR_TO_U64(&filename[0]);
+            break;
+        default:
+            ham_trace(("unknown parameter %d", (int)p->name));
+            break;
+        }
+        p++;
+    }
+
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
+}
+
 ham_status_t
 db_initialize_remote(ham_db_t *db)
 {
 #if HAM_ENABLE_REMOTE
-    db->_fun_close=_remote_fun_close;
+    db->_fun_close         =_remote_fun_close;
+    db->_fun_get_parameters=_remote_fun_get_parameters;
 
     return (0);
 #else

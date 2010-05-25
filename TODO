@@ -71,8 +71,8 @@ o client/server communication
         x ham_close (needs to delete cached db handle in the server!)
             x unittest
 
-        o ham_get_parameters
-            o unittest
+        x ham_get_parameters
+            x unittest
         o ham_env_open_db
             x unittest
             o unittest w/ extended params
@@ -116,6 +116,9 @@ o client/server communication
             o unittest
         o ham_cursor_close
             o unittest
+        o ham_close: needs to AUTOCLOSE existing cursors
+        o ham_close: needs to AUTOABORT existing txns
+        o ham_close: needs to AUTOCOMMIT existing txns
         - ham_get_version
             o unittest
         - ham_get_license
@@ -169,6 +172,7 @@ o client/server communication
         - ham_clean_statistics_datarec
             o unittest
         o call curl_global_cleanup() (not threadsafe!!)
+    o add documentation!
     o messages-pb.c must be created dynamically because it depends on 
         the google protocol version
     o check_create_parameters -> move to env.c??

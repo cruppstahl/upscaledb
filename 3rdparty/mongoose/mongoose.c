@@ -4521,6 +4521,9 @@ worker_thread(struct mg_context *ctx)
 		close_connection(&conn);
 	}
 
+    if (!conn.ctx)
+        return;
+
 	/* Signal master that we're done with connection and exiting */
 	pthread_mutex_lock(&conn.ctx->thr_mutex);
 	conn.ctx->num_threads--;

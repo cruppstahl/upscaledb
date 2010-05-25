@@ -198,6 +198,79 @@ handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
 }
 
 static void
+handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__DbGetParametersRequest *request)
+{
+    ham_env_t *env=envh->env;
+    ham_db_t *db;
+    Ham__DbGetParametersReply reply;
+    Ham__Wrapper wrapper;
+    ham_size_t i;
+    ham_parameter_t params[100]; /* 100 should be enough... */
+
+    ham_assert(request!=0, (""));
+
+    ham__db_get_parameters_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.db_get_parameters_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__DB_GET_PARAMETERS_REPLY;
+
+    /* initialize the ham_parameters_t array */
+    memset(&params[0], 0, sizeof(params));
+    for (i=0; i<request->n_names && i<100; i++)
+        params[i].name=request->names[i];
+
+    /* and request the parameters from the Environment */
+    db=__get_handle(envh, request->db_handle);
+    if (!db) {
+        reply.status=HAM_INV_PARAMETER;
+    }
+    else {
+        reply.status=ham_get_parameters(db, &params[0]);
+    }
+    if (reply.status) {
+        send_wrapper(env, conn, &wrapper);
+        return;
+    }
+
+    /* initialize the reply package */
+    for (i=0; i<request->n_names; i++) {
+        switch (params[i].name) {
+        case HAM_PARAM_CACHESIZE:
+            reply.cachesize=(int)params[i].value;
+            reply.has_cachesize=1;
+            break;
+        case HAM_PARAM_PAGESIZE:
+            reply.pagesize=(int)params[i].value;
+            reply.has_pagesize=1;
+            break;
+        case HAM_PARAM_MAX_ENV_DATABASES:
+            reply.max_env_databases=(int)params[i].value;
+            reply.has_max_env_databases=1;
+            break;
+        case HAM_PARAM_GET_FLAGS:
+            reply.flags=(int)params[i].value;
+            reply.has_flags=1;
+            break;
+        case HAM_PARAM_GET_FILEMODE:
+            reply.filemode=(int)params[i].value;
+            reply.has_filemode=1;
+            break;
+        case HAM_PARAM_GET_FILENAME:
+            reply.filename=(char *)(U64_TO_PTR(params[i].value));
+            break;
+        default:
+            ham_trace(("unsupported parameter %u", (unsigned)params[i].name));
+            break;
+        }
+    }
+
+    send_wrapper(env, conn, &wrapper);
+}
+
+static void
 handle_env_get_database_names(ham_env_t *env, struct mg_connection *conn, 
                 const struct mg_request_info *ri,
                 Ham__EnvGetDatabaseNamesRequest *request)
@@ -467,6 +540,11 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
     case HAM__WRAPPER__TYPE__DB_CLOSE_REQUEST:
         ham_trace(("db_close request"));
         handle_db_close(env, conn, ri, wrapper->db_close_request);
+        break;
+    case HAM__WRAPPER__TYPE__DB_GET_PARAMETERS_REQUEST:
+        ham_trace(("db_get_parameters request"));
+        handle_db_get_parameters(env, conn, ri, 
+                            wrapper->db_get_parameters_request);
         break;
     default:
         /* TODO send error */
