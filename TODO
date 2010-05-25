@@ -70,12 +70,11 @@ o client/server communication
             x unittest
         x ham_close (needs to delete cached db handle in the server!)
             x unittest
+        x ham_env_open_db
+            x unittest
 
         x ham_get_parameters
             x unittest
-        o ham_env_open_db
-            x unittest
-            o unittest w/ extended params
         o ham_enable_compression
             o unittest
         o ham_find
@@ -173,6 +172,7 @@ o client/server communication
             o unittest
         o call curl_global_cleanup() (not threadsafe!!)
     o add documentation!
+    o test with big blobs!
     o messages-pb.c must be created dynamically because it depends on 
         the google protocol version
     o check_create_parameters -> move to env.c??
@@ -185,15 +185,17 @@ o client/server communication
     o add tests for --disable-remote and --disable-local to release.sh
 
     o how is the daemon safely shut down? -> before exiting, we have to
-        close the environment!
+        close the environments!
 
 o mongoose: 
     o make sure connections are not closed immediately (keep-alive)
     o add license to readme!
 
-o fix freelist page overflow when searching for bits (See mail from Stefan)
-
 o HAM_PARAM_GET_STATISTICS -> hamsterdb_int.h!
+
+------------------------------
+
+o fix freelist page overflow when searching for bits (See mail from Stefan)
 
 o server: second step
     o unix daemon (also running in foreground!)
