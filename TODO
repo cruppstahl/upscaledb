@@ -75,28 +75,31 @@ o client/server communication
 
         x ham_get_parameters
             x unittest
-        o ham_enable_compression
+        x ham_enable_compression
+            x unittest
+        x ham_flush
+            x unittest
+        x ham_calc_maxkeys_per_page - needed? i guess not...
+
+        o ham_insert
             o unittest
         o ham_find
             o unittest
-        o ham_insert
-            o unittest
         o ham_erase
             o unittest
-        o ham_check_integrity
-            o unittest
-        o ham_calc_maxkeys_per_page
-            o unittest
-        o ham_flush
-            o unittest
-        o ham_get_key_count
-            o unittest
+
         o ham_txn_begin
             o unittest
         o ham_txn_commit
             o unittest
         o ham_txn_abort
             o unittest
+
+        o ham_check_integrity
+            o unittest
+        o ham_get_key_count
+            o unittest
+
         o ham_cursor_clone
             o unittest
         o ham_cursor_overwrite

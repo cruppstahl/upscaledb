@@ -29,6 +29,8 @@ typedef struct _Ham__DbCloseRequest Ham__DbCloseRequest;
 typedef struct _Ham__DbCloseReply Ham__DbCloseReply;
 typedef struct _Ham__DbGetParametersRequest Ham__DbGetParametersRequest;
 typedef struct _Ham__DbGetParametersReply Ham__DbGetParametersReply;
+typedef struct _Ham__DbFlushRequest Ham__DbFlushRequest;
+typedef struct _Ham__DbFlushReply Ham__DbFlushReply;
 
 
 /* --- enums --- */
@@ -53,7 +55,9 @@ typedef enum _Ham__Wrapper__Type {
   HAM__WRAPPER__TYPE__DB_CLOSE_REQUEST = 90,
   HAM__WRAPPER__TYPE__DB_CLOSE_REPLY = 91,
   HAM__WRAPPER__TYPE__DB_GET_PARAMETERS_REQUEST = 100,
-  HAM__WRAPPER__TYPE__DB_GET_PARAMETERS_REPLY = 101
+  HAM__WRAPPER__TYPE__DB_GET_PARAMETERS_REPLY = 101,
+  HAM__WRAPPER__TYPE__DB_FLUSH_REQUEST = 110,
+  HAM__WRAPPER__TYPE__DB_FLUSH_REPLY = 111
 } Ham__Wrapper__Type;
 
 /* --- messages --- */
@@ -82,10 +86,12 @@ struct  _Ham__Wrapper
   Ham__DbCloseReply *db_close_reply;
   Ham__DbGetParametersRequest *db_get_parameters_request;
   Ham__DbGetParametersReply *db_get_parameters_reply;
+  Ham__DbFlushRequest *db_flush_request;
+  Ham__DbFlushReply *db_flush_reply;
 };
 #define HAM__WRAPPER__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__wrapper__descriptor) \
-    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
+    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 
 
 struct  _Ham__ConnectRequest
@@ -328,6 +334,27 @@ struct  _Ham__DbGetParametersReply
 #define HAM__DB_GET_PARAMETERS_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__db_get_parameters_reply__descriptor) \
     , 0, 0,0, 0,0, 0,0, 0,0, 0,0, NULL }
+
+
+struct  _Ham__DbFlushRequest
+{
+  ProtobufCMessage base;
+  uint64_t db_handle;
+  uint32_t flags;
+};
+#define HAM__DB_FLUSH_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__db_flush_request__descriptor) \
+    , 0, 0 }
+
+
+struct  _Ham__DbFlushReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+};
+#define HAM__DB_FLUSH_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__db_flush_reply__descriptor) \
+    , 0 }
 
 
 /* Ham__Wrapper methods */
@@ -729,6 +756,44 @@ Ham__DbGetParametersReply *
 void   ham__db_get_parameters_reply__free_unpacked
                      (Ham__DbGetParametersReply *message,
                       ProtobufCAllocator *allocator);
+/* Ham__DbFlushRequest methods */
+void   ham__db_flush_request__init
+                     (Ham__DbFlushRequest         *message);
+size_t ham__db_flush_request__get_packed_size
+                     (const Ham__DbFlushRequest   *message);
+size_t ham__db_flush_request__pack
+                     (const Ham__DbFlushRequest   *message,
+                      uint8_t             *out);
+size_t ham__db_flush_request__pack_to_buffer
+                     (const Ham__DbFlushRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__DbFlushRequest *
+       ham__db_flush_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__db_flush_request__free_unpacked
+                     (Ham__DbFlushRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__DbFlushReply methods */
+void   ham__db_flush_reply__init
+                     (Ham__DbFlushReply         *message);
+size_t ham__db_flush_reply__get_packed_size
+                     (const Ham__DbFlushReply   *message);
+size_t ham__db_flush_reply__pack
+                     (const Ham__DbFlushReply   *message,
+                      uint8_t             *out);
+size_t ham__db_flush_reply__pack_to_buffer
+                     (const Ham__DbFlushReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__DbFlushReply *
+       ham__db_flush_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__db_flush_reply__free_unpacked
+                     (Ham__DbFlushReply *message,
+                      ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
 typedef void (*Ham__Wrapper_Closure)
@@ -794,6 +859,12 @@ typedef void (*Ham__DbGetParametersRequest_Closure)
 typedef void (*Ham__DbGetParametersReply_Closure)
                  (const Ham__DbGetParametersReply *message,
                   void *closure_data);
+typedef void (*Ham__DbFlushRequest_Closure)
+                 (const Ham__DbFlushRequest *message,
+                  void *closure_data);
+typedef void (*Ham__DbFlushReply_Closure)
+                 (const Ham__DbFlushReply *message,
+                  void *closure_data);
 
 /* --- services --- */
 
@@ -822,6 +893,8 @@ extern const ProtobufCMessageDescriptor ham__db_close_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__db_close_reply__descriptor;
 extern const ProtobufCMessageDescriptor ham__db_get_parameters_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__db_get_parameters_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__db_flush_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__db_flush_reply__descriptor;
 
 PROTOBUF_C_END_DECLS
 

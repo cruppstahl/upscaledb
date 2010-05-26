@@ -271,6 +271,36 @@ handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
 }
 
 static void
+handle_db_flush(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__DbFlushRequest *request)
+{
+    ham_env_t *env=envh->env;
+    ham_db_t *db;
+    Ham__DbFlushReply reply;
+    Ham__Wrapper wrapper;
+
+    ham_assert(request!=0, (""));
+
+    ham__db_flush_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.db_flush_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__DB_FLUSH_REPLY;
+
+    /* and request the parameters from the Environment */
+    db=__get_handle(envh, request->db_handle);
+    if (!db) {
+        reply.status=HAM_INV_PARAMETER;
+    }
+    else {
+        reply.status=ham_flush(db, request->flags);
+    }
+
+    send_wrapper(env, conn, &wrapper);
+}
+
+static void
 handle_env_get_database_names(ham_env_t *env, struct mg_connection *conn, 
                 const struct mg_request_info *ri,
                 Ham__EnvGetDatabaseNamesRequest *request)
@@ -545,6 +575,10 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
         ham_trace(("db_get_parameters request"));
         handle_db_get_parameters(env, conn, ri, 
                             wrapper->db_get_parameters_request);
+        break;
+    case HAM__WRAPPER__TYPE__DB_FLUSH_REQUEST:
+        ham_trace(("db_flush request"));
+        handle_db_flush(env, conn, ri, wrapper->db_flush_request);
         break;
     default:
         /* TODO send error */

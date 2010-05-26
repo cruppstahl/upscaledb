@@ -558,7 +558,7 @@ _remote_fun_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
 }
 
 static ham_status_t
-_remote_fun_flush(ham_env_t *env, ham_u32_t flags)
+_remote_fun_env_flush(ham_env_t *env, ham_u32_t flags)
 {
     ham_status_t st;
     Ham__EnvFlushRequest msg;
@@ -584,31 +584,6 @@ _remote_fun_flush(ham_env_t *env, ham_u32_t flags)
     ham__wrapper__free_unpacked(reply, 0);
 
     return (st);
-}
-
-#endif /* HAM_ENABLE_REMOTE */
-
-ham_status_t
-env_initialize_remote(ham_env_t *env)
-{
-#if HAM_ENABLE_REMOTE
-    env->_fun_create             =_remote_fun_create;
-    env->_fun_open               =_remote_fun_open;
-    env->_fun_rename_db          =_remote_fun_rename_db;
-    env->_fun_erase_db           =_remote_fun_erase_db;
-    env->_fun_get_database_names =_remote_fun_get_database_names;
-    env->_fun_get_parameters     =_remote_fun_env_get_parameters;
-    env->_fun_flush              =_remote_fun_flush;
-    env->_fun_create_db          =_remote_fun_create_db;
-    env->_fun_open_db            =_remote_fun_open_db;
-    env->_fun_close              =_remote_fun_env_close;
-
-    env_set_rt_flags(env, env_get_rt_flags(env)|DB_IS_REMOTE);
-#else
-    return (HAM_NOT_IMPLEMENTED);
-#endif
-
-    return (0);
 }
 
 static ham_status_t
@@ -741,10 +716,73 @@ _remote_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
         p++;
     }
 
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
+}
+
+static ham_status_t
+_remote_fun_flush(ham_db_t *db, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_env_t *env=db_get_env(db);
+    Ham__DbFlushRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    
+    ham__wrapper__init(&wrapper);
+    ham__db_flush_request__init(&msg);
+    msg.db_handle=db_get_remote_handle(db);
+    msg.flags=flags;
+    wrapper.type=HAM__WRAPPER__TYPE__DB_FLUSH_REQUEST;
+    wrapper.db_flush_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->db_flush_reply!=0, (""));
+    st=reply->db_flush_reply->status;
 
     ham__wrapper__free_unpacked(reply, 0);
 
     return (st);
+}
+
+static ham_status_t
+_remote_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
+{
+    /* TODO cannot implement this as long as txn's are not available 
+     * remotely */
+    return 0;
+}
+
+#endif /* HAM_ENABLE_REMOTE */
+
+ham_status_t
+env_initialize_remote(ham_env_t *env)
+{
+#if HAM_ENABLE_REMOTE
+    env->_fun_create             =_remote_fun_create;
+    env->_fun_open               =_remote_fun_open;
+    env->_fun_rename_db          =_remote_fun_rename_db;
+    env->_fun_erase_db           =_remote_fun_erase_db;
+    env->_fun_get_database_names =_remote_fun_get_database_names;
+    env->_fun_get_parameters     =_remote_fun_env_get_parameters;
+    env->_fun_flush              =_remote_fun_env_flush;
+    env->_fun_create_db          =_remote_fun_create_db;
+    env->_fun_open_db            =_remote_fun_open_db;
+    env->_fun_close              =_remote_fun_env_close;
+
+    env_set_rt_flags(env, env_get_rt_flags(env)|DB_IS_REMOTE);
+#else
+    return (HAM_NOT_IMPLEMENTED);
+#endif
+
+    return (0);
 }
 
 ham_status_t
@@ -753,6 +791,7 @@ db_initialize_remote(ham_db_t *db)
 #if HAM_ENABLE_REMOTE
     db->_fun_close         =_remote_fun_close;
     db->_fun_get_parameters=_remote_fun_get_parameters;
+    db->_fun_flush         =_remote_fun_flush;
 
     return (0);
 #else

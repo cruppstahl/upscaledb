@@ -49,6 +49,8 @@ public:
         BFC_REGISTER_TEST(RemoteTest, openDbTest);
         BFC_REGISTER_TEST(RemoteTest, eraseDbTest);
         BFC_REGISTER_TEST(RemoteTest, getDbParamsTest);
+        BFC_REGISTER_TEST(RemoteTest, enableCompressionTest);
+        BFC_REGISTER_TEST(RemoteTest, dbFlushTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanupTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanup2Test);
     }
@@ -349,6 +351,35 @@ protected:
         BFC_ASSERT_EQUAL(0u, params[3].value);
         BFC_ASSERT_EQUAL((ham_offset_t)420, params[4].value);
         BFC_ASSERT_EQUAL(0, strcmp("test.db", (char *)params[5].value));
+
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
+
+    void enableCompressionTest(void)
+    {
+        ham_db_t *db;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(db, SERVER_URL, 0, 0664));
+
+        BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, 
+                ham_enable_compression(db, 0, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
+
+    void dbFlushTest(void)
+    {
+        ham_db_t *db;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(db, SERVER_URL, 0, 0664));
+
+        BFC_ASSERT_EQUAL(0, ham_flush(db, 0));
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);

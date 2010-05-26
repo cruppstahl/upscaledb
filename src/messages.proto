@@ -24,6 +24,8 @@ message Wrapper {
             DB_CLOSE_REPLY = 91;
             DB_GET_PARAMETERS_REQUEST = 100;
             DB_GET_PARAMETERS_REPLY = 101;
+            DB_FLUSH_REQUEST = 110;
+            DB_FLUSH_REPLY = 111;
     }
 
     required Type type = 1;
@@ -48,6 +50,8 @@ message Wrapper {
     optional DbCloseReply db_close_reply = 91;
     optional DbGetParametersRequest db_get_parameters_request = 100;
     optional DbGetParametersReply db_get_parameters_reply = 101;
+    optional DbFlushRequest db_flush_request = 110;
+    optional DbFlushReply db_flush_reply = 111;
 }
 
 message ConnectRequest {
@@ -153,4 +157,13 @@ message DbGetParametersReply {
     optional uint32 flags = 5;
     optional uint32 filemode = 6;
     optional string filename = 7;
+};
+
+message DbFlushRequest {
+    required uint64 db_handle = 1;
+    required uint32 flags = 2;
+}
+
+message DbFlushReply {
+    required sint32 status = 1;
 };

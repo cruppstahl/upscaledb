@@ -2959,53 +2959,21 @@ ham_status_t HAM_CALLCONV
 ham_check_integrity(ham_db_t *db, ham_txn_t *txn)
 {
 #ifdef HAM_ENABLE_INTERNAL
-    ham_txn_t local_txn;
     ham_status_t st;
-    ham_backend_t *be;
 
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+    if (!db->_fun_check_integrity) {
+        ham_trace(("Database was not initialized"));
+        return (db_set_error(db, HAM_NOT_INITIALIZED));
+    }
 
     db_set_error(db, 0);
 
-    /*
-     * check the cache integrity
-     */
-    if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB))
-    {
-        st=cache_check_integrity(env_get_cache(db_get_env(db)));
-        if (st)
-            return (db_set_error(db, st));
-    }
-
-    be=db_get_backend(db);
-    if (!be)
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
-    if (!be->_fun_check_integrity)
-        return (db_set_error(db, HAM_NOT_IMPLEMENTED));
-
-    if (!txn) {
-        if ((st=txn_begin(&local_txn, db_get_env(db), HAM_TXN_READ_ONLY)))
-            return (db_set_error(db, st));
-    }
-
-    /*
-     * call the backend function
-     */
-    st=be->_fun_check_integrity(be);
-
-    if (st) {
-        if (!txn)
-            (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
-    }
-
-    if (!txn)
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
-    else
-        return (db_set_error(db, st));
+    st=db->_fun_check_integrity(db, txn);
+    return (db_set_error(db, st));
 #else /* !HAM_ENABLE_INTERNAL */
     ham_trace(("hamsterdb was compiled without support for internal "
                 "functions"));
@@ -3031,6 +2999,12 @@ ham_calc_maxkeys_per_page(ham_db_t *db, ham_size_t *keycount, ham_u16_t keysize)
         ham_trace(("parameter 'keycount' must not be NULL"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+    if (env_get_rt_flags(db_get_env(db))&DB_IS_REMOTE) {
+        ham_trace(("ham_calc_maxkeys_per_page is not supported by remote "
+                "servers"));
+        return (HAM_NOT_IMPLEMENTED);
+    }
+
     *keycount = 0;
 
     db_set_error(db, 0);
@@ -3066,8 +3040,6 @@ ham_flush(ham_db_t *db, ham_u32_t flags)
 {
     ham_status_t st;
     ham_env_t *env;
-    ham_device_t *dev;
-    ham_backend_t *be;
 
     (void)flags;
 
@@ -3081,50 +3053,18 @@ ham_flush(ham_db_t *db, ham_u32_t flags)
                    "explicit) environment"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+    if (!db->_fun_flush) {
+        ham_trace(("Database was not initialized"));
+        return (db_set_error(db, HAM_NOT_INITIALIZED));
+    }
 
     db_set_error(db, 0);
 
     /*
-     * never flush an in-memory-database
+     * the function pointer has the actual implementation...
      */
-    if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
-        return (db_set_error(db, 0));
-
-    be=db_get_backend(db);
-    if (!be || !be_is_active(be))
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
-    if (!be->_fun_flush)
-        return (HAM_NOT_IMPLEMENTED);
-
-    dev = env_get_device(env);
-    if (!dev)
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
-
-    /*
-     * flush the backend
-     */
-    st=be->_fun_flush(be);
-    if (st)
-        return (db_set_error(db, st));
-
-    /*
-     * update the header page, if necessary
-     */
-    if (env_is_dirty(env)) {
-        st=page_flush(env_get_header_page(env));
-        if (st)
-            return (db_set_error(db, st));
-    }
-
-    st=db_flush_all(env_get_cache(env), DB_FLUSH_NODELETE);
-    if (st)
-        return (db_set_error(db, st));
-
-    st=dev->flush(dev);
-    if (st)
-        return (db_set_error(db, st));
-
-    return (db_set_error(db, HAM_SUCCESS));
+    st=db->_fun_flush(db, flags);
+    return (db_set_error(db, st));
 }
 
 /*

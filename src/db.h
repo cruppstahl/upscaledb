@@ -218,6 +218,16 @@ struct ham_db_t
     ham_status_t (*_fun_get_parameters)(ham_db_t *db, ham_parameter_t *param);
 
     /**
+     * flush the Database
+     */
+    ham_status_t (*_fun_flush)(ham_db_t *db, ham_u32_t flags);
+
+    /**
+     * check Database integrity
+     */
+    ham_status_t (*_fun_check_integrity)(ham_db_t *db, ham_txn_t *txn);
+
+    /**
      * close the Database
      */
     ham_status_t (*_fun_close)(ham_db_t *db, ham_u32_t flags);
