@@ -81,19 +81,18 @@ o client/server communication
             x unittest
         x ham_calc_maxkeys_per_page - needed? i guess not...
 
-        o ham_insert
-            o unittest
-        o ham_find
-            o unittest
-        o ham_erase
-            o unittest
-
         o ham_txn_begin
             o unittest
         o ham_txn_commit
             o unittest
         o ham_txn_abort
             o unittest
+
+        o ham_insert
+        o ham_find
+        o ham_erase
+            o unittest: insert, find, erase, find
+            o unittest: negative insert, negative find, negative erase
 
         o ham_check_integrity
             o unittest
