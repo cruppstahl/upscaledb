@@ -26,6 +26,12 @@ message Wrapper {
             DB_GET_PARAMETERS_REPLY = 101;
             DB_FLUSH_REQUEST = 110;
             DB_FLUSH_REPLY = 111;
+            TXN_BEGIN_REQUEST = 120;
+            TXN_BEGIN_REPLY = 121;
+            TXN_COMMIT_REQUEST = 130;
+            TXN_COMMIT_REPLY = 131;
+            TXN_ABORT_REQUEST = 140;
+            TXN_ABORT_REPLY = 141;
     }
 
     required Type type = 1;
@@ -52,6 +58,12 @@ message Wrapper {
     optional DbGetParametersReply db_get_parameters_reply = 101;
     optional DbFlushRequest db_flush_request = 110;
     optional DbFlushReply db_flush_reply = 111;
+    optional TxnBeginRequest txn_begin_request = 120;
+    optional TxnBeginReply txn_begin_reply = 121;
+    optional TxnCommitRequest txn_commit_request = 130;
+    optional TxnCommitReply txn_commit_reply = 131;
+    optional TxnAbortRequest txn_abort_request = 140;
+    optional TxnAbortReply txn_abort_reply = 141;
 }
 
 message ConnectRequest {
@@ -165,5 +177,32 @@ message DbFlushRequest {
 }
 
 message DbFlushReply {
+    required sint32 status = 1;
+};
+
+message TxnBeginRequest {
+    required uint32 flags = 1;
+}
+
+message TxnBeginReply {
+    required sint32 status = 1;
+    required uint64 txn_handle = 2;
+};
+
+message TxnCommitRequest {
+    required uint64 txn_handle = 1;
+    required uint32 flags = 2;
+}
+
+message TxnCommitReply {
+    required sint32 status = 1;
+};
+
+message TxnAbortRequest {
+    required uint64 txn_handle = 1;
+    required uint32 flags = 2;
+}
+
+message TxnAbortReply {
     required sint32 status = 1;
 };

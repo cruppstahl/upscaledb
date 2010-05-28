@@ -88,6 +88,9 @@ o client/server communication
         o ham_txn_abort
             o unittest
 
+o if the same database is opened twice, the same handle has to be returned
+    (currently, an error is returned - DB_ALREADY_OPEN)
+
         o ham_insert
         o ham_find
         o ham_erase

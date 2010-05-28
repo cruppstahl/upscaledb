@@ -760,6 +760,24 @@ _remote_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
     return 0;
 }
 
+static ham_status_t
+_remote_fun_txn_begin(ham_env_t *env, ham_txn_t **txn, ham_u32_t flags)
+{
+    TODO hier geht'S weiter (dann im server implementieren und testen)
+}
+
+static ham_status_t
+_remote_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
+{
+    TODO hier geht'S weiter (dann im server implementieren und testen)
+}
+
+static ham_status_t
+_remote_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
+{
+    TODO hier geht'S weiter (dann im server implementieren und testen)
+}
+
 #endif /* HAM_ENABLE_REMOTE */
 
 ham_status_t
@@ -776,6 +794,9 @@ env_initialize_remote(ham_env_t *env)
     env->_fun_create_db          =_remote_fun_create_db;
     env->_fun_open_db            =_remote_fun_open_db;
     env->_fun_close              =_remote_fun_env_close;
+    env->_fun_txn_begin          =_remote_fun_txn_begin;
+    env->_fun_txn_commit         =_remote_fun_txn_commit;
+    env->_fun_txn_abort          =_remote_fun_txn_abort;
 
     env_set_rt_flags(env, env_get_rt_flags(env)|DB_IS_REMOTE);
 #else

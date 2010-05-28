@@ -990,7 +990,265 @@ void   ham__db_flush_reply__free_unpacked
   PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_flush_reply__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[22] =
+void   ham__txn_begin_request__init
+                     (Ham__TxnBeginRequest         *message)
+{
+  static Ham__TxnBeginRequest init_value = HAM__TXN_BEGIN_REQUEST__INIT;
+  *message = init_value;
+}
+size_t ham__txn_begin_request__get_packed_size
+                     (const Ham__TxnBeginRequest *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_begin_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__txn_begin_request__pack
+                     (const Ham__TxnBeginRequest *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_begin_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__txn_begin_request__pack_to_buffer
+                     (const Ham__TxnBeginRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_begin_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__TxnBeginRequest *
+       ham__txn_begin_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__TxnBeginRequest *)
+     protobuf_c_message_unpack (&ham__txn_begin_request__descriptor,
+                                allocator, len, data);
+}
+void   ham__txn_begin_request__free_unpacked
+                     (Ham__TxnBeginRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_begin_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__txn_begin_reply__init
+                     (Ham__TxnBeginReply         *message)
+{
+  static Ham__TxnBeginReply init_value = HAM__TXN_BEGIN_REPLY__INIT;
+  *message = init_value;
+}
+size_t ham__txn_begin_reply__get_packed_size
+                     (const Ham__TxnBeginReply *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_begin_reply__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__txn_begin_reply__pack
+                     (const Ham__TxnBeginReply *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_begin_reply__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__txn_begin_reply__pack_to_buffer
+                     (const Ham__TxnBeginReply *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_begin_reply__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__TxnBeginReply *
+       ham__txn_begin_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__TxnBeginReply *)
+     protobuf_c_message_unpack (&ham__txn_begin_reply__descriptor,
+                                allocator, len, data);
+}
+void   ham__txn_begin_reply__free_unpacked
+                     (Ham__TxnBeginReply *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_begin_reply__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__txn_commit_request__init
+                     (Ham__TxnCommitRequest         *message)
+{
+  static Ham__TxnCommitRequest init_value = HAM__TXN_COMMIT_REQUEST__INIT;
+  *message = init_value;
+}
+size_t ham__txn_commit_request__get_packed_size
+                     (const Ham__TxnCommitRequest *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_commit_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__txn_commit_request__pack
+                     (const Ham__TxnCommitRequest *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_commit_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__txn_commit_request__pack_to_buffer
+                     (const Ham__TxnCommitRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_commit_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__TxnCommitRequest *
+       ham__txn_commit_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__TxnCommitRequest *)
+     protobuf_c_message_unpack (&ham__txn_commit_request__descriptor,
+                                allocator, len, data);
+}
+void   ham__txn_commit_request__free_unpacked
+                     (Ham__TxnCommitRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_commit_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__txn_commit_reply__init
+                     (Ham__TxnCommitReply         *message)
+{
+  static Ham__TxnCommitReply init_value = HAM__TXN_COMMIT_REPLY__INIT;
+  *message = init_value;
+}
+size_t ham__txn_commit_reply__get_packed_size
+                     (const Ham__TxnCommitReply *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_commit_reply__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__txn_commit_reply__pack
+                     (const Ham__TxnCommitReply *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_commit_reply__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__txn_commit_reply__pack_to_buffer
+                     (const Ham__TxnCommitReply *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_commit_reply__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__TxnCommitReply *
+       ham__txn_commit_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__TxnCommitReply *)
+     protobuf_c_message_unpack (&ham__txn_commit_reply__descriptor,
+                                allocator, len, data);
+}
+void   ham__txn_commit_reply__free_unpacked
+                     (Ham__TxnCommitReply *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_commit_reply__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__txn_abort_request__init
+                     (Ham__TxnAbortRequest         *message)
+{
+  static Ham__TxnAbortRequest init_value = HAM__TXN_ABORT_REQUEST__INIT;
+  *message = init_value;
+}
+size_t ham__txn_abort_request__get_packed_size
+                     (const Ham__TxnAbortRequest *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_abort_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__txn_abort_request__pack
+                     (const Ham__TxnAbortRequest *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_abort_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__txn_abort_request__pack_to_buffer
+                     (const Ham__TxnAbortRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_abort_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__TxnAbortRequest *
+       ham__txn_abort_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__TxnAbortRequest *)
+     protobuf_c_message_unpack (&ham__txn_abort_request__descriptor,
+                                allocator, len, data);
+}
+void   ham__txn_abort_request__free_unpacked
+                     (Ham__TxnAbortRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_abort_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__txn_abort_reply__init
+                     (Ham__TxnAbortReply         *message)
+{
+  static Ham__TxnAbortReply init_value = HAM__TXN_ABORT_REPLY__INIT;
+  *message = init_value;
+}
+size_t ham__txn_abort_reply__get_packed_size
+                     (const Ham__TxnAbortReply *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_abort_reply__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__txn_abort_reply__pack
+                     (const Ham__TxnAbortReply *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_abort_reply__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__txn_abort_reply__pack_to_buffer
+                     (const Ham__TxnAbortReply *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_abort_reply__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__TxnAbortReply *
+       ham__txn_abort_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__TxnAbortReply *)
+     protobuf_c_message_unpack (&ham__txn_abort_reply__descriptor,
+                                allocator, len, data);
+}
+void   ham__txn_abort_reply__free_unpacked
+                     (Ham__TxnAbortReply *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__txn_abort_reply__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[28] =
 {
   { "CONNECT_REQUEST", "HAM__WRAPPER__TYPE__CONNECT_REQUEST", 10 },
   { "CONNECT_REPLY", "HAM__WRAPPER__TYPE__CONNECT_REPLY", 11 },
@@ -1014,11 +1272,17 @@ const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[22] =
   { "DB_GET_PARAMETERS_REPLY", "HAM__WRAPPER__TYPE__DB_GET_PARAMETERS_REPLY", 101 },
   { "DB_FLUSH_REQUEST", "HAM__WRAPPER__TYPE__DB_FLUSH_REQUEST", 110 },
   { "DB_FLUSH_REPLY", "HAM__WRAPPER__TYPE__DB_FLUSH_REPLY", 111 },
+  { "TXN_BEGIN_REQUEST", "HAM__WRAPPER__TYPE__TXN_BEGIN_REQUEST", 120 },
+  { "TXN_BEGIN_REPLY", "HAM__WRAPPER__TYPE__TXN_BEGIN_REPLY", 121 },
+  { "TXN_COMMIT_REQUEST", "HAM__WRAPPER__TYPE__TXN_COMMIT_REQUEST", 130 },
+  { "TXN_COMMIT_REPLY", "HAM__WRAPPER__TYPE__TXN_COMMIT_REPLY", 131 },
+  { "TXN_ABORT_REQUEST", "HAM__WRAPPER__TYPE__TXN_ABORT_REQUEST", 140 },
+  { "TXN_ABORT_REPLY", "HAM__WRAPPER__TYPE__TXN_ABORT_REPLY", 141 },
 };
 static const ProtobufCIntRange ham__wrapper__type__value_ranges[] = {
-{10, 0},{20, 2},{30, 4},{40, 6},{50, 8},{60, 10},{70, 12},{80, 14},{90, 16},{100, 18},{110, 20},{0, 22}
+{10, 0},{20, 2},{30, 4},{40, 6},{50, 8},{60, 10},{70, 12},{80, 14},{90, 16},{100, 18},{110, 20},{120, 22},{130, 24},{140, 26},{0, 28}
 };
-const ProtobufCEnumValueIndex ham__wrapper__type__enum_values_by_name[22] =
+const ProtobufCEnumValueIndex ham__wrapper__type__enum_values_by_name[28] =
 {
   { "CONNECT_REPLY", 1 },
   { "CONNECT_REQUEST", 0 },
@@ -1042,6 +1306,12 @@ const ProtobufCEnumValueIndex ham__wrapper__type__enum_values_by_name[22] =
   { "ENV_OPEN_DB_REQUEST", 12 },
   { "ENV_RENAME_REPLY", 3 },
   { "ENV_RENAME_REQUEST", 2 },
+  { "TXN_ABORT_REPLY", 27 },
+  { "TXN_ABORT_REQUEST", 26 },
+  { "TXN_BEGIN_REPLY", 23 },
+  { "TXN_BEGIN_REQUEST", 22 },
+  { "TXN_COMMIT_REPLY", 25 },
+  { "TXN_COMMIT_REQUEST", 24 },
 };
 const ProtobufCEnumDescriptor ham__wrapper__type__descriptor =
 {
@@ -1050,15 +1320,15 @@ const ProtobufCEnumDescriptor ham__wrapper__type__descriptor =
   "Type",
   "Ham__Wrapper__Type",
   "ham",
-  22,
+  28,
   ham__wrapper__type__enum_values_by_number,
-  22,
+  28,
   ham__wrapper__type__enum_values_by_name,
-  11,
+  14,
   ham__wrapper__type__value_ranges,
   NULL,NULL,NULL,NULL   /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[23] =
+static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[29] =
 {
   {
     "type",
@@ -1313,6 +1583,72 @@ static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[23] =
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
+  {
+    "txn_begin_request",
+    120,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, txn_begin_request),
+    &ham__txn_begin_request__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "txn_begin_reply",
+    121,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, txn_begin_reply),
+    &ham__txn_begin_reply__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "txn_commit_request",
+    130,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, txn_commit_request),
+    &ham__txn_commit_request__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "txn_commit_reply",
+    131,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, txn_commit_reply),
+    &ham__txn_commit_reply__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "txn_abort_request",
+    140,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, txn_abort_request),
+    &ham__txn_abort_request__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "txn_abort_reply",
+    141,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, txn_abort_reply),
+    &ham__txn_abort_reply__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
 };
 static const unsigned ham__wrapper__field_indices_by_name[] = {
   2,   /* field[2] = connect_reply */
@@ -1337,9 +1673,15 @@ static const unsigned ham__wrapper__field_indices_by_name[] = {
   13,   /* field[13] = env_open_db_request */
   4,   /* field[4] = env_rename_reply */
   3,   /* field[3] = env_rename_request */
+  28,   /* field[28] = txn_abort_reply */
+  27,   /* field[27] = txn_abort_request */
+  24,   /* field[24] = txn_begin_reply */
+  23,   /* field[23] = txn_begin_request */
+  26,   /* field[26] = txn_commit_reply */
+  25,   /* field[25] = txn_commit_request */
   0,   /* field[0] = type */
 };
-static const ProtobufCIntRange ham__wrapper__number_ranges[12 + 1] =
+static const ProtobufCIntRange ham__wrapper__number_ranges[15 + 1] =
 {
   { 1, 0 },
   { 10, 1 },
@@ -1353,7 +1695,10 @@ static const ProtobufCIntRange ham__wrapper__number_ranges[12 + 1] =
   { 90, 17 },
   { 100, 19 },
   { 110, 21 },
-  { 0, 23 }
+  { 120, 23 },
+  { 130, 25 },
+  { 140, 27 },
+  { 0, 29 }
 };
 const ProtobufCMessageDescriptor ham__wrapper__descriptor =
 {
@@ -1363,10 +1708,10 @@ const ProtobufCMessageDescriptor ham__wrapper__descriptor =
   "Ham__Wrapper",
   "ham",
   sizeof(Ham__Wrapper),
-  23,
+  29,
   ham__wrapper__field_descriptors,
   ham__wrapper__field_indices_by_name,
-  12,  ham__wrapper__number_ranges,
+  15,  ham__wrapper__number_ranges,
   NULL,NULL,NULL,NULL    /* reserved[1234] */
 };
 static const ProtobufCFieldDescriptor ham__connect_request__field_descriptors[1] =
@@ -2467,5 +2812,257 @@ const ProtobufCMessageDescriptor ham__db_flush_reply__descriptor =
   ham__db_flush_reply__field_descriptors,
   ham__db_flush_reply__field_indices_by_name,
   1,  ham__db_flush_reply__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__txn_begin_request__field_descriptors[1] =
+{
+  {
+    "flags",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__TxnBeginRequest, flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__txn_begin_request__field_indices_by_name[] = {
+  0,   /* field[0] = flags */
+};
+static const ProtobufCIntRange ham__txn_begin_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor ham__txn_begin_request__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.TxnBeginRequest",
+  "TxnBeginRequest",
+  "Ham__TxnBeginRequest",
+  "ham",
+  sizeof(Ham__TxnBeginRequest),
+  1,
+  ham__txn_begin_request__field_descriptors,
+  ham__txn_begin_request__field_indices_by_name,
+  1,  ham__txn_begin_request__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__txn_begin_reply__field_descriptors[2] =
+{
+  {
+    "status",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_SINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__TxnBeginReply, status),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "txn_handle",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__TxnBeginReply, txn_handle),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__txn_begin_reply__field_indices_by_name[] = {
+  0,   /* field[0] = status */
+  1,   /* field[1] = txn_handle */
+};
+static const ProtobufCIntRange ham__txn_begin_reply__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor ham__txn_begin_reply__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.TxnBeginReply",
+  "TxnBeginReply",
+  "Ham__TxnBeginReply",
+  "ham",
+  sizeof(Ham__TxnBeginReply),
+  2,
+  ham__txn_begin_reply__field_descriptors,
+  ham__txn_begin_reply__field_indices_by_name,
+  1,  ham__txn_begin_reply__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__txn_commit_request__field_descriptors[2] =
+{
+  {
+    "txn_handle",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__TxnCommitRequest, txn_handle),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "flags",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__TxnCommitRequest, flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__txn_commit_request__field_indices_by_name[] = {
+  1,   /* field[1] = flags */
+  0,   /* field[0] = txn_handle */
+};
+static const ProtobufCIntRange ham__txn_commit_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor ham__txn_commit_request__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.TxnCommitRequest",
+  "TxnCommitRequest",
+  "Ham__TxnCommitRequest",
+  "ham",
+  sizeof(Ham__TxnCommitRequest),
+  2,
+  ham__txn_commit_request__field_descriptors,
+  ham__txn_commit_request__field_indices_by_name,
+  1,  ham__txn_commit_request__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__txn_commit_reply__field_descriptors[1] =
+{
+  {
+    "status",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_SINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__TxnCommitReply, status),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__txn_commit_reply__field_indices_by_name[] = {
+  0,   /* field[0] = status */
+};
+static const ProtobufCIntRange ham__txn_commit_reply__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor ham__txn_commit_reply__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.TxnCommitReply",
+  "TxnCommitReply",
+  "Ham__TxnCommitReply",
+  "ham",
+  sizeof(Ham__TxnCommitReply),
+  1,
+  ham__txn_commit_reply__field_descriptors,
+  ham__txn_commit_reply__field_indices_by_name,
+  1,  ham__txn_commit_reply__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__txn_abort_request__field_descriptors[2] =
+{
+  {
+    "txn_handle",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__TxnAbortRequest, txn_handle),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "flags",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__TxnAbortRequest, flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__txn_abort_request__field_indices_by_name[] = {
+  1,   /* field[1] = flags */
+  0,   /* field[0] = txn_handle */
+};
+static const ProtobufCIntRange ham__txn_abort_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor ham__txn_abort_request__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.TxnAbortRequest",
+  "TxnAbortRequest",
+  "Ham__TxnAbortRequest",
+  "ham",
+  sizeof(Ham__TxnAbortRequest),
+  2,
+  ham__txn_abort_request__field_descriptors,
+  ham__txn_abort_request__field_indices_by_name,
+  1,  ham__txn_abort_request__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__txn_abort_reply__field_descriptors[1] =
+{
+  {
+    "status",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_SINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__TxnAbortReply, status),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__txn_abort_reply__field_indices_by_name[] = {
+  0,   /* field[0] = status */
+};
+static const ProtobufCIntRange ham__txn_abort_reply__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor ham__txn_abort_reply__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.TxnAbortReply",
+  "TxnAbortReply",
+  "Ham__TxnAbortReply",
+  "ham",
+  sizeof(Ham__TxnAbortReply),
+  1,
+  ham__txn_abort_reply__field_descriptors,
+  ham__txn_abort_reply__field_indices_by_name,
+  1,  ham__txn_abort_reply__number_ranges,
   NULL,NULL,NULL,NULL    /* reserved[1234] */
 };

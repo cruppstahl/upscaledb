@@ -1316,6 +1316,56 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
     return (0);
 }
 
+static ham_status_t
+_local_fun_txn_begin(ham_env_t *env, ham_txn_t **txn, ham_u32_t flags)
+{
+    ham_status_t st;
+
+    *txn=(ham_txn_t *)allocator_alloc(env_get_allocator(env), sizeof(**txn));
+    if (!(*txn))
+        return (HAM_OUT_OF_MEMORY);
+
+    st=txn_begin(*txn, env, flags);
+    if (st) {
+        allocator_free(env_get_allocator(env), *txn);
+        *txn=0;
+    }
+
+    return (st);
+}
+
+static ham_status_t
+_local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
+{
+    ham_status_t st=txn_commit(txn, flags);
+
+    (void)env;
+
+    if (st==0) {
+        ham_env_t *env = txn_get_env(txn);
+        memset(txn, 0, sizeof(*txn));
+        allocator_free(env_get_allocator(env), txn);
+    }
+
+    return (st);
+}
+
+static ham_status_t
+_local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
+{
+    ham_status_t st=txn_abort(txn, flags);
+
+    (void)env;
+
+    if (st==0) {
+        ham_env_t *env = txn_get_env(txn);
+        memset(txn, 0, sizeof(*txn));
+        allocator_free(env_get_allocator(env), txn);
+    }
+
+    return (st);
+}
+
 ham_status_t
 env_initialize_local(ham_env_t *env)
 {
@@ -1329,6 +1379,9 @@ env_initialize_local(ham_env_t *env)
     env->_fun_open_db            =_local_fun_open_db;
     env->_fun_flush              =_local_fun_flush;
     env->_fun_close              =_local_fun_close;
+    env->_fun_txn_begin          =_local_fun_txn_begin;
+    env->_fun_txn_commit         =_local_fun_txn_commit;
+    env->_fun_txn_abort          =_local_fun_txn_abort;
 
     return (0);
 }

@@ -31,6 +31,12 @@ typedef struct _Ham__DbGetParametersRequest Ham__DbGetParametersRequest;
 typedef struct _Ham__DbGetParametersReply Ham__DbGetParametersReply;
 typedef struct _Ham__DbFlushRequest Ham__DbFlushRequest;
 typedef struct _Ham__DbFlushReply Ham__DbFlushReply;
+typedef struct _Ham__TxnBeginRequest Ham__TxnBeginRequest;
+typedef struct _Ham__TxnBeginReply Ham__TxnBeginReply;
+typedef struct _Ham__TxnCommitRequest Ham__TxnCommitRequest;
+typedef struct _Ham__TxnCommitReply Ham__TxnCommitReply;
+typedef struct _Ham__TxnAbortRequest Ham__TxnAbortRequest;
+typedef struct _Ham__TxnAbortReply Ham__TxnAbortReply;
 
 
 /* --- enums --- */
@@ -57,7 +63,13 @@ typedef enum _Ham__Wrapper__Type {
   HAM__WRAPPER__TYPE__DB_GET_PARAMETERS_REQUEST = 100,
   HAM__WRAPPER__TYPE__DB_GET_PARAMETERS_REPLY = 101,
   HAM__WRAPPER__TYPE__DB_FLUSH_REQUEST = 110,
-  HAM__WRAPPER__TYPE__DB_FLUSH_REPLY = 111
+  HAM__WRAPPER__TYPE__DB_FLUSH_REPLY = 111,
+  HAM__WRAPPER__TYPE__TXN_BEGIN_REQUEST = 120,
+  HAM__WRAPPER__TYPE__TXN_BEGIN_REPLY = 121,
+  HAM__WRAPPER__TYPE__TXN_COMMIT_REQUEST = 130,
+  HAM__WRAPPER__TYPE__TXN_COMMIT_REPLY = 131,
+  HAM__WRAPPER__TYPE__TXN_ABORT_REQUEST = 140,
+  HAM__WRAPPER__TYPE__TXN_ABORT_REPLY = 141
 } Ham__Wrapper__Type;
 
 /* --- messages --- */
@@ -88,10 +100,16 @@ struct  _Ham__Wrapper
   Ham__DbGetParametersReply *db_get_parameters_reply;
   Ham__DbFlushRequest *db_flush_request;
   Ham__DbFlushReply *db_flush_reply;
+  Ham__TxnBeginRequest *txn_begin_request;
+  Ham__TxnBeginReply *txn_begin_reply;
+  Ham__TxnCommitRequest *txn_commit_request;
+  Ham__TxnCommitReply *txn_commit_reply;
+  Ham__TxnAbortRequest *txn_abort_request;
+  Ham__TxnAbortReply *txn_abort_reply;
 };
 #define HAM__WRAPPER__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__wrapper__descriptor) \
-    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
+    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 
 
 struct  _Ham__ConnectRequest
@@ -354,6 +372,69 @@ struct  _Ham__DbFlushReply
 };
 #define HAM__DB_FLUSH_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__db_flush_reply__descriptor) \
+    , 0 }
+
+
+struct  _Ham__TxnBeginRequest
+{
+  ProtobufCMessage base;
+  uint32_t flags;
+};
+#define HAM__TXN_BEGIN_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__txn_begin_request__descriptor) \
+    , 0 }
+
+
+struct  _Ham__TxnBeginReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+  uint64_t txn_handle;
+};
+#define HAM__TXN_BEGIN_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__txn_begin_reply__descriptor) \
+    , 0, 0 }
+
+
+struct  _Ham__TxnCommitRequest
+{
+  ProtobufCMessage base;
+  uint64_t txn_handle;
+  uint32_t flags;
+};
+#define HAM__TXN_COMMIT_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__txn_commit_request__descriptor) \
+    , 0, 0 }
+
+
+struct  _Ham__TxnCommitReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+};
+#define HAM__TXN_COMMIT_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__txn_commit_reply__descriptor) \
+    , 0 }
+
+
+struct  _Ham__TxnAbortRequest
+{
+  ProtobufCMessage base;
+  uint64_t txn_handle;
+  uint32_t flags;
+};
+#define HAM__TXN_ABORT_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__txn_abort_request__descriptor) \
+    , 0, 0 }
+
+
+struct  _Ham__TxnAbortReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+};
+#define HAM__TXN_ABORT_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__txn_abort_reply__descriptor) \
     , 0 }
 
 
@@ -794,6 +875,120 @@ Ham__DbFlushReply *
 void   ham__db_flush_reply__free_unpacked
                      (Ham__DbFlushReply *message,
                       ProtobufCAllocator *allocator);
+/* Ham__TxnBeginRequest methods */
+void   ham__txn_begin_request__init
+                     (Ham__TxnBeginRequest         *message);
+size_t ham__txn_begin_request__get_packed_size
+                     (const Ham__TxnBeginRequest   *message);
+size_t ham__txn_begin_request__pack
+                     (const Ham__TxnBeginRequest   *message,
+                      uint8_t             *out);
+size_t ham__txn_begin_request__pack_to_buffer
+                     (const Ham__TxnBeginRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__TxnBeginRequest *
+       ham__txn_begin_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__txn_begin_request__free_unpacked
+                     (Ham__TxnBeginRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__TxnBeginReply methods */
+void   ham__txn_begin_reply__init
+                     (Ham__TxnBeginReply         *message);
+size_t ham__txn_begin_reply__get_packed_size
+                     (const Ham__TxnBeginReply   *message);
+size_t ham__txn_begin_reply__pack
+                     (const Ham__TxnBeginReply   *message,
+                      uint8_t             *out);
+size_t ham__txn_begin_reply__pack_to_buffer
+                     (const Ham__TxnBeginReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__TxnBeginReply *
+       ham__txn_begin_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__txn_begin_reply__free_unpacked
+                     (Ham__TxnBeginReply *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__TxnCommitRequest methods */
+void   ham__txn_commit_request__init
+                     (Ham__TxnCommitRequest         *message);
+size_t ham__txn_commit_request__get_packed_size
+                     (const Ham__TxnCommitRequest   *message);
+size_t ham__txn_commit_request__pack
+                     (const Ham__TxnCommitRequest   *message,
+                      uint8_t             *out);
+size_t ham__txn_commit_request__pack_to_buffer
+                     (const Ham__TxnCommitRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__TxnCommitRequest *
+       ham__txn_commit_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__txn_commit_request__free_unpacked
+                     (Ham__TxnCommitRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__TxnCommitReply methods */
+void   ham__txn_commit_reply__init
+                     (Ham__TxnCommitReply         *message);
+size_t ham__txn_commit_reply__get_packed_size
+                     (const Ham__TxnCommitReply   *message);
+size_t ham__txn_commit_reply__pack
+                     (const Ham__TxnCommitReply   *message,
+                      uint8_t             *out);
+size_t ham__txn_commit_reply__pack_to_buffer
+                     (const Ham__TxnCommitReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__TxnCommitReply *
+       ham__txn_commit_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__txn_commit_reply__free_unpacked
+                     (Ham__TxnCommitReply *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__TxnAbortRequest methods */
+void   ham__txn_abort_request__init
+                     (Ham__TxnAbortRequest         *message);
+size_t ham__txn_abort_request__get_packed_size
+                     (const Ham__TxnAbortRequest   *message);
+size_t ham__txn_abort_request__pack
+                     (const Ham__TxnAbortRequest   *message,
+                      uint8_t             *out);
+size_t ham__txn_abort_request__pack_to_buffer
+                     (const Ham__TxnAbortRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__TxnAbortRequest *
+       ham__txn_abort_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__txn_abort_request__free_unpacked
+                     (Ham__TxnAbortRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__TxnAbortReply methods */
+void   ham__txn_abort_reply__init
+                     (Ham__TxnAbortReply         *message);
+size_t ham__txn_abort_reply__get_packed_size
+                     (const Ham__TxnAbortReply   *message);
+size_t ham__txn_abort_reply__pack
+                     (const Ham__TxnAbortReply   *message,
+                      uint8_t             *out);
+size_t ham__txn_abort_reply__pack_to_buffer
+                     (const Ham__TxnAbortReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__TxnAbortReply *
+       ham__txn_abort_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__txn_abort_reply__free_unpacked
+                     (Ham__TxnAbortReply *message,
+                      ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
 typedef void (*Ham__Wrapper_Closure)
@@ -865,6 +1060,24 @@ typedef void (*Ham__DbFlushRequest_Closure)
 typedef void (*Ham__DbFlushReply_Closure)
                  (const Ham__DbFlushReply *message,
                   void *closure_data);
+typedef void (*Ham__TxnBeginRequest_Closure)
+                 (const Ham__TxnBeginRequest *message,
+                  void *closure_data);
+typedef void (*Ham__TxnBeginReply_Closure)
+                 (const Ham__TxnBeginReply *message,
+                  void *closure_data);
+typedef void (*Ham__TxnCommitRequest_Closure)
+                 (const Ham__TxnCommitRequest *message,
+                  void *closure_data);
+typedef void (*Ham__TxnCommitReply_Closure)
+                 (const Ham__TxnCommitReply *message,
+                  void *closure_data);
+typedef void (*Ham__TxnAbortRequest_Closure)
+                 (const Ham__TxnAbortRequest *message,
+                  void *closure_data);
+typedef void (*Ham__TxnAbortReply_Closure)
+                 (const Ham__TxnAbortReply *message,
+                  void *closure_data);
 
 /* --- services --- */
 
@@ -895,6 +1108,12 @@ extern const ProtobufCMessageDescriptor ham__db_get_parameters_request__descript
 extern const ProtobufCMessageDescriptor ham__db_get_parameters_reply__descriptor;
 extern const ProtobufCMessageDescriptor ham__db_flush_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__db_flush_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__txn_begin_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__txn_begin_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__txn_commit_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__txn_commit_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__txn_abort_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__txn_abort_reply__descriptor;
 
 PROTOBUF_C_END_DECLS
 

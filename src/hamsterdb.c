@@ -339,7 +339,6 @@ __record_filters_after_find(ham_db_t *db, ham_record_t *record)
 ham_status_t
 ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
 {
-    ham_status_t st;
     ham_env_t *env; 
 
     if (!txn) {
@@ -364,58 +363,47 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
         ham_trace(("transactions are disabled (see HAM_ENABLE_TRANSACTIONS)"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
-
-    *txn=(ham_txn_t *)allocator_alloc(env_get_allocator(env), sizeof(**txn));
-    if (!(*txn))
-        return (db_set_error(db, HAM_OUT_OF_MEMORY));
-
-    st=txn_begin(*txn, env, flags);
-    if (st) {
-        allocator_free(env_get_allocator(env), *txn);
-        *txn=0;
+    if (!env->_fun_txn_begin) {
+        ham_trace(("Environment was not initialized"));
+        return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
 
-    return (db_set_error(db, st));
+    return (db_set_error(db, env->_fun_txn_begin(env, txn, flags)));
 }
 
 ham_status_t
 ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
 {
+    ham_env_t *env=txn_get_env(txn);
+
     if (!txn) {
         ham_trace(("parameter 'txn' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-    else
-    {
-        ham_status_t st=txn_commit(txn, flags);
-        if (st==0) {
-            ham_env_t *env = txn_get_env(txn);
-            memset(txn, 0, sizeof(*txn));
-            allocator_free(env_get_allocator(env), txn);
-        }
-
-        return (st);
+    if (!env->_fun_txn_commit) {
+        ham_trace(("Environment was not initialized"));
+        return (HAM_NOT_INITIALIZED);
     }
+
+    return (env->_fun_txn_commit(env, txn, flags));
 }
 
 ham_status_t
 ham_txn_abort(ham_txn_t *txn, ham_u32_t flags)
 {
+    ham_env_t *env=txn_get_env(txn);
+
     if (!txn) {
         ham_trace(("parameter 'txn' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-    else
-    {
-        ham_status_t st=txn_abort(txn, flags);
-        if (st==0) {
-            ham_env_t *env = txn_get_env(txn);
-            memset(txn, 0, sizeof(*txn));
-            allocator_free(env_get_allocator(env), txn);
-        }
 
-        return (st);
+    if (!env->_fun_txn_abort) {
+        ham_trace(("Environment was not initialized"));
+        return (HAM_NOT_INITIALIZED);
     }
+
+    return (env->_fun_txn_abort(env, txn, flags));
 }
 
 const char * HAM_CALLCONV

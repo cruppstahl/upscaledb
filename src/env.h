@@ -239,13 +239,33 @@ struct ham_env_t
      * create a database in the environment
      */
     ham_status_t (*_fun_create_db)(ham_env_t *env, ham_db_t *db, 
-        ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param);
+                ham_u16_t dbname, ham_u32_t flags, 
+                const ham_parameter_t *param);
 
     /**
      * open a database in the environment
      */
     ham_status_t (*_fun_open_db)(ham_env_t *env, ham_db_t *db, 
-        ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param);
+                ham_u16_t dbname, ham_u32_t flags, 
+                const ham_parameter_t *param);
+
+    /**
+     * create a transaction in this environment
+     */
+    ham_status_t (*_fun_txn_begin)(ham_env_t *env, ham_txn_t **txn, 
+                ham_u32_t flags);
+
+    /**
+     * aborts a transaction
+     */
+    ham_status_t (*_fun_txn_abort)(ham_env_t *env, ham_txn_t *txn, 
+                ham_u32_t flags);
+
+    /**
+     * commits a transaction
+     */
+    ham_status_t (*_fun_txn_commit)(ham_env_t *env, ham_txn_t *txn, 
+                ham_u32_t flags);
 
     /**
      * close the Environment
