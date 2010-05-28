@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include "db.h"
+#include "txn.h"
 #include "env.h"
 #include "mem.h"
 #include "messages.pb-c.h"
@@ -761,21 +762,106 @@ _remote_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
 }
 
 static ham_status_t
-_remote_fun_txn_begin(ham_env_t *env, ham_txn_t **txn, ham_u32_t flags)
+_remote_fun_txn_begin(ham_env_t *env, ham_db_t *db, 
+                ham_txn_t **txn, ham_u32_t flags)
 {
-    TODO hier geht'S weiter (dann im server implementieren und testen)
+    ham_status_t st;
+    Ham__TxnBeginRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    
+    ham__wrapper__init(&wrapper);
+    ham__txn_begin_request__init(&msg);
+    msg.flags=flags;
+    msg.db_handle=db_get_remote_handle(db);
+    wrapper.type=HAM__WRAPPER__TYPE__TXN_BEGIN_REQUEST;
+    wrapper.txn_begin_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->txn_begin_reply!=0, (""));
+    st=reply->txn_begin_reply->status;
+
+    if (st) {
+        ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    *txn=(ham_txn_t *)allocator_alloc(env_get_allocator(env), 
+                            sizeof(ham_txn_t));
+    if (!(*txn))
+        return (HAM_OUT_OF_MEMORY);
+
+    txn_set_remote_handle(*txn, reply->txn_begin_reply->txn_handle);
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (0);
 }
 
 static ham_status_t
 _remote_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 {
-    TODO hier geht'S weiter (dann im server implementieren und testen)
+    ham_status_t st;
+    Ham__TxnCommitRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    
+    ham__wrapper__init(&wrapper);
+    ham__txn_commit_request__init(&msg);
+    msg.txn_handle=txn_get_remote_handle(txn);
+    msg.flags=flags;
+    wrapper.type=HAM__WRAPPER__TYPE__TXN_COMMIT_REQUEST;
+    wrapper.txn_commit_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->txn_commit_reply!=0, (""));
+    st=reply->txn_commit_reply->status;
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
 }
 
 static ham_status_t
 _remote_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 {
-    TODO hier geht'S weiter (dann im server implementieren und testen)
+    ham_status_t st;
+    Ham__TxnAbortRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    
+    ham__wrapper__init(&wrapper);
+    ham__txn_abort_request__init(&msg);
+    msg.txn_handle=txn_get_remote_handle(txn);
+    msg.flags=flags;
+    wrapper.type=HAM__WRAPPER__TYPE__TXN_ABORT_REQUEST;
+    wrapper.txn_abort_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->txn_abort_reply!=0, (""));
+    st=reply->txn_abort_reply->status;
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
 }
 
 #endif /* HAM_ENABLE_REMOTE */

@@ -379,10 +379,11 @@ struct  _Ham__TxnBeginRequest
 {
   ProtobufCMessage base;
   uint32_t flags;
+  uint64_t db_handle;
 };
 #define HAM__TXN_BEGIN_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__txn_begin_request__descriptor) \
-    , 0 }
+    , 0, 0 }
 
 
 struct  _Ham__TxnBeginReply

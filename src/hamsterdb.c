@@ -368,7 +368,7 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
         return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
 
-    return (db_set_error(db, env->_fun_txn_begin(env, txn, flags)));
+    return (db_set_error(db, env->_fun_txn_begin(env, db, txn, flags)));
 }
 
 ham_status_t

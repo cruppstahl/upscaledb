@@ -57,6 +57,11 @@ struct ham_txn_t
      */
     int _log_desc;
 
+#if HAM_ENABLE_REMOTE
+    /** the remote database handle */
+    ham_u64_t _remote_handle;
+#endif
+
     /**
      * linked list of all transactions
      */
@@ -118,6 +123,16 @@ struct ham_txn_t
  * set the index of the log file descriptor
  */
 #define txn_set_log_desc(txn, desc)             (txn)->_log_desc=(desc)
+
+/**
+ * get the remote database handle
+ */
+#define txn_get_remote_handle(txn)              (txn)->_remote_handle
+
+/**
+ * set the remote database handle
+ */
+#define txn_set_remote_handle(txn, h)           (txn)->_remote_handle=(h)
 
 /**
  * get the 'next' pointer of the linked list

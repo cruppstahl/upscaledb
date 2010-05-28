@@ -514,6 +514,97 @@ handle_db_close(struct env_t *envh, struct mg_connection *conn,
 }
 
 static void
+handle_txn_begin(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__TxnBeginRequest *request)
+{
+    Ham__TxnBeginReply reply;
+    Ham__Wrapper wrapper;
+    ham_txn_t *txn;
+    ham_db_t *db;
+    ham_env_t *env=envh->env;
+
+    ham_assert(request!=0, (""));
+
+    ham__txn_begin_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.txn_begin_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__TXN_BEGIN_REPLY;
+
+    db=__get_handle(envh, request->db_handle);
+    if (!db) {
+        reply.status=HAM_INV_PARAMETER;
+    }
+    else {
+        reply.status=ham_txn_begin(&txn, db, request->flags);
+    }
+
+    if (reply.status==0)
+        reply.txn_handle=__store_handle(envh, txn);
+
+    send_wrapper(env, conn, &wrapper);
+}
+
+static void
+handle_txn_commit(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__TxnCommitRequest *request)
+{
+    Ham__TxnCommitReply reply;
+    Ham__Wrapper wrapper;
+    ham_txn_t *txn;
+    ham_env_t *env=envh->env;
+
+    ham_assert(request!=0, (""));
+
+    ham__txn_commit_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.txn_commit_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__TXN_COMMIT_REPLY;
+
+    txn=__get_handle(envh, request->txn_handle);
+    if (!txn) {
+        reply.status=HAM_INV_PARAMETER;
+    }
+    else {
+        reply.status=ham_txn_commit(txn, request->flags);
+    }
+
+    send_wrapper(env, conn, &wrapper);
+}
+
+static void
+handle_txn_abort(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__TxnAbortRequest *request)
+{
+    Ham__TxnAbortReply reply;
+    Ham__Wrapper wrapper;
+    ham_txn_t *txn;
+    ham_env_t *env=envh->env;
+
+    ham_assert(request!=0, (""));
+
+    ham__txn_abort_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.txn_abort_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__TXN_ABORT_REPLY;
+
+    txn=__get_handle(envh, request->txn_handle);
+    if (!txn) {
+        reply.status=HAM_INV_PARAMETER;
+    }
+    else {
+        reply.status=ham_txn_abort(txn, request->flags);
+    }
+
+    send_wrapper(env, conn, &wrapper);
+}
+
+static void
 request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
                 void *user_data)
 {
@@ -579,6 +670,18 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
     case HAM__WRAPPER__TYPE__DB_FLUSH_REQUEST:
         ham_trace(("db_flush request"));
         handle_db_flush(env, conn, ri, wrapper->db_flush_request);
+        break;
+    case HAM__WRAPPER__TYPE__TXN_BEGIN_REQUEST:
+        ham_trace(("txn_begin request"));
+        handle_txn_begin(env, conn, ri, wrapper->txn_begin_request);
+        break;
+    case HAM__WRAPPER__TYPE__TXN_COMMIT_REQUEST:
+        ham_trace(("txn_commit request"));
+        handle_txn_commit(env, conn, ri, wrapper->txn_commit_request);
+        break;
+    case HAM__WRAPPER__TYPE__TXN_ABORT_REQUEST:
+        ham_trace(("txn_abort request"));
+        handle_txn_abort(env, conn, ri, wrapper->txn_abort_request);
         break;
     default:
         /* TODO send error */

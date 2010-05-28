@@ -182,6 +182,7 @@ message DbFlushReply {
 
 message TxnBeginRequest {
     required uint32 flags = 1;
+    required uint64 db_handle = 2;
 }
 
 message TxnBeginReply {

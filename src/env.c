@@ -1317,9 +1317,12 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
 }
 
 static ham_status_t
-_local_fun_txn_begin(ham_env_t *env, ham_txn_t **txn, ham_u32_t flags)
+_local_fun_txn_begin(ham_env_t *env, ham_db_t *db, 
+                    ham_txn_t **txn, ham_u32_t flags)
 {
     ham_status_t st;
+
+    (void)db;
 
     *txn=(ham_txn_t *)allocator_alloc(env_get_allocator(env), sizeof(**txn));
     if (!(*txn))

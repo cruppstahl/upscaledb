@@ -252,8 +252,8 @@ struct ham_env_t
     /**
      * create a transaction in this environment
      */
-    ham_status_t (*_fun_txn_begin)(ham_env_t *env, ham_txn_t **txn, 
-                ham_u32_t flags);
+    ham_status_t (*_fun_txn_begin)(ham_env_t *env, ham_db_t *db, 
+                ham_txn_t **txn, ham_u32_t flags);
 
     /**
      * aborts a transaction
