@@ -14,7 +14,7 @@ int main(void)
     ham_status_t st;
 
     ham_env_new(&env);
-    st=ham_env_create(env, "test.db", 0, 0644);
+    st=ham_env_create(env, "test.db", HAM_ENABLE_TRANSACTIONS, 0644);
     if (st) {
         printf("ham_env_create: %d\n", st);
         exit(-1);

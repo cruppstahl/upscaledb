@@ -52,6 +52,8 @@ public:
         BFC_REGISTER_TEST(RemoteTest, enableCompressionTest);
         BFC_REGISTER_TEST(RemoteTest, dbFlushTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanupTest);
+        BFC_REGISTER_TEST(RemoteTest, txnBeginCommitTest);
+        BFC_REGISTER_TEST(RemoteTest, txnBeginAbortTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanup2Test);
     }
 
@@ -381,6 +383,36 @@ protected:
 
         BFC_ASSERT_EQUAL(0, ham_flush(db, 0));
 
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
+
+    void txnBeginCommitTest(void)
+    {
+        ham_db_t *db;
+        ham_txn_t *txn;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(db, SERVER_URL, HAM_ENABLE_TRANSACTIONS, 0664));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, db, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
+
+    void txnBeginAbortTest(void)
+    {
+        ham_db_t *db;
+        ham_txn_t *txn;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(db, SERVER_URL, HAM_ENABLE_TRANSACTIONS, 0664));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, db, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
     }

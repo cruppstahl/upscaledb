@@ -87,6 +87,10 @@ o client/server communication
             o unittest
         o ham_txn_abort
             o unittest
+        o ham_check_integrity
+            o unittest
+        o ham_get_key_count
+            o unittest
 
 o if the same database is opened twice, the same handle has to be returned
     (currently, an error is returned - DB_ALREADY_OPEN)
@@ -96,11 +100,6 @@ o if the same database is opened twice, the same handle has to be returned
         o ham_erase
             o unittest: insert, find, erase, find
             o unittest: negative insert, negative find, negative erase
-
-        o ham_check_integrity
-            o unittest
-        o ham_get_key_count
-            o unittest
 
         o ham_cursor_clone
             o unittest
@@ -182,6 +181,8 @@ o if the same database is opened twice, the same handle has to be returned
         the google protocol version
     o check_create_parameters -> move to env.c??
 
+    o mongoose - disable default handler (returns file listing!)
+
     o need configure switch to disable the local client
         -> also clean up db.h, env.h...
 
@@ -197,6 +198,10 @@ o mongoose:
     o add license to readme!
 
 o HAM_PARAM_GET_STATISTICS -> hamsterdb_int.h!
+
+------------------------------
+
+o release new .NET wrapper with fix from a.todorov (-> nabble)
 
 ------------------------------
 

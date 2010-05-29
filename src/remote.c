@@ -797,11 +797,18 @@ _remote_fun_txn_begin(ham_env_t *env, ham_db_t *db,
     if (!(*txn))
         return (HAM_OUT_OF_MEMORY);
 
-    txn_set_remote_handle(*txn, reply->txn_begin_reply->txn_handle);
+    st=txn_begin(*txn, env, flags);
+    if (st) {
+        allocator_free(env_get_allocator(env), *txn);
+        *txn=0;
+    }
+    else {
+        txn_set_remote_handle(*txn, reply->txn_begin_reply->txn_handle);
+    }
 
     ham__wrapper__free_unpacked(reply, 0);
 
-    return (0);
+    return (st);
 }
 
 static ham_status_t
