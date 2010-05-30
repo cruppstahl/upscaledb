@@ -37,6 +37,8 @@ typedef struct _Ham__TxnCommitRequest Ham__TxnCommitRequest;
 typedef struct _Ham__TxnCommitReply Ham__TxnCommitReply;
 typedef struct _Ham__TxnAbortRequest Ham__TxnAbortRequest;
 typedef struct _Ham__TxnAbortReply Ham__TxnAbortReply;
+typedef struct _Ham__DbCheckIntegrityRequest Ham__DbCheckIntegrityRequest;
+typedef struct _Ham__DbCheckIntegrityReply Ham__DbCheckIntegrityReply;
 
 
 /* --- enums --- */
@@ -69,7 +71,9 @@ typedef enum _Ham__Wrapper__Type {
   HAM__WRAPPER__TYPE__TXN_COMMIT_REQUEST = 130,
   HAM__WRAPPER__TYPE__TXN_COMMIT_REPLY = 131,
   HAM__WRAPPER__TYPE__TXN_ABORT_REQUEST = 140,
-  HAM__WRAPPER__TYPE__TXN_ABORT_REPLY = 141
+  HAM__WRAPPER__TYPE__TXN_ABORT_REPLY = 141,
+  HAM__WRAPPER__TYPE__DB_CHECK_INTEGRITY_REQUEST = 150,
+  HAM__WRAPPER__TYPE__DB_CHECK_INTEGRITY_REPLY = 151
 } Ham__Wrapper__Type;
 
 /* --- messages --- */
@@ -106,10 +110,12 @@ struct  _Ham__Wrapper
   Ham__TxnCommitReply *txn_commit_reply;
   Ham__TxnAbortRequest *txn_abort_request;
   Ham__TxnAbortReply *txn_abort_reply;
+  Ham__DbCheckIntegrityRequest *db_check_integrity_request;
+  Ham__DbCheckIntegrityReply *db_check_integrity_reply;
 };
 #define HAM__WRAPPER__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__wrapper__descriptor) \
-    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
+    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 
 
 struct  _Ham__ConnectRequest
@@ -436,6 +442,27 @@ struct  _Ham__TxnAbortReply
 };
 #define HAM__TXN_ABORT_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__txn_abort_reply__descriptor) \
+    , 0 }
+
+
+struct  _Ham__DbCheckIntegrityRequest
+{
+  ProtobufCMessage base;
+  uint64_t db_handle;
+  uint64_t txn_handle;
+};
+#define HAM__DB_CHECK_INTEGRITY_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__db_check_integrity_request__descriptor) \
+    , 0, 0 }
+
+
+struct  _Ham__DbCheckIntegrityReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+};
+#define HAM__DB_CHECK_INTEGRITY_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__db_check_integrity_reply__descriptor) \
     , 0 }
 
 
@@ -990,6 +1017,44 @@ Ham__TxnAbortReply *
 void   ham__txn_abort_reply__free_unpacked
                      (Ham__TxnAbortReply *message,
                       ProtobufCAllocator *allocator);
+/* Ham__DbCheckIntegrityRequest methods */
+void   ham__db_check_integrity_request__init
+                     (Ham__DbCheckIntegrityRequest         *message);
+size_t ham__db_check_integrity_request__get_packed_size
+                     (const Ham__DbCheckIntegrityRequest   *message);
+size_t ham__db_check_integrity_request__pack
+                     (const Ham__DbCheckIntegrityRequest   *message,
+                      uint8_t             *out);
+size_t ham__db_check_integrity_request__pack_to_buffer
+                     (const Ham__DbCheckIntegrityRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__DbCheckIntegrityRequest *
+       ham__db_check_integrity_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__db_check_integrity_request__free_unpacked
+                     (Ham__DbCheckIntegrityRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__DbCheckIntegrityReply methods */
+void   ham__db_check_integrity_reply__init
+                     (Ham__DbCheckIntegrityReply         *message);
+size_t ham__db_check_integrity_reply__get_packed_size
+                     (const Ham__DbCheckIntegrityReply   *message);
+size_t ham__db_check_integrity_reply__pack
+                     (const Ham__DbCheckIntegrityReply   *message,
+                      uint8_t             *out);
+size_t ham__db_check_integrity_reply__pack_to_buffer
+                     (const Ham__DbCheckIntegrityReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__DbCheckIntegrityReply *
+       ham__db_check_integrity_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__db_check_integrity_reply__free_unpacked
+                     (Ham__DbCheckIntegrityReply *message,
+                      ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
 typedef void (*Ham__Wrapper_Closure)
@@ -1079,6 +1144,12 @@ typedef void (*Ham__TxnAbortRequest_Closure)
 typedef void (*Ham__TxnAbortReply_Closure)
                  (const Ham__TxnAbortReply *message,
                   void *closure_data);
+typedef void (*Ham__DbCheckIntegrityRequest_Closure)
+                 (const Ham__DbCheckIntegrityRequest *message,
+                  void *closure_data);
+typedef void (*Ham__DbCheckIntegrityReply_Closure)
+                 (const Ham__DbCheckIntegrityReply *message,
+                  void *closure_data);
 
 /* --- services --- */
 
@@ -1115,6 +1186,8 @@ extern const ProtobufCMessageDescriptor ham__txn_commit_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__txn_commit_reply__descriptor;
 extern const ProtobufCMessageDescriptor ham__txn_abort_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__txn_abort_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__db_check_integrity_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__db_check_integrity_reply__descriptor;
 
 PROTOBUF_C_END_DECLS
 

@@ -32,6 +32,8 @@ message Wrapper {
             TXN_COMMIT_REPLY = 131;
             TXN_ABORT_REQUEST = 140;
             TXN_ABORT_REPLY = 141;
+            DB_CHECK_INTEGRITY_REQUEST = 150;
+            DB_CHECK_INTEGRITY_REPLY = 151;
     }
 
     required Type type = 1;
@@ -64,6 +66,8 @@ message Wrapper {
     optional TxnCommitReply txn_commit_reply = 131;
     optional TxnAbortRequest txn_abort_request = 140;
     optional TxnAbortReply txn_abort_reply = 141;
+    optional DbCheckIntegrityRequest db_check_integrity_request = 150;
+    optional DbCheckIntegrityReply db_check_integrity_reply = 151;
 }
 
 message ConnectRequest {
@@ -205,5 +209,14 @@ message TxnAbortRequest {
 }
 
 message TxnAbortReply {
+    required sint32 status = 1;
+};
+
+message DbCheckIntegrityRequest {
+    required uint64 db_handle = 1;
+    required uint64 txn_handle = 2;
+}
+
+message DbCheckIntegrityReply {
     required sint32 status = 1;
 };

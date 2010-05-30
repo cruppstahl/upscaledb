@@ -756,9 +756,32 @@ _remote_fun_flush(ham_db_t *db, ham_u32_t flags)
 static ham_status_t
 _remote_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
 {
-    /* TODO cannot implement this as long as txn's are not available 
-     * remotely */
-    return 0;
+    ham_status_t st;
+    ham_env_t *env=db_get_env(db);
+    Ham__DbCheckIntegrityRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    
+    ham__wrapper__init(&wrapper);
+    ham__db_check_integrity_request__init(&msg);
+    msg.db_handle=db_get_remote_handle(db);
+    msg.txn_handle=txn ? txn_get_remote_handle(txn) : 0;
+    wrapper.type=HAM__WRAPPER__TYPE__DB_CHECK_INTEGRITY_REQUEST;
+    wrapper.db_check_integrity_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->db_check_integrity_reply!=0, (""));
+    st=reply->db_check_integrity_reply->status;
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
 }
 
 static ham_status_t
@@ -903,9 +926,10 @@ ham_status_t
 db_initialize_remote(ham_db_t *db)
 {
 #if HAM_ENABLE_REMOTE
-    db->_fun_close         =_remote_fun_close;
-    db->_fun_get_parameters=_remote_fun_get_parameters;
-    db->_fun_flush         =_remote_fun_flush;
+    db->_fun_close          =_remote_fun_close;
+    db->_fun_get_parameters =_remote_fun_get_parameters;
+    db->_fun_flush          =_remote_fun_flush;
+    db->_fun_check_integrity=_remote_fun_check_integrity;
 
     return (0);
 #else

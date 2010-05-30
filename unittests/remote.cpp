@@ -54,6 +54,7 @@ public:
         BFC_REGISTER_TEST(RemoteTest, autoCleanupTest);
         BFC_REGISTER_TEST(RemoteTest, txnBeginCommitTest);
         BFC_REGISTER_TEST(RemoteTest, txnBeginAbortTest);
+        BFC_REGISTER_TEST(RemoteTest, checkIntegrityTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanup2Test);
     }
 
@@ -413,6 +414,19 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, db, 0));
 
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
+
+    void checkIntegrityTest(void)
+    {
+        ham_db_t *db;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(db, SERVER_URL, 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_check_integrity(db, 0));
+
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
     }

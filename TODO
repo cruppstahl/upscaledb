@@ -87,8 +87,8 @@ o client/server communication
             x unittest
         x ham_txn_abort
             x unittest
-        o ham_check_integrity
-            o unittest
+        x ham_check_integrity
+            x unittest
         o ham_get_key_count
             o unittest
 

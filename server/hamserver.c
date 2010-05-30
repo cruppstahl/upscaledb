@@ -605,6 +605,44 @@ handle_txn_abort(struct env_t *envh, struct mg_connection *conn,
 }
 
 static void
+handle_db_check_integrity(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__DbCheckIntegrityRequest *request)
+{
+    Ham__DbCheckIntegrityReply reply;
+    Ham__Wrapper wrapper;
+    ham_txn_t *txn=0;
+    ham_db_t *db;
+
+    ham_assert(request!=0, (""));
+
+    ham__db_check_integrity_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.db_check_integrity_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__DB_CHECK_INTEGRITY_REPLY;
+
+    if (request->txn_handle) {
+        txn=__get_handle(envh, request->txn_handle);
+        if (!txn) {
+            reply.status=HAM_INV_PARAMETER;
+        }
+    }
+
+    if (reply.status==0) {
+        db=__get_handle(envh, request->db_handle);
+        if (!db) {
+            reply.status=HAM_INV_PARAMETER;
+        }
+        else {
+            reply.status=ham_check_integrity(db, txn);
+        }
+    }
+
+    send_wrapper(envh->env, conn, &wrapper);
+}
+
+static void
 request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
                 void *user_data)
 {
@@ -682,6 +720,11 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
     case HAM__WRAPPER__TYPE__TXN_ABORT_REQUEST:
         ham_trace(("txn_abort request"));
         handle_txn_abort(env, conn, ri, wrapper->txn_abort_request);
+        break;
+    case HAM__WRAPPER__TYPE__DB_CHECK_INTEGRITY_REQUEST:
+        ham_trace(("db_check_integrity request"));
+        handle_db_check_integrity(env, conn, ri, 
+                wrapper->db_check_integrity_request);
         break;
     default:
         /* TODO send error */
