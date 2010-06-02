@@ -39,6 +39,16 @@ typedef struct _Ham__TxnAbortRequest Ham__TxnAbortRequest;
 typedef struct _Ham__TxnAbortReply Ham__TxnAbortReply;
 typedef struct _Ham__DbCheckIntegrityRequest Ham__DbCheckIntegrityRequest;
 typedef struct _Ham__DbCheckIntegrityReply Ham__DbCheckIntegrityReply;
+typedef struct _Ham__DbGetKeyCountRequest Ham__DbGetKeyCountRequest;
+typedef struct _Ham__DbGetKeyCountReply Ham__DbGetKeyCountReply;
+typedef struct _Ham__Key Ham__Key;
+typedef struct _Ham__Record Ham__Record;
+typedef struct _Ham__DbInsertRequest Ham__DbInsertRequest;
+typedef struct _Ham__DbInsertReply Ham__DbInsertReply;
+typedef struct _Ham__DbEraseRequest Ham__DbEraseRequest;
+typedef struct _Ham__DbEraseReply Ham__DbEraseReply;
+typedef struct _Ham__DbFindRequest Ham__DbFindRequest;
+typedef struct _Ham__DbFindReply Ham__DbFindReply;
 
 
 /* --- enums --- */
@@ -73,7 +83,15 @@ typedef enum _Ham__Wrapper__Type {
   HAM__WRAPPER__TYPE__TXN_ABORT_REQUEST = 140,
   HAM__WRAPPER__TYPE__TXN_ABORT_REPLY = 141,
   HAM__WRAPPER__TYPE__DB_CHECK_INTEGRITY_REQUEST = 150,
-  HAM__WRAPPER__TYPE__DB_CHECK_INTEGRITY_REPLY = 151
+  HAM__WRAPPER__TYPE__DB_CHECK_INTEGRITY_REPLY = 151,
+  HAM__WRAPPER__TYPE__DB_GET_KEY_COUNT_REQUEST = 160,
+  HAM__WRAPPER__TYPE__DB_GET_KEY_COUNT_REPLY = 161,
+  HAM__WRAPPER__TYPE__DB_INSERT_REQUEST = 170,
+  HAM__WRAPPER__TYPE__DB_INSERT_REPLY = 171,
+  HAM__WRAPPER__TYPE__DB_ERASE_REQUEST = 180,
+  HAM__WRAPPER__TYPE__DB_ERASE_REPLY = 181,
+  HAM__WRAPPER__TYPE__DB_FIND_REQUEST = 190,
+  HAM__WRAPPER__TYPE__DB_FIND_REPLY = 191
 } Ham__Wrapper__Type;
 
 /* --- messages --- */
@@ -112,10 +130,18 @@ struct  _Ham__Wrapper
   Ham__TxnAbortReply *txn_abort_reply;
   Ham__DbCheckIntegrityRequest *db_check_integrity_request;
   Ham__DbCheckIntegrityReply *db_check_integrity_reply;
+  Ham__DbGetKeyCountRequest *db_get_key_count_request;
+  Ham__DbGetKeyCountReply *db_get_key_count_reply;
+  Ham__DbInsertRequest *db_insert_request;
+  Ham__DbInsertReply *db_insert_reply;
+  Ham__DbEraseRequest *db_erase_request;
+  Ham__DbEraseReply *db_erase_reply;
+  Ham__DbFindRequest *db_find_request;
+  Ham__DbFindReply *db_find_reply;
 };
 #define HAM__WRAPPER__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__wrapper__descriptor) \
-    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
+    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 
 
 struct  _Ham__ConnectRequest
@@ -464,6 +490,122 @@ struct  _Ham__DbCheckIntegrityReply
 #define HAM__DB_CHECK_INTEGRITY_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__db_check_integrity_reply__descriptor) \
     , 0 }
+
+
+struct  _Ham__DbGetKeyCountRequest
+{
+  ProtobufCMessage base;
+  uint64_t db_handle;
+  uint64_t txn_handle;
+  uint32_t flags;
+};
+#define HAM__DB_GET_KEY_COUNT_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__db_get_key_count_request__descriptor) \
+    , 0, 0, 0 }
+
+
+struct  _Ham__DbGetKeyCountReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+  uint64_t keycount;
+};
+#define HAM__DB_GET_KEY_COUNT_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__db_get_key_count_reply__descriptor) \
+    , 0, 0 }
+
+
+struct  _Ham__Key
+{
+  ProtobufCMessage base;
+  ProtobufCBinaryData data;
+  uint32_t flags;
+};
+#define HAM__KEY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__key__descriptor) \
+    , {0,NULL}, 0 }
+
+
+struct  _Ham__Record
+{
+  ProtobufCMessage base;
+  ProtobufCBinaryData data;
+  uint32_t flags;
+};
+#define HAM__RECORD__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__record__descriptor) \
+    , {0,NULL}, 0 }
+
+
+struct  _Ham__DbInsertRequest
+{
+  ProtobufCMessage base;
+  uint64_t db_handle;
+  uint64_t txn_handle;
+  Ham__Key *key;
+  Ham__Record *record;
+  uint32_t flags;
+};
+#define HAM__DB_INSERT_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__db_insert_request__descriptor) \
+    , 0, 0, NULL, NULL, 0 }
+
+
+struct  _Ham__DbInsertReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+};
+#define HAM__DB_INSERT_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__db_insert_reply__descriptor) \
+    , 0 }
+
+
+struct  _Ham__DbEraseRequest
+{
+  ProtobufCMessage base;
+  uint64_t db_handle;
+  uint64_t txn_handle;
+  Ham__Key *key;
+  uint32_t flags;
+};
+#define HAM__DB_ERASE_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__db_erase_request__descriptor) \
+    , 0, 0, NULL, 0 }
+
+
+struct  _Ham__DbEraseReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+};
+#define HAM__DB_ERASE_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__db_erase_reply__descriptor) \
+    , 0 }
+
+
+struct  _Ham__DbFindRequest
+{
+  ProtobufCMessage base;
+  uint64_t db_handle;
+  uint64_t txn_handle;
+  Ham__Key *key;
+  uint32_t flags;
+};
+#define HAM__DB_FIND_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__db_find_request__descriptor) \
+    , 0, 0, NULL, 0 }
+
+
+struct  _Ham__DbFindReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+  Ham__Record *record;
+};
+#define HAM__DB_FIND_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__db_find_reply__descriptor) \
+    , 0, NULL }
 
 
 /* Ham__Wrapper methods */
@@ -1055,6 +1197,196 @@ Ham__DbCheckIntegrityReply *
 void   ham__db_check_integrity_reply__free_unpacked
                      (Ham__DbCheckIntegrityReply *message,
                       ProtobufCAllocator *allocator);
+/* Ham__DbGetKeyCountRequest methods */
+void   ham__db_get_key_count_request__init
+                     (Ham__DbGetKeyCountRequest         *message);
+size_t ham__db_get_key_count_request__get_packed_size
+                     (const Ham__DbGetKeyCountRequest   *message);
+size_t ham__db_get_key_count_request__pack
+                     (const Ham__DbGetKeyCountRequest   *message,
+                      uint8_t             *out);
+size_t ham__db_get_key_count_request__pack_to_buffer
+                     (const Ham__DbGetKeyCountRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__DbGetKeyCountRequest *
+       ham__db_get_key_count_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__db_get_key_count_request__free_unpacked
+                     (Ham__DbGetKeyCountRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__DbGetKeyCountReply methods */
+void   ham__db_get_key_count_reply__init
+                     (Ham__DbGetKeyCountReply         *message);
+size_t ham__db_get_key_count_reply__get_packed_size
+                     (const Ham__DbGetKeyCountReply   *message);
+size_t ham__db_get_key_count_reply__pack
+                     (const Ham__DbGetKeyCountReply   *message,
+                      uint8_t             *out);
+size_t ham__db_get_key_count_reply__pack_to_buffer
+                     (const Ham__DbGetKeyCountReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__DbGetKeyCountReply *
+       ham__db_get_key_count_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__db_get_key_count_reply__free_unpacked
+                     (Ham__DbGetKeyCountReply *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__Key methods */
+void   ham__key__init
+                     (Ham__Key         *message);
+size_t ham__key__get_packed_size
+                     (const Ham__Key   *message);
+size_t ham__key__pack
+                     (const Ham__Key   *message,
+                      uint8_t             *out);
+size_t ham__key__pack_to_buffer
+                     (const Ham__Key   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__Key *
+       ham__key__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__key__free_unpacked
+                     (Ham__Key *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__Record methods */
+void   ham__record__init
+                     (Ham__Record         *message);
+size_t ham__record__get_packed_size
+                     (const Ham__Record   *message);
+size_t ham__record__pack
+                     (const Ham__Record   *message,
+                      uint8_t             *out);
+size_t ham__record__pack_to_buffer
+                     (const Ham__Record   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__Record *
+       ham__record__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__record__free_unpacked
+                     (Ham__Record *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__DbInsertRequest methods */
+void   ham__db_insert_request__init
+                     (Ham__DbInsertRequest         *message);
+size_t ham__db_insert_request__get_packed_size
+                     (const Ham__DbInsertRequest   *message);
+size_t ham__db_insert_request__pack
+                     (const Ham__DbInsertRequest   *message,
+                      uint8_t             *out);
+size_t ham__db_insert_request__pack_to_buffer
+                     (const Ham__DbInsertRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__DbInsertRequest *
+       ham__db_insert_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__db_insert_request__free_unpacked
+                     (Ham__DbInsertRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__DbInsertReply methods */
+void   ham__db_insert_reply__init
+                     (Ham__DbInsertReply         *message);
+size_t ham__db_insert_reply__get_packed_size
+                     (const Ham__DbInsertReply   *message);
+size_t ham__db_insert_reply__pack
+                     (const Ham__DbInsertReply   *message,
+                      uint8_t             *out);
+size_t ham__db_insert_reply__pack_to_buffer
+                     (const Ham__DbInsertReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__DbInsertReply *
+       ham__db_insert_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__db_insert_reply__free_unpacked
+                     (Ham__DbInsertReply *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__DbEraseRequest methods */
+void   ham__db_erase_request__init
+                     (Ham__DbEraseRequest         *message);
+size_t ham__db_erase_request__get_packed_size
+                     (const Ham__DbEraseRequest   *message);
+size_t ham__db_erase_request__pack
+                     (const Ham__DbEraseRequest   *message,
+                      uint8_t             *out);
+size_t ham__db_erase_request__pack_to_buffer
+                     (const Ham__DbEraseRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__DbEraseRequest *
+       ham__db_erase_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__db_erase_request__free_unpacked
+                     (Ham__DbEraseRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__DbEraseReply methods */
+void   ham__db_erase_reply__init
+                     (Ham__DbEraseReply         *message);
+size_t ham__db_erase_reply__get_packed_size
+                     (const Ham__DbEraseReply   *message);
+size_t ham__db_erase_reply__pack
+                     (const Ham__DbEraseReply   *message,
+                      uint8_t             *out);
+size_t ham__db_erase_reply__pack_to_buffer
+                     (const Ham__DbEraseReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__DbEraseReply *
+       ham__db_erase_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__db_erase_reply__free_unpacked
+                     (Ham__DbEraseReply *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__DbFindRequest methods */
+void   ham__db_find_request__init
+                     (Ham__DbFindRequest         *message);
+size_t ham__db_find_request__get_packed_size
+                     (const Ham__DbFindRequest   *message);
+size_t ham__db_find_request__pack
+                     (const Ham__DbFindRequest   *message,
+                      uint8_t             *out);
+size_t ham__db_find_request__pack_to_buffer
+                     (const Ham__DbFindRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__DbFindRequest *
+       ham__db_find_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__db_find_request__free_unpacked
+                     (Ham__DbFindRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__DbFindReply methods */
+void   ham__db_find_reply__init
+                     (Ham__DbFindReply         *message);
+size_t ham__db_find_reply__get_packed_size
+                     (const Ham__DbFindReply   *message);
+size_t ham__db_find_reply__pack
+                     (const Ham__DbFindReply   *message,
+                      uint8_t             *out);
+size_t ham__db_find_reply__pack_to_buffer
+                     (const Ham__DbFindReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__DbFindReply *
+       ham__db_find_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__db_find_reply__free_unpacked
+                     (Ham__DbFindReply *message,
+                      ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
 typedef void (*Ham__Wrapper_Closure)
@@ -1150,6 +1482,36 @@ typedef void (*Ham__DbCheckIntegrityRequest_Closure)
 typedef void (*Ham__DbCheckIntegrityReply_Closure)
                  (const Ham__DbCheckIntegrityReply *message,
                   void *closure_data);
+typedef void (*Ham__DbGetKeyCountRequest_Closure)
+                 (const Ham__DbGetKeyCountRequest *message,
+                  void *closure_data);
+typedef void (*Ham__DbGetKeyCountReply_Closure)
+                 (const Ham__DbGetKeyCountReply *message,
+                  void *closure_data);
+typedef void (*Ham__Key_Closure)
+                 (const Ham__Key *message,
+                  void *closure_data);
+typedef void (*Ham__Record_Closure)
+                 (const Ham__Record *message,
+                  void *closure_data);
+typedef void (*Ham__DbInsertRequest_Closure)
+                 (const Ham__DbInsertRequest *message,
+                  void *closure_data);
+typedef void (*Ham__DbInsertReply_Closure)
+                 (const Ham__DbInsertReply *message,
+                  void *closure_data);
+typedef void (*Ham__DbEraseRequest_Closure)
+                 (const Ham__DbEraseRequest *message,
+                  void *closure_data);
+typedef void (*Ham__DbEraseReply_Closure)
+                 (const Ham__DbEraseReply *message,
+                  void *closure_data);
+typedef void (*Ham__DbFindRequest_Closure)
+                 (const Ham__DbFindRequest *message,
+                  void *closure_data);
+typedef void (*Ham__DbFindReply_Closure)
+                 (const Ham__DbFindReply *message,
+                  void *closure_data);
 
 /* --- services --- */
 
@@ -1188,6 +1550,16 @@ extern const ProtobufCMessageDescriptor ham__txn_abort_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__txn_abort_reply__descriptor;
 extern const ProtobufCMessageDescriptor ham__db_check_integrity_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__db_check_integrity_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__db_get_key_count_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__db_get_key_count_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__key__descriptor;
+extern const ProtobufCMessageDescriptor ham__record__descriptor;
+extern const ProtobufCMessageDescriptor ham__db_insert_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__db_insert_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__db_erase_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__db_erase_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__db_find_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__db_find_reply__descriptor;
 
 PROTOBUF_C_END_DECLS
 

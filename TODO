@@ -89,17 +89,32 @@ o client/server communication
             x unittest
         x ham_check_integrity
             x unittest
-        o ham_get_key_count
-            o unittest
+        x ham_get_key_count
+            x unittest
+
+        o ham_insert
+            x needs implementation in remote.c, server
+            o recno: key data is modified (if key->size==8 und
+                    HAM_RECORD_NUMBER); memory must be allocated
+                x should work - i moved it to hamsterdb.c
+                o make sure that the recno is copied back into the key
+                o implement the server
+        o ham_find
+            x implemented in db.c
+            o needs implementation in remote.c, server
+            o respect USER_ALLOC pointers!
+            o approx matching: modifies key-flags
+        o ham_erase
+            x implemented in db.c
+            o needs implementation in remote.c, server
+            o unittest: insert, find, erase, find
+            o unittest: insert, find, erase, find (useralloc)
+            o unittest: insert, find, erase, find (for recno)
+            o unittest: insert, find, erase, find (for recno/useralloc)
+            o unittest: negative insert, negative find, negative erase
 
 o if the same database is opened twice, the same handle has to be returned
     (currently, an error is returned - DB_ALREADY_OPEN)
-
-        o ham_insert
-        o ham_find
-        o ham_erase
-            o unittest: insert, find, erase, find
-            o unittest: negative insert, negative find, negative erase
 
         o ham_cursor_clone
             o unittest

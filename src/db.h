@@ -228,6 +228,30 @@ struct ham_db_t
     ham_status_t (*_fun_check_integrity)(ham_db_t *db, ham_txn_t *txn);
 
     /**
+     * get number of keys
+     */
+    ham_status_t (*_fun_get_key_count)(ham_db_t *db, ham_txn_t *txn, 
+                    ham_u32_t flags, ham_offset_t *keycount);
+
+    /**
+     * insert a key/value pair
+     */
+    ham_status_t (*_fun_insert)(ham_db_t *db, ham_txn_t *txn, 
+                    ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+
+    /**
+     * erase a key/value pair
+     */
+    ham_status_t (*_fun_erase)(ham_db_t *db, ham_txn_t *txn, 
+                    ham_key_t *key, ham_u32_t flags);
+
+    /**
+     * lookup of a key/value pair
+     */
+    ham_status_t (*_fun_find)(ham_db_t *db, ham_txn_t *txn, 
+                    ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+
+    /**
      * close the Database
      */
     ham_status_t (*_fun_close)(ham_db_t *db, ham_u32_t flags);

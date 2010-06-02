@@ -894,6 +894,85 @@ _remote_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     return (st);
 }
 
+static ham_status_t
+_remote_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
+            ham_offset_t *keycount)
+{
+    ham_status_t st;
+    ham_env_t *env=db_get_env(db);
+    Ham__DbGetKeyCountRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    
+    ham__wrapper__init(&wrapper);
+    ham__db_get_key_count_request__init(&msg);
+    msg.db_handle=db_get_remote_handle(db);
+    msg.txn_handle=txn ? txn_get_remote_handle(txn) : 0;
+    msg.flags=flags;
+    wrapper.type=HAM__WRAPPER__TYPE__DB_GET_KEY_COUNT_REQUEST;
+    wrapper.db_get_key_count_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->db_get_key_count_reply!=0, (""));
+    st=reply->db_get_key_count_reply->status;
+
+    if (!st)
+        *keycount=reply->db_get_key_count_reply->keycount;
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
+}
+
+static ham_status_t
+_remote_fun_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
+            ham_record_t *record, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_env_t *env=db_get_env(db);
+    Ham__DbInsertRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    Ham__Key protokey=HAM__KEY__INIT;
+    Ham__Record protorec=HAM__RECORD__INIT;
+    
+    ham__wrapper__init(&wrapper);
+    ham__db_insert_request__init(&msg);
+    msg.db_handle=db_get_remote_handle(db);
+    msg.txn_handle=txn ? txn_get_remote_handle(txn) : 0;
+    protokey.data.data=key->data;
+    protokey.data.len=key->size;
+    protokey.flags=key->flags;
+    protorec.data.data=key->data;
+    protorec.data.len=key->size;
+    protorec.flags=key->flags;
+    msg.key=&protokey;
+    msg.record=&protorec;
+    msg.flags=flags;
+    wrapper.type=HAM__WRAPPER__TYPE__DB_INSERT_REQUEST;
+    wrapper.db_insert_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->db_insert_reply!=0, (""));
+    st=reply->db_insert_reply->status;
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
+}
+
 #endif /* HAM_ENABLE_REMOTE */
 
 ham_status_t
@@ -930,6 +1009,8 @@ db_initialize_remote(ham_db_t *db)
     db->_fun_get_parameters =_remote_fun_get_parameters;
     db->_fun_flush          =_remote_fun_flush;
     db->_fun_check_integrity=_remote_fun_check_integrity;
+    db->_fun_get_key_count  =_remote_fun_get_key_count;
+    db->_fun_insert         =_remote_fun_insert;
 
     return (0);
 #else

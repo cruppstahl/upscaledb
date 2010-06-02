@@ -1334,7 +1334,437 @@ void   ham__db_check_integrity_reply__free_unpacked
   PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_check_integrity_reply__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[30] =
+void   ham__db_get_key_count_request__init
+                     (Ham__DbGetKeyCountRequest         *message)
+{
+  static Ham__DbGetKeyCountRequest init_value = HAM__DB_GET_KEY_COUNT_REQUEST__INIT;
+  *message = init_value;
+}
+size_t ham__db_get_key_count_request__get_packed_size
+                     (const Ham__DbGetKeyCountRequest *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_get_key_count_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__db_get_key_count_request__pack
+                     (const Ham__DbGetKeyCountRequest *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_get_key_count_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__db_get_key_count_request__pack_to_buffer
+                     (const Ham__DbGetKeyCountRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_get_key_count_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__DbGetKeyCountRequest *
+       ham__db_get_key_count_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__DbGetKeyCountRequest *)
+     protobuf_c_message_unpack (&ham__db_get_key_count_request__descriptor,
+                                allocator, len, data);
+}
+void   ham__db_get_key_count_request__free_unpacked
+                     (Ham__DbGetKeyCountRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_get_key_count_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__db_get_key_count_reply__init
+                     (Ham__DbGetKeyCountReply         *message)
+{
+  static Ham__DbGetKeyCountReply init_value = HAM__DB_GET_KEY_COUNT_REPLY__INIT;
+  *message = init_value;
+}
+size_t ham__db_get_key_count_reply__get_packed_size
+                     (const Ham__DbGetKeyCountReply *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_get_key_count_reply__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__db_get_key_count_reply__pack
+                     (const Ham__DbGetKeyCountReply *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_get_key_count_reply__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__db_get_key_count_reply__pack_to_buffer
+                     (const Ham__DbGetKeyCountReply *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_get_key_count_reply__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__DbGetKeyCountReply *
+       ham__db_get_key_count_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__DbGetKeyCountReply *)
+     protobuf_c_message_unpack (&ham__db_get_key_count_reply__descriptor,
+                                allocator, len, data);
+}
+void   ham__db_get_key_count_reply__free_unpacked
+                     (Ham__DbGetKeyCountReply *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_get_key_count_reply__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__key__init
+                     (Ham__Key         *message)
+{
+  static Ham__Key init_value = HAM__KEY__INIT;
+  *message = init_value;
+}
+size_t ham__key__get_packed_size
+                     (const Ham__Key *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__key__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__key__pack
+                     (const Ham__Key *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__key__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__key__pack_to_buffer
+                     (const Ham__Key *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__key__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__Key *
+       ham__key__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__Key *)
+     protobuf_c_message_unpack (&ham__key__descriptor,
+                                allocator, len, data);
+}
+void   ham__key__free_unpacked
+                     (Ham__Key *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__key__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__record__init
+                     (Ham__Record         *message)
+{
+  static Ham__Record init_value = HAM__RECORD__INIT;
+  *message = init_value;
+}
+size_t ham__record__get_packed_size
+                     (const Ham__Record *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__record__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__record__pack
+                     (const Ham__Record *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__record__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__record__pack_to_buffer
+                     (const Ham__Record *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__record__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__Record *
+       ham__record__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__Record *)
+     protobuf_c_message_unpack (&ham__record__descriptor,
+                                allocator, len, data);
+}
+void   ham__record__free_unpacked
+                     (Ham__Record *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__record__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__db_insert_request__init
+                     (Ham__DbInsertRequest         *message)
+{
+  static Ham__DbInsertRequest init_value = HAM__DB_INSERT_REQUEST__INIT;
+  *message = init_value;
+}
+size_t ham__db_insert_request__get_packed_size
+                     (const Ham__DbInsertRequest *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_insert_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__db_insert_request__pack
+                     (const Ham__DbInsertRequest *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_insert_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__db_insert_request__pack_to_buffer
+                     (const Ham__DbInsertRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_insert_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__DbInsertRequest *
+       ham__db_insert_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__DbInsertRequest *)
+     protobuf_c_message_unpack (&ham__db_insert_request__descriptor,
+                                allocator, len, data);
+}
+void   ham__db_insert_request__free_unpacked
+                     (Ham__DbInsertRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_insert_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__db_insert_reply__init
+                     (Ham__DbInsertReply         *message)
+{
+  static Ham__DbInsertReply init_value = HAM__DB_INSERT_REPLY__INIT;
+  *message = init_value;
+}
+size_t ham__db_insert_reply__get_packed_size
+                     (const Ham__DbInsertReply *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_insert_reply__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__db_insert_reply__pack
+                     (const Ham__DbInsertReply *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_insert_reply__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__db_insert_reply__pack_to_buffer
+                     (const Ham__DbInsertReply *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_insert_reply__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__DbInsertReply *
+       ham__db_insert_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__DbInsertReply *)
+     protobuf_c_message_unpack (&ham__db_insert_reply__descriptor,
+                                allocator, len, data);
+}
+void   ham__db_insert_reply__free_unpacked
+                     (Ham__DbInsertReply *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_insert_reply__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__db_erase_request__init
+                     (Ham__DbEraseRequest         *message)
+{
+  static Ham__DbEraseRequest init_value = HAM__DB_ERASE_REQUEST__INIT;
+  *message = init_value;
+}
+size_t ham__db_erase_request__get_packed_size
+                     (const Ham__DbEraseRequest *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_erase_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__db_erase_request__pack
+                     (const Ham__DbEraseRequest *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_erase_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__db_erase_request__pack_to_buffer
+                     (const Ham__DbEraseRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_erase_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__DbEraseRequest *
+       ham__db_erase_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__DbEraseRequest *)
+     protobuf_c_message_unpack (&ham__db_erase_request__descriptor,
+                                allocator, len, data);
+}
+void   ham__db_erase_request__free_unpacked
+                     (Ham__DbEraseRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_erase_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__db_erase_reply__init
+                     (Ham__DbEraseReply         *message)
+{
+  static Ham__DbEraseReply init_value = HAM__DB_ERASE_REPLY__INIT;
+  *message = init_value;
+}
+size_t ham__db_erase_reply__get_packed_size
+                     (const Ham__DbEraseReply *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_erase_reply__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__db_erase_reply__pack
+                     (const Ham__DbEraseReply *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_erase_reply__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__db_erase_reply__pack_to_buffer
+                     (const Ham__DbEraseReply *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_erase_reply__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__DbEraseReply *
+       ham__db_erase_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__DbEraseReply *)
+     protobuf_c_message_unpack (&ham__db_erase_reply__descriptor,
+                                allocator, len, data);
+}
+void   ham__db_erase_reply__free_unpacked
+                     (Ham__DbEraseReply *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_erase_reply__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__db_find_request__init
+                     (Ham__DbFindRequest         *message)
+{
+  static Ham__DbFindRequest init_value = HAM__DB_FIND_REQUEST__INIT;
+  *message = init_value;
+}
+size_t ham__db_find_request__get_packed_size
+                     (const Ham__DbFindRequest *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_find_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__db_find_request__pack
+                     (const Ham__DbFindRequest *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_find_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__db_find_request__pack_to_buffer
+                     (const Ham__DbFindRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_find_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__DbFindRequest *
+       ham__db_find_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__DbFindRequest *)
+     protobuf_c_message_unpack (&ham__db_find_request__descriptor,
+                                allocator, len, data);
+}
+void   ham__db_find_request__free_unpacked
+                     (Ham__DbFindRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_find_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__db_find_reply__init
+                     (Ham__DbFindReply         *message)
+{
+  static Ham__DbFindReply init_value = HAM__DB_FIND_REPLY__INIT;
+  *message = init_value;
+}
+size_t ham__db_find_reply__get_packed_size
+                     (const Ham__DbFindReply *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_find_reply__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__db_find_reply__pack
+                     (const Ham__DbFindReply *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_find_reply__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__db_find_reply__pack_to_buffer
+                     (const Ham__DbFindReply *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_find_reply__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__DbFindReply *
+       ham__db_find_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__DbFindReply *)
+     protobuf_c_message_unpack (&ham__db_find_reply__descriptor,
+                                allocator, len, data);
+}
+void   ham__db_find_reply__free_unpacked
+                     (Ham__DbFindReply *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__db_find_reply__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[38] =
 {
   { "CONNECT_REQUEST", "HAM__WRAPPER__TYPE__CONNECT_REQUEST", 10 },
   { "CONNECT_REPLY", "HAM__WRAPPER__TYPE__CONNECT_REPLY", 11 },
@@ -1366,11 +1796,19 @@ const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[30] =
   { "TXN_ABORT_REPLY", "HAM__WRAPPER__TYPE__TXN_ABORT_REPLY", 141 },
   { "DB_CHECK_INTEGRITY_REQUEST", "HAM__WRAPPER__TYPE__DB_CHECK_INTEGRITY_REQUEST", 150 },
   { "DB_CHECK_INTEGRITY_REPLY", "HAM__WRAPPER__TYPE__DB_CHECK_INTEGRITY_REPLY", 151 },
+  { "DB_GET_KEY_COUNT_REQUEST", "HAM__WRAPPER__TYPE__DB_GET_KEY_COUNT_REQUEST", 160 },
+  { "DB_GET_KEY_COUNT_REPLY", "HAM__WRAPPER__TYPE__DB_GET_KEY_COUNT_REPLY", 161 },
+  { "DB_INSERT_REQUEST", "HAM__WRAPPER__TYPE__DB_INSERT_REQUEST", 170 },
+  { "DB_INSERT_REPLY", "HAM__WRAPPER__TYPE__DB_INSERT_REPLY", 171 },
+  { "DB_ERASE_REQUEST", "HAM__WRAPPER__TYPE__DB_ERASE_REQUEST", 180 },
+  { "DB_ERASE_REPLY", "HAM__WRAPPER__TYPE__DB_ERASE_REPLY", 181 },
+  { "DB_FIND_REQUEST", "HAM__WRAPPER__TYPE__DB_FIND_REQUEST", 190 },
+  { "DB_FIND_REPLY", "HAM__WRAPPER__TYPE__DB_FIND_REPLY", 191 },
 };
 static const ProtobufCIntRange ham__wrapper__type__value_ranges[] = {
-{10, 0},{20, 2},{30, 4},{40, 6},{50, 8},{60, 10},{70, 12},{80, 14},{90, 16},{100, 18},{110, 20},{120, 22},{130, 24},{140, 26},{150, 28},{0, 30}
+{10, 0},{20, 2},{30, 4},{40, 6},{50, 8},{60, 10},{70, 12},{80, 14},{90, 16},{100, 18},{110, 20},{120, 22},{130, 24},{140, 26},{150, 28},{160, 30},{170, 32},{180, 34},{190, 36},{0, 38}
 };
-const ProtobufCEnumValueIndex ham__wrapper__type__enum_values_by_name[30] =
+const ProtobufCEnumValueIndex ham__wrapper__type__enum_values_by_name[38] =
 {
   { "CONNECT_REPLY", 1 },
   { "CONNECT_REQUEST", 0 },
@@ -1378,10 +1816,18 @@ const ProtobufCEnumValueIndex ham__wrapper__type__enum_values_by_name[30] =
   { "DB_CHECK_INTEGRITY_REQUEST", 28 },
   { "DB_CLOSE_REPLY", 17 },
   { "DB_CLOSE_REQUEST", 16 },
+  { "DB_ERASE_REPLY", 35 },
+  { "DB_ERASE_REQUEST", 34 },
+  { "DB_FIND_REPLY", 37 },
+  { "DB_FIND_REQUEST", 36 },
   { "DB_FLUSH_REPLY", 21 },
   { "DB_FLUSH_REQUEST", 20 },
+  { "DB_GET_KEY_COUNT_REPLY", 31 },
+  { "DB_GET_KEY_COUNT_REQUEST", 30 },
   { "DB_GET_PARAMETERS_REPLY", 19 },
   { "DB_GET_PARAMETERS_REQUEST", 18 },
+  { "DB_INSERT_REPLY", 33 },
+  { "DB_INSERT_REQUEST", 32 },
   { "ENV_CREATE_DB_REPLY", 11 },
   { "ENV_CREATE_DB_REQUEST", 10 },
   { "ENV_ERASE_DB_REPLY", 15 },
@@ -1410,15 +1856,15 @@ const ProtobufCEnumDescriptor ham__wrapper__type__descriptor =
   "Type",
   "Ham__Wrapper__Type",
   "ham",
-  30,
+  38,
   ham__wrapper__type__enum_values_by_number,
-  30,
+  38,
   ham__wrapper__type__enum_values_by_name,
-  15,
+  19,
   ham__wrapper__type__value_ranges,
   NULL,NULL,NULL,NULL   /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[31] =
+static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[39] =
 {
   {
     "type",
@@ -1761,6 +2207,94 @@ static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[31] =
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
+  {
+    "db_get_key_count_request",
+    160,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, db_get_key_count_request),
+    &ham__db_get_key_count_request__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "db_get_key_count_reply",
+    161,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, db_get_key_count_reply),
+    &ham__db_get_key_count_reply__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "db_insert_request",
+    170,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, db_insert_request),
+    &ham__db_insert_request__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "db_insert_reply",
+    171,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, db_insert_reply),
+    &ham__db_insert_reply__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "db_erase_request",
+    180,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, db_erase_request),
+    &ham__db_erase_request__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "db_erase_reply",
+    181,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, db_erase_reply),
+    &ham__db_erase_reply__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "db_find_request",
+    190,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, db_find_request),
+    &ham__db_find_request__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "db_find_reply",
+    191,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, db_find_reply),
+    &ham__db_find_reply__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
 };
 static const unsigned ham__wrapper__field_indices_by_name[] = {
   2,   /* field[2] = connect_reply */
@@ -1769,10 +2303,18 @@ static const unsigned ham__wrapper__field_indices_by_name[] = {
   29,   /* field[29] = db_check_integrity_request */
   18,   /* field[18] = db_close_reply */
   17,   /* field[17] = db_close_request */
+  36,   /* field[36] = db_erase_reply */
+  35,   /* field[35] = db_erase_request */
+  38,   /* field[38] = db_find_reply */
+  37,   /* field[37] = db_find_request */
   22,   /* field[22] = db_flush_reply */
   21,   /* field[21] = db_flush_request */
+  32,   /* field[32] = db_get_key_count_reply */
+  31,   /* field[31] = db_get_key_count_request */
   20,   /* field[20] = db_get_parameters_reply */
   19,   /* field[19] = db_get_parameters_request */
+  34,   /* field[34] = db_insert_reply */
+  33,   /* field[33] = db_insert_request */
   12,   /* field[12] = env_create_db_reply */
   11,   /* field[11] = env_create_db_request */
   16,   /* field[16] = env_erase_db_reply */
@@ -1795,7 +2337,7 @@ static const unsigned ham__wrapper__field_indices_by_name[] = {
   25,   /* field[25] = txn_commit_request */
   0,   /* field[0] = type */
 };
-static const ProtobufCIntRange ham__wrapper__number_ranges[16 + 1] =
+static const ProtobufCIntRange ham__wrapper__number_ranges[20 + 1] =
 {
   { 1, 0 },
   { 10, 1 },
@@ -1813,7 +2355,11 @@ static const ProtobufCIntRange ham__wrapper__number_ranges[16 + 1] =
   { 130, 25 },
   { 140, 27 },
   { 150, 29 },
-  { 0, 31 }
+  { 160, 31 },
+  { 170, 33 },
+  { 180, 35 },
+  { 190, 37 },
+  { 0, 39 }
 };
 const ProtobufCMessageDescriptor ham__wrapper__descriptor =
 {
@@ -1823,10 +2369,10 @@ const ProtobufCMessageDescriptor ham__wrapper__descriptor =
   "Ham__Wrapper",
   "ham",
   sizeof(Ham__Wrapper),
-  31,
+  39,
   ham__wrapper__field_descriptors,
   ham__wrapper__field_indices_by_name,
-  16,  ham__wrapper__number_ranges,
+  20,  ham__wrapper__number_ranges,
   NULL,NULL,NULL,NULL    /* reserved[1234] */
 };
 static const ProtobufCFieldDescriptor ham__connect_request__field_descriptors[1] =
@@ -3275,5 +3821,557 @@ const ProtobufCMessageDescriptor ham__db_check_integrity_reply__descriptor =
   ham__db_check_integrity_reply__field_descriptors,
   ham__db_check_integrity_reply__field_indices_by_name,
   1,  ham__db_check_integrity_reply__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__db_get_key_count_request__field_descriptors[3] =
+{
+  {
+    "db_handle",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbGetKeyCountRequest, db_handle),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "txn_handle",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbGetKeyCountRequest, txn_handle),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "flags",
+    3,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbGetKeyCountRequest, flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__db_get_key_count_request__field_indices_by_name[] = {
+  0,   /* field[0] = db_handle */
+  2,   /* field[2] = flags */
+  1,   /* field[1] = txn_handle */
+};
+static const ProtobufCIntRange ham__db_get_key_count_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 3 }
+};
+const ProtobufCMessageDescriptor ham__db_get_key_count_request__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.DbGetKeyCountRequest",
+  "DbGetKeyCountRequest",
+  "Ham__DbGetKeyCountRequest",
+  "ham",
+  sizeof(Ham__DbGetKeyCountRequest),
+  3,
+  ham__db_get_key_count_request__field_descriptors,
+  ham__db_get_key_count_request__field_indices_by_name,
+  1,  ham__db_get_key_count_request__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__db_get_key_count_reply__field_descriptors[2] =
+{
+  {
+    "status",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_SINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbGetKeyCountReply, status),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "keycount",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbGetKeyCountReply, keycount),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__db_get_key_count_reply__field_indices_by_name[] = {
+  1,   /* field[1] = keycount */
+  0,   /* field[0] = status */
+};
+static const ProtobufCIntRange ham__db_get_key_count_reply__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor ham__db_get_key_count_reply__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.DbGetKeyCountReply",
+  "DbGetKeyCountReply",
+  "Ham__DbGetKeyCountReply",
+  "ham",
+  sizeof(Ham__DbGetKeyCountReply),
+  2,
+  ham__db_get_key_count_reply__field_descriptors,
+  ham__db_get_key_count_reply__field_indices_by_name,
+  1,  ham__db_get_key_count_reply__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__key__field_descriptors[2] =
+{
+  {
+    "data",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_BYTES,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Key, data),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "flags",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Key, flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__key__field_indices_by_name[] = {
+  0,   /* field[0] = data */
+  1,   /* field[1] = flags */
+};
+static const ProtobufCIntRange ham__key__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor ham__key__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.Key",
+  "Key",
+  "Ham__Key",
+  "ham",
+  sizeof(Ham__Key),
+  2,
+  ham__key__field_descriptors,
+  ham__key__field_indices_by_name,
+  1,  ham__key__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__record__field_descriptors[2] =
+{
+  {
+    "data",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_BYTES,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Record, data),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "flags",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Record, flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__record__field_indices_by_name[] = {
+  0,   /* field[0] = data */
+  1,   /* field[1] = flags */
+};
+static const ProtobufCIntRange ham__record__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor ham__record__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.Record",
+  "Record",
+  "Ham__Record",
+  "ham",
+  sizeof(Ham__Record),
+  2,
+  ham__record__field_descriptors,
+  ham__record__field_indices_by_name,
+  1,  ham__record__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__db_insert_request__field_descriptors[5] =
+{
+  {
+    "db_handle",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbInsertRequest, db_handle),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "txn_handle",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbInsertRequest, txn_handle),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "key",
+    3,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbInsertRequest, key),
+    &ham__key__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "record",
+    4,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbInsertRequest, record),
+    &ham__record__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "flags",
+    5,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbInsertRequest, flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__db_insert_request__field_indices_by_name[] = {
+  0,   /* field[0] = db_handle */
+  4,   /* field[4] = flags */
+  2,   /* field[2] = key */
+  3,   /* field[3] = record */
+  1,   /* field[1] = txn_handle */
+};
+static const ProtobufCIntRange ham__db_insert_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 5 }
+};
+const ProtobufCMessageDescriptor ham__db_insert_request__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.DbInsertRequest",
+  "DbInsertRequest",
+  "Ham__DbInsertRequest",
+  "ham",
+  sizeof(Ham__DbInsertRequest),
+  5,
+  ham__db_insert_request__field_descriptors,
+  ham__db_insert_request__field_indices_by_name,
+  1,  ham__db_insert_request__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__db_insert_reply__field_descriptors[1] =
+{
+  {
+    "status",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_SINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbInsertReply, status),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__db_insert_reply__field_indices_by_name[] = {
+  0,   /* field[0] = status */
+};
+static const ProtobufCIntRange ham__db_insert_reply__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor ham__db_insert_reply__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.DbInsertReply",
+  "DbInsertReply",
+  "Ham__DbInsertReply",
+  "ham",
+  sizeof(Ham__DbInsertReply),
+  1,
+  ham__db_insert_reply__field_descriptors,
+  ham__db_insert_reply__field_indices_by_name,
+  1,  ham__db_insert_reply__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__db_erase_request__field_descriptors[4] =
+{
+  {
+    "db_handle",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbEraseRequest, db_handle),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "txn_handle",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbEraseRequest, txn_handle),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "key",
+    3,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbEraseRequest, key),
+    &ham__key__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "flags",
+    4,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbEraseRequest, flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__db_erase_request__field_indices_by_name[] = {
+  0,   /* field[0] = db_handle */
+  3,   /* field[3] = flags */
+  2,   /* field[2] = key */
+  1,   /* field[1] = txn_handle */
+};
+static const ProtobufCIntRange ham__db_erase_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 4 }
+};
+const ProtobufCMessageDescriptor ham__db_erase_request__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.DbEraseRequest",
+  "DbEraseRequest",
+  "Ham__DbEraseRequest",
+  "ham",
+  sizeof(Ham__DbEraseRequest),
+  4,
+  ham__db_erase_request__field_descriptors,
+  ham__db_erase_request__field_indices_by_name,
+  1,  ham__db_erase_request__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__db_erase_reply__field_descriptors[1] =
+{
+  {
+    "status",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_SINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbEraseReply, status),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__db_erase_reply__field_indices_by_name[] = {
+  0,   /* field[0] = status */
+};
+static const ProtobufCIntRange ham__db_erase_reply__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor ham__db_erase_reply__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.DbEraseReply",
+  "DbEraseReply",
+  "Ham__DbEraseReply",
+  "ham",
+  sizeof(Ham__DbEraseReply),
+  1,
+  ham__db_erase_reply__field_descriptors,
+  ham__db_erase_reply__field_indices_by_name,
+  1,  ham__db_erase_reply__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__db_find_request__field_descriptors[4] =
+{
+  {
+    "db_handle",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbFindRequest, db_handle),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "txn_handle",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbFindRequest, txn_handle),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "key",
+    3,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbFindRequest, key),
+    &ham__key__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "flags",
+    4,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbFindRequest, flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__db_find_request__field_indices_by_name[] = {
+  0,   /* field[0] = db_handle */
+  3,   /* field[3] = flags */
+  2,   /* field[2] = key */
+  1,   /* field[1] = txn_handle */
+};
+static const ProtobufCIntRange ham__db_find_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 4 }
+};
+const ProtobufCMessageDescriptor ham__db_find_request__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.DbFindRequest",
+  "DbFindRequest",
+  "Ham__DbFindRequest",
+  "ham",
+  sizeof(Ham__DbFindRequest),
+  4,
+  ham__db_find_request__field_descriptors,
+  ham__db_find_request__field_indices_by_name,
+  1,  ham__db_find_request__number_ranges,
+  NULL,NULL,NULL,NULL    /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor ham__db_find_reply__field_descriptors[2] =
+{
+  {
+    "status",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_SINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbFindReply, status),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "record",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbFindReply, record),
+    &ham__record__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__db_find_reply__field_indices_by_name[] = {
+  1,   /* field[1] = record */
+  0,   /* field[0] = status */
+};
+static const ProtobufCIntRange ham__db_find_reply__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor ham__db_find_reply__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.DbFindReply",
+  "DbFindReply",
+  "Ham__DbFindReply",
+  "ham",
+  sizeof(Ham__DbFindReply),
+  2,
+  ham__db_find_reply__field_descriptors,
+  ham__db_find_reply__field_indices_by_name,
+  1,  ham__db_find_reply__number_ranges,
   NULL,NULL,NULL,NULL    /* reserved[1234] */
 };

@@ -55,6 +55,8 @@ public:
         BFC_REGISTER_TEST(RemoteTest, txnBeginCommitTest);
         BFC_REGISTER_TEST(RemoteTest, txnBeginAbortTest);
         BFC_REGISTER_TEST(RemoteTest, checkIntegrityTest);
+        BFC_REGISTER_TEST(RemoteTest, getKeyCountTest);
+        BFC_REGISTER_TEST(RemoteTest, insertTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanup2Test);
     }
 
@@ -426,6 +428,48 @@ protected:
         BFC_ASSERT_EQUAL(0, 
                 ham_create(db, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_check_integrity(db, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
+
+    void getKeyCountTest(void)
+    {
+        ham_db_t *db;
+        ham_offset_t keycount;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(db, SERVER_URL, 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+        BFC_ASSERT_EQUAL(0ull, keycount);
+
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
+
+    void insertTest(void)
+    {
+        ham_db_t *db;
+        ham_key_t key;
+        ham_record_t rec;
+        ham_offset_t keycount;
+
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello world";
+        key.size=12;
+        memset(&rec, 0, sizeof(rec));
+        key.data=(void *)"hello chris";
+        key.size=12;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(db, SERVER_URL, 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
+        BFC_ASSERT_EQUAL(1ull, keycount);
+        BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY, ham_insert(db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, HAM_OVERWRITE));
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);

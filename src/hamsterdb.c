@@ -271,7 +271,7 @@ __check_recovery_flags(ham_u32_t flags)
     return (HAM_TRUE);
 }
 
-static ham_status_t
+ham_status_t /* TODO - move to db.c and make it static! */
 __record_filters_before_write(ham_db_t *db, ham_record_t *record)
 {
     ham_status_t st=0;
@@ -312,7 +312,7 @@ __record_filters_before_write(ham_db_t *db, ham_record_t *record)
  * should start with the LAST filter registered and stop once we've DONE 
  * calling the FIRST.
  */
-static ham_status_t
+ham_status_t /* TODO move to db.c and make static! */
 __record_filters_after_find(ham_db_t *db, ham_record_t *record)
 {
     ham_status_t st = 0;
@@ -2503,10 +2503,6 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
 {
     ham_env_t *env;
-    ham_txn_t local_txn;
-    ham_status_t st;
-    ham_backend_t *be;
-    ham_offset_t recno=0;
 
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
@@ -2542,71 +2538,92 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
                     "In-Memory Databases"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+    if (db_get_rt_flags(db)&HAM_READ_ONLY) {
+        ham_trace(("cannot insert to a read-only database"));
+        return (db_set_error(db, HAM_DB_READ_ONLY));
+    }
+    if ((db_get_rt_flags(db)&HAM_DISABLE_VAR_KEYLEN) &&
+            (key->size>db_get_keysize(db))) {
+        ham_trace(("database does not support variable length keys"));
+        return (db_set_error(db, HAM_INV_KEYSIZE));
+    }
+    if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
+            (key->size>db_get_keysize(db))) {
+        ham_trace(("database does not support variable length keys"));
+        return (db_set_error(db, HAM_INV_KEYSIZE));
+    }
+    if ((flags&HAM_DUPLICATE) && (flags&HAM_OVERWRITE)) {
+        ham_trace(("cannot combine HAM_DUPLICATE and HAM_OVERWRITE"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_DUPLICATE) && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)) {
+        ham_trace(("database does not support duplicate keys "
+                    "(see HAM_ENABLE_DUPLICATES)"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_DUPLICATE_INSERT_AFTER)
+            || (flags&HAM_DUPLICATE_INSERT_BEFORE)
+            || (flags&HAM_DUPLICATE_INSERT_LAST)
+            || (flags&HAM_DUPLICATE_INSERT_FIRST)) {
+        ham_trace(("function does not support flags HAM_DUPLICATE_INSERT_*; "
+                    "see ham_cursor_insert"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        if (flags&HAM_OVERWRITE) {
+            if (key->size!=sizeof(ham_u64_t) || !key->data) {
+                ham_trace(("key->size must be 8, key->data must not be NULL"));
+                return (db_set_error(db, HAM_INV_PARAMETER));
+            }
+            if (key->flags&HAM_KEY_USER_ALLOC) {
+                if (!key->data || key->size!=sizeof(ham_u64_t)) {
+                    ham_trace(("key->size must be 8, key->data must not "
+                                "be NULL"));
+                    return (db_set_error(db, HAM_INV_PARAMETER));
+                }
+            }
+            else {
+                if (key->data || key->size) {
+                    ham_trace(("key->size must be 0, key->data must be NULL"));
+                    return (db_set_error(db, HAM_INV_PARAMETER));
+                }
+                /* 
+                 * allocate memory for the key
+                 */
+                if (sizeof(ham_u64_t)>db_get_key_allocsize(db)) {
+                    if (db_get_key_allocdata(db))
+                        allocator_free(env_get_allocator(env), 
+                                db_get_key_allocdata(db));
+                    db_set_key_allocdata(db, 
+                            allocator_alloc(env_get_allocator(env), 
+                                sizeof(ham_u64_t)));
+                    if (!db_get_key_allocdata(db)) {
+                        db_set_key_allocsize(db, 0);
+                        return (db_set_error(db, HAM_OUT_OF_MEMORY));
+                    }
+                    else {
+                        db_set_key_allocsize(db, sizeof(ham_u64_t));
+                    }
+                }
+                else
+                    db_set_key_allocsize(db, sizeof(ham_u64_t));
+
+                key->data=db_get_key_allocdata(db);
+            }
+        }
+    }
+
     if (!__prepare_key(key) || !__prepare_record(record))
         return (db_set_error(db, HAM_INV_PARAMETER));
 
+    if (!db->_fun_find) {
+        ham_trace(("Database was not initialized"));
+        return (HAM_NOT_INITIALIZED);
+    }
+
     db_set_error(db, 0);
 
-    /*
-     * record number: make sure that we have a valid key structure
-     */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        if (key->size!=sizeof(ham_u64_t) || !key->data) {
-            ham_trace(("key->size must be 8, key->data must not be NULL"));
-            return (db_set_error(db, HAM_INV_PARAMETER));
-        }
-        recno=*(ham_offset_t *)key->data;
-        recno=ham_h2db64(recno);
-        *(ham_offset_t *)key->data=recno;
-    }
-
-    be=db_get_backend(db);
-    if (!be || !be_is_active(be))
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
-
-    if (!be->_fun_find)
-        return HAM_NOT_IMPLEMENTED;
-
-    if (!txn) {
-        st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
-        if (st)
-            return (db_set_error(db, st));
-    }
-
-    db_update_global_stats_find_query(db, key->size);
-
-    /*
-     * first look up the blob id, then fetch the blob
-     */
-    st=be->_fun_find(be, key, record, flags);
-
-    if (st) {
-        if (!txn)
-            (void)txn_abort(&local_txn, DO_NOT_NUKE_PAGE_STATS);
-        return (db_set_error(db, st));
-    }
-
-    /*
-     * record number: re-translate the number to host endian
-     */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        *(ham_offset_t *)key->data=ham_db2h64(recno);
-    }
-
-    /*
-     * run the record-level filters
-     */
-    st=__record_filters_after_find(db, record);
-    if (st) {
-        if (!txn)
-            (void)txn_abort(&local_txn, DO_NOT_NUKE_PAGE_STATS);
-        return (db_set_error(db, st));
-    }
-
-    if (!txn)
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
-    else
-        return (db_set_error(db, st));
+    return (db_set_error(db, db->_fun_find(db, txn, key, record, flags)));
 }
 
 int HAM_CALLCONV
@@ -2626,11 +2643,6 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
 {
     ham_env_t *env;
-    ham_txn_t local_txn;
-    ham_status_t st;
-    ham_backend_t *be;
-    ham_u64_t recno = 0;
-    ham_record_t temprec;
 
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
@@ -2675,190 +2687,20 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     if (!__prepare_key(key) || !__prepare_record(record))
         return (db_set_error(db, HAM_INV_PARAMETER));
 
-    be=db_get_backend(db);
-    if (!be || !be_is_active(be))
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
-    if (!be->_fun_insert)
-        return HAM_NOT_IMPLEMENTED;
-
-    if (db_get_rt_flags(db)&HAM_READ_ONLY) {
-        ham_trace(("cannot insert to a read-only database"));
-        return (db_set_error(db, HAM_DB_READ_ONLY));
-    }
-    if ((db_get_rt_flags(db)&HAM_DISABLE_VAR_KEYLEN) &&
-            (key->size>db_get_keysize(db))) {
-        ham_trace(("database does not support variable length keys"));
-        return (db_set_error(db, HAM_INV_KEYSIZE));
-    }
-    if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
-            (key->size>db_get_keysize(db))) {
-        ham_trace(("database does not support variable length keys"));
-        return (db_set_error(db, HAM_INV_KEYSIZE));
-    }
-    if ((flags&HAM_DUPLICATE) && (flags&HAM_OVERWRITE)) {
-        ham_trace(("cannot combine HAM_DUPLICATE and HAM_OVERWRITE"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
-    }
-    if ((flags&HAM_DUPLICATE) && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)) {
-        ham_trace(("database does not support duplicate keys "
-                    "(see HAM_ENABLE_DUPLICATES)"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
-    }
-    if ((flags&HAM_DUPLICATE_INSERT_AFTER)
-            || (flags&HAM_DUPLICATE_INSERT_BEFORE)
-            || (flags&HAM_DUPLICATE_INSERT_LAST)
-            || (flags&HAM_DUPLICATE_INSERT_FIRST)) {
-        ham_trace(("function does not support flags HAM_DUPLICATE_INSERT_*; "
-                    "see ham_cursor_insert"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
+    if (!db->_fun_insert) {
+        ham_trace(("Database was not initialized"));
+        return (HAM_NOT_INITIALIZED);
     }
 
     db_set_error(db, 0);
 
-    if (!txn) {
-        st=txn_begin(&local_txn, env, 0);
-        if (st)
-            return (db_set_error(db, st));
-    }
-
-    /*
-     * record number: make sure that we have a valid key structure,
-     * and lazy load the last used record number
-     */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        if (flags&HAM_OVERWRITE) {
-            if (key->size!=sizeof(ham_u64_t) || !key->data) {
-                if (!txn)
-                    (void)txn_abort(&local_txn, 0);
-                ham_trace(("key->size must be 8, key->data must not be NULL"));
-                return (db_set_error(db, HAM_INV_PARAMETER));
-            }
-            recno=*(ham_u64_t *)key->data;
-        }
-        else {
-            /*
-             * get the record number (host endian) and increment it
-             */
-            recno=be_get_recno(be);
-            recno++;
-
-            /*
-             * allocate memory for the key
-             */
-            if (key->flags&HAM_KEY_USER_ALLOC) {
-                if (!key->data || key->size!=sizeof(ham_u64_t)) {
-                    ham_trace(("key->size must be 8, key->data must not "
-                                "be NULL"));
-                    if (!txn)
-                        (void)txn_abort(&local_txn, 0);
-                    return (db_set_error(db, HAM_INV_PARAMETER));
-                }
-            }
-            else {
-                if (key->data || key->size) {
-                    ham_trace(("key->size must be 0, key->data must be NULL"));
-                    if (!txn)
-                        (void)txn_abort(&local_txn, 0);
-                    return (db_set_error(db, HAM_INV_PARAMETER));
-                }
-                /* 
-                 * allocate memory for the key
-                 */
-                if (sizeof(ham_u64_t)>db_get_key_allocsize(db)) {
-                    if (db_get_key_allocdata(db))
-                        allocator_free(env_get_allocator(env), 
-                                db_get_key_allocdata(db));
-                    db_set_key_allocdata(db, 
-                            allocator_alloc(env_get_allocator(env), 
-                                sizeof(ham_u64_t)));
-                    if (!db_get_key_allocdata(db)) {
-                        if (!txn)
-                            (void)txn_abort(&local_txn, 0);
-                        db_set_key_allocsize(db, 0);
-                        return (db_set_error(db, HAM_OUT_OF_MEMORY));
-                    }
-                    else {
-                        db_set_key_allocsize(db, sizeof(ham_u64_t));
-                    }
-                }
-                else
-                    db_set_key_allocsize(db, sizeof(ham_u64_t));
-
-                key->data=db_get_key_allocdata(db);
-            }
-        }
-
-        /*
-         * store it in db endian
-         */
-        recno=ham_h2db64(recno);
-        memcpy(key->data, &recno, sizeof(ham_u64_t));
-        key->size=sizeof(ham_u64_t);
-    }
-
-    /*
-     * run the record-level filters on a temporary record structure - we
-     * don't want to mess up the original structure
-     */
-    temprec=*record;
-    st=__record_filters_before_write(db, &temprec);
-
-    if (!st) {
-        db_update_global_stats_insert_query(db, key->size, temprec.size);
-    }
-
-    /*
-     * store the index entry; the backend will store the blob
-     */
-    if (!st)
-        st=be->_fun_insert(be, key, &temprec, flags);
-
-    if (temprec.data!=record->data)
-        allocator_free(env_get_allocator(env), temprec.data);
-
-    if (st) {
-        if (!txn)
-            (void)txn_abort(&local_txn, 0);
-
-        if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
-            if (!(key->flags&HAM_KEY_USER_ALLOC)) {
-                key->data=0;
-                key->size=0;
-            }
-            ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
-        }
-        return (db_set_error(db, st));
-    }
-
-    /*
-     * record numbers: return key in host endian! and store the incremented
-     * record number
-     */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        recno=ham_db2h64(recno);
-        memcpy(key->data, &recno, sizeof(ham_u64_t));
-        key->size=sizeof(ham_u64_t);
-        if (!(flags&HAM_OVERWRITE)) {
-            be_set_recno(be, recno);
-            be_set_dirty(be, HAM_TRUE);
-            env_set_dirty(env);
-        }
-    }
-
-    if (!txn)
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
-    else
-        return (db_set_error(db, st));
+    return (db_set_error(db, db->_fun_insert(db, txn, key, record, flags)));
 }
 
 ham_status_t HAM_CALLCONV
 ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 {
-    ham_txn_t local_txn;
-    ham_status_t st;
     ham_env_t *env;
-    ham_backend_t *be;
-    ham_offset_t recno=0;
 
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
@@ -2884,63 +2726,18 @@ ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
                     "ham_cursor_insert"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+
     if (!__prepare_key(key))
         return (db_set_error(db, HAM_INV_PARAMETER));
 
+    if (!db->_fun_erase) {
+        ham_trace(("Database was not initialized"));
+        return (HAM_NOT_INITIALIZED);
+    }
+
     db_set_error(db, 0);
 
-    be=db_get_backend(db);
-    if (!be || !be_is_active(be))
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
-    if (!be->_fun_erase)
-        return HAM_NOT_IMPLEMENTED;
-    if (db_get_rt_flags(db)&HAM_READ_ONLY) {
-        ham_trace(("cannot erase from a read-only database"));
-        return (db_set_error(db, HAM_DB_READ_ONLY));
-    }
-
-    /*
-     * record number: make sure that we have a valid key structure
-     */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        if (key->size!=sizeof(ham_u64_t) || !key->data) {
-            ham_trace(("key->size must be 8, key->data must not be NULL"));
-            return (db_set_error(db, HAM_INV_PARAMETER));
-        }
-        recno=*(ham_offset_t *)key->data;
-        recno=ham_h2db64(recno);
-        *(ham_offset_t *)key->data=recno;
-    }
-
-    if (!txn) {
-        if ((st=txn_begin(&local_txn, env, 0)))
-            return (db_set_error(db, st));
-    }
-
-    db_update_global_stats_erase_query(db, key->size);
-
-    /*
-     * get rid of the entry
-     */
-    st=be->_fun_erase(be, key, flags);
-
-    if (st) {
-        if (!txn)
-            (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
-    }
-
-    /*
-     * record number: re-translate the number to host endian
-     */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        *(ham_offset_t *)key->data=ham_db2h64(recno);
-    }
-
-    if (!txn)
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
-    else
-        return (db_set_error(db, st));
+    return (db_set_error(db, db->_fun_erase(db, txn, key, flags)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -4003,96 +3800,11 @@ ham_get_env(ham_db_t *db)
     return (db_get_env(db));
 }
 
-typedef struct
-{
-    ham_db_t *db;               /* [in] */
-    ham_u32_t flags;            /* [in] */
-    ham_offset_t total_count;   /* [out] */
-    ham_bool_t is_leaf;         /* [scratch] */
-}  calckeys_context_t;
-
-/*
- * callback function for estimating / counting the number of keys stored 
- * in the database
- */
-static ham_status_t
-my_calc_keys_cb(int event, void *param1, void *param2, void *context)
-{
-    int_key_t *key;
-    calckeys_context_t *c;
-    ham_page_t *page;
-    ham_u32_t level;
-    ham_size_t count1;
-    ham_size_t count2;
-
-    c = (calckeys_context_t *)context;
-
-    switch (event) 
-    {
-    case ENUM_EVENT_DESCEND:
-        level = *(ham_u32_t *)param1;
-        count1 = *(ham_size_t *)param2;
-        break;
-
-    case ENUM_EVENT_PAGE_START:
-        c->is_leaf = *(ham_bool_t *)param2;
-        page = (ham_page_t *)param1;
-        break;
-
-    case ENUM_EVENT_PAGE_STOP:
-        break;
-
-    case ENUM_EVENT_ITEM:
-        key = (int_key_t *)param1;
-        count2 = *(ham_size_t *)param2;
-
-        if (c->is_leaf) {
-            ham_size_t dupcount = 1;
-
-            if (!(c->flags & HAM_SKIP_DUPLICATES)
-                    && (key_get_flags(key) & KEY_HAS_DUPLICATES)) 
-            {
-                ham_status_t st = blob_duplicate_get_count(db_get_env(c->db), 
-                        key_get_ptr(key), &dupcount, 0);
-                if (st)
-                    return st;
-                c->total_count += dupcount;
-            }
-            else {
-                c->total_count++;
-            }
-
-            if (c->flags & HAM_FAST_ESTIMATE) {
-                /* 
-                 * fast mode: just grab the keys-per-page value and 
-                 * call it a day for this page.
-                 *
-                 * Assume all keys in this page have the same number 
-                 * of dupes (=1 if no dupes)
-                 */
-                c->total_count += (count2 - 1) * dupcount;
-                return CB_DO_NOT_DESCEND;
-            }
-        }
-        break;
-
-    default:
-        ham_assert(!"unknown callback event", (""));
-        break;
-    }
-
-    return CB_CONTINUE;
-}
-
 ham_status_t HAM_CALLCONV
 ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
             ham_offset_t *keycount)
 {
-    ham_txn_t local_txn;
     ham_status_t st;
-    ham_backend_t *be;
-    ham_env_t *env=0;
-    calckeys_context_t ctx = {db, flags, 0, HAM_FALSE};
 
     if (!db) {
         ham_trace(("parameter 'db' must not be NULL"));
@@ -4104,45 +3816,16 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     *keycount = 0;
-    env=db_get_env(db);
+
+    if (!db->_fun_get_key_count) {
+        ham_trace(("Database was not initialized"));
+        return (db_set_error(db, HAM_NOT_INITIALIZED));
+    }
 
     db_set_error(db, 0);
 
-    if (flags & ~(HAM_SKIP_DUPLICATES | HAM_FAST_ESTIMATE)) {
-        ham_trace(("parameter 'flag' contains unsupported flag bits: %08x", 
-                  flags & ~(HAM_SKIP_DUPLICATES | HAM_FAST_ESTIMATE)));
-        return (db_set_error(db, HAM_INV_PARAMETER));
-    }
-
-    be = db_get_backend(db);
-    if (!be || !be_is_active(be))
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
-    if (!be->_fun_enumerate)
-        return (db_set_error(db, HAM_NOT_IMPLEMENTED));
-
-    if (!txn) {
-        st = txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
-        if (st)
-            return (db_set_error(db, st));
-    }
-
-    /*
-     * call the backend function
-     */
-    st = be->_fun_enumerate(be, my_calc_keys_cb, &ctx);
-
-    if (st) {
-        if (!txn)
-            (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
-    }
-
-    *keycount = ctx.total_count;
-
-    if (!txn)
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
-    else
-        return (db_set_error(db, st));
+    st=db->_fun_get_key_count(db, txn, flags, keycount);
+    return (db_set_error(db, st));
 }
 
 ham_status_t HAM_CALLCONV

@@ -643,6 +643,95 @@ handle_db_check_integrity(struct env_t *envh, struct mg_connection *conn,
 }
 
 static void
+handle_db_get_key_count(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__DbGetKeyCountRequest *request)
+{
+    Ham__DbGetKeyCountReply reply;
+    Ham__Wrapper wrapper;
+    ham_txn_t *txn=0;
+    ham_db_t *db;
+
+    ham_assert(request!=0, (""));
+
+    ham__db_get_key_count_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.db_get_key_count_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__DB_GET_KEY_COUNT_REPLY;
+
+    if (request->txn_handle) {
+        txn=__get_handle(envh, request->txn_handle);
+        if (!txn) {
+            reply.status=HAM_INV_PARAMETER;
+        }
+    }
+
+    if (reply.status==0) {
+        db=__get_handle(envh, request->db_handle);
+        if (!db) {
+            reply.status=HAM_INV_PARAMETER;
+        }
+        else {
+            reply.status=ham_get_key_count(db, txn, request->flags, 
+                    &reply.keycount);
+        }
+    }
+
+    send_wrapper(envh->env, conn, &wrapper);
+}
+
+static void
+handle_db_insert(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__DbInsertRequest *request)
+{
+    Ham__DbInsertReply reply;
+    Ham__Wrapper wrapper;
+    ham_txn_t *txn=0;
+    ham_db_t *db;
+
+    ham_assert(request!=0, (""));
+
+    ham__db_insert_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.db_insert_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__DB_INSERT_REPLY;
+
+    if (request->txn_handle) {
+        txn=__get_handle(envh, request->txn_handle);
+        if (!txn) {
+            reply.status=HAM_INV_PARAMETER;
+        }
+    }
+
+    if (reply.status==0) {
+        db=__get_handle(envh, request->db_handle);
+        if (!db) {
+            reply.status=HAM_INV_PARAMETER;
+        }
+        else {
+            ham_key_t key;
+            ham_record_t rec;
+
+            memset(&key, 0, sizeof(key));
+            key.data=request->key->data.data;
+            key.size=request->key->data.len;
+            key.flags=request->key->flags & (~HAM_KEY_USER_ALLOC);
+
+            memset(&rec, 0, sizeof(rec));
+            rec.data=request->record->data.data;
+            rec.size=request->record->data.len;
+            rec.flags=request->record->flags & (~HAM_RECORD_USER_ALLOC);
+            reply.status=ham_insert(db, txn, &key, &rec, request->flags);
+        }
+    }
+
+    send_wrapper(envh->env, conn, &wrapper);
+}
+
+static void
 request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
                 void *user_data)
 {
@@ -725,6 +814,16 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
         ham_trace(("db_check_integrity request"));
         handle_db_check_integrity(env, conn, ri, 
                 wrapper->db_check_integrity_request);
+        break;
+    case HAM__WRAPPER__TYPE__DB_GET_KEY_COUNT_REQUEST:
+        ham_trace(("db_get_key_count request"));
+        handle_db_get_key_count(env, conn, ri, 
+                wrapper->db_get_key_count_request);
+        break;
+    case HAM__WRAPPER__TYPE__DB_INSERT_REQUEST:
+        ham_trace(("db_insert request"));
+        handle_db_insert(env, conn, ri, 
+                wrapper->db_insert_request);
         break;
     default:
         /* TODO send error */

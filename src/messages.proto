@@ -34,6 +34,14 @@ message Wrapper {
             TXN_ABORT_REPLY = 141;
             DB_CHECK_INTEGRITY_REQUEST = 150;
             DB_CHECK_INTEGRITY_REPLY = 151;
+            DB_GET_KEY_COUNT_REQUEST = 160;
+            DB_GET_KEY_COUNT_REPLY = 161;
+            DB_INSERT_REQUEST = 170;
+            DB_INSERT_REPLY = 171;
+            DB_ERASE_REQUEST = 180;
+            DB_ERASE_REPLY = 181;
+            DB_FIND_REQUEST = 190;
+            DB_FIND_REPLY = 191;
     }
 
     required Type type = 1;
@@ -68,6 +76,14 @@ message Wrapper {
     optional TxnAbortReply txn_abort_reply = 141;
     optional DbCheckIntegrityRequest db_check_integrity_request = 150;
     optional DbCheckIntegrityReply db_check_integrity_reply = 151;
+    optional DbGetKeyCountRequest db_get_key_count_request = 160;
+    optional DbGetKeyCountReply db_get_key_count_reply = 161;
+    optional DbInsertRequest db_insert_request = 170;
+    optional DbInsertReply db_insert_reply = 171;
+    optional DbEraseRequest db_erase_request = 180;
+    optional DbEraseReply db_erase_reply = 181;
+    optional DbFindRequest db_find_request = 190;
+    optional DbFindReply db_find_reply = 191;
 }
 
 message ConnectRequest {
@@ -219,4 +235,62 @@ message DbCheckIntegrityRequest {
 
 message DbCheckIntegrityReply {
     required sint32 status = 1;
+};
+
+message DbGetKeyCountRequest {
+    required uint64 db_handle = 1;
+    required uint64 txn_handle = 2;
+    required uint32 flags = 3;
+};
+
+message DbGetKeyCountReply {
+    required sint32 status = 1;
+    required uint64 keycount = 2;
+};
+
+message Key {
+    required bytes data = 1;
+    required uint32 flags = 2;
+}
+
+message Record {
+    required bytes data = 1;
+    required uint32 flags = 2;
+}
+
+message DbInsertRequest {
+    required uint64 db_handle = 1;
+    required uint64 txn_handle = 2;
+    required Key key = 3;
+    required Record record = 4;
+    required uint32 flags = 5;
+};
+
+message DbInsertReply {
+    required sint32 status = 1;
+    optional Key key = 2;
+};
+
+message DbEraseRequest {
+    required uint64 db_handle = 1;
+    required uint64 txn_handle = 2;
+    required Key key = 3;
+    required uint32 flags = 4;
+};
+
+message DbEraseReply {
+    required sint32 status = 1;
+};
+
+message DbFindRequest {
+    required uint64 db_handle = 1;
+    required uint64 txn_handle = 2;
+    required Key key = 3;
+    required uint32 flags = 4;
+};
+
+message DbFindReply {
+    required sint32 status = 1;
+    required Record record = 2;
+    optional Key key = 3;
 };
