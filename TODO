@@ -98,6 +98,11 @@ o client/server communication
                     HAM_RECORD_NUMBER); memory must be allocated
                 x should work - i moved it to hamsterdb.c
                 x make sure that the recno is copied back into the key
+
+--> for recnos, temp. key storage has to be allocated. this is done in
+_local_fun_insert; move this code to hamsterdb (ham_insert), otherwise
+_remote_fun_insert has to duplicate the code...
+
                 o implement the server
         o ham_find
             x implemented in db.c
