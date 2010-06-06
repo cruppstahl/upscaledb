@@ -279,10 +279,11 @@ struct  _Ham__EnvCreateDbReply
   ProtobufCMessage base;
   int32_t status;
   uint64_t db_handle;
+  uint32_t db_flags;
 };
 #define HAM__ENV_CREATE_DB_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__env_create_db_reply__descriptor) \
-    , 0, 0 }
+    , 0, 0, 0 }
 
 
 struct  _Ham__EnvOpenDbRequest
@@ -305,10 +306,11 @@ struct  _Ham__EnvOpenDbReply
   ProtobufCMessage base;
   int32_t status;
   uint64_t db_handle;
+  uint32_t db_flags;
 };
 #define HAM__ENV_OPEN_DB_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__env_open_db_reply__descriptor) \
-    , 0, 0 }
+    , 0, 0, 0 }
 
 
 struct  _Ham__EnvEraseDbRequest
@@ -555,10 +557,11 @@ struct  _Ham__DbInsertReply
 {
   ProtobufCMessage base;
   int32_t status;
+  Ham__Key *key;
 };
 #define HAM__DB_INSERT_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__db_insert_reply__descriptor) \
-    , 0 }
+    , 0, NULL }
 
 
 struct  _Ham__DbEraseRequest
@@ -602,10 +605,11 @@ struct  _Ham__DbFindReply
   ProtobufCMessage base;
   int32_t status;
   Ham__Record *record;
+  Ham__Key *key;
 };
 #define HAM__DB_FIND_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__db_find_reply__descriptor) \
-    , 0, NULL }
+    , 0, NULL, NULL }
 
 
 /* Ham__Wrapper methods */

@@ -358,6 +358,7 @@ _remote_fun_create_db(ham_env_t *env, ham_db_t *db,
     }
 
     db_set_remote_handle(db, reply->env_create_db_reply->db_handle);
+    db_set_rt_flags(db, reply->env_create_db_reply->db_flags);
 
     /*
      * store the env pointer in the database
@@ -438,6 +439,7 @@ _remote_fun_open_db(ham_env_t *env, ham_db_t *db,
      * store the env pointer in the database
      */
     db_set_env(db, env);
+    db_set_rt_flags(db, reply->env_open_db_reply->db_flags);
 
     db_set_remote_handle(db, reply->env_open_db_reply->db_handle);
 
@@ -967,6 +969,16 @@ _remote_fun_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     ham_assert(reply!=0, (""));
     ham_assert(reply->db_insert_reply!=0, (""));
     st=reply->db_insert_reply->status;
+
+    /* recno: the key was modified! */
+    if (st==0 && reply->db_insert_reply->key) {
+        if (reply->db_insert_reply->key->data.len==sizeof(ham_offset_t)) {
+            ham_assert(key->data!=0, (""));
+            ham_assert(key->size==sizeof(ham_offset_t), (""));
+            memcpy(key->data, reply->db_insert_reply->key->data.data,
+                    sizeof(ham_offset_t));
+        }
+    }
 
     ham__wrapper__free_unpacked(reply, 0);
 

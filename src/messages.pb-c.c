@@ -2899,7 +2899,7 @@ const ProtobufCMessageDescriptor ham__env_create_db_request__descriptor =
   1,  ham__env_create_db_request__number_ranges,
   NULL,NULL,NULL,NULL    /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor ham__env_create_db_reply__field_descriptors[2] =
+static const ProtobufCFieldDescriptor ham__env_create_db_reply__field_descriptors[3] =
 {
   {
     "status",
@@ -2923,15 +2923,27 @@ static const ProtobufCFieldDescriptor ham__env_create_db_reply__field_descriptor
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
+  {
+    "db_flags",
+    3,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__EnvCreateDbReply, db_flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
 };
 static const unsigned ham__env_create_db_reply__field_indices_by_name[] = {
+  2,   /* field[2] = db_flags */
   1,   /* field[1] = db_handle */
   0,   /* field[0] = status */
 };
 static const ProtobufCIntRange ham__env_create_db_reply__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 3 }
 };
 const ProtobufCMessageDescriptor ham__env_create_db_reply__descriptor =
 {
@@ -2941,7 +2953,7 @@ const ProtobufCMessageDescriptor ham__env_create_db_reply__descriptor =
   "Ham__EnvCreateDbReply",
   "ham",
   sizeof(Ham__EnvCreateDbReply),
-  2,
+  3,
   ham__env_create_db_reply__field_descriptors,
   ham__env_create_db_reply__field_indices_by_name,
   1,  ham__env_create_db_reply__number_ranges,
@@ -3019,7 +3031,7 @@ const ProtobufCMessageDescriptor ham__env_open_db_request__descriptor =
   1,  ham__env_open_db_request__number_ranges,
   NULL,NULL,NULL,NULL    /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor ham__env_open_db_reply__field_descriptors[2] =
+static const ProtobufCFieldDescriptor ham__env_open_db_reply__field_descriptors[3] =
 {
   {
     "status",
@@ -3043,15 +3055,27 @@ static const ProtobufCFieldDescriptor ham__env_open_db_reply__field_descriptors[
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
+  {
+    "db_flags",
+    3,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__EnvOpenDbReply, db_flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
 };
 static const unsigned ham__env_open_db_reply__field_indices_by_name[] = {
+  2,   /* field[2] = db_flags */
   1,   /* field[1] = db_handle */
   0,   /* field[0] = status */
 };
 static const ProtobufCIntRange ham__env_open_db_reply__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 3 }
 };
 const ProtobufCMessageDescriptor ham__env_open_db_reply__descriptor =
 {
@@ -3061,7 +3085,7 @@ const ProtobufCMessageDescriptor ham__env_open_db_reply__descriptor =
   "Ham__EnvOpenDbReply",
   "ham",
   sizeof(Ham__EnvOpenDbReply),
-  2,
+  3,
   ham__env_open_db_reply__field_descriptors,
   ham__env_open_db_reply__field_indices_by_name,
   1,  ham__env_open_db_reply__number_ranges,
@@ -4111,7 +4135,7 @@ const ProtobufCMessageDescriptor ham__db_insert_request__descriptor =
   1,  ham__db_insert_request__number_ranges,
   NULL,NULL,NULL,NULL    /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor ham__db_insert_reply__field_descriptors[1] =
+static const ProtobufCFieldDescriptor ham__db_insert_reply__field_descriptors[2] =
 {
   {
     "status",
@@ -4124,14 +4148,26 @@ static const ProtobufCFieldDescriptor ham__db_insert_reply__field_descriptors[1]
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
+  {
+    "key",
+    2,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbInsertReply, key),
+    &ham__key__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
 };
 static const unsigned ham__db_insert_reply__field_indices_by_name[] = {
+  1,   /* field[1] = key */
   0,   /* field[0] = status */
 };
 static const ProtobufCIntRange ham__db_insert_reply__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 1 }
+  { 0, 2 }
 };
 const ProtobufCMessageDescriptor ham__db_insert_reply__descriptor =
 {
@@ -4141,7 +4177,7 @@ const ProtobufCMessageDescriptor ham__db_insert_reply__descriptor =
   "Ham__DbInsertReply",
   "ham",
   sizeof(Ham__DbInsertReply),
-  1,
+  2,
   ham__db_insert_reply__field_descriptors,
   ham__db_insert_reply__field_indices_by_name,
   1,  ham__db_insert_reply__number_ranges,
@@ -4327,7 +4363,7 @@ const ProtobufCMessageDescriptor ham__db_find_request__descriptor =
   1,  ham__db_find_request__number_ranges,
   NULL,NULL,NULL,NULL    /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor ham__db_find_reply__field_descriptors[2] =
+static const ProtobufCFieldDescriptor ham__db_find_reply__field_descriptors[3] =
 {
   {
     "status",
@@ -4351,15 +4387,27 @@ static const ProtobufCFieldDescriptor ham__db_find_reply__field_descriptors[2] =
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
+  {
+    "key",
+    3,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbFindReply, key),
+    &ham__key__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
 };
 static const unsigned ham__db_find_reply__field_indices_by_name[] = {
+  2,   /* field[2] = key */
   1,   /* field[1] = record */
   0,   /* field[0] = status */
 };
 static const ProtobufCIntRange ham__db_find_reply__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 3 }
 };
 const ProtobufCMessageDescriptor ham__db_find_reply__descriptor =
 {
@@ -4369,7 +4417,7 @@ const ProtobufCMessageDescriptor ham__db_find_reply__descriptor =
   "Ham__DbFindReply",
   "ham",
   sizeof(Ham__DbFindReply),
-  2,
+  3,
   ham__db_find_reply__field_descriptors,
   ham__db_find_reply__field_indices_by_name,
   1,  ham__db_find_reply__number_ranges,

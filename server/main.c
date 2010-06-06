@@ -33,6 +33,14 @@ int main(void)
         printf("ham_env_create_db: %d\n", st);
         exit(-1);
     }
+    ham_close(db, 0);
+
+    st=ham_env_create_db(env, db, 33, HAM_RECORD_NUMBER, 0);
+    if (st) {
+        printf("ham_env_create_db: %d\n", st);
+        exit(-1);
+    }
+    ham_close(db, 0);
 
     cfg.port=8080;
     hamserver_init(&cfg, &srv);

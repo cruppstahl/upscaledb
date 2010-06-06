@@ -97,7 +97,7 @@ o client/server communication
             o recno: key data is modified (if key->size==8 und
                     HAM_RECORD_NUMBER); memory must be allocated
                 x should work - i moved it to hamsterdb.c
-                o make sure that the recno is copied back into the key
+                x make sure that the recno is copied back into the key
                 o implement the server
         o ham_find
             x implemented in db.c
@@ -112,6 +112,9 @@ o client/server communication
             o unittest: insert, find, erase, find (for recno)
             o unittest: insert, find, erase, find (for recno/useralloc)
             o unittest: negative insert, negative find, negative erase
+
+        o when opening(=creating) a database: the reply has to return the
+            database flags! (i.e. recno)
 
 o if the same database is opened twice, the same handle has to be returned
     (currently, an error is returned - DB_ALREADY_OPEN)

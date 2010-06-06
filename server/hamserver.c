@@ -399,6 +399,7 @@ handle_env_create_db(struct env_t *envh, ham_env_t *env,
     ham__env_create_db_reply__init(&reply);
     ham__wrapper__init(&wrapper);
     reply.status=0;
+    reply.db_flags=request->flags;
     wrapper.env_create_db_reply=&reply;
     wrapper.type=HAM__WRAPPER__TYPE__ENV_CREATE_DB_REPLY;
 
@@ -452,6 +453,7 @@ handle_env_open_db(struct env_t *envh, ham_env_t *env,
     if (reply.status==0) {
         /* allocate a new database handle in the Env wrapper structure */
         reply.db_handle=__store_handle(envh, db);
+        reply.db_flags=db->_rt_flags;
     }
     else {
         ham_delete(db);
@@ -688,12 +690,14 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
 {
     Ham__DbInsertReply reply;
     Ham__Wrapper wrapper;
+    Ham__Key replykey;
     ham_txn_t *txn=0;
     ham_db_t *db;
 
     ham_assert(request!=0, (""));
 
     ham__db_insert_reply__init(&reply);
+    ham__key__init(&replykey);
     ham__wrapper__init(&wrapper);
     reply.status=0;
     wrapper.db_insert_reply=&reply;
@@ -725,6 +729,14 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
             rec.size=request->record->data.len;
             rec.flags=request->record->flags & (~HAM_RECORD_USER_ALLOC);
             reply.status=ham_insert(db, txn, &key, &rec, request->flags);
+
+            /* recno: return the modified key */
+            if ((reply.status==0) && (db_get_rt_flags(db)&HAM_RECORD_NUMBER)) {
+                ham_assert(key.size==sizeof(ham_offset_t), (""));
+                reply.key=&replykey;
+                replykey.data.data=key.data;
+                replykey.data.len=key.size;
+            }
         }
     }
 
