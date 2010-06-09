@@ -950,9 +950,11 @@ _remote_fun_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     protokey.data.data=key->data;
     protokey.data.len=key->size;
     protokey.flags=key->flags;
-    protorec.data.data=key->data;
-    protorec.data.len=key->size;
-    protorec.flags=key->flags;
+    protorec.data.data=record->data;
+    protorec.data.len=record->size;
+    protorec.flags=record->flags;
+    protorec.partial_size=record->partial_size;
+    protorec.partial_offset=record->partial_offset;
     msg.key=&protokey;
     msg.record=&protorec;
     msg.flags=flags;

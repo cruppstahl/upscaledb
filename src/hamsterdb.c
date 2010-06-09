@@ -2687,6 +2687,37 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     if (!__prepare_key(key) || !__prepare_record(record))
         return (db_set_error(db, HAM_INV_PARAMETER));
 
+    /* allocate temp. storage for a recno key */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        if (key->size && key->size!=sizeof(ham_offset_t)) {
+            ham_trace(("key->size must be 8, key->data must not be NULL"));
+            return (db_set_error(db, HAM_INV_PARAMETER));
+        }
+        else if (key->size==0) {
+            ham_assert(key->data==0, (""));
+            if (sizeof(ham_offset_t)>db_get_key_allocsize(db)) {
+                if (db_get_key_allocdata(db))
+                    allocator_free(env_get_allocator(env),
+                            db_get_key_allocdata(db));
+                db_set_key_allocdata(db,
+                        allocator_alloc(env_get_allocator(env),
+                            sizeof(ham_u64_t)));
+                if (!db_get_key_allocdata(db)) {
+                    db_set_key_allocsize(db, 0);
+                    return (db_set_error(db, HAM_OUT_OF_MEMORY));
+                }
+                else {
+                    db_set_key_allocsize(db, sizeof(ham_u64_t));
+                }
+            }
+            else {
+                db_set_key_allocsize(db, sizeof(ham_u64_t));
+            }
+            key->data=db_get_key_allocdata(db);
+            key->size=sizeof(ham_offset_t);
+        }
+    }
+
     if (!db->_fun_insert) {
         ham_trace(("Database was not initialized"));
         return (HAM_NOT_INITIALIZED);

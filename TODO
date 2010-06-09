@@ -92,23 +92,20 @@ o client/server communication
         x ham_get_key_count
             x unittest
 
-        o ham_insert
+        x ham_insert
             x needs implementation in remote.c, server
-            o recno: key data is modified (if key->size==8 und
+            x recno: key data is modified (if key->size==8 und
                     HAM_RECORD_NUMBER); memory must be allocated
                 x should work - i moved it to hamsterdb.c
                 x make sure that the recno is copied back into the key
-
---> for recnos, temp. key storage has to be allocated. this is done in
-_local_fun_insert; move this code to hamsterdb (ham_insert), otherwise
-_remote_fun_insert has to duplicate the code...
-
-                o implement the server
+                x implement the server
+            x partial inserts
         o ham_find
             x implemented in db.c
             o needs implementation in remote.c, server
             o respect USER_ALLOC pointers!
             o approx matching: modifies key-flags
+            o partial finds
         o ham_erase
             x implemented in db.c
             o needs implementation in remote.c, server

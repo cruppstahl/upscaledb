@@ -485,8 +485,8 @@ protected:
 
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
-        key.data=(void *)"hello chris";
-        key.size=12;
+        rec.data=(void *)"hello chris";
+        rec.size=12;
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));

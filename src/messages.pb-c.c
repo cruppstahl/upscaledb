@@ -4003,7 +4003,7 @@ const ProtobufCMessageDescriptor ham__key__descriptor =
   1,  ham__key__number_ranges,
   NULL,NULL,NULL,NULL    /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor ham__record__field_descriptors[2] =
+static const ProtobufCFieldDescriptor ham__record__field_descriptors[4] =
 {
   {
     "data",
@@ -4027,15 +4027,39 @@ static const ProtobufCFieldDescriptor ham__record__field_descriptors[2] =
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
+  {
+    "partial_offset",
+    3,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Record, partial_offset),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "partial_size",
+    4,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Record, partial_size),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
 };
 static const unsigned ham__record__field_indices_by_name[] = {
   0,   /* field[0] = data */
   1,   /* field[1] = flags */
+  2,   /* field[2] = partial_offset */
+  3,   /* field[3] = partial_size */
 };
 static const ProtobufCIntRange ham__record__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 4 }
 };
 const ProtobufCMessageDescriptor ham__record__descriptor =
 {
@@ -4045,7 +4069,7 @@ const ProtobufCMessageDescriptor ham__record__descriptor =
   "Ham__Record",
   "ham",
   sizeof(Ham__Record),
-  2,
+  4,
   ham__record__field_descriptors,
   ham__record__field_indices_by_name,
   1,  ham__record__number_ranges,

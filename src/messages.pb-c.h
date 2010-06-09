@@ -533,10 +533,12 @@ struct  _Ham__Record
   ProtobufCMessage base;
   ProtobufCBinaryData data;
   uint32_t flags;
+  uint32_t partial_offset;
+  uint32_t partial_size;
 };
 #define HAM__RECORD__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__record__descriptor) \
-    , {0,NULL}, 0 }
+    , {0,NULL}, 0, 0, 0 }
 
 
 struct  _Ham__DbInsertRequest
