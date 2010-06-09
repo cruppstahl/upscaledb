@@ -1945,14 +1945,19 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     ham_backend_t *be;
     ham_offset_t recno=0;
 
+    if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
+            (key->size>db_get_keysize(db))) {
+        ham_trace(("database does not support variable length keys"));
+        return (db_set_error(db, HAM_INV_KEYSIZE));
+    }
+
     /*
-     * record number: make sure that we have a valid key structure
+     * record number: make sure we have a number in little endian
      */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        if (key->size!=sizeof(ham_u64_t) || !key->data) {
-            ham_trace(("key->size must be 8, key->data must not be NULL"));
-            return (db_set_error(db, HAM_INV_PARAMETER));
-        }
+        ham_assert(key->size==sizeof(ham_u64_t), (""));
+        ham_assert(key->data!=0, (""));
+
         recno=*(ham_offset_t *)key->data;
         recno=ham_h2db64(recno);
         *(ham_offset_t *)key->data=recno;

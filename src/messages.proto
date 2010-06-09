@@ -253,6 +253,7 @@ message DbGetKeyCountReply {
 message Key {
     required bytes data = 1;
     required uint32 flags = 2;
+    required uint32 intflags = 3;
 }
 
 message Record {
@@ -290,7 +291,8 @@ message DbFindRequest {
     required uint64 db_handle = 1;
     required uint64 txn_handle = 2;
     required Key key = 3;
-    required uint32 flags = 4;
+    optional Record record = 4;
+    required uint32 flags = 5;
 };
 
 message DbFindReply {

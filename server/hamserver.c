@@ -727,6 +727,8 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
             memset(&rec, 0, sizeof(rec));
             rec.data=request->record->data.data;
             rec.size=request->record->data.len;
+            rec.partial_size=request->record->partial_size;
+            rec.partial_offset=request->record->partial_offset;
             rec.flags=request->record->flags & (~HAM_RECORD_USER_ALLOC);
             reply.status=ham_insert(db, txn, &key, &rec, request->flags);
 
@@ -736,6 +738,75 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
                 reply.key=&replykey;
                 replykey.data.data=key.data;
                 replykey.data.len=key.size;
+            }
+        }
+    }
+
+    send_wrapper(envh->env, conn, &wrapper);
+}
+
+static void
+handle_db_find(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__DbFindRequest *request)
+{
+    Ham__DbFindReply reply;
+    Ham__Wrapper wrapper;
+    Ham__Key replykey;
+    Ham__Record replyrec;
+    ham_txn_t *txn=0;
+    ham_db_t *db;
+
+    ham_assert(request!=0, (""));
+
+    ham__db_find_reply__init(&reply);
+    ham__key__init(&replykey);
+    ham__record__init(&replyrec);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.db_find_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__DB_FIND_REPLY;
+
+    if (request->txn_handle) {
+        txn=__get_handle(envh, request->txn_handle);
+        if (!txn) {
+            reply.status=HAM_INV_PARAMETER;
+        }
+    }
+
+    if (reply.status==0) {
+        db=__get_handle(envh, request->db_handle);
+        if (!db) {
+            reply.status=HAM_INV_PARAMETER;
+        }
+        else {
+            ham_key_t key;
+            ham_record_t rec;
+
+            memset(&key, 0, sizeof(key));
+            key.data=request->key->data.data;
+            key.size=request->key->data.len;
+            key.flags=request->key->flags & (~HAM_KEY_USER_ALLOC);
+
+            memset(&rec, 0, sizeof(rec));
+            rec.data=request->record->data.data;
+            rec.size=request->record->data.len;
+            rec.flags=request->record->flags & (~HAM_RECORD_USER_ALLOC);
+            rec.partial_size=request->record->partial_size;
+            rec.partial_offset=request->record->partial_offset;
+            reply.status=ham_find(db, txn, &key, &rec, request->flags);
+
+            if (reply.status==0) {
+                /* approx matching: key->_flags was modified! */
+                if (key._flags) {
+                    reply.key=&replykey;
+                    replykey.intflags=key._flags;
+                }
+                /* in any case - return the record */
+                reply.record=&replyrec;
+                replyrec.data.data=rec.data;
+                replyrec.data.len=rec.size;
+                replyrec.flags=rec.flags;
             }
         }
     }
@@ -836,6 +907,11 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
         ham_trace(("db_insert request"));
         handle_db_insert(env, conn, ri, 
                 wrapper->db_insert_request);
+        break;
+    case HAM__WRAPPER__TYPE__DB_FIND_REQUEST:
+        ham_trace(("db_find request"));
+        handle_db_find(env, conn, ri, 
+                wrapper->db_find_request);
         break;
     default:
         /* TODO send error */

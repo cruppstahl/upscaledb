@@ -3955,7 +3955,7 @@ const ProtobufCMessageDescriptor ham__db_get_key_count_reply__descriptor =
   1,  ham__db_get_key_count_reply__number_ranges,
   NULL,NULL,NULL,NULL    /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor ham__key__field_descriptors[2] =
+static const ProtobufCFieldDescriptor ham__key__field_descriptors[3] =
 {
   {
     "data",
@@ -3979,15 +3979,27 @@ static const ProtobufCFieldDescriptor ham__key__field_descriptors[2] =
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
+  {
+    "intflags",
+    3,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Key, intflags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
 };
 static const unsigned ham__key__field_indices_by_name[] = {
   0,   /* field[0] = data */
   1,   /* field[1] = flags */
+  2,   /* field[2] = intflags */
 };
 static const ProtobufCIntRange ham__key__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 3 }
 };
 const ProtobufCMessageDescriptor ham__key__descriptor =
 {
@@ -3997,7 +4009,7 @@ const ProtobufCMessageDescriptor ham__key__descriptor =
   "Ham__Key",
   "ham",
   sizeof(Ham__Key),
-  2,
+  3,
   ham__key__field_descriptors,
   ham__key__field_indices_by_name,
   1,  ham__key__number_ranges,
@@ -4315,7 +4327,7 @@ const ProtobufCMessageDescriptor ham__db_erase_reply__descriptor =
   1,  ham__db_erase_reply__number_ranges,
   NULL,NULL,NULL,NULL    /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor ham__db_find_request__field_descriptors[4] =
+static const ProtobufCFieldDescriptor ham__db_find_request__field_descriptors[5] =
 {
   {
     "db_handle",
@@ -4351,8 +4363,19 @@ static const ProtobufCFieldDescriptor ham__db_find_request__field_descriptors[4]
     NULL,NULL    /* reserved1, reserved2 */
   },
   {
-    "flags",
+    "record",
     4,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__DbFindRequest, record),
+    &ham__record__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "flags",
+    5,
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT32,
     0,   /* quantifier_offset */
@@ -4364,14 +4387,15 @@ static const ProtobufCFieldDescriptor ham__db_find_request__field_descriptors[4]
 };
 static const unsigned ham__db_find_request__field_indices_by_name[] = {
   0,   /* field[0] = db_handle */
-  3,   /* field[3] = flags */
+  4,   /* field[4] = flags */
   2,   /* field[2] = key */
+  3,   /* field[3] = record */
   1,   /* field[1] = txn_handle */
 };
 static const ProtobufCIntRange ham__db_find_request__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 4 }
+  { 0, 5 }
 };
 const ProtobufCMessageDescriptor ham__db_find_request__descriptor =
 {
@@ -4381,7 +4405,7 @@ const ProtobufCMessageDescriptor ham__db_find_request__descriptor =
   "Ham__DbFindRequest",
   "ham",
   sizeof(Ham__DbFindRequest),
-  4,
+  5,
   ham__db_find_request__field_descriptors,
   ham__db_find_request__field_indices_by_name,
   1,  ham__db_find_request__number_ranges,

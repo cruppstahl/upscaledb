@@ -2547,11 +2547,6 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         ham_trace(("database does not support variable length keys"));
         return (db_set_error(db, HAM_INV_KEYSIZE));
     }
-    if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
-            (key->size>db_get_keysize(db))) {
-        ham_trace(("database does not support variable length keys"));
-        return (db_set_error(db, HAM_INV_KEYSIZE));
-    }
     if ((flags&HAM_DUPLICATE) && (flags&HAM_OVERWRITE)) {
         ham_trace(("cannot combine HAM_DUPLICATE and HAM_OVERWRITE"));
         return (db_set_error(db, HAM_INV_PARAMETER));
@@ -2569,47 +2564,11 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
                     "see ham_cursor_insert"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+    /* record number: make sure that we have a valid key structure */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        if (flags&HAM_OVERWRITE) {
-            if (key->size!=sizeof(ham_u64_t) || !key->data) {
-                ham_trace(("key->size must be 8, key->data must not be NULL"));
-                return (db_set_error(db, HAM_INV_PARAMETER));
-            }
-            if (key->flags&HAM_KEY_USER_ALLOC) {
-                if (!key->data || key->size!=sizeof(ham_u64_t)) {
-                    ham_trace(("key->size must be 8, key->data must not "
-                                "be NULL"));
-                    return (db_set_error(db, HAM_INV_PARAMETER));
-                }
-            }
-            else {
-                if (key->data || key->size) {
-                    ham_trace(("key->size must be 0, key->data must be NULL"));
-                    return (db_set_error(db, HAM_INV_PARAMETER));
-                }
-                /* 
-                 * allocate memory for the key
-                 */
-                if (sizeof(ham_u64_t)>db_get_key_allocsize(db)) {
-                    if (db_get_key_allocdata(db))
-                        allocator_free(env_get_allocator(env), 
-                                db_get_key_allocdata(db));
-                    db_set_key_allocdata(db, 
-                            allocator_alloc(env_get_allocator(env), 
-                                sizeof(ham_u64_t)));
-                    if (!db_get_key_allocdata(db)) {
-                        db_set_key_allocsize(db, 0);
-                        return (db_set_error(db, HAM_OUT_OF_MEMORY));
-                    }
-                    else {
-                        db_set_key_allocsize(db, sizeof(ham_u64_t));
-                    }
-                }
-                else
-                    db_set_key_allocsize(db, sizeof(ham_u64_t));
-
-                key->data=db_get_key_allocdata(db);
-            }
+        if (key->size!=sizeof(ham_u64_t) || !key->data) {
+            ham_trace(("key->size must be 8, key->data must not be NULL"));
+            return (db_set_error(db, HAM_INV_PARAMETER));
         }
     }
 
@@ -2689,32 +2648,46 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 
     /* allocate temp. storage for a recno key */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        if (key->size && key->size!=sizeof(ham_offset_t)) {
-            ham_trace(("key->size must be 8, key->data must not be NULL"));
-            return (db_set_error(db, HAM_INV_PARAMETER));
-        }
-        else if (key->size==0) {
-            ham_assert(key->data==0, (""));
-            if (sizeof(ham_offset_t)>db_get_key_allocsize(db)) {
-                if (db_get_key_allocdata(db))
-                    allocator_free(env_get_allocator(env),
-                            db_get_key_allocdata(db));
-                db_set_key_allocdata(db,
-                        allocator_alloc(env_get_allocator(env),
-                            sizeof(ham_u64_t)));
-                if (!db_get_key_allocdata(db)) {
-                    db_set_key_allocsize(db, 0);
-                    return (db_set_error(db, HAM_OUT_OF_MEMORY));
-                }
-                else {
-                    db_set_key_allocsize(db, sizeof(ham_u64_t));
+        if (flags&HAM_OVERWRITE) {
+            if (key->size!=sizeof(ham_u64_t) || !key->data) {
+                ham_trace(("key->size must be 8, key->data must not be NULL"));
+                return (db_set_error(db, HAM_INV_PARAMETER));
+            }
+            if (key->flags&HAM_KEY_USER_ALLOC) {
+                if (!key->data || key->size!=sizeof(ham_u64_t)) {
+                    ham_trace(("key->size must be 8, key->data must not "
+                                "be NULL"));
+                    return (db_set_error(db, HAM_INV_PARAMETER));
                 }
             }
             else {
-                db_set_key_allocsize(db, sizeof(ham_u64_t));
+                if (key->data || key->size) {
+                    ham_trace(("key->size must be 0, key->data must be NULL"));
+                    return (db_set_error(db, HAM_INV_PARAMETER));
+                }
+                /* 
+                 * allocate memory for the key
+                 */
+                if (sizeof(ham_u64_t)>db_get_key_allocsize(db)) {
+                    if (db_get_key_allocdata(db))
+                        allocator_free(env_get_allocator(env), 
+                                db_get_key_allocdata(db));
+                    db_set_key_allocdata(db, 
+                            allocator_alloc(env_get_allocator(env), 
+                                sizeof(ham_u64_t)));
+                    if (!db_get_key_allocdata(db)) {
+                        db_set_key_allocsize(db, 0);
+                        return (db_set_error(db, HAM_OUT_OF_MEMORY));
+                    }
+                    else {
+                        db_set_key_allocsize(db, sizeof(ham_u64_t));
+                    }
+                }
+                else
+                    db_set_key_allocsize(db, sizeof(ham_u64_t));
+
+                key->data=db_get_key_allocdata(db);
             }
-            key->data=db_get_key_allocdata(db);
-            key->size=sizeof(ham_offset_t);
         }
     }
 

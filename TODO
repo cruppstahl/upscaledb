@@ -100,12 +100,12 @@ o client/server communication
                 x make sure that the recno is copied back into the key
                 x implement the server
             x partial inserts
-        o ham_find
+        x ham_find
             x implemented in db.c
-            o needs implementation in remote.c, server
-            o respect USER_ALLOC pointers!
-            o approx matching: modifies key-flags
-            o partial finds
+            x needs implementation in remote.c, server
+            x respect USER_ALLOC pointers!
+            x approx matching: modifies key-flags
+            x partial finds
         o ham_erase
             x implemented in db.c
             o needs implementation in remote.c, server
@@ -114,6 +114,10 @@ o client/server communication
             o unittest: insert, find, erase, find (for recno)
             o unittest: insert, find, erase, find (for recno/useralloc)
             o unittest: negative insert, negative find, negative erase
+
+        o unittest for
+            o partial insert/find
+            o approx matching
 
         o when opening(=creating) a database: the reply has to return the
             database flags! (i.e. recno)
@@ -200,6 +204,9 @@ o if the same database is opened twice, the same handle has to be returned
     o messages-pb.c must be created dynamically because it depends on 
         the google protocol version
     o check_create_parameters -> move to env.c??
+
+    o functions in env/db.c and remote.c should never use
+        db_set_Error!
 
     o mongoose - disable default handler (returns file listing!)
 

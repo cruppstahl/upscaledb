@@ -522,10 +522,11 @@ struct  _Ham__Key
   ProtobufCMessage base;
   ProtobufCBinaryData data;
   uint32_t flags;
+  uint32_t intflags;
 };
 #define HAM__KEY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__key__descriptor) \
-    , {0,NULL}, 0 }
+    , {0,NULL}, 0, 0 }
 
 
 struct  _Ham__Record
@@ -595,11 +596,12 @@ struct  _Ham__DbFindRequest
   uint64_t db_handle;
   uint64_t txn_handle;
   Ham__Key *key;
+  Ham__Record *record;
   uint32_t flags;
 };
 #define HAM__DB_FIND_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__db_find_request__descriptor) \
-    , 0, 0, NULL, 0 }
+    , 0, 0, NULL, NULL, 0 }
 
 
 struct  _Ham__DbFindReply
