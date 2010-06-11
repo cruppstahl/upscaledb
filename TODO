@@ -21,24 +21,7 @@ x server: first step
     x open environments/databases are used through url /envname/ (/dbname/)
 
 o client/server communication
-    o abstract env functions into "class" (like backend)
-==============
-    - weitermachen - ham_env_create_ex und ham_env_open_ex sind fertig,
-    erst alle env-funktionen weiter, dann ein eigenes db-backend machen
-
-    dann die abstraktion noch verbessern - viele member in "env.h" sind
-    nur für das lokale backend nötig, nicht für das remote-backend
-    x ham_env_create_ex
-    x ham_env_open_ex
-    x ham_env_rename_db
-    x ham_env_erase_db
-    x ham_env_get_database_names
-    x ham_env_get_parameters
-    x ham_env_flush
-    x ham_env_close
-
-    o my_free_cb ist in env.c und hamsterdb.c!
-==============
+    x abstract env functions into "class" (like backend)
     x separate local code into env.c
     x configure.in: check for protocol buffer - if not available: build without
             remote access!
@@ -47,7 +30,6 @@ o client/server communication
     x need configure switch to disable the remote client
     x if file starts with "http://" then switch to remote client
     x separate remote code into remote.c
-    o what about logging? we have at least to log errors
     o implement with google protocol buffers
         x ham_env_create_ex
         x ham_env_close
@@ -122,8 +104,8 @@ o client/server communication
         o when opening(=creating) a database: the reply has to return the
             database flags! (i.e. recno)
 
-o if the same database is opened twice, the same handle has to be returned
-    (currently, an error is returned - DB_ALREADY_OPEN)
+        o if the same database is opened twice, the same handle has to be 
+            returned (currently, an error is returned - DB_ALREADY_OPEN)
 
         o ham_cursor_clone
             o unittest
@@ -146,76 +128,18 @@ o if the same database is opened twice, the same handle has to be returned
         o ham_close: needs to AUTOCLOSE existing cursors
         o ham_close: needs to AUTOABORT existing txns
         o ham_close: needs to AUTOCOMMIT existing txns
-        - ham_get_version
-            o unittest
-        - ham_get_license
-            o unittest
-        - ham_env_new
-            o unittest
-        - ham_env_delete
-            o unittest
-        - ham_env_add_file_filter
-            o unittest
-        - ham_env_remove_file_filter
-            o unittest
-        - ham_env_close
-            o unittest
-        - ham_new (??)
-            o unittest
-        - ham_delete (??)
-            o unittest
-        - ham_create_ex
-            o unittest
-        - ham_open_ex
-            o unittest
-        - ham_get_error
-            o unittest
-        - ham_set_prefix_compare_func (--> server!)
-            o unittest
-        - ham_set_duplicate_compare_fun (--> server!)
-            o unittest
-        - ham_set_compare_fun (--> server!)
-            o unittest
-        - ham_key_get_approximate_match_type
-            o unittest
-        - ham_add_record_filter
-            o unittest
-        - ham_remove_record_filter
-            o unittest
-        - ham_env_set_device
-            o unittest
-        - ham_set_context_data
-            o unittest
-        - ham_get_context_data
-            o unittest
-        - ham_env_set_context_data
-            o unittest
-        - ham_env_get_context_data
-            o unittest
-        - ham_cursor_get_database
-            o unittest
-        - ham_get_env
-            o unittest
-        - ham_clean_statistics_datarec
-            o unittest
         o call curl_global_cleanup() (not threadsafe!!)
     o add documentation!
     o test with big blobs!
     o messages-pb.c must be created dynamically because it depends on 
         the google protocol version
     o check_create_parameters -> move to env.c??
+    o my_free_cb is duplicated in env.c und hamsterdb.c!
 
     o functions in env/db.c and remote.c should never use
         db_set_Error!
 
-    o mongoose - disable default handler (returns file listing!)
-
-    o need configure switch to disable the local client
-        -> also clean up db.h, env.h...
-
     o unittest: ham_env_create_db w/ extended params
-
-    o add tests for --disable-remote and --disable-local to release.sh
 
     o how is the daemon safely shut down? -> before exiting, we have to
         close the environments!
@@ -223,6 +147,7 @@ o if the same database is opened twice, the same handle has to be returned
 o mongoose: 
     o make sure connections are not closed immediately (keep-alive)
     o add license to readme!
+    o mongoose - disable default handler (returns file listing!)
 
 o HAM_PARAM_GET_STATISTICS -> hamsterdb_int.h!
 
@@ -233,9 +158,18 @@ o release new .NET wrapper with fix from a.todorov (-> nabble)
 ------------------------------
 
 o fix freelist page overflow when searching for bits (See mail from Stefan)
+    -> is this still relevant??
 
 o server: second step
     o unix daemon (also running in foreground!)
+
+    o daemon/service: what about logging? we have at least to log errors
+
+    o need configure switch to disable the local client
+        -> also clean up db.h, env.h...
+
+    o add tests for --disable-remote and --disable-local to release.sh
+
     . windows service: command line switches -install, -start, 
         -stop, -uninstall!
     . configuration file: no default path; is set by command line parameter
