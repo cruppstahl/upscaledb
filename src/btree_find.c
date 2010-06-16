@@ -64,7 +64,10 @@ btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor,
         if (page) {
             node=ham_page_get_btree_node(page);
             ham_assert(btree_node_is_leaf(node), (0));
-			ham_assert(btree_node_get_count(node) >= 3, (0)); /* edges + middle match */
+
+            /* we need at least 3 keys in the node: edges + middle match */
+			if (btree_node_get_count(node) < 3)
+                goto no_fast_track;
 
             idx = btree_node_search_by_key(db, page, key, hints.flags);
             /* 
@@ -87,6 +90,8 @@ btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor,
 		 * clears the possible error code stored in there when (idx < -1) 
 		 */
     }
+
+no_fast_track:
 
     if (idx == -1) {
         /* get the address of the root page */

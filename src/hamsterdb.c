@@ -2653,6 +2653,8 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
                 ham_trace(("key->size must be 8, key->data must not be NULL"));
                 return (db_set_error(db, HAM_INV_PARAMETER));
             }
+        }
+        else {
             if (key->flags&HAM_KEY_USER_ALLOC) {
                 if (!key->data || key->size!=sizeof(ham_u64_t)) {
                     ham_trace(("key->size must be 8, key->data must not "
@@ -2687,6 +2689,7 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
                     db_set_key_allocsize(db, sizeof(ham_u64_t));
 
                 key->data=db_get_key_allocdata(db);
+                key->size=sizeof(ham_u64_t);
             }
         }
     }

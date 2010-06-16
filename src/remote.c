@@ -947,9 +947,13 @@ _remote_fun_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     ham__db_insert_request__init(&msg);
     msg.db_handle=db_get_remote_handle(db);
     msg.txn_handle=txn ? txn_get_remote_handle(txn) : 0;
-    protokey.data.data=key->data;
-    protokey.data.len=key->size;
-    protokey.flags=key->flags;
+
+    /* recno: do not send the key! */
+    if (!(ham_get_flags(db)&HAM_RECORD_NUMBER)) {
+        protokey.data.data=key->data;
+        protokey.data.len=key->size;
+        protokey.flags=key->flags;
+    }
     protorec.data.data=record->data;
     protorec.data.len=record->size;
     protorec.flags=record->flags;
@@ -1051,6 +1055,43 @@ bail:
     return (st);
 }
 
+static ham_status_t
+_remote_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_env_t *env=db_get_env(db);
+    Ham__DbEraseRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    Ham__Key protokey=HAM__KEY__INIT;
+    
+    ham__wrapper__init(&wrapper);
+    ham__db_erase_request__init(&msg);
+    msg.db_handle=db_get_remote_handle(db);
+    msg.txn_handle=txn ? txn_get_remote_handle(txn) : 0;
+    protokey.data.data=key->data;
+    protokey.data.len=key->size;
+    protokey.flags=key->flags;
+    msg.key=&protokey;
+    msg.flags=flags;
+    wrapper.type=HAM__WRAPPER__TYPE__DB_ERASE_REQUEST;
+    wrapper.db_erase_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->db_erase_reply!=0, (""));
+    st=reply->db_erase_reply->status;
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
+}
+
 #endif /* HAM_ENABLE_REMOTE */
 
 ham_status_t
@@ -1090,6 +1131,7 @@ db_initialize_remote(ham_db_t *db)
     db->_fun_get_key_count  =_remote_fun_get_key_count;
     db->_fun_insert         =_remote_fun_insert;
     db->_fun_find           =_remote_fun_find;
+    db->_fun_erase          =_remote_fun_erase;
 
     return (0);
 #else

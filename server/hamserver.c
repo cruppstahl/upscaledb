@@ -733,7 +733,7 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
             reply.status=ham_insert(db, txn, &key, &rec, request->flags);
 
             /* recno: return the modified key */
-            if ((reply.status==0) && (db_get_rt_flags(db)&HAM_RECORD_NUMBER)) {
+            if ((reply.status==0) && (ham_get_flags(db)&HAM_RECORD_NUMBER)) {
                 ham_assert(key.size==sizeof(ham_offset_t), (""));
                 reply.key=&replykey;
                 replykey.data.data=key.data;
@@ -808,6 +808,51 @@ handle_db_find(struct env_t *envh, struct mg_connection *conn,
                 replyrec.data.len=rec.size;
                 replyrec.flags=rec.flags;
             }
+        }
+    }
+
+    send_wrapper(envh->env, conn, &wrapper);
+}
+
+static void
+handle_db_erase(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__DbEraseRequest *request)
+{
+    Ham__DbEraseReply reply;
+    Ham__Wrapper wrapper;
+    ham_txn_t *txn=0;
+    ham_db_t *db;
+
+    ham_assert(request!=0, (""));
+
+    ham__db_erase_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.db_erase_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__DB_ERASE_REPLY;
+
+    if (request->txn_handle) {
+        txn=__get_handle(envh, request->txn_handle);
+        if (!txn) {
+            reply.status=HAM_INV_PARAMETER;
+        }
+    }
+
+    if (reply.status==0) {
+        db=__get_handle(envh, request->db_handle);
+        if (!db) {
+            reply.status=HAM_INV_PARAMETER;
+        }
+        else {
+            ham_key_t key;
+
+            memset(&key, 0, sizeof(key));
+            key.data=request->key->data.data;
+            key.size=request->key->data.len;
+            key.flags=request->key->flags & (~HAM_KEY_USER_ALLOC);
+
+            reply.status=ham_erase(db, txn, &key, request->flags);
         }
     }
 
@@ -912,6 +957,11 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
         ham_trace(("db_find request"));
         handle_db_find(env, conn, ri, 
                 wrapper->db_find_request);
+        break;
+    case HAM__WRAPPER__TYPE__DB_ERASE_REQUEST:
+        ham_trace(("db_erase request"));
+        handle_db_erase(env, conn, ri, 
+                wrapper->db_erase_request);
         break;
     default:
         /* TODO send error */

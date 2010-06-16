@@ -88,14 +88,14 @@ o client/server communication
             x respect USER_ALLOC pointers!
             x approx matching: modifies key-flags
             x partial finds
-        o ham_erase
+        x ham_erase
             x implemented in db.c
-            o needs implementation in remote.c, server
-            o unittest: insert, find, erase, find
-            o unittest: insert, find, erase, find (useralloc)
-            o unittest: insert, find, erase, find (for recno)
-            o unittest: insert, find, erase, find (for recno/useralloc)
-            o unittest: negative insert, negative find, negative erase
+            x needs implementation in remote.c, server
+            x unittest: insert, find, erase, find
+            x unittest: insert, find, erase, find (useralloc)
+            x unittest: insert, find, erase, find (for recno)
+
+        o unittest: negative insert, negative find, negative erase
 
         o unittest for
             o partial insert/find
@@ -150,6 +150,15 @@ o mongoose:
     o mongoose - disable default handler (returns file listing!)
 
 o HAM_PARAM_GET_STATISTICS -> hamsterdb_int.h!
+
+o unittest crashes:
+    env=ham_env_create()
+    db=ham_env_create_db(RECNO)
+    insert(RECNO, key[0, 0]) => will call db_resize_allocdata()
+    ham_close(db)
+    ham_env_close(db)
+    ham_delete(db) => will call db_resize_allocdata(0), but allocator was
+        already freed!
 
 ------------------------------
 
