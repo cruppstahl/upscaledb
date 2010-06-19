@@ -57,6 +57,7 @@ public:
         BFC_REGISTER_TEST(RemoteTest, checkIntegrityTest);
         BFC_REGISTER_TEST(RemoteTest, getKeyCountTest);
         BFC_REGISTER_TEST(RemoteTest, insertFindTest);
+        BFC_REGISTER_TEST(RemoteTest, insertFindPartialTest);
         BFC_REGISTER_TEST(RemoteTest, insertRecnoTest);
         BFC_REGISTER_TEST(RemoteTest, insertFindEraseTest);
         BFC_REGISTER_TEST(RemoteTest, insertFindEraseUserallocTest);
@@ -483,6 +484,47 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec2, 0));
         BFC_ASSERT_EQUAL(rec.size, rec2.size);
         BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, (char *)rec2.data));
+
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
+
+    void insertFindPartialTest(void)
+    {
+        ham_db_t *db;
+        ham_key_t key;
+        ham_record_t rec;
+        ham_record_t rec2;
+
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello world";
+        key.size=12;
+        memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"hello chris";
+        rec.size=12;
+        rec.partial_offset=0;
+        rec.partial_size=5;
+        memset(&rec2, 0, sizeof(rec2));
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(db, SERVER_URL, 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, HAM_PARTIAL));
+
+        BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec2, 0));
+        BFC_ASSERT_EQUAL(rec.size, rec2.size);
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec2.data, 
+                    "hello\0\0\0\0\0\0\0\0\0"));
+
+        rec.partial_offset=5;
+        rec.partial_size=7;
+        rec.data=(void *)" chris";
+        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 
+                    HAM_PARTIAL|HAM_OVERWRITE));
+        memset(&rec2, 0, sizeof(rec2));
+        BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec2, 0));
+        BFC_ASSERT_EQUAL(rec.size, rec2.size);
+        BFC_ASSERT_EQUAL(0, strcmp("hello chris", (char *)rec2.data));
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);

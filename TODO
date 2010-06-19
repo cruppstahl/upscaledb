@@ -94,13 +94,11 @@ o client/server communication
             x unittest: insert, find, erase, find
             x unittest: insert, find, erase, find (useralloc)
             x unittest: insert, find, erase, find (for recno)
-
-        o unittest for
-            o partial insert/find
-            o approx matching
+        x unittest for partial inserts
 
         o when opening(=creating) a database: the reply has to return the
             database flags! (i.e. recno)
+            o unittest
 
         o if the same database is opened twice, the same handle has to be 
             returned (currently, an error is returned - DB_ALREADY_OPEN)
@@ -151,6 +149,8 @@ o fix freelist page overflow when searching for bits (See mail from Stefan)
     -> is this still relevant??
 
 o more remote stuff
+    o unittest for approx matching
+
     o add Windows stuff
     o add acceptance tests
 
