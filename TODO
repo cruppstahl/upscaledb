@@ -96,9 +96,8 @@ o client/server communication
             x unittest: insert, find, erase, find (for recno)
         x unittest for partial inserts
 
-        o when opening(=creating) a database: the reply has to return the
+        x when opening(=creating) a database: the reply has to return the
             database flags! (i.e. recno)
-            o unittest
 
         o if the same database is opened twice, the same handle has to be 
             returned (currently, an error is returned - DB_ALREADY_OPEN)
