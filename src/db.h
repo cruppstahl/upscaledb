@@ -252,6 +252,22 @@ struct ham_db_t
                     ham_key_t *key, ham_record_t *record, ham_u32_t flags);
 
     /**
+     * create a cursor
+     */
+    ham_status_t (*_fun_cursor_create)(ham_db_t *db, ham_txn_t *txn, 
+                    ham_u32_t flags, ham_cursor_t **cursor);
+
+    /**
+     * clone a cursor
+     */
+    ham_status_t (*_fun_cursor_clone)(ham_cursor_t *src, ham_cursor_t **dest);
+
+    /**
+     * close a cursor
+     */
+    ham_status_t (*_fun_cursor_close)(ham_cursor_t *cursor);
+
+    /**
      * close the Database
      */
     ham_status_t (*_fun_close)(ham_db_t *db, ham_u32_t flags);

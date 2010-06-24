@@ -18,6 +18,7 @@
 #include "txn.h"
 #include "env.h"
 #include "mem.h"
+#include "cursor.h"
 #include "messages.pb-c.h"
 
 #if HAM_ENABLE_REMOTE
@@ -1092,6 +1093,126 @@ _remote_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     return (st);
 }
 
+static ham_status_t
+_remote_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
+        ham_cursor_t **cursor)
+{
+    ham_env_t *env=db_get_env(db);
+    ham_status_t st;
+    Ham__CursorCreateRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    
+    ham__wrapper__init(&wrapper);
+    ham__cursor_create_request__init(&msg);
+    msg.flags=flags;
+    msg.db_handle=db_get_remote_handle(db);
+    if (txn)
+        msg.txn_handle=txn_get_remote_handle(txn);
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_CREATE_REQUEST;
+    wrapper.cursor_create_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->cursor_create_reply!=0, (""));
+    st=reply->cursor_create_reply->status;
+
+    if (st) {
+        ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    *cursor=(ham_cursor_t *)allocator_calloc(env_get_allocator(env), 
+                            sizeof(ham_cursor_t));
+    if (!(*cursor))
+        return (HAM_OUT_OF_MEMORY);
+
+    cursor_set_remote_handle(*cursor, 
+                reply->cursor_create_reply->cursor_handle);
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
+}
+
+static ham_status_t
+_remote_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
+{
+    ham_env_t *env=db_get_env(cursor_get_db(src));
+    ham_status_t st;
+    Ham__CursorCloneRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    
+    ham__wrapper__init(&wrapper);
+    ham__cursor_clone_request__init(&msg);
+    msg.cursor_handle=cursor_get_remote_handle(src);
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_CLONE_REQUEST;
+    wrapper.cursor_clone_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->cursor_clone_reply!=0, (""));
+    st=reply->cursor_clone_reply->status;
+
+    if (st) {
+        ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    *dest=(ham_cursor_t *)allocator_calloc(env_get_allocator(env), 
+                            sizeof(ham_cursor_t));
+    if (!(*dest))
+        return (HAM_OUT_OF_MEMORY);
+
+    cursor_set_remote_handle(*dest, 
+                reply->cursor_clone_reply->cursor_handle);
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
+}
+
+static ham_status_t
+_remote_cursor_close(ham_cursor_t *cursor)
+{
+    ham_status_t st;
+    ham_env_t *env=db_get_env(cursor_get_db(cursor));
+    Ham__CursorCloseRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    
+    ham__wrapper__init(&wrapper);
+    ham__cursor_close_request__init(&msg);
+    msg.cursor_handle=cursor_get_remote_handle(cursor);
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_CLOSE_REQUEST;
+    wrapper.cursor_close_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->cursor_close_reply!=0, (""));
+    st=reply->cursor_close_reply->status;
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
+}
+
 #endif /* HAM_ENABLE_REMOTE */
 
 ham_status_t
@@ -1132,6 +1253,9 @@ db_initialize_remote(ham_db_t *db)
     db->_fun_insert         =_remote_fun_insert;
     db->_fun_find           =_remote_fun_find;
     db->_fun_erase          =_remote_fun_erase;
+    db->_fun_cursor_create  =_remote_cursor_create;
+    db->_fun_cursor_clone   =_remote_cursor_clone;
+    db->_fun_cursor_close   =_remote_cursor_close;
 
     return (0);
 #else

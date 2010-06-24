@@ -102,8 +102,19 @@ o client/server communication
         x if the same database is opened twice, the same handle has to be 
             returned (currently, an error is returned - DB_ALREADY_OPEN)
 
-        o ham_cursor_clone
+        o ham_cursor_create
+            x implement client
+            o implement server
             o unittest
+        o ham_cursor_clone
+            x implement client
+            o implement server
+            o unittest
+        o ham_cursor_close
+            x implement client
+            o implement server
+            o unittest
+
         o ham_cursor_overwrite
             o unittest
         o ham_cursor_move
@@ -117,8 +128,6 @@ o client/server communication
         o ham_cursor_erase
             o unittest
         o ham_cursor_get_duplicate_count
-            o unittest
-        o ham_cursor_close
             o unittest
         o ham_close: needs to AUTOCLOSE existing cursors
         o ham_close: needs to AUTOABORT existing txns

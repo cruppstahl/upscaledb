@@ -1024,9 +1024,6 @@ bt_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
     return (0);
 }
 
-
-
-
 ham_status_t
 bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
             ham_bt_cursor_t **cu)
@@ -1054,12 +1051,6 @@ bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     bt_cursor_set_allocator(c, env_get_allocator(env));
     bt_cursor_set_db(c, db);
     bt_cursor_set_txn(c, txn);
-
-    /* fix the linked list of cursors */
-    cursor_set_next((ham_cursor_t *)c, db_get_cursors(db));
-    if (db_get_cursors(db))
-        cursor_set_previous(db_get_cursors(db), (ham_cursor_t *)c);
-    db_set_cursors(db, (ham_cursor_t *)c);
 
     *cu=c;
     return (0);

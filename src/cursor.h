@@ -93,6 +93,9 @@ extern "C" {
      */                                                                 \
     ham_txn_t *_txn;                                                    \
                                                                         \
+    /** the remote database handle */                                   \
+    ham_u64_t _remote_handle;                                           \
+                                                                        \
     /**                                                                 \
      * linked list of all cursors                                       \
      */                                                                 \
@@ -187,6 +190,16 @@ struct ham_cursor_t
  * set the transaction handle
  */
 #define cursor_set_txn(c, txn)          (c)->_txn=(txn)
+
+/**
+ * get the remote database handle
+ */
+#define cursor_get_remote_handle(c)     (c)->_remote_handle
+
+/**
+ * set the remote database handle
+ */
+#define cursor_set_remote_handle(c, h)  (c)->_remote_handle=(h)
 
 
 #ifdef __cplusplus

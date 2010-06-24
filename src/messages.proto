@@ -42,6 +42,12 @@ message Wrapper {
             DB_ERASE_REPLY = 181;
             DB_FIND_REQUEST = 190;
             DB_FIND_REPLY = 191;
+            CURSOR_CREATE_REQUEST = 200;
+            CURSOR_CREATE_REPLY = 201;
+            CURSOR_CLONE_REQUEST = 210;
+            CURSOR_CLONE_REPLY = 211;
+            CURSOR_CLOSE_REQUEST = 220;
+            CURSOR_CLOSE_REPLY = 221;
     }
 
     required Type type = 1;
@@ -84,6 +90,12 @@ message Wrapper {
     optional DbEraseReply db_erase_reply = 181;
     optional DbFindRequest db_find_request = 190;
     optional DbFindReply db_find_reply = 191;
+    optional CursorCreateRequest cursor_create_request = 200;
+    optional CursorCreateReply cursor_create_reply = 201;
+    optional CursorCloneRequest cursor_clone_request = 210;
+    optional CursorCloneReply cursor_clone_reply = 211;
+    optional CursorCloseRequest cursor_close_request = 220;
+    optional CursorCloseReply cursor_close_reply = 221;
 }
 
 message ConnectRequest {
@@ -300,3 +312,32 @@ message DbFindReply {
     required Record record = 2;
     optional Key key = 3;
 };
+
+message CursorCreateRequest {
+    required uint64 db_handle = 1;
+    required uint64 txn_handle = 2;
+    required uint32 flags = 3;
+};
+
+message CursorCreateReply {
+    required sint32 status = 1;
+    required uint64 cursor_handle = 2;
+};
+
+message CursorCloneRequest {
+    required uint64 cursor_handle = 1;
+};
+
+message CursorCloneReply {
+    required sint32 status = 1;
+    required uint64 cursor_handle = 2;
+};
+
+message CursorCloseRequest {
+    required uint64 cursor_handle = 1;
+};
+
+message CursorCloseReply {
+    required sint32 status = 1;
+};
+
