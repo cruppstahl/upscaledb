@@ -62,6 +62,7 @@ public:
         BFC_REGISTER_TEST(RemoteTest, insertFindEraseTest);
         BFC_REGISTER_TEST(RemoteTest, insertFindEraseUserallocTest);
         BFC_REGISTER_TEST(RemoteTest, insertFindEraseRecnoTest);
+        BFC_REGISTER_TEST(RemoteTest, openTwiceTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanup2Test);
     }
 
@@ -702,6 +703,29 @@ protected:
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        ham_env_delete(env);
+    }
+
+    void openTwiceTest(void)
+    {
+        ham_db_t *db1, *db2;
+        ham_env_t *env;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db1));
+        BFC_ASSERT_EQUAL(0, ham_new(&db2));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(env, SERVER_URL, 0, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_open_db(env, db1, 33, 0, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_open_db(env, db2, 33, 0, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_close(db1, 0));
+        ham_delete(db1);
+        BFC_ASSERT_EQUAL(0, ham_close(db2, 0));
+        ham_delete(db2);
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_env_delete(env);
     }

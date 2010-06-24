@@ -99,7 +99,7 @@ o client/server communication
         x when opening(=creating) a database: the reply has to return the
             database flags! (i.e. recno)
 
-        o if the same database is opened twice, the same handle has to be 
+        x if the same database is opened twice, the same handle has to be 
             returned (currently, an error is returned - DB_ALREADY_OPEN)
 
         o ham_cursor_clone
