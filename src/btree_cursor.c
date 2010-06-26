@@ -535,13 +535,6 @@ bt_cursor_clone(ham_bt_cursor_t *old, ham_bt_cursor_t **newc)
     cursor_set_next_in_page(c, 0);
     cursor_set_previous_in_page(c, 0);
 
-    /* fix the linked list of cursors */
-    cursor_set_previous((ham_cursor_t *)c, 0);
-    cursor_set_next((ham_cursor_t *)c, db_get_cursors(db));
-    ham_assert(db_get_cursors(db)!=0, (0));
-    cursor_set_previous(db_get_cursors(db), (ham_cursor_t *)c);
-    db_set_cursors(db, (ham_cursor_t *)c);
-
     /*
      * if the old cursor is coupled: couple the new cursor, too
      */
@@ -1047,10 +1040,6 @@ bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     c->_fun_insert=bt_cursor_insert;
     c->_fun_erase=bt_cursor_erase;
     c->_fun_get_duplicate_count=bt_cursor_get_duplicate_count;
-
-    bt_cursor_set_allocator(c, env_get_allocator(env));
-    bt_cursor_set_db(c, db);
-    bt_cursor_set_txn(c, txn);
 
     *cu=c;
     return (0);

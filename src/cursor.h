@@ -167,6 +167,11 @@ struct ham_cursor_t
 	}
 
 /**
+ * set the database pointer
+ */
+#define cursor_set_db(c, db)            (c)->_db=db
+
+/**
  * get the database pointer
  */
 #define cursor_get_db(c)                (c)->_db

@@ -2040,7 +2040,7 @@ _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 {
     ham_status_t st;
     ham_txn_t local_txn;
-    ham_db_t *db;
+    ham_db_t *db=cursor_get_db(src);
     ham_env_t *env;
 
     env = db_get_env(db);
@@ -2072,7 +2072,7 @@ static ham_status_t
 _local_cursor_close(ham_cursor_t *cursor)
 {
     ham_status_t st;
-    ham_db_t *db;
+    ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env;
 
     env = db_get_env(db);

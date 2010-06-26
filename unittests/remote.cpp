@@ -63,6 +63,8 @@ public:
         BFC_REGISTER_TEST(RemoteTest, insertFindEraseUserallocTest);
         BFC_REGISTER_TEST(RemoteTest, insertFindEraseRecnoTest);
         BFC_REGISTER_TEST(RemoteTest, openTwiceTest);
+        BFC_REGISTER_TEST(RemoteTest, cursorCreateTest);
+        BFC_REGISTER_TEST(RemoteTest, cursorCloneTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanup2Test);
     }
 
@@ -726,6 +728,55 @@ protected:
         ham_delete(db1);
         BFC_ASSERT_EQUAL(0, ham_close(db2, 0));
         ham_delete(db2);
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        ham_env_delete(env);
+    }
+
+    void cursorCreateTest(void)
+    {
+        ham_db_t *db;
+        ham_env_t *env;
+        ham_cursor_t *cursor;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(env, SERVER_URL, 0, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_open_db(env, db, 33, 0, 0));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_create(db, 0, 0, &cursor));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        ham_env_delete(env);
+    }
+
+    void cursorCloneTest(void)
+    {
+        ham_db_t *db;
+        ham_env_t *env;
+        ham_cursor_t *src, *dest;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(env, SERVER_URL, 0, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_open_db(env, db, 33, 0, 0));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_create(db, 0, 0, &src));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_clone(src, &dest));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(src));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(dest));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_env_delete(env);
     }

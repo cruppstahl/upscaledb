@@ -102,24 +102,22 @@ o client/server communication
         x if the same database is opened twice, the same handle has to be 
             returned (currently, an error is returned - DB_ALREADY_OPEN)
 
-        o ham_cursor_create
+        x ham_cursor_create
             x implement client
             x implement server
-            o unittest
-        o ham_cursor_clone
+            x unittest
+        x ham_cursor_clone
             x implement client
             x implement server
-            o unittest
-        o ham_cursor_close
+            x unittest
+        x ham_cursor_close
             x implement client
             x implement server
-            o unittest
+            x unittest
 
         o ham_cursor_overwrite
             o unittest
         o ham_cursor_move
-            o unittest
-        o ham_cursor_find
             o unittest
         o ham_cursor_find_ex
             o unittest
