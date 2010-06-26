@@ -899,6 +899,119 @@ handle_db_erase(struct env_t *envh, struct mg_connection *conn,
 }
 
 static void
+handle_cursor_create(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__CursorCreateRequest *request)
+{
+    Ham__CursorCreateReply reply;
+    Ham__Wrapper wrapper;
+    ham_txn_t *txn=0;
+    ham_db_t *db;
+    ham_cursor_t *cursor;
+
+    ham_assert(request!=0, (""));
+
+    ham__cursor_create_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.cursor_create_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_CREATE_REPLY;
+
+    if (request->txn_handle) {
+        txn=__get_handle(envh, request->txn_handle);
+        if (!txn) {
+            reply.status=HAM_INV_PARAMETER;
+            goto bail;
+        }
+    }
+
+    db=__get_handle(envh, request->db_handle);
+    if (!db) {
+        reply.status=HAM_INV_PARAMETER;
+        goto bail;
+    }
+
+    /* create the cursor */
+    reply.status=ham_cursor_create(db, txn, request->flags, &cursor);
+    if (reply.status==0) {
+        /* allocate a new handle in the Env wrapper structure */
+        reply.cursor_handle=__store_handle(envh, cursor, HANDLE_TYPE_CURSOR);
+    }
+
+bail:
+    send_wrapper(envh->env, conn, &wrapper);
+}
+
+static void
+handle_cursor_clone(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__CursorCloneRequest *request)
+{
+    Ham__CursorCloneReply reply;
+    Ham__Wrapper wrapper;
+    ham_cursor_t *src;
+    ham_cursor_t *dest;
+
+    ham_assert(request!=0, (""));
+
+    ham__cursor_clone_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.cursor_clone_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_CLONE_REPLY;
+
+    src=__get_handle(envh, request->cursor_handle);
+    if (!src) {
+        reply.status=HAM_INV_PARAMETER;
+        goto bail;
+    }
+
+    /* clone the cursor */
+    reply.status=ham_cursor_clone(src, &dest);
+    if (reply.status==0) {
+        /* allocate a new handle in the Env wrapper structure */
+        reply.cursor_handle=__store_handle(envh, dest, HANDLE_TYPE_CURSOR);
+    }
+
+bail:
+    send_wrapper(envh->env, conn, &wrapper);
+}
+
+static void
+handle_cursor_close(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__CursorCloseRequest *request)
+{
+    Ham__CursorCloseReply reply;
+    Ham__Wrapper wrapper;
+    ham_cursor_t *cursor;
+
+    ham_assert(request!=0, (""));
+
+    ham__cursor_close_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.cursor_close_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_CLOSE_REPLY;
+
+    cursor=__get_handle(envh, request->cursor_handle);
+    if (!cursor) {
+        reply.status=HAM_INV_PARAMETER;
+        goto bail;
+    }
+
+    /* close the cursor */
+    reply.status=ham_cursor_close(cursor);
+    if (reply.status==0) {
+        /* remove the handle from the Env wrapper structure */
+        __remove_handle(envh, request->cursor_handle);
+    }
+
+bail:
+    send_wrapper(envh->env, conn, &wrapper);
+}
+
+static void
 request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
                 void *user_data)
 {
@@ -1001,6 +1114,21 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
         ham_trace(("db_erase request"));
         handle_db_erase(env, conn, ri, 
                 wrapper->db_erase_request);
+        break;
+    case HAM__WRAPPER__TYPE__CURSOR_CREATE_REQUEST:
+        ham_trace(("cursor_create request"));
+        handle_cursor_create(env, conn, ri, 
+                wrapper->cursor_create_request);
+        break;
+    case HAM__WRAPPER__TYPE__CURSOR_CLONE_REQUEST:
+        ham_trace(("cursor_clone request"));
+        handle_cursor_clone(env, conn, ri, 
+                wrapper->cursor_clone_request);
+        break;
+    case HAM__WRAPPER__TYPE__CURSOR_CLOSE_REQUEST:
+        ham_trace(("cursor_close request"));
+        handle_cursor_close(env, conn, ri, 
+                wrapper->cursor_close_request);
         break;
     default:
         /* TODO send error */

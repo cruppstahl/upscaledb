@@ -104,15 +104,15 @@ o client/server communication
 
         o ham_cursor_create
             x implement client
-            o implement server
+            x implement server
             o unittest
         o ham_cursor_clone
             x implement client
-            o implement server
+            x implement server
             o unittest
         o ham_cursor_close
             x implement client
-            o implement server
+            x implement server
             o unittest
 
         o ham_cursor_overwrite
