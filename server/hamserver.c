@@ -21,6 +21,7 @@
 #include "messages.pb-c.h"
 #include "os.h"
 #include "error.h"
+#include "cursor.h"
 #include "mem.h"
 #include "env.h"
 
@@ -978,6 +979,148 @@ bail:
 }
 
 static void
+handle_cursor_insert(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__CursorInsertRequest *request)
+{
+    Ham__CursorInsertReply reply;
+    Ham__Wrapper wrapper;
+    ham_cursor_t *cursor;
+    ham_key_t key;
+    ham_record_t rec;
+    Ham__Key replykey;
+
+    ham_assert(request!=0, (""));
+
+    ham__cursor_insert_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    ham__key__init(&replykey);
+    reply.status=0;
+    wrapper.cursor_insert_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_INSERT_REPLY;
+
+    cursor=__get_handle(envh, request->cursor_handle);
+    if (!cursor) {
+        reply.status=HAM_INV_PARAMETER;
+        goto bail;
+    }
+
+    memset(&key, 0, sizeof(key));
+    key.data=request->key->data.data;
+    key.size=request->key->data.len;
+    key.flags=request->key->flags & (~HAM_KEY_USER_ALLOC);
+
+    memset(&rec, 0, sizeof(rec));
+    rec.data=request->record->data.data;
+    rec.size=request->record->data.len;
+    rec.partial_size=request->record->partial_size;
+    rec.partial_offset=request->record->partial_offset;
+    rec.flags=request->record->flags & (~HAM_RECORD_USER_ALLOC);
+    reply.status=ham_cursor_insert(cursor, &key, &rec, request->flags);
+
+    /* recno: return the modified key */
+    if ((reply.status==0) && 
+            (ham_get_flags(cursor_get_db(cursor))&HAM_RECORD_NUMBER)) {
+        ham_assert(key.size==sizeof(ham_offset_t), (""));
+        reply.key=&replykey;
+        replykey.data.data=key.data;
+        replykey.data.len=key.size;
+    }
+
+bail:
+    send_wrapper(envh->env, conn, &wrapper);
+}
+
+static void
+handle_cursor_erase(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__CursorEraseRequest *request)
+{
+    Ham__CursorEraseReply reply;
+    Ham__Wrapper wrapper;
+    ham_cursor_t *cursor;
+
+    ham_assert(request!=0, (""));
+
+    ham__cursor_erase_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.cursor_erase_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_ERASE_REPLY;
+
+    cursor=__get_handle(envh, request->cursor_handle);
+    if (!cursor) {
+        reply.status=HAM_INV_PARAMETER;
+        goto bail;
+    }
+
+    reply.status=ham_cursor_erase(cursor, request->flags);
+
+bail:
+    send_wrapper(envh->env, conn, &wrapper);
+}
+
+static void
+handle_cursor_find(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__CursorFindRequest *request)
+{
+    Ham__CursorFindReply reply;
+    Ham__Wrapper wrapper;
+    ham_cursor_t *cursor;
+    ham_key_t key; 
+    ham_record_t rec; 
+    Ham__Key replykey;
+    Ham__Record replyrec;
+
+    ham_assert(request!=0, (""));
+
+    ham__cursor_find_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    ham__key__init(&replykey);
+    ham__record__init(&replyrec);
+    reply.status=0;
+    wrapper.cursor_find_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_FIND_REPLY;
+
+    cursor=__get_handle(envh, request->cursor_handle);
+    if (!cursor) {
+        reply.status=HAM_INV_PARAMETER;
+        goto bail;
+    }
+
+    memset(&key, 0, sizeof(key));
+    key.data=request->key->data.data;
+    key.size=request->key->data.len;
+    key.flags=request->key->flags & (~HAM_KEY_USER_ALLOC);
+
+    memset(&rec, 0, sizeof(rec));
+    rec.data=request->record->data.data;
+    rec.size=request->record->data.len;
+    rec.partial_size=request->record->partial_size;
+    rec.partial_offset=request->record->partial_offset;
+    rec.flags=request->record->flags & (~HAM_RECORD_USER_ALLOC);
+
+    reply.status=ham_cursor_find_ex(cursor, &key, &rec, request->flags);
+
+    if (reply.status==0) {
+        /* approx matching: key->_flags was modified! */
+        if (key._flags) {
+            reply.key=&replykey;
+            replykey.intflags=key._flags;
+        }
+        /* in any case - return the record */
+        reply.record=&replyrec;
+        replyrec.data.data=rec.data;
+        replyrec.data.len=rec.size;
+        replyrec.flags=rec.flags;
+    }
+
+bail:
+    send_wrapper(envh->env, conn, &wrapper);
+}
+
+static void
 handle_cursor_close(struct env_t *envh, struct mg_connection *conn, 
                 const struct mg_request_info *ri,
                 Ham__CursorCloseRequest *request)
@@ -1124,6 +1267,21 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
         ham_trace(("cursor_clone request"));
         handle_cursor_clone(env, conn, ri, 
                 wrapper->cursor_clone_request);
+        break;
+    case HAM__WRAPPER__TYPE__CURSOR_INSERT_REQUEST:
+        ham_trace(("cursor_insert request"));
+        handle_cursor_insert(env, conn, ri, 
+                wrapper->cursor_insert_request);
+        break;
+    case HAM__WRAPPER__TYPE__CURSOR_ERASE_REQUEST:
+        ham_trace(("cursor_erase request"));
+        handle_cursor_erase(env, conn, ri, 
+                wrapper->cursor_erase_request);
+        break;
+    case HAM__WRAPPER__TYPE__CURSOR_FIND_REQUEST:
+        ham_trace(("cursor_find request"));
+        handle_cursor_find(env, conn, ri, 
+                wrapper->cursor_find_request);
         break;
     case HAM__WRAPPER__TYPE__CURSOR_CLOSE_REQUEST:
         ham_trace(("cursor_close request"));

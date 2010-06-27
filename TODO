@@ -115,17 +115,24 @@ o client/server communication
             x implement server
             x unittest
 
+        o ham_cursor_insert
+            x implement client
+            x implement server
+            o unittest -- cursorInsertFindTest
+        o ham_cursor_erase
+            o implement client -- remote.c fehlt
+            x implement server
+            o unittest -- cursorInsertFindTest
+        o ham_cursor_find_ex
+            o implement client -- remote.c fehlt
+            x implement server
+            o unittest -- cursorInsertFindTest
+
+        o ham_cursor_get_duplicate_count
+            o unittest
         o ham_cursor_overwrite
             o unittest
         o ham_cursor_move
-            o unittest
-        o ham_cursor_find_ex
-            o unittest
-        o ham_cursor_insert
-            o unittest
-        o ham_cursor_erase
-            o unittest
-        o ham_cursor_get_duplicate_count
             o unittest
         o ham_close: needs to AUTOCLOSE existing cursors
         o ham_close: needs to AUTOABORT existing txns
@@ -133,6 +140,9 @@ o client/server communication
         o call curl_global_cleanup() (not threadsafe!!)
         o check for memory leaks!
     o add documentation!
+
+    o messages-pb.c must be created dynamically because it depends on 
+        the google protocol version
 
 o HAM_PARAM_GET_STATISTICS -> hamsterdb_int.h!
 
@@ -163,8 +173,6 @@ o more remote stuff
     o unittest: negative insert, negative find, negative erase
 
     o test with big blobs!
-    o messages-pb.c must be created dynamically because it depends on 
-        the google protocol version
     o check_create_parameters -> move to env.c??
     o my_free_cb is duplicated in env.c und hamsterdb.c!
 
@@ -207,8 +215,6 @@ o server: second step
 
 o need win32 project for the server
 
-o also allow json for the protocol (??)
-
 o documentation in hamsterdb.h
     o ham_insert: does not list HAM_HINT_APPEND/PREPEND,
         no mentioning of sorted duplicates
@@ -223,29 +229,9 @@ o test the following:
         env=ham_get_env(db)
         ham_env_close(env) ???
 
-
-o also look at Ger's sources
+=======================================================================
 
 o update the Python API 
-
-. create abstraction layer for local Environments/Databases and remote
-    Environments/Databases
-    o move every local function to local.c
-
-. network-server (use apr, protocol buffers)
-    > Maybe you could consider taking one of those tiny portable httpd apps out
-    > there and jack hamsterdb into it's back, so you get to talk 'hamster over
-    > HTTP[S]' for low cost? Several high perf, low feature count httpd
-    > microservers out there. Haiwatha pops up as a name, but there's several of
-    > those buggers around, including ones that have been specifically designed
-    > for multithreaded high I/O bandwidth (async I/O on Win32/64 !! ). hamsterdb
-    > is single-thread right now, but it's gonna be multithreaded one day anyhow.
-    > And taking such a mini server would save quite a bit of tuning and dev work.
-    > Sometimes copy&use is best.
-
-    i.e. use mongoose?
-
-. network-client (use apr, protocol buffers)
 
 . pure java network client
 

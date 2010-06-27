@@ -3156,11 +3156,8 @@ HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key, 
             ham_record_t *record, ham_u32_t flags)
 {
-    ham_offset_t recno=0;
-    ham_status_t st;
     ham_db_t *db;
     ham_env_t *env;
-    ham_txn_t local_txn;
 
     if (!cursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
@@ -3209,63 +3206,13 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
     if (record &&  !__prepare_record(record))
         return (db_set_error(db, HAM_INV_PARAMETER));
 
-    db_set_error(db, 0);
-
-    /*
-     * record number: make sure that we have a valid key structure,
-     * and translate the record number to database endian
-     */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        if (key->size!=sizeof(ham_u64_t) || !key->data) {
-            ham_trace(("key->size must be 8, key->data must not be NULL"));
-            if (!cursor_get_txn(cursor))
-                (void)txn_abort(&local_txn, 0);
-            return (db_set_error(db, HAM_INV_PARAMETER));
-        }
-        recno=*(ham_offset_t *)key->data;
-        recno=ham_h2db64(recno);
-        *(ham_offset_t *)key->data=recno;
+    if (!db->_fun_cursor_find) {
+        ham_trace(("Database was not initialized"));
+        return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
 
-    if (!cursor_get_txn(cursor)) {
-        st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
-        if (st)
-            return (db_set_error(db, st));
-    }
-
-    db_update_global_stats_find_query(db, key->size);
-
-    st=cursor->_fun_find(cursor, key, record, flags);
-    if (st)
-    {
-        if (!cursor_get_txn(cursor))
-            (void)txn_abort(&local_txn, DO_NOT_NUKE_PAGE_STATS);
-        return (db_set_error(db, st));
-    }
-
-    /*
-     * record number: re-translate the number to host endian
-     */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        *(ham_offset_t *)key->data=ham_db2h64(recno);
-    }
-
-    /*
-     * run the record-level filters
-     */
-    if (record) {
-        st=__record_filters_after_find(db, record);
-        if (st) {
-            if (!cursor_get_txn(cursor))
-                (void)txn_abort(&local_txn, DO_NOT_NUKE_PAGE_STATS);
-            return (db_set_error(db, st));
-        }
-    }
-
-    if (!cursor_get_txn(cursor))
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
-    else
-        return (db_set_error(db, 0));
+    return (db_set_error(db, 
+                db->_fun_cursor_find(cursor, key, record, flags)));
 }
 
 ham_status_t HAM_CALLCONV
@@ -3274,11 +3221,6 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
 {
     ham_db_t *db;
     ham_env_t *env;
-    ham_status_t st;
-    ham_backend_t *be;
-    ham_u64_t recno = 0;
-    ham_record_t temprec;
-    ham_txn_t local_txn;
 
     if (!cursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
@@ -3286,15 +3228,6 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     }
 
     db=cursor_get_db(cursor);
-    if (!db || !db_get_env(db)) {
-        ham_trace(("parameter 'cursor' must be linked to a valid database"));
-        return HAM_INV_PARAMETER;
-    }
-    env = db_get_env(db);
-
-    be=db_get_backend(db);
-    if (!be)
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
 
     if (!key) {
         ham_trace(("parameter 'key' must not be NULL"));
@@ -3312,18 +3245,18 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     if (!__prepare_key(key) || !__prepare_record(record))
         return (db_set_error(db, HAM_INV_PARAMETER));
 
-    db_set_error(db, 0);
+    db=cursor_get_db(cursor);
+    if (!db || !db_get_env(db)) {
+        ham_trace(("parameter 'cursor' must be linked to a valid database"));
+        return HAM_INV_PARAMETER;
+    }
+    env = db_get_env(db);
 
     if (db_get_rt_flags(db)&HAM_READ_ONLY) {
         ham_trace(("cannot insert to a read-only database"));
         return (db_set_error(db, HAM_DB_READ_ONLY));
     }
     if ((db_get_rt_flags(db)&HAM_DISABLE_VAR_KEYLEN) &&
-            (key->size>db_get_keysize(db))) {
-        ham_trace(("database does not support variable length keys"));
-        return (db_set_error(db, HAM_INV_KEYSIZE));
-    }
-    if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
             (key->size>db_get_keysize(db))) {
         ham_trace(("database does not support variable length keys"));
         return (db_set_error(db, HAM_INV_KEYSIZE));
@@ -3365,29 +3298,15 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         flags|=HAM_DUPLICATE;
     }
 
-    /*
-     * record number: make sure that we have a valid key structure,
-     * and lazy load the last used record number.
-     * also specify the flag HAM_HINT_APPEND (implicit)
-     */
+    /* allocate temp. storage for a recno key */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         if (flags&HAM_OVERWRITE) {
             if (key->size!=sizeof(ham_u64_t) || !key->data) {
                 ham_trace(("key->size must be 8, key->data must not be NULL"));
                 return (db_set_error(db, HAM_INV_PARAMETER));
             }
-            recno=*(ham_u64_t *)key->data;
         }
         else {
-            /*
-             * get the record number (host endian) and increment it
-             */
-            recno=be_get_recno(be);
-            recno++;
-
-            /*
-             * allocate memory for the key
-             */
             if (key->flags&HAM_KEY_USER_ALLOC) {
                 if (!key->data || key->size!=sizeof(ham_u64_t)) {
                     ham_trace(("key->size must be 8, key->data must not "
@@ -3406,10 +3325,10 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
                 if (sizeof(ham_u64_t)>db_get_key_allocsize(db)) {
                     if (db_get_key_allocdata(db))
                         allocator_free(env_get_allocator(env), 
-                                        db_get_key_allocdata(db));
+                                db_get_key_allocdata(db));
                     db_set_key_allocdata(db, 
                             allocator_alloc(env_get_allocator(env), 
-                                            sizeof(ham_u64_t)));
+                                sizeof(ham_u64_t)));
                     if (!db_get_key_allocdata(db)) {
                         db_set_key_allocsize(db, 0);
                         return (db_set_error(db, HAM_OUT_OF_MEMORY));
@@ -3420,86 +3339,25 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
                 }
                 else
                     db_set_key_allocsize(db, sizeof(ham_u64_t));
-    
+
                 key->data=db_get_key_allocdata(db);
+                key->size=sizeof(ham_u64_t);
             }
         }
-
-        /*
-         * store it in db endian
-         */
-        recno=ham_h2db64(recno);
-        memcpy(key->data, &recno, sizeof(ham_u64_t));
-        key->size=sizeof(ham_u64_t);
-
-        /*
-         * we're appending this key sequentially
-         */
-        flags|=HAM_HINT_APPEND;
     }
 
-    if (!cursor_get_txn(cursor)) {
-        if ((st=txn_begin(&local_txn, env, 0)))
-            return (db_set_error(db, st));
+    if (!db->_fun_cursor_insert) {
+        ham_trace(("Database was not initialized"));
+        return (HAM_NOT_INITIALIZED);
     }
 
-    /*
-     * run the record-level filters on a temporary record structure - we
-     * don't want to mess up the original structure
-     */
-    temprec=*record;
-    st=__record_filters_before_write(db, &temprec);
-
-    if (!st) {
-        db_update_global_stats_insert_query(db, key->size, temprec.size);
-    }
-
-    if (!st) {
-        st=cursor->_fun_insert(cursor, key, &temprec, flags);
-    }
-
-    if (temprec.data!=record->data)
-        allocator_free(env_get_allocator(env), temprec.data);
-
-    if (st) {
-        if (!cursor_get_txn(cursor))
-            (void)txn_abort(&local_txn, 0);
-        if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
-            if (!(key->flags&HAM_KEY_USER_ALLOC)) {
-                key->data=0;
-                key->size=0;
-            }
-            ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
-        }
-        return (db_set_error(db, st));
-    }
-
-    /*
-     * record numbers: return key in host endian! and store the incremented
-     * record number
-     */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
-        recno=ham_db2h64(recno);
-        memcpy(key->data, &recno, sizeof(ham_u64_t));
-        key->size=sizeof(ham_u64_t);
-        if (!(flags&HAM_OVERWRITE)) {
-            be_set_recno(be, recno);
-            be_set_dirty(be, HAM_TRUE);
-            env_set_dirty(env);
-        }
-    }
-
-    if (!cursor_get_txn(cursor))
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
-    else
-        return (db_set_error(db, st));
+    return (db_set_error(db, 
+                db->_fun_cursor_insert(cursor, key, record, flags)));
 }
 
 ham_status_t HAM_CALLCONV
 ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 {
-    ham_status_t st;
-    ham_txn_t local_txn;
     ham_db_t *db;
     ham_env_t *env;
 
@@ -3507,15 +3365,14 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         ham_trace(("parameter 'cursor' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
+
     db=cursor_get_db(cursor);
+
     if (!db || !db_get_env(db)) {
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
         return HAM_INV_PARAMETER;
     }
     env = db_get_env(db);
-
-    db=cursor_get_db(cursor);
-    db_set_error(db, 0);
 
     if (db_get_rt_flags(db)&HAM_READ_ONLY) {
         ham_trace(("cannot erase from a read-only database"));
@@ -3532,26 +3389,13 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
 
-    if (!cursor_get_txn(cursor)) {
-        st=txn_begin(&local_txn, env, 0);
-        if (st)
-            return (db_set_error(db, st));
+    if (!db->_fun_cursor_erase) {
+        ham_trace(("Database was not initialized"));
+        return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
 
-    db_update_global_stats_erase_query(db, 0);
-
-    st=cursor->_fun_erase(cursor, flags);
-
-    if (st) {
-        if (!cursor_get_txn(cursor))
-            (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
-    }
-
-    if (!cursor_get_txn(cursor))
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
-    else
-        return (db_set_error(db, st));
+    return (db_set_error(db, 
+                db->_fun_cursor_erase(cursor, flags)));
 }
 
 ham_status_t HAM_CALLCONV

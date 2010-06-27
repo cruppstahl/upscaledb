@@ -263,6 +263,23 @@ struct ham_db_t
     ham_status_t (*_fun_cursor_clone)(ham_cursor_t *src, ham_cursor_t **dest);
 
     /**
+     * insert a key with a cursor
+     */
+    ham_status_t (*_fun_cursor_insert)(ham_cursor_t *cursor, 
+                    ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+
+    /**
+     * erase the key of a cursor
+     */
+    ham_status_t (*_fun_cursor_erase)(ham_cursor_t *cursor, ham_u32_t flags);
+
+    /**
+     * position the cursor on a key and return the record
+     */
+    ham_status_t (*_fun_cursor_find)(ham_cursor_t *cursor, ham_key_t *key, 
+                    ham_record_t *record, ham_u32_t flags);
+
+    /**
      * close a cursor
      */
     ham_status_t (*_fun_cursor_close)(ham_cursor_t *cursor);

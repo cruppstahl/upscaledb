@@ -1213,6 +1213,65 @@ _remote_cursor_close(ham_cursor_t *cursor)
     return (st);
 }
 
+static ham_status_t
+_remote_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
+            ham_record_t *record, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_db_t *db=cursor_get_db(cursor);
+    ham_env_t *env=db_get_env(db);
+    Ham__CursorInsertRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    Ham__Key protokey=HAM__KEY__INIT;
+    Ham__Record protorec=HAM__RECORD__INIT;
+    
+    ham__wrapper__init(&wrapper);
+    ham__cursor_insert_request__init(&msg);
+    msg.cursor_handle=cursor_get_remote_handle(cursor);
+
+    /* recno: do not send the key! */
+    if (!(ham_get_flags(db)&HAM_RECORD_NUMBER)) {
+        protokey.data.data=key->data;
+        protokey.data.len=key->size;
+        protokey.flags=key->flags;
+    }
+    protorec.data.data=record->data;
+    protorec.data.len=record->size;
+    protorec.flags=record->flags;
+    protorec.partial_size=record->partial_size;
+    protorec.partial_offset=record->partial_offset;
+    msg.key=&protokey;
+    msg.record=&protorec;
+    msg.flags=flags;
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_INSERT_REQUEST;
+    wrapper.cursor_insert_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->cursor_insert_reply!=0, (""));
+    st=reply->cursor_insert_reply->status;
+
+    /* recno: the key was modified! */
+    if (st==0 && reply->cursor_insert_reply->key) {
+        if (reply->cursor_insert_reply->key->data.len==sizeof(ham_offset_t)) {
+            ham_assert(key->data!=0, (""));
+            ham_assert(key->size==sizeof(ham_offset_t), (""));
+            memcpy(key->data, reply->cursor_insert_reply->key->data.data,
+                    sizeof(ham_offset_t));
+        }
+    }
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
+}
+
 #endif /* HAM_ENABLE_REMOTE */
 
 ham_status_t
@@ -1256,6 +1315,9 @@ db_initialize_remote(ham_db_t *db)
     db->_fun_cursor_create  =_remote_cursor_create;
     db->_fun_cursor_clone   =_remote_cursor_clone;
     db->_fun_cursor_close   =_remote_cursor_close;
+    db->_fun_cursor_insert  =_remote_cursor_insert;
+    //db->_fun_cursor_erase   =_remote_cursor_erase;
+    //db->_fun_cursor_find    =_remote_cursor_find;
 
     return (0);
 #else

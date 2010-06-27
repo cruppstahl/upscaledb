@@ -48,6 +48,12 @@ message Wrapper {
             CURSOR_CLONE_REPLY = 211;
             CURSOR_CLOSE_REQUEST = 220;
             CURSOR_CLOSE_REPLY = 221;
+            CURSOR_INSERT_REQUEST = 230;
+            CURSOR_INSERT_REPLY = 231;
+            CURSOR_ERASE_REQUEST = 240;
+            CURSOR_ERASE_REPLY = 241;
+            CURSOR_FIND_REQUEST = 250;
+            CURSOR_FIND_REPLY = 251;
     }
 
     required Type type = 1;
@@ -96,6 +102,12 @@ message Wrapper {
     optional CursorCloneReply cursor_clone_reply = 211;
     optional CursorCloseRequest cursor_close_request = 220;
     optional CursorCloseReply cursor_close_reply = 221;
+    optional CursorInsertRequest cursor_insert_request = 230;
+    optional CursorInsertReply cursor_insert_reply = 231;
+    optional CursorEraseRequest cursor_erase_request = 240;
+    optional CursorEraseReply cursor_erase_reply = 241;
+    optional CursorFindRequest cursor_find_request = 250;
+    optional CursorFindReply cursor_find_reply = 251;
 }
 
 message ConnectRequest {
@@ -341,3 +353,36 @@ message CursorCloseReply {
     required sint32 status = 1;
 };
 
+message CursorInsertRequest {
+    required uint64 cursor_handle = 1;
+    required Key key = 2;
+    required Record record = 3;
+    required uint32 flags = 4;
+};
+
+message CursorInsertReply {
+    required sint32 status = 1;
+    optional Key key = 2;
+};
+
+message CursorEraseRequest {
+    required uint64 cursor_handle = 1;
+    required uint32 flags = 2;
+};
+
+message CursorEraseReply {
+    required sint32 status = 1;
+};
+
+message CursorFindRequest {
+    required uint64 cursor_handle = 1;
+    required Key key = 2;
+    optional Record record = 3;
+    required uint32 flags = 4;
+};
+
+message CursorFindReply {
+    required sint32 status = 1;
+    optional Key key = 2;
+    optional Record record = 3;
+};

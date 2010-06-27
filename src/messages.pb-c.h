@@ -55,6 +55,12 @@ typedef struct _Ham__CursorCloneRequest Ham__CursorCloneRequest;
 typedef struct _Ham__CursorCloneReply Ham__CursorCloneReply;
 typedef struct _Ham__CursorCloseRequest Ham__CursorCloseRequest;
 typedef struct _Ham__CursorCloseReply Ham__CursorCloseReply;
+typedef struct _Ham__CursorInsertRequest Ham__CursorInsertRequest;
+typedef struct _Ham__CursorInsertReply Ham__CursorInsertReply;
+typedef struct _Ham__CursorEraseRequest Ham__CursorEraseRequest;
+typedef struct _Ham__CursorEraseReply Ham__CursorEraseReply;
+typedef struct _Ham__CursorFindRequest Ham__CursorFindRequest;
+typedef struct _Ham__CursorFindReply Ham__CursorFindReply;
 
 
 /* --- enums --- */
@@ -103,7 +109,13 @@ typedef enum _Ham__Wrapper__Type {
   HAM__WRAPPER__TYPE__CURSOR_CLONE_REQUEST = 210,
   HAM__WRAPPER__TYPE__CURSOR_CLONE_REPLY = 211,
   HAM__WRAPPER__TYPE__CURSOR_CLOSE_REQUEST = 220,
-  HAM__WRAPPER__TYPE__CURSOR_CLOSE_REPLY = 221
+  HAM__WRAPPER__TYPE__CURSOR_CLOSE_REPLY = 221,
+  HAM__WRAPPER__TYPE__CURSOR_INSERT_REQUEST = 230,
+  HAM__WRAPPER__TYPE__CURSOR_INSERT_REPLY = 231,
+  HAM__WRAPPER__TYPE__CURSOR_ERASE_REQUEST = 240,
+  HAM__WRAPPER__TYPE__CURSOR_ERASE_REPLY = 241,
+  HAM__WRAPPER__TYPE__CURSOR_FIND_REQUEST = 250,
+  HAM__WRAPPER__TYPE__CURSOR_FIND_REPLY = 251
 } Ham__Wrapper__Type;
 
 /* --- messages --- */
@@ -156,10 +168,16 @@ struct  _Ham__Wrapper
   Ham__CursorCloneReply *cursor_clone_reply;
   Ham__CursorCloseRequest *cursor_close_request;
   Ham__CursorCloseReply *cursor_close_reply;
+  Ham__CursorInsertRequest *cursor_insert_request;
+  Ham__CursorInsertReply *cursor_insert_reply;
+  Ham__CursorEraseRequest *cursor_erase_request;
+  Ham__CursorEraseReply *cursor_erase_reply;
+  Ham__CursorFindRequest *cursor_find_request;
+  Ham__CursorFindReply *cursor_find_reply;
 };
 #define HAM__WRAPPER__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__wrapper__descriptor) \
-    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
+    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 
 
 struct  _Ham__ConnectRequest
@@ -696,6 +714,76 @@ struct  _Ham__CursorCloseReply
 #define HAM__CURSOR_CLOSE_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__cursor_close_reply__descriptor) \
     , 0 }
+
+
+struct  _Ham__CursorInsertRequest
+{
+  ProtobufCMessage base;
+  uint64_t cursor_handle;
+  Ham__Key *key;
+  Ham__Record *record;
+  uint32_t flags;
+};
+#define HAM__CURSOR_INSERT_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__cursor_insert_request__descriptor) \
+    , 0, NULL, NULL, 0 }
+
+
+struct  _Ham__CursorInsertReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+  Ham__Key *key;
+};
+#define HAM__CURSOR_INSERT_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__cursor_insert_reply__descriptor) \
+    , 0, NULL }
+
+
+struct  _Ham__CursorEraseRequest
+{
+  ProtobufCMessage base;
+  uint64_t cursor_handle;
+  uint32_t flags;
+};
+#define HAM__CURSOR_ERASE_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__cursor_erase_request__descriptor) \
+    , 0, 0 }
+
+
+struct  _Ham__CursorEraseReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+};
+#define HAM__CURSOR_ERASE_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__cursor_erase_reply__descriptor) \
+    , 0 }
+
+
+struct  _Ham__CursorFindRequest
+{
+  ProtobufCMessage base;
+  uint64_t cursor_handle;
+  Ham__Key *key;
+  Ham__Record *record;
+  uint32_t flags;
+};
+#define HAM__CURSOR_FIND_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__cursor_find_request__descriptor) \
+    , 0, NULL, NULL, 0 }
+
+
+struct  _Ham__CursorFindReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+  Ham__Key *key;
+  Ham__Record *record;
+};
+#define HAM__CURSOR_FIND_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__cursor_find_reply__descriptor) \
+    , 0, NULL, NULL }
 
 
 /* Ham__Wrapper methods */
@@ -1591,6 +1679,120 @@ Ham__CursorCloseReply *
 void   ham__cursor_close_reply__free_unpacked
                      (Ham__CursorCloseReply *message,
                       ProtobufCAllocator *allocator);
+/* Ham__CursorInsertRequest methods */
+void   ham__cursor_insert_request__init
+                     (Ham__CursorInsertRequest         *message);
+size_t ham__cursor_insert_request__get_packed_size
+                     (const Ham__CursorInsertRequest   *message);
+size_t ham__cursor_insert_request__pack
+                     (const Ham__CursorInsertRequest   *message,
+                      uint8_t             *out);
+size_t ham__cursor_insert_request__pack_to_buffer
+                     (const Ham__CursorInsertRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__CursorInsertRequest *
+       ham__cursor_insert_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__cursor_insert_request__free_unpacked
+                     (Ham__CursorInsertRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__CursorInsertReply methods */
+void   ham__cursor_insert_reply__init
+                     (Ham__CursorInsertReply         *message);
+size_t ham__cursor_insert_reply__get_packed_size
+                     (const Ham__CursorInsertReply   *message);
+size_t ham__cursor_insert_reply__pack
+                     (const Ham__CursorInsertReply   *message,
+                      uint8_t             *out);
+size_t ham__cursor_insert_reply__pack_to_buffer
+                     (const Ham__CursorInsertReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__CursorInsertReply *
+       ham__cursor_insert_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__cursor_insert_reply__free_unpacked
+                     (Ham__CursorInsertReply *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__CursorEraseRequest methods */
+void   ham__cursor_erase_request__init
+                     (Ham__CursorEraseRequest         *message);
+size_t ham__cursor_erase_request__get_packed_size
+                     (const Ham__CursorEraseRequest   *message);
+size_t ham__cursor_erase_request__pack
+                     (const Ham__CursorEraseRequest   *message,
+                      uint8_t             *out);
+size_t ham__cursor_erase_request__pack_to_buffer
+                     (const Ham__CursorEraseRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__CursorEraseRequest *
+       ham__cursor_erase_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__cursor_erase_request__free_unpacked
+                     (Ham__CursorEraseRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__CursorEraseReply methods */
+void   ham__cursor_erase_reply__init
+                     (Ham__CursorEraseReply         *message);
+size_t ham__cursor_erase_reply__get_packed_size
+                     (const Ham__CursorEraseReply   *message);
+size_t ham__cursor_erase_reply__pack
+                     (const Ham__CursorEraseReply   *message,
+                      uint8_t             *out);
+size_t ham__cursor_erase_reply__pack_to_buffer
+                     (const Ham__CursorEraseReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__CursorEraseReply *
+       ham__cursor_erase_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__cursor_erase_reply__free_unpacked
+                     (Ham__CursorEraseReply *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__CursorFindRequest methods */
+void   ham__cursor_find_request__init
+                     (Ham__CursorFindRequest         *message);
+size_t ham__cursor_find_request__get_packed_size
+                     (const Ham__CursorFindRequest   *message);
+size_t ham__cursor_find_request__pack
+                     (const Ham__CursorFindRequest   *message,
+                      uint8_t             *out);
+size_t ham__cursor_find_request__pack_to_buffer
+                     (const Ham__CursorFindRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__CursorFindRequest *
+       ham__cursor_find_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__cursor_find_request__free_unpacked
+                     (Ham__CursorFindRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__CursorFindReply methods */
+void   ham__cursor_find_reply__init
+                     (Ham__CursorFindReply         *message);
+size_t ham__cursor_find_reply__get_packed_size
+                     (const Ham__CursorFindReply   *message);
+size_t ham__cursor_find_reply__pack
+                     (const Ham__CursorFindReply   *message,
+                      uint8_t             *out);
+size_t ham__cursor_find_reply__pack_to_buffer
+                     (const Ham__CursorFindReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__CursorFindReply *
+       ham__cursor_find_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__cursor_find_reply__free_unpacked
+                     (Ham__CursorFindReply *message,
+                      ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
 typedef void (*Ham__Wrapper_Closure)
@@ -1734,6 +1936,24 @@ typedef void (*Ham__CursorCloseRequest_Closure)
 typedef void (*Ham__CursorCloseReply_Closure)
                  (const Ham__CursorCloseReply *message,
                   void *closure_data);
+typedef void (*Ham__CursorInsertRequest_Closure)
+                 (const Ham__CursorInsertRequest *message,
+                  void *closure_data);
+typedef void (*Ham__CursorInsertReply_Closure)
+                 (const Ham__CursorInsertReply *message,
+                  void *closure_data);
+typedef void (*Ham__CursorEraseRequest_Closure)
+                 (const Ham__CursorEraseRequest *message,
+                  void *closure_data);
+typedef void (*Ham__CursorEraseReply_Closure)
+                 (const Ham__CursorEraseReply *message,
+                  void *closure_data);
+typedef void (*Ham__CursorFindRequest_Closure)
+                 (const Ham__CursorFindRequest *message,
+                  void *closure_data);
+typedef void (*Ham__CursorFindReply_Closure)
+                 (const Ham__CursorFindReply *message,
+                  void *closure_data);
 
 /* --- services --- */
 
@@ -1788,6 +2008,12 @@ extern const ProtobufCMessageDescriptor ham__cursor_clone_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__cursor_clone_reply__descriptor;
 extern const ProtobufCMessageDescriptor ham__cursor_close_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__cursor_close_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__cursor_insert_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__cursor_insert_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__cursor_erase_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__cursor_erase_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__cursor_find_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__cursor_find_reply__descriptor;
 
 PROTOBUF_C_END_DECLS
 

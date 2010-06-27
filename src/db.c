@@ -2082,6 +2082,211 @@ _local_cursor_close(ham_cursor_t *cursor)
     return (db_set_error(db, st));
 }
 
+static ham_status_t
+_local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
+            ham_record_t *record, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_backend_t *be;
+    ham_u64_t recno = 0;
+    ham_record_t temprec;
+    ham_txn_t local_txn;
+    ham_db_t *db=cursor_get_db(cursor);
+    ham_env_t *env=db_get_env(db);
+
+    be=db_get_backend(db);
+    if (!be)
+        return (db_set_error(db, HAM_NOT_INITIALIZED));
+
+    if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
+            (key->size>db_get_keysize(db))) {
+        ham_trace(("database does not support variable length keys"));
+        return (db_set_error(db, HAM_INV_KEYSIZE));
+    }
+
+    /*
+     * record number: make sure that we have a valid key structure,
+     * and lazy load the last used record number
+     */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        if (flags&HAM_OVERWRITE) {
+            ham_assert(key->size==sizeof(ham_u64_t), (""));
+            ham_assert(key->data!=0, (""));
+            recno=*(ham_u64_t *)key->data;
+        }
+        else {
+            /*
+             * get the record number (host endian) and increment it
+             */
+            recno=be_get_recno(be);
+            recno++;
+        }
+
+        /*
+         * store it in db endian
+         */
+        recno=ham_h2db64(recno);
+        memcpy(key->data, &recno, sizeof(ham_u64_t));
+        key->size=sizeof(ham_u64_t);
+
+        /*
+         * we're appending this key sequentially
+         */
+        flags|=HAM_HINT_APPEND;
+    }
+
+    if (!cursor_get_txn(cursor)) {
+        if ((st=txn_begin(&local_txn, env, 0)))
+            return (db_set_error(db, st));
+    }
+
+    /*
+     * run the record-level filters on a temporary record structure - we
+     * don't want to mess up the original structure
+     */
+    temprec=*record;
+    st=__record_filters_before_write(db, &temprec);
+
+    if (!st) {
+        db_update_global_stats_insert_query(db, key->size, temprec.size);
+    }
+
+    if (!st) {
+        st=cursor->_fun_insert(cursor, key, &temprec, flags);
+    }
+
+    if (temprec.data!=record->data)
+        allocator_free(env_get_allocator(env), temprec.data);
+
+    if (st) {
+        if (!cursor_get_txn(cursor))
+            (void)txn_abort(&local_txn, 0);
+        if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
+            if (!(key->flags&HAM_KEY_USER_ALLOC)) {
+                key->data=0;
+                key->size=0;
+            }
+            ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
+        }
+        return (db_set_error(db, st));
+    }
+
+    /*
+     * record numbers: return key in host endian! and store the incremented
+     * record number
+     */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        recno=ham_db2h64(recno);
+        memcpy(key->data, &recno, sizeof(ham_u64_t));
+        key->size=sizeof(ham_u64_t);
+        if (!(flags&HAM_OVERWRITE)) {
+            be_set_recno(be, recno);
+            be_set_dirty(be, HAM_TRUE);
+            env_set_dirty(env);
+        }
+    }
+
+    if (!cursor_get_txn(cursor))
+        return (db_set_error(db, txn_commit(&local_txn, 0)));
+    else
+        return (db_set_error(db, st));
+}
+
+static ham_status_t 
+_local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_txn_t local_txn;
+    ham_db_t *db=cursor_get_db(cursor);
+    ham_env_t *env=db_get_env(db);
+
+    if (!cursor_get_txn(cursor)) {
+        st=txn_begin(&local_txn, env, 0);
+        if (st)
+            return (db_set_error(db, st));
+    }
+
+    db_update_global_stats_erase_query(db, 0);
+
+    st=cursor->_fun_erase(cursor, flags);
+    if (st) {
+        if (!cursor_get_txn(cursor))
+            (void)txn_abort(&local_txn, 0);
+        return (db_set_error(db, st));
+    }
+
+    if (!cursor_get_txn(cursor))
+        return (db_set_error(db, txn_commit(&local_txn, 0)));
+    else
+        return (db_set_error(db, st));
+}
+
+static ham_status_t
+_local_cursor_find(ham_cursor_t *cursor, ham_key_t *key, 
+            ham_record_t *record, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_txn_t local_txn;
+    ham_db_t *db=cursor_get_db(cursor);
+    ham_env_t *env=db_get_env(db);
+    ham_offset_t recno=0;
+
+    /*
+     * record number: make sure that we have a valid key structure,
+     * and translate the record number to database endian
+     */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        if (key->size!=sizeof(ham_u64_t) || !key->data) {
+            ham_trace(("key->size must be 8, key->data must not be NULL"));
+            if (!cursor_get_txn(cursor))
+                (void)txn_abort(&local_txn, 0);
+            return (db_set_error(db, HAM_INV_PARAMETER));
+        }
+        recno=*(ham_offset_t *)key->data;
+        recno=ham_h2db64(recno);
+        *(ham_offset_t *)key->data=recno;
+    }
+
+    if (!cursor_get_txn(cursor)) {
+        st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
+        if (st)
+            return (db_set_error(db, st));
+    }
+
+    db_update_global_stats_find_query(db, key->size);
+
+    st=cursor->_fun_find(cursor, key, record, flags);
+    if (st) {
+        if (!cursor_get_txn(cursor))
+            (void)txn_abort(&local_txn, DO_NOT_NUKE_PAGE_STATS);
+        return (db_set_error(db, st));
+    }
+
+    /*
+     * record number: re-translate the number to host endian
+     */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+        *(ham_offset_t *)key->data=ham_db2h64(recno);
+    }
+
+    /*
+     * run the record-level filters
+     */
+    if (record) {
+        st=__record_filters_after_find(db, record);
+        if (st) {
+            if (!cursor_get_txn(cursor))
+                (void)txn_abort(&local_txn, DO_NOT_NUKE_PAGE_STATS);
+            return (db_set_error(db, st));
+        }
+    }
+
+    if (!cursor_get_txn(cursor))
+        return (db_set_error(db, txn_commit(&local_txn, 0)));
+    else
+        return (db_set_error(db, 0));
+}
+
 ham_status_t
 db_initialize_local(ham_db_t *db)
 {
@@ -2096,6 +2301,9 @@ db_initialize_local(ham_db_t *db)
     db->_fun_cursor_create  =_local_cursor_create;
     db->_fun_cursor_clone   =_local_cursor_clone;
     db->_fun_cursor_close   =_local_cursor_close;
+    db->_fun_cursor_insert  =_local_cursor_insert;
+    db->_fun_cursor_erase   =_local_cursor_erase;
+    db->_fun_cursor_find    =_local_cursor_find;
 
     return (0);
 }
