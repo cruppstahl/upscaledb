@@ -1094,14 +1094,17 @@ handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
     key.size=request->key->data.len;
     key.flags=request->key->flags & (~HAM_KEY_USER_ALLOC);
 
-    memset(&rec, 0, sizeof(rec));
-    rec.data=request->record->data.data;
-    rec.size=request->record->data.len;
-    rec.partial_size=request->record->partial_size;
-    rec.partial_offset=request->record->partial_offset;
-    rec.flags=request->record->flags & (~HAM_RECORD_USER_ALLOC);
+    if (request->record) {
+        memset(&rec, 0, sizeof(rec));
+        rec.data=request->record->data.data;
+        rec.size=request->record->data.len;
+        rec.partial_size=request->record->partial_size;
+        rec.partial_offset=request->record->partial_offset;
+        rec.flags=request->record->flags & (~HAM_RECORD_USER_ALLOC);
+    }
 
-    reply.status=ham_cursor_find_ex(cursor, &key, &rec, request->flags);
+    reply.status=ham_cursor_find_ex(cursor, &key, 
+                    request->record ? &rec : 0, request->flags);
 
     if (reply.status==0) {
         /* approx matching: key->_flags was modified! */
@@ -1109,11 +1112,13 @@ handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
             reply.key=&replykey;
             replykey.intflags=key._flags;
         }
-        /* in any case - return the record */
-        reply.record=&replyrec;
-        replyrec.data.data=rec.data;
-        replyrec.data.len=rec.size;
-        replyrec.flags=rec.flags;
+        /* return the record */
+        if (request->record) {
+            reply.record=&replyrec;
+            replyrec.data.data=rec.data;
+            replyrec.data.len=rec.size;
+            replyrec.flags=rec.flags;
+        }
     }
 
 bail:

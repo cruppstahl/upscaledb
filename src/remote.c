@@ -1184,36 +1184,6 @@ _remote_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 }
 
 static ham_status_t
-_remote_cursor_close(ham_cursor_t *cursor)
-{
-    ham_status_t st;
-    ham_env_t *env=db_get_env(cursor_get_db(cursor));
-    Ham__CursorCloseRequest msg;
-    Ham__Wrapper wrapper, *reply;
-    
-    ham__wrapper__init(&wrapper);
-    ham__cursor_close_request__init(&msg);
-    msg.cursor_handle=cursor_get_remote_handle(cursor);
-    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_CLOSE_REQUEST;
-    wrapper.cursor_close_request=&msg;
-
-    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
-    if (st) {
-        if (reply)
-            ham__wrapper__free_unpacked(reply, 0);
-        return (st);
-    }
-
-    ham_assert(reply!=0, (""));
-    ham_assert(reply->cursor_close_reply!=0, (""));
-    st=reply->cursor_close_reply->status;
-
-    ham__wrapper__free_unpacked(reply, 0);
-
-    return (st);
-}
-
-static ham_status_t
 _remote_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
@@ -1272,6 +1242,135 @@ _remote_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     return (st);
 }
 
+static ham_status_t
+_remote_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_db_t *db=cursor_get_db(cursor);
+    ham_env_t *env=db_get_env(db);
+    Ham__CursorEraseRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    
+    ham__wrapper__init(&wrapper);
+    ham__cursor_erase_request__init(&msg);
+    msg.cursor_handle=cursor_get_remote_handle(cursor);
+    msg.flags=flags;
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_ERASE_REQUEST;
+    wrapper.cursor_erase_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->cursor_erase_reply!=0, (""));
+    st=reply->cursor_erase_reply->status;
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
+}
+
+static ham_status_t
+_remote_cursor_find(ham_cursor_t *cursor, ham_key_t *key, 
+                ham_record_t *record, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_db_t *db=cursor_get_db(cursor);
+    ham_env_t *env=db_get_env(db);
+    Ham__CursorFindRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    Ham__Key protokey=HAM__KEY__INIT;
+    Ham__Record protorec=HAM__RECORD__INIT;
+    
+    ham__wrapper__init(&wrapper);
+    ham__cursor_find_request__init(&msg);
+    msg.cursor_handle=cursor_get_remote_handle(cursor);
+    protokey.data.data=key->data;
+    protokey.data.len=key->size;
+    protokey.flags=key->flags;
+    msg.key=&protokey;
+    if (record) {
+        protorec.data.data=record->data;
+        protorec.data.len=record->size;
+        protorec.flags=record->flags;
+        protorec.partial_size=record->partial_size;
+        protorec.partial_offset=record->partial_offset;
+        msg.record=&protorec;
+    }
+    msg.flags=flags;
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_FIND_REQUEST;
+    wrapper.cursor_find_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->cursor_find_reply!=0, (""));
+    st=reply->cursor_find_reply->status;
+    if (st) 
+        goto bail;
+
+    /* approx. matching: need to copy the _flags! */
+    if (reply->cursor_find_reply->key) {
+        key->_flags=reply->cursor_find_reply->key->intflags;
+    }
+    if (reply->cursor_find_reply->record) {
+        ham_assert(record, (""));
+        record->size=reply->cursor_find_reply->record->data.len;
+        if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
+            st=db_resize_allocdata(db, record->size);
+            if (st)
+                goto bail;
+            record->data=db_get_record_allocdata(db);
+        }
+        memcpy(record->data, reply->cursor_find_reply->record->data.data,
+                record->size);
+    }
+
+bail:
+    ham__wrapper__free_unpacked(reply, 0);
+    return (st);
+}
+
+static ham_status_t
+_remote_cursor_close(ham_cursor_t *cursor)
+{
+    ham_status_t st;
+    ham_env_t *env=db_get_env(cursor_get_db(cursor));
+    Ham__CursorCloseRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    
+    ham__wrapper__init(&wrapper);
+    ham__cursor_close_request__init(&msg);
+    msg.cursor_handle=cursor_get_remote_handle(cursor);
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_CLOSE_REQUEST;
+    wrapper.cursor_close_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->cursor_close_reply!=0, (""));
+    st=reply->cursor_close_reply->status;
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
+}
+
+
 #endif /* HAM_ENABLE_REMOTE */
 
 ham_status_t
@@ -1316,8 +1415,8 @@ db_initialize_remote(ham_db_t *db)
     db->_fun_cursor_clone   =_remote_cursor_clone;
     db->_fun_cursor_close   =_remote_cursor_close;
     db->_fun_cursor_insert  =_remote_cursor_insert;
-    //db->_fun_cursor_erase   =_remote_cursor_erase;
-    //db->_fun_cursor_find    =_remote_cursor_find;
+    db->_fun_cursor_erase   =_remote_cursor_erase;
+    db->_fun_cursor_find    =_remote_cursor_find;
 
     return (0);
 #else

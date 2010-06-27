@@ -115,18 +115,18 @@ o client/server communication
             x implement server
             x unittest
 
-        o ham_cursor_insert
+        x ham_cursor_insert
             x implement client
             x implement server
-            o unittest -- cursorInsertFindTest
-        o ham_cursor_erase
-            o implement client -- remote.c fehlt
+            x unittest
+        x ham_cursor_find_ex
+            x implement client
             x implement server
-            o unittest -- cursorInsertFindTest
-        o ham_cursor_find_ex
-            o implement client -- remote.c fehlt
+            x unittest
+        x ham_cursor_erase
+            x implement client
             x implement server
-            o unittest -- cursorInsertFindTest
+            x unittest
 
         o ham_cursor_get_duplicate_count
             o unittest
