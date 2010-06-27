@@ -280,6 +280,12 @@ struct ham_db_t
                     ham_record_t *record, ham_u32_t flags);
 
     /**
+     * get number of duplicates
+     */
+    ham_status_t (*_fun_cursor_get_duplicate_count)(ham_cursor_t *cursor, 
+                    ham_size_t *count, ham_u32_t flags);
+
+    /**
      * close a cursor
      */
     ham_status_t (*_fun_cursor_close)(ham_cursor_t *cursor);

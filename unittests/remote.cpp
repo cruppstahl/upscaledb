@@ -70,6 +70,7 @@ public:
         BFC_REGISTER_TEST(RemoteTest, cursorInsertFindEraseTest);
         BFC_REGISTER_TEST(RemoteTest, cursorInsertFindEraseUserallocTest);
         BFC_REGISTER_TEST(RemoteTest, cursorInsertFindEraseRecnoTest);
+        BFC_REGISTER_TEST(RemoteTest, cursorGetDuplicateCountTest);
 
         BFC_REGISTER_TEST(RemoteTest, openTwiceTest);
         BFC_REGISTER_TEST(RemoteTest, cursorCreateTest);
@@ -1003,6 +1004,78 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
+    }
+
+    void insertData(ham_cursor_t *cursor, const char *k, const char *data)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)data;
+        rec.size=(ham_size_t)::strlen(data)+1;
+        key.data=(void *)k;
+        key.size=(ham_u16_t)(k ? ::strlen(k)+1 : 0);
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(cursor, &key, &rec, HAM_DUPLICATE));
+    }
+
+    void cursorGetDuplicateCountTest(void)
+    {
+        ham_db_t *db;
+        ham_env_t *env;
+        ham_size_t count;
+        ham_cursor_t *c;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(env, SERVER_URL, 0, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_open_db(env, db, 14, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &c));
+
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_get_duplicate_count(0, &count, 0));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_get_duplicate_count(c, 0, 0));
+        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
+                ham_cursor_get_duplicate_count(c, &count, 0));
+        BFC_ASSERT_EQUAL((ham_size_t)0, count);
+
+        insertData(c, 0, "1111111111");
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_get_duplicate_count(c, &count, 0));
+        BFC_ASSERT_EQUAL((ham_size_t)1, count);
+
+        insertData(c, 0, "2222222222");
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_get_duplicate_count(c, &count, 0));
+        BFC_ASSERT_EQUAL((ham_size_t)2, count);
+
+        insertData(c, 0, "3333333333");
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_get_duplicate_count(c, &count, 0));
+        BFC_ASSERT_EQUAL((ham_size_t)3, count);
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_erase(c, 0));
+        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
+                ham_cursor_get_duplicate_count(c, &count, 0));
+
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_find(c, &key, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_get_duplicate_count(c, &count, 0));
+        BFC_ASSERT_EQUAL((ham_size_t)2, count);
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        ham_delete(db);
+        ham_env_delete(env);
     }
 
     void openTwiceTest(void)

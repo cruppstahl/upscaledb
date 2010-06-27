@@ -1341,6 +1341,43 @@ bail:
 }
 
 static ham_status_t
+_remote_cursor_get_duplicate_count(ham_cursor_t *cursor, 
+        ham_size_t *count, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_db_t *db=cursor_get_db(cursor);
+    ham_env_t *env=db_get_env(db);
+    Ham__CursorGetDuplicateCountRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    
+    ham__wrapper__init(&wrapper);
+    ham__cursor_get_duplicate_count_request__init(&msg);
+    msg.cursor_handle=cursor_get_remote_handle(cursor);
+    msg.flags=flags;
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_GET_DUPLICATE_COUNT_REQUEST;
+    wrapper.cursor_get_duplicate_count_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->cursor_get_duplicate_count_reply!=0, (""));
+    st=reply->cursor_get_duplicate_count_reply->status;
+    if (st) 
+        goto bail;
+
+    *count=reply->cursor_get_duplicate_count_reply->count;
+
+bail:
+    ham__wrapper__free_unpacked(reply, 0);
+    return (st);
+}
+
+static ham_status_t
 _remote_cursor_close(ham_cursor_t *cursor)
 {
     ham_status_t st;
@@ -1417,7 +1454,7 @@ db_initialize_remote(ham_db_t *db)
     db->_fun_cursor_insert  =_remote_cursor_insert;
     db->_fun_cursor_erase   =_remote_cursor_erase;
     db->_fun_cursor_find    =_remote_cursor_find;
-
+    db->_fun_cursor_get_duplicate_count=_remote_cursor_get_duplicate_count;
     return (0);
 #else
     return (HAM_NOT_IMPLEMENTED);

@@ -1126,6 +1126,36 @@ bail:
 }
 
 static void
+handle_cursor_get_duplicate_count(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__CursorGetDuplicateCountRequest *request)
+{
+    Ham__CursorGetDuplicateCountReply reply;
+    Ham__Wrapper wrapper;
+    ham_cursor_t *cursor;
+
+    ham_assert(request!=0, (""));
+
+    ham__cursor_get_duplicate_count_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    reply.status=0;
+    wrapper.cursor_get_duplicate_count_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_GET_DUPLICATE_COUNT_REPLY;
+
+    cursor=__get_handle(envh, request->cursor_handle);
+    if (!cursor) {
+        reply.status=HAM_INV_PARAMETER;
+        goto bail;
+    }
+
+    reply.status=ham_cursor_get_duplicate_count(cursor, &reply.count, 
+                    request->flags);
+
+bail:
+    send_wrapper(envh->env, conn, &wrapper);
+}
+
+static void
 handle_cursor_close(struct env_t *envh, struct mg_connection *conn, 
                 const struct mg_request_info *ri,
                 Ham__CursorCloseRequest *request)
@@ -1287,6 +1317,11 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
         ham_trace(("cursor_find request"));
         handle_cursor_find(env, conn, ri, 
                 wrapper->cursor_find_request);
+        break;
+    case HAM__WRAPPER__TYPE__CURSOR_GET_DUPLICATE_COUNT_REQUEST:
+        ham_trace(("cursor_get_duplicate_count request"));
+        handle_cursor_get_duplicate_count(env, conn, ri, 
+                wrapper->cursor_get_duplicate_count_request);
         break;
     case HAM__WRAPPER__TYPE__CURSOR_CLOSE_REQUEST:
         ham_trace(("cursor_close request"));

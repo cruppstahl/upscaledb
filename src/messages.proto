@@ -54,6 +54,8 @@ message Wrapper {
             CURSOR_ERASE_REPLY = 241;
             CURSOR_FIND_REQUEST = 250;
             CURSOR_FIND_REPLY = 251;
+            CURSOR_GET_DUPLICATE_COUNT_REQUEST = 260;
+            CURSOR_GET_DUPLICATE_COUNT_REPLY = 261;
     }
 
     required Type type = 1;
@@ -108,6 +110,10 @@ message Wrapper {
     optional CursorEraseReply cursor_erase_reply = 241;
     optional CursorFindRequest cursor_find_request = 250;
     optional CursorFindReply cursor_find_reply = 251;
+    optional CursorGetDuplicateCountRequest 
+                cursor_get_duplicate_count_request = 260;
+    optional CursorGetDuplicateCountReply 
+                cursor_get_duplicate_count_reply = 261;
 }
 
 message ConnectRequest {
@@ -385,4 +391,14 @@ message CursorFindReply {
     required sint32 status = 1;
     optional Key key = 2;
     optional Record record = 3;
+};
+
+message CursorGetDuplicateCountRequest {
+    required uint64 cursor_handle = 1;
+    required uint32 flags = 2;
+};
+
+message CursorGetDuplicateCountReply {
+    required sint32 status = 1;
+    required uint32 count = 2;
 };

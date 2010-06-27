@@ -61,6 +61,8 @@ typedef struct _Ham__CursorEraseRequest Ham__CursorEraseRequest;
 typedef struct _Ham__CursorEraseReply Ham__CursorEraseReply;
 typedef struct _Ham__CursorFindRequest Ham__CursorFindRequest;
 typedef struct _Ham__CursorFindReply Ham__CursorFindReply;
+typedef struct _Ham__CursorGetDuplicateCountRequest Ham__CursorGetDuplicateCountRequest;
+typedef struct _Ham__CursorGetDuplicateCountReply Ham__CursorGetDuplicateCountReply;
 
 
 /* --- enums --- */
@@ -115,7 +117,9 @@ typedef enum _Ham__Wrapper__Type {
   HAM__WRAPPER__TYPE__CURSOR_ERASE_REQUEST = 240,
   HAM__WRAPPER__TYPE__CURSOR_ERASE_REPLY = 241,
   HAM__WRAPPER__TYPE__CURSOR_FIND_REQUEST = 250,
-  HAM__WRAPPER__TYPE__CURSOR_FIND_REPLY = 251
+  HAM__WRAPPER__TYPE__CURSOR_FIND_REPLY = 251,
+  HAM__WRAPPER__TYPE__CURSOR_GET_DUPLICATE_COUNT_REQUEST = 260,
+  HAM__WRAPPER__TYPE__CURSOR_GET_DUPLICATE_COUNT_REPLY = 261
 } Ham__Wrapper__Type;
 
 /* --- messages --- */
@@ -174,10 +178,12 @@ struct  _Ham__Wrapper
   Ham__CursorEraseReply *cursor_erase_reply;
   Ham__CursorFindRequest *cursor_find_request;
   Ham__CursorFindReply *cursor_find_reply;
+  Ham__CursorGetDuplicateCountRequest *cursor_get_duplicate_count_request;
+  Ham__CursorGetDuplicateCountReply *cursor_get_duplicate_count_reply;
 };
 #define HAM__WRAPPER__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__wrapper__descriptor) \
-    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
+    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 
 
 struct  _Ham__ConnectRequest
@@ -784,6 +790,28 @@ struct  _Ham__CursorFindReply
 #define HAM__CURSOR_FIND_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__cursor_find_reply__descriptor) \
     , 0, NULL, NULL }
+
+
+struct  _Ham__CursorGetDuplicateCountRequest
+{
+  ProtobufCMessage base;
+  uint64_t cursor_handle;
+  uint32_t flags;
+};
+#define HAM__CURSOR_GET_DUPLICATE_COUNT_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__cursor_get_duplicate_count_request__descriptor) \
+    , 0, 0 }
+
+
+struct  _Ham__CursorGetDuplicateCountReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+  uint32_t count;
+};
+#define HAM__CURSOR_GET_DUPLICATE_COUNT_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__cursor_get_duplicate_count_reply__descriptor) \
+    , 0, 0 }
 
 
 /* Ham__Wrapper methods */
@@ -1793,6 +1821,44 @@ Ham__CursorFindReply *
 void   ham__cursor_find_reply__free_unpacked
                      (Ham__CursorFindReply *message,
                       ProtobufCAllocator *allocator);
+/* Ham__CursorGetDuplicateCountRequest methods */
+void   ham__cursor_get_duplicate_count_request__init
+                     (Ham__CursorGetDuplicateCountRequest         *message);
+size_t ham__cursor_get_duplicate_count_request__get_packed_size
+                     (const Ham__CursorGetDuplicateCountRequest   *message);
+size_t ham__cursor_get_duplicate_count_request__pack
+                     (const Ham__CursorGetDuplicateCountRequest   *message,
+                      uint8_t             *out);
+size_t ham__cursor_get_duplicate_count_request__pack_to_buffer
+                     (const Ham__CursorGetDuplicateCountRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__CursorGetDuplicateCountRequest *
+       ham__cursor_get_duplicate_count_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__cursor_get_duplicate_count_request__free_unpacked
+                     (Ham__CursorGetDuplicateCountRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__CursorGetDuplicateCountReply methods */
+void   ham__cursor_get_duplicate_count_reply__init
+                     (Ham__CursorGetDuplicateCountReply         *message);
+size_t ham__cursor_get_duplicate_count_reply__get_packed_size
+                     (const Ham__CursorGetDuplicateCountReply   *message);
+size_t ham__cursor_get_duplicate_count_reply__pack
+                     (const Ham__CursorGetDuplicateCountReply   *message,
+                      uint8_t             *out);
+size_t ham__cursor_get_duplicate_count_reply__pack_to_buffer
+                     (const Ham__CursorGetDuplicateCountReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__CursorGetDuplicateCountReply *
+       ham__cursor_get_duplicate_count_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__cursor_get_duplicate_count_reply__free_unpacked
+                     (Ham__CursorGetDuplicateCountReply *message,
+                      ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
 typedef void (*Ham__Wrapper_Closure)
@@ -1954,6 +2020,12 @@ typedef void (*Ham__CursorFindRequest_Closure)
 typedef void (*Ham__CursorFindReply_Closure)
                  (const Ham__CursorFindReply *message,
                   void *closure_data);
+typedef void (*Ham__CursorGetDuplicateCountRequest_Closure)
+                 (const Ham__CursorGetDuplicateCountRequest *message,
+                  void *closure_data);
+typedef void (*Ham__CursorGetDuplicateCountReply_Closure)
+                 (const Ham__CursorGetDuplicateCountReply *message,
+                  void *closure_data);
 
 /* --- services --- */
 
@@ -2014,6 +2086,8 @@ extern const ProtobufCMessageDescriptor ham__cursor_erase_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__cursor_erase_reply__descriptor;
 extern const ProtobufCMessageDescriptor ham__cursor_find_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__cursor_find_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__cursor_get_duplicate_count_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__cursor_get_duplicate_count_reply__descriptor;
 
 PROTOBUF_C_END_DECLS
 

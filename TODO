@@ -128,8 +128,9 @@ o client/server communication
             x implement server
             x unittest
 
-        o ham_cursor_get_duplicate_count
-            o unittest
+        x ham_cursor_get_duplicate_count
+            x unittest
+
         o ham_cursor_overwrite
             o unittest
         o ham_cursor_move

@@ -3402,10 +3402,7 @@ ham_status_t HAM_CALLCONV
 ham_cursor_get_duplicate_count(ham_cursor_t *cursor, 
         ham_size_t *count, ham_u32_t flags)
 {
-    ham_status_t st;
-    ham_txn_t local_txn;
     ham_db_t *db;
-    ham_env_t *env;
 
     if (!cursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
@@ -3416,8 +3413,6 @@ ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
         return HAM_INV_PARAMETER;
     }
-    env = db_get_env(db);
-
     if (!count) {
         ham_trace(("parameter 'count' must not be NULL"));
         return (db_set_error(db, HAM_INV_PARAMETER));
@@ -3425,25 +3420,13 @@ ham_cursor_get_duplicate_count(ham_cursor_t *cursor,
 
     *count=0;
 
-    db_set_error(cursor_get_db(cursor), 0);
-
-    if (!cursor_get_txn(cursor)) {
-        st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
-        if (st)
-            return (db_set_error(db, st));
+    if (!db->_fun_cursor_get_duplicate_count) {
+        ham_trace(("Database was not initialized"));
+        return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
 
-    st=(*cursor->_fun_get_duplicate_count)(cursor, count, flags);
-    if (st) {
-        if (!cursor_get_txn(cursor))
-            (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
-    }
-
-    if (!cursor_get_txn(cursor))
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
-    else
-        return (db_set_error(db, st));
+    return (db_set_error(db, 
+                db->_fun_cursor_get_duplicate_count(cursor, count, flags)));
 }
 
 ham_status_t HAM_CALLCONV

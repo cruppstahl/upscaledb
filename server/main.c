@@ -21,21 +21,22 @@ int main(void)
     }
 
     ham_new(&db);
-    st=ham_env_create_db(env, db, 14, 0, 0);
+    st=ham_env_create_db(env, db, 14, HAM_ENABLE_DUPLICATES, 0);
     if (st) {
         printf("ham_env_create_db: %d\n", st);
         exit(-1);
     }
     ham_close(db, 0);
 
-    st=ham_env_create_db(env, db, 13, 0, 0);
+    st=ham_env_create_db(env, db, 13, HAM_ENABLE_DUPLICATES, 0);
     if (st) {
         printf("ham_env_create_db: %d\n", st);
         exit(-1);
     }
     ham_close(db, 0);
 
-    st=ham_env_create_db(env, db, 33, HAM_RECORD_NUMBER, 0);
+    st=ham_env_create_db(env, db, 33, 
+                HAM_RECORD_NUMBER|HAM_ENABLE_DUPLICATES, 0);
     if (st) {
         printf("ham_env_create_db: %d\n", st);
         exit(-1);

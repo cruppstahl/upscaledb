@@ -2280,7 +2280,93 @@ void   ham__cursor_find_reply__free_unpacked
   PROTOBUF_C_ASSERT (message->base.descriptor == &ham__cursor_find_reply__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[50] =
+void   ham__cursor_get_duplicate_count_request__init
+                     (Ham__CursorGetDuplicateCountRequest         *message)
+{
+  static Ham__CursorGetDuplicateCountRequest init_value = HAM__CURSOR_GET_DUPLICATE_COUNT_REQUEST__INIT;
+  *message = init_value;
+}
+size_t ham__cursor_get_duplicate_count_request__get_packed_size
+                     (const Ham__CursorGetDuplicateCountRequest *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__cursor_get_duplicate_count_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__cursor_get_duplicate_count_request__pack
+                     (const Ham__CursorGetDuplicateCountRequest *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__cursor_get_duplicate_count_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__cursor_get_duplicate_count_request__pack_to_buffer
+                     (const Ham__CursorGetDuplicateCountRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__cursor_get_duplicate_count_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__CursorGetDuplicateCountRequest *
+       ham__cursor_get_duplicate_count_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__CursorGetDuplicateCountRequest *)
+     protobuf_c_message_unpack (&ham__cursor_get_duplicate_count_request__descriptor,
+                                allocator, len, data);
+}
+void   ham__cursor_get_duplicate_count_request__free_unpacked
+                     (Ham__CursorGetDuplicateCountRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__cursor_get_duplicate_count_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   ham__cursor_get_duplicate_count_reply__init
+                     (Ham__CursorGetDuplicateCountReply         *message)
+{
+  static Ham__CursorGetDuplicateCountReply init_value = HAM__CURSOR_GET_DUPLICATE_COUNT_REPLY__INIT;
+  *message = init_value;
+}
+size_t ham__cursor_get_duplicate_count_reply__get_packed_size
+                     (const Ham__CursorGetDuplicateCountReply *message)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__cursor_get_duplicate_count_reply__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t ham__cursor_get_duplicate_count_reply__pack
+                     (const Ham__CursorGetDuplicateCountReply *message,
+                      uint8_t       *out)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__cursor_get_duplicate_count_reply__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t ham__cursor_get_duplicate_count_reply__pack_to_buffer
+                     (const Ham__CursorGetDuplicateCountReply *message,
+                      ProtobufCBuffer *buffer)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__cursor_get_duplicate_count_reply__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Ham__CursorGetDuplicateCountReply *
+       ham__cursor_get_duplicate_count_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Ham__CursorGetDuplicateCountReply *)
+     protobuf_c_message_unpack (&ham__cursor_get_duplicate_count_reply__descriptor,
+                                allocator, len, data);
+}
+void   ham__cursor_get_duplicate_count_reply__free_unpacked
+                     (Ham__CursorGetDuplicateCountReply *message,
+                      ProtobufCAllocator *allocator)
+{
+  PROTOBUF_C_ASSERT (message->base.descriptor == &ham__cursor_get_duplicate_count_reply__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[52] =
 {
   { "CONNECT_REQUEST", "HAM__WRAPPER__TYPE__CONNECT_REQUEST", 10 },
   { "CONNECT_REPLY", "HAM__WRAPPER__TYPE__CONNECT_REPLY", 11 },
@@ -2332,11 +2418,13 @@ const ProtobufCEnumValue ham__wrapper__type__enum_values_by_number[50] =
   { "CURSOR_ERASE_REPLY", "HAM__WRAPPER__TYPE__CURSOR_ERASE_REPLY", 241 },
   { "CURSOR_FIND_REQUEST", "HAM__WRAPPER__TYPE__CURSOR_FIND_REQUEST", 250 },
   { "CURSOR_FIND_REPLY", "HAM__WRAPPER__TYPE__CURSOR_FIND_REPLY", 251 },
+  { "CURSOR_GET_DUPLICATE_COUNT_REQUEST", "HAM__WRAPPER__TYPE__CURSOR_GET_DUPLICATE_COUNT_REQUEST", 260 },
+  { "CURSOR_GET_DUPLICATE_COUNT_REPLY", "HAM__WRAPPER__TYPE__CURSOR_GET_DUPLICATE_COUNT_REPLY", 261 },
 };
 static const ProtobufCIntRange ham__wrapper__type__value_ranges[] = {
-{10, 0},{20, 2},{30, 4},{40, 6},{50, 8},{60, 10},{70, 12},{80, 14},{90, 16},{100, 18},{110, 20},{120, 22},{130, 24},{140, 26},{150, 28},{160, 30},{170, 32},{180, 34},{190, 36},{200, 38},{210, 40},{220, 42},{230, 44},{240, 46},{250, 48},{0, 50}
+{10, 0},{20, 2},{30, 4},{40, 6},{50, 8},{60, 10},{70, 12},{80, 14},{90, 16},{100, 18},{110, 20},{120, 22},{130, 24},{140, 26},{150, 28},{160, 30},{170, 32},{180, 34},{190, 36},{200, 38},{210, 40},{220, 42},{230, 44},{240, 46},{250, 48},{260, 50},{0, 52}
 };
-const ProtobufCEnumValueIndex ham__wrapper__type__enum_values_by_name[50] =
+const ProtobufCEnumValueIndex ham__wrapper__type__enum_values_by_name[52] =
 {
   { "CONNECT_REPLY", 1 },
   { "CONNECT_REQUEST", 0 },
@@ -2350,6 +2438,8 @@ const ProtobufCEnumValueIndex ham__wrapper__type__enum_values_by_name[50] =
   { "CURSOR_ERASE_REQUEST", 46 },
   { "CURSOR_FIND_REPLY", 49 },
   { "CURSOR_FIND_REQUEST", 48 },
+  { "CURSOR_GET_DUPLICATE_COUNT_REPLY", 51 },
+  { "CURSOR_GET_DUPLICATE_COUNT_REQUEST", 50 },
   { "CURSOR_INSERT_REPLY", 45 },
   { "CURSOR_INSERT_REQUEST", 44 },
   { "DB_CHECK_INTEGRITY_REPLY", 29 },
@@ -2396,15 +2486,15 @@ const ProtobufCEnumDescriptor ham__wrapper__type__descriptor =
   "Type",
   "Ham__Wrapper__Type",
   "ham",
-  50,
+  52,
   ham__wrapper__type__enum_values_by_number,
-  50,
+  52,
   ham__wrapper__type__enum_values_by_name,
-  25,
+  26,
   ham__wrapper__type__value_ranges,
   NULL,NULL,NULL,NULL   /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[51] =
+static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[53] =
 {
   {
     "type",
@@ -2967,6 +3057,28 @@ static const ProtobufCFieldDescriptor ham__wrapper__field_descriptors[51] =
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
+  {
+    "cursor_get_duplicate_count_request",
+    260,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, cursor_get_duplicate_count_request),
+    &ham__cursor_get_duplicate_count_request__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "cursor_get_duplicate_count_reply",
+    261,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__Wrapper, cursor_get_duplicate_count_reply),
+    &ham__cursor_get_duplicate_count_reply__descriptor,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
 };
 static const unsigned ham__wrapper__field_indices_by_name[] = {
   2,   /* field[2] = connect_reply */
@@ -2981,6 +3093,8 @@ static const unsigned ham__wrapper__field_indices_by_name[] = {
   47,   /* field[47] = cursor_erase_request */
   50,   /* field[50] = cursor_find_reply */
   49,   /* field[49] = cursor_find_request */
+  52,   /* field[52] = cursor_get_duplicate_count_reply */
+  51,   /* field[51] = cursor_get_duplicate_count_request */
   46,   /* field[46] = cursor_insert_reply */
   45,   /* field[45] = cursor_insert_request */
   30,   /* field[30] = db_check_integrity_reply */
@@ -3021,7 +3135,7 @@ static const unsigned ham__wrapper__field_indices_by_name[] = {
   25,   /* field[25] = txn_commit_request */
   0,   /* field[0] = type */
 };
-static const ProtobufCIntRange ham__wrapper__number_ranges[26 + 1] =
+static const ProtobufCIntRange ham__wrapper__number_ranges[27 + 1] =
 {
   { 1, 0 },
   { 10, 1 },
@@ -3049,7 +3163,8 @@ static const ProtobufCIntRange ham__wrapper__number_ranges[26 + 1] =
   { 230, 45 },
   { 240, 47 },
   { 250, 49 },
-  { 0, 51 }
+  { 260, 51 },
+  { 0, 53 }
 };
 const ProtobufCMessageDescriptor ham__wrapper__descriptor =
 {
@@ -3059,10 +3174,10 @@ const ProtobufCMessageDescriptor ham__wrapper__descriptor =
   "Ham__Wrapper",
   "ham",
   sizeof(Ham__Wrapper),
-  51,
+  53,
   ham__wrapper__field_descriptors,
   ham__wrapper__field_indices_by_name,
-  26,  ham__wrapper__number_ranges,
+  27,  ham__wrapper__number_ranges,
   (ProtobufCMessageInit) ham__wrapper__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
@@ -5812,5 +5927,103 @@ const ProtobufCMessageDescriptor ham__cursor_find_reply__descriptor =
   ham__cursor_find_reply__field_indices_by_name,
   1,  ham__cursor_find_reply__number_ranges,
   (ProtobufCMessageInit) ham__cursor_find_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor ham__cursor_get_duplicate_count_request__field_descriptors[2] =
+{
+  {
+    "cursor_handle",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__CursorGetDuplicateCountRequest, cursor_handle),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "flags",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__CursorGetDuplicateCountRequest, flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__cursor_get_duplicate_count_request__field_indices_by_name[] = {
+  0,   /* field[0] = cursor_handle */
+  1,   /* field[1] = flags */
+};
+static const ProtobufCIntRange ham__cursor_get_duplicate_count_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor ham__cursor_get_duplicate_count_request__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.CursorGetDuplicateCountRequest",
+  "CursorGetDuplicateCountRequest",
+  "Ham__CursorGetDuplicateCountRequest",
+  "ham",
+  sizeof(Ham__CursorGetDuplicateCountRequest),
+  2,
+  ham__cursor_get_duplicate_count_request__field_descriptors,
+  ham__cursor_get_duplicate_count_request__field_indices_by_name,
+  1,  ham__cursor_get_duplicate_count_request__number_ranges,
+  (ProtobufCMessageInit) ham__cursor_get_duplicate_count_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor ham__cursor_get_duplicate_count_reply__field_descriptors[2] =
+{
+  {
+    "status",
+    1,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_SINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__CursorGetDuplicateCountReply, status),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+  {
+    "count",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__CursorGetDuplicateCountReply, count),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
+};
+static const unsigned ham__cursor_get_duplicate_count_reply__field_indices_by_name[] = {
+  1,   /* field[1] = count */
+  0,   /* field[0] = status */
+};
+static const ProtobufCIntRange ham__cursor_get_duplicate_count_reply__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor ham__cursor_get_duplicate_count_reply__descriptor =
+{
+  PROTOBUF_C_MESSAGE_DESCRIPTOR_MAGIC,
+  "ham.CursorGetDuplicateCountReply",
+  "CursorGetDuplicateCountReply",
+  "Ham__CursorGetDuplicateCountReply",
+  "ham",
+  sizeof(Ham__CursorGetDuplicateCountReply),
+  2,
+  ham__cursor_get_duplicate_count_reply__field_descriptors,
+  ham__cursor_get_duplicate_count_reply__field_indices_by_name,
+  1,  ham__cursor_get_duplicate_count_reply__number_ranges,
+  (ProtobufCMessageInit) ham__cursor_get_duplicate_count_reply__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
