@@ -139,6 +139,9 @@ o client/server communication
         x ham_close: needs to AUTOCLOSE existing cursors
         o ham_close: needs to AUTOABORT existing txns
         o ham_close: needs to AUTOCOMMIT existing txns
+            o ham_env_create needs flag HAM_ENABLE_TRANSACTIONS locally, but
+                it's already specified remotely; flag is not returned when
+                creating/opening an env!?
         o call curl_global_cleanup() (not threadsafe!!)
         o check for memory leaks!
     

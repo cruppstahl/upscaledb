@@ -3448,7 +3448,7 @@ const ProtobufCMessageDescriptor ham__connect_request__descriptor =
   (ProtobufCMessageInit) ham__connect_request__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor ham__connect_reply__field_descriptors[1] =
+static const ProtobufCFieldDescriptor ham__connect_reply__field_descriptors[2] =
 {
   {
     "status",
@@ -3461,14 +3461,26 @@ static const ProtobufCFieldDescriptor ham__connect_reply__field_descriptors[1] =
     NULL,
     NULL,NULL    /* reserved1, reserved2 */
   },
+  {
+    "env_flags",
+    2,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    PROTOBUF_C_OFFSETOF(Ham__ConnectReply, env_flags),
+    NULL,
+    NULL,
+    NULL,NULL    /* reserved1, reserved2 */
+  },
 };
 static const unsigned ham__connect_reply__field_indices_by_name[] = {
+  1,   /* field[1] = env_flags */
   0,   /* field[0] = status */
 };
 static const ProtobufCIntRange ham__connect_reply__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 1 }
+  { 0, 2 }
 };
 const ProtobufCMessageDescriptor ham__connect_reply__descriptor =
 {
@@ -3478,7 +3490,7 @@ const ProtobufCMessageDescriptor ham__connect_reply__descriptor =
   "Ham__ConnectReply",
   "ham",
   sizeof(Ham__ConnectReply),
-  1,
+  2,
   ham__connect_reply__field_descriptors,
   ham__connect_reply__field_indices_by_name,
   1,  ham__connect_reply__number_ranges,

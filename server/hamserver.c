@@ -144,6 +144,11 @@ handle_connect(ham_env_t *env, struct mg_connection *conn,
     ham__connect_reply__init(&reply);
     ham__wrapper__init(&wrapper);
     reply.status=0;
+TODO env->_rt_flags is garbage - WHY?? 
+- try other compilers
+- disable O1/O2/O3
+- ...?
+    reply.env_flags=env_get_rt_flags(env); 
     wrapper.connect_reply=&reply;
     wrapper.type=HAM__WRAPPER__TYPE__CONNECT_REPLY;
 

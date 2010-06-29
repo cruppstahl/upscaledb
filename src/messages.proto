@@ -130,6 +130,7 @@ message ConnectRequest {
 
 message ConnectReply {
     required sint32 status = 1;
+    required uint32 env_flags = 2;
 }
 
 message EnvGetParametersRequest {

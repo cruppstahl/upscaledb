@@ -77,7 +77,7 @@ public:
         BFC_REGISTER_TEST(RemoteTest, cursorCreateTest);
         BFC_REGISTER_TEST(RemoteTest, cursorCloneTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanupCursorsTest);
-        BFC_REGISTER_TEST(RemoteTest, autoCleanup2Test);
+        BFC_REGISTER_TEST(RemoteTest, autoAbortTransactionTest);
     }
 
 protected:
@@ -1269,24 +1269,23 @@ protected:
             BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
     }
 
-    void autoCleanup2Test(void)
+    void autoAbortTransactionTest(void)
     {
-#if 0
         ham_env_t *env;
+        ham_txn_t *txn;
         ham_db_t *db;
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, ham_new(&db));
 
-        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 1, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, db, 0));
 
+        BFC_ASSERT_EQUAL(0, ham_close(db, HAM_TXN_AUTO_ABORT));
+        BFC_ASSERT_EQUAL(0, ham_delete(db));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
-
-        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
-        BFC_ASSERT_EQUAL(0, ham_delete(db));
-#endif
     }
 
 };

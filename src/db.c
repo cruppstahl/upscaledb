@@ -1296,21 +1296,6 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
             noenv=HAM_TRUE;
     }
 
-    /*
-     * immediately abort or commit a pending txn - we have to do
-     * this right here to decrement the page's refcount
-     */
-    if (env && env_get_txn(env)) {
-        if (flags&HAM_TXN_AUTO_COMMIT)
-            st=ham_txn_commit(env_get_txn(env), 0);
-        else
-            st=ham_txn_abort(env_get_txn(env), 0);
-        if (st) {
-            if (st2 == 0) st2 = st;
-        }
-        env_set_txn(env, 0);
-    }
-
     be=db_get_backend(db);
     if (!be || !be_is_active(be)) {
         /* christoph-- i think it's ok if a database is closed twice 

@@ -1724,13 +1724,11 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     /*
      * when all transactions have been properly closed... 
      */
-    if (!env_get_txn(env))
-    {
+    if (!env_get_txn(env)) {
         /* flush/persist all performance data which we want to persist */
         stats_flush_globdata(env, env_get_global_perf_data(env));
     }
-    else if (env_is_active(env))
-    {
+    else if (env_is_active(env)) {
         //st2 = HAM_TRANSACTION_STILL_OPEN;
         ham_assert(!"Should never get here; the db close loop above "
                     "should've taken care of all TXNs", (0));
@@ -2888,6 +2886,19 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         ham_trace(("invalid combination of flags: HAM_TXN_AUTO_ABORT + "
                     "HAM_TXN_AUTO_COMMIT"));
         return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+
+    /*
+     * immediately abort or commit a pending txn
+     */
+    if (env_get_txn(env)) {
+        if (flags&HAM_TXN_AUTO_COMMIT)
+            st=ham_txn_commit(env_get_txn(env), 0);
+        else
+            st=ham_txn_abort(env_get_txn(env), 0);
+        if (st)
+            return (db_set_error(db, st));
+        env_set_txn(env, 0);
     }
 
     db_set_error(db, 0);

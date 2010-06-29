@@ -212,10 +212,11 @@ struct  _Ham__ConnectReply
 {
   ProtobufCMessage base;
   int32_t status;
+  uint32_t env_flags;
 };
 #define HAM__CONNECT_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__connect_reply__descriptor) \
-    , 0 }
+    , 0, 0 }
 
 
 struct  _Ham__EnvGetParametersRequest

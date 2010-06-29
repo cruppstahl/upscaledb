@@ -151,11 +151,14 @@ _remote_fun_create(ham_env_t *env, const char *filename,
 
     ham_assert(reply!=0, (""));
     ham_assert(reply->connect_reply!=0, (""));
-    st=reply->connect_reply->status;
-    ham__wrapper__free_unpacked(reply, 0);
 
-    if (st==0)
+    st=reply->connect_reply->status;
+    if (st==0) {
         env_set_curl(env, handle);
+        env_set_rt_flags(env, reply->connect_reply->env_flags);
+    }
+
+    ham__wrapper__free_unpacked(reply, 0);
 
     return (st);
 }
@@ -184,11 +187,14 @@ _remote_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags,
 
     ham_assert(reply!=0, (""));
     ham_assert(reply->connect_reply!=0, (""));
-    st=reply->connect_reply->status;
-    ham__wrapper__free_unpacked(reply, 0);
 
-    if (st==0)
+    st=reply->connect_reply->status;
+    if (st==0) {
         env_set_curl(env, handle);
+        env_set_rt_flags(env, reply->connect_reply->env_flags);
+    }
+
+    ham__wrapper__free_unpacked(reply, 0);
 
     return (st);
 }
@@ -624,8 +630,6 @@ _remote_fun_close(ham_db_t *db, ham_u32_t flags)
     else if (db_get_cursors(db)) {
         return (db_set_error(db, HAM_CURSOR_STILL_OPEN));
     }
-
-    /* TODO check for active transactions */
 
     ham__wrapper__init(&wrapper);
     ham__db_close_request__init(&msg);
