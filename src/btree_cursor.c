@@ -575,29 +575,12 @@ bt_cursor_clone(ham_bt_cursor_t *old, ham_bt_cursor_t **newc)
 
 /**                                                                 
  * close an existing cursor                                         
-
- @note This is a B+-tree cursor 'backend' method.
+ *
+ * @note This is a B+-tree cursor 'backend' method.
  */                                                                 
 static ham_status_t
 bt_cursor_close(ham_bt_cursor_t *c)
 {
-    ham_db_t *db=bt_cursor_get_db(c);
-
-    /* fix the linked list of cursors */
-    ham_cursor_t *p=(ham_cursor_t *)cursor_get_previous(c);
-    ham_cursor_t *n=(ham_cursor_t *)cursor_get_next(c);
-
-    if (p)
-        cursor_set_next(p, n);
-    else
-        db_set_cursors(db, n);
-
-    if (n)
-        cursor_set_previous(n, p);
-
-    cursor_set_next(c, 0);
-    cursor_set_previous(c, 0);
-
     (void)bt_cursor_set_to_nil(c);
 
     return (0);

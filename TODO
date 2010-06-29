@@ -136,7 +136,7 @@ o client/server communication
             x implement server
             x unittest
 
-        o ham_close: needs to AUTOCLOSE existing cursors
+        x ham_close: needs to AUTOCLOSE existing cursors
         o ham_close: needs to AUTOABORT existing txns
         o ham_close: needs to AUTOCOMMIT existing txns
         o call curl_global_cleanup() (not threadsafe!!)

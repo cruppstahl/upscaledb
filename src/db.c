@@ -1305,21 +1305,18 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
             st=ham_txn_commit(env_get_txn(env), 0);
         else
             st=ham_txn_abort(env_get_txn(env), 0);
-        if (st)
-        {
+        if (st) {
             if (st2 == 0) st2 = st;
         }
         env_set_txn(env, 0);
     }
 
     be=db_get_backend(db);
-    if (!be || !be_is_active(be))
-    {
+    if (!be || !be_is_active(be)) {
         /* christoph-- i think it's ok if a database is closed twice 
          * st2 = HAM_NOT_INITIALIZED; */
     }
-    else if (flags&HAM_AUTO_CLEANUP)
-    {
+    else if (flags&HAM_AUTO_CLEANUP) {
         /*
          * auto-cleanup cursors?
          */
@@ -1327,8 +1324,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
             st2 = be->_fun_close_cursors(be, flags);
         /* error or not, continue closing the database! */
     }
-    else if (db_get_cursors(db))
-    {
+    else if (db_get_cursors(db)) {
         return (db_set_error(db, HAM_CURSOR_STILL_OPEN));
     }
 

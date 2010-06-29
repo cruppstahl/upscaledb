@@ -51,7 +51,6 @@ public:
         BFC_REGISTER_TEST(RemoteTest, getDbParamsTest);
         BFC_REGISTER_TEST(RemoteTest, enableCompressionTest);
         BFC_REGISTER_TEST(RemoteTest, dbFlushTest);
-        BFC_REGISTER_TEST(RemoteTest, autoCleanupTest);
         BFC_REGISTER_TEST(RemoteTest, txnBeginCommitTest);
         BFC_REGISTER_TEST(RemoteTest, txnBeginAbortTest);
         BFC_REGISTER_TEST(RemoteTest, checkIntegrityTest);
@@ -77,6 +76,7 @@ public:
         BFC_REGISTER_TEST(RemoteTest, openTwiceTest);
         BFC_REGISTER_TEST(RemoteTest, cursorCreateTest);
         BFC_REGISTER_TEST(RemoteTest, cursorCloneTest);
+        BFC_REGISTER_TEST(RemoteTest, autoCleanupCursorsTest);
         BFC_REGISTER_TEST(RemoteTest, autoCleanup2Test);
     }
 
@@ -1247,9 +1247,8 @@ protected:
         ham_env_delete(env);
     }
 
-    void autoCleanupTest(void)
+    void autoCleanupCursorsTest(void)
     {
-#if 0
         ham_env_t *env;
         ham_db_t *db[3];
         ham_cursor_t *c[5];
@@ -1258,7 +1257,7 @@ protected:
         for (int i=0; i<3; i++)
             BFC_ASSERT_EQUAL(0, ham_new(&db[i]));
 
-        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), 0, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, SERVER_URL, 0, 0664));
         for (int i=0; i<3; i++)
             BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db[i], i+1, 0, 0));
         for (int i=0; i<5; i++)
@@ -1268,7 +1267,6 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
         for (int i=0; i<3; i++)
             BFC_ASSERT_EQUAL(0, ham_delete(db[i]));
-#endif
     }
 
     void autoCleanup2Test(void)

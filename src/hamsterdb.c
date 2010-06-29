@@ -1821,13 +1821,16 @@ ham_delete(ham_db_t *db)
 
     /* 
      * close the database
-     */
-    if (db_is_active(db)) 
-    {
+     * -- christoph: do we really need this? ham_close() will segfault
+     * if the environment was already closed (ham_env_close closes the
+     * allocator)
+     *
+    if (db_is_active(db)) {
         st = ham_close(db, 0);
         if (!st2) 
             st2 = st;
     }
+     */
 
     if (db->_fun_destroy) {
         st = db->_fun_destroy(db);
@@ -3370,6 +3373,7 @@ ham_cursor_close(ham_cursor_t *cursor)
 {
     ham_db_t *db;
     ham_status_t st;
+    ham_cursor_t *p, *n;
 
     if (!cursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
@@ -3389,6 +3393,21 @@ ham_cursor_close(ham_cursor_t *cursor)
     st=db->_fun_cursor_close(cursor);
     if (st)
         return (db_set_error(db, st));
+
+    /* fix the linked list of cursors */
+    p=cursor_get_previous(cursor);
+    n=cursor_get_next(cursor);
+
+    if (p)
+        cursor_set_next(p, n);
+    else
+        db_set_cursors(db, n);
+
+    if (n)
+        cursor_set_previous(n, p);
+
+    cursor_set_next(cursor, 0);
+    cursor_set_previous(cursor, 0);
 
     if (cursor_get_txn(cursor))
         txn_set_cursor_refcount(cursor_get_txn(cursor), 

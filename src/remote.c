@@ -369,6 +369,13 @@ _remote_fun_create_db(ham_env_t *env, ham_db_t *db,
     ham__wrapper__free_unpacked(reply, 0);
 
     /*
+     * on success: store the open database in the environment's list of
+     * opened databases
+     */
+    db_set_next(db, env_get_list(env));
+    env_set_list(env, db);
+
+    /*
      * initialize the remaining function pointers in ham_db_t
      */
     return (db_initialize_remote(db));
@@ -445,6 +452,13 @@ _remote_fun_open_db(ham_env_t *env, ham_db_t *db,
     db_set_remote_handle(db, reply->env_open_db_reply->db_handle);
 
     ham__wrapper__free_unpacked(reply, 0);
+
+    /*
+     * on success: store the open database in the environment's list of
+     * opened databases
+     */
+    db_set_next(db, env_get_list(env));
+    env_set_list(env, db);
 
     /*
      * initialize the remaining function pointers in ham_db_t
@@ -593,14 +607,26 @@ _remote_fun_env_flush(ham_env_t *env, ham_u32_t flags)
 static ham_status_t
 _remote_fun_close(ham_db_t *db, ham_u32_t flags)
 {
-    /* TODO check for cursors/auto-cleanup */
-    /* TODO check for transactions/auto-commit|abort */
-
     ham_status_t st;
     ham_env_t *env=db_get_env(db);
     Ham__DbCloseRequest msg;
     Ham__Wrapper wrapper, *reply;
     
+    /*
+     * auto-cleanup cursors?
+     */
+    if (flags&HAM_AUTO_CLEANUP) {
+        ham_cursor_t *cursor=db_get_cursors(db);
+        while ((cursor=db_get_cursors(db))) {
+            (void)ham_cursor_close(cursor);
+        }
+    }
+    else if (db_get_cursors(db)) {
+        return (db_set_error(db, HAM_CURSOR_STILL_OPEN));
+    }
+
+    /* TODO check for active transactions */
+
     ham__wrapper__init(&wrapper);
     ham__db_close_request__init(&msg);
     msg.db_handle=db_get_remote_handle(db);
