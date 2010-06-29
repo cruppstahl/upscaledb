@@ -65,6 +65,8 @@ typedef struct _Ham__CursorGetDuplicateCountRequest Ham__CursorGetDuplicateCount
 typedef struct _Ham__CursorGetDuplicateCountReply Ham__CursorGetDuplicateCountReply;
 typedef struct _Ham__CursorOverwriteRequest Ham__CursorOverwriteRequest;
 typedef struct _Ham__CursorOverwriteReply Ham__CursorOverwriteReply;
+typedef struct _Ham__CursorMoveRequest Ham__CursorMoveRequest;
+typedef struct _Ham__CursorMoveReply Ham__CursorMoveReply;
 
 
 /* --- enums --- */
@@ -123,7 +125,9 @@ typedef enum _Ham__Wrapper__Type {
   HAM__WRAPPER__TYPE__CURSOR_GET_DUPLICATE_COUNT_REQUEST = 260,
   HAM__WRAPPER__TYPE__CURSOR_GET_DUPLICATE_COUNT_REPLY = 261,
   HAM__WRAPPER__TYPE__CURSOR_OVERWRITE_REQUEST = 270,
-  HAM__WRAPPER__TYPE__CURSOR_OVERWRITE_REPLY = 271
+  HAM__WRAPPER__TYPE__CURSOR_OVERWRITE_REPLY = 271,
+  HAM__WRAPPER__TYPE__CURSOR_MOVE_REQUEST = 280,
+  HAM__WRAPPER__TYPE__CURSOR_MOVE_REPLY = 281
 } Ham__Wrapper__Type;
 
 /* --- messages --- */
@@ -186,10 +190,12 @@ struct  _Ham__Wrapper
   Ham__CursorGetDuplicateCountReply *cursor_get_duplicate_count_reply;
   Ham__CursorOverwriteRequest *cursor_overwrite_request;
   Ham__CursorOverwriteReply *cursor_overwrite_reply;
+  Ham__CursorMoveRequest *cursor_move_request;
+  Ham__CursorMoveReply *cursor_move_reply;
 };
 #define HAM__WRAPPER__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__wrapper__descriptor) \
-    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
+    , 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 
 
 struct  _Ham__ConnectRequest
@@ -840,6 +846,31 @@ struct  _Ham__CursorOverwriteReply
 #define HAM__CURSOR_OVERWRITE_REPLY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&ham__cursor_overwrite_reply__descriptor) \
     , 0 }
+
+
+struct  _Ham__CursorMoveRequest
+{
+  ProtobufCMessage base;
+  uint64_t cursor_handle;
+  Ham__Key *key;
+  Ham__Record *record;
+  uint32_t flags;
+};
+#define HAM__CURSOR_MOVE_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__cursor_move_request__descriptor) \
+    , 0, NULL, NULL, 0 }
+
+
+struct  _Ham__CursorMoveReply
+{
+  ProtobufCMessage base;
+  int32_t status;
+  Ham__Key *key;
+  Ham__Record *record;
+};
+#define HAM__CURSOR_MOVE_REPLY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&ham__cursor_move_reply__descriptor) \
+    , 0, NULL, NULL }
 
 
 /* Ham__Wrapper methods */
@@ -1925,6 +1956,44 @@ Ham__CursorOverwriteReply *
 void   ham__cursor_overwrite_reply__free_unpacked
                      (Ham__CursorOverwriteReply *message,
                       ProtobufCAllocator *allocator);
+/* Ham__CursorMoveRequest methods */
+void   ham__cursor_move_request__init
+                     (Ham__CursorMoveRequest         *message);
+size_t ham__cursor_move_request__get_packed_size
+                     (const Ham__CursorMoveRequest   *message);
+size_t ham__cursor_move_request__pack
+                     (const Ham__CursorMoveRequest   *message,
+                      uint8_t             *out);
+size_t ham__cursor_move_request__pack_to_buffer
+                     (const Ham__CursorMoveRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__CursorMoveRequest *
+       ham__cursor_move_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__cursor_move_request__free_unpacked
+                     (Ham__CursorMoveRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Ham__CursorMoveReply methods */
+void   ham__cursor_move_reply__init
+                     (Ham__CursorMoveReply         *message);
+size_t ham__cursor_move_reply__get_packed_size
+                     (const Ham__CursorMoveReply   *message);
+size_t ham__cursor_move_reply__pack
+                     (const Ham__CursorMoveReply   *message,
+                      uint8_t             *out);
+size_t ham__cursor_move_reply__pack_to_buffer
+                     (const Ham__CursorMoveReply   *message,
+                      ProtobufCBuffer     *buffer);
+Ham__CursorMoveReply *
+       ham__cursor_move_reply__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   ham__cursor_move_reply__free_unpacked
+                     (Ham__CursorMoveReply *message,
+                      ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
 typedef void (*Ham__Wrapper_Closure)
@@ -2098,6 +2167,12 @@ typedef void (*Ham__CursorOverwriteRequest_Closure)
 typedef void (*Ham__CursorOverwriteReply_Closure)
                  (const Ham__CursorOverwriteReply *message,
                   void *closure_data);
+typedef void (*Ham__CursorMoveRequest_Closure)
+                 (const Ham__CursorMoveRequest *message,
+                  void *closure_data);
+typedef void (*Ham__CursorMoveReply_Closure)
+                 (const Ham__CursorMoveReply *message,
+                  void *closure_data);
 
 /* --- services --- */
 
@@ -2162,6 +2237,8 @@ extern const ProtobufCMessageDescriptor ham__cursor_get_duplicate_count_request_
 extern const ProtobufCMessageDescriptor ham__cursor_get_duplicate_count_reply__descriptor;
 extern const ProtobufCMessageDescriptor ham__cursor_overwrite_request__descriptor;
 extern const ProtobufCMessageDescriptor ham__cursor_overwrite_reply__descriptor;
+extern const ProtobufCMessageDescriptor ham__cursor_move_request__descriptor;
+extern const ProtobufCMessageDescriptor ham__cursor_move_reply__descriptor;
 
 PROTOBUF_C_END_DECLS
 

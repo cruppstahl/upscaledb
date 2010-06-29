@@ -1448,6 +1448,91 @@ _remote_cursor_close(ham_cursor_t *cursor)
     return (st);
 }
 
+static ham_status_t
+_remote_cursor_move(ham_cursor_t *cursor, ham_key_t *key, 
+                ham_record_t *record, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_db_t *db=cursor_get_db(cursor);
+    ham_env_t *env=db_get_env(db);
+    Ham__CursorMoveRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    Ham__Key protokey=HAM__KEY__INIT;
+    Ham__Record protorec=HAM__RECORD__INIT;
+    
+    ham__wrapper__init(&wrapper);
+    ham__cursor_move_request__init(&msg);
+    msg.cursor_handle=cursor_get_remote_handle(cursor);
+    if (key) {
+        protokey.data.data=key->data;
+        protokey.data.len=key->size;
+        protokey.flags=key->flags;
+        msg.key=&protokey;
+    }
+    if (record) {
+        protorec.data.data=record->data;
+        protorec.data.len=record->size;
+        protorec.flags=record->flags;
+        protorec.partial_size=record->partial_size;
+        protorec.partial_offset=record->partial_offset;
+        msg.record=&protorec;
+    }
+    msg.flags=flags;
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_MOVE_REQUEST;
+    wrapper.cursor_move_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->cursor_move_reply!=0, (""));
+    st=reply->cursor_move_reply->status;
+    if (st) 
+        goto bail;
+
+    /* modify key/record, but make sure that USER_ALLOC is respected! */
+    if (reply->cursor_find_reply->key) {
+        ham_assert(key, (""));
+        key->_flags=reply->cursor_move_reply->key->intflags;
+        key->size=reply->cursor_move_reply->key->data.len;
+        if (!(key->flags&HAM_KEY_USER_ALLOC)) {
+            if (db_get_key_allocdata(db))
+                allocator_free(env_get_allocator(env), 
+                    db_get_key_allocdata(db));
+            db_set_key_allocdata(db, 
+                    allocator_alloc(env_get_allocator(env), key->size));
+            if (!db_get_key_allocdata(db)) {
+                st=HAM_OUT_OF_MEMORY;
+                goto bail;
+            }
+            key->data=db_get_key_allocdata(db);
+        }
+        memcpy(key->data, reply->cursor_move_reply->key->data.data,
+                key->size);
+    }
+
+    /* same for the record */
+    if (reply->cursor_move_reply->record) {
+        ham_assert(record, (""));
+        record->size=reply->cursor_move_reply->record->data.len;
+        if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
+            st=db_resize_allocdata(db, record->size);
+            if (st)
+                goto bail;
+            record->data=db_get_record_allocdata(db);
+        }
+        memcpy(record->data, reply->cursor_move_reply->record->data.data,
+                record->size);
+    }
+
+bail:
+    ham__wrapper__free_unpacked(reply, 0);
+    return (st);
+}
 
 #endif /* HAM_ENABLE_REMOTE */
 
@@ -1497,6 +1582,7 @@ db_initialize_remote(ham_db_t *db)
     db->_fun_cursor_find    =_remote_cursor_find;
     db->_fun_cursor_get_duplicate_count=_remote_cursor_get_duplicate_count;
     db->_fun_cursor_overwrite=_remote_cursor_overwrite;
+    db->_fun_cursor_move    =_remote_cursor_move;
     return (0);
 #else
     return (HAM_NOT_IMPLEMENTED);

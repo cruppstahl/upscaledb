@@ -292,6 +292,12 @@ struct ham_db_t
                     ham_record_t *record, ham_u32_t flags);
 
     /**
+     * move a cursor, return key and/or record
+     */
+    ham_status_t (*_fun_cursor_move)(ham_cursor_t *cursor, 
+                    ham_key_t *key, ham_record_t *record, ham_u32_t flags);
+
+    /**
      * close a cursor
      */
     ham_status_t (*_fun_cursor_close)(ham_cursor_t *cursor);

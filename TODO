@@ -133,7 +133,10 @@ o client/server communication
             x unittest
 
         o ham_cursor_move
+            x implement client
+            x implement server
             o unittest
+
         o ham_close: needs to AUTOCLOSE existing cursors
         o ham_close: needs to AUTOABORT existing txns
         o ham_close: needs to AUTOCOMMIT existing txns
@@ -151,6 +154,10 @@ o HAM_PARAM_GET_STATISTICS -> hamsterdb_int.h!
 o release new .NET wrapper with fix from a.todorov (-> nabble)
 
 ------------------------------
+
+o some cleanup:
+    db_set_allocdata -> for records, but we need a similar function for keys!
+    currently, db_set_key_allocdata() is used, but it's very clumsy
 
 o unittest crashes:
     env=ham_env_create()

@@ -1191,6 +1191,77 @@ bail:
 }
 
 static void
+handle_cursor_move(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__CursorMoveRequest *request)
+{
+    Ham__CursorMoveReply reply;
+    Ham__Wrapper wrapper;
+    ham_cursor_t *cursor;
+    ham_key_t key; 
+    ham_record_t rec; 
+    Ham__Key replykey;
+    Ham__Record replyrec;
+
+    ham_assert(request!=0, (""));
+
+    ham__cursor_move_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    ham__key__init(&replykey);
+    ham__record__init(&replyrec);
+    reply.status=0;
+    wrapper.cursor_move_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_MOVE_REPLY;
+
+    cursor=__get_handle(envh, request->cursor_handle);
+    if (!cursor) {
+        reply.status=HAM_INV_PARAMETER;
+        goto bail;
+    }
+
+    if (request->key) {
+        memset(&key, 0, sizeof(key));
+        key.data=request->key->data.data;
+        key.size=request->key->data.len;
+        key.flags=request->key->flags & (~HAM_KEY_USER_ALLOC);
+    }
+
+    if (request->record) {
+        memset(&rec, 0, sizeof(rec));
+        rec.data=request->record->data.data;
+        rec.size=request->record->data.len;
+        rec.partial_size=request->record->partial_size;
+        rec.partial_offset=request->record->partial_offset;
+        rec.flags=request->record->flags & (~HAM_RECORD_USER_ALLOC);
+    }
+
+    reply.status=ham_cursor_move(cursor,
+                    request->key ? &key : 0,
+                    request->record ? &rec : 0, request->flags);
+
+    if (reply.status==0) {
+        /* copy the key? */
+        if (key._flags) {
+            reply.key=&replykey;
+            replykey.intflags=key._flags;
+            replykey.data.data=key.data;
+            replykey.data.len=key.size;
+            replykey.flags=key.flags;
+        }
+        /* copy the record? */
+        if (request->record) {
+            reply.record=&replyrec;
+            replyrec.data.data=rec.data;
+            replyrec.data.len=rec.size;
+            replyrec.flags=rec.flags;
+        }
+    }
+
+bail:
+    send_wrapper(envh->env, conn, &wrapper);
+}
+
+static void
 handle_cursor_close(struct env_t *envh, struct mg_connection *conn, 
                 const struct mg_request_info *ri,
                 Ham__CursorCloseRequest *request)
@@ -1362,6 +1433,11 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
         ham_trace(("cursor_overwrite request"));
         handle_cursor_overwrite(env, conn, ri, 
                 wrapper->cursor_overwrite_request);
+        break;
+    case HAM__WRAPPER__TYPE__CURSOR_MOVE_REQUEST:
+        ham_trace(("cursor_move request"));
+        handle_cursor_move(env, conn, ri, 
+                wrapper->cursor_move_request);
         break;
     case HAM__WRAPPER__TYPE__CURSOR_CLOSE_REQUEST:
         ham_trace(("cursor_close request"));

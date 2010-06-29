@@ -58,6 +58,8 @@ message Wrapper {
             CURSOR_GET_DUPLICATE_COUNT_REPLY = 261;
             CURSOR_OVERWRITE_REQUEST = 270;
             CURSOR_OVERWRITE_REPLY = 271;
+            CURSOR_MOVE_REQUEST = 280;
+            CURSOR_MOVE_REPLY = 281;
     }
 
     required Type type = 1;
@@ -118,6 +120,8 @@ message Wrapper {
                 cursor_get_duplicate_count_reply = 261;
     optional CursorOverwriteRequest cursor_overwrite_request = 270;
     optional CursorOverwriteReply cursor_overwrite_reply = 271;
+    optional CursorMoveRequest cursor_move_request = 280;
+    optional CursorMoveReply cursor_move_reply = 281;
 }
 
 message ConnectRequest {
@@ -415,4 +419,17 @@ message CursorOverwriteRequest {
 
 message CursorOverwriteReply {
     required sint32 status = 1;
+};
+
+message CursorMoveRequest {
+    required uint64 cursor_handle = 1;
+    optional Key key = 2;
+    optional Record record = 3;
+    required uint32 flags = 4;
+};
+
+message CursorMoveReply {
+    required sint32 status = 1;
+    optional Key key = 2;
+    optional Record record = 3;
 };

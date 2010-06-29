@@ -3001,24 +3001,22 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     }
 
     db=cursor_get_db(cursor);
+
     if (!db || !db_get_env(db)) {
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
         return (HAM_INV_PARAMETER);
     }
-
     if (flags) {
         ham_trace(("function does not support a non-zero flags value; "
                     "see ham_cursor_insert for an alternative then"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
-
     if (!record) {
         ham_trace(("parameter 'record' must not be NULL"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if (!__prepare_record(record))
         return (db_set_error(db, HAM_INV_PARAMETER));
-
     if (db_get_rt_flags(db)&HAM_READ_ONLY) {
         ham_trace(("cannot overwrite in a read-only database"));
         return (db_set_error(db, HAM_DB_READ_ONLY));
@@ -3041,10 +3039,8 @@ ham_status_t HAM_CALLCONV
 ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
-    ham_status_t st;
     ham_db_t *db;
     ham_env_t *env;
-    ham_txn_t local_txn;
 
     if (!cursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
@@ -3052,17 +3048,19 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     }
 
     db=cursor_get_db(cursor);
+
     if (!db || !db_get_env(db)) {
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
         return HAM_INV_PARAMETER;
     }
-    env = db_get_env(db);
-
     if ((flags&HAM_ONLY_DUPLICATES) && (flags&HAM_SKIP_DUPLICATES)) {
         ham_trace(("combination of HAM_ONLY_DUPLICATES and "
                     "HAM_SKIP_DUPLICATES not allowed"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+
+    env=db_get_env(db);
+
     if ((flags&HAM_DIRECT_ACCESS) 
             && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
         ham_trace(("flag HAM_DIRECT_ACCESS is only allowed in "
@@ -3075,37 +3073,13 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     if (record && !__prepare_record(record))
         return (db_set_error(db, HAM_INV_PARAMETER));
 
-    db_set_error(db, 0);
-
-    if (!cursor_get_txn(cursor)) {
-        st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
-        if (st)
-            return (db_set_error(db, st));
+    if (!db->_fun_cursor_move) {
+        ham_trace(("Database was not initialized"));
+        return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
 
-    st=cursor->_fun_move(cursor, key, record, flags);
-    if (st) {
-        if (!cursor_get_txn(cursor))
-            (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
-    }
-
-    /*
-     * run the record-level filters
-     */
-    if (record) {
-        st=__record_filters_after_find(db, record);
-        if (st) {
-            if (!cursor_get_txn(cursor))
-                (void)txn_abort(&local_txn, 0);
-            return (db_set_error(db, st));
-        }
-    }
-
-    if (!cursor_get_txn(cursor))
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
-    else
-        return (db_set_error(db, st));
+    return (db_set_error(db, 
+                db->_fun_cursor_move(cursor, key, record, flags)));
 }
 
 ham_status_t HAM_CALLCONV
