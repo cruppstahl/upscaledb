@@ -1241,7 +1241,7 @@ handle_cursor_move(struct env_t *envh, struct mg_connection *conn,
 
     if (reply.status==0) {
         /* copy the key? */
-        if (key._flags) {
+        if (request->key) {
             reply.key=&replykey;
             replykey.intflags=key._flags;
             replykey.data.data=key.data;

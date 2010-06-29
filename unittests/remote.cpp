@@ -72,6 +72,7 @@ public:
         BFC_REGISTER_TEST(RemoteTest, cursorInsertFindEraseRecnoTest);
         BFC_REGISTER_TEST(RemoteTest, cursorGetDuplicateCountTest);
         BFC_REGISTER_TEST(RemoteTest, cursorOverwriteTest);
+        BFC_REGISTER_TEST(RemoteTest, cursorMoveTest);
 
         BFC_REGISTER_TEST(RemoteTest, openTwiceTest);
         BFC_REGISTER_TEST(RemoteTest, cursorCreateTest);
@@ -1113,6 +1114,59 @@ protected:
                 ham_cursor_overwrite(cursor, &rec, 0));
         memset(&rec2, 0, sizeof(rec2));
         BFC_ASSERT_EQUAL(0, ham_cursor_find_ex(cursor, &key, &rec2, 0));
+        BFC_ASSERT_EQUAL(rec.size, rec2.size);
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, (char *)rec2.data));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
+
+    void cursorMoveTest(void)
+    {
+        ham_db_t *db;
+        ham_cursor_t *cursor;
+        ham_key_t key;
+        ham_key_t key2;
+        ham_record_t rec;
+        ham_record_t rec2;
+
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"key1";
+        key.size=5;
+        memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"rec1";
+        rec.size=5;
+        memset(&key2, 0, sizeof(key2));
+        memset(&rec2, 0, sizeof(rec2));
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(db, SERVER_URL, 0, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_create(db, 0, 0, &cursor));
+        BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
+
+        key.data=(void *)"key2";
+        rec.data=(void *)"rec2";
+        BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_move(cursor, 0, 0, HAM_CURSOR_FIRST));
+        key.data=(void *)"key1";
+        rec.data=(void *)"rec1";
+        BFC_ASSERT_EQUAL(0, ham_cursor_move(cursor, &key2, &rec2, 0));
+        BFC_ASSERT_EQUAL(key.size, key2.size);
+        BFC_ASSERT_EQUAL(0, strcmp((char *)key.data, (char *)key2.data));
+        BFC_ASSERT_EQUAL(rec.size, rec2.size);
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, (char *)rec2.data));
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_move(cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+        key.data=(void *)"key2";
+        rec.data=(void *)"rec2";
+        BFC_ASSERT_EQUAL(key.size, key2.size);
+        BFC_ASSERT_EQUAL(0, strcmp((char *)key.data, (char *)key2.data));
         BFC_ASSERT_EQUAL(rec.size, rec2.size);
         BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, (char *)rec2.data));
 

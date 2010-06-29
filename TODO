@@ -131,17 +131,19 @@ o client/server communication
             x unittest
         x ham_cursor_overwrite
             x unittest
-
-        o ham_cursor_move
+        x ham_cursor_move
             x implement client
             x implement server
-            o unittest
+            x unittest
 
         o ham_close: needs to AUTOCLOSE existing cursors
         o ham_close: needs to AUTOABORT existing txns
         o ham_close: needs to AUTOCOMMIT existing txns
         o call curl_global_cleanup() (not threadsafe!!)
         o check for memory leaks!
+    
+    o make sure that all other tests run successfully
+
     o add documentation!
 
     o messages-pb.c must be created dynamically because it depends on 

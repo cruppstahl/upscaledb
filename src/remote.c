@@ -1495,7 +1495,7 @@ _remote_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         goto bail;
 
     /* modify key/record, but make sure that USER_ALLOC is respected! */
-    if (reply->cursor_find_reply->key) {
+    if (reply->cursor_move_reply->key) {
         ham_assert(key, (""));
         key->_flags=reply->cursor_move_reply->key->intflags;
         key->size=reply->cursor_move_reply->key->data.len;
