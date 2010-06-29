@@ -2993,11 +2993,7 @@ ham_status_t HAM_CALLCONV
 ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
             ham_u32_t flags)
 {
-    ham_status_t st;
-    ham_txn_t local_txn;
     ham_db_t *db;
-    ham_env_t *env;
-    ham_record_t temprec;
 
     if (!cursor) {
         ham_trace(("parameter 'cursor' must not be NULL"));
@@ -3007,9 +3003,8 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     db=cursor_get_db(cursor);
     if (!db || !db_get_env(db)) {
         ham_trace(("parameter 'cursor' must be linked to a valid database"));
-        return HAM_INV_PARAMETER;
+        return (HAM_INV_PARAMETER);
     }
-    env = db_get_env(db);
 
     if (flags) {
         ham_trace(("function does not support a non-zero flags value; "
@@ -3034,45 +3029,12 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
 
-    if (!__prepare_record(record))
-        return (db_set_error(db, HAM_INV_PARAMETER));
-
-    db_set_error(db, 0);
-
-    if (!cursor_get_txn(cursor)) {
-        st=txn_begin(&local_txn, env, 0);
-        if (st)
-            return (db_set_error(db, st));
+    if (!db->_fun_cursor_overwrite) {
+        ham_trace(("Database was not initialized"));
+        return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
 
-    /*
-     * run the record-level filters on a temporary record structure - we
-     * don't want to mess up the original structure
-     */
-    temprec=*record;
-    st=__record_filters_before_write(db, &temprec);
-    if (st) {
-        if (!cursor_get_txn(cursor))
-            (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
-    }
-
-    st=cursor->_fun_overwrite(cursor, &temprec, flags);
-
-    ham_assert(env_get_allocator(env) == cursor_get_allocator(cursor), (0));
-    if (temprec.data != record->data)
-        allocator_free(env_get_allocator(env), temprec.data);
-
-    if (st) {
-        if (!cursor_get_txn(cursor))
-            (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
-    }
-
-    if (!cursor_get_txn(cursor))
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
-    else
-        return (db_set_error(db, st));
+    return (db_set_error(db, db->_fun_cursor_overwrite(cursor, record, flags)));
 }
 
 ham_status_t HAM_CALLCONV

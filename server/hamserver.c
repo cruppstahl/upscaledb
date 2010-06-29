@@ -1156,6 +1156,41 @@ bail:
 }
 
 static void
+handle_cursor_overwrite(struct env_t *envh, struct mg_connection *conn, 
+                const struct mg_request_info *ri,
+                Ham__CursorOverwriteRequest *request)
+{
+    Ham__CursorOverwriteReply reply;
+    Ham__Wrapper wrapper;
+    ham_cursor_t *cursor;
+    ham_record_t rec;
+
+    ham_assert(request!=0, (""));
+
+    ham__cursor_overwrite_reply__init(&reply);
+    ham__wrapper__init(&wrapper);
+    wrapper.cursor_overwrite_reply=&reply;
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_OVERWRITE_REPLY;
+
+    cursor=__get_handle(envh, request->cursor_handle);
+    if (!cursor) {
+        reply.status=HAM_INV_PARAMETER;
+        goto bail;
+    }
+
+    memset(&rec, 0, sizeof(rec));
+    rec.data=request->record->data.data;
+    rec.size=request->record->data.len;
+    rec.partial_size=request->record->partial_size;
+    rec.partial_offset=request->record->partial_offset;
+    rec.flags=request->record->flags & (~HAM_RECORD_USER_ALLOC);
+    reply.status=ham_cursor_overwrite(cursor, &rec, request->flags);
+
+bail:
+    send_wrapper(envh->env, conn, &wrapper);
+}
+
+static void
 handle_cursor_close(struct env_t *envh, struct mg_connection *conn, 
                 const struct mg_request_info *ri,
                 Ham__CursorCloseRequest *request)
@@ -1322,6 +1357,11 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
         ham_trace(("cursor_get_duplicate_count request"));
         handle_cursor_get_duplicate_count(env, conn, ri, 
                 wrapper->cursor_get_duplicate_count_request);
+        break;
+    case HAM__WRAPPER__TYPE__CURSOR_OVERWRITE_REQUEST:
+        ham_trace(("cursor_overwrite request"));
+        handle_cursor_overwrite(env, conn, ri, 
+                wrapper->cursor_overwrite_request);
         break;
     case HAM__WRAPPER__TYPE__CURSOR_CLOSE_REQUEST:
         ham_trace(("cursor_close request"));

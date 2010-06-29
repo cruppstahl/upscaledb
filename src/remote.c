@@ -1378,6 +1378,47 @@ bail:
 }
 
 static ham_status_t
+_remote_cursor_overwrite(ham_cursor_t *cursor, 
+            ham_record_t *record, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_db_t *db=cursor_get_db(cursor);
+    ham_env_t *env=db_get_env(db);
+    Ham__CursorOverwriteRequest msg;
+    Ham__Wrapper wrapper, *reply;
+    Ham__Record protorec=HAM__RECORD__INIT;
+    
+    ham__wrapper__init(&wrapper);
+    ham__cursor_overwrite_request__init(&msg);
+    msg.cursor_handle=cursor_get_remote_handle(cursor);
+
+    protorec.data.data=record->data;
+    protorec.data.len=record->size;
+    protorec.flags=record->flags;
+    protorec.partial_size=record->partial_size;
+    protorec.partial_offset=record->partial_offset;
+    msg.record=&protorec;
+    msg.flags=flags;
+    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_OVERWRITE_REQUEST;
+    wrapper.cursor_overwrite_request=&msg;
+
+    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    if (st) {
+        if (reply)
+            ham__wrapper__free_unpacked(reply, 0);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(reply->cursor_overwrite_reply!=0, (""));
+    st=reply->cursor_overwrite_reply->status;
+
+    ham__wrapper__free_unpacked(reply, 0);
+
+    return (st);
+}
+
+static ham_status_t
 _remote_cursor_close(ham_cursor_t *cursor)
 {
     ham_status_t st;
@@ -1455,6 +1496,7 @@ db_initialize_remote(ham_db_t *db)
     db->_fun_cursor_erase   =_remote_cursor_erase;
     db->_fun_cursor_find    =_remote_cursor_find;
     db->_fun_cursor_get_duplicate_count=_remote_cursor_get_duplicate_count;
+    db->_fun_cursor_overwrite=_remote_cursor_overwrite;
     return (0);
 #else
     return (HAM_NOT_IMPLEMENTED);

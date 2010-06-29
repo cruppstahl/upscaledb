@@ -127,12 +127,11 @@ o client/server communication
             x implement client
             x implement server
             x unittest
-
         x ham_cursor_get_duplicate_count
             x unittest
+        x ham_cursor_overwrite
+            x unittest
 
-        o ham_cursor_overwrite
-            o unittest
         o ham_cursor_move
             o unittest
         o ham_close: needs to AUTOCLOSE existing cursors

@@ -286,6 +286,12 @@ struct ham_db_t
                     ham_size_t *count, ham_u32_t flags);
 
     /**
+     * overwrite a cursor
+     */
+    ham_status_t (*_fun_cursor_overwrite)(ham_cursor_t *cursor, 
+                    ham_record_t *record, ham_u32_t flags);
+
+    /**
      * close a cursor
      */
     ham_status_t (*_fun_cursor_close)(ham_cursor_t *cursor);

@@ -71,6 +71,7 @@ public:
         BFC_REGISTER_TEST(RemoteTest, cursorInsertFindEraseUserallocTest);
         BFC_REGISTER_TEST(RemoteTest, cursorInsertFindEraseRecnoTest);
         BFC_REGISTER_TEST(RemoteTest, cursorGetDuplicateCountTest);
+        BFC_REGISTER_TEST(RemoteTest, cursorOverwriteTest);
 
         BFC_REGISTER_TEST(RemoteTest, openTwiceTest);
         BFC_REGISTER_TEST(RemoteTest, cursorCreateTest);
@@ -1076,6 +1077,48 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_delete(db);
         ham_env_delete(env);
+    }
+
+    void cursorOverwriteTest(void)
+    {
+        ham_db_t *db;
+        ham_key_t key;
+        ham_cursor_t *cursor;
+        ham_record_t rec;
+        ham_record_t rec2;
+
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello world";
+        key.size=12;
+        memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"hello chris";
+        rec.size=12;
+        memset(&rec2, 0, sizeof(rec2));
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(db, SERVER_URL, 0, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_create(db, 0, 0, &cursor));
+        BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_find_ex(cursor, &key, &rec2, 0));
+        BFC_ASSERT_EQUAL(rec.size, rec2.size);
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, (char *)rec2.data));
+
+        memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"hello hamster";
+        rec.size=14;
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_overwrite(cursor, &rec, 0));
+        memset(&rec2, 0, sizeof(rec2));
+        BFC_ASSERT_EQUAL(0, ham_cursor_find_ex(cursor, &key, &rec2, 0));
+        BFC_ASSERT_EQUAL(rec.size, rec2.size);
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, (char *)rec2.data));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
     }
 
     void openTwiceTest(void)
