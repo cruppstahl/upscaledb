@@ -130,11 +130,6 @@ struct ham_env_t
     /** the memory allocator */
     mem_allocator_t *_alloc;
 
-#if HAM_ENABLE_REMOTE
-    /** libcurl remote handle */
-    void *_curl;
-#endif
-
     /** the file header page */
     ham_page_t *_hdrpage;
 
@@ -156,6 +151,11 @@ struct ham_env_t
 
     /** the cachesize which was specified when the env was created/opened */
     ham_size_t _cachesize;
+
+#if HAM_ENABLE_REMOTE
+    /** libcurl remote handle */
+    void *_curl;
+#endif
 
     /** the max. number of databases which was specified when the env 
      * was created */

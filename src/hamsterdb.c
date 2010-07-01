@@ -1209,9 +1209,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
 
     env_set_rt_flags(env, 0);
 
-    /*
-     * check (and modify) the parameters
-     */
+    /* check (and modify) the parameters */
     st=__check_create_parameters(env, 0, filename, &flags, param, 
             &pagesize, &keysize, &cachesize, 0, &maxdbs, 0, HAM_TRUE);
     if (st)
@@ -1229,9 +1227,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
             return (HAM_OUT_OF_MEMORY);
     }
 
-    /*
-     * store the parameters
-     */
+    /* store the parameters */
     env_set_rt_flags(env, flags);
     env_set_pagesize(env, pagesize);
     env_set_cachesize(env, cachesize);
@@ -1249,9 +1245,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
         strcpy((char *)env_get_filename(env), filename);
     }
 
-    /*
-     * initialize function pointers
-     */
+    /* initialize function pointers */
     if (__filename_is_local(filename)) {
         st=env_initialize_local(env);
     }
@@ -1261,9 +1255,7 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
     if (st)
         return (st);
 
-    /*
-     * and finish the initialization of the Environment
-     */
+    /* and finish the initialization of the Environment */
     st=env->_fun_create(env, filename, flags, mode, param);
     if (st)
         return (st);
