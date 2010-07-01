@@ -79,6 +79,7 @@ __store_handle(struct env_t *envh, void *ptr, int type)
                         sizeof(handle_t)*envh->handles_size);
         if (!envh->handles)
             exit(-1); /* TODO not so nice... */
+        memset(&envh->handles[envh->handles_size-10], 0, sizeof(handle_t)*10);
     }
 
     ret=++envh->handles_ctr;
@@ -125,7 +126,7 @@ send_wrapper(ham_env_t *env, struct mg_connection *conn, Ham__Wrapper *wrapper)
     }
     ham__wrapper__pack(wrapper, data);
 
-    printf("type %u: sending %d bytes\n", wrapper->type, data_size);
+    ham_trace(("type %u: sending %d bytes", wrapper->type, data_size));
 	mg_printf(conn, "%s", standard_reply);
     mg_write(conn, data, data_size);
 
@@ -144,10 +145,6 @@ handle_connect(ham_env_t *env, struct mg_connection *conn,
     ham__connect_reply__init(&reply);
     ham__wrapper__init(&wrapper);
     reply.status=0;
-TODO env->_rt_flags is garbage - WHY?? 
-- try other compilers
-- disable O1/O2/O3
-- ...?
     reply.env_flags=env_get_rt_flags(env); 
     wrapper.connect_reply=&reply;
     wrapper.type=HAM__WRAPPER__TYPE__CONNECT_REPLY;

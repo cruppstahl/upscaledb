@@ -4,6 +4,7 @@
 #include <ham/hamsterdb.h>
 
 #include "hamserver.h"
+#include "env.h"
 
 int main(void)
 {
