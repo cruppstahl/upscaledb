@@ -141,16 +141,14 @@ o client/server communication
                 it's already specified remotely; flag is not returned when
                 creating/opening an env!?
 
-        o call curl_global_cleanup() (not threadsafe!!)
-        o check for memory leaks!
-    
     o make sure that tests in remote.cpp do not require external daemon
     o make sure that all other tests run successfully
+    o check for memory leaks
 
-    o add documentation!
+    o add documentation
 
     o messages-pb.c must be created dynamically because it depends on 
-        the google protocol version
+        the google protobuf version
 
 o HAM_PARAM_GET_STATISTICS -> hamsterdb_int.h!
 
@@ -163,6 +161,8 @@ o release new .NET wrapper with fix from a.todorov (-> nabble)
 o some cleanup:
     db_set_allocdata -> for records, but we need a similar function for keys!
     currently, db_set_key_allocdata() is used, but it's very clumsy
+
+o call curl_global_cleanup() (not threadsafe!!)
 
 o unittest crashes:
     env=ham_env_create()
