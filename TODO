@@ -137,7 +137,7 @@ o client/server communication
                 it's already specified remotely; flag is not returned when
                 creating/opening an env!?
 
-    o daemon: remove from server directory, add as a sample
+    x daemon: remove from server directory, add as a sample
 
     o make sure that tests in remote.cpp do not require external daemon
     o make sure that all other tests run successfully

@@ -1,5 +1,6 @@
 Jul 02, 2010 - chris
 o HAM_PARAM_GET_STATISTICS was moved to hamsterdb_int.h
+o a new sample "server1" was added
 
 Apr 29, 2010 - chris
 o ham_env_get_parameters and ham_get_parameters do no longer accept
