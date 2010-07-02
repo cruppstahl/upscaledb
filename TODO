@@ -32,6 +32,7 @@ o client/server communication
     x need configure switch to disable the remote client
     x if file starts with "http://" then switch to remote client
     x separate remote code into remote.c
+
     x implement with google protocol buffers
         x ham_env_create_ex
         x ham_env_close

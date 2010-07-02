@@ -14,10 +14,10 @@
 #include <malloc.h>
 #include <string.h>
 
-#include <ham/types.h>
 #include <mongoose/mongoose.h>
 
-#include "hamserver.h"
+#include <ham/types.h>
+#include <ham/hamserver.h>
 #include "messages.pb-c.h"
 #include "os.h"
 #include "error.h"
