@@ -20,6 +20,8 @@ x server: first step
         x need mutex/critsec to protect use of environment!
     x open environments/databases are used through url /envname/ (/dbname/)
 
+x HAM_PARAM_GET_STATISTICS -> hamsterdb_int.h!
+
 o client/server communication
     x abstract env functions into "class" (like backend)
     x separate local code into env.c
@@ -30,7 +32,7 @@ o client/server communication
     x need configure switch to disable the remote client
     x if file starts with "http://" then switch to remote client
     x separate remote code into remote.c
-    o implement with google protocol buffers
+    x implement with google protocol buffers
         x ham_env_create_ex
         x ham_env_close
             x unittest 
@@ -54,7 +56,6 @@ o client/server communication
             x unittest
         x ham_env_open_db
             x unittest
-
         x ham_get_parameters
             x unittest
         x ham_enable_compression
@@ -62,7 +63,6 @@ o client/server communication
         x ham_flush
             x unittest
         x ham_calc_maxkeys_per_page - needed? i guess not...
-
         x ham_txn_begin
             x unittest
         x ham_txn_commit
@@ -73,7 +73,6 @@ o client/server communication
             x unittest
         x ham_get_key_count
             x unittest
-
         x ham_insert
             x needs implementation in remote.c, server
             x recno: key data is modified (if key->size==8 und
@@ -95,13 +94,10 @@ o client/server communication
             x unittest: insert, find, erase, find (useralloc)
             x unittest: insert, find, erase, find (for recno)
         x unittest for partial inserts
-
         x when opening(=creating) a database: the reply has to return the
             database flags! (i.e. recno)
-
         x if the same database is opened twice, the same handle has to be 
             returned (currently, an error is returned - DB_ALREADY_OPEN)
-
         x ham_cursor_create
             x implement client
             x implement server
@@ -114,7 +110,6 @@ o client/server communication
             x implement client
             x implement server
             x unittest
-
         x ham_cursor_insert
             x implement client
             x implement server
@@ -141,6 +136,8 @@ o client/server communication
                 it's already specified remotely; flag is not returned when
                 creating/opening an env!?
 
+    o daemon: remove from server directory, add as a sample
+
     o make sure that tests in remote.cpp do not require external daemon
     o make sure that all other tests run successfully
     o check for memory leaks
@@ -149,8 +146,6 @@ o client/server communication
 
     o messages-pb.c must be created dynamically because it depends on 
         the google protobuf version
-
-o HAM_PARAM_GET_STATISTICS -> hamsterdb_int.h!
 
 ------------------------------ (this release is unstable!) -----------------
 

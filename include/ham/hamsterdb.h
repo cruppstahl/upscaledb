@@ -684,8 +684,6 @@ ham_env_open_ex(ham_env_t *env, const char *filename,
  *        <li>HAM_PARAM_GET_FILENAME</li> returns the filename (the @a value
  *              of this parameter is a const char * pointer casted to a
  *              ham_u64_t variable)
- *        <li>HAM_PARAM_GET_STATISTICS</li> returns a @ref ham_statistics_t 
- *              structure with the current statistics
  *      </ul>
  *
  * @param env A valid Environment handle
@@ -1975,8 +1973,6 @@ ham_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  *        <li>HAM_PARAM_GET_KEYS_PER_PAGE</li> returns the maximum number 
  *              of keys per page
  *        <li>HAM_PARAM_GET_DATA_ACCESS_MODE</li> returns the Data Access Mode
- *        <li>HAM_PARAM_GET_STATISTICS</li> returns a @ref ham_statistics_t 
- *              structure with the current statistics
  *      </ul>
  *
  * @param db A valid Database handle
@@ -2057,23 +2053,6 @@ ham_get_parameters(ham_db_t *db, ham_parameter_t *param);
  */
 #define HAM_PARAM_GET_DATA_ACCESS_MODE     0x00000205
 #define HAM_PARAM_GET_DAM                  HAM_PARAM_GET_DATA_ACCESS_MODE
-
-/**
- * Retrieve a @ref ham_statistics_t structure with the current statistics.
- * 
- * @warning
- * Please, heed the warnings and notes listed in the @ref ham_statistics_t 
- * documentation section and follow the advice given there to the letter. 
- * Not adhering to these adminishions introduces the risk of hamsterdb 
- * becoming unstable and exhibiting unreliable and downright faulty 
- * behaviour over time. This includes, but is not limited to, core dumps or 
- * comparable system crashes.
- * 
- * @sa ham_statistics_t
- * @sa ham_get_parameters
- * @sa ham_env_get_parameters
- */
-#define HAM_PARAM_GET_STATISTICS        0x00000206
 
 /**
  * Retrieve the flags which were specified when the Database was created
