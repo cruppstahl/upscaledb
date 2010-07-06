@@ -155,7 +155,8 @@ _remote_fun_create(ham_env_t *env, const char *filename,
     st=reply->connect_reply->status;
     if (st==0) {
         env_set_curl(env, handle);
-        env_set_rt_flags(env, reply->connect_reply->env_flags);
+        env_set_rt_flags(env, 
+                env_get_rt_flags(env)|reply->connect_reply->env_flags);
     }
 
     ham__wrapper__free_unpacked(reply, 0);
@@ -191,7 +192,8 @@ _remote_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags,
     st=reply->connect_reply->status;
     if (st==0) {
         env_set_curl(env, handle);
-        env_set_rt_flags(env, reply->connect_reply->env_flags);
+        env_set_rt_flags(env, 
+                env_get_rt_flags(env)|reply->connect_reply->env_flags);
     }
 
     ham__wrapper__free_unpacked(reply, 0);

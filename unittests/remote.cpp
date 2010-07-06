@@ -15,9 +15,9 @@
 #include <cstring>
 #include <cstdlib>
 #include <ham/hamsterdb_int.h>
+#include <ham/hamserver.h>
 #include "memtracker.h"
 #include "../src/env.h"
-#include "../server/hamserver.h"
 #include "os.hpp"
 
 #include "bfc-testsuite.hpp"
@@ -25,7 +25,7 @@
 
 using namespace bfc;
 
-#define SERVER_URL "http://localhost:8080/test.db"
+#define SERVER_URL "http://localhost:8989/test.db"
 
 class RemoteTest : public hamsterDB_fixture
 {
@@ -81,29 +81,47 @@ public:
     }
 
 protected:
-    ham_env_t *m_srvenv;
+    ham_env_t *m_env;
+    ham_db_t *m_db;
     hamserver_t *m_srv;
 
     void setup(void)
     {
-        hamserver_config_t config;
-        config.port=8989;
-        BFC_ASSERT_EQUAL(HAM_TRUE, 
-                hamserver_init(&config, &m_srv));
+        hamserver_config_t cfg;
+        cfg.port=8989;
 
-        BFC_ASSERT_EQUAL(0, ham_env_new(&m_srvenv));
+        ham_env_new(&m_env);
         BFC_ASSERT_EQUAL(0, 
-                ham_env_create(m_srvenv, "test.db", 0, 0664));
+                ham_env_create(m_env, "test.db", 
+                        HAM_ENABLE_TRANSACTIONS, 0644));
+
+        ham_new(&m_db);
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_db(m_env, m_db, 14, HAM_ENABLE_DUPLICATES, 0));
+        ham_close(m_db, 0);
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_db(m_env, m_db, 13, HAM_ENABLE_DUPLICATES, 0));
+        ham_close(m_db, 0);
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_db(m_env, m_db, 33, 
+                        HAM_RECORD_NUMBER|HAM_ENABLE_DUPLICATES, 0));
+        ham_close(m_db, 0);
 
         BFC_ASSERT_EQUAL(HAM_TRUE, 
-                hamserver_add_env(m_srv, m_srvenv, "/test.db"));
+                hamserver_init(&cfg, &m_srv));
+
+        BFC_ASSERT_EQUAL(HAM_TRUE, 
+                hamserver_add_env(m_srv, m_env, "/test.db"));
     }
 
     void teardown(void)
     {
         hamserver_close(m_srv);
-        ham_env_close(m_srvenv, 0);
-        ham_env_delete(m_srvenv);
+        ham_env_close(m_env, HAM_AUTO_CLEANUP);
+        ham_env_delete(m_env);
+        ham_delete(m_db);
     }
 
     void invalidUrlTest(void)

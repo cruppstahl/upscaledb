@@ -138,6 +138,7 @@ o client/server communication
                 creating/opening an env!?
 
     x daemon: remove from server directory, add as a sample
+    o release build: make sure that the debug output of libcurl is suppressed
 
     o make sure that tests in remote.cpp do not require external daemon
     o make sure that all other tests run successfully

@@ -614,6 +614,10 @@ handle_txn_commit(struct env_t *envh, struct mg_connection *conn,
     }
     else {
         reply.status=ham_txn_commit(txn, request->flags);
+        if (reply.status==0) {
+            /* remove the handle from the Env wrapper structure */
+            __remove_handle(envh, request->txn_handle);
+        }
     }
 
     send_wrapper(env, conn, &wrapper);
@@ -643,6 +647,10 @@ handle_txn_abort(struct env_t *envh, struct mg_connection *conn,
     }
     else {
         reply.status=ham_txn_abort(txn, request->flags);
+        if (reply.status==0) {
+            /* remove the handle from the Env wrapper structure */
+            __remove_handle(envh, request->txn_handle);
+        }
     }
 
     send_wrapper(env, conn, &wrapper);

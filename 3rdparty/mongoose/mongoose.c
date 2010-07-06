@@ -4522,7 +4522,7 @@ worker_thread(struct mg_context *ctx)
 	}
 
     if (!conn.ctx)
-        return;
+		conn.ctx = ctx;
 
 	/* Signal master that we're done with connection and exiting */
 	pthread_mutex_lock(&conn.ctx->thr_mutex);

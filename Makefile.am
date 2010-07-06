@@ -1,11 +1,11 @@
 ACLOCAL_AMFLAGS	= -I m4
 
 
-SUBDIRS = 3rdparty src include samples tools
+SUBDIRS = 3rdparty src include 
 if ENABLE_SERVER
 SUBDIRS += server
 endif
-SUBDIRS += unittests
+SUBDIRS += samples tools unittests
 
 DOCUMENTATION_FILES = documentation/Doxyfile*           \
              documentation/hamsterdb-main.jpg           \
