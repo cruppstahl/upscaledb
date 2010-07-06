@@ -139,8 +139,8 @@ txn_begin(ham_txn_t *txn, ham_env_t *env, ham_u32_t flags)
     txn_set_env(txn, env);
     txn_set_id(txn, env_get_txn_id(env)+1);
     txn_set_flags(txn, flags);
-    env_set_txn(env, txn);
     env_set_txn_id(env, txn_get_id(txn));
+    env_set_txn(env, txn);
 
     if (env_get_log(env) && !(flags&HAM_TXN_READ_ONLY))
         st=ham_log_append_txn_begin(env_get_log(env), txn);
@@ -189,8 +189,6 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
             return st;
     }
 
-    env_set_txn(env, 0);
-
     /*
      * flush the pages
      *
@@ -232,7 +230,9 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
         }
     }
 
+    txn_set_env(txn, 0);
     txn_set_pagelist(txn, 0);
+    env_set_txn(env, 0);
 
     return HAM_SUCCESS;
 }

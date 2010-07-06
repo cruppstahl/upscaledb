@@ -339,6 +339,7 @@ __record_filters_after_find(ham_db_t *db, ham_record_t *record)
 ham_status_t
 ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
 {
+    ham_status_t st;
     ham_env_t *env; 
 
     if (!txn) {
@@ -368,42 +369,64 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
         return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
 
-    return (db_set_error(db, env->_fun_txn_begin(env, db, txn, flags)));
+    st=env->_fun_txn_begin(env, db, txn, flags);
+    if (st)
+        return (st);
+
+    env_set_txn(env, *txn);
+    txn_set_env(*txn, env);
+
+    return (db_set_error(db, 0));
 }
 
 ham_status_t
 ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
 {
-    ham_env_t *env=txn_get_env(txn);
+    ham_status_t st;
+    ham_env_t *env;
 
     if (!txn) {
         ham_trace(("parameter 'txn' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
-    if (!env->_fun_txn_commit) {
+
+    env=txn_get_env(txn);
+    if (!env || !env->_fun_txn_commit) {
         ham_trace(("Environment was not initialized"));
         return (HAM_NOT_INITIALIZED);
     }
 
-    return (env->_fun_txn_commit(env, txn, flags));
+    st=env->_fun_txn_commit(env, txn, flags);
+    if (st)
+        return (st);
+
+    env_set_txn(env, 0);
+    return (0);
 }
 
 ham_status_t
 ham_txn_abort(ham_txn_t *txn, ham_u32_t flags)
 {
-    ham_env_t *env=txn_get_env(txn);
+    ham_status_t st;
+    ham_env_t *env;
 
     if (!txn) {
         ham_trace(("parameter 'txn' must not be NULL"));
         return (HAM_INV_PARAMETER);
     }
 
-    if (!env->_fun_txn_abort) {
+    env=txn_get_env(txn);
+    if (!env || !env->_fun_txn_abort) {
         ham_trace(("Environment was not initialized"));
         return (HAM_NOT_INITIALIZED);
     }
 
-    return (env->_fun_txn_abort(env, txn, flags));
+    st=env->_fun_txn_abort(env, txn, flags);
+    if (st)
+        return (st);
+
+    env_set_txn(env, 0);
+    return (0);
 }
 
 const char * HAM_CALLCONV

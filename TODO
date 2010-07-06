@@ -143,6 +143,7 @@ o client/server communication
     o make sure that tests in remote.cpp do not require external daemon
     o make sure that all other tests run successfully
     o check for memory leaks
+    o server: handles are 1,2,3 instead of counter<<16|idx
 
     o add documentation
 
@@ -158,6 +159,9 @@ o release new .NET wrapper with fix from a.todorov (-> nabble)
 o some cleanup:
     db_set_allocdata -> for records, but we need a similar function for keys!
     currently, db_set_key_allocdata() is used, but it's very clumsy
+
+o server: shutdown time is very slow (10 sec per thread)
+    -> trigger mutex/condition when shutting down to interrupt the threads
 
 o call curl_global_cleanup() (not threadsafe!!)
 
