@@ -212,8 +212,9 @@ protected:
         BFC_ASSERT_EQUAL((unsigned)HAM_DEFAULT_CACHESIZE, params[0].value);
         BFC_ASSERT_EQUAL(1024*16u, params[1].value);
         BFC_ASSERT_EQUAL((ham_offset_t)16, params[2].value);
-        BFC_ASSERT_EQUAL(640u, params[3].value);
-        BFC_ASSERT_EQUAL((ham_offset_t)420, params[4].value);
+        BFC_ASSERT_EQUAL((ham_offset_t)(HAM_ENABLE_TRANSACTIONS
+                        |HAM_ENABLE_RECOVERY), params[3].value);
+        BFC_ASSERT_EQUAL(0644u, params[4].value);
         BFC_ASSERT_EQUAL(0, strcmp("test.db", (char *)params[5].value));
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
@@ -233,9 +234,10 @@ protected:
         BFC_ASSERT_EQUAL(0, 
                 ham_env_get_database_names(env, &names[0], &max_names));
 
-        //BFC_ASSERT_EQUAL(HAM_DEFAULT_DATABASE_NAME, names[0]);
-        BFC_ASSERT_EQUAL(13, names[0]);
-        BFC_ASSERT_EQUAL(1u, max_names);
+        BFC_ASSERT_EQUAL(14, names[0]);
+        BFC_ASSERT_EQUAL(13, names[1]);
+        BFC_ASSERT_EQUAL(33, names[2]);
+        BFC_ASSERT_EQUAL(3u, max_names);
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_env_delete(env);
@@ -268,12 +270,20 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_env_rename_db(env, 13, 15, 0));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_get_database_names(env, &names[0], &max_names));
-        BFC_ASSERT_EQUAL(15, names[0]);
-        BFC_ASSERT_EQUAL(1u, max_names);
+        BFC_ASSERT_EQUAL(14, names[0]);
+        BFC_ASSERT_EQUAL(15, names[1]);
+        BFC_ASSERT_EQUAL(33, names[2]);
+        BFC_ASSERT_EQUAL(3u, max_names);
 
         BFC_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
-                    ham_env_rename_db(env, 14, 16, 0));
+                    ham_env_rename_db(env, 13, 16, 0));
         BFC_ASSERT_EQUAL(0, ham_env_rename_db(env, 15, 13, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_get_database_names(env, &names[0], &max_names));
+        BFC_ASSERT_EQUAL(14, names[0]);
+        BFC_ASSERT_EQUAL(13, names[1]);
+        BFC_ASSERT_EQUAL(33, names[2]);
+        BFC_ASSERT_EQUAL(3u, max_names);
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         ham_env_delete(env);
@@ -353,13 +363,15 @@ protected:
                 ham_env_get_database_names(env, &names[0], &max_names));
         BFC_ASSERT_EQUAL(14, names[0]);
         BFC_ASSERT_EQUAL(13, names[1]);
-        BFC_ASSERT_EQUAL(2u, max_names);
+        BFC_ASSERT_EQUAL(33, names[2]);
+        BFC_ASSERT_EQUAL(3u, max_names);
 
         BFC_ASSERT_EQUAL(0, ham_env_erase_db(env, 14, 0));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_get_database_names(env, &names[0], &max_names));
         BFC_ASSERT_EQUAL(13, names[0]);
-        BFC_ASSERT_EQUAL(1u, max_names);
+        BFC_ASSERT_EQUAL(33, names[1]);
+        BFC_ASSERT_EQUAL(2u, max_names);
 
         BFC_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
                 ham_env_erase_db(env, 14, 0));
@@ -384,15 +396,16 @@ protected:
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, 
-                ham_create(db, SERVER_URL, 0, 0664));
+                ham_create(db, SERVER_URL, 0, 0));
 
         BFC_ASSERT_EQUAL(0, ham_get_parameters(db, params));
 
         BFC_ASSERT_EQUAL((unsigned)HAM_DEFAULT_CACHESIZE, params[0].value);
         BFC_ASSERT_EQUAL(1024*16u, params[1].value);
         BFC_ASSERT_EQUAL((ham_offset_t)16, params[2].value);
-        BFC_ASSERT_EQUAL(0u, params[3].value);
-        BFC_ASSERT_EQUAL((ham_offset_t)420, params[4].value);
+        BFC_ASSERT_EQUAL((ham_offset_t)(HAM_ENABLE_TRANSACTIONS
+                        |HAM_ENABLE_RECOVERY), params[3].value);
+        BFC_ASSERT_EQUAL(0644u, params[4].value);
         BFC_ASSERT_EQUAL(0, strcmp("test.db", (char *)params[5].value));
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));

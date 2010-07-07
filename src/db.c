@@ -1494,31 +1494,6 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
      */
     stats_trash_dbdata(db, db_get_db_perf_data(db));
 
-    /*
-     * remove this database from the environment
-     */
-    if (env) 
-    {
-        ham_db_t *prev=0;
-        ham_db_t *head=env_get_list(env);
-        while (head) {
-            if (head==db) {
-                if (!prev)
-                    env_set_list(db_get_env(db), db_get_next(db));
-                else
-                    db_set_next(prev, db_get_next(db));
-                break;
-            }
-            prev=head;
-            head=db_get_next(head);
-        }
-        if (db_get_rt_flags(db)&DB_ENV_IS_PRIVATE) {
-            (void)ham_env_close(db_get_env(db), flags);
-            ham_env_delete(db_get_env(db));
-        }
-        db_set_env(db, 0);
-    }
-
     return (db_set_error(db, st2));
 }
 

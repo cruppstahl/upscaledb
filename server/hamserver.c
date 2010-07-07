@@ -42,7 +42,7 @@ typedef struct handle_t
 {
     void *ptr;
     int type;
-    ham_u32_t handle;
+    ham_u64_t handle;
 } handle_t;
 
 struct hamserver_t

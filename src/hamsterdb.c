@@ -1826,9 +1826,6 @@ ham_delete(ham_db_t *db)
     }
     env = db_get_env(db);
 
-    /* free cached data pointers */
-    st2 = db_resize_allocdata(db, 0);
-
     /* trash all DB performance data */
     stats_trash_dbdata(db, db_get_db_perf_data(db));
 
@@ -2922,6 +2919,33 @@ ham_close(ham_db_t *db, ham_u32_t flags)
      * the function pointer will do the actual implementation
      */
     st=db->_fun_close(db, flags);
+
+    /* free cached data pointers */
+    (void)db_resize_allocdata(db, 0);
+
+    /*
+     * remove this database from the environment
+     */
+    if (env) {
+        ham_db_t *prev=0;
+        ham_db_t *head=env_get_list(env);
+        while (head) {
+            if (head==db) {
+                if (!prev)
+                    env_set_list(db_get_env(db), db_get_next(db));
+                else
+                    db_set_next(prev, db_get_next(db));
+                break;
+            }
+            prev=head;
+            head=db_get_next(head);
+        }
+        if (db_get_rt_flags(db)&DB_ENV_IS_PRIVATE) {
+            (void)ham_env_close(db_get_env(db), flags);
+            ham_env_delete(db_get_env(db));
+        }
+        db_set_env(db, 0);
+    }
 
     db_set_active(db, HAM_FALSE);
 
