@@ -138,12 +138,8 @@ o client/server communication
                 creating/opening an env!?
 
     x daemon: remove from server directory, add as a sample
-    o release build: make sure that the debug output of libcurl is suppressed
-
-    o make sure that tests in remote.cpp do not require external daemon
-
------ error #4 in RemoteTest::openDbTest
-remote.cpp:334 assertion failed in expr 0x100000000ull != db_get_remote_handle(db); actual values: '4294967296' == '0'
+    x release build: make sure that the debug output of libcurl is suppressed
+    x make sure that tests in remote.cpp do not require external daemon
 
     o make sure that all other tests run successfully
     o check for memory leaks

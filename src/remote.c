@@ -91,7 +91,9 @@ _perform_request(ham_env_t *env, CURL *handle, Ham__Wrapper *wrapper,
     slist=curl_slist_append(slist, "Transfer-Encoding:");
     slist=curl_slist_append(slist, "Expect:");
 
+#ifdef HAM_DEBUG
     SETOPT(handle, CURLOPT_VERBOSE, 1);
+#endif
     SETOPT(handle, CURLOPT_URL, env_get_filename(env));
     SETOPT(handle, CURLOPT_READFUNCTION, __readfunc);
     SETOPT(handle, CURLOPT_READDATA, &buf);
