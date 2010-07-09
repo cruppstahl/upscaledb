@@ -2903,7 +2903,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     /*
      * immediately abort or commit a pending txn
      */
-    if (env_get_txn(env)) {
+    if (env && env_get_txn(env)) {
         if (flags&HAM_TXN_AUTO_COMMIT)
             st=ham_txn_commit(env_get_txn(env), 0);
         else

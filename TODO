@@ -161,26 +161,12 @@ o some cleanup:
 
 o call curl_global_cleanup() (not threadsafe!!)
 
-o unittest crashes:
-    env=ham_env_create()
-    db=ham_env_create_db(RECNO)
-    insert(RECNO, key[0, 0]) => will call db_resize_allocdata()
-    ham_close(db)
-    ham_env_close(db)
-    ham_delete(db) => will call db_resize_allocdata(0), but allocator was
-        already freed!
-
 o fix freelist page overflow when searching for bits (See mail from Stefan)
     -> is this still relevant??
 
 o more remote stuff
     o unittest for approx matching
-
-    o add Windows stuff
-    o add acceptance tests
-
     o unittest: negative insert, negative find, negative erase
-
     o test with big blobs!
     o check_create_parameters -> move to env.c??
     o my_free_cb is duplicated in env.c und hamsterdb.c!
@@ -190,13 +176,15 @@ o more remote stuff
 
     o unittest: ham_env_create_db w/ extended params
 
+    o add Windows stuff
+
     o how is the daemon safely shut down? -> before exiting, we have to
         close the environments!
 
-o mongoose: 
+o server: 
     o make sure connections are not closed immediately (keep-alive)
-    o add license to readme!
     o mongoose - disable default handler (returns file listing!)
+    o add mongoose license to readme!
 
 o server: second step
     o unix daemon (also running in foreground!)
@@ -221,6 +209,7 @@ o server: second step
     . install a callback for authentication (and offer a predefined
         callback for SSL?)
     o support https?
+    o add acceptance tests
 
 o need win32 project for the server
 
