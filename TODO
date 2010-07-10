@@ -142,6 +142,7 @@ o client/server communication
     x make sure that tests in remote.cpp do not require external daemon
 
     o make sure that all other tests run successfully
+        HamsterdbTest::readOnlyTest
     o check for memory leaks
 
     o add documentation
