@@ -258,6 +258,8 @@ handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
     /* initialize the reply package */
     for (i=0; i<request->n_names; i++) {
         switch (params[i].name) {
+        case 0:
+            continue;
         case HAM_PARAM_CACHESIZE:
             reply.cachesize=(int)params[i].value;
             reply.has_cachesize=1;

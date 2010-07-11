@@ -664,7 +664,8 @@ protected:
 
 
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
-        BFC_ASSERT_EQUAL(0, ham_env_create(env, BFC_OPATH(".test"), m_flags, 0644));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(env, BFC_OPATH(".test"), m_flags, 0644));
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
 

@@ -2551,32 +2551,7 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
                     "In-Memory Databases"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
-    if (db_get_rt_flags(db)&HAM_READ_ONLY) {
-        ham_trace(("cannot insert to a read-only database"));
-        return (db_set_error(db, HAM_DB_READ_ONLY));
-    }
-    if ((db_get_rt_flags(db)&HAM_DISABLE_VAR_KEYLEN) &&
-            (key->size>db_get_keysize(db))) {
-        ham_trace(("database does not support variable length keys"));
-        return (db_set_error(db, HAM_INV_KEYSIZE));
-    }
-    if ((flags&HAM_DUPLICATE) && (flags&HAM_OVERWRITE)) {
-        ham_trace(("cannot combine HAM_DUPLICATE and HAM_OVERWRITE"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
-    }
-    if ((flags&HAM_DUPLICATE) && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)) {
-        ham_trace(("database does not support duplicate keys "
-                    "(see HAM_ENABLE_DUPLICATES)"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
-    }
-    if ((flags&HAM_DUPLICATE_INSERT_AFTER)
-            || (flags&HAM_DUPLICATE_INSERT_BEFORE)
-            || (flags&HAM_DUPLICATE_INSERT_LAST)
-            || (flags&HAM_DUPLICATE_INSERT_FIRST)) {
-        ham_trace(("function does not support flags HAM_DUPLICATE_INSERT_*; "
-                    "see ham_cursor_insert"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
-    }
+
     /* record number: make sure that we have a valid key structure */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         if (key->size!=sizeof(ham_u64_t) || !key->data) {
@@ -2592,8 +2567,6 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         ham_trace(("Database was not initialized"));
         return (HAM_NOT_INITIALIZED);
     }
-
-    db_set_error(db, 0);
 
     return (db_set_error(db, db->_fun_find(db, txn, key, record, flags)));
 }
@@ -2644,9 +2617,35 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
                     "ham_cursor_insert"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+    if (db_get_rt_flags(db)&HAM_READ_ONLY) {
+        ham_trace(("cannot insert in a read-only database"));
+        return (db_set_error(db, HAM_DB_READ_ONLY));
+    }
+    if ((db_get_rt_flags(db)&HAM_DISABLE_VAR_KEYLEN) &&
+            (key->size>db_get_keysize(db))) {
+        ham_trace(("database does not support variable length keys"));
+        return (db_set_error(db, HAM_INV_KEYSIZE));
+    }
+    if ((flags&HAM_OVERWRITE) && (flags&HAM_DUPLICATE)) {
+        ham_trace(("cannot combine HAM_OVERWRITE and HAM_DUPLICATE"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
     if ((flags&HAM_PARTIAL) && (db_get_rt_flags(db)&HAM_SORT_DUPLICATES)) {
         ham_trace(("flag HAM_PARTIAL is not allowed if duplicates "
                     "are sorted"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_DUPLICATE) && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)) {
+        ham_trace(("database does not support duplicate keys "
+                    "(see HAM_ENABLE_DUPLICATES)"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_DUPLICATE_INSERT_AFTER)
+            || (flags&HAM_DUPLICATE_INSERT_BEFORE)
+            || (flags&HAM_DUPLICATE_INSERT_LAST)
+            || (flags&HAM_DUPLICATE_INSERT_FIRST)) {
+        ham_trace(("function does not support flags HAM_DUPLICATE_INSERT_*; "
+                    "see ham_cursor_insert"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if ((flags&HAM_PARTIAL) 
@@ -2804,6 +2803,10 @@ ham_calc_maxkeys_per_page(ham_db_t *db, ham_size_t *keycount, ham_u16_t keysize)
         ham_trace(("parameter 'keycount' must not be NULL"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+    if (!db_get_env(db)) {
+        ham_trace(("Database was not initialized"));
+        return (db_set_error(db, HAM_NOT_INITIALIZED));
+    }
     if (env_get_rt_flags(db_get_env(db))&DB_IS_REMOTE) {
         ham_trace(("ham_calc_maxkeys_per_page is not supported by remote "
                 "servers"));
@@ -2887,6 +2890,12 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         return (HAM_INV_PARAMETER);
     }
 
+    if ((flags&HAM_TXN_AUTO_ABORT) && (flags&HAM_TXN_AUTO_COMMIT)) {
+        ham_trace(("invalid combination of flags: HAM_TXN_AUTO_ABORT + "
+                    "HAM_TXN_AUTO_COMMIT"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+
     /*
      * it's ok to close an uninitialized Database
      */
@@ -2894,12 +2903,6 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         return (0);
 
     env = db_get_env(db);
-    if ((flags&HAM_TXN_AUTO_ABORT) && (flags&HAM_TXN_AUTO_COMMIT)) {
-        ham_trace(("invalid combination of flags: HAM_TXN_AUTO_ABORT + "
-                    "HAM_TXN_AUTO_COMMIT"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
-    }
-
     /*
      * immediately abort or commit a pending txn
      */
@@ -2919,6 +2922,8 @@ ham_close(ham_db_t *db, ham_u32_t flags)
      * the function pointer will do the actual implementation
      */
     st=db->_fun_close(db, flags);
+    if (st)
+        return (db_set_error(db, st));
 
     /* free cached data pointers */
     (void)db_resize_allocdata(db, 0);

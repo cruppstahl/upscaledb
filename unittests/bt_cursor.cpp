@@ -265,56 +265,49 @@ public:
 
     void linkedListTest(void)
     {
-        ham_bt_cursor_t *cursor[5], *clone;
+        ham_cursor_t *cursor[5], *clone;
 
         BFC_ASSERT_EQUAL((ham_cursor_t *)0, db_get_cursors(m_db));
 
         for (int i=0; i<5; i++) {
-            ham_cursor_t *c;
-            BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
-            cursor[i]=(ham_bt_cursor_t *)c;
-            BFC_ASSERT(cursor[i]!=0);
-            BFC_ASSERT_EQUAL((ham_cursor_t *)cursor[i], 
-                            db_get_cursors(m_db));
+            BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor[i]));
+            BFC_ASSERT_EQUAL(cursor[i], db_get_cursors(m_db));
         }
 
-        BFC_ASSERT(cursor[0]->_fun_clone(cursor[0], &clone)==0);
+        BFC_ASSERT_EQUAL(0, ham_cursor_clone(cursor[0], &clone));
         BFC_ASSERT(clone!=0);
-        BFC_ASSERT_EQUAL((ham_cursor_t *)clone, db_get_cursors(m_db));
+        BFC_ASSERT_EQUAL(clone, db_get_cursors(m_db));
 
         for (int i=0; i<5; i++) {
             BFC_ASSERT_EQUAL(0, 
-                    ham_cursor_close((ham_cursor_t *)cursor[i]));
+                    ham_cursor_close(cursor[i]));
         }
-        BFC_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)clone));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
 
         BFC_ASSERT_EQUAL((ham_cursor_t *)0, db_get_cursors(m_db));
     }
 
     void linkedListReverseCloseTest(void)
     {
-        ham_bt_cursor_t *cursor[5], *clone;
+        ham_cursor_t *cursor[5], *clone;
 
         BFC_ASSERT_EQUAL((ham_cursor_t *)0, db_get_cursors(m_db));
 
         for (int i=0; i<5; i++) {
-            ham_cursor_t *c;
-            BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
-            cursor[i]=(ham_bt_cursor_t *)c;
+            BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor[i]));
             BFC_ASSERT(cursor[i]!=0);
-            BFC_ASSERT_EQUAL((ham_cursor_t *)cursor[i], 
-                            db_get_cursors(m_db));
+            BFC_ASSERT_EQUAL(cursor[i], db_get_cursors(m_db));
         }
 
-        BFC_ASSERT(cursor[0]->_fun_clone(cursor[0], &clone)==0);
+        BFC_ASSERT_EQUAL(0, ham_cursor_clone(cursor[0], &clone));
         BFC_ASSERT(clone!=0);
         BFC_ASSERT_EQUAL((ham_cursor_t *)clone, db_get_cursors(m_db));
 
         for (int i=4; i>=0; i--) {
             BFC_ASSERT_EQUAL(0, 
-                    ham_cursor_close((ham_cursor_t *)cursor[i]));
+                    ham_cursor_close(cursor[i]));
         }
-        BFC_ASSERT_EQUAL(0, ham_cursor_close((ham_cursor_t *)clone));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
 
         BFC_ASSERT_EQUAL((ham_cursor_t *)0, db_get_cursors(m_db));
     }

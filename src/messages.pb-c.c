@@ -3408,7 +3408,8 @@ const ProtobufCMessageDescriptor ham__wrapper__descriptor =
   ham__wrapper__field_descriptors,
   ham__wrapper__field_indices_by_name,
   29,  ham__wrapper__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__wrapper__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__connect_request__field_descriptors[1] =
 {
@@ -3444,7 +3445,8 @@ const ProtobufCMessageDescriptor ham__connect_request__descriptor =
   ham__connect_request__field_descriptors,
   ham__connect_request__field_indices_by_name,
   1,  ham__connect_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__connect_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__connect_reply__field_descriptors[2] =
 {
@@ -3492,7 +3494,8 @@ const ProtobufCMessageDescriptor ham__connect_reply__descriptor =
   ham__connect_reply__field_descriptors,
   ham__connect_reply__field_indices_by_name,
   1,  ham__connect_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__connect_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__env_get_parameters_request__field_descriptors[1] =
 {
@@ -3528,7 +3531,8 @@ const ProtobufCMessageDescriptor ham__env_get_parameters_request__descriptor =
   ham__env_get_parameters_request__field_descriptors,
   ham__env_get_parameters_request__field_indices_by_name,
   1,  ham__env_get_parameters_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__env_get_parameters_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__env_get_parameters_reply__field_descriptors[7] =
 {
@@ -3636,7 +3640,8 @@ const ProtobufCMessageDescriptor ham__env_get_parameters_reply__descriptor =
   ham__env_get_parameters_reply__field_descriptors,
   ham__env_get_parameters_reply__field_indices_by_name,
   1,  ham__env_get_parameters_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__env_get_parameters_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__env_get_database_names_request__field_descriptors[0] =
 {
@@ -3656,7 +3661,8 @@ const ProtobufCMessageDescriptor ham__env_get_database_names_request__descriptor
   ham__env_get_database_names_request__field_descriptors,
   ham__env_get_database_names_request__field_indices_by_name,
   0,  ham__env_get_database_names_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__env_get_database_names_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__env_get_database_names_reply__field_descriptors[2] =
 {
@@ -3704,7 +3710,8 @@ const ProtobufCMessageDescriptor ham__env_get_database_names_reply__descriptor =
   ham__env_get_database_names_reply__field_descriptors,
   ham__env_get_database_names_reply__field_indices_by_name,
   1,  ham__env_get_database_names_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__env_get_database_names_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__env_rename_request__field_descriptors[3] =
 {
@@ -3764,7 +3771,8 @@ const ProtobufCMessageDescriptor ham__env_rename_request__descriptor =
   ham__env_rename_request__field_descriptors,
   ham__env_rename_request__field_indices_by_name,
   1,  ham__env_rename_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__env_rename_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__env_rename_reply__field_descriptors[1] =
 {
@@ -3800,7 +3808,8 @@ const ProtobufCMessageDescriptor ham__env_rename_reply__descriptor =
   ham__env_rename_reply__field_descriptors,
   ham__env_rename_reply__field_indices_by_name,
   1,  ham__env_rename_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__env_rename_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__env_flush_request__field_descriptors[1] =
 {
@@ -3836,7 +3845,8 @@ const ProtobufCMessageDescriptor ham__env_flush_request__descriptor =
   ham__env_flush_request__field_descriptors,
   ham__env_flush_request__field_indices_by_name,
   1,  ham__env_flush_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__env_flush_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__env_flush_reply__field_descriptors[1] =
 {
@@ -3872,7 +3882,8 @@ const ProtobufCMessageDescriptor ham__env_flush_reply__descriptor =
   ham__env_flush_reply__field_descriptors,
   ham__env_flush_reply__field_indices_by_name,
   1,  ham__env_flush_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__env_flush_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__env_create_db_request__field_descriptors[4] =
 {
@@ -3944,7 +3955,8 @@ const ProtobufCMessageDescriptor ham__env_create_db_request__descriptor =
   ham__env_create_db_request__field_descriptors,
   ham__env_create_db_request__field_indices_by_name,
   1,  ham__env_create_db_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__env_create_db_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__env_create_db_reply__field_descriptors[3] =
 {
@@ -4004,7 +4016,8 @@ const ProtobufCMessageDescriptor ham__env_create_db_reply__descriptor =
   ham__env_create_db_reply__field_descriptors,
   ham__env_create_db_reply__field_indices_by_name,
   1,  ham__env_create_db_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__env_create_db_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__env_open_db_request__field_descriptors[4] =
 {
@@ -4076,7 +4089,8 @@ const ProtobufCMessageDescriptor ham__env_open_db_request__descriptor =
   ham__env_open_db_request__field_descriptors,
   ham__env_open_db_request__field_indices_by_name,
   1,  ham__env_open_db_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__env_open_db_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__env_open_db_reply__field_descriptors[3] =
 {
@@ -4136,7 +4150,8 @@ const ProtobufCMessageDescriptor ham__env_open_db_reply__descriptor =
   ham__env_open_db_reply__field_descriptors,
   ham__env_open_db_reply__field_indices_by_name,
   1,  ham__env_open_db_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__env_open_db_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__env_erase_db_request__field_descriptors[2] =
 {
@@ -4184,7 +4199,8 @@ const ProtobufCMessageDescriptor ham__env_erase_db_request__descriptor =
   ham__env_erase_db_request__field_descriptors,
   ham__env_erase_db_request__field_indices_by_name,
   1,  ham__env_erase_db_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__env_erase_db_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__env_erase_db_reply__field_descriptors[1] =
 {
@@ -4220,7 +4236,8 @@ const ProtobufCMessageDescriptor ham__env_erase_db_reply__descriptor =
   ham__env_erase_db_reply__field_descriptors,
   ham__env_erase_db_reply__field_indices_by_name,
   1,  ham__env_erase_db_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__env_erase_db_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__db_close_request__field_descriptors[2] =
 {
@@ -4268,7 +4285,8 @@ const ProtobufCMessageDescriptor ham__db_close_request__descriptor =
   ham__db_close_request__field_descriptors,
   ham__db_close_request__field_indices_by_name,
   1,  ham__db_close_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__db_close_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__db_close_reply__field_descriptors[1] =
 {
@@ -4304,7 +4322,8 @@ const ProtobufCMessageDescriptor ham__db_close_reply__descriptor =
   ham__db_close_reply__field_descriptors,
   ham__db_close_reply__field_indices_by_name,
   1,  ham__db_close_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__db_close_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__db_get_parameters_request__field_descriptors[2] =
 {
@@ -4352,7 +4371,8 @@ const ProtobufCMessageDescriptor ham__db_get_parameters_request__descriptor =
   ham__db_get_parameters_request__field_descriptors,
   ham__db_get_parameters_request__field_indices_by_name,
   1,  ham__db_get_parameters_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__db_get_parameters_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__db_get_parameters_reply__field_descriptors[7] =
 {
@@ -4460,7 +4480,8 @@ const ProtobufCMessageDescriptor ham__db_get_parameters_reply__descriptor =
   ham__db_get_parameters_reply__field_descriptors,
   ham__db_get_parameters_reply__field_indices_by_name,
   1,  ham__db_get_parameters_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__db_get_parameters_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__db_flush_request__field_descriptors[2] =
 {
@@ -4508,7 +4529,8 @@ const ProtobufCMessageDescriptor ham__db_flush_request__descriptor =
   ham__db_flush_request__field_descriptors,
   ham__db_flush_request__field_indices_by_name,
   1,  ham__db_flush_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__db_flush_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__db_flush_reply__field_descriptors[1] =
 {
@@ -4544,7 +4566,8 @@ const ProtobufCMessageDescriptor ham__db_flush_reply__descriptor =
   ham__db_flush_reply__field_descriptors,
   ham__db_flush_reply__field_indices_by_name,
   1,  ham__db_flush_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__db_flush_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__txn_begin_request__field_descriptors[2] =
 {
@@ -4592,7 +4615,8 @@ const ProtobufCMessageDescriptor ham__txn_begin_request__descriptor =
   ham__txn_begin_request__field_descriptors,
   ham__txn_begin_request__field_indices_by_name,
   1,  ham__txn_begin_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__txn_begin_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__txn_begin_reply__field_descriptors[2] =
 {
@@ -4640,7 +4664,8 @@ const ProtobufCMessageDescriptor ham__txn_begin_reply__descriptor =
   ham__txn_begin_reply__field_descriptors,
   ham__txn_begin_reply__field_indices_by_name,
   1,  ham__txn_begin_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__txn_begin_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__txn_commit_request__field_descriptors[2] =
 {
@@ -4688,7 +4713,8 @@ const ProtobufCMessageDescriptor ham__txn_commit_request__descriptor =
   ham__txn_commit_request__field_descriptors,
   ham__txn_commit_request__field_indices_by_name,
   1,  ham__txn_commit_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__txn_commit_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__txn_commit_reply__field_descriptors[1] =
 {
@@ -4724,7 +4750,8 @@ const ProtobufCMessageDescriptor ham__txn_commit_reply__descriptor =
   ham__txn_commit_reply__field_descriptors,
   ham__txn_commit_reply__field_indices_by_name,
   1,  ham__txn_commit_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__txn_commit_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__txn_abort_request__field_descriptors[2] =
 {
@@ -4772,7 +4799,8 @@ const ProtobufCMessageDescriptor ham__txn_abort_request__descriptor =
   ham__txn_abort_request__field_descriptors,
   ham__txn_abort_request__field_indices_by_name,
   1,  ham__txn_abort_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__txn_abort_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__txn_abort_reply__field_descriptors[1] =
 {
@@ -4808,7 +4836,8 @@ const ProtobufCMessageDescriptor ham__txn_abort_reply__descriptor =
   ham__txn_abort_reply__field_descriptors,
   ham__txn_abort_reply__field_indices_by_name,
   1,  ham__txn_abort_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__txn_abort_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__db_check_integrity_request__field_descriptors[2] =
 {
@@ -4856,7 +4885,8 @@ const ProtobufCMessageDescriptor ham__db_check_integrity_request__descriptor =
   ham__db_check_integrity_request__field_descriptors,
   ham__db_check_integrity_request__field_indices_by_name,
   1,  ham__db_check_integrity_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__db_check_integrity_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__db_check_integrity_reply__field_descriptors[1] =
 {
@@ -4892,7 +4922,8 @@ const ProtobufCMessageDescriptor ham__db_check_integrity_reply__descriptor =
   ham__db_check_integrity_reply__field_descriptors,
   ham__db_check_integrity_reply__field_indices_by_name,
   1,  ham__db_check_integrity_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__db_check_integrity_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__db_get_key_count_request__field_descriptors[3] =
 {
@@ -4952,7 +4983,8 @@ const ProtobufCMessageDescriptor ham__db_get_key_count_request__descriptor =
   ham__db_get_key_count_request__field_descriptors,
   ham__db_get_key_count_request__field_indices_by_name,
   1,  ham__db_get_key_count_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__db_get_key_count_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__db_get_key_count_reply__field_descriptors[2] =
 {
@@ -5000,7 +5032,8 @@ const ProtobufCMessageDescriptor ham__db_get_key_count_reply__descriptor =
   ham__db_get_key_count_reply__field_descriptors,
   ham__db_get_key_count_reply__field_indices_by_name,
   1,  ham__db_get_key_count_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__db_get_key_count_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__key__field_descriptors[3] =
 {
@@ -5060,7 +5093,8 @@ const ProtobufCMessageDescriptor ham__key__descriptor =
   ham__key__field_descriptors,
   ham__key__field_indices_by_name,
   1,  ham__key__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__key__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__record__field_descriptors[4] =
 {
@@ -5132,7 +5166,8 @@ const ProtobufCMessageDescriptor ham__record__descriptor =
   ham__record__field_descriptors,
   ham__record__field_indices_by_name,
   1,  ham__record__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__record__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__db_insert_request__field_descriptors[5] =
 {
@@ -5216,7 +5251,8 @@ const ProtobufCMessageDescriptor ham__db_insert_request__descriptor =
   ham__db_insert_request__field_descriptors,
   ham__db_insert_request__field_indices_by_name,
   1,  ham__db_insert_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__db_insert_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__db_insert_reply__field_descriptors[2] =
 {
@@ -5264,7 +5300,8 @@ const ProtobufCMessageDescriptor ham__db_insert_reply__descriptor =
   ham__db_insert_reply__field_descriptors,
   ham__db_insert_reply__field_indices_by_name,
   1,  ham__db_insert_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__db_insert_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__db_erase_request__field_descriptors[4] =
 {
@@ -5336,7 +5373,8 @@ const ProtobufCMessageDescriptor ham__db_erase_request__descriptor =
   ham__db_erase_request__field_descriptors,
   ham__db_erase_request__field_indices_by_name,
   1,  ham__db_erase_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__db_erase_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__db_erase_reply__field_descriptors[1] =
 {
@@ -5372,7 +5410,8 @@ const ProtobufCMessageDescriptor ham__db_erase_reply__descriptor =
   ham__db_erase_reply__field_descriptors,
   ham__db_erase_reply__field_indices_by_name,
   1,  ham__db_erase_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__db_erase_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__db_find_request__field_descriptors[5] =
 {
@@ -5456,7 +5495,8 @@ const ProtobufCMessageDescriptor ham__db_find_request__descriptor =
   ham__db_find_request__field_descriptors,
   ham__db_find_request__field_indices_by_name,
   1,  ham__db_find_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__db_find_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__db_find_reply__field_descriptors[3] =
 {
@@ -5516,7 +5556,8 @@ const ProtobufCMessageDescriptor ham__db_find_reply__descriptor =
   ham__db_find_reply__field_descriptors,
   ham__db_find_reply__field_indices_by_name,
   1,  ham__db_find_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__db_find_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_create_request__field_descriptors[3] =
 {
@@ -5576,7 +5617,8 @@ const ProtobufCMessageDescriptor ham__cursor_create_request__descriptor =
   ham__cursor_create_request__field_descriptors,
   ham__cursor_create_request__field_indices_by_name,
   1,  ham__cursor_create_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_create_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_create_reply__field_descriptors[2] =
 {
@@ -5624,7 +5666,8 @@ const ProtobufCMessageDescriptor ham__cursor_create_reply__descriptor =
   ham__cursor_create_reply__field_descriptors,
   ham__cursor_create_reply__field_indices_by_name,
   1,  ham__cursor_create_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_create_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_clone_request__field_descriptors[1] =
 {
@@ -5660,7 +5703,8 @@ const ProtobufCMessageDescriptor ham__cursor_clone_request__descriptor =
   ham__cursor_clone_request__field_descriptors,
   ham__cursor_clone_request__field_indices_by_name,
   1,  ham__cursor_clone_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_clone_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_clone_reply__field_descriptors[2] =
 {
@@ -5708,7 +5752,8 @@ const ProtobufCMessageDescriptor ham__cursor_clone_reply__descriptor =
   ham__cursor_clone_reply__field_descriptors,
   ham__cursor_clone_reply__field_indices_by_name,
   1,  ham__cursor_clone_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_clone_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_close_request__field_descriptors[1] =
 {
@@ -5744,7 +5789,8 @@ const ProtobufCMessageDescriptor ham__cursor_close_request__descriptor =
   ham__cursor_close_request__field_descriptors,
   ham__cursor_close_request__field_indices_by_name,
   1,  ham__cursor_close_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_close_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_close_reply__field_descriptors[1] =
 {
@@ -5780,7 +5826,8 @@ const ProtobufCMessageDescriptor ham__cursor_close_reply__descriptor =
   ham__cursor_close_reply__field_descriptors,
   ham__cursor_close_reply__field_indices_by_name,
   1,  ham__cursor_close_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_close_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_insert_request__field_descriptors[4] =
 {
@@ -5852,7 +5899,8 @@ const ProtobufCMessageDescriptor ham__cursor_insert_request__descriptor =
   ham__cursor_insert_request__field_descriptors,
   ham__cursor_insert_request__field_indices_by_name,
   1,  ham__cursor_insert_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_insert_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_insert_reply__field_descriptors[2] =
 {
@@ -5900,7 +5948,8 @@ const ProtobufCMessageDescriptor ham__cursor_insert_reply__descriptor =
   ham__cursor_insert_reply__field_descriptors,
   ham__cursor_insert_reply__field_indices_by_name,
   1,  ham__cursor_insert_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_insert_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_erase_request__field_descriptors[2] =
 {
@@ -5948,7 +5997,8 @@ const ProtobufCMessageDescriptor ham__cursor_erase_request__descriptor =
   ham__cursor_erase_request__field_descriptors,
   ham__cursor_erase_request__field_indices_by_name,
   1,  ham__cursor_erase_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_erase_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_erase_reply__field_descriptors[1] =
 {
@@ -5984,7 +6034,8 @@ const ProtobufCMessageDescriptor ham__cursor_erase_reply__descriptor =
   ham__cursor_erase_reply__field_descriptors,
   ham__cursor_erase_reply__field_indices_by_name,
   1,  ham__cursor_erase_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_erase_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_find_request__field_descriptors[4] =
 {
@@ -6056,7 +6107,8 @@ const ProtobufCMessageDescriptor ham__cursor_find_request__descriptor =
   ham__cursor_find_request__field_descriptors,
   ham__cursor_find_request__field_indices_by_name,
   1,  ham__cursor_find_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_find_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_find_reply__field_descriptors[3] =
 {
@@ -6116,7 +6168,8 @@ const ProtobufCMessageDescriptor ham__cursor_find_reply__descriptor =
   ham__cursor_find_reply__field_descriptors,
   ham__cursor_find_reply__field_indices_by_name,
   1,  ham__cursor_find_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_find_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_get_duplicate_count_request__field_descriptors[2] =
 {
@@ -6164,7 +6217,8 @@ const ProtobufCMessageDescriptor ham__cursor_get_duplicate_count_request__descri
   ham__cursor_get_duplicate_count_request__field_descriptors,
   ham__cursor_get_duplicate_count_request__field_indices_by_name,
   1,  ham__cursor_get_duplicate_count_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_get_duplicate_count_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_get_duplicate_count_reply__field_descriptors[2] =
 {
@@ -6212,7 +6266,8 @@ const ProtobufCMessageDescriptor ham__cursor_get_duplicate_count_reply__descript
   ham__cursor_get_duplicate_count_reply__field_descriptors,
   ham__cursor_get_duplicate_count_reply__field_indices_by_name,
   1,  ham__cursor_get_duplicate_count_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_get_duplicate_count_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_overwrite_request__field_descriptors[3] =
 {
@@ -6272,7 +6327,8 @@ const ProtobufCMessageDescriptor ham__cursor_overwrite_request__descriptor =
   ham__cursor_overwrite_request__field_descriptors,
   ham__cursor_overwrite_request__field_indices_by_name,
   1,  ham__cursor_overwrite_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_overwrite_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_overwrite_reply__field_descriptors[1] =
 {
@@ -6308,7 +6364,8 @@ const ProtobufCMessageDescriptor ham__cursor_overwrite_reply__descriptor =
   ham__cursor_overwrite_reply__field_descriptors,
   ham__cursor_overwrite_reply__field_indices_by_name,
   1,  ham__cursor_overwrite_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_overwrite_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_move_request__field_descriptors[4] =
 {
@@ -6380,7 +6437,8 @@ const ProtobufCMessageDescriptor ham__cursor_move_request__descriptor =
   ham__cursor_move_request__field_descriptors,
   ham__cursor_move_request__field_indices_by_name,
   1,  ham__cursor_move_request__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_move_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor ham__cursor_move_reply__field_descriptors[3] =
 {
@@ -6440,5 +6498,6 @@ const ProtobufCMessageDescriptor ham__cursor_move_reply__descriptor =
   ham__cursor_move_reply__field_descriptors,
   ham__cursor_move_reply__field_indices_by_name,
   1,  ham__cursor_move_reply__number_ranges,
-  NULL,NULL,NULL,NULL    /* reserved[1234] */
+  (ProtobufCMessageInit) ham__cursor_move_reply__init,
+  NULL,NULL,NULL    /* reserved[123] */
 };

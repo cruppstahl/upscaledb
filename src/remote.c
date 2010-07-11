@@ -515,7 +515,7 @@ _remote_fun_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
         return (HAM_OUT_OF_MEMORY);
     p=param;
     if (p) {
-        for (; p->name; p++) {
+        for (i=0; p->name; p++) {
             names[i]=p->name;
             i++;
         }
@@ -688,7 +688,7 @@ _remote_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
         return (HAM_OUT_OF_MEMORY);
     p=param;
     if (p) {
-        for (; p->name; p++) {
+        for (i=0; p->name; p++) {
             names[i]=p->name;
             i++;
         }
