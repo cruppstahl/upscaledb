@@ -40,25 +40,28 @@ __writefunc(void *buffer, size_t size, size_t nmemb, void *ptr)
     curl_buffer_t *buf=(curl_buffer_t *)ptr;
 
     buf->wrapper=ham__wrapper__unpack(0, nmemb*size, (ham_u8_t *)buffer);
-    if (!buf->wrapper)
-        return 0;
-    return size*nmemb;
+    //if (!buf->wrapper)
+        //return 0;
+/* TODO append data to buffer till we have enough of it! (but what's the
+full data size that we will receive??? */
+    return (size*nmemb);
 }
 
 static size_t
 __readfunc(char *buffer, size_t size, size_t nmemb, void *ptr)
 {
     curl_buffer_t *buf=(curl_buffer_t *)ptr;
+    size_t remaining=buf->packed_size-buf->offset;
 
-    ham_assert(nmemb>=buf->packed_size, (""));
-    if (buf->offset==buf->packed_size)
+    if (remaining==0)
         return (0);
 
-    ham_assert(buf->offset==0, (""));
+    if (nmemb>remaining)
+        nmemb=remaining;
 
-    memcpy(buffer, buf->packed_data, buf->packed_size);
-    buf->offset=buf->packed_size;
-    return (buf->packed_size);
+    memcpy(buffer, buf->packed_data+buf->offset, nmemb);
+    buf->offset+=nmemb;
+    return (nmemb);
 }
 
 #define SETOPT(curl, opt, val)                                                \
