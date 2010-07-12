@@ -143,12 +143,12 @@ o client/server communication
 
     x make sure that all other tests run successfully
 
+    x messages-pb.c must be created dynamically because it depends on 
+        the google protobuf version
+
     o check for memory leaks
 
     o add documentation
-
-    o messages-pb.c must be created dynamically because it depends on 
-        the google protobuf version
 
 ------------------------------ (this release is unstable!) -----------------
 
@@ -173,9 +173,10 @@ o more remote stuff
     o test with big blobs!
     o check_create_parameters -> move to env.c??
     o my_free_cb is duplicated in env.c und hamsterdb.c!
+    o make sure there are no more warnings
 
     o functions in env/db.c and remote.c should never use
-        db_set_Error!
+        db_set_error!
 
     o unittest: ham_env_create_db w/ extended params
 

@@ -3,7 +3,7 @@ AM_CPPFLAGS = -I../include -I$(top_builddir)/3rdparty/aes
 
 lib_LTLIBRARIES = libhamsterdb.la
 
-EXTRA_DIST = os_win32.c messages.pb-c.*
+EXTRA_DIST = os_win32.c
 
 libhamsterdb_la_SOURCES = log.c \
 			blob.c \
@@ -48,11 +48,12 @@ endif
 endif
 
 if ENABLE_REMOTE
-libhamsterdb_la_SOURCES += messages.pb-c.c
+libhamsterdb_la_SOURCES = libhamsterdb_la_SOURCES + messages.pb-c.c
 libhamsterdb_la_LDFLAGS += -lprotobuf-c -lcurl
 CFLAGS += -DHAM_ENABLE_REMOTE
 endif
 
-proto:	messages.proto
+messages.pb-c.c proto: messages.proto
 	protoc-c messages.proto --c_out=.
+	
 
