@@ -1310,7 +1310,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
         /* error or not, continue closing the database! */
     }
     else if (db_get_cursors(db)) {
-        return (db_set_error(db, HAM_CURSOR_STILL_OPEN));
+        return (HAM_CURSOR_STILL_OPEN);
     }
 
     /*
@@ -1494,7 +1494,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
      */
     stats_trash_dbdata(db, db_get_db_perf_data(db));
 
-    return (db_set_error(db, st2));
+    return (st2);
 }
 
 static ham_status_t
@@ -1641,18 +1641,18 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
     {
         st=cache_check_integrity(env_get_cache(db_get_env(db)));
         if (st)
-            return (db_set_error(db, st));
+            return (st);
     }
 
     be=db_get_backend(db);
     if (!be)
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
+        return (HAM_NOT_INITIALIZED);
     if (!be->_fun_check_integrity)
-        return (db_set_error(db, HAM_NOT_IMPLEMENTED));
+        return (HAM_NOT_IMPLEMENTED);
 
     if (!txn) {
         if ((st=txn_begin(&local_txn, db_get_env(db), HAM_TXN_READ_ONLY)))
-            return (db_set_error(db, st));
+            return (st);
     }
 
     /*
@@ -1663,13 +1663,13 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
     if (st) {
         if (!txn)
             (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
+        return (st);
     }
 
     if (!txn)
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
+        return (txn_commit(&local_txn, 0));
     else
-        return (db_set_error(db, st));
+        return (st);
 #else
     return (HAM_NOT_IMPLEMENTED);
 #endif /* ifdef HAM_ENABLE_INTERNAL */
@@ -1690,19 +1690,19 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     if (flags & ~(HAM_SKIP_DUPLICATES | HAM_FAST_ESTIMATE)) {
         ham_trace(("parameter 'flag' contains unsupported flag bits: %08x", 
                   flags & ~(HAM_SKIP_DUPLICATES | HAM_FAST_ESTIMATE)));
-        return (db_set_error(db, HAM_INV_PARAMETER));
+        return (HAM_INV_PARAMETER);
     }
 
     be = db_get_backend(db);
     if (!be || !be_is_active(be))
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
+        return (HAM_NOT_INITIALIZED);
     if (!be->_fun_enumerate)
-        return (db_set_error(db, HAM_NOT_IMPLEMENTED));
+        return (HAM_NOT_IMPLEMENTED);
 
     if (!txn) {
         st = txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
         if (st)
-            return (db_set_error(db, st));
+            return (st);
     }
 
     /*
@@ -1713,15 +1713,15 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     if (st) {
         if (!txn)
             (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
+        return (st);
     }
 
     *keycount = ctx.total_count;
 
     if (!txn)
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
+        return (txn_commit(&local_txn, 0));
     else
-        return (db_set_error(db, st));
+        return (st);
 }
 
 static ham_status_t
@@ -1737,14 +1737,14 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
 
     be=db_get_backend(db);
     if (!be || !be_is_active(be))
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
+        return (HAM_NOT_INITIALIZED);
     if (!be->_fun_insert)
         return HAM_NOT_IMPLEMENTED;
 
     if (!txn) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
-            return (db_set_error(db, st));
+            return (st);
     }
 
     /*
@@ -1803,7 +1803,7 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
             }
             ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
         }
-        return (db_set_error(db, st));
+        return (st);
     }
 
     /*
@@ -1822,9 +1822,9 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
     }
 
     if (!txn)
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
+        return (txn_commit(&local_txn, 0));
     else
-        return (db_set_error(db, st));
+        return (st);
 }
 
 static ham_status_t
@@ -1838,12 +1838,12 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 
     be=db_get_backend(db);
     if (!be || !be_is_active(be))
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
+        return (HAM_NOT_INITIALIZED);
     if (!be->_fun_erase)
         return HAM_NOT_IMPLEMENTED;
     if (db_get_rt_flags(db)&HAM_READ_ONLY) {
         ham_trace(("cannot erase from a read-only database"));
-        return (db_set_error(db, HAM_DB_READ_ONLY));
+        return (HAM_DB_READ_ONLY);
     }
 
     /*
@@ -1852,7 +1852,7 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         if (key->size!=sizeof(ham_u64_t) || !key->data) {
             ham_trace(("key->size must be 8, key->data must not be NULL"));
-            return (db_set_error(db, HAM_INV_PARAMETER));
+            return (HAM_INV_PARAMETER);
         }
         recno=*(ham_offset_t *)key->data;
         recno=ham_h2db64(recno);
@@ -1861,7 +1861,7 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 
     if (!txn) {
         if ((st=txn_begin(&local_txn, env, 0)))
-            return (db_set_error(db, st));
+            return (st);
     }
 
     db_update_global_stats_erase_query(db, key->size);
@@ -1874,7 +1874,7 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     if (st) {
         if (!txn)
             (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
+        return (st);
     }
 
     /*
@@ -1885,9 +1885,9 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     }
 
     if (!txn)
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
+        return (txn_commit(&local_txn, 0));
     else
-        return (db_set_error(db, st));
+        return (st);
 }
 
 static ham_status_t
@@ -1903,7 +1903,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
             (key->size>db_get_keysize(db))) {
         ham_trace(("database does not support variable length keys"));
-        return (db_set_error(db, HAM_INV_KEYSIZE));
+        return (HAM_INV_KEYSIZE);
     }
 
     /*
@@ -1920,7 +1920,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 
     be=db_get_backend(db);
     if (!be || !be_is_active(be))
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
+        return (HAM_NOT_INITIALIZED);
 
     if (!be->_fun_find)
         return HAM_NOT_IMPLEMENTED;
@@ -1928,7 +1928,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     if (!txn) {
         st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
         if (st)
-            return (db_set_error(db, st));
+            return (st);
     }
 
     db_update_global_stats_find_query(db, key->size);
@@ -1941,7 +1941,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     if (st) {
         if (!txn)
             (void)txn_abort(&local_txn, DO_NOT_NUKE_PAGE_STATS);
-        return (db_set_error(db, st));
+        return (st);
     }
 
     /*
@@ -1958,13 +1958,13 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     if (st) {
         if (!txn)
             (void)txn_abort(&local_txn, DO_NOT_NUKE_PAGE_STATS);
-        return (db_set_error(db, st));
+        return (st);
     }
 
     if (!txn)
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
+        return (txn_commit(&local_txn, 0));
     else
-        return (db_set_error(db, st));
+        return (st);
 }
 
 static ham_status_t
@@ -1976,18 +1976,18 @@ _local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 
     be=db_get_backend(db);
     if (!be || !be_is_active(be))
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
+        return (HAM_NOT_INITIALIZED);
     if (!be->_fun_cursor_create)
-        return (db_set_error(db, HAM_NOT_IMPLEMENTED));
+        return (HAM_NOT_IMPLEMENTED);
 
     st=be->_fun_cursor_create(be, db, txn, flags, cursor);
     if (st)
-        return (db_set_error(db, st));
+        return (st);
 
     if (txn)
         txn_set_cursor_refcount(txn, txn_get_cursor_refcount(txn)+1);
 
-    return (db_set_error(db, 0));
+    return (0);
 }
 
 static ham_status_t
@@ -2003,14 +2003,14 @@ _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
     if (!cursor_get_txn(src)) {
         st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
         if (st)
-            return (db_set_error(db, st));
+            return (st);
     }
 
     st=src->_fun_clone(src, dest);
     if (st) {
         if (!cursor_get_txn(src))
             (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
+        return (st);
     }
 
     if (cursor_get_txn(src))
@@ -2018,9 +2018,9 @@ _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
                 txn_get_cursor_refcount(cursor_get_txn(src))+1);
 
     if (!cursor_get_txn(src))
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
+        return (txn_commit(&local_txn, 0));
     else
-        return (db_set_error(db, 0));
+        return (0);
 }
 
 static ham_status_t
@@ -2034,7 +2034,7 @@ _local_cursor_close(ham_cursor_t *cursor)
 
     st=cursor->_fun_close(cursor);
 
-    return (db_set_error(db, st));
+    return (st);
 }
 
 static ham_status_t
@@ -2051,12 +2051,12 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
 
     be=db_get_backend(db);
     if (!be)
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
+        return (HAM_NOT_INITIALIZED);
 
     if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
             (key->size>db_get_keysize(db))) {
         ham_trace(("database does not support variable length keys"));
-        return (db_set_error(db, HAM_INV_KEYSIZE));
+        return (HAM_INV_KEYSIZE);
     }
 
     /*
@@ -2092,7 +2092,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
 
     if (!cursor_get_txn(cursor)) {
         if ((st=txn_begin(&local_txn, env, 0)))
-            return (db_set_error(db, st));
+            return (st);
     }
 
     /*
@@ -2123,7 +2123,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             }
             ham_assert(st!=HAM_DUPLICATE_KEY, ("duplicate key in recno db!"));
         }
-        return (db_set_error(db, st));
+        return (st);
     }
 
     /*
@@ -2142,9 +2142,9 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     }
 
     if (!cursor_get_txn(cursor))
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
+        return (txn_commit(&local_txn, 0));
     else
-        return (db_set_error(db, st));
+        return (st);
 }
 
 static ham_status_t 
@@ -2158,7 +2158,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     if (!cursor_get_txn(cursor)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
-            return (db_set_error(db, st));
+            return (st);
     }
 
     db_update_global_stats_erase_query(db, 0);
@@ -2167,13 +2167,13 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     if (st) {
         if (!cursor_get_txn(cursor))
             (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
+        return (st);
     }
 
     if (!cursor_get_txn(cursor))
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
+        return (txn_commit(&local_txn, 0));
     else
-        return (db_set_error(db, st));
+        return (st);
 }
 
 static ham_status_t
@@ -2195,7 +2195,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
             ham_trace(("key->size must be 8, key->data must not be NULL"));
             if (!cursor_get_txn(cursor))
                 (void)txn_abort(&local_txn, 0);
-            return (db_set_error(db, HAM_INV_PARAMETER));
+            return (HAM_INV_PARAMETER);
         }
         recno=*(ham_offset_t *)key->data;
         recno=ham_h2db64(recno);
@@ -2205,7 +2205,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
     if (!cursor_get_txn(cursor)) {
         st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
         if (st)
-            return (db_set_error(db, st));
+            return (st);
     }
 
     db_update_global_stats_find_query(db, key->size);
@@ -2214,7 +2214,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
     if (st) {
         if (!cursor_get_txn(cursor))
             (void)txn_abort(&local_txn, DO_NOT_NUKE_PAGE_STATS);
-        return (db_set_error(db, st));
+        return (st);
     }
 
     /*
@@ -2232,14 +2232,14 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
         if (st) {
             if (!cursor_get_txn(cursor))
                 (void)txn_abort(&local_txn, DO_NOT_NUKE_PAGE_STATS);
-            return (db_set_error(db, st));
+            return (st);
         }
     }
 
     if (!cursor_get_txn(cursor))
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
+        return (txn_commit(&local_txn, 0));
     else
-        return (db_set_error(db, 0));
+        return (0);
 }
 
 static ham_status_t
@@ -2254,20 +2254,20 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
     if (!cursor_get_txn(cursor)) {
         st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
         if (st)
-            return (db_set_error(db, st));
+            return (st);
     }
 
     st=(*cursor->_fun_get_duplicate_count)(cursor, count, flags);
     if (st) {
         if (!cursor_get_txn(cursor))
             (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
+        return (st);
     }
 
     if (!cursor_get_txn(cursor))
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
+        return (txn_commit(&local_txn, 0));
     else
-        return (db_set_error(db, st));
+        return (st);
 }
 
 static ham_status_t
@@ -2283,7 +2283,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     if (!cursor_get_txn(cursor)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
-            return (db_set_error(db, st));
+            return (st);
     }
 
     /*
@@ -2295,7 +2295,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     if (st) {
         if (!cursor_get_txn(cursor))
             (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
+        return (st);
     }
 
     st=cursor->_fun_overwrite(cursor, &temprec, flags);
@@ -2307,13 +2307,13 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     if (st) {
         if (!cursor_get_txn(cursor))
             (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
+        return (st);
     }
 
     if (!cursor_get_txn(cursor))
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
+        return (txn_commit(&local_txn, 0));
     else
-        return (db_set_error(db, st));
+        return (st);
 }
 
 static ham_status_t
@@ -2328,14 +2328,14 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     if (!cursor_get_txn(cursor)) {
         st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
         if (st)
-            return (db_set_error(db, st));
+            return (st);
     }
 
     st=cursor->_fun_move(cursor, key, record, flags);
     if (st) {
         if (!cursor_get_txn(cursor))
             (void)txn_abort(&local_txn, 0);
-        return (db_set_error(db, st));
+        return (st);
     }
 
     /*
@@ -2346,14 +2346,14 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         if (st) {
             if (!cursor_get_txn(cursor))
                 (void)txn_abort(&local_txn, 0);
-            return (db_set_error(db, st));
+            return (st);
         }
     }
 
     if (!cursor_get_txn(cursor))
-        return (db_set_error(db, txn_commit(&local_txn, 0)));
+        return (txn_commit(&local_txn, 0));
     else
-        return (db_set_error(db, st));
+        return (st);
 }
 
 

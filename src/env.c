@@ -956,7 +956,7 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
     st=__check_create_parameters(env, db, 0, &flags, param, 
             0, &keysize, &cachesize, &dbname, 0, &dam, HAM_TRUE);
     if (st)
-        return (db_set_error(db, st));
+        return (st);
 
     /*
      * store the env pointer in the database
@@ -1002,7 +1002,7 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
             continue;
         if (name==dbname || dbname==HAM_FIRST_DATABASE_NAME) {
             (void)ham_close(db, 0);
-            return (db_set_error(db, HAM_DATABASE_ALREADY_EXISTS));
+            return (HAM_DATABASE_ALREADY_EXISTS);
         }
     }
 
@@ -1021,7 +1021,7 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
     }
     if (dbi==env_get_max_databases(env)) {
         (void)ham_close(db, 0);
-        return (db_set_error(db, HAM_LIMITS_REACHED));
+        return (HAM_LIMITS_REACHED);
     }
 
     /* 
@@ -1033,7 +1033,7 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
         ham_assert(st ? be == NULL : 1, (0));
         if (!be) {
             (void)ham_close(db, 0);
-            return (db_set_error(db, st));
+            return (st);
         }
 
         /* 
@@ -1048,7 +1048,7 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
     st=be->_fun_create(be, keysize, pflags);
     if (st) {
         (void)ham_close(db, 0);
-        return (db_set_error(db, st));
+        return (st);
     }
 
     ham_assert(be_is_active(be) != 0, (0));
@@ -1059,7 +1059,7 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
     st=db_initialize_local(db);
     if (st) {
         (void)ham_close(db, 0);
-        return (db_set_error(db, st));
+        return (st);
     }
 
     /*
@@ -1129,7 +1129,7 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
      */
     if (db_is_active(db)) {
         ham_trace(("parameter 'db' is already initialized"));
-        return (db_set_error(db, HAM_DATABASE_ALREADY_OPEN));
+        return (HAM_DATABASE_ALREADY_OPEN);
     }
 
     db_set_rt_flags(db, 0);
@@ -1138,7 +1138,7 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
     st=__check_create_parameters(env, db, 0, &flags, param, 
             0, 0, &cachesize, &name, 0, &dam, HAM_FALSE);
     if (st)
-        return (db_set_error(db, st));
+        return (st);
 
     /*
      * make sure that this database is not yet open
@@ -1183,7 +1183,7 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
 
     if (dbi==env_get_max_databases(env)) {
         (void)ham_close(db, 0);
-        return (db_set_error(db, HAM_DATABASE_NOT_FOUND));
+        return (HAM_DATABASE_NOT_FOUND);
     }
 
     /* 
@@ -1195,7 +1195,7 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
         ham_assert(st ? be == NULL : 1, (0));
         if (!be) {
             (void)ham_close(db, 0);
-            return (db_set_error(db, st));
+            return (st);
         }
 
         /* 
@@ -1210,7 +1210,7 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
     st=be->_fun_open(be, flags);
     if (st) {
         (void)ham_close(db, 0);
-        return (db_set_error(db, st));
+        return (st);
     }
 
     ham_assert(be_is_active(be) != 0, (0));
@@ -1221,7 +1221,7 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
     st=db_initialize_local(db);
     if (st) {
         (void)ham_close(db, 0);
-        return (db_set_error(db, st));
+        return (st);
     }
 
     /* 
@@ -1275,7 +1275,7 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
         ham_trace(("flag HAM_SORT_DUPLICATES set but duplicates are not "
                    "enabled for this Database"));
         (void)ham_close(db, 0);
-        return (db_set_error(db, HAM_INV_PARAMETER));
+        return (HAM_INV_PARAMETER);
     }
 
     /* 

@@ -632,7 +632,7 @@ _remote_fun_close(ham_db_t *db, ham_u32_t flags)
         }
     }
     else if (db_get_cursors(db)) {
-        return (db_set_error(db, HAM_CURSOR_STILL_OPEN));
+        return (HAM_CURSOR_STILL_OPEN);
     }
 
     ham__wrapper__init(&wrapper);

@@ -146,7 +146,12 @@ o client/server communication
     x messages-pb.c must be created dynamically because it depends on 
         the google protobuf version
 
+    x functions in env/db.c and remote.c should never use
+        db_set_error!
+
     o check for memory leaks
+
+    o test with BIG blobs
 
     o add documentation
 
@@ -156,6 +161,7 @@ o release new .NET wrapper with fix from a.todorov (-> nabble)
 
 o hamsterdb.com: add permanent redirect from hamsterdb.com to 
 	www.hamsterdb.com (and all other domains!)
+
 ------------------------------
 
 o some cleanup:
@@ -174,9 +180,6 @@ o more remote stuff
     o check_create_parameters -> move to env.c??
     o my_free_cb is duplicated in env.c und hamsterdb.c!
     o make sure there are no more warnings
-
-    o functions in env/db.c and remote.c should never use
-        db_set_error!
 
     o unittest: ham_env_create_db w/ extended params
 
