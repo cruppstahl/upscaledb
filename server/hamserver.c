@@ -126,6 +126,7 @@ send_wrapper(ham_env_t *env, struct mg_connection *conn, Ham__Wrapper *wrapper)
         return;
     }
     ham__wrapper__pack(wrapper, data+8);
+
     *(ham_u32_t *)&data[0]=ham_h2db32(HAM_TRANSFER_MAGIC_V1);
     *(ham_u32_t *)&data[4]=ham_h2db32(data_size);
 

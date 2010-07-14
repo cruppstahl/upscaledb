@@ -149,12 +149,12 @@ o client/server communication
     x functions in env/db.c and remote.c should never use
         db_set_error!
 
-    o check for memory leaks
-
-    o test with BIG blobs
+    x test with BIG blobs
         __writefunc fails; have to buffer incoming data. but how do i 
         know the total size that was sent? this info should be available
         through http headers. otherwise send a separate header??
+
+    o check for memory leaks
 
     o add documentation
 
@@ -166,6 +166,8 @@ o hamsterdb.com: add permanent redirect from hamsterdb.com to
 	www.hamsterdb.com (and all other domains!)
 
 ------------------------------
+
+o there's no keepalive - connection is closed every time
 
 o some cleanup:
     db_set_allocdata -> for records, but we need a similar function for keys!

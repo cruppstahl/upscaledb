@@ -32,6 +32,7 @@ typedef struct curl_buffer_t
     ham_u8_t *packed_data;
     ham_size_t offset;
     Ham__Wrapper *wrapper;
+    mem_allocator_t *alloc;
 } curl_buffer_t;
 
 static size_t
@@ -46,33 +47,40 @@ __writefunc(void *buffer, size_t size, size_t nmemb, void *ptr)
             ham_trace(("invalid protocol version"));
             return (0);
         }
+        payload_size=ham_h2db32(*(ham_u32_t *)&cbuf[4]);
+
+        /* did we receive the whole data in this packet? */
+        if (payload_size+8==size*nmemb) {
+            buf->wrapper=ham__wrapper__unpack(0, payload_size, 
+                            (ham_u8_t *)&cbuf[8]);
+            if (!buf->wrapper)
+                return 0;
+            return (size*nmemb);
+        }
+
+        /* otherwise we have to buffer the received data */
+        buf->packed_size=payload_size;
+        buf->packed_data=allocator_alloc(buf->alloc, payload_size);
+        if (!buf->packed_data)
+            return (0);
+        memcpy(buf->packed_data, &cbuf[8], size*nmemb-8);
+        buf->offset+=size*nmemb-8;
+    }
+    /* append to an existing buffer? */
+    else {
+        memcpy(buf->packed_data+buf->offset, &cbuf[0], size*nmemb);
+        buf->offset+=size*nmemb;
     }
 
-    payload_size=ham_h2db32(*(ham_u32_t *)&cbuf[4]);
-
-    /* did we receive the whole data in this packet? */
-    if (payload_size+8==size*nmemb) {
-        buf->wrapper=ham__wrapper__unpack(0, payload_size, 
-                        (ham_u8_t *)&cbuf[8]);
+    /* check if we've received the whole data */
+    if (buf->offset==buf->packed_size) {
+        buf->wrapper=ham__wrapper__unpack(0, buf->packed_size, 
+                        buf->packed_data);
+        allocator_free(buf->alloc, buf->packed_data);
         if (!buf->wrapper)
             return 0;
-        return (size*nmemb);
     }
 
-    /* otherwise we have to buffer the received data 
-    if (buf->offset==0) {
-        buf->packed_size=payload_size;
-        buf->packed_data=ham_mem_alloc(buf->packed_data, payload_size);
-    }
-    - then append to the buffer
-    - check if we've the whole data
-*/
-ham_assert(0, ("hier geht's weiter..."));
-
-    //if (!buf->wrapper)
-        //return 0;
-/* TODO append data to buffer till we have enough of it! (but what's the
-full data size that we will receive??? */
     return (size*nmemb);
 }
 
@@ -107,23 +115,26 @@ _perform_request(ham_env_t *env, CURL *handle, Ham__Wrapper *wrapper,
     CURLcode cc;
     long response=0;
     char header[128];
-    curl_buffer_t buf={0};
+    curl_buffer_t rbuf={0};
+    curl_buffer_t wbuf={0};
     struct curl_slist *slist=0;
     ham_size_t transfer_size=0;
     ham_size_t payload_size=0;
+
+    wbuf.alloc=env_get_allocator(env);
 
     *reply=0;
 
     payload_size=ham__wrapper__get_packed_size(wrapper);
     transfer_size=payload_size+sizeof(ham_u32_t)*2;
-    buf.packed_size=transfer_size;
-    buf.packed_data=allocator_alloc(env_get_allocator(env), transfer_size);
-    if (!buf.packed_data)
+    rbuf.packed_size=transfer_size;
+    rbuf.packed_data=allocator_alloc(env_get_allocator(env), transfer_size);
+    if (!rbuf.packed_data)
         return (HAM_OUT_OF_MEMORY);
-    ham__wrapper__pack(wrapper, buf.packed_data+8);
+    ham__wrapper__pack(wrapper, rbuf.packed_data+8);
 
-    *(ham_u32_t *)&buf.packed_data[0]=ham_h2db32(HAM_TRANSFER_MAGIC_V1);
-    *(ham_u32_t *)&buf.packed_data[4]=ham_h2db32(payload_size);
+    *(ham_u32_t *)&rbuf.packed_data[0]=ham_h2db32(HAM_TRANSFER_MAGIC_V1);
+    *(ham_u32_t *)&rbuf.packed_data[4]=ham_h2db32(payload_size);
 
     sprintf(header, "Content-Length: %u", transfer_size);
     slist=curl_slist_append(slist, header);
@@ -135,16 +146,16 @@ _perform_request(ham_env_t *env, CURL *handle, Ham__Wrapper *wrapper,
 #endif
     SETOPT(handle, CURLOPT_URL, env_get_filename(env));
     SETOPT(handle, CURLOPT_READFUNCTION, __readfunc);
-    SETOPT(handle, CURLOPT_READDATA, &buf);
+    SETOPT(handle, CURLOPT_READDATA, &rbuf);
     SETOPT(handle, CURLOPT_UPLOAD, 1);
     SETOPT(handle, CURLOPT_PUT, 1);
     SETOPT(handle, CURLOPT_WRITEFUNCTION, __writefunc);
-    SETOPT(handle, CURLOPT_WRITEDATA, &buf);
+    SETOPT(handle, CURLOPT_WRITEDATA, &wbuf);
     SETOPT(handle, CURLOPT_HTTPHEADER, slist);
 
     cc=curl_easy_perform(handle);
 
-    allocator_free(env_get_allocator(env), buf.packed_data);
+    allocator_free(env_get_allocator(env), rbuf.packed_data);
     curl_slist_free_all(slist);
 
     if (cc) {
@@ -163,7 +174,7 @@ _perform_request(ham_env_t *env, CURL *handle, Ham__Wrapper *wrapper,
         return (HAM_NETWORK_ERROR);
     }
 
-    *reply=buf.wrapper;
+    *reply=wbuf.wrapper;
 
     return (0);
 }
