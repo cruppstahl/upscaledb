@@ -20,6 +20,7 @@
 #include <ham/hamserver.h>
 #include "messages.pb-c.h"
 #include "os.h"
+#include "db.h"
 #include "error.h"
 #include "cursor.h"
 #include "mem.h"
@@ -119,16 +120,18 @@ send_wrapper(ham_env_t *env, struct mg_connection *conn, Ham__Wrapper *wrapper)
     ham_size_t data_size;
 
     data_size=ham__wrapper__get_packed_size(wrapper);
-    data=(ham_u8_t *)allocator_alloc(env_get_allocator(env), data_size);
+    data=(ham_u8_t *)allocator_alloc(env_get_allocator(env), data_size+8);
     if (!data_size) {
         /* TODO send error */
         return;
     }
-    ham__wrapper__pack(wrapper, data);
+    ham__wrapper__pack(wrapper, data+8);
+    *(ham_u32_t *)&data[0]=ham_h2db32(HAM_TRANSFER_MAGIC_V1);
+    *(ham_u32_t *)&data[4]=ham_h2db32(data_size);
 
     ham_trace(("type %u: sending %d bytes", wrapper->type, data_size));
 	mg_printf(conn, "%s", standard_reply);
-    mg_write(conn, data, data_size);
+    mg_write(conn, data, data_size+8);
 
     allocator_free(env_get_allocator(env), data);
 }
@@ -1316,8 +1319,10 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
 
     os_critsec_enter(&env->cs);
 
-    wrapper=ham__wrapper__unpack(0, ri->post_data_len, 
-            (ham_u8_t *)ri->post_data);
+    /* TODO check the magic! */
+
+    wrapper=ham__wrapper__unpack(0, ri->post_data_len-8, 
+            (ham_u8_t *)ri->post_data+8);
     if (!wrapper) {
         printf("failed to unpack wrapper (%d bytes)\n", ri->post_data_len);
         /* TODO send error */

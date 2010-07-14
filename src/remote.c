@@ -38,8 +38,37 @@ static size_t
 __writefunc(void *buffer, size_t size, size_t nmemb, void *ptr)
 {
     curl_buffer_t *buf=(curl_buffer_t *)ptr;
+    char *cbuf=(char *)buffer;
+    ham_size_t payload_size=0;
 
-    buf->wrapper=ham__wrapper__unpack(0, nmemb*size, (ham_u8_t *)buffer);
+    if (buf->offset==0) {
+        if (*(ham_u32_t *)&cbuf[0]!=ham_db2h32(HAM_TRANSFER_MAGIC_V1)) {
+            ham_trace(("invalid protocol version"));
+            return (0);
+        }
+    }
+
+    payload_size=ham_h2db32(*(ham_u32_t *)&cbuf[4]);
+
+    /* did we receive the whole data in this packet? */
+    if (payload_size+8==size*nmemb) {
+        buf->wrapper=ham__wrapper__unpack(0, payload_size, 
+                        (ham_u8_t *)&cbuf[8]);
+        if (!buf->wrapper)
+            return 0;
+        return (size*nmemb);
+    }
+
+    /* otherwise we have to buffer the received data 
+    if (buf->offset==0) {
+        buf->packed_size=payload_size;
+        buf->packed_data=ham_mem_alloc(buf->packed_data, payload_size);
+    }
+    - then append to the buffer
+    - check if we've the whole data
+*/
+ham_assert(0, ("hier geht's weiter..."));
+
     //if (!buf->wrapper)
         //return 0;
 /* TODO append data to buffer till we have enough of it! (but what's the
@@ -80,16 +109,23 @@ _perform_request(ham_env_t *env, CURL *handle, Ham__Wrapper *wrapper,
     char header[128];
     curl_buffer_t buf={0};
     struct curl_slist *slist=0;
+    ham_size_t transfer_size=0;
+    ham_size_t payload_size=0;
 
     *reply=0;
 
-    buf.packed_size=ham__wrapper__get_packed_size(wrapper);
-    buf.packed_data=allocator_alloc(env_get_allocator(env), buf.packed_size);
+    payload_size=ham__wrapper__get_packed_size(wrapper);
+    transfer_size=payload_size+sizeof(ham_u32_t)*2;
+    buf.packed_size=transfer_size;
+    buf.packed_data=allocator_alloc(env_get_allocator(env), transfer_size);
     if (!buf.packed_data)
         return (HAM_OUT_OF_MEMORY);
-    ham__wrapper__pack(wrapper, buf.packed_data);
+    ham__wrapper__pack(wrapper, buf.packed_data+8);
 
-    sprintf(header, "Content-Length: %u", buf.packed_size);
+    *(ham_u32_t *)&buf.packed_data[0]=ham_h2db32(HAM_TRANSFER_MAGIC_V1);
+    *(ham_u32_t *)&buf.packed_data[4]=ham_h2db32(payload_size);
+
+    sprintf(header, "Content-Length: %u", transfer_size);
     slist=curl_slist_append(slist, header);
     slist=curl_slist_append(slist, "Transfer-Encoding:");
     slist=curl_slist_append(slist, "Expect:");
