@@ -556,8 +556,10 @@ handle_db_close(struct env_t *envh, struct mg_connection *conn,
     }
     else {
         reply.status=ham_close(db, request->flags);
-        if (reply.status==0)
+        if (reply.status==0) {
+            ham_delete(db);
             __remove_handle(envh, request->db_handle);
+        }
     }
 
     send_wrapper(env, conn, &wrapper);
@@ -1548,7 +1550,10 @@ hamserver_close(hamserver_t *srv)
     for (i=0; i<MAX_ENVIRONMENTS; i++) {
         if (srv->environments[i].env) {
             os_critsec_close(&srv->environments[i].cs);
-            free(srv->environments[i].urlname);
+            if (srv->environments[i].urlname)
+                free(srv->environments[i].urlname);
+            if (srv->environments[i].handles)
+                free(srv->environments[i].handles);
             /* env will be closed by the caller */
             srv->environments[i].env=0;
         }

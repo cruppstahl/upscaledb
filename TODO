@@ -169,6 +169,8 @@ o hamsterdb.com: add permanent redirect from hamsterdb.com to
 
 o there's no keepalive - connection is closed every time
 
+. server: add gzip as an option for client/server communication
+
 o some cleanup:
     db_set_allocdata -> for records, but we need a similar function for keys!
     currently, db_set_key_allocdata() is used, but it's very clumsy

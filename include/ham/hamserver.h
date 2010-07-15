@@ -52,6 +52,11 @@ hamserver_add_env(hamserver_t *srv, ham_env_t *env, const char *urlname);
 
 /*
  * Release memory and clean up
+ *
+ * @warning
+ * This function will not close open handles (i.e. of Databases, Cursors
+ * or Transactions). The caller has to close the remaining Environment
+ * handles (@see ham_env_close).
  */
 extern void
 hamserver_close(hamserver_t *srv);

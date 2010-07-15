@@ -404,6 +404,10 @@ _remote_fun_create_db(ham_env_t *env, ham_db_t *db,
     wrapper.env_create_db_request=&msg;
 
     st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+
+    allocator_free(env_get_allocator(env), names);
+    allocator_free(env_get_allocator(env), values);
+
     if (st) {
         if (reply)
             ham__wrapper__free_unpacked(reply, 0);
