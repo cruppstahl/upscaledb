@@ -22,7 +22,7 @@ x server: first step
 
 x HAM_PARAM_GET_STATISTICS -> hamsterdb_int.h!
 
-o client/server communication
+x client/server communication
     x abstract env functions into "class" (like backend)
     x separate local code into env.c
     x configure.in: check for protocol buffer - if not available: build without
@@ -154,9 +154,7 @@ o client/server communication
         know the total size that was sent? this info should be available
         through http headers. otherwise send a separate header??
 
-    o check for memory leaks
-
-    o add documentation
+    x check for memory leaks
 
 ------------------------------ (this release is unstable!) -----------------
 

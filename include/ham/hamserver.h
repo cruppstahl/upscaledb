@@ -24,6 +24,7 @@ extern "C" {
  */
 typedef struct
 {
+    /** The server port */
     ham_u16_t port;
 
 } hamserver_config_t;

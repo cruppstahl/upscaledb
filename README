@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 1.1.4                   Tue Apr 13 20:21:13 CEST 2010
+hamsterdb Embedded Storage 1.1.5 Unstable!!        Thu Jul 15 22:16:45 CEST 2010
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -12,35 +12,34 @@ hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
 a B+Tree index structure, uses memory mapped I/O (if available), supports 
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-This release fixes a few bugs and has minor performance improvements.
+This release offers remote functionality.
+
+This release is UNSTABLE! Although there are no known bugs, the next
+release will stabilize and extend the remote functionality. Some things are
+still missing, i.e. support for MS Windows. The TODO file has a long list
+of stuff that will be part of the next release.
 
 2. Changes
 
 New Features
-* none
+* hamsterdb is now capable of accessing remote servers. Servers can be embedded
+    into an application (see hamserver.h). A sample 'server1.c' demonstrates
+    this.
 
 Bugfixes
-* Bugfix - win32 only: with very big databases and unlimited cache, resources
-    were exceeded and mmap failed. in this case we'll now fall back to 
-    read/write (thanks, Simon)
-o Bugfix - it was allowed to create temp. Transactions while a non-temp.
-	Transaction was still active
+* Fixed compilation for MacOSX SnowLeopard (thanks, Olisa)
 
 Other Changes
-* Optimization - if HAM_DAM_SEQUENTIAL_INSERT is set then btree nodes will
-    not be split in the middle, but at the end of the node. hamsterdb will
-    also auto-recognize if an insert is sequential (at the "right end" of 
-    the index). This leads to MUCH smaller files and therefore higher
-    performance (thanks, Simon)
-* The documentation in the header file was improved and some constants
-    were renamed/deprecated
+* HAM_PARAM_GET_STATISTICS was moved to hamsterdb_int.h
+* ham_env_get_parameters and ham_get_parameters do no longer accept
+    NULL pointers as the first parameter; instead, they will fail with
+    HAM_INV_PARAMETER
 
 To see a list of all changes, look in the file ChangeLog.
 
 3. Roadmap
 
-- continue internal code cleanups
-- access remote databases over the network
+- stabilize remote databases over the network
 
 4. Features
 
@@ -52,6 +51,7 @@ To see a list of all changes, look in the file ChangeLog.
 - Support for logging and recovery
 - Support for Transactions (only one Transaction at a time, requires logging)
 - Support for partial reading/writing of records
+- Support for network access (remote databases) through http
 - Very fast database cursors 
 - Configurable page size, cache size and index key size
 - Portable ANSI-C implementation

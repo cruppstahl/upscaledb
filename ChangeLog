@@ -1,3 +1,10 @@
+Jul 18, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.5
+
+Jul 15, 2010 - chris
+o finalized the client/server communication; hamsterdb is now able to
+	access remote servers. A new header file hamserver.h was added.
+
 Jul 02, 2010 - chris
 o HAM_PARAM_GET_STATISTICS was moved to hamsterdb_int.h
 o a new sample "server1" was added
