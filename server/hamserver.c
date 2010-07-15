@@ -1513,6 +1513,7 @@ hamserver_init(hamserver_config_t *config, hamserver_t **psrv)
 
     srv->mg_ctxt=mg_start();
     mg_set_option(srv->mg_ctxt, "ports", buf);
+    mg_set_option(srv->mg_ctxt, "dir_list", "no");
 
     *psrv=srv;
     return (HAM_TRUE);
