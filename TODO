@@ -221,8 +221,10 @@ o server: second step
     o add tests for --disable-remote and --disable-local to release.sh
 
 o documentation in hamsterdb.h
-    o ham_insert: does not list HAM_HINT_APPEND/PREPEND,
+    o ham(_cursor)_insert: does not list HAM_HINT_APPEND/PREPEND,
         no mentioning of sorted duplicates
+    o move all comments from ham_*_open to ham_*_open_ex
+    o move all comments from ham_*_create to ham_*_create_ex etc
     o ham_txn_begin: has no comments, just parameters
     o ham_open_ex: dito
     o ham_create_ex: dito

@@ -563,9 +563,12 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
 /**
  * Opens an existing Database Environment
  *
+ * Specify a URL instead of a filename (i.e. 
+ * "http://localhost:8080/customers.db") to access a remote hamsterdb Server.
+ *
  * @param env A valid Environment handle, which was created with 
  *          @ref ham_env_new
- * @param filename The filename of the Environment file
+ * @param filename The filename or URL of the Environment file
  * @param flags Optional flags for opening the Environment, combined with
  *          bitwise OR. See the documentation of @ref ham_env_open_ex
  *          for the allowed flags.
@@ -580,12 +583,16 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
  * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
  * @return @ref HAM_WOULD_BLOCK if another process has locked the file
  * @return @ref HAM_ENVIRONMENT_ALREADY_OPEN if @a env is already in use
+ * @return @ref HAM_NETWORK_ERROR if a remote server is not reachable
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
 
 /**
  * Opens an existing Database Environment - extended version
+ *
+ * Specify a URL instead of a filename (i.e. 
+ * "http://localhost:8080/customers.db") to access a remote hamsterdb Server.
  *
  * @param env A valid Environment handle
  * @param filename The filename of the Environment file
@@ -661,6 +668,7 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
  * @return @ref HAM_NEED_RECOVERY if the Database is in an inconsistent state
  * @return @ref HAM_LOG_INV_FILE_HEADER if the logfile is corrupt
  * @return @ref HAM_ENVIRONMENT_ALREADY_OPEN if @a env is already in use
+ * @return @ref HAM_NETWORK_ERROR if a remote server is not reachable
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_open_ex(ham_env_t *env, const char *filename,
