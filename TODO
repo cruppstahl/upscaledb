@@ -154,13 +154,13 @@ x client/server communication
         know the total size that was sent? this info should be available
         through http headers. otherwise send a separate header??
 
-    x check for memory leaks
+    o check for memory leaks
 
 ------------------------------ (this release is unstable!) -----------------
 
 o release new .NET wrapper with fix from a.todorov (-> nabble)
 
-o hamsterdb.com: add permanent redirect from hamsterdb.com to 
+x hamsterdb.com: add permanent redirect from hamsterdb.com to 
 	www.hamsterdb.com (and all other domains!)
 
 ------------------------------

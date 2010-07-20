@@ -573,6 +573,7 @@ protected:
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
+        free(rec.data);
     }
 
     void insertFindPartialTest(void)

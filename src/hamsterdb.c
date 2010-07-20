@@ -425,7 +425,10 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags)
     if (st)
         return (st);
 
+    memset(txn, 0, sizeof(*txn));
+    allocator_free(env_get_allocator(env), txn);
     env_set_txn(env, 0);
+
     return (0);
 }
 
@@ -2927,6 +2930,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
 
     /* free cached data pointers */
     (void)db_resize_allocdata(db, 0);
+    // TODO implement this! (void)db_resize_key_allocdata(db, 0);
 
     /*
      * remove this database from the environment

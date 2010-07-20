@@ -493,6 +493,10 @@ _remote_fun_open_db(ham_env_t *env, ham_db_t *db,
     wrapper.env_open_db_request=&msg;
 
     st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+
+    allocator_free(env_get_allocator(env), names);
+    allocator_free(env_get_allocator(env), values);
+
     if (st) {
         if (reply)
             ham__wrapper__free_unpacked(reply, 0);
@@ -583,6 +587,9 @@ _remote_fun_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
     wrapper.env_get_parameters_request=&msg;
 
     st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+
+    allocator_free(env_get_allocator(env), names);
+
     if (st) {
         if (reply)
             ham__wrapper__free_unpacked(reply, 0);
@@ -757,6 +764,9 @@ _remote_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
     wrapper.db_get_parameters_request=&msg;
 
     st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+
+    allocator_free(env_get_allocator(env), names);
+
     if (st) {
         if (reply)
             ham__wrapper__free_unpacked(reply, 0);
