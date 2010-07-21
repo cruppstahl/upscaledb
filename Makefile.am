@@ -24,6 +24,7 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              build/scripts/*                            \
              src/*.c src/*.h src/Makefile.am            \
              src/Makefile.in                            \
+             src/messages.proto                         \
              tools/*.h                                  \
              unittests/*.h                              \
              unittests/*.hpp                            \
