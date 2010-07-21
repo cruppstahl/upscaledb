@@ -278,7 +278,6 @@ case $host in
         ;;
 esac
 
-
 AC_CONFIG_FILES(Makefile src/Makefile include/Makefile include/ham/Makefile samples/Makefile unittests/Makefile 3rdparty/Makefile 3rdparty/aes/Makefile 3rdparty/zlib/Makefile 3rdparty/json/Makefile 3rdparty/mongoose/Makefile tools/Makefile server/Makefile)
 AC_OUTPUT
 
@@ -292,5 +291,10 @@ printf "# The remote functionality is disabled, either because you specified\n"
 printf "# --disable-remote or because of missing dependencies!\n"
 fi
 printf '#================================================================\n'
+
+# build protobuf files
+if test "x$enable_remote" != "xno"; then
+cd src && make proto
+fi
 
 
