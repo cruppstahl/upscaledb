@@ -163,6 +163,8 @@ o release new .NET wrapper with fix from a.todorov (-> nabble)
 x hamsterdb.com: add permanent redirect from hamsterdb.com to 
 	www.hamsterdb.com (and all other domains!)
 
+o remove 3rdparty/json if it's not needed
+
 ------------------------------
 
 . server: add gzip as an option for client/server communication
