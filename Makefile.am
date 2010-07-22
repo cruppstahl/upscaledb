@@ -2,9 +2,11 @@ ACLOCAL_AMFLAGS	= -I m4
 
 
 SUBDIRS = 3rdparty src include 
-if ENABLE_SERVER
+if ENABLE_SERVER 
+if ENABLE_REMOTE
 SUBDIRS += server
 endif
+endif # ENABLE_REMOTE && ENABLE_SERVER
 SUBDIRS += samples tools unittests
 
 DOCUMENTATION_FILES = documentation/Doxyfile*           \

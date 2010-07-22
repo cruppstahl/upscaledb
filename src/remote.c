@@ -19,9 +19,10 @@
 #include "env.h"
 #include "mem.h"
 #include "cursor.h"
-#include "messages.pb-c.h"
 
 #if HAM_ENABLE_REMOTE
+
+#include "messages.pb-c.h"
 
 #include <curl/curl.h>
 #include <curl/easy.h>

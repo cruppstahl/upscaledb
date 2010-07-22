@@ -156,6 +156,9 @@ x client/server communication
 
     o check for memory leaks
 
+    x do not build remote.c if remote is disabled; make sure that the
+        build works if remote is disabled (includes the unittests!)
+
 ------------------------------ (this release is unstable!) -----------------
 
 o release new .NET wrapper with fix from a.todorov (-> nabble)
@@ -164,6 +167,10 @@ x hamsterdb.com: add permanent redirect from hamsterdb.com to
 	www.hamsterdb.com (and all other domains!)
 
 o remove 3rdparty/json if it's not needed
+
+o do not build mongoose if remote is diabled
+
+o need a client1.c sample (which works with server1.c)
 
 ------------------------------
 
