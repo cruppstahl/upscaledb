@@ -271,71 +271,6 @@ __check_recovery_flags(ham_u32_t flags)
     return (HAM_TRUE);
 }
 
-ham_status_t /* TODO - move to db.c and make it static! */
-__record_filters_before_write(ham_db_t *db, ham_record_t *record)
-{
-    ham_status_t st=0;
-    ham_record_filter_t *record_head;
-
-    record_head=db_get_record_filter(db);
-    while (record_head) 
-    {
-        if (record_head->before_write_cb) 
-        {
-            st=record_head->before_write_cb(db, record_head, record);
-            if (st)
-                break;
-        }
-        record_head=record_head->_next;
-    }
-
-    return (st);
-}
-
-/*
- * WATCH IT!
- *
- * as with the page filters, there was a bug in PRE-1.1.0 which would execute 
- * a record filter chain in the same order for both write (insert) and read 
- * (find), which means chained record filters would process invalid data in 
- * one of these, as a correct filter chain must traverse the transformation 
- * process IN REVERSE for one of these actions.
- * 
- * As with the page filters, we've chosen the WRITE direction to be the 
- * FORWARD direction, i.e. added filters end up processing data WRITTEN by 
- * the previous filter.
- * 
- * This also means the READ==FIND action must walk this chain in reverse.
- * 
- * See the documentation about the cyclic prev chain: the point is 
- * that FIND must traverse the record filter chain in REVERSE order so we 
- * should start with the LAST filter registered and stop once we've DONE 
- * calling the FIRST.
- */
-ham_status_t /* TODO move to db.c and make static! */
-__record_filters_after_find(ham_db_t *db, ham_record_t *record)
-{
-    ham_status_t st = 0;
-    ham_record_filter_t *record_head;
-
-    record_head=db_get_record_filter(db);
-    if (record_head)
-    {
-        record_head = record_head->_prev;
-        do
-        {
-            if (record_head->after_read_cb) 
-            {
-                st=record_head->after_read_cb(db, record_head, record);
-                if (st)
-                      break;
-            }
-            record_head = record_head->_prev;
-        } while (record_head->_prev->_next);
-    }
-    return (st);
-}
-
 ham_status_t
 ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
 {
@@ -2420,7 +2355,7 @@ __zlib_after_read_cb(ham_db_t *db, ham_record_filter_t *filter,
 
     memcpy(src, (char *)record->data+4, newsize);
 
-    st=db_resize_allocdata(db, origsize);
+    st=db_resize_record_allocdata(db, origsize);
     if (st) {
         allocator_free(env_get_allocator(env), src);
         return (db_set_error(db, st));
@@ -2678,6 +2613,8 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
                 }
             }
             else {
+                ham_status_t st;
+
                 if (key->data || key->size) {
                     ham_trace(("key->size must be 0, key->data must be NULL"));
                     return (db_set_error(db, HAM_INV_PARAMETER));
@@ -2686,19 +2623,11 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
                  * allocate memory for the key
                  */
                 if (sizeof(ham_u64_t)>db_get_key_allocsize(db)) {
-                    if (db_get_key_allocdata(db))
-                        allocator_free(env_get_allocator(env), 
-                                db_get_key_allocdata(db));
-                    db_set_key_allocdata(db, 
-                            allocator_alloc(env_get_allocator(env), 
-                                sizeof(ham_u64_t)));
-                    if (!db_get_key_allocdata(db)) {
-                        db_set_key_allocsize(db, 0);
-                        return (db_set_error(db, HAM_OUT_OF_MEMORY));
-                    }
-                    else {
+                    st=db_resize_key_allocdata(db, sizeof(ham_u64_t));
+                    if (st)
+                        return (db_set_error(db, st));
+                    else
                         db_set_key_allocsize(db, sizeof(ham_u64_t));
-                    }
                 }
                 else
                     db_set_key_allocsize(db, sizeof(ham_u64_t));
@@ -2929,7 +2858,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         return (db_set_error(db, st));
 
     /* free cached data pointers */
-    (void)db_resize_allocdata(db, 0);
+    (void)db_resize_record_allocdata(db, 0);
     // TODO implement this! (void)db_resize_key_allocdata(db, 0);
 
     /*
@@ -3313,6 +3242,8 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
                 }
             }
             else {
+                ham_status_t st;
+
                 if (key->data || key->size) {
                     ham_trace(("key->size must be 0, key->data must be NULL"));
                     return (db_set_error(db, HAM_INV_PARAMETER));
@@ -3321,19 +3252,11 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
                  * allocate memory for the key
                  */
                 if (sizeof(ham_u64_t)>db_get_key_allocsize(db)) {
-                    if (db_get_key_allocdata(db))
-                        allocator_free(env_get_allocator(env), 
-                                db_get_key_allocdata(db));
-                    db_set_key_allocdata(db, 
-                            allocator_alloc(env_get_allocator(env), 
-                                sizeof(ham_u64_t)));
-                    if (!db_get_key_allocdata(db)) {
-                        db_set_key_allocsize(db, 0);
-                        return (db_set_error(db, HAM_OUT_OF_MEMORY));
-                    }
-                    else {
+                    st=db_resize_key_allocdata(db, sizeof(ham_u64_t));
+                    if (st)
+                        return (db_set_error(db, st));
+                    else
                         db_set_key_allocsize(db, sizeof(ham_u64_t));
-                    }
                 }
                 else
                     db_set_key_allocsize(db, sizeof(ham_u64_t));

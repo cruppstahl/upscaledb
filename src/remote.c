@@ -1139,7 +1139,7 @@ _remote_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         if (reply->db_find_reply->record) {
             record->size=reply->db_find_reply->record->data.len;
             if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-                st=db_resize_allocdata(db, record->size);
+                st=db_resize_record_allocdata(db, record->size);
                 if (st)
                     goto bail;
                 record->data=db_get_record_allocdata(db);
@@ -1425,7 +1425,7 @@ _remote_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
         ham_assert(record, (""));
         record->size=reply->cursor_find_reply->record->data.len;
         if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-            st=db_resize_allocdata(db, record->size);
+            st=db_resize_record_allocdata(db, record->size);
             if (st)
                 goto bail;
             record->data=db_get_record_allocdata(db);
@@ -1599,15 +1599,9 @@ _remote_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         key->_flags=reply->cursor_move_reply->key->intflags;
         key->size=reply->cursor_move_reply->key->data.len;
         if (!(key->flags&HAM_KEY_USER_ALLOC)) {
-            if (db_get_key_allocdata(db))
-                allocator_free(env_get_allocator(env), 
-                    db_get_key_allocdata(db));
-            db_set_key_allocdata(db, 
-                    allocator_alloc(env_get_allocator(env), key->size));
-            if (!db_get_key_allocdata(db)) {
-                st=HAM_OUT_OF_MEMORY;
+            st=db_resize_key_allocdata(db, key->size);
+            if (st)
                 goto bail;
-            }
             key->data=db_get_key_allocdata(db);
         }
         memcpy(key->data, reply->cursor_move_reply->key->data.data,
@@ -1619,7 +1613,7 @@ _remote_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         ham_assert(record, (""));
         record->size=reply->cursor_move_reply->record->data.len;
         if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-            st=db_resize_allocdata(db, record->size);
+            st=db_resize_record_allocdata(db, record->size);
             if (st)
                 goto bail;
             record->data=db_get_record_allocdata(db);

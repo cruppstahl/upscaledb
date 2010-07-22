@@ -850,12 +850,24 @@ extern ham_status_t
 db_write_page_and_delete(ham_page_t *page, ham_u32_t flags);
 
 /**
- * Resize the record data.
+ * Resize the record data buffer. This buffer is an internal storage for 
+ * record buffers. When a ham_record_t structure is returned to the user,
+ * the record->data pointer will point to this buffer.
  *
  * Set the size to 0, and the data is freed.
  */
 extern ham_status_t
-db_resize_allocdata(ham_db_t *db, ham_size_t size);
+db_resize_record_allocdata(ham_db_t *db, ham_size_t size);
+
+/**
+ * Resize the key data buffer. This buffer is an internal storage for 
+ * key buffers. When a ham_key_t structure is returned to the user,
+ * the key->data pointer will point to this buffer.
+ *
+ * Set the size to 0, and the data is freed.
+ */
+extern ham_status_t
+db_resize_key_allocdata(ham_db_t *db, ham_size_t size);
 
 /**
 * @defgroup ham_database_flags 
@@ -881,38 +893,6 @@ db_resize_allocdata(ham_db_t *db, ham_size_t size);
 /**
  * @}
  */
-
-/**
- * Ensure that the environment occupies a minimum number of pages.
- * 
- * This is useful with various storage devices to prevent / reduce
- * fragmentation.
- * 
- * @param env the environment reference.
- * 
- * @param minimum_page_count The desired minimum number of storage pages 
-        * available to the environment/database.
- * 
- * process: 
- * 
- * <ol>
- * <li> detect how many pages we already have in the environment
- * 
- * <li> calculate how many pages we should have
- * 
- * <li> when this is more than what we've got so far, tell
- *      the device driver to allocate the remainder and mark
- *      them all as 'free'.
- * </ol>
- * 
- * @remark Caveat:
- *    The required size may be so large that it does not
- *    fit in the current freelist, so one or more of
- *    the allocated 'free' pages will be used for the
- *    extended freelist.
- */
-extern ham_status_t
-env_reserve_space(ham_env_t *env, ham_offset_t minimum_page_count);
 
 /*
  * initialize the ham_db_t structure for accessing local files

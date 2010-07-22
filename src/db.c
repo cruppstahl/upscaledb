@@ -130,8 +130,8 @@ typedef struct free_cb_context_t
 /*
  * callback function for freeing blobs of an in-memory-database
  */
-static ham_status_t
-my_free_cb(int event, void *param1, void *param2, void *context)
+ham_status_t
+free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
 {
     ham_status_t st;
     int_key_t *key;
@@ -152,8 +152,7 @@ my_free_cb(int event, void *param1, void *param2, void *context)
          * if this callback function is called from ham_env_erase_db:
          * move the page to the freelist
          */
-        if (!(env_get_rt_flags(db_get_env(c->db))&HAM_IN_MEMORY_DB)) 
-        {
+        if (!(env_get_rt_flags(db_get_env(c->db))&HAM_IN_MEMORY_DB)) {
             ham_page_t *page=(ham_page_t *)param1;
             st = txn_free_page(env_get_txn(db_get_env(c->db)), page);
             if (st)
@@ -164,8 +163,7 @@ my_free_cb(int event, void *param1, void *param2, void *context)
     case ENUM_EVENT_ITEM:
         key=(int_key_t *)param1;
 
-        if (key_get_flags(key)&KEY_IS_EXTENDED) 
-        {
+        if (key_get_flags(key)&KEY_IS_EXTENDED) {
             ham_offset_t blobid=key_get_extended_rid(c->db, key);
             /*
              * delete the extended key
@@ -183,8 +181,7 @@ my_free_cb(int event, void *param1, void *param2, void *context)
         /*
          * if we're in the leaf page, delete the blob
          */
-        if (c->is_leaf)
-        {
+        if (c->is_leaf) {
             st = key_erase_record(c->db, key, 0, BLOB_FREE_ALL_DUPES);
             if (st)
                 return st;
@@ -199,6 +196,70 @@ my_free_cb(int event, void *param1, void *param2, void *context)
     return CB_CONTINUE;
 }
 
+static ham_status_t
+__record_filters_before_write(ham_db_t *db, ham_record_t *record)
+{
+    ham_status_t st=0;
+    ham_record_filter_t *record_head;
+
+    record_head=db_get_record_filter(db);
+    while (record_head) 
+    {
+        if (record_head->before_write_cb) 
+        {
+            st=record_head->before_write_cb(db, record_head, record);
+            if (st)
+                break;
+        }
+        record_head=record_head->_next;
+    }
+
+    return (st);
+}
+
+/*
+ * WATCH IT!
+ *
+ * as with the page filters, there was a bug in PRE-1.1.0 which would execute 
+ * a record filter chain in the same order for both write (insert) and read 
+ * (find), which means chained record filters would process invalid data in 
+ * one of these, as a correct filter chain must traverse the transformation 
+ * process IN REVERSE for one of these actions.
+ * 
+ * As with the page filters, we've chosen the WRITE direction to be the 
+ * FORWARD direction, i.e. added filters end up processing data WRITTEN by 
+ * the previous filter.
+ * 
+ * This also means the READ==FIND action must walk this chain in reverse.
+ * 
+ * See the documentation about the cyclic prev chain: the point is 
+ * that FIND must traverse the record filter chain in REVERSE order so we 
+ * should start with the LAST filter registered and stop once we've DONE 
+ * calling the FIRST.
+ */
+static ham_status_t
+__record_filters_after_find(ham_db_t *db, ham_record_t *record)
+{
+    ham_status_t st = 0;
+    ham_record_filter_t *record_head;
+
+    record_head=db_get_record_filter(db);
+    if (record_head)
+    {
+        record_head = record_head->_prev;
+        do
+        {
+            if (record_head->after_read_cb) 
+            {
+                st=record_head->after_read_cb(db, record_head, record);
+                if (st)
+                      break;
+            }
+            record_head = record_head->_prev;
+        } while (record_head->_prev->_next);
+    }
+    return (st);
+}
 
 ham_status_t
 db_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
@@ -1246,7 +1307,7 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
 }
 
 ham_status_t
-db_resize_allocdata(ham_db_t *db, ham_size_t size)
+db_resize_record_allocdata(ham_db_t *db, ham_size_t size)
 {
     if (size==0) {
         if (db_get_record_allocdata(db))
@@ -1262,6 +1323,28 @@ db_resize_allocdata(ham_db_t *db, ham_size_t size)
             return (HAM_OUT_OF_MEMORY);
         db_set_record_allocdata(db, newdata);
         db_set_record_allocsize(db, size);
+    }
+
+    return (0);
+}
+
+ham_status_t
+db_resize_key_allocdata(ham_db_t *db, ham_size_t size)
+{
+    if (size==0) {
+        if (db_get_key_allocdata(db))
+            allocator_free(env_get_allocator(db_get_env(db)), 
+                    db_get_key_allocdata(db));
+        db_set_key_allocdata(db, 0);
+        db_set_key_allocsize(db, 0);
+    }
+    else if (size>db_get_key_allocsize(db)) {
+        void *newdata=allocator_realloc(env_get_allocator(db_get_env(db)), 
+                db_get_key_allocdata(db), size);
+        if (!newdata) 
+            return (HAM_OUT_OF_MEMORY);
+        db_set_key_allocdata(db, newdata);
+        db_set_key_allocsize(db, size);
     }
 
     return (0);
@@ -1316,19 +1399,17 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     /*
      * auto-abort (or commit) a pending transaction?
      */
-    if (noenv && env && env_get_txn(env)) 
-    {
+    if (noenv && env && env_get_txn(env)) {
         /*
-        abort transaction when a cursor failure happened: when such a thing
-        happened, we're not in a fully controlled state any more so
-        'auto-committing' would be extremely dangerous then.
-        */
+         * abort transaction when a cursor failure happened: when such a thing
+         * happened, we're not in a fully controlled state any more so
+         * 'auto-committing' would be extremely dangerous then.
+         */
         if (flags&HAM_TXN_AUTO_COMMIT && st2 == 0)
             st=ham_txn_commit(env_get_txn(env), 0);
         else
             st=ham_txn_abort(env_get_txn(env), 0);
-        if (st)
-        {
+        if (st) {
             if (st2 == 0) st2 = st;
         }
         env_set_txn(env, 0);
@@ -1337,12 +1418,10 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     /* 
      * flush all DB performance data 
      */
-    if (st2 == HAM_SUCCESS)
-    {
+    if (st2 == HAM_SUCCESS) {
         stats_flush_dbdata(db, db_get_db_perf_data(db), noenv);
     }
-    else
-    {
+    else {
         /* trash all DB performance data */
         stats_trash_dbdata(db, db_get_db_perf_data(db));
     }
@@ -1371,19 +1450,16 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     /*
      * in-memory-database: free all allocated blobs
      */
-    if (be && be_is_active(be) && env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
-    {
+    if (be && be_is_active(be) && env_get_rt_flags(env)&HAM_IN_MEMORY_DB) {
         ham_txn_t txn;
         free_cb_context_t context;
         context.db=db;
         st = txn_begin(&txn, env, 0);
-        if (st) 
-        {
+        if (st) {
             if (st2 == 0) st2 = st;
         }
-        else
-        {
-            (void)be->_fun_enumerate(be, my_free_cb, &context);
+        else {
+            (void)be->_fun_enumerate(be, free_inmemory_blobs_cb, &context);
             (void)txn_commit(&txn, 0);
         }
     }
@@ -1407,7 +1483,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     /*
      * free cached memory
      */
-    (void)db_resize_allocdata(db, 0);
+    (void)db_resize_record_allocdata(db, 0);
     if (db_get_key_allocdata(db)) {
         allocator_free(env_get_allocator(env), db_get_key_allocdata(db));
         db_set_key_allocdata(db, 0);
@@ -2101,7 +2177,6 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
      */
     temprec=*record;
     st=__record_filters_before_write(db, &temprec);
-
     if (!st) {
         db_update_global_stats_insert_query(db, key->size, temprec.size);
     }

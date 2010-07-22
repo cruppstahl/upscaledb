@@ -38,77 +38,22 @@ typedef struct free_cb_context_t
 
 } free_cb_context_t;
 
-/*
- * callback function for freeing blobs of an in-memory-database
+/* 
+ * forward decl - implemented in hamsterdb.c 
  */
-static ham_status_t
-my_free_cb(int event, void *param1, void *param2, void *context)
-{
-    ham_status_t st;
-    int_key_t *key;
-    free_cb_context_t *c;
+extern ham_status_t 
+__check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename, 
+        ham_u32_t *pflags, const ham_parameter_t *param, 
+        ham_size_t *ppagesize, ham_u16_t *pkeysize, 
+        ham_size_t *pcachesize, ham_u16_t *pdbname,
+        ham_u16_t *pmaxdbs, ham_u16_t *pdata_access_mode, ham_bool_t create);
 
-    c=(free_cb_context_t *)context;
-
-    switch (event) {
-    case ENUM_EVENT_DESCEND:
-        break;
-
-    case ENUM_EVENT_PAGE_START:
-        c->is_leaf=*(ham_bool_t *)param2;
-        break;
-
-    case ENUM_EVENT_PAGE_STOP:
-        /*
-         * if this callback function is called from ham_env_erase_db:
-         * move the page to the freelist
-         */
-        if (!(env_get_rt_flags(db_get_env(c->db))&HAM_IN_MEMORY_DB)) 
-        {
-            ham_page_t *page=(ham_page_t *)param1;
-            st = txn_free_page(env_get_txn(db_get_env(c->db)), page);
-            if (st)
-                return st;
-        }
-        break;
-
-    case ENUM_EVENT_ITEM:
-        key=(int_key_t *)param1;
-
-        if (key_get_flags(key)&KEY_IS_EXTENDED) 
-        {
-            ham_offset_t blobid=key_get_extended_rid(c->db, key);
-            /*
-             * delete the extended key
-             */
-            st = extkey_remove(c->db, blobid);
-            if (st)
-                return st;
-        }
-
-        if (key_get_flags(key)&(KEY_BLOB_SIZE_TINY
-                            |KEY_BLOB_SIZE_SMALL
-                            |KEY_BLOB_SIZE_EMPTY))
-            break;
-
-        /*
-         * if we're in the leaf page, delete the blob
-         */
-        if (c->is_leaf)
-        {
-            st = key_erase_record(c->db, key, 0, BLOB_FREE_ALL_DUPES);
-            if (st)
-                return st;
-        }
-        break;
-
-    default:
-        ham_assert(!"unknown callback event", (0));
-        return CB_STOP;
-    }
-
-    return CB_CONTINUE;
-}
+/*
+ * callback function for freeing blobs of an in-memory-database, implemented 
+ * in db.c
+ */
+extern ham_status_t
+free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context);
 
 ham_u16_t
 env_get_max_databases(ham_env_t *env)
@@ -643,7 +588,7 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     if (!be->_fun_enumerate)
         return HAM_NOT_IMPLEMENTED;
 
-    st=be->_fun_enumerate(be, my_free_cb, &context);
+    st=be->_fun_enumerate(be, free_inmemory_blobs_cb, &context);
     if (st) {
         (void)txn_abort(&txn, 0);
         (void)ham_close(db, 0);

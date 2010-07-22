@@ -670,6 +670,35 @@ env_initialize_local(ham_env_t *env);
 extern ham_status_t
 env_initialize_remote(ham_env_t *env);
 
+/**
+ * Ensure that the environment occupies a minimum number of pages.
+ * 
+ * This is useful with various storage devices to prevent / reduce
+ * fragmentation.
+ * 
+ * @param env the environment reference.
+ * @param minimum_page_count The desired minimum number of storage pages 
+        * available to the environment/database.
+ * 
+ * process: 
+ * 
+ * <ol>
+ * <li> detect how many pages we already have in the environment
+ * <li> calculate how many pages we should have
+ * <li> when this is more than what we've got so far, tell
+ *      the device driver to allocate the remainder and mark
+ *      them all as 'free'.
+ * </ol>
+ * 
+ * @remark Caveat:
+ *    The required size may be so large that it does not
+ *    fit in the current freelist, so one or more of
+ *    the allocated 'free' pages will be used for the
+ *    extended freelist.
+ */
+extern ham_status_t
+env_reserve_space(ham_env_t *env, ham_offset_t minimum_page_count);
+
 
 #ifdef __cplusplus
 } // extern "C" {

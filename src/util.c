@@ -195,7 +195,7 @@ util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
     }
     else if (noblob && blobsize > 0) {
         if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-            st=db_resize_allocdata(db, blobsize);
+            st=db_resize_record_allocdata(db, blobsize);
             if (st)
                 return (st);
             record->data = db_get_record_allocdata(db);
@@ -249,8 +249,7 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
         }
         else {
             if (keysize) {
-                if (db_get_key_allocdata(db))
-                    allocator_free(alloc, db_get_key_allocdata(db));
+                (void)db_resize_key_allocdata(db, 0);
                 db_set_key_allocdata(db, dest->data);
                 db_set_key_allocsize(db, keysize);
             }
@@ -272,22 +271,14 @@ util_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
             }
             else {
                 if (keysize > db_get_key_allocsize(db)) {
-                    if (db_get_key_allocdata(db))
-                        allocator_free(alloc, db_get_key_allocdata(db));
-                    db_set_key_allocdata(db, allocator_alloc(alloc, keysize));
-                    if (!db_get_key_allocdata(db)) {
-                        db_set_key_allocsize(db, 0);
-                        dest->data = NULL;
-                        return HAM_OUT_OF_MEMORY;
-                    }
-                    else {
+                    ham_status_t st=db_resize_key_allocdata(db, keysize);
+                    if (st)
+                        return (st);
+                    else
                         db_set_key_allocsize(db, keysize);
-                    }
                 }
                 dest->data = db_get_key_allocdata(db);
                 memcpy(dest->data, key_get_key(source), keysize);
-                //db_set_key_allocdata(db, dest->data);
-                //db_set_key_allocsize(db, keysize);
             }
         }
         else {
