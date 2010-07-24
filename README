@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 1.1.5 Unstable!!        Thu Jul 15 22:16:45 CEST 2010
+hamsterdb Embedded Storage 1.1.5 UNSTABLE          Sat Jul 24 14:35:14 CEST 2010
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -17,7 +17,13 @@ This release offers remote functionality.
 This release is UNSTABLE! Although there are no known bugs, the next
 release will stabilize and extend the remote functionality. Some things are
 still missing, i.e. support for MS Windows. The TODO file has a long list
-of stuff that will be part of the next release.
+of stuff that will be part of the next release. The main items are:
+
+- add a Unix daemon for the server
+- add a Win32 service for the server
+- improve shutdown time of the server
+- make sure that KEEPALIVE of the http connections is working
+- increase unit tests
 
 2. Changes
 
