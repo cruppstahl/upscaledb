@@ -529,6 +529,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\remote.c"
+			>
+		</File>
+		<File
 			RelativePath="..\src\statistics.c"
 			>
 		</File>
