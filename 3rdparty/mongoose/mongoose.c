@@ -4459,14 +4459,23 @@ get_socket(struct mg_context *ctx, struct socket *sp)
 	/* If the queue is empty, wait. We're idle at this point. */
 	ctx->num_idle++;
 	while (ctx->sq_head == ctx->sq_tail) {
-		ts.tv_nsec = 0;
-		ts.tv_sec = time(NULL) + atoi(ctx->options[OPT_IDLE_TIME]) + 1;
-		if (pthread_cond_timedwait(&ctx->empty_cond,
-		    &ctx->thr_mutex, &ts) != 0) {
-			/* Timeout! release the mutex and return */
-			(void) pthread_mutex_unlock(&ctx->thr_mutex);
-			return (FALSE);
-		}
+        int i, idle_time=atoi(ctx->options[OPT_IDLE_TIME]);
+        for (i=0; i<idle_time; i++) {
+		    ts.tv_nsec = 0;
+		    ts.tv_sec = time(NULL) + 1;
+
+		    if (pthread_cond_timedwait(&ctx->empty_cond,
+		            &ctx->thr_mutex, &ts) == 0)
+                break;
+            if (ctx->stop_flag)
+                break;
+        }
+
+        if (i==idle_time || ctx->stop_flag) {
+		    /* Timeout or shutdown! release the mutex and return */
+		    (void) pthread_mutex_unlock(&ctx->thr_mutex);
+		    return (FALSE);
+	    }
 	}
 	assert(ctx->sq_head > ctx->sq_tail);
 

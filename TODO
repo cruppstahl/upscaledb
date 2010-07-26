@@ -22,9 +22,12 @@ x some cleanup:
     x make sure there are no more warnings
 
 o server: 
-    o make sure connections are not closed immediately (keep-alive)
+    x shutdown time is very long (10 sec)
     x mongoose - disable default handler (returns file listing!)
     x add mongoose license to readme!
+    o every connect first goes to IPv6 - disable this as long as mongoose
+        only supports IPv4
+    o make sure connections are not closed immediately (keep-alive)
 
 o need a client1.c sample (which works with server1.c)
 
