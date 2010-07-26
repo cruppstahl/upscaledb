@@ -8,180 +8,25 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-x update the .NET API 
-
-x server: first step
-    x need configure switch to disable the server
-    x need 3rdparty stuff
-        x add json to 3rdparty
-        x add mongoose to 3rdparty
-    x define/implement public API
-        x implemented
-        x need mutex/critsec to protect use of environment!
-    x open environments/databases are used through url /envname/ (/dbname/)
-
-x HAM_PARAM_GET_STATISTICS -> hamsterdb_int.h!
-
-x client/server communication
-    x abstract env functions into "class" (like backend)
-    x separate local code into env.c
-    x configure.in: check for protocol buffer - if not available: build without
-            remote access!
-    x configure.in: check for libcurl - if not available: build without
-            remote access!
-    x need configure switch to disable the remote client
-    x if file starts with "http://" then switch to remote client
-    x separate remote code into remote.c
-
-    x implement with google protocol buffers
-        x ham_env_create_ex
-        x ham_env_close
-            x unittest 
-        x ham_env_open_ex
-            x unittest
-        x ham_env_get_parameters
-            x unittest
-        x ham_env_get_database_names
-            x unittest
-        x ham_env_flush
-            x unittest
-        x ham_env_rename_db
-            x unittest
-        x ham_env_enable_encryption
-            x unittest
-        x ham_env_create_db
-            x unittest
-        x ham_env_erase_db
-            x unittest
-        x ham_close (needs to delete cached db handle in the server!)
-            x unittest
-        x ham_env_open_db
-            x unittest
-        x ham_get_parameters
-            x unittest
-        x ham_enable_compression
-            x unittest
-        x ham_flush
-            x unittest
-        x ham_calc_maxkeys_per_page - needed? i guess not...
-        x ham_txn_begin
-            x unittest
-        x ham_txn_commit
-            x unittest
-        x ham_txn_abort
-            x unittest
-        x ham_check_integrity
-            x unittest
-        x ham_get_key_count
-            x unittest
-        x ham_insert
-            x needs implementation in remote.c, server
-            x recno: key data is modified (if key->size==8 und
-                    HAM_RECORD_NUMBER); memory must be allocated
-                x should work - i moved it to hamsterdb.c
-                x make sure that the recno is copied back into the key
-                x implement the server
-            x partial inserts
-        x ham_find
-            x implemented in db.c
-            x needs implementation in remote.c, server
-            x respect USER_ALLOC pointers!
-            x approx matching: modifies key-flags
-            x partial finds
-        x ham_erase
-            x implemented in db.c
-            x needs implementation in remote.c, server
-            x unittest: insert, find, erase, find
-            x unittest: insert, find, erase, find (useralloc)
-            x unittest: insert, find, erase, find (for recno)
-        x unittest for partial inserts
-        x when opening(=creating) a database: the reply has to return the
-            database flags! (i.e. recno)
-        x if the same database is opened twice, the same handle has to be 
-            returned (currently, an error is returned - DB_ALREADY_OPEN)
-        x ham_cursor_create
-            x implement client
-            x implement server
-            x unittest
-        x ham_cursor_clone
-            x implement client
-            x implement server
-            x unittest
-        x ham_cursor_close
-            x implement client
-            x implement server
-            x unittest
-        x ham_cursor_insert
-            x implement client
-            x implement server
-            x unittest
-        x ham_cursor_find_ex
-            x implement client
-            x implement server
-            x unittest
-        x ham_cursor_erase
-            x implement client
-            x implement server
-            x unittest
-        x ham_cursor_get_duplicate_count
-            x unittest
-        x ham_cursor_overwrite
-            x unittest
-        x ham_cursor_move
-            x implement client
-            x implement server
-            x unittest
-        x ham_close: needs to AUTOCLOSE existing cursors
-        x ham_close: needs to AUTOABORT/AUTOCOMMIT existing txns
-            x ham_env_create needs flag HAM_ENABLE_TRANSACTIONS locally, but
-                it's already specified remotely; flag is not returned when
-                creating/opening an env!?
-
-    x daemon: remove from server directory, add as a sample
-    x release build: make sure that the debug output of libcurl is suppressed
-    x make sure that tests in remote.cpp do not require external daemon
-
-    x make sure that all other tests run successfully
-
-    x messages-pb.c must be created dynamically because it depends on 
-        the google protobuf version
-
-    x functions in env/db.c and remote.c should never use
-        db_set_error!
-
-    x test with BIG blobs
-        __writefunc fails; have to buffer incoming data. but how do i 
-        know the total size that was sent? this info should be available
-        through http headers. otherwise send a separate header??
-
-    o check for memory leaks
-
-    x do not build remote.c if remote is disabled; make sure that the
-        build works if remote is disabled (includes the unittests!)
-
------------------------------- (this release is unstable!) -----------------
-
-o release new .NET wrapper with fix from a.todorov (-> nabble)
-
 x hamsterdb.com: add permanent redirect from hamsterdb.com to 
 	www.hamsterdb.com (and all other domains!)
 
-o remove 3rdparty/json if it's not needed
+x do not build mongoose if remote is diabled
 
-o do not build mongoose if remote is diabled
+x some cleanup:
+    x db_set_allocdata -> for records, but we need a similar function for keys!
+        currently, db_set_key_allocdata() is used, but it's very clumsy
+    x check_create_parameters -> move to env.c?? - no, also needed in
+        hamsterdb.c
+    x my_free_cb is duplicated in env.c und hamsterdb.c!
+    x make sure there are no more warnings
+
+o server: 
+    o make sure connections are not closed immediately (keep-alive)
+    x mongoose - disable default handler (returns file listing!)
+    x add mongoose license to readme!
 
 o need a client1.c sample (which works with server1.c)
-
-------------------------------
-
-. server: add gzip as an option for client/server communication
-
-o some cleanup:
-    db_set_allocdata -> for records, but we need a similar function for keys!
-    currently, db_set_key_allocdata() is used, but it's very clumsy
-    o check_create_parameters -> move to env.c??
-    o my_free_cb is duplicated in env.c und hamsterdb.c!
-    o make sure there are no more warnings
 
 o more unittests
     x test with big blobs!
@@ -198,11 +43,6 @@ o more remote stuff
     o add Windows stuff
     o how is the daemon safely shut down? -> before exiting, we have to
         close the environments!
-
-o server: 
-    o make sure connections are not closed immediately (keep-alive)
-    x mongoose - disable default handler (returns file listing!)
-    o add mongoose license to readme!
 
 o server: second step
     o unix daemon (also running in foreground!)
@@ -221,7 +61,6 @@ o server: second step
         callback for SSL?)
     o support https?
     o add acceptance tests
-
     o need win32 project for the server
 
 . disable local client?
@@ -244,6 +83,12 @@ o test the following:
         db=ham_create()
         env=ham_get_env(db)
         ham_env_close(env) ???
+
+-----------------------------------------------------------------------------
+
+o release new .NET wrapper with fix from a.todorov (-> nabble)
+
+-----------------------------------------------------------------------------
 
 =======================================================================
 
