@@ -21,13 +21,12 @@ x some cleanup:
     x my_free_cb is duplicated in env.c und hamsterdb.c!
     x make sure there are no more warnings
 
-o server: 
+x server: 
     x shutdown time is very long (10 sec)
     x mongoose - disable default handler (returns file listing!)
     x add mongoose license to readme!
-    o every connect first goes to IPv6 - disable this as long as mongoose
-        only supports IPv4
-    o make sure connections are not closed immediately (keep-alive)
+    x make sure connections are not closed immediately (keep-alive)
+        -> done automatically (10 seconds)
 
 o need a client1.c sample (which works with server1.c)
 
@@ -36,6 +35,8 @@ o more unittests
     o unittest: ham_env_create_db w/ extended params
     o unittest for approx matching
     o unittest: negative insert, negative find, negative erase
+
+o improve hamserver.h - add doxygen section etc
 
 o call curl_global_cleanup() (not threadsafe!!)
 
