@@ -28,13 +28,15 @@ x server:
     x make sure connections are not closed immediately (keep-alive)
         -> done automatically (10 seconds)
 
-o need a client1.c sample (which works with server1.c)
-
 o move to github server!!
+    x upload/import code
     o update release.sh scripts
     o update ohloh enlistments
     o update hamsterdb.com/download/subversion URL and page
     o svnserve: disable read for anonymous access
+
+o need a client1.c sample (which works with server1.c)
+    o add client1.c/server1.c to hamsterdb.com/documentation/samples
 
 o more unittests
     x test with big blobs!
