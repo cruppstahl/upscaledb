@@ -28,12 +28,15 @@ x server:
     x make sure connections are not closed immediately (keep-alive)
         -> done automatically (10 seconds)
 
-o move to github server!!
+x move to github server!!
     x upload/import code
-    o update release.sh scripts
-    o update ohloh enlistments
-    o update hamsterdb.com/download/subversion URL and page
-    o svnserve: disable read for anonymous access
+    x update release.sh scripts
+    x update ohloh enlistments
+    x update hamsterdb.com/download/subversion URL and page
+    x svnserve: disable read for anonymous access, disable write for 
+            ssh-access
+    x write a blog comment
+    x add to ChangeLog!
 
 o need a client1.c sample (which works with server1.c)
     o add client1.c/server1.c to hamsterdb.com/documentation/samples
@@ -53,28 +56,32 @@ o call curl_global_cleanup() (not threadsafe!!)
 
 o fix freelist page overflow when searching for bits (See mail from Stefan)
     -> is this still relevant??
+    o get newest version from Ger
 
 o more remote stuff
     o add Windows stuff
-    o how is the daemon safely shut down? -> before exiting, we have to
-        close the environments!
 
 o server: second step
     o unix daemon (also running in foreground!)
+        o how is the daemon safely shut down? -> before exiting, we have to
+            close the environments!
     o daemon/service: what about logging? we have at least to log errors
-    . windows service: command line switches -install, -start, 
+        o get apache-compatible logging (if it's enabled on the command line)
+    o windows service: command line switches -install, -start, 
         -stop, -uninstall!
-    . configuration file: no default path; is set by command line parameter
+    o configuration file: no default path; is set by command line parameter
+            (on windows we need a default path!)
         o use to specify the port
         o use to specify available databases/Environments and their url
-        o every! configuration option can be used programmatically!
-        o default is read from built-in json string
+        o use to specify the logging (Yes, no)
+        ? every! configuration option can be used programmatically!
+        ? default is read from built-in json string
             o all other sources are "merged" and ONLY overwrite, but do NOT
                 add new strings!
             o unknown strings are ignored (print warning!)
     . install a callback for authentication (and offer a predefined
         callback for SSL?)
-    o support https?
+    . support https?
     o add acceptance tests
     o need win32 project for the server
 
