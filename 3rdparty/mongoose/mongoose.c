@@ -4530,6 +4530,9 @@ worker_thread(struct mg_context *ctx)
 		close_connection(&conn);
 	}
 
+    /* prevent a segfault - sometimes, conn.ctx is NULL (but will be 
+     * dereferenced later); this is fixed in the HEAD of mongoose, but not in 
+     * our version */
     if (!conn.ctx)
 		conn.ctx = ctx;
 
