@@ -585,7 +585,8 @@ WARN_LOGFILE           =
 # with spaces.
 
 INPUT                  = include/ham \
-                         documentation/*.doc
+                         documentation/starting.doc \
+                         samples
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is
@@ -605,6 +606,8 @@ INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.c \
                          *.h \
                          *.hpp \
+                         *.cpp \
+                         *.doc \
                          *.dox
 
 # The RECURSIVE tag can be used to turn specify whether or not subdirectories

@@ -42,7 +42,10 @@ o more unittests
     o unittest for approx matching
     o unittest: negative insert, negative find, negative erase
 
-o improve hamserver.h - add doxygen section etc
+o improve documentation
+    o hamserver.h - add doxygen section etc
+    o extend the tutorial
+    o add server1.c/client1.c to the webpage (list of samples)
 
 o call curl_global_cleanup() (not threadsafe!!)
 
