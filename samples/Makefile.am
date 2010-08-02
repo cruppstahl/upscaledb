@@ -7,8 +7,8 @@ noinst_BIN      = db1 db2 db3 db4 db5 db6 env1 env2 env3
 
 if ENABLE_SERVER
 if ENABLE_REMOTE
-noinst_PROGRAMS += server1
-noinst_BIN      += server1
+noinst_PROGRAMS += server1 client1
+noinst_BIN      += server1 client1
 endif
 endif
 
@@ -42,3 +42,8 @@ env3_LDADD    	= $(top_builddir)/src/libhamsterdb.la
 server1_SOURCES = server1.c
 server1_LDADD   = $(top_builddir)/src/libhamsterdb.la \
                   $(top_builddir)/server/libhamserver.la -ldl -lpthread
+
+client1_SOURCES = client1.c
+client1_LDADD   = $(top_builddir)/src/libhamsterdb.la \
+                  $(top_builddir)/server/libhamserver.la -ldl -lpthread
+

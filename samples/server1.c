@@ -15,8 +15,15 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ham/hamsterdb.h>
 #include <ham/hamserver.h>
+
+#ifdef WIN32
+#   define EXT ".exe"
+#else
+#   define EXT ""
+#endif
 
 int 
 main(void)
@@ -26,6 +33,7 @@ main(void)
     hamserver_t *srv;
     hamserver_config_t cfg;
     ham_status_t st;
+    char input[1024];
 
     ham_env_new(&env);
     st=ham_env_create(env, "test.db", HAM_ENABLE_TRANSACTIONS, 0644);
@@ -60,9 +68,20 @@ main(void)
     cfg.port=8080;
     hamserver_init(&cfg, &srv);
     hamserver_add_env(srv, env, "/test.db");
+
+    printf("server1%s started - please run client1%s for a test\n", 
+            EXT, EXT);
+    printf("type 'exit' to end the server\n");
     
-    while (1)
-        getchar();
+    while (1) {
+        printf("> ");
+        scanf("%s", &input[0]);
+        if (!strcmp(input, "exit")) {
+            printf("exiting...\n");
+            break;
+        }
+        printf("unknown command\n");
+    }
 
     hamserver_close(srv);
     ham_env_close(env, HAM_AUTO_CLEANUP);

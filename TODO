@@ -38,8 +38,7 @@ x move to github server!!
     x write a blog comment
     x add to ChangeLog!
 
-o need a client1.c sample (which works with server1.c)
-    o add client1.c/server1.c to hamsterdb.com/documentation/samples
+x need a client1.c sample (which works with server1.c)
 
 o more unittests
     x test with big blobs!
@@ -50,7 +49,6 @@ o more unittests
 o improve documentation
     o hamserver.h - add doxygen section etc
     o extend the tutorial
-    o add server1.c/client1.c to the webpage (list of samples)
 
 o call curl_global_cleanup() (not threadsafe!!)
 
@@ -105,6 +103,9 @@ o test the following:
         db=ham_create()
         env=ham_get_env(db)
         ham_env_close(env) ???
+
+o webpage changes
+    o add client1.c/server1.c to hamsterdb.com/documentation/samples
 
 -----------------------------------------------------------------------------
 

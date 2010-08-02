@@ -1,4 +1,7 @@
 Aug 02, 2010 - chris
+o added a new sample client1.c which can communicate with server1.c
+
+Aug 02, 2010 - chris
 o the source repository is now hosted at
 	http://github.com/cruppstahl/hamsterdb. The old subversion repository
 	is no longer available.
