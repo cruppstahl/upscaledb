@@ -42,22 +42,28 @@ x need a client1.c sample (which works with server1.c)
 
 o more unittests
     x test with big blobs!
+    x unittest: negative insert, negative find, negative erase
     o unittest: ham_env_create_db w/ extended params
     o unittest for approx matching
-    o unittest: negative insert, negative find, negative erase
 
 o improve documentation
     o hamserver.h - add doxygen section etc
     o extend the tutorial
 
-o call curl_global_cleanup() (not threadsafe!!)
+o call curl_global_cleanup() (take care - eventually not threadsafe?!)
+    o finally get rid of ALL the memory leaks for remote stuff
 
 o fix freelist page overflow when searching for bits (See mail from Stefan)
     -> is this still relevant??
     o get newest version from Ger
 
-o more remote stuff
-    o add Windows stuff
+o add Windows support for remote functionality
+    o add protobuf-compiler executable to 3rdparty
+    o add precompiled protobuf-library to 3rdparty
+    o add precompiled libcurl-library to 3rdparty
+    o need win32 project for the server
+    o run unittests
+    o add projects for the new samples
 
 o server: second step
     o unix daemon (also running in foreground!)
@@ -65,8 +71,6 @@ o server: second step
             close the environments!
     o daemon/service: what about logging? we have at least to log errors
         o get apache-compatible logging (if it's enabled on the command line)
-    o windows service: command line switches -install, -start, 
-        -stop, -uninstall!
     o configuration file: no default path; is set by command line parameter
             (on windows we need a default path!)
         o use to specify the port
@@ -77,11 +81,12 @@ o server: second step
             o all other sources are "merged" and ONLY overwrite, but do NOT
                 add new strings!
             o unknown strings are ignored (print warning!)
+    o windows service: command line switches -install, -start, 
+        -stop, -uninstall!
+    o add acceptance tests
     . install a callback for authentication (and offer a predefined
         callback for SSL?)
     . support https?
-    o add acceptance tests
-    o need win32 project for the server
 
 . disable local client?
     o need configure switch to disable the local client

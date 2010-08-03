@@ -785,6 +785,7 @@ protected:
 
         BFC_ASSERT_EQUAL(0, ham_erase(db, 0, &key, 0));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_find(db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_erase(db, 0, &key, 0));
         BFC_ASSERT_EQUAL(0, ham_get_key_count(db, 0, 0, &keycount));
         BFC_ASSERT_EQUAL(2ull, keycount);
 
