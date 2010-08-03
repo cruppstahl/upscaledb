@@ -2859,7 +2859,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
 
     /* free cached data pointers */
     (void)db_resize_record_allocdata(db, 0);
-    // TODO implement this! (void)db_resize_key_allocdata(db, 0);
+    (void)db_resize_key_allocdata(db, 0);
 
     /*
      * remove this database from the environment

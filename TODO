@@ -40,11 +40,11 @@ x move to github server!!
 
 x need a client1.c sample (which works with server1.c)
 
-o more unittests
+x more unittests
     x test with big blobs!
     x unittest: negative insert, negative find, negative erase
     x unittest: ham_env_create_db w/ extended params
-    o unittest for approx matching
+    x unittest for approx matching
 
 o improve documentation
     o hamserver.h - add doxygen section etc

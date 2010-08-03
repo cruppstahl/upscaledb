@@ -1148,9 +1148,19 @@ _remote_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     st=reply->db_find_reply->status;
 
     if (st==0) {
-        /* approx. matching: need to copy the _flags! */
+        /* approx. matching: need to copy the _flags and the key data! */
         if (reply->db_find_reply->key) {
+            ham_assert(key, (""));
             key->_flags=reply->db_find_reply->key->intflags;
+            key->size=reply->db_find_reply->key->data.len;
+            if (!(key->flags&HAM_KEY_USER_ALLOC)) {
+                st=db_resize_key_allocdata(db, key->size);
+                if (st)
+                    goto bail;
+                key->data=db_get_key_allocdata(db);
+            }
+            memcpy(key->data, reply->db_find_reply->key->data.data,
+                    key->size);
         }
         if (reply->db_find_reply->record) {
             record->size=reply->db_find_reply->record->data.len;

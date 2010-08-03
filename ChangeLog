@@ -1,4 +1,6 @@
 Aug 03, 2010 - chris
+o fixed approximate matching over remote connections - the keys were
+	not propagated back to the client
 o some parameters (HAM_PARAM_DATABASE_NAME, HAM_PARAM_KEYSIZE)
 	were not propagated to remote servers when calling ham_get_parameters
 	on a remote Database - fixed

@@ -884,6 +884,8 @@ handle_db_find(struct env_t *envh, struct mg_connection *conn,
                 if (key._flags) {
                     reply.key=&replykey;
                     replykey.intflags=key._flags;
+                    replykey.data.data=key.data;
+                    replykey.data.len=key.size;
                 }
                 /* in any case - return the record */
                 reply.record=&replyrec;
