@@ -1,0 +1,7 @@
+*.o
+*.lo
+*.la
+.libs
+.deps
+messages.pb-c.c
+messages.pb-c.h

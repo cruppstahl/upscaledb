@@ -43,7 +43,7 @@ x need a client1.c sample (which works with server1.c)
 o more unittests
     x test with big blobs!
     x unittest: negative insert, negative find, negative erase
-    o unittest: ham_env_create_db w/ extended params
+    x unittest: ham_env_create_db w/ extended params
     o unittest for approx matching
 
 o improve documentation
