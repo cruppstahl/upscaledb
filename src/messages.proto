@@ -230,6 +230,10 @@ message DbGetParametersReply {
     optional uint32 flags = 5;
     optional uint32 filemode = 6;
     optional string filename = 7;
+    optional uint32 keysize = 8;
+    optional uint32 dbname = 9;
+    optional uint32 keys_per_page = 10;
+    optional uint32 dam = 11;
 };
 
 message DbFlushRequest {

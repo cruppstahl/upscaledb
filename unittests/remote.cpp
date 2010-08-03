@@ -46,6 +46,7 @@ public:
         BFC_REGISTER_TEST(RemoteTest, renameDbTest);
         BFC_REGISTER_TEST(RemoteTest, enableEncryptionTest);
         BFC_REGISTER_TEST(RemoteTest, createDbTest);
+        BFC_REGISTER_TEST(RemoteTest, createDbExtendedTest);
         BFC_REGISTER_TEST(RemoteTest, openDbTest);
         BFC_REGISTER_TEST(RemoteTest, eraseDbTest);
         BFC_REGISTER_TEST(RemoteTest, getDbParamsTest);
@@ -318,6 +319,34 @@ protected:
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 22, 0, 0));
         BFC_ASSERT_EQUAL(0x80000000u, db_get_remote_handle(db));
+
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        ham_env_delete(env);
+        ham_delete(db);
+    }
+
+    void createDbExtendedTest(void)
+    {
+        ham_env_t *env;
+        ham_db_t *db;
+        ham_parameter_t params[] =
+        {
+            {HAM_PARAM_KEYSIZE, 5},
+            {0,0}
+        };
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(env, SERVER_URL, 0, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_db(env, db, 22, 0, &params[0]));
+        BFC_ASSERT_EQUAL(0x80000000u, db_get_remote_handle(db));
+
+        params[0].value=0;
+        BFC_ASSERT_EQUAL(0, ham_get_parameters(db, &params[0]));
+        BFC_ASSERT_EQUAL(5ull, params[0].value);
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));

@@ -1,3 +1,10 @@
+Aug 03, 2010 - chris
+o some parameters (HAM_PARAM_DATABASE_NAME, HAM_PARAM_KEYSIZE)
+	were not propagated to remote servers when calling ham_get_parameters
+	on a remote Database - fixed
+o the extended parameters (ham_parameter_t) of ham_env_create_db were
+	ignored when operating on a remote Environment - fixed
+
 Aug 02, 2010 - chris
 o added a new sample client1.c which can communicate with server1.c
 

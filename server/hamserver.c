@@ -287,6 +287,22 @@ handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
         case HAM_PARAM_GET_FILENAME:
             reply.filename=(char *)(U64_TO_PTR(params[i].value));
             break;
+        case HAM_PARAM_KEYSIZE:
+            reply.keysize=(int)params[i].value;
+            reply.has_keysize=1;
+            break;
+        case HAM_PARAM_GET_DATABASE_NAME:
+            reply.dbname=(int)params[i].value;
+            reply.has_dbname=1;
+            break;
+        case HAM_PARAM_GET_KEYS_PER_PAGE:
+            reply.keys_per_page=(int)params[i].value;
+            reply.has_keys_per_page=1;
+            break;
+        case HAM_PARAM_GET_DATA_ACCESS_MODE:
+            reply.dam=(int)params[i].value;
+            reply.has_dam=1;
+            break;
         default:
             ham_trace(("unsupported parameter %u", (unsigned)params[i].name));
             break;
@@ -415,6 +431,7 @@ handle_env_create_db(struct env_t *envh, ham_env_t *env,
                 struct mg_connection *conn, const struct mg_request_info *ri,
                 Ham__EnvCreateDbRequest *request)
 {
+    unsigned i;
     ham_db_t *db;
     Ham__EnvCreateDbReply reply;
     Ham__Wrapper wrapper;
@@ -432,6 +449,10 @@ handle_env_create_db(struct env_t *envh, ham_env_t *env,
     /* convert parameters */
     ham_assert(request->n_param_values==request->n_param_names, (""));
     ham_assert(request->n_param_values<100, (""));
+    for (i=0; i<request->n_param_values; i++) {
+        params[i].name=request->param_names[i];
+        params[i].value=request->param_values[i];
+    }
 
     /* create the database */
     ham_new(&db);
@@ -471,6 +492,10 @@ handle_env_open_db(struct env_t *envh, ham_env_t *env,
     /* convert parameters */
     ham_assert(request->n_param_values==request->n_param_names, (""));
     ham_assert(request->n_param_values<100, (""));
+    for (i=0; i<request->n_param_values; i++) {
+        params[i].name=request->param_names[i];
+        params[i].value=request->param_values[i];
+    }
 
     /* check if the database is already open */
     for (i=0; i<envh->handles_size; i++) {

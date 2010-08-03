@@ -812,6 +812,22 @@ _remote_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
                         sizeof(filename));
             p->value=PTR_TO_U64(&filename[0]);
             break;
+        case HAM_PARAM_KEYSIZE:
+            ham_assert(reply->db_get_parameters_reply->has_keysize, (""));
+            p->value=reply->db_get_parameters_reply->keysize;
+            break;
+        case HAM_PARAM_GET_DATABASE_NAME:
+            ham_assert(reply->db_get_parameters_reply->has_dbname, (""));
+            p->value=reply->db_get_parameters_reply->dbname;
+            break;
+        case HAM_PARAM_GET_KEYS_PER_PAGE:
+            ham_assert(reply->db_get_parameters_reply->has_keys_per_page, (""));
+            p->value=reply->db_get_parameters_reply->keys_per_page;
+            break;
+        case HAM_PARAM_GET_DATA_ACCESS_MODE:
+            ham_assert(reply->db_get_parameters_reply->has_dam, (""));
+            p->value=reply->db_get_parameters_reply->dam;
+            break;
         default:
             ham_trace(("unknown parameter %d", (int)p->name));
             break;
