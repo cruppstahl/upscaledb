@@ -48,9 +48,9 @@ x more unittests
 
 x libhamserver.a should have its own libtool version! - already has!
 
-o improve documentation
+x improve documentation
     x hamserver.h - add doxygen section etc
-    o extend the tutorial
+    x extend the tutorial
 
 o call curl_global_cleanup() (take care - eventually not threadsafe?!)
     o finally get rid of ALL the memory leaks for remote stuff
@@ -113,6 +113,10 @@ o test the following:
 
 o webpage changes
     o add client1.c/server1.c to hamsterdb.com/documentation/samples
+
+o utilize the github wiki
+    o move the FAQ
+    o move the tutorial
 
 -----------------------------------------------------------------------------
 
