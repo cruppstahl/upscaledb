@@ -1,3 +1,7 @@
+Aug 04, 2010 - chris
+o improved hamserver.h documentation; also, all functions in hamserver.h
+	no longer return bool but a proper status value
+
 Aug 03, 2010 - chris
 o fixed approximate matching over remote connections - the keys were
 	not propagated back to the client

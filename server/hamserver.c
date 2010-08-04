@@ -1526,7 +1526,7 @@ bail:
     os_critsec_leave(&env->cs);
 }
 
-ham_bool_t 
+ham_status_t 
 hamserver_init(hamserver_config_t *config, hamserver_t **psrv)
 {
     hamserver_t *srv;
@@ -1535,7 +1535,7 @@ hamserver_init(hamserver_config_t *config, hamserver_t **psrv)
 
     srv=(hamserver_t *)malloc(sizeof(hamserver_t));
     if (!srv)
-        return (HAM_FALSE);
+        return (HAM_OUT_OF_MEMORY);
     memset(srv, 0, sizeof(*srv));
 
     srv->mg_ctxt=mg_start();
@@ -1543,10 +1543,10 @@ hamserver_init(hamserver_config_t *config, hamserver_t **psrv)
     mg_set_option(srv->mg_ctxt, "dir_list", "no");
 
     *psrv=srv;
-    return (HAM_TRUE);
+    return (HAM_SUCCESS);
 }
 
-ham_bool_t 
+ham_status_t 
 hamserver_add_env(hamserver_t *srv, ham_env_t *env, const char *urlname)
 {
     int i;
@@ -1562,11 +1562,11 @@ hamserver_add_env(hamserver_t *srv, ham_env_t *env, const char *urlname)
     }
 
     if (i==MAX_ENVIRONMENTS)
-        return (HAM_FALSE);
+        return (HAM_LIMITS_REACHED);
     
     mg_set_uri_callback(srv->mg_ctxt, urlname, 
                         request_handler, &srv->environments[i]);
-    return (HAM_TRUE);
+    return (HAM_SUCCESS);
 }
 
 void

@@ -112,10 +112,10 @@ protected:
                         HAM_RECORD_NUMBER|HAM_ENABLE_DUPLICATES, 0));
         ham_close(m_db, 0);
 
-        BFC_ASSERT_EQUAL(HAM_TRUE, 
+        BFC_ASSERT_EQUAL(0, 
                 hamserver_init(&cfg, &m_srv));
 
-        BFC_ASSERT_EQUAL(HAM_TRUE, 
+        BFC_ASSERT_EQUAL(0, 
                 hamserver_add_env(m_srv, m_env, "/test.db"));
     }
 

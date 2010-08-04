@@ -46,8 +46,10 @@ x more unittests
     x unittest: ham_env_create_db w/ extended params
     x unittest for approx matching
 
+x libhamserver.a should have its own libtool version! - already has!
+
 o improve documentation
-    o hamserver.h - add doxygen section etc
+    x hamserver.h - add doxygen section etc
     o extend the tutorial
 
 o call curl_global_cleanup() (take care - eventually not threadsafe?!)
