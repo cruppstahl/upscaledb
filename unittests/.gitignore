@@ -1,0 +1,11 @@
+*.o
+*.lo
+*.la
+*.exe
+.libs
+.deps
+bfc_sample
+test
+*.db
+*.db.*
+
