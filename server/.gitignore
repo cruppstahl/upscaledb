@@ -1,0 +1,9 @@
+*.o
+*.exe
+*.lo
+*.la
+*.db
+*.db.*
+.gitignore
+.libs
+.deps
