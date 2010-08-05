@@ -6,3 +6,6 @@
 *.exe
 *.db
 *.db.*
+ham_dump
+ham_info
+hamsterd

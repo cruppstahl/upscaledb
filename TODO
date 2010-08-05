@@ -67,24 +67,24 @@ o add Windows support for remote functionality
     o run unittests
     o add projects for the new samples
 
-o server: second step
-    o unix daemon (also running in foreground!)
-        o how is the daemon safely shut down? -> before exiting, we have to
-            close the environments!
-    o daemon/service: what about logging? we have at least to log errors
-        o get apache-compatible logging (if it's enabled on the command line)
+o unix daemon/win32 service
+    x -h for help
+    x -f for foreground
+    x shutdown by sending sigterm
+    o -c for config file
+    o on shutdown: close all environments!
+
     o configuration file: no default path; is set by command line parameter
             (on windows we need a default path!)
         o use to specify the port
         o use to specify available databases/Environments and their url
         o use to specify the logging (Yes, no)
-        ? every! configuration option can be used programmatically!
-        ? default is read from built-in json string
-            o all other sources are "merged" and ONLY overwrite, but do NOT
-                add new strings!
-            o unknown strings are ignored (print warning!)
+    o daemon/service: what about logging? we have at least to log errors
+        o get apache-compatible logging (if it's enabled on the command line)
     o windows service: command line switches -install, -start, 
         -stop, -uninstall!
+
+. more server stuff
     o add acceptance tests
     . install a callback for authentication (and offer a predefined
         callback for SSL?)
