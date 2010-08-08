@@ -26,6 +26,7 @@
 #include <ham/hamserver.h>
 
 #include "getopts.h"
+#include "json.h"
 
 #define ARG_HELP            1
 #define ARG_FOREGROUND      2
@@ -96,11 +97,46 @@ daemonize(void)
     }
 }
 
+void
+read_config(const char *configfile)
+{
+    ham_status_t st;
+    char *buf;
+    param_table_t *params=0;
+    FILE *fp;
+    long len;
+
+    /* read the whole file into 'buf' */
+    fp=fopen(configfile, "rt");
+    if (!fp) {
+        printf("failed to open config file: %s\n", strerror(errno));
+        exit(-1);
+    }
+    fseek(fp, 0, SEEK_END);
+    len=ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    buf=(char *)malloc(len+1); /* for zero-terminating byte */
+    fread(buf, len, 1, fp);
+    fclose(fp);
+    buf[len]='\0';
+
+    /* parse the file */
+    st=json_parse_string(buf, &params);
+    if (st) {
+        printf("failed to read configuration file: %s\n", ham_strerror(st));
+        exit(-1);
+    }
+
+    /* clean up */
+    json_clear_table(params);
+    free(buf);
+}
+
 int
 main(int argc, char **argv)
 {
     unsigned opt;
-    char *param, *config=0;
+    char *param, *configfile=0;
     unsigned foreground=0;
 
     ham_u32_t maj, min, rev;
@@ -116,7 +152,7 @@ main(int argc, char **argv)
                 foreground=1;
                 break;
             case ARG_CONFIG:
-                config=param;
+                configfile=param;
                 break;
             case ARG_HELP:
                 printf("hamsterdb server %d.%d.%d - Copyright (C) 2005-2010 "
@@ -151,10 +187,12 @@ main(int argc, char **argv)
 
     printf("hamsterd is starting...\n");
 
+    /* read and parse the configuration file */
+    if (configfile)
+        read_config(configfile);
+
     signal(SIGTERM, signal_handler);
 
-    if (config)
-        printf("config file %s\n", config);
     if (!foreground)
         daemonize();
 

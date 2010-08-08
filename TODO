@@ -71,16 +71,15 @@ o unix daemon/win32 service
     x -h for help
     x -f for foreground
     x shutdown by sending sigterm
-    o -c for config file
-    o on shutdown: close all environments!
+    x -c for config file
 
     o configuration file: no default path; is set by command line parameter
             (on windows we need a default path!)
         o use to specify the port
         o use to specify available databases/Environments and their url
-        o use to specify the logging (Yes, no)
-    o daemon/service: what about logging? we have at least to log errors
-        o get apache-compatible logging (if it's enabled on the command line)
+        o use to specify the logging (Yes, no and where to?)
+    o logging: will need enhancements in hamserver
+    o on shutdown: close all environments!
     o windows service: command line switches -install, -start, 
         -stop, -uninstall!
 
