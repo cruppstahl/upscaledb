@@ -31,6 +31,7 @@
 #define ARG_HELP            1
 #define ARG_FOREGROUND      2
 #define ARG_CONFIG          3
+#define ARG_PIDFILE         4
 
 /*
  * command line parameters
@@ -53,6 +54,12 @@ static option_t opts[]={
         "c",
         "config",
         "specify config file",
+        GETOPTS_NEED_ARGUMENT },
+    {
+        ARG_PIDFILE,
+        "p",
+        "pid",
+        "store pid in file",
         GETOPTS_NEED_ARGUMENT },
     { 0, 0, 0, 0, 0 } /* terminating element */
 };
@@ -98,11 +105,10 @@ daemonize(void)
 }
 
 void
-read_config(const char *configfile)
+read_config(const char *configfile, param_table_t **params)
 {
     ham_status_t st;
     char *buf;
-    param_table_t *params=0;
     FILE *fp;
     long len;
 
@@ -121,23 +127,105 @@ read_config(const char *configfile)
     buf[len]='\0';
 
     /* parse the file */
-    st=json_parse_string(buf, &params);
+    st=json_parse_string(buf, params);
     if (st) {
         printf("failed to read configuration file: %s\n", ham_strerror(st));
         exit(-1);
     }
 
     /* clean up */
-    json_clear_table(params);
     free(buf);
+}
+
+void
+write_pidfile(const char *pidfile)
+{
+    FILE *fp=fopen(pidfile, "wt");
+    if (!fp) {
+        printf("failed to write pidfile: %s\n", strerror(errno));
+        exit(-1);
+    }
+    fprintf(fp, "%u", (unsigned)getpid());
+    fclose(fp);
+}
+
+void
+initialize_server(hamserver_t *srv, param_table_t *params)
+{
+    unsigned e, d;
+    ham_env_t *env;
+    ham_status_t st;
+
+    for (e=0; e<params->env_count; e++) {
+        /* TODO format flags! */
+        ham_u32_t flags=0;
+        ham_bool_t created_env=HAM_FALSE;
+
+        ham_env_new(&env);
+
+        /* First try to open the Environment */
+        st=ham_env_open(env, params->envs[e].path, flags);
+        if (st) {
+            /* Not found? if open_exclusive is false then we create the
+             * Environment */
+            if (st==HAM_FILE_NOT_FOUND && !params->envs[e].open_exclusive) {
+                st=ham_env_create(env, params->envs[e].path, flags, 0644);
+                if (st) {
+                    printf("ham_env_create failed: %s\n", ham_strerror(st));
+                    exit(-1);
+                }
+                created_env=1;
+            }
+            else {
+                printf("ham_env_open failed: %s\n", ham_strerror(st));
+                exit(-1);
+            }
+        }
+
+        /* Now create each of the Databases if the Environment was
+         * created */
+        if (created_env) {
+            ham_db_t *db;
+    
+            for (d=0; d<params->envs[e].db_count; d++) {
+                ham_u32_t flags=0; /* TODO format flags */
+                //if (params->envs[e].dbs[d].flags)
+
+                ham_new(&db);
+
+                st=ham_env_create_db(env, db, params->envs[e].dbs[d].name, 
+                                    flags, 0);
+                if (st) {
+                    printf("ham_env_create_db: %d\n", st);
+                    exit(-1);
+                }
+
+                ham_close(db, 0);
+                ham_delete(db);
+            }
+        }
+
+        /* Add the Environment to the server */
+        st=hamserver_add_env(srv, env, params->envs[e].url);
+        if (st) {
+            printf("hamserver_add_env failed: %s\n", ham_strerror(st));
+            exit(-1);
+        }
+
+        /* Store env in configuration object */
+        params->envs[e].env=env;
+    }
 }
 
 int
 main(int argc, char **argv)
 {
     unsigned opt;
-    char *param, *configfile=0;
+    char *param, *configfile=0, *pidfile=0;
     unsigned foreground=0;
+    hamserver_t *srv;
+    hamserver_config_t cfg;
+    param_table_t *params=0;
 
     ham_u32_t maj, min, rev;
     const char *licensee, *product;
@@ -153,6 +241,9 @@ main(int argc, char **argv)
                 break;
             case ARG_CONFIG:
                 configfile=param;
+                break;
+            case ARG_PIDFILE:
+                pidfile=param;
                 break;
             case ARG_HELP:
                 printf("hamsterdb server %d.%d.%d - Copyright (C) 2005-2010 "
@@ -185,21 +276,38 @@ main(int argc, char **argv)
         }
     }
 
-    printf("hamsterd is starting...\n");
-
     /* read and parse the configuration file */
     if (configfile)
-        read_config(configfile);
+        read_config(configfile, &params);
+    else {
+        printf("configuration file missing - please specify path with -c\n");
+        printf("run ./hamsterd --help for more information.\n");
+        exit(-1);
+    }
+
+    printf("hamsterd is starting...\n");
 
     signal(SIGTERM, signal_handler);
 
     if (!foreground)
         daemonize();
 
+    cfg.port=8080;
+    hamserver_init(&cfg, &srv);
+
+    initialize_server(srv, params);
+
+    if (pidfile)
+        write_pidfile(pidfile);
+
     while (running)
         sleep(1);
 
     printf("hamsterd is stopping...\n");
+
+    /* clean up */
+    hamserver_close(srv);
+    json_clear_table(params);
 
     return (0);
 }

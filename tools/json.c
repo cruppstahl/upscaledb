@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <malloc.h>
+
 #include "json.h"
 #include "error.h"
 #include "util.h"
@@ -27,14 +28,11 @@ __parser_cb(void *ctx, int type, const struct JSON_value_struct *value)
 {
     param_table_t *p=(param_table_t *)ctx;
 
-    printf("state: %d  ", p->state);
-
     switch (p->state) {
         case STATE_NONE: {
             if (type==JSON_T_OBJECT_BEGIN)
                 break;
             if (type==JSON_T_KEY) {
-                printf("key %s\n", value->vu.str.value);
                 if (!strcmp("global", value->vu.str.value)) {
                     p->state=STATE_GLOBAL;
                     break;
@@ -62,20 +60,40 @@ __parser_cb(void *ctx, int type, const struct JSON_value_struct *value)
                 break;
             }
             if (type==JSON_T_INTEGER) {
-                printf("%s: %u\n", p->key, (unsigned)value->vu.integer_value);
-                break;
+                if (!strcmp("port", p->key)) {
+                    p->globals.port=value->vu.integer_value;
+                    break;
+                }
             }
             if (type==JSON_T_STRING) {
-                printf("%s: %s\n", p->key, value->vu.str.value);
-                break;
+                if (!strcmp("error-log", p->key)) {
+                    p->globals.error_log=strdup(value->vu.str.value);
+                    break;
+                }
+                if (!strcmp("access-log", p->key)) {
+                    p->globals.access_log=strdup(value->vu.str.value);
+                    break;
+                }
             }
             if (type==JSON_T_TRUE) {
-                printf("%s: true\n", p->key);
-                break;
+                if (!strcmp("enable-error-log", p->key)) {
+                    p->globals.enable_error_log=1;
+                    break;
+                }
+                if (!strcmp("enable-access-log", p->key)) {
+                    p->globals.enable_access_log=1;
+                    break;
+                }
             }
             if (type==JSON_T_FALSE) {
-                printf("%s: false\n", p->key);
-                break;
+                if (!strcmp("enable-error-log", p->key)) {
+                    p->globals.enable_error_log=0;
+                    break;
+                }
+                if (!strcmp("enable-access-log", p->key)) {
+                    p->globals.enable_access_log=0;
+                    break;
+                }
             }
             /* everything else: fail */
             return (0);
@@ -97,23 +115,36 @@ __parser_cb(void *ctx, int type, const struct JSON_value_struct *value)
                 break;
             }
             if (type==JSON_T_STRING) {
-                printf("%s: %s\n", p->key, value->vu.str.value);
-                break;
+                if (!strcmp("url", p->key)) {
+                    p->envs[p->cur_env-1].url=strdup(value->vu.str.value);
+                    break;
+                }
+                if (!strcmp("path", p->key)) {
+                    p->envs[p->cur_env-1].path=strdup(value->vu.str.value);
+                    break;
+                }
+                if (!strcmp("flags", p->key)) {
+                    p->envs[p->cur_env-1].flags=strdup(value->vu.str.value);
+                    break;
+                }
             }
             if (type==JSON_T_TRUE) {
-                printf("%s: true\n", p->key);
-                break;
+                if (!strcmp("open-exclusive", p->key)) {
+                    p->envs[p->cur_env-1].open_exclusive=1;
+                    break;
+                }
             }
             if (type==JSON_T_FALSE) {
-                printf("%s: false\n", p->key);
-                break;
+                if (!strcmp("open-exclusive", p->key)) {
+                    p->envs[p->cur_env-1].open_exclusive=0;
+                    break;
+                }
             }
             if (type==JSON_T_ARRAY_BEGIN) {
-                printf("array begin\n");
                 if (!strcmp("databases", p->key)) {
                     p->state=STATE_DATABASES;
+                    break;
                 }
-                break;
             }
             /* everything else: fail */
             break;
@@ -135,12 +166,18 @@ __parser_cb(void *ctx, int type, const struct JSON_value_struct *value)
                 break;
             }
             if (type==JSON_T_STRING) {
-                printf("%s: %s\n", p->key, value->vu.str.value);
-                break;
+                if (!strcmp("flags", p->key)) {
+                    struct param_env_t *e=&p->envs[p->cur_env-1];
+                    e->dbs[p->cur_db-1].flags=strdup(value->vu.str.value);
+                    break;
+                }
             }
             if (type==JSON_T_INTEGER) {
-                printf("%s: %u\n", p->key, (unsigned)value->vu.integer_value);
-                break;
+                if (!strcmp("name", p->key)) {
+                    struct param_env_t *e=&p->envs[p->cur_env-1];
+                    e->dbs[p->cur_db-1].name=value->vu.integer_value;
+                    break;
+                }
             }
             /* everything else: fail */
             break;

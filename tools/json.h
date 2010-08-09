@@ -16,7 +16,7 @@
 extern "C" {
 #endif 
 
-#include <ham/types.h>
+#include <ham/hamsterdb.h>
 
 typedef struct param_table_t
 {
@@ -38,6 +38,7 @@ typedef struct param_table_t
         char *path;
         char *flags;
         unsigned int open_exclusive;
+        ham_env_t *env;
 
         struct param_db_t {
             unsigned int name;
