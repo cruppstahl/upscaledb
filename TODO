@@ -46,9 +46,11 @@ x more unittests
     x unittest: ham_env_create_db w/ extended params
     x unittest for approx matching
 
-o improve documentation
-    o hamserver.h - add doxygen section etc
-    o extend the tutorial
+x libhamserver.a should have its own libtool version! - already has!
+
+x improve documentation
+    x hamserver.h - add doxygen section etc
+    x extend the tutorial
 
 o call curl_global_cleanup() (take care - eventually not threadsafe?!)
     o finally get rid of ALL the memory leaks for remote stuff
@@ -65,24 +67,23 @@ o add Windows support for remote functionality
     o run unittests
     o add projects for the new samples
 
-o server: second step
-    o unix daemon (also running in foreground!)
-        o how is the daemon safely shut down? -> before exiting, we have to
-            close the environments!
-    o daemon/service: what about logging? we have at least to log errors
-        o get apache-compatible logging (if it's enabled on the command line)
+o unix daemon/win32 service
+    x -h for help
+    x -f for foreground
+    x shutdown by sending sigterm
+    x -c for config file
+
     o configuration file: no default path; is set by command line parameter
             (on windows we need a default path!)
         o use to specify the port
         o use to specify available databases/Environments and their url
-        o use to specify the logging (Yes, no)
-        ? every! configuration option can be used programmatically!
-        ? default is read from built-in json string
-            o all other sources are "merged" and ONLY overwrite, but do NOT
-                add new strings!
-            o unknown strings are ignored (print warning!)
+        o use to specify the logging (Yes, no and where to?)
+    o logging: will need enhancements in hamserver
+    o on shutdown: close all environments!
     o windows service: command line switches -install, -start, 
         -stop, -uninstall!
+
+. more server stuff
     o add acceptance tests
     . install a callback for authentication (and offer a predefined
         callback for SSL?)
@@ -111,6 +112,10 @@ o test the following:
 
 o webpage changes
     o add client1.c/server1.c to hamsterdb.com/documentation/samples
+
+o utilize the github wiki
+    o move the FAQ
+    o move the tutorial
 
 -----------------------------------------------------------------------------
 

@@ -113,6 +113,7 @@ Documentation License&quot;.
 	<li>\ref tut_Aborting_a_Transaction		Aborting a Transaction	
 	</ul>
 <li>\ref tut_Approximate_Matching    Approximate Matching
+<li>\ref tut_Remote_Server           Remote Client/Server functionality
 <li>\ref tut_The_CPP_API	The C++ API	
 <li>\ref tut_Troubleshooting	Troubleshooting	
 </ul>
@@ -1879,6 +1880,35 @@ memset(&key, 0, sizeof(key));
 if ((st=ham_find(db, NULL, &key, &record, HAM_FIND_NEAR_MATCH))!=HAM_SUCCESS) {
     // ...
 \endcode
+
+\section tut_Remote_Server           Remote Client/Server functionality
+
+Starting with version 1.1.5 hamsterdb became able to transparently access
+remote servers through http. The server is available as a library that can
+be embedded into an application. hamsterdb 1.1.6 also has a Unix daemon and
+a Win32 service which are capable of serving databases.
+
+If you want to embed the server into your application, please look into 
+<I>ham/hamserver.h</i> for the API documentation and </i>samples/server1.c</i> 
+for a sample. The server has just three rather trivial functions.
+
+On client side hamsterdb will transparently use a remote connection if 
+the filename, that was specified when calling \ref ham_env_open or 
+\ref ham_env_create (or \ref ham_open or \ref ham_create) is a URL 
+starting with "http://". 
+
+\code
+st=ham_env_open(env, "http://localhost:8080/customers.db", 0);
+if (st!=HAM_SUCCESS) {
+    printf("ham_env_open_db failed: %d (%s)\n", st, ham_strerror(st));
+    exit(-1);
+}
+\endcode
+
+It does not matter if you open or create an Environment - in both cases
+hamsterdb will just connect to an Environment that is served remotely. 
+
+All other functions can then be used as usual.
 
 \section tut_The_CPP_API    The C++ API
 

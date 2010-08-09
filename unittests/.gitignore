@@ -1,11 +1,11 @@
 *.o
 *.lo
 *.la
+*.exe
 .libs
 .deps
-*.exe
+bfc_sample
+test
 *.db
 *.db.*
-ham_dump
-ham_info
-hamsterd
+
