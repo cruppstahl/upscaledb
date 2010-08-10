@@ -197,6 +197,7 @@ _remote_fun_create(ham_env_t *env, const char *filename,
 
     st=_perform_request(env, handle, &wrapper, &reply);
     if (st) {
+        curl_easy_cleanup(handle);
         if (reply)
             ham__wrapper__free_unpacked(reply, 0);
         return (st);
@@ -234,6 +235,7 @@ _remote_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags,
 
     st=_perform_request(env, handle, &wrapper, &reply);
     if (st) {
+        curl_easy_cleanup(handle);
         if (reply)
             ham__wrapper__free_unpacked(reply, 0);
         return (st);

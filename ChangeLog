@@ -1,3 +1,6 @@
+Aug 10, 2010 - chris
+o fixed a few memory leaks in remote handling
+
 Aug 04, 2010 - chris
 o improved hamserver.h documentation; also, all functions in hamserver.h
 	no longer return bool but a proper status value
