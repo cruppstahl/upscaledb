@@ -72,11 +72,15 @@ o unix daemon
         x use to specify available databases/Environments and their url
         x use to specify the logging (Yes, no and where to?)
     x initialize the server
-    o create new environments and databases (if requested)
-        ====> format the flags!
+    x create new environments and databases (if requested)
+    x on shutdown: close all environments, close the server
+    x make sure that all relevant signals are caught
+    x rename json.h/c -> config.h/c
+    x also rename functions and structures
+    o "-c config -f" does not run in foreground - getopts-bug
+
+    o on shutdown: what if transactions and cursors are open?
     o logging: will need enhancements in hamserver
-    o on shutdown: close all environments, close the server
-    o ignore all signals bug sighub, sigterm -> terminate the server
 
 o add Windows support for remote functionality
     o add protobuf-compiler executable to 3rdparty

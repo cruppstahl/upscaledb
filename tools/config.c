@@ -14,7 +14,7 @@
 #include <string.h>
 #include <malloc.h>
 
-#include "json.h"
+#include "config.h"
 #include "error.h"
 #include "util.h"
 
@@ -26,7 +26,7 @@
 static int
 __parser_cb(void *ctx, int type, const struct JSON_value_struct *value)
 {
-    param_table_t *p=(param_table_t *)ctx;
+    config_table_t *p=(config_table_t *)ctx;
 
     switch (p->state) {
         case STATE_NONE: {
@@ -102,9 +102,9 @@ __parser_cb(void *ctx, int type, const struct JSON_value_struct *value)
         case STATE_ENVIRONMENTS: {
             if (type==JSON_T_OBJECT_BEGIN) {
                 p->env_count++;
-                p->envs=(struct param_env_t *)realloc(p->envs, 
-                        p->env_count*sizeof(struct param_env_t));
-                memset(&p->envs[p->env_count-1], 0, sizeof(struct param_env_t));
+                p->envs=(struct config_env_t *)realloc(p->envs, 
+                        p->env_count*sizeof(struct config_env_t));
+                memset(&p->envs[p->env_count-1], 0, sizeof(struct config_env_t));
                 p->cur_env=p->env_count;
                 break;
             }
@@ -151,11 +151,11 @@ __parser_cb(void *ctx, int type, const struct JSON_value_struct *value)
         }
         case STATE_DATABASES: {
             if (type==JSON_T_OBJECT_BEGIN) {
-                struct param_env_t *e=&p->envs[p->cur_env-1];
+                struct config_env_t *e=&p->envs[p->cur_env-1];
                 e->db_count++;
-                e->dbs=(struct param_db_t *)realloc(e->dbs, 
-                        e->db_count*sizeof(struct param_db_t));
-                memset(&e->dbs[e->db_count-1], 0, sizeof(struct param_db_t));
+                e->dbs=(struct config_db_t *)realloc(e->dbs, 
+                        e->db_count*sizeof(struct config_db_t));
+                memset(&e->dbs[e->db_count-1], 0, sizeof(struct config_db_t));
                 p->cur_db=e->db_count;
                 break;
             }
@@ -167,14 +167,14 @@ __parser_cb(void *ctx, int type, const struct JSON_value_struct *value)
             }
             if (type==JSON_T_STRING) {
                 if (!strcmp("flags", p->key)) {
-                    struct param_env_t *e=&p->envs[p->cur_env-1];
+                    struct config_env_t *e=&p->envs[p->cur_env-1];
                     e->dbs[p->cur_db-1].flags=strdup(value->vu.str.value);
                     break;
                 }
             }
             if (type==JSON_T_INTEGER) {
                 if (!strcmp("name", p->key)) {
-                    struct param_env_t *e=&p->envs[p->cur_env-1];
+                    struct config_env_t *e=&p->envs[p->cur_env-1];
                     e->dbs[p->cur_db-1].name=value->vu.integer_value;
                     break;
                 }
@@ -188,12 +188,12 @@ __parser_cb(void *ctx, int type, const struct JSON_value_struct *value)
 }
 
 ham_status_t
-json_parse_string(const char *string, param_table_t **params)
+config_parse_string(const char *string, config_table_t **params)
 {
     unsigned count=0;
     JSON_config config;
     struct JSON_parser_struct *jc=0;
-    param_table_t *p=(param_table_t *)calloc(sizeof(param_table_t), 1);
+    config_table_t *p=(config_table_t *)calloc(sizeof(config_table_t), 1);
     if (!p)
         return (HAM_OUT_OF_MEMORY);
 
@@ -211,7 +211,7 @@ json_parse_string(const char *string, param_table_t **params)
         if (!JSON_parser_char(jc, *string)) {
             delete_JSON_parser(jc);
             ham_log(("JSON syntax error in byte %u: %s", count, string));
-            json_clear_table(p);
+            config_clear_table(p);
             return (HAM_INV_PARAMETER);
         }
         count++;
@@ -221,7 +221,7 @@ json_parse_string(const char *string, param_table_t **params)
     if (!JSON_parser_done(jc)) {
         delete_JSON_parser(jc);
         ham_log(("JSON syntax error"));
-        json_clear_table(p);
+        config_clear_table(p);
         return (HAM_INV_PARAMETER);
     }
 
@@ -232,7 +232,7 @@ json_parse_string(const char *string, param_table_t **params)
 }
 
 void
-json_clear_table(param_table_t *params)
+config_clear_table(config_table_t *params)
 {
     unsigned int e, d;
 
