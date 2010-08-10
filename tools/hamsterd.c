@@ -26,7 +26,7 @@
 #include <ham/hamserver.h>
 
 #include "getopts.h"
-#include "json.h"
+#include "config.h"
 
 #define ARG_HELP            1
 #define ARG_FOREGROUND      2
@@ -105,7 +105,7 @@ daemonize(void)
 }
 
 void
-read_config(const char *configfile, param_table_t **params)
+read_config(const char *configfile, config_table_t **params)
 {
     ham_status_t st;
     char *buf;
@@ -127,7 +127,7 @@ read_config(const char *configfile, param_table_t **params)
     buf[len]='\0';
 
     /* parse the file */
-    st=json_parse_string(buf, params);
+    st=config_parse_string(buf, params);
     if (st) {
         printf("failed to read configuration file: %s\n", ham_strerror(st));
         exit(-1);
@@ -149,16 +149,54 @@ write_pidfile(const char *pidfile)
     fclose(fp);
 }
 
+#define COMPARE_FLAG(n)             if (!strcmp(#n, p)) f|=n
+
+
+ham_u32_t
+format_flags(char *flagstr)
+{
+    ham_u32_t f=0;
+    char *saveptr=0;
+    char *p;
+
+    if (!flagstr || flagstr[0]=='\0')
+        return (0);
+
+    p=strtok_r(flagstr, "|", &saveptr);
+    while (p) {
+        COMPARE_FLAG(HAM_WRITE_THROUGH);
+        else COMPARE_FLAG(HAM_IN_MEMORY_DB);
+        else COMPARE_FLAG(HAM_DISABLE_MMAP);
+        else COMPARE_FLAG(HAM_CACHE_STRICT);
+        else COMPARE_FLAG(HAM_CACHE_UNLIMITED);
+        else COMPARE_FLAG(HAM_DISABLE_FREELIST_FLUSH);
+        else COMPARE_FLAG(HAM_LOCK_EXCLUSIVE);
+        else COMPARE_FLAG(HAM_ENABLE_RECOVERY);
+        else COMPARE_FLAG(HAM_ENABLE_TRANSACTIONS);
+        else COMPARE_FLAG(HAM_READ_ONLY);
+        else COMPARE_FLAG(HAM_USE_BTREE);
+        else COMPARE_FLAG(HAM_DISABLE_VAR_KEYLEN);
+        else COMPARE_FLAG(HAM_ENABLE_DUPLICATES);
+        else COMPARE_FLAG(HAM_SORT_DUPLICATES);
+        else COMPARE_FLAG(HAM_RECORD_NUMBER);
+        else {
+            printf("ignoring unknown flag %s\n", p);
+        }
+        p=strtok_r(0, "|", &saveptr);
+    }
+
+    return (f);
+}
+
 void
-initialize_server(hamserver_t *srv, param_table_t *params)
+initialize_server(hamserver_t *srv, config_table_t *params)
 {
     unsigned e, d;
     ham_env_t *env;
     ham_status_t st;
 
     for (e=0; e<params->env_count; e++) {
-        /* TODO format flags! */
-        ham_u32_t flags=0;
+        ham_u32_t flags=format_flags(params->envs[e].flags);
         ham_bool_t created_env=HAM_FALSE;
 
         ham_env_new(&env);
@@ -188,8 +226,7 @@ initialize_server(hamserver_t *srv, param_table_t *params)
             ham_db_t *db;
     
             for (d=0; d<params->envs[e].db_count; d++) {
-                ham_u32_t flags=0; /* TODO format flags */
-                //if (params->envs[e].dbs[d].flags)
+                ham_u32_t flags=format_flags(params->envs[e].dbs[d].flags);
 
                 ham_new(&db);
 
@@ -222,10 +259,10 @@ main(int argc, char **argv)
 {
     unsigned opt;
     char *param, *configfile=0, *pidfile=0;
-    unsigned foreground=0;
+    unsigned e, foreground=0;
     hamserver_t *srv;
     hamserver_config_t cfg;
-    param_table_t *params=0;
+    config_table_t *params=0;
 
     ham_u32_t maj, min, rev;
     const char *licensee, *product;
@@ -287,15 +324,21 @@ main(int argc, char **argv)
 
     printf("hamsterd is starting...\n");
 
+    /* register signals; these are the signals that will terminate the daemon */
+    signal(SIGHUP, signal_handler);
+    signal(SIGINT, signal_handler);
+    signal(SIGQUIT, signal_handler);
+    signal(SIGABRT, signal_handler);
+    signal(SIGKILL, signal_handler);
     signal(SIGTERM, signal_handler);
 
-    if (!foreground)
-        daemonize();
-
-    cfg.port=8080;
+    cfg.port=params->globals.port;
     hamserver_init(&cfg, &srv);
 
     initialize_server(srv, params);
+
+    if (!foreground)
+        daemonize();
 
     if (pidfile)
         write_pidfile(pidfile);
@@ -307,7 +350,10 @@ main(int argc, char **argv)
 
     /* clean up */
     hamserver_close(srv);
-    json_clear_table(params);
+    for (e=0; e<params->env_count; e++) {
+        (void)ham_env_close(params->envs[e].env, HAM_AUTO_CLEANUP);
+    }
+    config_clear_table(params);
 
     return (0);
 }
