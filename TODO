@@ -59,6 +59,25 @@ o fix freelist page overflow when searching for bits (See mail from Stefan)
     -> is this still relevant??
     o get newest version from Ger
 
+o unix daemon
+    x -h for help
+    x -f for foreground
+    x shutdown by sending sigterm
+    x -c for config file
+    x -p for pidfile
+    x fail if no config file was specified
+    x configuration file: no default path; is set by command line parameter
+            (on windows we need a default path!)
+        x use to specify the port
+        x use to specify available databases/Environments and their url
+        x use to specify the logging (Yes, no and where to?)
+    x initialize the server
+    o create new environments and databases (if requested)
+        ====> format the flags!
+    o logging: will need enhancements in hamserver
+    o on shutdown: close all environments, close the server
+    o ignore all signals bug sighub, sigterm -> terminate the server
+
 o add Windows support for remote functionality
     o add protobuf-compiler executable to 3rdparty
     o add precompiled protobuf-library to 3rdparty
@@ -67,21 +86,9 @@ o add Windows support for remote functionality
     o run unittests
     o add projects for the new samples
 
-o unix daemon/win32 service
-    x -h for help
-    x -f for foreground
-    x shutdown by sending sigterm
-    x -c for config file
-
-    o configuration file: no default path; is set by command line parameter
-            (on windows we need a default path!)
-        o use to specify the port
-        o use to specify available databases/Environments and their url
-        o use to specify the logging (Yes, no and where to?)
-    o logging: will need enhancements in hamserver
-    o on shutdown: close all environments!
-    o windows service: command line switches -install, -start, 
-        -stop, -uninstall!
+o windows service
+    o need msvc project
+    o command line switches -install, -start, -stop, -uninstall!
 
 . more server stuff
     o add acceptance tests
