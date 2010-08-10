@@ -1,4 +1,8 @@
 Aug 10, 2010 - chris
+o the server can now write access logfiles and error logfiles; the 
+	hamserver_config_t structure was modified
+
+Aug 09, 2010 - chris
 o fixed a few memory leaks in remote handling
 
 Aug 04, 2010 - chris

@@ -334,8 +334,10 @@ main(int argc, char **argv)
 
     memset(&cfg, 0, sizeof(cfg));
     cfg.port=params->globals.port;
-    cfg.access_log_path=params->globals.access_log;
-    cfg.error_log_path=params->globals.error_log;
+    if (params->globals.enable_access_log)
+        cfg.access_log_path=params->globals.access_log;
+    if (params->globals.enable_error_log)
+        cfg.error_log_path=params->globals.error_log;
     if ((0!=hamserver_init(&cfg, &srv)))
         exit(-1);
 
