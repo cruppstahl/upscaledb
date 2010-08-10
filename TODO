@@ -77,10 +77,12 @@ o unix daemon
     x make sure that all relevant signals are caught
     x rename json.h/c -> config.h/c
     x also rename functions and structures
-    o "-c config -f" does not run in foreground - getopts-bug
+    x "-c config -f" does not run in foreground - getopts-bug
+    x logging: will need enhancements in hamserver
+        x access log: mongoose OPT_ACCESS_LOG
+        x error log: mongoose OPT_ERROR_LOG
 
     o on shutdown: what if transactions and cursors are open?
-    o logging: will need enhancements in hamserver
 
 o add Windows support for remote functionality
     o add protobuf-compiler executable to 3rdparty

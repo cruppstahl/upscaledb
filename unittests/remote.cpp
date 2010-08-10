@@ -91,6 +91,7 @@ protected:
     void setup(void)
     {
         hamserver_config_t cfg;
+        memset(&cfg, 0, sizeof(cfg));
         cfg.port=8989;
 
         ham_env_new(&m_env);

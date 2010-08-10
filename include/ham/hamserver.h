@@ -26,11 +26,20 @@ extern "C" {
 
 /**
  * A configuration structure
+ *
+ * It is always recommended to initialize the full structure with zeroes
+ * before using it.
  */
 typedef struct
 {
     /** The server port */
     ham_u16_t port;
+
+    /** Path of the access log, or NULL if no log should be written */
+    const char *access_log_path;
+
+    /** Path of the error log, or NULL if no log should be written */
+    const char *error_log_path;
 
 } hamserver_config_t;
 

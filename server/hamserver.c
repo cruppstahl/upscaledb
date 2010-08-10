@@ -1541,6 +1541,26 @@ hamserver_init(hamserver_config_t *config, hamserver_t **psrv)
     srv->mg_ctxt=mg_start();
     mg_set_option(srv->mg_ctxt, "ports", buf);
     mg_set_option(srv->mg_ctxt, "dir_list", "no");
+    if (config->access_log_path) {
+        if (!mg_set_option(srv->mg_ctxt, "access_log", 
+                    config->access_log_path)) {
+            ham_log(("failed to write access log file '%s'", 
+                        config->access_log_path));
+            mg_stop(srv->mg_ctxt);
+            free(srv);
+            return (HAM_IO_ERROR);
+        }
+    }
+    if (config->error_log_path) {
+        if (!mg_set_option(srv->mg_ctxt, "error_log", 
+                    config->error_log_path)) {
+            ham_log(("failed to write access log file '%s'", 
+                        config->access_log_path));
+            mg_stop(srv->mg_ctxt);
+            free(srv);
+            return (HAM_IO_ERROR);
+        }
+    }
 
     *psrv=srv;
     return (HAM_SUCCESS);
@@ -1577,11 +1597,11 @@ hamserver_close(hamserver_t *srv)
     /* clean up Environment handlers */
     for (i=0; i<MAX_ENVIRONMENTS; i++) {
         if (srv->environments[i].env) {
-            os_critsec_close(&srv->environments[i].cs);
             if (srv->environments[i].urlname)
                 free(srv->environments[i].urlname);
             if (srv->environments[i].handles)
                 free(srv->environments[i].handles);
+            os_critsec_close(&srv->environments[i].cs);
             /* env will be closed by the caller */
             srv->environments[i].env=0;
         }

@@ -332,8 +332,12 @@ main(int argc, char **argv)
     signal(SIGKILL, signal_handler);
     signal(SIGTERM, signal_handler);
 
+    memset(&cfg, 0, sizeof(cfg));
     cfg.port=params->globals.port;
-    hamserver_init(&cfg, &srv);
+    cfg.access_log_path=params->globals.access_log;
+    cfg.error_log_path=params->globals.error_log;
+    if ((0!=hamserver_init(&cfg, &srv)))
+        exit(-1);
 
     initialize_server(srv, params);
 

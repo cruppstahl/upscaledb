@@ -65,6 +65,7 @@ main(void)
     }
     ham_close(db, 0);
 
+    memset(&cfg, 0, sizeof(cfg));
     cfg.port=8080;
     hamserver_init(&cfg, &srv);
     hamserver_add_env(srv, env, "/test.db");
