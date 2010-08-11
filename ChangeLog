@@ -1,4 +1,7 @@
 Aug 11, 2010 - chris
+o improved the documentation in hamsterdb.h
+
+Aug 11, 2010 - chris
 o added a unix daemon (tools/hamsrvd.c) which can serve multiple Environments.
     configuration is read from a json file (a sample configuration is
     included in tools/example.config)

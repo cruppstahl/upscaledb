@@ -79,6 +79,16 @@ x unix daemon
         x error log: mongoose OPT_ERROR_LOG
     x on shutdown: what if transactions and cursors are open?
 
+x improve documentation in hamsterdb.h
+    x ham_insert: does not list HAM_HINT_APPEND/PREPEND - not true!
+    x move all comments from ham_*_open to ham_*_open_ex
+    x move all comments from ham_*_create to ham_*_create_ex etc
+    x ham_txn_begin: has no comments, just parameters
+    x ham_open_ex: dito
+    x ham_create_ex: dito
+    x ham_open, ham_create, ham_env_open, ham_env_create: should be 
+            deprecated??? - no, but will be removed with 2.0
+
 o fix freelist page overflow when searching for bits (See mail from Stefan)
     -> is this still relevant??
     o get newest version from Ger
@@ -105,17 +115,6 @@ o windows service
     o need configure switch to disable the local client
         -> also clean up db.h, env.h...
     o add tests for --disable-remote and --disable-local to release.sh
-
-o documentation in hamsterdb.h
-    o ham(_cursor)_insert: does not list HAM_HINT_APPEND/PREPEND,
-        no mentioning of sorted duplicates
-    o move all comments from ham_*_open to ham_*_open_ex
-    o move all comments from ham_*_create to ham_*_create_ex etc
-    o ham_txn_begin: has no comments, just parameters
-    o ham_open_ex: dito
-    o ham_create_ex: dito
-    o ham_open, ham_create, ham_env_open, ham_env_create: should be 
-            deprecated???
 
 o test the following:
         db=ham_create()

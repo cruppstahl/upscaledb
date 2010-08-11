@@ -422,36 +422,8 @@ ham_env_delete(ham_env_t *env);
 /**
  * Creates a Database Environment
  *
- * A Database Environment is a collection of Databases, which are all stored
- * in one physical file (or in-memory). Per default, up to 16 Databases can be
- * stored in one file (see @ref ham_env_create_ex on how to store even more
- * Databases). 
- *
- * Each Database is identified by a positive 16bit value (except
- * 0 and values at or above 0xf000).
- * Databases in an Environment can be created
- * with @ref ham_env_create_db or opened with @ref ham_env_open_db.
- *
- * @param env A valid Environment handle, which was created with 
- *          @ref ham_env_new
- * @param filename The filename of the Environment file. If the file already
- *          exists, it is overwritten. Can be NULL if an In-Memory 
- *          Environment is created.
- * @param flags Optional flags for opening the Environment, combined with
- *          bitwise OR. For allowed flags, see @ref ham_env_create_ex.
- * @param mode File access rights for the new file. This is the @a mode
- *          parameter for creat(2). Ignored on Microsoft Windows.
- *
- * @return @ref HAM_SUCCESS upon success
- * @return @ref HAM_INV_PARAMETER if the @a env pointer is NULL or an
- *              invalid combination of flags was specified
- * @return @ref HAM_IO_ERROR if the file could not be opened or
- *              reading/writing failed
- * @return @ref HAM_INV_FILE_VERSION if the Environment version is not
- *              compatible with the library version
- * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
- * @return @ref HAM_WOULD_BLOCK if another process has locked the file
- * @return @ref HAM_ENVIRONMENT_ALREADY_OPEN if @a env is already in use
+ * This function is a simplified version of @sa ham_env_create_ex. 
+ * It is recommended to use @ref ham_env_create_ex instead.
  *
  * @sa ham_env_create_ex 
  */
@@ -464,13 +436,13 @@ ham_env_create(ham_env_t *env, const char *filename,
  *
  * A Database Environment is a collection of Databases, which are all stored
  * in one physical file (or in-memory). Per default, up to 16 Databases can be
- * stored in one file, but this setting can be overwritten by specifying
- * the parameter @ref HAM_PARAM_MAX_ENV_DATABASES.
+ * stored in one file (see @ref ham_env_create_ex on how to store even more
+ * Databases). 
  *
- * Each Database is identified by a positive 16bit value (except
- * 0 and values at or above 0xf000).
- * Databases in an Environment can be created
- * with @ref ham_env_create_db or opened with @ref ham_env_open_db.
+ * Each Database in an Environment is identified by a positive 16bit 
+ * value (except 0 and values at or above 0xf000).
+ * Databases in an Environment can be created with @ref ham_env_create_db 
+ * or opened with @ref ham_env_open_db.
  *
  * @param env A valid Environment handle, which was created with 
  *          @ref ham_env_new
@@ -563,27 +535,10 @@ ham_env_create_ex(ham_env_t *env, const char *filename,
 /**
  * Opens an existing Database Environment
  *
- * Specify a URL instead of a filename (i.e. 
- * "http://localhost:8080/customers.db") to access a remote hamsterdb Server.
+ * This function is a simplified version of @sa ham_env_open_ex. 
+ * It is recommended to use @ref ham_env_open_ex instead.
  *
- * @param env A valid Environment handle, which was created with 
- *          @ref ham_env_new
- * @param filename The filename or URL of the Environment file
- * @param flags Optional flags for opening the Environment, combined with
- *          bitwise OR. See the documentation of @ref ham_env_open_ex
- *          for the allowed flags.
- *
- * @return @ref HAM_SUCCESS upon success
- * @return @ref HAM_INV_PARAMETER if the @a env pointer is NULL or an
- *              invalid combination of flags was specified
- * @return @ref HAM_FILE_NOT_FOUND if the file does not exist
- * @return @ref HAM_IO_ERROR if the file could not be opened or reading failed
- * @return @ref HAM_INV_FILE_VERSION if the Environment version is not
- *              compatible with the library version
- * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
- * @return @ref HAM_WOULD_BLOCK if another process has locked the file
- * @return @ref HAM_ENVIRONMENT_ALREADY_OPEN if @a env is already in use
- * @return @ref HAM_NETWORK_ERROR if a remote server is not reachable
+ * @sa ham_env_open_ex 
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
@@ -591,11 +546,24 @@ ham_env_open(ham_env_t *env, const char *filename, ham_u32_t flags);
 /**
  * Opens an existing Database Environment - extended version
  *
+ * This function opens an existing Database Environment.
+ *
+ * A Database Environment is a collection of Databases, which are all stored
+ * in one physical file (or in-memory). Per default, up to 16 Databases can be
+ * stored in one file (see @ref ham_env_create_ex on how to store even more
+ * Databases). 
+ *
+ * Each Database in an Environment is identified by a positive 16bit 
+ * value (except 0 and values at or above 0xf000).
+ * Databases in an Environment can be created with @ref ham_env_create_db 
+ * or opened with @ref ham_env_open_db.
+ *
  * Specify a URL instead of a filename (i.e. 
  * "http://localhost:8080/customers.db") to access a remote hamsterdb Server.
  *
  * @param env A valid Environment handle
- * @param filename The filename of the Environment file
+ * @param filename The filename of the Environment file, or URL of a hamsterdb
+ *          Server
  * @param flags Optional flags for opening the Environment, combined with
  *          bitwise OR. Possible flags are:
  *      <ul>
@@ -707,6 +675,17 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
 /**
  * Creates a new Database in a Database Environment
  *
+ * An Environment can handle up to 16 Databases, unless higher values are
+ * configured when the Environment is created (see @sa ham_env_create_ex).
+ *
+ * Each Database in an Environment is identified by a positive 16bit 
+ * value (except 0 and values at or above 0xf000).
+ *
+ * This function initializes the ham_db_t handle (the second parameter). 
+ * When the handle is no longer in use, it should be closed with 
+ * @ref ham_close. Alternatively, the Database handle is closed automatically
+ * if @ref ham_env_close is called with the flag @ref HAM_AUTO_CLEANUP.
+ *
  * @param env A valid Environment handle.
  * @param db A valid Database handle, which will point to the created
  *          Database. To close the handle, use @ref ham_close.
@@ -773,6 +752,14 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
 
 /**
  * Opens a Database in a Database Environment
+ *
+ * Each Database in an Environment is identified by a positive 16bit 
+ * value (except 0 and values at or above 0xf000).
+ *
+ * This function initializes the ham_db_t handle (the second parameter). 
+ * When the handle is no longer in use, it should be closed with 
+ * @ref ham_close. Alternatively, the Database handle is closed automatically
+ * if @ref ham_env_close is called with the flag @ref HAM_AUTO_CLEANUP.
  *
  * @param env A valid Environment handle
  * @param db A valid Database handle, which will point to the opened
@@ -1011,20 +998,30 @@ typedef struct ham_txn_t ham_txn_t;
 /**
  * Begins a new Transaction
  * 
- * @param txn Pointer to a pointer of a Transaction structure
- * 
- * @param db A valid Database handle
+ * A Transaction is an atomic sequence of Database operations. With @ref
+ * ham_txn_begin a new sequence is started. To write all operations of this
+ * sequence to the Database use @ref ham_txn_commit. To abort and cancel 
+ * this sequence use @ref ham_txn_abort.
  *
+ * In order to use Transactions, the Environment has to be created or
+ * opened with the flag @ref HAM_ENABLE_TRANSACTIONS.
+ * 
+ * Although for historical reasons @ref ham_txn_begin creates a Transaction
+ * and attaches it to a Database (the second parameter is a @ref ham_db_t
+ * handle), the Transaction is actually valid for the whole Environment.
+ *
+ * Note that as of hamsterdb 1.0.4, it is not possible to create
+ * multiple Transactions in parallel. This limitation will be removed
+ * in further versions.
+ *
+ * @param txn Pointer to a pointer of a Transaction structure
+ * @param db A valid Database handle
  * @param flags Optional flags for beginning the Transaction, combined with
  *        bitwise OR. Possible flags are:
  *      <ul>
  *       <li>@ref HAM_TXN_READ_ONLY </li> This Transaction is read-only and
  *            will not modify the Database.
  *      </ul>
- *
- * @note Note that as of hamsterdb 1.0.4, it is not possible to create
- *       multiple Transactions in parallel. This limitation will be removed
- *       in further versions.
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_OUT_OF_MEMORY if memory allocation failed
@@ -1039,13 +1036,14 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags);
 
 /**
  * Commits a Transaction
+ * 
+ * This function applies the sequence of Database operations.
  *
- * @remark Note that the function will fail with @ref HAM_CURSOR_STILL_OPEN if
+ * Note that the function will fail with @ref HAM_CURSOR_STILL_OPEN if
  * a Cursor was attached to this Transaction (with @ref ham_cursor_create
  * or @ref ham_cursor_clone), and the Cursor was not closed.
  * 
  * @param txn Pointer to a Transaction structure
- * 
  * @param flags Optional flags for committing the Transaction, combined with
  *        bitwise OR. Unused, set to 0.
  *
@@ -1063,12 +1061,13 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags);
 /**
  * Aborts a Transaction
  *
- * @remark Note that the function will fail with @ref HAM_CURSOR_STILL_OPEN if
+ * This function aborts (= cancels) the sequence of Database operations.
+ *
+ * Note that the function will fail with @ref HAM_CURSOR_STILL_OPEN if
  * a Cursor was attached to this Transaction (with @ref ham_cursor_create
  * or @ref ham_cursor_clone), and the Cursor was not closed.
  * 
  * @param txn Pointer to a Transaction structure
- * 
  * @param flags Optional flags for aborting the Transaction, combined with
  *        bitwise OR. Unused, set to 0.
  *
@@ -1121,25 +1120,8 @@ ham_delete(ham_db_t *db);
 /**
  * Creates a Database
  *
- * @param db A valid Database handle
- * @param filename The filename of the Database file. If the file already
- *          exists, it is overwritten. Can be NULL if you create an
- *          In-Memory Database
- * @param flags Optional flags for opening the Database, combined with
- *        bitwise OR. For allowed flags, see @ref ham_create_ex.
- * @param mode File access rights for the new file. This is the @a mode
- *        parameter for creat(2). Ignored on Microsoft Windows.
- *
- * @return @ref HAM_SUCCESS upon success
- * @return @ref HAM_INV_PARAMETER if the @a db pointer is NULL or an
- *              invalid combination of flags was specified
- * @return @ref HAM_IO_ERROR if the file could not be opened or
- *              reading/writing failed
- * @return @ref HAM_INV_FILE_VERSION if the Database version is not
- *              compatible with the library version
- * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
- * @return @ref HAM_WOULD_BLOCK if another process has locked the file
- * @return @ref HAM_DATABASE_ALREADY_OPEN if @a db is already in use
+ * This function is a simplified version of @sa ham_create_ex. 
+ * It is recommended to use @ref ham_create_ex instead.
  *
  * @sa ham_create_ex
  */
@@ -1149,6 +1131,17 @@ ham_create(ham_db_t *db, const char *filename,
 
 /**
  * Creates a Database - extended version
+ * 
+ * This function is a shortcut for a sequence of @ref ham_env_create_ex
+ * followed by @ref ham_env_create_db.
+ * 
+ * It creates an (internal, hidden) Environment and in this Environment it 
+ * creates a Database with a reserved identifier - HAM_DEFAULT_DATABASE_NAME.
+ *
+ * As a consequence, it is no problem to create a Database with 
+ * @ref ham_create_ex, and later open it with @ref ham_env_open_ex.
+ *
+ * The internal Environment handle can be retrieved with @ref ham_get_env.
  *
  * @param db A valid Database handle
  * @param filename The filename of the Database file. If the file already
@@ -1264,28 +1257,27 @@ ham_create_ex(ham_db_t *db, const char *filename,
 /**
  * Opens an existing Database
  *
- * @param db A valid Database handle
- * @param filename The filename of the Database file
- * @param flags Optional flags for opening the Database, combined with
- *        bitwise OR. See the documentation of @ref ham_open_ex
- *        for the allowed flags.
+ * This function is a simplified version of @sa ham_open_ex. 
+ * It is recommended to use @ref ham_open_ex instead.
  *
- * @return @ref HAM_SUCCESS upon success
- * @return @ref HAM_INV_PARAMETER if the @a db pointer is NULL or an
- *              invalid combination of flags was specified
- * @return @ref HAM_FILE_NOT_FOUND if the file does not exist
- * @return @ref HAM_IO_ERROR if the file could not be opened or reading failed
- * @return @ref HAM_INV_FILE_VERSION if the Database version is not
- *              compatible with the library version
- * @return @ref HAM_OUT_OF_MEMORY if memory could not be allocated
- * @return @ref HAM_WOULD_BLOCK if another process has locked the file
- * @return @ref HAM_DATABASE_ALREADY_OPEN if @a db is already in use
+ * @sa ham_open_ex
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
 
 /**
  * Opens an existing Database - extended version
+ *
+ * This function is a shortcut for a sequence of @ref ham_env_open_ex
+ * followed by @ref ham_env_open_db.
+ * 
+ * It opens an (internal, hidden) Environment and in this Environment it 
+ * opens the first Database that was created.
+ *
+ * As a consequence, it is no problem to open a Database with 
+ * @ref ham_open_ex, even if it was created with @ref ham_env_create_ex.
+ *
+ * The internal Environment handle can be retrieved with @ref ham_get_env.
  *
  * @param db A valid Database handle
  * @param filename The filename of the Database file
