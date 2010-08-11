@@ -55,11 +55,7 @@ x improve documentation
 x call curl_global_cleanup() (take care - eventually not threadsafe?!)
     x finally get rid of ALL the memory leaks for remote stuff
 
-o fix freelist page overflow when searching for bits (See mail from Stefan)
-    -> is this still relevant??
-    o get newest version from Ger
-
-o unix daemon
+x unix daemon
     x -h for help
     x -f for foreground
     x shutdown by sending sigterm
@@ -81,8 +77,11 @@ o unix daemon
     x logging: will need enhancements in hamserver
         x access log: mongoose OPT_ACCESS_LOG
         x error log: mongoose OPT_ERROR_LOG
+    x on shutdown: what if transactions and cursors are open?
 
-    o on shutdown: what if transactions and cursors are open?
+o fix freelist page overflow when searching for bits (See mail from Stefan)
+    -> is this still relevant??
+    o get newest version from Ger
 
 o add Windows support for remote functionality
     o add protobuf-compiler executable to 3rdparty
