@@ -6,6 +6,7 @@
 .deps
 bfc_sample
 test
+.test*
 *.db
 *.db.*
 
