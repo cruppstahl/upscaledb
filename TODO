@@ -125,18 +125,35 @@ o webpage changes
     o add client1.c/server1.c to hamsterdb.com/documentation/samples
 
 o utilize the github wiki
-    o move the FAQ
+    x move the FAQ
     o move the tutorial
+    o update hamsterdb.com with the links
 
 -----------------------------------------------------------------------------
 
 o release new .NET wrapper with fix from a.todorov (-> nabble)
 
+o move to github
+
+. add server functionality
+
 -----------------------------------------------------------------------------
 
-=======================================================================
-
 o update the Python API 
+
+o move to github
+
+. add server functionality
+
+-----------------------------------------------------------------------------
+
+o update the java API 
+
+o move to github
+
+o add server functionality
+
+=======================================================================
 
 . pure java network client
 
