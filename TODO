@@ -94,12 +94,17 @@ o fix freelist page overflow when searching for bits (See mail from Stefan)
     o get newest version from Ger
 
 o add Windows support for remote functionality
-    o add protobuf-compiler executable to 3rdparty
-    o add precompiled protobuf-library to 3rdparty
-    o add precompiled libcurl-library to 3rdparty
+    o remove protobuf-c, directly use protobuf
+        o rewrite remote.c
+        o remove dependency from configure.in
+        o remove dependency from README, tutorial
+    x add protobuf-compiler executable to 3rdparty
+    x add precompiled protobuf-library to 3rdparty
+    x add precompiled libcurl-library to 3rdparty
     o need win32 project for the server
     o run unittests
     o add projects for the new samples
+    . what about WinCE?
 
 o windows service
     o need msvc project

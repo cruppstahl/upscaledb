@@ -48,12 +48,12 @@ endif
 endif
 
 if ENABLE_REMOTE
-libhamsterdb_la_SOURCES += messages.pb-c.c 
+libhamsterdb_la_SOURCES += messages.pb.cc
 libhamsterdb_la_LDFLAGS += -lprotobuf-c -lcurl
 CFLAGS += -DHAM_ENABLE_REMOTE
 endif
 
-messages.pb-c.c proto: messages.proto
-	protoc-c messages.proto --c_out=.
+messages.pb.cc proto: messages.proto
+	protoc messages.proto --cpp_out=.
 	
 

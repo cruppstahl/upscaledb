@@ -3,5 +3,5 @@
 *.la
 .libs
 .deps
-messages.pb-c.c
-messages.pb-c.h
+messages.pb.cc
+messages.pb.h

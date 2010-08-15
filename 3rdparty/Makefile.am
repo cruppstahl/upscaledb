@@ -14,5 +14,9 @@ endif
 endif
 
 if ENABLE_SERVER
-SUBDIRS += json mongoose
+SUBDIRS += json mongoose 
+endif
+
+if ENABLE_REMOTE
+SUBDIRS += protocol
 endif
