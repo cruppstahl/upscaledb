@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="8,00"
 	Name="sample_db5"
 	ProjectGUID="{675E4C9D-E1D3-49AD-B7C0-261B4403F0A1}"
 	RootNamespace="sample_db5"

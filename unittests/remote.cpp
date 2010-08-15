@@ -9,6 +9,8 @@
  * See files COPYING.* for License information.
  */
 
+#ifdef HAM_ENABLE_REMOTE
+
 #include "../src/config.h"
 
 #include <stdexcept>
@@ -1453,3 +1455,5 @@ protected:
 };
 
 BFC_REGISTER_FIXTURE(RemoteTest);
+
+#endif // HAM_ENABLE_REMOTE

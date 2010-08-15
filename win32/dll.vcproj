@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="8,00"
 	Name="dll"
 	ProjectGUID="{B82D2DF8-F8B2-4331-86D0-508BBD806507}"
 	RootNamespace="dll"
 	Keyword="Win32Proj"
-	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
@@ -44,8 +43,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../include;../3rdparty/aes"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE"
+				AdditionalIncludeDirectories="../include;../3rdparty/aes;../3rdparty/libcurl"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -66,13 +65,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="tmp\3rdparty_aes_debug\3rdparty_aes.lib tmp\3rdparty_zlib_debug\3rdparty_zlib.lib"
+				AdditionalDependencies="tmp\3rdparty_aes_debug\3rdparty_aes.lib tmp\3rdparty_zlib_debug\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x86.lib"
 				OutputFile="$(OutDir)\hamsterdb-1.1.5.dll"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="2"
-				RandomizedBaseAddress="1"
-				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -92,6 +89,9 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -123,8 +123,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../include;../3rdparty/aes"
-				PreprocessorDefinitions="WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE"
+				AdditionalIncludeDirectories="../include;../3rdparty/aes;../3rdparty/libcurl"
+				PreprocessorDefinitions="WIN32;WIN64;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;_CRT_SECURE_NO_WARNINGS;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -145,13 +145,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="tmp\3rdparty_aes_debug_x64\3rdparty_aes.lib tmp\3rdparty_zlib_debug_x64\3rdparty_zlib.lib"
+				AdditionalDependencies="tmp\3rdparty_aes_debug_x64\3rdparty_aes.lib tmp\3rdparty_zlib_debug_x64\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x64.lib"
 				OutputFile="$(OutDir)\hamsterdb-1.1.5.dll"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="2"
-				RandomizedBaseAddress="1"
-				DataExecutionPrevention="0"
 				TargetMachine="17"
 			/>
 			<Tool
@@ -171,6 +169,9 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -201,8 +202,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../include;../3rdparty/aes"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE"
+				AdditionalIncludeDirectories="../include;../3rdparty/aes;../3rdparty/libcurl"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				ProgramDataBaseFileName="$(IntDir)\vc80.pdb"
@@ -221,15 +222,13 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="tmp\3rdparty_aes\3rdparty_aes.lib tmp\3rdparty_zlib\3rdparty_zlib.lib"
+				AdditionalDependencies="tmp\3rdparty_aes\3rdparty_aes.lib tmp\3rdparty_zlib\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x86.lib"
 				OutputFile="$(OutDir)\hamsterdb-1.1.5.dll"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
-				RandomizedBaseAddress="1"
-				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -249,6 +248,9 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -280,8 +282,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../include;../3rdparty/aes"
-				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE"
+				AdditionalIncludeDirectories="../include;../3rdparty/aes;../3rdparty/libcurl"
+				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;HAM_LITTLE_ENDIAN;_CRT_SECURE_NO_WARNINGS;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -299,15 +301,13 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="tmp\3rdparty_aes_x64\3rdparty_aes.lib tmp\3rdparty_zlib_x64\3rdparty_zlib.lib"
+				AdditionalDependencies="tmp\3rdparty_aes_x64\3rdparty_aes.lib tmp\3rdparty_zlib_x64\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x64.lib"
 				OutputFile="$(OutDir)\hamsterdb-1.1.5.dll"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
-				RandomizedBaseAddress="1"
-				DataExecutionPrevention="0"
 				TargetMachine="17"
 			/>
 			<Tool
@@ -327,6 +327,9 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -469,7 +472,19 @@
 			>
 		</File>
 		<File
+			RelativePath="..\include\ham\hamserver.h"
+			>
+		</File>
+		<File
 			RelativePath="..\src\hamsterdb.c"
+			>
+		</File>
+		<File
+			RelativePath="..\include\ham\hamsterdb.h"
+			>
+		</File>
+		<File
+			RelativePath="..\include\ham\hamsterdb_int.h"
 			>
 		</File>
 		<File
@@ -533,6 +548,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\src\serial.h"
+			>
+		</File>
+		<File
 			RelativePath="..\src\statistics.c"
 			>
 		</File>
@@ -546,6 +565,10 @@
 		</File>
 		<File
 			RelativePath="..\src\txn.h"
+			>
+		</File>
+		<File
+			RelativePath="..\include\ham\types.h"
 			>
 		</File>
 		<File
