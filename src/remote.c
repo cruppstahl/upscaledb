@@ -423,21 +423,15 @@ _remote_fun_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
     return (0);
 }
 
-#if 0
 static ham_status_t
 _remote_fun_env_flush(ham_env_t *env, ham_u32_t flags)
 {
     ham_status_t st;
-    Proto__EnvFlushRequest msg;
-    proto_wrapper_t wrapper, *reply;
-    
-    proto__wrapper__init(&wrapper);
-    proto__env_flush_request__init(&msg);
-    msg.flags=flags;
-    wrapper.type=HAM__WRAPPER__TYPE__ENV_FLUSH_REQUEST;
-    wrapper.env_flush_request=&msg;
+    proto_wrapper_t request, *reply;
 
-    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    proto_init_env_flush_request(&request, flags);
+
+    st=_perform_request(env, env_get_curl(env), &request, &reply);
     if (st) {
         if (reply)
             proto_free_unpacked(reply);
@@ -445,14 +439,16 @@ _remote_fun_env_flush(ham_env_t *env, ham_u32_t flags)
     }
 
     ham_assert(reply!=0, (""));
-    ham_assert(reply->env_flush_reply!=0, (""));
-    st=reply->env_flush_reply->status;
+    ham_assert(proto_has_env_flush_reply(reply), (""));
+
+    st=proto_env_flush_reply_get_status(reply);
 
     proto_free_unpacked(reply);
 
     return (st);
 }
 
+#if 0
 static ham_status_t 
 _remote_fun_create_db(ham_env_t *env, ham_db_t *db, 
         ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)

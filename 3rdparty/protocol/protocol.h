@@ -169,3 +169,22 @@ proto_env_get_parameters_reply_has_filename(proto_wrapper_t *wrapper);
 extern const char *
 proto_env_get_parameters_reply_get_filename(proto_wrapper_t *wrapper);
 
+/*
+ * env_flush request
+ */
+extern void
+proto_init_env_flush_request(proto_wrapper_t *wrapper, ham_u32_t flags);
+
+extern proto_bool_t
+proto_has_env_flush_request(proto_wrapper_t *wrapper);
+
+/*
+ * env_get_database_names reply
+ */
+
+extern proto_bool_t
+proto_has_env_flush_reply(proto_wrapper_t *wrapper);
+
+extern ham_u32_t
+proto_env_flush_reply_get_status(proto_wrapper_t *wrapper);
+
