@@ -98,6 +98,7 @@ o add Windows support for remote functionality
         o rewrite remote.c
         o remove dependency from configure.in
         o remove dependency from README, tutorial
+        o don't create 3rdparty/protocol - better: src/protocol!
     x add protobuf-compiler executable to 3rdparty
     x add precompiled protobuf-library to 3rdparty
     x add precompiled libcurl-library to 3rdparty
