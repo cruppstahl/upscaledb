@@ -10,6 +10,8 @@
  *
  */
 
+#if 0
+
 #include "config.h"
 
 #include <string.h>
@@ -1720,3 +1722,4 @@ db_initialize_remote(ham_db_t *db)
     return (HAM_NOT_IMPLEMENTED);
 #endif
 }
+#endif /* if 0 */
