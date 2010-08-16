@@ -448,14 +448,12 @@ _remote_fun_env_flush(ham_env_t *env, ham_u32_t flags)
     return (st);
 }
 
-#if 0
 static ham_status_t 
 _remote_fun_create_db(ham_env_t *env, ham_db_t *db, 
         ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)
 {
     ham_status_t st;
-    Proto__EnvCreateDbRequest msg;
-    proto_wrapper_t wrapper, *reply;
+    proto_wrapper_t request, *reply;
     ham_size_t i=0, num_params=0;
     ham_u32_t *names;
     ham_u64_t *values;
@@ -485,18 +483,10 @@ _remote_fun_create_db(ham_env_t *env, ham_db_t *db,
         }
     }
 
-    proto__wrapper__init(&wrapper);
-    proto__env_create_db_request__init(&msg);
-    msg.dbname=dbname;
-    msg.flags=flags;
-    msg.param_names=(unsigned *)&names[0];
-    msg.n_param_names=num_params;
-    msg.param_values=(unsigned long long*)&values[0];
-    msg.n_param_values=num_params;
-    wrapper.type=HAM__WRAPPER__TYPE__ENV_CREATE_DB_REQUEST;
-    wrapper.env_create_db_request=&msg;
+    proto_init_env_create_db_request(&request, dbname, flags, 
+                names, values, num_params);
 
-    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    st=_perform_request(env, env_get_curl(env), &request, &reply);
 
     allocator_free(env_get_allocator(env), names);
     allocator_free(env_get_allocator(env), values);
@@ -508,15 +498,16 @@ _remote_fun_create_db(ham_env_t *env, ham_db_t *db,
     }
 
     ham_assert(reply!=0, (""));
-    ham_assert(reply->env_create_db_reply!=0, (""));
-    st=reply->env_create_db_reply->status;
+    ham_assert(proto_has_env_create_db_reply(reply), (""));
+
+    st=proto_env_create_db_reply_get_status(reply);
     if (st) {
         proto_free_unpacked(reply);
         return (st);
     }
 
-    db_set_remote_handle(db, reply->env_create_db_reply->db_handle);
-    db_set_rt_flags(db, reply->env_create_db_reply->db_flags);
+    db_set_remote_handle(db, proto_env_create_db_reply_get_db_handle(reply));
+    db_set_rt_flags(db, proto_env_create_db_reply_get_flags(reply));
 
     /*
      * store the env pointer in the database
@@ -543,8 +534,7 @@ _remote_fun_open_db(ham_env_t *env, ham_db_t *db,
         ham_u16_t dbname, ham_u32_t flags, const ham_parameter_t *param)
 {
     ham_status_t st;
-    Proto__EnvOpenDbRequest msg;
-    proto_wrapper_t wrapper, *reply;
+    proto_wrapper_t request, *reply;
     ham_size_t i=0, num_params=0;
     ham_u32_t *names;
     ham_u64_t *values;
@@ -574,18 +564,10 @@ _remote_fun_open_db(ham_env_t *env, ham_db_t *db,
         }
     }
 
-    proto__wrapper__init(&wrapper);
-    proto__env_open_db_request__init(&msg);
-    msg.dbname=dbname;
-    msg.flags=flags;
-    msg.param_names=(unsigned *)&names[0];
-    msg.n_param_names=num_params;
-    msg.param_values=(unsigned long long*)&values[0];
-    msg.n_param_values=num_params;
-    wrapper.type=HAM__WRAPPER__TYPE__ENV_OPEN_DB_REQUEST;
-    wrapper.env_open_db_request=&msg;
+    proto_init_env_open_db_request(&request, dbname, flags, 
+                names, values, num_params);
 
-    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    st=_perform_request(env, env_get_curl(env), &request, &reply);
 
     allocator_free(env_get_allocator(env), names);
     allocator_free(env_get_allocator(env), values);
@@ -597,8 +579,9 @@ _remote_fun_open_db(ham_env_t *env, ham_db_t *db,
     }
 
     ham_assert(reply!=0, (""));
-    ham_assert(reply->env_open_db_reply!=0, (""));
-    st=reply->env_open_db_reply->status;
+    ham_assert(proto_has_env_open_db_reply(reply), (""));
+
+    st=proto_env_open_db_reply_get_status(reply);
     if (st) {
         proto_free_unpacked(reply);
         return (st);
@@ -608,9 +591,8 @@ _remote_fun_open_db(ham_env_t *env, ham_db_t *db,
      * store the env pointer in the database
      */
     db_set_env(db, env);
-    db_set_rt_flags(db, reply->env_open_db_reply->db_flags);
-
-    db_set_remote_handle(db, reply->env_open_db_reply->db_handle);
+    db_set_remote_handle(db, proto_env_open_db_reply_get_db_handle(reply));
+    db_set_rt_flags(db, proto_env_open_db_reply_get_flags(reply));
 
     proto_free_unpacked(reply);
 
@@ -641,12 +623,106 @@ _remote_fun_env_close(ham_env_t *env, ham_u32_t flags)
 }
 
 static ham_status_t
+_remote_fun_txn_begin(ham_env_t *env, ham_db_t *db, 
+                ham_txn_t **txn, ham_u32_t flags)
+{
+    ham_status_t st;
+    proto_wrapper_t request, *reply;
+    
+    proto_init_txn_begin_request(&request, db_get_remote_handle(db), flags);
+
+    st=_perform_request(env, env_get_curl(env), &request, &reply);
+    if (st) {
+        if (reply)
+            proto_free_unpacked(reply);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(proto_has_txn_begin_reply(reply), (""));
+
+    st=proto_txn_begin_reply_get_status(reply);
+    if (st) {
+        proto_free_unpacked(reply);
+        return (st);
+    }
+
+    *txn=(ham_txn_t *)allocator_alloc(env_get_allocator(env), 
+                            sizeof(ham_txn_t));
+    if (!(*txn))
+        return (HAM_OUT_OF_MEMORY);
+
+    st=txn_begin(*txn, env, flags);
+    if (st) {
+        allocator_free(env_get_allocator(env), *txn);
+        *txn=0;
+    }
+    else {
+        txn_set_remote_handle(*txn, 
+                    proto_txn_begin_reply_get_txn_handle(reply));
+    }
+
+    proto_free_unpacked(reply);
+
+    return (st);
+}
+
+static ham_status_t
+_remote_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
+{
+    ham_status_t st;
+    proto_wrapper_t request, *reply;
+    
+    proto_init_txn_commit_request(&request, txn_get_remote_handle(txn), flags);
+
+    st=_perform_request(env, env_get_curl(env), &request, &reply);
+    if (st) {
+        if (reply)
+            proto_free_unpacked(reply);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(proto_has_txn_commit_reply(reply), (""));
+
+    st=proto_txn_commit_reply_get_status(reply);
+
+    proto_free_unpacked(reply);
+
+    return (st);
+}
+
+static ham_status_t
+_remote_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
+{
+    ham_status_t st;
+    proto_wrapper_t request, *reply;
+
+    proto_init_txn_abort_request(&request, txn_get_remote_handle(txn), flags);
+    
+    st=_perform_request(env, env_get_curl(env), &request, &reply);
+    if (st) {
+        if (reply)
+            proto_free_unpacked(reply);
+        return (st);
+    }
+
+    ham_assert(reply!=0, (""));
+    ham_assert(proto_has_txn_abort_reply(reply), (""));
+
+    st=proto_txn_abort_reply_get_status(reply);
+
+    proto_free_unpacked(reply);
+
+    return (st);
+}
+
+static ham_status_t
 _remote_fun_close(ham_db_t *db, ham_u32_t flags)
 {
     ham_status_t st;
     ham_env_t *env=db_get_env(db);
-    Proto__DbCloseRequest msg;
-    proto_wrapper_t wrapper, *reply;
+    proto_wrapper_t request, *reply;
     
     /*
      * auto-cleanup cursors?
@@ -661,14 +737,9 @@ _remote_fun_close(ham_db_t *db, ham_u32_t flags)
         return (HAM_CURSOR_STILL_OPEN);
     }
 
-    proto__wrapper__init(&wrapper);
-    proto__db_close_request__init(&msg);
-    msg.db_handle=db_get_remote_handle(db);
-    msg.flags=flags;
-    wrapper.type=HAM__WRAPPER__TYPE__DB_CLOSE_REQUEST;
-    wrapper.db_close_request=&msg;
+    proto_init_db_close_request(&request, db_get_remote_handle(db), flags);
 
-    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    st=_perform_request(env, env_get_curl(env), &request, &reply);
     if (st) {
         if (reply)
             proto_free_unpacked(reply);
@@ -676,8 +747,9 @@ _remote_fun_close(ham_db_t *db, ham_u32_t flags)
     }
 
     ham_assert(reply!=0, (""));
-    ham_assert(reply->db_close_reply!=0, (""));
-    st=reply->db_close_reply->status;
+    ham_assert(proto_has_db_close_reply(reply), (""));
+
+    st=proto_db_close_reply_get_status(reply);
 
     proto_free_unpacked(reply);
 
@@ -693,8 +765,7 @@ _remote_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
     static char filename[1024];
     ham_status_t st;
     ham_env_t *env=db_get_env(db);
-    Proto__DbGetParametersRequest msg;
-    proto_wrapper_t wrapper, *reply;
+    proto_wrapper_t request, *reply;
     ham_size_t i, num_names=0;
     ham_u32_t *names;
     ham_parameter_t *p;
@@ -720,15 +791,10 @@ _remote_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
         }
     }
 
-    proto__wrapper__init(&wrapper);
-    proto__db_get_parameters_request__init(&msg);
-    msg.db_handle=db_get_remote_handle(db);
-    msg.names=(unsigned *)&names[0];
-    msg.n_names=num_names;
-    wrapper.type=HAM__WRAPPER__TYPE__DB_GET_PARAMETERS_REQUEST;
-    wrapper.db_get_parameters_request=&msg;
+    proto_init_db_get_parameters_request(&request, db_get_remote_handle(db),
+                        names, num_names);
 
-    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    st=_perform_request(env, env_get_curl(env), &request, &reply);
 
     allocator_free(env_get_allocator(env), names);
 
@@ -739,8 +805,9 @@ _remote_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
     }
 
     ham_assert(reply!=0, (""));
-    ham_assert(reply->db_get_parameters_reply!=0, (""));
-    st=reply->db_get_parameters_reply->status;
+    ham_assert(proto_has_db_get_parameters_reply(reply), (""));
+
+    st=proto_db_get_parameters_reply_get_status(reply);
     if (st) {
         proto_free_unpacked(reply);
         return (st);
@@ -750,47 +817,46 @@ _remote_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
     while (p && p->name) {
         switch (p->name) {
         case HAM_PARAM_CACHESIZE:
-            ham_assert(reply->db_get_parameters_reply->has_cachesize, (""));
-            p->value=reply->db_get_parameters_reply->cachesize;
+            ham_assert(proto_db_get_parameters_reply_has_cachesize(reply), (""));
+            p->value=proto_db_get_parameters_reply_get_cachesize(reply);
             break;
         case HAM_PARAM_PAGESIZE:
-            ham_assert(reply->db_get_parameters_reply->has_pagesize, (""));
-            p->value=reply->db_get_parameters_reply->pagesize;
+            ham_assert(proto_db_get_parameters_reply_has_pagesize(reply), (""));
+            p->value=proto_db_get_parameters_reply_get_pagesize(reply);
             break;
         case HAM_PARAM_MAX_ENV_DATABASES:
-            ham_assert(reply->db_get_parameters_reply->has_max_env_databases, 
-                        (""));
-            p->value=reply->db_get_parameters_reply->max_env_databases;
+            ham_assert(proto_db_get_parameters_reply_has_max_env_databases(reply), (""));
+            p->value=proto_db_get_parameters_reply_get_max_env_databases(reply);
             break;
         case HAM_PARAM_GET_FLAGS:
-            ham_assert(reply->db_get_parameters_reply->has_flags, (""));
-            p->value=reply->db_get_parameters_reply->flags;
+            ham_assert(proto_db_get_parameters_reply_has_flags(reply), (""));
+            p->value=proto_db_get_parameters_reply_get_flags(reply);
             break;
         case HAM_PARAM_GET_FILEMODE:
-            ham_assert(reply->db_get_parameters_reply->has_filemode, (""));
-            p->value=reply->db_get_parameters_reply->filemode;
+            ham_assert(proto_db_get_parameters_reply_has_filemode(reply), (""));
+            p->value=proto_db_get_parameters_reply_get_filemode(reply);
             break;
         case HAM_PARAM_GET_FILENAME:
-            ham_assert(reply->db_get_parameters_reply->filename, (""));
-            strncpy(filename, reply->db_get_parameters_reply->filename, 
+            ham_assert(proto_db_get_parameters_reply_has_filename(reply), (""));
+            strncpy(filename, proto_db_get_parameters_reply_get_filename(reply),
                         sizeof(filename));
             p->value=PTR_TO_U64(&filename[0]);
             break;
         case HAM_PARAM_KEYSIZE:
-            ham_assert(reply->db_get_parameters_reply->has_keysize, (""));
-            p->value=reply->db_get_parameters_reply->keysize;
+            ham_assert(proto_db_get_parameters_reply_has_keysize(reply), (""));
+            p->value=proto_db_get_parameters_reply_get_keysize(reply);
             break;
         case HAM_PARAM_GET_DATABASE_NAME:
-            ham_assert(reply->db_get_parameters_reply->has_dbname, (""));
-            p->value=reply->db_get_parameters_reply->dbname;
+            ham_assert(proto_db_get_parameters_reply_has_dbname(reply), (""));
+            p->value=proto_db_get_parameters_reply_get_dbname(reply);
             break;
         case HAM_PARAM_GET_KEYS_PER_PAGE:
-            ham_assert(reply->db_get_parameters_reply->has_keys_per_page, (""));
-            p->value=reply->db_get_parameters_reply->keys_per_page;
+            ham_assert(proto_db_get_parameters_reply_has_keys_per_page(reply), (""));
+            p->value=proto_db_get_parameters_reply_get_keys_per_page(reply);
             break;
         case HAM_PARAM_GET_DATA_ACCESS_MODE:
-            ham_assert(reply->db_get_parameters_reply->has_dam, (""));
-            p->value=reply->db_get_parameters_reply->dam;
+            ham_assert(proto_db_get_parameters_reply_has_dam(reply), (""));
+            p->value=proto_db_get_parameters_reply_get_dam(reply);
             break;
         default:
             ham_trace(("unknown parameter %d", (int)p->name));
@@ -809,17 +875,11 @@ _remote_fun_flush(ham_db_t *db, ham_u32_t flags)
 {
     ham_status_t st;
     ham_env_t *env=db_get_env(db);
-    Proto__DbFlushRequest msg;
-    proto_wrapper_t wrapper, *reply;
-    
-    proto__wrapper__init(&wrapper);
-    proto__db_flush_request__init(&msg);
-    msg.db_handle=db_get_remote_handle(db);
-    msg.flags=flags;
-    wrapper.type=HAM__WRAPPER__TYPE__DB_FLUSH_REQUEST;
-    wrapper.db_flush_request=&msg;
+    proto_wrapper_t request, *reply;
 
-    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    proto_init_db_flush_request(&request, db_get_remote_handle(db), flags);
+    
+    st=_perform_request(env, env_get_curl(env), &request, &reply);
     if (st) {
         if (reply)
             proto_free_unpacked(reply);
@@ -827,8 +887,8 @@ _remote_fun_flush(ham_db_t *db, ham_u32_t flags)
     }
 
     ham_assert(reply!=0, (""));
-    ham_assert(reply->db_flush_reply!=0, (""));
-    st=reply->db_flush_reply->status;
+    ham_assert(proto_has_db_flush_reply(reply), (""));
+    st=proto_db_flush_reply_get_status(reply);
 
     proto_free_unpacked(reply);
 
@@ -840,17 +900,12 @@ _remote_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
 {
     ham_status_t st;
     ham_env_t *env=db_get_env(db);
-    Proto__DbCheckIntegrityRequest msg;
-    proto_wrapper_t wrapper, *reply;
+    proto_wrapper_t request, *reply;
     
-    proto__wrapper__init(&wrapper);
-    proto__db_check_integrity_request__init(&msg);
-    msg.db_handle=db_get_remote_handle(db);
-    msg.txn_handle=txn ? txn_get_remote_handle(txn) : 0;
-    wrapper.type=HAM__WRAPPER__TYPE__DB_CHECK_INTEGRITY_REQUEST;
-    wrapper.db_check_integrity_request=&msg;
+    proto_init_check_integrity_request(&request, db_get_remote_handle(db), 
+                        txn_get_remote_handle(txn));
 
-    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    st=_perform_request(env, env_get_curl(env), &request, &reply);
     if (st) {
         if (reply)
             proto_free_unpacked(reply);
@@ -858,118 +913,8 @@ _remote_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
     }
 
     ham_assert(reply!=0, (""));
-    ham_assert(reply->db_check_integrity_reply!=0, (""));
-    st=reply->db_check_integrity_reply->status;
-
-    proto_free_unpacked(reply);
-
-    return (st);
-}
-
-static ham_status_t
-_remote_fun_txn_begin(ham_env_t *env, ham_db_t *db, 
-                ham_txn_t **txn, ham_u32_t flags)
-{
-    ham_status_t st;
-    Proto__TxnBeginRequest msg;
-    proto_wrapper_t wrapper, *reply;
-    
-    proto__wrapper__init(&wrapper);
-    proto__txn_begin_request__init(&msg);
-    msg.flags=flags;
-    msg.db_handle=db_get_remote_handle(db);
-    wrapper.type=HAM__WRAPPER__TYPE__TXN_BEGIN_REQUEST;
-    wrapper.txn_begin_request=&msg;
-
-    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
-    if (st) {
-        if (reply)
-            proto_free_unpacked(reply);
-        return (st);
-    }
-
-    ham_assert(reply!=0, (""));
-    ham_assert(reply->txn_begin_reply!=0, (""));
-    st=reply->txn_begin_reply->status;
-
-    if (st) {
-        proto_free_unpacked(reply);
-        return (st);
-    }
-
-    *txn=(ham_txn_t *)allocator_alloc(env_get_allocator(env), 
-                            sizeof(ham_txn_t));
-    if (!(*txn))
-        return (HAM_OUT_OF_MEMORY);
-
-    st=txn_begin(*txn, env, flags);
-    if (st) {
-        allocator_free(env_get_allocator(env), *txn);
-        *txn=0;
-    }
-    else {
-        txn_set_remote_handle(*txn, reply->txn_begin_reply->txn_handle);
-    }
-
-    proto_free_unpacked(reply);
-
-    return (st);
-}
-
-static ham_status_t
-_remote_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
-{
-    ham_status_t st;
-    Proto__TxnCommitRequest msg;
-    proto_wrapper_t wrapper, *reply;
-    
-    proto__wrapper__init(&wrapper);
-    proto__txn_commit_request__init(&msg);
-    msg.txn_handle=txn_get_remote_handle(txn);
-    msg.flags=flags;
-    wrapper.type=HAM__WRAPPER__TYPE__TXN_COMMIT_REQUEST;
-    wrapper.txn_commit_request=&msg;
-
-    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
-    if (st) {
-        if (reply)
-            proto_free_unpacked(reply);
-        return (st);
-    }
-
-    ham_assert(reply!=0, (""));
-    ham_assert(reply->txn_commit_reply!=0, (""));
-    st=reply->txn_commit_reply->status;
-
-    proto_free_unpacked(reply);
-
-    return (st);
-}
-
-static ham_status_t
-_remote_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
-{
-    ham_status_t st;
-    Proto__TxnAbortRequest msg;
-    proto_wrapper_t wrapper, *reply;
-    
-    proto__wrapper__init(&wrapper);
-    proto__txn_abort_request__init(&msg);
-    msg.txn_handle=txn_get_remote_handle(txn);
-    msg.flags=flags;
-    wrapper.type=HAM__WRAPPER__TYPE__TXN_ABORT_REQUEST;
-    wrapper.txn_abort_request=&msg;
-
-    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
-    if (st) {
-        if (reply)
-            proto_free_unpacked(reply);
-        return (st);
-    }
-
-    ham_assert(reply!=0, (""));
-    ham_assert(reply->txn_abort_reply!=0, (""));
-    st=reply->txn_abort_reply->status;
+    ham_assert(proto_has_check_integrity_reply(reply), (""));
+    st=proto_check_integrity_reply_get_status(reply);
 
     proto_free_unpacked(reply);
 
@@ -982,18 +927,12 @@ _remote_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 {
     ham_status_t st;
     ham_env_t *env=db_get_env(db);
-    Proto__DbGetKeyCountRequest msg;
-    proto_wrapper_t wrapper, *reply;
+    proto_wrapper_t request, *reply;
     
-    proto__wrapper__init(&wrapper);
-    proto__db_get_key_count_request__init(&msg);
-    msg.db_handle=db_get_remote_handle(db);
-    msg.txn_handle=txn ? txn_get_remote_handle(txn) : 0;
-    msg.flags=flags;
-    wrapper.type=HAM__WRAPPER__TYPE__DB_GET_KEY_COUNT_REQUEST;
-    wrapper.db_get_key_count_request=&msg;
+    proto_init_db_get_key_count_request(&request, db_get_remote_handle(db), 
+                        txn_get_remote_handle(txn), flags);
 
-    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    st=_perform_request(env, env_get_curl(env), &request, &reply);
     if (st) {
         if (reply)
             proto_free_unpacked(reply);
@@ -1001,11 +940,11 @@ _remote_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     }
 
     ham_assert(reply!=0, (""));
-    ham_assert(reply->db_get_key_count_reply!=0, (""));
-    st=reply->db_get_key_count_reply->status;
+    ham_assert(proto_has_db_get_key_count_reply(reply), (""));
 
+    st=proto_db_get_key_count_reply_get_status(reply);
     if (!st)
-        *keycount=reply->db_get_key_count_reply->keycount;
+        *keycount=proto_db_get_key_count_reply_get_key_count(reply);
 
     proto_free_unpacked(reply);
 
@@ -1018,34 +957,13 @@ _remote_fun_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 {
     ham_status_t st;
     ham_env_t *env=db_get_env(db);
-    Proto__DbInsertRequest msg;
-    proto_wrapper_t wrapper, *reply;
-    Proto__Key protokey=HAM__KEY__INIT;
-    Proto__Record protorec=HAM__RECORD__INIT;
+    proto_wrapper_t request, *reply;
     
-    proto__wrapper__init(&wrapper);
-    proto__db_insert_request__init(&msg);
-    msg.db_handle=db_get_remote_handle(db);
-    msg.txn_handle=txn ? txn_get_remote_handle(txn) : 0;
+    /* TODO recno: do not send the key */
+    proto_init_db_insert_request(&request, db_get_remote_handle(db), 
+                        txn_get_remote_handle(txn), key, record, flags);
 
-    /* recno: do not send the key! */
-    if (!(ham_get_flags(db)&HAM_RECORD_NUMBER)) {
-        protokey.data.data=key->data;
-        protokey.data.len=key->size;
-        protokey.flags=key->flags;
-    }
-    protorec.data.data=record->data;
-    protorec.data.len=record->size;
-    protorec.flags=record->flags;
-    protorec.partial_size=record->partial_size;
-    protorec.partial_offset=record->partial_offset;
-    msg.key=&protokey;
-    msg.record=&protorec;
-    msg.flags=flags;
-    wrapper.type=HAM__WRAPPER__TYPE__DB_INSERT_REQUEST;
-    wrapper.db_insert_request=&msg;
-
-    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    st=_perform_request(env, env_get_curl(env), &request, &reply);
     if (st) {
         if (reply)
             proto_free_unpacked(reply);
@@ -1053,15 +971,15 @@ _remote_fun_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     }
 
     ham_assert(reply!=0, (""));
-    ham_assert(reply->db_insert_reply!=0, (""));
-    st=reply->db_insert_reply->status;
+    ham_assert(proto_has_db_insert_reply(reply)!=0, (""));
+    st=proto_db_insert_reply_get_status(reply);
 
     /* recno: the key was modified! */
-    if (st==0 && reply->db_insert_reply->key) {
-        if (reply->db_insert_reply->key->data.len==sizeof(ham_offset_t)) {
+    if (st==0 && proto_db_insert_reply_get_key_data(reply)) {
+        if (proto_db_insert_reply_get_key_size(reply)==sizeof(ham_offset_t)) {
             ham_assert(key->data!=0, (""));
             ham_assert(key->size==sizeof(ham_offset_t), (""));
-            memcpy(key->data, reply->db_insert_reply->key->data.data,
+            memcpy(key->data, proto_db_insert_reply_get_key_data(reply),
                     sizeof(ham_offset_t));
         }
     }
@@ -1077,30 +995,12 @@ _remote_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 {
     ham_status_t st;
     ham_env_t *env=db_get_env(db);
-    Proto__DbFindRequest msg;
-    proto_wrapper_t wrapper, *reply;
-    Proto__Key protokey=HAM__KEY__INIT;
-    Proto__Record protorec=HAM__RECORD__INIT;
-    
-    proto__wrapper__init(&wrapper);
-    proto__db_find_request__init(&msg);
-    msg.db_handle=db_get_remote_handle(db);
-    msg.txn_handle=txn ? txn_get_remote_handle(txn) : 0;
-    protokey.data.data=key->data;
-    protokey.data.len=key->size;
-    protokey.flags=key->flags;
-    protorec.data.data=record->data;
-    protorec.data.len=record->size;
-    protorec.flags=record->flags;
-    protorec.partial_size=record->partial_size;
-    protorec.partial_offset=record->partial_offset;
-    msg.key=&protokey;
-    msg.record=&protorec;
-    msg.flags=flags;
-    wrapper.type=HAM__WRAPPER__TYPE__DB_FIND_REQUEST;
-    wrapper.db_find_request=&msg;
+    proto_wrapper_t request, *reply;
 
-    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    proto_init_db_find_request(&request, db_get_remote_handle(db), 
+                        txn_get_remote_handle(txn), key, record, flags);
+
+    st=_perform_request(env, env_get_curl(env), &request, &reply);
     if (st) {
         if (reply)
             proto_free_unpacked(reply);
@@ -1108,33 +1008,33 @@ _remote_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     }
 
     ham_assert(reply!=0, (""));
-    ham_assert(reply->db_find_reply!=0, (""));
-    st=reply->db_find_reply->status;
+    ham_assert(proto_has_db_find_reply(reply)!=0, (""));
 
+    st=proto_db_find_reply_get_status(reply);
     if (st==0) {
         /* approx. matching: need to copy the _flags and the key data! */
-        if (reply->db_find_reply->key) {
+        if (proto_db_find_reply_has_key(reply)) {
             ham_assert(key, (""));
-            key->_flags=reply->db_find_reply->key->intflags;
-            key->size=reply->db_find_reply->key->data.len;
+            key->_flags=proto_db_find_reply_get_key_intflags(reply);
+            key->size=proto_db_find_reply_get_key_size(reply);
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
                 st=db_resize_key_allocdata(db, key->size);
                 if (st)
                     goto bail;
                 key->data=db_get_key_allocdata(db);
             }
-            memcpy(key->data, reply->db_find_reply->key->data.data,
+            memcpy(key->data, proto_db_find_reply_get_key_data(reply),
                     key->size);
         }
-        if (reply->db_find_reply->record) {
-            record->size=reply->db_find_reply->record->data.len;
+        if (proto_db_find_reply_has_record(reply)) {
+            record->size=proto_db_find_reply_get_record_size(reply);
             if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
                 st=db_resize_record_allocdata(db, record->size);
                 if (st)
                     goto bail;
                 record->data=db_get_record_allocdata(db);
             }
-            memcpy(record->data, reply->db_find_reply->record->data.data,
+            memcpy(record->data, proto_db_find_reply_get_record_data(reply),
                     record->size);
         }
     }
@@ -1150,23 +1050,12 @@ _remote_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 {
     ham_status_t st;
     ham_env_t *env=db_get_env(db);
-    Proto__DbEraseRequest msg;
-    proto_wrapper_t wrapper, *reply;
-    Proto__Key protokey=HAM__KEY__INIT;
+    proto_wrapper_t request, *reply;
     
-    proto__wrapper__init(&wrapper);
-    proto__db_erase_request__init(&msg);
-    msg.db_handle=db_get_remote_handle(db);
-    msg.txn_handle=txn ? txn_get_remote_handle(txn) : 0;
-    protokey.data.data=key->data;
-    protokey.data.len=key->size;
-    protokey.flags=key->flags;
-    msg.key=&protokey;
-    msg.flags=flags;
-    wrapper.type=HAM__WRAPPER__TYPE__DB_ERASE_REQUEST;
-    wrapper.db_erase_request=&msg;
+    proto_init_db_erase_request(&request, db_get_remote_handle(db), 
+                        txn_get_remote_handle(txn), key, flags);
 
-    st=_perform_request(env, env_get_curl(env), &wrapper, &reply);
+    st=_perform_request(env, env_get_curl(env), &request, &reply);
     if (st) {
         if (reply)
             proto_free_unpacked(reply);
@@ -1174,14 +1063,15 @@ _remote_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     }
 
     ham_assert(reply!=0, (""));
-    ham_assert(reply->db_erase_reply!=0, (""));
-    st=reply->db_erase_reply->status;
+    ham_assert(proto_has_db_erase_reply(reply)!=0, (""));
+    st=proto_db_erase_reply_get_status(reply);
 
     proto_free_unpacked(reply);
 
     return (st);
 }
 
+#if 0
 static ham_status_t
 _remote_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
         ham_cursor_t **cursor)
