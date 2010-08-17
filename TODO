@@ -122,6 +122,12 @@ o windows service
         -> also clean up db.h, env.h...
     o add tests for --disable-remote and --disable-local to release.sh
 
+o fix ham_flush/ham_env_flush inconsistencies - ham_env_flush is enough
+    o need unittests
+    o ham_env_close must call ham_env_flush - remove duplicate calls
+    o ham_flush: calls some functions which are also called in ham_env_close,
+        clean up the code
+
 o test the following:
         db=ham_create()
         env=ham_get_env(db)
@@ -208,9 +214,6 @@ o update win32 files to 2008
                  http://sourceforge.net/projects/ggcov/files/ 
 
 . remove HAM_HINT_UBER_FAST_ACCESS, HAM_HINT_RANDOM_ACCESS, HAM_HINT_SEQUENTIAL
-
-. ham_flush: deprecate, replace w. ham_env_flush? it's already implemented
-    o need unittests!?
 
 . evaluate if we can use bamboo for building and testing on multiple
     platforms
