@@ -1,4 +1,8 @@
 
+if ENABLE_REMOTE
+SUBDIRS = protocol
+endif
+
 AM_CPPFLAGS = -I../include -I$(top_builddir)/3rdparty/aes
 
 lib_LTLIBRARIES = libhamsterdb.la
@@ -48,12 +52,7 @@ endif
 endif
 
 if ENABLE_REMOTE
-libhamsterdb_la_SOURCES += messages.pb.cc
-libhamsterdb_la_LDFLAGS += -lprotobuf-c -lcurl
+libhamsterdb_la_LDFLAGS += -lcurl
 CFLAGS += -DHAM_ENABLE_REMOTE
 endif
-
-messages.pb.cc proto: messages.proto
-	protoc messages.proto --cpp_out=.
-	
 
