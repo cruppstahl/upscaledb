@@ -95,7 +95,7 @@ o fix freelist page overflow when searching for bits (See mail from Stefan)
 
 o add Windows support for remote functionality
     o remove protobuf-c, directly use protobuf
-        o rewrite remote.c
+        x rewrite remote.c
         o remove dependency from configure.in
         o remove dependency from README, tutorial
         o don't create 3rdparty/protocol - better: src/protocol!
