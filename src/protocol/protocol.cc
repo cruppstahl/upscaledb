@@ -62,6 +62,13 @@ proto_pack(proto_wrapper_t *wrapper, mem_allocator_t *alloc,
     return (HAM_TRUE);
 }
 
+ham_u32_t
+proto_get_type(proto_wrapper_t *wrapper)
+{
+    Wrapper *w=(Wrapper *)wrapper;
+    return (w->type());
+}
+
 proto_wrapper_t *
 proto_init_connect_request(const char *filename)
 {
@@ -83,6 +90,16 @@ proto_has_connect_request(proto_wrapper_t *wrapper)
         ham_assert(w->has_connect_request()==false, (""));
         return (HAM_FALSE);
     }
+}
+
+proto_wrapper_t *
+proto_init_connect_reply(ham_u32_t status, ham_u32_t env_flags)
+{
+    Wrapper *w=new Wrapper();
+    w->set_type(Wrapper::CONNECT_REPLY);
+    w->mutable_connect_reply()->set_status(status);
+    w->mutable_connect_reply()->set_env_flags(env_flags);
+    return ((proto_wrapper_t *)w);
 }
 
 ham_bool_t
@@ -273,6 +290,20 @@ proto_init_env_get_parameters_request(ham_u32_t *names, ham_u32_t names_size)
     return ((proto_wrapper_t *)w);
 }
 
+ham_u32_t *
+proto_env_get_parameters_request_get_names(proto_wrapper_t *wrapper)
+{
+    Wrapper *w=(Wrapper *)wrapper;
+    return (w->mutable_env_get_parameters_request()->mutable_names()->mutable_data());
+}
+
+ham_size_t
+proto_env_get_parameters_request_get_names_size(proto_wrapper_t *wrapper)
+{
+    Wrapper *w=(Wrapper *)wrapper;
+    return (w->env_get_parameters_request().names().size());
+}
+
 ham_bool_t
 proto_has_env_get_parameters_request(proto_wrapper_t *wrapper)
 {
@@ -285,6 +316,15 @@ proto_has_env_get_parameters_request(proto_wrapper_t *wrapper)
         ham_assert(w->has_env_get_parameters_request()==false, (""));
         return (HAM_FALSE);
     }
+}
+
+proto_wrapper_t *
+proto_init_env_get_parameters_reply(ham_u32_t status)
+{
+    Wrapper *w=new Wrapper();
+    w->set_type(Wrapper::ENV_GET_PARAMETERS_REPLY);
+    w->mutable_env_get_parameters_reply()->set_status(status);
+    return ((proto_wrapper_t *)w);
 }
 
 ham_bool_t
@@ -308,6 +348,14 @@ proto_env_get_parameters_reply_get_status(proto_wrapper_t *wrapper)
     return (w->env_get_parameters_reply().status());
 }
 
+void
+proto_env_get_parameters_reply_set_cachesize(proto_wrapper_t *wrapper,
+                ham_u32_t cachesize)
+{
+    Wrapper *w=(Wrapper *)wrapper;
+    w->mutable_env_get_parameters_reply()->set_cachesize(cachesize);
+}
+
 ham_bool_t
 proto_env_get_parameters_reply_has_cachesize(proto_wrapper_t *wrapper)
 {
@@ -320,6 +368,14 @@ proto_env_get_parameters_reply_get_cachesize(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     return (w->env_get_parameters_reply().cachesize());
+}
+
+void
+proto_env_get_parameters_reply_set_pagesize(proto_wrapper_t *wrapper,
+                ham_u32_t pagesize)
+{
+    Wrapper *w=(Wrapper *)wrapper;
+    w->mutable_env_get_parameters_reply()->set_pagesize(pagesize);
 }
 
 ham_bool_t
@@ -336,6 +392,14 @@ proto_env_get_parameters_reply_get_pagesize(proto_wrapper_t *wrapper)
     return (w->env_get_parameters_reply().pagesize());
 }
 
+void
+proto_env_get_parameters_reply_set_max_env_databases(proto_wrapper_t *wrapper,
+                ham_u32_t val)
+{
+    Wrapper *w=(Wrapper *)wrapper;
+    w->mutable_env_get_parameters_reply()->set_max_env_databases(val);
+}
+
 ham_bool_t
 proto_env_get_parameters_reply_has_max_env_databases(proto_wrapper_t *wrapper)
 {
@@ -348,6 +412,14 @@ proto_env_get_parameters_reply_get_max_env_databases(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     return (w->env_get_parameters_reply().max_env_databases());
+}
+
+void
+proto_env_get_parameters_reply_set_flags(proto_wrapper_t *wrapper,
+                ham_u32_t flags)
+{
+    Wrapper *w=(Wrapper *)wrapper;
+    w->mutable_env_get_parameters_reply()->set_flags(flags);
 }
 
 ham_bool_t
@@ -364,6 +436,14 @@ proto_env_get_parameters_reply_get_flags(proto_wrapper_t *wrapper)
     return (w->env_get_parameters_reply().flags());
 }
 
+void
+proto_env_get_parameters_reply_set_filemode(proto_wrapper_t *wrapper,
+                ham_u32_t filemode)
+{
+    Wrapper *w=(Wrapper *)wrapper;
+    w->mutable_env_get_parameters_reply()->set_filemode(filemode);
+}
+
 ham_bool_t
 proto_env_get_parameters_reply_has_filemode(proto_wrapper_t *wrapper)
 {
@@ -376,6 +456,14 @@ proto_env_get_parameters_reply_get_filemode(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     return (w->env_get_parameters_reply().filemode());
+}
+
+void
+proto_env_get_parameters_reply_set_filename(proto_wrapper_t *wrapper,
+                const char *filename)
+{
+    Wrapper *w=(Wrapper *)wrapper;
+    w->mutable_env_get_parameters_reply()->set_filename(filename);
 }
 
 ham_bool_t

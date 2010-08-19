@@ -55,6 +55,12 @@ extern ham_bool_t
 proto_pack(proto_wrapper_t *wrapper, mem_allocator_t *alloc, 
             ham_u8_t **data, ham_size_t *size);
 
+/* 
+ * get the type of the Wrapper structure
+ */
+extern ham_u32_t
+proto_get_type(proto_wrapper_t *wrapper);
+
 /*
  * connect request
  */
@@ -67,6 +73,8 @@ proto_has_connect_request(proto_wrapper_t *wrapper);
 /*
  * connect reply
  */
+extern proto_wrapper_t *
+proto_init_connect_reply(ham_u32_t status, ham_u32_t env_flags);
 
 extern ham_bool_t
 proto_has_connect_reply(proto_wrapper_t *wrapper);
@@ -147,12 +155,20 @@ proto_env_get_database_names_reply_get_names(proto_wrapper_t *wrapper);
 extern proto_wrapper_t *
 proto_init_env_get_parameters_request(ham_u32_t *names, ham_u32_t names_size);
 
+extern ham_u32_t *
+proto_env_get_parameters_request_get_names(proto_wrapper_t *wrapper);
+
+extern ham_size_t
+proto_env_get_parameters_request_get_names_size(proto_wrapper_t *wrapper);
+
 extern ham_bool_t
 proto_has_env_get_parameters_request(proto_wrapper_t *wrapper);
 
 /*
  * env_get_parameters reply
  */
+extern proto_wrapper_t *
+proto_init_env_get_parameters_reply(ham_u32_t status);
 
 extern ham_bool_t
 proto_has_env_get_parameters_reply(proto_wrapper_t *wrapper);
@@ -160,11 +176,19 @@ proto_has_env_get_parameters_reply(proto_wrapper_t *wrapper);
 extern ham_u32_t
 proto_env_get_parameters_reply_get_status(proto_wrapper_t *wrapper);
 
+extern void
+proto_env_get_parameters_reply_set_cachesize(proto_wrapper_t *wrapper,
+                ham_u32_t cachesize);
+
 extern ham_bool_t
 proto_env_get_parameters_reply_has_cachesize(proto_wrapper_t *wrapper);
 
 extern ham_u32_t
 proto_env_get_parameters_reply_get_cachesize(proto_wrapper_t *wrapper);
+
+extern void
+proto_env_get_parameters_reply_set_pagesize(proto_wrapper_t *wrapper,
+                ham_u32_t pagesize);
 
 extern ham_bool_t
 proto_env_get_parameters_reply_has_pagesize(proto_wrapper_t *wrapper);
@@ -172,11 +196,19 @@ proto_env_get_parameters_reply_has_pagesize(proto_wrapper_t *wrapper);
 extern ham_u32_t
 proto_env_get_parameters_reply_get_pagesize(proto_wrapper_t *wrapper);
 
+extern void
+proto_env_get_parameters_reply_set_max_env_databases(proto_wrapper_t *wrapper,
+                ham_u32_t max_env_databases);
+
 extern ham_bool_t
 proto_env_get_parameters_reply_has_max_env_databases(proto_wrapper_t *wrapper);
 
 extern ham_u32_t
 proto_env_get_parameters_reply_get_max_env_databases(proto_wrapper_t *wrapper);
+
+extern void
+proto_env_get_parameters_reply_set_flags(proto_wrapper_t *wrapper,
+                ham_u32_t flags);
 
 extern ham_bool_t
 proto_env_get_parameters_reply_has_flags(proto_wrapper_t *wrapper);
@@ -184,11 +216,19 @@ proto_env_get_parameters_reply_has_flags(proto_wrapper_t *wrapper);
 extern ham_u32_t
 proto_env_get_parameters_reply_get_flags(proto_wrapper_t *wrapper);
 
+extern void
+proto_env_get_parameters_reply_set_filemode(proto_wrapper_t *wrapper,
+                ham_u32_t filemode);
+
 extern ham_bool_t
 proto_env_get_parameters_reply_has_filemode(proto_wrapper_t *wrapper);
 
 extern ham_u32_t
 proto_env_get_parameters_reply_get_filemode(proto_wrapper_t *wrapper);
+
+extern void
+proto_env_get_parameters_reply_set_filename(proto_wrapper_t *wrapper,
+                const char *filename);
 
 extern ham_bool_t
 proto_env_get_parameters_reply_has_filename(proto_wrapper_t *wrapper);

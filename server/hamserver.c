@@ -18,10 +18,11 @@
 
 #include <ham/types.h>
 #include <ham/hamserver.h>
-#include "messages.pb-c.h"
+#include "protocol/protocol.h"
 #include "os.h"
 #include "db.h"
 #include "error.h"
+#include "assert.h"
 #include "cursor.h"
 #include "mem.h"
 #include "env.h"
@@ -97,7 +98,7 @@ static void *
 __get_handle(struct env_t *envh, ham_u64_t handle)
 {
     handle_t *h=&envh->handles[handle&0xffffffff];
-    assert(h->handle==handle);
+    ham_assert(h->handle==handle, (""));
     if (h->handle!=handle)
         exit(-1); /* TODO not so nice */
     return h->ptr;
@@ -107,30 +108,24 @@ static void
 __remove_handle(struct env_t *envh, ham_u64_t handle)
 {
     handle_t *h=&envh->handles[handle&0xffffffff];
-    assert(h->handle==handle);
+    ham_assert(h->handle==handle, (""));
     if (h->handle!=handle)
         exit(-1); /* TODO not so nice */
     memset(h, 0, sizeof(*h));
 }
 
 static void
-send_wrapper(ham_env_t *env, struct mg_connection *conn, Ham__Wrapper *wrapper)
+send_wrapper(ham_env_t *env, struct mg_connection *conn, 
+                proto_wrapper_t *wrapper)
 {
     ham_u8_t *data;
     ham_size_t data_size;
 
-    data_size=ham__wrapper__get_packed_size(wrapper);
-    data=(ham_u8_t *)allocator_alloc(env_get_allocator(env), data_size+8);
-    if (!data_size) {
-        /* TODO send error */
+    if (!proto_pack(wrapper, env_get_allocator(env), &data, &data_size))
         return;
-    }
-    ham__wrapper__pack(wrapper, data+8);
 
-    *(ham_u32_t *)&data[0]=ham_h2db32(HAM_TRANSFER_MAGIC_V1);
-    *(ham_u32_t *)&data[4]=ham_h2db32(data_size);
-
-    ham_trace(("type %u: sending %d bytes", wrapper->type, data_size));
+    ham_trace(("type %u: sending %d bytes", 
+                proto_get_type(wrapper), data_size));
 	mg_printf(conn, "%s", standard_reply);
     mg_write(conn, data, data_size+8);
 
@@ -139,78 +134,74 @@ send_wrapper(ham_env_t *env, struct mg_connection *conn, Ham__Wrapper *wrapper)
 
 static void
 handle_connect(ham_env_t *env, struct mg_connection *conn, 
-                const struct mg_request_info *ri, Ham__ConnectRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__ConnectReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t *reply;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_connect_request(request), (""));
 
-    ham__connect_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    reply.env_flags=env_get_rt_flags(env); 
-    wrapper.connect_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__CONNECT_REPLY;
+    reply=proto_init_connect_reply(HAM_SUCCESS, env_get_rt_flags(env)); 
 
-    send_wrapper(env, conn, &wrapper);
+    send_wrapper(env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__EnvGetParametersRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__EnvGetParametersReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t *reply;
     ham_size_t i;
+    ham_status_t st;
     ham_parameter_t params[100]; /* 100 should be enough... */
 
     ham_assert(request!=0, (""));
-
-    ham__env_get_parameters_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.env_get_parameters_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REPLY;
+    ham_assert(proto_has_env_get_parameters_request(request), (""));
 
     /* initialize the ham_parameters_t array */
     memset(&params[0], 0, sizeof(params));
-    for (i=0; i<request->n_names && i<100; i++)
-        params[i].name=request->names[i];
+    for (i=0; i<proto_env_get_parameters_request_get_names_size(request) 
+            && i<100; i++)
+        params[i].name=proto_env_get_parameters_request_get_names(request)[i];
 
     /* and request the parameters from the Environment */
-    reply.status=ham_env_get_parameters(env, &params[0]);
-    if (reply.status) {
-        send_wrapper(env, conn, &wrapper);
+    st=ham_env_get_parameters(env, &params[0]);
+    if (st) {
+        reply=proto_init_env_get_parameters_reply(st);
+        send_wrapper(env, conn, reply);
+        proto_delete(reply);
         return;
     }
 
+    reply=proto_init_env_get_parameters_reply(HAM_SUCCESS);
+
     /* initialize the reply package */
-    for (i=0; i<request->n_names; i++) {
+    for (i=0; i<proto_env_get_parameters_request_get_names_size(request); i++) {
         switch (params[i].name) {
         case HAM_PARAM_CACHESIZE:
-            reply.cachesize=(int)params[i].value;
-            reply.has_cachesize=1;
+            proto_env_get_parameters_reply_set_cachesize(reply, 
+                            (int)params[i].value);
             break;
         case HAM_PARAM_PAGESIZE:
-            reply.pagesize=(int)params[i].value;
-            reply.has_pagesize=1;
+            proto_env_get_parameters_reply_set_pagesize(reply, 
+                            (int)params[i].value);
             break;
         case HAM_PARAM_MAX_ENV_DATABASES:
-            reply.max_env_databases=(int)params[i].value;
-            reply.has_max_env_databases=1;
+            proto_env_get_parameters_reply_set_max_env_databases(reply, 
+                            (int)params[i].value);
             break;
         case HAM_PARAM_GET_FLAGS:
-            reply.flags=(int)params[i].value;
-            reply.has_flags=1;
+            proto_env_get_parameters_reply_set_flags(reply, 
+                            (int)params[i].value);
             break;
         case HAM_PARAM_GET_FILEMODE:
-            reply.filemode=(int)params[i].value;
-            reply.has_filemode=1;
+            proto_env_get_parameters_reply_set_filemode(reply, 
+                            (int)params[i].value);
             break;
         case HAM_PARAM_GET_FILENAME:
-            reply.filename=(char *)(U64_TO_PTR(params[i].value));
+            proto_env_get_parameters_reply_set_filename(reply, 
+                            (const char *)(U64_TO_PTR(params[i].value)));
             break;
         default:
             ham_trace(("unsupported parameter %u", (unsigned)params[i].name));
@@ -218,7 +209,8 @@ handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
         }
     }
 
-    send_wrapper(env, conn, &wrapper);
+    send_wrapper(env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
@@ -229,7 +221,7 @@ handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
     ham_env_t *env=envh->env;
     ham_db_t *db;
     Ham__DbGetParametersReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_size_t i;
     ham_parameter_t params[100]; /* 100 should be enough... */
 
@@ -320,7 +312,7 @@ handle_db_flush(struct env_t *envh, struct mg_connection *conn,
     ham_env_t *env=envh->env;
     ham_db_t *db;
     Ham__DbFlushReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
 
     ham_assert(request!=0, (""));
 
@@ -348,7 +340,7 @@ handle_env_get_database_names(ham_env_t *env, struct mg_connection *conn,
                 Ham__EnvGetDatabaseNamesRequest *request)
 {
     Ham__EnvGetDatabaseNamesReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_size_t i, num_names=1024;
     ham_u16_t names[1024]; /* should be enough */
 
@@ -387,7 +379,7 @@ handle_env_flush(ham_env_t *env, struct mg_connection *conn,
                 Ham__EnvFlushRequest *request)
 {
     Ham__EnvFlushReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
 
     ham_assert(request!=0, (""));
 
@@ -409,7 +401,7 @@ handle_env_rename(ham_env_t *env, struct mg_connection *conn,
                 Ham__EnvRenameRequest *request)
 {
     Ham__EnvRenameReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
 
     ham_assert(request!=0, (""));
 
@@ -434,7 +426,7 @@ handle_env_create_db(struct env_t *envh, ham_env_t *env,
     unsigned i;
     ham_db_t *db;
     Ham__EnvCreateDbReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_parameter_t params[100]={{0, 0}};
 
     ham_assert(request!=0, (""));
@@ -478,7 +470,7 @@ handle_env_open_db(struct env_t *envh, ham_env_t *env,
     unsigned i;
     ham_db_t *db=0;
     Ham__EnvOpenDbReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_parameter_t params[100]={{0, 0}};
 
     ham_assert(request!=0, (""));
@@ -540,7 +532,7 @@ handle_env_erase_db(ham_env_t *env, struct mg_connection *conn,
                 Ham__EnvEraseDbRequest *request)
 {
     Ham__EnvEraseDbReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
 
     ham_assert(request!=0, (""));
 
@@ -561,7 +553,7 @@ handle_db_close(struct env_t *envh, struct mg_connection *conn,
                 Ham__DbCloseRequest *request)
 {
     Ham__DbCloseReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_db_t *db;
     ham_env_t *env=envh->env;
 
@@ -596,7 +588,7 @@ handle_txn_begin(struct env_t *envh, struct mg_connection *conn,
                 Ham__TxnBeginRequest *request)
 {
     Ham__TxnBeginReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_txn_t *txn;
     ham_db_t *db;
     ham_env_t *env=envh->env;
@@ -629,7 +621,7 @@ handle_txn_commit(struct env_t *envh, struct mg_connection *conn,
                 Ham__TxnCommitRequest *request)
 {
     Ham__TxnCommitReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_txn_t *txn;
     ham_env_t *env=envh->env;
 
@@ -662,7 +654,7 @@ handle_txn_abort(struct env_t *envh, struct mg_connection *conn,
                 Ham__TxnAbortRequest *request)
 {
     Ham__TxnAbortReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_txn_t *txn;
     ham_env_t *env=envh->env;
 
@@ -695,7 +687,7 @@ handle_db_check_integrity(struct env_t *envh, struct mg_connection *conn,
                 Ham__DbCheckIntegrityRequest *request)
 {
     Ham__DbCheckIntegrityReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_txn_t *txn=0;
     ham_db_t *db;
 
@@ -733,7 +725,7 @@ handle_db_get_key_count(struct env_t *envh, struct mg_connection *conn,
                 Ham__DbGetKeyCountRequest *request)
 {
     Ham__DbGetKeyCountReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_txn_t *txn=0;
     ham_db_t *db;
 
@@ -772,7 +764,7 @@ handle_db_insert(struct env_t *envh, struct mg_connection *conn,
                 Ham__DbInsertRequest *request)
 {
     Ham__DbInsertReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     Ham__Key replykey;
     ham_txn_t *txn=0;
     ham_db_t *db;
@@ -834,7 +826,7 @@ handle_db_find(struct env_t *envh, struct mg_connection *conn,
                 Ham__DbFindRequest *request)
 {
     Ham__DbFindReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     Ham__Key replykey;
     Ham__Record replyrec;
     ham_txn_t *txn=0;
@@ -905,7 +897,7 @@ handle_db_erase(struct env_t *envh, struct mg_connection *conn,
                 Ham__DbEraseRequest *request)
 {
     Ham__DbEraseReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_txn_t *txn=0;
     ham_db_t *db;
 
@@ -950,7 +942,7 @@ handle_cursor_create(struct env_t *envh, struct mg_connection *conn,
                 Ham__CursorCreateRequest *request)
 {
     Ham__CursorCreateReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_txn_t *txn=0;
     ham_db_t *db;
     ham_cursor_t *cursor;
@@ -994,7 +986,7 @@ handle_cursor_clone(struct env_t *envh, struct mg_connection *conn,
                 Ham__CursorCloneRequest *request)
 {
     Ham__CursorCloneReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_cursor_t *src;
     ham_cursor_t *dest;
 
@@ -1029,7 +1021,7 @@ handle_cursor_insert(struct env_t *envh, struct mg_connection *conn,
                 Ham__CursorInsertRequest *request)
 {
     Ham__CursorInsertReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_cursor_t *cursor;
     ham_key_t key;
     ham_record_t rec;
@@ -1082,7 +1074,7 @@ handle_cursor_erase(struct env_t *envh, struct mg_connection *conn,
                 Ham__CursorEraseRequest *request)
 {
     Ham__CursorEraseReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_cursor_t *cursor;
 
     ham_assert(request!=0, (""));
@@ -1111,7 +1103,7 @@ handle_cursor_find(struct env_t *envh, struct mg_connection *conn,
                 Ham__CursorFindRequest *request)
 {
     Ham__CursorFindReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_cursor_t *cursor;
     ham_key_t key; 
     ham_record_t rec; 
@@ -1176,7 +1168,7 @@ handle_cursor_get_duplicate_count(struct env_t *envh, struct mg_connection *conn
                 Ham__CursorGetDuplicateCountRequest *request)
 {
     Ham__CursorGetDuplicateCountReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_cursor_t *cursor;
 
     ham_assert(request!=0, (""));
@@ -1206,7 +1198,7 @@ handle_cursor_overwrite(struct env_t *envh, struct mg_connection *conn,
                 Ham__CursorOverwriteRequest *request)
 {
     Ham__CursorOverwriteReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_cursor_t *cursor;
     ham_record_t rec;
 
@@ -1241,7 +1233,7 @@ handle_cursor_move(struct env_t *envh, struct mg_connection *conn,
                 Ham__CursorMoveRequest *request)
 {
     Ham__CursorMoveReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_cursor_t *cursor;
     ham_key_t key; 
     ham_record_t rec; 
@@ -1312,7 +1304,7 @@ handle_cursor_close(struct env_t *envh, struct mg_connection *conn,
                 Ham__CursorCloseRequest *request)
 {
     Ham__CursorCloseReply reply;
-    Ham__Wrapper wrapper;
+    proto_wrapper_t wrapper;
     ham_cursor_t *cursor;
 
     ham_assert(request!=0, (""));
@@ -1344,7 +1336,7 @@ static void
 request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
                 void *user_data)
 {
-    Ham__Wrapper *wrapper;
+    proto_wrapper_t *wrapper;
     struct env_t *env=(struct env_t *)user_data;
 
     os_critsec_enter(&env->cs);
@@ -1362,12 +1354,11 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
     switch (wrapper->type) {
     case HAM__WRAPPER__TYPE__CONNECT_REQUEST:
         ham_trace(("connect request"));
-        handle_connect(env->env, conn, ri, wrapper->connect_request);
+        handle_connect(env->env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__ENV_GET_PARAMETERS_REQUEST:
         ham_trace(("env_get_parameters request"));
-        handle_env_get_parameters(env->env, conn, ri, 
-                    wrapper->env_get_parameters_request);
+        handle_env_get_parameters(env->env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__ENV_GET_DATABASE_NAMES_REQUEST:
         ham_trace(("env_get_database_names request"));
@@ -1402,7 +1393,7 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
         break;
     case HAM__WRAPPER__TYPE__DB_GET_PARAMETERS_REQUEST:
         ham_trace(("db_get_parameters request"));
-        handle_db_get_parameters(env, conn, ri, 
+        handle_db_get_parameters(env, conn, ri,
                             wrapper->db_get_parameters_request);
         break;
     case HAM__WRAPPER__TYPE__DB_FLUSH_REQUEST:
