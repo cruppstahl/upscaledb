@@ -22,6 +22,7 @@
 #if HAM_ENABLE_REMOTE
 #  include <curl/curl.h>
 #  include <curl/easy.h>
+#  include "protocol/protocol.h"
 #endif
 
 #include "blob.h"
@@ -1141,17 +1142,20 @@ ham_env_delete(ham_env_t *env)
             st2 = st;
     }
 
-    /* avoid memory leaks by releasing static libcurl data */
+    /* avoid memory leaks by releasing static libcurl and libprotocol data */
 #if HAM_ENABLE_REMOTE
     /* TODO curl_global_cleanup is not threadsafe! currently, hamsterdb
      * does not have support for critical sections or mutexes etc. Therefore
-     * we just use a static variable. This is still not safe, but it should work
-     * for now. */
+     * we just use a static variable. This is still not safe, but it should 
+     * work for now. */
     if (critsec==0) {
         ham_u32_t pseudo_random=((ham_u32_t)env)&0xffffffff;
         critsec=pseudo_random;
         if (critsec==pseudo_random) {
+            /* shutdown libcurl library */
             curl_global_cleanup();
+            /* shutdown network protocol library */
+            proto_shutdown();
             critsec=0;
         }
     }

@@ -147,7 +147,8 @@ _perform_request(ham_env_t *env, CURL *handle, proto_wrapper_t *request,
 
     cc=curl_easy_perform(handle);
 
-    allocator_free(env_get_allocator(env), rbuf.packed_data);
+    if (rbuf.packed_data)
+        allocator_free(env_get_allocator(env), rbuf.packed_data);
     curl_slist_free_all(slist);
 
     if (cc) {
@@ -627,7 +628,7 @@ _remote_fun_env_close(ham_env_t *env, ham_u32_t flags)
         curl_easy_cleanup(env_get_curl(env));
         env_set_curl(env, 0);
     }
-
+    
     return (0);
 }
 
@@ -918,7 +919,7 @@ _remote_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
     proto_wrapper_t *request, *reply;
     
     request=proto_init_check_integrity_request(db_get_remote_handle(db), 
-                        txn_get_remote_handle(txn));
+                        txn ? txn_get_remote_handle(txn) : 0);
 
     st=_perform_request(env, env_get_curl(env), request, &reply);
     proto_delete(request);
@@ -946,7 +947,7 @@ _remote_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     proto_wrapper_t *request, *reply;
     
     request=proto_init_db_get_key_count_request(db_get_remote_handle(db), 
-                        txn_get_remote_handle(txn), flags);
+                        txn ? txn_get_remote_handle(txn) : 0, flags);
 
     st=_perform_request(env, env_get_curl(env), request, &reply);
     proto_delete(request);
@@ -975,10 +976,15 @@ _remote_fun_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     ham_status_t st;
     ham_env_t *env=db_get_env(db);
     proto_wrapper_t *request, *reply;
+    ham_bool_t send_key=HAM_TRUE;
+
+    /* recno: do not send the key */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER)
+        send_key=HAM_FALSE;
     
-    /* TODO recno: do not send the key */
     request=proto_init_db_insert_request(db_get_remote_handle(db), 
-                        txn_get_remote_handle(txn), key, record, flags);
+                        txn ? txn_get_remote_handle(txn) : 0, 
+                        send_key ? key : 0, record, flags);
 
     st=_perform_request(env, env_get_curl(env), request, &reply);
     proto_delete(request);
@@ -993,7 +999,7 @@ _remote_fun_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     st=proto_db_insert_reply_get_status(reply);
 
     /* recno: the key was modified! */
-    if (st==0 && proto_db_insert_reply_get_key_data(reply)) {
+    if (st==0 && proto_db_insert_reply_has_key(reply)) {
         if (proto_db_insert_reply_get_key_size(reply)==sizeof(ham_offset_t)) {
             ham_assert(key->data!=0, (""));
             ham_assert(key->size==sizeof(ham_offset_t), (""));
@@ -1016,7 +1022,8 @@ _remote_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     proto_wrapper_t *request, *reply;
 
     request=proto_init_db_find_request(db_get_remote_handle(db), 
-                        txn_get_remote_handle(txn), key, record, flags);
+                        txn ? txn_get_remote_handle(txn) : 0, 
+                        key, record, flags);
 
     st=_perform_request(env, env_get_curl(env), request, &reply);
     proto_delete(request);
@@ -1072,7 +1079,8 @@ _remote_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     proto_wrapper_t *request, *reply;
     
     request=proto_init_db_erase_request(db_get_remote_handle(db), 
-                        txn_get_remote_handle(txn), key, flags);
+                        txn ? txn_get_remote_handle(txn) : 0, 
+                        key, flags);
 
     st=_perform_request(env, env_get_curl(env), request, &reply);
     proto_delete(request);
@@ -1206,10 +1214,14 @@ _remote_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
     proto_wrapper_t *request, *reply;
+    ham_bool_t send_key=HAM_TRUE;
+
+    /* recno: do not send the key */
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER)
+        send_key=HAM_FALSE;
     
-    /* TODO recno: do not send the key */
     request=proto_init_cursor_insert_request(cursor_get_remote_handle(cursor), 
-                        key, record, flags);
+                        send_key ? key : 0, record, flags);
 
     st=_perform_request(env, env_get_curl(env), request, &reply);
     proto_delete(request);

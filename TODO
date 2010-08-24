@@ -96,16 +96,21 @@ o fix freelist page overflow when searching for bits (See mail from Stefan)
 o add Windows support for remote functionality
     o remove protobuf-c, directly use protobuf
         x rewrite remote.c
+        x don't create 3rdparty/protocol - better: src/protocol!
         o remove dependency from configure.in
         o remove dependency from README, tutorial
-        o don't create 3rdparty/protocol - better: src/protocol!
     x add protobuf-compiler executable to 3rdparty
     x add precompiled protobuf-library to 3rdparty
     x add precompiled libcurl-library to 3rdparty
-    o need win32 project for the server
-    o run unittests
-    o add projects for the new samples
+    x run unittests
+    o msvc: add projects for the new samples
+    o remove TODOs from server sources
     . what about WinCE?
+
+o move hamsterdb/server to hamsterdb/src/server
+    o also rename hamserver.h to hamsterdb_srv.h? would be more consistent
+    o new request "disconnect", similar to "connect"?
+    o make sure unittests are still running
 
 o windows service
     o need msvc project
@@ -127,8 +132,6 @@ o fix ham_flush/ham_env_flush inconsistencies - ham_env_flush is enough
     o ham_env_close must call ham_env_flush - remove duplicate calls
     o ham_flush: calls some functions which are also called in ham_env_close,
         clean up the code
-
-o move hamsterdb/server to hamsterdb/src/server
 
 o test the following:
         db=ham_create()

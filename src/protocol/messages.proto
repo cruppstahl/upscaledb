@@ -309,8 +309,8 @@ message Record {
 message DbInsertRequest {
     required uint64 db_handle = 1;
     required uint64 txn_handle = 2;
-    required Key key = 3;
-    required Record record = 4;
+    optional Key key = 3;
+    optional Record record = 4;
     required uint32 flags = 5;
 };
 
@@ -374,8 +374,8 @@ message CursorCloseReply {
 
 message CursorInsertRequest {
     required uint64 cursor_handle = 1;
-    required Key key = 2;
-    required Record record = 3;
+    optional Key key = 2;
+    optional Record record = 3;
     required uint32 flags = 4;
 };
 

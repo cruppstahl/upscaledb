@@ -53,6 +53,7 @@ endif
 
 if ENABLE_REMOTE
 libhamsterdb_la_LDFLAGS += -lcurl
+libhamsterdb_la_LDFLAGS += $(top_builddir)/src/protocol/libprotocol.la
 CFLAGS += -DHAM_ENABLE_REMOTE
 endif
 

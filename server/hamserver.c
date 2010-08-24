@@ -127,7 +127,7 @@ send_wrapper(ham_env_t *env, struct mg_connection *conn,
     ham_trace(("type %u: sending %d bytes", 
                 proto_get_type(wrapper), data_size));
 	mg_printf(conn, "%s", standard_reply);
-    mg_write(conn, data, data_size+8);
+    mg_write(conn, data, data_size);
 
     allocator_free(env_get_allocator(env), data);
 }
@@ -153,7 +153,7 @@ handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
 {
     proto_wrapper_t *reply;
     ham_size_t i;
-    ham_status_t st;
+    ham_status_t st=0;
     ham_parameter_t params[100]; /* 100 should be enough... */
 
     ham_assert(request!=0, (""));
@@ -215,85 +215,86 @@ handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
 
 static void
 handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__DbGetParametersRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
     ham_env_t *env=envh->env;
     ham_db_t *db;
-    Ham__DbGetParametersReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
+    ham_status_t st=0;
     ham_size_t i;
     ham_parameter_t params[100]; /* 100 should be enough... */
 
     ham_assert(request!=0, (""));
-
-    ham__db_get_parameters_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.db_get_parameters_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__DB_GET_PARAMETERS_REPLY;
+    ham_assert(proto_has_db_get_parameters_request(request), (""));
 
     /* initialize the ham_parameters_t array */
     memset(&params[0], 0, sizeof(params));
-    for (i=0; i<request->n_names && i<100; i++)
-        params[i].name=request->names[i];
+    for (i=0; i<proto_db_get_parameters_request_get_names_size(request) 
+            && i<100; i++)
+        params[i].name=proto_db_get_parameters_request_get_names(request)[i];
 
     /* and request the parameters from the Environment */
-    db=__get_handle(envh, request->db_handle);
+    db=__get_handle(envh, 
+            proto_db_get_parameters_request_get_db_handle(request));
     if (!db) {
-        reply.status=HAM_INV_PARAMETER;
+        st=HAM_INV_PARAMETER;
     }
     else {
-        reply.status=ham_get_parameters(db, &params[0]);
+        st=ham_get_parameters(db, &params[0]);
     }
-    if (reply.status) {
-        send_wrapper(env, conn, &wrapper);
+    if (st) {
+        reply=proto_init_db_get_parameters_reply(st);
+        send_wrapper(env, conn, &reply);
+        proto_delete(reply);
         return;
     }
 
+    reply=proto_init_db_get_parameters_reply(HAM_SUCCESS);
+
     /* initialize the reply package */
-    for (i=0; i<request->n_names; i++) {
+    for (i=0; i<proto_db_get_parameters_request_get_names_size(request); i++) {
         switch (params[i].name) {
         case 0:
             continue;
         case HAM_PARAM_CACHESIZE:
-            reply.cachesize=(int)params[i].value;
-            reply.has_cachesize=1;
+            proto_db_get_parameters_reply_set_cachesize(reply, 
+                            (int)params[i].value);
             break;
         case HAM_PARAM_PAGESIZE:
-            reply.pagesize=(int)params[i].value;
-            reply.has_pagesize=1;
+            proto_db_get_parameters_reply_set_pagesize(reply, 
+                            (int)params[i].value);
             break;
         case HAM_PARAM_MAX_ENV_DATABASES:
-            reply.max_env_databases=(int)params[i].value;
-            reply.has_max_env_databases=1;
+            proto_db_get_parameters_reply_set_max_env_databases(reply, 
+                            (int)params[i].value);
             break;
         case HAM_PARAM_GET_FLAGS:
-            reply.flags=(int)params[i].value;
-            reply.has_flags=1;
+            proto_db_get_parameters_reply_set_flags(reply, 
+                            (int)params[i].value);
             break;
         case HAM_PARAM_GET_FILEMODE:
-            reply.filemode=(int)params[i].value;
-            reply.has_filemode=1;
+            proto_db_get_parameters_reply_set_filemode(reply, 
+                            (int)params[i].value);
             break;
         case HAM_PARAM_GET_FILENAME:
-            reply.filename=(char *)(U64_TO_PTR(params[i].value));
+            proto_db_get_parameters_reply_set_filename(reply, 
+                            (char *)(U64_TO_PTR(params[i].value)));
             break;
         case HAM_PARAM_KEYSIZE:
-            reply.keysize=(int)params[i].value;
-            reply.has_keysize=1;
+            proto_db_get_parameters_reply_set_keysize(reply, 
+                            (int)params[i].value);
             break;
         case HAM_PARAM_GET_DATABASE_NAME:
-            reply.dbname=(int)params[i].value;
-            reply.has_dbname=1;
+            proto_db_get_parameters_reply_set_dbname(reply, 
+                            (int)params[i].value);
             break;
         case HAM_PARAM_GET_KEYS_PER_PAGE:
-            reply.keys_per_page=(int)params[i].value;
-            reply.has_keys_per_page=1;
+            proto_db_get_parameters_reply_set_keys_per_page(reply, 
+                            (int)params[i].value);
             break;
         case HAM_PARAM_GET_DATA_ACCESS_MODE:
-            reply.dam=(int)params[i].value;
-            reply.has_dam=1;
+            proto_db_get_parameters_reply_set_dam(reply, 
+                            (int)params[i].value);
             break;
         default:
             ham_trace(("unsupported parameter %u", (unsigned)params[i].name));
@@ -301,192 +302,157 @@ handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
         }
     }
 
-    send_wrapper(env, conn, &wrapper);
+    send_wrapper(env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_db_flush(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__DbFlushRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
     ham_env_t *env=envh->env;
     ham_db_t *db;
-    Ham__DbFlushReply reply;
-    proto_wrapper_t wrapper;
+    ham_status_t st=0;
+    proto_wrapper_t *reply;
 
     ham_assert(request!=0, (""));
-
-    ham__db_flush_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.db_flush_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__DB_FLUSH_REPLY;
+    ham_assert(proto_has_db_flush_request(request), (""));
 
     /* and request the parameters from the Environment */
-    db=__get_handle(envh, request->db_handle);
+    db=__get_handle(envh, 
+            proto_db_flush_request_get_db_handle(request));
     if (!db) {
-        reply.status=HAM_INV_PARAMETER;
+        st=HAM_INV_PARAMETER;
     }
     else {
-        reply.status=ham_flush(db, request->flags);
+        st=ham_flush(db, proto_db_flush_request_get_flags(request));
+
     }
 
-    send_wrapper(env, conn, &wrapper);
+    reply=proto_init_db_flush_reply(st);
+    send_wrapper(env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_env_get_database_names(ham_env_t *env, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__EnvGetDatabaseNamesRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__EnvGetDatabaseNamesReply reply;
-    proto_wrapper_t wrapper;
-    ham_size_t i, num_names=1024;
+    proto_wrapper_t *reply;
+    ham_status_t st=0;
+    ham_size_t num_names=1024;
     ham_u16_t names[1024]; /* should be enough */
 
     ham_assert(request!=0, (""));
-
-    ham__env_get_database_names_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.env_get_database_names_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__ENV_GET_DATABASE_NAMES_REPLY;
+    ham_assert(proto_has_env_get_database_names_request(request), (""));
 
     /* request the database names from the Environment */
-    reply.status=ham_env_get_database_names(env, &names[0], &num_names);
-    if (reply.status==0) {
-        reply.n_names=num_names;
-        reply.names=(unsigned *)allocator_alloc(env_get_allocator(env), 
-                reply.n_names*sizeof(int));
-        if (!reply.names) {
-            /* TODO send error */
-            return;
-        }
-        for (i=0; i<num_names; i++)
-            reply.names[i]=names[i];
-    }
-
-    send_wrapper(env, conn, &wrapper);
-
-    if (reply.names)
-        allocator_free(env_get_allocator(env), reply.names);
-    reply.names=0;
+    st=ham_env_get_database_names(env, &names[0], &num_names);
+    reply=proto_init_env_get_database_names_reply(st, names, num_names);
+    send_wrapper(env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_env_flush(ham_env_t *env, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__EnvFlushRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__EnvFlushReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
 
     ham_assert(request!=0, (""));
-
-    ham__env_flush_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.env_flush_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__ENV_FLUSH_REPLY;
+    ham_assert(proto_has_env_flush_request(request), (""));
 
     /* request the database names from the Environment */
-    reply.status=ham_env_flush(env, request->flags);
+    reply=proto_init_env_flush_reply(ham_env_flush(env, 
+                proto_env_flush_request_get_flags(request)));
 
-    send_wrapper(env, conn, &wrapper);
+    send_wrapper(env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_env_rename(ham_env_t *env, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__EnvRenameRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__EnvRenameReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_env_rename_request(request), (""));
 
-    ham__env_rename_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.env_rename_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__ENV_RENAME_REPLY;
+    /* rename the databases */
+    reply=proto_init_env_rename_reply(ham_env_rename_db(env, 
+                proto_env_rename_request_get_oldname(request),
+                proto_env_rename_request_get_newname(request),
+                proto_env_rename_request_get_flags(request)));
 
-    /* request the database names from the Environment */
-    reply.status=ham_env_rename_db(env, request->oldname, request->newname,
-                            request->flags);
-
-    send_wrapper(env, conn, &wrapper);
+    send_wrapper(env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_env_create_db(struct env_t *envh, ham_env_t *env, 
                 struct mg_connection *conn, const struct mg_request_info *ri,
-                Ham__EnvCreateDbRequest *request)
+                proto_wrapper_t *request)
 {
     unsigned i;
     ham_db_t *db;
-    Ham__EnvCreateDbReply reply;
-    proto_wrapper_t wrapper;
+    ham_status_t st=0;
+    ham_u64_t db_handle;
+    proto_wrapper_t *reply;
     ham_parameter_t params[100]={{0, 0}};
 
     ham_assert(request!=0, (""));
-
-    ham__env_create_db_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    reply.db_flags=request->flags;
-    wrapper.env_create_db_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__ENV_CREATE_DB_REPLY;
+    ham_assert(proto_has_env_create_db_request(request), (""));
 
     /* convert parameters */
-    ham_assert(request->n_param_values==request->n_param_names, (""));
-    ham_assert(request->n_param_values<100, (""));
-    for (i=0; i<request->n_param_values; i++) {
-        params[i].name=request->param_names[i];
-        params[i].value=request->param_values[i];
+    ham_assert(proto_env_create_db_request_get_num_params(request)<100, (""));
+    for (i=0; i<proto_env_create_db_request_get_num_params(request); i++) {
+        params[i].name =proto_env_create_db_request_get_param_names(request)[i];
+        params[i].value=proto_env_create_db_request_get_param_values(request)[i];
     }
 
     /* create the database */
     ham_new(&db);
-    reply.status=ham_env_create_db(env, db, request->dbname, request->flags,
-                            &params[0]);
+    st=ham_env_create_db(env, db, 
+            proto_env_create_db_request_get_dbname(request),
+            proto_env_create_db_request_get_flags(request), &params[0]);
 
-    if (reply.status==0) {
+    if (st==0) {
         /* allocate a new database handle in the Env wrapper structure */
-        reply.db_handle=__store_handle(envh, db, HANDLE_TYPE_DATABASE);
+        db_handle=__store_handle(envh, db, HANDLE_TYPE_DATABASE);
     }
     else {
         ham_delete(db);
     }
 
-    send_wrapper(env, conn, &wrapper);
+    reply=proto_init_env_create_db_reply(st, db_handle,
+            db->_rt_flags); /* do not use db_get_rt_flags() because they're
+                          * mixed with the flags from the Environment! */
+    send_wrapper(env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_env_open_db(struct env_t *envh, ham_env_t *env, 
                 struct mg_connection *conn, const struct mg_request_info *ri,
-                Ham__EnvOpenDbRequest *request)
+                proto_wrapper_t *request)
 {
     unsigned i;
     ham_db_t *db=0;
-    Ham__EnvOpenDbReply reply;
-    proto_wrapper_t wrapper;
+    ham_u64_t db_handle=0;
+    ham_status_t st=0;
+    proto_wrapper_t *reply;
+    ham_u16_t dbname=proto_env_open_db_request_get_dbname(request);
     ham_parameter_t params[100]={{0, 0}};
 
     ham_assert(request!=0, (""));
-
-    ham__env_open_db_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.env_open_db_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__ENV_OPEN_DB_REPLY;
+    ham_assert(proto_has_env_open_db_request(request), (""));
 
     /* convert parameters */
-    ham_assert(request->n_param_values==request->n_param_names, (""));
-    ham_assert(request->n_param_values<100, (""));
-    for (i=0; i<request->n_param_values; i++) {
-        params[i].name=request->param_names[i];
-        params[i].value=request->param_values[i];
+    ham_assert(proto_env_open_db_request_get_num_params(request)<100, (""));
+    for (i=0; i<proto_env_open_db_request_get_num_params(request); i++) {
+        params[i].name =proto_env_open_db_request_get_param_names(request)[i];
+        params[i].value=proto_env_open_db_request_get_param_values(request)[i];
     }
 
     /* check if the database is already open */
@@ -494,7 +460,7 @@ handle_env_open_db(struct env_t *envh, ham_env_t *env,
         if (envh->handles[i].ptr!=0) {
             if (envh->handles[i].type==HANDLE_TYPE_DATABASE) {
                 db=envh->handles[i].ptr;
-                if (db_get_dbname(db)==request->dbname)
+                if (db_get_dbname(db)==dbname)
                     break;
                 else
                     db=0;
@@ -505,831 +471,777 @@ handle_env_open_db(struct env_t *envh, ham_env_t *env,
     /* if not found: open the database */
     if (!db) {
         ham_new(&db);
-        reply.status=ham_env_open_db(env, db, request->dbname, request->flags,
+        st=ham_env_open_db(env, db, dbname, 
+                            proto_env_open_db_request_get_flags(request),
                             &params[0]);
 
-        if (reply.status==0) {
+        if (st==0) {
             /* allocate a new database handle in the Env wrapper structure */
-            reply.db_handle=__store_handle(envh, db, HANDLE_TYPE_DATABASE);
+            db_handle=__store_handle(envh, db, HANDLE_TYPE_DATABASE);
         }
         else {
             ham_delete(db);
         }
     }
 
-    if (db) {
-        /* return database flags; do not use ham_get_flags() because it
-         * returns different flags! */
-        reply.db_flags=db->_rt_flags;
-    }
-
-    send_wrapper(env, conn, &wrapper);
+    reply=proto_init_env_open_db_reply(st, db_handle,
+            db->_rt_flags); /* do not use db_get_rt_flags() because they're
+                          * mixed with the flags from the Environment! */
+    send_wrapper(env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_env_erase_db(ham_env_t *env, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__EnvEraseDbRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__EnvEraseDbReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_env_erase_db_request(request), (""));
 
-    ham__env_erase_db_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.env_erase_db_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__ENV_ERASE_DB_REPLY;
-
-    reply.status=ham_env_erase_db(env, request->name, request->flags);
-
-    send_wrapper(env, conn, &wrapper);
+    reply=proto_init_env_erase_db_reply(ham_env_erase_db(env, 
+                proto_env_erase_db_request_get_dbname(request),
+                proto_env_erase_db_request_get_flags(request)));
+            
+    send_wrapper(env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_db_close(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__DbCloseRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__DbCloseReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
     ham_db_t *db;
+    ham_status_t st=0;
     ham_env_t *env=envh->env;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_db_close_request(request), (""));
 
-    ham__db_close_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.db_close_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__DB_CLOSE_REPLY;
-
-    db=__get_handle(envh, request->db_handle);
+    db=__get_handle(envh, proto_db_close_request_get_db_handle(request));
     if (!db) {
         /* accept this - most likely the database was already closed by
          * another process */
-        reply.status=0;
+        st=0;
     }
     else {
-        reply.status=ham_close(db, request->flags);
-        if (reply.status==0) {
+        st=ham_close(db, proto_db_close_request_get_flags(request));
+        if (st==0) {
             ham_delete(db);
-            __remove_handle(envh, request->db_handle);
+            __remove_handle(envh, 
+                    proto_db_close_request_get_db_handle(request));
         }
     }
 
-    send_wrapper(env, conn, &wrapper);
+    reply=proto_init_db_close_reply(st);
+    send_wrapper(env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_txn_begin(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__TxnBeginRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__TxnBeginReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
     ham_txn_t *txn;
+    ham_status_t st=0;
+    ham_u64_t handle=0;
     ham_db_t *db;
     ham_env_t *env=envh->env;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_txn_begin_request(request), (""));
 
-    ham__txn_begin_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.txn_begin_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__TXN_BEGIN_REPLY;
-
-    db=__get_handle(envh, request->db_handle);
+    db=__get_handle(envh, proto_txn_begin_request_get_db_handle(request));
     if (!db) {
-        reply.status=HAM_INV_PARAMETER;
+        st=HAM_INV_PARAMETER;
     }
     else {
-        reply.status=ham_txn_begin(&txn, db, request->flags);
+        st=ham_txn_begin(&txn, db, proto_txn_begin_request_get_flags(request));
     }
 
-    if (reply.status==0)
-        reply.txn_handle=__store_handle(envh, txn, HANDLE_TYPE_TRANSACTION);
+    if (st==0)
+        handle=__store_handle(envh, txn, HANDLE_TYPE_TRANSACTION);
 
-    send_wrapper(env, conn, &wrapper);
+    reply=proto_init_txn_begin_reply(st, handle);
+    send_wrapper(env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_txn_commit(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__TxnCommitRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__TxnCommitReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
     ham_txn_t *txn;
     ham_env_t *env=envh->env;
+    ham_status_t st=0;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_txn_commit_request(request), (""));
 
-    ham__txn_commit_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.txn_commit_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__TXN_COMMIT_REPLY;
-
-    txn=__get_handle(envh, request->txn_handle);
+    txn=__get_handle(envh, proto_txn_commit_request_get_txn_handle(request));
     if (!txn) {
-        reply.status=HAM_INV_PARAMETER;
+        st=HAM_INV_PARAMETER;
     }
     else {
-        reply.status=ham_txn_commit(txn, request->flags);
-        if (reply.status==0) {
+        st=ham_txn_commit(txn, proto_txn_commit_request_get_flags(request));
+        if (st==0) {
             /* remove the handle from the Env wrapper structure */
-            __remove_handle(envh, request->txn_handle);
+            __remove_handle(envh, 
+                    proto_txn_commit_request_get_txn_handle(request));
         }
     }
 
-    send_wrapper(env, conn, &wrapper);
+    reply=proto_init_txn_commit_reply(st);
+    send_wrapper(env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_txn_abort(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__TxnAbortRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__TxnAbortReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
     ham_txn_t *txn;
+    ham_status_t st=0;
     ham_env_t *env=envh->env;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_txn_abort_request(request), (""));
 
-    ham__txn_abort_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.txn_abort_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__TXN_ABORT_REPLY;
-
-    txn=__get_handle(envh, request->txn_handle);
+    txn=__get_handle(envh, proto_txn_abort_request_get_txn_handle(request));
     if (!txn) {
-        reply.status=HAM_INV_PARAMETER;
+        st=HAM_INV_PARAMETER;
     }
     else {
-        reply.status=ham_txn_abort(txn, request->flags);
-        if (reply.status==0) {
+        st=ham_txn_abort(txn, proto_txn_abort_request_get_flags(request));
+        if (st==0) {
             /* remove the handle from the Env wrapper structure */
-            __remove_handle(envh, request->txn_handle);
+            __remove_handle(envh, 
+                    proto_txn_abort_request_get_txn_handle(request));
         }
     }
 
-    send_wrapper(env, conn, &wrapper);
+    reply=proto_init_txn_abort_reply(st);
+    send_wrapper(env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_db_check_integrity(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__DbCheckIntegrityRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__DbCheckIntegrityReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
     ham_txn_t *txn=0;
     ham_db_t *db;
+    ham_status_t st=0;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_check_integrity_request(request), (""));
 
-    ham__db_check_integrity_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.db_check_integrity_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__DB_CHECK_INTEGRITY_REPLY;
-
-    if (request->txn_handle) {
-        txn=__get_handle(envh, request->txn_handle);
+    if (proto_check_integrity_request_get_txn_handle(request)) {
+        txn=__get_handle(envh, 
+                proto_check_integrity_request_get_txn_handle(request));
         if (!txn) {
-            reply.status=HAM_INV_PARAMETER;
+            st=HAM_INV_PARAMETER;
         }
     }
 
-    if (reply.status==0) {
-        db=__get_handle(envh, request->db_handle);
+    if (st==0) {
+        db=__get_handle(envh, 
+                proto_check_integrity_request_get_db_handle(request));
         if (!db) {
-            reply.status=HAM_INV_PARAMETER;
+            st=HAM_INV_PARAMETER;
         }
         else {
-            reply.status=ham_check_integrity(db, txn);
+            st=ham_check_integrity(db, txn);
         }
     }
 
-    send_wrapper(envh->env, conn, &wrapper);
+    reply=proto_init_check_integrity_reply(st);
+    send_wrapper(envh->env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_db_get_key_count(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__DbGetKeyCountRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__DbGetKeyCountReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
     ham_txn_t *txn=0;
     ham_db_t *db;
+    ham_status_t st=0;
+    ham_u64_t keycount;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_db_get_key_count_request(request), (""));
 
-    ham__db_get_key_count_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.db_get_key_count_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__DB_GET_KEY_COUNT_REPLY;
-
-    if (request->txn_handle) {
-        txn=__get_handle(envh, request->txn_handle);
+    if (proto_db_get_key_count_request_get_txn_handle(request)) {
+        txn=__get_handle(envh, 
+                proto_db_get_key_count_request_get_txn_handle(request));
         if (!txn) {
-            reply.status=HAM_INV_PARAMETER;
+            st=HAM_INV_PARAMETER;
         }
     }
 
-    if (reply.status==0) {
-        db=__get_handle(envh, request->db_handle);
+    if (st==0) {
+        db=__get_handle(envh, 
+                proto_db_get_key_count_request_get_db_handle(request));
         if (!db) {
-            reply.status=HAM_INV_PARAMETER;
+            st=HAM_INV_PARAMETER;
         }
         else {
-            reply.status=ham_get_key_count(db, txn, request->flags, 
-                    &reply.keycount);
+            st=ham_get_key_count(db, txn,
+                    proto_db_get_key_count_request_get_flags(request),
+                    &keycount);
         }
     }
 
-    send_wrapper(envh->env, conn, &wrapper);
+    reply=proto_init_db_get_key_count_reply(st, keycount);
+    send_wrapper(envh->env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_db_insert(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__DbInsertRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__DbInsertReply reply;
-    proto_wrapper_t wrapper;
-    Ham__Key replykey;
+    proto_wrapper_t *reply;
     ham_txn_t *txn=0;
     ham_db_t *db;
+    ham_status_t st=0;
+    ham_bool_t send_key=HAM_FALSE;
+    ham_key_t key;
+    ham_record_t rec;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_db_insert_request(request), (""));
 
-    ham__db_insert_reply__init(&reply);
-    ham__key__init(&replykey);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.db_insert_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__DB_INSERT_REPLY;
-
-    if (request->txn_handle) {
-        txn=__get_handle(envh, request->txn_handle);
+    if (proto_db_insert_request_get_txn_handle(request)) {
+        txn=__get_handle(envh, proto_db_insert_request_get_txn_handle(request));
         if (!txn) {
-            reply.status=HAM_INV_PARAMETER;
+            st=HAM_INV_PARAMETER;
         }
     }
 
-    if (reply.status==0) {
-        db=__get_handle(envh, request->db_handle);
+    if (st==0) {
+        db=__get_handle(envh, proto_db_insert_request_get_db_handle(request));
         if (!db) {
-            reply.status=HAM_INV_PARAMETER;
+            st=HAM_INV_PARAMETER;
         }
         else {
-            ham_key_t key;
-            ham_record_t rec;
-
             memset(&key, 0, sizeof(key));
-            key.data=request->key->data.data;
-            key.size=request->key->data.len;
-            key.flags=request->key->flags & (~HAM_KEY_USER_ALLOC);
+            if (proto_db_insert_request_has_key(request)) {
+                key.size=proto_db_insert_request_get_key_size(request);
+                if (key.size)
+                    key.data=proto_db_insert_request_get_key_data(request);
+                key.flags=proto_db_insert_request_get_key_flags(request)
+                            & (~HAM_KEY_USER_ALLOC);
+            }
 
             memset(&rec, 0, sizeof(rec));
-            rec.data=request->record->data.data;
-            rec.size=request->record->data.len;
-            rec.partial_size=request->record->partial_size;
-            rec.partial_offset=request->record->partial_offset;
-            rec.flags=request->record->flags & (~HAM_RECORD_USER_ALLOC);
-            reply.status=ham_insert(db, txn, &key, &rec, request->flags);
+            if (proto_db_insert_request_has_record(request)) {
+                rec.size=proto_db_insert_request_get_record_size(request);
+                if (rec.size)
+                    rec.data=proto_db_insert_request_get_record_data(request);
+                rec.partial_size=proto_db_insert_request_get_record_partial_size(request);
+                rec.partial_offset=proto_db_insert_request_get_record_partial_offset(request);
+                rec.flags=proto_db_insert_request_get_record_flags(request) 
+                            & (~HAM_RECORD_USER_ALLOC);
+            }
+            st=ham_insert(db, txn, &key, &rec, 
+                            proto_db_insert_request_get_flags(request));
 
             /* recno: return the modified key */
-            if ((reply.status==0) && (ham_get_flags(db)&HAM_RECORD_NUMBER)) {
+            if ((st==0) && (ham_get_flags(db)&HAM_RECORD_NUMBER)) {
                 ham_assert(key.size==sizeof(ham_offset_t), (""));
-                reply.key=&replykey;
-                replykey.data.data=key.data;
-                replykey.data.len=key.size;
+                send_key=HAM_TRUE;
             }
         }
     }
 
-    send_wrapper(envh->env, conn, &wrapper);
+    reply=proto_init_db_insert_reply(st, send_key ? &key : 0);
+    send_wrapper(envh->env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_db_find(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__DbFindRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__DbFindReply reply;
-    proto_wrapper_t wrapper;
-    Ham__Key replykey;
-    Ham__Record replyrec;
+    proto_wrapper_t *reply;
     ham_txn_t *txn=0;
     ham_db_t *db;
+    ham_status_t st=0;
+    ham_key_t key;
+    ham_record_t rec;
+    ham_bool_t send_key=HAM_FALSE;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_db_find_request(request), (""));
 
-    ham__db_find_reply__init(&reply);
-    ham__key__init(&replykey);
-    ham__record__init(&replyrec);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.db_find_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__DB_FIND_REPLY;
-
-    if (request->txn_handle) {
-        txn=__get_handle(envh, request->txn_handle);
+    if (proto_db_find_request_get_txn_handle(request)) {
+        txn=__get_handle(envh, proto_db_find_request_get_txn_handle(request));
         if (!txn) {
-            reply.status=HAM_INV_PARAMETER;
+            st=HAM_INV_PARAMETER;
         }
     }
 
-    if (reply.status==0) {
-        db=__get_handle(envh, request->db_handle);
+    if (st==0) {
+        db=__get_handle(envh, proto_db_find_request_get_db_handle(request));
         if (!db) {
-            reply.status=HAM_INV_PARAMETER;
+            st=HAM_INV_PARAMETER;
         }
         else {
-            ham_key_t key;
-            ham_record_t rec;
-
             memset(&key, 0, sizeof(key));
-            key.data=request->key->data.data;
-            key.size=request->key->data.len;
-            key.flags=request->key->flags & (~HAM_KEY_USER_ALLOC);
+            key.data=proto_db_find_request_get_key_data(request);
+            key.size=proto_db_find_request_get_key_size(request);
+            key.flags=proto_db_find_request_get_key_flags(request)
+                        & (~HAM_KEY_USER_ALLOC);
 
             memset(&rec, 0, sizeof(rec));
-            rec.data=request->record->data.data;
-            rec.size=request->record->data.len;
-            rec.flags=request->record->flags & (~HAM_RECORD_USER_ALLOC);
-            rec.partial_size=request->record->partial_size;
-            rec.partial_offset=request->record->partial_offset;
-            reply.status=ham_find(db, txn, &key, &rec, request->flags);
+            rec.data=proto_db_find_request_get_record_data(request);
+            rec.size=proto_db_find_request_get_record_size(request);
+            rec.partial_size=proto_db_find_request_get_record_partial_size(request);
+            rec.partial_offset=proto_db_find_request_get_record_partial_offset(request);
+            rec.flags=proto_db_find_request_get_record_flags(request) 
+                        & (~HAM_RECORD_USER_ALLOC);
 
-            if (reply.status==0) {
+            st=ham_find(db, txn, &key, &rec, 
+                            proto_db_find_request_get_flags(request));
+
+            if (st==0) {
                 /* approx matching: key->_flags was modified! */
                 if (key._flags) {
-                    reply.key=&replykey;
-                    replykey.intflags=key._flags;
-                    replykey.data.data=key.data;
-                    replykey.data.len=key.size;
+                    send_key=HAM_TRUE;
                 }
-                /* in any case - return the record */
-                reply.record=&replyrec;
-                replyrec.data.data=rec.data;
-                replyrec.data.len=rec.size;
-                replyrec.flags=rec.flags;
             }
         }
     }
 
-    send_wrapper(envh->env, conn, &wrapper);
+    reply=proto_init_db_find_reply(st, send_key ? &key : 0, &rec);
+    send_wrapper(envh->env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_db_erase(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__DbEraseRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__DbEraseReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
     ham_txn_t *txn=0;
     ham_db_t *db;
+    ham_status_t st=0;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_db_erase_request(request), (""));
 
-    ham__db_erase_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.db_erase_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__DB_ERASE_REPLY;
-
-    if (request->txn_handle) {
-        txn=__get_handle(envh, request->txn_handle);
+    if (proto_db_erase_request_get_txn_handle(request)) {
+        txn=__get_handle(envh, proto_db_erase_request_get_txn_handle(request));
         if (!txn) {
-            reply.status=HAM_INV_PARAMETER;
+            st=HAM_INV_PARAMETER;
         }
     }
 
-    if (reply.status==0) {
-        db=__get_handle(envh, request->db_handle);
+    if (st==0) {
+        db=__get_handle(envh, proto_db_erase_request_get_db_handle(request));
         if (!db) {
-            reply.status=HAM_INV_PARAMETER;
+            st=HAM_INV_PARAMETER;
         }
         else {
             ham_key_t key;
 
             memset(&key, 0, sizeof(key));
-            key.data=request->key->data.data;
-            key.size=request->key->data.len;
-            key.flags=request->key->flags & (~HAM_KEY_USER_ALLOC);
+            key.data=proto_db_erase_request_get_key_data(request);
+            key.size=proto_db_erase_request_get_key_size(request);
+            key.flags=proto_db_erase_request_get_key_flags(request)
+                        & (~HAM_KEY_USER_ALLOC);
 
-            reply.status=ham_erase(db, txn, &key, request->flags);
+            st=ham_erase(db, txn, &key, 
+                    proto_db_erase_request_get_flags(request));
         }
     }
 
-    send_wrapper(envh->env, conn, &wrapper);
+    reply=proto_init_db_erase_reply(st);
+    send_wrapper(envh->env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_cursor_create(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__CursorCreateRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__CursorCreateReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
     ham_txn_t *txn=0;
     ham_db_t *db;
     ham_cursor_t *cursor;
+    ham_status_t st=0;
+    ham_u64_t handle=0;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_cursor_create_request(request), (""));
 
-    ham__cursor_create_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.cursor_create_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_CREATE_REPLY;
-
-    if (request->txn_handle) {
-        txn=__get_handle(envh, request->txn_handle);
+    if (proto_cursor_create_request_get_txn_handle(request)) {
+        txn=__get_handle(envh, 
+                        proto_cursor_create_request_get_txn_handle(request));
         if (!txn) {
-            reply.status=HAM_INV_PARAMETER;
+            st=HAM_INV_PARAMETER;
             goto bail;
         }
     }
 
-    db=__get_handle(envh, request->db_handle);
+    db=__get_handle(envh, proto_cursor_create_request_get_db_handle(request));
     if (!db) {
-        reply.status=HAM_INV_PARAMETER;
+        st=HAM_INV_PARAMETER;
         goto bail;
     }
 
     /* create the cursor */
-    reply.status=ham_cursor_create(db, txn, request->flags, &cursor);
-    if (reply.status==0) {
+    st=ham_cursor_create(db, txn, 
+            proto_cursor_create_request_get_flags(request), &cursor);
+
+    if (st==0) {
         /* allocate a new handle in the Env wrapper structure */
-        reply.cursor_handle=__store_handle(envh, cursor, HANDLE_TYPE_CURSOR);
+        handle=__store_handle(envh, cursor, HANDLE_TYPE_CURSOR);
     }
 
 bail:
-    send_wrapper(envh->env, conn, &wrapper);
+    reply=proto_init_cursor_create_reply(st, handle);
+    send_wrapper(envh->env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_cursor_clone(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__CursorCloneRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__CursorCloneReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
     ham_cursor_t *src;
     ham_cursor_t *dest;
+    ham_status_t st=0;
+    ham_u64_t handle=0;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_cursor_clone_request(request), (""));
 
-    ham__cursor_clone_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.cursor_clone_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_CLONE_REPLY;
-
-    src=__get_handle(envh, request->cursor_handle);
+    src=__get_handle(envh, 
+            proto_cursor_clone_request_get_cursor_handle(request));
     if (!src) {
-        reply.status=HAM_INV_PARAMETER;
+        st=HAM_INV_PARAMETER;
         goto bail;
     }
 
     /* clone the cursor */
-    reply.status=ham_cursor_clone(src, &dest);
-    if (reply.status==0) {
+    st=ham_cursor_clone(src, &dest);
+    if (st==0) {
         /* allocate a new handle in the Env wrapper structure */
-        reply.cursor_handle=__store_handle(envh, dest, HANDLE_TYPE_CURSOR);
+        handle=__store_handle(envh, dest, HANDLE_TYPE_CURSOR);
     }
 
 bail:
-    send_wrapper(envh->env, conn, &wrapper);
+    reply=proto_init_cursor_clone_reply(st, handle);
+    send_wrapper(envh->env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_cursor_insert(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__CursorInsertRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__CursorInsertReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
     ham_cursor_t *cursor;
     ham_key_t key;
     ham_record_t rec;
-    Ham__Key replykey;
+    ham_status_t st=0;
+    ham_bool_t send_key=HAM_FALSE;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_cursor_insert_request(request), (""));
 
-    ham__cursor_insert_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    ham__key__init(&replykey);
-    reply.status=0;
-    wrapper.cursor_insert_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_INSERT_REPLY;
-
-    cursor=__get_handle(envh, request->cursor_handle);
+    cursor=__get_handle(envh,
+            proto_cursor_insert_request_get_cursor_handle(request));
     if (!cursor) {
-        reply.status=HAM_INV_PARAMETER;
+        st=HAM_INV_PARAMETER;
         goto bail;
     }
 
     memset(&key, 0, sizeof(key));
-    key.data=request->key->data.data;
-    key.size=request->key->data.len;
-    key.flags=request->key->flags & (~HAM_KEY_USER_ALLOC);
+    if (proto_cursor_insert_request_has_key(request)) {
+        key.size=proto_cursor_insert_request_get_key_size(request);
+        if (key.size)
+            key.data=proto_cursor_insert_request_get_key_data(request);
+        key.flags=proto_cursor_insert_request_get_key_flags(request) 
+                & (~HAM_KEY_USER_ALLOC);
+    }
 
     memset(&rec, 0, sizeof(rec));
-    rec.data=request->record->data.data;
-    rec.size=request->record->data.len;
-    rec.partial_size=request->record->partial_size;
-    rec.partial_offset=request->record->partial_offset;
-    rec.flags=request->record->flags & (~HAM_RECORD_USER_ALLOC);
-    reply.status=ham_cursor_insert(cursor, &key, &rec, request->flags);
+    if (proto_cursor_insert_request_has_record(request)) {
+        rec.size=proto_cursor_insert_request_get_record_size(request);
+        if (rec.size)
+            rec.data=proto_cursor_insert_request_get_record_data(request);
+        rec.partial_size=proto_cursor_insert_request_get_record_partial_size(request);
+        rec.partial_offset=proto_cursor_insert_request_get_record_partial_offset(request);
+        rec.flags=proto_cursor_insert_request_get_record_flags(request) 
+                        & (~HAM_RECORD_USER_ALLOC);
+    }
+
+    st=ham_cursor_insert(cursor, &key, &rec, 
+                    proto_cursor_insert_request_get_flags(request));
 
     /* recno: return the modified key */
-    if ((reply.status==0) && 
+    if ((st==0) && 
             (ham_get_flags(cursor_get_db(cursor))&HAM_RECORD_NUMBER)) {
         ham_assert(key.size==sizeof(ham_offset_t), (""));
-        reply.key=&replykey;
-        replykey.data.data=key.data;
-        replykey.data.len=key.size;
+        send_key=HAM_TRUE;
     }
 
 bail:
-    send_wrapper(envh->env, conn, &wrapper);
+    reply=proto_init_cursor_insert_reply(st, send_key ? &key : 0);
+    send_wrapper(envh->env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_cursor_erase(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__CursorEraseRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__CursorEraseReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
     ham_cursor_t *cursor;
+    ham_status_t st=0;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_cursor_erase_request(request), (""));
 
-    ham__cursor_erase_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.cursor_erase_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_ERASE_REPLY;
-
-    cursor=__get_handle(envh, request->cursor_handle);
+    cursor=__get_handle(envh,
+            proto_cursor_erase_request_get_cursor_handle(request));
     if (!cursor) {
-        reply.status=HAM_INV_PARAMETER;
+        st=HAM_INV_PARAMETER;
         goto bail;
     }
 
-    reply.status=ham_cursor_erase(cursor, request->flags);
+    st=ham_cursor_erase(cursor,
+            proto_cursor_erase_request_get_flags(request));
 
 bail:
-    send_wrapper(envh->env, conn, &wrapper);
+    reply=proto_init_cursor_erase_reply(st);
+    send_wrapper(envh->env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_cursor_find(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__CursorFindRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__CursorFindReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
     ham_cursor_t *cursor;
     ham_key_t key; 
     ham_record_t rec; 
-    Ham__Key replykey;
-    Ham__Record replyrec;
+    ham_status_t st=0;
+    ham_bool_t send_key=HAM_FALSE;
+    ham_bool_t send_rec=HAM_FALSE;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_cursor_find_request(request), (""));
 
-    ham__cursor_find_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    ham__key__init(&replykey);
-    ham__record__init(&replyrec);
-    reply.status=0;
-    wrapper.cursor_find_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_FIND_REPLY;
-
-    cursor=__get_handle(envh, request->cursor_handle);
+    cursor=__get_handle(envh,
+            proto_cursor_find_request_get_cursor_handle(request));
     if (!cursor) {
-        reply.status=HAM_INV_PARAMETER;
+        st=HAM_INV_PARAMETER;
         goto bail;
     }
 
     memset(&key, 0, sizeof(key));
-    key.data=request->key->data.data;
-    key.size=request->key->data.len;
-    key.flags=request->key->flags & (~HAM_KEY_USER_ALLOC);
+    key.data=proto_cursor_find_request_get_key_data(request);
+    key.size=proto_cursor_find_request_get_key_size(request);
+    key.flags=proto_cursor_find_request_get_key_flags(request) 
+                & (~HAM_KEY_USER_ALLOC);
 
-    if (request->record) {
+    if (proto_cursor_find_request_has_record(request)) {
+        send_rec=HAM_TRUE;
+
         memset(&rec, 0, sizeof(rec));
-        rec.data=request->record->data.data;
-        rec.size=request->record->data.len;
-        rec.partial_size=request->record->partial_size;
-        rec.partial_offset=request->record->partial_offset;
-        rec.flags=request->record->flags & (~HAM_RECORD_USER_ALLOC);
+        rec.data=proto_cursor_find_request_get_record_data(request);
+        rec.size=proto_cursor_find_request_get_record_size(request);
+        rec.partial_size=proto_cursor_find_request_get_record_partial_size(request);
+        rec.partial_offset=proto_cursor_find_request_get_record_partial_offset(request);
+        rec.flags=proto_cursor_find_request_get_record_flags(request) 
+                        & (~HAM_RECORD_USER_ALLOC);
     }
 
-    reply.status=ham_cursor_find_ex(cursor, &key, 
-                    request->record ? &rec : 0, request->flags);
+    st=ham_cursor_find_ex(cursor, &key, 
+                    send_rec ? &rec : 0,
+                    proto_cursor_find_request_get_flags(request));
 
-    if (reply.status==0) {
+    if (st==0) {
         /* approx matching: key->_flags was modified! */
         if (key._flags) {
-            reply.key=&replykey;
-            replykey.intflags=key._flags;
-        }
-        /* return the record */
-        if (request->record) {
-            reply.record=&replyrec;
-            replyrec.data.data=rec.data;
-            replyrec.data.len=rec.size;
-            replyrec.flags=rec.flags;
+            send_key=HAM_TRUE;
         }
     }
 
 bail:
-    send_wrapper(envh->env, conn, &wrapper);
+    reply=proto_init_cursor_find_reply(st, 
+                    send_key ? &key : 0,
+                    send_rec ? &rec : 0);
+    send_wrapper(envh->env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
-handle_cursor_get_duplicate_count(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__CursorGetDuplicateCountRequest *request)
+handle_cursor_get_duplicate_count(struct env_t *envh, 
+                struct mg_connection *conn, const struct mg_request_info *ri,
+                proto_wrapper_t *request)
 {
-    Ham__CursorGetDuplicateCountReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
     ham_cursor_t *cursor;
+    ham_status_t st=0;
+    ham_size_t count=0;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_cursor_get_duplicate_count_request(request), (""));
 
-    ham__cursor_get_duplicate_count_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.cursor_get_duplicate_count_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_GET_DUPLICATE_COUNT_REPLY;
-
-    cursor=__get_handle(envh, request->cursor_handle);
+    cursor=__get_handle(envh,
+           proto_cursor_get_duplicate_count_request_get_cursor_handle(request));
     if (!cursor) {
-        reply.status=HAM_INV_PARAMETER;
+        st=HAM_INV_PARAMETER;
         goto bail;
     }
 
-    reply.status=ham_cursor_get_duplicate_count(cursor, &reply.count, 
-                    request->flags);
+    st=ham_cursor_get_duplicate_count(cursor, &count, 
+                proto_cursor_get_duplicate_count_request_get_flags(request));
 
 bail:
-    send_wrapper(envh->env, conn, &wrapper);
+    reply=proto_init_cursor_get_duplicate_count_reply(st, count);
+    send_wrapper(envh->env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_cursor_overwrite(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__CursorOverwriteRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__CursorOverwriteReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
     ham_cursor_t *cursor;
     ham_record_t rec;
+    ham_status_t st=0;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_cursor_overwrite_request(request), (""));
 
-    ham__cursor_overwrite_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    wrapper.cursor_overwrite_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_OVERWRITE_REPLY;
-
-    cursor=__get_handle(envh, request->cursor_handle);
+    cursor=__get_handle(envh,
+           proto_cursor_overwrite_request_get_cursor_handle(request));
     if (!cursor) {
-        reply.status=HAM_INV_PARAMETER;
+        st=HAM_INV_PARAMETER;
         goto bail;
     }
 
     memset(&rec, 0, sizeof(rec));
-    rec.data=request->record->data.data;
-    rec.size=request->record->data.len;
-    rec.partial_size=request->record->partial_size;
-    rec.partial_offset=request->record->partial_offset;
-    rec.flags=request->record->flags & (~HAM_RECORD_USER_ALLOC);
-    reply.status=ham_cursor_overwrite(cursor, &rec, request->flags);
+    rec.data=proto_cursor_overwrite_request_get_record_data(request);
+    rec.size=proto_cursor_overwrite_request_get_record_size(request);
+    rec.partial_size=proto_cursor_overwrite_request_get_record_partial_size(request);
+    rec.partial_offset=proto_cursor_overwrite_request_get_record_partial_offset(request);
+    rec.flags=proto_cursor_overwrite_request_get_record_flags(request) 
+                    & (~HAM_RECORD_USER_ALLOC);
+
+    st=ham_cursor_overwrite(cursor, &rec,
+           proto_cursor_overwrite_request_get_flags(request));
 
 bail:
-    send_wrapper(envh->env, conn, &wrapper);
+    reply=proto_init_cursor_overwrite_reply(st);
+    send_wrapper(envh->env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_cursor_move(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__CursorMoveRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__CursorMoveReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
     ham_cursor_t *cursor;
     ham_key_t key; 
     ham_record_t rec; 
-    Ham__Key replykey;
-    Ham__Record replyrec;
+    ham_status_t st=0;
+    ham_bool_t send_key=HAM_FALSE;
+    ham_bool_t send_rec=HAM_FALSE;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_cursor_move_request(request), (""));
 
-    ham__cursor_move_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    ham__key__init(&replykey);
-    ham__record__init(&replyrec);
-    reply.status=0;
-    wrapper.cursor_move_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_MOVE_REPLY;
-
-    cursor=__get_handle(envh, request->cursor_handle);
+    cursor=__get_handle(envh,
+           proto_cursor_move_request_get_cursor_handle(request));
     if (!cursor) {
-        reply.status=HAM_INV_PARAMETER;
+        st=HAM_INV_PARAMETER;
         goto bail;
     }
 
-    if (request->key) {
+    if (proto_cursor_move_request_has_key(request)) {
+        send_key=HAM_TRUE;
+
         memset(&key, 0, sizeof(key));
-        key.data=request->key->data.data;
-        key.size=request->key->data.len;
-        key.flags=request->key->flags & (~HAM_KEY_USER_ALLOC);
+        key.data=proto_cursor_move_request_get_key_data(request);
+        key.size=proto_cursor_move_request_get_key_size(request);
+        key.flags=proto_cursor_move_request_get_key_flags(request) 
+                & (~HAM_KEY_USER_ALLOC);
     }
 
-    if (request->record) {
+    if (proto_cursor_move_request_has_record(request)) {
+        send_rec=HAM_TRUE;
+
         memset(&rec, 0, sizeof(rec));
-        rec.data=request->record->data.data;
-        rec.size=request->record->data.len;
-        rec.partial_size=request->record->partial_size;
-        rec.partial_offset=request->record->partial_offset;
-        rec.flags=request->record->flags & (~HAM_RECORD_USER_ALLOC);
+        rec.data=proto_cursor_move_request_get_record_data(request);
+        rec.size=proto_cursor_move_request_get_record_size(request);
+        rec.partial_size=proto_cursor_move_request_get_record_partial_size(request);
+        rec.partial_offset=proto_cursor_move_request_get_record_partial_offset(request);
+        rec.flags=proto_cursor_move_request_get_record_flags(request) 
+                    & (~HAM_RECORD_USER_ALLOC);
     }
 
-    reply.status=ham_cursor_move(cursor,
-                    request->key ? &key : 0,
-                    request->record ? &rec : 0, request->flags);
-
-    if (reply.status==0) {
-        /* copy the key? */
-        if (request->key) {
-            reply.key=&replykey;
-            replykey.intflags=key._flags;
-            replykey.data.data=key.data;
-            replykey.data.len=key.size;
-            replykey.flags=key.flags;
-        }
-        /* copy the record? */
-        if (request->record) {
-            reply.record=&replyrec;
-            replyrec.data.data=rec.data;
-            replyrec.data.len=rec.size;
-            replyrec.flags=rec.flags;
-        }
-    }
+    st=ham_cursor_move(cursor,
+                    send_key ? &key : 0,
+                    send_rec ? &rec : 0, 
+                    proto_cursor_move_request_get_flags(request));
 
 bail:
-    send_wrapper(envh->env, conn, &wrapper);
+    reply=proto_init_cursor_move_reply(st, 
+            (st==0 && send_key) ? &key : 0,
+            (st==0 && send_rec) ? &rec : 0);
+    send_wrapper(envh->env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
 handle_cursor_close(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri,
-                Ham__CursorCloseRequest *request)
+                const struct mg_request_info *ri, proto_wrapper_t *request)
 {
-    Ham__CursorCloseReply reply;
-    proto_wrapper_t wrapper;
+    proto_wrapper_t *reply;
     ham_cursor_t *cursor;
+    ham_status_t st=0;
 
     ham_assert(request!=0, (""));
+    ham_assert(proto_has_cursor_close_request(request), (""));
 
-    ham__cursor_close_reply__init(&reply);
-    ham__wrapper__init(&wrapper);
-    reply.status=0;
-    wrapper.cursor_close_reply=&reply;
-    wrapper.type=HAM__WRAPPER__TYPE__CURSOR_CLOSE_REPLY;
-
-    cursor=__get_handle(envh, request->cursor_handle);
+    cursor=__get_handle(envh,
+           proto_cursor_close_request_get_cursor_handle(request));
     if (!cursor) {
-        reply.status=HAM_INV_PARAMETER;
+        st=HAM_INV_PARAMETER;
         goto bail;
     }
 
     /* close the cursor */
-    reply.status=ham_cursor_close(cursor);
-    if (reply.status==0) {
+    st=ham_cursor_close(cursor);
+    if (st==0) {
         /* remove the handle from the Env wrapper structure */
-        __remove_handle(envh, request->cursor_handle);
+        __remove_handle(envh,
+           proto_cursor_close_request_get_cursor_handle(request));
     }
 
 bail:
-    send_wrapper(envh->env, conn, &wrapper);
+    reply=proto_init_cursor_close_reply(st);
+    send_wrapper(envh->env, conn, reply);
+    proto_delete(reply);
 }
 
 static void
@@ -1343,15 +1255,14 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
 
     /* TODO check the magic! */
 
-    wrapper=ham__wrapper__unpack(0, ri->post_data_len-8, 
-            (ham_u8_t *)ri->post_data+8);
+    wrapper=proto_unpack(ri->post_data_len-8, (ham_u8_t *)ri->post_data+8);
     if (!wrapper) {
         printf("failed to unpack wrapper (%d bytes)\n", ri->post_data_len);
         /* TODO send error */
         goto bail;   
     }
 
-    switch (wrapper->type) {
+    switch (proto_get_type(wrapper)) {
     case HAM__WRAPPER__TYPE__CONNECT_REQUEST:
         ham_trace(("connect request"));
         handle_connect(env->env, conn, ri, wrapper);
@@ -1362,125 +1273,107 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
         break;
     case HAM__WRAPPER__TYPE__ENV_GET_DATABASE_NAMES_REQUEST:
         ham_trace(("env_get_database_names request"));
-        handle_env_get_database_names(env->env, conn, ri, 
-                    wrapper->env_get_database_names_request);
+        handle_env_get_database_names(env->env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__ENV_FLUSH_REQUEST:
         ham_trace(("env_flush request"));
-        handle_env_flush(env->env, conn, ri, wrapper->env_flush_request);
+        handle_env_flush(env->env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__ENV_RENAME_REQUEST:
         ham_trace(("env_rename request"));
-        handle_env_rename(env->env, conn, ri, wrapper->env_rename_request);
+        handle_env_rename(env->env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__ENV_CREATE_DB_REQUEST:
         ham_trace(("env_create_db request"));
-        handle_env_create_db(env, env->env, conn, ri, 
-                            wrapper->env_create_db_request);
+        handle_env_create_db(env, env->env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__ENV_OPEN_DB_REQUEST:
         ham_trace(("env_open_db request"));
-        handle_env_open_db(env, env->env, conn, ri, 
-                            wrapper->env_open_db_request);
+        handle_env_open_db(env, env->env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__ENV_ERASE_DB_REQUEST:
         ham_trace(("env_erase_db request"));
-        handle_env_erase_db(env->env, conn, ri, wrapper->env_erase_db_request);
+        handle_env_erase_db(env->env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__DB_CLOSE_REQUEST:
         ham_trace(("db_close request"));
-        handle_db_close(env, conn, ri, wrapper->db_close_request);
+        handle_db_close(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__DB_GET_PARAMETERS_REQUEST:
         ham_trace(("db_get_parameters request"));
-        handle_db_get_parameters(env, conn, ri,
-                            wrapper->db_get_parameters_request);
+        handle_db_get_parameters(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__DB_FLUSH_REQUEST:
         ham_trace(("db_flush request"));
-        handle_db_flush(env, conn, ri, wrapper->db_flush_request);
+        handle_db_flush(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__TXN_BEGIN_REQUEST:
         ham_trace(("txn_begin request"));
-        handle_txn_begin(env, conn, ri, wrapper->txn_begin_request);
+        handle_txn_begin(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__TXN_COMMIT_REQUEST:
         ham_trace(("txn_commit request"));
-        handle_txn_commit(env, conn, ri, wrapper->txn_commit_request);
+        handle_txn_commit(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__TXN_ABORT_REQUEST:
         ham_trace(("txn_abort request"));
-        handle_txn_abort(env, conn, ri, wrapper->txn_abort_request);
+        handle_txn_abort(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__DB_CHECK_INTEGRITY_REQUEST:
         ham_trace(("db_check_integrity request"));
-        handle_db_check_integrity(env, conn, ri, 
-                wrapper->db_check_integrity_request);
+        handle_db_check_integrity(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__DB_GET_KEY_COUNT_REQUEST:
         ham_trace(("db_get_key_count request"));
-        handle_db_get_key_count(env, conn, ri, 
-                wrapper->db_get_key_count_request);
+        handle_db_get_key_count(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__DB_INSERT_REQUEST:
         ham_trace(("db_insert request"));
-        handle_db_insert(env, conn, ri, 
-                wrapper->db_insert_request);
+        handle_db_insert(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__DB_FIND_REQUEST:
         ham_trace(("db_find request"));
-        handle_db_find(env, conn, ri, 
-                wrapper->db_find_request);
+        handle_db_find(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__DB_ERASE_REQUEST:
         ham_trace(("db_erase request"));
-        handle_db_erase(env, conn, ri, 
-                wrapper->db_erase_request);
+        handle_db_erase(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__CURSOR_CREATE_REQUEST:
         ham_trace(("cursor_create request"));
-        handle_cursor_create(env, conn, ri, 
-                wrapper->cursor_create_request);
+        handle_cursor_create(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__CURSOR_CLONE_REQUEST:
         ham_trace(("cursor_clone request"));
-        handle_cursor_clone(env, conn, ri, 
-                wrapper->cursor_clone_request);
+        handle_cursor_clone(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__CURSOR_INSERT_REQUEST:
         ham_trace(("cursor_insert request"));
-        handle_cursor_insert(env, conn, ri, 
-                wrapper->cursor_insert_request);
+        handle_cursor_insert(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__CURSOR_ERASE_REQUEST:
         ham_trace(("cursor_erase request"));
-        handle_cursor_erase(env, conn, ri, 
-                wrapper->cursor_erase_request);
+        handle_cursor_erase(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__CURSOR_FIND_REQUEST:
         ham_trace(("cursor_find request"));
-        handle_cursor_find(env, conn, ri, 
-                wrapper->cursor_find_request);
+        handle_cursor_find(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__CURSOR_GET_DUPLICATE_COUNT_REQUEST:
         ham_trace(("cursor_get_duplicate_count request"));
-        handle_cursor_get_duplicate_count(env, conn, ri, 
-                wrapper->cursor_get_duplicate_count_request);
+        handle_cursor_get_duplicate_count(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__CURSOR_OVERWRITE_REQUEST:
         ham_trace(("cursor_overwrite request"));
-        handle_cursor_overwrite(env, conn, ri, 
-                wrapper->cursor_overwrite_request);
+        handle_cursor_overwrite(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__CURSOR_MOVE_REQUEST:
         ham_trace(("cursor_move request"));
-        handle_cursor_move(env, conn, ri, 
-                wrapper->cursor_move_request);
+        handle_cursor_move(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__CURSOR_CLOSE_REQUEST:
         ham_trace(("cursor_close request"));
-        handle_cursor_close(env, conn, ri, 
-                wrapper->cursor_close_request);
+        handle_cursor_close(env, conn, ri, wrapper);
         break;
     default:
         /* TODO send error */
@@ -1512,7 +1405,7 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
 
 bail:
     if (wrapper)
-        ham__wrapper__free_unpacked(wrapper, 0);
+        proto_delete(wrapper);
 
     os_critsec_leave(&env->cs);
 }
@@ -1600,5 +1493,8 @@ hamserver_close(hamserver_t *srv)
 
     mg_stop(srv->mg_ctxt);
     free(srv);
+
+    /* free libprotocol static data */
+    proto_shutdown();
 }
 
