@@ -94,11 +94,10 @@ o fix freelist page overflow when searching for bits (See mail from Stefan)
     o get newest version from Ger
 
 o add Windows support for remote functionality
-    o remove protobuf-c, directly use protobuf
+    x remove protobuf-c, directly use protobuf
         x rewrite remote.c
         x don't create 3rdparty/protocol - better: src/protocol!
-        o remove dependency from configure.in
-        o remove dependency from README, tutorial
+        x remove dependency from configure.in
     x add protobuf-compiler executable to 3rdparty
     x add precompiled protobuf-library to 3rdparty
     x add precompiled libcurl-library to 3rdparty
@@ -115,6 +114,8 @@ o move hamsterdb/server to hamsterdb/src/server
 o windows service
     o need msvc project
     o command line switches -install, -start, -stop, -uninstall!
+
+o add protobuf dependency to README, tutorial
 
 . more server stuff
     o add acceptance tests

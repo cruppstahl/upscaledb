@@ -227,9 +227,9 @@ fi
 #
 # Check if protocol buffers are installed
 #
-AC_CACHE_CHECK(if google protocol buffers for C are installed,ac_cv_protobuf,
+AC_CACHE_CHECK(if google protocol buffers are installed,ac_cv_protobuf,
     [AC_TRY_RUN([
-#include <google/protobuf-c/protobuf-c.h>
+#include <google/protobuf/message.h>
 int main(void) {
     return 0;
 }],ac_cv_protobuf=yes,ac_cv_protobuf=no,ac_cv_protobuf=no)])
