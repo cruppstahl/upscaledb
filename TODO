@@ -89,10 +89,6 @@ x improve documentation in hamsterdb.h
     x ham_open, ham_create, ham_env_open, ham_env_create: should be 
             deprecated??? - no, but will be removed with 2.0
 
-o fix freelist page overflow when searching for bits (See mail from Stefan)
-    -> is this still relevant??
-    o get newest version from Ger
-
 o add Windows support for remote functionality
     x remove protobuf-c, directly use protobuf
         x rewrite remote.c
@@ -102,8 +98,8 @@ o add Windows support for remote functionality
     x add precompiled protobuf-library to 3rdparty
     x add precompiled libcurl-library to 3rdparty
     x run unittests
+    x remove TODOs from server sources
     o msvc: add projects for the new samples
-    o remove TODOs from server sources
     . what about WinCE?
 
 o move hamsterdb/server to hamsterdb/src/server
@@ -116,6 +112,10 @@ o windows service
     o command line switches -install, -start, -stop, -uninstall!
 
 o add protobuf dependency to README, tutorial
+
+o fix freelist page overflow when searching for bits (See mail from Stefan)
+    -> is this still relevant??
+    o get newest version from Ger
 
 . more server stuff
     o add acceptance tests

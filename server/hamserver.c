@@ -80,7 +80,8 @@ __store_handle(struct env_t *envh, void *ptr, int type)
         envh->handles=(handle_t *)realloc(envh->handles, 
                         sizeof(handle_t)*envh->handles_size);
         if (!envh->handles)
-            exit(-1); /* TODO not so nice... */
+            exit(-1); /* not so nice, but if we're out of memory then 
+                       * it does not make sense to go on... */
         memset(&envh->handles[envh->handles_size-10], 0, sizeof(handle_t)*10);
     }
 
@@ -100,7 +101,7 @@ __get_handle(struct env_t *envh, ham_u64_t handle)
     handle_t *h=&envh->handles[handle&0xffffffff];
     ham_assert(h->handle==handle, (""));
     if (h->handle!=handle)
-        exit(-1); /* TODO not so nice */
+        return (0);
     return h->ptr;
 }
 
@@ -110,7 +111,7 @@ __remove_handle(struct env_t *envh, ham_u64_t handle)
     handle_t *h=&envh->handles[handle&0xffffffff];
     ham_assert(h->handle==handle, (""));
     if (h->handle!=handle)
-        exit(-1); /* TODO not so nice */
+        return;
     memset(h, 0, sizeof(*h));
 }
 
@@ -1253,12 +1254,9 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
 
     os_critsec_enter(&env->cs);
 
-    /* TODO check the magic! */
-
-    wrapper=proto_unpack(ri->post_data_len-8, (ham_u8_t *)ri->post_data+8);
+    wrapper=proto_unpack(ri->post_data_len, (ham_u8_t *)ri->post_data);
     if (!wrapper) {
-        printf("failed to unpack wrapper (%d bytes)\n", ri->post_data_len);
-        /* TODO send error */
+        ham_trace(("failed to unpack wrapper (%d bytes)\n", ri->post_data_len));
         goto bail;   
     }
 
@@ -1376,9 +1374,8 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
         handle_cursor_close(env, conn, ri, wrapper);
         break;
     default:
-        /* TODO send error */
-        ham_trace(("unknown request"));
-        goto bail;   
+        ham_trace(("ignoring unknown request"));
+        break;
     }
 
 #if 0
