@@ -94,6 +94,8 @@ x move hamsterdb/server to hamsterdb/src/server
         x and hamserver_XXX to ham_srv_XXX
     x make sure unittests are still running
 
+x add protobuf and libcurl dependency to README
+
 o add Windows support for remote functionality
     x remove protobuf-c, directly use protobuf
         x rewrite remote.c
@@ -110,8 +112,6 @@ o add Windows support for remote functionality
 o windows service
     o need msvc project
     o command line switches -install, -start, -stop, -uninstall!
-
-o add protobuf dependency to README, tutorial
 
 o fix freelist page overflow when searching for bits (See mail from Stefan)
     -> is this still relevant??
