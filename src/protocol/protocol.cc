@@ -22,8 +22,13 @@ using namespace ham;
 proto_wrapper_t *
 proto_unpack(ham_size_t size, const ham_u8_t *buf)
 {
+    if (*(ham_u32_t *)&buf[0]!=ham_db2h32(HAM_TRANSFER_MAGIC_V1)) {
+        ham_trace(("invalid protocol version"));
+        return (0);
+    }
+
     Wrapper *w=new Wrapper;
-    if (!w->ParseFromArray(buf, size)) {
+    if (!w->ParseFromArray(buf+8, size-8)) {
         delete w;
         return (0);
     }

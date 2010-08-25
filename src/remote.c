@@ -52,20 +52,19 @@ __writefunc(void *buffer, size_t size, size_t nmemb, void *ptr)
 
         /* did we receive the whole data in this packet? */
         if (payload_size+8==size*nmemb) {
-            buf->wrapper=proto_unpack(payload_size, 
-                    (ham_u8_t *)&cbuf[8]);
+            buf->wrapper=proto_unpack(size*nmemb, (ham_u8_t *)&cbuf[0]);
             if (!buf->wrapper)
                 return (0);
             return (size*nmemb);
         }
 
         /* otherwise we have to buffer the received data */
-        buf->packed_size=payload_size;
-        buf->packed_data=allocator_alloc(buf->alloc, payload_size);
+        buf->packed_size=payload_size+8;
+        buf->packed_data=allocator_alloc(buf->alloc, buf->packed_size);
         if (!buf->packed_data)
             return (0);
-        memcpy(buf->packed_data, &cbuf[8], size*nmemb-8);
-        buf->offset+=size*nmemb-8;
+        memcpy(buf->packed_data, &cbuf[0], size*nmemb);
+        buf->offset+=size*nmemb;
     }
     /* append to an existing buffer? */
     else {
