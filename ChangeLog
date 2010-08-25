@@ -1,3 +1,9 @@
+Aug 25, 2010 - chris
+o renamed ham/hamserver.h to ham/hamsterdb_srv.h; all symbols were renamed
+    from hamserver_XXX to ham_srv_XXX
+o removed the dependency to protobuf-c; now directly using google's protobuf
+    (for C++)
+
 Aug 11, 2010 - chris
 o improved the documentation in hamsterdb.h
 
