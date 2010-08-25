@@ -4,7 +4,7 @@ INCLUDES		    = -I$(top_builddir)/include -I$(top_builddir)/src \
 
 hamsrvd_SOURCES     = hamsrvd.c getopts.c config.c
 hamsrvd_LDADD       = $(top_builddir)/src/libhamsterdb.la \
-                      $(top_builddir)/server/libhamserver.la
+                      $(top_builddir)/src/server/libhamserver.la
 
 ham_info_SOURCES    = ham_info.c getopts.c
 ham_info_LDADD      = $(top_builddir)/src/libhamsterdb.la

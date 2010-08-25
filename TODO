@@ -89,6 +89,11 @@ x improve documentation in hamsterdb.h
     x ham_open, ham_create, ham_env_open, ham_env_create: should be 
             deprecated??? - no, but will be removed with 2.0
 
+x move hamsterdb/server to hamsterdb/src/server
+    x also rename hamserver.h to hamsterdb_srv.h? would be more consistent
+        x and hamserver_XXX to ham_srv_XXX
+    x make sure unittests are still running
+
 o add Windows support for remote functionality
     x remove protobuf-c, directly use protobuf
         x rewrite remote.c
@@ -101,11 +106,6 @@ o add Windows support for remote functionality
     x remove TODOs from server sources
     o msvc: add projects for the new samples
     . what about WinCE?
-
-o move hamsterdb/server to hamsterdb/src/server
-    o also rename hamserver.h to hamsterdb_srv.h? would be more consistent
-    o new request "disconnect", similar to "connect"?
-    o make sure unittests are still running
 
 o windows service
     o need msvc project

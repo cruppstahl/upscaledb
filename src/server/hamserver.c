@@ -17,8 +17,8 @@
 #include <mongoose/mongoose.h>
 
 #include <ham/types.h>
-#include <ham/hamserver.h>
-#include "protocol/protocol.h"
+#include <ham/hamsterdb_srv.h>
+#include "../protocol/protocol.h"
 #include "os.h"
 #include "db.h"
 #include "error.h"
@@ -47,7 +47,7 @@ typedef struct handle_t
     ham_u64_t handle;
 } handle_t;
 
-struct hamserver_t
+struct ham_srv_t
 {
     /* the mongoose context structure */
     struct mg_context *mg_ctxt;
@@ -1408,13 +1408,13 @@ bail:
 }
 
 ham_status_t 
-hamserver_init(hamserver_config_t *config, hamserver_t **psrv)
+ham_srv_init(ham_srv_config_t *config, ham_srv_t **psrv)
 {
-    hamserver_t *srv;
+    ham_srv_t *srv;
     char buf[32];
     sprintf(buf, "%d", (int)config->port);
 
-    srv=(hamserver_t *)malloc(sizeof(hamserver_t));
+    srv=(ham_srv_t *)malloc(sizeof(ham_srv_t));
     if (!srv)
         return (HAM_OUT_OF_MEMORY);
     memset(srv, 0, sizeof(*srv));
@@ -1448,7 +1448,7 @@ hamserver_init(hamserver_config_t *config, hamserver_t **psrv)
 }
 
 ham_status_t 
-hamserver_add_env(hamserver_t *srv, ham_env_t *env, const char *urlname)
+ham_srv_add_env(ham_srv_t *srv, ham_env_t *env, const char *urlname)
 {
     int i;
 
@@ -1471,7 +1471,7 @@ hamserver_add_env(hamserver_t *srv, ham_env_t *env, const char *urlname)
 }
 
 void
-hamserver_close(hamserver_t *srv)
+ham_srv_close(ham_srv_t *srv)
 {
     int i;
 

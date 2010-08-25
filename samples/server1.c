@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ham/hamsterdb.h>
-#include <ham/hamserver.h>
+#include <ham/hamsterdb_srv.h>
 
 #ifdef WIN32
 #   define EXT ".exe"
@@ -30,8 +30,8 @@ main(void)
 {
     ham_db_t *db;
     ham_env_t *env;
-    hamserver_t *srv;
-    hamserver_config_t cfg;
+    ham_srv_t *srv;
+    ham_srv_config_t cfg;
     ham_status_t st;
     char input[1024];
 
@@ -67,8 +67,8 @@ main(void)
 
     memset(&cfg, 0, sizeof(cfg));
     cfg.port=8080;
-    hamserver_init(&cfg, &srv);
-    hamserver_add_env(srv, env, "/test.db");
+    ham_srv_init(&cfg, &srv);
+    ham_srv_add_env(srv, env, "/test.db");
 
     printf("server1%s started - please run client1%s for a test\n", 
             EXT, EXT);
@@ -84,7 +84,7 @@ main(void)
         printf("unknown command\n");
     }
 
-    hamserver_close(srv);
+    ham_srv_close(srv);
     ham_env_close(env, HAM_AUTO_CLEANUP);
     ham_env_delete(env);
     ham_delete(db);

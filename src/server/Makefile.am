@@ -1,5 +1,5 @@
 
-AM_CPPFLAGS = -I../include -I../src -I../3rdparty
+AM_CPPFLAGS = -I../../include -I.. -I../../3rdparty
 
 lib_LTLIBRARIES = libhamserver.la
 

@@ -23,7 +23,7 @@
 #include <errno.h>
 
 #include <ham/hamsterdb.h>
-#include <ham/hamserver.h>
+#include <ham/hamsterdb_srv.h>
 
 #include "getopts.h"
 #include "config.h"
@@ -189,7 +189,7 @@ format_flags(char *flagstr)
 }
 
 void
-initialize_server(hamserver_t *srv, config_table_t *params)
+initialize_server(ham_srv_t *srv, config_table_t *params)
 {
     unsigned e, d;
     ham_env_t *env;
@@ -243,9 +243,9 @@ initialize_server(hamserver_t *srv, config_table_t *params)
         }
 
         /* Add the Environment to the server */
-        st=hamserver_add_env(srv, env, params->envs[e].url);
+        st=ham_srv_add_env(srv, env, params->envs[e].url);
         if (st) {
-            printf("hamserver_add_env failed: %s\n", ham_strerror(st));
+            printf("ham_srv_add_env failed: %s\n", ham_strerror(st));
             exit(-1);
         }
 
@@ -260,8 +260,8 @@ main(int argc, char **argv)
     unsigned opt;
     char *param, *configfile=0, *pidfile=0;
     unsigned e, foreground=0;
-    hamserver_t *srv;
-    hamserver_config_t cfg;
+    ham_srv_t *srv;
+    ham_srv_config_t cfg;
     config_table_t *params=0;
 
     ham_u32_t maj, min, rev;
@@ -338,7 +338,7 @@ main(int argc, char **argv)
         cfg.access_log_path=params->globals.access_log;
     if (params->globals.enable_error_log)
         cfg.error_log_path=params->globals.error_log;
-    if ((0!=hamserver_init(&cfg, &srv)))
+    if ((0!=ham_srv_init(&cfg, &srv)))
         exit(-1);
 
     initialize_server(srv, params);
@@ -355,7 +355,7 @@ main(int argc, char **argv)
     printf("hamsterd is stopping...\n");
 
     /* clean up */
-    hamserver_close(srv);
+    ham_srv_close(srv);
     for (e=0; e<params->env_count; e++) {
         (void)ham_env_close(params->envs[e].env, HAM_AUTO_CLEANUP);
     }

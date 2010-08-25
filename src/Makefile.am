@@ -1,7 +1,10 @@
 
 if ENABLE_REMOTE
 SUBDIRS = protocol
-endif
+if ENABLE_SERVER 
+SUBDIRS += server
+endif # ENABLE_SERVER
+endif # ENABLE_REMOTE
 
 AM_CPPFLAGS = -I../include -I$(top_builddir)/3rdparty/aes
 

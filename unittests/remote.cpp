@@ -17,7 +17,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <ham/hamsterdb_int.h>
-#include <ham/hamserver.h>
+#include <ham/hamsterdb_srv.h>
 #include "memtracker.h"
 #include "../src/env.h"
 #include "os.hpp"
@@ -88,11 +88,11 @@ public:
 protected:
     ham_env_t *m_env;
     ham_db_t *m_db;
-    hamserver_t *m_srv;
+    ham_srv_t *m_srv;
 
     void setup(void)
     {
-        hamserver_config_t cfg;
+        ham_srv_config_t cfg;
         memset(&cfg, 0, sizeof(cfg));
         cfg.port=8989;
 
@@ -116,15 +116,15 @@ protected:
         ham_close(m_db, 0);
 
         BFC_ASSERT_EQUAL(0, 
-                hamserver_init(&cfg, &m_srv));
+                ham_srv_init(&cfg, &m_srv));
 
         BFC_ASSERT_EQUAL(0, 
-                hamserver_add_env(m_srv, m_env, "/test.db"));
+                ham_srv_add_env(m_srv, m_env, "/test.db"));
     }
 
     void teardown(void)
     {
-        hamserver_close(m_srv);
+        ham_srv_close(m_srv);
         ham_env_close(m_env, HAM_AUTO_CLEANUP);
         ham_env_delete(m_env);
         ham_delete(m_db);
