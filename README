@@ -105,6 +105,11 @@ you want to include remote functionality, then you have to download the
 dependencies from here:
     http://code.google.com/p/protobuf/
     http://curl.haxx.se/libcurl/
+On Ubuntu, you can install the following packages:
+    protobuf-compiler
+    libprotobuf-dev
+    libcurl-dev
+
 On Windows, precompiled libraries are available in 3rdparty/libcurl and 
 3rdparty/protobuf.
 
