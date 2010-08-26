@@ -218,7 +218,7 @@ AC_CACHE_CHECK(for support of the O_NOATIME flag,ac_cv_noatime,
 #include <fcntl.h>
 int main(void) {
     int i=(int)O_NOATIME;
-    return 0;
+    return i;
 }],ac_cv_noatime=yes,ac_cv_noatime=no,ac_cv_noatime=no)])
 if test $ac_cv_noatime = yes; then
     AC_DEFINE(HAVE_O_NOATIME,1,[flag O_NOATIME is supported])
@@ -227,6 +227,7 @@ fi
 #
 # Check if protocol buffers are installed
 #
+AC_LANG(C++)
 AC_CACHE_CHECK(if google protocol buffers are installed,ac_cv_protobuf,
     [AC_TRY_RUN([
 #include <google/protobuf/message.h>
@@ -234,11 +235,12 @@ int main(void) {
     return 0;
 }],ac_cv_protobuf=yes,ac_cv_protobuf=no,ac_cv_protobuf=no)])
 if test "x$enable_remote" != "xno"; then
-    if test "$ac_cv_protobuf" = "no"; then
+    if test "x$ac_cv_protobuf" = "xno"; then
         settings="$settings (protobuf missing - remote disabled)"
-        enable_remote = "no"
+        enable_remote="no"
     fi
 fi
+AC_LANG(C)
 
 #
 # Check if libcurl is installed
@@ -250,7 +252,7 @@ int main(void) {
     return 0;
 }],ac_cv_libcurl=yes,ac_cv_libcurl=no,ac_cv_libcurl=no)])
 if test "x$enable_remote" != "xno"; then
-    if test "$ac_cv_libcurl" = "no"; then
+    if test "x$ac_cv_libcurl" = "xno"; then
         settings="$settings (libcurl missing - remote disabled)"
         enable_remote="no"
     fi
@@ -287,7 +289,7 @@ printf "# Configuring hamsterdb version $PACKAGE_VERSION\n"
 printf "# Settings:$settings\n"
 if test "x$enable_remote" = "xno"; then
 printf "#\n"
-printf "# The remote functionality is disabled, either because you specified\n"
+printf "# The remote functionality is disabled because you specified\n"
 printf "# --disable-remote or because of missing dependencies!\n"
 fi
 printf '#================================================================\n'
