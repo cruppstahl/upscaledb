@@ -644,9 +644,9 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
     void nearFindStressTest(void)
     {
 #if defined(HAM_DEBUG)
-        const int RECORD_COUNT_PER_DB = 200000; // 26687
+        const int RECORD_COUNT_PER_DB = 20000;
 #else
-        const int RECORD_COUNT_PER_DB = 5; // 0000000;
+        const int RECORD_COUNT_PER_DB = 50000;
 #endif
         ham_env_t *env;
         ham_db_t *db;
@@ -664,8 +664,8 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
             ham_u32_t val2[15];
         };
         ham_parameter_t ps[]={
-            {HAM_PARAM_PAGESIZE,   2*64*1024}, /* UNIX == WIN now */
-            {HAM_PARAM_CACHESIZE,    32},
+            {HAM_PARAM_PAGESIZE,  32*1024}, /* UNIX == WIN now */
+            {HAM_PARAM_CACHESIZE, 32},
             {0, 0}
         };
         ham_parameter_t ps2[]={

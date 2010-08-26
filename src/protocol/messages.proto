@@ -24,8 +24,8 @@ message Wrapper {
             DB_CLOSE_REPLY = 91;
             DB_GET_PARAMETERS_REQUEST = 100;
             DB_GET_PARAMETERS_REPLY = 101;
-            DB_FLUSH_REQUEST = 110;
-            DB_FLUSH_REPLY = 111;
+            // DB_FLUSH_REQUEST = 110;
+            // DB_FLUSH_REPLY = 111;
             TXN_BEGIN_REQUEST = 120;
             TXN_BEGIN_REPLY = 121;
             TXN_COMMIT_REQUEST = 130;
@@ -84,8 +84,6 @@ message Wrapper {
     optional DbCloseReply db_close_reply = 91;
     optional DbGetParametersRequest db_get_parameters_request = 100;
     optional DbGetParametersReply db_get_parameters_reply = 101;
-    optional DbFlushRequest db_flush_request = 110;
-    optional DbFlushReply db_flush_reply = 111;
     optional TxnBeginRequest txn_begin_request = 120;
     optional TxnBeginReply txn_begin_reply = 121;
     optional TxnCommitRequest txn_commit_request = 130;
@@ -234,15 +232,6 @@ message DbGetParametersReply {
     optional uint32 dbname = 9;
     optional uint32 keys_per_page = 10;
     optional uint32 dam = 11;
-};
-
-message DbFlushRequest {
-    required uint64 db_handle = 1;
-    required uint32 flags = 2;
-}
-
-message DbFlushReply {
-    required sint32 status = 1;
 };
 
 message TxnBeginRequest {

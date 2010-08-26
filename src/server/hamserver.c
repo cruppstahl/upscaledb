@@ -308,34 +308,6 @@ handle_db_get_parameters(struct env_t *envh, struct mg_connection *conn,
 }
 
 static void
-handle_db_flush(struct env_t *envh, struct mg_connection *conn, 
-                const struct mg_request_info *ri, proto_wrapper_t *request)
-{
-    ham_env_t *env=envh->env;
-    ham_db_t *db;
-    ham_status_t st=0;
-    proto_wrapper_t *reply;
-
-    ham_assert(request!=0, (""));
-    ham_assert(proto_has_db_flush_request(request), (""));
-
-    /* and request the parameters from the Environment */
-    db=__get_handle(envh, 
-            proto_db_flush_request_get_db_handle(request));
-    if (!db) {
-        st=HAM_INV_PARAMETER;
-    }
-    else {
-        st=ham_flush(db, proto_db_flush_request_get_flags(request));
-
-    }
-
-    reply=proto_init_db_flush_reply(st);
-    send_wrapper(env, conn, reply);
-    proto_delete(reply);
-}
-
-static void
 handle_env_get_database_names(ham_env_t *env, struct mg_connection *conn, 
                 const struct mg_request_info *ri, proto_wrapper_t *request)
 {
@@ -1300,10 +1272,6 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
     case HAM__WRAPPER__TYPE__DB_GET_PARAMETERS_REQUEST:
         ham_trace(("db_get_parameters request"));
         handle_db_get_parameters(env, conn, ri, wrapper);
-        break;
-    case HAM__WRAPPER__TYPE__DB_FLUSH_REQUEST:
-        ham_trace(("db_flush request"));
-        handle_db_flush(env, conn, ri, wrapper);
         break;
     case HAM__WRAPPER__TYPE__TXN_BEGIN_REQUEST:
         ham_trace(("txn_begin request"));
