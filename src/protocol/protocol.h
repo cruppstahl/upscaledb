@@ -1233,7 +1233,7 @@ proto_cursor_get_duplicate_count_request_get_flags(proto_wrapper_t *wrapper);
  */
 extern proto_wrapper_t *
 proto_init_cursor_get_duplicate_count_reply(ham_status_t status,
-                ham_u64_t count);
+                ham_u32_t count);
 
 extern ham_bool_t
 proto_has_cursor_get_duplicate_count_reply(proto_wrapper_t *wrapper);

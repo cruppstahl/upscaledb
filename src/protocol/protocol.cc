@@ -1734,7 +1734,7 @@ ham_size_t
 proto_db_insert_request_get_key_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->db_insert_request().key().data().size());
+    return ((ham_size_t)w->db_insert_request().key().data().size());
 }
 
 ham_bool_t
@@ -1765,7 +1765,7 @@ ham_size_t
 proto_db_insert_request_get_record_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->db_insert_request().record().data().size());
+    return ((ham_size_t)w->db_insert_request().record().data().size());
 }
 
 ham_offset_t
@@ -1835,7 +1835,7 @@ ham_size_t
 proto_db_insert_reply_get_key_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->db_insert_reply().key().data().size());
+    return ((ham_size_t)w->db_insert_reply().key().data().size());
 }
 
 proto_wrapper_t *
@@ -1910,7 +1910,7 @@ ham_size_t
 proto_db_find_request_get_key_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->db_find_request().key().data().size());
+    return ((ham_size_t)w->db_find_request().key().data().size());
 }
 
 ham_u32_t
@@ -1934,7 +1934,7 @@ ham_size_t
 proto_db_find_request_get_record_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->db_find_request().record().data().size());
+    return ((ham_size_t)w->db_find_request().record().data().size());
 }
 
 ham_offset_t
@@ -2014,7 +2014,7 @@ ham_size_t
 proto_db_find_reply_get_key_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->db_find_reply().key().data().size());
+    return ((ham_size_t)w->db_find_reply().key().data().size());
 }
 
 ham_bool_t
@@ -2038,7 +2038,7 @@ ham_size_t
 proto_db_find_reply_get_record_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->db_find_reply().record().data().size());
+    return ((ham_size_t)w->db_find_reply().record().data().size());
 }
 
 proto_wrapper_t *
@@ -2111,7 +2111,7 @@ ham_size_t
 proto_db_erase_request_get_key_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->db_erase_request().key().data().size());
+    return ((ham_size_t)w->db_erase_request().key().data().size());
 }
 
 proto_wrapper_t *
@@ -2430,7 +2430,7 @@ ham_size_t
 proto_cursor_insert_request_get_key_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->cursor_insert_request().key().data().size());
+    return ((ham_size_t)w->cursor_insert_request().key().data().size());
 }
 
 ham_bool_t
@@ -2461,7 +2461,7 @@ ham_size_t
 proto_cursor_insert_request_get_record_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->cursor_insert_request().record().data().size());
+    return ((ham_size_t)w->cursor_insert_request().record().data().size());
 }
 
 ham_offset_t
@@ -2531,7 +2531,7 @@ ham_size_t
 proto_cursor_insert_reply_get_key_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->cursor_insert_reply().key().data().size());
+    return ((ham_size_t)w->cursor_insert_reply().key().data().size());
 }
 
 proto_wrapper_t *
@@ -2661,7 +2661,7 @@ ham_size_t
 proto_cursor_find_request_get_key_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->cursor_find_request().key().data().size());
+    return ((ham_size_t)w->cursor_find_request().key().data().size());
 }
 
 ham_bool_t
@@ -2699,7 +2699,7 @@ ham_size_t
 proto_cursor_find_request_get_record_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->cursor_find_request().record().data().size());
+    return ((ham_size_t)w->cursor_find_request().record().data().size());
 }
 
 ham_offset_t
@@ -2779,7 +2779,7 @@ ham_size_t
 proto_cursor_find_reply_get_key_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->cursor_find_reply().key().data().size());
+    return ((ham_size_t)w->cursor_find_reply().key().data().size());
 }
 
 ham_bool_t
@@ -2803,7 +2803,7 @@ ham_size_t
 proto_cursor_find_reply_get_record_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->cursor_find_reply().record().data().size());
+    return ((ham_size_t)w->cursor_find_reply().record().data().size());
 }
 
 proto_wrapper_t *
@@ -2848,7 +2848,7 @@ proto_cursor_get_duplicate_count_request_get_flags(proto_wrapper_t *wrapper)
 
 proto_wrapper_t *
 proto_init_cursor_get_duplicate_count_reply(ham_status_t status,
-                ham_u64_t count)
+                ham_u32_t count)
 {
     Wrapper *w=new Wrapper();
     w->set_type(Wrapper::CURSOR_GET_DUPLICATE_COUNT_REPLY);
@@ -2948,7 +2948,7 @@ ham_size_t
 proto_cursor_overwrite_request_get_record_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->cursor_overwrite_request().record().data().size());
+    return ((ham_size_t)w->cursor_overwrite_request().record().data().size());
 }
 
 ham_offset_t
@@ -3068,7 +3068,7 @@ ham_size_t
 proto_cursor_move_request_get_key_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->cursor_move_request().key().data().size());
+    return ((ham_size_t)w->cursor_move_request().key().data().size());
 }
 
 ham_bool_t
@@ -3092,7 +3092,7 @@ ham_size_t
 proto_cursor_move_request_get_record_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->cursor_move_request().record().data().size());
+    return ((ham_size_t)w->cursor_move_request().record().data().size());
 }
 
 ham_u32_t
@@ -3179,7 +3179,7 @@ ham_size_t
 proto_cursor_move_reply_get_key_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->cursor_move_reply().key().data().size());
+    return ((ham_size_t)w->cursor_move_reply().key().data().size());
 }
 
 ham_bool_t
@@ -3203,6 +3203,6 @@ ham_size_t
 proto_cursor_move_reply_get_record_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
-    return (w->cursor_move_reply().record().data().size());
+    return ((ham_size_t)w->cursor_move_reply().record().data().size());
 }
 
