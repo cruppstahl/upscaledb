@@ -1,3 +1,7 @@
+Aug 26, 2010 - chris
+o ham_flush is now deprecated, use ham_env_flush instead; both functions
+	had very similar functionality
+
 Aug 25, 2010 - chris
 o renamed ham/hamserver.h to ham/hamsterdb_srv.h; all symbols were renamed
     from hamserver_XXX to ham_srv_XXX

@@ -96,6 +96,13 @@ x move hamsterdb/server to hamsterdb/src/server
 
 x add protobuf and libcurl dependency to README
 
+x fix ham_flush/ham_env_flush inconsistencies - ham_env_flush is enough
+    x ham_flush will be deprecated
+    x remove ham_flush from db.c, remote.c, server
+    x ham_env_close must call ham_env_flush - remove duplicate calls? 
+        - no, it's fine as it is
+    x make sure unittests are still working
+
 o add Windows support for remote functionality
     x remove protobuf-c, directly use protobuf
         x rewrite remote.c
@@ -127,12 +134,6 @@ o fix freelist page overflow when searching for bits (See mail from Stefan)
     o need configure switch to disable the local client
         -> also clean up db.h, env.h...
     o add tests for --disable-remote and --disable-local to release.sh
-
-o fix ham_flush/ham_env_flush inconsistencies - ham_env_flush is enough
-    o need unittests
-    o ham_env_close must call ham_env_flush - remove duplicate calls
-    o ham_flush: calls some functions which are also called in ham_env_close,
-        clean up the code
 
 o test the following:
         db=ham_create()

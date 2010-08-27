@@ -55,8 +55,8 @@ enum {
   HAM__WRAPPER__TYPE__DB_CLOSE_REPLY = 91,
   HAM__WRAPPER__TYPE__DB_GET_PARAMETERS_REQUEST = 100,
   HAM__WRAPPER__TYPE__DB_GET_PARAMETERS_REPLY = 101,
-  HAM__WRAPPER__TYPE__DB_FLUSH_REQUEST = 110,
-  HAM__WRAPPER__TYPE__DB_FLUSH_REPLY = 111,
+  // HAM__WRAPPER__TYPE__DB_FLUSH_REQUEST = 110,
+  // HAM__WRAPPER__TYPE__DB_FLUSH_REPLY = 111,
   HAM__WRAPPER__TYPE__TXN_BEGIN_REQUEST = 120,
   HAM__WRAPPER__TYPE__TXN_BEGIN_REPLY = 121,
   HAM__WRAPPER__TYPE__TXN_COMMIT_REQUEST = 130,
@@ -680,33 +680,6 @@ proto_db_get_parameters_reply_has_dam(proto_wrapper_t *wrapper);
 
 extern ham_u32_t
 proto_db_get_parameters_reply_get_dam(proto_wrapper_t *wrapper);
-
-/*
- * db_flush request
- */
-extern proto_wrapper_t *
-proto_init_db_flush_request(ham_u64_t dbhandle, ham_u32_t flags);
-
-extern ham_u64_t
-proto_db_flush_request_get_db_handle(proto_wrapper_t *wrapper);
-
-extern ham_u32_t
-proto_db_flush_request_get_flags(proto_wrapper_t *wrapper);
-
-extern ham_bool_t
-proto_has_db_flush_request(proto_wrapper_t *wrapper);
-
-/*
- * db_flush reply
- */
-extern proto_wrapper_t *
-proto_init_db_flush_reply(ham_u32_t status);
-
-extern ham_bool_t
-proto_has_db_flush_reply(proto_wrapper_t *wrapper);
-
-extern ham_u32_t
-proto_db_flush_reply_get_status(proto_wrapper_t *wrapper);
 
 /*
  * check_integrity request

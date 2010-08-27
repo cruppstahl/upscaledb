@@ -862,17 +862,22 @@ _local_fun_flush(ham_env_t *env, ham_u32_t flags)
     /*
      * update the header page, if necessary
      */
-    if (env_is_dirty(env)) 
-    {
+    if (env_is_dirty(env)) {
         st=page_flush(env_get_header_page(env));
         if (st)
             return st;
     }
 
+    /*
+     * flush all open pages to disk
+     */
     st=db_flush_all(env_get_cache(env), DB_FLUSH_NODELETE);
     if (st)
         return st;
 
+    /*
+     * flush the device - this usually causes a fsync()
+     */
     st=dev->flush(dev);
     if (st)
         return st;

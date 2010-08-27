@@ -1493,27 +1493,22 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     /*
      * free the cache for extended keys
      */
-    if (db_get_extkey_cache(db)) 
-    {
+    if (db_get_extkey_cache(db)) {
         extkey_cache_destroy(db_get_extkey_cache(db));
         db_set_extkey_cache(db, 0);
     }
 
     /* close the backend */
-    if (be && be_is_active(be)) 
-    {
+    if (be && be_is_active(be)) {
         st=be->_fun_close(be);
-        if (st)
-        {
+        if (st) {
             if (st2 == 0) st2 = st;
         }
-        else
-        {
+        else {
             ham_assert(!be_is_active(be), (0));
         }
     }
-    if (be)
-    {
+    if (be) {
         ham_assert(!be_is_active(be), (0));
 
         st = be->_fun_delete(be);
@@ -1543,8 +1538,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
             head=db_get_next(head);
         }
     }
-    if (env && env_get_header_page(env)) 
-    {
+    if (env && env_get_header_page(env)) {
         ham_assert(env_get_header_page(env), (0));
         page_set_owner(env_get_header_page(env), newowner);
     }
@@ -1649,57 +1643,6 @@ _local_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
     }
 
     return (0);
-}
-
-static ham_status_t
-_local_fun_flush(ham_db_t *db, ham_u32_t flags)
-{
-    ham_status_t st;
-    ham_env_t *env=db_get_env(db);
-    ham_device_t *dev;
-    ham_backend_t *be;
-
-    /*
-     * never flush an in-memory-database
-     */
-    if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB)
-        return (0);
-
-    be=db_get_backend(db);
-    if (!be || !be_is_active(be))
-        return (HAM_NOT_INITIALIZED);
-    if (!be->_fun_flush)
-        return (HAM_NOT_IMPLEMENTED);
-
-    dev = env_get_device(env);
-    if (!dev)
-        return (HAM_NOT_INITIALIZED);
-
-    /*
-     * flush the backend
-     */
-    st=be->_fun_flush(be);
-    if (st)
-        return (st);
-
-    /*
-     * update the header page, if necessary
-     */
-    if (env_is_dirty(env)) {
-        st=page_flush(env_get_header_page(env));
-        if (st)
-            return (st);
-    }
-
-    st=db_flush_all(env_get_cache(env), DB_FLUSH_NODELETE);
-    if (st)
-        return (st);
-
-    st=dev->flush(dev);
-    if (st)
-        return (st);
-
-    return (HAM_SUCCESS);
 }
 
 static ham_status_t
@@ -2437,7 +2380,6 @@ db_initialize_local(ham_db_t *db)
 {
     db->_fun_close          =_local_fun_close;
     db->_fun_get_parameters =_local_fun_get_parameters;
-    db->_fun_flush          =_local_fun_flush;
     db->_fun_check_integrity=_local_fun_check_integrity;
     db->_fun_get_key_count  =_local_fun_get_key_count;
     db->_fun_insert         =_local_fun_insert;

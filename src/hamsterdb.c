@@ -2804,7 +2804,6 @@ ham_calc_maxkeys_per_page(ham_db_t *db, ham_size_t *keycount, ham_u16_t keysize)
 ham_status_t HAM_CALLCONV
 ham_flush(ham_db_t *db, ham_u32_t flags)
 {
-    ham_status_t st;
     ham_env_t *env;
 
     (void)flags;
@@ -2819,18 +2818,9 @@ ham_flush(ham_db_t *db, ham_u32_t flags)
                    "explicit) environment"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
-    if (!db->_fun_flush) {
-        ham_trace(("Database was not initialized"));
-        return (db_set_error(db, HAM_NOT_INITIALIZED));
-    }
 
-    db_set_error(db, 0);
-
-    /*
-     * the function pointer has the actual implementation...
-     */
-    st=db->_fun_flush(db, flags);
-    return (db_set_error(db, st));
+    /* just call ham_env_flush() */
+    return (ham_env_flush(env, flags));
 }
 
 /*
@@ -2861,6 +2851,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
         return (0);
 
     env = db_get_env(db);
+
     /*
      * immediately abort or commit a pending txn
      */

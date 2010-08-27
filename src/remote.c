@@ -885,32 +885,6 @@ _remote_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
 }
 
 static ham_status_t
-_remote_fun_flush(ham_db_t *db, ham_u32_t flags)
-{
-    ham_status_t st;
-    ham_env_t *env=db_get_env(db);
-    proto_wrapper_t *request, *reply;
-
-    request=proto_init_db_flush_request(db_get_remote_handle(db), flags);
-    
-    st=_perform_request(env, env_get_curl(env), request, &reply);
-    proto_delete(request);
-    if (st) {
-        if (reply)
-            proto_delete(reply);
-        return (st);
-    }
-
-    ham_assert(reply!=0, (""));
-    ham_assert(proto_has_db_flush_reply(reply), (""));
-    st=proto_db_flush_reply_get_status(reply);
-
-    proto_delete(reply);
-
-    return (st);
-}
-
-static ham_status_t
 _remote_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
 {
     ham_status_t st;
@@ -1488,7 +1462,6 @@ db_initialize_remote(ham_db_t *db)
 #if HAM_ENABLE_REMOTE
     db->_fun_close          =_remote_fun_close;
     db->_fun_get_parameters =_remote_fun_get_parameters;
-    db->_fun_flush          =_remote_fun_flush;
     db->_fun_check_integrity=_remote_fun_check_integrity;
     db->_fun_get_key_count  =_remote_fun_get_key_count;
     db->_fun_insert         =_remote_fun_insert;

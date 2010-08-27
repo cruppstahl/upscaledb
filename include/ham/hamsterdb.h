@@ -1900,18 +1900,15 @@ ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
 /**
  * Flushes the Database
  *
- * This function flushes the Database cache and writes the whole file
- * to disk. If this Database was opened in an Environment, all other
- * Databases of this Environment are flushed as well.
+ * This function is deprecated. Use @ref ham_env_flush instead.
+ * Use @ref ham_get_env to retrieve an Environment handle for your Database,
+ * in case the handle is not available because the Database was opened or
+ * created with @ref ham_create_ex or @ref ham_open_ex.
  *
- * Since In-Memory Databases do not have a file on disk, the
- * function will have no effect and will return @ref HAM_SUCCESS.
+ * @deprecated This function was replaced by @ref ham_env_flush.
  *
- * @param db A valid Database handle
- * @param flags Optional flags for flushing; unused, set to 0
- *
- * @return @ref HAM_SUCCESS upon success
- * @return @ref HAM_INV_PARAMETER if @a db is NULL
+ * @sa ham_env_flush
+ * @sa ham_get_env
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_flush(ham_db_t *db, ham_u32_t flags);
