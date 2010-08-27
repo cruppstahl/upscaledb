@@ -20,6 +20,7 @@
 #include <string.h>
 
 #if HAM_ENABLE_REMOTE
+#  define CURL_STATICLIB /* otherwise libcurl uses wrong __declspec */
 #  include <curl/curl.h>
 #  include <curl/easy.h>
 #  include "protocol/protocol.h"
@@ -1149,7 +1150,7 @@ ham_env_delete(ham_env_t *env)
      * we just use a static variable. This is still not safe, but it should 
      * work for now. */
     if (critsec==0) {
-        ham_u32_t pseudo_random=((ham_u32_t)env)&0xffffffff;
+        ham_u32_t pseudo_random=((ham_u32_t)PTR_TO_U64(env))&0xffffffff;
         critsec=pseudo_random;
         if (critsec==pseudo_random) {
             /* shutdown libcurl library */

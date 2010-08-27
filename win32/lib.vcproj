@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8,00"
+	Version="9,00"
 	Name="lib"
 	ProjectGUID="{10DCD767-DFBE-4096-9258-111D4CAF09B0}"
 	RootNamespace="lib"
 	Keyword="Win32Proj"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
@@ -65,7 +66,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="tmp\3rdparty_aes_debug\3rdparty_aes.lib tmp\3rdparty_zlib_debug\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x86.lib"
+				LinkLibraryDependencies="true"
+				AdditionalDependencies="tmp\3rdparty_aes_debug\3rdparty_aes.lib tmp\3rdparty_zlib_debug\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x86.lib ws2_32.lib"
 				OutputFile="$(OutDir)\libhamsterdb-1.1.5.lib"
 			/>
 			<Tool
@@ -132,7 +134,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="tmp\3rdparty_aes_debug_x64\3rdparty_aes.lib tmp\3rdparty_zlib_debug_x64\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x64.lib"
+				LinkLibraryDependencies="true"
+				AdditionalDependencies="tmp\3rdparty_aes_debug_x64\3rdparty_aes.lib tmp\3rdparty_zlib_debug_x64\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x64.lib ws2_32.lib"
 				OutputFile="$(OutDir)\libhamsterdb-1.1.5.lib"
 			/>
 			<Tool
@@ -195,7 +198,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="tmp\3rdparty_aes\3rdparty_aes.lib tmp\3rdparty_zlib\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x86.lib"
+				LinkLibraryDependencies="true"
+				AdditionalDependencies="tmp\3rdparty_aes\3rdparty_aes.lib tmp\3rdparty_zlib\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x86.lib ws2_32.lib"
 				OutputFile="$(OutDir)\libhamsterdb-1.1.5.lib"
 			/>
 			<Tool
@@ -259,7 +263,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				AdditionalDependencies="tmp\3rdparty_aes_x64\3rdparty_aes.lib tmp\3rdparty_zlib_x64\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x64.lib"
+				LinkLibraryDependencies="true"
+				AdditionalDependencies="tmp\3rdparty_aes_x64\3rdparty_aes.lib tmp\3rdparty_zlib_x64\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x64.lib ws2_32.lib"
 				OutputFile="$(OutDir)\libhamsterdb-1.1.5.lib"
 			/>
 			<Tool
@@ -428,6 +433,10 @@
 		</File>
 		<File
 			RelativePath="..\include\ham\hamsterdb_int.h"
+			>
+		</File>
+		<File
+			RelativePath="..\include\ham\hamsterdb_srv.h"
 			>
 		</File>
 		<File

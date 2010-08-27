@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9,00"
-	Name="sample_db3"
-	ProjectGUID="{54B8A25A-34C1-4472-B690-2B2941BABE69}"
-	RootNamespace="sample_db3"
+	Name="server_lib"
+	ProjectGUID="{11DCD767-DFBE-4196-9258-111D4CAF09B0}"
+	RootNamespace="server_lib"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="131072"
 	>
@@ -21,9 +21,9 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="out\samples\db3_debug"
-			IntermediateDirectory="tmp\samples\db3_debug"
-			ConfigurationType="1"
+			OutputDirectory="out\server_lib_debug"
+			IntermediateDirectory="tmp\server_lib_debug"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -44,8 +44,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				AdditionalIncludeDirectories="../3rdparty;../include;../src"
+				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -65,21 +65,12 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\db3.exe"
-				LinkIncremental="2"
-				GenerateDebugInformation="true"
-				SubSystem="1"
-				RandomizedBaseAddress="1"
-				DataExecutionPrevention="0"
-				TargetMachine="1"
+				Name="VCLibrarianTool"
+				LinkLibraryDependencies="true"
+				OutputFile="$(OutDir)\libhamserver-1.1.5.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
-				UseFAT32Workaround="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -91,17 +82,14 @@
 				Name="VCFxCopTool"
 			/>
 			<Tool
-				Name="VCAppVerifierTool"
-			/>
-			<Tool
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="out\samples\db3_debug_x64"
-			IntermediateDirectory="tmp\samples\db3_debug_x64"
-			ConfigurationType="1"
+			OutputDirectory="out\server_lib_debug_x64"
+			IntermediateDirectory="tmp\server_lib_debug_x64"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -123,8 +111,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				AdditionalIncludeDirectories="../3rdparty"
+				PreprocessorDefinitions="WIN32;WIN64;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -144,21 +132,13 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\db3.exe"
-				LinkIncremental="2"
-				GenerateDebugInformation="true"
-				SubSystem="1"
-				RandomizedBaseAddress="1"
-				DataExecutionPrevention="0"
-				TargetMachine="17"
+				Name="VCLibrarianTool"
+				LinkLibraryDependencies="true"
+				AdditionalDependencies="tmp\3rdparty_aes_debug_x64\3rdparty_aes.lib tmp\3rdparty_zlib_debug_x64\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x64.lib ws2_32.lib"
+				OutputFile="$(OutDir)\libhamserver-1.1.5.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
-				UseFAT32Workaround="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -170,17 +150,14 @@
 				Name="VCFxCopTool"
 			/>
 			<Tool
-				Name="VCAppVerifierTool"
-			/>
-			<Tool
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="out\samples\db3"
-			IntermediateDirectory="tmp\samples\db3"
-			ConfigurationType="1"
+			OutputDirectory="out\server_lib"
+			IntermediateDirectory="tmp\server_lib"
+			ConfigurationType="4"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -201,13 +178,13 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
+				AdditionalIncludeDirectories="../3rdparty;../include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
-				DebugInformationFormat="3"
+				DebugInformationFormat="0"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -219,23 +196,13 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\db3.exe"
-				LinkIncremental="1"
-				GenerateDebugInformation="true"
-				SubSystem="1"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
-				RandomizedBaseAddress="1"
-				DataExecutionPrevention="0"
-				TargetMachine="1"
+				Name="VCLibrarianTool"
+				LinkLibraryDependencies="true"
+				AdditionalDependencies="tmp\3rdparty_aes\3rdparty_aes.lib tmp\3rdparty_zlib\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x86.lib ws2_32.lib"
+				OutputFile="$(OutDir)\libhamserver-1.1.5.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
-				UseFAT32Workaround="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -247,17 +214,14 @@
 				Name="VCFxCopTool"
 			/>
 			<Tool
-				Name="VCAppVerifierTool"
-			/>
-			<Tool
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="out\samples\db3_x64"
-			IntermediateDirectory="tmp\samples\db3_x64"
-			ConfigurationType="1"
+			OutputDirectory="out\server_lib_x64"
+			IntermediateDirectory="tmp\server_lib_x64"
+			ConfigurationType="4"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -279,13 +243,13 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
+				AdditionalIncludeDirectories="../3rdparty"
+				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_LIB;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
-				DebugInformationFormat="3"
+				DebugInformationFormat="0"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -297,23 +261,13 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\db3.exe"
-				LinkIncremental="1"
-				GenerateDebugInformation="true"
-				SubSystem="1"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
-				RandomizedBaseAddress="1"
-				DataExecutionPrevention="0"
-				TargetMachine="17"
+				Name="VCLibrarianTool"
+				LinkLibraryDependencies="true"
+				AdditionalDependencies="tmp\3rdparty_aes_x64\3rdparty_aes.lib tmp\3rdparty_zlib_x64\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x64.lib ws2_32.lib"
+				OutputFile="$(OutDir)\libhamserver-1.1.5.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
-				UseFAT32Workaround="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -325,9 +279,6 @@
 				Name="VCFxCopTool"
 			/>
 			<Tool
-				Name="VCAppVerifierTool"
-			/>
-			<Tool
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
@@ -336,7 +287,15 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\samples\db3.c"
+			RelativePath="..\src\server\hamserver.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\server\os.c"
+			>
+		</File>
+		<File
+			RelativePath="..\src\server\os.h"
 			>
 		</File>
 	</Files>

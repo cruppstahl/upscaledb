@@ -101,9 +101,9 @@ typedef void CURL;
 #if (defined(WIN32) || defined(_WIN32) || defined(__SYMBIAN32__)) && \
      !defined(CURL_STATICLIB)
 #if defined(BUILDING_LIBCURL)
-#define CURL_EXTERN  __declspec(dllexport)
+#define CURL_EXTERN __declspec(dllexport)
 #else
-#define CURL_EXTERN  __declspec(dllimport)
+#define CURL_EXTERN extern
 #endif
 #else
 

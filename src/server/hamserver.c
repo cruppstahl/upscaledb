@@ -40,12 +40,12 @@ static const char *standard_reply =	"HTTP/1.1 200 OK\r\n"
 #define HANDLE_TYPE_TRANSACTION 2
 #define HANDLE_TYPE_CURSOR 3
 
-typedef struct handle_t
+typedef struct srv_handle_t
 {
     void *ptr;
     int type;
     ham_u64_t handle;
-} handle_t;
+} srv_handle_t;
 
 struct ham_srv_t
 {
@@ -57,7 +57,7 @@ struct ham_srv_t
         ham_env_t *env;
         os_critsec_t cs;
         char *urlname;
-        handle_t *handles;
+        srv_handle_t *handles;
         ham_u32_t handles_ctr;
         ham_u32_t handles_size;
     } environments[MAX_ENVIRONMENTS];
@@ -77,12 +77,12 @@ __store_handle(struct env_t *envh, void *ptr, int type)
 
     if (i==envh->handles_size) {
         envh->handles_size+=10;
-        envh->handles=(handle_t *)realloc(envh->handles, 
-                        sizeof(handle_t)*envh->handles_size);
+        envh->handles=(srv_handle_t *)realloc(envh->handles, 
+                        sizeof(srv_handle_t)*envh->handles_size);
         if (!envh->handles)
             exit(-1); /* not so nice, but if we're out of memory then 
                        * it does not make sense to go on... */
-        memset(&envh->handles[envh->handles_size-10], 0, sizeof(handle_t)*10);
+        memset(&envh->handles[envh->handles_size-10], 0, sizeof(srv_handle_t)*10);
     }
 
     ret=++envh->handles_ctr;
@@ -98,7 +98,7 @@ __store_handle(struct env_t *envh, void *ptr, int type)
 static void *
 __get_handle(struct env_t *envh, ham_u64_t handle)
 {
-    handle_t *h=&envh->handles[handle&0xffffffff];
+    srv_handle_t *h=&envh->handles[handle&0xffffffff];
     ham_assert(h->handle==handle, (""));
     if (h->handle!=handle)
         return (0);
@@ -108,7 +108,7 @@ __get_handle(struct env_t *envh, ham_u64_t handle)
 static void
 __remove_handle(struct env_t *envh, ham_u64_t handle)
 {
-    handle_t *h=&envh->handles[handle&0xffffffff];
+    srv_handle_t *h=&envh->handles[handle&0xffffffff];
     ham_assert(h->handle==handle, (""));
     if (h->handle!=handle)
         return;

@@ -22,6 +22,7 @@
 
 #if HAM_ENABLE_REMOTE
 
+#define CURL_STATICLIB /* otherwise libcurl uses wrong __declspec */
 #include <curl/curl.h>
 #include <curl/easy.h>
 
@@ -52,7 +53,8 @@ __writefunc(void *buffer, size_t size, size_t nmemb, void *ptr)
 
         /* did we receive the whole data in this packet? */
         if (payload_size+8==size*nmemb) {
-            buf->wrapper=proto_unpack(size*nmemb, (ham_u8_t *)&cbuf[0]);
+            buf->wrapper=proto_unpack((ham_size_t)(size*nmemb), 
+                        (ham_u8_t *)&cbuf[0]);
             if (!buf->wrapper)
                 return (0);
             return (size*nmemb);
@@ -64,12 +66,12 @@ __writefunc(void *buffer, size_t size, size_t nmemb, void *ptr)
         if (!buf->packed_data)
             return (0);
         memcpy(buf->packed_data, &cbuf[0], size*nmemb);
-        buf->offset+=size*nmemb;
+        buf->offset+=(ham_size_t)(size*nmemb);
     }
     /* append to an existing buffer? */
     else {
         memcpy(buf->packed_data+buf->offset, &cbuf[0], size*nmemb);
-        buf->offset+=size*nmemb;
+        buf->offset+=(ham_size_t)(size*nmemb);
     }
 
     /* check if we've received the whole data */
@@ -98,7 +100,7 @@ __readfunc(char *buffer, size_t size, size_t nmemb, void *ptr)
         nmemb=remaining;
 
     memcpy(buffer, buf->packed_data+buf->offset, nmemb);
-    buf->offset+=nmemb;
+    buf->offset+=(ham_size_t)nmemb;
     return (nmemb);
 }
 

@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9,00"
-	Name="sample_db3"
-	ProjectGUID="{54B8A25A-34C1-4472-B690-2B2941BABE69}"
-	RootNamespace="sample_db3"
+	Name="sample_server1"
+	ProjectGUID="{57E4D0EF-945D-46A7-A189-208A9B2B7096}"
+	RootNamespace="sample_server1"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="131072"
 	>
@@ -21,8 +21,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="out\samples\db3_debug"
-			IntermediateDirectory="tmp\samples\db3_debug"
+			OutputDirectory="out\samples\server1_debug"
+			IntermediateDirectory="tmp\samples\server1_debug"
 			ConfigurationType="1"
 			CharacterSet="1"
 			>
@@ -66,7 +66,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\db3.exe"
+				OutputFile="$(OutDir)\server1.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -99,8 +99,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="out\samples\db3_debug_x64"
-			IntermediateDirectory="tmp\samples\db3_debug_x64"
+			OutputDirectory="out\samples\server1_debug_x64"
+			IntermediateDirectory="tmp\samples\server1_debug_x64"
 			ConfigurationType="1"
 			CharacterSet="1"
 			>
@@ -145,7 +145,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\db3.exe"
+				OutputFile="$(OutDir)\server1.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -178,8 +178,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="out\samples\db3"
-			IntermediateDirectory="tmp\samples\db3"
+			OutputDirectory="out\samples\server1"
+			IntermediateDirectory="tmp\samples\server1"
 			ConfigurationType="1"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
@@ -220,7 +220,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\db3.exe"
+				OutputFile="$(OutDir)\server1.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -255,8 +255,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="out\samples\db3_x64"
-			IntermediateDirectory="tmp\samples\db3_x64"
+			OutputDirectory="out\samples\server1_x64"
+			IntermediateDirectory="tmp\samples\server1_x64"
 			ConfigurationType="1"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
@@ -298,7 +298,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\db3.exe"
+				OutputFile="$(OutDir)\server1.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -336,7 +336,7 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\samples\db3.c"
+			RelativePath="..\samples\server1.c"
 			>
 		</File>
 	</Files>

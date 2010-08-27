@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8,00"
+	Version="9,00"
 	Name="dll"
 	ProjectGUID="{B82D2DF8-F8B2-4331-86D0-508BBD806507}"
 	RootNamespace="dll"
 	Keyword="Win32Proj"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
@@ -65,11 +66,13 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="tmp\3rdparty_aes_debug\3rdparty_aes.lib tmp\3rdparty_zlib_debug\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x86.lib"
+				AdditionalDependencies="tmp\3rdparty_aes_debug\3rdparty_aes.lib tmp\3rdparty_zlib_debug\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x86.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-1.1.5.dll"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -89,9 +92,6 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -145,11 +145,13 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="tmp\3rdparty_aes_debug_x64\3rdparty_aes.lib tmp\3rdparty_zlib_debug_x64\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x64.lib"
+				AdditionalDependencies="tmp\3rdparty_aes_debug_x64\3rdparty_aes.lib tmp\3rdparty_zlib_debug_x64\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x64.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-1.1.5.dll"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="17"
 			/>
 			<Tool
@@ -169,9 +171,6 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -222,13 +221,15 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="tmp\3rdparty_aes\3rdparty_aes.lib tmp\3rdparty_zlib\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x86.lib"
+				AdditionalDependencies="tmp\3rdparty_aes\3rdparty_aes.lib tmp\3rdparty_zlib\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x86.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-1.1.5.dll"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -248,9 +249,6 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -301,13 +299,15 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="tmp\3rdparty_aes_x64\3rdparty_aes.lib tmp\3rdparty_zlib_x64\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x64.lib"
+				AdditionalDependencies="tmp\3rdparty_aes_x64\3rdparty_aes.lib tmp\3rdparty_zlib_x64\3rdparty_zlib.lib ..\3rdparty\libcurl\libcurl_x64.lib ws2_32.lib"
 				OutputFile="$(OutDir)\hamsterdb-1.1.5.dll"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				TargetMachine="17"
 			/>
 			<Tool
@@ -327,9 +327,6 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -485,6 +482,10 @@
 		</File>
 		<File
 			RelativePath="..\include\ham\hamsterdb_int.h"
+			>
+		</File>
+		<File
+			RelativePath="..\include\ham\hamsterdb_srv.h"
 			>
 		</File>
 		<File

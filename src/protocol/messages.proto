@@ -2,6 +2,8 @@
 
 package ham;
 
+option optimize_for = LITE_RUNTIME;
+
 message Wrapper {
     enum Type { 
             CONNECT_REQUEST = 10;
