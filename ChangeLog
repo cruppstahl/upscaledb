@@ -1,3 +1,7 @@
+Aug 28, 2010 - chris
+o created MSVC projects for the server and the new samples; all MSVC
+        projects and workspaces were updated to Visual Studio 2009
+
 Aug 26, 2010 - chris
 o ham_flush is now deprecated, use ham_env_flush instead; both functions
 	had very similar functionality

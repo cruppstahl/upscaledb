@@ -103,7 +103,7 @@ x fix ham_flush/ham_env_flush inconsistencies - ham_env_flush is enough
         - no, it's fine as it is
     x make sure unittests are still working
 
-o add Windows support for remote functionality
+x add Windows support for remote functionality
     x remove protobuf-c, directly use protobuf
         x rewrite remote.c
         x don't create 3rdparty/protocol - better: src/protocol!
@@ -113,27 +113,19 @@ o add Windows support for remote functionality
     x add precompiled libcurl-library to 3rdparty
     x run unittests
     x remove TODOs from server sources
-    o msvc: add projects for the new samples
+    x msvc: add projects for the new samples
     . what about WinCE?
 
 o windows service
-    o need msvc project
+    x need msvc project
     o command line switches -install, -start, -stop, -uninstall!
 
 o fix freelist page overflow when searching for bits (See mail from Stefan)
     -> is this still relevant??
     o get newest version from Ger
 
-. more server stuff
+o more server stuff
     o add acceptance tests
-    . install a callback for authentication (and offer a predefined
-        callback for SSL?)
-    . support https?
-
-. disable local client?
-    o need configure switch to disable the local client
-        -> also clean up db.h, env.h...
-    o add tests for --disable-remote and --disable-local to release.sh
 
 o test the following:
         db=ham_create()
@@ -148,6 +140,8 @@ o utilize the github wiki
     o move the tutorial
     o update hamsterdb.com with the links
 
+o update win32 files to 2008
+
 -----------------------------------------------------------------------------
 
 o release new .NET wrapper with fix from a.todorov (-> nabble)
@@ -155,6 +149,41 @@ o release new .NET wrapper with fix from a.todorov (-> nabble)
 o move to github
 
 . add server functionality
+
+-----------------------------------------------------------------------------
+
+o create a new branch to integrate hamsterdb2 (ACID transactions, logical
+	journalling, running many Transactions in parallel)
+    -> integrate-ham2.txt in hamsterdb-meta project shows timeline
+
+. add automatic code coverage using gconv
+    http://www.manpagez.com/man/1/gcov/
+    http://gcc.gnu.org/onlinedocs/gcc/Gcov.html
+    http://aleccolocco.blogspot.com/2009/08/sqlite-lesson-in-low-defect-software.html (section "Test Coverage with GCC")
+    o track coverage results, publish online
+    o gui tools: http://code.google.com/p/trucov/,
+                 http://sourceforge.net/projects/ggcov/files/ 
+
+. remove HAM_HINT_UBER_FAST_ACCESS, HAM_HINT_RANDOM_ACCESS, HAM_HINT_SEQUENTIAL
+
+. improve documentation/tutorial/faq about
+    o move some of the documentation and tutorial to the github Wiki
+        o tutorial (remove from doxygen)
+        o samples (remove from doxygen)
+        o faq (remove from doxygen)
+        o internal developer documentation (remove from doxygen)
+    o tutorial/faq: add hinting flags
+    o tutorial/faq: add DAMs
+
+. more server stuff
+    o how could we do authentication?
+    . support https?
+
+. disable local client?
+    o need configure switch to disable the local client
+        -> also clean up db.h, env.h...
+    o add tests for --disable-remote and --disable-local to release.sh
+
 
 -----------------------------------------------------------------------------
 
@@ -174,9 +203,22 @@ o add server functionality
 
 =======================================================================
 
-. pure java network client
+o how can we support the following environments
+	o threadx
+	o vxworks
+	o qnx
+	o opencl
+	o montavista
+	o nokia/intel embedded linux
+	. openwrt
+	. tron
+	. itron
+	. microitron
+	. android
+	x wince
+	-> and how can we automatically test them? 
 
-o update win32 files to 2008
+. pure java network client
 
 . WinCE: create and run Unittests project
     http://msexchangeteam.com/archive/2004/02/23/78930.aspx
@@ -202,26 +244,6 @@ o update win32 files to 2008
     o download: need download gates to track in analytics as goals
     o rss feed
 
-. improve documentation/tutorial/faq about
-    o confluence is too slow on this server :( Need something else...
-    o move some of the documentation and tutorial to a Wiki
-        o tutorial (remove from doxygen)
-        o samples (remove from doxygen)
-        o faq (remove from doxygen)
-        o internal developer documentation (remove from doxygen)
-    o tutorial/faq: add hinting flags
-    o tutorial/faq: add DAMs
-
-. add automatic code coverage using gconv
-    http://www.manpagez.com/man/1/gcov/
-    http://gcc.gnu.org/onlinedocs/gcc/Gcov.html
-    http://aleccolocco.blogspot.com/2009/08/sqlite-lesson-in-low-defect-software.html (section "Test Coverage with GCC")
-    o track coverage results, publish online
-    o gui tools: http://code.google.com/p/trucov/,
-                 http://sourceforge.net/projects/ggcov/files/ 
-
-. remove HAM_HINT_UBER_FAST_ACCESS, HAM_HINT_RANDOM_ACCESS, HAM_HINT_SEQUENTIAL
-
 . evaluate if we can use bamboo for building and testing on multiple
     platforms
     o http://www.atlassian.com/software/bamboo/features/elastic.jsp#remote
@@ -236,16 +258,6 @@ o need tool to upgrade databases from 1.0.x to 1.1.x!
 . approx. matching: need a sample
 
 . Ger: can specify an initial file size
-
-. how can we merge our ACID transactions/recovery prototype?
-    - simplify insert algorithm
-    - STRONGLY simplify erase algorithm
-    - get rid of the physical logfile
-    - use a logical logfile with the current txn implementation
-    ----------
-    - move limited txn implementation to rb-trees in memory
-    ----------
-    - add the full ACID stuff
 
 . merge threadsafe code
 

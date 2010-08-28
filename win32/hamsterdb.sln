@@ -100,6 +100,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "server_lib", "server_lib.vc
 		{AB99816E-52C4-4420-B8DD-63892A380173} = {AB99816E-52C4-4420-B8DD-63892A380173}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "server_dll", "server_dll.vcproj", "{B82D2DF8-F1B2-4331-86D2-508BBD806507}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -276,6 +278,12 @@ Global
 		{11DCD767-DFBE-4196-9258-111D4CAF09B0}.Release|Win32.Build.0 = Release|Win32
 		{11DCD767-DFBE-4196-9258-111D4CAF09B0}.Release|x64.ActiveCfg = Release|x64
 		{11DCD767-DFBE-4196-9258-111D4CAF09B0}.Release|x64.Build.0 = Release|x64
+		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Debug|Win32.Build.0 = Debug|Win32
+		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Debug|x64.ActiveCfg = Debug|Win32
+		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Release|Win32.ActiveCfg = Release|Win32
+		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Release|Win32.Build.0 = Release|Win32
+		{B82D2DF8-F1B2-4331-86D2-508BBD806507}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
