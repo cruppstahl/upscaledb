@@ -103,7 +103,7 @@ x fix ham_flush/ham_env_flush inconsistencies - ham_env_flush is enough
         - no, it's fine as it is
     x make sure unittests are still working
 
-x add Windows support for remote functionality
+o add Windows support for remote functionality
     x remove protobuf-c, directly use protobuf
         x rewrite remote.c
         x don't create 3rdparty/protocol - better: src/protocol!
@@ -114,6 +114,11 @@ x add Windows support for remote functionality
     x run unittests
     x remove TODOs from server sources
     x msvc: add projects for the new samples
+    o two tests fail on win32:
+----- error #1 in RemoteTest::getEnvParamsTest
+c:\prj\hamsterdb\unittests\remote.cpp:219 failure in RemoteTest::getEnvParamsTest(): assertion failed in expr 1024*16u != params[1].value; actual values: '16384' == '64u'
+----- error #2 in RemoteTest::getDbParamsTest
+c:\prj\hamsterdb\unittests\remote.cpp:438 failure in RemoteTest::getDbParamsTest(): assertion failed in expr 1024*16u != params[1].value; actual values: '16384' == '64u'
     . what about WinCE?
 
 o windows service
@@ -123,6 +128,8 @@ o windows service
 o fix freelist page overflow when searching for bits (See mail from Stefan)
     -> is this still relevant??
     o get newest version from Ger
+
+o hamsterdb forum - many compiler errors on archlinux; fix them!
 
 o more server stuff
     o add acceptance tests

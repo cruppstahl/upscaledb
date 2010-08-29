@@ -692,12 +692,12 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 #ifdef HAM_ENABLE_INTERNAL
         BFC_ASSERT_EQUAL(0, 
                 ham_calc_maxkeys_per_page(db, &keycount, sizeof(my_key)));
-        BFC_ASSERT_EQUAL(/* 2424 */ (unsigned)4852, keycount);
+        BFC_ASSERT_EQUAL(/* 4852 */ (unsigned)1212, keycount);
 #else
         BFC_ASSERT_EQUAL(HAM_NOT_IMPLEMENTED, 
                 ham_calc_maxkeys_per_page(db, &keycount, sizeof(my_key)));
 #endif
-        keycount = 4852; /* for 128K pagesize */
+        keycount = 1212; /* for 32k pagesize */
         BFC_ASSERT_EQUAL(0, 
                 ham_set_prefix_compare_func(db, &my_prefix_compare_func_u32));
         BFC_ASSERT_EQUAL(0, 

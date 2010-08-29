@@ -2400,6 +2400,12 @@ authorize(struct mg_connection *conn, FILE *fp)
 static bool_t
 check_authorization(struct mg_connection *conn, const char *path)
 {
+	/* for now, hamsterdb does not support authentication.
+	 * in addition, i noticed that stderr is closed somewhere in this
+	 * function - seems to be a side effect of MSVC9.0 runtime, maybe
+	 * in combination with XP. -- chris */
+	return (TRUE);
+#if 0
 	FILE		*fp;
 	char		fname[FILENAME_MAX];
 	struct vec	uri_vec, filename_vec;
@@ -2432,6 +2438,7 @@ check_authorization(struct mg_connection *conn, const char *path)
 	}
 
 	return (authorized);
+#endif
 }
 
 static void
