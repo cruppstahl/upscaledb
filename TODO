@@ -124,6 +124,7 @@ x update win32 files to 2008
 o windows service
     x need msvc project
     o command line switches -install, -start, -stop, -uninstall!
+    o write logfile to file or to syslog?
 
 o fix freelist page overflow when searching for bits (See mail from Stefan)
     -> is this still relevant??

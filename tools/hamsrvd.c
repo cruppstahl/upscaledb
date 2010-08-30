@@ -10,6 +10,15 @@
  *
  */
 
+/**
+ * This is the hamsterdb Database Server.
+ *
+ * On Unix it's implemented as a daemon, on Windows it's a Win32 Service. 
+ * The configuration file has json format - see example.config.
+ * The Win32 implementation is based on 
+ * http://www.devx.com/cplus/Article/9857/1954
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -32,6 +41,9 @@
 #define ARG_FOREGROUND      2
 #define ARG_CONFIG          3
 #define ARG_PIDFILE         4
+#define ARG_INSTALL         5
+#define ARG_UNINSTALL       6
+#define ARG_STOP            7
 
 /*
  * command line parameters
@@ -61,6 +73,26 @@ static option_t opts[]={
         "pid",
         "store pid in file",
         GETOPTS_NEED_ARGUMENT },
+#ifdef WIN32
+    {
+        ARG_INSTALL,
+        "i",
+        "install",
+        "(only Win32) installs the Service",
+        0 },
+    {
+        ARG_UNINSTALL,
+        "u",
+        "uninstall",
+        "(only Win32) uninstalls the Service",
+        0 },
+    {
+        ARG_STOP,
+        "s",
+        "stop",
+        "(only Win32) stops the Service",
+        0 },
+#endif
     { 0, 0, 0, 0, 0 } /* terminating element */
 };
 
@@ -150,7 +182,6 @@ write_pidfile(const char *pidfile)
 }
 
 #define COMPARE_FLAG(n)             if (!strcmp(#n, p)) f|=n
-
 
 ham_u32_t
 format_flags(char *flagstr)
@@ -254,6 +285,155 @@ initialize_server(ham_srv_t *srv, config_table_t *params)
     }
 }
 
+#ifdef WIN32
+static TCHAR *serviceName = TEXT("hamsterdb Database Server");
+
+static void
+win32_service_install()
+{
+	SC_HANDLE scm = OpenSCManager(0, 0, SC_MANAGER_CREATE_SERVICE);
+
+	if (scm) {
+		TCHAR path[_MAX_PATH+1];
+		if (GetModuleFileName(0, path, sizeof(path)/sizeof(path[0])) > 0) {
+			SC_HANDLE service = CreateService(scm,
+							serviceName, serviceName,
+							SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS,
+							SERVICE_AUTO_START, SERVICE_ERROR_IGNORE, path,
+							0, 0, 0, 0, 0 );
+			if (service)
+				CloseServiceHandle(service);
+		}
+
+		CloseServiceHandle(scm);
+	}
+}
+
+static void
+win32_service_uninstall()
+{
+	SC_HANDLE scm = OpenSCManager(0, 0, SC_MANAGER_CONNECT);
+
+	if (scm) {
+		SC_HANDLE service = OpenService(scm, serviceName, 
+                    SERVICE_QUERY_STATUS | DELETE);
+		if (service) {
+			SERVICE_STATUS sst;
+			if (QueryServiceStatus(service, &sst )) {
+				if (sst.dwCurrentState == SERVICE_STOPPED)
+					DeleteService(service);
+			}
+
+			CloseServiceHandle(service);
+		}
+
+		CloseServiceHandle(scm);
+	}
+}
+
+static void
+win32_service_stop()
+{
+    /* TODO implement me!! */
+}
+
+static SERVICE_STATUS sst;
+static SERVICE_STATUS_HANDLE ssth = 0;
+static HANDLE stop_me = 0;
+
+void WINAPI
+ServiceControlHandler(DWORD controlCode)
+{
+	switch (controlCode) {
+		case SERVICE_CONTROL_INTERROGATE:
+			break;
+
+		case SERVICE_CONTROL_SHUTDOWN:
+		case SERVICE_CONTROL_STOP:
+			sst.dwCurrentState = SERVICE_STOP_PENDING;
+			SetServiceStatus(ssth, &sst);
+
+			SetEvent(stop_me);
+			return;
+
+		case SERVICE_CONTROL_PAUSE:
+			break;
+
+		case SERVICE_CONTROL_CONTINUE:
+			break;
+
+		default:
+			if ((controlCode>=128) && (controlCode<=255))
+				// user defined control code
+				break;
+			else
+				// unrecognised control code
+				break;
+	}
+
+	SetServiceStatus(ssth, &sst);
+}
+
+void WINAPI 
+ServiceMain( DWORD /*argc*/, TCHAR* /*argv*/[] )
+{
+	// initialize service status
+	sst.dwServiceType = SERVICE_WIN32;
+	sst.dwCurrentState = SERVICE_STOPPED;
+	sst.dwControlsAccepted = 0;
+	sst.dwWin32ExitCode = NO_ERROR;
+	sst.dwServiceSpecificExitCode = NO_ERROR;
+	sst.dwCheckPoint = 0;
+	sst.dwWaitHint = 0;
+
+	ssth = RegisterServiceCtrlHandler(serviceName, ServiceControlHandler);
+	if (ssth) {
+		// service is starting
+		sst.dwCurrentState = SERVICE_START_PENDING;
+		SetServiceStatus(ssth, &sst);
+
+		// do initialisation here
+		stop_me = CreateEvent(0, FALSE, FALSE, 0);
+
+		// running
+		sst.dwControlsAccepted |= (SERVICE_ACCEPT_STOP 
+                                    | SERVICE_ACCEPT_SHUTDOWN);
+		sst.dwCurrentState = SERVICE_RUNNING;
+		SetServiceStatus(ssth, &sst);
+
+		do {
+			/* this is the main loop */;
+		} while (WaitForSingleObject(stop_me, 5000)==WAIT_TIMEOUT);
+
+		// service was stopped
+		sst.dwCurrentState = SERVICE_STOP_PENDING;
+		SetServiceStatus(ssth, &sst);
+
+		// do cleanup here
+		CloseHandle(stop_me);
+		stop_me = 0;
+
+		// service is now stopped
+		sst.dwControlsAccepted &= ~(SERVICE_ACCEPT_STOP 
+                                | SERVICE_ACCEPT_SHUTDOWN);
+		sst.dwCurrentState = SERVICE_STOPPED;
+		SetServiceStatus(ssth, &sst);
+	}
+}
+
+static void
+win32_service_start()
+{
+	SERVICE_TABLE_ENTRY serviceTable[] =
+	{
+		{ serviceName, ServiceMain },
+		{ 0, 0 }
+	};
+
+	StartServiceCtrlDispatcher(serviceTable);
+}
+#endif
+
 int
 main(int argc, char **argv)
 {
@@ -263,6 +443,9 @@ main(int argc, char **argv)
     ham_srv_t *srv;
     ham_srv_config_t cfg;
     config_table_t *params=0;
+#ifdef WIN32
+    int win32_action=0; /* initialize with pseudo value for ARG_START */
+#endif
 
     ham_u32_t maj, min, rev;
     const char *licensee, *product;
@@ -306,6 +489,17 @@ main(int argc, char **argv)
                 printf("       -f:         run in foreground\n");
                 printf("       configfile: path of configuration file\n");
                 return (0);
+#ifdef WIN32
+            case ARG_INSTALL:
+                win32_action=ARG_INSTALL;
+                break;
+            case ARG_UNINSTALL:
+                win32_action=ARG_UNINSTALL;
+                break;
+            case ARG_STOP:
+                win32_action=ARG_STOP;
+                break;
+#endif
             default:
                 printf("Invalid or unknown parameter `%s'. "
                        "Enter `hamsterd --help' for usage.", param);
@@ -343,16 +537,45 @@ main(int argc, char **argv)
 
     initialize_server(srv, params);
 
-    if (!foreground)
+    /* on Unix we first daemonize, then write the pidfile (otherwise we do
+     * not know the pid of the daemon process). On Win32, we first write
+     * the pidfile and then call the service startup routine. */
+#ifndef WIN32
+    if (!foreground) {
         daemonize();
+    }
+#endif
 
     if (pidfile)
         write_pidfile(pidfile);
 
+#ifdef WIN32
+    switch (win32_action) {
+        case ARG_INSTALL:
+            win32_service_install();
+            break;
+        case ARG_UNINSTALL:
+            win32_service_uninstall();
+            break;
+        case ARG_STOP:
+            win32_service_stop();
+            break;
+        default:
+            win32_service_start();
+            break;
+    }
+#endif
+
+    /* This is the unix "main loop" which waits till the server is terminated.
+     * Any registered signal will terminate the server by setting the 
+     * 'running' flag to 0. (The Win32 main loop is hidden in
+     * win32_service_start()). */
+#ifndef WIN32
     while (running)
         sleep(1);
 
     printf("hamsterd is stopping...\n");
+#endif
 
     /* clean up */
     ham_srv_close(srv);
