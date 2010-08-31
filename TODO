@@ -122,7 +122,8 @@ x add Windows support for remote functionality
 x update win32 files to 2008
 
 o windows service
-    x need msvc project
+    o need msvc project
+    o read config file from where??
     o command line switches -install, -start, -stop, -uninstall!
     o write logfile to file or to syslog?
 

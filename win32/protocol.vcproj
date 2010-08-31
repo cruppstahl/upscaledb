@@ -88,6 +88,75 @@
 			/>
 		</Configuration>
 		<Configuration
+			Name="Debug|x64"
+			OutputDirectory="tmp\protocol_debug_x64"
+			IntermediateDirectory="tmp\protocol_debug_x64"
+			ConfigurationType="4"
+			CharacterSet="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+				CommandLine=""
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				TargetEnvironment="3"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="0"
+				AdditionalIncludeDirectories="..\include;..\..\hamsterdb-alien\protobuf\include"
+				PreprocessorDefinitions="WIN32;WIN64;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
+				MinimalRebuild="true"
+				BasicRuntimeChecks="3"
+				RuntimeLibrary="3"
+				UsePrecompiledHeader="0"
+				ProgramDataBaseFileName="$(OutDir)\vc80.pdb"
+				WarningLevel="3"
+				Detect64BitPortabilityProblems="true"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+				LinkLibraryDependencies="true"
+				AdditionalDependencies="..\..\hamsterdb-alien\protobuf\libprotobuf-lite_x64_debug.lib"
+				OutputFile="$(OutDir)\libprotocol.lib"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
 			Name="Release|Win32"
 			OutputDirectory="tmp\protocol"
 			IntermediateDirectory="tmp\protocol"
@@ -97,7 +166,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="..\3rdparty\protobuf\protoc.exe ..\src\protocol\messages.proto --cpp_out=..\src\protocol --proto_path=..\src\protocol"
+				CommandLine=""
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -153,75 +222,6 @@
 			/>
 		</Configuration>
 		<Configuration
-			Name="Debug|x64"
-			OutputDirectory="tmp\protocol_debug_x64"
-			IntermediateDirectory="tmp\protocol_debug_x64"
-			ConfigurationType="4"
-			CharacterSet="1"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-				CommandLine="..\3rdparty\protobuf\protoc.exe ..\src\protocol\messages.proto --cpp_out=..\src\protocol --proto_path=..\src\protocol"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-				TargetEnvironment="3"
-			/>
-			<Tool
-				Name="VCCLCompilerTool"
-				Optimization="0"
-				AdditionalIncludeDirectories="../include;../3rdparty/aes;../3rdparty/libcurl;..\3rdparty\protobuf\include"
-				PreprocessorDefinitions="WIN32;WIN64;_DEBUG;_LIB;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
-				MinimalRebuild="true"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
-				UsePrecompiledHeader="0"
-				ProgramDataBaseFileName="$(OutDir)\vc80.pdb"
-				WarningLevel="3"
-				Detect64BitPortabilityProblems="true"
-				DebugInformationFormat="3"
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-			/>
-			<Tool
-				Name="VCLibrarianTool"
-				LinkLibraryDependencies="true"
-				AdditionalDependencies="..\3rdparty\protobuf\libprotobuf-lite_x64.lib"
-				OutputFile="$(OutDir)\libprotocol.lib"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
-			/>
-		</Configuration>
-		<Configuration
 			Name="Release|x64"
 			OutputDirectory="tmp\protocol_x64"
 			IntermediateDirectory="tmp\protocol_x64"
@@ -231,7 +231,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="..\3rdparty\protobuf\protoc.exe ..\src\protocol\messages.proto --cpp_out=..\src\protocol --proto_path=..\src\protocol"
+				CommandLine=""
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -248,7 +248,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../include;../3rdparty/aes;../3rdparty/libcurl;..\3rdparty\protobuf\include"
+				AdditionalIncludeDirectories="..\include;..\..\hamsterdb-alien\protobuf\include"
 				PreprocessorDefinitions="WIN32;WIN64;NDEBUG;_LIB;HAM_LITTLE_ENDIAN;HAM_ENABLE_INTERNAL;_CRT_SECURE_NO_DEPRECATE;HAM_ENABLE_REMOTE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -268,7 +268,7 @@
 			<Tool
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
-				AdditionalDependencies="..\3rdparty\protobuf\libprotobuf-lite_x64.lib"
+				AdditionalDependencies="..\..\hamsterdb-alien\protobuf\libprotobuf-lite_x64.lib"
 				OutputFile="$(OutDir)\libprotocol.lib"
 			/>
 			<Tool
@@ -304,6 +304,36 @@
 			>
 			<FileConfiguration
 				Name="Debug|Win32"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					CommandLine="..\..\hamsterdb-alien\protobuf\protoc.exe ..\src\protocol\messages.proto --cpp_out=..\src\protocol --proto_path=..\src\protocol&#x0D;&#x0A;"
+					AdditionalDependencies="messages.proto"
+					Outputs="messages.bp.cc"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="Debug|x64"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					CommandLine="..\..\hamsterdb-alien\protobuf\protoc.exe ..\src\protocol\messages.proto --cpp_out=..\src\protocol --proto_path=..\src\protocol&#x0D;&#x0A;"
+					AdditionalDependencies="messages.proto"
+					Outputs="messages.bp.cc"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="Release|Win32"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					CommandLine="..\..\hamsterdb-alien\protobuf\protoc.exe ..\src\protocol\messages.proto --cpp_out=..\src\protocol --proto_path=..\src\protocol&#x0D;&#x0A;"
+					AdditionalDependencies="messages.proto"
+					Outputs="messages.pb.cc"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="Release|x64"
 				>
 				<Tool
 					Name="VCCustomBuildTool"
