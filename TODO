@@ -121,6 +121,8 @@ x add Windows support for remote functionality
 
 x update win32 files to 2008
 
+x hamsterdb forum - many compiler errors on archlinux; fix them!
+
 o windows service
     o need msvc project
     o read config file from where??
@@ -130,8 +132,6 @@ o windows service
 o fix freelist page overflow when searching for bits (See mail from Stefan)
     -> is this still relevant??
     o get newest version from Ger
-
-o hamsterdb forum - many compiler errors on archlinux; fix them!
 
 o more server stuff
     o add acceptance tests
