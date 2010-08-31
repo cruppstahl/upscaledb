@@ -20,7 +20,6 @@
 #include "internal_fwd_decl.h"
 
 #include <stdarg.h>
-#include <stdlib.h>
 #include <stdio.h>
 
 

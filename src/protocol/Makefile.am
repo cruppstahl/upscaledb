@@ -5,6 +5,7 @@
 CFLAGS         += -DHAM_ENABLE_REMOTE
 AM_CXXFLAGS     = $(CFLAGS)
 CXXFLAGS        = $(CFLAGS)
+AM_CPPFLAGS 	= -I$(top_builddir)/include
 
 # INCLUDES = 
 

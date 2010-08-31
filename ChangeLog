@@ -1,3 +1,6 @@
+Aug 31, 2010 - chris
+o fixed compilation on newest ArchLinux (gcc 4.5.1) - thanks, zebul666
+
 Aug 28, 2010 - chris
 o created MSVC projects for the server and the new samples; all MSVC
         projects and workspaces were updated to Visual Studio 2009
