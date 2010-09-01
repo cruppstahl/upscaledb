@@ -128,7 +128,12 @@ o windows service
     o need msvc project
     o read config file from where??
     o command line switches -install, -start, -stop, -uninstall!
-    o write logfile to file or to syslog?
+    o write logfile to file or to syslog? - no, use normal logfiles
+        o need seperate config.example files for win32 and unix?
+    o test on 64bit
+
+o documentation: add information about unix daemon and win32 service to 
+    Tutorial
 
 o fix freelist page overflow when searching for bits (See mail from Stefan)
     -> is this still relevant??
