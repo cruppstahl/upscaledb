@@ -133,7 +133,7 @@ o windows service
     o test on 64bit
 
 o documentation: add information about unix daemon and win32 service to 
-    Tutorial
+    Tutorial (Wiki)
 
 o fix freelist page overflow when searching for bits (See mail from Stefan)
     -> is this still relevant??
@@ -142,29 +142,22 @@ o fix freelist page overflow when searching for bits (See mail from Stefan)
 o more server stuff
     o add acceptance tests
 
-o test the following:
-        db=ham_create()
-        env=ham_get_env(db)
-        ham_env_close(env) ???
-
 o webpage changes
     o add client1.c/server1.c to hamsterdb.com/documentation/samples
 
 o utilize the github wiki
     x move the FAQ
-    o move the tutorial
-    o move some of the documentation and tutorial to the github Wiki
-    o samples (remove from doxygen)
-    o internal developer documentation (remove from doxygen)
+    x move the tutorial
+    o samples (remove from doxygen) - really??
+    o update hamsterdb.com with the links
+    . tutorial/faq: add hinting flags
+    . tutorial/faq: add DAMs
+    . internal developer documentation (remove from doxygen)
         o cursors
         o ??
-    o tutorial/faq: add hinting flags
-    o tutorial/faq: add DAMs
-    o update hamsterdb.com with the links
-    o faq (remove from doxygen)
-    o tutorial (remove from doxygen)
 
 o samples: do no longer use ham_create/ham_open, use _ex-functions instead
+    o update them on the webpage
 
 -----------------------------------------------------------------------------
 
