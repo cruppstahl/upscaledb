@@ -21,7 +21,7 @@
 #include "btree_cursor.h"
 #include "cache.h"
 #include "db.h"
-#include "endian.h"
+#include "endianswap.h"
 #include "env.h"
 #include "error.h"
 #include "freelist_statistics.h"

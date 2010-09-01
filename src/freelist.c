@@ -16,7 +16,7 @@
 
 #include "db.h"
 #include "device.h"
-#include "endian.h"
+#include "endianswap.h"
 #include "env.h"
 #include "error.h"
 #include "freelist.h"

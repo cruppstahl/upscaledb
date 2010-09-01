@@ -20,7 +20,7 @@
 #include "../src/blob.h"
 #include "../src/backend.h"
 #include "../src/btree.h"
-#include "../src/endian.h"
+#include "../src/endianswap.h"
 #include "../src/env.h"
 #include "memtracker.h"
 #include "os.hpp"

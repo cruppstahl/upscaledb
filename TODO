@@ -121,8 +121,8 @@ x add Windows support for remote functionality
 
 x update win32 files to 2008
 
-o hamsterdb forum - many compiler errors on archlinux; fix them!
-    o also rename endian.h because it conflicts
+x hamsterdb forum - many compiler errors on archlinux; fix them!
+    x also rename endian.h because it conflicts
 
 o windows service
     o need msvc project

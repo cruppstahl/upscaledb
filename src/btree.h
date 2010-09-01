@@ -19,7 +19,7 @@
 
 #include "internal_fwd_decl.h"
 
-#include "endian.h"
+#include "endianswap.h"
 
 #include "backend.h"
 #include "btree_cursor.h"

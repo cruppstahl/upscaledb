@@ -1154,7 +1154,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\src\endian.h"
+			RelativePath="..\src\endianswap.h"
 			>
 		</File>
 		<File

@@ -20,7 +20,7 @@
 
 #include "internal_fwd_decl.h"
 
-#include "endian.h"
+#include "endianswap.h"
 
 
 #ifdef __cplusplus

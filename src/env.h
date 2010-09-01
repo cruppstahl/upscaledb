@@ -23,7 +23,7 @@
 #include <ham/hamsterdb.h>
 
 #include "db.h"
-#include "endian.h"
+#include "endianswap.h"
 #include "error.h"
 #include "page.h"
 

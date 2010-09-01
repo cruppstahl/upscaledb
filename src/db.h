@@ -21,7 +21,7 @@
 
 #include <ham/hamsterdb_stats.h>
 
-#include "endian.h"
+#include "endianswap.h"
 #include "error.h"
 #include "util.h"
 

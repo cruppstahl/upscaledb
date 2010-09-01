@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef HAM_ENDIAN_H__
-#define HAM_ENDIAN_H__
+#ifndef HAM_ENDIANSWAP_H__
+#define HAM_ENDIANSWAP_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -75,4 +75,4 @@ extern "C" {
 } // extern "C"
 #endif 
 
-#endif /* HAM_ENDIAN_H__ */
+#endif /* HAM_ENDIANSWAP_H__ */

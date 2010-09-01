@@ -11,7 +11,7 @@
 
 #include "../src/config.h"
 
-#include "../src/endian.h"
+#include "../src/endianswap.h"
 
 #include "bfc-testsuite.hpp"
 #include "hamster_fixture.hpp"
