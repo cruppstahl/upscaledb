@@ -12,7 +12,7 @@
 #include "protocol.h"
 #include "../error.h"
 #include "../mem.h"
-#include "../endian.h"
+#include "../endianswap.h"
 #include "../db.h"
 
 #include "messages.pb.h"
@@ -1700,14 +1700,14 @@ proto_db_insert_request_get_record_size(proto_wrapper_t *wrapper)
     return ((ham_size_t)w->db_insert_request().record().data().size());
 }
 
-ham_offset_t
+ham_u32_t
 proto_db_insert_request_get_record_partial_offset(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     return (w->db_insert_request().record().partial_offset());
 }
 
-ham_offset_t
+ham_size_t
 proto_db_insert_request_get_record_partial_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
@@ -1869,14 +1869,14 @@ proto_db_find_request_get_record_size(proto_wrapper_t *wrapper)
     return ((ham_size_t)w->db_find_request().record().data().size());
 }
 
-ham_offset_t
+ham_u32_t
 proto_db_find_request_get_record_partial_offset(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     return (w->db_find_request().record().partial_offset());
 }
 
-ham_offset_t
+ham_size_t
 proto_db_find_request_get_record_partial_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
@@ -2396,14 +2396,14 @@ proto_cursor_insert_request_get_record_size(proto_wrapper_t *wrapper)
     return ((ham_size_t)w->cursor_insert_request().record().data().size());
 }
 
-ham_offset_t
+ham_u32_t
 proto_cursor_insert_request_get_record_partial_offset(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     return (w->cursor_insert_request().record().partial_offset());
 }
 
-ham_offset_t
+ham_size_t
 proto_cursor_insert_request_get_record_partial_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
@@ -2634,14 +2634,14 @@ proto_cursor_find_request_get_record_size(proto_wrapper_t *wrapper)
     return ((ham_size_t)w->cursor_find_request().record().data().size());
 }
 
-ham_offset_t
+ham_u32_t
 proto_cursor_find_request_get_record_partial_offset(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     return (w->cursor_find_request().record().partial_offset());
 }
 
-ham_offset_t
+ham_size_t
 proto_cursor_find_request_get_record_partial_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
@@ -2883,14 +2883,14 @@ proto_cursor_overwrite_request_get_record_size(proto_wrapper_t *wrapper)
     return ((ham_size_t)w->cursor_overwrite_request().record().data().size());
 }
 
-ham_offset_t
+ham_u32_t
 proto_cursor_overwrite_request_get_record_partial_offset(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     return (w->cursor_overwrite_request().record().partial_offset());
 }
 
-ham_offset_t
+ham_size_t
 proto_cursor_overwrite_request_get_record_partial_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
@@ -3034,14 +3034,14 @@ proto_cursor_move_request_get_record_flags(proto_wrapper_t *wrapper)
     return (w->cursor_move_request().record().flags());
 }
 
-ham_offset_t
+ham_u32_t
 proto_cursor_move_request_get_record_partial_offset(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;
     return (w->cursor_move_request().record().partial_offset());
 }
 
-ham_offset_t
+ham_size_t
 proto_cursor_move_request_get_record_partial_size(proto_wrapper_t *wrapper)
 {
     Wrapper *w=(Wrapper *)wrapper;

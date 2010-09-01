@@ -785,10 +785,10 @@ proto_db_insert_request_get_record_data(proto_wrapper_t *wrapper);
 extern ham_size_t
 proto_db_insert_request_get_record_size(proto_wrapper_t *wrapper);
 
-extern ham_offset_t
+extern ham_u32_t
 proto_db_insert_request_get_record_partial_offset(proto_wrapper_t *wrapper);
 
-extern ham_offset_t
+extern ham_size_t
 proto_db_insert_request_get_record_partial_size(proto_wrapper_t *wrapper);
 
 /*
@@ -849,10 +849,10 @@ proto_db_find_request_get_record_data(proto_wrapper_t *wrapper);
 extern ham_size_t
 proto_db_find_request_get_record_size(proto_wrapper_t *wrapper);
 
-extern ham_offset_t
+extern ham_u32_t
 proto_db_find_request_get_record_partial_offset(proto_wrapper_t *wrapper);
 
-extern ham_offset_t
+extern ham_size_t
 proto_db_find_request_get_record_partial_size(proto_wrapper_t *wrapper);
 
 /*
@@ -1054,10 +1054,10 @@ proto_cursor_insert_request_get_record_data(proto_wrapper_t *wrapper);
 extern ham_size_t
 proto_cursor_insert_request_get_record_size(proto_wrapper_t *wrapper);
 
-extern ham_offset_t
+extern ham_u32_t
 proto_cursor_insert_request_get_record_partial_offset(proto_wrapper_t *wrapper);
 
-extern ham_offset_t
+extern ham_size_t
 proto_cursor_insert_request_get_record_partial_size(proto_wrapper_t *wrapper);
 
 /*
@@ -1145,10 +1145,10 @@ proto_cursor_find_request_get_record_data(proto_wrapper_t *wrapper);
 extern ham_size_t
 proto_cursor_find_request_get_record_size(proto_wrapper_t *wrapper);
 
-extern ham_offset_t
+extern ham_u32_t
 proto_cursor_find_request_get_record_partial_offset(proto_wrapper_t *wrapper);
 
-extern ham_offset_t
+extern ham_size_t
 proto_cursor_find_request_get_record_partial_size(proto_wrapper_t *wrapper);
 
 /*
@@ -1242,10 +1242,10 @@ proto_cursor_overwrite_request_get_record_size(proto_wrapper_t *wrapper);
 extern ham_u32_t
 proto_cursor_overwrite_request_get_record_flags(proto_wrapper_t *wrapper);
 
-extern ham_offset_t
+extern ham_u32_t
 proto_cursor_overwrite_request_get_record_partial_offset(proto_wrapper_t *wrapper);
 
-extern ham_offset_t
+extern ham_size_t
 proto_cursor_overwrite_request_get_record_partial_size(proto_wrapper_t *wrapper);
 
 /*
@@ -1300,10 +1300,10 @@ proto_cursor_move_request_get_record_size(proto_wrapper_t *wrapper);
 extern ham_u32_t
 proto_cursor_move_request_get_record_flags(proto_wrapper_t *wrapper);
 
-extern ham_offset_t
+extern ham_u32_t
 proto_cursor_move_request_get_record_partial_offset(proto_wrapper_t *wrapper);
 
-extern ham_offset_t
+extern ham_size_t
 proto_cursor_move_request_get_record_partial_size(proto_wrapper_t *wrapper);
 
 /*
