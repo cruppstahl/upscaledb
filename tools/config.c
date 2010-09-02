@@ -15,13 +15,13 @@
 #include <malloc.h>
 
 #include "config.h"
-#include "error.h"
-#include "util.h"
 
 #define STATE_NONE            0
 #define STATE_GLOBAL          1
 #define STATE_ENVIRONMENTS    2
 #define STATE_DATABASES       3
+
+#define ham_log(x)		fprintf(stderr, x)
 
 static int
 __parser_cb(void *ctx, int type, const struct JSON_value_struct *value)
@@ -210,7 +210,7 @@ config_parse_string(const char *string, config_table_t **params)
     while (*string) {
         if (!JSON_parser_char(jc, *string)) {
             delete_JSON_parser(jc);
-            ham_log(("JSON syntax error in byte %u: %s", count, string));
+            ham_log(("JSON syntax error in byte %u\n", count));
             config_clear_table(p);
             return (HAM_INV_PARAMETER);
         }
