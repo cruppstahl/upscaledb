@@ -125,11 +125,13 @@ x hamsterdb forum - many compiler errors on archlinux; fix them!
     x also rename endian.h because it conflicts
 
 o windows service
-    o need msvc project
-    o read config file from where??
-    o command line switches -install, -start, -stop, -uninstall!
-    o write logfile to file or to syslog? - no, use normal logfiles
-        o need seperate config.example files for win32 and unix?
+    x read config file from where? <exename>.config
+    x command line switches -install, -start, -stop, -uninstall
+    x write logfile to file or to syslog? - no, use normal logfiles
+    x need msvc project
+    o need seperate config.example files for win32 and unix?
+    o run in foreground
+    o write all errors to syslog
     o test on 64bit
 
 o documentation: add information about unix daemon and win32 service to 
