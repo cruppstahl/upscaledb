@@ -80,7 +80,7 @@ __store_handle(struct env_t *envh, void *ptr, int type)
         envh->handles=(srv_handle_t *)realloc(envh->handles, 
                         sizeof(srv_handle_t)*envh->handles_size);
         if (!envh->handles)
-            exit(-1); /* not so nice, but if we're out of memory then 
+            return 0; /* not so nice, but if we're out of memory then 
                        * it does not make sense to go on... */
         memset(&envh->handles[envh->handles_size-10], 0, sizeof(srv_handle_t)*10);
     }

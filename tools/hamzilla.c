@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <stdarg.h>
 #ifndef WIN32
 #  include <unistd.h>
 #  include <signal.h>
@@ -31,14 +32,17 @@
 #  include <sys/stat.h>
 #  include <sys/types.h>
 #  include <fcntl.h>
+#  include <syslog.h>
 #  define STRTOK_SAFE strtok_r
-#  define EXENAME "hamsrv.exe"
+#  define EXENAME "hamsrvd"
+#  define MAX_PATH_LENGTH   FILENAME_MAX
 #else
 #  include <process.h> /* _getpid() */
 #  include <tchar.h>
 #  include <windows.h>
 #  define STRTOK_SAFE strtok_s
-#  define EXENAME "hamsrvd"
+#  define EXENAME "hamsrv.exe"
+#  define MAX_PATH_LENGTH   _MAX_PATH
 #endif
 #include <errno.h>
 
@@ -57,8 +61,7 @@
 #define ARG_STOP            7
 #define ARG_START			8
 #define ARG_RUN 			9
-
-FILE *f;
+#define ARG_LOG_LEVEL      10
 
 /*
  * command line parameters
@@ -114,10 +117,82 @@ static option_t opts[]={
         "(only Win32) stops the Service",
         0 },
 #endif
+    {
+        ARG_LOG_LEVEL,
+        "l",
+        "log_level",
+        "sets the logging level (0: Debug; 1: Info; 2: Warnings; 3: Fatal)",
+        GETOPTS_NEED_ARGUMENT },
     { 0, 0, 0, 0, 0 } /* terminating element */
 };
 
-static int running = 1;
+#define LOG_DBG       0
+#define LOG_NORMAL    1
+#define LOG_WARN      2
+#define LOG_FATAL     3
+
+static int running    = 1;
+static int foreground = 0;
+static int log_level  = LOG_NORMAL;
+
+static void
+init_syslog(void)
+{
+#ifdef WIN32
+#  error "I want to be implemented!"
+#else
+    openlog(EXENAME, LOG_PID, LOG_DAEMON);
+#endif
+}
+
+static void
+close_syslog(void)
+{
+#ifdef WIN32
+#  error "I want to be implemented!"
+#else
+    closelog();
+#endif
+}
+
+void
+hlog(int level, const char *format, ...)
+{
+    va_list ap;
+
+    if (level<log_level)
+        return;
+
+    va_start(ap, format);
+    if (foreground) {
+        vfprintf(stderr, format, ap);
+    }
+    else {
+        unsigned code;
+        char buffer[1024];
+        vsprintf(buffer, format, ap);
+#ifdef WIN32
+#  error "I want to be implemented!"
+#else
+        switch (level) {
+            case LOG_DBG:
+                code=LOG_DEBUG;
+                break;
+            case LOG_NORMAL:
+                code=LOG_INFO;
+                break;
+            case LOG_WARN:
+                code=LOG_WARNING;
+                break;
+            default: /* LOG_FATAL */
+                code=LOG_EMERG;
+                break;
+        }
+        syslog(code, "%s", buffer);
+#endif
+    }
+    va_end(ap);
+}
 
 #ifndef WIN32
 static void 
@@ -136,17 +211,17 @@ daemonize(void)
     case 0:  /* i'm the child */
         break;
     case -1:
-        printf("fork failed: %s\n", strerror(errno));
+        hlog(LOG_FATAL, "fork failed: %s\n", strerror(errno));
         break;
     default: /* i'm the parent */
         exit(0);
     }
 
     /* go to root directory */
-    chdir("/");
+    /* chdir("/"); */
 
     /* reset umask */
-    umask(0);
+    /* umask(0); */
 
     /* disassociate from process group */
     setpgrp();
@@ -167,11 +242,13 @@ read_config(const char *configfile, config_table_t **params)
     FILE *fp;
     long len;
 
+    hlog(LOG_DBG, "Parsing configuration file %s\n", configfile);
+
     /* read the whole file into 'buf' */
     fp=fopen(configfile, "rt");
     if (!fp) {
-fprintf(f, "%s:%d - failed to open config file %s: %s\n", __FILE__, __LINE__, configfile, strerror(errno));
-        printf("failed to open config file: %s\n", strerror(errno));
+        hlog(LOG_FATAL, "Failed to open config file %s: %s\n", 
+                configfile, strerror(errno));
         exit(-1);
     }
     fseek(fp, 0, SEEK_END);
@@ -185,7 +262,8 @@ fprintf(f, "%s:%d - failed to open config file %s: %s\n", __FILE__, __LINE__, co
     /* parse the file */
     st=config_parse_string(buf, params);
     if (st) {
-        printf("failed to read configuration file: %s\n", ham_strerror(st));
+        hlog(LOG_FATAL, "failed to read configuration file: %s\n", 
+                ham_strerror(st));
         exit(-1);
     }
 
@@ -198,7 +276,7 @@ write_pidfile(const char *pidfile)
 {
     FILE *fp=fopen(pidfile, "wt");
     if (!fp) {
-        printf("failed to write pidfile: %s\n", strerror(errno));
+        hlog(LOG_FATAL, "failed to write pidfile: %s\n", strerror(errno));
         exit(-1);
     }
 #ifdef WIN32	
@@ -238,7 +316,7 @@ format_flags(char *flagstr)
         else COMPARE_FLAG(HAM_SORT_DUPLICATES);
         else COMPARE_FLAG(HAM_RECORD_NUMBER);
         else {
-            printf("ignoring unknown flag %s\n", p);
+            hlog(LOG_WARN, "Ignoring unknown flag %s\n", p);
         }
         p=STRTOK_SAFE(0, "|", &saveptr);
     }
@@ -260,20 +338,27 @@ initialize_server(ham_srv_t *srv, config_table_t *params)
         ham_env_new(&env);
 
         /* First try to open the Environment */
+        hlog(LOG_DBG, "Opening Environment %s (flags 0x%x)\n", 
+                params->envs[e].path, flags);
         st=ham_env_open(env, params->envs[e].path, flags);
         if (st) {
             /* Not found? if open_exclusive is false then we create the
              * Environment */
             if (st==HAM_FILE_NOT_FOUND && !params->envs[e].open_exclusive) {
+                hlog(LOG_DBG, "Env was not found; trying to create it\n");
                 st=ham_env_create(env, params->envs[e].path, flags, 0644);
                 if (st) {
-                    printf("ham_env_create failed: %s\n", ham_strerror(st));
+                    hlog(LOG_FATAL, "Failed to create Env %s: %s\n", 
+                            params->envs[e].path, ham_strerror(st));
                     exit(-1);
                 }
+                hlog(LOG_DBG, "Env %s created successfully\n", 
+                            params->envs[e].path);
                 created_env=1;
             }
             else {
-                printf("ham_env_open failed: %s\n", ham_strerror(st));
+                hlog(LOG_FATAL, "Failed to open Env %s: %s\n", 
+                            params->envs[e].path, ham_strerror(st));
                 exit(-1);
             }
         }
@@ -288,22 +373,32 @@ initialize_server(ham_srv_t *srv, config_table_t *params)
 
                 ham_new(&db);
 
+                hlog(LOG_DBG, "Creating Database %u\n", 
+                        params->envs[e].dbs[d].name);
                 st=ham_env_create_db(env, db, params->envs[e].dbs[d].name, 
                                     flags, 0);
                 if (st) {
-                    printf("ham_env_create_db: %d\n", st);
+                    hlog(LOG_FATAL, "Failed to create Database %u: %s\n",
+                        params->envs[e].dbs[d].name, ham_strerror(st));
                     exit(-1);
                 }
+
+                hlog(LOG_DBG, "Created Database %u successfully\n", 
+                        params->envs[e].dbs[d].name);
 
                 ham_close(db, 0);
                 ham_delete(db);
             }
         }
 
+        hlog(LOG_DBG, "Attaching Env to Server (url %s)\n", 
+                params->envs[e].url);
+
         /* Add the Environment to the server */
         st=ham_srv_add_env(srv, env, params->envs[e].url);
         if (st) {
-            printf("ham_srv_add_env failed: %s\n", ham_strerror(st));
+            hlog(LOG_FATAL, "Failed to attach Env to Server: %s\n", 
+                    ham_strerror(st));
             exit(-1);
         }
 
@@ -322,7 +417,7 @@ win32_service_install(void)
 	SC_HANDLE scm = OpenSCManager(0, 0, SC_MANAGER_CREATE_SERVICE);
 
 	if (scm) {
-		TCHAR path[_MAX_PATH+1];
+		TCHAR path[MAX_PATH_LENGTH+1];
 		if (GetModuleFileName(0, path, sizeof(path)/sizeof(path[0])) > 0) {
 			SC_HANDLE service = CreateService(scm,
 							serviceName, serviceName,
@@ -334,41 +429,50 @@ win32_service_install(void)
 				sd.lpDescription=serviceDescription;
 				ChangeServiceConfig2(service, SERVICE_CONFIG_DESCRIPTION, &sd);
 				CloseServiceHandle(service);
+                hlog(LOG_DBG, "Service was installed successfully.\n");
 			}
-			else switch(GetLastError()) {
+			else 
+            switch(GetLastError()) {
 			case ERROR_ACCESS_DENIED:
-				printf("The handle to the SCM database does not have the "
-					"SC_MANAGER_CREATE_SERVICE access right.\n");
+				hlog(LOG_FATAL, "The handle to the SCM database does not "
+                        "have the SC_MANAGER_CREATE_SERVICE access right.\n");
 				break;
 			case ERROR_CIRCULAR_DEPENDENCY:
-				printf("A circular service dependency was specified.\n");
+				hlog(LOG_FATAL, "A circular service dependency was "
+                        "specified.\n");
 				break;
 			case ERROR_DUPLICATE_SERVICE_NAME:
-				printf("The display name already exists in the service control "
-				"manager database either as a service name or as another display "
-				"name.\n");
+				hlog(LOG_FATAL, "The display name already exists in the "
+                        "service control manager database either as a "
+                        "service name or as another display name.\n");
 				break;
 			case ERROR_INVALID_NAME:
-				printf("The specified service name is invalid.\n");
+				hlog(LOG_FATAL, "The specified service name is invalid.\n");
 				break;
 			case ERROR_INVALID_PARAMETER:
-				printf("A parameter that was specified is invalid.\n");
+				hlog(LOG_FATAL, "A parameter that was specified is invalid.\n");
 				break;
 			case ERROR_INVALID_SERVICE_ACCOUNT:
-				printf("The user account name specified in the lpServiceStartName "
-					"parameter does not exist.\n");
+				hlog(LOG_FATAL, "The user account name specified in the "
+                        "lpServiceStartName parameter does not exist.\n");
 				break;
 			case ERROR_SERVICE_EXISTS:
-				printf("The specified service already exists in this database.\n");
+				hlog(LOG_FATAL, "The specified service already exists in "
+                        "this database.\n");
 				break;
 			default:
-				printf("Failed to install the service (error %u)\n", GetLastError());
+				hlog(LOG_FATAL, "Failed to install the service (error %u)\n", 
+                        GetLastError());
 				break;
  			}
 		}
+        else
+            hlog(LOG_FATAL, "GetModuleFileName failed\n");
 
 		CloseServiceHandle(scm);
 	}
+    else
+        hlog(LOG_FATAL, "OpenSCManager failed\n");
 }
 
 static void
@@ -382,15 +486,26 @@ win32_service_uninstall(void)
 		if (service) {
 			SERVICE_STATUS sst;
 			if (QueryServiceStatus(service, &sst )) {
-				if (sst.dwCurrentState == SERVICE_STOPPED)
+				if (sst.dwCurrentState == SERVICE_STOPPED) {
 					DeleteService(service);
+                    hlog(LOG_DBG, "Service was uninstalled.\n");
+                }
+                else
+                    hlog(LOG_FATAL, "Failed to uninstall - service was "
+                            "not stopped\n");
 			}
+            else
+                hlog(LOG_FATAL, "QueryServiceStatus failed\n");
 
 			CloseServiceHandle(service);
 		}
+        else
+            hlog(LOG_FATAL, "OpenService failed\n");
 
 		CloseServiceHandle(scm);
 	}
+    else
+        hlog(LOG_FATAL, "OpenSCManager failed\n");
 }
 
 static SERVICE_STATUS sst;
@@ -406,6 +521,7 @@ ServiceControlHandler(DWORD controlCode)
 
 		case SERVICE_CONTROL_SHUTDOWN:
 		case SERVICE_CONTROL_STOP:
+            hlog(LOG_DBG, "Service received STOP request\n");
 			sst.dwCurrentState = SERVICE_STOP_PENDING;
 			SetServiceStatus(ssth, &sst);
 
@@ -442,20 +558,27 @@ win32_service_stop(void)
 			SERVICE_STATUS sst;
 			if (QueryServiceStatus(service, &sst )) {
 				if (sst.dwCurrentState == SERVICE_STOPPED) { 
-					printf("service is already stopped\n");
+					hlog(LOG_NORMAL, "Service is already stopped\n");
 				}
 				else {
 					if (!ControlService(service, SERVICE_CONTROL_STOP, &sst)) {
-					    printf("ControlService failed (%d)\n", GetLastError());
+					    hlog(LOG_FATAL, "ControlService failed (%d)\n", 
+                                GetLastError());
     				}
 				}
 			}
+            else
+                hlog(LOG_FATAL, "QueryServiceStatus failed\n");
 
 			CloseServiceHandle(service);
 		}
+        else
+            hlog(LOG_FATAL, "OpenService failed\n");
 
 		CloseServiceHandle(scm);
 	}
+    else
+        hlog(LOG_FATAL, "OpenSCManager failed\n");
 }
 
 static void
@@ -471,20 +594,27 @@ win32_service_start(void)
 			if (QueryServiceStatus(service, &sst )) {
 				if (sst.dwCurrentState != SERVICE_STOPPED 
 						&& sst.dwCurrentState != SERVICE_STOP_PENDING) {
-					printf("service is already running\n");
+					hlog(LOG_NORMAL, "Service is already running\n");
 				}
 				else {
 					if (!StartService(service, 0, NULL)) {
-					    printf("StartService failed (%d)\n", GetLastError());
+					    hlog(LOG_FATAL, "StartService failed (%d)\n", 
+                                GetLastError());
     				}
 				}
 			}
+            else
+                hlog(LOG_FATAL, "QueryServiceStatus failed\n");
 
 			CloseServiceHandle(service);
 		}
+        else
+            hlog(LOG_FATAL, "OpenService failed\n");
 
 		CloseServiceHandle(scm);
 	}
+    else
+        hlog(LOG_FATAL, "OpenSCManager failed\n");
 }
 
 void WINAPI 
@@ -501,11 +631,14 @@ ServiceMain(DWORD argc, TCHAR *argv[])
 		sst.dwCurrentState = SERVICE_RUNNING;
 		SetServiceStatus(ssth, &sst);
 
+        hlog(LOG_DBG, "Service is entering main loop\n");
+
 		do {
 			/* this is the main loop */;
 		} while (WaitForSingleObject(stop_me, 5000)==WAIT_TIMEOUT);
 
 		// service was stopped
+        hlog(LOG_DBG, "Service is leaving main loop\n");
 		sst.dwCurrentState = SERVICE_STOP_PENDING;
 		SetServiceStatus(ssth, &sst);
 
@@ -519,6 +652,17 @@ ServiceMain(DWORD argc, TCHAR *argv[])
 		sst.dwCurrentState = SERVICE_STOPPED;
 		SetServiceStatus(ssth, &sst);
 	}
+    else
+        hlog(LOG_FATAL, "RegisterServiceCtrlHandler failed\n");
+}
+
+static void
+win32_service_run_fg(void)
+{
+    hlog(LOG_DBG, "Service is entering main loop\n");
+    while (running)
+        Sleep(1000);
+    hlog(LOG_DBG, "Service is leaving main loop\n");
 }
 
 static void
@@ -546,7 +690,8 @@ win32_service_run(void)
 
 	ret=StartServiceCtrlDispatcher(serviceTable);
 	if (!ret) {
-		printf("StartServiceCtrlDispatcher failed with error %u\n", GetLastError());
+		hlog(LOG_FATAL, "StartServiceCtrlDispatcher failed with error %u\n", 
+                GetLastError());
 	}
 }
 #endif
@@ -556,14 +701,14 @@ main(int argc, char **argv)
 {
     unsigned opt;
     char *param=0, *configfile=0, *pidfile=0;
-    unsigned e, foreground=0;
+    unsigned e;
     ham_srv_t *srv=0;
     ham_srv_config_t cfg;
     config_table_t *params=0;
+	char configbuffer[MAX_PATH_LENGTH*2];
 #ifdef WIN32
-	char configbuffer[_MAX_PATH*2];
-#endif
 	int win32_action=ARG_RUN;
+#endif
 
     ham_u32_t maj, min, rev;
     const char *licensee, *product;
@@ -572,22 +717,22 @@ main(int argc, char **argv)
 
     memset(&cfg, 0, sizeof(cfg));
     getopts_init(argc, argv, EXENAME);
-
-	f=fopen("g:\\log.txt", "wt");
-	if (!f)
-		exit(-1);
-	fprintf(f, "%s:%d - initializing (argc: %u)\n", __FILE__, __LINE__, argc);
+	strcpy(configbuffer, argv[0]);
 
 	while ((opt=getopts(&opts[0], &param))) {
         switch (opt) {
             case ARG_FOREGROUND:
+                hlog(LOG_DBG, "Paramter: Running in foreground\n");
                 foreground=1;
                 break;
             case ARG_CONFIG:
                 configfile=param;
+                hlog(LOG_DBG, "Paramter: configuration file is %s\n", 
+                        configfile);
                 break;
             case ARG_PIDFILE:
                 pidfile=param;
+                hlog(LOG_DBG, "Paramter: pid file is %s\n", pidfile);
                 break;
             case ARG_HELP:
                 printf("hamsterdb server %d.%d.%d - Copyright (C) 2005-2010 "
@@ -615,18 +760,28 @@ main(int argc, char **argv)
                 return (0);
 #ifdef WIN32
             case ARG_INSTALL:
+                hlog(LOG_DBG, "Paramter: Installing service\n");
                 win32_action=ARG_INSTALL;
                 break;
             case ARG_UNINSTALL:
+                hlog(LOG_DBG, "Paramter: Uninstalling service\n");
                 win32_action=ARG_UNINSTALL;
                 break;
             case ARG_STOP:
+                hlog(LOG_DBG, "Paramter: Stopping service\n");
                 win32_action=ARG_STOP;
                 break;
             case ARG_START:
+                hlog(LOG_DBG, "Paramter: Starting service\n");
                 win32_action=ARG_START;
                 break;
 #endif
+            case ARG_LOG_LEVEL:
+                log_level=strtoul(param, 0, 0);
+                if (log_level>LOG_FATAL)
+                    log_level=LOG_FATAL;
+                hlog(LOG_DBG, "Paramter: Log level is %u\n", log_level);
+                break;
             default:
                 printf("Invalid or unknown parameter `%s'. "
                        "Enter `hamsterd --help' for usage.", param);
@@ -634,123 +789,131 @@ main(int argc, char **argv)
         }
     }
 
-	fprintf(f, "%s:%d - action is %d\n", __FILE__, __LINE__, win32_action);
+    /* daemon/win32 service: initialize syslog/Eventlog */
+    if (!foreground)
+        init_syslog();
 
-	/* on Windows, it's very tricky to specify a configuration file for
-	 * a service. Instead, we just look for a configuration file with the
-	 * same name (but a different extension ".config") in the same directory
-	 * as hamsvc.exe */
-#ifdef WIN32
+	/* if there's no configuration file then load a default one:
+	 * Just look for a configuration file with the same name (but a 
+     * different extension ".config") in the same directory
+	 * as hamsvc[.exe] */
 	if (!configfile) {
+#ifdef WIN32
 		char *p;
-		strcpy(configbuffer, argv[0]);
 		p=configbuffer+strlen(configbuffer)-1;
 		while (*p!='.')
 			p--;
 		*p='\0';
+#endif
 		strcat(configbuffer, ".config");
 		configfile=&configbuffer[0];
+        hlog(LOG_DBG, "Parameter: No config file specified - using %s\n", 
+                configfile);
 	}
-#else
-	/* On Unix, specifying a configuration file is mandatory. */
-	if (!configfile) {
- 	    printf("configuration file missing - please specify path with -c\n");
-        printf("run `%s --help' for more information.\n", EXENAME);
-		exit(-1);
-	}
-#endif
 
 	/* now read and parse the configuration file */
-	if (win32_action==ARG_RUN && configfile) {
-		fprintf(f, "%s:%d - \n", __FILE__, __LINE__);
+	if (configfile)
         read_config(configfile, &params);
-	}
-	fprintf(f, "%s:%d - \n", __FILE__, __LINE__);
 
     /* register signals; these are the signals that will terminate the daemon */
-#ifndef WIN32
+    hlog(LOG_DBG, "Registering signal handlers\n");
     signal(SIGHUP, signal_handler);
     signal(SIGINT, signal_handler);
     signal(SIGQUIT, signal_handler);
     signal(SIGABRT, signal_handler);
     signal(SIGKILL, signal_handler);
     signal(SIGTERM, signal_handler);
-#endif
 
 #ifdef WIN32
     switch (win32_action) {
         case ARG_INSTALL:
-			printf("hamsrv is installing...\n");
+			hlog(LOG_NORMAL, "hamsrv is installing...\n");
             win32_service_install();
             goto cleanup;
         case ARG_UNINSTALL:
-			printf("hamsrv is uninstalling...\n");
+			hlog(LOG_NORMAL, "hamsrv is uninstalling...\n");
             win32_service_uninstall();
             goto cleanup;
         case ARG_STOP:
-			printf("hamsrv is stopping...\n");
+			hlog(LOG_NORMAL, "hamsrv is stopping...\n");
             win32_service_stop();
             goto cleanup;
         case ARG_START:
-			printf("hamsrv is starting...\n");
+			hlog(LOG_NORMAL, "hamsrv is starting...\n");
             win32_service_start();
             goto cleanup;
     }
 #else
-	printf("hamsrv is starting...\n");
+	hlog(LOG_NORMAL, "hamsrv is starting...\n");
 #endif
-	fprintf(f, "%s:%d - \n", __FILE__, __LINE__);
 
 	if (params) {
 		cfg.port=params->globals.port;
-		if (params->globals.enable_access_log)
+	    hlog(LOG_DBG, "Config: port is %u\n", cfg.port);
+		if (params->globals.enable_access_log) {
 			cfg.access_log_path=params->globals.access_log;
-		if (params->globals.enable_error_log)
+	        hlog(LOG_DBG, "Config: http access hlog is %s\n", 
+                    cfg.access_log_path);
+        }
+		if (params->globals.enable_error_log) {
 			cfg.error_log_path=params->globals.error_log;
+	        hlog(LOG_DBG, "Config: http error hlog is %s\n", 
+                    cfg.error_log_path);
+        }
 	}
-
-	if ((0!=ham_srv_init(&cfg, &srv)))
-		exit(-1);
-
-	fprintf(f, "%s:%d - \n", __FILE__, __LINE__);
-	if (params)
-		initialize_server(srv, params);
-	fprintf(f, "%s:%d - \n", __FILE__, __LINE__);
 
     /* on Unix we first daemonize, then write the pidfile (otherwise we do
      * not know the pid of the daemon process). On Win32, we first write
-     * the pidfile and then call the service startup routine. */
+     * the pidfile and then call the service startup routine later. */
 #ifndef WIN32
     if (!foreground) {
+        hlog(LOG_DBG, "Running in background...\n");
         daemonize();
     }
 #endif
-fprintf(f, "%s:%d - \n", __FILE__, __LINE__);
-    if (pidfile)
+    if (pidfile) {
+        hlog(LOG_DBG, "Writing pid file\n");
         write_pidfile(pidfile);
-fprintf(f, "%s:%d - \n", __FILE__, __LINE__);
+    }
+
+    /* Initialize the server */
+	if ((0!=ham_srv_init(&cfg, &srv))) {
+	    hlog(LOG_FATAL, "Failed to initialize the server; terminating\n");
+		exit(-1);
+    }
+	if (params)
+		initialize_server(srv, params);
+
     /* This is the unix "main loop" which waits till the server is terminated.
      * Any registered signal will terminate the server by setting the 
      * 'running' flag to 0. (The Win32 main loop is hidden in
-     * win32_service_start()). */
+     * win32_service_run()). */
 #ifndef WIN32
+    hlog(LOG_DBG, "Daemon is entering main loop\n");
     while (running)
         sleep(1);
+    hlog(LOG_DBG, "Daemon is leaving main loop\n");
 #else
-fprintf(f, "%s:%d - \n", __FILE__, __LINE__);
-if (win32_action==ARG_RUN) {
-	fprintf(f, "%s:%d - \n", __FILE__, __LINE__);
-        win32_service_run();
-}
-	fprintf(f, "%s:%d - \n", __FILE__, __LINE__);
+    if (win32_action==ARG_RUN) {
+        if (foreground) {
+            hlog(LOG_DBG, "Running in foreground\n");
+            win32_service_run_fg();
+        }
+        else {
+            hlog(LOG_DBG, "Running in background (Win32 service)\n");
+            win32_service_run();
+        }
+    }
 #endif
 
-    printf("hamsrv is stopping...\n");
+    hlog(LOG_NORMAL, "hamsrv is stopping...\n");
+
+    /* avoid warning on linux that the cleanup label is never used */
+    goto cleanup;
 
 cleanup:
-	fprintf(f, "%s:%d - cleaning up\n", __FILE__, __LINE__);
-
     /* clean up */
+    hlog(LOG_DBG, "Cleaning up\n");
 	if (srv)
 		ham_srv_close(srv);
 	if (params) {
@@ -760,7 +923,12 @@ cleanup:
 		config_clear_table(params);
 	}
 
-	fclose(f);
+    hlog(LOG_DBG, "Terminating process\n");
+
+    /* daemon/win32 service: close syslog/Eventlog */
+    if (!foreground)
+        close_syslog();
 
     return (0);
 }
+

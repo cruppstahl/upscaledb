@@ -129,10 +129,19 @@ o windows service
     x command line switches -install, -start, -stop, -uninstall
     x write logfile to file or to syslog? - no, use normal logfiles
     x need msvc project
-    o need seperate config.example files for win32 and unix?
-    o run in foreground
-    o write all errors to syslog
-    o test on 64bit
+    x need seperate config.example files for win32 and unix? - no
+    x linux: default config path as in windows
+    x rename (hamzilla?)
+    x when killing the unix daemon: ps -ea still shows process
+    o log errors (different error-levels)
+        x new command line parameter log-level
+        x stderr if foreground
+        x syslog (linux daemon)
+        o eventlog (win32 service)
+    o test on win64
+    o win32: run in foreground
+    . new option to set the working directory
+    . new option to set the username
 
 o documentation: add information about unix daemon and win32 service to 
     Tutorial (Wiki)
