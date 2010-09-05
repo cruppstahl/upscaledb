@@ -40,9 +40,13 @@
 #  include <process.h> /* _getpid() */
 #  include <tchar.h>
 #  include <windows.h>
+#  include <winioctl.h>
+#  include <signal.h>
 #  define STRTOK_SAFE strtok_s
 #  define EXENAME "hamsrv.exe"
 #  define MAX_PATH_LENGTH   _MAX_PATH
+static TCHAR *serviceName = TEXT("hamsterdb Database Server");
+static TCHAR *serviceDescription = TEXT("Provides network access to hamsterdb Databases.");
 #endif
 #include <errno.h>
 
@@ -138,9 +142,7 @@ static int log_level  = LOG_NORMAL;
 static void
 init_syslog(void)
 {
-#ifdef WIN32
-#  error "I want to be implemented!"
-#else
+#ifndef WIN32
     openlog(EXENAME, LOG_PID, LOG_DAEMON);
 #endif
 }
@@ -148,9 +150,7 @@ init_syslog(void)
 static void
 close_syslog(void)
 {
-#ifdef WIN32
-#  error "I want to be implemented!"
-#else
+#ifndef WIN32
     closelog();
 #endif
 }
@@ -159,21 +159,52 @@ void
 hlog(int level, const char *format, ...)
 {
     va_list ap;
+    char buffer[1024];
 
     if (level<log_level)
         return;
 
     va_start(ap, format);
+    vsprintf(buffer, format, ap);
+    va_end(ap);
+
     if (foreground) {
-        vfprintf(stderr, format, ap);
+        fprintf(stderr, buffer);
     }
     else {
-        unsigned code;
-        char buffer[1024];
-        vsprintf(buffer, format, ap);
 #ifdef WIN32
-#  error "I want to be implemented!"
+		TCHAR msg[1024];
+		HANDLE h;
+		LPCTSTR strings[2];
+		WORD code, evtype;
+
+		h=RegisterEventSource(NULL, serviceName);
+		strings[0]=serviceName;
+		strings[1]=buffer;
+
+		switch(level) {
+            case LOG_DBG:
+            case LOG_NORMAL:
+				evtype=EV_INFO;
+                code=EVENTLOG_INFORMATION_TYPE;
+                break;
+            case LOG_WARN:
+				evtype=EV_WARNING;
+                code=EVENTLOG_WARNING_TYPE;
+                break;
+            default:
+				evtype=EV_ERROR;
+                code=EVENTLOG_ERROR_TYPE;
+                break;
+		}
+
+		if (h) {
+			ReportEvent(h, evtype, 0, code, NULL, 2, 0, strings, 0);
+			(void)DeregisterEventSource(h);
+		}
 #else
+		unsigned code;
+
         switch (level) {
             case LOG_DBG:
                 code=LOG_DEBUG;
@@ -191,16 +222,16 @@ hlog(int level, const char *format, ...)
         syslog(code, "%s", buffer);
 #endif
     }
-    va_end(ap);
 }
 
-#ifndef WIN32
 static void 
 signal_handler(int sig)
 {
     (void)sig;
     running = 0;
 }
+
+#ifndef WIN32
 
 static void
 daemonize(void)
@@ -408,9 +439,6 @@ initialize_server(ham_srv_t *srv, config_table_t *params)
 }
 
 #ifdef WIN32
-static TCHAR *serviceName = TEXT("hamsterdb Database Server");
-static TCHAR *serviceDescription = TEXT("Provides network access to hamsterdb Databases.");
-
 static void
 win32_service_install(void)
 {
@@ -817,11 +845,13 @@ main(int argc, char **argv)
 
     /* register signals; these are the signals that will terminate the daemon */
     hlog(LOG_DBG, "Registering signal handlers\n");
-    signal(SIGHUP, signal_handler);
-    signal(SIGINT, signal_handler);
+#ifndef WIN32
+	signal(SIGHUP, signal_handler);
     signal(SIGQUIT, signal_handler);
-    signal(SIGABRT, signal_handler);
     signal(SIGKILL, signal_handler);
+#endif
+    signal(SIGABRT, signal_handler);
+    signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
 
 #ifdef WIN32
