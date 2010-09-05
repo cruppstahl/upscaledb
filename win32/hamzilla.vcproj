@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9,00"
-	Name="hamsrv"
+	Name="hamzilla"
 	ProjectGUID="{D11CE719-716F-46B0-9DDA-74125DA7985A}"
-	RootNamespace="hamsrv"
+	RootNamespace="hamzilla"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="131072"
 	>
@@ -21,8 +21,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="out\tools\hamsrv_debug"
-			IntermediateDirectory="tmp\tools\hamsrv_debug"
+			OutputDirectory="out\tools\hamzilla_debug"
+			IntermediateDirectory="tmp\tools\hamzilla_debug"
 			ConfigurationType="1"
 			CharacterSet="1"
 			>
@@ -66,7 +66,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\hamsrv.exe"
+				OutputFile="$(OutDir)\hamzilla.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -99,8 +99,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="tmp\tools\hamsrv_debug_x64"
-			IntermediateDirectory="tmp\tools\hamsrv_debug_x64"
+			OutputDirectory="tmp\tools\hamzilla_debug_x64"
+			IntermediateDirectory="tmp\tools\hamzilla_debug_x64"
 			ConfigurationType="1"
 			CharacterSet="1"
 			>
@@ -145,7 +145,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\hamsrv.exe"
+				OutputFile="$(OutDir)\hamzilla.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -178,8 +178,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="out\tools\hamsrv"
-			IntermediateDirectory="tmp\tools\hamsrv"
+			OutputDirectory="out\tools\hamzilla"
+			IntermediateDirectory="tmp\tools\hamzilla"
 			ConfigurationType="1"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
@@ -220,7 +220,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\hamsrv.exe"
+				OutputFile="$(OutDir)\hamzilla.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -255,8 +255,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="out\tools\hamsrv_x64"
-			IntermediateDirectory="tmp\tools\hamsrv_x64"
+			OutputDirectory="out\tools\hamzilla_x64"
+			IntermediateDirectory="tmp\tools\hamzilla_x64"
 			ConfigurationType="1"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
@@ -298,7 +298,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\hamsrv.exe"
+				OutputFile="$(OutDir)\hamzilla.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -352,7 +352,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\tools\hamsrvd.c"
+			RelativePath="..\tools\hamzilla.c"
 			>
 		</File>
 	</Files>
