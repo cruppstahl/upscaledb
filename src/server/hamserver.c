@@ -1390,6 +1390,7 @@ ham_srv_init(ham_srv_config_t *config, ham_srv_t **psrv)
     srv->mg_ctxt=mg_start();
     mg_set_option(srv->mg_ctxt, "ports", buf);
     mg_set_option(srv->mg_ctxt, "dir_list", "no");
+	mg_authorize(srv->mg_ctxt);
     if (config->access_log_path) {
         if (!mg_set_option(srv->mg_ctxt, "access_log", 
                     config->access_log_path)) {

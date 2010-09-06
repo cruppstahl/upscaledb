@@ -133,15 +133,20 @@ o windows service
     x linux: default config path as in windows
     x rename (hamzilla?)
     x when killing the unix daemon: ps -ea still shows process
+    x win32: run in foreground
     o log errors (different error-levels)
         x new command line parameter log-level
         x stderr if foreground
         x syslog (linux daemon)
         o eventlog (win32 service)
+            -> need to define events as in
+            http://msdn.microsoft.com/en-us/library/aa363680%28v=VS.85%29.aspx
     o test on win64
-    o win32: run in foreground
     . new option to set the working directory
     . new option to set the username
+
+o to improve testing, client/server samples should use the same path/database
+        as example.config
 
 o documentation: add information about unix daemon and win32 service to 
     Tutorial (Wiki)

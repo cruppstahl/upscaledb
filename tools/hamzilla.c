@@ -176,30 +176,48 @@ hlog(int level, const char *format, ...)
 		TCHAR msg[1024];
 		HANDLE h;
 		LPCTSTR strings[2];
-		WORD code, evtype;
+		WORD type;
+		DWORD code;
+
+		mbstowcs(msg, buffer, 1024);
 
 		h=RegisterEventSource(NULL, serviceName);
 		strings[0]=serviceName;
-		strings[1]=buffer;
+		strings[1]=msg;
+
+// MessageId: EV_INFO
+// MessageText:
+//  %2
+#define EV_INFO                          ((DWORD)0x40070001L)
+
+// MessageId: EV_WARNING
+// MessageText:
+//  WARNING: %2
+#define EV_WARNING                       ((DWORD)0x80070002L)
+
+// MessageId: EV_ERROR
+// MessageText:
+//  ERROR: %2
+#define EV_ERROR                         ((DWORD)0xC0070003L)
 
 		switch(level) {
             case LOG_DBG:
             case LOG_NORMAL:
-				evtype=EV_INFO;
-                code=EVENTLOG_INFORMATION_TYPE;
+				code=EV_INFO;
+                type=EVENTLOG_INFORMATION_TYPE;
                 break;
             case LOG_WARN:
-				evtype=EV_WARNING;
-                code=EVENTLOG_WARNING_TYPE;
+				code=EV_WARNING;
+                type=EVENTLOG_WARNING_TYPE;
                 break;
             default:
-				evtype=EV_ERROR;
-                code=EVENTLOG_ERROR_TYPE;
+				code=EV_ERROR;
+                type=EVENTLOG_ERROR_TYPE;
                 break;
 		}
 
 		if (h) {
-			ReportEvent(h, evtype, 0, code, NULL, 2, 0, strings, 0);
+			ReportEvent(h, type, 0, code, NULL, 2, 0, strings, 0);
 			(void)DeregisterEventSource(h);
 		}
 #else
@@ -718,8 +736,8 @@ win32_service_run(void)
 
 	ret=StartServiceCtrlDispatcher(serviceTable);
 	if (!ret) {
-		hlog(LOG_FATAL, "StartServiceCtrlDispatcher failed with error %u\n", 
-                GetLastError());
+		/* This fails if hamzilla is started from the console. */
+		printf("Please run `hamzilla.exe -s` to start the service.\n");
 	}
 }
 #endif
@@ -948,7 +966,8 @@ cleanup:
 		ham_srv_close(srv);
 	if (params) {
 		for (e=0; e<params->env_count; e++) {
-			(void)ham_env_close(params->envs[e].env, HAM_AUTO_CLEANUP);
+			if (params->envs[e].env)
+				(void)ham_env_close(params->envs[e].env, HAM_AUTO_CLEANUP);
 		}
 		config_clear_table(params);
 	}

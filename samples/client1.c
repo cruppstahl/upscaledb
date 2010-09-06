@@ -53,7 +53,7 @@ main(int argc, char **argv)
      * ham_env_create() will not really create a new Environment but rather 
      * connect to an already existing one
      */
-    st=ham_env_create(env, "http://localhost:8080/test.db", 0, 0);
+    st=ham_env_create(env, "http://localhost:8080/env1.db", 0, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_create", st);
 
