@@ -1,3 +1,10 @@
+Sep 07, 2010 - chris
+o several functions are now deprecated:
+    use ham_open_ex instead of ham_open
+    use ham_create_ex instead of ham_create
+    use ham_env_open_ex instead of ham_env_open
+    use ham_env_create_ex instead of ham_env_create
+
 Aug 31, 2010 - chris
 o fixed compilation on newest ArchLinux (gcc 4.5.1) - thanks, zebul666
 
