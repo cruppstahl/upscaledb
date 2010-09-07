@@ -1,4 +1,6 @@
 Sep 07, 2010 - chris
+o the tutorial is no longer part of the Doxygen files; instead it's now 
+    online in a wiki: http://wiki.github.com/cruppstahl/hamsterdb
 o several functions are now deprecated:
     use ham_open_ex instead of ham_open
     use ham_create_ex instead of ham_create

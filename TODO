@@ -152,7 +152,7 @@ o windows service
 
 x samples: do no longer use ham_create/ham_open, use _ex-functions instead
 
-o documentation: add information about unix daemon and win32 service to 
+x documentation: add information about unix daemon and win32 service to 
     Tutorial (Wiki)
 
 o fix freelist page overflow when searching for bits (See mail from Stefan)
@@ -176,6 +176,8 @@ o utilize the github wiki
     . internal developer documentation (remove from doxygen)
         o cursors
         o ??
+
+o next release - need hamsterdb-alien package!
 
 -----------------------------------------------------------------------------
 

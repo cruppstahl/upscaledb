@@ -70,6 +70,7 @@ To see a list of all changes, look in the file ChangeLog.
 - Easy to use and well-documented
 - Supports rudimentary live-reorganization by automatically
     merging freelist entries
+- Remote access with embeddable server
 - Open source and released under the GPL 2.0 or later
 - Supports AES encryption and zlib compression
 - Wrappers for C++, Python, Java and .NET
@@ -110,8 +111,8 @@ On Ubuntu, you can install the following packages:
     libprotobuf-dev
     libcurl-dev
 
-On Windows, precompiled libraries are available in 3rdparty/libcurl and 
-3rdparty/protobuf.
+For Windows, precompiled libcurl/protobuf libraries are available on 
+hamsterdb.com.
 
 7. Testing and Example Code
 
