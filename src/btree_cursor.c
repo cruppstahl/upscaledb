@@ -171,7 +171,6 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     ham_assert(st ? !page : 1, (0));
     if (!page)
         return st ? st : HAM_INTERNAL_ERROR;
-    node=ham_page_get_btree_node(page);
 
     /*
      * couple this cursor to the smallest key in this page

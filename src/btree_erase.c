@@ -84,7 +84,7 @@ my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left,
  * collapse the root node
  */
 static ham_status_t
-my_collapse_root(ham_page_t *root, erase_scratchpad_t *scratchpad);
+__collapse_root(ham_page_t *root, erase_scratchpad_t *scratchpad);
 
 /**
  * rebalance a page - either shifts elements to a sibling, or merges 
@@ -232,9 +232,8 @@ btree_erase_cursor(ham_btree_t *be, ham_key_t *key,
             return (st);
         }
 
-        st=my_collapse_root(p, &scratchpad);
-        if (st)
-        {
+        st=__collapse_root(p, &scratchpad);
+        if (st) {
             stats_update_erase_fail(db, &hints);
             return (st);
         }
@@ -425,31 +424,30 @@ my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left, h
 }
 
 static ham_status_t
-my_collapse_root(ham_page_t *newroot, erase_scratchpad_t *scratchpad)
+__collapse_root(ham_page_t *newroot, erase_scratchpad_t *scratchpad)
 {
     ham_env_t *env;
 
     btree_set_rootpage(scratchpad->be, page_get_self(newroot));
     be_set_dirty(scratchpad->be, HAM_TRUE);
     ham_assert(page_get_owner(newroot), (0));
+
     env = db_get_env(page_get_owner(newroot));
+    ham_assert(env!=0, (""));
     env_set_dirty(env);
-    if (env_get_cache(env) && (page_get_type(newroot) != PAGE_TYPE_B_ROOT))
-    {
+
+    /*
+     * As we re-purpose a page, we will reset its pagecounter as
+     * well to signal its first use as the new type assigned here.
+     */
+    if (env_get_cache(env) && (page_get_type(newroot) != PAGE_TYPE_B_ROOT)) {
         ham_cache_t *cache = env_get_cache(env);
-        /*
-         * As we re-purpose a page, we will reset its pagecounter as
-         * well to signal its first use as the new type assigned here.
-         */
         ham_assert(cache, (0));
-        //page_set_cache_cntr(newroot, cache->_timeslot++);
-#if 0
-        cache_update_page_access_counter(newroot, cache, +2); /* bump up */
-#else
-        cache_update_page_access_counter(newroot, cache, 0); /* bump up */
-#endif
+        cache_update_page_access_counter(newroot, cache, 0);
     }
+
     page_set_type(newroot, PAGE_TYPE_B_ROOT);
+
     return (0);
 }
 
@@ -506,10 +504,10 @@ my_rebalance(ham_page_t **newpage_ref, ham_page_t *page, ham_offset_t left, ham_
      * if we have no siblings, then we're rebalancing the root page
      */
     if (!leftpage && !rightpage) {
-        if (btree_node_is_leaf(node))
+        if (btree_node_is_leaf(node)) {
             return (0);
-        else 
-        {
+        }
+        else {
             return (db_fetch_page(newpage_ref, 
                         page_get_owner(page),
                         btree_node_get_ptr_left(node), 0));
@@ -521,12 +519,13 @@ my_rebalance(ham_page_t **newpage_ref, ham_page_t *page, ham_offset_t left, ham_
      * too empty, we have to merge them
      */
     if ((!leftpage || fewleft) && (!rightpage || fewright)) {
-        if (parent && lanchor!=page_get_self(parent)) 
-        {
-            return (my_merge_pages(newpage_ref, page, rightpage, ranchor, scratchpad, hints));
+        if (parent && lanchor!=page_get_self(parent)) {
+            return (my_merge_pages(newpage_ref, page, rightpage, ranchor, 
+                        scratchpad, hints));
         }
         else {
-            return (my_merge_pages(newpage_ref, leftpage, page, lanchor, scratchpad, hints));
+            return (my_merge_pages(newpage_ref, leftpage, page, lanchor, 
+                        scratchpad, hints));
         }
     }
 
@@ -535,12 +534,13 @@ my_rebalance(ham_page_t **newpage_ref, ham_page_t *page, ham_offset_t left, ham_
      */
     if (leftpage && fewleft && rightpage && !fewright) {
         if (parent && (!(ranchor==page_get_self(parent)) && 
-                (page_get_self(page)==page_get_self(scratchpad->mergepage)))) 
-        {
-            return (my_merge_pages(newpage_ref, leftpage, page, lanchor, scratchpad, hints));
+                (page_get_self(page)==page_get_self(scratchpad->mergepage)))) {
+            return (my_merge_pages(newpage_ref, leftpage, page, lanchor, 
+                        scratchpad, hints));
         }
         else {
-            return (my_shift_pages(newpage_ref, page, rightpage, ranchor, scratchpad, hints));
+            return (my_shift_pages(newpage_ref, page, rightpage, ranchor, 
+                        scratchpad, hints));
         }
     }
 
@@ -549,12 +549,13 @@ my_rebalance(ham_page_t **newpage_ref, ham_page_t *page, ham_offset_t left, ham_
      */
     if (leftpage && !fewleft && rightpage && fewright) {
         if (parent && (!(lanchor==page_get_self(parent)) &&
-                (page_get_self(page)==page_get_self(scratchpad->mergepage)))) 
-        {
-            return (my_merge_pages(newpage_ref, page, rightpage, ranchor, scratchpad, hints));
+                (page_get_self(page)==page_get_self(scratchpad->mergepage)))) {
+            return (my_merge_pages(newpage_ref, page, rightpage, ranchor, 
+                        scratchpad, hints));
         }
         else {
-            return (my_shift_pages(newpage_ref, leftpage, page, lanchor, scratchpad, hints));
+            return (my_shift_pages(newpage_ref, leftpage, page, lanchor, 
+                        scratchpad, hints));
         }
     }
 
@@ -562,24 +563,28 @@ my_rebalance(ham_page_t **newpage_ref, ham_page_t *page, ham_offset_t left, ham_
      * choose the more effective of two shifts
      */
     if (lanchor==ranchor) {
-        if (btree_node_get_count(leftnode)<=btree_node_get_count(rightnode)) 
-        {
-            return (my_shift_pages(newpage_ref, page, rightpage, ranchor, scratchpad, hints));
+        if (leftnode!=0 && rightnode!=0
+                && btree_node_get_count(leftnode)
+                    <=btree_node_get_count(rightnode)) {
+            return (my_shift_pages(newpage_ref, page, rightpage, 
+                        ranchor, scratchpad, hints));
         }
         else {
-            return (my_shift_pages(newpage_ref, leftpage, page, lanchor, scratchpad, hints));
+            return (my_shift_pages(newpage_ref, leftpage, page, 
+                        lanchor, scratchpad, hints));
         }
     }
 
     /*
      * choose the shift with more local effect
      */
-    if (parent && lanchor==page_get_self(parent)) 
-    {
-        return (my_shift_pages(newpage_ref, leftpage, page, lanchor, scratchpad, hints));
+    if (parent && lanchor==page_get_self(parent)) {
+        return (my_shift_pages(newpage_ref, leftpage, page, lanchor, 
+                        scratchpad, hints));
     }
     else {
-        return (my_shift_pages(newpage_ref, page, rightpage, ranchor, scratchpad, hints));
+        return (my_shift_pages(newpage_ref, page, rightpage, ranchor, 
+                        scratchpad, hints));
     }
 }
 
@@ -685,11 +690,10 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
             
     /*
      * as sibnode is merged into node, we will also need to ensure that our 
-     * statistics node/page tracking is corrected accordingly: what was in sibnode, is now in 
-     * node. And sibnode will be destroyed at the end.
+     * statistics node/page tracking is corrected accordingly: what was in 
+     * sibnode, is now in node. And sibnode will be destroyed at the end.
      */
-    if (sibpage == hints->processed_leaf_page)
-    {
+    if (sibpage == hints->processed_leaf_page) {
         /* sibnode slot 0 has become node slot 'bte_lhs' */
         hints->processed_slot += btree_node_get_count(node);
         hints->processed_leaf_page = page;
@@ -754,13 +758,13 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
      * delete the page
      */
     ham_assert(hints->processed_leaf_page != sibpage, (0));
+    ham_assert(env_get_txn(env)!=0, (""));
     st=txn_free_page(env_get_txn(env), sibpage);
-    if (st) {
+    if (st)
         return st;
-    }
 
     *newpage_ref = sibpage;
-    return HAM_SUCCESS;
+    return (HAM_SUCCESS);
 }
 
 static ham_status_t

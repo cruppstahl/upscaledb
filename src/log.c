@@ -970,6 +970,13 @@ bail:
         allocator_free(log_get_allocator(log), data);
 
     /*
+     * did we goto bail because of an earlier error? then do not
+     * clear the logfile but return
+     */
+    if (st)
+        return (st);
+
+    /*
      * clear the log files and set the lsn to 1
      */
     st=ham_log_clear(log);

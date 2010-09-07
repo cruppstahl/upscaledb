@@ -124,6 +124,8 @@ x update win32 files to 2008
 x hamsterdb forum - many compiler errors on archlinux; fix them!
     x also rename endian.h because it conflicts
 
+x ssb sent me clang/llvm static code analysis - integrate fixes
+
 o windows service
     x read config file from where? <exename>.config
     x command line switches -install, -start, -stop, -uninstall

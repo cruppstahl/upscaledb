@@ -659,9 +659,7 @@ blob_read(ham_db_t *db, ham_offset_t blobid,
     ham_status_t st;
     ham_page_t *page;
     blob_t hdr;
-    ham_size_t blobsize;
-
-    blobsize = 0;
+    ham_size_t blobsize=0;
 
     /*
      * in-memory-database: the blobid is actually a pointer to the memory

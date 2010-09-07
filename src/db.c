@@ -55,23 +55,17 @@ my_calc_keys_cb(int event, void *param1, void *param2, void *context)
 {
     int_key_t *key;
     calckeys_context_t *c;
-    ham_page_t *page;
-    ham_u32_t level;
-    ham_size_t count1;
-    ham_size_t count2;
+    ham_size_t count;
 
     c = (calckeys_context_t *)context;
 
     switch (event) 
     {
     case ENUM_EVENT_DESCEND:
-        level = *(ham_u32_t *)param1;
-        count1 = *(ham_size_t *)param2;
         break;
 
     case ENUM_EVENT_PAGE_START:
         c->is_leaf = *(ham_bool_t *)param2;
-        page = (ham_page_t *)param1;
         break;
 
     case ENUM_EVENT_PAGE_STOP:
@@ -79,7 +73,7 @@ my_calc_keys_cb(int event, void *param1, void *param2, void *context)
 
     case ENUM_EVENT_ITEM:
         key = (int_key_t *)param1;
-        count2 = *(ham_size_t *)param2;
+        count = *(ham_size_t *)param2;
 
         if (c->is_leaf) {
             ham_size_t dupcount = 1;
@@ -105,7 +99,7 @@ my_calc_keys_cb(int event, void *param1, void *param2, void *context)
                  * Assume all keys in this page have the same number 
                  * of dupes (=1 if no dupes)
                  */
-                c->total_count += (count2 - 1) * dupcount;
+                c->total_count += (count - 1) * dupcount;
                 return CB_DO_NOT_DESCEND;
             }
         }
@@ -1597,7 +1591,10 @@ _local_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
                 p->value=env_get_file_mode(db_get_env(db));
                 break;
             case HAM_PARAM_GET_FILENAME:
-                p->value=(ham_u64_t)PTR_TO_U64(env_get_filename(env));
+                if (env_get_filename(env))
+                    p->value=(ham_u64_t)PTR_TO_U64(env_get_filename(env));
+                else
+                    p->value=0;
                 break;
             case HAM_PARAM_GET_DATABASE_NAME:
                 p->value=(ham_offset_t)db_get_dbname(db);
@@ -2045,15 +2042,7 @@ _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 static ham_status_t
 _local_cursor_close(ham_cursor_t *cursor)
 {
-    ham_status_t st;
-    ham_db_t *db=cursor_get_db(cursor);
-    ham_env_t *env;
-
-    env = db_get_env(db);
-
-    st=cursor->_fun_close(cursor);
-
-    return (st);
+    return (cursor->_fun_close(cursor));
 }
 
 static ham_status_t

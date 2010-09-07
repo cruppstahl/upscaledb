@@ -632,21 +632,6 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                         |HAM_DISABLE_VAR_KEYLEN
                         |HAM_RECORD_NUMBER
                         |(create ? HAM_ENABLE_DUPLICATES : 0))))));
-        flags &= ((!create ? HAM_READ_ONLY : 0)
-                        |(create ? HAM_IN_MEMORY_DB : 0)
-                        |(!env ? (HAM_WRITE_THROUGH 
-                                |HAM_DISABLE_MMAP 
-                                |HAM_DISABLE_FREELIST_FLUSH
-                                |HAM_CACHE_UNLIMITED
-                                |HAM_LOCK_EXCLUSIVE
-                                |HAM_ENABLE_TRANSACTIONS
-                                |HAM_ENABLE_RECOVERY) : 0)
-                        |(!env && !create ? HAM_AUTO_RECOVERY : 0)
-                        |HAM_CACHE_STRICT
-                        |HAM_USE_BTREE
-                        |HAM_DISABLE_VAR_KEYLEN
-                        |HAM_RECORD_NUMBER
-                        |(create ? HAM_ENABLE_DUPLICATES : 0));
         return (HAM_INV_PARAMETER);
     }
 
@@ -687,7 +672,6 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                             ham_trace(("invalid keysize %u - must be 8 for "
                                        "HAM_RECORD_NUMBER databases",
                                        (unsigned)keysize));
-                            keysize = sizeof(ham_u64_t); 
                             return (HAM_INV_KEYSIZE);
                         }
                     }
@@ -698,7 +682,6 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                     if (param->value!=1024 && param->value%2048!=0) {
                         ham_trace(("invalid pagesize - must be 1024 or "
                                 "a multiple of 2048"));
-                        pagesize=0;
                         return (HAM_INV_PAGESIZE);
                     }
                     pagesize=(ham_size_t)param->value;
@@ -709,9 +692,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
             case HAM_PARAM_DATA_ACCESS_MODE:
                 /* not allowed for Environments, only for Databases */
                 if (!db) {
-                    ham_trace(("invalid parameter "
-                               "HAM_PARAM_DATA_ACCESS_MODE"));
-                    dam=0;
+                    ham_trace(("invalid parameter HAM_PARAM_DATA_ACCESS_MODE"));
                     return (HAM_INV_PARAMETER);
                 }
                 if (param->value&HAM_DAM_ENFORCE_PRE110_FORMAT) {
@@ -765,7 +746,6 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                                 && dbname > HAM_DEFAULT_DATABASE_NAME)) 
                         {
                             ham_trace(("parameter 'HAM_PARAM_GET_DATABASE_NAME' value (0x%04x) must be non-zero and lower than 0xf000", (unsigned)dbname));
-                            dbname = HAM_FIRST_DATABASE_NAME;
                             return (HAM_INV_PARAMETER);
                         }
                         break;
@@ -861,13 +841,11 @@ default_case:
         if (flags&HAM_CACHE_STRICT) {
             ham_trace(("combination of HAM_IN_MEMORY_DB and HAM_CACHE_STRICT "
                         "not allowed"));
-            flags &= ~HAM_CACHE_STRICT;
             return (HAM_INV_PARAMETER);
         }
         if (cachesize!=0) {
             ham_trace(("combination of HAM_IN_MEMORY_DB and cachesize != 0 "
                         "not allowed"));
-            cachesize = 0;
             return (HAM_INV_PARAMETER);
         }
     }
@@ -879,8 +857,6 @@ default_case:
         if ((flags&HAM_CACHE_STRICT) || cachesize!=0) {
             ham_trace(("combination of HAM_CACHE_UNLIMITED and cachesize != 0 "
                         "or HAM_CACHE_STRICT not allowed"));
-            cachesize = 0;
-            flags &= ~HAM_CACHE_STRICT;
             return (HAM_INV_PARAMETER);
         }
     }
@@ -973,8 +949,6 @@ default_case:
         ham_trace(("pagesize too small (%u), must be at least %u bytes",
                     (unsigned)pagesize,
                     (unsigned)(keysize*6)));
-        pagesize = keysize*6 + DB_CHUNKSIZE - 1;
-        pagesize -= pagesize % DB_CHUNKSIZE;
         return (HAM_INV_KEYSIZE);
     }
 
@@ -992,7 +966,6 @@ default_case:
             ham_trace(("parameter HAM_PARAM_MAX_ENV_DATABASES too high for "
                         "this pagesize; the maximum allowed is %u", 
                         (unsigned)l));
-            set_abs_max_dbs = HAM_TRUE;
             return (HAM_INV_PARAMETER);
         }
         /* override assignment when 'env' already has been configured with a 

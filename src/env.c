@@ -234,7 +234,6 @@ _local_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags,
     ham_status_t st;
     ham_device_t *device=0;
     ham_u32_t pagesize=0;
-    ham_u16_t dam = 0;
 
     /* reset all performance data */
     stats_init_globdata(env, env_get_global_perf_data(env));
@@ -362,7 +361,6 @@ _local_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags,
             if (envheader_get_version(hdr, 0) == 1 &&
                 envheader_get_version(hdr, 1) == 0 &&
                 envheader_get_version(hdr, 2) <= 9) {
-                dam |= HAM_DAM_ENFORCE_PRE110_FORMAT;
                 env_set_legacy(env, 1);
             }
             else {
@@ -794,7 +792,10 @@ _local_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
                 p->value=env_get_file_mode(env);
                 break;
             case HAM_PARAM_GET_FILENAME:
-                p->value=(ham_u64_t)(PTR_TO_U64(env_get_filename(env)));
+                if (p->value)
+                    p->value=(ham_u64_t)(PTR_TO_U64(env_get_filename(env)));
+                else
+                    p->value=0;
                 break;
             case HAM_PARAM_GET_STATISTICS:
                 if (!p->value) {

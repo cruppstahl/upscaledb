@@ -252,7 +252,6 @@ ham_status_t
 cache_put_page(ham_cache_t *cache, ham_page_t *page)
 {
     ham_size_t hash=__calc_hash(cache, page_get_self(page));
-    ham_bool_t new_page = HAM_TRUE;
 
     ham_assert(page_get_pers(page), (""));
 
@@ -260,8 +259,6 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page)
         cache_set_totallist(cache, 
                 page_list_remove(cache_get_totallist(cache), 
                 PAGE_LIST_CACHED, page));
-
-        new_page = HAM_FALSE;
 
         cache_set_cur_elements(cache, 
                 cache_get_cur_elements(cache)-1);
