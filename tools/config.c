@@ -21,7 +21,7 @@
 #define STATE_ENVIRONMENTS    2
 #define STATE_DATABASES       3
 
-#define ham_log(x)		fprintf(stderr, x)
+extern void hlog(int level, const char *format, ...);
 
 static int
 __parser_cb(void *ctx, int type, const struct JSON_value_struct *value)
@@ -210,7 +210,7 @@ config_parse_string(const char *string, config_table_t **params)
     while (*string) {
         if (!JSON_parser_char(jc, *string)) {
             delete_JSON_parser(jc);
-            ham_log(("JSON syntax error in byte %u\n", count));
+            hlog(3, "JSON syntax error in byte %u\n", count);
             config_clear_table(p);
             return (HAM_INV_PARAMETER);
         }
@@ -220,7 +220,6 @@ config_parse_string(const char *string, config_table_t **params)
 
     if (!JSON_parser_done(jc)) {
         delete_JSON_parser(jc);
-        ham_log(("JSON syntax error"));
         config_clear_table(p);
         return (HAM_INV_PARAMETER);
     }

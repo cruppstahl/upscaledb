@@ -36,14 +36,14 @@ main(void)
     char input[1024];
 
     ham_env_new(&env);
-    st=ham_env_create(env, "test.db", HAM_ENABLE_TRANSACTIONS, 0644);
+    st=ham_env_create(env, "env1.db", HAM_ENABLE_TRANSACTIONS, 0644);
     if (st) {
         printf("ham_env_create: %d\n", st);
         exit(-1);
     }
 
     ham_new(&db);
-    st=ham_env_create_db(env, db, 14, HAM_ENABLE_DUPLICATES, 0);
+    st=ham_env_create_db(env, db, 12, HAM_ENABLE_DUPLICATES, 0);
     if (st) {
         printf("ham_env_create_db: %d\n", st);
         exit(-1);
@@ -68,7 +68,7 @@ main(void)
     memset(&cfg, 0, sizeof(cfg));
     cfg.port=8080;
     ham_srv_init(&cfg, &srv);
-    ham_srv_add_env(srv, env, "/test.db");
+    ham_srv_add_env(srv, env, "/env1.db");
 
     printf("server1%s started - please run client1%s for a test\n", 
             EXT, EXT);

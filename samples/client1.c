@@ -60,7 +60,7 @@ main(int argc, char **argv)
     /*
      * now open a Database in this Environment
      */
-    st=ham_env_open_db(env, db, 14, 0, 0);
+    st=ham_env_open_db(env, db, 13, 0, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_open_db", st);
 

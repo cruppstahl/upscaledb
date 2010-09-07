@@ -126,6 +126,9 @@ x hamsterdb forum - many compiler errors on archlinux; fix them!
 
 x ssb sent me clang/llvm static code analysis - integrate fixes
 
+x to improve testing, client/server samples should use the same path/database
+        as example.config
+
 o windows service
     x read config file from where? <exename>.config
     x command line switches -install, -start, -stop, -uninstall
@@ -146,9 +149,6 @@ o windows service
     o test on win64
     . new option to set the working directory
     . new option to set the username
-
-o to improve testing, client/server samples should use the same path/database
-        as example.config
 
 o documentation: add information about unix daemon and win32 service to 
     Tutorial (Wiki)
