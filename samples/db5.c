@@ -47,13 +47,13 @@ main(int argc, char **argv)
     }
 
     /*
-     * second step: create a new database with support for duplicate keys
+     * second step: create a new Database with support for duplicate keys
      *
      * we could create an in-memory-database to speed up the sorting.
      */
-    st=ham_create(db, "test.db", HAM_ENABLE_DUPLICATES, 0664);
+    st=ham_create_ex(db, "test.db", HAM_ENABLE_DUPLICATES, 0664, 0);
     if (st!=HAM_SUCCESS) {
-        printf("ham_create() failed with error %d\n", st);
+        printf("ham_create_ex() failed with error %d\n", st);
         return (-1);
     }
 
@@ -76,9 +76,6 @@ main(int argc, char **argv)
             record.data=&lineno;
             record.size=sizeof(lineno);
 
-
-            /* note: the second parameter of ham_insert() is reserved; set it 
-             * to NULL; the flag HAM_DUPLICATE inserts a duplicate key */
             st=ham_insert(db, 0, &key, &record, HAM_DUPLICATE);
             if (st!=HAM_SUCCESS) {
                 printf("ham_insert() failed with error %d\n", st);

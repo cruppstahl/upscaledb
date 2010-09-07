@@ -150,6 +150,8 @@ o windows service
     . new option to set the working directory
     . new option to set the username
 
+x samples: do no longer use ham_create/ham_open, use _ex-functions instead
+
 o documentation: add information about unix daemon and win32 service to 
     Tutorial (Wiki)
 
@@ -162,6 +164,7 @@ o more server stuff
 
 o webpage changes
     o add client1.c/server1.c to hamsterdb.com/documentation/samples
+    o update all other C/C++ samples on the webpage
 
 o utilize the github wiki
     x move the FAQ
@@ -173,9 +176,6 @@ o utilize the github wiki
     . internal developer documentation (remove from doxygen)
         o cursors
         o ??
-
-o samples: do no longer use ham_create/ham_open, use _ex-functions instead
-    o update them on the webpage
 
 -----------------------------------------------------------------------------
 

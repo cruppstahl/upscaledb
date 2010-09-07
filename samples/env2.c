@@ -131,18 +131,15 @@ main(int argc, char **argv)
     }
 
     /*
-     * now create a new database file for the environment
-     *
-     * we could also use ham_env_create_ex() if we wanted to specify the 
-     * page size, key size or cache size limits
+     * Now create a new database file for the Environment
      */
-    st=ham_env_create(env, "test.db", 0, 0664);
+    st=ham_env_create_ex(env, "test.db", 0, 0664, 0);
     if (st!=HAM_SUCCESS)
         error("ham_env_create", st);
 
     /*
-     * then create the two databases in this environment; each database
-     * has a name - the first is our "customer" database, the second 
+     * Then create the two Databases in this Environment; each Database
+     * has a name - the first is our "customer" Database, the second 
      * is for the "orders"; the third manages our 1:n relation and
      * therefore needs to enable duplicate keys
      */
@@ -158,7 +155,7 @@ main(int argc, char **argv)
         error("ham_env_create_db(c2o)", st);
 
     /* 
-     * create a cursor for each database
+     * create a Cursor for each Database
      */
     for (i=0; i<MAX_DBS; i++) {
         st=ham_cursor_create(db[i], 0, 0, &cursor[i]);
@@ -167,7 +164,7 @@ main(int argc, char **argv)
     }
 
     /*
-     * insert the customers in the customer table
+     * Insert the customers in the customer table
      *
      * INSERT INTO customers VALUES (1, "Alan Antonov Corp.");
      * INSERT INTO customers VALUES (2, "Barry Broke Inc.");
@@ -180,15 +177,13 @@ main(int argc, char **argv)
         record.size=sizeof(customer_t);
         record.data=&customers[i];
 
-        /* note: the second parameter of ham_insert() is reserved; set it to 
-         * NULL */
         st=ham_insert(db[0], 0, &key, &record, 0);
 		if (st!=HAM_SUCCESS)
             error("ham_insert (customer)", st);
     }
 
     /*
-     * and now the orders in the second database; contrary to env1, 
+     * And now the orders in the second Database; contrary to env1, 
      * we only store the assignee, not the whole structure
      *
      * INSERT INTO orders VALUES (1, "Joe");
@@ -201,8 +196,6 @@ main(int argc, char **argv)
         record.size=sizeof(orders[i].assignee);
         record.data=orders[i].assignee;
 
-        /* note: the second parameter of ham_insert() is reserved; set it to 
-         * NULL */
         st=ham_insert(db[1], 0, &key, &record, 0);
 		if (st!=HAM_SUCCESS)
             error("ham_insert (order)", st);
@@ -223,8 +216,6 @@ main(int argc, char **argv)
         record.size=sizeof(int);
         record.data=&orders[i].id;
 
-        /* note: the second parameter of ham_insert() is reserved; set it to 
-         * NULL */
         st=ham_insert(db[2], 0, &key, &record, HAM_DUPLICATE);
 		if (st!=HAM_SUCCESS)
             error("ham_insert(c2o)", st);
@@ -315,9 +306,9 @@ main(int argc, char **argv)
     }
 
     /*
-     * now close the environment handle; the flag
-     * HAM_AUTO_CLEANUP will automatically close all databases and
-     * cursors
+     * Now close the Environment handle; the flag
+     * HAM_AUTO_CLEANUP will automatically close all Databases and
+     * Cursors
      */
     st=ham_env_close(env, HAM_AUTO_CLEANUP);
     if (st!=HAM_SUCCESS)

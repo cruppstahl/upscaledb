@@ -46,7 +46,7 @@ main(int argc, char **argv)
     }
 
     /*
-     * second step: create a new hamsterdb "record number" database
+     * second step: create a new hamsterdb "record number" Database
      *
      * we could create an in-memory-database to speed up the sorting.
      */
@@ -75,10 +75,8 @@ main(int argc, char **argv)
             key.size=sizeof(recno);
 
             record.data=p;
-            record.size=(ham_size_t)strlen(p)+1; /* also store the terminating 0-byte */
+            record.size=(ham_size_t)strlen(p)+1; /* also store terminating 0 */
 
-            /* note: the second parameter of ham_insert() is reserved; set it 
-             * to NULL */
             st=ham_insert(db, 0, &key, &record, 0);
             if (st!=HAM_SUCCESS && st!=HAM_DUPLICATE_KEY) {
                 printf("ham_insert() failed with error %d\n", st);

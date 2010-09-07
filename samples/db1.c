@@ -66,7 +66,7 @@ main(int argc, char **argv)
      * we could also use ham_create_ex() if we wanted to specify the 
      * page size, key size or cache size limits
      */
-    st=ham_create(db, "test.db", 0, 0664);
+    st=ham_create_ex(db, "test.db", 0, 0664, 0);
     if (st!=HAM_SUCCESS)
         error("ham_create", st);
 
@@ -83,8 +83,6 @@ main(int argc, char **argv)
         record.size=key.size;
         record.data=key.data;
 
-        /* note: the second parameter of ham_insert() is reserved; set it to 
-         * NULL */
         st=ham_insert(db, 0, &key, &record, 0);
 		if (st!=HAM_SUCCESS)
             error("ham_insert", st);
@@ -101,8 +99,6 @@ main(int argc, char **argv)
         key.data=&i;
         key.size=sizeof(i);
 
-        /* note: the second parameter of ham_find() is reserved; set it to 
-         * NULL */
         st=ham_find(db, 0, &key, &record, 0);
         if (st!=HAM_SUCCESS)
             error("ham_find", st);
@@ -123,7 +119,7 @@ main(int argc, char **argv)
     st=ham_close(db, 0);
     if (st!=HAM_SUCCESS)
         error("ham_close", st);
-    st=ham_open(db, "test.db", 0);
+    st=ham_open_ex(db, "test.db", 0, 0);
     if (st!=HAM_SUCCESS)
         error("ham_open", st);
 
@@ -134,8 +130,6 @@ main(int argc, char **argv)
         key.size=sizeof(i);
         key.data=&i;
 
-        /* note: the second parameter of ham_erase() is reserved; set it to 
-         * NULL */
         st=ham_erase(db, 0, &key, 0);
         if (st!=HAM_SUCCESS)
             error("ham_erase", st);

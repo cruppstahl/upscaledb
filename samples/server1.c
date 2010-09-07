@@ -36,9 +36,9 @@ main(void)
     char input[1024];
 
     ham_env_new(&env);
-    st=ham_env_create(env, "env1.db", HAM_ENABLE_TRANSACTIONS, 0644);
+    st=ham_env_create_ex(env, "env1.db", HAM_ENABLE_TRANSACTIONS, 0644, 0);
     if (st) {
-        printf("ham_env_create: %d\n", st);
+        printf("ham_env_create_ex: %d\n", st);
         exit(-1);
     }
 
@@ -70,7 +70,7 @@ main(void)
     ham_srv_init(&cfg, &srv);
     ham_srv_add_env(srv, env, "/env1.db");
 
-    printf("server1%s started - please run client1%s for a test\n", 
+    printf("server1%s started - please run sample 'client1%s' for a test\n", 
             EXT, EXT);
     printf("type 'exit' to end the server\n");
     

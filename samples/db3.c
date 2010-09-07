@@ -45,7 +45,7 @@ main(int argc, char **argv)
     printf("Reading from stdin...\n");
 
     /*
-     * first step: create a new hamsterdb object 
+     * first step: create a new hamsterdb handle 
      */
     st=ham_new(&db);
     if (st!=HAM_SUCCESS) {
@@ -69,7 +69,7 @@ main(int argc, char **argv)
      *
      * we could create an in-memory-database to speed up the sorting.
      */
-    st=ham_create(db, "test.db", 0, 0664);
+    st=ham_create_ex(db, "test.db", 0, 0664, 0);
     if (st!=HAM_SUCCESS) {
         printf("ham_create() failed with error %d\n", st);
         return (-1);
@@ -91,8 +91,6 @@ main(int argc, char **argv)
             key.size=(ham_size_t)strlen(p)+1; /* also store the terminating 
                                                 0-byte */
 
-            /* note: the second parameter of ham_insert() is reserved; set it 
-             * to NULL */
             st=ham_insert(db, 0, &key, &record, 0);
             if (st!=HAM_SUCCESS && st!=HAM_DUPLICATE_KEY) {
                 printf("ham_insert() failed with error %d\n", st);
