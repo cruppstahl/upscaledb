@@ -413,11 +413,12 @@ _remote_fun_env_get_parameters(ham_env_t *env, ham_parameter_t *param)
             p->value=proto_env_get_parameters_reply_get_filemode(reply);
             break;
         case HAM_PARAM_GET_FILENAME:
-            ham_assert(proto_env_get_parameters_reply_has_filename(reply), (""));
-            strncpy(filename, 
-                    proto_env_get_parameters_reply_get_filename(reply),
-                        sizeof(filename));
-            p->value=PTR_TO_U64(&filename[0]);
+            if (proto_env_get_parameters_reply_has_filename(reply)) {
+                strncpy(filename, 
+                        proto_env_get_parameters_reply_get_filename(reply),
+                            sizeof(filename));
+                p->value=PTR_TO_U64(&filename[0]);
+            }
             break;
         default:
             ham_trace(("unknown parameter %d", (int)p->name));

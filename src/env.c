@@ -792,7 +792,7 @@ _local_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
                 p->value=env_get_file_mode(env);
                 break;
             case HAM_PARAM_GET_FILENAME:
-                if (p->value)
+                if (env_get_filename(env))
                     p->value=(ham_u64_t)(PTR_TO_U64(env_get_filename(env)));
                 else
                     p->value=0;

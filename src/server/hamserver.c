@@ -201,7 +201,8 @@ handle_env_get_parameters(ham_env_t *env, struct mg_connection *conn,
                             (int)params[i].value);
             break;
         case HAM_PARAM_GET_FILENAME:
-            proto_env_get_parameters_reply_set_filename(reply, 
+            if (params[i].value)
+                proto_env_get_parameters_reply_set_filename(reply, 
                             (const char *)(U64_TO_PTR(params[i].value)));
             break;
         default:
