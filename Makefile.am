@@ -20,7 +20,9 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              build/scripts/*                            \
              src/*.c src/*.h src/Makefile.am            \
              src/Makefile.in                            \
-             src/messages.proto                         \
+             src/protocol/messages.proto                \
+             src/protocol                               \
+             src/server                                 \
              tools/*.h                                  \
              unittests/*.h                              \
              unittests/*.hpp                            \
@@ -28,7 +30,6 @@ EXTRA_DIST = $(DOCUMENTATION_FILES)                     \
              unittests/Makefile.in                      \
              unittests/Makefile.am                      \
              unittests/data/*                           \
-             server                                     \
              win32                                      \
              win32/README.TXT                           \
              win32/hamsterdb.sln                        \
