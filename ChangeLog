@@ -1,3 +1,6 @@
+Sep 15, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.6
+
 Sep 12, 2010 - chris
 o the unix daemon was ported to a Win32 Service (which can also run in
     foreground)
