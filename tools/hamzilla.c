@@ -174,52 +174,25 @@ hlog(int level, const char *format, ...)
     else {
 #ifdef WIN32
 		TCHAR msg[1024];
-		HANDLE h;
-		LPCTSTR strings[2];
-		WORD type;
-		DWORD code;
 
 		mbstowcs(msg, buffer, 1024);
 
-		h=RegisterEventSource(NULL, serviceName);
-		strings[0]=serviceName;
-		strings[1]=msg;
-
-// MessageId: EV_INFO
-// MessageText:
-//  %2
-#define EV_INFO                          ((DWORD)0x40070001L)
-
-// MessageId: EV_WARNING
-// MessageText:
-//  WARNING: %2
-#define EV_WARNING                       ((DWORD)0x80070002L)
-
-// MessageId: EV_ERROR
-// MessageText:
-//  ERROR: %2
-#define EV_ERROR                         ((DWORD)0xC0070003L)
-
 		switch(level) {
             case LOG_DBG:
+				OutputDebugString(TEXT("DBG "));
+				break;
             case LOG_NORMAL:
-				code=EV_INFO;
-                type=EVENTLOG_INFORMATION_TYPE;
-                break;
+				OutputDebugString(TEXT("INFO "));
+				break;
             case LOG_WARN:
-				code=EV_WARNING;
-                type=EVENTLOG_WARNING_TYPE;
+				OutputDebugString(TEXT("WARN "));
                 break;
             default:
-				code=EV_ERROR;
-                type=EVENTLOG_ERROR_TYPE;
+				OutputDebugString(TEXT("ERROR "));
                 break;
 		}
 
-		if (h) {
-			ReportEvent(h, type, 0, code, NULL, 2, 0, strings, 0);
-			(void)DeregisterEventSource(h);
-		}
+		OutputDebugString(msg);
 #else
 		unsigned code;
 

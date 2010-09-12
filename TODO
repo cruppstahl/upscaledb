@@ -129,7 +129,7 @@ x ssb sent me clang/llvm static code analysis - integrate fixes
 x to improve testing, client/server samples should use the same path/database
         as example.config
 
-o windows service
+o unix daemon/windows service
     x read config file from where? <exename>.config
     x command line switches -install, -start, -stop, -uninstall
     x write logfile to file or to syslog? - no, use normal logfiles
@@ -139,28 +139,17 @@ o windows service
     x rename (hamzilla?)
     x when killing the unix daemon: ps -ea still shows process
     x win32: run in foreground
-    o log errors (different error-levels)
+    x log errors (different error-levels)
         x new command line parameter log-level
         x stderr if foreground
         x syslog (linux daemon)
-        o eventlog (win32 service)
-            -> need to define events as in
-            http://msdn.microsoft.com/en-us/library/aa363680%28v=VS.85%29.aspx
+        x OutputDebugString
     o test on win64
-    . new option to set the working directory
-    . new option to set the username
 
 x samples: do no longer use ham_create/ham_open, use _ex-functions instead
 
 x documentation: add information about unix daemon and win32 service to 
     Tutorial (Wiki)
-
-o fix freelist page overflow when searching for bits (See mail from Stefan)
-    -> is this still relevant??
-    o get newest version from Ger
-
-o more server stuff
-    o add acceptance tests
 
 o webpage changes
     o add client1.c/server1.c to hamsterdb.com/documentation/samples
@@ -202,6 +191,13 @@ o create a new branch to integrate hamsterdb2 (ACID transactions, logical
                  http://sourceforge.net/projects/ggcov/files/ 
 
 . remove HAM_HINT_UBER_FAST_ACCESS, HAM_HINT_RANDOM_ACCESS, HAM_HINT_SEQUENTIAL
+
+. unix daemon/windows service
+    o new option to set the working directory
+    o new option to set the username
+
+. more server stuff
+    o add acceptance tests
 
 . more server stuff
     o how could we do authentication?

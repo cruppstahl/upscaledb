@@ -1,3 +1,7 @@
+Sep 12, 2010 - chris
+o the unix daemon was ported to a Win32 Service (which can also run in
+    foreground)
+
 Sep 07, 2010 - chris
 o the tutorial is no longer part of the Doxygen files; instead it's now 
     online in a wiki: http://wiki.github.com/cruppstahl/hamsterdb
