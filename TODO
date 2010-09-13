@@ -168,6 +168,14 @@ o utilize the github wiki
 
 o next release - need hamsterdb-alien package!
 
+o a small memory leak
+==12954== 44 bytes in 1 blocks are definitely lost in loss record 1 of 6
+==12954==    at 0x4024F20: malloc (vg_replace_malloc.c:236)
+==12954==    by 0x40B44E0: alloc_impl (mem.c:38)
+==12954==    by 0x40B0B5F: _remote_fun_txn_begin (remote.c:663)
+==12954==    by 0x40A582D: ham_txn_begin (hamsterdb.c:314)
+==12954==    by 0x8156438: RemoteTest::txnBeginCommitTest() (remote.cpp:494)
+
 -----------------------------------------------------------------------------
 
 o release new .NET wrapper with fix from a.todorov (-> nabble)
