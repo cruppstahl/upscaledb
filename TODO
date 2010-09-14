@@ -7,300 +7,53 @@ o a pending  TODO item (for the current release)
 x a finished TODO item
 
 -----------------------------------------------------------------------------
-
-x hamsterdb.com: add permanent redirect from hamsterdb.com to 
-	www.hamsterdb.com (and all other domains!)
-
-x do not build mongoose if remote is diabled
-
-x some cleanup:
-    x db_set_allocdata -> for records, but we need a similar function for keys!
-        currently, db_set_key_allocdata() is used, but it's very clumsy
-    x check_create_parameters -> move to env.c?? - no, also needed in
-        hamsterdb.c
-    x my_free_cb is duplicated in env.c und hamsterdb.c!
-    x make sure there are no more warnings
-
-x server: 
-    x shutdown time is very long (10 sec)
-    x mongoose - disable default handler (returns file listing!)
-    x add mongoose license to readme!
-    x make sure connections are not closed immediately (keep-alive)
-        -> done automatically (10 seconds)
-
-x move to github server!!
-    x upload/import code
-    x update release.sh scripts
-    x update ohloh enlistments
-    x update hamsterdb.com/download/subversion URL and page
-    x svnserve: disable read for anonymous access, disable write for 
-            ssh-access
-    x write a blog comment
-    x add to ChangeLog!
-
-x need a client1.c sample (which works with server1.c)
-
-x more unittests
-    x test with big blobs!
-    x unittest: negative insert, negative find, negative erase
-    x unittest: ham_env_create_db w/ extended params
-    x unittest for approx matching
-
-x libhamserver.a should have its own libtool version! - already has!
-
-x improve documentation
-    x hamserver.h - add doxygen section etc
-    x extend the tutorial
-
-x call curl_global_cleanup() (take care - eventually not threadsafe?!)
-    x finally get rid of ALL the memory leaks for remote stuff
-
-x unix daemon
-    x -h for help
-    x -f for foreground
-    x shutdown by sending sigterm
-    x -c for config file
-    x -p for pidfile
-    x fail if no config file was specified
-    x configuration file: no default path; is set by command line parameter
-            (on windows we need a default path!)
-        x use to specify the port
-        x use to specify available databases/Environments and their url
-        x use to specify the logging (Yes, no and where to?)
-    x initialize the server
-    x create new environments and databases (if requested)
-    x on shutdown: close all environments, close the server
-    x make sure that all relevant signals are caught
-    x rename json.h/c -> config.h/c
-    x also rename functions and structures
-    x "-c config -f" does not run in foreground - getopts-bug
-    x logging: will need enhancements in hamserver
-        x access log: mongoose OPT_ACCESS_LOG
-        x error log: mongoose OPT_ERROR_LOG
-    x on shutdown: what if transactions and cursors are open?
-
-x improve documentation in hamsterdb.h
-    x ham_insert: does not list HAM_HINT_APPEND/PREPEND - not true!
-    x move all comments from ham_*_open to ham_*_open_ex
-    x move all comments from ham_*_create to ham_*_create_ex etc
-    x ham_txn_begin: has no comments, just parameters
-    x ham_open_ex: dito
-    x ham_create_ex: dito
-    x ham_open, ham_create, ham_env_open, ham_env_create: should be 
-            deprecated??? - no, but will be removed with 2.0
-
-x move hamsterdb/server to hamsterdb/src/server
-    x also rename hamserver.h to hamsterdb_srv.h? would be more consistent
-        x and hamserver_XXX to ham_srv_XXX
-    x make sure unittests are still running
-
-x add protobuf and libcurl dependency to README
-
-x fix ham_flush/ham_env_flush inconsistencies - ham_env_flush is enough
-    x ham_flush will be deprecated
-    x remove ham_flush from db.c, remote.c, server
-    x ham_env_close must call ham_env_flush - remove duplicate calls? 
-        - no, it's fine as it is
-    x make sure unittests are still working
-
-x add Windows support for remote functionality
-    x remove protobuf-c, directly use protobuf
-        x rewrite remote.c
-        x don't create 3rdparty/protocol - better: src/protocol!
-        x remove dependency from configure.in
-    x add protobuf-compiler executable to 3rdparty
-    x add precompiled protobuf-library to 3rdparty
-    x add precompiled libcurl-library to 3rdparty
-    x run unittests
-    x remove TODOs from server sources
-    x msvc: add projects for the new samples
-    x two tests fail on win32:
-        RemoteTest::getEnvParamsTest
-        RemoteTest::getDbParamsTest
-    . what about WinCE?
-
-x update win32 files to 2008
-
-x hamsterdb forum - many compiler errors on archlinux; fix them!
-    x also rename endian.h because it conflicts
-
-x ssb sent me clang/llvm static code analysis - integrate fixes
-
-x to improve testing, client/server samples should use the same path/database
-        as example.config
-
-o unix daemon/windows service
-    x read config file from where? <exename>.config
-    x command line switches -install, -start, -stop, -uninstall
-    x write logfile to file or to syslog? - no, use normal logfiles
-    x need msvc project
-    x need seperate config.example files for win32 and unix? - no
-    x linux: default config path as in windows
-    x rename (hamzilla?)
-    x when killing the unix daemon: ps -ea still shows process
-    x win32: run in foreground
-    x log errors (different error-levels)
-        x new command line parameter log-level
-        x stderr if foreground
-        x syslog (linux daemon)
-        x OutputDebugString
-    o test on win64
-
-x samples: do no longer use ham_create/ham_open, use _ex-functions instead
-
-x documentation: add information about unix daemon and win32 service to 
-    Tutorial (Wiki)
-
-o webpage changes
-    o add client1.c/server1.c to hamsterdb.com/documentation/samples
-    o update all other C/C++ samples on the webpage
-
-o utilize the github wiki
-    x move the FAQ
-    x move the tutorial
-    o samples (remove from doxygen) - really??
-    o update hamsterdb.com with the links
-    . tutorial/faq: add hinting flags
-    . tutorial/faq: add DAMs
-    . internal developer documentation (remove from doxygen)
-        o cursors
-        o ??
-
-o next release - need hamsterdb-alien package!
-
-o a small memory leak
-==12954== 44 bytes in 1 blocks are definitely lost in loss record 1 of 6
-==12954==    at 0x4024F20: malloc (vg_replace_malloc.c:236)
-==12954==    by 0x40B44E0: alloc_impl (mem.c:38)
-==12954==    by 0x40B0B5F: _remote_fun_txn_begin (remote.c:663)
-==12954==    by 0x40A582D: ham_txn_begin (hamsterdb.c:314)
-==12954==    by 0x8156438: RemoteTest::txnBeginCommitTest() (remote.cpp:494)
-
+This Branch Is About Integrating The hamsterdb2 Functionality!!!!!
 -----------------------------------------------------------------------------
 
-o release new .NET wrapper with fix from a.todorov (-> nabble)
+As a user i want to run many Transactions in parallel with high performance.
+I'm not interested in multiple threads (yet), although i may use several 
+threads (but then i'll use synchronization in my own code).
+==============================================================================
 
-o move to github
+o new code is only active if HAM_ENABLE_TRANSACTIONS is specified; 
+    otherwise everything stays as is
+    o allow more than one txn in parallel
+    o modify unittests, create new tests
 
-. add server functionality
+o manage all transactions
+    o integrate existing rb-tree code from hamsterdb2
+        o also integrate unittests
+    o all transactions are stored in a tree AND in a list
+    o each modified database gets its own txn tree when its modified
+        in a transaction
+    o all operations of these transactions are stored in the trees AND
+        in a chronological list (is this list still needed?)
+    o add unittests
+    o remove the whole transaction handling from the low-level page
+        i/o routines
 
------------------------------------------------------------------------------
+o ham_txn_begin receives Environment handle, not Database handle
+    o need a new parameter (reserved) for parent txn
+    o need a new parameter for txn name (string)
+    o update unittests/add new tests
+    o update C++ API
 
-o create a new branch to integrate hamsterdb2 (ACID transactions, logical
-	journalling, running many Transactions in parallel)
-    -> integrate-ham2.txt in hamsterdb-meta project shows timeline
+o new API to retrieve the currently active transactions
+    o already exists
+    o needs unittests
 
-. add automatic code coverage using gconv
-    http://www.manpagez.com/man/1/gcov/
-    http://gcc.gnu.org/onlinedocs/gcc/Gcov.html
-    http://aleccolocco.blogspot.com/2009/08/sqlite-lesson-in-low-defect-software.html (section "Test Coverage with GCC")
-    o track coverage results, publish online
-    o gui tools: http://code.google.com/p/trucov/,
-                 http://sourceforge.net/projects/ggcov/files/ 
+o support transaction level "read committed"
+    o all in-memory transactions are stored in a single rb-tree
+    o rewrite db_find
+    o rewrite db_insert
+    o rewrite db_erase
+    o when a txn is committed: try to write ALL committed txns to disk
 
-. remove HAM_HINT_UBER_FAST_ACCESS, HAM_HINT_RANDOM_ACCESS, HAM_HINT_SEQUENTIAL
-
-. unix daemon/windows service
-    o new option to set the working directory
-    o new option to set the username
-
-. more server stuff
-    o add acceptance tests
-
-. more server stuff
-    o how could we do authentication?
-    . support https?
-
-. disable local client?
-    o need configure switch to disable the local client
-        -> also clean up db.h, env.h...
-    o add tests for --disable-remote and --disable-local to release.sh
-
-
------------------------------------------------------------------------------
-
-o update the Python API 
-
-o move to github
-
-. add server functionality
-
------------------------------------------------------------------------------
-
-o update the java API 
-
-o move to github
-
-o add server functionality
-
-=======================================================================
-
-o how can we support the following environments
-	o threadx
-	o vxworks
-	o qnx
-	o opencl
-	o montavista
-	o nokia/intel embedded linux
-	. openwrt
-	. tron
-	. itron
-	. microitron
-	. android
-	x wince
-	-> and how can we automatically test them? 
-
-. pure java network client
-
-. WinCE: create and run Unittests project
-    http://msexchangeteam.com/archive/2004/02/23/78930.aspx
-    o also, we could use mmap (which is currently disabled)
-
-. some tests in filter.cpp are deactivated - fix them
-
-. run profiling for duplicate tests - can things be improved?
-    o blob_overwrite/duplicate table handling: in some cases we can use
-        HAM_DIRECT_ACCESS to speed up things (at least for in-memory)
-
-. webpage changes
-    http://www.purenetworks.com/
-    http://www.omegathemes.com/tf/smartages/#
-    http://eucalyptus.com/
-    x the header page image is too large
-    o frontpage: have multiple images (scrolling in background) with more
-        text info? 
-        http://malsup.com/jquery/cycle/basic.html
-        http://www.sohtanaka.com/web-design/examples/image-slider/
-        http://www.slidedeck.com/
-    o sitemap: pulldown with jquery
-    o download: need download gates to track in analytics as goals
-    o rss feed
-
-. evaluate if we can use bamboo for building and testing on multiple
-    platforms
-    o http://www.atlassian.com/software/bamboo/features/elastic.jsp#remote
-    o install server
-    o setup several agents (win32, win64, linux x86, linux x86_64, ...) and
-        run either all or only some of the tests, including valgrind!
-
-o need tool to upgrade databases from 1.0.x to 1.1.x!
-
-. ham_get_parameter: could return VERSION of the database
-
-. approx. matching: need a sample
-
-. Ger: can specify an initial file size
-
-. merge threadsafe code
-
-. HighLevelTxnTest::rollbackHugeBlobTest is inactive because huge blobs are
-    directly written to disk instead of going through the cache -> in case of
-    a txn_abort, these blobs are not reallocated
-
-. win32: check Ger's solution - he can handle multiple msvc versions
-
-. Perl wrapper
-
-. PHP wrapper
-
+o each operation writes a journal entry (however, we still keep the logical
+        journal in parallel, otherwise the unittests will fail completely)
+        o write entry for db_find
+        o write entry for db_insert
+        o write entry for db_erase
+    o recovery: recreate all pending transactions (if requested)
+    o unittests
 
