@@ -8,158 +8,14 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-x hamsterdb.com: add permanent redirect from hamsterdb.com to 
-	www.hamsterdb.com (and all other domains!)
+x webpage changes
+    x add client1.c/server1.c to hamsterdb.com/documentation/samples
+    x update all other C/C++ samples on the webpage
 
-x do not build mongoose if remote is diabled
-
-x some cleanup:
-    x db_set_allocdata -> for records, but we need a similar function for keys!
-        currently, db_set_key_allocdata() is used, but it's very clumsy
-    x check_create_parameters -> move to env.c?? - no, also needed in
-        hamsterdb.c
-    x my_free_cb is duplicated in env.c und hamsterdb.c!
-    x make sure there are no more warnings
-
-x server: 
-    x shutdown time is very long (10 sec)
-    x mongoose - disable default handler (returns file listing!)
-    x add mongoose license to readme!
-    x make sure connections are not closed immediately (keep-alive)
-        -> done automatically (10 seconds)
-
-x move to github server!!
-    x upload/import code
-    x update release.sh scripts
-    x update ohloh enlistments
-    x update hamsterdb.com/download/subversion URL and page
-    x svnserve: disable read for anonymous access, disable write for 
-            ssh-access
-    x write a blog comment
-    x add to ChangeLog!
-
-x need a client1.c sample (which works with server1.c)
-
-x more unittests
-    x test with big blobs!
-    x unittest: negative insert, negative find, negative erase
-    x unittest: ham_env_create_db w/ extended params
-    x unittest for approx matching
-
-x libhamserver.a should have its own libtool version! - already has!
-
-x improve documentation
-    x hamserver.h - add doxygen section etc
-    x extend the tutorial
-
-x call curl_global_cleanup() (take care - eventually not threadsafe?!)
-    x finally get rid of ALL the memory leaks for remote stuff
-
-x unix daemon
-    x -h for help
-    x -f for foreground
-    x shutdown by sending sigterm
-    x -c for config file
-    x -p for pidfile
-    x fail if no config file was specified
-    x configuration file: no default path; is set by command line parameter
-            (on windows we need a default path!)
-        x use to specify the port
-        x use to specify available databases/Environments and their url
-        x use to specify the logging (Yes, no and where to?)
-    x initialize the server
-    x create new environments and databases (if requested)
-    x on shutdown: close all environments, close the server
-    x make sure that all relevant signals are caught
-    x rename json.h/c -> config.h/c
-    x also rename functions and structures
-    x "-c config -f" does not run in foreground - getopts-bug
-    x logging: will need enhancements in hamserver
-        x access log: mongoose OPT_ACCESS_LOG
-        x error log: mongoose OPT_ERROR_LOG
-    x on shutdown: what if transactions and cursors are open?
-
-x improve documentation in hamsterdb.h
-    x ham_insert: does not list HAM_HINT_APPEND/PREPEND - not true!
-    x move all comments from ham_*_open to ham_*_open_ex
-    x move all comments from ham_*_create to ham_*_create_ex etc
-    x ham_txn_begin: has no comments, just parameters
-    x ham_open_ex: dito
-    x ham_create_ex: dito
-    x ham_open, ham_create, ham_env_open, ham_env_create: should be 
-            deprecated??? - no, but will be removed with 2.0
-
-x move hamsterdb/server to hamsterdb/src/server
-    x also rename hamserver.h to hamsterdb_srv.h? would be more consistent
-        x and hamserver_XXX to ham_srv_XXX
-    x make sure unittests are still running
-
-x add protobuf and libcurl dependency to README
-
-x fix ham_flush/ham_env_flush inconsistencies - ham_env_flush is enough
-    x ham_flush will be deprecated
-    x remove ham_flush from db.c, remote.c, server
-    x ham_env_close must call ham_env_flush - remove duplicate calls? 
-        - no, it's fine as it is
-    x make sure unittests are still working
-
-x add Windows support for remote functionality
-    x remove protobuf-c, directly use protobuf
-        x rewrite remote.c
-        x don't create 3rdparty/protocol - better: src/protocol!
-        x remove dependency from configure.in
-    x add protobuf-compiler executable to 3rdparty
-    x add precompiled protobuf-library to 3rdparty
-    x add precompiled libcurl-library to 3rdparty
-    x run unittests
-    x remove TODOs from server sources
-    x msvc: add projects for the new samples
-    x two tests fail on win32:
-        RemoteTest::getEnvParamsTest
-        RemoteTest::getDbParamsTest
-    . what about WinCE?
-
-x update win32 files to 2008
-
-x hamsterdb forum - many compiler errors on archlinux; fix them!
-    x also rename endian.h because it conflicts
-
-x ssb sent me clang/llvm static code analysis - integrate fixes
-
-x to improve testing, client/server samples should use the same path/database
-        as example.config
-
-o unix daemon/windows service
-    x read config file from where? <exename>.config
-    x command line switches -install, -start, -stop, -uninstall
-    x write logfile to file or to syslog? - no, use normal logfiles
-    x need msvc project
-    x need seperate config.example files for win32 and unix? - no
-    x linux: default config path as in windows
-    x rename (hamzilla?)
-    x when killing the unix daemon: ps -ea still shows process
-    x win32: run in foreground
-    x log errors (different error-levels)
-        x new command line parameter log-level
-        x stderr if foreground
-        x syslog (linux daemon)
-        x OutputDebugString
-    o test on win64
-
-x samples: do no longer use ham_create/ham_open, use _ex-functions instead
-
-x documentation: add information about unix daemon and win32 service to 
-    Tutorial (Wiki)
-
-o webpage changes
-    o add client1.c/server1.c to hamsterdb.com/documentation/samples
-    o update all other C/C++ samples on the webpage
-
-o utilize the github wiki
+x utilize the github wiki
     x move the FAQ
     x move the tutorial
-    o samples (remove from doxygen) - really??
-    o update hamsterdb.com with the links
+    x update hamsterdb.com with the links
     . tutorial/faq: add hinting flags
     . tutorial/faq: add DAMs
     . internal developer documentation (remove from doxygen)
@@ -176,19 +32,13 @@ o a small memory leak
 ==12954==    by 0x40A582D: ham_txn_begin (hamsterdb.c:314)
 ==12954==    by 0x8156438: RemoteTest::txnBeginCommitTest() (remote.cpp:494)
 
------------------------------------------------------------------------------
-
-o release new .NET wrapper with fix from a.todorov (-> nabble)
-
-o move to github
-
-. add server functionality
-
------------------------------------------------------------------------------
-
-o create a new branch to integrate hamsterdb2 (ACID transactions, logical
+x create a new branch to integrate hamsterdb2 (ACID transactions, logical
 	journalling, running many Transactions in parallel)
     -> integrate-ham2.txt in hamsterdb-meta project shows timeline
+
+o release new .NET wrapper with fix from a.todorov (-> nabble)
+    x move to github
+    . add server functionality
 
 . add automatic code coverage using gconv
     http://www.manpagez.com/man/1/gcov/
@@ -221,7 +71,7 @@ o create a new branch to integrate hamsterdb2 (ACID transactions, logical
 
 o update the Python API 
 
-o move to github
+x move to github
 
 . add server functionality
 
@@ -229,7 +79,7 @@ o move to github
 
 o update the java API 
 
-o move to github
+x move to github
 
 o add server functionality
 
