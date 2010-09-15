@@ -660,20 +660,12 @@ _remote_fun_txn_begin(ham_env_t *env, ham_db_t *db,
         return (st);
     }
 
-    *txn=(ham_txn_t *)allocator_alloc(env_get_allocator(env), 
-                            sizeof(ham_txn_t));
-    if (!(*txn))
-        return (HAM_OUT_OF_MEMORY);
-
-    st=txn_begin(*txn, env, flags);
-    if (st) {
-        allocator_free(env_get_allocator(env), *txn);
+    st=txn_begin(txn, env, flags);
+    if (st)
         *txn=0;
-    }
-    else {
+    else
         txn_set_remote_handle(*txn, 
                     proto_txn_begin_reply_get_txn_handle(reply));
-    }
 
     proto_delete(reply);
 
@@ -703,6 +695,11 @@ _remote_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 
     proto_delete(reply);
 
+    if (st==0) {
+        env_remove_txn(env, txn);
+        txn_free(txn);
+    }
+
     return (st);
 }
 
@@ -728,6 +725,11 @@ _remote_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     st=proto_txn_abort_reply_get_status(reply);
 
     proto_delete(reply);
+
+    if (st==0) {
+        env_remove_txn(env, txn);
+        txn_free(txn);
+    }
 
     return (st);
 }

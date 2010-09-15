@@ -281,7 +281,6 @@ __check_recovery_flags(ham_u32_t flags)
 ham_status_t
 ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
 {
-    ham_status_t st;
     ham_env_t *env; 
 
     if (!txn) {
@@ -312,14 +311,7 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
     }
 
     /* initialize the txn structure */
-    st=env->_fun_txn_begin(env, db, txn, flags);
-    if (st)
-        return (db_set_error(db, st)); 
-
-    /* link this txn with the Environment */
-    env_append_txn(env, *txn);
-
-    return (db_set_error(db, 0)); 
+    return (db_set_error(db, env->_fun_txn_begin(env, db, txn, flags)));
 }
 
 ham_status_t
@@ -1664,6 +1656,13 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     }
 
     /*
+     * flush all transactions
+     */
+    st=env_flush_committed_txns(env);
+    if (st)
+        return (st);
+
+    /*
      * when all transactions have been properly closed... 
      */
     if (!env_get_txn(env)) {
@@ -2829,7 +2828,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     /*
      * auto-abort (or commit) all pending transactions
      */
-    if (env_get_newest_txn(env)) {
+    if (env && env_get_newest_txn(env)) {
         ham_txn_t *n, *t=env_get_newest_txn(env);
         while (t) {
             n=txn_get_older(t);

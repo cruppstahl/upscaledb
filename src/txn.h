@@ -203,7 +203,7 @@ txn_free_page(ham_txn_t *txn, ham_page_t *page);
  * @remark flags are defined below
  */
 extern ham_status_t
-txn_begin(ham_txn_t *txn, ham_env_t *env, ham_u32_t flags);
+txn_begin(ham_txn_t **ptxn, ham_env_t *env, ham_u32_t flags);
 
 /* #define HAM_TXN_READ_ONLY       1   -- already defined in hamsterdb.h */
 

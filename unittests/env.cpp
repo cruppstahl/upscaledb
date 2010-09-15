@@ -128,10 +128,15 @@ protected:
         BFC_ASSERT(env_get_header_page(env)==(ham_page_t *)18);
         env_set_header_page(env, 0);
 
-        BFC_ASSERT(env_get_txn(env)==0);
-        env_set_txn(env, (ham_txn_t *)19);
-        BFC_ASSERT(env_get_txn(env)==(ham_txn_t *)19);
-        env_set_txn(env, 0);
+        BFC_ASSERT(env_get_oldest_txn(env)==0);
+        env_set_oldest_txn(env, (ham_txn_t *)19);
+        BFC_ASSERT(env_get_oldest_txn(env)==(ham_txn_t *)19);
+        env_set_oldest_txn(env, 0);
+
+        BFC_ASSERT(env_get_newest_txn(env)==0);
+        env_set_newest_txn(env, (ham_txn_t *)19);
+        BFC_ASSERT(env_get_newest_txn(env)==(ham_txn_t *)19);
+        env_set_newest_txn(env, 0);
 
         BFC_ASSERT(env_get_rt_flags(env)==0);
         env_set_rt_flags(env, 21);

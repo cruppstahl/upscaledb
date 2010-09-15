@@ -524,14 +524,8 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     ham_db_t *db;
     ham_status_t st;
     free_cb_context_t context;
-    ham_txn_t txn;
+    ham_txn_t *txn;
     ham_backend_t *be;
-
-    /* for hamsterdb 1.0.4 - only support one transaction */
-    if (env_get_txn(env)) {
-        ham_trace(("only one concurrent transaction is supported"));
-        return (HAM_LIMITS_REACHED);
-    }
 
     /*
      * check if this database is still open
@@ -588,13 +582,13 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
 
     st=be->_fun_enumerate(be, free_inmemory_blobs_cb, &context);
     if (st) {
-        (void)txn_abort(&txn, 0);
+        (void)txn_abort(txn, 0);
         (void)ham_close(db, 0);
         (void)ham_delete(db);
         return (st);
     }
 
-    st=txn_commit(&txn, 0);
+    st=txn_commit(txn, 0);
     if (st) {
         (void)ham_close(db, 0);
         (void)ham_delete(db);
@@ -1275,13 +1269,9 @@ _local_fun_txn_begin(ham_env_t *env, ham_db_t *db,
 
     (void)db;
 
-    *txn=(ham_txn_t *)allocator_alloc(env_get_allocator(env), sizeof(**txn));
-    if (!(*txn))
-        return (HAM_OUT_OF_MEMORY);
-
-    st=txn_begin(*txn, env, flags);
+    st=txn_begin(txn, env, flags);
     if (st) {
-        allocator_free(env_get_allocator(env), *txn);
+        txn_free(*txn);
         *txn=0;
     }
 
@@ -1291,13 +1281,7 @@ _local_fun_txn_begin(ham_env_t *env, ham_db_t *db,
 static ham_status_t
 _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 {
-    ham_status_t st=txn_commit(txn, flags);
-    if (st==0) {
-        memset(txn, 0, sizeof(*txn));
-        allocator_free(env_get_allocator(env), txn);
-    }
-
-    return (st);
+    return (txn_commit(txn, flags));
 }
 
 static ham_status_t
@@ -1348,6 +1332,24 @@ env_append_txn(ham_env_t *env, ham_txn_t *txn)
     }
 }
 
+void
+env_remove_txn(ham_env_t *env, ham_txn_t *txn)
+{
+    if (env_get_newest_txn(env)==txn) {
+        env_set_newest_txn(env, txn_get_older(txn));
+    }
+
+    if (env_get_oldest_txn(env)==txn) {
+        ham_txn_t *n=txn_get_newer(txn);
+        env_set_oldest_txn(env, n);
+        if (n)
+            txn_set_older(n, 0);
+    }
+    else {
+        ham_assert(!"not yet implemented", (""));
+    }
+}
+
 ham_status_t
 env_flush_committed_txns(ham_env_t *env)
 {
@@ -1375,7 +1377,7 @@ env_flush_committed_txns(ham_env_t *env)
         /* TODO */
 
         /* now remove the txn from the linked list */
-        env_set_oldest_txn(env, txn_get_newer(oldest));
+        env_remove_txn(env, oldest);
 
         /* and free the whole memory */
         txn_free(oldest);

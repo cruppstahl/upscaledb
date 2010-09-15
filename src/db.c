@@ -1247,8 +1247,6 @@ db_flush_all(ham_cache_t *cache, ham_u32_t flags)
          * is set (this flag is used i.e. in ham_flush())
          */
         if (!(flags&DB_FLUSH_NODELETE)) {
-            ham_assert(page_get_refcount(head)==0, 
-                ("page is in use, but database is closing"));
             cache_set_totallist(cache,
                 page_list_remove(cache_get_totallist(cache), 
                     PAGE_LIST_CACHED, head));
@@ -1378,7 +1376,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     be=db_get_backend(db);
 
     /* close all open cursors */
-    if (be->_fun_close_cursors) {
+    if (be && be->_fun_close_cursors) {
         st = be->_fun_close_cursors(be, flags);
         if (st)
             return (st);
@@ -1420,7 +1418,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
      * in-memory-database: free all allocated blobs
      */
     if (be && be_is_active(be) && env_get_rt_flags(env)&HAM_IN_MEMORY_DB) {
-        ham_txn_t txn;
+        ham_txn_t *txn;
         free_cb_context_t context;
         context.db=db;
         st = txn_begin(&txn, env, 0);
@@ -1429,7 +1427,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
         }
         else {
             (void)be->_fun_enumerate(be, free_inmemory_blobs_cb, &context);
-            (void)txn_commit(&txn, 0);
+            (void)txn_commit(txn, 0);
         }
     }
 
@@ -1621,7 +1619,7 @@ static ham_status_t
 _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
 {
 #ifdef HAM_ENABLE_INTERNAL
-    ham_txn_t local_txn;
+    ham_txn_t *local_txn;
     ham_status_t st;
     ham_backend_t *be;
 
@@ -1653,12 +1651,12 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
 
     if (st) {
         if (!txn)
-            (void)txn_abort(&local_txn, 0);
+            (void)txn_abort(local_txn, 0);
         return (st);
     }
 
     if (!txn)
-        return (txn_commit(&local_txn, 0));
+        return (txn_commit(local_txn, 0));
     else
         return (st);
 #else
@@ -1670,7 +1668,7 @@ static ham_status_t
 _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
             ham_offset_t *keycount)
 {
-    ham_txn_t local_txn;
+    ham_txn_t *local_txn;
     ham_status_t st;
     ham_backend_t *be;
     ham_env_t *env=0;
@@ -1703,14 +1701,14 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 
     if (st) {
         if (!txn)
-            (void)txn_abort(&local_txn, 0);
+            (void)txn_abort(local_txn, 0);
         return (st);
     }
 
     *keycount = ctx.total_count;
 
     if (!txn)
-        return (txn_commit(&local_txn, 0));
+        return (txn_commit(local_txn, 0));
     else
         return (st);
 }
@@ -1720,7 +1718,7 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
         ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
     ham_env_t *env=db_get_env(db);
-    ham_txn_t local_txn;
+    ham_txn_t *local_txn;
     ham_status_t st;
     ham_backend_t *be;
     ham_u64_t recno = 0;
@@ -1785,7 +1783,7 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
 
     if (st) {
         if (!txn)
-            (void)txn_abort(&local_txn, 0);
+            (void)txn_abort(local_txn, 0);
 
         if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
@@ -1813,7 +1811,7 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
     }
 
     if (!txn)
-        return (txn_commit(&local_txn, 0));
+        return (txn_commit(local_txn, 0));
     else
         return (st);
 }
@@ -1821,7 +1819,7 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
 static ham_status_t
 _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 {
-    ham_txn_t local_txn;
+    ham_txn_t *local_txn;
     ham_status_t st;
     ham_env_t *env=db_get_env(db);
     ham_backend_t *be;
@@ -1864,7 +1862,7 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 
     if (st) {
         if (!txn)
-            (void)txn_abort(&local_txn, 0);
+            (void)txn_abort(local_txn, 0);
         return (st);
     }
 
@@ -1876,7 +1874,7 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     }
 
     if (!txn)
-        return (txn_commit(&local_txn, 0));
+        return (txn_commit(local_txn, 0));
     else
         return (st);
 }
@@ -1886,7 +1884,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
 {
     ham_env_t *env=db_get_env(db);
-    ham_txn_t local_txn;
+    ham_txn_t *local_txn;
     ham_status_t st;
     ham_backend_t *be;
     ham_offset_t recno=0;
@@ -1931,7 +1929,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 
     if (st) {
         if (!txn)
-            (void)txn_abort(&local_txn, 0);
+            (void)txn_abort(local_txn, 0);
         return (st);
     }
 
@@ -1948,12 +1946,12 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     st=__record_filters_after_find(db, record);
     if (st) {
         if (!txn)
-            (void)txn_abort(&local_txn, 0);
+            (void)txn_abort(local_txn, 0);
         return (st);
     }
 
     if (!txn)
-        return (txn_commit(&local_txn, 0));
+        return (txn_commit(local_txn, 0));
     else
         return (st);
 }
@@ -1985,7 +1983,7 @@ static ham_status_t
 _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 {
     ham_status_t st;
-    ham_txn_t local_txn;
+    ham_txn_t *local_txn;
     ham_db_t *db=cursor_get_db(src);
     ham_env_t *env;
 
@@ -2000,7 +1998,7 @@ _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
     st=src->_fun_clone(src, dest);
     if (st) {
         if (!cursor_get_txn(src))
-            (void)txn_abort(&local_txn, 0);
+            (void)txn_abort(local_txn, 0);
         return (st);
     }
 
@@ -2009,7 +2007,7 @@ _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
                 txn_get_cursor_refcount(cursor_get_txn(src))+1);
 
     if (!cursor_get_txn(src))
-        return (txn_commit(&local_txn, 0));
+        return (txn_commit(local_txn, 0));
     else
         return (0);
 }
@@ -2028,7 +2026,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     ham_backend_t *be;
     ham_u64_t recno = 0;
     ham_record_t temprec;
-    ham_txn_t local_txn;
+    ham_txn_t *local_txn;
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
 
@@ -2097,7 +2095,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
 
     if (st) {
         if (!cursor_get_txn(cursor))
-            (void)txn_abort(&local_txn, 0);
+            (void)txn_abort(local_txn, 0);
         if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
                 key->data=0;
@@ -2124,7 +2122,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     }
 
     if (!cursor_get_txn(cursor))
-        return (txn_commit(&local_txn, 0));
+        return (txn_commit(local_txn, 0));
     else
         return (st);
 }
@@ -2133,7 +2131,7 @@ static ham_status_t
 _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_txn_t local_txn;
+    ham_txn_t *local_txn;
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
 
@@ -2148,12 +2146,12 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     st=cursor->_fun_erase(cursor, flags);
     if (st) {
         if (!cursor_get_txn(cursor))
-            (void)txn_abort(&local_txn, 0);
+            (void)txn_abort(local_txn, 0);
         return (st);
     }
 
     if (!cursor_get_txn(cursor))
-        return (txn_commit(&local_txn, 0));
+        return (txn_commit(local_txn, 0));
     else
         return (st);
 }
@@ -2163,7 +2161,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_txn_t local_txn;
+    ham_txn_t *local_txn;
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
     ham_offset_t recno=0;
@@ -2176,7 +2174,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
         if (key->size!=sizeof(ham_u64_t) || !key->data) {
             ham_trace(("key->size must be 8, key->data must not be NULL"));
             if (!cursor_get_txn(cursor))
-                (void)txn_abort(&local_txn, 0);
+                (void)txn_abort(local_txn, 0);
             return (HAM_INV_PARAMETER);
         }
         recno=*(ham_offset_t *)key->data;
@@ -2195,7 +2193,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
     st=cursor->_fun_find(cursor, key, record, flags);
     if (st) {
         if (!cursor_get_txn(cursor))
-            (void)txn_abort(&local_txn, 0);
+            (void)txn_abort(local_txn, 0);
         return (st);
     }
 
@@ -2213,13 +2211,13 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
         st=__record_filters_after_find(db, record);
         if (st) {
             if (!cursor_get_txn(cursor))
-                (void)txn_abort(&local_txn, 0);
+                (void)txn_abort(local_txn, 0);
             return (st);
         }
     }
 
     if (!cursor_get_txn(cursor))
-        return (txn_commit(&local_txn, 0));
+        return (txn_commit(local_txn, 0));
     else
         return (0);
 }
@@ -2229,7 +2227,7 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
         ham_size_t *count, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_txn_t local_txn;
+    ham_txn_t *local_txn;
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
 
@@ -2242,12 +2240,12 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
     st=(*cursor->_fun_get_duplicate_count)(cursor, count, flags);
     if (st) {
         if (!cursor_get_txn(cursor))
-            (void)txn_abort(&local_txn, 0);
+            (void)txn_abort(local_txn, 0);
         return (st);
     }
 
     if (!cursor_get_txn(cursor))
-        return (txn_commit(&local_txn, 0));
+        return (txn_commit(local_txn, 0));
     else
         return (st);
 }
@@ -2259,7 +2257,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
     ham_status_t st;
-    ham_txn_t local_txn;
+    ham_txn_t *local_txn;
     ham_record_t temprec;
 
     if (!cursor_get_txn(cursor)) {
@@ -2276,7 +2274,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     st=__record_filters_before_write(db, &temprec);
     if (st) {
         if (!cursor_get_txn(cursor))
-            (void)txn_abort(&local_txn, 0);
+            (void)txn_abort(local_txn, 0);
         return (st);
     }
 
@@ -2288,12 +2286,12 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
 
     if (st) {
         if (!cursor_get_txn(cursor))
-            (void)txn_abort(&local_txn, 0);
+            (void)txn_abort(local_txn, 0);
         return (st);
     }
 
     if (!cursor_get_txn(cursor))
-        return (txn_commit(&local_txn, 0));
+        return (txn_commit(local_txn, 0));
     else
         return (st);
 }
@@ -2305,7 +2303,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     ham_status_t st;
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
-    ham_txn_t local_txn;
+    ham_txn_t *local_txn;
 
     if (!cursor_get_txn(cursor)) {
         st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
@@ -2316,7 +2314,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     st=cursor->_fun_move(cursor, key, record, flags);
     if (st) {
         if (!cursor_get_txn(cursor))
-            (void)txn_abort(&local_txn, 0);
+            (void)txn_abort(local_txn, 0);
         return (st);
     }
 
@@ -2327,13 +2325,13 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         st=__record_filters_after_find(db, record);
         if (st) {
             if (!cursor_get_txn(cursor))
-                (void)txn_abort(&local_txn, 0);
+                (void)txn_abort(local_txn, 0);
             return (st);
         }
     }
 
     if (!cursor_get_txn(cursor))
-        return (txn_commit(&local_txn, 0));
+        return (txn_commit(local_txn, 0));
     else
         return (st);
 }

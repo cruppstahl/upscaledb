@@ -230,7 +230,6 @@ void
 page_delete(ham_page_t *page)
 {
     ham_assert(page!=0, (0));
-    ham_assert(page_get_refcount(page)==0, (0));
     ham_assert(page_get_pers(page)==0, (0));
     ham_assert(page_get_cursors(page)==0, (0));
 
@@ -268,9 +267,6 @@ page_flush(ham_page_t *page)
 	ham_assert(dev, (0));
 	env = device_get_env(dev);
 	ham_assert(env, (0));
-	ham_assert(page_get_owner(page) ? env == db_get_env(page_get_owner(page)) : 1, (0));
-
-    ham_assert(page_get_refcount(page)==0, (0));
 
 	/* 
 	as we are about to write a modified page to disc, we MUST flush 

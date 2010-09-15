@@ -102,10 +102,6 @@ public:
 
         env_set_serialno(m_env, 0x1234);
         BFC_ASSERT(env_get_serialno(m_env)==0x1234);
-
-        env_set_txn(m_env, (ham_txn_t *)13);
-        BFC_ASSERT(env_get_txn(m_env)==(ham_txn_t *)13);
-        env_set_txn(m_env, (ham_txn_t *)0);
     }
 
     void structureTest()
@@ -178,7 +174,6 @@ public:
         env_set_file_mode(env, 0666);
         env_set_device(env, (ham_device_t *)0x13);
         env_set_cache(env, (ham_cache_t *)0x14);
-        env_set_txn(env, (ham_txn_t *)0x16);
         env_set_rt_flags(env, 0x18);
 
         BFC_ASSERT_EQUAL((ham_cache_t *)0x14, env_get_cache(env));
@@ -192,7 +187,6 @@ public:
 
         env_set_device(env, 0);
         env_set_cache(env, 0);
-        env_set_txn(env, 0);
         env_set_rt_flags(env, 0x18);
         env_set_header_page(env, 0);
         env_set_list(env, 0);

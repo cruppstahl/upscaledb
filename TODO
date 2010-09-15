@@ -22,6 +22,7 @@ o new code is only active if HAM_ENABLE_TRANSACTIONS is specified;
     x env_flush_committed_txns() - must clear txn from list
     x rewrite auto-abort/auto-commit
     o modify unittests, create new tests
+        continue with HighLevelTxnTest
 
 o manage all transactions
     o integrate existing rb-tree code from hamsterdb2
@@ -34,6 +35,7 @@ o manage all transactions
     o add unittests
     o remove the whole transaction handling from the low-level page
         i/o routines
+    o remove env_get_txn
 
 o ham_txn_begin receives Environment handle, not Database handle
     o need a new parameter (reserved) for parent txn

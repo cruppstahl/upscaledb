@@ -422,7 +422,7 @@ env_get_header(ham_env_t *env);
 /**
  * TODO remove me!
  */
-#define env_get_txn(env)                 (env)->_newest_txn
+#define env_get_txn(env)                 (env)->_oldest_txn
 
 /**
  * get the newest transaction
@@ -725,6 +725,12 @@ env_reserve_space(ham_env_t *env, ham_offset_t minimum_page_count);
  */
 extern void
 env_append_txn(ham_env_t *env, ham_txn_t *txn);
+
+/**
+ * remove a transaction to this Environment
+ */
+extern void
+env_remove_txn(ham_env_t *env, ham_txn_t *txn);
 
 /*
  * flush all committed Transactions to disk
