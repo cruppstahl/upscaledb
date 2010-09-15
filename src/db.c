@@ -1358,6 +1358,8 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     /*
      * if this Database is the last database in the environment: 
      * delete all environment-members
+     *
+     * TODO noenv is no longer needed!
      */
     if (env) {
         ham_bool_t has_other=HAM_FALSE;
@@ -1374,41 +1376,14 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     }
 
     be=db_get_backend(db);
-    if (!be || !be_is_active(be)) {
-        /* christoph-- i think it's ok if a database is closed twice 
-         * st2 = HAM_NOT_INITIALIZED; */
-    }
-    else if (flags&HAM_AUTO_CLEANUP) {
-        /*
-         * auto-cleanup cursors?
-         */
-        if (be->_fun_close_cursors)
-            st2 = be->_fun_close_cursors(be, flags);
-        /* error or not, continue closing the database! */
-    }
-    else if (db_get_cursors(db)) {
-        return (HAM_CURSOR_STILL_OPEN);
-    }
 
-    /*
-     * auto-abort (or commit) a pending transaction?
-     */
-    if (noenv && env && env_get_txn(env)) {
-        /*
-         * abort transaction when a cursor failure happened: when such a thing
-         * happened, we're not in a fully controlled state any more so
-         * 'auto-committing' would be extremely dangerous then.
-         */
-        if (flags&HAM_TXN_AUTO_COMMIT && st2 == 0)
-            st=ham_txn_commit(env_get_txn(env), 0);
-        else
-            st=ham_txn_abort(env_get_txn(env), 0);
-        if (st) {
-            if (st2 == 0) st2 = st;
-        }
-        env_set_txn(env, 0);
+    /* close all open cursors */
+    if (be->_fun_close_cursors) {
+        st = be->_fun_close_cursors(be, flags);
+        if (st)
+            return (st);
     }
-
+    
     /* 
      * flush all DB performance data 
      */
@@ -1956,7 +1931,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 
     if (st) {
         if (!txn)
-            (void)txn_abort(&local_txn, DO_NOT_NUKE_PAGE_STATS);
+            (void)txn_abort(&local_txn, 0);
         return (st);
     }
 
@@ -1973,7 +1948,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     st=__record_filters_after_find(db, record);
     if (st) {
         if (!txn)
-            (void)txn_abort(&local_txn, DO_NOT_NUKE_PAGE_STATS);
+            (void)txn_abort(&local_txn, 0);
         return (st);
     }
 
@@ -2220,7 +2195,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
     st=cursor->_fun_find(cursor, key, record, flags);
     if (st) {
         if (!cursor_get_txn(cursor))
-            (void)txn_abort(&local_txn, DO_NOT_NUKE_PAGE_STATS);
+            (void)txn_abort(&local_txn, 0);
         return (st);
     }
 
@@ -2238,7 +2213,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
         st=__record_filters_after_find(db, record);
         if (st) {
             if (!cursor_get_txn(cursor))
-                (void)txn_abort(&local_txn, DO_NOT_NUKE_PAGE_STATS);
+                (void)txn_abort(&local_txn, 0);
             return (st);
         }
     }

@@ -311,20 +311,20 @@ ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags)
         return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
 
+    /* initialize the txn structure */
     st=env->_fun_txn_begin(env, db, txn, flags);
     if (st)
-        return (st);
+        return (db_set_error(db, st)); 
 
-    env_set_txn(env, *txn);
-    txn_set_env(*txn, env);
+    /* link this txn with the Environment */
+    env_append_txn(env, *txn);
 
-    return (db_set_error(db, 0));
+    return (db_set_error(db, 0)); 
 }
 
 ham_status_t
 ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
 {
-    ham_status_t st;
     ham_env_t *env;
 
     if (!txn) {
@@ -338,18 +338,15 @@ ham_txn_commit(ham_txn_t *txn, ham_u32_t flags)
         return (HAM_NOT_INITIALIZED);
     }
 
-    st=env->_fun_txn_commit(env, txn, flags);
-    if (st)
-        return (st);
-
-    env_set_txn(env, 0);
-    return (0);
+    /* mark this transaction as committed; will also call
+     * env_flush_committed_txns() to write committed transactions
+     * to disk */
+    return (env->_fun_txn_commit(env, txn, flags));
 }
 
 ham_status_t
 ham_txn_abort(ham_txn_t *txn, ham_u32_t flags)
 {
-    ham_status_t st;
     ham_env_t *env;
 
     if (!txn) {
@@ -363,15 +360,7 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags)
         return (HAM_NOT_INITIALIZED);
     }
 
-    st=env->_fun_txn_abort(env, txn, flags);
-    if (st)
-        return (st);
-
-    memset(txn, 0, sizeof(*txn));
-    allocator_free(env_get_allocator(env), txn);
-    env_set_txn(env, 0);
-
-    return (0);
+    return (env->_fun_txn_abort(env, txn, flags));
 }
 
 const char * HAM_CALLCONV
@@ -2827,16 +2816,38 @@ ham_close(ham_db_t *db, ham_u32_t flags)
     env = db_get_env(db);
 
     /*
-     * immediately abort or commit a pending txn
+     * check if there are Database Cursors - they will be closed
+     * in the function handler, but the error check is here
      */
-    if (env && env_get_txn(env)) {
-        if (flags&HAM_TXN_AUTO_COMMIT)
-            st=ham_txn_commit(env_get_txn(env), 0);
-        else
-            st=ham_txn_abort(env_get_txn(env), 0);
-        if (st)
-            return (db_set_error(db, st));
-        env_set_txn(env, 0);
+    if (!(flags&HAM_AUTO_CLEANUP)) {
+        if (db_get_cursors(db)) {
+            /* TODO Trace */
+            return (HAM_CURSOR_STILL_OPEN);
+        }
+    }
+
+    /*
+     * auto-abort (or commit) all pending transactions
+     */
+    if (env_get_newest_txn(env)) {
+        ham_txn_t *n, *t=env_get_newest_txn(env);
+        while (t) {
+            n=txn_get_older(t);
+            if ((txn_get_flags(t)&TXN_STATE_ABORTED) 
+                    || (txn_get_flags(t)&TXN_STATE_COMMITTED)) 
+                ; /* nop */
+            else {
+                if (flags&HAM_TXN_AUTO_COMMIT) {
+                    if ((st=ham_txn_commit(t, 0)))
+                        return (st);
+                }
+                else { /* if (flags&HAM_TXN_AUTO_ABORT) */
+                    if ((st=ham_txn_abort(t, 0)))
+                        return (st);
+                }
+            }
+            t=n;
+        }
     }
 
     db_set_error(db, 0);

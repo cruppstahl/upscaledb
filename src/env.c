@@ -1326,3 +1326,61 @@ env_initialize_local(ham_env_t *env)
     return (0);
 }
 
+void
+env_append_txn(ham_env_t *env, ham_txn_t *txn)
+{
+    txn_set_env(txn, env);
+
+    if (!env_get_newest_txn(env)) {
+        ham_assert(env_get_oldest_txn(env)==0, (""));
+        env_set_oldest_txn(env, txn);
+        env_set_newest_txn(env, txn);
+    }
+    else {
+        txn_set_older(txn, env_get_newest_txn(env));
+        txn_set_newer(env_get_newest_txn(env), txn);
+        env_set_newest_txn(env, txn);
+        /* if there's no oldest txn (this means: all txn's but the
+         * current one were already flushed) then set this txn as
+         * the oldest txn */
+        if (!env_get_oldest_txn(env))
+            env_set_oldest_txn(env, txn);
+    }
+}
+
+ham_status_t
+env_flush_committed_txns(ham_env_t *env)
+{
+    ham_txn_t *oldest;
+
+    /* always get the oldest transaction; if it was committed: flush 
+     * it; if it was aborted: discard it; otherwise return */
+    while ((oldest=env_get_oldest_txn(env))) {
+        if (txn_get_flags(oldest)&TXN_STATE_COMMITTED) {
+            /* TODO flush txn */
+        }
+        else if (txn_get_flags(oldest)&TXN_STATE_ABORTED) {
+            ; /* nop */
+        }
+        else
+            break;
+
+#if 0
+        /* decrease the reference counter in the Database */
+        __decrease_db_unflushed(oldest);
+#endif
+
+        /* if we just flushed the last transaction in one of the
+         * logfiles: close and delete the file */
+        /* TODO */
+
+        /* now remove the txn from the linked list */
+        env_set_oldest_txn(env, txn_get_newer(oldest));
+
+        /* and free the whole memory */
+        txn_free(oldest);
+    }
+
+    return (0);
+}
+

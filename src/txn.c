@@ -124,23 +124,16 @@ Hence any callbacks which get registered with hamsterDB should NEVER allow any C
 to pass /through/ the hamsterdb layer itself, or a core dump at ham_close/ham_env_close invocation
 will be your share.
 */
+
 ham_status_t
 txn_begin(ham_txn_t *txn, ham_env_t *env, ham_u32_t flags)
 {
     ham_status_t st=0;
 
-    /* for hamsterdb 1.0.4 - only support one transaction */
-    if (env_get_txn(env)) {
-        ham_trace(("only one concurrent transaction is supported"));
-        return (HAM_LIMITS_REACHED);
-    }
-
     memset(txn, 0, sizeof(*txn));
-    txn_set_env(txn, env);
     txn_set_id(txn, env_get_txn_id(env)+1);
     txn_set_flags(txn, flags);
     env_set_txn_id(env, txn_get_id(txn));
-    env_set_txn(env, txn);
 
     if (env_get_log(env) && !(flags&HAM_TXN_READ_ONLY))
         st=ham_log_append_txn_begin(env_get_log(env), txn);
@@ -151,188 +144,75 @@ txn_begin(ham_txn_t *txn, ham_env_t *env, ham_u32_t flags)
 ham_status_t
 txn_commit(ham_txn_t *txn, ham_u32_t flags)
 {
-    ham_status_t st;
     ham_env_t *env=txn_get_env(txn);
 
     /*
      * are cursors attached to this txn? if yes, fail
      */
     if (txn_get_cursor_refcount(txn)) {
-        ham_trace(("transaction cannot be committed till all attached "
-                    "cursors are closed"));
-        return HAM_CURSOR_STILL_OPEN;
+        ham_trace(("Transaction cannot be committed till all attached "
+                    "Cursors are closed"));
+        return (HAM_CURSOR_STILL_OPEN);
     }
 
     /*
-     * in case of logging: write after-images of all modified pages,
-     * if they were modified by this transaction;
-     * then write the transaction boundary
+     * this transaction is now committed!
      */
-    if (env_get_log(env) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) 
-    {
-        ham_page_t *head=txn_get_pagelist(txn);
-        while (head) {
-            ham_page_t *next;
+    txn_set_flags(txn, txn_get_flags(txn)|TXN_STATE_COMMITTED);
 
-            next=page_get_next(head, PAGE_LIST_TXN);
-            if (page_get_dirty_txn(head)==txn_get_id(txn) 
-                    || page_get_dirty_txn(head)==PAGE_DUMMY_TXN_ID) {
-                st=ham_log_add_page_after(head);
-                if (st) 
-                    return st;
-            }
-            head=next;
-        }
+#if 0
+    /* TODO write log! */
 
-        st=ham_log_append_txn_commit(env_get_log(env), txn);
-        if (st) 
-            return st;
-    }
+    /* decrease the reference counter of the modified databases */
+    __decrease_db_refcount(txn);
+#endif
 
-    /*
-     * flush the pages
-     *
-     * shouldn't use local var for the list head, as
-     * txn_get_pagelist(txn) should be kept up to date and correctly
-     * formatted while we call db_free_page() et al.
-     */
-    while (txn_get_pagelist(txn))
-    {
-        ham_page_t *head = txn_get_pagelist(txn);
-        
-        txn_get_pagelist(txn) = page_list_remove(head, PAGE_LIST_TXN, head);
-
-        /* page is no longer in use */
-        page_release_ref(head);
-
-        /* 
-         * delete the page? 
-         */
-        if (page_get_npers_flags(head)&PAGE_NPERS_DELETE_PENDING) {
-            /* remove page from cache, add it to garbage list */
-            page_set_undirty(head);
-        
-            st=db_free_page(head, DB_MOVE_TO_FREELIST);
-            if (st)
-                return (st);
-        }
-        else if (flags & HAM_TXN_FORCE_WRITE) {
-            /* flush the page */
-            st=db_flush_page(env, head, 
-                    flags & HAM_TXN_FORCE_WRITE ? HAM_WRITE_THROUGH : 0);
-            if (st) {
-                page_add_ref(head);
-                /* failure: re-insert into transaction list! */
-                txn_get_pagelist(txn) = page_list_insert(txn_get_pagelist(txn),
-                            PAGE_LIST_TXN, head);
-                return (st);
-            }
-        }
-    }
-
-    txn_set_env(txn, 0);
-    txn_set_pagelist(txn, 0);
-    env_set_txn(env, 0);
-
-    return HAM_SUCCESS;
+    /* now flush all committed Transactions to disk */
+    return (env_flush_committed_txns(env));
 }
 
 ham_status_t
 txn_abort(ham_txn_t *txn, ham_u32_t flags)
 {
-    ham_status_t st;
-    ham_env_t *env=txn_get_env(txn);
-
     /*
      * are cursors attached to this txn? if yes, fail
      */
     if (txn_get_cursor_refcount(txn)) {
-        ham_trace(("transaction cannot be aborted till all attached "
-                    "cursors are closed"));
-        return HAM_CURSOR_STILL_OPEN;
+        ham_trace(("Transaction cannot be aborted till all attached "
+                    "Cursors are closed"));
+        return (HAM_CURSOR_STILL_OPEN);
     }
 
+    /*
+     * this transaction is now aborted!
+     */
+    txn_set_flags(txn, txn_get_flags(txn)|TXN_STATE_ABORTED);
+
+#if 0
+    TODO
     if (env_get_log(env) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) {
         st=ham_log_append_txn_abort(env_get_log(env), txn);
         if (st) 
             return st;
     }
+#endif
 
-    env_set_txn(env, 0);
+#if 0
+    /* decrease the reference counter of the modified databases */
+    __decrease_db_refcount(txn);
 
-    /*
-     * undo all operations from this transaction
-     * 
-     * this includes allocated pages (they're moved to the freelist), 
-     * deleted pages (they're un-deleted) and other modifications (will
-     * re-create the original page from the logfile)
-     *
-     * keep txn_get_pagelist(txn) intact during every round, so no 
-     * local var for this one.
-     */
-    while (txn_get_pagelist(txn)) {
-        ham_page_t *head = txn_get_pagelist(txn);
-
-        if (!(flags & DO_NOT_NUKE_PAGE_STATS)) {
-            /* 
-             * nuke critical statistics, such as tracked outer bounds; imagine,
-             * for example, a failing erase transaction which, through erasing 
-             * the top-most key, lowers the actual upper bound, after which 
-             * the transaction fails at some later point in life. Now if we 
-             * wouldn't 'rewind' our bounds-statistics, we would have a 
-             * situation where a subsequent out-of-bounds insert (~ append) 
-             * would possibly FAIL due to the hinter using incorrect bounds 
-             * information then!
-             *
-             * Hence we 'reverse' our statistics here and the easiest route 
-             * is to just nuke the critical bits; subsequent find/insert/erase 
-             * operations will ensure that the stats will get updated again, 
-             * anyhow. All we loose then is a few subsequent operations, which 
-             * might have been hinted if we had played a smarter game of 
-             * statistics 'reversal'. Soit.
-             */
-			ham_db_t *db = page_get_owner(head);
-
-			/*
-			 * only need to do this for index pages anyhow, and those are the 
-             * ones which have their 'ownership' set.
-			 */
-			if (db) {
-				stats_page_is_nuked(db, head, HAM_FALSE); 
-			}
-        }
-
-        ham_assert(page_is_in_list(txn_get_pagelist(txn), head, PAGE_LIST_TXN),
-                             (0));
-        txn_get_pagelist(txn) = page_list_remove(head, PAGE_LIST_TXN, head);
-
-        /* if this page was allocated by this transaction, then we can
-         * move the whole page to the freelist */
-        if (page_get_alloc_txn_id(head)==txn_get_id(txn)) {
-            (void)freel_mark_free(env, 0, page_get_self(head), 
-                    env_get_pagesize(env), HAM_TRUE);
-        }
-        else {
-            /* remove the 'delete pending' flag */
-            page_set_npers_flags(head, 
-                    page_get_npers_flags(head)&~PAGE_NPERS_DELETE_PENDING);
-
-            /* if the page is dirty, and RECOVERY is enabled: recreate
-             * the original, unmodified page from the log */
-            if (env_get_log(env) && page_is_dirty(head)) {
-                st=ham_log_recreate(env_get_log(env), head);
-                if (st)
-                    return (st);
-                /*page_set_undirty(head); */
-            }
-        }
-
-        /* page is no longer in use */
-        page_release_ref(head);
-    }
-
-    ham_assert(txn_get_pagelist(txn)==0, (0));
+    /* immediately release memory of the cached operations */
+    txn_free_ops(txn);
+#endif
 
     return (0);
+}
+
+void
+txn_free(ham_txn_t *txn)
+{
+    ham_env_t *env=txn_get_env(txn);
+
+    allocator_free(env_get_allocator(env), txn);
 }
 

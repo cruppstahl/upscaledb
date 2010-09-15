@@ -65,7 +65,7 @@ struct ham_txn_t
     /**
      * linked list of all transactions
      */
-    ham_txn_t *_next, *_previous;
+    ham_txn_t *_newer, *_older;
 
     /**
      * a list of pages which are referenced by this transaction
@@ -73,6 +73,12 @@ struct ham_txn_t
     ham_page_t *_pagelist;
 
 };
+
+/** transaction is still alive but was aborted */
+#define TXN_STATE_ABORTED               0x10000
+
+/** transaction is still alive but was committed */
+#define TXN_STATE_COMMITTED             0x20000
 
 /**
  * get the id
@@ -135,24 +141,24 @@ struct ham_txn_t
 #define txn_set_remote_handle(txn, h)           (txn)->_remote_handle=(h)
 
 /**
- * get the 'next' pointer of the linked list
+ * get the 'newer' pointer of the linked list
  */
-#define txn_get_next(txn)                       (txn)->_next
+#define txn_get_newer(txn)                      (txn)->_newer
 
 /**
- * set the 'next' pointer of the linked list
+ * set the 'newer' pointer of the linked list
  */
-#define txn_set_next(txn, n)                    (txn)->_next=(n)
+#define txn_set_newer(txn, n)                   (txn)->_newer=(n)
 
 /**
- * get the 'previous' pointer of the linked list
+ * get the 'older' pointer of the linked list
  */
-#define txn_get_previous(txn)                   (txn)->_previous
+#define txn_get_older(txn)                      (txn)->_older
 
 /**
- * set the 'previous' pointer of the linked list
+ * set the 'older' pointer of the linked list
  */
-#define txn_set_previous(txn, p)                (txn)->_previous=(p)
+#define txn_set_older(txn, o)                   (txn)->_older=(o)
 
 /**
  * get the page list
@@ -215,14 +221,12 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags);
 extern ham_status_t
 txn_abort(ham_txn_t *txn, ham_u32_t flags);
 
-/** 
-internal flags: signal that a transaction ABORT should NOT nuke the page statistics.
+/**
+ * free the txn structure
+ */
+extern void
+txn_free(ham_txn_t *txn);
 
-This is relevant for find operations where an internal (local) transaction is used
-and the find fails: as this is a read-only operation, aborting or commiting such
-a local transaction does not result in necessary different statistics.
-*/
-#define DO_NOT_NUKE_PAGE_STATS		0x0001 
 
 #ifdef __cplusplus
 } // extern "C"

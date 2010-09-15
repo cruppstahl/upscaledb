@@ -136,9 +136,15 @@ struct ham_env_t
     /** the active txn */
     ham_txn_t *_txn;
 
+    /* the head of the transaction list (the oldest transaction) */
+    ham_txn_t *_oldest_txn;
+
+    /* the tail of the transaction list (the youngest/newest transaction) */
+    ham_txn_t *_newest_txn;
+
     /** the log object */
     ham_log_t *_log;
-		   
+
     /** the Environment flags - a combination of the persistent flags
      * and runtime flags */
     ham_u32_t _rt_flags;
@@ -414,14 +420,29 @@ env_get_header(ham_env_t *env);
 #define env_get_indexdata_ptr(env, i)      (env_get_indexdata_arrptr(env) + (i))
 
 /**
- * get the currently active transaction
+ * TODO remove me!
  */
-#define env_get_txn(env)                 (env)->_txn
+#define env_get_txn(env)                 (env)->_newest_txn
 
 /**
- * set the currently active transaction
+ * get the newest transaction
  */
-#define env_set_txn(env, txn)            (env)->_txn=(txn)
+#define env_get_newest_txn(env)          (env)->_newest_txn
+
+/**
+ * set the newest transaction
+ */
+#define env_set_newest_txn(env, txn)     (env)->_newest_txn=(txn)
+
+/**
+ * get the oldest transaction
+ */
+#define env_get_oldest_txn(env)          (env)->_oldest_txn
+
+/**
+ * set the oldest transaction
+ */
+#define env_set_oldest_txn(env, txn)     (env)->_oldest_txn=(txn)
 
 /**
  * get the log object
@@ -698,6 +719,18 @@ env_initialize_remote(ham_env_t *env);
  */
 extern ham_status_t
 env_reserve_space(ham_env_t *env, ham_offset_t minimum_page_count);
+
+/**
+ * add a new transaction to this Environment
+ */
+extern void
+env_append_txn(ham_env_t *env, ham_txn_t *txn);
+
+/*
+ * flush all committed Transactions to disk
+ */
+extern ham_status_t
+env_flush_committed_txns(ham_env_t *env);
 
 
 #ifdef __cplusplus
