@@ -15,27 +15,42 @@ I'm not interested in multiple threads (yet), although i may use several
 threads (but then i'll use synchronization in my own code).
 ==============================================================================
 
-o new code is only active if HAM_ENABLE_TRANSACTIONS is specified; 
+x new code is only active if HAM_ENABLE_TRANSACTIONS is specified; 
     otherwise everything stays as is
     x allow more than one txn in parallel
     x don't need DO_NOT_NUKE_PAGE_STATS as flag for txn_abort/commit
     x env_flush_committed_txns() - must clear txn from list
     x rewrite auto-abort/auto-commit
-    o modify unittests, create new tests
-        continue with HighLevelTxnTest
 
 o manage all transactions
     o integrate existing rb-tree code from hamsterdb2
-        o also integrate unittests
-    o all transactions are stored in a tree AND in a list
-    o each modified database gets its own txn tree when its modified
-        in a transaction
+        x rb.h
+        o txns are linked lists (chronological) 
+        o each modified database gets its own txn tree when its modified
+            in a transaction
+        o this tree stores operations for each key
+            o create txn_op structure
+            o create insert(update) and erase operations
+            o each op is stored chronologically in the txn AND in the rb-node
     o all operations of these transactions are stored in the trees AND
         in a chronological list (is this list still needed?)
-    o add unittests
     o remove the whole transaction handling from the low-level page
         i/o routines
     o remove env_get_txn
+    o rewrite db_find
+    o rewrite db_insert
+    o rewrite db_erase
+    o implement env_flush_committed_txns()
+    o add new unittests
+    o make sure all unittests are running
+
+o each operation writes a journal entry (however, we still keep the logical
+        journal in parallel, otherwise the unittests will fail completely)
+        o write entry for db_find
+        o write entry for db_insert
+        o write entry for db_erase
+    o recovery: recreate all pending transactions (if requested)
+    o unittests
 
 o ham_txn_begin receives Environment handle, not Database handle
     o need a new parameter (reserved) for parent txn
@@ -48,18 +63,4 @@ o new API to retrieve the currently active transactions
     o already exists
     o needs unittests
 
-o support transaction level "read committed"
-    o all in-memory transactions are stored in a single rb-tree
-    o rewrite db_find
-    o rewrite db_insert
-    o rewrite db_erase
-    o when a txn is committed: try to write ALL committed txns to disk
-
-o each operation writes a journal entry (however, we still keep the logical
-        journal in parallel, otherwise the unittests will fail completely)
-        o write entry for db_find
-        o write entry for db_insert
-        o write entry for db_erase
-    o recovery: recreate all pending transactions (if requested)
-    o unittests
-
+o continue as described in integrate-ham2.txt...
