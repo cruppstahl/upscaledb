@@ -25,7 +25,7 @@ x new code is only active if HAM_ENABLE_TRANSACTIONS is specified;
 o manage all transactions
     o integrate existing rb-tree code from hamsterdb2
         x rb.h
-        o txns are linked lists (chronological) 
+        x txns are linked lists (chronological) 
         o each modified database gets its own txn tree when its modified
             in a transaction
         o this tree stores operations for each key
