@@ -23,23 +23,35 @@ x new code is only active if HAM_ENABLE_TRANSACTIONS is specified;
     x rewrite auto-abort/auto-commit
 
 o manage all transactions
-    o integrate existing rb-tree code from hamsterdb2
+    x integrate existing rb-tree code from hamsterdb2
         x rb.h
         x txns are linked lists (chronological) 
-        o each modified database gets its own txn tree when its modified
-            in a transaction
-        o this tree stores operations for each key
-            o create txn_op structure
-            o create insert(update) and erase operations
-            o each op is stored chronologically in the txn AND in the rb-node
-    o all operations of these transactions are stored in the trees AND
-        in a chronological list (is this list still needed?)
+        x this tree stores operations for each key
+            x create txn_op structure
+            x create insert(update) and erase operations
+            x each op is stored chronologically in the txn AND in the rb-node
+        x each database has such a tree
     o remove the whole transaction handling from the low-level page
         i/o routines
     o remove env_get_txn
-    o rewrite db_find
-    o rewrite db_insert
-    o rewrite db_erase
+    o rewrite ham_insert
+        o each modified database gets its own txn tree when its modified
+            in a transaction
+        o if transactions are disabled: immediately write to disk, no
+            temp transactions are needed
+        o otherwise go through transaction trees
+    o rewrite ham_find
+        o each modified database gets its own txn tree when its modified
+            in a transaction
+        o if transactions are disabled: immediately write to disk, no
+            temp transactions are needed
+        o otherwise go through transaction trees
+    o rewrite ham_erase
+        o each modified database gets its own txn tree when its modified
+            in a transaction
+        o if transactions are disabled: immediately write to disk, no
+            temp transactions are needed
+        o otherwise go through transaction trees
     o implement env_flush_committed_txns()
     o add new unittests
     o make sure all unittests are running

@@ -24,6 +24,37 @@
 #include "statistics.h"
 #include "txn.h"
 
+/* stuff for rb.h */
+typedef signed ssize_t;
+typedef int bool;
+#define true 1
+#define false (!true)
+
+static int
+__cmpfoo(void *vlhs, void *vrhs)
+{
+    ham_compare_func_t foo;
+    txn_node_t *ln, *rn;
+    txn_optree_node_t *lhs=(txn_optree_node_t *)vlhs;
+    txn_optree_node_t *rhs=(txn_optree_node_t *)vrhs;
+#if 0
+    ln=txn_optree_node_get_node(lhs);
+    rn=txn_optree_node_get_node(rhs);
+
+    ham_assert(txn_op_get_db(oplhs)==txn_op_get_db(oprhs));
+    foo=db_get_compfunc(txn_op_get_db(oplhs));
+
+    return (foo(0, /* TODO first parameter - gdb might already
+                        be freed!! */
+                txn_op_get_key(oplhs)->data,
+                txn_op_get_key(oplhs)->size,
+                txn_op_get_key(oprhs)->data,
+                txn_op_get_key(oprhs)->size));
+#endif
+return (0);
+}
+
+rb_wrap(static, rbt_, txn_optree_t, txn_optree_node_t, node, __cmpfoo)
 
 ham_status_t
 txn_add_page(ham_txn_t *txn, ham_page_t *page, ham_bool_t ignore_if_inserted)

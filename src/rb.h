@@ -69,6 +69,7 @@
 #   include <stdint.h>
 #   include <sys/cdefs.h>
 #endif
+#include <assert.h>
 
 /* Node structure. */
 #define	rb_node(a_type)							\
