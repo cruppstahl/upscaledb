@@ -79,9 +79,8 @@ public:
         BFC_ASSERT_EQUAL((ham_offset_t)0x12345, 
                 extkey_get_blobid(&e));
 
-        extkey_set_txn_id(&e, (ham_u64_t)0x12345678);
-        BFC_ASSERT_EQUAL((ham_u64_t)0x12345678, 
-                extkey_get_txn_id(&e));
+        extkey_set_age(&e, (ham_u64_t)0x12345678);
+        BFC_ASSERT_EQUAL((ham_u64_t)0x12345678, extkey_get_age(&e));
 
         extkey_set_next(&e, (extkey_t *)0x13);
         BFC_ASSERT_EQUAL((extkey_t *)0x13, extkey_get_next(&e));

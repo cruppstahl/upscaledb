@@ -232,7 +232,7 @@ public:
         page_set_npers_flags(page1, PAGE_NPERS_NO_HEADER);
         page_set_self(page1, 0x123ull);
         page_set_pers(page1, &pers1);
-        page_add_ref(page1);
+        page_lock(page1);
         page2=page_new(m_env);
         page_set_npers_flags(page2, PAGE_NPERS_NO_HEADER);
         page_set_self(page2, 0x456ull);
@@ -245,7 +245,7 @@ public:
         BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==page1);
         BFC_ASSERT(cache_get_page(cache, 0x456ull, 0)==0);
         cache_delete(cache);
-        page_release_ref(page1);
+        page_unlock(page1);
         page_set_pers(page1, 0);
         page_delete(page1);
         page_set_pers(page2, 0);
@@ -326,13 +326,13 @@ public:
         unsigned int i;
         for (i=0; i<max_pages+1; i++) {
             BFC_ASSERT_EQUAL(0, db_alloc_page(&p[i], db, 0, 0));
-            page_add_ref(p[i]);
+            page_lock(p[i]);
         }
 
         BFC_ASSERT_EQUAL(HAM_CACHE_FULL, db_alloc_page(&p[i], db, 0, 0));
 
         for (i=0; i<max_pages+1; i++) {
-            page_release_ref(p[i]);
+            page_unlock(p[i]);
         }
 
         BFC_ASSERT_EQUAL(0, db_alloc_page(&p[i], db, 0, 0));

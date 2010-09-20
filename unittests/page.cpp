@@ -133,7 +133,7 @@ public:
         
         BFC_ASSERT_EQUAL(0, page_fetch(page));
         memset(page_get_pers(page), 0x13, ps);
-        page_set_dirty(page, m_env);
+        page_set_dirty(page);
         BFC_ASSERT_EQUAL(0, page_flush(page));
 
         BFC_ASSERT_EQUAL(false, page_is_dirty(page));

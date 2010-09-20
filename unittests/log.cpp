@@ -363,7 +363,7 @@ public:
         ham_page_t *page;
         page=page_new(m_env);
         BFC_ASSERT_EQUAL(0, page_alloc(page));
-        page_set_dirty(page, m_env);
+        page_set_dirty(page);
 
         BFC_ASSERT_EQUAL(0, ham_log_append_flush_page(log, page));
         BFC_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
@@ -1725,7 +1725,7 @@ public:
         ham_u8_t *p=page_get_payload(page);
         memset(p, 0, env_get_usable_pagesize(m_env));
         p[0]=1;
-        page_set_dirty(page, m_env);
+        page_set_dirty(page);
         BFC_ASSERT_EQUAL(0, ham_log_add_page_before(page));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
 
@@ -1736,7 +1736,7 @@ public:
         BFC_ASSERT(page!=0);
         p=page_get_payload(page);
         p[0]=2;
-        page_set_dirty(page, m_env);
+        page_set_dirty(page);
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
 
         /* check modifications */
@@ -1762,11 +1762,11 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         BFC_ASSERT_EQUAL(0, env_fetch_page(&page, m_env, ps, 0));
         BFC_ASSERT(page!=0);
-        btree_node_t *node=ham_page_get_btree_node(page);
+        btree_node_t *node=page_get_btree_node(page);
         int_key_t *entry=btree_node_get_key(m_db, node, 0);
         BFC_ASSERT_EQUAL((ham_u8_t)'a', key_get_key(entry)[0]);
         key_get_key(entry)[0]='b';
-        page_set_dirty(page, m_env);
+        page_set_dirty(page);
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
 
         /* now fetch the original key */

@@ -273,7 +273,7 @@ public:
         p=page_get_raw_payload(page);
         for (int i=0; i<16; i++)
             p[i]=(ham_u8_t)i;
-        page_set_dirty(page, m_env);
+        page_set_dirty(page);
         address=page_get_self(page);
         BFC_ASSERT_EQUAL(0, db_flush_page(m_env, page, 0));
         BFC_ASSERT_EQUAL(0, db_free_page(page, 0));
