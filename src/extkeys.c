@@ -107,7 +107,7 @@ extkey_cache_insert(extkey_cache_t *cache, ham_offset_t blobid,
     if (!e)
         return HAM_OUT_OF_MEMORY;
     extkey_set_blobid(e, blobid);
-    extkey_set_txn_id(e, env_get_txn_id(env));
+    extkey_set_age(e, env_get_txn_id(env));
     extkey_set_next(e, extkey_cache_get_bucket(cache, h));
     extkey_set_size(e, size);
     memcpy(extkey_get_data(e), data, size);
@@ -168,7 +168,7 @@ extkey_cache_fetch(extkey_cache_t *cache, ham_offset_t blobid,
 
     *size=extkey_get_size(e);
     *data=extkey_get_data(e);
-    extkey_set_txn_id(e, env_get_txn_id(db_get_env(extkey_cache_get_db(cache))));
+    extkey_set_age(e, env_get_txn_id(db_get_env(extkey_cache_get_db(cache))));
 
     return (0);
 }
@@ -192,7 +192,7 @@ extkey_cache_purge(extkey_cache_t *cache)
         e=extkey_cache_get_bucket(cache, i);
         while (e) {
             n=extkey_get_next(e);
-            if (env_get_txn_id(env)-extkey_get_txn_id(e)>EXTKEY_MAX_AGE) {
+            if (env_get_txn_id(env)-extkey_get_age(e)>EXTKEY_MAX_AGE) {
                 /* deleted the head element of the list? */
                 if (!p)
                     extkey_cache_set_bucket(cache, i, n);

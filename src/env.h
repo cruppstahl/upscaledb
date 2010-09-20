@@ -386,12 +386,12 @@ env_get_header(ham_env_t *env);
 /**
  * set the dirty-flag - this is the same as db_set_dirty()
  */
-#define env_set_dirty(env)              page_set_dirty(env_get_header_page(env), env)
+#define env_set_dirty(env)              page_set_dirty(env_get_header_page(env))
 
 /**
 * get the dirty-flag
 */
-#define env_is_dirty(env)                page_is_dirty(env_get_header_page(env))
+#define env_is_dirty(env)               page_is_dirty(env_get_header_page(env))
 
 /**
  * Get a reference to the array of database-specific private data; 

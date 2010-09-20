@@ -139,17 +139,11 @@ typedef HAM_PACK_0 union HAM_PACK_1
  */
 struct ham_db_t
 {
-    /** the current transaction ID */
-    ham_u64_t _txn_id;
-
     /** the last recno-value */
     ham_u64_t _recno;
 
     /** the last error code */
     ham_status_t _error;
-
-    /** a custom error handler */
-    ham_errhandler_fun _errh;
 
     /** the user-provided context data */
     void *_context;
@@ -313,74 +307,46 @@ struct ham_db_t
     ham_status_t (*_fun_destroy)(ham_db_t *self);
 };
 
-/**
- * get the last recno value
- */
+/** get the last recno value */
 #define db_get_recno(db)               (db)->_recno
 
-/**
- * set the last recno value
- */
+/** set the last recno value */
 #define db_set_recno(db, r)            (db)->_recno=(r)
 
-/**
- * get the last error code
- */
+/** get the last error code */
 #define db_get_error(db)               (db)->_error
 
-/**
- * set the last error code
- */
+/** set the last error code */
 #define db_set_error(db, e)            (db)->_error=(e)
 
-/**
- * get the user-provided context pointer
- */
+/** get the user-provided context pointer */
 #define db_get_context_data(db)        (db)->_context
 
-/**
- * set the user-provided context pointer
- */
+/** set the user-provided context pointer */
 #define db_set_context_data(db, ctxt)  (db)->_context=(ctxt)
 
-/**
- * get the backend pointer
- */
+/** get the backend pointer */
 #define db_get_backend(db)             (db)->_backend
 
-/**
- * set the backend pointer
- */
+/** set the backend pointer */
 #define db_set_backend(db, be)         (db)->_backend=(be)
 
-/**
- * get the prefix comparison function
- */
+/** get the prefix comparison function */
 #define db_get_prefix_compare_func(db) (db)->_prefix_func
 
-/**
- * set the prefix comparison function
- */
+/** set the prefix comparison function */
 #define db_set_prefix_compare_func(db, f) (db)->_prefix_func=(f)
 
-/**
- * get the default comparison function
- */
+/** get the default comparison function */
 #define db_get_compare_func(db)        (db)->_cmp_func
 
-/**
- * set the default comparison function
- */
+/** set the default comparison function */
 #define db_set_compare_func(db, f)     (db)->_cmp_func=(f)
 
-/**
- * get the duplicate record comparison function
- */
+/** get the duplicate record comparison function */
 #define db_get_duplicate_compare_func(db)        (db)->_duperec_func
 
-/**
- * set the duplicate record comparison function
- */
+/** set the duplicate record comparison function */
 #define db_set_duplicate_compare_func(db, f)     (db)->_duperec_func=(f)
 
 /**
@@ -390,113 +356,67 @@ struct ham_db_t
 #define db_get_rt_flags(db)            (env_get_rt_flags(db_get_env(db))      \
                                             | (db)->_rt_flags)
 
-/**
- * set the runtime-flags - NOT setting environment flags!
- */
+/** set the runtime-flags - NOT setting environment flags!  */
 #define db_set_rt_flags(db, f)         (db)->_rt_flags=(f)
 
-/**
- * get the index of this database in the indexdata array
- *
- * @sa env_get_indexdata_ptr
- */
+/** get the index of this database in the indexdata array */
 #define db_get_indexdata_offset(db)    (db)->_indexdata_offset
 
-/**
- * set the index of this database in the indexdata array
- *
- * @sa env_get_indexdata_ptr
- */
+/** set the index of this database in the indexdata array */
 #define db_set_indexdata_offset(db, o) (db)->_indexdata_offset=(o)
 
-/**
- * get the environment pointer
- */
+/** get the environment pointer */
 #define db_get_env(db)                 (db)->_env
 
-/**
- * set the environment pointer
- */
+/** set the environment pointer */
 #define db_set_env(db, env)            (db)->_env=(env)
 
-/**
- * get the next database in a linked list of databases
- */
+/** get the next database in a linked list of databases */
 #define db_get_next(db)                (db)->_next
 
-/**
- * set the pointer to the next database
- */
+/** set the pointer to the next database */
 #define db_set_next(db, next)          (db)->_next=(next)
 
-/**
- * get the linked list of all record-level filters
- */
+/** get the linked list of all record-level filters */
 #define db_get_record_filter(db)       (db)->_record_filters
 
-/**
- * set the linked list of all record-level filters
- */
+/** set the linked list of all record-level filters */
 #define db_set_record_filter(db, f)    (db)->_record_filters=(f)
 
-/**
- * get the linked list of all cursors
- */
+/** get the linked list of all cursors */
 #define db_get_cursors(db)             (db)->_cursors
 
-/**
- * set the linked list of all cursors
- */
+/** set the linked list of all cursors */
 #define db_set_cursors(db, c)          (db)->_cursors=(c)
 
-/**
- * get the size of the last allocated data blob
- */
+/** get the size of the last allocated data blob */
 #define db_get_record_allocsize(db)    (db)->_rec_allocsize
 
-/**
- * set the size of the last allocated data blob
- */
+/** set the size of the last allocated data blob */
 #define db_set_record_allocsize(db, s) (db)->_rec_allocsize=(s)
 
-/**
- * get the pointer to the last allocated data blob
- */
+/** get the pointer to the last allocated data blob */
 #define db_get_record_allocdata(db)    (db)->_rec_allocdata
 
-/**
- * set the pointer to the last allocated data blob
- */
+/** set the pointer to the last allocated data blob */
 #define db_set_record_allocdata(db, p) (db)->_rec_allocdata=(p)
 
-/**
- * get the size of the last allocated key blob
- */
+/** get the size of the last allocated key blob */
 #define db_get_key_allocsize(db)       (db)->_key_allocsize
 
-/**
- * set the size of the last allocated key blob
- */
+/** set the size of the last allocated key blob */
 #define db_set_key_allocsize(db, s)    (db)->_key_allocsize=(s)
 
-/**
- * get the pointer to the last allocated key blob
- */
+/** get the pointer to the last allocated key blob */
 #define db_get_key_allocdata(db)       (db)->_key_allocdata
 
-/**
- * set the pointer to the last allocated key blob
- */
+/** set the pointer to the last allocated key blob */
 #define db_set_key_allocdata(db, p)    (db)->_key_allocdata=(p)
 
-/**
- * get the expected data access mode for this database
- */
+/** get the expected data access mode for this database */
 #define db_get_data_access_mode(db)   (db)->_data_access_mode
 
-/**
- * set the expected data access mode for this database
- */
+/** set the expected data access mode for this database */
 #define db_set_data_access_mode(db,s)  (db)->_data_access_mode=(s)
 
 /**
@@ -514,15 +434,11 @@ struct ham_db_t
     (db)->_data_access_mode=(((db)->_data_access_mode & (and_mask))            \
                              | (or_mask))
 
-/**
- * check if a given data access mode / mode-set has been set
- */
+/** check if a given data access mode / mode-set has been set */
 #define db_is_mgt_mode_set(mode_collective, mask)                \
     (((mode_collective) & (mask)) == (mask))
 
-/**
- * check whether this database has been opened/created.
- */
+/** check whether this database has been opened/created */
 #define db_is_active(db)   (db)->_is_active
 
 /**
@@ -532,19 +448,13 @@ struct ham_db_t
  */
 #define db_set_active(db,s)  (db)->_is_active=!!(s)
 
-/**
- * get a reference to the per-database statistics
- */
+/** get a reference to the per-database statistics */
 #define db_get_db_perf_data(db)      &(db)->_db_perf_data
 
-/**
- * get the remote database handle
- */
+/** get the remote database handle */
 #define db_get_remote_handle(db)        (db)->_remote_handle
 
-/**
- * set the remote database handle
- */
+/** set the remote database handle */
 #define db_set_remote_handle(db, h)     (db)->_remote_handle=(h)
 
 /**
@@ -581,8 +491,8 @@ db_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
  */
 extern int HAM_CALLCONV 
 db_default_compare(ham_db_t *db,
-        const ham_u8_t *lhs, ham_size_t lhs_length,
-        const ham_u8_t *rhs, ham_size_t rhs_length);
+                    const ham_u8_t *lhs, ham_size_t lhs_length,
+                    const ham_u8_t *rhs, ham_size_t rhs_length);
 
 /**
  * compare two recno-keys
@@ -601,8 +511,8 @@ db_default_compare(ham_db_t *db,
  */
 extern int HAM_CALLCONV 
 db_default_recno_compare(ham_db_t *db,
-        const ham_u8_t *lhs, ham_size_t lhs_length,
-        const ham_u8_t *rhs, ham_size_t rhs_length);
+                    const ham_u8_t *lhs, ham_size_t lhs_length,
+                    const ham_u8_t *rhs, ham_size_t rhs_length);
 
 /**
  * the default prefix compare function - uses memcmp
@@ -621,10 +531,10 @@ db_default_recno_compare(ham_db_t *db,
  */
 extern int HAM_CALLCONV 
 db_default_prefix_compare(ham_db_t *db,
-        const ham_u8_t *lhs, ham_size_t lhs_length,
-        ham_size_t lhs_real_length,
-        const ham_u8_t *rhs, ham_size_t rhs_length,
-        ham_size_t rhs_real_length);
+                    const ham_u8_t *lhs, ham_size_t lhs_length,
+                    ham_size_t lhs_real_length,
+                    const ham_u8_t *rhs, ham_size_t rhs_length,
+                    ham_size_t rhs_real_length);
 
 /**
  * compare two records for a duplicate key
@@ -641,8 +551,8 @@ db_default_prefix_compare(ham_db_t *db,
  */
 extern int HAM_CALLCONV 
 db_default_dupe_compare(ham_db_t *db,
-        const ham_u8_t *lhs, ham_size_t lhs_length,
-        const ham_u8_t *rhs, ham_size_t rhs_length);
+                    const ham_u8_t *lhs, ham_size_t lhs_length,
+                    const ham_u8_t *rhs, ham_size_t rhs_length);
 
 /**
  * load an extended key
@@ -724,7 +634,7 @@ db_create_backend(ham_backend_t **backend_ref, ham_db_t *db, ham_u32_t flags);
  */
 extern ham_status_t
 db_fetch_page(ham_page_t **page_ref, ham_db_t *db, 
-        ham_offset_t address, ham_u32_t flags);
+                    ham_offset_t address, ham_u32_t flags);
 
 /*
  * this is an internal function. do not use it unless you know what you're
@@ -732,7 +642,7 @@ db_fetch_page(ham_page_t **page_ref, ham_db_t *db,
  */
 extern ham_status_t
 db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db, 
-        ham_offset_t address, ham_u32_t flags);
+                    ham_offset_t address, ham_u32_t flags);
 
 /**
  * @defgroup db_fetch_page_flags @ref db_fetch_page Flags

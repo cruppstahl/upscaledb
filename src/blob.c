@@ -156,17 +156,9 @@ __write_chunks(ham_env_t *env, ham_page_t *page, ham_offset_t addr,
                         at_blob_edge ? 0 : DB_NEW_PAGE_DOES_THRASH_CACHE);
 				ham_assert(st ? !page : 1, (0));
                 /* blob pages don't have a page header */
-                if (page)
-                {
+                if (page) {
                     page_set_npers_flags(page, 
                         page_get_npers_flags(page)|PAGE_NPERS_NO_HEADER);
-                    /* if this page was recently allocated by the parent
-                     * function: set a flag */
-                    if (cacheonly 
-                            && allocated 
-                            && addr==page_get_self(page) 
-                            && env_get_txn(env))
-                        page_set_alloc_txn_id(page, txn_get_id(env_get_txn(env)));
                 }
                 else if (st) {
                     return st;
@@ -188,7 +180,7 @@ __write_chunks(ham_env_t *env, ham_page_t *page, ham_offset_t addr,
                     return (st);
                 memcpy(&page_get_raw_payload(page)[writestart], chunk_data[i],
                             writesize);
-                page_set_dirty(page, env);
+                page_set_dirty(page);
                 addr+=writesize;
                 chunk_data[i]+=writesize;
                 chunk_size[i]-=writesize;
@@ -1202,10 +1194,10 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
     else {
         if (db_get_rt_flags(db)&HAM_SORT_DUPLICATES) {
             if (page)
-                page_add_ref(page);
+                page_lock(page);
             position=__get_sorted_position(db, table, record, flags);
             if (page)
-                page_release_ref(page);
+                page_unlock(page);
         }
         else if (flags&HAM_DUPLICATE_INSERT_BEFORE) {
             /* do nothing, insert at the current position */
@@ -1240,28 +1232,24 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
     /*
      * write the table back to disk and return the blobid of the table
      */
-    if ((table_id && !page) || resize) 
-    {
+    if ((table_id && !page) || resize) {
         ham_record_t rec={0};
         rec.data=(ham_u8_t *)table;
         rec.size=sizeof(dupe_table_t)
                     +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t);
         st=blob_overwrite(env, db, table_id, &rec, 0, rid);
     }
-    else if (!table_id) 
-    {
+    else if (!table_id) {
         ham_record_t rec={0};
         rec.data=(ham_u8_t *)table;
         rec.size=sizeof(dupe_table_t)
                     +(dupe_table_get_capacity(table)-1)*sizeof(dupe_entry_t);
         st=blob_allocate(env, db, &rec, 0, rid);
     }
-    else if (table_id && page) 
-    {
-        page_set_dirty(page, env);
+    else if (table_id && page) {
+        page_set_dirty(page);
     }
-    else
-	{
+    else {
         ham_assert(!"shouldn't be here", (0));
 	}
 

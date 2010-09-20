@@ -67,7 +67,7 @@ my_move_first(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
      * and traverse down
      */
     while (1) {
-        node=ham_page_get_btree_node(page);
+        node=page_get_btree_node(page);
         /* check for an empty root page */
         if (btree_node_get_count(node)==0)
             return HAM_KEY_NOT_FOUND;
@@ -117,7 +117,7 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
         return (HAM_CURSOR_IS_NIL);
 
     page=bt_cursor_get_coupled_page(c);
-    node=ham_page_get_btree_node(page);
+    node=page_get_btree_node(page);
     entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
 
     /*
@@ -128,11 +128,11 @@ my_move_next(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
             && (!(flags&HAM_SKIP_DUPLICATES))) {
         ham_status_t st;
         bt_cursor_set_dupe_id(c, bt_cursor_get_dupe_id(c)+1);
-        page_add_ref(page);
+        page_lock(page);
         st=blob_duplicate_get(env, key_get_ptr(entry),
                         bt_cursor_get_dupe_id(c),
                         bt_cursor_get_dupe_cache(c));
-        page_release_ref(page);
+        page_unlock(page);
         if (st) {
             bt_cursor_set_dupe_id(c, bt_cursor_get_dupe_id(c)-1);
             if (st!=HAM_KEY_NOT_FOUND)
@@ -207,7 +207,7 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
         return (HAM_CURSOR_IS_NIL);
 
     page=bt_cursor_get_coupled_page(c);
-    node=ham_page_get_btree_node(page);
+    node=page_get_btree_node(page);
     entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
 
     /*
@@ -220,11 +220,11 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     {
         ham_status_t st;
         bt_cursor_set_dupe_id(c, bt_cursor_get_dupe_id(c)-1);
-        page_add_ref(page);
+        page_lock(page);
         st=blob_duplicate_get(env, key_get_ptr(entry),
                         bt_cursor_get_dupe_id(c), 
                         bt_cursor_get_dupe_cache(c));
-        page_release_ref(page);
+        page_unlock(page);
         if (st) {
             bt_cursor_set_dupe_id(c, bt_cursor_get_dupe_id(c)+1);
             if (st!=HAM_KEY_NOT_FOUND)
@@ -262,7 +262,7 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
         st=db_fetch_page(&page, db, btree_node_get_left(node), 0);
         if (!page)
             return st ? st : HAM_INTERNAL_ERROR;
-        node=ham_page_get_btree_node(page);
+        node=page_get_btree_node(page);
 
         /*
          * couple this cursor to the highest key in this page
@@ -283,10 +283,10 @@ my_move_previous(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
             && !(flags&HAM_SKIP_DUPLICATES)) {
         ham_size_t count;
         ham_status_t st;
-        page_add_ref(page);
+        page_lock(page);
         st=blob_duplicate_get_count(env, key_get_ptr(entry),
                         &count, bt_cursor_get_dupe_cache(c));
-        page_release_ref(page);
+        page_unlock(page);
         if (st)
             return st;
         bt_cursor_set_dupe_id(c, count-1);
@@ -329,7 +329,7 @@ my_move_last(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     while (1) {
         int_key_t *key;
 
-        node=ham_page_get_btree_node(page);
+        node=page_get_btree_node(page);
         /* check for an empty root page */
         if (btree_node_get_count(node)==0)
             return HAM_KEY_NOT_FOUND;
@@ -364,10 +364,10 @@ my_move_last(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
             && !(flags&HAM_SKIP_DUPLICATES)) {
         ham_size_t count;
         ham_status_t st;
-        page_add_ref(page);
+        page_lock(page);
         st=blob_duplicate_get_count(env, key_get_ptr(entry),
                         &count, bt_cursor_get_dupe_cache(c));
-        page_release_ref(page);
+        page_unlock(page);
         if (st)
             return st;
         bt_cursor_set_dupe_id(c, count-1);
@@ -418,8 +418,6 @@ bt_cursor_couple(ham_bt_cursor_t *c)
     ham_env_t *env = db_get_env(db);
     ham_u32_t dupe_id;
 
-    ham_assert(env_get_txn(env)!=0,
-            ("coupling a cursor without a txn object"));
     ham_assert(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_UNCOUPLED,
             ("coupling a cursor which is not uncoupled"));
 
@@ -433,8 +431,7 @@ bt_cursor_couple(ham_bt_cursor_t *c)
     memset(&key, 0, sizeof(key));
 
     st = util_copy_key(db, bt_cursor_get_uncoupled_key(c), &key);
-    if (st)
-    {
+    if (st) {
         if (key.data)
             allocator_free(env_get_allocator(env), key.data);
         return st;
@@ -476,7 +473,7 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
     /*
      * get the btree-entry of this key
      */
-    node=ham_page_get_btree_node(bt_cursor_get_coupled_page(c));
+    node=page_get_btree_node(bt_cursor_get_coupled_page(c));
     ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
     entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
 
@@ -598,7 +595,6 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
     btree_node_t *node;
     int_key_t *key;
     ham_db_t *db=bt_cursor_get_db(c);
-    ham_env_t *env = db_get_env(db);
     ham_page_t *page;
 
     /*
@@ -609,15 +605,7 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
         if (st)
             return (st);
     }
-    /*
-     * coupled cursor: the coupled page must be stored in the txn!
-     */
-    else if (bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED) {
-        st=txn_add_page(env_get_txn(env), bt_cursor_get_coupled_page(c), 1);
-        if (st)
-            return (st);
-    }
-    else
+    else if (!(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED))
         return (HAM_CURSOR_IS_NIL);
 
     /*
@@ -629,21 +617,21 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
      * make sure that the page is not unloaded
      */
     page=bt_cursor_get_coupled_page(c);
-    page_add_ref(page);
+    page_lock(page);
 
     /*
      * prepare page for logging
      */
     st=ham_log_add_page_before(page);
     if (st) {
-        page_release_ref(page);
+        page_unlock(page);
         return (st);
     }
 
     /*
      * get the btree node entry
      */
-    node=ham_page_get_btree_node(bt_cursor_get_coupled_page(c));
+    node=page_get_btree_node(bt_cursor_get_coupled_page(c));
     ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
     key=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
 
@@ -653,12 +641,12 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
     st=key_set_record(db, key, record, 
             bt_cursor_get_dupe_id(c), flags|HAM_OVERWRITE, 0);
     if (st) {
-        page_release_ref(page);
+        page_unlock(page);
         return (st);
     }
 
-    page_set_dirty(page, env);
-    page_release_ref(page);
+    page_set_dirty(page);
+    page_unlock(page);
 
     return (0);
 }
@@ -739,15 +727,15 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
     ham_assert(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED, 
             ("move: cursor is not coupled"));
     page=bt_cursor_get_coupled_page(c);
-    page_add_ref(page);
-    node=ham_page_get_btree_node(page);
+    page_lock(page);
+    node=page_get_btree_node(page);
     ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
     entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
 
     if (key) {
         st=util_read_key(db, entry, key);
         if (st) {
-            page_release_ref(page);
+            page_unlock(page);
             return (st);
         }
     }
@@ -761,7 +749,7 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
                         bt_cursor_get_dupe_id(c),
                         bt_cursor_get_dupe_cache(c));
                 if (st) {
-                    page_release_ref(page);
+                    page_unlock(page);
                     return st;
                 }
             }
@@ -774,12 +762,12 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
         }
         st=util_read_record(db, record, flags);
         if (st) {
-            page_release_ref(page);
+            page_unlock(page);
             return (st);
         }
     }
 
-    page_release_ref(page);
+    page_unlock(page);
     return (0);
 }
 
@@ -895,7 +883,7 @@ bt_cursor_points_to(ham_bt_cursor_t *cursor, int_key_t *key)
 
     if (bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_COUPLED) {
         ham_page_t *page=bt_cursor_get_coupled_page(cursor);
-        btree_node_t *node=ham_page_get_btree_node(page);
+        btree_node_t *node=page_get_btree_node(page);
         int_key_t *entry=btree_node_get_key(db, node, 
                         bt_cursor_get_coupled_index(cursor));
 
@@ -940,7 +928,7 @@ bt_cursor_get_duplicate_count(ham_cursor_t *db_cursor,
         return (HAM_CURSOR_IS_NIL);
 
     page=bt_cursor_get_coupled_page(cursor);
-    node=ham_page_get_btree_node(page);
+    node=page_get_btree_node(page);
     entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(cursor));
 
     if (!(key_get_flags(entry)&KEY_HAS_DUPLICATES)) {

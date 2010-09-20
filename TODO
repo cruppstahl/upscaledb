@@ -31,15 +31,36 @@ o manage all transactions
             x create insert(update) and erase operations
             x each op is stored chronologically in the txn AND in the rb-node
         x each database has such a tree
-    o remove the whole transaction handling from the low-level page
+    x remove the whole transaction handling from the low-level page
         i/o routines
-    o remove env_get_txn
+        x also remove refcounts in the pages, replace with
+            page_lock
+            page_unlock
+            page_is_locked
+        x remove PAGE_LIST_TXN
+    o remove env_get_txn, env_get_txn_id
+        distinguish: on high level, we have multiple txns
+        on low level, we use the lsn for file-io routines
+            x extkeys.c - extkey_set_txn_id: replace with lsn
+
+===
+how do we propagate the lsn to lower levels??
+can we improve the low level/high level separation in the code?
+===
+
+            o make sure that page_get_btree_node() is only called in
+                btree_*.c 
+                -> rename statistics.c to btree_stats.c? no, but later...
+                -> remove/rewrite/move offending functions in keys.c
+            o extkeys: don't use txn_id for the 'age', use lsn instead
+
     o rewrite ham_insert
         o each modified database gets its own txn tree when its modified
             in a transaction
         o if transactions are disabled: immediately write to disk, no
             temp transactions are needed
         o otherwise go through transaction trees
+        o for now do not write the blob to disk but keep it in memory
     o rewrite ham_find
         o each modified database gets its own txn tree when its modified
             in a transaction
@@ -55,6 +76,7 @@ o manage all transactions
     o implement env_flush_committed_txns()
     o add new unittests
     o make sure all unittests are running
+    o review page.h - anything that we do not need? (i.e. dirty_txn?)
 
 o each operation writes a journal entry (however, we still keep the logical
         journal in parallel, otherwise the unittests will fail completely)

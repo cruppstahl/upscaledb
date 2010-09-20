@@ -42,7 +42,6 @@ extern "C" {
  */
 
 
-
 /**
  * a callback function for enumerating the index nodes/pages using the 
  * @ref ham_backend_t::_fun_enumerate callback/method.
@@ -56,8 +55,8 @@ extern "C" {
  * @return one of the @ref ham_cb_status values or a @ref ham_status_codes 
  *         error code when an error occurred.
  */
-typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1, void *param2, 
-        void *context);
+typedef ham_status_t (*ham_enumerate_cb_t)(int event, void *param1, 
+                    void *param2, void *context);
 
 /**
 * @defgroup ham_cb_event hamsterdb Backend Node/Page Enumerator State Codes

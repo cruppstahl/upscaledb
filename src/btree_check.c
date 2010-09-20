@@ -94,7 +94,7 @@ btree_check_integrity(ham_btree_t *be)
 
     /* while we found a page... */
     while (page) {
-        node=ham_page_get_btree_node(page);
+        node=page_get_btree_node(page);
         ptr_left=btree_node_get_ptr_left(node);
 
         /*
@@ -131,7 +131,7 @@ __verify_level(ham_page_t *parent, ham_page_t *page,
     ham_u32_t count=0;
     ham_page_t *child, *leftsib=0;
     ham_status_t st=0;
-    btree_node_t *node=ham_page_get_btree_node(page);
+    btree_node_t *node=page_get_btree_node(page);
     ham_db_t *db=page_get_owner(page);
 
     /* 
@@ -139,7 +139,7 @@ __verify_level(ham_page_t *parent, ham_page_t *page,
      * than the largest item in this page
      */
     if (parent && btree_node_get_left(node)) {
-        btree_node_t *cnode =ham_page_get_btree_node(page);
+        btree_node_t *cnode =page_get_btree_node(page);
 
         cmp=key_compare_int_to_int(db, page, 0,
                     (ham_u16_t)(btree_node_get_count(cnode)-1));
@@ -164,7 +164,7 @@ __verify_level(ham_page_t *parent, ham_page_t *page,
         /* 
          * get the right sibling
          */
-        node=ham_page_get_btree_node(page);
+        node=page_get_btree_node(page);
         if (btree_node_get_right(node)) {
             st=db_fetch_page(&child, db, btree_node_get_right(node), 0);
             ham_assert(st ? !child : 1, (0));
@@ -193,7 +193,7 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
     ham_size_t maxkeys;
     ham_db_t *db=page_get_owner(page);
     int_key_t *bte;
-    btree_node_t *node=ham_page_get_btree_node(page);
+    btree_node_t *node=page_get_btree_node(page);
 
     maxkeys=btree_get_maxkeys(scratchpad->be);
     count=btree_node_get_count(node);
@@ -224,7 +224,7 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
      * the smallest item of this page
      */
     if (leftsib) {
-        btree_node_t *sibnode=ham_page_get_btree_node(leftsib);
+        btree_node_t *sibnode=page_get_btree_node(leftsib);
         int_key_t *sibentry=btree_node_get_key(db, sibnode, 
                 btree_node_get_count(sibnode)-1);
 

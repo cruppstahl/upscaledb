@@ -192,7 +192,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 btree_node_t
 /**
  * get a btree_node_t from a ham_page_t
  */
-#define ham_page_get_btree_node(p)      ((btree_node_t *)p->_pers->_s._payload)
+#define page_get_btree_node(p)          ((btree_node_t *)p->_pers->_s._payload)
 
 /**
  * "constructor" - initializes a new ham_btree_t object

@@ -531,7 +531,7 @@ stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, ham_key_t *key, ha
     ham_status_t st;
     ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
     ham_env_t *env = db_get_env(db);
-    btree_node_t *node = ham_page_get_btree_node(page);
+    btree_node_t *node = page_get_btree_node(page);
 
     ham_assert(env_get_allocator(env) != 0, (0));
     ham_assert(btree_node_is_leaf(node), (0));
@@ -595,7 +595,7 @@ stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, ham_key_t *key, ha
                 || dbdata->lower_bound_page_address != page_get_self(page)
                 || slot == 0)
             {
-                page_add_ref(page);
+                page_lock(page);
 
                 /* only set when not done already */
                 dbdata->lower_bound_set = HAM_TRUE;
@@ -630,7 +630,7 @@ stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, ham_key_t *key, ha
                         dbdata->lower_bound.size > 0, (0));
                     ham_assert(dbdata->lower_bound_page_address != 0, (0));
                 }
-                page_release_ref(page);
+                page_unlock(page);
             }
         }
     }
@@ -655,7 +655,7 @@ stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, ham_key_t *key, ha
                     || dbdata->upper_bound_page_address != page_get_self(page)
                     || slot == btree_node_get_count(node) - 1) 
             {
-                page_add_ref(page);
+                page_lock(page);
 
                 /* only set when not done already */
                 dbdata->upper_bound_set = HAM_TRUE;
@@ -683,7 +683,7 @@ stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, ham_key_t *key, ha
                     dbdata->upper_bound_page_address = 0;
                     dbdata->upper_bound_set = HAM_FALSE;
                 }
-                page_release_ref(page);
+                page_unlock(page);
             }
         }
     }
@@ -952,7 +952,7 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
             if (bt_cursor_get_flags(cursor) & BT_CURSOR_FLAG_COUPLED) 
             {
                 ham_page_t *page = bt_cursor_get_coupled_page(cursor);
-                btree_node_t *node = ham_page_get_btree_node(page);
+                btree_node_t *node = page_get_btree_node(page);
                 ham_assert(btree_node_is_leaf(node), 
                             ("cursor points to internal node"));
                 //ham_assert(!btree_node_get_right(node), ("cursor points to leaf node which is NOT the uppermost/last one"));
@@ -988,7 +988,7 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
             if (bt_cursor_get_flags(cursor) & BT_CURSOR_FLAG_COUPLED) 
             {
                 ham_page_t *page = bt_cursor_get_coupled_page(cursor);
-                btree_node_t *node = ham_page_get_btree_node(page);
+                btree_node_t *node = page_get_btree_node(page);
                 ham_assert(btree_node_is_leaf(node), 
                         ("cursor points to internal node"));
                 //ham_assert(!btree_node_get_left(node), ("cursor points to leaf node which is NOT the lowest/first one"));

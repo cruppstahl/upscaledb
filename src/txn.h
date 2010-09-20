@@ -244,8 +244,6 @@ struct ham_txn_t
 
     /** linked list of all transactions */
     ham_txn_t *_newer, *_older;
-
-    ham_page_t *_pagelist;
 };
 
 /** transaction is still alive but was aborted */
@@ -319,39 +317,6 @@ struct ham_txn_t
 
 /** set the 'older' pointer of the linked list */
 #define txn_set_older(txn, o)                   (txn)->_older=(o)
-
-/** get the page list */
-#define txn_get_pagelist(txn)                   (txn)->_pagelist
-
-/** set the page list */
-#define txn_set_pagelist(txn, pl)                (txn)->_pagelist=(pl)
-
-/**
- * add a page to the transaction's pagelist
- */
-extern ham_status_t
-txn_add_page(ham_txn_t *txn, ham_page_t *page, 
-        ham_bool_t ignore_if_inserted);
-
-/**
- * remove a page from the transaction's pagelist
- */
-extern ham_status_t
-txn_remove_page(ham_txn_t *txn, ham_page_t *page);
-
-/**
- * get a page from the transaction's pagelist; returns 0 if the page
- * is not in the list
- */
-extern ham_page_t *
-txn_get_page(ham_txn_t *txn, ham_offset_t address);
-
-/**
- * mark a page in the transaction as 'deleted'
- * it will be deleted when the transaction is committed
- */
-extern ham_status_t
-txn_free_page(ham_txn_t *txn, ham_page_t *page);
 
 /**
  * start a transaction

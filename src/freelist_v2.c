@@ -67,7 +67,7 @@ __freel_flush_stats32(ham_device_t *dev, ham_env_t *env)
 							return st ? st : HAM_INTERNAL_ERROR;
 						fp = page_get_freelist(page);
 						ham_assert(freel_get_start_address(fp) != 0, (0));
-						page_set_dirty(page, env);
+						page_set_dirty(page);
 					}
 
 					ham_assert(fp->_s._s32._zero == 0, (0));

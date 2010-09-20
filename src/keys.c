@@ -30,7 +30,7 @@ key_compare_pub_to_int(ham_db_t *db, ham_page_t *page,
         ham_key_t *lhs, ham_u16_t rhs_int)
 {
     int_key_t *r;
-    btree_node_t *node=ham_page_get_btree_node(page);
+    btree_node_t *node=page_get_btree_node(page);
     ham_key_t rhs={0};
     int cmp;
     ham_status_t st;
@@ -59,7 +59,7 @@ key_compare_int_to_int(ham_db_t *db, ham_page_t *page,
 {
     int_key_t *l;
 	int_key_t *r;
-    btree_node_t *node = ham_page_get_btree_node(page);
+    btree_node_t *node = page_get_btree_node(page);
 	ham_key_t lhs;
 	ham_key_t rhs;
 	int cmp;

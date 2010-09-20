@@ -145,13 +145,9 @@ free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
         /*
          * if this callback function is called from ham_env_erase_db:
          * move the page to the freelist
+         *
+         * TODO
          */
-        if (!(env_get_rt_flags(db_get_env(c->db))&HAM_IN_MEMORY_DB)) {
-            ham_page_t *page=(ham_page_t *)param1;
-            st = txn_free_page(env_get_txn(db_get_env(c->db)), page);
-            if (st)
-                return st;
-        }
         break;
 
     case ENUM_EVENT_ITEM:
@@ -826,12 +822,6 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         if (tellpos) {
             ham_assert(tellpos%env_get_pagesize(env)==0,
                     ("page id %llu is not aligned", tellpos));
-            /* try to fetch the page from the txn */
-            if (env_get_txn(env)) {
-                page=txn_get_page(env_get_txn(env), tellpos);
-                if (page)
-                    goto done;
-            }
             /* try to fetch the page from the cache */
             if (env_get_cache(env)) {
                 page=cache_get_page(env_get_cache(env), tellpos, 0);
@@ -871,9 +861,6 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     st=page_alloc(page);
     if (st)
         return st;
-
-    if (env_get_txn(env))
-        page_set_alloc_txn_id(page, txn_get_id(env_get_txn(env)));
 
     /* 
      * update statistics for the freelist: we'll need to mark this one 
@@ -987,16 +974,7 @@ done:
             return st;
     }
 
-    if (env_get_txn(env)) {
-        st=txn_add_page(env_get_txn(env), page, HAM_FALSE);
-        if (st) {
-            return st;
-            /* TODO memleak? */
-        }
-    }
-
-    if (env_get_cache(env)) 
-    {
+    if (env_get_cache(env)) {
         unsigned int bump = 0;
 
         st=cache_put_page(env_get_cache(env), page);
@@ -1111,30 +1089,12 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         }
     }
 
-    if (env_get_txn(env)) {
-        page=txn_get_page(env_get_txn(env), address);
-        if (page) {
-            *page_ref = page;
-            ham_assert(page_get_pers(page), (""));
-            if (db) {
-                ham_assert(page_get_owner(page)==db, (""));
-            }
-            return (HAM_SUCCESS);
-        }
-    }
-
     /* 
      * fetch the page from the cache
      */
     if (env_get_cache(env)) {
         page=cache_get_page(env_get_cache(env), address, CACHE_NOREMOVE);
         if (page) {
-            if (env_get_txn(env)) {
-                st=txn_add_page(env_get_txn(env), page, HAM_FALSE);
-                if (st) {
-                    return st;
-                }
-            }
             *page_ref = page;
             ham_assert(page_get_pers(page), (""));
             ham_assert(db ? page_get_owner(page)==db : 1, (""));
@@ -1167,14 +1127,6 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     }
 
     ham_assert(page_get_pers(page), (""));
-
-    if (env_get_txn(env)) {
-        st=txn_add_page(env_get_txn(env), page, HAM_FALSE);
-        if (st) {
-            (void)page_delete(page);
-            return st;
-        }
-    }
 
     if (env_get_cache(env)) {
         st=cache_put_page(env_get_cache(env), page);

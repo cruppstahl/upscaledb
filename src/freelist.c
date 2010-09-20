@@ -2793,9 +2793,9 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, ham_env_t *env, f
                         freel_entry_get_page_id(&entries[i-1]), 0);
                 if (!prev_page)
                     return st ? st : HAM_INTERNAL_ERROR;
-                page_set_dirty_txn(prev_page, 1);
+                page_set_dirty(prev_page);
                 /* ref++ so fp stays valid BEYOND next page alloc further below, no matter what! */
-                page_add_ref(prev_page); 
+                page_lock(prev_page); 
                 fp=page_get_freelist(prev_page);
             }
 
@@ -2808,7 +2808,7 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, ham_env_t *env, f
             {
                 if (prev_page)
                 {
-                    page_release_ref(prev_page);
+                    page_unlock(prev_page);
                 }
                 ham_assert(st != 0, (0));
                 return st;
@@ -2817,14 +2817,14 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, ham_env_t *env, f
             /* done editing /previous/ freelist page */
             if (prev_page)
             {
-                page_release_ref(prev_page);
+                page_unlock(prev_page);
             }
 
             fp=page_get_freelist(page);
             freel_set_start_address(fp, 
                     freel_entry_get_start_address(&entries[i]));
             freel_set_max_bitsXX(fp, (ham_uXX_t)(size_bits));
-            page_set_dirty_txn(page, 1);
+            page_set_dirty(page);
             ham_assert(freel_entry_get_max_bits(&entries[i])==
                     freel_get_max_bitsXX(fp), (0));
             freel_entry_set_page_id(&entries[i], page_get_self(page));
@@ -3358,7 +3358,7 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
                     len -= fl;
 
                     if (page)
-                        page_set_dirty(page, env);
+                        page_set_dirty(page);
                     else
                         env_set_dirty(env);
                 }
@@ -3414,7 +3414,7 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
                 __freel_set_bits(dev, env, entry, fp, HAM_FALSE, 
                             s, size/DB_CHUNKSIZE, HAM_FALSE, &hints);
                 if (page)
-                    page_set_dirty(page, env);
+                    page_set_dirty(page);
                 else
                     env_set_dirty(env);
                 break;
@@ -3689,7 +3689,7 @@ __freel_mark_freeXX(ham_device_t *dev, ham_env_t *env, ham_db_t *db,
                 freel_get_allocated_bitsXX(fp));
 
         if (page)
-            page_set_dirty(page, env); /* [i_a] */
+            page_set_dirty(page);
         else
             env_set_dirty(env);
 

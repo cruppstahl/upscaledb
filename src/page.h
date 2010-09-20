@@ -38,14 +38,12 @@ extern "C" {
 
 /* a bucket in the hash table of the cache manager */
 #define PAGE_LIST_BUCKET           0
-/* a node in the linked list of a transaction */
-#define PAGE_LIST_TXN              1
 /* garbage collected pages */
-#define PAGE_LIST_GARBAGE          2
+#define PAGE_LIST_GARBAGE          1
 /* list of all cached pages */
-#define PAGE_LIST_CACHED           3
+#define PAGE_LIST_CACHED           2
 /* array limit */
-#define MAX_PAGE_LISTS             4
+#define MAX_PAGE_LISTS             3
 
 #include "packstart.h"
 
@@ -150,13 +148,11 @@ struct ham_page_t {
          */
         ham_u32_t _cache_cntr;
 
-        /** reference-counter counts the number of transactions, which
-         * access this page
-         */
-        ham_u32_t _refcount;
+        /** locks the page; if a page is locked, the cache will not purge it */
+        ham_u32_t _lock;
 
-        /** the transaction Id which dirtied the page */
-        ham_u64_t _dirty_txn;
+        /** is this page dirty and needs to be flushed to disk? */
+        ham_u32_t _dirty;
 
 #if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
         /** handle for win32 mmap */
@@ -171,9 +167,6 @@ struct ham_page_t {
 
         /** the lsn of the last BEFORE-image, that was written to the log */
         ham_u64_t _before_img_lsn;
-
-        /** the id of the transaction which allocated the image */
-        ham_u64_t _alloc_txn_id;
 
     } _npers; 
 
@@ -194,29 +187,19 @@ struct ham_page_t {
  */
 //#define page_get_persistent_header_size()   (OFFSETOF(ham_perm_page_union_t, _s._payload) /*(sizeof(ham_u32_t)*3)*/ )
 
-/**
- * get the address of this page
- */
+/** get the address of this page */
 #define page_get_self(page)          ((page)->_npers._self)
 
-/**
- * set the address of this page
- */
+/** set the address of this page */
 #define page_set_self(page, a)       (page)->_npers._self=(a)
 
-/** 
- * get the database object which 0wnz this page 
- */
+/** * the database object which 0wnz this page */
 #define page_get_owner(page)         ((page)->_npers._owner)
 
-/** 
- * set the database object which 0wnz this page 
- */
+/** set the database object which 0wnz this page */
 #define page_set_owner(page, db)     (page)->_npers._owner=(db)
 
-/** 
- * get the previous page of a linked list
- */
+/** get the previous page of a linked list */
 #ifdef HAM_DEBUG
 extern ham_page_t *
 page_get_previous(ham_page_t *page, int which);
@@ -224,9 +207,7 @@ page_get_previous(ham_page_t *page, int which);
 #   define page_get_previous(page, which)    ((page)->_npers._prev[(which)])
 #endif /* HAM_DEBUG */
 
-/** 
- * set the previous page of a linked list
- */
+/** set the previous page of a linked list */
 #ifdef HAM_DEBUG
 extern void
 page_set_previous(ham_page_t *page, int which, ham_page_t *other);
@@ -234,9 +215,7 @@ page_set_previous(ham_page_t *page, int which, ham_page_t *other);
 #   define page_set_previous(page, which, p) (page)->_npers._prev[(which)]=(p)
 #endif /* HAM_DEBUG */
 
-/** 
- * get the next page of a linked list
- */
+/** get the next page of a linked list */
 #ifdef HAM_DEBUG
 extern ham_page_t *
 page_get_next(ham_page_t *page, int which);
@@ -244,9 +223,7 @@ page_get_next(ham_page_t *page, int which);
 #   define page_get_next(page, which)        ((page)->_npers._next[(which)])
 #endif /* HAM_DEBUG */
 
-/** 
- * set the next page of a linked list
- */
+/** set the next page of a linked list */
 #ifdef HAM_DEBUG
 extern void
 page_set_next(ham_page_t *page, int which, ham_page_t *other);
@@ -254,85 +231,59 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 #   define page_set_next(page, which, p)     (page)->_npers._next[(which)]=(p)
 #endif /* HAM_DEBUG */
 
-/**
- * get memory allocator
- */
+/** get memory allocator */
 #define page_get_allocator(page)             (page)->_npers._alloc
 
-/**
- * set memory allocator
- */
+/** set memory allocator */
 #define page_set_allocator(page, a)          (page)->_npers._alloc=a
 
-/**
- * get the device of this page
- */
+/** get the device of this page */
 #define page_get_device(page)                (page)->_npers._device
 
-/**
- * set the device of this page
- */
+/** set the device of this page */
 #define page_set_device(page, d)             (page)->_npers._device=d
 
-/**
- * get linked list of cursors
- */
+/** get linked list of cursors */
 #define page_get_cursors(page)           (page)->_npers._cursors
 
-/**
- * set linked list of cursors
- */
+/** set linked list of cursors */
 #define page_set_cursors(page, c)        (page)->_npers._cursors=(c)
 
-/** 
- * get the lsn of the last BEFORE-image that was written to the log 
- */
+/** get the lsn of the last BEFORE-image that was written to the log */
 #define page_get_before_img_lsn(page)    (page)->_npers._before_img_lsn
 
-/** 
- * set the lsn of the last BEFORE-image that was written to the log 
- */
+/** set the lsn of the last BEFORE-image that was written to the log */
 #define page_set_before_img_lsn(page, l) (page)->_npers._before_img_lsn=(l)
 
-/** 
- * get the id of the txn which allocated this page
- */
-#define page_get_alloc_txn_id(page)      (page)->_npers._alloc_txn_id
-
-/** 
- * set the id of the txn which allocated this page
- */
-#define page_set_alloc_txn_id(page, id)  (page)->_npers._alloc_txn_id=(id)
-
-/**
- * get persistent page flags
- */
+/** get persistent page flags */
 #define page_get_pers_flags(page)        (ham_db2h32((page)->_pers->_s._flags))
 
-/**
- * set persistent page flags
- */
+/** set persistent page flags */
 #define page_set_pers_flags(page, f)     (page)->_pers->_s._flags=ham_h2db32(f)
 
-/**
- * get non-persistent page flags
- */
+/** get non-persistent page flags */
 #define page_get_npers_flags(page)       (page)->_npers._flags
 
-/**
- * set non-persistent page flags
- */
+/** set non-persistent page flags */
 #define page_set_npers_flags(page, f)    (page)->_npers._flags=(f)
 
-/**
- * get the cache counter
- */
+/** get the cache counter */
 #define page_get_cache_cntr(page)        (page)->_npers._cache_cntr
 
-/**
- * set the cache counter
- */
+/** set the cache counter */
 #define page_set_cache_cntr(page, c)     (page)->_npers._cache_cntr=(c)
+
+/** is the page locked? */
+#define page_is_locked(page)             (page)->_npers._lock
+
+/** lock this page */
+#define page_lock(page)                  (++(page)->_npers._lock)
+
+/** unlock this page */
+#define page_unlock(page)       do {                                          \
+                                    ham_assert(page_is_locked(page)>0, ("")); \
+                                    --(page)->_npers._lock;                   \
+                                } while (0)
 
 /** page->_pers was allocated with malloc, not mmap */
 #define PAGE_NPERS_MALLOC            1
@@ -343,71 +294,27 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /** page has no header */
 #define PAGE_NPERS_NO_HEADER         4
 
-/**
- * get the txn-id of the transaction which dirtied the page
- */
-#define page_get_dirty_txn(page)            ((page)->_npers._dirty_txn)
+/** is this page dirty? */
+#define page_is_dirty(page)         ((page)->_npers._dirty)
 
-/**
- * set the txn-id of the transaction which dirtied the page
- */
-#define page_set_dirty_txn(page, id)        (page)->_npers._dirty_txn=(id)
+/** mark this page dirty */
+#define page_set_dirty(page)        (page)->_npers._dirty=1
 
-/** 
- * is this page dirty?
- */
-#define page_is_dirty(page)      (page_get_dirty_txn(page)!=0)
+/** page is no longer dirty */
+#define page_set_undirty(page)      (page)->_npers._dirty=0
 
-/**
- * mark the page dirty by the current transaction (if there's no transaction,
- * just set a dummy-value)
- */
-#define PAGE_DUMMY_TXN_ID        1
-
-#define page_set_dirty(page, env)                                            \
-    page_set_dirty_txn(page, ((env) && env_get_txn(env)                        \
-            ? txn_get_id(env_get_txn(env))                                    \
-            : PAGE_DUMMY_TXN_ID))
-
-/** 
- * page is no longer dirty
- */
-#define page_set_undirty(page)   page_set_dirty_txn(page, 0)
-
-/** 
- * get the reference counter
- */
-#define page_get_refcount(page) (page)->_npers._refcount
-
-/** 
- * increment the reference counter
- */
-#define page_add_ref(page)      ++((page)->_npers._refcount)
-
-/** 
- * decrement the reference counter
- */
-#define page_release_ref(page)  do { ham_assert(page_get_refcount(page)!=0, \
-                                     ("decrementing empty refcounter"));    \
-                                     --(page)->_npers._refcount; } while (0)
 
 #if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
-/**
- * win32: get a pointer to the mmap handle
- */
+/** win32: get a pointer to the mmap handle */
 #   define page_get_mmap_handle_ptr(p)        &((p)->_npers._win32mmap)
 #else
 #   define page_get_mmap_handle_ptr(p)        0
 #endif
 
-/**
- * set the page-type
- */
+/** set the page-type */
 #define page_set_type(page, t)   page_set_pers_flags(page, t)
 
-/**
- * get the page-type
- */
+/** get the page-type */
 #define page_get_type(page)      (page_get_pers_flags(page))
 
 /**
@@ -446,24 +353,16 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
  * @}
  */
 
-/**
- * get pointer to persistent payload (after the header!)
- */
+/** get pointer to persistent payload (after the header!) */
 #define page_get_payload(page)           (page)->_pers->_s._payload
 
-/**
- * get pointer to persistent payload (including the header!)
- */
+/** get pointer to persistent payload (including the header!) */
 #define page_get_raw_payload(page)       (page)->_pers->_p
 
-/**
- * set pointer to persistent data
- */
+/** set pointer to persistent data */
 #define page_set_pers(page, p)           (page)->_pers=(p)
 
-/**
- * get pointer to persistent data
- */
+/** get pointer to persistent data */
 #define page_get_pers(page)              (page)->_pers
 
 /**

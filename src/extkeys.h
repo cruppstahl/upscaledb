@@ -32,9 +32,8 @@ struct extkey_t
     /** the blobid of this key */
     ham_offset_t _blobid;
 
-    /** the current transaction, which created this extkey; used to 
-     * get the age of the extkey */
-    ham_u64_t _txn_id;
+    /** the age of this extkey */
+    ham_u64_t _age;
 
     /** pointer to the next key in the linked list */
     extkey_t *_next;
@@ -47,55 +46,35 @@ struct extkey_t
 
 };
 
-/**
- * the size of an extkey_t, without the data byte
- */
+/** the size of an extkey_t, without the single data byte */
 #define SIZEOF_EXTKEY_T                     (sizeof(extkey_t)-1)
 
-/**
- * get the blobid 
- */
+/** get the blobid */
 #define extkey_get_blobid(e)                (e)->_blobid
 
-/**
- * set the blobid 
- */
-#define extkey_set_blobid(e, id)             (e)->_blobid=(id)
+/** set the blobid */
+#define extkey_set_blobid(e, id)            (e)->_blobid=(id)
 
-/**
- * get the txn id 
- */
-#define extkey_get_txn_id(e)                 (e)->_txn_id
+/** get the age of this extkey */
+#define extkey_get_age(e)                   (e)->_age
 
-/**
- * set the txn id 
- */
-#define extkey_set_txn_id(e, id)             (e)->_txn_id=(id)
+/** set the age of this extkey */
+#define extkey_set_age(e, age)              (e)->_age=(age)
 
-/**
- * get the next-pointer 
- */
-#define extkey_get_next(e)                   (e)->_next
+/** get the next-pointer */
+#define extkey_get_next(e)                  (e)->_next
 
-/**
- * set the next-pointer 
- */
-#define extkey_set_next(e, next)             (e)->_next=(next)
+/** set the next-pointer */
+#define extkey_set_next(e, next)            (e)->_next=(next)
 
-/**
- * get the size
- */
-#define extkey_get_size(e)                   (e)->_size
+/** get the size */
+#define extkey_get_size(e)                  (e)->_size
 
-/**
- * set the size
- */
-#define extkey_set_size(e, size)             (e)->_size=(size)
+/** set the size */
+#define extkey_set_size(e, size)            (e)->_size=(size)
 
-/**
- * get the data pointer
- */
-#define extkey_get_data(e)                   (e)->_data
+/** get the data pointer */
+#define extkey_get_data(e)                  (e)->_data
 
 /**
  * a cache for extended keys
@@ -116,44 +95,28 @@ struct extkey_cache_t
 
 };
 
-/**
- * get the owner of the cache
- */
+/** get the owner of the cache */
 #define extkey_cache_get_db(c)          (c)->_db
 
-/**
- * set the owner of the cache
- */
+/** set the owner of the cache */
 #define extkey_cache_set_db(c, db)       (c)->_db=(db)
 
-/**
- * get the used size of the cache
- */
+/** get the used size of the cache */
 #define extkey_cache_get_usedsize(c)     (c)->_usedsize
 
-/**
- * set the used size of the cache
- */
+/** set the used size of the cache */
 #define extkey_cache_set_usedsize(c, s)  (c)->_usedsize=(s)
 
-/**
- * get the number of buckets
- */
+/** get the number of buckets */
 #define extkey_cache_get_bucketsize(c)     (c)->_bucketsize
 
-/**
- * set the number of buckets
- */
+/** set the number of buckets */
 #define extkey_cache_set_bucketsize(c, s)  (c)->_bucketsize=(s)
 
-/**
- * get a bucket
- */
+/** get a bucket */
 #define extkey_cache_get_bucket(c, i)      (c)->_buckets[i]
 
-/**
- * set a bucket
- */
+/** set a bucket */
 #define extkey_cache_set_bucket(c, i, p)   (c)->_buckets[i]=(p)
 
 /**
@@ -202,6 +165,7 @@ extkey_cache_purge(extkey_cache_t *cache);
  */
 extern ham_status_t
 extkey_remove(ham_db_t *db, ham_offset_t blobid);
+
 
 #ifdef __cplusplus
 } // extern "C"

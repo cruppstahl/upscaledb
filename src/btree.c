@@ -38,7 +38,7 @@ btree_get_slot(ham_db_t *db, ham_page_t *page,
         ham_key_t *key, ham_s32_t *slot, int *pcmp)
 {
     int cmp = -1;
-    btree_node_t *node = ham_page_get_btree_node(page);
+    btree_node_t *node = page_get_btree_node(page);
     ham_s32_t r = btree_node_get_count(node)-1;
     ham_s32_t l = 1;
     ham_s32_t i;
@@ -436,7 +436,7 @@ my_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
         ham_size_t i;
         ham_offset_t blobid;
         int_key_t *bte;
-        btree_node_t *node=ham_page_get_btree_node(page);
+        btree_node_t *node=page_get_btree_node(page);
         extkey_cache_t *c;
 
         ham_assert(db, ("Must be set as page owner when this is a Btree page"));
@@ -512,7 +512,7 @@ btree_traverse_tree(ham_page_t **page_ref, ham_s32_t *idxptr,
     ham_status_t st;
     ham_s32_t slot;
     int_key_t *bte;
-    btree_node_t *node=ham_page_get_btree_node(page);
+    btree_node_t *node=page_get_btree_node(page);
 
     /*
      * make sure that we're not in a leaf page, and that the 
@@ -556,7 +556,7 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key,
     int cmp; /* [i_a] */
     ham_s32_t slot;
     ham_status_t st;
-    btree_node_t *node=ham_page_get_btree_node(page);
+    btree_node_t *node=page_get_btree_node(page);
 
     /* ensure the approx flag is NOT set by anyone yet */
     ham_key_set_intflags(key, ham_key_get_intflags(key) & ~KEY_IS_APPROXIMATE);

@@ -191,7 +191,7 @@ _local_fun_create(ham_env_t *env, const char *filename,
         env_set_max_databases(env, env_get_max_databases_cached(env));
         ham_assert(env_get_max_databases(env) > 0, (0));
 
-        page_set_dirty(page, env); /* [i_a] */
+        page_set_dirty(page);
     }
 
     /*
@@ -600,7 +600,7 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
      */
     index_set_dbname(env_get_indexdata_ptr(env, 
                         db_get_indexdata_offset(db)), 0);
-    page_set_dirty_txn(env_get_header_page(env), 1);
+    page_set_dirty(env_get_header_page(env));
 
     /*
      * TODO

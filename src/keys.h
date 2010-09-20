@@ -35,33 +35,23 @@ extern "C" {
  */
 HAM_PACK_0 struct HAM_PACK_1 int_key_t
 {
-    /**
-     * the pointer of this entry
-     */
+    /** the pointer/record ID of this entry */
     ham_u64_t _ptr;
 
-    /**
-     * the size of this entry
-     */
+    /** the size of this entry */
     ham_u16_t _keysize;
 
-    /**
-     * flags
-     */
+    /** key flags (see below) */
     ham_u8_t _flags8;
 
-    /**
-     * the key
-     */
+    /** the key itself */
     ham_u8_t _key[1];
 
 } HAM_PACK_2;
 
 #include "packstop.h"
 
-/**
- * get the size of the internal key representation header
- */
+/** get the size of the internal key representation header */
 #define db_get_int_key_header_size()   OFFSETOF(int_key_t, _key)
                                        /* sizeof(int_key_t)-1 */
 
@@ -90,14 +80,10 @@ HAM_PACK_0 struct HAM_PACK_1 int_key_t
                                     ? p                                        \
                                     : ham_h2db_offset(p))
 
-/**
- * get the size of an btree-entry
- */
+/** get the size of an btree-entry */
 #define key_get_size(bte)               (ham_db2h16((bte)->_keysize))
 
-/**
- * set the size of an btree-entry
- */
+/** set the size of an btree-entry */
 #define key_set_size(bte, s)            (bte)->_keysize=ham_h2db16(s)
 
 /**
@@ -112,9 +98,7 @@ key_get_extended_rid(ham_db_t *db, int_key_t *key);
 extern void
 key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid);
 
-/**
- * get the (persisted) flags of a key
- */
+/** get the (persisted) flags of a key */
 #define key_get_flags(bte)         (bte)->_flags8
 
 /**
@@ -132,43 +116,33 @@ key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid);
  * NOTE: persisted flags must fit within a ham_u8_t (1 byte) --> mask: 
  *  0x000000FF
  */
-#define KEY_BLOB_SIZE_TINY             0x01  /* size < 8; len encoded at byte[7] of key->ptr */
-#define KEY_BLOB_SIZE_SMALL            0x02	 /* size == 8; encoded in key->ptr */
-#define KEY_BLOB_SIZE_EMPTY            0x04	 /* size == 0; key->ptr == 0 */
-#define KEY_IS_EXTENDED                0x08
-#define KEY_HAS_DUPLICATES             0x10
-#define KEY_IS_ALLOCATED               0x20  /* memory allocated in hamsterdb */
+#define KEY_BLOB_SIZE_TINY           0x01  /* size < 8; len encoded at 
+                                            * byte[7] of key->ptr */
+#define KEY_BLOB_SIZE_SMALL          0x02  /* size == 8; encoded in key->ptr */
+#define KEY_BLOB_SIZE_EMPTY          0x04  /* size == 0; key->ptr == 0 */
+#define KEY_IS_EXTENDED              0x08
+#define KEY_HAS_DUPLICATES           0x10
+#define KEY_IS_ALLOCATED             0x20  /* memory allocated in hamsterdb */
 
-
-/**
- * get a pointer to the key 
- */
+/** get a pointer to the key */
 #define key_get_key(bte)                (bte->_key)
 
-/**
- * set the key data 
- */
+/** set the key data */
 #define key_set_key(bte, ptr, len)      memcpy(bte->_key, ptr, len)
 
-/*
-ham_key_t support internals:
-*/
-
 /* 
-flags used with the ham_key_t INTERNAL USE field _flags.
-
-Note: these flags should NOT overlap with the persisted flags for int_key_t
-
-As these flags NEVER will be persisted, they should be located outside
-the range of a ham_u16_t, i.e. outside the mask 0x0000FFFF.
-*/
+ * flags used with the ham_key_t INTERNAL USE field _flags.
+ * 
+ * Note: these flags should NOT overlap with the persisted flags for int_key_t
+ * 
+ * As these flags NEVER will be persisted, they should be located outside
+ * the range of a ham_u16_t, i.e. outside the mask 0x0000FFFF.
+ */
 #define KEY_IS_LT                      0x00010000
 #define KEY_IS_GT                      0x00020000
 #define KEY_IS_APPROXIMATE             (KEY_IS_LT | KEY_IS_GT)
 
-/**
- * get the (non-persisted) flags of a key
- */
+/** get the (non-persisted) flags of a key */
 #define ham_key_get_intflags(key)         (key)->_flags
 
 /**
@@ -249,6 +223,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
 extern ham_status_t
 key_erase_record(ham_db_t *db, int_key_t *key, 
                 ham_size_t dupe_id, ham_u32_t flags);
+
 
 #ifdef __cplusplus
 } // extern "C"

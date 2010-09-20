@@ -45,7 +45,7 @@ my_validate_page(ham_page_t *p)
     /*
      * not allowed: referenced and in garbage bin
      */
-    ham_assert(!(page_get_refcount(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
+    ham_assert(!(page_is_locked(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
             ("referenced and in garbage bin"));
 
     /*
@@ -53,20 +53,6 @@ my_validate_page(ham_page_t *p)
      */
     ham_assert(!(page_get_cursors(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
             ("cursors and in garbage bin"));
-
-    /*
-     * not allowed: in transaction and in garbage bin
-     */
-    ham_assert(!(my_is_in_list(p, PAGE_LIST_TXN) && 
-               my_is_in_list(p, PAGE_LIST_GARBAGE)),
-            ("in txn and in garbage bin"));
-
-    /*
-     * not allowed: in transaction, but not referenced
-     */
-    if (my_is_in_list(p, PAGE_LIST_TXN))
-        ham_assert(page_get_refcount(p)>0,
-            ("in txn, but refcount is zero"));
 
     /*
      * not allowed: cached and in garbage bin

@@ -117,7 +117,7 @@ cache_get_unused_page(ham_cache_t *cache)
 
     page=cache_get_garbagelist(cache);
     if (page) {
-        ham_assert(page_get_refcount(page)==0, 
+        ham_assert(page_is_locked(page)==0, 
                 ("page is in use and in garbage list"));
         cache_set_garbagelist(cache, 
                 page_list_remove(cache_get_garbagelist(cache), 
@@ -157,7 +157,7 @@ cache_get_unused_page(ham_cache_t *cache)
     page = head;
     do {
         /* only handle unused pages */
-        if (page_get_refcount(page)==0) {
+        if (page_is_locked(page)==0) {
             if (page_get_cache_cntr(page)==0) {
                 min=page;
                 //goto found_page;
