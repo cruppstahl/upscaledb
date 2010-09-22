@@ -8,22 +8,6 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-x webpage changes
-    x add client1.c/server1.c to hamsterdb.com/documentation/samples
-    x update all other C/C++ samples on the webpage
-
-x utilize the github wiki
-    x move the FAQ
-    x move the tutorial
-    x update hamsterdb.com with the links
-    . tutorial/faq: add hinting flags
-    . tutorial/faq: add DAMs
-    . internal developer documentation (remove from doxygen)
-        o cursors
-        o ??
-
-o next release - need hamsterdb-alien package!
-
 o a small memory leak
 ==12954== 44 bytes in 1 blocks are definitely lost in loss record 1 of 6
 ==12954==    at 0x4024F20: malloc (vg_replace_malloc.c:236)
@@ -32,9 +16,8 @@ o a small memory leak
 ==12954==    by 0x40A582D: ham_txn_begin (hamsterdb.c:314)
 ==12954==    by 0x8156438: RemoteTest::txnBeginCommitTest() (remote.cpp:494)
 
-x create a new branch to integrate hamsterdb2 (ACID transactions, logical
-	journalling, running many Transactions in parallel)
-    -> integrate-ham2.txt in hamsterdb-meta project shows timeline
+o when using DIRECT_ACCESS and the record is tiny/small (<= 8 bytes) the 
+    flag will be ignored (see email from Lionel)
 
 o release new .NET wrapper with fix from a.todorov (-> nabble)
     x move to github
