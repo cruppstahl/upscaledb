@@ -19,6 +19,10 @@ o a small memory leak
 o when using DIRECT_ACCESS and the record is tiny/small (<= 8 bytes) the 
     flag will be ignored (see email from Lionel)
 
+o what about a HAM_RMW flag for ham_insert - it will do a read/modify/write
+    operation if the record already exists; but how can we propagate a callback
+    for this? 
+
 o release new .NET wrapper with fix from a.todorov (-> nabble)
     x move to github
     . add server functionality
