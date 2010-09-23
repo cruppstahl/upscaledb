@@ -30,7 +30,7 @@
 #include "log.h"
 #include "mem.h"
 #include "page.h"
-#include "statistics.h"
+#include "btree_stats.h"
 #include "txn.h"
 #include "util.h"
 
@@ -180,7 +180,7 @@ btree_erase_cursor(ham_btree_t *be, ham_key_t *key,
 
     if (hints.key_is_out_of_bounds)
     {
-        stats_update_erase_fail_oob(db, &hints);
+        btree_stats_update_erase_fail_oob(db, &hints);
         return (HAM_KEY_NOT_FOUND);
     }
 
@@ -196,14 +196,14 @@ btree_erase_cursor(ham_btree_t *be, ham_key_t *key,
     rootaddr=btree_get_rootpage(be);
     if (!rootaddr)
     {
-        stats_update_erase_fail(db, &hints);
+        btree_stats_update_erase_fail(db, &hints);
         return HAM_KEY_NOT_FOUND;
     }
     st=db_fetch_page(&root, db, rootaddr, flags);
     ham_assert(st ? !root : 1, (0));
     if (!root)
     {
-        stats_update_erase_fail(db, &hints);
+        btree_stats_update_erase_fail(db, &hints);
         return st ? st : HAM_INTERNAL_ERROR;
     }
 
@@ -213,7 +213,7 @@ btree_erase_cursor(ham_btree_t *be, ham_key_t *key,
     st=my_erase_recursive(&p, root, 0, 0, 0, 0, 0, &scratchpad, &hints);
     if (st)
     {
-        stats_update_erase_fail(db, &hints);
+        btree_stats_update_erase_fail(db, &hints);
         return (st);
     }
 
@@ -227,22 +227,22 @@ btree_erase_cursor(ham_btree_t *be, ham_key_t *key,
         st=bt_uncouple_all_cursors(root, 0);
         if (st)
         {
-            stats_update_erase_fail(db, &hints);
+            btree_stats_update_erase_fail(db, &hints);
             return (st);
         }
 
         st=__collapse_root(p, &scratchpad);
         if (st) {
-            stats_update_erase_fail(db, &hints);
+            btree_stats_update_erase_fail(db, &hints);
             return (st);
         }
 
-        stats_page_is_nuked(db, root, HAM_FALSE);
+        btree_stats_page_is_nuked(db, root, HAM_FALSE);
     }
 
-    stats_update_erase(db, hints.processed_leaf_page, &hints);
-    stats_update_any_bound(db, hints.processed_leaf_page, key, hints.flags, 
-                    hints.processed_slot);
+    btree_stats_update_erase(db, hints.processed_leaf_page, &hints);
+    btree_stats_update_any_bound(db, hints.processed_leaf_page, key, 
+                    hints.flags, hints.processed_slot);
     return (0);
 }
 
@@ -677,7 +677,8 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
     /*
      * shift items from the sibling to this page
      */
-    hints->cost += stats_memmove_cost((db_get_int_key_header_size()+keysize)*c);
+    hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()+
+                        keysize)*c);
     memcpy(bte_lhs, bte_rhs, (db_get_int_key_header_size()+keysize)*c);
             
     /*
@@ -744,7 +745,7 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
             page_get_self(scratchpad->mergepage)==page_get_self(sibpage))) 
         scratchpad->mergepage=0;
 
-    stats_page_is_nuked(db, sibpage, HAM_FALSE);
+    btree_stats_page_is_nuked(db, sibpage, HAM_FALSE);
 
     /* 
      * delete the page
@@ -862,7 +863,7 @@ my_shift_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage, 
             /*
              * shift the remainder of sibling to the left
              */
-            hints->cost += stats_memmove_cost((db_get_int_key_header_size()
+            hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()
                         + keysize) * (btree_node_get_count(sibnode)-1));
             bte_lhs=btree_node_get_key(db, sibnode, 0);
             bte_rhs=btree_node_get_key(db, sibnode, 1);
@@ -907,7 +908,7 @@ my_shift_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage, 
          * shift items from the sibling to this page, then 
          * delete the shifted items
          */
-        hints->cost += stats_memmove_cost((db_get_int_key_header_size()
+        hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()
                 + keysize)*(btree_node_get_count(sibnode) + c));
 
         bte_lhs=btree_node_get_key(db, node, 
@@ -951,7 +952,7 @@ my_shift_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage, 
             /*
              * shift once more
              */
-            hints->cost += stats_memmove_cost((db_get_int_key_header_size()
+            hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()
                     + keysize)*(btree_node_get_count(sibnode)-1));
             bte_lhs=btree_node_get_key(db, sibnode, 0);
             bte_rhs=btree_node_get_key(db, sibnode, 1);
@@ -1021,7 +1022,7 @@ my_shift_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage, 
             /*
              * shift entire sibling by 1 to the right 
              */
-            hints->cost += stats_memmove_cost((db_get_int_key_header_size()
+            hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()
                     + keysize) * (btree_node_get_count(sibnode)));
             bte_lhs=btree_node_get_key(db, sibnode, 1);
             bte_rhs=btree_node_get_key(db, sibnode, 0);
@@ -1082,7 +1083,7 @@ my_shift_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage, 
             /*
              * shift entire sibling by 1 to the right 
              */
-            hints->cost += stats_memmove_cost((db_get_int_key_header_size()
+            hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()
                     + keysize) * (btree_node_get_count(sibnode)));
             bte_lhs=btree_node_get_key(db, sibnode, 1);
             bte_rhs=btree_node_get_key(db, sibnode, 0);
@@ -1113,7 +1114,7 @@ my_shift_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage, 
          * shift items from this page to the sibling, then delete the
          * items from this page
          */
-        hints->cost += stats_memmove_cost((db_get_int_key_header_size()
+        hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()
                 + keysize)*(btree_node_get_count(sibnode)+c));
         bte_lhs=btree_node_get_key(db, sibnode, c);
         bte_rhs=btree_node_get_key(db, sibnode, 0);
@@ -1444,7 +1445,7 @@ free_all:
      */
     if (slot != btree_node_get_count(node)-1) 
     {
-        hints->cost += stats_memmove_cost((db_get_int_key_header_size()
+        hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()
                 + keysize)*(btree_node_get_count(node)-slot-1));
         bte_lhs=btree_node_get_key(db, node, slot);
         bte_rhs=btree_node_get_key(db, node, slot+1);

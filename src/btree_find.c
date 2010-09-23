@@ -25,7 +25,7 @@
 #include "btree_key.h"
 #include "mem.h"
 #include "page.h"
-#include "statistics.h"
+#include "btree_stats.h"
 #include "util.h"
 
 
@@ -44,7 +44,7 @@ btree_find_cursor(ham_btree_t *be, ham_bt_cursor_t *cursor,
     btree_find_get_hints(&hints, db, key);
 
     if (hints.key_is_out_of_bounds) {
-        stats_update_find_fail_oob(db, &hints);
+        btree_stats_update_find_fail_oob(db, &hints);
         return HAM_KEY_NOT_FOUND;
     }
 
@@ -96,7 +96,7 @@ no_fast_track:
     if (idx == -1) {
         /* get the address of the root page */
         if (!btree_get_rootpage(be)) {
-            stats_update_find_fail(db, &hints);
+            btree_stats_update_find_fail(db, &hints);
             return HAM_KEY_NOT_FOUND;
         }
 
@@ -105,7 +105,7 @@ no_fast_track:
 		ham_assert(st ? !page : 1, (0));
         if (!page) {
             ham_assert(st, (0));
-            stats_update_find_fail(db, &hints);
+            btree_stats_update_find_fail(db, &hints);
 			return st ? st : HAM_INTERNAL_ERROR;
         }
 
@@ -121,7 +121,7 @@ no_fast_track:
                 hints.cost++;
                 st=btree_traverse_tree(&page, 0, db, page, key);
                 if (!page) {
-                    stats_update_find_fail(db, &hints);
+                    btree_stats_update_find_fail(db, &hints);
 					return st ? st : HAM_KEY_NOT_FOUND;
                 }
 
@@ -134,7 +134,7 @@ no_fast_track:
         /* check the leaf page for the key */
         idx=btree_node_search_by_key(db, page, key, hints.flags);
         if (idx < -1) {
-            stats_update_find_fail(db, &hints);
+            btree_stats_update_find_fail(db, &hints);
             return (ham_status_t)idx;
         }
     }  /* end of regular search */
@@ -177,9 +177,10 @@ no_fast_track:
                      * otherwise load the left sibling page
                      */
                     if (!btree_node_get_left(node)) {
-                        stats_update_find_fail(db, &hints);
+                        btree_stats_update_find_fail(db, &hints);
                         ham_assert(node == page_get_btree_node(page), (0));
-                        stats_update_any_bound(db, page, key, hints.original_flags, -1);
+                        btree_stats_update_any_bound(db, page, key, 
+                                    hints.original_flags, -1);
                         return HAM_KEY_NOT_FOUND;
                     }
 
@@ -188,7 +189,7 @@ no_fast_track:
 					ham_assert(st ? !page : 1, (0));
                     if (!page) {
                         ham_assert(st, (0));
-                        stats_update_find_fail(db, &hints);
+                        btree_stats_update_find_fail(db, &hints);
 						return st ? st : HAM_INTERNAL_ERROR;
                     }
                     node = page_get_btree_node(page);
@@ -212,9 +213,10 @@ no_fast_track:
                      */
                     if (!btree_node_get_right(node))
                     {
-                        stats_update_find_fail(db, &hints);
+                        btree_stats_update_find_fail(db, &hints);
                         ham_assert(node == page_get_btree_node(page), (0));
-                        stats_update_any_bound(db, page, key, hints.original_flags, -1);
+                        btree_stats_update_any_bound(db, page, key, 
+                                    hints.original_flags, -1);
                         return HAM_KEY_NOT_FOUND;
                     }
 
@@ -223,7 +225,7 @@ no_fast_track:
                                     btree_node_get_right(node), 0);
                     if (!page) {
                         ham_assert(st, (0));
-                        stats_update_find_fail(db, &hints);
+                        btree_stats_update_find_fail(db, &hints);
 						return st ? st : HAM_INTERNAL_ERROR;
                     }
                     node = page_get_btree_node(page);
@@ -290,21 +292,21 @@ no_fast_track:
                                 /*
                                  * otherwise load the right sibling page
                                  */
-                                if (!btree_node_get_right(node))
-                                {
-                                    stats_update_find_fail(db, &hints);
-                                    ham_assert(node == page_get_btree_node(page), (0));
-                                    stats_update_any_bound(db, page, key, hints.original_flags, -1);
+                                if (!btree_node_get_right(node)) {
+                                    btree_stats_update_find_fail(db, &hints);
+                                    ham_assert(node==page_get_btree_node(page),
+                                                    (0));
+                                    btree_stats_update_any_bound(db, page, key,
+                                                    hints.original_flags, -1);
                                     return HAM_KEY_NOT_FOUND;
                                 }
 
                                 hints.cost++;
                                 st = db_fetch_page(&page, db,
                                                 btree_node_get_right(node), 0);
-                                if (!page)
-                                {
+                                if (!page) {
                                     ham_assert(st, (0));
-                                    stats_update_find_fail(db, &hints);
+                                    btree_stats_update_find_fail(db, &hints);
 									return st ? st : HAM_INTERNAL_ERROR;
                                 }
                                 node = page_get_btree_node(page);
@@ -315,9 +317,10 @@ no_fast_track:
                         }
                         else
                         {
-                            stats_update_find_fail(db, &hints);
+                            btree_stats_update_find_fail(db, &hints);
                             ham_assert(node == page_get_btree_node(page), (0));
-                            stats_update_any_bound(db, page, key, hints.original_flags, -1);
+                            btree_stats_update_any_bound(db, page, key, 
+                                                hints.original_flags, -1);
                             return HAM_KEY_NOT_FOUND;
                         }
                     }
@@ -329,7 +332,7 @@ no_fast_track:
                         if (!page)
                         {
                             ham_assert(st, (0));
-                            stats_update_find_fail(db, &hints);
+                            btree_stats_update_find_fail(db, &hints);
 							return st ? st : HAM_INTERNAL_ERROR;
                         }
                         node = page_get_btree_node(page);
@@ -357,9 +360,10 @@ no_fast_track:
                      */
                     if (!btree_node_get_right(node))
                     {
-                        stats_update_find_fail(db, &hints);
+                        btree_stats_update_find_fail(db, &hints);
                         ham_assert(node == page_get_btree_node(page), (0));
-                        stats_update_any_bound(db, page, key, hints.original_flags, -1);
+                        btree_stats_update_any_bound(db, page, key, 
+                                                hints.original_flags, -1);
                         return HAM_KEY_NOT_FOUND;
                     }
 
@@ -369,7 +373,7 @@ no_fast_track:
                     if (!page)
                     {
                         ham_assert(st, (0));
-                        stats_update_find_fail(db, &hints);
+                        btree_stats_update_find_fail(db, &hints);
 						return st ? st : HAM_INTERNAL_ERROR;
                     }
                     node = page_get_btree_node(page);
@@ -382,11 +386,11 @@ no_fast_track:
     }
 
     if (idx<0) {
-        stats_update_find_fail(db, &hints);
+        btree_stats_update_find_fail(db, &hints);
         ham_assert(node, (0));
         ham_assert(page, (0));
         ham_assert(node == page_get_btree_node(page), (0));
-        stats_update_any_bound(db, page, key, hints.original_flags, -1);
+        btree_stats_update_any_bound(db, page, key, hints.original_flags, -1);
         return HAM_KEY_NOT_FOUND;
     }
 
@@ -423,7 +427,7 @@ no_fast_track:
         if (st) 
         {
             page_unlock(page);
-            stats_update_find_fail(db, &hints);
+            btree_stats_update_find_fail(db, &hints);
             return (st);
         }
     }
@@ -437,16 +441,16 @@ no_fast_track:
         if (st) 
         {
             page_unlock(page);
-            stats_update_find_fail(db, &hints);
+            btree_stats_update_find_fail(db, &hints);
             return (st);
         }
     }
 
     page_unlock(page);
     
-    stats_update_find(db, page, &hints);
+    btree_stats_update_find(db, page, &hints);
     ham_assert(node == page_get_btree_node(page), (0));
-    stats_update_any_bound(db, page, key, hints.original_flags, idx);
+    btree_stats_update_any_bound(db, page, key, hints.original_flags, idx);
 
     return (0);
 }

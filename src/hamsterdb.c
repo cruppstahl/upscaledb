@@ -42,7 +42,7 @@
 #include "os.h"
 #include "page.h"
 #include "serial.h"
-#include "statistics.h"
+#include "btree_stats.h"
 #include "txn.h"
 #include "util.h"
 #include "version.h"
@@ -1061,7 +1061,7 @@ ham_env_delete(ham_env_t *env)
     }
 
     /* delete all performance data */
-    stats_trash_globdata(env, env_get_global_perf_data(env));
+    btree_stats_trash_globdata(env, env_get_global_perf_data(env));
 
     /* 
      * close the device if it still exists
@@ -1664,11 +1664,7 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     /*
      * when all transactions have been properly closed... 
      */
-    if (!env_get_txn(env)) {
-        /* flush/persist all performance data which we want to persist */
-        stats_flush_globdata(env, env_get_global_perf_data(env));
-    }
-    else if (env_is_active(env)) {
+    if (!env_get_txn(env) && env_is_active(env)) {
         //st2 = HAM_TRANSACTION_STILL_OPEN;
         ham_assert(!"Should never get here; the db close loop above "
                     "should've taken care of all TXNs", (0));
@@ -1691,7 +1687,7 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     }
 
     /* delete all performance data */
-    stats_trash_globdata(env, env_get_global_perf_data(env));
+    btree_stats_trash_globdata(env, env_get_global_perf_data(env));
 
     /* 
      * finally, close the memory allocator 
@@ -1752,7 +1748,7 @@ ham_delete(ham_db_t *db)
     env = db_get_env(db);
 
     /* trash all DB performance data */
-    stats_trash_dbdata(db, db_get_db_perf_data(db));
+    btree_stats_trash_dbdata(db, db_get_db_perf_data(db));
 
     /* 
      * close the database

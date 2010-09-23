@@ -23,7 +23,6 @@
 #include "error.h"
 #include "mem.h"
 #include "page.h"
-#include "statistics.h"
 
 
 #define __calc_hash(cache, o)      ((o)%(cache_get_bucketsize(cache)))

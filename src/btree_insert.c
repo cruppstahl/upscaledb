@@ -30,7 +30,7 @@
 #include "log.h"
 #include "mem.h"
 #include "page.h"
-#include "statistics.h"
+#include "btree_stats.h"
 #include "txn.h"
 #include "util.h"
 
@@ -366,7 +366,7 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
         /* clear the node header */
         memset(page_get_payload(newroot), 0, sizeof(btree_node_t));
 
-        stats_page_is_nuked(db, root, HAM_TRUE);
+        btree_stats_page_is_nuked(db, root, HAM_TRUE);
 
         /* 
          * insert the pivot element and the ptr_left
@@ -447,11 +447,11 @@ btree_insert_cursor(ham_btree_t *be, ham_key_t *key,
     }
 
      if (st) {
-        stats_update_insert_fail(db, &hints);
+        btree_stats_update_insert_fail(db, &hints);
      }
      else {
-        stats_update_insert(db, hints.processed_leaf_page, &hints);
-        stats_update_any_bound(db, hints.processed_leaf_page, 
+        btree_stats_update_insert(db, hints.processed_leaf_page, &hints);
+        btree_stats_update_any_bound(db, hints.processed_leaf_page, 
                 key, hints.flags, hints.processed_slot);
      }
 
@@ -700,7 +700,7 @@ __insert_nosplit(ham_page_t *page, ham_key_t *key,
             if (st)
                 return (st);
 
-            hints->cost += stats_memmove_cost((db_get_int_key_header_size()+keysize)*(count-slot));
+            hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()+keysize)*(count-slot));
             memmove(((char *)bte)+db_get_int_key_header_size()+keysize, bte,
                     (db_get_int_key_header_size()+keysize)*(count-slot));
         }
@@ -846,7 +846,7 @@ __insert_split(ham_page_t *page, ham_key_t *key,
     /* clear the node header */
     memset(page_get_payload(newpage), 0, sizeof(btree_node_t));
 
-    stats_page_is_nuked(db, page, HAM_TRUE);
+    btree_stats_page_is_nuked(db, page, HAM_TRUE);
 
     /*
      * move half of the key/rid-tuples to the new page
@@ -901,13 +901,13 @@ __insert_split(ham_page_t *page, ham_key_t *key,
      * it to the parent node only.
      */
     if (btree_node_is_leaf(obtp)) {
-        hints->cost += stats_memmove_cost((db_get_int_key_header_size()+keysize)*(count-pivot));
+        hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()+keysize)*(count-pivot));
         memcpy((char *)nbte,
                ((char *)obte)+(db_get_int_key_header_size()+keysize)*pivot, 
                (db_get_int_key_header_size()+keysize)*(count-pivot));
     }
     else {
-        hints->cost += stats_memmove_cost((db_get_int_key_header_size()+keysize)*(count-pivot-1));
+        hints->cost += btree_stats_memmove_cost((db_get_int_key_header_size()+keysize)*(count-pivot-1));
         memcpy((char *)nbte,
                ((char *)obte)+(db_get_int_key_header_size()+keysize)*(pivot+1), 
                (db_get_int_key_header_size()+keysize)*(count-pivot-1));

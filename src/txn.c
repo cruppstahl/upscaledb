@@ -21,7 +21,7 @@
 #include "log.h"
 #include "mem.h"
 #include "page.h"
-#include "statistics.h"
+#include "btree_stats.h"
 #include "txn.h"
 
 /* stuff for rb.h */
@@ -33,11 +33,11 @@ typedef int bool;
 static int
 __cmpfoo(void *vlhs, void *vrhs)
 {
+#if 0
     ham_compare_func_t foo;
     txn_node_t *ln, *rn;
     txn_optree_node_t *lhs=(txn_optree_node_t *)vlhs;
     txn_optree_node_t *rhs=(txn_optree_node_t *)vrhs;
-#if 0
     ln=txn_optree_node_get_node(lhs);
     rn=txn_optree_node_get_node(rhs);
 

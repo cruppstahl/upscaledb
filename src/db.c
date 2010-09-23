@@ -31,7 +31,7 @@
 #include "mem.h"
 #include "os.h"
 #include "page.h"
-#include "statistics.h"
+#include "btree_stats.h"
 #include "txn.h"
 #include "version.h"
 
@@ -1354,11 +1354,11 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
      * flush all DB performance data 
      */
     if (st2 == HAM_SUCCESS) {
-        stats_flush_dbdata(db, db_get_db_perf_data(db), noenv);
+        btree_stats_flush_dbdata(db, db_get_db_perf_data(db), noenv);
     }
     else {
         /* trash all DB performance data */
-        stats_trash_dbdata(db, db_get_db_perf_data(db));
+        btree_stats_trash_dbdata(db, db_get_db_perf_data(db));
     }
 
     /*
@@ -1497,7 +1497,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
      * This must happen before the DB is removed from the ENV as the ENV 
      * (when it exists) provides the required allocator.
      */
-    stats_trash_dbdata(db, db_get_db_perf_data(db));
+    btree_stats_trash_dbdata(db, db_get_db_perf_data(db));
 
     return (st2);
 }
@@ -1567,7 +1567,7 @@ _local_fun_get_parameters(ham_db_t *db, ham_parameter_t *param)
                     return (HAM_INV_PARAMETER);
                 }
                 else {
-                    ham_status_t st = stats_fill_ham_statistics_t(
+                    ham_status_t st = btree_stats_fill_ham_statistics_t(
                             env, db, (ham_statistics_t *)U64_TO_PTR(p->value));
                     if (st)
                         return st;

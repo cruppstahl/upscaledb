@@ -34,7 +34,7 @@ libhamsterdb_la_SOURCES = log.c \
 			mem.c \
 			os_posix.c \
 			page.c \
-			statistics.c \
+			btree_stats.c \
 			txn.c \
 			util.c \
 			btree_cursor.c \

@@ -22,7 +22,7 @@
 #include "../src/version.h"
 #include "../src/serial.h"
 #include "../src/btree.h"
-#include "../src/statistics.h"
+#include "../src/btree_stats.h"
 #include "../src/os.h"
 #include "os.hpp"
 #include "bfc-testsuite.hpp"

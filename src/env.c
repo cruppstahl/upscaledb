@@ -16,7 +16,7 @@
 
 #include "db.h"
 #include "env.h"
-#include "statistics.h"
+#include "btree_stats.h"
 #include "device.h"
 #include "version.h"
 #include "serial.h"
@@ -116,7 +116,7 @@ _local_fun_create(ham_env_t *env, const char *filename,
     ham_size_t pagesize=env_get_pagesize(env);
 
     /* reset all performance data */
-    stats_init_globdata(env, env_get_global_perf_data(env));
+    btree_stats_init_globdata(env, env_get_global_perf_data(env));
 
     ham_assert(!env_get_header_page(env), (0));
 
@@ -236,7 +236,7 @@ _local_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags,
     ham_u32_t pagesize=0;
 
     /* reset all performance data */
-    stats_init_globdata(env, env_get_global_perf_data(env));
+    btree_stats_init_globdata(env, env_get_global_perf_data(env));
 
     /* 
      * initialize the device if it does not yet exist
@@ -659,9 +659,6 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
     ham_device_t *dev;
     ham_file_filter_t *file_head;
 
-    /* flush/persist all performance data which we want to persist */
-    stats_flush_globdata(env, env_get_global_perf_data(env));
-
     /*
      * if we're not in read-only mode, and not an in-memory-database,
      * and the dirty-flag is true: flush the page-header to disk
@@ -801,7 +798,7 @@ _local_fun_get_parameters(ham_env_t *env, ham_parameter_t *param)
                     return (HAM_INV_PARAMETER);
                 }
                 else {
-                    ham_status_t st = stats_fill_ham_statistics_t(env, 0, 
+                    ham_status_t st = btree_stats_fill_ham_statistics_t(env, 0, 
                             (ham_statistics_t *)U64_TO_PTR(p->value));
                     if (st)
                         return st;
@@ -909,7 +906,7 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
     db_set_env(db, env);
 
     /* reset all DB performance data */
-    stats_init_dbdata(db, db_get_db_perf_data(db));
+    btree_stats_init_dbdata(db, db_get_db_perf_data(db));
 
     /*
      * set the flags; strip off run-time (per session) flags for the 
@@ -1110,7 +1107,7 @@ _local_fun_open_db(ham_env_t *env, ham_db_t *db,
     /*
      * reset the DB performance data
      */
-    stats_init_dbdata(db, db_get_db_perf_data(db));
+    btree_stats_init_dbdata(db, db_get_db_perf_data(db));
 
     /*
      * search for a database with this name

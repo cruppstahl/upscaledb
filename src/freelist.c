@@ -21,7 +21,7 @@
 #include "error.h"
 #include "freelist.h"
 #include "mem.h"
-#include "statistics.h"
+#include "btree_stats.h"
 #include "txn.h"
 
 

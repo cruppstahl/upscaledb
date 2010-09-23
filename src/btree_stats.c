@@ -27,7 +27,7 @@
 #include "freelist_statistics.h"
 #include "mem.h"
 #include "page.h"
-#include "statistics.h"
+#include "btree_stats.h"
 #include "util.h"
 
 /*
@@ -369,24 +369,21 @@ rescale_db_stats(ham_runtime_statistics_dbdata_t *dbstats)
  * update statistics following a followed up out-of-bound hint 
  */
 void 
-stats_update_fail_oob(int op, ham_db_t *db, ham_size_t cost, ham_bool_t try_fast_track)
+stats_update_fail_oob(int op, ham_db_t *db, ham_size_t cost, 
+                    ham_bool_t try_fast_track)
 {
-    //ham_runtime_statistics_globdata_t *globalstats = db_get_global_perf_data(db);
-    //ham_runtime_statistics_dbdata_t *dbstats = db_get_db_perf_data(db);
     ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, op);
 
     ham_assert(op == HAM_OPERATION_STATS_FIND
                 || op == HAM_OPERATION_STATS_ERASE, (0));
 
-
-    //opstats->btree_last_page_addr = 0; -- keep page from previous match around!
     opstats->btree_last_page_sq_hits = 0; /* reset */
 }
 
 void 
-stats_update_fail(int op, ham_db_t *db, ham_size_t cost, ham_bool_t try_fast_track)
+stats_update_fail(int op, ham_db_t *db, ham_size_t cost, 
+                    ham_bool_t try_fast_track)
 {
-    //ham_runtime_statistics_globdata_t *globalstats = db_get_global_perf_data(db);
     ham_runtime_statistics_dbdata_t *dbstats = db_get_db_perf_data(db);
     ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, op);
 
@@ -395,8 +392,8 @@ stats_update_fail(int op, ham_db_t *db, ham_size_t cost, ham_bool_t try_fast_tra
                 || op == HAM_OPERATION_STATS_ERASE, (0));
 
     /*
-     * Again, cost is the fastest riser, so we check that one against a high water mark
-     * to decide whether to rescale or not
+     * Again, cost is the fastest riser, so we check that one against a high 
+     * water mark to decide whether to rescale or not
      */
     if (dbstats->rescale_tracker >= HAM_STATISTICS_HIGH_WATER_MARK - cost) {
         rescale_db_stats(dbstats);
@@ -419,7 +416,8 @@ stats_update_fail(int op, ham_db_t *db, ham_size_t cost, ham_bool_t try_fast_tra
 }
 
 void 
-stats_update(int op, ham_db_t *db, ham_page_t *page, ham_size_t cost, ham_bool_t try_fast_track)
+stats_update(int op, ham_db_t *db, ham_page_t *page, ham_size_t cost, 
+                    ham_bool_t try_fast_track)
 {
     ham_runtime_statistics_dbdata_t *dbstats = db_get_db_perf_data(db);
     ham_runtime_statistics_opdbdata_t *opstats = db_get_op_perf_data(db, op);
@@ -477,7 +475,8 @@ stats_update(int op, ham_db_t *db, ham_page_t *page, ham_size_t cost, ham_bool_t
  * INVALID btree node later on!
  */
 void 
-stats_page_is_nuked(ham_db_t *db, struct ham_page_t *page, ham_bool_t split)
+btree_stats_page_is_nuked(ham_db_t *db, struct ham_page_t *page, 
+                    ham_bool_t split)
 {
     ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
     ham_env_t *env = db_get_env(db);
@@ -526,7 +525,8 @@ stats_page_is_nuked(ham_db_t *db, struct ham_page_t *page, ham_bool_t split)
 }
 
 void 
-stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, ham_key_t *key, ham_u32_t find_flags, ham_s32_t slot)
+btree_stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, 
+                    ham_key_t *key, ham_u32_t find_flags, ham_s32_t slot)
 {
     ham_status_t st;
     ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
@@ -1247,55 +1247,38 @@ btree_erase_get_hints(erase_hints_t *hints, ham_db_t *db, ham_key_t *key)
 }
 
 void
-stats_init_globdata(ham_env_t *env, ham_runtime_statistics_globdata_t *globdata)
+btree_stats_init_globdata(ham_env_t *env, 
+                    ham_runtime_statistics_globdata_t *globdata)
 {
     memset(globdata, 0, sizeof(*globdata));
 }
 
 void
-stats_flush_globdata(ham_env_t *env, ham_runtime_statistics_globdata_t *globdata)
-{
-    /* nothing to persist? */
-}
-
-void
-stats_trash_globdata(ham_env_t *env, ham_runtime_statistics_globdata_t *globdata)
+btree_stats_trash_globdata(ham_env_t *env, 
+                    ham_runtime_statistics_globdata_t *globdata)
 {
     /* nothing to trash */
     memset(globdata, 0, sizeof(*globdata));
 }
 
 void
-stats_init_dbdata(ham_db_t *db, ham_runtime_statistics_dbdata_t *dbdata)
+btree_stats_init_dbdata(ham_db_t *db, ham_runtime_statistics_dbdata_t *dbdata)
 {
     memset(dbdata, 0, sizeof(*dbdata));
 }
 
 void
-stats_flush_dbdata(ham_db_t *db, ham_runtime_statistics_dbdata_t *dbdata, ham_bool_t last_in_env)
+btree_stats_flush_dbdata(ham_db_t *db, ham_runtime_statistics_dbdata_t *dbdata,
+                    ham_bool_t last_in_env)
 {
     /* 
-    the freelist statistics are persisted through the freelist destructor,
-    which is invoked elsewhere, so all we need to worry about here are the
-    'global' db/env oriented find/insert/erase statistics.
-    
-    TODO: 
-    
-    persist those in the db header, that is IFF we're a v1.1.0+ DB
-    and we're the last one in the environment (or running solo).
-    */
-    if (last_in_env)
-    {
-        /* do we have the new freelist statistics persisting format or are we using an older DB format? */
-        if (!db_is_mgt_mode_set(db_get_data_access_mode(db), HAM_DAM_ENFORCE_PRE110_FORMAT))
-        {
-
-        }
-    }
+     * the freelist statistics are persisted through the freelist destructor,
+     * everything else is currently not persistet
+     */
 }
 
 void
-stats_trash_dbdata(ham_db_t *db, ham_runtime_statistics_dbdata_t *dbdata)
+btree_stats_trash_dbdata(ham_db_t *db, ham_runtime_statistics_dbdata_t *dbdata)
 {
     ham_env_t *env = db_get_env(db);
 
@@ -1312,7 +1295,8 @@ stats_trash_dbdata(ham_db_t *db, ham_runtime_statistics_dbdata_t *dbdata)
 }
 
 ham_status_t
-stats_fill_ham_statistics_t(ham_env_t *env, ham_db_t *db, ham_statistics_t *dst)
+btree_stats_fill_ham_statistics_t(ham_env_t *env, ham_db_t *db, 
+                    ham_statistics_t *dst)
 {
     ham_status_t st;
     ham_bool_t collect_globdata;
