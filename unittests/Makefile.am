@@ -28,7 +28,7 @@ test_SOURCES    = log.cpp \
                   btree_key.cpp \
                   partial.cpp \
                   bt_cursor.cpp \
-                  util.cpp \
+                  misc.cpp \
                   device.cpp \
                   os.cpp \
                   cache.cpp \

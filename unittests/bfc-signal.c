@@ -96,8 +96,8 @@ signal_handler_f
 bfc_signal(int code, signal_handler_f handler)
 {
 	/* 
-	Note: this call will generate a compiler warning. Ignore that warning. 
-	*/
+	 * Note: this call will generate a compiler warning. Ignore that warning. 
+	 */
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable: 4113)

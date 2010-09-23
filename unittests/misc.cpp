@@ -12,13 +12,14 @@
 #include "../src/config.h"
 
 #include <stdexcept>
-#include <string.h> // [i_a] strlen, memcmp, etc.
+#include <string.h>
 #include <ham/hamsterdb.h>
 #include "../src/db.h"
 #include "../src/page.h"
 #include "../src/util.h"
+#include "../src/btree.h"
 #include "../src/env.h"
-#include "../src/keys.h"
+#include "../src/btree_key.h"
 #include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
@@ -27,21 +28,21 @@
 using namespace bfc;
 
 
-class UtilTest : public hamsterDB_fixture
+class MiscTest : public hamsterDB_fixture
 {
     define_super(hamsterDB_fixture);
 
 public:
-    UtilTest()
-    :   hamsterDB_fixture("UtilTest")
+    MiscTest()
+    :   hamsterDB_fixture("MiscTest")
     {
         testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(UtilTest, copyKeyTest);
-        BFC_REGISTER_TEST(UtilTest, copyExtendedKeyTest);
-        BFC_REGISTER_TEST(UtilTest, copyKeyInt2PubEmptyTest);
-        BFC_REGISTER_TEST(UtilTest, copyKeyInt2PubTinyTest);
-        BFC_REGISTER_TEST(UtilTest, copyKeyInt2PubSmallTest);
-        BFC_REGISTER_TEST(UtilTest, copyKeyInt2PubFullTest);
+        BFC_REGISTER_TEST(MiscTest, copyKeyTest);
+        BFC_REGISTER_TEST(MiscTest, copyExtendedKeyTest);
+        BFC_REGISTER_TEST(MiscTest, copyKeyInt2PubEmptyTest);
+        BFC_REGISTER_TEST(MiscTest, copyKeyInt2PubTinyTest);
+        BFC_REGISTER_TEST(MiscTest, copyKeyInt2PubSmallTest);
+        BFC_REGISTER_TEST(MiscTest, copyKeyInt2PubFullTest);
     }
 
 protected:
@@ -84,7 +85,7 @@ public:
         src.flags=0;
         src._flags=0;
 
-        BFC_ASSERT_EQUAL(0, util_copy_key(m_db, &src, &dest));
+        BFC_ASSERT_EQUAL(0, db_copy_key(m_db, &src, &dest));
         BFC_ASSERT_EQUAL(dest.size, src.size);
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src.data));
 
@@ -101,7 +102,7 @@ public:
         src.flags=0;
         src._flags=0;
 
-        BFC_ASSERT_EQUAL(0, util_copy_key(m_db, &src, &dest));
+        BFC_ASSERT_EQUAL(0, db_copy_key(m_db, &src, &dest));
         BFC_ASSERT_EQUAL(dest.size, src.size);
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src.data));
 
@@ -110,7 +111,7 @@ public:
 
     void copyKeyInt2PubEmptyTest(void)
     {
-        int_key_t src;
+        btree_key_t src;
         ham_key_t dest;
         memset(&src, 0, sizeof(src));
         memset(&dest, 0, sizeof(dest));
@@ -120,14 +121,14 @@ public:
         key_set_flags(&src, 0);
         src._key[0]=0;
 
-        BFC_ASSERT_EQUAL(0, util_copy_key_int2pub(m_db, &src, &dest));
+        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub(m_db, &src, &dest));
         BFC_ASSERT_EQUAL(0, dest.size);
         BFC_ASSERT_EQUAL((void *)0, dest.data);
     }
 
     void copyKeyInt2PubTinyTest(void)
     {
-        int_key_t src;
+        btree_key_t src;
         ham_key_t dest;
         memset(&src, 0, sizeof(src));
         memset(&dest, 0, sizeof(dest));
@@ -137,7 +138,7 @@ public:
         key_set_flags(&src, 0);
         src._key[0]='a';
 
-        BFC_ASSERT_EQUAL(0, util_copy_key_int2pub(m_db, &src, &dest));
+        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub(m_db, &src, &dest));
         BFC_ASSERT_EQUAL(1, dest.size);
         BFC_ASSERT_EQUAL('a', ((char *)dest.data)[0]);
         allocator_free(env_get_allocator(m_env), dest.data);
@@ -146,7 +147,7 @@ public:
     void copyKeyInt2PubSmallTest(void)
     {
         char buffer[128];
-        int_key_t *src=(int_key_t *)buffer;
+        btree_key_t *src=(btree_key_t *)buffer;
         ham_key_t dest;
         memset(&dest, 0, sizeof(dest));
 
@@ -155,7 +156,7 @@ public:
         key_set_flags(src, 0);
         ::strcpy((char *)src->_key, "1234567\0");
 
-        BFC_ASSERT_EQUAL(0, util_copy_key_int2pub(m_db, src, &dest));
+        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub(m_db, src, &dest));
         BFC_ASSERT_EQUAL(dest.size, key_get_size(src));
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src->_key));
         allocator_free(env_get_allocator(m_env), dest.data);
@@ -164,7 +165,7 @@ public:
     void copyKeyInt2PubFullTest(void)
     {
         char buffer[128];
-        int_key_t *src=(int_key_t *)buffer;
+        btree_key_t *src=(btree_key_t *)buffer;
         ham_key_t dest;
         memset(&dest, 0, sizeof(dest));
 
@@ -173,7 +174,7 @@ public:
         key_set_flags(src, 0);
         ::strcpy((char *)src->_key, "123456781234567\0");
 
-        BFC_ASSERT_EQUAL(0, util_copy_key_int2pub(m_db, src, &dest));
+        BFC_ASSERT_EQUAL(0, btree_copy_key_int2pub(m_db, src, &dest));
         BFC_ASSERT_EQUAL(dest.size, key_get_size(src));
         BFC_ASSERT_EQUAL(0, ::strcmp((char *)dest.data, (char *)src->_key));
 
@@ -182,5 +183,5 @@ public:
 
 };
 
-BFC_REGISTER_FIXTURE(UtilTest);
+BFC_REGISTER_FIXTURE(MiscTest);
 

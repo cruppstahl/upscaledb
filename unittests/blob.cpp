@@ -18,7 +18,7 @@
 #include "../src/blob.h"
 #include "../src/env.h"
 #include "../src/page.h"
-#include "../src/keys.h"
+#include "../src/btree_key.h"
 #include "../src/freelist.h"
 #include "memtracker.h"
 #include "os.hpp"

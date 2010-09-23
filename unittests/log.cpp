@@ -24,7 +24,7 @@
 #include "../src/device.h"
 #include "../src/env.h"
 #include "../src/btree.h"
-#include "../src/keys.h"
+#include "../src/btree_key.h"
 #include "../src/freelist.h"
 #include "../src/cache.h"
 #include "memtracker.h"
@@ -1763,7 +1763,7 @@ public:
         BFC_ASSERT_EQUAL(0, env_fetch_page(&page, m_env, ps, 0));
         BFC_ASSERT(page!=0);
         btree_node_t *node=page_get_btree_node(page);
-        int_key_t *entry=btree_node_get_key(m_db, node, 0);
+        btree_key_t *entry=btree_node_get_key(m_db, node, 0);
         BFC_ASSERT_EQUAL((ham_u8_t)'a', key_get_key(entry)[0]);
         key_get_key(entry)[0]='b';
         page_set_dirty(page);

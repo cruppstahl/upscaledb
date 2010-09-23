@@ -43,9 +43,6 @@ public:
         BFC_REGISTER_TEST(TxnTest, beginCommitTest);
         BFC_REGISTER_TEST(TxnTest, beginAbortTest);
         BFC_REGISTER_TEST(TxnTest, structureTest);
-        BFC_REGISTER_TEST(TxnTest, addPageTest);
-        BFC_REGISTER_TEST(TxnTest, addPageAbortTest);
-        BFC_REGISTER_TEST(TxnTest, removePageTest);
     }
 
 protected:
@@ -111,85 +108,17 @@ public:
 
         BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
         BFC_ASSERT(txn_get_env(txn)==m_env);
-        BFC_ASSERT(txn_get_pagelist(txn)==0);
         BFC_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(txn));
 
         txn_set_flags(txn, 0x99);
         BFC_ASSERT_EQUAL((ham_u32_t)0x99, txn_get_flags(txn));
 
-        txn_set_pagelist(txn, (ham_page_t *)0x13);
-        BFC_ASSERT(txn_get_pagelist(txn)==(ham_page_t *)0x13);
-        txn_set_pagelist(txn, 0);
-
         txn_set_log_desc(txn, 4);
         BFC_ASSERT_EQUAL(4, txn_get_log_desc(txn));
 
-        BFC_ASSERT(txn_get_pagelist(txn)==0);
         BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
     }
 
-    void addPageTest(void)
-    {
-        ham_txn_t *txn;
-        ham_page_t *page;
-        ham_perm_page_union_t pers;
-        memset(&pers, 0, sizeof(pers));
-
-        BFC_ASSERT((page=page_new(m_env))!=0);
-        page_set_self(page, 0x12345);
-        page_set_pers(page, &pers);
-
-        BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
-        BFC_ASSERT(txn_get_page(txn, 0x12345)==0);
-        BFC_ASSERT(txn_add_page(txn, page, 0)==HAM_SUCCESS);
-        BFC_ASSERT(txn_add_page(txn, page, 1)==HAM_SUCCESS);
-        BFC_ASSERT(txn_get_page(txn, 0x12345)==page);
-
-        BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
-
-        page_set_pers(page, 0);
-        allocator_free(env_get_allocator(m_env), page);
-    }
-
-    void addPageAbortTest(void)
-    {
-        ham_txn_t *txn;
-        ham_page_t *page;
-
-        BFC_ASSERT((page=page_new(m_env))!=0);
-        page_set_self(page, 0x12345);
-
-        BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
-        BFC_ASSERT(txn_get_page(txn, 0x12345)==0);
-        BFC_ASSERT(txn_add_page(txn, page, 0)==HAM_SUCCESS);
-        BFC_ASSERT(txn_add_page(txn, page, 1)==HAM_SUCCESS);
-        BFC_ASSERT(txn_get_page(txn, 0x12345)==page);
-        BFC_ASSERT_EQUAL(0, txn_free_page(txn, page));
-        BFC_ASSERT(page_get_npers_flags(page) & PAGE_NPERS_DELETE_PENDING);
-
-        BFC_ASSERT(ham_txn_abort(txn, 0)==HAM_SUCCESS);
-
-        page_delete(page);
-    }
-
-    void removePageTest(void)
-    {
-        ham_txn_t *txn;
-        ham_page_t *page;
-
-        BFC_ASSERT((page=page_new(m_env))!=0);
-        page_set_self(page, 0x12345);
-
-        BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
-        BFC_ASSERT(txn_add_page(txn, page, 0)==HAM_SUCCESS);
-        BFC_ASSERT(txn_get_page(txn, page_get_self(page))==page);
-        BFC_ASSERT(txn_remove_page(txn, page)==HAM_SUCCESS);
-        BFC_ASSERT(txn_get_page(txn, page_get_self(page))==0);
-
-        BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
-
-        page_delete(page);
-    }
 };
 
 class HighLevelTxnTest : public hamsterDB_fixture
