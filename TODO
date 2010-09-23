@@ -69,6 +69,7 @@ o manage all transactions
         x for now do not write the blob to disk but keep it in memory
         x otherwise insert into transaction tree
         o check for transaction conflicts (similar to ham2)
+        o need a new error code HAM_TXN_CONFLICT
     o rewrite ham_find
         o each modified database gets its own txn tree when its modified
             in a transaction

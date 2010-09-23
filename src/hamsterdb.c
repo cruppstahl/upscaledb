@@ -404,6 +404,8 @@ ham_strerror(ham_status_t result)
             return ("Cursor must be closed prior to Transaction abort/commit");
         case HAM_FILTER_NOT_FOUND:
             return ("Record filter or file filter not found");
+        case HAM_TXN_CONFLICT:
+            return ("Operation conflicts with another Transaction");
         case HAM_CURSOR_IS_NIL:
             return ("Cursor points to NIL");
         case HAM_DATABASE_NOT_FOUND:

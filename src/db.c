@@ -1682,12 +1682,35 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 }
 
 static ham_status_t
+db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn, ham_key_t *key)
+{
+    /*
+     * foreach transaction (from newest to oldest):
+     * - is this txn aborted? if yes: skip it
+     * - is this txn committed or the current one? if yes: check for this
+     *      key depending on flags
+     * - is this txn still active (but not the current one)? if yes, check for
+     *      conflicts; return error if conflict is found
+     * - if a committed txn has erased the item then there's no need
+     *      to continue checking older, committed txns
+     */
+    /* TODO TODO TODO */
+    return (0);
+}
+
+static ham_status_t
 db_insert_txn(ham_db_t *db, ham_txn_t *txn,
         ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
+    ham_status_t st;
     txn_optree_t *tree;
     txn_optree_node_t *node;
     txn_op_t *op;
+
+    /* check for conflicts */
+    st=db_check_insert_conflicts(db, txn, key);
+    if (st)
+        return (st);
 
     /* get (or create) the txn-tree for this database */
     tree=txn_tree_get_or_create(txn, db);

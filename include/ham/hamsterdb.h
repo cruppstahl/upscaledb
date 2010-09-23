@@ -281,6 +281,8 @@ typedef struct {
 #define HAM_CURSOR_STILL_OPEN        (-29)
 /** Record filter or file filter not found */
 #define HAM_FILTER_NOT_FOUND         (-30)
+/** Operation conflicts with another Transaction */
+#define HAM_TXN_CONFLICT             (-31)
 /** Cursor does not point to a valid item */
 #define HAM_CURSOR_IS_NIL           (-100)
 /** Database not found */
@@ -1792,6 +1794,8 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  *              record->size
  * @return @ref HAM_DB_READ_ONLY if you tried to insert a key in a read-only
  *              Database
+ * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another 
+ *              Transaction which was not yet committed or aborted
  * @return @ref HAM_INV_KEYSIZE if the key size is larger than the @a keysize
  *              parameter specified for @ref ham_create_ex and variable
  *              key sizes are disabled (see @ref HAM_DISABLE_VAR_KEYLEN)
