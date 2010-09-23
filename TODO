@@ -38,7 +38,7 @@ o manage all transactions
             page_unlock
             page_is_locked
         x remove PAGE_LIST_TXN
-    o remove env_get_txn, env_get_txn_id
+    x remove env_get_txn, env_get_txn_id
         distinguish: on high level, we have multiple txns
         on low level, we use the lsn for file-io routines
             x extkeys.c - extkey_set_txn_id: replace with lsn
@@ -55,11 +55,14 @@ o manage all transactions
             x page.h - cleanup 
             x rename int_key_t to btree_key_t
             x rename statistics.c to btree_stats.c (and rename the functions)
-            o extkeys: don't use txn_id for the 'age', use lsn instead
 
     o rewrite ham_insert
         o each modified database gets its own txn tree when its modified
             in a transaction
+                tree=txn_tree_get_or_create(db)
+                node=txn_node_get_or_create(tree, key)
+                op=txn_op_create(node, flags, record) -> store the full record!
+        o check for transaction conflicts (similar to ham2)
         o if transactions are disabled: immediately write to disk, no
             temp transactions are needed
         o otherwise go through transaction trees
@@ -80,6 +83,10 @@ o manage all transactions
     o add new unittests
     o make sure all unittests are running
     o review page.h - anything that we do not need? (i.e. dirty_txn?)
+
+    o more pending cleanups
+        o remove env_get_txn, env_get_txn_id
+        o extkeys: don't use txn_id for the 'age', use lsn instead
 
 o each operation writes a journal entry (however, we still keep the logical
         journal in parallel, otherwise the unittests will fail completely)
