@@ -924,9 +924,8 @@ __insert_split(ham_page_t *page, ham_key_t *key,
     oldkey.data=key_get_key(nbte);
     oldkey.size=key_get_size(nbte);
     oldkey._flags=key_get_flags(nbte);
-    st = util_copy_key(db, &oldkey, &pivotkey);
-    if (st) 
-    {
+    st = db_copy_key(db, &oldkey, &pivotkey);
+    if (st) {
         (void)db_free_page(newpage, DB_MOVE_TO_FREELIST);
         goto fail_dramatically;
     }

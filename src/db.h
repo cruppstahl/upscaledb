@@ -124,14 +124,10 @@ typedef HAM_PACK_0 union HAM_PACK_1
 #define index_clear_reserved(p)           { (p)->b._reserved1 = 0;            \
                                             (p)->b._reserved2 = 0; }
 
-/**
- * get the cache for extended keys
- */
+/** get the cache for extended keys */
 #define db_get_extkey_cache(db)    (db)->_extkey_cache
 
-/**
- * set the cache for extended keys
- */
+/** set the cache for extended keys */
 #define db_set_extkey_cache(db, c) (db)->_extkey_cache=(c)
  
 /**
@@ -586,28 +582,6 @@ extern int
 db_compare_keys(ham_db_t *db, ham_key_t *lsh, ham_key_t *rhs);
 
 /**
- * create a preliminary copy of an @ref int_key_t key to a @ref ham_key_t
- * in such a way that @ref db_compare_keys can use the data and optionally
- * call @ref db_get_extended_key on this key to obtain all key data, when this
- * is an extended key.
- * 
- * Used in conjunction with @ref db_release_ham_key_after_compare
- */
-extern ham_status_t 
-db_prepare_ham_key_for_compare(ham_db_t *db, int_key_t *src, ham_key_t *dest);
-
-/**
- * @sa db_prepare_ham_key_for_compare
- */
-#define db_release_ham_key_after_compare(db, key)                              \
-    while ((key)->data && ((key)->_flags & KEY_IS_ALLOCATED)) {                \
-        allocator_free(env_get_allocator(db_get_env((db))), (key)->data);      \
-        (key)->data = 0;                                                       \
-        (key)->size = 0;                                                       \
-        break;                                                                 \
-    }
-
-/**
  * create a backend object according to the database flags.
  */
 extern ham_status_t
@@ -733,9 +707,8 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 /**
  * Free a page.
  *
- * @remark will mark the page as deleted; the page will be deleted
- * when the transaction is committed (or not deleted if the transaction
- * is aborted).
+ * @remark will also remove the page from the cache and free all extended keys,
+ * if there are any.
  *
  * @remark valid flag: DB_MOVE_TO_FREELIST; marks the page as 'deleted'
  * in the freelist. Ignored in in-memory databases.
@@ -773,6 +746,30 @@ db_resize_record_allocdata(ham_db_t *db, ham_size_t size);
  */
 extern ham_status_t
 db_resize_key_allocdata(ham_db_t *db, ham_size_t size);
+
+/** 
+ * copy a key
+ *
+ * returns 0 if memory can not be allocated, or a pointer to @a dest.
+ * uses ham_mem_malloc() - memory in dest->key has to be freed by the caller
+ * 
+ * @a dest must have been initialized before calling this function; the 
+ * dest->data space will be reused when the specified size is large enough;
+ * otherwise the old dest->data will be ham_mem_free()d and a new space 
+ * allocated.
+ * 
+ * This can save superfluous heap free+allocation actions in there.
+ * 
+ * @note
+ * This routine can cope with HAM_KEY_USER_ALLOC-ated 'dest'-inations.
+ * 
+ * @note
+ * When an error is returned the 'dest->data' 
+ * pointer is either NULL or still pointing at allocated space (when 
+ * HAM_KEY_USER_ALLOC was not set).
+ */
+extern ham_status_t
+db_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest);
 
 /**
 * @defgroup ham_database_flags 

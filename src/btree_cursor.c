@@ -430,7 +430,7 @@ bt_cursor_couple(ham_bt_cursor_t *c)
      */
     memset(&key, 0, sizeof(key));
 
-    st = util_copy_key(db, bt_cursor_get_uncoupled_key(c), &key);
+    st = db_copy_key(db, bt_cursor_get_uncoupled_key(c), &key);
     if (st) {
         if (key.data)
             allocator_free(env_get_allocator(env), key.data);
@@ -483,9 +483,8 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
     key=(ham_key_t *)allocator_calloc(env_get_allocator(env), sizeof(*key));
     if (!key)
         return HAM_OUT_OF_MEMORY;
-    st = util_copy_key_int2pub(db, entry, key);
-    if (st)
-    {
+    st = btree_copy_key_int2pub(db, entry, key);
+    if (st) {
         if (key->data)
             allocator_free(env_get_allocator(env), key->data);
         allocator_free(env_get_allocator(env), key);
@@ -550,10 +549,9 @@ bt_cursor_clone(ham_bt_cursor_t *old, ham_bt_cursor_t **newc)
         if (!key)
             return HAM_OUT_OF_MEMORY;
 
-        st = util_copy_key(bt_cursor_get_db(c), 
-            bt_cursor_get_uncoupled_key(old), key);
-        if (st) 
-        {
+        st = db_copy_key(bt_cursor_get_db(c), bt_cursor_get_uncoupled_key(old),
+                        key);
+        if (st) {
             if (key->data)
                 allocator_free(env_get_allocator(env), key->data);
             allocator_free(env_get_allocator(env), key);
@@ -718,7 +716,7 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
         return (st);
 
     /*
-     * during util_read_key and util_read_record, new pages might be needed,
+     * during btree_read_key and btree_read_record, new pages might be needed,
      * and the page at which we're pointing could be moved out of memory; 
      * that would mean that the cursor would be uncoupled, and we're losing
      * the 'entry'-pointer. therefore we 'lock' the page by incrementing 
@@ -733,7 +731,7 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
     entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
 
     if (key) {
-        st=util_read_key(db, entry, key);
+        st=btree_read_key(db, entry, key);
         if (st) {
             page_unlock(page);
             return (st);
@@ -760,7 +758,7 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
             record->_intflags=key_get_flags(entry);
             record->_rid=key_get_ptr(entry);
         }
-        st=util_read_record(db, record, flags);
+        st=btree_read_record(db, record, flags);
         if (st) {
             page_unlock(page);
             return (st);

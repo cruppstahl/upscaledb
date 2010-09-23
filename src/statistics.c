@@ -608,7 +608,7 @@ stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, ham_key_t *key, ha
                     dbdata->lower_bound.size=0;
                 }
 
-                st = util_copy_key_int2pub(db, 
+                st = btree_copy_key_int2pub(db, 
                     btree_node_get_key(db, node, dbdata->lower_bound_index),
                     &dbdata->lower_bound);
                 if (st) 
@@ -668,7 +668,7 @@ stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, ham_key_t *key, ha
                     dbdata->upper_bound.size=0;
                 }
 
-                st = util_copy_key_int2pub(db, 
+                st = btree_copy_key_int2pub(db, 
                     btree_node_get_key(db, node, dbdata->upper_bound_index),
                     &dbdata->upper_bound);
                 if (st) 

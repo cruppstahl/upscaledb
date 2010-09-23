@@ -407,7 +407,7 @@ no_fast_track:
     }
 
     /*
-     * during util_read_key and util_read_record, new pages might be needed,
+     * during btree_read_key and btree_read_record, new pages might be needed,
      * and the page at which we're pointing could be moved out of memory; 
      * that would mean that the cursor would be uncoupled, and we're losing
      * the 'entry'-pointer. therefore we 'lock' the page by incrementing 
@@ -419,7 +419,7 @@ no_fast_track:
     /* no need to load the key if we have an exact match: */
     if (key && (ham_key_get_intflags(key) & KEY_IS_APPROXIMATE)) 
     {
-        ham_status_t st=util_read_key(db, entry, key);
+        ham_status_t st=btree_read_key(db, entry, key);
         if (st) 
         {
             page_unlock(page);
@@ -433,7 +433,7 @@ no_fast_track:
         ham_status_t st;
         record->_intflags=key_get_flags(entry);
         record->_rid=key_get_ptr(entry);
-        st=util_read_record(db, record, flags);
+        st=btree_read_record(db, record, flags);
         if (st) 
         {
             page_unlock(page);

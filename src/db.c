@@ -549,38 +549,6 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
     return (0);
 }
 
-extern ham_status_t 
-db_prepare_ham_key_for_compare(ham_db_t *db, int_key_t *src, ham_key_t *dest)
-{
-    void *p;
-
-    if (!(key_get_flags(src) & KEY_IS_EXTENDED)) {
-        dest->size = key_get_size(src);
-        dest->data = key_get_key(src);
-        dest->flags = HAM_KEY_USER_ALLOC;
-        dest->_flags = key_get_flags(src);
-        return (0);
-    }
-
-    dest->size = key_get_size(src);
-
-    p = allocator_alloc(env_get_allocator(db_get_env(db)), dest->size);
-    if (!p) {
-        dest->data = 0;
-        return HAM_OUT_OF_MEMORY;
-    }
-
-    memcpy(p, key_get_key(src), db_get_keysize(db));
-    dest->data = p;
-
-    /* set a flag that this memory has to be freed by hamsterdb */
-    dest->_flags |= KEY_IS_ALLOCATED;
-    dest->_flags |= KEY_IS_EXTENDED;
-    dest->flags  |= HAM_KEY_USER_ALLOC;
-
-    return (0);
-}
-
 int
 db_compare_keys(ham_db_t *db, ham_key_t *lhs, ham_key_t *rhs)
 {
@@ -1292,6 +1260,54 @@ db_resize_key_allocdata(ham_db_t *db, ham_size_t size)
     }
 
     return (0);
+}
+
+ham_status_t
+db_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
+{
+    /*
+     * extended key: copy the whole key
+     */
+    if (source->_flags&KEY_IS_EXTENDED) {
+        ham_status_t st=db_get_extended_key(db, source->data,
+                    source->size, source->_flags, dest);
+        if (st) {
+            return st;
+        }
+        ham_assert(dest->data!=0, ("invalid extended key"));
+        /* dest->size is set by db_get_extended_key() */
+        ham_assert(dest->size == source->size, (0)); 
+        /* the extended flag is set later, when this key is inserted */
+        dest->_flags = source->_flags & ~KEY_IS_EXTENDED;
+    }
+    else if (source->size) {
+        if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
+			if (!dest->data || dest->size < source->size) {
+				if (dest->data)
+					allocator_free(env_get_allocator(db_get_env(db)), 
+                               dest->data);
+				dest->data = (ham_u8_t *)allocator_alloc(
+                               env_get_allocator(db_get_env(db)), source->size);
+				if (!dest->data) 
+					return (HAM_OUT_OF_MEMORY);
+			}
+		}
+        memcpy(dest->data, source->data, source->size);
+        dest->size=source->size;
+        dest->_flags=source->_flags;
+    }
+    else { 
+        /* key.size is 0 */
+        if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
+            if (dest->data)
+                allocator_free(env_get_allocator(db_get_env(db)), dest->data);
+            dest->data=0;
+        }
+        dest->size=0;
+        dest->_flags=source->_flags;
+    }
+
+    return (HAM_SUCCESS);
 }
 
 static ham_status_t

@@ -49,11 +49,13 @@ o manage all transactions
                 key_compare_pub_to_int
                 key_compare_int_to_int
             x btree_close_cursors - actually in use? - yes
+            x db.h - cleanup high level i/o interface
+            x util.h - cleanup 
             o extkeys: don't use txn_id for the 'age', use lsn instead
             o rename statistics.c to btree_stats.c (and rename the functions)
             o rename int_key_t to btree_key_t
             o blob.h - cleanup interface if possible
-            o db.h - cleanup high level i/o interface
+            o page.h - cleanup 
 
     o rewrite ham_insert
         o each modified database gets its own txn tree when its modified

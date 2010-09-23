@@ -25,6 +25,7 @@
 #include "mem.h"
 #include "page.h"
 #include "txn.h"
+#include "btree.h"
 
 
 #define SMALLEST_CHUNK_SIZE  (sizeof(ham_offset_t)+sizeof(blob_t)+1)
@@ -1051,7 +1052,7 @@ __get_sorted_position(ham_db_t *db, dupe_table_t *table, ham_record_t *record,
         item_record._intflags = dupe_entry_get_flags(e)&(KEY_BLOB_SIZE_SMALL
                                                          |KEY_BLOB_SIZE_TINY
                                                          |KEY_BLOB_SIZE_EMPTY);
-        st=util_read_record(db, &item_record, flags);
+        st=btree_read_record(db, &item_record, flags);
         if (st)
             return (st);
 

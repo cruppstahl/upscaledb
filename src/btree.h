@@ -350,6 +350,76 @@ extern int
 btree_compare_keys(ham_db_t *db, ham_page_t *page, 
                 ham_key_t *lhs, ham_u16_t rhs);
 
+/**
+ * create a preliminary copy of an @ref int_key_t key to a @ref ham_key_t
+ * in such a way that @ref db_compare_keys can use the data and optionally
+ * call @ref db_get_extended_key on this key to obtain all key data, when this
+ * is an extended key.
+ * 
+ * Used in conjunction with @ref btree_release_key_after_compare
+ */
+extern ham_status_t 
+btree_prepare_key_for_compare(ham_db_t *db, int_key_t *src, ham_key_t *dest);
+
+/**
+ * @sa btree_prepare_key_for_compare
+ */
+#define btree_release_key_after_compare(db, key)                               \
+    while ((key)->data && ((key)->_flags & KEY_IS_ALLOCATED)) {                \
+        allocator_free(env_get_allocator(db_get_env((db))), (key)->data);      \
+        (key)->data = 0;                                                       \
+        (key)->size = 0;                                                       \
+        break;                                                                 \
+    }
+
+/**
+ * read a key
+ *
+ * @a dest must have been initialized before calling this function; the 
+ * dest->data space will be reused when the specified size is large enough;
+ * otherwise the old dest->data will be ham_mem_free()d and a new 
+ * space allocated.
+ *
+ * This can save superfluous heap free+allocation actions in there.
+ *
+ * @note
+ * This routine can cope with HAM_KEY_USER_ALLOC-ated 'dest'-inations.
+ */
+extern ham_status_t
+btree_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest);
+
+/**
+ * read a record 
+ *
+ * flags: either 0 or HAM_DIRECT_ACCESS
+ */
+extern ham_status_t
+btree_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags);
+
+/** 
+ * copy a key
+ *
+ * returns 0 if memory can not be allocated, or a pointer to @a dest.
+ * uses ham_mem_malloc() - memory in dest->key has to be freed by the caller
+ * 
+ * @a dest must have been initialized before calling this function; the 
+ * dest->data space will be reused when the specified size is large enough;
+ * otherwise the old dest->data will be ham_mem_free()d and a new space 
+ * allocated.
+ * 
+ * This can save superfluous heap free+allocation actions in there.
+ * 
+ * @note
+ * This routine can cope with HAM_KEY_USER_ALLOC-ated 'dest'-inations.
+ * 
+ * @note
+ * When an error is returned the 'dest->data' 
+ * pointer is either NULL or still pointing at allocated space (when 
+ * HAM_KEY_USER_ALLOC was not set).
+ */
+extern ham_status_t
+btree_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest);
+
 
 #ifdef __cplusplus
 } // extern "C"
