@@ -30,8 +30,10 @@ extern "C" {
 /*
  * indices for page lists
  *
- * each page is a node in several linked lists - via _npers._prev and 
- * _npers._next. both members are arrays of pointers and can be used
+ * Each ham_page_t structure is a node in several linked lists.
+ * In order to avoid multiple memory allocations, the previous/next pointers 
+ * are part of the ham_page_t structure (_npers._prev and _npers._next).
+ * Both fields are arrays of pointers and can be used i.e.
  * with _npers._prev[PAGE_LIST_BUCKET] etc. (or with the macros 
  * defined below).
  */
@@ -50,13 +52,12 @@ extern "C" {
 /**
  * The page header which is persisted on disc
  *
- * This structure definition is present outside of @ref ham_page_t scope to allow
- * compile-time OFFSETOF macros to correctly judge the size, depending 
+ * This structure definition is present outside of @ref ham_page_t scope 
+ * to allow compile-time OFFSETOF macros to correctly judge the size, depending 
  * on platform and compiler settings.
  */
 typedef HAM_PACK_0 union HAM_PACK_1 ham_perm_page_union_t
 {
-
     /*
      * this header is only available if the (non-persistent) flag
      * NPERS_NO_HEADER is not set! 
@@ -71,13 +72,11 @@ typedef HAM_PACK_0 union HAM_PACK_1 ham_perm_page_union_t
     HAM_PACK_0 struct HAM_PACK_1 page_union_header_t {
         /**
          * flags of this page - currently only used for the page type
-         @sa page_type_codes
+         * @sa page_type_codes
          */
         ham_u32_t _flags;
 
-        /**
-         * some reserved bytes
-         */
+        /** some reserved bytes */
         ham_u32_t _reserved1;
         ham_u32_t _reserved2;
 
@@ -88,9 +87,7 @@ typedef HAM_PACK_0 union HAM_PACK_1 ham_perm_page_union_t
         ham_u8_t _payload[1];
     } HAM_PACK_2 _s;
 
-    /*
-     * a char pointer
-     */
+    /* a char pointer to the allocated storage on disk */
     ham_u8_t _p[1];
 
 } HAM_PACK_2 ham_perm_page_union_t;
@@ -320,6 +317,7 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 /**
  * @defgroup page_type_codes valid page types
  * @{
+ *
  * Each database page is tagged with a type code; these are all 
  * known/supported page type codes.
  * 
@@ -438,6 +436,7 @@ page_flush(ham_page_t *page);
  */
 extern ham_status_t
 page_free(ham_page_t *page);
+
 
 #ifdef __cplusplus
 } // extern "C" {
