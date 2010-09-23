@@ -97,8 +97,8 @@ typedef struct freelist_payload_t freelist_payload_t;
 
 #include "packstart.h"
 
-struct int_key_t;
-typedef struct int_key_t int_key_t;
+struct btree_key_t;
+typedef struct btree_key_t btree_key_t;
 
 #include "packstop.h"
 

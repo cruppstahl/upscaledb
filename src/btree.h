@@ -138,7 +138,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 btree_node_t
     /**
      * the entries of this node
      */
-    int_key_t _entries[1];
+    btree_key_t _entries[1];
 
 } HAM_PACK_2 btree_node_t;
 
@@ -300,7 +300,7 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key,
  * get entry @a i of a btree node
  */
 #define btree_node_get_key(db, node, i)                             \
-    ((int_key_t *)&((const char *)(node)->_entries)                 \
+    ((btree_key_t *)&((const char *)(node)->_entries)                 \
             [(db_get_keysize(db)+db_get_int_key_header_size())*(i)])
 
 /**
@@ -310,7 +310,7 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key,
 #define btree_node_get_key_offset(page, i)                          \
      (page_get_self(page)+page_get_persistent_header_size()+        \
      OFFSETOF(btree_node_t, _entries)                               \
-     /* ^^^ sizeof(int_key_t) WITHOUT THE -1 !!! */ +               \
+     /* ^^^ sizeof(btree_key_t) WITHOUT THE -1 !!! */ +               \
      (db_get_int_key_header_size()+db_get_keysize(page_get_owner(page)))*(i))
 
 /**
@@ -351,7 +351,7 @@ btree_compare_keys(ham_db_t *db, ham_page_t *page,
                 ham_key_t *lhs, ham_u16_t rhs);
 
 /**
- * create a preliminary copy of an @ref int_key_t key to a @ref ham_key_t
+ * create a preliminary copy of an @ref btree_key_t key to a @ref ham_key_t
  * in such a way that @ref db_compare_keys can use the data and optionally
  * call @ref db_get_extended_key on this key to obtain all key data, when this
  * is an extended key.
@@ -359,7 +359,7 @@ btree_compare_keys(ham_db_t *db, ham_page_t *page,
  * Used in conjunction with @ref btree_release_key_after_compare
  */
 extern ham_status_t 
-btree_prepare_key_for_compare(ham_db_t *db, int_key_t *src, ham_key_t *dest);
+btree_prepare_key_for_compare(ham_db_t *db, btree_key_t *src, ham_key_t *dest);
 
 /**
  * @sa btree_prepare_key_for_compare
@@ -386,7 +386,7 @@ btree_prepare_key_for_compare(ham_db_t *db, int_key_t *src, ham_key_t *dest);
  * This routine can cope with HAM_KEY_USER_ALLOC-ated 'dest'-inations.
  */
 extern ham_status_t
-btree_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest);
+btree_read_key(ham_db_t *db, btree_key_t *source, ham_key_t *dest);
 
 /**
  * read a record 
@@ -418,7 +418,8 @@ btree_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags);
  * HAM_KEY_USER_ALLOC was not set).
  */
 extern ham_status_t
-btree_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest);
+btree_copy_key_int2pub(ham_db_t *db, const btree_key_t *source, 
+                ham_key_t *dest);
 
 
 #ifdef __cplusplus

@@ -608,7 +608,7 @@ __insert_nosplit(ham_page_t *page, ham_key_t *key,
     ham_u16_t count;
     ham_size_t keysize;
     ham_size_t new_dupe_id = 0;
-    int_key_t *bte = 0;
+    btree_key_t *bte = 0;
     btree_node_t *node;
     ham_db_t *db=page_get_owner(page);
     ham_bool_t exists = HAM_FALSE;
@@ -815,7 +815,7 @@ __insert_split(ham_page_t *page, ham_key_t *key,
     int cmp;
     ham_status_t st;
     ham_page_t *newpage, *oldsib;
-    int_key_t *nbte, *obte;
+    btree_key_t *nbte, *obte;
     btree_node_t *nbtp, *obtp, *sbtp;
     ham_size_t count, keysize;
     ham_db_t *db=page_get_owner(page);

@@ -53,7 +53,7 @@ typedef struct
 static ham_status_t
 my_calc_keys_cb(int event, void *param1, void *param2, void *context)
 {
-    int_key_t *key;
+    btree_key_t *key;
     calckeys_context_t *c;
     ham_size_t count;
 
@@ -72,7 +72,7 @@ my_calc_keys_cb(int event, void *param1, void *param2, void *context)
         break;
 
     case ENUM_EVENT_ITEM:
-        key = (int_key_t *)param1;
+        key = (btree_key_t *)param1;
         count = *(ham_size_t *)param2;
 
         if (c->is_leaf) {
@@ -128,7 +128,7 @@ ham_status_t
 free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
 {
     ham_status_t st;
-    int_key_t *key;
+    btree_key_t *key;
     free_cb_context_t *c;
 
     c=(free_cb_context_t *)context;
@@ -151,7 +151,7 @@ free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
         break;
 
     case ENUM_EVENT_ITEM:
-        key=(int_key_t *)param1;
+        key=(btree_key_t *)param1;
 
         if (key_get_flags(key)&KEY_IS_EXTENDED) {
             ham_offset_t blobid=key_get_extended_rid(c->db, key);
@@ -321,9 +321,9 @@ db_default_prefix_compare(ham_db_t *db,
     Note:
 
     there's a 'tiny' caveat to it all: often these comparisons are between a database key
-    (int_key_t based) and a user-specified key (ham_key_t based), where the latter will always
+    (btree_key_t based) and a user-specified key (ham_key_t based), where the latter will always
     appear in the LHS and the important part here is: ham_key_t-based comparisons will have
-    their key lengths possibly LARGER than the usual 'short' int_key_t key length as the 
+    their key lengths possibly LARGER than the usual 'short' btree_key_t key length as the 
     ham_key_t data doesn't need extending - the result is that simply looking at the lhs_length
     is not good enough here to ensure the key is actually shorter than the other.
      */

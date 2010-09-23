@@ -33,7 +33,7 @@ extern "C" {
  * barfs on misuse of some macros, e.g. key_get_flags(): here flags are 8-bit, 
  * while ham_key_t flags are 32-bit!
  */
-HAM_PACK_0 struct HAM_PACK_1 int_key_t
+HAM_PACK_0 struct HAM_PACK_1 btree_key_t
 {
     /** the pointer/record ID of this entry */
     ham_u64_t _ptr;
@@ -52,8 +52,8 @@ HAM_PACK_0 struct HAM_PACK_1 int_key_t
 #include "packstop.h"
 
 /** get the size of the internal key representation header */
-#define db_get_int_key_header_size()   OFFSETOF(int_key_t, _key)
-                                       /* sizeof(int_key_t)-1 */
+#define db_get_int_key_header_size()   OFFSETOF(btree_key_t, _key)
+                                       /* sizeof(btree_key_t)-1 */
 
 /**
  * get the pointer of an btree-entry
@@ -90,13 +90,13 @@ HAM_PACK_0 struct HAM_PACK_1 int_key_t
  * get the record-ID of an extended key
  */
 extern ham_offset_t
-key_get_extended_rid(ham_db_t *db, int_key_t *key);
+key_get_extended_rid(ham_db_t *db, btree_key_t *key);
 
 /**
  * set the record-ID of an extended key
  */
 extern void
-key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid);
+key_set_extended_rid(ham_db_t *db, btree_key_t *key, ham_offset_t rid);
 
 /** get the (persisted) flags of a key */
 #define key_get_flags(bte)         (bte)->_flags8
@@ -111,7 +111,7 @@ key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid);
 #define key_set_flags(bte, f)      (bte)->_flags8=(f)
 
 /**
- * persisted int_key_t flags; also used with ham_key_t._flags 
+ * persisted btree_key_t flags; also used with ham_key_t._flags 
  * 
  * NOTE: persisted flags must fit within a ham_u8_t (1 byte) --> mask: 
  *  0x000000FF
@@ -133,7 +133,7 @@ key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid);
 /* 
  * flags used with the ham_key_t INTERNAL USE field _flags.
  * 
- * Note: these flags should NOT overlap with the persisted flags for int_key_t
+ * Note: these flags should NOT overlap with the persisted flags for btree_key_t
  * 
  * As these flags NEVER will be persisted, they should be located outside
  * the range of a ham_u16_t, i.e. outside the mask 0x0000FFFF.
@@ -165,7 +165,7 @@ key_insert_extended(ham_offset_t *rid_ref, ham_db_t *db,
  * a previously existing blob will be deleted if necessary
  */
 extern ham_status_t
-key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record, 
+key_set_record(ham_db_t *db, btree_key_t *key, ham_record_t *record, 
                 ham_size_t position, ham_u32_t flags,
                 ham_size_t *new_position);
 
@@ -175,7 +175,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
  * flag can be BLOB_FREE_ALL_DUPES (declared in blob.h)
  */
 extern ham_status_t
-key_erase_record(ham_db_t *db, int_key_t *key, 
+key_erase_record(ham_db_t *db, btree_key_t *key, 
                 ham_size_t dupe_id, ham_u32_t flags);
 
 

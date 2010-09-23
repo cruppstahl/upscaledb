@@ -228,7 +228,7 @@ bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
  * returns true if a cursor points to this key, otherwise false
  */
 ham_bool_t 
-bt_cursor_points_to(ham_bt_cursor_t *cursor, int_key_t *key);
+bt_cursor_points_to(ham_bt_cursor_t *cursor, btree_key_t *key);
 
 /**
  * uncouple all cursors from a page

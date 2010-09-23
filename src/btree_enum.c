@@ -170,7 +170,7 @@ _enumerate_page(ham_btree_t *be, ham_page_t *page, ham_u32_t level,
     ham_size_t i;
     ham_size_t count;
     ham_db_t *db=page_get_owner(page);
-    int_key_t *bte;
+    btree_key_t *bte;
     btree_node_t *node=page_get_btree_node(page);
     ham_bool_t is_leaf;
     ham_status_t cb_st;

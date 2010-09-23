@@ -127,8 +127,8 @@ static int
 __key_compare_int_to_int(ham_db_t *db, ham_page_t *page, 
         ham_u16_t lhs_int, ham_u16_t rhs_int)
 {
-    int_key_t *l;
-	int_key_t *r;
+    btree_key_t *l;
+	btree_key_t *r;
     btree_node_t *node = page_get_btree_node(page);
 	ham_key_t lhs;
 	ham_key_t rhs;
@@ -227,7 +227,7 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
     ham_size_t count;
     ham_size_t maxkeys;
     ham_db_t *db=page_get_owner(page);
-    int_key_t *bte;
+    btree_key_t *bte;
     btree_node_t *node=page_get_btree_node(page);
 
     maxkeys=btree_get_maxkeys(scratchpad->be);
@@ -260,7 +260,7 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
      */
     if (leftsib) {
         btree_node_t *sibnode=page_get_btree_node(leftsib);
-        int_key_t *sibentry=btree_node_get_key(db, sibnode, 
+        btree_key_t *sibentry=btree_node_get_key(db, sibnode, 
                 btree_node_get_count(sibnode)-1);
 
         bte=btree_node_get_key(db, node, 0);

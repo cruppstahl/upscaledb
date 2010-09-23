@@ -434,7 +434,7 @@ my_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
     {
         ham_size_t i;
         ham_offset_t blobid;
-        int_key_t *bte;
+        btree_key_t *bte;
         btree_node_t *node=page_get_btree_node(page);
         extkey_cache_t *c;
 
@@ -510,7 +510,7 @@ btree_traverse_tree(ham_page_t **page_ref, ham_s32_t *idxptr,
 {
     ham_status_t st;
     ham_s32_t slot;
-    int_key_t *bte;
+    btree_key_t *bte;
     btree_node_t *node=page_get_btree_node(page);
 
     /*
@@ -833,7 +833,7 @@ btree_close_cursors(ham_db_t *db, ham_u32_t flags)
 }
 
 ham_status_t 
-btree_prepare_key_for_compare(ham_db_t *db, int_key_t *src, ham_key_t *dest)
+btree_prepare_key_for_compare(ham_db_t *db, btree_key_t *src, ham_key_t *dest)
 {
     void *p;
 
@@ -868,7 +868,7 @@ int
 btree_compare_keys(ham_db_t *db, ham_page_t *page, 
         ham_key_t *lhs, ham_u16_t rhs_int)
 {
-    int_key_t *r;
+    btree_key_t *r;
     btree_node_t *node=page_get_btree_node(page);
     ham_key_t rhs={0};
     int cmp;
@@ -893,7 +893,7 @@ btree_compare_keys(ham_db_t *db, ham_page_t *page,
 }
 
 ham_status_t
-btree_read_key(ham_db_t *db, int_key_t *source, ham_key_t *dest)
+btree_read_key(ham_db_t *db, btree_key_t *source, ham_key_t *dest)
 {
     mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
 
@@ -1058,7 +1058,7 @@ btree_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
 }
 
 ham_status_t
-btree_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest)
+btree_copy_key_int2pub(ham_db_t *db, const btree_key_t *source, ham_key_t *dest)
 {
     mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
 

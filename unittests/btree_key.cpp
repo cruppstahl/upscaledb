@@ -85,7 +85,7 @@ public:
         btree_node_t *node=page_get_btree_node(page);
         ::memset(node, 0, env_get_usable_pagesize(m_env));
 
-        int_key_t *key=btree_node_get_key(m_db, node, 0);
+        btree_key_t *key=btree_node_get_key(m_db, node, 0);
         BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(key));
         BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(key));
         BFC_ASSERT_EQUAL((ham_u8_t)'\0', *key_get_key(key));
@@ -113,7 +113,7 @@ public:
 
         ham_offset_t blobid;
 
-        int_key_t *key=btree_node_get_key(m_db, node, 0);
+        btree_key_t *key=btree_node_get_key(m_db, node, 0);
         blobid=key_get_extended_rid(m_db, key);
         BFC_ASSERT_EQUAL((ham_offset_t)0, blobid);
 
@@ -138,7 +138,7 @@ public:
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         };
 
-        int_key_t *key=(int_key_t *)&buffer[0];
+        btree_key_t *key=(btree_key_t *)&buffer[0];
 
         BFC_ASSERT_EQUAL((ham_offset_t)0x0123456789abcdefull, 
                 key_get_ptr(key));
@@ -150,7 +150,7 @@ public:
     void getSetExtendedKeyTest(void)
     {
         char buffer[32];
-        int_key_t *key=(int_key_t *)buffer;
+        btree_key_t *key=(btree_key_t *)buffer;
         memset(buffer, 0, sizeof(buffer));
 
         key_set_extended_rid(m_db, key, 0x12345);
@@ -158,7 +158,7 @@ public:
                 key_get_extended_rid(m_db, key));
     }
 
-    void insertEmpty(int_key_t *key, ham_u32_t flags)
+    void insertEmpty(btree_key_t *key, ham_u32_t flags)
     {
         ham_record_t rec;
 
@@ -180,22 +180,22 @@ public:
         }
     }
 
-    void prepareEmpty(int_key_t *key)
+    void prepareEmpty(btree_key_t *key)
     {
         insertEmpty(key, 0);
     }
 
-    void overwriteEmpty(int_key_t *key)
+    void overwriteEmpty(btree_key_t *key)
     {
         insertEmpty(key, HAM_OVERWRITE);
     }
 
-    void duplicateEmpty(int_key_t *key)
+    void duplicateEmpty(btree_key_t *key)
     {
         insertEmpty(key, HAM_DUPLICATE);
     }
 
-    void insertTiny(int_key_t *key, const char *data, ham_size_t size,
+    void insertTiny(btree_key_t *key, const char *data, ham_size_t size,
             ham_u32_t flags)
     {
         ham_record_t rec, rec2;
@@ -227,22 +227,22 @@ public:
         }
     }
 
-    void prepareTiny(int_key_t *key, const char *data, ham_size_t size)
+    void prepareTiny(btree_key_t *key, const char *data, ham_size_t size)
     {
         insertTiny(key, data, size, 0);
     }
 
-    void overwriteTiny(int_key_t *key, const char *data, ham_size_t size)
+    void overwriteTiny(btree_key_t *key, const char *data, ham_size_t size)
     {
         insertTiny(key, data, size, HAM_OVERWRITE);
     }
 
-    void duplicateTiny(int_key_t *key, const char *data, ham_size_t size)
+    void duplicateTiny(btree_key_t *key, const char *data, ham_size_t size)
     {
         insertTiny(key, data, size, HAM_DUPLICATE);
     }
 
-    void insertSmall(int_key_t *key, const char *data, ham_u32_t flags)
+    void insertSmall(btree_key_t *key, const char *data, ham_u32_t flags)
     {
         ham_record_t rec, rec2;
 
@@ -273,22 +273,22 @@ public:
         }
     }
 
-    void prepareSmall(int_key_t *key, const char *data)
+    void prepareSmall(btree_key_t *key, const char *data)
     {
         insertSmall(key, data, 0);
     }
 
-    void overwriteSmall(int_key_t *key, const char *data)
+    void overwriteSmall(btree_key_t *key, const char *data)
     {
         insertSmall(key, data, HAM_OVERWRITE);
     }
 
-    void duplicateSmall(int_key_t *key, const char *data)
+    void duplicateSmall(btree_key_t *key, const char *data)
     {
         insertSmall(key, data, HAM_DUPLICATE);
     }
 
-    void insertNormal(int_key_t *key, const char *data, ham_size_t size,
+    void insertNormal(btree_key_t *key, const char *data, ham_size_t size,
             ham_u32_t flags)
     {
         ham_record_t rec, rec2;
@@ -315,24 +315,24 @@ public:
         }
     }
 
-    void prepareNormal(int_key_t *key, const char *data, ham_size_t size)
+    void prepareNormal(btree_key_t *key, const char *data, ham_size_t size)
     {
         insertNormal(key, data, size, 0);
     }
 
-    void overwriteNormal(int_key_t *key, const char *data, ham_size_t size)
+    void overwriteNormal(btree_key_t *key, const char *data, ham_size_t size)
     {
         insertNormal(key, data, size, HAM_OVERWRITE);
     }
 
-    void duplicateNormal(int_key_t *key, const char *data, ham_size_t size)
+    void duplicateNormal(btree_key_t *key, const char *data, ham_size_t size)
     {
         insertNormal(key, data, size, HAM_DUPLICATE);
     }
 
     void setRecordTest(void)
     {
-        int_key_t key;
+        btree_key_t key;
 
         /* set empty record */
         prepareEmpty(&key);
@@ -349,7 +349,7 @@ public:
 
     void overwriteRecordTest(void)
     {
-        int_key_t key;
+        btree_key_t key;
         ham_offset_t rid;
 
         /* overwrite empty record with a tiny key */
@@ -403,7 +403,7 @@ public:
         overwriteNormal(&key, "1234123456785678", 16);
     }
 
-    void checkDupe(int_key_t *key, int position, 
+    void checkDupe(btree_key_t *key, int position, 
             const char *data, ham_size_t size)
     {
         BFC_ASSERT_EQUAL((ham_u8_t)KEY_HAS_DUPLICATES, key_get_flags(key));
@@ -429,7 +429,7 @@ public:
 
     void duplicateRecordTest(void)
     {
-        int_key_t key;
+        btree_key_t key;
 
         /* insert empty key, then another empty duplicate */
         prepareEmpty(&key);
@@ -530,7 +530,7 @@ public:
 
     void eraseRecordTest(void)
     {
-        int_key_t key;
+        btree_key_t key;
 
         /* insert empty key, then delete it */
         prepareEmpty(&key);
@@ -559,7 +559,7 @@ public:
 
     void eraseDuplicateRecordTest(void)
     {
-        int_key_t key;
+        btree_key_t key;
 
         /* insert empty key, then a duplicate; delete both */
         prepareEmpty(&key);
@@ -604,7 +604,7 @@ public:
 
     void eraseAllDuplicateRecordTest(void)
     {
-        int_key_t key;
+        btree_key_t key;
 
         /* insert empty key, then a duplicate; delete both at once */
         prepareEmpty(&key);

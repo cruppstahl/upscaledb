@@ -53,9 +53,9 @@ o manage all transactions
             x util.h - cleanup 
             x blob.h - cleanup interface if possible
             x page.h - cleanup 
+            x rename int_key_t to btree_key_t
             o extkeys: don't use txn_id for the 'age', use lsn instead
             o rename statistics.c to btree_stats.c (and rename the functions)
-            o rename int_key_t to btree_key_t
 
     o rewrite ham_insert
         o each modified database gets its own txn tree when its modified

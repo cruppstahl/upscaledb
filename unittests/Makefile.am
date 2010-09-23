@@ -25,7 +25,7 @@ test_SOURCES    = log.cpp \
                   hamsterdb.cpp \
                   blob.cpp \
                   extkeys.cpp \
-                  keys.cpp \
+                  btree_key.cpp \
                   partial.cpp \
                   bt_cursor.cpp \
                   util.cpp \
