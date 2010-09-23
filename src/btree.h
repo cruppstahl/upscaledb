@@ -313,18 +313,42 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key,
      /* ^^^ sizeof(int_key_t) WITHOUT THE -1 !!! */ +               \
      (db_get_int_key_header_size()+db_get_keysize(page_get_owner(page)))*(i))
 
-/*
+/**
  * get the slot of an element in the page
  */
 extern ham_status_t 
 btree_get_slot(ham_db_t *db, ham_page_t *page, 
         ham_key_t *key, ham_s32_t *slot, int *cmp);
 
+/**
+ * calculate the "maxkeys" values
+ */
 extern ham_size_t
 btree_calc_maxkeys(ham_size_t pagesize, ham_u16_t keysize);
 
+/**
+ * close all cursors in this Database
+ */
 extern ham_status_t 
 btree_close_cursors(ham_db_t *db, ham_u32_t flags);
+
+/**
+ * compare a public key (ham_key_t, LHS) to an internal key indexed in a
+ * page
+ *
+ * @return -1, 0, +1 or higher positive values are the result of a successful 
+ *         key comparison (0 if both keys match, -1 when LHS < RHS key, +1 
+ *         when LHS > RHS key).
+ *
+ * @return values less than -1 are @ref ham_status_t error codes and indicate 
+ *         a failed comparison execution: these are listed in 
+ *         @ref ham_status_codes .
+ *
+ * @sa ham_status_codes 
+ */
+extern int
+btree_compare_keys(ham_db_t *db, ham_page_t *page, 
+                ham_key_t *lhs, ham_u16_t rhs);
 
 
 #ifdef __cplusplus

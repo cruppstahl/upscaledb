@@ -155,40 +155,6 @@ key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid);
 #define ham_key_set_intflags(key, f)      (key)->_flags=(f)
 
 /**
- * compare a public key (ham_key_t, LHS) to an internal key (int_key_t, RHS)
- *
- * @return -1, 0, +1 or higher positive values are the result of a successful 
- *         key comparison (0 if both keys match, -1 when LHS < RHS key, +1 
- *         when LHS > RHS key).
- *
- * @return values less than -1 are @ref ham_status_t error codes and indicate 
- *         a failed comparison execution: these are listed in 
- *         @ref ham_status_codes .
- *
- * @sa ham_status_codes 
- */
-extern int
-key_compare_pub_to_int(ham_db_t *db, ham_page_t *page, 
-                ham_key_t *lhs, ham_u16_t rhs);
-
-/**
- * compare two internal keys
- *
- * @return -1, 0, +1 or higher positive values are the result of a successful 
- *         key comparison (0 if both keys match, -1 when LHS < RHS key, +1 
- *         when LHS > RHS key).
- *
- * @return values less than -1 are @ref ham_status_t error codes and indicate 
- *         a failed comparison execution: these are listed in 
- *         @ref ham_status_codes .
- *
- * @sa ham_status_codes 
- */
-extern int
-key_compare_int_to_int(ham_db_t *db, ham_page_t *page, 
-        ham_u16_t lhs_int, ham_u16_t rhs_int);
-
-/**
  * insert an extended key
  *
  * @return the blob-id of this key in @a rid_ref

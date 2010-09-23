@@ -187,7 +187,7 @@ __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
 
         hints->cost++;
         if (!hints->force_prepend) {
-            cmp_hi = key_compare_pub_to_int(db, page, key, 
+            cmp_hi = btree_compare_keys(db, page, key, 
                                 btree_node_get_count(node)-1);
             /* key is in the middle */
             if (cmp_hi < -1) {
@@ -217,7 +217,7 @@ __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
         }
 
         if (!hints->force_append) {
-            cmp_lo = key_compare_pub_to_int(db, page, key, 0);
+            cmp_lo = btree_compare_keys(db, page, key, 0);
             /* in the middle range */
             if (cmp_lo < -1) {
                 page_unlock(page);
@@ -870,7 +870,7 @@ __insert_split(ham_page_t *page, ham_key_t *key,
     if (db_get_data_access_mode(db)&HAM_DAM_SEQUENTIAL_INSERT)
         pivot_at_end=HAM_TRUE;
     else if (btree_node_get_right(obtp)==0) {
-        cmp=key_compare_pub_to_int(db, page, key, btree_node_get_count(obtp)-1);
+        cmp=btree_compare_keys(db, page, key, btree_node_get_count(obtp)-1);
         if (cmp>0)
             pivot_at_end=HAM_TRUE;
     }
@@ -959,7 +959,7 @@ __insert_split(ham_page_t *page, ham_key_t *key,
      * insert the new element
      */
     hints->cost++;
-    cmp=key_compare_pub_to_int(db, page, key, pivot);
+    cmp=btree_compare_keys(db, page, key, pivot);
     if (cmp < -1) 
     {
         st = (ham_status_t)cmp;

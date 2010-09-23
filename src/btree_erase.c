@@ -377,7 +377,7 @@ my_erase_recursive(ham_page_t **page_ref, ham_page_t *page, ham_offset_t left, h
         newme=0;
         if (slot!=-1) 
         {
-            int cmp=key_compare_pub_to_int(db, page, scratchpad->key, slot);
+            int cmp=btree_compare_keys(db, page, scratchpad->key, slot);
             if (cmp < -1)
                 return (ham_status_t)cmp;
             

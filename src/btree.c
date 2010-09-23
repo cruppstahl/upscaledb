@@ -51,7 +51,7 @@ btree_get_slot(ham_db_t *db, ham_page_t *page,
      * only one element in this node?
      */
     if (r==0) {
-        cmp=key_compare_pub_to_int(db, page, key, 0);
+        cmp=btree_compare_keys(db, page, key, 0);
         if (cmp < -1)
             return (ham_status_t)cmp;
         *slot=cmp<0 ? -1 : 0;
@@ -74,7 +74,7 @@ btree_get_slot(ham_db_t *db, ham_page_t *page,
         }
         
         /* compare it against the key */
-        cmp=key_compare_pub_to_int(db, page, key, (ham_u16_t)i);
+        cmp=btree_compare_keys(db, page, key, (ham_u16_t)i);
         if (cmp < -1)
             return (ham_status_t)cmp;
 
@@ -396,10 +396,10 @@ my_fun_uncouple_all_cursors(ham_btree_t *be, ham_page_t *page, ham_size_t start)
 }
 
 /**                                                                    
-Close (and free) all cursors related to this database table.        
-
- @note This is a B+-tree 'backend' method.
-*/                                                                    
+ * Close (and free) all cursors related to this database table.        
+ * 
+ * @note This is a B+-tree 'backend' method.
+ */                                                                    
 static ham_status_t 
 my_fun_close_cursors(ham_btree_t *be, ham_u32_t flags)
 {
@@ -408,7 +408,6 @@ my_fun_close_cursors(ham_btree_t *be, ham_u32_t flags)
     ham_assert(db, (0));
     return (btree_close_cursors(db, flags));
 }
-
 
 /**                                                                    
  * Remove all extended keys for the given @a page from the            
@@ -799,8 +798,8 @@ btree_node_search_by_key(ham_db_t *db, ham_page_t *page, ham_key_t *key,
 }
 
 /**
- Always make sure the db cursor set is released, no matter what happens.
-*/
+ * Always make sure the db cursor set is released, no matter what happens.
+ */
 ham_status_t 
 btree_close_cursors(ham_db_t *db, ham_u32_t flags)
 {
@@ -814,17 +813,14 @@ btree_close_cursors(ham_db_t *db, ham_u32_t flags)
         ham_bt_cursor_t *c=(ham_bt_cursor_t *)db_get_cursors(db);
         while (c) {
             ham_bt_cursor_t *next=(ham_bt_cursor_t *)cursor_get_next(c);
-            if (flags&HAM_AUTO_CLEANUP)
-            {
+            if (flags&HAM_AUTO_CLEANUP) {
                 st=ham_cursor_close((ham_cursor_t *)c);
             }
-            else
-            {
+            else {
                 //st=bt_cursor_close(c);
                 st=c->_fun_close(c);
             }
-            if (st)
-            {
+            if (st) {
                 if (st2 == 0) st2 = st;
                 /* continue to try to close the other cursors, though */
             }
@@ -834,5 +830,33 @@ btree_close_cursors(ham_db_t *db, ham_u32_t flags)
     }
     
     return st2;
+}
+
+int
+btree_compare_keys(ham_db_t *db, ham_page_t *page, 
+        ham_key_t *lhs, ham_u16_t rhs_int)
+{
+    int_key_t *r;
+    btree_node_t *node=page_get_btree_node(page);
+    ham_key_t rhs={0};
+    int cmp;
+    ham_status_t st;
+
+	ham_assert(db == page_get_owner(page), (0));
+
+    r=btree_node_get_key(db, node, rhs_int);
+
+    st=db_prepare_ham_key_for_compare(db, r, &rhs);
+    if (st) {
+        ham_assert(st<-1, (""));
+        return st;
+    }
+
+    cmp=db_compare_keys(db, lhs, &rhs);
+
+    db_release_ham_key_after_compare(db, &rhs);
+    /* ensures key is always released; errors will be detected by caller */
+
+    return (cmp);
 }
 

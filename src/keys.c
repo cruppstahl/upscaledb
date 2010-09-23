@@ -25,71 +25,6 @@
 #include "page.h"
 
 
-int
-key_compare_pub_to_int(ham_db_t *db, ham_page_t *page, 
-        ham_key_t *lhs, ham_u16_t rhs_int)
-{
-    int_key_t *r;
-    btree_node_t *node=page_get_btree_node(page);
-    ham_key_t rhs={0};
-    int cmp;
-    ham_status_t st;
-
-	ham_assert(db == page_get_owner(page), (0));
-
-    r=btree_node_get_key(db, node, rhs_int);
-
-    st=db_prepare_ham_key_for_compare(db, r, &rhs);
-    if (st) {
-        ham_assert(st<-1, (""));
-        return st;
-    }
-
-    cmp=db_compare_keys(db, lhs, &rhs);
-
-    db_release_ham_key_after_compare(db, &rhs);
-    /* ensures key is always released; errors will be detected by caller */
-
-    return (cmp);
-}
-
-int
-key_compare_int_to_int(ham_db_t *db, ham_page_t *page, 
-        ham_u16_t lhs_int, ham_u16_t rhs_int)
-{
-    int_key_t *l;
-	int_key_t *r;
-    btree_node_t *node = page_get_btree_node(page);
-	ham_key_t lhs;
-	ham_key_t rhs;
-	int cmp;
-	ham_status_t st;
-
-    l=btree_node_get_key(page_get_owner(page), node, lhs_int);
-    r=btree_node_get_key(page_get_owner(page), node, rhs_int);
-
-	st = db_prepare_ham_key_for_compare(db, l, &lhs);
-	if (st)
-	{
-		ham_assert(st < -1, (0));
-		return st;
-	}
-	st = db_prepare_ham_key_for_compare(db, r, &rhs);
-	if (st)
-	{
-		ham_assert(st < -1, (0));
-		return st;
-	}
-
-	cmp = db_compare_keys(page_get_owner(page), &lhs, &rhs);
-
-	db_release_ham_key_after_compare(db, &lhs);
-	db_release_ham_key_after_compare(db, &rhs);
-	/* ensures keys are always released; errors will be detected by caller */
-
-	return cmp;
-}
-
 ham_status_t
 key_insert_extended(ham_offset_t *rid_ref, ham_db_t *db, ham_page_t *page, 
         ham_key_t *key)
@@ -312,7 +247,7 @@ key_set_record(ham_db_t *db, int_key_t *key, ham_record_t *record,
     return (0);
 }
 
-    ham_status_t
+ham_status_t
 key_erase_record(ham_db_t *db, int_key_t *key, 
         ham_size_t dupe_id, ham_u32_t flags)
 {
@@ -357,7 +292,7 @@ key_erase_record(ham_db_t *db, int_key_t *key,
     return (0);
 }
 
-    ham_offset_t
+ham_offset_t
 key_get_extended_rid(ham_db_t *db, int_key_t *key)
 {
     ham_offset_t rid;
@@ -366,7 +301,7 @@ key_get_extended_rid(ham_db_t *db, int_key_t *key)
     return (ham_db2h_offset(rid));
 }
 
-    void
+void
 key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid)
 {
     rid=ham_h2db_offset(rid);

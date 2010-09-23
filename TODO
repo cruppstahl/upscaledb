@@ -42,17 +42,18 @@ o manage all transactions
         distinguish: on high level, we have multiple txns
         on low level, we use the lsn for file-io routines
             x extkeys.c - extkey_set_txn_id: replace with lsn
-
-===
-how do we propagate the lsn to lower levels??
-can we improve the low level/high level separation in the code?
-===
-
-            o make sure that page_get_btree_node() is only called in
+            x keys.c: move page_get_btree_node functions to btree.c; can we
+                move everything else into util.c?
+            x make sure that page_get_btree_node() is only called in
                 btree_*.c 
-                -> rename statistics.c to btree_stats.c? no, but later...
-                -> remove/rewrite/move offending functions in keys.c
+                key_compare_pub_to_int
+                key_compare_int_to_int
+            x btree_close_cursors - actually in use? - yes
             o extkeys: don't use txn_id for the 'age', use lsn instead
+            o rename statistics.c to btree_stats.c (and rename the functions)
+            o rename int_key_t to btree_key_t
+            o blob.h - cleanup interface if possible
+            o db.h - cleanup high level i/o interface
 
     o rewrite ham_insert
         o each modified database gets its own txn tree when its modified

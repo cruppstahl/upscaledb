@@ -123,6 +123,41 @@ btree_check_integrity(ham_btree_t *be)
     return (st);
 }
 
+static int
+__key_compare_int_to_int(ham_db_t *db, ham_page_t *page, 
+        ham_u16_t lhs_int, ham_u16_t rhs_int)
+{
+    int_key_t *l;
+	int_key_t *r;
+    btree_node_t *node = page_get_btree_node(page);
+	ham_key_t lhs;
+	ham_key_t rhs;
+	int cmp;
+	ham_status_t st;
+
+    l=btree_node_get_key(page_get_owner(page), node, lhs_int);
+    r=btree_node_get_key(page_get_owner(page), node, rhs_int);
+
+	st = db_prepare_ham_key_for_compare(db, l, &lhs);
+	if (st) {
+		ham_assert(st < -1, (0));
+		return (st);
+	}
+	st = db_prepare_ham_key_for_compare(db, r, &rhs);
+	if (st) {
+		ham_assert(st < -1, (0));
+		return (st);
+	}
+
+	cmp = db_compare_keys(page_get_owner(page), &lhs, &rhs);
+
+	db_release_ham_key_after_compare(db, &lhs);
+	db_release_ham_key_after_compare(db, &rhs);
+	/* ensures keys are always released; errors will be detected by caller */
+
+	return (cmp);
+}
+
 static ham_status_t 
 __verify_level(ham_page_t *parent, ham_page_t *page, 
         ham_u32_t level, check_scratchpad_t *scratchpad)
@@ -141,7 +176,7 @@ __verify_level(ham_page_t *parent, ham_page_t *page,
     if (parent && btree_node_get_left(node)) {
         btree_node_t *cnode =page_get_btree_node(page);
 
-        cmp=key_compare_int_to_int(db, page, 0,
+        cmp=__key_compare_int_to_int(db, page, 0,
                     (ham_u16_t)(btree_node_get_count(cnode)-1));
         if (cmp < -1)
             return (ham_status_t)cmp;
@@ -285,7 +320,7 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
             }
         }
         
-        cmp=key_compare_int_to_int(db, page, (ham_u16_t)i, (ham_u16_t)(i+1));
+        cmp=__key_compare_int_to_int(db, page, (ham_u16_t)i, (ham_u16_t)(i+1));
 
         if (cmp < -1)
             return (ham_status_t)cmp;
