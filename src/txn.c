@@ -108,6 +108,21 @@ txn_optree_node_append(ham_txn_t *txn, txn_optree_node_t *node,
 {
     mem_allocator_t *alloc=env_get_allocator(txn_get_env(txn));
     txn_op_t *op;
+    ham_record_t *newrec=0;
+
+    /* create a copy of the record structure */
+    if (record) {
+        newrec=(ham_record_t *)allocator_alloc(alloc, sizeof(ham_record_t));
+        if (!newrec)
+            return (0);
+        *newrec=*record;
+        newrec->data=allocator_alloc(alloc, record->size);
+        if (!newrec->data) {
+            allocator_free(alloc, newrec);
+            return (0);
+        }
+        memcpy(newrec->data, record->data, record->size);
+    }
 
     /* create and initialize a new structure */
     op=(txn_op_t *)allocator_alloc(alloc, sizeof(*op));
@@ -116,7 +131,7 @@ txn_optree_node_append(ham_txn_t *txn, txn_optree_node_t *node,
     memset(op, 0, sizeof(*op));
     txn_op_set_flags(op, flags);
     txn_op_set_lsn(op, lsn);
-    txn_op_set_record(op, record);
+    txn_op_set_record(op, newrec);
 
     /* store it in the chronological linked list which is managed by the txn */
     if (!txn_get_newest_op(txn)) {

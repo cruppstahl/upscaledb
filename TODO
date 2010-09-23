@@ -62,13 +62,13 @@ o manage all transactions
                 node=txn_node_get_or_create(tree, key)
                 op=txn_op_create(node, flags, record) -> store the full record!
                     -> all ops are in two linked lists!
-        o each modified database gets its own txn tree when its modified
-            in a transaction
-        o check for transaction conflicts (similar to ham2)
-        o if transactions are disabled: immediately write to disk, no
+        x if transactions are disabled: immediately write to disk, no
             temp transactions are needed
-        o otherwise go through transaction trees
-        o for now do not write the blob to disk but keep it in memory
+        x each modified database gets its own txn tree when its modified
+            in a transaction
+        x for now do not write the blob to disk but keep it in memory
+        x otherwise insert into transaction tree
+        o check for transaction conflicts (similar to ham2)
     o rewrite ham_find
         o each modified database gets its own txn tree when its modified
             in a transaction
@@ -81,6 +81,8 @@ o manage all transactions
         o if transactions are disabled: immediately write to disk, no
             temp transactions are needed
         o otherwise go through transaction trees
+    o lsn is missing! it should come either from the env or from the log 
+        (but the log does not always exist)
     o implement env_flush_committed_txns()
     o add new unittests
     o make sure all unittests are running

@@ -1682,11 +1682,41 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 }
 
 static ham_status_t
+db_insert_txn(ham_db_t *db, ham_txn_t *txn,
+        ham_key_t *key, ham_record_t *record, ham_u32_t flags)
+{
+    txn_optree_t *tree;
+    txn_optree_node_t *node;
+    txn_op_t *op;
+
+    /* get (or create) the txn-tree for this database */
+    tree=txn_tree_get_or_create(txn, db);
+    if (!tree)
+        return (HAM_OUT_OF_MEMORY);
+
+    /* get (or create) the node for this key */
+    node=txn_optree_node_get_or_create(db, tree, key);
+    if (!node)
+        return (HAM_OUT_OF_MEMORY);
+
+    /* append a new operation to this node */
+    /* TODO lsn is missing! */
+    op=txn_optree_node_append(txn, node, 
+                    (flags&HAM_DUPLICATE) 
+                        ? TXN_OP_INSERT_DUP 
+                        : TXN_OP_INSERT_OW, 0, record);
+    if (!op)
+        return (HAM_OUT_OF_MEMORY);
+
+    return (0);
+}
+
+static ham_status_t
 _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
         ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
     ham_env_t *env=db_get_env(db);
-    ham_txn_t *local_txn;
+    ham_txn_t *local_txn=0;
     ham_status_t st;
     ham_backend_t *be;
     ham_u64_t recno = 0;
@@ -1698,7 +1728,7 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
     if (!be->_fun_insert)
         return HAM_NOT_IMPLEMENTED;
 
-    if (!txn) {
+    if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
             return (st);
@@ -1715,16 +1745,12 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
             recno=*(ham_u64_t *)key->data;
         }
         else {
-            /*
-             * get the record number (host endian) and increment it
-             */
+            /* get the record number (host endian) and increment it */
             recno=be_get_recno(be);
             recno++;
         }
 
-        /*
-         * store it in db endian
-         */
+        /* store it in db endian */
         recno=ham_h2db64(recno);
         memcpy(key->data, &recno, sizeof(ham_u64_t));
         key->size=sizeof(ham_u64_t);
@@ -1736,15 +1762,17 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
      */
     temprec=*record;
     st=__record_filters_before_write(db, &temprec);
-    if (!st) {
-        db_update_global_stats_insert_query(db, key->size, temprec.size);
-    }
 
-    /*
-     * store the index entry; the backend will store the blob
+    /* 
+     * if transactions are enabled: only insert the key/record pair into
+     * the Transaction structore. Otherwise immediately write to disk
      */
-    if (!st)
-        st=be->_fun_insert(be, key, &temprec, flags);
+    if (!st) {
+        if (txn || local_txn)
+            st=db_insert_txn(db, txn, key, &temprec, flags);
+        else
+            st=be->_fun_insert(be, key, &temprec, flags);
+    }
 
     if (temprec.data!=record->data)
         allocator_free(env_get_allocator(env), temprec.data);
