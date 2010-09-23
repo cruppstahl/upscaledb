@@ -20,6 +20,7 @@ libhamsterdb_la_SOURCES = log.c \
 			btree_erase.c \
 			btree_find.c \
 			btree_insert.c \
+			btree_key.c \
 			cache.c \
 			db.c \
 			env.c \
@@ -30,7 +31,6 @@ libhamsterdb_la_SOURCES = log.c \
 			freelist_statistics.c \
 			hamsterdb.c \
 			remote.c \
-			keys.c \
 			mem.c \
 			os_posix.c \
 			page.c \

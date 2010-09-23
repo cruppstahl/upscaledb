@@ -17,8 +17,6 @@
 #ifndef HAM_UTIL_H__
 #define HAM_UTIL_H__
 
-#include "internal_fwd_decl.h"
-
 #include <stdarg.h>
 #include <stdio.h>
 

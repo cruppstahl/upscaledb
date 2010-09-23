@@ -37,7 +37,6 @@
 #include "error.h"
 #include "extkeys.h"
 #include "freelist.h"
-#include "keys.h"
 #include "log.h"
 #include "mem.h"
 #include "os.h"

@@ -16,12 +16,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "blob.h"
-#include "db.h"
-#include "env.h"
-#include "error.h"
-#include "keys.h"
-#include "mem.h"
 #include "util.h"
 
 

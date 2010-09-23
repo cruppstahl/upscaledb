@@ -20,12 +20,12 @@
 #include "env.h"
 #include "error.h"
 #include "freelist.h"
-#include "keys.h"
 #include "log.h"
 #include "mem.h"
 #include "page.h"
 #include "txn.h"
 #include "btree.h"
+#include "btree_key.h"
 
 
 #define SMALLEST_CHUNK_SIZE  (sizeof(ham_offset_t)+sizeof(blob_t)+1)

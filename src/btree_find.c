@@ -22,7 +22,7 @@
 #include "db.h"
 #include "env.h"
 #include "error.h"
-#include "keys.h"
+#include "btree_key.h"
 #include "mem.h"
 #include "page.h"
 #include "statistics.h"

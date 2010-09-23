@@ -23,7 +23,7 @@
 
 #include "backend.h"
 #include "btree_cursor.h"
-#include "keys.h"
+#include "btree_key.h"
 
 
 #ifdef __cplusplus

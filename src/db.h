@@ -42,9 +42,7 @@ extern "C" {
 #   define PTR_TO_U64(p)  p
 #endif
 
-/**
- * a magic and version indicator for the remote protocol
- */
+/** a magic and version indicator for the remote protocol */
 #define HAM_TRANSFER_MAGIC_V1   (('h'<<24)|('a'<<16)|('m'<<8)|'1')
 
 /**
@@ -53,15 +51,23 @@ extern "C" {
  */
 #define DB_MAX_INDICES      16  /* 16*32 = 512 byte wasted */
 
-/*
- * the size of an index data
- */
+/* the size of an index data */
 #define DB_INDEX_SIZE       sizeof(db_indexdata_t) /* 32 */
 
-/**
- * get the key size
- */
+/** get the key size */
 #define db_get_keysize(db)         be_get_keysize(db_get_backend(db))
+
+/** get the (non-persisted) flags of a key */
+#define ham_key_get_intflags(key)         (key)->_flags
+
+/**
+ * set the flags of a key
+ *
+ * Note that the ham_find/ham_cursor_find/ham_cursor_find_ex flags must
+ * be defined such that those can peacefully co-exist with these; that's
+ * why those public flags start at the value 0x1000 (4096).
+ */
+#define ham_key_set_intflags(key, f)      (key)->_flags=(f)
 
 
 #include "packstart.h"

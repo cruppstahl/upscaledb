@@ -142,18 +142,6 @@ key_set_extended_rid(ham_db_t *db, int_key_t *key, ham_offset_t rid);
 #define KEY_IS_GT                      0x00020000
 #define KEY_IS_APPROXIMATE             (KEY_IS_LT | KEY_IS_GT)
 
-/** get the (non-persisted) flags of a key */
-#define ham_key_get_intflags(key)         (key)->_flags
-
-/**
- * set the flags of a key
- *
- * Note that the ham_find/ham_cursor_find/ham_cursor_find_ex flags must
- * be defined such that those can peacefully co-exist with these; that's
- * why those public flags start at the value 0x1000 (4096).
- */
-#define ham_key_set_intflags(key, f)      (key)->_flags=(f)
-
 /**
  * insert an extended key
  *

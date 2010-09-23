@@ -27,7 +27,7 @@
 #include "backend.h"
 #include "cache.h"
 #include "log.h"
-#include "keys.h"
+#include "btree_key.h"
 #include "os.h"
 #include "blob.h"
 
