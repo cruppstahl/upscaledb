@@ -49,58 +49,38 @@ typedef HAM_PACK_0 struct HAM_PACK_1 blob_t
      */
     ham_u64_t _allocated_size;
 
-    /**
-     * the size of the blob
-     */
+    /** the size of the blob */
     ham_u64_t _size;
 
-    /**
-     * additional flags
-     */
+    /** additional flags */
     ham_u32_t _flags;
 
 } HAM_PACK_2 blob_t;
 
 #include "packstop.h"
 
-/**
- * get the blob ID (blob start address) of a blob_t
- */
+/** get the blob ID (blob start address) of a blob_t */
 #define blob_get_self(b)               (ham_db2h_offset((b)->_blobid))
 
-/**
- * set the blob ID (blob start address) of a blob_t
- */
+/** set the blob ID (blob start address) of a blob_t */
 #define blob_set_self(b, s)            (b)->_blobid=ham_h2db_offset(s)
 
-/**
- * get the allocated size of a blob_t
- */
+/** get the allocated size of a blob_t */
 #define blob_get_alloc_size(b)         (ham_db2h64((b)->_allocated_size))
 
-/**
- * set the allocated size of a blob_t
- */
+/** set the allocated size of a blob_t */
 #define blob_set_alloc_size(b, s)      (b)->_allocated_size=ham_h2db64(s)
 
-/**
- * get the size of a blob_t
- */
+/** get the size of a blob_t */
 #define blob_get_size(b)               (ham_db2h64((b)->_size))
 
-/**
- * get the size of a blob_t
- */
+/** get the size of a blob_t */
 #define blob_set_size(b, s)            (b)->_size=ham_h2db64(s)
 
-/**
- * get flags of a blob_t
- */
+/** get flags of a blob_t */
 #define blob_get_flags(b)              (ham_db2h32((b)->_flags))
 
-/**
- * set flags of a blob_t
- */
+/** set flags of a blob_t */
 #define blob_set_flags(b, f)           (b)->_flags=ham_h2db32(f)
 
 
@@ -111,9 +91,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 blob_t
  */
 typedef HAM_PACK_0 struct HAM_PACK_1 dupe_entry_t
 {
-    /**
-     * reserved, for padding
-     */
+    /** reserved, for padding */
     ham_u8_t _padding[7];
 
     /**
@@ -122,23 +100,17 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_entry_t
      */
     ham_u8_t _flags;
 
-    /**
-     * the record id (unless it's TINY, SMALL or NULL)
-     */
+    /** the record id (unless it's TINY, SMALL or NULL) */
     ham_u64_t _rid;
 
 } HAM_PACK_2 dupe_entry_t;
 
 #include "packstop.h"
 
-/*
- * get the flags of a duplicate entry
- */
+/* get the flags of a duplicate entry */
 #define dupe_entry_get_flags(e)         (e)->_flags
 
-/*
- * set the flags of a duplicate entry
- */
+/* set the flags of a duplicate entry */
 #define dupe_entry_set_flags(e, f)      (e)->_flags=(f)
 
 /*
@@ -174,48 +146,32 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_entry_t
  */
 typedef HAM_PACK_0 struct HAM_PACK_1 dupe_table_t
 {
-    /**
-     * the number of duplicates (used entries in this table)
-     */
+    /** the number of duplicates (used entries in this table) */
     ham_u32_t _count;
 
-    /**
-     * the capacity of entries in this table
-     */
+    /** the capacity of entries in this table */
     ham_u32_t _capacity;
 
-    /**
-     * a dynamic array of duplicate entries
-     */
+    /** a dynamic array of duplicate entries */
     dupe_entry_t _entries[1];
 
 } HAM_PACK_2 dupe_table_t;
 
 #include "packstop.h"
 
-/**
- * get the number of duplicates
- */
+/** get the number of duplicates */
 #define dupe_table_get_count(t)         (ham_db2h32((t)->_count))
 
-/**
- * set the number of duplicates
- */
+/** set the number of duplicates */
 #define dupe_table_set_count(t, c)      (t)->_count=ham_h2db32(c)
 
-/**
- * get the maximum number of duplicates
- */
+/** get the maximum number of duplicates */
 #define dupe_table_get_capacity(t)      (ham_db2h32((t)->_capacity))
 
-/**
- * set the maximum number of duplicates
- */
+/** set the maximum number of duplicates */
 #define dupe_table_set_capacity(t, c)   (t)->_capacity=ham_h2db32(c)
 
-/**
- * get a pointer to a duplicate entry @a i
- */
+/** get a pointer to a duplicate entry @a i */
 #define dupe_table_get_entry(t, i)      (&(t)->_entries[i])
 
 /**
