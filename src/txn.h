@@ -40,8 +40,8 @@ typedef struct txn_op_t
      */
     ham_u32_t _flags;
 
-    /** next in linked list (managed in txn_node_t) */
-    struct txn_op_t *_next;
+    /** next in linked list (managed in txn_optree_node_t) */
+    struct txn_op_t *_node_next;
 
     /** next in chronological linked list (managed in ham_txn_t) */
     struct txn_op_t *_txn_next;
@@ -49,8 +49,8 @@ typedef struct txn_op_t
     /** the log serial number (lsn) of this operation */
     ham_u64_t _lsn;
 
-    /** the record id - can be compressed */
-    ham_offset_t _rid;
+    /** the record */
+    ham_record_t *_record;
 
 } txn_op_t;
 
@@ -73,16 +73,16 @@ typedef struct txn_op_t
 #define txn_op_set_flags(t, f)      (t)->_flags=f
 
 /** get next txn_op_t structure */
-#define txn_op_get_next(t)          (t)->_next
+#define txn_op_get_next_in_node(t)     (t)->_node_next
 
 /** set next txn_op_t structure */
-#define txn_op_set_next(t, n)       (t)->_next=n
+#define txn_op_set_next_in_node(t, n)  (t)->_node_next=n
 
 /** get next txn_op_t structure of this txn */
-#define txn_op_get_txn_next(t)      (t)->_txn_next
+#define txn_op_get_next_in_txn(t)      (t)->_txn_next
 
 /** set next txn_op_t structure of this txn */
-#define txn_op_set_txn_next(t, n)   (t)->_txn_next=n
+#define txn_op_set_next_in_txn(t, n)   (t)->_txn_next=n
 
 /** get lsn */
 #define txn_op_get_lsn(t)           (t)->_lsn
@@ -90,85 +90,59 @@ typedef struct txn_op_t
 /** set lsn */
 #define txn_op_set_lsn(t, l)        (t)->_lsn=l
 
-/** get record id */
-#define txn_op_get_rid(t)           (t)->_rid
+/** get record */
+#define txn_op_get_record(t)        (t)->_record
 
-/** set record id */
-#define txn_op_set_rid(t, r)        (t)->_rid=r
-
-
-/**
- * a Transaction node - modifies a key; manages a list of txn_op_t
- * operations which describe the exact operations for this key
- */
-typedef struct txn_node_t
-{
-    /** this is the key which is modified */
-    ham_key_t *_key;
-
-    /** the linked list of operations - head is oldest operation */
-    txn_op_t *_oldest;
-
-    /** the linked list of operations - tail is newest operation */
-    txn_op_t *_newest;
-
-} txn_node_t;
-
-/** get pointer to the modified key */
-#define txn_node_get_key(t)         (t)->_key
-
-/** set pointer to the modified key */
-#define txn_node_set_key(t, k)      (t)->_key=k
-
-/** get pointer to the first (oldest) node in list */
-#define txn_node_get_oldest(t)      (t)->_oldest
-
-/** set pointer to the first (oldest) node in list */
-#define txn_node_set_oldest(t, o)   (t)->_oldest=o
-
-/** get pointer to the last (newest) node in list */
-#define txn_node_get_newest(t)      (t)->_newest
-
-/** set pointer to the last (newest) node in list */
-#define txn_node_set_newest(t, n)   (t)->_newest=n
+/** set record */
+#define txn_op_set_record(t, r)     (t)->_record=r
 
 
 /*
- * a node in the red-black Transaction tree (implemented in rb.h)
+ * a node in the red-black Transaction tree (implemented in rb.h); 
+ * a group of Transaction operations which modify the same key
  */
 typedef struct txn_optree_node_t
 {
     /** red-black tree stub */
     rb_node(struct txn_optree_node_t) node;
 
-    /** the operation */
-    txn_node_t *_op;
+    /** the database - need this pointer for the compare function */
+    ham_db_t *_db;
 
-    /** the left child */
-    txn_node_t *_left;
+    /** this is the key which is modified */
+    ham_key_t *_key;
 
-    /** the right child */
-    txn_node_t *_right;
+    /** the linked list of operations - head is oldest operation */
+    txn_op_t *_oldest_op;
+
+    /** the linked list of operations - tail is newest operation */
+    txn_op_t *_newest_op;
 
 } txn_optree_node_t;
 
-/** get the operation details of this node */
-#define txn_optree_node_get_node(t)     (t)->_op
+/** get the database */
+#define txn_optree_node_get_db(t)          (t)->_db
 
-/** set the operation details of this node */
-#define txn_optree_node_set_node(t, o)  (t)->_op=o
+/** set the database */
+#define txn_optree_node_set_db(t, db)      (t)->_db=db
 
-/** get the left child of this node */
-#define txn_optree_node_get_left(t)     (t)->_left
+/** get pointer to the modified key */
+#define txn_optree_node_get_key(t)         (t)->_key
 
-/** set the left child of this node */
-#define txn_optree_node_set_left(t, l)  (t)->_left=l
+/** set pointer to the modified key */
+#define txn_optree_node_set_key(t, k)      (t)->_key=k
 
-/** get the right child of this node */
-#define txn_optree_node_get_right(t)    (t)->_right
+/** get pointer to the first (oldest) node in list */
+#define txn_optree_node_get_oldest_op(t)      (t)->_oldest_op
 
-/** set the right child of this node */
-#define txn_optree_node_set_right(t, r) (t)->_right=r
+/** set pointer to the first (oldest) node in list */
+#define txn_optree_node_set_oldest_op(t, o)   (t)->_oldest_op=o
+
+/** get pointer to the last (newest) node in list */
+#define txn_optree_node_get_newest_op(t)      (t)->_newest_op
+
+/** set pointer to the last (newest) node in list */
+#define txn_optree_node_set_newest_op(t, n)   (t)->_newest_op=n
 
 
 /*
@@ -204,7 +178,7 @@ typedef struct txn_optree_t
 
 
 /**
- * a transaction structure
+ * a Transaction structure
  */
 struct ham_txn_t
 {
@@ -219,11 +193,11 @@ struct ham_txn_t
 
     /** chronological linked list of all operations of this txn - oldest 
      * operation */
-    struct txn_op_t *_oplist_oldest;
+    struct txn_op_t *_oldest_op;
 
     /** chronological linked list of all operations of this txn - newest
      * operation */
-    struct txn_op_t *_oplist_newest;
+    struct txn_op_t *_newest_op;
 
     /** a list of transaction trees */
     struct txn_optree_t *_trees;
@@ -277,16 +251,16 @@ struct ham_txn_t
 #define txn_set_cursor_refcount(txn, cfc)       (txn)->_cursor_refcount=(cfc)
 
 /** get the oldest transaction operation */
-#define txn_get_oplist_oldest(txn)              (txn)->_oplist_oldest
+#define txn_get_oldest_op(txn)                  (txn)->_oldest_op
 
 /** set the oldest transaction operation */
-#define txn_set_oplist_oldest(txn, o)           (txn)->_oplist_oldest=o
+#define txn_set_oldest_op(txn, o)               (txn)->_oldest_op=o
 
 /** get the newest transaction operation */
-#define txn_get_oplist_newest(txn)              (txn)->_oplist_newest
+#define txn_get_newest_op(txn)                  (txn)->_newest_op
 
 /** set the newest transaction operation */
-#define txn_set_oplist_newest(txn, n)           (txn)->_oplist_newest=n
+#define txn_set_newest_op(txn, n)               (txn)->_newest_op=n
 
 /** get the linked list of transaction trees */
 #define txn_get_trees(txn)                      (txn)->_trees
@@ -319,7 +293,33 @@ struct ham_txn_t
 #define txn_set_older(txn, o)                   (txn)->_older=(o)
 
 /**
- * start a transaction
+ * creates an optree for a Database, or retrieves it if it was
+ * already created
+ *
+ * returns NULL if out of memory
+ */
+extern txn_optree_t *
+txn_tree_get_or_create(ham_txn_t *txn, ham_db_t *db);
+
+/**
+ * creates an optree_node for an optree; if a node with this
+ * key already exists then the existing node is returned
+ *
+ * returns NULL if out of memory
+ */
+extern txn_optree_node_t *
+txn_optree_node_get_or_create(ham_db_t *db, txn_optree_t *tree, 
+                    ham_key_t *key);
+
+/**
+ * insert an actual operation into the txn_tree
+ */
+extern txn_op_t *
+txn_optree_node_append(ham_txn_t *txn, txn_optree_node_t *node, 
+                    ham_u32_t flags, ham_u64_t lsn, ham_record_t *record);
+
+/**
+ * start a Transaction
  *
  * @remark flags are defined below
  */
@@ -329,7 +329,7 @@ txn_begin(ham_txn_t **ptxn, ham_env_t *env, ham_u32_t flags);
 /* #define HAM_TXN_READ_ONLY       1   -- already defined in hamsterdb.h */
 
 /**
- * commit a transaction
+ * commit a Transaction
  */
 extern ham_status_t
 txn_commit(ham_txn_t *txn, ham_u32_t flags);
@@ -337,7 +337,7 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags);
 /* #define TXN_FORCE_WRITE         1   -- moved to hamsterdb.h */
 
 /**
- * abort a transaction
+ * abort a Transaction
  */
 extern ham_status_t
 txn_abort(ham_txn_t *txn, ham_u32_t flags);

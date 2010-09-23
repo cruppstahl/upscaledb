@@ -57,11 +57,13 @@ o manage all transactions
             x rename statistics.c to btree_stats.c (and rename the functions)
 
     o rewrite ham_insert
-        o each modified database gets its own txn tree when its modified
-            in a transaction
+        x need functions to create trees/nodes/ops
                 tree=txn_tree_get_or_create(db)
                 node=txn_node_get_or_create(tree, key)
                 op=txn_op_create(node, flags, record) -> store the full record!
+                    -> all ops are in two linked lists!
+        o each modified database gets its own txn tree when its modified
+            in a transaction
         o check for transaction conflicts (similar to ham2)
         o if transactions are disabled: immediately write to disk, no
             temp transactions are needed

@@ -33,28 +33,115 @@ typedef int bool;
 static int
 __cmpfoo(void *vlhs, void *vrhs)
 {
-#if 0
     ham_compare_func_t foo;
-    txn_node_t *ln, *rn;
     txn_optree_node_t *lhs=(txn_optree_node_t *)vlhs;
     txn_optree_node_t *rhs=(txn_optree_node_t *)vrhs;
-    ln=txn_optree_node_get_node(lhs);
-    rn=txn_optree_node_get_node(rhs);
+    ham_db_t *db=txn_optree_node_get_db(lhs);
 
-    ham_assert(txn_op_get_db(oplhs)==txn_op_get_db(oprhs));
-    foo=db_get_compfunc(txn_op_get_db(oplhs));
+    ham_assert(txn_optree_node_get_db(lhs)==txn_optree_node_get_db(rhs), (""));
 
-    return (foo(0, /* TODO first parameter - gdb might already
-                        be freed!! */
-                txn_op_get_key(oplhs)->data,
-                txn_op_get_key(oplhs)->size,
-                txn_op_get_key(oprhs)->data,
-                txn_op_get_key(oprhs)->size));
-#endif
-return (0);
+    foo=db_get_compare_func(db);
+
+    return (foo(db, 
+                txn_optree_node_get_key(lhs)->data, 
+                txn_optree_node_get_key(lhs)->size,
+                txn_optree_node_get_key(rhs)->data, 
+                txn_optree_node_get_key(rhs)->size));
 }
 
 rb_wrap(static, rbt_, txn_optree_t, txn_optree_node_t, node, __cmpfoo)
+
+txn_optree_t *
+txn_tree_get_or_create(ham_txn_t *txn, ham_db_t *db)
+{
+    txn_optree_t *t=txn_get_trees(txn);
+    while (t) {
+        if (txn_optree_get_db(t)==db)
+            return (t);
+        t=txn_optree_get_next(t);
+    }
+
+    t=(txn_optree_t *)allocator_alloc(env_get_allocator(txn_get_env(txn)), 
+                sizeof(*t));
+    if (!t)
+        return (0);
+    txn_optree_set_db(t, db);
+    txn_optree_set_next(t, txn_get_trees(txn));
+    txn_set_trees(txn, t);
+    rbt_new(t);
+
+    return (t);
+}
+
+txn_optree_node_t *
+txn_optree_node_get_or_create(ham_db_t *db, txn_optree_t *tree, 
+                    ham_key_t *key)
+{
+    txn_optree_node_t *node, tmp;
+    mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
+
+    /* create a temporary node that we can search for */
+    memset(&tmp, 0, sizeof(tmp));
+    txn_optree_node_set_key(&tmp, key);
+
+    /* search if node already exists - if yes, return it */
+    if ((node=rbt_search(tree, &tmp)))
+        return (node);
+
+    /* node does not exist - create a new one */
+    node=(txn_optree_node_t *)allocator_alloc(alloc,  sizeof(*node));
+    if (!node)
+        return (0);
+    memset(node, 0, sizeof(*node));
+    txn_optree_node_set_key(node, key);
+    txn_optree_node_set_db(node, db);
+
+    /* store the node in the tree */
+    rbt_insert(tree, node);
+
+    return (node);
+}
+
+txn_op_t *
+txn_optree_node_append(ham_txn_t *txn, txn_optree_node_t *node, 
+                    ham_u32_t flags, ham_u64_t lsn, ham_record_t *record)
+{
+    mem_allocator_t *alloc=env_get_allocator(txn_get_env(txn));
+    txn_op_t *op;
+
+    /* create and initialize a new structure */
+    op=(txn_op_t *)allocator_alloc(alloc, sizeof(*op));
+    if (!op)
+        return (0);
+    memset(op, 0, sizeof(*op));
+    txn_op_set_flags(op, flags);
+    txn_op_set_lsn(op, lsn);
+    txn_op_set_record(op, record);
+
+    /* store it in the chronological linked list which is managed by the txn */
+    if (!txn_get_newest_op(txn)) {
+        ham_assert(txn_get_oldest_op(txn)==0, (""));
+        txn_set_newest_op(txn, op);
+        txn_set_oldest_op(txn, op);
+    }
+    else {
+        txn_op_set_next_in_txn(op, txn_get_newest_op(txn));
+        txn_set_newest_op(txn, op);
+    }
+
+    /* store it in the chronological list which is managed by the node */
+    if (!txn_optree_node_get_newest_op(node)) {
+        ham_assert(txn_optree_node_get_oldest_op(node)==0, (""));
+        txn_optree_node_set_newest_op(node, op);
+        txn_optree_node_set_oldest_op(node, op);
+    }
+    else {
+        txn_op_set_next_in_node(op, txn_optree_node_get_newest_op(node));
+        txn_optree_node_set_newest_op(node, op);
+    }
+
+    return (op);
+}
 
 ham_status_t
 txn_begin(ham_txn_t **ptxn, ham_env_t *env, ham_u32_t flags)
