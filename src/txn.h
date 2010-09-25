@@ -40,6 +40,9 @@ typedef struct txn_op_t
      */
     ham_u32_t _flags;
 
+    /** the Transaction of this operation */
+    ham_txn_t *_txn;
+
     /** next in linked list (managed in txn_optree_node_t) */
     struct txn_op_t *_node_next;
 
@@ -71,6 +74,12 @@ typedef struct txn_op_t
 
 /** set flags */
 #define txn_op_set_flags(t, f)      (t)->_flags=f
+
+/** get the Transaction pointer */
+#define txn_op_get_txn(t)           (t)->_txn
+
+/** set the Transaction pointer */
+#define txn_op_set_txn(t, txn)      (t)->_txn=txn
 
 /** get next txn_op_t structure */
 #define txn_op_get_next_in_node(t)     (t)->_node_next

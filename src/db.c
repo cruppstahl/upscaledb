@@ -1682,19 +1682,54 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 }
 
 static ham_status_t
-db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn, ham_key_t *key)
+db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn, 
+                txn_optree_node_t *node, ham_key_t *key)
 {
+    txn_op_t *op=0;
+
     /*
-     * foreach transaction (from newest to oldest):
-     * - is this txn aborted? if yes: skip it
-     * - is this txn committed or the current one? if yes: check for this
-     *      key depending on flags
-     * - is this txn still active (but not the current one)? if yes, check for
-     *      conflicts; return error if conflict is found
+     * pick the tree_node of this key, and walk through each operation 
+     * in reverse chronological order (from newest to oldest):
+     * - is this op part of an aborted txn? then skip it
+     * - is this op part of a committed txn? then look at the
+     *      operation in detail
+     * - is this op part of an txn which is still active? return an error
+     *      because we've found a conflict
      * - if a committed txn has erased the item then there's no need
      *      to continue checking older, committed txns
      */
-    /* TODO TODO TODO */
+    op=txn_optree_node_get_newest_op(node);
+    while (op) {
+        ham_txn_t *optxn=txn_op_get_txn(op);
+        if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
+            ; /* nop */
+        else if (txn_get_flags(optxn)&TXN_STATE_COMMITTED) {
+            /* if key was erased then it doesn't exist and can be
+             * inserted without problems */
+            if (txn_op_get_flags(op)&TXN_OP_ERASE)
+                return (0);
+            else if (txn_op_get_flags(op)&TXN_OP_NOP)
+                ; /* nop */
+            /* if key was inserted then we succeed if we can overwrite
+             * it! TODO TODO */
+            else if (txn_op_get_flags(op)&TXN_OP_INSERT_OW
+                    && (flags&OVERWRITE))
+                return (0);
+            /* ... or if we can insert a duplicate */
+            else if (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)
+                    && (flags&DUPLICATE))
+                return (0);
+            else
+                return (HAM_DUPLICATE_KEY);
+        }
+        else { /* txn is still active */
+            /* TODO txn_set_conflict_txn(txn, optxn); */
+            return (HAM_TXN_CONFLICT);
+        }
+
+        op=txn_op_get_next(op);
+    }
+
     return (0);
 }
 
@@ -1707,11 +1742,6 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
     txn_optree_node_t *node;
     txn_op_t *op;
 
-    /* check for conflicts */
-    st=db_check_insert_conflicts(db, txn, key);
-    if (st)
-        return (st);
-
     /* get (or create) the txn-tree for this database */
     tree=txn_tree_get_or_create(txn, db);
     if (!tree)
@@ -1721,6 +1751,11 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
     node=txn_optree_node_get_or_create(db, tree, key);
     if (!node)
         return (HAM_OUT_OF_MEMORY);
+
+    /* check for conflicts of this key */
+    st=db_check_insert_conflicts(db, txn, node, key);
+    if (st)
+        return (st);
 
     /* append a new operation to this node */
     /* TODO lsn is missing! */
