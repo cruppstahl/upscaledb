@@ -1710,17 +1710,19 @@ db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn,
                 return (0);
             else if (txn_op_get_flags(op)&TXN_OP_NOP)
                 ; /* nop */
-            /* if key was inserted then we succeed if we can overwrite
-             * it! TODO TODO */
-            else if (txn_op_get_flags(op)&TXN_OP_INSERT_OW
-                    && (flags&OVERWRITE))
-                return (0);
-            /* ... or if we can insert a duplicate */
-            else if (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)
-                    && (flags&DUPLICATE))
-                return (0);
-            else
+            /* if the key already exists then we can only continue if
+             * we're allowed to overwrite it or to insert a duplicate */
+            else if ((txn_op_get_flags(op)&TXN_OP_INSERT_OW)
+                    || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
+                if ((flags&HAM_OVERWRITE) || (flags&HAM_DUPLICATE))
+                    return (0);
+                else
+                    return (HAM_DUPLICATE_KEY);
+            }
+            else {
+                ham_assert(!"shouldn't be here", (""));
                 return (HAM_DUPLICATE_KEY);
+            }
         }
         else { /* txn is still active */
             /* TODO txn_set_conflict_txn(txn, optxn); */
