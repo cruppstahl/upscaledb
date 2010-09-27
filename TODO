@@ -56,7 +56,7 @@ o manage all transactions
             x rename int_key_t to btree_key_t
             x rename statistics.c to btree_stats.c (and rename the functions)
 
-    o rewrite ham_insert
+    x rewrite ham_insert
         x need functions to create trees/nodes/ops
                 tree=txn_tree_get_or_create(db)
                 node=txn_node_get_or_create(tree, key)
@@ -71,7 +71,26 @@ o manage all transactions
         x need a new error code HAM_TXN_CONFLICT
         x check for transaction conflicts (similar to ham2)
 
+    o txn_free: discard the tree and everything that's allocated
+
     o add unittests for all the stuff I did so far
+        x structure test: txn
+        x structure test: txn_tree
+        o structure test: txn_node
+        o structure test: txn_op
+        o allow multiple txn's in parallel and make sure that they
+            are linked correctly
+        x create a txn-tree for a txn/db twice and make sure that it's
+            only created once
+        o create multiple trees and make sure that they 
+            are linked correctly
+        o create a txn-node for a txn/db/key twice and make sure that it's
+            only created once
+        o create multiple nodes and make sure that they 
+            are linked correctly
+        o create multiple ops and make sure that they 
+            are linked correctly in the node AND in the txn!
+        o test various conflict scenarios
 
     o rewrite ham_find
         o each modified database gets its own txn tree when its modified
@@ -79,12 +98,14 @@ o manage all transactions
         o if transactions are disabled: immediately write to disk, no
             temp transactions are needed
         o otherwise go through transaction trees
+        o add unittests
     o rewrite ham_erase
         o each modified database gets its own txn tree when its modified
             in a transaction
         o if transactions are disabled: immediately write to disk, no
             temp transactions are needed
         o otherwise go through transaction trees
+        o add unittests
     o lsn is missing! it should come either from the env or from the log 
         (but the log does not always exist)
     o implement env_flush_committed_txns()
@@ -101,6 +122,7 @@ o each operation writes a journal entry (however, we still keep the logical
         o write entry for db_find
         o write entry for db_insert
         o write entry for db_erase
+    o api function to get a list of pending transactions
     o recovery: recreate all pending transactions (if requested)
     o unittests
 

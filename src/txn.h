@@ -352,7 +352,16 @@ extern ham_status_t
 txn_abort(ham_txn_t *txn, ham_u32_t flags);
 
 /**
+ * frees the internal txn trees, nodes and ops
+ * This function is a test gate for the unittests. do not use it.
+ */
+void
+txn_free_ops(ham_txn_t *txn);
+
+/**
  * free the txn structure
+ *
+ * will call txn_free_ops() and then free the txn pointer itself
  */
 extern void
 txn_free(ham_txn_t *txn);

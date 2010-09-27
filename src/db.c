@@ -1683,7 +1683,7 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 
 static ham_status_t
 db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn, 
-                txn_optree_node_t *node, ham_key_t *key)
+                txn_optree_node_t *node, ham_key_t *key, ham_u32_t flags)
 {
     txn_op_t *op=0;
 
@@ -1729,7 +1729,7 @@ db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn,
             return (HAM_TXN_CONFLICT);
         }
 
-        op=txn_op_get_next(op);
+        op=txn_op_get_next_in_node(op);
     }
 
     return (0);
@@ -1755,7 +1755,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
         return (HAM_OUT_OF_MEMORY);
 
     /* check for conflicts of this key */
-    st=db_check_insert_conflicts(db, txn, node, key);
+    st=db_check_insert_conflicts(db, txn, node, key, flags);
     if (st)
         return (st);
 

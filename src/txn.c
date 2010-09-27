@@ -77,12 +77,13 @@ txn_optree_node_t *
 txn_optree_node_get_or_create(ham_db_t *db, txn_optree_t *tree, 
                     ham_key_t *key)
 {
-    txn_optree_node_t *node, tmp;
+    txn_optree_node_t *node=0, tmp;
     mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
 
     /* create a temporary node that we can search for */
     memset(&tmp, 0, sizeof(tmp));
     txn_optree_node_set_key(&tmp, key);
+    txn_optree_node_set_db(&tmp, db);
 
     /* search if node already exists - if yes, return it */
     if ((node=rbt_search(tree, &tmp)))
@@ -251,10 +252,37 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
     return (0);
 }
 
+static void
+txn_optree_free(ham_env_t *env, txn_optree_t *tree)
+{
+    txn_optree_node_t *node;
+    while ((node=rbt_last(tree))) {
+        rbt_remove(tree, node);
+        allocator_free(env_get_allocator(env), node);
+    }
+    allocator_free(env_get_allocator(env), tree);
+}
+
+void
+txn_free_ops(ham_txn_t *txn)
+{
+    ham_env_t *env=txn_get_env(txn);
+
+    txn_optree_t *n, *t=txn_get_trees(txn);
+    while (t) {
+        n=txn_optree_get_next(t);
+        txn_optree_free(env, t);
+        t=n;
+    };
+    txn_set_trees(txn, 0);
+}
+
 void
 txn_free(ham_txn_t *txn)
 {
     ham_env_t *env=txn_get_env(txn);
+
+    txn_free_ops(txn);
 
 #if DEBUG
     memset(txn, 0, sizeof(*txn));

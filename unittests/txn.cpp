@@ -42,7 +42,11 @@ public:
         BFC_REGISTER_TEST(TxnTest, checkIfLogCreatedTest);
         BFC_REGISTER_TEST(TxnTest, beginCommitTest);
         BFC_REGISTER_TEST(TxnTest, beginAbortTest);
-        BFC_REGISTER_TEST(TxnTest, structureTest);
+        BFC_REGISTER_TEST(TxnTest, txnStructureTest);
+        BFC_REGISTER_TEST(TxnTest, txnTreeStructureTest);
+        BFC_REGISTER_TEST(TxnTest, txnTreeCreatedOnceTest);
+        BFC_REGISTER_TEST(TxnTest, txnNodeStructureTest);
+        BFC_REGISTER_TEST(TxnTest, txnNodeCreatedOnceTest);
     }
 
 protected:
@@ -102,12 +106,12 @@ public:
         BFC_ASSERT(ham_txn_abort(txn, 0)==HAM_SUCCESS);
     }
 
-    void structureTest(void)
+    void txnStructureTest(void)
     {
         ham_txn_t *txn;
 
-        BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
-        BFC_ASSERT(txn_get_env(txn)==m_env);
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(m_env, txn_get_env(txn));
         BFC_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(txn));
 
         txn_set_flags(txn, 0x99);
@@ -116,9 +120,125 @@ public:
         txn_set_log_desc(txn, 4);
         BFC_ASSERT_EQUAL(4, txn_get_log_desc(txn));
 
-        BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
+        txn_set_oldest_op(txn, (txn_op_t *)4);
+        BFC_ASSERT_EQUAL((txn_op_t *)4, txn_get_oldest_op(txn));
+        txn_set_oldest_op(txn, (txn_op_t *)0);
+
+        txn_set_newest_op(txn, (txn_op_t *)8);
+        BFC_ASSERT_EQUAL((txn_op_t *)8, txn_get_newest_op(txn));
+        txn_set_newest_op(txn, (txn_op_t *)0);
+
+        txn_set_trees(txn, (txn_optree_t *)2);
+        BFC_ASSERT_EQUAL((txn_optree_t *)2, txn_get_trees(txn));
+        txn_set_trees(txn, (txn_optree_t *)0);
+
+        txn_set_newer(txn, (ham_txn_t *)1);
+        BFC_ASSERT_EQUAL((ham_txn_t *)1, txn_get_newer(txn));
+        txn_set_newer(txn, (ham_txn_t *)0);
+
+        txn_set_older(txn, (ham_txn_t *)3);
+        BFC_ASSERT_EQUAL((ham_txn_t *)3, txn_get_older(txn));
+        txn_set_older(txn, (ham_txn_t *)0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
+    void txnTreeStructureTest(void)
+    {
+        ham_txn_t *txn;
+        txn_optree_t *tree, *next=(txn_optree_t *)0x13;
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        tree=txn_tree_get_or_create(txn, m_db);
+        BFC_ASSERT(tree!=0);
+
+        txn_optree_set_db(tree, (ham_db_t *)1);
+        BFC_ASSERT_EQUAL((ham_db_t *)1, txn_optree_get_db(tree));
+        txn_optree_set_db(tree, (ham_db_t *)m_db);
+
+        txn_optree_set_next(tree, next);
+        BFC_ASSERT_EQUAL(next, txn_optree_get_next(tree));
+        txn_optree_set_next(tree, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void txnTreeCreatedOnceTest(void)
+    {
+        ham_txn_t *txn;
+        txn_optree_t *tree, *tree2;
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        tree=txn_tree_get_or_create(txn, m_db);
+        BFC_ASSERT(tree!=0);
+        tree2=txn_tree_get_or_create(txn, m_db);
+        BFC_ASSERT_EQUAL(tree, tree2);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void txnNodeStructureTest(void)
+    {
+        ham_txn_t *txn;
+        txn_optree_t *tree;
+        txn_optree_node_t *node;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        tree=txn_tree_get_or_create(txn, m_db);
+        node=txn_optree_node_get_or_create(m_db, tree, &key);
+        BFC_ASSERT(node!=0);
+
+        txn_optree_node_set_db(tree, (ham_db_t *)1);
+        BFC_ASSERT_EQUAL((ham_db_t *)1, txn_optree_node_get_db(tree));
+        txn_optree_node_set_db(tree, (ham_db_t *)m_db);
+
+        BFC_ASSERT_EQUAL(&key, txn_optree_node_get_key(node));
+        txn_optree_node_set_key(node, 0);
+        BFC_ASSERT_EQUAL((ham_key_t *)0, txn_optree_node_get_key(node));
+        txn_optree_node_set_key(node, &key);
+
+        txn_optree_node_set_oldest_op(node, (txn_op_t *)3);
+        BFC_ASSERT_EQUAL((txn_op_t *)3, txn_optree_node_get_oldest_op(node));
+        txn_optree_node_set_oldest_op(node, 0);
+
+        txn_optree_node_set_newest_op(node, (txn_op_t *)4);
+        BFC_ASSERT_EQUAL((txn_op_t *)4, txn_optree_node_get_newest_op(node));
+        txn_optree_node_set_newest_op(node, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void txnNodeCreatedOnceTest(void)
+    {
+        ham_txn_t *txn;
+        txn_optree_t *tree;
+        txn_optree_node_t *node, *node2;
+        ham_key_t key1, key2;
+        memset(&key1, 0, sizeof(key1));
+        key1.data=(void *)"hello";
+        key1.size=5;
+        memset(&key2, 0, sizeof(key2));
+        key2.data=(void *)"world";
+        key2.size=5;
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        tree=txn_tree_get_or_create(txn, m_db);
+        node=txn_optree_node_get_or_create(m_db, tree, &key1);
+        BFC_ASSERT(node!=0);
+        node2=txn_optree_node_get_or_create(m_db, tree, &key1);
+        BFC_ASSERT_EQUAL(node, node2);
+        node2=txn_optree_node_get_or_create(m_db, tree, &key2);
+        BFC_ASSERT(node!=node2);
+
+        /* immediately free the txn because 'key1' and 'key2' is on the stack;
+         * if the txn is freed later, the key-pointers are invalid */
+        txn_free_ops(txn);
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
 };
 
 class HighLevelTxnTest : public hamsterDB_fixture
