@@ -58,16 +58,16 @@ typedef struct txn_op_t
 } txn_op_t;
 
 /** a NOP operation (empty) */
-#define TXN_OP_NOP          0x00000
+#define TXN_OP_NOP          0x00000u
 
 /** txn operation is an insert (w/ overwrite) */
-#define TXN_OP_INSERT_OW    0x10000
+#define TXN_OP_INSERT_OW    0x10000u
 
 /** txn operation is an insert (w/ duplicates) */
-#define TXN_OP_INSERT_DUP   0x20000
+#define TXN_OP_INSERT_DUP   0x20000u
 
 /** txn operation erases the key */
-#define TXN_OP_ERASE        0x40000
+#define TXN_OP_ERASE        0x40000u
 
 /** get flags */
 #define txn_op_get_flags(t)         (t)->_flags

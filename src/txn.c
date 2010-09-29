@@ -255,8 +255,16 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
 static void
 txn_optree_free(ham_env_t *env, txn_optree_t *tree)
 {
+    txn_op_t *op, *nop;
     txn_optree_node_t *node;
+
     while ((node=rbt_last(tree))) {
+        op=txn_optree_node_get_oldest_op(node);
+        while (op) {
+            nop=txn_op_get_next_in_node(op);
+            allocator_free(env_get_allocator(env), op);
+            op=nop;
+        }
         rbt_remove(tree, node);
         allocator_free(env_get_allocator(env), node);
     }

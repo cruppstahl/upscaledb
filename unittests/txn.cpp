@@ -47,6 +47,7 @@ public:
         BFC_REGISTER_TEST(TxnTest, txnTreeCreatedOnceTest);
         BFC_REGISTER_TEST(TxnTest, txnNodeStructureTest);
         BFC_REGISTER_TEST(TxnTest, txnNodeCreatedOnceTest);
+        BFC_REGISTER_TEST(TxnTest, txnOpStructureTest);
     }
 
 protected:
@@ -236,6 +237,57 @@ public:
 
         /* immediately free the txn because 'key1' and 'key2' is on the stack;
          * if the txn is freed later, the key-pointers are invalid */
+        txn_free_ops(txn);
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void txnOpStructureTest(void)
+    {
+        ham_txn_t *txn;
+        txn_optree_t *tree;
+        txn_optree_node_t *node;
+        txn_op_t *op, next;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+        ham_record_t record, *precord;
+        memset(&record, 0, sizeof(record));
+        record.data=(void *)"world";
+        record.size=5;
+        memset(&next, 0, sizeof(next));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        tree=txn_tree_get_or_create(txn, m_db);
+        node=txn_optree_node_get_or_create(m_db, tree, &key);
+        op=txn_optree_node_append(txn, node, TXN_OP_INSERT_DUP, 55, 0);
+        BFC_ASSERT(op!=0);
+
+        BFC_ASSERT_EQUAL(TXN_OP_INSERT_DUP, txn_op_get_flags(op));
+        txn_op_set_flags(op, 13);
+        BFC_ASSERT_EQUAL(13u, txn_op_get_flags(op));
+        txn_op_set_flags(op, TXN_OP_INSERT_DUP);
+
+        BFC_ASSERT_EQUAL(55ull, txn_op_get_lsn(op));
+        txn_op_set_lsn(op, 23);
+        BFC_ASSERT_EQUAL(23ull, txn_op_get_lsn(op));
+        txn_op_set_lsn(op, 55);
+
+        BFC_ASSERT_EQUAL((txn_op_t *)0, txn_op_get_next_in_node(op));
+        txn_op_set_next_in_node(op, &next);
+        BFC_ASSERT_EQUAL(&next, txn_op_get_next_in_node(op));
+        txn_op_set_next_in_node(op, 0);
+
+        BFC_ASSERT_EQUAL((txn_op_t *)0, txn_op_get_next_in_txn(op));
+        txn_op_set_next_in_txn(op, &next);
+        BFC_ASSERT_EQUAL(&next, txn_op_get_next_in_txn(op));
+        txn_op_set_next_in_txn(op, 0);
+
+        precord=txn_op_get_record(op);
+        txn_op_set_record(op, 0);
+        BFC_ASSERT_EQUAL((ham_record_t *)0, txn_op_get_record(op));
+        txn_op_set_record(op, precord);
+
         txn_free_ops(txn);
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }

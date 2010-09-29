@@ -76,8 +76,8 @@ o manage all transactions
     o add unittests for all the stuff I did so far
         x structure test: txn
         x structure test: txn_tree
-        o structure test: txn_node
-        o structure test: txn_op
+        x structure test: txn_node
+        x structure test: txn_op
         o allow multiple txn's in parallel and make sure that they
             are linked correctly
         x create a txn-tree for a txn/db twice and make sure that it's
