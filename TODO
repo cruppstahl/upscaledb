@@ -117,6 +117,10 @@ o manage all transactions
         o remove env_get_txn, env_get_txn_id
         o extkeys: don't use txn_id for the 'age', use lsn instead
 
+    o rewrite enumeration code
+        -> some just need to enumerate over btree
+        -> but others need to enumerate over txns as well
+
 o each operation writes a journal entry (however, we still keep the logical
         journal in parallel, otherwise the unittests will fail completely)
         o write entry for db_find
