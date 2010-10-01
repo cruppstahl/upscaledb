@@ -292,6 +292,12 @@ txn_free(ham_txn_t *txn)
 
     txn_free_ops(txn);
 
+    /* fix double linked transaction list */
+    if (txn_get_older(txn))
+        txn_set_newer(txn_get_older(txn), txn_get_newer(txn));
+    if (txn_get_newer(txn))
+        txn_set_older(txn_get_newer(txn), txn_get_older(txn));
+
 #if DEBUG
     memset(txn, 0, sizeof(*txn));
 #endif

@@ -41,6 +41,7 @@ public:
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(TxnTest, checkIfLogCreatedTest);
         BFC_REGISTER_TEST(TxnTest, beginCommitTest);
+        BFC_REGISTER_TEST(TxnTest, multipleBeginCommitTest);
         BFC_REGISTER_TEST(TxnTest, beginAbortTest);
         BFC_REGISTER_TEST(TxnTest, txnStructureTest);
         BFC_REGISTER_TEST(TxnTest, txnTreeStructureTest);
@@ -97,6 +98,41 @@ public:
 
         BFC_ASSERT(ham_txn_begin(&txn, m_db, 0)==HAM_SUCCESS);
         BFC_ASSERT(ham_txn_commit(txn, 0)==HAM_SUCCESS);
+    }
+
+    void multipleBeginCommitTest(void)
+    {
+        ham_txn_t *txn1, *txn2, *txn3;
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn3, m_db, 0));
+
+        BFC_ASSERT_EQUAL((ham_txn_t *)0, txn_get_older(txn1));
+        BFC_ASSERT_EQUAL(txn2, txn_get_newer(txn1));
+
+        BFC_ASSERT_EQUAL(txn1, txn_get_older(txn2));
+        BFC_ASSERT_EQUAL(txn3, txn_get_newer(txn2));
+
+        BFC_ASSERT_EQUAL(txn2, txn_get_older(txn3));
+        BFC_ASSERT_EQUAL((ham_txn_t *)0, txn_get_newer(txn3));
+
+        /* have to commit the txns in the same order as they were created,
+         * otherwise env_flush_committed_txns() will not flush the oldest
+         * transaction */
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
+
+        BFC_ASSERT_EQUAL((ham_txn_t *)0, txn_get_older(txn2));
+        BFC_ASSERT_EQUAL(txn3, txn_get_newer(txn2));
+        BFC_ASSERT_EQUAL(txn2, txn_get_older(txn3));
+        BFC_ASSERT_EQUAL((ham_txn_t *)0, txn_get_newer(txn3));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+
+        BFC_ASSERT_EQUAL((ham_txn_t *)0, txn_get_older(txn3));
+        BFC_ASSERT_EQUAL((ham_txn_t *)0, txn_get_newer(txn3));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn3, 0));
     }
 
     void beginAbortTest(void)
