@@ -82,7 +82,7 @@ o manage all transactions
             are linked correctly
         x create a txn-tree for a txn/db twice and make sure that it's
             only created once
-        o create multiple trees and make sure that they 
+        x create multiple trees and make sure that they 
             are linked correctly
         x create a txn-node for a txn/db/key twice and make sure that it's
             only created once

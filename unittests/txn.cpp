@@ -45,7 +45,7 @@ public:
         BFC_REGISTER_TEST(TxnTest, beginAbortTest);
         BFC_REGISTER_TEST(TxnTest, txnStructureTest);
         BFC_REGISTER_TEST(TxnTest, txnTreeStructureTest);
-        BFC_REGISTER_TEST(TxnTest, txnTreeCreatedOnceTest);
+        BFC_REGISTER_TEST(TxnTest, txnMultipleTreesTest);
         BFC_REGISTER_TEST(TxnTest, txnNodeStructureTest);
         BFC_REGISTER_TEST(TxnTest, txnNodeCreatedOnceTest);
         BFC_REGISTER_TEST(TxnTest, txnOpStructureTest);
@@ -212,6 +212,36 @@ public:
         BFC_ASSERT_EQUAL(tree, tree2);
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void txnMultipleTreesTest(void)
+    {
+        ham_db_t *db2, *db3;
+        ham_txn_t *txn;
+        txn_optree_t *tree1, *tree2, *tree3;
+
+        BFC_ASSERT_EQUAL(0, ham_new(&db2));
+        BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db2, 14, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_new(&db3));
+        BFC_ASSERT_EQUAL(0, ham_env_create_db(m_env, db3, 15, 0, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        tree1=txn_tree_get_or_create(txn, m_db);
+        tree2=txn_tree_get_or_create(txn, db2);
+        tree3=txn_tree_get_or_create(txn, db3);
+        BFC_ASSERT(tree1!=0);
+        BFC_ASSERT(tree2!=0);
+        BFC_ASSERT(tree3!=0);
+
+        BFC_ASSERT_EQUAL(tree2, txn_optree_get_next(tree3));
+        BFC_ASSERT_EQUAL(tree1, txn_optree_get_next(tree2));
+        BFC_ASSERT_EQUAL((txn_optree_t *)0, txn_optree_get_next(tree1));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db2, 0));
+        ham_delete(db2);
+        BFC_ASSERT_EQUAL(0, ham_close(db3, 0));
+        ham_delete(db3);
     }
 
     void txnNodeStructureTest(void)
