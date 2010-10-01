@@ -78,7 +78,7 @@ o manage all transactions
         x structure test: txn_tree
         x structure test: txn_node
         x structure test: txn_op
-        o allow multiple txn's in parallel and make sure that they
+        x allow multiple txn's in parallel and make sure that they
             are linked correctly
         x create a txn-tree for a txn/db twice and make sure that it's
             only created once
@@ -94,10 +94,7 @@ o manage all transactions
         o test various conflict scenarios
 
     o rewrite ham_find
-        o each modified database gets its own txn tree when its modified
-            in a transaction
-        o if transactions are disabled: immediately write to disk, no
-            temp transactions are needed
+        o if transactions are disabled: immediately read from disk
         o otherwise go through transaction trees
         o add unittests
     o rewrite ham_erase
