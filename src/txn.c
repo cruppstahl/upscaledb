@@ -134,17 +134,6 @@ txn_optree_node_append(ham_txn_t *txn, txn_optree_node_t *node,
     txn_op_set_lsn(op, lsn);
     txn_op_set_record(op, newrec);
 
-    /* store it in the chronological linked list which is managed by the txn */
-    if (!txn_get_newest_op(txn)) {
-        ham_assert(txn_get_oldest_op(txn)==0, (""));
-        txn_set_newest_op(txn, op);
-        txn_set_oldest_op(txn, op);
-    }
-    else {
-        txn_op_set_next_in_txn(op, txn_get_newest_op(txn));
-        txn_set_newest_op(txn, op);
-    }
-
     /* store it in the chronological list which is managed by the node */
     if (!txn_optree_node_get_newest_op(node)) {
         ham_assert(txn_optree_node_get_oldest_op(node)==0, (""));

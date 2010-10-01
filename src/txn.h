@@ -46,9 +46,6 @@ typedef struct txn_op_t
     /** next in linked list (managed in txn_optree_node_t) */
     struct txn_op_t *_node_next;
 
-    /** next in chronological linked list (managed in ham_txn_t) */
-    struct txn_op_t *_txn_next;
-
     /** the log serial number (lsn) of this operation */
     ham_u64_t _lsn;
 
@@ -86,12 +83,6 @@ typedef struct txn_op_t
 
 /** set next txn_op_t structure */
 #define txn_op_set_next_in_node(t, n)  (t)->_node_next=n
-
-/** get next txn_op_t structure of this txn */
-#define txn_op_get_next_in_txn(t)      (t)->_txn_next
-
-/** set next txn_op_t structure of this txn */
-#define txn_op_set_next_in_txn(t, n)   (t)->_txn_next=n
 
 /** get lsn */
 #define txn_op_get_lsn(t)           (t)->_lsn
@@ -200,14 +191,6 @@ struct ham_txn_t
     /** flags for this transaction */
     ham_u32_t _flags;
 
-    /** chronological linked list of all operations of this txn - oldest 
-     * operation */
-    struct txn_op_t *_oldest_op;
-
-    /** chronological linked list of all operations of this txn - newest
-     * operation */
-    struct txn_op_t *_newest_op;
-
     /** a list of transaction trees */
     struct txn_optree_t *_trees;
 
@@ -264,12 +247,6 @@ struct ham_txn_t
 
 /** set the oldest transaction operation */
 #define txn_set_oldest_op(txn, o)               (txn)->_oldest_op=o
-
-/** get the newest transaction operation */
-#define txn_get_newest_op(txn)                  (txn)->_newest_op
-
-/** set the newest transaction operation */
-#define txn_set_newest_op(txn, n)               (txn)->_newest_op=n
 
 /** get the linked list of transaction trees */
 #define txn_get_trees(txn)                      (txn)->_trees

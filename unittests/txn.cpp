@@ -48,6 +48,7 @@ public:
         BFC_REGISTER_TEST(TxnTest, txnMultipleTreesTest);
         BFC_REGISTER_TEST(TxnTest, txnNodeStructureTest);
         BFC_REGISTER_TEST(TxnTest, txnNodeCreatedOnceTest);
+        BFC_REGISTER_TEST(TxnTest, txnMultipleNodesTest);
         BFC_REGISTER_TEST(TxnTest, txnOpStructureTest);
     }
 
@@ -304,6 +305,31 @@ public:
         /* immediately free the txn because 'key1' and 'key2' is on the stack;
          * if the txn is freed later, the key-pointers are invalid */
         txn_free_ops(txn);
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void txnMultipleNodesTest(void)
+    {
+        ham_txn_t *txn;
+        txn_optree_t *tree;
+        txn_optree_node_t *node1, *node2, *node3;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"1111";
+        key.size=5;
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        tree=txn_tree_get_or_create(txn, m_db);
+        node1=txn_optree_node_get_or_create(m_db, tree, &key);
+        BFC_ASSERT(node1!=0);
+        key.data=(void *)"2222";
+        node2=txn_optree_node_get_or_create(m_db, tree, &key);
+        BFC_ASSERT(node2!=0);
+        key.data=(void *)"3333";
+        node3=txn_optree_node_get_or_create(m_db, tree, &key);
+        BFC_ASSERT(node3!=0);
+
+        // txn_free_ops(txn);
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 

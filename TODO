@@ -86,7 +86,7 @@ o manage all transactions
             are linked correctly
         x create a txn-node for a txn/db/key twice and make sure that it's
             only created once
-        o create multiple nodes and make sure that they 
+        x create multiple nodes and make sure that they 
             are linked correctly
         x create an op for a txn-node
         o create multiple ops and make sure that they 
