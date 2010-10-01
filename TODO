@@ -71,7 +71,7 @@ o manage all transactions
         x need a new error code HAM_TXN_CONFLICT
         x check for transaction conflicts (similar to ham2)
 
-    o txn_free: discard the tree and everything that's allocated
+    x txn_free: discard the tree and everything that's allocated
 
     o add unittests for all the stuff I did so far
         x structure test: txn
@@ -89,8 +89,8 @@ o manage all transactions
         x create multiple nodes and make sure that they 
             are linked correctly
         x create an op for a txn-node
-        o create multiple ops and make sure that they 
-            are linked correctly in the node AND in the txn!
+        x create multiple ops and make sure that they 
+            are linked correctly in the node
         o test various conflict scenarios
 
     o rewrite ham_find

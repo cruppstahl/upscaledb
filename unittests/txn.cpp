@@ -50,6 +50,7 @@ public:
         BFC_REGISTER_TEST(TxnTest, txnNodeCreatedOnceTest);
         BFC_REGISTER_TEST(TxnTest, txnMultipleNodesTest);
         BFC_REGISTER_TEST(TxnTest, txnOpStructureTest);
+        BFC_REGISTER_TEST(TxnTest, txnMultipleOpsTest);
     }
 
 protected:
@@ -157,14 +158,6 @@ public:
 
         txn_set_log_desc(txn, 4);
         BFC_ASSERT_EQUAL(4, txn_get_log_desc(txn));
-
-        txn_set_oldest_op(txn, (txn_op_t *)4);
-        BFC_ASSERT_EQUAL((txn_op_t *)4, txn_get_oldest_op(txn));
-        txn_set_oldest_op(txn, (txn_op_t *)0);
-
-        txn_set_newest_op(txn, (txn_op_t *)8);
-        BFC_ASSERT_EQUAL((txn_op_t *)8, txn_get_newest_op(txn));
-        txn_set_newest_op(txn, (txn_op_t *)0);
 
         txn_set_trees(txn, (txn_optree_t *)2);
         BFC_ASSERT_EQUAL((txn_optree_t *)2, txn_get_trees(txn));
@@ -329,7 +322,6 @@ public:
         node3=txn_optree_node_get_or_create(m_db, tree, &key);
         BFC_ASSERT(node3!=0);
 
-        // txn_free_ops(txn);
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
@@ -370,17 +362,40 @@ public:
         BFC_ASSERT_EQUAL(&next, txn_op_get_next_in_node(op));
         txn_op_set_next_in_node(op, 0);
 
-        BFC_ASSERT_EQUAL((txn_op_t *)0, txn_op_get_next_in_txn(op));
-        txn_op_set_next_in_txn(op, &next);
-        BFC_ASSERT_EQUAL(&next, txn_op_get_next_in_txn(op));
-        txn_op_set_next_in_txn(op, 0);
-
         precord=txn_op_get_record(op);
         txn_op_set_record(op, 0);
         BFC_ASSERT_EQUAL((ham_record_t *)0, txn_op_get_record(op));
         txn_op_set_record(op, precord);
 
         txn_free_ops(txn);
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void txnMultipleOpsTest(void)
+    {
+        ham_txn_t *txn;
+        txn_optree_t *tree;
+        txn_optree_node_t *node;
+        txn_op_t *op1, *op2, *op3;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"world";
+        rec.size=5;
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        tree=txn_tree_get_or_create(txn, m_db);
+        node=txn_optree_node_get_or_create(m_db, tree, &key);
+        op1=txn_optree_node_append(txn, node, TXN_OP_INSERT_DUP, 55, &rec);
+        BFC_ASSERT(op1!=0);
+        op2=txn_optree_node_append(txn, node, TXN_OP_ERASE, 55, 0);
+        BFC_ASSERT(op2!=0);
+        op3=txn_optree_node_append(txn, node, TXN_OP_NOP, 55, 0);
+        BFC_ASSERT(op3!=0);
+
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 };

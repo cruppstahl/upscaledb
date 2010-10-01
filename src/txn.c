@@ -246,11 +246,18 @@ txn_optree_free(ham_env_t *env, txn_optree_t *tree)
 {
     txn_op_t *op, *nop;
     txn_optree_node_t *node;
+    ham_record_t *rec;
 
     while ((node=rbt_last(tree))) {
-        op=txn_optree_node_get_oldest_op(node);
+        op=txn_optree_node_get_newest_op(node);
         while (op) {
             nop=txn_op_get_next_in_node(op);
+            rec=txn_op_get_record(op);
+            if (rec) {
+                if (rec->data)
+                    allocator_free(env_get_allocator(env), rec->data);
+                allocator_free(env_get_allocator(env), rec);
+            }
             allocator_free(env_get_allocator(env), op);
             op=nop;
         }
