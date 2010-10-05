@@ -285,89 +285,55 @@ struct ham_env_t
 };
 
 
-/**
- * get the current transaction ID
- */
+/** get the current transaction ID */
 #define env_get_txn_id(env)              (env)->_txn_id
 
-/**
- * set the current transaction ID
- */
+/** set the current transaction ID */
 #define env_set_txn_id(env, id)          (env)->_txn_id=(id)
 
-/**
- * get the filename
- */
+/** get the filename */
 #define env_get_filename(env)            (env)->_filename
 
-/**
- * set the filename
- */
+/** set the filename */
 #define env_set_filename(env, f)         (env)->_filename=(f)
 
-/**
- * get the unix file mode
- */
+/** get the unix file mode */
 #define env_get_file_mode(env)           (env)->_file_mode
 
-/**
- * set the unix file mode
- */
+/** set the unix file mode */
 #define env_set_file_mode(env, m)        (env)->_file_mode=(m)
 
- /**
- * get the user-provided context pointer
- */
+/** get the user-provided context pointer */
 #define env_get_context_data(env)        (env)->_context
 
- /**
- * set the user-provided context pointer
- */
+/** set the user-provided context pointer */
 #define env_set_context_data(env, ctxt)  (env)->_context=(ctxt)
 
-/**
- * get the device
- */
+/** get the device */
 #define env_get_device(env)              (env)->_device
 
-/**
- * set the device
- */
+/** set the device */
 #define env_set_device(env, d)           (env)->_device=(d)
 
-/**
- * get the allocator
- */
+/** get the allocator */
 #define env_get_allocator(env)           (env)->_alloc
 
-/**
- * set the allocator
- */
+/** set the allocator */
 #define env_set_allocator(env, a)        (env)->_alloc=(a)
 
-/**
- * get the cache pointer
- */
+/** get the cache pointer */
 #define env_get_cache(env)               (env)->_cache
 
-/**
- * set the cache pointer
- */
+/** set the cache pointer */
 #define env_set_cache(env, c)            (env)->_cache=(c)
 
-/**
- * get the curl handle
- */
+/** get the curl handle */
 #define env_get_curl(env)                (env)->_curl
 
-/**
- * set the curl handle
- */
+/** set the curl handle */
 #define env_set_curl(env, c)             (env)->_curl=(c)
 
-/**
- * get the header page
- */
+/** get the header page */
 #define env_get_header_page(env)         (env)->_hdrpage
 
 /**
@@ -378,19 +344,13 @@ struct ham_env_t
 extern env_header_t *
 env_get_header(ham_env_t *env);
 
-/**
- * set the header page
- */
+/** set the header page */
 #define env_set_header_page(env, h)      (env)->_hdrpage=(h)
 
-/**
- * set the dirty-flag - this is the same as db_set_dirty()
- */
+/** set the dirty-flag - this is the same as db_set_dirty() */
 #define env_set_dirty(env)              page_set_dirty(env_get_header_page(env))
 
-/**
-* get the dirty-flag
-*/
+/** get the dirty-flag */
 #define env_is_dirty(env)               page_is_dirty(env_get_header_page(env))
 
 /**
@@ -419,85 +379,56 @@ env_get_header(ham_env_t *env);
  */
 #define env_get_indexdata_ptr(env, i)      (env_get_indexdata_arrptr(env) + (i))
 
-/**
- * TODO remove me!
- */
+/** TODO remove me!  */
 #define env_get_txn(env)                 (env)->_oldest_txn
 
-/**
- * get the newest transaction
- */
+/** get the newest transaction */
 #define env_get_newest_txn(env)          (env)->_newest_txn
 
-/**
- * set the newest transaction
- */
+/** set the newest transaction */
 #define env_set_newest_txn(env, txn)     (env)->_newest_txn=(txn)
 
-/**
- * get the oldest transaction
- */
+/** get the oldest transaction */
 #define env_get_oldest_txn(env)          (env)->_oldest_txn
 
-/**
- * set the oldest transaction
- */
+/** set the oldest transaction */
 #define env_set_oldest_txn(env, txn)     (env)->_oldest_txn=(txn)
 
-/**
- * get the log object
- */
+/** get the log object */
 #define env_get_log(env)                 (env)->_log
 
-/**
- * set the log object
- */
+/** set the log object */
 #define env_set_log(env, log)            (env)->_log=(log)
 
-/**
- * get the runtime-flags
- */
+/** get the runtime-flags */
 #define env_get_rt_flags(env)            (env)->_rt_flags
 
-/**
- * set the runtime-flags
- */
+/** set the runtime-flags */
 #define env_set_rt_flags(env, f)         (env)->_rt_flags=(f)
 
-/** 
- * get the linked list of all open databases
- */
+/** get the linked list of all open databases */
 #define env_get_list(env)                (env)->_next
 
-/** 
- * set the linked list of all open databases
- */
+/** set the linked list of all open databases */
 #define env_set_list(env, db)            (env)->_next=(db)
 
-/**
- * get the pagesize as specified in ham_env_create_ex
- */
+/** get the pagesize as specified in ham_env_create_ex */
 #define env_get_pagesize(env)            (env)->_pagesize
 
-/**
- * set the pagesize as specified in ham_env_create_ex
- */
+/** set the pagesize as specified in ham_env_create_ex */
 #define env_set_pagesize(env, ps)        (env)->_pagesize=(ps)
 
-/**
- * get the cachesize as specified in ham_env_create_ex/ham_env_open_ex
- */
+/** get the cachesize as specified in ham_env_create_ex/ham_env_open_ex */
 #define env_get_cachesize(env)           (env)->_cachesize
 
-/**
- * set the cachesize as specified in ham_env_create_ex/ham_env_open_ex
- */
+/** set the cachesize as specified in ham_env_create_ex/ham_env_open_ex */
 #define env_set_cachesize(env, cs)       (env)->_cachesize=(cs)
 
-/**
-* get the keysize
-*/
+/** get the keysize */
 #define env_get_keysize(env)             (env)->_keysize
+
+/** set the keysize */
+#define env_set_keysize(env, ks)         (env)->_keysize=(ks)
 
 /*
  * get the maximum number of databases for this file
@@ -506,11 +437,6 @@ env_get_header(ham_env_t *env);
  */
 extern ham_u16_t
 env_get_max_databases(ham_env_t *env);
-
-/**
- * set the keysize
- */
-#define env_set_keysize(env, ks)         (env)->_keysize=(ks)
 
 /**
  * set the maximum number of databases for this file (cached, not written
@@ -524,50 +450,36 @@ env_get_max_databases(ham_env_t *env);
  */
 #define env_get_max_databases_cached(env)       (env)->_max_databases
 
-/**
- * set the maximum number of databases for this file
- */
+/** set the maximum number of databases for this file */
 #define env_set_max_databases(env, md)                                      \
     (env_get_header(env)->_max_databases=(md))
 
-/**
-  * get the page size
-  */
+/** get the page size */
 #define env_get_persistent_pagesize(env)									\
 	(ham_db2h32(env_get_header(env)->_pagesize))
 
-/**
- * set the page size
- */
+/** set the page size */
 #define env_set_persistent_pagesize(env, ps)								\
 	env_get_header(env)->_pagesize=ham_h2db32(ps)
 
-/**
- * set the 'magic' field of a file header
- */
+/** set the 'magic' field of a file header */
 #define env_set_magic(env, a,b,c,d)											\
 	{ env_get_header(env)->_magic[0]=a;										\
       env_get_header(env)->_magic[1]=b;										\
       env_get_header(env)->_magic[2]=c;										\
       env_get_header(env)->_magic[3]=d; }
 
-/**
- * get byte @a i of the 'magic'-header
- */
+/** get byte @a i of the 'magic'-header */
 #define env_get_magic(hdr, i)        ((hdr)->_magic[i])
 
-/**
- * set the version of a file header
- */
+/** set the version of a file header */
 #define env_set_version(env,a,b,c,d)										\
 	{ env_get_header(env)->_version[0]=a;									\
       env_get_header(env)->_version[1]=b;									\
       env_get_header(env)->_version[2]=c;									\
       env_get_header(env)->_version[3]=d; }
 
-/*
- * get byte @a i of the 'version'-header
- */
+/* get byte @a i of the 'version'-header */
 #define envheader_get_version(hdr, i)      ((hdr)->_version[i])
 
 /**
@@ -605,58 +517,38 @@ env_set_serialno(ham_env_t *env, ham_u32_t n);
  */
 #define env_set_active(env,s)       (env)->_is_active=!!(s)
 
-/**
- * check whether this environment has been opened/created.
- */
+/** check whether this environment has been opened/created.  */
 #define env_is_active(env)          (env)->_is_active
 
-/**
- * set the 'legacy' flag of the environment
- */
+/** set the 'legacy' flag of the environment */
 #define env_set_legacy(env,l)       (env)->_is_legacy=!!(l)
 
-/**
- * check whether this environment is a legacy file (pre 1.1.0)
- */
+/** check whether this environment is a legacy file (pre 1.1.0) */
 #define env_is_legacy(env)          (env)->_is_legacy
 
-/**
- * get the linked list of all file-level filters
- */
+/** get the linked list of all file-level filters */
 #define env_get_file_filter(env)    (env)->_file_filters
 
-/**
- * set the linked list of all file-level filters
- */
+/** set the linked list of all file-level filters */
 #define env_set_file_filter(env, f) (env)->_file_filters=(f)
 
-/**
- * get the freelist cache
- */
+/** get the freelist cache */
 #define env_get_freelist_cache(env)      (env)->_freelist_cache
 
-/**
- * set the freelist cache
- */
+/** set the freelist cache */
 #define env_set_freelist_cache(env, c)   (env)->_freelist_cache=(c)
 
-/**
- * get the freelist object of the database
- */
+/** get the freelist object of the database */
 #define env_get_freelist(env)												\
 	((freelist_payload_t *)													\
      (page_get_payload(env_get_header_page(env))+							\
 	  SIZEOF_FULL_HEADER(env)))
 
-/**
- * get the size of the usable persistent payload of a page
- */
+/** get the size of the usable persistent payload of a page */
 #define env_get_usable_pagesize(env)										\
 	(env_get_pagesize(env) - page_get_persistent_header_size())
 
-/**
- * get a reference to the DB FILE (global) statistics
- */
+/** get a reference to the DB FILE (global) statistics */
 #define env_get_global_perf_data(env)    &(env)->_perf_data
 
 /**

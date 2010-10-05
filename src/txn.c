@@ -52,32 +52,28 @@ __cmpfoo(void *vlhs, void *vrhs)
 rb_wrap(static, rbt_, txn_optree_t, txn_optree_node_t, node, __cmpfoo)
 
 txn_optree_t *
-txn_tree_get_or_create(ham_txn_t *txn, ham_db_t *db)
+txn_tree_get_or_create(ham_db_t *db)
 {
-    txn_optree_t *t=txn_get_trees(txn);
-    while (t) {
-        if (txn_optree_get_db(t)==db)
-            return (t);
-        t=txn_optree_get_next(t);
-    }
+    ham_env_t *env=db_get_env(db);
+    txn_optree_t *t=db_get_optree(db);
+    if (t)
+        return (t);
 
-    t=(txn_optree_t *)allocator_alloc(env_get_allocator(txn_get_env(txn)), 
-                sizeof(*t));
+    t=(txn_optree_t *)allocator_alloc(env_get_allocator(env), sizeof(*t));
     if (!t)
         return (0);
     txn_optree_set_db(t, db);
-    txn_optree_set_next(t, txn_get_trees(txn));
-    txn_set_trees(txn, t);
+    db_set_optree(db, t);
     rbt_new(t);
 
     return (t);
 }
 
 txn_optree_node_t *
-txn_optree_node_get_or_create(ham_db_t *db, txn_optree_t *tree, 
-                    ham_key_t *key)
+txn_optree_node_get_or_create(ham_db_t *db, ham_key_t *key)
 {
     txn_optree_node_t *node=0, tmp;
+    txn_optree_t *tree=db_get_optree(db);
     mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
 
     /* create a temporary node that we can search for */
@@ -96,6 +92,7 @@ txn_optree_node_get_or_create(ham_db_t *db, txn_optree_t *tree,
     memset(node, 0, sizeof(*node));
     txn_optree_node_set_key(node, key);
     txn_optree_node_set_db(node, db);
+    txn_optree_node_set_tree(node, tree);
 
     /* store the node in the tree */
     rbt_insert(tree, node);
@@ -117,12 +114,14 @@ txn_optree_node_append(ham_txn_t *txn, txn_optree_node_t *node,
         if (!newrec)
             return (0);
         *newrec=*record;
-        newrec->data=allocator_alloc(alloc, record->size);
-        if (!newrec->data) {
-            allocator_free(alloc, newrec);
-            return (0);
+        if (record->size && record->data) {
+            newrec->data=allocator_alloc(alloc, record->size);
+            if (!newrec->data) {
+                allocator_free(alloc, newrec);
+                return (0);
+            }
+            memcpy(newrec->data, record->data, record->size);
         }
-        memcpy(newrec->data, record->data, record->size);
     }
 
     /* create and initialize a new structure */
@@ -133,6 +132,8 @@ txn_optree_node_append(ham_txn_t *txn, txn_optree_node_t *node,
     txn_op_set_flags(op, flags);
     txn_op_set_lsn(op, lsn);
     txn_op_set_record(op, newrec);
+    txn_op_set_txn(op, txn);
+    txn_op_set_node(op, node);
 
     /* store it in the chronological list which is managed by the node */
     if (!txn_optree_node_get_newest_op(node)) {
@@ -141,8 +142,21 @@ txn_optree_node_append(ham_txn_t *txn, txn_optree_node_t *node,
         txn_optree_node_set_oldest_op(node, op);
     }
     else {
-        txn_op_set_next_in_node(op, txn_optree_node_get_newest_op(node));
+        txn_op_t *next=txn_optree_node_get_newest_op(node);
+        txn_op_set_next_in_node(op, next);
+        txn_op_set_previous_in_node(next, op);
         txn_optree_node_set_newest_op(node, op);
+    }
+
+    /* store it in the chronological list which is managed by the transaction */
+    if (!txn_get_oplist(txn)) {
+        txn_set_oplist(txn, op);
+    }
+    else {
+        txn_op_t *next=txn_get_oplist(txn);
+        txn_op_set_next_in_txn(op, txn_get_oplist(txn));
+        txn_op_set_previous_in_txn(next, op);
+        txn_set_oplist(txn, op);
     }
 
     return (op);
@@ -233,52 +247,83 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
 #if 0
     /* decrease the reference counter of the modified databases */
     __decrease_db_refcount(txn);
+#endif
 
     /* immediately release memory of the cached operations */
     txn_free_ops(txn);
-#endif
 
     return (0);
 }
 
-static void
-txn_optree_free(ham_env_t *env, txn_optree_t *tree)
+void
+txn_free_optree(txn_optree_t *tree)
 {
-    txn_op_t *op, *nop;
+    ham_env_t *env=db_get_env(txn_optree_get_db(tree));
     txn_optree_node_t *node;
-    ham_record_t *rec;
 
     while ((node=rbt_last(tree))) {
-        op=txn_optree_node_get_newest_op(node);
-        while (op) {
-            nop=txn_op_get_next_in_node(op);
-            rec=txn_op_get_record(op);
-            if (rec) {
-                if (rec->data)
-                    allocator_free(env_get_allocator(env), rec->data);
-                allocator_free(env_get_allocator(env), rec);
-            }
-            allocator_free(env_get_allocator(env), op);
-            op=nop;
-        }
-        rbt_remove(tree, node);
-        allocator_free(env_get_allocator(env), node);
+        ham_assert(!"optree node is not empty!", (""));
     }
     allocator_free(env_get_allocator(env), tree);
+}
+
+static void
+txn_op_free(ham_env_t *env, ham_txn_t *txn, txn_op_t *op)
+{
+    ham_record_t *rec;
+    txn_op_t *next, *prev;
+    txn_optree_node_t *node;
+    txn_optree_t *tree;
+
+    rec=txn_op_get_record(op);
+    if (rec) {
+        if (rec->data)
+            allocator_free(env_get_allocator(env), rec->data);
+        allocator_free(env_get_allocator(env), rec);
+    }
+
+    /* remove 'op' from the two linked lists */
+    next=txn_op_get_next_in_node(op);
+    prev=txn_op_get_previous_in_node(op);
+    if (next)
+        txn_op_set_previous_in_node(next, prev);
+    if (prev)
+        txn_op_set_next_in_node(prev, next);
+
+    next=txn_op_get_next_in_txn(op);
+    prev=txn_op_get_previous_in_txn(op);
+    if (next)
+        txn_op_set_previous_in_txn(next, prev);
+    if (prev)
+        txn_op_set_next_in_txn(prev, next);
+
+    /* if the node is empty: remove the node from the tree */
+    node=txn_op_get_node(op);
+    if (txn_optree_node_get_oldest_op(node)==op)
+        txn_optree_node_set_oldest_op(node, txn_op_get_next_in_node(op));
+    if (txn_optree_node_get_oldest_op(node)==0) {
+        tree=txn_optree_node_get_tree(node);
+        rbt_remove(tree, node);
+        /* TODO remove ham_key_t structure? */
+        allocator_free(env_get_allocator(env), node);
+    }
+
+    allocator_free(env_get_allocator(env), op);
 }
 
 void
 txn_free_ops(ham_txn_t *txn)
 {
     ham_env_t *env=txn_get_env(txn);
+    txn_op_t *n, *op=txn_get_oplist(txn);
 
-    txn_optree_t *n, *t=txn_get_trees(txn);
-    while (t) {
-        n=txn_optree_get_next(t);
-        txn_optree_free(env, t);
-        t=n;
-    };
-    txn_set_trees(txn, 0);
+    while (op) {
+        n=txn_op_get_next_in_txn(op);
+        txn_op_free(env, txn, op);
+        op=n;
+    }
+
+    txn_set_oplist(txn, 0);
 }
 
 void

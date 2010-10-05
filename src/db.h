@@ -213,6 +213,9 @@ struct ham_db_t
     ham_u64_t _remote_handle;
 #endif
 
+    /** the transaction tree */
+    struct txn_optree_t *_optree;
+
     /**
      * get Database parameters
      */
@@ -441,23 +444,29 @@ struct ham_db_t
     (((mode_collective) & (mask)) == (mask))
 
 /** check whether this database has been opened/created */
-#define db_is_active(db)   (db)->_is_active
+#define db_is_active(db)               (db)->_is_active
 
 /**
  * set the 'active' flag of the database: a non-zero value 
  * for @a s sets the @a db to 'active', zero(0) sets the @a db 
  * to 'inactive' (closed)
  */
-#define db_set_active(db,s)  (db)->_is_active=!!(s)
+#define db_set_active(db,s)            (db)->_is_active=!!(s)
 
 /** get a reference to the per-database statistics */
-#define db_get_db_perf_data(db)      &(db)->_db_perf_data
+#define db_get_db_perf_data(db)         &(db)->_db_perf_data
 
 /** get the remote database handle */
 #define db_get_remote_handle(db)        (db)->_remote_handle
 
 /** set the remote database handle */
 #define db_set_remote_handle(db, h)     (db)->_remote_handle=(h)
+
+/** get the transaction tree */
+#define db_get_optree(db)               (db)->_optree
+
+/** set the transaction tree */
+#define db_set_optree(db, t)            (db)->_optree=t
 
 /**
  * get the database name

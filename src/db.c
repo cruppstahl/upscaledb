@@ -1375,8 +1375,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
         /* flush the database header, if it's dirty */
         if (env_is_dirty(env)) {
             st=page_flush(env_get_header_page(env));
-            if (st)
-            {
+            if (st) {
                 if (st2 == 0) st2 = st;
             }
         }
@@ -1431,6 +1430,12 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     if (db_get_extkey_cache(db)) {
         extkey_cache_destroy(db_get_extkey_cache(db));
         db_set_extkey_cache(db, 0);
+    }
+
+    /* free the transaction tree */
+    if (db_get_optree(db)) {
+        txn_free_optree(db_get_optree(db));
+        db_set_optree(db, 0);
     }
 
     /* close the backend */
@@ -1744,13 +1749,15 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
     txn_optree_node_t *node;
     txn_op_t *op;
 
-    /* get (or create) the txn-tree for this database */
-    tree=txn_tree_get_or_create(txn, db);
+    /* get (or create) the txn-tree for this database; we do not need
+     * the returned value, but we call the function to trigger the 
+     * tree creation if it does not yet exist */
+    tree=txn_tree_get_or_create(db);
     if (!tree)
         return (HAM_OUT_OF_MEMORY);
 
     /* get (or create) the node for this key */
-    node=txn_optree_node_get_or_create(db, tree, key);
+    node=txn_optree_node_get_or_create(db, key);
     if (!node)
         return (HAM_OUT_OF_MEMORY);
 
