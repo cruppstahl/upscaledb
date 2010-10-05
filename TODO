@@ -73,6 +73,8 @@ o manage all transactions
 
     x txn_free: discard the tree and everything that's allocated
 
+    o implement env_flush_committed_txns()
+
     o add unittests for all the stuff I did so far
         x structure test: txn
         x structure test: txn_tree
@@ -122,7 +124,6 @@ o manage all transactions
         o add unittests
     o lsn is missing! it should come either from the env or from the log 
         (but the log does not always exist)
-    o implement env_flush_committed_txns()
     o add new unittests
     o make sure all unittests are running
     o review page.h - anything that we do not need? (i.e. dirty_txn?)
