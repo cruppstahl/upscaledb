@@ -1690,6 +1690,7 @@ static ham_status_t
 db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn, 
                 txn_optree_node_t *node, ham_key_t *key, ham_u32_t flags)
 {
+    ham_status_t st;
     txn_op_t *op=0;
 
     /*
@@ -1737,7 +1738,21 @@ db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn,
         op=txn_op_get_next_in_node(op);
     }
 
-    return (0);
+    /*
+     * we've successfully checked all un-flushed transactions and there
+     * were no conflicts. Now check all transactions which are already
+     * flushed - basically that's identical to a btree lookup.
+     *
+     * however we can skip this check if we do not care about duplicates.
+     */
+    if ((flags&HAM_OVERWRITE) || (flags&HAM_DUPLICATE))
+        return (0);
+    st=db->_fun_find(db, 0, key, 0, 0);
+    if (st==HAM_KEY_NOT_FOUND)
+        return (0);
+    if (st=HAM_SUCCESS)
+        return (HAM_DUPLICATE);
+    return (st);
 }
 
 static ham_status_t
