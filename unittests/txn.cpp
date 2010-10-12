@@ -56,6 +56,15 @@ public:
         BFC_REGISTER_TEST(TxnTest, txnInsertConflict3Test);
         BFC_REGISTER_TEST(TxnTest, txnInsertConflict4Test);
         BFC_REGISTER_TEST(TxnTest, txnInsertConflict5Test);
+        BFC_REGISTER_TEST(TxnTest, txnInsertFind1Test);
+        BFC_REGISTER_TEST(TxnTest, txnInsertFind2Test);
+        BFC_REGISTER_TEST(TxnTest, txnInsertFind3Test);
+        BFC_REGISTER_TEST(TxnTest, txnInsertFind4Test);
+        BFC_REGISTER_TEST(TxnTest, txnInsertFind5Test);
+        BFC_REGISTER_TEST(TxnTest, txnInsertFindErase1Test);
+        BFC_REGISTER_TEST(TxnTest, txnInsertFindErase2Test);
+        BFC_REGISTER_TEST(TxnTest, txnInsertFindErase3Test);
+        BFC_REGISTER_TEST(TxnTest, txnInsertFindErase4Test);
     }
 
 protected:
@@ -514,6 +523,236 @@ public:
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn2, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
     }
+
+    void txnInsertFind1Test(void)
+    {
+        ham_txn_t *txn1, *txn2;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"world";
+        rec.size=5;
+        ham_record_t rec2;
+        memset(&rec2, 0, sizeof(rec2));
+
+        /* begin(T1); begin(T2); insert(T1, a); commit(T1); find(T2, a) -> ok */
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, txn2, &key, &rec2, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+
+        BFC_ASSERT_EQUAL(rec.size, rec2.size);
+        BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec2.size));
+    }
+
+    void txnInsertFind2Test(void)
+    {
+        ham_txn_t *txn1, *txn2;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"world";
+        rec.size=5;
+        ham_record_t rec2;
+        memset(&rec2, 0, sizeof(rec2));
+
+        /* begin(T1); begin(T2); insert(T1, a); insert(T2, a) -> conflict */
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, 
+                    ham_find(m_db, txn2, &key, &rec2, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
+
+    void txnInsertFind3Test(void)
+    {
+        ham_txn_t *txn1, *txn2;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"world";
+        rec.size=5;
+        ham_record_t rec2;
+        memset(&rec2, 0, sizeof(rec2));
+
+        /* begin(T1); begin(T2); insert(T1, a); commit(T1); 
+         * commit(T2); find(temp, a) -> ok */
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec2, 0));
+
+        BFC_ASSERT_EQUAL(rec.size, rec2.size);
+        BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec2.size));
+    }
+
+    void txnInsertFind4Test(void)
+    {
+        ham_txn_t *txn1, *txn2;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
+
+        /* begin(T1); begin(T2); insert(T1, a); abort(T1); 
+         * find(T2, a) -> fail */
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn1, 0));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    ham_find(m_db, txn2, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
+
+    void txnInsertFind5Test(void)
+    {
+        ham_txn_t *txn1, *txn2;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
+        ham_key_t key2;
+        memset(&key2, 0, sizeof(key2));
+        key2.data=(void *)"world";
+        key2.size=5;
+
+        /* begin(T1); begin(T2); insert(T1, a); commit(T1); 
+         * find(T2, c) -> fail */
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn1, 0));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    ham_find(m_db, txn2, &key2, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
+
+    void txnInsertFindErase1Test(void)
+    {
+        ham_txn_t *txn1, *txn2;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"world";
+        rec.size=5;
+        ham_record_t rec2;
+        memset(&rec2, 0, sizeof(rec2));
+
+        /* begin(T1); begin(T2); insert(T1, a); commit(T1); erase(T2, a);
+         * find(T2, a) -> fail */
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
+        BFC_ASSERT_EQUAL(0, ham_erase(m_db, txn2, &key, 0));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    ham_find(m_db, txn2, &key, &rec2, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    ham_erase(m_db, txn2, &key, 0));
+    }
+
+    void txnInsertFindErase2Test(void)
+    {
+        ham_txn_t *txn1, *txn2;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"world";
+        rec.size=5;
+        ham_record_t rec2;
+        memset(&rec2, 0, sizeof(rec2));
+
+        /* begin(T1); begin(T2); insert(T1, a); commit(T1); commit(T2);
+         * erase(T3, a) -> ok; find(T2, a) -> fail */
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
+        BFC_ASSERT_EQUAL(0, ham_erase(m_db, txn2, &key, 0));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    ham_find(m_db, txn2, &key, &rec2, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    ham_erase(m_db, txn2, &key, 0));
+    }
+
+    void txnInsertFindErase3Test(void)
+    {
+        ham_txn_t *txn1, *txn2;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"world";
+        rec.size=5;
+
+        /* begin(T1); begin(T2); insert(T1, a); abort(T1); erase(T2, a) -> fail;
+         * commit(T2); */
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn1, 0));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, ham_erase(m_db, txn2, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
+
+    void txnInsertFindErase4Test(void)
+    {
+        ham_txn_t *txn1, *txn2;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"world";
+        rec.size=5;
+        ham_record_t rec2;
+        memset(&rec2, 0, sizeof(rec2));
+
+        /* begin(T1); begin(T2); insert(T1, a); erase(T1, a); -> ok;
+         * commit(T2); */
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn1, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, ham_erase(m_db, txn1, &key, 0));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    ham_erase(m_db, txn1, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    ham_erase(m_db, txn2, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
+
 };
 
 class HighLevelTxnTest : public hamsterDB_fixture
@@ -883,6 +1122,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
+
 };
 
 BFC_REGISTER_FIXTURE(TxnTest);

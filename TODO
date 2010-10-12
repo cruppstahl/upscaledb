@@ -111,22 +111,30 @@ o manage all transactions
 
     x rename txn_optree_node_t to txn_opnode_t (consistent with txn_optree_t)
 
-    o rewrite ham_find
-        o if transactions are disabled: immediately read from disk
-        o otherwise go through transaction trees
-        o add unittests
-    o rewrite ham_erase
-        o each modified database gets its own txn tree when its modified
+    x rewrite ham_find
+        x if transactions are disabled: immediately read from disk
+        x otherwise go through transaction trees
+        x add unittests
+
+    x do not conflict if the same transaction already modified the key!
+
+    x rewrite ham_erase
+        x each modified database gets its own txn tree when its modified
             in a transaction
-        o if transactions are disabled: immediately write to disk, no
+        x if transactions are disabled: immediately write to disk, no
             temp transactions are needed
-        o otherwise go through transaction trees
-        o add unittests
+        x otherwise go through transaction trees
+        x add unittests
+
+    x add new unittests
+
     o lsn is missing! it should come either from the env or from the log 
         (but the log does not always exist)
-    o add new unittests
-    o make sure all unittests are running
     o review page.h - anything that we do not need? (i.e. dirty_txn?)
+
+    o what if a partial key is written, and then lookup looks for another
+        region of that key? would have to consolidate them :/
+    o what about approx. matching?
 
     o more pending cleanups
         o remove env_get_txn, env_get_txn_id
@@ -144,6 +152,8 @@ o each operation writes a journal entry (however, we still keep the logical
     o api function to get a list of pending transactions
     o recovery: recreate all pending transactions (if requested)
     o unittests
+
+o make sure all unittests are running
 
 o ham_txn_begin receives Environment handle, not Database handle
     o need a new parameter (reserved) for parent txn

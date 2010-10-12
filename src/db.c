@@ -1710,7 +1710,8 @@ db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn,
         ham_txn_t *optxn=txn_op_get_txn(op);
         if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
             ; /* nop */
-        else if (txn_get_flags(optxn)&TXN_STATE_COMMITTED) {
+        else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
+                    || (txn==optxn)) {
             /* if key was erased then it doesn't exist and can be
              * inserted without problems */
             if (txn_op_get_flags(op)&TXN_OP_ERASE)
@@ -1757,6 +1758,63 @@ db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn,
 }
 
 static ham_status_t
+db_check_erase_conflicts(ham_db_t *db, ham_txn_t *txn, 
+                txn_opnode_t *node, ham_key_t *key, ham_u32_t flags)
+{
+    txn_op_t *op=0;
+    ham_backend_t *be=db_get_backend(db);
+
+    /*
+     * pick the tree_node of this key, and walk through each operation 
+     * in reverse chronological order (from newest to oldest):
+     * - is this op part of an aborted txn? then skip it
+     * - is this op part of a committed txn? then look at the
+     *      operation in detail
+     * - is this op part of an txn which is still active? return an error
+     *      because we've found a conflict
+     * - if a committed txn has erased the item then there's no need
+     *      to continue checking older, committed txns
+     */
+    op=txn_opnode_get_newest_op(node);
+    while (op) {
+        ham_txn_t *optxn=txn_op_get_txn(op);
+        if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
+            ; /* nop */
+        else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
+                    || (txn==optxn)) {
+            /* if key was erased then it doesn't exist and we fail with
+             * an error */
+            if (txn_op_get_flags(op)&TXN_OP_ERASE)
+                return (HAM_KEY_NOT_FOUND);
+            else if (txn_op_get_flags(op)&TXN_OP_NOP)
+                ; /* nop */
+            /* if the key exists then we're successful */
+            else if ((txn_op_get_flags(op)&TXN_OP_INSERT_OW)
+                    || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
+                return (0);
+            }
+            else {
+                ham_assert(!"shouldn't be here", (""));
+                return (HAM_KEY_NOT_FOUND);
+            }
+        }
+        else { /* txn is still active */
+            /* TODO txn_set_conflict_txn(txn, optxn); */
+            return (HAM_TXN_CONFLICT);
+        }
+
+        op=txn_op_get_next_in_node(op);
+    }
+
+    /*
+     * we've successfully checked all un-flushed transactions and there
+     * were no conflicts. Now check all transactions which are already
+     * flushed - basically that's identical to a btree lookup.
+     */
+    return (be->_fun_find(be, key, 0, flags));
+}
+
+static ham_status_t
 db_insert_txn(ham_db_t *db, ham_txn_t *txn,
         ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
@@ -1792,6 +1850,122 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
         return (HAM_OUT_OF_MEMORY);
 
     return (0);
+}
+
+static ham_status_t
+db_erase_txn(ham_db_t *db, ham_txn_t *txn,
+        ham_key_t *key, ham_u32_t flags)
+{
+    ham_status_t st;
+    txn_optree_t *tree;
+    txn_opnode_t *node;
+    txn_op_t *op;
+
+    /* get (or create) the txn-tree for this database; we do not need
+     * the returned value, but we call the function to trigger the 
+     * tree creation if it does not yet exist */
+    tree=txn_tree_get_or_create(db);
+    if (!tree)
+        return (HAM_OUT_OF_MEMORY);
+
+    /* get (or create) the node for this key */
+    node=txn_opnode_get_or_create(db, key);
+    if (!node)
+        return (HAM_OUT_OF_MEMORY);
+
+    /* check for conflicts of this key */
+    st=db_check_erase_conflicts(db, txn, node, key, flags);
+    if (st)
+        return (st);
+
+    /* append a new operation to this node */
+    /* TODO lsn is missing! */
+    op=txn_opnode_append(txn, node, TXN_OP_ERASE, 0, 0); 
+    if (!op)
+        return (HAM_OUT_OF_MEMORY);
+
+    return (0);
+}
+
+static ham_status_t
+db_find_txn(ham_db_t *db, ham_txn_t *txn,
+        ham_key_t *key, ham_record_t *record, ham_u32_t flags)
+{
+    txn_optree_t *tree=0;
+    txn_opnode_t *node=0;
+    txn_op_t *op=0;
+    ham_backend_t *be=db_get_backend(db);
+
+    /* get the txn-tree for this database; if there's no tree then
+     * there's no need to create a new one - we'll just skip the whole
+     * tree-related code */
+    tree=db_get_optree(db);
+
+    /* get the node for this key (but don't create a new one if it does
+     * not yet exist) - TODO this code will always create a new node */
+    if (tree) {
+        node=txn_opnode_get_or_create(db, key);
+        if (!node)
+            return (HAM_OUT_OF_MEMORY);
+    }
+
+    /*
+     * pick the tree_node of this key, and walk through each operation 
+     * in reverse chronological order (from newest to oldest):
+     * - is this op part of an aborted txn? then skip it
+     * - is this op part of a committed txn? then look at the
+     *      operation in detail
+     * - is this op part of an txn which is still active? return an error
+     *      because we've found a conflict
+     * - if a committed txn has erased the item then there's no need
+     *      to continue checking older, committed txns
+     */
+    if (tree && node)
+        op=txn_opnode_get_newest_op(node);
+    while (op) {
+        ham_txn_t *optxn=txn_op_get_txn(op);
+        if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
+            ; /* nop */
+        else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
+                    || (txn==optxn)) {
+            /* if key was erased then it doesn't exist and we can return
+             * immediately */
+            if (txn_op_get_flags(op)&TXN_OP_ERASE)
+                return (HAM_KEY_NOT_FOUND);
+            else if (txn_op_get_flags(op)&TXN_OP_NOP)
+                ; /* nop */
+            /* if the key already exists then we can return its record */
+            else if ((txn_op_get_flags(op)&TXN_OP_INSERT_OW)
+                    || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
+                if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
+                    *record=*txn_op_get_record(op);
+                }
+                else {
+                    memcpy(record->data, txn_op_get_record(op)->data,
+                                txn_op_get_record(op)->size);
+                    record->size=txn_op_get_record(op)->size;
+                }
+                return (0);
+            }
+            else {
+                ham_assert(!"shouldn't be here", (""));
+                return (HAM_KEY_NOT_FOUND);
+            }
+        }
+        else { /* txn is still active */
+            /* TODO txn_set_conflict_txn(txn, optxn); */
+            return (HAM_TXN_CONFLICT);
+        }
+
+        op=txn_op_get_next_in_node(op);
+    }
+
+    /*
+     * we've successfully checked all un-flushed transactions and there
+     * were no conflicts, and we have not found the key. Now try to 
+     * lookup the key in the btree.
+     */
+    return (be->_fun_find(be, key, record, flags));
 }
 
 static ham_status_t
@@ -1861,7 +2035,7 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
         allocator_free(env_get_allocator(env), temprec.data);
 
     if (st) {
-        if (!txn)
+        if (local_txn)
             (void)txn_abort(local_txn, 0);
 
         if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
@@ -1898,8 +2072,8 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
 static ham_status_t
 _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 {
-    ham_txn_t *local_txn;
     ham_status_t st;
+    ham_txn_t *local_txn=0;
     ham_env_t *env=db_get_env(db);
     ham_backend_t *be;
     ham_offset_t recno=0;
@@ -1914,9 +2088,7 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         return (HAM_DB_READ_ONLY);
     }
 
-    /*
-     * record number: make sure that we have a valid key structure
-     */
+    /* record number: make sure that we have a valid key structure */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         if (key->size!=sizeof(ham_u64_t) || !key->data) {
             ham_trace(("key->size must be 8, key->data must not be NULL"));
@@ -1927,32 +2099,34 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         *(ham_offset_t *)key->data=recno;
     }
 
-    if (!txn) {
+    if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         if ((st=txn_begin(&local_txn, env, 0)))
             return (st);
     }
 
     db_update_global_stats_erase_query(db, key->size);
 
-    /*
-     * get rid of the entry
+    /* 
+     * if transactions are enabled: append a 'erase key' operation into
+     * the txn tree; otherwise immediately erase the key from disk
      */
-    st=be->_fun_erase(be, key, flags);
+    if (txn || local_txn)
+        st=db_erase_txn(db, txn, key, flags);
+    else
+        st=be->_fun_erase(be, key, flags);
 
     if (st) {
-        if (!txn)
+        if (local_txn)
             (void)txn_abort(local_txn, 0);
         return (st);
     }
 
-    /*
-     * record number: re-translate the number to host endian
-     */
+    /* record number: re-translate the number to host endian */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         *(ham_offset_t *)key->data=ham_db2h64(recno);
     }
 
-    if (!txn)
+    if (local_txn)
         return (txn_commit(local_txn, 0));
     else
         return (st);
@@ -1963,7 +2137,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         ham_record_t *record, ham_u32_t flags)
 {
     ham_env_t *env=db_get_env(db);
-    ham_txn_t *local_txn;
+    ham_txn_t *local_txn=0;
     ham_status_t st;
     ham_backend_t *be;
     ham_offset_t recno=0;
@@ -1974,13 +2148,10 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         return (HAM_INV_KEYSIZE);
     }
 
-    /*
-     * record number: make sure we have a number in little endian
-     */
+    /* record number: make sure we have a number in little endian */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         ham_assert(key->size==sizeof(ham_u64_t), (""));
         ham_assert(key->data!=0, (""));
-
         recno=*(ham_offset_t *)key->data;
         recno=ham_h2db64(recno);
         *(ham_offset_t *)key->data=recno;
@@ -1993,7 +2164,9 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     if (!be->_fun_find)
         return HAM_NOT_IMPLEMENTED;
 
-    if (!txn) {
+    /* if user did not specify a transaction, but transactions are enabled:
+     * create a temporary one */
+    if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
         if (st)
             return (st);
@@ -2001,27 +2174,27 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 
     db_update_global_stats_find_query(db, key->size);
 
-    /*
-     * first look up the blob id, then fetch the blob
+    /* 
+     * if transactions are enabled: read keys from transaction trees, 
+     * otherwise read immediately from disk
      */
-    st=be->_fun_find(be, key, record, flags);
+    if (txn || local_txn)
+        st=db_find_txn(db, txn, key, record, flags);
+    else
+        st=be->_fun_find(be, key, record, flags);
 
     if (st) {
-        if (!txn)
+        if (local_txn)
             (void)txn_abort(local_txn, 0);
         return (st);
     }
 
-    /*
-     * record number: re-translate the number to host endian
-     */
+    /* record number: re-translate the number to host endian */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         *(ham_offset_t *)key->data=ham_db2h64(recno);
     }
 
-    /*
-     * run the record-level filters
-     */
+    /* run the record-level filters */
     st=__record_filters_after_find(db, record);
     if (st) {
         if (!txn)
@@ -2029,7 +2202,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         return (st);
     }
 
-    if (!txn)
+    if (local_txn)
         return (txn_commit(local_txn, 0));
     else
         return (st);
