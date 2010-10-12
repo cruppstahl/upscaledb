@@ -78,6 +78,9 @@ typedef struct txn_op_t
 /** txn operation erases the key */
 #define TXN_OP_ERASE        0x40000u
 
+/** txn operation was already flushed */
+#define TXN_OP_FLUSHED      0x80000u
+
 /** get flags */
 #define txn_op_get_flags(t)         (t)->_flags
 
@@ -243,8 +246,11 @@ struct ham_txn_t
     /** linked list of all transactions */
     ham_txn_t *_newer, *_older;
 
-    /** linked list of all txn_op_t structures */
-    txn_op_t *_oplist;
+    /** the linked list of operations - head is oldest operation */
+    txn_op_t *_oldest_op;
+
+    /** the linked list of operations - tail is newest operation */
+    txn_op_t *_newest_op;
 };
 
 /** transaction is still alive but was aborted */
@@ -260,10 +266,10 @@ struct ham_txn_t
 #define txn_set_id(txn, id)                     (txn)->_id=(id)
 
 /** get the environment pointer */
-#define txn_get_env(txn)                         (txn)->_env
+#define txn_get_env(txn)                        (txn)->_env
 
 /** set the environment pointer */
-#define txn_set_env(txn, env)                     (txn)->_env=(env)
+#define txn_set_env(txn, env)                   (txn)->_env=(env)
 
 /** get the flags */
 #define txn_get_flags(txn)                      (txn)->_flags
@@ -276,12 +282,6 @@ struct ham_txn_t
 
 /** set the cursor refcount */
 #define txn_set_cursor_refcount(txn, cfc)       (txn)->_cursor_refcount=(cfc)
-
-/** get the oldest transaction operation */
-#define txn_get_oldest_op(txn)                  (txn)->_oldest_op
-
-/** set the oldest transaction operation */
-#define txn_set_oldest_op(txn, o)               (txn)->_oldest_op=o
 
 /** get the index of the log file descriptor */
 #define txn_get_log_desc(txn)                   (txn)->_log_desc
@@ -301,17 +301,23 @@ struct ham_txn_t
 /** set the 'newer' pointer of the linked list */
 #define txn_set_newer(txn, n)                   (txn)->_newer=(n)
 
-/** get the list of txn_op_t structures */
-#define txn_get_oplist(txn)                     (txn)->_oplist
-
-/** set the head of the list of txn_op_t structures */
-#define txn_set_oplist(txn, op)                 (txn)->_oplist=op
-
 /** get the 'older' pointer of the linked list */
 #define txn_get_older(txn)                      (txn)->_older
 
 /** set the 'older' pointer of the linked list */
 #define txn_set_older(txn, o)                   (txn)->_older=(o)
+
+/** get the oldest transaction operation */
+#define txn_get_oldest_op(txn)                  (txn)->_oldest_op
+
+/** set the oldest transaction operation */
+#define txn_set_oldest_op(txn, o)               (txn)->_oldest_op=o
+
+/** get the newest transaction operation */
+#define txn_get_newest_op(txn)                  (txn)->_newest_op
+
+/** set the newest transaction operation */
+#define txn_set_newest_op(txn, o)               (txn)->_newest_op=o
 
 /**
  * creates an optree for a Database, or retrieves it if it was

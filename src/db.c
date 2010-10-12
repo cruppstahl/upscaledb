@@ -1692,6 +1692,7 @@ db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn,
 {
     ham_status_t st;
     txn_op_t *op=0;
+    ham_backend_t *be=db_get_backend(db);
 
     /*
      * pick the tree_node of this key, and walk through each operation 
@@ -1747,11 +1748,11 @@ db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn,
      */
     if ((flags&HAM_OVERWRITE) || (flags&HAM_DUPLICATE))
         return (0);
-    st=db->_fun_find(db, 0, key, 0, 0);
+    st=be->_fun_find(be, key, 0, flags);
     if (st==HAM_KEY_NOT_FOUND)
         return (0);
-    if (st=HAM_SUCCESS)
-        return (HAM_DUPLICATE);
+    if (st==HAM_SUCCESS)
+        return (HAM_DUPLICATE_KEY);
     return (st);
 }
 

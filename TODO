@@ -73,9 +73,9 @@ o manage all transactions
 
     x txn_free: discard the tree and everything that's allocated
 
-    o implement env_flush_committed_txns()
+    x implement env_flush_committed_txns()
 
-    o add unittests for all the stuff I did so far
+    x add unittests for all the stuff I did so far
         x structure test: txn
         x structure test: txn_tree
         x structure test: txn_node
@@ -93,9 +93,8 @@ o manage all transactions
         x create an op for a txn-node
         x create multiple ops and make sure that they 
             are linked correctly in the node
-        o test all potential conflict scenarios
+        x test all potential conflict scenarios
 
-=========================
     x tree is property of db, not of env (-> O(1))
         optree->_next really needed? - no
     x when op is deleted: update the node structure (op_next_in_node)
@@ -103,13 +102,12 @@ o manage all transactions
     x when node is removed and tree is empty: remove tree from db
         or better: remove tree when db is closed
     x fix all unittests/memleaks
-    o some structural changes -> need unittests
+    x some structural changes -> need unittests
         txn_op_t previous_in_txn
         txn_op_t previous_in_node
         txn_op_t node
         txn_optree_node_t tree
-    o who allocs/frees the key in the node? - streamline
-=========================
+    x who allocs/frees the key in the node? - streamline
 
     o rewrite ham_find
         o if transactions are disabled: immediately read from disk

@@ -1347,6 +1347,56 @@ env_remove_txn(ham_env_t *env, ham_txn_t *txn)
     }
 }
 
+static ham_status_t
+__flush_txn(ham_env_t *env, ham_txn_t *txn)
+{
+    ham_status_t st=0;
+    txn_op_t *op=txn_get_oldest_op(txn);
+
+    while (op) {
+        txn_optree_node_t *node=txn_op_get_node(op);
+        ham_backend_t *be=db_get_backend(txn_optree_node_get_db(node));
+
+        /* make sure that this op was not yet flushed - this would be
+         * a serious bug */
+        ham_assert(txn_op_get_flags(op)!=TXN_OP_FLUSHED, (""));
+
+        /* depending on the type of the operation: actually perform the
+         * operation on the btree */
+        switch (txn_op_get_flags(op)) {
+            case TXN_OP_INSERT_OW:
+                st=be->_fun_insert(be, txn_optree_node_get_key(node), 
+                            txn_op_get_record(op), 
+                            txn_op_get_flags(op)|HAM_OVERWRITE);
+                break;
+            case TXN_OP_INSERT_DUP:
+                st=be->_fun_insert(be, txn_optree_node_get_key(node), 
+                            txn_op_get_record(op), 
+                            txn_op_get_flags(op)|HAM_DUPLICATE);
+                break;
+            case TXN_OP_ERASE:
+                st=be->_fun_erase(be, txn_optree_node_get_key(node), 
+                            txn_op_get_flags(op));
+                break;
+            default:
+                break;
+        }
+
+        if (st) {
+            ham_trace(("failed to flush op: %d\n", (int)st));
+            return (st);
+        }
+
+        /* this op was flushed! */
+        txn_op_set_flags(op, TXN_OP_FLUSHED);
+
+        /* continue with the next operation of this txn */
+        op=txn_op_get_next_in_txn(op);
+    }
+
+    return (0);
+}
+
 ham_status_t
 env_flush_committed_txns(ham_env_t *env)
 {
@@ -1356,7 +1406,9 @@ env_flush_committed_txns(ham_env_t *env)
      * it; if it was aborted: discard it; otherwise return */
     while ((oldest=env_get_oldest_txn(env))) {
         if (txn_get_flags(oldest)&TXN_STATE_COMMITTED) {
-            /* TODO flush txn */
+            ham_status_t st=__flush_txn(env, oldest);
+            if (st)
+                return (st);
         }
         else if (txn_get_flags(oldest)&TXN_STATE_ABORTED) {
             ; /* nop */

@@ -51,7 +51,11 @@ public:
         BFC_REGISTER_TEST(TxnTest, txnMultipleNodesTest);
         BFC_REGISTER_TEST(TxnTest, txnOpStructureTest);
         BFC_REGISTER_TEST(TxnTest, txnMultipleOpsTest);
-        BFC_REGISTER_TEST(TxnTest, txnInsertConflictTest);
+        BFC_REGISTER_TEST(TxnTest, txnInsertConflict1Test);
+        BFC_REGISTER_TEST(TxnTest, txnInsertConflict2Test);
+        BFC_REGISTER_TEST(TxnTest, txnInsertConflict3Test);
+        BFC_REGISTER_TEST(TxnTest, txnInsertConflict4Test);
+        BFC_REGISTER_TEST(TxnTest, txnInsertConflict5Test);
     }
 
 protected:
@@ -73,7 +77,9 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create(m_env, BFC_OPATH(".test"), 
-                    HAM_ENABLE_RECOVERY|HAM_ENABLE_TRANSACTIONS, 0664));
+                    HAM_ENABLE_DUPLICATES
+                        |HAM_ENABLE_RECOVERY
+                        |HAM_ENABLE_TRANSACTIONS, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
     }
@@ -160,9 +166,13 @@ public:
         txn_set_log_desc(txn, 4);
         BFC_ASSERT_EQUAL(4, txn_get_log_desc(txn));
 
-        txn_set_oplist(txn, (txn_op_t *)2);
-        BFC_ASSERT_EQUAL((txn_op_t *)2, txn_get_oplist(txn));
-        txn_set_oplist(txn, (txn_op_t *)0);
+        txn_set_oldest_op(txn, (txn_op_t *)2);
+        BFC_ASSERT_EQUAL((txn_op_t *)2, txn_get_oldest_op(txn));
+        txn_set_oldest_op(txn, (txn_op_t *)0);
+
+        txn_set_newest_op(txn, (txn_op_t *)2);
+        BFC_ASSERT_EQUAL((txn_op_t *)2, txn_get_newest_op(txn));
+        txn_set_newest_op(txn, (txn_op_t *)0);
 
         txn_set_newer(txn, (ham_txn_t *)1);
         BFC_ASSERT_EQUAL((ham_txn_t *)1, txn_get_newer(txn));
@@ -240,6 +250,8 @@ public:
         memset(&key, 0, sizeof(key));
         key.data=(void *)"hello";
         key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         tree=txn_tree_get_or_create(m_db);
@@ -265,7 +277,7 @@ public:
 
         /* need at least one txn_op_t structure in this node, otherwise
          * memory won't be cleaned up correctly */
-        (void)txn_optree_node_append(txn, node, TXN_OP_INSERT_DUP, 55, 0);
+        (void)txn_optree_node_append(txn, node, TXN_OP_INSERT_DUP, 55, &rec);
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
@@ -281,6 +293,8 @@ public:
         memset(&key2, 0, sizeof(key2));
         key2.data=(void *)"world";
         key2.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         tree=txn_tree_get_or_create(m_db);
@@ -291,13 +305,6 @@ public:
         node2=txn_optree_node_get_or_create(m_db, &key2);
         BFC_ASSERT(node!=node2);
 
-        /* immediately free the txn because 'key1' and 'key2' is on the stack;
-         * if the txn is freed later, the key-pointers are invalid */
-        /* need at least one txn_op_t structure in this node, otherwise
-         * memory won't be cleaned up correctly */
-        (void)txn_optree_node_append(txn, node,  TXN_OP_INSERT_DUP, 55, 0);
-        (void)txn_optree_node_append(txn, node2, TXN_OP_INSERT_DUP, 55, 0);
-        txn_free_ops(txn);
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
@@ -310,6 +317,8 @@ public:
         memset(&key, 0, sizeof(key));
         key.data=(void *)"1111";
         key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         tree=txn_tree_get_or_create(m_db);
@@ -322,11 +331,6 @@ public:
         node3=txn_optree_node_get_or_create(m_db, &key);
         BFC_ASSERT(node3!=0);
 
-        /* need at least one txn_op_t structure in this node, otherwise
-         * memory won't be cleaned up correctly */
-        (void)txn_optree_node_append(txn, node1, TXN_OP_INSERT_DUP, 55, 0);
-        (void)txn_optree_node_append(txn, node2, TXN_OP_INSERT_DUP, 55, 0);
-        (void)txn_optree_node_append(txn, node3, TXN_OP_INSERT_DUP, 55, 0);
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
@@ -349,7 +353,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         tree=txn_tree_get_or_create(m_db);
         node=txn_optree_node_get_or_create(m_db, &key);
-        op=txn_optree_node_append(txn, node, TXN_OP_INSERT_DUP, 55, 0);
+        op=txn_optree_node_append(txn, node, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
         BFC_ASSERT_EQUAL(TXN_OP_INSERT_DUP, txn_op_get_flags(op));
@@ -401,15 +405,15 @@ public:
         node=txn_optree_node_get_or_create(m_db, &key);
         op1=txn_optree_node_append(txn, node, TXN_OP_INSERT_DUP, 55, &rec);
         BFC_ASSERT(op1!=0);
-        op2=txn_optree_node_append(txn, node, TXN_OP_ERASE, 55, 0);
+        op2=txn_optree_node_append(txn, node, TXN_OP_ERASE, 55, &rec);
         BFC_ASSERT(op2!=0);
-        op3=txn_optree_node_append(txn, node, TXN_OP_NOP, 55, 0);
+        op3=txn_optree_node_append(txn, node, TXN_OP_NOP, 55, &rec);
         BFC_ASSERT(op3!=0);
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
-    void txnInsertConflictTest(void)
+    void txnInsertConflict1Test(void)
     {
         ham_txn_t *txn1, *txn2;
         ham_key_t key;
@@ -427,6 +431,17 @@ public:
                     ham_insert(m_db, txn2, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn1, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
+
+    void txnInsertConflict2Test(void)
+    {
+        ham_txn_t *txn1, *txn2;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
 
         /* begin(T1); begin(T2); insert(T1, a); insert(T2, a) -> duplicate */
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn1, m_db, 0));
@@ -436,6 +451,17 @@ public:
         BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY, 
                     ham_insert(m_db, txn2, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
+
+    void txnInsertConflict3Test(void)
+    {
+        ham_txn_t *txn1, *txn2;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
 
         /* begin(T1); begin(T2); insert(T1, a); commit(T1); 
          * insert(T2, a, OW) -> ok */
@@ -446,6 +472,17 @@ public:
         BFC_ASSERT_EQUAL(0, 
                     ham_insert(m_db, txn2, &key, &rec, HAM_OVERWRITE));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
+
+    void txnInsertConflict4Test(void)
+    {
+        ham_txn_t *txn1, *txn2;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
 
         /* begin(T1); begin(T2); insert(T1, a); commit(T1); 
          * insert(T2, a, DUP) -> ok */
@@ -456,6 +493,17 @@ public:
         BFC_ASSERT_EQUAL(0, 
                     ham_insert(m_db, txn2, &key, &rec, HAM_DUPLICATE));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
+
+    void txnInsertConflict5Test(void)
+    {
+        ham_txn_t *txn1, *txn2;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
 
         /* begin(T1); begin(T2); insert(T1, a); abort(T1); 
          * insert(T2, a) */
