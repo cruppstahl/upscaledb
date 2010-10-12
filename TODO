@@ -109,6 +109,8 @@ o manage all transactions
         txn_optree_node_t tree
     x who allocs/frees the key in the node? - streamline
 
+    x rename txn_optree_node_t to txn_opnode_t (consistent with txn_optree_t)
+
     o rewrite ham_find
         o if transactions are disabled: immediately read from disk
         o otherwise go through transaction trees

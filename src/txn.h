@@ -44,12 +44,12 @@ typedef struct txn_op_t
     ham_txn_t *_txn;
 
     /** the parent node */
-    struct txn_optree_node_t *_node;
+    struct txn_opnode_t *_node;
 
-    /** next in linked list (managed in txn_optree_node_t) */
+    /** next in linked list (managed in txn_opnode_t) */
     struct txn_op_t *_node_next;
 
-    /** previous in linked list (managed in txn_optree_node_t) */
+    /** previous in linked list (managed in txn_opnode_t) */
     struct txn_op_t *_node_prev;
 
     /** next in linked list (managed in ham_txn_t) */
@@ -140,10 +140,10 @@ typedef struct txn_op_t
  * a node in the red-black Transaction tree (implemented in rb.h); 
  * a group of Transaction operations which modify the same key
  */
-typedef struct txn_optree_node_t
+typedef struct txn_opnode_t
 {
     /** red-black tree stub */
-    rb_node(struct txn_optree_node_t) node;
+    rb_node(struct txn_opnode_t) node;
 
     /** the database - need this pointer for the compare function */
     ham_db_t *_db;
@@ -160,37 +160,37 @@ typedef struct txn_optree_node_t
     /** the linked list of operations - tail is newest operation */
     txn_op_t *_newest_op;
 
-} txn_optree_node_t;
+} txn_opnode_t;
 
 /** get the database */
-#define txn_optree_node_get_db(t)          (t)->_db
+#define txn_opnode_get_db(t)                    (t)->_db
 
 /** set the database */
-#define txn_optree_node_set_db(t, db)      (t)->_db=db
+#define txn_opnode_set_db(t, db)                (t)->_db=db
 
 /** get pointer to the modified key */
-#define txn_optree_node_get_key(t)         (t)->_key
+#define txn_opnode_get_key(t)                   (t)->_key
 
 /** set pointer to the modified key */
-#define txn_optree_node_set_key(t, k)      (t)->_key=k
+#define txn_opnode_set_key(t, k)                (t)->_key=k
 
 /** get pointer to the parent tree */
-#define txn_optree_node_get_tree(t)        (t)->_tree
+#define txn_opnode_get_tree(t)                  (t)->_tree
 
 /** set pointer to the parent tree */
-#define txn_optree_node_set_tree(t, tree)  (t)->_tree=tree
+#define txn_opnode_set_tree(t, tree)            (t)->_tree=tree
 
 /** get pointer to the first (oldest) node in list */
-#define txn_optree_node_get_oldest_op(t)      (t)->_oldest_op
+#define txn_opnode_get_oldest_op(t)             (t)->_oldest_op
 
 /** set pointer to the first (oldest) node in list */
-#define txn_optree_node_set_oldest_op(t, o)   (t)->_oldest_op=o
+#define txn_opnode_set_oldest_op(t, o)          (t)->_oldest_op=o
 
 /** get pointer to the last (newest) node in list */
-#define txn_optree_node_get_newest_op(t)      (t)->_newest_op
+#define txn_opnode_get_newest_op(t)             (t)->_newest_op
 
 /** set pointer to the last (newest) node in list */
-#define txn_optree_node_set_newest_op(t, n)   (t)->_newest_op=n
+#define txn_opnode_set_newest_op(t, n)          (t)->_newest_op=n
 
 
 /*
@@ -203,8 +203,8 @@ typedef struct txn_optree_t
     ham_db_t *_db;
 
     /* stuff for rb.h */
-    txn_optree_node_t *rbt_root;
-    txn_optree_node_t rbt_nil;
+    txn_opnode_t *rbt_root;
+    txn_opnode_t rbt_nil;
 
 } txn_optree_t;
 
@@ -329,19 +329,19 @@ extern txn_optree_t *
 txn_tree_get_or_create(ham_db_t *db);
 
 /**
- * creates an optree_node for an optree; if a node with this
+ * creates an opnode for an optree; if a node with this
  * key already exists then the existing node is returned
  *
  * returns NULL if out of memory
  */
-extern txn_optree_node_t *
-txn_optree_node_get_or_create(ham_db_t *db, ham_key_t *key);
+extern txn_opnode_t *
+txn_opnode_get_or_create(ham_db_t *db, ham_key_t *key);
 
 /**
  * insert an actual operation into the txn_tree
  */
 extern txn_op_t *
-txn_optree_node_append(ham_txn_t *txn, txn_optree_node_t *node, 
+txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, 
                     ham_u32_t flags, ham_u64_t lsn, ham_record_t *record);
 
 /**

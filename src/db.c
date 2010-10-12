@@ -1688,7 +1688,7 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 
 static ham_status_t
 db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn, 
-                txn_optree_node_t *node, ham_key_t *key, ham_u32_t flags)
+                txn_opnode_t *node, ham_key_t *key, ham_u32_t flags)
 {
     ham_status_t st;
     txn_op_t *op=0;
@@ -1705,7 +1705,7 @@ db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn,
      * - if a committed txn has erased the item then there's no need
      *      to continue checking older, committed txns
      */
-    op=txn_optree_node_get_newest_op(node);
+    op=txn_opnode_get_newest_op(node);
     while (op) {
         ham_txn_t *optxn=txn_op_get_txn(op);
         if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
@@ -1762,7 +1762,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
 {
     ham_status_t st;
     txn_optree_t *tree;
-    txn_optree_node_t *node;
+    txn_opnode_t *node;
     txn_op_t *op;
 
     /* get (or create) the txn-tree for this database; we do not need
@@ -1773,7 +1773,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
         return (HAM_OUT_OF_MEMORY);
 
     /* get (or create) the node for this key */
-    node=txn_optree_node_get_or_create(db, key);
+    node=txn_opnode_get_or_create(db, key);
     if (!node)
         return (HAM_OUT_OF_MEMORY);
 
@@ -1784,7 +1784,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
 
     /* append a new operation to this node */
     /* TODO lsn is missing! */
-    op=txn_optree_node_append(txn, node, 
+    op=txn_opnode_append(txn, node, 
                     (flags&HAM_DUPLICATE) 
                         ? TXN_OP_INSERT_DUP 
                         : TXN_OP_INSERT_OW, 0, record);

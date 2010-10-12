@@ -1354,8 +1354,8 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
     txn_op_t *op=txn_get_oldest_op(txn);
 
     while (op) {
-        txn_optree_node_t *node=txn_op_get_node(op);
-        ham_backend_t *be=db_get_backend(txn_optree_node_get_db(node));
+        txn_opnode_t *node=txn_op_get_node(op);
+        ham_backend_t *be=db_get_backend(txn_opnode_get_db(node));
 
         /* make sure that this op was not yet flushed - this would be
          * a serious bug */
@@ -1365,17 +1365,17 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
          * operation on the btree */
         switch (txn_op_get_flags(op)) {
             case TXN_OP_INSERT_OW:
-                st=be->_fun_insert(be, txn_optree_node_get_key(node), 
+                st=be->_fun_insert(be, txn_opnode_get_key(node), 
                             txn_op_get_record(op), 
                             txn_op_get_flags(op)|HAM_OVERWRITE);
                 break;
             case TXN_OP_INSERT_DUP:
-                st=be->_fun_insert(be, txn_optree_node_get_key(node), 
+                st=be->_fun_insert(be, txn_opnode_get_key(node), 
                             txn_op_get_record(op), 
                             txn_op_get_flags(op)|HAM_DUPLICATE);
                 break;
             case TXN_OP_ERASE:
-                st=be->_fun_erase(be, txn_optree_node_get_key(node), 
+                st=be->_fun_erase(be, txn_opnode_get_key(node), 
                             txn_op_get_flags(op));
                 break;
             default:
