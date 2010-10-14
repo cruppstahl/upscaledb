@@ -878,6 +878,20 @@ btree_compare_keys(ham_db_t *db, ham_page_t *page,
 
     r=btree_node_get_key(db, node, rhs_int);
 
+    /* for performance reasons, we follow two branches:
+     * if the key is not extended, then immediately compare it.
+     * otherwise (if it's extended) use btree_prepare_key_for_compare()
+     * to allocate the extended key and compare it.
+     */
+    if (!(key_get_flags(r)&KEY_IS_EXTENDED)) {
+        rhs.size=key_get_size(r);
+        rhs.data=key_get_key(r);
+        rhs.flags=HAM_KEY_USER_ALLOC;
+        rhs._flags=key_get_flags(r);
+        return (db_compare_keys(db, lhs, &rhs));
+    }
+
+    /* otherwise continue for extended keys */
     st=btree_prepare_key_for_compare(db, r, &rhs);
     if (st) {
         ham_assert(st<-1, (""));
