@@ -95,14 +95,14 @@ typedef HAM_PACK_0 union HAM_PACK_1 ham_perm_page_union_t
 #include "packstop.h"
 
 /**
-* get the size of the persistent header of a page
-*
-* equals the size of struct ham_perm_page_union_t, without the payload byte
-*
-* @note
-* this is not equal to sizeof(struct ham_perm_page_union_t)-1, because of
-* padding (i.e. on gcc 4.1/64bit the size would be 15 bytes)
-*/
+ * get the size of the persistent header of a page
+ *
+ * equals the size of struct ham_perm_page_union_t, without the payload byte
+ *
+ * @note
+ * this is not equal to sizeof(struct ham_perm_page_union_t)-1, because of
+ * padding (i.e. on gcc 4.1/64bit the size would be 15 bytes)
+ */
 #define page_get_persistent_header_size()   (OFFSETOF(ham_perm_page_union_t, _s._payload) /*(sizeof(ham_u32_t)*3)*/ /* 12 */ )
 
 
@@ -172,17 +172,6 @@ struct ham_page_t {
      */
     ham_perm_page_union_t *_pers;
 };
-
-/*
- * the size of struct ham_perm_page_union_t, without the payload byte
- *
- * !!
- * this is not equal to sizeof(struct ham_perm_page_union_t)-1, because of
- * padding (i.e. on gcc 4.1, 64bit the size would be 15 bytes)
- *
- * (defined in db.h)
- */
-//#define page_get_persistent_header_size()   (OFFSETOF(ham_perm_page_union_t, _s._payload) /*(sizeof(ham_u32_t)*3)*/ )
 
 /** get the address of this page */
 #define page_get_self(page)          ((page)->_npers._self)
@@ -283,36 +272,35 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
                                 } while (0)
 
 /** page->_pers was allocated with malloc, not mmap */
-#define PAGE_NPERS_MALLOC            1
+#define PAGE_NPERS_MALLOC               1
 
 /** page will be deleted when committed */
-#define PAGE_NPERS_DELETE_PENDING    2
+#define PAGE_NPERS_DELETE_PENDING       2
 
 /** page has no header */
-#define PAGE_NPERS_NO_HEADER         4
+#define PAGE_NPERS_NO_HEADER            4
 
 /** is this page dirty? */
-#define page_is_dirty(page)         ((page)->_npers._dirty)
+#define page_is_dirty(page)             ((page)->_npers._dirty)
 
 /** mark this page dirty */
-#define page_set_dirty(page)        (page)->_npers._dirty=1
+#define page_set_dirty(page)            (page)->_npers._dirty=1
 
 /** page is no longer dirty */
-#define page_set_undirty(page)      (page)->_npers._dirty=0
-
+#define page_set_undirty(page)          (page)->_npers._dirty=0
 
 #if defined(HAM_OS_WIN32) || defined(HAM_OS_WIN64)
 /** win32: get a pointer to the mmap handle */
-#   define page_get_mmap_handle_ptr(p)        &((p)->_npers._win32mmap)
+#   define page_get_mmap_handle_ptr(p)  &((p)->_npers._win32mmap)
 #else
-#   define page_get_mmap_handle_ptr(p)        0
+#   define page_get_mmap_handle_ptr(p)  0
 #endif
 
 /** set the page-type */
-#define page_set_type(page, t)   page_set_pers_flags(page, t)
+#define page_set_type(page, t)          page_set_pers_flags(page, t)
 
 /** get the page-type */
-#define page_get_type(page)      (page_get_pers_flags(page))
+#define page_get_type(page)             (page_get_pers_flags(page))
 
 /**
  * @defgroup page_type_codes valid page types
@@ -330,38 +318,38 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
  */
 
 /** unidentified db page type */
-#define PAGE_TYPE_UNKNOWN        0x00000000     
+#define PAGE_TYPE_UNKNOWN               0x00000000     
 
 /** the db header page: this is the first page in the database/environment */
-#define PAGE_TYPE_HEADER         0x10000000     
+#define PAGE_TYPE_HEADER                0x10000000     
 
 /** the db B+tree root page */
-#define PAGE_TYPE_B_ROOT         0x20000000     
+#define PAGE_TYPE_B_ROOT                0x20000000     
 
 /** a B+tree node page, i.e. a page which is part of the database index */
-#define PAGE_TYPE_B_INDEX        0x30000000     
+#define PAGE_TYPE_B_INDEX               0x30000000     
 
 /** a freelist management page */
-#define PAGE_TYPE_FREELIST       0x40000000     
+#define PAGE_TYPE_FREELIST              0x40000000     
 
 /** a page which stores (the front part of) a BLOB. */
-#define PAGE_TYPE_BLOB           0x50000000     
+#define PAGE_TYPE_BLOB                  0x50000000     
 
 /**
  * @}
  */
 
 /** get pointer to persistent payload (after the header!) */
-#define page_get_payload(page)           (page)->_pers->_s._payload
+#define page_get_payload(page)          (page)->_pers->_s._payload
 
 /** get pointer to persistent payload (including the header!) */
-#define page_get_raw_payload(page)       (page)->_pers->_p
+#define page_get_raw_payload(page)      (page)->_pers->_p
 
 /** set pointer to persistent data */
-#define page_set_pers(page, p)           (page)->_pers=(p)
+#define page_set_pers(page, p)          (page)->_pers=(p)
 
 /** get pointer to persistent data */
-#define page_get_pers(page)              (page)->_pers
+#define page_get_pers(page)             (page)->_pers
 
 /**
  * check if a page is in a linked list

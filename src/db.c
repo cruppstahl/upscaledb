@@ -1814,6 +1814,16 @@ db_check_erase_conflicts(ham_db_t *db, ham_txn_t *txn,
     return (be->_fun_find(be, key, 0, flags));
 }
 
+static ham_u64_t
+__get_incremented_lsn(ham_db_t *db) 
+{
+    ham_log_t *log=env_get_log(db_get_env(db));
+    if (log)
+        return (log_increment_lsn(log));
+    else
+        return (1); /* TODO */
+}
+
 static ham_status_t
 db_insert_txn(ham_db_t *db, ham_txn_t *txn,
         ham_key_t *key, ham_record_t *record, ham_u32_t flags)
@@ -1841,11 +1851,10 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
         return (st);
 
     /* append a new operation to this node */
-    /* TODO lsn is missing! */
     op=txn_opnode_append(txn, node, 
                     (flags&HAM_DUPLICATE) 
                         ? TXN_OP_INSERT_DUP 
-                        : TXN_OP_INSERT_OW, 0, record);
+                        : TXN_OP_INSERT_OW, __get_incremented_lsn(db), record);
     if (!op)
         return (HAM_OUT_OF_MEMORY);
 
@@ -1879,8 +1888,7 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn,
         return (st);
 
     /* append a new operation to this node */
-    /* TODO lsn is missing! */
-    op=txn_opnode_append(txn, node, TXN_OP_ERASE, 0, 0); 
+    op=txn_opnode_append(txn, node, TXN_OP_ERASE, __get_incremented_lsn(db), 0);
     if (!op)
         return (HAM_OUT_OF_MEMORY);
 

@@ -128,9 +128,10 @@ o manage all transactions
 
     x add new unittests
 
+    x review page.h - anything that we do not need? (i.e. dirty_txn?) - no
+
     o lsn is missing! it should come either from the env or from the log 
         (but the log does not always exist)
-    o review page.h - anything that we do not need? (i.e. dirty_txn?)
 
     o what if a partial key is written, and then lookup looks for another
         region of that key? would have to consolidate them :/
