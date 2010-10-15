@@ -168,5 +168,6 @@ o implement partial reads through transaction tree - will have to
     consolidate them
 o implement approx. matching through transaction tree - will have to 
     consolidate rb-tree and btree to look for the "closest" key
+o implement direct access - how, if the transaction tree is flushed??
 
 o continue as described in integrate-ham2.txt...
