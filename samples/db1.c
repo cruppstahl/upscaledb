@@ -21,7 +21,7 @@
 #endif
 #include <ham/hamsterdb.h>
 
-#define LOOP 10
+#define LOOP 1000000
 
 void 
 error(const char *foo, ham_status_t st)
@@ -76,9 +76,12 @@ main(int argc, char **argv)
      * for our test program, we just insert a few values, then look them 
      * up, then delete them and try to look them up again (which will fail).
      */
+    char buffer[]="i am an extended key and i like it lalalalala whohooo";
+
     for (i=0; i<LOOP; i++) {
-        key.data=&i;
-        key.size=sizeof(i);
+        key.data=&buffer[0];
+        *(unsigned *)key.data=i;
+        key.size=sizeof(buffer);
 
         record.size=key.size;
         record.data=key.data;
@@ -95,6 +98,7 @@ main(int argc, char **argv)
      * allocate record.data (otherwise the memory is automatically allocated
      * by hamsterdb)
      */
+#if 0
     for (i=0; i<LOOP; i++) {
         key.data=&i;
         key.size=sizeof(i);
@@ -147,7 +151,7 @@ main(int argc, char **argv)
         if (st!=HAM_KEY_NOT_FOUND)
             error("ham_find", st);
     }
-
+#endif
     /*
      * we're done! close the database handle
      */

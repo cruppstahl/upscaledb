@@ -554,8 +554,11 @@ db_get_extended_key(ham_db_t *db, ham_u8_t *key_data,
 }
 
 extern ham_status_t 
-db_prepare_ham_key_for_compare(ham_db_t *db, int_key_t *src, ham_key_t *dest)
+db_prepare_ham_key_for_compare(ham_db_t *db, int ptr, 
+                int_key_t *src, ham_key_t *dest)
 {
+    ham_btree_t *be=0;
+    mem_allocator_t *alloc;
     void *p;
 
     if (!(key_get_flags(src) & KEY_IS_EXTENDED)) {
@@ -567,18 +570,22 @@ db_prepare_ham_key_for_compare(ham_db_t *db, int_key_t *src, ham_key_t *dest)
     }
 
     dest->size = key_get_size(src);
+    be=(ham_btree_t*)db_get_backend(db);
+    alloc=env_get_allocator(db_get_env(db));
+    p = ptr ? btree_get_keydata2(be) : btree_get_keydata1(be);
+    p = allocator_realloc(alloc, p, dest->size);
+    if (ptr) btree_set_keydata2(be, p); else btree_set_keydata1(be, p);
 
-    p = allocator_alloc(env_get_allocator(db_get_env(db)), dest->size);
     if (!p) {
         dest->data = 0;
-        return HAM_OUT_OF_MEMORY;
+        return (HAM_OUT_OF_MEMORY);
     }
 
     memcpy(p, key_get_key(src), db_get_keysize(db));
     dest->data = p;
 
     /* set a flag that this memory has to be freed by hamsterdb */
-    dest->_flags |= KEY_IS_ALLOCATED;
+    //dest->_flags |= KEY_IS_ALLOCATED;
     dest->_flags |= KEY_IS_EXTENDED;
     dest->flags  |= HAM_KEY_USER_ALLOC;
 
@@ -1441,6 +1448,13 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
         }
     }
 
+    /* get rid of the extkey-cache */
+    if (db_get_extkey_cache(db)) {
+        (void)extkey_cache_purge_all(db_get_extkey_cache(db));
+        extkey_cache_destroy(db_get_extkey_cache(db));
+        db_set_extkey_cache(db, 0);
+    }
+
     /*
      * in-memory-database: free all allocated blobs
      */
@@ -1482,14 +1496,6 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
         allocator_free(env_get_allocator(env), db_get_key_allocdata(db));
         db_set_key_allocdata(db, 0);
         db_set_key_allocsize(db, 0);
-    }
-
-    /*
-     * free the cache for extended keys
-     */
-    if (db_get_extkey_cache(db)) {
-        extkey_cache_destroy(db_get_extkey_cache(db));
-        db_set_extkey_cache(db, 0);
     }
 
     /* close the backend */

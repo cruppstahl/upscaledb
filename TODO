@@ -16,12 +16,31 @@ o a small memory leak
 ==12954==    by 0x40A582D: ham_txn_begin (hamsterdb.c:314)
 ==12954==    by 0x8156438: RemoteTest::txnBeginCommitTest() (remote.cpp:494)
 
+x performance improvements for extkeys:
+    x resize the hash table
+    x ownership: one cache per DB, not per ENV
+    x when closing the DB: before freeing *ANY* page, call 
+        extkey_cache_purge_all() and delete extkey of the DB
+    x when freeing the page: don't close extkeys if extkey-cache of this
+        db was deleted
+    x key_compare_pub_to_int: how can we get around the malloc in 
+        db_prepare_...? we need two pointers and they should be owned by
+        the database (and NOT overwrite the keyalloc-pointers!)
+        -> could store pointers in btree structure
+
 o when using DIRECT_ACCESS and the record is tiny/small (<= 8 bytes) the 
     flag will be ignored (see email from Lionel)
 
 o what about a HAM_RMW flag for ham_insert - it will do a read/modify/write
     operation if the record already exists; but how can we propagate a callback
     for this? 
+
+o when inserting sequential values (i.e. db1.c) then the hinter should kick
+    in and (with help of histograms) do an APPEND or PREPEND
+
+o when repeatedly requesting unused pages from the cache, and the calls always
+    fail, the hinter should also kick in and avoid these calls for a certain
+    timespan (i.e. only every 5th call will go to the cache)
 
 o release new .NET wrapper with fix from a.todorov (-> nabble)
     x move to github

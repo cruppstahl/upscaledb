@@ -406,6 +406,18 @@ my_fun_close_cursors(ham_btree_t *be, ham_u32_t flags)
     ham_db_t *db=be_get_db(be);
 
     ham_assert(db, (0));
+
+    if (btree_get_keydata1(be)) {
+        allocator_free(env_get_allocator(db_get_env(db)), 
+                    btree_get_keydata1(be));
+        btree_set_keydata1(be, 0);
+    }
+    if (btree_get_keydata2(be)) {
+        allocator_free(env_get_allocator(db_get_env(db)), 
+                    btree_get_keydata2(be));
+        btree_set_keydata2(be, 0);
+    }
+
     return (btree_close_cursors(db, flags));
 }
 

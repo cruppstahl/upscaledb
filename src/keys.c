@@ -32,25 +32,33 @@ key_compare_pub_to_int(ham_db_t *db, ham_page_t *page,
     int_key_t *r;
     btree_node_t *node=ham_page_get_btree_node(page);
     ham_key_t rhs={0};
-    int cmp;
     ham_status_t st;
 
 	ham_assert(db == page_get_owner(page), (0));
 
     r=btree_node_get_key(db, node, rhs_int);
 
-    st=db_prepare_ham_key_for_compare(db, r, &rhs);
+    /* for performance reasons, we follow two branches: 
+     * if the key is not extended, then immediately compare it. 
+     * otherwise (if it's extended) use db_prepare_ham_key_for_compare()
+     * to allocate the extended key and compare it.
+     */
+    if (!(key_get_flags(r) & KEY_IS_EXTENDED)) {
+        rhs.size = key_get_size(r);
+        rhs.data = key_get_key(r);
+        rhs.flags = HAM_KEY_USER_ALLOC;
+        rhs._flags = key_get_flags(r);
+        return (db_compare_keys(db, lhs, &rhs));
+    }
+
+    /* otherwise continue for extended keys */
+    st=db_prepare_ham_key_for_compare(db, 0, r, &rhs);
     if (st) {
         ham_assert(st<-1, (""));
         return st;
     }
 
-    cmp=db_compare_keys(db, lhs, &rhs);
-
-    db_release_ham_key_after_compare(db, &rhs);
-    /* ensures key is always released; errors will be detected by caller */
-
-    return (cmp);
+    return (db_compare_keys(db, lhs, &rhs));
 }
 
 int
@@ -62,32 +70,25 @@ key_compare_int_to_int(ham_db_t *db, ham_page_t *page,
     btree_node_t *node = ham_page_get_btree_node(page);
 	ham_key_t lhs;
 	ham_key_t rhs;
-	int cmp;
 	ham_status_t st;
 
     l=btree_node_get_key(page_get_owner(page), node, lhs_int);
     r=btree_node_get_key(page_get_owner(page), node, rhs_int);
 
-	st = db_prepare_ham_key_for_compare(db, l, &lhs);
+	st = db_prepare_ham_key_for_compare(db, 0, l, &lhs);
 	if (st)
 	{
 		ham_assert(st < -1, (0));
 		return st;
 	}
-	st = db_prepare_ham_key_for_compare(db, r, &rhs);
+	st = db_prepare_ham_key_for_compare(db, 1, r, &rhs);
 	if (st)
 	{
 		ham_assert(st < -1, (0));
 		return st;
 	}
 
-	cmp = db_compare_keys(page_get_owner(page), &lhs, &rhs);
-
-	db_release_ham_key_after_compare(db, &lhs);
-	db_release_ham_key_after_compare(db, &rhs);
-	/* ensures keys are always released; errors will be detected by caller */
-
-	return cmp;
+	return (db_compare_keys(page_get_owner(page), &lhs, &rhs));
 }
 
 ham_status_t

@@ -681,21 +681,12 @@ db_compare_keys(ham_db_t *db, ham_key_t *lsh, ham_key_t *rhs);
  * call @ref db_get_extended_key on this key to obtain all key data, when this
  * is an extended key.
  * 
- * Used in conjunction with @ref db_release_ham_key_after_compare
+ * the 'ptr' says whether the first or the second static pointer should be
+ * used. Valid values are 0 and 1.
  */
 extern ham_status_t 
-db_prepare_ham_key_for_compare(ham_db_t *db, int_key_t *src, ham_key_t *dest);
-
-/**
- * @sa db_prepare_ham_key_for_compare
- */
-#define db_release_ham_key_after_compare(db, key)                              \
-    while ((key)->data && ((key)->_flags & KEY_IS_ALLOCATED)) {                \
-        allocator_free(env_get_allocator(db_get_env((db))), (key)->data);      \
-        (key)->data = 0;                                                       \
-        (key)->size = 0;                                                       \
-        break;                                                                 \
-    }
+db_prepare_ham_key_for_compare(ham_db_t *db, int ptr, 
+                int_key_t *src, ham_key_t *dest);
 
 /**
  * create a backend object according to the database flags.

@@ -192,10 +192,16 @@ extkey_cache_fetch(extkey_cache_t *cache, ham_offset_t blobid,
             ham_size_t *size, ham_u8_t **data);
 
 /**
- * removes all old keys from the cache
+ * removes all OLD keys from the cache
  */
 extern ham_status_t
 extkey_cache_purge(extkey_cache_t *cache);
+
+/**
+ * removes ALL keys from the cache (new and old)
+ */
+extern ham_status_t
+extkey_cache_purge_all(extkey_cache_t *cache);
 
 /**
  * a combination of extkey_cache_remove and blob_free

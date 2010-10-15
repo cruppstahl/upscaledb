@@ -243,18 +243,14 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
             ham_key_t lhs;
             ham_key_t rhs;
 
-            st = db_prepare_ham_key_for_compare(db, sibentry, &lhs);
+            st = db_prepare_ham_key_for_compare(db, 0, sibentry, &lhs);
             if (st)
                 return (st);
-            st = db_prepare_ham_key_for_compare(db, bte, &rhs);
+            st = db_prepare_ham_key_for_compare(db, 1, bte, &rhs);
             if (st)
                 return (st);
 
             cmp = db_compare_keys(db, &lhs, &rhs);
-
-            db_release_ham_key_after_compare(db, &lhs);
-            db_release_ham_key_after_compare(db, &rhs);
-            /* error is detected, but ensure keys are always released */
             if (cmp < -1)
                 return ((ham_status_t)cmp);
         }

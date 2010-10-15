@@ -1,3 +1,11 @@
+Oct 14, 2010 - chris ---------------------------------------------------
+o another important performance improvements when using hamsterdb with
+    extended keys
+
+Oct 13, 2010 - chris ---------------------------------------------------
+o performance improvements - hamsterdb scales now better with millions
+    of keys
+
 Sep 15, 2010 - chris ---------------------------------------------------
                       release of hamsterdb-1.1.6
 

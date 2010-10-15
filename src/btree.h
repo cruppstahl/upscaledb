@@ -58,6 +58,13 @@ HAM_PACK_0 struct HAM_PACK_1 ham_btree_t
      */
     ham_u16_t _maxkeys;
 
+    /**
+     * two pointers for managing key data; these pointers are used to
+     * avoid frequent mallocs in key_compare_pub_to_int() etc
+     */
+    void *_keydata1;
+    void *_keydata2;
+
 } HAM_PACK_2;
 
 #include "packstop.h"
@@ -81,6 +88,15 @@ HAM_PACK_0 struct HAM_PACK_1 ham_btree_t
  * set maximum number of keys per (internal) node 
  */
 #define btree_set_maxkeys(be, s)        (be)->_maxkeys=ham_h2db16(s)
+
+/** getter for keydata1 */
+#define btree_get_keydata1(be)          (be)->_keydata1
+/** setter for keydata1 */
+#define btree_set_keydata1(be, d)       (be)->_keydata1=d
+/** getter for keydata2 */
+#define btree_get_keydata2(be)          (be)->_keydata2
+/** setter for keydata2 */
+#define btree_set_keydata2(be, d)       (be)->_keydata2=d
 
 /**
  * a macro for getting the minimum number of keys
