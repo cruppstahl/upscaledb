@@ -130,6 +130,10 @@ o manage all transactions
 
     x review page.h - anything that we do not need? (i.e. dirty_txn?) - no
 
+    o ham_find: when retrieving a record, do not copy the original 
+        record-pointer; we need a deep copy instead because this record
+        pointer may be flushed and become invalid.
+
     o more pending cleanups
         o remove env_get_txn, env_get_txn_id
         o extkeys: don't use txn_id for the 'age', use lsn instead
