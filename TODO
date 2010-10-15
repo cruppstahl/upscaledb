@@ -30,6 +30,8 @@ x performance improvements for extkeys:
 
 o when using DIRECT_ACCESS and the record is tiny/small (<= 8 bytes) the 
     flag will be ignored (see email from Lionel)
+    x add unittests which show the problems
+    o and fix them :)
 
 o what about a HAM_RMW flag for ham_insert - it will do a read/modify/write
     operation if the record already exists; but how can we propagate a callback
