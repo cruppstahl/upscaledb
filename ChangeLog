@@ -1,4 +1,5 @@
 Oct 16, 2010 - chris ---------------------------------------------------
+o fixed a small memory leak when committing remote transactions
 o bugfix: using HAM_DIRECT_ACCESS with records of a length <= 8 bytes
     returned pointers to temporary copies of the record and not to the
     original data (thanks, Lionel)

@@ -367,8 +367,6 @@ ham_txn_abort(ham_txn_t *txn, ham_u32_t flags)
     if (st)
         return (st);
 
-    memset(txn, 0, sizeof(*txn));
-    allocator_free(env_get_allocator(env), txn);
     env_set_txn(env, 0);
 
     return (0);

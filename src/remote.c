@@ -701,6 +701,11 @@ _remote_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 
     st=proto_txn_commit_reply_get_status(reply);
 
+    if (st==0) {
+        memset(txn, 0, sizeof(*txn));
+        allocator_free(env_get_allocator(env), txn);
+    }
+
     proto_delete(reply);
 
     return (st);
@@ -726,6 +731,11 @@ _remote_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     ham_assert(proto_has_txn_abort_reply(reply), (""));
 
     st=proto_txn_abort_reply_get_status(reply);
+
+    if (st==0) {
+        memset(txn, 0, sizeof(*txn));
+        allocator_free(env_get_allocator(env), txn);
+    }
 
     proto_delete(reply);
 

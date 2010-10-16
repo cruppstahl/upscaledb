@@ -1303,7 +1303,13 @@ _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 static ham_status_t
 _local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 {
-    return (txn_abort(txn, flags));
+    ham_status_t st=txn_abort(txn, flags);
+    if (st==0) {
+        memset(txn, 0, sizeof(*txn));
+        allocator_free(env_get_allocator(env), txn);
+    }
+
+    return (st);
 }
 
 ham_status_t
