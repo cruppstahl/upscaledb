@@ -8,14 +8,6 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-o a small memory leak
-==12954== 44 bytes in 1 blocks are definitely lost in loss record 1 of 6
-==12954==    at 0x4024F20: malloc (vg_replace_malloc.c:236)
-==12954==    by 0x40B44E0: alloc_impl (mem.c:38)
-==12954==    by 0x40B0B5F: _remote_fun_txn_begin (remote.c:663)
-==12954==    by 0x40A582D: ham_txn_begin (hamsterdb.c:314)
-==12954==    by 0x8156438: RemoteTest::txnBeginCommitTest() (remote.cpp:494)
-
 x performance improvements for extkeys:
     x resize the hash table
     x ownership: one cache per DB, not per ENV
@@ -28,10 +20,18 @@ x performance improvements for extkeys:
         the database (and NOT overwrite the keyalloc-pointers!)
         -> could store pointers in btree structure
 
-o when using DIRECT_ACCESS and the record is tiny/small (<= 8 bytes) the 
+x when using DIRECT_ACCESS and the record is tiny/small (<= 8 bytes) the 
     flag will be ignored (see email from Lionel)
     x add unittests which show the problems
-    o and fix them :)
+    x and fix them :)
+
+o a small memory leak
+==12954== 44 bytes in 1 blocks are definitely lost in loss record 1 of 6
+==12954==    at 0x4024F20: malloc (vg_replace_malloc.c:236)
+==12954==    by 0x40B44E0: alloc_impl (mem.c:38)
+==12954==    by 0x40B0B5F: _remote_fun_txn_begin (remote.c:663)
+==12954==    by 0x40A582D: ham_txn_begin (hamsterdb.c:314)
+==12954==    by 0x8156438: RemoteTest::txnBeginCommitTest() (remote.cpp:494)
 
 o what about a HAM_RMW flag for ham_insert - it will do a read/modify/write
     operation if the record already exists; but how can we propagate a callback
@@ -47,6 +47,8 @@ o when repeatedly requesting unused pages from the cache, and the calls always
 o release new .NET wrapper with fix from a.todorov (-> nabble)
     x move to github
     . add server functionality
+
+o when compiling mongoose it shows a warning (gcc 4)
 
 . add automatic code coverage using gconv
     http://www.manpagez.com/man/1/gcov/

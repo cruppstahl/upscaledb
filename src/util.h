@@ -79,10 +79,14 @@ util_copy_key_int2pub(ham_db_t *db, const int_key_t *source, ham_key_t *dest);
 /**
  * read a record 
  *
+ * rid: same as record->_rid; however, if key is TINY/SMALL and 
+ * HAM_DIRECT_ACCESS is set, we need a direct pointer to the original 
+ * record ID
  * flags: either 0 or HAM_DIRECT_ACCESS
  */
 extern ham_status_t
-util_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags);
+util_read_record(ham_db_t *db, ham_record_t *record, ham_u64_t *rid, 
+                ham_u32_t flags);
 
 /**
  * read a key

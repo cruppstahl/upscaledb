@@ -154,6 +154,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 dupe_entry_t
            ? (e)->_rid                                                        \
            : ham_db2h_offset((e)->_rid))
 
+#define dupe_entry_get_ridptr(e)                    &(e)->_rid
 /*
  * set the record id of a duplicate entry
  *

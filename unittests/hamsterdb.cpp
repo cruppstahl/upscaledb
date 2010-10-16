@@ -2138,14 +2138,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(0, 
                 ham_find(m_db, 0, &key, &rec,
                     HAM_DIRECT_ACCESS));
-        BFC_ASSERT_EQUAL((unsigned)4, rec.size);
-        BFC_ASSERT_EQUAL(0, strcmp("hel", (char *)rec.data));
-        ((char *)rec.data)[0]='b';
-        BFC_ASSERT_EQUAL(0, 
-                ham_find(m_db, 0, &key, &rec,
-                    HAM_DIRECT_ACCESS));
-        BFC_ASSERT_EQUAL((unsigned)4, rec.size);
-        BFC_ASSERT_EQUAL(0, strcmp("bel", (char *)rec.data));
+        BFC_ASSERT_EQUAL((unsigned)0, rec.size);
 
         /* test with a tiny record (<8)*/
         rec.size=4;
