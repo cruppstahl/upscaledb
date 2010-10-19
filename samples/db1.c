@@ -21,7 +21,7 @@
 #endif
 #include <ham/hamsterdb.h>
 
-#define LOOP 1000000
+#define LOOP 1000
 
 void 
 error(const char *foo, ham_status_t st)
