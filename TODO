@@ -36,9 +36,24 @@ x a small memory leak
 o what about a HAM_RMW flag for ham_insert - it will do a read/modify/write
     operation if the record already exists; but how can we propagate a callback
     for this? 
+    o empty/small/tiny records
+    o large records
+    o in-memory records
+    o unittests
+    o documentation in header file
+    o documentation in wiki
 
 o when inserting sequential values (i.e. db1.c) then the hinter should kick
     in and (with help of histograms) do an APPEND or PREPEND
+    o if upper_bound or lower_bound was set: set a flag; otherwise unset it
+    o if this flag was set: when splitting a page, select the pivot value
+        in a higher (or lower) range (or is the current algorithm good enough?)
+    o if this flag was set: compare key with upper_bound (or lower_bound)
+        on insert/btree_cursor_insert and set force_append/force_prepend
+        if it's a hit (and immediately update the histogram)
+    o unittests/debugging/profiling
+
+<<<<< DupeTest::eraseDuplicateTest crashes >>>>>
 
 o when repeatedly requesting unused pages from the cache, and the calls always
     fail, the hinter should also kick in and avoid these calls for a certain

@@ -249,7 +249,8 @@ btree_erase_cursor(ham_btree_t *be, ham_key_t *key,
     }
 
     stats_update_erase(db, hints.processed_leaf_page, &hints);
-    stats_update_any_bound(db, hints.processed_leaf_page, key, hints.flags, 
+    stats_update_any_bound(HAM_OPERATION_STATS_ERASE, db, 
+                    hints.processed_leaf_page, key, hints.flags, 
                     hints.processed_slot);
     return (0);
 }

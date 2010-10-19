@@ -455,7 +455,9 @@ btree_insert_cursor(ham_btree_t *be, ham_key_t *key,
      else
      {
         stats_update_insert(db, hints.processed_leaf_page, &hints);
-        stats_update_any_bound(db, hints.processed_leaf_page, key, hints.flags, hints.processed_slot);
+        stats_update_any_bound(HAM_OPERATION_STATS_INSERT, 
+                    db, hints.processed_leaf_page, key, hints.flags, 
+                    hints.processed_slot);
      }
 
     return (st);
