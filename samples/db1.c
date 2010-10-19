@@ -98,7 +98,6 @@ main(int argc, char **argv)
      * allocate record.data (otherwise the memory is automatically allocated
      * by hamsterdb)
      */
-#if 0
     for (i=0; i<LOOP; i++) {
         key.data=&i;
         key.size=sizeof(i);
@@ -151,7 +150,7 @@ main(int argc, char **argv)
         if (st!=HAM_KEY_NOT_FOUND)
             error("ham_find", st);
     }
-#endif
+
     /*
      * we're done! close the database handle
      */
