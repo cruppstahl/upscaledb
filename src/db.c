@@ -691,7 +691,7 @@ db_create_backend(ham_backend_t **backend_ref, ham_db_t *db, ham_u32_t flags)
 }
 
 static ham_status_t
-my_purge_cache(ham_env_t *env)
+__purge_cache(ham_env_t *env)
 {
     ham_status_t st;
     ham_page_t *page;
@@ -700,18 +700,19 @@ my_purge_cache(ham_env_t *env)
      * first, try to delete unused pages from the cache
      */
     if (env_get_cache(env) && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
+        ham_cache_t *cache=env_get_cache(env);
 
 #if defined(HAM_DEBUG) && defined(HAM_ENABLE_INTERNAL) && !defined(HAM_LEAN_AND_MEAN_FOR_PROFILING)
-        if (cache_too_big(env_get_cache(env))) {
-            (void)cache_check_integrity(env_get_cache(env));
+        if (cache_too_big(cache)) {
+            (void)cache_check_integrity(cache);
         }
 #endif
 
-        while (cache_too_big(env_get_cache(env))) {
-            page=cache_get_unused_page(env_get_cache(env));
+        while (cache_too_big(cache)) {
+            page=cache_get_unused_page(cache);
             if (!page) {
                 if (env_get_rt_flags(env)&HAM_CACHE_STRICT) 
-                    return HAM_CACHE_FULL;
+                    return (HAM_CACHE_FULL);
                 else
                     break;
             }
@@ -810,17 +811,17 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
      * which can happen on Win32) */
     if (env_get_cache(env) 
             && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-        ham_bool_t purge=HAM_TRUE;
+        ham_cache_t *cache=env_get_cache(env);
+        ham_bool_t purge=cache_too_big(cache);
 #if defined(WIN32) && defined(HAM_32BIT)
         if (env_get_rt_flags(env)&HAM_CACHE_UNLIMITED) {
-            ham_cache_t *cache=env_get_cache(env);
             if (cache_get_cur_elements(cache)*env_get_pagesize(env) 
                     > PURGE_THRESHOLD)
                 purge=HAM_FALSE;
         }
 #endif
         if (purge) {
-            st=my_purge_cache(env);
+            st=__purge_cache(env);
             if (st)
                 return st;
         }
@@ -1102,17 +1103,17 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     if (!(flags&DB_ONLY_FROM_CACHE) 
             && env_get_cache(env) 
             && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-        ham_bool_t purge=HAM_TRUE;
+        ham_cache_t *cache=env_get_cache(env);
+        ham_bool_t purge=cache_too_big(cache);
 #if defined(WIN32) && defined(HAM_32BIT)
         if (env_get_rt_flags(env)&HAM_CACHE_UNLIMITED) {
-            ham_cache_t *cache=env_get_cache(env);
             if (cache_get_cur_elements(cache)*env_get_pagesize(env) 
                     > PURGE_THRESHOLD)
                 purge=HAM_FALSE;
         }
 #endif
         if (purge) {
-            st=my_purge_cache(env);
+            st=__purge_cache(env);
             if (st)
                 return st;
         }

@@ -43,6 +43,13 @@ x when inserting sequential values (i.e. db1.c) then the hinter should kick
         if it's a hit (and immediately update the histogram)
     x unittests/debugging/profiling
 
+x when repeatedly requesting unused pages from the cache, and the calls always
+    fail, the hinter should also kick in and avoid these calls for a certain
+    timespan (i.e. only every 5th call will go to the cache)
+    x no, don't use the hinter; but rewrite the cache mechanism to get an
+        unused page
+    o remove the garbage-list - it's not used
+
 o what about a HAM_RMW flag for ham_insert - it will do a read/modify/write
     operation if the record already exists; but how can we propagate a callback
     for this? 
@@ -52,10 +59,6 @@ o what about a HAM_RMW flag for ham_insert - it will do a read/modify/write
     o unittests
     o documentation in header file
     o documentation in wiki
-
-o when repeatedly requesting unused pages from the cache, and the calls always
-    fail, the hinter should also kick in and avoid these calls for a certain
-    timespan (i.e. only every 5th call will go to the cache)
 
 o release new .NET wrapper with fix from a.todorov (-> nabble)
     x move to github

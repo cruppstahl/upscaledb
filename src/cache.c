@@ -111,9 +111,10 @@ ham_page_t *
 cache_get_unused_page(ham_cache_t *cache)
 {
     ham_page_t *page;
-    ham_page_t *head;
-    ham_page_t *min = 0;
+    ham_page_t *oldest;
+    ham_page_t *min=0;
     ham_size_t hash;
+    ham_size_t i=0;
 
     page=cache_get_garbagelist(cache);
     if (page) {
@@ -128,8 +129,8 @@ cache_get_unused_page(ham_cache_t *cache)
         return (page);
     }
 
-    head=cache_get_totallist(cache);
-    if (!head)
+    oldest=cache_get_oldest(cache);
+    if (!oldest)
         return (0);
 
     /*
@@ -154,13 +155,17 @@ cache_get_unused_page(ham_cache_t *cache)
      * through ->PREV... If only our cyclic LL patch hadn't caused such
      * weird bugs  :-(
      */
-    page = head;
+    page = oldest;
     do {
+        /* do not loop too often */
+        if (i++>20)
+            break;
+
         /* only handle unused pages */
         if (page_get_refcount(page)==0) {
             if (page_get_cache_cntr(page)==0) {
                 min=page;
-                //goto found_page;
+                break;
             }
             else {
                 if (!min)
@@ -171,33 +176,20 @@ cache_get_unused_page(ham_cache_t *cache)
                     min=page;
                 }
             }
-#if 0
-            /*
-             * This is not an equal opportunity scheme!
-             *
-             * Pages at the front of the list will be decremented
-             * continuously (once every round) and have therefor a far
-             * larger chance of getting 'unused'/re-used than pages at
-             * the end of the chain, as those almost never will get
-             * their counters decremented.
-             *
-             * Instead, we have an alternative mechanism, where we
-             * always count UP, UNTIL... we hit a global high water mark
-             * --> decrement ALL pages by the same amount, so that we
-             * have some headroom again.
-             */
-            page_decrement_cache_cntr(page, 1);
-#endif
         }
+        
         page=page_get_next(page, PAGE_LIST_CACHED);
-        ham_assert(page != head, (0));
-    } while (page && page!=head);
+        ham_assert(page != oldest, (0));
+    } while (page && page!=oldest);
     
     if (!min)
         return (0);
 
     hash=__calc_hash(cache, page_get_self(min));
 
+    if (cache_get_oldest(cache)==page) {
+        cache_set_oldest(cache, page_get_next(page, PAGE_LIST_CACHED));
+    }
     ham_assert(page_is_in_list(cache_get_totallist(cache), min, 
                     PAGE_LIST_CACHED), (0));
     cache_set_totallist(cache, 
@@ -229,6 +221,9 @@ cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags)
     }
 
     if (page && flags != CACHE_NOREMOVE) {
+        if (cache_get_oldest(cache)==page) {
+            cache_set_oldest(cache, page_get_next(page, PAGE_LIST_CACHED));
+        }
         if (page_is_in_list(cache_get_totallist(cache), page, PAGE_LIST_CACHED))
         {
             cache_set_totallist(cache, 
@@ -288,6 +283,10 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page)
     cache_get_bucket(cache, hash)=page_list_insert(cache_get_bucket(cache, 
                 hash), PAGE_LIST_BUCKET, page);
 
+    if (!cache_get_oldest(cache)) {
+        cache_set_oldest(cache, page);
+    }
+
     return (0);
 }
 
@@ -313,6 +312,10 @@ ham_status_t
 cache_remove_page(ham_cache_t *cache, ham_page_t *page)
 {
     ham_bool_t removed = HAM_FALSE;
+
+    if (cache_get_oldest(cache)==page) {
+        cache_set_oldest(cache, page_get_next(page, PAGE_LIST_CACHED));
+    }
 
     if (page_get_self(page)) 
     {
@@ -342,16 +345,6 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page)
     }
 
     return (0);
-}
-
-ham_bool_t 
-cache_too_big(ham_cache_t *cache)
-{
-    if (cache_get_cur_elements(cache)*env_get_pagesize(cache_get_env(cache))
-            >cache_get_capacity(cache)) 
-        return (HAM_TRUE);
-
-    return (HAM_FALSE);
 }
 
 ham_status_t
