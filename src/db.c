@@ -1299,6 +1299,9 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
         st=db_uncouple_all_cursors(page, 0);
         if (st)
             return (st);
+        st=cache_remove_page(env_get_cache(env), page);
+        if (st)
+            return (st);
         st=page_free(page);
         if (st)
             return (st);

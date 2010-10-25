@@ -171,14 +171,11 @@ cache_get_unused_page(ham_cache_t *cache)
                 if (!min)
                     min=page;
                 else if (page_get_cache_cntr(page) <= page_get_cache_cntr(min)) 
-                {
-                    /* oldest! */
                     min=page;
-                }
             }
         }
         
-        page=page_get_next(page, PAGE_LIST_CACHED);
+        page=page_get_previous(page, PAGE_LIST_CACHED);
         ham_assert(page != oldest, (0));
     } while (page && page!=oldest);
     
