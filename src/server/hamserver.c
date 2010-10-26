@@ -371,7 +371,7 @@ handle_env_create_db(struct env_t *envh, ham_env_t *env,
     unsigned i;
     ham_db_t *db;
     ham_status_t st=0;
-    ham_u64_t db_handle;
+    ham_u64_t db_handle=0;
     proto_wrapper_t *reply;
     ham_parameter_t params[100]={{0, 0}};
 
@@ -1225,6 +1225,8 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
     proto_wrapper_t *wrapper;
     struct env_t *env=(struct env_t *)user_data;
 
+	mg_authorize(conn);
+
     os_critsec_enter(&env->cs);
 
     wrapper=proto_unpack(ri->post_data_len, (ham_u8_t *)ri->post_data);
@@ -1391,7 +1393,6 @@ ham_srv_init(ham_srv_config_t *config, ham_srv_t **psrv)
     srv->mg_ctxt=mg_start();
     mg_set_option(srv->mg_ctxt, "ports", buf);
     mg_set_option(srv->mg_ctxt, "dir_list", "no");
-	mg_authorize(srv->mg_ctxt);
     if (config->access_log_path) {
         if (!mg_set_option(srv->mg_ctxt, "access_log", 
                     config->access_log_path)) {
