@@ -340,7 +340,8 @@ my_fun_flush(ham_btree_t *be)
 static ham_status_t
 my_fun_close(ham_btree_t *be)
 {
-    ham_status_t st;
+    ham_status_t st; 
+    ham_env_t *env=db_get_env(be_get_db(be));
 
     /*
      * just flush the backend info if it's dirty
@@ -349,6 +350,16 @@ my_fun_close(ham_btree_t *be)
 
     /* even when an error occurred, the backend has now been de-activated */
     be_set_active(be, HAM_FALSE);
+
+    /* free allocated storage */
+    if (btree_get_keydata1(be)) {
+        allocator_free(env_get_allocator(env), btree_get_keydata1(be));
+        btree_set_keydata1(be, 0);
+    }
+    if (btree_get_keydata2(be)) {
+        allocator_free(env_get_allocator(env), btree_get_keydata2(be));
+        btree_set_keydata2(be, 0);
+    }
 
     return st;
 }
@@ -406,17 +417,6 @@ my_fun_close_cursors(ham_btree_t *be, ham_u32_t flags)
     ham_db_t *db=be_get_db(be);
 
     ham_assert(db, (0));
-
-    if (btree_get_keydata1(be)) {
-        allocator_free(env_get_allocator(db_get_env(db)), 
-                    btree_get_keydata1(be));
-        btree_set_keydata1(be, 0);
-    }
-    if (btree_get_keydata2(be)) {
-        allocator_free(env_get_allocator(db_get_env(db)), 
-                    btree_get_keydata2(be));
-        btree_set_keydata2(be, 0);
-    }
 
     return (btree_close_cursors(db, flags));
 }
