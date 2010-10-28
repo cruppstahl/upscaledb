@@ -49,6 +49,12 @@ x when repeatedly requesting unused pages from the cache, and the calls always
     x no, don't use the hinter; but rewrite the cache mechanism to get an
         unused page
 
+o monster.sh - errors
+    o --data_access_mode=HAM_DAM_SEQUENTIAL_INSERT --keysize=680 --duplicate=1       ../../testfiles/1/190.tst
+    o --data_access_mode=HAM_DAM_SEQUENTIAL_INSERT --keysize=680 --duplicate=1       ../../testfiles/1/194.tst
+    o --data_access_mode=HAM_DAM_SEQUENTIAL_INSERT --pagesize=1024 --overwrite=1 --keysize=16      ../../testfiles/1/170.tst
+    o --data_access_mode=HAM_DAM_SEQUENTIAL_INSERT --pagesize=1024 --overwrite=1 --keysize=16      ../../testfiles/1/ext_021.tst
+
 o what about a HAM_RMW flag for ham_insert - it will do a read/modify/write
     operation if the record already exists; but how can we propagate a callback
     for this? 
