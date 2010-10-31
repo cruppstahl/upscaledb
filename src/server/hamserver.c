@@ -371,7 +371,7 @@ handle_env_create_db(struct env_t *envh, ham_env_t *env,
     unsigned i;
     ham_db_t *db;
     ham_status_t st=0;
-    ham_u64_t db_handle;
+    ham_u64_t db_handle=0;
     proto_wrapper_t *reply;
     ham_parameter_t params[100]={{0, 0}};
 
@@ -1224,6 +1224,8 @@ request_handler(struct mg_connection *conn, const struct mg_request_info *ri,
 {
     proto_wrapper_t *wrapper;
     struct env_t *env=(struct env_t *)user_data;
+
+    mg_authorize(conn);
 
     os_critsec_enter(&env->cs);
 
