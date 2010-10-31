@@ -412,6 +412,12 @@ typedef struct ham_runtime_statistics_dbdata_t
     ham_offset_t upper_bound_page_address;
     ham_bool_t upper_bound_set;
 
+    /* a flag if the previous insert operation was an append */
+    ham_bool_t last_insert_was_append;
+
+    /* a flag if the previous insert operation was a prepend */
+    ham_bool_t last_insert_was_prepend;
+
 } ham_runtime_statistics_dbdata_t;
 
 /**

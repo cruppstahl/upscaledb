@@ -177,7 +177,7 @@ btree_stats_page_is_nuked(ham_db_t *db, struct ham_page_t *page,
                     ham_bool_t split);
 
 extern void 
-btree_stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, 
+btree_stats_update_any_bound(int op, ham_db_t *db, struct ham_page_t *page, 
                     ham_key_t *key, ham_u32_t find_flags, ham_s32_t slot);
 
 extern void 

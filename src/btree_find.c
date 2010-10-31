@@ -179,8 +179,8 @@ no_fast_track:
                     if (!btree_node_get_left(node)) {
                         btree_stats_update_find_fail(db, &hints);
                         ham_assert(node == page_get_btree_node(page), (0));
-                        btree_stats_update_any_bound(db, page, key, 
-                                    hints.original_flags, -1);
+                        btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND,
+                                    db, page, key, hints.original_flags, -1);
                         return HAM_KEY_NOT_FOUND;
                     }
 
@@ -215,8 +215,8 @@ no_fast_track:
                     {
                         btree_stats_update_find_fail(db, &hints);
                         ham_assert(node == page_get_btree_node(page), (0));
-                        btree_stats_update_any_bound(db, page, key, 
-                                    hints.original_flags, -1);
+                        btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND,
+                                db, page, key, hints.original_flags, -1);
                         return HAM_KEY_NOT_FOUND;
                     }
 
@@ -296,8 +296,9 @@ no_fast_track:
                                     btree_stats_update_find_fail(db, &hints);
                                     ham_assert(node==page_get_btree_node(page),
                                                     (0));
-                                    btree_stats_update_any_bound(db, page, key,
-                                                    hints.original_flags, -1);
+                                    btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND,
+                                            db, page, key, 
+                                            hints.original_flags, -1);
                                     return HAM_KEY_NOT_FOUND;
                                 }
 
@@ -319,8 +320,8 @@ no_fast_track:
                         {
                             btree_stats_update_find_fail(db, &hints);
                             ham_assert(node == page_get_btree_node(page), (0));
-                            btree_stats_update_any_bound(db, page, key, 
-                                                hints.original_flags, -1);
+                            btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND,
+                                    db, page, key, hints.original_flags, -1);
                             return HAM_KEY_NOT_FOUND;
                         }
                     }
@@ -362,8 +363,8 @@ no_fast_track:
                     {
                         btree_stats_update_find_fail(db, &hints);
                         ham_assert(node == page_get_btree_node(page), (0));
-                        btree_stats_update_any_bound(db, page, key, 
-                                                hints.original_flags, -1);
+                        btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND,
+                                db, page, key, hints.original_flags, -1);
                         return HAM_KEY_NOT_FOUND;
                     }
 
@@ -390,7 +391,8 @@ no_fast_track:
         ham_assert(node, (0));
         ham_assert(page, (0));
         ham_assert(node == page_get_btree_node(page), (0));
-        btree_stats_update_any_bound(db, page, key, hints.original_flags, -1);
+        btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND,
+                db, page, key, hints.original_flags, -1);
         return HAM_KEY_NOT_FOUND;
     }
 
@@ -448,7 +450,8 @@ no_fast_track:
     
     btree_stats_update_find(db, page, &hints);
     ham_assert(node == page_get_btree_node(page), (0));
-    btree_stats_update_any_bound(db, page, key, hints.original_flags, idx);
+    btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND, 
+            db, page, key, hints.original_flags, idx);
 
     return (0);
 }

@@ -525,13 +525,18 @@ btree_stats_page_is_nuked(ham_db_t *db, struct ham_page_t *page,
 }
 
 void 
-btree_stats_update_any_bound(ham_db_t *db, struct ham_page_t *page, 
+btree_stats_update_any_bound(int op, ham_db_t *db, struct ham_page_t *page, 
                     ham_key_t *key, ham_u32_t find_flags, ham_s32_t slot)
 {
     ham_status_t st;
     ham_runtime_statistics_dbdata_t *dbdata = db_get_db_perf_data(db);
     ham_env_t *env = db_get_env(db);
     btree_node_t *node = page_get_btree_node(page);
+
+    /* reset both flags - they will be set if lower_bound or 
+     * upper_bound are modified */
+    dbdata->last_insert_was_prepend=0;
+    dbdata->last_insert_was_append=0;
 
     ham_assert(env_get_allocator(env) != 0, (0));
     ham_assert(btree_node_is_leaf(node), (0));
@@ -631,6 +636,8 @@ btree_stats_update_any_bound(ham_db_t *db, struct ham_page_t *page,
                     ham_assert(dbdata->lower_bound_page_address != 0, (0));
                 }
                 page_unlock(page);
+                if (op==HAM_OPERATION_STATS_INSERT)
+                    dbdata->last_insert_was_prepend=1;
             }
         }
     }
@@ -684,6 +691,8 @@ btree_stats_update_any_bound(ham_db_t *db, struct ham_page_t *page,
                     dbdata->upper_bound_set = HAM_FALSE;
                 }
                 page_unlock(page);
+                if (op==HAM_OPERATION_STATS_INSERT)
+                    dbdata->last_insert_was_append=1;
             }
         }
     }
@@ -935,6 +944,16 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
     ham_assert(hints->force_append == HAM_FALSE, (0));
     ham_assert(hints->force_prepend == HAM_FALSE, (0));
     ham_assert(hints->try_fast_track == HAM_FALSE, (0));
+
+    /* if the previous insert-operation replaced the upper_bound (or 
+     * lower_bound) key then it was actually an append (or prepend) operation.
+     * in this case there's some probability that the next operation is also
+     * appending/prepending. 
+     */
+    if (dbdata->last_insert_was_append)
+        hints->flags|=HAM_HINT_APPEND;
+    else if (dbdata->last_insert_was_prepend)
+        hints->flags|=HAM_HINT_PREPEND;
 
     if ((hints->flags & HAM_HINT_APPEND) && (cursor))
     {
