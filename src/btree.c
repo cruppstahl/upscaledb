@@ -350,6 +350,17 @@ my_fun_close(ham_btree_t *be)
     /* even when an error occurred, the backend has now been de-activated */
     be_set_active(be, HAM_FALSE);
 
+    if (btree_get_keydata1(be)) {
+        allocator_free(env_get_allocator(db_get_env(db)), 
+                    btree_get_keydata1(be));
+        btree_set_keydata1(be, 0);
+    }
+    if (btree_get_keydata2(be)) {
+        allocator_free(env_get_allocator(db_get_env(db)), 
+                    btree_get_keydata2(be));
+        btree_set_keydata2(be, 0);
+    }
+
     return st;
 }
 
@@ -833,8 +844,11 @@ btree_close_cursors(ham_db_t *db, ham_u32_t flags)
 }
 
 ham_status_t 
-btree_prepare_key_for_compare(ham_db_t *db, btree_key_t *src, ham_key_t *dest)
+btree_prepare_key_for_compare(ham_db_t *db, int which, 
+                btree_key_t *src, ham_key_t *dest)
 {
+    ham_btree_t *be=0;
+    mem_allocator_t *alloc;
     void *p;
 
     if (!(key_get_flags(src) & KEY_IS_EXTENDED)) {
@@ -846,18 +860,23 @@ btree_prepare_key_for_compare(ham_db_t *db, btree_key_t *src, ham_key_t *dest)
     }
 
     dest->size = key_get_size(src);
+    be=(ham_btree_t *)db_get_backend(db);
+    alloc=env_get_allocator(db_get_env(db));
+    p = ptr ? btree_get_keydata2(be) : btree_get_keydata1(be);
+    p = allocator_realloc(alloc, p, dest->size);
+    if (ptr) 
+        btree_set_keydata2(be, p); 
+    else 
+        btree_set_keydata1(be, p);
 
-    p = allocator_alloc(env_get_allocator(db_get_env(db)), dest->size);
     if (!p) {
         dest->data = 0;
-        return HAM_OUT_OF_MEMORY;
+        return (HAM_OUT_OF_MEMORY);
     }
 
     memcpy(p, key_get_key(src), db_get_keysize(db));
     dest->data = p;
 
-    /* set a flag that this memory has to be freed by hamsterdb */
-    dest->_flags |= KEY_IS_ALLOCATED;
     dest->_flags |= KEY_IS_EXTENDED;
     dest->flags  |= HAM_KEY_USER_ALLOC;
 
@@ -871,7 +890,6 @@ btree_compare_keys(ham_db_t *db, ham_page_t *page,
     btree_key_t *r;
     btree_node_t *node=page_get_btree_node(page);
     ham_key_t rhs={0};
-    int cmp;
     ham_status_t st;
 
 	ham_assert(db == page_get_owner(page), (0));
@@ -892,18 +910,11 @@ btree_compare_keys(ham_db_t *db, ham_page_t *page,
     }
 
     /* otherwise continue for extended keys */
-    st=btree_prepare_key_for_compare(db, r, &rhs);
-    if (st) {
-        ham_assert(st<-1, (""));
-        return st;
-    }
+    st=btree_prepare_key_for_compare(db, 0, r, &rhs);
+    if (st)
+        return (st);
 
-    cmp=db_compare_keys(db, lhs, &rhs);
-
-    btree_release_key_after_compare(db, &rhs);
-    /* ensures key is always released; errors will be detected by caller */
-
-    return (cmp);
+    return (db_compare_keys(db, lhs, &rhs));
 }
 
 ham_status_t

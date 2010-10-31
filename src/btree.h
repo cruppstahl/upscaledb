@@ -58,6 +58,13 @@ HAM_PACK_0 struct HAM_PACK_1 ham_btree_t
      */
     ham_u16_t _maxkeys;
 
+    /**
+     * two pointers for managing key data; these pointers are used to
+     * avoid frequent mallocs in key_compare_pub_to_int() etc
+     */
+    void *_keydata1;
+    void *_keydata2;
+
 } HAM_PACK_2;
 
 #include "packstop.h"
@@ -81,6 +88,18 @@ HAM_PACK_0 struct HAM_PACK_1 ham_btree_t
  * set maximum number of keys per (internal) node 
  */
 #define btree_set_maxkeys(be, s)        (be)->_maxkeys=ham_h2db16(s)
+
+/** getter for keydata1 */
+#define btree_get_keydata1(be)          (be)->_keydata1
+
+/** setter for keydata1 */
+#define btree_set_keydata1(be, p)       (be)->_keydata1=(p)
+
+/** getter for keydata2 */
+#define btree_get_keydata2(be)          (be)->_keydata2
+
+/** setter for keydata2 */
+#define btree_set_keydata2(be, p)       (be)->_keydata2=(p)
 
 /**
  * a macro for getting the minimum number of keys
@@ -355,22 +374,16 @@ btree_compare_keys(ham_db_t *db, ham_page_t *page,
  * in such a way that @ref db_compare_keys can use the data and optionally
  * call @ref db_get_extended_key on this key to obtain all key data, when this
  * is an extended key.
+ *
+ * @param which specifies whether keydata1 (which = 0) or keydata2 is used
+ * to store the pointer in the backend. The pointers are kept to avoid
+ * permanent re-allocations (improves performance)
  * 
  * Used in conjunction with @ref btree_release_key_after_compare
  */
 extern ham_status_t 
-btree_prepare_key_for_compare(ham_db_t *db, btree_key_t *src, ham_key_t *dest);
-
-/**
- * @sa btree_prepare_key_for_compare
- */
-#define btree_release_key_after_compare(db, key)                               \
-    while ((key)->data && ((key)->_flags & KEY_IS_ALLOCATED)) {                \
-        allocator_free(env_get_allocator(db_get_env((db))), (key)->data);      \
-        (key)->data = 0;                                                       \
-        (key)->size = 0;                                                       \
-        break;                                                                 \
-    }
+btree_prepare_key_for_compare(ham_db_t *db, int which, btree_key_t *src, 
+                ham_key_t *dest);
 
 /**
  * read a key

@@ -1382,6 +1382,15 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     }
 
     /*
+     * get rid of the extkey-cache
+     */
+    if (db_get_extkey_cache(db)) {
+        (void)extkey_cache_purge_all(db_get_extkey_cache(db));
+        extkey_cache_destroy(db_get_extkey_cache(db));
+        db_set_extkey_cache(db, 0);
+    }
+
+    /*
      * in-memory-database: free all allocated blobs
      */
     if (be && be_is_active(be) && env_get_rt_flags(env)&HAM_IN_MEMORY_DB) {
@@ -1422,14 +1431,6 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
         allocator_free(env_get_allocator(env), db_get_key_allocdata(db));
         db_set_key_allocdata(db, 0);
         db_set_key_allocsize(db, 0);
-    }
-
-    /*
-     * free the cache for extended keys
-     */
-    if (db_get_extkey_cache(db)) {
-        extkey_cache_destroy(db_get_extkey_cache(db));
-        db_set_extkey_cache(db, 0);
     }
 
     /* free the transaction tree */

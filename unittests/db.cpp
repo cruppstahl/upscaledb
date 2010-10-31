@@ -308,7 +308,7 @@ public:
         BFC_ASSERT(compare_sizes(sizeof(dupe_table_t), 
                 8 + sizeof(dupe_entry_t)));
         BFC_ASSERT(compare_sizes(sizeof(ham_btree_t) - OFFSETOF(ham_btree_t, 
-                _rootpage), 8 + 2));
+                _rootpage), 8 + sizeof(void *)*2 + 2));
         BFC_ASSERT(compare_sizes(sizeof(btree_node_t), 28+sizeof(btree_key_t)));
         BFC_ASSERT(compare_sizes(sizeof(btree_key_t), 12));
         BFC_ASSERT(compare_sizes(sizeof(env_header_t), 20));

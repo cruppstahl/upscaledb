@@ -138,12 +138,12 @@ __key_compare_int_to_int(ham_db_t *db, ham_page_t *page,
     l=btree_node_get_key(page_get_owner(page), node, lhs_int);
     r=btree_node_get_key(page_get_owner(page), node, rhs_int);
 
-	st = btree_prepare_key_for_compare(db, l, &lhs);
+	st = btree_prepare_key_for_compare(db, 0, l, &lhs);
 	if (st) {
 		ham_assert(st < -1, (0));
 		return (st);
 	}
-	st = btree_prepare_key_for_compare(db, r, &rhs);
+	st = btree_prepare_key_for_compare(db, 1, r, &rhs);
 	if (st) {
 		ham_assert(st < -1, (0));
 		return (st);
@@ -151,8 +151,6 @@ __key_compare_int_to_int(ham_db_t *db, ham_page_t *page,
 
 	cmp = db_compare_keys(page_get_owner(page), &lhs, &rhs);
 
-	btree_release_key_after_compare(db, &lhs);
-	btree_release_key_after_compare(db, &rhs);
 	/* ensures keys are always released; errors will be detected by caller */
 
 	return (cmp);
@@ -278,17 +276,15 @@ __verify_page(ham_page_t *parent, ham_page_t *leftsib, ham_page_t *page,
             ham_key_t lhs;
             ham_key_t rhs;
 
-            st = btree_prepare_key_for_compare(db, sibentry, &lhs);
+            st = btree_prepare_key_for_compare(db, 0, sibentry, &lhs);
             if (st)
                 return (st);
-            st = btree_prepare_key_for_compare(db, bte, &rhs);
+            st = btree_prepare_key_for_compare(db, 1, bte, &rhs);
             if (st)
                 return (st);
 
             cmp = db_compare_keys(db, &lhs, &rhs);
 
-            btree_release_key_after_compare(db, &lhs);
-            btree_release_key_after_compare(db, &rhs);
             /* error is detected, but ensure keys are always released */
             if (cmp < -1)
                 return ((ham_status_t)cmp);

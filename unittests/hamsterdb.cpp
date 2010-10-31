@@ -128,6 +128,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, checkDatabaseNameTest);
         BFC_REGISTER_TEST(HamsterdbTest, hintingTest);
         BFC_REGISTER_TEST(HamsterdbTest, directAccessTest);
+        BFC_REGISTER_TEST(HamsterdbTest, smallDirectAccessTest);
         BFC_REGISTER_TEST(HamsterdbTest, negativeDirectAccessTest);
         BFC_REGISTER_TEST(HamsterdbTest, unlimitedCacheTest);
     }
@@ -2106,6 +2107,39 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
                     HAM_DIRECT_ACCESS));
         BFC_ASSERT_EQUAL((unsigned)6, rec.size);
         BFC_ASSERT_EQUAL(0, strcmp("hello", (char *)rec.data));
+
+        ::memset(&rec, 0, sizeof(rec));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_find_ex(cursor, &key, &rec,
+                    HAM_DIRECT_ACCESS));
+        BFC_ASSERT_EQUAL((unsigned)6, rec.size);
+        BFC_ASSERT_EQUAL(0, strcmp("hello", (char *)rec.data));
+
+        ::memset(&rec, 0, sizeof(rec));
+        BFC_ASSERT_EQUAL(0, 
+                ham_cursor_move(cursor, &key, &rec, HAM_DIRECT_ACCESS));
+        BFC_ASSERT_EQUAL((unsigned)6, rec.size);
+        BFC_ASSERT_EQUAL(0, strcmp("hello", (char *)rec.data));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+    }
+
+    void smallDirectAccessTest(void)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+
+        /* test with an empty record */
+        rec.size=0;
+        rec.data=(void *)0;
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_find(m_db, 0, &key, &rec,
+                    HAM_DIRECT_ACCESS));
+        BFC_ASSERT_EQUAL((unsigned)0, rec.size);
+        BFC_ASSERT_EQUAL((void *)0, rec.data);
 
         ::memset(&rec, 0, sizeof(rec));
         BFC_ASSERT_EQUAL(0, 

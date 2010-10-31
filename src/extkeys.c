@@ -25,8 +25,8 @@
 
 /* EXTKEY_CACHE_BUCKETSIZE should be a prime number or similar, as it is
  * used in a MODULO hash scheme */
-#define EXTKEY_CACHE_BUCKETSIZE         179	
-#define EXTKEY_MAX_AGE                    5
+#define EXTKEY_CACHE_BUCKETSIZE         1021	
+#define EXTKEY_MAX_AGE                     5
 
 extkey_cache_t *
 extkey_cache_new(ham_db_t *db)
@@ -208,6 +208,30 @@ extkey_cache_purge(extkey_cache_t *cache)
                 p=e;
             e=n;
         }
+    }
+
+    return (0);
+}
+
+ham_status_t
+extkey_cache_purge_all(extkey_cache_t *cache)
+{
+    ham_size_t i;
+    extkey_t *e, *n;
+    ham_env_t *env;
+
+    ham_assert(extkey_cache_get_db(cache), (0));
+    env=db_get_env(extkey_cache_get_db(cache));
+
+    /* delete all entries in the cache */
+    for (i=0; i<extkey_cache_get_bucketsize(cache); i++) {
+        e=extkey_cache_get_bucket(cahce, i);
+        while (e) {
+            n=extkey_get_next(e);
+            allocator_free(env_get_allocator(env), e);
+            e=n;
+        }
+        extkey_cache_set_bucket(cache, i, 0);
     }
 
     return (0);
