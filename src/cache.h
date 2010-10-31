@@ -49,6 +49,11 @@ struct ham_cache_t
     /** linked list of ALL cached pages */
     ham_page_t *_totallist;
 
+    /** the tail of the linked "totallist" - this is the oldest element,
+     * and therefore the highest candidate for a flush
+     */
+    ham_page_t *_oldest;
+
     /** linked list of unused pages */
     ham_page_t *_garbagelist;
 
@@ -112,6 +117,16 @@ struct ham_cache_t
  * set the linked list of all pages
  */
 #define cache_set_totallist(cm, l)             (cm)->_totallist=(l)
+
+/*
+ * get the oldest page/tail in totallist
+ */
+#define cache_get_oldest(cm)                   (cm)->_oldest
+
+/*
+ * set the oldest page/tail in totallist
+ */
+#define cache_set_oldest(cm, p)                (cm)->_oldest=(p)
 
 /*
  * get the linked list of unused (garbage collected) pages
@@ -203,8 +218,9 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page);
 /**
  * returns true if the caller should purge the cache
  */
-extern ham_bool_t 
-cache_too_big(ham_cache_t *cache);
+#define cache_too_big(c)                                                      \
+    ((cache_get_cur_elements(c)*env_get_pagesize(cache_get_env(c))            \
+            >cache_get_capacity(cache)) ? HAM_TRUE : HAM_FALSE) 
 
 /**
  * check the cache integrity
