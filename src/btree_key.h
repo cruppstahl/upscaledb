@@ -67,6 +67,9 @@ HAM_PACK_0 struct HAM_PACK_1 btree_key_t
                                     ? (k)->_ptr                                \
                                     : ham_db2h_offset((k)->_ptr))
 
+/** same as above, but without endian conversion */
+#define key_get_rawptr(k)           (k)->_ptr
+
 /**
  * set the pointer of an btree-entry
  *

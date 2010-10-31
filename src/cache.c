@@ -165,10 +165,7 @@ cache_get_unused_page(ham_cache_t *cache)
                 if (!min)
                     min=page;
                 else if (page_get_cache_cntr(page) <= page_get_cache_cntr(min)) 
-                {
-                    /* oldest! */
                     min=page;
-                }
             }
 #if 0
             /*

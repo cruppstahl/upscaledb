@@ -739,6 +739,7 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
     }
 
     if (record) {
+        ham_u64_t *ridptr=0;
         if (key_get_flags(entry)&KEY_HAS_DUPLICATES
                 && bt_cursor_get_dupe_id(c)) {
             dupe_entry_t *e=bt_cursor_get_dupe_cache(c);
@@ -753,12 +754,14 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
             }
             record->_intflags=dupe_entry_get_flags(e);
             record->_rid=dupe_entry_get_rid(e);
+            ridptr=dupe_entry_get_ridptr(e);
         }
         else {
             record->_intflags=key_get_flags(entry);
             record->_rid=key_get_ptr(entry);
+            ridptr=&key_get_rawptr(entry);
         }
-        st=btree_read_record(db, record, flags);
+        st=btree_read_record(db, record, ridptr, flags);
         if (st) {
             page_unlock(page);
             return (st);

@@ -104,12 +104,12 @@ struct ham_cache_t
 #define cache_set_bucketsize(cm, s)            (cm)->_bucketsize=(s)
 
 /*
- * get the linked list of unused pages
+ * get the linked list of all pages
  */
 #define cache_get_totallist(cm)                (cm)->_totallist
 
 /*
- * set the linked list of unused pages
+ * set the linked list of all pages
  */
 #define cache_set_totallist(cm, l)             (cm)->_totallist=(l)
 

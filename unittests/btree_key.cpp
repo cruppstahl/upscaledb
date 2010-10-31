@@ -221,7 +221,7 @@ public:
         if (!(flags&HAM_DUPLICATE)) {
             rec2._intflags=key_get_flags(key);
             rec2._rid=key_get_ptr(key);
-            BFC_ASSERT_EQUAL(0, btree_read_record(m_db, &rec2, 0));
+            BFC_ASSERT_EQUAL(0, btree_read_record(m_db, &rec2, &rec2._rid, 0));
             BFC_ASSERT_EQUAL(rec.size, rec2.size);
             BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
         }
@@ -267,7 +267,7 @@ public:
         if (!(flags&HAM_DUPLICATE)) {
             rec2._intflags=key_get_flags(key);
             rec2._rid=key_get_ptr(key);
-            BFC_ASSERT_EQUAL(0, btree_read_record(m_db, &rec2, 0));
+            BFC_ASSERT_EQUAL(0, btree_read_record(m_db, &rec2, &rec2._rid, 0));
             BFC_ASSERT_EQUAL(rec.size, rec2.size);
             BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
         }
@@ -309,7 +309,7 @@ public:
         if (!(flags&HAM_DUPLICATE)) {
             rec2._intflags=key_get_flags(key);
             rec2._rid=key_get_ptr(key);
-            BFC_ASSERT_EQUAL(0, btree_read_record(m_db, &rec2, 0));
+            BFC_ASSERT_EQUAL(0, btree_read_record(m_db, &rec2, &rec2._rid, 0));
             BFC_ASSERT_EQUAL(rec.size, rec2.size);
             BFC_ASSERT_EQUAL(0, memcmp(rec.data, rec2.data, rec.size));
         }
@@ -417,7 +417,7 @@ public:
 
         rec._intflags=dupe_entry_get_flags(&entry);
         rec._rid=dupe_entry_get_rid(&entry);
-        BFC_ASSERT_EQUAL(0, btree_read_record(m_db, &rec, 0));
+        BFC_ASSERT_EQUAL(0, btree_read_record(m_db, &rec, &rec._rid, 0));
         BFC_ASSERT_EQUAL(rec.size, size);
         if (size) {
             BFC_ASSERT_EQUAL(0, memcmp(rec.data, data, rec.size));

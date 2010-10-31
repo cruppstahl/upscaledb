@@ -1015,7 +1015,8 @@ btree_read_key(ham_db_t *db, btree_key_t *source, ham_key_t *dest)
 }
 
 ham_status_t
-btree_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
+btree_read_record(ham_db_t *db, ham_record_t *record, ham_u64_t *ridptr,
+            ham_u32_t flags)
 {
     ham_status_t st;
     ham_bool_t noblob=HAM_FALSE;
@@ -1032,6 +1033,7 @@ btree_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
             return st;
         record->_intflags=dupe_entry_get_flags(&entry);
         record->_rid     =dupe_entry_get_rid(&entry);
+        ridptr           =dupe_entry_get_ridptr(&entry);
     }
 
     /*
@@ -1041,7 +1043,7 @@ btree_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
      */
     if (record->_intflags&KEY_BLOB_SIZE_TINY) {
         /* the highest byte of the record id is the size of the blob */
-        char *p=(char *)&record->_rid;
+        char *p=(char *)ridptr;
         blobsize = p[sizeof(ham_offset_t)-1];
         noblob=HAM_TRUE;
     }
@@ -1065,15 +1067,21 @@ btree_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags)
         record->data = 0;
     }
     else if (noblob && blobsize > 0) {
-        if (!(record->flags & HAM_RECORD_USER_ALLOC)) {
-            st=db_resize_record_allocdata(db, blobsize);
-            if (st)
-                return (st);
-            record->data = db_get_record_allocdata(db);
+        if (!(record->flags&HAM_RECORD_USER_ALLOC)
+                && (flags&HAM_DIRECT_ACCESS)) {
+            record->data=ridptr;
+            record->size=blobsize;
         }
-
-        memcpy(record->data, &record->_rid, blobsize);
-        record->size = blobsize;
+        else {
+            if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
+                st=db_resize_record_allocdata(db, blobsize);
+                if (st)
+                    return (st);
+                record->data = db_get_record_allocdata(db);
+            }
+            memcpy(record->data, ridptr, blobsize);
+            record->size=blobsize;
+        }
     }
     else if (!noblob && blobsize != 0) {
         return (blob_read(db, record->_rid, record, flags));

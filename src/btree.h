@@ -404,10 +404,15 @@ btree_read_key(ham_db_t *db, btree_key_t *source, ham_key_t *dest);
 /**
  * read a record 
  *
+ * @param rid same as record->_rid, if key is not TINY/SMALL. Otherwise,
+ * and if HAM_DIRECT_ACCESS is set, we use the rid-pointer to the 
+ * original record ID
+ *
  * flags: either 0 or HAM_DIRECT_ACCESS
  */
 extern ham_status_t
-btree_read_record(ham_db_t *db, ham_record_t *record, ham_u32_t flags);
+btree_read_record(ham_db_t *db, ham_record_t *record, ham_u64_t *rid,
+                ham_u32_t flags);
 
 /** 
  * copy a key

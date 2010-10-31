@@ -432,14 +432,12 @@ no_fast_track:
         }
     }
 
-    if (record) 
-    {
+    if (record) {
         ham_status_t st;
         record->_intflags=key_get_flags(entry);
         record->_rid=key_get_ptr(entry);
-        st=btree_read_record(db, record, flags);
-        if (st) 
-        {
+        st=btree_read_record(db, record, &key_get_rawptr(entry), flags);
+        if (st) {
             page_unlock(page);
             btree_stats_update_find_fail(db, &hints);
             return (st);

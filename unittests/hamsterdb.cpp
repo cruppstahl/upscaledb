@@ -2133,28 +2133,44 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
         /* test with an empty record */
         rec.size=0;
-        rec.data=(void *)0;
+        rec.data=(void *)"";
         BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, 
                 ham_find(m_db, 0, &key, &rec,
                     HAM_DIRECT_ACCESS));
         BFC_ASSERT_EQUAL((unsigned)0, rec.size);
-        BFC_ASSERT_EQUAL((void *)0, rec.data);
 
-        ::memset(&rec, 0, sizeof(rec));
+        /* test with a tiny record (<8)*/
+        rec.size=4;
+        rec.data=(void *)"hel";
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
         BFC_ASSERT_EQUAL(0, 
-                ham_cursor_find_ex(cursor, &key, &rec,
+                ham_find(m_db, 0, &key, &rec,
                     HAM_DIRECT_ACCESS));
-        BFC_ASSERT_EQUAL((unsigned)6, rec.size);
-        BFC_ASSERT_EQUAL(0, strcmp("hello", (char *)rec.data));
-
-        ::memset(&rec, 0, sizeof(rec));
+        BFC_ASSERT_EQUAL((unsigned)4, rec.size);
+        BFC_ASSERT_EQUAL(0, strcmp("hel", (char *)rec.data));
+        ((char *)rec.data)[0]='b';
         BFC_ASSERT_EQUAL(0, 
-                ham_cursor_move(cursor, &key, &rec, HAM_DIRECT_ACCESS));
-        BFC_ASSERT_EQUAL((unsigned)6, rec.size);
-        BFC_ASSERT_EQUAL(0, strcmp("hello", (char *)rec.data));
+                ham_find(m_db, 0, &key, &rec,
+                    HAM_DIRECT_ACCESS));
+        BFC_ASSERT_EQUAL((unsigned)4, rec.size);
+        BFC_ASSERT_EQUAL(0, strcmp("bel", (char *)rec.data));
 
-        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        /* test with a small record (8)*/
+        rec.size=8;
+        rec.data=(void *)"hello wo";
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, 
+                ham_find(m_db, 0, &key, &rec,
+                    HAM_DIRECT_ACCESS));
+        BFC_ASSERT_EQUAL((unsigned)8, rec.size);
+        BFC_ASSERT_EQUAL(0, strcmp("hello wo", (char *)rec.data));
+        ((char *)rec.data)[0]='b';
+        BFC_ASSERT_EQUAL(0, 
+                ham_find(m_db, 0, &key, &rec,
+                    HAM_DIRECT_ACCESS));
+        BFC_ASSERT_EQUAL((unsigned)8, rec.size);
+        BFC_ASSERT_EQUAL(0, strcmp("bello wo", (char *)rec.data));
     }
 
     void negativeDirectAccessTest(void)
