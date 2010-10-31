@@ -1,5 +1,5 @@
 
-hamsterdb Embedded Storage 1.1.6                   Sun Sep 12 20:44:25 CEST 2010
+hamsterdb Embedded Storage 1.1.7                   Sun Oct 31 12:50:29 CET 2010
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 This is the README file of hamsterdb Embedded Storage.
@@ -12,32 +12,20 @@ hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
 a B+Tree index structure, uses memory mapped I/O (if available), supports 
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-This release stabilized the remote functionality. New samples for client/server
-scenarios are provided. The remote server can now write access logfiles. A
-unix daemon and a win32 Service were added. The dependency to Google Protocol
-Buffers for C was removed; instead, Google Protocol Buffers (C++) are now 
-used. Compilation on ArchLinux (gcc 4.5.1) was fixed. Several functions are
-now deprecated. The source repository was moved to github.
+This release fixes a bug when using HAM_DIRECT_ACCESS and records with
+a size <= 8 bytes. It also features major performance improvements. 
 
 2. Changes
 
 New Features
-* added samples for client/server scenarios
-* added a Unix daemon (or Win32 service)
+* none
 
 Bugfixes
-* Several memory leaks during remote communication were fixed
-* Several bugs in the remote communication code were fixed (see ChangeLog
-    for details)
+* HAM_DIRECT_ACCESS with records <= 8 bytes were not returned correctly
+* Fixed a small memory leak when using remote transactions
 
 Other Changes
-* documentation was improved
-* some functions are now deprecated
-* hamserver.h was renamed to hamsterdb_srv.h
-* the function interface in hamsterdb_srv.h was changed
-* compilation on ArchLinux (gcc 4.5.1) was fixed
-* the tutorial is now online at http://wiki.github.com/cruppstahl/hamsterdb
-* MSVC projects were updated to Visual Studio 2009
+* Several performance improvements with and without extended keys
 
 To see a list of all changes, look in the file ChangeLog.
 
@@ -142,6 +130,7 @@ HAM_ENABLE_INTERNAL     enable internal functions (declared in
                             include/ham/hamsterdb_int.h)
 HAM_DISABLE_COMPRESSION build without support for zlib compression
 HAM_DISABLE_ENCRYPTION  build without support for AES encryption
+HAM_ENABLE_REMOTE       build with remote access (needs libcurl/protobuf)
 
 Also, if you compile for windows, you have to compile the file 'src/os_win32.c',
 and ignore the file 'src/os_posix.c'. Vice versa on non-Windows platforms.
