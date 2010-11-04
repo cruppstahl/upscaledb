@@ -144,11 +144,21 @@ o manage all transactions
 
 o make sure all unittests are running
 
+o recovery: auto-aborts all pending transactions (same behavior as now)
+
 o implement partial reads through transaction tree - will have to 
     consolidate them
+
 o implement approx. matching through transaction tree - will have to 
     consolidate rb-tree and btree to look for the "closest" key
+
 o implement direct access - how, if the transaction tree is flushed??
+    (but in-memory access w/ transactions is anyway not yet supported -
+    write unittest to assert that it doesn't work)
+
+o support cursors!!!
+    - when flushing a transaction, and a cursor is pointing into the txn
+        node: uncouple the cursor!
 
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
 
