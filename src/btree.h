@@ -43,19 +43,13 @@ typedef struct ham_btree_t ham_btree_t;
 
 HAM_PACK_0 struct HAM_PACK_1 ham_btree_t 
 {
-    /**
-     * the common declarations of all backends
-     */
+    /** the common declarations of all backends */
     BACKEND_DECLARATIONS(ham_btree_t);
 
-    /**
-     * address of the root-page 
-     */
+    /** address of the root-page */
     ham_offset_t _rootpage;
 
-    /**
-     * maximum keys in an internal page 
-     */
+    /** maximum keys in an internal page */
     ham_u16_t _maxkeys;
 
     /**
@@ -69,24 +63,16 @@ HAM_PACK_0 struct HAM_PACK_1 ham_btree_t
 
 #include "packstop.h"
 
-/**
- * get the address of the root node
- */
+/** get the address of the root node */
 #define btree_get_rootpage(be)          (ham_db2h_offset((be)->_rootpage))
 
-/**
- * set the address of the root node
- */
+/** set the address of the root node */
 #define btree_set_rootpage(be, rp)      (be)->_rootpage=ham_h2db_offset(rp)
 
-/** 
- * get maximum number of keys per (internal) node 
- */
+/** get maximum number of keys per (internal) node */
 #define btree_get_maxkeys(be)           (ham_db2h16((be)->_maxkeys))
 
-/** 
- * set maximum number of keys per (internal) node 
- */
+/** set maximum number of keys per (internal) node */
 #define btree_set_maxkeys(be, s)        (be)->_maxkeys=ham_h2db16(s)
 
 /** getter for keydata1 */
@@ -101,14 +87,10 @@ HAM_PACK_0 struct HAM_PACK_1 ham_btree_t
 /** setter for keydata2 */
 #define btree_set_keydata2(be, p)       (be)->_keydata2=(p)
 
-/**
- * a macro for getting the minimum number of keys
- */
+/** a macro for getting the minimum number of keys */
 #define btree_get_minkeys(maxkeys)      (maxkeys/2)
 
-/**
- * defines the maximum number of keys per node
- */
+/** defines the maximum number of keys per node */
 #define MAX_KEYS_PER_NODE				0xFFFFU /* max(ham_u16_t) */
 
 
@@ -133,19 +115,13 @@ typedef HAM_PACK_0 struct HAM_PACK_1 btree_node_t
      */
     ham_u16_t _flags;
 
-    /**
-     * number of used entries in the node
-     */
+    /** number of used entries in the node */
     ham_u16_t _count;
 
-    /**
-     * address of left sibling
-     */
+    /** address of left sibling */
     ham_offset_t _left;
 
-    /**
-     * address of right sibling
-     */
+    /** address of right sibling */
     ham_offset_t _right;
 
     /**
@@ -154,63 +130,41 @@ typedef HAM_PACK_0 struct HAM_PACK_1 btree_node_t
      */
     ham_offset_t _ptr_left;
 
-    /**
-     * the entries of this node
-     */
+    /** the entries of this node */
     btree_key_t _entries[1];
 
 } HAM_PACK_2 btree_node_t;
 
 #include "packstop.h"
 
-/**
- * get the number of entries of a btree-node
- */
+/** get the number of entries of a btree-node */
 #define btree_node_get_count(btp)            (ham_db2h16(btp->_count))
 
-/**
- * set the number of entries of a btree-node
- */
+/** set the number of entries of a btree-node */
 #define btree_node_set_count(btp, c)         btp->_count=ham_h2db16(c)
 
-/**
- * get the left sibling of a btree-node
- */
+/** get the left sibling of a btree-node */
 #define btree_node_get_left(btp)             (ham_db2h_offset(btp->_left))
 
-/*
- * check if a btree node is a leaf node
- */
+/** check if a btree node is a leaf node */
 #define btree_node_is_leaf(btp)              (!(btree_node_get_ptr_left(btp)))
 
-/**
- * set the left sibling of a btree-node
- */
+/** set the left sibling of a btree-node */
 #define btree_node_set_left(btp, l)          btp->_left=ham_h2db_offset(l)
 
-/**
- * get the right sibling of a btree-node
- */
+/** get the right sibling of a btree-node */
 #define btree_node_get_right(btp)            (ham_db2h_offset(btp->_right))
 
-/**
- * set the right sibling of a btree-node
- */
+/** set the right sibling of a btree-node */
 #define btree_node_set_right(btp, r)         btp->_right=ham_h2db_offset(r)
 
-/**
- * get the ptr_left of a btree-node
- */
+/** get the ptr_left of a btree-node */
 #define btree_node_get_ptr_left(btp)         (ham_db2h_offset(btp->_ptr_left))
 
-/**
- * set the ptr_left of a btree-node
- */
+/** set the ptr_left of a btree-node */
 #define btree_node_set_ptr_left(btp, r)      btp->_ptr_left=ham_h2db_offset(r)
 
-/**
- * get a btree_node_t from a ham_page_t
- */
+/** get a btree_node_t from a ham_page_t */
 #define page_get_btree_node(p)          ((btree_node_t *)p->_pers->_s._payload)
 
 /**

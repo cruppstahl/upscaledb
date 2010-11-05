@@ -225,7 +225,7 @@ extkey_cache_purge_all(extkey_cache_t *cache)
 
     /* delete all entries in the cache */
     for (i=0; i<extkey_cache_get_bucketsize(cache); i++) {
-        e=extkey_cache_get_bucket(cahce, i);
+        e=extkey_cache_get_bucket(cache, i);
         while (e) {
             n=extkey_get_next(e);
             allocator_free(env_get_allocator(env), e);

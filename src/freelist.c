@@ -2918,7 +2918,6 @@ __freel_locate_sufficient_free_space(freelist_hints_t *dst,
                 else
                 {
                     start_index -= hints->skip_init_offset;
-                    ham_assert(start_index >= 0, (0));
                     /* only apply the init_offset at the first increment 
                      * cycle to break repetitiveness */
                     hints->skip_init_offset = 0;

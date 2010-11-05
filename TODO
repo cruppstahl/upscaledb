@@ -133,6 +133,7 @@ o manage all transactions
     o ham_find: when retrieving a record, do not copy the original 
         record-pointer; we need a deep copy instead because this record
         pointer may be flushed and become invalid.
+        -> db.c:1953
 
     o more pending cleanups
         o remove env_get_txn, env_get_txn_id

@@ -754,7 +754,7 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
             }
             record->_intflags=dupe_entry_get_flags(e);
             record->_rid=dupe_entry_get_rid(e);
-            ridptr=dupe_entry_get_ridptr(e);
+            ridptr=&dupe_entry_get_ridptr(e);
         }
         else {
             record->_intflags=key_get_flags(entry);

@@ -767,8 +767,8 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
      * which can happen on 32bit Windows) */
     if (env_get_cache(env) 
             && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-        ham_bool_t purge=cache_too_big(cache);
         ham_cache_t *cache=env_get_cache(env);
+        ham_bool_t purge=cache_too_big(cache);
 #if defined(WIN32) && defined(HAM_32BIT)
         if (env_get_rt_flags(env)&HAM_CACHE_UNLIMITED) {
             if (cache_get_cur_elements(cache)*env_get_pagesize(env) 
@@ -1041,8 +1041,8 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     if (!(flags&DB_ONLY_FROM_CACHE) 
             && env_get_cache(env) 
             && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-        ham_bool_t purge=cache_too_big(cache);
         ham_cache_t *cache=env_get_cache(env);
+        ham_bool_t purge=cache_too_big(cache);
 #if defined(WIN32) && defined(HAM_32BIT)
         if (env_get_rt_flags(env)&HAM_CACHE_UNLIMITED) {
             if (cache_get_cur_elements(cache)*env_get_pagesize(env) 
@@ -1903,6 +1903,7 @@ static ham_status_t
 db_find_txn(ham_db_t *db, ham_txn_t *txn,
         ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
+    ham_status_t st=0;
     txn_optree_t *tree=0;
     txn_opnode_t *node=0;
     txn_op_t *op=0;
@@ -1950,13 +1951,15 @@ db_find_txn(ham_db_t *db, ham_txn_t *txn,
             else if ((txn_op_get_flags(op)&TXN_OP_INSERT_OW)
                     || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
                 if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
-                    *record=*txn_op_get_record(op);
+                    st=db_resize_record_allocdata(db, 
+                                    txn_op_get_record(op)->size);
+                    if (st)
+                        return (st);
+                    record->data=db_get_record_allocdata(db);
                 }
-                else {
-                    memcpy(record->data, txn_op_get_record(op)->data,
-                                txn_op_get_record(op)->size);
-                    record->size=txn_op_get_record(op)->size;
-                }
+                memcpy(record->data, txn_op_get_record(op)->data,
+                            txn_op_get_record(op)->size);
+                record->size=txn_op_get_record(op)->size;
                 return (0);
             }
             else {

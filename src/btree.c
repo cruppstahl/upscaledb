@@ -341,6 +341,7 @@ static ham_status_t
 my_fun_close(ham_btree_t *be)
 {
     ham_status_t st;
+    mem_allocator_t *alloc=env_get_allocator(db_get_env(be_get_db(be)));
 
     /*
      * just flush the backend info if it's dirty
@@ -351,13 +352,11 @@ my_fun_close(ham_btree_t *be)
     be_set_active(be, HAM_FALSE);
 
     if (btree_get_keydata1(be)) {
-        allocator_free(env_get_allocator(db_get_env(db)), 
-                    btree_get_keydata1(be));
+        allocator_free(alloc, btree_get_keydata1(be));
         btree_set_keydata1(be, 0);
     }
     if (btree_get_keydata2(be)) {
-        allocator_free(env_get_allocator(db_get_env(db)), 
-                    btree_get_keydata2(be));
+        allocator_free(alloc, btree_get_keydata2(be));
         btree_set_keydata2(be, 0);
     }
 
@@ -847,8 +846,8 @@ ham_status_t
 btree_prepare_key_for_compare(ham_db_t *db, int which, 
                 btree_key_t *src, ham_key_t *dest)
 {
-    ham_btree_t *be=0;
-    mem_allocator_t *alloc;
+    ham_btree_t *be=(ham_btree_t *)db_get_backend(db);
+    mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
     void *p;
 
     if (!(key_get_flags(src) & KEY_IS_EXTENDED)) {
@@ -860,11 +859,9 @@ btree_prepare_key_for_compare(ham_db_t *db, int which,
     }
 
     dest->size = key_get_size(src);
-    be=(ham_btree_t *)db_get_backend(db);
-    alloc=env_get_allocator(db_get_env(db));
-    p = ptr ? btree_get_keydata2(be) : btree_get_keydata1(be);
+    p = which ? btree_get_keydata2(be) : btree_get_keydata1(be);
     p = allocator_realloc(alloc, p, dest->size);
-    if (ptr) 
+    if (which) 
         btree_set_keydata2(be, p); 
     else 
         btree_set_keydata1(be, p);
@@ -875,8 +872,7 @@ btree_prepare_key_for_compare(ham_db_t *db, int which,
     }
 
     memcpy(p, key_get_key(src), db_get_keysize(db));
-    dest->data = p;
-
+    dest->data    = p;
     dest->_flags |= KEY_IS_EXTENDED;
     dest->flags  |= HAM_KEY_USER_ALLOC;
 
@@ -1033,7 +1029,7 @@ btree_read_record(ham_db_t *db, ham_record_t *record, ham_u64_t *ridptr,
             return st;
         record->_intflags=dupe_entry_get_flags(&entry);
         record->_rid     =dupe_entry_get_rid(&entry);
-        ridptr           =dupe_entry_get_ridptr(&entry);
+        ridptr           =&dupe_entry_get_ridptr(&entry);
     }
 
     /*
