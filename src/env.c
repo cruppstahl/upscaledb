@@ -53,7 +53,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
  * in db.c
  */
 extern ham_status_t
-free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context);
+__free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context);
 
 ham_u16_t
 env_get_max_databases(ham_env_t *env)
@@ -580,7 +580,7 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     if (!be->_fun_enumerate)
         return HAM_NOT_IMPLEMENTED;
 
-    st=be->_fun_enumerate(be, free_inmemory_blobs_cb, &context);
+    st=be->_fun_enumerate(be, __free_inmemory_blobs_cb, &context);
     if (st) {
         (void)txn_abort(txn, 0);
         (void)ham_close(db, 0);

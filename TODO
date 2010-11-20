@@ -140,8 +140,20 @@ o manage all transactions
             pointer in env.c(flush_txn)
 
     o rewrite enumeration code
-        -> some just need to enumerate over btree
-        -> but others need to enumerate over txns as well
+        x some just need to enumerate over btree
+            x _fun_enumerate(free_inmemory_blobs_cb)
+        o but others need to enumerate over txns as well
+            o _fun_enumerate(my_calc_keys_cb)
+                --> implement db.c:db_get_key_count_txn(); needs to iterate
+                    over all nodes in the tree!
+
+    o db.c: all functions which begin a local_txn should be reviewed;
+        a local_txn should only be started if transactions are enabled!
+
+o db.c:_local_fun_get_key_count: is local_txn really needed?
+o db.c:_local_fun_check_integrity: is local_txn really needed?
+o db.c:_get_incremented_lsn: fix TODO
+o db.c: same about _local_cursor_*
 
 o make sure all unittests are running
 

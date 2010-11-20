@@ -51,7 +51,7 @@ typedef struct
  * in the database
  */
 static ham_status_t
-my_calc_keys_cb(int event, void *param1, void *param2, void *context)
+__calc_keys_cb(int event, void *param1, void *param2, void *context)
 {
     btree_key_t *key;
     calckeys_context_t *c;
@@ -79,8 +79,7 @@ my_calc_keys_cb(int event, void *param1, void *param2, void *context)
             ham_size_t dupcount = 1;
 
             if (!(c->flags & HAM_SKIP_DUPLICATES)
-                    && (key_get_flags(key) & KEY_HAS_DUPLICATES)) 
-            {
+                    && (key_get_flags(key) & KEY_HAS_DUPLICATES)) {
                 ham_status_t st = blob_duplicate_get_count(db_get_env(c->db), 
                         key_get_ptr(key), &dupcount, 0);
                 if (st)
@@ -125,7 +124,7 @@ typedef struct free_cb_context_t
  * callback function for freeing blobs of an in-memory-database
  */
 ham_status_t
-free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
+__free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
 {
     ham_status_t st;
     btree_key_t *key;
@@ -1405,7 +1404,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
             if (st2 == 0) st2 = st;
         }
         else {
-            (void)be->_fun_enumerate(be, free_inmemory_blobs_cb, &context);
+            (void)be->_fun_enumerate(be, __free_inmemory_blobs_cb, &context);
             (void)txn_commit(txn, 0);
         }
     }
@@ -1596,15 +1595,14 @@ static ham_status_t
 _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
 {
 #ifdef HAM_ENABLE_INTERNAL
-    ham_txn_t *local_txn;
+    ham_txn_t *local_txn=0;
     ham_status_t st;
     ham_backend_t *be;
 
     /*
      * check the cache integrity
      */
-    if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB))
-    {
+    if (!(db_get_rt_flags(db)&HAM_IN_MEMORY_DB)) {
         st=cache_check_integrity(env_get_cache(db_get_env(db)));
         if (st)
             return (st);
@@ -1616,7 +1614,7 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
     if (!be->_fun_check_integrity)
         return (HAM_NOT_IMPLEMENTED);
 
-    if (!txn) {
+    if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         if ((st=txn_begin(&local_txn, db_get_env(db), HAM_TXN_READ_ONLY)))
             return (st);
     }
@@ -1625,14 +1623,13 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
      * call the backend function
      */
     st=be->_fun_check_integrity(be);
-
     if (st) {
-        if (!txn)
+        if (local_txn)
             (void)txn_abort(local_txn, 0);
         return (st);
     }
 
-    if (!txn)
+    if (local_txn)
         return (txn_commit(local_txn, 0));
     else
         return (st);
@@ -1642,10 +1639,70 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
 }
 
 static ham_status_t
+db_get_key_count_txn(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
+                ham_u64_t *count)
+{
+    txn_optree_t *tree;
+    txn_opnode_t *node;
+    txn_op_t *op;
+
+    *count=0;
+
+    /* get the txn-tree for this database; if there's no tree then
+     * there's no need to create a new one - we'll just skip the whole
+     * tree-related code */
+    tree=db_get_optree(db);
+
+    /*
+     * look at each tree_node and walk through each operation 
+     * in reverse chronological order (from newest to oldest):
+     * - is this op part of an aborted txn? then skip it
+     * - is this op part of a committed txn? then include it
+     * - is this op part of an txn which is still active? then include it
+     * - if a committed txn has erased the item then there's no need
+     *      to continue checking older, committed txns of the same key
+     */
+/* foreach (node) { TODO TODO TODO */
+    op=txn_opnode_get_newest_op(node);
+    while (op) {
+        ham_txn_t *optxn=txn_op_get_txn(op);
+        if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
+            ; /* nop */
+        else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
+                    || (txn==optxn)) {
+            /* if key was erased then it doesn't exist and can be
+             * inserted without problems */
+            if (txn_op_get_flags(op)&TXN_OP_ERASE)
+                ; /* nop */
+            else if (txn_op_get_flags(op)&TXN_OP_NOP)
+                ; /* nop */
+            /* key exists - include it */
+/* TODO check duplicates! */
+            else if ((txn_op_get_flags(op)&TXN_OP_INSERT_OW)
+                    || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
+                (*count)++;
+            }
+            else {
+                ham_assert(!"shouldn't be here", (""));
+                return (HAM_INTERNAL_ERROR);
+            }
+        }
+        else { /* txn is still active */
+            (*count)++;
+        }
+
+        op=txn_op_get_next_in_node(op);
+    }
+
+    return (0);
+}
+
+
+static ham_status_t
 _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
             ham_offset_t *keycount)
 {
-    ham_txn_t *local_txn;
+    ham_txn_t *local_txn=0; /* TODO - really needed?? */
     ham_status_t st;
     ham_backend_t *be;
     ham_env_t *env=0;
@@ -1665,26 +1722,40 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     if (!be->_fun_enumerate)
         return (HAM_NOT_IMPLEMENTED);
 
-    if (!txn) {
+    if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st = txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
         if (st)
             return (st);
     }
 
     /*
-     * call the backend function
+     * call the backend function - this will retrieve the number of keys
+     * in the btree
      */
-    st = be->_fun_enumerate(be, my_calc_keys_cb, &ctx);
-
+    st = be->_fun_enumerate(be, __calc_keys_cb, &ctx);
     if (st) {
-        if (!txn)
+        if (local_txn)
             (void)txn_abort(local_txn, 0);
         return (st);
     }
-
     *keycount = ctx.total_count;
 
-    if (!txn)
+    /*
+     * if transactions are enabled, then also sum up the number of keys
+     * from the transaction tree
+     */
+    if (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS) {
+        ham_u64_t c=0;
+        st=db_get_key_count_txn(db, txn, flags, &c);
+        if (st) {
+            if (local_txn)
+                (void)txn_abort(local_txn, 0);
+            return (st);
+        }
+        *keycount += c;
+    }
+
+    if (local_txn)
         return (txn_commit(local_txn, 0));
     else
         return (st);
@@ -2043,7 +2114,7 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
      */
     if (!st) {
         if (txn || local_txn)
-            st=db_insert_txn(db, txn, key, &temprec, flags);
+            st=db_insert_txn(db, txn ? txn : local_txn, key, &temprec, flags);
         else
             st=be->_fun_insert(be, key, &temprec, flags);
     }
@@ -2080,7 +2151,7 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
         }
     }
 
-    if (!txn)
+    if (local_txn)
         return (txn_commit(local_txn, 0));
     else
         return (st);
@@ -2128,7 +2199,7 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
      * the txn tree; otherwise immediately erase the key from disk
      */
     if (txn || local_txn)
-        st=db_erase_txn(db, txn, key, flags);
+        st=db_erase_txn(db, txn ? txn : local_txn, key, flags);
     else
         st=be->_fun_erase(be, key, flags);
 
@@ -2196,7 +2267,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
      * otherwise read immediately from disk
      */
     if (txn || local_txn)
-        st=db_find_txn(db, txn, key, record, flags);
+        st=db_find_txn(db, txn ? txn : local_txn, key, record, flags);
     else
         st=be->_fun_find(be, key, record, flags);
 
