@@ -135,11 +135,9 @@ o manage all transactions
         pointer may be flushed and become invalid.
         -> db.c:1953
 
-    o more pending cleanups
-        o remove env_get_txn, env_get_txn_id
-            x rename env_get_txn to env_get_flushed_txn, and set the 
-                pointer in env.c(flush_txn)
-        o extkeys: don't use txn_id for the 'age', use lsn instead
+    x more pending cleanups
+        x rename env_get_txn to env_get_flushed_txn, and set the 
+            pointer in env.c(flush_txn)
 
     o rewrite enumeration code
         -> some just need to enumerate over btree
@@ -190,5 +188,7 @@ o ham_txn_begin receives Environment handle, not Database handle
 o new API to retrieve the currently active transactions
     o already exists
     o needs unittests
+
+. extkeys: don't use txn_id for the 'age', use lsn instead
 
 o continue as described in integrate-ham2.txt...
