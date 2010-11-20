@@ -133,8 +133,10 @@ struct ham_env_t
     /** the file header page */
     ham_page_t *_hdrpage;
 
-    /** the active txn */
-    ham_txn_t *_txn;
+    /** the txn that is currently flushed; needed as long as we have a 
+     * combination of logical and phyiscal journal/log; can be removed as 
+     * soon as we moved to a 100% logical log */
+    ham_txn_t *_flushed_txn;
 
     /* the head of the transaction list (the oldest transaction) */
     ham_txn_t *_oldest_txn;
@@ -379,8 +381,11 @@ env_get_header(ham_env_t *env);
  */
 #define env_get_indexdata_ptr(env, i)      (env_get_indexdata_arrptr(env) + (i))
 
-/** TODO remove me!  */
-#define env_get_txn(env)                 (env)->_oldest_txn
+/** get the transaction that is currently flushed */
+#define env_get_flushed_txn(env)         (env)->_flushed_txn
+
+/** set the transaction that is currently flushed */
+#define env_set_flushed_txn(env, t)      (env)->_flushed_txn=t
 
 /** get the newest transaction */
 #define env_get_newest_txn(env)          (env)->_newest_txn

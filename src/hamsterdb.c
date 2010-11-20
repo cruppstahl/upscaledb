@@ -1666,10 +1666,11 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     /*
      * when all transactions have been properly closed... 
      */
-    if (env_is_active(env) && env_get_txn(env)) {
+    if (env_is_active(env) && env_get_oldest_txn(env)) {
         //st2 = HAM_TRANSACTION_STILL_OPEN;
         ham_assert(!"Should never get here; the db close loop above "
                     "should've taken care of all TXNs", (0));
+        return (HAM_INTERNAL_ERROR);
     }
 
     /*

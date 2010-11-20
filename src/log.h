@@ -155,7 +155,7 @@ struct ham_log_t
     /** the allocator object */
     mem_allocator_t *_alloc;
 
-	/** references the environment (database) this log file is for; may be NULL */
+	/** references the Environment this log file is for; may be NULL */
 	ham_env_t *_env;
 
     /** the log flags - unused so far */
@@ -342,32 +342,33 @@ extern ham_status_t
 ham_log_append_checkpoint(ham_log_t *log);
 
 /**
-append a log entry for LOG_ENTRY_TYPE_FLUSH_PAGE
-
-Process the signal that a page is about to be written to the
-device: save the page to the log file which is linked with
-that page's database transaction, then flush that log file
-to ensure crash recovery.
-
-@note The only time this signal is not delivered is when the
-      database starts a new transaction by generating a new
-	  checkpoint.
-
-	  At that time pages may be flushed to disc, but we will
-	  be sure those pages are already covered by the previous
-	  (by now already closed and flushed) transaction log/flush.
-
-@sa page_flush
+ * append a log entry for LOG_ENTRY_TYPE_FLUSH_PAGE
+ * 
+ * Process the signal that a page is about to be written to the
+ * device: save the page to the log file which is linked with
+ * that page's database transaction, then flush that log file
+ * to ensure crash recovery.
+ * 
+ * @note The only time this signal is not delivered is when the
+ *      database starts a new transaction by generating a new
+ *      checkpoint.
+ *
+ *     At that time pages may be flushed to disc, but we will
+ *     be sure those pages are already covered by the previous
+ *     (by now already closed and flushed) transaction log/flush.
+ *
+ * @sa page_flush
  */
 extern ham_status_t
 ham_log_append_flush_page(ham_log_t *log, struct ham_page_t *page);
 
 /**
  * append a log entry for @ref LOG_ENTRY_TYPE_WRITE.
-
- @note invoked by @ref ham_log_add_page_after() to save the new content of the specified page.
-
- @sa ham_log_add_page_after
+ *
+ * @note invoked by @ref ham_log_add_page_after() to save the new 
+ * content of the specified page.
+ *
+ * @sa ham_log_add_page_after
  */
 extern ham_status_t
 ham_log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
@@ -375,10 +376,11 @@ ham_log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
 
 /**
  * append a log entry for @ref LOG_ENTRY_TYPE_PREWRITE.
-
- @note invoked by @ref ham_log_add_page_before() to preserve the original content of the specified page.
-
- @sa ham_log_add_page_before
+ *
+ * @note invoked by @ref ham_log_add_page_before() to preserve the original 
+ * content of the specified page.
+ *
+ * @sa ham_log_add_page_before
  */
 extern ham_status_t
 ham_log_append_prewrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
@@ -452,46 +454,47 @@ extern ham_status_t
 ham_log_recreate(ham_log_t *log, ham_page_t *page);
 
 /**
-Mark the start of a database storage expansion: this needs to be
-set any time the persistent store is increased through allocating
-one or more new pages.
-
-@sa env_reserve_space
-@sa ham_log_mark_db_expansion_end
-@sa ham_log_is_db_expansion
-*/
+ * Mark the start of a database storage expansion: this needs to be
+ * set any time the persistent store is increased through allocating
+ * one or more new pages.
+ *
+ * @sa env_reserve_space
+ * @sa ham_log_mark_db_expansion_end
+ * @sa ham_log_is_db_expansion
+ */
 extern void
 ham_log_mark_db_expansion_start(ham_env_t *env);
 
 /**
-Mark the end of a database storage expansion phase which was initiated 
-when @ref ham_log_mark_db_expansion_start had been invoked before.
-
-@sa env_reserve_space
-@sa ham_log_mark_db_expansion_start
-@sa ham_log_is_db_expansion
-*/
+ * Mark the end of a database storage expansion phase which was initiated 
+ * when @ref ham_log_mark_db_expansion_start had been invoked before.
+ * 
+ * @sa env_reserve_space
+ * @sa ham_log_mark_db_expansion_start
+ * @sa ham_log_is_db_expansion
+ */
 extern void
 ham_log_mark_db_expansion_end(ham_env_t *env);
 
 /**
-Check whether we are currently in the database storage expansion state:
-when we are, certain page operations can be simplified as we are merely 
-adding free storage pages.
-
-Nevertheless, this state can occur as part of a larger transaction, which
-complicates matters a tad when said transaction is aborted: the file
-resize operations performed as part of the storage expansion operation
-<em>can not be undone</em>. To ensure the log processing will be aware
-at the time of recovery, we must log the storage expansion separately 
-from the coordinating transaction itself.
-
-@sa env_reserve_space
-@sa ham_log_mark_db_expansion_end
-@sa ham_log_mark_db_expansion_start
-*/
+ * Check whether we are currently in the database storage expansion state:
+ * when we are, certain page operations can be simplified as we are merely 
+ * adding free storage pages.
+ * 
+ * Nevertheless, this state can occur as part of a larger transaction, which
+ * complicates matters a tad when said transaction is aborted: the file
+ * resize operations performed as part of the storage expansion operation
+ * <em>can not be undone</em>. To ensure the log processing will be aware
+ * at the time of recovery, we must log the storage expansion separately 
+ * from the coordinating transaction itself.
+ * 
+ * @sa env_reserve_space
+ * @sa ham_log_mark_db_expansion_end
+ * @sa ham_log_mark_db_expansion_start
+ */
 extern ham_bool_t
 ham_log_is_db_expansion(ham_env_t *env);
+
 
 #ifdef __cplusplus
 } // extern "C"

@@ -86,7 +86,6 @@ struct erase_hints_t;
 typedef struct erase_hints_t erase_hints_t;
 
 
-
 #include "packstart.h"
 
 struct freelist_payload_t;

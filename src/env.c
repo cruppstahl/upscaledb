@@ -1361,6 +1361,11 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
          * a serious bug */
         ham_assert(txn_op_get_flags(op)!=TXN_OP_FLUSHED, (""));
 
+        /* currently, some low-level functions (i.e. in log.c) still need
+         * to know about the Transaction that we flush, therefore set the
+         * env_flushed_txn pointer */
+        env_set_flushed_txn(env, txn);
+
         /* depending on the type of the operation: actually perform the
          * operation on the btree */
         switch (txn_op_get_flags(op)) {
@@ -1381,6 +1386,8 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
             default:
                 break;
         }
+
+        env_set_flushed_txn(env, 0);
 
         if (st) {
             ham_trace(("failed to flush op: %d\n", (int)st));

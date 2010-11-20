@@ -516,8 +516,8 @@ ham_log_append_flush_page(ham_log_t *log, struct ham_page_t *page)
     log_entry_set_type(&entry, LOG_ENTRY_TYPE_FLUSH_PAGE);
     log_entry_set_offset(&entry, page_get_self(page));
 
-    if (env_get_txn(env))
-        fdidx=txn_get_log_desc(env_get_txn(env)); 
+    if (env_get_flushed_txn(env))
+        fdidx=txn_get_log_desc(env_get_flushed_txn(env)); 
 
     st=ham_log_append_entry(log, fdidx, &entry, sizeof(entry));
     if (st)
@@ -763,7 +763,7 @@ ham_log_add_page_before(ham_page_t *page)
         p=(ham_u8_t *)page_get_raw_payload(page);
 
     if (st==0)
-        st=ham_log_append_prewrite(log, env_get_txn(env), 
+        st=ham_log_append_prewrite(log, env_get_flushed_txn(env), 
                 page_get_self(page), p, size);
 
     if (p!=page_get_raw_payload(page))
@@ -813,7 +813,7 @@ ham_log_add_page_after(ham_page_t *page)
         p=(ham_u8_t *)page_get_raw_payload(page);
 
     if (st==0)
-        st=ham_log_append_write(log, env_get_txn(env), 
+        st=ham_log_append_write(log, env_get_flushed_txn(env), 
                 page_get_self(page), p, size);
 
     if (p!=page_get_raw_payload(page))

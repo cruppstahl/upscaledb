@@ -137,6 +137,8 @@ o manage all transactions
 
     o more pending cleanups
         o remove env_get_txn, env_get_txn_id
+            x rename env_get_txn to env_get_flushed_txn, and set the 
+                pointer in env.c(flush_txn)
         o extkeys: don't use txn_id for the 'age', use lsn instead
 
     o rewrite enumeration code
@@ -158,8 +160,14 @@ o implement direct access - how, if the transaction tree is flushed??
     write unittest to assert that it doesn't work)
 
 o support cursors!!!
-    - when flushing a transaction, and a cursor is pointing into the txn
-        node: uncouple the cursor!
+    o separate cursor logic into btree and txn; in db.c, consolidate the
+        two cursors
+    o move first: use the cursor which is smaller
+    o move right: use the cursor which is larger
+    o move prev: use the cursor which is closer to the current one
+    o move next: use the cursor which is closer to the current one
+    o when flushing a transaction, and a cursor is pointing into the txn
+        node: uncouple the cursor! (or delete it?)
 
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
 
