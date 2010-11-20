@@ -130,7 +130,7 @@ o manage all transactions
 
     x review page.h - anything that we do not need? (i.e. dirty_txn?) - no
 
-    o ham_find: when retrieving a record, do not copy the original 
+    x ham_find: when retrieving a record, do not copy the original 
         record-pointer; we need a deep copy instead because this record
         pointer may be flushed and become invalid.
         -> db.c:1953

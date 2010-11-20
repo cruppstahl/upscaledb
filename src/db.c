@@ -1947,7 +1947,9 @@ db_find_txn(ham_db_t *db, ham_txn_t *txn,
                 return (HAM_KEY_NOT_FOUND);
             else if (txn_op_get_flags(op)&TXN_OP_NOP)
                 ; /* nop */
-            /* if the key already exists then we can return its record */
+            /* if the key already exists then return its record; do not
+             * return pointers to txn_op_get_record, because it may be
+             * flushed and the user's pointers would be invalid */
             else if ((txn_op_get_flags(op)&TXN_OP_INSERT_OW)
                     || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
                 if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
