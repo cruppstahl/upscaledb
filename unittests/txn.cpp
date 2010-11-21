@@ -778,6 +778,8 @@ public:
         BFC_REGISTER_TEST(HighLevelTxnTest, rollbackNormalBlobTest);
         BFC_REGISTER_TEST(HighLevelTxnTest, insertFindCommitTest);
         BFC_REGISTER_TEST(HighLevelTxnTest, insertFindEraseTest);
+        BFC_REGISTER_TEST(HighLevelTxnTest, insertFindEraseTest);
+        BFC_REGISTER_TEST(HighLevelTxnTest, getKeyCountTest);
     }
 
 protected:
@@ -1121,6 +1123,84 @@ public:
         BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    }
+
+    ham_status_t insert(ham_txn_t *txn, const char *keydata, 
+                    const char *recorddata, int flags)
+    {
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        key.data=(void *)keydata;
+        key.size=strlen(keydata)+1;
+        rec.data=(void *)recorddata;
+        rec.size=strlen(recorddata)+1;
+
+        return (ham_insert(m_db, txn, &key, &rec, flags));
+    }
+
+    ham_status_t find(ham_txn_t *txn, const char *keydata, 
+                    const char *recorddata)
+    {
+        ham_status_t st;
+        ham_key_t key;
+        ham_record_t rec;
+        ::memset(&key, 0, sizeof(key));
+        ::memset(&rec, 0, sizeof(rec));
+        key.data=(void *)keydata;
+        key.size=strlen(keydata)+1;
+
+        st=ham_find(m_db, txn, &key, &rec, 0);
+        if (st)
+            return (st);
+        BFC_ASSERT_EQUAL(0, strcmp(recorddata, (char *)rec.data));
+        BFC_ASSERT_EQUAL(rec.size, strlen(recorddata)+1);
+        return (0);
+    }
+
+    void getKeyCountTest(void)
+    {
+        ham_txn_t *txn;
+        ham_u64_t count;
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS, 0644));
+        /* without txn */
+        BFC_ASSERT_EQUAL(0, insert(0, "key1", "rec1", 0));
+        BFC_ASSERT_EQUAL(0, find(0, "key1", "rec1"));
+        BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, 0, 0, &count));
+        BFC_ASSERT_EQUAL(1ull, count);
+
+        /* in an active txn */
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, txn, 0, &count));
+        BFC_ASSERT_EQUAL(1ull, count);
+        BFC_ASSERT_EQUAL(0, insert(txn, "key2", "rec2", 0));
+        //BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, find(0, "key2", "rec2"));
+        //BFC_ASSERT_EQUAL(0, find(txn, "key2", "rec2"));
+        BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, txn, 0, &count));
+        BFC_ASSERT_EQUAL(2ull, count);
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        //BFC_ASSERT_EQUAL(0, find(0, "key2", "rec2"));
+#if 0
+
+        /* after commit */
+        BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, 0, 0, &count));
+        BFC_ASSERT_EQUAL(2ull, count);
+
+        /* in temp. txn */
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key2", "rec1", 0));
+        BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, txn, 0, &count));
+        BFC_ASSERT_EQUAL(3ull, count);
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+
+        /* after abort */
+        BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, 0, 0, &count));
+        BFC_ASSERT_EQUAL(2ull, count);
+#endif
     }
 
 };

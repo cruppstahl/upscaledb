@@ -1638,20 +1638,18 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
 #endif /* ifdef HAM_ENABLE_INTERNAL */
 }
 
-static ham_status_t
-db_get_key_count_txn(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
-                ham_u64_t *count)
+struct keycount_t 
 {
-    txn_optree_t *tree;
-    txn_opnode_t *node;
+    ham_u64_t c;
+    ham_u32_t flags;
+    ham_txn_t *txn;
+};
+
+static void
+db_get_key_count_txn(txn_opnode_t *node, void *data)
+{
+    struct keycount_t *kc=(struct keycount_t *)data;
     txn_op_t *op;
-
-    *count=0;
-
-    /* get the txn-tree for this database; if there's no tree then
-     * there's no need to create a new one - we'll just skip the whole
-     * tree-related code */
-    tree=db_get_optree(db);
 
     /*
      * look at each tree_node and walk through each operation 
@@ -1662,14 +1660,13 @@ db_get_key_count_txn(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
      * - if a committed txn has erased the item then there's no need
      *      to continue checking older, committed txns of the same key
      */
-/* foreach (node) { TODO TODO TODO */
     op=txn_opnode_get_newest_op(node);
     while (op) {
         ham_txn_t *optxn=txn_op_get_txn(op);
         if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
             ; /* nop */
         else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
-                    || (txn==optxn)) {
+                    || (kc->txn==optxn)) {
             /* if key was erased then it doesn't exist and can be
              * inserted without problems */
             if (txn_op_get_flags(op)&TXN_OP_ERASE)
@@ -1677,24 +1674,23 @@ db_get_key_count_txn(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
             else if (txn_op_get_flags(op)&TXN_OP_NOP)
                 ; /* nop */
             /* key exists - include it */
-/* TODO check duplicates! */
             else if ((txn_op_get_flags(op)&TXN_OP_INSERT_OW)
                     || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
-                (*count)++;
+                kc->c++;
+                if (kc->flags & HAM_SKIP_DUPLICATES)
+                    return;
             }
             else {
                 ham_assert(!"shouldn't be here", (""));
-                return (HAM_INTERNAL_ERROR);
+                return;
             }
         }
         else { /* txn is still active */
-            (*count)++;
+            kc->c++;
         }
 
         op=txn_op_get_next_in_node(op);
     }
-
-    return (0);
 }
 
 
@@ -1744,15 +1740,13 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
      * if transactions are enabled, then also sum up the number of keys
      * from the transaction tree
      */
-    if (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS) {
-        ham_u64_t c=0;
-        st=db_get_key_count_txn(db, txn, flags, &c);
-        if (st) {
-            if (local_txn)
-                (void)txn_abort(local_txn, 0);
-            return (st);
-        }
-        *keycount += c;
+    if ((db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS) && (db_get_optree(db))) {
+        struct keycount_t k;
+        k.c=0;
+        k.flags=flags;
+        k.txn=txn;
+        txn_tree_enumerate(db_get_optree(db), db_get_key_count_txn, (void *)&k);
+        *keycount += k.c;
     }
 
     if (local_txn)

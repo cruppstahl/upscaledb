@@ -329,6 +329,14 @@ extern txn_optree_t *
 txn_tree_get_or_create(ham_db_t *db);
 
 /**
+ * traverses a tree; for each node, a callback function is executed
+ */
+typedef void(*txn_tree_enumerate_cb)(txn_opnode_t *node, void *data);
+
+extern void
+txn_tree_enumerate(txn_optree_t *tree, txn_tree_enumerate_cb cb, void *data);
+
+/**
  * creates an opnode for an optree; if a node with this
  * key already exists then the existing node is returned
  *

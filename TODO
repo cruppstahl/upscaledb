@@ -146,18 +146,35 @@ o manage all transactions
             o _fun_enumerate(my_calc_keys_cb)
                 --> implement db.c:db_get_key_count_txn(); needs to iterate
                     over all nodes in the tree!
+                x need unittest: without txn's
+                o need unittest: with txn's (aborted)
+                o need unittest: with txn's (committed)
+                o need unittest: with txn's (dupes)
+                o need unittest: with txn's (overwritten keys)
+                o need unittest: with txn's (erased key)
 
-    o db.c: all functions which begin a local_txn should be reviewed;
-        a local_txn should only be started if transactions are enabled!
+================================================
+o txn.cpp 1171 - why does ham_insert succeed? it's inserting a duplicate!
+    -> currently, HighLevelTxnTest::getKeyCountTest() crashes
+    seems that the problem is in the rb enumeration (txn_tree_enumerate)
+    where tree and tree->root are ok, but the first/next functions
+    return bogus pointers
+================================================
 
-o db.c:_local_fun_get_key_count: is local_txn really needed?
-o db.c:_local_fun_check_integrity: is local_txn really needed?
-o db.c:_get_incremented_lsn: fix TODO
-o db.c: same about _local_cursor_*
+o db.c: all functions which begin a local_txn should be reviewed;
+    a local_txn should only be started if transactions are enabled!
+
+    o db.c:_local_fun_get_key_count: is local_txn really needed?
+    o db.c:_local_fun_check_integrity: is local_txn really needed?
+    o db.c:_get_incremented_lsn: fix TODO
+    o db.c: same about _local_cursor_*
 
 o make sure all unittests are running
 
 o recovery: auto-aborts all pending transactions (same behavior as now)
+
+o logging: currently, logging for txn_begin and txn_commit/abort 
+    is not implemented
 
 o implement partial reads through transaction tree - will have to 
     consolidate them

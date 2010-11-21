@@ -71,6 +71,17 @@ txn_tree_get_or_create(ham_db_t *db)
     return (t);
 }
 
+void
+txn_tree_enumerate(txn_optree_t *tree, txn_tree_enumerate_cb cb, void *data)
+{
+    txn_opnode_t *node=rbt_first(tree);
+
+    while (node) {
+        cb(node, data);
+        node=rbt_next(tree, node);
+    }
+}
+
 txn_opnode_t *
 txn_opnode_get_or_create(ham_db_t *db, ham_key_t *key)
 {
