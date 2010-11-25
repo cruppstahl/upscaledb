@@ -139,6 +139,12 @@ o manage all transactions
         x rename env_get_txn to env_get_flushed_txn, and set the 
             pointer in env.c(flush_txn)
 
+    x txn.cpp 1171 - why does ham_insert succeed? it's inserting a duplicate!
+        -> currently, HighLevelTxnTest::getKeyCountTest() crashes
+        seems that the problem is in the rb enumeration (txn_tree_enumerate)
+        where tree and tree->root are ok, but the first/next functions
+        return bogus pointers
+
     o rewrite enumeration code
         x some just need to enumerate over btree
             x _fun_enumerate(free_inmemory_blobs_cb)
@@ -152,14 +158,6 @@ o manage all transactions
                 o need unittest: with txn's (dupes, with/without DUPE flag)
                 o need unittest: with txn's (overwritten keys)
                 o need unittest: with txn's (erased key)
-
-================================================
-x txn.cpp 1171 - why does ham_insert succeed? it's inserting a duplicate!
-    -> currently, HighLevelTxnTest::getKeyCountTest() crashes
-    seems that the problem is in the rb enumeration (txn_tree_enumerate)
-    where tree and tree->root are ok, but the first/next functions
-    return bogus pointers
-================================================
 
 o db.c: all functions which begin a local_txn should be reviewed;
     a local_txn should only be started if transactions are enabled!
@@ -177,9 +175,11 @@ o logging: currently, logging for txn_begin and txn_commit/abort
     is not implemented
     -> we have to distinguish between txn logging (the WAL journal which
     records everything transactional) and the physical logging of the modified
-    database pages (when flushing a txn). both can hardly be mixed; the latter
+    database pages (when flushing a txn). both can not be mixed; the latter
     we want to remove as soon as possible.
-    -> how to continue?
+    -> how to continue? Use the journal from v2, and reduce the physical log
+    for the single operations. we only have to store the last single operation,
+    and we do not need undo information.
 
 o implement partial reads through transaction tree - will have to 
     consolidate them

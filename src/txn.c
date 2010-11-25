@@ -307,8 +307,7 @@ txn_free_optree(txn_optree_t *tree)
     txn_opnode_t *node;
 
     while ((node=rbt_last(tree))) {
-        rbt_remove(tree, node);
-        allocator_free(env_get_allocator(env), node);
+        txn_opnode_free(env, node);
     }
     allocator_free(env_get_allocator(env), tree);
 }
