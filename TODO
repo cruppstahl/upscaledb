@@ -159,17 +159,14 @@ o manage all transactions
                 x need unittest: with txn's (dupes, with/without DUPE flag)
                 x need unittest: with txn's (overwritten keys)
 
-o db.c: all functions which begin a local_txn should be reviewed;
+x db.c: all functions which begin a local_txn should be reviewed;
     a local_txn should only be started if transactions are enabled!
 
-    o db.c:_local_fun_get_key_count: is local_txn really needed?
-    o db.c:_local_fun_check_integrity: is local_txn really needed?
-    o db.c:_get_incremented_lsn: fix TODO
-    o db.c: same about _local_cursor_*
+    x db.c:_local_fun_get_key_count: is local_txn really needed?
+    x db.c:_local_fun_check_integrity: is local_txn really needed?
+    x db.c:_get_incremented_lsn: fix TODO
 
-o make sure all unittests are running
-
-o recovery: auto-aborts all pending transactions (same behavior as now)
+o make sure all unittests are running (with exception of logging)
 
 o logging: currently, logging for txn_begin and txn_commit/abort 
     is not implemented
@@ -180,6 +177,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
     -> how to continue? Use the journal from v2, and reduce the physical log
     for the single operations. we only have to store the last single operation,
     and we do not need undo information.
+    o recovery: auto-aborts all pending transactions (same behavior as now)
 
 o implement partial reads through transaction tree - will have to 
     consolidate them
@@ -201,6 +199,7 @@ o support cursors!!!
     o move next: use the cursor which is closer to the current one
     o when flushing a transaction, and a cursor is pointing into the txn
         node: uncouple the cursor! (or delete it?)
+    o db.c: do we need local_txn in the cursor functions?
 
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
 

@@ -1595,7 +1595,6 @@ static ham_status_t
 _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
 {
 #ifdef HAM_ENABLE_INTERNAL
-    ham_txn_t *local_txn=0;
     ham_status_t st;
     ham_backend_t *be;
 
@@ -1614,25 +1613,10 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
     if (!be->_fun_check_integrity)
         return (HAM_NOT_IMPLEMENTED);
 
-    if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
-        if ((st=txn_begin(&local_txn, db_get_env(db), HAM_TXN_READ_ONLY)))
-            return (st);
-    }
-
     /*
      * call the backend function
      */
-    st=be->_fun_check_integrity(be);
-    if (st) {
-        if (local_txn)
-            (void)txn_abort(local_txn, 0);
-        return (st);
-    }
-
-    if (local_txn)
-        return (txn_commit(local_txn, 0));
-    else
-        return (st);
+    return (be->_fun_check_integrity(be));
 #else
     return (HAM_NOT_IMPLEMENTED);
 #endif /* ifdef HAM_ENABLE_INTERNAL */
@@ -1700,7 +1684,6 @@ static ham_status_t
 _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
             ham_offset_t *keycount)
 {
-    ham_txn_t *local_txn=0; /* TODO - really needed?? */
     ham_status_t st;
     ham_backend_t *be;
     ham_env_t *env=0;
@@ -1720,22 +1703,13 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     if (!be->_fun_enumerate)
         return (HAM_NOT_IMPLEMENTED);
 
-    if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
-        st = txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
-        if (st)
-            return (st);
-    }
-
     /*
      * call the backend function - this will retrieve the number of keys
      * in the btree
      */
     st = be->_fun_enumerate(be, __calc_keys_cb, &ctx);
-    if (st) {
-        if (local_txn)
-            (void)txn_abort(local_txn, 0);
+    if (st)
         return (st);
-    }
     *keycount = ctx.total_count;
 
     /*
@@ -1751,10 +1725,7 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
         *keycount += k.c;
     }
 
-    if (local_txn)
-        return (txn_commit(local_txn, 0));
-    else
-        return (st);
+    return (0);
 }
 
 static ham_status_t
@@ -2332,33 +2303,20 @@ static ham_status_t
 _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 {
     ham_status_t st;
-    ham_txn_t *local_txn;
     ham_db_t *db=cursor_get_db(src);
     ham_env_t *env;
 
     env = db_get_env(db);
 
-    if (!cursor_get_txn(src)) {
-        st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
-        if (st)
-            return (st);
-    }
-
     st=src->_fun_clone(src, dest);
-    if (st) {
-        if (!cursor_get_txn(src))
-            (void)txn_abort(local_txn, 0);
+    if (st)
         return (st);
-    }
 
     if (cursor_get_txn(src))
         txn_set_cursor_refcount(cursor_get_txn(src), 
                 txn_get_cursor_refcount(cursor_get_txn(src))+1);
 
-    if (!cursor_get_txn(src))
-        return (txn_commit(local_txn, 0));
-    else
-        return (0);
+    return (0);
 }
 
 static ham_status_t
@@ -2375,7 +2333,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     ham_backend_t *be;
     ham_u64_t recno = 0;
     ham_record_t temprec;
-    ham_txn_t *local_txn;
+    ham_txn_t *local_txn=0;
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
 
@@ -2420,7 +2378,8 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         flags|=HAM_HINT_APPEND;
     }
 
-    if (!cursor_get_txn(cursor)) {
+    if (!cursor_get_txn(cursor)
+            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         if ((st=txn_begin(&local_txn, env, 0)))
             return (st);
     }
@@ -2431,19 +2390,17 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
      */
     temprec=*record;
     st=__record_filters_before_write(db, &temprec);
-    if (!st) {
+    if (!st)
         db_update_global_stats_insert_query(db, key->size, temprec.size);
-    }
 
-    if (!st) {
+    if (!st)
         st=cursor->_fun_insert(cursor, key, &temprec, flags);
-    }
 
     if (temprec.data!=record->data)
         allocator_free(env_get_allocator(env), temprec.data);
 
     if (st) {
-        if (!cursor_get_txn(cursor))
+        if (local_txn)
             (void)txn_abort(local_txn, 0);
         if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
@@ -2470,7 +2427,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         }
     }
 
-    if (!cursor_get_txn(cursor))
+    if (local_txn)
         return (txn_commit(local_txn, 0));
     else
         return (st);
