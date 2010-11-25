@@ -1921,8 +1921,12 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  * Calculates the number of keys stored in the Database
  *
  * You can specify the @ref HAM_SKIP_DUPLICATES if you do now want
- * to include any duplicates in the count; however, this flag may be ignored
- * for certain keys in some fringe cases. 
+ * to include any duplicates in the count. 
+ *
+ * If Transactions are enabled then some limitations apply. First, the 
+ * flag HAM_SKIP_DUPLICATES may be ignored for certain keys in some fringe 
+ * cases. Second, a key that overwrites an existing key may be counted twice
+ * instead of once.
  * 
  * If all you're after is a quick estimate, you can specify the flag 
  * @ref HAM_FAST_ESTIMATE (which implies @ref HAM_SKIP_DUPLICATES), which 

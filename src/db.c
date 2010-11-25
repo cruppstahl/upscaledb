@@ -1673,8 +1673,11 @@ db_get_key_count_txn(txn_opnode_t *node, void *data)
             else if (txn_op_get_flags(op)&TXN_OP_NOP)
                 ; /* nop */
             /* key exists - include it */
-            else if ((txn_op_get_flags(op)&TXN_OP_INSERT_OW)
-                    || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
+            else if (txn_op_get_flags(op)&TXN_OP_INSERT_OW) {
+                kc->c++;
+                return;
+            }
+            else if (txn_op_get_flags(op)&TXN_OP_INSERT_DUP) {
                 kc->c++;
                 if (kc->flags & HAM_SKIP_DUPLICATES)
                     return;

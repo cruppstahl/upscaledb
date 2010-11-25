@@ -145,11 +145,11 @@ o manage all transactions
         where tree and tree->root are ok, but the first/next functions
         return bogus pointers
 
-    o rewrite enumeration code
+    x rewrite enumeration code
         x some just need to enumerate over btree
             x _fun_enumerate(free_inmemory_blobs_cb)
-        o but others need to enumerate over txns as well
-            o _fun_enumerate(my_calc_keys_cb)
+        x but others need to enumerate over txns as well
+            x _fun_enumerate(my_calc_keys_cb)
                 x implement db.c:db_get_key_count_txn(); needs to iterate
                     over all nodes in the tree!
                 x need unittest: without txn's
@@ -157,7 +157,7 @@ o manage all transactions
                 x need unittest: with txn's (committed)
                 x need unittest: with txn's (erased key)
                 x need unittest: with txn's (dupes, with/without DUPE flag)
-                o need unittest: with txn's (overwritten keys)
+                x need unittest: with txn's (overwritten keys)
 
 o db.c: all functions which begin a local_txn should be reviewed;
     a local_txn should only be started if transactions are enabled!
