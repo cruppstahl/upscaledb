@@ -150,14 +150,14 @@ o manage all transactions
             x _fun_enumerate(free_inmemory_blobs_cb)
         o but others need to enumerate over txns as well
             o _fun_enumerate(my_calc_keys_cb)
-                --> implement db.c:db_get_key_count_txn(); needs to iterate
+                x implement db.c:db_get_key_count_txn(); needs to iterate
                     over all nodes in the tree!
                 x need unittest: without txn's
                 x need unittest: with txn's (aborted)
                 x need unittest: with txn's (committed)
-                o need unittest: with txn's (dupes, with/without DUPE flag)
+                x need unittest: with txn's (erased key)
+                x need unittest: with txn's (dupes, with/without DUPE flag)
                 o need unittest: with txn's (overwritten keys)
-                o need unittest: with txn's (erased key)
 
 o db.c: all functions which begin a local_txn should be reviewed;
     a local_txn should only be started if transactions are enabled!

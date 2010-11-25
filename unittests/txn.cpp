@@ -781,6 +781,7 @@ public:
         BFC_REGISTER_TEST(HighLevelTxnTest, insertFindEraseTest);
         BFC_REGISTER_TEST(HighLevelTxnTest, insertFindEraseTest);
         BFC_REGISTER_TEST(HighLevelTxnTest, getKeyCountTest);
+        BFC_REGISTER_TEST(HighLevelTxnTest, getKeyCountDupesTest);
     }
 
 protected:
@@ -1200,6 +1201,43 @@ public:
         /* after abort */
         BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, 0, 0, &count));
         BFC_ASSERT_EQUAL(2ull, count);
+    }
+
+    void getKeyCountDupesTest(void)
+    {
+        ham_txn_t *txn;
+        ham_u64_t count;
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS|HAM_ENABLE_DUPLICATES, 0644));
+        /* without txn */
+        BFC_ASSERT_EQUAL(0, insert(0, "key1", "rec1", 0));
+        BFC_ASSERT_EQUAL(0, insert(0, "key2", "rec1", 0));
+        BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, 0, 0, &count));
+        BFC_ASSERT_EQUAL(2ull, count);
+
+        /* in an active txn */
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, txn, 0, &count));
+        BFC_ASSERT_EQUAL(2ull, count);
+        BFC_ASSERT_EQUAL(0, insert(txn, "key3", "rec3", 0));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key3", "rec4", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_get_key_count(m_db, txn, 0, &count));
+        BFC_ASSERT_EQUAL(4ull, count);
+        BFC_ASSERT_EQUAL(0, 
+                    ham_get_key_count(m_db, txn, HAM_SKIP_DUPLICATES, &count));
+        BFC_ASSERT_EQUAL(3ull, count);
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+
+        /* after commit */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_get_key_count(m_db, txn, 0, &count));
+        BFC_ASSERT_EQUAL(4ull, count);
+        BFC_ASSERT_EQUAL(0, 
+                    ham_get_key_count(m_db, txn, HAM_SKIP_DUPLICATES, &count));
+        BFC_ASSERT_EQUAL(3ull, count);
     }
 
 };

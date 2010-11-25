@@ -1921,10 +1921,12 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  * Calculates the number of keys stored in the Database
  *
  * You can specify the @ref HAM_SKIP_DUPLICATES if you do now want
- * to include any duplicates in the count; if all you're after is 
- * a quick estimate, you can specify the flag @ref HAM_FAST_ESTIMATE
- * (which implies @ref HAM_SKIP_DUPLICATES), which will improve the 
- * execution speed of this operation significantly.
+ * to include any duplicates in the count; however, this flag may be ignored
+ * for certain keys in some fringe cases. 
+ * 
+ * If all you're after is a quick estimate, you can specify the flag 
+ * @ref HAM_FAST_ESTIMATE (which implies @ref HAM_SKIP_DUPLICATES), which 
+ * will improve the execution speed of this operation significantly.
  *
  * @param db A valid Database handle
  * @param txn A Transaction handle, or NULL

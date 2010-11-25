@@ -1667,10 +1667,9 @@ db_get_key_count_txn(txn_opnode_t *node, void *data)
             ; /* nop */
         else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
                     || (kc->txn==optxn)) {
-            /* if key was erased then it doesn't exist and can be
-             * inserted without problems */
+            /* if key was erased then it doesn't exist */
             if (txn_op_get_flags(op)&TXN_OP_ERASE)
-                ; /* nop */
+                return;
             else if (txn_op_get_flags(op)&TXN_OP_NOP)
                 ; /* nop */
             /* key exists - include it */
@@ -1689,7 +1688,7 @@ db_get_key_count_txn(txn_opnode_t *node, void *data)
             kc->c++;
         }
 
-        op=txn_op_get_next_in_node(op);
+        op=txn_op_get_previous_in_node(op);
     }
 }
 
