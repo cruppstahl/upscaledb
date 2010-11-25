@@ -82,12 +82,26 @@ txn_tree_enumerate(txn_optree_t *tree, txn_tree_enumerate_cb cb, void *data)
     }
 }
 
+static ham_key_t *
+__copy_key(mem_allocator_t *alloc, ham_key_t *key)
+{
+    ham_key_t *keycopy;
+    keycopy=(ham_key_t *)allocator_alloc(alloc, sizeof(*key));
+    if (!keycopy)
+        return (0);
+    *keycopy=*key;
+    keycopy->data=(void *)allocator_alloc(alloc, key->size);
+    if (!keycopy->data)
+        return (0);
+    memcpy(keycopy->data, key->data, key->size);
+    return (keycopy);
+}
+
 txn_opnode_t *
-txn_opnode_get_or_create(ham_db_t *db, ham_key_t *key)
+txn_opnode_get(ham_db_t *db, ham_key_t *key)
 {
     txn_opnode_t *node=0, tmp;
     txn_optree_t *tree=db_get_optree(db);
-    mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
 
     /* create a temporary node that we can search for */
     memset(&tmp, 0, sizeof(tmp));
@@ -97,13 +111,29 @@ txn_opnode_get_or_create(ham_db_t *db, ham_key_t *key)
     /* search if node already exists - if yes, return it */
     if ((node=rbt_search(tree, &tmp)))
         return (node);
+    return (0);
+}
 
-    /* node does not exist - create a new one */
-    node=(txn_opnode_t *)allocator_alloc(alloc,  sizeof(*node));
+txn_opnode_t *
+txn_opnode_create(ham_db_t *db, ham_key_t *key)
+{
+    txn_opnode_t *node=0;
+    txn_optree_t *tree=db_get_optree(db);
+    mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
+
+    /* make sure that a node with this key does not yet exist */
+    ham_assert(txn_opnode_get(db, key)==0, (""));
+
+    /* create the new node (with a copy for the key) */
+    node=(txn_opnode_t *)allocator_alloc(alloc, sizeof(*node));
     if (!node)
         return (0);
     memset(node, 0, sizeof(*node));
-    txn_opnode_set_key(node, key);
+    txn_opnode_set_key(node, __copy_key(alloc, key));
+    if (!txn_opnode_get_key(node)) {
+        allocator_free(alloc, node);
+        return (0);
+    }
     txn_opnode_set_db(node, db);
     txn_opnode_set_tree(node, tree);
 
@@ -283,13 +313,27 @@ txn_free_optree(txn_optree_t *tree)
     allocator_free(env_get_allocator(env), tree);
 }
 
+void
+txn_opnode_free(ham_env_t *env, txn_opnode_t *node)
+{
+    txn_optree_t *tree=txn_opnode_get_tree(node);
+    rbt_remove(tree, node);
+    /* also remove the ham_key_t structure */
+    if (txn_opnode_get_key(node)) {
+        ham_key_t *key=txn_opnode_get_key(node);
+        if (key->data)
+            allocator_free(env_get_allocator(env), key->data);
+        allocator_free(env_get_allocator(env), key);
+    }
+    allocator_free(env_get_allocator(env), node);
+}
+
 static void
 txn_op_free(ham_env_t *env, ham_txn_t *txn, txn_op_t *op)
 {
     ham_record_t *rec;
     txn_op_t *next, *prev;
     txn_opnode_t *node;
-    txn_optree_t *tree;
 
     rec=txn_op_get_record(op);
     if (rec) {
@@ -313,16 +357,14 @@ txn_op_free(ham_env_t *env, ham_txn_t *txn, txn_op_t *op)
     if (prev)
         txn_op_set_next_in_txn(prev, next);
 
-    /* if the node is empty: remove the node from the tree */
+    /* remove this op from the node */
     node=txn_op_get_node(op);
     if (txn_opnode_get_oldest_op(node)==op)
         txn_opnode_set_oldest_op(node, txn_op_get_next_in_node(op));
-    if (txn_opnode_get_oldest_op(node)==0) {
-        tree=txn_opnode_get_tree(node);
-        rbt_remove(tree, node);
-        /* TODO remove ham_key_t structure? */
-        allocator_free(env_get_allocator(env), node);
-    }
+
+    /* if the node is empty: remove the node from the tree */
+    if (txn_opnode_get_oldest_op(node)==0)
+        txn_opnode_free(env, node);
 
     allocator_free(env_get_allocator(env), op);
 }

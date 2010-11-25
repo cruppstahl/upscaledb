@@ -337,13 +337,20 @@ extern void
 txn_tree_enumerate(txn_optree_t *tree, txn_tree_enumerate_cb cb, void *data);
 
 /**
- * creates an opnode for an optree; if a node with this
- * key already exists then the existing node is returned
- *
- * returns NULL if out of memory
+ * get an opnode for an optree; if a node with this
+ * key already exists then the existing node is returned, otherwise NULL
  */
 extern txn_opnode_t *
-txn_opnode_get_or_create(ham_db_t *db, ham_key_t *key);
+txn_opnode_get(ham_db_t *db, ham_key_t *key);
+
+/**
+ * creates an opnode for an optree; asserts that a node with this
+ * key does not yet exist
+ *
+ * returns NULL if out of memory 
+ */
+extern txn_opnode_t *
+txn_opnode_create(ham_db_t *db, ham_key_t *key);
 
 /**
  * insert an actual operation into the txn_tree
@@ -351,6 +358,12 @@ txn_opnode_get_or_create(ham_db_t *db, ham_key_t *key);
 extern txn_op_t *
 txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, 
                     ham_u32_t flags, ham_u64_t lsn, ham_record_t *record);
+
+/**
+ * frees a txn_opnode_t structure, and removes it from its tree
+ */
+extern void
+txn_opnode_free(ham_env_t *env, txn_opnode_t *node);
 
 /**
  * start a Transaction

@@ -1901,6 +1901,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
     txn_optree_t *tree;
     txn_opnode_t *node;
     txn_op_t *op;
+    ham_bool_t node_created=HAM_FALSE;
 
     /* get (or create) the txn-tree for this database; we do not need
      * the returned value, but we call the function to trigger the 
@@ -1910,14 +1911,21 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
         return (HAM_OUT_OF_MEMORY);
 
     /* get (or create) the node for this key */
-    node=txn_opnode_get_or_create(db, key);
-    if (!node)
-        return (HAM_OUT_OF_MEMORY);
+    node=txn_opnode_get(db, key);
+    if (!node) {
+        node=txn_opnode_create(db, key);
+        if (!node)
+            return (HAM_OUT_OF_MEMORY);
+        node_created=HAM_TRUE;
+    }
 
     /* check for conflicts of this key */
     st=db_check_insert_conflicts(db, txn, node, key, flags);
-    if (st)
+    if (st) {
+        if (node_created)
+            txn_opnode_free(db_get_env(db), node);
         return (st);
+    }
 
     /* append a new operation to this node */
     op=txn_opnode_append(txn, node, 
@@ -1938,6 +1946,7 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn,
     txn_optree_t *tree;
     txn_opnode_t *node;
     txn_op_t *op;
+    ham_bool_t node_created=HAM_FALSE;
 
     /* get (or create) the txn-tree for this database; we do not need
      * the returned value, but we call the function to trigger the 
@@ -1947,14 +1956,21 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn,
         return (HAM_OUT_OF_MEMORY);
 
     /* get (or create) the node for this key */
-    node=txn_opnode_get_or_create(db, key);
-    if (!node)
-        return (HAM_OUT_OF_MEMORY);
+    node=txn_opnode_get(db, key);
+    if (!node) {
+        node=txn_opnode_create(db, key);
+        if (!node)
+            return (HAM_OUT_OF_MEMORY);
+        node_created=HAM_TRUE;
+    }
 
     /* check for conflicts of this key */
     st=db_check_erase_conflicts(db, txn, node, key, flags);
-    if (st)
+    if (st) {
+        if (node_created)
+            txn_opnode_free(db_get_env(db), node);
         return (st);
+    }
 
     /* append a new operation to this node */
     op=txn_opnode_append(txn, node, TXN_OP_ERASE, __get_incremented_lsn(db), 0);
@@ -1980,12 +1996,9 @@ db_find_txn(ham_db_t *db, ham_txn_t *txn,
     tree=db_get_optree(db);
 
     /* get the node for this key (but don't create a new one if it does
-     * not yet exist) - TODO this code will always create a new node */
-    if (tree) {
-        node=txn_opnode_get_or_create(db, key);
-        if (!node)
-            return (HAM_OUT_OF_MEMORY);
-    }
+     * not yet exist) */
+    if (tree)
+        node=txn_opnode_get(db, key);
 
     /*
      * pick the tree_node of this key, and walk through each operation 
