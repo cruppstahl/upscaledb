@@ -837,6 +837,7 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             /* try to fetch the page from the txn */
             if (env_get_txn(env)) {
                 page=txn_get_page(env_get_txn(env), tellpos);
+                ham_assert(page==0, (""));
                 if (page)
                     goto done;
             }
@@ -996,7 +997,7 @@ done:
     }
 
     if (env_get_txn(env)) {
-        st=txn_add_page(env_get_txn(env), page, HAM_FALSE);
+        st=txn_add_page(env_get_txn(env), page, HAM_TRUE);
         if (st) {
             return st;
             /* TODO memleak? */

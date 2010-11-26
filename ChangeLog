@@ -1,3 +1,11 @@
+Nov 26, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.8
+
+Nov 25, 2010 - chris ---------------------------------------------------
+o bugfix in transaction handling - in certain cases with long running 
+    transactions, a circular reference in a linked list causes an endless
+    loop (thanks, Mark)
+
 Oct 31, 2010 - chris ---------------------------------------------------
                       release of hamsterdb-1.1.7
 
