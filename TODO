@@ -8,54 +8,10 @@ x a finished TODO item
 
 -----------------------------------------------------------------------------
 
-x performance improvements for extkeys:
-    x resize the hash table
-    x ownership: one cache per DB, not per ENV
-    x when closing the DB: before freeing *ANY* page, call 
-        extkey_cache_purge_all() and delete extkey of the DB
-    x when freeing the page: don't close extkeys if extkey-cache of this
-        db was deleted
-    x key_compare_pub_to_int: how can we get around the malloc in 
-        db_prepare_...? we need two pointers and they should be owned by
-        the database (and NOT overwrite the keyalloc-pointers!)
-        -> could store pointers in btree structure
+x fix bug reported by Mark - circular reference in txn list when running
+    lessfs with hamsterdb
 
-x when using DIRECT_ACCESS and the record is tiny/small (<= 8 bytes) the 
-    flag will be ignored (see email from Lionel)
-    x add unittests which show the problems
-    x and fix them :)
-
-x a small memory leak
-    ==12954== 44 bytes in 1 blocks are definitely lost in loss record 1 of 6
-    ==12954==    at 0x4024F20: malloc (vg_replace_malloc.c:236)
-    ==12954==    by 0x40B44E0: alloc_impl (mem.c:38)
-    ==12954==    by 0x40B0B5F: _remote_fun_txn_begin (remote.c:663)
-    ==12954==    by 0x40A582D: ham_txn_begin (hamsterdb.c:314)
-    ==12954==    by 0x8156438: RemoteTest::txnBeginCommitTest() (remote.cpp:494)
-
-x when inserting sequential values (i.e. db1.c) then the hinter should kick
-    in and (with help of histograms) do an APPEND or PREPEND
-    x if upper_bound or lower_bound was set: set a flag; otherwise unset it
-    x if this flag was set: when splitting a page, select the pivot value
-        in a higher (or lower) range (or is the current algorithm good enough?)
-    x if this flag was set: compare key with upper_bound (or lower_bound)
-        on insert/btree_cursor_insert and set force_append/force_prepend
-        if it's a hit (and immediately update the histogram)
-    x unittests/debugging/profiling
-
-x when repeatedly requesting unused pages from the cache, and the calls always
-    fail, the hinter should also kick in and avoid these calls for a certain
-    timespan (i.e. only every 5th call will go to the cache)
-    x no, don't use the hinter; but rewrite the cache mechanism to get an
-        unused page
-
-x monster.sh - errors
-    x --data_access_mode=HAM_DAM_SEQUENTIAL_INSERT --keysize=680 --duplicate=1       ../../testfiles/1/190.tst
-    x --data_access_mode=HAM_DAM_SEQUENTIAL_INSERT --keysize=680 --duplicate=1       ../../testfiles/1/194.tst
-    x --data_access_mode=HAM_DAM_SEQUENTIAL_INSERT --pagesize=1024 --overwrite=1 --keysize=16      ../../testfiles/1/170.tst
-    x --data_access_mode=HAM_DAM_SEQUENTIAL_INSERT --pagesize=1024 --overwrite=1 --keysize=16      ../../testfiles/1/ext_021.tst
-
-x release 1.1.7
+x release 1.1.8
 
 ------------------------------------------------------------
 
@@ -73,8 +29,6 @@ o release new .NET wrapper with fix from a.todorov (-> nabble)
     x move to github
     . add server functionality
 
-o when compiling mongoose it shows a warning (gcc 4)
-
 . add automatic code coverage using gconv
     http://www.manpagez.com/man/1/gcov/
     http://gcc.gnu.org/onlinedocs/gcc/Gcov.html
@@ -83,7 +37,8 @@ o when compiling mongoose it shows a warning (gcc 4)
     o gui tools: http://code.google.com/p/trucov/,
                  http://sourceforge.net/projects/ggcov/files/ 
 
-. remove HAM_HINT_UBER_FAST_ACCESS, HAM_HINT_RANDOM_ACCESS, HAM_HINT_SEQUENTIAL
+. remove HAM_HINT_UBER_FAST_ACCESS, HAM_HINT_RANDOM_ACCESS, 
+	HAM_HINT_SEQUENTIAL?
 
 . unix daemon/windows service
     o new option to set the working directory
