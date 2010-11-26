@@ -166,6 +166,11 @@ x db.c: all functions which begin a local_txn should be reviewed;
     x db.c:_local_fun_check_integrity: is local_txn really needed?
     x db.c:_get_incremented_lsn: fix TODO
 
+o ham_get_key_count does not return correct results if there are duplicate
+   keys (or overwritten keys) in a txn AND in the btree. In these cases, bite
+   the sour apple and check if the keys also exist in the btree. Incorrect
+   results have to be avoided!
+
 o make sure all unittests are running (with exception of logging)
 
 o logging: currently, logging for txn_begin and txn_commit/abort 
