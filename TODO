@@ -178,10 +178,14 @@ x ham_get_key_count does not return correct results if there are duplicate
         x add unittest w/o duplicate counting
         x fix them
 
-o make sure all unittests are running (with exception of logging)
-  - hamsterdb
-  - log
-  - partial
+x make sure all unittests are running (with exception of logging)
+
+o rewrite cache purging/page locking
+    o purge: move function to cache.h/.c, remove from db.c
+    o whenever a function allocates/fetches: purge cache before backend
+        function is called
+    o remove page locking - not required anymore
+    o unittest HamsterdbTest should run fine now
 
 o logging: currently, logging for txn_begin and txn_commit/abort 
     is not implemented
