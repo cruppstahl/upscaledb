@@ -1627,12 +1627,14 @@ struct keycount_t
     ham_u64_t c;
     ham_u32_t flags;
     ham_txn_t *txn;
+    ham_db_t *db;
 };
 
 static void
 db_get_key_count_txn(txn_opnode_t *node, void *data)
 {
     struct keycount_t *kc=(struct keycount_t *)data;
+    ham_backend_t *be=db_get_backend(kc->db);
     txn_op_t *op;
 
     /*
@@ -1643,6 +1645,10 @@ db_get_key_count_txn(txn_opnode_t *node, void *data)
      * - is this op part of an txn which is still active? then include it
      * - if a committed txn has erased the item then there's no need
      *      to continue checking older, committed txns of the same key
+     *
+     * !!
+     * if keys are overwritten or a duplicate key is inserted, then 
+     * we have to consolidate the btree keys with the txn-tree keys.
      */
     op=txn_opnode_get_newest_op(node);
     while (op) {
@@ -1656,15 +1662,43 @@ db_get_key_count_txn(txn_opnode_t *node, void *data)
                 return;
             else if (txn_op_get_flags(op)&TXN_OP_NOP)
                 ; /* nop */
-            /* key exists - include it */
-            else if (txn_op_get_flags(op)&TXN_OP_INSERT_OW) {
+            else if (txn_op_get_flags(op)&TXN_OP_INSERT) {
                 kc->c++;
                 return;
             }
+            /* key exists - include it */
+            else if ((txn_op_get_flags(op)&TXN_OP_INSERT)
+                    || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)) {
+                /* check if the key already exists in the btree - if yes,
+                 * we do not count it (it will be counted later) */
+                if (kc->flags&HAM_FAST_ESTIMATE)
+                    kc->c++;
+                else if (HAM_KEY_NOT_FOUND==be->_fun_find(be, 
+                                    txn_opnode_get_key(node), 0, 0))
+                    kc->c++;
+                return;
+            }
             else if (txn_op_get_flags(op)&TXN_OP_INSERT_DUP) {
-                kc->c++;
-                if (kc->flags & HAM_SKIP_DUPLICATES)
-                    return;
+                /* check if the key already exists in the btree - if yes,
+                 * we do not count it (it will be counted later) */
+                if (kc->flags&HAM_FAST_ESTIMATE)
+                    kc->c++;
+                else {
+                    /* check if btree has other duplicates */
+                    if (0==be->_fun_find(be, txn_opnode_get_key(node), 0, 0)) {
+                        /* yes, there's another one */
+                        if (kc->flags&HAM_SKIP_DUPLICATES)
+                            return;
+                        else
+                            kc->c++;
+                    }
+                    else {
+                        /* check if other key is in this node */
+                        kc->c++;
+                        if (kc->flags&HAM_SKIP_DUPLICATES)
+                            return;
+                    }
+                }
             }
             else {
                 ham_assert(!"shouldn't be here", (""));
@@ -1721,6 +1755,7 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
         k.c=0;
         k.flags=flags;
         k.txn=txn;
+        k.db=db;
         txn_tree_enumerate(db_get_optree(db), db_get_key_count_txn, (void *)&k);
         *keycount += k.c;
     }
@@ -1762,7 +1797,8 @@ db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn,
                 ; /* nop */
             /* if the key already exists then we can only continue if
              * we're allowed to overwrite it or to insert a duplicate */
-            else if ((txn_op_get_flags(op)&TXN_OP_INSERT_OW)
+            else if ((txn_op_get_flags(op)&TXN_OP_INSERT)
+                    || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)
                     || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
                 if ((flags&HAM_OVERWRITE) || (flags&HAM_DUPLICATE))
                     return (0);
@@ -1831,7 +1867,8 @@ db_check_erase_conflicts(ham_db_t *db, ham_txn_t *txn,
             else if (txn_op_get_flags(op)&TXN_OP_NOP)
                 ; /* nop */
             /* if the key exists then we're successful */
-            else if ((txn_op_get_flags(op)&TXN_OP_INSERT_OW)
+            else if ((txn_op_get_flags(op)&TXN_OP_INSERT)
+                    || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)
                     || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
                 return (0);
             }
@@ -1904,7 +1941,9 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
     op=txn_opnode_append(txn, node, 
                     (flags&HAM_DUPLICATE) 
                         ? TXN_OP_INSERT_DUP 
-                        : TXN_OP_INSERT_OW, __get_incremented_lsn(db), record);
+                        : (flags&HAM_OVERWRITE)
+                            ? TXN_OP_INSERT_OW
+                            : TXN_OP_INSERT, __get_incremented_lsn(db), record);
     if (!op)
         return (HAM_OUT_OF_MEMORY);
 
@@ -2001,7 +2040,8 @@ db_find_txn(ham_db_t *db, ham_txn_t *txn,
             /* if the key already exists then return its record; do not
              * return pointers to txn_op_get_record, because it may be
              * flushed and the user's pointers would be invalid */
-            else if ((txn_op_get_flags(op)&TXN_OP_INSERT_OW)
+            else if ((txn_op_get_flags(op)&TXN_OP_INSERT)
+                    || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)
                     || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
                 if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
                     st=db_resize_record_allocdata(db, 

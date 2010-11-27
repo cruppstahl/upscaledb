@@ -1369,6 +1369,7 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
         /* depending on the type of the operation: actually perform the
          * operation on the btree */
         switch (txn_op_get_flags(op)) {
+            case TXN_OP_INSERT:
             case TXN_OP_INSERT_OW:
                 st=be->_fun_insert(be, txn_opnode_get_key(node), 
                             txn_op_get_record(op), 

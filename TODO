@@ -166,10 +166,17 @@ x db.c: all functions which begin a local_txn should be reviewed;
     x db.c:_local_fun_check_integrity: is local_txn really needed?
     x db.c:_get_incremented_lsn: fix TODO
 
-o ham_get_key_count does not return correct results if there are duplicate
+x ham_get_key_count does not return correct results if there are duplicate
    keys (or overwritten keys) in a txn AND in the btree. In these cases, bite
    the sour apple and check if the keys also exist in the btree. Incorrect
    results have to be avoided!
+    x when overwriting keys - 1 key in btree, the other in txn
+        x add unittest
+        x fix them
+    x with duplicate keys - 1 key in btree, the other in txn
+        x add unittest w/ duplicate counting
+        x add unittest w/o duplicate counting
+        x fix them
 
 o make sure all unittests are running (with exception of logging)
 
@@ -231,5 +238,8 @@ o new API to retrieve the currently active transactions
     o needs unittests
 
 . extkeys: don't use txn_id for the 'age', use lsn instead
+
+. opnode: use key instead of key* (pointer) - this saves one allocation 
+    per node
 
 o continue as described in integrate-ham2.txt...

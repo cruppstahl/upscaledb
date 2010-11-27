@@ -1185,6 +1185,9 @@ public:
         BFC_ASSERT_EQUAL(0, find(txn, "key2", "rec2"));
         BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, txn, 0, &count));
         BFC_ASSERT_EQUAL(2ull, count);
+        BFC_ASSERT_EQUAL(0, insert(txn, "key2", "rec2", HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, txn, 0, &count));
+        BFC_ASSERT_EQUAL(2ull, count);
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, find(0, "key2", "rec2"));
 
@@ -1257,6 +1260,9 @@ public:
 
         /* in an active txn */
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, txn, 0, &count));
+        BFC_ASSERT_EQUAL(2ull, count);
+        BFC_ASSERT_EQUAL(0, insert(txn, "key2", "rec4", HAM_OVERWRITE));
         BFC_ASSERT_EQUAL(0, ham_get_key_count(m_db, txn, 0, &count));
         BFC_ASSERT_EQUAL(2ull, count);
         BFC_ASSERT_EQUAL(0, insert(txn, "key3", "rec3", 0));

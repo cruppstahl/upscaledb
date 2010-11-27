@@ -1923,11 +1923,6 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  * You can specify the @ref HAM_SKIP_DUPLICATES if you do now want
  * to include any duplicates in the count. 
  *
- * If Transactions are enabled then some limitations apply. First, the 
- * flag HAM_SKIP_DUPLICATES may be ignored for certain keys in some fringe 
- * cases. Second, a key that overwrites an existing key may be counted twice
- * instead of once.
- * 
  * If all you're after is a quick estimate, you can specify the flag 
  * @ref HAM_FAST_ESTIMATE (which implies @ref HAM_SKIP_DUPLICATES), which 
  * will improve the execution speed of this operation significantly.
@@ -1938,8 +1933,8 @@ ham_flush(ham_db_t *db, ham_u32_t flags);
  *       <ul>
  *         <li>@ref HAM_SKIP_DUPLICATES. Excludes any duplicates from 
  *             the count
- *         <li>@ref HAM_FAST_ESTIMATE. Excludes any duplicates from 
- *             the count
+ *         <li>@ref HAM_FAST_ESTIMATE. Get a fast estimate; can produce
+ *             slightly incorrect results and ignores duplicates
  *       </ul>
  * @param keycount A reference to a variable which will receive
  *                 the calculated key count per page
