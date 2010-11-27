@@ -222,8 +222,13 @@ txn_begin(ham_txn_t **ptxn, ham_env_t *env, ham_u32_t flags)
     txn_set_flags(txn, flags);
     env_set_txn_id(env, txn_get_id(txn));
 
-    if (env_get_log(env) && !(flags&HAM_TXN_READ_ONLY))
+#if 0 /* TODO */
+    if (env_get_log(env) && !(flags&HAM_TXN_READ_ONLY)) {
         st=ham_log_append_txn_begin(env_get_log(env), txn);
+        if (st)
+            return (st);
+    }
+#endif
 
     /* link this txn with the Environment */
     env_append_txn(env, txn);

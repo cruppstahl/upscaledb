@@ -179,8 +179,6 @@ x ham_get_key_count does not return correct results if there are duplicate
         x fix them
 
 o make sure all unittests are running (with exception of logging)
-  - txn
-  - freelist
   - hamsterdb
   - log
   - partial
