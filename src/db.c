@@ -2305,7 +2305,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     /* run the record-level filters */
     st=__record_filters_after_find(db, record);
     if (st) {
-        if (!txn)
+        if (local_txn)
             (void)txn_abort(local_txn, 0);
         return (st);
     }
