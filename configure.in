@@ -173,13 +173,13 @@ if test $ac_cv_FUNCTION1 = yes; then
 fi
 
 #
-# Check if we use gcc > 4.4 - if yes, disable some optimizations
+# Check if we use gcc >= 4.3 - if yes, disable some optimizations
 #
 AC_CACHE_CHECK(whether we need -fno-tree-vectorize,
                ac_cv_FUNCTION2,
     [AC_TRY_RUN([
 int main(void) {
-#if !(__GNUC__ == 4 && __GNUC_MINOR__ >= 4)
+#if !(__GNUC__ == 4 && __GNUC_MINOR__ >= 3)
 #error "this gcc is ok"
 #endif
     return 0;
