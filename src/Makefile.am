@@ -38,6 +38,7 @@ libhamsterdb_la_SOURCES = log.c \
 			txn.c \
 			util.c \
 			btree_cursor.c \
+			journal.c \
 			device.c
 
 libhamsterdb_la_LDFLAGS = -version-info 2:0:0

@@ -199,16 +199,21 @@ o logging: currently, logging for txn_begin and txn_commit/abort
     -> how to continue? Use the journal from v2, and reduce the physical log
     for the single operations. we only have to store the last single operation,
     and we do not need undo information.
-    -> recovery: auto-aborts all non-committed transactions (same behavior 
-            as now)
-    -> recovery: re-apply all committed (but not fully flushed) transactions
     
     x disable all broken tests in log.cpp
-    o only log the last insert/erase operation (remove all other operations)
-    o introduce a logical journal (based on same routines as before)
+    x introduce a logical journal (based on same routines as before)
         with log-file switching
+    x logical log: add txn begin/commit/abort/insert/erase
+    o db.c/env.c: log begin/commit/abort/insert/erase
+    o only log the last insert/erase operation (remove all other operations)
     o disable log-file switching for physical log
-    o logical log: add txn begin/commit/abort
+    o recovery: how do we know with which lsn to continue?
+    o recovery: auto-aborts all non-committed transactions (same behavior 
+            as now)
+    o recovery: re-apply all committed (but not fully flushed) transactions
+    o journal and log: flush file after it's written (at least in log AND
+        in journal after abort/commit)
+    o add many unittests
 
 o implement partial reads through transaction tree - will have to 
     consolidate them

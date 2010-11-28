@@ -55,6 +55,9 @@ typedef struct ham_cache_t ham_cache_t;
 struct ham_log_t;
 typedef struct ham_log_t ham_log_t;
 
+struct journal_t;
+typedef struct journal_t journal_t;
+
 struct extkey_t;
 typedef struct extkey_t extkey_t;
 
