@@ -173,18 +173,6 @@ extern void
 cache_delete(ham_cache_t *cache);
 
 /**
- * get an unused page (or an unreferenced page, if no unused page
- * was available
- *
- * @remark if the page is dirty, it's the caller's responsibility to 
- * write it to disk!
- *
- * @remark the page is removed from the cache
- */
-extern ham_page_t *
-cache_get_unused_page(ham_cache_t *cache);
-
-/**
  * get a page from the cache
  *
  * @remark the page is removed from the cache
@@ -220,13 +208,20 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page);
  */
 #define cache_too_big(c)                                                      \
     ((cache_get_cur_elements(c)*env_get_pagesize(cache_get_env(c))            \
-            >cache_get_capacity(cache)) ? HAM_TRUE : HAM_FALSE) 
+            >cache_get_capacity(c)) ? HAM_TRUE : HAM_FALSE) 
 
 /**
  * check the cache integrity
  */
 extern ham_status_t
 cache_check_integrity(ham_cache_t *cache);
+
+/**
+ * purge unused pages from the cache till cache limits are no longer exceeded
+ * or till no unused pages are found
+ */
+extern ham_status_t
+cache_purge(ham_cache_t *cache);
 
 
 #ifdef __cplusplus

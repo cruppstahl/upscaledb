@@ -156,7 +156,6 @@ __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
         return (__insert_cursor(be, key, record, cursor, hints));
     }
 
-    page_lock(page);
     node=page_get_btree_node(page);
     ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
 
@@ -168,7 +167,6 @@ __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
     if ((hints->force_append && btree_node_get_right(node))
             || (hints->force_prepend && btree_node_get_left(node))
             || btree_node_get_count(node) >= btree_get_maxkeys(be)) {
-        page_unlock(page);
         hints->force_append = HAM_FALSE;
         hints->force_prepend = HAM_FALSE;
         return (__insert_cursor(be, key, record, cursor, hints));
@@ -191,7 +189,6 @@ __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
                                 btree_node_get_count(node)-1);
             /* key is in the middle */
             if (cmp_hi < -1) {
-                page_unlock(page);
                 return (ham_status_t)cmp_hi;
             }
             /* key is at the end */
@@ -199,7 +196,6 @@ __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
                 if (btree_node_get_right(node)) {
                     /* not at top end of the btree, so we can't do the 
                      * fast track */
-                    page_unlock(page);
                     //hints->flags &= ~HAM_HINT_APPEND;
                     hints->force_append = HAM_FALSE;
                     hints->force_prepend = HAM_FALSE;
@@ -220,7 +216,6 @@ __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
             cmp_lo = btree_compare_keys(db, page, key, 0);
             /* in the middle range */
             if (cmp_lo < -1) {
-                page_unlock(page);
                 return ((ham_status_t)cmp_lo);
             }
             /* key is at the start of page */
@@ -228,7 +223,6 @@ __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
                 if (btree_node_get_left(node)) {
                     /* not at bottom end of the btree, so we can't 
                      * do the fast track */
-                    page_unlock(page);
                     //hints->flags &= ~HAM_HINT_PREPEND;
                     hints->force_append = HAM_FALSE;
                     hints->force_prepend = HAM_FALSE;
@@ -259,7 +253,6 @@ __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
                  * key range. Clearly the current key does not fit that
                  * criterium.
                  */
-                page_unlock(page);
                 //hints->flags &= ~HAM_HINT_PREPEND;
                 hints->force_append = HAM_FALSE;
                 hints->force_prepend = HAM_FALSE;
@@ -291,7 +284,6 @@ __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
      */
     st=ham_log_add_page_before(page);
     if (st) {
-        page_unlock(page);
         return (st);
     }
 
@@ -301,7 +293,6 @@ __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
     ham_assert(hints->force_append || hints->force_prepend, (0));
     st=__insert_nosplit(page, key, 0, record, cursor, hints);
 
-    page_unlock(page);
     return (st);
 }
 

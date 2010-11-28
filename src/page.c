@@ -43,12 +43,6 @@ my_validate_page(ham_page_t *p)
             ("dirty and in garbage bin"));
 
     /*
-     * not allowed: referenced and in garbage bin
-     */
-    ham_assert(!(page_is_locked(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
-            ("referenced and in garbage bin"));
-
-    /*
      * not allowed: in garbage bin and cursors
      */
     ham_assert(!(page_get_cursors(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),

@@ -43,7 +43,6 @@ public:
         BFC_REGISTER_TEST(CacheTest, putGetReplaceTest);
         BFC_REGISTER_TEST(CacheTest, multiplePutTest);
         BFC_REGISTER_TEST(CacheTest, negativeGetTest);
-        BFC_REGISTER_TEST(CacheTest, unusedTest);
         BFC_REGISTER_TEST(CacheTest, overflowTest);
         BFC_REGISTER_TEST(CacheTest, strictTest);
         BFC_REGISTER_TEST(CacheTest, setSizeEnvCreateTest);
@@ -103,7 +102,6 @@ public:
         cache_set_bucketsize(cache, 11);
         BFC_ASSERT(cache_get_bucketsize(cache)==11);
         BFC_ASSERT(cache_get_totallist(cache)==0);
-        BFC_ASSERT(cache_get_unused_page(cache)==0);
         BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==0);
         BFC_ASSERT(cache_too_big(cache)==1);
         cache_delete(cache);
@@ -220,38 +218,6 @@ public:
         cache_delete(cache);
     }
     
-    void unusedTest(void)
-    {
-        ham_page_t *page1, *page2;
-        ham_perm_page_union_t pers1, pers2;
-        memset(&pers1, 0, sizeof(pers1));
-        memset(&pers2, 0, sizeof(pers2));
-        ham_cache_t *cache=cache_new(m_env, 15);
-        BFC_ASSERT(cache!=0);
-        page1=page_new(m_env);
-        page_set_npers_flags(page1, PAGE_NPERS_NO_HEADER);
-        page_set_self(page1, 0x123ull);
-        page_set_pers(page1, &pers1);
-        page_lock(page1);
-        page2=page_new(m_env);
-        page_set_npers_flags(page2, PAGE_NPERS_NO_HEADER);
-        page_set_self(page2, 0x456ull);
-        page_set_pers(page2, &pers2);
-        BFC_ASSERT(cache_put_page(cache, page1)==HAM_SUCCESS);
-        BFC_ASSERT(cache_put_page(cache, page2)==HAM_SUCCESS);
-        BFC_ASSERT(cache_get_unused_page(cache)==page2);
-        BFC_ASSERT(cache_get_unused_page(cache)==0);
-        BFC_ASSERT(cache_get_unused_page(cache)==0);
-        BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==page1);
-        BFC_ASSERT(cache_get_page(cache, 0x456ull, 0)==0);
-        cache_delete(cache);
-        page_unlock(page1);
-        page_set_pers(page1, 0);
-        page_delete(page1);
-        page_set_pers(page2, 0);
-        page_delete(page2);
-    }
-    
     void overflowTest(void)
     {
         ham_cache_t *cache=cache_new(m_env, 15*os_get_pagesize());
@@ -324,17 +290,11 @@ public:
 
         unsigned int max_pages=HAM_DEFAULT_CACHESIZE/(1024*128);
         unsigned int i;
-        for (i=0; i<max_pages+1; i++) {
+        for (i=0; i<max_pages; i++)
             BFC_ASSERT_EQUAL(0, db_alloc_page(&p[i], db, 0, 0));
-            page_lock(p[i]);
-        }
 
         BFC_ASSERT_EQUAL(HAM_CACHE_FULL, db_alloc_page(&p[i], db, 0, 0));
-
-        for (i=0; i<max_pages+1; i++) {
-            page_unlock(p[i]);
-        }
-
+        BFC_ASSERT_EQUAL(0, cache_purge(cache));
         BFC_ASSERT_EQUAL(0, db_alloc_page(&p[i], db, 0, 0));
 
         ham_close(db, 0);

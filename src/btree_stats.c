@@ -600,8 +600,6 @@ btree_stats_update_any_bound(int op, ham_db_t *db, struct ham_page_t *page,
                 || dbdata->lower_bound_page_address != page_get_self(page)
                 || slot == 0)
             {
-                page_lock(page);
-
                 /* only set when not done already */
                 dbdata->lower_bound_set = HAM_TRUE;
                 dbdata->lower_bound_index = 0;
@@ -635,7 +633,6 @@ btree_stats_update_any_bound(int op, ham_db_t *db, struct ham_page_t *page,
                         dbdata->lower_bound.size > 0, (0));
                     ham_assert(dbdata->lower_bound_page_address != 0, (0));
                 }
-                page_unlock(page);
                 if (op==HAM_OPERATION_STATS_INSERT)
                     dbdata->last_insert_was_prepend=1;
             }
@@ -662,8 +659,6 @@ btree_stats_update_any_bound(int op, ham_db_t *db, struct ham_page_t *page,
                     || dbdata->upper_bound_page_address != page_get_self(page)
                     || slot == btree_node_get_count(node) - 1) 
             {
-                page_lock(page);
-
                 /* only set when not done already */
                 dbdata->upper_bound_set = HAM_TRUE;
                 dbdata->upper_bound_index = btree_node_get_count(node) - 1;
@@ -690,7 +685,6 @@ btree_stats_update_any_bound(int op, ham_db_t *db, struct ham_page_t *page,
                     dbdata->upper_bound_page_address = 0;
                     dbdata->upper_bound_set = HAM_FALSE;
                 }
-                page_unlock(page);
                 if (op==HAM_OPERATION_STATS_INSERT)
                     dbdata->last_insert_was_append=1;
             }

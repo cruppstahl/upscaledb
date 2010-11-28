@@ -91,9 +91,7 @@ btree_enumerate(ham_btree_t *be, ham_enumerate_cb_t cb, void *context)
          * are surrounded
          * by this page 'pinning' countermeasure.
          */
-        page_lock(page);
         st = cb(ENUM_EVENT_DESCEND, (void *)&level, (void *)&count, context);
-        page_unlock(page);
         if (st != CB_CONTINUE)
             return (st);
 
@@ -197,13 +195,10 @@ _enumerate_page(ham_btree_t *be, ham_page_t *page, ham_u32_t level,
      * are surrounded
      * by this page 'pinning' countermeasure.
      */
-    page_lock(page);
     cb_st = cb(ENUM_EVENT_PAGE_START, (void *)page, &is_leaf, context);
-    page_unlock(page);
     if (cb_st == CB_STOP || cb_st < 0 /* error */)
         return (cb_st);
 
-    page_lock(page);
     for (i=0; (i < count) && (cb_st != CB_DO_NOT_DESCEND); i++) 
     {
         bte = btree_node_get_key(db, node, i);
@@ -214,7 +209,6 @@ _enumerate_page(ham_btree_t *be, ham_page_t *page, ham_u32_t level,
     }
 
     cb_st2 = cb(ENUM_EVENT_PAGE_STOP, (void *)page, &is_leaf, context);
-    page_unlock(page);
 
     if (cb_st < 0 /* error */)
         return (cb_st);

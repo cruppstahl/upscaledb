@@ -419,16 +419,13 @@ no_fast_track:
      * the 'entry'-pointer. therefore we 'lock' the page by incrementing 
      * the reference counter
      */
-    page_lock(page);
     ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
 
     /* no need to load the key if we have an exact match: */
     if (key && (ham_key_get_intflags(key) & KEY_IS_APPROXIMATE)) 
     {
         ham_status_t st=btree_read_key(db, entry, key);
-        if (st) 
-        {
-            page_unlock(page);
+        if (st) {
             btree_stats_update_find_fail(db, &hints);
             return (st);
         }
@@ -440,14 +437,11 @@ no_fast_track:
         record->_rid=key_get_ptr(entry);
         st=btree_read_record(db, record, &key_get_rawptr(entry), flags);
         if (st) {
-            page_unlock(page);
             btree_stats_update_find_fail(db, &hints);
             return (st);
         }
     }
 
-    page_unlock(page);
-    
     btree_stats_update_find(db, page, &hints);
     ham_assert(node == page_get_btree_node(page), (0));
     btree_stats_update_any_bound(HAM_OPERATION_STATS_FIND, 

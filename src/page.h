@@ -145,9 +145,6 @@ struct ham_page_t {
          */
         ham_u32_t _cache_cntr;
 
-        /** locks the page; if a page is locked, the cache will not purge it */
-        ham_u32_t _lock;
-
         /** is this page dirty and needs to be flushed to disk? */
         ham_u32_t _dirty;
 
@@ -258,18 +255,6 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 
 /** set the cache counter */
 #define page_set_cache_cntr(page, c)     (page)->_npers._cache_cntr=(c)
-
-/** is the page locked? */
-#define page_is_locked(page)             (page)->_npers._lock
-
-/** lock this page */
-#define page_lock(page)                  (++(page)->_npers._lock)
-
-/** unlock this page */
-#define page_unlock(page)       do {                                          \
-                                    ham_assert(page_is_locked(page)>0, ("")); \
-                                    --(page)->_npers._lock;                   \
-                                } while (0)
 
 /** page->_pers was allocated with malloc, not mmap */
 #define PAGE_NPERS_MALLOC               1

@@ -180,12 +180,15 @@ x ham_get_key_count does not return correct results if there are duplicate
 
 x make sure all unittests are running (with exception of logging)
 
-o rewrite cache purging/page locking
-    o purge: move function to cache.h/.c, remove from db.c
-    o whenever a function allocates/fetches: purge cache before backend
+x rewrite cache purging/page locking
+    x do we still need to distinguish between env_fetch_page 
+        and db_fetch_page? - not really, but it looks nicer
+    x purge: move function to cache.h/.c, remove from db.c
+    x whenever a function allocates/fetches: purge cache before backend
         function is called
-    o remove page locking - not required anymore
-    o unittest HamsterdbTest should run fine now
+    x unittest HamsterdbTest should run fine now
+    x remove page locking - not required anymore
+    x CacheTest::strictTest fails
 
 o logging: currently, logging for txn_begin and txn_commit/abort 
     is not implemented
@@ -248,5 +251,7 @@ o new API to retrieve the currently active transactions
 
 . opnode: use key instead of key* (pointer) - this saves one allocation 
     per node
+
+. cache-garbagelist no longer used - remove it?
 
 o continue as described in integrate-ham2.txt...

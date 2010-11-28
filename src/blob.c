@@ -1195,11 +1195,7 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
     }
     else {
         if (db_get_rt_flags(db)&HAM_SORT_DUPLICATES) {
-            if (page)
-                page_lock(page);
             position=__get_sorted_position(db, table, record, flags);
-            if (page)
-                page_unlock(page);
         }
         else if (flags&HAM_DUPLICATE_INSERT_BEFORE) {
             /* do nothing, insert at the current position */

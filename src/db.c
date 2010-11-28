@@ -185,6 +185,30 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
     return CB_CONTINUE;
 }
 
+static ham_bool_t
+__cache_needs_purge(ham_env_t *env)
+{
+    ham_cache_t *cache=env_get_cache(env);
+    if (!cache)
+        return (HAM_FALSE);
+
+    /* purge the cache, if necessary. if cache is unlimited, then we purge very
+     * very rarely (but we nevertheless purge to avoid OUT OF MEMORY conditions
+     * which can happen on 32bit Windows) */
+    if (cache && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
+        ham_bool_t purge=cache_too_big(cache);
+#if defined(WIN32) && defined(HAM_32BIT)
+        if (env_get_rt_flags(env)&HAM_CACHE_UNLIMITED) {
+            if (cache_get_cur_elements(cache)*env_get_pagesize(env) 
+                    > PURGE_THRESHOLD)
+                return (HAM_FALSE);
+        }
+#endif
+        return (purge);
+    }
+    return (HAM_FALSE);
+}
+
 static ham_status_t
 __record_filters_before_write(ham_db_t *db, ham_record_t *record)
 {
@@ -646,40 +670,6 @@ db_create_backend(ham_backend_t **backend_ref, ham_db_t *db, ham_u32_t flags)
     return btree_create(backend_ref, db, flags);
 }
 
-static ham_status_t
-__purge_cache(ham_env_t *env)
-{
-    ham_status_t st;
-    ham_page_t *page;
-
-    /*
-     * first, try to delete unused pages from the cache
-     */
-    if (env_get_cache(env) && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-        ham_cache_t *cache=env_get_cache(env);
-
-#if defined(HAM_DEBUG) && defined(HAM_ENABLE_INTERNAL) && !defined(HAM_LEAN_AND_MEAN_FOR_PROFILING)
-        if (cache_too_big(cache))
-            (void)cache_check_integrity(cache);
-#endif
-
-        while (cache_too_big(cache)) {
-            page=cache_get_unused_page(cache);
-            if (!page) {
-                if (env_get_rt_flags(env)&HAM_CACHE_STRICT) 
-                    return (HAM_CACHE_FULL);
-                else
-                    break;
-            }
-            st=db_write_page_and_delete(page, 0);
-            if (st)
-                return st;
-        }
-    }
-
-    return (HAM_SUCCESS);
-}
-
 ham_status_t
 db_free_page(ham_page_t *page, ham_u32_t flags)
 {
@@ -761,27 +751,6 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
              "through a previous call to this function or db_fetch_page() "
              "unless page caching is available!"));
 
-    /* purge the cache, if necessary. if cache is unlimited, then we purge very
-     * very rarely (but we nevertheless purge to avoid OUT OF MEMORY conditions
-     * which can happen on 32bit Windows) */
-    if (env_get_cache(env) 
-            && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-        ham_cache_t *cache=env_get_cache(env);
-        ham_bool_t purge=cache_too_big(cache);
-#if defined(WIN32) && defined(HAM_32BIT)
-        if (env_get_rt_flags(env)&HAM_CACHE_UNLIMITED) {
-            if (cache_get_cur_elements(cache)*env_get_pagesize(env) 
-                    > PURGE_THRESHOLD)
-                purge=HAM_FALSE;
-        }
-#endif
-        if (purge) {
-            st=__purge_cache(env);
-            if (st)
-                return st;
-        }
-    }
-
     /* first, we ask the freelist for a page */
     if (!(flags&PAGE_IGNORE_FREELIST)) {
         st=freel_alloc_page(&tellpos, env, db);
@@ -822,6 +791,12 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         page=page_new(env);
         if (!page)
             return HAM_OUT_OF_MEMORY;
+    }
+
+    /* can we allocate a new page for the cache? */
+    if (cache_too_big(env_get_cache(env))) {
+        if (env_get_rt_flags(env)&HAM_CACHE_STRICT) 
+            return (HAM_CACHE_FULL);
     }
 
     ham_assert(tellpos == 0, (0));
@@ -1034,28 +1009,6 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 
     *page_ref = 0;
 
-    /* purge the cache, if necessary. if cache is unlimited, then we purge very
-     * very rarely (but we nevertheless purge to avoid OUT OF MEMORY conditions
-     * which can happen on 32bit Windows) */
-    if (!(flags&DB_ONLY_FROM_CACHE) 
-            && env_get_cache(env) 
-            && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-        ham_cache_t *cache=env_get_cache(env);
-        ham_bool_t purge=cache_too_big(cache);
-#if defined(WIN32) && defined(HAM_32BIT)
-        if (env_get_rt_flags(env)&HAM_CACHE_UNLIMITED) {
-            if (cache_get_cur_elements(cache)*env_get_pagesize(env) 
-                    > PURGE_THRESHOLD)
-                purge=HAM_FALSE;
-        }
-#endif
-        if (purge) {
-            st=__purge_cache(env);
-            if (st)
-                return st;
-        }
-    }
-
     /* 
      * fetch the page from the cache
      */
@@ -1080,6 +1033,12 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
             ? 1 
             : !!env_get_cache(env), ("in-memory DBs MUST have a cache"));
+
+    /* can we allocate a new page for the cache? */
+    if (cache_too_big(env_get_cache(env))) {
+        if (env_get_rt_flags(env)&HAM_CACHE_STRICT) 
+            return (HAM_CACHE_FULL);
+    }
 
     page=page_new(env);
     if (!page)
@@ -1613,9 +1572,14 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
     if (!be->_fun_check_integrity)
         return (HAM_NOT_IMPLEMENTED);
 
-    /*
-     * call the backend function
-     */
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=cache_purge(env_get_cache(db_get_env(db)));
+        if (st)
+            return (st);
+    }
+
+    /* call the backend function */
     return (be->_fun_check_integrity(be));
 #else
     return (HAM_NOT_IMPLEMENTED);
@@ -1736,6 +1700,13 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
         return (HAM_NOT_INITIALIZED);
     if (!be->_fun_enumerate)
         return (HAM_NOT_IMPLEMENTED);
+
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=cache_purge(env_get_cache(db_get_env(db)));
+        if (st)
+            return (st);
+    }
 
     /*
      * call the backend function - this will retrieve the number of keys
@@ -2128,6 +2099,13 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
     temprec=*record;
     st=__record_filters_before_write(db, &temprec);
 
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=cache_purge(env_get_cache(db_get_env(db)));
+        if (st)
+            return (st);
+    }
+
     /* 
      * if transactions are enabled: only insert the key/record pair into
      * the Transaction structore. Otherwise immediately write to disk
@@ -2214,6 +2192,13 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 
     db_update_global_stats_erase_query(db, key->size);
 
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=cache_purge(env_get_cache(db_get_env(db)));
+        if (st)
+            return (st);
+    }
+
     /* 
      * if transactions are enabled: append a 'erase key' operation into
      * the txn tree; otherwise immediately erase the key from disk
@@ -2281,6 +2266,13 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     }
 
     db_update_global_stats_find_query(db, key->size);
+
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=cache_purge(env_get_cache(db_get_env(db)));
+        if (st)
+            return (st);
+    }
 
     /* 
      * if transactions are enabled: read keys from transaction trees, 
@@ -2433,6 +2425,13 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     if (!st)
         db_update_global_stats_insert_query(db, key->size, temprec.size);
 
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=cache_purge(env_get_cache(db_get_env(db)));
+        if (st)
+            return (st);
+    }
+
     if (!st)
         st=cursor->_fun_insert(cursor, key, &temprec, flags);
 
@@ -2489,6 +2488,13 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 
     db_update_global_stats_erase_query(db, 0);
 
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=cache_purge(env_get_cache(db_get_env(db)));
+        if (st)
+            return (st);
+    }
+
     st=cursor->_fun_erase(cursor, flags);
     if (st) {
         if (!cursor_get_txn(cursor))
@@ -2535,6 +2541,13 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
     }
 
     db_update_global_stats_find_query(db, key->size);
+
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=cache_purge(env_get_cache(db_get_env(db)));
+        if (st)
+            return (st);
+    }
 
     st=cursor->_fun_find(cursor, key, record, flags);
     if (st) {
@@ -2583,6 +2596,13 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
             return (st);
     }
 
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=cache_purge(env_get_cache(db_get_env(db)));
+        if (st)
+            return (st);
+    }
+
     st=(*cursor->_fun_get_duplicate_count)(cursor, count, flags);
     if (st) {
         if (!cursor_get_txn(cursor))
@@ -2624,6 +2644,13 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
         return (st);
     }
 
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=cache_purge(env_get_cache(db_get_env(db)));
+        if (st)
+            return (st);
+    }
+
     st=cursor->_fun_overwrite(cursor, &temprec, flags);
 
     ham_assert(env_get_allocator(env) == cursor_get_allocator(cursor), (0));
@@ -2653,6 +2680,13 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
     if (!cursor_get_txn(cursor)) {
         st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
+        if (st)
+            return (st);
+    }
+
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=cache_purge(env_get_cache(db_get_env(db)));
         if (st)
             return (st);
     }

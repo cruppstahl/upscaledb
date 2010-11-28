@@ -106,19 +106,17 @@ cache_reduce_page_counts(ham_cache_t *cache)
     cache->_timeslot>>=16;
 }
 
-ham_page_t * 
-cache_get_unused_page(ham_cache_t *cache)
+ham_status_t
+cache_purge(ham_cache_t *cache)
 {
     ham_page_t *page;
     ham_page_t *oldest;
-    ham_page_t *min=0;
-    ham_size_t hash;
-    ham_size_t i=0;
+    ham_page_t *next_start;
+    ham_status_t st;
 
+#if 0
     page=cache_get_garbagelist(cache);
     if (page) {
-        ham_assert(page_is_locked(page)==0, 
-                ("page is in use and in garbage list"));
         cache_set_garbagelist(cache, 
                 page_list_remove(cache_get_garbagelist(cache), 
                     PAGE_LIST_GARBAGE, page));
@@ -127,41 +125,23 @@ cache_get_unused_page(ham_cache_t *cache)
                 cache_get_cur_elements(cache)-1);
         return (page);
     }
+#endif
 
+    /* we start with the oldest page */
     oldest=cache_get_oldest(cache);
     if (!oldest)
         return (0);
 
-    /*
-     * Oh, this was all so unfair! <grin>
-     *
-     * As pages are added at the HEAD and NEXT for page P points to the
-     * next older item (i.e. the previously added item to the linked
-     * list), it means ->NEXT means
-     * 'older'.
-     *
-     * While, in finding the oldest, re-usable page, we should /start/
-     * with the oldest and gradually progress towards the 'younger',
-     * i.e. traverse the link list in reverse, by traversing the ->PREV chain 
-     * instead of the usual ->NEXT chain!
-     *
-     * And our 'proper' starting point then would be the
-     * /oldest/ fella in the chain, and that would've beem HEAD->PREV
-     * if we'd had cyclic double linked lists here; alas, we have NOT,
-     * so we just travel down the ->NEXT path and pick the oldest geezer we can
-     * find; after all that's one traversal with the same result as first
-     * traveling all the way down to the endstop, and then reversing
-     * through ->PREV... If only our cyclic LL patch hadn't caused such
-     * weird bugs  :-(
-     */
-    page = oldest;
-    do {
-        /* do not loop too often */
-        if (i++>20)
-            break;
+    next_start = oldest;
+    do  {
+        ham_page_t *min=0;
+        page = next_start;
+        ham_size_t i=0;
+        do {
+            /* do not loop too often */
+            if (i++>15)
+                break;
 
-        /* only handle unused pages */
-        if (page_is_locked(page)==0) {
             if (page_get_cache_cntr(page)==0) {
                 min=page;
                 break;
@@ -169,38 +149,35 @@ cache_get_unused_page(ham_cache_t *cache)
             else {
                 if (!min)
                     min=page;
-                else if (page_get_cache_cntr(page) <= page_get_cache_cntr(min)) 
+                else if (page_get_cache_cntr(page) 
+                        <= page_get_cache_cntr(min)) 
                     min=page;
             }
-        }
-        
-        page=page_get_previous(page, PAGE_LIST_CACHED);
-        ham_assert(page != oldest, (0));
-    } while (page && page!=oldest);
+            
+            page = page_get_previous(page, PAGE_LIST_CACHED);
+            ham_assert(page != oldest, (0));
+        } while (page && page!=oldest);
+
+        /* if we did not find a page: return */
+        if (!min)
+            return (0);
+
+        /* this is where we continue in our loop */
+        next_start = page_get_previous(min, PAGE_LIST_CACHED);
+
+        /* otherwise remove the page from the cache... */
+        st=cache_remove_page(cache, min);
+        if (st)
+            return (st);
+
+        /* ... and then flush/free/delete it */
+        st=db_write_page_and_delete(min, 0);
+        if (st)
+            return st;
+
+    } while (next_start && cache_too_big(cache));
     
-    if (!min)
-        return (0);
-
-    hash=__calc_hash(cache, page_get_self(min));
-
-    if (cache_get_oldest(cache)==page) {
-        cache_set_oldest(cache, page_get_next(page, PAGE_LIST_CACHED));
-    }
-    ham_assert(page_is_in_list(cache_get_totallist(cache), min, 
-                    PAGE_LIST_CACHED), (0));
-    cache_set_totallist(cache, 
-            page_list_remove(cache_get_totallist(cache), 
-            PAGE_LIST_CACHED, min));
-    ham_assert(page_is_in_list(cache_get_bucket(cache, hash), min, 
-                    PAGE_LIST_BUCKET), (0));
-    cache_set_bucket(cache, hash, 
-            page_list_remove(cache_get_bucket(cache, 
-            hash), PAGE_LIST_BUCKET, min));
-
-    cache_set_cur_elements(cache, 
-            cache_get_cur_elements(cache)-1);
-
-    return (min);
+    return (0);
 }
 
 ham_page_t *
@@ -313,14 +290,13 @@ cache_remove_page(ham_cache_t *cache, ham_page_t *page)
         cache_set_oldest(cache, page_get_next(page, PAGE_LIST_CACHED));
     }
 
-    if (page_get_self(page)) 
-    {
+    if (page_get_self(page)) {
         ham_size_t hash=__calc_hash(cache, page_get_self(page));
         if (page_is_in_list(cache_get_bucket(cache, hash), page, 
                 PAGE_LIST_BUCKET)) {
             cache_set_bucket(cache, hash, 
                     page_list_remove(cache_get_bucket(cache, hash), 
-                    PAGE_LIST_BUCKET, page));
+                        PAGE_LIST_BUCKET, page));
         }
     }
 

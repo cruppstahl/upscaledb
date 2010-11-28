@@ -2794,8 +2794,6 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, ham_env_t *env, f
                 if (!prev_page)
                     return st ? st : HAM_INTERNAL_ERROR;
                 page_set_dirty(prev_page);
-                /* ref++ so fp stays valid BEYOND next page alloc further below, no matter what! */
-                page_lock(prev_page); 
                 fp=page_get_freelist(prev_page);
             }
 
@@ -2806,19 +2804,11 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, ham_env_t *env, f
                     PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO);
             if (!page)
             {
-                if (prev_page)
-                {
-                    page_unlock(prev_page);
-                }
                 ham_assert(st != 0, (0));
                 return st;
             }
             freel_set_overflow(fp, page_get_self(page));
             /* done editing /previous/ freelist page */
-            if (prev_page)
-            {
-                page_unlock(prev_page);
-            }
 
             fp=page_get_freelist(page);
             freel_set_start_address(fp, 
