@@ -11,7 +11,13 @@ x a finished TODO item
 x fix bug reported by Mark - circular reference in txn list when running
     lessfs with hamsterdb
 
-x release 1.1.8
+x several tests w/ direct access and duplicates fail 
+
+o --inmemorydb=1 --use-cursors=1 --duplicate-first=1 ../../testfiles/1/202.tst
+    fails in bdb, but cannot reproduce with bdb; the problem seems to be 
+    somewhere else (or not?)
+
+o release 1.1.8
 
 ------------------------------------------------------------
 
