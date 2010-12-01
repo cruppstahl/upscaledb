@@ -16,6 +16,9 @@ x several tests w/ direct access and duplicates fail
 o --inmemorydb=1 --use-cursors=1 --duplicate-first=1 ../../testfiles/1/202.tst
     fails in bdb, but cannot reproduce with bdb; the problem seems to be 
     somewhere else (or not?)
+    does it also fail with vanilla 1.1.7? -- yes, also fails
+
+o configure.in - don't overwrite Ox setting
 
 o release 1.1.8
 
