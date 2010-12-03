@@ -1,3 +1,7 @@
+Dev 03, 2010 - chris ---------------------------------------------------
+o configure.in will no longer overwrite -Ox flags; the default 
+compilation option is now -O2 (thanks, Mark)
+
 Nov 30, 2010 - chris ---------------------------------------------------
 o bugfix with HAM_DIRECT_ACCESS and cursors which insert duplicates at the
     beginning of the duplicate list; if record size is <= 8 bytes then

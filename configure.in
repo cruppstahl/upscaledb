@@ -42,9 +42,8 @@ esac
 # A string describing all enabled/disabled settings
 settings=""
 
-# Default settings: -Wall and -O3
+# Default settings: -Wall
 CFLAGS="${CFLAGS} -Wall"
-CFLAGS=`echo "$CFLAGS" | sed 's/-O. /-O3 /g'`
 
 #
 # Debug mode
