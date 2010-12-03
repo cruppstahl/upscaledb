@@ -781,10 +781,8 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             }
             goto done;
         }
-        else if (st) 
-        {
+        else if (st)
             return st;
-        }
     }
 
     if (!page) {
@@ -820,8 +818,7 @@ done:
      * disable page content logging ONLY when the page is 
      * completely new (contains bogus 'before' data) 
      */
-    if (tellpos == 0) /* [i_a] BUG! */
-    {
+    if (tellpos == 0) { /* [i_a] BUG! */
         flags &= ~PAGE_DONT_LOG_CONTENT;
     }
 
@@ -898,8 +895,7 @@ done:
                  a 'derived' transaction which is COMMITTED: that TXN will only
                  contain the filesize and freelist edits then!
     */
-    if (!(flags & PAGE_DONT_LOG_CONTENT) && (env && env_get_log(env)))
-    {
+    if (!(flags & PAGE_DONT_LOG_CONTENT) && (env && env_get_log(env))) {
         st=ham_log_add_page_before(page);
         if (st) 
             return st;

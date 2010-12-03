@@ -1029,7 +1029,8 @@ btree_read_record(ham_db_t *db, ham_record_t *record, ham_u64_t *ridptr,
             return st;
         record->_intflags=dupe_entry_get_flags(&entry);
         record->_rid     =dupe_entry_get_rid(&entry);
-        ridptr           =&dupe_entry_get_ridptr(&entry);
+        /* ridptr must not point to entry._rid because it's on the stack! */
+        ridptr           =&record->_rid;
     }
 
     /*

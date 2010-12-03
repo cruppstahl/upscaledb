@@ -226,7 +226,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         in journal after abort/commit)
     o add many unittests
 
-o merge bugfixes of 1.1.8
+x merge bugfixes of 1.1.8
 
 o implement partial reads through transaction tree - will have to 
     consolidate them
