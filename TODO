@@ -203,11 +203,22 @@ o logging: currently, logging for txn_begin and txn_commit/abort
     x disable all broken tests in log.cpp
     x introduce a logical journal (based on same routines as before)
         with log-file switching
-    x logical log: add txn begin/commit/abort/insert/erase
-    o db.c/env.c: log begin/commit/abort/insert/erase
+    o logical log: add txn begin/commit/abort/insert/erase
+        -> are these fully implemented? i think some are missing
+    o db.c/env.c: (logical) log begin/commit/abort/insert/erase
     o only log the last insert/erase operation (remove all other operations)
     o disable log-file switching for physical log
     o recovery: how do we know with which lsn to continue?
+        o use WRITETHROUGH (and make sure that it still works!) if recovery
+        is enabled (would like to avoid this, but otherwise we need to write
+        more information to the log, so it doesn't make a difference)
+        o if there's a physical log entry: apply it, take last lsn from this
+        log entry (what to do if one lsn is mapped to several before/after 
+        operations, i.e. because of a SMO?)
+        o if there's no physical log: read lsn from header page (which means
+        that we have to flush the lsn in the header page after each operation)
+        o then iterate through the logfile and re-apply all missing operations,
+        abort all open transactions and commit all committed ones
     o recovery: auto-aborts all non-committed transactions (same behavior 
             as now)
     o recovery: re-apply all committed (but not fully flushed) transactions
