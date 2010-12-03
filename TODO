@@ -190,6 +190,8 @@ x rewrite cache purging/page locking
     x remove page locking - not required anymore
     x CacheTest::strictTest fails
 
+x merge bugfixes of 1.1.8
+
 o logging: currently, logging for txn_begin and txn_commit/abort 
     is not implemented
     -> we have to distinguish between txn logging (the WAL journal which
@@ -201,32 +203,75 @@ o logging: currently, logging for txn_begin and txn_commit/abort
     and we do not need undo information.
     
     x disable all broken tests in log.cpp
-    x introduce a logical journal (based on same routines as before)
+    o introduce a logical journal (based on same routines as before)
         with log-file switching
+        x implement in journal.h/journal.c
+        o unittest for switching back/forth
+        o unittest for all remaining functions (most likely already exist)
     o logical log: add txn begin/commit/abort/insert/erase
-        -> are these fully implemented? i think some are missing
+        o remove the -prewrite logging, since we do not need undo information
+            (be careful with allocated pages - they need special treatment
+            when they're "redone")
+        o need unittests for each operation
     o db.c/env.c: (logical) log begin/commit/abort/insert/erase
-    o only log the last insert/erase operation (remove all other operations)
+        o need unittests
+    o we have to flush pages after they're modified (search for db_fetch_page
+        and db_alloc_page); however, what if multiple pages are modified (i.e.
+        during an SMO)? - we have to first physlog all modified pages, and then
+        flush them all together; this way we minimize chances for corruption.
+        same regarding SMOs - first wait till all modifications are done (in
+        the cache), then flush the pages (or discard them if the operation
+        failed for whatever reason)
+        o re-introduce a structure similar to the old transaction list
+            ("changeset"); don't forget to update my_verify_page()!
+            o need unittests
+        o when fetching a page, first check this list
+            o need unittests
+        o when fetching or allocating, insert page in this list
+            o need unittests
+        o before each backend-related operation: assert that the list is clear
+            o need unittests
+        o after each backend-related operation: flush the list (or discard
+            the cached pages if there was an error)
+            o need unittests
+        o after a changeset was successfully applied/flushed: clear the logfile
+            o need unittests
+    o create a logical log for low-level operations (page flush WAL)
+        o need unittests
     o disable log-file switching for physical log
+        o need unittests
+    o if recovery is enabled: after flushing the changeset, update the 
+        lsn in the header file and flush this page
+        o need unittests
     o recovery: how do we know with which lsn to continue?
         o use WRITETHROUGH (and make sure that it still works!) if recovery
-        is enabled (would like to avoid this, but otherwise we need to write
-        more information to the log, so it doesn't make a difference)
+            is enabled (would like to avoid this, but otherwise we need to write
+            more information to the log, so it doesn't make a difference)
+            o is it faster if we only flush the header of the page??
+            o need unittests
         o if there's a physical log entry: apply it, take last lsn from this
-        log entry (what to do if one lsn is mapped to several before/after 
-        operations, i.e. because of a SMO?)
+            log entry. What to do if one lsn is mapped to several before/after 
+            operations, i.e. because of a SMO? - after each single flush,
+            we could update an index in the header structure of the log. This
+            index will then tell us where to restart in the physlog. we can
+            fix this later when moving to the journal
+            o need unittests
         o if there's no physical log: read lsn from header page (which means
-        that we have to flush the lsn in the header page after each operation)
+            that we have to flush the lsn in the header page after each 
+            operation)
+            o need unittests
         o then iterate through the logfile and re-apply all missing operations,
-        abort all open transactions and commit all committed ones
+            abort all open transactions and commit all committed ones
+            o need unittests
     o recovery: auto-aborts all non-committed transactions (same behavior 
             as now)
+        o need unittests
     o recovery: re-apply all committed (but not fully flushed) transactions
+        o need unittests
     o journal and log: flush file after it's written (at least in log AND
         in journal after abort/commit)
-    o add many unittests
-
-x merge bugfixes of 1.1.8
+        o need unittests
+    o re-enable logging tests in log.cpp
 
 o implement partial reads through transaction tree - will have to 
     consolidate them
@@ -249,6 +294,8 @@ o support cursors!!!
     o when flushing a transaction, and a cursor is pointing into the txn
         node: uncouple the cursor! (or delete it?)
     o db.c: do we need local_txn in the cursor functions?
+
+o run monster tests
 
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
 
