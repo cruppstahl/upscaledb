@@ -144,8 +144,11 @@ struct ham_env_t
     /* the tail of the transaction list (the youngest/newest transaction) */
     ham_txn_t *_newest_txn;
 
-    /** the log object */
+    /** the physical log */
     ham_log_t *_log;
+
+    /** the logical journal */
+    journal_t *_journal;
 
     /** the Environment flags - a combination of the persistent flags
      * and runtime flags */
@@ -404,6 +407,12 @@ env_get_header(ham_env_t *env);
 
 /** set the log object */
 #define env_set_log(env, log)            (env)->_log=(log)
+
+/** get the journal */
+#define env_get_journal(env)             (env)->_journal
+
+/** set the journal */
+#define env_set_journal(env, j)          (env)->_journal=(j)
 
 /** get the runtime-flags */
 #define env_get_rt_flags(env)            (env)->_rt_flags

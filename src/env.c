@@ -27,6 +27,7 @@
 #include "backend.h"
 #include "cache.h"
 #include "log.h"
+#include "journal.h"
 #include "btree_key.h"
 #include "os.h"
 #include "blob.h"
@@ -195,10 +196,11 @@ _local_fun_create(ham_env_t *env, const char *filename,
     }
 
     /*
-     * create a logfile (if requested)
+     * create a logfile and a journal (if requested)
      */
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
         ham_log_t *log;
+        journal_t *journal;
         st=ham_log_create(env_get_allocator(env), env, env_get_filename(env), 
                 0644, 0, &log);
         if (st) { 
@@ -206,6 +208,13 @@ _local_fun_create(ham_env_t *env, const char *filename,
             return (st);
         }
         env_set_log(env, log);
+
+        st=journal_create(env, 0644, 0, &journal);
+        if (st) { 
+            (void)ham_env_close(env, 0);
+            return (st);
+        }
+        env_set_journal(env, journal);
     }
 
     /* 
@@ -409,6 +418,7 @@ fail_with_fake_cleansing:
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && env_get_log(env)==0) {
         ham_log_t *log;
+        journal_t *journal;
         st=ham_log_open(env_get_allocator(env), env, 
                     env_get_filename(env), 0, &log);
         if (!st) { 
@@ -444,6 +454,13 @@ fail_with_fake_cleansing:
                 return (st);
             }
             env_set_log(env, log);
+
+            st=journal_create(env, 0644, 0, &journal);
+            if (st) {
+                (void)ham_env_close(env, 0);
+                return (st);
+            }
+            env_set_journal(env, journal);
         }
         else {
             (void)ham_env_close(env, 0);
@@ -747,13 +764,19 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
     env_set_file_filter(env, 0);
 
     /*
-     * close the log
+     * close the log and the journal
      */
     if (env_get_log(env)) {
         st = ham_log_close(env_get_log(env), (flags&HAM_DONT_CLEAR_LOG));
         if (!st2) 
             st2 = st;
         env_set_log(env, 0);
+    }
+    if (env_get_journal(env)) {
+        st = journal_close(env_get_journal(env), (flags&HAM_DONT_CLEAR_LOG));
+        if (!st2) 
+            st2 = st;
+        env_set_journal(env, 0);
     }
 
     return st2;

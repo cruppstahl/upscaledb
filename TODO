@@ -206,9 +206,13 @@ o logging: currently, logging for txn_begin and txn_commit/abort
     o introduce a logical journal (based on same routines as before)
         with log-file switching
         x implement in journal.h/journal.c
-        o unittest for switching back/forth
-        o unittest for all remaining functions (most likely already exist)
+        o unittest for switching back/forth and everything else
+    x env: create journal
+        x unittest
+    x env: close journal
+        x unittest
     o logical log: add txn begin/commit/abort/insert/erase
+        o rename ham_log_t to log_t (and others as well)
         o remove the -prewrite logging, since we do not need undo information
             (be careful with allocated pages - they need special treatment
             when they're "redone")
