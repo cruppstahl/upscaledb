@@ -216,8 +216,11 @@ os_pwrite(ham_fd_t fd, ham_offset_t addr, const void *buffer,
 
     while (total<bufferlen) {
         s=pwrite(fd, buffer, bufferlen, addr+total);
-        if (s<0)
+        if (s<0) {
+            ham_log(("pwrite() failed with status %u (%s)",
+                    errno, strerror(errno)));
             return (HAM_IO_ERROR);
+        }
         if (s==0)
             break;
         total+=s;

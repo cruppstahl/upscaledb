@@ -50,35 +50,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1 journal_header_t
 /* set the journal header magic */
 #define journal_header_set_magic(j, m)              (j)->_magic=m
 
-#include "packstart.h"
-
-/**
- * a journal entry
- */
-typedef HAM_PACK_0 struct HAM_PACK_1 journal_entry_t
-{
-    /** the lsn of this entry */
-    ham_u64_t _lsn;
-
-    /** the transaction id */
-    ham_u64_t _txn_id;
-
-    /** the flags of this entry; the lowest 8 bits are the 
-     * type of this entry, see below */
-    ham_u32_t _flags;
-
-    /** a reserved value */
-    ham_u32_t _reserved;
-
-    /** the offset of this operation */
-    ham_u64_t _offset;
-
-    /** the size of the data */
-    ham_u64_t _data_size;
-
-} HAM_PACK_2 journal_entry_t;
-
-#include "packstop.h"
+#include "journal_entries.h"
 
 /** 
 * @defgroup journal_entry_type_set the different types of journal entries
@@ -99,42 +71,6 @@ typedef HAM_PACK_0 struct HAM_PACK_1 journal_entry_t
 /**
  * @}
  */
-
-/* get the lsn */
-#define journal_entry_get_lsn(j)                    (j)->_lsn
-
-/* set the lsn */
-#define journal_entry_set_lsn(j, lsn)               (j)->_lsn=lsn
-
-/* get the transaction ID */
-#define journal_entry_get_txn_id(j)                 (j)->_txn_id
-
-/* set the transaction ID */
-#define journal_entry_set_txn_id(j, id)             (j)->_txn_id=id
-
-/* get the offset of this entry */
-#define journal_entry_get_offset(j)                 (j)->_offset
-
-/* set the offset of this entry */
-#define journal_entry_set_offset(j, o)              (j)->_offset=o
-
-/* get the size of this entry */
-#define journal_entry_get_data_size(j)              (j)->_data_size
-
-/* set the size of this entry */
-#define journal_entry_set_data_size(j, s)           (j)->_data_size=s
-
-/* get the flags of this entry */
-#define journal_entry_get_flags(j)                  (j)->_flags
-
-/* set the flags of this entry */
-#define journal_entry_set_flags(j, f)               (j)->_flags=f
-
-/* get the type of this entry */
-#define journal_entry_get_type(j)                   ((j)->_flags&0xf)
-
-/* set the type of this entry */
-#define journal_entry_set_type(j, t)                (j)->_flags|=(t)
 
 
 /**
@@ -258,7 +194,7 @@ journal_is_empty(journal_t *journal, ham_bool_t *isempty);
  */
 extern ham_status_t
 journal_append_entry(journal_t *journal, int fdidx, 
-                journal_entry_t *entry, ham_size_t size);
+            journal_entry_t *entry, void *aux, ham_size_t size);
 
 /**
  * Force the journal flushed to storage device
@@ -295,7 +231,8 @@ journal_append_insert(journal_t *journal, ham_txn_t *txn, ham_key_t *key,
  * Append a journal entry for ham_erase/JOURNAL_ENTRY_TYPE_ERASE
  */
 extern ham_status_t
-journal_append_erase(journal_t *journal, ham_txn_t *txn, ham_key_t *key);
+journal_append_erase(journal_t *journal, ham_txn_t *txn, ham_key_t *key,
+                ham_u32_t dupe, ham_u32_t flags);
 
 /**
  * Empties the journal, removes all entries
@@ -320,18 +257,21 @@ typedef struct {
 } journal_iterator_t;
 
 /**
- * Returns the next journal entry
+ * Sequentially returns the next journal entry, starting with the oldest entry
  *
  * iter must be initialized with zeroes for the first call
  *
- * 'data' returns the data of the entry, or NULL if there is no data. 
- * The memory has to be freed by the caller.
+ * 'aux' returns the auxiliary data of the entry, or NULL if there is no data. 
+ * It's either a structure of type journal_entry_insert_t or 
+ * journal_entry_erase_t.
+ *
+ * The memory of 'aux' has to be freed by the caller.
  *
  * returns SUCCESS and an empty entry (lsn is zero) after the last element.
  */
 extern ham_status_t
 journal_get_entry(journal_t *journal, journal_iterator_t *iter, 
-                journal_entry_t *entry, ham_u8_t **data);
+                journal_entry_t *entry, void **aux);
 
 /**
  * Closes the journal, frees all allocated resources
