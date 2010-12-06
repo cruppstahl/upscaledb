@@ -1409,7 +1409,7 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
         {
             ham_bt_cursor_t *c;
 
-            st=key_erase_record(db, bte, 0, BLOB_FREE_ALL_DUPES);
+            st=key_erase_record(db, bte, 0, HAM_ERASE_ALL_DUPLICATES);
             if (st)
                 return (st);
 

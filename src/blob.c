@@ -1293,10 +1293,10 @@ blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
     table=(dupe_table_t *)rec.data;
 
     /*
-     * if BLOB_FREE_ALL_DUPES is set *OR* if the last duplicate is deleted:
+     * if HAM_ERASE_ALL_DUPLICATES is set *OR* if the last duplicate is deleted:
      * free the whole duplicate table
      */
-    if (flags&BLOB_FREE_ALL_DUPES
+    if (flags&HAM_ERASE_ALL_DUPLICATES
             || (position==0 && dupe_table_get_count(table)==1)) {
         for (i=0; i<dupe_table_get_count(table); i++) {
             dupe_entry_t *e=dupe_table_get_entry(table, i);

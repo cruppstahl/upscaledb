@@ -241,9 +241,10 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             o ham_erase (delete ALL duplicates!)
             o ham_cursor_erase (duplicate handling!)
 
-    o new flag for ham_erase: HAM_ERASE_ALL_DUPLICATES
-        o replace old BLOB_FREE_ALL_DUPES
-        o unittest!
+    x new flag for ham_erase: HAM_ERASE_ALL_DUPLICATES
+        x replace old BLOB_FREE_ALL_DUPES
+        x unittest!
+
     o refactor log.h, rename ham_log_t to log_t (and others as well)
     o ham_log_get_entry() currently reads from back to front, but we need it
         vice versa!

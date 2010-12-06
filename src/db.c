@@ -172,7 +172,7 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
          * if we're in the leaf page, delete the blob
          */
         if (c->is_leaf) {
-            st = key_erase_record(c->db, key, 0, BLOB_FREE_ALL_DUPES);
+            st = key_erase_record(c->db, key, 0, HAM_ERASE_ALL_DUPLICATES);
             if (st)
                 return st;
         }

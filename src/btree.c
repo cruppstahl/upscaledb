@@ -464,7 +464,7 @@ my_fun_free_page_extkeys(ham_btree_t *be, ham_page_t *page, ham_u32_t flags)
                     *(ham_offset_t *)(key_get_key(bte)+
                         (db_get_keysize(db)-sizeof(ham_offset_t)))=0;
                 }
-                //(void)key_erase_record(db, bte, 0, BLOB_FREE_ALL_DUPES);
+                //(void)key_erase_record(db, bte, 0, HAM_ERASE_ALL_DUPLICATES);
                 if (c)
                     (void)extkey_cache_remove(c, blobid);
             }
