@@ -1293,7 +1293,7 @@ _local_fun_txn_begin(ham_env_t *env, ham_db_t *db,
     }
 
     /* append journal entry */
-    if (st==0 && env_get_flags(env)&HAM_ENABLE_RECOVERY)
+    if (st==0 && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
         st=journal_append_txn_begin(env_get_journal(env), *txn);
 
     return (st);
@@ -1305,7 +1305,7 @@ _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     ham_status_t st=txn_commit(txn, flags);
 
     /* append journal entry */
-    if (st==0 && env_get_flags(env)&HAM_ENABLE_RECOVERY)
+    if (st==0 && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
         st=journal_append_txn_commit(env_get_journal(env), txn);
 
     return (st);
@@ -1317,7 +1317,7 @@ _local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     ham_status_t st=txn_abort(txn, flags);
 
     /* append journal entry */
-    if (st==0 && env_get_flags(env)&HAM_ENABLE_RECOVERY)
+    if (st==0 && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
         st=journal_append_txn_abort(env_get_journal(env), txn);
 
     return (st);

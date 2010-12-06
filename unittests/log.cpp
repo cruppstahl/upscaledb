@@ -139,8 +139,8 @@ public:
         log_entry_set_flags(&e, 0xff000000);
         BFC_ASSERT_EQUAL((ham_u32_t)0xff000000, log_entry_get_flags(&e));
 
-        log_entry_set_type(&e, 132u);
-        BFC_ASSERT_EQUAL(132u, log_entry_get_type(&e));
+        log_entry_set_type(&e, 13u);
+        BFC_ASSERT_EQUAL(13u, log_entry_get_type(&e));
     }
 
     void structLogTest(void)
@@ -350,7 +350,8 @@ public:
         BFC_ASSERT_EQUAL((ham_u64_t)1, log_entry_get_lsn(&entry));
         BFC_ASSERT_EQUAL((ham_u64_t)1, txn_get_id(txn));
         BFC_ASSERT_EQUAL((ham_u64_t)1, log_entry_get_txn_id(&entry));
-        BFC_ASSERT_EQUAL((ham_u8_t *)0, data);
+        BFC_ASSERT_EQUAL((ham_u32_t)1024, log_entry_get_data_size(&entry));
+        BFC_ASSERT_NOTNULL(data);
         BFC_ASSERT_EQUAL((ham_u32_t)LOG_ENTRY_TYPE_PREWRITE, 
                         log_entry_get_type(&entry));
 
@@ -1401,5 +1402,5 @@ public:
 
 BFC_REGISTER_FIXTURE(LogTest);
 // temp. disabled
-//BFC_REGISTER_FIXTURE(LogHighLevelTest);
+// BFC_REGISTER_FIXTURE(LogHighLevelTest);
 
