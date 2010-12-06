@@ -222,14 +222,6 @@ txn_begin(ham_txn_t **ptxn, ham_env_t *env, ham_u32_t flags)
     txn_set_flags(txn, flags);
     env_set_txn_id(env, txn_get_id(txn));
 
-#if 0 /* TODO */
-    if (env_get_log(env) && !(flags&HAM_TXN_READ_ONLY)) {
-        st=log_append_txn_begin(env_get_log(env), txn);
-        if (st)
-            return (st);
-    }
-#endif
-
     /* link this txn with the Environment */
     env_append_txn(env, txn);
 
@@ -284,15 +276,6 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
      * this transaction is now aborted!
      */
     txn_set_flags(txn, txn_get_flags(txn)|TXN_STATE_ABORTED);
-
-#if 0
-    TODO
-    if (env_get_log(env) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) {
-        st=log_append_txn_abort(env_get_log(env), txn);
-        if (st) 
-            return st;
-    }
-#endif
 
 #if 0
     /* decrease the reference counter of the modified databases */

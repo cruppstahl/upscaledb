@@ -95,19 +95,11 @@ typedef HAM_PACK_0 struct HAM_PACK_1 log_entry_t
 * @{
 */
 
-/** mark the start of a new transaction */
-#define LOG_ENTRY_TYPE_TXN_BEGIN                1 
-/** mark the end of an aborted transaction */
-#define LOG_ENTRY_TYPE_TXN_ABORT                2 
-/** mark the end of an committed transaction */
-#define LOG_ENTRY_TYPE_TXN_COMMIT               3 
 /** save the original page data, before it is modified */
 #define LOG_ENTRY_TYPE_PREWRITE                 4 
 /** save the new, modified page data. The page is not yet written to disk; 
  * that will only happen once a @ref LOG_ENTRY_TYPE_FLUSH_PAGE happens. */
 #define LOG_ENTRY_TYPE_WRITE                    5 
-/** set a checkpoint: a point where we will be sure the entire database is flushed to disk */
-#define LOG_ENTRY_TYPE_CHECKPOINT               7 
 /** mark a page being flushed from the page cache; as this will be a 
  * modified page (otherwise the explicit flush would not occur), we can be 
  * sure to find a @ref LOG_ENTRY_TYPE_WRITE entry in the log history and, 
@@ -177,21 +169,11 @@ struct ham_log_t
     /** the two file descriptors */
     ham_fd_t _fd[2];
 
-    /** for counting all open transactions in the files */
-    ham_size_t _open_txn[2];
-
-    /** for counting all closed transactions in the files */
-    ham_size_t _closed_txn[2];
-
     /** the last used lsn */
     ham_u64_t _lsn;
 
     /** the lsn of the previous checkpoint */
     ham_u64_t _last_cp_lsn;
-
-    /** when having more than these transactions in one logfile, we 
-     * swap the files */
-    ham_size_t _threshold;
 
     /** an internal "state" of the log; used to track whether we're
      * currently inserting a checkpoint or not */
@@ -233,18 +215,6 @@ struct ham_log_t
 /** set a file descriptor */
 #define log_set_fd(l, i, fd)                    (l)->_fd[i]=fd
 
-/** get the number of open transactions */
-#define log_get_open_txn(l, i)                  (l)->_open_txn[i]
-
-/** set the number of open transactions */
-#define log_set_open_txn(l, i, c)               (l)->_open_txn[i]=(c)
-
-/** get the number of closed transactions */
-#define log_get_closed_txn(l, i)                (l)->_closed_txn[i]
-
-/** set the number of closed transactions */
-#define log_set_closed_txn(l, i, c)             (l)->_closed_txn[i]=(c)
-
 /** get the last used lsn */
 #define log_get_lsn(l)                          (l)->_lsn
 
@@ -259,12 +229,6 @@ struct ham_log_t
 
 /** set the lsn of the last checkpoint */
 #define log_set_last_checkpoint_lsn(l, lsn)     (l)->_last_cp_lsn=(lsn)
-
-/** get the threshold */
-#define log_get_threshold(l)                    (l)->_threshold
-
-/** set the threshold */
-#define log_set_threshold(l, t)                 (l)->_threshold=(t)
 
 /** get the state */
 #define log_get_state(l)                        (l)->_state
@@ -314,30 +278,6 @@ log_is_empty(ham_log_t *log, ham_bool_t *isempty);
 extern ham_status_t
 log_append_entry(ham_log_t *log, int fdidx, log_entry_t *entry, 
                 ham_size_t size);
-
-/**
- * append a log entry for LOG_ENTRY_TYPE_TXN_BEGIN
- */
-extern ham_status_t
-log_append_txn_begin(ham_log_t *log, struct ham_txn_t *txn);
-
-/**
- * append a log entry for LOG_ENTRY_TYPE_TXN_ABORT
- */
-extern ham_status_t
-log_append_txn_abort(ham_log_t *log, struct ham_txn_t *txn);
-
-/**
- * append a log entry for LOG_ENTRY_TYPE_TXN_COMMIT
- */
-extern ham_status_t
-log_append_txn_commit(ham_log_t *log, struct ham_txn_t *txn);
-
-/**
- * append a log entry for LOG_ENTRY_TYPE_CHECKPOINT
- */
-extern ham_status_t
-log_append_checkpoint(ham_log_t *log);
 
 /**
  * append a log entry for LOG_ENTRY_TYPE_FLUSH_PAGE
