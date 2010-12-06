@@ -201,8 +201,7 @@ _local_fun_create(ham_env_t *env, const char *filename,
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
         ham_log_t *log;
         journal_t *journal;
-        st=ham_log_create(env_get_allocator(env), env, env_get_filename(env), 
-                0644, 0, &log);
+        st=log_create(env, 0644, 0, &log);
         if (st) { 
             (void)ham_env_close(env, 0);
             return (st);
@@ -419,12 +418,11 @@ fail_with_fake_cleansing:
             && env_get_log(env)==0) {
         ham_log_t *log;
         journal_t *journal;
-        st=ham_log_open(env_get_allocator(env), env, 
-                    env_get_filename(env), 0, &log);
+        st=log_open(env, 0, &log);
         if (!st) { 
             /* success - check if we need recovery */
             ham_bool_t isempty;
-            st=ham_log_is_empty(log, &isempty);
+            st=log_is_empty(log, &isempty);
             if (st) {
                 (void)ham_env_close(env, 0);
                 return (st);
@@ -433,7 +431,7 @@ fail_with_fake_cleansing:
             if (!isempty) {
                 if (flags&HAM_AUTO_RECOVERY) 
                 {
-                    st=ham_log_recover(log, env_get_device(env), env);
+                    st=log_recover(log, env_get_device(env), env);
                     if (st) {
                         (void)ham_env_close(env, 0);
                         return (st);
@@ -447,8 +445,7 @@ fail_with_fake_cleansing:
         }
         else if (st && st==HAM_FILE_NOT_FOUND)
         {
-            st=ham_log_create(env_get_allocator(env), env, 
-                    env_get_filename(env), 0644, 0, &log);
+            st=log_create(env, 0644, 0, &log);
             if (st) {
                 (void)ham_env_close(env, 0);
                 return (st);
@@ -767,7 +764,7 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
      * close the log and the journal
      */
     if (env_get_log(env)) {
-        st = ham_log_close(env_get_log(env), (flags&HAM_DONT_CLEAR_LOG));
+        st = log_close(env_get_log(env), (flags&HAM_DONT_CLEAR_LOG));
         if (!st2) 
             st2 = st;
         env_set_log(env, 0);
@@ -1295,19 +1292,35 @@ _local_fun_txn_begin(ham_env_t *env, ham_db_t *db,
         *txn=0;
     }
 
+    /* append journal entry */
+    if (st==0 && env_get_flags(env)&HAM_ENABLE_RECOVERY)
+        st=journal_append_txn_begin(env_get_journal(env), *txn);
+
     return (st);
 }
 
 static ham_status_t
 _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 {
-    return (txn_commit(txn, flags));
+    ham_status_t st=txn_commit(txn, flags);
+
+    /* append journal entry */
+    if (st==0 && env_get_flags(env)&HAM_ENABLE_RECOVERY)
+        st=journal_append_txn_commit(env_get_journal(env), txn);
+
+    return (st);
 }
 
 static ham_status_t
 _local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 {
-    return (txn_abort(txn, flags));
+    ham_status_t st=txn_abort(txn, flags);
+
+    /* append journal entry */
+    if (st==0 && env_get_flags(env)&HAM_ENABLE_RECOVERY)
+        st=journal_append_txn_abort(env_get_journal(env), txn);
+
+    return (st);
 }
 
 ham_status_t

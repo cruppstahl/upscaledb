@@ -608,7 +608,7 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
     /*
      * prepare page for logging
      */
-    st=ham_log_add_page_before(page);
+    st=log_add_page_before(page);
     if (st)
         return (st);
 

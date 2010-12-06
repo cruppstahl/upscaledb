@@ -224,12 +224,46 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             x erase
             x erase for cursors (different duplicate behavior!)
     o db.c/env.c: (logical) log begin/commit/abort/insert/erase
-        o use the functions from journal.c
-        o need unittests (incl. swapping!)
+        x use the functions from journal.c
+            x ham_txn_begin
+            x ham_txn_commit
+            x ham_txn_abort
+            x ham_insert
+            x ham_cursor_insert
+            x ham_erase (delete ALL duplicates!)
+            x ham_cursor_erase (duplicate handling!)
+        o need unittests
+            o ham_txn_begin
+            o ham_txn_commit
+            o ham_txn_abort
+            o ham_insert
+            o ham_cursor_insert
+            o ham_erase (delete ALL duplicates!)
+            o ham_cursor_erase (duplicate handling!)
+
+    x new flag for ham_erase: HAM_ERASE_ALL_DUPLICATES
+        x replace old BLOB_FREE_ALL_DUPES
+        x unittest!
 
     o refactor log.h, rename ham_log_t to log_t (and others as well)
-    o ham_log_get_entry() currently reads from back to front, but we need it
-        vice versa!
+        x open/create functions similar to journal.h
+        x log_flush needed externally? fileops are flushed automatically
+        x disable log-file switching for physical log
+        x remove all unrequired functions - txn_abort, commit, checkpoint etc
+        o do not need undo information and undo functions
+            o remove log_add_page_before
+            o remove log_append_flush_page
+            o rename log_add_page_after to log_append_page
+        o ham_log_get_entry() currently reads from back to front, but we 
+            need it vice versa!
+        o always store only the last operation
+            o assert that the log is empty (only debug!)
+            o afterwards: write ALL modified pages to the log, THEN flush them
+                with WRITE_THROUGH
+            o afterwards: clear the log
+
+    o os_close: assert that fd>=3 (on linux)
+
     o we have to flush pages after they're modified (search for db_fetch_page
         and db_alloc_page); however, what if multiple pages are modified (i.e.
         during an SMO)? - we have to first physlog all modified pages, and then
@@ -244,6 +278,9 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             o need unittests
         o when fetching or allocating, insert page in this list
             o need unittests
+        o when purging cache - do not delete this page (but i think this 
+            anyway cannot happen since we never purge while an operation is
+            in progress)
         o before each backend-related operation: assert that the list is clear
             o need unittests
         o after each backend-related operation: flush the list (or discard
@@ -253,10 +290,6 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             o need unittests
     o who manages the lsn? currently, the journal and env.h manage both their
         own lsn; and it's not propagated down to the physlog
-    o create a logical log for low-level operations (page flush WAL)
-        o need unittests
-    o disable log-file switching for physical log
-        o need unittests
     o if recovery is enabled: after flushing the changeset, update the 
         lsn in the header file and flush this page
         o need unittests
@@ -346,6 +379,8 @@ o new API to retrieve the currently active transactions
 
 . opnode: use key instead of key* (pointer) - this saves one allocation 
     per node
+
+. rename ham_bt_cursor_t to btree_cursor_t
 
 . cache-garbagelist no longer used - remove it?
 

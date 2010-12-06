@@ -567,7 +567,7 @@ public:
         checkDupe(&key, 0, 0, 0);
         checkDupe(&key, 1, "abc4567812345678", 16);
         BFC_ASSERT_EQUAL(0, 
-                key_erase_record(m_db, &key, 0, BLOB_FREE_ALL_DUPES));
+                key_erase_record(m_db, &key, 0, HAM_ERASE_ALL_DUPLICATES));
         BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
         BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
 
@@ -577,7 +577,7 @@ public:
         checkDupe(&key, 0, "1234", 4);
         checkDupe(&key, 1, "abc4567812345678", 16);
         BFC_ASSERT_EQUAL(0, 
-                key_erase_record(m_db, &key, 0, BLOB_FREE_ALL_DUPES));
+                key_erase_record(m_db, &key, 0, HAM_ERASE_ALL_DUPLICATES));
         BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
         BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
 
@@ -587,7 +587,7 @@ public:
         checkDupe(&key, 0, "12345678", 8);
         checkDupe(&key, 1, "abc4567812345678", 16);
         BFC_ASSERT_EQUAL(0, 
-                key_erase_record(m_db, &key, 0, BLOB_FREE_ALL_DUPES));
+                key_erase_record(m_db, &key, 0, HAM_ERASE_ALL_DUPLICATES));
         BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
         BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
 
@@ -597,7 +597,7 @@ public:
         checkDupe(&key, 0, "1234123456785678", 16);
         checkDupe(&key, 1, "abc4567812345678", 16);
         BFC_ASSERT_EQUAL(0, 
-                key_erase_record(m_db, &key, 0, BLOB_FREE_ALL_DUPES));
+                key_erase_record(m_db, &key, 0, HAM_ERASE_ALL_DUPLICATES));
         BFC_ASSERT_EQUAL((ham_u8_t)0, key_get_flags(&key));
         BFC_ASSERT_EQUAL((ham_offset_t)0, key_get_ptr(&key));
     }

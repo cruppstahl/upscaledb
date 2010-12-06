@@ -230,7 +230,7 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
 /**
  * delete a duplicate
  *
- * if flags == BLOB_FREE_ALL_DUPES: all duplicates and the dupe table
+ * if flags == HAM_ERASE_ALL_DUPLICATES: all duplicates and the dupe table
  * are deleted
  *
  * sets new_table_id to 0 if the table is empty
@@ -238,9 +238,6 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
 extern ham_status_t
 blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
         ham_size_t position, ham_u32_t flags, ham_offset_t *new_table_id);
-
-#define BLOB_FREE_ALL_DUPES   1
-
 
 /**
  * get the number of duplicates

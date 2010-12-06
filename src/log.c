@@ -24,87 +24,18 @@
 #include "txn.h"
 #include "util.h"
 
-#define LOG_DEFAULT_THRESHOLD   64
-
-static ham_status_t 
-__undo(ham_log_t *log, log_iterator_t *iter, 
-        ham_offset_t page_id, ham_u8_t **pdata)
-{
-    int i;
-	int found=0;
-    ham_status_t st=0;
-    log_entry_t entry;
-    ham_u8_t *data=0;
-    ham_offset_t fpos[2];
-
-    /* first, backup the current file pointers */
-    for (i=0; i<2; i++) {
-        st=os_tell(log_get_fd(log, i), &fpos[i]);
-        if (st)
-            return (st);
-    }
-
-    /*
-     * walk backwards through the log and fetch either
-     *  - the next before-image OR
-     *  - the next after-image of a committed txn
-     * and overwrite the file contents
-     */
-    while (1) {
-        if ((st=ham_log_get_entry(log, iter, &entry, &data)))
-            goto bail;
-        
-        if (log_entry_get_lsn(&entry)==0)
-            break;
-
-        /* a before-image */
-        if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_PREWRITE
-                    && log_entry_get_offset(&entry)==page_id) {
-            *pdata=data;
-            found=1;
-            break;
-        }
-        /* an after-image; currently, only after-images of committed
-         * transactions are written to the log */
-        else if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_WRITE
-                    && log_entry_get_offset(&entry)==page_id) {
-            *pdata=data;
-            found=1;
-            break;
-        }
-
-        if (data) {
-            allocator_free(log_get_allocator(log), data);
-            data=0;
-        }
-    }
-
-    ham_assert(found, ("failed to undo a log entry"));
-
-bail:
-    /*
-     * done - restore the file pointers
-     */
-    for (i=0; i<2; i++)
-        (void)os_seek(log_get_fd(log, i), fpos[i], HAM_OS_SEEK_SET);
-
-    if (st && data)
-        allocator_free(log_get_allocator(log), data);
-    
-    return (st);
-}
 
 static ham_size_t 
-my_get_aligned_entry_size(ham_size_t data_size)
+__get_aligned_entry_size(ham_size_t data_size)
 {
     ham_size_t s=sizeof(log_entry_t)+data_size;
     s += 8-1;
-	s -= (s % 8);
+    s -= (s % 8);
     return (s);
 }
 
 static ham_status_t
-my_log_clear_file(ham_log_t *log, int idx)
+__log_clear_file(ham_log_t *log, int idx)
 {
     ham_status_t st;
 
@@ -119,57 +50,33 @@ my_log_clear_file(ham_log_t *log, int idx)
     if (st)
         return (st);
 
-    /* clear the transaction counters */
-    log_set_open_txn(log, idx, 0);
-    log_set_closed_txn(log, idx, 0);
-
     return (0);
 }
 
-static ham_status_t
-my_insert_checkpoint(ham_log_t *log, ham_env_t *env)
-{
-    ham_status_t st;
-    
-    /*
-     * first, flush the database file; then append the checkpoint
-     *
-     * for this flush, we don't need to insert LOG_ENTRY_TYPE_FLUSH_PAGE;
-     * therefore, set the state of the log accordingly. the page_flush()
-     * routine can then check the state and not write logfile-entries
-     * for each flush
-     */
-    log_set_state(log, log_get_state(log)|LOG_STATE_CHECKPOINT);
-    st=ham_env_flush(env, 0);
-    log_set_state(log, log_get_state(log)&~LOG_STATE_CHECKPOINT);
-    if (st)
-        return (st);
-
-    return (ham_log_append_checkpoint(log));
-}
-
 ham_status_t
-ham_log_create(mem_allocator_t *alloc, ham_env_t *env, const char *dbpath, 
-        ham_u32_t mode, ham_u32_t flags, ham_log_t **plog)
+log_create(ham_env_t *env, ham_u32_t mode, ham_u32_t flags, ham_log_t **plog)
 {
     int i;
     log_header_t header;
     ham_status_t st;
+    const char *dbpath=env_get_filename(env);
+    mem_allocator_t *alloc=env_get_allocator(env);
     char filename[HAM_OS_MAX_PATH];
     ham_log_t *log=(ham_log_t *)allocator_alloc(alloc, sizeof(ham_log_t));
     if (!log)
         return (HAM_OUT_OF_MEMORY);
     memset(log, 0, sizeof(ham_log_t));
+    log_set_fd(log, 0, HAM_INVALID_FD);
+    log_set_fd(log, 1, HAM_INVALID_FD);
 
     *plog=0;
 
-	ham_assert(env, (0));
+    ham_assert(env, (0));
 
     log_set_allocator(log, alloc);
-	log_set_env(log, env);
+    log_set_env(log, env);
     log_set_lsn(log, 1);
     log_set_flags(log, flags);
-    log_set_threshold(log, LOG_DEFAULT_THRESHOLD);
 
     /* create the two files */
     util_snprintf(filename, sizeof(filename), "%s.log%d", dbpath, 0);
@@ -194,7 +101,7 @@ ham_log_create(mem_allocator_t *alloc, ham_env_t *env, const char *dbpath,
     for (i=0; i<2; i++) {
         st=os_write(log_get_fd(log, i), &header, sizeof(header));
         if (st) {
-            (void)ham_log_close(log, HAM_FALSE);
+            (void)log_close(log, HAM_FALSE);
             return (st);
         }
     }
@@ -204,12 +111,13 @@ ham_log_create(mem_allocator_t *alloc, ham_env_t *env, const char *dbpath,
 }
 
 ham_status_t
-ham_log_open(mem_allocator_t *alloc, ham_env_t *env, const char *dbpath, 
-        ham_u32_t flags, ham_log_t **plog)
+log_open(ham_env_t *env, ham_u32_t flags, ham_log_t **plog)
 {
     int i;
     log_header_t header;
     log_entry_t entry;
+    const char *dbpath=env_get_filename(env);
+    mem_allocator_t *alloc=env_get_allocator(env);
     ham_u64_t lsn[2];
     ham_status_t st;
     char filename[HAM_OS_MAX_PATH];
@@ -217,13 +125,15 @@ ham_log_open(mem_allocator_t *alloc, ham_env_t *env, const char *dbpath,
     if (!log)
         return (HAM_OUT_OF_MEMORY);
     memset(log, 0, sizeof(ham_log_t));
+    log_set_fd(log, 0, HAM_INVALID_FD);
+    log_set_fd(log, 1, HAM_INVALID_FD);
 
     *plog=0;
 
-	ham_assert(env, (0));
+    ham_assert(env, (0));
 
     log_set_allocator(log, alloc);
-	log_set_env(log, env);
+    log_set_env(log, env);
     log_set_flags(log, flags);
 
     /* open the two files */
@@ -247,12 +157,12 @@ ham_log_open(mem_allocator_t *alloc, ham_env_t *env, const char *dbpath,
     for (i=0; i<2; i++) {
         st=os_pread(log_get_fd(log, i), 0, &header, sizeof(header));
         if (st) {
-            (void)ham_log_close(log, HAM_FALSE);
+            (void)log_close(log, HAM_FALSE);
             return (st);
         }
         if (log_header_get_magic(&header)!=HAM_LOG_HEADER_MAGIC) {
             ham_trace(("logfile has unknown magic or is corrupt"));
-            (void)ham_log_close(log, HAM_FALSE);
+            (void)log_close(log, HAM_FALSE);
             return (HAM_LOG_INV_FILE_HEADER);
         }
     }
@@ -264,7 +174,7 @@ ham_log_open(mem_allocator_t *alloc, ham_env_t *env, const char *dbpath,
         ham_offset_t size;
         st=os_get_filesize(log_get_fd(log, i), &size);
         if (st) {
-            (void)ham_log_close(log, HAM_FALSE);
+            (void)log_close(log, HAM_FALSE);
             return (st);
         }
 
@@ -272,7 +182,7 @@ ham_log_open(mem_allocator_t *alloc, ham_env_t *env, const char *dbpath,
             st=os_pread(log_get_fd(log, i), size-sizeof(log_entry_t), 
                             &entry, sizeof(entry));
             if (st) {
-                (void)ham_log_close(log, HAM_FALSE);
+                (void)log_close(log, HAM_FALSE);
                 return (st);
             }
             lsn[i]=log_entry_get_lsn(&entry);
@@ -292,7 +202,7 @@ ham_log_open(mem_allocator_t *alloc, ham_env_t *env, const char *dbpath,
 }
 
 ham_status_t
-ham_log_is_empty(ham_log_t *log, ham_bool_t *isempty)
+log_is_empty(ham_log_t *log, ham_bool_t *isempty)
 {
     ham_status_t st; 
     ham_offset_t size;
@@ -313,7 +223,7 @@ ham_log_is_empty(ham_log_t *log, ham_bool_t *isempty)
 }
 
 ham_status_t
-ham_log_append_entry(ham_log_t *log, int fdidx, log_entry_t *entry, 
+log_append_entry(ham_log_t *log, int fdidx, log_entry_t *entry, 
         ham_size_t size)
 {
     ham_status_t st;
@@ -327,190 +237,21 @@ ham_log_append_entry(ham_log_t *log, int fdidx, log_entry_t *entry,
 }
 
 ham_status_t
-ham_log_flush(ham_log_t *log, int fdidx)
-{
-    return (os_flush(log_get_fd(log, fdidx)));
-}
-
-ham_status_t
-ham_log_append_txn_begin(ham_log_t *log, struct ham_txn_t *txn)
-{
-    ham_status_t st;
-    log_entry_t entry;
-    int cur=log_get_current_fd(log);
-    int other=cur ? 0 : 1;
-
-    memset(&entry, 0, sizeof(entry));
-    log_entry_set_txn_id(&entry, txn_get_id(txn));
-    log_entry_set_type(&entry, LOG_ENTRY_TYPE_TXN_BEGIN);
-
-    /* 
-     * determine the log file which is used for this transaction 
-     *
-     * if the "current" file is not yet full, continue to write to this file
-     */
-    if (log_get_open_txn(log, cur)+log_get_closed_txn(log, cur)<
-            log_get_threshold(log)) {
-        txn_set_log_desc(txn, cur);
-    }
-    else if (log_get_open_txn(log, other)==0) 
-	{
-		/*
-		 * otherwise, if the other file does no longer have open transactions,
-		 * insert a checkpoint, delete the other file and use the other file
-		 * as the current file
-		 */
-
-		/* checkpoint! */
-        st=my_insert_checkpoint(log, txn_get_env(txn));
-        if (st)
-            return (st);
-        /* now clear the other file */
-        st=my_log_clear_file(log, other);
-        if (st)
-            return (st);
-        /* continue writing to the other file */
-        cur=other;
-        log_set_current_fd(log, cur);
-        txn_set_log_desc(txn, cur);
-    }
-    /*
-     * otherwise continue writing to the current file, till the other file
-     * can be deleted safely
-     */
-    else {
-        txn_set_log_desc(txn, cur);
-    }
-
-    /*
-     * now set the lsn (it might have been modified in 
-     * my_insert_checkpoint())
-     */
-    log_entry_set_lsn(&entry, log_get_lsn(log));
-    log_increment_lsn(log);
-
-    st=ham_log_append_entry(log, cur, &entry, sizeof(entry));
-    if (st)
-        return (st);
-    log_set_open_txn(log, cur, log_get_open_txn(log, cur)+1);
-
-    /* store the fp-index in the log structure; it's needed so
-     * log_append_checkpoint() can quickly find out which file is 
-     * the newest */
-    log_set_current_fd(log, cur);
-
-    return (0);
-}
-
-ham_status_t
-ham_log_append_txn_abort(ham_log_t *log, struct ham_txn_t *txn)
-{
-    int idx;
-    ham_status_t st;
-    ham_status_t st2;
-    log_entry_t entry;
-
-    memset(&entry, 0, sizeof(entry));
-    log_entry_set_lsn(&entry, log_get_lsn(log));
-    log_increment_lsn(log);
-    log_entry_set_txn_id(&entry, txn_get_id(txn));
-    log_entry_set_type(&entry, LOG_ENTRY_TYPE_TXN_ABORT);
-
-    /*
-     * update the transaction counters of this logfile
-     */
-    idx=txn_get_log_desc(txn);
-    log_set_open_txn(log, idx, log_get_open_txn(log, idx)-1);
-    log_set_closed_txn(log, idx, log_get_closed_txn(log, idx)+1);
-
-    st=ham_log_append_entry(log, idx, &entry, sizeof(entry));
-
-	/* 
-	do we need to flush an ABORTED transaction to disc to make it work?
-
-	Yes, we do. How would we know for sure the TXN is aborted, otherwise?
-	*/
-	st2 = ham_log_flush(log, idx);
-	if (!st)
-        st = st2;
-
-	return st;
-}
-
-ham_status_t
-ham_log_append_txn_commit(ham_log_t *log, struct ham_txn_t *txn)
-{
-    int idx;
-    ham_status_t st;
-    ham_status_t st2;
-    log_entry_t entry;
-
-    memset(&entry, 0, sizeof(entry));
-    log_entry_set_lsn(&entry, log_get_lsn(log));
-    log_increment_lsn(log);
-    log_entry_set_txn_id(&entry, txn_get_id(txn));
-    log_entry_set_type(&entry, LOG_ENTRY_TYPE_TXN_COMMIT);
-
-    /*
-     * update the transaction counters of this logfile
-     */
-    idx=txn_get_log_desc(txn);
-    log_set_open_txn(log, idx, log_get_open_txn(log, idx)-1);
-    log_set_closed_txn(log, idx, log_get_closed_txn(log, idx)+1);
-
-    st=ham_log_append_entry(log, idx, &entry, sizeof(entry));
-
-	/* 
-	we MUST flush a COMMITTED transaction to disc to make it work in recovery,
-	else we risk an incomplete log file while the commit came through.
-	*/
-	st2 = ham_log_flush(log, idx);
-	if (st == 0)
-        st = st2;
-
-    return st;
-}
-
-ham_status_t
-ham_log_append_checkpoint(ham_log_t *log)
-{
-    ham_status_t st;
-    log_entry_t entry;
-
-    memset(&entry, 0, sizeof(entry));
-    log_entry_set_lsn(&entry, log_get_lsn(log));
-    log_increment_lsn(log);
-    log_entry_set_type(&entry, LOG_ENTRY_TYPE_CHECKPOINT);
-
-    /* always write the checkpoint to the newer file */
-    st=ham_log_append_entry(log, log_get_current_fd(log), 
-            &entry, sizeof(entry));
-    if (st)
-        return (st);
-
-    log_set_last_checkpoint_lsn(log, log_get_lsn(log)-1);
-
-    return (0);
-}
-
-ham_status_t
-ham_log_append_flush_page(ham_log_t *log, struct ham_page_t *page)
+log_append_flush_page(ham_log_t *log, struct ham_page_t *page)
 {
     int fdidx=log_get_current_fd(log);
-    ham_status_t st;
-    log_entry_t entry;
+    log_entry_t entry={0};
 
-	ham_env_t *env = device_get_env(page_get_device(page));
-	ham_assert(page_is_dirty(page), (0));
+    ham_env_t *env = device_get_env(page_get_device(page));
+    ham_assert(page_is_dirty(page), (0));
 
-	/* make sure that this is never called during a checkpoint! */
+    /* make sure that this is never called during a checkpoint! */
     ham_assert(!(log_get_state(log)&LOG_STATE_CHECKPOINT), (0));
     
-	ham_assert(page_get_device(page), (0));
-	ham_assert(device_get_env(page_get_device(page)), (0));
+    ham_assert(page_get_device(page), (0));
+    ham_assert(device_get_env(page_get_device(page)), (0));
 
     /* write the header */
-    memset(&entry, 0, sizeof(entry));
     log_entry_set_lsn(&entry, log_get_lsn(log));
     log_increment_lsn(log);
     log_entry_set_type(&entry, LOG_ENTRY_TYPE_FLUSH_PAGE);
@@ -519,21 +260,15 @@ ham_log_append_flush_page(ham_log_t *log, struct ham_page_t *page)
     if (env_get_flushed_txn(env))
         fdidx=txn_get_log_desc(env_get_flushed_txn(env)); 
 
-    st=ham_log_append_entry(log, fdidx, &entry, sizeof(entry));
-    if (st)
-        return (st);
-
-	st = ham_log_flush(log, fdidx);
-
-    return st;
+    return (log_append_entry(log, fdidx, &entry, sizeof(entry)));
 }
 
 ham_status_t
-ham_log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
+log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
                 ham_u8_t *data, ham_size_t size)
 {
     ham_status_t st;
-    ham_size_t alloc_size=my_get_aligned_entry_size(size);
+    ham_size_t alloc_size=__get_aligned_entry_size(size);
     log_entry_t *entry;
     ham_u8_t *alloc_buf;
     
@@ -553,22 +288,19 @@ ham_log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
     log_entry_set_data_size(entry, size);
     memcpy(alloc_buf, data, size);
 
-    st=ham_log_append_entry(log, 
+    st=log_append_entry(log, 
                     txn ? txn_get_log_desc(txn) : log_get_current_fd(log), 
                     (log_entry_t *)alloc_buf, alloc_size);
     allocator_free(log_get_allocator(log), alloc_buf);
-    if (st)
-        return (st);
-
-    return (0);
+    return (st);
 }
 
 ham_status_t
-ham_log_append_prewrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
+log_append_prewrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
                 ham_u8_t *data, ham_size_t size)
 {
     ham_status_t st;
-    ham_size_t alloc_size=my_get_aligned_entry_size(size);
+    ham_size_t alloc_size=__get_aligned_entry_size(size);
     log_entry_t *entry;
     ham_u8_t *alloc_buf;
     
@@ -588,24 +320,21 @@ ham_log_append_prewrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
     log_entry_set_data_size(entry, size);
     memcpy(alloc_buf, data, size);
 
-    st=ham_log_append_entry(log, 
+    st=log_append_entry(log, 
                     txn ? txn_get_log_desc(txn) : log_get_current_fd(log), 
                     (log_entry_t *)alloc_buf, alloc_size);
     allocator_free(log_get_allocator(log), alloc_buf);
-    if (st)
-        return (st);
-
-    return (0);
+    return (st);
 }
 
 ham_status_t
-ham_log_clear(ham_log_t *log)
+log_clear(ham_log_t *log)
 {
     ham_status_t st; 
     int i;
 
     for (i=0; i<2; i++) {
-        if ((st=my_log_clear_file(log, i)))
+        if ((st=__log_clear_file(log, i)))
             return (st);
     }
 
@@ -613,7 +342,7 @@ ham_log_clear(ham_log_t *log)
 }
 
 ham_status_t
-ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
+log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
                 ham_u8_t **data)
 {
     ham_status_t st;
@@ -665,7 +394,7 @@ ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
     if (log_entry_get_data_size(entry)) {
         ham_offset_t pos=iter->_offset-log_entry_get_data_size(entry);
         // pos += 8-1;
-		pos -= (pos % 8);
+        pos -= (pos % 8);
 
         *data=allocator_alloc(log_get_allocator(log), 
                         (ham_size_t)log_entry_get_data_size(entry));
@@ -689,19 +418,13 @@ ham_log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
 }
 
 ham_status_t
-ham_log_close(ham_log_t *log, ham_bool_t noclear)
+log_close(ham_log_t *log, ham_bool_t noclear)
 {
-    ham_status_t st = 0; 
-	ham_status_t st2 = 0; 
     int i;
+    ham_status_t st;
 
-    if (!noclear) {
-        st2 = ham_log_clear(log); /* [i_a] track status anyhow? */
-#if 0 /* [i_a] failing to 'clear' will be marked through ST, but should NOT abort the close procedure: complete this anyhow */
-        if (st2)
-            return (st2);
-#endif
-    }
+    if (!noclear)
+        (void)log_clear(log);
 
     for (i=0; i<2; i++) {
         if (log_get_fd(log, i)!=HAM_INVALID_FD) {
@@ -717,11 +440,11 @@ ham_log_close(ham_log_t *log, ham_bool_t noclear)
         log_set_overwrite_size(log, 0);
     }
     allocator_free(log_get_allocator(log), log);
-	return st2;
+    return (0);
 }
 
 ham_status_t
-ham_log_add_page_before(ham_page_t *page)
+log_add_page_before(ham_page_t *page)
 {
     ham_status_t st=0;
     ham_env_t *env=device_get_env(page_get_device(page));
@@ -763,7 +486,7 @@ ham_log_add_page_before(ham_page_t *page)
         p=(ham_u8_t *)page_get_raw_payload(page);
 
     if (st==0)
-        st=ham_log_append_prewrite(log, env_get_flushed_txn(env), 
+        st=log_append_prewrite(log, env_get_flushed_txn(env), 
                 page_get_self(page), p, size);
 
     if (p!=page_get_raw_payload(page))
@@ -777,7 +500,7 @@ ham_log_add_page_before(ham_page_t *page)
 }
 
 ham_status_t
-ham_log_add_page_after(ham_page_t *page)
+log_add_page_after(ham_page_t *page)
 {
     ham_status_t st=0;
     ham_env_t *env=device_get_env(page_get_device(page));
@@ -813,7 +536,7 @@ ham_log_add_page_after(ham_page_t *page)
         p=(ham_u8_t *)page_get_raw_payload(page);
 
     if (st==0)
-        st=ham_log_append_write(log, env_get_flushed_txn(env), 
+        st=log_append_write(log, env_get_flushed_txn(env), 
                 page_get_self(page), p, size);
 
     if (p!=page_get_raw_payload(page))
@@ -833,8 +556,9 @@ typedef struct
 } log_flush_entry_t;
 
 ham_status_t
-ham_log_recover(ham_log_t *log, ham_device_t *device, ham_env_t *env)
+log_recover(ham_log_t *log, ham_device_t *device, ham_env_t *env)
 {
+#if 0
     ham_status_t st=0;
     log_entry_t entry;
     log_iterator_t iter;
@@ -842,10 +566,10 @@ ham_log_recover(ham_log_t *log, ham_device_t *device, ham_env_t *env)
     ham_u64_t *txn_list=0;
     log_flush_entry_t *flush_list=0;
     ham_size_t txn_list_size=0;
-	ham_size_t flush_list_size=0;
-	ham_size_t i;
+    ham_size_t flush_list_size=0;
+    ham_size_t i;
     ham_bool_t committed;
-	ham_bool_t flushed;
+    ham_bool_t flushed;
 
     memset(&iter, 0, sizeof(iter));
 
@@ -855,7 +579,7 @@ ham_log_recover(ham_log_t *log, ham_device_t *device, ham_env_t *env)
      * committed, but not flushed, is redone
      */
     while (1) {
-        if ((st=ham_log_get_entry(log, &iter, &entry, &data)))
+        if ((st=log_get_entry(log, &iter, &entry, &data)))
             goto bail;
         
         if (log_entry_get_lsn(&entry)==0)
@@ -882,11 +606,11 @@ ham_log_recover(ham_log_t *log, ham_device_t *device, ham_env_t *env)
              * redo if committed and not flushed */
             case LOG_ENTRY_TYPE_WRITE:
                 /* 
-				check if this page was flushed at a later time within 
-				the same log section (up to the next checkpoint): we're 
-				walking BACKWARDS in time here and we must only restore
-				the LATEST state.
-				*/
+                check if this page was flushed at a later time within 
+                the same log section (up to the next checkpoint): we're 
+                walking BACKWARDS in time here and we must only restore
+                the LATEST state.
+                */
                 flushed=0;
                 for (i=0; i<flush_list_size; i++) {
                     if (flush_list[i].page_id==log_entry_get_offset(&entry)
@@ -979,7 +703,7 @@ bail:
     /*
      * clear the log files and set the lsn to 1
      */
-    st=ham_log_clear(log);
+    st=log_clear(log);
     if (st) {
         ham_log(("unable to clear logfiles; please manually delete the "
                 "log files before re-opening the Database"));
@@ -988,65 +712,66 @@ bail:
 
     log_set_lsn(log, 1);
     log_set_current_fd(log, 0);
+#endif
     return (0);
 }
 
 ham_status_t
-ham_log_recreate(ham_log_t *log, ham_page_t *page)
+log_recreate(ham_log_t *log, ham_page_t *page)
 {
-    ham_status_t st;
+#if 0
     log_iterator_t iter;
-    ham_u8_t *data;
-	ham_env_t *env=device_get_env(page_get_device(page));
+    ham_u8_t *data=0;
+    ham_env_t *env=device_get_env(page_get_device(page));
 
     memset(&iter, 0, sizeof(iter));
 
-    st=__undo(log, &iter, page_get_self(page), &data);
-    if (st)
-        return (st);
+    /* TODO re-apply the last steps */
 
     memcpy(page_get_raw_payload(page), data, env_get_pagesize(env));
     allocator_free(log_get_allocator(log), data);
-	/* make sure the old data will be flushed to disk, later on */
-	ham_assert(page_is_dirty(page), (0));
 
+    /* make sure the old data will be flushed to disk, later on */
+    ham_assert(page_is_dirty(page), (0));
+
+#endif
     return (0);
 }
 
 void
-ham_log_mark_db_expansion_start(ham_env_t *env)
+log_mark_db_expansion_start(ham_env_t *env)
 {
-	ham_log_t *log = env_get_log(env);
+    ham_log_t *log = env_get_log(env);
 
-	if (!log)
-		return;
+    if (!log)
+        return;
 
-	log_set_state(log, log_get_state(log) | LOG_STATE_DB_EXPANSION);
+    log_set_state(log, log_get_state(log) | LOG_STATE_DB_EXPANSION);
 
-	return;
+    return;
 }
 
 void
-ham_log_mark_db_expansion_end(ham_env_t *env)
+log_mark_db_expansion_end(ham_env_t *env)
 {
-	ham_log_t *log = env_get_log(env);
+    ham_log_t *log = env_get_log(env);
 
-	if (!log)
-		return;
+    if (!log)
+        return;
 
-	ham_assert( 0 != (log_get_state(log) & LOG_STATE_DB_EXPANSION), (0));
-	log_set_state(log, log_get_state(log) & ~LOG_STATE_DB_EXPANSION);
+    ham_assert( 0 != (log_get_state(log) & LOG_STATE_DB_EXPANSION), (0));
+    log_set_state(log, log_get_state(log) & ~LOG_STATE_DB_EXPANSION);
 
-	return;
+    return;
 }
 
 ham_bool_t
-ham_log_is_db_expansion(ham_env_t *env)
+log_is_db_expansion(ham_env_t *env)
 {
-	ham_log_t *log = env_get_log(env);
+    ham_log_t *log = env_get_log(env);
 
-	if (!log)
-		return HAM_FALSE;
+    if (!log)
+        return HAM_FALSE;
 
-	return 0 != (log_get_state(log) & LOG_STATE_DB_EXPANSION);
+    return 0 != (log_get_state(log) & LOG_STATE_DB_EXPANSION);
 }

@@ -185,7 +185,7 @@ ham_page_t *
 page_new(ham_env_t *env)
 {
     ham_page_t *page;
-	mem_allocator_t *alloc=env_get_allocator(env);
+    mem_allocator_t *alloc=env_get_allocator(env);
 
     page=(ham_page_t *)allocator_alloc(alloc, sizeof(*page));
     if (!page)
@@ -221,8 +221,8 @@ page_alloc(ham_page_t *page)
 {
     ham_device_t *dev=page_get_device(page);
 
-	ham_assert(dev, (0));
-	return (dev->alloc_page(dev, page));
+    ham_assert(dev, (0));
+    return (dev->alloc_page(dev, page));
 }
 
 ham_status_t
@@ -230,8 +230,8 @@ page_fetch(ham_page_t *page)
 {
     ham_device_t *dev=page_get_device(page);
 
-	ham_assert(dev, (0));
-	return (dev->read_page(dev, page));
+    ham_assert(dev, (0));
+    return (dev->read_page(dev, page));
 }
 
 ham_status_t
@@ -244,24 +244,23 @@ page_flush(ham_page_t *page)
     if (!page_is_dirty(page))
         return (HAM_SUCCESS);
 
-	ham_assert(dev, (0));
-	env = device_get_env(dev);
-	ham_assert(env, (0));
+    ham_assert(dev, (0));
+    env = device_get_env(dev);
+    ham_assert(env, (0));
 
-	/* 
-	as we are about to write a modified page to disc, we MUST flush 
-	the log before we do write the page in order to assure crash 
-	recovery:
-
-	as this page belongs to us, it may well be a page which was modified
-	in the pending transaction and any such edits should be REWINDable
-	after a crash when that page has just been written.
-	*/
+    /* 
+     * as we are about to write a modified page to disc, we MUST flush 
+     * the log before we do write the page in order to assure crash 
+     * recovery:
+     *
+     * as this page belongs to us, it may well be a page which was modified
+     * in the pending transaction and any such edits should be REWINDable
+     * after a crash when that page has just been written.
+     */
     if (env
-        && env_get_log(env) 
-        && !(log_get_state(env_get_log(env))&LOG_STATE_CHECKPOINT)) 
-	{
-        st=ham_log_append_flush_page(env_get_log(env), page);
+            && env_get_log(env) 
+            && !(log_get_state(env_get_log(env))&LOG_STATE_CHECKPOINT)) {
+        st=log_append_flush_page(env_get_log(env), page);
         if (st)
             return (st);
     }
@@ -279,7 +278,7 @@ page_free(ham_page_t *page)
 {
     ham_device_t *dev=page_get_device(page);
 
-	ham_assert(dev, (0));
+    ham_assert(dev, (0));
     ham_assert(page_get_cursors(page)==0, (0));
 
     return (dev->free_page(dev, page));

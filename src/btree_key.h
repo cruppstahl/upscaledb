@@ -175,7 +175,7 @@ key_set_record(ham_db_t *db, btree_key_t *key, ham_record_t *record,
 /*
  * deletes a record
  *
- * flag can be BLOB_FREE_ALL_DUPES (declared in blob.h)
+ * flag can be HAM_ERASE_ALL_DUPLICATES
  */
 extern ham_status_t
 key_erase_record(ham_db_t *db, btree_key_t *key, 

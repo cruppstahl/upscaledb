@@ -177,7 +177,7 @@ __write_chunks(ham_env_t *env, ham_page_t *page, ham_offset_t addr,
                         (ham_size_t)(pagesize - writestart);
                 if (writesize>chunk_size[i])
                     writesize=chunk_size[i];
-                if ((st=ham_log_add_page_before(page)))
+                if ((st=log_add_page_before(page)))
                     return (st);
                 memcpy(&page_get_raw_payload(page)[writestart], chunk_data[i],
                             writesize);
@@ -1145,7 +1145,7 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
     }
 
     if (page)
-        if ((st=ham_log_add_page_before(page)))
+        if ((st=log_add_page_before(page)))
             return (st);
 
     ham_assert(num_entries==1, (""));
@@ -1293,10 +1293,10 @@ blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
     table=(dupe_table_t *)rec.data;
 
     /*
-     * if BLOB_FREE_ALL_DUPES is set *OR* if the last duplicate is deleted:
+     * if HAM_ERASE_ALL_DUPLICATES is set *OR* if the last duplicate is deleted:
      * free the whole duplicate table
      */
-    if (flags&BLOB_FREE_ALL_DUPES
+    if (flags&HAM_ERASE_ALL_DUPLICATES
             || (position==0 && dupe_table_get_count(table)==1)) {
         for (i=0; i<dupe_table_get_count(table); i++) {
             dupe_entry_t *e=dupe_table_get_entry(table, i);

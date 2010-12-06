@@ -263,7 +263,7 @@ key_erase_record(ham_db_t *db, btree_key_t *key,
                     &rid);
             if (st)
                 return (st);
-            if (flags&BLOB_FREE_ALL_DUPES) {
+            if (flags&HAM_ERASE_ALL_DUPLICATES) {
                 key_set_flags(key, key_get_flags(key)&~(KEY_HAS_DUPLICATES));
                 key_set_ptr(key, 0);
             }

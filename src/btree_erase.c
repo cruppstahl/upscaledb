@@ -619,12 +619,12 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
     /*
      * prepare all pages for the log
      */
-    if ((st=ham_log_add_page_before(page)))
+    if ((st=log_add_page_before(page)))
         return st;
-    if ((st=ham_log_add_page_before(sibpage)))
+    if ((st=log_add_page_before(sibpage)))
         return st;
     if (ancpage)
-        if ((st=ham_log_add_page_before(ancpage)))
+        if ((st=log_add_page_before(ancpage)))
             return st;
 
     /*
@@ -789,12 +789,12 @@ my_shift_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage, 
     /*
      * prepare all pages for the log
      */
-    if ((st=ham_log_add_page_before(page)))
+    if ((st=log_add_page_before(page)))
         return st;
-    if ((st=ham_log_add_page_before(sibpage)))
+    if ((st=log_add_page_before(sibpage)))
         return st;
     if (ancpage)
-        if ((st=ham_log_add_page_before(ancpage)))
+        if ((st=log_add_page_before(ancpage)))
             return st;
 
     /*
@@ -1245,7 +1245,7 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
     /*
      * prepare page for the log
      */
-    if ((st=ham_log_add_page_before(page)))
+    if ((st=log_add_page_before(page)))
         return (st);
 
     /*
@@ -1333,7 +1333,7 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
     /*
      * prepare page for the log
      */
-    if ((st=ham_log_add_page_before(page)))
+    if ((st=log_add_page_before(page)))
         return (st);
 
     /*
@@ -1376,6 +1376,8 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
             /*
              * make sure that no cursor is pointing to this dupe, and shift
              * all other cursors
+             * 
+             * TODO why? all cursors on this page were uncoupled above!
              */
             while (c && cursor) {
                 ham_bt_cursor_t *next=(ham_bt_cursor_t *)cursor_get_next(c);
@@ -1398,6 +1400,8 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
     
             /*
              * return immediately
+             * 
+             * TODO why? all cursors on this page were uncoupled above!
              */
             return (0);
         }
@@ -1405,7 +1409,7 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
         {
             ham_bt_cursor_t *c;
 
-            st=key_erase_record(db, bte, 0, BLOB_FREE_ALL_DUPES);
+            st=key_erase_record(db, bte, 0, HAM_ERASE_ALL_DUPLICATES);
             if (st)
                 return (st);
 
