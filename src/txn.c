@@ -224,7 +224,7 @@ txn_begin(ham_txn_t **ptxn, ham_env_t *env, ham_u32_t flags)
 
 #if 0 /* TODO */
     if (env_get_log(env) && !(flags&HAM_TXN_READ_ONLY)) {
-        st=ham_log_append_txn_begin(env_get_log(env), txn);
+        st=log_append_txn_begin(env_get_log(env), txn);
         if (st)
             return (st);
     }
@@ -288,7 +288,7 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
 #if 0
     TODO
     if (env_get_log(env) && !(txn_get_flags(txn)&HAM_TXN_READ_ONLY)) {
-        st=ham_log_append_txn_abort(env_get_log(env), txn);
+        st=log_append_txn_abort(env_get_log(env), txn);
         if (st) 
             return st;
     }

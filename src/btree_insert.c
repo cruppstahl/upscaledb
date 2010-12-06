@@ -282,7 +282,7 @@ __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
     /*
      * the page will be changed - write it to the log (if a log exists)
      */
-    st=ham_log_add_page_before(page);
+    st=log_add_page_before(page);
     if (st) {
         return (st);
     }
@@ -342,7 +342,7 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
         /*
          * the root-page will be changed...
          */
-        st=ham_log_add_page_before(root);
+        st=log_add_page_before(root);
         if (st)
             return (st);
 
@@ -544,7 +544,7 @@ __insert_in_page(ham_page_t *page, ham_key_t *key,
     /*
      * prepare the page for modifications
      */
-    st=ham_log_add_page_before(page);
+    st=log_add_page_before(page);
     if (st)
         return (st);
 
@@ -985,7 +985,7 @@ __insert_split(ham_page_t *page, ham_key_t *key,
     }
 
     if (oldsib) {
-        st=ham_log_add_page_before(oldsib);
+        st=log_add_page_before(oldsib);
         if (st)
             goto fail_dramatically;
     }

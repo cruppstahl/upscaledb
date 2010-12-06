@@ -177,7 +177,7 @@ __write_chunks(ham_env_t *env, ham_page_t *page, ham_offset_t addr,
                         (ham_size_t)(pagesize - writestart);
                 if (writesize>chunk_size[i])
                     writesize=chunk_size[i];
-                if ((st=ham_log_add_page_before(page)))
+                if ((st=log_add_page_before(page)))
                     return (st);
                 memcpy(&page_get_raw_payload(page)[writestart], chunk_data[i],
                             writesize);
@@ -1145,7 +1145,7 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
     }
 
     if (page)
-        if ((st=ham_log_add_page_before(page)))
+        if ((st=log_add_page_before(page)))
             return (st);
 
     ham_assert(num_entries==1, (""));

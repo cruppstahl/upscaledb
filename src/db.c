@@ -897,7 +897,7 @@ done:
                  contain the filesize and freelist edits then!
     */
     if (!(flags & PAGE_DONT_LOG_CONTENT) && (env && env_get_log(env))) {
-        st=ham_log_add_page_before(page);
+        st=log_add_page_before(page);
         if (st) 
             return st;
     }
@@ -908,7 +908,7 @@ done:
     if (flags&PAGE_CLEAR_WITH_ZERO) {
         memset(page_get_pers(page), 0, env_get_pagesize(env));
 
-        st=ham_log_add_page_after(page);
+        st=log_add_page_after(page);
         if (st) 
             return st;
     }

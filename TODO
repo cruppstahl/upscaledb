@@ -246,8 +246,17 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         x unittest!
 
     o refactor log.h, rename ham_log_t to log_t (and others as well)
-    o ham_log_get_entry() currently reads from back to front, but we need it
-        vice versa!
+        x open/create functions similar to journal.h
+        o do not need undo information
+        o ham_log_get_entry() currently reads from back to front, but we 
+            need it vice versa!
+        o disable log-file switching for physical log
+        o store always store only the last operation
+        o remove all unrequired functions - txn_abort, commit, checkpoint etc
+        o log_flush needed externally? fileops are flushed automatically
+
+    o os_close: assert that fd>=3 (on linux)
+
     o we have to flush pages after they're modified (search for db_fetch_page
         and db_alloc_page); however, what if multiple pages are modified (i.e.
         during an SMO)? - we have to first physlog all modified pages, and then
@@ -271,10 +280,6 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             o need unittests
     o who manages the lsn? currently, the journal and env.h manage both their
         own lsn; and it's not propagated down to the physlog
-    o create a logical log for low-level operations (page flush WAL)
-        o need unittests
-    o disable log-file switching for physical log
-        o need unittests
     o if recovery is enabled: after flushing the changeset, update the 
         lsn in the header file and flush this page
         o need unittests
@@ -364,6 +369,8 @@ o new API to retrieve the currently active transactions
 
 . opnode: use key instead of key* (pointer) - this saves one allocation 
     per node
+
+. rename ham_bt_cursor_t to btree_cursor_t
 
 . cache-garbagelist no longer used - remove it?
 
