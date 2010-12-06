@@ -239,7 +239,7 @@ extern ham_status_t
 blob_duplicate_erase(ham_db_t *db, ham_offset_t table_id,
         ham_size_t position, ham_u32_t flags, ham_offset_t *new_table_id);
 
-#define BLOB_FREE_ALL_DUPES   1
+#define BLOB_FREE_ALL_DUPES   HAM_ERASE_ALL_DUPLICATES
 
 
 /**

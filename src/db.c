@@ -28,6 +28,7 @@
 #include "extkeys.h"
 #include "freelist.h"
 #include "log.h"
+#include "journal.h"
 #include "mem.h"
 #include "os.h"
 #include "page.h"
@@ -2116,6 +2117,11 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
     if (temprec.data!=record->data)
         allocator_free(env_get_allocator(env), temprec.data);
 
+    /* append journal entry */
+    if (st==0 && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY)
+        st=journal_append_insert(env_get_journal(env), txn ? txn : local_txn,
+                            key, record, flags);
+
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
@@ -2203,6 +2209,11 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         st=db_erase_txn(db, txn ? txn : local_txn, key, flags);
     else
         st=be->_fun_erase(be, key, flags);
+
+    /* append journal entry */
+    if (st==0 && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY)
+        st=journal_append_erase(env_get_journal(env), txn ? txn : local_txn,
+                            key, 0, flags|HAM_ERASE_ALL_DUPLICATES);
 
     if (st) {
         if (local_txn)
@@ -2434,6 +2445,14 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     if (temprec.data!=record->data)
         allocator_free(env_get_allocator(env), temprec.data);
 
+    /* append journal entry */
+    if (st==0 && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY)
+        st=journal_append_insert(env_get_journal(env), 
+                        cursor_get_txn(cursor) 
+                            ? cursor_get_txn(cursor) 
+                            : local_txn,
+                        key, record, flags);
+
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
@@ -2492,6 +2511,20 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     }
 
     st=cursor->_fun_erase(cursor, flags);
+
+    /* append journal entry - we can retrieve the key from the uncoupled
+     * cursor */
+    if (st==0 && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY) {
+        ham_bt_cursor_t *btc=(ham_bt_cursor_t *)cursor;
+        ham_assert(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED, (""));
+        st=journal_append_erase(env_get_journal(env),
+                        cursor_get_txn(cursor) 
+                            ? cursor_get_txn(cursor) 
+                            : local_txn,
+                        bt_cursor_get_uncoupled_key(btc),
+                        bt_cursor_get_dupe_id(btc), flags);
+    }
+
     if (st) {
         if (!cursor_get_txn(cursor))
             (void)txn_abort(local_txn, 0);

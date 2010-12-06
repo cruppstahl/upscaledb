@@ -1901,6 +1901,9 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
 
+/* internal flag for ham_erase() - do not use */
+#define HAM_ERASE_ALL_DUPLICATES				1
+
 /**
  * Flushes the Database
  *

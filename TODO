@@ -224,9 +224,26 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             x erase
             x erase for cursors (different duplicate behavior!)
     o db.c/env.c: (logical) log begin/commit/abort/insert/erase
-        o use the functions from journal.c
+        x use the functions from journal.c
+            x ham_txn_begin
+            x ham_txn_commit
+            x ham_txn_abort
+            x ham_insert
+            x ham_cursor_insert
+            x ham_erase (delete ALL duplicates!)
+            x ham_cursor_erase (duplicate handling!)
         o need unittests
+            o ham_txn_begin
+            o ham_txn_commit
+            o ham_txn_abort
+            o ham_insert
+            o ham_cursor_insert
+            o ham_erase (delete ALL duplicates!)
+            o ham_cursor_erase (duplicate handling!)
 
+    o new flag for ham_erase: HAM_ERASE_ALL_DUPLICATES
+        o replace old BLOB_FREE_ALL_DUPES
+        o unittest!
     o refactor log.h, rename ham_log_t to log_t (and others as well)
     o ham_log_get_entry() currently reads from back to front, but we need it
         vice versa!

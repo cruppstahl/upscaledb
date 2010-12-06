@@ -1376,6 +1376,8 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
             /*
              * make sure that no cursor is pointing to this dupe, and shift
              * all other cursors
+             * 
+             * TODO why? all cursors on this page were uncoupled above!
              */
             while (c && cursor) {
                 ham_bt_cursor_t *next=(ham_bt_cursor_t *)cursor_get_next(c);
@@ -1398,6 +1400,8 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
     
             /*
              * return immediately
+             * 
+             * TODO why? all cursors on this page were uncoupled above!
              */
             return (0);
         }
