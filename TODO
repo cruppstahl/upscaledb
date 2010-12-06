@@ -225,7 +225,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             x erase for cursors (different duplicate behavior!)
     o db.c/env.c: (logical) log begin/commit/abort/insert/erase
         o use the functions from journal.c
-        o need unittests
+        o need unittests (incl. swapping!)
 
     o refactor log.h, rename ham_log_t to log_t (and others as well)
     o ham_log_get_entry() currently reads from back to front, but we need it
