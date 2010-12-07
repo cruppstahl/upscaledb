@@ -24,7 +24,7 @@
 #include "util.h"
 #include "journal.h"
 
-#define JOURNAL_DEFAULT_THRESHOLD   64
+#define JOURNAL_DEFAULT_THRESHOLD   16
 
 static ham_size_t 
 __get_aligned_entry_size(ham_size_t s)
