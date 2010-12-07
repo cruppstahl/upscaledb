@@ -94,11 +94,6 @@ public:
         page=page_new(m_env);
         BFC_ASSERT_EQUAL(0, page_alloc(page));
         BFC_ASSERT_EQUAL(0, page_free(page));
-
-        BFC_ASSERT_EQUAL((ham_offset_t)0, page_get_before_img_lsn(page));
-        page_set_before_img_lsn(page, 0x13ull);
-        BFC_ASSERT_EQUAL((ham_offset_t)0x13, page_get_before_img_lsn(page));
-
         page_delete(page);
     }
 

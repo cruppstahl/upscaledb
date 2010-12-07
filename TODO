@@ -262,7 +262,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
                 with WRITE_THROUGH
             o afterwards: clear the log
     o decrease default journal threshhold (16?)
-    o remove page_set_before_img_lsn()?
+    x remove page_set_before_img_lsn()?
 
     o os_close: assert that fd>=3 (on linux)
 

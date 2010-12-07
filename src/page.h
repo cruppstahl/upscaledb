@@ -159,9 +159,6 @@ struct ham_page_t {
         /** linked list of all cursors which point to that page */
         ham_cursor_t *_cursors;
 
-        /** the lsn of the last BEFORE-image, that was written to the log */
-        ham_u64_t _before_img_lsn;
-
     } _npers; 
 
     /**
@@ -231,12 +228,6 @@ page_set_next(ham_page_t *page, int which, ham_page_t *other);
 
 /** set linked list of cursors */
 #define page_set_cursors(page, c)        (page)->_npers._cursors=(c)
-
-/** get the lsn of the last BEFORE-image that was written to the log */
-#define page_get_before_img_lsn(page)    (page)->_npers._before_img_lsn
-
-/** set the lsn of the last BEFORE-image that was written to the log */
-#define page_set_before_img_lsn(page, l) (page)->_npers._before_img_lsn=(l)
 
 /** get persistent page flags */
 #define page_get_pers_flags(page)        (ham_db2h32((page)->_pers->_s._flags))
