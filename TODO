@@ -245,7 +245,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         x replace old BLOB_FREE_ALL_DUPES
         x unittest!
 
-    o refactor log.h, rename ham_log_t to log_t (and others as well)
+    x refactor log.h, rename ham_log_t to log_t (and others as well)
         x open/create functions similar to journal.h
         x log_flush needed externally? fileops are flushed automatically
         x disable log-file switching for physical log
@@ -254,13 +254,8 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             x remove log_add_page_before
             x remove log_append_flush_page
             x rename log_add_page_after to log_append_page
-        o ham_log_get_entry() currently reads from back to front, but we 
-            need it vice versa!
-        o always store only the last operation
-            o assert that the log is empty (only debug!)
-            o afterwards: write ALL modified pages to the log, THEN flush them
-                with WRITE_THROUGH
-            o afterwards: clear the log
+        x ham_log_get_entry() currently reads from back to front, but we 
+            need it vice versa! - no, it's fine
     x decrease default journal threshhold (16?)
     x remove page_set_before_img_lsn()?
 
@@ -290,6 +285,12 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             o need unittests
         o after a changeset was successfully applied/flushed: clear the logfile
             o need unittests
+
+        o log: always write only the last operation
+            o assert that the log is empty (only debug!)
+            o afterwards: write ALL modified pages to the log, THEN flush them
+                with WRITE_THROUGH
+            o afterwards: clear the log
 
     o who manages the lsn? currently, the journal and env.h manage both their
         own lsn; and it's not propagated down to the physlog

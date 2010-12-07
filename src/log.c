@@ -290,9 +290,7 @@ log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
 
     *data=0;
 
-    /*
-     * start with the current file
-     */
+    /* start with the current file */
     if (!iter->_offset) {
         iter->_fdstart=iter->_fdidx=log_get_current_fd(log);
         st=os_get_filesize(log_get_fd(log, iter->_fdidx), &iter->_offset);
@@ -300,9 +298,7 @@ log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
             return (st);
     }
 
-    /* 
-     * if the current file is empty: try to continue with the other file
-     */
+    /* if the current file is empty: try to continue with the other file */
     if (iter->_offset<=sizeof(log_header_t)) {
         if (iter->_fdidx!=iter->_fdstart) {
             log_entry_set_lsn(entry, 0);
@@ -319,9 +315,7 @@ log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
         return (0);
     }
 
-    /*
-     * now read the entry-header from the file
-     */
+    /* now read the entry-header from the file */
     iter->_offset-=sizeof(log_entry_t);
 
     st=os_pread(log_get_fd(log, iter->_fdidx), iter->_offset, 
@@ -329,9 +323,7 @@ log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
     if (st)
         return (st);
 
-    /*
-     * now read the data
-     */
+    /* now read the data */
     if (log_entry_get_data_size(entry)) {
         ham_offset_t pos=iter->_offset-log_entry_get_data_size(entry);
         // pos += 8-1;
