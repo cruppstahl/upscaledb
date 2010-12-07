@@ -292,8 +292,10 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             o env_create_db
             o env_create
             o need unittests
-        o what about the freelist - is it also part of the changeset?
-        o do we need a changeset if recovery/logging is disabled?
+        o what about the freelist - is it also part of the changeset? - yes,
+            definitely!
+        o do we need a changeset if recovery/logging is disabled? - no, not
+            required
 
         x do we still need PAGE_DONT_LOG_CONTENT? - no, remove it
 
