@@ -10,7 +10,7 @@
  */
 
 /**
- * @brief internal macros and headers
+ * @brief The ham_env_t structure definitions, getters/setters and functions
  *
  */
 
@@ -26,6 +26,7 @@
 #include "endianswap.h"
 #include "error.h"
 #include "page.h"
+#include "changeset.h"
 
 
 #ifdef __cplusplus
@@ -57,7 +58,7 @@ extern "C" {
 #include "packstart.h"
 
 /**
- * the persistent database header
+ * the persistent file header
  */
 typedef HAM_PACK_0 struct HAM_PACK_1 
 {
@@ -105,7 +106,7 @@ typedef HAM_PACK_0 struct HAM_PACK_1
 
 
 /**
- * the environment structure
+ * the Environment structure
  */
 struct ham_env_t
 {
@@ -156,6 +157,10 @@ struct ham_env_t
 
     /** a linked list of all open databases */
     ham_db_t *_next;
+
+    /** the changeset - a list of all pages that were modified during
+     * one database operation */
+    changeset_t _changeset;
 
     /** the pagesize which was specified when the env was created */
     ham_size_t _pagesize;
@@ -425,6 +430,9 @@ env_get_header(ham_env_t *env);
 
 /** set the linked list of all open databases */
 #define env_set_list(env, db)            (env)->_next=(db)
+
+/** get the current changeset */
+#define env_get_changeset(env)           &(env)->_changeset
 
 /** get the pagesize as specified in ham_env_create_ex */
 #define env_get_pagesize(env)            (env)->_pagesize

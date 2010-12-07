@@ -28,41 +28,45 @@
 
 #ifdef HAM_DEBUG
 static ham_bool_t
-my_is_in_list(ham_page_t *p, int which)
+__is_in_list(ham_page_t *p, int which)
 {
     return (p->_npers._next[which] || p->_npers._prev[which]);
 }
 
 static void
-my_validate_page(ham_page_t *p)
+__validate_page(ham_page_t *p)
 {
-    /*
-     * not allowed: dirty and in garbage bin
-     */
-    ham_assert(!(page_is_dirty(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
+    /* not allowed: dirty and in garbage bin */
+    ham_assert(!(page_is_dirty(p) && __is_in_list(p, PAGE_LIST_GARBAGE)),
             ("dirty and in garbage bin"));
 
-    /*
-     * not allowed: in garbage bin and cursors
-     */
-    ham_assert(!(page_get_cursors(p) && my_is_in_list(p, PAGE_LIST_GARBAGE)),
+    /* not allowed: in garbage bin and cursors */
+    ham_assert(!(page_get_cursors(p) && __is_in_list(p, PAGE_LIST_GARBAGE)),
             ("cursors and in garbage bin"));
 
-    /*
-     * not allowed: cached and in garbage bin
-     */
-    ham_assert(!(my_is_in_list(p, PAGE_LIST_BUCKET) && 
-               my_is_in_list(p, PAGE_LIST_GARBAGE)),
+    /* not allowed: cached and in garbage bin */
+    ham_assert(!(__is_in_list(p, PAGE_LIST_BUCKET) && 
+               __is_in_list(p, PAGE_LIST_GARBAGE)),
             ("cached and in garbage bin"));
+
+    /* not allowed: in changeset and in garbage bin */
+    ham_assert(!(__is_in_list(p, PAGE_LIST_CHANGESET) && 
+               __is_in_list(p, PAGE_LIST_GARBAGE)),
+            ("in changeset and in garbage bin"));
+
+    /* not allowed: in changeset but not in cache */
+    if (__is_in_list(p, PAGE_LIST_CHANGESET))
+        ham_assert(__is_in_list(p, PAGE_LIST_BUCKET),
+            ("in changeset but not in cache"));
 }
 
 ham_page_t *
 page_get_next(ham_page_t *page, int which)
 {
     ham_page_t *p=page->_npers._next[which];
-    my_validate_page(page);
+    __validate_page(page);
     if (p)
-        my_validate_page(p);
+        __validate_page(p);
     return (p);
 }
 
@@ -70,18 +74,18 @@ void
 page_set_next(ham_page_t *page, int which, ham_page_t *other)
 {
     page->_npers._next[which]=other;
-    my_validate_page(page);
+    __validate_page(page);
     if (other)
-        my_validate_page(other);
+        __validate_page(other);
 }
 
 ham_page_t *
 page_get_previous(ham_page_t *page, int which)
 {
     ham_page_t *p=page->_npers._prev[which];
-    my_validate_page(page);
+    __validate_page(page);
     if (p)
-        my_validate_page(p);
+        __validate_page(p);
     return (p);
 }
 
@@ -89,9 +93,9 @@ void
 page_set_previous(ham_page_t *page, int which, ham_page_t *other)
 {
     page->_npers._prev[which]=other;
-    my_validate_page(page);
+    __validate_page(page);
     if (other)
-        my_validate_page(other);
+        __validate_page(other);
 }
 #endif /* HAM_DEBUG */
 

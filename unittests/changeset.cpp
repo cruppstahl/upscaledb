@@ -120,9 +120,11 @@ public:
         for (int i=0; i<3; i++)
             changeset_add_page(&ch, page[i]);
 
+        BFC_ASSERT_EQUAL(false, changeset_is_empty(&ch));
         changeset_clear(&ch);
         BFC_ASSERT_EQUAL((ham_page_t *)NULL,
                 changeset_get_head(&ch));
+        BFC_ASSERT_EQUAL(true, changeset_is_empty(&ch));
 
         for (int i=0; i<3; i++)
             BFC_ASSERT_EQUAL((ham_page_t *)NULL,

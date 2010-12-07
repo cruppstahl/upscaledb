@@ -745,7 +745,6 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     *page_ref = 0;
     ham_assert(0 == (flags & ~(PAGE_IGNORE_FREELIST 
                         | PAGE_CLEAR_WITH_ZERO
-                        | PAGE_DONT_LOG_CONTENT
                         | DB_NEW_PAGE_DOES_THRASH_CACHE)), (0));
     ham_assert(env_get_cache(env) != 0, 
             ("This code will not realize the requested page may already exist "
@@ -759,6 +758,10 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         if (tellpos) {
             ham_assert(tellpos%env_get_pagesize(env)==0,
                     ("page id %llu is not aligned", tellpos));
+            /* try to fetch the page from the changeset */
+            page=changeset_get_page(env_get_changeset(env), tellpos);
+            if (page)
+                goto done;
             /* try to fetch the page from the cache */
             if (env_get_cache(env)) {
                 page=cache_get_page(env_get_cache(env), tellpos, 0);
@@ -815,14 +818,6 @@ done:
             ? 1 
             : !!env_get_cache(env), ("in-memory DBs MUST have a cache"));
 
-    /* 
-     * disable page content logging ONLY when the page is 
-     * completely new (contains bogus 'before' data) 
-     */
-    if (tellpos == 0) { /* [i_a] BUG! */
-        flags &= ~PAGE_DONT_LOG_CONTENT;
-    }
-
     /*
      * As we re-purpose a page, we will reset its pagecounter as
      * well to signal its first use as the new type assigned here.
@@ -849,6 +844,10 @@ done:
             return st;
     }
 
+    /* store the page in the changeset */
+    changeset_add_page(env_get_changeset(env), page);
+
+    /* store the page in the cache */
     if (env_get_cache(env)) {
         unsigned int bump = 0;
 
@@ -936,11 +935,20 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     ham_assert((env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
             ? 1 
             : env_get_cache(env) != 0, 
-            ("This code will not realize the requested page may already exist through"
-             " a previous call to this function or db_alloc_page() unless page caching"
-             " is available!"));
+            ("This code will not realize the requested page may already "
+             "exist through a previous call to this function or "
+             "db_alloc_page() unless page caching is available!"));
 
     *page_ref = 0;
+
+    /* fetch the page from the changeset */
+    page=changeset_get_page(env_get_changeset(env), address);
+    if (page) {
+        *page_ref = page;
+        ham_assert(page_get_pers(page), (""));
+        ham_assert(db ? page_get_owner(page)==db : 1, (""));
+        return (HAM_SUCCESS);
+    }
 
     /* 
      * fetch the page from the cache
@@ -951,7 +959,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             *page_ref = page;
             ham_assert(page_get_pers(page), (""));
             ham_assert(db ? page_get_owner(page)==db : 1, (""));
-            return HAM_SUCCESS;
+            return (HAM_SUCCESS);
         }
     }
 

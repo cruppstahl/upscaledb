@@ -697,8 +697,6 @@ db_flush_all(ham_cache_t *cache, ham_u32_t flags);
  *        - PAGE_IGNORE_FREELIST        ignores all freelist-operations
  *        - PAGE_CLEAR_WITH_ZERO        memset the persistent page with 0
  *        - DB_NEW_PAGE_DOES_THRASH_CACHE
- *        - PAGE_DONT_LOG_CONTENT       do not log page content for new 
- *                                      pages
  *
  * @note The page will be aligned at the current page size. Any wasted
  * space (due to the alignment) is added to the freelist.
@@ -717,7 +715,6 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
 
 #define PAGE_IGNORE_FREELIST          8
 #define PAGE_CLEAR_WITH_ZERO         16
-#define PAGE_DONT_LOG_CONTENT         32
 
 /**
  * Free a page.

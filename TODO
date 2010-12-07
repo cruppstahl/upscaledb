@@ -271,22 +271,30 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         x re-introduce a structure similar to the old transaction list
             ("changeset"); don't forget to update my_verify_page()!
             x need unittests
-        o when fetching a page, first check this list
-            o need unittests
-        o when fetching or allocating, insert page in this list
-            o need unittests
-        o when purging cache - do not delete this page (but i think this 
+        x add a changeset to the environment
+        x when fetching a page, first check this list
+        x when fetching or allocating, insert page in this list
+        x when purging cache - do not delete this page (but i think this 
             anyway cannot happen since we never purge while an operation is
-            in progress)
-        o before each backend-related operation: assert that the list is clear
-            o need unittests
-        o after each backend-related operation: flush the list (or discard
-            the cached pages if there was an error)
-            o need unittests
-        o after a changeset was successfully applied/flushed: clear the logfile
+            in progress - true)
+        o before each create/update/erase op:
+                1. assert that the list is empty
+                2. proceed with the operation
+                3. on success: flush the list
+                4. always clear the list
+                5. clear the logfile
+            o insert
+            o erase
+            o cursor_insert
+            o cursor_erase
+            o cursor_overwrite
+            o env_create_db
+            o env_create
             o need unittests
         o what about the freelist - is it also part of the changeset?
         o do we need a changeset if recovery/logging is disabled?
+
+        x do we still need PAGE_DONT_LOG_CONTENT? - no, remove it
 
         o log: always write only the last operation
             o assert that the log is empty (only debug!)
