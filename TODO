@@ -277,6 +277,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         x when purging cache - do not delete this page (but i think this 
             anyway cannot happen since we never purge while an operation is
             in progress - true)
+        x make sure that the changeset is empty when closing the Env
         o before each create/update/erase op:
                 1. assert that the list is empty
                 2. proceed with the operation

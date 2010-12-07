@@ -1643,6 +1643,12 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
         return (0);
 
     /*
+     * make sure that the changeset is empty
+     * TODO any following operation should not modify the changeset, right?
+     */
+    ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
+
+    /*
      * close all databases?
      */
     if (env_get_list(env)) {
