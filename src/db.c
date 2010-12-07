@@ -840,75 +840,11 @@ done:
     page_set_owner(page, db);
     page_set_undirty(page);
 
-    /*
-    CONCERN / TO BE CHECKED
-
-    logging or no logging, when a new page is appended to the file
-    and the txn fails, that page is not removed from the file through
-    the OS, yet freelist is rolled back, resulting in a 'gap' page
-    which would seem allocated for ever as the freelist didn't mark
-    it as used (max_bits), while subsequent page adds will append
-    new pages.
-
-    EDIT v1.1.2: this is resolved by adding database file size changes
-                 to the log: aborting transactions should now abort
-                 correctly by also truncating the database filesize
-                 to the previously known filesize.
-
-                 This, of course, means trouble for partitioning schemes,
-                 where the database has multiple 'growth fronts': which
-                 one should we truncate?
-
-                 Answer: this is resolved in the simplest possible way:
-                 new pages are flagged as such and each page is 'rewound'
-                 by calling the 'shrink' device method, which will thus
-                 have access to the appropriate 'rid' and any underlying
-                 partitioners can take care of the routing of the resize
-                 request.
-
-                 The alternative solution: keeping the file size as is,
-                 while the transaction within which it occurred, would
-                 cause insurmountable trouble when the freelist is expanded
-                 but at the same time the freelist needs to grow itself to
-                 contain this expansion: the allocation of the freelist
-                 page MAY collide with other freelist bit edits in the
-                 same freelist page, so logging would not work as is. Then,
-                 the option would be to 'recreate' this particular freelist
-                 page allocation, but such 'regeneration' cannot be guaranteed
-                 to match the original action as the transaction is rewound
-                 and the freelist allocation will end up in another place.
-
-                 Guaranteed fault scenario for regeneration: TXN START >
-                 ERASE PAGE-SIZE BLOB (marks freelist section as 'free') >
-                 EXPAND DB BY SEVERAL PAGES: needs to expand freelist >
-                 FREELIST ALLOCS PAGE in location where the erased BLOB was.
-
-                 Which is perfectly Okay when transaction commits, but txn 
-                 abort means the BLOB will exist again and the freelist
-                 allocation CANNOT happen at the same spot. Subsequent
-                 committing transactions would then see a b0rked freelist
-                 image after regeneration-on-txn-abort.
-
-
-                 WRONG! immediately after ABORT the freelist CAN be regenerated,
-                 as long as those results are applied to the REWOUND database
-                 AND these new edits are LOGGED after the ABORT TXN using 
-                 a 'derived' transaction which is COMMITTED: that TXN will only
-                 contain the filesize and freelist edits then!
-    */
-    if (!(flags & PAGE_DONT_LOG_CONTENT) && (env && env_get_log(env))) {
-        st=log_add_page_before(page);
-        if (st) 
-            return st;
-    }
-
-    /*
-     * clear the page with zeroes?
-     */
+    /* clear the page with zeroes?  */
     if (flags&PAGE_CLEAR_WITH_ZERO) {
         memset(page_get_pers(page), 0, env_get_pagesize(env));
 
-        st=log_add_page_after(page);
+        st=log_append_page(page);
         if (st) 
             return st;
     }

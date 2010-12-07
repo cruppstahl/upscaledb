@@ -51,8 +51,6 @@ public:
         BFC_REGISTER_TEST(LogTest, createCloseOpenCloseTest);
         BFC_REGISTER_TEST(LogTest, negativeCreateTest);
         BFC_REGISTER_TEST(LogTest, negativeOpenTest);
-        BFC_REGISTER_TEST(LogTest, appendFlushPageTest);
-        BFC_REGISTER_TEST(LogTest, appendPreWriteTest);
         BFC_REGISTER_TEST(LogTest, appendWriteTest);
         BFC_REGISTER_TEST(LogTest, clearTest);
         BFC_REGISTER_TEST(LogTest, iterateOverEmptyLogTest);
@@ -232,43 +230,6 @@ public:
         env_set_filename(m_env, oldfilename);
     }
 
-    void appendFlushPageTest(void)
-    {
-        ham_log_t *log = disconnect_log_and_create_new_log();
-        ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        ham_page_t *page;
-        page=page_new(m_env);
-        BFC_ASSERT_EQUAL(0, page_alloc(page));
-        page_set_dirty(page);
-
-        BFC_ASSERT_EQUAL(0, log_append_flush_page(log, page));
-        BFC_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
-
-        BFC_ASSERT_EQUAL(0, page_free(page));
-        page_delete(page);
-        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-        BFC_ASSERT_EQUAL(0, log_close(log, HAM_FALSE));
-    }
-
-    void appendPreWriteTest(void)
-    {
-        ham_log_t *log = disconnect_log_and_create_new_log();
-        ham_txn_t *txn;
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-
-        ham_u8_t data[100];
-        for (int i=0; i<100; i++)
-            data[i]=(ham_u8_t)i;
-
-        BFC_ASSERT_EQUAL(0, log_append_prewrite(log, txn, 
-                                0, data, sizeof(data)));
-        BFC_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
-
-        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-        BFC_ASSERT_EQUAL(0, log_close(log, HAM_FALSE));
-    }
-
     void appendWriteTest(void)
     {
         ham_log_t *log = disconnect_log_and_create_new_log();
@@ -297,7 +258,7 @@ public:
 
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, log_append_prewrite(log, txn, 
+        BFC_ASSERT_EQUAL(0, log_append_write(log, txn, 
                                 0, data, sizeof(data)));
 
         BFC_ASSERT_EQUAL(0, log_is_empty(log, &isempty));
@@ -334,7 +295,7 @@ public:
         ham_log_t *log = disconnect_log_and_create_new_log();
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         ham_u8_t buffer[1024]={0};
-        BFC_ASSERT_EQUAL(0, log_append_prewrite(log, txn, 
+        BFC_ASSERT_EQUAL(0, log_append_write(log, txn, 
                                 0, buffer, sizeof(buffer)));
         BFC_ASSERT_EQUAL(0, log_close(log, HAM_TRUE));
 
@@ -352,7 +313,7 @@ public:
         BFC_ASSERT_EQUAL((ham_u64_t)1, log_entry_get_txn_id(&entry));
         BFC_ASSERT_EQUAL((ham_u32_t)1024, log_entry_get_data_size(&entry));
         BFC_ASSERT_NOTNULL(data);
-        BFC_ASSERT_EQUAL((ham_u32_t)LOG_ENTRY_TYPE_PREWRITE, 
+        BFC_ASSERT_EQUAL((ham_u32_t)LOG_ENTRY_TYPE_WRITE, 
                         log_entry_get_type(&entry));
 
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
@@ -426,7 +387,6 @@ public:
         BFC_ASSERT_EQUAL(0, log_get_entry(log, &iter, &entry, &data));
         checkLogEntry(&entry,  2, 1, LOG_ENTRY_TYPE_TXN_BEGIN, data);
         BFC_ASSERT_EQUAL(0, log_get_entry(log, &iter, &entry, &data));
-        checkLogEntry(&entry,  1, 0, LOG_ENTRY_TYPE_PREWRITE, data);
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 #endif
@@ -805,7 +765,8 @@ public:
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         ham_u8_t buffer[1024]={0};
-        BFC_ASSERT_EQUAL(0, log_append_prewrite(env_get_log(m_env), txn, 
+        BFC_ASSERT_EQUAL(0, 
+                    log_append_write(env_get_log(m_env), txn, 
                                 0, buffer, sizeof(buffer)));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -824,7 +785,7 @@ public:
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         ham_u8_t buffer[1024]={0};
-        BFC_ASSERT_EQUAL(0, log_append_prewrite(env_get_log(m_env), txn, 
+        BFC_ASSERT_EQUAL(0, log_append_write(env_get_log(m_env), txn, 
                                 0, buffer, sizeof(buffer)));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -853,7 +814,6 @@ public:
     void allocatePageTest(void)
     {
         ham_page_t *page;
-        ham_size_t ps=os_get_pagesize();
         BFC_ASSERT_EQUAL(0, 
                 db_alloc_page(&page, m_db, 0, PAGE_IGNORE_FREELIST));
         BFC_ASSERT(page!=0);
@@ -864,8 +824,6 @@ public:
         log_vector_t exp;
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
 
@@ -889,10 +847,7 @@ public:
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
 
@@ -912,8 +867,6 @@ public:
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
 
@@ -971,7 +924,6 @@ public:
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
 
@@ -990,7 +942,6 @@ public:
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
 
@@ -1025,13 +976,10 @@ public:
         exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
         exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_WRITE, ps*3, ps));
-        exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_PREWRITE, ps*3, ps));
-        exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
         exp.push_back(LogEntry(4, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
 
@@ -1050,7 +998,6 @@ public:
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
 
@@ -1081,7 +1028,6 @@ public:
         log_vector_t exp;
         exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
 
@@ -1107,7 +1053,6 @@ public:
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
 
@@ -1126,8 +1071,6 @@ public:
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
 
@@ -1150,8 +1093,6 @@ public:
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
 
@@ -1171,9 +1112,7 @@ public:
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
 
@@ -1192,7 +1131,6 @@ public:
         memset(p, 0, env_get_usable_pagesize(m_env));
         p[0]=1;
         page_set_dirty(page);
-        BFC_ASSERT_EQUAL(0, log_add_page_before(page));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
 
         /* fetch page again, modify, abort -> first modification is still

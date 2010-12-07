@@ -250,10 +250,10 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         x log_flush needed externally? fileops are flushed automatically
         x disable log-file switching for physical log
         x remove all unrequired functions - txn_abort, commit, checkpoint etc
-        o do not need undo information and undo functions
-            o remove log_add_page_before
-            o remove log_append_flush_page
-            o rename log_add_page_after to log_append_page
+        x do not need undo information and undo functions
+            x remove log_add_page_before
+            x remove log_append_flush_page
+            x rename log_add_page_after to log_append_page
         o ham_log_get_entry() currently reads from back to front, but we 
             need it vice versa!
         o always store only the last operation
@@ -261,7 +261,8 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             o afterwards: write ALL modified pages to the log, THEN flush them
                 with WRITE_THROUGH
             o afterwards: clear the log
-    o decrease defualt journal threshhold (16?)
+    o decrease default journal threshhold (16?)
+    o remove page_set_before_img_lsn()?
 
     o os_close: assert that fd>=3 (on linux)
 

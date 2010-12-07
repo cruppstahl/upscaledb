@@ -617,17 +617,6 @@ my_merge_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage,
     *newpage_ref = 0;
 
     /*
-     * prepare all pages for the log
-     */
-    if ((st=log_add_page_before(page)))
-        return st;
-    if ((st=log_add_page_before(sibpage)))
-        return st;
-    if (ancpage)
-        if ((st=log_add_page_before(ancpage)))
-            return st;
-
-    /*
      * uncouple all cursors
      */
     if ((st=bt_uncouple_all_cursors(page, 0)))
@@ -785,17 +774,6 @@ my_shift_pages(ham_page_t **newpage_ref, ham_page_t *page, ham_page_t *sibpage, 
     ham_assert(btree_node_get_count(node)!=btree_node_get_count(sibnode), (0));
 
     *newpage_ref = 0;
-
-    /*
-     * prepare all pages for the log
-     */
-    if ((st=log_add_page_before(page)))
-        return st;
-    if ((st=log_add_page_before(sibpage)))
-        return st;
-    if (ancpage)
-        if ((st=log_add_page_before(ancpage)))
-            return st;
 
     /*
      * uncouple all cursors
@@ -1243,12 +1221,6 @@ my_replace_key(ham_page_t *page, ham_s32_t slot,
     hints->cost++;
 
     /*
-     * prepare page for the log
-     */
-    if ((st=log_add_page_before(page)))
-        return (st);
-
-    /*
      * uncouple all cursors
      */
     if ((st=bt_uncouple_all_cursors(page, 0)))
@@ -1329,12 +1301,6 @@ my_remove_entry(ham_page_t *page, ham_s32_t slot,
     bte=btree_node_get_key(db, node, slot);
 
     hints->cost++;
-
-    /*
-     * prepare page for the log
-     */
-    if ((st=log_add_page_before(page)))
-        return (st);
 
     /*
      * uncouple all cursors

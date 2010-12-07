@@ -280,14 +280,6 @@ __append_key(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
     }
 
     /*
-     * the page will be changed - write it to the log (if a log exists)
-     */
-    st=log_add_page_before(page);
-    if (st) {
-        return (st);
-    }
-
-    /*
      * OK - we're really appending/prepending the new key.
      */
     ham_assert(hints->force_append || hints->force_prepend, (0));
@@ -338,13 +330,6 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
     if (st==SPLIT) {
         ham_page_t *newroot;
         btree_node_t *node;
-
-        /*
-         * the root-page will be changed...
-         */
-        st=log_add_page_before(root);
-        if (st)
-            return (st);
 
         /*
          * allocate a new root page
@@ -540,13 +525,6 @@ __insert_in_page(ham_page_t *page, ham_key_t *key,
             ("invalid result of db_get_maxkeys(): %d", maxkeys));
     ham_assert(hints->force_append == HAM_FALSE, (0));
     ham_assert(hints->force_prepend == HAM_FALSE, (0));
-
-    /*
-     * prepare the page for modifications
-     */
-    st=log_add_page_before(page);
-    if (st)
-        return (st);
 
     /*
      * if we can insert the new key without splitting the page: 
@@ -982,12 +960,6 @@ __insert_split(ham_page_t *page, ham_key_t *key,
     else
     {
         oldsib=0;
-    }
-
-    if (oldsib) {
-        st=log_add_page_before(oldsib);
-        if (st)
-            goto fail_dramatically;
     }
 
     btree_node_set_left (nbtp, page_get_self(page));

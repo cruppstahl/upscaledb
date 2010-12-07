@@ -95,17 +95,12 @@ typedef HAM_PACK_0 struct HAM_PACK_1 log_entry_t
 * @{
 */
 
-/** save the original page data, before it is modified */
-#define LOG_ENTRY_TYPE_PREWRITE                 4 
 /** save the new, modified page data. The page is not yet written to disk; 
  * that will only happen once a @ref LOG_ENTRY_TYPE_FLUSH_PAGE happens. */
 #define LOG_ENTRY_TYPE_WRITE                    5 
 /** mark a page being flushed from the page cache; as this will be a 
  * modified page (otherwise the explicit flush would not occur), we can be 
- * sure to find a @ref LOG_ENTRY_TYPE_WRITE entry in the log history and, 
- * maybe, a @ref LOG_ENTRY_TYPE_PREWRITE before that (new pages obtained 
- * by expanding the database file are generally not 'prewritten' as they will 
- * contain arbitrary garbage before first use. */
+ * sure to find a @ref LOG_ENTRY_TYPE_WRITE entry in the log history */
 #define LOG_ENTRY_TYPE_FLUSH_PAGE               8 
 
 /**
@@ -280,48 +275,15 @@ log_append_entry(ham_log_t *log, int fdidx, log_entry_t *entry,
                 ham_size_t size);
 
 /**
- * append a log entry for LOG_ENTRY_TYPE_FLUSH_PAGE
- * 
- * Process the signal that a page is about to be written to the
- * device: save the page to the log file which is linked with
- * that page's database transaction, then flush that log file
- * to ensure crash recovery.
- * 
- * @note The only time this signal is not delivered is when the
- *      database starts a new transaction by generating a new
- *      checkpoint.
- *
- *     At that time pages may be flushed to disc, but we will
- *     be sure those pages are already covered by the previous
- *     (by now already closed and flushed) transaction log/flush.
- *
- * @sa page_flush
- */
-extern ham_status_t
-log_append_flush_page(ham_log_t *log, struct ham_page_t *page);
-
-/**
  * append a log entry for @ref LOG_ENTRY_TYPE_WRITE.
  *
- * @note invoked by @ref ham_log_add_page_after() to save the new 
+ * @note invoked by @ref log_append_page() to save the new 
  * content of the specified page.
  *
- * @sa ham_log_add_page_after
+ * @sa log_append_page
  */
 extern ham_status_t
 log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
-                ham_u8_t *data, ham_size_t size);
-
-/**
- * append a log entry for @ref LOG_ENTRY_TYPE_PREWRITE.
- *
- * @note invoked by @ref ham_log_add_page_before() to preserve the original 
- * content of the specified page.
- *
- * @sa ham_log_add_page_before
- */
-extern ham_status_t
-log_append_prewrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
                 ham_u8_t *data, ham_size_t size);
 
 /**
@@ -367,17 +329,10 @@ extern ham_status_t
 log_close(ham_log_t *log, ham_bool_t noclear);
 
 /**
- * adds a BEFORE-image of a page (if necessary)
- * @sa ham_log_append_prewrite
- */
-extern ham_status_t
-log_add_page_before(ham_page_t *page);
-
-/**
  * adds an AFTER-image of a page
  */
 extern ham_status_t
-log_add_page_after(ham_page_t *page);
+log_append_page(ham_page_t *page);
 
 /**
  * do the recovery

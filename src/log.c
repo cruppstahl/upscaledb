@@ -237,33 +237,6 @@ log_append_entry(ham_log_t *log, int fdidx, log_entry_t *entry,
 }
 
 ham_status_t
-log_append_flush_page(ham_log_t *log, struct ham_page_t *page)
-{
-    int fdidx=log_get_current_fd(log);
-    log_entry_t entry={0};
-
-    ham_env_t *env = device_get_env(page_get_device(page));
-    ham_assert(page_is_dirty(page), (0));
-
-    /* make sure that this is never called during a checkpoint! */
-    ham_assert(!(log_get_state(log)&LOG_STATE_CHECKPOINT), (0));
-    
-    ham_assert(page_get_device(page), (0));
-    ham_assert(device_get_env(page_get_device(page)), (0));
-
-    /* write the header */
-    log_entry_set_lsn(&entry, log_get_lsn(log));
-    log_increment_lsn(log);
-    log_entry_set_type(&entry, LOG_ENTRY_TYPE_FLUSH_PAGE);
-    log_entry_set_offset(&entry, page_get_self(page));
-
-    if (env_get_flushed_txn(env))
-        fdidx=txn_get_log_desc(env_get_flushed_txn(env)); 
-
-    return (log_append_entry(log, fdidx, &entry, sizeof(entry)));
-}
-
-ham_status_t
 log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
                 ham_u8_t *data, ham_size_t size)
 {
@@ -284,38 +257,6 @@ log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
     if (txn)
         log_entry_set_txn_id(entry, txn_get_id(txn));
     log_entry_set_type(entry, LOG_ENTRY_TYPE_WRITE);
-    log_entry_set_offset(entry, offset);
-    log_entry_set_data_size(entry, size);
-    memcpy(alloc_buf, data, size);
-
-    st=log_append_entry(log, 
-                    txn ? txn_get_log_desc(txn) : log_get_current_fd(log), 
-                    (log_entry_t *)alloc_buf, alloc_size);
-    allocator_free(log_get_allocator(log), alloc_buf);
-    return (st);
-}
-
-ham_status_t
-log_append_prewrite(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
-                ham_u8_t *data, ham_size_t size)
-{
-    ham_status_t st;
-    ham_size_t alloc_size=__get_aligned_entry_size(size);
-    log_entry_t *entry;
-    ham_u8_t *alloc_buf;
-    
-    alloc_buf=allocator_alloc(log_get_allocator(log), alloc_size);
-    if (!alloc_buf)
-        return (HAM_OUT_OF_MEMORY);
-
-    entry=(log_entry_t *)(alloc_buf+alloc_size-sizeof(log_entry_t));
-
-    memset(entry, 0, sizeof(*entry));
-    log_entry_set_lsn(entry, log_get_lsn(log));
-    log_increment_lsn(log);
-    if (txn)
-        log_entry_set_txn_id(entry, txn_get_id(txn));
-    log_entry_set_type(entry, LOG_ENTRY_TYPE_PREWRITE);
     log_entry_set_offset(entry, offset);
     log_entry_set_data_size(entry, size);
     memcpy(alloc_buf, data, size);
@@ -444,63 +385,7 @@ log_close(ham_log_t *log, ham_bool_t noclear)
 }
 
 ham_status_t
-log_add_page_before(ham_page_t *page)
-{
-    ham_status_t st=0;
-    ham_env_t *env=device_get_env(page_get_device(page));
-    ham_log_t *log=env_get_log(env);
-    ham_file_filter_t *head=env_get_file_filter(env);
-    ham_u8_t *p;
-    ham_size_t size=env_get_pagesize(env);
-
-    if (!log)
-        return (0);
-
-    /*
-     * only write the before-image, if it was not yet written
-     * since the last checkpoint
-     */
-    if (page_get_before_img_lsn(page)>log_get_last_checkpoint_lsn(log))
-        return (0);
-
-    /*
-     * run page through page-level filters, but not for the 
-     * root-page!
-     */
-    if (head && page_get_self(page)!=0) {
-        p=(ham_u8_t *)allocator_alloc(log_get_allocator(log), size);
-        if (!p)
-            return (HAM_OUT_OF_MEMORY);
-        memcpy(p, page_get_raw_payload(page), size);
-
-        while (head) {
-            if (head->before_write_cb) {
-                st=head->before_write_cb(env, head, p, size);
-                if (st) 
-                    break;
-            }
-            head=head->_next;
-        }
-    }
-    else
-        p=(ham_u8_t *)page_get_raw_payload(page);
-
-    if (st==0)
-        st=log_append_prewrite(log, env_get_flushed_txn(env), 
-                page_get_self(page), p, size);
-
-    if (p!=page_get_raw_payload(page))
-        allocator_free(log_get_allocator(log), p);
-
-    if (st) 
-        return st;
-
-    page_set_before_img_lsn(page, log_get_lsn(log)-1);
-    return (0);
-}
-
-ham_status_t
-log_add_page_after(ham_page_t *page)
+log_append_page(ham_page_t *page)
 {
     ham_status_t st=0;
     ham_env_t *env=device_get_env(page_get_device(page));

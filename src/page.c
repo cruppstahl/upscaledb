@@ -248,23 +248,6 @@ page_flush(ham_page_t *page)
     env = device_get_env(dev);
     ham_assert(env, (0));
 
-    /* 
-     * as we are about to write a modified page to disc, we MUST flush 
-     * the log before we do write the page in order to assure crash 
-     * recovery:
-     *
-     * as this page belongs to us, it may well be a page which was modified
-     * in the pending transaction and any such edits should be REWINDable
-     * after a crash when that page has just been written.
-     */
-    if (env
-            && env_get_log(env) 
-            && !(log_get_state(env_get_log(env))&LOG_STATE_CHECKPOINT)) {
-        st=log_append_flush_page(env_get_log(env), page);
-        if (st)
-            return (st);
-    }
-
     st=dev->write_page(dev, page);
     if (st)
         return (st);

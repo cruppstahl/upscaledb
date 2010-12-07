@@ -606,13 +606,6 @@ bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,
     page=bt_cursor_get_coupled_page(c);
 
     /*
-     * prepare page for logging
-     */
-    st=log_add_page_before(page);
-    if (st)
-        return (st);
-
-    /*
      * get the btree node entry
      */
     node=page_get_btree_node(bt_cursor_get_coupled_page(c));
