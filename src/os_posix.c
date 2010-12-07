@@ -357,14 +357,17 @@ os_close(ham_fd_t fd, ham_u32_t flags)
 {
     ham_status_t st;
 
-    /*
-     * unlock the file - this is default behaviour since 1.1.0
-     */
+    /* on posix, we most likely don't want to close descriptors 0, 1 and 2 */
+    ham_assert(fd<0 || fd>=3, (""));
+
+    /* unlock the file - this is default behaviour since 1.1.0 */
     st=__lock_exclusive(fd, HAM_FALSE);
     if (st)
         return (st);
 
+    /* now close the descriptor */
     if (close(fd)==-1)
         return (HAM_IO_ERROR);
+
     return (HAM_SUCCESS);
 }

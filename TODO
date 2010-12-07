@@ -264,7 +264,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
     x decrease default journal threshhold (16?)
     x remove page_set_before_img_lsn()?
 
-    o os_close: assert that fd>=3 (on linux)
+    x os_close: assert that fd>=3 (on linux)
 
     o we have to flush pages after they're modified (search for db_fetch_page
         and db_alloc_page); however, what if multiple pages are modified (i.e.
