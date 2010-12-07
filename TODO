@@ -268,9 +268,9 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         same regarding SMOs - first wait till all modifications are done (in
         the cache), then flush the pages (or discard them if the operation
         failed for whatever reason)
-        o re-introduce a structure similar to the old transaction list
+        x re-introduce a structure similar to the old transaction list
             ("changeset"); don't forget to update my_verify_page()!
-            o need unittests
+            x need unittests
         o when fetching a page, first check this list
             o need unittests
         o when fetching or allocating, insert page in this list
@@ -285,6 +285,8 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             o need unittests
         o after a changeset was successfully applied/flushed: clear the logfile
             o need unittests
+        o what about the freelist - is it also part of the changeset?
+        o do we need a changeset if recovery/logging is disabled?
 
         o log: always write only the last operation
             o assert that the log is empty (only debug!)

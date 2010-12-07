@@ -44,8 +44,10 @@ extern "C" {
 #define PAGE_LIST_GARBAGE          1
 /* list of all cached pages */
 #define PAGE_LIST_CACHED           2
+/* list of all pages in a changeset */
+#define PAGE_LIST_CHANGESET        3
 /* array limit */
-#define MAX_PAGE_LISTS             3
+#define MAX_PAGE_LISTS             4
 
 #include "packstart.h"
 

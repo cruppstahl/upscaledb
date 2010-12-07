@@ -39,6 +39,7 @@ test_SOURCES    = log.cpp \
                   mem.cpp \
                   endian.cpp \
                   page.cpp \
+                  changeset.cpp \
                   txn.cpp \
                   memtracker.cpp \
                   memtracker.h \
