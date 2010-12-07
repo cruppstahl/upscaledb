@@ -261,6 +261,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             o afterwards: write ALL modified pages to the log, THEN flush them
                 with WRITE_THROUGH
             o afterwards: clear the log
+    o decrease defualt journal threshhold (16?)
 
     o os_close: assert that fd>=3 (on linux)
 
@@ -288,6 +289,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             o need unittests
         o after a changeset was successfully applied/flushed: clear the logfile
             o need unittests
+
     o who manages the lsn? currently, the journal and env.h manage both their
         own lsn; and it's not propagated down to the physlog
     o if recovery is enabled: after flushing the changeset, update the 

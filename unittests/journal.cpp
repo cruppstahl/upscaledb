@@ -115,7 +115,8 @@ public:
         BFC_ASSERT_EQUAL(0, 
             journal_create(env, 0644, 0, &log));
         BFC_ASSERT_NOTNULL(log);
-        return log;
+        env_set_journal(env, log);
+        return (log);
     }
 
     void structHeaderTest()
@@ -195,7 +196,7 @@ public:
         BFC_ASSERT_EQUAL(0, journal_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(1, isempty);
 
-        BFC_ASSERT_EQUAL(0, journal_close(log, HAM_FALSE));
+        // do not close the journal - it will be closed in teardown()
     }
 
     void createCloseOpenCloseTest(void)
@@ -254,7 +255,6 @@ public:
 
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, journal_append_txn_begin(log, txn));
 
         BFC_ASSERT_EQUAL((ham_size_t)1, journal_get_open_txn(log, 0));
         BFC_ASSERT_EQUAL((ham_size_t)0, journal_get_closed_txn(log, 0));
@@ -266,7 +266,6 @@ public:
         BFC_ASSERT_EQUAL((ham_u64_t)2, journal_get_lsn(log));
 
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-        BFC_ASSERT_EQUAL(0, journal_close(log, HAM_FALSE));
     }
 
     void appendTxnAbortTest(void)
@@ -278,7 +277,6 @@ public:
 
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, journal_append_txn_begin(log, txn));
         BFC_ASSERT_EQUAL(0, journal_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(0, isempty);
         BFC_ASSERT_EQUAL((ham_u64_t)2, journal_get_lsn(log));
@@ -297,7 +295,6 @@ public:
         BFC_ASSERT_EQUAL((ham_size_t)0, journal_get_closed_txn(log, 1));
 
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-        BFC_ASSERT_EQUAL(0, journal_close(log, HAM_FALSE));
     }
 
     void appendTxnCommitTest(void)
@@ -309,7 +306,6 @@ public:
 
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, journal_append_txn_begin(log, txn));
         BFC_ASSERT_EQUAL(0, journal_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(0, isempty);
         BFC_ASSERT_EQUAL((ham_u64_t)2, journal_get_lsn(log));
@@ -328,7 +324,6 @@ public:
         BFC_ASSERT_EQUAL((ham_size_t)0, journal_get_closed_txn(log, 1));
 
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-        BFC_ASSERT_EQUAL(0, journal_close(log, HAM_FALSE));
     }
 
     void appendInsertTest(void)
@@ -345,11 +340,12 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                     journal_append_insert(log, txn, &key, &rec, HAM_OVERWRITE));
-        BFC_ASSERT_EQUAL((ham_u64_t)2, journal_get_lsn(log));
+        BFC_ASSERT_EQUAL((ham_u64_t)3, journal_get_lsn(log));
         BFC_ASSERT_EQUAL(0, journal_close(log, HAM_TRUE));
 
         BFC_ASSERT_EQUAL(0, 
                 journal_open(m_env, 0, &log));
+        env_set_journal(m_env, log);
         BFC_ASSERT(log!=0);
 
         /* verify that the insert entry was written correctly */
@@ -357,9 +353,11 @@ public:
         memset(&iter, 0, sizeof(iter));
         journal_entry_t entry;
         journal_entry_insert_t *ins;
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0,  // this is the txn
                     journal_get_entry(log, &iter, &entry, (void **)&ins));
-        BFC_ASSERT_EQUAL((ham_u64_t)1, journal_entry_get_lsn(&entry));
+        BFC_ASSERT_EQUAL(0,  // this is the insert
+                    journal_get_entry(log, &iter, &entry, (void **)&ins));
+        BFC_ASSERT_EQUAL((ham_u64_t)2, journal_entry_get_lsn(&entry));
         BFC_ASSERT_EQUAL(5, journal_entry_insert_get_key_size(ins));
         BFC_ASSERT_EQUAL(5u, journal_entry_insert_get_record_size(ins));
         BFC_ASSERT_EQUAL(0ull, 
@@ -376,7 +374,6 @@ public:
                             (char *)journal_entry_insert_get_record_data(ins)));
 
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-        BFC_ASSERT_EQUAL(0, journal_close(log, HAM_FALSE));
     }
 
     void appendEraseTest(void)
@@ -390,11 +387,12 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                     journal_append_erase(log, txn, &key, 1, 0));
-        BFC_ASSERT_EQUAL((ham_u64_t)2, journal_get_lsn(log));
+        BFC_ASSERT_EQUAL((ham_u64_t)3, journal_get_lsn(log));
         BFC_ASSERT_EQUAL(0, journal_close(log, HAM_TRUE));
 
         BFC_ASSERT_EQUAL(0, 
                 journal_open(m_env, 0, &log));
+        env_set_journal(m_env, log);
         BFC_ASSERT(log!=0);
 
         /* verify that the insert entry was written correctly */
@@ -402,9 +400,11 @@ public:
         memset(&iter, 0, sizeof(iter));
         journal_entry_t entry;
         journal_entry_erase_t *er;
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(0, // this is the txn
                     journal_get_entry(log, &iter, &entry, (void **)&er));
-        BFC_ASSERT_EQUAL((ham_u64_t)1, journal_entry_get_lsn(&entry));
+        BFC_ASSERT_EQUAL(0, // this is the erase
+                    journal_get_entry(log, &iter, &entry, (void **)&er));
+        BFC_ASSERT_EQUAL((ham_u64_t)2, journal_entry_get_lsn(&entry));
         BFC_ASSERT_EQUAL(5, journal_entry_erase_get_key_size(er));
         BFC_ASSERT_EQUAL(0u, journal_entry_erase_get_flags(er));
         BFC_ASSERT_EQUAL(1u, journal_entry_erase_get_dupe(er));
@@ -413,7 +413,6 @@ public:
                             (char *)journal_entry_erase_get_key_data(er)));
 
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-        BFC_ASSERT_EQUAL(0, journal_close(log, HAM_FALSE));
     }
 
     void clearTest(void)
@@ -425,7 +424,6 @@ public:
 
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, journal_append_txn_begin(log, txn));
 
         BFC_ASSERT_EQUAL(0, journal_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(0, isempty);
@@ -434,9 +432,9 @@ public:
         BFC_ASSERT_EQUAL(0, journal_clear(log));
         BFC_ASSERT_EQUAL(0, journal_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(1, isempty);
+        BFC_ASSERT_EQUAL((ham_u64_t)2, journal_get_lsn(log));
 
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-        BFC_ASSERT_EQUAL(0, journal_close(log, HAM_FALSE));
     }
 
     void iterateOverEmptyLogTest(void)
@@ -452,8 +450,6 @@ public:
                     journal_get_entry(log, &iter, &entry, (void **)&data));
         BFC_ASSERT_EQUAL((ham_u64_t)0, journal_entry_get_lsn(&entry));
         BFC_ASSERT_EQUAL((ham_u8_t *)0, data);
-
-        BFC_ASSERT_EQUAL(0, journal_close(log, HAM_FALSE));
     }
 
     void iterateOverLogOneEntryTest(void)
@@ -466,6 +462,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                 journal_open(m_env, 0, &log));
+        env_set_journal(m_env, log);
         BFC_ASSERT(log!=0);
 
         journal_iterator_t iter;
@@ -483,7 +480,6 @@ public:
                         journal_entry_get_type(&entry));
 
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-        BFC_ASSERT_EQUAL(0, journal_close(log, HAM_FALSE));
     }
 
     void checkJournalEntry(journal_entry_t *entry, ham_u64_t lsn, 
