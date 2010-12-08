@@ -280,17 +280,21 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         x make sure that the changeset is empty when closing the Env
         o before each create/update/erase op:
                 1. assert that the list is empty
-                2. proceed with the operation
-                3. on success: flush the list
-                4. always clear the list
-                5. clear the logfile
-            o insert
-            o erase
-            o cursor_insert
-            o cursor_erase
-            o cursor_overwrite
-            o env_create_db
-            o env_create
+                2. assert that the log is empty
+                3. proceed with the operation
+                4. on success: flush the list -> txn_commit
+                5. always clear the list -> txn_commit, txn_abort
+                6. clear the logfile -> txn_commit, txn_abort (?)
+            x insert
+            x erase
+            x cursor_insert
+            x cursor_erase
+            x cursor_overwrite
+            o env_create_db -- needs review, does not use transactions 
+                    currently; is it atomic? what can happen if it crashes?
+                    if logging is enabled, the allocated page(s) and the 
+                    header file should be flushed
+            o env_create -- same as above
             o need unittests
         o what about the freelist - is it also part of the changeset? - yes,
             definitely!

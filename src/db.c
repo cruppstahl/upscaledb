@@ -2047,6 +2047,18 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
             return (st);
     }
 
+    /* logging enabled? then the changeset and the log HAS to be empty */
+#ifdef HAM_DEBUG
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+        ham_status_t st;
+        ham_bool_t empty;
+        ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
+        st=log_is_empty(env_get_log(env), &empty);
+        ham_assert(st==0, (""));
+        ham_assert(empty==HAM_TRUE, (""));
+    }
+#endif
+
     /* 
      * if transactions are enabled: only insert the key/record pair into
      * the Transaction structore. Otherwise immediately write to disk
@@ -2144,6 +2156,18 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         if (st)
             return (st);
     }
+
+    /* logging enabled? then the changeset and the log HAS to be empty */
+#ifdef HAM_DEBUG
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+        ham_status_t st;
+        ham_bool_t empty;
+        ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
+        st=log_is_empty(env_get_log(env), &empty);
+        ham_assert(st==0, (""));
+        ham_assert(empty==HAM_TRUE, (""));
+    }
+#endif
 
     /* 
      * if transactions are enabled: append a 'erase key' operation into
@@ -2375,6 +2399,8 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     st=__record_filters_before_write(db, &temprec);
     if (!st)
         db_update_global_stats_insert_query(db, key->size, temprec.size);
+    else
+        return (st);
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
@@ -2382,6 +2408,18 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         if (st)
             return (st);
     }
+
+    /* logging enabled? then the changeset and the log HAS to be empty */
+#ifdef HAM_DEBUG
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+        ham_status_t st;
+        ham_bool_t empty;
+        ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
+        st=log_is_empty(env_get_log(env), &empty);
+        ham_assert(st==0, (""));
+        ham_assert(empty==HAM_TRUE, (""));
+    }
+#endif
 
     if (!st)
         st=cursor->_fun_insert(cursor, key, &temprec, flags);
@@ -2453,6 +2491,18 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         if (st)
             return (st);
     }
+
+    /* logging enabled? then the changeset and the log HAS to be empty */
+#ifdef HAM_DEBUG
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+        ham_status_t st;
+        ham_bool_t empty;
+        ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
+        st=log_is_empty(env_get_log(env), &empty);
+        ham_assert(st==0, (""));
+        ham_assert(empty==HAM_TRUE, (""));
+    }
+#endif
 
     st=cursor->_fun_erase(cursor, flags);
 
@@ -2623,6 +2673,18 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
         if (st)
             return (st);
     }
+
+    /* logging enabled? then the changeset and the log HAS to be empty */
+#ifdef HAM_DEBUG
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+        ham_status_t st;
+        ham_bool_t empty;
+        ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
+        st=log_is_empty(env_get_log(env), &empty);
+        ham_assert(st==0, (""));
+        ham_assert(empty==HAM_TRUE, (""));
+    }
+#endif
 
     st=cursor->_fun_overwrite(cursor, &temprec, flags);
 
