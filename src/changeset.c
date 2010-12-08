@@ -11,6 +11,9 @@
 
 #include "page.h"
 #include "changeset.h"
+#include "env.h"
+#include "log.h"
+#include "device.h"
 
 void
 changeset_add_page(changeset_t *cs, ham_page_t *page)
@@ -18,6 +21,8 @@ changeset_add_page(changeset_t *cs, ham_page_t *page)
     ham_assert(0==changeset_get_page(cs, page_get_self(page)), (""));
     ham_assert(0==page_get_next(page, PAGE_LIST_CHANGESET), (""));
     ham_assert(0==page_get_previous(page, PAGE_LIST_CHANGESET), (""));
+    ham_assert(env_get_rt_flags(device_get_env(page_get_device(page)))
+                &HAM_ENABLE_RECOVERY, (""));
 
     page_set_next(page, PAGE_LIST_CHANGESET, changeset_get_head(cs));
     changeset_set_head(cs, page);
@@ -27,6 +32,10 @@ ham_page_t *
 changeset_get_page(changeset_t *cs, ham_offset_t pageid)
 {
     ham_page_t *p=changeset_get_head(cs);
+
+    ham_assert(env_get_rt_flags(device_get_env(page_get_device(p)))
+                &HAM_ENABLE_RECOVERY, (""));
+
     while (p) {
         if (page_get_self(p)==pageid)
             return (p);
@@ -47,5 +56,49 @@ changeset_clear(changeset_t *cs)
         p=n;
     }
     changeset_set_head(cs, 0);
+}
+
+ham_status_t
+changeset_flush(changeset_t *cs)
+{
+    ham_status_t st;
+    ham_page_t *p;
+    ham_env_t *env;
+    ham_log_t *log;
+
+    /* first write all changed pages to the log; if this fails, clear the log
+     * again because recovering an incomplete log would break the database 
+     * file */
+    p=changeset_get_head(cs);
+    if (!p)
+        return (0);
+
+    env=device_get_env(page_get_device(p));
+    log=env_get_log(env);
+
+    ham_assert(log!=0, (""));
+    ham_assert(env_get_rt_flags(env)&HAM_ENABLE_RECOVERY, (""));
+
+    while (p) {
+        st=log_append_page(log, p);
+        if (st) {
+            (void)log_clear(log);
+            return (st);
+        }
+        p=page_get_next(p, PAGE_LIST_CHANGESET);
+    }
+    
+    /* now write all the pages to the file; if any of these writes fail, 
+     * we can still recover from the log */
+    p=changeset_get_head(cs);
+    while (p) {
+        st=db_flush_page(env, p, HAM_WRITE_THROUGH);
+        if (st)
+            return (st);
+        p=page_get_next(p, PAGE_LIST_CHANGESET);
+    }
+
+    /* done - we can now clear the log */
+    return (log_clear(log));
 }
 

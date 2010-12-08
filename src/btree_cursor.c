@@ -46,9 +46,7 @@ my_move_first(ham_btree_t *be, ham_bt_cursor_t *c, ham_u32_t flags)
     /*
      * get a NIL cursor
      */
-    st=bt_cursor_set_to_nil(c);
-    if (st)
-        return (st);
+    bt_cursor_set_to_nil(c);
 
     /*
      * get the root page
@@ -454,9 +452,8 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
     ham_db_t *db=bt_cursor_get_db(c);
     ham_env_t *env = db_get_env(db);
 
-    if (bt_cursor_get_flags(c)&BT_CURSOR_FLAG_UNCOUPLED)
-        return (0);
-    if (!(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED))
+    if ((bt_cursor_get_flags(c)&BT_CURSOR_FLAG_UNCOUPLED)
+            || (bt_cursor_is_nil(c)))
         return (0);
 
     ham_assert(bt_cursor_get_coupled_page(c)!=0,
@@ -502,8 +499,8 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
 
 /**                                                                 
  * clone an existing cursor                                         
-
- @note This is a B+-tree cursor 'backend' method.
+ *
+ * @note This is a B+-tree cursor 'backend' method.
  */                                                                 
 static ham_status_t
 bt_cursor_clone(ham_bt_cursor_t *old, ham_bt_cursor_t **newc)
@@ -530,11 +527,10 @@ bt_cursor_clone(ham_bt_cursor_t *old, ham_bt_cursor_t **newc)
          page_add_cursor(page, (ham_cursor_t *)c);
          bt_cursor_set_coupled_page(c, page);
     }
-    else if (bt_cursor_get_flags(old)&BT_CURSOR_FLAG_UNCOUPLED) 
-    {
-        /*
-         * if the old cursor is uncoupled: copy the key
-         */
+    /*
+     * otherwise, if the old cursor is uncoupled: copy the key
+     */
+    else if (bt_cursor_get_flags(old)&BT_CURSOR_FLAG_UNCOUPLED) {
         ham_key_t *key;
 
         key=(ham_key_t *)allocator_calloc(env_get_allocator(env), sizeof(*key));
@@ -564,12 +560,10 @@ bt_cursor_clone(ham_bt_cursor_t *old, ham_bt_cursor_t **newc)
  *
  * @note This is a B+-tree cursor 'backend' method.
  */                                                                 
-static ham_status_t
+static void
 bt_cursor_close(ham_bt_cursor_t *c)
 {
-    (void)bt_cursor_set_to_nil(c);
-
-    return (0);
+    bt_cursor_set_to_nil(c);
 }
 
 /**                                                                 
@@ -963,8 +957,6 @@ bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     ham_env_t *env = db_get_env(db);
     ham_bt_cursor_t *c;
 
-    (void)flags;
-
     *cu=0;
 
     c=(ham_bt_cursor_t *)allocator_calloc(env_get_allocator(env), sizeof(*c));
@@ -979,6 +971,7 @@ bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     c->_fun_insert=bt_cursor_insert;
     c->_fun_erase=bt_cursor_erase;
     c->_fun_get_duplicate_count=bt_cursor_get_duplicate_count;
+    cursor_set_flags(c, flags);
 
     *cu=c;
     return (0);

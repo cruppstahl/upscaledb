@@ -278,7 +278,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             anyway cannot happen since we never purge while an operation is
             in progress - true)
         x make sure that the changeset is empty when closing the Env
-        o before each create/update/erase op:
+        x before each create/update/erase op:
                 1. assert that the list is empty
                 2. assert that the log is empty
                 3. proceed with the operation
@@ -290,24 +290,34 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             x cursor_insert
             x cursor_erase
             x cursor_overwrite
-            o env_create_db -- needs review, does not use transactions 
-                    currently; is it atomic? what can happen if it crashes?
-                    if logging is enabled, the allocated page(s) and the 
-                    header file should be flushed
-            o env_create -- same as above
-            o need unittests
+            x env_create_db 
+            x changeset_flush: what happens if writing data to the log fails?
+                in that case the log is incomplete, and recovering from it
+                would break everything -> on failure, clear the log
+            x env_create -- same as above
+            x every other function which modifies the header page MUST
+                flush it afterwards!
+            x if logging is enabled: also set HAM_WRITE_THROUGH
+        x do we need a changeset if recovery/logging is disabled? - no, not
+            required; add assert in changeset_add_page that it's not used
+            if logging is disabled
         o what about the freelist - is it also part of the changeset? - yes,
-            definitely!
-        o do we need a changeset if recovery/logging is disabled? - no, not
-            required
+            definitely! - but currently i do not see it in the debugger
+
+====> currently fails in RemoteTest::cursorCloneTest()
+
+        o disable logfile switching in log.c
+
+        o add high level logfile unittests
+            o with freelist
+            o with header page modifications
+            o with small blobs
+            o with large blobs
+            o with allocations
 
         x do we still need PAGE_DONT_LOG_CONTENT? - no, remove it
 
-        o log: always write only the last operation
-            o assert that the log is empty (only debug!)
-            o afterwards: write ALL modified pages to the log, THEN flush them
-                with WRITE_THROUGH
-            o afterwards: clear the log
+        . should the changeset become part of the log? it would make sense
 
     o who manages the lsn? currently, the journal and env.h manage both their
         own lsn; and it's not propagated down to the physlog

@@ -839,7 +839,7 @@ done:
     if (flags&PAGE_CLEAR_WITH_ZERO) {
         memset(page_get_pers(page), 0, env_get_pagesize(env));
 
-        st=log_append_page(page);
+        st=log_append_page(env_get_log(env), page);
         if (st) 
             return st;
     }
@@ -1026,7 +1026,7 @@ db_flush_page(ham_env_t *env, ham_page_t *page, ham_u32_t flags)
 {
     ham_status_t st;
 
-    /* write the page, if it's dirty and if write-through is enabled */
+    /* write the page if it's dirty and if write-through is enabled */
     if ((env_get_rt_flags(env)&HAM_WRITE_THROUGH 
             || flags&HAM_WRITE_THROUGH 
             || !env_get_cache(env)) 
@@ -1040,6 +1040,8 @@ db_flush_page(ham_env_t *env, ham_page_t *page, ham_u32_t flags)
      * put page back into the cache; do NOT update the page_counter, as
      * this flush operation should not be considered an 'additional page
      * access' impacting the page life-time in the cache.
+     *
+     * TODO why "put it back"? it's already in the cache
      */
     if (env_get_cache(env))
         return (cache_put_page(env_get_cache(env), page));
@@ -2047,18 +2049,6 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
             return (st);
     }
 
-    /* logging enabled? then the changeset and the log HAS to be empty */
-#ifdef HAM_DEBUG
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
-        ham_status_t st;
-        ham_bool_t empty;
-        ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
-        st=log_is_empty(env_get_log(env), &empty);
-        ham_assert(st==0, (""));
-        ham_assert(empty==HAM_TRUE, (""));
-    }
-#endif
-
     /* 
      * if transactions are enabled: only insert the key/record pair into
      * the Transaction structore. Otherwise immediately write to disk
@@ -2156,18 +2146,6 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         if (st)
             return (st);
     }
-
-    /* logging enabled? then the changeset and the log HAS to be empty */
-#ifdef HAM_DEBUG
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
-        ham_status_t st;
-        ham_bool_t empty;
-        ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
-        st=log_is_empty(env_get_log(env), &empty);
-        ham_assert(st==0, (""));
-        ham_assert(empty==HAM_TRUE, (""));
-    }
-#endif
 
     /* 
      * if transactions are enabled: append a 'erase key' operation into
@@ -2289,6 +2267,7 @@ _local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 {
     ham_backend_t *be;
     ham_status_t st;
+    ham_txn_t *local_txn=0;
 
     be=db_get_backend(db);
     if (!be || !be_is_active(be))
@@ -2296,12 +2275,25 @@ _local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     if (!be->_fun_cursor_create)
         return (HAM_NOT_IMPLEMENTED);
 
-    st=be->_fun_cursor_create(be, db, txn, flags, cursor);
+    /* if user did not specify a transaction, but transactions are enabled:
+     * create a temporary one */
+    if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        st=txn_begin(&local_txn, db_get_env(db), 0);
+        if (st)
+            return (st);
+        flags|=CURSOR_TXN_IS_TEMP;
+    }
+
+    st=be->_fun_cursor_create(be, db, txn ? txn : local_txn, flags, cursor);
     if (st)
         return (st);
 
+    /* do not increase the refcount for local_txn, because local_txn is
+     * managed internally by the cursor */
     if (txn)
         txn_set_cursor_refcount(txn, txn_get_cursor_refcount(txn)+1);
+
+    cursor_set_txn(*cursor, txn ? txn : local_txn);
 
     return (0);
 }
@@ -2329,7 +2321,14 @@ _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 static ham_status_t
 _local_cursor_close(ham_cursor_t *cursor)
 {
-    return (cursor->_fun_close(cursor));
+    if (cursor_get_flags(cursor)&CURSOR_TXN_IS_TEMP) {
+        ham_status_t st=ham_txn_commit(cursor_get_txn(cursor), 0);
+        if (st)
+            return (st);
+        cursor_set_txn(cursor, 0);
+    }
+    cursor->_fun_close(cursor);
+    return (0);
 }
 
 static ham_status_t
@@ -2340,7 +2339,6 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     ham_backend_t *be;
     ham_u64_t recno = 0;
     ham_record_t temprec;
-    ham_txn_t *local_txn=0;
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
 
@@ -2385,12 +2383,6 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         flags|=HAM_HINT_APPEND;
     }
 
-    if (!cursor_get_txn(cursor)
-            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
-        if ((st=txn_begin(&local_txn, env, 0)))
-            return (st);
-    }
-
     /*
      * run the record-level filters on a temporary record structure - we
      * don't want to mess up the original structure
@@ -2409,20 +2401,11 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             return (st);
     }
 
-    /* logging enabled? then the changeset and the log HAS to be empty */
-#ifdef HAM_DEBUG
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
-        ham_status_t st;
-        ham_bool_t empty;
-        ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
-        st=log_is_empty(env_get_log(env), &empty);
-        ham_assert(st==0, (""));
-        ham_assert(empty==HAM_TRUE, (""));
-    }
-#endif
-
     if (!st)
         st=cursor->_fun_insert(cursor, key, &temprec, flags);
+
+    /* TODO TODO TODO remove this when cursors are fully implemented */
+    changeset_clear(env_get_changeset(env));
 
     if (temprec.data!=record->data)
         allocator_free(env_get_allocator(env), temprec.data);
@@ -2430,14 +2413,9 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     /* append journal entry */
     if (st==0 && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY)
         st=journal_append_insert(env_get_journal(env), 
-                        cursor_get_txn(cursor) 
-                            ? cursor_get_txn(cursor) 
-                            : local_txn,
-                        key, record, flags);
+                        cursor_get_txn(cursor), key, record, flags);
 
     if (st) {
-        if (local_txn)
-            (void)txn_abort(local_txn, 0);
         if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
                 key->data=0;
@@ -2463,25 +2441,15 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         }
     }
 
-    if (local_txn)
-        return (txn_commit(local_txn, 0));
-    else
-        return (st);
+    return (st);
 }
 
 static ham_status_t 
 _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_txn_t *local_txn;
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
-
-    if (!cursor_get_txn(cursor)) {
-        st=txn_begin(&local_txn, env, 0);
-        if (st)
-            return (st);
-    }
 
     db_update_global_stats_erase_query(db, 0);
 
@@ -2492,43 +2460,27 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
             return (st);
     }
 
-    /* logging enabled? then the changeset and the log HAS to be empty */
-#ifdef HAM_DEBUG
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
-        ham_status_t st;
-        ham_bool_t empty;
-        ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
-        st=log_is_empty(env_get_log(env), &empty);
-        ham_assert(st==0, (""));
-        ham_assert(empty==HAM_TRUE, (""));
-    }
-#endif
-
     st=cursor->_fun_erase(cursor, flags);
+
+    /* TODO TODO TODO remove this when cursors are fully implemented */
+    changeset_clear(env_get_changeset(env));
 
     /* append journal entry - we can retrieve the key from the uncoupled
      * cursor */
     if (st==0 && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY) {
+#if 0 
+    TODO TODO TODO
+    cursor is set to NIL, therefore bt_cursor_get_uncoupled_key() 
+    will fail!
         ham_bt_cursor_t *btc=(ham_bt_cursor_t *)cursor;
         ham_assert(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED, (""));
-        st=journal_append_erase(env_get_journal(env),
-                        cursor_get_txn(cursor) 
-                            ? cursor_get_txn(cursor) 
-                            : local_txn,
+        st=journal_append_erase(env_get_journal(env), cursor_get_txn(cursor),
                         bt_cursor_get_uncoupled_key(btc),
                         bt_cursor_get_dupe_id(btc), flags);
+#endif
     }
 
-    if (st) {
-        if (!cursor_get_txn(cursor))
-            (void)txn_abort(local_txn, 0);
-        return (st);
-    }
-
-    if (!cursor_get_txn(cursor))
-        return (txn_commit(local_txn, 0));
-    else
-        return (st);
+    return (st);
 }
 
 static ham_status_t
@@ -2536,9 +2488,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_txn_t *local_txn;
     ham_db_t *db=cursor_get_db(cursor);
-    ham_env_t *env=db_get_env(db);
     ham_offset_t recno=0;
 
     /*
@@ -2548,19 +2498,11 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
         if (key->size!=sizeof(ham_u64_t) || !key->data) {
             ham_trace(("key->size must be 8, key->data must not be NULL"));
-            if (!cursor_get_txn(cursor))
-                (void)txn_abort(local_txn, 0);
             return (HAM_INV_PARAMETER);
         }
         recno=*(ham_offset_t *)key->data;
         recno=ham_h2db64(recno);
         *(ham_offset_t *)key->data=recno;
-    }
-
-    if (!cursor_get_txn(cursor)) {
-        st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
-        if (st)
-            return (st);
     }
 
     db_update_global_stats_find_query(db, key->size);
@@ -2573,35 +2515,28 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
     }
 
     st=cursor->_fun_find(cursor, key, record, flags);
-    if (st) {
-        if (!cursor_get_txn(cursor))
-            (void)txn_abort(local_txn, 0);
+    if (st)
         return (st);
-    }
+
+    /* TODO TODO TODO remove this when cursors are fully implemented */
+    changeset_clear(env_get_changeset(db_get_env(db)));
 
     /*
      * record number: re-translate the number to host endian
      */
-    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
+    if (db_get_rt_flags(db)&HAM_RECORD_NUMBER)
         *(ham_offset_t *)key->data=ham_db2h64(recno);
-    }
 
     /*
      * run the record-level filters
      */
     if (record) {
         st=__record_filters_after_find(db, record);
-        if (st) {
-            if (!cursor_get_txn(cursor))
-                (void)txn_abort(local_txn, 0);
+        if (st)
             return (st);
-        }
     }
 
-    if (!cursor_get_txn(cursor))
-        return (txn_commit(local_txn, 0));
-    else
-        return (0);
+    return (st);
 }
 
 static ham_status_t
@@ -2609,15 +2544,7 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
         ham_size_t *count, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_txn_t *local_txn;
     ham_db_t *db=cursor_get_db(cursor);
-    ham_env_t *env=db_get_env(db);
-
-    if (!cursor_get_txn(cursor)) {
-        st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
-        if (st)
-            return (st);
-    }
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
@@ -2626,17 +2553,7 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
             return (st);
     }
 
-    st=(*cursor->_fun_get_duplicate_count)(cursor, count, flags);
-    if (st) {
-        if (!cursor_get_txn(cursor))
-            (void)txn_abort(local_txn, 0);
-        return (st);
-    }
-
-    if (!cursor_get_txn(cursor))
-        return (txn_commit(local_txn, 0));
-    else
-        return (st);
+    return ((*cursor->_fun_get_duplicate_count)(cursor, count, flags));
 }
 
 static ham_status_t
@@ -2646,14 +2563,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
     ham_status_t st;
-    ham_txn_t *local_txn;
     ham_record_t temprec;
-
-    if (!cursor_get_txn(cursor)) {
-        st=txn_begin(&local_txn, env, 0);
-        if (st)
-            return (st);
-    }
 
     /*
      * run the record-level filters on a temporary record structure - we
@@ -2661,11 +2571,8 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
      */
     temprec=*record;
     st=__record_filters_before_write(db, &temprec);
-    if (st) {
-        if (!cursor_get_txn(cursor))
-            (void)txn_abort(local_txn, 0);
+    if (st)
         return (st);
-    }
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
@@ -2674,34 +2581,16 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
             return (st);
     }
 
-    /* logging enabled? then the changeset and the log HAS to be empty */
-#ifdef HAM_DEBUG
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
-        ham_status_t st;
-        ham_bool_t empty;
-        ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
-        st=log_is_empty(env_get_log(env), &empty);
-        ham_assert(st==0, (""));
-        ham_assert(empty==HAM_TRUE, (""));
-    }
-#endif
-
     st=cursor->_fun_overwrite(cursor, &temprec, flags);
+
+    /* TODO TODO TODO remove this when cursors are fully implemented */
+    changeset_clear(env_get_changeset(env));
 
     ham_assert(env_get_allocator(env) == cursor_get_allocator(cursor), (0));
     if (temprec.data != record->data)
         allocator_free(env_get_allocator(env), temprec.data);
 
-    if (st) {
-        if (!cursor_get_txn(cursor))
-            (void)txn_abort(local_txn, 0);
-        return (st);
-    }
-
-    if (!cursor_get_txn(cursor))
-        return (txn_commit(local_txn, 0));
-    else
-        return (st);
+    return (st);
 }
 
 static ham_status_t
@@ -2710,14 +2599,6 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 {
     ham_status_t st;
     ham_db_t *db=cursor_get_db(cursor);
-    ham_env_t *env=db_get_env(db);
-    ham_txn_t *local_txn;
-
-    if (!cursor_get_txn(cursor)) {
-        st=txn_begin(&local_txn, env, HAM_TXN_READ_ONLY);
-        if (st)
-            return (st);
-    }
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
@@ -2727,28 +2608,20 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     }
 
     st=cursor->_fun_move(cursor, key, record, flags);
-    if (st) {
-        if (!cursor_get_txn(cursor))
-            (void)txn_abort(local_txn, 0);
-        return (st);
-    }
+
+    /* TODO TODO TODO remove this when cursors are fully implemented */
+    changeset_clear(env_get_changeset(db_get_env(db)));
 
     /*
      * run the record-level filters
      */
-    if (record) {
+    if (st==0 && record) {
         st=__record_filters_after_find(db, record);
-        if (st) {
-            if (!cursor_get_txn(cursor))
-                (void)txn_abort(local_txn, 0);
+        if (st)
             return (st);
-        }
     }
 
-    if (!cursor_get_txn(cursor))
-        return (txn_commit(local_txn, 0));
-    else
-        return (st);
+    return (st);
 }
 
 

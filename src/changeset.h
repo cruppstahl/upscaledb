@@ -68,6 +68,13 @@ changeset_get_page(changeset_t *cs, ham_offset_t pageid);
 extern void
 changeset_clear(changeset_t *cs);
 
+/**
+ * flush all pages in the changeset - first write them to the log, then 
+ * write them to the disk; on success: clear the log again
+ */
+extern ham_status_t
+changeset_flush(changeset_t *cs);
+
 
 #ifdef __cplusplus
 } // extern "C" {

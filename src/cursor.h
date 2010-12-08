@@ -39,7 +39,7 @@ extern "C" {
     /**                                                                 \
      * close an existing cursor                                         \
      */                                                                 \
-    ham_status_t (*_fun_close)(clss *cu);                               \
+    void (*_fun_close)(clss *cu);                                       \
                                                                         \
     /**                                                                 \
      * overwrite the record of this cursor                              \
@@ -104,7 +104,12 @@ extern "C" {
     /**                                                                 \
      * linked list of cursors which point to the same page              \
      */                                                                 \
-    clss *_next_in_page, *_previous_in_page
+    clss *_next_in_page, *_previous_in_page;                            \
+                                                                        \
+    /**                                                                 \
+     * Cursor flags                                                     \
+     */                                                                 \
+    ham_u32_t _flags
 
 
 /**
@@ -115,6 +120,22 @@ struct ham_cursor_t
 {
     CURSOR_DECLARATIONS(ham_cursor_t);
 };
+
+/**
+ * get the cursor flags
+ */
+#define cursor_get_flags(c)               (c)->_flags
+
+/**
+ * set the cursor flags
+ */
+#define cursor_set_flags(c, f)            (c)->_flags=(f)
+
+/**
+ * cursor flag: transaction is private to this cursor and must be committed
+ * when the cursor is closed
+ */
+#define CURSOR_TXN_IS_TEMP                  0x100000
 
 /**
  * get the 'next' pointer of the linked list

@@ -39,11 +39,6 @@ struct ham_bt_cursor_t
      */
     CURSOR_DECLARATIONS(ham_bt_cursor_t);
 
-    /**
-     * internal cursor flags
-     */
-    ham_u32_t _flags;
-
     /*
      * the id of the duplicate key
      */

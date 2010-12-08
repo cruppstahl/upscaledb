@@ -17,11 +17,12 @@
  * modification operations). The physical log only stores "redo" information
  * of the last operation that was written to the Btree (either an 
  * insert or an erase). We do not need "undo" information - all "undo" 
- * related logic is part of the journal, not of the log.
+ * related logic is part of the journal, not of the log, and only committed
+ * operations are written to the log.
  *
  * In later versions of hamsterdb we may be able to get rid of the log
  * alltogether, if we manage to make SMO's atomic as well (tricky, but
- * can be done for some of them).
+ * can be done at least for some of them).
  */
 
 #ifndef HAM_LOG_H__
@@ -332,7 +333,7 @@ log_close(ham_log_t *log, ham_bool_t noclear);
  * adds an AFTER-image of a page
  */
 extern ham_status_t
-log_append_page(ham_page_t *page);
+log_append_page(ham_log_t *log, ham_page_t *page);
 
 /**
  * do the recovery

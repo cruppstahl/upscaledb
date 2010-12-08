@@ -2934,7 +2934,8 @@ ham_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 
     cursor_set_allocator(*cursor, env_get_allocator(env));
     cursor_set_db(*cursor, db);
-    cursor_set_txn(*cursor, txn);
+    if (txn)
+        cursor_set_txn(*cursor, txn);
 
     return (0);
 }

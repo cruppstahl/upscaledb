@@ -251,7 +251,6 @@ my_fun_create(ham_btree_t *be, ham_u16_t keysize, ham_u32_t flags)
     index_clear_reserved(indexdata);
 
     env_set_dirty(db_get_env(db));
-
     be_set_active(be, HAM_TRUE);
 
     return (0);
@@ -827,8 +826,7 @@ btree_close_cursors(ham_db_t *db, ham_u32_t flags)
                 st=ham_cursor_close((ham_cursor_t *)c);
             }
             else {
-                //st=bt_cursor_close(c);
-                st=c->_fun_close(c);
+                c->_fun_close(c);
             }
             if (st) {
                 if (st2 == 0) st2 = st;

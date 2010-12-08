@@ -377,11 +377,10 @@ log_close(ham_log_t *log, ham_bool_t noclear)
 }
 
 ham_status_t
-log_append_page(ham_page_t *page)
+log_append_page(ham_log_t *log, ham_page_t *page)
 {
     ham_status_t st=0;
     ham_env_t *env=device_get_env(page_get_device(page));
-    ham_log_t *log=env_get_log(env);
     ham_file_filter_t *head=env_get_file_filter(env);
     ham_u8_t *p;
     ham_size_t size=env_get_pagesize(env);

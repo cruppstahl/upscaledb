@@ -232,7 +232,10 @@ _local_fun_create(ham_env_t *env, const char *filename,
         }
         env_set_cache(env, cache);
     }
-    return (st);
+
+    /* flush the logfile - this will write through disk if logging is
+     * enabled */
+    return (page_flush(env_get_header_page(env)));
 }
 
 static ham_status_t 
@@ -528,6 +531,10 @@ _local_fun_rename_db(ham_env_t *env, ham_u16_t oldname,
     index_set_dbname(env_get_indexdata_ptr(env, slot), newname);
 
     env_set_dirty(env);
+
+    /* flush the header page if logging is enabled */
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
+        return (page_flush(env_get_header_page(env)));
     
     return (0);
 }
@@ -986,6 +993,18 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
         return (HAM_LIMITS_REACHED);
     }
 
+    /* logging enabled? then the changeset and the log HAS to be empty */
+#ifdef HAM_DEBUG
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+        ham_status_t st;
+        ham_bool_t empty;
+        ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
+        st=log_is_empty(env_get_log(env), &empty);
+        ham_assert(st==0, (""));
+        ham_assert(empty==HAM_TRUE, (""));
+    }
+#endif
+
     /* 
      * create the backend
      */
@@ -995,7 +1014,7 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
         ham_assert(st ? be == NULL : 1, (0));
         if (!be) {
             (void)ham_close(db, 0);
-            return (st);
+            goto bail;
         }
 
         /* 
@@ -1010,7 +1029,7 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
     st=be->_fun_create(be, keysize, pflags);
     if (st) {
         (void)ham_close(db, 0);
-        return (st);
+        goto bail;
     }
 
     ham_assert(be_is_active(be) != 0, (0));
@@ -1021,7 +1040,7 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
     st=db_initialize_local(db);
     if (st) {
         (void)ham_close(db, 0);
-        return (st);
+        goto bail;
     }
 
     /*
@@ -1072,7 +1091,16 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
     db_set_next(db, env_get_list(env));
     env_set_list(env, db);
 
-    return (0);
+bail:
+    /* if logging is enabled: flush the changeset and the header page */
+    if (st==0 && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+        st=page_flush(env_get_header_page(env));
+        if (!st)
+            st=changeset_flush(env_get_changeset(env));
+        changeset_clear(env_get_changeset(env));
+    }
+
+    return (st);
 }
 
 static ham_status_t 
@@ -1402,6 +1430,18 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
          * env_flushed_txn pointer */
         env_set_flushed_txn(env, txn);
 
+    /* logging enabled? then the changeset and the log HAS to be empty */
+#ifdef HAM_DEBUG
+        if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+            ham_status_t st;
+            ham_bool_t empty;
+            ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
+            st=log_is_empty(env_get_log(env), &empty);
+            ham_assert(st==0, (""));
+            ham_assert(empty==HAM_TRUE, (""));
+        }
+#endif
+
         /* depending on the type of the operation: actually perform the
          * operation on the btree */
         switch (txn_op_get_flags(op)) {
@@ -1422,6 +1462,12 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
                 break;
             default:
                 break;
+        }
+
+        /* now flush the changeset to disk */
+        if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+            st=changeset_flush(env_get_changeset(env));
+            changeset_clear(env_get_changeset(env));
         }
 
         env_set_flushed_txn(env, 0);

@@ -429,6 +429,10 @@ __collapse_root(ham_page_t *newroot, erase_scratchpad_t *scratchpad)
     ham_assert(env!=0, (""));
     env_set_dirty(env);
 
+    /* add the page to the changeset to make sure that the changes are 
+     * logged */
+    changeset_add_page(env_get_changeset(env), env_get_header_page(env));
+
     /*
      * As we re-purpose a page, we will reset its pagecounter as
      * well to signal its first use as the new type assigned here.

@@ -366,11 +366,13 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
          * set the new root page
          *
          * !!
-         * do NOT delete the old root page - it's still in use!
+         * do NOT delete the old root page - it's still in use! also add the
+         * root page to the changeset to make sure that the changes are logged
          */
         btree_set_rootpage(be, page_get_self(newroot));
         be_set_dirty(be, HAM_TRUE);
         env_set_dirty(env);
+        changeset_add_page(env_get_changeset(env), env_get_header_page(env));
         if (env_get_cache(env) && (page_get_type(root)!=PAGE_TYPE_B_INDEX)) 
         {
             /*
@@ -723,8 +725,7 @@ __insert_nosplit(ham_page_t *page, ham_key_t *key,
      */
     if (cursor) 
     {
-        if ((st=bt_cursor_set_to_nil(cursor)))
-            return (st);
+        bt_cursor_set_to_nil(cursor);
 
         ham_assert(!(bt_cursor_get_flags(cursor)&BT_CURSOR_FLAG_UNCOUPLED), 
                 ("coupling an uncoupled cursor, but need a nil-cursor"));
