@@ -26,7 +26,7 @@ using namespace bfc;
 
 class ChangesetTest : public hamsterDB_fixture
 {
-	define_super(hamsterDB_fixture);
+    define_super(hamsterDB_fixture);
 
 public:
     ChangesetTest()
@@ -45,19 +45,20 @@ protected:
 
 public:
     virtual void setup() 
-	{ 
-		__super::setup();
+    { 
+        __super::setup();
 
         BFC_ASSERT_EQUAL(0, ham_new(&m_db));
         BFC_ASSERT((m_alloc=memtracker_new())!=0);
         BFC_ASSERT_EQUAL(0, 
-                ham_create_ex(m_db, BFC_OPATH(".test"), 0, 0644, 0));
+                ham_create_ex(m_db, BFC_OPATH(".test"), 
+                HAM_ENABLE_RECOVERY, 0644, 0));
         m_env=db_get_env(m_db);
     }
     
     virtual void teardown() 
-	{ 
-		__super::teardown();
+    { 
+        __super::teardown();
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
