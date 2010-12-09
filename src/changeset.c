@@ -18,7 +18,9 @@
 void
 changeset_add_page(changeset_t *cs, ham_page_t *page)
 {
-    ham_assert(0==changeset_get_page(cs, page_get_self(page)), (""));
+    if (page_is_in_list(changeset_get_head(cs), page, PAGE_LIST_CHANGESET))
+        return;
+
     ham_assert(0==page_get_next(page, PAGE_LIST_CHANGESET), (""));
     ham_assert(0==page_get_previous(page, PAGE_LIST_CHANGESET), (""));
     ham_assert(env_get_rt_flags(device_get_env(page_get_device(page)))

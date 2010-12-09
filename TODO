@@ -301,7 +301,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         x do we need a changeset if recovery/logging is disabled? - no, not
             required; add assert in changeset_add_page that it's not used
             if logging is disabled
-        o what about the freelist - is it also part of the changeset? - yes,
+        x what about the freelist - is it also part of the changeset? - yes,
             definitely! - but currently i do not see it in the debugger
 
         o disable logfile switching in log.c

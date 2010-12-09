@@ -1312,13 +1312,14 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
     }
 
     /*
-     * immediately flush all pages of this database
+     * immediately flush all pages of this database (but not the header page,
+     * it's still required and will be flushed below
      */
     if (env && env_get_cache(env)) {
         ham_page_t *n, *head=cache_get_totallist(env_get_cache(env)); 
         while (head) {
             n=page_get_next(head, PAGE_LIST_CACHED);
-            if (page_get_owner(head)==db) {
+            if (page_get_owner(head)==db && head!=env_get_header_page(env)) {
                 if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) 
                     (void)db_flush_page(env, head, HAM_WRITE_THROUGH);
                 (void)db_free_page(head, 0);

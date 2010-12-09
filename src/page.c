@@ -55,9 +55,12 @@ __validate_page(ham_page_t *p)
             ("in changeset and in garbage bin"));
 
     /* not allowed: in changeset but not in cache */
+    /* disabled - freelist pages can be in a changeset, but are never
+     * in a cache bucket; TODO rewrite this check only for non-freelist 
+     * pages!
     if (__is_in_list(p, PAGE_LIST_CHANGESET))
         ham_assert(__is_in_list(p, PAGE_LIST_BUCKET),
-            ("in changeset but not in cache"));
+            ("in changeset but not in cache")); */
 }
 
 ham_page_t *

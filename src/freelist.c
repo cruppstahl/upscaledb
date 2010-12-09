@@ -173,23 +173,41 @@ __freel_alloc_area32(ham_offset_t *addr_ref, ham_device_t *dev, ham_env_t *env, 
 extern ham_status_t                                                        
 __freel_init_perf_data32(freelist_cache_t *cache, ham_device_t *dev, ham_env_t *env, freelist_entry_t *entry, freelist_payload_t *fp);
 
-
-
-
-
-
-
+/**
+ * replacement for the macro env_set_dirty; will call the macro, but also
+ * add the header page to the changeset
+ */
+static void
+__env_set_dirty(ham_env_t *env)
+{
+    env_set_dirty(env);
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
+    	changeset_add_page(env_get_changeset(env), env_get_header_page(env));
+}
 
 /**
-@return the maximum number of chunks a freelist page entry can span;
-all freelist entry pages (except the first, as it has to share the 
-db page with a (largish) database header) have this span, which is 
-a little less than 
+ * replacement for the macro page_set_dirty; will call the macro, but also
+ * add the page to the changeset
+ */
+static void
+__page_set_dirty(ham_page_t *page)
+{
+    ham_env_t *env=device_get_env(page_get_device(page));
+    page_set_dirty(page);
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
+    	changeset_add_page(env_get_changeset(env), page);
+}
 
-<pre>
-DB_CHUNKSIZE * env_get_pagesize(env)
-</pre>
-*/
+/**
+ * @return the maximum number of chunks a freelist page entry can span;
+ * all freelist entry pages (except the first, as it has to share the 
+ * db page with a (largish) database header) have this span, which is 
+ * a little less than 
+ * 
+ * <pre>
+ * DB_CHUNKSIZE * env_get_pagesize(env)
+ * </pre>
+ */
 static ham_size_t 
 __freel_get_freelist_entry_maxspan(ham_device_t *dev, ham_env_t *env, freelist_cache_t *cache)
 {
@@ -2786,14 +2804,14 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, ham_env_t *env, f
              */
             if (i==1) {
                 fp=env_get_freelist(env);
-                env_set_dirty(env);
+                __env_set_dirty(env);
             }
             else {
                 st=env_fetch_page(&prev_page, env, 
                         freel_entry_get_page_id(&entries[i-1]), 0);
                 if (!prev_page)
                     return st ? st : HAM_INTERNAL_ERROR;
-                page_set_dirty(prev_page);
+                __page_set_dirty(prev_page);
                 fp=page_get_freelist(prev_page);
             }
 
@@ -2814,7 +2832,7 @@ __freel_alloc_pageXX(ham_page_t **page_ref, ham_device_t *dev, ham_env_t *env, f
             freel_set_start_address(fp, 
                     freel_entry_get_start_address(&entries[i]));
             freel_set_max_bitsXX(fp, (ham_uXX_t)(size_bits));
-            page_set_dirty(page);
+            __page_set_dirty(page);
             ham_assert(freel_entry_get_max_bits(&entries[i])==
                     freel_get_max_bitsXX(fp), (0));
             freel_entry_set_page_id(&entries[i], page_get_self(page));
@@ -3347,9 +3365,9 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
                     len -= fl;
 
                     if (page)
-                        page_set_dirty(page);
+                        __page_set_dirty(page);
                     else
-                        env_set_dirty(env);
+                        __env_set_dirty(env);
                 }
 
                 ham_assert(addr != 0, (0));
@@ -3403,9 +3421,9 @@ __freel_alloc_areaXX(ham_offset_t *addr_ref, ham_device_t *dev,
                 __freel_set_bits(dev, env, entry, fp, HAM_FALSE, 
                             s, size/DB_CHUNKSIZE, HAM_FALSE, &hints);
                 if (page)
-                    page_set_dirty(page);
+                    __page_set_dirty(page);
                 else
-                    env_set_dirty(env);
+                    __env_set_dirty(env);
                 break;
             }
             else
@@ -3678,9 +3696,9 @@ __freel_mark_freeXX(ham_device_t *dev, ham_env_t *env, ham_db_t *db,
                 freel_get_allocated_bitsXX(fp));
 
         if (page)
-            page_set_dirty(page);
+            __page_set_dirty(page);
         else
-            env_set_dirty(env);
+            __env_set_dirty(env);
 
         size -= s * DB_CHUNKSIZE;
         address += s * DB_CHUNKSIZE;
