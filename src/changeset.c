@@ -33,10 +33,10 @@ changeset_get_page(changeset_t *cs, ham_offset_t pageid)
 {
     ham_page_t *p=changeset_get_head(cs);
 
-    ham_assert(env_get_rt_flags(device_get_env(page_get_device(p)))
+    while (p) {
+    	ham_assert(env_get_rt_flags(device_get_env(page_get_device(p)))
                 &HAM_ENABLE_RECOVERY, (""));
 
-    while (p) {
         if (page_get_self(p)==pageid)
             return (p);
         p=page_get_next(p, PAGE_LIST_CHANGESET);

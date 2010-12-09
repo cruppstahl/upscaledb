@@ -2282,18 +2282,16 @@ _local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
         if (st)
             return (st);
         flags|=CURSOR_TXN_IS_TEMP;
+        txn=local_txn;
     }
 
-    st=be->_fun_cursor_create(be, db, txn ? txn : local_txn, flags, cursor);
+    st=be->_fun_cursor_create(be, db, txn, flags, cursor);
     if (st)
         return (st);
 
-    /* do not increase the refcount for local_txn, because local_txn is
-     * managed internally by the cursor */
-    if (txn)
-        txn_set_cursor_refcount(txn, txn_get_cursor_refcount(txn)+1);
+    txn_set_cursor_refcount(txn, txn_get_cursor_refcount(txn)+1);
 
-    cursor_set_txn(*cursor, txn ? txn : local_txn);
+    cursor_set_txn(*cursor, txn);
 
     return (0);
 }
@@ -2321,13 +2319,8 @@ _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 static ham_status_t
 _local_cursor_close(ham_cursor_t *cursor)
 {
-    if (cursor_get_flags(cursor)&CURSOR_TXN_IS_TEMP) {
-        ham_status_t st=ham_txn_commit(cursor_get_txn(cursor), 0);
-        if (st)
-            return (st);
-        cursor_set_txn(cursor, 0);
-    }
     cursor->_fun_close(cursor);
+
     return (0);
 }
 

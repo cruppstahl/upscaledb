@@ -304,8 +304,6 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         o what about the freelist - is it also part of the changeset? - yes,
             definitely! - but currently i do not see it in the debugger
 
-====> currently fails in RemoteTest::cursorCloneTest()
-
         o disable logfile switching in log.c
 
         o add high level logfile unittests
@@ -325,24 +323,12 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         lsn in the header file and flush this page
         o need unittests
     o recovery: how do we know with which lsn to continue?
-        o use WRITETHROUGH (and make sure that it still works!) if recovery
-            is enabled (would like to avoid this, but otherwise we need to write
-            more information to the log, so it doesn't make a difference)
-            o is it faster if we only flush the header of the page??
-            o need unittests
-        o if there's a physical log entry: apply it, take last lsn from this
-            log entry. What to do if one lsn is mapped to several before/after 
-            operations, i.e. because of a SMO? - after each single flush,
-            we could update an index in the header structure of the log. This
-            index will then tell us where to restart in the physlog. we can
-            fix this later when moving to the journal
-            o need unittests
-        o if there's no physical log: read lsn from header page (which means
-            that we have to flush the lsn in the header page after each 
-            operation)
-            o need unittests
-        o then iterate through the logfile and re-apply all missing operations,
-            abort all open transactions and commit all committed ones
+        o while flushing a txn, constantly update (writethrough - only for 
+            header?) the lsn in the header page
+        o the physlog just has after-images; they are idempotent
+        o after applying the physlog: don't forget to update the lsn in the
+            header page; then clear the physlog, and continue recovery of
+            the journal; afterwards clear the journal
             o need unittests
     o recovery: auto-aborts all non-committed transactions (same behavior 
             as now)
