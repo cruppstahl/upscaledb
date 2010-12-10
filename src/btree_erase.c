@@ -431,7 +431,8 @@ __collapse_root(ham_page_t *newroot, erase_scratchpad_t *scratchpad)
 
     /* add the page to the changeset to make sure that the changes are 
      * logged */
-    changeset_add_page(env_get_changeset(env), env_get_header_page(env));
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
+        changeset_add_page(env_get_changeset(env), env_get_header_page(env));
 
     /*
      * As we re-purpose a page, we will reset its pagecounter as

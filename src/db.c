@@ -845,7 +845,8 @@ done:
     }
 
     /* store the page in the changeset */
-    changeset_add_page(env_get_changeset(env), page);
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
+        changeset_add_page(env_get_changeset(env), page);
 
     /* store the page in the cache */
     if (env_get_cache(env)) {

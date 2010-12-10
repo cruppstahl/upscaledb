@@ -372,7 +372,9 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
         btree_set_rootpage(be, page_get_self(newroot));
         be_set_dirty(be, HAM_TRUE);
         env_set_dirty(env);
-        changeset_add_page(env_get_changeset(env), env_get_header_page(env));
+        if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
+            changeset_add_page(env_get_changeset(env), 
+                    env_get_header_page(env));
         if (env_get_cache(env) && (page_get_type(root)!=PAGE_TYPE_B_INDEX)) 
         {
             /*

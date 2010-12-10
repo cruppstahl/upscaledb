@@ -304,8 +304,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         x what about the freelist - is it also part of the changeset? - yes,
             definitely! - but currently i do not see it in the debugger
 
-====> failing now in PageTest::newDeleteTest
-    -> do not use changeset if logging is disabled!!
+        x do not use changeset if logging is disabled!!
 
         o disable logfile switching in log.c
 
