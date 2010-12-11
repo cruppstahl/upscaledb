@@ -96,13 +96,8 @@ typedef HAM_PACK_0 struct HAM_PACK_1 log_entry_t
 * @{
 */
 
-/** save the new, modified page data. The page is not yet written to disk; 
- * that will only happen once a @ref LOG_ENTRY_TYPE_FLUSH_PAGE happens. */
-#define LOG_ENTRY_TYPE_WRITE                    5 
-/** mark a page being flushed from the page cache; as this will be a 
- * modified page (otherwise the explicit flush would not occur), we can be 
- * sure to find a @ref LOG_ENTRY_TYPE_WRITE entry in the log history */
-#define LOG_ENTRY_TYPE_FLUSH_PAGE               8 
+/** Write ahead the contents of a page */
+#define LOG_ENTRY_TYPE_WRITE                    1
 
 /**
  * @}
@@ -153,31 +148,17 @@ struct ham_log_t
     /** the allocator object */
     mem_allocator_t *_alloc;
 
-    /** references the Environment this log file is for; may be NULL */
+    /** references the Environment this log file is for */
     ham_env_t *_env;
 
     /** the log flags - unused so far */
     ham_u32_t _flags;
 
-    /** the index of the file descriptor we are currently writing to */
-    ham_size_t _current_fd;
-
-    /** the two file descriptors */
-    ham_fd_t _fd[2];
+    /** the file descriptor of the log file */
+    ham_fd_t _fd;
 
     /** the last used lsn */
     ham_u64_t _lsn;
-
-    /** the lsn of the previous checkpoint */
-    ham_u64_t _last_cp_lsn;
-
-    /** an internal "state" of the log; used to track whether we're
-     * currently inserting a checkpoint or not */
-    ham_u32_t _state;
-
-    /** a cached data blob which is used for a 2-step overwrite */
-    ham_u8_t *_overwrite_data;
-    ham_size_t _overwrite_size;
 
 };
 
@@ -199,17 +180,11 @@ struct ham_log_t
 /** set the log flags */
 #define log_set_flags(l, f)                     (l)->_flags=(f)
 
-/** get the index of the current file */
-#define log_get_current_fd(l)                   (l)->_current_fd
+/** get the file descriptor */
+#define log_get_fd(l)                           (l)->_fd
 
-/** set the index of the current file */
-#define log_set_current_fd(l, c)                (l)->_current_fd=c
-
-/** get a file descriptor */
-#define log_get_fd(l, i)                        (l)->_fd[i]
-
-/** set a file descriptor */
-#define log_set_fd(l, i, fd)                    (l)->_fd[i]=fd
+/** set the file descriptor */
+#define log_set_fd(l, fd)                       (l)->_fd=fd
 
 /** get the last used lsn */
 #define log_get_lsn(l)                          (l)->_lsn
@@ -219,36 +194,6 @@ struct ham_log_t
 
 /** increment the last used lsn */
 #define log_increment_lsn(l)                    (l)->_lsn++
-
-/** get the lsn of the last checkpoint */
-#define log_get_last_checkpoint_lsn(l)          (l)->_last_cp_lsn
-
-/** set the lsn of the last checkpoint */
-#define log_set_last_checkpoint_lsn(l, lsn)     (l)->_last_cp_lsn=(lsn)
-
-/** get the state */
-#define log_get_state(l)                        (l)->_state
-
-/** set the state */
-#define log_set_state(l, s)                     (l)->_state=(s)
-
-/** get the overwrite-data */
-#define log_get_overwrite_data(l)               (l)->_overwrite_data
-
-/** set the overwrite-data */
-#define log_set_overwrite_data(l, d)            (l)->_overwrite_data=(d)
-
-/** get the overwrite-size */
-#define log_get_overwrite_size(l)               (l)->_overwrite_size
-
-/** set the overwrite-size */
-#define log_set_overwrite_size(l, s)            (l)->_overwrite_size=(s)
-
-/** current state bits: during a CHECKPOINT */
-#define LOG_STATE_CHECKPOINT                    0x0001
-
-/** current state bits: during a DATABASE EXPANSION */
-#define LOG_STATE_DB_EXPANSION                  0x0002
 
 /**
  * this function creates a new ham_log_t object
@@ -272,8 +217,7 @@ log_is_empty(ham_log_t *log, ham_bool_t *isempty);
  * appends an entry to the log
  */
 extern ham_status_t
-log_append_entry(ham_log_t *log, int fdidx, log_entry_t *entry, 
-                ham_size_t size);
+log_append_entry(ham_log_t *log, log_entry_t *entry, ham_size_t size);
 
 /**
  * append a log entry for @ref LOG_ENTRY_TYPE_WRITE.
@@ -296,14 +240,8 @@ log_clear(ham_log_t *log);
 /**
  * an "iterator" structure for traversing the log files
  */
-typedef struct {
-
-    /** selects the file descriptor [0..1] */
-    int _fdidx;
-
-    /** which file descriptor did we start with? [0..1] */
-    int _fdstart;
-
+typedef struct log_iterator_t 
+{
     /** the offset in the file of the NEXT entry */
     ham_offset_t _offset;
 
@@ -340,54 +278,6 @@ log_append_page(ham_log_t *log, ham_page_t *page);
  */
 extern ham_status_t
 log_recover(ham_log_t *log, ham_device_t *device, ham_env_t *env);
-
-/**
- * recreate the page and remove all uncommitted changes 
- */
-extern ham_status_t
-log_recreate(ham_log_t *log, ham_page_t *page);
-
-/**
- * Mark the start of a database storage expansion: this needs to be
- * set any time the persistent store is increased through allocating
- * one or more new pages.
- *
- * @sa env_reserve_space
- * @sa ham_log_mark_db_expansion_end
- * @sa ham_log_is_db_expansion
- */
-extern void
-log_mark_db_expansion_start(ham_env_t *env);
-
-/**
- * Mark the end of a database storage expansion phase which was initiated 
- * when @ref ham_log_mark_db_expansion_start had been invoked before.
- * 
- * @sa env_reserve_space
- * @sa ham_log_mark_db_expansion_start
- * @sa ham_log_is_db_expansion
- */
-extern void
-log_mark_db_expansion_end(ham_env_t *env);
-
-/**
- * Check whether we are currently in the database storage expansion state:
- * when we are, certain page operations can be simplified as we are merely 
- * adding free storage pages.
- * 
- * Nevertheless, this state can occur as part of a larger transaction, which
- * complicates matters a tad when said transaction is aborted: the file
- * resize operations performed as part of the storage expansion operation
- * <em>can not be undone</em>. To ensure the log processing will be aware
- * at the time of recovery, we must log the storage expansion separately 
- * from the coordinating transaction itself.
- * 
- * @sa env_reserve_space
- * @sa ham_log_mark_db_expansion_end
- * @sa ham_log_mark_db_expansion_start
- */
-extern ham_bool_t
-log_is_db_expansion(ham_env_t *env);
 
 
 #ifdef __cplusplus

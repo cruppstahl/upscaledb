@@ -154,23 +154,12 @@ public:
         log_set_flags(&log, 0x13);
         BFC_ASSERT_EQUAL((ham_u32_t)0x13, log_get_flags(&log));
 
-        log_set_state(&log, 0x88);
-        BFC_ASSERT_EQUAL((ham_u32_t)0x88, log_get_state(&log));
-
-        log_set_current_fd(&log, 1);
-        BFC_ASSERT_EQUAL((unsigned)1, log_get_current_fd(&log));
-
-        log_set_fd(&log, 0, (ham_fd_t)0x20);
-        BFC_ASSERT_EQUAL((ham_fd_t)0x20, log_get_fd(&log, 0));
-        log_set_fd(&log, 1, (ham_fd_t)0x21);
-        BFC_ASSERT_EQUAL((ham_fd_t)0x21, log_get_fd(&log, 1));
+        log_set_fd(&log, (ham_fd_t)0x20);
+        BFC_ASSERT_EQUAL((ham_fd_t)0x20, log_get_fd(&log));
+        log_set_fd(&log, HAM_INVALID_FD);
 
         log_set_lsn(&log, 0x99);
         BFC_ASSERT_EQUAL((ham_u64_t)0x99, log_get_lsn(&log));
-
-        log_set_last_checkpoint_lsn(&log, 0x100);
-        BFC_ASSERT_EQUAL((ham_u64_t)0x100, 
-                        log_get_last_checkpoint_lsn(&log));
     }
 
     void createCloseTest(void)
@@ -506,6 +495,7 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, createCloseOpenCloseEnvTest);
         BFC_REGISTER_TEST(LogHighLevelTest, createCloseOpenFullLogEnvTest);
         BFC_REGISTER_TEST(LogHighLevelTest, createCloseOpenFullLogEnvRecoverTest);
+#if 0
         BFC_REGISTER_TEST(LogHighLevelTest, allocatePageTest);
         BFC_REGISTER_TEST(LogHighLevelTest, allocatePageFromFreelistTest);
         BFC_REGISTER_TEST(LogHighLevelTest, allocateClearedPageTest);
@@ -525,6 +515,7 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, negativeAesFilterTest);
         BFC_REGISTER_TEST(LogHighLevelTest, aesFilterTest);
         BFC_REGISTER_TEST(LogHighLevelTest, aesFilterRecoverTest);
+#endif
     }
 
 protected:
@@ -682,8 +673,9 @@ public:
         ham_env_t *env;
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, 
-                ham_env_create(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY, 0664));
-        BFC_ASSERT(env_get_log(env) != 0);  /* since the hack/patch to load the first db/page at env create/open, there's a log as well */
+                ham_env_create(env, BFC_OPATH(".test"), 
+                        HAM_ENABLE_RECOVERY, 0664));
+        BFC_ASSERT(env_get_log(env) != 0);
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, m_db, 333, 0, 0));
         BFC_ASSERT(env_get_log(env)!=0);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -706,6 +698,10 @@ public:
     {
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        ham_u8_t buffer[1024]={0};
+        BFC_ASSERT_EQUAL(0, 
+                    log_append_write(env_get_log(m_env), txn, 
+                                0, buffer, sizeof(buffer)));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
@@ -713,16 +709,12 @@ public:
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         m_env=db_get_env(m_db);
 
-        /* make sure that the log files are deleted and that the lsn is 1 */
+        /* make sure that the log file was deleted and that the lsn is 1 */
         ham_log_t *log=env_get_log(m_env);
         BFC_ASSERT(log!=0);
         BFC_ASSERT_EQUAL((ham_u64_t)1, log_get_lsn(log));
-        BFC_ASSERT_EQUAL((ham_u64_t)1, log_get_lsn(log));
-        BFC_ASSERT_EQUAL((ham_size_t)0, log_get_current_fd(log));
         ham_u64_t filesize;
-        BFC_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log, 0), &filesize));
-        BFC_ASSERT_EQUAL((ham_u64_t)sizeof(log_header_t), filesize);
-        BFC_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log, 1), &filesize));
+        BFC_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log), &filesize));
         BFC_ASSERT_EQUAL((ham_u64_t)sizeof(log_header_t), filesize);
     }
 
@@ -730,6 +722,10 @@ public:
     {
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        ham_u8_t buffer[1024]={0};
+        BFC_ASSERT_EQUAL(0, 
+                    log_append_write(env_get_log(m_env), txn, 
+                                0, buffer, sizeof(buffer)));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
@@ -744,8 +740,9 @@ public:
         ham_env_t *env;
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, 
-                ham_env_create(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY, 0664));
-        BFC_ASSERT(env_get_log(env)!=0); /* since the hack/patch to load the first db/page at env create/open, there's a log as well */
+                ham_env_create(env, BFC_OPATH(".test"), 
+                        HAM_ENABLE_RECOVERY, 0664));
+        BFC_ASSERT(env_get_log(env)!=0);
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, m_db, 333, 0, 0));
         BFC_ASSERT(env_get_log(env)!=0);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
@@ -799,12 +796,8 @@ public:
         ham_log_t *log=env_get_log(env);
         BFC_ASSERT(log!=0);
         BFC_ASSERT_EQUAL((ham_u64_t)1, log_get_lsn(log));
-        BFC_ASSERT_EQUAL((ham_u64_t)1, log_get_lsn(log));
-        BFC_ASSERT_EQUAL((ham_size_t)0, log_get_current_fd(log));
         ham_u64_t filesize;
-        BFC_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log, 0), &filesize));
-        BFC_ASSERT_EQUAL((ham_u64_t)sizeof(log_header_t), filesize);
-        BFC_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log, 1), &filesize));
+        BFC_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log), &filesize));
         BFC_ASSERT_EQUAL((ham_u64_t)sizeof(log_header_t), filesize);
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
@@ -822,8 +815,7 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 0));
         compareLogs(&exp, &vec);
     }
 
@@ -844,8 +836,6 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
         compareLogs(&exp, &vec);
@@ -864,8 +854,6 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
         compareLogs(&exp, &vec);
     }
@@ -920,9 +908,6 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
@@ -937,9 +922,6 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
         compareLogs(&exp, &vec);
@@ -968,11 +950,6 @@ public:
         log_vector_t vec=readLog();
         log_vector_t exp;
 
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*1, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*2, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*3, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
         exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_WRITE, ps*3, ps));
@@ -993,9 +970,6 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
         compareLogs(&exp, &vec);
@@ -1049,9 +1023,6 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_WRITE, ps, ps));
         compareLogs(&exp, &vec);
     }
@@ -1065,10 +1036,6 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*2, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
         compareLogs(&exp, &vec);
@@ -1087,10 +1054,6 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*2, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
         compareLogs(&exp, &vec);
@@ -1106,10 +1069,6 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*2, 0));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps, ps));
         exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
@@ -1339,6 +1298,5 @@ public:
 };
 
 BFC_REGISTER_FIXTURE(LogTest);
-// temp. disabled
-// BFC_REGISTER_FIXTURE(LogHighLevelTest);
+BFC_REGISTER_FIXTURE(LogHighLevelTest);
 

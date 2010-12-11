@@ -261,7 +261,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
 
     x os_close: assert that fd>=3 (on linux)
 
-    o we have to flush pages after they're modified (search for db_fetch_page
+    x we have to flush pages after they're modified (search for db_fetch_page
         and db_alloc_page); however, what if multiple pages are modified (i.e.
         during an SMO)? - we have to first physlog all modified pages, and then
         flush them all together; this way we minimize chances for corruption.
@@ -306,23 +306,18 @@ o logging: currently, logging for txn_begin and txn_commit/abort
 
         x do not use changeset if logging is disabled!!
 
-        o disable logfile switching in log.c
-
-        o add high level logfile unittests
-            o with freelist
-            o with header page modifications
-            o with small blobs
-            o with large blobs
-            o with allocations
+        x disable logfile switching in log.c
+            x update unittests
 
         x do we still need PAGE_DONT_LOG_CONTENT? - no, remove it
-
-        . should the changeset become part of the log? it would make sense
 
     o who manages the lsn? currently, the journal and env.h manage both their
         own lsn; and it's not propagated down to the physlog
     o if recovery is enabled: after flushing the changeset, update the 
         lsn in the header file and flush this page
+        o it's enough just to write the header
+        o if header page is anyway flushed b/c it is part of the 
+            changeset: update lsn and flush it at the very end
         o need unittests
     o recovery: how do we know with which lsn to continue?
         o while flushing a txn, constantly update (writethrough - only for 
@@ -345,6 +340,12 @@ o logging: currently, logging for txn_begin and txn_commit/abort
     o the journal and the log are now in use - create more unittests 
         (HighLevelJournalTests) which verify that both are used correctly
 
+        o add high level logfile unittests
+            o with freelist
+            o with header page modifications
+            o with small blobs
+            o with large blobs
+            o with allocations
 
 o implement partial reads through transaction tree - will have to 
     consolidate them
@@ -403,4 +404,11 @@ o new API to retrieve the currently active transactions
 
 . cache-garbagelist no longer used - remove it?
 
+. log_entry_t: txn_id still needed?
+
+. log_t: allocator _alloc still needed? we have the Env pointer
+
+. should the changeset become part of the log? it would make sense
+
 o continue as described in integrate-ham2.txt...
+
