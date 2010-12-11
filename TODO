@@ -314,18 +314,29 @@ o logging: currently, logging for txn_begin and txn_commit/abort
     x who manages the lsn? currently, the journal and env.h manage both their
         own lsn; and it's not propagated down to the physlog
     o if recovery is enabled: after flushing the changeset, update the 
-        lsn in the header file and flush this page
-        o it's enough just to write the header
-        o if header page is anyway flushed b/c it is part of the 
-            changeset: update lsn and flush it at the very end
-        o need unittests
-    o recovery: how do we know with which lsn to continue?
-        o while flushing a txn, constantly update (writethrough - only for 
-            header?) the lsn in the header page
-        o the physlog just has after-images; they are idempotent
-        o after applying the physlog: don't forget to update the lsn in the
-            header page; then clear the physlog, and continue recovery of
-            the journal; afterwards clear the journal
+        lsn in the header file and flush this page. but WHERE to store the
+        lsn? the dbheader does not have an lsn field. is it enough to store
+        it in journal and log? yes, i think so. 
+        o journal header stores the lsn
+            o need unittests
+        o the log has its own lsn 
+            o need unittests
+        o when the journal is cleared: write the highest lsn to file 0
+            (write lsn 0 to file 1)
+            o need unittests
+        o when the log is cleared: write the lsn to the header
+            o need unittests
+        o when opening the journal: read the lsn from the header
+            o need unittests
+        o when opening the log: read the lsn from the header
+            o need unittests
+    o implement the recovery
+        o if the log is not empty: re-apply it (it is idempotent), then
+            clear it (but get the lsn from its header)
+            o need unittests
+        o then re-apply the journal, continuing from the entry with this lsn
+            o need unittests
+        o then clear the journal
             o need unittests
     o recovery: auto-aborts all non-committed transactions (same behavior 
             as now)
@@ -336,6 +347,9 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         in journal after abort/commit)
         o need unittests
     o re-enable logging tests in log.cpp
+
+    o when creating a db (env_create_db) all pages are written to the log
+        with lsn 0; is this correct?
 
     o the journal and the log are now in use - create more unittests 
         (HighLevelJournalTests) which verify that both are used correctly

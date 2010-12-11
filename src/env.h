@@ -139,9 +139,6 @@ struct ham_env_t
      * soon as we moved to a 100% logical log */
     ham_txn_t *_flushed_txn;
 
-    /** the lsn of the operation that is currently flushed */
-    ham_u64_t _flushed_lsn;
-
     /* the head of the transaction list (the oldest transaction) */
     ham_txn_t *_oldest_txn;
 
@@ -397,12 +394,6 @@ env_get_header(ham_env_t *env);
 
 /** set the transaction that is currently flushed */
 #define env_set_flushed_txn(env, t)      (env)->_flushed_txn=t
-
-/** get the lsn that is currently flushed */
-#define env_get_flushed_lsn(env)         (env)->_flushed_lsn
-
-/** set the lsn that is currently flushed */
-#define env_set_flushed_lsn(env, l)      (env)->_flushed_lsn=l
 
 /** get the newest transaction */
 #define env_get_newest_txn(env)          (env)->_newest_txn

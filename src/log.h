@@ -259,7 +259,7 @@ log_close(ham_log_t *log, ham_bool_t noclear);
  * adds an AFTER-image of a page
  */
 extern ham_status_t
-log_append_page(ham_log_t *log, ham_page_t *page);
+log_append_page(ham_log_t *log, ham_page_t *page, ham_u64_t lsn);
 
 /**
  * do the recovery

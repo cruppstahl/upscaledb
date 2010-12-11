@@ -73,7 +73,7 @@ changeset_clear(changeset_t *cs);
  * write them to the disk; on success: clear the log again
  */
 extern ham_status_t
-changeset_flush(changeset_t *cs);
+changeset_flush(changeset_t *cs, ham_u64_t lsn);
 
 
 #ifdef __cplusplus

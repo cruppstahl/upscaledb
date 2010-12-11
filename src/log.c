@@ -275,7 +275,7 @@ log_close(ham_log_t *log, ham_bool_t noclear)
 }
 
 ham_status_t
-log_append_page(ham_log_t *log, ham_page_t *page)
+log_append_page(ham_log_t *log, ham_page_t *page, ham_u64_t lsn)
 {
     ham_status_t st=0;
     ham_env_t *env=device_get_env(page_get_device(page));
@@ -310,8 +310,8 @@ log_append_page(ham_log_t *log, ham_page_t *page)
         p=(ham_u8_t *)page_get_raw_payload(page);
 
     if (st==0)
-        st=log_append_write(log, env_get_flushed_txn(env), 
-                    env_get_flushed_lsn(env), page_get_self(page), p, size);
+        st=log_append_write(log, env_get_flushed_txn(env), lsn, 
+                        page_get_self(page), p, size);
 
     if (p!=page_get_raw_payload(page))
         allocator_free(log_get_allocator(log), p);

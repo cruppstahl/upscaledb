@@ -1096,7 +1096,7 @@ bail:
     if (st==0 && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
         st=page_flush(env_get_header_page(env));
         if (!st)
-            st=changeset_flush(env_get_changeset(env));
+            st=changeset_flush(env_get_changeset(env), 0);
         changeset_clear(env_get_changeset(env));
     }
 
@@ -1427,9 +1427,8 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
 
         /* currently, some low-level functions (i.e. in log.c) still need
          * to know about the Transaction that we flush, therefore set the
-         * env_flushed_txn pointer and also the lsn */
+         * env_flushed_txn pointer */
         env_set_flushed_txn(env, txn);
-        env_set_flushed_lsn(env, txn_op_get_lsn(op));
 
     /* logging enabled? then the changeset and the log HAS to be empty */
 #ifdef HAM_DEBUG
@@ -1467,12 +1466,11 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
 
         /* now flush the changeset to disk */
         if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
-            st=changeset_flush(env_get_changeset(env));
+            st=changeset_flush(env_get_changeset(env), txn_op_get_lsn(op));
             changeset_clear(env_get_changeset(env));
         }
 
         env_set_flushed_txn(env, 0);
-        env_set_flushed_lsn(env, 0);
 
         if (st) {
             ham_trace(("failed to flush op: %d\n", (int)st));

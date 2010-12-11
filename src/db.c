@@ -839,7 +839,7 @@ done:
     if (flags&PAGE_CLEAR_WITH_ZERO) {
         memset(page_get_pers(page), 0, env_get_pagesize(env));
 
-        st=log_append_page(env_get_log(env), page);
+        st=log_append_page(env_get_log(env), page, 0);
         if (st) 
             return st;
     }

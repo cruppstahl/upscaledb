@@ -61,7 +61,7 @@ changeset_clear(changeset_t *cs)
 }
 
 ham_status_t
-changeset_flush(changeset_t *cs)
+changeset_flush(changeset_t *cs, ham_u64_t lsn)
 {
     ham_status_t st;
     ham_page_t *p;
@@ -81,8 +81,11 @@ changeset_flush(changeset_t *cs)
     ham_assert(log!=0, (""));
     ham_assert(env_get_rt_flags(env)&HAM_ENABLE_RECOVERY, (""));
 
+    /* store the lsn in the header page */
+    env_set_
+
     while (p) {
-        st=log_append_page(log, p);
+        st=log_append_page(log, p, lsn);
         if (st) {
             (void)log_clear(log);
             return (st);
