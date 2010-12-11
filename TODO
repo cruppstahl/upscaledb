@@ -311,7 +311,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
 
         x do we still need PAGE_DONT_LOG_CONTENT? - no, remove it
 
-    o who manages the lsn? currently, the journal and env.h manage both their
+    x who manages the lsn? currently, the journal and env.h manage both their
         own lsn; and it's not propagated down to the physlog
     o if recovery is enabled: after flushing the changeset, update the 
         lsn in the header file and flush this page

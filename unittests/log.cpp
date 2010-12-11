@@ -157,9 +157,6 @@ public:
         log_set_fd(&log, (ham_fd_t)0x20);
         BFC_ASSERT_EQUAL((ham_fd_t)0x20, log_get_fd(&log));
         log_set_fd(&log, HAM_INVALID_FD);
-
-        log_set_lsn(&log, 0x99);
-        BFC_ASSERT_EQUAL((ham_u64_t)0x99, log_get_lsn(&log));
     }
 
     void createCloseTest(void)
@@ -168,9 +165,8 @@ public:
         ham_log_t *log = disconnect_log_and_create_new_log();
 
         BFC_ASSERT_EQUAL(0u, log_get_flags(log));
-        BFC_ASSERT_EQUAL((ham_offset_t)1, log_get_lsn(log));
-        /* TODO make sure that the two files exist and 
-         * contain only the header */
+        /* TODO make sure that the file exists and 
+         * contains only the header */
 
         BFC_ASSERT_EQUAL(0, log_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(1, isempty);
@@ -229,9 +225,8 @@ public:
         for (int i=0; i<100; i++)
             data[i]=(ham_u8_t)i;
 
-        BFC_ASSERT_EQUAL(0, log_append_write(log, txn, 
+        BFC_ASSERT_EQUAL(0, log_append_write(log, txn, 1,
                                 0, data, sizeof(data)));
-        BFC_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, log_close(log, HAM_FALSE));
@@ -247,12 +242,11 @@ public:
 
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, log_append_write(log, txn, 
+        BFC_ASSERT_EQUAL(0, log_append_write(log, txn, 1,
                                 0, data, sizeof(data)));
 
         BFC_ASSERT_EQUAL(0, log_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(0, isempty);
-        BFC_ASSERT_EQUAL((ham_u64_t)2, log_get_lsn(log));
 
         BFC_ASSERT_EQUAL(0, log_clear(log));
         BFC_ASSERT_EQUAL(0, log_is_empty(log, &isempty));
@@ -284,7 +278,7 @@ public:
         ham_log_t *log = disconnect_log_and_create_new_log();
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         ham_u8_t buffer[1024]={0};
-        BFC_ASSERT_EQUAL(0, log_append_write(log, txn, 
+        BFC_ASSERT_EQUAL(0, log_append_write(log, txn, 1,
                                 0, buffer, sizeof(buffer)));
         BFC_ASSERT_EQUAL(0, log_close(log, HAM_TRUE));
 
@@ -700,7 +694,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         ham_u8_t buffer[1024]={0};
         BFC_ASSERT_EQUAL(0, 
-                    log_append_write(env_get_log(m_env), txn, 
+                    log_append_write(env_get_log(m_env), txn, 2,
                                 0, buffer, sizeof(buffer)));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -712,7 +706,6 @@ public:
         /* make sure that the log file was deleted and that the lsn is 1 */
         ham_log_t *log=env_get_log(m_env);
         BFC_ASSERT(log!=0);
-        BFC_ASSERT_EQUAL((ham_u64_t)1, log_get_lsn(log));
         ham_u64_t filesize;
         BFC_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log), &filesize));
         BFC_ASSERT_EQUAL((ham_u64_t)sizeof(log_header_t), filesize);
@@ -724,7 +717,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         ham_u8_t buffer[1024]={0};
         BFC_ASSERT_EQUAL(0, 
-                    log_append_write(env_get_log(m_env), txn, 
+                    log_append_write(env_get_log(m_env), txn, 1,
                                 0, buffer, sizeof(buffer)));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -763,7 +756,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         ham_u8_t buffer[1024]={0};
         BFC_ASSERT_EQUAL(0, 
-                    log_append_write(env_get_log(m_env), txn, 
+                    log_append_write(env_get_log(m_env), txn, 1,
                                 0, buffer, sizeof(buffer)));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -782,7 +775,7 @@ public:
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         ham_u8_t buffer[1024]={0};
-        BFC_ASSERT_EQUAL(0, log_append_write(env_get_log(m_env), txn, 
+        BFC_ASSERT_EQUAL(0, log_append_write(env_get_log(m_env), txn, 1,
                                 0, buffer, sizeof(buffer)));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -795,7 +788,6 @@ public:
         /* make sure that the log files are deleted and that the lsn is 1 */
         ham_log_t *log=env_get_log(env);
         BFC_ASSERT(log!=0);
-        BFC_ASSERT_EQUAL((ham_u64_t)1, log_get_lsn(log));
         ham_u64_t filesize;
         BFC_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log), &filesize));
         BFC_ASSERT_EQUAL((ham_u64_t)sizeof(log_header_t), filesize);

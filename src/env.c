@@ -1427,8 +1427,9 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
 
         /* currently, some low-level functions (i.e. in log.c) still need
          * to know about the Transaction that we flush, therefore set the
-         * env_flushed_txn pointer */
+         * env_flushed_txn pointer and also the lsn */
         env_set_flushed_txn(env, txn);
+        env_set_flushed_lsn(env, txn_op_get_lsn(op));
 
     /* logging enabled? then the changeset and the log HAS to be empty */
 #ifdef HAM_DEBUG
@@ -1471,6 +1472,7 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
         }
 
         env_set_flushed_txn(env, 0);
+        env_set_flushed_lsn(env, 0);
 
         if (st) {
             ham_trace(("failed to flush op: %d\n", (int)st));

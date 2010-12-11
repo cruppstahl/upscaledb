@@ -157,9 +157,6 @@ struct ham_log_t
     /** the file descriptor of the log file */
     ham_fd_t _fd;
 
-    /** the last used lsn */
-    ham_u64_t _lsn;
-
 };
 
 /** get the allocator */
@@ -185,15 +182,6 @@ struct ham_log_t
 
 /** set the file descriptor */
 #define log_set_fd(l, fd)                       (l)->_fd=fd
-
-/** get the last used lsn */
-#define log_get_lsn(l)                          (l)->_lsn
-
-/** set the last used lsn */
-#define log_set_lsn(l, lsn)                     (l)->_lsn=(lsn)
-
-/** increment the last used lsn */
-#define log_increment_lsn(l)                    (l)->_lsn++
 
 /**
  * this function creates a new ham_log_t object
@@ -228,8 +216,8 @@ log_append_entry(ham_log_t *log, log_entry_t *entry, ham_size_t size);
  * @sa log_append_page
  */
 extern ham_status_t
-log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
-                ham_u8_t *data, ham_size_t size);
+log_append_write(ham_log_t *log, ham_txn_t *txn, ham_u64_t lsn,
+        ham_offset_t offset, ham_u8_t *data, ham_size_t size);
 
 /**
  * clears the logfile to zero, removes all entries

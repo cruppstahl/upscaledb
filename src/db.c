@@ -1812,11 +1812,13 @@ db_check_erase_conflicts(ham_db_t *db, ham_txn_t *txn,
 static ham_u64_t
 __get_incremented_lsn(ham_db_t *db) 
 {
-    ham_log_t *log=env_get_log(db_get_env(db));
-    if (log)
-        return (log_increment_lsn(log));
-    else
+    journal_t *j=env_get_journal(db_get_env(db));
+    if (j)
+        return (journal_increment_lsn(j));
+    else {
+        ham_assert(!"need lsn but have no journal!", (""));
         return (1); /* TODO */
+    }
 }
 
 static ham_status_t

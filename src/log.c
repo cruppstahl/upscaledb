@@ -54,7 +54,6 @@ log_create(ham_env_t *env, ham_u32_t mode, ham_u32_t flags, ham_log_t **plog)
 
     log_set_allocator(log, alloc);
     log_set_env(log, env);
-    log_set_lsn(log, 1);
     log_set_flags(log, flags);
 
     /* create the files */
@@ -99,7 +98,6 @@ log_open(ham_env_t *env, ham_u32_t flags, ham_log_t **plog)
 
     log_set_allocator(log, alloc);
     log_set_env(log, env);
-    log_set_lsn(log, 1);
     log_set_flags(log, flags);
 
     /* open the file */
@@ -158,8 +156,8 @@ log_append_entry(ham_log_t *log, log_entry_t *entry, ham_size_t size)
 }
 
 ham_status_t
-log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
-        ham_u8_t *data, ham_size_t size)
+log_append_write(ham_log_t *log, ham_txn_t *txn, ham_u64_t lsn,
+        ham_offset_t offset, ham_u8_t *data, ham_size_t size)
 {
     ham_status_t st;
     ham_size_t alloc_size=__get_aligned_entry_size(size);
@@ -173,8 +171,7 @@ log_append_write(ham_log_t *log, ham_txn_t *txn, ham_offset_t offset,
     entry=(log_entry_t *)(alloc_buf+alloc_size-sizeof(log_entry_t));
 
     memset(entry, 0, sizeof(*entry));
-    log_entry_set_lsn(entry, log_get_lsn(log));
-    log_increment_lsn(log);
+    log_entry_set_lsn(entry, lsn);
     if (txn)
         log_entry_set_txn_id(entry, txn_get_id(txn));
     log_entry_set_type(entry, LOG_ENTRY_TYPE_WRITE);
@@ -314,7 +311,7 @@ log_append_page(ham_log_t *log, ham_page_t *page)
 
     if (st==0)
         st=log_append_write(log, env_get_flushed_txn(env), 
-                page_get_self(page), p, size);
+                    env_get_flushed_lsn(env), page_get_self(page), p, size);
 
     if (p!=page_get_raw_payload(page))
         allocator_free(log_get_allocator(log), p);
