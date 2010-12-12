@@ -121,11 +121,14 @@ log_open(ham_env_t *env, ham_u32_t flags, ham_log_t **plog)
         return (HAM_LOG_INV_FILE_HEADER);
     }
 
+    /* store the lsn */
+    log_set_lsn(log, log_header_get_lsn(&header));
+
     *plog=log;
     return (0);
 }
 
-    ham_status_t
+ham_status_t
 log_is_empty(ham_log_t *log, ham_bool_t *isempty)
 {
     ham_status_t st; 
@@ -167,6 +170,10 @@ log_append_write(ham_log_t *log, ham_txn_t *txn, ham_u64_t lsn,
     alloc_buf=allocator_alloc(log_get_allocator(log), alloc_size);
     if (!alloc_buf)
         return (HAM_OUT_OF_MEMORY);
+
+    /* store the lsn - it will be needed later when the log file is closed */
+    if (lsn)
+        log_set_lsn(log, lsn);
 
     entry=(log_entry_t *)(alloc_buf+alloc_size-sizeof(log_entry_t));
 
@@ -259,7 +266,17 @@ log_get_entry(ham_log_t *log, log_iterator_t *iter, log_entry_t *entry,
 ham_status_t
 log_close(ham_log_t *log, ham_bool_t noclear)
 {
-    ham_status_t st;
+    ham_status_t st=0;
+    log_header_t header;
+
+    /* write the file header with the magic and the last used lsn */
+    memset(&header, 0, sizeof(header));
+    log_header_set_magic(&header, HAM_LOG_HEADER_MAGIC);
+    log_header_set_lsn(&header, log_get_lsn(log));
+
+    st=os_pwrite(log_get_fd(log), 0, &header, sizeof(header));
+    if (st)
+        return (st);
 
     if (!noclear)
         (void)log_clear(log);
@@ -271,7 +288,7 @@ log_close(ham_log_t *log, ham_bool_t noclear)
     }
 
     allocator_free(log_get_allocator(log), log);
-    return (0);
+    return (st);
 }
 
 ham_status_t

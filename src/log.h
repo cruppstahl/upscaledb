@@ -49,6 +49,9 @@ typedef HAM_PACK_0 struct HAM_PACK_1 log_header_t
     /* a reserved field */
     ham_u32_t _reserved;
 
+    /* the last used lsn */
+    ham_u64_t _lsn;
+
 } HAM_PACK_2 log_header_t;
 
 #include "packstop.h"
@@ -60,6 +63,12 @@ typedef HAM_PACK_0 struct HAM_PACK_1 log_header_t
 
 /* set the log header magic */
 #define log_header_set_magic(l, m)              (l)->_magic=m
+
+/* get the last used lsn */
+#define log_header_get_lsn(l)                   (l)->_lsn
+
+/* set the last used lsn */
+#define log_header_set_lsn(l, lsn)              (l)->_lsn=lsn
 
 #include "packstart.h"
 
@@ -145,6 +154,9 @@ typedef HAM_PACK_0 struct HAM_PACK_1 log_entry_t
  */
 struct ham_log_t 
 {
+    /** the lsn of this entry */
+    ham_u64_t _lsn;
+
     /** the allocator object */
     mem_allocator_t *_alloc;
 
@@ -158,6 +170,12 @@ struct ham_log_t
     ham_fd_t _fd;
 
 };
+
+/* get the lsn */
+#define log_get_lsn(l)                          (l)->_lsn
+
+/* set the lsn */
+#define log_set_lsn(l, lsn)                     (l)->_lsn=lsn
 
 /** get the allocator */
 #define log_get_allocator(l)                    (l)->_alloc

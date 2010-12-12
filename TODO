@@ -324,12 +324,12 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             newest entry)
             x need unittests
 
-        o the log has its own lsn 
-            o need unittests
-        o when the log is cleared: write the lsn to the header
-            o need unittests
-        o when opening the log: read the lsn from the header
-            o need unittests
+        x the log has its own lsn 
+            x need unittests
+        x when the log is cleared: write the lsn to the header
+            x need unittests
+        x when opening the log: read the lsn from the header
+            x need unittests
     o implement the recovery
         o if the log is not empty: re-apply it (it is idempotent), then
             clear it (but get the lsn from its header)

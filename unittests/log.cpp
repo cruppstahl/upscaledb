@@ -116,6 +116,9 @@ public:
 
         log_header_set_magic(&hdr, 0x1234);
         BFC_ASSERT_EQUAL((ham_u32_t)0x1234, log_header_get_magic(&hdr));
+
+        log_header_set_lsn(&hdr, 0x888ull);
+        BFC_ASSERT_EQUAL((ham_u64_t)0x888ull, log_header_get_lsn(&hdr));
     }
 
     void structEntryTest()
@@ -157,6 +160,9 @@ public:
         log_set_fd(&log, (ham_fd_t)0x20);
         BFC_ASSERT_EQUAL((ham_fd_t)0x20, log_get_fd(&log));
         log_set_fd(&log, HAM_INVALID_FD);
+
+        log_set_lsn(&log, 0x17ull);
+        BFC_ASSERT_EQUAL((ham_u64_t)0x17ull, log_get_lsn(&log));
     }
 
     void createCloseTest(void)
@@ -202,11 +208,19 @@ public:
 
     void negativeOpenTest(void)
     {
+        ham_fd_t fd;
         ham_log_t *log;
         const char *oldfilename=env_get_filename(m_env);
         env_set_filename(m_env, "xxx$$test");
         BFC_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, 
                 log_open(m_env, 0, &log));
+
+        /* if log_open() fails, it will call log_close() internally and 
+         * log_close() overwrites the header structure. therefore we have
+         * to patch the file before we start the test. */
+        BFC_ASSERT_EQUAL(0, os_open("data/log-broken-magic.log0", 0, &fd));
+        BFC_ASSERT_EQUAL(0, os_pwrite(fd, 0, (void *)"x", 1));
+        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
 
         env_set_filename(m_env, "data/log-broken-magic");
         BFC_ASSERT_EQUAL(HAM_LOG_INV_FILE_HEADER, 
@@ -298,6 +312,8 @@ public:
         BFC_ASSERT_NOTNULL(data);
         BFC_ASSERT_EQUAL((ham_u32_t)LOG_ENTRY_TYPE_WRITE, 
                         log_entry_get_type(&entry));
+
+        BFC_ASSERT_EQUAL((ham_u64_t)1, log_get_lsn(log));
 
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, log_close(log, HAM_FALSE));

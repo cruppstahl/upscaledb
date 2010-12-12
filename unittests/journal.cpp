@@ -230,12 +230,20 @@ public:
 
     void negativeOpenTest(void)
     {
+        ham_fd_t fd;
         journal_t *log;
         const char *oldfilename=env_get_filename(m_env);
         env_set_filename(m_env, "xxx$$test");
         BFC_ASSERT_EQUAL(HAM_FILE_NOT_FOUND, 
                     journal_open(m_env, 0, &log));
         BFC_ASSERT_EQUAL((journal_t *)0, log);
+
+        /* if journal_open() fails, it will call journal_close() internally and 
+         * journal_close() overwrites the header structure. therefore we have
+         * to patch the file before we start the test. */
+        BFC_ASSERT_EQUAL(0, os_open("data/log-broken-magic.jrn0", 0, &fd));
+        BFC_ASSERT_EQUAL(0, os_pwrite(fd, 0, (void *)"x", 1));
+        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
 
         env_set_filename(m_env, "data/log-broken-magic");
         BFC_ASSERT_EQUAL(HAM_LOG_INV_FILE_HEADER, 
