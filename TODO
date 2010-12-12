@@ -313,7 +313,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
 
     x who manages the lsn? currently, the journal and env.h manage both their
         own lsn; and it's not propagated down to the physlog
-    o if recovery is enabled: store the lsn in the header of the journal and
+    x if recovery is enabled: store the lsn in the header of the journal and
         also of the log file
         x journal header stores the lsn
             x need unittests
@@ -330,39 +330,46 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             x need unittests
         x when opening the log: read the lsn from the header
             x need unittests
+
+    x journal and log: flush file after it's written (at least in log AND
+        in journal after abort/commit)
+
     o implement the recovery
         o if the log is not empty: re-apply it (it is idempotent), then
             clear it (but get the lsn from its header)
             o need unittests
         o then re-apply the journal, continuing from the entry with this lsn
+            o make sure that the txn Id is persisted in the log and
+                then re-assigned to the new transaction
+            o make sure that he new operations are not written to the journal
             o need unittests
         o then clear the journal
             o need unittests
+
     o recovery: auto-aborts all non-committed transactions (same behavior 
             as now)
         o need unittests
     o recovery: re-apply all committed (but not fully flushed) transactions
         o need unittests
-    o journal and log: flush file after it's written (at least in log AND
-        in journal after abort/commit)
-        o need unittests
-    o re-enable logging tests in log.cpp
 
     o when creating a db (env_create_db) all pages are written to the log
-        with lsn 0; is this correct?
+        with lsn 0; is this correct? yes, but make sure that recovery works
+        in all possible scenarios; or should we assign a lsn != 0?
 
     o the journal and the log are now in use - create more unittests 
         (HighLevelJournalTests) which verify that both are used correctly
-
         o add high level logfile unittests
             o with freelist
             o with header page modifications
             o with small blobs
             o with large blobs
             o with allocations
+        o add high level journal unittests
+    o re-enable logging tests in log.cpp or remove them
 
 o implement partial reads through transaction tree - will have to 
     consolidate them
+    o check if partial r/w works if the record size is <= 8
 
 o implement approx. matching through transaction tree - will have to 
     consolidate rb-tree and btree to look for the "closest" key
