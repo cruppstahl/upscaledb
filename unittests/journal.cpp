@@ -125,6 +125,9 @@ public:
 
         journal_header_set_magic(&hdr, 0x1234);
         BFC_ASSERT_EQUAL((ham_u32_t)0x1234, journal_header_get_magic(&hdr));
+
+        journal_header_set_lsn(&hdr, 0x888ull);
+        BFC_ASSERT_EQUAL((ham_u64_t)0x888ull, journal_header_get_lsn(&hdr));
     }
 
     void structEntryTest()
@@ -434,6 +437,11 @@ public:
         BFC_ASSERT_EQUAL(1, isempty);
         BFC_ASSERT_EQUAL((ham_u64_t)2, journal_get_lsn(log));
 
+        BFC_ASSERT_EQUAL(0, journal_close(log, HAM_FALSE));
+        BFC_ASSERT_EQUAL(0, 
+                journal_open(m_env, 0, &log));
+        BFC_ASSERT_EQUAL((ham_u64_t)2, journal_get_lsn(log));
+
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
     }
 
@@ -456,12 +464,14 @@ public:
     {
         ham_txn_t *txn;
         journal_t *log = disconnect_and_create_new_journal();
+        BFC_ASSERT_EQUAL(1ull, journal_get_lsn(log));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         BFC_ASSERT_EQUAL(0, journal_append_txn_begin(log, txn));
         BFC_ASSERT_EQUAL(0, journal_close(log, HAM_TRUE));
 
         BFC_ASSERT_EQUAL(0, 
                 journal_open(m_env, 0, &log));
+        BFC_ASSERT_EQUAL(2ull, journal_get_lsn(log));
         env_set_journal(m_env, log);
         BFC_ASSERT(log!=0);
 

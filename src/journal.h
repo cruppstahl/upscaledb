@@ -38,6 +38,9 @@ typedef HAM_PACK_0 struct HAM_PACK_1 journal_header_t
     /* a reserved field */
     ham_u32_t _reserved;
 
+    /** the last used lsn */
+    ham_u64_t _lsn;
+
 } HAM_PACK_2 journal_header_t;
 
 #include "packstop.h"
@@ -49,6 +52,12 @@ typedef HAM_PACK_0 struct HAM_PACK_1 journal_header_t
 
 /* set the journal header magic */
 #define journal_header_set_magic(j, m)              (j)->_magic=m
+
+/* get the last used lsn */
+#define journal_header_get_lsn(j)                   (j)->_lsn
+
+/* set the last used lsn */
+#define journal_header_set_lsn(j, l)                (j)->_lsn=l
 
 #include "journal_entries.h"
 

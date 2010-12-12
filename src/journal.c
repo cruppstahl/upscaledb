@@ -166,10 +166,15 @@ journal_open(ham_env_t *env, ham_u32_t flags, journal_t **pjournal)
             (void)journal_close(journal, HAM_FALSE);
             return (HAM_LOG_INV_FILE_HEADER);
         }
+
+        /* read the lsn from the header structure */
+        if (journal_get_lsn(journal)<journal_header_get_lsn(&header))
+            journal_set_lsn(journal, journal_header_get_lsn(&header));
     }
 
-    /* now read the LSN's of both files; the file with the older
-     * LSN becomes file[0] */
+    /* However, we now just read the lsn from the header structure. if there
+     * are any additional logfile entries then the lsn of those entries is
+     * more up-to-date than the one in the header structure. */
     for (i=0; i<2; i++) {
         /* but make sure that the file is large enough! */
         ham_offset_t size;
@@ -193,10 +198,17 @@ journal_open(ham_env_t *env, ham_u32_t flags, journal_t **pjournal)
             lsn[i]=0;
     }
 
+    /* The file with the higher lsn will become file[0] */
     if (lsn[1]>lsn[0]) {
         ham_fd_t temp=journal_get_fd(journal, 0);
         journal_set_fd(journal, 0, journal_get_fd(journal, 1));
         journal_set_fd(journal, 1, temp);
+        if (journal_get_lsn(journal)<lsn[1])
+            journal_set_lsn(journal, lsn[1]);
+    }
+    else {
+        if (journal_get_lsn(journal)<lsn[0])
+            journal_set_lsn(journal, lsn[0]);
     }
 
     *pjournal=journal;
@@ -524,9 +536,20 @@ ham_status_t
 journal_close(journal_t *journal, ham_bool_t noclear)
 {
     int i;
+    ham_status_t st=0;
 
-    if (!noclear)
+    if (!noclear) {
+        journal_header_t header;
+
         (void)journal_clear(journal);
+
+        /* update the header page of file 0 to store the lsn */
+        memset(&header, 0, sizeof(header));
+        journal_header_set_magic(&header, HAM_JOURNAL_HEADER_MAGIC);
+        journal_header_set_lsn(&header, journal_get_lsn(journal));
+
+        st=os_pwrite(journal_get_fd(journal, 0), 0, &header, sizeof(header));
+    }
 
     for (i=0; i<2; i++) {
         if (journal_get_fd(journal, i)!=HAM_INVALID_FD) {
@@ -537,7 +560,7 @@ journal_close(journal_t *journal, ham_bool_t noclear)
 
     allocator_free(journal_get_allocator(journal), journal);
 
-	return (0);
+	return (st);
 }
 
 ham_status_t

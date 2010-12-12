@@ -313,20 +313,20 @@ o logging: currently, logging for txn_begin and txn_commit/abort
 
     x who manages the lsn? currently, the journal and env.h manage both their
         own lsn; and it's not propagated down to the physlog
-    o if recovery is enabled: after flushing the changeset, update the 
-        lsn in the header file and flush this page. but WHERE to store the
-        lsn? the dbheader does not have an lsn field. is it enough to store
-        it in journal and log? yes, i think so. 
-        o journal header stores the lsn
-            o need unittests
+    o if recovery is enabled: store the lsn in the header of the journal and
+        also of the log file
+        x journal header stores the lsn
+            x need unittests
+        x when the journal is cleared: write the highest lsn to file 0
+            (write lsn 0 to file 1)
+            x need unittests
+        x when opening the journal: read the lsn from the header (or from the
+            newest entry)
+            x need unittests
+
         o the log has its own lsn 
             o need unittests
-        o when the journal is cleared: write the highest lsn to file 0
-            (write lsn 0 to file 1)
-            o need unittests
         o when the log is cleared: write the lsn to the header
-            o need unittests
-        o when opening the journal: read the lsn from the header
             o need unittests
         o when opening the log: read the lsn from the header
             o need unittests
@@ -386,6 +386,11 @@ o support cursors!!!
 o run monster tests
 
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
+
+o if recovery is enabled: before flushing the changeset, patch the lsn in
+    the page header (it fits in 8 free bytes). in the previous release we 
+    stored the lsn in the log file header. this can be removed; use he 
+    lsn in the page header for recovery.
 
 o each operation writes a journal entry (however, we still keep the logical
         journal in parallel, otherwise the unittests will fail completely)
