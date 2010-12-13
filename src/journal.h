@@ -292,7 +292,7 @@ journal_close(journal_t *journal, ham_bool_t noclear);
  * Recovers! All committed Transactions will be re-applied
  */
 extern ham_status_t
-journal_recover(journal_t *journal, ham_device_t *device, ham_env_t *env);
+journal_recover(journal_t *journal);
 
 
 #ifdef __cplusplus

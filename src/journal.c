@@ -564,7 +564,7 @@ journal_close(journal_t *journal, ham_bool_t noclear)
 }
 
 ham_status_t
-journal_recover(journal_t *journal, ham_device_t *device, ham_env_t *env)
+journal_recover(journal_t *journal)
 {
 /* TODO */
 #if 0
