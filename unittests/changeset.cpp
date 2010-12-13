@@ -75,16 +75,18 @@ public:
         }
         for (int i=0; i<3; i++)
             changeset_add_page(&ch, page[i]);
-        for (int i=0; i<3; i++) {
-            BFC_ASSERT_EQUAL((ham_page_t *)NULL,
-                        page_get_previous(page[i], PAGE_LIST_CHANGESET));
-        }
         BFC_ASSERT_EQUAL(page[1],
                     page_get_next(page[2], PAGE_LIST_CHANGESET));
         BFC_ASSERT_EQUAL(page[0],
                     page_get_next(page[1], PAGE_LIST_CHANGESET));
         BFC_ASSERT_EQUAL((ham_page_t *)NULL,
                     page_get_next(page[0], PAGE_LIST_CHANGESET));
+        BFC_ASSERT_EQUAL(page[1],
+                    page_get_previous(page[0], PAGE_LIST_CHANGESET));
+        BFC_ASSERT_EQUAL(page[2],
+                    page_get_previous(page[1], PAGE_LIST_CHANGESET));
+        BFC_ASSERT_EQUAL((ham_page_t *)NULL,
+                    page_get_previous(page[2], PAGE_LIST_CHANGESET));
         for (int i=0; i<3; i++)
             page_delete(page[i]);
     }

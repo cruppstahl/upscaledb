@@ -27,6 +27,8 @@ changeset_add_page(changeset_t *cs, ham_page_t *page)
                 &HAM_ENABLE_RECOVERY, (""));
 
     page_set_next(page, PAGE_LIST_CHANGESET, changeset_get_head(cs));
+    if (changeset_get_head(cs))
+        page_set_previous(changeset_get_head(cs), PAGE_LIST_CHANGESET, page);
     changeset_set_head(cs, page);
 }
 

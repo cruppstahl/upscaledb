@@ -436,5 +436,8 @@ o new API to retrieve the currently active transactions
 
 . should the changeset become part of the log? it would make sense
 
+. do some profiling - i am afraid that changeset_get_page() is not efficient
+    enough; maybe a hash table is better?
+
 o continue as described in integrate-ham2.txt...
 

@@ -2293,7 +2293,8 @@ _local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     if (st)
         return (st);
 
-    txn_set_cursor_refcount(txn, txn_get_cursor_refcount(txn)+1);
+    if (txn)
+        txn_set_cursor_refcount(txn, txn_get_cursor_refcount(txn)+1);
 
     cursor_set_txn(*cursor, txn);
 

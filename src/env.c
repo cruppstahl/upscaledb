@@ -233,9 +233,12 @@ _local_fun_create(ham_env_t *env, const char *filename,
         env_set_cache(env, cache);
     }
 
-    /* flush the logfile - this will write through disk if logging is
+    /* flush the header page - this will write through disk if logging is
      * enabled */
-    return (page_flush(env_get_header_page(env)));
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
+    	return (page_flush(env_get_header_page(env)));
+
+    return (0);
 }
 
 static ham_status_t 
@@ -414,15 +417,17 @@ fail_with_fake_cleansing:
         env_set_header_page(env, page);
     }
 
-   /*
+    /*
      * open the logfile and check if we need recovery
      */
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && env_get_log(env)==0) {
         ham_log_t *log;
         journal_t *journal;
+        (void)journal_open(env, 0, &journal); /* TODO */
         st=log_open(env, 0, &log);
         if (!st) { 
+            env_set_journal(env, journal); /* TODO */
             /* success - check if we need recovery */
             ham_bool_t isempty;
             st=log_is_empty(log, &isempty);
@@ -432,8 +437,7 @@ fail_with_fake_cleansing:
             }
             env_set_log(env, log);
             if (!isempty) {
-                if (flags&HAM_AUTO_RECOVERY) 
-                {
+                if (flags&HAM_AUTO_RECOVERY) {
                     st=log_recover(log, env_get_device(env), env);
                     if (st) {
                         (void)ham_env_close(env, 0);
@@ -446,8 +450,7 @@ fail_with_fake_cleansing:
                 }
             }
         }
-        else if (st && st==HAM_FILE_NOT_FOUND)
-        {
+        else if (st && st==HAM_FILE_NOT_FOUND) {
             st=log_create(env, 0644, 0, &log);
             if (st) {
                 (void)ham_env_close(env, 0);

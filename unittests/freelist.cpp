@@ -73,6 +73,9 @@ public:
     { 
         __super::teardown();
 
+        /* need to clear the changeset, otherwise ham_close() will complain */
+        changeset_clear(env_get_changeset(m_env));
+
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         m_db=0;
@@ -220,6 +223,8 @@ public:
                 freel_mark_free(m_env, m_db, o, DB_CHUNKSIZE, HAM_FALSE));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
 
+        /* need to clear the changeset, otherwise ham_close() will complain */
+        changeset_clear(env_get_changeset(m_env));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
@@ -236,6 +241,8 @@ public:
                 freel_mark_free(m_env, m_db, o*2, DB_CHUNKSIZE, HAM_FALSE));
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        /* need to clear the changeset, otherwise ham_close() will complain */
+        changeset_clear(env_get_changeset(m_env));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
@@ -273,6 +280,8 @@ public:
         BFC_ASSERT(env_is_dirty(m_env));
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        /* need to clear the changeset, otherwise ham_close() will complain */
+        changeset_clear(env_get_changeset(m_env));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
         db_set_data_access_mode(m_db, 
@@ -292,6 +301,8 @@ public:
         BFC_ASSERT_EQUAL(10*o, addr);
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        /* need to clear the changeset, otherwise ham_close() will complain */
+        changeset_clear(env_get_changeset(m_env));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
@@ -339,6 +350,8 @@ public:
         BFC_ASSERT(env_is_dirty(m_env));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
 
+        /* need to clear the changeset, otherwise ham_close() will complain */
+        changeset_clear(env_get_changeset(m_env));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
 
@@ -368,6 +381,8 @@ public:
         BFC_ASSERT_EQUAL(o, addr);
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        /* need to clear the changeset, otherwise ham_close() will complain */
+        changeset_clear(env_get_changeset(m_env));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, open(HAM_ENABLE_TRANSACTIONS));
         /* set DAM - see above */

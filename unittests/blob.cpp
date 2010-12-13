@@ -90,6 +90,10 @@ public:
     { 
         __super::teardown();
 
+        /* clear the changeset, otherwise ham_close will complain */
+        if (!m_inmemory)
+            changeset_clear(env_get_changeset(m_env));
+
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
