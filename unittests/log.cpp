@@ -427,6 +427,7 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, recoverAllocateMultiplePageTest);
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedPageTest);
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedMultiplePageTest);
+        BFC_REGISTER_TEST(LogHighLevelTest, recoverMixedAllocatedModifiedPageTest);
 #if 0
         BFC_REGISTER_TEST(LogHighLevelTest, allocatePageFromFreelistTest);
         BFC_REGISTER_TEST(LogHighLevelTest, allocateClearedPageTest);
@@ -889,6 +890,59 @@ public:
 
         /* verify the lsn */
         BFC_ASSERT_EQUAL(5ull, log_get_lsn(env_get_log(m_env)));
+    }
+
+    void recoverMixedAllocatedModifiedPageTest(void)
+    {
+        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
+        ham_size_t ps=env_get_pagesize(m_env);
+        ham_page_t *page[10];
+
+        for (int i=0; i<10; i++) {
+            BFC_ASSERT_EQUAL(0, 
+                    db_alloc_page(&page[i], m_db, 0, PAGE_IGNORE_FREELIST));
+            BFC_ASSERT_EQUAL(ps*(2+i), page_get_self(page[i]));
+            for (int j=0; j<200; j++)
+                page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
+        }
+        BFC_ASSERT_EQUAL(0, changeset_flush(env_get_changeset(m_env), 6));
+        changeset_clear(env_get_changeset(m_env));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        /* restore the backupped logfiles */
+        restoreLog();
+
+        /* now modify the file - after all we want to make sure that 
+         * the recovery overwrites the modification, and then truncate
+         * the file */
+        ham_fd_t fd;
+        BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd));
+        for (int i=0; i<10; i++) {
+            BFC_ASSERT_EQUAL(0, os_pwrite(fd, ps*(2+i), 
+                                "XXXXXXXXXXXXXXXXXXXX", 20));
+        }
+        BFC_ASSERT_EQUAL(0, os_truncate(fd, ps*7));
+        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+
+        /* make sure that the log has one alloc-page entry */
+        std::vector<LogEntry> vec;
+        for (int i=0; i<10; i++)
+            vec.push_back(LogEntry(6, 0, ps*(2+i), ps));
+        compareLog(BFC_OPATH(".test2"), vec);
+
+        /* recover and make sure that the pages are ok */
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
+        m_env=db_get_env(m_db);
+        /* verify that the pages do not contain the "XXX..." */
+        for (int i=0; i<10; i++) {
+            BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], m_db, ps*(2+i), 0));
+            for (int j=0; j<20; j++)
+                BFC_ASSERT_NOTEQUAL('X', page_get_raw_payload(page[i])[i]);
+        }
+
+        /* verify the lsn */
+        BFC_ASSERT_EQUAL(6ull, log_get_lsn(env_get_log(m_env)));
     }
 
     void negativeAesFilterTest()

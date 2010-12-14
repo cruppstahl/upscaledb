@@ -343,8 +343,8 @@ o logging: currently, logging for txn_begin and txn_commit/abort
                 x test logfile with multiple allocated pages - file must grow
                 x test logfile with one modified page
                 x test logfile with multiple modified pages
+                x test logfile with a mix of allocated and modified pages
                 o test logfile with one modified page AND freelist
-                o test logfile with a mix of allocated and modified pages
                 o test logfile with multiple modified page AND freelists
                 o test logfile with multiple allocated pages and freelist
                 o test logfile with a modified header page (freelist)
