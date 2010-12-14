@@ -425,6 +425,7 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, createCloseOpenFullLogEnvRecoverTest);
         BFC_REGISTER_TEST(LogHighLevelTest, recoverAllocatePageTest);
         BFC_REGISTER_TEST(LogHighLevelTest, recoverAllocateMultiplePageTest);
+        BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedPageTest);
 #if 0
         BFC_REGISTER_TEST(LogHighLevelTest, allocatePageFromFreelistTest);
         BFC_REGISTER_TEST(LogHighLevelTest, allocateClearedPageTest);
@@ -437,8 +438,6 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, singleBlobTest);
         BFC_REGISTER_TEST(LogHighLevelTest, largeBlobTest);
         BFC_REGISTER_TEST(LogHighLevelTest, insertDuplicateTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedPageTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedPageTest2);
         BFC_REGISTER_TEST(LogHighLevelTest, redoInsertTest);
         BFC_REGISTER_TEST(LogHighLevelTest, redoMultipleInsertsTest);
         BFC_REGISTER_TEST(LogHighLevelTest, negativeAesFilterTest);
@@ -808,42 +807,36 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 db_alloc_page(&page, m_db, 0, PAGE_IGNORE_FREELIST));
         BFC_ASSERT_EQUAL(ps*2, page_get_self(page));
-        BFC_ASSERT_EQUAL(0, changeset_flush(env_get_changeset(m_env), 1));
+        for (int i=0; i<200; i++)
+            page_get_payload(page)[i]=(ham_u8_t)i;
+        BFC_ASSERT_EQUAL(0, changeset_flush(env_get_changeset(m_env), 2));
         changeset_clear(env_get_changeset(m_env));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
         /* restore the backupped logfiles */
         restoreLog();
 
-        /* modify the page - we want that the page in the file contains
-         * a unique marker, but the page in the log does not */
-        BFC_ASSERT_EQUAL(0, 
-                ham_open(m_db, BFC_OPATH(".test"), 0));
-        m_env=db_get_env(m_db);
-        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_db, ps, 0));
-        for (int i=0; i<200; i++)
-            page_get_payload(page)[i]=(ham_u8_t)i;
-        BFC_ASSERT_EQUAL(0, page_flush(page));
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-
-        /* now truncate the file - after all we want to make sure that 
-         * the log appends the new page */
+        /* now modify the file - after all we want to make sure that 
+         * the recovery overwrites the modification */
         ham_fd_t fd;
         BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd));
-        BFC_ASSERT_EQUAL(0, os_truncate(fd, ps*2));
+        BFC_ASSERT_EQUAL(0, os_pwrite(fd, ps*2, "XXXXXXXXXXXXXXXXXXXX", 20));
         BFC_ASSERT_EQUAL(0, os_close(fd, 0));
 
         /* make sure that the log has one alloc-page entry */
-        compareLog(BFC_OPATH(".test2"), LogEntry(1, 0, ps*2, ps));
+        compareLog(BFC_OPATH(".test2"), LogEntry(2, 0, ps*2, ps));
 
-        /* recover and make sure that the page exists */
+        /* recover and make sure that the page is ok */
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         m_env=db_get_env(m_db);
-        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_db, ps, 0));
-        /* verify that the page does NOT contain the marker */
-        for (int i=0; i<200; i++)
-            BFC_ASSERT_EQUAL(0, page_get_payload(page)[i]);
+        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_db, ps*2, 0));
+        /* verify that the page does not contain the "XXX..." */
+        for (int i=0; i<20; i++)
+            BFC_ASSERT_NOTEQUAL('X', page_get_raw_payload(page)[i]);
+
+        /* verify the lsn */
+        BFC_ASSERT_EQUAL(2ull, log_get_lsn(env_get_log(m_env)));
     }
 
     void negativeAesFilterTest()
