@@ -361,7 +361,7 @@ log_recover(ham_log_t *log)
         /* get the next entry in the logfile */
         st=log_get_entry(log, &it, &entry, &data);
         if (st)
-            return (st);
+            goto bail;
 
         /* reached end of the log file? */
         if (log_entry_get_lsn(&entry)==0)
@@ -385,10 +385,10 @@ log_recover(ham_log_t *log)
 
             page=page_new(env);
             if (st)
-                return (st);
+                goto bail;
             st=page_alloc(page);
             if (st)
-                return (st);
+                goto bail;
             ham_assert(page_get_self(page)==log_entry_get_offset(&entry), 
                         (""));
             ham_assert(env_get_pagesize(env)==log_entry_get_data_size(&entry), 
@@ -398,18 +398,18 @@ log_recover(ham_log_t *log)
 
             st=page_flush(page);
             if (st)
-                return (st);
+                goto bail;
             page_delete(page);
         }
         else {
             /* overwritten... */
             page=page_new(env);
             if (st)
-                return (st);
+                goto bail;
             page_set_self(page, log_entry_get_offset(&entry));
             st=page_fetch(page);
             if (st)
-                return (st);
+                goto bail;
             ham_assert(env_get_pagesize(env)==log_entry_get_data_size(&entry), 
                         (""));
 
@@ -417,7 +417,7 @@ log_recover(ham_log_t *log)
 
             st=page_flush(page);
             if (st)
-                return (st);
+                goto bail;
             page_delete(page);
         }
 
@@ -426,17 +426,18 @@ log_recover(ham_log_t *log)
         log_set_lsn(log, log_entry_get_data_size(&entry));
     }
 
-    /* re-enable the logging */
-    env_set_rt_flags(env, env_get_rt_flags(env)|HAM_ENABLE_RECOVERY);
-    
     /* and finally clear the log */
     st=log_clear(log);
     if (st) {
         ham_log(("unable to clear logfiles; please manually delete the "
                 "log files before re-opening the Database"));
-        return (st);
+        goto bail;
     }
 
-    return (0);
+bail:
+    /* re-enable the logging */
+    env_set_rt_flags(env, env_get_rt_flags(env)|HAM_ENABLE_RECOVERY);
+    
+    return (st);
 }
 
