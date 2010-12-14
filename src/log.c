@@ -345,7 +345,7 @@ log_recover(ham_log_t *log)
     ham_device_t *device=env_get_device(env);
     log_entry_t entry;
     log_iterator_t it={0};
-    ham_u8_t *data;
+    ham_u8_t *data=0;
     ham_offset_t filesize;
 
     /* get the file size of the database; otherwise we do not know if we
@@ -358,6 +358,12 @@ log_recover(ham_log_t *log)
     env_set_rt_flags(env, env_get_rt_flags(env)&~HAM_ENABLE_RECOVERY);
 
     while (1) {
+        /* clean up memory of the previous loop */
+        if (data) {
+            allocator_free(log_get_allocator(log), data);
+            data=0;
+        }
+
         /* get the next entry in the logfile */
         st=log_get_entry(log, &it, &entry, &data);
         if (st)
@@ -389,17 +395,6 @@ log_recover(ham_log_t *log)
             st=page_alloc(page);
             if (st)
                 goto bail;
-            ham_assert(page_get_self(page)==log_entry_get_offset(&entry), 
-                        (""));
-            ham_assert(env_get_pagesize(env)==log_entry_get_data_size(&entry), 
-                        (""));
-
-            memcpy(page_get_pers(page), data, log_entry_get_data_size(&entry));
-
-            st=page_flush(page);
-            if (st)
-                goto bail;
-            page_delete(page);
         }
         else {
             /* overwritten... */
@@ -410,16 +405,23 @@ log_recover(ham_log_t *log)
             st=page_fetch(page);
             if (st)
                 goto bail;
-            ham_assert(env_get_pagesize(env)==log_entry_get_data_size(&entry), 
-                        (""));
-
-            memcpy(page_get_pers(page), data, log_entry_get_data_size(&entry));
-
-            st=page_flush(page);
-            if (st)
-                goto bail;
-            page_delete(page);
         }
+
+        ham_assert(page_get_self(page)==log_entry_get_offset(&entry), 
+                    (""));
+        ham_assert(env_get_pagesize(env)==log_entry_get_data_size(&entry), 
+                    (""));
+
+        memcpy(page_get_pers(page), data, log_entry_get_data_size(&entry));
+
+        page_set_dirty(page);
+        st=page_flush(page);
+        if (st)
+            goto bail;
+        st=page_free(page);
+        if (st)
+            goto bail;
+        page_delete(page);
 
         /* store the lsn in the log - will be needed later when recovering
          * the journal */
@@ -430,7 +432,7 @@ log_recover(ham_log_t *log)
     st=log_clear(log);
     if (st) {
         ham_log(("unable to clear logfiles; please manually delete the "
-                "log files before re-opening the Database"));
+                ".log0 file of this Database, then open again."));
         goto bail;
     }
 
@@ -438,6 +440,12 @@ bail:
     /* re-enable the logging */
     env_set_rt_flags(env, env_get_rt_flags(env)|HAM_ENABLE_RECOVERY);
     
+    /* clean up memory */
+    if (data) {
+        allocator_free(log_get_allocator(log), data);
+        data=0;
+    }
+
     return (st);
 }
 

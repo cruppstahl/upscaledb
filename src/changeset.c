@@ -16,7 +16,7 @@
 #include "device.h"
 
 /* a unittest hook for changeset_flush() */
-static void (*g_POST_LOG_HOOK)(void);
+void (*g_CHANGESET_POST_LOG_HOOK)(void);
 
 void
 changeset_add_page(changeset_t *cs, ham_page_t *page)
@@ -97,8 +97,8 @@ changeset_flush(changeset_t *cs, ham_u64_t lsn)
 
     /* execute a post-log hook; this hook is set by the unittest framework
      * and can be used to make a backup copy of the logfile */
-    if (g_POST_LOG_HOOK)
-        g_POST_LOG_HOOK();
+    if (g_CHANGESET_POST_LOG_HOOK)
+        g_CHANGESET_POST_LOG_HOOK();
     
     /* now write all the pages to the file; if any of these writes fail, 
      * we can still recover from the log */

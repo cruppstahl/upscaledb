@@ -35,6 +35,10 @@
 
 using namespace bfc;
 
+/* this function pointer is defined in changeset.c */
+typedef void (*hook_func_t)(void);
+extern hook_func_t g_CHANGESET_POST_LOG_HOOK;
+
 class LogTest : public hamsterDB_fixture
 {
     define_super(hamsterDB_fixture);
@@ -383,41 +387,22 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
-
 };
 
-class LogEntry : public log_entry_t
+struct LogEntry
 {
-public:
-    LogEntry(log_entry_t *entry, ham_u8_t *data) { 
-        memcpy(&m_entry, entry, sizeof(m_entry));
-        if (data)
-            m_data.insert(m_data.begin(), data, 
-                    data+log_entry_get_data_size(entry));
-    }
-
-    LogEntry(ham_u64_t txn_id, ham_u8_t type, ham_offset_t offset,
-            ham_u64_t data_size, ham_u8_t *data=0) {
-        memset(&m_entry, 0, sizeof(m_entry));
-        log_entry_set_txn_id(&m_entry, txn_id);
-        log_entry_set_type(&m_entry, type);
-        log_entry_set_offset(&m_entry, offset);
-        log_entry_set_data_size(&m_entry, data_size);
-        if (data)
-            m_data.insert(m_data.begin(), data, data+data_size);
-    }
-
-    std::vector<ham_u8_t> m_data;
-    log_entry_t m_entry;
-
-    std::string to_str()
+    LogEntry(ham_u64_t _lsn, ham_u64_t _txn_id, 
+                ham_u64_t _offset, ham_u64_t _data_size)
+    :   lsn(_lsn), txn_id(_txn_id), offset(_offset),
+        type(LOG_ENTRY_TYPE_WRITE), data_size(_data_size)
     {
-        std::ostringstream o(std::ostringstream::out);
-        o << "txn:" << log_entry_get_txn_id(&m_entry);
-        o << ", offset:" << log_entry_get_offset(&m_entry);
-        o << ", datasize:" << log_entry_get_data_size(&m_entry);
-        return o.str();
     }
+
+    ham_u64_t lsn;
+    ham_u64_t txn_id;
+    ham_u64_t offset;
+    ham_u32_t type;
+    ham_u64_t data_size;
 };
 
 class LogHighLevelTest : public hamsterDB_fixture
@@ -438,8 +423,9 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, createCloseOpenCloseEnvTest);
         BFC_REGISTER_TEST(LogHighLevelTest, createCloseOpenFullLogEnvTest);
         BFC_REGISTER_TEST(LogHighLevelTest, createCloseOpenFullLogEnvRecoverTest);
+        BFC_REGISTER_TEST(LogHighLevelTest, recoverAllocatePageTest);
+        BFC_REGISTER_TEST(LogHighLevelTest, recoverAllocateMultiplePageTest);
 #if 0
-        BFC_REGISTER_TEST(LogHighLevelTest, allocatePageTest);
         BFC_REGISTER_TEST(LogHighLevelTest, allocatePageFromFreelistTest);
         BFC_REGISTER_TEST(LogHighLevelTest, allocateClearedPageTest);
         BFC_REGISTER_TEST(LogHighLevelTest, singleInsertTest);
@@ -467,8 +453,6 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    typedef std::vector<LogEntry> log_vector_t;
-
     virtual void setup() 
     { 
         __super::setup();
@@ -503,110 +487,9 @@ public:
         BFC_ASSERT_EQUAL((unsigned long)0, memtracker_get_leaks(m_alloc));
     }
 
-    class log_assert_monitor: public bfc_assert_monitor
-    {
-    protected:
-        log_vector_t *lhs;
-        log_vector_t *rhs;
-
-    public:
-        log_assert_monitor(log_vector_t *l, log_vector_t *r)
-            : lhs(l), rhs(r)
-        {}
-        virtual ~log_assert_monitor()
-        {}
-
-        virtual void handler(bfc::error &err)
-        {
-            std::ostringstream o(std::ostringstream::out);
-
-            o << std::endl;
-
-            log_vector_t::iterator itl=lhs->begin();
-            log_vector_t::iterator itr=rhs->begin(); 
-            int entry;
-            for (entry = 1; itl != lhs->end(); ++itl, ++itr, entry++)
-            {
-                //o << "[" << entry << "]\t" << (*itl).to_str() << std::endl << "    vs.\t" << (*itr).to_str() << std::endl;
-                o << "[" << entry << "]\t" << (*itr).to_str() << std::endl;
-            }
-
-            // augment error message:
-            err.m_message += o.str();
-        }
-    };
-
-    void compareLogs(log_vector_t *lhs, log_vector_t *rhs)
-    {
-        BFC_ASSERT_EQUAL((unsigned)lhs->size(), (unsigned)rhs->size());
-
-        log_assert_monitor assert_monitor(lhs, rhs);
-        push_assert_monitor(assert_monitor);
-
-        log_vector_t::iterator itl=lhs->begin();
-        log_vector_t::iterator itr=rhs->begin(); 
-        int entry;
-        for (entry = 1; itl!=lhs->end(); ++itl, ++itr, entry++) 
-        {
-            BFC_ASSERT_EQUAL_I(log_entry_get_txn_id(&(*itl).m_entry), 
-                    log_entry_get_txn_id(&(*itr).m_entry), entry); 
-            BFC_ASSERT_EQUAL_I(log_entry_get_type(&(*itl).m_entry), 
-                    log_entry_get_type(&(*itr).m_entry), entry); 
-            BFC_ASSERT_EQUAL_I(log_entry_get_offset(&(*itl).m_entry), 
-                    log_entry_get_offset(&(*itr).m_entry), entry); 
-            BFC_ASSERT_EQUAL_I(log_entry_get_data_size(&(*itl).m_entry), 
-                    log_entry_get_data_size(&(*itr).m_entry), entry); 
-
-            if ((*itl).m_data.size()) {
-                void *pl=&(*itl).m_data[0];
-                void *pr=&(*itr).m_data[0];
-                BFC_ASSERT_EQUAL_I(0, memcmp(pl, pr, 
-                    (size_t)log_entry_get_data_size(&(*itl).m_entry)), entry);
-            }
-        }
-
-        pop_assert_monitor();
-    }
-
-    log_vector_t readLog()
-    {
-        log_vector_t vec;
-        ham_log_t *log;
-        BFC_ASSERT_EQUAL(0, log_open(m_env, 0, &log));
-        BFC_ASSERT(log!=0);
-
-        log_iterator_t iter;
-        memset(&iter, 0, sizeof(iter));
-
-        log_entry_t entry;
-        ham_u8_t *data;
-        while (1) {
-            BFC_ASSERT_EQUAL(0, 
-                            log_get_entry(log, &iter, &entry, &data));
-            if (log_entry_get_lsn(&entry)==0)
-                break;
-            
-            /*
-            printf("lsn: %d, txn: %d, type: %d, offset: %d, size %d\n",
-                        (int)log_entry_get_lsn(&entry),
-                        (int)log_entry_get_txn_id(&entry),
-                        (int)log_entry_get_type(&entry),
-                        (int)log_entry_get_offset(&entry),
-                        (int)log_entry_get_data_size(&entry));
-                        */
-
-            vec.push_back(LogEntry(&entry, data));
-            if (data)
-                allocator_free(((mem_allocator_t *)m_alloc), data);
-        }
-
-        BFC_ASSERT_EQUAL(0, log_close(log, HAM_FALSE));
-        return (vec);
-    }
-
     void createCloseTest(void)
     {
-        BFC_ASSERT(env_get_log(m_env)!=0);
+        BFC_ASSERT_NOTNULL(env_get_log(m_env));
     }
 
     void createCloseEnvTest(void)
@@ -641,10 +524,12 @@ public:
     {
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        ham_u8_t buffer[1024]={0};
+        ham_u8_t *buffer=(ham_u8_t *)malloc(env_get_pagesize(m_env));
+        memset(buffer, 0, env_get_pagesize(m_env));
+
         BFC_ASSERT_EQUAL(0, 
                     log_append_write(env_get_log(m_env), txn, 2,
-                                0, buffer, sizeof(buffer)));
+                                0, buffer, env_get_pagesize(m_env)));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
@@ -658,21 +543,27 @@ public:
         ham_u64_t filesize;
         BFC_ASSERT_EQUAL(0, os_get_filesize(log_get_fd(log), &filesize));
         BFC_ASSERT_EQUAL((ham_u64_t)sizeof(log_header_t), filesize);
+
+        free(buffer);
     }
 
     void createCloseOpenFullLogTest(void)
     {
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        ham_u8_t buffer[1024]={0};
+        ham_u8_t *buffer=(ham_u8_t *)malloc(env_get_pagesize(m_env));
+        memset(buffer, 0, env_get_pagesize(m_env));
+
         BFC_ASSERT_EQUAL(0, 
                     log_append_write(env_get_log(m_env), txn, 1,
-                                0, buffer, sizeof(buffer)));
+                                0, buffer, env_get_pagesize(m_env)));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
         BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY,
                 ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
+
+        free(buffer);
     }
 
     void createCloseOpenCloseEnvTest(void)
@@ -703,10 +594,12 @@ public:
     {
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        ham_u8_t buffer[1024]={0};
+        ham_u8_t *buffer=(ham_u8_t *)malloc(env_get_pagesize(m_env));
+        memset(buffer, 0, env_get_pagesize(m_env));
+
         BFC_ASSERT_EQUAL(0, 
                     log_append_write(env_get_log(m_env), txn, 1,
-                                0, buffer, sizeof(buffer)));
+                                0, buffer, env_get_pagesize(m_env)));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
@@ -717,15 +610,19 @@ public:
         BFC_ASSERT(env_get_log(env)==0);
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+
+        free(buffer);
     }
 
     void createCloseOpenFullLogEnvRecoverTest(void)
     {
         ham_txn_t *txn;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        ham_u8_t buffer[1024]={0};
+        ham_u8_t *buffer=(ham_u8_t *)malloc(env_get_pagesize(m_env));
+        memset(buffer, 0, env_get_pagesize(m_env));
+
         BFC_ASSERT_EQUAL(0, log_append_write(env_get_log(m_env), txn, 1,
-                                0, buffer, sizeof(buffer)));
+                                0, buffer, env_get_pagesize(m_env)));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
@@ -743,399 +640,184 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+
+        free(buffer);
     }
 
-    void allocatePageTest(void)
+    static void copyLog(void)
     {
+        assert(true==os::copy(BFC_OPATH(".test.log0"), 
+                    BFC_OPATH(".test2.log0")));
+    }
+
+    static void restoreLog(void)
+    {
+        assert(true==os::copy(BFC_OPATH(".test2.log0"), 
+                    BFC_OPATH(".test.log0")));
+    }
+
+    void compareLog(const char *filename, LogEntry e)
+    {
+        log_entry_t entry;
+        log_iterator_t it={0};
+        ham_u8_t *data;
+        int i=0;
+        ham_log_t *log; 
+        ham_env_t *env;
+
+        /* for traversing the logfile we need a temp. Env handle */
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_env_create(env, filename, 0, 0664));
+        BFC_ASSERT_EQUAL(0, log_open(env, 0, &log));
+ 
+        while (1) {
+            BFC_ASSERT_EQUAL(0, log_get_entry(log, &it, &entry, &data));
+            if (log_entry_get_lsn(&entry)==0)
+                break;
+
+            i++; /* currently this function only supports logs with 1 entry */
+            BFC_ASSERT_EQUAL(1, i);
+
+            BFC_ASSERT_EQUAL(e.lsn, log_entry_get_lsn(&entry));
+            BFC_ASSERT_EQUAL(e.txn_id, log_entry_get_txn_id(&entry));
+            BFC_ASSERT_EQUAL(e.offset, log_entry_get_offset(&entry));
+            BFC_ASSERT_EQUAL(e.type, log_entry_get_type(&entry));
+            BFC_ASSERT_EQUAL(e.data_size, log_entry_get_data_size(&entry));
+
+            allocator_free(log_get_allocator(log), data);
+        }
+
+        BFC_ASSERT_EQUAL(0, log_close(log, HAM_TRUE));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_delete(env));
+    }
+
+    void recoverAllocatePageTest(void)
+    {
+        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
+        ham_size_t ps=env_get_pagesize(m_env);
         ham_page_t *page;
+
         BFC_ASSERT_EQUAL(0, 
                 db_alloc_page(&page, m_db, 0, PAGE_IGNORE_FREELIST));
-        BFC_ASSERT(page!=0);
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
-
-        open();
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, 0, 0));
-        compareLogs(&exp, &vec);
-    }
-
-    void allocatePageFromFreelistTest(void)
-    {
-        ham_size_t ps=os_get_pagesize();
-        ham_page_t *page;
-        BFC_ASSERT_EQUAL(0, 
-                db_alloc_page(&page, m_db, 0, 
-                        PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO));
-        BFC_ASSERT(page!=0);
-        BFC_ASSERT_EQUAL(0, db_free_page(page, DB_MOVE_TO_FREELIST));
-        BFC_ASSERT_EQUAL(0, 
-                db_alloc_page(&page, m_db, 0, PAGE_CLEAR_WITH_ZERO));
-        BFC_ASSERT(page!=0);
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
-
-        open();
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
-        compareLogs(&exp, &vec);
-    }
-
-    void allocateClearedPageTest(void)
-    {
-        ham_size_t ps=os_get_pagesize();
-        ham_page_t *page;
-        BFC_ASSERT_EQUAL(0, 
-                db_alloc_page(&page, m_db, 0, 
-                        PAGE_IGNORE_FREELIST|PAGE_CLEAR_WITH_ZERO));
-        BFC_ASSERT(page!=0);
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
-
-        open();
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
-        compareLogs(&exp, &vec);
-    }
-
-    void insert(const char *name, const char *data, ham_u32_t flags=0)
-    {
-        ham_key_t key;
-        ham_record_t rec;
-        memset(&key, 0, sizeof(key));
-        memset(&rec, 0, sizeof(rec));
-
-        key.data=(void *)name;
-        key.size=(ham_u16_t)strlen(name)+1;
-        rec.data=(void *)data;
-        rec.size=(ham_u16_t)strlen(data)+1;
-
-        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, flags));
-    }
-
-    void find(const char *name, const char *data, ham_status_t result=0)
-    {
-        ham_key_t key;
-        ham_record_t rec;
-        memset(&key, 0, sizeof(key));
-        memset(&rec, 0, sizeof(rec));
-
-        key.data=(void *)name;
-        key.size=(ham_u16_t)strlen(name)+1;
-
-        BFC_ASSERT_EQUAL(result, ham_find(m_db, 0, &key, &rec, 0));
-        if (result==0)
-            BFC_ASSERT_EQUAL(0, ::strcmp(data, (const char *)rec.data));
-    }
-
-    void erase(const char *name)
-    {
-        ham_key_t key;
-        memset(&key, 0, sizeof(key));
-
-        key.data=(void *)name;
-        key.size=(ham_u16_t)strlen(name)+1;
-
-        BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
-    }
-
-    void singleInsertTest(void)
-    {
-        ham_size_t ps=os_get_pagesize();
-        insert("a", "b");
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
-
-        open();
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        compareLogs(&exp, &vec);
-    }
-
-    void doubleInsertTest(void)
-    {
-        ham_size_t ps=os_get_pagesize();
-        insert("a", "b");
-        insert("b", "c");
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
-
-        open();
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        compareLogs(&exp, &vec);
-    }
-
-    void splitInsertTest(void)
-    {
-        ham_parameter_t p[]={
-            {HAM_PARAM_PAGESIZE, 1024}, 
-            {HAM_PARAM_KEYSIZE,   200}, 
-            {0, 0}
-        };
-        ham_size_t ps=1024;
+        BFC_ASSERT_EQUAL(ps*2, page_get_self(page));
+        for (int i=0; i<200; i++)
+            page_get_payload(page)[i]=(ham_u8_t)i;
+        BFC_ASSERT_EQUAL(0, changeset_flush(env_get_changeset(m_env), 1));
+        changeset_clear(env_get_changeset(m_env));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        /* restore the backupped logfiles */
+        restoreLog();
+
+        /* now truncate the file - after all we want to make sure that 
+         * the log appends the new page */
+        ham_fd_t fd;
+        BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd));
+        BFC_ASSERT_EQUAL(0, os_truncate(fd, ps*2));
+        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+
+        /* make sure that the log has one alloc-page entry */
+        compareLog(BFC_OPATH(".test2"), LogEntry(1, 0, ps*2, ps));
+
+        /* recover and make sure that the page exists */
         BFC_ASSERT_EQUAL(0, 
-                ham_create_ex(m_db, BFC_OPATH(".test"), 
-                    HAM_ENABLE_RECOVERY, 0644, p));
-        insert("a", "1");
-        insert("b", "2");
-        insert("c", "3");
-        insert("d", "4");
-        insert("e", "5");
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
-
-        open();
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-
-        exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
-        exp.push_back(LogEntry(5, LOG_ENTRY_TYPE_WRITE, ps*3, ps));
-        exp.push_back(LogEntry(4, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        compareLogs(&exp, &vec);
+                ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
+        m_env=db_get_env(m_db);
+        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_db, ps*2, 0));
+        /* verify that the page contains the marker */
+        for (int i=0; i<200; i++)
+            BFC_ASSERT_EQUAL((ham_u8_t)i, page_get_payload(page)[i]);
     }
 
-    void singleEraseTest(void)
+    void recoverAllocateMultiplePageTest(void)
     {
-        ham_size_t ps=os_get_pagesize();
-        insert("a", "b");
-        erase("a");
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
+        ham_size_t ps=env_get_pagesize(m_env);
+        ham_page_t *page[10];
 
-        open();
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        compareLogs(&exp, &vec);
-    }
-
-    void eraseMergeTest(void)
-    {
-        ham_parameter_t p[]={
-            {HAM_PARAM_PAGESIZE, 1024}, 
-            {HAM_PARAM_KEYSIZE,   200}, 
-            {0, 0}
-        };
-        ham_size_t ps=1024;
+        for (int i=0; i<10; i++) {
+            BFC_ASSERT_EQUAL(0, 
+                    db_alloc_page(&page[i], m_db, 0, PAGE_IGNORE_FREELIST));
+            BFC_ASSERT_EQUAL(ps*(2+i), page_get_self(page[i]));
+            for (int j=0; j<200; j++)
+                page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
+        }
+        BFC_ASSERT_EQUAL(0, changeset_flush(env_get_changeset(m_env), 1));
+        changeset_clear(env_get_changeset(m_env));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        /* restore the backupped logfiles */
+        restoreLog();
+
+        /* now truncate the file - after all we want to make sure that 
+         * the log appends the new page */
+        ham_fd_t fd;
+        BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd));
+        BFC_ASSERT_EQUAL(0, os_truncate(fd, ps*2));
+        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+
+        /* make sure that the log has one alloc-page entry */
+//TODO TODO TODO
+        compareLog(BFC_OPATH(".test2"), LogEntry(1, 0, ps*2, ps));
+
+        /* recover and make sure that the pages exists */
         BFC_ASSERT_EQUAL(0, 
-                ham_create_ex(m_db, BFC_OPATH(".test"), 
-                                HAM_ENABLE_RECOVERY, 0644, p));
-        insert("a", "1");
-        insert("b", "2");
-        insert("c", "3");
-        insert("d", "4");
-        insert("e", "5");
-        erase("e");
-        erase("d");
-        erase("c");
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
-
-        open();
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        compareLogs(&exp, &vec);
-    }
-
-    void cursorOverwriteTest(void)
-    {
-        ham_key_t key; memset(&key, 0, sizeof(key));
-        ham_record_t rec; memset(&rec, 0, sizeof(rec));
-        ham_size_t ps=os_get_pagesize();
-        insert("a", "1");
-        ham_cursor_t *c;
-        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
-        BFC_ASSERT_EQUAL(0,
-                ham_cursor_move(c, &key, &rec, HAM_CURSOR_FIRST));
-        BFC_ASSERT_EQUAL(0,
-                ham_cursor_overwrite(c, &rec, 0));
-        BFC_ASSERT_EQUAL(0, 
-                ham_close(m_db, HAM_DONT_CLEAR_LOG|HAM_AUTO_CLEANUP));
-
-        open();
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-        exp.push_back(LogEntry(3, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        compareLogs(&exp, &vec);
-    }
-
-    void singleBlobTest(void)
-    {
-        ham_size_t ps=os_get_pagesize();
-        insert("a", "1111111110111111111011111111101111111110");
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
-
-        open();
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
-        compareLogs(&exp, &vec);
-    }
-
-    void largeBlobTest(void)
-    {
-        ham_size_t ps=os_get_pagesize();
-        char *p=(char *)malloc(ps/4);
-        memset(p, 'a', ps/4);
-        p[ps/4-1]=0;
-        insert("a", p);
-        free(p);
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
-
-        open();
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
-        compareLogs(&exp, &vec);
-    }
-
-    void insertDuplicateTest(void)
-    {
-        ham_size_t ps=os_get_pagesize();
-        insert("a", "1");
-        insert("a", "2", HAM_DUPLICATE);
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
-
-        open();
-        log_vector_t vec=readLog();
-        log_vector_t exp;
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        exp.push_back(LogEntry(2, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
-        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
-        compareLogs(&exp, &vec);
+                ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
+        m_env=db_get_env(m_db);
+        for (int i=0; i<10; i++) {
+            BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], m_db, ps*(i+1), 0));
+            /* verify that the pages do NOT contain the markers */
+            for (int j=0; j<200; j++)
+                BFC_ASSERT_EQUAL(0, page_get_payload(page[i])[j]);
+        }
     }
 
     void recoverModifiedPageTest(void)
     {
-        ham_txn_t *txn;
+        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
+        ham_size_t ps=env_get_pagesize(m_env);
         ham_page_t *page;
 
-        /* allocate page, write before-image, modify, commit (= write
-         * after-image */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, db_alloc_page(&page, m_db, 0, 0));
-        BFC_ASSERT(page!=0);
-        ham_offset_t address=page_get_self(page);
-        ham_u8_t *p=page_get_payload(page);
-        memset(p, 0, env_get_usable_pagesize(m_env));
-        p[0]=1;
-        page_set_dirty(page);
-        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, 
+                db_alloc_page(&page, m_db, 0, PAGE_IGNORE_FREELIST));
+        BFC_ASSERT_EQUAL(ps*2, page_get_self(page));
+        BFC_ASSERT_EQUAL(0, changeset_flush(env_get_changeset(m_env), 1));
+        changeset_clear(env_get_changeset(m_env));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
-        /* fetch page again, modify, abort -> first modification is still
-         * available, second modification is reverted */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, env_fetch_page(&page, m_env, address, 0));
-        BFC_ASSERT(page!=0);
-        p=page_get_payload(page);
-        p[0]=2;
-        page_set_dirty(page);
-        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+        /* restore the backupped logfiles */
+        restoreLog();
 
-        /* check modifications */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, env_fetch_page(&page, m_env, address, 0));
-        BFC_ASSERT(page!=0);
-        p=page_get_payload(page);
-        BFC_ASSERT_EQUAL((ham_u8_t)1, p[0]);
-        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
-    }
+        /* modify the page - we want that the page in the file contains
+         * a unique marker, but the page in the log does not */
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(m_db, BFC_OPATH(".test"), 0));
+        m_env=db_get_env(m_db);
+        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_db, ps, 0));
+        for (int i=0; i<200; i++)
+            page_get_payload(page)[i]=(ham_u8_t)i;
+        BFC_ASSERT_EQUAL(0, page_flush(page));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
-    void recoverModifiedPageTest2(void)
-    {
-        ham_txn_t *txn;
-        ham_page_t *page;
-        ham_size_t ps=os_get_pagesize();
+        /* now truncate the file - after all we want to make sure that 
+         * the log appends the new page */
+        ham_fd_t fd;
+        BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd));
+        BFC_ASSERT_EQUAL(0, os_truncate(fd, ps*2));
+        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
 
-        /* insert a key */
-        insert("a", "1");
+        /* make sure that the log has one alloc-page entry */
+        compareLog(BFC_OPATH(".test2"), LogEntry(1, 0, ps*2, ps));
 
-        /* fetch the page with the key, overwrite it with garbage, then
-         * abort */
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, env_fetch_page(&page, m_env, ps, 0));
-        BFC_ASSERT(page!=0);
-        btree_node_t *node=page_get_btree_node(page);
-        btree_key_t *entry=btree_node_get_key(m_db, node, 0);
-        BFC_ASSERT_EQUAL((ham_u8_t)'a', key_get_key(entry)[0]);
-        key_get_key(entry)[0]='b';
-        page_set_dirty(page);
-        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
-
-        /* now fetch the original key */
-        ham_key_t key;
-        ham_record_t record;
-        memset(&key, 0, sizeof(key));
-        key.data=(void *)"a";
-        key.size=2; /* zero-terminated "a" */
-        memset(&record, 0, sizeof(record));
-        BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &record, 0));
-    }
-
-    void redoInsertTest(void)
-    {
-        ham_page_t *page;
-
-        /* insert a key */
-        insert("x", "2");
-
-        /* now walk through all pages and set them un-dirty, so they
-         * are not written to the file */
-        page=cache_get_totallist(env_get_cache(m_env)); 
-        while (page) {
-            page_set_undirty(page);
-            page=page_get_next(page, PAGE_LIST_CACHED);
-        }
-
-        /* close the database (without deleting the log) */
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
-        /* now reopen and recover */
-        BFC_ASSERT_EQUAL(0,
-                ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
-
-        /* and make sure that the inserted item is found */
-        find("x", "2");
-    }
-
-    void redoMultipleInsertsTest(void)
-    {
-        ham_page_t *page;
-
-        /* insert keys */
-        insert("x", "2");
-        insert("y", "3");
-        insert("z", "4");
-
-        /* now walk through all pages and set them un-dirty, so they
-         * are not written to the file */
-        page=cache_get_totallist(env_get_cache(m_env)); 
-        while (page) {
-            page_set_undirty(page);
-            page=page_get_next(page, PAGE_LIST_CACHED);
-        }
-
-        /* close the database (without deleting the log) */
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
-        /* now reopen and recover */
-        BFC_ASSERT_EQUAL(0,
-                ham_open(m_db, BFC_OPATH(".test"), 
-                            HAM_AUTO_RECOVERY|HAM_ENABLE_RECOVERY));
-
-        /* and make sure that the inserted item is found */
-        find("x", "2");
-        find("y", "3");
-        find("z", "4");
+        /* recover and make sure that the page exists */
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
+        m_env=db_get_env(m_db);
+        BFC_ASSERT_EQUAL(0, db_fetch_page(&page, m_db, ps, 0));
+        /* verify that the page does NOT contain the marker */
+        for (int i=0; i<200; i++)
+            BFC_ASSERT_EQUAL(0, page_get_payload(page)[i]);
     }
 
     void negativeAesFilterTest()

@@ -245,8 +245,8 @@ static ham_status_t
 __recover(ham_env_t *env, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_log_t *log;
-    journal_t *journal;
+    ham_log_t *log=0;
+    journal_t *journal=0;
 
     ham_assert(env_get_rt_flags(env)&HAM_ENABLE_RECOVERY, (""));
 
