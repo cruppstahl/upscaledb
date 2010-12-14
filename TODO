@@ -340,13 +340,15 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             x implement
             o need unittests
                 x test logfile with one allocated page - file must grow
-                o test logfile with multiple allocated pages - file must grow
-                o test logfile with multiple allocated pages and freelist
+                x test logfile with multiple allocated pages - file must grow
                 o test logfile with one modified page
-                o test logfile with one modified page AND freelist
                 o test logfile with multiple modified pages
-                o test logfile with multiple modified page AND freelists
+                o test logfile with one modified page AND freelist
                 o test logfile with a mix of allocated and modified pages
+                o test logfile with multiple modified page AND freelists
+                o test logfile with multiple allocated pages and freelist
+                o test logfile with a modified header page (freelist)
+                o test logfile with a modified header page (env_create_db)
                 o always test lsn after recovering from the logfile
         o then re-apply the journal, continuing from the entry with this lsn
             o make sure that the txn Id is persisted in the log and

@@ -387,7 +387,7 @@ log_recover(ham_log_t *log)
          */
         if (log_entry_get_offset(&entry)==filesize) {
             /* appended... */
-            filesize+=log_entry_get_offset(&entry);
+            filesize+=log_entry_get_data_size(&entry);
 
             page=page_new(env);
             if (st)
@@ -412,8 +412,10 @@ log_recover(ham_log_t *log)
         ham_assert(env_get_pagesize(env)==log_entry_get_data_size(&entry), 
                     (""));
 
+        /* overwrite the page data */
         memcpy(page_get_pers(page), data, log_entry_get_data_size(&entry));
 
+        /* flush the modified page to disk */
         page_set_dirty(page);
         st=page_flush(page);
         if (st)
@@ -425,7 +427,7 @@ log_recover(ham_log_t *log)
 
         /* store the lsn in the log - will be needed later when recovering
          * the journal */
-        log_set_lsn(log, log_entry_get_data_size(&entry));
+        log_set_lsn(log, log_entry_get_lsn(&entry));
     }
 
     /* and finally clear the log */

@@ -526,13 +526,16 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         ham_u8_t *buffer=(ham_u8_t *)malloc(env_get_pagesize(m_env));
         memset(buffer, 0, env_get_pagesize(m_env));
+        ham_size_t ps=env_get_pagesize(m_env);
 
         BFC_ASSERT_EQUAL(0, 
                     log_append_write(env_get_log(m_env), txn, 2,
-                                0, buffer, env_get_pagesize(m_env)));
+                                ps, buffer, ps));
         BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
 
+        BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY,
+                ham_open(m_db, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));
         BFC_ASSERT_EQUAL(0,
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         m_env=db_get_env(m_db);
@@ -658,34 +661,49 @@ public:
 
     void compareLog(const char *filename, LogEntry e)
     {
+        std::vector<LogEntry> v;
+        v.push_back(e);
+        compareLog(filename, v);
+    }
+
+    void compareLog(const char *filename, std::vector<LogEntry> &vec) 
+    {
         log_entry_t entry;
         log_iterator_t it={0};
         ham_u8_t *data;
-        int i=0;
+        size_t size=0;
         ham_log_t *log; 
         ham_env_t *env;
+        std::vector<LogEntry>::iterator vit=vec.begin();
 
         /* for traversing the logfile we need a temp. Env handle */
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, ham_env_create(env, filename, 0, 0664));
         BFC_ASSERT_EQUAL(0, log_open(env, 0, &log));
- 
+
         while (1) {
             BFC_ASSERT_EQUAL(0, log_get_entry(log, &it, &entry, &data));
             if (log_entry_get_lsn(&entry)==0)
                 break;
 
-            i++; /* currently this function only supports logs with 1 entry */
-            BFC_ASSERT_EQUAL(1, i);
+            if (vit==vec.end()) {
+                BFC_ASSERT_EQUAL(0ull, log_entry_get_lsn(&entry));
+                break;
+            }
+            size++;
 
-            BFC_ASSERT_EQUAL(e.lsn, log_entry_get_lsn(&entry));
-            BFC_ASSERT_EQUAL(e.txn_id, log_entry_get_txn_id(&entry));
-            BFC_ASSERT_EQUAL(e.offset, log_entry_get_offset(&entry));
-            BFC_ASSERT_EQUAL(e.type, log_entry_get_type(&entry));
-            BFC_ASSERT_EQUAL(e.data_size, log_entry_get_data_size(&entry));
+            BFC_ASSERT_EQUAL((*vit).lsn, log_entry_get_lsn(&entry));
+            BFC_ASSERT_EQUAL((*vit).txn_id, log_entry_get_txn_id(&entry));
+            BFC_ASSERT_EQUAL((*vit).offset, log_entry_get_offset(&entry));
+            BFC_ASSERT_EQUAL((*vit).type, log_entry_get_type(&entry));
+            BFC_ASSERT_EQUAL((*vit).data_size, log_entry_get_data_size(&entry));
 
             allocator_free(log_get_allocator(log), data);
+
+            vit++;
         }
+
+        BFC_ASSERT_EQUAL(vec.size(), size);
 
         BFC_ASSERT_EQUAL(0, log_close(log, HAM_TRUE));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
@@ -728,6 +746,9 @@ public:
         /* verify that the page contains the marker */
         for (int i=0; i<200; i++)
             BFC_ASSERT_EQUAL((ham_u8_t)i, page_get_payload(page)[i]);
+
+        /* verify the lsn */
+        BFC_ASSERT_EQUAL(1ull, log_get_lsn(env_get_log(m_env)));
     }
 
     void recoverAllocateMultiplePageTest(void)
@@ -743,7 +764,7 @@ public:
             for (int j=0; j<200; j++)
                 page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
         }
-        BFC_ASSERT_EQUAL(0, changeset_flush(env_get_changeset(m_env), 1));
+        BFC_ASSERT_EQUAL(0, changeset_flush(env_get_changeset(m_env), 33));
         changeset_clear(env_get_changeset(m_env));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
 
@@ -758,19 +779,24 @@ public:
         BFC_ASSERT_EQUAL(0, os_close(fd, 0));
 
         /* make sure that the log has one alloc-page entry */
-//TODO TODO TODO
-        compareLog(BFC_OPATH(".test2"), LogEntry(1, 0, ps*2, ps));
+        std::vector<LogEntry> vec;
+        for (int i=0; i<10; i++)
+            vec.push_back(LogEntry(33, 0, ps*(2+i), ps));
+        compareLog(BFC_OPATH(".test2"), vec);
 
         /* recover and make sure that the pages exists */
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
         m_env=db_get_env(m_db);
         for (int i=0; i<10; i++) {
-            BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], m_db, ps*(i+1), 0));
-            /* verify that the pages do NOT contain the markers */
+            BFC_ASSERT_EQUAL(0, db_fetch_page(&page[i], m_db, ps*(2+i), 0));
+            /* verify that the pages contain the markers */
             for (int j=0; j<200; j++)
-                BFC_ASSERT_EQUAL(0, page_get_payload(page[i])[j]);
+                BFC_ASSERT_EQUAL((ham_u8_t)(i+j), page_get_payload(page[i])[j]);
         }
+
+        /* verify the lsn */
+        BFC_ASSERT_EQUAL(33ull, log_get_lsn(env_get_log(m_env)));
     }
 
     void recoverModifiedPageTest(void)
