@@ -241,6 +241,93 @@ _local_fun_create(ham_env_t *env, const char *filename,
     return (0);
 }
 
+static ham_status_t
+__recover(ham_env_t *env, ham_u32_t flags)
+{
+    ham_status_t st;
+    ham_log_t *log;
+    journal_t *journal;
+
+    ham_assert(env_get_rt_flags(env)&HAM_ENABLE_RECOVERY, (""));
+
+    /* open the log */
+    st=log_open(env, 0, &log);
+    if (st && st!=HAM_FILE_NOT_FOUND)
+        goto bail;
+    /* success - check if we need recovery */
+    else if (!st) {
+        ham_bool_t isempty;
+        st=log_is_empty(log, &isempty);
+        if (st)
+            goto bail;
+
+        if (!isempty) {
+            if (flags&HAM_AUTO_RECOVERY) {
+                st=log_recover(log);
+                if (st)
+                    goto bail;
+            }
+            else {
+                st=HAM_NEED_RECOVERY;
+                goto bail;
+            }
+        }
+    }
+
+    /* open the journal */
+    st=journal_open(env, 0, &journal);
+    if (st && st!=HAM_FILE_NOT_FOUND)
+        goto bail;
+    /* success - check if we need recovery */
+    else if (!st) {
+        ham_bool_t isempty;
+        st=journal_is_empty(journal, &isempty);
+        if (st)
+            goto bail;
+
+        if (!isempty) {
+            if (flags&HAM_AUTO_RECOVERY) {
+                st=journal_recover(journal);
+                if (st)
+                    goto bail;
+            }
+            else {
+                st=HAM_NEED_RECOVERY;
+                goto bail;
+            }
+        }
+    }
+
+goto success;
+
+bail:
+    /* in case of errors: close log and journal, but do not delete the files */
+    if (log)
+        log_close(log, HAM_TRUE);
+    if (journal)
+        journal_close(journal, HAM_TRUE);
+    return (st);
+
+success:
+    /* done with recovering - if there's no log and/or no journal then
+     * create them and store them in the environment */
+    if (!log) {
+        st=log_create(env, 0644, 0, &log);
+        if (st)
+            return (st);
+    }
+    env_set_log(env, log);
+
+    if (!journal) {
+        st=journal_create(env, 0644, 0, &journal);
+        if (st)
+            return (st);
+    }
+    env_set_journal(env, journal);
+
+    return (0);
+}
+
 static ham_status_t 
 _local_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags, 
         const ham_parameter_t *param)
@@ -418,54 +505,13 @@ fail_with_fake_cleansing:
     }
 
     /*
-     * open the logfile and check if we need recovery
+     * open the logfile and check if we need recovery. first open the 
+     * (physical) log and re-apply it. afterwards to the same with the
+     * (logical) journal.
      */
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
-            && env_get_log(env)==0) {
-        ham_log_t *log;
-        journal_t *journal;
-        (void)journal_open(env, 0, &journal); /* TODO */
-        st=log_open(env, 0, &log);
-        if (!st) { 
-            env_set_journal(env, journal); /* TODO */
-            /* success - check if we need recovery */
-            ham_bool_t isempty;
-            st=log_is_empty(log, &isempty);
-            if (st) {
-                (void)ham_env_close(env, 0);
-                return (st);
-            }
-            env_set_log(env, log);
-            if (!isempty) {
-                if (flags&HAM_AUTO_RECOVERY) {
-                    st=log_recover(log, env_get_device(env), env);
-                    if (st) {
-                        (void)ham_env_close(env, 0);
-                        return (st);
-                    }
-               }
-                else {
-                    (void)ham_env_close(env, 0);
-                    return (HAM_NEED_RECOVERY);
-                }
-            }
-        }
-        else if (st && st==HAM_FILE_NOT_FOUND) {
-            st=log_create(env, 0644, 0, &log);
-            if (st) {
-                (void)ham_env_close(env, 0);
-                return (st);
-            }
-            env_set_log(env, log);
-
-            st=journal_create(env, 0644, 0, &journal);
-            if (st) {
-                (void)ham_env_close(env, 0);
-                return (st);
-            }
-            env_set_journal(env, journal);
-        }
-        else {
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+        st=__recover(env, flags);
+        if (st) {
             (void)ham_env_close(env, 0);
             return (st);
         }

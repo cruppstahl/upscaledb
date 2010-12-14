@@ -346,6 +346,24 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         o then clear the journal
             o need unittests
 
+    o unittests
+        o after logging/journal: all files have to be empty, 
+            also check lsn's in log and journal and make sure that
+            the next txn-op has the correct lsn
+        o test logfile with allocated pages - file must grow
+        o check logfile for EVERY operation that is logged
+        o recovery w/ empty log, full journal
+        o recovery w/ full log, full journal
+        o recovery w/ full log, full journal (and skip journal entries
+            at the beginning)
+        o recovery w/ ham_env_create_db
+        o check journal for EVERY operation that is logged
+        o recovery with several aborted operations
+        o recovery with several committed operations
+
+    o if lsn overflows: return error HAM_LIMITS_REACHED (this will require a 
+        reorg)
+
     o recovery: auto-aborts all non-committed transactions (same behavior 
             as now)
         o need unittests

@@ -337,154 +337,99 @@ log_append_page(ham_log_t *log, ham_page_t *page, ham_u64_t lsn)
 }
 
 ham_status_t
-log_recover(ham_log_t *log, ham_device_t *device, ham_env_t *env)
+log_recover(ham_log_t *log)
 {
-    (void)log_clear(log);
-#if 0
-    ham_status_t st=0;
+    ham_status_t st;
+    ham_page_t *page;
+    ham_env_t *env=log_get_env(log);
+    ham_device_t *device=env_get_device(env);
     log_entry_t entry;
-    log_iterator_t iter;
-    ham_u8_t *data=0;
-    ham_u64_t *txn_list=0;
-    log_flush_entry_t *flush_list=0;
-    ham_size_t txn_list_size=0;
-    ham_size_t flush_list_size=0;
-    ham_size_t i;
-    ham_bool_t committed;
-    ham_bool_t flushed;
+    log_iterator_t it={0};
+    ham_u8_t *data;
+    ham_offset_t filesize;
 
-    memset(&iter, 0, sizeof(iter));
-
-    /*
-     * walk backwards through the log; every action which was not
-     * committed, but flushed, is undone; every action which was 
-     * committed, but not flushed, is redone
-     */
-    while (1) {
-        if ((st=log_get_entry(log, &iter, &entry, &data)))
-            goto bail;
-        
-        if (log_entry_get_lsn(&entry)==0)
-            break;
-
-        switch (log_entry_get_type(&entry)) {
-            /* checkpoint: no need to continue */
-            case LOG_ENTRY_TYPE_CHECKPOINT:
-                goto bail;
-
-            /* commit: store the txn-id */
-            case LOG_ENTRY_TYPE_TXN_COMMIT:
-                txn_list_size++;
-                txn_list=(ham_u64_t *)allocator_realloc(log_get_allocator(log),
-                        txn_list, txn_list_size*sizeof(ham_u64_t));
-                if (!txn_list) {
-                    st=HAM_OUT_OF_MEMORY;
-                    goto bail;
-                }
-                txn_list[txn_list_size-1]=log_entry_get_txn_id(&entry);
-                break;
-
-            /* an after-image: undo if flushed but not committed, 
-             * redo if committed and not flushed */
-            case LOG_ENTRY_TYPE_WRITE:
-                /* 
-                check if this page was flushed at a later time within 
-                the same log section (up to the next checkpoint): we're 
-                walking BACKWARDS in time here and we must only restore
-                the LATEST state.
-                */
-                flushed=0;
-                for (i=0; i<flush_list_size; i++) {
-                    if (flush_list[i].page_id==log_entry_get_offset(&entry)
-                            && flush_list[i].lsn>log_entry_get_lsn(&entry)) {
-                        flushed=1;
-                        break;
-                    }
-                }
-                /* check if this txn was committed */
-                committed=0;
-                for (i=0; i<txn_list_size; i++) {
-                    if (txn_list[i]==log_entry_get_txn_id(&entry)) {
-                        committed=1;
-                        break;
-                    }
-                }
-
-                /* flushed and not committed: undo */
-                if (flushed && !committed) {
-                    ham_u8_t *udata;
-                    log_iterator_t uiter=iter;
-                    st=__undo(log, &uiter, 
-                            log_entry_get_offset(&entry), &udata);
-                    if (st)
-                        goto bail;
-                    st=device->write(device, log_entry_get_offset(&entry),
-                            udata, env_get_pagesize(env));
-                    allocator_free(log_get_allocator(log), udata);
-                    if (st)
-                        goto bail;
-                    break;
-                }
-                /* not flushed and committed: redo */
-                else if (!flushed && committed) {
-                    st=device->write(device, log_entry_get_offset(&entry),
-                            data, env_get_pagesize(env));
-                    if (st)
-                        goto bail;
-                    /* since we just flushed the page: add page_id and lsn
-                     * to the flush_list 
-                     *
-                     * fall through...
-                     */
-
-                }
-                else
-                    break;
-            /* flush: store the page-id and the lsn*/
-            case LOG_ENTRY_TYPE_FLUSH_PAGE:
-                flush_list_size++;
-                flush_list=(log_flush_entry_t *)allocator_realloc(
-                        log_get_allocator(log), flush_list, 
-                        flush_list_size*sizeof(log_flush_entry_t));
-                if (!flush_list) {
-                    st=HAM_OUT_OF_MEMORY;
-                    goto bail;
-                }
-                flush_list[flush_list_size-1].page_id=
-                    log_entry_get_offset(&entry);
-                flush_list[flush_list_size-1].lsn=
-                    log_entry_get_lsn(&entry);
-                break;
-
-            /* ignore everything else */
-            default:
-                break;
-        }
-
-        if (data) {
-            allocator_free(log_get_allocator(log), data);
-            data=0;
-        }
-    }
-
-bail:
-    if (txn_list)
-        allocator_free(log_get_allocator(log), txn_list);
-    if (flush_list)
-        allocator_free(log_get_allocator(log), flush_list);
-    if (data)
-        allocator_free(log_get_allocator(log), data);
-
-    /*
-     * did we goto bail because of an earlier error? then do not
-     * clear the logfile but return
-     */
+    /* get the file size of the database; otherwise we do not know if we
+     * modify an existing page or if one of the pages has to be allocated */
+    st=device->get_filesize(device, &filesize);
     if (st)
         return (st);
 
-    /*
-     * clear the log files and set the lsn to 1
-     */
+    /* temporarily disable logging */
+    env_set_rt_flags(env, env_get_rt_flags(env)&~HAM_ENABLE_RECOVERY);
+
+    while (1) {
+        /* get the next entry in the logfile */
+        st=log_get_entry(log, &it, &entry, &data);
+        if (st)
+            return (st);
+
+        /* reached end of the log file? */
+        if (log_entry_get_lsn(&entry)==0)
+            break;
+
+        /* currently we only have support for WRITEs */
+        ham_assert(log_entry_get_type(&entry)==LOG_ENTRY_TYPE_WRITE, (""));
+
+        /* 
+         * Was the page appended or overwritten? 
+         *
+         * Either way we have to bypass the cache and all upper layers. We
+         * cannot call db_alloc_page() or db_fetch_page() since we do not have
+         * a ham_db_t handle. env_alloc_page()/env_fetch_page() would work,
+         * but then the page ownership is not set correctly (but the 
+         * ownership is verified later, and this would fail).
+         */
+        if (log_entry_get_offset(&entry)==filesize) {
+            /* appended... */
+            filesize+=log_entry_get_offset(&entry);
+
+            page=page_new(env);
+            if (st)
+                return (st);
+            st=page_alloc(page);
+            if (st)
+                return (st);
+            ham_assert(page_get_self(page)==log_entry_get_offset(&entry), 
+                        (""));
+            ham_assert(env_get_pagesize(env)==log_entry_get_data_size(&entry), 
+                        (""));
+
+            memcpy(page_get_pers(page), data, log_entry_get_data_size(&entry));
+
+            st=page_flush(page);
+            if (st)
+                return (st);
+            page_delete(page);
+        }
+        else {
+            /* overwritten... */
+            page=page_new(env);
+            if (st)
+                return (st);
+            page_set_self(page, log_entry_get_offset(&entry));
+            st=page_fetch(page);
+            if (st)
+                return (st);
+            ham_assert(env_get_pagesize(env)==log_entry_get_data_size(&entry), 
+                        (""));
+
+            memcpy(page_get_pers(page), data, log_entry_get_data_size(&entry));
+
+            st=page_flush(page);
+            if (st)
+                return (st);
+            page_delete(page);
+        }
+
+        /* store the lsn in the log - will be needed later when recovering
+         * the journal */
+        log_set_lsn(log, log_entry_get_data_size(&entry));
+    }
+
+    /* re-enable the logging */
+    env_set_rt_flags(env, env_get_rt_flags(env)|HAM_ENABLE_RECOVERY);
+    
+    /* and finally clear the log */
     st=log_clear(log);
     if (st) {
         ham_log(("unable to clear logfiles; please manually delete the "
@@ -492,9 +437,6 @@ bail:
         return (st);
     }
 
-    log_set_lsn(log, 1);
-    log_set_current_fd(log, 0);
-#endif
     return (0);
 }
 

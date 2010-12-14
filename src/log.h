@@ -283,7 +283,7 @@ log_append_page(ham_log_t *log, ham_page_t *page, ham_u64_t lsn);
  * do the recovery
  */
 extern ham_status_t
-log_recover(ham_log_t *log, ham_device_t *device, ham_env_t *env);
+log_recover(ham_log_t *log);
 
 
 #ifdef __cplusplus
