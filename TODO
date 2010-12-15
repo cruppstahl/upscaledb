@@ -344,10 +344,17 @@ o logging: currently, logging for txn_begin and txn_commit/abort
                 x test logfile with one modified page
                 x test logfile with multiple modified pages
                 x test logfile with a mix of allocated and modified pages
-                o test logfile with one modified page AND freelist
-                o test logfile with multiple modified page AND freelists
-                o test logfile with multiple allocated pages and freelist
-                o test logfile with a modified header page (freelist)
+                o test logfile with the freelist (header page)
+                    mark bits at offset "pagesize" free
+                    flush and create backup of log
+                    close and open (w/o recovery)
+                    verify that those bits are marked
+                    unmark those bits
+                    verify that those bits are unmarked
+                    close, restore logs and open (w/ recovery)
+                    verify that those bits are marked
+                o test logfile with the freelist (header page + more pages)
+                    same as above
                 o test logfile with a modified header page (env_create_db)
                 o always test lsn after recovering from the logfile
         o then re-apply the journal, continuing from the entry with this lsn
