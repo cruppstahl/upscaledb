@@ -344,15 +344,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
                 x test logfile with one modified page
                 x test logfile with multiple modified pages
                 x test logfile with a mix of allocated and modified pages
-                o test logfile with the freelist (header page)
-                    mark bits at offset "pagesize" free
-                    flush and create backup of log
-                    close and open (w/o recovery)
-                    verify that those bits are marked
-                    unmark those bits
-                    verify that those bits are unmarked
-                    close, restore logs and open (w/ recovery)
-                    verify that those bits are marked
+                x test logfile with the freelist (header page)
                 o test logfile with the freelist (header page + more pages)
                     same as above
                 o test logfile with a modified header page (env_create_db)
@@ -364,6 +356,8 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             o need unittests
         o then clear the journal
             o need unittests
+
+    o re-enable all other disabled tests in log.cpp
 
     o review ham_insert - is it idempotent on a low level, even with very
         large blobs?

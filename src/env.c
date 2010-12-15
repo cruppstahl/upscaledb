@@ -752,6 +752,8 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
             st2 = st;
     }
 
+    dev=env_get_device(env);
+
     /*
      * close the header page
      *
@@ -760,13 +762,10 @@ _local_fun_close(ham_env_t *env, ham_u32_t flags)
      * page to 0, which means that we can't call page_free, page_delete
      * etc. We have to use the device-routines.
      */
-    dev=env_get_device(env);
-    if (env_get_header_page(env)) 
-    {
+    if (env_get_header_page(env)) {
         ham_page_t *page=env_get_header_page(env);
         ham_assert(dev, (0));
-        if (page_get_pers(page))
-        {
+        if (page_get_pers(page)) {
             st = dev->free_page(dev, page);
             if (!st2) 
                 st2 = st;

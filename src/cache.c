@@ -222,6 +222,7 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page)
     ham_size_t hash=__calc_hash(cache, page_get_self(page));
 
     ham_assert(page_get_pers(page), (""));
+    ham_assert(page_get_self(page), ("don't put header page in the cache!"));
 
     if (page_is_in_list(cache_get_totallist(cache), page, PAGE_LIST_CACHED)) {
         cache_set_totallist(cache, 

@@ -428,20 +428,8 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedPageTest);
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedMultiplePageTest);
         BFC_REGISTER_TEST(LogHighLevelTest, recoverMixedAllocatedModifiedPageTest);
+        BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedHeaderPageTest);
 #if 0
-        BFC_REGISTER_TEST(LogHighLevelTest, allocatePageFromFreelistTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, allocateClearedPageTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, singleInsertTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, doubleInsertTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, splitInsertTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, singleEraseTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, eraseMergeTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, cursorOverwriteTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, singleBlobTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, largeBlobTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, insertDuplicateTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, redoInsertTest);
-        BFC_REGISTER_TEST(LogHighLevelTest, redoMultipleInsertsTest);
         BFC_REGISTER_TEST(LogHighLevelTest, negativeAesFilterTest);
         BFC_REGISTER_TEST(LogHighLevelTest, aesFilterTest);
         BFC_REGISTER_TEST(LogHighLevelTest, aesFilterRecoverTest);
@@ -943,6 +931,48 @@ public:
 
         /* verify the lsn */
         BFC_ASSERT_EQUAL(6ull, log_get_lsn(env_get_log(m_env)));
+    }
+
+    void recoverModifiedHeaderPageTest(void)
+    {
+        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
+        ham_size_t ps=env_get_pagesize(m_env);
+        ham_page_t *page;
+
+        /* modify the header page by updating the freelist */
+        BFC_ASSERT_EQUAL(0, 
+                freel_mark_free(m_env, m_db, ps, DB_CHUNKSIZE, HAM_FALSE));
+
+        /* flush and backup the logs */
+        BFC_ASSERT_EQUAL(0, changeset_flush(env_get_changeset(m_env), 9));
+        changeset_clear(env_get_changeset(m_env));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        /* restore the backupped logfiles */
+        restoreLog();
+
+        /* now modify the file - after all we want to make sure that 
+         * the recovery overwrites the modification */
+        ham_fd_t fd;
+        BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd));
+        BFC_ASSERT_EQUAL(0, os_pwrite(fd, ps-20,
+                                "XXXXXXXXXXXXXXXXXXXX", 20));
+        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+
+        /* make sure that the log has one entry - the header file */
+        compareLog(BFC_OPATH(".test2"), LogEntry(9, 0, 0, ps));
+
+        /* recover and make sure that the header page was restored */
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
+        m_env=db_get_env(m_db);
+        page=env_get_header_page(m_env);
+        /* verify that the page does not contain the "XXX..." */
+        for (int i=0; i<20; i++)
+            BFC_ASSERT_NOTEQUAL('X', page_get_raw_payload(page)[ps-20+i]);
+
+        /* verify the lsn */
+        BFC_ASSERT_EQUAL(9ull, log_get_lsn(env_get_log(m_env)));
     }
 
     void negativeAesFilterTest()

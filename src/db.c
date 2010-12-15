@@ -1043,8 +1043,9 @@ db_flush_page(ham_env_t *env, ham_page_t *page, ham_u32_t flags)
      * access' impacting the page life-time in the cache.
      *
      * TODO why "put it back"? it's already in the cache
+     * be careful - don't store the header page in the cache
      */
-    if (env_get_cache(env))
+    if (env_get_cache(env) && page_get_self(page)!=0)
         return (cache_put_page(env_get_cache(env), page));
 
     return (0);
