@@ -345,7 +345,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
                 x test logfile with multiple modified pages
                 x test logfile with a mix of allocated and modified pages
                 x test logfile with the freelist (header page)
-                o test logfile with the freelist (header page + more pages)
+                x test logfile with the freelist (header page + more pages)
                     same as above
                 o test logfile with a modified header page (env_create_db)
                 o always test lsn after recovering from the logfile
@@ -359,8 +359,14 @@ o logging: currently, logging for txn_begin and txn_commit/abort
 
     o re-enable all other disabled tests in log.cpp
 
+    o when creating a db (env_create_db) all pages are written to the log
+        with lsn 0; is this correct? yes, but make sure that recovery works
+        in all possible scenarios; or should we assign a lsn != 0? Yes, 
+        otherwise we don't know where to continue in the journal 
+        -> assign a lsn and increment it afterwards
+
     o review ham_insert - is it idempotent on a low level, even with very
-        large blobs?
+        large blobs? in old hamsterdb, big blobs cannot be rolled back
     o review ham_erase - is it idempotent on a low level, even with very
         large blobs?
     o review ham_cursor_overwrite - is it idempotent on a low level, even 
@@ -389,10 +395,6 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         o need unittests
     o recovery: re-apply all committed (but not fully flushed) transactions
         o need unittests
-
-    o when creating a db (env_create_db) all pages are written to the log
-        with lsn 0; is this correct? yes, but make sure that recovery works
-        in all possible scenarios; or should we assign a lsn != 0?
 
     o the journal and the log are now in use - create more unittests 
         (HighLevelJournalTests) which verify that both are used correctly

@@ -429,6 +429,7 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedMultiplePageTest);
         BFC_REGISTER_TEST(LogHighLevelTest, recoverMixedAllocatedModifiedPageTest);
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedHeaderPageTest);
+        BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedFreelistTest);
 #if 0
         BFC_REGISTER_TEST(LogHighLevelTest, negativeAesFilterTest);
         BFC_REGISTER_TEST(LogHighLevelTest, aesFilterTest);
@@ -687,11 +688,14 @@ public:
             BFC_ASSERT_EQUAL((*vit).type, log_entry_get_type(&entry));
             BFC_ASSERT_EQUAL((*vit).data_size, log_entry_get_data_size(&entry));
 
-            allocator_free(log_get_allocator(log), data);
+            if (data)
+                allocator_free(log_get_allocator(log), data);
 
             vit++;
         }
 
+        if (data)
+            allocator_free(log_get_allocator(log), data);
         BFC_ASSERT_EQUAL(vec.size(), size);
 
         BFC_ASSERT_EQUAL(0, log_close(log, HAM_TRUE));
@@ -973,6 +977,62 @@ public:
 
         /* verify the lsn */
         BFC_ASSERT_EQUAL(9ull, log_get_lsn(env_get_log(m_env)));
+    }
+
+    void recoverModifiedFreelistTest(void)
+    {
+        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
+        ham_offset_t o=env_get_usable_pagesize(m_env)*8*DB_CHUNKSIZE;
+        ham_size_t ps=env_get_pagesize(m_env);
+
+        BFC_ASSERT_EQUAL(0, 
+                freel_mark_free(m_env, m_db, 3*o, DB_CHUNKSIZE, HAM_FALSE));
+
+        /* flush and backup the logs */
+        BFC_ASSERT_EQUAL(0, changeset_flush(env_get_changeset(m_env), 19));
+        changeset_clear(env_get_changeset(m_env));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        /* now truncate the file - we want to make sure that the freelist
+         * pages are restored after recovery */
+        ham_fd_t fd;
+        BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd));
+        BFC_ASSERT_EQUAL(0, os_truncate(fd, ps*2));
+        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+
+        /* restore the backupped logfiles */
+        restoreLog();
+
+        /* make sure that the log has created and updated all the 
+         * freelist pages */
+        std::vector<LogEntry> vec;
+        for (int i=0; i<5; i++)
+            if (i!=1) /* 2nd page is root-page of the btree */
+                vec.push_back(LogEntry(19, 0, ps*i, ps));
+        compareLog(BFC_OPATH(".test2"), vec);
+
+        /* recover and make sure that the freelist was restored */
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
+        m_env=db_get_env(m_db);
+
+        /*
+         * The hinters must be disabled for this test to succeed; at least
+         * they need to be instructed to kick in late.
+         */
+        db_set_data_access_mode(m_db, 
+                db_get_data_access_mode(m_db) & 
+                        ~(HAM_DAM_SEQUENTIAL_INSERT
+                         | HAM_DAM_RANDOM_WRITE));
+
+        ham_offset_t addr;
+        BFC_ASSERT_EQUAL(0,
+                freel_alloc_area(&addr, m_env, m_db, DB_CHUNKSIZE));
+        BFC_ASSERT_EQUAL(3*o, addr);
+        changeset_clear(env_get_changeset(m_env));
+
+        /* verify the lsn */
+        BFC_ASSERT_EQUAL(19ull, log_get_lsn(env_get_log(m_env)));
     }
 
     void negativeAesFilterTest()
