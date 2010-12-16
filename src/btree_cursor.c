@@ -568,8 +568,8 @@ bt_cursor_close(ham_bt_cursor_t *c)
 
 /**                                                                 
  * overwrite the record of this cursor                              
-
- @note This is a B+-tree cursor 'backend' method.
+ *
+ * @note This is a B+-tree cursor 'backend' method.
  */                                                                 
 static ham_status_t
 bt_cursor_overwrite(ham_bt_cursor_t *c, ham_record_t *record,

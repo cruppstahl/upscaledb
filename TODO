@@ -334,6 +334,19 @@ o logging: currently, logging for txn_begin and txn_commit/abort
     x journal and log: flush file after it's written (at least in log AND
         in journal after abort/commit)
 
+    x when creating a db (env_create_db) all pages are written to the log
+        with lsn 0; is this correct? yes, but make sure that recovery works
+        in all possible scenarios; or should we assign a lsn != 0? Yes, 
+        otherwise we don't know where to continue in the journal 
+        -> assign a lsn and increment it afterwards
+
+    x review ham_insert - is it idempotent on a low level, even with very
+        large blobs? -> ok (in worst case, a blob is lost but that's no drama)
+    x review ham_erase - is it idempotent on a low level, even with very
+        large blobs? -> ok, fully idempotent (the freelist is modified)
+    x review ham_cursor_overwrite - is it idempotent on a low level, even 
+        with very large blobs? -> ok
+
     o implement the recovery
         x if the log is not empty: re-apply it (it is idempotent), then
             clear it (but get the lsn from its header)
@@ -353,32 +366,19 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         o then re-apply the journal, continuing from the entry with this lsn
             o make sure that the txn Id is persisted in the log and
                 then re-assigned to the new transaction
-            o make sure that he new operations are not written to the journal
+            o make sure that the new operations are not written to the journal
+            o auto-aborts all non-committed transactions (same behavior 
+                    as now)
+                o need unittests
+            o re-apply all committed (but not fully flushed) transactions
+                o need unittests
             o need unittests
         o then clear the journal
             o need unittests
 
     o re-enable all other disabled tests in log.cpp
 
-    x when creating a db (env_create_db) all pages are written to the log
-        with lsn 0; is this correct? yes, but make sure that recovery works
-        in all possible scenarios; or should we assign a lsn != 0? Yes, 
-        otherwise we don't know where to continue in the journal 
-        -> assign a lsn and increment it afterwards
-
-    o review ham_insert - is it idempotent on a low level, even with very
-        large blobs? in old hamsterdb, big blobs cannot be rolled back
-    o review ham_erase - is it idempotent on a low level, even with very
-        large blobs?
-    o review ham_cursor_overwrite - is it idempotent on a low level, even 
-        with very large blobs?
-
     o unittests
-        o after logging/journal: all files have to be empty, 
-            also check lsn's in log and journal and make sure that
-            the next txn-op has the correct lsn
-        o test logfile with allocated pages - file must grow
-        o check logfile for EVERY operation that is logged
         o recovery w/ empty log, full journal
         o recovery w/ full log, full journal
         o recovery w/ full log, full journal (and skip journal entries
@@ -390,23 +390,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
 
     o if lsn overflows: return error HAM_LIMITS_REACHED (this will require a 
         reorg)
-
-    o recovery: auto-aborts all non-committed transactions (same behavior 
-            as now)
-        o need unittests
-    o recovery: re-apply all committed (but not fully flushed) transactions
-        o need unittests
-
-    o the journal and the log are now in use - create more unittests 
-        (HighLevelJournalTests) which verify that both are used correctly
-        o add high level logfile unittests
-            o with freelist
-            o with header page modifications
-            o with small blobs
-            o with large blobs
-            o with allocations
-        o add high level journal unittests
-    o re-enable logging tests in log.cpp or remove them
+        o needs unittest
 
 o implement partial reads through transaction tree - will have to 
     consolidate them
