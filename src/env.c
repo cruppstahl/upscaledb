@@ -594,7 +594,6 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
     ham_db_t *db;
     ham_status_t st;
     free_cb_context_t context;
-    ham_txn_t *txn;
     ham_backend_t *be;
 
     /*
@@ -628,6 +627,18 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
         return (st);
     }
 
+    /* logging enabled? then the changeset and the log HAS to be empty */
+#ifdef HAM_DEBUG
+        if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+            ham_status_t st;
+            ham_bool_t empty;
+            ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
+            st=log_is_empty(env_get_log(env), &empty);
+            ham_assert(st==0, (""));
+            ham_assert(empty==HAM_TRUE, (""));
+        }
+#endif
+
     /*
      * delete all blobs and extended keys, also from the cache and
      * the extkey_cache
@@ -635,13 +646,6 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
      * also delete all pages and move them to the freelist; if they're 
      * cached, delete them from the cache
      */
-    st=txn_begin(&txn, env, 0);
-    if (st) {
-        (void)ham_close(db, 0);
-        (void)ham_delete(db);
-        return (st);
-    }
-    
     context.db=db;
     be=db_get_backend(db);
     if (!be || !be_is_active(be))
@@ -652,35 +656,26 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
 
     st=be->_fun_enumerate(be, __free_inmemory_blobs_cb, &context);
     if (st) {
-        (void)txn_abort(txn, 0);
         (void)ham_close(db, 0);
         (void)ham_delete(db);
         return (st);
     }
 
-    st=txn_commit(txn, 0);
-    if (st) {
-        (void)ham_close(db, 0);
-        (void)ham_delete(db);
-        return (st);
-    }
-
-    /*
-     * set database name to 0 and set the header page to dirty
-     */
+    /* set database name to 0 and set the header page to dirty */
     index_set_dbname(env_get_indexdata_ptr(env, 
                         db_get_indexdata_offset(db)), 0);
     page_set_dirty(env_get_header_page(env));
 
-    /*
-     * TODO
-     * 
-     * log??? before + after image of header page???
-     */
+    /* if logging is enabled: flush the changeset and the header page */
+    if (st==0 && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+        changeset_add_page(env_get_changeset(env), 
+                env_get_header_page(env));
+        st=changeset_flush(env_get_changeset(env), 
+                env_get_incremented_lsn(env));
+        changeset_clear(env_get_changeset(env));
+    }
 
-    /*
-     * clean up and return
-     */
+    /* clean up and return */
     (void)ham_close(db, 0);
     (void)ham_delete(db);
 
@@ -1142,9 +1137,10 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
 bail:
     /* if logging is enabled: flush the changeset and the header page */
     if (st==0 && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
-        st=page_flush(env_get_header_page(env));
-        if (!st)
-            st=changeset_flush(env_get_changeset(env), 0);
+        changeset_add_page(env_get_changeset(env), 
+                env_get_header_page(env));
+        st=changeset_flush(env_get_changeset(env), 
+                env_get_incremented_lsn(env));
         changeset_clear(env_get_changeset(env));
     }
 
@@ -1514,6 +1510,8 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
 
         /* now flush the changeset to disk */
         if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+            changeset_add_page(env_get_changeset(env), 
+                        env_get_header_page(env));
             st=changeset_flush(env_get_changeset(env), txn_op_get_lsn(op));
             changeset_clear(env_get_changeset(env));
         }
@@ -1571,5 +1569,17 @@ env_flush_committed_txns(ham_env_t *env)
     }
 
     return (0);
+}
+
+ham_u64_t
+env_get_incremented_lsn(ham_env_t *env) 
+{
+    journal_t *j=env_get_journal(env);
+    if (j)
+        return (journal_increment_lsn(j));
+    else {
+        ham_assert(!"need lsn but have no journal!", (""));
+        return (1); /* TODO */
+    }
 }
 

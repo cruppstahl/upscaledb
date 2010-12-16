@@ -348,6 +348,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
                 x test logfile with the freelist (header page + more pages)
                     same as above
                 o test logfile with a modified header page (env_create_db)
+                o test logfile with a modified header page (env_erase_db)
                 o always test lsn after recovering from the logfile
         o then re-apply the journal, continuing from the entry with this lsn
             o make sure that the txn Id is persisted in the log and
@@ -478,6 +479,8 @@ o new API to retrieve the currently active transactions
 
 . do some profiling - i am afraid that changeset_get_page() is not efficient
     enough; maybe a hash table is better?
+
+. many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
 
 o continue as described in integrate-ham2.txt...
 

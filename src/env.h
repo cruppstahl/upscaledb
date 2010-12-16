@@ -652,6 +652,14 @@ env_remove_txn(ham_env_t *env, ham_txn_t *txn);
 extern ham_status_t
 env_flush_committed_txns(ham_env_t *env);
 
+/*
+ * increments the lsn and returns the incremended value
+ *
+ * only works if a journal is created! Otherwise assert(0)
+ */
+extern ham_u64_t
+env_get_incremented_lsn(ham_env_t *env);
+
 
 #ifdef __cplusplus
 } // extern "C" {

@@ -428,7 +428,10 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedPageTest);
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedMultiplePageTest);
         BFC_REGISTER_TEST(LogHighLevelTest, recoverMixedAllocatedModifiedPageTest);
+        /* modify header page by using the freelist */
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedHeaderPageTest);
+        /* modify header page by creating a database */
+        BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedHeaderPageTest2);
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedFreelistTest);
 #if 0
         BFC_REGISTER_TEST(LogHighLevelTest, negativeAesFilterTest);
@@ -472,8 +475,11 @@ public:
     { 
         __super::teardown();
 
-        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
-        ham_delete(m_db);
+        if (m_db) {
+            BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+            ham_delete(m_db);
+        }
+        m_db=0;
         BFC_ASSERT_EQUAL((unsigned long)0, memtracker_get_leaks(m_alloc));
     }
 
@@ -977,6 +983,66 @@ public:
 
         /* verify the lsn */
         BFC_ASSERT_EQUAL(9ull, log_get_lsn(env_get_log(m_env)));
+    }
+
+    void recoverModifiedHeaderPageTest2(void)
+    {
+        teardown(); m_env=0;
+
+        ham_env_t *env;
+        ham_db_t *db;
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+
+        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
+
+        /* modify the header page by creating a database; then stop
+         * creating backups of the logfile and remove the database again */
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(env, ".test", HAM_ENABLE_RECOVERY, 0664));
+        BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
+        ham_size_t ps=env_get_pagesize(env);
+        g_CHANGESET_POST_LOG_HOOK=0;
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_erase_db(env, 333, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+
+        /* verify that the database does not exist */
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_open(env, BFC_OPATH(".test"), 0));
+        BFC_ASSERT_EQUAL(HAM_DATABASE_NOT_FOUND, 
+                ham_env_open_db(env, db, 333, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+
+        /* restore the backupped logfiles */
+        restoreLog();
+
+        /* make sure that the log has two entries - the header file 
+         * and the root page of the new database */
+        std::vector<LogEntry> vec;
+        vec.push_back(LogEntry(1, 0, ps, ps));
+        vec.push_back(LogEntry(1, 0, 0, ps));
+        compareLog(BFC_OPATH(".test2"), vec);
+
+        /* now modify the file and remove the root page of the new database */
+        ham_fd_t fd;
+        BFC_ASSERT_EQUAL(0, os_open(BFC_OPATH(".test"), 0, &fd));
+        BFC_ASSERT_EQUAL(0, os_truncate(fd, ps*2));
+        BFC_ASSERT_EQUAL(0, os_close(fd, 0));
+
+        /* open the database again and recover; the modified header
+         * page and the allocated root page must be re-created */
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_open(env, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_open_db(env, db, 333, 0, 0));
+
+        /* verify the lsn */
+        BFC_ASSERT_EQUAL(1ull, log_get_lsn(env_get_log(env)));
+
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_AUTO_CLEANUP));
+        ham_delete(db);
+        ham_env_delete(env);
     }
 
     void recoverModifiedFreelistTest(void)
