@@ -87,10 +87,12 @@ changeset_flush(changeset_t *cs, ham_u64_t lsn)
     ham_assert(env_get_rt_flags(env)&HAM_ENABLE_RECOVERY, (""));
 
     while (p) {
-        st=log_append_page(log, p, lsn);
-        if (st) {
-            (void)log_clear(log);
-            return (st);
+        if (page_is_dirty(p)) {
+            st=log_append_page(log, p, lsn);
+            if (st) {
+                (void)log_clear(log);
+                return (st);
+            }
         }
         p=page_get_next(p, PAGE_LIST_CHANGESET);
     }
@@ -104,13 +106,16 @@ changeset_flush(changeset_t *cs, ham_u64_t lsn)
      * we can still recover from the log */
     p=changeset_get_head(cs);
     while (p) {
-        st=db_flush_page(env, p, HAM_WRITE_THROUGH);
-        if (st)
-            return (st);
+        if (page_is_dirty(p)) {
+            st=db_flush_page(env, p, HAM_WRITE_THROUGH);
+            if (st)
+                return (st);
+        }
         p=page_get_next(p, PAGE_LIST_CHANGESET);
     }
 
-    /* done - we can now clear the log */
+    /* done - we can now clear the changeset and the log */
+    changeset_clear(cs);
     return (log_clear(log));
 }
 

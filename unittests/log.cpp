@@ -435,9 +435,9 @@ public:
         /* modify header page by erasing a database */
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedHeaderPageTest3);
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedFreelistTest);
-#if 0
         BFC_REGISTER_TEST(LogHighLevelTest, negativeAesFilterTest);
         BFC_REGISTER_TEST(LogHighLevelTest, aesFilterTest);
+#if 0
         BFC_REGISTER_TEST(LogHighLevelTest, aesFilterRecoverTest);
 #endif
     }
@@ -719,6 +719,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                 db_alloc_page(&page, m_db, 0, PAGE_IGNORE_FREELIST));
+        page_set_dirty(page);
         BFC_ASSERT_EQUAL(ps*2, page_get_self(page));
         for (int i=0; i<200; i++)
             page_get_payload(page)[i]=(ham_u8_t)i;
@@ -750,6 +751,8 @@ public:
 
         /* verify the lsn */
         BFC_ASSERT_EQUAL(1ull, log_get_lsn(env_get_log(m_env)));
+
+        changeset_clear(env_get_changeset(m_env));
     }
 
     void recoverAllocateMultiplePageTest(void)
@@ -761,6 +764,7 @@ public:
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, 
                     db_alloc_page(&page[i], m_db, 0, PAGE_IGNORE_FREELIST));
+            page_set_dirty(page[i]);
             BFC_ASSERT_EQUAL(ps*(2+i), page_get_self(page[i]));
             for (int j=0; j<200; j++)
                 page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
@@ -798,6 +802,8 @@ public:
 
         /* verify the lsn */
         BFC_ASSERT_EQUAL(33ull, log_get_lsn(env_get_log(m_env)));
+
+        changeset_clear(env_get_changeset(m_env));
     }
 
     void recoverModifiedPageTest(void)
@@ -808,6 +814,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                 db_alloc_page(&page, m_db, 0, PAGE_IGNORE_FREELIST));
+        page_set_dirty(page);
         BFC_ASSERT_EQUAL(ps*2, page_get_self(page));
         for (int i=0; i<200; i++)
             page_get_payload(page)[i]=(ham_u8_t)i;
@@ -839,6 +846,8 @@ public:
 
         /* verify the lsn */
         BFC_ASSERT_EQUAL(2ull, log_get_lsn(env_get_log(m_env)));
+
+        changeset_clear(env_get_changeset(m_env));
     }
 
     void recoverModifiedMultiplePageTest(void)
@@ -850,6 +859,7 @@ public:
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, 
                     db_alloc_page(&page[i], m_db, 0, PAGE_IGNORE_FREELIST));
+            page_set_dirty(page[i]);
             BFC_ASSERT_EQUAL(ps*(2+i), page_get_self(page[i]));
             for (int j=0; j<200; j++)
                 page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
@@ -890,6 +900,8 @@ public:
 
         /* verify the lsn */
         BFC_ASSERT_EQUAL(5ull, log_get_lsn(env_get_log(m_env)));
+
+        changeset_clear(env_get_changeset(m_env));
     }
 
     void recoverMixedAllocatedModifiedPageTest(void)
@@ -901,6 +913,7 @@ public:
         for (int i=0; i<10; i++) {
             BFC_ASSERT_EQUAL(0, 
                     db_alloc_page(&page[i], m_db, 0, PAGE_IGNORE_FREELIST));
+            page_set_dirty(page[i]);
             BFC_ASSERT_EQUAL(ps*(2+i), page_get_self(page[i]));
             for (int j=0; j<200; j++)
                 page_get_payload(page[i])[j]=(ham_u8_t)(i+j);
@@ -943,6 +956,8 @@ public:
 
         /* verify the lsn */
         BFC_ASSERT_EQUAL(6ull, log_get_lsn(env_get_log(m_env)));
+
+        changeset_clear(env_get_changeset(m_env));
     }
 
     void recoverModifiedHeaderPageTest(void)
@@ -1198,12 +1213,17 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
+        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+        g_CHANGESET_POST_LOG_HOOK=0;
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
 
+        /* restore the backupped logfiles */
+        restoreLog();
+
         BFC_ASSERT_EQUAL(0, ham_env_open(env, BFC_OPATH(".test"), 
-                    HAM_ENABLE_RECOVERY));
+                    HAM_ENABLE_TRANSACTIONS|HAM_AUTO_RECOVERY));
         BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 333, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec, 0));

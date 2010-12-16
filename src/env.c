@@ -672,7 +672,6 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
                 env_get_header_page(env));
         st=changeset_flush(env_get_changeset(env), 
                 env_get_incremented_lsn(env));
-        changeset_clear(env_get_changeset(env));
     }
 
     /* clean up and return */
@@ -1141,7 +1140,6 @@ bail:
                 env_get_header_page(env));
         st=changeset_flush(env_get_changeset(env), 
                 env_get_incremented_lsn(env));
-        changeset_clear(env_get_changeset(env));
     }
 
     return (st);
@@ -1365,7 +1363,9 @@ _local_fun_txn_begin(ham_env_t *env, ham_db_t *db,
     }
 
     /* append journal entry */
-    if (st==0 && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
+    if (st==0
+            && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY
+            && db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)
         st=journal_append_txn_begin(env_get_journal(env), *txn);
 
     return (st);
@@ -1377,7 +1377,9 @@ _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     ham_status_t st=txn_commit(txn, flags);
 
     /* append journal entry */
-    if (st==0 && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
+    if (st==0
+            && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
+            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)
         st=journal_append_txn_commit(env_get_journal(env), txn);
 
     return (st);
@@ -1389,7 +1391,9 @@ _local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     ham_status_t st=txn_abort(txn, flags);
 
     /* append journal entry */
-    if (st==0 && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
+    if (st==0
+            && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
+            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)
         st=journal_append_txn_abort(env_get_journal(env), txn);
 
     return (st);
@@ -1513,7 +1517,6 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
             changeset_add_page(env_get_changeset(env), 
                         env_get_header_page(env));
             st=changeset_flush(env_get_changeset(env), txn_op_get_lsn(op));
-            changeset_clear(env_get_changeset(env));
         }
 
         env_set_flushed_txn(env, 0);

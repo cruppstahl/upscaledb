@@ -298,8 +298,8 @@ ham_u16_t
 db_get_dbname(ham_db_t *db)
 {
     ham_env_t *env;
-	
-	ham_assert(db!=0, (""));
+    
+    ham_assert(db!=0, (""));
     ham_assert(db_get_env(db), (""));
 
     env=db_get_env(db);
@@ -833,16 +833,11 @@ done:
     }
     page_set_type(page, type);
     page_set_owner(page, db);
-    page_set_undirty(page);
+    page_set_dirty(page); /* TODO was 'undirty', but then it's not logged */
 
     /* clear the page with zeroes?  */
-    if (flags&PAGE_CLEAR_WITH_ZERO) {
+    if (flags&PAGE_CLEAR_WITH_ZERO)
         memset(page_get_pers(page), 0, env_get_pagesize(env));
-
-        st=log_append_page(env_get_log(env), page, 0);
-        if (st) 
-            return st;
-    }
 
     /* store the page in the changeset */
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
@@ -960,6 +955,9 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             *page_ref = page;
             ham_assert(page_get_pers(page), (""));
             ham_assert(db ? page_get_owner(page)==db : 1, (""));
+            /* store the page in the changeset */
+            if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
+                changeset_add_page(env_get_changeset(env), page);
             return (HAM_SUCCESS);
         }
     }
@@ -1010,6 +1008,10 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             cache_update_page_access_counter(page, env_get_cache(env), 0);
         }
     }
+
+    /* store the page in the changeset */
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
+        changeset_add_page(env_get_changeset(env), page);
 
     *page_ref = page;
     return HAM_SUCCESS;
@@ -1188,16 +1190,16 @@ db_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest)
     }
     else if (source->size) {
         if (!(dest->flags & HAM_KEY_USER_ALLOC)) {
-			if (!dest->data || dest->size < source->size) {
-				if (dest->data)
-					allocator_free(env_get_allocator(db_get_env(db)), 
+            if (!dest->data || dest->size < source->size) {
+                if (dest->data)
+                    allocator_free(env_get_allocator(db_get_env(db)), 
                                dest->data);
-				dest->data = (ham_u8_t *)allocator_alloc(
+                dest->data = (ham_u8_t *)allocator_alloc(
                                env_get_allocator(db_get_env(db)), source->size);
-				if (!dest->data) 
-					return (HAM_OUT_OF_MEMORY);
-			}
-		}
+                if (!dest->data) 
+                    return (HAM_OUT_OF_MEMORY);
+            }
+        }
         memcpy(dest->data, source->data, source->size);
         dest->size=source->size;
         dest->_flags=source->_flags;
@@ -1298,6 +1300,7 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
 
     /*
      * in-memory-database: free all allocated blobs
+     * TODO TODO TODO is the temp. transaction required?
      */
     if (be && be_is_active(be) && env_get_rt_flags(env)&HAM_IN_MEMORY_DB) {
         ham_txn_t *txn;
@@ -2059,7 +2062,9 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
         allocator_free(env_get_allocator(env), temprec.data);
 
     /* append journal entry */
-    if (st==0 && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY)
+    if (st==0 
+            && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY
+            && db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)
         st=journal_append_insert(env_get_journal(env), txn ? txn : local_txn,
                             key, record, flags);
 
@@ -2094,6 +2099,9 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
+    else if (db_get_rt_flags(db)&HAM_ENABLE_RECOVERY)
+        return (changeset_flush(env_get_changeset(env), 
+                        env_get_incremented_lsn(env)));
     else
         return (st);
 }
@@ -2152,7 +2160,9 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         st=be->_fun_erase(be, key, flags);
 
     /* append journal entry */
-    if (st==0 && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY)
+    if (st==0
+            && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY
+            && db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)
         st=journal_append_erase(env_get_journal(env), txn ? txn : local_txn,
                             key, 0, flags|HAM_ERASE_ALL_DUPLICATES);
 
@@ -2169,6 +2179,9 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
+    else if (db_get_rt_flags(db)&HAM_ENABLE_RECOVERY)
+        return (changeset_flush(env_get_changeset(env), 
+                        env_get_incremented_lsn(env)));
     else
         return (st);
 }
@@ -2252,6 +2265,9 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
+    else if (db_get_rt_flags(db)&HAM_ENABLE_RECOVERY)
+        return (changeset_flush(env_get_changeset(env), 
+                        env_get_incremented_lsn(env)));
     else
         return (st);
 }
@@ -2400,7 +2416,9 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         allocator_free(env_get_allocator(env), temprec.data);
 
     /* append journal entry */
-    if (st==0 && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY)
+    if (st==0
+            && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY
+            && db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)
         st=journal_append_insert(env_get_journal(env), 
                         cursor_get_txn(cursor), key, record, flags);
 
@@ -2456,7 +2474,9 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 
     /* append journal entry - we can retrieve the key from the uncoupled
      * cursor */
-    if (st==0 && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY) {
+    if (st==0
+            && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY
+            && db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS) {
 #if 0 
     TODO TODO TODO
     cursor is set to NIL, therefore bt_cursor_get_uncoupled_key() 

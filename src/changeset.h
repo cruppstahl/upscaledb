@@ -70,7 +70,9 @@ changeset_clear(changeset_t *cs);
 
 /**
  * flush all pages in the changeset - first write them to the log, then 
- * write them to the disk; on success: clear the log again
+ * write them to the disk
+ *
+ * on success: will clear the changeset and the log 
  */
 extern ham_status_t
 changeset_flush(changeset_t *cs, ham_u64_t lsn);
