@@ -335,10 +335,10 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         in journal after abort/commit)
 
     o implement the recovery
-        o if the log is not empty: re-apply it (it is idempotent), then
+        x if the log is not empty: re-apply it (it is idempotent), then
             clear it (but get the lsn from its header)
             x implement
-            o need unittests
+            x need unittests
                 x test logfile with one allocated page - file must grow
                 x test logfile with multiple allocated pages - file must grow
                 x test logfile with one modified page
@@ -347,9 +347,9 @@ o logging: currently, logging for txn_begin and txn_commit/abort
                 x test logfile with the freelist (header page)
                 x test logfile with the freelist (header page + more pages)
                     same as above
-                o test logfile with a modified header page (env_create_db)
-                o test logfile with a modified header page (env_erase_db)
-                o always test lsn after recovering from the logfile
+                x test logfile with a modified header page (env_create_db)
+                x test logfile with a modified header page (env_erase_db)
+                x always test lsn after recovering from the logfile
         o then re-apply the journal, continuing from the entry with this lsn
             o make sure that the txn Id is persisted in the log and
                 then re-assigned to the new transaction
@@ -360,7 +360,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
 
     o re-enable all other disabled tests in log.cpp
 
-    o when creating a db (env_create_db) all pages are written to the log
+    x when creating a db (env_create_db) all pages are written to the log
         with lsn 0; is this correct? yes, but make sure that recovery works
         in all possible scenarios; or should we assign a lsn != 0? Yes, 
         otherwise we don't know where to continue in the journal 
