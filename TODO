@@ -376,18 +376,6 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         o then clear the journal
             o need unittests
 
-    o re-enable all other disabled tests in log.cpp
-====> there are some problems with the changeset.
-    1. fetched pages are now automatically added to the changeset, because
-        otherwise they're not tracked when txn's are disabled but recovery
-        is still enabled. but they're only flushed if they are dirty. 
-        however, this means that ham_find() also creates a changeset, and 
-        this does not necessarily make sense. but i do not see a way around
-        it...
-        LogHighLevelTest::aesFilterTest currently fails because of this
-    2. when file filters are enabled (i.e. aes) - is the log file encrypted?
-        is it restored correctly?
-
     o unittests
         o recovery w/ empty log, full journal
         o recovery w/ full log, full journal

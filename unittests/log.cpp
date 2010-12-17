@@ -437,9 +437,7 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, recoverModifiedFreelistTest);
         BFC_REGISTER_TEST(LogHighLevelTest, negativeAesFilterTest);
         BFC_REGISTER_TEST(LogHighLevelTest, aesFilterTest);
-#if 0
         BFC_REGISTER_TEST(LogHighLevelTest, aesFilterRecoverTest);
-#endif
     }
 
 protected:
@@ -1257,9 +1255,15 @@ public:
         BFC_ASSERT_EQUAL(0, ham_env_enable_encryption(env, aeskey, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_create_db(env, db, 333, 0, 0));
+        g_CHANGESET_POST_LOG_HOOK=(hook_func_t)copyLog;
         BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, 0));
+        g_CHANGESET_POST_LOG_HOOK=0;
+        BFC_ASSERT_EQUAL(0, ham_erase(db, 0, &key, 0));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, HAM_DONT_CLEAR_LOG));
+
+        /* restore the backupped logfiles */
+        restoreLog();
 
         BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY, 
                 ham_env_open(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY));

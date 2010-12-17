@@ -1316,6 +1316,9 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
         }
     }
 
+    if (env)
+        changeset_clear(env_get_changeset(env));
+
     /*
      * immediately flush all pages of this database (but not the header page,
      * it's still required and will be flushed below
@@ -1529,7 +1532,9 @@ _local_fun_check_integrity(ham_db_t *db, ham_txn_t *txn)
     }
 
     /* call the backend function */
-    return (be->_fun_check_integrity(be));
+    st=be->_fun_check_integrity(be);
+    changeset_clear(env_get_changeset(db_get_env(db)));
+    return (st);
 #else
     return (HAM_NOT_IMPLEMENTED);
 #endif /* ifdef HAM_ENABLE_INTERNAL */
@@ -1680,6 +1685,7 @@ _local_fun_get_key_count(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
         *keycount += k.c;
     }
 
+    changeset_clear(env_get_changeset(env));
     return (0);
 }
 
