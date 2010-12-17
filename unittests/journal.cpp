@@ -147,6 +147,9 @@ public:
         journal_entry_set_flags(&e, 0xff000000);
         BFC_ASSERT_EQUAL((ham_u32_t)0xff000000, journal_entry_get_flags(&e));
 
+        journal_entry_set_dbname(&e, 99);
+        BFC_ASSERT_EQUAL((ham_u16_t)99, journal_entry_get_dbname(&e));
+
         journal_entry_set_type(&e, JOURNAL_ENTRY_TYPE_INSERT);
         BFC_ASSERT_EQUAL((ham_u32_t)JOURNAL_ENTRY_TYPE_INSERT, 
                 journal_entry_get_type(&e));

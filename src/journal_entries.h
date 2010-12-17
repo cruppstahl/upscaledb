@@ -47,8 +47,11 @@ typedef HAM_PACK_0 struct HAM_PACK_1 journal_entry_t
      * type of this entry, see below */
     ham_u32_t _flags;
 
+    /** the name of the database which is modified by this entry */
+    ham_u16_t _dbname;
+
     /** a reserved value */
-    ham_u32_t _reserved;
+    ham_u16_t _reserved;
 
 } HAM_PACK_2 journal_entry_t;
 
@@ -77,6 +80,12 @@ typedef HAM_PACK_0 struct HAM_PACK_1 journal_entry_t
 
 /* set the type of this entry */
 #define journal_entry_set_type(j, t)                (j)->_flags|=(t)
+
+/* get the database name of this entry */
+#define journal_entry_get_dbname(j)                 (j)->_dbname
+
+/* set the database name of this entry */
+#define journal_entry_set_dbname(j, n)              (j)->_dbname=n
 
 /* get the follow-up size */
 #define journal_entry_get_followup_size(j)          (j)->_followup_size

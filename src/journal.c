@@ -19,6 +19,7 @@
 #include "env.h"
 #include "error.h"
 #include "mem.h"
+#include "log.h"
 #include "os.h"
 #include "txn.h"
 #include "util.h"
@@ -30,7 +31,7 @@ static ham_size_t
 __get_aligned_entry_size(ham_size_t s)
 {
     s += 8-1;
-	s -= (s % 8);
+    s -= (s % 8);
     return (s);
 }
 
@@ -85,10 +86,10 @@ journal_create(ham_env_t *env, ham_u32_t mode, ham_u32_t flags,
 
     *pjournal=0;
 
-	ham_assert(env, (0));
+    ham_assert(env, (0));
 
     journal_set_allocator(journal, alloc);
-	journal_set_env(journal, env);
+    journal_set_env(journal, env);
     journal_set_lsn(journal, 1);
     journal_set_threshold(journal, JOURNAL_DEFAULT_THRESHOLD);
 
@@ -139,10 +140,10 @@ journal_open(ham_env_t *env, ham_u32_t flags, journal_t **pjournal)
 
     *pjournal=0;
 
-	ham_assert(env, (0));
+    ham_assert(env, (0));
 
     journal_set_allocator(journal, alloc);
-	journal_set_env(journal, env);
+    journal_set_env(journal, env);
 
     memset(&header, 0, sizeof(header));
 
@@ -276,13 +277,13 @@ journal_append_txn_begin(journal_t *journal, struct ham_txn_t *txn)
         txn_set_log_desc(txn, cur);
     }
     else if (journal_get_open_txn(journal, other)==0) {
-		/*
-		 * Otherwise, if the other file does no longer have open Transactions,
-		 * insert a checkpoint, delete the other file and use the other file
-		 * as the current file
-		 */
+        /*
+         * Otherwise, if the other file does no longer have open Transactions,
+         * insert a checkpoint, delete the other file and use the other file
+         * as the current file
+         */
 
-		/* checkpoint! */
+        /* checkpoint! */
         st=__insert_checkpoint(journal);
         if (st)
             return (st);
@@ -560,168 +561,207 @@ journal_close(journal_t *journal, ham_bool_t noclear)
 
     allocator_free(journal_get_allocator(journal), journal);
 
-	return (st);
+    return (st);
+}
+
+static ham_status_t
+__recover_get_db(ham_env_t *env, ham_u16_t dbname, ham_db_t **pdb)
+{
+    ham_status_t st;
+
+    /* first check if the Database is already open */
+    ham_db_t *db=env_get_list(env);
+    while (db) {
+        ham_u16_t name=index_get_dbname(env_get_indexdata_ptr(env,
+                            db_get_indexdata_offset(db)));
+        if (dbname==name) {
+            *pdb=db;
+            return (0);
+        }
+        db=db_get_next(db);
+    }
+
+    /* not found - open it */
+    st=ham_new(&db);
+    if (st)
+        return (st);
+
+    st=ham_env_open_db(env, db, dbname, HAM_DISABLE_RECOVERY, 0);
+    if (st)
+        return (st);
+
+    *pdb=db;
+    return (0);
+}
+
+static ham_status_t
+__recover_get_txn(ham_env_t *env, ham_u32_t txn_id, ham_txn_t **ptxn)
+{
+    ham_txn_t *txn=env_get_oldest_txn(env);
+    while (txn) {
+        if (txn_get_id(txn)==txn_id) {
+            *ptxn=txn;
+            return (0);
+        }
+        txn=txn_get_older(txn);
+    }
+
+    *ptxn=0;
+    return (HAM_INTERNAL_ERROR);
 }
 
 ham_status_t
 journal_recover(journal_t *journal)
 {
-/* TODO */
-#if 0
-    ham_status_t st=0;
-    journal_entry_t entry;
-    log_iterator_t iter;
-    ham_u8_t *data=0;
-    ham_u64_t *txn_list=0;
-    log_flush_entry_t *flush_list=0;
-    ham_size_t txn_list_size=0;
-	ham_size_t flush_list_size=0;
-	ham_size_t i;
-    ham_bool_t committed;
-	ham_bool_t flushed;
+    ham_status_t st;
+    ham_env_t *env=journal_get_env(journal);
+    ham_u64_t start_lsn=log_get_lsn(env_get_log(env));
+    journal_iterator_t it={0};
 
-    memset(&iter, 0, sizeof(iter));
-
-    /*
-     * walk backwards through the journal; every action which was not
-     * committed, but flushed, is undone; every action which was 
-     * committed, but not flushed, is redone
+    /* recovering the journal is rather simple - we iterate over the 
+     * files and re-issue every operation (incl. txn_begin and txn_abort).
+     *
+     * we start with the lsn described in the logfile - all previous
+     * operations will be ignored because they were already flushed to disk.
+     *
+     * when we're done, we auto-abort all transactions that were not yet
+     * committed.
      */
-    while (1) {
-        if ((st=journal_get_entry(journal, &iter, &entry, &data)))
+
+    /* make sure that there are no pending transactions - we start with 
+     * a clean state! */
+    ham_assert(env_get_oldest_txn(env)==0, (""));
+
+    ham_assert(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS, (""));
+    ham_assert(env_get_rt_flags(env)&HAM_ENABLE_RECOVERY, (""));
+
+    do {
+        journal_entry_t entry={0};
+        void *aux;
+
+        /* get the next entry */
+        st=journal_get_entry(journal, &it, &entry, (void **)&aux);
+        if (st)
             goto bail;
-        
-        if (log_entry_get_lsn(&entry)==0)
+
+        /* reached end of logfile? */
+        if (!journal_entry_get_lsn(&entry))
             break;
 
-        switch (log_entry_get_type(&entry)) {
-            /* checkpoint: no need to continue */
-            case LOG_ENTRY_TYPE_CHECKPOINT:
+        /* skip entries past start_lsn */
+        if (journal_entry_get_lsn(&entry)<=start_lsn)
+            continue;
+
+        /* re-apply this operation */
+        switch (journal_entry_get_type(&entry)) {
+        case JOURNAL_ENTRY_TYPE_TXN_BEGIN: {
+            ham_txn_t *txn;
+            ham_db_t *db;
+            st=__recover_get_db(env, journal_entry_get_dbname(&entry), &db);
+            if (st)
+                break;
+            st=ham_txn_begin(&txn, db, HAM_DISABLE_RECOVERY);
+            /* on success: patch the txn ID */
+            if (st==0)
+                txn_set_id(txn, journal_entry_get_txn_id(&entry));
+            break;
+        }
+        case JOURNAL_ENTRY_TYPE_TXN_ABORT: {
+            ham_txn_t *txn;
+            st=__recover_get_txn(env, journal_entry_get_txn_id(&entry), &txn);
+            if (st)
+                break;
+            st=ham_txn_abort(txn, HAM_DISABLE_RECOVERY);
+            break;
+        }
+        case JOURNAL_ENTRY_TYPE_TXN_COMMIT: {
+            ham_txn_t *txn;
+            st=__recover_get_txn(env, journal_entry_get_txn_id(&entry), &txn);
+            if (st)
+                break;
+            st=ham_txn_commit(txn, HAM_DISABLE_RECOVERY);
+            break;
+        }
+        case JOURNAL_ENTRY_TYPE_INSERT: {
+            journal_entry_insert_t *ins=(journal_entry_insert_t *)aux;
+            ham_txn_t *txn;
+            ham_db_t *db;
+            ham_key_t key={0};
+            ham_record_t record={0};
+            if (!ins) {
+                st=HAM_IO_ERROR;
                 goto bail;
-
-            /* commit: store the txn-id */
-            case LOG_ENTRY_TYPE_TXN_COMMIT:
-                txn_list_size++;
-                txn_list=(ham_u64_t *)allocator_realloc(log_get_allocator(journal),
-                        txn_list, txn_list_size*sizeof(ham_u64_t));
-                if (!txn_list) {
-                    st=HAM_OUT_OF_MEMORY;
-                    goto bail;
-                }
-                txn_list[txn_list_size-1]=log_entry_get_txn_id(&entry);
+            }
+            key.data=journal_entry_insert_get_key_data(ins);
+            key.size=journal_entry_insert_get_key_size(ins);
+            record.data=journal_entry_insert_get_record_data(ins);
+            record.size=journal_entry_insert_get_record_size(ins);
+            record.partial_size=
+                        journal_entry_insert_get_record_partial_size(ins);
+            record.partial_offset=
+                        journal_entry_insert_get_record_partial_offset(ins);
+            st=__recover_get_txn(env, journal_entry_get_txn_id(&entry), &txn);
+            if (st)
                 break;
-
-            /* an after-image: undo if flushed but not committed, 
-             * redo if committed and not flushed */
-            case LOG_ENTRY_TYPE_WRITE:
-                /* 
-				check if this page was flushed at a later time within 
-				the same journal section (up to the next checkpoint): we're 
-				walking BACKWARDS in time here and we must only restore
-				the LATEST state.
-				*/
-                flushed=0;
-                for (i=0; i<flush_list_size; i++) {
-                    if (flush_list[i].page_id==log_entry_get_offset(&entry)
-                            && flush_list[i].lsn>log_entry_get_lsn(&entry)) {
-                        flushed=1;
-                        break;
-                    }
-                }
-                /* check if this txn was committed */
-                committed=0;
-                for (i=0; i<txn_list_size; i++) {
-                    if (txn_list[i]==log_entry_get_txn_id(&entry)) {
-                        committed=1;
-                        break;
-                    }
-                }
-
-                /* flushed and not committed: undo */
-                if (flushed && !committed) {
-                    ham_u8_t *udata;
-                    log_iterator_t uiter=iter;
-                    st=__undo(journal, &uiter, 
-                            log_entry_get_offset(&entry), &udata);
-                    if (st)
-                        goto bail;
-                    st=device->write(device, log_entry_get_offset(&entry),
-                            udata, env_get_pagesize(env));
-                    allocator_free(log_get_allocator(journal), udata);
-                    if (st)
-                        goto bail;
-                    break;
-                }
-                /* not flushed and committed: redo */
-                else if (!flushed && committed) {
-                    st=device->write(device, log_entry_get_offset(&entry),
-                            data, env_get_pagesize(env));
-                    if (st)
-                        goto bail;
-                    /* since we just flushed the page: add page_id and lsn
-                     * to the flush_list 
-                     *
-                     * fall through...
-                     */
-
-                }
-                else
-                    break;
-            /* flush: store the page-id and the lsn*/
-            case LOG_ENTRY_TYPE_FLUSH_PAGE:
-                flush_list_size++;
-                flush_list=(log_flush_entry_t *)allocator_realloc(
-                        log_get_allocator(journal), flush_list, 
-                        flush_list_size*sizeof(log_flush_entry_t));
-                if (!flush_list) {
-                    st=HAM_OUT_OF_MEMORY;
-                    goto bail;
-                }
-                flush_list[flush_list_size-1].page_id=
-                    log_entry_get_offset(&entry);
-                flush_list[flush_list_size-1].lsn=
-                    log_entry_get_lsn(&entry);
+            st=__recover_get_db(env, journal_entry_get_dbname(&entry), &db);
+            if (st)
                 break;
-
-            /* ignore everything else */
-            default:
+            st=ham_insert(db, txn, &key, &record, 
+                        journal_entry_insert_get_flags(ins)
+                            |HAM_DISABLE_RECOVERY);
+            break;
+        }
+        case JOURNAL_ENTRY_TYPE_ERASE: {
+            journal_entry_erase_t *e=(journal_entry_erase_t *)aux;
+            ham_txn_t *txn;
+            ham_db_t *db;
+            ham_key_t key={0};
+            if (!e) {
+                st=HAM_IO_ERROR;
+                goto bail;
+            }
+            st=__recover_get_txn(env, journal_entry_get_txn_id(&entry), &txn);
+            if (st)
                 break;
+            st=__recover_get_db(env, journal_entry_get_dbname(&entry), &db);
+            if (st)
+                break;
+            key.data=journal_entry_erase_get_key_data(e);
+            key.size=journal_entry_erase_get_key_size(e);
+            st=ham_erase(db, txn, &key, 
+                        journal_entry_erase_get_flags(e)|HAM_DISABLE_RECOVERY);
+            break;
+        }
+        default:
+            ham_log(("invalid journal entry type or journal is corrupt"));
+            st=HAM_IO_ERROR;
         }
 
-        if (data) {
-            allocator_free(log_get_allocator(journal), data);
-            data=0;
-        }
-    }
+        if (st)
+            goto bail;
+
+        journal_set_lsn(journal, journal_entry_get_lsn(journal)); /* +1??? TODO */
+    } while (1);
 
 bail:
-    if (txn_list)
-        allocator_free(log_get_allocator(journal), txn_list);
-    if (flush_list)
-        allocator_free(log_get_allocator(journal), flush_list);
-    if (data)
-        allocator_free(log_get_allocator(journal), data);
+    /* all transactions which are not yet committed will be aborted */
+    /* TODO */
 
-    /*
-     * did we goto bail because of an earlier error? then do not
-     * clear the logfile but return
-     */
+    /* also close and delete all open databases - they were created in
+     * __recover_get_db() */
+    /* TODO */
+
     if (st)
         return (st);
 
-    /*
-     * clear the journal files and set the lsn to 1
-     */
+    /* clear the journal files */
     st=journal_clear(journal);
     if (st) {
-        ham_log(("unable to clear logfiles; please manually delete the "
+        ham_log(("unable to clear journal; please manually delete the "
                 "journal files before re-opening the Database"));
         return (st);
     }
 
-    log_set_lsn(journal, 1);
-    log_set_current_fd(journal, 0);
-#endif
     return (0);
 }
 

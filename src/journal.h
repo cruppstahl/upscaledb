@@ -10,7 +10,11 @@
  */
 
 /**
- * @brief routines for the journal - writing, reading, recovering
+ * @brief Routines for the journal - writing, reading, recovering
+ * 
+ * The journal is a logical logfile. It stores high-level information about
+ * the database operations (unlike the (physical) log which stores low-level
+ * information about modified pages.
  *
  */
 
@@ -289,7 +293,8 @@ extern ham_status_t
 journal_close(journal_t *journal, ham_bool_t noclear);
 
 /**
- * Recovers! All committed Transactions will be re-applied
+ * Recovers! All committed Transactions will be re-applied, all others
+ * are automatically aborted
  */
 extern ham_status_t
 journal_recover(journal_t *journal);

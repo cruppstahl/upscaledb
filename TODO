@@ -223,7 +223,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             x insert
             x erase
             x erase for cursors (different duplicate behavior!)
-    o db.c/env.c: (logical) log begin/commit/abort/insert/erase
+    x db.c/env.c: (logical) log begin/commit/abort/insert/erase
         x use the functions from journal.c
             x ham_txn_begin
             x ham_txn_commit
@@ -232,14 +232,14 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             x ham_cursor_insert
             x ham_erase (delete ALL duplicates!)
             x ham_cursor_erase (duplicate handling!)
-        o need unittests
-            o ham_txn_begin
-            o ham_txn_commit
-            o ham_txn_abort
-            o ham_insert
-            o ham_cursor_insert
-            o ham_erase (delete ALL duplicates!)
-            o ham_cursor_erase (duplicate handling!)
+        x need unittests
+            x ham_txn_begin
+            x ham_txn_commit
+            x ham_txn_abort
+            x ham_insert
+            x ham_cursor_insert
+            x ham_erase (delete ALL duplicates!)
+            x ham_cursor_erase (duplicate handling!)
 
     x new flag for ham_erase: HAM_ERASE_ALL_DUPLICATES
         x replace old BLOB_FREE_ALL_DUPES
@@ -366,7 +366,13 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         o then re-apply the journal, continuing from the entry with this lsn
             o make sure that the txn Id is persisted in the log and
                 then re-assigned to the new transaction
+                x implement
+                o unittest
             o make sure that the new operations are not written to the journal
+====> i introduced a new flag (HAM_DISABLE_LOGGING) but maybe that's not a 
+      good idea for now. Can i just set env->_rt_flags&~HAM_ENABLE_LOGGING?
+      this should disable all the journal appends (don't forget to re-enable
+      the flag later on)
             o auto-aborts all non-committed transactions (same behavior 
                     as now)
                 o need unittests
@@ -377,6 +383,13 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             o need unittests
 
     o unittests
+        o ham_txn_begin
+        o ham_txn_commit
+        o ham_txn_abort
+        o ham_insert
+        o ham_cursor_insert
+        o ham_erase (delete ALL duplicates!)
+        o ham_cursor_erase (duplicate handling!)
         o recovery w/ empty log, full journal
         o recovery w/ full log, full journal
         o recovery w/ full log, full journal (and skip journal entries
@@ -412,6 +425,11 @@ o support cursors!!!
     o when flushing a transaction, and a cursor is pointing into the txn
         node: uncouple the cursor! (or delete it?)
     o db.c: do we need local_txn in the cursor functions?
+
+o we currently have two modes regarding recovery:
+    - HAM_ENABLE_TRANSACTIONS (implies HAM_ENABLE_RECOVERY)
+    - HAM_ENABLE_RECOVERY
+    make sure that both are covered in the monster tests
 
 o run monster tests
 
