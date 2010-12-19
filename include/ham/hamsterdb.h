@@ -1451,6 +1451,8 @@ ham_open_ex(ham_db_t *db, const char *filename,
 
 /* reserved: DB_IS_REMOTE     (not persistent)       0x00200000 */
 
+/* reserved: DB_DISABLE_AUTO_FLUSH (not persistent)  0x00400000 */
+
 /**
  * Returns the last error code
  *
@@ -1842,9 +1844,6 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 /** Flag for @ref ham_insert, @ref ham_cursor_insert, @ref ham_find, 
  * @ref ham_cursor_find_ex, @ref ham_cursor_move */
 #define HAM_PARTIAL                     0x0080
-
-/* internal flag - do not use */
-#define HAM_DISABLE_RECOVERY            0x0100
 
 /** 
  * Flag for @ref ham_cursor_insert

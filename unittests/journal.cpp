@@ -35,6 +35,45 @@
 
 using namespace bfc;
 
+struct LogEntry
+{
+    LogEntry(ham_u64_t _lsn, ham_u64_t _txn_id, 
+                ham_u32_t _type, ham_u16_t _dbname)
+    :   lsn(_lsn), txn_id(_txn_id), type(_type), dbname(_dbname)
+    {
+    }
+
+    ham_u64_t lsn;
+    ham_u64_t txn_id;
+    ham_u32_t type;
+    ham_u16_t dbname;
+};
+
+struct InsertLogEntry : public LogEntry
+{
+    InsertLogEntry(ham_u64_t _lsn, ham_u64_t _txn_id, ham_u16_t _dbname, 
+                ham_key_t *_key, ham_record_t *_record)
+    : LogEntry(_lsn, _txn_id, JOURNAL_ENTRY_TYPE_INSERT, _dbname),
+        key(_key), record(_record)
+    {
+    }
+
+    ham_key_t *key;
+    ham_record_t *record;
+};
+
+struct EraseLogEntry : public LogEntry
+{
+    EraseLogEntry(ham_u64_t _lsn, ham_u64_t _txn_id, ham_u16_t _dbname, 
+                ham_key_t *_key)
+    : LogEntry(_lsn, _txn_id, JOURNAL_ENTRY_TYPE_INSERT, _dbname),
+        key(_key)
+    {
+    }
+
+    ham_key_t *key;
+};
+
 class JournalTest : public hamsterDB_fixture
 {
     define_super(hamsterDB_fixture);
@@ -409,7 +448,7 @@ public:
         env_set_journal(m_env, log);
         BFC_ASSERT(log!=0);
 
-        /* verify that the insert entry was written correctly */
+        /* verify that the erase entry was written correctly */
         journal_iterator_t iter;
         memset(&iter, 0, sizeof(iter));
         journal_entry_t entry;
@@ -518,16 +557,58 @@ public:
         BFC_ASSERT_EQUAL(type, journal_entry_get_type(entry));
     }
 
+    void compareJournal(journal_t *journal, std::vector<LogEntry> &vec)
+    {
+        journal_iterator_t it={0};
+        journal_entry_t entry={0};
+        std::vector<LogEntry>::iterator vit=vec.begin();
+        void *aux;
+        unsigned size=0;
+
+        do {
+            BFC_ASSERT_EQUAL(0, journal_get_entry(journal, &it, &entry, &aux));
+            if (journal_entry_get_lsn(&entry)==0)
+                break;
+
+            if (vit==vec.end()) {
+                BFC_ASSERT_EQUAL(0ull, journal_entry_get_lsn(&entry));
+                break;
+            }
+
+            size++;
+
+            BFC_ASSERT_EQUAL((*vit).lsn, journal_entry_get_lsn(&entry));
+            BFC_ASSERT_EQUAL((*vit).txn_id, journal_entry_get_txn_id(&entry));
+            BFC_ASSERT_EQUAL((*vit).type, journal_entry_get_type(&entry));
+            BFC_ASSERT_EQUAL((*vit).dbname, journal_entry_get_dbname(&entry));
+
+            if (aux)
+                allocator_free(journal_get_allocator(journal), aux);
+
+            vit++;
+
+        } while (1);
+
+        if (aux)
+            allocator_free(journal_get_allocator(journal), aux);
+        BFC_ASSERT_EQUAL(vec.size(), size);
+    }
+
     void iterateOverLogMultipleEntryTest(void)
     {
         ham_txn_t *txn;
         journal_t *log=env_get_journal(m_env);
 
+        std::vector<LogEntry> vec;
         for (int i=0; i<5; i++) {
             // ham_txn_begin and ham_txn_abort will automatically add a 
             // journal entry
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            vec.push_back(LogEntry(2+i*2, txn_get_id(txn), 
+                            JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0));
             BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+            vec.push_back(LogEntry(3+i*2, txn_get_id(txn), 
+                            JOURNAL_ENTRY_TYPE_TXN_ABORT, 0));
         }
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -540,40 +621,7 @@ public:
         env_set_journal(m_env, log);
         BFC_ASSERT(log!=0);
 
-        journal_iterator_t iter;
-        memset(&iter, 0, sizeof(iter));
-
-#if 0 /* TODO */
-        journal_entry_t entry;
-        ham_u8_t *data;
-
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 13, 0, LOG_ENTRY_TYPE_FLUSH_PAGE, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 12, 0, LOG_ENTRY_TYPE_FLUSH_PAGE, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 11, 5, LOG_ENTRY_TYPE_TXN_ABORT, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 10, 5, LOG_ENTRY_TYPE_TXN_BEGIN, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry,  9, 4, LOG_ENTRY_TYPE_TXN_ABORT, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry,  8, 4, LOG_ENTRY_TYPE_TXN_BEGIN, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry,  7, 3, LOG_ENTRY_TYPE_TXN_ABORT, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry,  6, 3, LOG_ENTRY_TYPE_TXN_BEGIN, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry,  5, 2, LOG_ENTRY_TYPE_TXN_ABORT, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry,  4, 2, LOG_ENTRY_TYPE_TXN_BEGIN, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry,  3, 1, LOG_ENTRY_TYPE_TXN_ABORT, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry,  2, 1, LOG_ENTRY_TYPE_TXN_BEGIN, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry,  1, 0, LOG_ENTRY_TYPE_PREWRITE, data);
-#endif
+        compareJournal(log, vec);
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
@@ -583,10 +631,15 @@ public:
         ham_txn_t *txn;
         journal_t *log=env_get_journal(m_env);
         journal_set_threshold(log, 5);
+        std::vector<LogEntry> vec;
 
         for (int i=0; i<=7; i++) {
             BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            vec.push_back(LogEntry(2+i*2, txn_get_id(txn), 
+                            JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0));
             BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+            vec.push_back(LogEntry(3+i*2, txn_get_id(txn), 
+                            JOURNAL_ENTRY_TYPE_TXN_ABORT, 0));
         }
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
@@ -599,51 +652,7 @@ public:
         env_set_journal(m_env, log);
         BFC_ASSERT(log!=0);
 
-        journal_iterator_t iter;
-        memset(&iter, 0, sizeof(iter));
-
-#if 0 /* TODO */
-        journal_entry_t entry;
-        ham_u8_t *data;
-
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 18, 8, LOG_ENTRY_TYPE_TXN_ABORT, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 17, 8, LOG_ENTRY_TYPE_TXN_BEGIN, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 16, 7, LOG_ENTRY_TYPE_TXN_ABORT, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 15, 7, LOG_ENTRY_TYPE_TXN_BEGIN, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 14, 6, LOG_ENTRY_TYPE_TXN_ABORT, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 13, 6, LOG_ENTRY_TYPE_TXN_BEGIN, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 12, 0, LOG_ENTRY_TYPE_CHECKPOINT, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 11, 5, LOG_ENTRY_TYPE_TXN_ABORT, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 10, 5, LOG_ENTRY_TYPE_TXN_BEGIN, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 9, 4, LOG_ENTRY_TYPE_TXN_ABORT, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 8, 4, LOG_ENTRY_TYPE_TXN_BEGIN, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 7, 3, LOG_ENTRY_TYPE_TXN_ABORT, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 6, 3, LOG_ENTRY_TYPE_TXN_BEGIN, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 5, 2, LOG_ENTRY_TYPE_TXN_ABORT, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 4, 2, LOG_ENTRY_TYPE_TXN_BEGIN, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 3, 1, LOG_ENTRY_TYPE_TXN_ABORT, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 2, 1, LOG_ENTRY_TYPE_TXN_BEGIN, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-        checkJournalEntry(&entry, 1, 0, LOG_ENTRY_TYPE_PREWRITE, data);
-        BFC_ASSERT_EQUAL(0, journal_get_entry(log, &iter, &entry, &data));
-#endif
+        compareJournal(log, vec);
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }

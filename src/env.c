@@ -1473,12 +1473,7 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
          * a serious bug */
         ham_assert(txn_op_get_flags(op)!=TXN_OP_FLUSHED, (""));
 
-        /* currently, some low-level functions (i.e. in log.c) still need
-         * to know about the Transaction that we flush, therefore set the
-         * env_flushed_txn pointer */
-        env_set_flushed_txn(env, txn);
-
-    /* logging enabled? then the changeset and the log HAS to be empty */
+        /* logging enabled? then the changeset and the log HAS to be empty */
 #ifdef HAM_DEBUG
         if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
             ham_status_t st;
@@ -1489,6 +1484,11 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
             ham_assert(empty==HAM_TRUE, (""));
         }
 #endif
+
+        /* currently, some low-level functions (i.e. in log.c) still need
+         * to know about the Transaction that we flush, therefore set the
+         * env_flushed_txn pointer */
+        env_set_flushed_txn(env, txn);
 
         /* depending on the type of the operation: actually perform the
          * operation on the btree */
@@ -1540,6 +1540,8 @@ ham_status_t
 env_flush_committed_txns(ham_env_t *env)
 {
     ham_txn_t *oldest;
+
+    ham_assert(!(env_get_rt_flags(env)&DB_DISABLE_AUTO_FLUSH), (""));
 
     /* always get the oldest transaction; if it was committed: flush 
      * it; if it was aborted: discard it; otherwise return */

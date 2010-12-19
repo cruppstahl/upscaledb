@@ -839,7 +839,7 @@ done:
     if (flags&PAGE_CLEAR_WITH_ZERO)
         memset(page_get_pers(page), 0, env_get_pagesize(env));
 
-    /* store the page in the changeset */
+    /* an allocated page is always flushed if recovery is enabled */
     if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
         changeset_add_page(env_get_changeset(env), page);
 
@@ -955,8 +955,15 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             *page_ref = page;
             ham_assert(page_get_pers(page), (""));
             ham_assert(db ? page_get_owner(page)==db : 1, (""));
-            /* store the page in the changeset */
-            if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
+            /* store the page in the changeset, but only if recovery is enabled
+             * and not if Transactions are enabled. 
+             *
+             * when inserting a key in a transaction, this can trigger lookups
+             * with ham_find(). when ham_find() fetches pages, these pages must
+             * not be added to the changeset.
+             */
+            if ((env_get_rt_flags(env)&HAM_ENABLE_RECOVERY)
+                    && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
                 changeset_add_page(env_get_changeset(env), page);
             return (HAM_SUCCESS);
         }

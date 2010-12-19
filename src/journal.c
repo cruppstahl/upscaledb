@@ -471,14 +471,14 @@ journal_get_entry(journal_t *journal, journal_iterator_t *iter,
      */
     if (iter->_offset==0) {
         iter->_fdstart=iter->_fdidx=
-                    journal_get_current_fd(journal)==journal_get_fd(journal, 0)
+                    journal_get_current_fd(journal)==0
                         ? 1
                         : 0;
         iter->_offset=sizeof(journal_header_t);
     }
 
     /* get the size of the journal file */
-    st=os_get_filesize(journal_get_fd(journal, iter->_fdstart), &filesize);
+    st=os_get_filesize(journal_get_fd(journal, iter->_fdidx), &filesize);
     if (st)
         return (st);
 
@@ -487,7 +487,7 @@ journal_get_entry(journal_t *journal, journal_iterator_t *iter,
         if (iter->_fdstart==iter->_fdidx) {
             iter->_fdidx=iter->_fdidx==1 ? 0 : 1;
             iter->_offset=sizeof(journal_header_t);
-            st=os_get_filesize(journal_get_fd(journal, iter->_fdstart), 
+            st=os_get_filesize(journal_get_fd(journal, iter->_fdidx), 
                         &filesize);
             if (st)
                 return (st);
@@ -586,7 +586,7 @@ __recover_get_db(ham_env_t *env, ham_u16_t dbname, ham_db_t **pdb)
     if (st)
         return (st);
 
-    st=ham_env_open_db(env, db, dbname, HAM_DISABLE_RECOVERY, 0);
+    st=ham_env_open_db(env, db, dbname, 0, 0);
     if (st)
         return (st);
 
@@ -608,6 +608,45 @@ __recover_get_txn(ham_env_t *env, ham_u32_t txn_id, ham_txn_t **ptxn)
 
     *ptxn=0;
     return (HAM_INTERNAL_ERROR);
+}
+
+static ham_status_t
+__close_all_databases(ham_env_t *env)
+{
+    ham_status_t st;
+    ham_db_t *db;
+
+    while ((db=env_get_list(env))) {
+        st=ham_close(db, 0);
+        if (st) {
+            ham_log(("ham_close() failed w/ error %d (%s)", st, 
+                    ham_strerror(st)));
+            return (st);
+        }
+
+        ham_delete(db);
+    }
+
+    return (0);
+}
+
+static ham_status_t
+__abort_uncommitted_txns(ham_env_t *env)
+{
+    ham_status_t st;
+    ham_txn_t *older, *txn=env_get_oldest_txn(env);
+
+    while (txn) {
+        older=txn_get_older(txn);
+        if (!(txn_get_flags(txn)&TXN_STATE_COMMITTED)) {
+            st=ham_txn_abort(txn, 0);
+            if (st)
+                return (st);
+        }
+        txn=older;
+    }
+
+    return (0);
 }
 
 ham_status_t
@@ -635,6 +674,10 @@ journal_recover(journal_t *journal)
     ham_assert(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS, (""));
     ham_assert(env_get_rt_flags(env)&HAM_ENABLE_RECOVERY, (""));
 
+    /* officially disable recovery - otherwise while recovering we log
+     * more stuff */
+    env_set_rt_flags(env, env_get_rt_flags(env)&~HAM_ENABLE_RECOVERY);
+
     do {
         journal_entry_t entry={0};
         void *aux;
@@ -660,7 +703,7 @@ journal_recover(journal_t *journal)
             st=__recover_get_db(env, journal_entry_get_dbname(&entry), &db);
             if (st)
                 break;
-            st=ham_txn_begin(&txn, db, HAM_DISABLE_RECOVERY);
+            st=ham_txn_begin(&txn, db, 0);
             /* on success: patch the txn ID */
             if (st==0)
                 txn_set_id(txn, journal_entry_get_txn_id(&entry));
@@ -671,7 +714,7 @@ journal_recover(journal_t *journal)
             st=__recover_get_txn(env, journal_entry_get_txn_id(&entry), &txn);
             if (st)
                 break;
-            st=ham_txn_abort(txn, HAM_DISABLE_RECOVERY);
+            st=ham_txn_abort(txn, 0);
             break;
         }
         case JOURNAL_ENTRY_TYPE_TXN_COMMIT: {
@@ -679,7 +722,7 @@ journal_recover(journal_t *journal)
             st=__recover_get_txn(env, journal_entry_get_txn_id(&entry), &txn);
             if (st)
                 break;
-            st=ham_txn_commit(txn, HAM_DISABLE_RECOVERY);
+            st=ham_txn_commit(txn, 0);
             break;
         }
         case JOURNAL_ENTRY_TYPE_INSERT: {
@@ -707,8 +750,7 @@ journal_recover(journal_t *journal)
             if (st)
                 break;
             st=ham_insert(db, txn, &key, &record, 
-                        journal_entry_insert_get_flags(ins)
-                            |HAM_DISABLE_RECOVERY);
+                        journal_entry_insert_get_flags(ins));
             break;
         }
         case JOURNAL_ENTRY_TYPE_ERASE: {
@@ -728,8 +770,7 @@ journal_recover(journal_t *journal)
                 break;
             key.data=journal_entry_erase_get_key_data(e);
             key.size=journal_entry_erase_get_key_size(e);
-            st=ham_erase(db, txn, &key, 
-                        journal_entry_erase_get_flags(e)|HAM_DISABLE_RECOVERY);
+            st=ham_erase(db, txn, &key, journal_entry_erase_get_flags(e));
             break;
         }
         default:
@@ -740,16 +781,19 @@ journal_recover(journal_t *journal)
         if (st)
             goto bail;
 
-        journal_set_lsn(journal, journal_entry_get_lsn(journal)); /* +1??? TODO */
+        journal_set_lsn(journal, journal_entry_get_lsn(journal));
     } while (1);
 
 bail:
     /* all transactions which are not yet committed will be aborted */
-    /* TODO */
+    (void)__abort_uncommitted_txns(env);
 
     /* also close and delete all open databases - they were created in
      * __recover_get_db() */
-    /* TODO */
+    (void)__close_all_databases(env);
+
+    /* restore original flags */
+    env_set_rt_flags(env, env_get_rt_flags(env)|HAM_ENABLE_RECOVERY);
 
     if (st)
         return (st);

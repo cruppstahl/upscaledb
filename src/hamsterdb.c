@@ -587,6 +587,7 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
                                 |HAM_CACHE_UNLIMITED
                                 |HAM_LOCK_EXCLUSIVE
                                 |HAM_ENABLE_TRANSACTIONS
+                                |DB_DISABLE_AUTO_FLUSH
                                 |HAM_ENABLE_RECOVERY) : 0)
                         |(!env && !create ? HAM_AUTO_RECOVERY : 0)
                         |HAM_CACHE_STRICT

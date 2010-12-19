@@ -363,24 +363,29 @@ o logging: currently, logging for txn_begin and txn_commit/abort
                 x test logfile with a modified header page (env_create_db)
                 x test logfile with a modified header page (env_erase_db)
                 x always test lsn after recovering from the logfile
+        x we need a way to reliably test the journal; create a new undocumented
+            flag which disables log file flushing
         o then re-apply the journal, continuing from the entry with this lsn
             o make sure that the txn Id is persisted in the log and
                 then re-assigned to the new transaction
                 x implement
                 o unittest
             o make sure that the new operations are not written to the journal
-====> i introduced a new flag (HAM_DISABLE_LOGGING) but maybe that's not a 
-      good idea for now. Can i just set env->_rt_flags&~HAM_ENABLE_LOGGING?
-      this should disable all the journal appends (don't forget to re-enable
-      the flag later on)
+                x implement
+                o unittest
             o auto-aborts all non-committed transactions (same behavior 
                     as now)
+                x implement
                 o need unittests
             o re-apply all committed (but not fully flushed) transactions
+                x implement
                 o need unittests
             o need unittests
         o then clear the journal
+            x implement
             o need unittests
+
+====> RemoteTest::insertRecnoTest fails
 
     o unittests
         o ham_txn_begin
@@ -430,6 +435,8 @@ o we currently have two modes regarding recovery:
     - HAM_ENABLE_TRANSACTIONS (implies HAM_ENABLE_RECOVERY)
     - HAM_ENABLE_RECOVERY
     make sure that both are covered in the monster tests
+
+o check all TODOs in the sources
 
 o run monster tests
 

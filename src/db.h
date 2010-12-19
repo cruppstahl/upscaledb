@@ -805,6 +805,11 @@ db_copy_key(ham_db_t *db, const ham_key_t *source, ham_key_t *dest);
 #define DB_IS_REMOTE                 0x00200000
 
 /**
+ * An internal database flag - disable txn flushin when they're committed
+ */
+#define DB_DISABLE_AUTO_FLUSH        0x00400000
+
+/**
  * @}
  */
 
