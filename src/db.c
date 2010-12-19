@@ -1852,8 +1852,14 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
         node_created=HAM_TRUE;
     }
 
-    /* check for conflicts of this key */
+    /* check for conflicts of this key
+     *
+     * !!
+     * afterwards, clear the changeset; db_check_insert_conflicts() sometimes
+     * checks if a key already exists, and this fills the changeset
+     */
     st=db_check_insert_conflicts(db, txn, node, key, flags);
+    changeset_clear(env_get_changeset(db_get_env(db)));
     if (st) {
         if (node_created)
             txn_opnode_free(db_get_env(db), node);

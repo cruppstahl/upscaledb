@@ -380,9 +380,15 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             o re-apply all committed (but not fully flushed) transactions
                 x implement
                 o need unittests
-            o need unittests
         o then clear the journal
             x implement
+            o need unittests
+        o JournalHighLevelTests work like this:
+            1. just write the operations as usual
+            2. close with DONT_CLOSE_LOG
+            3. iterate over journal and compare with real values
+            4. re-create the db/env and recover with journal
+            5. verify that the file is correct
             o need unittests
 
 ====> RemoteTest::insertRecnoTest fails
