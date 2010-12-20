@@ -373,13 +373,18 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             5. verify that the file is correct
             o need unittests
         o then re-apply the journal, continuing from the entry with this lsn
-            o make sure that the txn Id is persisted in the log and
+            x make sure that the txn Id is persisted in the log and
                 then re-assigned to the new transaction
                 x implement
-                o unittest
-            o make sure that the new operations are not written to the journal
+                x unittest
+            x make sure that the txn Id is incremented correctly after the
+                journal was applied (i.e. the first ham_txn_begin AFTER the 
+                recovery is done)
                 x implement
-                o unittest
+                x unittest
+            x make sure that the new operations are not written to the journal
+                x implement
+                x unittest
             o auto-aborts all non-committed transactions (same behavior 
                     as now)
                 x implement

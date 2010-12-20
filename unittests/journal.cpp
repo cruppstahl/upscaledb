@@ -101,6 +101,7 @@ public:
         BFC_REGISTER_TEST(JournalTest, iterateOverLogMultipleEntryTest);
         BFC_REGISTER_TEST(JournalTest, iterateOverLogMultipleEntrySwapTest);
         BFC_REGISTER_TEST(JournalTest, iterateOverLogMultipleEntrySwapTwiceTest);
+        BFC_REGISTER_TEST(JournalTest, recoverVerifyTxnIdsTest);
     }
 
 protected:
@@ -515,7 +516,7 @@ public:
         journal_t *log = disconnect_and_create_new_journal();
         BFC_ASSERT_EQUAL(1ull, journal_get_lsn(log));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, journal_append_txn_begin(log, txn));
+        BFC_ASSERT_EQUAL(0, journal_append_txn_begin(log, txn, m_db));
         BFC_ASSERT_EQUAL(0, journal_close(log, HAM_TRUE));
 
         BFC_ASSERT_EQUAL(0, 
@@ -687,6 +688,43 @@ public:
         compareJournal(log, vec);
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+    }
+
+    void recoverVerifyTxnIdsTest(void)
+    {
+        ham_txn_t *txn;
+        std::vector<LogEntry> vec;
+
+        for (int i=0; i<5; i++) {
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+            BFC_ASSERT_EQUAL((ham_u64_t)i+1, txn_get_id(txn));
+            vec.push_back(LogEntry(2+i*2, txn_get_id(txn), 
+                        JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0));
+            BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+            vec.push_back(LogEntry(3+i*2, txn_get_id(txn), 
+                        JOURNAL_ENTRY_TYPE_TXN_COMMIT, 0));
+        }
+
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        /* reopen the database */
+        BFC_ASSERT_EQUAL(HAM_NEED_RECOVERY, 
+                ham_open(m_db, BFC_OPATH(".test"), 
+                        HAM_ENABLE_TRANSACTIONS|HAM_ENABLE_RECOVERY));
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(m_db, BFC_OPATH(".test"), 
+                        HAM_ENABLE_TRANSACTIONS|HAM_AUTO_RECOVERY));
+        m_env=db_get_env(m_db);
+
+        /* verify the lsn */
+        BFC_ASSERT_EQUAL(11ull, journal_get_lsn(env_get_journal(m_env)));
+        BFC_ASSERT_EQUAL(5ull, env_get_txn_id(m_env));
+
+        /* create another transaction and make sure that the transaction
+         * IDs and the lsn's continue seamlessly */
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(6ull, txn_get_id(txn));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
 };

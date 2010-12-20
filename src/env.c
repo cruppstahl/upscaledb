@@ -252,6 +252,7 @@ __recover(ham_env_t *env, ham_u32_t flags)
 
     /* open the log */
     st=log_open(env, 0, &log);
+    env_set_log(env, log);
     if (st && st!=HAM_FILE_NOT_FOUND)
         goto bail;
     /* success - check if we need recovery */
@@ -276,6 +277,7 @@ __recover(ham_env_t *env, ham_u32_t flags)
 
     /* open the journal */
     st=journal_open(env, 0, &journal);
+    env_set_journal(env, journal);
     if (st && st!=HAM_FILE_NOT_FOUND)
         goto bail;
     /* success - check if we need recovery */
@@ -304,8 +306,10 @@ bail:
     /* in case of errors: close log and journal, but do not delete the files */
     if (log)
         log_close(log, HAM_TRUE);
+    env_set_log(env, 0);
     if (journal)
         journal_close(journal, HAM_TRUE);
+    env_set_journal(env, 0);
     return (st);
 
 success:
@@ -1364,9 +1368,9 @@ _local_fun_txn_begin(ham_env_t *env, ham_db_t *db,
 
     /* append journal entry */
     if (st==0
-            && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY
-            && db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)
-        st=journal_append_txn_begin(env_get_journal(env), *txn);
+            && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
+            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)
+        st=journal_append_txn_begin(env_get_journal(env), *txn, db);
 
     return (st);
 }
@@ -1374,13 +1378,17 @@ _local_fun_txn_begin(ham_env_t *env, ham_db_t *db,
 static ham_status_t
 _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 {
+    /* an ugly hack - txn_commit() will free the txn structure, but we need
+     * it for the journal; therefore create a temp. copy which we can use
+     * later */
+    ham_txn_t copy=*txn;
     ham_status_t st=txn_commit(txn, flags);
 
     /* append journal entry */
     if (st==0
             && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)
-        st=journal_append_txn_commit(env_get_journal(env), txn);
+        st=journal_append_txn_commit(env_get_journal(env), &copy);
 
     return (st);
 }
@@ -1388,13 +1396,17 @@ _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 static ham_status_t
 _local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
 {
+    /* an ugly hack - txn_commit() will free the txn structure, but we need
+     * it for the journal; therefore create a temp. copy which we can use
+     * later */
+    ham_txn_t copy=*txn;
     ham_status_t st=txn_abort(txn, flags);
 
     /* append journal entry */
     if (st==0
             && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)
-        st=journal_append_txn_abort(env_get_journal(env), txn);
+        st=journal_append_txn_abort(env_get_journal(env), &copy);
 
     return (st);
 }

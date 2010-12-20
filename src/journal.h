@@ -219,7 +219,8 @@ journal_flush(journal_t *journal, int fdidx);
  * Append a journal entry for ham_txn_begin/JOURNAL_ENTRY_TYPE_TXN_BEGIN
  */
 extern ham_status_t
-journal_append_txn_begin(journal_t *journal, struct ham_txn_t *txn);
+journal_append_txn_begin(journal_t *journal, struct ham_txn_t *txn,
+                    ham_db_t *db);
 
 /**
  * Append a journal entry for ham_txn_abort/JOURNAL_ENTRY_TYPE_TXN_ABORT

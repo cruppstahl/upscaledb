@@ -257,7 +257,8 @@ journal_append_entry(journal_t *journal, int fdidx,
 }
 
 ham_status_t
-journal_append_txn_begin(journal_t *journal, struct ham_txn_t *txn)
+journal_append_txn_begin(journal_t *journal, struct ham_txn_t *txn,
+                ham_db_t *db)
 {
     ham_status_t st;
     journal_entry_t entry={0};
@@ -266,6 +267,7 @@ journal_append_txn_begin(journal_t *journal, struct ham_txn_t *txn)
 
     journal_entry_set_txn_id(&entry, txn_get_id(txn));
     journal_entry_set_type(&entry, JOURNAL_ENTRY_TYPE_TXN_BEGIN);
+    journal_entry_set_dbname(&entry, db_get_dbname(db));
 
     /* 
      * determine the journal file which is used for this transaction 
@@ -705,8 +707,10 @@ journal_recover(journal_t *journal)
                 break;
             st=ham_txn_begin(&txn, db, 0);
             /* on success: patch the txn ID */
-            if (st==0)
+            if (st==0) {
                 txn_set_id(txn, journal_entry_get_txn_id(&entry));
+                env_set_txn_id(env, journal_entry_get_txn_id(&entry));
+            }
             break;
         }
         case JOURNAL_ENTRY_TYPE_TXN_ABORT: {
