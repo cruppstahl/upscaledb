@@ -1830,7 +1830,7 @@ static ham_status_t
 db_insert_txn(ham_db_t *db, ham_txn_t *txn,
         ham_key_t *key, ham_record_t *record, ham_u32_t flags)
 {
-    ham_status_t st;
+    ham_status_t st=0;
     txn_optree_t *tree;
     txn_opnode_t *node;
     txn_op_t *op;
@@ -1877,14 +1877,22 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
     if (!op)
         return (HAM_OUT_OF_MEMORY);
 
-    return (0);
+    /* append journal entry */
+    if (env_get_rt_flags(db_get_env(db))&HAM_ENABLE_RECOVERY
+            && env_get_rt_flags(db_get_env(db))&HAM_ENABLE_TRANSACTIONS)
+        st=journal_append_insert(env_get_journal(db_get_env(db)), db, txn,
+                            key, record, 
+                            flags&HAM_DUPLICATE ? flags : flags|HAM_OVERWRITE, 
+                            txn_op_get_lsn(op));
+
+    return (st);
 }
 
 static ham_status_t
 db_erase_txn(ham_db_t *db, ham_txn_t *txn,
         ham_key_t *key, ham_u32_t flags)
 {
-    ham_status_t st;
+    ham_status_t st=0;
     txn_optree_t *tree;
     txn_opnode_t *node;
     txn_op_t *op;
@@ -1920,7 +1928,14 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn,
     if (!op)
         return (HAM_OUT_OF_MEMORY);
 
-    return (0);
+    /* append journal entry */
+    if (env_get_rt_flags(db_get_env(db))&HAM_ENABLE_RECOVERY
+            && env_get_rt_flags(db_get_env(db))&HAM_ENABLE_TRANSACTIONS)
+        st=journal_append_erase(env_get_journal(db_get_env(db)), db, txn,
+                            key, 0, flags|HAM_ERASE_ALL_DUPLICATES,
+                            txn_op_get_lsn(op));
+
+    return (st);
 }
 
 static ham_status_t
@@ -2080,13 +2095,6 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
     if (temprec.data!=record->data)
         allocator_free(env_get_allocator(env), temprec.data);
 
-    /* append journal entry */
-    if (st==0 
-            && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
-            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)
-        st=journal_append_insert(env_get_journal(env), txn ? txn : local_txn,
-                            key, record, flags);
-
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
@@ -2118,7 +2126,8 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
-    else if (db_get_rt_flags(db)&HAM_ENABLE_RECOVERY)
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (changeset_flush(env_get_changeset(env), 
                         env_get_incremented_lsn(env)));
     else
@@ -2178,13 +2187,6 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     else
         st=be->_fun_erase(be, key, flags);
 
-    /* append journal entry */
-    if (st==0
-            && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
-            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)
-        st=journal_append_erase(env_get_journal(env), txn ? txn : local_txn,
-                            key, 0, flags|HAM_ERASE_ALL_DUPLICATES);
-
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
@@ -2198,7 +2200,8 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
-    else if (db_get_rt_flags(db)&HAM_ENABLE_RECOVERY)
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (changeset_flush(env_get_changeset(env), 
                         env_get_incremented_lsn(env)));
     else
@@ -2284,7 +2287,8 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
-    else if (db_get_rt_flags(db)&HAM_ENABLE_RECOVERY)
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
         return (changeset_flush(env_get_changeset(env), 
                         env_get_incremented_lsn(env)));
     else
@@ -2435,11 +2439,13 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         allocator_free(env_get_allocator(env), temprec.data);
 
     /* append journal entry */
+#if 0 /* TODO TODO TODO */
     if (st==0
             && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)
         st=journal_append_insert(env_get_journal(env), 
                         cursor_get_txn(cursor), key, record, flags);
+#endif
 
     if (st) {
         if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {

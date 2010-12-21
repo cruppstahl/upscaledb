@@ -385,13 +385,14 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             x make sure that the new operations are not written to the journal
                 x implement
                 x unittest
+            x re-apply all committed (but not fully flushed) transactions
+                x implement
+                x need unittests
             o auto-aborts all non-committed transactions (same behavior 
                     as now)
                 x implement
                 o need unittests
-            o re-apply all committed (but not fully flushed) transactions
-                x implement
-                o need unittests
+===> JournalTest::recoverAutoAbortTxnsTest fails
         o then clear the journal
             x implement
             o need unittests
@@ -486,6 +487,8 @@ o new API to retrieve the currently active transactions
 . rename ham_bt_cursor_t to btree_cursor_t
 
 . cache-garbagelist no longer used - remove it?
+
+. journal->_lsn - no longer needed?
 
 . log_entry_t: txn_id still needed?
 

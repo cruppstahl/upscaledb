@@ -508,21 +508,9 @@ fail_with_fake_cleansing:
         env_set_header_page(env, page);
     }
 
-    /*
-     * open the logfile and check if we need recovery. first open the 
-     * (physical) log and re-apply it. afterwards to the same with the
-     * (logical) journal.
-     */
-    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
-        st=__recover(env, flags);
-        if (st) {
-            (void)ham_env_close(env, 0);
-            return (st);
-        }
-    }
-
     /* 
-     * initialize the cache
+     * initialize the cache; the cache is needed during recovery, therefore
+     * we have to create the cache BEFORE we attempt to recover
      */
     {
         ham_cache_t *cache;
@@ -540,6 +528,19 @@ fail_with_fake_cleansing:
             return (HAM_OUT_OF_MEMORY);
         }
         env_set_cache(env, cache);
+    }
+
+    /*
+     * open the logfile and check if we need recovery. first open the 
+     * (physical) log and re-apply it. afterwards to the same with the
+     * (logical) journal.
+     */
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+        st=__recover(env, flags);
+        if (st) {
+            (void)ham_env_close(env, 0);
+            return (st);
+        }
     }
 
     env_set_active(env, HAM_TRUE);
@@ -1370,7 +1371,8 @@ _local_fun_txn_begin(ham_env_t *env, ham_db_t *db,
     if (st==0
             && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)
-        st=journal_append_txn_begin(env_get_journal(env), *txn, db);
+        st=journal_append_txn_begin(env_get_journal(env), *txn, db,
+                    env_get_incremented_lsn(env));
 
     return (st);
 }
@@ -1388,7 +1390,8 @@ _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     if (st==0
             && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)
-        st=journal_append_txn_commit(env_get_journal(env), &copy);
+        st=journal_append_txn_commit(env_get_journal(env), &copy,
+                    env_get_incremented_lsn(env));
 
     return (st);
 }
@@ -1406,7 +1409,8 @@ _local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     if (st==0
             && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
             && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)
-        st=journal_append_txn_abort(env_get_journal(env), &copy);
+        st=journal_append_txn_abort(env_get_journal(env), &copy,
+                    env_get_incremented_lsn(env));
 
     return (st);
 }

@@ -258,7 +258,7 @@ journal_append_entry(journal_t *journal, int fdidx,
 
 ham_status_t
 journal_append_txn_begin(journal_t *journal, struct ham_txn_t *txn,
-                ham_db_t *db)
+                ham_db_t *db, ham_u64_t lsn)
 {
     ham_status_t st;
     journal_entry_t entry={0};
@@ -268,6 +268,7 @@ journal_append_txn_begin(journal_t *journal, struct ham_txn_t *txn,
     journal_entry_set_txn_id(&entry, txn_get_id(txn));
     journal_entry_set_type(&entry, JOURNAL_ENTRY_TYPE_TXN_BEGIN);
     journal_entry_set_dbname(&entry, db_get_dbname(db));
+    journal_entry_set_lsn(&entry, lsn);
 
     /* 
      * determine the journal file which is used for this transaction 
@@ -306,12 +307,6 @@ journal_append_txn_begin(journal_t *journal, struct ham_txn_t *txn,
         txn_set_log_desc(txn, cur);
     }
 
-    /*
-     * Now set the lsn (it might have been modified in __insert_checkpoint())
-     */
-    journal_entry_set_lsn(&entry, journal_get_lsn(journal));
-    journal_increment_lsn(journal);
-
     st=journal_append_entry(journal, cur, &entry, 0, 0);
     if (st)
         return (st);
@@ -326,13 +321,13 @@ journal_append_txn_begin(journal_t *journal, struct ham_txn_t *txn,
 }
 
 ham_status_t
-journal_append_txn_abort(journal_t *journal, struct ham_txn_t *txn)
+journal_append_txn_abort(journal_t *journal, struct ham_txn_t *txn, 
+                    ham_u64_t lsn)
 {
     int idx;
     journal_entry_t entry={0};
 
-    journal_entry_set_lsn(&entry, journal_get_lsn(journal));
-    journal_increment_lsn(journal);
+    journal_entry_set_lsn(&entry, lsn);
     journal_entry_set_txn_id(&entry, txn_get_id(txn));
     journal_entry_set_type(&entry, JOURNAL_ENTRY_TYPE_TXN_ABORT);
 
@@ -349,13 +344,13 @@ journal_append_txn_abort(journal_t *journal, struct ham_txn_t *txn)
 }
 
 ham_status_t
-journal_append_txn_commit(journal_t *journal, struct ham_txn_t *txn)
+journal_append_txn_commit(journal_t *journal, struct ham_txn_t *txn,
+                    ham_u64_t lsn)
 {
     int idx;
     journal_entry_t entry={0};
 
-    journal_entry_set_lsn(&entry, journal_get_lsn(journal));
-    journal_increment_lsn(journal);
+    journal_entry_set_lsn(&entry, lsn);
     journal_entry_set_txn_id(&entry, txn_get_id(txn));
     journal_entry_set_type(&entry, JOURNAL_ENTRY_TYPE_TXN_COMMIT);
 
@@ -372,8 +367,9 @@ journal_append_txn_commit(journal_t *journal, struct ham_txn_t *txn)
 }
 
 ham_status_t
-journal_append_insert(journal_t *journal, ham_txn_t *txn, ham_key_t *key, 
-                ham_record_t *record, ham_u32_t flags)
+journal_append_insert(journal_t *journal, ham_db_t *db, ham_txn_t *txn, 
+                ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
+                ham_u64_t lsn)
 {
     ham_status_t st;
     journal_entry_t entry={0};
@@ -386,8 +382,8 @@ journal_append_insert(journal_t *journal, ham_txn_t *txn, ham_key_t *key,
     if (!ins)
         return (HAM_OUT_OF_MEMORY);
     memset(ins, 0, size); /* TODO required? */
-    journal_entry_set_lsn(&entry, journal_get_lsn(journal));
-    journal_increment_lsn(journal);
+    journal_entry_set_lsn(&entry, lsn);
+    journal_entry_set_dbname(&entry, db_get_dbname(db));
     journal_entry_set_txn_id(&entry, txn_get_id(txn));
     journal_entry_set_type(&entry, JOURNAL_ENTRY_TYPE_INSERT);
     journal_entry_set_followup_size(&entry, size);
@@ -410,8 +406,8 @@ journal_append_insert(journal_t *journal, ham_txn_t *txn, ham_key_t *key,
 }
 
 ham_status_t
-journal_append_erase(journal_t *journal, ham_txn_t *txn, ham_key_t *key,
-                ham_u32_t dupe, ham_u32_t flags)
+journal_append_erase(journal_t *journal, ham_db_t *db, ham_txn_t *txn, 
+                ham_key_t *key, ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn)
 {
     ham_status_t st;
     journal_entry_t entry={0};
@@ -424,8 +420,8 @@ journal_append_erase(journal_t *journal, ham_txn_t *txn, ham_key_t *key,
     if (!aux)
         return (HAM_OUT_OF_MEMORY);
     memset(aux, 0, size); /* TODO required? */
-    journal_entry_set_lsn(&entry, journal_get_lsn(journal));
-    journal_increment_lsn(journal);
+    journal_entry_set_lsn(&entry, lsn);
+    journal_entry_set_dbname(&entry, db_get_dbname(db));
     journal_entry_set_txn_id(&entry, txn_get_id(txn));
     journal_entry_set_type(&entry, JOURNAL_ENTRY_TYPE_INSERT);
     journal_entry_set_followup_size(&entry, size);
@@ -780,6 +776,11 @@ journal_recover(journal_t *journal)
         default:
             ham_log(("invalid journal entry type or journal is corrupt"));
             st=HAM_IO_ERROR;
+        }
+
+        if (aux) {
+            allocator_free(journal_get_allocator(journal), aux);
+            aux=0;
         }
 
         if (st)

@@ -220,33 +220,36 @@ journal_flush(journal_t *journal, int fdidx);
  */
 extern ham_status_t
 journal_append_txn_begin(journal_t *journal, struct ham_txn_t *txn,
-                    ham_db_t *db);
+                    ham_db_t *db, ham_u64_t lsn);
 
 /**
  * Append a journal entry for ham_txn_abort/JOURNAL_ENTRY_TYPE_TXN_ABORT
  */
 extern ham_status_t
-journal_append_txn_abort(journal_t *journal, struct ham_txn_t *txn);
+journal_append_txn_abort(journal_t *journal, struct ham_txn_t *txn, 
+                    ham_u64_t lsn);
 
 /**
  * Append a journal entry for ham_txn_commit/JOURNAL_ENTRY_TYPE_TXN_COMMIT
  */
 extern ham_status_t
-journal_append_txn_commit(journal_t *journal, struct ham_txn_t *txn);
+journal_append_txn_commit(journal_t *journal, struct ham_txn_t *txn,
+                    ham_u64_t lsn);
 
 /**
  * Append a journal entry for ham_insert/JOURNAL_ENTRY_TYPE_INSERT
  */
 extern ham_status_t
-journal_append_insert(journal_t *journal, ham_txn_t *txn, ham_key_t *key, 
-                ham_record_t *record, ham_u32_t flags);
+journal_append_insert(journal_t *journal, ham_db_t *db, ham_txn_t *txn, 
+                ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
+                ham_u64_t lsn);
 
 /**
  * Append a journal entry for ham_erase/JOURNAL_ENTRY_TYPE_ERASE
  */
 extern ham_status_t
-journal_append_erase(journal_t *journal, ham_txn_t *txn, ham_key_t *key,
-                ham_u32_t dupe, ham_u32_t flags);
+journal_append_erase(journal_t *journal, ham_db_t *db, ham_txn_t *txn, 
+                ham_key_t *key, ham_u32_t dupe, ham_u32_t flags, ham_u64_t lsn);
 
 /**
  * Empties the journal, removes all entries

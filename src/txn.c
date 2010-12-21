@@ -165,11 +165,15 @@ txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node,
             }
             memcpy(newrec->data, record->data, record->size);
         }
+        else {
+            newrec->data=0;
+            newrec->size=0;
+        }
     }
 
     /* create and initialize a new txn_op_t structure */
     op=(txn_op_t *)allocator_alloc(alloc, sizeof(*op));
-    if (!op)
+    if (!op) /* TODO free newrec->data, newrec */
         return (0);
     memset(op, 0, sizeof(*op));
     txn_op_set_flags(op, flags);
