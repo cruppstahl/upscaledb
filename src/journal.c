@@ -601,7 +601,7 @@ __recover_get_txn(ham_env_t *env, ham_u32_t txn_id, ham_txn_t **ptxn)
             *ptxn=txn;
             return (0);
         }
-        txn=txn_get_older(txn);
+        txn=txn_get_newer(txn);
     }
 
     *ptxn=0;

@@ -104,6 +104,7 @@ public:
         BFC_REGISTER_TEST(JournalTest, recoverVerifyTxnIdsTest);
         BFC_REGISTER_TEST(JournalTest, recoverCommittedTxnsTest);
         BFC_REGISTER_TEST(JournalTest, recoverAutoAbortTxnsTest);
+        BFC_REGISTER_TEST(JournalTest, recoverSkipAlreadyFlushedTest);
     }
 
 protected:
@@ -341,7 +342,7 @@ public:
         BFC_ASSERT_EQUAL((ham_size_t)0, journal_get_closed_txn(log, 1));
 
         BFC_ASSERT_EQUAL(0, journal_append_txn_abort(log, txn, 
-			env_get_incremented_lsn(m_env)));
+            env_get_incremented_lsn(m_env)));
         BFC_ASSERT_EQUAL(0, journal_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(0, isempty);
         BFC_ASSERT_EQUAL((ham_u64_t)3, journal_get_lsn(log));
@@ -371,7 +372,7 @@ public:
         BFC_ASSERT_EQUAL((ham_size_t)0, journal_get_closed_txn(log, 1));
 
         BFC_ASSERT_EQUAL(0, journal_append_txn_commit(log, txn,
-			env_get_incremented_lsn(m_env)));
+            env_get_incremented_lsn(m_env)));
         BFC_ASSERT_EQUAL(0, journal_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(0, isempty);
         BFC_ASSERT_EQUAL((ham_u64_t)3, journal_get_lsn(log));
@@ -445,7 +446,7 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                     journal_append_erase(log, m_db, txn, &key, 1, 0,
-				env_get_incremented_lsn(m_env)));
+                env_get_incremented_lsn(m_env)));
         BFC_ASSERT_EQUAL((ham_u64_t)3, journal_get_lsn(log));
         BFC_ASSERT_EQUAL(0, journal_close(log, HAM_TRUE));
 
@@ -709,6 +710,16 @@ public:
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
+    void verifyJournalIsEmpty(void)
+    {
+        ham_offset_t size;
+        journal_t *j=env_get_journal(m_env);
+        BFC_ASSERT_EQUAL(0, os_get_filesize(journal_get_fd(j, 0), &size));
+        BFC_ASSERT_EQUAL(sizeof(journal_header_t), size);
+        BFC_ASSERT_EQUAL(0, os_get_filesize(journal_get_fd(j, 1), &size));
+        BFC_ASSERT_EQUAL(sizeof(journal_header_t), size);
+    }
+
     void recoverVerifyTxnIdsTest(void)
     {
         ham_txn_t *txn;
@@ -734,6 +745,9 @@ public:
                 ham_open(m_db, BFC_OPATH(".test"), 
                         HAM_ENABLE_TRANSACTIONS|HAM_AUTO_RECOVERY));
         m_env=db_get_env(m_db);
+
+        /* verify that the journal is empty */
+        verifyJournalIsEmpty();
 
         /* verify the lsn */
         BFC_ASSERT_EQUAL(11ull, journal_get_lsn(env_get_journal(m_env)));
@@ -786,6 +800,9 @@ public:
                         HAM_ENABLE_TRANSACTIONS|HAM_AUTO_RECOVERY));
         m_env=db_get_env(m_db);
 
+        /* verify that the journal is empty */
+        verifyJournalIsEmpty();
+
         /* now verify that the committed transactions were re-played from
          * the journal */
         for (int i=0; i<5; i++) {
@@ -823,9 +840,8 @@ public:
                     BFC_OPATH(".test.bak0")));
         BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.jrn1"), 
                     BFC_OPATH(".test.bak1")));
-        for (int i=0; i<5; i++) {
+        for (int i=0; i<5; i++)
             BFC_ASSERT_EQUAL(0, ham_txn_commit(txn[i], 0));
-        }
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
         BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.bak0"), 
                     BFC_OPATH(".test.jrn0")));
@@ -838,10 +854,22 @@ public:
         BFC_ASSERT(log!=0);
         compareJournal(log, vec);
         BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+        /* by re-creating the database we make sure that it's definitely
+         * empty */
+        BFC_ASSERT_EQUAL(0, ham_create(m_db, BFC_OPATH(".test"), 0, 0644));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        /* now open and recover */
+        BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.bak0"), 
+                    BFC_OPATH(".test.jrn0")));
+        BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.bak1"), 
+                    BFC_OPATH(".test.jrn1")));
         BFC_ASSERT_EQUAL(0, 
                 ham_open(m_db, BFC_OPATH(".test"), 
                         HAM_ENABLE_TRANSACTIONS|HAM_AUTO_RECOVERY));
         m_env=db_get_env(m_db);
+
+        /* verify that the journal is empty */
+        verifyJournalIsEmpty();
 
         /* now verify that the transactions were actually aborted */
         for (int i=0; i<5; i++) {
@@ -849,6 +877,77 @@ public:
             key.size=sizeof(i);
             BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                         ham_find(m_db, 0, &key, &rec, 0));
+        }
+    }
+
+    void recoverSkipAlreadyFlushedTest(void)
+    {
+        ham_txn_t *txn[2];
+        std::vector<LogEntry> vec;
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        journal_t *log;
+        ham_u64_t lsn=2;
+
+        /* create two transactions which insert a key, but only flush the
+         * first; instead, manually append the "commit" of the second
+         * transaction to the journal (but not to the database!) */
+        for (int i=0; i<2; i++) {
+            BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn[i], m_db, 0));
+            vec.push_back(LogEntry(lsn++, txn_get_id(txn[i]), 
+                        JOURNAL_ENTRY_TYPE_TXN_BEGIN, 0xf000));
+            key.data=&i;
+            key.size=sizeof(i);
+            BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn[i], &key, &rec, 0));
+            vec.push_back(LogEntry(lsn++, txn_get_id(txn[i]), 
+                        JOURNAL_ENTRY_TYPE_INSERT, 0xf000));
+            vec.push_back(LogEntry(lsn++, txn_get_id(txn[i]), 
+                        JOURNAL_ENTRY_TYPE_TXN_COMMIT, 0));
+            if (i==0)
+                BFC_ASSERT_EQUAL(0, ham_txn_commit(txn[i], 0));
+            else
+                BFC_ASSERT_EQUAL(0, 
+                    journal_append_txn_commit(env_get_journal(m_env), txn[i],
+                            lsn-1));
+        }
+
+        /* backup the journal files; then re-create the Environment from the 
+         * journal */
+        BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.jrn0"), 
+                    BFC_OPATH(".test.bak0")));
+        BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.jrn1"), 
+                    BFC_OPATH(".test.bak1")));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn[1], 0));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+        BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.bak0"), 
+                    BFC_OPATH(".test.jrn0")));
+        BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.bak1"), 
+                    BFC_OPATH(".test.jrn1")));
+        BFC_ASSERT_EQUAL(0, ham_open(m_db, BFC_OPATH(".test"), 0));
+        m_env=db_get_env(m_db);
+        BFC_ASSERT_EQUAL(0, journal_open(m_env, 0, &log));
+        env_set_journal(m_env, log);
+        BFC_ASSERT(log!=0);
+        compareJournal(log, vec);
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+        /* now open and recover */
+        BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.bak0"), 
+                    BFC_OPATH(".test.jrn0")));
+        BFC_ASSERT_EQUAL(true, os::copy(BFC_OPATH(".test.bak1"), 
+                    BFC_OPATH(".test.jrn1")));
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(m_db, BFC_OPATH(".test"), 
+                        HAM_ENABLE_TRANSACTIONS|HAM_AUTO_RECOVERY));
+        m_env=db_get_env(m_db);
+
+        /* verify that the journal is empty */
+        verifyJournalIsEmpty();
+
+        /* now verify that the transactions were both committed */
+        for (int i=0; i<2; i++) {
+            key.data=&i;
+            key.size=sizeof(i);
+            BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
         }
     }
 

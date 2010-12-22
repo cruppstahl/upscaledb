@@ -347,7 +347,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
     x review ham_cursor_overwrite - is it idempotent on a low level, even 
         with very large blobs? -> ok
 
-    o implement the recovery
+    x implement the recovery
         x if the log is not empty: re-apply it (it is idempotent), then
             clear it (but get the lsn from its header)
             x implement
@@ -365,14 +365,14 @@ o logging: currently, logging for txn_begin and txn_commit/abort
                 x always test lsn after recovering from the logfile
         x we need a way to reliably test the journal; create a new undocumented
             flag which disables log file flushing
-        o JournalHighLevelTests work like this:
+        x JournalHighLevelTests work like this:
             1. just write the operations as usual
             2. close with DONT_CLOSE_LOG
             3. iterate over journal and compare with real values
             4. re-create the db/env and recover with journal
             5. verify that the file is correct
-            o need unittests
-        o then re-apply the journal, continuing from the entry with this lsn
+            x need unittests
+        x then re-apply the journal, continuing from the entry with this lsn
             x make sure that the txn Id is persisted in the log and
                 then re-assigned to the new transaction
                 x implement
@@ -388,14 +388,16 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             x re-apply all committed (but not fully flushed) transactions
                 x implement
                 x need unittests
-            o auto-aborts all non-committed transactions (same behavior 
+            x auto-aborts all non-committed transactions (same behavior 
                     as now)
                 x implement
-                o need unittests
-===> JournalTest::recoverAutoAbortTxnsTest fails
-        o then clear the journal
+                x need unittests
+            x skip all journal entries that were already flushed
+                x implement
+                x need unittests
+        x then clear the journal
             x implement
-            o need unittests
+            x need unittests
 
     o unittests
         o ham_txn_begin
