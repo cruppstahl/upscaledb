@@ -1835,6 +1835,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
     txn_opnode_t *node;
     txn_op_t *op;
     ham_bool_t node_created=HAM_FALSE;
+    ham_u64_t lsn=0;
 
     /* get (or create) the txn-tree for this database; we do not need
      * the returned value, but we call the function to trigger the 
@@ -1866,6 +1867,14 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
         return (st);
     }
 
+    /* get the next lsn */
+    st=env_get_incremented_lsn(db_get_env(db), &lsn);
+    if (st) {
+        if (node_created)
+            txn_opnode_free(db_get_env(db), node);
+        return (st);
+    }
+
     /* append a new operation to this node */
     op=txn_opnode_append(txn, node, 
                     (flags&HAM_DUPLICATE) 
@@ -1873,7 +1882,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
                         : (flags&HAM_OVERWRITE)
                             ? TXN_OP_INSERT_OW
                             : TXN_OP_INSERT, 
-                    env_get_incremented_lsn(db_get_env(db)), record);
+                    lsn, record);
     if (!op)
         return (HAM_OUT_OF_MEMORY);
 
@@ -1897,6 +1906,7 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn,
     txn_opnode_t *node;
     txn_op_t *op;
     ham_bool_t node_created=HAM_FALSE;
+    ham_u64_t lsn=0;
 
     /* get (or create) the txn-tree for this database; we do not need
      * the returned value, but we call the function to trigger the 
@@ -1922,9 +1932,16 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn,
         return (st);
     }
 
+    /* get the next lsn */
+    st=env_get_incremented_lsn(db_get_env(db), &lsn);
+    if (st) {
+        if (node_created)
+            txn_opnode_free(db_get_env(db), node);
+        return (st);
+    }
+
     /* append a new operation to this node */
-    op=txn_opnode_append(txn, node, TXN_OP_ERASE,
-                    env_get_incremented_lsn(db_get_env(db)), 0);
+    op=txn_opnode_append(txn, node, TXN_OP_ERASE, lsn, 0);
     if (!op)
         return (HAM_OUT_OF_MEMORY);
 
@@ -2127,9 +2144,13 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
     if (local_txn)
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (changeset_flush(env_get_changeset(env), 
-                        env_get_incremented_lsn(env)));
+            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)) {
+        ham_u64_t lsn;
+        st=env_get_incremented_lsn(db_get_env(db), &lsn);
+        if (st)
+            return (st);
+        return (changeset_flush(env_get_changeset(env), lsn));
+    }
     else
         return (st);
 }
@@ -2201,9 +2222,13 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     if (local_txn)
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (changeset_flush(env_get_changeset(env), 
-                        env_get_incremented_lsn(env)));
+            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)) {
+        ham_u64_t lsn;
+        st=env_get_incremented_lsn(db_get_env(db), &lsn);
+        if (st)
+            return (st);
+        return (changeset_flush(env_get_changeset(env), lsn));
+    }
     else
         return (st);
 }
@@ -2288,9 +2313,13 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     if (local_txn)
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
-        return (changeset_flush(env_get_changeset(env), 
-                        env_get_incremented_lsn(env)));
+            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)) {
+        ham_u64_t lsn;
+        st=env_get_incremented_lsn(db_get_env(db), &lsn);
+        if (st)
+            return (st);
+        return (changeset_flush(env_get_changeset(env), lsn));
+    }
     else
         return (st);
 }

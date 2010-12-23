@@ -673,10 +673,12 @@ _local_fun_erase_db(ham_env_t *env, ham_u16_t name, ham_u32_t flags)
 
     /* if logging is enabled: flush the changeset and the header page */
     if (st==0 && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+        ham_u64_t lsn;
         changeset_add_page(env_get_changeset(env), 
                 env_get_header_page(env));
-        st=changeset_flush(env_get_changeset(env), 
-                env_get_incremented_lsn(env));
+        st=env_get_incremented_lsn(env, &lsn);
+        if (st==0)
+            st=changeset_flush(env_get_changeset(env), lsn);
     }
 
     /* clean up and return */
@@ -1141,10 +1143,12 @@ _local_fun_create_db(ham_env_t *env, ham_db_t *db,
 bail:
     /* if logging is enabled: flush the changeset and the header page */
     if (st==0 && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+        ham_u64_t lsn;
         changeset_add_page(env_get_changeset(env), 
                 env_get_header_page(env));
-        st=changeset_flush(env_get_changeset(env), 
-                env_get_incremented_lsn(env));
+        st=env_get_incremented_lsn(env, &lsn);
+        if (st==0)
+            st=changeset_flush(env_get_changeset(env), lsn);
     }
 
     return (st);
@@ -1370,9 +1374,12 @@ _local_fun_txn_begin(ham_env_t *env, ham_db_t *db,
     /* append journal entry */
     if (st==0
             && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
-            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)
-        st=journal_append_txn_begin(env_get_journal(env), *txn, db,
-                    env_get_incremented_lsn(env));
+            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS) {
+        ham_u64_t lsn;
+        st=env_get_incremented_lsn(env, &lsn);
+        if (st==0)
+            st=journal_append_txn_begin(env_get_journal(env), *txn, db, lsn);
+    }
 
     return (st);
 }
@@ -1389,9 +1396,12 @@ _local_fun_txn_commit(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     /* append journal entry */
     if (st==0
             && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
-            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)
-        st=journal_append_txn_commit(env_get_journal(env), &copy,
-                    env_get_incremented_lsn(env));
+            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS) {
+        ham_u64_t lsn;
+        st=env_get_incremented_lsn(env, &lsn);
+        if (st==0)
+            st=journal_append_txn_commit(env_get_journal(env), &copy, lsn);
+    }
 
     return (st);
 }
@@ -1408,9 +1418,12 @@ _local_fun_txn_abort(ham_env_t *env, ham_txn_t *txn, ham_u32_t flags)
     /* append journal entry */
     if (st==0
             && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
-            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)
-        st=journal_append_txn_abort(env_get_journal(env), &copy,
-                    env_get_incremented_lsn(env));
+            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS) {
+        ham_u64_t lsn;
+        st=env_get_incremented_lsn(env, &lsn);
+        if (st==0)
+            st=journal_append_txn_abort(env_get_journal(env), &copy, lsn);
+    }
 
     return (st);
 }
@@ -1592,15 +1605,21 @@ env_flush_committed_txns(ham_env_t *env)
     return (0);
 }
 
-ham_u64_t
-env_get_incremented_lsn(ham_env_t *env) 
+ham_status_t
+env_get_incremented_lsn(ham_env_t *env, ham_u64_t *lsn) 
 {
     journal_t *j=env_get_journal(env);
-    if (j)
-        return (journal_increment_lsn(j));
+    if (j) {
+        if (journal_get_lsn(j)==0xffffffffffffffffull) {
+            ham_log(("journal limits reached (lsn overflow) - please reorg"));
+            return (HAM_LIMITS_REACHED);
+        }
+        *lsn=journal_increment_lsn(j);
+        return (0);
+    }
     else {
         ham_assert(!"need lsn but have no journal!", (""));
-        return (1); /* TODO */
+        return (HAM_INTERNAL_ERROR);
     }
 }
 

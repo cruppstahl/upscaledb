@@ -399,26 +399,24 @@ o logging: currently, logging for txn_begin and txn_commit/abort
             x implement
             x need unittests
 
-    o unittests
-        o ham_txn_begin
-        o ham_txn_commit
-        o ham_txn_abort
-        o ham_insert
-        o ham_cursor_insert
-        o ham_erase (delete ALL duplicates!)
-        o ham_cursor_erase (duplicate handling!)
-        o recovery w/ empty log, full journal
-        o recovery w/ full log, full journal
-        o recovery w/ full log, full journal (and skip journal entries
-            at the beginning)
-        o recovery w/ ham_env_create_db
-        o check journal for EVERY operation that is logged
-        o recovery with several aborted operations
-        o recovery with several committed operations
-
-    o if lsn overflows: return error HAM_LIMITS_REACHED (this will require a 
+    x if lsn overflows: return error HAM_LIMITS_REACHED (this will require a 
         reorg)
-        o needs unittest
+        x needs unittest
+
+    o unittests
+        x ham_txn_begin
+        x ham_txn_commit
+        x ham_txn_abort
+        o ham_insert
+        o ham_erase (delete ALL duplicates!)
+        x recovery w/ empty log, full journal
+        x recovery w/ full log, full journal
+        x recovery w/ full log, full journal (and skip journal entries
+            at the beginning)
+        x recovery w/ ham_env_create_db
+        x check journal for EVERY operation that is logged
+        x recovery with several aborted operations
+        x recovery with several committed operations
 
 o implement partial reads through transaction tree - will have to 
     consolidate them
@@ -441,7 +439,13 @@ o support cursors!!!
     o move next: use the cursor which is closer to the current one
     o when flushing a transaction, and a cursor is pointing into the txn
         node: uncouple the cursor! (or delete it?)
-    o db.c: do we need local_txn in the cursor functions?
+    o db.c: do we need local_txn in the cursor functions? currently there's
+        only one temp. cursor that is created over the whole lifetime
+        of the cursor; this is way too risky. revert original behavior.
+    o add support for logging/recovery
+        o ham_cursor_insert
+        o ham_cursor_erase (duplicate handling!)
+        o ham_cursor_overwrite
 
 o we currently have two modes regarding recovery:
     - HAM_ENABLE_TRANSACTIONS (implies HAM_ENABLE_RECOVERY)

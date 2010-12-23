@@ -653,12 +653,13 @@ extern ham_status_t
 env_flush_committed_txns(ham_env_t *env);
 
 /*
- * increments the lsn and returns the incremended value
+ * increments the lsn and returns the incremended value; if the lsn
+ * overflows, HAM_LIMITS_REACHED is returned
  *
  * only works if a journal is created! Otherwise assert(0)
  */
-extern ham_u64_t
-env_get_incremented_lsn(ham_env_t *env);
+extern ham_status_t
+env_get_incremented_lsn(ham_env_t *env, ham_u64_t *lsn);
 
 
 #ifdef __cplusplus

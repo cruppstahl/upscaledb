@@ -105,6 +105,7 @@ public:
         BFC_REGISTER_TEST(JournalTest, recoverCommittedTxnsTest);
         BFC_REGISTER_TEST(JournalTest, recoverAutoAbortTxnsTest);
         BFC_REGISTER_TEST(JournalTest, recoverSkipAlreadyFlushedTest);
+        BFC_REGISTER_TEST(JournalTest, lsnOverflowTest);
     }
 
 protected:
@@ -341,8 +342,9 @@ public:
         BFC_ASSERT_EQUAL((ham_size_t)0, journal_get_open_txn(log, 1));
         BFC_ASSERT_EQUAL((ham_size_t)0, journal_get_closed_txn(log, 1));
 
-        BFC_ASSERT_EQUAL(0, journal_append_txn_abort(log, txn, 
-            env_get_incremented_lsn(m_env)));
+        ham_u64_t lsn;
+        BFC_ASSERT_EQUAL(0, env_get_incremented_lsn(m_env, &lsn));
+        BFC_ASSERT_EQUAL(0, journal_append_txn_abort(log, txn, lsn));
         BFC_ASSERT_EQUAL(0, journal_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(0, isempty);
         BFC_ASSERT_EQUAL((ham_u64_t)3, journal_get_lsn(log));
@@ -371,8 +373,9 @@ public:
         BFC_ASSERT_EQUAL((ham_size_t)0, journal_get_open_txn(log, 1));
         BFC_ASSERT_EQUAL((ham_size_t)0, journal_get_closed_txn(log, 1));
 
-        BFC_ASSERT_EQUAL(0, journal_append_txn_commit(log, txn,
-            env_get_incremented_lsn(m_env)));
+        ham_u64_t lsn;
+        BFC_ASSERT_EQUAL(0, env_get_incremented_lsn(m_env, &lsn));
+        BFC_ASSERT_EQUAL(0, journal_append_txn_commit(log, txn, lsn));
         BFC_ASSERT_EQUAL(0, journal_is_empty(log, &isempty));
         BFC_ASSERT_EQUAL(0, isempty);
         BFC_ASSERT_EQUAL((ham_u64_t)3, journal_get_lsn(log));
@@ -396,9 +399,11 @@ public:
         rec.size=5;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
+        ham_u64_t lsn;
+        BFC_ASSERT_EQUAL(0, env_get_incremented_lsn(m_env, &lsn));
         BFC_ASSERT_EQUAL(0, 
                     journal_append_insert(log, m_db, txn, &key, &rec, 
-                                HAM_OVERWRITE, env_get_incremented_lsn(m_env)));
+                                HAM_OVERWRITE, lsn));
         BFC_ASSERT_EQUAL((ham_u64_t)3, journal_get_lsn(log));
         BFC_ASSERT_EQUAL(0, journal_close(log, HAM_TRUE));
 
@@ -444,9 +449,10 @@ public:
         key.size=5;
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
 
+        ham_u64_t lsn;
+        BFC_ASSERT_EQUAL(0, env_get_incremented_lsn(m_env, &lsn));
         BFC_ASSERT_EQUAL(0, 
-                    journal_append_erase(log, m_db, txn, &key, 1, 0,
-                env_get_incremented_lsn(m_env)));
+                    journal_append_erase(log, m_db, txn, &key, 1, 0, lsn));
         BFC_ASSERT_EQUAL((ham_u64_t)3, journal_get_lsn(log));
         BFC_ASSERT_EQUAL(0, journal_close(log, HAM_TRUE));
 
@@ -523,8 +529,9 @@ public:
         journal_t *log = disconnect_and_create_new_journal();
         BFC_ASSERT_EQUAL(1ull, journal_get_lsn(log));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, journal_append_txn_begin(log, txn, m_db,
-                           env_get_incremented_lsn(m_env)));
+        ham_u64_t lsn;
+        BFC_ASSERT_EQUAL(0, env_get_incremented_lsn(m_env, &lsn));
+        BFC_ASSERT_EQUAL(0, journal_append_txn_begin(log, txn, m_db, lsn));
         BFC_ASSERT_EQUAL(0, journal_close(log, HAM_TRUE));
 
         BFC_ASSERT_EQUAL(0, 
@@ -949,6 +956,21 @@ public:
             key.size=sizeof(i);
             BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
         }
+    }
+
+    void lsnOverflowTest(void)
+    {
+        journal_t *log=env_get_journal(m_env);
+        journal_set_lsn(log, 0xffffffffffffffffull-1);
+        ham_txn_t *txn;
+
+        /* this one must work */
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        /* this one must fail */
+        BFC_ASSERT_EQUAL(HAM_LIMITS_REACHED, ham_txn_commit(txn, 0));
+
+        /* and now it has to work again */
+        journal_set_lsn(log, 3);
     }
 
 };
