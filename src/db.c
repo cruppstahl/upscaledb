@@ -38,6 +38,7 @@
 
 
 #define PURGE_THRESHOLD  (500 * 1024 * 1024) /* 500 mb */
+#define DUMMY_LSN         1
 
 typedef struct
 {
@@ -2144,13 +2145,8 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
     if (local_txn)
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)) {
-        ham_u64_t lsn;
-        st=env_get_incremented_lsn(db_get_env(db), &lsn);
-        if (st)
-            return (st);
-        return (changeset_flush(env_get_changeset(env), lsn));
-    }
+            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
+        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
     else
         return (st);
 }
@@ -2222,13 +2218,8 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     if (local_txn)
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)) {
-        ham_u64_t lsn;
-        st=env_get_incremented_lsn(db_get_env(db), &lsn);
-        if (st)
-            return (st);
-        return (changeset_flush(env_get_changeset(env), lsn));
-    }
+            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
+        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
     else
         return (st);
 }
@@ -2313,13 +2304,8 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     if (local_txn)
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
-            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)) {
-        ham_u64_t lsn;
-        st=env_get_incremented_lsn(db_get_env(db), &lsn);
-        if (st)
-            return (st);
-        return (changeset_flush(env_get_changeset(env), lsn));
-    }
+            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
+        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
     else
         return (st);
 }

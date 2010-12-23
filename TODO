@@ -420,17 +420,22 @@ o logging: currently, logging for txn_begin and txn_commit/abort
 
 o implement partial reads through transaction tree - will have to 
     consolidate them
-    o check if partial r/w works if the record size is <= 8
-
-o implement approx. matching through transaction tree - will have to 
-    consolidate rb-tree and btree to look for the "closest" key
-    can we postpone this to the next release?
+    o check if partial r/w works if the record size is <= 8; if not, then
+        disable them
+        o unittests
+        o add to changelog!
+    o implement in chronologically reverse order - first read from btree,
+        then check the transaction trees from oldest backwards
+    o try not to have too much duplicate code with the other 3 functions
+        (insert, erase, find)
+    o add unittests
+    o verify (unittest) that the logging works
 
 o implement direct access - how, if the transaction tree is flushed??
     (but in-memory access w/ transactions is anyway not yet supported -
     write unittest to assert that it doesn't work)
     later: return error if DIRECT_ACCESS && IN_MEMORY && ENABLE_TXN
-    can we postpone this to the next release?
+    postpone this to the next release
 
 o support cursors!!!
     o separate cursor logic into btree and txn; in db.c, consolidate the
@@ -449,6 +454,10 @@ o support cursors!!!
         o ham_cursor_erase (duplicate handling!)
         o ham_cursor_overwrite
 
+o implement approx. matching through transaction tree - will have to 
+    consolidate rb-tree and btree to look for the "closest" key
+    can we postpone this to the next release?
+
 o we currently have two modes regarding recovery:
     - HAM_ENABLE_TRANSACTIONS (implies HAM_ENABLE_RECOVERY)
     - HAM_ENABLE_RECOVERY
@@ -457,6 +466,13 @@ o we currently have two modes regarding recovery:
 o check all TODOs in the sources
 
 o run monster tests
+
+o port to Win32
+
+o port to WinCE
+
+o do some performance tests of old vs new implementations, including 
+    transactions
 
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
 

@@ -275,27 +275,29 @@ __recover(ham_env_t *env, ham_u32_t flags)
         }
     }
 
-    /* open the journal */
-    st=journal_open(env, 0, &journal);
-    env_set_journal(env, journal);
-    if (st && st!=HAM_FILE_NOT_FOUND)
-        goto bail;
-    /* success - check if we need recovery */
-    else if (!st) {
-        ham_bool_t isempty;
-        st=journal_is_empty(journal, &isempty);
-        if (st)
+    /* open the journal - but only if transactions are enabled */
+    if (env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS) {
+        st=journal_open(env, 0, &journal);
+        env_set_journal(env, journal);
+        if (st && st!=HAM_FILE_NOT_FOUND)
             goto bail;
-
-        if (!isempty) {
-            if (flags&HAM_AUTO_RECOVERY) {
-                st=journal_recover(journal);
-                if (st)
-                    goto bail;
-            }
-            else {
-                st=HAM_NEED_RECOVERY;
+        /* success - check if we need recovery */
+        else if (!st) {
+            ham_bool_t isempty;
+            st=journal_is_empty(journal, &isempty);
+            if (st)
                 goto bail;
+    
+            if (!isempty) {
+                if (flags&HAM_AUTO_RECOVERY) {
+                    st=journal_recover(journal);
+                    if (st)
+                        goto bail;
+                }
+                else {
+                    st=HAM_NEED_RECOVERY;
+                    goto bail;
+                }
             }
         }
     }
@@ -322,12 +324,14 @@ success:
     }
     env_set_log(env, log);
 
-    if (!journal) {
-        st=journal_create(env, 0644, 0, &journal);
-        if (st)
-            return (st);
+    if (env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS) {
+        if (!journal) {
+            st=journal_create(env, 0644, 0, &journal);
+            if (st)
+                return (st);
+        }
+    	env_set_journal(env, journal);
     }
-    env_set_journal(env, journal);
 
     return (0);
 }
@@ -1601,6 +1605,10 @@ env_flush_committed_txns(ham_env_t *env)
         /* and free the whole memory */
         txn_free(oldest);
     }
+
+    /* clear the changeset; if the loop above was not entered or the 
+     * transaction was empty then it may still contain pages */
+    changeset_clear(env_get_changeset(env));
 
     return (0);
 }

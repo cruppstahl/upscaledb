@@ -191,18 +191,18 @@ public:
             page[i]=page_new(m_env);
             memset(&pers[i], 0, sizeof(pers[i]));
             page_set_npers_flags(page[i], PAGE_NPERS_NO_HEADER);
-            page_set_self(page[i], i*1024);
+            page_set_self(page[i], (i+1)*1024);
             page_set_pers(page[i], &pers[i]);
             BFC_ASSERT(cache_put_page(cache, page[i])==HAM_SUCCESS);
         }
         for (int i=0; i<20; i++) {
-            BFC_ASSERT(cache_get_page(cache, i*1024, 0)==page[i]);
+            BFC_ASSERT(cache_get_page(cache, (i+1)*1024, 0)==page[i]);
         }
         for (int i=0; i<20; i++) {
             BFC_ASSERT(cache_remove_page(cache, page[i])==0);
         }
         for (int i=0; i<20; i++) {
-            BFC_ASSERT(cache_get_page(cache, i*1024, 0)==0);
+            BFC_ASSERT(cache_get_page(cache, (i+1)*1024, 0)==0);
             page_set_pers(page[i], 0);
             page_delete(page[i]);
         }
@@ -228,7 +228,7 @@ public:
         for (unsigned int i=0; i<15; i++) {
             ham_page_t *p=page_new(m_env);
             page_set_npers_flags(p, PAGE_NPERS_NO_HEADER);
-            page_set_self(p, i*1024);
+            page_set_self(p, (i+1)*1024);
             page_set_pers(p, &pers);
             v.push_back(p);
             BFC_ASSERT(cache_put_page(cache, p)==0);
@@ -238,7 +238,7 @@ public:
         for (unsigned int i=0; i<5; i++) {
             ham_page_t *p=page_new(m_env);
             page_set_npers_flags(p, PAGE_NPERS_NO_HEADER);
-            page_set_self(p, i*1024);
+            page_set_self(p, (i+1)*1024);
             page_set_pers(p, &pers);
             v.push_back(p);
             BFC_ASSERT(cache_put_page(cache, p)==0);

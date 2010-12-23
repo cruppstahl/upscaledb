@@ -1669,6 +1669,7 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     st=env_flush_committed_txns(env);
     if (st)
         return (st);
+    ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
 
     /*
      * when all transactions have been properly closed... 
