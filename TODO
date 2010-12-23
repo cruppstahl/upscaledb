@@ -403,12 +403,12 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         reorg)
         x needs unittest
 
-    o unittests
+    x unittests
         x ham_txn_begin
         x ham_txn_commit
         x ham_txn_abort
-        o ham_insert
-        o ham_erase (delete ALL duplicates!)
+        x ham_insert
+        x ham_erase (delete ALL duplicates!)
         x recovery w/ empty log, full journal
         x recovery w/ full log, full journal
         x recovery w/ full log, full journal (and skip journal entries
@@ -424,11 +424,13 @@ o implement partial reads through transaction tree - will have to
 
 o implement approx. matching through transaction tree - will have to 
     consolidate rb-tree and btree to look for the "closest" key
+    can we postpone this to the next release?
 
 o implement direct access - how, if the transaction tree is flushed??
     (but in-memory access w/ transactions is anyway not yet supported -
     write unittest to assert that it doesn't work)
     later: return error if DIRECT_ACCESS && IN_MEMORY && ENABLE_TXN
+    can we postpone this to the next release?
 
 o support cursors!!!
     o separate cursor logic into btree and txn; in db.c, consolidate the

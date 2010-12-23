@@ -423,7 +423,7 @@ journal_append_erase(journal_t *journal, ham_db_t *db, ham_txn_t *txn,
     journal_entry_set_lsn(&entry, lsn);
     journal_entry_set_dbname(&entry, db_get_dbname(db));
     journal_entry_set_txn_id(&entry, txn_get_id(txn));
-    journal_entry_set_type(&entry, JOURNAL_ENTRY_TYPE_INSERT);
+    journal_entry_set_type(&entry, JOURNAL_ENTRY_TYPE_ERASE);
     journal_entry_set_followup_size(&entry, size);
     journal_entry_erase_set_key_size(aux, key->size);
     journal_entry_erase_set_flags(aux, flags);
@@ -658,11 +658,25 @@ journal_recover(journal_t *journal)
     /* recovering the journal is rather simple - we iterate over the 
      * files and re-issue every operation (incl. txn_begin and txn_abort).
      *
-     * we start with the lsn described in the logfile - all previous
-     * operations will be ignored because they were already flushed to disk.
+     * in the past this routine just skipped all journal entries that were
+     * already flushed to disk (i.e. everything with a lsn <= start_lsn
+     * was ignored). However, if we also skip the txn_begin entries, then
+     * some scenarios will fail:
+     * 
+     *  --- time -------------------------->
+     *  BEGIN,    INSERT,    COMMIT
+     *  flush(1), flush(2), ^crash  
+     *
+     * if the application crashes BEFORE the commit is flushed, then the 
+     * start_lsn will be 2, and the txn_begin will be skipped. During recovery
+     * we'd then end up in a situation where we want to commit a transaction
+     * which was not created. Therefore start_lsn is ignored for txn_begin/
+     * txn_commit/txn_abort, and only checked for insert/erase.
      *
      * when we're done, we auto-abort all transactions that were not yet
-     * committed.
+     * committed. in one of the next releases the user can choose if he wants
+     * to continue working with those transactions, and i will provide an
+     * API to enumerate them.
      */
 
     /* make sure that there are no pending transactions - we start with 
@@ -688,10 +702,6 @@ journal_recover(journal_t *journal)
         /* reached end of logfile? */
         if (!journal_entry_get_lsn(&entry))
             break;
-
-        /* skip entries past start_lsn */
-        if (journal_entry_get_lsn(&entry)<=start_lsn)
-            continue;
 
         /* re-apply this operation */
         switch (journal_entry_get_type(&entry)) {
@@ -735,6 +745,11 @@ journal_recover(journal_t *journal)
                 st=HAM_IO_ERROR;
                 goto bail;
             }
+
+            /* do not insert if the key was already flushed to disk */
+            if (journal_entry_get_lsn(&entry)<=start_lsn)
+                continue;
+
             key.data=journal_entry_insert_get_key_data(ins);
             key.size=journal_entry_insert_get_key_size(ins);
             record.data=journal_entry_insert_get_record_data(ins);
@@ -762,6 +777,11 @@ journal_recover(journal_t *journal)
                 st=HAM_IO_ERROR;
                 goto bail;
             }
+
+            /* do not erase if the key was already erased from disk */
+            if (journal_entry_get_lsn(&entry)<=start_lsn)
+                continue;
+
             st=__recover_get_txn(env, journal_entry_get_txn_id(&entry), &txn);
             if (st)
                 break;
