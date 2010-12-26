@@ -1,3 +1,10 @@
+Dec 26, 2010 - chris
+o when using HAM_PARTIAL and the record->size is <= 8 then error 
+    HAM_INV_PARAMETER is returned. In previous versions, this combination
+    returned false results. Reason is because hamsterdb uses a compressed,
+    efficient storage for such records, and they do not support partial
+    access.
+
 Sep 15, 2010 - chris ---------------------------------------------------
                       release of hamsterdb-1.1.6
 

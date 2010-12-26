@@ -420,10 +420,12 @@ o logging: currently, logging for txn_begin and txn_commit/abort
 
 o implement partial reads through transaction tree - will have to 
     consolidate them
-    o check if partial r/w works if the record size is <= 8; if not, then
+    x check if partial r/w works if the record size is <= 8; if not, then
         disable them
-        o unittests
-        o add to changelog!
+        x unittests
+        x add to documentation
+        x add to changelog!
+        x add to wiki
     o implement in chronologically reverse order - first read from btree,
         then check the transaction trees from oldest backwards
     o try not to have too much duplicate code with the other 3 functions
@@ -473,6 +475,8 @@ o port to WinCE
 
 o do some performance tests of old vs new implementations, including 
     transactions
+
+o update documentation in header file + Wiki!
 
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
 

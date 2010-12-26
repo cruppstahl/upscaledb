@@ -2483,6 +2483,11 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
                     "In-Memory Databases"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+    if ((flags&HAM_PARTIAL) && (record->size<=sizeof(ham_offset_t))) {
+        ham_trace(("flag HAM_PARTIAL is not allowed if record->size "
+                    "<= 8"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
 
     /* record number: make sure that we have a valid key structure */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
@@ -2567,6 +2572,11 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
                     "are sorted"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+    if ((flags&HAM_PARTIAL) && (record->size<=sizeof(ham_offset_t))) {
+        ham_trace(("flag HAM_PARTIAL is not allowed if record->size "
+                    "<= 8"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
     if ((flags&HAM_DUPLICATE) && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)) {
         ham_trace(("database does not support duplicate keys "
                     "(see HAM_ENABLE_DUPLICATES)"));
@@ -2584,6 +2594,11 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
             && (record->partial_size+record->partial_offset>record->size)) {
         ham_trace(("partial offset+size is greater than the total "
                     "record size"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_PARTIAL) && (record->size<=sizeof(ham_offset_t))) {
+        ham_trace(("flag HAM_PARTIAL is not allowed if record->size "
+                    "<= 8"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
 
@@ -3076,6 +3091,11 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         ham_trace(("Database was not initialized"));
         return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
+    if ((flags&HAM_PARTIAL) && record && (record->size<=sizeof(ham_offset_t))) {
+        ham_trace(("flag HAM_PARTIAL is not allowed if record->size "
+                    "<= 8"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
 
     return (db_set_error(db, 
                 db->_fun_cursor_move(cursor, key, record, flags)));
@@ -3214,6 +3234,11 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             && (record->partial_size+record->partial_offset>record->size)) {
         ham_trace(("partial offset+size is greater than the total "
                     "record size"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_PARTIAL) && (record->size<=sizeof(ham_offset_t))) {
+        ham_trace(("flag HAM_PARTIAL is not allowed if record->size "
+                    "<= 8"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
 

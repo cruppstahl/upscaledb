@@ -1525,6 +1525,7 @@ public:
         BFC_REGISTER_TEST(MiscPartialTests, invalidInsertParametersTest);
         BFC_REGISTER_TEST(MiscPartialTests, invalidFindParametersTest);
         BFC_REGISTER_TEST(MiscPartialTests, reduceSizeTest);
+        BFC_REGISTER_TEST(MiscPartialTests, disabledSmallRecordsTest);
     }
 
     ham_db_t *m_db;
@@ -1716,6 +1717,50 @@ public:
         BFC_ASSERT_EQUAL(500u, rec.size);
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    }
+
+    void disabledSmallRecordsTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        ham_u8_t buffer[8];
+
+        rec.data=(void *)&buffer[0];
+        rec.size=1;
+        rec.partial_offset=0;
+        rec.partial_size=1;
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+
+        rec.size=5;
+        rec.partial_offset=0;
+        rec.partial_size=1;
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+
+        rec.size=8;
+        rec.partial_offset=0;
+        rec.partial_size=1;
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_insert(m_db, 0, &key, &rec, HAM_PARTIAL));
+
+        rec.size=1;
+        rec.partial_offset=0;
+        rec.partial_size=1;
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_find(m_db, 0, &key, &rec, HAM_PARTIAL));
+
+        rec.size=5;
+        rec.partial_offset=0;
+        rec.partial_size=1;
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_find(m_db, 0, &key, &rec, HAM_PARTIAL));
+
+        rec.size=8;
+        rec.partial_offset=0;
+        rec.partial_size=1;
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                ham_find(m_db, 0, &key, &rec, HAM_PARTIAL));
     }
 };
 

@@ -1659,6 +1659,9 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * be limited to the original record size. The number of actually read
  * bytes is returned in <b>record->size</b>. 
  *
+ * @ref HAM_PARTIAL is not allowed if record->size is <= 8. In such a case,
+ * @ref HAM_INV_PARAMETER is returned.
+ *
  * @param db A valid Database handle
  * @param txn A Transaction handle, or NULL
  * @param key The key of the item
@@ -1709,6 +1712,8 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * @return @ref HAM_INV_PARAMETER if @a db, @a key or @a record is NULL
  * @return @ref HAM_INV_PARAMETER if @a HAM_DIRECT_ACCESS is specified,
  *          but the Database is not an In-Memory Database.
+ * @return @ref HAM_INV_PARAMETER if @ref HAM_PARTIAL is set but record
+ *          size is <= 8
  * @return @ref HAM_KEY_NOT_FOUND if the @a key does not exist
  * 
  * @remark When either or both @ref HAM_FIND_LT_MATCH and/or @ref 
@@ -1751,6 +1756,9 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  * Using @ref HAM_PARTIAL is not allowed in combination with sorted 
  * duplicates (@ref HAM_SORT_DUPLICATES).
  *
+ * @ref HAM_PARTIAL is not allowed if record->size is <= 8. In such a case,
+ * @ref HAM_INV_PARAMETER is returned.
+ *
  * If you wish to insert a duplicate key specify the flag @ref HAM_DUPLICATE. 
  * (Note that the Database has to be created with @ref HAM_ENABLE_DUPLICATES
  * in order to use duplicate keys.)
@@ -1787,6 +1795,8 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  *              and the key is invalid (see above)
  * @return @ref HAM_INV_PARAMETER if @ref HAM_PARTIAL was specified <b>AND</b>
  *              duplicate sorting is enabled (@ref HAM_SORT_DUPLICATES)
+ * @return @ref HAM_INV_PARAMETER if @ref HAM_PARTIAL is set but record
+ *              size is <= 8
  * @return @ref HAM_INV_PARAMETER if the flags @ref HAM_OVERWRITE <b>and</b>
  *              @ref HAM_DUPLICATE were specified, or if @ref HAM_DUPLICATE
  *              was specified, but the Database was not created with 
@@ -2253,6 +2263,9 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * Using @ref HAM_PARTIAL is not allowed in combination with sorted 
  * duplicates (@ref HAM_SORT_DUPLICATES).
  *
+ * @ref HAM_PARTIAL is not allowed if record->size is <= 8. In such a case,
+ * @ref HAM_INV_PARAMETER is returned.
+ *
  * @param cursor A valid Cursor handle
  * @param key An optional pointer to a @ref ham_key_t structure. If this
  *      pointer is not NULL, the key of the new item is returned.
@@ -2295,6 +2308,8 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_INV_PARAMETER if @a cursor is NULL, or if an invalid
  *              combination of flags was specified
+ * @return @ref HAM_INV_PARAMETER if @ref HAM_PARTIAL is set but record
+ *              size is <= 8
  * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item, but
  *              key and/or record were requested
  * @return @ref HAM_KEY_NOT_FOUND if @a cursor points to the first (or last)
@@ -2511,6 +2526,9 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  * be limited to the original record size. The number of actually read
  * bytes is returned in <b>record->size</b>. 
  *
+ * @ref HAM_PARTIAL is not allowed if record->size is <= 8. In such a case,
+ * @ref HAM_INV_PARAMETER is returned.
+ *
  * When either or both @ref HAM_FIND_LT_MATCH and/or @ref HAM_FIND_GT_MATCH
  * have been specified as flags, the @a key structure will be overwritten
  * when an approximate match was found: the @a key and @a record 
@@ -2622,6 +2640,8 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  * @return @ref HAM_KEY_NOT_FOUND if no suitable @a key (record) exists
  * @return @ref HAM_INV_PARAMETER if @a HAM_DIRECT_ACCESS is specified,
  *              but the Database is not an In-Memory Database.
+ * @return @ref HAM_INV_PARAMETER if @ref HAM_PARTIAL is set but record
+ *              size is <= 8
  *
  * @sa HAM_KEY_USER_ALLOC
  * @sa ham_key_t
@@ -2712,6 +2732,9 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  * did not yet exist. Using @ref HAM_PARTIAL is not allowed in combination 
  * with sorted duplicates (@ref HAM_SORT_DUPLICATES).
  *
+ * @ref HAM_PARTIAL is not allowed if record->size is <= 8. In such a case,
+ * @ref HAM_INV_PARAMETER is returned.
+ *
  * However, if a sort order is specified (see @ref HAM_SORT_DUPLICATES) then
  * the key is inserted in sorted order. In this case, the use of @ref 
  * HAM_DUPLICATE_INSERT_FIRST, @ref HAM_DUPLICATE_INSERT_LAST, @ref
@@ -2791,6 +2814,8 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  * @return @ref HAM_INV_PARAMETER if duplicate sorting is enabled (with
  *              @ref HAM_SORT_DUPLICATES) but one of HAM_DUPLICATE_INSERT_*
  *              was specified
+ * @return @ref HAM_INV_PARAMETER if @ref HAM_PARTIAL is set but record
+ *              size is <= 8
  * @return @ref HAM_INV_PARAMETER if the flags @ref HAM_OVERWRITE <b>and</b>
  *              @ref HAM_DUPLICATE were specified, or if @ref HAM_DUPLICATE
  *              was specified, but the Database was not created with 
