@@ -1,3 +1,8 @@
+Dec 27, 2010 - chris
+o when using HAM_PARTIAL in combination with Transactions, HAM_INV_PARAMETER
+    is now returned. In previous versions of hamsterdb, this combination was
+    allowed. If you need this implemented then please tell me.
+
 Dec 26, 2010 - chris
 o when using HAM_PARTIAL and the record->size is <= 8 then error 
     HAM_INV_PARAMETER is returned. In previous versions, this combination

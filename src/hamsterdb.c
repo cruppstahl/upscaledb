@@ -1664,6 +1664,30 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
     }
 
     /*
+     * auto-abort (or commit) all pending transactions
+     */
+    if (env && env_get_newest_txn(env)) {
+        ham_txn_t *n, *t=env_get_newest_txn(env);
+        while (t) {
+            n=txn_get_older(t);
+            if ((txn_get_flags(t)&TXN_STATE_ABORTED) 
+                    || (txn_get_flags(t)&TXN_STATE_COMMITTED)) 
+                ; /* nop */
+            else {
+                if (flags&HAM_TXN_AUTO_COMMIT) {
+                    if ((st=ham_txn_commit(t, 0)))
+                        return (st);
+                }
+                else { /* if (flags&HAM_TXN_AUTO_ABORT) */
+                    if ((st=ham_txn_abort(t, 0)))
+                        return (st);
+                }
+            }
+            t=n;
+        }
+    }
+
+    /*
      * flush all transactions
      */
     st=env_flush_committed_txns(env);
@@ -2445,7 +2469,7 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags)
 
 ham_status_t HAM_CALLCONV
 ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
-        ham_record_t *record, ham_u32_t flags)
+                ham_record_t *record, ham_u32_t flags)
 {
     ham_env_t *env;
 
@@ -2483,9 +2507,9 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
                     "In-Memory Databases"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
-    if ((flags&HAM_PARTIAL) && (record->size<=sizeof(ham_offset_t))) {
-        ham_trace(("flag HAM_PARTIAL is not allowed if record->size "
-                    "<= 8"));
+    if ((flags&HAM_PARTIAL) && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        ham_trace(("flag HAM_PARTIAL is not allowed in combination with "
+                    "transactions"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
 
@@ -2565,6 +2589,11 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     }
     if ((flags&HAM_OVERWRITE) && (flags&HAM_DUPLICATE)) {
         ham_trace(("cannot combine HAM_OVERWRITE and HAM_DUPLICATE"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_PARTIAL) && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        ham_trace(("flag HAM_PARTIAL is not allowed in combination with "
+                    "transactions"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if ((flags&HAM_PARTIAL) && (db_get_rt_flags(db)&HAM_SORT_DUPLICATES)) {
@@ -2848,6 +2877,7 @@ ham_close(ham_db_t *db, ham_u32_t flags)
 
     /*
      * auto-abort (or commit) all pending transactions
+     * TODO really needed here? it's enough if this is handled in ham_env_close!
      */
     if (env && env_get_newest_txn(env)) {
         ham_txn_t *n, *t=env_get_newest_txn(env);
@@ -3051,7 +3081,7 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
 
 ham_status_t HAM_CALLCONV
 ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags)
+                ham_record_t *record, ham_u32_t flags)
 {
     ham_db_t *db;
     ham_env_t *env;
@@ -3081,6 +3111,11 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                    "In-Memory Databases"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+    if ((flags&HAM_PARTIAL) && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        ham_trace(("flag HAM_PARTIAL is not allowed in combination with "
+                    "transactions"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
 
     if (key && !__prepare_key(key))
         return (db_set_error(db, HAM_INV_PARAMETER));
@@ -3090,11 +3125,6 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     if (!db->_fun_cursor_move) {
         ham_trace(("Database was not initialized"));
         return (db_set_error(db, HAM_NOT_INITIALIZED));
-    }
-    if ((flags&HAM_PARTIAL) && record && (record->size<=sizeof(ham_offset_t))) {
-        ham_trace(("flag HAM_PARTIAL is not allowed if record->size "
-                    "<= 8"));
-        return (db_set_error(db, HAM_INV_PARAMETER));
     }
 
     return (db_set_error(db, 
@@ -3153,6 +3183,11 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
     if (flags&HAM_HINT_APPEND) {
         ham_trace(("flag HAM_HINT_APPEND is only allowed in "
                    "ham_cursor_insert"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_PARTIAL) && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        ham_trace(("flag HAM_PARTIAL is not allowed in combination with "
+                    "transactions"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
 
@@ -3223,6 +3258,11 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     if ((flags&HAM_DUPLICATE) && !(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES)) {
         ham_trace(("database does not support duplicate keys "
                     "(see HAM_ENABLE_DUPLICATES)"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_PARTIAL) && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        ham_trace(("flag HAM_PARTIAL is not allowed in combination with "
+                    "transactions"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if ((flags&HAM_PARTIAL) && (db_get_rt_flags(db)&HAM_SORT_DUPLICATES)) {

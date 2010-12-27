@@ -637,8 +637,10 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create(db, SERVER_URL, 0, 0664));
-        BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, HAM_PARTIAL));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                        ham_insert(db, 0, &key, &rec, HAM_PARTIAL));
 
+#if 0 /* TODO - partial r/w is disabled with transactions */
         BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec2, 0));
         BFC_ASSERT_EQUAL(rec.size, rec2.size);
         BFC_ASSERT_EQUAL(0, strcmp((char *)rec2.data, 
@@ -653,6 +655,7 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_find(db, 0, &key, &rec2, 0));
         BFC_ASSERT_EQUAL(rec.size, rec2.size);
         BFC_ASSERT_EQUAL(0, strcmp("hello chris", (char *)rec2.data));
+#endif
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
@@ -901,8 +904,10 @@ protected:
                 ham_create(db, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_cursor_create(db, 0, 0, &cursor));
-        BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, HAM_PARTIAL));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                    ham_cursor_insert(cursor, &key, &rec, HAM_PARTIAL));
 
+#if 0 /* TODO - partial r/w is disabled with transactions */
         BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor, &key, 0));
         BFC_ASSERT_EQUAL(0, ham_cursor_find_ex(cursor, &key, &rec2, 0));
         BFC_ASSERT_EQUAL(rec.size, rec2.size);
@@ -918,6 +923,7 @@ protected:
         BFC_ASSERT_EQUAL(0, ham_cursor_find_ex(cursor, &key, &rec2, 0));
         BFC_ASSERT_EQUAL(rec.size, rec2.size);
         BFC_ASSERT_EQUAL(0, strcmp("hello chris", (char *)rec2.data));
+#endif
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));

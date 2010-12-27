@@ -61,6 +61,7 @@ public:
         BFC_REGISTER_TEST(TxnTest, txnInsertFind3Test);
         BFC_REGISTER_TEST(TxnTest, txnInsertFind4Test);
         BFC_REGISTER_TEST(TxnTest, txnInsertFind5Test);
+        //BFC_REGISTER_TEST(TxnTest, txnPartialInsertFindTest);
         BFC_REGISTER_TEST(TxnTest, txnInsertFindErase1Test);
         BFC_REGISTER_TEST(TxnTest, txnInsertFindErase2Test);
         BFC_REGISTER_TEST(TxnTest, txnInsertFindErase3Test);
@@ -647,6 +648,38 @@ public:
                     ham_find(m_db, txn2, &key2, &rec, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
     }
+
+#if 0
+    void txnPartialInsertFindTest(void)
+    {
+        ham_txn_t *txn;
+        ham_key_t key;
+        memset(&key, 0, sizeof(key));
+        key.data=(void *)"hello";
+        key.size=5;
+        ham_record_t rec;
+        memset(&rec, 0, sizeof(rec));
+        rec.data=(void *)"worldworld";
+        rec.size=9;
+        rec.partial_offset=1;
+        rec.partial_size=2;
+
+        /* insert partial record */
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_insert(m_db, txn, &key, &rec, HAM_PARTIAL));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+
+        /* and read it back */
+        ham_record_t rec2;
+        memset(&rec2, 0, sizeof(rec2));
+        rec2.partial_offset=1;
+        rec2.partial_size=2;
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, txn, &key, &rec2, HAM_PARTIAL));
+
+TODO weiter hier - compare record; must be "\0or\0\0\0\0\0\0\0" (ists 
+aber nicht)
+    }
+#endif
 
     void txnInsertFindErase1Test(void)
     {

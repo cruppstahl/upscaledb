@@ -1062,6 +1062,12 @@ btree_read_record(ham_db_t *db, ham_record_t *record, ham_u64_t *ridptr,
         record->data = 0;
     }
     else if (noblob && blobsize > 0) {
+        if (flags&HAM_PARTIAL) {
+            ham_trace(("flag HAM_PARTIAL is not allowed if record->size "
+                        "<= 8"));
+            return (HAM_INV_PARAMETER);
+        }
+
         if (!(record->flags&HAM_RECORD_USER_ALLOC)
                 && (flags&HAM_DIRECT_ACCESS)) {
             record->data=ridptr;

@@ -426,17 +426,21 @@ o implement partial reads through transaction tree - will have to
         x add to documentation
         x add to changelog!
         x add to wiki
-    o implement in chronologically reverse order - first read from btree,
-        then check the transaction trees from oldest backwards
-    o try not to have too much duplicate code with the other 3 functions
-        (insert, erase, find)
-    o add unittests
-    o verify (unittest) that the logging works
+    x implement for reading; has to be deferred to the btree lookup!
+        x implement
+        x unittest
+    o disable partial read/write if transactions are enabled (and fix all
+        tests which are now broken)
+        o unittest
 
 o implement direct access - how, if the transaction tree is flushed??
     (but in-memory access w/ transactions is anyway not yet supported -
     write unittest to assert that it doesn't work)
     later: return error if DIRECT_ACCESS && IN_MEMORY && ENABLE_TXN
+    postpone this to the next release
+
+o implement approx. matching through transaction tree - will have to 
+    consolidate rb-tree and btree to look for the "closest" key
     postpone this to the next release
 
 o support cursors!!!
@@ -451,14 +455,11 @@ o support cursors!!!
     o db.c: do we need local_txn in the cursor functions? currently there's
         only one temp. cursor that is created over the whole lifetime
         of the cursor; this is way too risky. revert original behavior.
+        document this!
     o add support for logging/recovery
         o ham_cursor_insert
         o ham_cursor_erase (duplicate handling!)
         o ham_cursor_overwrite
-
-o implement approx. matching through transaction tree - will have to 
-    consolidate rb-tree and btree to look for the "closest" key
-    can we postpone this to the next release?
 
 o we currently have two modes regarding recovery:
     - HAM_ENABLE_TRANSACTIONS (implies HAM_ENABLE_RECOVERY)
@@ -477,6 +478,8 @@ o do some performance tests of old vs new implementations, including
     transactions
 
 o update documentation in header file + Wiki!
+
+o test with lessfs (and add lessfs to the monster testsuite)
 
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
 

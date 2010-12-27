@@ -1525,24 +1525,20 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
 
         /* depending on the type of the operation: actually perform the
          * operation on the btree */
-        switch (txn_op_get_flags(op)) {
-            case TXN_OP_INSERT:
-            case TXN_OP_INSERT_OW:
-                st=be->_fun_insert(be, txn_opnode_get_key(node), 
-                            txn_op_get_record(op), 
-                            txn_op_get_flags(op)|HAM_OVERWRITE);
-                break;
-            case TXN_OP_INSERT_DUP:
-                st=be->_fun_insert(be, txn_opnode_get_key(node), 
-                            txn_op_get_record(op), 
-                            txn_op_get_flags(op)|HAM_DUPLICATE);
-                break;
-            case TXN_OP_ERASE:
-                st=be->_fun_erase(be, txn_opnode_get_key(node), 
-                            txn_op_get_flags(op));
-                break;
-            default:
-                break;
+        if ((txn_op_get_flags(op)&TXN_OP_INSERT)
+                || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)) {
+            st=be->_fun_insert(be, txn_opnode_get_key(node), 
+                        txn_op_get_record(op), 
+                        txn_op_get_flags(op)|HAM_OVERWRITE);
+        }
+        else if (txn_op_get_flags(op)&TXN_OP_INSERT_DUP) {
+            st=be->_fun_insert(be, txn_opnode_get_key(node), 
+                        txn_op_get_record(op), 
+                        txn_op_get_flags(op)|HAM_DUPLICATE);
+        }
+        else if (txn_op_get_flags(op)&TXN_OP_ERASE) {
+            st=be->_fun_erase(be, txn_opnode_get_key(node), 
+                        txn_op_get_flags(op));
         }
 
         /* now flush the changeset to disk */

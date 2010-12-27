@@ -1878,11 +1878,12 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
 
     /* append a new operation to this node */
     op=txn_opnode_append(txn, node, 
-                    (flags&HAM_DUPLICATE) 
+                    (flags&HAM_PARTIAL) | 
+                    ((flags&HAM_DUPLICATE) 
                         ? TXN_OP_INSERT_DUP 
                         : (flags&HAM_OVERWRITE)
                             ? TXN_OP_INSERT_OW
-                            : TXN_OP_INSERT, 
+                            : TXN_OP_INSERT), 
                     lsn, record);
     if (!op)
         return (HAM_OUT_OF_MEMORY);
