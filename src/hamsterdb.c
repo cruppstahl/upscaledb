@@ -2518,6 +2518,12 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
                     "transactions"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+    if ((flags&HAM_FIND_NEAR_MATCH) 
+            && (env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)) {
+        ham_trace(("approx. matching is not allowed if Transactions "
+                   "are enabled"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
 
     /* record number: make sure that we have a valid key structure */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER) {
@@ -3179,6 +3185,12 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
                    "HAM_FIND_LT_MATCH, HAM_FIND_GT_MATCH, "
                    "HAM_FIND_EXACT_MATCH and HAM_DIRECT_ACCESS "
                    "are not allowed"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_FIND_NEAR_MATCH) 
+            && (env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)) {
+        ham_trace(("approx. matching is not allowed if Transactions "
+                   "are enabled"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if ((flags&HAM_DIRECT_ACCESS) 

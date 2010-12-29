@@ -1419,21 +1419,27 @@ protected:
         memset(&key, 0, sizeof(key));
         memset(&rec, 0, sizeof(rec));
 
+        /*
+         * !!
+         * currently, hamsterdb returns HAM_INV_PARAMETER if Transactions
+         * are enabled and approx. matching is used
+         */
+
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_open_db(env, db, 13, 0, 0));
 
         /* empty DB: LT/GT must turn up error */
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_find(db, 0, &key, &rec, HAM_FIND_EXACT_MATCH));
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_find(db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_find(db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_find(db, 0, &key, &rec, HAM_FIND_LT_MATCH));
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_find(db, 0, &key, &rec, HAM_FIND_GT_MATCH));
 
         /* insert some values (0, 2, 4) */
@@ -1446,20 +1452,18 @@ protected:
         /* and search for them */
         i=3;
         key.data=(void *)&i;
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_find(db, 0, &key, &rec, HAM_FIND_EXACT_MATCH));
 
         i=3;
         key.data=(void *)&i;
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_find(db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
-        BFC_ASSERT_EQUAL(2u, *(unsigned *)key.data);
 
         i=3;
         key.data=(void *)&i;
-        BFC_ASSERT_EQUAL(0, 
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
                 ham_find(db, 0, &key, &rec, HAM_FIND_GEQ_MATCH));
-        BFC_ASSERT_EQUAL(4u, *(unsigned *)key.data);
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_delete(db));

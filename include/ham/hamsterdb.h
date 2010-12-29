@@ -2673,18 +2673,24 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  *
  * Note: For backwards compatibility, you can specify zero (0) as an 
  * alternative when this flag is used alone.
+ *
+ * Approx. matching is disabled if Transactions are enabled.
  */
 #define HAM_FIND_EXACT_MATCH        0x4000
 
 /**
  * Cursor 'find' flag 'Less Than': return the nearest match below the 
  * given key, whether an exact match exists or not.
+ *
+ * Approx. matching is disabled if Transactions are enabled.
  */
 #define HAM_FIND_LT_MATCH           0x1000
 
 /**
  * Cursor 'find' flag 'Greater Than': return the nearest match above the 
  * given key, whether an exact match exists or not.
+ *
+ * Approx. matching is disabled if Transactions are enabled.
  */
 #define HAM_FIND_GT_MATCH           0x2000
 
@@ -2694,6 +2700,8 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  *
  * May be combined with @ref HAM_FIND_GEQ_MATCH to accept any 'near' key, or 
  * you can use the @ref HAM_FIND_NEAR_MATCH constant as a shorthand for that.
+ *
+ * Approx. matching is disabled if Transactions are enabled.
  */
 #define HAM_FIND_LEQ_MATCH          (HAM_FIND_LT_MATCH | HAM_FIND_EXACT_MATCH)
 
@@ -2703,6 +2711,8 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  *
  * May be combined with @ref HAM_FIND_LEQ_MATCH to accept any 'near' key, 
  * or you can use the @ref HAM_FIND_NEAR_MATCH constant as a shorthand for that.
+ *
+ * Approx. matching is disabled if Transactions are enabled.
  */
 #define HAM_FIND_GEQ_MATCH          (HAM_FIND_GT_MATCH | HAM_FIND_EXACT_MATCH)
 
@@ -2718,6 +2728,8 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  * simply return the first of both found. As such, this flag is the simplest 
  * possible combination of the combined @ref HAM_FIND_LEQ_MATCH and 
  * @ref HAM_FIND_GEQ_MATCH flags.
+ *
+ * Approx. matching is disabled if Transactions are enabled.
  */
 #define HAM_FIND_NEAR_MATCH         (HAM_FIND_LT_MATCH | HAM_FIND_GT_MATCH    \
                                         | HAM_FIND_EXACT_MATCH)

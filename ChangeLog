@@ -1,6 +1,8 @@
 Dec 29, 2010 - chris
+o Approx. matching is now disabled if Transactions are enabled. 
+    In such cases functions will return HAM_INV_PARAMETER. 
 o Direct access (HAM_DIRECT_ACCESS) is now disabled if Transactions are 
-    enabled; in such cases functions will return HAM_INV_PARAMETER. 
+    enabled. In such cases functions will return HAM_INV_PARAMETER. 
     In previous versions Direct Access was anyway not possible in combination
     with Transactions, because Transactions were not possible with In-Memory
     Databases.

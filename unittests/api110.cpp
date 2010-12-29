@@ -46,6 +46,7 @@ public:
         BFC_REGISTER_TEST(APIv110Test, getInitializedReadonlyEnvParamsTest);
         BFC_REGISTER_TEST(APIv110Test, getInitializedDbParamsTest);
         BFC_REGISTER_TEST(APIv110Test, getInitializedReadonlyDbParamsTest);
+        BFC_REGISTER_TEST(APIv110Test, negativeApproxMatchingTest);
     }
 
 protected:
@@ -385,6 +386,28 @@ public:
         ham_delete(db);
     }
 
+    void negativeApproxMatchingTest(void)
+    {
+        ham_db_t *db;
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        ham_cursor_t *cursor;
+
+        ham_new(&db);
+        BFC_ASSERT_EQUAL(0,
+                ham_create(db, ".test.db", 
+                        HAM_ENABLE_TRANSACTIONS, 0644));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(db, 0, 0, &cursor));
+
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                    ham_find(db, 0, &key, &rec, HAM_FIND_LEQ_MATCH));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER,
+                    ham_cursor_find(cursor, &key, HAM_FIND_GEQ_MATCH));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        ham_delete(db);
+    }
 };
 
 

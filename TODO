@@ -440,7 +440,7 @@ x implement direct access - how, if the transaction tree is flushed??
     later: return error if DIRECT_ACCESS && IN_MEMORY && ENABLE_TXN
     postpone this to the next release
 
-o implement approx. matching through transaction tree - will have to 
+x implement approx. matching through transaction tree - will have to 
     consolidate rb-tree and btree to look for the "closest" key
     postpone this to the next release
 
