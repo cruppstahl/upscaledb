@@ -418,7 +418,7 @@ o logging: currently, logging for txn_begin and txn_commit/abort
         x recovery with several aborted operations
         x recovery with several committed operations
 
-o implement partial reads through transaction tree - will have to 
+x implement partial reads through transaction tree - will have to 
     consolidate them
     x check if partial r/w works if the record size is <= 8; if not, then
         disable them
@@ -429,11 +429,12 @@ o implement partial reads through transaction tree - will have to
     x implement for reading; has to be deferred to the btree lookup!
         x implement
         x unittest
-    o disable partial read/write if transactions are enabled (and fix all
+    x disable partial read/write if transactions are enabled (and fix all
         tests which are now broken)
-        o unittest
+        x unittest
+    x add to changelog
 
-o implement direct access - how, if the transaction tree is flushed??
+x implement direct access - how, if the transaction tree is flushed??
     (but in-memory access w/ transactions is anyway not yet supported -
     write unittest to assert that it doesn't work)
     later: return error if DIRECT_ACCESS && IN_MEMORY && ENABLE_TXN

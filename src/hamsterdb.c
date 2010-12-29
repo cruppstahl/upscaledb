@@ -2507,6 +2507,12 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
                     "In-Memory Databases"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+    if ((flags&HAM_DIRECT_ACCESS) 
+            && (env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)) {
+        ham_trace(("flag HAM_DIRECT_ACCESS is not allowed in "
+                    "combination with Transactions"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
     if ((flags&HAM_PARTIAL) && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         ham_trace(("flag HAM_PARTIAL is not allowed in combination with "
                     "transactions"));
@@ -3111,6 +3117,12 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                    "In-Memory Databases"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
+    if ((flags&HAM_DIRECT_ACCESS) 
+            && (env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)) {
+        ham_trace(("flag HAM_DIRECT_ACCESS is not allowed in "
+                    "combination with Transactions"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
     if ((flags&HAM_PARTIAL) && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         ham_trace(("flag HAM_PARTIAL is not allowed in combination with "
                     "transactions"));
@@ -3173,6 +3185,12 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
             && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
         ham_trace(("flag HAM_DIRECT_ACCESS is only allowed in "
                    "In-Memory Databases"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if ((flags&HAM_DIRECT_ACCESS) 
+            && (env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)) {
+        ham_trace(("flag HAM_DIRECT_ACCESS is not allowed in "
+                    "combination with Transactions"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
     if (flags&HAM_HINT_PREPEND) {

@@ -2201,6 +2201,25 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create(m_db, BFC_OPATH(".test"), 
+                        HAM_ENABLE_TRANSACTIONS, 0664));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
+
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_find(m_db, 0, &key, &rec,
+                    HAM_DIRECT_ACCESS));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_find_ex(cursor, &key, &rec,
+                    HAM_DIRECT_ACCESS));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_cursor_move(cursor, &key, &rec,
+                    HAM_DIRECT_ACCESS));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void unlimitedCacheTest(void)

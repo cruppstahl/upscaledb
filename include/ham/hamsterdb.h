@@ -1647,7 +1647,8 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * When specifying @ref HAM_DIRECT_ACCESS, the @a data pointer will point
  * directly to the record that is stored in hamsterdb; the data can be modified,
  * but the pointer must not be reallocated of freed. The flag @ref 
- * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases.
+ * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
+ * Transactions are enabled.
  *
  * @ref ham_find can not search for duplicate keys. If @a key has
  * multiple duplicates, only the first duplicate is returned.
@@ -1702,7 +1703,8 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  *              the first record which' key is larger than the specified 
  *              key, whichever of these records is located first.
  *              When such records cannot be located, an error is returned.
- *        <li>@ref HAM_DIRECT_ACCESS </li> Only for In-Memory Databases!
+ *        <li>@ref HAM_DIRECT_ACCESS </li> Only for In-Memory Databases 
+ *              and not if Transactions are enabled!
  *              Returns a direct pointer to the data blob stored by the
  *              hamsterdb engine. This pointer must not be resized or freed,
  *              but the data in this memory can be modified.
@@ -1712,6 +1714,8 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * @return @ref HAM_INV_PARAMETER if @a db, @a key or @a record is NULL
  * @return @ref HAM_INV_PARAMETER if @a HAM_DIRECT_ACCESS is specified,
  *          but the Database is not an In-Memory Database.
+ * @return @ref HAM_INV_PARAMETER if @a HAM_DIRECT_ACCESS and
+ *          @a HAM_ENABLE_TRANSACTIONS were both specified.
  * @return @ref HAM_INV_PARAMETER if @ref HAM_PARTIAL is set but record
  *          size is <= 8 or Transactions are enabled
  * @return @ref HAM_KEY_NOT_FOUND if the @a key does not exist
@@ -2250,7 +2254,8 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * When specifying @ref HAM_DIRECT_ACCESS, the @a data pointer will point
  * directly to the record that is stored in hamsterdb; the data can be modified,
  * but the pointer must not be reallocated of freed. The flag @ref 
- * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases.
+ * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
+ * Transactions are enabled.
  *
  * You can write only portions of the record by specifying the flag 
  * @ref HAM_PARTIAL. In this case, hamsterdb will write <b>partial_size</b>
@@ -2299,7 +2304,8 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  *          <li>@ref HAM_ONLY_DUPLICATES </li> only move through duplicate keys
  *              of the current key. Not allowed in combination with 
  *              @ref HAM_SKIP_DUPLICATES.
- *        <li>@ref HAM_DIRECT_ACCESS </li> Only for In-Memory Databases!
+ *        <li>@ref HAM_DIRECT_ACCESS </li> Only for In-Memory Databases and
+ *              not if Transactions are enabled!
  *              Returns a direct pointer to the data blob stored by the
  *              hamsterdb engine. This pointer must not be resized or freed,
  *              but the data in this memory can be modified.
@@ -2317,6 +2323,8 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  *              requested
  * @return @ref HAM_INV_PARAMETER if @a HAM_DIRECT_ACCESS is specified,
  *              but the Database is not an In-Memory Database.
+ * @return @ref HAM_INV_PARAMETER if @a HAM_DIRECT_ACCESS and
+ *              @a HAM_ENABLE_TRANSACTIONS were both specified.
  * @return @ref HAM_INV_PARAMETER if @ref HAM_PARTIAL is specified and
  *              record->partial_offset+record->partial_size exceeds the
  *              record->size
@@ -2385,7 +2393,8 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  * When specifying @ref HAM_DIRECT_ACCESS, the @a data pointer will point
  * directly to the record that is stored in hamsterdb; the data can be modified,
  * but the pointer must not be reallocated of freed. The flag @ref 
- * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases.
+ * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
+ * Transactions are enabled.
  *
  * When either or both @ref HAM_FIND_LT_MATCH and/or @ref HAM_FIND_GT_MATCH
  * have been specified as flags, the @a key structure will be overwritten
@@ -2451,7 +2460,8 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  *              the first record which' key is larger than the specified 
  *              key, whichever of these records is located first.
  *              When such records cannot be located, an error is returned.
- *        <li>@ref HAM_DIRECT_ACCESS </li> Only for In-Memory Databases!
+ *        <li>@ref HAM_DIRECT_ACCESS </li> Only for In-Memory Databases and
+ *              not if Transactions are enabled!
  *              Returns a direct pointer to the data blob stored by the
  *              hamsterdb engine. This pointer must not be resized or freed,
  *              but the data in this memory can be modified.
@@ -2493,6 +2503,8 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  * @return @ref HAM_KEY_NOT_FOUND if no suitable @a key (record) exists
  * @return @ref HAM_INV_PARAMETER if @a HAM_DIRECT_ACCESS is specified,
  *              but the Database is not an In-Memory Database.
+ * @return @ref HAM_INV_PARAMETER if @a HAM_DIRECT_ACCESS and
+ *              @a HAM_ENABLE_TRANSACTIONS were both specified.
  *
  * @sa HAM_KEY_USER_ALLOC
  * @sa ham_key_t
@@ -2517,7 +2529,8 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  * When specifying @ref HAM_DIRECT_ACCESS, the @a data pointer will point
  * directly to the record that is stored in hamsterdb; the data can be modified,
  * but the pointer must not be reallocated of freed. The flag @ref 
- * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases.
+ * HAM_DIRECT_ACCESS is only allowed in In-Memory Databases and not if
+ * Transactions are enabled.
  *
  * You can read only portions of the record by specifying the flag 
  * @ref HAM_PARTIAL. In this case, hamsterdb will read 
@@ -2598,7 +2611,8 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  *              the first record which' key is larger than the specified 
  *              key, whichever of these records is located first.
  *              When such records cannot be located, an error is returned.
- *        <li>@ref HAM_DIRECT_ACCESS </li> Only for In-Memory Databases!
+ *        <li>@ref HAM_DIRECT_ACCESS </li> Only for In-Memory Databases and
+ *              not if Transactions are enabled!
  *              Returns a direct pointer to the data blob stored by the
  *              hamsterdb engine. This pointer must not be resized or freed,
  *              but the data in this memory can be modified.
@@ -2640,6 +2654,8 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  * @return @ref HAM_KEY_NOT_FOUND if no suitable @a key (record) exists
  * @return @ref HAM_INV_PARAMETER if @a HAM_DIRECT_ACCESS is specified,
  *              but the Database is not an In-Memory Database.
+ * @return @ref HAM_INV_PARAMETER if @a HAM_DIRECT_ACCESS and
+ *              @a HAM_ENABLE_TRANSACTIONS were both specified.
  * @return @ref HAM_INV_PARAMETER if @ref HAM_PARTIAL is set but record
  *              size is <= 8 or Transactions are enabled
  *
