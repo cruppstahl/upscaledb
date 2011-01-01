@@ -64,6 +64,9 @@ typedef struct txn_op_t
     /** the record */
     ham_record_t *_record;
 
+    /** a linked list of cursors which are attached to this txn_op */
+    struct txn_cursor_t *_cursors;
+
 } txn_op_t;
 
 /** a NOP operation (empty) */
@@ -137,6 +140,24 @@ typedef struct txn_op_t
 
 /** set record */
 #define txn_op_set_record(t, r)     (t)->_record=r
+
+/** get cursor list */
+#define txn_op_get_cursors(t)       (t)->_cursors
+
+/** set cursor list */
+#define txn_op_set_cursors(t, c)    (t)->_cursors=c
+
+/**
+ * add a cursor to this txn_op structure
+ */
+extern void
+txn_op_add_cursor(txn_op_t *op, struct txn_cursor_t *cursor);
+
+/**
+ * remove a cursor from this txn_op structure
+ */
+extern void
+txn_op_remove_cursor(txn_op_t *op, struct txn_cursor_t *cursor);
 
 
 /*

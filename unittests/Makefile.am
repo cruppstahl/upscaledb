@@ -41,6 +41,7 @@ test_SOURCES    = log.cpp \
                   page.cpp \
                   changeset.cpp \
                   txn.cpp \
+                  txn_cursor.cpp \
                   memtracker.cpp \
                   memtracker.h \
                   empty_sample.cpp \

@@ -23,6 +23,7 @@
 #include "page.h"
 #include "btree_stats.h"
 #include "txn.h"
+#include "txn_cursor.h"
 
 /* stuff for rb.h */
 typedef signed ssize_t;
@@ -52,6 +53,45 @@ __cmpfoo(void *vlhs, void *vrhs)
 }
 
 rb_wrap(static, rbt_, txn_optree_t, txn_opnode_t, node, __cmpfoo)
+
+void
+txn_op_add_cursor(txn_op_t *op, struct txn_cursor_t *cursor)
+{
+    ham_assert(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED, (""));
+
+    txn_cursor_set_coupled_next(cursor, txn_op_get_cursors(op));
+    txn_cursor_set_coupled_previous(cursor, 0);
+
+    if (txn_op_get_cursors(op)) {
+        txn_cursor_t *old=txn_op_get_cursors(op);
+        txn_cursor_set_coupled_previous(old, cursor);
+    }
+
+    txn_op_set_cursors(op, cursor);
+}
+
+void
+txn_op_remove_cursor(txn_op_t *op, struct txn_cursor_t *cursor)
+{
+    ham_assert(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED, (""));
+
+    if (txn_op_get_cursors(op)==cursor) {
+        txn_op_set_cursors(op, txn_cursor_get_coupled_next(cursor));
+        if (txn_cursor_get_coupled_next(cursor))
+            txn_cursor_set_coupled_previous(txn_cursor_get_coupled_next(cursor),
+                            0);
+    }
+    else {
+        if (txn_cursor_get_coupled_next(cursor))
+            txn_cursor_set_coupled_previous(txn_cursor_get_coupled_next(cursor),
+                            txn_cursor_get_coupled_previous(cursor));
+        if (txn_cursor_get_coupled_previous(cursor))
+            txn_cursor_set_coupled_next(txn_cursor_get_coupled_previous(cursor),
+                            txn_cursor_get_coupled_next(cursor));
+    }
+    txn_cursor_set_coupled_next(cursor, 0);
+    txn_cursor_set_coupled_previous(cursor, 0);
+}
 
 txn_optree_t *
 txn_tree_get_or_create(ham_db_t *db)

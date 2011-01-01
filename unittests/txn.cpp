@@ -392,6 +392,11 @@ public:
         BFC_ASSERT_EQUAL((ham_record_t *)0, txn_op_get_record(op));
         txn_op_set_record(op, precord);
 
+        BFC_ASSERT_EQUAL((txn_cursor_t *)0, txn_op_get_cursors(op));
+        txn_op_set_cursors(op, (txn_cursor_t *)0x43);
+        BFC_ASSERT_EQUAL((txn_cursor_t *)0x43, txn_op_get_cursors(op));
+        txn_op_set_cursors(op, (txn_cursor_t *)0x0);
+
         txn_free_ops(txn);
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }

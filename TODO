@@ -445,14 +445,51 @@ x implement approx. matching through transaction tree - will have to
     postpone this to the next release
 
 o support cursors!!!
+    o need a transaction cursor which can operate on txn trees
+        x create new structure
+            x unittest
+        x needs linked list for other coupled cursors on same op
+            x unittest
+        x op needs to manage the cursors (or is it the node?? - no, it's the op)
+            x unittest
+        o move to first
+            o unittest
+        o move to last
+            o unittest
+        o retrieve the key
+            o unittest
+        o retrieve the record
+            o unittest
+        o move to next
+            o unittest
+        o move to next w/ duplicates
+            o unittest
+        o move to previous
+            o unittest
+        o move to previous w/ duplicates
+            o unittest
+        o couple/uncouple ALL attached cursors if key is accessed/flushed
+            o unittest
     o separate cursor logic into btree and txn; in db.c, consolidate the
         two cursors
     o move first: use the cursor which is smaller
-    o move right: use the cursor which is larger
+        o unittest
+    o move last: use the cursor which is larger
+        o unittest
+    o move next: only use the btree cursor for traversing.
+        1. move the btree cursor to the next element
+        2. check if the txn has a key which is BETWEEN the previous key and
+            the current key in the btree
+        3. also check if the txn has deleted the btree key - if yes, then
+            continue
+        4. must also work if btree is empty!
+        o unittests
     o move prev: use the cursor which is closer to the current one
-    o move next: use the cursor which is closer to the current one
+        (similar to above)
+        o unittest
     o when flushing a transaction, and a cursor is pointing into the txn
         node: uncouple the cursor! (or delete it?)
+        o unittest
     o db.c: do we need local_txn in the cursor functions? currently there's
         only one temp. cursor that is created over the whole lifetime
         of the cursor; this is way too risky. revert original behavior.
@@ -461,6 +498,7 @@ o support cursors!!!
         o ham_cursor_insert
         o ham_cursor_erase (duplicate handling!)
         o ham_cursor_overwrite
+        o unittests
 
 o we currently have two modes regarding recovery:
     - HAM_ENABLE_TRANSACTIONS (implies HAM_ENABLE_RECOVERY)
