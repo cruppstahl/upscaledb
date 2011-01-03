@@ -44,7 +44,9 @@ txn_cursor_set_to_nil(txn_cursor_t *cursor)
     }
     /* uncoupled cursor? remove from the txn_op structure */
     else if (txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED) {
-        /* TODO */
+        txn_op_t *op=txn_cursor_get_coupled_op(cursor);
+        if (op)
+            txn_op_remove_cursor(op, cursor);
         txn_cursor_set_flags(cursor, 
                 txn_cursor_get_flags(cursor)&(~TXN_CURSOR_FLAG_COUPLED));
     }

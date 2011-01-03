@@ -459,18 +459,24 @@ o support cursors!!!
             x unittest w/ coupled cursor and empty key
             x unittest w/ uncoupled cursor
             x unittest w/ nil-cursor
-        o retrieve the record
+        x retrieve the record
             x implement
-            o unittest w/ coupled cursor
-            o unittest w/ coupled cursor and user_alloc
-            o unittest w/ coupled cursor and empty record
-            o unittest w/ uncoupled cursor
-            o unittest w/ nil-cursor
+            x unittest w/ coupled cursor
+            x unittest w/ coupled cursor and user_alloc
+            x unittest w/ coupled cursor and empty record
+            x unittest w/ uncoupled cursor
+            x unittest w/ nil-cursor
+        o find cursor
+            o implement
+            o unittests
         o move to first
             - first set cursor to nil
             - then move to first node in the txn tree, and the newest/first 
                 insert-op of this node
-            o unittest
+            - couple cursor if it's uncoupled
+            o unittest w/ coupled cursor
+            o unittest w/ uncoupled cursor
+            o unittest w/ nil-cursor
         o move to last
             - first set cursor to nil
             - then move to last node in the txn tree, and the newest/first 
@@ -484,6 +490,7 @@ o support cursors!!!
         o move to next w/ duplicates
             o unittest
         o move to previous
+            analoguous to the above algorithm
             o unittest
         o move to previous w/ duplicates
             o unittest
@@ -502,10 +509,18 @@ o support cursors!!!
         3. also check if the txn has deleted the btree key - if yes, then
             continue
         4. must also work if btree is empty!
+-- OR (better): 
+    while (txn.key<=btree.key):
+        return txn.key++;
+    return btree.key++;
+
+    this should also work when switching directions (but test it!))
+
         o unittests
     o move prev: use the cursor which is closer to the current one
         (similar to above)
         o unittest
+        o unittest w/ switching directions
     o when flushing a transaction, and a cursor is pointing into the txn
         node: uncouple the cursor! (or delete it?)
         o unittest
