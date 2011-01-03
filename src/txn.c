@@ -130,10 +130,15 @@ __copy_key(mem_allocator_t *alloc, ham_key_t *key)
     if (!keycopy)
         return (0);
     *keycopy=*key;
-    keycopy->data=(void *)allocator_alloc(alloc, key->size);
-    if (!keycopy->data)
-        return (0);
-    memcpy(keycopy->data, key->data, key->size);
+    if (key->data && key->size) {
+        keycopy->data=(void *)allocator_alloc(alloc, key->size);
+        if (!keycopy->data)
+            return (0);
+        memcpy(keycopy->data, key->data, key->size);
+    }
+    else
+        keycopy->data=0;
+
     return (keycopy);
 }
 

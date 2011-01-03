@@ -452,15 +452,34 @@ o support cursors!!!
             x unittest
         x op needs to manage the cursors (or is it the node?? - no, it's the op)
             x unittest
+        x retrieve the key
+            x implement
+            x unittest w/ coupled cursor
+            x unittest w/ coupled cursor and user_alloc
+            x unittest w/ coupled cursor and empty key
+            x unittest w/ uncoupled cursor
+            x unittest w/ nil-cursor
+        o retrieve the record
+            x implement
+            o unittest w/ coupled cursor
+            o unittest w/ coupled cursor and user_alloc
+            o unittest w/ coupled cursor and empty record
+            o unittest w/ uncoupled cursor
+            o unittest w/ nil-cursor
         o move to first
+            - first set cursor to nil
+            - then move to first node in the txn tree, and the newest/first 
+                insert-op of this node
             o unittest
         o move to last
-            o unittest
-        o retrieve the key
-            o unittest
-        o retrieve the record
+            - first set cursor to nil
+            - then move to last node in the txn tree, and the newest/first 
+                insert-op of this node
             o unittest
         o move to next
+            - if key is nil: move to first, then done
+            - otherwise move to next op which inserts duplicate
+            - OR move to next node and the newest/first insert-op of this node
             o unittest
         o move to next w/ duplicates
             o unittest

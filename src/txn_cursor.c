@@ -90,12 +90,82 @@ txn_cursor_insert(txn_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
 ham_status_t
 txn_cursor_get_key(txn_cursor_t *cursor, ham_key_t *key)
 {
+    ham_db_t *db=txn_cursor_get_db(cursor);
+    ham_key_t *source=0;
+
+    /* coupled cursor? get key from the txn_op structure */
+    if (txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED) {
+        txn_op_t *op=txn_cursor_get_coupled_op(cursor);
+        txn_opnode_t *node=txn_op_get_node(op);
+
+        ham_assert(db==txn_opnode_get_db(node), (""));
+        source=txn_opnode_get_key(node);
+
+        key->size=source->size;
+        if (source->data && source->size) {
+            if (!(key->flags&HAM_KEY_USER_ALLOC)) {
+                ham_status_t st=db_resize_key_allocdata(db, source->size);
+                if (st)
+                    return (st);
+                key->data=db_get_key_allocdata(db);
+            }
+            memcpy(key->data, source->data, source->size);
+        }
+        else
+            key->data=0;
+
+    }
+    /* 
+     * uncoupled cursor? then the cursor was flushed to the btree. return
+     * HAM_INTERNAL_ERROR to force the caller to lookup the btree. 
+     */
+    else if (txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_UNCOUPLED)
+        return (HAM_INTERNAL_ERROR);
+    /* 
+     * otherwise cursor is nil and we cannot return a key 
+     */
+    else
+        return (HAM_CURSOR_IS_NIL);
+
     return (0);
 }
 
 ham_status_t
 txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record)
 {
+    ham_db_t *db=txn_cursor_get_db(cursor);
+    ham_record_t *source=0;
+
+    /* coupled cursor? get record from the txn_op structure */
+    if (txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED) {
+        txn_op_t *op=txn_cursor_get_coupled_op(cursor);
+        source=txn_op_get_record(op);
+
+        record->size=source->size;
+        if (source->data && source->size) {
+            if (!(record->flags&HAM_RECORD_USER_ALLOC)) {
+                ham_status_t st=db_resize_record_allocdata(db, source->size);
+                if (st)
+                    return (st);
+                record->data=db_get_record_allocdata(db);
+            }
+            memcpy(record->data, source->data, source->size);
+        }
+        else
+            record->data=0;
+    }
+    /* 
+     * uncoupled cursor? then the cursor was flushed to the btree. return
+     * HAM_INTERNAL_ERROR to force the caller to lookup the btree. 
+     */
+    else if (txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_UNCOUPLED)
+        return (HAM_INTERNAL_ERROR);
+    /* 
+     * otherwise cursor is nil and we cannot return a key 
+     */
+    else
+        return (HAM_CURSOR_IS_NIL);
+
     return (0);
 }
 

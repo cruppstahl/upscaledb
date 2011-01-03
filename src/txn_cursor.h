@@ -167,12 +167,20 @@ txn_cursor_insert(txn_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
 
 /**
  * retrieves the key from the current item
+ *
+ * if the cursor is uncoupled, HAM_INTERNAL_ERROR will be returned. this means
+ * that the item was already flushed to the btree, and the caller has to 
+ * use the btree lookup function to retrieve the key.
  */
 extern ham_status_t
 txn_cursor_get_key(txn_cursor_t *cursor, ham_key_t *key);
 
 /**
  * retrieves the record from the current item
+ *
+ * if the cursor is uncoupled, HAM_INTERNAL_ERROR will be returned. this means
+ * that the item was already flushed to the btree, and the caller has to 
+ * use the btree lookup function to retrieve the record.
  */
 extern ham_status_t
 txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record);
