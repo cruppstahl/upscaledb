@@ -466,15 +466,11 @@ o support cursors!!!
             x unittest w/ coupled cursor and empty record
             x unittest w/ uncoupled cursor
             x unittest w/ nil-cursor
-        o find cursor
+        x find cursor
             x implement (first set cursor to nil!)
-            o unittests w/ coupled cursor
-            o unittests w/ uncoupled cursor
-            o unittests w/ nil-cursor
-            o unittests w/ inserts
-            o unittests w/ erase/insert -> not found
-            o unittests w/ erase/insert duplicate -> not found
-            o unittests w/ txn conflict
+            x unittests w/ inserts
+            x unittests w/ erase/insert -> not found
+            x unittests w/ erase/insert w/ overwrites
         o move to first
             - first set cursor to nil
             - then move to first node in the txn tree, and the newest/first 

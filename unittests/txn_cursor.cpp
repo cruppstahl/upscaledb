@@ -21,6 +21,7 @@
 #include "../src/txn_cursor.h"
 #include "../src/page.h"
 #include "../src/error.h"
+#include "../src/cursor.h"
 #include "../src/env.h"
 #include "../src/freelist.h"
 #include "../src/os.h"
@@ -53,9 +54,13 @@ public:
         BFC_REGISTER_TEST(TxnCursorTest, getRecordFromCoupledCursorEmptyRecordTest);
         BFC_REGISTER_TEST(TxnCursorTest, getRecordFromUncoupledCursorTest);
         BFC_REGISTER_TEST(TxnCursorTest, getRecordFromNilCursorTest);
+        BFC_REGISTER_TEST(TxnCursorTest, findInsertTest);
+        BFC_REGISTER_TEST(TxnCursorTest, findInsertEraseTest);
+        BFC_REGISTER_TEST(TxnCursorTest, findInsertEraseOverwriteTest);
     }
 
 protected:
+    ham_cursor_t *m_cursor;
     ham_db_t *m_db;
     ham_env_t *m_env;
     memtracker_t *m_alloc;
@@ -79,12 +84,14 @@ public:
                         |HAM_ENABLE_TRANSACTIONS, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &m_cursor));
     }
     
     virtual void teardown() 
     { 
         __super::teardown();
 
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(m_env, 0));
         ham_delete(m_db);
@@ -522,6 +529,157 @@ public:
         BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, txn_cursor_get_record(&c, &r));
 
         txn_free_ops(txn);
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    ham_status_t insert(ham_txn_t *txn, const char *key, const char *record=0,
+                    ham_u32_t flags=0)
+    {
+        ham_key_t k={0};
+        if (key) {
+            k.data=(void *)key;
+            k.size=strlen(key)+1;
+        }
+        ham_record_t r={0};
+        if (record) {
+            r.data=(void *)record;
+            r.size=sizeof(record);
+        }
+        return (ham_insert(m_db, txn, &k, &r, flags));
+    }
+
+    ham_status_t erase(ham_txn_t *txn, const char *key)
+    {
+        ham_key_t k={0};
+        if (key) {
+            k.data=(void *)key;
+            k.size=strlen(key)+1;
+        }
+        return (ham_erase(m_db, txn, &k, 0));
+    }
+
+    ham_status_t findCursor(txn_cursor_t *cursor, const char *key)
+    {
+        ham_key_t k={0};
+        if (key) {
+            k.data=(void *)key;
+            k.size=strlen(key)+1;
+        }
+        return (txn_cursor_find(cursor, &k));
+    }
+
+    void initialize(txn_cursor_t *cursor)
+    {
+        memset(cursor, 0, sizeof(*cursor));
+        txn_cursor_set_db(cursor, m_db);
+        txn_cursor_set_parent(cursor, m_cursor);
+    }
+
+    void findInsertEraseTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* insert two different keys, delete the first one */
+        BFC_ASSERT_EQUAL(0, insert(txn, "key1"));
+        BFC_ASSERT_EQUAL(0, erase(txn, "key1"));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key2"));
+
+        /* find the first key - fails */
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, findCursor(&cursor, "key1"));
+
+        /* insert it again */
+        BFC_ASSERT_EQUAL(0, insert(txn, "key1"));
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key1"));
+
+        /* find second key */
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key2"));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void findInsertEraseOverwriteTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* insert a key and overwrite it twice */
+        BFC_ASSERT_EQUAL(0, insert(txn, "key1", "rec1"));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key1", "rec2", HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key1", "rec3", HAM_OVERWRITE));
+
+        /* find the first key */
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key1"));
+
+        /* erase it, then insert it again */
+        BFC_ASSERT_EQUAL(0, erase(txn, "key1"));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key1", "rec4", HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key1"));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void findInsertTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* insert two different keys */
+        BFC_ASSERT_EQUAL(0, insert(txn, "key1"));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key2"));
+
+        /* find the first key */
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key1"));
+
+        /* now the cursor is coupled to this key */
+        BFC_ASSERT_EQUAL((unsigned)TXN_CURSOR_FLAG_COUPLED, 
+                    txn_cursor_get_flags(&cursor));
+        txn_op_t *op=txn_cursor_get_coupled_op(&cursor);
+        ham_key_t *key=txn_opnode_get_key(txn_op_get_node(op));
+        BFC_ASSERT_EQUAL(5, key->size);
+        BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key1"));
+
+        /* now the key is coupled; find second key */
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key2"));
+
+        /* and the cursor is still coupled */
+        BFC_ASSERT_EQUAL((unsigned)TXN_CURSOR_FLAG_COUPLED, 
+                    txn_cursor_get_flags(&cursor));
+        op=txn_cursor_get_coupled_op(&cursor);
+        key=txn_opnode_get_key(txn_op_get_node(op));
+        BFC_ASSERT_EQUAL(5, key->size);
+        BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key2"));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 };

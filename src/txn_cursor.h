@@ -33,6 +33,7 @@ extern "C" {
 typedef struct txn_cursor_t
 {
     /** the database on which this cursor operates */
+    /* TODO - not required; we can access the db through the _parent pointer */
     ham_db_t *_db;
 
     /** the parent cursor */

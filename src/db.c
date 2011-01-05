@@ -2317,7 +2317,6 @@ _local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 {
     ham_backend_t *be;
     ham_status_t st;
-    ham_txn_t *local_txn=0;
 
     be=db_get_backend(db);
     if (!be || !be_is_active(be))
@@ -2325,23 +2324,12 @@ _local_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     if (!be->_fun_cursor_create)
         return (HAM_NOT_IMPLEMENTED);
 
-    /* if user did not specify a transaction, but transactions are enabled:
-     * create a temporary one */
-    if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, db_get_env(db), 0);
-        if (st)
-            return (st);
-        flags|=CURSOR_TXN_IS_TEMP;
-        txn=local_txn;
-    }
-
     st=be->_fun_cursor_create(be, db, txn, flags, cursor);
     if (st)
         return (st);
 
     if (txn)
         txn_set_cursor_refcount(txn, txn_get_cursor_refcount(txn)+1);
-
     cursor_set_txn(*cursor, txn);
 
     return (0);
