@@ -169,7 +169,7 @@ hlog(int level, const char *format, ...)
     va_end(ap);
 
     if (foreground) {
-        fprintf(stderr, buffer);
+        fprintf(stderr, "%s", &buffer[0]);
     }
     else {
 #ifdef WIN32
