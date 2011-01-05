@@ -61,6 +61,11 @@ typedef struct txn_op_t
     /** the log serial number (lsn) of this operation */
     ham_u64_t _lsn;
 
+    /** if this op overwrites or erases another operation in the same node,
+     * then _other_lsn stores the lsn of the other txn_op (only used when
+     * the other txn_op is a duplicate) */
+    ham_u64_t _other_lsn;
+
     /** the record */
     ham_record_t *_record;
 
@@ -81,35 +86,38 @@ typedef struct txn_op_t
 /** txn operation is an insert w/ duplicate */
 #define TXN_OP_INSERT_DUP   0x40000u
 
-/** txn operation erases the key */
+/** txn operation erases the key (with all duplicates) */
 #define TXN_OP_ERASE        0x80000u
 
+/** txn operation erases a duplicate key */
+#define TXN_OP_ERASE_DUP    0x100000u
+
 /** txn operation was already flushed */
-#define TXN_OP_FLUSHED     0x100000u
+#define TXN_OP_FLUSHED      0x200000u
 
 /** get flags */
-#define txn_op_get_flags(t)         (t)->_flags
+#define txn_op_get_flags(t)                (t)->_flags
 
 /** set flags */
-#define txn_op_set_flags(t, f)      (t)->_flags=f
+#define txn_op_set_flags(t, f)             (t)->_flags=f
 
 /** get the Transaction pointer */
-#define txn_op_get_txn(t)           (t)->_txn
+#define txn_op_get_txn(t)                  (t)->_txn
 
 /** set the Transaction pointer */
-#define txn_op_set_txn(t, txn)      (t)->_txn=txn
+#define txn_op_set_txn(t, txn)             (t)->_txn=txn
 
 /** get the parent node pointer */
-#define txn_op_get_node(t)          (t)->_node
+#define txn_op_get_node(t)                 (t)->_node
 
 /** set the parent node pointer */
-#define txn_op_set_node(t, n)       (t)->_node=n
+#define txn_op_set_node(t, n)              (t)->_node=n
 
 /** get next txn_op_t structure */
-#define txn_op_get_next_in_node(t)     (t)->_node_next
+#define txn_op_get_next_in_node(t)         (t)->_node_next
 
 /** set next txn_op_t structure */
-#define txn_op_set_next_in_node(t, n)  (t)->_node_next=n
+#define txn_op_set_next_in_node(t, n)      (t)->_node_next=n
 
 /** get previous txn_op_t structure */
 #define txn_op_get_previous_in_node(t)     (t)->_node_prev
@@ -130,22 +138,28 @@ typedef struct txn_op_t
 #define txn_op_set_previous_in_txn(t, p)   (t)->_txn_prev=p
 
 /** get lsn */
-#define txn_op_get_lsn(t)           (t)->_lsn
+#define txn_op_get_lsn(t)                  (t)->_lsn
 
 /** set lsn */
-#define txn_op_set_lsn(t, l)        (t)->_lsn=l
+#define txn_op_set_lsn(t, l)               (t)->_lsn=l
+
+/** get lsn of other op */
+#define txn_op_get_other_lsn(t)            (t)->_other_lsn
+
+/** set lsn of other op */
+#define txn_op_set_other_lsn(t, l)         (t)->_other_lsn=l
 
 /** get record */
-#define txn_op_get_record(t)        (t)->_record
+#define txn_op_get_record(t)               (t)->_record
 
 /** set record */
-#define txn_op_set_record(t, r)     (t)->_record=r
+#define txn_op_set_record(t, r)            (t)->_record=r
 
 /** get cursor list */
-#define txn_op_get_cursors(t)       (t)->_cursors
+#define txn_op_get_cursors(t)              (t)->_cursors
 
 /** set cursor list */
-#define txn_op_set_cursors(t, c)    (t)->_cursors=c
+#define txn_op_set_cursors(t, c)           (t)->_cursors=c
 
 /**
  * add a cursor to this txn_op structure

@@ -11,9 +11,11 @@
 
 #include "internal_fwd_decl.h"
 #include "txn_cursor.h"
+#include "txn.h"
 #include "db.h"
 #include "env.h"
 #include "mem.h"
+#include "cursor.h"
 
 ham_bool_t
 txn_cursor_is_nil(txn_cursor_t *cursor)
@@ -76,10 +78,118 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
     return (0);
 }
 
+static ham_bool_t
+__dupe_is_invalidated(txn_cursor_t *cursor, txn_opnode_t *node, 
+                txn_op_t *checkop)
+{
+    txn_op_t *op=txn_opnode_get_newest_op(node);
+
+    while (op) {
+        ham_txn_t *optxn=txn_op_get_txn(op);
+        /* only look at ops from the current transaction and from 
+         * committed transactions */
+        if ((optxn==cursor_get_txn(txn_cursor_get_parent(cursor)))
+                || (txn_get_flags(optxn)&TXN_STATE_COMMITTED)) {
+            /* the checkop was invalidated if the current op overwrote it
+             * or deleted it; we only need to check duplicate keys */
+            if ((txn_op_get_flags(op)&TXN_OP_INSERT_OW)
+                    && (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
+                ham_assert(txn_op_get_other_lsn(op)!=0, (""));
+                if (txn_op_get_other_lsn(op)==txn_op_get_lsn(checkop))
+                    return (HAM_TRUE);
+            }
+            if (txn_op_get_flags(op)&TXN_OP_ERASE_DUP)
+                return (HAM_TRUE);
+        }
+
+        op=txn_op_get_next_in_node(op);
+    }
+
+    return (HAM_FALSE);
+}
+
+static ham_status_t
+__move_next_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op)
+{
+    txn_op_t *lastdup=0;
+    ham_bool_t needs_invalidate_check=HAM_FALSE;
+
+    if (!op)
+        op=txn_opnode_get_newest_op(node);
+    else
+        goto next;
+
+    while (op) {
+        ham_txn_t *optxn=txn_op_get_txn(op);
+        /* only look at ops from the current transaction and from 
+         * committed transactions */
+        if ((optxn==cursor_get_txn(txn_cursor_get_parent(cursor)))
+                || (txn_get_flags(optxn)&TXN_STATE_COMMITTED)) {
+            /* a normal (overwriting) insert will return this key */
+            if (txn_op_get_flags(op)&TXN_OP_INSERT_OW) {
+                txn_cursor_set_coupled_op(cursor, op);
+                return (0);
+            }
+            /* a normal erase will return an error */
+            if (txn_op_get_flags(op)&TXN_OP_ERASE) {
+                return (HAM_KEY_NOT_FOUND);
+            }
+            /* otherwise ignore this op if it was invalidated by a previous
+             * operation - i.e. a duplicate key that is already erased 
+             * or overwritten */
+            if (needs_invalidate_check==HAM_TRUE 
+                    && __dupe_is_invalidated(cursor, node, op))
+                goto next;
+            /* if a duplicate is inserted: remember the duplicate, then
+             * continue */
+            if (txn_op_get_flags(op)&TXN_OP_INSERT_DUP) {
+                lastdup=op;
+                goto next;
+            }
+            /* if a duplicate is overwritten then remember this duplicate, but
+             * also invalidate the duplicate if it comes again */
+            if ((txn_op_get_flags(op)&TXN_OP_INSERT_OW) 
+                    && (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
+                needs_invalidate_check=HAM_TRUE;
+                lastdup=op;
+                goto next;
+            }
+            /* if a duplicate is erased then invalidate this duplicate */
+            if (txn_op_get_flags(op)&TXN_OP_ERASE_DUP) {
+                needs_invalidate_check=HAM_TRUE;
+                goto next;
+            }
+        }
+        
+        /* we ignore aborted and conflicting transactions */
+next:
+        op=txn_op_get_next_in_node(op);
+    }
+
+    /* did we find a duplicate key? then return it */
+    if (lastdup) {
+        txn_cursor_set_coupled_op(cursor, lastdup);
+        return (0);
+    }
+ 
+    return (HAM_KEY_NOT_FOUND);
+}
+
 ham_status_t
 txn_cursor_find(txn_cursor_t *cursor, ham_key_t *key)
 {
-    return (0);
+    txn_opnode_t *node;
+
+    /* first set cursor to nil */
+    txn_cursor_set_to_nil(cursor);
+
+    /* then lookup the node */
+    node=txn_opnode_get(cursor_get_db(cursor), key);
+    if (!node)
+        return (HAM_KEY_NOT_FOUND);
+
+    /* and then move to the oldest insert*-op */
+    return __move_next_in_node(cursor, node, 0);
 }
 
 ham_status_t

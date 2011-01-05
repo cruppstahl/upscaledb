@@ -35,6 +35,9 @@ typedef struct txn_cursor_t
     /** the database on which this cursor operates */
     ham_db_t *_db;
 
+    /** the parent cursor */
+    ham_cursor_t *_parent;
+
     /** 
      * a Cursor can either be coupled or uncoupled. If it's coupled, it 
      * directly points to a txn_op_t structure. If it's uncoupled, it
@@ -79,6 +82,12 @@ typedef struct txn_cursor_t
 
 /** set the database pointer */
 #define txn_cursor_set_db(c, db)                    (c)->_db=db
+
+/** get the parent cursor */
+#define txn_cursor_get_parent(c)                    (c)->_parent
+
+/** set the parent cursor */
+#define txn_cursor_set_parent(c, p)                 (c)->_parent=p
 
 /** get the cursor flags */
 #define txn_cursor_get_flags(c)                     (c)->_flags
