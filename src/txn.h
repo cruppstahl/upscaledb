@@ -371,6 +371,20 @@ txn_tree_get_or_create(ham_db_t *db);
  */
 typedef void(*txn_tree_enumerate_cb)(txn_opnode_t *node, void *data);
 
+/**
+ * retrieves the first (=smallest) node of the tree, or NULL if the
+ * tree is empty
+ */
+extern txn_opnode_t *
+txn_tree_get_first(txn_optree_t *tree);
+
+/**
+ * retrieves the last (=largest) node of the tree, or NULL if the
+ * tree is empty
+ */
+extern txn_opnode_t *
+txn_tree_get_last(txn_optree_t *tree);
+
 extern void
 txn_tree_enumerate(txn_optree_t *tree, txn_tree_enumerate_cb cb, void *data);
 

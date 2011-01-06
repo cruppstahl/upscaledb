@@ -73,12 +73,6 @@ txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record)
 {
 }
 
-ham_status_t
-txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
-{
-    return (0);
-}
-
 static void
 __couple_cursor(txn_cursor_t *cursor, txn_op_t *op)
 {
@@ -130,6 +124,29 @@ next:
     }
  
     return (HAM_KEY_NOT_FOUND);
+}
+
+ham_status_t
+txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
+{
+    ham_db_t *db=txn_cursor_get_db(cursor);
+
+    /* first set cursor to nil */
+    txn_cursor_set_to_nil(cursor);
+
+    /* HAM_CURSOR_FIRST moves the cursor to the very first (= smallest)
+     * element in the txn tree */
+    if (flags&HAM_CURSOR_FIRST) {
+        txn_opnode_t *node=txn_tree_get_first(db_get_optree(db));
+        if (!node)
+            return (HAM_KEY_NOT_FOUND);
+        return (__move_next_in_node(cursor, node, 0));
+    }
+    else {
+        ham_assert(!"this flag is not yet implemented", (""));
+    }
+
+    return (0);
 }
 
 ham_status_t

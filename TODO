@@ -471,24 +471,19 @@ o support cursors!!!
             x unittests w/ inserts
             x unittests w/ erase/insert -> not found
             x unittests w/ erase/insert w/ overwrites
-        o move to first
-            - first set cursor to nil
-            - then move to first node in the txn tree, and the newest/first 
+        x move to first
+            x first set cursor to nil
+            x then move to first node in the txn tree, and the newest/first 
                 insert-op of this node
-            - couple cursor if it's uncoupled
-            o unittest w/ coupled cursor
-            o unittest w/ uncoupled cursor
-            o unittest w/ nil-cursor
+            x couple cursor if it's uncoupled
+            x unittest w/ coupled cursor
+            x unittest w/ nil-cursor
+            x unittest w/ empty tree
         o move to next
             - if key is nil: move to first, then done
             - otherwise move to next op which inserts duplicate
             - OR move to next node and the newest/first insert-op of this node
             o unittest
-        o insert a key
-        o erase a key
-        o overwrite a key
-            o overwrite a key that is in the btree
-            o overwrite a key that is in the txn tree
         o move to last
             - first set cursor to nil
             - then move to last node in the txn tree, and the newest/first 
@@ -497,6 +492,11 @@ o support cursors!!!
         o move to previous
             analoguous to the above algorithm
             o unittest
+        o insert a key
+        o erase a key
+        o overwrite a key
+            o overwrite a key that is in the btree
+            o overwrite a key that is in the txn tree
         o couple/uncouple ALL attached cursors if key is accessed/flushed
             o unittest
 

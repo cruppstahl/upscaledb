@@ -57,6 +57,8 @@ public:
         BFC_REGISTER_TEST(TxnCursorTest, findInsertTest);
         BFC_REGISTER_TEST(TxnCursorTest, findInsertEraseTest);
         BFC_REGISTER_TEST(TxnCursorTest, findInsertEraseOverwriteTest);
+        BFC_REGISTER_TEST(TxnCursorTest, moveFirstTest);
+        BFC_REGISTER_TEST(TxnCursorTest, moveFirstInEmptyTreeTest);
     }
 
 protected:
@@ -568,6 +570,28 @@ public:
         return (txn_cursor_find(cursor, &k));
     }
 
+    ham_status_t moveCursor(txn_cursor_t *cursor, const char *key, 
+                    ham_u32_t flags)
+    {
+        ham_status_t st=0;
+        ham_key_t k={0};
+        st=txn_cursor_move(cursor, flags);
+        if (st)
+            return (st);
+        st=txn_cursor_get_key(cursor, &k);
+        if (st)
+            return (st);
+        if (key) {
+            if (strcmp((char *)k.data, key))
+                return (HAM_INTERNAL_ERROR);
+        }
+        else {
+            if (k.size!=0)
+                return (HAM_INTERNAL_ERROR);
+        }
+        return (HAM_SUCCESS);
+    }
+
     void initialize(txn_cursor_t *cursor)
     {
         memset(cursor, 0, sizeof(*cursor));
@@ -676,6 +700,68 @@ public:
         key=txn_opnode_get_key(txn_op_get_node(op));
         BFC_ASSERT_EQUAL(5, key->size);
         BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key2"));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void moveFirstTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* insert a few different keys */
+        BFC_ASSERT_EQUAL(0, insert(txn, "key1"));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key2"));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key3"));
+
+        /* find the first key (with a nil cursor) */
+        BFC_ASSERT_EQUAL(0, moveCursor(&cursor, "key1", HAM_CURSOR_FIRST));
+
+        /* now the cursor is coupled to this key */
+        BFC_ASSERT_EQUAL((unsigned)TXN_CURSOR_FLAG_COUPLED, 
+                    txn_cursor_get_flags(&cursor));
+        txn_op_t *op=txn_cursor_get_coupled_op(&cursor);
+        ham_key_t *key=txn_opnode_get_key(txn_op_get_node(op));
+        BFC_ASSERT_EQUAL(5, key->size);
+        BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key1"));
+
+        /* do it again with a coupled cursor */
+        BFC_ASSERT_EQUAL(0, moveCursor(&cursor, "key1", HAM_CURSOR_FIRST));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void moveFirstInEmptyTreeTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* find the first key */
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    moveCursor(&cursor, "key1", HAM_CURSOR_FIRST));
+
+        /* now the cursor is nil */
+        BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(&cursor));
 
         /* reset cursor hack */
         cursor_set_txn(m_cursor, 0);

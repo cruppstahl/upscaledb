@@ -111,6 +111,24 @@ txn_tree_get_or_create(ham_db_t *db)
     return (t);
 }
 
+txn_opnode_t *
+txn_tree_get_first(txn_optree_t *tree)
+{
+    if (tree)
+        return (rbt_first(tree));
+    else
+        return (0);
+}
+
+txn_opnode_t *
+txn_tree_get_last(txn_optree_t *tree)
+{
+    if (tree)
+        return (rbt_last(tree));
+    else
+        return (0);
+}
+
 void
 txn_tree_enumerate(txn_optree_t *tree, txn_tree_enumerate_cb cb, void *data)
 {
