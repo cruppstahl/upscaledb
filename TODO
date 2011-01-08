@@ -488,11 +488,11 @@ o support cursors!!!
             x move next at end of tree
             x move next and skip erased key in same node
             x move next and skip erased key in different node
-        o move to last
+        x move to last
             - first set cursor to nil
             - then move to last node in the txn tree, and the newest/first 
                 insert-op of this node
-            o unittest
+            x unittest
         o move to previous
             analoguous to the above algorithm
             o unittest
