@@ -127,6 +127,12 @@ txn_tree_get_next_node(txn_optree_t *tree, txn_opnode_t *node)
 }
 
 txn_opnode_t *
+txn_tree_get_previous_node(txn_optree_t *tree, txn_opnode_t *node)
+{
+    return (rbt_prev(tree, node));
+}
+
+txn_opnode_t *
 txn_tree_get_last(txn_optree_t *tree)
 {
     if (tree)

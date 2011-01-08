@@ -175,8 +175,6 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
     ham_db_t *db=txn_cursor_get_db(cursor);
     txn_opnode_t *node;
 
-    /* HAM_CURSOR_FIRST moves the cursor to the very first (= smallest)
-     * element in the txn tree */
     if (flags&HAM_CURSOR_FIRST) {
         /* first set cursor to nil */
         txn_cursor_set_to_nil(cursor);
@@ -212,6 +210,34 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
             ham_status_t st=__move_next_in_node(cursor, node, op); 
             if (st==HAM_KEY_NOT_FOUND) {
                 node=txn_tree_get_next_node(txn_opnode_get_tree(node), node);
+                if (!node)
+                    return (HAM_KEY_NOT_FOUND);
+                op=0;
+            }
+            else
+                return (st);
+        }
+    }
+    else if (flags&HAM_CURSOR_PREVIOUS) {
+        txn_op_t *op=txn_cursor_get_coupled_op(cursor);
+        if (txn_cursor_is_nil(cursor))
+            return (HAM_CURSOR_IS_NIL);
+
+        node=txn_op_get_node(op);
+
+        /* TODO - couple key if it's uncoupled */
+        ham_assert(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED, (""));
+
+        /* first move to the previous key in the current node; if we fail, 
+         * then move to the previous node. repeat till we've found a key or 
+         * till we've reached the end of the tree 
+         *
+         * so far dupes are not supported, therefore a __move_previous_in_node
+         * is identical to move_next_in_node */
+        while (1) {
+            ham_status_t st=__move_next_in_node(cursor, node, op); 
+            if (st==HAM_KEY_NOT_FOUND) {
+                node=txn_tree_get_previous_node(txn_opnode_get_tree(node), node);
                 if (!node)
                     return (HAM_KEY_NOT_FOUND);
                 op=0;

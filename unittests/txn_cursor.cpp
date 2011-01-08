@@ -66,6 +66,11 @@ public:
         BFC_REGISTER_TEST(TxnCursorTest, moveNextSkipEraseInNodeTest);
         BFC_REGISTER_TEST(TxnCursorTest, moveLastTest);
         BFC_REGISTER_TEST(TxnCursorTest, moveLastInEmptyTreeTest);
+        BFC_REGISTER_TEST(TxnCursorTest, movePrevWithNilCursorTest);
+        BFC_REGISTER_TEST(TxnCursorTest, movePrevTest);
+        BFC_REGISTER_TEST(TxnCursorTest, movePrevAfterEndTest);
+        BFC_REGISTER_TEST(TxnCursorTest, movePrevSkipEraseTest);
+        BFC_REGISTER_TEST(TxnCursorTest, movePrevSkipEraseInNodeTest);
     }
 
 protected:
@@ -1009,6 +1014,179 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
+
+    void movePrevWithNilCursorTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* make sure that the cursor is nil */
+        BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(&cursor));
+
+        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
+                    moveCursor(&cursor, 0, HAM_CURSOR_PREVIOUS));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void movePrevTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* insert a few different keys */
+        BFC_ASSERT_EQUAL(0, insert(txn, "key1"));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key2"));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key3"));
+
+        /* find the last key */
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key3"));
+
+        /* move previous */
+        BFC_ASSERT_EQUAL(0, moveCursor(&cursor, "key2", HAM_CURSOR_PREVIOUS));
+
+        /* now the cursor is coupled to this key */
+        BFC_ASSERT_EQUAL((unsigned)TXN_CURSOR_FLAG_COUPLED, 
+                    txn_cursor_get_flags(&cursor));
+        txn_op_t *op=txn_cursor_get_coupled_op(&cursor);
+        ham_key_t *key=txn_opnode_get_key(txn_op_get_node(op));
+        BFC_ASSERT_EQUAL(5, key->size);
+        BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key2"));
+
+        /* now the key is coupled; move previous once more */
+        BFC_ASSERT_EQUAL(0, moveCursor(&cursor, "key1", HAM_CURSOR_PREVIOUS));
+
+        /* and the cursor is still coupled */
+        BFC_ASSERT_EQUAL((unsigned)TXN_CURSOR_FLAG_COUPLED, 
+                    txn_cursor_get_flags(&cursor));
+        op=txn_cursor_get_coupled_op(&cursor);
+        key=txn_opnode_get_key(txn_op_get_node(op));
+        BFC_ASSERT_EQUAL(5, key->size);
+        BFC_ASSERT_EQUAL(0, strcmp((char *)key->data, "key1"));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void movePrevAfterEndTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* insert one key */
+        BFC_ASSERT_EQUAL(0, insert(txn, "key1"));
+
+        /* find the first key */
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key1"));
+
+        /* move previous */
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    moveCursor(&cursor, "key2", HAM_CURSOR_PREVIOUS));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void movePrevSkipEraseTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* insert/erase keys */
+        BFC_ASSERT_EQUAL(0, insert(txn, "key1"));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key2"));
+        BFC_ASSERT_EQUAL(0, erase(txn, "key2"));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key3"));
+
+        /* find the first key */
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key3"));
+
+        /* move previous */
+        BFC_ASSERT_EQUAL(0, moveCursor(&cursor, "key1", HAM_CURSOR_PREVIOUS));
+
+        /* reached the end */
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    moveCursor(&cursor, "key1", HAM_CURSOR_PREVIOUS));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void movePrevSkipEraseInNodeTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* insert/erase keys */
+        BFC_ASSERT_EQUAL(0, insert(txn, "key1"));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key2"));
+        BFC_ASSERT_EQUAL(0, erase(txn, "key2"));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key2"));
+        BFC_ASSERT_EQUAL(0, erase(txn, "key2"));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key2"));
+        BFC_ASSERT_EQUAL(0, erase(txn, "key2"));
+        BFC_ASSERT_EQUAL(0, insert(txn, "key3"));
+
+        /* find the last key */
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key3"));
+
+        /* move previous */
+        BFC_ASSERT_EQUAL(0, moveCursor(&cursor, "key1", HAM_CURSOR_PREVIOUS));
+
+        /* reached the end */
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    moveCursor(&cursor, "key1", HAM_CURSOR_PREVIOUS));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
 };
 
 BFC_REGISTER_FIXTURE(TxnCursorTest);

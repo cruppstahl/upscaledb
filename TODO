@@ -493,9 +493,9 @@ o support cursors!!!
             - then move to last node in the txn tree, and the newest/first 
                 insert-op of this node
             x unittest
-        o move to previous
+        x move to previous
             analoguous to the above algorithm
-            o unittest
+            x unittest
         o insert a key
         o erase a key
         o overwrite a key
