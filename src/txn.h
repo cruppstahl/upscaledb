@@ -379,6 +379,13 @@ extern txn_opnode_t *
 txn_tree_get_first(txn_optree_t *tree);
 
 /**
+ * retrieves the next larger sibling of a given node, or NULL if there
+ * is no sibling
+ */
+extern txn_opnode_t *
+txn_tree_get_next_node(txn_optree_t *tree, txn_opnode_t *node);
+
+/**
  * retrieves the last (=largest) node of the tree, or NULL if the
  * tree is empty
  */

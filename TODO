@@ -479,11 +479,15 @@ o support cursors!!!
             x unittest w/ coupled cursor
             x unittest w/ nil-cursor
             x unittest w/ empty tree
-        o move to next
+        x move to next
             - if key is nil: move to first, then done
             - otherwise move to next op which inserts duplicate
             - OR move to next node and the newest/first insert-op of this node
-            o unittest
+            x unittest w/ nil-cursor -> HAM_CURSOR_IS_NIL
+            x move next w/ coupled cursor
+            x move next at end of tree
+            x move next and skip erased key in same node
+            x move next and skip erased key in different node
         o move to last
             - first set cursor to nil
             - then move to last node in the txn tree, and the newest/first 
