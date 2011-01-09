@@ -199,7 +199,7 @@ txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record);
  * erases the current item, then 'nil's the cursor
  */
 extern ham_status_t
-txn_cursor_erase(txn_cursor_t *cursor, ham_key_t *key);
+txn_cursor_erase(txn_cursor_t *cursor);
 
 /**
  * returns duplicate of the current item

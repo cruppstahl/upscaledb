@@ -501,7 +501,7 @@ o support cursors!!!
             x insert and fail w/ DUPLICATE_KEY
             x insert and overwrite 
             x insert and create a conflict 
-        o erase a key
+        x erase a key
         o overwrite a key
             o overwrite a key that is in the btree
             o overwrite a key that is in the txn tree

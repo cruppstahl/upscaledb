@@ -57,6 +57,7 @@ public:
         BFC_REGISTER_TEST(TxnCursorTest, findInsertTest);
         BFC_REGISTER_TEST(TxnCursorTest, findInsertEraseTest);
         BFC_REGISTER_TEST(TxnCursorTest, findInsertEraseOverwriteTest);
+        BFC_REGISTER_TEST(TxnCursorTest, findCreateConflictTest);
         BFC_REGISTER_TEST(TxnCursorTest, moveFirstTest);
         BFC_REGISTER_TEST(TxnCursorTest, moveFirstInEmptyTreeTest);
         BFC_REGISTER_TEST(TxnCursorTest, moveNextWithNilCursorTest);
@@ -75,6 +76,9 @@ public:
         BFC_REGISTER_TEST(TxnCursorTest, negativeInsertKeysTest);
         BFC_REGISTER_TEST(TxnCursorTest, insertOverwriteKeysTest);
         BFC_REGISTER_TEST(TxnCursorTest, insertCreateConflictTest);
+        BFC_REGISTER_TEST(TxnCursorTest, eraseKeysTest);
+        BFC_REGISTER_TEST(TxnCursorTest, negativeEraseKeysTest);
+        BFC_REGISTER_TEST(TxnCursorTest, negativeEraseKeysNilTest);
     }
 
 protected:
@@ -801,6 +805,33 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
+    void findCreateConflictTest(void)
+    {
+        ham_txn_t *txn, *txn2;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* insert a key, then erase it */
+        BFC_ASSERT_EQUAL(0, insert(txn2, "key1"));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, findCursor(&cursor, "key1"));
+// TODO must be HAM_TXN_CONFLICT!!
+        /* cursor must be nil */
+        BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(&cursor));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
+
     void moveNextWithNilCursorTest(void)
     {
         ham_txn_t *txn;
@@ -1326,6 +1357,85 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
     }
+
+    void eraseKeysTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* insert/erase a few different keys */
+        BFC_ASSERT_EQUAL(0, insertCursor(&cursor, "key1"));
+        BFC_ASSERT_EQUAL(true, cursorIsCoupled(&cursor, "key1"));
+        BFC_ASSERT_EQUAL(false, txn_cursor_is_nil(&cursor));
+        BFC_ASSERT_EQUAL(0, txn_cursor_erase(&cursor));
+
+        /* make sure that the keys do not exist and that the cursor is nil */
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, findCursor(&cursor, "key1"));
+        BFC_ASSERT_EQUAL(true, txn_cursor_is_nil(&cursor));
+
+        BFC_ASSERT_EQUAL(0, insertCursor(&cursor, "key2"));
+        BFC_ASSERT_EQUAL(0, txn_cursor_erase(&cursor));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, findCursor(&cursor, "key2"));
+        BFC_ASSERT_EQUAL(true, txn_cursor_is_nil(&cursor));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void negativeEraseKeysTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* erase a key that does not exist */
+        BFC_ASSERT_EQUAL(0, insertCursor(&cursor, "key1"));
+        BFC_ASSERT_EQUAL(0, erase(txn, "key1"));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, txn_cursor_erase(&cursor));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, txn_cursor_erase(&cursor));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void negativeEraseKeysNilTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* erase a key with a cursor that is nil */
+        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, txn_cursor_erase(&cursor));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
 };
 
 BFC_REGISTER_FIXTURE(TxnCursorTest);

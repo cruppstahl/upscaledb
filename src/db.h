@@ -835,6 +835,12 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
                 struct txn_cursor_t *cursor);
 
+/*
+ * erase a key/record pair from a txn; on success, cursor will be set to nil
+ */
+extern ham_status_t
+db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
+
 
 #ifdef __cplusplus
 } // extern "C" {

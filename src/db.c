@@ -1895,6 +1895,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
         txn_cursor_set_to_nil(cursor);
         txn_cursor_set_flags(cursor, 
                         txn_cursor_get_flags(cursor)|TXN_CURSOR_FLAG_COUPLED);
+        txn_cursor_set_coupled_op(cursor, op);
         txn_op_add_cursor(op, cursor);
     }
 
@@ -1909,9 +1910,8 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
     return (st);
 }
 
-static ham_status_t
-db_erase_txn(ham_db_t *db, ham_txn_t *txn,
-        ham_key_t *key, ham_u32_t flags)
+ham_status_t
+db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 {
     ham_status_t st=0;
     txn_optree_t *tree;

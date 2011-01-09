@@ -365,8 +365,28 @@ txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record)
 }
 
 ham_status_t
-txn_cursor_erase(txn_cursor_t *cursor, ham_key_t *key)
+txn_cursor_erase(txn_cursor_t *cursor)
 {
+    ham_status_t st;
+    ham_db_t *db=cursor_get_db(cursor);
+    ham_txn_t *txn=cursor_get_txn(txn_cursor_get_parent(cursor));
+    txn_op_t *op;
+    txn_opnode_t *node;
+
+    if (txn_cursor_is_nil(cursor))
+        return (HAM_CURSOR_IS_NIL);
+
+    ham_assert(!(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_UNCOUPLED), (""));
+
+    /* just insert a normal erase op in the transaction, then set the cursor
+     * to nil */
+    op=txn_cursor_get_coupled_op(cursor);
+    node=txn_op_get_node(op);
+    st=db_erase_txn(db, txn, txn_opnode_get_key(node), 0);
+    if (st)
+        return (st);
+
+    txn_cursor_set_to_nil(cursor);
     return (0);
 }
 
