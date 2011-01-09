@@ -76,6 +76,8 @@ txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record)
 static void
 __couple_cursor(txn_cursor_t *cursor, txn_op_t *op)
 {
+    ham_assert(!(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_UNCOUPLED), (""));
+    txn_cursor_set_to_nil(cursor);
     txn_cursor_set_coupled_op(cursor, op);
     txn_cursor_set_flags(cursor, 
                     txn_cursor_get_flags(cursor)|TXN_CURSOR_FLAG_COUPLED);
@@ -274,7 +276,10 @@ ham_status_t
 txn_cursor_insert(txn_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
                 ham_u32_t flags)
 {
-    return (0);
+    ham_db_t *db=cursor_get_db(cursor);
+    ham_txn_t *txn=cursor_get_txn(txn_cursor_get_parent(cursor));
+
+    return (db_insert_txn(db, txn, key, record, flags, cursor));
 }
 
 ham_status_t

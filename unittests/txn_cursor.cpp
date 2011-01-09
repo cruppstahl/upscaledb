@@ -71,6 +71,10 @@ public:
         BFC_REGISTER_TEST(TxnCursorTest, movePrevAfterEndTest);
         BFC_REGISTER_TEST(TxnCursorTest, movePrevSkipEraseTest);
         BFC_REGISTER_TEST(TxnCursorTest, movePrevSkipEraseInNodeTest);
+        BFC_REGISTER_TEST(TxnCursorTest, insertKeysTest);
+        BFC_REGISTER_TEST(TxnCursorTest, negativeInsertKeysTest);
+        BFC_REGISTER_TEST(TxnCursorTest, insertOverwriteKeysTest);
+        BFC_REGISTER_TEST(TxnCursorTest, insertCreateConflictTest);
     }
 
 protected:
@@ -560,6 +564,22 @@ public:
             r.size=sizeof(record);
         }
         return (ham_insert(m_db, txn, &k, &r, flags));
+    }
+
+    ham_status_t insertCursor(txn_cursor_t *cursor, const char *key, 
+                    const char *record=0, ham_u32_t flags=0)
+    {
+        ham_key_t k={0};
+        if (key) {
+            k.data=(void *)key;
+            k.size=strlen(key)+1;
+        }
+        ham_record_t r={0};
+        if (record) {
+            r.data=(void *)record;
+            r.size=sizeof(record);
+        }
+        return (txn_cursor_insert(cursor, &k, &r, flags));
     }
 
     ham_status_t erase(ham_txn_t *txn, const char *key)
@@ -1187,6 +1207,125 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
+    bool cursorIsCoupled(txn_cursor_t *cursor, const char *k)
+    {
+        BFC_ASSERT_EQUAL((unsigned)TXN_CURSOR_FLAG_COUPLED, 
+                    txn_cursor_get_flags(cursor));
+        txn_op_t *op=txn_cursor_get_coupled_op(cursor);
+        ham_key_t *key=txn_opnode_get_key(txn_op_get_node(op));
+        if (strlen(k)+1!=key->size)
+            return (false);
+        if (strcmp((char *)key->data, k))
+            return (false);
+        return (true);
+    }
+
+    void insertKeysTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* insert a few different keys */
+        BFC_ASSERT_EQUAL(0, insertCursor(&cursor, "key1"));
+        BFC_ASSERT_EQUAL(0, insertCursor(&cursor, "key2"));
+        BFC_ASSERT_EQUAL(0, insertCursor(&cursor, "key3"));
+
+        /* make sure that the keys exist and that the cursor is coupled */
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key1"));
+        BFC_ASSERT_EQUAL(true, cursorIsCoupled(&cursor, "key1"));
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key2"));
+        BFC_ASSERT_EQUAL(true, cursorIsCoupled(&cursor, "key2"));
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key3"));
+        BFC_ASSERT_EQUAL(true, cursorIsCoupled(&cursor, "key3"));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void negativeInsertKeysTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* insert a key twice - creates a duplicate key */
+        BFC_ASSERT_EQUAL(0, insertCursor(&cursor, "key1"));
+        BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY, insertCursor(&cursor, "key1"));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void insertOverwriteKeysTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* insert/overwrite keys */
+        BFC_ASSERT_EQUAL(0, insertCursor(&cursor, "key1"));
+        BFC_ASSERT_EQUAL(0, insertCursor(&cursor, "key1", 0, HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, insertCursor(&cursor, "key1", 0, HAM_OVERWRITE));
+
+        /* make sure that the key exists and that the cursor is coupled */
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key1"));
+        BFC_ASSERT_EQUAL(true, cursorIsCoupled(&cursor, "key1"));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void insertCreateConflictTest(void)
+    {
+        ham_txn_t *txn, *txn2;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* insert/overwrite keys */
+        BFC_ASSERT_EQUAL(0, insert(txn2, "key1"));
+        BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, insertCursor(&cursor, "key1"));
+
+        /* cursor must be nil */
+        BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(&cursor));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
+    }
 };
 
 BFC_REGISTER_FIXTURE(TxnCursorTest);

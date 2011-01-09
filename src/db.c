@@ -34,6 +34,7 @@
 #include "page.h"
 #include "btree_stats.h"
 #include "txn.h"
+#include "txn_cursor.h"
 #include "version.h"
 
 
@@ -1827,9 +1828,10 @@ db_check_erase_conflicts(ham_db_t *db, ham_txn_t *txn,
     return (be->_fun_find(be, key, 0, flags));
 }
 
-static ham_status_t
+ham_status_t
 db_insert_txn(ham_db_t *db, ham_txn_t *txn,
-        ham_key_t *key, ham_record_t *record, ham_u32_t flags)
+                ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
+                struct txn_cursor_t *cursor)
 {
     ham_status_t st=0;
     txn_optree_t *tree;
@@ -1887,6 +1889,14 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
                     lsn, record);
     if (!op)
         return (HAM_OUT_OF_MEMORY);
+
+    /* couple cursor if we have one */
+    if (cursor) {
+        txn_cursor_set_to_nil(cursor);
+        txn_cursor_set_flags(cursor, 
+                        txn_cursor_get_flags(cursor)|TXN_CURSOR_FLAG_COUPLED);
+        txn_op_add_cursor(op, cursor);
+    }
 
     /* append journal entry */
     if (env_get_rt_flags(db_get_env(db))&HAM_ENABLE_RECOVERY
@@ -2106,7 +2116,8 @@ _local_fun_insert(ham_db_t *db, ham_txn_t *txn,
      */
     if (!st) {
         if (txn || local_txn)
-            st=db_insert_txn(db, txn ? txn : local_txn, key, &temprec, flags);
+            st=db_insert_txn(db, txn ? txn : local_txn, 
+                            key, &temprec, flags, 0);
         else
             st=be->_fun_insert(be, key, &temprec, flags);
     }

@@ -825,6 +825,16 @@ db_initialize_local(ham_db_t *db);
 extern ham_status_t
 db_initialize_remote(ham_db_t *db);
 
+/*
+ * insert a key/record pair in a txn node; if cursor is not NULL it will
+ * be attached to the new txn_op structure
+ */
+struct txn_cursor_t;
+extern ham_status_t
+db_insert_txn(ham_db_t *db, ham_txn_t *txn,
+                ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
+                struct txn_cursor_t *cursor);
+
 
 #ifdef __cplusplus
 } // extern "C" {

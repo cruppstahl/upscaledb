@@ -496,13 +496,19 @@ o support cursors!!!
         x move to previous
             analoguous to the above algorithm
             x unittest
-        o insert a key
+        x insert a key
+            x insert a few keys
+            x insert and fail w/ DUPLICATE_KEY
+            x insert and overwrite 
+            x insert and create a conflict 
         o erase a key
         o overwrite a key
             o overwrite a key that is in the btree
             o overwrite a key that is in the txn tree
         o couple/uncouple ALL attached cursors if key is accessed/flushed
             o unittest
+        o in __couple_cursor: if cursor is already coupled, it must be
+            UNCOUPLED from this cursor (or set to nil)
 
         o implement support for duplicates
             the problem with duplicates is that their position can depend on
