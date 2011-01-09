@@ -820,8 +820,8 @@ public:
 
         /* insert a key, then erase it */
         BFC_ASSERT_EQUAL(0, insert(txn2, "key1"));
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, findCursor(&cursor, "key1"));
-// TODO must be HAM_TXN_CONFLICT!!
+        BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, findCursor(&cursor, "key1"));
+
         /* cursor must be nil */
         BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(&cursor));
 
