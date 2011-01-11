@@ -505,10 +505,11 @@ o support cursors!!!
         x overwrite a key
             x overwrite a nil-cursor -> error
             x overwrite a key that is in the txn tree
-        o couple/uncouple ALL attached cursors if key is accessed/flushed
-            o unittest
-        o in __couple_cursor: if cursor is already coupled, it must be
+        x in __couple_cursor: if cursor is already coupled, it must be
             UNCOUPLED from this cursor (or set to nil)
+        o uncouple ALL attached cursors if an op is flushed - or set the
+            cursors to NIL?
+            o unittests
 
         o implement support for duplicates
             the problem with duplicates is that their position can depend on
