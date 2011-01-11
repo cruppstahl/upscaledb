@@ -68,9 +68,28 @@ txn_cursor_close(txn_cursor_t *cursor)
     txn_cursor_set_to_nil(cursor);
 }
 
-void
+ham_status_t
 txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record)
 {
+    ham_db_t *db=cursor_get_db(cursor);
+    ham_txn_t *txn=cursor_get_txn(txn_cursor_get_parent(cursor));
+    txn_op_t *op;
+    txn_opnode_t *node;
+
+    /* an overwrite is actually an insert w/ HAM_OVERWRITE of the
+     * current key */
+
+    if (txn_cursor_is_nil(cursor))
+        return (HAM_CURSOR_IS_NIL);
+
+    /* TODO - couple key if it's uncoupled */
+    ham_assert(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED, (""));
+
+    op=txn_cursor_get_coupled_op(cursor);
+    node=txn_op_get_node(op);
+
+    return (db_insert_txn(db, txn, txn_opnode_get_key(node), 
+                record, HAM_OVERWRITE, cursor));
 }
 
 static void

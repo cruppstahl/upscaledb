@@ -153,7 +153,7 @@ txn_cursor_close(txn_cursor_t *cursor);
 /**
  * overwrites the record of a cursor
  */
-extern void
+extern ham_status_t
 txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record);
 
 /**

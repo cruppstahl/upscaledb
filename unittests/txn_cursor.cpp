@@ -79,6 +79,8 @@ public:
         BFC_REGISTER_TEST(TxnCursorTest, eraseKeysTest);
         BFC_REGISTER_TEST(TxnCursorTest, negativeEraseKeysTest);
         BFC_REGISTER_TEST(TxnCursorTest, negativeEraseKeysNilTest);
+        BFC_REGISTER_TEST(TxnCursorTest, overwriteRecordsTest);
+        BFC_REGISTER_TEST(TxnCursorTest, overwriteRecordsNilCursorTest);
     }
 
 protected:
@@ -581,9 +583,19 @@ public:
         ham_record_t r={0};
         if (record) {
             r.data=(void *)record;
-            r.size=sizeof(record);
+            r.size=strlen(record)+1;
         }
         return (txn_cursor_insert(cursor, &k, &r, flags));
+    }
+
+    ham_status_t overwriteCursor(txn_cursor_t *cursor, const char *record)
+    {
+        ham_record_t r={0};
+        if (record) {
+            r.data=(void *)record;
+            r.size=strlen(record)+1;
+        }
+        return (txn_cursor_overwrite(cursor, &r));
     }
 
     ham_status_t erase(ham_txn_t *txn, const char *key)
@@ -596,14 +608,24 @@ public:
         return (ham_erase(m_db, txn, &k, 0));
     }
 
-    ham_status_t findCursor(txn_cursor_t *cursor, const char *key)
+    ham_status_t findCursor(txn_cursor_t *cursor, const char *key, 
+                    const char *record=0)
     {
         ham_key_t k={0};
         if (key) {
             k.data=(void *)key;
             k.size=strlen(key)+1;
         }
-        return (txn_cursor_find(cursor, &k));
+        ham_status_t st=txn_cursor_find(cursor, &k);
+        if (st)
+            return (st);
+        if (record) {
+            ham_record_t r={0};
+            BFC_ASSERT_EQUAL(0, txn_cursor_get_record(cursor, &r));
+            BFC_ASSERT_EQUAL(r.size, strlen(record)+1);
+            BFC_ASSERT_EQUAL(0, memcmp(r.data, record, r.size));
+        }
+        return (0);
     }
 
     ham_status_t moveCursor(txn_cursor_t *cursor, const char *key, 
@@ -1436,6 +1458,57 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
+    void overwriteRecordsTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        /* insert a key and overwrite the record */
+        BFC_ASSERT_EQUAL(0, insertCursor(&cursor, "key1", "rec1"));
+        BFC_ASSERT_EQUAL(true, cursorIsCoupled(&cursor, "key1"));
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key1", "rec1"));
+        BFC_ASSERT_EQUAL(true, cursorIsCoupled(&cursor, "key1"));
+        BFC_ASSERT_EQUAL(0, overwriteCursor(&cursor, "rec2"));
+        BFC_ASSERT_EQUAL(true, cursorIsCoupled(&cursor, "key1"));
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key1", "rec2"));
+        BFC_ASSERT_EQUAL(true, cursorIsCoupled(&cursor, "key1"));
+        BFC_ASSERT_EQUAL(0, overwriteCursor(&cursor, "rec3"));
+        BFC_ASSERT_EQUAL(true, cursorIsCoupled(&cursor, "key1"));
+        BFC_ASSERT_EQUAL(0, findCursor(&cursor, "key1", "rec3"));
+        BFC_ASSERT_EQUAL(true, cursorIsCoupled(&cursor, "key1"));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void overwriteRecordsNilCursorTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor;
+        initialize(&cursor);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, overwriteCursor(&cursor, "rec2"));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
 };
 
 BFC_REGISTER_FIXTURE(TxnCursorTest);

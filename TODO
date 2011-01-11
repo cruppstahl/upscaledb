@@ -502,9 +502,9 @@ o support cursors!!!
             x insert and overwrite 
             x insert and create a conflict 
         x erase a key
-        o overwrite a key
-            o overwrite a key that is in the btree
-            o overwrite a key that is in the txn tree
+        x overwrite a key
+            x overwrite a nil-cursor -> error
+            x overwrite a key that is in the txn tree
         o couple/uncouple ALL attached cursors if key is accessed/flushed
             o unittest
         o in __couple_cursor: if cursor is already coupled, it must be
