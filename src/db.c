@@ -795,6 +795,7 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     ham_status_t st;
     ham_offset_t tellpos=0;
     ham_page_t *page = NULL;
+    ham_bool_t in_list=HAM_FALSE;
 
     *page_ref = 0;
     ham_assert(0 == (flags & ~(PAGE_IGNORE_FREELIST 
@@ -837,9 +838,10 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             /* try to fetch the page from the txn */
             if (env_get_txn(env)) {
                 page=txn_get_page(env_get_txn(env), tellpos);
-                ham_assert(page==0, (""));
-                if (page)
+                if (page) {
+                    in_list=HAM_TRUE;
                     goto done;
+                }
             }
             /* try to fetch the page from the cache */
             if (env_get_cache(env)) {
@@ -996,7 +998,7 @@ done:
             return st;
     }
 
-    if (env_get_txn(env)) {
+    if (env_get_txn(env) && in_list==HAM_FALSE) {
         st=txn_add_page(env_get_txn(env), page, HAM_TRUE);
         if (st) {
             return st;

@@ -270,7 +270,12 @@ page_flush(ham_page_t *page)
 	ham_assert(env, (0));
 	ham_assert(page_get_owner(page) ? env == db_get_env(page_get_owner(page)) : 1, (0));
 
-    ham_assert(page_get_refcount(page)==0, (0));
+    /* 
+     * refcount can be zero if ham_flush() is called - therefore the following
+     * assert is not valid:
+     *
+     * ham_assert(page_get_refcount(page)==0, (0)); 
+     */
 
 	/* 
 	as we are about to write a modified page to disc, we MUST flush 
