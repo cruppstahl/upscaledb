@@ -508,36 +508,97 @@ o support cursors!!!
         x in __couple_cursor: if cursor is already coupled, it must be
             UNCOUPLED from this cursor (or set to nil)
         o uncouple ALL attached cursors if an op is flushed - or set the
-            cursors to NIL?
+            cursors to NIL? in that case we have to make sure that NIL
+            is correctly handled in all functions
+            o review handling of nil cursors
+            o remove the whole UNCOUPLED stuff (the macro, the union etc)
             o unittests
 
-        o implement support for duplicates
-            the problem with duplicates is that their position can depend on
-            other factors, i.e. the (volatile) position of the neighbor
-            element (when using DUPLICATE_AFTER) or the sort position.
-            for this we have to solve two problems:
-                1. when accessing duplicates, we have to consolidate them
-                    INCLUDING the btree dupes, depending on sort order,
-                    erased duplicates etc; for this we have to simulate the
-                    full insert of the duplicates
-                2. when inserting a duplicate, we have to store the lsn 
-                    (or a unique ID) of a referenced duplicate; i.e. if it's
-                    "DUPLICATE_AFTER" then we have to reference the current
-                    duplicate (which will then become the previous neighbor).
+    o separate cursor logic into btree and txn; in db.c, consolidate the
+        two cursors (or move the functions to cursor.c?)
+    o cursor: if no TXN is assigned, give each operation its temp. txn
+        o unittests
+    o insert: if TXNs are enabled, only call txn_cursor_insert(); otherwise
+        call btree function
+        o unittests
+    o overwrite: if TXNs are enabled, only call txn_cursor_overwrite(); 
+        otherwise call btree function
+        o unittests
+    o erase: if TXNs are enabled, only call txn_cursor_erase(); 
+        otherwise call btree function
+        o unittests
+    o clone
+    o close
+    o move first: use the cursor which is smaller; when deciding on a btree,
+        first check if it wasn't erased by a txn
+        o unittest w/ smaller item in txntree
+        o unittest w/ smaller item in btree
+        o unittest w/ smaller item in btree which is erased in txn
+        o unittest w/ identical items - use txn (it's chronologically newer
+            and could be an INSERT_OW)
+        o unittest w/ empty txn-tree
+        o unittest w/ empty btree-tree
+    o move last: use the cursor which is greater (similar to above)
+        o unittest
+    o move next: only use the btree cursor for traversing.
+        while (txn.key<=btree.key):
+            return txn.key++;
+        return btree.key++;
+        this should also work when switching directions (but test it!))
+        o unittest
+        o unittest w/ switching directions
+    o move prev: use the cursor which is closer to the current one
+        (similar to above)
+        o unittest
+        o unittest w/ switching directions
+    o make sure that we do not return keys that are picked from the btree,
+        but are already deleted (or overwritten) in a txn tree (same about
+        duplicates!)
+    o move with duplicates
+        - will get esp. tricky when a few of the duplicates are flushed while
+            iterating with the cursor
+    o when flushing a transaction, and a cursor is pointing into the txn
+        node: uncouple the cursor! (or delete it?)
+        o unittest
+    o db.c: do we need local_txn in the cursor functions? currently there's
+        only one temp. cursor that is created over the whole lifetime
+        of the cursor; this is way too risky. revert original behavior.
+        document this!
+    o add support for logging/recovery
+        o ham_cursor_insert
+        o ham_cursor_erase (duplicate handling!)
+        o ham_cursor_overwrite
+        o unittests
 
-                    we also need this reference to specify WHICH duplicate is
-                    deleted or overwritten. To reference a btree duplicate,
-                    we can store 7 bytes of the lsn (warning: big endian!)
-                    in the "padding" field of the dupe_entry. 
-                    in memory we can reference the other txn_op structure. this
-                    needs to be a dual reference because if one of the ops is
-                    flushed, the other will need to know about it.
+    o implement support for duplicates
+        the problem with duplicates is that their position can depend on
+        other factors, i.e. the (volatile) position of the neighbor
+        element (when using DUPLICATE_AFTER) or the sort position.
+        for this we have to solve two problems:
+            1. when accessing duplicates, we have to consolidate them
+                INCLUDING the btree dupes, depending on sort order,
+                erased duplicates etc; for this we have to simulate the
+                full insert of the duplicates
+            2. when inserting a duplicate, we have to store the lsn 
+                (or a unique ID) of a referenced duplicate; i.e. if it's
+                "DUPLICATE_AFTER" then we have to reference the current
+                duplicate (which will then become the previous neighbor).
 
-                    storing the lsn in the padding will NOT work with existing
-                    databases! -> need to provide a migration path (or document
-                    it as a known issue? return an error when using duplicates
-                    with transactions?)
+                we also need this reference to specify WHICH duplicate is
+                deleted or overwritten. To reference a btree duplicate,
+                we can store 7 bytes of the lsn (warning: big endian!)
+                in the "padding" field of the dupe_entry. 
+                in memory we can reference the other txn_op structure. this
+                needs to be a dual reference because if one of the ops is
+                flushed, the other will need to know about it.
 
+                storing the lsn in the padding will NOT work with existing
+                databases! -> need to provide a migration path (or document
+                it as a known issue? return an error when using duplicates
+                with transactions?)
+
+        o consolidate duplicates with btree - build up the full list of
+            duplicates of a key, sort them etc
         o find cursor
             o unittests w/ two duplicates -> pick older dupe
             o unittests w/ overwriting duplicates (not yet implemented?)
@@ -565,56 +626,9 @@ o support cursors!!!
         o move to previous w/ duplicates
             o unittest
 
-    o separate cursor logic into btree and txn; in db.c, consolidate the
-        two cursors
-    o move first: use the cursor which is smaller
-        o unittest
-    o move last: use the cursor which is larger
-        o unittest
-    o move next: only use the btree cursor for traversing.
-        1. move the btree cursor to the next element
-        2. check if the txn has a key which is BETWEEN the previous key and
-            the current key in the btree
-        3. also check if the txn has deleted the btree key - if yes, then
-            continue
-        4. must also work if btree is empty!
-        5. for duplicates we need to consolidate ALL dupes of this key 
-            (but we can cache the result if nothing changed in between)
--- OR (better): 
-    while (txn.key<=btree.key):
-        return txn.key++;
-    return btree.key++;
-    this should also work when switching directions (but test it!))
-        o unittests
-    o move prev: use the cursor which is closer to the current one
-        (similar to above)
-        o unittest
-        o unittest w/ switching directions
-    o make sure that we do not return keys that are picked from the btree,
-        but are already deleted (or overwritten) in a txn tree (same about
-        duplicates!)
-    o move with duplicates
-        - will get esp. tricky when a few of the duplicates are flushed while
-            iterating with the cursor
-    o when flushing a transaction, and a cursor is pointing into the txn
-        node: uncouple the cursor! (or delete it?)
-        o unittest
-    o db.c: do we need local_txn in the cursor functions? currently there's
-        only one temp. cursor that is created over the whole lifetime
-        of the cursor; this is way too risky. revert original behavior.
-        document this!
-    o add support for logging/recovery
-        o ham_cursor_insert
-        o ham_cursor_erase (duplicate handling!)
-        o ham_cursor_overwrite
-        o unittests
-
 o ham_find in a transaction: if there are duplicates, is the same item (k/r) 
     returned as in the btree? btree duplicates are stored at the *end* of the
     list, and the oldest duplicate is returned. txn returns the newest??
-
-o what about sorted duplicates? should be disabled when transactions are 
-    enabled? otherwise we have to sort btree+txntree during cursor movements
 
 o we currently have two modes regarding recovery:
     - HAM_ENABLE_TRANSACTIONS (implies HAM_ENABLE_RECOVERY)
