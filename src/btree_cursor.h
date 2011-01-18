@@ -112,16 +112,6 @@ struct ham_bt_cursor_t
 #define bt_cursor_set_txn(cu, txn)          (cu)->_txn=(txn)
 
 /**
-* get the allocator
-*/
-#define bt_cursor_get_allocator(cu)         (cu)->_allocator
-
-/**
-* set the allocator
-*/
-#define bt_cursor_set_allocator(cu, a)      (cu)->_allocator=(a)
-
-/**
  * get the flags
  */
 #define bt_cursor_get_flags(cu)             (cu)->_flags
