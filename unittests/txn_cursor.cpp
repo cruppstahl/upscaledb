@@ -47,12 +47,10 @@ public:
         BFC_REGISTER_TEST(TxnCursorTest, getKeyFromCoupledCursorTest);
         BFC_REGISTER_TEST(TxnCursorTest, getKeyFromCoupledCursorUserAllocTest);
         BFC_REGISTER_TEST(TxnCursorTest, getKeyFromCoupledCursorEmptyKeyTest);
-        BFC_REGISTER_TEST(TxnCursorTest, getKeyFromUncoupledCursorTest);
         BFC_REGISTER_TEST(TxnCursorTest, getKeyFromNilCursorTest);
         BFC_REGISTER_TEST(TxnCursorTest, getRecordFromCoupledCursorTest);
         BFC_REGISTER_TEST(TxnCursorTest, getRecordFromCoupledCursorUserAllocTest);
         BFC_REGISTER_TEST(TxnCursorTest, getRecordFromCoupledCursorEmptyRecordTest);
-        BFC_REGISTER_TEST(TxnCursorTest, getRecordFromUncoupledCursorTest);
         BFC_REGISTER_TEST(TxnCursorTest, getRecordFromNilCursorTest);
         BFC_REGISTER_TEST(TxnCursorTest, findInsertTest);
         BFC_REGISTER_TEST(TxnCursorTest, findInsertEraseTest);
@@ -126,7 +124,6 @@ public:
     void structureTest(void)
     {
         txn_cursor_t cursor={0};
-        ham_key_t k={0};
         txn_op_t op={0};
 
         BFC_ASSERT_EQUAL((ham_db_t *)0, txn_cursor_get_db(&cursor));
@@ -138,11 +135,6 @@ public:
         txn_cursor_set_flags(&cursor, 0x345);
         BFC_ASSERT_EQUAL(0x345u, txn_cursor_get_flags(&cursor));
         txn_cursor_set_flags(&cursor, 0);
-
-        BFC_ASSERT_EQUAL((ham_key_t *)0, txn_cursor_get_uncoupled_key(&cursor));
-        txn_cursor_set_uncoupled_key(&cursor, &k);
-        BFC_ASSERT_EQUAL(&k, txn_cursor_get_uncoupled_key(&cursor));
-        txn_cursor_set_uncoupled_key(&cursor, 0);
 
         BFC_ASSERT_EQUAL((txn_op_t *)0, txn_cursor_get_coupled_op(&cursor));
         txn_cursor_set_coupled_op(&cursor, &op);
@@ -171,11 +163,6 @@ public:
 
         BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(&cursor));
         txn_cursor_set_flags(&cursor, TXN_CURSOR_FLAG_COUPLED);
-        BFC_ASSERT_EQUAL(HAM_FALSE, txn_cursor_is_nil(&cursor));
-        txn_cursor_set_to_nil(&cursor);
-        BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(&cursor));
-
-        txn_cursor_set_flags(&cursor, TXN_CURSOR_FLAG_UNCOUPLED);
         BFC_ASSERT_EQUAL(HAM_FALSE, txn_cursor_is_nil(&cursor));
         txn_cursor_set_to_nil(&cursor);
         BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(&cursor));
@@ -351,35 +338,6 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
     }
 
-    void getKeyFromUncoupledCursorTest(void)
-    {
-        ham_txn_t *txn;
-        txn_optree_t *tree;
-        txn_opnode_t *node;
-        txn_op_t *op;
-        ham_key_t k={0};
-        ham_key_t key={0};
-        ham_record_t record={0};
-        key.data=(void *)"hello";
-        key.size=5;
-
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
-        node=txn_opnode_create(m_db, &key);
-        op=txn_opnode_append(txn, node, TXN_OP_INSERT_DUP, 55, &record);
-        BFC_ASSERT(op!=0);
-
-        txn_cursor_t c={0};
-        txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_UNCOUPLED);
-        txn_cursor_set_db(&c, m_db);
-        txn_cursor_set_uncoupled_key(&c, &key);
-
-        BFC_ASSERT_EQUAL(HAM_INTERNAL_ERROR, txn_cursor_get_key(&c, &k));
-
-        txn_free_ops(txn);
-        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
-    }
-
     void getKeyFromNilCursorTest(void)
     {
         ham_txn_t *txn;
@@ -498,33 +456,6 @@ public:
         BFC_ASSERT_EQUAL(0, txn_cursor_get_record(&c, &r));
         BFC_ASSERT_EQUAL(r.size, record.size);
         BFC_ASSERT_EQUAL((void *)0, r.data);
-
-        txn_free_ops(txn);
-        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
-    }
-
-    void getRecordFromUncoupledCursorTest(void)
-    {
-        ham_txn_t *txn;
-        txn_optree_t *tree;
-        txn_opnode_t *node;
-        txn_op_t *op;
-        ham_key_t key={0};
-        ham_record_t record={0};
-        ham_record_t r={0};
-
-        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
-        tree=txn_tree_get_or_create(m_db);
-        node=txn_opnode_create(m_db, &key);
-        op=txn_opnode_append(txn, node, TXN_OP_INSERT_DUP, 55, &record);
-        BFC_ASSERT(op!=0);
-
-        txn_cursor_t c={0};
-        txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_UNCOUPLED);
-        txn_cursor_set_db(&c, m_db);
-        txn_cursor_set_uncoupled_key(&c, &key);
-
-        BFC_ASSERT_EQUAL(HAM_INTERNAL_ERROR, txn_cursor_get_record(&c, &r));
 
         txn_free_ops(txn);
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));

@@ -510,9 +510,10 @@ o support cursors!!!
         o uncouple ALL attached cursors if an op is flushed - or set the
             cursors to NIL? in that case we have to make sure that NIL
             is correctly handled in all functions
-            o review handling of nil cursors
-            o remove the whole UNCOUPLED stuff (the macro, the union etc)
-            o unittests
+            x review handling of nil cursors
+            x remove the whole UNCOUPLED stuff (the macro, the union etc)
+            o set to nil when op is flushed
+                o unittests
 
     o separate cursor logic into btree and txn; in db.c, consolidate the
         two cursors (or move the functions to cursor.c?)

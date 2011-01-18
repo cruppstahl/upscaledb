@@ -22,30 +22,14 @@ txn_cursor_is_nil(txn_cursor_t *cursor)
 {
     if (txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED)
         return (HAM_FALSE);
-    if (txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_UNCOUPLED)
-        return (HAM_FALSE);
     return (HAM_TRUE);
 }
 
 void
 txn_cursor_set_to_nil(txn_cursor_t *cursor)
 {
-    ham_env_t *env=db_get_env(txn_cursor_get_db(cursor));
-
-    /* uncoupled cursor? free the cached pointer */
-    if (txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_UNCOUPLED) {
-        ham_key_t *key=txn_cursor_get_uncoupled_key(cursor);
-        if (key) {
-            if (key->data)
-                allocator_free(env_get_allocator(env), key->data);
-            allocator_free(env_get_allocator(env), key);
-        }
-        txn_cursor_set_uncoupled_key(cursor, 0);
-        txn_cursor_set_flags(cursor, 
-                txn_cursor_get_flags(cursor)&(~TXN_CURSOR_FLAG_UNCOUPLED));
-    }
     /* uncoupled cursor? remove from the txn_op structure */
-    else if (txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED) {
+    if (txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED) {
         txn_op_t *op=txn_cursor_get_coupled_op(cursor);
         if (op)
             txn_op_remove_cursor(op, cursor);
@@ -95,7 +79,6 @@ txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record)
 static void
 __couple_cursor(txn_cursor_t *cursor, txn_op_t *op)
 {
-    ham_assert(!(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_UNCOUPLED), (""));
     txn_cursor_set_to_nil(cursor);
     txn_cursor_set_coupled_op(cursor, op);
     txn_cursor_set_flags(cursor, 
@@ -335,12 +318,6 @@ txn_cursor_get_key(txn_cursor_t *cursor, ham_key_t *key)
 
     }
     /* 
-     * uncoupled cursor? then the cursor was flushed to the btree. return
-     * HAM_INTERNAL_ERROR to force the caller to lookup the btree. 
-     */
-    else if (txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_UNCOUPLED)
-        return (HAM_INTERNAL_ERROR);
-    /* 
      * otherwise cursor is nil and we cannot return a key 
      */
     else
@@ -374,12 +351,6 @@ txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record)
             record->data=0;
     }
     /* 
-     * uncoupled cursor? then the cursor was flushed to the btree. return
-     * HAM_INTERNAL_ERROR to force the caller to lookup the btree. 
-     */
-    else if (txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_UNCOUPLED)
-        return (HAM_INTERNAL_ERROR);
-    /* 
      * otherwise cursor is nil and we cannot return a key 
      */
     else
@@ -399,8 +370,6 @@ txn_cursor_erase(txn_cursor_t *cursor)
 
     if (txn_cursor_is_nil(cursor))
         return (HAM_CURSOR_IS_NIL);
-
-    ham_assert(!(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_UNCOUPLED), (""));
 
     /* just insert a normal erase op in the transaction, then set the cursor
      * to nil */

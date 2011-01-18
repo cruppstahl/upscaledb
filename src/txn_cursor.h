@@ -40,32 +40,23 @@ typedef struct txn_cursor_t
     ham_cursor_t *_parent;
 
     /** 
-     * a Cursor can either be coupled or uncoupled. If it's coupled, it 
-     * directly points to a txn_op_t structure. If it's uncoupled, it
-     * stores a copy of the key to which it points 
+     * a Cursor can either be coupled or nil ("not in list"). If it's 
+     * coupled, it directly points to a txn_op_t structure. If it's nil then it
+     * basically is uninitialized.
      */
-    union txn_cursor_union_t {
-        struct txn_cursor_coupled_t {
-            /* the txn operation to which we're pointing */
-            txn_op_t *_op;
+    struct txn_cursor_coupled_t {
+        /* the txn operation to which we're pointing */
+        txn_op_t *_op;
 
-            /** a double linked list with other cursors that are coupled 
-             * to the same txn_op */
-            struct txn_cursor_t *_next;
+        /** a double linked list with other cursors that are coupled 
+         * to the same txn_op */
+        struct txn_cursor_t *_next;
 
-            /** a double linked list with other cursors that are coupled 
-             * to the same txn_op */
-            struct txn_cursor_t *_previous;
+        /** a double linked list with other cursors that are coupled 
+         * to the same txn_op */
+        struct txn_cursor_t *_previous;
 
-        } _coupled;
-
-        union txn_cursor_uncoupled_t {
-            /* a copy of the key to which we're pointing */
-            ham_key_t *_key;
-
-        } _uncoupled;
-
-    } _u;
+    } _coupled;
     
     /* the flags store the state of the cursor - see below */
     ham_u32_t _flags;
@@ -74,9 +65,6 @@ typedef struct txn_cursor_t
 
 /** cursor flag - cursor is coupled */
 #define TXN_CURSOR_FLAG_COUPLED                     1
-
-/** cursor flag - cursor is uncoupled */
-#define TXN_CURSOR_FLAG_UNCOUPLED                   2
 
 /** get the database pointer */
 #define txn_cursor_get_db(c)                        (c)->_db
@@ -97,32 +85,26 @@ typedef struct txn_cursor_t
 #define txn_cursor_set_flags(c, f)                  (c)->_flags=f
 
 /** get the pointer to the coupled txn_op */
-#define txn_cursor_get_coupled_op(c)                (c)->_u._coupled._op
+#define txn_cursor_get_coupled_op(c)                (c)->_coupled._op
 
 /** set the pointer to the coupled txn_op */
-#define txn_cursor_set_coupled_op(c, op)            (c)->_u._coupled._op=op
+#define txn_cursor_set_coupled_op(c, op)            (c)->_coupled._op=op
 
 /** get the pointer to the next cursor in the linked list of coupled
  * cursors */
-#define txn_cursor_get_coupled_next(c)              (c)->_u._coupled._next
+#define txn_cursor_get_coupled_next(c)              (c)->_coupled._next
 
 /** set the pointer to the next cursor in the linked list of coupled
  * cursors */
-#define txn_cursor_set_coupled_next(c, n)           (c)->_u._coupled._next=n
+#define txn_cursor_set_coupled_next(c, n)           (c)->_coupled._next=n
 
 /** get the pointer to the previous cursor in the linked list of coupled
  * cursors */
-#define txn_cursor_get_coupled_previous(c)          (c)->_u._coupled._previous
+#define txn_cursor_get_coupled_previous(c)          (c)->_coupled._previous
 
 /** set the pointer to the previous cursor in the linked list of coupled
  * cursors */
-#define txn_cursor_set_coupled_previous(c, p)       (c)->_u._coupled._previous=p
-
-/** get the pointer to the uncoupled key */
-#define txn_cursor_get_uncoupled_key(c)             (c)->_u._uncoupled._key
-
-/** set the pointer to the uncoupled key */
-#define txn_cursor_set_uncoupled_key(c, k)          (c)->_u._uncoupled._key=k
+#define txn_cursor_set_coupled_previous(c, p)       (c)->_coupled._previous=p
 
 /** 
  * returns true if the cursor is nil (does not point to any item) 
