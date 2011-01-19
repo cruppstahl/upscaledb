@@ -1,6 +1,12 @@
-Dev 03, 2010 - chris ---------------------------------------------------
+Jan 10, 2011 - chris ---------------------------------------------------
+o removed two wrong asserts and improved the fix of Nov 25th
+
+Dec 05, 2010 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.8
+
+Dec 03, 2010 - chris ---------------------------------------------------
 o configure.in will no longer overwrite -Ox flags; the default 
-compilation option is now -O2 (thanks, Mark)
+    compilation option is now -O2 (thanks, Mark)
 
 Nov 30, 2010 - chris ---------------------------------------------------
 o bugfix with HAM_DIRECT_ACCESS and cursors which insert duplicates at the
