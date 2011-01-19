@@ -528,6 +528,13 @@ o support cursors!!!
     o erase: if TXNs are enabled, only call txn_cursor_erase(); 
         otherwise call btree function
         o unittests
+    o find
+        o find w/ empty txn tree
+        o find w/ empty btree
+        o find w/ empty everything
+        o find w/ btree and key is erased in txn-tree
+        o find w/ txn and key is erased in txn-tree
+        o find w/ txn and key is overwritten in txn-tree
     o clone
     o close
     o move first: use the cursor which is smaller; when deciding on a btree,
