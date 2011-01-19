@@ -2635,7 +2635,6 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     /* TODO TODO TODO remove this when cursors are fully implemented */
     changeset_clear(env_get_changeset(env));
 
-    ham_assert(env_get_allocator(env) == cursor_get_allocator(cursor), (0));
     if (temprec.data != record->data)
         allocator_free(env_get_allocator(env), temprec.data);
 

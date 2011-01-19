@@ -515,8 +515,10 @@ o support cursors!!!
             o set to nil when op is flushed
                 o unittests
 
-    o separate cursor logic into btree and txn; in db.c, consolidate the
-        two cursors (or move the functions to cursor.c?)
+    x separate cursor logic into btree and txn; in db.c, consolidate the
+        two cursors (or move the functions to cursor.c?) - no, it's fine
+        as it is
+        x added txn cursor to the normal cursor
     o cursor: if no TXN is assigned, give each operation its temp. txn
         o unittests
     o insert: if TXNs are enabled, only call txn_cursor_insert(); otherwise

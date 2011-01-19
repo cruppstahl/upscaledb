@@ -26,7 +26,9 @@
 #include "txn_cursor.h"
 
 /* stuff for rb.h */
+#ifndef __ssize_t_defined
 typedef signed ssize_t;
+#endif
 typedef int bool;
 #define true 1
 #define false (!true)
