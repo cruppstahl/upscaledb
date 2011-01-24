@@ -169,18 +169,18 @@ __f_read_page(ham_device_t *self, ham_page_t *page)
     /*
      * first, try to mmap the file (if mmap is available/enabled). 
      *
-     * however, in some scenarios on win32, mmap can fail because resources
-     * are exceeded (non-paged memory pool).
-     * in such a case, the os_mmap function will return HAM_LIMITS_REACHED
+     * however, if a LOT of mmapped pages are held in memory, then mmap
+     * fails. This happens on win32 but i also saw it on linux 64bit. 
+     * in such a case, the os_mmap function will return HAM_OUT_OF_MEMORY
      * and we force a fallback to read/write.
      */
     if (!(device_get_flags(self)&HAM_DISABLE_MMAP)) {
         st=os_mmap(t->fd, page_get_mmap_handle_ptr(page), 
                 page_get_self(page), size, 
                 device_get_flags(self)&HAM_READ_ONLY, &buffer);
-        if (st && st!=HAM_LIMITS_REACHED)
+        if (st && st!=HAM_OUT_OF_MEMORY)
             return (st);
-        if (st==HAM_LIMITS_REACHED) {
+        if (st==HAM_OUT_OF_MEMORY) {
             device_set_flags(self, device_get_flags(self)|HAM_DISABLE_MMAP);
             goto fallback_rw;
         }

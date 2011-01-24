@@ -106,12 +106,15 @@ os_mmap(ham_fd_t fd, ham_fd_t *mmaph, ham_offset_t position,
     *buffer=mmap(0, size, prot, MAP_PRIVATE, fd, position);
     if (*buffer==(void *)-1) {
         *buffer=0;
+        if (errno==ENOMEM) /* out of mmap memory */
+            return (HAM_OUT_OF_MEMORY);
         ham_log(("mmap failed with status %d (%s)", errno, strerror(errno)));
         return (HAM_IO_ERROR);
     }
 
     return (HAM_SUCCESS);
 #else
+    ham_log(("mmap is not supported on this platform"));
     return (HAM_NOT_IMPLEMENTED);
 #endif
 }
