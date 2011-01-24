@@ -1,3 +1,6 @@
+Jan 24, 2011 - chris ---------------------------------------------------
+o several smaller fixes based on static code analysis
+
 Jan 10, 2011 - chris ---------------------------------------------------
 o removed two wrong asserts and improved the fix of Nov 25th
 
