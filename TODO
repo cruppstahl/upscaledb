@@ -192,7 +192,7 @@ x rewrite cache purging/page locking
 
 x merge bugfixes of 1.1.8
 
-o logging: currently, logging for txn_begin and txn_commit/abort 
+x logging: currently, logging for txn_begin and txn_commit/abort 
     is not implemented
     -> we have to distinguish between txn logging (the WAL journal which
     records everything transactional) and the physical logging of the modified
@@ -635,6 +635,8 @@ o support cursors!!!
             o test each scenarios above with cursor_find, cursor_move 
         o move to previous w/ duplicates
             o unittest
+
+o merge bugfixes of 1.1.9 - 6aed8c1ae7f9a6ea2f19
 
 o ham_find in a transaction: if there are duplicates, is the same item (k/r) 
     returned as in the btree? btree duplicates are stored at the *end* of the
