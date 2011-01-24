@@ -3979,10 +3979,7 @@ freel_shutdown(ham_env_t *env)
     st = cache->_destructor(dev, env);
 
     allocator_free(env_get_allocator(env), cache);
-    if (env)
-        device_set_freelist_cache(env_get_device(env), 0);
-    else
-        device_set_freelist_cache(env_get_device(env), 0);
+    device_set_freelist_cache(env_get_device(env), 0);
 
     return (st);
 }

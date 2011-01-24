@@ -76,7 +76,7 @@ main(void)
     
     while (1) {
         printf("> ");
-        scanf("%s", &input[0]);
+        (void)scanf("%s", &input[0]);
         if (!strcmp(input, "exit")) {
             printf("exiting...\n");
             break;

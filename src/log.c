@@ -33,7 +33,7 @@ __undo(ham_log_t *log, log_iterator_t *iter,
     int i;
 	int found=0;
     ham_status_t st=0;
-    log_entry_t entry;
+    log_entry_t entry={0};
     ham_u8_t *data=0;
     ham_offset_t fpos[2];
 
@@ -836,7 +836,7 @@ ham_status_t
 ham_log_recover(ham_log_t *log, ham_device_t *device, ham_env_t *env)
 {
     ham_status_t st=0;
-    log_entry_t entry;
+    log_entry_t entry={0};
     log_iterator_t iter;
     ham_u8_t *data=0;
     ham_u64_t *txn_list=0;

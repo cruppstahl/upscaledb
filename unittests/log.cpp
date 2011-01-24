@@ -1021,7 +1021,7 @@ public:
         log_iterator_t iter;
         memset(&iter, 0, sizeof(iter));
 
-        log_entry_t entry;
+        log_entry_t entry={0};
         ham_u8_t *data;
         while (1) {
             BFC_ASSERT_EQUAL(0, 
@@ -1891,7 +1891,7 @@ public:
         log_iterator_t iter;
         memset(&iter, 0, sizeof(iter));
 
-        log_entry_t entry;
+        log_entry_t entry={0};
         ham_u8_t *data;
         while (1) {
             BFC_ASSERT_EQUAL(0, 

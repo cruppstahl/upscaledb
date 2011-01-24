@@ -919,7 +919,6 @@ btree_find_get_hints(find_hints_t *hints, ham_db_t *db, ham_key_t *key)
         {
             int cmp;
             
-            ham_assert(dbdata->upper_bound_index >= 0, (0));
             ham_assert(dbdata->upper_bound.data == NULL ?
                 dbdata->upper_bound.size == 0 : 
                 dbdata->upper_bound.size > 0, (0));
@@ -1175,7 +1174,6 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
             {
                 int cmp;
                 
-                ham_assert(dbdata->upper_bound_index >= 0, (0));
                 ham_assert(dbdata->upper_bound.data == NULL ?
                     dbdata->upper_bound.size == 0 : 
                     dbdata->upper_bound.size > 0, (0));
@@ -1250,7 +1248,6 @@ btree_erase_get_hints(erase_hints_t *hints, ham_db_t *db, ham_key_t *key)
     {
         int cmp;
         
-        ham_assert(dbdata->upper_bound_index >= 0, (0));
         ham_assert(dbdata->upper_bound.data == NULL ?
             dbdata->upper_bound.size == 0 : 
             dbdata->upper_bound.size > 0, (0));

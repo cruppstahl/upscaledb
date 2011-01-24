@@ -2256,6 +2256,7 @@ check_password(const char *method, const char *ha1, const char *uri,
  * Use the global passwords file, if specified by auth_gpass option,
  * or search for .htpasswd in the requested directory.
  */
+#if 0 /* -- christoph: currently not used */
 static FILE *
 open_auth_file(struct mg_connection *conn, const char *path)
 {
@@ -2299,6 +2300,7 @@ open_auth_file(struct mg_connection *conn, const char *path)
 
 	return (fp);
 }
+#endif
 
 /*
  * Parsed Authorization: header

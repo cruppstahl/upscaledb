@@ -520,7 +520,7 @@ static ham_status_t
 __m_free_page(ham_device_t *self, ham_page_t *page)
 {
     ham_assert(page_get_pers(page)!=0, (0));
-    ham_assert(page_get_npers_flags(page)|PAGE_NPERS_MALLOC, (0));
+    ham_assert(page_get_npers_flags(page)&PAGE_NPERS_MALLOC, (0));
 
     allocator_free(device_get_allocator(self), page_get_pers(page));
     page_set_pers(page, 0);

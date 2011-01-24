@@ -652,7 +652,6 @@ db_update_freelist_stats_edit(ham_device_t *dev, ham_env_t *env, freelist_entry_
 			{
 				ham_u32_t entry_index = (ham_u32_t)(entry - freel_cache_get_entries(cache));
 
-				ham_assert(entry_index >= 0, (0));
 				ham_assert(entry_index < freel_cache_get_count(cache), (0));
 
 				for (b = 0; b <= bucket; b++)
@@ -763,7 +762,6 @@ db_update_freelist_globalhints_no_hit(ham_device_t *dev, ham_env_t *env, freelis
     ham_u16_t bucket = ham_bitcount2bucket_index(hints->size_bits);
     ham_u32_t entry_index = (ham_u32_t)(entry - freel_cache_get_entries(cache));
 
-    ham_assert(entry_index >= 0, (0));
     ham_assert(entry_index < freel_cache_get_count(cache), (0));
 
     ham_assert(hints->page_span_width >= 1, (0));

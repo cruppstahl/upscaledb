@@ -488,8 +488,8 @@ class bfc_value_catcher_ulong : public bfc_value_catcher
 {
 public:
     bfc_value_catcher_ulong(unsigned long v)
-    {
-        _v = v;
+    : _v(v) {
+        _msg[0] = 0;
     }
 protected:
     unsigned long _v;
@@ -509,8 +509,8 @@ class bfc_value_catcher_longlong : public bfc_value_catcher
 {
 public:
     bfc_value_catcher_longlong(signed long long v)
-    {
-        _v = v;
+    : _v(v) {
+        _msg[0] = 0;
     }
 protected:
     signed long long _v;
@@ -530,8 +530,8 @@ class bfc_value_catcher_ulonglong : public bfc_value_catcher
 {
 public:
     bfc_value_catcher_ulonglong(unsigned long long v)
-    {
-        _v = v;
+    : _v(v) {
+        _msg[0] = 0;
     }
 protected:
     unsigned long long _v;
@@ -551,8 +551,8 @@ class bfc_value_catcher_int64 : public bfc_value_catcher
 {
 public:
     bfc_value_catcher_int64(signed __int64 v)
-    {
-        _v = v;
+    : _v(v) {
+        _msg[0] = 0;
     }
 protected:
     signed __int64 _v;
@@ -572,8 +572,8 @@ class bfc_value_catcher_uint64 : public bfc_value_catcher
 {
 public:
     bfc_value_catcher_uint64(unsigned __int64 v)
-    {
-        _v = v;
+    : _v(v) {
+        _msg[0] = 0;
     }
 protected:
     unsigned __int64 _v;
@@ -594,8 +594,7 @@ class bfc_value_catcher_charptr : public bfc_value_catcher
 {
 public:
     bfc_value_catcher_charptr(const char *v)
-    {
-        _v = v;
+    : _v(v) {
     }
 protected:
     const char *_v;
@@ -615,8 +614,8 @@ class bfc_value_catcher_voidptr : public bfc_value_catcher
 {
 public:
     bfc_value_catcher_voidptr(const void *v)
-    {
-        _v = v;
+    : _v(v) {
+        _msg[0] = 0;
     }
 protected:
     const void *_v;
@@ -751,7 +750,8 @@ protected:
                 _caught_values_size = n;
             }
         }
-        _caught_values[idx] = c;
+        if (_caught_values)
+            _caught_values[idx] = c;
     }
 
     virtual const char *get_caught_value_string(unsigned int idx)

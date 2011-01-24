@@ -1566,7 +1566,7 @@ testrunner::bfc_signal_context_t::bfc_signal_context_t()
 #endif
 	}
 
-	//memset(&signal_return_point, 0, sizeof(signal_return_point));
+	memset(&signal_return_point, 0, sizeof(signal_return_point));
 }
 
 testrunner::bfc_signal_context_t::~bfc_signal_context_t()

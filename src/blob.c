@@ -1206,6 +1206,8 @@ blob_duplicate_insert(ham_db_t *db, ham_offset_t table_id,
             position=__get_sorted_position(db, table, record, flags);
             if (page)
                 page_release_ref(page);
+            if (position<0)
+                return ((ham_status_t)position);
         }
         else if (flags&HAM_DUPLICATE_INSERT_BEFORE) {
             /* do nothing, insert at the current position */

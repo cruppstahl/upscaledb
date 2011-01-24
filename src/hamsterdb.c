@@ -790,7 +790,6 @@ default_case:
             ham_trace(("parameter 'name' (0x%04x) must be lower than "
                 "0xf000", (unsigned)dbname));
             return (HAM_INV_PARAMETER);
-            dbname = HAM_FIRST_DATABASE_NAME;
         }
         else if (!create && (dbname==0 || dbname>HAM_DUMMY_DATABASE_NAME)) {
             ham_trace(("parameter 'name' (0x%04x) must be lower than "

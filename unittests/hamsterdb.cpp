@@ -1499,7 +1499,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
     void closeWithCursorsTest(void)
     {
-        ham_cursor_t *c[5];
+        ham_cursor_t *c[5]={0};
 
         for (int i=0; i<5; i++)
             BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c[i]));
@@ -1826,7 +1826,8 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         ham_env_t *env;
         BFC_ASSERT_EQUAL(0, ham_env_new(&env));
         BFC_ASSERT_EQUAL(0, 
-                ham_env_create(env, BFC_OPATH(".test"), HAM_ENABLE_RECOVERY, 0664));
+                ham_env_create(env, BFC_OPATH(".test"), 
+                            HAM_ENABLE_RECOVERY, 0664));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
         BFC_ASSERT_EQUAL(0, ham_env_delete(env));
     }
@@ -1871,6 +1872,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
     void cursorInsertAppendTest(void)
     {
+        unsigned i;
         ham_cursor_t *cursor;
         ham_key_t key;
         ham_record_t rec;
@@ -1878,7 +1880,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         ::memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
-        for (unsigned i=0; i<10000; i++) {
+        for (i=0; i<10000; i++) {
             key.size=sizeof(i);
             key.data=(void *)&i;
             rec.size=sizeof(i);
@@ -1886,7 +1888,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
             BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 
                 HAM_HINT_SEQUENTIAL));
         }
-        for (unsigned i=0; i<10000; i++) {
+        for (i=0; i<10000; i++) {
             key.size=sizeof(i);
             key.data=(void *)&i;
             BFC_ASSERT_EQUAL(0, ham_find(m_db, 0, &key, &rec, 0));
@@ -1898,6 +1900,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
 
     void negativeCursorInsertAppendTest(void)
     {
+        unsigned i;
         ham_cursor_t *cursor;
         ham_key_t key;
         ham_record_t rec;
@@ -1905,7 +1908,7 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         ::memset(&rec, 0, sizeof(rec));
 
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &cursor));
-        for (unsigned i=10; i>0; i--) {
+        for (i=10; i>0; i--) {
             key.size=sizeof(i);
             key.data=(void *)&i;
             rec.size=sizeof(i);

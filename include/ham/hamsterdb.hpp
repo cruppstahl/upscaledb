@@ -263,7 +263,6 @@ public:
 
 protected:
     ham_txn_t *m_txn;
-    db *m_db;
 };
 
 

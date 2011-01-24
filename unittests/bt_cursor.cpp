@@ -180,6 +180,7 @@ public:
             BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, 0));
         }
 
+        memset(&rec, 0, sizeof(rec));
         BFC_ASSERT_EQUAL(0,
                 ham_cursor_move(cursor, &key, &rec, HAM_CURSOR_FIRST));
         BFC_ASSERT_EQUAL(0, *(int *)key.data);
@@ -265,7 +266,7 @@ public:
 
     void linkedListTest(void)
     {
-        ham_cursor_t *cursor[5], *clone;
+        ham_cursor_t *cursor[5]={0}, *clone=0;
 
         BFC_ASSERT_EQUAL((ham_cursor_t *)0, db_get_cursors(m_db));
 
@@ -289,7 +290,7 @@ public:
 
     void linkedListReverseCloseTest(void)
     {
-        ham_cursor_t *cursor[5], *clone;
+        ham_cursor_t *cursor[5]={0}, *clone=0;
 
         BFC_ASSERT_EQUAL((ham_cursor_t *)0, db_get_cursors(m_db));
 

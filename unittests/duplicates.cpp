@@ -1817,7 +1817,8 @@ public:
         memset(&key, 0, sizeof(key));
         BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c));
         
-        for (int i=0; i<256; i++) {
+        int i;
+        for (i=0; i<256; i++) {
             memset(&rec, 0, sizeof(rec));
             rec.size=sizeof(i);
             rec.data=&i;
@@ -1826,7 +1827,7 @@ public:
                     ham_insert(m_db, 0, &key, &rec, HAM_DUPLICATE));
         }
 
-        for (int i=0; i<256; i++) {
+        for (i=0; i<256; i++) {
             memset(&rec, 0, sizeof(rec));
 
             BFC_ASSERT_EQUAL(0, 

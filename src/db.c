@@ -1500,7 +1500,8 @@ _local_fun_close(ham_db_t *db, ham_u32_t flags)
      */
     (void)db_resize_record_allocdata(db, 0);
     if (db_get_key_allocdata(db)) {
-        allocator_free(env_get_allocator(env), db_get_key_allocdata(db));
+        if (env)
+            allocator_free(env_get_allocator(env), db_get_key_allocdata(db));
         db_set_key_allocdata(db, 0);
         db_set_key_allocsize(db, 0);
     }
@@ -2201,7 +2202,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st;
-    ham_txn_t local_txn;
+    ham_txn_t local_txn={0};
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
     ham_offset_t recno=0;

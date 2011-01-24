@@ -169,7 +169,7 @@ hlog(int level, const char *format, ...)
     va_end(ap);
 
     if (foreground) {
-        fprintf(stderr, buffer);
+        fprintf(stderr, "%s", buffer);
     }
     else {
 #ifdef WIN32
@@ -277,7 +277,11 @@ read_config(const char *configfile, config_table_t **params)
     len=ftell(fp);
     fseek(fp, 0, SEEK_SET);
     buf=(char *)malloc(len+1); /* for zero-terminating byte */
-    fread(buf, len, 1, fp);
+    if (fread(buf, len, 1, fp)!=len) {
+        hlog(LOG_FATAL, "Failed to read config file %s: %s\n", 
+                configfile, strerror(errno));
+        exit(-1);
+    }
     fclose(fp);
     buf[len]='\0';
 
