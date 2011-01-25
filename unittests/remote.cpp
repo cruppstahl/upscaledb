@@ -326,7 +326,7 @@ protected:
                 ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 22, 0, 0));
-        BFC_ASSERT_EQUAL(0x80000000u, db_get_remote_handle(db));
+        BFC_ASSERT_EQUAL(0x100000000ull, db_get_remote_handle(db));
 
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
@@ -350,7 +350,7 @@ protected:
                 ham_env_create(env, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 22, 0, &params[0]));
-        BFC_ASSERT_EQUAL(0x80000000u, db_get_remote_handle(db));
+        BFC_ASSERT_EQUAL(0x100000000ull, db_get_remote_handle(db));
 
         params[0].value=0;
         BFC_ASSERT_EQUAL(0, ham_get_parameters(db, &params[0]));
@@ -374,12 +374,12 @@ protected:
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(env, db, 22, 0, 0));
-        BFC_ASSERT_EQUAL(0x80000000u, db_get_remote_handle(db));
+        BFC_ASSERT_EQUAL(0x100000000ull, db_get_remote_handle(db));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         BFC_ASSERT_EQUAL(0, 
                 ham_env_open_db(env, db, 22, 0, 0));
-        BFC_ASSERT_EQUAL(0x100000000ull, db_get_remote_handle(db));
+        BFC_ASSERT_EQUAL(0x200000000ull, db_get_remote_handle(db));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
 
         BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));

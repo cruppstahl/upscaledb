@@ -82,11 +82,12 @@ __store_handle(struct env_t *envh, void *ptr, int type)
         if (!envh->handles)
             return 0; /* not so nice, but if we're out of memory then 
                        * it does not make sense to go on... */
-        memset(&envh->handles[envh->handles_size-10], 0, sizeof(srv_handle_t)*10);
+        memset(&envh->handles[envh->handles_size-10], 0, 
+                    sizeof(srv_handle_t)*10);
     }
 
     ret=++envh->handles_ctr;
-    ret=ret<<31;
+    ret=ret<<32;
 
     envh->handles[i].ptr=ptr;
     envh->handles[i].handle=ret|i;
