@@ -79,6 +79,7 @@ public:
         BFC_REGISTER_TEST(TxnCursorTest, negativeEraseKeysNilTest);
         BFC_REGISTER_TEST(TxnCursorTest, overwriteRecordsTest);
         BFC_REGISTER_TEST(TxnCursorTest, overwriteRecordsNilCursorTest);
+        BFC_REGISTER_TEST(TxnCursorTest, flushCoupledOpTest);
     }
 
 protected:
@@ -1439,6 +1440,37 @@ public:
         cursor_set_txn(m_cursor, 0);
 
         BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+    }
+
+    void flushCoupledOpTest(void)
+    {
+        ham_txn_t *txn;
+
+        txn_cursor_t cursor[5]={{0}};
+        for (int i=0; i<5; i++)
+            initialize(&cursor[i]);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        /* hack the cursor and attach it to the txn */
+        cursor_set_txn(m_cursor, txn);
+
+        BFC_ASSERT_EQUAL(0, insertCursor(&cursor[0], "key1", "rec1"));
+        for (int i=1; i<5; i++)
+            BFC_ASSERT_EQUAL(0, findCursor(&cursor[i], "key1"));
+
+        /* all cursors are now coupled */
+        for (int i=0; i<5; i++)
+            BFC_ASSERT_EQUAL(false, txn_cursor_is_nil(&cursor[i]));
+
+        /* reset cursor hack */
+        cursor_set_txn(m_cursor, 0);
+
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+
+        /* all cursors are now uncoupled */
+        for (int i=0; i<5; i++)
+            BFC_ASSERT_EQUAL(true, txn_cursor_is_nil(&cursor[i]));
     }
 };
 

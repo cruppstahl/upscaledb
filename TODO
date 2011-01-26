@@ -444,8 +444,10 @@ x implement approx. matching through transaction tree - will have to
     consolidate rb-tree and btree to look for the "closest" key
     postpone this to the next release
 
+x merge bugfixes of 1.1.9 - 6aed8c1ae7f9a6ea2f19
+
 o support cursors!!!
-    o need a transaction cursor which can operate on txn trees
+    x need a transaction cursor which can operate on txn trees
         x create new structure
             x unittest
         x needs linked list for other coupled cursors on same op
@@ -507,13 +509,13 @@ o support cursors!!!
             x overwrite a key that is in the txn tree
         x in __couple_cursor: if cursor is already coupled, it must be
             UNCOUPLED from this cursor (or set to nil)
-        o uncouple ALL attached cursors if an op is flushed - or set the
+        x uncouple ALL attached cursors if an op is flushed - or set the
             cursors to NIL? in that case we have to make sure that NIL
             is correctly handled in all functions
             x review handling of nil cursors
             x remove the whole UNCOUPLED stuff (the macro, the union etc)
-            o set to nil when op is flushed
-                o unittests
+            x set to nil when op is flushed
+                x unittests
 
     x separate cursor logic into btree and txn; in db.c, consolidate the
         two cursors (or move the functions to cursor.c?) - no, it's fine
@@ -635,8 +637,6 @@ o support cursors!!!
             o test each scenarios above with cursor_find, cursor_move 
         o move to previous w/ duplicates
             o unittest
-
-o merge bugfixes of 1.1.9 - 6aed8c1ae7f9a6ea2f19
 
 o ham_find in a transaction: if there are duplicates, is the same item (k/r) 
     returned as in the btree? btree duplicates are stored at the *end* of the

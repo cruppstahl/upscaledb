@@ -83,6 +83,8 @@ __couple_cursor(txn_cursor_t *cursor, txn_op_t *op)
     txn_cursor_set_coupled_op(cursor, op);
     txn_cursor_set_flags(cursor, 
                     txn_cursor_get_flags(cursor)|TXN_CURSOR_FLAG_COUPLED);
+
+    txn_op_add_cursor(op, cursor);
 }
 
 static ham_status_t

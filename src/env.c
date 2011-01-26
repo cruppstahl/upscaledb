@@ -31,6 +31,7 @@
 #include "btree_key.h"
 #include "os.h"
 #include "blob.h"
+#include "txn_cursor.h"
 
 typedef struct free_cb_context_t
 {
@@ -1497,6 +1498,7 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
 {
     ham_status_t st=0;
     txn_op_t *op=txn_get_oldest_op(txn);
+    txn_cursor_t *cursor=0;
 
     while (op) {
         txn_opnode_t *node=txn_op_get_node(op);
@@ -1555,8 +1557,10 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
             return (st);
         }
 
-        /* this op was flushed! */
+        /* this op was flushed! uncouple all cursors and invalidate them. */
         txn_op_set_flags(op, TXN_OP_FLUSHED);
+        while ((cursor=txn_op_get_cursors(op)))
+            txn_cursor_set_to_nil(cursor);
 
         /* continue with the next operation of this txn */
         op=txn_op_get_next_in_txn(op);
