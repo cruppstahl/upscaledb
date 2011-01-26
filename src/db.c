@@ -2369,6 +2369,13 @@ _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
 static ham_status_t
 _local_cursor_close(ham_cursor_t *cursor)
 {
+    /* if the txn_cursor is coupled then uncouple it */
+    txn_cursor_t *tc;
+    tc=cursor_get_txn_cursor(cursor);
+    if (!txn_cursor_is_nil(tc))
+        txn_cursor_set_to_nil(tc);
+
+    /* call the backend function */
     cursor->_fun_close(cursor);
 
     return (0);
@@ -2384,6 +2391,7 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     ham_record_t temprec;
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
+    ham_txn_t *local_txn=0;
 
     be=db_get_backend(db);
     if (!be)
@@ -2444,25 +2452,31 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             return (st);
     }
 
-    if (!st)
+    /* if user did not specify a transaction, but transactions are enabled:
+     * create a temporary one */
+    if (!cursor_get_txn(cursor) 
+            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        st=txn_begin(&local_txn, env, 0);
+        if (st)
+            return (st);
+        cursor_set_txn(cursor, local_txn);
+    }
+
+    if (cursor_get_txn(cursor) || local_txn)
+        st=txn_cursor_insert(cursor_get_txn_cursor(cursor), key, record, flags);
+    else
         st=cursor->_fun_insert(cursor, key, &temprec, flags);
 
-    /* TODO TODO TODO remove this when cursors are fully implemented */
-    changeset_clear(env_get_changeset(env));
+    /* if we created a temp. txn then clean it up again */
+    if (local_txn)
+        cursor_set_txn(cursor, 0);
 
     if (temprec.data!=record->data)
         allocator_free(env_get_allocator(env), temprec.data);
 
-    /* append journal entry */
-#if 0 /* TODO TODO TODO */
-    if (st==0
-            && env_get_rt_flags(env)&HAM_ENABLE_RECOVERY
-            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS)
-        st=journal_append_insert(env_get_journal(env), 
-                        cursor_get_txn(cursor), key, record, flags);
-#endif
-
     if (st) {
+        if (local_txn)
+            (void)txn_abort(local_txn, 0);
         if ((db_get_rt_flags(db)&HAM_RECORD_NUMBER) && !(flags&HAM_OVERWRITE)) {
             if (!(key->flags&HAM_KEY_USER_ALLOC)) {
                 key->data=0;
@@ -2472,6 +2486,9 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         }
         return (st);
     }
+
+    /* no need to append the journal entry - it's appended in db_insert_txn(),
+     * which is called by txn_cursor_insert() */
 
     /*
      * record numbers: return key in host endian! and store the incremented
@@ -2488,7 +2505,13 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         }
     }
 
-    return (st);
+    if (local_txn)
+        return (txn_commit(local_txn, 0));
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
+        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
+    else
+        return (st);
 }
 
 static ham_status_t 

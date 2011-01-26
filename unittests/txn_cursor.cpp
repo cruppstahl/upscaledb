@@ -127,11 +127,6 @@ public:
         txn_cursor_t cursor={0};
         txn_op_t op={0};
 
-        BFC_ASSERT_EQUAL((ham_db_t *)0, txn_cursor_get_db(&cursor));
-        txn_cursor_set_db(&cursor, m_db);
-        BFC_ASSERT_EQUAL(m_db, txn_cursor_get_db(&cursor));
-        txn_cursor_set_db(&cursor, 0);
-
         BFC_ASSERT_EQUAL(0u, txn_cursor_get_flags(&cursor));
         txn_cursor_set_flags(&cursor, 0x345);
         BFC_ASSERT_EQUAL(0x345u, txn_cursor_get_flags(&cursor));
@@ -160,7 +155,6 @@ public:
     void cursorIsNilTest(void)
     {
         txn_cursor_t cursor={0};
-        txn_cursor_set_db(&cursor, m_db);
 
         BFC_ASSERT_EQUAL(HAM_TRUE, txn_cursor_is_nil(&cursor));
         txn_cursor_set_flags(&cursor, TXN_CURSOR_FLAG_COUPLED);
@@ -264,7 +258,6 @@ public:
 
         txn_cursor_t c={0};
         txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
-        txn_cursor_set_db(&c, m_db);
         txn_cursor_set_coupled_op(&c, op);
 
         BFC_ASSERT_EQUAL(0, txn_cursor_get_key(&c, &k));
@@ -299,7 +292,6 @@ public:
 
         txn_cursor_t c={0};
         txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
-        txn_cursor_set_db(&c, m_db);
         txn_cursor_set_coupled_op(&c, op);
 
         BFC_ASSERT_EQUAL(0, txn_cursor_get_key(&c, &k));
@@ -328,7 +320,6 @@ public:
 
         txn_cursor_t c={0};
         txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
-        txn_cursor_set_db(&c, m_db);
         txn_cursor_set_coupled_op(&c, op);
 
         BFC_ASSERT_EQUAL(0, txn_cursor_get_key(&c, &k));
@@ -359,7 +350,6 @@ public:
 
         txn_cursor_t c={0};
         txn_cursor_set_flags(&c, 0);
-        txn_cursor_set_db(&c, m_db);
 
         BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, txn_cursor_get_key(&c, &k));
 
@@ -387,7 +377,6 @@ public:
 
         txn_cursor_t c={0};
         txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
-        txn_cursor_set_db(&c, m_db);
         txn_cursor_set_coupled_op(&c, op);
 
         BFC_ASSERT_EQUAL(0, txn_cursor_get_record(&c, &r));
@@ -422,7 +411,6 @@ public:
 
         txn_cursor_t c={0};
         txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
-        txn_cursor_set_db(&c, m_db);
         txn_cursor_set_coupled_op(&c, op);
 
         BFC_ASSERT_EQUAL(0, txn_cursor_get_record(&c, &r));
@@ -451,7 +439,6 @@ public:
 
         txn_cursor_t c={0};
         txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
-        txn_cursor_set_db(&c, m_db);
         txn_cursor_set_coupled_op(&c, op);
 
         BFC_ASSERT_EQUAL(0, txn_cursor_get_record(&c, &r));
@@ -480,7 +467,6 @@ public:
 
         txn_cursor_t c={0};
         txn_cursor_set_flags(&c, 0);
-        txn_cursor_set_db(&c, m_db);
 
         BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, txn_cursor_get_record(&c, &r));
 
@@ -585,7 +571,6 @@ public:
     void initialize(txn_cursor_t *cursor)
     {
         memset(cursor, 0, sizeof(*cursor));
-        txn_cursor_set_db(cursor, m_db);
         txn_cursor_set_parent(cursor, m_cursor);
     }
 

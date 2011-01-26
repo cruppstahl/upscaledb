@@ -521,18 +521,33 @@ o support cursors!!!
         two cursors (or move the functions to cursor.c?) - no, it's fine
         as it is
         x added txn cursor to the normal cursor
-    o cursor: if no TXN is assigned, give each operation its temp. txn
-        o unittests
-    o insert: if TXNs are enabled, only call txn_cursor_insert(); otherwise
+    x insert: if TXNs are enabled, only call txn_cursor_insert(); otherwise
         call btree function
-        o unittests
+        x create temp. txn if needed
+        x unittests w/ txn
+        x unittests w/ temp txn
+        x unittests w/ btree
+    o document that temp. txn's for a cursor only have the lifetime of
+        the operation, and not of the cursor
+        x in the header file
+        o also see hamsterdb.c:3481 - is this behavior different from the 
+            btree?  what does this comment mean??
+    o move without parameters (retrieve key/record)
+        o create temp. txn if needed
+        o cursor is nil -> error
+        o cursor is bound to txn -> retrieve from txn
+        o cursor is bound to temp. txn -> was flushed, get from btree
+        o cursor is bound to btree -> retrieve from btree
     o overwrite: if TXNs are enabled, only call txn_cursor_overwrite(); 
         otherwise call btree function
+        o create temp. txn if needed
         o unittests
     o erase: if TXNs are enabled, only call txn_cursor_erase(); 
         otherwise call btree function
+        o create temp. txn if needed
         o unittests
     o find
+        o create temp. txn if needed
         o find w/ empty txn tree
         o find w/ empty btree
         o find w/ empty everything
@@ -572,6 +587,8 @@ o support cursors!!!
     o when flushing a transaction, and a cursor is pointing into the txn
         node: uncouple the cursor! (or delete it?)
         o unittest
+    o cursor: if no TXN is assigned, give each operation its temp. txn
+        o document this behavior in the header file!
     o db.c: do we need local_txn in the cursor functions? currently there's
         only one temp. cursor that is created over the whole lifetime
         of the cursor; this is way too risky. revert original behavior.

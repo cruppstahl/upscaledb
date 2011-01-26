@@ -519,6 +519,8 @@ bt_cursor_clone(ham_bt_cursor_t *old, ham_bt_cursor_t **newc)
     cursor_set_next_in_page(c, 0);
     cursor_set_previous_in_page(c, 0);
 
+    txn_cursor_set_parent(cursor_get_txn_cursor(c), (ham_cursor_t *)c);
+
     /*
      * if the old cursor is coupled: couple the new cursor, too
      */
@@ -962,6 +964,8 @@ bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     c=(ham_bt_cursor_t *)allocator_calloc(env_get_allocator(env), sizeof(*c));
     if (!c)
         return HAM_OUT_OF_MEMORY;
+
+    txn_cursor_set_parent(cursor_get_txn_cursor(c), (ham_cursor_t *)c);
 
     c->_fun_clone=bt_cursor_clone;
     c->_fun_close=bt_cursor_close;

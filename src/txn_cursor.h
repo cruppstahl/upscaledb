@@ -32,10 +32,6 @@ extern "C" {
  */
 typedef struct txn_cursor_t
 {
-    /** the database on which this cursor operates */
-    /* TODO - not required; we can access the db through the _parent pointer */
-    ham_db_t *_db;
-
     /** the parent cursor */
     ham_cursor_t *_parent;
 
@@ -67,10 +63,7 @@ typedef struct txn_cursor_t
 #define TXN_CURSOR_FLAG_COUPLED                     1
 
 /** get the database pointer */
-#define txn_cursor_get_db(c)                        (c)->_db
-
-/** set the database pointer */
-#define txn_cursor_set_db(c, db)                    (c)->_db=db
+#define txn_cursor_get_db(c)                        (c)->_parent->_db
 
 /** get the parent cursor */
 #define txn_cursor_get_parent(c)                    (c)->_parent

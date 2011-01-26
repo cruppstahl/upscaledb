@@ -55,7 +55,7 @@ txn_cursor_close(txn_cursor_t *cursor)
 ham_status_t
 txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record)
 {
-    ham_db_t *db=cursor_get_db(cursor);
+    ham_db_t *db=txn_cursor_get_db(cursor);
     ham_txn_t *txn=cursor_get_txn(txn_cursor_get_parent(cursor));
     txn_op_t *op;
     txn_opnode_t *node;
@@ -273,7 +273,7 @@ txn_cursor_find(txn_cursor_t *cursor, ham_key_t *key)
     txn_cursor_set_to_nil(cursor);
 
     /* then lookup the node */
-    node=txn_opnode_get(cursor_get_db(cursor), key);
+    node=txn_opnode_get(txn_cursor_get_db(cursor), key);
     if (!node)
         return (HAM_KEY_NOT_FOUND);
 
@@ -285,7 +285,7 @@ ham_status_t
 txn_cursor_insert(txn_cursor_t *cursor, ham_key_t *key, ham_record_t *record,
                 ham_u32_t flags)
 {
-    ham_db_t *db=cursor_get_db(cursor);
+    ham_db_t *db=txn_cursor_get_db(cursor);
     ham_txn_t *txn=cursor_get_txn(txn_cursor_get_parent(cursor));
 
     return (db_insert_txn(db, txn, key, record, flags, cursor));
@@ -365,7 +365,7 @@ ham_status_t
 txn_cursor_erase(txn_cursor_t *cursor)
 {
     ham_status_t st;
-    ham_db_t *db=cursor_get_db(cursor);
+    ham_db_t *db=txn_cursor_get_db(cursor);
     ham_txn_t *txn=cursor_get_txn(txn_cursor_get_parent(cursor));
     txn_op_t *op;
     txn_opnode_t *node;

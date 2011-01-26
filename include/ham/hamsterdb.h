@@ -2202,8 +2202,14 @@ ham_close(ham_db_t *db, ham_u32_t flags);
  *
  * A newly created Cursor does not point to any item in the Database.
  *
- * The application should close all Database Cursors before closing
+ * The application should close all Cursors of a Database before closing
  * the Database.
+ *
+ * If Transactions are enabled (@ref HAM_ENABLE_TRANSACTIONS), but @a txn
+ * is NULL, then each Cursor operation (i.e. @ref ham_cursor_insert, 
+ * @ref ham_cursor_find etc) will create its own, temporary Transaction 
+ * <b>only</b> for the lifetime of this operation and not for the lifetime
+ * of the whole Cursor!
  *
  * @param db A valid Database handle
  * @param txn A Transaction handle, or NULL
