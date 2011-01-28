@@ -527,11 +527,9 @@ o support cursors!!!
         x unittests w/ txn
         x unittests w/ temp txn
         x unittests w/ btree
-    o document that temp. txn's for a cursor only have the lifetime of
+    x document that temp. txn's for a cursor only have the lifetime of
         the operation, and not of the cursor
         x in the header file
-        o also see hamsterdb.c:3481 - is this behavior different from the 
-            btree?  what does this comment mean??
     o move without parameters (retrieve key/record)
         o create temp. txn if needed
         o cursor is nil -> error
@@ -556,6 +554,14 @@ o support cursors!!!
         o find w/ txn and key is overwritten in txn-tree
     o clone
     o close
+        when two cursors point to the same transaction then the transaction
+        cannot be closed till both cursors are closed
+        o unittest w/ btree only
+        o unittest w/ temp txn 
+        o unittest w/ long txn 
+        o also see hamsterdb.c:3481 - is this behavior different from the 
+            btree? yes, we now change the behavior
+            -> document it in the changelog
     o move first: use the cursor which is smaller; when deciding on a btree,
         first check if it wasn't erased by a txn
         o unittest w/ smaller item in txntree
