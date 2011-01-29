@@ -79,12 +79,14 @@ public:
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
-    void insertFindTest(void)
+    virtual void insertFindTest(void)
     {
         ham_key_t key={0};
         ham_record_t rec={0};
         key.data=(void *)"12345";
         key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
 
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
@@ -92,6 +94,23 @@ public:
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_insert(m_cursor, &key, &rec, HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
+                    ham_cursor_move(m_cursor, &key, &rec, 0));
+    }
+
+    void nilCursorTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        /* cursor is nil */
+
+        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
+                    ham_cursor_move(m_cursor, &key, &rec, 0));
     }
 };
 
@@ -105,6 +124,7 @@ public:
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(TempTxnCursorTest, insertFindTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, nilCursorTest);
     }
 
 };
@@ -126,8 +146,29 @@ public:
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(LongTxnCursorTest, insertFindTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, nilCursorTest);
     }
 
+    virtual void insertFindTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)key.data, "12345"));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "abcde"));
+    }
 };
 
 class NoTxnCursorTest : public BaseCursorTest
@@ -140,6 +181,7 @@ public:
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(NoTxnCursorTest, insertFindTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, nilCursorTest);
     }
 
     virtual void setup() 
@@ -159,6 +201,27 @@ public:
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
         createCursor();
+    }
+
+    virtual void insertFindTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)key.data, "12345"));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "abcde"));
     }
 };
 

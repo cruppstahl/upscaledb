@@ -121,6 +121,9 @@ struct ham_cursor_t
  TODO is this required?? no!  */
 #define CURSOR_TXN_IS_TEMP                  0x100000
 
+/** Cursor flag: cursor is coupled to the Transaction cursor (_txn_cursor) */
+#define CURSOR_COUPLED_TO_TXN               0x200000
+
 /** Get the 'next' pointer of the linked list */
 #define cursor_get_next(c)                (c)->_next
 

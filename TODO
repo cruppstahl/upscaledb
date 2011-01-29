@@ -530,12 +530,21 @@ o support cursors!!!
     x document that temp. txn's for a cursor only have the lifetime of
         the operation, and not of the cursor
         x in the header file
+    x insert:
+        x if it succeeds w/ txn: set flag CURSOR_COUPLED_TO_TXN
+        x if it succeeds w/o txn: unset flag CURSOR_COUPLED_TO_TXN
     o move without parameters (retrieve key/record)
-        o create temp. txn if needed
-        o cursor is nil -> error
-        o cursor is bound to txn -> retrieve from txn
+        x create temp. txn if needed
+        x cursor is nil -> error
+        x cursor is bound to txn -> retrieve from txn
+        x cursor is bound to btree -> retrieve from btree
         o cursor is bound to temp. txn -> was flushed, get from btree
-        o cursor is bound to btree -> retrieve from btree
+            --> fails; currently, if temp txn is closed then cursor
+                is nil -> HAM_CURSOR_IS_NIL
+                instead, cursor must be uncoupled and coupled to the
+                btree item!!
+            --> reorganize cursor.cpp - only one class, but 3 fixtures for
+                the different cases
     o overwrite: if TXNs are enabled, only call txn_cursor_overwrite(); 
         otherwise call btree function
         o create temp. txn if needed

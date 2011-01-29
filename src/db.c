@@ -2462,10 +2462,18 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         cursor_set_txn(cursor, local_txn);
     }
 
-    if (cursor_get_txn(cursor) || local_txn)
+    if (cursor_get_txn(cursor) || local_txn) {
         st=txn_cursor_insert(cursor_get_txn_cursor(cursor), key, record, flags);
-    else
+        if (st==0)
+            cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+    }
+    else {
         st=cursor->_fun_insert(cursor, key, &temprec, flags);
+        if (st==0)
+            cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+    }
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)
@@ -2668,8 +2676,10 @@ static ham_status_t
 _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
-    ham_status_t st;
+    ham_status_t st=0;
     ham_db_t *db=cursor_get_db(cursor);
+    ham_env_t *env=db_get_env(db);
+    ham_txn_t *local_txn=0;
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
@@ -2678,23 +2688,65 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             return (st);
     }
 
-    st=cursor->_fun_move(cursor, key, record, flags);
+    /* if user did not specify a transaction, but transactions are enabled:
+     * create a temporary one */
+    if (!cursor_get_txn(cursor) 
+            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        st=txn_begin(&local_txn, env, 0);
+        if (st)
+            return (st);
+        cursor_set_txn(cursor, local_txn);
+    }
 
-    /* TODO TODO TODO remove this when cursors are fully implemented */
-    changeset_clear(env_get_changeset(db_get_env(db)));
+    /*
+     * if flags=0 then we just retrieve key or record (or both) of the cursor,
+     * without moving it
+     */
+    if (flags==0) {
+        if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN) {
+            if (key) {
+                st=txn_cursor_get_key(cursor_get_txn_cursor(cursor), key);
+                if (st)
+                    goto bail;
+            }
+            if (record) {
+                st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), record);
+                if (st)
+                    goto bail;
+            }
+        }
+        else
+            st=cursor->_fun_move(cursor, key, record, flags);
+    }
+    else
+        /* TODO */
+        st=cursor->_fun_move(cursor, key, record, flags);
+
+bail:
+    /* if we created a temp. txn then clean it up again */
+    if (local_txn)
+        cursor_set_txn(cursor, 0);
 
     /*
      * run the record-level filters
      */
-    if (st==0 && record) {
+    if (st==0 && record)
         st=__record_filters_after_find(db, record);
-        if (st)
-            return (st);
+
+    if (st) {
+        if (local_txn)
+            (void)txn_abort(local_txn, 0);
+        return (st);
     }
 
-    return (st);
+    if (local_txn)
+        return (txn_commit(local_txn, 0));
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
+        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
+    else
+        return (st);
 }
-
 
 ham_status_t
 db_initialize_local(ham_db_t *db)

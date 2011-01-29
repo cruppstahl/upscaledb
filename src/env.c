@@ -32,6 +32,7 @@
 #include "os.h"
 #include "blob.h"
 #include "txn_cursor.h"
+#include "cursor.h"
 
 typedef struct free_cb_context_t
 {
@@ -1559,8 +1560,11 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
 
         /* this op was flushed! uncouple all cursors and invalidate them. */
         txn_op_set_flags(op, TXN_OP_FLUSHED);
-        while ((cursor=txn_op_get_cursors(op)))
+        while ((cursor=txn_op_get_cursors(op))) {
+            ham_cursor_t *pc=txn_cursor_get_parent(cursor);
+            cursor_set_flags(pc, cursor_get_flags(pc)&(~CURSOR_COUPLED_TO_TXN));
             txn_cursor_set_to_nil(cursor);
+        }
 
         /* continue with the next operation of this txn */
         op=txn_op_get_next_in_txn(op);

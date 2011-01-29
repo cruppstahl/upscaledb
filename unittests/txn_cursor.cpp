@@ -258,6 +258,7 @@ public:
 
         txn_cursor_t c={0};
         txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
+        txn_cursor_set_parent(&c, m_cursor);
         txn_cursor_set_coupled_op(&c, op);
 
         BFC_ASSERT_EQUAL(0, txn_cursor_get_key(&c, &k));
@@ -292,6 +293,7 @@ public:
 
         txn_cursor_t c={0};
         txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
+        txn_cursor_set_parent(&c, m_cursor);
         txn_cursor_set_coupled_op(&c, op);
 
         BFC_ASSERT_EQUAL(0, txn_cursor_get_key(&c, &k));
@@ -320,6 +322,7 @@ public:
 
         txn_cursor_t c={0};
         txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
+        txn_cursor_set_parent(&c, m_cursor);
         txn_cursor_set_coupled_op(&c, op);
 
         BFC_ASSERT_EQUAL(0, txn_cursor_get_key(&c, &k));
@@ -350,6 +353,7 @@ public:
 
         txn_cursor_t c={0};
         txn_cursor_set_flags(&c, 0);
+        txn_cursor_set_parent(&c, m_cursor);
 
         BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, txn_cursor_get_key(&c, &k));
 
@@ -377,6 +381,7 @@ public:
 
         txn_cursor_t c={0};
         txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
+        txn_cursor_set_parent(&c, m_cursor);
         txn_cursor_set_coupled_op(&c, op);
 
         BFC_ASSERT_EQUAL(0, txn_cursor_get_record(&c, &r));
@@ -411,6 +416,7 @@ public:
 
         txn_cursor_t c={0};
         txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
+        txn_cursor_set_parent(&c, m_cursor);
         txn_cursor_set_coupled_op(&c, op);
 
         BFC_ASSERT_EQUAL(0, txn_cursor_get_record(&c, &r));
@@ -439,6 +445,7 @@ public:
 
         txn_cursor_t c={0};
         txn_cursor_set_flags(&c, TXN_CURSOR_FLAG_COUPLED);
+        txn_cursor_set_parent(&c, m_cursor);
         txn_cursor_set_coupled_op(&c, op);
 
         BFC_ASSERT_EQUAL(0, txn_cursor_get_record(&c, &r));
@@ -467,6 +474,7 @@ public:
 
         txn_cursor_t c={0};
         txn_cursor_set_flags(&c, 0);
+        txn_cursor_set_parent(&c, m_cursor);
 
         BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, txn_cursor_get_record(&c, &r));
 
