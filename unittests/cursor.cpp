@@ -94,7 +94,7 @@ public:
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_insert(m_cursor, &key, &rec, HAM_OVERWRITE));
-        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
+        BFC_ASSERT_EQUAL(0, 
                     ham_cursor_move(m_cursor, &key, &rec, 0));
     }
 

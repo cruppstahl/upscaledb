@@ -541,8 +541,8 @@ o support cursors!!!
         o cursor is bound to temp. txn -> was flushed, get from btree
             --> fails; currently, if temp txn is closed then cursor
                 is nil -> HAM_CURSOR_IS_NIL
-                instead, cursor must be uncoupled and coupled to the
-                btree item!!
+                instead, parent! cursor must be uncoupled and coupled to the
+                btree item! (and txn_cursor must be nil)
             --> reorganize cursor.cpp - only one class, but 3 fixtures for
                 the different cases
     o overwrite: if TXNs are enabled, only call txn_cursor_overwrite(); 

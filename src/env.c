@@ -1526,13 +1526,37 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
          * env_flushed_txn pointer */
         env_set_flushed_txn(env, txn);
 
-        /* depending on the type of the operation: actually perform the
-         * operation on the btree */
+        /* 
+         * depending on the type of the operation: actually perform the
+         * operation on the btree 
+         *
+         * if the txn-op has a cursor attached, then all (txn)cursors 
+         * which are coupled to this op have to be uncoupled, and their 
+         * parent (btree) cursor must be coupled to the btree item instead.
+         */
         if ((txn_op_get_flags(op)&TXN_OP_INSERT)
                 || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)) {
-            st=be->_fun_insert(be, txn_opnode_get_key(node), 
+            if (!txn_op_get_cursors(op)) {
+                st=be->_fun_insert(be, txn_opnode_get_key(node), 
                         txn_op_get_record(op), 
                         txn_op_get_flags(op)|HAM_OVERWRITE);
+            }
+            else {
+                /*
+TODO TODO TODO 
+hier geht'S weiter
+1. den parent-cursor vom ersten cursor nehmen
+2. pc->_fun_insert(...)
+3. assert(pc->_is_coupled)
+4. alle weiteren parent-cursors zum selben key couplen
+                while ((cursor=txn_op_get_cursors(op))) {
+                    ham_cursor_t *pc=txn_cursor_get_parent(cursor);
+                    cursor_set_flags(pc, cursor_get_flags(pc)&(~CURSOR_COUPLED_TO_TXN));
+                    txn_cursor_set_to_nil(cursor);
+                }
+                */
+                ham_assert(0, (""));
+            }
         }
         else if (txn_op_get_flags(op)&TXN_OP_INSERT_DUP) {
             st=be->_fun_insert(be, txn_opnode_get_key(node), 
@@ -1558,7 +1582,13 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
             return (st);
         }
 
-        /* this op was flushed! uncouple all cursors and invalidate them. */
+        /* 
+         * this op is about to be flushed! 
+         *
+         * as a concequence, all (txn)cursors which are coupled to this op
+         * have to be uncoupled, and their parent (btree) cursor is coupled
+         * to the btree item instead
+         */
         txn_op_set_flags(op, TXN_OP_FLUSHED);
         while ((cursor=txn_op_get_cursors(op))) {
             ham_cursor_t *pc=txn_cursor_get_parent(cursor);
