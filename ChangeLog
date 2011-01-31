@@ -1,3 +1,9 @@
+Jan 28, 2011 - chris ---------------------------------------------------
+o linux 64bit: when having long-running transactions with very big 
+    databases (200 GB), and the working set of mmapped memory gets too big,
+    mmap will fail and return ENOMEM. In this case, hamsterdb now falls
+    back to malloc/read.
+
 Jan 25, 2011 - chris ---------------------------------------------------
 o merged bugfix from branch bleeding_edge: on 64bit windows, the remote
     handles returned by the server were broken
