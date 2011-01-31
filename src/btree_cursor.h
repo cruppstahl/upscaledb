@@ -189,6 +189,15 @@ ham_status_t
 bt_cursor_couple(ham_bt_cursor_t *cu);
 
 /**
+ * couple the cursor to the same item as another (coupled!) cursor
+ *
+ * @remark will assert that the other cursor is coupled; will set the
+ * current cursor to nil
+ */
+void
+bt_cursor_couple_to_other(ham_bt_cursor_t *cu, ham_bt_cursor_t *other);
+
+/**
  * uncouple the cursor
  *
  * @remark to uncouple a page, it has to be coupled!

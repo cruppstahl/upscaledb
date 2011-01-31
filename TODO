@@ -539,11 +539,9 @@ o support cursors!!!
         x cursor is bound to txn -> retrieve from txn
         x cursor is bound to btree -> retrieve from btree
         o cursor is bound to temp. txn -> was flushed, get from btree
-            --> fails; currently, if temp txn is closed then cursor
-                is nil -> HAM_CURSOR_IS_NIL
-                instead, parent! cursor must be uncoupled and coupled to the
-                btree item! (and txn_cursor must be nil)
-            --> reorganize cursor.cpp - only one class, but 3 fixtures for
+            x unittest with one cursor
+            x unittest with multiple cursors
+            o reorganize cursor.cpp - only one class, but 3 fixtures for
                 the different cases
     o overwrite: if TXNs are enabled, only call txn_cursor_overwrite(); 
         otherwise call btree function
@@ -673,6 +671,9 @@ o support cursors!!!
 o ham_find in a transaction: if there are duplicates, is the same item (k/r) 
     returned as in the btree? btree duplicates are stored at the *end* of the
     list, and the oldest duplicate is returned. txn returns the newest??
+
+o add hamsterdb.spec file from 1.1.8
+    https://github.com/cruppstahl/hamsterdb/commit/46260d14d0192299b15286c93a843d11dc4ccaa6
 
 o we currently have two modes regarding recovery:
     - HAM_ENABLE_TRANSACTIONS (implies HAM_ENABLE_RECOVERY)

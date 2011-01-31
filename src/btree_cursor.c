@@ -394,6 +394,7 @@ bt_cursor_set_to_nil(ham_bt_cursor_t *c)
     }
 
     bt_cursor_set_dupe_id(c, 0);
+    bt_cursor_set_flags(c, bt_cursor_get_flags(c)&(~CURSOR_COUPLED_TO_TXN));
     memset(bt_cursor_get_dupe_cache(c), 0, sizeof(dupe_entry_t));
 
     return (0);
@@ -440,6 +441,18 @@ bt_cursor_couple(ham_bt_cursor_t *c)
         allocator_free(env_get_allocator(env), key.data);
 
     return (st);
+}
+
+void
+bt_cursor_couple_to_other(ham_bt_cursor_t *cu, ham_bt_cursor_t *other)
+{
+    ham_assert(bt_cursor_is_nil(other), ("other cursor must be nil"));
+    bt_cursor_set_to_nil(cu);
+
+    bt_cursor_set_coupled_page(cu, bt_cursor_get_coupled_page(other));
+    bt_cursor_set_coupled_index(cu, bt_cursor_get_coupled_index(other));
+    bt_cursor_set_dupe_id(cu, bt_cursor_get_dupe_id(other));
+    bt_cursor_set_flags(cu, bt_cursor_get_flags(other));
 }
 
 ham_status_t

@@ -98,6 +98,40 @@ public:
                     ham_cursor_move(m_cursor, &key, &rec, 0));
     }
 
+    virtual void insertFindMultipleCursorsTest(void)
+    {
+        ham_cursor_t *c[5];
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        for (int i=0; i<5; i++)
+            BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c[i]));
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+        for (int i=0; i<5; i++) {
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(c[i], &key, 0));
+        }
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp("12345", (char *)key.data));
+        BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec.data));
+
+        for (int i=0; i<5; i++) {
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(c[i], &key, &rec, 0));
+            BFC_ASSERT_EQUAL(0, strcmp("12345", (char *)key.data));
+            BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec.data));
+            BFC_ASSERT_EQUAL(0, ham_cursor_close(c[i]));
+        }
+    }
+
     void nilCursorTest(void)
     {
         ham_key_t key={0};
@@ -124,6 +158,7 @@ public:
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(TempTxnCursorTest, insertFindTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, insertFindMultipleCursorsTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, nilCursorTest);
     }
 
