@@ -1,6 +1,10 @@
 
-Ger Hobbelt (http://www.hobbelt.com, http://www.hebbut.net - THANKS!)
+Ger Hobbelt (http://www.hobbelt.com, http://www.hebbut.net)
     ham_env_get_parameters, ham_db_get_parameters and functions for approximate 
     matching, minor bugfixes and performance improvements plus documentation 
     fixes/improvements; a complete rewrite of the freelist code with HUGE
     performance gains - THANKS!
+
+John Gunkel (hamster@gunkel.ca)
+    sent the initial revision of the hamsterdb.spec file to generate 
+    RPMs - THANKS!

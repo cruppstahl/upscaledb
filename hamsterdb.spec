@@ -9,7 +9,7 @@ Source0: http://hamsterdb.com/public/dl/%{name}-%{version}.tar.gz
 URL: http://hamsterdb.com/
 License: GPL3
 Group: System Environment/Libraries
-BuildRequires: protobuf-devel, libtool
+BuildRequires: protobuf-devel, libtool, curl-devel
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 %description
@@ -97,7 +97,7 @@ rm -rf %{buildroot}
 
 
 %changelog
-* Sat Jan 29 2011 jgunkel@gmail.com - 1.1.8-1
+* Sat Jan 29 2011 hamster@gunkel.ca - 1.1.8-1
 - initial version of spec file
 - rest of changelog goes here
 
