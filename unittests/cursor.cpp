@@ -17,6 +17,7 @@
 #include <vector>
 #include <ham/hamsterdb.h>
 #include "../src/env.h"
+#include "../src/cursor.h"
 #include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
@@ -41,9 +42,9 @@ protected:
     memtracker_t *m_alloc;
 
 public:
-    virtual void createCursor() 
+    virtual ham_status_t createCursor(ham_cursor_t **p) 
     {
-        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &m_cursor));
+        return (ham_cursor_create(m_db, 0, 0, p));
     }
     
     virtual void setup() 
@@ -64,7 +65,7 @@ public:
                         |HAM_ENABLE_TRANSACTIONS, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
-        createCursor();
+        BFC_ASSERT_EQUAL(0, createCursor(&m_cursor));
     }
 
     virtual void teardown() 
@@ -79,7 +80,7 @@ public:
         BFC_ASSERT(!memtracker_get_leaks(m_alloc));
     }
 
-    virtual void insertFindTest(void)
+    void insertFindTest(void)
     {
         ham_key_t key={0};
         ham_record_t rec={0};
@@ -98,7 +99,7 @@ public:
                     ham_cursor_move(m_cursor, &key, &rec, 0));
     }
 
-    virtual void insertFindMultipleCursorsTest(void)
+    void insertFindMultipleCursorsTest(void)
     {
         ham_cursor_t *c[5];
         ham_key_t key={0};
@@ -109,13 +110,22 @@ public:
         rec.size=6;
 
         for (int i=0; i<5; i++)
-            BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &c[i]));
+            BFC_ASSERT_EQUAL(0, createCursor(&c[i]));
 
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
+/*
+        ham_cursor_find is not yet fully implemented, therefore we manually
+        couple the txn_cursor to the op
+
         for (int i=0; i<5; i++) {
             BFC_ASSERT_EQUAL(0, 
                     ham_cursor_find(c[i], &key, 0));
+        }
+*/
+        for (int i=0; i<5; i++) {
+            *cursor_get_txn_cursor(c[i])=*cursor_get_txn_cursor(m_cursor);
+            cursor_set_flags(c[i], cursor_get_flags(m_cursor));
         }
 
         BFC_ASSERT_EQUAL(0, 
@@ -170,10 +180,31 @@ class LongTxnCursorTest : public BaseCursorTest
 
     ham_txn_t *m_txn;
 public:
-    virtual void createCursor() 
-    {
+    virtual void setup() 
+    { 
+        __super::setup();
+
+        BFC_ASSERT((m_alloc=memtracker_new())!=0);
+
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
+        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(m_env, BFC_OPATH(".test"), 
+                    HAM_ENABLE_DUPLICATES
+                        |HAM_ENABLE_RECOVERY
+                        |HAM_ENABLE_TRANSACTIONS, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_db(m_env, m_db, 13, 0, 0));
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_db, 0));
-        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &m_cursor));
+        BFC_ASSERT_EQUAL(0, createCursor(&m_cursor));
+    }
+
+    virtual ham_status_t createCursor(ham_cursor_t **p) 
+    {
+        return (ham_cursor_create(m_db, m_txn, 0, p));
     }
     
     LongTxnCursorTest()
@@ -181,28 +212,8 @@ public:
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(LongTxnCursorTest, insertFindTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, insertFindMultipleCursorsTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, nilCursorTest);
-    }
-
-    virtual void insertFindTest(void)
-    {
-        ham_key_t key={0};
-        ham_record_t rec={0};
-        key.data=(void *)"12345";
-        key.size=6;
-        rec.data=(void *)"abcde";
-        rec.size=6;
-
-        BFC_ASSERT_EQUAL(0, 
-                    ham_cursor_insert(m_cursor, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY, 
-                    ham_cursor_insert(m_cursor, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, 
-                    ham_cursor_insert(m_cursor, &key, &rec, HAM_OVERWRITE));
-        BFC_ASSERT_EQUAL(0, 
-                    ham_cursor_move(m_cursor, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, strcmp((char *)key.data, "12345"));
-        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "abcde"));
     }
 };
 
@@ -216,6 +227,7 @@ public:
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(NoTxnCursorTest, insertFindTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, insertFindMultipleCursorsTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, nilCursorTest);
     }
 
@@ -235,28 +247,7 @@ public:
                     HAM_ENABLE_DUPLICATES, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
-        createCursor();
-    }
-
-    virtual void insertFindTest(void)
-    {
-        ham_key_t key={0};
-        ham_record_t rec={0};
-        key.data=(void *)"12345";
-        key.size=6;
-        rec.data=(void *)"abcde";
-        rec.size=6;
-
-        BFC_ASSERT_EQUAL(0, 
-                    ham_cursor_insert(m_cursor, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(HAM_DUPLICATE_KEY, 
-                    ham_cursor_insert(m_cursor, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, 
-                    ham_cursor_insert(m_cursor, &key, &rec, HAM_OVERWRITE));
-        BFC_ASSERT_EQUAL(0, 
-                    ham_cursor_move(m_cursor, &key, &rec, 0));
-        BFC_ASSERT_EQUAL(0, strcmp((char *)key.data, "12345"));
-        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "abcde"));
+        BFC_ASSERT_EQUAL(0, createCursor(&m_cursor));
     }
 };
 
