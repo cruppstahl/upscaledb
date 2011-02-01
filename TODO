@@ -542,19 +542,19 @@ o support cursors!!!
             x unittest with one cursor
             x unittest with multiple cursors
             x reorganize cursor.cpp
+    o erase: if TXNs are enabled, only call txn_cursor_erase(); 
+        otherwise call btree function
+        o create temp. txn if needed
+        o unittests in combination with find (see below)
     o find
         x create temp. txn if needed
         x find w/ empty everything
-        o find w/ empty txn tree
-        o find w/ empty btree
+        x find w/ empty txn tree
+        x find w/ btree and key is overwritten in txn-tree
+        x find w/ txn and key is overwritten in txn-tree
         o find w/ btree and key is erased in txn-tree
         o find w/ txn and key is erased in txn-tree
-        o find w/ txn and key is overwritten in txn-tree
     o overwrite: if TXNs are enabled, only call txn_cursor_overwrite(); 
-        otherwise call btree function
-        o create temp. txn if needed
-        o unittests
-    o erase: if TXNs are enabled, only call txn_cursor_erase(); 
         otherwise call btree function
         o create temp. txn if needed
         o unittests

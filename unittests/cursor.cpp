@@ -18,6 +18,7 @@
 #include <ham/hamsterdb.h>
 #include "../src/env.h"
 #include "../src/cursor.h"
+#include "../src/backend.h"
 #include "memtracker.h"
 
 #include "bfc-testsuite.hpp"
@@ -133,7 +134,7 @@ public:
         }
     }
 
-    void findInEmptyTreesTest(void)
+    void findInEmptyDatabaseTest(void)
     {
         ham_key_t key={0};
         ham_record_t rec={0};
@@ -145,16 +146,6 @@ public:
         /* this looks up a key in an empty database */
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                     ham_cursor_find(m_cursor, &key, 0));
-
-        /* insert an item in the btree (or in the Transaction) */
-        BFC_ASSERT_EQUAL(0, 
-                    ham_cursor_insert(m_cursor, &key, &rec, 0));
-        /* look it up again */
-        BFC_ASSERT_EQUAL(0, 
-                    ham_cursor_find(m_cursor, &key, 0));
-DAS PASST SO nicht
-brauchen mehrere tests - siehe TODO; sollten doch alle 3 klassen hier 
-zusammengelegt werden? bislang hat die trennung keinen großen vorteil.
     }
 
     void nilCursorTest(void)
@@ -184,7 +175,7 @@ public:
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(TempTxnCursorTest, insertFindTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, insertFindMultipleCursorsTest);
-        BFC_REGISTER_TEST(TempTxnCursorTest, findInEmptyTreesTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, findInEmptyDatabaseTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, nilCursorTest);
     }
 
@@ -227,11 +218,87 @@ public:
     : BaseCursorTest("LongTxnCursorTest")
     {
         testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(TempTxnCursorTest, insertFindTest);
-        BFC_REGISTER_TEST(TempTxnCursorTest, insertFindMultipleCursorsTest);
-        BFC_REGISTER_TEST(TempTxnCursorTest, findInEmptyTreesTest);
-        BFC_REGISTER_TEST(TempTxnCursorTest, nilCursorTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, insertFindTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, insertFindMultipleCursorsTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, findInEmptyDatabaseTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, findInEmptyTransactionTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, findInBtreeOverwrittenInTxnTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, findInTxnOverwrittenInTxnTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, nilCursorTest);
     }
+
+    void findInEmptyTransactionTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        /* insert a key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* this looks up a key in an empty Transaction but with the btree */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+        BFC_ASSERT_EQUAL(0, strcmp("12345", (char *)key.data));
+        BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec.data));
+    }
+
+    void findInBtreeOverwrittenInTxnTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0}, rec2={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+        rec2.data=(void *)"22222";
+        rec2.size=6;
+
+        /* insert a key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* overwrite it in the Transaction */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec2, HAM_OVERWRITE));
+
+        /* retrieve key and compare record */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find_ex(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp("12345", (char *)key.data));
+        BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)rec.data));
+    }
+
+    void findInTxnOverwrittenInTxnTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0}, rec2={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+        rec2.data=(void *)"22222";
+        rec2.size=6;
+
+        /* insert a key into the txn */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+
+        /* overwrite it in the Transaction */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec2, HAM_OVERWRITE));
+
+        /* retrieve key and compare record */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find_ex(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp("12345", (char *)key.data));
+        BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)rec.data));
+    }
+
 };
 
 class NoTxnCursorTest : public BaseCursorTest
@@ -245,7 +312,7 @@ public:
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(TempTxnCursorTest, insertFindTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, insertFindMultipleCursorsTest);
-        BFC_REGISTER_TEST(TempTxnCursorTest, findInEmptyTreesTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, findInEmptyDatabaseTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, nilCursorTest);
     }
 
