@@ -1,3 +1,9 @@
+Feb 03, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.9
+
+Feb 02, 2011 - chris ---------------------------------------------------
+* added hamsterdb.spec to generate RPM files (thanks, John Gunkel)
+
 Jan 28, 2011 - chris ---------------------------------------------------
 o linux 64bit: when having long-running transactions with very big 
     databases (200 GB), and the working set of mmapped memory gets too big,

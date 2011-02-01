@@ -12,13 +12,15 @@ x add lessfs-fixes from Mark
 
 x build fails on 64bit - see patch in bleeding_edge branch
 
-o when having a txn running for a very long time, the system can
+x when having a txn running for a very long time, the system can
     run out of mmap memory
-    o figure out how to see the limit(s)
+    x figure out how to see the limit(s)
     x if this happens then fallback to malloc()/read(2)
-    o test
+    x test
 
-o release 1.1.9
+x add hamsterdb.spec from John Gunkel
+
+x release 1.1.9
 
 ------------------------------------------------------------
 

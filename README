@@ -12,9 +12,8 @@ hamsterdb Embedded Storage is a database engine written in ANSI C. It supports
 a B+Tree index structure, uses memory mapped I/O (if available), supports 
 fast Cursors and variable length keys and can create In-Memory Databases.
 
-This release fixes a bug in the Transaction handling. In certain cases with 
-long running Transactions, a circular reference in a linked list causes an 
-endless loop. 
+This release fixes a bug in the Transaction handling, and an out-of-memory
+condition with long-running Transactions. 
 
 2. Changes
 
@@ -22,10 +21,18 @@ New Features
 * none
 
 Bugfixes
-* fixed potential endless loop in the Transaction handling
+* linux 64bit: when having long-running transactions with very big 
+    databases (200 GB), and the working set of mmapped memory gets too big,
+    mmap will fail and return ENOMEM. In this case, hamsterdb now falls
+    back to malloc/read.
+* merged bugfix from branch bleeding_edge: on 64bit windows, the remote
+    handles returned by the server were broken
+* several smaller fixes based on static code analysis
+* removed two wrong asserts and stabilized transaction routines with 
+    big databases and long-running transactions
 
 Other Changes
-* none
+* added hamsterdb.spec to generate RPM files (thanks, John Gunkel)
 
 To see a list of all changes, look in the file ChangeLog.
 
