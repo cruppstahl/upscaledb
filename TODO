@@ -542,6 +542,14 @@ o support cursors!!!
             x unittest with one cursor
             x unittest with multiple cursors
             x reorganize cursor.cpp
+    o find
+        x create temp. txn if needed
+        x find w/ empty everything
+        o find w/ empty txn tree
+        o find w/ empty btree
+        o find w/ btree and key is erased in txn-tree
+        o find w/ txn and key is erased in txn-tree
+        o find w/ txn and key is overwritten in txn-tree
     o overwrite: if TXNs are enabled, only call txn_cursor_overwrite(); 
         otherwise call btree function
         o create temp. txn if needed
@@ -550,14 +558,6 @@ o support cursors!!!
         otherwise call btree function
         o create temp. txn if needed
         o unittests
-    o find
-        o create temp. txn if needed
-        o find w/ empty txn tree
-        o find w/ empty btree
-        o find w/ empty everything
-        o find w/ btree and key is erased in txn-tree
-        o find w/ txn and key is erased in txn-tree
-        o find w/ txn and key is overwritten in txn-tree
     o clone
     o close
         when two cursors point to the same transaction then the transaction
@@ -610,6 +610,8 @@ o support cursors!!!
         o ham_cursor_erase (duplicate handling!)
         o ham_cursor_overwrite
         o unittests
+
+    o the btree_cursor.* files need some rework/reformatting/renaming
 
     o implement support for duplicates
         the problem with duplicates is that their position can depend on
@@ -673,6 +675,16 @@ o ham_find in a transaction: if there are duplicates, is the same item (k/r)
 
 o add hamsterdb.spec file from 1.1.8
     https://github.com/cruppstahl/hamsterdb/commit/46260d14d0192299b15286c93a843d11dc4ccaa6
+
+o currently, two log sub-systems are used. one for logical journal and the 
+    other for the physical one. in a later version we will only use the journal
+    (or at least try to get rid of the physical log as good as possible). but
+    the architecture needs to be prepared already now
+    o how will recovery work, if the lsn is older than the journal?
+        if the latest entry in the log is i.e. lsn 15, and the journal 
+        continues with 20, in which problems can we run into?
+    o if there's any SMO and the physical log is re-applied - are all 
+        operations idempotent?
 
 o we currently have two modes regarding recovery:
     - HAM_ENABLE_TRANSACTIONS (implies HAM_ENABLE_RECOVERY)

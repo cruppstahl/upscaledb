@@ -114,18 +114,9 @@ public:
 
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_insert(m_cursor, &key, &rec, 0));
-/*
-        ham_cursor_find is not yet fully implemented, therefore we manually
-        couple the txn_cursor to the op
-
         for (int i=0; i<5; i++) {
             BFC_ASSERT_EQUAL(0, 
                     ham_cursor_find(c[i], &key, 0));
-        }
-*/
-        for (int i=0; i<5; i++) {
-            *cursor_get_txn_cursor(c[i])=*cursor_get_txn_cursor(m_cursor);
-            cursor_set_flags(c[i], cursor_get_flags(m_cursor));
         }
 
         BFC_ASSERT_EQUAL(0, 
@@ -140,6 +131,30 @@ public:
             BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec.data));
             BFC_ASSERT_EQUAL(0, ham_cursor_close(c[i]));
         }
+    }
+
+    void findInEmptyTreesTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        /* this looks up a key in an empty database */
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    ham_cursor_find(m_cursor, &key, 0));
+
+        /* insert an item in the btree (or in the Transaction) */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+        /* look it up again */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+DAS PASST SO nicht
+brauchen mehrere tests - siehe TODO; sollten doch alle 3 klassen hier 
+zusammengelegt werden? bislang hat die trennung keinen großen vorteil.
     }
 
     void nilCursorTest(void)
@@ -169,6 +184,7 @@ public:
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(TempTxnCursorTest, insertFindTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, insertFindMultipleCursorsTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, findInEmptyTreesTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, nilCursorTest);
     }
 
@@ -211,8 +227,9 @@ public:
     : BaseCursorTest("LongTxnCursorTest")
     {
         testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(LongTxnCursorTest, insertFindTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, insertFindTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, insertFindMultipleCursorsTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, findInEmptyTreesTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, nilCursorTest);
     }
 };
@@ -226,8 +243,9 @@ public:
     : BaseCursorTest("NoTxnCursorTest")
     {
         testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(NoTxnCursorTest, insertFindTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, insertFindTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, insertFindMultipleCursorsTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, findInEmptyTreesTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, nilCursorTest);
     }
 

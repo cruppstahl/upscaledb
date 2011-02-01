@@ -180,6 +180,9 @@ txn_opnode_get(ham_db_t *db, ham_key_t *key)
     txn_opnode_t *node=0, tmp;
     txn_optree_t *tree=db_get_optree(db);
 
+    if (!tree)
+        return (0);
+
     /* create a temporary node that we can search for */
     memset(&tmp, 0, sizeof(tmp));
     txn_opnode_set_key(&tmp, key);

@@ -62,8 +62,7 @@ __calc_keys_cb(int event, void *param1, void *param2, void *context)
 
     c = (calckeys_context_t *)context;
 
-    switch (event) 
-    {
+    switch (event) {
     case ENUM_EVENT_DESCEND:
         break;
 
@@ -2570,6 +2569,8 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
     ham_status_t st;
     ham_db_t *db=cursor_get_db(cursor);
     ham_offset_t recno=0;
+    ham_txn_t *local_txn=0;
+    ham_env_t *env=db_get_env(db);
 
     /*
      * record number: make sure that we have a valid key structure,
@@ -2594,29 +2595,75 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
             return (st);
     }
 
-    st=cursor->_fun_find(cursor, key, record, flags);
-    if (st)
-        return (st);
+    /* if user did not specify a transaction, but transactions are enabled:
+     * create a temporary one */
+    if (!cursor_get_txn(cursor) 
+            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        st=txn_begin(&local_txn, env, 0);
+        if (st)
+            return (st);
+        cursor_set_txn(cursor, local_txn);
+    }
 
-    /* TODO TODO TODO remove this when cursors are fully implemented */
-    changeset_clear(env_get_changeset(db_get_env(db)));
-
-    /*
-     * record number: re-translate the number to host endian
+    /* 
+     * in Transaction mode, try to find the key in the Transaction tree; if
+     * it does not exist then continue to search through the btree. Also,
+     * we retrieve the record if requested.
+     *
+     * in non-Transaction mode, we directly search through the btree.
      */
+    if (cursor_get_txn(cursor) || local_txn) {
+        st=txn_cursor_find(cursor_get_txn_cursor(cursor), key);
+        if (st==0) {
+            cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            if (record) {
+                st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), record);
+                if (st)
+                    goto bail;
+            }
+        }
+    }
+
+    if ((!cursor_get_txn(cursor) && !local_txn) || st==HAM_KEY_NOT_FOUND) {
+        st=cursor->_fun_find(cursor, key, record, flags);
+        if (st==0)
+            cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+    }
+
+bail:
+    /* if we created a temp. txn then clean it up again */
+    if (local_txn)
+        cursor_set_txn(cursor, 0);
+
+    if (st) {
+        if (local_txn)
+            (void)txn_abort(local_txn, 0);
+        return (st);
+    }
+
+    /* record number: re-translate the number to host endian */
     if (db_get_rt_flags(db)&HAM_RECORD_NUMBER)
         *(ham_offset_t *)key->data=ham_db2h64(recno);
 
-    /*
-     * run the record-level filters
-     */
+    /* run the record-level filters */
     if (record) {
         st=__record_filters_after_find(db, record);
-        if (st)
+        if (st) {
+            if (local_txn)
+                (void)txn_abort(local_txn, 0);
             return (st);
+        }
     }
 
-    return (st);
+    if (local_txn)
+        return (txn_commit(local_txn, 0));
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
+        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
+    else
+        return (st);
 }
 
 static ham_status_t
