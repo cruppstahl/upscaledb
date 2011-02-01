@@ -542,23 +542,32 @@ o support cursors!!!
             x unittest with one cursor
             x unittest with multiple cursors
             x reorganize cursor.cpp
-    o erase: if TXNs are enabled, only call txn_cursor_erase(); 
-        otherwise call btree function
-        o create temp. txn if needed
-        o unittests in combination with find (see below)
-    o find
+    x find
         x create temp. txn if needed
         x find w/ empty everything
         x find w/ empty txn tree
         x find w/ btree and key is overwritten in txn-tree
         x find w/ txn and key is overwritten in txn-tree
-        o find w/ btree and key is erased in txn-tree
-        o find w/ txn and key is erased in txn-tree
+    o erase: if TXNs are enabled, only call txn_cursor_erase(); 
+        otherwise call btree function
+        x create temp. txn if needed
+        x erase w/ item in txn
+        x erase w/ item in btree, overwritten in txn
+        x erase w/ item in btree, overwritten in txn, find item, erase it
+        o erase w/ item in btree (-> if cursor is coupled to btree,
+            then it needs to be coupled in the txn_cursor, too)
+            -> LongTxnCursorTest::eraseInTxnKeyFromBtreeTest
+        x negative erase (nil cursor)
     o overwrite: if TXNs are enabled, only call txn_cursor_overwrite(); 
         otherwise call btree function
         o create temp. txn if needed
         o unittests
-    o clone
+        o negative overwrite (nil cursor)
+        o overwrite btree item
+        o overwrite item in txn
+        o overwrite erased item
+    o clone - be careful; we cannot just copy the txn_cursor structure.
+        instead, the cursor must be inserted into the coupled op-linked list
     o close
         when two cursors point to the same transaction then the transaction
         cannot be closed till both cursors are closed
@@ -566,8 +575,8 @@ o support cursors!!!
         o unittest w/ temp txn 
         o unittest w/ long txn 
         o also see hamsterdb.c:3481 - is this behavior different from the 
-            btree? yes, we now change the behavior
-            -> document it in the changelog
+            btree? yes, we now change the behavior (I THOUGHT - but it is NOT!)
+            -> document it in the changelog and header file (REVERT!)
     o move first: use the cursor which is smaller; when deciding on a btree,
         first check if it wasn't erased by a txn
         o unittest w/ smaller item in txntree
@@ -590,26 +599,6 @@ o support cursors!!!
         (similar to above)
         o unittest
         o unittest w/ switching directions
-    o make sure that we do not return keys that are picked from the btree,
-        but are already deleted (or overwritten) in a txn tree (same about
-        duplicates!)
-    o move with duplicates
-        - will get esp. tricky when a few of the duplicates are flushed while
-            iterating with the cursor
-    o when flushing a transaction, and a cursor is pointing into the txn
-        node: uncouple the cursor! (or delete it?)
-        o unittest
-    o cursor: if no TXN is assigned, give each operation its temp. txn
-        o document this behavior in the header file!
-    o db.c: do we need local_txn in the cursor functions? currently there's
-        only one temp. cursor that is created over the whole lifetime
-        of the cursor; this is way too risky. revert original behavior.
-        document this!
-    o add support for logging/recovery
-        o ham_cursor_insert
-        o ham_cursor_erase (duplicate handling!)
-        o ham_cursor_overwrite
-        o unittests
 
     o the btree_cursor.* files need some rework/reformatting/renaming
 
@@ -698,6 +687,8 @@ o run monster tests
 o port to Win32
 
 o port to WinCE
+
+o don't forget to test with valgrind!
 
 o do some performance tests of old vs new implementations, including 
     transactions

@@ -224,6 +224,11 @@ public:
         BFC_REGISTER_TEST(LongTxnCursorTest, findInEmptyTransactionTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, findInBtreeOverwrittenInTxnTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, findInTxnOverwrittenInTxnTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, findInTxnOverwrittenInTxnTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, eraseInTxnKeyFromBtreeTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, eraseInTxnKeyFromTxnTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, eraseInTxnOverwrittenKeyTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, eraseInTxnOverwrittenFindKeyTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, nilCursorTest);
     }
 
@@ -299,6 +304,112 @@ public:
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)rec.data));
     }
 
+    void eraseInTxnKeyFromBtreeTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        /* insert a key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* couple the cursor to this key */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+
+        /* erase it in the Transaction */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+
+        /* retrieve key - must fail */
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    ham_cursor_find(m_cursor, &key, 0));
+    }
+
+    void eraseInTxnKeyFromTxnTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        /* insert a key into the Transaction */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+
+        /* erase it in the Transaction */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+
+        /* retrieve key - must fail */
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    ham_cursor_find(m_cursor, &key, 0));
+    }
+
+    void eraseInTxnOverwrittenKeyTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0}, rec2={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        /* insert a key into the Transaction */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+
+        /* overwrite it in the Transaction */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec2, HAM_OVERWRITE));
+
+        /* erase it in the Transaction */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+
+        /* retrieve key - must fail */
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    ham_cursor_find(m_cursor, &key, 0));
+    }
+
+    void eraseInTxnOverwrittenFindKeyTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0}, rec2={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
+                    ham_cursor_erase(m_cursor, 0));
+
+        /* insert a key into the Transaction */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+
+        /* overwrite it in the Transaction */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec2, HAM_OVERWRITE));
+
+        /* once more couple the cursor to this key */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+
+        /* erase it in the Transaction */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+
+        /* retrieve key - must fail */
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                    ham_cursor_find(m_cursor, &key, 0));
+    }
 };
 
 class NoTxnCursorTest : public BaseCursorTest

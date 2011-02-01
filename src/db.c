@@ -2527,6 +2527,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
     ham_status_t st;
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
+    ham_txn_t *local_txn=0;
 
     db_update_global_stats_erase_query(db, 0);
 
@@ -2537,29 +2538,47 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
             return (st);
     }
 
-    st=cursor->_fun_erase(cursor, flags);
-
-    /* TODO TODO TODO remove this when cursors are fully implemented */
-    changeset_clear(env_get_changeset(env));
-
-    /* append journal entry - we can retrieve the key from the uncoupled
-     * cursor */
-    if (st==0
-            && db_get_rt_flags(db)&HAM_ENABLE_RECOVERY
-            && db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS) {
-#if 0 
-    TODO TODO TODO
-    cursor is set to NIL, therefore bt_cursor_get_uncoupled_key() 
-    will fail!
-        ham_bt_cursor_t *btc=(ham_bt_cursor_t *)cursor;
-        ham_assert(bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED, (""));
-        st=journal_append_erase(env_get_journal(env), cursor_get_txn(cursor),
-                        bt_cursor_get_uncoupled_key(btc),
-                        bt_cursor_get_dupe_id(btc), flags);
-#endif
+    /* if user did not specify a transaction, but transactions are enabled:
+     * create a temporary one */
+    if (!cursor_get_txn(cursor) 
+            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        st=txn_begin(&local_txn, env, 0);
+        if (st)
+            return (st);
+        cursor_set_txn(cursor, local_txn);
     }
 
-    return (st);
+    /* if transactions are enabled: add a erase-op to the txn-tree */
+    if (cursor_get_txn(cursor) || local_txn) {
+        st=txn_cursor_erase(cursor_get_txn_cursor(cursor));
+    }
+    else {
+        st=cursor->_fun_erase(cursor, flags);
+    }
+
+    /* on success: cursor was set to nil */
+    if (st==0) {
+        cursor_set_flags(cursor, 
+                cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+        ham_assert(txn_cursor_is_nil(cursor_get_txn_cursor(cursor)), (""));
+        ham_assert(bt_cursor_is_nil(cursor), (""));
+    }
+    else {
+        if (local_txn)
+            (void)txn_abort(local_txn, 0);
+        return (st);
+    }
+
+    /* no need to append the journal entry - it's appended in db_erase_txn(),
+     * which is called by txn_cursor_erase() */
+
+    if (local_txn)
+        return (txn_commit(local_txn, 0));
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
+        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
+    else
+        return (st);
 }
 
 static ham_status_t
