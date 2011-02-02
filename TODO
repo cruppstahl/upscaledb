@@ -548,13 +548,13 @@ o support cursors!!!
         x find w/ empty txn tree
         x find w/ btree and key is overwritten in txn-tree
         x find w/ txn and key is overwritten in txn-tree
-    o erase: if TXNs are enabled, only call txn_cursor_erase(); 
+    x erase: if TXNs are enabled, only call txn_cursor_erase(); 
         otherwise call btree function
         x create temp. txn if needed
         x erase w/ item in txn
         x erase w/ item in btree, overwritten in txn
         x erase w/ item in btree, overwritten in txn, find item, erase it
-        o erase w/ item in btree (-> if cursor is coupled to btree,
+        x erase w/ item in btree (-> if cursor is coupled to btree,
             then it needs to be coupled in the txn_cursor, too)
             -> LongTxnCursorTest::eraseInTxnKeyFromBtreeTest
         x negative erase (nil cursor)
@@ -751,6 +751,14 @@ o new API to retrieve the currently active transactions
     enough; maybe a hash table is better?
 
 . many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
+
+. flush transactions in background
+
+. have a flag to disable flushing of logfiles/journal files (or flush them 
+    async.)
+
+. have a flag to describe if a transaction is (mostly) insert-only; if yes then
+    write records immediately to the database file, not to the journal
 
 o continue as described in integrate-ham2.txt...
 

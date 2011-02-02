@@ -18,6 +18,7 @@
 #include <ham/hamsterdb.h>
 #include "../src/env.h"
 #include "../src/cursor.h"
+#include "../src/btree_cursor.h"
 #include "../src/backend.h"
 #include "memtracker.h"
 
@@ -325,6 +326,9 @@ public:
         BFC_ASSERT_EQUAL(0, 
                     ham_cursor_erase(m_cursor, 0));
 
+        /* key is now nil */
+        BFC_ASSERT_EQUAL(true, bt_cursor_is_nil(m_cursor));
+
         /* retrieve key - must fail */
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                     ham_cursor_find(m_cursor, &key, 0));
@@ -409,6 +413,47 @@ public:
         /* retrieve key - must fail */
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                     ham_cursor_find(m_cursor, &key, 0));
+    }
+
+    void flushCoupledOpTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        /* get rid of the existing transaction - we will take a new one */
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(m_txn, 0));
+        m_txn=0;
+
+        ham_txn_t *txn;
+        ham_cursor_t *cursor[5]={0};
+        for (int i=0; i<5; i++)
+            BFC_ASSERT_EQUAL(0, createCursor(&cursor[i]));
+
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(cursor[0], &key, &rec, 0));
+        for (int i=1; i<5; i++)
+            BFC_ASSERT_EQUAL(0, ham_cursor_find(cursor[i], &key, 0));
+
+        /* all cursors are now coupled */
+        for (int i=0; i<5; i++) {
+            BFC_ASSERT(cursor_get_flags(cursor[i])&BT_CURSOR_FLAG_COUPLED);
+        }
+
+        /* commit the transaction and flush the key */
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+
+        /* all cursors are now uncoupled */
+        for (int i=0; i<5; i++) {
+            BFC_ASSERT_EQUAL(0u, cursor_get_flags(cursor[i]));
+            BFC_ASSERT_EQUAL(true, 
+                    txn_cursor_is_nil(cursor_get_txn_cursor(cursor[i])));
+        }
     }
 };
 

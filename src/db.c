@@ -2556,6 +2556,10 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         st=cursor->_fun_erase(cursor, flags);
     }
 
+    /* if we created a temp. txn then clean it up again */
+    if (local_txn)
+        cursor_set_txn(cursor, 0);
+
     /* on success: cursor was set to nil */
     if (st==0) {
         cursor_set_flags(cursor, 
@@ -2642,6 +2646,12 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
                     goto bail;
             }
         }
+    }
+
+    /* if the key was erased in a transaction then fail with an error */
+    if (st==HAM_KEY_ERASED_IN_TXN) {
+        st=HAM_KEY_NOT_FOUND;
+        goto bail;
     }
 
     if ((!cursor_get_txn(cursor) && !local_txn) || st==HAM_KEY_NOT_FOUND) {

@@ -283,6 +283,8 @@ typedef struct {
 #define HAM_FILTER_NOT_FOUND         (-30)
 /** Operation conflicts with another Transaction */
 #define HAM_TXN_CONFLICT             (-31)
+/* internal use: key was erased in a Transaction */
+#define HAM_KEY_ERASED_IN_TXN        (-32)
 /** Cursor does not point to a valid item */
 #define HAM_CURSOR_IS_NIL           (-100)
 /** Database not found */

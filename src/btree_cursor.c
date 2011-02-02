@@ -446,7 +446,7 @@ bt_cursor_couple(ham_bt_cursor_t *c)
 void
 bt_cursor_couple_to_other(ham_bt_cursor_t *cu, ham_bt_cursor_t *other)
 {
-    ham_assert(bt_cursor_is_nil(other), ("other cursor must be nil"));
+    ham_assert(bt_cursor_get_flags(other)&BT_CURSOR_FLAG_COUPLED, (""));
     bt_cursor_set_to_nil(cu);
 
     bt_cursor_set_coupled_page(cu, bt_cursor_get_coupled_page(other));

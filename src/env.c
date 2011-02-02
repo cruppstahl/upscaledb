@@ -1536,11 +1536,16 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
          * parent (btree) cursor must be coupled to the btree item instead.
          */
         if ((txn_op_get_flags(op)&TXN_OP_INSERT)
-                || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)) {
+                || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)
+                || (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
+            ham_u32_t additional_flag=
+                (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)
+                    ? HAM_DUPLICATE
+                    : HAM_OVERWRITE;
             if (!txn_op_get_cursors(op)) {
                 st=be->_fun_insert(be, txn_opnode_get_key(node), 
                         txn_op_get_record(op), 
-                        txn_op_get_flags(op)|HAM_OVERWRITE);
+                        txn_op_get_flags(op)|additional_flag);
             }
             else {
                 txn_cursor_t *tc2, *tc=txn_op_get_cursors(op);
@@ -1550,11 +1555,12 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
                  * then will be coupled to this item. */
                 st=btc->_fun_insert(btc, txn_opnode_get_key(node), 
                         txn_op_get_record(op), 
-                        txn_op_get_flags(op)|HAM_OVERWRITE);
+                        txn_op_get_flags(op)|additional_flag);
                 if (st)
                     goto bail;
 
-                /* uncouple the cursor from the txn-op */
+                /* uncouple the cursor from the txn-op, and remove it */
+                txn_op_remove_cursor(op, tc);
                 cursor_set_flags(btc, 
                         cursor_get_flags(btc)&(~CURSOR_COUPLED_TO_TXN));
                 txn_cursor_set_to_nil(tc);
@@ -1562,25 +1568,14 @@ __flush_txn(ham_env_t *env, ham_txn_t *txn)
                 /* all other (btree) cursors need to be coupled to the same 
                  * item as the first one. */
                 while ((tc2=txn_op_get_cursors(op))) {
-                    btc2=txn_cursor_get_parent(cursor);
+                    txn_op_remove_cursor(op, tc2);
+                    btc2=txn_cursor_get_parent(tc2);
                     bt_cursor_couple_to_other((ham_bt_cursor_t *)btc2, 
                                 (ham_bt_cursor_t *)btc);
                     cursor_set_flags(btc2, 
                             cursor_get_flags(btc2)&(~CURSOR_COUPLED_TO_TXN));
                     txn_cursor_set_to_nil(tc2);
                 }
-            }
-        }
-        else if (txn_op_get_flags(op)&TXN_OP_INSERT_DUP) {
-            if (!txn_op_get_cursors(op)) {
-                st=be->_fun_insert(be, txn_opnode_get_key(node), 
-                        txn_op_get_record(op), 
-                        txn_op_get_flags(op)|HAM_DUPLICATE);
-            }
-            else {
-                /* not yet implemented - merge with if-clause above (99%
-                 * of the code is identical */
-                ham_assert(!"not yet implemented", (""));
             }
         }
         else if (txn_op_get_flags(op)&TXN_OP_ERASE) {

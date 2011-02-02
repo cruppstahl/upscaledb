@@ -16,6 +16,7 @@
 #include "env.h"
 #include "mem.h"
 #include "cursor.h"
+#include "btree_cursor.h"
 
 ham_bool_t
 txn_cursor_is_nil(txn_cursor_t *cursor)
@@ -112,7 +113,7 @@ __move_next_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
             }
             /* a normal erase will return an error */
             if (txn_op_get_flags(op)&TXN_OP_ERASE) {
-                return (HAM_KEY_NOT_FOUND);
+                return (HAM_KEY_ERASED_IN_TXN);
             }
             /* we have not yet implemented support for duplicates */
             ham_assert(txn_op_get_flags(op)==TXN_OP_NOP, (""));
@@ -219,7 +220,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
          * till we've reached the end of the tree */
         while (1) {
             ham_status_t st=__move_next_in_node(cursor, node, op, HAM_TRUE); 
-            if (st==HAM_KEY_NOT_FOUND) {
+            if ((st==HAM_KEY_NOT_FOUND) || (st==HAM_KEY_ERASED_IN_TXN)) {
                 node=txn_tree_get_next_node(txn_opnode_get_tree(node), node);
                 if (!node)
                     return (HAM_KEY_NOT_FOUND);
@@ -247,7 +248,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
          * is identical to move_next_in_node */
         while (1) {
             ham_status_t st=__move_next_in_node(cursor, node, op, HAM_TRUE); 
-            if (st==HAM_KEY_NOT_FOUND) {
+            if ((st==HAM_KEY_NOT_FOUND) || (st==HAM_KEY_ERASED_IN_TXN)) {
                 node=txn_tree_get_previous_node(txn_opnode_get_tree(node), node);
                 if (!node)
                     return (HAM_KEY_NOT_FOUND);
@@ -370,18 +371,49 @@ txn_cursor_erase(txn_cursor_t *cursor)
     txn_op_t *op;
     txn_opnode_t *node;
 
-    if (txn_cursor_is_nil(cursor))
+    /* don't continue if cursor is nil */
+    if (bt_cursor_is_nil(txn_cursor_get_parent(cursor))
+            && txn_cursor_is_nil(cursor))
         return (HAM_CURSOR_IS_NIL);
 
-    /* just insert a normal erase op in the transaction, then set the cursor
-     * to nil */
-    op=txn_cursor_get_coupled_op(cursor);
-    node=txn_op_get_node(op);
-    st=db_erase_txn(db, txn, txn_opnode_get_key(node), 0);
-    if (st)
-        return (st);
+    /*
+     * !!
+     * we have two cases:
+     *
+     * 1. the cursor is coupled to a btree item (or uncoupled, but not nil)
+     *    and the txn_cursor is nil; in that case, we have to 
+     *      - uncouple the btree cursor
+     *      - insert the erase-op for the key which is used by the btree cursor
+     *
+     * 2. the cursor is coupled to a txn-op; in this case, we have to
+     *      - insert the erase-op for the key which is used by the txn-op
+     */
 
+    /* case 1 described above */
+    if (txn_cursor_is_nil(cursor)) {
+        ham_bt_cursor_t *btc=(ham_bt_cursor_t *)txn_cursor_get_parent(cursor);
+        if (bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) {
+            st=bt_cursor_uncouple(btc, 0);
+            if (st)
+                return (st);
+        }
+        st=db_erase_txn(db, txn, bt_cursor_get_uncoupled_key(btc), 0);
+        if (st)
+            return (st);
+    }
+    /* case 2 described above */
+    else {
+        op=txn_cursor_get_coupled_op(cursor);
+        node=txn_op_get_node(op);
+        st=db_erase_txn(db, txn, txn_opnode_get_key(node), 0);
+        if (st)
+            return (st);
+    }
+
+    /* in any case we set the cursor to nil afterwards */
+    bt_cursor_set_to_nil((ham_bt_cursor_t *)txn_cursor_get_parent(cursor));
     txn_cursor_set_to_nil(cursor);
+
     return (0);
 }
 
