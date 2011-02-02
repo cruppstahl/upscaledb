@@ -67,9 +67,6 @@ txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record)
     if (txn_cursor_is_nil(cursor))
         return (HAM_CURSOR_IS_NIL);
 
-    /* TODO - couple key if it's uncoupled */
-    ham_assert(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED, (""));
-
     op=txn_cursor_get_coupled_op(cursor);
     node=txn_op_get_node(op);
 

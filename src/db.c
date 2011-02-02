@@ -2413,23 +2413,17 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
             recno=*(ham_u64_t *)key->data;
         }
         else {
-            /*
-             * get the record number (host endian) and increment it
-             */
+            /* get the record number (host endian) and increment it */
             recno=be_get_recno(be);
             recno++;
         }
 
-        /*
-         * store it in db endian
-         */
+        /* store it in db endian */
         recno=ham_h2db64(recno);
         memcpy(key->data, &recno, sizeof(ham_u64_t));
         key->size=sizeof(ham_u64_t);
 
-        /*
-         * we're appending this key sequentially
-         */
+        /* we're appending this key sequentially */
         flags|=HAM_HINT_APPEND;
     }
 
@@ -2462,7 +2456,8 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
     }
 
     if (cursor_get_txn(cursor) || local_txn) {
-        st=txn_cursor_insert(cursor_get_txn_cursor(cursor), key, record, flags);
+        st=txn_cursor_insert(cursor_get_txn_cursor(cursor), key, 
+                    &temprec, flags);
         if (st==0)
             cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
@@ -2720,6 +2715,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     ham_env_t *env=db_get_env(db);
     ham_status_t st;
     ham_record_t temprec;
+    ham_txn_t *local_txn=0;
 
     /*
      * run the record-level filters on a temporary record structure - we
@@ -2737,15 +2733,70 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
             return (st);
     }
 
-    st=cursor->_fun_overwrite(cursor, &temprec, flags);
+    /* if user did not specify a transaction, but transactions are enabled:
+     * create a temporary one */
+    if (!cursor_get_txn(cursor) 
+            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        st=txn_begin(&local_txn, env, 0);
+        if (st)
+            return (st);
+        cursor_set_txn(cursor, local_txn);
+    }
 
-    /* TODO TODO TODO remove this when cursors are fully implemented */
-    changeset_clear(env_get_changeset(env));
+    /*
+     * if we're in transactional mode then just append an "insert/OW" operation
+     * to the txn-tree. 
+     *
+     * if the txn_cursor is already coupled to a txn-op, then we can use
+     * txn_cursor_overwrite(). Otherwise we have to call txn_cursor_insert().
+     *
+     * otherwise (transactions are disabled) overwrite the item in the btree.
+     */
+    if (cursor_get_txn(cursor) || local_txn) {
+        if (txn_cursor_is_nil(cursor_get_txn_cursor(cursor))) {
+            st=bt_cursor_uncouple((ham_bt_cursor_t *)cursor, 0);
+            if (st==0)
+                st=txn_cursor_insert(cursor_get_txn_cursor(cursor), 
+                        bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)cursor),
+                        &temprec, flags|HAM_OVERWRITE);
+        }
+        else {
+            st=txn_cursor_overwrite(cursor_get_txn_cursor(cursor), &temprec);
+        }
+
+        if (st==0)
+            cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+    }
+    else {
+        st=cursor->_fun_overwrite(cursor, &temprec, flags);
+        if (st==0)
+            cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+    }
+
+    /* if we created a temp. txn then clean it up again */
+    if (local_txn)
+        cursor_set_txn(cursor, 0);
+
+    if (st) {
+        if (local_txn)
+            (void)txn_abort(local_txn, 0);
+        return (st);
+    }
+
+    /* the journal entry is appended in txn_cursor_insert() */
 
     if (temprec.data != record->data)
         allocator_free(env_get_allocator(env), temprec.data);
 
-    return (st);
+    if (local_txn)
+        return (txn_commit(local_txn, 0));
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
+        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
+    else
+        return (st);
 }
 
 static ham_status_t
