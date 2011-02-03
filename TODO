@@ -558,14 +558,12 @@ o support cursors!!!
             then it needs to be coupled in the txn_cursor, too)
             -> LongTxnCursorTest::eraseInTxnKeyFromBtreeTest
         x negative erase (nil cursor)
-    o overwrite: if TXNs are enabled, only call txn_cursor_overwrite(); 
+    x overwrite: if TXNs are enabled, only call txn_cursor_overwrite(); 
         otherwise call btree function
-        o create temp. txn if needed
-        o unittests
-        o negative overwrite (nil cursor)
-        o overwrite btree item
-        o overwrite item in txn
-        o overwrite erased item
+        x create temp. txn if needed
+        x negative overwrite (nil cursor)
+        x overwrite btree item
+        x overwrite item in txn
     o clone - be careful; we cannot just copy the txn_cursor structure.
         instead, the cursor must be inserted into the coupled op-linked list
     o close

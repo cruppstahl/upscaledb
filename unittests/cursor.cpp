@@ -162,6 +162,9 @@ public:
 
         BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
                     ham_cursor_move(m_cursor, &key, &rec, 0));
+
+        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
+                    ham_cursor_overwrite(m_cursor, &rec, 0));
     }
 };
 
@@ -230,6 +233,8 @@ public:
         BFC_REGISTER_TEST(LongTxnCursorTest, eraseInTxnKeyFromTxnTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, eraseInTxnOverwrittenKeyTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, eraseInTxnOverwrittenFindKeyTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, overwriteInEmptyTransactionTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, overwriteInTransactionTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, nilCursorTest);
     }
 
@@ -413,6 +418,57 @@ public:
         /* retrieve key - must fail */
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
                     ham_cursor_find(m_cursor, &key, 0));
+    }
+
+    void overwriteInEmptyTransactionTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0}, rec2={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+        rec2.data=(void *)"aaaaa";
+        rec2.size=6;
+
+        /* insert a key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* this looks up a key in an empty Transaction but with the btree */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_overwrite(m_cursor, &rec2, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find_ex(m_cursor, &key, &rec, 0));
+
+        BFC_ASSERT_EQUAL(0, strcmp("12345", (char *)key.data));
+        BFC_ASSERT_EQUAL(0, strcmp("aaaaa", (char *)rec.data));
+    }
+
+    void overwriteInTransactionTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0}, rec2={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+        rec2.data=(void *)"aaaaa";
+        rec2.size=6;
+
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_overwrite(m_cursor, &rec2, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find_ex(m_cursor, &key, &rec, 0));
+
+        BFC_ASSERT_EQUAL(0, strcmp("12345", (char *)key.data));
+        BFC_ASSERT_EQUAL(0, strcmp("aaaaa", (char *)rec.data));
     }
 
     void flushCoupledOpTest(void)

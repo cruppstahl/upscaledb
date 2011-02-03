@@ -2753,7 +2753,8 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
      * otherwise (transactions are disabled) overwrite the item in the btree.
      */
     if (cursor_get_txn(cursor) || local_txn) {
-        if (txn_cursor_is_nil(cursor_get_txn_cursor(cursor))) {
+        if (txn_cursor_is_nil(cursor_get_txn_cursor(cursor))
+                && !(bt_cursor_is_nil(cursor))) {
             st=bt_cursor_uncouple((ham_bt_cursor_t *)cursor, 0);
             if (st==0)
                 st=txn_cursor_insert(cursor_get_txn_cursor(cursor), 
