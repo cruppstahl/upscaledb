@@ -194,6 +194,8 @@ public:
         BFC_REGISTER_TEST(TempTxnCursorTest, nilCursorTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, cloneCoupledBtreeCursorTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, cloneUncoupledBtreeCursorTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, closeCoupledBtreeCursorTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, closeUncoupledBtreeCursorTest);
     }
 
     void cloneCoupledBtreeCursorTest(void)
@@ -240,6 +242,38 @@ public:
         BFC_ASSERT_EQUAL(0, strcmp((char *)k1->data, (char *)k2->data));
         BFC_ASSERT_EQUAL(k1->size, k2->size);
         BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
+    }
+
+    void closeCoupledBtreeCursorTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    bt_cursor_uncouple((ham_bt_cursor_t *)m_cursor, 0));
+
+        /* will close in teardown() */
+    }
+
+    void closeUncoupledBtreeCursorTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+
+        /* will close in teardown() */
     }
 };
 
@@ -294,6 +328,7 @@ public:
         BFC_REGISTER_TEST(LongTxnCursorTest, overwriteInEmptyTransactionTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, overwriteInTransactionTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, cloneCoupledTxnCursorTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, closeCoupledTxnCursorTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, nilCursorTest);
     }
 
@@ -553,6 +588,22 @@ public:
                 txn_cursor_get_coupled_op(cursor_get_txn_cursor(clone)));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
         BFC_ASSERT_EQUAL(1u, txn_get_cursor_refcount(m_txn));
+                
+    }
+
+    void closeCoupledTxnCursorTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+        
+        /* will be closed in teardown() */
                 
     }
 

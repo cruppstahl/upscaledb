@@ -570,15 +570,16 @@ o support cursors!!!
         x unittest w/ coupled cursor (coupled to txn)
         x unittest w/ coupled cursor (coupled to btree)
         x unittest w/ uncoupled cursor (uncoupled from btree)
-    o close
+    x close
         when two cursors point to the same transaction then the transaction
         cannot be closed till both cursors are closed
-        o unittest w/ btree only
-        o unittest w/ temp txn 
-        o unittest w/ long txn 
-        o also see hamsterdb.c:3481 - is this behavior different from the 
-            btree? yes, we now change the behavior (I THOUGHT - but it is NOT!)
-            -> document it in the changelog and header file (REVERT!)
+        x also see hamsterdb.c:3481 - is this behavior different from the 
+            btree? no, stays as is
+        x need to uncouple/set to nil before closing
+        x unittest w/ nil cursor
+        x unittest w/ cursor coupled to btree
+        x unittest w/ cursor uncoupled from btree
+        x unittest w/ cursor coupled to txn
     o move first: use the cursor which is smaller; when deciding on a btree,
         first check if it wasn't erased by a txn
         o unittest w/ smaller item in txntree
