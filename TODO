@@ -564,8 +564,12 @@ o support cursors!!!
         x negative overwrite (nil cursor)
         x overwrite btree item
         x overwrite item in txn
-    o clone - be careful; we cannot just copy the txn_cursor structure.
+    x clone - be careful; we cannot just copy the txn_cursor structure.
         instead, the cursor must be inserted into the coupled op-linked list
+        x unittest w/ nil-cursor
+        x unittest w/ coupled cursor (coupled to txn)
+        x unittest w/ coupled cursor (coupled to btree)
+        x unittest w/ uncoupled cursor (uncoupled from btree)
     o close
         when two cursors point to the same transaction then the transaction
         cannot be closed till both cursors are closed

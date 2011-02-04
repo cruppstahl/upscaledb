@@ -41,10 +41,25 @@ txn_cursor_set_to_nil(txn_cursor_t *cursor)
     /* otherwise cursor is already nil */
 }
 
-txn_cursor_t *
-txn_cursor_clone(txn_cursor_t *cursor)
+static void
+__couple_cursor(txn_cursor_t *cursor, txn_op_t *op)
 {
-    return (0);
+    txn_cursor_set_to_nil(cursor);
+    txn_cursor_set_coupled_op(cursor, op);
+    txn_cursor_set_flags(cursor, 
+                    txn_cursor_get_flags(cursor)|TXN_CURSOR_FLAG_COUPLED);
+
+    txn_op_add_cursor(op, cursor);
+}
+
+void
+txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest)
+{
+    txn_cursor_set_parent(dest, txn_cursor_get_parent(src));
+    txn_cursor_set_flags(dest, txn_cursor_get_flags(src));
+
+    if (txn_cursor_get_flags(dest)&TXN_CURSOR_FLAG_COUPLED)
+        __couple_cursor(dest, txn_cursor_get_coupled_op(src));
 }
 
 void
@@ -72,17 +87,6 @@ txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record)
 
     return (db_insert_txn(db, txn, txn_opnode_get_key(node), 
                 record, HAM_OVERWRITE, cursor));
-}
-
-static void
-__couple_cursor(txn_cursor_t *cursor, txn_op_t *op)
-{
-    txn_cursor_set_to_nil(cursor);
-    txn_cursor_set_coupled_op(cursor, op);
-    txn_cursor_set_flags(cursor, 
-                    txn_cursor_get_flags(cursor)|TXN_CURSOR_FLAG_COUPLED);
-
-    txn_op_add_cursor(op, cursor);
 }
 
 static ham_status_t

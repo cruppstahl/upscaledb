@@ -113,11 +113,9 @@ txn_cursor_set_to_nil(txn_cursor_t *cursor);
 
 /**
  * clones a cursor
- *
- * returns NULL if out of memory
  */
-extern txn_cursor_t *
-txn_cursor_clone(txn_cursor_t *cursor);
+extern void
+txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest);
 
 /**
  * closes a cursor

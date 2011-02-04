@@ -2358,6 +2358,11 @@ _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
     if (st)
         return (st);
 
+    if (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS) {
+        txn_cursor_clone(cursor_get_txn_cursor(src), 
+                        cursor_get_txn_cursor(*dest));
+    }
+
     if (cursor_get_txn(src))
         txn_set_cursor_refcount(cursor_get_txn(src), 
                 txn_get_cursor_refcount(cursor_get_txn(src))+1);

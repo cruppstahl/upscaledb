@@ -165,6 +165,17 @@ public:
 
         BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
                     ham_cursor_overwrite(m_cursor, &rec, 0));
+
+        ham_cursor_t *clone;
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_clone(m_cursor, &clone));
+        BFC_ASSERT_EQUAL(true, bt_cursor_is_nil(m_cursor));
+        BFC_ASSERT_EQUAL(true, bt_cursor_is_nil(clone));
+        BFC_ASSERT_EQUAL(true, 
+                txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
+        BFC_ASSERT_EQUAL(true, 
+                txn_cursor_is_nil(cursor_get_txn_cursor(clone)));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
     }
 };
 
@@ -181,8 +192,55 @@ public:
         BFC_REGISTER_TEST(TempTxnCursorTest, insertFindMultipleCursorsTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, findInEmptyDatabaseTest);
         BFC_REGISTER_TEST(TempTxnCursorTest, nilCursorTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, cloneCoupledBtreeCursorTest);
+        BFC_REGISTER_TEST(TempTxnCursorTest, cloneUncoupledBtreeCursorTest);
     }
 
+    void cloneCoupledBtreeCursorTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        ham_cursor_t *clone;
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_clone(m_cursor, &clone));
+
+        BFC_ASSERT_EQUAL(false, bt_cursor_is_nil(clone));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
+    }
+
+    void cloneUncoupledBtreeCursorTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        ham_cursor_t *clone;
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    bt_cursor_uncouple((ham_bt_cursor_t *)m_cursor, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_clone(m_cursor, &clone));
+
+        BFC_ASSERT_EQUAL(false, bt_cursor_is_nil(clone));
+        ham_key_t *k1=bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)m_cursor);
+        ham_key_t *k2=bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)clone);
+        BFC_ASSERT_EQUAL(0, strcmp((char *)k1->data, (char *)k2->data));
+        BFC_ASSERT_EQUAL(k1->size, k2->size);
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
+    }
 };
 
 class LongTxnCursorTest : public BaseCursorTest
@@ -235,6 +293,7 @@ public:
         BFC_REGISTER_TEST(LongTxnCursorTest, eraseInTxnOverwrittenFindKeyTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, overwriteInEmptyTransactionTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, overwriteInTransactionTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, cloneCoupledTxnCursorTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, nilCursorTest);
     }
 
@@ -471,6 +530,32 @@ public:
         BFC_ASSERT_EQUAL(0, strcmp("aaaaa", (char *)rec.data));
     }
 
+    void cloneCoupledTxnCursorTest(void)
+    {
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        ham_cursor_t *clone;
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_clone(m_cursor, &clone));
+
+        BFC_ASSERT_EQUAL(false, bt_cursor_is_nil(clone));
+        BFC_ASSERT_EQUAL(2u, txn_get_cursor_refcount(m_txn));
+        BFC_ASSERT_EQUAL(
+                txn_cursor_get_coupled_op(cursor_get_txn_cursor(m_cursor)), 
+                txn_cursor_get_coupled_op(cursor_get_txn_cursor(clone)));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
+        BFC_ASSERT_EQUAL(1u, txn_get_cursor_refcount(m_txn));
+                
+    }
+
     void flushCoupledOpTest(void)
     {
         ham_key_t key={0};
@@ -546,6 +631,7 @@ public:
                 ham_env_create_db(m_env, m_db, 13, 0, 0));
         BFC_ASSERT_EQUAL(0, createCursor(&m_cursor));
     }
+
 };
 
 BFC_REGISTER_FIXTURE(TempTxnCursorTest);
