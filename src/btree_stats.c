@@ -949,11 +949,8 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
     else if (dbdata->last_insert_was_prepend)
         hints->flags|=HAM_HINT_PREPEND;
 
-    if ((hints->flags & HAM_HINT_APPEND) && (cursor))
-    {
-        if (!bt_cursor_is_nil(cursor))
-        {
-            ham_assert(bt_cursor_is_nil(cursor)==0, ("cursor must not be nil"));
+    if ((hints->flags & HAM_HINT_APPEND) && (cursor)) {
+        if (!hints->cursor->_fun_is_nil(hints->cursor)) {
             ham_assert(db == bt_cursor_get_db(cursor), (0));
 
             /*
@@ -987,9 +984,7 @@ btree_insert_get_hints(insert_hints_t *hints, ham_db_t *db, ham_key_t *key)
     }
     else if ((hints->flags & HAM_HINT_PREPEND) && (cursor))
     {
-        if (!bt_cursor_is_nil(cursor))
-        {
-            ham_assert(bt_cursor_is_nil(cursor)==0, ("cursor must not be nil"));
+        if (!hints->cursor->_fun_is_nil(hints->cursor)) {
             ham_assert(db == bt_cursor_get_db(cursor), (0));
 
             /*

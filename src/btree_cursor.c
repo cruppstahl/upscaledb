@@ -455,6 +455,14 @@ bt_cursor_couple_to_other(ham_bt_cursor_t *cu, ham_bt_cursor_t *other)
     bt_cursor_set_flags(cu, bt_cursor_get_flags(other));
 }
 
+ham_bool_t
+bt_cursor_is_nil(ham_bt_cursor_t *cursor)
+{
+    return (!(cursor->_flags&BT_CURSOR_FLAG_COUPLED) &&
+            !(cursor->_flags&BT_CURSOR_FLAG_UNCOUPLED) &&
+            !(cursor->_flags&CURSOR_COUPLED_TO_TXN));
+}
+
 ham_status_t
 bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags)
 {
@@ -656,21 +664,6 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
 
     if (!be)
         return (HAM_NOT_INITIALIZED);
-
-    /*
-     * if the cursor is NIL, and the user requests a NEXT, we set it to FIRST;
-     * if the user requests a PREVIOUS, we set it to LAST, resp.
-     */
-    if (bt_cursor_is_nil(c)) {
-        if (flags&HAM_CURSOR_NEXT) {
-            flags&=~HAM_CURSOR_NEXT;
-            flags|=HAM_CURSOR_FIRST;
-        }
-        else if (flags&HAM_CURSOR_PREVIOUS) {
-            flags&=~HAM_CURSOR_PREVIOUS;
-            flags|=HAM_CURSOR_LAST;
-        }
-    }
 
     /*
      * delete the cache of the current duplicate
@@ -988,6 +981,7 @@ bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
     c->_fun_insert=bt_cursor_insert;
     c->_fun_erase=bt_cursor_erase;
     c->_fun_get_duplicate_count=bt_cursor_get_duplicate_count;
+    c->_fun_is_nil=bt_cursor_is_nil;
     cursor_set_flags(c, flags);
 
     *cu=c;

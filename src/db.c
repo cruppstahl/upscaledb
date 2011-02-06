@@ -2565,7 +2565,7 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         cursor_set_flags(cursor, 
                 cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
         ham_assert(txn_cursor_is_nil(cursor_get_txn_cursor(cursor)), (""));
-        ham_assert(bt_cursor_is_nil(cursor), (""));
+        ham_assert(cursor->_fun_is_nil(cursor), (""));
     }
     else {
         if (local_txn)
@@ -2759,7 +2759,7 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
      */
     if (cursor_get_txn(cursor) || local_txn) {
         if (txn_cursor_is_nil(cursor_get_txn_cursor(cursor))
-                && !(bt_cursor_is_nil(cursor))) {
+                && !(cursor->_fun_is_nil(cursor))) {
             st=bt_cursor_uncouple((ham_bt_cursor_t *)cursor, 0);
             if (st==0)
                 st=txn_cursor_insert(cursor_get_txn_cursor(cursor), 
@@ -2805,6 +2805,62 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
         return (st);
 }
 
+/* 
+ * this function compares two cursors - or more exactly, the two keys that
+ * the cursors point at.
+ *
+ * we have to distinguish two states for the btree cursor and one state
+ * for the txn cursor.
+ *
+ * both cursors must not be nil.
+ */
+static ham_status_t
+__compare_cursors(ham_bt_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
+{
+    ham_db_t *db=cursor_get_db(btrc);
+    ham_cursor_t *cursor=(ham_cursor_t *)btrc;
+
+    txn_opnode_t *node=txn_op_get_node(txn_cursor_get_coupled_op(txnc));
+    ham_key_t *txnk=txn_opnode_get_key(node);
+
+    ham_assert(!cursor->_fun_is_nil(cursor), (""));
+    ham_assert(!txn_cursor_is_nil(txnc), (""));
+
+    if (cursor_get_flags(btrc)&BT_CURSOR_FLAG_COUPLED) {
+        /* clone the cursor, then uncouple the clone; get the uncoupled key
+         * and discard the clone again */
+        
+        /* 
+         * TODO TODO TODO
+         * this is all correct, but of course quite inefficient, because 
+         *    a) new structures have to be allocated/released
+         *    b) uncoupling fetches the whole extended key, which is often
+         *      not necessary
+         *  -> fix it!
+         */
+        int cmp;
+        ham_cursor_t *clone;
+        ham_status_t st=ham_cursor_clone(cursor, &clone);
+        if (st)
+            return (st);
+        st=bt_cursor_uncouple((ham_bt_cursor_t *)clone, 0);
+        if (st) {
+            ham_cursor_close(clone);
+            return (st);
+        }
+        cmp=db_compare_keys(db, 
+                bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)clone), txnk);
+        ham_cursor_close(clone);
+        return (cmp);
+    }
+    else if (cursor_get_flags(btrc)&BT_CURSOR_FLAG_UNCOUPLED) {
+        return (db_compare_keys(db, bt_cursor_get_uncoupled_key(btrc), txnk));
+    }
+
+    ham_assert(!"shouldn't be here", (""));
+    return (0);
+} 
+
 static ham_status_t
 _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
@@ -2832,28 +2888,99 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     }
 
     /*
-     * if flags=0 then we just retrieve key or record (or both) of the cursor,
-     * without moving it
+     * if the cursor is NIL, and the user requests a NEXT, we set it to FIRST;
+     * if the user requests a PREVIOUS, we set it to LAST, resp.
      */
-    if (flags==0) {
-        if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN) {
-            if (key) {
-                st=txn_cursor_get_key(cursor_get_txn_cursor(cursor), key);
-                if (st)
+    if (cursor->_fun_is_nil(cursor)) {
+        if (flags&HAM_CURSOR_NEXT) {
+            flags&=~HAM_CURSOR_NEXT;
+            flags|=HAM_CURSOR_FIRST;
+        }
+        else if (flags&HAM_CURSOR_PREVIOUS) {
+            flags&=~HAM_CURSOR_PREVIOUS;
+            flags|=HAM_CURSOR_LAST;
+        }
+    }
+
+    /* 
+     * move to the first key
+     */
+    if (flags&HAM_CURSOR_FIRST) {
+        ham_status_t btrs, txns;
+        /* fetch the smallest/first key from the transaction tree. */
+        txns=txn_cursor_move(cursor_get_txn_cursor(cursor), flags);
+        /* fetch the smallest/first key from the btree tree. */
+        btrs=cursor->_fun_move(cursor, 0, 0, flags);
+        /* now consolidate - if both trees are empty then return */
+        if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_NOT_FOUND) {
+            st=HAM_KEY_NOT_FOUND;
+            goto bail;
+        }
+        /* if btree is empty but txn-tree is not: couple to txn */
+        if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
+            cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+        }
+        /* if txn-tree is empty but btree is not: couple to btree */
+        if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
+            cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+        }
+        /* if both trees are not empty then pick the smaller key, but make
+         * sure that it wasn't erased in the txn */
+        if (btrs==0 && (txns==0 || txns==HAM_KEY_ERASED_IN_TXN)) {
+            int cmp;
+            st=__compare_cursors((ham_bt_cursor_t *)cursor, 
+                            cursor_get_txn_cursor(cursor), &cmp);
+            if (st)
+                goto bail;
+            /* if both keys are equal: make sure that the btree key was not
+             * erased in the transaction; otherwise couple to the txn-op
+             * (it's chronologically newer and has faster access) */
+            if (cmp==0) {
+                if (txns==HAM_KEY_ERASED_IN_TXN) {
+                    st=HAM_KEY_NOT_FOUND;
                     goto bail;
+                }
+                cursor_set_flags(cursor, 
+                        cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
             }
-            if (record) {
-                st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), record);
-                if (st)
-                    goto bail;
+            else if (cmp<1) {
+                /* couple to btree */
+                cursor_set_flags(cursor, 
+                        cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+            }
+            else {
+                /* couple to txn */
+                cursor_set_flags(cursor, 
+                        cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
             }
         }
-        else
-            st=cursor->_fun_move(cursor, key, record, flags);
+        /* every other error code is returned to the caller */
+        else {
+            st=txns ? txns : btrs;
+            goto bail;
+        }
     }
-    else
-        /* TODO */
-        st=cursor->_fun_move(cursor, key, record, flags);
+
+    /*
+     * retrieve key/record, if requested
+     */
+    if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN) {
+        if (key) {
+            st=txn_cursor_get_key(cursor_get_txn_cursor(cursor), key);
+            if (st)
+                goto bail;
+        }
+        if (record) {
+            st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), record);
+            if (st)
+                goto bail;
+        }
+    }
+    else {
+        st=cursor->_fun_move(cursor, key, record, 0);
+    }
 
 bail:
     /* if we created a temp. txn then clean it up again */

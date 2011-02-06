@@ -122,15 +122,6 @@ struct ham_bt_cursor_t
 #define bt_cursor_set_flags(cu, f)          (cu)->_flags=(f)
 
 /**
- * Is the cursor pointing to "NULL"? This is the case when the
- * cursor is neither coupled nor uncoupled.
- */
-#define bt_cursor_is_nil(cu)                                                \
-                (!((cu)->_flags&BT_CURSOR_FLAG_COUPLED) &&                  \
-                 !((cu)->_flags&BT_CURSOR_FLAG_UNCOUPLED) &&                \
-                 !((cu)->_flags&CURSOR_COUPLED_TO_TXN))
-
-/**
  * get the page we're pointing to - if the cursor is coupled
  */
 #define bt_cursor_get_coupled_page(cu)      (cu)->_u._coupled._page

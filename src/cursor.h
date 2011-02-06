@@ -73,12 +73,17 @@ extern "C" {
      */                                                                 \
     ham_status_t (*_fun_erase)(clss *cu, ham_u32_t flags);              \
                                                                         \
-	/**																	\
-	 * Count the number of records stored with the referenced key.		\
-	 */																	\
-	ham_status_t (*_fun_get_duplicate_count)(ham_cursor_t *cursor,		\
-			ham_size_t *count, ham_u32_t flags);						\
-																		\
+    /**                                                                 \
+     * Count the number of records stored with the referenced key.      \
+     */                                                                 \
+    ham_status_t (*_fun_get_duplicate_count)(ham_cursor_t *cursor,      \
+            ham_size_t *count, ham_u32_t flags);                        \
+                                                                        \
+    /**                                                                 \
+     * Returns true if cursor is nil, otherwise false                   \
+     */                                                                 \
+    ham_bool_t (*_fun_is_nil)(ham_cursor_t *cursor);                    \
+                                                                        \
     /** Pointer to the Database object */                               \
     ham_db_t *_db;                                                      \
                                                                         \
@@ -140,23 +145,23 @@ struct ham_cursor_t
 #define cursor_get_next_in_page(c)       (c)->_next_in_page
 
 /** Set the 'next' pointer of the linked list */
-#define cursor_set_next_in_page(c, n)										\
-	{																		\
-		if (n)																\
-			ham_assert((c)->_previous_in_page!=(n), (0));					\
-		(c)->_next_in_page=(n);												\
-	}
+#define cursor_set_next_in_page(c, n)                                        \
+    {                                                                        \
+        if (n)                                                                \
+            ham_assert((c)->_previous_in_page!=(n), (0));                    \
+        (c)->_next_in_page=(n);                                                \
+    }
 
 /** Get the 'previous' pointer of the linked list */
 #define cursor_get_previous_in_page(c)   (c)->_previous_in_page
 
 /** Set the 'previous' pointer of the linked list */
-#define cursor_set_previous_in_page(c, p)									\
-	{																		\
-		if (p)																\
-			ham_assert((c)->_next_in_page!=(p), (0));						\
-		(c)->_previous_in_page=(p);											\
-	}
+#define cursor_set_previous_in_page(c, p)                                    \
+    {                                                                        \
+        if (p)                                                                \
+            ham_assert((c)->_next_in_page!=(p), (0));                        \
+        (c)->_previous_in_page=(p);                                            \
+    }
 
 /** Set the Database pointer */
 #define cursor_set_db(c, db)            (c)->_db=db

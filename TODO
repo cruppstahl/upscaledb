@@ -582,9 +582,11 @@ o support cursors!!!
         x unittest w/ cursor coupled to txn
     o move first: use the cursor which is smaller; when deciding on a btree,
         first check if it wasn't erased by a txn
+        x btree_cursor.c:663 - move one level up (db.c)
         o unittest w/ smaller item in txntree
         o unittest w/ smaller item in btree
         o unittest w/ smaller item in btree which is erased in txn
+        o unittest w/ smaller item in btree which is erased, then written in txn
         o unittest w/ identical items - use txn (it's chronologically newer
             and could be an INSERT_OW)
         o unittest w/ empty txn-tree
@@ -602,8 +604,6 @@ o support cursors!!!
         (similar to above)
         o unittest
         o unittest w/ switching directions
-
-    o the btree_cursor.* files need some rework/reformatting/renaming
 
     o implement support for duplicates
         the problem with duplicates is that their position can depend on
@@ -701,6 +701,10 @@ o update documentation in header file + Wiki!
 o test with lessfs (and add lessfs to the monster testsuite)
 
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
+
+o the btree_cursor.* files need some rework/reformatting/renaming
+    o also, txn_cursor.c is not isolated well enough; it sometimes 
+        accesses the btree_cursor. 
 
 o if recovery is enabled: before flushing the changeset, patch the lsn in
     the page header (it fits in 8 free bytes). in the previous release we 
