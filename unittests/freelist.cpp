@@ -74,7 +74,8 @@ public:
         __super::teardown();
 
         /* need to clear the changeset, otherwise ham_close() will complain */
-        changeset_clear(env_get_changeset(m_env));
+        if (m_env)
+            changeset_clear(env_get_changeset(m_env));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
         ham_delete(m_db);

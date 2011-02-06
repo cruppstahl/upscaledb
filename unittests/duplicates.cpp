@@ -22,6 +22,7 @@
 #include "../src/btree.h"
 #include "../src/endianswap.h"
 #include "../src/env.h"
+#include "../src/btree_cursor.h"
 #include "memtracker.h"
 #include "os.hpp"
 

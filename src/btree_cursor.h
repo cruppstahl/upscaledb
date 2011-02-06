@@ -204,6 +204,12 @@ bt_cursor_uncouple(ham_bt_cursor_t *c, ham_u32_t flags);
 #define BT_CURSOR_UNCOUPLE_NO_REMOVE        1
 
 /**
+ * returns true if the cursor is nil, otherwise false
+ */
+ham_bool_t
+bt_cursor_is_nil(ham_bt_cursor_t *cursor);
+
+/**
  * create a new cursor
  */
 ham_status_t

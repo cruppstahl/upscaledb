@@ -2851,7 +2851,8 @@ __compare_cursors(ham_bt_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
         cmp=db_compare_keys(db, 
                 bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)clone), txnk);
         ham_cursor_close(clone);
-        return (cmp);
+        *pcmp=cmp;
+        return (0);
     }
     else if (cursor_get_flags(btrc)&BT_CURSOR_FLAG_UNCOUPLED) {
         return (db_compare_keys(db, bt_cursor_get_uncoupled_key(btrc), txnk));
@@ -2902,8 +2903,16 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
     }
 
+    /* in non-transactional mode - just call the btree function and return */
+    if (!(db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        st=cursor->_fun_move(cursor, key, record, flags);
+        goto bail;
+    }
+
     /* 
-     * move to the first key
+     * Otherwise we have to consolidate the btree cursor and the txn-cursor.
+     *
+     * Move to the first key?
      */
     if (flags&HAM_CURSOR_FIRST) {
         ham_status_t btrs, txns;
@@ -2917,18 +2926,18 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             goto bail;
         }
         /* if btree is empty but txn-tree is not: couple to txn */
-        if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
+        else if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
             cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
         }
         /* if txn-tree is empty but btree is not: couple to btree */
-        if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
+        else if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
             cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
         }
         /* if both trees are not empty then pick the smaller key, but make
          * sure that it wasn't erased in the txn */
-        if (btrs==0 && (txns==0 || txns==HAM_KEY_ERASED_IN_TXN)) {
+        else if (btrs==0 && (txns==0 || txns==HAM_KEY_ERASED_IN_TXN)) {
             int cmp;
             st=__compare_cursors((ham_bt_cursor_t *)cursor, 
                             cursor_get_txn_cursor(cursor), &cmp);
@@ -2939,6 +2948,9 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
              * (it's chronologically newer and has faster access) */
             if (cmp==0) {
                 if (txns==HAM_KEY_ERASED_IN_TXN) {
+                    /* TODO continue moving "next" till we find a key or reach
+                     * the end of the database! 
+                     * st=__local_cursor_move(..., HAM_CURSOR_NEXT); */
                     st=HAM_KEY_NOT_FOUND;
                     goto bail;
                 }

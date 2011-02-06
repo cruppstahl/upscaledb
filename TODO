@@ -583,14 +583,16 @@ o support cursors!!!
     o move first: use the cursor which is smaller; when deciding on a btree,
         first check if it wasn't erased by a txn
         x btree_cursor.c:663 - move one level up (db.c)
-        o unittest w/ smaller item in txntree
-        o unittest w/ smaller item in btree
-        o unittest w/ smaller item in btree which is erased in txn
-        o unittest w/ smaller item in btree which is erased, then written in txn
-        o unittest w/ identical items - use txn (it's chronologically newer
+        x unittest w/ empty database
+        x unittest w/ empty txn-tree
+        x unittest w/ empty btree-tree
+        x unittest w/ smaller item in txntree
+        x unittest w/ smaller item in btree
+        x unittest w/ smaller item in btree which is erased in txn
+        x unittest w/ smaller item in btree which is erased, then written in txn
+        x unittest w/ identical items - use txn (it's chronologically newer
             and could be an INSERT_OW)
-        o unittest w/ empty txn-tree
-        o unittest w/ empty btree-tree
+        o repeat all unittests w/ extended keys
     o move last: use the cursor which is greater (similar to above)
         o unittest
     o move next: only use the btree cursor for traversing.
@@ -600,6 +602,8 @@ o support cursors!!!
         this should also work when switching directions (but test it!))
         o unittest
         o unittest w/ switching directions
+        o unittest w/ smaller item in btree which is erased in txn
+            LongTxnCursorTest::moveFirstSmallerInBtreeErasedInTxnTest
     o move prev: use the cursor which is closer to the current one
         (similar to above)
         o unittest

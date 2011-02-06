@@ -112,8 +112,11 @@ __move_next_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
                 __couple_cursor(cursor, op);
                 return (0);
             }
-            /* a normal erase will return an error */
+            /* a normal erase will return an error (but we still couple the
+             * cursor because the caller might need to know WHICH key was
+             * deleted!) */
             if (txn_op_get_flags(op)&TXN_OP_ERASE) {
+                __couple_cursor(cursor, op);
                 return (HAM_KEY_ERASED_IN_TXN);
             }
             /* we have not yet implemented support for duplicates */
@@ -373,7 +376,7 @@ txn_cursor_erase(txn_cursor_t *cursor)
     txn_opnode_t *node;
 
     /* don't continue if cursor is nil */
-    if (bt_cursor_is_nil(txn_cursor_get_parent(cursor))
+    if (bt_cursor_is_nil((ham_bt_cursor_t *)txn_cursor_get_parent(cursor))
             && txn_cursor_is_nil(cursor))
         return (HAM_CURSOR_IS_NIL);
 

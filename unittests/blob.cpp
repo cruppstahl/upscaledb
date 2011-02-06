@@ -91,7 +91,7 @@ public:
         __super::teardown();
 
         /* clear the changeset, otherwise ham_close will complain */
-        if (!m_inmemory)
+        if (!m_inmemory && m_env)
             changeset_clear(env_get_changeset(m_env));
 
         BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
