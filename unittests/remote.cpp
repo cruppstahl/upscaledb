@@ -1246,25 +1246,19 @@ protected:
     {
         ham_db_t *db;
         ham_cursor_t *cursor;
-        ham_key_t key;
-        ham_key_t key2;
-        ham_record_t rec;
-        ham_record_t rec2;
-
-        memset(&key, 0, sizeof(key));
-        key.data=(void *)"key1";
+        ham_key_t key={0}, key2={0};
         key.size=5;
-        memset(&rec, 0, sizeof(rec));
-        rec.data=(void *)"rec1";
+        ham_record_t rec={0}, rec2={0};
         rec.size=5;
-        memset(&key2, 0, sizeof(key2));
-        memset(&rec2, 0, sizeof(rec2));
 
         BFC_ASSERT_EQUAL(0, ham_new(&db));
         BFC_ASSERT_EQUAL(0, 
                 ham_create(db, SERVER_URL, 0, 0664));
         BFC_ASSERT_EQUAL(0, 
                 ham_cursor_create(db, 0, 0, &cursor));
+
+        key.data=(void *)"key1";
+        rec.data=(void *)"rec1";
         BFC_ASSERT_EQUAL(0, ham_cursor_insert(cursor, &key, &rec, 0));
 
         key.data=(void *)"key2";

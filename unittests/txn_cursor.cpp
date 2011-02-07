@@ -1322,14 +1322,12 @@ public:
         BFC_ASSERT_EQUAL(false, txn_cursor_is_nil(&cursor));
         BFC_ASSERT_EQUAL(0, txn_cursor_erase(&cursor));
 
-        /* make sure that the keys do not exist and that the cursor is nil */
+        /* make sure that the keys do not exist */
         BFC_ASSERT_EQUAL(HAM_KEY_ERASED_IN_TXN, findCursor(&cursor, "key1"));
-        BFC_ASSERT_EQUAL(true, txn_cursor_is_nil(&cursor));
 
         BFC_ASSERT_EQUAL(0, insertCursor(&cursor, "key2"));
         BFC_ASSERT_EQUAL(0, txn_cursor_erase(&cursor));
         BFC_ASSERT_EQUAL(HAM_KEY_ERASED_IN_TXN, findCursor(&cursor, "key2"));
-        BFC_ASSERT_EQUAL(true, txn_cursor_is_nil(&cursor));
 
         /* reset cursor hack */
         cursor_set_txn(m_cursor, 0);

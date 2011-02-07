@@ -329,13 +329,30 @@ public:
         BFC_REGISTER_TEST(LongTxnCursorTest, overwriteInTransactionTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, cloneCoupledTxnCursorTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, closeCoupledTxnCursorTest);
-        BFC_REGISTER_TEST(LongTxnCursorTest, moveFirstInEmptyTransactionTest);
-        BFC_REGISTER_TEST(LongTxnCursorTest, moveFirstInTransactionTest);
-        BFC_REGISTER_TEST(LongTxnCursorTest, moveFirstIdenticalTest);
-        BFC_REGISTER_TEST(LongTxnCursorTest, moveFirstSmallerInTransactionTest);
-        BFC_REGISTER_TEST(LongTxnCursorTest, moveFirstSmallerInBtreeTest);
-        BFC_REGISTER_TEST(LongTxnCursorTest, moveFirstErasedInTxnTest);
-        BFC_REGISTER_TEST(LongTxnCursorTest, moveFirstErasedInsertedInTxnTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveFirstInEmptyTransactionTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveFirstInEmptyTransactionExtendedKeyTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveFirstInTransactionTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveFirstInTransactionExtendedKeyTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveFirstIdenticalTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveFirstSmallerInTransactionTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveFirstSmallerInTransactionExtendedKeyTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveFirstSmallerInBtreeTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveFirstSmallerInBtreeExtendedKeyTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveFirstErasedInTxnTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveFirstErasedInTxnExtendedKeyTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveFirstErasedInsertedInTxnTest);
         //BFC_REGISTER_TEST(LongTxnCursorTest,  - TODO (needs HAM_CURSOR_NEXT)
                 //moveFirstSmallerInBtreeErasedInTxnTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, nilCursorTest);
@@ -636,6 +653,27 @@ public:
         BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec2.data));
     }
 
+    void moveFirstInEmptyTransactionExtendedKeyTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        const char *ext="123456789012345678901234567890";
+        key.data=(void *)ext;
+        key.size=31;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        /* insert a key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* this moves the cursor to the first item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, strcmp(ext, (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec2.data));
+    }
+
     void moveFirstInTransactionTest(void)
     {
         ham_key_t key={0}, key2={0};
@@ -653,6 +691,27 @@ public:
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
         BFC_ASSERT_EQUAL(0, strcmp("12345", (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec2.data));
+    }
+
+    void moveFirstInTransactionExtendedKeyTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        const char *ext="123456789012345678901234567890";
+        key.data=(void *)ext;
+        key.size=31;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        /* insert a key into the Transaction */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+
+        /* this moves the cursor to the first item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, strcmp(ext, (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec2.data));
     }
 
@@ -709,6 +768,34 @@ public:
         BFC_ASSERT_EQUAL(0, strcmp("xyzab", (char *)rec2.data));
     }
 
+    void moveFirstSmallerInTransactionExtendedKeyTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        const char *ext1="111111111111111111111111111111";
+        const char *ext2="222222222222222222222222222222";
+        key.size=31;
+        rec.size=6;
+
+        /* insert a large key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        key.data=(void *)ext2;
+        rec.data=(void *)"abcde";
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* insert a smaller key into the Transaction */
+        key.data=(void *)ext1;
+        rec.data=(void *)"xyzab";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+
+        /* this moves the cursor to the first item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, strcmp(ext1, (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("xyzab", (char *)rec2.data));
+    }
+
     void moveFirstSmallerInBtreeTest(void)
     {
         ham_key_t key={0}, key2={0};
@@ -732,6 +819,34 @@ public:
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
         BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec2.data));
+    }
+
+    void moveFirstSmallerInBtreeExtendedKeyTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        const char *ext1="111111111111111111111111111111";
+        const char *ext2="222222222222222222222222222222";
+        key.size=31;
+        rec.size=6;
+
+        /* insert a small key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        key.data=(void *)ext1;
+        rec.data=(void *)"abcde";
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* insert a greater key into the Transaction */
+        key.data=(void *)ext2;
+        rec.data=(void *)"xyzab";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+
+        /* this moves the cursor to the first item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, strcmp(ext1, (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec2.data));
     }
 
@@ -759,6 +874,39 @@ public:
          * and therefore this fails */
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+    }
+
+    void moveFirstErasedInTxnExtendedKeyTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        const char *ext1="111111111111111111111111111111";
+        key.size=31;
+        rec.size=6;
+
+        /* insert a key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        key.data=(void *)ext1;
+        rec.data=(void *)"abcde";
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* erase it */
+        key.data=(void *)ext1;
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+
+        /* this moves the cursor to the first item, but it was erased
+         * and therefore this fails */
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+
+        /* we have to manually clear the changeset, otherwise ham_close will
+         * fail. The changeset was filled in be->_fun_insert, but this is an
+         * internal function which will not clear it. All other functions fail
+         * and therefore do not touch the changeset. */
+        changeset_clear(env_get_changeset(m_env));
     }
 
     void moveFirstErasedInsertedInTxnTest(void)

@@ -580,7 +580,7 @@ o support cursors!!!
         x unittest w/ cursor coupled to btree
         x unittest w/ cursor uncoupled from btree
         x unittest w/ cursor coupled to txn
-    o move first: use the cursor which is smaller; when deciding on a btree,
+    x move first: use the cursor which is smaller; when deciding on a btree,
         first check if it wasn't erased by a txn
         x btree_cursor.c:663 - move one level up (db.c)
         x unittest w/ empty database
@@ -592,7 +592,7 @@ o support cursors!!!
         x unittest w/ smaller item in btree which is erased, then written in txn
         x unittest w/ identical items - use txn (it's chronologically newer
             and could be an INSERT_OW)
-        o repeat all unittests w/ extended keys
+        x repeat all unittests w/ extended keys
     o move last: use the cursor which is greater (similar to above)
         o unittest
     o move next: only use the btree cursor for traversing.
