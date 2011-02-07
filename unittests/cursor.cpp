@@ -355,6 +355,32 @@ public:
                     moveFirstErasedInsertedInTxnTest);
         //BFC_REGISTER_TEST(LongTxnCursorTest,  - TODO (needs HAM_CURSOR_NEXT)
                 //moveFirstSmallerInBtreeErasedInTxnTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveLastInEmptyTransactionTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveLastInEmptyTransactionExtendedKeyTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveLastInTransactionTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveLastInTransactionExtendedKeyTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveLastIdenticalTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveLastSmallerInTransactionTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveLastSmallerInTransactionExtendedKeyTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveLastSmallerInBtreeTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveLastSmallerInBtreeExtendedKeyTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveLastErasedInTxnTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveLastErasedInTxnExtendedKeyTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveLastErasedInsertedInTxnTest);
+        //BFC_REGISTER_TEST(LongTxnCursorTest,  - TODO (needs HAM_CURSOR_PREV)
+                //moveLastSmallerInBtreeErasedInTxnTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, nilCursorTest);
     }
 
@@ -970,6 +996,347 @@ public:
         /* this moves the cursor to the second item */
         BFC_ASSERT_EQUAL(0,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("xyzab", (char *)rec2.data));
+    }
+
+    void moveLastInEmptyTransactionTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        /* insert a key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* this moves the cursor to the last item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, strcmp("12345", (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec2.data));
+    }
+
+    void moveLastInEmptyTransactionExtendedKeyTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        const char *ext="123456789012345678901234567890";
+        key.data=(void *)ext;
+        key.size=31;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        /* insert a key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* this moves the cursor to the last item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, strcmp(ext, (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec2.data));
+    }
+
+    void moveLastInTransactionTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        /* insert a key into the Transaction */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+
+        /* this moves the cursor to the last item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, strcmp("12345", (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec2.data));
+    }
+
+    void moveLastInTransactionExtendedKeyTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        const char *ext="123456789012345678901234567890";
+        key.data=(void *)ext;
+        key.size=31;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        /* insert a key into the Transaction */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+
+        /* this moves the cursor to the last item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, strcmp(ext, (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec2.data));
+    }
+
+    void moveLastIdenticalTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        key.data=(void *)"12345";
+        key.size=6;
+        rec.data=(void *)"abcde";
+        rec.size=6;
+
+        /* insert a key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* insert the same key into the Transaction */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, HAM_OVERWRITE));
+
+        /* this moves the cursor to the last item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, strcmp("12345", (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec2.data));
+
+        /* make sure that the cursor is coupled to the txn-op */
+        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+    }
+
+    void moveLastSmallerInTransactionTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        key.size=6;
+        rec.size=6;
+
+        /* insert a large key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        key.data=(void *)"22222";
+        rec.data=(void *)"abcde";
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* insert a smaller key into the Transaction */
+        key.data=(void *)"11111";
+        rec.data=(void *)"xyzab";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+
+        /* this moves the cursor to the last item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec2.data));
+    }
+
+    void moveLastSmallerInTransactionExtendedKeyTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        const char *ext1="111111111111111111111111111111";
+        const char *ext2="222222222222222222222222222222";
+        key.size=31;
+        rec.size=6;
+
+        /* insert a large key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        key.data=(void *)ext2;
+        rec.data=(void *)"abcde";
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* insert a smaller key into the Transaction */
+        key.data=(void *)ext1;
+        rec.data=(void *)"xyzab";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+
+        /* this moves the cursor to the last item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, strcmp(ext2, (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("abcde", (char *)rec2.data));
+    }
+
+    void moveLastSmallerInBtreeTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        key.size=6;
+        rec.size=6;
+
+        /* insert a small key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        key.data=(void *)"11111";
+        rec.data=(void *)"abcde";
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* insert a greater key into the Transaction */
+        key.data=(void *)"22222";
+        rec.data=(void *)"xyzab";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+
+        /* this moves the cursor to the last item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("xyzab", (char *)rec2.data));
+    }
+
+    void moveLastSmallerInBtreeExtendedKeyTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        const char *ext1="111111111111111111111111111111";
+        const char *ext2="222222222222222222222222222222";
+        key.size=31;
+        rec.size=6;
+
+        /* insert a small key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        key.data=(void *)ext1;
+        rec.data=(void *)"abcde";
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* insert a greater key into the Transaction */
+        key.data=(void *)ext2;
+        rec.data=(void *)"xyzab";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+
+        /* this moves the cursor to the last item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, strcmp(ext2, (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("xyzab", (char *)rec2.data));
+    }
+
+    void moveLastErasedInTxnTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        key.size=6;
+        rec.size=6;
+
+        /* insert a key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        key.data=(void *)"11111";
+        rec.data=(void *)"abcde";
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* erase it */
+        key.data=(void *)"11111";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+
+        /* this moves the cursor to the last item, but it was erased
+         * and therefore this fails */
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+    }
+
+    void moveLastErasedInTxnExtendedKeyTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        const char *ext1="111111111111111111111111111111";
+        key.size=31;
+        rec.size=6;
+
+        /* insert a key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        key.data=(void *)ext1;
+        rec.data=(void *)"abcde";
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* erase it */
+        key.data=(void *)ext1;
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+
+        /* this moves the cursor to the last item, but it was erased
+         * and therefore this fails */
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+
+        /* we have to manually clear the changeset, otherwise ham_close will
+         * fail. The changeset was filled in be->_fun_insert, but this is an
+         * internal function which will not clear it. All other functions fail
+         * and therefore do not touch the changeset. */
+        changeset_clear(env_get_changeset(m_env));
+    }
+
+    void moveLastErasedInsertedInTxnTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        key.size=6;
+        rec.size=6;
+
+        /* insert a key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        key.data=(void *)"11111";
+        rec.data=(void *)"abcde";
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* erase it */
+        key.data=(void *)"11111";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+
+        /* re-insert it */
+        rec.data=(void *)"10101";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+
+        /* this moves the cursor to the last item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("10101", (char *)rec2.data));
+    }
+
+    void moveLastSmallerInBtreeErasedInTxnTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        key.size=6;
+        rec.size=6;
+
+        /* insert a small key into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        key.data=(void *)"11111";
+        rec.data=(void *)"abcde";
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* insert a greater key into the Transaction */
+        key.data=(void *)"22222";
+        rec.data=(void *)"xyzab";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+
+        /* erase the smaller item */
+        key.data=(void *)"11111";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+
+        /* this moves the cursor to the second item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_LAST));
         BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("xyzab", (char *)rec2.data));
     }

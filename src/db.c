@@ -2974,6 +2974,69 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             goto bail;
         }
     }
+    /*
+     * move to the last key?
+     */
+    else if (flags&HAM_CURSOR_LAST) {
+        ham_status_t btrs, txns;
+        /* fetch the greatest/last key from the transaction tree. */
+        txns=txn_cursor_move(cursor_get_txn_cursor(cursor), flags);
+        /* fetch the greatest/last key from the btree tree. */
+        btrs=cursor->_fun_move(cursor, 0, 0, flags);
+        /* now consolidate - if both trees are empty then return */
+        if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_NOT_FOUND) {
+            st=HAM_KEY_NOT_FOUND;
+            goto bail;
+        }
+        /* if btree is empty but txn-tree is not: couple to txn */
+        else if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
+            cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+        }
+        /* if txn-tree is empty but btree is not: couple to btree */
+        else if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
+            cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+        }
+        /* if both trees are not empty then pick the greater key, but make
+         * sure that it wasn't erased in the txn */
+        else if (btrs==0 && (txns==0 || txns==HAM_KEY_ERASED_IN_TXN)) {
+            int cmp;
+            st=__compare_cursors((ham_bt_cursor_t *)cursor, 
+                            cursor_get_txn_cursor(cursor), &cmp);
+            if (st)
+                goto bail;
+            /* if both keys are equal: make sure that the btree key was not
+             * erased in the transaction; otherwise couple to the txn-op
+             * (it's chronologically newer and has faster access) */
+            if (cmp==0) {
+                if (txns==HAM_KEY_ERASED_IN_TXN) {
+                    /* TODO continue moving "previous" till we find a key or
+                     * reach the end of the database! 
+                     * st=__local_cursor_move(..., HAM_CURSOR_PREVIOUS); */
+                    st=HAM_KEY_NOT_FOUND;
+                    goto bail;
+                }
+                cursor_set_flags(cursor, 
+                        cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            }
+            else if (cmp<1) {
+                /* couple to txn */
+                cursor_set_flags(cursor, 
+                        cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            }
+            else {
+                /* couple to btree */
+                cursor_set_flags(cursor, 
+                        cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+            }
+        }
+        /* every other error code is returned to the caller */
+        else {
+            st=txns ? txns : btrs;
+            goto bail;
+        }
+    }
 
     /*
      * retrieve key/record, if requested

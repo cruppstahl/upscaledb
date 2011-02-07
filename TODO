@@ -593,8 +593,8 @@ o support cursors!!!
         x unittest w/ identical items - use txn (it's chronologically newer
             and could be an INSERT_OW)
         x repeat all unittests w/ extended keys
-    o move last: use the cursor which is greater (similar to above)
-        o unittest
+    x move last: use the cursor which is greater (similar to above)
+        x unittests (same as above)
     o move next: only use the btree cursor for traversing.
         while (txn.key<=btree.key):
             return txn.key++;
@@ -608,6 +608,8 @@ o support cursors!!!
         (similar to above)
         o unittest
         o unittest w/ switching directions
+        o unittest w/ smaller item in btree which is erased in txn
+            LongTxnCursorTest::moveLastSmallerInBtreeErasedInTxnTest
 
     o implement support for duplicates
         the problem with duplicates is that their position can depend on

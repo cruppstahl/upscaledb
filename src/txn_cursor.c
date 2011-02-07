@@ -90,7 +90,7 @@ txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record)
 }
 
 static ham_status_t
-__move_next_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
+__move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
                 ham_bool_t ignore_conflicts)
 {
     txn_op_t *lastdup=0;
@@ -141,50 +141,6 @@ next:
     return (HAM_KEY_NOT_FOUND);
 }
 
-static ham_status_t
-__move_previous_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op)
-{
-    txn_op_t *lastdup=0;
-
-    if (!op)
-        op=txn_opnode_get_oldest_op(node);
-    else
-        goto next;
-
-    while (op) {
-        ham_txn_t *optxn=txn_op_get_txn(op);
-        /* only look at ops from the current transaction and from 
-         * committed transactions */
-        if ((optxn==cursor_get_txn(txn_cursor_get_parent(cursor)))
-                || (txn_get_flags(optxn)&TXN_STATE_COMMITTED)) {
-            /* a normal (overwriting) insert will return this key */
-            if ((txn_op_get_flags(op)&TXN_OP_INSERT)
-                    || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)) {
-                __couple_cursor(cursor, op);
-                return (0);
-            }
-            /* a normal erase will return an error */
-            if (txn_op_get_flags(op)&TXN_OP_ERASE) {
-                return (HAM_KEY_NOT_FOUND);
-            }
-            /* we have not yet implemented support for duplicates */
-            ham_assert(txn_op_get_flags(op)==TXN_OP_NOP, (""));
-        }
-        
-        /* we ignore aborted and conflicting transactions */
-next:
-        op=txn_op_get_previous_in_node(op);
-    }
-
-    /* did we find a duplicate key? then return it */
-    if (lastdup) {
-        __couple_cursor(cursor, op);
-        return (0);
-    }
- 
-    return (HAM_KEY_NOT_FOUND);
-}
-
 ham_status_t
 txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
 {
@@ -198,7 +154,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
         node=txn_tree_get_first(db_get_optree(db));
         if (!node)
             return (HAM_KEY_NOT_FOUND);
-        return (__move_next_in_node(cursor, node, 0, HAM_TRUE));
+        return (__move_top_in_node(cursor, node, 0, HAM_TRUE));
     }
     else if (flags&HAM_CURSOR_LAST) {
         /* first set cursor to nil */
@@ -207,7 +163,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
         node=txn_tree_get_last(db_get_optree(db));
         if (!node)
             return (HAM_KEY_NOT_FOUND);
-        return (__move_previous_in_node(cursor, node, 0));
+        return (__move_top_in_node(cursor, node, 0, HAM_TRUE));
     }
     else if (flags&HAM_CURSOR_NEXT) {
         txn_op_t *op=txn_cursor_get_coupled_op(cursor);
@@ -223,7 +179,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
          * then move to the next node. repeat till we've found a key or 
          * till we've reached the end of the tree */
         while (1) {
-            ham_status_t st=__move_next_in_node(cursor, node, op, HAM_TRUE); 
+            ham_status_t st=__move_top_in_node(cursor, node, op, HAM_TRUE); 
             if ((st==HAM_KEY_NOT_FOUND) || (st==HAM_KEY_ERASED_IN_TXN)) {
                 node=txn_tree_get_next_node(txn_opnode_get_tree(node), node);
                 if (!node)
@@ -246,12 +202,9 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
 
         /* first move to the previous key in the current node; if we fail, 
          * then move to the previous node. repeat till we've found a key or 
-         * till we've reached the end of the tree 
-         *
-         * so far dupes are not supported, therefore a __move_previous_in_node
-         * is identical to move_next_in_node */
+         * till we've reached the end of the tree */
         while (1) {
-            ham_status_t st=__move_next_in_node(cursor, node, op, HAM_TRUE); 
+            ham_status_t st=__move_top_in_node(cursor, node, op, HAM_TRUE); 
             if ((st==HAM_KEY_NOT_FOUND) || (st==HAM_KEY_ERASED_IN_TXN)) {
                 node=txn_tree_get_previous_node(txn_opnode_get_tree(node), node);
                 if (!node)
@@ -282,8 +235,8 @@ txn_cursor_find(txn_cursor_t *cursor, ham_key_t *key)
     if (!node)
         return (HAM_KEY_NOT_FOUND);
 
-    /* and then move to the oldest insert*-op */
-    return (__move_next_in_node(cursor, node, 0, HAM_FALSE));
+    /* and then move to the newest insert*-op */
+    return (__move_top_in_node(cursor, node, 0, HAM_FALSE));
 }
 
 ham_status_t
