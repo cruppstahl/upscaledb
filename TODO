@@ -600,13 +600,25 @@ o support cursors!!!
             return txn.key++;
         return btree.key++;
         this should also work when switching directions (but test it!))
-        o unittest
-        o unittest w/ switching directions
+        x unittest w/ empty txn-tree (reach eof in txn)
+        x unittest w/ empty btree-tree (reach eof in btree)
+        o unittest w/ smaller item in txntree
+        o unittest w/ smaller item in btree
+        o unittest w/ multiple smaller items in txntree
+        o unittest w/ multiple smaller items in btree
         o unittest w/ smaller item in btree which is erased in txn
+        o unittest w/ identical items - use txn (it's chronologically newer
+            and could be an INSERT_OW)
+        o unittests where keys are inserted while the cursor moves
+        o unittests where keys are erased while the cursor moves (esp. the
+            one which is pointed at by one of the cursors)
+        o repeat all unittests w/ extended keys
+        o unittest w/ smaller item in btree which is erased, then written in txn
+        o move first: unittest w/ smaller item in btree which is erased in txn
             LongTxnCursorTest::moveFirstSmallerInBtreeErasedInTxnTest
     o move prev: use the cursor which is closer to the current one
         (similar to above)
-        o unittest
+        o unittests (similar to above)
         o unittest w/ switching directions
         o unittest w/ smaller item in btree which is erased in txn
             LongTxnCursorTest::moveLastSmallerInBtreeErasedInTxnTest

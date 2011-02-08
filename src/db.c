@@ -21,6 +21,7 @@
 #include "btree_cursor.h"
 #include "cache.h"
 #include "cursor.h"
+#include "btree_cursor.h"
 #include "db.h"
 #include "device.h"
 #include "env.h"
@@ -2860,7 +2861,14 @@ __compare_cursors(ham_bt_cursor_t *btrc, txn_cursor_t *txnc, int *pcmp)
 
     ham_assert(!"shouldn't be here", (""));
     return (0);
-} 
+}
+
+static ham_bool_t
+__btree_cursor_is_nil(ham_bt_cursor_t *btc)
+{
+    return (!(cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) &&
+            !(cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+}
 
 static ham_status_t
 _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
@@ -3000,6 +3008,84 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
         /* if both trees are not empty then pick the greater key, but make
          * sure that it wasn't erased in the txn */
+        else if (btrs==0 && (txns==0 || txns==HAM_KEY_ERASED_IN_TXN)) {
+            int cmp;
+            st=__compare_cursors((ham_bt_cursor_t *)cursor, 
+                            cursor_get_txn_cursor(cursor), &cmp);
+            if (st)
+                goto bail;
+            /* if both keys are equal: make sure that the btree key was not
+             * erased in the transaction; otherwise couple to the txn-op
+             * (it's chronologically newer and has faster access) */
+            if (cmp==0) {
+                if (txns==HAM_KEY_ERASED_IN_TXN) {
+                    /* TODO continue moving "previous" till we find a key or
+                     * reach the end of the database! 
+                     * st=__local_cursor_move(..., HAM_CURSOR_PREVIOUS); */
+                    st=HAM_KEY_NOT_FOUND;
+                    goto bail;
+                }
+                cursor_set_flags(cursor, 
+                        cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            }
+            else if (cmp<1) {
+                /* couple to txn */
+                cursor_set_flags(cursor, 
+                        cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            }
+            else {
+                /* couple to btree */
+                cursor_set_flags(cursor, 
+                        cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+            }
+        }
+        /* every other error code is returned to the caller */
+        else {
+            st=txns ? txns : btrs;
+            goto bail;
+        }
+    }
+    /*
+     * move to the next key?
+     */
+    else if (flags&HAM_CURSOR_NEXT) {
+        ham_status_t btrs=0, txns=0;
+        /* if the cursor is already bound to a txn-op, then move
+         * the cursor to the next item in the txn */
+        if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN) {
+            txns=txn_cursor_move(cursor_get_txn_cursor(cursor), flags);
+        }
+        /* otherwise the cursor is bound to the btree, and we move
+         * the cursor to the next item in the btree */
+        else {
+            btrs=cursor->_fun_move(cursor, 0, 0, flags);
+        }
+
+        /* if any of the cursors is nil then we pretend that this cursor
+         * doesn't have any keys to point at */
+        if (txn_cursor_is_nil(cursor_get_txn_cursor(cursor)))
+            txns=HAM_KEY_NOT_FOUND;
+        if (__btree_cursor_is_nil((ham_bt_cursor_t *)cursor))
+            btrs=HAM_KEY_NOT_FOUND;
+
+        /* now consolidate - if we've reached the end of both trees 
+         * then return HAM_KEY_NOT_FOUND */
+        if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_NOT_FOUND) { 
+            st=HAM_KEY_NOT_FOUND;
+            goto bail;
+        }
+        /* if reached end of btree but not of txn-tree: couple to txn */
+        else if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
+            cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+        }
+        /* if reached end of txn-tree but not of btree: couple to btree */
+        else if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
+            cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+        }
+        /* otherwise pick the smaller of both keys, but if it's a btree key
+         * then make sure that it wasn't erased in the txn */
         else if (btrs==0 && (txns==0 || txns==HAM_KEY_ERASED_IN_TXN)) {
             int cmp;
             st=__compare_cursors((ham_bt_cursor_t *)cursor, 
