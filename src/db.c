@@ -3119,14 +3119,14 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
             }
             else if (cmp<1) {
-                /* couple to txn */
-                cursor_set_flags(cursor, 
-                        cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
-            }
-            else {
                 /* couple to btree */
                 cursor_set_flags(cursor, 
                         cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+            }
+            else {
+                /* couple to txn */
+                cursor_set_flags(cursor, 
+                        cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
             }
         }
         /* every other error code is returned to the caller */
