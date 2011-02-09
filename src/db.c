@@ -2870,6 +2870,10 @@ __btree_cursor_is_nil(ham_bt_cursor_t *btc)
             !(cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
 }
 
+/*
+ * this is quite a long function, but bear with me - it has ample comments
+ * and the flow should be easy to follow.
+ */
 static ham_status_t
 _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
@@ -3106,17 +3110,33 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 goto bail;
             /* if both keys are equal: make sure that the btree key was not
              * erased in the transaction; otherwise couple to the txn-op
-             * (it's chronologically newer and has faster access) */
+             * (it's chronologically newer and has faster access) 
+             *
+             * if the txn-cursor was not yet verified (only the btree
+             * cursor was moved) then now it's the time where we have
+             * to explicitely check if the btree key was erased
+             * in a transaction. */
             if (cmp==0) {
-                if (txns==HAM_KEY_ERASED_IN_TXN) {
-                    /* TODO continue moving "previous" till we find a key or
-                     * reach the end of the database! 
-                     * st=__local_cursor_move(..., HAM_CURSOR_PREVIOUS); */
-                    st=HAM_KEY_NOT_FOUND;
-                    goto bail;
+                ham_bool_t erased=(txns==HAM_KEY_ERASED_IN_TXN);
+                if (!erased 
+                        && !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
+                    /* check if btree key was erased in txn */
+                    if (txn_cursor_is_erased(cursor_get_txn_cursor(cursor)))
+                        erased=HAM_TRUE;
                 }
                 cursor_set_flags(cursor, 
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+                if (erased) {
+                    flags&=~HAM_CURSOR_FIRST;
+                    flags|=HAM_CURSOR_NEXT;
+                    /* if this btree key was erased then move the btree
+                     * cursor to the next item */
+                    btrs=cursor->_fun_move(cursor, 0, 0, flags);
+                    /* continue moving "next" till we find a key or
+                     * reach the end of the database */
+                    st=_local_cursor_move(cursor, key, record, flags);
+                    goto bail;
+                }
             }
             else if (cmp<1) {
                 /* couple to btree */

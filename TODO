@@ -606,7 +606,7 @@ o support cursors!!!
         x unittest w/ smaller item in btree
         x unittest w/ multiple smaller items in txntree
         x unittest w/ multiple smaller items in btree
-        o unittest w/ smaller item in btree which is erased in txn
+        x unittest w/ smaller item in btree which is erased in txn
         o unittest w/ identical items - use txn (it's chronologically newer
             and could be an INSERT_OW)
         o unittests where keys are inserted while the cursor moves

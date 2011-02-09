@@ -222,6 +222,19 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
     return (0);
 }
 
+ham_bool_t
+txn_cursor_is_erased(txn_cursor_t *cursor)
+{
+    txn_op_t *op=txn_cursor_get_coupled_op(cursor);
+    txn_opnode_t *node=txn_op_get_node(op);
+
+    ham_assert(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED, (""));
+
+    /* move to the newest insert*-op and check if it erased the key */
+    return (HAM_KEY_ERASED_IN_TXN
+                ==__move_top_in_node(cursor, node, 0, HAM_FALSE));
+}
+
 ham_status_t
 txn_cursor_find(txn_cursor_t *cursor, ham_key_t *key)
 {
