@@ -602,7 +602,7 @@ o support cursors!!!
         this should also work when switching directions (but test it!))
         x unittest w/ empty txn-tree (reach eof in txn)
         x unittest w/ empty btree-tree (reach eof in btree)
-        o unittest w/ smaller item in txntree
+        x unittest w/ smaller item in txntree
         o unittest w/ smaller item in btree
         o unittest w/ multiple smaller items in txntree
         o unittest w/ multiple smaller items in btree

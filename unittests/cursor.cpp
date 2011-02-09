@@ -386,6 +386,8 @@ public:
                     moveNextInEmptyTransactionTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     moveNextInEmptyBtreeTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveNextSmallerInTransactionTest);
     }
 
     void findInEmptyTransactionTest(void)
@@ -1415,6 +1417,37 @@ public:
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    }
+
+    void moveNextSmallerInTransactionTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        key.size=6;
+        rec.size=6;
+
+        /* insert a "small" key into the transaction */
+        key.data=(void *)"11111";
+        rec.data=(void *)"aaaaa";
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_insert(m_cursor, &key, &rec, 0));
+        /* and a "large" one in the btree */
+        key.data=(void *)"22222";
+        rec.data=(void *)"bbbbb";
+        ham_backend_t *be=db_get_backend(m_db);
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+
+        /* this moves the cursor to the first item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("aaaaa", (char *)rec2.data));
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
     }

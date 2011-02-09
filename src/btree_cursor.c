@@ -394,7 +394,6 @@ bt_cursor_set_to_nil(ham_bt_cursor_t *c)
     }
 
     bt_cursor_set_dupe_id(c, 0);
-    bt_cursor_set_flags(c, bt_cursor_get_flags(c)&(~CURSOR_COUPLED_TO_TXN));
     memset(bt_cursor_get_dupe_cache(c), 0, sizeof(dupe_entry_t));
 
     return (0);

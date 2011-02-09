@@ -3054,11 +3054,23 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * the cursor to the next item in the txn */
         if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN) {
             txns=txn_cursor_move(cursor_get_txn_cursor(cursor), flags);
+            /* if we've reached the end of the txn-tree then set the
+             * txn-cursor to nil; otherwise subsequent calls to 
+             * ham_cursor_move will not know that the txn-cursor is
+             * invalid */
+            if (txns==HAM_KEY_NOT_FOUND)
+                txn_cursor_set_to_nil(cursor_get_txn_cursor(cursor));
         }
         /* otherwise the cursor is bound to the btree, and we move
          * the cursor to the next item in the btree */
         else {
             btrs=cursor->_fun_move(cursor, 0, 0, flags);
+            /* if we've reached the end of the btree then set the
+             * btree-cursor to nil; otherwise subsequent calls to 
+             * ham_cursor_move will not know that the btree-cursor is
+             * invalid */
+            if (btrs==HAM_KEY_NOT_FOUND)
+                bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
         }
 
         /* if any of the cursors is nil then we pretend that this cursor
