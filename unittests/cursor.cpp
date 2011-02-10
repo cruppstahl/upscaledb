@@ -396,6 +396,8 @@ public:
                     moveNextSmallerInBtreeSequenceTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     moveNextOverErasedItemTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveNextOverIdenticalItemsTest);
     }
 
     void findInEmptyTransactionTest(void)
@@ -1646,6 +1648,58 @@ public:
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
         BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    }
+
+    void moveNextOverIdenticalItemsTest(void)
+    {
+        ham_key_t key={0}, key2={0};
+        ham_record_t rec={0}, rec2={0};
+        key.size=6;
+        rec.size=6;
+
+        /* insert a few keys into the btree */
+        ham_backend_t *be=db_get_backend(m_db);
+        key.data=(void *)"11111";
+        rec.data=(void *)"aaaaa";
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        key.data=(void *)"22222";
+        rec.data=(void *)"bbbbb";
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        key.data=(void *)"33333";
+        rec.data=(void *)"ccccc";
+        BFC_ASSERT_EQUAL(0, be->_fun_insert(be, &key, &rec, 0));
+        /* overwrite the same keys in the transaction */
+        key.data=(void *)"11111";
+        rec.data=(void *)"bbbbb";
+        BFC_ASSERT_EQUAL(0,
+                    ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+        key.data=(void *)"22222";
+        rec.data=(void *)"ccccc";
+        BFC_ASSERT_EQUAL(0,
+                    ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+        key.data=(void *)"33333";
+        rec.data=(void *)"ddddd";
+        BFC_ASSERT_EQUAL(0,
+                    ham_insert(m_db, m_txn, &key, &rec, HAM_OVERWRITE));
+
+        /* this moves the cursor to the first item */
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_FIRST));
+        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT_EQUAL(0, strcmp("11111", (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("bbbbb", (char *)rec2.data));
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT_EQUAL(0, strcmp("22222", (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("ccccc", (char *)rec2.data));
+        BFC_ASSERT_EQUAL(0,
+                    ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+        BFC_ASSERT(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN);
+        BFC_ASSERT_EQUAL(0, strcmp("33333", (char *)key2.data));
+        BFC_ASSERT_EQUAL(0, strcmp("ddddd", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
     }
