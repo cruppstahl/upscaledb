@@ -609,6 +609,9 @@ o support cursors!!!
         x unittest w/ smaller item in btree which is erased in txn
         o unittest w/ identical items - use txn (it's chronologically newer
             and could be an INSERT_OW)
+===> still failing
+        o unittest w/ identical items - first key is unique in btree, then
+            duplicates start
         o unittests where keys are inserted while the cursor moves
         o unittests where keys are erased while the cursor moves (esp. the
             one which is pointed at by one of the cursors)
