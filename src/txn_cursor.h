@@ -136,10 +136,10 @@ extern ham_status_t
 txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags);
 
 /**
- * returns true if the cursor points to a key that is erased
+ * returns true if the cursor points to a key that is erased or overwritten
  */
 extern ham_bool_t
-txn_cursor_is_erased(txn_cursor_t *cursor);
+txn_cursor_is_erased_or_overwritten(txn_cursor_t *cursor);
 
 /**
  * looks up an item, places the cursor

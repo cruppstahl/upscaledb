@@ -2870,6 +2870,30 @@ __btree_cursor_is_nil(ham_bt_cursor_t *btc)
             !(cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
 }
 
+static ham_status_t
+__check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor)
+{
+    ham_key_t key={0};
+    ham_cursor_t *clone;
+    txn_cursor_t txnc=*cursor_get_txn_cursor(cursor);
+    ham_status_t st=ham_cursor_clone(cursor, &clone);
+    if (st)
+        return (st);
+    st=cursor->_fun_move(cursor, &key, 0, 0);
+    if (st) {
+        ham_cursor_close(clone);
+        return (st);
+    }
+
+    st=txn_cursor_find(&txnc, &key);
+    /* txn_cursor_find will couple the cursor to the txn-op, therefore we
+     * have to uncouple it before the cursor goes out of scope */
+    if (st==0)
+        txn_cursor_set_to_nil(&txnc);
+    ham_cursor_close(clone);
+    return (st);
+}
+
 /*
  * this is quite a long function, but bear with me - it has ample comments
  * and the flow should be easy to follow.
@@ -2965,6 +2989,13 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                      * st=__local_cursor_move(..., HAM_CURSOR_NEXT); */
                     st=HAM_KEY_NOT_FOUND;
                     goto bail;
+                }
+                /* if the btree entry was overwritten in the txn: move the
+                 * btree entry to the next key */
+                else if (txns==HAM_SUCCESS) {
+                    flags&=~HAM_CURSOR_FIRST;
+                    flags|=HAM_CURSOR_NEXT;
+                    (void)cursor->_fun_move(cursor, 0, 0, flags);
                 }
                 cursor_set_flags(cursor, 
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
@@ -3095,10 +3126,21 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
         }
-        /* if reached end of txn-tree but not of btree: couple to btree */
+        /* if reached end of txn-tree but not of btree: couple to btree,
+         * but only if btree entry was not erased or overwritten in 
+         * the meantime. if it was, then just move to the next key. */
         else if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
             cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+            st=__check_if_btree_key_is_erased_or_overwritten(cursor);
+            if (st==HAM_SUCCESS || st==HAM_KEY_ERASED_IN_TXN) {
+                flags&=~HAM_CURSOR_FIRST;
+                flags|=HAM_CURSOR_NEXT;
+                (void)cursor->_fun_move(cursor, 0, 0, flags);
+                st=_local_cursor_move(cursor, key, record, flags);
+                if (st)
+                    goto bail;
+            }
         }
         /* otherwise pick the smaller of both keys, but if it's a btree key
          * then make sure that it wasn't erased in the txn */
@@ -3121,17 +3163,18 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 if (!erased 
                         && !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
                     /* check if btree key was erased in txn */
-                    if (txn_cursor_is_erased(cursor_get_txn_cursor(cursor)))
+                    if (txn_cursor_is_erased_or_overwritten(cursor_get_txn_cursor(cursor)))
                         erased=HAM_TRUE;
                 }
                 cursor_set_flags(cursor, 
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+                flags&=~HAM_CURSOR_FIRST;
+                flags|=HAM_CURSOR_NEXT;
+                /* if this btree key was erased or overwritten then couple to
+                 * the txn, but already move the btree cursor to the next 
+                 * item */
+                (void)cursor->_fun_move(cursor, 0, 0, flags);
                 if (erased) {
-                    flags&=~HAM_CURSOR_FIRST;
-                    flags|=HAM_CURSOR_NEXT;
-                    /* if this btree key was erased then move the btree
-                     * cursor to the next item */
-                    btrs=cursor->_fun_move(cursor, 0, 0, flags);
                     /* continue moving "next" till we find a key or
                      * reach the end of the database */
                     st=_local_cursor_move(cursor, key, record, flags);
