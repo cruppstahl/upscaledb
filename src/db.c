@@ -3151,19 +3151,17 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             if (st)
                 goto bail;
             /* if both keys are equal: make sure that the btree key was not
-             * erased in the transaction; otherwise couple to the txn-op
-             * (it's chronologically newer and has faster access) 
+             * erased or overwritten in the transaction; if it is, then couple 
+             * to the txn-op (it's chronologically newer and has faster access) 
              *
-             * if the txn-cursor was not yet verified (only the btree
-             * cursor was moved) then now it's the time where we have
-             * to explicitely check if the btree key was erased
-             * in a transaction. */
+             * only check this if the txn-cursor was not yet verified 
+             * (only the btree cursor was moved) */
             if (cmp==0) {
                 ham_bool_t erased=(txns==HAM_KEY_ERASED_IN_TXN);
                 if (!erased 
                         && !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
                     /* check if btree key was erased in txn */
-                    if (txn_cursor_is_erased_or_overwritten(cursor_get_txn_cursor(cursor)))
+                    if (txn_cursor_is_erased(cursor_get_txn_cursor(cursor)))
                         erased=HAM_TRUE;
                 }
                 cursor_set_flags(cursor, 
@@ -3174,9 +3172,9 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                  * the txn, but already move the btree cursor to the next 
                  * item */
                 (void)cursor->_fun_move(cursor, 0, 0, flags);
+                /* if the key was erased: continue moving "next" till 
+                 * we find a key or reach the end of the database */
                 if (erased) {
-                    /* continue moving "next" till we find a key or
-                     * reach the end of the database */
                     st=_local_cursor_move(cursor, key, record, flags);
                     goto bail;
                 }
