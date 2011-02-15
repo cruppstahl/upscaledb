@@ -615,9 +615,8 @@ o support cursors!!!
             duplicates start
         x unittest w/ identical items - keys are identical, but trailing 
             keys are unique in btree
-        o unittest w/ identical items - keys are identical, but trailing 
+        x unittest w/ identical items - keys are identical, but trailing 
             keys are unique in txn-tree
-==> fails! LongTxnCursorTest::moveNextOverIdenticalItemsThenTxnTest
         o unittest w/ identical items - sequences where btree keys are 
             selected, then txn items, then btree items, then txn items
         o unittests where keys are inserted while the cursor moves

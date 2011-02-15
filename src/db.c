@@ -3171,7 +3171,10 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 /* if this btree key was erased or overwritten then couple to
                  * the txn, but already move the btree cursor to the next 
                  * item */
-                (void)cursor->_fun_move(cursor, 0, 0, flags);
+                st=cursor->_fun_move(cursor, 0, 0, flags);
+                if (st==HAM_KEY_NOT_FOUND)
+                    bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                st=0; /* ignore return code */
                 /* if the key was erased: continue moving "next" till 
                  * we find a key or reach the end of the database */
                 if (erased) {
