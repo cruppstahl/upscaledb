@@ -406,6 +406,14 @@ public:
                     moveNextOverIdenticalItemsThenBtreeTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     moveNextOverIdenticalItemsThenTxnTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveNextOverSequencesOfIdenticalItemsTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveNextWhileInsertingBtreeTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveNextWhileInsertingTransactionTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveNextWhileInsertingMixedTest);
     }
 
     void findInEmptyTransactionTest(void)
@@ -1951,6 +1959,153 @@ public:
         BFC_ASSERT_EQUAL(0, strcmp("xxxxx", (char *)rec2.data));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND,
                     ham_cursor_move(m_cursor, &key2, &rec2, HAM_CURSOR_NEXT));
+    }
+
+    ham_status_t insertBtree(const char *key, const char *rec, 
+                        ham_u32_t flags=0)
+    {
+        ham_key_t k={0};
+        k.data=(void *)key;
+        k.size=strlen(key)+1;
+        ham_record_t r={0};
+        r.data=(void *)rec;
+        r.size=strlen(rec)+1;
+
+        ham_backend_t *be=db_get_backend(m_db);
+        return (be->_fun_insert(be, &k, &r, flags));
+    }
+
+    ham_status_t insertTxn(const char *key, const char *rec, 
+                        ham_u32_t flags=0)
+    {
+        ham_key_t k={0};
+        k.data=(void *)key;
+        k.size=strlen(key)+1;
+        ham_record_t r={0};
+        r.data=(void *)rec;
+        r.size=strlen(rec)+1;
+
+        return (ham_insert(m_db, m_txn, &k, &r, flags));
+    }
+
+#define BTREE 1
+#define TXN   2
+    ham_status_t compare(const char *key, const char *rec, int where)
+    {
+        ham_key_t k={0};
+        ham_record_t r={0};
+        ham_status_t st;
+
+        st=ham_cursor_move(m_cursor, &k, &r, HAM_CURSOR_NEXT);
+        if (st)
+            return (st);
+        if (strcmp(key, (char *)k.data))
+            return (HAM_INTERNAL_ERROR);
+        if (strcmp(rec, (char *)r.data))
+            return (HAM_INTERNAL_ERROR);
+        if (where==BTREE) {
+            if (cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN)
+                return (HAM_INTERNAL_ERROR);
+        }
+        else {
+            if (!(cursor_get_flags(m_cursor)&CURSOR_COUPLED_TO_TXN))
+                return (HAM_INTERNAL_ERROR);
+        }
+        return (0);
+    }
+
+    void moveNextOverSequencesOfIdenticalItemsTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("11111", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11112", "aaaab"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11113", "aaaac"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11113", "aaaaa", HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11114", "aaaab"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11115", "aaaac"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11116", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11117", "aaaab"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11118", "aaaac"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11116", "bbbba", HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11117", "bbbbb", HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11118", "bbbbc", HAM_OVERWRITE));
+
+        BFC_ASSERT_EQUAL(0, compare    ("11111", "aaaaa", BTREE));
+        BFC_ASSERT_EQUAL(0, compare    ("11112", "aaaab", BTREE));
+        BFC_ASSERT_EQUAL(0, compare    ("11113", "aaaaa", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11114", "aaaab", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11115", "aaaac", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11116", "bbbba", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11117", "bbbbb", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11118", "bbbbc", TXN));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, compare(0, 0, 0));
+    }
+
+    void moveNextWhileInsertingBtreeTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("11111", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11112", "aaaab"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11113", "aaaac"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11116", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11117", "aaaab"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11118", "aaaac"));
+
+        BFC_ASSERT_EQUAL(0, compare    ("11111", "aaaaa", BTREE));
+        BFC_ASSERT_EQUAL(0, compare    ("11112", "aaaab", BTREE));
+        BFC_ASSERT_EQUAL(0, compare    ("11113", "aaaac", BTREE));
+        BFC_ASSERT_EQUAL(0, insertBtree("11114", "aaaax"));
+        BFC_ASSERT_EQUAL(0, compare    ("11114", "aaaax", BTREE));
+        BFC_ASSERT_EQUAL(0, insertBtree("00001", "aaaax"));
+        BFC_ASSERT_EQUAL(0, insertBtree("00002", "aaaax"));
+        BFC_ASSERT_EQUAL(0, compare    ("11116", "aaaaa", BTREE));
+        BFC_ASSERT_EQUAL(0, insertBtree("22222", "aaaax"));
+        BFC_ASSERT_EQUAL(0, compare    ("11117", "aaaab", BTREE));
+        BFC_ASSERT_EQUAL(0, compare    ("11118", "aaaac", BTREE));
+        BFC_ASSERT_EQUAL(0, compare    ("22222", "aaaax", BTREE));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, compare(0, 0, 0));
+    }
+
+    void moveNextWhileInsertingTransactionTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn("11111", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertTxn("11112", "aaaab"));
+        BFC_ASSERT_EQUAL(0, insertTxn("11113", "aaaac"));
+        BFC_ASSERT_EQUAL(0, insertTxn("11116", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertTxn("11117", "aaaab"));
+        BFC_ASSERT_EQUAL(0, insertTxn("11118", "aaaac"));
+
+        BFC_ASSERT_EQUAL(0, compare    ("11111", "aaaaa", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11112", "aaaab", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11113", "aaaac", TXN));
+        BFC_ASSERT_EQUAL(0, insertTxn("11114", "aaaax"));
+        BFC_ASSERT_EQUAL(0, compare    ("11114", "aaaax", TXN));
+        BFC_ASSERT_EQUAL(0, insertTxn("00001", "aaaax"));
+        BFC_ASSERT_EQUAL(0, insertTxn("00002", "aaaax"));
+        BFC_ASSERT_EQUAL(0, compare    ("11116", "aaaaa", TXN));
+        BFC_ASSERT_EQUAL(0, insertTxn("22222", "aaaax"));
+        BFC_ASSERT_EQUAL(0, compare    ("11117", "aaaab", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11118", "aaaac", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("22222", "aaaax", TXN));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, compare(0, 0, 0));
+    }
+
+    void moveNextWhileInsertingMixedTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("11111", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11112", "aaaab"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11113", "aaaac"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11112", "aaaaa", HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11117", "aaaab"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11118", "aaaac"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11119", "aaaac"));
+
+        BFC_ASSERT_EQUAL(0, compare    ("11111", "aaaaa", BTREE));
+        BFC_ASSERT_EQUAL(0, compare    ("11112", "aaaaa", TXN));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11113", "xxxxx", HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, compare    ("11113", "xxxxx", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11117", "aaaab", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11118", "aaaac", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11119", "aaaac", BTREE));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, compare(0, 0, 0));
     }
 };
 

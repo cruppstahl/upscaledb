@@ -617,11 +617,12 @@ o support cursors!!!
             keys are unique in btree
         x unittest w/ identical items - keys are identical, but trailing 
             keys are unique in txn-tree
-        o unittest w/ identical items - sequences where btree keys are 
+        x unittest w/ identical items - sequences where btree keys are 
             selected, then txn items, then btree items, then txn items
-        o unittests where keys are inserted while the cursor moves
+        x unittests where keys are inserted while the cursor moves
         o unittests where keys are erased while the cursor moves (esp. the
-            one which is pointed at by one of the cursors)
+            one which is pointed at by one of the cursors - cursor must then
+            be nil!)
         o repeat all unittests w/ extended keys
         o unittest w/ smaller item in btree which is erased, then written in txn
         o move first: unittest w/ smaller item in btree which is erased in txn
