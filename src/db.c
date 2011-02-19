@@ -2906,6 +2906,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
     ham_txn_t *local_txn=0;
+    ham_bool_t changed_dir=HAM_FALSE;
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
@@ -2923,6 +2924,15 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             return (st);
         cursor_set_txn(cursor, local_txn);
     }
+
+    /* was the direction changed? i.e. the previous operation was
+     * HAM_CURSOR_NEXT, but now we move to HAM_CURSOR_PREVIOUS? */
+    if ((cursor_get_direction(cursor)==HAM_CURSOR_PREVIOUS)
+            && (flags&HAM_CURSOR_NEXT))
+        changed_dir=HAM_TRUE;
+    else if ((cursor_get_direction(cursor)==HAM_CURSOR_NEXT)
+            && (flags&HAM_CURSOR_PREVIOUS))
+        changed_dir=HAM_TRUE;
 
     /*
      * if the cursor is NIL, and the user requests a NEXT, we set it to FIRST;
@@ -3111,9 +3121,13 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     else if (flags&HAM_CURSOR_NEXT) {
         ham_status_t btrs=0, txns=0;
         /* if the cursor is already bound to a txn-op, then move
-         * the cursor to the next item in the txn */
-        if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN) {
-            txns=txn_cursor_move(cursor_get_txn_cursor(cursor), flags);
+         * the cursor to the next item in the txn (unless we change the
+         * direction - then always move both cursors */
+        if (changed_dir || (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
+            txns=txn_cursor_move(cursor_get_txn_cursor(cursor), 
+                            txn_cursor_is_nil(cursor_get_txn_cursor(cursor)) 
+                                ? HAM_CURSOR_FIRST
+                                : flags);
             /* if we've reached the end of the txn-tree then set the
              * txn-cursor to nil; otherwise subsequent calls to 
              * ham_cursor_move will not know that the txn-cursor is
@@ -3123,8 +3137,11 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
         /* otherwise the cursor is bound to the btree, and we move
          * the cursor to the next item in the btree */
-        else {
-            btrs=cursor->_fun_move(cursor, 0, 0, flags);
+        if (changed_dir || !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
+            btrs=cursor->_fun_move(cursor, 0, 0, 
+                            __btree_cursor_is_nil((ham_bt_cursor_t *)cursor)
+                                ? HAM_CURSOR_FIRST
+                                : flags);
             /* if we've reached the end of the btree then set the
              * btree-cursor to nil; otherwise subsequent calls to 
              * ham_cursor_move will not know that the btree-cursor is
@@ -3230,9 +3247,13 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     else if (flags&HAM_CURSOR_PREVIOUS) {
         ham_status_t btrs=0, txns=0;
         /* if the cursor is already bound to a txn-op, then move
-         * the cursor to the previous item in the txn */
-        if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN) {
-            txns=txn_cursor_move(cursor_get_txn_cursor(cursor), flags);
+         * the cursor to the previous item in the txn (unless we change the
+         * direction - then always move both cursors */
+        if (changed_dir || (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
+            txns=txn_cursor_move(cursor_get_txn_cursor(cursor), 
+                            txn_cursor_is_nil(cursor_get_txn_cursor(cursor)) 
+                                ? HAM_CURSOR_LAST
+                                : flags);
             /* if we've reached the end of the txn-tree then set the
              * txn-cursor to nil; otherwise subsequent calls to 
              * ham_cursor_move will not know that the txn-cursor is
@@ -3242,8 +3263,11 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
         /* otherwise the cursor is bound to the btree, and we move
          * the cursor to the previous item in the btree */
-        else {
-            btrs=cursor->_fun_move(cursor, 0, 0, flags);
+        if (changed_dir || !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
+            btrs=cursor->_fun_move(cursor, 0, 0, 
+                            __btree_cursor_is_nil((ham_bt_cursor_t *)cursor)
+                                ? HAM_CURSOR_LAST
+                                : flags);
             /* if we've reached the end of the btree then set the
              * btree-cursor to nil; otherwise subsequent calls to 
              * ham_cursor_move will not know that the btree-cursor is
@@ -3379,6 +3403,14 @@ bail:
             (void)txn_abort(local_txn, 0);
         return (st);
     }
+
+    /* store the direction */
+    if (flags&HAM_CURSOR_NEXT)
+        cursor_set_direction(cursor, HAM_CURSOR_NEXT);
+    else if (flags&HAM_CURSOR_PREVIOUS)
+        cursor_set_direction(cursor, HAM_CURSOR_PREVIOUS);
+    else
+        cursor_set_direction(cursor, 0);
 
     if (local_txn)
         return (txn_commit(local_txn, 0));

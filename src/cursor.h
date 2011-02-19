@@ -102,6 +102,12 @@ extern "C" {
     /** Linked list of Cursors which point to the same page */          \
     clss *_next_in_page, *_previous_in_page;                            \
                                                                         \
+    /** A "direction" flag; tells us if the Cursor was moved to the     \
+     * "next" (HAM_CURSOR_NEXT) or "previous" (HAM_CURSOR_PREVIOUS)     \
+     * position. If the direction changes then the consolidation of the \
+     * btree and txn tree requires extra care. */                       \
+    ham_u32_t _direction;                                               \
+                                                                        \
     /** Cursor flags */                                                 \
     ham_u32_t _flags
 
@@ -183,6 +189,12 @@ struct ham_cursor_t
 
 /** Set the remote Database handle */
 #define cursor_set_remote_handle(c, h)  (c)->_remote_handle=(h)
+
+/** Get the direction of the previous ham_cursor_move call */
+#define cursor_get_direction(c)         (c)->_direction
+
+/** Set the direction of the previous ham_cursor_move call */
+#define cursor_set_direction(c, d)      (c)->_direction=(d)
 
 
 #ifdef __cplusplus

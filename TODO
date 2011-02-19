@@ -622,12 +622,15 @@ o support cursors!!!
         x unittests where keys are inserted while the cursor moves
         x move first: unittest w/ smaller item in btree which is erased in txn
             LongTxnCursorTest::moveFirstSmallerInBtreeErasedInTxnTest
-    o move prev: use the cursor which is closer to the current one
+    x move prev: use the cursor which is closer to the current one
         (similar to above)
-        o unittests (similar to above)
-        o unittest w/ switching directions
-        o unittest w/ smaller item in btree which is erased in txn
-            LongTxnCursorTest::moveLastSmallerInBtreeErasedInTxnTest
+        x unittests (similar to above)
+
+    o ham_cursor_move w/ switching directions
+        o switchDirectionsMixedTest start with txn
+===> fails
+        o switchDirectionsMixedTest start with btree
+        o switchDirectionsMixedTest with sequences of overwritten items
 
     o when erasing items with a cursor: all items coupled to the btree
         AND to the op have to be uncoupled! (do they? only if the txn
@@ -642,6 +645,8 @@ o support cursors!!!
             be nil!)
         o unittest w/ smaller item in btree which is erased, then written in txn
         o LongTxnCursorTest::moveNextWhileErasingTest - check for nil
+        o unittest w/ smaller item in btree which is erased in txn
+            LongTxnCursorTest::moveLastSmallerInBtreeErasedInTxnTest
 
     o implement support for duplicates
         the problem with duplicates is that their position can depend on
