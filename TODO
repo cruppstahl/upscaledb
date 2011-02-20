@@ -632,6 +632,53 @@ o support cursors!!!
         o switchDirectionsMixedTest start with btree
         o switchDirectionsMixedTest with sequences of overwritten items
 
+====================
+there are more problems on the horizon:
+- ham_cursor_find a txn-key in the middle of the database; now the txn-cursor is
+    coupled, but the btree-cursor is nil. -> moving next/prev won't work
+- same if a cursor is coupled to a txn-op, but the txn-op is erased or flushed
+- same if a cursor is coupled to a btree, but the key is erased (and flushed)
+
+maybe the whole cursor-stuff needs a re-thinking. We have several states:
+- coupled to txn
+- coupled to btree
+- uncoupled (w/ key)
+- nil
+
+So many scenarios can happen which make moving next/prev really complicated.
+And things will get worse when duplicate keys are part of the game. Maybe it
+makes more sense to uncouple the cursor after every (?) operation, and then 
+just couple it again and move next/prev. This move is simple for btrees,
+because they already implement approx. matching.
+
+We have the following scenarios:
+x move first
+x move last
+x move next - coupled to txn;   new txn.key <  btree.key
+x move next - coupled to txn;   new txn.key == btree.key
+x move next - coupled to txn;   new txn.key >  btree.key
+x move next - coupled to btree; new txn.key <  btree.key
+x move next - coupled to btree; new txn.key ==  btree.key
+x move next - coupled to btree; new txn.key >  btree.key
+x move prev - same as above
+o move (w/ change) - coupled to txn;   new txn.key <  btree.key
+o move (w/ change) - coupled to txn;   new txn.key == btree.key
+o move (w/ change) - coupled to txn;   new txn.key >  btree.key
+o move (w/ change) - coupled to btree; new txn.key <  btree.key
+o move (w/ change) - coupled to btree; new txn.key ==  btree.key
+o move (w/ change) - coupled to btree; new txn.key >  btree.key
+
+1. currently, a unittest fails; check why and try to fix it
+2. implement more of the change-tests (see above) and fix code if necessary
+3. refactor cursor; separate backend-cursor and txn-cursor; make the 
+    "uncoupled" cursor part of the frontend. When coupling, btree AND txn 
+    have to couple, and check if it was erased in the meantime!
+4. implement/fix tests based on ham_cursor_find, then move (see above)
+5. implement/fix tests based on flushed transactions (txn is flushed while
+    cursor iterates over sequence)
+
+====================
+
     o when erasing items with a cursor: all items coupled to the btree
         AND to the op have to be uncoupled! (do they? only if the txn
         is committed...?)
