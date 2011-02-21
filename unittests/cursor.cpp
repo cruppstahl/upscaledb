@@ -2986,9 +2986,7 @@ public:
         BFC_ASSERT_EQUAL(0, compare    ("11115", "aaaae", BTREE));
         BFC_ASSERT_EQUAL(0, compare    ("11116", "aaaag", TXN));
         BFC_ASSERT_EQUAL(0, compare    ("11117", "aaaah", BTREE));
-        printf("11118 - txn\n");
         BFC_ASSERT_EQUAL(0, compare    ("11118", "aaaai", TXN));
-        printf("11119 - txn\n");
         BFC_ASSERT_EQUAL(0, compare    ("11119", "aaaak", TXN));
         BFC_ASSERT_EQUAL(0, comparePrev("11118", "aaaai", TXN));
         BFC_ASSERT_EQUAL(0, comparePrev("11117", "aaaah", BTREE));

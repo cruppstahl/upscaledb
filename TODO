@@ -627,8 +627,7 @@ o support cursors!!!
         x unittests (similar to above)
 
     o ham_cursor_move w/ switching directions
-        o switchDirectionsMixedTest start with txn
-===> fails
+        x switchDirectionsMixedTest start with txn
         o switchDirectionsMixedTest start with btree
         o switchDirectionsMixedTest with sequences of overwritten items
 
@@ -667,12 +666,17 @@ o move (w/ change) - coupled to txn;   new txn.key >  btree.key
 o move (w/ change) - coupled to btree; new txn.key <  btree.key
 o move (w/ change) - coupled to btree; new txn.key ==  btree.key
 o move (w/ change) - coupled to btree; new txn.key >  btree.key
+o move (no change) - last key is txn; move to last; then insert btree at
+        the very end (same with first!)
 
 1. currently, a unittest fails; check why and try to fix it
 2. implement more of the change-tests (see above) and fix code if necessary
 3. refactor cursor; separate backend-cursor and txn-cursor; make the 
     "uncoupled" cursor part of the frontend. When coupling, btree AND txn 
     have to couple, and check if it was erased in the meantime!
+    or: - cursor tracks state if it's coupled to txn or btree
+        - when coupling, caller can select whether to couple to btree or txn
+            cursor_couple(TXN || BTREE)
 4. implement/fix tests based on ham_cursor_find, then move (see above)
 5. implement/fix tests based on flushed transactions (txn is flushed while
     cursor iterates over sequence)

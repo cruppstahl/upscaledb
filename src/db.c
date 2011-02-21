@@ -2915,25 +2915,6 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             return (st);
     }
 
-    /* if user did not specify a transaction, but transactions are enabled:
-     * create a temporary one */
-    if (!cursor_get_txn(cursor) 
-            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0);
-        if (st)
-            return (st);
-        cursor_set_txn(cursor, local_txn);
-    }
-
-    /* was the direction changed? i.e. the previous operation was
-     * HAM_CURSOR_NEXT, but now we move to HAM_CURSOR_PREVIOUS? */
-    if ((cursor_get_direction(cursor)==HAM_CURSOR_PREVIOUS)
-            && (flags&HAM_CURSOR_NEXT))
-        changed_dir=HAM_TRUE;
-    else if ((cursor_get_direction(cursor)==HAM_CURSOR_NEXT)
-            && (flags&HAM_CURSOR_PREVIOUS))
-        changed_dir=HAM_TRUE;
-
     /*
      * if the cursor is NIL, and the user requests a NEXT, we set it to FIRST;
      * if the user requests a PREVIOUS, we set it to LAST, resp.
@@ -2954,6 +2935,25 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         st=cursor->_fun_move(cursor, key, record, flags);
         goto bail;
     }
+
+    /* if user did not specify a transaction, but transactions are enabled:
+     * create a temporary one */
+    if (!cursor_get_txn(cursor) 
+            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        st=txn_begin(&local_txn, env, 0);
+        if (st)
+            return (st);
+        cursor_set_txn(cursor, local_txn);
+    }
+
+    /* was the direction changed? i.e. the previous operation was
+     * HAM_CURSOR_NEXT, but now we move to HAM_CURSOR_PREVIOUS? */
+    if ((cursor_get_direction(cursor)==HAM_CURSOR_PREVIOUS)
+            && (flags&HAM_CURSOR_NEXT))
+        changed_dir=HAM_TRUE;
+    else if ((cursor_get_direction(cursor)==HAM_CURSOR_NEXT)
+            && (flags&HAM_CURSOR_PREVIOUS))
+        changed_dir=HAM_TRUE;
 
     /* 
      * Otherwise we have to consolidate the btree cursor and the txn-cursor.
@@ -3138,16 +3138,27 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         /* otherwise the cursor is bound to the btree, and we move
          * the cursor to the next item in the btree */
         if (changed_dir || !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
-            btrs=cursor->_fun_move(cursor, 0, 0, 
+            do {
+                btrs=cursor->_fun_move(cursor, 0, 0, 
                             __btree_cursor_is_nil((ham_bt_cursor_t *)cursor)
                                 ? HAM_CURSOR_FIRST
                                 : flags);
-            /* if we've reached the end of the btree then set the
-             * btree-cursor to nil; otherwise subsequent calls to 
-             * ham_cursor_move will not know that the btree-cursor is
-             * invalid */
-            if (btrs==HAM_KEY_NOT_FOUND)
-                bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                /* if we've reached the end of the btree then set the
+                 * btree-cursor to nil; otherwise subsequent calls to 
+                 * ham_cursor_move will not know that the btree-cursor is
+                 * invalid */
+                if (btrs==HAM_KEY_NOT_FOUND) {
+                    bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                    break;
+                }
+
+                /* if the direction was changed: continue moving till we 
+                 * found a key that is not erased or overwritten in a 
+                 * transaction */
+                if (!changed_dir)
+                    break;
+                st=__check_if_btree_key_is_erased_or_overwritten(cursor);
+            } while (st==HAM_SUCCESS || st==HAM_KEY_ERASED_IN_TXN);
         }
 
         /* if any of the cursors is nil then we pretend that this cursor
@@ -3264,16 +3275,27 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         /* otherwise the cursor is bound to the btree, and we move
          * the cursor to the previous item in the btree */
         if (changed_dir || !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
-            btrs=cursor->_fun_move(cursor, 0, 0, 
+            do {
+                btrs=cursor->_fun_move(cursor, 0, 0, 
                             __btree_cursor_is_nil((ham_bt_cursor_t *)cursor)
                                 ? HAM_CURSOR_LAST
                                 : flags);
-            /* if we've reached the end of the btree then set the
-             * btree-cursor to nil; otherwise subsequent calls to 
-             * ham_cursor_move will not know that the btree-cursor is
-             * invalid */
-            if (btrs==HAM_KEY_NOT_FOUND)
-                bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                /* if we've reached the end of the btree then set the
+                 * btree-cursor to nil; otherwise subsequent calls to 
+                 * ham_cursor_move will not know that the btree-cursor is
+                 * invalid */
+                if (btrs==HAM_KEY_NOT_FOUND) {
+                    bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
+                    break;
+                }
+
+                /* if the direction was changed: continue moving till we 
+                 * found a key that is not erased or overwritten in a 
+                 * transaction */
+                if (!changed_dir)
+                    break;
+                st=__check_if_btree_key_is_erased_or_overwritten(cursor);
+            } while (st==HAM_SUCCESS || st==HAM_KEY_ERASED_IN_TXN);
         }
 
         /* if any of the cursors is nil then we pretend that this cursor
