@@ -628,7 +628,7 @@ o support cursors!!!
 
     o ham_cursor_move w/ switching directions
         x switchDirectionsMixedTest start with txn
-        o switchDirectionsMixedTest start with btree
+        x switchDirectionsMixedTest start with btree
         o switchDirectionsMixedTest with sequences of overwritten items
 
 ====================

@@ -460,7 +460,9 @@ public:
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     switchDirectionsInTransactionTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
-                    switchDirectionsMixedTest);
+                    switchDirectionsMixedStartInBtreeTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    switchDirectionsMixedStartInTxnTest);
     }
 
     void findInEmptyTransactionTest(void)
@@ -2959,7 +2961,7 @@ public:
         BFC_ASSERT_EQUAL(0, comparePrev("11116", "aaaag", TXN));
     }
 
-    void switchDirectionsMixedTest(void)
+    void switchDirectionsMixedStartInBtreeTest(void)
     {
         BFC_ASSERT_EQUAL(0, insertBtree("11111", "aaaaa"));
         BFC_ASSERT_EQUAL(0, insertTxn  ("11112", "aaaab"));
@@ -2990,6 +2992,39 @@ public:
         BFC_ASSERT_EQUAL(0, compare    ("11119", "aaaak", TXN));
         BFC_ASSERT_EQUAL(0, comparePrev("11118", "aaaai", TXN));
         BFC_ASSERT_EQUAL(0, comparePrev("11117", "aaaah", BTREE));
+        BFC_ASSERT_EQUAL(0, comparePrev("11116", "aaaag", TXN));
+    }
+
+    void switchDirectionsMixedStartInTxnTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11111", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11112", "aaaab"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11113", "aaaac"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11114", "aaaad"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11115", "aaaae"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11116", "aaaaf"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11116", "aaaag", HAM_OVERWRITE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11117", "aaaah"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11118", "aaaai"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11119", "aaaaj"));
+
+        BFC_ASSERT_EQUAL(0, compare    ("11111", "aaaaa", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11112", "aaaab", BTREE));
+        BFC_ASSERT_EQUAL(0, comparePrev("11111", "aaaaa", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11112", "aaaab", BTREE));
+        BFC_ASSERT_EQUAL(0, compare    ("11113", "aaaac", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11114", "aaaad", BTREE));
+        BFC_ASSERT_EQUAL(0, comparePrev("11113", "aaaac", TXN));
+        BFC_ASSERT_EQUAL(0, comparePrev("11112", "aaaab", BTREE));
+        BFC_ASSERT_EQUAL(0, compare    ("11113", "aaaac", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11114", "aaaad", BTREE));
+        BFC_ASSERT_EQUAL(0, compare    ("11115", "aaaae", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11116", "aaaag", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11117", "aaaah", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11118", "aaaai", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("11119", "aaaaj", BTREE));
+        BFC_ASSERT_EQUAL(0, comparePrev("11118", "aaaai", TXN));
+        BFC_ASSERT_EQUAL(0, comparePrev("11117", "aaaah", TXN));
         BFC_ASSERT_EQUAL(0, comparePrev("11116", "aaaag", TXN));
     }
 };
