@@ -635,10 +635,11 @@ o support cursors!!!
         - ham_cursor_find a txn-key in the middle of the database; now the 
             txn-cursor is coupled, but the btree-cursor is nil. -> moving 
             next/prev won't work 
-        - same if a cursor is coupled to a txn-op, but the txn-op is 
-            erased or flushed
-        - same if a cursor is coupled to a btree, but the key is erased 
-            (and flushed)
+        o findThenMoveTest fails
+        o another test like this:
+            TX 1     4     7
+            BT   2 3   5 6
+            find 4, then move next/prev
 
     o ham_cursor_move w/ cursor on flushed key
         -> cursor needs to be uncoupled in txn, and coupled to btree
