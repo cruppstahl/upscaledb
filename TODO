@@ -636,13 +636,18 @@ o support cursors!!!
             txn-cursor is coupled, but the btree-cursor is nil. -> moving 
             next/prev won't work 
         o findThenMoveTest fails
+            o split in two tests: one for moving next, one for moving prev
+                and rename to findTxnThenMoveNext/PrevTest
+        o also have tests where the Btree key is looked up instead of the
+            txn key
         o another test like this:
             TX 1     4     7
             BT   2 3   5 6
             find 4, then move next/prev
 
     o ham_cursor_move w/ cursor on flushed key
-        -> cursor needs to be uncoupled in txn, and coupled to btree
+        -> ALL cursors in this op need to be uncoupled in txn, and 
+            coupled to the new btree key
 
     o when erasing items with a cursor: all items coupled to the btree
         AND to the op have to be uncoupled! (do they? only if the txn
