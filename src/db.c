@@ -2895,56 +2895,16 @@ __check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor)
 }
 
 /*
- * this is quite a long function, but bear with me - it has ample comments
+ * this is quite a long function, but bear with me - it has lots of comments
  * and the flow should be easy to follow.
  */
 static ham_status_t
-_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
+do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             ham_record_t *record, ham_u32_t flags)
 {
     ham_status_t st=0;
-    ham_db_t *db=cursor_get_db(cursor);
-    ham_env_t *env=db_get_env(db);
-    ham_txn_t *local_txn=0;
     ham_bool_t changed_dir=HAM_FALSE;
-
-    /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=cache_purge(env_get_cache(db_get_env(db)));
-        if (st)
-            return (st);
-    }
-
-    /*
-     * if the cursor is NIL, and the user requests a NEXT, we set it to FIRST;
-     * if the user requests a PREVIOUS, we set it to LAST, resp.
-     */
-    if (cursor->_fun_is_nil(cursor)) {
-        if (flags&HAM_CURSOR_NEXT) {
-            flags&=~HAM_CURSOR_NEXT;
-            flags|=HAM_CURSOR_FIRST;
-        }
-        else if (flags&HAM_CURSOR_PREVIOUS) {
-            flags&=~HAM_CURSOR_PREVIOUS;
-            flags|=HAM_CURSOR_LAST;
-        }
-    }
-
-    /* in non-transactional mode - just call the btree function and return */
-    if (!(db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
-        st=cursor->_fun_move(cursor, key, record, flags);
-        goto bail;
-    }
-
-    /* if user did not specify a transaction, but transactions are enabled:
-     * create a temporary one */
-    if (!cursor_get_txn(cursor) 
-            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
-        st=txn_begin(&local_txn, env, 0);
-        if (st)
-            return (st);
-        cursor_set_txn(cursor, local_txn);
-    }
+    txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
 
     /* was the direction changed? i.e. the previous operation was
      * HAM_CURSOR_NEXT, but now we move to HAM_CURSOR_PREVIOUS? */
@@ -2963,9 +2923,13 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     if (flags&HAM_CURSOR_FIRST) {
         ham_status_t btrs, txns;
         /* fetch the smallest/first key from the transaction tree. */
-        txns=txn_cursor_move(cursor_get_txn_cursor(cursor), flags);
+        txns=txn_cursor_move(txnc, flags);
+        if (txns==HAM_KEY_NOT_FOUND)
+            txn_cursor_set_to_nil(txnc);
         /* fetch the smallest/first key from the btree tree. */
         btrs=cursor->_fun_move(cursor, 0, 0, flags);
+        if (btrs==HAM_KEY_NOT_FOUND)
+            bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
         /* now consolidate - if both trees are empty then return */
         if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_NOT_FOUND) {
             st=HAM_KEY_NOT_FOUND;
@@ -2985,8 +2949,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * sure that it wasn't erased in the txn */
         else if (btrs==0 && (txns==0 || txns==HAM_KEY_ERASED_IN_TXN)) {
             int cmp;
-            st=__compare_cursors((ham_bt_cursor_t *)cursor, 
-                            cursor_get_txn_cursor(cursor), &cmp);
+            st=__compare_cursors((ham_bt_cursor_t *)cursor, txnc, &cmp);
             if (st)
                 goto bail;
             /* if both keys are equal: make sure that the btree key was not
@@ -3006,7 +2969,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                         bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
                     /* if the key was erased: continue moving "next" till 
                      * we find a key or reach the end of the database */
-                    st=_local_cursor_move(cursor, key, record, flags);
+                    st=do_local_cursor_move(cursor, key, record, flags);
                     goto bail;
                 }
                 /* if the btree entry was overwritten in the txn: move the
@@ -3042,9 +3005,13 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     else if (flags&HAM_CURSOR_LAST) {
         ham_status_t btrs, txns;
         /* fetch the greatest/last key from the transaction tree. */
-        txns=txn_cursor_move(cursor_get_txn_cursor(cursor), flags);
+        txns=txn_cursor_move(txnc, flags);
+        if (txns==HAM_KEY_NOT_FOUND)
+            txn_cursor_set_to_nil(txnc);
         /* fetch the greatest/last key from the btree tree. */
         btrs=cursor->_fun_move(cursor, 0, 0, flags);
+        if (btrs==HAM_KEY_NOT_FOUND)
+            bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
         /* now consolidate - if both trees are empty then return */
         if (btrs==HAM_KEY_NOT_FOUND && txns==HAM_KEY_NOT_FOUND) {
             st=HAM_KEY_NOT_FOUND;
@@ -3064,8 +3031,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * sure that it wasn't erased in the txn */
         else if (btrs==0 && (txns==0 || txns==HAM_KEY_ERASED_IN_TXN)) {
             int cmp;
-            st=__compare_cursors((ham_bt_cursor_t *)cursor, 
-                            cursor_get_txn_cursor(cursor), &cmp);
+            st=__compare_cursors((ham_bt_cursor_t *)cursor, txnc, &cmp);
             if (st)
                 goto bail;
             /* if both keys are equal: make sure that the btree key was not
@@ -3085,7 +3051,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                         bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
                     /* if the key was erased: continue moving "next" till 
                      * we find a key or reach the end of the database */
-                    st=_local_cursor_move(cursor, key, record, flags);
+                    st=do_local_cursor_move(cursor, key, record, flags);
                     goto bail;
                 }
                 /* if the btree entry was overwritten in the txn: move the
@@ -3124,8 +3090,8 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * the cursor to the next item in the txn (unless we change the
          * direction - then always move both cursors */
         if (changed_dir || (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
-            txns=txn_cursor_move(cursor_get_txn_cursor(cursor), 
-                            txn_cursor_is_nil(cursor_get_txn_cursor(cursor)) 
+            txns=txn_cursor_move(txnc, 
+                            txn_cursor_is_nil(txnc) 
                                 ? HAM_CURSOR_FIRST
                                 : flags);
             /* if we've reached the end of the txn-tree then set the
@@ -3133,7 +3099,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
              * ham_cursor_move will not know that the txn-cursor is
              * invalid */
             if (txns==HAM_KEY_NOT_FOUND)
-                txn_cursor_set_to_nil(cursor_get_txn_cursor(cursor));
+                txn_cursor_set_to_nil(txnc);
         }
         /* otherwise the cursor is bound to the btree, and we move
          * the cursor to the next item in the btree */
@@ -3163,7 +3129,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
         /* if any of the cursors is nil then we pretend that this cursor
          * doesn't have any keys to point at */
-        if (txn_cursor_is_nil(cursor_get_txn_cursor(cursor)))
+        if (txn_cursor_is_nil(txnc))
             txns=HAM_KEY_NOT_FOUND;
         if (__btree_cursor_is_nil((ham_bt_cursor_t *)cursor))
             btrs=HAM_KEY_NOT_FOUND;
@@ -3190,7 +3156,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 flags&=~HAM_CURSOR_FIRST;
                 flags|=HAM_CURSOR_NEXT;
                 (void)cursor->_fun_move(cursor, 0, 0, flags);
-                st=_local_cursor_move(cursor, key, record, flags);
+                st=do_local_cursor_move(cursor, key, record, flags);
                 if (st)
                     goto bail;
             }
@@ -3199,8 +3165,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * then make sure that it wasn't erased in the txn */
         else if (btrs==0 && (txns==0 || txns==HAM_KEY_ERASED_IN_TXN)) {
             int cmp;
-            st=__compare_cursors((ham_bt_cursor_t *)cursor, 
-                            cursor_get_txn_cursor(cursor), &cmp);
+            st=__compare_cursors((ham_bt_cursor_t *)cursor, txnc, &cmp);
             if (st)
                 goto bail;
             /* if both keys are equal: make sure that the btree key was not
@@ -3214,7 +3179,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 if (!erased 
                         && !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
                     /* check if btree key was erased in txn */
-                    if (txn_cursor_is_erased(cursor_get_txn_cursor(cursor)))
+                    if (txn_cursor_is_erased(txnc))
                         erased=HAM_TRUE;
                 }
                 cursor_set_flags(cursor, 
@@ -3231,7 +3196,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 /* if the key was erased: continue moving "next" till 
                  * we find a key or reach the end of the database */
                 if (erased) {
-                    st=_local_cursor_move(cursor, key, record, flags);
+                    st=do_local_cursor_move(cursor, key, record, flags);
                     goto bail;
                 }
             }
@@ -3261,8 +3226,8 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * the cursor to the previous item in the txn (unless we change the
          * direction - then always move both cursors */
         if (changed_dir || (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
-            txns=txn_cursor_move(cursor_get_txn_cursor(cursor), 
-                            txn_cursor_is_nil(cursor_get_txn_cursor(cursor)) 
+            txns=txn_cursor_move(txnc, 
+                            txn_cursor_is_nil(txnc) 
                                 ? HAM_CURSOR_LAST
                                 : flags);
             /* if we've reached the end of the txn-tree then set the
@@ -3270,7 +3235,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
              * ham_cursor_move will not know that the txn-cursor is
              * invalid */
             if (txns==HAM_KEY_NOT_FOUND)
-                txn_cursor_set_to_nil(cursor_get_txn_cursor(cursor));
+                txn_cursor_set_to_nil(txnc);
         }
         /* otherwise the cursor is bound to the btree, and we move
          * the cursor to the previous item in the btree */
@@ -3300,7 +3265,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
         /* if any of the cursors is nil then we pretend that this cursor
          * doesn't have any keys to point at */
-        if (txn_cursor_is_nil(cursor_get_txn_cursor(cursor)))
+        if (txn_cursor_is_nil(txnc))
             txns=HAM_KEY_NOT_FOUND;
         if (__btree_cursor_is_nil((ham_bt_cursor_t *)cursor))
             btrs=HAM_KEY_NOT_FOUND;
@@ -3327,7 +3292,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 flags&=~HAM_CURSOR_LAST;
                 flags|=HAM_CURSOR_PREVIOUS;
                 (void)cursor->_fun_move(cursor, 0, 0, flags);
-                st=_local_cursor_move(cursor, key, record, flags);
+                st=do_local_cursor_move(cursor, key, record, flags);
                 if (st)
                     goto bail;
             }
@@ -3336,8 +3301,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * then make sure that it wasn't erased in the txn */
         else if (btrs==0 && (txns==0 || txns==HAM_KEY_ERASED_IN_TXN)) {
             int cmp;
-            st=__compare_cursors((ham_bt_cursor_t *)cursor, 
-                            cursor_get_txn_cursor(cursor), &cmp);
+            st=__compare_cursors((ham_bt_cursor_t *)cursor, txnc, &cmp);
             if (st)
                 goto bail;
             /* if both keys are equal: make sure that the btree key was not
@@ -3351,7 +3315,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 if (!erased 
                         && !(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)) {
                     /* check if btree key was erased in txn */
-                    if (txn_cursor_is_erased(cursor_get_txn_cursor(cursor)))
+                    if (txn_cursor_is_erased(txnc))
                         erased=HAM_TRUE;
                 }
                 cursor_set_flags(cursor, 
@@ -3368,7 +3332,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 /* if the key was erased: continue moving "previous" till 
                  * we find a key or reach the end of the database */
                 if (erased) {
-                    st=_local_cursor_move(cursor, key, record, flags);
+                    st=do_local_cursor_move(cursor, key, record, flags);
                     goto bail;
                 }
             }
@@ -3395,12 +3359,12 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
      */
     if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN) {
         if (key) {
-            st=txn_cursor_get_key(cursor_get_txn_cursor(cursor), key);
+            st=txn_cursor_get_key(txnc, key);
             if (st)
                 goto bail;
         }
         if (record) {
-            st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), record);
+            st=txn_cursor_get_record(txnc, record);
             if (st)
                 goto bail;
         }
@@ -3410,6 +3374,80 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     }
 
 bail:
+    return (st);
+}
+
+static ham_status_t
+_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
+            ham_record_t *record, ham_u32_t flags)
+{
+    ham_status_t st=0;
+    ham_db_t *db=cursor_get_db(cursor);
+    ham_env_t *env=db_get_env(db);
+    ham_txn_t *local_txn=0;
+    txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
+
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=cache_purge(env_get_cache(db_get_env(db)));
+        if (st)
+            return (st);
+    }
+
+    /*
+     * if the cursor is NIL, and the user requests a NEXT, we set it to FIRST;
+     * if the user requests a PREVIOUS, we set it to LAST, resp.
+     */
+    if (cursor->_fun_is_nil(cursor)) {
+        if (flags&HAM_CURSOR_NEXT) {
+            flags&=~HAM_CURSOR_NEXT;
+            flags|=HAM_CURSOR_FIRST;
+        }
+        else if (flags&HAM_CURSOR_PREVIOUS) {
+            flags&=~HAM_CURSOR_PREVIOUS;
+            flags|=HAM_CURSOR_LAST;
+        }
+    }
+
+    /* in non-transactional mode - just call the btree function and return */
+    if (!(db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        return (cursor->_fun_move(cursor, key, record, flags));
+    }
+
+    /* if user did not specify a transaction, but transactions are enabled:
+     * create a temporary one */
+    if (!cursor_get_txn(cursor) 
+            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        st=txn_begin(&local_txn, env, 0);
+        if (st)
+            return (st);
+        cursor_set_txn(cursor, local_txn);
+    }
+
+    /* if cursor was not moved (i.e. last op was insert or find) then 
+     * most likely ONLY txn-cursor OR btree-cursor are coupled. For moving
+     * the cursor, however we need to couple both. */
+    else if ((flags&HAM_CURSOR_NEXT) || (flags&HAM_CURSOR_PREVIOUS)) {
+        if (__btree_cursor_is_nil((ham_bt_cursor_t *)cursor)) {
+#if 0
+            txn_opnode_t *node=txn_op_get_node(txn_cursor_get_coupled_op(txnc));
+            ham_key_t *k=txn_opnode_get_key(node);
+            (void)cursor->_fun_find(cursor, k, 0,
+                    flags&HAM_CURSOR_NEXT 
+                        ? HAM_FIND_GEQ_MATCH
+                        : HAM_FIND_LEQ_MATCH);
+#endif
+        }
+        else if (txn_cursor_is_nil(txnc)) {
+            /*ham_assert(!"not yet implemented", (""));*/
+        }
+    }
+
+    /*
+     * now move forwards, backwards etc
+     */
+    st=do_local_cursor_move(cursor, key, record, flags);
+
     /* if we created a temp. txn then clean it up again */
     if (local_txn)
         cursor_set_txn(cursor, 0);

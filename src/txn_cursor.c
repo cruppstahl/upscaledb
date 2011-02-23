@@ -36,6 +36,7 @@ txn_cursor_set_to_nil(txn_cursor_t *cursor)
             txn_op_remove_cursor(op, cursor);
         txn_cursor_set_flags(cursor, 
                 txn_cursor_get_flags(cursor)&(~TXN_CURSOR_FLAG_COUPLED));
+        txn_cursor_set_coupled_op(cursor, 0);
     }
 
     /* otherwise cursor is already nil */

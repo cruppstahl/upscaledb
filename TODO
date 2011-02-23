@@ -632,12 +632,13 @@ o support cursors!!!
         x switchDirectionsMixedTest with sequences of overwritten items
 
     o ham_cursor_find, then moving cursor
-        - ham_cursor_find a txn-key in the middle of the database; now the 
-            txn-cursor is coupled, but the btree-cursor is nil. -> moving 
-            next/prev won't work 
+        ham_cursor_find a txn-key in the middle of the database; now the 
+        txn-cursor is coupled, but the btree-cursor is nil. -> moving 
+        next/prev won't work 
         o findThenMoveTest fails
-            o split in two tests: one for moving next, one for moving prev
+            x split in two tests: one for moving next, one for moving prev
                 and rename to findTxnThenMoveNext/PrevTest
+===> db.c:3435 - remove #if 0 and unittests will assert in rb.h - check why
         o also have tests where the Btree key is looked up instead of the
             txn key
         o another test like this:
