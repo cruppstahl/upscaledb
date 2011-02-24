@@ -92,6 +92,12 @@ struct ham_bt_cursor_t
 #define BT_CURSOR_FLAG_UNCOUPLED            2
 
 /**
+ * cursor flag for bt_cursor_find: do not load the key, if there's an approx.
+ * match. Only positions the cursor
+ */
+#define BT_CURSOR_DONT_LOAD_KEY             0x100000
+
+/**
  * get the database pointer
  */
 #define bt_cursor_get_db(cu)                (cu)->_db

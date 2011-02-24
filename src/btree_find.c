@@ -421,9 +421,11 @@ no_fast_track:
      */
     ham_assert(btree_node_is_leaf(node), ("iterator points to internal node"));
 
-    /* no need to load the key if we have an exact match: */
-    if (key && (ham_key_get_intflags(key) & KEY_IS_APPROXIMATE)) 
-    {
+    /* no need to load the key if we have an exact match, or if KEY_DONT_LOAD
+     * is set: */
+    if (key 
+            && (ham_key_get_intflags(key) & KEY_IS_APPROXIMATE)
+            && !(flags & BT_CURSOR_DONT_LOAD_KEY)) {
         ham_status_t st=btree_read_key(db, entry, key);
         if (st) {
             btree_stats_update_find_fail(db, &hints);

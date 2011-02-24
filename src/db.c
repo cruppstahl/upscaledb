@@ -18,7 +18,6 @@
 
 #include "blob.h"
 #include "btree.h"
-#include "btree_cursor.h"
 #include "cache.h"
 #include "cursor.h"
 #include "btree_cursor.h"
@@ -2513,6 +2512,10 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         }
     }
 
+    /* set a flag that the cursor just completed an Insert-or-find 
+     * operation; this information is needed in ham_cursor_move */
+    cursor_set_lastop(cursor, CURSOR_LOOKUP_INSERT);
+
     if (local_txn)
         return (txn_commit(local_txn, 0));
     else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
@@ -2686,6 +2689,10 @@ bail:
             return (st);
         }
     }
+
+    /* set a flag that the cursor just completed an Insert-or-find 
+     * operation; this information is needed in ham_cursor_move */
+    cursor_set_lastop(cursor, CURSOR_LOOKUP_INSERT);
 
     if (local_txn)
         return (txn_commit(local_txn, 0));
@@ -2908,10 +2915,10 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
     /* was the direction changed? i.e. the previous operation was
      * HAM_CURSOR_NEXT, but now we move to HAM_CURSOR_PREVIOUS? */
-    if ((cursor_get_direction(cursor)==HAM_CURSOR_PREVIOUS)
+    if ((cursor_get_lastop(cursor)==HAM_CURSOR_PREVIOUS)
             && (flags&HAM_CURSOR_NEXT))
         changed_dir=HAM_TRUE;
-    else if ((cursor_get_direction(cursor)==HAM_CURSOR_NEXT)
+    else if ((cursor_get_lastop(cursor)==HAM_CURSOR_NEXT)
             && (flags&HAM_CURSOR_PREVIOUS))
         changed_dir=HAM_TRUE;
 
@@ -3427,16 +3434,17 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     /* if cursor was not moved (i.e. last op was insert or find) then 
      * most likely ONLY txn-cursor OR btree-cursor are coupled. For moving
      * the cursor, however we need to couple both. */
-    else if ((flags&HAM_CURSOR_NEXT) || (flags&HAM_CURSOR_PREVIOUS)) {
+    else if (cursor_get_lastop(cursor)==CURSOR_LOOKUP_INSERT
+            && ((flags&HAM_CURSOR_NEXT) || (flags&HAM_CURSOR_PREVIOUS))) {
         if (__btree_cursor_is_nil((ham_bt_cursor_t *)cursor)) {
-#if 0
             txn_opnode_t *node=txn_op_get_node(txn_cursor_get_coupled_op(txnc));
             ham_key_t *k=txn_opnode_get_key(node);
+            /* the flag DONT_LOAD_KEY does not load the key if there's an
+             * approx match - it only positions the cursor */
             (void)cursor->_fun_find(cursor, k, 0,
-                    flags&HAM_CURSOR_NEXT 
+                    BT_CURSOR_DONT_LOAD_KEY|(flags&HAM_CURSOR_NEXT 
                         ? HAM_FIND_GEQ_MATCH
-                        : HAM_FIND_LEQ_MATCH);
-#endif
+                        : HAM_FIND_LEQ_MATCH));
         }
         else if (txn_cursor_is_nil(txnc)) {
             /*ham_assert(!"not yet implemented", (""));*/
@@ -3466,11 +3474,11 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
     /* store the direction */
     if (flags&HAM_CURSOR_NEXT)
-        cursor_set_direction(cursor, HAM_CURSOR_NEXT);
+        cursor_set_lastop(cursor, HAM_CURSOR_NEXT);
     else if (flags&HAM_CURSOR_PREVIOUS)
-        cursor_set_direction(cursor, HAM_CURSOR_PREVIOUS);
+        cursor_set_lastop(cursor, HAM_CURSOR_PREVIOUS);
     else
-        cursor_set_direction(cursor, 0);
+        cursor_set_lastop(cursor, 0);
 
     if (local_txn)
         return (txn_commit(local_txn, 0));

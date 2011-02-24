@@ -102,11 +102,10 @@ extern "C" {
     /** Linked list of Cursors which point to the same page */          \
     clss *_next_in_page, *_previous_in_page;                            \
                                                                         \
-    /** A "direction" flag; tells us if the Cursor was moved to the     \
-     * "next" (HAM_CURSOR_NEXT) or "previous" (HAM_CURSOR_PREVIOUS)     \
-     * position. If the direction changes then the consolidation of the \
-     * btree and txn tree requires extra care. */                       \
-    ham_u32_t _direction;                                               \
+    /** Stores the last operation (insert/find or move); needed for     \
+     * ham_cursor_move. Values can be HAM_CURSOR_NEXT,                  \
+     * HAM_CURSOR_PREVIOUS or CURSOR_LOOKUP_INSERT */                   \
+    ham_u32_t _lastop;                                                  \
                                                                         \
     /** Cursor flags */                                                 \
     ham_u32_t _flags
@@ -190,11 +189,14 @@ struct ham_cursor_t
 /** Set the remote Database handle */
 #define cursor_set_remote_handle(c, h)  (c)->_remote_handle=(h)
 
-/** Get the direction of the previous ham_cursor_move call */
-#define cursor_get_direction(c)         (c)->_direction
+/** Get the previous operation */
+#define cursor_get_lastop(c)            (c)->_lastop
 
-/** Set the direction of the previous ham_cursor_move call */
-#define cursor_set_direction(c, d)      (c)->_direction=(d)
+/** Store the current operation; needed for ham_cursor_move */
+#define cursor_set_lastop(c, o)         (c)->_lastop=(o)
+
+/** flag for cursor_set_lastop */
+#define CURSOR_LOOKUP_INSERT            0x10000
 
 
 #ifdef __cplusplus
