@@ -638,16 +638,17 @@ o support cursors!!!
         x findThenMoveTest fails
             x split in two tests: one for moving next, one for moving prev
                 and rename to findTxnThenMoveNext/PrevTest
-        o also have tests where the Btree key is looked up instead of the
-            txn key
-        o another test like this:
+        x another test like this:
             TX 1     4     7
             BT   2 3   5 6
             find 4, then move next/prev
+        o "invert" the existing 4 tests and find a btree key instead of a 
+            txn key (need approx. matching for the txn)
 
     o ham_cursor_move w/ cursor on flushed key
         -> ALL cursors in this op need to be uncoupled in txn, and 
             coupled to the new btree key
+        o add a unittest; it should work out of the box
 
     o when erasing items with a cursor: all items coupled to the btree
         AND to the op have to be uncoupled! (do they? only if the txn
@@ -724,6 +725,10 @@ o support cursors!!!
 o ham_find in a transaction: if there are duplicates, is the same item (k/r) 
     returned as in the btree? btree duplicates are stored at the *end* of the
     list, and the oldest duplicate is returned. txn returns the newest??
+
+. add tests to verify that the cursor is not modified if an operation fails!
+    (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
+    insert the cursor; that's a good starting point)
 
 o add hamsterdb.spec file from 1.1.8
     https://github.com/cruppstahl/hamsterdb/commit/46260d14d0192299b15286c93a843d11dc4ccaa6
