@@ -467,21 +467,24 @@ public:
                     switchDirectionsMixedSequenceTest);
 
         BFC_REGISTER_TEST(LongTxnCursorTest, 
-                    findThenMoveNextTest);
+                    findTxnThenMoveNextTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
-                    findThenMoveNext2Test);
+                    findTxnThenMoveNext2Test);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
-                    findThenMoveNext3Test);
+                    findTxnThenMoveNext3Test);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
-                    findThenMoveNext4Test);
+                    findTxnThenMoveNext4Test);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
-                    findThenMovePreviousTest);
+                    findTxnThenMovePreviousTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
-                    findThenMovePrevious2Test);
+                    findTxnThenMovePrevious2Test);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
-                    findThenMovePrevious3Test);
+                    findTxnThenMovePrevious3Test);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
-                    findThenMovePrevious4Test);
+                    findTxnThenMovePrevious4Test);
+
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    findBtreeThenMoveNextTest);
     }
 
     void findInEmptyTransactionTest(void)
@@ -3109,7 +3112,7 @@ public:
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, compare(0, 0, BTREE));
     }
 
-    void findThenMoveNextTest(void)
+    void findTxnThenMoveNextTest(void)
     {
         BFC_ASSERT_EQUAL(0, insertBtree("11111", "aaaaa"));
         BFC_ASSERT_EQUAL(0, insertBtree("22222", "aaaab"));
@@ -3127,7 +3130,7 @@ public:
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, compare(0, 0, BTREE));
     }
 
-    void findThenMoveNext2Test(void)
+    void findTxnThenMoveNext2Test(void)
     {
         BFC_ASSERT_EQUAL(0, insertTxn  ("11111", "aaaaa"));
         BFC_ASSERT_EQUAL(0, insertBtree("22222", "aaaab"));
@@ -3148,7 +3151,7 @@ public:
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, compare(0, 0, BTREE));
     }
 
-    void findThenMovePreviousTest(void)
+    void findTxnThenMovePreviousTest(void)
     {
         BFC_ASSERT_EQUAL(0, insertBtree("11111", "aaaaa"));
         BFC_ASSERT_EQUAL(0, insertBtree("22222", "aaaab"));
@@ -3166,7 +3169,7 @@ public:
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, comparePrev(0, 0, BTREE));
     }
 
-    void findThenMoveNext3Test(void)
+    void findTxnThenMoveNext3Test(void)
     {
         BFC_ASSERT_EQUAL(0, insertTxn  ("11111", "aaaaa"));
         BFC_ASSERT_EQUAL(0, insertTxn  ("22222", "aaaab"));
@@ -3185,7 +3188,7 @@ public:
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, compare(0, 0, TXN));
     }
 
-    void findThenMoveNext4Test(void)
+    void findTxnThenMoveNext4Test(void)
     {
         BFC_ASSERT_EQUAL(0, insertBtree("11111", "aaaaa"));
         BFC_ASSERT_EQUAL(0, insertBtree("22222", "aaaab"));
@@ -3204,7 +3207,7 @@ public:
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, compare(0, 0, TXN));
     }
 
-    void findThenMovePrevious2Test(void)
+    void findTxnThenMovePrevious2Test(void)
     {
         BFC_ASSERT_EQUAL(0, insertTxn  ("11111", "aaaaa"));
         BFC_ASSERT_EQUAL(0, insertBtree("22222", "aaaab"));
@@ -3225,7 +3228,7 @@ public:
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, comparePrev(0, 0, BTREE));
     }
 
-    void findThenMovePrevious3Test(void)
+    void findTxnThenMovePrevious3Test(void)
     {
         BFC_ASSERT_EQUAL(0, insertBtree("11111", "aaaaa"));
         BFC_ASSERT_EQUAL(0, insertBtree("22222", "aaaab"));
@@ -3244,7 +3247,7 @@ public:
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, comparePrev(0, 0, TXN));
     }
 
-    void findThenMovePrevious4Test(void)
+    void findTxnThenMovePrevious4Test(void)
     {
         BFC_ASSERT_EQUAL(0, insertBtree("11111", "aaaaa"));
         BFC_ASSERT_EQUAL(0, insertBtree("22222", "aaaab"));
@@ -3261,6 +3264,24 @@ public:
         BFC_ASSERT_EQUAL(0, comparePrev("22222", "aaaab", BTREE));
         BFC_ASSERT_EQUAL(0, comparePrev("11111", "aaaaa", BTREE));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, comparePrev(0, 0, TXN));
+    }
+
+    void findBtreeThenMoveNextTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11111", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("22222", "aaaab"));
+        BFC_ASSERT_EQUAL(0, insertBtree("33333", "aaaac"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("44444", "aaaad"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("55555", "aaaae"));
+
+        ham_key_t key={0};
+        key.size=6;
+        key.data=(void *)"33333";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+        BFC_ASSERT_EQUAL(0, compare    ("44444", "aaaad", TXN));
+        BFC_ASSERT_EQUAL(0, compare    ("55555", "aaaae", TXN));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, compare(0, 0, TXN));
     }
 };
 
