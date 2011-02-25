@@ -2907,10 +2907,10 @@ __check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor)
  */
 static ham_status_t
 do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
-            ham_record_t *record, ham_u32_t flags)
+            ham_record_t *record, ham_u32_t flags, ham_bool_t fresh_start)
 {
     ham_status_t st=0;
-    ham_bool_t changed_dir=HAM_FALSE;
+    ham_bool_t changed_dir=fresh_start;
     txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
 
     /* was the direction changed? i.e. the previous operation was
@@ -2976,7 +2976,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                         bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
                     /* if the key was erased: continue moving "next" till 
                      * we find a key or reach the end of the database */
-                    st=do_local_cursor_move(cursor, key, record, flags);
+                    st=do_local_cursor_move(cursor, key, record, flags, 0);
                     goto bail;
                 }
                 /* if the btree entry was overwritten in the txn: move the
@@ -3058,7 +3058,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                         bt_cursor_set_to_nil((ham_bt_cursor_t *)cursor);
                     /* if the key was erased: continue moving "next" till 
                      * we find a key or reach the end of the database */
-                    st=do_local_cursor_move(cursor, key, record, flags);
+                    st=do_local_cursor_move(cursor, key, record, flags, 0);
                     goto bail;
                 }
                 /* if the btree entry was overwritten in the txn: move the
@@ -3163,7 +3163,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 flags&=~HAM_CURSOR_FIRST;
                 flags|=HAM_CURSOR_NEXT;
                 (void)cursor->_fun_move(cursor, 0, 0, flags);
-                st=do_local_cursor_move(cursor, key, record, flags);
+                st=do_local_cursor_move(cursor, key, record, flags, 0);
                 if (st)
                     goto bail;
             }
@@ -3203,7 +3203,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 /* if the key was erased: continue moving "next" till 
                  * we find a key or reach the end of the database */
                 if (erased) {
-                    st=do_local_cursor_move(cursor, key, record, flags);
+                    st=do_local_cursor_move(cursor, key, record, flags, 0);
                     goto bail;
                 }
             }
@@ -3299,7 +3299,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 flags&=~HAM_CURSOR_LAST;
                 flags|=HAM_CURSOR_PREVIOUS;
                 (void)cursor->_fun_move(cursor, 0, 0, flags);
-                st=do_local_cursor_move(cursor, key, record, flags);
+                st=do_local_cursor_move(cursor, key, record, flags, 0);
                 if (st)
                     goto bail;
             }
@@ -3339,7 +3339,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 /* if the key was erased: continue moving "previous" till 
                  * we find a key or reach the end of the database */
                 if (erased) {
-                    st=do_local_cursor_move(cursor, key, record, flags);
+                    st=do_local_cursor_move(cursor, key, record, flags, 0);
                     goto bail;
                 }
             }
@@ -3393,6 +3393,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     ham_env_t *env=db_get_env(db);
     ham_txn_t *local_txn=0;
     txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
+    ham_bool_t fresh_start=HAM_FALSE;
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
@@ -3441,10 +3442,15 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             ham_key_t *k=txn_opnode_get_key(node);
             /* the flag DONT_LOAD_KEY does not load the key if there's an
              * approx match - it only positions the cursor */
-            (void)cursor->_fun_find(cursor, k, 0,
+            st=cursor->_fun_find(cursor, k, 0,
                     BT_CURSOR_DONT_LOAD_KEY|(flags&HAM_CURSOR_NEXT 
                         ? HAM_FIND_GEQ_MATCH
                         : HAM_FIND_LEQ_MATCH));
+            /* if we had a direct hit instead of an approx. match then
+             * set fresh_start to false; otherwise do_local_cursor_move
+             * will move the btree cursor again */
+            if (st==0 && !ham_key_get_approximate_match_type(k))
+                fresh_start=HAM_TRUE;
         }
         else if (txn_cursor_is_nil(txnc)) {
             /*ham_assert(!"not yet implemented", (""));*/
@@ -3454,7 +3460,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     /*
      * now move forwards, backwards etc
      */
-    st=do_local_cursor_move(cursor, key, record, flags);
+    st=do_local_cursor_move(cursor, key, record, flags, fresh_start);
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)
