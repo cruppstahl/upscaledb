@@ -238,7 +238,7 @@ txn_cursor_is_erased(txn_cursor_t *cursor)
 }
 
 ham_status_t
-txn_cursor_find(txn_cursor_t *cursor, ham_key_t *key)
+txn_cursor_find(txn_cursor_t *cursor, ham_key_t *key, ham_u32_t flags)
 {
     txn_opnode_t *node;
 
@@ -246,7 +246,7 @@ txn_cursor_find(txn_cursor_t *cursor, ham_key_t *key)
     txn_cursor_set_to_nil(cursor);
 
     /* then lookup the node */
-    node=txn_opnode_get(txn_cursor_get_db(cursor), key);
+    node=txn_opnode_get(txn_cursor_get_db(cursor), key, flags);
     if (!node)
         return (HAM_KEY_NOT_FOUND);
 

@@ -485,6 +485,8 @@ public:
 
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     findBtreeThenMoveNextTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    findBtreeThenMovePreviousTest);
     }
 
     void findInEmptyTransactionTest(void)
@@ -3282,6 +3284,24 @@ public:
         BFC_ASSERT_EQUAL(0, compare    ("44444", "aaaad", TXN));
         BFC_ASSERT_EQUAL(0, compare    ("55555", "aaaae", TXN));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, compare(0, 0, TXN));
+    }
+
+    void findBtreeThenMovePreviousTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11111", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("22222", "aaaab"));
+        BFC_ASSERT_EQUAL(0, insertBtree("33333", "aaaac"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("44444", "aaaad"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("55555", "aaaae"));
+
+        ham_key_t key={0};
+        key.size=6;
+        key.data=(void *)"33333";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+        BFC_ASSERT_EQUAL(0, comparePrev("22222", "aaaab", TXN));
+        BFC_ASSERT_EQUAL(0, comparePrev("11111", "aaaaa", TXN));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, comparePrev(0, 0, TXN));
     }
 };
 

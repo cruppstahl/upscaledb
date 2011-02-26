@@ -1847,7 +1847,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
         return (HAM_OUT_OF_MEMORY);
 
     /* get (or create) the node for this key */
-    node=txn_opnode_get(db, key);
+    node=txn_opnode_get(db, key, 0);
     if (!node) {
         node=txn_opnode_create(db, key);
         if (!node)
@@ -1927,7 +1927,7 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         return (HAM_OUT_OF_MEMORY);
 
     /* get (or create) the node for this key */
-    node=txn_opnode_get(db, key);
+    node=txn_opnode_get(db, key, 0);
     if (!node) {
         node=txn_opnode_create(db, key);
         if (!node)
@@ -1984,7 +1984,7 @@ db_find_txn(ham_db_t *db, ham_txn_t *txn,
     /* get the node for this key (but don't create a new one if it does
      * not yet exist) */
     if (tree)
-        node=txn_opnode_get(db, key);
+        node=txn_opnode_get(db, key, 0);
 
     /*
      * pick the tree_node of this key, and walk through each operation 
@@ -2640,7 +2640,7 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
      * in non-Transaction mode, we directly search through the btree.
      */
     if (cursor_get_txn(cursor) || local_txn) {
-        st=txn_cursor_find(cursor_get_txn_cursor(cursor), key);
+        st=txn_cursor_find(cursor_get_txn_cursor(cursor), key, flags);
         if (st==0) {
             cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
@@ -2892,7 +2892,7 @@ __check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor)
         return (st);
     }
 
-    st=txn_cursor_find(&txnc, &key);
+    st=txn_cursor_find(&txnc, &key, 0);
     /* txn_cursor_find will couple the cursor to the txn-op, therefore we
      * have to uncouple it before the cursor goes out of scope */
     if (st==0)
@@ -3424,7 +3424,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
-    if (!cursor_get_txn(cursor) 
+    if (!cursor_get_txn(cursor)
             && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
         st=txn_begin(&local_txn, env, 0);
         if (st)
@@ -3453,14 +3453,36 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 fresh_start=HAM_TRUE;
         }
         else if (txn_cursor_is_nil(txnc)) {
-            /*ham_assert(!"not yet implemented", (""));*/
+            ham_cursor_t *clone;
+            ham_key_t *k;
+            ham_status_t st=ham_cursor_clone(cursor, &clone);
+            if (st)
+                goto bail;
+            st=bt_cursor_uncouple((ham_bt_cursor_t *)clone, 0);
+            if (st) {
+                ham_cursor_close(clone);
+                goto bail;
+            }
+            k=bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)clone);
+            st=txn_cursor_find(txnc, k,
+                    BT_CURSOR_DONT_LOAD_KEY|(flags&HAM_CURSOR_NEXT 
+                        ? HAM_FIND_GEQ_MATCH
+                        : HAM_FIND_LEQ_MATCH));
+            /* if we had a direct hit instead of an approx. match then
+            * set fresh_start to false; otherwise do_local_cursor_move
+            * will move the btree cursor again */
+            if (st==0 && !ham_key_get_approximate_match_type(k))
+                fresh_start=HAM_TRUE;
+            ham_cursor_close(clone);
         }
     }
 
     /*
      * now move forwards, backwards etc
      */
-    st=do_local_cursor_move(cursor, key, record, flags, fresh_start);
+    if (st==0)
+        st=do_local_cursor_move(cursor, key, record, flags, fresh_start);
+bail:
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)

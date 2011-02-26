@@ -309,9 +309,9 @@ public:
         tree=txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key1);
         BFC_ASSERT(node!=0);
-        node2=txn_opnode_get(m_db, &key1);
+        node2=txn_opnode_get(m_db, &key1, 0);
         BFC_ASSERT_EQUAL(node, node2);
-        node2=txn_opnode_get(m_db, &key2);
+        node2=txn_opnode_get(m_db, &key2, 0);
         BFC_ASSERT_EQUAL((txn_opnode_t *)NULL, node2);
         node2=txn_opnode_create(m_db, &key2);
         BFC_ASSERT(node!=node2);

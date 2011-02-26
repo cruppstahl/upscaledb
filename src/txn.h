@@ -405,9 +405,11 @@ txn_tree_enumerate(txn_optree_t *tree, txn_tree_enumerate_cb cb, void *data);
 /**
  * get an opnode for an optree; if a node with this
  * key already exists then the existing node is returned, otherwise NULL
+ *
+ * flags can be HAM_FIND_GEQ_MATCH, HAM_FIND_LEQ_MATCH
  */
 extern txn_opnode_t *
-txn_opnode_get(ham_db_t *db, ham_key_t *key);
+txn_opnode_get(ham_db_t *db, ham_key_t *key, ham_u32_t flags);
 
 /**
  * creates an opnode for an optree; asserts that a node with this

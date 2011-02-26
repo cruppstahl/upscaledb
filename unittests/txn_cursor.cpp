@@ -541,7 +541,7 @@ public:
             k.data=(void *)key;
             k.size=strlen(key)+1;
         }
-        ham_status_t st=txn_cursor_find(cursor, &k);
+        ham_status_t st=txn_cursor_find(cursor, &k, 0);
         if (st)
             return (st);
         if (record) {

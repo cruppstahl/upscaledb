@@ -22,6 +22,7 @@
 #include "mem.h"
 #include "page.h"
 #include "btree_stats.h"
+#include "btree_key.h"
 #include "txn.h"
 #include "txn_cursor.h"
 
@@ -175,8 +176,9 @@ __copy_key(mem_allocator_t *alloc, ham_key_t *key)
 }
 
 txn_opnode_t *
-txn_opnode_get(ham_db_t *db, ham_key_t *key)
+txn_opnode_get(ham_db_t *db, ham_key_t *key, ham_u32_t flags)
 {
+    int cmp;
     txn_opnode_t *node=0, tmp;
     txn_optree_t *tree=db_get_optree(db);
 
@@ -189,9 +191,25 @@ txn_opnode_get(ham_db_t *db, ham_key_t *key)
     txn_opnode_set_db(&tmp, db);
 
     /* search if node already exists - if yes, return it */
-    if ((node=rbt_search(tree, &tmp)))
-        return (node);
-    return (0);
+    if (flags&HAM_FIND_GT_MATCH)
+        node=rbt_nsearch(tree, &tmp);
+    else if (flags&HAM_FIND_LT_MATCH)
+        node=rbt_psearch(tree, &tmp);
+    else 
+        return (rbt_search(tree, &tmp));
+
+    /* approx. matching: set the key flag */
+    /* TODO this compare is not necessary; instead, change rbt_*search to 
+     * return a flag if it's a direct hit or not */
+    cmp=__cmpfoo(&tmp, node);
+    if (cmp<0)
+        ham_key_set_intflags(key, (ham_key_get_intflags(key) 
+                        & ~KEY_IS_APPROXIMATE) | KEY_IS_LT);
+    else if (cmp>0)
+        ham_key_set_intflags(key, (ham_key_get_intflags(key) 
+                        & ~KEY_IS_APPROXIMATE) | KEY_IS_GT);
+
+    return (node);
 }
 
 txn_opnode_t *
@@ -202,7 +220,7 @@ txn_opnode_create(ham_db_t *db, ham_key_t *key)
     mem_allocator_t *alloc=env_get_allocator(db_get_env(db));
 
     /* make sure that a node with this key does not yet exist */
-    ham_assert(txn_opnode_get(db, key)==0, (""));
+    ham_assert(txn_opnode_get(db, key, 0)==0, (""));
 
     /* create the new node (with a copy for the key) */
     node=(txn_opnode_t *)allocator_alloc(alloc, sizeof(*node));

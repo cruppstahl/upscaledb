@@ -650,7 +650,7 @@ o support cursors!!!
             BT 1 2 3 4 5
             find 3, then move next/prev
 
-        o "invert" the existing 4 tests and find a btree key instead of a 
+        o "invert" the existing tests and find a btree key instead of a 
             txn key (need approx. matching for the txn)
         o same tests with using ham_cursor_insert instead of ham_cursor_find
 

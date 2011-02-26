@@ -2547,8 +2547,7 @@ ham_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
 int HAM_CALLCONV
 ham_key_get_approximate_match_type(ham_key_t *key)
 {
-    if (key && (ham_key_get_intflags(key) & KEY_IS_APPROXIMATE))
-    {
+    if (key && (ham_key_get_intflags(key) & KEY_IS_APPROXIMATE)) {
         int rv = (ham_key_get_intflags(key) & KEY_IS_LT) ? -1 : +1;
         return (rv);
     }
