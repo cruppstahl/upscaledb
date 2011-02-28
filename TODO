@@ -631,7 +631,7 @@ o support cursors!!!
         x switchDirectionsMixedTest start with btree
         x switchDirectionsMixedTest with sequences of overwritten items
 
-    o ham_cursor_find, then moving cursor
+    x ham_cursor_find, then moving cursor
         ham_cursor_find a txn-key in the middle of the database; now the 
         txn-cursor is coupled, but the btree-cursor is nil. -> moving 
         next/prev won't work 
@@ -649,10 +649,9 @@ o support cursors!!!
             TX     3
             BT 1 2 3 4 5
             find 3, then move next/prev
-
-        o "invert" the existing tests and find a btree key instead of a 
+        x "invert" the existing tests and find a btree key instead of a 
             txn key (need approx. matching for the txn)
-        o same tests with using ham_cursor_insert instead of ham_cursor_find
+        x same tests with using ham_cursor_insert instead of ham_cursor_find
 
     o ham_cursor_move w/ cursor on flushed key
         -> ALL cursors in this op need to be uncoupled in txn, and 
