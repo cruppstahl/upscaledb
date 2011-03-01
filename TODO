@@ -658,10 +658,9 @@ o support cursors!!!
         fail!
         x add a unittest; it should work out of the box
 
-    o ham_cursor_move w/ cursor on flushed key
-        -> ALL cursors in this op need to be uncoupled in txn, and 
-            coupled to the new btree key
-        o add a unittest; it should work out of the box
+    x ham_cursor_move w/ cursor on flushed key
+        not allowed while cursors are active
+        x add a unittest; it should work out of the box
 
     o when erasing items with a cursor: all items coupled to the btree
         AND to the op have to be uncoupled! (do they? only if the txn

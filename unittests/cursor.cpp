@@ -499,6 +499,8 @@ public:
 
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     abortWhileCursorActiveTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    commitWhileCursorActiveTest);
     }
 
     void findInEmptyTransactionTest(void)
@@ -3401,6 +3403,11 @@ public:
     void abortWhileCursorActiveTest(void)
     {
         BFC_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_abort(m_txn, 0));
+    }
+
+    void commitWhileCursorActiveTest(void)
+    {
+        BFC_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_commit(m_txn, 0));
     }
 
 };
