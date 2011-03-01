@@ -663,13 +663,23 @@ o support cursors!!!
         x add a unittest; it should work out of the box
 
     o when erasing items with a cursor: all items coupled to the btree
-        AND to the op have to be uncoupled! (do they? only if the txn
-        is committed...?)
-        o all cursors of the current txn will be nil'led
-        o couple cursor to btree, then overwrite w/ other cursor and delete
-            the other cursor - first one must be nil'led, too
-        o as soon as a txn is committed: all cursors coupled to this key
-            are nil'led
+        AND to the op have to be uncoupled! 
+        -> cursors in the current transaction have to be nil'led
+        -> when the txn is flushed, ALL cursors that are attached to
+            the op must be nil'led
+        -> when a btree key is flushed, all attached cursors will be nil'led
+            (also their txn part)
+        o verify with unittests
+            o two cursors in the same txn point to the same key; one cursor
+                erases the key -> both cursors must be nil
+            o commit the txn, but do not flush it (i.e. because an older txn
+                is not yet committed). couple another cursor to this op, then
+                flush the txn. both cursors must become nil.
+            o two cursors - one on btree, one on txn-op. erase the btree
+                key -> both cursors must be nil. This scenario is not really
+                possible in the field, but should still work.
+            o couple cursor to btree, then overwrite w/ other cursor and delete
+                the other cursor - first one must be nil'led, too
         o unittests where keys are erased while the cursor moves (esp. the
             one which is pointed at by one of the cursors - cursor must then
             be nil!)
@@ -677,6 +687,7 @@ o support cursors!!!
         o LongTxnCursorTest::moveNextWhileErasingTest - check for nil
         o unittest w/ smaller item in btree which is erased in txn
             LongTxnCursorTest::moveLastSmallerInBtreeErasedInTxnTest
+        o check if other unittests can be re-enabled
 
     o implement support for duplicates
         the problem with duplicates is that their position can depend on

@@ -488,6 +488,8 @@ public:
                     findBtreeThenMoveNextTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     findBtreeThenMoveNext2Test);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    findBtreeThenMoveNext3Test);
 
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     findBtreeThenMovePreviousTest);
