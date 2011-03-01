@@ -496,6 +496,9 @@ public:
 
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     insertThenMoveNextTest);
+
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    abortWhileCursorActiveTest);
     }
 
     void findInEmptyTransactionTest(void)
@@ -3393,6 +3396,11 @@ public:
         BFC_ASSERT_EQUAL(0, compare    ("44444", "aaaad", TXN));
         BFC_ASSERT_EQUAL(0, compare    ("55555", "aaaae", TXN));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, compare(0, 0, TXN));
+    }
+
+    void abortWhileCursorActiveTest(void)
+    {
+        BFC_ASSERT_EQUAL(HAM_CURSOR_STILL_OPEN, ham_txn_abort(m_txn, 0));
     }
 
 };

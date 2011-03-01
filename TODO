@@ -653,6 +653,11 @@ o support cursors!!!
             txn key (need approx. matching for the txn)
         x same tests with using ham_cursor_insert instead of ham_cursor_find
 
+    x ham_cursor_move w/ cursor on aborted key
+        couple a cursor to an item, then abort the transaction. abort must
+        fail!
+        x add a unittest; it should work out of the box
+
     o ham_cursor_move w/ cursor on flushed key
         -> ALL cursors in this op need to be uncoupled in txn, and 
             coupled to the new btree key
