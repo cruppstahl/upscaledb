@@ -277,6 +277,48 @@ public:
     }
 };
 
+class NoTxnCursorTest : public BaseCursorTest
+{
+    define_super(hamsterDB_fixture);
+
+public:
+    NoTxnCursorTest()
+    : BaseCursorTest("NoTxnCursorTest")
+    {
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(NoTxnCursorTest, insertFindTest);
+        BFC_REGISTER_TEST(NoTxnCursorTest, insertFindMultipleCursorsTest);
+        BFC_REGISTER_TEST(NoTxnCursorTest, findInEmptyDatabaseTest);
+        BFC_REGISTER_TEST(NoTxnCursorTest, nilCursorTest);
+        BFC_REGISTER_TEST(NoTxnCursorTest, moveFirstInEmptyDatabaseTest);
+    }
+
+    virtual void setup() 
+    { 
+        __super::setup();
+
+        BFC_ASSERT((m_alloc=memtracker_new())!=0);
+
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
+        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(m_env, BFC_OPATH(".test"), 
+                    HAM_ENABLE_DUPLICATES, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_db(m_env, m_db, 13, 0, 0));
+        BFC_ASSERT_EQUAL(0, createCursor(&m_cursor));
+    }
+
+    void moveFirstInEmptyDatabaseTest(void)
+    {
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_FIRST));
+    }
+};
+
 class LongTxnCursorTest : public BaseCursorTest
 {
     define_super(hamsterDB_fixture);
@@ -379,8 +421,8 @@ public:
                     moveLastErasedInTxnExtendedKeyTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     moveLastErasedInsertedInTxnTest);
-        //BFC_REGISTER_TEST(LongTxnCursorTest,  - TODO (needs HAM_CURSOR_PREV)
-                //moveLastSmallerInBtreeErasedInTxnTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest,
+                    moveLastSmallerInBtreeErasedInTxnTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, nilCursorTest);
 
         BFC_REGISTER_TEST(LongTxnCursorTest, 
@@ -415,8 +457,8 @@ public:
                     moveNextWhileInsertingTransactionTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     moveNextWhileInsertingMixedTest);
-        //BFC_REGISTER_TEST(LongTxnCursorTest, 
-                    //moveNextWhileErasingTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    moveNextWhileErasingTest);
 
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     movePreviousInEmptyTransactionTest);
@@ -450,10 +492,6 @@ public:
                     movePreviousWhileInsertingTransactionTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     movePreviousWhileInsertingMixedTest);
-#if 0
-        //BFC_REGISTER_TEST(LongTxnCursorTest, 
-                    //moveNextWhileErasingTest);
-#endif
 
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     switchDirectionsInBtreeTest);
@@ -512,6 +550,8 @@ public:
                     eraseWithThreeCursorsTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     eraseKeyWithoutCursorsTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    eraseKeyAndFlushTransactionsTest);
     }
 
     void findInEmptyTransactionTest(void)
@@ -2251,14 +2291,20 @@ public:
         BFC_ASSERT_EQUAL(0, compare    ("11111", "aaaaa", BTREE));
         BFC_ASSERT_EQUAL(0, compare    ("11112", "aaaab", BTREE));
         BFC_ASSERT_EQUAL(0, eraseTxn   ("11112"));
-        BFC_ASSERT_EQUAL(true, bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
+        BFC_ASSERT_EQUAL(true, 
+                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
+        BFC_ASSERT_EQUAL(true, 
+                    bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
         BFC_ASSERT_EQUAL(0, compare    ("11111", "aaaaa", BTREE));
         BFC_ASSERT_EQUAL(0, compare    ("11113", "aaaac", BTREE));
         BFC_ASSERT_EQUAL(0, eraseTxn   ("11114"));
         BFC_ASSERT_EQUAL(0, compare    ("11115", "aaaae", TXN));
         BFC_ASSERT_EQUAL(0, compare    ("11116", "aaaaf", TXN));
         BFC_ASSERT_EQUAL(0, eraseTxn   ("11116"));
-        BFC_ASSERT_EQUAL(true, bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
+        BFC_ASSERT_EQUAL(true, 
+                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
+        BFC_ASSERT_EQUAL(true, 
+                    bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
     }
 
     void movePreviousInEmptyTransactionTest(void)
@@ -3553,49 +3599,48 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
     }
-};
 
-class NoTxnCursorTest : public BaseCursorTest
-{
-    define_super(hamsterDB_fixture);
-
-public:
-    NoTxnCursorTest()
-    : BaseCursorTest("NoTxnCursorTest")
+    void eraseKeyAndFlushTransactionsTest(void)
     {
-        testrunner::get_instance()->register_fixture(this);
-        BFC_REGISTER_TEST(NoTxnCursorTest, insertFindTest);
-        BFC_REGISTER_TEST(NoTxnCursorTest, insertFindMultipleCursorsTest);
-        BFC_REGISTER_TEST(NoTxnCursorTest, findInEmptyDatabaseTest);
-        BFC_REGISTER_TEST(NoTxnCursorTest, nilCursorTest);
-        BFC_REGISTER_TEST(NoTxnCursorTest, moveFirstInEmptyDatabaseTest);
-    }
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11111", "aaaaa"));
 
-    virtual void setup() 
-    { 
-        __super::setup();
+        /* create a second txn, insert and commit, but do not flush the 
+         * first one */
+        ham_txn_t *txn2;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn2, m_db, 0));
 
-        BFC_ASSERT((m_alloc=memtracker_new())!=0);
-
-        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
-
-        BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
-        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
-
+        ham_cursor_t *cursor2;
         BFC_ASSERT_EQUAL(0, 
-                ham_env_create(m_env, BFC_OPATH(".test"), 
-                    HAM_ENABLE_DUPLICATES, 0664));
+                    ham_cursor_create(m_db, txn2, 0, &cursor2));
+
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.size=6;
+        key.data=(void *)"11112";
         BFC_ASSERT_EQUAL(0, 
-                ham_env_create_db(m_env, m_db, 13, 0, 0));
-        BFC_ASSERT_EQUAL(0, createCursor(&m_cursor));
-    }
+                    ham_cursor_insert(cursor2, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_close(cursor2));
 
-    void moveFirstInEmptyDatabaseTest(void)
-    {
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
-                ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_FIRST));
-    }
+        /* commit the 2nd txn - it will not be flushed because an older
+         * txn also was not flushed */
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn2, 0));
 
+        /* the other cursor is part of the first transaction; position on 
+         * the new key */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+
+        /* now erase the key */
+        BFC_ASSERT_EQUAL(0, 
+                    ham_erase(m_db, m_txn, &key, 0));
+
+        /* cursor must be nil */
+        BFC_ASSERT_EQUAL(true, 
+                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
+        BFC_ASSERT_EQUAL(true, 
+                    bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
+    }
 };
 
 BFC_REGISTER_FIXTURE(TempTxnCursorTest);

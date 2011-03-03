@@ -669,27 +669,32 @@ o support cursors!!!
             the op must be nil'led
         -> when a btree key is flushed, all attached cursors will be nil'led
             (also their txn part)
-        o verify with unittests
+        x verify with unittests
             x two cursors in the same txn point to the same key (node); one 
                 cursor erases the key -> both cursors must be nil
             x rename __uncouple_cursors_in_node to __nil_cursors_in_node
             x couple cursor, then overwrite w/ other cursor and delete
                 the other cursor - first one must be nil'led, too
             x place two cursors, then call ham_erase instead of ham_cursor_erase
-            o commit the txn, but do not flush it (i.e. because an older txn
+            x commit the txn, but do not flush it (i.e. because an older txn
                 is not yet committed). couple another cursor to this op, then
                 flush the txn. both cursors must become nil.
-            o two cursors - one on btree, one on txn-op. erase the btree
-                key -> both cursors must be nil. This scenario is not really
-                possible in the field, but should still work.
         o unittests where keys are erased while the cursor moves (esp. the
             one which is pointed at by one of the cursors - cursor must then
             be nil!)
-        o unittest w/ smaller item in btree which is erased, then written in txn
+====> moveNextWhileErasingTest: in eraseTxn()->__nil_all_cursors_in_node(),
+    the txn-cursor will not be nil'led because it's coupled to "11114", 
+    and not "11112". only the btree cursor is coupled to "11112".
+    -> all cursors which are coupled to this btree key must be nil'led
+        (including their txn-cursors)
+    -> in __nil_all_cursors_in_node() all cursors must be ignored that are
+        coupled to the btree and not to the txn-tree
         o LongTxnCursorTest::moveNextWhileErasingTest - check for nil
-        o unittest w/ smaller item in btree which is erased in txn
+
+        x unittest w/ smaller item in btree which is erased, then written in txn
+        x unittest w/ smaller item in btree which is erased in txn
             LongTxnCursorTest::moveLastSmallerInBtreeErasedInTxnTest
-        o check if other unittests can be re-enabled
+        x check if other unittests can be re-enabled
 
     o implement support for duplicates
         the problem with duplicates is that their position can depend on
