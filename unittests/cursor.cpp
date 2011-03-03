@@ -507,7 +507,11 @@ public:
         BFC_REGISTER_TEST(LongTxnCursorTest, 
                     eraseKeyWithTwoCursorsTest);
         BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    eraseKeyWithTwoCursorsOverwriteTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
                     eraseWithThreeCursorsTest);
+        BFC_REGISTER_TEST(LongTxnCursorTest, 
+                    eraseKeyWithoutCursorsTest);
     }
 
     void findInEmptyTransactionTest(void)
@@ -3446,6 +3450,38 @@ public:
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
     }
 
+    void eraseKeyWithTwoCursorsOverwriteTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11111", "aaaaa"));
+        ham_cursor_t *cursor2;
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_clone(m_cursor, &cursor2));
+
+        ham_key_t key={0};
+        key.size=6;
+        key.data=(void *)"11111";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+        ham_record_t rec={0};
+        rec.size=6;
+        rec.data=(void *)"11111";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_insert(cursor2, &key, &rec, HAM_OVERWRITE));
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+        BFC_ASSERT_EQUAL(true, 
+                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
+        BFC_ASSERT_EQUAL(true, 
+                    bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
+        BFC_ASSERT_EQUAL(true, 
+                    txn_cursor_is_nil(cursor_get_txn_cursor(cursor2)));
+        BFC_ASSERT_EQUAL(true, 
+                    bt_cursor_is_nil((ham_bt_cursor_t *)cursor2));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
+    }
+
     void eraseWithThreeCursorsTest(void)
     {
         BFC_ASSERT_EQUAL(0, insertTxn  ("11111", "aaaaa"));
@@ -3485,6 +3521,37 @@ public:
 
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor3));
+    }
+
+    void eraseKeyWithoutCursorsTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("11111", "aaaaa"));
+        ham_cursor_t *cursor2;
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_clone(m_cursor, &cursor2));
+
+        ham_key_t key={0};
+        key.size=6;
+        key.data=(void *)"11111";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(cursor2, &key, 0));
+
+        BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, 
+                    ham_erase(m_db, 0, &key, 0));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_erase(m_db, m_txn, &key, 0));
+        BFC_ASSERT_EQUAL(true, 
+                    txn_cursor_is_nil(cursor_get_txn_cursor(m_cursor)));
+        BFC_ASSERT_EQUAL(true, 
+                    bt_cursor_is_nil((ham_bt_cursor_t *)m_cursor));
+        BFC_ASSERT_EQUAL(true, 
+                    txn_cursor_is_nil(cursor_get_txn_cursor(cursor2)));
+        BFC_ASSERT_EQUAL(true, 
+                    bt_cursor_is_nil((ham_bt_cursor_t *)cursor2));
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(cursor2));
     }
 };
 

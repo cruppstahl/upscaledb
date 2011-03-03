@@ -673,14 +673,15 @@ o support cursors!!!
             x two cursors in the same txn point to the same key (node); one 
                 cursor erases the key -> both cursors must be nil
             x rename __uncouple_cursors_in_node to __nil_cursors_in_node
+            x couple cursor, then overwrite w/ other cursor and delete
+                the other cursor - first one must be nil'led, too
+            x place two cursors, then call ham_erase instead of ham_cursor_erase
             o commit the txn, but do not flush it (i.e. because an older txn
                 is not yet committed). couple another cursor to this op, then
                 flush the txn. both cursors must become nil.
             o two cursors - one on btree, one on txn-op. erase the btree
                 key -> both cursors must be nil. This scenario is not really
                 possible in the field, but should still work.
-            o couple cursor to btree, then overwrite w/ other cursor and delete
-                the other cursor - first one must be nil'led, too
         o unittests where keys are erased while the cursor moves (esp. the
             one which is pointed at by one of the cursors - cursor must then
             be nil!)
