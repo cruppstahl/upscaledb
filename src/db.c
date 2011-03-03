@@ -1910,7 +1910,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
 }
 
 static void
-__uncouple_cursors_in_node(ham_txn_t *txn, txn_opnode_t *node)
+__nil_all_cursors_in_node(ham_txn_t *txn, txn_opnode_t *node)
 {
     txn_op_t *op=txn_opnode_get_newest_op(node);
     while (op) {
@@ -1975,7 +1975,7 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     /* the current op has no cursors attached; but if there are any 
      * other ops in this node and in this transaction, then they have to
      * be set to nil */
-    __uncouple_cursors_in_node(txn, node);
+    __nil_all_cursors_in_node(txn, node);
 
     /* append journal entry */
     if (env_get_rt_flags(db_get_env(db))&HAM_ENABLE_RECOVERY

@@ -56,7 +56,6 @@ __couple_cursor(txn_cursor_t *cursor, txn_op_t *op)
 void
 txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest)
 {
-    txn_cursor_set_parent(dest, txn_cursor_get_parent(src));
     txn_cursor_set_flags(dest, txn_cursor_get_flags(src));
 
     if (txn_cursor_get_flags(dest)&TXN_CURSOR_FLAG_COUPLED)

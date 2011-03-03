@@ -1350,8 +1350,7 @@ public:
         /* erase a key that does not exist */
         BFC_ASSERT_EQUAL(0, insertCursor(&cursor, "key1"));
         BFC_ASSERT_EQUAL(0, erase(txn, "key1"));
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, txn_cursor_erase(&cursor));
-        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, txn_cursor_erase(&cursor));
+        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, txn_cursor_erase(&cursor));
 
         /* reset cursor hack */
         cursor_set_txn(m_cursor, 0);

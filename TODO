@@ -670,13 +670,9 @@ o support cursors!!!
         -> when a btree key is flushed, all attached cursors will be nil'led
             (also their txn part)
         o verify with unittests
-            o two cursors in the same txn point to the same key (node); one 
+            x two cursors in the same txn point to the same key (node); one 
                 cursor erases the key -> both cursors must be nil
-===> this currently fails (unittest is eraseKeyWithTwoCursorsTest)
-    -> verify that BOTH cursors are attached to the op in ham_cursor_find
-    -> then check why they're not nilled correctly in __uncouple_cursors_in_node
-    -> rename __uncouple_cursors_in_node to __nil_cursors_in_node
-    -> then fix eraseWithThreeCursorsTest
+            x rename __uncouple_cursors_in_node to __nil_cursors_in_node
             o commit the txn, but do not flush it (i.e. because an older txn
                 is not yet committed). couple another cursor to this op, then
                 flush the txn. both cursors must become nil.
