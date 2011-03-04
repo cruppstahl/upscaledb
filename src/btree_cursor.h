@@ -236,6 +236,7 @@ bt_cursor_points_to(ham_bt_cursor_t *cursor, btree_key_t *key);
 ham_status_t
 bt_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
 
+
 #ifdef __cplusplus
 } // extern "C"
 #endif 

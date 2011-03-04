@@ -679,31 +679,12 @@ o support cursors!!!
             x commit the txn, but do not flush it (i.e. because an older txn
                 is not yet committed). couple another cursor to this op, then
                 flush the txn. both cursors must become nil.
-        o unittests where keys are erased while the cursor moves (esp. the
-            one which is pointed at by one of the cursors - cursor must then
-            be nil!)
-        o LongTxnCursorTest::moveNextWhileErasingTest - check for nil
-====> moveNextWhileErasingTest: in eraseTxn()->__nil_all_cursors_in_node(),
-    the txn-cursor will not be nil'led because it's coupled to "11114", 
-    and not "11112". only the btree cursor is coupled to "11112".
-    -> all cursors which are coupled to this btree key must be nil'led
-        (including their txn-cursors)
-    -> in __nil_all_cursors_in_node() all cursors must be ignored that are
-        coupled to the btree and not to the txn-tree
-
-on erase:
-    1. __nil_all_cursors_in_node() (as of now)
-    2. foreach cursor in database:
-        if coupled to btree (not nil and not coupled to txn):
-            if coupled to key: if key==erased_key: set to nil
-            if not coupled to key: if key==erased_key: set to nil
-    3. in btree_erase.c when uncoupling all cursors in a page:
-        1. only uncouple those that are btree-coupled
 
         x unittest w/ smaller item in btree which is erased, then written in txn
         x unittest w/ smaller item in btree which is erased in txn
             LongTxnCursorTest::moveLastSmallerInBtreeErasedInTxnTest
         x check if other unittests can be re-enabled
+        x LongTxnCursorTest::moveNextWhileErasingTest - check for nil
 
     o implement support for duplicates
         the problem with duplicates is that their position can depend on

@@ -926,9 +926,11 @@ bt_uncouple_all_cursors(ham_page_t *page, ham_size_t start)
         n=cursor_get_next_in_page(c);
 
         /*
-        * ignore all cursors which are already uncoupled
-        */
-        if (bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) {
+         * ignore all cursors which are already uncoupled or which are
+         * coupled to the txn
+         */
+        if ((bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED)
+                || (cursor_get_flags(btc)&CURSOR_COUPLED_TO_TXN)) {
             /*
             * skip this cursor if its position is < start
             */

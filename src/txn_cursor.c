@@ -249,8 +249,27 @@ txn_cursor_find(txn_cursor_t *cursor, ham_key_t *key, ham_u32_t flags)
     if (!node)
         return (HAM_KEY_NOT_FOUND);
 
-    /* and then move to the newest insert*-op */
-    return (__move_top_in_node(cursor, node, 0, HAM_FALSE));
+    while (1) {
+        /* and then move to the newest insert*-op */
+        ham_status_t st=__move_top_in_node(cursor, node, 0, HAM_FALSE);
+        if (st!=HAM_KEY_ERASED_IN_TXN)
+            return (st);
+
+        /* if the key was erased and approx. matching is enabled, then move
+        * next/prev till we found a valid key. */
+        if (flags&HAM_FIND_GT_MATCH)
+            node=txn_tree_get_next_node(txn_opnode_get_tree(node), node);
+        else if (flags&HAM_FIND_LT_MATCH)
+            node=txn_tree_get_previous_node(txn_opnode_get_tree(node), node);
+        else
+            return (st);
+
+        if (!node)
+            return (HAM_KEY_NOT_FOUND);
+    }
+
+    ham_assert(!"should never reach this", (""));
+    return (0);
 }
 
 ham_status_t

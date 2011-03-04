@@ -1914,14 +1914,76 @@ __nil_all_cursors_in_node(ham_txn_t *txn, txn_opnode_t *node)
 {
     txn_op_t *op=txn_opnode_get_newest_op(node);
     while (op) {
-        txn_cursor_t *cursor;
-        while ((cursor=txn_op_get_cursors(op))) {
+        txn_cursor_t *cursor=txn_op_get_cursors(op);
+        while (cursor) {
             ham_cursor_t *pc=txn_cursor_get_parent(cursor);
-            cursor_set_flags(pc, cursor_get_flags(pc)&(~CURSOR_COUPLED_TO_TXN));
-            txn_cursor_set_to_nil(cursor);
+            if (1) { //cursor_get_flags(pc)&CURSOR_COUPLED_TO_TXN) {
+                cursor_set_flags(pc, 
+                        cursor_get_flags(pc)&(~CURSOR_COUPLED_TO_TXN));
+                txn_cursor_set_to_nil(cursor);
+                cursor=txn_op_get_cursors(op);
+                /* set a flag that the cursor just completed an Insert-or-find 
+                 * operation; this information is needed in ham_cursor_move 
+                 * (in this aspect, an erase is the same as insert/find) */
+                cursor_set_lastop(pc, CURSOR_LOOKUP_INSERT);
+            }
+            else
+                cursor=txn_cursor_get_coupled_next(cursor);
         }
 
         op=txn_op_get_previous_in_node(op);
+    }
+}
+
+static void
+__nil_all_cursors_in_btree(ham_db_t *db, ham_key_t *key)
+{
+    ham_cursor_t *c=db_get_cursors(db);
+
+    /* foreach cursor in this database:
+     *  if it's nil or coupled to the txn: skip it
+     *  if it's coupled to btree AND uncoupled: compare keys; set to nil
+     *      if keys are identical
+     *  if it's uncoupled to btree AND coupled: compare keys; set to nil
+     *      if keys are identical; (TODO - improve performance by nil'ling 
+     *      all other cursors from the same btree page)
+     */
+    while (c) {
+        ham_bt_cursor_t *btc;
+
+        if (c->_fun_is_nil(c))
+            goto next;
+        if (cursor_get_flags(c)&CURSOR_COUPLED_TO_TXN)
+            goto next;
+
+        btc=(ham_bt_cursor_t *)c;
+        if (bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) {
+            ham_cursor_t *clone;
+            ham_status_t st=ham_cursor_clone(c, &clone);
+            if (st)
+                goto next;
+            st=bt_cursor_uncouple((ham_bt_cursor_t *)clone, 0);
+            if (st) {
+                ham_cursor_close(clone);
+                goto next;
+            }
+            if (0==db_compare_keys(db, key, 
+                       bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)clone))) {
+                bt_cursor_set_to_nil(btc);
+                txn_cursor_set_to_nil(cursor_get_txn_cursor(c));
+            }
+            ham_cursor_close(clone);
+        }
+        else if (bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED) {
+            ham_key_t *k=bt_cursor_get_uncoupled_key(btc);
+            if (0==db_compare_keys(db, key, k))
+                bt_cursor_set_to_nil(btc);
+        }
+        else {
+            ham_assert(!"shouldn't be here", (""));
+        }
+next:
+        c=cursor_get_next(c);
     }
 }
 
@@ -1974,8 +2036,11 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
 
     /* the current op has no cursors attached; but if there are any 
      * other ops in this node and in this transaction, then they have to
-     * be set to nil */
+     * be set to nil. This only nil's txn-cursors! */
     __nil_all_cursors_in_node(txn, node);
+
+    /* in addition we nil all btree cursors which are coupled to this key */
+    __nil_all_cursors_in_btree(db, txn_opnode_get_key(node));
 
     /* append journal entry */
     if (env_get_rt_flags(db_get_env(db))&HAM_ENABLE_RECOVERY
@@ -3492,9 +3557,9 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             /* if we had a direct hit instead of an approx. match then
             * set fresh_start to false; otherwise do_local_cursor_move
             * will move the btree cursor again */
+            ham_cursor_close(clone);
             if (st==0 && !ham_key_get_approximate_match_type(k))
                 fresh_start=HAM_TRUE;
-            ham_cursor_close(clone);
         }
     }
 
