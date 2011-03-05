@@ -662,7 +662,7 @@ o support cursors!!!
         not allowed while cursors are active
         x add a unittest; it should work out of the box
 
-    o when erasing items with a cursor: all items coupled to the btree
+    x when erasing items with a cursor: all items coupled to the btree
         AND to the op have to be uncoupled! 
         -> cursors in the current transaction have to be nil'led
         -> when the txn is flushed, ALL cursors that are attached to
@@ -679,7 +679,6 @@ o support cursors!!!
             x commit the txn, but do not flush it (i.e. because an older txn
                 is not yet committed). couple another cursor to this op, then
                 flush the txn. both cursors must become nil.
-
         x unittest w/ smaller item in btree which is erased, then written in txn
         x unittest w/ smaller item in btree which is erased in txn
             LongTxnCursorTest::moveLastSmallerInBtreeErasedInTxnTest
@@ -690,29 +689,20 @@ o support cursors!!!
         the problem with duplicates is that their position can depend on
         other factors, i.e. the (volatile) position of the neighbor
         element (when using DUPLICATE_AFTER) or the sort position.
-        for this we have to solve two problems:
-            1. when accessing duplicates, we have to consolidate them
-                INCLUDING the btree dupes, depending on sort order,
-                erased duplicates etc; for this we have to simulate the
-                full insert of the duplicates
-            2. when inserting a duplicate, we have to store the lsn 
-                (or a unique ID) of a referenced duplicate; i.e. if it's
-                "DUPLICATE_AFTER" then we have to reference the current
-                duplicate (which will then become the previous neighbor).
 
-                we also need this reference to specify WHICH duplicate is
-                deleted or overwritten. To reference a btree duplicate,
-                we can store 7 bytes of the lsn (warning: big endian!)
-                in the "padding" field of the dupe_entry. 
-                in memory we can reference the other txn_op structure. this
-                needs to be a dual reference because if one of the ops is
-                flushed, the other will need to know about it.
+        we therefore have to store a "virtual" duplicate table whenever we
+        need it. the duplicate-id of the cursor is the index in this table.
 
-                storing the lsn in the padding will NOT work with existing
-                databases! -> need to provide a migration path (or document
-                it as a known issue? return an error when using duplicates
-                with transactions?)
+        when a dupe is erased (on flush?), all newer IDs will be decreased.
 
+        The following operations have to build up such a duplicate list:
+        - ALL operations on keys if duplicate sorting is enabled
+            -> therefore DISABLE sorting for now --> document in Changelog
+        - ham_cursor_insert if any positional flag is given
+        - ham_cursor_move (unless duplicates are skipped)
+        - ham_cursor_find for a key that has duplicates 
+        - ham_cursor_erase and ham_cursor_overwrite
+        
         o consolidate duplicates with btree - build up the full list of
             duplicates of a key, sort them etc
         o find cursor
@@ -728,7 +718,7 @@ o support cursors!!!
             o duplicate_after
             o duplicate_first
             o duplicate_last
-            o sorted duplicates
+            o sorted duplicates (later)
         o erase a key w/ duplicate
         o overwrite a key
             o overwrite a duplicate key that is in the txn tree
