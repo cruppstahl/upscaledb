@@ -688,12 +688,17 @@ o support cursors!!!
     o implement support for duplicates
         the problem with duplicates is that their position can depend on
         other factors, i.e. the (volatile) position of the neighbor
-        element (when using DUPLICATE_AFTER) or the sort position.
+        element (when using DUPLICATE_AFTER) or the sort position. therefore
+        we have to consolidate ALL duplicates whenever we traverse or
+        modify them (but not if they're flushed).
 
         we therefore have to store a "virtual" duplicate table whenever we
         need it. the duplicate-id of the cursor is the index in this table.
+        This requires some refactoring in the cursor. 
 
-        when a dupe is erased (on flush?), all newer IDs will be decreased.
+        The duplicate list is cached in the cursor. It can't be stored in
+        the node since the list depends on the transaction isolation level
+        and the transaction itself.
 
         The following operations have to build up such a duplicate list:
         - ALL operations on keys if duplicate sorting is enabled
@@ -701,36 +706,23 @@ o support cursors!!!
         - ham_cursor_insert if any positional flag is given
         - ham_cursor_move (unless duplicates are skipped)
         - ham_cursor_find for a key that has duplicates 
-        - ham_cursor_erase and ham_cursor_overwrite
         
-        o consolidate duplicates with btree - build up the full list of
-            duplicates of a key, sort them etc
+        o reorganize the cursor code
+        o create functions to manage dynamic lists of duplicates
+        o initialize/consolidate these lists
+            o only from txn
+            o only from btree
+            o mix txn/btree
+            o with ham_erase (all dupes)
+            o with ham_cursor_erase (single dupe)
+            o with positional flags
+                o first
+                o last
+                o before
+                o after
+            o sorting duplicates
         o find cursor
-            o unittests w/ two duplicates -> pick older dupe
-            o unittests w/ overwriting duplicates (not yet implemented?)
-            o unittests w/ erasing duplicates (not yet implemented?)
-        o move to first w/ duplicates
-            o unittest
-        o move to next w/ duplicates
-            o unittest
-        o insert a key w/ duplicate
-            o duplicate_before
-            o duplicate_after
-            o duplicate_first
-            o duplicate_last
-            o sorted duplicates (later)
-        o erase a key w/ duplicate
-        o overwrite a key
-            o overwrite a duplicate key that is in the txn tree
-            o overwrite a duplicate key that is in the btree
-                o unittest: insert multiple dupes in the btree, then move a 
-                    cursor to the second one and erase it; now erase the 
-                    first duplicate from the btree, then commit the cursor txn.
-                    make sure that the correct cursor is deleted!
-                o also in mixed scenario with btree-dupes and txn-dupes
-            o test each scenarios above with cursor_find, cursor_move 
-        o move to previous w/ duplicates
-            o unittest
+        o overwrite duplicates
 
 o ham_find in a transaction: if there are duplicates, is the same item (k/r) 
     returned as in the btree? btree duplicates are stored at the *end* of the
