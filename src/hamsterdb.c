@@ -3472,22 +3472,12 @@ ham_cursor_close(ham_cursor_t *cursor)
         return (db_set_error(db, HAM_NOT_INITIALIZED));
     }
 
-    /* temporary Transactions must be committed when the cursor is closed;
-     * however, if the cursor was cloned, we can only commit the Transaction
-     * if there are no other cursors bound to it. The cursor refcount of the
-     * Transaction can help us. */
+    /* decrease the transaction refcount; the refcount specifies how many
+     * cursors are attached to the transaction */
     if (cursor_get_txn(cursor)) {
         ham_assert(txn_get_cursor_refcount(cursor_get_txn(cursor))>0, (""));
         txn_set_cursor_refcount(cursor_get_txn(cursor), 
                 txn_get_cursor_refcount(cursor_get_txn(cursor))-1);
-        if (cursor_get_flags(cursor)&CURSOR_TXN_IS_TEMP) {
-            if (0==txn_get_cursor_refcount(cursor_get_txn(cursor))) {
-                ham_status_t st=ham_txn_commit(cursor_get_txn(cursor), 0);
-                if (st)
-                    return (db_set_error(db, st));
-                cursor_set_txn(cursor, 0);
-            }
-        }
     }
 
     /* now finally close the cursor */
