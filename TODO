@@ -692,8 +692,8 @@ o support cursors!!!
         we have to consolidate ALL duplicates whenever we traverse or
         modify them (but not if they're flushed).
 
-        we therefore have to store a "virtual" duplicate table whenever we
-        need it. the duplicate-id of the cursor is the index in this table.
+        we need to store a "virtual" duplicate table whenever it is required.
+        the duplicate-id of the cursor is the index in this table.
         This requires some refactoring in the cursor. 
 
         The duplicate list is cached in the cursor. It can't be stored in
@@ -707,7 +707,8 @@ o support cursors!!!
 
         The following operations have to build up such a duplicate list:
         - ham_cursor_insert if one of the flags (BEFORE, AFTER) is
-             given (really?)
+            given (although - maybe this is not needed because we can store
+            a 'reference ID' in the op)
         - ham_cursor_move (unless duplicates are skipped)
         - ham_find and ham_cursor_find for a key that has duplicates 
             (could be optimized by returning the oldest btree dupe; if btree
@@ -716,6 +717,13 @@ o support cursors!!!
         o extend/reorganize the cursor code. add a dynamic list of 
             duplicates for the cache (and in debug-mode also track the key
             that is coupled).
+            high level cursor can manage
+                - its state (nil; coupled to txn; coupled to btree)
+                - implements the local functions
+                - the duplicate cache (optional, only if txn's are used)
+                - parent of the txn-cursor
+                - parent of the btree-cursor
+
         o create functions to manage dynamic lists of duplicates
         o initialize/consolidate these lists
             o only from txn
