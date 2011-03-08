@@ -700,14 +700,22 @@ o support cursors!!!
         the node since the list depends on the transaction isolation level
         and the transaction itself.
 
+        The functions ham_cursor_erase and ham_cursor_overwrite are always
+        referring to an existing duplicate. We will identify this duplicate
+        by its ID (which is the position in the duplicate table). On erase and
+        insert these positions have to be adjusted.
+
         The following operations have to build up such a duplicate list:
-        - ALL operations on keys if duplicate sorting is enabled
-            -> therefore DISABLE sorting for now --> document in Changelog
-        - ham_cursor_insert if any positional flag is given
+        - ham_cursor_insert if one of the flags (BEFORE, AFTER) is
+             given (really?)
         - ham_cursor_move (unless duplicates are skipped)
-        - ham_cursor_find for a key that has duplicates 
+        - ham_find and ham_cursor_find for a key that has duplicates 
+            (could be optimized by returning the oldest btree dupe; if btree
+            does not have dupes then return the oldest txn-dupe)
         
-        o reorganize the cursor code
+        o extend/reorganize the cursor code. add a dynamic list of 
+            duplicates for the cache (and in debug-mode also track the key
+            that is coupled).
         o create functions to manage dynamic lists of duplicates
         o initialize/consolidate these lists
             o only from txn
@@ -721,8 +729,20 @@ o support cursors!!!
                 o before
                 o after
             o sorting duplicates
-        o find cursor
-        o overwrite duplicates
+        o implement the actual functions
+            o insert duplicates
+            o insert duplicates w/ existing duplicates in btree
+            o insert duplicates w/ 1 duplicate in btree
+            o overwrite duplicates
+            o find cursor - always returns the oldest duplicate (?)
+            o erase duplicates
+            o move cursor...
+                o first
+                o last
+                o next w/ skip
+                o next w/ dupes
+                o previous w/ skip
+                o previous w/ dupes
 
 o ham_find in a transaction: if there are duplicates, is the same item (k/r) 
     returned as in the btree? btree duplicates are stored at the *end* of the
