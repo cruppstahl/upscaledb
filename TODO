@@ -706,25 +706,25 @@ o support cursors!!!
         insert these positions have to be adjusted.
 
         The following operations have to build up such a duplicate list:
-        - ham_cursor_insert if one of the flags (BEFORE, AFTER) is
-            given (although - maybe this is not needed because we can store
-            a 'reference ID' in the op)
+        - ham_cursor_insert
         - ham_cursor_move (unless duplicates are skipped)
+        - ham_erase - clears the whole list
+        - ham_cursor_erase - 
         - ham_find and ham_cursor_find for a key that has duplicates 
             (could be optimized by returning the oldest btree dupe; if btree
             does not have dupes then return the oldest txn-dupe)
         
-        o extend/reorganize the cursor code. add a dynamic list of 
-            duplicates for the cache (and in debug-mode also track the key
-            that is coupled).
-            high level cursor can manage
-                - its state (nil; coupled to txn; coupled to btree)
-                - implements the local functions
-                - the duplicate cache (optional, only if txn's are used)
-                - parent of the txn-cursor
-                - parent of the btree-cursor
-
         o create functions to manage dynamic lists of duplicates
+            (or use the existing dupe_table in the btree cursor!)
+            o create
+            o insert at a given position
+            o append to the list
+            o erase from a given position
+            o invalidate/clear the list
+            o sort the list (based on duplicate sort-function)
+            o couple cursor to a duplicate in the btree- already exists
+            o couple cursor to a duplicate in the txn-tree
+
         o initialize/consolidate these lists
             o only from txn
             o only from btree
@@ -756,21 +756,11 @@ o ham_find in a transaction: if there are duplicates, is the same item (k/r)
     returned as in the btree? btree duplicates are stored at the *end* of the
     list, and the oldest duplicate is returned. txn returns the newest??
 
-. add tests to verify that the cursor is not modified if an operation fails!
-    (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
-    insert the cursor; that's a good starting point)
-
 o add hamsterdb.spec file from 1.1.8
     https://github.com/cruppstahl/hamsterdb/commit/46260d14d0192299b15286c93a843d11dc4ccaa6
+    o make sure that the version information is automatically updated!
 
 o precompiled windows libraries: hamserver-x.x.x.dll is still version 1.1.5
-
-. refactor cursor; separate backend-cursor and txn-cursor; make the 
-    "uncoupled" cursor part of the frontend. When coupling, btree AND txn 
-    have to couple, and check if it was erased in the meantime!
-    or: - cursor tracks state if it's coupled to txn or btree
-        - when coupling, caller can select whether to couple to btree or txn
-            cursor_couple(TXN || BTREE)
 
 o currently, two log sub-systems are used. one for logical journal and the 
     other for the physical one. in a later version we will only use the journal
@@ -806,9 +796,29 @@ o test with lessfs (and add lessfs to the monster testsuite)
 
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
 
-o the btree_cursor.* files need some rework/reformatting/renaming
-    o also, txn_cursor.c is not isolated well enough; it sometimes 
-        accesses the btree_cursor. 
+. refactor cursor; separate backend-cursor and txn-cursor; make the 
+    "uncoupled" cursor part of the frontend. When coupling, btree AND txn 
+    have to couple, and check if it was erased in the meantime!
+    or: - cursor tracks state if it's coupled to txn or btree
+        - when coupling, caller can select whether to couple to btree or txn
+            cursor_couple(TXN || BTREE)
+        o the btree_cursor.* files need some rework/reformatting/renaming
+        o also, txn_cursor.c is not isolated well enough; it sometimes 
+            accesses the btree_cursor. 
+
+        o extend/reorganize the cursor code. add a dynamic list of 
+            duplicates for the cache (and in debug-mode also track the key
+            that is coupled).
+            high level cursor can manage
+                - its state (nil; coupled to txn; coupled to btree)
+                - implements the local functions
+                - the duplicate cache (optional, only if txn's are used)
+                - parent of the txn-cursor
+                - parent of the btree-cursor
+
+. add tests to verify that the cursor is not modified if an operation fails!
+    (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
+    insert the cursor; that's a good starting point)
 
 o if recovery is enabled: before flushing the changeset, patch the lsn in
     the page header (it fits in 8 free bytes). in the previous release we 
