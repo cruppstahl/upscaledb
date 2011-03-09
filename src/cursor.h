@@ -21,11 +21,93 @@
 
 #include "error.h"
 #include "txn_cursor.h"
+#include "blob.h"
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif 
+
+/**
+ * The dupecache is a cache for duplicate keys
+ */
+typedef struct dupecache_t {
+    /** the cursor - needed for allocator etc */
+    struct ham_cursor_t *_cursor;
+
+    /** capacity of this cache */
+    ham_size_t _capacity;
+
+    /** number of elements tracked in this cache */
+    ham_size_t _count;
+
+    /** the cached elements */
+    dupe_entry_t *_elements;
+
+} dupecache_t;
+
+/** Set the cursor pointer */
+#define dupecache_set_cursor(dc, c)         (dc)->_cursor=(c)
+
+/** Get the cursor pointer */
+#define dupecache_get_cursor(dc)            (dc)->_cursor
+
+/** Set the capacity */
+#define dupecache_set_capacity(dc, c)       (dc)->_capacity=c
+
+/** Get the capacity */
+#define dupecache_get_capacity(dc)          (dc)->_capacity
+
+/** Set the count */
+#define dupecache_set_count(dc, c)          (dc)->_count=c
+
+/** Get the count */
+#define dupecache_get_count(dc)             (dc)->_count
+
+/** Set the pointer to the dupe_entry array */
+#define dupecache_set_elements(dc, e)       (dc)->_elements=e
+
+/** Get the pointer to the dupe_entry array */
+#define dupecache_get_elements(dc)          (dc)->_elements
+
+/**
+ * creates a new dupecache structure
+ */
+extern ham_status_t
+dupecache_create(dupecache_t *c, struct ham_cursor_t *cursor, 
+                    ham_size_t capacity);
+
+/**
+ * inserts a new item somewhere in the cache; resizes the cache if necessary
+ */
+extern ham_status_t
+dupecache_insert(dupecache_t *c, ham_u32_t position, dupe_entry_t *dupe);
+
+/**
+ * appends a new item; resizes the cache if necessary
+ */
+extern ham_status_t
+dupecache_append(dupecache_t *c, dupe_entry_t *dupe);
+
+/**
+ * erases an item 
+ */
+extern ham_status_t
+dupecache_erase(dupecache_t *c, ham_u32_t position);
+
+/**
+ * sorts the list, based on the duplicate sort function; will assert that such
+ * a function is available!
+ */
+extern ham_status_t
+dupecache_sort(dupecache_t *c);
+
+/**
+ * clears the cache
+ */
+extern void
+dupecache_clear(dupecache_t *c);
+
 
 /**
  * The Cursor structure - these functions and members are "inherited"
@@ -101,6 +183,11 @@ extern "C" {
                                                                         \
     /** Linked list of Cursors which point to the same page */          \
     clss *_next_in_page, *_previous_in_page;                            \
+                                                                        \
+    /** A cache for all duplicates of the current key. needed for       \
+     * ham_cursor_move, ham_find and other functions. The cache is      \
+     * used to consolidate all duplicates of btree and txn. */          \
+    dupecache_t _dupecache;                                             \
                                                                         \
     /** Stores the last operation (insert/find or move); needed for     \
      * ham_cursor_move. Values can be HAM_CURSOR_NEXT,                  \
@@ -183,6 +270,9 @@ struct ham_cursor_t
 
 /** Set the remote Database handle */
 #define cursor_set_remote_handle(c, h)  (c)->_remote_handle=(h)
+
+/** Get a pointer to the duplicate cache */
+#define cursor_get_dupecache(c)         (&(c)->_dupecache)
 
 /** Get the previous operation */
 #define cursor_get_lastop(c)            (c)->_lastop

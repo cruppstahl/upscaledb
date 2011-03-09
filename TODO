@@ -715,12 +715,21 @@ o support cursors!!!
             does not have dupes then return the oldest txn-dupe)
         
         o create functions to manage dynamic lists of duplicates
-            (or use the existing dupe_table in the btree cursor!)
             o create
+                x implement
+                o add unittest
             o insert at a given position
+                x implement
+                o add unittest
             o append to the list
+                x implement
+                o add unittest
             o erase from a given position
+                x implement
+                o add unittest
             o invalidate/clear the list
+                x implement
+                o add unittest
             o sort the list (based on duplicate sort-function)
             o couple cursor to a duplicate in the btree- already exists
             o couple cursor to a duplicate in the txn-tree

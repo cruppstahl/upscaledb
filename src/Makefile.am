@@ -13,6 +13,7 @@ lib_LTLIBRARIES = libhamsterdb.la
 EXTRA_DIST = os_win32.c
 
 libhamsterdb_la_SOURCES = log.c \
+			cursor.c \
 			blob.c \
 			btree.c \
 			btree_check.c \
