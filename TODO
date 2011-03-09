@@ -706,15 +706,25 @@ o support cursors!!!
         insert these positions have to be adjusted.
 
         The following operations have to build up such a duplicate list:
-        - ham_cursor_insert if one of the flags (BEFORE, AFTER) is
-            given (although - maybe this is not needed because we can store
-            a 'reference ID' in the op)
+        - ham_cursor_insert
         - ham_cursor_move (unless duplicates are skipped)
+        - ham_erase - clears the whole list
+        - ham_cursor_erase - 
         - ham_find and ham_cursor_find for a key that has duplicates 
             (could be optimized by returning the oldest btree dupe; if btree
             does not have dupes then return the oldest txn-dupe)
         
         o create functions to manage dynamic lists of duplicates
+            (or use the existing dupe_table in the btree cursor!)
+            o create
+            o insert at a given position
+            o append to the list
+            o erase from a given position
+            o invalidate/clear the list
+            o sort the list (based on duplicate sort-function)
+            o couple cursor to a duplicate in the btree- already exists
+            o couple cursor to a duplicate in the txn-tree
+
         o initialize/consolidate these lists
             o only from txn
             o only from btree
