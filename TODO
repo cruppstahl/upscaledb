@@ -721,19 +721,23 @@ o support cursors!!!
             x append to the list
                 x implement
                 x add unittest
-            o insert at a given position
+            x insert at a given position
                 x implement
-                o add unittest
+                x add unittest
                     x insert always at position 0 
                     x insert at end positions
-                    o insert at mixed positions
+                    x insert at mixed positions
             o erase from a given position
                 x implement
                 o add unittest
+                    o erase always at position 0 
+                    o erase at end positions
+                    o erase at mixed positions
             x invalidate/clear the list
                 x implement
                 x add unittest
             o sort the list (based on duplicate sort-function)
+                - only when using dupecache_insert
             o couple cursor to a duplicate in the btree- already exists
             o couple cursor to a duplicate in the txn-tree
 

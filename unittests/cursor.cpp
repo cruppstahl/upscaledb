@@ -3661,8 +3661,12 @@ public:
         BFC_REGISTER_TEST(DupeCacheTest, createEmptyCloseTest);
         BFC_REGISTER_TEST(DupeCacheTest, createCapacityCloseTest);
         BFC_REGISTER_TEST(DupeCacheTest, appendTest);
-        BFC_REGISTER_TEST(DupeCacheTest, insertAtBeginning);
-        BFC_REGISTER_TEST(DupeCacheTest, insertAtEnd);
+        BFC_REGISTER_TEST(DupeCacheTest, insertAtBeginningTest);
+        BFC_REGISTER_TEST(DupeCacheTest, insertAtEndTest);
+        BFC_REGISTER_TEST(DupeCacheTest, insertMixedTest);
+        BFC_REGISTER_TEST(DupeCacheTest, eraseAtBeginningTest);
+        BFC_REGISTER_TEST(DupeCacheTest, eraseAtEndTest);
+        BFC_REGISTER_TEST(DupeCacheTest, eraseMixedTest);
     }
 
     virtual void setup() 
@@ -3736,7 +3740,7 @@ public:
         dupecache_clear(&c);
     }
 
-    void insertAtBeginning(void)
+    void insertAtBeginningTest(void)
     {
         dupecache_t c;
         BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
@@ -3758,7 +3762,7 @@ public:
         dupecache_clear(&c);
     }
 
-    void insertAtEnd(void)
+    void insertAtEndTest(void)
     {
         dupecache_t c;
         BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
@@ -3777,6 +3781,135 @@ public:
         for (int i=0; i<20; i++)
             BFC_ASSERT_EQUAL((ham_u64_t)i, e[i]._rid);
 
+        dupecache_clear(&c);
+    }
+
+    void insertMixedTest(void)
+    {
+        dupecache_t c;
+        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
+
+        dupe_entry_t entries[20];
+        memset(&entries[0], 0, sizeof(entries));
+        for (int i=0; i<20; i++)
+            entries[i]._rid=i;
+
+        int p=0;
+        for (int j=0; j<5; j++) {
+            for (int i=0; i<4; i++) {
+                BFC_ASSERT_EQUAL(0, dupecache_insert(&c, j, &entries[p++]));
+            }
+        }
+        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
+        BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
+
+        dupe_entry_t *e=dupecache_get_elements(&c);
+        BFC_ASSERT_EQUAL((ham_u64_t)3,  e[ 0]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)7,  e[ 1]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)11, e[ 2]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)15, e[ 3]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)19, e[ 4]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)18, e[ 5]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)17, e[ 6]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)16, e[ 7]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)14, e[ 8]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)13, e[ 9]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)12, e[10]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)10, e[11]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)9,  e[12]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)8,  e[13]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)6,  e[14]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)5,  e[15]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)4,  e[16]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)2,  e[17]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)1,  e[18]._rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)0,  e[19]._rid);
+
+        dupecache_clear(&c);
+    }
+
+    void eraseAtBeginningTest(void)
+    {
+        dupecache_t c;
+        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
+
+        dupe_entry_t entries[20];
+        memset(&entries[0], 0, sizeof(entries));
+        for (int i=0; i<20; i++)
+            entries[i]._rid=i;
+
+        for (int i=0; i<20; i++)
+            BFC_ASSERT_EQUAL(0, dupecache_append(&c, &entries[i]));
+        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
+        BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
+
+        dupe_entry_t *e=dupecache_get_elements(&c);
+        int s=1;
+        for (int i=19; i>=0; i--) {
+            BFC_ASSERT_EQUAL(0, dupecache_erase(&c, 0));
+            BFC_ASSERT_EQUAL((unsigned)i, dupecache_get_count(&c));
+            for (int j=0; j<i; j++)
+                BFC_ASSERT_EQUAL((ham_u64_t)s+j,  e[j]._rid);
+            s++;
+        }
+
+        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
+        BFC_ASSERT_EQUAL(0u, dupecache_get_count(&c));
+        dupecache_clear(&c);
+    }
+
+    void eraseAtEndTest(void)
+    {
+        dupecache_t c;
+        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
+
+        dupe_entry_t entries[20];
+        memset(&entries[0], 0, sizeof(entries));
+        for (int i=0; i<20; i++)
+            entries[i]._rid=i;
+
+        for (int i=0; i<20; i++)
+            BFC_ASSERT_EQUAL(0, dupecache_append(&c, &entries[i]));
+        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
+        BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
+
+        dupe_entry_t *e=dupecache_get_elements(&c);
+        for (int i=0; i<20; i++) {
+            BFC_ASSERT_EQUAL(0, dupecache_erase(&c, dupecache_get_count(&c)-1));
+            for (int j=0; j<20-i; j++)
+                BFC_ASSERT_EQUAL((ham_u64_t)j,  e[j]._rid);
+        }
+
+        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
+        BFC_ASSERT_EQUAL(0u, dupecache_get_count(&c));
+        dupecache_clear(&c);
+    }
+
+    void eraseMixedTest(void)
+    {
+        dupecache_t c;
+        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
+
+        dupe_entry_t entries[20];
+        memset(&entries[0], 0, sizeof(entries));
+        for (int i=0; i<20; i++)
+            entries[i]._rid=i;
+
+        for (int i=0; i<20; i++)
+            BFC_ASSERT_EQUAL(0, dupecache_append(&c, &entries[i]));
+        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
+        BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
+
+        for (int i=0; i<10; i++)
+            BFC_ASSERT_EQUAL(0, dupecache_erase(&c, i));
+
+        dupe_entry_t *e=dupecache_get_elements(&c);
+        for (int i=0; i<10; i++) {
+            BFC_ASSERT_EQUAL((unsigned)i*2+1, e[i]._rid);
+        }
+
+        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
+        BFC_ASSERT_EQUAL(10u, dupecache_get_count(&c));
         dupecache_clear(&c);
     }
 };
