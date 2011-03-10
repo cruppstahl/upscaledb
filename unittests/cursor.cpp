@@ -3643,7 +3643,146 @@ public:
     }
 };
 
+class DupeCacheTest : public hamsterDB_fixture
+{
+    define_super(hamsterDB_fixture);
+
+protected:
+    ham_cursor_t *m_cursor;
+    ham_db_t *m_db;
+    ham_env_t *m_env;
+    memtracker_t *m_alloc;
+
+public:
+    DupeCacheTest()
+    : hamsterDB_fixture("DupeCacheTest")
+    {
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(DupeCacheTest, createEmptyCloseTest);
+        BFC_REGISTER_TEST(DupeCacheTest, createCapacityCloseTest);
+        BFC_REGISTER_TEST(DupeCacheTest, appendTest);
+        BFC_REGISTER_TEST(DupeCacheTest, insertAtBeginning);
+        BFC_REGISTER_TEST(DupeCacheTest, insertAtEnd);
+    }
+
+    virtual void setup() 
+    { 
+        __super::setup();
+
+        BFC_ASSERT((m_alloc=memtracker_new())!=0);
+
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
+        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(m_env, BFC_OPATH(".test"), 
+                    HAM_ENABLE_DUPLICATES, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_db(m_env, m_db, 13, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, 0, 0, &m_cursor));
+    }
+
+    virtual void teardown() 
+    { 
+        __super::teardown();
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_TXN_AUTO_COMMIT));
+        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+        ham_delete(m_db);
+        ham_env_delete(m_env);
+        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
+    }
+
+    void createEmptyCloseTest(void)
+    {
+        dupecache_t c;
+        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 0));
+        BFC_ASSERT_EQUAL(0u, dupecache_get_capacity(&c));
+        BFC_ASSERT_EQUAL(0u, dupecache_get_count(&c));
+        dupecache_clear(&c);
+    }
+
+    void createCapacityCloseTest(void)
+    {
+        dupecache_t c;
+        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 20));
+        BFC_ASSERT_EQUAL(20u, dupecache_get_capacity(&c));
+        BFC_ASSERT_EQUAL(0u, dupecache_get_count(&c));
+        dupecache_clear(&c);
+    }
+
+    void appendTest(void)
+    {
+        dupecache_t c;
+        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
+
+        dupe_entry_t entries[20];
+        memset(&entries[0], 0, sizeof(entries));
+        for (int i=0; i<20; i++)
+            entries[i]._rid=i;
+
+        for (int i=0; i<20; i++)
+            BFC_ASSERT_EQUAL(0, dupecache_append(&c, &entries[i]));
+        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
+        BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
+
+        dupe_entry_t *e=dupecache_get_elements(&c);
+        for (int i=0; i<20; i++)
+            BFC_ASSERT_EQUAL((ham_u64_t)i, e[i]._rid);
+
+        dupecache_clear(&c);
+    }
+
+    void insertAtBeginning(void)
+    {
+        dupecache_t c;
+        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
+
+        dupe_entry_t entries[20];
+        memset(&entries[0], 0, sizeof(entries));
+        for (int i=0; i<20; i++)
+            entries[i]._rid=i;
+
+        for (int i=0; i<20; i++)
+            BFC_ASSERT_EQUAL(0, dupecache_insert(&c, 0, &entries[i]));
+        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
+        BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
+
+        dupe_entry_t *e=dupecache_get_elements(&c);
+        for (int i=19, j=0; i>=0; i--, j++)
+            BFC_ASSERT_EQUAL((ham_u64_t)i, e[j]._rid);
+
+        dupecache_clear(&c);
+    }
+
+    void insertAtEnd(void)
+    {
+        dupecache_t c;
+        BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
+
+        dupe_entry_t entries[20];
+        memset(&entries[0], 0, sizeof(entries));
+        for (int i=0; i<20; i++)
+            entries[i]._rid=i;
+
+        for (int i=0; i<20; i++)
+            BFC_ASSERT_EQUAL(0, dupecache_insert(&c, i, &entries[i]));
+        BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
+        BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
+
+        dupe_entry_t *e=dupecache_get_elements(&c);
+        for (int i=0; i<20; i++)
+            BFC_ASSERT_EQUAL((ham_u64_t)i, e[i]._rid);
+
+        dupecache_clear(&c);
+    }
+};
+
 BFC_REGISTER_FIXTURE(TempTxnCursorTest);
 BFC_REGISTER_FIXTURE(LongTxnCursorTest);
 BFC_REGISTER_FIXTURE(NoTxnCursorTest);
+BFC_REGISTER_FIXTURE(DupeCacheTest);
 

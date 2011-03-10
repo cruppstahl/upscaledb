@@ -96,13 +96,6 @@ extern ham_status_t
 dupecache_erase(dupecache_t *c, ham_u32_t position);
 
 /**
- * sorts the list, based on the duplicate sort function; will assert that such
- * a function is available!
- */
-extern ham_status_t
-dupecache_sort(dupecache_t *c);
-
-/**
  * clears the cache
  */
 extern void

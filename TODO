@@ -715,36 +715,38 @@ o support cursors!!!
             does not have dupes then return the oldest txn-dupe)
         
         o create functions to manage dynamic lists of duplicates
-            o create
+            x create
                 x implement
-                o add unittest
+                x add unittest
+            x append to the list
+                x implement
+                x add unittest
             o insert at a given position
                 x implement
                 o add unittest
-            o append to the list
-                x implement
-                o add unittest
+                    x insert always at position 0 
+                    x insert at end positions
+                    o insert at mixed positions
             o erase from a given position
                 x implement
                 o add unittest
-            o invalidate/clear the list
+            x invalidate/clear the list
                 x implement
-                o add unittest
+                x add unittest
             o sort the list (based on duplicate sort-function)
             o couple cursor to a duplicate in the btree- already exists
             o couple cursor to a duplicate in the txn-tree
 
         o initialize/consolidate these lists
-            o only from txn
             o only from btree
-            o mix txn/btree
-            o with ham_erase (all dupes)
-            o with ham_cursor_erase (single dupe)
-            o with positional flags
+            o only from txn; with positional flags
                 o first
                 o last
                 o before
                 o after
+            o mix txn/btree
+            o with ham_erase (all dupes)
+            o with ham_cursor_erase (single dupe)
             o sorting duplicates
         o implement the actual functions
             o insert duplicates

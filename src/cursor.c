@@ -25,6 +25,12 @@ __dupecache_resize(dupecache_t *c, ham_size_t capacity)
 {
     ham_env_t *env=db_get_env(cursor_get_db(dupecache_get_cursor(c)));
     dupe_entry_t *ptr=dupecache_get_elements(c);
+
+    if (capacity==0) {
+        dupecache_clear(c);
+        return (0);
+    }
+
     ptr=(dupe_entry_t *)allocator_realloc(env_get_allocator(env), 
                     ptr, sizeof(dupe_entry_t)*capacity);
     if (ptr) {
@@ -55,7 +61,7 @@ dupecache_insert(dupecache_t *c, ham_u32_t position, dupe_entry_t *dupe)
     ham_assert(position<=dupecache_get_count(c), (""));
 
     /* append or insert in the middle? */
-    if (position==dupecache_get_count(c)-1)
+    if (position==dupecache_get_count(c))
         return (dupecache_append(c, dupe));
 
     /* resize if necessary */
@@ -112,13 +118,6 @@ dupecache_erase(dupecache_t *c, ham_u32_t position)
 
     dupecache_set_count(c, dupecache_get_count(c)-1);
 
-    return (0);
-}
-
-ham_status_t
-dupecache_sort(dupecache_t *c)
-{
-    /* TODO */
     return (0);
 }
 
