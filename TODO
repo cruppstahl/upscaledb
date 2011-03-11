@@ -714,7 +714,7 @@ o support cursors!!!
             (could be optimized by returning the oldest btree dupe; if btree
             does not have dupes then return the oldest txn-dupe)
         
-        o create functions to manage dynamic lists of duplicates
+        x create functions to manage dynamic lists of duplicates
             x create
                 x implement
                 x add unittest
@@ -727,38 +727,35 @@ o support cursors!!!
                     x insert always at position 0 
                     x insert at end positions
                     x insert at mixed positions
-            o erase from a given position
+            x erase from a given position
                 x implement
-                o add unittest
-                    o erase always at position 0 
-                    o erase at end positions
-                    o erase at mixed positions
+                x add unittest
+                    x erase always at position 0 
+                    x erase at end positions
+                    x erase at mixed positions
             x invalidate/clear the list
                 x implement
                 x add unittest
-            o sort the list (based on duplicate sort-function)
-                - only when using dupecache_insert
-            o couple cursor to a duplicate in the btree- already exists
-            o couple cursor to a duplicate in the txn-tree
+        x couple cursor to a duplicate in the btree- already exists
+        x couple cursor to a duplicate in the txn-tree
 
-        o initialize/consolidate these lists
-            o only from btree
-            o only from txn; with positional flags
-                o first
-                o last
-                o before
-                o after
-            o mix txn/btree
-            o with ham_erase (all dupes)
-            o with ham_cursor_erase (single dupe)
-            o sorting duplicates
-        o implement the actual functions
-            o insert duplicates
-            o insert duplicates w/ existing duplicates in btree
+        o implement test-driven
+            o insert duplicates in btree (and move through them)
+            o insert duplicates in txn (and move through them)
+            o insert duplicates w/ existing duplicates in btree 
+                    (and move through them)
             o insert duplicates w/ 1 duplicate in btree
+            o insert duplicates w/ FIRST
+            o insert duplicates w/ LAST
+            o insert duplicates w/ BEFORE
+            o insert duplicates w/ AFTER
+            o if a cursor is coupled to dupe #2, and a dupe at position 1
+                is inserted, then the cursor must be coupled to #3
+                (and all other cursors must be modified as well)
             o overwrite duplicates
-            o find cursor - always returns the oldest duplicate (?)
-            o erase duplicates
+            o find cursor - always returns the oldest duplicate
+            o erase duplicates (ham_cursor_erase)
+            o erase all duplicates (ham_erase)
             o move cursor...
                 o first
                 o last
@@ -766,10 +763,14 @@ o support cursors!!!
                 o next w/ dupes
                 o previous w/ skip
                 o previous w/ dupes
-
-o ham_find in a transaction: if there are duplicates, is the same item (k/r) 
-    returned as in the btree? btree duplicates are stored at the *end* of the
-    list, and the oldest duplicate is returned. txn returns the newest??
+                o only btree dupes
+                o only txn dupes
+                o with mixed dupes
+            o sorting duplicates
+                o with ham_cursor_overwrite
+                o only with btree dupes
+                o only with txn dupes
+                o with with txn dupes
 
 o add hamsterdb.spec file from 1.1.8
     https://github.com/cruppstahl/hamsterdb/commit/46260d14d0192299b15286c93a843d11dc4ccaa6
