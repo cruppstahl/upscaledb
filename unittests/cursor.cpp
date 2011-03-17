@@ -3934,6 +3934,7 @@ public:
     {
         testrunner::get_instance()->register_fixture(this);
         BFC_REGISTER_TEST(DupeCursorTest, simpleBtreeTest);
+        BFC_REGISTER_TEST(DupeCursorTest, multipleBtreeTest);
         BFC_REGISTER_TEST(DupeCursorTest, simpleTxnInsertLastTest);
         BFC_REGISTER_TEST(DupeCursorTest, simpleTxnInsertFirstTest);
     }
@@ -4031,6 +4032,42 @@ public:
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaac", HAM_CURSOR_PREVIOUS));
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaab", HAM_CURSOR_PREVIOUS));
         BFC_ASSERT_EQUAL(0, move       ("33333", "aaaaa", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
+    }
+
+    void multipleBtreeTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("33333", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertBtree("33333", "aaaab", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("33333", "aaaac", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("11111", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertBtree("11111", "aaaab", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("11111", "aaaac", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("44444", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertBtree("44444", "aaaab", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("44444", "aaaac", HAM_DUPLICATE));
+
+        BFC_ASSERT_EQUAL(0, move       ("11111", "aaaaa", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("11111", "aaaab", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("11111", "aaaac", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaaa", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaab", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaac", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("44444", "aaaaa", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("44444", "aaaab", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("44444", "aaaac", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("44444", "aaaac", HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, move       ("44444", "aaaab", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(0, move       ("44444", "aaaaa", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaac", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(0, move       ("44444", "aaaaa", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaac", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaab", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaaa", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(0, move       ("11111", "aaaac", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(0, move       ("11111", "aaaab", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(0, move       ("11111", "aaaaa", HAM_CURSOR_PREVIOUS));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
     }
 

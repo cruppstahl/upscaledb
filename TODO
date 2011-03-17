@@ -743,24 +743,37 @@ o support cursors!!!
             x insert duplicates in btree (and move through them)
             x insert duplicates w/ LAST (default)
             x insert duplicates w/ FIRST
+            x insert duplicates for several keys (only in btree)
 
-cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
-            o insert duplicates w/ BEFORE (w/ cursor coupled to txn-key)
-            o insert duplicates w/ AFTER (w/ cursor coupled to btree-key)
             o insert duplicates for several keys (only in txn)
-            o insert duplicates for several keys (only in btree)
+            o insert duplicates w/ 1 duplicate in btree
             o insert duplicates w/ existing duplicates in btree 
                     (and move through them)
-            o insert duplicates w/ 1 duplicate in btree
 
-            o if a cursor is coupled to dupe #2, and a dupe at position 1
-                is inserted, then the cursor must be coupled to #3
-                (and all other cursors must be modified as well)
+txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
+            o insert duplicates w/ BEFORE (w/ cursor coupled to txn-key)
+            o insert duplicates w/ AFTER (w/ cursor coupled to txn-key)
+            o insert duplicates w/ BEFORE (w/ cursor coupled to btree-key)
+            o insert duplicates w/ AFTER (w/ cursor coupled to btree-key)
+            o insert duplicates w/ BEFORE/AFTER and mixed btree/txn keys
+
+            o insert duplicates with multiple cursors while iterating over them
+                o if a cursor is coupled to dupe #2, and a dupe at position 1
+                    is inserted, then the cursor must be coupled to #3
+                    (and all other cursors must be modified as well); also
+                    clear the dupe cache with those cursors!
+                
             o all insert-cases from above, but with an existing dupecache!
                 (it has to be updated.)
+            o get key (move without direction)
+            o get record (move without direction)
             o overwrite duplicates
+                o in txn-tree
+                o in btree-tree
             o find cursor - always returns the oldest duplicate
             o erase duplicates (ham_cursor_erase)
+                o in txn-tree
+                o in btree-tree
             o erase all duplicates (ham_erase)
             o clone cursor: make sure that the new cursor is coupled to the
                 same duplicate
