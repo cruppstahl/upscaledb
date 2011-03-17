@@ -242,7 +242,7 @@ txn_opnode_create(ham_db_t *db, ham_key_t *key)
 }
 
 txn_op_t *
-txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, 
+txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, ham_u32_t orig_flags,
                     ham_u32_t flags, ham_u64_t lsn, ham_record_t *record)
 {
     mem_allocator_t *alloc=env_get_allocator(txn_get_env(txn));
@@ -275,6 +275,7 @@ txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node,
         return (0);
     memset(op, 0, sizeof(*op));
     txn_op_set_flags(op, flags);
+    txn_op_set_orig_flags(op, orig_flags);
     txn_op_set_lsn(op, lsn);
     txn_op_set_record(op, newrec);
     txn_op_set_txn(op, txn);

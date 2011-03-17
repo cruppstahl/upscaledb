@@ -236,6 +236,19 @@ bt_cursor_points_to(ham_bt_cursor_t *cursor, btree_key_t *key);
 ham_status_t
 bt_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
 
+/**
+ * retrieves the duplicate table of the current key; memory in ptable has
+ * to be released by the caller.
+ *
+ * if key has no duplicates, *ptable is NULL.
+ *
+ * @warning memory has to be freed by the caller, UNLESS this is
+ * an in-memory database!! in that case the returned pointer directly points
+ * to the original table.
+ */
+extern ham_status_t
+bt_cursor_get_duplicate_table(ham_bt_cursor_t *cursor, dupe_table_t **ptable);
+
 
 #ifdef __cplusplus
 } // extern "C"

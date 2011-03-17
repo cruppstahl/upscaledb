@@ -29,6 +29,53 @@ extern "C" {
 #endif 
 
 /**
+ * A single line in the dupecache structure - can reference a btree
+ * record or a txn-op 
+ */
+typedef struct dupecache_line_t {
+
+    /** are we using btree or txn duplicates? */
+    ham_bool_t _use_btree;
+
+    union {
+        /** the btree flags */
+        ham_u32_t _btree_flags;
+
+        /** the btree record ID */
+        ham_u64_t _btree_rid;
+
+        /** the txn op structure */
+        txn_op_t *_op;
+    } _u;
+
+} dupecache_line_t;
+
+/** Retrieves which part of the union is used */
+#define dupecache_line_use_btree(dcl)           (dcl)->_use_btree
+
+/** Specifies which part of the union is used */
+#define dupecache_line_set_btree(dcl, b)        (dcl)->_use_btree=b
+
+/** Get flags of the btree record */
+#define dupecache_line_get_btree_flags(dcl)     (dcl)->_u._btree_flags
+
+/** Set flags of the btree record */
+#define dupecache_line_set_btree_flags(dcl, f)  (dcl)->_u._btree_flags=f
+
+/** Get ID of the btree record */
+#define dupecache_line_get_btree_rid(dcl)       (dcl)->_u._btree_rid
+
+/** Set ID of the btree record */
+#define dupecache_line_set_btree_rid(dcl, rid)  (dcl)->_u._btree_rid=rid
+
+/** Get txn_op_t pointer of the txn record */
+#define dupecache_line_get_txn_op(dcl)          (dcl)->_u._op
+
+/** Set txn_op_t pointer of the txn record */
+#define dupecache_line_set_txn_op(dcl, op)      (dcl)->_u._op=op
+
+
+/**
  * The dupecache is a cache for duplicate keys
  */
 typedef struct dupecache_t {
@@ -42,7 +89,7 @@ typedef struct dupecache_t {
     ham_size_t _count;
 
     /** the cached elements */
-    dupe_entry_t *_elements;
+    dupecache_line_t *_elements;
 
 } dupecache_t;
 
@@ -81,13 +128,13 @@ dupecache_create(dupecache_t *c, struct ham_cursor_t *cursor,
  * inserts a new item somewhere in the cache; resizes the cache if necessary
  */
 extern ham_status_t
-dupecache_insert(dupecache_t *c, ham_u32_t position, dupe_entry_t *dupe);
+dupecache_insert(dupecache_t *c, ham_u32_t position, dupecache_line_t *dupe);
 
 /**
  * appends a new item; resizes the cache if necessary
  */
 extern ham_status_t
-dupecache_append(dupecache_t *c, dupe_entry_t *dupe);
+dupecache_append(dupecache_t *c, dupecache_line_t *dupe);
 
 /**
  * erases an item 
@@ -96,10 +143,16 @@ extern ham_status_t
 dupecache_erase(dupecache_t *c, ham_u32_t position);
 
 /**
- * clears the cache
+ * clears the cache; frees all resources
  */
 extern void
 dupecache_clear(dupecache_t *c);
+
+/**
+ * empties the cache; will not free resources
+ */
+extern void
+dupecache_reset(dupecache_t *c);
 
 
 /**
@@ -181,6 +234,10 @@ dupecache_clear(dupecache_t *c);
      * ham_cursor_move, ham_find and other functions. The cache is      \
      * used to consolidate all duplicates of btree and txn. */          \
     dupecache_t _dupecache;                                             \
+                                                                        \
+    /** The current position of the cursor in the cache. This is a      \
+     * 1-based index. 0 means that the cache is not in use. */          \
+    ham_u32_t _dupecache_index;                                         \
                                                                         \
     /** Stores the last operation (insert/find or move); needed for     \
      * ham_cursor_move. Values can be HAM_CURSOR_NEXT,                  \
@@ -267,6 +324,12 @@ struct ham_cursor_t
 /** Get a pointer to the duplicate cache */
 #define cursor_get_dupecache(c)         (&(c)->_dupecache)
 
+/** Get the current index in the dupe cache */
+#define cursor_get_dupecache_index(c)   (c)->_dupecache_index
+
+/** Set the current index in the dupe cache */
+#define cursor_set_dupecache_index(c, i) (c)->_dupecache_index=i
+
 /** Get the previous operation */
 #define cursor_get_lastop(c)            (c)->_lastop
 
@@ -275,6 +338,12 @@ struct ham_cursor_t
 
 /** flag for cursor_set_lastop */
 #define CURSOR_LOOKUP_INSERT            0x10000
+
+/**
+ * Updates (or builds) the dupecache for a cursor
+ */
+extern ham_status_t
+cursor_update_dupecache(ham_cursor_t *cursor, txn_opnode_t *node);
 
 
 #ifdef __cplusplus

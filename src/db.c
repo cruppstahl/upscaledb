@@ -1878,7 +1878,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
     }
 
     /* append a new operation to this node */
-    op=txn_opnode_append(txn, node, 
+    op=txn_opnode_append(txn, node, flags, 
                     (flags&HAM_PARTIAL) | 
                     ((flags&HAM_DUPLICATE) 
                         ? TXN_OP_INSERT_DUP 
@@ -2030,7 +2030,7 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     }
 
     /* append a new operation to this node */
-    op=txn_opnode_append(txn, node, TXN_OP_ERASE, lsn, 0);
+    op=txn_opnode_append(txn, node, flags, TXN_OP_ERASE, lsn, 0);
     if (!op)
         return (HAM_OUT_OF_MEMORY);
 

@@ -253,6 +253,18 @@ extern ham_status_t
 blob_duplicate_get(ham_env_t *env, ham_offset_t table_id,
         ham_size_t position, dupe_entry_t *entry);
 
+/**
+ * retrieve the whole table of duplicates
+ *
+ * @warning will return garbage if the key has no dupes!!
+ * @warning memory has to be freed by the caller, UNLESS this is
+ * an in-memory database!! in that case the returned pointer directly points
+ * to the original table.
+ */
+extern ham_status_t 
+blob_duplicate_get_table(ham_env_t *env, ham_offset_t table_id, 
+                    dupe_table_t **ptable);
+
 
 #ifdef __cplusplus
 } // extern "C"

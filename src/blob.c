@@ -1412,3 +1412,11 @@ blob_duplicate_get(ham_env_t *env, ham_offset_t table_id,
     return (0);
 }
 
+ham_status_t 
+blob_duplicate_get_table(ham_env_t *env, ham_offset_t table_id, 
+                    dupe_table_t **ptable)
+{
+    ham_page_t *page=0;
+
+    return (__get_duplicate_table(ptable, &page, env, table_id));
+}

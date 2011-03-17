@@ -32,13 +32,11 @@ extern "C" {
  */
 typedef struct txn_op_t
 {
-    /**
-     * flags and type of this operation
-     *
-     * accepted flags are also defined in keys.h - 
-     * KEY_BLOB_SIZE_TINY, KEY_BLOB_SIZE_SMALL, KEY_BLOB_SIZE_EMPTY 
-     */
+    /** flags and type of this operation; defined in txn.h */
     ham_u32_t _flags;
+
+    /** the original flags of this operation */
+    ham_u32_t _orig_flags;
 
     /** the Transaction of this operation */
     ham_txn_t *_txn;
@@ -100,6 +98,12 @@ typedef struct txn_op_t
 
 /** set flags */
 #define txn_op_set_flags(t, f)             (t)->_flags=f
+
+/** get flags original flags of ham_insert/ham_cursor_insert/ham_erase... */
+#define txn_op_get_orig_flags(t)           (t)->_orig_flags
+
+/** set flags original flags of ham_insert/ham_cursor_insert/ham_erase... */
+#define txn_op_set_orig_flags(t, f)        (t)->_orig_flags=f
 
 /** get the Transaction pointer */
 #define txn_op_get_txn(t)                  (t)->_txn
@@ -426,7 +430,7 @@ txn_opnode_create(ham_db_t *db, ham_key_t *key);
  * insert an actual operation into the txn_tree
  */
 extern txn_op_t *
-txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, 
+txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, ham_u32_t orig_flags,
                     ham_u32_t flags, ham_u64_t lsn, ham_record_t *record);
 
 /**

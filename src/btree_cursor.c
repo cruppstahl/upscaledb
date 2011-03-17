@@ -586,6 +586,8 @@ static void
 bt_cursor_close(ham_bt_cursor_t *c)
 {
     bt_cursor_set_to_nil(c);
+
+    dupecache_clear(cursor_get_dupecache(c));
 }
 
 /**                                                                 
@@ -698,6 +700,8 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
      * that would mean that the cursor would be uncoupled, and we're losing
      * the 'entry'-pointer. therefore we 'lock' the page by incrementing 
      * the reference counter
+
+TODO where is the lock??
      */
     ham_assert(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED, 
             ("move: cursor is not coupled"));
@@ -987,4 +991,36 @@ bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 
     *cu=c;
     return (0);
+}
+
+ham_status_t
+bt_cursor_get_duplicate_table(ham_bt_cursor_t *c, dupe_table_t **ptable)
+{
+    ham_status_t st;
+    ham_page_t *page;
+    btree_node_t *node;
+    btree_key_t *entry;
+    ham_db_t *db=cursor_get_db(c);
+    ham_env_t *env = db_get_env(db);
+
+    *ptable=0;
+
+    /* uncoupled cursor: couple it */
+    if (bt_cursor_get_flags(c)&BT_CURSOR_FLAG_UNCOUPLED) {
+        st=bt_cursor_couple(c);
+        if (st)
+            return (st);
+    }
+    else if (!(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED))
+        return (HAM_CURSOR_IS_NIL);
+
+    page=bt_cursor_get_coupled_page(c);
+    node=page_get_btree_node(page);
+    entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
+
+    /* if key has no duplicates: return successfully, but with *ptable=0 */
+    if (!(key_get_flags(entry)&KEY_HAS_DUPLICATES))
+        return (0);
+
+    return (blob_duplicate_get_table(env, key_get_ptr(entry), ptable));
 }

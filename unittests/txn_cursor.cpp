@@ -178,7 +178,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         tree=txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
-        op=txn_opnode_append(txn, node, TXN_OP_INSERT_DUP, 55, &record);
+        op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c1={0};
@@ -252,7 +252,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         tree=txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
-        op=txn_opnode_append(txn, node, TXN_OP_INSERT_DUP, 55, &record);
+        op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c={0};
@@ -287,7 +287,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         tree=txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
-        op=txn_opnode_append(txn, node, TXN_OP_INSERT_DUP, 55, &record);
+        op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c={0};
@@ -316,7 +316,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         tree=txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
-        op=txn_opnode_append(txn, node, TXN_OP_INSERT_DUP, 55, &record);
+        op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c={0};
@@ -347,7 +347,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         tree=txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
-        op=txn_opnode_append(txn, node, TXN_OP_INSERT_DUP, 55, &record);
+        op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c={0};
@@ -375,7 +375,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         tree=txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
-        op=txn_opnode_append(txn, node, TXN_OP_INSERT_DUP, 55, &record);
+        op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c={0};
@@ -410,7 +410,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         tree=txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
-        op=txn_opnode_append(txn, node, TXN_OP_INSERT_DUP, 55, &record);
+        op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c={0};
@@ -439,7 +439,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         tree=txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
-        op=txn_opnode_append(txn, node, TXN_OP_INSERT_DUP, 55, &record);
+        op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c={0};
@@ -468,7 +468,7 @@ public:
         BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
         tree=txn_tree_get_or_create(m_db);
         node=txn_opnode_create(m_db, &key);
-        op=txn_opnode_append(txn, node, TXN_OP_INSERT_DUP, 55, &record);
+        op=txn_opnode_append(txn, node, 0, TXN_OP_INSERT_DUP, 55, &record);
         BFC_ASSERT(op!=0);
 
         txn_cursor_t c={0};

@@ -740,29 +740,37 @@ o support cursors!!!
         x couple cursor to a duplicate in the txn-tree
 
         o implement test-driven
-            o insert duplicates in btree (and move through them)
-            o insert duplicates in txn (and move through them)
+            x insert duplicates in btree (and move through them)
+            x insert duplicates w/ LAST (default)
+            x insert duplicates w/ FIRST
+
+cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
+            o insert duplicates w/ BEFORE (w/ cursor coupled to txn-key)
+            o insert duplicates w/ AFTER (w/ cursor coupled to btree-key)
+            o insert duplicates for several keys (only in txn)
+            o insert duplicates for several keys (only in btree)
             o insert duplicates w/ existing duplicates in btree 
                     (and move through them)
             o insert duplicates w/ 1 duplicate in btree
-            o insert duplicates w/ FIRST
-            o insert duplicates w/ LAST
-            o insert duplicates w/ BEFORE
-            o insert duplicates w/ AFTER
+
             o if a cursor is coupled to dupe #2, and a dupe at position 1
                 is inserted, then the cursor must be coupled to #3
                 (and all other cursors must be modified as well)
+            o all insert-cases from above, but with an existing dupecache!
+                (it has to be updated.)
             o overwrite duplicates
             o find cursor - always returns the oldest duplicate
             o erase duplicates (ham_cursor_erase)
             o erase all duplicates (ham_erase)
+            o clone cursor: make sure that the new cursor is coupled to the
+                same duplicate
             o move cursor...
-                o first
-                o last
+                x first
+                x last
+                x next w/ dupes
+                x previous w/ dupes
                 o next w/ skip
-                o next w/ dupes
                 o previous w/ skip
-                o previous w/ dupes
                 o only btree dupes
                 o only txn dupes
                 o with mixed dupes
@@ -771,6 +779,17 @@ o support cursors!!!
                 o only with btree dupes
                 o only with txn dupes
                 o with with txn dupes
+            o test with tiny, small, null records
+                -> check for dupe_entry_get_rid in cursor.c
+            o get duplicate count
+
+    o review all loops that are like...
+        op=txn_node_get_newest();
+        while (op) { 
+            ...
+            op=txn_op_get_next_in_node(op);
+        }
+        -> cursor.c uses a different loop because this one was not working!
 
 o add hamsterdb.spec file from 1.1.8
     https://github.com/cruppstahl/hamsterdb/commit/46260d14d0192299b15286c93a843d11dc4ccaa6

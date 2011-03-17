@@ -3723,19 +3723,19 @@ public:
         dupecache_t c;
         BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
 
-        dupe_entry_t entries[20];
+        dupecache_line_t entries[20];
         memset(&entries[0], 0, sizeof(entries));
         for (int i=0; i<20; i++)
-            entries[i]._rid=i;
+            dupecache_line_set_btree_rid(&entries[i], i);
 
         for (int i=0; i<20; i++)
             BFC_ASSERT_EQUAL(0, dupecache_append(&c, &entries[i]));
         BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
         BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
 
-        dupe_entry_t *e=dupecache_get_elements(&c);
+        dupecache_line_t *e=dupecache_get_elements(&c);
         for (int i=0; i<20; i++)
-            BFC_ASSERT_EQUAL((ham_u64_t)i, e[i]._rid);
+            BFC_ASSERT_EQUAL((ham_u64_t)i, dupecache_line_get_btree_rid(&e[i]));
 
         dupecache_clear(&c);
     }
@@ -3745,19 +3745,19 @@ public:
         dupecache_t c;
         BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
 
-        dupe_entry_t entries[20];
+        dupecache_line_t entries[20];
         memset(&entries[0], 0, sizeof(entries));
         for (int i=0; i<20; i++)
-            entries[i]._rid=i;
+            dupecache_line_set_btree_rid(&entries[i], i);
 
         for (int i=0; i<20; i++)
             BFC_ASSERT_EQUAL(0, dupecache_insert(&c, 0, &entries[i]));
         BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
         BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
 
-        dupe_entry_t *e=dupecache_get_elements(&c);
+        dupecache_line_t *e=dupecache_get_elements(&c);
         for (int i=19, j=0; i>=0; i--, j++)
-            BFC_ASSERT_EQUAL((ham_u64_t)i, e[j]._rid);
+            BFC_ASSERT_EQUAL((ham_u64_t)i, dupecache_line_get_btree_rid(&e[j]));
 
         dupecache_clear(&c);
     }
@@ -3767,19 +3767,19 @@ public:
         dupecache_t c;
         BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
 
-        dupe_entry_t entries[20];
+        dupecache_line_t entries[20];
         memset(&entries[0], 0, sizeof(entries));
         for (int i=0; i<20; i++)
-            entries[i]._rid=i;
+            dupecache_line_set_btree_rid(&entries[i], i);
 
         for (int i=0; i<20; i++)
             BFC_ASSERT_EQUAL(0, dupecache_insert(&c, i, &entries[i]));
         BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
         BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
 
-        dupe_entry_t *e=dupecache_get_elements(&c);
+        dupecache_line_t *e=dupecache_get_elements(&c);
         for (int i=0; i<20; i++)
-            BFC_ASSERT_EQUAL((ham_u64_t)i, e[i]._rid);
+            BFC_ASSERT_EQUAL((ham_u64_t)i, dupecache_line_get_btree_rid(&e[i]));
 
         dupecache_clear(&c);
     }
@@ -3789,10 +3789,10 @@ public:
         dupecache_t c;
         BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
 
-        dupe_entry_t entries[20];
+        dupecache_line_t entries[20];
         memset(&entries[0], 0, sizeof(entries));
         for (int i=0; i<20; i++)
-            entries[i]._rid=i;
+            dupecache_line_set_btree_rid(&entries[i], i);
 
         int p=0;
         for (int j=0; j<5; j++) {
@@ -3803,27 +3803,27 @@ public:
         BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
         BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
 
-        dupe_entry_t *e=dupecache_get_elements(&c);
-        BFC_ASSERT_EQUAL((ham_u64_t)3,  e[ 0]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)7,  e[ 1]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)11, e[ 2]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)15, e[ 3]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)19, e[ 4]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)18, e[ 5]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)17, e[ 6]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)16, e[ 7]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)14, e[ 8]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)13, e[ 9]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)12, e[10]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)10, e[11]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)9,  e[12]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)8,  e[13]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)6,  e[14]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)5,  e[15]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)4,  e[16]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)2,  e[17]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)1,  e[18]._rid);
-        BFC_ASSERT_EQUAL((ham_u64_t)0,  e[19]._rid);
+        dupecache_line_t *e=dupecache_get_elements(&c);
+        BFC_ASSERT_EQUAL((ham_u64_t)3,  e[ 0]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)7,  e[ 1]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)11, e[ 2]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)15, e[ 3]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)19, e[ 4]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)18, e[ 5]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)17, e[ 6]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)16, e[ 7]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)14, e[ 8]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)13, e[ 9]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)12, e[10]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)10, e[11]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)9,  e[12]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)8,  e[13]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)6,  e[14]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)5,  e[15]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)4,  e[16]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)2,  e[17]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)1,  e[18]._u._btree_rid);
+        BFC_ASSERT_EQUAL((ham_u64_t)0,  e[19]._u._btree_rid);
 
         dupecache_clear(&c);
     }
@@ -3833,23 +3833,24 @@ public:
         dupecache_t c;
         BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
 
-        dupe_entry_t entries[20];
+        dupecache_line_t entries[20];
         memset(&entries[0], 0, sizeof(entries));
         for (int i=0; i<20; i++)
-            entries[i]._rid=i;
+            dupecache_line_set_btree_rid(&entries[i], i);
 
         for (int i=0; i<20; i++)
             BFC_ASSERT_EQUAL(0, dupecache_append(&c, &entries[i]));
         BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
         BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
 
-        dupe_entry_t *e=dupecache_get_elements(&c);
+        dupecache_line_t *e=dupecache_get_elements(&c);
         int s=1;
         for (int i=19; i>=0; i--) {
             BFC_ASSERT_EQUAL(0, dupecache_erase(&c, 0));
             BFC_ASSERT_EQUAL((unsigned)i, dupecache_get_count(&c));
             for (int j=0; j<i; j++)
-                BFC_ASSERT_EQUAL((ham_u64_t)s+j,  e[j]._rid);
+                BFC_ASSERT_EQUAL((ham_u64_t)s+j, 
+                            dupecache_line_get_btree_rid(&e[j]));
             s++;
         }
 
@@ -3863,21 +3864,22 @@ public:
         dupecache_t c;
         BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
 
-        dupe_entry_t entries[20];
+        dupecache_line_t entries[20];
         memset(&entries[0], 0, sizeof(entries));
         for (int i=0; i<20; i++)
-            entries[i]._rid=i;
+            dupecache_line_set_btree_rid(&entries[i], i);
 
         for (int i=0; i<20; i++)
             BFC_ASSERT_EQUAL(0, dupecache_append(&c, &entries[i]));
         BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
         BFC_ASSERT_EQUAL(20u, dupecache_get_count(&c));
 
-        dupe_entry_t *e=dupecache_get_elements(&c);
+        dupecache_line_t *e=dupecache_get_elements(&c);
         for (int i=0; i<20; i++) {
             BFC_ASSERT_EQUAL(0, dupecache_erase(&c, dupecache_get_count(&c)-1));
             for (int j=0; j<20-i; j++)
-                BFC_ASSERT_EQUAL((ham_u64_t)j,  e[j]._rid);
+                BFC_ASSERT_EQUAL((ham_u64_t)j,
+                            dupecache_line_get_btree_rid(&e[j]));
         }
 
         BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
@@ -3890,10 +3892,10 @@ public:
         dupecache_t c;
         BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 2));
 
-        dupe_entry_t entries[20];
+        dupecache_line_t entries[20];
         memset(&entries[0], 0, sizeof(entries));
         for (int i=0; i<20; i++)
-            entries[i]._rid=i;
+            dupecache_line_set_btree_rid(&entries[i], i);
 
         for (int i=0; i<20; i++)
             BFC_ASSERT_EQUAL(0, dupecache_append(&c, &entries[i]));
@@ -3903,9 +3905,10 @@ public:
         for (int i=0; i<10; i++)
             BFC_ASSERT_EQUAL(0, dupecache_erase(&c, i));
 
-        dupe_entry_t *e=dupecache_get_elements(&c);
+        dupecache_line_t *e=dupecache_get_elements(&c);
         for (int i=0; i<10; i++) {
-            BFC_ASSERT_EQUAL((unsigned)i*2+1, e[i]._rid);
+            BFC_ASSERT_EQUAL((unsigned)i*2+1,
+                            dupecache_line_get_btree_rid(&e[i]));
         }
 
         BFC_ASSERT_EQUAL(32u, dupecache_get_capacity(&c));
@@ -3914,8 +3917,169 @@ public:
     }
 };
 
+class DupeCursorTest : public hamsterDB_fixture
+{
+    define_super(hamsterDB_fixture);
+
+protected:
+    ham_cursor_t *m_cursor;
+    ham_db_t *m_db;
+    ham_env_t *m_env;
+    ham_txn_t *m_txn;
+    memtracker_t *m_alloc;
+
+public:
+    DupeCursorTest()
+    : hamsterDB_fixture("DupeCursorTest")
+    {
+        testrunner::get_instance()->register_fixture(this);
+        BFC_REGISTER_TEST(DupeCursorTest, simpleBtreeTest);
+        BFC_REGISTER_TEST(DupeCursorTest, simpleTxnInsertLastTest);
+        BFC_REGISTER_TEST(DupeCursorTest, simpleTxnInsertFirstTest);
+    }
+
+    virtual void setup() 
+    { 
+        __super::setup();
+
+        BFC_ASSERT((m_alloc=memtracker_new())!=0);
+
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
+
+        BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
+        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
+
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(m_env, BFC_OPATH(".test"), 
+                    HAM_ENABLE_DUPLICATES|HAM_ENABLE_TRANSACTIONS, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_db(m_env, m_db, 13, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &m_cursor));
+    }
+
+    virtual void teardown() 
+    { 
+        __super::teardown();
+
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(m_cursor));
+        if (m_txn)
+            BFC_ASSERT_EQUAL(0, ham_txn_commit(m_txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_TXN_AUTO_COMMIT));
+        BFC_ASSERT_EQUAL(0, ham_env_close(m_env, HAM_AUTO_CLEANUP));
+        ham_delete(m_db);
+        ham_env_delete(m_env);
+        BFC_ASSERT(!memtracker_get_leaks(m_alloc));
+    }
+
+    ham_status_t insertBtree(const char *key, const char *rec, 
+                        ham_u32_t flags=0)
+    {
+        ham_key_t k={0};
+        k.data=(void *)key;
+        k.size=strlen(key)+1;
+        ham_record_t r={0};
+        r.data=(void *)rec;
+        r.size=strlen(rec)+1;
+
+        ham_backend_t *be=db_get_backend(m_db);
+        return (be->_fun_insert(be, &k, &r, flags));
+    }
+
+    ham_status_t move(const char *key, const char *rec, ham_u32_t flags)
+    {
+        ham_key_t k={0};
+        ham_record_t r={0};
+        ham_status_t st;
+
+        st=ham_cursor_move(m_cursor, &k, &r, flags);
+        if (st)
+            return (st);
+        if (strcmp(key, (char *)k.data))
+            return (HAM_INTERNAL_ERROR);
+        if (strcmp(rec, (char *)r.data))
+            return (HAM_INTERNAL_ERROR);
+        return (0);
+    }
+
+    ham_status_t insertTxn(const char *key, const char *rec, 
+                        ham_u32_t flags=0)
+    {
+        ham_key_t k={0};
+        k.data=(void *)key;
+        k.size=strlen(key)+1;
+        ham_record_t r={0};
+        r.data=(void *)rec;
+        r.size=strlen(rec)+1;
+
+        return (ham_cursor_insert(m_cursor, &k, &r, flags));
+    }
+
+    void simpleBtreeTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("33333", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertBtree("33333", "aaaab", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("33333", "aaaac", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("33333", "aaaad", HAM_DUPLICATE));
+
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaaa", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaab", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaac", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaad", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaad", HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaac", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaab", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaaa", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
+    }
+
+    void simpleTxnInsertLastTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("33333", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("33333", "aaaab", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("33333", "aaaac", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("33333", "aaaad", HAM_DUPLICATE));
+
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaaa", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaab", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaac", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaad", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaad", HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaac", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaab", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaaa", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
+    }
+
+    void simpleTxnInsertFirstTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("33333", "aaaaa"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("33333", "aaaab", 
+                    HAM_DUPLICATE|HAM_DUPLICATE_INSERT_FIRST));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("33333", "aaaac", 
+                    HAM_DUPLICATE|HAM_DUPLICATE_INSERT_FIRST));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("33333", "aaaad", 
+                    HAM_DUPLICATE|HAM_DUPLICATE_INSERT_FIRST));
+
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaad", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaac", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaab", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaaa", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaaa", HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaab", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaac", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(0, move       ("33333", "aaaad", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
+    }
+
+};
+
 BFC_REGISTER_FIXTURE(TempTxnCursorTest);
 BFC_REGISTER_FIXTURE(LongTxnCursorTest);
 BFC_REGISTER_FIXTURE(NoTxnCursorTest);
 BFC_REGISTER_FIXTURE(DupeCacheTest);
+BFC_REGISTER_FIXTURE(DupeCursorTest);
 
