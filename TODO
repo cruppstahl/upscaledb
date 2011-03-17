@@ -744,8 +744,8 @@ o support cursors!!!
             x insert duplicates w/ LAST (default)
             x insert duplicates w/ FIRST
             x insert duplicates for several keys (only in btree)
+            x insert duplicates for several keys (only in txn)
 
-            o insert duplicates for several keys (only in txn)
             o insert duplicates w/ 1 duplicate in btree
             o insert duplicates w/ existing duplicates in btree 
                     (and move through them)

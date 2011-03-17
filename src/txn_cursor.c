@@ -242,9 +242,12 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
                                 node);
                     if (!node)
                         return (HAM_KEY_NOT_FOUND);
+                    op=0;
                 }
             }
 
+            dupecache_reset(dc);
+            cursor_set_dupecache_index(pc, 0);
 
             /* if we're here then either we already walked through the whole
              * duplicate list OR the key has no duplicates. In these cases
@@ -256,8 +259,16 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
                     return (HAM_KEY_NOT_FOUND);
                 op=0;
             }
-            else
+            else if (st)
                 return (st);
+
+            /* if there are NO duplicates: return; otherwise continue the loop
+             * and couple to a duplicate key */
+            if (dupecache_get_count(dc)) {
+                cursor_set_dupecache_index(pc, 1);
+                __couple_cursor_to_dupe(cursor, cursor_get_dupecache_index(pc));
+            }
+            return (0);
         }
     }
     else if (flags&HAM_CURSOR_PREVIOUS) {
@@ -292,8 +303,13 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
                                 node);
                     if (!node)
                         return (HAM_KEY_NOT_FOUND);
+                    op=0;
                 }
             }
+
+            dupecache_reset(dc);
+            cursor_set_dupecache_index(pc, 0);
+
 
             /* if we're here then either we already walked through the whole
              * duplicate list OR the key has no duplicates. In these cases
@@ -305,8 +321,16 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
                     return (HAM_KEY_NOT_FOUND);
                 op=0;
             }
-            else
+            else if (st)
                 return (st);
+
+            /* if there are duplicates: couple to the last duplicate of the
+             * new key */
+            if (dupecache_get_count(dc)) {
+                cursor_set_dupecache_index(pc, dupecache_get_count(dc));
+                __couple_cursor_to_dupe(cursor, cursor_get_dupecache_index(pc));
+            }
+            return (0);
         }
     }
     else {
