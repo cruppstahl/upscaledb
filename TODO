@@ -746,9 +746,9 @@ o support cursors!!!
             x insert duplicates for several keys (only in btree)
             x insert duplicates for several keys (only in txn)
 
-            o insert duplicates w/ 1 duplicate in btree
             o insert duplicates w/ existing duplicates in btree 
                     (and move through them)
+=======> fails - DupeCursorTest::mixedTest
 
 txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
             o insert duplicates w/ BEFORE (w/ cursor coupled to txn-key)
@@ -762,6 +762,7 @@ txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
                     is inserted, then the cursor must be coupled to #3
                     (and all other cursors must be modified as well); also
                     clear the dupe cache with those cursors!
+            o same as above, but erase cursors
                 
             o all insert-cases from above, but with an existing dupecache!
                 (it has to be updated.)
@@ -795,6 +796,7 @@ txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
             o test with tiny, small, null records
                 -> check for dupe_entry_get_rid in cursor.c
             o get duplicate count
+            o ham_find: must return same result as ham_cursor_find (first dupe)
 
     o review all loops that are like...
         op=txn_node_get_newest();
@@ -809,6 +811,7 @@ o add hamsterdb.spec file from 1.1.8
     o make sure that the version information is automatically updated!
 
 o precompiled windows libraries: hamserver-x.x.x.dll is still version 1.1.5
+    (also on master branch)
 
 o currently, two log sub-systems are used. one for logical journal and the 
     other for the physical one. in a later version we will only use the journal
