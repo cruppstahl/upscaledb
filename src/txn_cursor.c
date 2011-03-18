@@ -207,7 +207,9 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
         if (st)
             return (st);
 
-        __couple_cursor_to_dupe(cursor, dupecache_get_count(dc));
+        if (dupecache_get_count(dc))
+            __couple_cursor_to_dupe(cursor, dupecache_get_count(dc));
+
         return (0);
     }
     else if (flags&HAM_CURSOR_NEXT) {
@@ -226,7 +228,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
             ham_cursor_t *pc=txn_cursor_get_parent(cursor);
             dupecache_t *dc=cursor_get_dupecache(pc);
 
-            /* duplicate key? then traverse the duplicate list */
+            /* duplicate key? then continue to traverse the duplicate list */
             if (cursor_get_dupecache_index(pc)) {
                 if (cursor_get_dupecache_index(pc)<dupecache_get_count(dc)) {
                     cursor_set_dupecache_index(pc, 
@@ -252,12 +254,14 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
             /* if we're here then either we already walked through the whole
              * duplicate list OR the key has no duplicates. In these cases
              * we just move to the next txn-op */
+next_op:
             st=__move_top_in_node(cursor, node, op, HAM_TRUE, flags); 
             if ((st==HAM_KEY_NOT_FOUND) || (st==HAM_KEY_ERASED_IN_TXN)) {
                 node=txn_tree_get_next_node(txn_opnode_get_tree(node), node);
                 if (!node)
                     return (HAM_KEY_NOT_FOUND);
                 op=0;
+                goto next_op;
             }
             else if (st)
                 return (st);
@@ -314,12 +318,14 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
             /* if we're here then either we already walked through the whole
              * duplicate list OR the key has no duplicates. In these cases
              * we just move to the next txn-op */
+previous_op:
             st=__move_top_in_node(cursor, node, op, HAM_TRUE, flags); 
             if ((st==HAM_KEY_NOT_FOUND) || (st==HAM_KEY_ERASED_IN_TXN)) {
                 node=txn_tree_get_previous_node(txn_opnode_get_tree(node), node);
                 if (!node)
                     return (HAM_KEY_NOT_FOUND);
                 op=0;
+                goto previous_op;
             }
             else if (st)
                 return (st);
