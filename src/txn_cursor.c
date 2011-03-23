@@ -185,6 +185,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
             return (HAM_CURSOR_IS_NIL);
 
         node=txn_op_get_node(op);
+        op=0;
 
         ham_assert(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED, (""));
 
@@ -220,6 +221,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
             return (HAM_CURSOR_IS_NIL);
 
         node=txn_op_get_node(op);
+        op=0;
 
         ham_assert(txn_cursor_get_flags(cursor)&TXN_CURSOR_FLAG_COUPLED, (""));
 
