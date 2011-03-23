@@ -125,6 +125,12 @@ dupecache_create(dupecache_t *c, struct ham_cursor_t *cursor,
                     ham_size_t capacity);
 
 /**
+ * clones two dupe-caches
+ */
+extern ham_status_t
+dupecache_clone(dupecache_t *src, dupecache_t *dest);
+
+/**
  * inserts a new item somewhere in the cache; resizes the cache if necessary
  */
 extern ham_status_t
@@ -344,6 +350,13 @@ struct ham_cursor_t
  */
 extern ham_status_t
 cursor_update_dupecache(ham_cursor_t *cursor, txn_opnode_t *node);
+
+/**
+ * Couples the cursor to a duplicate in the dupe table
+ * dupe_id is a 1 based index!!
+ */
+extern void
+cursor_couple_to_dupe(ham_cursor_t *cursor, ham_u32_t dupe_id);
 
 
 #ifdef __cplusplus

@@ -1019,8 +1019,20 @@ bt_cursor_get_duplicate_table(ham_bt_cursor_t *c, dupe_table_t **ptable)
     entry=btree_node_get_key(db, node, bt_cursor_get_coupled_index(c));
 
     /* if key has no duplicates: return successfully, but with *ptable=0 */
-    if (!(key_get_flags(entry)&KEY_HAS_DUPLICATES))
+    if (!(key_get_flags(entry)&KEY_HAS_DUPLICATES)) {
+        dupe_entry_t *e;
+        dupe_table_t *t;
+        t=(dupe_table_t *)allocator_calloc(env_get_allocator(env), sizeof(*t));
+        if (!t)
+            return (HAM_OUT_OF_MEMORY);
+        dupe_table_set_capacity(t, 1);
+        dupe_table_set_count(t, 1);
+        e=dupe_table_get_entry(t, 0);
+        dupe_entry_set_flags(e, key_get_flags(entry));
+        dupe_entry_set_rid(e, key_get_rawptr(entry));
+        *ptable=t;
         return (0);
+    }
 
     return (blob_duplicate_get_table(env, key_get_ptr(entry), ptable));
 }

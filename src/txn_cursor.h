@@ -112,6 +112,12 @@ extern void
 txn_cursor_set_to_nil(txn_cursor_t *cursor);
 
 /**
+ * couples a txn cursor to an txn_op_t structure
+ */
+extern void
+txn_cursor_couple(txn_cursor_t *cursor, txn_op_t *op);
+
+/**
  * clones a cursor
  */
 extern void

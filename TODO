@@ -746,9 +746,27 @@ o support cursors!!!
             x insert duplicates for several keys (only in btree)
             x insert duplicates for several keys (only in txn)
 
+            o btree: key "111", 3 dupes
+                txn: key "222", 3 dupes
+                o move to first
+                o move to last
+                o then vice versa
             o insert duplicates w/ existing duplicates in btree 
                     (and move through them)
+o the duplicate table read with bt_get_duplicate_table returns a pointer
+    to a blob (in case of in-memory) or a new, allocated buffer. who will 
+    clean up this buffer (or not clean it up)?
+
 =======> fails - DupeCursorTest::mixedTest
+
+1 btree-key + 1 txn-key as duplicate:
+in cursor_update_dupecache, the duplicate table is read from the btree.
+however, if there's just 1 btree-key, then there's no duplicate table available!
+in this case we have to store the single btree key in the dupecache.
+
+also, in do_local_cursor_move, the btree cursor should not move if 
+txn_cursor_move only traverses the dupecache. actually, it should be completely
+ignored!
 
 txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
             o insert duplicates w/ BEFORE (w/ cursor coupled to txn-key)

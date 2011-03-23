@@ -55,6 +55,26 @@ dupecache_create(dupecache_t *c, struct ham_cursor_t *cursor,
 }
 
 ham_status_t
+dupecache_clone(dupecache_t *src, dupecache_t *dest)
+{
+    ham_status_t st;
+
+    *dest=*src;
+    dupecache_set_elements(dest, 0);
+
+    if (!dupecache_get_capacity(src))
+        return (0);
+
+    st=__dupecache_resize(dest, dupecache_get_capacity(src));
+    if (st)
+        return (st);
+
+    memcpy(dupecache_get_elements(dest), dupecache_get_elements(src),
+            dupecache_get_count(dest)*sizeof(dupecache_line_t));
+    return (0);
+}
+
+ham_status_t
 dupecache_insert(dupecache_t *c, ham_u32_t position, dupecache_line_t *dupe)
 {
     ham_status_t st;
@@ -251,4 +271,29 @@ cursor_update_dupecache(ham_cursor_t *cursor, txn_opnode_t *node)
     }
 
     return (0);
+}
+
+void
+cursor_couple_to_dupe(ham_cursor_t *cursor, ham_u32_t dupe_id)
+{
+    txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
+    dupecache_t *dc=cursor_get_dupecache(cursor);
+    dupecache_line_t *e=0;
+
+    ham_assert(dc && dupecache_get_count(dc)>=dupe_id, (""));
+    ham_assert(dupe_id>=1, (""));
+
+    /* dupe-id is a 1-based index! */
+    e=dupecache_get_elements(dc)+(dupe_id-1);
+    if (dupecache_line_use_btree(e)) {
+        cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+        //bt_cursor_set_dupe_id(btc, 0); -- TODO
+    }
+    else {
+        txn_cursor_couple(txnc, dupecache_line_get_txn_op(e));
+        cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+    }
+    cursor_set_dupecache_index(cursor, dupe_id);
 }

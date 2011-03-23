@@ -2449,6 +2449,11 @@ _local_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest)
                         cursor_get_txn_cursor(*dest));
     }
 
+    if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
+        dupecache_clone(cursor_get_dupecache(src), 
+                        cursor_get_dupecache(*dest));
+    }
+
     if (cursor_get_txn(src))
         txn_set_cursor_refcount(cursor_get_txn(src), 
                 txn_get_cursor_refcount(cursor_get_txn(src))+1);
@@ -3071,6 +3076,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                     flags&=~HAM_CURSOR_FIRST;
                     flags|=HAM_CURSOR_NEXT;
                     (void)cursor->_fun_move(cursor, 0, 0, flags);
+                    /* TODO don't move if we have duplicates!!?? */
                 }
                 cursor_set_flags(cursor, 
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
@@ -3447,24 +3453,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
     }
 
-    /*
-     * retrieve key/record, if requested
-     */
-    if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN) {
-        if (key) {
-            st=txn_cursor_get_key(txnc, key);
-            if (st)
-                goto bail;
-        }
-        if (record) {
-            st=txn_cursor_get_record(txnc, record);
-            if (st)
-                goto bail;
-        }
-    }
-    else {
-        st=cursor->_fun_move(cursor, key, record, 0);
-    }
+    st=0;
 
 bail:
     return (st);
@@ -3480,6 +3469,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     ham_txn_t *local_txn=0;
     txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
     ham_bool_t fresh_start=HAM_FALSE;
+    dupecache_t *dc=cursor_get_dupecache(cursor);
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
@@ -3563,12 +3553,85 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
     }
 
+    if (st!=0)
+        goto bail;
+
     /*
      * now move forwards, backwards etc
+     *
+     * first check if we have a duplicate list and we want to move next
+     * or previous in the duplicates
      */
-    if (st==0)
-        st=do_local_cursor_move(cursor, key, record, flags, fresh_start);
+    if (dupecache_get_count(dc)) {
+        if (flags&HAM_CURSOR_NEXT) {
+            if (cursor_get_dupecache_index(cursor)) {
+                if (cursor_get_dupecache_index(cursor)<dupecache_get_count(dc)) {
+                    cursor_set_dupecache_index(cursor, 
+                                cursor_get_dupecache_index(cursor)+1);
+                    cursor_couple_to_dupe(cursor, 
+                                cursor_get_dupecache_index(cursor));
+                    goto bail;
+                }
+            }
+        }
+        else if (flags&HAM_CURSOR_PREVIOUS) {
+            /* duplicate key? then traverse the duplicate list */
+            if (cursor_get_dupecache_index(cursor)) {
+                if (cursor_get_dupecache_index(cursor)>1) {
+                    cursor_set_dupecache_index(cursor, 
+                                cursor_get_dupecache_index(cursor)-1);
+                    cursor_couple_to_dupe(cursor, 
+                                cursor_get_dupecache_index(cursor));
+                    goto bail;
+                }
+            }
+        }
+
+        /* still here? then we don't care about the dupecache anymore */
+        dupecache_reset(dc);
+        cursor_set_dupecache_index(cursor, 0);
+    }
+
+    /* move to the next key; this function will build a duplicate table
+     * if the next key has duplicates */
+    st=do_local_cursor_move(cursor, key, record, flags, fresh_start);
+    if (st)
+        goto bail;
+
+    /* this key has duplicates? then make sure we pick the right one */
+    if (dupecache_get_count(dc)) {
+        if ((flags&HAM_CURSOR_FIRST) || (flags&HAM_CURSOR_NEXT)) {
+            cursor_couple_to_dupe(cursor, 1);
+        }
+        else if ((flags&HAM_CURSOR_LAST) || (flags&HAM_CURSOR_PREVIOUS)) {
+            cursor_couple_to_dupe(cursor, dupecache_get_count(dc));
+        }
+        else
+            ham_assert(!"shouldn't be here", (""));
+    }
+
 bail:
+
+    /*
+     * retrieve key/record, if requested
+     */
+    if (st==0) {
+        if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN) {
+            if (key) {
+                st=txn_cursor_get_key(txnc, key);
+                if (st)
+                    goto bail;
+            }
+            if (record) {
+                st=txn_cursor_get_record(txnc, record);
+                if (st)
+                    goto bail;
+            }
+        }
+        else {
+            st=cursor->_fun_move(cursor, key, record, 0);
+        }
+    }
 
     /* if we created a temp. txn then clean it up again */
     if (local_txn)

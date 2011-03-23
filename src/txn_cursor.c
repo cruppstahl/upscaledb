@@ -42,8 +42,8 @@ txn_cursor_set_to_nil(txn_cursor_t *cursor)
     /* otherwise cursor is already nil */
 }
 
-static void
-__couple_cursor(txn_cursor_t *cursor, txn_op_t *op)
+void
+txn_cursor_couple(txn_cursor_t *cursor, txn_op_t *op)
 {
     txn_cursor_set_to_nil(cursor);
     txn_cursor_set_coupled_op(cursor, op);
@@ -53,31 +53,13 @@ __couple_cursor(txn_cursor_t *cursor, txn_op_t *op)
     txn_op_add_cursor(op, cursor);
 }
 
-static void
-__couple_cursor_to_dupe(txn_cursor_t *cursor, ham_u32_t dupe_id)
-{
-    ham_cursor_t *pc=txn_cursor_get_parent(cursor);
-    dupecache_t *dc=cursor_get_dupecache(pc);
-    dupecache_line_t *e=0;
-
-    ham_assert(dc && dupecache_get_count(dc)>=dupe_id, (""));
-    ham_assert(dupe_id>=1, (""));
-
-    /* dupe-id is a 1-based index! */
-    e=dupecache_get_elements(dc)+(dupe_id-1);
-    ham_assert(!dupecache_line_use_btree(e), (""));
-    
-    __couple_cursor(cursor, dupecache_line_get_txn_op(e));
-    cursor_set_dupecache_index(pc, dupe_id);
-}
-
 void
 txn_cursor_clone(const txn_cursor_t *src, txn_cursor_t *dest)
 {
     txn_cursor_set_flags(dest, txn_cursor_get_flags(src));
 
     if (txn_cursor_get_flags(dest)&TXN_CURSOR_FLAG_COUPLED)
-        __couple_cursor(dest, txn_cursor_get_coupled_op(src));
+        txn_cursor_couple(dest, txn_cursor_get_coupled_op(src));
 }
 
 void
@@ -130,7 +112,7 @@ __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
             /* a normal (overwriting) insert will return this key */
             if ((txn_op_get_flags(op)&TXN_OP_INSERT)
                     || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)) {
-                __couple_cursor(cursor, op);
+                txn_cursor_couple(cursor, op);
                 return (0);
             }
             /* retrieve a duplicate key */
@@ -146,7 +128,7 @@ __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
              * cursor because the caller might need to know WHICH key was
              * deleted!) */
             if (txn_op_get_flags(op)&TXN_OP_ERASE) {
-                __couple_cursor(cursor, op);
+                txn_cursor_couple(cursor, op);
                 return (HAM_KEY_ERASED_IN_TXN);
             }
             /* everything else is a bug! */
@@ -165,7 +147,7 @@ next:
 
     /* did we find a duplicate key? then return it */
     if (lastdup) {
-        __couple_cursor(cursor, op);
+        txn_cursor_couple(cursor, op);
         return (0);
     }
  
@@ -178,8 +160,6 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
     ham_status_t st;
     ham_db_t *db=txn_cursor_get_db(cursor);
     txn_opnode_t *node;
-    ham_cursor_t *pc=txn_cursor_get_parent(cursor);
-    dupecache_t *dc=cursor_get_dupecache(pc);
 
     if (flags&HAM_CURSOR_FIRST) {
         /* first set cursor to nil */
@@ -188,13 +168,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
         node=txn_tree_get_first(db_get_optree(db));
         if (!node)
             return (HAM_KEY_NOT_FOUND);
-        st=__move_top_in_node(cursor, node, 0, HAM_TRUE, flags);
-        if (st)
-            return (st);
-
-        if (dupecache_get_count(dc))
-            __couple_cursor_to_dupe(cursor, 1);
-        return (0);
+        return (__move_top_in_node(cursor, node, 0, HAM_TRUE, flags));
     }
     else if (flags&HAM_CURSOR_LAST) {
         /* first set cursor to nil */
@@ -203,14 +177,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
         node=txn_tree_get_last(db_get_optree(db));
         if (!node)
             return (HAM_KEY_NOT_FOUND);
-        st=__move_top_in_node(cursor, node, 0, HAM_TRUE, flags);
-        if (st)
-            return (st);
-
-        if (dupecache_get_count(dc))
-            __couple_cursor_to_dupe(cursor, dupecache_get_count(dc));
-
-        return (0);
+        return (__move_top_in_node(cursor, node, 0, HAM_TRUE, flags));
     }
     else if (flags&HAM_CURSOR_NEXT) {
         txn_op_t *op=txn_cursor_get_coupled_op(cursor);
@@ -225,55 +192,27 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
          * then move to the next node. repeat till we've found a key or 
          * till we've reached the end of the tree */
         while (1) {
-            ham_cursor_t *pc=txn_cursor_get_parent(cursor);
-            dupecache_t *dc=cursor_get_dupecache(pc);
-
-            /* duplicate key? then continue to traverse the duplicate list */
-            if (cursor_get_dupecache_index(pc)) {
-                if (cursor_get_dupecache_index(pc)<dupecache_get_count(dc)) {
-                    cursor_set_dupecache_index(pc, 
-                                cursor_get_dupecache_index(pc)+1);
-                    __couple_cursor_to_dupe(cursor, 
-                                cursor_get_dupecache_index(pc));
-                    return (0);
-                }
-                else {
-                    cursor_set_dupecache_index(pc, 0);
-                    dupecache_reset(dc);
-                    node=txn_tree_get_next_node(txn_opnode_get_tree(node), 
-                                node);
-                    if (!node)
-                        return (HAM_KEY_NOT_FOUND);
-                    op=0;
-                }
-            }
-
-            dupecache_reset(dc);
-            cursor_set_dupecache_index(pc, 0);
-
-            /* if we're here then either we already walked through the whole
-             * duplicate list OR the key has no duplicates. In these cases
-             * we just move to the next txn-op */
-next_op:
+            node=txn_tree_get_next_node(txn_opnode_get_tree(node), node);
+            if (!node)
+                return (HAM_KEY_NOT_FOUND);
+            st=__move_top_in_node(cursor, node, op, HAM_TRUE, flags); 
+            if ((st==HAM_KEY_NOT_FOUND) || (st==HAM_KEY_ERASED_IN_TXN))
+                continue;
+            return (st);
+        }
+/*
+        while (1) {
             st=__move_top_in_node(cursor, node, op, HAM_TRUE, flags); 
             if ((st==HAM_KEY_NOT_FOUND) || (st==HAM_KEY_ERASED_IN_TXN)) {
                 node=txn_tree_get_next_node(txn_opnode_get_tree(node), node);
                 if (!node)
                     return (HAM_KEY_NOT_FOUND);
                 op=0;
-                goto next_op;
             }
-            else if (st)
+            else 
                 return (st);
-
-            /* if there are NO duplicates: return; otherwise continue the loop
-             * and couple to a duplicate key */
-            if (dupecache_get_count(dc)) {
-                cursor_set_dupecache_index(pc, 1);
-                __couple_cursor_to_dupe(cursor, cursor_get_dupecache_index(pc));
-            }
-            return (0);
         }
+*/
     }
     else if (flags&HAM_CURSOR_PREVIOUS) {
         txn_op_t *op=txn_cursor_get_coupled_op(cursor);
@@ -288,56 +227,27 @@ next_op:
          * then move to the previous node. repeat till we've found a key or 
          * till we've reached the end of the tree */
         while (1) {
-            ham_cursor_t *pc=txn_cursor_get_parent(cursor);
-            dupecache_t *dc=cursor_get_dupecache(pc);
-
-            /* duplicate key? then traverse the duplicate list */
-            if (cursor_get_dupecache_index(pc)) {
-                if (cursor_get_dupecache_index(pc)>1) {
-                    cursor_set_dupecache_index(pc, 
-                                cursor_get_dupecache_index(pc)-1);
-                    __couple_cursor_to_dupe(cursor, 
-                                cursor_get_dupecache_index(pc));
-                    return (0);
-                }
-                else {
-                    cursor_set_dupecache_index(pc, 0);
-                    dupecache_reset(dc);
-                    node=txn_tree_get_previous_node(txn_opnode_get_tree(node), 
-                                node);
-                    if (!node)
-                        return (HAM_KEY_NOT_FOUND);
-                    op=0;
-                }
-            }
-
-            dupecache_reset(dc);
-            cursor_set_dupecache_index(pc, 0);
-
-
-            /* if we're here then either we already walked through the whole
-             * duplicate list OR the key has no duplicates. In these cases
-             * we just move to the next txn-op */
-previous_op:
+            node=txn_tree_get_previous_node(txn_opnode_get_tree(node), node);
+            if (!node)
+                return (HAM_KEY_NOT_FOUND);
+            st=__move_top_in_node(cursor, node, op, HAM_TRUE, flags); 
+            if ((st==HAM_KEY_NOT_FOUND) || (st==HAM_KEY_ERASED_IN_TXN))
+                continue;
+            return (st);
+        }
+/*
+        while (1) {
             st=__move_top_in_node(cursor, node, op, HAM_TRUE, flags); 
             if ((st==HAM_KEY_NOT_FOUND) || (st==HAM_KEY_ERASED_IN_TXN)) {
                 node=txn_tree_get_previous_node(txn_opnode_get_tree(node), node);
                 if (!node)
                     return (HAM_KEY_NOT_FOUND);
                 op=0;
-                goto previous_op;
             }
-            else if (st)
+            else
                 return (st);
-
-            /* if there are duplicates: couple to the last duplicate of the
-             * new key */
-            if (dupecache_get_count(dc)) {
-                cursor_set_dupecache_index(pc, dupecache_get_count(dc));
-                __couple_cursor_to_dupe(cursor, cursor_get_dupecache_index(pc));
-            }
-            return (0);
         }
+*/
     }
     else {
         ham_assert(!"this flag is not yet implemented", (""));
