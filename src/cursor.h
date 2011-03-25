@@ -38,12 +38,15 @@ typedef struct dupecache_line_t {
     ham_bool_t _use_btree;
 
     union {
-        /** the btree flags */
-        ham_u32_t _btree_flags;
+        struct {
+            /** the btree flags */
+            ham_u32_t _btree_flags;
 
-        /** the btree record ID */
-        ham_u64_t _btree_rid;
+            /** the btree record ID */
+            ham_u64_t _btree_rid;
 
+        } _b;
+        
         /** the txn op structure */
         txn_op_t *_op;
     } _u;
@@ -57,16 +60,16 @@ typedef struct dupecache_line_t {
 #define dupecache_line_set_btree(dcl, b)        (dcl)->_use_btree=b
 
 /** Get flags of the btree record */
-#define dupecache_line_get_btree_flags(dcl)     (dcl)->_u._btree_flags
+#define dupecache_line_get_btree_flags(dcl)     (dcl)->_u._b._btree_flags
 
 /** Set flags of the btree record */
-#define dupecache_line_set_btree_flags(dcl, f)  (dcl)->_u._btree_flags=f
+#define dupecache_line_set_btree_flags(dcl, f)  (dcl)->_u._b._btree_flags=f
 
 /** Get ID of the btree record */
-#define dupecache_line_get_btree_rid(dcl)       (dcl)->_u._btree_rid
+#define dupecache_line_get_btree_rid(dcl)       (dcl)->_u._b._btree_rid
 
 /** Set ID of the btree record */
-#define dupecache_line_set_btree_rid(dcl, rid)  (dcl)->_u._btree_rid=rid
+#define dupecache_line_set_btree_rid(dcl, rid)  (dcl)->_u._b._btree_rid=rid
 
 /** Get txn_op_t pointer of the txn record */
 #define dupecache_line_get_txn_op(dcl)          (dcl)->_u._op
@@ -357,6 +360,16 @@ cursor_update_dupecache(ham_cursor_t *cursor, txn_opnode_t *node);
  */
 extern void
 cursor_couple_to_dupe(ham_cursor_t *cursor, ham_u32_t dupe_id);
+
+/**
+ * Checks if a btree cursor points to a key that was overwritten or erased
+ * in the txn-cursor
+ *
+ * this is needed in db.c when moving the cursor backwards/forwards and 
+ * consolidating the btree and the txn-tree
+ */
+extern ham_status_t
+cursor_check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor);
 
 
 #ifdef __cplusplus

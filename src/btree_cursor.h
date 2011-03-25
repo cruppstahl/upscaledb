@@ -242,12 +242,11 @@ bt_uncouple_all_cursors(ham_page_t *page, ham_size_t start);
  *
  * if key has no duplicates, *ptable is NULL.
  *
- * @warning memory has to be freed by the caller, UNLESS this is
- * an in-memory database!! in that case the returned pointer directly points
- * to the original table.
+ * @warning memory has to be freed by the caller IF needs_free is true!
  */
 extern ham_status_t
-bt_cursor_get_duplicate_table(ham_bt_cursor_t *cursor, dupe_table_t **ptable);
+bt_cursor_get_duplicate_table(ham_bt_cursor_t *c, dupe_table_t **ptable,
+                    ham_bool_t *needs_free);
 
 
 #ifdef __cplusplus

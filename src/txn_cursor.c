@@ -93,10 +93,8 @@ static ham_status_t
 __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
                 ham_bool_t ignore_conflicts, ham_u32_t flags)
 {
-    ham_status_t st=0;
     txn_op_t *lastdup=0;
     ham_cursor_t *pc=txn_cursor_get_parent(cursor);
-    dupecache_t *dc=cursor_get_dupecache(pc);
 
     if (!op)
         op=txn_opnode_get_newest_op(node);
@@ -117,11 +115,9 @@ __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
             }
             /* retrieve a duplicate key */
             if (txn_op_get_flags(op)&TXN_OP_INSERT_DUP) {
-                st=cursor_update_dupecache(txn_cursor_get_parent(cursor), node);
-                if (st)
-                    return (st);
-                if (dupecache_get_count(dc)==0)
-                    goto next;
+                /* the duplicates are handled by the caller. here we only
+                 * couple to the first op */
+                txn_cursor_couple(cursor, op);
                 return (0);
             }
             /* a normal erase will return an error (but we still couple the
@@ -201,19 +197,6 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
                 continue;
             return (st);
         }
-/*
-        while (1) {
-            st=__move_top_in_node(cursor, node, op, HAM_TRUE, flags); 
-            if ((st==HAM_KEY_NOT_FOUND) || (st==HAM_KEY_ERASED_IN_TXN)) {
-                node=txn_tree_get_next_node(txn_opnode_get_tree(node), node);
-                if (!node)
-                    return (HAM_KEY_NOT_FOUND);
-                op=0;
-            }
-            else 
-                return (st);
-        }
-*/
     }
     else if (flags&HAM_CURSOR_PREVIOUS) {
         txn_op_t *op=txn_cursor_get_coupled_op(cursor);
@@ -237,19 +220,6 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
                 continue;
             return (st);
         }
-/*
-        while (1) {
-            st=__move_top_in_node(cursor, node, op, HAM_TRUE, flags); 
-            if ((st==HAM_KEY_NOT_FOUND) || (st==HAM_KEY_ERASED_IN_TXN)) {
-                node=txn_tree_get_previous_node(txn_opnode_get_tree(node), node);
-                if (!node)
-                    return (HAM_KEY_NOT_FOUND);
-                op=0;
-            }
-            else
-                return (st);
-        }
-*/
     }
     else {
         ham_assert(!"this flag is not yet implemented", (""));

@@ -192,8 +192,9 @@ cursor_update_dupecache(ham_cursor_t *cursor, txn_opnode_t *node)
      * therefore we can just append them to our duplicate-cache. */
     if (!bt_cursor_is_nil(btc)) {
         ham_size_t i;
+        ham_bool_t needs_free=HAM_FALSE;
         dupe_table_t *table=0;
-        st=bt_cursor_get_duplicate_table(btc, &table);
+        st=bt_cursor_get_duplicate_table(btc, &table, &needs_free);
         if (st && st!=HAM_CURSOR_IS_NIL)
             return (st);
         st=0;
@@ -210,10 +211,14 @@ cursor_update_dupecache(ham_cursor_t *cursor, txn_opnode_t *node)
                     return (st);
                 }
             }
-            if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB))
+            if (needs_free)
                 allocator_free(env_get_allocator(env), table);
         }
+        changeset_clear(env_get_changeset(env));
     }
+
+    if (!node)
+        goto bail;
 
     /* now start integrating the items from the transactions */
     op=txn_opnode_get_oldest_op(node);
@@ -270,6 +275,13 @@ cursor_update_dupecache(ham_cursor_t *cursor, txn_opnode_t *node)
         op=txn_op_get_next_in_node(op);
     }
 
+bail:
+    /* IF the dupecache just contains one single element, then we won't use
+     * it. In this case the caller already coupled the cursor to the correct
+     * key. */
+    if (dupecache_get_count(dc)==1)
+        dupecache_reset(dc);
+
     return (0);
 }
 
@@ -286,9 +298,13 @@ cursor_couple_to_dupe(ham_cursor_t *cursor, ham_u32_t dupe_id)
     /* dupe-id is a 1-based index! */
     e=dupecache_get_elements(dc)+(dupe_id-1);
     if (dupecache_line_use_btree(e)) {
+        ham_bt_cursor_t *btc=(ham_bt_cursor_t *)cursor;
         cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
-        //bt_cursor_set_dupe_id(btc, 0); -- TODO
+        /* btree dupes are already at the beginning of the dupe table, 
+         * therefore the btree-dupe id can be derived from the consolidated
+         * dupe-id */
+        bt_cursor_set_dupe_id(btc, dupe_id-1);
     }
     else {
         txn_cursor_couple(txnc, dupecache_line_get_txn_op(e));
@@ -297,3 +313,25 @@ cursor_couple_to_dupe(ham_cursor_t *cursor, ham_u32_t dupe_id)
     }
     cursor_set_dupecache_index(cursor, dupe_id);
 }
+
+ham_status_t
+cursor_check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor)
+{
+    ham_key_t key={0};
+    ham_cursor_t *clone;
+    ham_status_t st=ham_cursor_clone(cursor, &clone);
+    txn_cursor_t *txnc=cursor_get_txn_cursor(clone);
+    if (st)
+        return (st);
+    st=cursor->_fun_move(cursor, &key, 0, 0);
+    if (st) {
+        ham_cursor_close(clone);
+        return (st);
+    }
+
+    st=txn_cursor_find(txnc, &key, 0);
+    ham_cursor_close(clone);
+
+    return (st);
+}
+

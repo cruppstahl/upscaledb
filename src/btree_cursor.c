@@ -994,7 +994,8 @@ bt_cursor_create(ham_db_t *db, ham_txn_t *txn, ham_u32_t flags,
 }
 
 ham_status_t
-bt_cursor_get_duplicate_table(ham_bt_cursor_t *c, dupe_table_t **ptable)
+bt_cursor_get_duplicate_table(ham_bt_cursor_t *c, dupe_table_t **ptable,
+                    ham_bool_t *needs_free)
 {
     ham_status_t st;
     ham_page_t *page;
@@ -1031,8 +1032,10 @@ bt_cursor_get_duplicate_table(ham_bt_cursor_t *c, dupe_table_t **ptable)
         dupe_entry_set_flags(e, key_get_flags(entry));
         dupe_entry_set_rid(e, key_get_rawptr(entry));
         *ptable=t;
+        *needs_free=1;
         return (0);
     }
 
-    return (blob_duplicate_get_table(env, key_get_ptr(entry), ptable));
+    return (blob_duplicate_get_table(env, key_get_ptr(entry), 
+                    ptable, needs_free));
 }

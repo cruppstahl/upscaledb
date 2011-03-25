@@ -280,7 +280,8 @@ __read_chunk(ham_env_t *env, ham_page_t *page, ham_page_t **fpage,
 }
 
 static ham_status_t
-__get_duplicate_table(dupe_table_t **table_ref, ham_page_t **page, ham_env_t *env, ham_u64_t table_id)
+__get_duplicate_table(dupe_table_t **table_ref, ham_page_t **page, 
+                    ham_env_t *env, ham_u64_t table_id)
 {
     ham_status_t st;
     blob_t hdr;
@@ -1414,9 +1415,18 @@ blob_duplicate_get(ham_env_t *env, ham_offset_t table_id,
 
 ham_status_t 
 blob_duplicate_get_table(ham_env_t *env, ham_offset_t table_id, 
-                    dupe_table_t **ptable)
+                    dupe_table_t **ptable, ham_bool_t *needs_free)
 {
+    ham_status_t st;
     ham_page_t *page=0;
 
-    return (__get_duplicate_table(ptable, &page, env, table_id));
+    st=__get_duplicate_table(ptable, &page, env, table_id);
+    if (st)
+        return (st);
+
+    if (!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB))
+        if (!page)
+            *needs_free=1;
+
+    return (0);
 }
