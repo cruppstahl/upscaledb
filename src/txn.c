@@ -124,24 +124,24 @@ txn_tree_get_first(txn_optree_t *tree)
 }
 
 txn_opnode_t *
-txn_tree_get_next_node(txn_optree_t *tree, txn_opnode_t *node)
-{
-    return (rbt_next(tree, node));
-}
-
-txn_opnode_t *
-txn_tree_get_previous_node(txn_optree_t *tree, txn_opnode_t *node)
-{
-    return (rbt_prev(tree, node));
-}
-
-txn_opnode_t *
 txn_tree_get_last(txn_optree_t *tree)
 {
     if (tree)
         return (rbt_last(tree));
     else
         return (0);
+}
+
+txn_opnode_t *
+txn_opnode_get_next_sibling(txn_opnode_t *node)
+{
+    return (rbt_next(txn_opnode_get_tree(node), node));
+}
+
+txn_opnode_t *
+txn_opnode_get_previous_sibling(txn_opnode_t *node)
+{
+    return (rbt_prev(txn_opnode_get_tree(node), node));
 }
 
 void
@@ -271,8 +271,13 @@ txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, ham_u32_t orig_flags,
 
     /* create and initialize a new txn_op_t structure */
     op=(txn_op_t *)allocator_alloc(alloc, sizeof(*op));
-    if (!op) /* TODO free newrec->data, newrec */
+    if (!op) {
+        if (newrec) {
+            allocator_free(alloc, newrec->data);
+            allocator_free(alloc, newrec);
+        }
         return (0);
+    }
     memset(op, 0, sizeof(*op));
     txn_op_set_flags(op, flags);
     txn_op_set_orig_flags(op, orig_flags);
@@ -338,23 +343,18 @@ txn_commit(ham_txn_t *txn, ham_u32_t flags)
 {
     ham_env_t *env=txn_get_env(txn);
 
-    /*
-     * are cursors attached to this txn? if yes, fail
-     */
+    /* are cursors attached to this txn? if yes, fail */
     if (txn_get_cursor_refcount(txn)) {
         ham_trace(("Transaction cannot be committed till all attached "
                     "Cursors are closed"));
         return (HAM_CURSOR_STILL_OPEN);
     }
 
-    /*
-     * this transaction is now committed!
-     */
+    /* this transaction is now committed!  */
     txn_set_flags(txn, txn_get_flags(txn)|TXN_STATE_COMMITTED);
 
 #if 0
-    /* TODO write log! */
-
+    TODO
     /* decrease the reference counter of the modified databases */
     __decrease_db_refcount(txn);
 #endif

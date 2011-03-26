@@ -98,7 +98,8 @@ static __inline void
 _allocator_free(mem_allocator_t *a, const char *fname, 
                     const int lineno, const void *ptr)
 {
-    a->free(a, fname, lineno, ptr);
+    if (ptr)
+        a->free(a, fname, lineno, ptr);
 }
 
 /** 

@@ -187,7 +187,7 @@ cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags);
 /**
  * store a page in the cache
  */
-extern ham_status_t 
+extern void 
 cache_put_page(ham_cache_t *cache, ham_page_t *page);
 
 /**

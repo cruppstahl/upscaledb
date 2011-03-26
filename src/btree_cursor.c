@@ -700,8 +700,6 @@ bt_cursor_move(ham_bt_cursor_t *c, ham_key_t *key,
      * that would mean that the cursor would be uncoupled, and we're losing
      * the 'entry'-pointer. therefore we 'lock' the page by incrementing 
      * the reference counter
-
-TODO where is the lock??
      */
     ham_assert(bt_cursor_get_flags(c)&BT_CURSOR_FLAG_COUPLED, 
             ("move: cursor is not coupled"));

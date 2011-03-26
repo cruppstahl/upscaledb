@@ -383,22 +383,6 @@ extern txn_opnode_t *
 txn_tree_get_first(txn_optree_t *tree);
 
 /**
- * retrieves the next larger sibling of a given node, or NULL if there
- * is no sibling
-TODO - first parameter is not necessary - node has a pointer to the tree
- */
-extern txn_opnode_t *
-txn_tree_get_next_node(txn_optree_t *tree, txn_opnode_t *node);
-
-/**
- * retrieves the previous larger sibling of a given node, or NULL if there
- * is no sibling
-TODO - first parameter is not necessary - node has a pointer to the tree
- */
-extern txn_opnode_t *
-txn_tree_get_previous_node(txn_optree_t *tree, txn_opnode_t *node);
-
-/**
  * retrieves the last (=largest) node of the tree, or NULL if the
  * tree is empty
  */
@@ -438,6 +422,20 @@ txn_opnode_append(ham_txn_t *txn, txn_opnode_t *node, ham_u32_t orig_flags,
  */
 extern void
 txn_opnode_free(ham_env_t *env, txn_opnode_t *node);
+
+/**
+ * retrieves the next larger sibling of a given node, or NULL if there
+ * is no sibling
+ */
+extern txn_opnode_t *
+txn_opnode_get_next_sibling(txn_opnode_t *node);
+
+/**
+ * retrieves the previous larger sibling of a given node, or NULL if there
+ * is no sibling
+ */
+extern txn_opnode_t *
+txn_opnode_get_previous_sibling(txn_opnode_t *node);
 
 /**
  * start a Transaction

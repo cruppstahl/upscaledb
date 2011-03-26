@@ -1637,21 +1637,14 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
         return (HAM_INV_PARAMETER);
     }
 
-    /*
-     * it's ok to close an uninitialized Environment
-     */
+    /* it's ok to close an uninitialized Environment */
     if (!env->_fun_close)
         return (0);
 
-    /*
-     * make sure that the changeset is empty
-     * TODO any following operation should not modify the changeset, right?
-     */
+    /* make sure that the changeset is empty */
     ham_assert(changeset_is_empty(env_get_changeset(env)), (""));
 
-    /*
-     * close all databases?
-     */
+    /* close all databases?  */
     if (env_get_list(env)) {
         ham_db_t *db=env_get_list(env);
         while (db) {
@@ -1663,9 +1656,7 @@ ham_env_close(ham_env_t *env, ham_u32_t flags)
         env_set_list(env, 0);
     }
 
-    /*
-     * auto-abort (or commit) all pending transactions
-     */
+    /* auto-abort (or commit) all pending transactions */
     if (env && env_get_newest_txn(env)) {
         ham_txn_t *n, *t=env_get_newest_txn(env);
         while (t) {
@@ -2881,8 +2872,8 @@ ham_close(ham_db_t *db, ham_u32_t flags)
      */
     if (!(flags&HAM_AUTO_CLEANUP)) {
         if (db_get_cursors(db)) {
-            /* TODO Trace */
-            return (HAM_CURSOR_STILL_OPEN);
+            ham_trace(("cannot close Database if Cursors are still open"));
+            return (db_set_error(db, HAM_CURSOR_STILL_OPEN));
         }
     }
 

@@ -59,13 +59,6 @@ __journal_clear_file(journal_t *journal, int idx)
     return (0);
 }
 
-static ham_status_t
-__insert_checkpoint(journal_t *journal)
-{
-    /* TODO is this function really needed? */
-    return (0);
-}
-
 ham_status_t
 journal_create(ham_env_t *env, ham_u32_t mode, ham_u32_t flags, 
                 journal_t **pjournal)
@@ -282,25 +275,17 @@ journal_append_txn_begin(journal_t *journal, struct ham_txn_t *txn,
     else if (journal_get_open_txn(journal, other)==0) {
         /*
          * Otherwise, if the other file does no longer have open Transactions,
-         * insert a checkpoint, delete the other file and use the other file
-         * as the current file
+         * delete the other file and use the other file as the current file
          */
-
-        /* checkpoint! */
-        st=__insert_checkpoint(journal);
-        if (st)
-            return (st);
-        /* now clear the other file */
         st=__journal_clear_file(journal, other);
         if (st)
             return (st);
-        /* continue writing to the other file */
         cur=other;
         journal_set_current_fd(journal, cur);
         txn_set_log_desc(txn, cur);
     }
     /*
-     * otherwise continue writing to the current file, till the other file
+     * Otherwise continue writing to the current file, till the other file
      * can be deleted safely
      */
     else {

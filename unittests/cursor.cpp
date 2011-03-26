@@ -3704,7 +3704,7 @@ public:
     {
         dupecache_t c;
         BFC_ASSERT_EQUAL(0, dupecache_create(&c, m_cursor, 0));
-        BFC_ASSERT_EQUAL(0u, dupecache_get_capacity(&c));
+        BFC_ASSERT_EQUAL(8u, dupecache_get_capacity(&c));
         BFC_ASSERT_EQUAL(0u, dupecache_get_count(&c));
         dupecache_clear(&c);
     }

@@ -143,12 +143,7 @@ __free_inmemory_blobs_cb(int event, void *param1, void *param2, void *context)
         break;
 
     case ENUM_EVENT_PAGE_STOP:
-        /*
-         * if this callback function is called from ham_env_erase_db:
-         * move the page to the freelist
-         *
-         * TODO
-         */
+        /* nop */
         break;
 
     case ENUM_EVENT_ITEM:
@@ -770,10 +765,6 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
                     goto done;
             }
             /* allocate a new page structure */
-            ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
-                    ? 1 
-                    : !!env_get_cache(env), 
-                    ("in-memory DBs MUST have a cache"));
             page=page_new(env);
             if (!page)
                 return HAM_OUT_OF_MEMORY;
@@ -807,34 +798,11 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     if (st)
         return st;
 
-    /* 
-     * update statistics for the freelist: we'll need to mark this one 
-     * down as allocated, so the statistics are up-to-date.
-     *
-     * This is done further below.
-     */
-
 done:
-    ham_assert(!(env_get_rt_flags(env)&HAM_IN_MEMORY_DB) 
-            ? 1 
-            : !!env_get_cache(env), ("in-memory DBs MUST have a cache"));
-
-    /*
-     * As we re-purpose a page, we will reset its pagecounter as
-     * well to signal its first use as the new type assigned here.
-     *
-     * only do this if the page is reused - otherwise page_get_type()
-     * accesses uninitialized memory, and valgrind complains
-     */
-    if (tellpos && env_get_cache(env) && (page_get_type(page) != type)) {
-#if 0 // this is done at the end of this call...
-        //page_set_cache_cntr(page, env_get_cache(env)->_timeslot++);
-        cache_update_page_access_counter(newroot, env_get_cache(env)); /* bump up */
-#endif
-    }
+    /* initialize the page; also set the 'dirty' flag to force logging */
     page_set_type(page, type);
     page_set_owner(page, db);
-    page_set_dirty(page); /* TODO was 'undirty', but then it's not logged */
+    page_set_dirty(page);
 
     /* clear the page with zeroes?  */
     if (flags&PAGE_CLEAR_WITH_ZERO)
@@ -846,67 +814,18 @@ done:
 
     /* store the page in the cache */
     if (env_get_cache(env)) {
-        unsigned int bump = 0;
-
-        st=cache_put_page(env_get_cache(env), page);
-        if (st) {
-            return st;
-            /* TODO memleak? */
-        }
-#if 0
-        /*
-        Some quick measurements indicate that this (and the btree lines which
-        do the same: bumping the cache age of the given page) is deteriorating
-        performance:
-
-        with this it's ~ 17K refetches (reloads of previously cached pages);
-        without it's ~ 16K refetches, which means the dumb version without the
-        weights reloads less database pages.
-
-        All in all, the conclusion is simple:
-
-        Stick with the simplest cache aging system, unless we can come up with something
-        truely fantastic to cut down disc I/O (which is particularly important when the
-        database file is located on a remote storage disc (SAN).
-
-        And the simplest system is... 
-        
-        Count every access as one age point, i.e. age 
-        all pages with each cache access by 1 and dicard the oldest bugger.
-        
-        Don't bother with high/low watermarks in purging either as that didn't help
-        neither.
-        */
-        switch (type)
-        {
-        default:
-        case PAGE_TYPE_UNKNOWN:
-        case PAGE_TYPE_HEADER:
-            break;
-
-        case PAGE_TYPE_B_ROOT:
-        case PAGE_TYPE_B_INDEX:
-            bump = (cache_get_max_elements(env_get_cache(env)) + 32 - 1) / 32;
-            if (bump > 4)
-                bump = 4;
-            break;
-
-        case PAGE_TYPE_FREELIST:
-            bump = (cache_get_max_elements(env_get_cache(env)) + 8 - 1) / 8;
-            break;
-        }
-#endif
+        cache_put_page(env_get_cache(env), page);
         if (flags & DB_NEW_PAGE_DOES_THRASH_CACHE) {
             /* give it an 'antique' age so this one will get flushed pronto */
-            page_set_cache_cntr(page, 1 /* cache->_timeslot - 1000 */ );
+            page_set_cache_cntr(page, 1);
         }
         else {
-            cache_update_page_access_counter(page, env_get_cache(env), bump);
+            cache_update_page_access_counter(page, env_get_cache(env), 0);
         }
     }
 
     *page_ref = page;
-    return HAM_SUCCESS;
+    return (HAM_SUCCESS);
 }
 
 ham_status_t
@@ -1003,11 +922,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     ham_assert(page_get_pers(page), (""));
 
     if (env_get_cache(env)) {
-        st=cache_put_page(env_get_cache(env), page);
-        if (st) {
-            (void)page_delete(page);
-            return st;
-        }
+        cache_put_page(env_get_cache(env), page);
         if (flags & DB_NEW_PAGE_DOES_THRASH_CACHE) {
             /* give it an 'antique' age so this one will get flushed pronto */
             page_set_cache_cntr(page, 1 /* cache->_timeslot - 1000 */ );
@@ -1056,7 +971,7 @@ db_flush_page(ham_env_t *env, ham_page_t *page, ham_u32_t flags)
      * be careful - don't store the header page in the cache
      */
     if (env_get_cache(env) && page_get_self(page)!=0)
-        return (cache_put_page(env_get_cache(env), page));
+        cache_put_page(env_get_cache(env), page);
 
     return (0);
 }

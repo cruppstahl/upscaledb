@@ -843,10 +843,11 @@ o currently, two log sub-systems are used. one for logical journal and the
     o if there's any SMO and the physical log is re-applied - are all 
         operations idempotent?
 
-o we currently have two modes regarding recovery:
-    - HAM_ENABLE_TRANSACTIONS (implies HAM_ENABLE_RECOVERY)
-    - HAM_ENABLE_RECOVERY
-    make sure that both are covered in the monster tests
+o monster tests currently don't test with transactions (only with recovery)
+    o new mode -txn/--transactions
+        o mode 1: create temporary transactions
+        o mode 2: group 5 operations in a single transaction
+        o mode 3: the whole test in a single transaction
 
 o check all TODOs in the sources
 
@@ -865,7 +866,11 @@ o update documentation in header file + Wiki!
 
 o test with lessfs (and add lessfs to the monster testsuite)
 
+o copyright must be 2011
+
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
+
+o how can we extend the monster-tests to have reliable tests for transactions?
 
 . refactor cursor; separate backend-cursor and txn-cursor; make the 
     "uncoupled" cursor part of the frontend. When coupling, btree AND txn 

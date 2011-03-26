@@ -189,7 +189,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
          * then move to the next node. repeat till we've found a key or 
          * till we've reached the end of the tree */
         while (1) {
-            node=txn_tree_get_next_node(txn_opnode_get_tree(node), node);
+            node=txn_opnode_get_next_sibling(node);
             if (!node)
                 return (HAM_KEY_NOT_FOUND);
             st=__move_top_in_node(cursor, node, op, HAM_TRUE, flags); 
@@ -212,7 +212,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
          * then move to the previous node. repeat till we've found a key or 
          * till we've reached the end of the tree */
         while (1) {
-            node=txn_tree_get_previous_node(txn_opnode_get_tree(node), node);
+            node=txn_opnode_get_previous_sibling(node);
             if (!node)
                 return (HAM_KEY_NOT_FOUND);
             st=__move_top_in_node(cursor, node, op, HAM_TRUE, flags); 
@@ -264,9 +264,9 @@ txn_cursor_find(txn_cursor_t *cursor, ham_key_t *key, ham_u32_t flags)
         /* if the key was erased and approx. matching is enabled, then move
         * next/prev till we found a valid key. */
         if (flags&HAM_FIND_GT_MATCH)
-            node=txn_tree_get_next_node(txn_opnode_get_tree(node), node);
+            node=txn_opnode_get_next_sibling(node);
         else if (flags&HAM_FIND_LT_MATCH)
-            node=txn_tree_get_previous_node(txn_opnode_get_tree(node), node);
+            node=txn_opnode_get_previous_sibling(node);
         else
             return (st);
 

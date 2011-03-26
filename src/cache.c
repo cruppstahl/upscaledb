@@ -216,7 +216,7 @@ cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags)
     return (page);
 }
 
-ham_status_t 
+void 
 cache_put_page(ham_cache_t *cache, ham_page_t *page)
 {
     ham_size_t hash=__calc_hash(cache, page_get_self(page));
@@ -260,8 +260,6 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page)
     if (!cache_get_oldest(cache)) {
         cache_set_oldest(cache, page);
     }
-
-    return (0);
 }
 
 /*

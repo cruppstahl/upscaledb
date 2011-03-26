@@ -294,8 +294,6 @@ HAM_PACK_0 struct HAM_PACK_1 freelist_payload_t
              * them. Meanwhile, we've complicated things a little here
              * as we need to flush statistics to the persistent page
              * memory when flushing a cached page.
-             *
-             * TODO: A callback will be provided for that.
              */
 			freelist_page_statistics_t _statistics;
 

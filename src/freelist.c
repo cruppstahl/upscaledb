@@ -1290,7 +1290,7 @@ __freel_search_bits_ex(ham_device_t *dev, ham_env_t *env,
         }
         else
         {
-/*TODO wird dieser code jemals erreicht? nur bei 1kb-pagesizes?*/
+/*TODO is this code ever reached? or only with 1kb pages? */
             /*
              * The alignment is NOT a QWORD(64)*CHUNKSIZE(32) multiple (= 2K),
              * so we'll have to contend ourselves with a BYTE-based scan
