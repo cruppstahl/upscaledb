@@ -826,11 +826,11 @@ txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
         }
         -> cursor.c uses a different loop because this one was not working!
 
-o add hamsterdb.spec file from 1.1.8
+x add hamsterdb.spec file from 1.1.8
     https://github.com/cruppstahl/hamsterdb/commit/46260d14d0192299b15286c93a843d11dc4ccaa6
-    o make sure that the version information is automatically updated!
+    x make sure that the version information is automatically updated!
 
-o precompiled windows libraries: hamserver-x.x.x.dll is still version 1.1.5
+x precompiled windows libraries: hamserver-x.x.x.dll is still version 1.1.5
     (also on master branch)
 
 o currently, two log sub-systems are used. one for logical journal and the 

@@ -67,7 +67,7 @@
 			<Tool
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
-				OutputFile="$(OutDir)\libhamserver-1.1.5.lib"
+				OutputFile="$(OutDir)\libhamserver-1.1.6.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -135,7 +135,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="ws2_32.lib"
-				OutputFile="$(OutDir)\libhamserver-1.1.5.lib"
+				OutputFile="$(OutDir)\libhamserver-1.1.6.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -199,7 +199,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="ws2_32.lib"
-				OutputFile="$(OutDir)\libhamserver-1.1.5.lib"
+				OutputFile="$(OutDir)\libhamserver-1.1.6.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -264,7 +264,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="ws2_32.lib"
-				OutputFile="$(OutDir)\libhamserver-1.1.5.lib"
+				OutputFile="$(OutDir)\libhamserver-1.1.6.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
