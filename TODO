@@ -818,13 +818,15 @@ txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
             o get duplicate count
             o ham_find: must return same result as ham_cursor_find (first dupe)
 
-    o review all loops that are like...
+    x review all loops that are like...
         op=txn_node_get_newest();
         while (op) { 
             ...
             op=txn_op_get_next_in_node(op);
         }
         -> cursor.c uses a different loop because this one was not working!
+        -> yes, all loops were broken (but it had no consequences, since the
+            loop was never really executed)
 
 x add hamsterdb.spec file from 1.1.8
     https://github.com/cruppstahl/hamsterdb/commit/46260d14d0192299b15286c93a843d11dc4ccaa6
@@ -833,15 +835,19 @@ x add hamsterdb.spec file from 1.1.8
 x precompiled windows libraries: hamserver-x.x.x.dll is still version 1.1.5
     (also on master branch)
 
-o currently, two log sub-systems are used. one for logical journal and the 
+x currently, two log sub-systems are used. one for logical journal and the 
     other for the physical one. in a later version we will only use the journal
-    (or at least try to get rid of the physical log as good as possible). but
+    (or at least try to get rid of the physical log as much as possible). but
     the architecture needs to be prepared already now
-    o how will recovery work, if the lsn is older than the journal?
+    x how will recovery work, if the lsn is older than the journal?
         if the latest entry in the log is i.e. lsn 15, and the journal 
         continues with 20, in which problems can we run into?
-    o if there's any SMO and the physical log is re-applied - are all 
-        operations idempotent?
+        -> when recovering, we ALWAYS follow the journal, as the journal
+           contains ALL operations, and the log only a few. If journal.lsn
+           == log.lsn then the log is applied and the journal is skipped. 
+           if journal.lsn > log.lsn then the log is discarded.
+    x if there's any SMO and the physical log is re-applied - are all 
+        operations idempotent? -- yes, because the log only writes full pages.
 
 o monster tests currently don't test with transactions (only with recovery)
     o new mode -txn/--transactions
@@ -849,7 +855,7 @@ o monster tests currently don't test with transactions (only with recovery)
         o mode 2: group 5 operations in a single transaction
         o mode 3: the whole test in a single transaction
 
-o check all TODOs in the sources
+x check all TODOs in the sources
 
 o run monster tests
 
@@ -901,14 +907,15 @@ o if recovery is enabled: before flushing the changeset, patch the lsn in
     stored the lsn in the log file header. this can be removed; use he 
     lsn in the page header for recovery.
 
-o each operation writes a journal entry (however, we still keep the logical
-        journal in parallel, otherwise the unittests will fail completely)
-        o write entry for db_find
-        o write entry for db_insert
-        o write entry for db_erase
-    o api function to get a list of pending transactions
+o improve journalling and get rid of the physical log as much as possible
     o recovery: recreate all pending transactions (if requested)
     o unittests
+    o merge log and journal. There's no need to have two different files. 
+        For all 'simple' operations (insert, erase w/o SMO) a journal entry is 
+        sufficient. For all other operations we can just append the log
+        entries to the journal file. in such cases, the journal entry of an
+        insert or erase (w/ SMO) contains the modified pages as well.
+    o api function to get a list of pending transactions
 
 o ham_txn_begin receives Environment handle, not Database handle
     o need a new parameter (reserved) for parent txn
@@ -923,16 +930,10 @@ o new API to retrieve the currently active transactions
     o already exists in v2
     o needs unittests
 
-. some refactoring - the cursor implementation is in btree_cursor.c and in 
-    txn_cursor.c. but the non-cursor implementation is in db.c and in btree.c
-    (and not in txn.c).
-
 . extkeys: don't use txn_id for the 'age', use lsn instead
 
 . opnode: use key instead of key* (pointer) - this saves one allocation 
     per node
-
-. rename ham_bt_cursor_t to btree_cursor_t
 
 . cache-garbagelist no longer used - remove it?
 
@@ -956,6 +957,7 @@ o new API to retrieve the currently active transactions
 
 . have a flag to describe if a transaction is (mostly) insert-only; if yes then
     write records immediately to the database file, not to the journal
+    -> this affects all temporary ham_insert-transactions 
 
 o continue as described in integrate-ham2.txt...
 

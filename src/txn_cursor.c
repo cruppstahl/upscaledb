@@ -138,7 +138,7 @@ __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
 
 next:
         cursor_set_dupecache_index(pc, 0);
-        op=txn_op_get_next_in_node(op);
+        op=txn_op_get_previous_in_node(op);
     }
 
     /* did we find a duplicate key? then return it */

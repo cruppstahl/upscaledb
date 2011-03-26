@@ -1664,7 +1664,7 @@ db_check_insert_conflicts(ham_db_t *db, ham_txn_t *txn,
             return (HAM_TXN_CONFLICT);
         }
 
-        op=txn_op_get_next_in_node(op);
+        op=txn_op_get_previous_in_node(op);
     }
 
     /*
@@ -1731,7 +1731,7 @@ db_check_erase_conflicts(ham_db_t *db, ham_txn_t *txn,
             return (HAM_TXN_CONFLICT);
         }
 
-        op=txn_op_get_next_in_node(op);
+        op=txn_op_get_previous_in_node(op);
     }
 
     /*
@@ -2040,7 +2040,7 @@ db_find_txn(ham_db_t *db, ham_txn_t *txn,
             return (HAM_TXN_CONFLICT);
         }
 
-        op=txn_op_get_next_in_node(op);
+        op=txn_op_get_previous_in_node(op);
     }
 
     /*

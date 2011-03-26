@@ -271,7 +271,7 @@ cursor_update_dupecache(ham_cursor_t *cursor, txn_opnode_t *node)
             }
         }
 
-        /* continue with the previous/older operation */
+        /* continue with the next/newer operation */
         op=txn_op_get_next_in_node(op);
     }
 
