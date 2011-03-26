@@ -816,7 +816,13 @@ txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
             o test with tiny, small, null records
                 -> check for dupe_entry_get_rid in cursor.c
             o get duplicate count
+                o return HAM_TXN_CONFLICT if key is modified in another txn
             o ham_find: must return same result as ham_cursor_find (first dupe)
+
+    o make sure that ham_cursor_overwrite returns HAM_TXN_CONFLICT if
+        the key is modified in another transaction
+        o also check for duplicate keys
+        o same for ham_cursor_erase
 
     x review all loops that are like...
         op=txn_node_get_newest();
@@ -868,7 +874,9 @@ o don't forget to test with valgrind!
 o do some performance tests of old vs new implementations, including 
     transactions
 
-o update documentation in header file + Wiki!
+o update documentation
+    x in header file
+    o in the wiki
 
 o test with lessfs (and add lessfs to the monster testsuite)
 

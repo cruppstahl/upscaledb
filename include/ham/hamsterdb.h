@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2010 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -183,8 +183,8 @@ typedef struct {
  * optimize its routines for this behaviour.
  *
  * @remark The Data Access Mode is not persisted in the Database.
- * per Database basis. This means different Databases within the same 
- * Environment can have different Data Access Modes.
+ * It is stored per Database basis. This means different Databases within the 
+ * same Environment can have different Data Access Modes.
  *
  * @sa ham_create_ex
  * @sa ham_open_ex
@@ -1003,7 +1003,7 @@ typedef struct ham_txn_t ham_txn_t;
  * Begins a new Transaction
  * 
  * A Transaction is an atomic sequence of Database operations. With @ref
- * ham_txn_begin a new sequence is started. To write all operations of this
+ * ham_txn_begin such a new sequence is started. To write all operations of this
  * sequence to the Database use @ref ham_txn_commit. To abort and cancel 
  * this sequence use @ref ham_txn_abort.
  *
@@ -1014,9 +1014,8 @@ typedef struct ham_txn_t ham_txn_t;
  * and attaches it to a Database (the second parameter is a @ref ham_db_t
  * handle), the Transaction is actually valid for the whole Environment.
  *
- * Note that as of hamsterdb 1.0.4, it is not possible to create
- * multiple Transactions in parallel. This limitation will be removed
- * in further versions.
+ * You can create as many Transactions as you want (older versions of
+ * hamsterdb did not allow to create multiple parallel Transactions).
  *
  * @param txn Pointer to a pointer of a Transaction structure
  * @param db A valid Database handle
@@ -1029,8 +1028,6 @@ typedef struct ham_txn_t ham_txn_t;
  *
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_OUT_OF_MEMORY if memory allocation failed
- * @return @ref HAM_LIMITS_REACHED if there's already an open Transaction
- *          (see above)
  */
 HAM_EXPORT ham_status_t
 ham_txn_begin(ham_txn_t **txn, ham_db_t *db, ham_u32_t flags);
@@ -1665,6 +1662,12 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * @ref HAM_PARTIAL is not allowed if record->size is <= 8 or if Transactions
  * are enabled. In such a case, @ref HAM_INV_PARAMETER is returned.
  *
+ * If Transactions are enabled (see @ref HAM_ENABLE_TRANSACTIONS) and 
+ * @a txn is NULL then hamsterdb will create a temporary Transaction.
+ * If the @a key is currently modified in an active Transaction (one that
+ * is not yet committed or aborted) then hamsterdb will return the 
+ * error @ref HAM_TXN_CONFLICT.
+ *
  * @param db A valid Database handle
  * @param txn A Transaction handle, or NULL
  * @param key The key of the item
@@ -1721,6 +1724,8 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  * @return @ref HAM_INV_PARAMETER if @ref HAM_PARTIAL is set but record
  *          size is <= 8 or Transactions are enabled
  * @return @ref HAM_KEY_NOT_FOUND if the @a key does not exist
+ * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another 
+ *              Transaction which was not yet committed or aborted
  * 
  * @remark When either or both @ref HAM_FIND_LT_MATCH and/or @ref 
  *        HAM_FIND_GT_MATCH have been specified as flags, the @a key structure 
@@ -1915,6 +1920,8 @@ ham_insert(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
  * @return @ref HAM_DB_READ_ONLY if you tried to erase a key from a read-only
  *              Database
  * @return @ref HAM_KEY_NOT_FOUND if @a key was not found
+ * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another 
+ *              Transaction which was not yet committed or aborted
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags);
@@ -2279,6 +2286,12 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * @ref HAM_PARTIAL is not allowed if record->size is <= 8 or if Transactions
  * are enabled. In such a case, @ref HAM_INV_PARAMETER is returned.
  *
+ * If Transactions are enabled (see @ref HAM_ENABLE_TRANSACTIONS), and 
+ * the Cursor moves to a key which is currently modified in an active
+ * Transaction (one that is not yet committed or aborted), then hamsterdb
+ * will skip the modified key. (This behavior is different from i.e. 
+ * @a ham_cursor_find, which would return the error @ref HAM_TXN_CONFLICT).
+ *
  * @param cursor A valid Cursor handle
  * @param key An optional pointer to a @ref ham_key_t structure. If this
  *      pointer is not NULL, the key of the new item is returned.
@@ -2383,6 +2396,8 @@ ham_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
  *          duplicates and duplicate sorting is enabled
  * @return @ref HAM_INV_PARAMETER if duplicate sorting is enabled
  * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
+ * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another 
+ *              Transaction which was not yet committed or aborted
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
@@ -2513,6 +2528,8 @@ ham_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
  *              but the Database is not an In-Memory Database.
  * @return @ref HAM_INV_PARAMETER if @a HAM_DIRECT_ACCESS and
  *              @a HAM_ENABLE_TRANSACTIONS were both specified.
+ * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another 
+ *              Transaction which was not yet committed or aborted
  *
  * @sa HAM_KEY_USER_ALLOC
  * @sa ham_key_t
@@ -2666,6 +2683,8 @@ ham_cursor_find(ham_cursor_t *cursor, ham_key_t *key, ham_u32_t flags);
  *              @a HAM_ENABLE_TRANSACTIONS were both specified.
  * @return @ref HAM_INV_PARAMETER if @ref HAM_PARTIAL is set but record
  *              size is <= 8 or Transactions are enabled
+ * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another 
+ *              Transaction which was not yet committed or aborted
  *
  * @sa HAM_KEY_USER_ALLOC
  * @sa ham_key_t
@@ -2864,6 +2883,8 @@ ham_cursor_find_ex(ham_cursor_t *cursor, ham_key_t *key,
  *              OR if the @a keysize parameter specified for @ref ham_create_ex
  *              is smaller than 8.
  * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
+ * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another 
+ *              Transaction which was not yet committed or aborted
  *
  * @sa HAM_DISABLE_VAR_KEYLEN
  * @sa HAM_SORT_DUPLICATES
@@ -2891,6 +2912,8 @@ ham_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
  * @return @ref HAM_DB_READ_ONLY if you tried to erase a key from a read-only
  *              Database
  * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
+ * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another 
+ *              Transaction which was not yet committed or aborted
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
@@ -2909,6 +2932,8 @@ ham_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags);
  * @return @ref HAM_SUCCESS upon success
  * @return @ref HAM_CURSOR_IS_NIL if the Cursor does not point to an item
  * @return @ref HAM_INV_PARAMETER if @a cursor or @a count is NULL
+ * @return @ref HAM_TXN_CONFLICT if the same key was inserted in another 
+ *              Transaction which was not yet committed or aborted
  */
 HAM_EXPORT ham_status_t HAM_CALLCONV
 ham_cursor_get_duplicate_count(ham_cursor_t *cursor, 
