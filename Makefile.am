@@ -80,6 +80,12 @@ update_version:
 	mv win32/_dll.vcproj win32/dll.vcproj
 	sed 's/libhamsterdb-[0-9]*.[0-9]*.[0-9]*.lib/libhamsterdb-$(VERSION).lib/' win32/lib.vcproj > win32/_lib.vcproj
 	mv win32/_lib.vcproj win32/lib.vcproj
+	sed 's/hamserver-[0-9]*.[0-9]*.[0-9]*.dll/hamserver-$(VERSION).dll/' win32/server_dll.vcproj > win32/_server_dll.vcproj
+	mv win32/_server_dll.vcproj win32/server_dll.vcproj
+	sed 's/libhamserver-[0-9]*.[0-9]*.[0-9]*.lib/libhamserver-$(VERSION).lib/' win32/server_lib.vcproj > win32/_server_lib.vcproj
+	mv win32/_server_lib.vcproj win32/server_lib.vcproj
+	sed 's/Version: [0-9]*.[0-9]*.[0-9]*/Version: $(VERSION)/' hamsterdb.spec > _hamsterdb.spec
+	mv _hamsterdb.spec hamsterdb.spec
 
 test:
 	cd unittests && make && ./test

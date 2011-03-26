@@ -1,5 +1,3 @@
-%define __soversion_major 1
-%define __soversion %{__soversion_major}.1.8
 
 Summary: hamsterdb Embedded Storage
 Name: hamsterdb
