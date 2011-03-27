@@ -3939,6 +3939,8 @@ public:
         BFC_REGISTER_TEST(DupeCursorTest, simpleTxnInsertFirstTest);
         BFC_REGISTER_TEST(DupeCursorTest, multipleTxnTest);
         BFC_REGISTER_TEST(DupeCursorTest, mixedTest);
+        BFC_REGISTER_TEST(DupeCursorTest, findInDuplicatesTest);
+        BFC_REGISTER_TEST(DupeCursorTest, cursorFindInDuplicatesTest);
     }
 
     virtual void setup() 
@@ -4227,6 +4229,134 @@ public:
         //BFC_ASSERT_EQUAL(0, move       ("k2", "r2.1", HAM_CURSOR_PREVIOUS));
         //BFC_ASSERT_EQUAL(0, move       ("k1", "r1.1", HAM_CURSOR_PREVIOUS));
         //BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
+    }
+
+    void findInDuplicatesTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k2", "r2.1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k2", "r2.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k3", "r3.1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k3", "r3.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k3", "r3.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k4", "r4.1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k4", "r4.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k4", "r4.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k5", "r5.1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k5", "r5.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k5", "r5.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k5", "r5.4", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k6", "r6.1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k6", "r6.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k6", "r6.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k6", "r6.4", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k6", "r6.5", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k6", "r6.6", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k7", "r7.1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k7", "r7.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k7", "r7.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k7", "r7.4", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k8", "r8.1"));
+
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.size=3;
+
+        key.data=(void *)"k1";
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, m_txn, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r1.1"));
+
+        key.data=(void *)"k2";
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, m_txn, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r2.1"));
+
+        key.data=(void *)"k3";
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, m_txn, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r3.1"));
+
+        key.data=(void *)"k4";
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, m_txn, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r4.1"));
+
+        key.data=(void *)"k5";
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, m_txn, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r5.1"));
+
+        key.data=(void *)"k6";
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, m_txn, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r6.1"));
+
+        key.data=(void *)"k7";
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, m_txn, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r7.1"));
+
+        key.data=(void *)"k8";
+        BFC_ASSERT_EQUAL(0, ham_find(m_db, m_txn, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r8.1"));
+    }
+
+    void cursorFindInDuplicatesTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k2", "r2.1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k2", "r2.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k3", "r3.1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k3", "r3.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k3", "r3.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k4", "r4.1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k4", "r4.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k4", "r4.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k5", "r5.1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k5", "r5.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k5", "r5.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k5", "r5.4", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k6", "r6.1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k6", "r6.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k6", "r6.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k6", "r6.4", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k6", "r6.5", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k6", "r6.6", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k7", "r7.1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k7", "r7.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k7", "r7.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k7", "r7.4", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k8", "r8.1"));
+
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        key.size=3;
+
+        key.data=(void *)"k1";
+        BFC_ASSERT_EQUAL(0, ham_cursor_find_ex(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r1.1"));
+
+        key.data=(void *)"k2";
+        BFC_ASSERT_EQUAL(0, ham_cursor_find_ex(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r2.1"));
+
+        key.data=(void *)"k3";
+        BFC_ASSERT_EQUAL(0, ham_cursor_find_ex(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r3.1"));
+
+        key.data=(void *)"k4";
+        BFC_ASSERT_EQUAL(0, ham_cursor_find_ex(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r4.1"));
+
+        key.data=(void *)"k5";
+        BFC_ASSERT_EQUAL(0, ham_cursor_find_ex(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r5.1"));
+
+        key.data=(void *)"k6";
+        BFC_ASSERT_EQUAL(0, ham_cursor_find_ex(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r6.1"));
+
+        key.data=(void *)"k7";
+        BFC_ASSERT_EQUAL(0, ham_cursor_find_ex(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r7.1"));
+
+        key.data=(void *)"k8";
+        BFC_ASSERT_EQUAL(0, ham_cursor_find_ex(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r8.1"));
     }
 
 };

@@ -817,7 +817,13 @@ txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
                 -> check for dupe_entry_get_rid in cursor.c
             o get duplicate count
                 o return HAM_TXN_CONFLICT if key is modified in another txn
-            o ham_find: must return same result as ham_cursor_find (first dupe)
+            o ham_find: must return same result as btree-ham_find (first dupe)
+                o DupeCursorTest::findInDuplicatesTest fails
+                o DupeCursorTest::cursorFindInDuplicatesTest fails
+
+        o when reading a duplicate, always make sure that the transaction is
+            not conflicting!! currently the op is returned even if the txn
+            is active
 
     o make sure that ham_cursor_overwrite returns HAM_TXN_CONFLICT if
         the key is modified in another transaction
@@ -870,9 +876,6 @@ o port to Win32
 o port to WinCE
 
 o don't forget to test with valgrind!
-
-o do some performance tests of old vs new implementations, including 
-    transactions
 
 o update documentation
     x in header file
