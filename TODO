@@ -746,17 +746,6 @@ o support cursors!!!
             x insert duplicates for several keys (only in btree)
             x insert duplicates for several keys (only in txn)
 
-            o btree: key "111", 3 dupes
-                txn: key "222", 3 dupes
-                o move to first
-                o move to last
-                o then vice versa
-            o insert duplicates w/ existing duplicates in btree 
-                    (and move through them)
-            o the duplicate table read with bt_get_duplicate_table returns a 
-                pointer to a blob (in case of in-memory) or a new, allocated 
-                buffer. who will clean up this buffer (or not clean it up)?
-
 =======> fails - DupeCursorTest::mixedTest
 
             x txn_cursor_move: do NOT update dupe cache! 
@@ -771,12 +760,6 @@ o support cursors!!!
             o make sure we have no regressions
 
 txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
-            o insert duplicates w/ BEFORE (w/ cursor coupled to txn-key)
-            o insert duplicates w/ AFTER (w/ cursor coupled to txn-key)
-            o insert duplicates w/ BEFORE (w/ cursor coupled to btree-key)
-            o insert duplicates w/ AFTER (w/ cursor coupled to btree-key)
-            o insert duplicates w/ BEFORE/AFTER and mixed btree/txn keys
-
             o insert duplicates with multiple cursors while iterating over them
                 o if a cursor is coupled to dupe #2, and a dupe at position 1
                     is inserted, then the cursor must be coupled to #3
@@ -784,8 +767,6 @@ txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
                     clear the dupe cache with those cursors!
             o same as above, but erase cursors
                 
-            o all insert-cases from above, but with an existing dupecache!
-                (it has to be updated.)
             o get key (move without direction)
                 o if the transaction conflicts: return error!
             o get record (move without direction)
@@ -797,6 +778,7 @@ txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
             o find cursor - always returns the oldest duplicate
                 o if the transaction conflicts: return error!
             o erase duplicates (ham_cursor_erase)
+                o if the transaction conflicts: return error!
                 o in txn-tree
                 o in btree-tree
             o erase all duplicates (ham_erase)
@@ -812,6 +794,12 @@ txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
                 x only btree dupes
                 x only txn dupes
                 x with mixed dupes
+            o insert duplicates w/ BEFORE (w/ cursor coupled to txn-key)
+            o insert duplicates w/ AFTER (w/ cursor coupled to txn-key)
+            o insert duplicates w/ BEFORE (w/ cursor coupled to btree-key)
+            o insert duplicates w/ AFTER (w/ cursor coupled to btree-key)
+            o insert duplicates w/ BEFORE/AFTER and mixed btree/txn keys
+
             o sorting duplicates
                 o with ham_cursor_overwrite
                 o only with btree dupes
