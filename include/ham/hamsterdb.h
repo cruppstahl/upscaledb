@@ -1664,9 +1664,11 @@ ham_enable_compression(ham_db_t *db, ham_u32_t level, ham_u32_t flags);
  *
  * If Transactions are enabled (see @ref HAM_ENABLE_TRANSACTIONS) and 
  * @a txn is NULL then hamsterdb will create a temporary Transaction.
- * If the @a key is currently modified in an active Transaction (one that
- * is not yet committed or aborted) then hamsterdb will return the 
- * error @ref HAM_TXN_CONFLICT.
+ * When moving the Cursor, and the new key is currently modified in an
+ * active Transaction (one that is not yet committed or aborted) then 
+ * hamsterdb will skip this key and move to the next/previous one. However if 
+ * @ref flags are 0 (and the Cursor is not moved), and @a key or @a rec 
+ * is NOT NULL, then hamsterdb will return error @ref HAM_TXN_CONFLICT.
  *
  * @param db A valid Database handle
  * @param txn A Transaction handle, or NULL

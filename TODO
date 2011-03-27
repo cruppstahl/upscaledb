@@ -787,11 +787,15 @@ txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
             o all insert-cases from above, but with an existing dupecache!
                 (it has to be updated.)
             o get key (move without direction)
+                o if the transaction conflicts: return error!
             o get record (move without direction)
+                o if the transaction conflicts: return error!
             o overwrite duplicates
                 o in txn-tree
                 o in btree-tree
+                o if the transaction conflicts: return error!
             o find cursor - always returns the oldest duplicate
+                o if the transaction conflicts: return error!
             o erase duplicates (ham_cursor_erase)
                 o in txn-tree
                 o in btree-tree
@@ -805,9 +809,9 @@ txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
                 x previous w/ dupes
                 o next w/ skip
                 o previous w/ skip
-                o only btree dupes
-                o only txn dupes
-                o with mixed dupes
+                x only btree dupes
+                x only txn dupes
+                x with mixed dupes
             o sorting duplicates
                 o with ham_cursor_overwrite
                 o only with btree dupes
@@ -824,10 +828,15 @@ txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
         o when reading a duplicate, always make sure that the transaction is
             not conflicting!! currently the op is returned even if the txn
             is active
+            o ham_find
+            o ham_cursor_find
+            o ham_cursor_move: skip conflicting key; but if flags are 0 (not
+                moving) and key/record is requested, then return
+                HAM_TXN_CONFLICT
 
     o make sure that ham_cursor_overwrite returns HAM_TXN_CONFLICT if
         the key is modified in another transaction
-        o also check for duplicate keys
+        o also check for duplicate keys 
         o same for ham_cursor_erase
 
     x review all loops that are like...
@@ -881,11 +890,9 @@ o update documentation
     x in header file
     o in the wiki
 
-o test with lessfs (and add lessfs to the monster testsuite)
-
-o copyright must be 2011
-
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
+
+o test with lessfs (and add lessfs to the monster testsuite)
 
 o how can we extend the monster-tests to have reliable tests for transactions?
 
