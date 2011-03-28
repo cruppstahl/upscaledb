@@ -350,9 +350,15 @@ struct ham_cursor_t
 
 /**
  * Updates (or builds) the dupecache for a cursor
+ *
+ * the 'what' parameter specifies if the dupecache is initialized from
+ * btree, from txn or both (see below).
  */
 extern ham_status_t
-cursor_update_dupecache(ham_cursor_t *cursor, txn_opnode_t *node);
+cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what);
+
+#define DUPE_CHECK_BTREE        1
+#define DUPE_CHECK_TXN          2
 
 /**
  * Couples the cursor to a duplicate in the dupe table

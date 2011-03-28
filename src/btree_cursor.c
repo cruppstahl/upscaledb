@@ -1037,3 +1037,4 @@ bt_cursor_get_duplicate_table(ham_bt_cursor_t *c, dupe_table_t **ptable,
     return (blob_duplicate_get_table(env, key_get_ptr(entry), 
                     ptable, needs_free));
 }
+

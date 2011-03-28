@@ -165,14 +165,14 @@ dupecache_reset(dupecache_t *c)
 }
 
 ham_status_t
-cursor_update_dupecache(ham_cursor_t *cursor, txn_opnode_t *node)
+cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
 {
     ham_status_t st=0;
     ham_db_t *db=cursor_get_db(cursor);
     ham_env_t *env=db_get_env(db);
     dupecache_t *dc=cursor_get_dupecache(cursor);
     ham_bt_cursor_t *btc=(ham_bt_cursor_t *)cursor;
-    txn_op_t *op=0;
+    txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
 
     ham_assert(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES, (""));
 
@@ -190,7 +190,7 @@ cursor_update_dupecache(ham_cursor_t *cursor, txn_opnode_t *node)
 
     /* first collect all duplicates from the btree. They're already sorted,
      * therefore we can just append them to our duplicate-cache. */
-    if (!bt_cursor_is_nil(btc)) {
+    if ((what&DUPE_CHECK_BTREE) && !bt_cursor_is_nil(btc)) {
         ham_size_t i;
         ham_bool_t needs_free=HAM_FALSE;
         dupe_table_t *table=0;
@@ -217,66 +217,72 @@ cursor_update_dupecache(ham_cursor_t *cursor, txn_opnode_t *node)
         changeset_clear(env_get_changeset(env));
     }
 
-    if (!node)
-        goto bail;
+    /* read duplicates from the txn-cursor? */
+    if ((what&DUPE_CHECK_TXN) && !txn_cursor_is_nil(txnc)) {
+        txn_op_t *op=txn_cursor_get_coupled_op(txnc);
+        txn_opnode_t *node=txn_op_get_node(op);
 
-    /* now start integrating the items from the transactions */
-    op=txn_opnode_get_oldest_op(node);
+        if (!node)
+            goto bail;
 
-    while (op) {
-        ham_txn_t *optxn=txn_op_get_txn(op);
-        /* only look at ops from the current transaction and from 
-         * committed transactions */
-        if ((optxn==cursor_get_txn(cursor))
-                || (txn_get_flags(optxn)&TXN_STATE_COMMITTED)) {
-            /* a normal (overwriting) insert will overwrite ALL duplicates */
-            if ((txn_op_get_flags(op)&TXN_OP_INSERT)
-                    || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)) {
-                dupecache_line_t dcl={0};
-                dupecache_line_set_btree(&dcl, HAM_FALSE);
-                dupecache_line_set_txn_op(&dcl, op);
-                /* all existing dupes are overwritten */
-                dupecache_reset(dc);
-                st=dupecache_append(dc, &dcl);
-                if (st)
-                    return (st);
-            }
-            /* insert a duplicate key */
-            else if (txn_op_get_flags(op)&TXN_OP_INSERT_DUP) {
-                dupecache_line_t dcl={0};
-                dupecache_line_set_btree(&dcl, HAM_FALSE);
-                dupecache_line_set_txn_op(&dcl, op);
-                if (txn_op_get_orig_flags(op)&HAM_DUPLICATE_INSERT_FIRST)
-                    st=dupecache_insert(dc, 0, &dcl);
-                /* TODO else if ... */
-                else /* default is HAM_DUPLICATE_INSERT_LAST */
+        /* now start integrating the items from the transactions */
+        op=txn_opnode_get_oldest_op(node);
+
+        while (op) {
+            ham_txn_t *optxn=txn_op_get_txn(op);
+            /* only look at ops from the current transaction and from 
+            * committed transactions */
+            if ((optxn==cursor_get_txn(cursor))
+                    || (txn_get_flags(optxn)&TXN_STATE_COMMITTED)) {
+                /* a normal (overwriting) insert will overwrite ALL duplicates */
+                if ((txn_op_get_flags(op)&TXN_OP_INSERT)
+                        || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)) {
+                    dupecache_line_t dcl={0};
+                    dupecache_line_set_btree(&dcl, HAM_FALSE);
+                    dupecache_line_set_txn_op(&dcl, op);
+                    /* all existing dupes are overwritten */
+                    dupecache_reset(dc);
                     st=dupecache_append(dc, &dcl);
-                if (st)
-                    return (st);
+                    if (st)
+                        return (st);
+                }
+                /* insert a duplicate key */
+                else if (txn_op_get_flags(op)&TXN_OP_INSERT_DUP) {
+                    dupecache_line_t dcl={0};
+                    dupecache_line_set_btree(&dcl, HAM_FALSE);
+                    dupecache_line_set_txn_op(&dcl, op);
+                    if (txn_op_get_orig_flags(op)&HAM_DUPLICATE_INSERT_FIRST)
+                        st=dupecache_insert(dc, 0, &dcl);
+                    /* TODO else if ... */
+                    else /* default is HAM_DUPLICATE_INSERT_LAST */
+                        st=dupecache_append(dc, &dcl);
+                    if (st)
+                        return (st);
+                }
+                /* a normal erase will erase ALL duplicate keys */
+                else if (txn_op_get_flags(op)&TXN_OP_ERASE) {
+                    /* all existing dupes are erased */
+                    dupecache_reset(dc);
+                }
+                /* whereas ERASE_DUP will erase only a single duplicate */
+                else if (txn_op_get_flags(op)&TXN_OP_ERASE_DUP) {
+                    st=dupecache_erase(dc, 0); /* TODO position? */
+                    if (st)
+                        return (st);
+                }
+                else {
+                    /* everything else is a bug! */
+                    ham_assert(txn_op_get_flags(op)==TXN_OP_NOP, (""));
+                }
             }
-            /* a normal erase will erase ALL duplicate keys */
-            else if (txn_op_get_flags(op)&TXN_OP_ERASE) {
-                /* all existing dupes are erased */
-                dupecache_reset(dc);
-            }
-            /* whereas ERASE_DUP will erase only a single duplicate */
-            else if (txn_op_get_flags(op)&TXN_OP_ERASE_DUP) {
-                st=dupecache_erase(dc, 0); /* TODO position? */
-                if (st)
-                    return (st);
-            }
-            else {
-                /* everything else is a bug! */
-                ham_assert(txn_op_get_flags(op)==TXN_OP_NOP, (""));
-            }
+    
+            /* continue with the previous/older operation */
+            op=txn_op_get_next_in_node(op);
         }
-
-        /* continue with the next/newer operation */
-        op=txn_op_get_next_in_node(op);
     }
 
 bail:
-    /* IF the dupecache just contains one single element, then we won't use
+    /* If the dupecache just contains one single element then don't use
      * it. In this case the caller already coupled the cursor to the correct
      * key. */
     if (dupecache_get_count(dc)==1)
