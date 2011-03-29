@@ -323,7 +323,6 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
                 st=ham_log_recreate(env_get_log(env), head);
                 if (st)
                     return (st);
-                /*page_set_undirty(head); */
             }
         }
 

@@ -274,7 +274,7 @@ struct ham_log_t
 /** set the overwrite-size */
 #define log_set_overwrite_size(l, s)            (l)->_overwrite_size=(s)
 
-/** current state bits: during a CHECKPOINT */
+/* current state bits: during a CHECKPOINT -- unused */
 #define LOG_STATE_CHECKPOINT                    0x0001
 
 /** current state bits: during a DATABASE EXPANSION */
