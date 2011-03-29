@@ -1029,14 +1029,12 @@ public:
             if (log_entry_get_lsn(&entry)==0)
                 break;
             
-            /*
             printf("lsn: %d, txn: %d, type: %d, offset: %d, size %d\n",
                         (int)log_entry_get_lsn(&entry),
                         (int)log_entry_get_txn_id(&entry),
                         (int)log_entry_get_type(&entry),
                         (int)log_entry_get_offset(&entry),
                         (int)log_entry_get_data_size(&entry));
-                        */
 
             // skip CHECKPOINTs, they are not interesting for our tests
             if (log_entry_get_type(&entry)==LOG_ENTRY_TYPE_CHECKPOINT)

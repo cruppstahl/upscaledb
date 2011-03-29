@@ -129,10 +129,20 @@ my_log_clear_file(ham_log_t *log, int idx)
 static ham_status_t
 my_insert_checkpoint(ham_log_t *log, ham_env_t *env)
 {
-    ham_status_t st=0;
+    ham_status_t st;
     ham_device_t *dev=env_get_device(env);
     
-    /* flush the database file descriptor; then append the checkpoint */
+    /*
+     * first, flush the database file; then append the checkpoint
+     *
+     * for this flush, we don't need to insert LOG_ENTRY_TYPE_FLUSH_PAGE;
+     * therefore, set the state of the log accordingly. the page_flush()
+     * routine can then check the state and not write logfile-entries
+     * for each flush
+     */
+    log_set_state(log, log_get_state(log)|LOG_STATE_CHECKPOINT);
+    st=ham_env_flush(env, 0);
+    log_set_state(log, log_get_state(log)&~LOG_STATE_CHECKPOINT);
     st=dev->flush(dev);
     if (st)
         return (st);
@@ -495,6 +505,9 @@ ham_log_append_flush_page(ham_log_t *log, struct ham_page_t *page)
 
     ham_env_t *env = device_get_env(page_get_device(page));
     ham_assert(page_is_dirty(page), (0));
+
+    /* make sure that this is never called during a checkpoint! */
+    ham_assert(!(log_get_state(log)&LOG_STATE_CHECKPOINT), (0));
 
     ham_assert(page_get_device(page), (0));
     ham_assert(device_get_env(page_get_device(page)), (0));

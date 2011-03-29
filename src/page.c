@@ -281,7 +281,9 @@ page_flush(ham_page_t *page)
 	 * in the pending transaction and any such edits should be REWINDable
 	 * after a crash when that page has just been written.
 	 */
-    if (env && env_get_log(env)) {
+    if (env 
+            && env_get_log(env)
+            && !(log_get_state(env_get_log(env))&LOG_STATE_CHECKPOINT)) {
         st=ham_log_append_flush_page(env_get_log(env), page);
         if (st)
             return (st);
