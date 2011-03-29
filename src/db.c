@@ -2595,6 +2595,27 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
         return (st);
 }
 
+static ham_bool_t
+__cursor_has_duplicates(ham_cursor_t *cursor)
+{
+    ham_db_t *db=cursor_get_db(cursor);
+    txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
+
+    if (!(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES))
+        return (HAM_FALSE);
+
+    if (txn_cursor_get_coupled_op(txnc)) {
+        if (!(txn_op_get_flags(txn_cursor_get_coupled_op(txnc))
+                &TXN_OP_INSERT_DUP))
+            return (HAM_FALSE);
+        cursor_update_dupecache(cursor, DUPE_CHECK_BTREE|DUPE_CHECK_TXN);
+    }
+    else
+        cursor_update_dupecache(cursor, DUPE_CHECK_BTREE);
+
+    return (dupecache_get_count(cursor_get_dupecache(cursor)));
+}
+
 static ham_status_t
 _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key, 
             ham_record_t *record, ham_u32_t flags)
@@ -2604,6 +2625,8 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
     ham_offset_t recno=0;
     ham_txn_t *local_txn=0;
     ham_env_t *env=db_get_env(db);
+    txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
+    dupecache_t *dc=cursor_get_dupecache(cursor);
 
     /*
      * record number: make sure that we have a valid key structure,
@@ -2638,37 +2661,62 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
         cursor_set_txn(cursor, local_txn);
     }
 
+    /* reset the dupecache */
+    dupecache_reset(dc);
+    cursor_set_dupecache_index(cursor, 0);
+
     /* 
-     * in Transaction mode, try to find the key in the Transaction tree; if
-     * it does not exist then continue to search through the btree. Also,
-     * we retrieve the record if requested.
+     * first try to find the key in the transaction tree. If it exists and 
+     * is NOT a duplicate then return its record. If it does not exist or
+     * it has duplicates then also find the key in the btree.
      *
      * in non-Transaction mode, we directly search through the btree.
      */
     if (cursor_get_txn(cursor) || local_txn) {
+        txn_op_t *op=0;
         st=txn_cursor_find(cursor_get_txn_cursor(cursor), key, flags);
-        if (st==0) {
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
-            if (record) {
-                st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), record);
-                if (st)
-                    goto bail;
-            }
+        /* if the key was erased in a transaction then fail with an error */
+        if (st) {
+            if (st==HAM_KEY_NOT_FOUND)
+                goto btree;
+            if (st==HAM_KEY_ERASED_IN_TXN)
+                st=HAM_KEY_NOT_FOUND;
+            goto bail;
+        }
+        cursor_set_flags(cursor, 
+                cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+        op=txn_cursor_get_coupled_op(txnc);
+        if (!(txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
+            st=txn_cursor_get_record(txnc, record);
+            goto bail;
         }
     }
 
-    /* if the key was erased in a transaction then fail with an error */
-    if (st==HAM_KEY_ERASED_IN_TXN) {
-        st=HAM_KEY_NOT_FOUND;
-        goto bail;
-    }
+btree:
+    st=cursor->_fun_find(cursor, key, record, flags);
+    if (st==0)
+        cursor_set_flags(cursor, 
+                cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
 
-    if ((!cursor_get_txn(cursor) && !local_txn) || st==HAM_KEY_NOT_FOUND) {
-        st=cursor->_fun_find(cursor, key, record, flags);
-        if (st==0)
-            cursor_set_flags(cursor, 
-                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+    /* if the key has duplicates: couple to the first/oldest duplicate */
+    if (__cursor_has_duplicates(cursor)) {
+        cursor_couple_to_dupe(cursor, 1);
+
+        /* now read the record */
+        if (record) {
+            /* TODO this works, but in case of the btree key w/ duplicates
+            * it's possible that we read the record twice. I'm not sure if 
+            * this can be avoided, though. */
+            if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)
+                st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), record);
+            else
+                st=cursor->_fun_move(cursor, 0, record, 0);
+        }
+    }
+    else {
+        if (record)
+            if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN)
+                st=txn_cursor_get_record(cursor_get_txn_cursor(cursor), record);
     }
 
 bail:
@@ -2881,23 +2929,6 @@ __btree_cursor_is_nil(ham_bt_cursor_t *btc)
 {
     return (!(cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) &&
             !(cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
-}
-
-static ham_bool_t
-__cursor_has_duplicates(ham_cursor_t *cursor)
-{
-    ham_db_t *db=cursor_get_db(cursor);
-    txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
-
-    if (!(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES))
-        return (HAM_FALSE);
-
-    if (!(txn_op_get_flags(txn_cursor_get_coupled_op(txnc))&TXN_OP_INSERT_DUP))
-        return (HAM_FALSE);
-
-    cursor_update_dupecache(cursor, DUPE_CHECK_BTREE|DUPE_CHECK_TXN);
-
-    return (dupecache_get_count(cursor_get_dupecache(cursor)));
 }
 
 /*

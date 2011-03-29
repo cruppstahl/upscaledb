@@ -774,6 +774,10 @@ o support cursors!!!
                 o in btree-tree
                 o if the transaction conflicts: return error!
 
+            o ham_find: must return same result as btree-ham_find (first dupe)
+                o DupeCursorTest::findInDuplicatesTest fails
+                x DupeCursorTest::cursorFindInDuplicatesTest fails
+
             o get key (move without direction): return error if the 
                 transaction conflicts!
             o get record (move without direction): return error if the 
@@ -814,9 +818,6 @@ o support cursors!!!
                 -> check for dupe_entry_get_rid in cursor.c
             o get duplicate count
                 o return HAM_TXN_CONFLICT if key is modified in another txn
-            o ham_find: must return same result as btree-ham_find (first dupe)
-                o DupeCursorTest::findInDuplicatesTest fails
-                o DupeCursorTest::cursorFindInDuplicatesTest fails
 
         o when reading a duplicate, always make sure that the transaction is
             not conflicting!! currently the op is returned even if the txn
