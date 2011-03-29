@@ -1,8 +1,13 @@
+Mar 28, 2011 - chris ---------------------------------------------------
+o when opening a database, and recovery is enabled, the 'threshold' of the
+    log files (which decides about the log file switching) was not 
+    initialized correctly. Fixed. (Thanks, Jake Sloan)
+
 Feb 03, 2011 - chris ---------------------------------------------------
                       release of hamsterdb-1.1.9
 
 Feb 02, 2011 - chris ---------------------------------------------------
-* added hamsterdb.spec to generate RPM files (thanks, John Gunkel)
+o added hamsterdb.spec to generate RPM files (thanks, John Gunkel)
 
 Jan 28, 2011 - chris ---------------------------------------------------
 o linux 64bit: when having long-running transactions with very big 
