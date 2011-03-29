@@ -325,6 +325,7 @@ cursor_check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor)
 {
     ham_key_t key={0};
     ham_cursor_t *clone;
+    txn_op_t *op;
     ham_status_t st=ham_cursor_clone(cursor, &clone);
     txn_cursor_t *txnc=cursor_get_txn_cursor(clone);
     if (st)
@@ -336,8 +337,15 @@ cursor_check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor)
     }
 
     st=txn_cursor_find(txnc, &key, 0);
-    ham_cursor_close(clone);
+    if (st) {
+        ham_cursor_close(clone);
+        return (st);
+    }
 
+    op=txn_cursor_get_coupled_op(txnc);
+    if (txn_op_get_flags(op)&TXN_OP_INSERT_DUP)
+        st=HAM_KEY_NOT_FOUND;
+    ham_cursor_close(clone);
     return (st);
 }
 

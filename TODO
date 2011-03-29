@@ -746,18 +746,16 @@ o support cursors!!!
             x insert duplicates for several keys (only in btree)
             x insert duplicates for several keys (only in txn)
 
-=======> fails - DupeCursorTest::mixedTest
-
             x txn_cursor_move: do NOT update dupe cache! 
             x txn_cursor_move: when moving through btree, always SKIP dupes
             x immediately AFTER do_local_cursor_move: check if key (either
                 btree or txn) is a duplicate. if yes then build the duplicate
                 list (and continue to traverse it)
-            o cursor_update_dupecache: bekommt flags ob nur txn, nur btree
+            x cursor_update_dupecache: bekommt flags ob nur txn, nur btree
                 oder beides ausgelesen werden soll
                 cursor_update_dupecache(cursor, flags)
                 die flags sind das ergebnis von do_cursor_local_move
-            o make sure we have no regressions
+            x make sure we have no regressions
 
 txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
             o insert duplicates with multiple cursors while iterating over them
