@@ -4004,6 +4004,15 @@ public:
             return (HAM_INTERNAL_ERROR);
         if (strcmp(rec, (char *)r.data))
             return (HAM_INTERNAL_ERROR);
+
+        // now verify again, but with flags=0
+        st=ham_cursor_move(m_cursor, &k, &r, 0);
+        if (st)
+            return (st);
+        if (strcmp(key, (char *)k.data))
+            return (HAM_INTERNAL_ERROR);
+        if (strcmp(rec, (char *)r.data))
+            return (HAM_INTERNAL_ERROR);
         return (0);
     }
 

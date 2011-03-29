@@ -757,22 +757,26 @@ o support cursors!!!
                 die flags sind das ergebnis von do_cursor_local_move
             x make sure we have no regressions
 
-txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
+            x get key (move without direction)
+            x get record (move without direction)
+
             o insert duplicates with multiple cursors while iterating over them
                 o if a cursor is coupled to dupe #2, and a dupe at position 1
                     is inserted, then the cursor must be coupled to #3
                     (and all other cursors must be modified as well); also
                     clear the dupe cache with those cursors!
+                o cursor A -> k1, B -> k3; insert(k2) -> verify cursors
             o same as above, but erase cursors
                 
-            o get key (move without direction)
-                o if the transaction conflicts: return error!
-            o get record (move without direction)
-                o if the transaction conflicts: return error!
-            o overwrite duplicates
+            o overwrite duplicates - need to store the referenced dupe-id
+                in the op, and then consolidate in cursor_update_dupecache
                 o in txn-tree
                 o in btree-tree
                 o if the transaction conflicts: return error!
+
+            o get key (move without direction): return error if the 
+                transaction conflicts!
+            o get record (move without direction): return error if the 
             o find cursor - always returns the oldest duplicate
                 o if the transaction conflicts: return error!
             o erase duplicates (ham_cursor_erase)
@@ -787,16 +791,19 @@ txn_cursor_set_to_nil: must clear dupecache! (and set dupecache_index to 0)
                 x last
                 x next w/ dupes
                 x previous w/ dupes
-                o next w/ skip
-                o previous w/ skip
                 x only btree dupes
                 x only txn dupes
                 x with mixed dupes
+                o next w/ skip
+                o previous w/ skip
             o insert duplicates w/ BEFORE (w/ cursor coupled to txn-key)
             o insert duplicates w/ AFTER (w/ cursor coupled to txn-key)
             o insert duplicates w/ BEFORE (w/ cursor coupled to btree-key)
             o insert duplicates w/ AFTER (w/ cursor coupled to btree-key)
             o insert duplicates w/ BEFORE/AFTER and mixed btree/txn keys
+
+            o txn_cursor_set_to_nil: must clear dupecache! (and set 
+                dupecache_index to 0)
 
             o sorting duplicates
                 o with ham_cursor_overwrite

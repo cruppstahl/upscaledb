@@ -3502,9 +3502,9 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
      * first check if we have a duplicate list and we want to move next
      * or previous in the duplicates
      */
-    if ((db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) 
+    if (flags!=0 
+            && (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) 
             && (dupecache_get_count(dc))) {
-
         ham_bool_t both_not_nil=HAM_FALSE;
         if (!txn_cursor_is_nil(txnc) 
                 && !__btree_cursor_is_nil((ham_bt_cursor_t *)cursor))
