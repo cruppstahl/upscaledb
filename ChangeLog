@@ -1,7 +1,11 @@
+Mar 31, 2011 - chris ---------------------------------------------------
+o bugfix: the hamzilla server always failed to read the configuration file 
+    because of a wrong error check (Thanks, Sebastien)
+
 Mar 28, 2011 - chris ---------------------------------------------------
-o when opening a database, and recovery is enabled, the 'threshold' of the
-    log files (which decides about the log file switching) was not 
-    initialized correctly. Fixed. (Thanks, Jake Sloan)
+o bugfix: when opening a database, and recovery is enabled, the 'threshold' 
+    of the log files (which decides about the log file switching) was not 
+    initialized correctly. (Thanks, Jake Sloan)
 
 Feb 03, 2011 - chris ---------------------------------------------------
                       release of hamsterdb-1.1.9

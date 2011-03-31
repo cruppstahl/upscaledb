@@ -277,7 +277,7 @@ read_config(const char *configfile, config_table_t **params)
     len=ftell(fp);
     fseek(fp, 0, SEEK_SET);
     buf=(char *)malloc(len+1); /* for zero-terminating byte */
-    if (fread(buf, len, 1, fp)!=len) {
+    if (fread(buf, 1, len, fp)!=len) {
         hlog(LOG_FATAL, "Failed to read config file %s: %s\n", 
                 configfile, strerror(errno));
         exit(-1);
