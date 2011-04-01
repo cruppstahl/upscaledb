@@ -760,6 +760,34 @@ o support cursors!!!
             x get key (move without direction)
             x get record (move without direction)
 
+            o move cursor...
+                x first
+                x last
+                x next w/ dupes
+                x previous w/ dupes
+                x only btree dupes
+                x only txn dupes
+                x with mixed dupes
+                o next w/ skip
+                o previous w/ skip
+
+            o get key (move without direction): return error if the 
+                transaction conflicts!
+            o get record (move without direction): return error if the 
+                transaction conflicts!
+
+            o find cursor - make sure that conflicts are checked - unittest
+            o find - make sure that conflicts are checked - unittest
+
+            o erase all duplicates (ham_erase)
+                - what about conflicts? check EVERY duplicate in
+                    the txn if it conflicts
+
+            o clone cursor: make sure that the new cursor is coupled to the
+                same duplicate - unittest
+
+            o ham_cursor_insert: couple cursor to the latest dupe
+
             o insert duplicates with multiple cursors while iterating over them
                 o if a cursor is coupled to dupe #2, and a dupe at position 1
                     is inserted, then the cursor must be coupled to #3
@@ -778,28 +806,10 @@ o support cursors!!!
                 o DupeCursorTest::findInDuplicatesTest fails
                 x DupeCursorTest::cursorFindInDuplicatesTest fails
 
-            o get key (move without direction): return error if the 
-                transaction conflicts!
-            o get record (move without direction): return error if the 
-            o find cursor - always returns the oldest duplicate
-                o if the transaction conflicts: return error!
             o erase duplicates (ham_cursor_erase)
                 o if the transaction conflicts: return error!
                 o in txn-tree
                 o in btree-tree
-            o erase all duplicates (ham_erase)
-            o clone cursor: make sure that the new cursor is coupled to the
-                same duplicate
-            o move cursor...
-                x first
-                x last
-                x next w/ dupes
-                x previous w/ dupes
-                x only btree dupes
-                x only txn dupes
-                x with mixed dupes
-                o next w/ skip
-                o previous w/ skip
             o insert duplicates w/ BEFORE (w/ cursor coupled to txn-key)
             o insert duplicates w/ AFTER (w/ cursor coupled to txn-key)
             o insert duplicates w/ BEFORE (w/ cursor coupled to btree-key)
