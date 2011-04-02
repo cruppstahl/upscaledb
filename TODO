@@ -760,7 +760,7 @@ o support cursors!!!
             x get key (move without direction)
             x get record (move without direction)
 
-            o move cursor...
+            x move cursor...
                 x first
                 x last
                 x next w/ dupes
@@ -768,8 +768,8 @@ o support cursors!!!
                 x only btree dupes
                 x only txn dupes
                 x with mixed dupes
-                o next w/ skip
-                o previous w/ skip
+                x next w/ skip
+                x previous w/ skip
 
             o get key (move without direction): return error if the 
                 transaction conflicts!

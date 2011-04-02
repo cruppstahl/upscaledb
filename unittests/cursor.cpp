@@ -3941,6 +3941,7 @@ public:
         BFC_REGISTER_TEST(DupeCursorTest, mixedTest);
         BFC_REGISTER_TEST(DupeCursorTest, findInDuplicatesTest);
         BFC_REGISTER_TEST(DupeCursorTest, cursorFindInDuplicatesTest);
+        BFC_REGISTER_TEST(DupeCursorTest, skipDuplicatesTest);
     }
 
     virtual void setup() 
@@ -4368,6 +4369,70 @@ public:
         BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r8.1"));
     }
 
+    void skipDuplicatesTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k2", "r2.1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k2", "r2.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k3", "r3.1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k3", "r3.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k3", "r3.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k4", "r4.1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k4", "r4.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k4", "r4.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k5", "r5.1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k5", "r5.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k5", "r5.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k5", "r5.4", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k6", "r6.1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k6", "r6.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k6", "r6.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k6", "r6.4", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k6", "r6.5", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k6", "r6.6", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k7", "r7.1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k7", "r7.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k7", "r7.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k7", "r7.4", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k8", "r8.1"));
+
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.1", 
+                    HAM_CURSOR_FIRST|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(0, move       ("k2", "r2.1",
+                    HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(0, move       ("k3", "r3.1",
+                    HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(0, move       ("k4", "r4.1",
+                    HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(0, move       ("k5", "r5.1",
+                    HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(0, move       ("k6", "r6.1",
+                    HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(0, move       ("k7", "r7.1",
+                    HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(0, move       ("k8", "r8.1",
+                    HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0,
+                    HAM_CURSOR_NEXT|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(0, move       ("k8", "r8.1",
+                    HAM_CURSOR_LAST|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(0, move       ("k7", "r7.4",
+                    HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(0, move       ("k6", "r6.6",
+                    HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(0, move       ("k5", "r5.4",
+                    HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(0, move       ("k4", "r4.3",
+                    HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(0, move       ("k3", "r3.3",
+                    HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(0, move       ("k2", "r2.2",
+                    HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.1",
+                    HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0,
+                    HAM_CURSOR_PREVIOUS|HAM_SKIP_DUPLICATES));
+    }
 };
 
 BFC_REGISTER_FIXTURE(TempTxnCursorTest);

@@ -3541,7 +3541,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 && !__btree_cursor_is_nil((ham_bt_cursor_t *)cursor))
             both_not_nil=HAM_TRUE;
 
-        if (flags&HAM_CURSOR_NEXT) {
+        if (!(flags&HAM_SKIP_DUPLICATES) && (flags&HAM_CURSOR_NEXT)) {
             if (cursor_get_dupecache_index(cursor)) {
                 if (cursor_get_dupecache_index(cursor)<dupecache_get_count(dc)) {
                     cursor_set_dupecache_index(cursor, 
@@ -3550,21 +3550,9 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                                 cursor_get_dupecache_index(cursor));
                     goto bail;
                 }
-                /* we've made it through the duplicate list. make sure that
-                 * both cursors (btree AND txn-tree) are incremented in
-                 * do_local_cursor_move(), if they both point to the same
-                 * key */
-                else if (both_not_nil) {
-                    int cmp=0;
-                    st=__compare_cursors((ham_bt_cursor_t *)cursor, txnc, &cmp);
-                    if (st)
-                        goto bail;
-                    if (cmp==0)
-                        fresh_start=HAM_TRUE;
-                }
             }
         }
-        else if (flags&HAM_CURSOR_PREVIOUS) {
+        else if (!(flags&HAM_SKIP_DUPLICATES) && (flags&HAM_CURSOR_PREVIOUS)) {
             /* duplicate key? then traverse the duplicate list */
             if (cursor_get_dupecache_index(cursor)) {
                 if (cursor_get_dupecache_index(cursor)>1) {
@@ -3574,18 +3562,21 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                                 cursor_get_dupecache_index(cursor));
                     goto bail;
                 }
-                /* we've made it through the duplicate list. make sure that
-                 * both cursors (btree AND txn-tree) are incremented in
-                 * do_local_cursor_move(), if they both point to the same
-                 * key */
-                else if (both_not_nil) {
-                    int cmp=0;
-                    st=__compare_cursors((ham_bt_cursor_t *)cursor, txnc, &cmp);
-                    if (st)
-                        goto bail;
-                    if (cmp==0)
-                        fresh_start=HAM_TRUE;
-                }
+            }
+        }
+
+        if ((flags&HAM_CURSOR_NEXT) || (flags&HAM_CURSOR_PREVIOUS)) {
+            /* we've made it through the duplicate list. make sure that
+             * both cursors (btree AND txn-tree) are incremented in
+             * do_local_cursor_move(), if they both point to the same
+             * key */
+            if (both_not_nil) {
+                int cmp=0;
+                st=__compare_cursors((ham_bt_cursor_t *)cursor, txnc, &cmp);
+                if (st)
+                    goto bail;
+                if (cmp==0)
+                    fresh_start=HAM_TRUE;
             }
         }
 
@@ -3593,6 +3584,10 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         dupecache_reset(dc);
         cursor_set_dupecache_index(cursor, 0);
     }
+
+    /* no move requested? then return key or record */
+    if (!flags)
+        goto bail;
 
     /* move to the next key, but skip duplicates. Duplicates are handled
      * below (and above) */
@@ -3602,7 +3597,8 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         goto bail;
 
     /* now check if this key has duplicates; if yes, we have to build up the
-     * duplicate table */
+     * duplicate table (we even have to do this if duplicates are skipped, 
+     * because a txn-op might replace the first/oldest duplicate) */
     if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
         if (what) {
             st=cursor_update_dupecache(cursor, what);
