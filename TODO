@@ -771,13 +771,8 @@ o support cursors!!!
                 x next w/ skip
                 x previous w/ skip
 
-            o get key (move without direction): return error if the 
-                transaction conflicts!
-            o get record (move without direction): return error if the 
-                transaction conflicts!
-
-            o find cursor - make sure that conflicts are checked - unittest
-            o find - make sure that conflicts are checked - unittest
+            x find cursor - make sure that conflicts are checked - unittest
+            x find - make sure that conflicts are checked - unittest
 
             o erase all duplicates (ham_erase)
                 - what about conflicts? check EVERY duplicate in
@@ -852,6 +847,12 @@ o support cursors!!!
         -> cursor.c uses a different loop because this one was not working!
         -> yes, all loops were broken (but it had no consequences, since the
             loop was never really executed)
+
+. cursor move
+    o get key (move without direction): return error if the 
+        transaction conflicts!
+    o get record (move without direction): return error if the 
+        transaction conflicts!
 
 x add hamsterdb.spec file from 1.1.8
     https://github.com/cruppstahl/hamsterdb/commit/46260d14d0192299b15286c93a843d11dc4ccaa6
