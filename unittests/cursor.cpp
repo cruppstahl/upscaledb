@@ -3946,6 +3946,7 @@ public:
         BFC_REGISTER_TEST(DupeCursorTest, txnEraseConflictTest);
         BFC_REGISTER_TEST(DupeCursorTest, eraseDuplicatesTest);
         BFC_REGISTER_TEST(DupeCursorTest, cloneDuplicateCursorTest);
+        BFC_REGISTER_TEST(DupeCursorTest, insertCursorCouplesTest);
     }
 
     virtual void setup() 
@@ -4577,6 +4578,20 @@ public:
         BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r2.2"));
         BFC_ASSERT_EQUAL(0, strcmp((char *)key.data, "k1"));
         BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+    }
+
+    void insertCursorCouplesTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r2.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r3.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r3.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r3.3", HAM_DUPLICATE));
+
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        BFC_ASSERT_EQUAL(0, ham_cursor_move(m_cursor, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r3.3"));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)key.data, "k1"));
     }
 };
 

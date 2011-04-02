@@ -783,8 +783,7 @@ o support cursors!!!
                 same duplicate
                 x unittest
 
-            o ham_cursor_insert: couple cursor to the latest dupe
-                o unittest
+            x ham_cursor_insert: couple cursor to the dupe
 
             o insert duplicates with multiple cursors while iterating over them
                 o if a cursor is coupled to dupe #2, and a dupe at position 1
