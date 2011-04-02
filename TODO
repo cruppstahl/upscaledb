@@ -779,9 +779,9 @@ o support cursors!!!
                 x what about conflicts? check EVERY duplicate in
                     the txn if it conflicts
 
-            o clone cursor: make sure that the new cursor is coupled to the
+            x clone cursor: make sure that the new cursor is coupled to the
                 same duplicate
-                o unittest
+                x unittest
 
             o ham_cursor_insert: couple cursor to the latest dupe
                 o unittest

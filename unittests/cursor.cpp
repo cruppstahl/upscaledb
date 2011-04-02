@@ -3945,6 +3945,7 @@ public:
         BFC_REGISTER_TEST(DupeCursorTest, txnInsertConflictTest);
         BFC_REGISTER_TEST(DupeCursorTest, txnEraseConflictTest);
         BFC_REGISTER_TEST(DupeCursorTest, eraseDuplicatesTest);
+        BFC_REGISTER_TEST(DupeCursorTest, cloneDuplicateCursorTest);
     }
 
     virtual void setup() 
@@ -4555,6 +4556,27 @@ public:
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, find("k6", 0));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, find("k7", 0));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, find("k8", 0));
+    }
+
+    void cloneDuplicateCursorTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r2.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r3.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r3.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r3.3", HAM_DUPLICATE));
+
+        BFC_ASSERT_EQUAL(0, move("k1", "r2.2", HAM_CURSOR_FIRST));
+
+        ham_cursor_t *c;
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_clone(m_cursor, &c));
+
+        ham_key_t key={0};
+        ham_record_t rec={0};
+        BFC_ASSERT_EQUAL(0, ham_cursor_move(c, &key, &rec, 0));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)rec.data, "r2.2"));
+        BFC_ASSERT_EQUAL(0, strcmp((char *)key.data, "k1"));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
     }
 };
 
