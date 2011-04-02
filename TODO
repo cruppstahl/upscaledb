@@ -785,6 +785,10 @@ o support cursors!!!
 
             x ham_cursor_insert: couple cursor to the dupe
 
+            x ham_find: must return same result as btree-ham_find (first dupe)
+                x DupeCursorTest::findInDuplicatesTest fails
+                x DupeCursorTest::cursorFindInDuplicatesTest fails
+
             o insert duplicates with multiple cursors while iterating over them
                 o if a cursor is coupled to dupe #2, and a dupe at position 1
                     is inserted, then the cursor must be coupled to #3
@@ -798,10 +802,6 @@ o support cursors!!!
                 o in txn-tree
                 o in btree-tree
                 o if the transaction conflicts: return error!
-
-            o ham_find: must return same result as btree-ham_find (first dupe)
-                o DupeCursorTest::findInDuplicatesTest fails
-                x DupeCursorTest::cursorFindInDuplicatesTest fails
 
             o erase duplicates (ham_cursor_erase)
                 o if the transaction conflicts: return error!

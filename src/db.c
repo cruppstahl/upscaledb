@@ -2246,6 +2246,19 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     ham_backend_t *be;
     ham_offset_t recno=0;
 
+    /* if this database has duplicates, then we use ham_cursor_find
+     * because we have to build a duplicate list, and this is currently
+     * only available in ham_cursor_find */
+    if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
+        ham_cursor_t *c;
+        st=ham_cursor_create(db, txn, 0, &c);
+        if (st)
+            return (st);
+        st=ham_cursor_find_ex(c, key, record, flags);
+        ham_cursor_close(c);
+        return (st);
+    }
+
     if ((db_get_keysize(db)<sizeof(ham_offset_t)) &&
             (key->size>db_get_keysize(db))) {
         ham_trace(("database does not support variable length keys"));
@@ -2266,7 +2279,7 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
         return (HAM_NOT_INITIALIZED);
 
     if (!be->_fun_find)
-        return HAM_NOT_IMPLEMENTED;
+        return (HAM_NOT_IMPLEMENTED);
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
