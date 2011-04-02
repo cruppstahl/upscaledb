@@ -774,14 +774,17 @@ o support cursors!!!
             x find cursor - make sure that conflicts are checked - unittest
             x find - make sure that conflicts are checked - unittest
 
-            o erase all duplicates (ham_erase)
-                - what about conflicts? check EVERY duplicate in
+            x erase all duplicates (ham_erase)
+                x test basic functionality
+                x what about conflicts? check EVERY duplicate in
                     the txn if it conflicts
 
             o clone cursor: make sure that the new cursor is coupled to the
-                same duplicate - unittest
+                same duplicate
+                o unittest
 
             o ham_cursor_insert: couple cursor to the latest dupe
+                o unittest
 
             o insert duplicates with multiple cursors while iterating over them
                 o if a cursor is coupled to dupe #2, and a dupe at position 1
