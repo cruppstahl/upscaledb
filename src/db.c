@@ -1742,6 +1742,77 @@ db_check_erase_conflicts(ham_db_t *db, ham_txn_t *txn,
     return (be->_fun_find(be, key, 0, flags));
 }
 
+static ham_bool_t
+__btree_cursor_points_to(ham_cursor_t *c, ham_key_t *key)
+{
+    ham_bool_t ret=HAM_FALSE;
+    ham_db_t *db=cursor_get_db(c);
+    ham_bt_cursor_t *btc=(ham_bt_cursor_t *)c;
+
+    if (bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) {
+        ham_cursor_t *clone;
+        ham_status_t st=ham_cursor_clone(c, &clone);
+        if (st)
+            return (HAM_FALSE);
+        st=bt_cursor_uncouple((ham_bt_cursor_t *)clone, 0);
+        if (st) {
+            ham_cursor_close(clone);
+            return (HAM_FALSE);
+        }
+        if (0==db_compare_keys(db, key, 
+                   bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)clone)))
+            ret=HAM_TRUE;
+        ham_cursor_close(clone);
+    }
+    else if (bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED) {
+        ham_key_t *k=bt_cursor_get_uncoupled_key(btc);
+        if (0==db_compare_keys(db, key, k))
+            ret=HAM_TRUE;
+    }
+    else {
+        ham_assert(!"shouldn't be here", (""));
+    }
+    
+    return (ret);
+}
+
+static void
+__increment_dupe_index(ham_db_t *db, txn_opnode_t *node, ham_u32_t start)
+{
+    ham_cursor_t *c=db_get_cursors(db);
+
+    while (c) {
+        ham_bool_t hit=HAM_FALSE;
+
+        if (c->_fun_is_nil(c))
+            goto next;
+
+        /* if cursor is coupled to an op in the same node: increment 
+         * duplicate index (if required) */
+        if (cursor_get_flags(c)&CURSOR_COUPLED_TO_TXN) {
+            txn_cursor_t *txnc=cursor_get_txn_cursor(c);
+            txn_opnode_t *n=txn_op_get_node(txn_cursor_get_coupled_op(txnc));
+            if (n==node)
+                hit=HAM_TRUE;
+        }
+        /* if cursor is coupled to the same key in the btree: increment
+         * duplicate index (if required) */
+        else if (__btree_cursor_points_to(c, txn_opnode_get_key(node))) {
+            hit=HAM_TRUE;
+        }
+
+        if (hit) {
+            if (cursor_get_dupecache_index(c)>start) {
+                cursor_set_dupecache_index(c, 
+                    cursor_get_dupecache_index(c)+1);
+            }
+        }
+
+next:
+        c=cursor_get_next(c);
+    }
+}
+
 ham_status_t
 db_insert_txn(ham_db_t *db, ham_txn_t *txn,
                 ham_key_t *key, ham_record_t *record, ham_u32_t flags, 
@@ -1804,13 +1875,23 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
     if (!op)
         return (HAM_OUT_OF_MEMORY);
 
-    /* couple cursor if we have one */
+    /* if there's a cursor then couple it to the op; also store the 
+     * dupecache-index in the op (it's needed for 
+     * DUPLICATE_INSERT_BEFORE/NEXT) */
     if (cursor) {
+        ham_cursor_t *c=txn_cursor_get_parent(cursor);
+        if (cursor_get_dupecache_index(c))
+            txn_op_set_referenced_dupe(op, cursor_get_dupecache_index(c)-1);
+
         txn_cursor_set_to_nil(cursor);
         txn_cursor_set_flags(cursor, 
-                        txn_cursor_get_flags(cursor)|TXN_CURSOR_FLAG_COUPLED);
+                    txn_cursor_get_flags(cursor)|TXN_CURSOR_FLAG_COUPLED);
         txn_cursor_set_coupled_op(cursor, op);
         txn_op_add_cursor(op, cursor);
+
+        /* all other cursors need to increment their dupe index, if their
+         * index is > this cursor's index */
+        __increment_dupe_index(db, node, cursor_get_dupecache_index(c));
     }
 
     /* append journal entry */
@@ -1832,18 +1913,14 @@ __nil_all_cursors_in_node(ham_txn_t *txn, txn_opnode_t *node)
         txn_cursor_t *cursor=txn_op_get_cursors(op);
         while (cursor) {
             ham_cursor_t *pc=txn_cursor_get_parent(cursor);
-            if (1) { //cursor_get_flags(pc)&CURSOR_COUPLED_TO_TXN) {
-                cursor_set_flags(pc, 
-                        cursor_get_flags(pc)&(~CURSOR_COUPLED_TO_TXN));
-                txn_cursor_set_to_nil(cursor);
-                cursor=txn_op_get_cursors(op);
-                /* set a flag that the cursor just completed an Insert-or-find 
-                 * operation; this information is needed in ham_cursor_move 
-                 * (in this aspect, an erase is the same as insert/find) */
-                cursor_set_lastop(pc, CURSOR_LOOKUP_INSERT);
-            }
-            else
-                cursor=txn_cursor_get_coupled_next(cursor);
+            cursor_set_flags(pc, 
+                    cursor_get_flags(pc)&(~CURSOR_COUPLED_TO_TXN));
+            txn_cursor_set_to_nil(cursor);
+            cursor=txn_op_get_cursors(op);
+            /* set a flag that the cursor just completed an Insert-or-find 
+             * operation; this information is needed in ham_cursor_move 
+             * (in this aspect, an erase is the same as insert/find) */
+            cursor_set_lastop(pc, CURSOR_LOOKUP_INSERT);
         }
 
         op=txn_op_get_previous_in_node(op);
@@ -1864,38 +1941,14 @@ __nil_all_cursors_in_btree(ham_db_t *db, ham_key_t *key)
      *      all other cursors from the same btree page)
      */
     while (c) {
-        ham_bt_cursor_t *btc;
-
         if (c->_fun_is_nil(c))
             goto next;
         if (cursor_get_flags(c)&CURSOR_COUPLED_TO_TXN)
             goto next;
 
-        btc=(ham_bt_cursor_t *)c;
-        if (bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) {
-            ham_cursor_t *clone;
-            ham_status_t st=ham_cursor_clone(c, &clone);
-            if (st)
-                goto next;
-            st=bt_cursor_uncouple((ham_bt_cursor_t *)clone, 0);
-            if (st) {
-                ham_cursor_close(clone);
-                goto next;
-            }
-            if (0==db_compare_keys(db, key, 
-                       bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)clone))) {
-                bt_cursor_set_to_nil(btc);
-                txn_cursor_set_to_nil(cursor_get_txn_cursor(c));
-            }
-            ham_cursor_close(clone);
-        }
-        else if (bt_cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED) {
-            ham_key_t *k=bt_cursor_get_uncoupled_key(btc);
-            if (0==db_compare_keys(db, key, k))
-                bt_cursor_set_to_nil(btc);
-        }
-        else {
-            ham_assert(!"shouldn't be here", (""));
+        if (__btree_cursor_points_to(c, key)) {
+            bt_cursor_set_to_nil((ham_bt_cursor_t *)c);
+            txn_cursor_set_to_nil(cursor_get_txn_cursor(c));
         }
 next:
         c=cursor_get_next(c);

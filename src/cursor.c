@@ -248,12 +248,22 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
                 }
                 /* insert a duplicate key */
                 else if (txn_op_get_flags(op)&TXN_OP_INSERT_DUP) {
+                    ham_u32_t of=txn_op_get_orig_flags(op);
+                    ham_u32_t ref=txn_op_get_referenced_dupe(op);
                     dupecache_line_t dcl={0};
                     dupecache_line_set_btree(&dcl, HAM_FALSE);
                     dupecache_line_set_txn_op(&dcl, op);
-                    if (txn_op_get_orig_flags(op)&HAM_DUPLICATE_INSERT_FIRST)
+                    if (of&HAM_DUPLICATE_INSERT_FIRST)
                         st=dupecache_insert(dc, 0, &dcl);
-                    /* TODO else if ... */
+                    else if (of&HAM_DUPLICATE_INSERT_BEFORE) {
+                        st=dupecache_insert(dc, ref>0 ? ref-1 : 0, &dcl);
+                    }
+                    else if (of&HAM_DUPLICATE_INSERT_AFTER) {
+                        if (ref>=dupecache_get_count(dc))
+                            st=dupecache_append(dc, &dcl);
+                        else
+                            st=dupecache_insert(dc, ref+1, &dcl);
+                    }
                     else /* default is HAM_DUPLICATE_INSERT_LAST */
                         st=dupecache_append(dc, &dcl);
                     if (st)

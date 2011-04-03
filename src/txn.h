@@ -21,11 +21,9 @@
 #include "rb.h"
 
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif 
-
 
 /**
  * a single operation in a transaction
@@ -37,6 +35,12 @@ typedef struct txn_op_t
 
     /** the original flags of this operation */
     ham_u32_t _orig_flags;
+
+    /** the referenced duplicate id (if neccessary) - used if this is 
+     * i.e. a ham_cursor_erase, ham_cursor_overwrite or ham_cursor_insert
+     * with a DUPLICATE_AFTER/BEFORE flag 
+     * this is 0-based (unlike dupecache-index, which is 1-based) */
+    ham_u32_t _referenced_dupe;
 
     /** the Transaction of this operation */
     ham_txn_t *_txn;
@@ -104,6 +108,12 @@ typedef struct txn_op_t
 
 /** set flags original flags of ham_insert/ham_cursor_insert/ham_erase... */
 #define txn_op_set_orig_flags(t, f)        (t)->_orig_flags=f
+
+/** get the referenced duplicate id */
+#define txn_op_get_referenced_dupe(t)      (t)->_referenced_dupe
+
+/** set the referenced duplicate id */
+#define txn_op_set_referenced_dupe(t, id)  (t)->_referenced_dupe=id
 
 /** get the Transaction pointer */
 #define txn_op_get_txn(t)                  (t)->_txn
