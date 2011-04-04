@@ -204,6 +204,7 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
                 dupe_entry_t *e=dupe_table_get_entry(table, i);
                 dupecache_line_set_btree(&dcl, HAM_TRUE);
                 dupecache_line_set_btree_flags(&dcl, dupe_entry_get_flags(e));
+                dupecache_line_set_btree_dupe_idx(&dcl, i);
                 dupecache_line_set_btree_rid(&dcl, dupe_entry_get_rid(e));
                 st=dupecache_append(dc, &dcl);
                 if (st) {
@@ -259,7 +260,7 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
                         st=dupecache_insert(dc, ref>0 ? ref-1 : 0, &dcl);
                     }
                     else if (of&HAM_DUPLICATE_INSERT_AFTER) {
-                        if (ref>=dupecache_get_count(dc))
+                        if (ref+1>=dupecache_get_count(dc))
                             st=dupecache_append(dc, &dcl);
                         else
                             st=dupecache_insert(dc, ref+1, &dcl);
@@ -317,10 +318,7 @@ cursor_couple_to_dupe(ham_cursor_t *cursor, ham_u32_t dupe_id)
         ham_bt_cursor_t *btc=(ham_bt_cursor_t *)cursor;
         cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
-        /* btree dupes are already at the beginning of the dupe table, 
-         * therefore the btree-dupe id can be derived from the consolidated
-         * dupe-id */
-        bt_cursor_set_dupe_id(btc, dupe_id-1);
+        bt_cursor_set_dupe_id(btc, dupecache_line_get_btree_dupe_idx(e));
     }
     else {
         txn_cursor_couple(txnc, dupecache_line_get_txn_op(e));

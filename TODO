@@ -790,19 +790,9 @@ o support cursors!!!
                 x DupeCursorTest::cursorFindInDuplicatesTest fails
 
             x insert duplicates w/ FIRST 
+            x insert duplicates w/ AFTER and mixed btree/txn keys
             x insert duplicates w/ LAST
 
-            o insert duplicates with multiple cursors while iterating over them
-                if a cursor is coupled to dupe #2, and a dupe at position 1
-                is inserted, then the cursor must be coupled to #3
-                (and all other cursors must be modified as well); also
-                clear the dupe cache with those cursors!
-===> hacked insertAfterTest - it fails, most likely because
-db.c:__increment_dupe_count is not working correctly?
-                ===> added unittest insertMovesCursorsTest (currently failing)
-
-            o insert duplicates w/ AFTER and mixed btree/txn keys
-                ===> added unittest insertAfterTest (currently failing)
             o insert duplicates w/ BEFORE and mixed btree/txn keys
                 ===> added unittest insertBeforeTest (currently failing)
 

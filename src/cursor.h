@@ -45,6 +45,9 @@ typedef struct dupecache_line_t {
             /** the btree record ID */
             ham_u64_t _btree_rid;
 
+            /** the btree duplicate index (of the original btree dupe table) */
+            ham_u64_t _btree_dupeidx;
+
         } _b;
         
         /** the txn op structure */
@@ -70,6 +73,12 @@ typedef struct dupecache_line_t {
 
 /** Set ID of the btree record */
 #define dupecache_line_set_btree_rid(dcl, rid)  (dcl)->_u._b._btree_rid=rid
+
+/** Get the btree duplicate index */
+#define dupecache_line_get_btree_dupe_idx(dcl)  (dcl)->_u._b._btree_dupeidx
+
+/** Set the btree duplicate index */
+#define dupecache_line_set_btree_dupe_idx(d, i) (d)->_u._b._btree_dupeidx=i
 
 /** Get txn_op_t pointer of the txn record */
 #define dupecache_line_get_txn_op(dcl)          (dcl)->_u._op
