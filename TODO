@@ -852,6 +852,10 @@ x precompiled windows libraries: hamserver-x.x.x.dll is still version 1.1.5
 
 o add other pending patches from master
 
+o the doxygen documentation is horrible. When opening the start page I have
+    *NO* idea what to look for. The start page needs an introduction and 
+    some links!
+
 x currently, two log sub-systems are used. one for logical journal and the 
     other for the physical one. in a later version we will only use the journal
     (or at least try to get rid of the physical log as much as possible). but
