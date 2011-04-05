@@ -799,19 +799,19 @@ o support cursors!!!
                 
             o overwrite duplicates - need to store the referenced dupe-id
                 in the op, and then consolidate in cursor_update_dupecache
+                o if the transaction conflicts: return error!
                 o in txn-tree
                 o in btree-tree
-                o if the transaction conflicts: return error!
 
             o erase duplicates (ham_cursor_erase)
                 o if the transaction conflicts: return error!
                 o in txn-tree
                 o in btree-tree
 
-            o analoguous to insertMovesCursorsTest, but erase keys
-
             o txn_cursor_set_to_nil: must clear dupecache! (and set 
-                dupecache_index to 0) (really?)
+                dupecache_index to 0)
+
+            o analoguous to insertMovesCursorsTest, but erase keys
 
             o sorting duplicates
                 ==> postpone to next release?
@@ -833,11 +833,6 @@ o support cursors!!!
                 moving) and key/record is requested, then return
                 HAM_TXN_CONFLICT
 
-    o make sure that ham_cursor_overwrite returns HAM_TXN_CONFLICT if
-        the key is modified in another transaction
-        o also check for duplicate keys 
-        o same for ham_cursor_erase
-
     x review all loops that are like...
         op=txn_node_get_newest();
         while (op) { 
@@ -848,18 +843,14 @@ o support cursors!!!
         -> yes, all loops were broken (but it had no consequences, since the
             loop was never really executed)
 
-. cursor move
-    o get key (move without direction): return error if the 
-        transaction conflicts!
-    o get record (move without direction): return error if the 
-        transaction conflicts!
-
 x add hamsterdb.spec file from 1.1.8
     https://github.com/cruppstahl/hamsterdb/commit/46260d14d0192299b15286c93a843d11dc4ccaa6
     x make sure that the version information is automatically updated!
 
 x precompiled windows libraries: hamserver-x.x.x.dll is still version 1.1.5
     (also on master branch)
+
+o add other pending patches from master
 
 x currently, two log sub-systems are used. one for logical journal and the 
     other for the physical one. in a later version we will only use the journal
@@ -897,11 +888,16 @@ o update documentation
 
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
 
+o do performance comparisons
+    o WITHOUT transactions
+    o only WITH recovery
+    o WITH recovery/transactions
+
 o test with lessfs (and add lessfs to the monster testsuite)
 
 o how can we extend the monster-tests to have reliable tests for transactions?
 
-. refactor cursor; separate backend-cursor and txn-cursor; make the 
+o refactor cursor; separate backend-cursor and txn-cursor; make the 
     "uncoupled" cursor part of the frontend. When coupling, btree AND txn 
     have to couple, and check if it was erased in the meantime!
     or: - cursor tracks state if it's coupled to txn or btree
@@ -921,14 +917,9 @@ o how can we extend the monster-tests to have reliable tests for transactions?
                 - parent of the txn-cursor
                 - parent of the btree-cursor
 
-. add tests to verify that the cursor is not modified if an operation fails!
+o add tests to verify that the cursor is not modified if an operation fails!
     (in cursor.cpp:LongTxnCursorTest are some wrapper functions to move or
     insert the cursor; that's a good starting point)
-
-o if recovery is enabled: before flushing the changeset, patch the lsn in
-    the page header (it fits in 8 free bytes). in the previous release we 
-    stored the lsn in the log file header. this can be removed; use he 
-    lsn in the page header for recovery.
 
 o improve journalling and get rid of the physical log as much as possible
     o recovery: recreate all pending transactions (if requested)
@@ -940,9 +931,16 @@ o improve journalling and get rid of the physical log as much as possible
         insert or erase (w/ SMO) contains the modified pages as well.
     o api function to get a list of pending transactions
 
+o if recovery is enabled: before flushing the changeset, patch the lsn in
+    the page header (it fits in 8 free bytes). in the previous release we 
+    stored the lsn in the log file header. this can be removed; use he 
+    lsn in the page header for recovery.
+    --> why?? i think the current solution is good enough
+
 o ham_txn_begin receives Environment handle, not Database handle
     o need a new parameter (reserved) for parent txn
     o need a new parameter for txn name (string)
+        o this needs a getter function
     o update unittests/add new tests
     o update C++ API
     o rewrite auto-abort/auto-commit -> move to env
@@ -953,7 +951,14 @@ o new API to retrieve the currently active transactions
     o already exists in v2
     o needs unittests
 
+o when recovering, give users the choice if active transactions should be
+    aborted (default behavior) or re-created
+
 . extkeys: don't use txn_id for the 'age', use lsn instead
+
+. allow use of transactions without a log/journal
+
+. allow use of transactions for in-memory databases
 
 . opnode: use key instead of key* (pointer) - this saves one allocation 
     per node
@@ -973,14 +978,16 @@ o new API to retrieve the currently active transactions
 
 . many unittests (i.e. LogHighLevelTest) create an allocator but do not use it
 
-. flush transactions in background
+XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
+
+o flush transactions in background
+
+o have a flag to describe if a transaction is (mostly) insert-only; if yes then
+    write records immediately to the database file, not to the journal
+    -> this affects all temporary ham_insert-transactions 
 
 . have a flag to disable flushing of logfiles/journal files (or flush them 
     async.)
-
-. have a flag to describe if a transaction is (mostly) insert-only; if yes then
-    write records immediately to the database file, not to the journal
-    -> this affects all temporary ham_insert-transactions 
 
 o continue as described in integrate-ham2.txt...
 

@@ -3951,6 +3951,7 @@ public:
         BFC_REGISTER_TEST(DupeCursorTest, insertLastTest);
         BFC_REGISTER_TEST(DupeCursorTest, insertAfterTest);
         BFC_REGISTER_TEST(DupeCursorTest, insertBeforeTest);
+        BFC_REGISTER_TEST(DupeCursorTest, extendDupeCacheTest);
     }
 
     virtual void setup() 
@@ -4778,7 +4779,7 @@ public:
 
     void insertBeforeTest(void)
     {
-        static int C=4;
+        const int C=4;
         /* B 1 3     */
         /* T     5 7 */
         ham_cursor_t *c[C];
@@ -4859,6 +4860,39 @@ public:
 
         for (int i=0; i<C; i++)
             BFC_ASSERT_EQUAL(0, ham_cursor_close(c[i]));
+    }
+
+    void extendDupeCacheTest(void)
+    {
+        const int MAX=512;
+        int i=0;
+
+        for (; i<MAX/2; i++) {
+            char buf[20];
+            sprintf(buf, "%d", i);
+            BFC_ASSERT_EQUAL(0, insertBtree("k1", buf, HAM_DUPLICATE));
+        }
+
+        for (; i<MAX; i++) {
+            char buf[20];
+            sprintf(buf, "%d", i);
+            BFC_ASSERT_EQUAL(0, insertTxn  ("k1", buf, HAM_DUPLICATE));
+        }
+
+        ham_key_t key={0};
+        key.size=3;
+        key.data=(void *)"k1";
+
+        ham_record_t rec={0};
+
+        for (i=0; i<MAX; i++) {
+            char buf[20];
+            sprintf(buf, "%d", i);
+            rec.data=(void *)&buf[0];
+            rec.size=strlen(buf)+1;
+            BFC_ASSERT_EQUAL(0, move("k1", buf, 
+                    i==0 ? HAM_CURSOR_FIRST : HAM_CURSOR_NEXT));
+        }
     }
 };
 
