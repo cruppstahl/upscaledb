@@ -257,7 +257,7 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
                     if (of&HAM_DUPLICATE_INSERT_FIRST)
                         st=dupecache_insert(dc, 0, &dcl);
                     else if (of&HAM_DUPLICATE_INSERT_BEFORE) {
-                        st=dupecache_insert(dc, ref>0 ? ref-1 : 0, &dcl);
+                        st=dupecache_insert(dc, ref, &dcl);
                     }
                     else if (of&HAM_DUPLICATE_INSERT_AFTER) {
                         if (ref+1>=dupecache_get_count(dc))

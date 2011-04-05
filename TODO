@@ -792,9 +792,7 @@ o support cursors!!!
             x insert duplicates w/ FIRST 
             x insert duplicates w/ AFTER and mixed btree/txn keys
             x insert duplicates w/ LAST
-
-            o insert duplicates w/ BEFORE and mixed btree/txn keys
-                ===> added unittest insertBeforeTest (currently failing)
+            x insert duplicates w/ BEFORE and mixed btree/txn keys
 
             o a simple test with > 8 duplicates to make sure that the 
                 dupecache is correctly extended

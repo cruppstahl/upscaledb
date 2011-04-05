@@ -4770,15 +4770,6 @@ public:
         BFC_ASSERT_EQUAL(0, move       ("k1", "r1.6", HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, move       ("k1", "r1.7", HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, move       ("k1", "r1.8", HAM_CURSOR_NEXT));
-#if 0
-        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.2", HAM_CURSOR_NEXT));
-        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.3", HAM_CURSOR_NEXT));
-        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.4", HAM_CURSOR_NEXT));
-        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.5", HAM_CURSOR_NEXT));
-        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.6", HAM_CURSOR_NEXT));
-        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.7", HAM_CURSOR_NEXT));
-        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.8", HAM_CURSOR_NEXT));
-#endif
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
 
         for (int i=0; i<C; i++)
@@ -4787,10 +4778,11 @@ public:
 
     void insertBeforeTest(void)
     {
+        static int C=4;
         /* B 1 3     */
         /* T     5 7 */
-        ham_cursor_t *c[4];
-        for (int i=0; i<4; i++)
+        ham_cursor_t *c[C];
+        for (int i=0; i<C; i++)
             BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &c[i]));
 
         BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1"));
@@ -4822,18 +4814,37 @@ public:
         /* now insert keys in-between */
         ham_record_t rec={0};
         rec.size=5;
+        ham_cursor_t *clone;
         rec.data=(void *)"r1.0";
-        BFC_ASSERT_EQUAL(0, ham_cursor_insert(c[0], &key, &rec,
+        BFC_ASSERT_EQUAL(0, ham_cursor_clone(c[0], &clone));
+        BFC_ASSERT_EQUAL(0, ham_cursor_insert(clone, &key, &rec,
                     HAM_DUPLICATE|HAM_DUPLICATE_INSERT_BEFORE));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
+
         rec.data=(void *)"r1.2";
-        BFC_ASSERT_EQUAL(0, ham_cursor_insert(c[1], &key, &rec,
+        BFC_ASSERT_EQUAL(0, ham_cursor_clone(c[1], &clone));
+        BFC_ASSERT_EQUAL(0, ham_cursor_insert(clone, &key, &rec,
                     HAM_DUPLICATE|HAM_DUPLICATE_INSERT_BEFORE));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
+
         rec.data=(void *)"r1.4";
-        BFC_ASSERT_EQUAL(0, ham_cursor_insert(c[2], &key, &rec,
+        BFC_ASSERT_EQUAL(0, ham_cursor_clone(c[2], &clone));
+        BFC_ASSERT_EQUAL(0, ham_cursor_insert(clone, &key, &rec,
                     HAM_DUPLICATE|HAM_DUPLICATE_INSERT_BEFORE));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
+
         rec.data=(void *)"r1.6";
-        BFC_ASSERT_EQUAL(0, ham_cursor_insert(c[3], &key, &rec,
+        BFC_ASSERT_EQUAL(0, ham_cursor_clone(c[3], &clone));
+        BFC_ASSERT_EQUAL(0, ham_cursor_insert(clone, &key, &rec,
                     HAM_DUPLICATE|HAM_DUPLICATE_INSERT_BEFORE));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(clone));
+
+        /* now verify that the original 4 cursors are still coupled to the
+         * same duplicate */
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.1", 0, c[0]));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.3", 0, c[1]));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.5", 0, c[2]));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.7", 0, c[3]));
 
         /* now verify that the keys were inserted in the correct order */
         BFC_ASSERT_EQUAL(0, move       ("k1", "r1.0", HAM_CURSOR_FIRST));
@@ -4846,7 +4857,7 @@ public:
         BFC_ASSERT_EQUAL(0, move       ("k1", "r1.7", HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
 
-        for (int i=0; i<4; i++)
+        for (int i=0; i<C; i++)
             BFC_ASSERT_EQUAL(0, ham_cursor_close(c[i]));
     }
 };
