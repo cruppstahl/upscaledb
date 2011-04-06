@@ -3952,6 +3952,8 @@ public:
         BFC_REGISTER_TEST(DupeCursorTest, insertAfterTest);
         BFC_REGISTER_TEST(DupeCursorTest, insertBeforeTest);
         BFC_REGISTER_TEST(DupeCursorTest, extendDupeCacheTest);
+        BFC_REGISTER_TEST(DupeCursorTest, overwriteTxnDupeTest);
+        BFC_REGISTER_TEST(DupeCursorTest, overwriteBtreeDupeTest);
     }
 
     virtual void setup() 
@@ -4893,6 +4895,70 @@ public:
             BFC_ASSERT_EQUAL(0, move("k1", buf, 
                     i==0 ? HAM_CURSOR_FIRST : HAM_CURSOR_NEXT));
         }
+    }
+
+    void overwriteTxnDupeTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.3", HAM_DUPLICATE));
+
+        ham_record_t rec={0};
+        rec.size=5;
+
+        rec.data=(void *)"r2.1";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_overwrite(m_cursor, &rec, 0));
+
+        rec.data=(void *)"r2.2";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_overwrite(m_cursor, &rec, 0));
+
+        rec.data=(void *)"r2.3";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_overwrite(m_cursor, &rec, 0));
+
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r2.1", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r2.2", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r2.3", HAM_CURSOR_NEXT));
+    }
+
+    void overwriteBtreeDupeTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
+
+        ham_record_t rec={0};
+        rec.size=5;
+
+        rec.data=(void *)"r2.1";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_overwrite(m_cursor, &rec, 0));
+
+        rec.data=(void *)"r2.2";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_overwrite(m_cursor, &rec, 0));
+
+        rec.data=(void *)"r2.3";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_overwrite(m_cursor, &rec, 0));
+
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r2.1", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r2.2", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r2.3", HAM_CURSOR_NEXT));
     }
 };
 

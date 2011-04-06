@@ -235,9 +235,10 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
             * committed transactions */
             if ((optxn==cursor_get_txn(cursor))
                     || (txn_get_flags(optxn)&TXN_STATE_COMMITTED)) {
-                /* a normal (overwriting) insert will overwrite ALL duplicates */
-                if ((txn_op_get_flags(op)&TXN_OP_INSERT)
-                        || (txn_op_get_flags(op)&TXN_OP_INSERT_OW)) {
+                /* a normal (overwriting) insert will overwrite ALL dupes,
+                 * but an overwrite of a duplicate will only overwrite
+                 * an entry in the dupecache */
+                if (txn_op_get_flags(op)&TXN_OP_INSERT) {
                     dupecache_line_t dcl={0};
                     dupecache_line_set_btree(&dcl, HAM_FALSE);
                     dupecache_line_set_txn_op(&dcl, op);
@@ -247,10 +248,29 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
                     if (st)
                         return (st);
                 }
+                else if (txn_op_get_flags(op)&TXN_OP_INSERT_OW) {
+                    dupecache_line_t *e=dupecache_get_elements(dc);
+                    ham_u32_t ref=txn_op_get_referenced_dupe(op);
+                    if (ref) {
+                        ham_assert(ref<=dupecache_get_count(dc), (""));
+                        dupecache_line_set_txn_op(&e[ref-1], op);
+                        dupecache_line_set_btree(&e[ref-1], HAM_FALSE);
+                    }
+                    else {
+                        dupecache_line_t dcl={0};
+                        dupecache_line_set_btree(&dcl, HAM_FALSE);
+                        dupecache_line_set_txn_op(&dcl, op);
+                        /* all existing dupes are overwritten */
+                        dupecache_reset(dc);
+                        st=dupecache_append(dc, &dcl);
+                        if (st)
+                            return (st);
+                    }
+                }
                 /* insert a duplicate key */
                 else if (txn_op_get_flags(op)&TXN_OP_INSERT_DUP) {
                     ham_u32_t of=txn_op_get_orig_flags(op);
-                    ham_u32_t ref=txn_op_get_referenced_dupe(op);
+                    ham_u32_t ref=txn_op_get_referenced_dupe(op)-1;
                     dupecache_line_t dcl={0};
                     dupecache_line_set_btree(&dcl, HAM_FALSE);
                     dupecache_line_set_txn_op(&dcl, op);

@@ -799,9 +799,9 @@ o support cursors!!!
                 
             o overwrite duplicates - need to store the referenced dupe-id
                 in the op, and then consolidate in cursor_update_dupecache
+                x in txn-tree
+                x in btree-tree
                 o if the transaction conflicts: return error!
-                o in txn-tree
-                o in btree-tree
 
             o erase duplicates (ham_cursor_erase)
                 o if the transaction conflicts: return error!
