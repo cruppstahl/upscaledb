@@ -39,7 +39,7 @@ typedef struct txn_op_t
     /** the referenced duplicate id (if neccessary) - used if this is 
      * i.e. a ham_cursor_erase, ham_cursor_overwrite or ham_cursor_insert
      * with a DUPLICATE_AFTER/BEFORE flag 
-     * this is 0-based (unlike dupecache-index, which is 1-based) */
+     * this is 1-based (like dupecache-index, which is also 1-based) */
     ham_u32_t _referenced_dupe;
 
     /** the Transaction of this operation */

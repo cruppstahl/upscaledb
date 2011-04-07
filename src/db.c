@@ -1881,7 +1881,7 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
     if (cursor) {
         ham_cursor_t *c=txn_cursor_get_parent(cursor);
         if (cursor_get_dupecache_index(c))
-            txn_op_set_referenced_dupe(op, cursor_get_dupecache_index(c)-1);
+            txn_op_set_referenced_dupe(op, cursor_get_dupecache_index(c));
 
         txn_cursor_set_to_nil(cursor);
         txn_cursor_set_flags(cursor, 
