@@ -797,11 +797,14 @@ o support cursors!!!
             x a simple test with > 8 duplicates to make sure that the 
                 dupecache is correctly extended
                 
-            o overwrite duplicates - need to store the referenced dupe-id
+            x overwrite duplicates - need to store the referenced dupe-id
                 in the op, and then consolidate in cursor_update_dupecache
                 x in txn-tree
                 x in btree-tree
-                o if the transaction conflicts: return error!
+                x if the transaction conflicts: return error!
+                    -> implemented, but not testable because it's not possible
+                    to position a cursor from a different txn on a duplicate
+                    from a conflicting txn
 
             o erase duplicates (ham_cursor_erase)
                 o if the transaction conflicts: return error!

@@ -4960,6 +4960,7 @@ public:
         BFC_ASSERT_EQUAL(0, move       ("k1", "r2.2", HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, move       ("k1", "r2.3", HAM_CURSOR_NEXT));
     }
+
 };
 
 BFC_REGISTER_FIXTURE(TempTxnCursorTest);

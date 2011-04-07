@@ -72,6 +72,22 @@ txn_cursor_close(txn_cursor_t *cursor)
     txn_cursor_set_to_nil(cursor);
 }
 
+ham_status_t 
+txn_cursor_conflicts(txn_cursor_t *cursor)
+{
+    ham_txn_t *txn=cursor_get_txn(txn_cursor_get_parent(cursor));
+    txn_op_t *op=txn_cursor_get_coupled_op(cursor);
+
+    if (txn_op_get_txn(op)!=txn) {
+        ham_u32_t flags=txn_get_flags(txn_op_get_txn(op));
+        if (!(flags&TXN_STATE_COMMITTED) && !(flags&TXN_STATE_ABORTED))
+            return (HAM_TRUE);
+    }
+
+    return (HAM_FALSE);
+}
+
+
 ham_status_t
 txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record)
 {
@@ -88,6 +104,10 @@ txn_cursor_overwrite(txn_cursor_t *cursor, ham_record_t *record)
 
     op=txn_cursor_get_coupled_op(cursor);
     node=txn_op_get_node(op);
+
+    /* check if the op is part of a conflicting txn */
+    if (txn_cursor_conflicts(cursor))
+        return (HAM_TXN_CONFLICT);
 
     return (db_insert_txn(db, txn, txn_opnode_get_key(node), 
                 record, HAM_OVERWRITE, cursor));
