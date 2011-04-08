@@ -3150,11 +3150,15 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         else if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
             cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            if (pwhat)
+                *pwhat=DUPE_CHECK_TXN;
         }
         /* if txn-tree is empty but btree is not: couple to btree */
         else if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
             cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+            if (pwhat)
+                *pwhat=DUPE_CHECK_BTREE;
         }
         /* if both trees are not empty then pick the greater key, but make
          * sure that it wasn't erased in the txn */
@@ -3208,6 +3212,9 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
         /* every other error code is returned to the caller */
         else {
+            if ((btrs==HAM_KEY_NOT_FOUND) && (txns==HAM_KEY_ERASED_IN_TXN))
+                if (pwhat)
+                    *pwhat=DUPE_CHECK_TXN;
             st=txns ? txns : btrs;
             goto bail;
         }
