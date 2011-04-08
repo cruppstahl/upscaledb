@@ -316,11 +316,6 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
     }
 
 bail:
-    /* If the dupecache just contains one single element then don't use
-     * it. In this case the caller already coupled the cursor to the correct
-     * key. */
-    if (dupecache_get_count(dc)==1)
-        dupecache_reset(dc);
 
     return (0);
 }

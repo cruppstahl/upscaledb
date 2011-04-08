@@ -1965,6 +1965,9 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
     txn_op_t *op;
     ham_bool_t node_created=HAM_FALSE;
     ham_u64_t lsn=0;
+    ham_cursor_t *pc=0;
+    if (cursor)
+        pc=txn_cursor_get_parent(cursor);
 
     /* get (or create) the txn-tree for this database; we do not need
      * the returned value, but we call the function to trigger the 
@@ -1982,12 +1985,15 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
         node_created=HAM_TRUE;
     }
 
-    /* check for conflicts of this key */
-    st=db_check_erase_conflicts(db, txn, node, key, flags);
-    if (st) {
-        if (node_created)
-            txn_opnode_free(db_get_env(db), node);
-        return (st);
+    /* check for conflicts of this key - but only if we're not erasing a 
+     * duplicate key. dupes are checked for conflicts in _local_cursor_move */
+    if (!pc || (!cursor_get_dupecache_index(pc))) {
+        st=db_check_erase_conflicts(db, txn, node, key, flags);
+        if (st) {
+            if (node_created)
+                txn_opnode_free(db_get_env(db), node);
+            return (st);
+        }
     }
 
     /* get the next lsn */
@@ -2006,9 +2012,8 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
     /* is this function called through ham_cursor_erase? then add the 
      * duplicate ID */
     if (cursor) {
-        ham_cursor_t *c=txn_cursor_get_parent(cursor);
-        if (cursor_get_dupecache_index(c))
-            txn_op_set_referenced_dupe(op, cursor_get_dupecache_index(c));
+        if (cursor_get_dupecache_index(pc))
+            txn_op_set_referenced_dupe(op, cursor_get_dupecache_index(pc));
     }
 
     /* the current op has no cursors attached; but if there are any 
@@ -3771,6 +3776,8 @@ bail:
     if (st) {
         if (local_txn)
             (void)txn_abort(local_txn, 0);
+        if (st==HAM_KEY_ERASED_IN_TXN)
+            st=HAM_KEY_NOT_FOUND;
         return (st);
     }
 

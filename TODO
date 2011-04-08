@@ -810,10 +810,10 @@ o support cursors!!!
                 x erase first of 3 duplicates
                 x erase second of 3 duplicates
                 x erase third of 3 duplicates
-                o erase all of 3 duplicates
+                x erase all of 3 duplicates
                 o erase all of 3 duplicates, but have a second key
-                o in txn-tree
-                o in btree-tree
+                o erase all of 3 duplicates, but have a first key (reverse)
+                o all tests with btree-tree
                 o if the transaction conflicts: return error!
 
             o analoguous to insertMovesCursorsTest, but erase keys
