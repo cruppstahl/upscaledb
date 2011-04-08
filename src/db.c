@@ -3703,6 +3703,10 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     /* this key has duplicates? then make sure we pick the right one - either
      * the first or the last, depending on the flags. */
     if (dupecache_get_count(dc)) {
+        txn_op_t *op;
+
+        st=0; /* reset HAM_KEY_ERASED_IN_TXN */
+
         if ((flags&HAM_CURSOR_FIRST) || (flags&HAM_CURSOR_NEXT)) {
             cursor_couple_to_dupe(cursor, 1);
         }
@@ -3714,7 +3718,8 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
 
         /* if we picked an element that's erased then move forward/backwards
          * to the next/previous element */
-        if (st==HAM_KEY_ERASED_IN_TXN) {
+        op=txn_cursor_get_coupled_op(txnc);
+        if (op && (txn_op_get_flags(op)&TXN_OP_ERASE)) {
             if (flags&HAM_CURSOR_LAST) {
                 flags&=~HAM_CURSOR_LAST;
                 flags|=HAM_CURSOR_PREVIOUS;

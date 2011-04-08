@@ -808,8 +808,8 @@ o support cursors!!!
 
             o erase duplicates (ham_cursor_erase)
                 x erase first of 3 duplicates
-                o erase second of 3 duplicates
-                o erase third of 3 duplicates
+                x erase second of 3 duplicates
+                x erase third of 3 duplicates
                 o erase all of 3 duplicates
                 o erase all of 3 duplicates, but have a second key
                 o in txn-tree
