@@ -3740,6 +3740,35 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
     }
 
+    /* if the first (or last) key was requested, but it was erased, then
+     * continue moving to the next (previous) key 
+     *
+     * make sure that the cursor is properly coupled - either to the
+     * txn- or the b-tree */
+    if (st==HAM_KEY_ERASED_IN_TXN) {
+        txn_op_t *op=txn_cursor_get_coupled_op(txnc);
+        if (op)
+            cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+        else
+            cursor_set_flags(cursor, 
+                    cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+        if (flags&HAM_CURSOR_FIRST) {
+            flags&=~HAM_CURSOR_FIRST;
+            flags|=HAM_CURSOR_NEXT;
+            cursor_set_lastop(cursor, HAM_CURSOR_NEXT);
+            st=_local_cursor_move(cursor, 0, 0, flags);
+            goto bail;
+        }
+        if (flags&HAM_CURSOR_LAST) {
+            flags&=~HAM_CURSOR_LAST;
+            flags|=HAM_CURSOR_PREVIOUS;
+            cursor_set_lastop(cursor, HAM_CURSOR_PREVIOUS);
+            st=_local_cursor_move(cursor, 0, 0, flags);
+            goto bail;
+        }
+    }
+
 bail:
 
     /*

@@ -3958,6 +3958,7 @@ public:
         BFC_REGISTER_TEST(DupeCursorTest, eraseSecondTxnDupeTest);
         BFC_REGISTER_TEST(DupeCursorTest, eraseThirdTxnDupeTest);
         BFC_REGISTER_TEST(DupeCursorTest, eraseAllDuplicatesTest);
+        BFC_REGISTER_TEST(DupeCursorTest, eraseAllDuplicatesMoveNextTest);
     }
 
     virtual void setup() 
@@ -5039,6 +5040,26 @@ public:
 
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_FIRST));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_LAST));
+    }
+
+    void eraseAllDuplicatesMoveNextTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k2", "r2.1", HAM_DUPLICATE));
+
+        for (int i=0; i<3; i++) {
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_FIRST));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+        }
+
+        BFC_ASSERT_EQUAL(0, move("k2", "r2.1", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move("k2", "r2.1", HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
     }
 };
 
