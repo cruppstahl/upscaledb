@@ -813,7 +813,6 @@ o support cursors!!!
                 x erase all of 3 duplicates
                 x erase all of 3 duplicates, but have a second key
                 x erase all of 3 duplicates, but have a first key (reverse)
-                o same as prev. two, but use ham_cursor_find
                 o all (!!!) tests with btree-tree
                 o if the transaction conflicts: return error!
 
