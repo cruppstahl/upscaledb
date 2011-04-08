@@ -1956,7 +1956,8 @@ next:
 }
 
 ham_status_t
-db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
+db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
+                txn_cursor_t *cursor)
 {
     ham_status_t st=0;
     txn_optree_t *tree;
@@ -2001,6 +2002,14 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     op=txn_opnode_append(txn, node, flags, TXN_OP_ERASE, lsn, 0);
     if (!op)
         return (HAM_OUT_OF_MEMORY);
+
+    /* is this function called through ham_cursor_erase? then add the 
+     * duplicate ID */
+    if (cursor) {
+        ham_cursor_t *c=txn_cursor_get_parent(cursor);
+        if (cursor_get_dupecache_index(c))
+            txn_op_set_referenced_dupe(op, cursor_get_dupecache_index(c));
+    }
 
     /* the current op has no cursors attached; but if there are any 
      * other ops in this node and in this transaction, then they have to
@@ -2265,7 +2274,7 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
      * the txn tree; otherwise immediately erase the key from disk
      */
     if (txn || local_txn)
-        st=db_erase_txn(db, txn ? txn : local_txn, key, flags);
+        st=db_erase_txn(db, txn ? txn : local_txn, key, flags, 0);
     else
         st=be->_fun_erase(be, key, flags);
 
@@ -2642,6 +2651,8 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
                 cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
         ham_assert(txn_cursor_is_nil(cursor_get_txn_cursor(cursor)), (""));
         ham_assert(cursor->_fun_is_nil(cursor), (""));
+        dupecache_reset(cursor_get_dupecache(cursor));
+        cursor_set_dupecache_index(cursor, 0);
     }
     else {
         if (local_txn)
@@ -3043,11 +3054,15 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         else if (btrs==HAM_KEY_NOT_FOUND && txns==0) {
             cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
+            if (pwhat)
+                *pwhat=DUPE_CHECK_TXN;
         }
         /* if txn-tree is empty but btree is not: couple to btree */
         else if (txns==HAM_KEY_NOT_FOUND && btrs==0) {
             cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+            if (pwhat)
+                *pwhat=DUPE_CHECK_BTREE;
         }
         /* if both trees are not empty then pick the smaller key, but make
          * sure that it wasn't erased in the txn */
@@ -3086,7 +3101,7 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                 cursor_set_flags(cursor, 
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
                 if (pwhat)
-                    *pwhat=DUPE_CHECK_TXN|DUPE_CHECK_BTREE;
+                    *pwhat=DUPE_CHECK_BTREE|DUPE_CHECK_TXN;
             }
             else if (cmp<1) {
                 /* couple to btree */
@@ -3101,6 +3116,9 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
         /* every other error code is returned to the caller */
         else {
+            if ((btrs==HAM_KEY_NOT_FOUND) && (txns==HAM_KEY_ERASED_IN_TXN))
+                if (pwhat)
+                    *pwhat=DUPE_CHECK_TXN;
             st=txns ? txns : btrs;
             goto bail;
         }
@@ -3659,17 +3677,26 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
      * below (and above) */
     st=do_local_cursor_move(cursor, key, record, 
                     flags|HAM_SKIP_DUPLICATES, fresh_start, &what);
-    if (st)
-        goto bail;
+    if (st) {
+        /* if we only found an erased key but duplicates are available
+         * then we must continue and move to the next possible key
+         * in the duplicate table. */
+        if (st==HAM_KEY_ERASED_IN_TXN) {
+            if (!((flags&HAM_CURSOR_FIRST) || (flags&HAM_CURSOR_LAST)))
+                goto bail;
+        }
+        else
+            goto bail;
+    }
 
     /* now check if this key has duplicates; if yes, we have to build up the
      * duplicate table (we even have to do this if duplicates are skipped, 
      * because a txn-op might replace the first/oldest duplicate) */
     if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
         if (what) {
-            st=cursor_update_dupecache(cursor, what);
-            if (st)
-                return (st);
+            ham_status_t st1=cursor_update_dupecache(cursor, what);
+            if (st1)
+                return (st1);
         }
     }
 
@@ -3684,6 +3711,23 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
         }
         else if (flags!=0)
             ham_assert(!"shouldn't be here", (""));
+
+        /* if we picked an element that's erased then move forward/backwards
+         * to the next/previous element */
+        if (st==HAM_KEY_ERASED_IN_TXN) {
+            if (flags&HAM_CURSOR_LAST) {
+                flags&=~HAM_CURSOR_LAST;
+                flags|=HAM_CURSOR_PREVIOUS;
+                cursor_set_lastop(cursor, HAM_CURSOR_PREVIOUS);
+            }
+            else if (flags&HAM_CURSOR_FIRST) {
+                flags&=~HAM_CURSOR_FIRST;
+                flags|=HAM_CURSOR_NEXT;
+                cursor_set_lastop(cursor, HAM_CURSOR_NEXT);
+            }
+            st=_local_cursor_move(cursor, 0, 0, flags);
+            goto bail;
+        }
     }
 
 bail:

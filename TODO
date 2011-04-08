@@ -797,18 +797,46 @@ o support cursors!!!
             x a simple test with > 8 duplicates to make sure that the 
                 dupecache is correctly extended
                 
-            o overwrite duplicates - need to store the referenced dupe-id
+            x overwrite duplicates - need to store the referenced dupe-id
                 in the op, and then consolidate in cursor_update_dupecache
                 x in txn-tree
                 x in btree-tree
-                o if the transaction conflicts: return error!
+                x if the transaction conflicts: return error!
+                    -> implemented, but not testable because it's not possible
+                    to position a cursor from a different txn on a duplicate
+                    from a conflicting txn
 
             o erase duplicates (ham_cursor_erase)
-                o if the transaction conflicts: return error!
+                x erase first of 3 duplicates
+                o erase second of 3 duplicates
+                o erase third of 3 duplicates
+                o erase all of 3 duplicates
+                o erase all of 3 duplicates, but have a second key
                 o in txn-tree
                 o in btree-tree
+                o if the transaction conflicts: return error!
 
             o analoguous to insertMovesCursorsTest, but erase keys
+
+            o when moving through duplicates, make sure that conflicting
+                entries are skipped!
+                o document this behavior in the header file
+                o what happens with CURSOR_MOVE_FIRST/CURSOR_MOVE_LAST?
+                o unittest
+
+            o ham_erase: make sure that all cursors on duplicates of the
+                key are set to 0! (both btree and txn) - but only when
+                the txn is flushed!!
+                o there's similar behavior with ham_cursor_insert - it will
+                    increase the duplicate index of other cursors as well. 
+                    but these other cursors maybe are not affected because
+                    they're in another transaction and the insert is not 
+                    visible to them!?
+
+            o insert keys with one txn (like insertMovesCursorTest), and 
+                position other cursors on the same keys. Then flush the first
+                transation - other cursors should still be valid
+            o same for ham_cursor_erase!
 
             o sorting duplicates
                 ==> postpone to next release?

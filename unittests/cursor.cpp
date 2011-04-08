@@ -3954,6 +3954,8 @@ public:
         BFC_REGISTER_TEST(DupeCursorTest, extendDupeCacheTest);
         BFC_REGISTER_TEST(DupeCursorTest, overwriteTxnDupeTest);
         BFC_REGISTER_TEST(DupeCursorTest, overwriteBtreeDupeTest);
+        BFC_REGISTER_TEST(DupeCursorTest, eraseFirstTxnDupeTest);
+        BFC_REGISTER_TEST(DupeCursorTest, eraseSecondTxnDupeTest);
     }
 
     virtual void setup() 
@@ -4959,6 +4961,40 @@ public:
         BFC_ASSERT_EQUAL(0, move       ("k1", "r2.1", HAM_CURSOR_FIRST));
         BFC_ASSERT_EQUAL(0, move       ("k1", "r2.2", HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, move       ("k1", "r2.3", HAM_CURSOR_NEXT));
+    }
+
+    void eraseFirstTxnDupeTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.3", HAM_DUPLICATE));
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.2", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.3", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+    }
+
+    void eraseSecondTxnDupeTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.3", HAM_DUPLICATE));
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.1", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.3", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
     }
 };
 
