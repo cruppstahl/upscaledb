@@ -417,7 +417,7 @@ txn_cursor_erase(txn_cursor_t *cursor)
             if (st)
                 return (st);
         }
-        st=db_erase_txn(db, txn, bt_cursor_get_uncoupled_key(btc), 0);
+        st=db_erase_txn(db, txn, bt_cursor_get_uncoupled_key(btc), 0, cursor);
         if (st)
             return (st);
     }
@@ -425,7 +425,7 @@ txn_cursor_erase(txn_cursor_t *cursor)
     else {
         op=txn_cursor_get_coupled_op(cursor);
         node=txn_op_get_node(op);
-        st=db_erase_txn(db, txn, txn_opnode_get_key(node), 0);
+        st=db_erase_txn(db, txn, txn_opnode_get_key(node), 0, cursor);
         if (st)
             return (st);
     }

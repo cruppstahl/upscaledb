@@ -292,14 +292,17 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
                 }
                 /* a normal erase will erase ALL duplicate keys */
                 else if (txn_op_get_flags(op)&TXN_OP_ERASE) {
-                    /* all existing dupes are erased */
-                    dupecache_reset(dc);
-                }
-                /* whereas ERASE_DUP will erase only a single duplicate */
-                else if (txn_op_get_flags(op)&TXN_OP_ERASE_DUP) {
-                    st=dupecache_erase(dc, 0); /* TODO position? */
-                    if (st)
-                        return (st);
+                    ham_u32_t ref=txn_op_get_referenced_dupe(op);
+                    if (ref) {
+                        ham_assert(ref<=dupecache_get_count(dc), (""));
+                        st=dupecache_erase(dc, ref-1);
+                        if (st)
+                            return (st);
+                    }
+                    else {
+                        /* all existing dupes are erased */
+                        dupecache_reset(dc);
+                    }
                 }
                 else {
                     /* everything else is a bug! */
