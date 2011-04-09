@@ -2686,12 +2686,8 @@ __cursor_has_duplicates(ham_cursor_t *cursor)
     if (!(db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES))
         return (HAM_FALSE);
 
-    if (txn_cursor_get_coupled_op(txnc)) {
-        if (!(txn_op_get_flags(txn_cursor_get_coupled_op(txnc))
-                &TXN_OP_INSERT_DUP))
-            return (HAM_FALSE);
+    if (txn_cursor_get_coupled_op(txnc))
         cursor_update_dupecache(cursor, DUPE_CHECK_BTREE|DUPE_CHECK_TXN);
-    }
     else
         cursor_update_dupecache(cursor, DUPE_CHECK_BTREE);
 
@@ -2757,18 +2753,24 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
     if (cursor_get_txn(cursor) || local_txn) {
         txn_op_t *op=0;
         st=txn_cursor_find(cursor_get_txn_cursor(cursor), key, flags);
-        /* if the key was erased in a transaction then fail with an error */
+        /* if the key was erased in a transaction then fail with an error 
+         * (unless we have duplicates - they're checked below) */
         if (st) {
             if (st==HAM_KEY_NOT_FOUND)
                 goto btree;
-            if (st==HAM_KEY_ERASED_IN_TXN)
-                st=HAM_KEY_NOT_FOUND;
-            goto bail;
+            if (st==HAM_KEY_ERASED_IN_TXN) {
+                if (!__cursor_has_duplicates(cursor))
+                    st=HAM_KEY_NOT_FOUND;
+                else
+                    st=0;
+            }
+            if (st)
+                goto bail;
         }
         cursor_set_flags(cursor, 
                 cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
         op=txn_cursor_get_coupled_op(txnc);
-        if (!(txn_op_get_flags(op)&TXN_OP_INSERT_DUP)) {
+        if (!__cursor_has_duplicates(cursor)) {
             st=txn_cursor_get_record(txnc, record);
             goto bail;
         }
@@ -2776,13 +2778,22 @@ _local_cursor_find(ham_cursor_t *cursor, ham_key_t *key,
 
 btree:
     st=cursor->_fun_find(cursor, key, record, flags);
-    if (st==0)
+    if (st==0) {
         cursor_set_flags(cursor, 
                 cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
+        /* if btree keys were found: reset the dupecache. The previous
+         * call to __cursor_has_duplicates() already initialized the
+         * dupecache, but only with txn keys because the cursor was only
+         * coupled to the txn */
+        dupecache_reset(dc);
+        cursor_set_dupecache_index(cursor, 0);
+    }
 
-    /* if the key has duplicates: couple to the first/oldest duplicate */
+    /* if the key has duplicates: build a duplicate table, then
+     * couple to the first/oldest duplicate */
     if (__cursor_has_duplicates(cursor)) {
         cursor_couple_to_dupe(cursor, 1);
+        st=0;
 
         /* now read the record */
         if (record) {
