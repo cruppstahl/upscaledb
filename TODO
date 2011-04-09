@@ -819,6 +819,10 @@ o support cursors!!!
 
             o analoguous to insertMovesCursorsTest, but erase keys
 
+            o analoguous to insertMovesCursorsTest, but with cursors from
+                different transactions. keys from conflicting txn's are not
+                visible!
+
             o when moving through duplicates, make sure that conflicting
                 entries are skipped!
                 o document this behavior in the header file
@@ -917,6 +921,8 @@ o update documentation
     o in the wiki
 
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
+
+o need a function to get the txn of a conflict (same as in v2)
 
 o do performance comparisons
     o WITHOUT transactions

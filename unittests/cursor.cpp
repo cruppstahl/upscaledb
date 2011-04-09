@@ -3954,6 +3954,7 @@ public:
         BFC_REGISTER_TEST(DupeCursorTest, extendDupeCacheTest);
         BFC_REGISTER_TEST(DupeCursorTest, overwriteTxnDupeTest);
         BFC_REGISTER_TEST(DupeCursorTest, overwriteBtreeDupeTest);
+
         BFC_REGISTER_TEST(DupeCursorTest, eraseFirstTxnDupeTest);
         BFC_REGISTER_TEST(DupeCursorTest, eraseSecondTxnDupeTest);
         BFC_REGISTER_TEST(DupeCursorTest, eraseThirdTxnDupeTest);
@@ -3962,6 +3963,15 @@ public:
         BFC_REGISTER_TEST(DupeCursorTest, eraseAllDuplicatesMovePreviousTxnTest);
         BFC_REGISTER_TEST(DupeCursorTest, eraseAllDuplicatesFindFirstTxnTest);
         BFC_REGISTER_TEST(DupeCursorTest, eraseAllDuplicatesFindLastTxnTest);
+
+        BFC_REGISTER_TEST(DupeCursorTest, eraseFirstBtreeDupeTest);
+        BFC_REGISTER_TEST(DupeCursorTest, eraseSecondBtreeDupeTest);
+        BFC_REGISTER_TEST(DupeCursorTest, eraseThirdBtreeDupeTest);
+        BFC_REGISTER_TEST(DupeCursorTest, eraseAllDuplicatesBtreeTest);
+        BFC_REGISTER_TEST(DupeCursorTest, eraseAllDuplicatesMoveNextBtreeTest);
+        BFC_REGISTER_TEST(DupeCursorTest, eraseAllDuplicatesMovePreviousBtreeTest);
+        BFC_REGISTER_TEST(DupeCursorTest, eraseAllDuplicatesFindFirstBtreeTest);
+        BFC_REGISTER_TEST(DupeCursorTest, eraseAllDuplicatesFindLastBtreeTest);
     }
 
     virtual void setup() 
@@ -5109,6 +5119,168 @@ public:
     }
 
     void eraseAllDuplicatesFindLastTxnTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k0", "r0.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.3", HAM_DUPLICATE));
+
+        for (int i=0; i<3; i++) {
+            ham_key_t key={0};
+            key.size=3;
+            key.data=(void *)"k1";
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+        }
+
+        BFC_ASSERT_EQUAL(0, move("k0", "r0.1", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move("k0", "r0.1", HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
+    }
+
+    void eraseFirstBtreeDupeTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.2", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.3", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.3", HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.2", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
+    }
+
+    void eraseSecondBtreeDupeTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.1", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.3", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.3", HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.1", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
+    }
+
+    void eraseThirdBtreeDupeTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.1", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.2", HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.2", HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(0, move       ("k1", "r1.1", HAM_CURSOR_PREVIOUS));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
+    }
+
+    void eraseAllDuplicatesBtreeTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
+
+        for (int i=0; i<3; i++) {
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_FIRST));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+        }
+
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_LAST));
+    }
+
+    void eraseAllDuplicatesMoveNextBtreeTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k2", "r2.1", HAM_DUPLICATE));
+
+        for (int i=0; i<3; i++) {
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_FIRST));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+        }
+
+        BFC_ASSERT_EQUAL(0, move("k2", "r2.1", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move("k2", "r2.1", HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
+    }
+
+    void eraseAllDuplicatesMovePreviousBtreeTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("k0", "r0.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
+
+        for (int i=0; i<3; i++) {
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_LAST));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+        }
+
+        BFC_ASSERT_EQUAL(0, move("k0", "r0.1", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move("k0", "r0.1", HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
+    }
+
+    void eraseAllDuplicatesFindFirstBtreeTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k2", "r2.1", HAM_DUPLICATE));
+
+        for (int i=0; i<3; i++) {
+            ham_key_t key={0};
+            key.size=3;
+            key.data=(void *)"k1";
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+        }
+
+        BFC_ASSERT_EQUAL(0, move("k2", "r2.1", HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, move("k2", "r2.1", HAM_CURSOR_LAST));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_PREVIOUS));
+    }
+
+    void eraseAllDuplicatesFindLastBtreeTest(void)
     {
         BFC_ASSERT_EQUAL(0, insertTxn  ("k0", "r0.1", HAM_DUPLICATE));
         BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.1", HAM_DUPLICATE));
