@@ -21,7 +21,7 @@
 #endif
 #include <ham/hamsterdb.h>
 
-#define LOOP 100
+#define LOOP 2000000
 
 void 
 error(const char *foo, ham_status_t st)
@@ -66,7 +66,7 @@ main(int argc, char **argv)
      * we could also use ham_create_ex() if we wanted to specify the 
      * page size, key size or cache size limits
      */
-    st=ham_create_ex(db, "test.db", HAM_ENABLE_RECOVERY, 0664, 0);
+    st=ham_create_ex(db, "test.db", 0, 0664, 0);
     if (st!=HAM_SUCCESS)
         error("ham_create", st);
 
@@ -77,17 +77,21 @@ main(int argc, char **argv)
      * up, then delete them and try to look them up again (which will fail).
      */
     for (i=0; i<LOOP; i++) {
+        char buffer[24]={0};
         key.data=&i;
         key.size=sizeof(i);
 
-        record.data=&i;
-        record.size=sizeof(i);
+        record.size=sizeof(buffer);
+        record.data=buffer;
 
         st=ham_insert(db, 0, &key, &record, 0);
 		if (st!=HAM_SUCCESS)
             error("ham_insert", st);
+        if (i%10000==0)
+            printf("%d\n", i);
     }
 
+#if 0
     /*
      * now lookup all values
      *
@@ -119,7 +123,6 @@ main(int argc, char **argv)
     st=ham_close(db, 0);
     if (st!=HAM_SUCCESS)
         error("ham_close", st);
-
     st=ham_open_ex(db, "test.db", 0, 0);
     if (st!=HAM_SUCCESS)
         error("ham_open", st);
@@ -148,6 +151,7 @@ main(int argc, char **argv)
         if (st!=HAM_KEY_NOT_FOUND)
             error("ham_find", st);
     }
+#endif
 
     /*
      * we're done! close the database handle

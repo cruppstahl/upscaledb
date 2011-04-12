@@ -11,6 +11,25 @@ x a finished TODO item
 x precompiled windows libraries: hamserver-x.x.x.dll is still version 1.1.5
     x same for hamsterdb.spec
 
+o (mail from Mark) - currently, hamsterdb does not release memory properly
+    cache_get_unused_page rarely returns a good hit, usually returns 0
+    therefore the cache grows and grows and grows
+
+    current things to look at:
+        o i extended cache_check_integrity, but it fails; the totallist_tail
+            is not always updated correctly
+        o cache_get_unused_page loops from tail to next to head, but it should
+            be tail -> prev -> head
+        o extend cache_check_integrity further and make sure that 
+            totallist head -> next -> tail is sorted by age
+            XXX is it really? different page types can have different
+            cache counters!?
+        o cache_get_unused_page does not need to loop - the tail is always
+            the oldest page
+            XXX is it really? different page types can have different
+            cache counters!?
+    db1.c is messed up - replace with the original one!
+
 ------------------------------------------------------------
 
 o what about a HAM_RMW flag for ham_insert - it will do a read/modify/write

@@ -867,9 +867,7 @@ db_alloc_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
             goto done;
         }
         else if (st) 
-        {
             return st;
-        }
     }
 
     if (!page) {
@@ -902,24 +900,9 @@ done:
      * disable page content logging ONLY when the page is 
      * completely new (contains bogus 'before' data) 
      */
-    if (tellpos == 0) /* [i_a] BUG! */
-    {
+    if (tellpos == 0)
         flags &= ~PAGE_DONT_LOG_CONTENT;
-    }
 
-    /*
-     * As we re-purpose a page, we will reset its pagecounter as
-     * well to signal its first use as the new type assigned here.
-     *
-     * only do this if the page is reused - otherwise page_get_type()
-     * accesses uninitialized memory, and valgrind complains
-     */
-    if (tellpos && env_get_cache(env) && (page_get_type(page) != type)) {
-#if 0 // this is done at the end of this call...
-        //page_set_cache_cntr(page, env_get_cache(env)->_timeslot++);
-        cache_update_page_access_counter(newroot, env_get_cache(env)); /* bump up */
-#endif
-    }
     page_set_type(page, type);
     page_set_owner(page, db);
     page_set_undirty(page);
@@ -980,8 +963,7 @@ done:
                  a 'derived' transaction which is COMMITTED: that TXN will only
                  contain the filesize and freelist edits then!
     */
-    if (!(flags & PAGE_DONT_LOG_CONTENT) && (env && env_get_log(env)))
-    {
+    if (!(flags & PAGE_DONT_LOG_CONTENT) && (env && env_get_log(env))) {
         st=ham_log_add_page_before(page);
         if (st) 
             return st;
@@ -1006,13 +988,10 @@ done:
         }
     }
 
-    if (env_get_cache(env)) 
-    {
-        unsigned int bump = 0;
-
+    if (env_get_cache(env)) {
         st=cache_put_page(env_get_cache(env), page);
         if (st) {
-            return st;
+            return (st);
             /* TODO memleak? */
         }
 #if 0
@@ -1039,36 +1018,18 @@ done:
         Don't bother with high/low watermarks in purging either as that didn't help
         neither.
         */
-        switch (type)
-        {
-        default:
-        case PAGE_TYPE_UNKNOWN:
-        case PAGE_TYPE_HEADER:
-            break;
-
-        case PAGE_TYPE_B_ROOT:
-        case PAGE_TYPE_B_INDEX:
-            bump = (cache_get_max_elements(env_get_cache(env)) + 32 - 1) / 32;
-            if (bump > 4)
-                bump = 4;
-            break;
-
-        case PAGE_TYPE_FREELIST:
-            bump = (cache_get_max_elements(env_get_cache(env)) + 8 - 1) / 8;
-            break;
-        }
 #endif
         if (flags & DB_NEW_PAGE_DOES_THRASH_CACHE) {
             /* give it an 'antique' age so this one will get flushed pronto */
-            page_set_cache_cntr(page, 1 /* cache->_timeslot - 1000 */ );
+            page_set_cache_cntr(page, 1);
         }
         else {
-            cache_update_page_access_counter(page, env_get_cache(env), bump);
+            cache_update_page_access_counter(page, env_get_cache(env), 0);
         }
     }
 
     *page_ref = page;
-    return HAM_SUCCESS;
+    return (HAM_SUCCESS);
 }
 
 ham_status_t
@@ -1142,14 +1103,13 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
         if (page) {
             if (env_get_txn(env)) {
                 st=txn_add_page(env_get_txn(env), page, HAM_FALSE);
-                if (st) {
-                    return st;
-                }
+                if (st)
+                    return (st);
             }
             *page_ref = page;
             ham_assert(page_get_pers(page), (""));
             ham_assert(db ? page_get_owner(page)==db : 1, (""));
-            return HAM_SUCCESS;
+            return (HAM_SUCCESS);
         }
     }
 

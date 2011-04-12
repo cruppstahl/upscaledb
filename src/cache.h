@@ -50,9 +50,8 @@ struct ham_cache_t
     ham_page_t *_totallist;
 
     /** the tail of the linked "totallist" - this is the oldest element,
-     * and therefore the highest candidate for a flush
-     */
-    ham_page_t *_oldest;
+     * and therefore the highest candidate for a flush */
+    ham_page_t *_totallist_tail;
 
     /** linked list of unused pages */
     ham_page_t *_garbagelist;
@@ -121,12 +120,12 @@ struct ham_cache_t
 /*
  * get the oldest page/tail in totallist
  */
-#define cache_get_oldest(cm)                   (cm)->_oldest
+#define cache_get_totallist_tail(cm)           (cm)->_totallist_tail
 
 /*
  * set the oldest page/tail in totallist
  */
-#define cache_set_oldest(cm, p)                (cm)->_oldest=(p)
+#define cache_set_totallist_tail(cm, p)        (cm)->_totallist_tail=(p)
 
 /*
  * get the linked list of unused (garbage collected) pages
