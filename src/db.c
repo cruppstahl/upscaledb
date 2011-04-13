@@ -742,11 +742,8 @@ db_free_page(ham_page_t *page, ham_u32_t flags)
     if (st)
         return (st);
 
-    if (env_get_cache(env)) {
-        st=cache_remove_page(env_get_cache(env), page);
-        if (st)
-            return (st);
-    }
+    if (env_get_cache(env))
+        cache_remove_page(env_get_cache(env), page);
 
     /*
      * if this page has a header, and it's either a B-Tree root page or 
@@ -989,11 +986,7 @@ done:
     }
 
     if (env_get_cache(env)) {
-        st=cache_put_page(env_get_cache(env), page);
-        if (st) {
-            return (st);
-            /* TODO memleak? */
-        }
+        cache_put_page(env_get_cache(env), page);
 #if 0
         /*
         Some quick measurements indicate that this (and the btree lines which
@@ -1148,11 +1141,7 @@ db_fetch_page_impl(ham_page_t **page_ref, ham_env_t *env, ham_db_t *db,
     }
 
     if (env_get_cache(env)) {
-        st=cache_put_page(env_get_cache(env), page);
-        if (st) {
-            (void)page_delete(page);
-            return st;
-        }
+        cache_put_page(env_get_cache(env), page);
         if (flags & DB_NEW_PAGE_DOES_THRASH_CACHE) {
             /* give it an 'antique' age so this one will get flushed pronto */
             page_set_cache_cntr(page, 1 /* cache->_timeslot - 1000 */ );
@@ -1188,13 +1177,9 @@ db_flush_page(ham_env_t *env, ham_page_t *page, ham_u32_t flags)
             return (st);
     }
 
-    /*
-     * put page back into the cache; do NOT update the page_counter, as
-     * this flush operation should not be considered an 'additional page
-     * access' impacting the page life-time in the cache.
-     */
+    /* put page back into the cache */
     if (env_get_cache(env))
-        return (cache_put_page(env_get_cache(env), page));
+        cache_put_page(env_get_cache(env), page);
 
     return (0);
 }
@@ -1262,9 +1247,7 @@ db_write_page_and_delete(ham_page_t *page, ham_u32_t flags)
         st=db_uncouple_all_cursors(page, 0);
         if (st)
             return (st);
-        st=cache_remove_page(env_get_cache(env), page);
-        if (st)
-            return (st);
+        cache_remove_page(env_get_cache(env), page);
         st=page_free(page);
         if (st)
             return (st);

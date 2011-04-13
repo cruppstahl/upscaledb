@@ -16,19 +16,15 @@ o (mail from Mark) - currently, hamsterdb does not release memory properly
     therefore the cache grows and grows and grows
 
     current things to look at:
-        o i extended cache_check_integrity, but it fails; the totallist_tail
+        x i extended cache_check_integrity, but it fails; the totallist_tail
             is not always updated correctly
-        o cache_get_unused_page loops from tail to next to head, but it should
+        x cache_get_unused_page loops from tail to next to head, but it should
             be tail -> prev -> head
-        o extend cache_check_integrity further and make sure that 
-            totallist head -> next -> tail is sorted by age
-            XXX is it really? different page types can have different
-            cache counters!?
-        o cache_get_unused_page does not need to loop - the tail is always
-            the oldest page
-            XXX is it really? different page types can have different
-            cache counters!?
-    db1.c is messed up - replace with the original one!
+    o check performance and memory consumption
+        o against 1.1.9
+        o against modified cache replacement (cache_get_unused_page does not
+            loop, but always picks oldest unused page)
+    o db1.c is messed up - replace with the original one!
 
 ------------------------------------------------------------
 

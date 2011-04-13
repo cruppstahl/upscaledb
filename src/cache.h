@@ -198,7 +198,7 @@ cache_get_page(ham_cache_t *cache, ham_offset_t address, ham_u32_t flags);
 /**
  * store a page in the cache
  */
-extern ham_status_t 
+extern void 
 cache_put_page(ham_cache_t *cache, ham_page_t *page);
 
 /**
@@ -206,12 +206,13 @@ cache_put_page(ham_cache_t *cache, ham_page_t *page);
  * (The page is assumed to exist in the cache!)
  */
 extern void
-cache_update_page_access_counter(ham_page_t *page, ham_cache_t *cache, ham_u32_t extra_bump);
+cache_update_page_access_counter(ham_page_t *page, ham_cache_t *cache, 
+                    ham_u32_t extra_bump);
 
 /**
  * remove a page from the cache
  */
-extern ham_status_t 
+extern void 
 cache_remove_page(ham_cache_t *cache, ham_page_t *page);
 
 /**

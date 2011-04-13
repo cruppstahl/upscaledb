@@ -120,8 +120,8 @@ public:
         page_set_self(page, 0x123ull);
         page_set_pers(page, &pers);
         page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
-        BFC_ASSERT(cache_put_page(cache, page)==HAM_SUCCESS);
-        BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==page);
+        cache_put_page(cache, page);
+        BFC_ASSERT_EQUAL(page, cache_get_page(cache, 0x123ull, 0));
         cache_delete(cache);
         page_set_pers(page, 0);
         page_delete(page);
@@ -138,11 +138,11 @@ public:
         page_set_npers_flags(page, PAGE_NPERS_NO_HEADER);
         page_set_self(page, 0x123ull);
         page_set_pers(page, &pers);
-        BFC_ASSERT(cache_put_page(cache, page)==HAM_SUCCESS);
-        BFC_ASSERT(cache_get_cur_elements(cache)==1);
+        cache_put_page(cache, page);
+        BFC_ASSERT_EQUAL(1u, cache_get_cur_elements(cache));
         BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==page);
         BFC_ASSERT(cache_get_cur_elements(cache)==0);
-        BFC_ASSERT(cache_remove_page(cache, page)==HAM_SUCCESS);
+        cache_remove_page(cache, page);
         BFC_ASSERT(cache_get_cur_elements(cache)==0);
         BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==0);
         cache_delete(cache);
@@ -166,11 +166,11 @@ public:
         page_set_npers_flags(page2, PAGE_NPERS_NO_HEADER);
         page_set_self(page2, 0x456ull);
         page_set_pers(page2, &pers2);
-        BFC_ASSERT(cache_put_page(cache, page1)==HAM_SUCCESS);
+        cache_put_page(cache, page1);
         BFC_ASSERT(cache_get_cur_elements(cache)==1);
-        BFC_ASSERT(cache_remove_page(cache, page1)==HAM_SUCCESS);
+        cache_remove_page(cache, page1);
         BFC_ASSERT(cache_get_cur_elements(cache)==0);
-        BFC_ASSERT(cache_put_page(cache, page2)==HAM_SUCCESS);
+        cache_put_page(cache, page2);
         BFC_ASSERT(cache_get_cur_elements(cache)==1);
         BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==0);
         BFC_ASSERT(cache_get_cur_elements(cache)==1);
@@ -185,26 +185,29 @@ public:
     
     void multiplePutTest(void)
     {
-        ham_page_t *page[20];
-        ham_perm_page_union_t pers[20];
+        const int MAX=20;
+        ham_page_t *page[MAX];
+        ham_perm_page_union_t pers[MAX];
         ham_cache_t *cache=cache_new(m_env, 15);
 
-        for (int i=0; i<20; i++) {
+        for (int i=0; i<MAX; i++) {
             page[i]=page_new(m_env);
             memset(&pers[i], 0, sizeof(pers[i]));
             page_set_npers_flags(page[i], PAGE_NPERS_NO_HEADER);
-            page_set_self(page[i], i*1024);
+            page_set_self(page[i], (i+1)*1024);
             page_set_pers(page[i], &pers[i]);
-            BFC_ASSERT(cache_put_page(cache, page[i])==HAM_SUCCESS);
+            cache_put_page(cache, page[i]);
         }
-        for (int i=0; i<20; i++) {
-            BFC_ASSERT(cache_get_page(cache, i*1024, 0)==page[i]);
+        for (int i=0; i<MAX; i++) {
+            BFC_ASSERT_EQUAL(page[i], 
+                    cache_get_page(cache, (i+1)*1024, 0));
         }
-        for (int i=0; i<20; i++) {
-            BFC_ASSERT(cache_remove_page(cache, page[i])==0);
+        for (int i=0; i<MAX; i++) {
+            cache_remove_page(cache, page[i]);
         }
-        for (int i=0; i<20; i++) {
-            BFC_ASSERT(cache_get_page(cache, i*1024, 0)==0);
+        for (int i=0; i<MAX; i++) {
+            BFC_ASSERT_EQUAL((ham_page_t *)0, 
+                    cache_get_page(cache, (i+1)*1024, 0));
             page_set_pers(page[i], 0);
             page_delete(page[i]);
         }
@@ -237,8 +240,8 @@ public:
         page_set_npers_flags(page2, PAGE_NPERS_NO_HEADER);
         page_set_self(page2, 0x456ull);
         page_set_pers(page2, &pers2);
-        BFC_ASSERT(cache_put_page(cache, page1)==HAM_SUCCESS);
-        BFC_ASSERT(cache_put_page(cache, page2)==HAM_SUCCESS);
+        cache_put_page(cache, page1);
+        cache_put_page(cache, page2);
         BFC_ASSERT(cache_get_unused_page(cache)==page2);
         BFC_ASSERT(cache_get_unused_page(cache)==0);
         BFC_ASSERT(cache_get_unused_page(cache)==0);
@@ -265,7 +268,7 @@ public:
             page_set_self(p, i*1024);
             page_set_pers(p, &pers);
             v.push_back(p);
-            BFC_ASSERT(cache_put_page(cache, p)==0);
+            cache_put_page(cache, p);
             BFC_ASSERT(!cache_too_big(cache));
         }
 
@@ -275,7 +278,7 @@ public:
             page_set_self(p, i*1024);
             page_set_pers(p, &pers);
             v.push_back(p);
-            BFC_ASSERT(cache_put_page(cache, p)==0);
+            cache_put_page(cache, p);
             BFC_ASSERT(cache_too_big(cache)); // now it's too big
         }
 
@@ -284,7 +287,7 @@ public:
             BFC_ASSERT(cache_too_big(cache));
             p=v.back();
             v.pop_back();
-            BFC_ASSERT(cache_remove_page(cache, p)==HAM_SUCCESS);
+            cache_remove_page(cache, p);
             page_set_pers(p, 0);
             page_delete(p);
         }
@@ -293,7 +296,7 @@ public:
             ham_page_t *p;
             p=v.back();
             v.pop_back();
-            BFC_ASSERT(cache_remove_page(cache, p)==HAM_SUCCESS);
+            cache_remove_page(cache, p);
             BFC_ASSERT(!cache_too_big(cache));
             page_set_pers(p, 0);
             page_delete(p);
