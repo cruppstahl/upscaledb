@@ -695,31 +695,35 @@ __purge_cache(ham_env_t *env)
 {
     ham_status_t st;
     ham_page_t *page;
+    ham_cache_t *cache=env_get_cache(env);
+    unsigned i, max_pages=cache_get_cur_elements(cache)/10;
 
-    /*
-     * first, try to delete unused pages from the cache
-     */
-    if (env_get_cache(env) && !(env_get_rt_flags(env)&HAM_IN_MEMORY_DB)) {
-        ham_cache_t *cache=env_get_cache(env);
+    /* don't remove pages from the cache if it's an in-memory database */
+    if (!cache)
+        return (0);
+    if ((env_get_rt_flags(env)&HAM_IN_MEMORY_DB))
+        return (0);
 
 #if defined(HAM_DEBUG) && defined(HAM_ENABLE_INTERNAL) && !defined(HAM_LEAN_AND_MEAN_FOR_PROFILING)
-        if (cache_too_big(cache)) {
-            (void)cache_check_integrity(cache);
-        }
+    if (cache_too_big(cache))
+        (void)cache_check_integrity(cache);
 #endif
 
-        while (cache_too_big(cache)) {
-            page=cache_get_unused_page(cache);
-            if (!page) {
-                if (env_get_rt_flags(env)&HAM_CACHE_STRICT) 
-                    return (HAM_CACHE_FULL);
-                else
-                    break;
-            }
-            st=db_write_page_and_delete(page, 0);
-            if (st)
-                return st;
+    if (!cache_too_big(cache))
+        return (0);
+
+    /* try to free 10% of the unused pages */
+    for (i=0; i<max_pages; i++) {
+        page=cache_get_unused_page(cache);
+        if (!page) {
+            if (i==0 && (env_get_rt_flags(env)&HAM_CACHE_STRICT)) 
+                return (HAM_CACHE_FULL);
+            else
+                break;
         }
+        st=db_write_page_and_delete(page, 0);
+        if (st)
+            return st;
     }
 
     return (HAM_SUCCESS);

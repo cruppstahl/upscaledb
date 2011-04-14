@@ -106,8 +106,6 @@ cache_get_unused_page(ham_cache_t *cache)
 {
     ham_page_t *page;
     ham_page_t *oldest;
-    ham_page_t *min=0;
-    ham_size_t i=0;
 
     /* fetch a page from the garbagelist 
      *
@@ -135,35 +133,21 @@ cache_get_unused_page(ham_cache_t *cache)
     /* now iterate through all pages, starting from the oldest
      * (which is the tail of the "totallist", the list of ALL cached 
      * pages) */
-    page = oldest;
+    page=oldest;
     do {
-        /* do not loop too often */
-        if (i++>20)
-            break;
-
         /* only look at pages that are currently not in use */
-        if (page_get_refcount(page)==0) {
-            if (page_get_cache_cntr(page)==0) {
-                min=page;
-                break;
-            }
-            else {
-                if (!min)
-                    min=page;
-                else if (page_get_cache_cntr(page)<page_get_cache_cntr(min)) 
-                    min=page;
-            }
-        }
+        if (page_get_refcount(page)==0)
+            return (page);
         
         page=page_get_previous(page, PAGE_LIST_CACHED);
         ham_assert(page!=oldest, (0));
     } while (page && page!=oldest);
     
-    if (!min)
+    if (!page)
         return (0);
 
-    cache_remove_page(cache, min);
-    return (min);
+    cache_remove_page(cache, page);
+    return (page);
 }
 
 ham_page_t *
