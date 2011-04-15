@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2005-2008 Christoph Rupp (chris@crupp.de).
+ * Copyright (C) 2005-2011 Christoph Rupp (chris@crupp.de).
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -21,7 +21,7 @@
 #endif
 #include <ham/hamsterdb.h>
 
-#define LOOP 2000000
+#define LOOP 100
 
 void 
 error(const char *foo, ham_status_t st)
@@ -77,21 +77,17 @@ main(int argc, char **argv)
      * up, then delete them and try to look them up again (which will fail).
      */
     for (i=0; i<LOOP; i++) {
-        char buffer[24]={0};
         key.data=&i;
         key.size=sizeof(i);
 
-        record.size=sizeof(buffer);
-        record.data=buffer;
+        record.data=&i;
+        record.size=sizeof(i);
 
         st=ham_insert(db, 0, &key, &record, 0);
 		if (st!=HAM_SUCCESS)
             error("ham_insert", st);
-        if (i%10000==0)
-            printf("%d\n", i);
     }
 
-#if 0
     /*
      * now lookup all values
      *
@@ -151,7 +147,6 @@ main(int argc, char **argv)
         if (st!=HAM_KEY_NOT_FOUND)
             error("ham_find", st);
     }
-#endif
 
     /*
      * we're done! close the database handle
