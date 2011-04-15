@@ -696,7 +696,12 @@ __purge_cache(ham_env_t *env)
     ham_status_t st;
     ham_page_t *page;
     ham_cache_t *cache=env_get_cache(env);
+    /* max_pages specifies how many pages we try to flush in case the
+     * cache is full. some benchmarks showed that 10% is a good value. */
     unsigned i, max_pages=cache_get_cur_elements(cache)/10;
+    /* but still we set an upper limit to avoid IO spikes */
+    if (max_pages>20)
+        max_pages=20;
 
     /* don't remove pages from the cache if it's an in-memory database */
     if (!cache)

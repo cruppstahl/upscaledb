@@ -11,7 +11,7 @@ x a finished TODO item
 x precompiled windows libraries: hamserver-x.x.x.dll is still version 1.1.5
     x same for hamsterdb.spec
 
-o (mail from Mark) - currently, hamsterdb does not release memory properly
+x (mail from Mark) - currently, hamsterdb does not release memory properly
     cache_get_unused_page rarely returns a good hit, usually returns 0
     therefore the cache grows and grows and grows
 
@@ -29,8 +29,13 @@ o (mail from Mark) - currently, hamsterdb does not release memory properly
     x db1.c is messed up - replace with the original one!
     x check unittests
 
-    o do more benchmarks; 20% is better when inserting sequentially, but what
+    x do more benchmarks; 20% is better when inserting sequentially, but what
         about random access?
+
+o can we do a flush immediately after creating the database (and the
+    header page)?
+    otherwise the header page is all garbage if the application is killed 
+    after ham_create
 
 ------------------------------------------------------------
 
