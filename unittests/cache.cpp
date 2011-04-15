@@ -240,13 +240,16 @@ public:
         page_set_npers_flags(page2, PAGE_NPERS_NO_HEADER);
         page_set_self(page2, 0x456ull);
         page_set_pers(page2, &pers2);
+
         cache_put_page(cache, page1);
         cache_put_page(cache, page2);
-        BFC_ASSERT(cache_get_unused_page(cache)==page2);
-        BFC_ASSERT(cache_get_unused_page(cache)==0);
-        BFC_ASSERT(cache_get_unused_page(cache)==0);
-        BFC_ASSERT(cache_get_page(cache, 0x123ull, 0)==page1);
-        BFC_ASSERT(cache_get_page(cache, 0x456ull, 0)==0);
+        BFC_ASSERT_EQUAL(page2, cache_get_unused_page(cache));
+        BFC_ASSERT_EQUAL((ham_page_t *)0, cache_get_unused_page(cache));
+        page_release_ref(page1);
+        BFC_ASSERT_EQUAL(page1, cache_get_page(cache, 0x123ull, CACHE_NOREMOVE));
+        BFC_ASSERT_EQUAL((ham_page_t *)0, cache_get_page(cache, 0x456ull, 0));
+        BFC_ASSERT_EQUAL(page1, cache_get_unused_page(cache));
+        BFC_ASSERT_EQUAL((ham_page_t *)0, cache_get_page(cache, 0x123ull, 0));
         cache_delete(cache);
         page_release_ref(page1);
         page_set_pers(page1, 0);

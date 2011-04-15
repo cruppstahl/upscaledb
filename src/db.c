@@ -703,12 +703,6 @@ __purge_cache(ham_env_t *env)
         return (0);
     if ((env_get_rt_flags(env)&HAM_IN_MEMORY_DB))
         return (0);
-
-#if defined(HAM_DEBUG) && defined(HAM_ENABLE_INTERNAL) && !defined(HAM_LEAN_AND_MEAN_FOR_PROFILING)
-    if (cache_too_big(cache))
-        (void)cache_check_integrity(cache);
-#endif
-
     if (!cache_too_big(cache))
         return (0);
 

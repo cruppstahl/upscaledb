@@ -135,9 +135,9 @@ cache_get_unused_page(ham_cache_t *cache)
      * pages) */
     page=oldest;
     do {
-        /* only look at pages that are currently not in use */
+        /* pick the first unused page (with a refcount of 0) */
         if (page_get_refcount(page)==0)
-            return (page);
+            break;
         
         page=page_get_previous(page, PAGE_LIST_CACHED);
         ham_assert(page!=oldest, (0));
@@ -146,7 +146,9 @@ cache_get_unused_page(ham_cache_t *cache)
     if (!page)
         return (0);
 
+    /* remove the page from the cache and return it */
     cache_remove_page(cache, page);
+
     return (page);
 }
 
