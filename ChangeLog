@@ -1,3 +1,10 @@
+Apr 20, 2011 - chris ---------------------------------------------------
+                      release of hamsterdb-1.1.10
+
+Apr 15, 2011 - chris ---------------------------------------------------
+o bugfix: the cache was not purged correctly, thus grew uncontrolled
+    (Thanks, Mark)
+
 Mar 31, 2011 - chris ---------------------------------------------------
 o bugfix: the hamzilla server always failed to read the configuration file 
     because of a wrong error check (Thanks, Sebastien)

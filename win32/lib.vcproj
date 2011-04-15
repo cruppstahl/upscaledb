@@ -68,7 +68,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\hamsterdb-alien\libcurl\libcurl_x86_debug.lib ws2_32.lib"
-				OutputFile="$(OutDir)\libhamsterdb-1.1.9.lib"
+				OutputFile="$(OutDir)\libhamsterdb-1.1.10.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -136,7 +136,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\hamsterdb-alien\libcurl\libcurl_x64_debug.lib ws2_32.lib"
-				OutputFile="$(OutDir)\libhamsterdb-1.1.9.lib"
+				OutputFile="$(OutDir)\libhamsterdb-1.1.10.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -200,7 +200,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\hamsterdb-alien\libcurl\libcurl_x86.lib ws2_32.lib"
-				OutputFile="$(OutDir)\libhamsterdb-1.1.9.lib"
+				OutputFile="$(OutDir)\libhamsterdb-1.1.10.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -265,7 +265,7 @@
 				Name="VCLibrarianTool"
 				LinkLibraryDependencies="true"
 				AdditionalDependencies="..\..\hamsterdb-alien\libcurl\libcurl_x64.lib ws2_32.lib"
-				OutputFile="$(OutDir)\libhamsterdb-1.1.9.lib"
+				OutputFile="$(OutDir)\libhamsterdb-1.1.10.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
