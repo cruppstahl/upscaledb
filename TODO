@@ -26,13 +26,11 @@ o (mail from Mark) - currently, hamsterdb does not release memory properly
         x against modified cache replacement (cache_get_unused_page does not
             loop, but always picks oldest unused page)
         x remove more than one page from the cache (10% or 20% of the pages)
-
-    o db1.c is messed up - replace with the original one!
-
-===> do more benchmarks; 20% is better when inserting sequentially, but what
-    about random access?
-
+    x db1.c is messed up - replace with the original one!
     x check unittests
+
+    o do more benchmarks; 20% is better when inserting sequentially, but what
+        about random access?
 
 ------------------------------------------------------------
 
