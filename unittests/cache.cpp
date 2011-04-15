@@ -251,7 +251,6 @@ public:
         BFC_ASSERT_EQUAL(page1, cache_get_unused_page(cache));
         BFC_ASSERT_EQUAL((ham_page_t *)0, cache_get_page(cache, 0x123ull, 0));
         cache_delete(cache);
-        page_release_ref(page1);
         page_set_pers(page1, 0);
         page_delete(page1);
         page_set_pers(page2, 0);
