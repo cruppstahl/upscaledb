@@ -814,7 +814,8 @@ o support cursors!!!
                 x erase all of 3 duplicates, but have a second key
                 x erase all of 3 duplicates, but have a first key (reverse)
                 x same as above, but with ham_cursor_find
-                o all (!!!) tests with btree-tree
+                x all (!!!) tests with btree-tree
+                o all (!!!) tests with mixed btree/txn-tree
                 o if the transaction conflicts: return error!
 
             o analoguous to insertMovesCursorsTest, but erase keys

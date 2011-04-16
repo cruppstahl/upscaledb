@@ -88,7 +88,7 @@ typedef struct txn_op_t
 /** txn operation is an insert w/ duplicate */
 #define TXN_OP_INSERT_DUP   0x040000u
 
-/** txn operation erases the key (with all duplicates) */
+/** txn operation erases the key */
 #define TXN_OP_ERASE        0x080000u
 
 /** txn operation was already flushed */

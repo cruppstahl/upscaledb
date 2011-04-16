@@ -375,3 +375,65 @@ cursor_check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor)
     return (st);
 }
 
+/* TODO TODO TODO
+ * duplicate function is in db.c 
+ */
+static ham_bool_t
+__btree_cursor_is_nil(ham_bt_cursor_t *btc)
+{
+    return (!(cursor_get_flags(btc)&BT_CURSOR_FLAG_COUPLED) &&
+            !(cursor_get_flags(btc)&BT_CURSOR_FLAG_UNCOUPLED));
+}
+
+ham_status_t
+cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys)
+{
+    ham_status_t st=0;
+    txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
+    *equal_keys=HAM_FALSE;
+
+    if (__btree_cursor_is_nil((ham_bt_cursor_t *)cursor)) {
+        txn_opnode_t *node;
+        if (!txn_cursor_get_coupled_op(txnc))
+            return (0);
+        node=txn_op_get_node(txn_cursor_get_coupled_op(txnc));
+        ham_key_t *k=txn_opnode_get_key(node);
+        /* the flag DONT_LOAD_KEY does not load the key if there's an
+         * approx match - it only positions the cursor */
+        st=cursor->_fun_find(cursor, k, 0,
+                BT_CURSOR_DONT_LOAD_KEY|(flags&HAM_CURSOR_NEXT 
+                    ? HAM_FIND_GEQ_MATCH
+                    : HAM_FIND_LEQ_MATCH));
+        /* if we had a direct hit instead of an approx. match then
+         * set fresh_start to false; otherwise do_local_cursor_move
+         * will move the btree cursor again */
+        if (st==0 && !ham_key_get_approximate_match_type(k))
+            *equal_keys=HAM_TRUE;
+    }
+    else if (txn_cursor_is_nil(txnc)) {
+        ham_cursor_t *clone;
+        ham_key_t *k;
+        ham_status_t st=ham_cursor_clone(cursor, &clone);
+        if (st)
+            goto bail;
+        st=bt_cursor_uncouple((ham_bt_cursor_t *)clone, 0);
+        if (st) {
+            ham_cursor_close(clone);
+            goto bail;
+        }
+        k=bt_cursor_get_uncoupled_key((ham_bt_cursor_t *)clone);
+        st=txn_cursor_find(txnc, k,
+                BT_CURSOR_DONT_LOAD_KEY|(flags&HAM_CURSOR_NEXT 
+                    ? HAM_FIND_GEQ_MATCH
+                    : HAM_FIND_LEQ_MATCH));
+        /* if we had a direct hit instead of an approx. match then
+        * set fresh_start to false; otherwise do_local_cursor_move
+        * will move the btree cursor again */
+        ham_cursor_close(clone);
+        if (st==0 && !ham_key_get_approximate_match_type(k))
+            *equal_keys=HAM_TRUE;
+    }
+
+bail:
+    return (st);
+}

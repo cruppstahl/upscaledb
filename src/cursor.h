@@ -386,6 +386,20 @@ cursor_couple_to_dupe(ham_cursor_t *cursor, ham_u32_t dupe_id);
 extern ham_status_t
 cursor_check_if_btree_key_is_erased_or_overwritten(ham_cursor_t *cursor);
 
+/**
+ * synchronizes txn- and btree-cursor
+ *
+ * if txn-cursor is nil then try to move the txn-cursor to the same key
+ * as the btree cursor
+ * if btree-cursor is nil then try to move the btree-cursor to the same key
+ * as the txn cursor
+ * if both are nil, or both are valid, then nothing happens
+ *
+ * equal_key is set to true if the keys in both cursors are equal
+ */
+extern ham_status_t
+cursor_sync(ham_cursor_t *cursor, ham_u32_t flags, ham_bool_t *equal_keys);
+
 
 #ifdef __cplusplus
 } // extern "C"

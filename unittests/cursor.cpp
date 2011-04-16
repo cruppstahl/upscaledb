@@ -5219,10 +5219,10 @@ public:
 
     void eraseAllDuplicatesMoveNextBtreeTest(void)
     {
-        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1", 0));
         BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.2", HAM_DUPLICATE));
         BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
-        BFC_ASSERT_EQUAL(0, insertBtree("k2", "r2.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertBtree("k2", "r2.1", 0));
 
         for (int i=0; i<3; i++) {
             BFC_ASSERT_EQUAL(0, 
