@@ -1906,13 +1906,34 @@ db_insert_txn(ham_db_t *db, ham_txn_t *txn,
 }
 
 static void
-__nil_all_cursors_in_node(ham_txn_t *txn, txn_opnode_t *node)
+__nil_all_cursors_in_node(ham_txn_t *txn, ham_cursor_t *current, 
+                txn_opnode_t *node)
 {
     txn_op_t *op=txn_opnode_get_newest_op(node);
     while (op) {
         txn_cursor_t *cursor=txn_op_get_cursors(op);
         while (cursor) {
             ham_cursor_t *pc=txn_cursor_get_parent(cursor);
+            /* is the current cursor to a duplicate? then adjust the 
+             * coupled duplicate index of all cursors which point to a
+             * duplicate */
+            if (current) {
+                if (cursor_get_dupecache_index(current)) {
+                    if (cursor_get_dupecache_index(current)
+                            <cursor_get_dupecache_index(pc)) {
+                        cursor_set_dupecache_index(pc, 
+                            cursor_get_dupecache_index(pc)-1);
+                        cursor=txn_cursor_get_coupled_next(cursor);
+                        continue;
+                    }
+                    else if (cursor_get_dupecache_index(current)
+                            >cursor_get_dupecache_index(pc)) {
+                        cursor=txn_cursor_get_coupled_next(cursor);
+                        continue;
+                    }
+                    /* else fall through */
+                }
+            }
             cursor_set_flags(pc, 
                     cursor_get_flags(pc)&(~CURSOR_COUPLED_TO_TXN));
             txn_cursor_set_to_nil(cursor);
@@ -1928,7 +1949,7 @@ __nil_all_cursors_in_node(ham_txn_t *txn, txn_opnode_t *node)
 }
 
 static void
-__nil_all_cursors_in_btree(ham_db_t *db, ham_key_t *key)
+__nil_all_cursors_in_btree(ham_db_t *db, ham_cursor_t *current, ham_key_t *key)
 {
     ham_cursor_t *c=db_get_cursors(db);
 
@@ -1947,6 +1968,24 @@ __nil_all_cursors_in_btree(ham_db_t *db, ham_key_t *key)
             goto next;
 
         if (__btree_cursor_points_to(c, key)) {
+            /* is the current cursor to a duplicate? then adjust the 
+             * coupled duplicate index of all cursors which point to a
+             * duplicate */
+            if (current) {
+                if (cursor_get_dupecache_index(current)) {
+                    if (cursor_get_dupecache_index(current)
+                            <cursor_get_dupecache_index(c)) {
+                        cursor_set_dupecache_index(c, 
+                            cursor_get_dupecache_index(c)-1);
+                        goto next;
+                    }
+                    else if (cursor_get_dupecache_index(current)
+                            >cursor_get_dupecache_index(c)) {
+                        goto next;
+                    }
+                    /* else fall through */
+                }
+            }
             bt_cursor_set_to_nil((ham_bt_cursor_t *)c);
             txn_cursor_set_to_nil(cursor_get_txn_cursor(c));
         }
@@ -2019,10 +2058,10 @@ db_erase_txn(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags,
     /* the current op has no cursors attached; but if there are any 
      * other ops in this node and in this transaction, then they have to
      * be set to nil. This only nil's txn-cursors! */
-    __nil_all_cursors_in_node(txn, node);
+    __nil_all_cursors_in_node(txn, pc, node);
 
     /* in addition we nil all btree cursors which are coupled to this key */
-    __nil_all_cursors_in_btree(db, txn_opnode_get_key(node));
+    __nil_all_cursors_in_btree(db, pc, txn_opnode_get_key(node));
 
     /* append journal entry */
     if (env_get_rt_flags(db_get_env(db))&HAM_ENABLE_RECOVERY

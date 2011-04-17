@@ -817,21 +817,27 @@ o support cursors!!!
                 x all (!!!) tests with btree-tree
                 x all (!!!) tests with mixed btree/txn-tree
 
-            o analoguous to insertMovesCursorsTest, but erase keys
+            x analoguous to insertFirstTest (and others), but erase keys
+                x eraseFirstTest
+                x eraseLastTest
+                x eraseAfterTest
+                x eraseBeforeTest
+
+            o if ANY duplicate key is conflicting, then ALL duplicate keys
+                are conflicting!
+                o document this behavior in the header file
+                o what happens with CURSOR_MOVE_FIRST/CURSOR_MOVE_LAST?
+                    -> rather return an error
+                o implement for HAM_CURSOR_NEXT, HAM_CURSOR_PREVIOUS
+                    -> or also return an error? and have a separate option
+                        later to allow this behavior?
+                o identify all functions which are affected
+                o unittests
 
             o get_duplicate_count
                 o make sure that duplictes from other (invisible) 
                     transactions are skipped
-
-            o analoguous to insertMovesCursorsTest, but with cursors from
-                different transactions. keys from conflicting txn's are not
-                visible!
-
-            o when moving through duplicates, make sure that conflicting
-                entries are skipped!
                 o document this behavior in the header file
-                o what happens with CURSOR_MOVE_FIRST/CURSOR_MOVE_LAST?
-                o unittest
 
             o ham_erase: make sure that all cursors on duplicates of the
                 key are set to 0! (both btree and txn) - but only when
@@ -853,10 +859,9 @@ o support cursors!!!
                 o only with btree dupes
                 o only with txn dupes
                 o with with txn dupes
+
             o test with tiny, small, null records
                 -> check for dupe_entry_get_rid in cursor.c
-            o get duplicate count
-                o return HAM_TXN_CONFLICT if key is modified in another txn
 
         o when reading a duplicate, always make sure that the transaction is
             not conflicting!! currently the op is returned even if the txn
