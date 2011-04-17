@@ -806,7 +806,7 @@ o support cursors!!!
                     to position a cursor from a different txn on a duplicate
                     from a conflicting txn
 
-            o erase duplicates (ham_cursor_erase)
+            x erase duplicates (ham_cursor_erase)
                 x erase first of 3 duplicates
                 x erase second of 3 duplicates
                 x erase third of 3 duplicates
@@ -815,10 +815,13 @@ o support cursors!!!
                 x erase all of 3 duplicates, but have a first key (reverse)
                 x same as above, but with ham_cursor_find
                 x all (!!!) tests with btree-tree
-                o all (!!!) tests with mixed btree/txn-tree
-                o if the transaction conflicts: return error!
+                x all (!!!) tests with mixed btree/txn-tree
 
             o analoguous to insertMovesCursorsTest, but erase keys
+
+            o get_duplicate_count
+                o make sure that duplictes from other (invisible) 
+                    transactions are skipped
 
             o analoguous to insertMovesCursorsTest, but with cursors from
                 different transactions. keys from conflicting txn's are not
@@ -860,6 +863,7 @@ o support cursors!!!
             is active
             o ham_find
             o ham_cursor_find
+            o ham_cursor_erase
             o ham_cursor_move: skip conflicting key; but if flags are 0 (not
                 moving) and key/record is requested, then return
                 HAM_TXN_CONFLICT
@@ -873,6 +877,10 @@ o support cursors!!!
         -> cursor.c uses a different loop because this one was not working!
         -> yes, all loops were broken (but it had no consequences, since the
             loop was never really executed)
+
+        o more tests with different transactions - make sure that ALL 
+            functions react correctly when there are keys from other (visible
+            or invisible) transactions; esp. w/ duplicate keys!
 
 x add hamsterdb.spec file from 1.1.8
     https://github.com/cruppstahl/hamsterdb/commit/46260d14d0192299b15286c93a843d11dc4ccaa6

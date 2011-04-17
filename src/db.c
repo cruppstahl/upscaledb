@@ -2640,6 +2640,11 @@ _local_cursor_erase(ham_cursor_t *cursor, ham_u32_t flags)
 
     /* if transactions are enabled: add a erase-op to the txn-tree */
     if (cursor_get_txn(cursor) || local_txn) {
+        /* if cursor is coupled to a btree item: set the txn-cursor to 
+         * nil; otherwise txn_cursor_erase() doesn't know which cursor 
+         * part is the valid one */
+        if (!(cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN))
+            txn_cursor_set_to_nil(cursor_get_txn_cursor(cursor));
         st=txn_cursor_erase(cursor_get_txn_cursor(cursor));
     }
     else {
@@ -3751,6 +3756,7 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
      * txn- or the b-tree */
     if (st==HAM_KEY_ERASED_IN_TXN) {
         txn_op_t *op=txn_cursor_get_coupled_op(txnc);
+move_next_or_prev:
         if (cursor_get_dupecache_index(cursor)) {
             dupecache_line_t *e=dupecache_get_elements(dc)+
                     (cursor_get_dupecache_index(cursor)-1);
@@ -3788,6 +3794,19 @@ bail:
      */
     if (st==0) {
         if (cursor_get_flags(cursor)&CURSOR_COUPLED_TO_TXN) {
+            txn_op_t *op=txn_cursor_get_coupled_op(txnc);
+            /* are we coupled to an ERASE-op? then return an error 
+             *
+             * !! Hack alert
+             * in rare scenarios, we have to move to the next or previous
+             * key (DupeCursorTest::eraseAllDuplicatesMovePreviousMixedTest3
+             * and others). */
+            if (txn_op_get_flags(op)&TXN_OP_ERASE) {
+                if ((flags&HAM_CURSOR_FIRST) || (flags&HAM_CURSOR_LAST))
+                    goto move_next_or_prev;
+                st=HAM_KEY_NOT_FOUND;
+                goto bail;
+            }
             if (key) {
                 st=txn_cursor_get_key(txnc, key);
                 if (st)
