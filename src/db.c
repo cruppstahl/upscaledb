@@ -2282,7 +2282,7 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
     if (!be || !be_is_active(be))
         return (HAM_NOT_INITIALIZED);
     if (!be->_fun_erase)
-        return HAM_NOT_IMPLEMENTED;
+        return (HAM_NOT_IMPLEMENTED);
     if (db_get_rt_flags(db)&HAM_READ_ONLY) {
         ham_trace(("cannot erase from a read-only database"));
         return (HAM_DB_READ_ONLY);

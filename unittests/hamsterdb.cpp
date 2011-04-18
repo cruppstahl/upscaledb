@@ -131,6 +131,7 @@ public:
         BFC_REGISTER_TEST(HamsterdbTest, smallDirectAccessTest);
         BFC_REGISTER_TEST(HamsterdbTest, negativeDirectAccessTest);
         BFC_REGISTER_TEST(HamsterdbTest, unlimitedCacheTest);
+        BFC_REGISTER_TEST(HamsterdbTest, sortDuplicatesWithTxnTest);
     }
 
 protected:
@@ -2241,6 +2242,51 @@ static int HAM_CALLCONV my_compare_func_u32(ham_db_t *db,
         BFC_ASSERT_EQUAL(0, ham_insert(db, 0, &key, &rec, HAM_OVERWRITE));
         BFC_ASSERT_EQUAL(0, ham_close(db, 0));
         ham_delete(db);
+    }
+
+    void sortDuplicatesWithTxnTest(void)
+    {
+        ham_db_t *db;
+        ham_env_t *env;
+
+        /* use ham_create[_ex] */
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                    ham_create(db, BFC_OPATH(".test.db"), 
+                            HAM_SORT_DUPLICATES|HAM_ENABLE_TRANSACTIONS, 0644));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        /* use ham_open[_ex] */
+        BFC_ASSERT_EQUAL(0, ham_new(&db));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                    ham_open(db, BFC_OPATH(".test.db"), 
+                            HAM_SORT_DUPLICATES|HAM_ENABLE_TRANSACTIONS));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+
+        /* use ham_env_create[_ex] and ham_env_create_db */
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_env_create(env, BFC_OPATH(".test"), 
+                            HAM_ENABLE_TRANSACTIONS, 0644));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_env_create_db(env, db, 
+                        13, HAM_SORT_DUPLICATES, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+
+        /* use ham_env_open[_ex] and ham_env_open_db */
+        BFC_ASSERT_EQUAL(0, ham_env_new(&env));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_env_create(env, BFC_OPATH(".test"), 
+                            HAM_ENABLE_TRANSACTIONS, 0644));
+        BFC_ASSERT_EQUAL(HAM_INV_PARAMETER, 
+                ham_env_open_db(env, db, 
+                        13, HAM_SORT_DUPLICATES, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(db, 0));
+        BFC_ASSERT_EQUAL(0, ham_env_close(env, 0));
+
+        ham_delete(db);
+        ham_env_delete(env);
     }
 };
 

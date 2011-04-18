@@ -566,12 +566,17 @@ __check_create_parameters(ham_env_t *env, ham_db_t *db, const char *filename,
 
     /*
      * when creating a Database, HAM_SORT_DUPLICATES is only allowed in
-     * combination with HAM_ENABLE_DUPLICATES
+     * combination with HAM_ENABLE_DUPLICATES, but not with Transactions
      */
     if (create && (flags & HAM_SORT_DUPLICATES)) {
         if (!(flags & HAM_ENABLE_DUPLICATES)) {
             ham_trace(("flag HAM_SORT_DUPLICATES only allowed in combination "
                         "with HAM_ENABLE_DUPLICATES"));
+            return (HAM_INV_PARAMETER);
+        }
+        if (!(flags & HAM_ENABLE_TRANSACTIONS)) {
+            ham_trace(("flag HAM_SORT_DUPLICATES not allowed in combination "
+                        "with HAM_ENABLE_TRANSACTIONS"));
             return (HAM_INV_PARAMETER);
         }
     }
@@ -1277,6 +1282,12 @@ ham_env_open_db(ham_env_t *env, ham_db_t *db,
     }
     if (env_get_rt_flags(env)&HAM_IN_MEMORY_DB) {
         ham_trace(("cannot open a Database in an In-Memory Environment"));
+        return (db_set_error(db, HAM_INV_PARAMETER));
+    }
+    if (flags&HAM_SORT_DUPLICATES 
+            && env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS) {
+        ham_trace(("flag HAM_SORT_DUPLICATES not allowed in combination "
+                    "with HAM_ENABLE_TRANSACTIONS"));
         return (db_set_error(db, HAM_INV_PARAMETER));
     }
 

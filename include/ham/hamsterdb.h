@@ -713,6 +713,7 @@ ham_env_get_parameters(ham_env_t *env, ham_parameter_t *param);
  *            Database. Only allowed in combination with 
  *            @ref HAM_ENABLE_DUPLICATES. A compare function can be set with 
  *            @ref ham_set_duplicate_compare_func. This flag is not persistent.
+ *            Not allowed in combination with @ref HAM_ENABLE_TRANSACTIONS.
  *       <li>@ref HAM_RECORD_NUMBER </li> Creates an "auto-increment" Database.
  *            Keys in Record Number Databases are automatically assigned an 
  *            incrementing 64bit value. If key->data is not NULL
@@ -781,6 +782,7 @@ ham_env_create_db(ham_env_t *env, ham_db_t *db,
  *            Database. Only allowed if the Database was created with the flag
  *            @ref HAM_ENABLE_DUPLICATES. A compare function can be set with 
  *            @ref ham_set_duplicate_compare_func. This flag is not persistent.
+ *            Not allowed in combination with @ref HAM_ENABLE_TRANSACTIONS.
  *     </ul>
  * @param params An array of ham_parameter_t structures. The following
  *          parameters are available:
@@ -1181,6 +1183,7 @@ ham_create(ham_db_t *db, const char *filename,
  *            Database. Only allowed in combination with 
  *            @ref HAM_ENABLE_DUPLICATES. A compare function can be set with 
  *            @ref ham_set_duplicate_compare_func. This flag is not persistent.
+ *            Not allowed in combination with @ref HAM_ENABLE_TRANSACTIONS.
  *       <li>@ref HAM_DISABLE_MMAP </li> Do not use memory mapped files for I/O.
  *            By default, hamsterdb checks if it can use mmap,
  *            since mmap is faster than read/write. For performance
@@ -1329,6 +1332,7 @@ ham_open(ham_db_t *db, const char *filename, ham_u32_t flags);
  *            Database. Only allowed if the Database was created with the flag
  *            @ref HAM_ENABLE_DUPLICATES. A compare function can be set with 
  *            @ref ham_set_duplicate_compare_func. This flag is not persistent.
+ *            Not allowed in combination with @ref HAM_ENABLE_TRANSACTIONS.
  *      </ul>
  *
  * @param param An array of ham_parameter_t structures. The following

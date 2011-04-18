@@ -823,6 +823,26 @@ o support cursors!!!
                 x eraseAfterTest
                 x eraseBeforeTest
 
+            x sorting duplicates
+                ==> postpone to next release
+                x unittest
+                x document in changelog and header file
+
+            o get_duplicate_count
+                o make sure that duplictes from other (invisible) 
+                    transactions are skipped
+                o document this behavior in the header file
+
+            o insert keys with one txn and position other cursors (in different
+                txns) on the same keys. Then flush the first
+                transation - other cursors should still be valid
+                o test similar to insertAfterTest
+            o same for ham_cursor_erase!
+                o test similar to eraseAfterTest
+
+            o test with tiny, small, null records
+                -> check for dupe_entry_get_rid in cursor.c
+
             o if ANY duplicate key is conflicting, then ALL duplicate keys
                 are conflicting!
                 o document this behavior in the header file
@@ -832,46 +852,12 @@ o support cursors!!!
                     -> or also return an error? and have a separate option
                         later to allow this behavior?
                 o identify all functions which are affected
+                    o ham_find
+                    o ham_cursor_find
+                    o ham_cursor_erase
+                    o ham_cursor_move
+                    o ham_cursor_overwrite
                 o unittests
-
-            o get_duplicate_count
-                o make sure that duplictes from other (invisible) 
-                    transactions are skipped
-                o document this behavior in the header file
-
-            o ham_erase: make sure that all cursors on duplicates of the
-                key are set to 0! (both btree and txn) - but only when
-                the txn is flushed!!
-                o there's similar behavior with ham_cursor_insert - it will
-                    increase the duplicate index of other cursors as well. 
-                    but these other cursors maybe are not affected because
-                    they're in another transaction and the insert is not 
-                    visible to them!?
-
-            o insert keys with one txn (like insertMovesCursorTest), and 
-                position other cursors on the same keys. Then flush the first
-                transation - other cursors should still be valid
-            o same for ham_cursor_erase!
-
-            o sorting duplicates
-                ==> postpone to next release?
-                o with ham_cursor_overwrite
-                o only with btree dupes
-                o only with txn dupes
-                o with with txn dupes
-
-            o test with tiny, small, null records
-                -> check for dupe_entry_get_rid in cursor.c
-
-        o when reading a duplicate, always make sure that the transaction is
-            not conflicting!! currently the op is returned even if the txn
-            is active
-            o ham_find
-            o ham_cursor_find
-            o ham_cursor_erase
-            o ham_cursor_move: skip conflicting key; but if flags are 0 (not
-                moving) and key/record is requested, then return
-                HAM_TXN_CONFLICT
 
     x review all loops that are like...
         op=txn_node_get_newest();
@@ -895,6 +881,7 @@ x precompiled windows libraries: hamserver-x.x.x.dll is still version 1.1.5
     (also on master branch)
 
 o add other pending patches from master
+    o cache and db.c:__purge_cache
 
 o the doxygen documentation is horrible. When opening the start page I have
     *NO* idea what to look for. The start page needs an introduction and 
@@ -933,8 +920,13 @@ o don't forget to test with valgrind!
 o update documentation
     x in header file
     o in the wiki
+        o don't forget to list all functions that are currently disabled
+            w/ txn's -> sorting dupes, approx. matching, ...
 
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
+
+o cleanup the cache - the garbagelist is not needed, and the age of the pages
+    is also not needed (unless it turns out to improve the performance)
 
 o need a function to get the txn of a conflict (same as in v2)
 

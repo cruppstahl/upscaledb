@@ -1,3 +1,7 @@
+Apr 18, 2011 - chris
+o HAM_SORT_DUPLICATES is now disabled if Transactions are enabled.
+    In such cases hamsterdb will return HAM_INV_PARAMETER. 
+
 Dec 29, 2010 - chris
 o Approx. matching is now disabled if Transactions are enabled. 
     In such cases functions will return HAM_INV_PARAMETER. 
