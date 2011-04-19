@@ -3997,6 +3997,13 @@ public:
         BFC_REGISTER_TEST(DupeCursorTest, eraseLastTest);
         BFC_REGISTER_TEST(DupeCursorTest, eraseAfterTest);
         BFC_REGISTER_TEST(DupeCursorTest, eraseBeforeTest);
+
+        BFC_REGISTER_TEST(DupeCursorTest, negativeCountTest);
+        BFC_REGISTER_TEST(DupeCursorTest, countTxnTest);
+        BFC_REGISTER_TEST(DupeCursorTest, countBtreeTest);
+        BFC_REGISTER_TEST(DupeCursorTest, countMixedTest);
+        BFC_REGISTER_TEST(DupeCursorTest, countMixedOverwriteTest);
+        BFC_REGISTER_TEST(DupeCursorTest, countMixedErasedTest);
     }
 
     virtual void setup() 
@@ -5914,6 +5921,127 @@ public:
         for (int i=0; i<C; i++)
             BFC_ASSERT_EQUAL(0, ham_cursor_close(c[i]));
     }
+
+    ham_u32_t count(const char *key, ham_status_t st=0)
+    {
+        ham_u32_t c=0;
+
+        ham_key_t k={0};
+        k.data=(void *)key;
+        k.size=strlen(key)+1;
+
+        BFC_ASSERT_EQUAL(st, 
+                    ham_cursor_find(m_cursor, &k, 0));
+        if (st)
+            return (0);
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_get_duplicate_count(m_cursor, &c, 0));
+        return (c);
+    }
+
+    void negativeCountTest(void)
+    {
+        BFC_ASSERT_EQUAL(0u, count("k1", HAM_KEY_NOT_FOUND));
+    }
+
+    void countTxnTest(void)
+    {
+        BFC_ASSERT_EQUAL(0u, count("k1", HAM_KEY_NOT_FOUND));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(1u, count("k1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(2u, count("k1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(3u, count("k1"));
+    }
+
+    void countBtreeTest(void)
+    {
+        BFC_ASSERT_EQUAL(0u, count("k1", HAM_KEY_NOT_FOUND));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1"));
+        BFC_ASSERT_EQUAL(1u, count("k1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(2u, count("k1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(3u, count("k1"));
+    }
+
+    void countMixedTest(void)
+    {
+        BFC_ASSERT_EQUAL(0u, count("k1", HAM_KEY_NOT_FOUND));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1"));
+        BFC_ASSERT_EQUAL(1u, count("k1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(2u, count("k1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(3u, count("k1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.4", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(4u, count("k1"));
+    }
+
+    void countMixedOverwriteTest(void)
+    {
+        BFC_ASSERT_EQUAL(0u, count("k1", HAM_KEY_NOT_FOUND));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(1u, count("k1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(2u, count("k1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(3u, count("k1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.4", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(4u, count("k1"));
+
+        ham_record_t rec={0};
+        rec.size=5;
+
+        rec.data=(void *)"r2.1";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_FIRST));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_overwrite(m_cursor, &rec, 0));
+
+        BFC_ASSERT_EQUAL(4u, count("k1"));
+
+        rec.data=(void *)"r2.2";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_overwrite(m_cursor, &rec, 0));
+
+        BFC_ASSERT_EQUAL(4u, count("k1"));
+
+        rec.data=(void *)"r2.3";
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_move(m_cursor, 0, 0, HAM_CURSOR_NEXT));
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_overwrite(m_cursor, &rec, 0));
+
+        BFC_ASSERT_EQUAL(4u, count("k1"));
+    }
+
+    void countMixedErasedTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("k0", "r0.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0u, count("k1", HAM_KEY_NOT_FOUND));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(1u, count("k1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(2u, count("k1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(3u, count("k1"));
+
+        for (int i=0; i<3; i++) {
+            ham_key_t key={0};
+            key.size=3;
+            key.data=(void *)"k1";
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_find(m_cursor, &key, 0));
+            BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+            BFC_ASSERT_EQUAL(3u-i, count("k1"));
+        }
+    }
+
 };
 
 BFC_REGISTER_FIXTURE(TempTxnCursorTest);

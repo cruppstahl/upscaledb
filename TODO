@@ -829,16 +829,14 @@ o support cursors!!!
                 x document in changelog and header file
 
             o get_duplicate_count
-                o make sure that duplictes from other (invisible) 
-                    transactions are skipped
-                o document this behavior in the header file
-
-            o insert keys with one txn and position other cursors (in different
-                txns) on the same keys. Then flush the first
-                transation - other cursors should still be valid
-                o test similar to insertAfterTest
-            o same for ham_cursor_erase!
-                o test similar to eraseAfterTest
+                o create a temp. transaction if there's no transaction
+                o implement txn_cursor_get_dupe_count
+                o w/ non-existing key
+                o w/ 1 txn-key
+                o w/ 1 btree-key
+                o w/ mixed txn/btree keys
+                o w/ overwriting txn/btree keys
+                o w/ erasing txn/btree keys
 
             o test with tiny, small, null records
                 -> check for dupe_entry_get_rid in cursor.c
