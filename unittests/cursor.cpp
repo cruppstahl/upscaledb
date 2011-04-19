@@ -4004,6 +4004,7 @@ public:
         BFC_REGISTER_TEST(DupeCursorTest, countMixedTest);
         BFC_REGISTER_TEST(DupeCursorTest, countMixedOverwriteTest);
         BFC_REGISTER_TEST(DupeCursorTest, countMixedErasedTest);
+        BFC_REGISTER_TEST(DupeCursorTest, negativeWithoutDupesTest);
     }
 
     virtual void setup() 
@@ -6021,8 +6022,10 @@ public:
 
     void countMixedErasedTest(void)
     {
-        BFC_ASSERT_EQUAL(0, insertBtree("k0", "r0.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0u, count("k0", HAM_KEY_NOT_FOUND));
         BFC_ASSERT_EQUAL(0u, count("k1", HAM_KEY_NOT_FOUND));
+        BFC_ASSERT_EQUAL(0, insertBtree("k0", "r0.1", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(1u, count("k0"));
         BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1", HAM_DUPLICATE));
         BFC_ASSERT_EQUAL(1u, count("k1"));
         BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "r1.2", HAM_DUPLICATE));
@@ -6038,10 +6041,37 @@ public:
                     ham_cursor_find(m_cursor, &key, 0));
             BFC_ASSERT_EQUAL(0, 
                     ham_cursor_erase(m_cursor, 0));
-            BFC_ASSERT_EQUAL(3u-i, count("k1"));
+            BFC_ASSERT_EQUAL(2u-i, count("k1", i==2 ? HAM_KEY_NOT_FOUND : 0));
         }
     }
 
+    void negativeWithoutDupesTest(void)
+    {
+        teardown();
+
+        BFC_ASSERT((m_alloc=memtracker_new())!=0);
+        BFC_ASSERT_EQUAL(0, ham_new(&m_db));
+        BFC_ASSERT_EQUAL(0, ham_env_new(&m_env));
+        env_set_allocator(m_env, (mem_allocator_t *)m_alloc);
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create(m_env, BFC_OPATH(".test"), 
+                    HAM_ENABLE_TRANSACTIONS, 0664));
+        BFC_ASSERT_EQUAL(0, 
+                ham_env_create_db(m_env, m_db, 13, 0, 0));
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&m_txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, m_txn, 0, &m_cursor));
+
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "r1.1"));
+        BFC_ASSERT_EQUAL(1u, count("k1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k2", "r2.1"));
+        BFC_ASSERT_EQUAL(1u, count("k1"));
+
+        BFC_ASSERT_EQUAL(0, 
+                    ham_cursor_erase(m_cursor, 0));
+        ham_u32_t c;
+        BFC_ASSERT_EQUAL(HAM_CURSOR_IS_NIL, 
+                    ham_cursor_get_duplicate_count(m_cursor, &c, 0));
+    }
 };
 
 BFC_REGISTER_FIXTURE(TempTxnCursorTest);

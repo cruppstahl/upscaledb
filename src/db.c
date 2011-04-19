@@ -2299,19 +2299,19 @@ _local_fun_erase(ham_db_t *db, ham_txn_t *txn, ham_key_t *key, ham_u32_t flags)
         *(ham_offset_t *)key->data=recno;
     }
 
-    if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
-        if ((st=txn_begin(&local_txn, env, 0)))
-            return (st);
-    }
-
-    db_update_global_stats_erase_query(db, key->size);
-
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
         st=cache_purge(env_get_cache(db_get_env(db)));
         if (st)
             return (st);
     }
+
+    if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        if ((st=txn_begin(&local_txn, env, 0)))
+            return (st);
+    }
+
+    db_update_global_stats_erase_query(db, key->size);
 
     /* 
      * if transactions are enabled: append a 'erase key' operation into
@@ -2387,6 +2387,13 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     if (!be->_fun_find)
         return (HAM_NOT_IMPLEMENTED);
 
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=cache_purge(env_get_cache(db_get_env(db)));
+        if (st)
+            return (st);
+    }
+
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
     if (!txn && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
@@ -2396,13 +2403,6 @@ _local_fun_find(ham_db_t *db, ham_txn_t *txn, ham_key_t *key,
     }
 
     db_update_global_stats_find_query(db, key->size);
-
-    /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=cache_purge(env_get_cache(db_get_env(db)));
-        if (st)
-            return (st);
-    }
 
     /* 
      * if transactions are enabled: read keys from transaction trees, 
@@ -2557,6 +2557,13 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         flags|=HAM_HINT_APPEND;
     }
 
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=cache_purge(env_get_cache(db_get_env(db)));
+        if (st)
+            return (st);
+    }
+
     /*
      * run the record-level filters on a temporary record structure - we
      * don't want to mess up the original structure
@@ -2567,13 +2574,6 @@ _local_cursor_insert(ham_cursor_t *cursor, ham_key_t *key,
         db_update_global_stats_insert_query(db, key->size, temprec.size);
     else
         return (st);
-
-    /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=cache_purge(env_get_cache(db_get_env(db)));
-        if (st)
-            return (st);
-    }
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */
@@ -2901,8 +2901,11 @@ static ham_status_t
 _local_cursor_get_duplicate_count(ham_cursor_t *cursor, 
         ham_size_t *count, ham_u32_t flags)
 {
-    ham_status_t st;
+    ham_status_t st=0;
     ham_db_t *db=cursor_get_db(cursor);
+    ham_env_t *env=db_get_env(db);
+    ham_txn_t *local_txn=0;
+    txn_cursor_t *txnc=cursor_get_txn_cursor(cursor);
 
     /* purge cache if necessary */
     if (__cache_needs_purge(db_get_env(db))) {
@@ -2911,7 +2914,61 @@ _local_cursor_get_duplicate_count(ham_cursor_t *cursor,
             return (st);
     }
 
-    return ((*cursor->_fun_get_duplicate_count)(cursor, count, flags));
+    if (cursor->_fun_is_nil(cursor) && txn_cursor_is_nil(txnc))
+        return (HAM_CURSOR_IS_NIL);
+
+    /* if user did not specify a transaction, but transactions are enabled:
+     * create a temporary one */
+    if (!cursor_get_txn(cursor) 
+            && (db_get_rt_flags(db)&HAM_ENABLE_TRANSACTIONS)) {
+        st=txn_begin(&local_txn, env, 0);
+        if (st)
+            return (st);
+        cursor_set_txn(cursor, local_txn);
+    }
+
+    if (cursor_get_txn(cursor) || local_txn) {
+        if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
+            ham_bool_t dummy;
+            dupecache_t *dc=cursor_get_dupecache(cursor);
+
+            (void)cursor_sync(cursor, 0, &dummy);
+            st=cursor_update_dupecache(cursor, DUPE_CHECK_TXN|DUPE_CHECK_BTREE);
+            if (st)
+                return (st);
+            *count=dupecache_get_count(dc);
+        }
+        else {
+            /* obviously the key exists, since the cursor is coupled to
+             * a valid item */
+            *count=1;
+        }
+    }
+    else {
+        st=cursor->_fun_get_duplicate_count(cursor, count, flags);
+    }
+
+    /* if we created a temp. txn then clean it up again */
+    if (local_txn)
+        cursor_set_txn(cursor, 0);
+
+    if (st) {
+        if (local_txn)
+            (void)txn_abort(local_txn, 0);
+        return (st);
+    }
+
+    /* set a flag that the cursor just completed an Insert-or-find 
+     * operation; this information is needed in ham_cursor_move */
+    cursor_set_lastop(cursor, CURSOR_LOOKUP_INSERT);
+
+    if (local_txn)
+        return (txn_commit(local_txn, 0));
+    else if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY 
+            && !(env_get_rt_flags(env)&HAM_ENABLE_TRANSACTIONS))
+        return (changeset_flush(env_get_changeset(env), DUMMY_LSN));
+    else
+        return (st);
 }
 
 static ham_status_t
@@ -2924,6 +2981,13 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     ham_record_t temprec;
     ham_txn_t *local_txn=0;
 
+    /* purge cache if necessary */
+    if (__cache_needs_purge(db_get_env(db))) {
+        st=cache_purge(env_get_cache(db_get_env(db)));
+        if (st)
+            return (st);
+    }
+
     /*
      * run the record-level filters on a temporary record structure - we
      * don't want to mess up the original structure
@@ -2932,13 +2996,6 @@ _local_cursor_overwrite(ham_cursor_t *cursor, ham_record_t *record,
     st=__record_filters_before_write(db, &temprec);
     if (st)
         return (st);
-
-    /* purge cache if necessary */
-    if (__cache_needs_purge(db_get_env(db))) {
-        st=cache_purge(env_get_cache(db_get_env(db)));
-        if (st)
-            return (st);
-    }
 
     /* if user did not specify a transaction, but transactions are enabled:
      * create a temporary one */

@@ -186,12 +186,6 @@ txn_cursor_get_record(txn_cursor_t *cursor, ham_record_t *record);
 extern ham_status_t
 txn_cursor_erase(txn_cursor_t *cursor);
 
-/**
- * returns duplicate of the current item
- */
-extern ham_status_t
-txn_cursor_get_duplicate_count(txn_cursor_t *cursor, ham_u32_t *count);
-
 
 #ifdef __cplusplus
 } // extern "C"

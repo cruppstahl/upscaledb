@@ -828,15 +828,16 @@ o support cursors!!!
                 x unittest
                 x document in changelog and header file
 
-            o get_duplicate_count
-                o create a temp. transaction if there's no transaction
-                o implement txn_cursor_get_dupe_count
-                o w/ non-existing key
-                o w/ 1 txn-key
-                o w/ 1 btree-key
-                o w/ mixed txn/btree keys
-                o w/ overwriting txn/btree keys
-                o w/ erasing txn/btree keys
+            x get_duplicate_count
+                x create a temp. transaction if there's no transaction
+                x w/ non-existing key
+                x w/ 1 txn-key
+                x w/ 1 btree-key
+                x w/ mixed txn/btree keys
+                x w/ overwriting txn/btree keys
+                x w/ erasing txn/btree keys 
+                        (DupeCursorTest::countMixedErasedTest)
+                x w/o HAM_ENABLE_DUPLICATES and a transaction
 
             o test with tiny, small, null records
                 -> check for dupe_entry_get_rid in cursor.c

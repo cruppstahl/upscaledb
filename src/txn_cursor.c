@@ -437,9 +437,3 @@ txn_cursor_erase(txn_cursor_t *cursor)
     return (0);
 }
 
-ham_status_t
-txn_cursor_get_duplicate_count(txn_cursor_t *cursor, ham_u32_t *count)
-{
-    /* TODO */
-    return (0);
-}
