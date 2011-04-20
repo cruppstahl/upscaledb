@@ -853,6 +853,8 @@ o support cursors!!!
                     -> or also return an error? and have a separate option
                         later to allow this behavior?
                 o identify all functions which are affected
+                    o ham_insert
+                    o ham_erase
                     o ham_find
                     o ham_cursor_find
                     o ham_cursor_erase
