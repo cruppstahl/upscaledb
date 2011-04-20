@@ -203,9 +203,7 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
                 dupecache_line_t dcl={0};
                 dupe_entry_t *e=dupe_table_get_entry(table, i);
                 dupecache_line_set_btree(&dcl, HAM_TRUE);
-                dupecache_line_set_btree_flags(&dcl, dupe_entry_get_flags(e));
                 dupecache_line_set_btree_dupe_idx(&dcl, i);
-                dupecache_line_set_btree_rid(&dcl, dupe_entry_get_rid(e));
                 st=dupecache_append(dc, &dcl);
                 if (st) {
                     allocator_free(env_get_allocator(env), table);

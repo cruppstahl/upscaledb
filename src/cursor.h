@@ -38,18 +38,9 @@ typedef struct dupecache_line_t {
     ham_bool_t _use_btree;
 
     union {
-        struct {
-            /** the btree flags */
-            ham_u32_t _btree_flags;
+        /** the btree duplicate index (of the original btree dupe table) */
+        ham_u64_t _btree_dupeidx;
 
-            /** the btree record ID */
-            ham_u64_t _btree_rid;
-
-            /** the btree duplicate index (of the original btree dupe table) */
-            ham_u64_t _btree_dupeidx;
-
-        } _b;
-        
         /** the txn op structure */
         txn_op_t *_op;
     } _u;
@@ -62,23 +53,11 @@ typedef struct dupecache_line_t {
 /** Specifies which part of the union is used */
 #define dupecache_line_set_btree(dcl, b)        (dcl)->_use_btree=b
 
-/** Get flags of the btree record */
-#define dupecache_line_get_btree_flags(dcl)     (dcl)->_u._b._btree_flags
-
-/** Set flags of the btree record */
-#define dupecache_line_set_btree_flags(dcl, f)  (dcl)->_u._b._btree_flags=f
-
-/** Get ID of the btree record */
-#define dupecache_line_get_btree_rid(dcl)       (dcl)->_u._b._btree_rid
-
-/** Set ID of the btree record */
-#define dupecache_line_set_btree_rid(dcl, rid)  (dcl)->_u._b._btree_rid=rid
-
 /** Get the btree duplicate index */
-#define dupecache_line_get_btree_dupe_idx(dcl)  (dcl)->_u._b._btree_dupeidx
+#define dupecache_line_get_btree_dupe_idx(dcl)  (dcl)->_u._btree_dupeidx
 
 /** Set the btree duplicate index */
-#define dupecache_line_set_btree_dupe_idx(d, i) (d)->_u._b._btree_dupeidx=i
+#define dupecache_line_set_btree_dupe_idx(d, i) (d)->_u._btree_dupeidx=i
 
 /** Get txn_op_t pointer of the txn record */
 #define dupecache_line_get_txn_op(dcl)          (dcl)->_u._op

@@ -198,6 +198,10 @@ txn_opnode_get(ham_db_t *db, ham_key_t *key, ham_u32_t flags)
     else 
         return (rbt_search(tree, &tmp));
 
+    /* tree is empty? */
+    if (!node)
+        return (0);
+
     /* approx. matching: set the key flag */
     /* TODO this compare is not necessary; instead, change rbt_*search to 
      * return a flag if it's a direct hit or not */

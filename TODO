@@ -839,8 +839,10 @@ o support cursors!!!
                         (DupeCursorTest::countMixedErasedTest)
                 x w/o HAM_ENABLE_DUPLICATES and a transaction
 
-            o test with tiny, small, null records
-                -> check for dupe_entry_get_rid in cursor.c
+            x test with tiny, small, null records
+                x review use of dupe_entry_get_rid in cursor.c
+                    -> not used, and btree_flags are also not used - removed
+                x add unittests
 
             o if ANY duplicate key is conflicting, then ALL duplicate keys
                 are conflicting!
