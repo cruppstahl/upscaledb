@@ -848,10 +848,9 @@ o support cursors!!!
                 are conflicting!
                 o document this behavior in the header file
                 o what happens with CURSOR_MOVE_FIRST/CURSOR_MOVE_LAST?
-                    -> rather return an error
+                    -> return an error
                 o implement for HAM_CURSOR_NEXT, HAM_CURSOR_PREVIOUS
-                    -> or also return an error? and have a separate option
-                        later to allow this behavior?
+                    -> return an error
                 o identify all functions which are affected
                     o ham_insert
                     o ham_erase
@@ -859,6 +858,10 @@ o support cursors!!!
                     o ham_cursor_find
                     o ham_cursor_erase
                     o ham_cursor_move
+                        o first
+                        o last
+                        o next
+                        o previous
                     o ham_cursor_overwrite
                 o unittests
 
@@ -871,10 +874,6 @@ o support cursors!!!
         -> cursor.c uses a different loop because this one was not working!
         -> yes, all loops were broken (but it had no consequences, since the
             loop was never really executed)
-
-        o more tests with different transactions - make sure that ALL 
-            functions react correctly when there are keys from other (visible
-            or invisible) transactions; esp. w/ duplicate keys!
 
 x add hamsterdb.spec file from 1.1.8
     https://github.com/cruppstahl/hamsterdb/commit/46260d14d0192299b15286c93a843d11dc4ccaa6
@@ -889,6 +888,7 @@ o add other pending patches from master
 o the doxygen documentation is horrible. When opening the start page I have
     *NO* idea what to look for. The start page needs an introduction and 
     some links!
+    o also do this for the master branch
 
 x currently, two log sub-systems are used. one for logical journal and the 
     other for the physical one. in a later version we will only use the journal
@@ -925,6 +925,7 @@ o update documentation
     o in the wiki
         o don't forget to list all functions that are currently disabled
             w/ txn's -> sorting dupes, approx. matching, ...
+        o transactional behavior/conflicts of duplicate keys
 
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
 
