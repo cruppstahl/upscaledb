@@ -157,6 +157,9 @@ __move_top_in_node(txn_cursor_t *cursor, txn_opnode_t *node, txn_op_t *op,
         else if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
             ; /* nop */
         else if (!ignore_conflicts) {
+            /* we still have to couple, because higher-level functions
+             * will need to know about the op when consolidating the trees */
+            txn_cursor_couple(cursor, op);
             return (HAM_TXN_CONFLICT);
         }
 
@@ -188,7 +191,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
         node=txn_tree_get_first(db_get_optree(db));
         if (!node)
             return (HAM_KEY_NOT_FOUND);
-        return (__move_top_in_node(cursor, node, 0, HAM_TRUE, flags));
+        return (__move_top_in_node(cursor, node, 0, HAM_FALSE, flags));
     }
     else if (flags&HAM_CURSOR_LAST) {
         /* first set cursor to nil */
@@ -197,7 +200,7 @@ txn_cursor_move(txn_cursor_t *cursor, ham_u32_t flags)
         node=txn_tree_get_last(db_get_optree(db));
         if (!node)
             return (HAM_KEY_NOT_FOUND);
-        return (__move_top_in_node(cursor, node, 0, HAM_TRUE, flags));
+        return (__move_top_in_node(cursor, node, 0, HAM_FALSE, flags));
     }
     else if (flags&HAM_CURSOR_NEXT) {
         txn_op_t *op=txn_cursor_get_coupled_op(cursor);

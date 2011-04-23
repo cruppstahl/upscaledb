@@ -184,6 +184,11 @@ txn_op_add_cursor(txn_op_t *op, struct txn_cursor_t *cursor);
 extern void
 txn_op_remove_cursor(txn_op_t *op, struct txn_cursor_t *cursor);
 
+/**
+ * returns true if the op is in a txn which has a conflict
+ */
+extern ham_bool_t
+txn_op_conflicts(txn_op_t *op, ham_txn_t *current_txn);
 
 /*
  * a node in the red-black Transaction tree (implemented in rb.h); 

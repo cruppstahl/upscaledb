@@ -2298,6 +2298,15 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * will skip the modified key. (This behavior is different from i.e. 
  * @a ham_cursor_find, which would return the error @ref HAM_TXN_CONFLICT).
  *
+ * If a key has duplicates and any of the duplicates is currently modified
+ * in another active Transaction, then ALL duplicate keys are skipped when
+ * moving to the next or previous key.
+ *
+ * If the first (@ref HAM_CURSOR_FIRST) or last (@ref HAM_CURSOR_LAST) key
+ * is requested, and this key (or any of its duplicate keys) is currently
+ * modified in an active Transaction, then @ref HAM_TXN_CONFLICT is 
+ * returned.
+ *
  * @param cursor A valid Cursor handle
  * @param key An optional pointer to a @ref ham_key_t structure. If this
  *      pointer is not NULL, the key of the new item is returned.
@@ -2355,6 +2364,10 @@ ham_cursor_clone(ham_cursor_t *src, ham_cursor_t **dest);
  * @return @ref HAM_INV_PARAMETER if @ref HAM_PARTIAL is specified and
  *              record->partial_offset+record->partial_size exceeds the
  *              record->size
+ * @return @ref HAM_TXN_CONFLICT if @ref HAM_CURSOR_FIRST or @ref
+ *              HAM_CURSOR_LAST is specified but the first (or last) key or
+ *              any of its duplicates is currently modified in an active
+ *              Transaction
  *
  * @sa HAM_RECORD_USER_ALLOC
  * @sa HAM_KEY_USER_ALLOC

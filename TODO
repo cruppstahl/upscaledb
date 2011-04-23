@@ -846,24 +846,29 @@ o support cursors!!!
 
             o if ANY duplicate key is conflicting, then ALL duplicate keys
                 are conflicting!
-                o document this behavior in the header file
-                o what happens with CURSOR_MOVE_FIRST/CURSOR_MOVE_LAST?
+                x document this behavior in the header file
+                x what happens with CURSOR_MOVE_FIRST/CURSOR_MOVE_LAST?
                     -> return an error
-                o implement for HAM_CURSOR_NEXT, HAM_CURSOR_PREVIOUS
-                    -> return an error
-                o identify all functions which are affected
+                x implement for HAM_CURSOR_NEXT, HAM_CURSOR_PREVIOUS
+                    -> completely skip
+==================
+some unittests have regressions - txn_cursor.cpp
+
+also run all other tests
+==================
+                o identify all functions which are affected and cover with
+                    unittests
                     o ham_insert
                     o ham_erase
                     o ham_find
                     o ham_cursor_find
                     o ham_cursor_erase
                     o ham_cursor_move
-                        o first
-                        o last
-                        o next
-                        o previous
+                        x first
+                        x last
+                        x next
+                        x previous
                     o ham_cursor_overwrite
-                o unittests
 
     x review all loops that are like...
         op=txn_node_get_newest();

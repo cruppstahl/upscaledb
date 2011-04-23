@@ -3190,7 +3190,10 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * !!
          * if the key has duplicates which were erased then return - dupes
          * are handled by the caller */
-        else if (btrs==0 && (txns==0 || txns==HAM_KEY_ERASED_IN_TXN)) {
+        else if (btrs==0 
+                && (txns==0 
+                    || txns==HAM_KEY_ERASED_IN_TXN
+                    || txns==HAM_TXN_CONFLICT)) {
             int cmp;
 
             st=__compare_cursors((ham_bt_cursor_t *)cursor, txnc, &cmp);
@@ -3229,6 +3232,9 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                         *pwhat=DUPE_CHECK_BTREE|DUPE_CHECK_TXN;
                     return (txns);
                 }
+                else if (txns==HAM_TXN_CONFLICT) {
+                    return (txns);
+                }
                 /* if the btree entry was overwritten in the txn: move the
                  * btree entry to the next key */
                 else if (txns==HAM_SUCCESS) {
@@ -3249,6 +3255,8 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                         cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
             }
             else {
+                if (txns==HAM_TXN_CONFLICT)
+                    return (txns);
                 /* couple to txn */
                 cursor_set_flags(cursor, 
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
@@ -3301,7 +3309,10 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
          * !!
          * if the key has duplicates which were erased then return - dupes
          * are handled by the caller */
-        else if (btrs==0 && (txns==0 || txns==HAM_KEY_ERASED_IN_TXN)) {
+        else if (btrs==0 
+                && (txns==0 
+                    || txns==HAM_KEY_ERASED_IN_TXN
+                    || txns==HAM_TXN_CONFLICT)) {
             int cmp;
 
             st=__compare_cursors((ham_bt_cursor_t *)cursor, txnc, &cmp);
@@ -3340,6 +3351,9 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
                         *pwhat=DUPE_CHECK_BTREE|DUPE_CHECK_TXN;
                     return (txns);
                 }
+                else if (txns==HAM_TXN_CONFLICT) {
+                    return (txns);
+                }
                 /* if the btree entry was overwritten in the txn: move the
                  * btree entry to the previous key */
                 else if (txns==HAM_SUCCESS) {
@@ -3356,6 +3370,8 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             }
             else if (cmp<1) {
                 /* couple to txn */
+                if (txns==HAM_TXN_CONFLICT)
+                    return (txns);
                 cursor_set_flags(cursor, 
                         cursor_get_flags(cursor)|CURSOR_COUPLED_TO_TXN);
             }
@@ -3449,10 +3465,13 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
             st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
-            if (st==HAM_SUCCESS || st==HAM_KEY_ERASED_IN_TXN) {
+            if (st==HAM_SUCCESS 
+                    || st==HAM_KEY_ERASED_IN_TXN
+                    || st==HAM_TXN_CONFLICT) {
                 flags&=~HAM_CURSOR_FIRST;
                 flags|=HAM_CURSOR_NEXT;
-                (void)cursor->_fun_move(cursor, 0, 0, flags);
+                if (st!=HAM_TXN_CONFLICT)
+                    (void)cursor->_fun_move(cursor, 0, 0, flags);
                 st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
                 if (st)
                     goto bail;
@@ -3593,10 +3612,13 @@ do_local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
             cursor_set_flags(cursor, 
                     cursor_get_flags(cursor)&(~CURSOR_COUPLED_TO_TXN));
             st=cursor_check_if_btree_key_is_erased_or_overwritten(cursor);
-            if (st==HAM_SUCCESS || st==HAM_KEY_ERASED_IN_TXN) {
+            if (st==HAM_SUCCESS 
+                    || st==HAM_KEY_ERASED_IN_TXN
+                    || st==HAM_TXN_CONFLICT) {
                 flags&=~HAM_CURSOR_LAST;
                 flags|=HAM_CURSOR_PREVIOUS;
-                (void)cursor->_fun_move(cursor, 0, 0, flags);
+                if (st!=HAM_TXN_CONFLICT)
+                    (void)cursor->_fun_move(cursor, 0, 0, flags);
                 st=do_local_cursor_move(cursor, key, record, flags, 0, 0);
                 if (st)
                     goto bail;
@@ -3824,7 +3846,9 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
      * because a txn-op might replace the first/oldest duplicate) */
     if (db_get_rt_flags(db)&HAM_ENABLE_DUPLICATES) {
         if (what) {
-            ham_status_t st1=cursor_update_dupecache(cursor, what);
+            ham_status_t st1;
+            dupecache_reset(dc);
+            st1=cursor_update_dupecache(cursor, what);
             if (st1)
                 return (st1);
         }
@@ -3833,7 +3857,47 @@ _local_cursor_move(ham_cursor_t *cursor, ham_key_t *key,
     /* this key has duplicates? then make sure we pick the right one - either
      * the first or the last, depending on the flags. */
     if (dupecache_get_count(dc)) {
+        ham_txn_t *txn=cursor_get_txn(cursor);
+        if (!txn)
+            txn=local_txn;
         st=0; /* clear HAM_KEY_ERASED_IN_TXN */
+
+        /* check if ANY duplicate has a conflict - if yes then skip 
+         * the whole key (with ALL duplicates) */
+        if (txn) {
+            ham_u32_t i;
+            for (i=0; i<dupecache_get_count(dc); i++) {
+                dupecache_line_t *e=dupecache_get_elements(dc)+i;
+                if (!dupecache_line_use_btree(e)) {
+                    txn_op_t *op=dupecache_line_get_txn_op(e);
+                    if (txn_op_conflicts(op, txn)) {
+                        /* couple to the first (or last) duplicate and move
+                        * to the previous (or next) key */ 
+                        if (flags&HAM_CURSOR_NEXT) {
+                            cursor_couple_to_dupe(cursor, 
+                                    dupecache_get_count(dc));
+                            flags|=HAM_CURSOR_FIRST;
+                            goto move_next_or_prev;
+                        }
+                        if (flags&HAM_CURSOR_PREVIOUS) {
+                            cursor_couple_to_dupe(cursor, 1);
+                            flags|=HAM_CURSOR_LAST;
+                            goto move_next_or_prev;
+                        }
+                        else if (flags&HAM_CURSOR_FIRST) {
+                            ham_assert(!"shouldn't be here", (""));
+                            st=HAM_TXN_CONFLICT;
+                            goto bail;
+                        }
+                        else if (flags&HAM_CURSOR_LAST) {
+                            ham_assert(!"shouldn't be here", (""));
+                            st=HAM_TXN_CONFLICT;
+                            goto bail;
+                        }
+                    }
+                }
+            }
+        }
 
         if ((flags&HAM_CURSOR_FIRST) || (flags&HAM_CURSOR_NEXT)) {
             cursor_couple_to_dupe(cursor, 1);

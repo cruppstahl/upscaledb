@@ -96,6 +96,19 @@ txn_op_remove_cursor(txn_op_t *op, struct txn_cursor_t *cursor)
     txn_cursor_set_coupled_previous(cursor, 0);
 }
 
+ham_bool_t
+txn_op_conflicts(txn_op_t *op, ham_txn_t *current_txn)
+{
+    ham_txn_t *optxn=txn_op_get_txn(op);
+    if (txn_get_flags(optxn)&TXN_STATE_ABORTED)
+        return (HAM_FALSE);
+    else if ((txn_get_flags(optxn)&TXN_STATE_COMMITTED)
+            || (current_txn==optxn))
+        return (HAM_FALSE);
+    else /* txn is still active */
+        return (HAM_TRUE);
+}
+
 txn_optree_t *
 txn_tree_get_or_create(ham_db_t *db)
 {
@@ -387,7 +400,7 @@ txn_abort(ham_txn_t *txn, ham_u32_t flags)
      */
     txn_set_flags(txn, txn_get_flags(txn)|TXN_STATE_ABORTED);
 
-#if 0
+#if 0 /* TODO remove this!? */
     /* decrease the reference counter of the modified databases */
     __decrease_db_refcount(txn);
 #endif

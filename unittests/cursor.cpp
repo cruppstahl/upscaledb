@@ -4012,6 +4012,13 @@ public:
         BFC_REGISTER_TEST(DupeCursorTest, tinyDupesTest);
         BFC_REGISTER_TEST(DupeCursorTest, smallDupesTest);
         BFC_REGISTER_TEST(DupeCursorTest, bigDupesTest);
+
+        BFC_REGISTER_TEST(DupeCursorTest, conflictFirstTest);
+        BFC_REGISTER_TEST(DupeCursorTest, conflictFirstTest2);
+        BFC_REGISTER_TEST(DupeCursorTest, conflictLastTest);
+        BFC_REGISTER_TEST(DupeCursorTest, conflictLastTest2);
+        BFC_REGISTER_TEST(DupeCursorTest, conflictNextTest);
+        BFC_REGISTER_TEST(DupeCursorTest, conflictPreviousTest);
     }
 
     virtual void setup() 
@@ -6144,6 +6151,112 @@ public:
         BFC_ASSERT_EQUAL(0, move       ("k1", "2222222222", HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(0, move       ("k1", "3333333333", HAM_CURSOR_NEXT));
         BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, move(0, 0, HAM_CURSOR_NEXT));
+    }
+
+    void conflictFirstTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k2", "2"));
+
+        ham_txn_t *txn;
+        ham_cursor_t *c;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
+        BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, 
+                    move("k1", "1", HAM_CURSOR_FIRST, c));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+    }
+
+    void conflictFirstTest2(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k0", "0"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "1"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k2", "2"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k3", "3"));
+
+        ham_txn_t *txn;
+        ham_cursor_t *c;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
+        BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, move(0, 0, HAM_CURSOR_FIRST, c));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+    }
+
+    void conflictLastTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k0", "0"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "1"));
+
+        ham_txn_t *txn;
+        ham_cursor_t *c;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
+        BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, 
+                    move("k1", "1", HAM_CURSOR_LAST, c));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+    }
+
+    void conflictLastTest2(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("k0", "0"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k2", "0"));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k3", "1"));
+
+
+        ham_txn_t *txn;
+        ham_cursor_t *c;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
+        BFC_ASSERT_EQUAL(HAM_TXN_CONFLICT, 
+                    move("k3", "1", HAM_CURSOR_LAST, c));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+    }
+
+    void conflictNextTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("k0", "0"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k2", "2"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k3", "3"));
+
+        ham_txn_t *txn;
+        ham_cursor_t *c;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
+        BFC_ASSERT_EQUAL(0, move("k0", "0", HAM_CURSOR_FIRST, c));
+        BFC_ASSERT_EQUAL(0, move("k3", "3", HAM_CURSOR_NEXT, c));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                move(0, 0, HAM_CURSOR_NEXT, c));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
+    }
+
+    void conflictPreviousTest(void)
+    {
+        BFC_ASSERT_EQUAL(0, insertBtree("k0", "0"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "1"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k1", "2", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k1", "3", HAM_DUPLICATE));
+        BFC_ASSERT_EQUAL(0, insertTxn  ("k2", "2"));
+        BFC_ASSERT_EQUAL(0, insertBtree("k3", "3"));
+
+        ham_txn_t *txn;
+        ham_cursor_t *c;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        BFC_ASSERT_EQUAL(0, ham_cursor_create(m_db, txn, 0, &c));
+        BFC_ASSERT_EQUAL(0, move("k3", "3", HAM_CURSOR_LAST, c));
+        BFC_ASSERT_EQUAL(0, move("k0", "0", HAM_CURSOR_PREVIOUS, c));
+        BFC_ASSERT_EQUAL(HAM_KEY_NOT_FOUND, 
+                move(0, 0, HAM_CURSOR_PREVIOUS, c));
+        BFC_ASSERT_EQUAL(0, ham_cursor_close(c));
+        BFC_ASSERT_EQUAL(0, ham_txn_abort(txn, 0));
     }
 };
 

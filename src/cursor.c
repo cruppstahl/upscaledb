@@ -201,7 +201,6 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
         if (table) {
             for (i=0; i<dupe_table_get_count(table); i++) {
                 dupecache_line_t dcl={0};
-                dupe_entry_t *e=dupe_table_get_entry(table, i);
                 dupecache_line_set_btree(&dcl, HAM_TRUE);
                 dupecache_line_set_btree_dupe_idx(&dcl, i);
                 st=dupecache_append(dc, &dcl);
@@ -229,10 +228,9 @@ cursor_update_dupecache(ham_cursor_t *cursor, ham_u32_t what)
 
         while (op) {
             ham_txn_t *optxn=txn_op_get_txn(op);
-            /* only look at ops from the current transaction and from 
-            * committed transactions */
-            if ((optxn==cursor_get_txn(cursor))
-                    || (txn_get_flags(optxn)&TXN_STATE_COMMITTED)) {
+            /* collect all ops that are valid (even those that are 
+             * from conflicting transactions) */
+            if (!(txn_get_flags(optxn)&TXN_STATE_ABORTED)) {
                 /* a normal (overwriting) insert will overwrite ALL dupes,
                  * but an overwrite of a duplicate will only overwrite
                  * an entry in the dupecache */
