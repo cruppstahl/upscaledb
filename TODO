@@ -32,6 +32,9 @@ x (mail from Mark) - currently, hamsterdb does not release memory properly
     x do more benchmarks; 20% is better when inserting sequentially, but what
         about random access?
 
+o when HAM_NEEDS_RECOVERY is returned, hamsterdb closes the Env 
+    (hamsterdb.c:1883) and also clears the logfile, and they're lost
+
 o release 1.1.10
 
 ------------------------------------------------------------
