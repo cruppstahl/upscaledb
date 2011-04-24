@@ -1,5 +1,7 @@
-Apr 20, 2011 - chris ---------------------------------------------------
-                      release of hamsterdb-1.1.10
+Apr 24, 2011 - chris ---------------------------------------------------
+o bugfix: after SMOs which affect the root page (i.e. a new root page is
+    created) the header page is not written to the log file. This can cause
+    data loss after recovery (Thanks, Mark)
 
 Apr 15, 2011 - chris ---------------------------------------------------
 o bugfix: the cache was not purged correctly, thus grew uncontrolled

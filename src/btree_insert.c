@@ -395,10 +395,9 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
         btree_set_rootpage(be, page_get_self(newroot));
         be_set_dirty(be, HAM_TRUE);
         env_set_dirty(env);
-        if (env_get_cache(env) && (page_get_type(root)!=PAGE_TYPE_B_INDEX)) 
-        {
+        if (env_get_cache(env) && (page_get_type(root)!=PAGE_TYPE_B_INDEX)) {
             /*
-             *  As we re-purpose a page, we will reset its pagecounter
+             * As we re-purpose a page, we will reset its pagecounter
              * as well to signal its first use as the new type assigned
              * here.
              */
@@ -407,6 +406,15 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
         page_set_type(root, PAGE_TYPE_B_INDEX);
         page_set_dirty(root, env);
         page_set_dirty(newroot, env);
+
+        /* the root page was modified (btree_set_rootpage) - make sure that
+         * it's logged */
+        if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+            st=txn_add_page(env_get_txn(env), env_get_header_page(env),
+                    HAM_TRUE);
+            if (st)
+                return (st);
+        }
     }
 
     /*

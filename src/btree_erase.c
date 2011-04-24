@@ -437,6 +437,15 @@ __collapse_root(ham_page_t *newroot, erase_scratchpad_t *scratchpad)
     ham_assert(env!=0, (""));
     env_set_dirty(env);
 
+    /* the root page was modified (btree_set_rootpage) - make sure that
+     * it's logged */
+    if (env_get_rt_flags(env)&HAM_ENABLE_RECOVERY) {
+        ham_status_t st=txn_add_page(env_get_txn(env), env_get_header_page(env),
+                HAM_TRUE);
+        if (st)
+            return (st);
+    }
+
     /*
      * As we re-purpose a page, we will reset its pagecounter as
      * well to signal its first use as the new type assigned here.
