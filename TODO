@@ -32,11 +32,12 @@ x (mail from Mark) - currently, hamsterdb does not release memory properly
     x do more benchmarks; 20% is better when inserting sequentially, but what
         about random access?
 
-o (mail from Mark) - the index page is not correctly logged when it'S modified
+x (mail from Mark) - the index page is not correctly logged when it's modified
     after an SMO (i.e. root page split or root collapse).
     x analyze and fix this issue
-    o create unittests which verify this behavior (i.e. recover after a page
+    x create unittests which verify this behavior (i.e. recover after a page
         split and check if the keys are all reachable)
+    x same about eraseing items and merging pages/collapsing root page
 
 o when HAM_NEEDS_RECOVERY is returned, hamsterdb closes the Env 
     (hamsterdb.c:1883) and also clears the logfile, and they're lost

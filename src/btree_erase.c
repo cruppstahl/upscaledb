@@ -431,6 +431,8 @@ __collapse_root(ham_page_t *newroot, erase_scratchpad_t *scratchpad)
 
     btree_set_rootpage(scratchpad->be, page_get_self(newroot));
     be_set_dirty(scratchpad->be, HAM_TRUE);
+    scratchpad->be->_fun_flush(scratchpad->be);
+
     ham_assert(page_get_owner(newroot), (0));
 
     env = db_get_env(page_get_owner(newroot));

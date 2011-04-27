@@ -391,18 +391,24 @@ __insert_cursor(ham_btree_t *be, ham_key_t *key, ham_record_t *record,
          *
          * !!
          * do NOT delete the old root page - it's still in use!
+         *
+         * also don't forget to flush the backend - otherwise the header
+         * page of the database will not contain the updated information.
+         * The backend is flushed when the database is closed, but if 
+         * recovery is enabled then the flush here is critical.
          */
         btree_set_rootpage(be, page_get_self(newroot));
         be_set_dirty(be, HAM_TRUE);
-        env_set_dirty(env);
-        if (env_get_cache(env) && (page_get_type(root)!=PAGE_TYPE_B_INDEX)) {
-            /*
-             * As we re-purpose a page, we will reset its pagecounter
-             * as well to signal its first use as the new type assigned
-             * here.
-             */
+        be->_fun_flush(be);
+
+        /*
+         * As we re-purpose a page, we will reset its pagecounter
+         * as well to signal its first use as the new type assigned
+         * here.
+         */
+        if (env_get_cache(env) && (page_get_type(root)!=PAGE_TYPE_B_INDEX))
             cache_update_page_access_counter(root, env_get_cache(env), 0);
-        }
+
         page_set_type(root, PAGE_TYPE_B_INDEX);
         page_set_dirty(root, env);
         page_set_dirty(newroot, env);

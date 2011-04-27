@@ -882,9 +882,12 @@ public:
         BFC_REGISTER_TEST(LogHighLevelTest, singleInsertTest);
         BFC_REGISTER_TEST(LogHighLevelTest, doubleInsertTest);
         BFC_REGISTER_TEST(LogHighLevelTest, splitInsertTest);
+        BFC_REGISTER_TEST(LogHighLevelTest, splitInsertTxnTest);
+        BFC_REGISTER_TEST(LogHighLevelTest, splitInsertTxnRawcopyTest);
         BFC_REGISTER_TEST(LogHighLevelTest, insertAfterCheckpointTest);
         BFC_REGISTER_TEST(LogHighLevelTest, singleEraseTest);
         BFC_REGISTER_TEST(LogHighLevelTest, eraseMergeTest);
+        BFC_REGISTER_TEST(LogHighLevelTest, eraseMergeTxnRawcopyTest);
         BFC_REGISTER_TEST(LogHighLevelTest, cursorOverwriteTest);
         BFC_REGISTER_TEST(LogHighLevelTest, singleBlobTest);
         BFC_REGISTER_TEST(LogHighLevelTest, largeBlobTest);
@@ -1343,7 +1346,8 @@ public:
         compareLogs(&exp, &vec);
     }
 
-    void insert(const char *name, const char *data, ham_u32_t flags=0)
+    void insert(const char *name, const char *data, ham_u32_t flags=0,
+            ham_txn_t *txn=0, ham_status_t st=0)
     {
         ham_key_t key;
         ham_record_t rec;
@@ -1355,7 +1359,7 @@ public:
         rec.data=(void *)data;
         rec.size=(ham_u16_t)strlen(data)+1;
 
-        BFC_ASSERT_EQUAL(0, ham_insert(m_db, 0, &key, &rec, flags));
+        BFC_ASSERT_EQUAL(st, ham_insert(m_db, txn, &key, &rec, flags));
     }
 
     void find(const char *name, const char *data, ham_status_t result=0)
@@ -1373,7 +1377,7 @@ public:
             BFC_ASSERT_EQUAL(0, ::strcmp(data, (const char *)rec.data));
     }
 
-    void erase(const char *name)
+    void erase(const char *name, ham_txn_t *txn=0)
     {
         ham_key_t key;
         memset(&key, 0, sizeof(key));
@@ -1381,7 +1385,7 @@ public:
         key.data=(void *)name;
         key.size=(ham_u16_t)strlen(name)+1;
 
-        BFC_ASSERT_EQUAL(0, ham_erase(m_db, 0, &key, 0));
+        BFC_ASSERT_EQUAL(0, ham_erase(m_db, txn, &key, 0));
     }
 
     void singleInsertTest(void)
@@ -1449,7 +1453,6 @@ public:
         log_vector_t vec=readLog();
         log_vector_t exp;
 
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*1, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*2, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*3, 0, 0));
@@ -1476,6 +1479,143 @@ public:
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
+
+        find("a", "1");
+        find("b", "2");
+        find("c", "3");
+        find("d", "4");
+        find("e", "5");
+    }
+
+    void splitInsertTxnTest(void)
+    {
+        ham_parameter_t p[]={
+            {HAM_PARAM_PAGESIZE, 1024}, 
+            {HAM_PARAM_KEYSIZE,   200}, 
+            {0, 0}
+        };
+        ham_size_t ps=1024;
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create_ex(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_RECOVERY|HAM_ENABLE_TRANSACTIONS, 0644, p));
+
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        insert("a", "1", 0, txn);
+        insert("b", "2", 0, txn);
+        insert("c", "3", 0, txn);
+        insert("d", "4", 0, txn);
+        insert("e", "5", 0, txn);
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        open();
+        log_vector_t vec=readLog();
+        log_vector_t exp;
+
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*1, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*2, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps*3, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps*3, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, 0, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_PREWRITE, ps*3, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
+        compareLogs(&exp, &vec);
+    }
+
+    /* lessfs bug reported by Mark - after a commit, the header page was
+     * not flushed AND after recovery, the header page was not re-initialized
+     * with the data from the log, thus the information about the new root
+     * page was lost */
+    void splitInsertTxnRawcopyTest(void)
+    {
+        ham_parameter_t p[]={
+            {HAM_PARAM_PAGESIZE, 1024}, 
+            {HAM_PARAM_KEYSIZE,   200}, 
+            {0, 0}
+        };
+        ham_size_t ps=1024;
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create_ex(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_RECOVERY|HAM_ENABLE_TRANSACTIONS, 0644, p));
+
+        /* flush the header page */
+        BFC_ASSERT_EQUAL(0, ham_flush(m_db, 0));
+
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        insert("a", "1", 0, txn);
+        insert("b", "2", 0, txn);
+        insert("c", "3", 0, txn);
+        insert("d", "4", 0, txn);
+        insert("e", "5", 0, txn);
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+
+        /* copy the files before the database is flushed */
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".test"), ".xxxtest"));
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".test.log0"), ".xxxtest.log0"));
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".test.log1"), ".xxxtest.log1"));
+
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        /* restore the files */
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".xxxtest"), ".test"));
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".xxxtest.log0"), ".test.log0"));
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".xxxtest.log1"), ".test.log1"));
+
+        open();
+        log_vector_t vec=readLog();
+        log_vector_t exp;
+
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps*3, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, 0, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_PREWRITE, ps*3, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
+        compareLogs(&exp, &vec);
+
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        /* restore the files once more */
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".xxxtest"), ".test"));
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".xxxtest.log0"), ".test.log0"));
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".xxxtest.log1"), ".test.log1"));
+        os::unlink(".xxxtest");
+        os::unlink(".xxxtest.log0");
+        os::unlink(".xxxtest.log1");
+
+        /* now lookup all values - if the header page was not correctly
+         * updated, this will fail */
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
+        find("a", "1");
+        find("b", "2");
+        find("c", "3");
+        find("d", "4");
+        find("e", "5");
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void insertAfterCheckpointTest(void)
@@ -1569,7 +1709,6 @@ public:
         open();
         log_vector_t vec=readLog();
         log_vector_t exp;
-        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, ps, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0, 0));
         exp.push_back(LogEntry(8, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
@@ -1606,6 +1745,90 @@ public:
         exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
         exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
         compareLogs(&exp, &vec);
+    }
+
+    void eraseMergeTxnRawcopyTest(void)
+    {
+        ham_parameter_t p[]={
+            {HAM_PARAM_PAGESIZE, 1024}, 
+            {HAM_PARAM_KEYSIZE,   200}, 
+            {0, 0}
+        };
+        ham_size_t ps=1024;
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
+        BFC_ASSERT_EQUAL(0, 
+                ham_create_ex(m_db, BFC_OPATH(".test"), 
+                    HAM_ENABLE_RECOVERY|HAM_ENABLE_TRANSACTIONS, 0644, p));
+
+        /* flush the header page */
+        BFC_ASSERT_EQUAL(0, ham_flush(m_db, 0));
+
+        ham_txn_t *txn;
+        BFC_ASSERT_EQUAL(0, ham_txn_begin(&txn, m_db, 0));
+        insert("a", "1", 0, txn);
+        insert("b", "2", 0, txn);
+        insert("c", "3", 0, txn);
+        insert("d", "4", 0, txn);
+        insert("e", "5", 0, txn);
+        erase("e", txn);
+        erase("d", txn);
+        erase("c", txn);
+        BFC_ASSERT_EQUAL(0, ham_txn_commit(txn, 0));
+
+        /* copy the files before the database is flushed */
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".test"), ".xxxtest"));
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".test.log0"), ".xxxtest.log0"));
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".test.log1"), ".xxxtest.log1"));
+
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        /* restore the files */
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".xxxtest"), ".test"));
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".xxxtest.log0"), ".test.log0"));
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".xxxtest.log1"), ".test.log1"));
+
+        open();
+        log_vector_t vec=readLog();
+        log_vector_t exp;
+
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_COMMIT, 0, 0, 0));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps*2, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, ps*3, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_WRITE, 0, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_PREWRITE, ps*3, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_PREWRITE, ps*2, ps));
+        exp.push_back(LogEntry(1, LOG_ENTRY_TYPE_TXN_BEGIN, 0, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_FLUSH_PAGE, 0, 0));
+        exp.push_back(LogEntry(0, LOG_ENTRY_TYPE_PREWRITE, ps, ps));
+        compareLogs(&exp, &vec);
+
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, HAM_DONT_CLEAR_LOG));
+
+        /* restore the files once more */
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".xxxtest"), ".test"));
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".xxxtest.log0"), ".test.log0"));
+        BFC_ASSERT_EQUAL(true, 
+                os::copy(BFC_OPATH(".xxxtest.log1"), ".test.log1"));
+        os::unlink(".xxxtest");
+        os::unlink(".xxxtest.log0");
+        os::unlink(".xxxtest.log1");
+
+        /* now lookup all values - if the header page was not correctly
+         * updated, this will fail */
+        BFC_ASSERT_EQUAL(0, 
+                ham_open(m_db, BFC_OPATH(".test"), HAM_AUTO_RECOVERY));
+        find("a", "1");
+        find("b", "2");
+        BFC_ASSERT_EQUAL(0, ham_close(m_db, 0));
     }
 
     void cursorOverwriteTest(void)

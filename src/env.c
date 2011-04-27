@@ -274,6 +274,7 @@ _local_fun_open(ham_env_t *env, const char *filename, ham_u32_t flags,
      * read 512 byte and extract the "real" page size, then read 
      * the real page. (but i really don't like this)
      */
+read_headerpage:
     {
         ham_page_t *page=0;
         env_header_t *hdr;
@@ -421,22 +422,28 @@ fail_with_fake_cleansing:
             }
             env_set_log(env, log);
             if (!isempty) {
-                if (flags&HAM_AUTO_RECOVERY) 
-                {
+                if (flags&HAM_AUTO_RECOVERY) {
+                    ham_page_t *hdr=env_get_header_page(env);
                     st=ham_log_recover(log, env_get_device(env), env);
                     if (st) {
                         (void)ham_env_close(env, 0);
                         return (st);
                     }
-               }
+                    /* it's highly likely that the header page was modified 
+                     * during recovery, therefore we have to read it again */
+                    page_set_undirty(hdr);
+                    (void)page_free(hdr);
+                    page_delete(hdr);
+                    env_set_header_page(env, 0);
+                    goto read_headerpage;
+                }
                 else {
                     (void)ham_env_close(env, 0);
                     return (HAM_NEED_RECOVERY);
                 }
             }
         }
-        else if (st && st==HAM_FILE_NOT_FOUND)
-        {
+        else if (st && st==HAM_FILE_NOT_FOUND) {
             st=ham_log_create(env_get_allocator(env), env, 
                     env_get_filename(env), 0644, 0, &log);
             if (st) {
