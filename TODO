@@ -889,6 +889,7 @@ x precompiled windows libraries: hamserver-x.x.x.dll is still version 1.1.5
 
 o add other pending patches from master
     o cache and db.c:__purge_cache
+    o recovery issues
 
 o the doxygen documentation is horrible. When opening the start page I have
     *NO* idea what to look for. The start page needs an introduction and 
@@ -933,6 +934,8 @@ o update documentation
         o transactional behavior/conflicts of duplicate keys
 
 XXXXXXXXXXXXXXXXXXXXX release first version, merge with master XXXXXXXXXXXXXXX
+
+o be_set_dirty is not really required, is it? the flushes are always explicit
 
 o cleanup the cache - the garbagelist is not needed, and the age of the pages
     is also not needed (unless it turns out to improve the performance)
